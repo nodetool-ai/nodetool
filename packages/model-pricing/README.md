@@ -19,8 +19,9 @@ Looked up in order, first hit wins:
 1. **GenSpend, when its entry is parameter-priceable** —
    `src/generated/genspend-pricing.json`, keyed `<provider_id>:<model_id>`. An
    entry qualifies when it publishes a grid (a resolution ladder, a duration
-   rung, an audio axis, an input surcharge) or bills per second. Those rows say
-   what a *rung* costs, so they price the run rather than one unit of it.
+   rung, an audio axis, an input surcharge), or bills per second, per character,
+   or per token. Those rows say what a *rung* costs, so they price the run
+   rather than one unit of it.
 2. **FAL** — `@nodetool-ai/fal-nodes/unit-pricing-catalog`, keyed by `endpoint_id`.
 3. **kie** — `@nodetool-ai/kie-nodes/unit-pricing-catalog`, keyed by `model_id`,
    using the USD conversion (a raw credit figure has no fixed USD value).
@@ -30,9 +31,9 @@ FAL and kie come from the providers themselves, but each carries a single scalar
 per endpoint, and for the 260 FAL rows billed per second that scalar is a rate:
 reported as the price of a run it understated a 4-second clip by 40×. So a
 published GenSpend grid wins, and a FAL/kie scalar is converted here — multiplied
-by the duration or output size the node states, and declined outright for a unit
-with no fixed value per run (credits) or a rate the node states nothing about
-(compute seconds, training steps).
+by the duration, output size, or text length the node states, and declined
+outright for a unit with no fixed value per run (credits) or a rate the node
+states nothing about (compute seconds, training steps).
 
 GenSpend covers every other provider it tracks and NodeTool can run — today
 that is Replicate, AtlasCloud, Together, Gemini, OpenAI, MiniMax, and
@@ -43,6 +44,16 @@ match against that slug. Topaz, Reve, Aki, Meshy, and Rodin are enumerated by
 the sync's model inventory (`scripts/genspend/inventory.mjs`) but are not yet
 in `PROVIDER_IDS_BY_GENSPEND_SLUG`, so none of the five has priced entries
 either.
+
+## Speech models: characters, not runs
+
+The 22 text-to-speech rows are billed `1m_chars` — ElevenLabs' $100 per million.
+That is a rate, and as a per-run figure it read as $100 to voice one line, so
+these rows are multiplied by the `characters` a caller states and decline when
+none was given. The six rows billed `1m_tokens` decline outright: a speech
+model's tokens are the audio it produced, and no text length converts into them.
+Passing off the block price as a run's cost is the failure mode both rules
+exist to prevent.
 
 All three are imported as modules, not read off disk, so the estimate works
 identically in the browser bundle and inside the packaged Electron backend (no

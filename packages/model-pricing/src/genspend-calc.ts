@@ -39,6 +39,9 @@ export { formatUsd };
 /** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 
+/** A price under construction: the fields are filled in as the rules decide them. */
+type PriceFields = Mutable<ModelParamPrice>;
+
 /**
  * A price computed from stated parameters, with the reasoning that produced it.
  * `unit_price` is the whole per-run figure — a per-second class comes back
@@ -58,6 +61,8 @@ export interface ModelParamPrice extends ModelUnitPricingLike {
   seconds?: number;
   /** The rung the figure was billed at, in the catalog's own spelling. */
   resolution?: string;
+  /** The text length the figure was billed for, when one applied. */
+  characters?: number;
   /** The figure came off a published grid row, not a flat rate. */
   fromGrid?: boolean;
 }
@@ -113,6 +118,24 @@ export function normalizeResolution(value: string | undefined): string | null {
 
 const PER_SECOND_CLASSES = new Set(["per-video-second", "per-audio-second"]);
 
+/** Speech classes billing a block of characters, and the block's size. */
+const CHARACTER_CLASSES = new Map<string, number>([
+  ["per-1k-chars", 1_000],
+  ["per-1m-chars", 1_000_000]
+]);
+
+/**
+ * Classes billing the model's own tokens. A speech model's token count is the
+ * audio it produced, not the text it was given, so nothing a caller states
+ * converts it.
+ */
+const TOKEN_CLASSES = new Set(["per-1k-tokens", "per-1m-tokens"]);
+
+/** How a block of `size` characters is named in a breakdown. */
+function characterBlockLabel(size: number): string {
+  return size >= 1_000_000 ? `${size / 1_000_000}M chars` : `${size / 1_000}K chars`;
+}
+
 /**
  * The megapixel rungs image grids are published at. `1K` is GenSpend's name for
  * a one-megapixel deliverable, which `normalizeResolution` folds to `1MP`.
@@ -165,6 +188,11 @@ export function isParameterPriceable(entry: GenspendPrice): boolean {
     return true;
   }
   if (PER_SECOND_CLASSES.has(entry.unit_class)) return true;
+  // A character or token class is a rate, not a run price. Routing it here is
+  // what multiplies it by the text length — or declines it — instead of
+  // letting the flat-scalar path report ElevenLabs' $100/M as $100 a line.
+  if (CHARACTER_CLASSES.has(entry.unit_class)) return true;
+  if (TOKEN_CLASSES.has(entry.unit_class)) return true;
   return (entry.surcharges ?? []).length > 0;
 }
 
@@ -350,6 +378,42 @@ export function priceGenspendEntry(
   let breakdown: string;
   let seconds = statedSeconds;
 
+  const charBlock = CHARACTER_CLASSES.get(unitClass);
+  if (charBlock !== undefined) {
+    const stated = params.characters;
+    const characters =
+      stated !== undefined && Number.isFinite(stated) && stated > 0
+        ? stated
+        : null;
+    if (characters === null) {
+      return declined(
+        `this model is priced per ${characterBlockLabel(
+          charBlock
+        )}, and no text length was given`
+      );
+    }
+    const result: PriceFields = {
+      unit_price: (unitPrice * characters) / charBlock,
+      billing_unit: entry.billing_unit,
+      currency: GENSPEND_CURRENCY,
+      source: "bundle",
+      breakdown: `${characters} chars × ${money(unitPrice)}/${characterBlockLabel(
+        charBlock
+      )}`,
+      characters,
+      fromGrid: row !== null
+    };
+    if (assumptions.length > 0) result.assumptions = assumptions;
+    if (warnings.length > 0) result.warnings = warnings;
+    return result;
+  }
+
+  if (TOKEN_CLASSES.has(unitClass)) {
+    return declined(
+      "this model is priced per token of generated audio, which nothing stated converts"
+    );
+  }
+
   if (PER_SECOND_CLASSES.has(unitClass)) {
     if (seconds === null) {
       if (clip === null)
@@ -433,7 +497,6 @@ export function priceGenspendEntry(
     );
   }
 
-  type PriceFields = Mutable<ModelParamPrice>;
   const price: PriceFields = {
     unit_price: cost,
     billing_unit: entry.billing_unit,

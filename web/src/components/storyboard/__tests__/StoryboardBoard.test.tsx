@@ -7,6 +7,20 @@ import mockTheme from "../../../__mocks__/themeMock";
 let mockShots: Shot[] = [];
 /** The board's selected shot id, driving the inspector's presence. */
 let activeShot: string | null = null;
+/** The board's render models. Null on both leaves the toolbar unpriced. */
+let boardModels: { imageModel: unknown; videoModel: unknown } = {
+  imageModel: null,
+  videoModel: null
+};
+
+type PriceParams = { resolution?: string; seconds?: number };
+const mockPrice = jest.fn(
+  (_model: unknown, _params: PriceParams): unknown => null
+);
+jest.mock("../../../utils/modelUnitPricing", () => ({
+  getModelUnitPrice: (model: unknown, params: PriceParams) =>
+    mockPrice(model, params)
+}));
 jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
   useBoard: () => ({
     title: "My film",
@@ -15,13 +29,16 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
     entityIds: [],
     aspectRatio: "16:9",
     directorModel: { id: "model-1" },
-    imageModel: null,
-    videoModel: null,
+    imageModel: boardModels.imageModel,
+    videoModel: boardModels.videoModel,
     shots: mockShots,
     activeShotId: activeShot
   }),
   useStoryboardStore: <T,>(
     selector: (s: {
+      // The toolbar's render estimates read the board's two models straight
+      // off the store, so the mocked state carries the slice they select.
+      boards: Record<string, unknown>;
       setTitle: jest.Mock;
       setBrief: jest.Mock;
       setStyle: jest.Mock;
@@ -35,6 +52,7 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
     }) => T
   ) =>
     selector({
+      boards: { "board-1": boardModels },
       setTitle: jest.fn(),
       setBrief: jest.fn(),
       setStyle: jest.fn(),
@@ -48,6 +66,18 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
     }),
   useStoryboardCanUndo: () => false,
   useStoryboardCanRedo: () => false
+}));
+
+// A clip's price moves with its shot's effective duration, which comes from
+// the linked script's takes — so the toolbar's estimate reads the script the
+// board links to. This suite mounts no query client.
+jest.mock("../../../trpc/client", () => ({
+  trpc: {
+    scripts: {
+      get: { useQuery: () => ({ data: undefined }) }
+    }
+  },
+  trpcClient: {}
 }));
 
 // The script-link control reads the real store and a trpc query; it has its
@@ -261,6 +291,45 @@ describe("StoryboardBoard toolbar", () => {
     expect(
       screen.getByRole("button", { name: "Assemble timeline" })
     ).toBeDisabled();
+  });
+
+  it("puts each batch's price on its own button", () => {
+    // Two shots await a still; only the one already holding a keyframe can be
+    // animated, so the two buttons quote different batches.
+    mockShots = [
+      makeShot("s1"),
+      makeShot("s2"),
+      {
+        ...makeShot("s3"),
+        status: "keyframe_ready",
+        keyframe: { type: "image", asset_id: "asset-1" },
+        duration_seconds: 4
+      }
+    ];
+    boardModels = {
+      imageModel: { id: "fal-ai/flux/schnell", provider: "fal_ai" },
+      videoModel: { id: "pixverse/720p", provider: "fal_ai" }
+    };
+    mockPrice.mockImplementation((_model, params) => ({
+      unit_price: params.resolution === "1K" ? 0.01 : 0.5,
+      billing_unit: "images",
+      currency: "USD",
+      source: "bundle"
+    }));
+
+    renderBoard(jest.fn());
+
+    // The figure is the batch, not one shot — and each button quotes its own.
+    expect(
+      screen.getByRole("button", { name: "Render stills (2) · ~$0.02" })
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Render clips (1) · ~$0.5" })
+    ).toBeEnabled();
+
+    boardModels = { imageModel: null, videoModel: null };
+    mockPrice.mockReset();
+    mockPrice.mockReturnValue(null);
   });
 });
 

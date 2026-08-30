@@ -17,7 +17,10 @@ import { getAssetUrl } from "../../utils/assetHelpers";
 import {
   useScriptStore,
   effectiveVoice,
+  lineStatus,
+  type ScriptDraft,
   type ScriptCaptionWord,
+  type ScriptLine,
   type ScriptTake,
   type VoiceBinding
 } from "./ScriptStore";
@@ -170,6 +173,31 @@ export async function voiceLine(
   }
 }
 
+/** A line `voiceAll` would voice, with the voice it would use. */
+export interface VoiceTarget {
+  line: ScriptLine;
+  voice: VoiceBinding;
+}
+
+/**
+ * The lines a *Voice all* would synthesize: every draft or stale line that has
+ * text and a voice to say it in. Shared with the cost estimate, so what the
+ * toolbar quotes is what the click will voice.
+ */
+export function voiceTargets(script: ScriptDraft): VoiceTarget[] {
+  const targets: VoiceTarget[] = [];
+  for (const section of script.sections) {
+    for (const line of section.lines) {
+      if (!line.text.trim()) continue;
+      const voice = effectiveVoice(line, script.cast);
+      // Re-voice drafts and stale lines; skip up-to-date ones.
+      if (!voice || lineStatus(line, voice) === "voiced") continue;
+      targets.push({ line, voice });
+    }
+  }
+  return targets;
+}
+
 /**
  * Voice every draft/stale line in the script, bounded concurrency, respecting
  * each line's effective voice. Lines already voiced (current take matches) and
@@ -184,21 +212,7 @@ export async function voiceAll(
   const script = store.getState().scripts[scriptId];
   if (!script) return 0;
 
-  const targets = script.sections
-    .flatMap((s) => s.lines)
-    .filter((line) => {
-      if (!line.text.trim()) return false;
-      if (!effectiveVoice(line, script.cast)) return false;
-      const take = line.takes.find((t) => t.id === line.currentTakeId);
-      // Re-voice drafts and stale lines; skip up-to-date ones.
-      return (
-        !take ||
-        take.textSnapshot !== line.text ||
-        JSON.stringify(take.voiceSnapshot) !==
-          JSON.stringify(effectiveVoice(line, script.cast))
-      );
-    })
-    .map((line) => line.id);
+  const targets = voiceTargets(script).map((target) => target.line.id);
 
   let voiced = 0;
   let cursor = 0;

@@ -34,11 +34,13 @@ import {
   Skeleton,
   Text,
   TextInput,
+  Tooltip,
   UndoRedoButtons,
   BORDER_RADIUS,
   CONTROL,
   SPACING
 } from "../ui_primitives";
+import { formatUsd } from "@nodetool-ai/model-pricing";
 import {
   useBoard,
   useStoryboardStore,
@@ -58,6 +60,10 @@ import VideoModelSelect from "../properties/VideoModelSelect";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useEntities } from "../../serverState/useEntities";
 import { exportStoryboardZip } from "../../utils/storyboardZip";
+import {
+  useRenderBatchCostEstimate,
+  type RenderBatchCostEstimate
+} from "../../hooks/storyboard/useRenderBatchCostEstimate";
 import ScriptLinkControl from "./ScriptLinkControl";
 import ShotCard from "./ShotCard";
 import ShotInspector from "./ShotInspector";
@@ -133,6 +139,71 @@ const shotGridSx = {
     gridTemplateColumns: "minmax(0, 1fr)"
   }
 } as const;
+
+/**
+ * A batch render button with what the click costs on it.
+ *
+ * The price sits in the label rather than beside it: a toolbar of buttons and
+ * a floating figure leaves the reader to guess which button the figure belongs
+ * to, and these two spend very different amounts. A batch nothing prices shows
+ * the label alone and says why in the tooltip — a bare "—" next to a render
+ * button reads as broken.
+ */
+const RenderBatchButton: React.FC<{
+  label: string;
+  estimate: RenderBatchCostEstimate;
+  disabled: boolean;
+  onClick: () => void;
+}> = ({ label, estimate, disabled, onClick }) => {
+  const { shotCount, cost, pricedCount, reasons, notes } = estimate;
+  const priced = pricedCount > 0 && cost > 0;
+  const partial = priced && pricedCount < shotCount;
+
+  return (
+    <Tooltip
+      placement="top"
+      title={
+        <FlexColumn gap={SPACING.micro}>
+          <Text size="small">
+            {priced
+              ? `${shotCount} shot${shotCount === 1 ? "" : "s"} · about ${formatUsd(cost)}${
+                  partial
+                    ? ` (${pricedCount} of ${shotCount} priced — the rest are not in any catalog)`
+                    : ""
+                }`
+              : `${shotCount} shot${shotCount === 1 ? "" : "s"}, none of them priced.`}
+          </Text>
+          {reasons.map((reason) => (
+            <Caption key={reason} color="secondary">
+              {reason}
+            </Caption>
+          ))}
+          {priced &&
+            notes.map((note) => (
+              <Caption key={note} color="secondary">
+                {note}
+              </Caption>
+            ))}
+          {priced && (
+            <Caption color="secondary">
+              List price from the provider catalog. The render is billed by the
+              provider at its own rates.
+            </Caption>
+          )}
+        </FlexColumn>
+      }
+    >
+      {/* A disabled button swallows pointer events, so the tooltip needs a host. */}
+      <Box component="span" sx={{ display: "inline-flex" }}>
+        <EditorButton variant="outlined" onClick={onClick} disabled={disabled}>
+          {`${label}${shotCount > 0 ? ` (${shotCount})` : ""}${
+            priced ? ` · ~${formatUsd(cost)}` : ""
+          }`}
+        </EditorButton>
+      </Box>
+    </Tooltip>
+  );
+};
 
 const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   boardId,
@@ -299,6 +370,10 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     }
   }, [pendingClips, generateClip, boardId]);
 
+  // What each batch button is about to spend, over exactly the shots it loops.
+  const stillsCost = useRenderBatchCostEstimate(boardId, pendingStills, "still");
+  const clipsCost = useRenderBatchCostEstimate(boardId, pendingClips, "clip");
+
   // The archive is packed server-side from the saved board, so a download
   // shows what the server holds — the local edits an in-flight save has not
   // reached it with yet are not in the zip.
@@ -367,20 +442,18 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               >
                 Board settings
               </EditorButton>
-              <EditorButton
-                variant="outlined"
+              <RenderBatchButton
+                label="Render stills"
+                estimate={stillsCost}
+                disabled={pendingStills.length === 0 || !!directing}
                 onClick={handleGenerateAllStills}
-                disabled={pendingStills.length === 0 || directing}
-              >
-                {`Render stills${pendingStills.length > 0 ? ` (${pendingStills.length})` : ""}`}
-              </EditorButton>
-              <EditorButton
-                variant="outlined"
+              />
+              <RenderBatchButton
+                label="Render clips"
+                estimate={clipsCost}
+                disabled={pendingClips.length === 0 || !!directing}
                 onClick={handleGenerateAllClips}
-                disabled={pendingClips.length === 0 || directing}
-              >
-                {`Render clips${pendingClips.length > 0 ? ` (${pendingClips.length})` : ""}`}
-              </EditorButton>
+              />
               <EditorButton
                 variant="contained"
                 color="primary"

@@ -87,6 +87,8 @@ export interface ModelPriceParams {
   /** Duration of a video fed in, which some providers bill instead of output. */
   referenceVideoSeconds?: number;
   megapixels?: number;
+  /** Characters of text a speech job will synthesize. */
+  characters?: number;
 }
 
 /**
@@ -107,6 +109,8 @@ export interface ModelParamPricingLike extends ModelUnitPricingLike {
   seconds?: number;
   /** The rung the figure was billed at, in the catalog's own spelling. */
   resolution?: string;
+  /** The text length the figure was billed for, when one applied. */
+  characters?: number;
   /**
    * The figure came off a published grid row, so it moves with the resolution,
    * duration and audio state the node states. A flat rate leaves it unset.
@@ -159,8 +163,38 @@ const UNSTATED_RATE_UNITS = new Set([
   "steps",
   "train unit",
   "train units",
-  "1m tokens"
+  "1m tokens",
+  // GenSpend's own spelling. A speech model billed per token bills the audio
+  // tokens it produced, which no caller states — pricing it off the text would
+  // be a guess dressed as a quote.
+  "1m_tokens",
+  "1k_tokens"
 ]);
+
+/**
+ * Units billing a block of synthesized characters, and how many characters one
+ * unit price covers. Speech models publish this as `1m_chars` (GenSpend) or as
+ * a block spelling the {@link BLOCK_UNIT} branch reads (`"1000 characters"`).
+ * Left unconverted, ElevenLabs' $100-per-million read as $100 a line.
+ */
+const CHARACTER_BLOCK_UNITS = new Map<string, number>([
+  ["character", 1],
+  ["characters", 1],
+  ["char", 1],
+  ["chars", 1],
+  ["1k_chars", 1_000],
+  ["1m_chars", 1_000_000]
+]);
+
+/** Nouns the block branch prices as characters: `"1000 characters"`. */
+const CHARACTER_NOUNS = new Set(["character", "characters", "char", "chars"]);
+
+/** How a block of `size` characters is named in a breakdown. */
+function characterBlockLabel(size: number): string {
+  if (size >= 1_000_000) return `${size / 1_000_000}M chars`;
+  if (size >= 1_000) return `${size / 1_000}K chars`;
+  return size === 1 ? "char" : `${size} chars`;
+}
 
 /** `"5 seconds"`, `"30 seconds"`, `"16 frames"` — a block of N somethings. */
 const BLOCK_UNIT = /^(\d+(?:\.\d+)?) (.+)$/;
@@ -184,6 +218,34 @@ export const formatUsd = (usd: number): string => {
 export interface ScalarPriceOptions {
   /** >1 means the figure is the cheapest of several published tiers. */
   tierCount?: number;
+}
+
+/**
+ * A character-billed scalar times the text the job will synthesize.
+ *
+ * Declines when no text length was stated: a per-character rate says nothing
+ * about a run on its own, and reporting the block price as the run's cost
+ * overstates one line of dialogue by four or five orders of magnitude.
+ */
+function priceCharacters(
+  price: ModelUnitPricingLike,
+  blockSize: number,
+  characters: number | null,
+  decline: (reason: string) => ModelParamPricingLike,
+  attach: (result: ModelParamPricingLike) => ModelParamPricingLike
+): ModelParamPricingLike {
+  const label = characterBlockLabel(blockSize);
+  if (characters === null) {
+    return decline(
+      `the catalog prices this model per ${label}, and no text length was given`
+    );
+  }
+  return attach({
+    ...price,
+    unit_price: (price.unit_price * characters) / blockSize,
+    breakdown: `${characters} chars × ${formatUsd(price.unit_price)}/${label}`,
+    characters
+  });
 }
 
 /**
@@ -310,10 +372,25 @@ export function priceScalarUnit(
     });
   }
 
+  const characters =
+    params?.characters !== undefined &&
+    Number.isFinite(params.characters) &&
+    params.characters > 0
+      ? params.characters
+      : null;
+
+  const charBlock = CHARACTER_BLOCK_UNITS.get(unit);
+  if (charBlock !== undefined) {
+    return priceCharacters(price, charBlock, characters, decline, attach);
+  }
+
   const block = BLOCK_UNIT.exec(unit);
   if (block) {
     const size = Number(block[1]);
     const noun = block[2];
+    if (CHARACTER_NOUNS.has(noun) && size > 0) {
+      return priceCharacters(price, size, characters, decline, attach);
+    }
     if (PER_SECOND_UNITS.has(noun) && size > 0) {
       if (seconds === null) {
         assumptions.push(

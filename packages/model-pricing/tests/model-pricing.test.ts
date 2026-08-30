@@ -260,6 +260,65 @@ describe("getModelUnitPrice", () => {
     expect(getModelUnitPrice(model)?.assumptions?.length).toBe(1);
   });
 
+  it("prices a speech model by the characters it will synthesize", () => {
+    // ElevenLabs publishes $100 per million characters. Read as a per-run
+    // figure that made one line of dialogue cost $100.
+    const model = { id: "eleven_multilingual_v2", provider: "elevenlabs" };
+    const entry = genspendPricingCatalog.prices["elevenlabs:eleven_multilingual_v2"];
+    expect(entry?.unit_class).toBe("per-1m-chars");
+
+    const price = getModelUnitPrice(model, { characters: 200 });
+    expect(price?.declined).toBeUndefined();
+    expect(price?.unit_price).toBeCloseTo((entry.unit_price * 200) / 1_000_000, 12);
+    expect(price?.breakdown).toContain("200 chars");
+    expect(price?.characters).toBe(200);
+  });
+
+  it("declines a character-billed model when no text length is given", () => {
+    const price = getModelUnitPrice({
+      id: "eleven_multilingual_v2",
+      provider: "elevenlabs"
+    });
+    expect(price?.declined).toContain("no text length");
+    // The block price must never reach a caller as the price of a run.
+    expect(price?.unit_price).toBe(0);
+  });
+
+  it("prices a character-billed model that also publishes a variant grid", () => {
+    // This row is parameter-priceable (it carries a tier variant), so it takes
+    // the GenSpend calculator's path rather than the flat-scalar one.
+    const id = "fal-ai/elevenlabs/tts/turbo-v2.5";
+    const entry = genspendPricingCatalog.prices[`fal_ai:${id}`];
+    expect(isParameterPriceable(entry)).toBe(true);
+    const price = getModelUnitPrice({ id, provider: "fal_ai" }, { characters: 1000 });
+    expect(price?.unit_price).toBeCloseTo((entry.unit_price * 1000) / 1_000_000, 12);
+  });
+
+  it("declines a speech model billed per token of generated audio", () => {
+    // A script's text says nothing about how many audio tokens come out, so
+    // there is no honest conversion — $12 per million must not read as $12.
+    const price = getModelUnitPrice(
+      { id: "gpt-4o-mini-tts", provider: "openai" },
+      { characters: 200 }
+    );
+    expect(price?.declined).toContain("token");
+    expect(price?.unit_price).toBe(0);
+  });
+
+  it("leaves image and video pricing untouched", () => {
+    expect(
+      getModelUnitPrice(
+        { id: "fal-ai/flux/schnell", provider: "fal_ai" },
+        { resolution: "1K", megapixels: 1 }
+      )?.unit_price
+    ).toBeGreaterThan(0);
+    const clip = getModelUnitPrice(
+      { id: "fal-ai/kling-video/v2.5-turbo/pro/image-to-video", provider: "fal_ai" },
+      { resolution: "1080p", seconds: 5 }
+    );
+    expect(clip?.breakdown).toContain("5 s ×");
+  });
+
   it("warns that a collapsed kie row is the cheapest of its tiers", () => {
     const entry = Object.entries(kieUnitPricingCatalog.prices ?? {}).find(
       ([id, row]) =>
