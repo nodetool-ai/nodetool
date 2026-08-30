@@ -6,8 +6,16 @@
  *
  * The poster is a plain <img> with a srcSet and high fetch priority, and it
  * stays the LCP element — a <video poster> cannot carry either. The video
- * mounts only once the section is on screen, fades in when it can play, and
- * never autoplays for a reader who asked for reduced motion.
+ * mounts only once the section is on screen, is revealed once it is actually
+ * painting frames, and never autoplays for a reader who asked for reduced
+ * motion.
+ *
+ * iOS Safari drives two of the decisions here. It caps preloading at metadata
+ * and fetches media data only once playback is requested, so `canplay` never
+ * fires on its own — starting playback from that event deadlocks the player on
+ * iPhone. And Low Power Mode refuses muted autoplay outright, so the control
+ * has to appear on metadata rather than on readiness, or there is no way to
+ * start the reel by hand.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Pause, Play } from "lucide-react";
@@ -20,7 +28,8 @@ export default function HeroDemoPlayer({ alt }: HeroDemoPlayerProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [mountVideo, setMountVideo] = useState(false);
-  const [ready, setReady] = useState(false);
+  const [hasMetadata, setHasMetadata] = useState(false);
+  const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
 
   // Load the reel only when the hero is actually on screen — a multi-MB file
@@ -45,26 +54,25 @@ export default function HeroDemoPlayer({ alt }: HeroDemoPlayerProps) {
     return () => observer.disconnect();
   }, []);
 
-  const onCanPlay = useCallback(() => {
-    setReady(true);
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) return;
-    void videoRef.current?.play().then(
-      () => setPlaying(true),
-      () => {
-        // Refused (power saving, background tab). The poster is the fallback.
-      }
-    );
-  }, []);
+  // play() is what starts the download on iOS, so it is called as soon as the
+  // element exists rather than waiting for a readiness event that data would
+  // have to arrive for.
+  useEffect(() => {
+    if (!mountVideo) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    void videoRef.current?.play().catch(() => {
+      // Refused (Low Power Mode, power saving, background tab). The poster
+      // holds and the button below offers it.
+    });
+  }, [mountVideo]);
 
   const toggle = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     if (video.paused) {
-      void video.play().then(() => setPlaying(true), () => {});
+      void video.play().catch(() => {});
     } else {
       video.pause();
-      setPlaying(false);
     }
   }, []);
 
@@ -90,18 +98,26 @@ export default function HeroDemoPlayer({ alt }: HeroDemoPlayerProps) {
           loop
           playsInline
           preload="metadata"
-          onCanPlay={onCanPlay}
+          onLoadedMetadata={() => setHasMetadata(true)}
+          onPlaying={() => {
+            setStarted(true);
+            setPlaying(true);
+          }}
+          onPause={() => setPlaying(false)}
           aria-label={alt}
           className={`absolute inset-0 h-full w-full rounded-xl object-cover transition-opacity duration-500 ${
-            ready ? "opacity-100" : "opacity-0"
+            started ? "opacity-100" : "opacity-0"
           }`}
         >
-          <source src="/hero-project.webm" type="video/webm" />
+          {/* The codecs are spelled out so a browser that cannot decode VP9
+              rejects this source outright instead of selecting it on a bare
+              type and stalling. */}
+          <source src="/hero-project.webm" type='video/webm; codecs="vp9"' />
           <source src="/hero-project.mp4" type="video/mp4" />
         </video>
       )}
 
-      {ready && (
+      {hasMetadata && (
         <button
           type="button"
           onClick={toggle}
