@@ -63,7 +63,10 @@ export async function downgradeBoardsLinkedToScript(
         useStoryboardStore.getState().clearScriptLink(item.id);
         downgraded.push(item.id);
       } catch (error) {
-        console.error(`Could not unlink storyboard ${item.id} from the deleted script`, error);
+        console.error(
+          `Could not unlink storyboard ${item.id} from the deleted script`,
+          error
+        );
       }
     })
   );

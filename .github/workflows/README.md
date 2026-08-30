@@ -33,7 +33,7 @@ see below.
 
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|
-| `test.yml` | Full quality gate (typecheck, lint, tests) via `quality-checks.yml` | 0 | Required |
+| `test.yml` | Full quality gate (typecheck, lint, tests) via `quality-checks.yml`; skipped for prose-only and marketing-only diffs | 0 | Required |
 | `quality-checks.yml` | Reusable gate: deps/lint static legs, one shared build, five `built` legs (typecheck+parity+examples, test-packages, test-app, bundle+ring0, app-build), and a path-gated `docker` leg that builds the image, boots it, and loads the app in a browser | 0 | Required (infra called by `test.yml`) |
 | `page-load-smoke.yml` | Playwright: every route loads against a seeded backend | 0 | Required |
 | `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack | 1 | Required (also gates PRs today, ahead of the ring split) |
@@ -148,6 +148,58 @@ explicit "prose only", so a `changes` job that never reported runs everything.
 
 Prose still gets its own checks: `docs-lint.yml` on any `**/*.md`, and
 `docs-ci.yml` (site build plus link check) on `docs/**`.
+
+## marketing/ is scoped out of the gate
+
+The repo is three npm projects, not one: the root workspace, `mobile/` and
+`marketing/`, the latter two with their own lockfiles and their own installs.
+Only one of the three is actually separable, and the gate now reflects that.
+
+`test.yml`'s `changes` job emits a `shared` output beside the prose one, and
+`quality-checks.yml` takes it as the `shared` input. It is false only for a
+diff confined to `marketing/**` (plus that workflow's own file), and then every
+leg inside the gate skips — the same mechanism, and the same fail-safe reading,
+as `docs-only`. `integration` and `workflow-runner-e2e` skip with it. Before
+this, a one-line marketing copy change built ~55 backend packages, typechecked
+three apps, ran every suite, built the container image and drove two browser
+E2E jobs.
+
+The edge back the other way is wired in too, so "separate" never means "stale":
+three of `marketing-ci.yml`'s steps check committed generated files against
+data in `packages/`, so `packages/base-nodes/nodetool/examples|assets/`
+`nodetool-base/**` and `packages/*-nodes/src/*-manifest.json` are in that
+workflow's `paths`. Without them a PR editing an example workflow or a provider
+manifest landed green and left the site's generated files stale.
+
+### Why mobile/ is not scoped out
+
+`mobile/` looks equally separable and is not. Its typecheck imports the
+AppRouter type from `@nodetool-ai/websocket/trpc` — a package that is not a
+mobile dependency at all — and `@nodetool-ai/protocol`; both resolve through
+the root `node_modules` symlinks to those packages' built `dist`. Only the four
+packages `mobile/tsconfig.json` path-maps (`app-runtime`, `timeline`, `gpu`,
+two `protocol` subpaths) are read as source. So `typecheck:mobile` needs the
+full package build, and it stays inside the `built` legs.
+
+An attempt to split it into its own job was reverted: with the shared package
+dist downloaded it still failed on `@nodetool-ai/protocol` exports
+(`Shot`, `ShotStatus`, `TRPC_MAX_BATCH_SIZE`, `processingMessageSchemas`) that
+the `built` legs resolve fine, and the cause was not identified — the split job
+restored a byte-identical `mobile/node_modules` cache and ran the identical
+command. Making mobile genuinely separable means changing how it resolves
+those two packages, not how CI is wired.
+
+Note a latent fragility found along the way, not fixed here: the mobile
+typecheck's green depends on `mobile/node_modules` coming from the CI cache,
+where `npm ci` is skipped. A cold cache installs `@nodetool-ai/protocol` from
+the registry at 0.7.0-rc.11, which shadows the workspace copy and is stale
+enough to fail the typecheck with exactly the errors above. A cache miss on
+`mobile/package-lock.json` would therefore turn the `typecheck` leg red on
+main.
+
+Within the root workspace the backend suite still prunes itself: on PRs the
+`test-packages` leg runs `turbo run test --affected`, so only packages the diff
+changed and their dependents are tested.
 
 ## Manual Trigger
 

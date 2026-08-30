@@ -1,8 +1,7 @@
 import React from "react";
-import { Download, PlayCircle, Code2, KeyRound, Layers } from "lucide-react";
+import { Download, Code2, KeyRound, Layers } from "lucide-react";
 import HeroDemoPlayer from "./HeroDemoPlayer";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
-import { track } from "../lib/analytics";
 
 export default function NodeToolHero() {
   return (
@@ -35,38 +34,23 @@ export default function NodeToolHero() {
             id="hero-title"
             className="mt-5 text-balance text-[clamp(2rem,7.5vw,3.25rem)] font-bold leading-[1.1] tracking-tight text-white lg:text-[clamp(2.25rem,3.6vw,3.25rem)]"
           >
-            <span className="block">You direct the vision.</span>
+            <span className="block">You are the director.</span>
             <span className="block bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text pb-[0.12em] text-transparent">
-              The agent builds the film.
+              The agent is your crew.
             </span>
           </h1>
 
           <p className="mt-5 max-w-lg text-lg leading-relaxed text-slate-300">
-            Describe your idea. The agent writes the script, boards every
-            scene, generates the footage, and cuts the timeline — end-to-end
-            production on an open{" "}
-            <a
-              href="/node-based-ai"
-              className="text-slate-200 underline decoration-slate-500/50 underline-offset-2 transition-colors hover:text-white hover:decoration-slate-300"
-            >
-              node-based canvas
-            </a>
-            , with complete creative control.
+            Describe your idea. The agent writes the script, storyboards every
+            scene, generates the footage, and cuts the timeline. Experience
+            end-to-end production with complete creative control.
           </p>
 
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="mt-7 flex">
             <SmartDownloadButton
               icon={<Download className="h-5 w-5" />}
               classNameOverride="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition-all hover:bg-blue-500 hover:shadow-blue-900/60"
             />
-            <a
-              href="#demo-video"
-              onClick={() => track("View Demo", { placement: "hero" })}
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60 focus-ring"
-            >
-              <PlayCircle className="h-4 w-4" />
-              Watch the agent work
-            </a>
           </div>
 
           <ul className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-300">

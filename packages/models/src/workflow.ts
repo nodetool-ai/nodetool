@@ -127,6 +127,46 @@ export class Workflow extends DBModel {
   }
 
   /**
+   * Find multiple workflows by id, efficiently checking ownership, public access,
+   * or collaborator grants.
+   */
+  static async findMany(
+    userId: string,
+    workflowIds: string[]
+  ): Promise<Workflow[]> {
+    if (workflowIds.length === 0) return [];
+
+    const workflowsMap = await Workflow.getManyByIds(workflowIds);
+    const workflows = Array.from(workflowsMap.values());
+
+    const accessibleWorkflows: Workflow[] = [];
+    const needsGrantCheck: string[] = [];
+
+    for (const wf of workflows) {
+      if (wf.user_id === userId || wf.access === "public") {
+        accessibleWorkflows.push(wf);
+      } else {
+        needsGrantCheck.push(wf.id);
+      }
+    }
+
+    if (needsGrantCheck.length > 0) {
+      const grantedIds = await WorkflowCollaborator.grantedWorkflowIds(
+        userId,
+        needsGrantCheck
+      );
+      for (const id of needsGrantCheck) {
+        if (grantedIds.has(id)) {
+          const wf = workflowsMap.get(id);
+          if (wf) accessibleWorkflows.push(wf);
+        }
+      }
+    }
+
+    return accessibleWorkflows;
+  }
+
+  /**
    * Atomically update a workflow only if its revision still matches the
    * caller's last read. Returns null instead of overwriting a newer change.
    */

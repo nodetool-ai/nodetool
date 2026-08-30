@@ -274,7 +274,10 @@ interface GeneratedArtifact {
  * rather than as the thing being measured.
  */
 export interface MediaBackend {
-  image(prompt: string, label: string): Promise<{ path: string; bytes: Uint8Array }>;
+  image(
+    prompt: string,
+    label: string
+  ): Promise<{ path: string; bytes: Uint8Array }>;
   video(
     from: Uint8Array,
     prompt: string,
@@ -465,9 +468,7 @@ export function createCreativePipelineBridge(
   const cutDurationSeconds = () => {
     const { clips } = timeline.finalState();
     if (clips.length === 0) return 0;
-    return (
-      Math.max(...clips.map((c) => c.startMs + c.durationMs), 0) / 1000
-    );
+    return Math.max(...clips.map((c) => c.startMs + c.durationMs), 0) / 1000;
   };
 
   const briefTools: HeadlessTool[] = [
@@ -605,14 +606,21 @@ export function createCreativePipelineBridge(
       shots: { scriptLineIds: string[]; text: string }[];
     };
     const addShot = byName(storyboard, "ui_storyboard_add_shot");
-    const placed: { id: string; scriptLineIds: string[]; action: string }[] = [];
-    for (const scaffold of derived.shots) {
+    const placed: { id: string; scriptLineIds: string[]; action: string }[] =
+      [];
+    const shotPromises = derived.shots.map(async (scaffold) => {
       // The design's headless fallback: with no director pass the shot's
       // action is the line text it covers, status planned.
       const action = scaffold.text;
       const result = (await addShot.execute({ action })) as {
         shot: { id: string };
       };
+      return { result, scaffold, action };
+    });
+
+    const results = await Promise.all(shotPromises);
+
+    for (const { result, scaffold, action } of results) {
       scriptLineIdsByShotId.set(result.shot.id, scaffold.scriptLineIds);
       placed.push({
         id: result.shot.id,
@@ -715,7 +723,13 @@ export function createCreativePipelineBridge(
     ) => {
       try {
         const out = await run();
-        artifacts.push({ kind, path: out.path, prompt, shotId, bytes: out.bytes.length });
+        artifacts.push({
+          kind,
+          path: out.path,
+          prompt,
+          shotId,
+          bytes: out.bytes.length
+        });
         if (kind === "keyframe" && shotId) keyframeBytes.set(shotId, out.bytes);
       } catch (err) {
         artifacts.push({ kind, prompt, shotId, error: (err as Error).message });
@@ -724,7 +738,10 @@ export function createCreativePipelineBridge(
 
     if (name === "ui_sketch_generate") {
       const prompt = String(args.prompt ?? "");
-      if (prompt) await record("style", prompt, undefined, () => media.image(prompt, "style-frame"));
+      if (prompt)
+        await record("style", prompt, undefined, () =>
+          media.image(prompt, "style-frame")
+        );
       return;
     }
     const shotId = (result as { shot?: { id?: string } })?.shot?.id;
@@ -732,7 +749,9 @@ export function createCreativePipelineBridge(
 
     if (name === "ui_storyboard_generate_keyframe") {
       const prompt = shotAction(shotId);
-      await record("keyframe", prompt, shotId, () => media.image(prompt, `keyframe-${shotId}`));
+      await record("keyframe", prompt, shotId, () =>
+        media.image(prompt, `keyframe-${shotId}`)
+      );
       return;
     }
     if (name === "ui_storyboard_generate_clip") {
@@ -776,8 +795,7 @@ export function createCreativePipelineBridge(
         t.name === "ui_storyboard_update_shot"
       ) {
         const shot = (result as { shot?: { id?: string } })?.shot;
-        const seconds = args
-          ?.durationSeconds;
+        const seconds = args?.durationSeconds;
         if (shot?.id && isNumber(seconds)) {
           shotSeconds.set(shot.id, seconds);
         }
@@ -1007,7 +1025,8 @@ export const CREATIVE_PIPELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<Creati
           },
           {
             name: "forbiddenAvoided",
-            detail: "a forbidden element appears in a shot action or layer name",
+            detail:
+              "a forbidden element appears in a shot action or layer name",
             test: forbiddenAvoided
           }
         ]
@@ -1174,7 +1193,8 @@ The storyboard phase is already done for this job: add the shots that were plann
           },
           {
             name: "boardDerivedFromScript",
-            detail: "the board was built by hand instead of derived, so the two documents are not linked",
+            detail:
+              "the board was built by hand instead of derived, so the two documents are not linked",
             test: (s) => s.scriptLinked
           },
           {
@@ -1201,7 +1221,8 @@ The storyboard phase is already done for this job: add the shots that were plann
           },
           {
             name: "voiceoverClipPerLine",
-            detail: "the cut holds fewer voiceover clips than the script has lines",
+            detail:
+              "the cut holds fewer voiceover clips than the script has lines",
             test: (s) =>
               s.timeline.documentClips.filter((c) => c.scriptLineId).length >=
               s.script.lines.length
@@ -1218,7 +1239,9 @@ The storyboard phase is already done for this job: add the shots that were plann
                 voice.length > 0 &&
                 voice.every(
                   (c) =>
-                    !!c.scriptId && !!c.storyboardBoardId && !!c.storyboardShotId
+                    !!c.scriptId &&
+                    !!c.storyboardBoardId &&
+                    !!c.storyboardShotId
                 )
               );
             }

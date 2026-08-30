@@ -56,12 +56,28 @@ jobs:
   # Fails open: the step is `continue-on-error` and the output falls back to
   # "true", so a filter that cannot resolve a base runs everything rather than
   # waving a change through.
+  #
+  # It also decides whether the diff can reach the root workspace at all.
+  # `marketing/` is a separate npm project — its own lockfile, its own install,
+  # built and deployed by marketing-ci.yml — and nothing in this workflow
+  # touches it. A marketing-only PR used to build ~55 backend packages,
+  # typecheck three apps, run every suite, build the container image and drive
+  # two browser E2E jobs; with an account-wide cap of ~20 concurrent jobs, that
+  # is time the rest of the queue spends waiting. `shared` is false for such a
+  # diff and every leg skips, exactly as it does for prose.
+  #
+  # `mobile/` is NOT carved out, though it is also a separate npm project. Its
+  # typecheck resolves `@nodetool-ai/websocket`'s router types (not a mobile
+  # dependency at all) and `@nodetool-ai/protocol` through the root workspace,
+  # so it is not separable from this gate without changing how mobile resolves
+  # those packages. See the workflows README.
   changes:
     name: changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       code: ${{ steps.filter.outputs.code || 'true' }}
+      shared: ${{ steps.filter.outputs.shared || 'true' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -76,6 +92,8 @@ jobs:
           filters: |
             code:
               - '!{docs/**,*.md,**/AGENTS.md,**/CLAUDE.md,.github/**/*.md}'
+            shared:
+              - '!{docs/**,*.md,**/AGENTS.md,**/CLAUDE.md,.github/**/*.md,marketing/**,.github/workflows/marketing-ci.yml}'
 
   quality:
     name: Quality Gate (npm run check)
@@ -102,6 +120,10 @@ jobs:
       # A documentation-only push skips every leg inside the gate. The gate job
       # itself still runs and reports, so the required check lands green.
       docs-only: ${{ needs.changes.outputs.code == 'false' }}
+      # Same fail-safe reading as `docs-only`: the output defaults to 'true',
+      # so a filter that could not resolve a base runs the whole gate. False
+      # only for a diff confined to marketing/, whose gate is marketing-ci.yml.
+      shared: ${{ needs.changes.outputs.shared != 'false' }}
 
   # Heavy jobs run concurrently with the quality gate (both wait only on the
   # seconds-long `changes` job) rather than after it, so
@@ -114,8 +136,11 @@ jobs:
   integration:
     name: Workflow Integration Tests
     needs: changes
-    # Same fail-safe reading as the gate above: skip only on an explicit "prose".
-    if: ${{ always() && needs.changes.outputs.code != 'false' }}
+    # Same fail-safe reading as the gate above: skip only on an explicit
+    # "prose", or an explicit "this diff never leaves marketing/" — it runs
+    # shipped-workflow execution out of packages/base-nodes, which marketing
+    # cannot reach.
+    if: ${{ always() && needs.changes.outputs.code != 'false' && needs.changes.outputs.shared != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -132,7 +157,7 @@ jobs:
   workflow-runner-e2e:
     name: Workflow Runner Browser E2E
     needs: changes
-    if: ${{ always() && needs.changes.outputs.code != 'false' }}
+    if: ${{ always() && needs.changes.outputs.code != 'false' && needs.changes.outputs.shared != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
