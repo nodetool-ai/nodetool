@@ -108,10 +108,14 @@ export interface ClientSession {
 }
 ```
 
-Facts a caller must know beyond the types: `send` resolves after the frame is
-on the socket or the socket is gone (it never throws for a dropped socket —
-that is the current `sendMessage` contract); `userId` is the app owner when
-`appSession` is set, so authorization decisions must consult both. Tests get
+Facts a caller must know beyond the types: `send` resolves once the frame is
+accepted for delivery — written to the socket, or buffered into the replay
+session of the chat turn or run it belongs to, which may deliver it to a later
+connection or to no one, since that buffer is bounded and expires (it never
+throws for a dropped socket — that is the current `sendMessage` contract);
+`userId` is the app owner when `appSession` is set, so authorization decisions
+must consult both; `userId` and `mode` both change during a connection's life,
+so a class reads them at call time rather than capturing them. Tests get
 a `FakeClientSession` that records sent messages — the assertion surface the
 existing suites already use, one level up.
 

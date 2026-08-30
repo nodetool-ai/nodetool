@@ -38,6 +38,14 @@ export type FakeClientSessionOptions = Partial<
 /**
  * A {@link ClientSession} with no socket behind it: every frame is recorded in
  * call order so a suite can assert on what a domain class emitted.
+ *
+ * Two ways it is not the production channel. It accepts every frame, where the
+ * host validates: production `send` rejects an invalid frame and production
+ * `sendDetached` drops one and reports it through `logError`, so `sent` here
+ * can hold frames the socket would have refused and `errors` stays empty. And
+ * it records strict call order, where production order is lock-acquisition
+ * order — a frame carrying a `content` array resolves its media URLs before
+ * taking the send lock, so a frame queued after it can overtake it.
  */
 export class FakeClientSession implements ClientSession {
   readonly sent: RecordedSend[] = [];

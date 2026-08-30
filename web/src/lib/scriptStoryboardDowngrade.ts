@@ -37,34 +37,39 @@ export async function downgradeBoardsLinkedToScript(
     return downgraded;
   }
 
-  for (const item of boards) {
-    try {
-      const board = await trpcClient.storyboards.get.query({ id: item.id });
-      if (board.document.screenplay?.script_id !== scriptId) {
-        continue;
+  await Promise.all(
+    boards.map(async (item) => {
+      try {
+        const board = await trpcClient.storyboards.get.query({ id: item.id });
+        if (board.document.screenplay?.script_id !== scriptId) {
+          return;
+        }
+        // SAFETY: the wire document's `screenplay`/`shots` are the passthrough
+        // zod mirrors of `Screenplay`/`Shot` — the same payload described twice,
+        // once structurally and once nominally (see useStoryboardServerSync).
+        const screenplay = unlinkedScreenplay(
+          board.document.screenplay as Screenplay | null
+        );
+        const shots = unlinkedShots(board.document.shots as Shot[]);
+        await trpcClient.storyboards.update.mutate({
+          id: item.id,
+          baseUpdatedAt: board.updatedAt,
+          document: {
+            ...board.document,
+            screenplay: screenplay ? { ...screenplay, shots } : null,
+            shots
+          } as StoryboardDocument
+        });
+        useStoryboardStore.getState().clearScriptLink(item.id);
+        downgraded.push(item.id);
+      } catch (error) {
+        console.error(
+          `Could not unlink storyboard ${item.id} from the deleted script`,
+          error
+        );
       }
-      // SAFETY: the wire document's `screenplay`/`shots` are the passthrough
-      // zod mirrors of `Screenplay`/`Shot` — the same payload described twice,
-      // once structurally and once nominally (see useStoryboardServerSync).
-      const screenplay = unlinkedScreenplay(
-        board.document.screenplay as Screenplay | null
-      );
-      const shots = unlinkedShots(board.document.shots as Shot[]);
-      await trpcClient.storyboards.update.mutate({
-        id: item.id,
-        baseUpdatedAt: board.updatedAt,
-        document: {
-          ...board.document,
-          screenplay: screenplay ? { ...screenplay, shots } : null,
-          shots
-        } as StoryboardDocument
-      });
-      useStoryboardStore.getState().clearScriptLink(item.id);
-      downgraded.push(item.id);
-    } catch (error) {
-      console.error(`Could not unlink storyboard ${item.id} from the deleted script`, error);
-    }
-  }
+    })
+  );
   return downgraded;
 }
 
@@ -88,20 +93,22 @@ export async function downgradeScriptsLinkedToBoard(
     return cleared;
   }
 
-  for (const item of scripts) {
-    try {
-      const script = await trpcClient.scripts.get.query({ id: item.id });
-      if (script.storyboardId !== storyboardId) {
-        continue;
+  await Promise.all(
+    scripts.map(async (item) => {
+      try {
+        const script = await trpcClient.scripts.get.query({ id: item.id });
+        if (script.storyboardId !== storyboardId) {
+          return;
+        }
+        await writeScriptStoryboardId(item.id, null);
+        cleared.push(item.id);
+      } catch (error) {
+        console.error(
+          `Could not clear the deleted board from script ${item.id}`,
+          error
+        );
       }
-      await writeScriptStoryboardId(item.id, null);
-      cleared.push(item.id);
-    } catch (error) {
-      console.error(
-        `Could not clear the deleted board from script ${item.id}`,
-        error
-      );
-    }
-  }
+    })
+  );
   return cleared;
 }

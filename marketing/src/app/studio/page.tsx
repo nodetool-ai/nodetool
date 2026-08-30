@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import SiteHeader from "../../components/SiteHeader";
-import CanvasScreenshot from "../../components/CanvasScreenshot";
+import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import SiteFooter from "../../components/SiteFooter";
 
 // The three-step story is the same one the landing page tells, so it is the
@@ -175,22 +175,28 @@ export default function StudioPage() {
                   <Cpu className="h-3.5 w-3.5" />
                   Studio · Desktop · Open source
                 </span>
+                {/* Sized a step below the landing hero's 3.25rem cap: this
+                    headline carries an extra clause, and at that cap it wrapped
+                    to five lines in the 5/12 column and pushed the demo out of
+                    line with the copy. text-balance is off for the same reason
+                    — it broke the short first line to equalise against the
+                    much longer second one. */}
                 <h1
                   id="studio-hero-title"
-                  className="mt-6 text-balance text-[clamp(2rem,7.5vw,3.25rem)] font-bold leading-[1.1] tracking-tight text-white lg:text-[clamp(2.25rem,3.6vw,3.25rem)]"
+                  className="mt-6 text-[clamp(2rem,7vw,2.75rem)] font-bold leading-[1.1] tracking-tight text-white lg:text-[clamp(2rem,3.1vw,2.75rem)]"
                 >
-                  You direct the vision.
+                  You are the director.
                   <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-300 pb-[0.12em]">
-                    The agent builds the film on your hardware.
+                    The agent is your crew — on your hardware.
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
-                  Describe your idea. The agent writes the script, boards every
-                  scene, generates the footage, and cuts the timeline — all of
-                  it on your own machine, on open weights through Ollama and
-                  MLX, or on your own API keys when a cloud model is the right
-                  call.
+                  Describe your idea. The agent writes the script, storyboards
+                  every scene, generates the footage, and cuts the timeline —
+                  all of it on your own machine, on open weights through Ollama
+                  and MLX, or on your own API keys when a cloud model is the
+                  right call.
                 </p>
                 <div className="mt-8 flex flex-col gap-3">
                   <SmartDownloadButton
@@ -252,7 +258,7 @@ export default function StudioPage() {
                   }}
                 />
                 <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
-                  <CanvasScreenshot alt="NodeTool Studio workflow editor" />
+                  <HeroDemoPlayer alt="NodeTool Studio: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film — all on your own machine" />
                 </div>
               </div>
             </div>

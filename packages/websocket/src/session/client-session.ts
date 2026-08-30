@@ -16,6 +16,10 @@ export type WorkspaceResolver =
  * What a domain class knows about the connection it serves: identity, the two
  * ways to send a frame, error logging, and the resolvers every region needs.
  * Nothing else about the socket is reachable through it.
+ *
+ * `userId` and `mode` are live: `userId` goes from null to an id during
+ * `connect`, and `set_mode` changes `mode` mid-connection. Read them at call
+ * time — a class that captures either at construction reads a stale value.
  */
 export interface ClientSession {
   /**
@@ -29,8 +33,13 @@ export interface ClientSession {
 
   /**
    * Serialized, validated, seq-stamped send. The host keeps the lock.
-   * Resolves once the frame is on the socket or the socket is gone: a dropped
-   * socket is not an error and never rejects.
+   *
+   * Resolves once the frame is accepted for delivery — written to the socket,
+   * or buffered into the replay session of the chat turn or run it belongs to.
+   * A buffered frame is not a sent one: it may go to a later connection, and
+   * it may reach no one, because the buffer is bounded and expires with the
+   * session. A dropped socket is not an error and never rejects; an invalid
+   * frame does reject, before anything is queued.
    */
   send(message: Record<string, unknown>): Promise<void>;
   /** Fire-and-forget send for messages that must not await the lock. */

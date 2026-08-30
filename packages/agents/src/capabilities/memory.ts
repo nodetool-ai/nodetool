@@ -82,6 +82,14 @@ async function normalizeResources(
   const { Asset } = await import("@nodetool-ai/models");
   const resources: MemoryResource[] = [];
   const dropped: MemoryResource[] = [];
+
+  // Pre-fetch all assets to avoid N+1 queries
+  const assetIds = new Set<string>();
+  const rawObjects: Array<{
+    obj: Record<string, unknown>;
+    ref: MemoryResource;
+  }> = [];
+
   for (const value of raw) {
     if (!isObjectLike(value)) continue;
     const obj = value as Record<string, unknown>;
@@ -91,8 +99,24 @@ async function normalizeResources(
     const ref: MemoryResource = { type, id };
     if (isString(obj.uri) && obj.uri) ref.uri = obj.uri;
     if (isString(obj.label) && obj.label) ref.label = obj.label;
+
+    rawObjects.push({ obj, ref });
     if (type === "asset") {
-      const asset = await Asset.find(userId, id);
+      assetIds.add(id);
+    }
+  }
+
+  const assetMap = new Map();
+  if (assetIds.size > 0) {
+    const assets = await Asset.findMany(userId, Array.from(assetIds));
+    for (const asset of assets) {
+      assetMap.set(asset.id, asset);
+    }
+  }
+
+  for (const { obj, ref } of rawObjects) {
+    if (ref.type === "asset") {
+      const asset = assetMap.get(ref.id);
       if (!asset) {
         dropped.push(ref);
         continue;
@@ -117,11 +141,27 @@ async function resolveResources(
 ): Promise<MemoryResource[]> {
   if (!Array.isArray(resources) || resources.length === 0) return [];
   const { Asset } = await import("@nodetool-ai/models");
+
+  const assetIds = new Set<string>();
+  for (const ref of resources) {
+    if (isObjectLike(ref) && ref.type === "asset") {
+      assetIds.add(ref.id);
+    }
+  }
+
+  const assetMap = new Map();
+  if (assetIds.size > 0) {
+    const assets = await Asset.findMany(userId, Array.from(assetIds));
+    for (const asset of assets) {
+      assetMap.set(asset.id, asset);
+    }
+  }
+
   const out: MemoryResource[] = [];
   for (const ref of resources) {
     if (!isObjectLike(ref)) continue;
     if (ref.type === "asset") {
-      const asset = await Asset.find(userId, ref.id);
+      const asset = assetMap.get(ref.id);
       if (!asset) continue;
       out.push({
         type: "asset",
@@ -152,10 +192,7 @@ function requireUser(
  * the thread the turn is running in; anything else — including the default —
  * reads every thread.
  */
-function threadFilter(
-  value: unknown,
-  threadId: string
-): { threadId?: string } {
+function threadFilter(value: unknown, threadId: string): { threadId?: string } {
   return isString(value) && value.trim().toLowerCase() === "current"
     ? { threadId }
     : {};
@@ -197,8 +234,7 @@ const memorySave: CapabilityExport = {
     const scope = requireUser(run.context);
     if ("error" in scope) return { success: false, error: scope.error };
 
-    const content =
-      isString(params.content) ? params.content.trim() : "";
+    const content = isString(params.content) ? params.content.trim() : "";
     if (!content) {
       return {
         success: false,
@@ -335,8 +371,7 @@ const memoryUpdate: CapabilityExport = {
     const scope = requireUser(run.context);
     if ("error" in scope) return { success: false, error: scope.error };
 
-    const memoryId =
-      isString(params.memory_id) ? params.memory_id : "";
+    const memoryId = isString(params.memory_id) ? params.memory_id : "";
     if (!memoryId) {
       return { success: false, error: "memory_id is required" };
     }
@@ -349,8 +384,7 @@ const memoryUpdate: CapabilityExport = {
       }
 
       let dropped: MemoryResource[] = [];
-      if (isString(params.content))
-        memory.content = params.content.trim();
+      if (isString(params.content)) memory.content = params.content.trim();
       if (isString(params.title)) memory.title = params.title.trim();
       if (params.kind !== undefined) memory.kind = coerceKind(params.kind);
       if (params.resources !== undefined) {
@@ -389,8 +423,7 @@ const memoryDelete: CapabilityExport = {
     const scope = requireUser(run.context);
     if ("error" in scope) return { success: false, error: scope.error };
 
-    const memoryId =
-      isString(params.memory_id) ? params.memory_id : "";
+    const memoryId = isString(params.memory_id) ? params.memory_id : "";
     if (!memoryId) {
       return { success: false, error: "memory_id is required" };
     }
@@ -426,10 +459,4 @@ export const module: CapabilityModule = {
   exports: MEMORY_CAPABILITIES
 };
 
-export {
-  memorySave,
-  memoryList,
-  memorySearch,
-  memoryUpdate,
-  memoryDelete
-};
+export { memorySave, memoryList, memorySearch, memoryUpdate, memoryDelete };
