@@ -39,9 +39,9 @@ only matters if you later run models locally — see the
 
 1. Download NodeTool from [nodetool.ai](https://nodetool.ai).
 2. Run the installer.
-3. Open the app. It lands on the Dashboard, which asks what you want to make
-   and carries a short setup checklist. Per-OS instructions are on the
-   [Installation](installation.md) page.
+3. Open the app. It lands on the workspace, whose empty state asks what you
+   want to make and carries a short setup checklist. Per-OS instructions are on
+   the [Installation](installation.md) page.
 
 ### Connect three kinds of model
 
