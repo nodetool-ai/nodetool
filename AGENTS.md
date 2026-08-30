@@ -1736,7 +1736,10 @@ values, a screenshot comes back as base64. The capability module
 the half that needs a `ProcessingContext`, turning those bytes into an asset
 reference and an asset id into bytes. That split is what lets the capabilities
 and the `lib.browser.Screenshot` node share one implementation. One session
-exists per process and every caller shares it. Extension setup, the wire
+exists per process and every caller shares it — which is why the cloud profile
+drops all fourteen (`packages/agents/src/browser-gate.ts`): one shared page
+across tenants is a single-tenant shape, and the node catalog already agreed by
+leaving `lib.browser` out of `CLOUD_NODE_NAMESPACES`. Extension setup, the wire
 protocol and its limits: [docs/chrome-extension.md](docs/chrome-extension.md).
 
 ### Code authoring tools (no workflow, no browser)

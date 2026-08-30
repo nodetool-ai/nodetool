@@ -173,6 +173,14 @@ Element indexes are rebuilt on every `browser_view`, so an agent views before it
 
 `extension_connected` is `null`, not `false`, where the process cannot answer — a CLI reaching `/ws/extension` over a URL would have to open a socket to find out, so it reports "unknown" rather than guessing.
 
+**Not available on nodetool.ai.** The cloud profile drops all fourteen: the
+browser session is one page per server process, shared by every caller, which
+is a single-tenant shape — and the extension transport would put one user's own
+Chrome behind an unauthenticated socket on a shared server. They are offered
+where the machine belongs to its user: the desktop app, a local server, or a
+self-hosted install (`NODETOOL_NODE_PROFILE=full`). See
+[Cloud node curation](CLOUD_NODE_CURATION.md).
+
 Permission-wise: reading the page (`browser_status`, `browser_view`, `browser_console_view`) is classified `read`, `browser_restart` and `browser_console_exec` are `execute`, and everything that acts on the page — a click, a keystroke, an upload — is `external`, because it lands on a third-party site inside the user's own logged-in session.
 
 The action loop itself is `@nodetool-ai/browser` (`packages/browser/`), which knows nothing about agents, nodes or assets — a screenshot comes back from it as base64. The capability module imports it directly and owns the half that needs a `ProcessingContext`: persisting those bytes as an asset, and resolving an asset id back to bytes for an upload. That split is why the `lib.browser.Screenshot` node can share the same action loop without depending on the agent layer.

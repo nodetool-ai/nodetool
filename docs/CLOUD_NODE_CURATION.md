@@ -174,10 +174,10 @@ that egress policy is written down in the ComfyUI row of
 
 The namespace is kept. The product surface is the standard Agent plus
 Classifier, Extractor, Summarizer, CreateThread, and EnhancePrompt.
-Specialist tool-agent nodes were removed. ffmpeg and browser are CodeAct
+Specialist tool-agent nodes were removed. ffmpeg and page fetching are CodeAct
 capabilities (`nodetool.media.ffmpeg`, `nodetool.web.browse`) — the same
 binaries the image installs, reached from chat and from the Code node instead
-of from an agent node. yt-dlp is not: see below.
+of from an agent node. yt-dlp and the live browser are not: see below.
 
 ## yt-dlp
 
@@ -200,6 +200,39 @@ error. The capability itself refuses too, for a host that resolves it by name.
 
 The binary stays in the image: `docker-compose.yml` self-hosting runs the same
 image with `NODETOOL_NODE_PROFILE=full`, and that install keeps both surfaces.
+
+## The live browser
+
+`lib.browser.Screenshot` fell out with its namespace — `lib.browser` is not in
+`CLOUD_NODE_NAMESPACES` — and the fourteen `browser_*` capabilities that drive
+the same page (`browser_view`, `browser_click`, `browser_capture_media`, …)
+are off under the cloud profile too.
+
+They are a single-tenant surface. The browser session is a **process
+singleton**: one page, shared by every caller in the process, so on a managed
+server two tenants' agents drive the same tab and whatever the first signed
+into is what the second one's `browser_view` reads. The extension transport is
+worse — `/ws/extension` is unauthenticated and single-connection, so one user's
+own Chrome would be reachable by anybody's run. Neither is a defect to fix
+behind a flag; both are what the surface is for. It belongs on a machine its
+user owns.
+
+The capabilities are dropped from the belt by `isBrowserEnabled()`
+([`packages/agents/src/browser-gate.ts`](../packages/agents/src/browser-gate.ts)),
+which reads the same two env vars `isCloudProfileActive` reads, so chat, an
+AgentNode and the Code node all see the same absence. Each implementation
+refuses as well, because the belt is discovery and not enforcement: the sandbox
+mount serves every registered capability module, so a guest importing
+`@nodetool-ai/sandbox-nodetool/browser` reaches them with no belt in between.
+
+`/ws/extension` is gated separately and was already closed here — the route is
+not registered when `NODETOOL_ENV=production` unless
+`NODETOOL_ENABLE_EXTENSION_BRIDGE=1`. That switch now opens a bridge nothing on
+a cloud deployment can use; the capabilities are off regardless of it.
+
+Chromium stays in the image (`Dockerfile`), like the yt-dlp binary: the same
+image self-hosts with `NODETOOL_NODE_PROFILE=full`, and that install keeps both
+surfaces.
 
 ## Maintenance
 
