@@ -26,6 +26,7 @@ import { RootStackParamList } from '../navigation/types';
 import { type SecretResponse } from '../services/api';
 import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
+import LoadErrorBanner from '../components/LoadErrorBanner';
 import type { ThemeColors, ThemeShadows } from '../utils/theme';
 
 type Props = {
@@ -249,12 +250,7 @@ export default function SecretsScreen({ navigation: _navigation }: Props) {
         </View>
       </View>
 
-      {loadError && (
-        <View style={[styles.banner, { backgroundColor: colors.error + '18' }]}>
-          <Ionicons name="warning-outline" size={14} color={colors.error} style={{ marginRight: 6 }} />
-          <Text style={[styles.bannerText, { color: colors.error }]}>{loadError}</Text>
-        </View>
-      )}
+      <LoadErrorBanner error={loadError} />
 
       <FlatList
         data={filtered}
@@ -412,14 +408,6 @@ const styles = StyleSheet.create({
     height: 40,
   },
   searchInput: { flex: 1, fontSize: 15, paddingVertical: 0 },
-  banner: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bannerText: { fontSize: 13, fontWeight: '500' },
   list: { padding: 16, paddingTop: 4 },
   card: {
     borderRadius: 12,
