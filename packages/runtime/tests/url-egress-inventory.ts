@@ -248,11 +248,16 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   {
     ...guardedMedia(
       "packages/websocket/src/unified-websocket-runner.ts",
-      "chat source images + workflow output auto-save",
+      "chat source images",
       "Held a third copy of the address table and screened only the first URL; both sites now take the shared policy."
     ),
     inputSource: "chat-client"
   },
+  guardedMedia(
+    "packages/websocket/src/session/asset-autosave.ts",
+    "workflow output auto-save",
+    "Reads the uri a workflow output named before storing the bytes as an asset."
+  ),
 
   // -------------------------------------------- guarded (provider result URLs)
   guardedSafeFetch(
