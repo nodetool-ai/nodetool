@@ -53,8 +53,6 @@ interface BottomStatusBarProps {
   generatingCount?: number;
   /** Number of failed generations */
   failedCount?: number;
-  /** Estimated cost in USD */
-  costEstimate?: number;
   /** Current zoom level (1 = 100%) */
   zoom?: number;
   /** Callback when zoom changes */
@@ -74,7 +72,6 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
     mode = "local",
     generatingCount = 0,
     failedCount = 0,
-    costEstimate,
     zoom = 1,
     onZoomChange,
     actionSlot
@@ -119,14 +116,8 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
           )}
         </FlexRow>
 
-        {/* Right: cost estimate + zoom */}
+        {/* Right: zoom */}
         <FlexRow gap={2} align="center">
-          {costEstimate !== undefined && (
-            <Caption color="secondary">
-              ~${costEstimate.toFixed(4)}
-            </Caption>
-          )}
-
           <ZoomControls
             zoom={zoom}
             onZoomChange={onZoomChange ?? noop}

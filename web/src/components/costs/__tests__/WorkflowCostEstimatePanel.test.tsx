@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -76,13 +76,15 @@ describe("WorkflowCostEstimatePanel", () => {
     });
   });
 
-  it("reads fan-out, clip length and rung as one units phrase", () => {
+  it("reads fan-out, clip length and rung as one units phrase from the structured fields", () => {
     mockHook.mockReturnValue({
       ...estimate,
       items: [
         {
           ...estimate.items[0],
           quantity: 2,
+          seconds: 5,
+          resolution: "720p",
           breakdown: "5 s × $0.205/s at 720p"
         }
       ]
@@ -116,6 +118,49 @@ describe("WorkflowCostEstimatePanel", () => {
 
     // Both the row and the total say "at least", never a false exact.
     expect(screen.getAllByText(/≥/)).toHaveLength(2);
+  });
+
+  it("labels a cost priced off an assumption as a lower bound", () => {
+    mockHook.mockReturnValue({
+      ...estimate,
+      items: [
+        {
+          ...estimate.items[0],
+          warnings: undefined,
+          assumptions: ["duration not set on the node — priced at 1 s"]
+        }
+      ]
+    } as never);
+    renderPanel();
+
+    // An assumed duration is not the exact cost of the run the node will
+    // actually make, so the row and the total both read "at least".
+    expect(screen.getAllByText(/≥/)).toHaveLength(2);
+  });
+
+  it("shows an honest total instead of $0.00 when every node is unpriced", () => {
+    mockHook.mockReturnValue({
+      currency: "USD",
+      total: 0,
+      unknown_count: 1,
+      items: [
+        {
+          node_id: "1",
+          node_type: "nodetool.video.TextToVideo",
+          provider: "atlascloud",
+          model: "some/video",
+          quantity: 1,
+          estimated_cost: 0,
+          confidence: "unknown" as const
+        }
+      ]
+    } as never);
+    renderPanel();
+
+    const totalRow = screen.getByText("Total (USD)").closest(".cost-total");
+    expect(totalRow).not.toBeNull();
+    expect(within(totalRow as HTMLElement).getByText("—")).toBeInTheDocument();
+    expect(screen.queryByText("$0")).toBeNull();
   });
 
   it("says why a declined price could not be quoted", async () => {
