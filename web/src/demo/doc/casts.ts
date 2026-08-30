@@ -5,6 +5,7 @@
  * can reach the cast data without pulling in the player and the editor
  * components behind it.
  */
+import { heroStoryboardCast } from "../hero/heroStoryboardCast";
 import { appAssistantCast } from "./appAssistantCast";
 import type { DocDemoCast } from "./docCastTypes";
 import { jsScriptAssistantCast } from "./jsScriptAssistantCast";
@@ -25,5 +26,7 @@ export const docCasts: DocDemoCast[] = [
   // before spending, and a check that fails before it passes.
   sketchCorrectionCast,
   storyboardAskCast,
-  jsScriptRepairCast
+  jsScriptRepairCast,
+  // The landing-page hero: the same board rendering stills and then clips.
+  heroStoryboardCast
 ];

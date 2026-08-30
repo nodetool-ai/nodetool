@@ -277,6 +277,59 @@ The promo's casts live with the other synthetic casts —
 `web/src/demo/timeline/promoTimelineCast.ts` (invariants guarded by
 `web/src/demo/__tests__/promoCasts.test.ts`).
 
+## The landing-page hero (`demo/src/hero/`)
+
+A silent 44 s loop of one project going from a sentence to a finished cut —
+the same story the landing page tells below the fold, so the reel and the
+section under it are the same session rather than two pitches.
+
+```bash
+cd demo
+npm run render:hero            # → out/hero-project.mp4 (16:9)
+npm run render:hero:vertical   # → out/hero-project-vertical.mp4 (9:16)
+npm run encode:hero            # masters → marketing/public/, both codecs + posters
+```
+
+`remotion render` writes a visually lossless master — around 24 MB for the
+44 s reel — and the hero autoplays on first paint, so `encode:hero` is not
+optional: it re-encodes to H.264 and VP9 at a fraction of that and cuts the
+WebP posters the `<img>` srcSet needs. Pass `--frame <n>` to poster a
+different moment.
+
+Pace is one number: `PACE` in `heroChrome.ts`. Every beat in the reel — stage
+boundaries, caption staggers, the word-by-word open, the closing montage —
+goes through `paced()`, so the whole thing speeds up or slows down together
+rather than the captions popping while the surfaces crawl.
+
+Five beats, four of them a real product surface replaying a real cast:
+
+| Beat | Surface | Cast |
+| --- | --- | --- |
+| Brief | full-frame type | `HERO_BRIEF` |
+| Describe | Global Chat | `hero-brief` (`web/src/demo/hero/heroBriefCast.ts`) |
+| Board · Render | Storyboard | `hero-storyboard` (one shot, two passes) |
+| Cut | Timeline | `hero-timeline` |
+| Deliver | the six clips, full frame | the pinned takes |
+
+The three casts share `web/src/demo/hero/shared.ts`, which is what makes the
+reel one session: the six SCRAPHEART shots are described in chat, boarded,
+rendered, and cut in the same order, and the clips that play under the closing
+headline are the ones the board rendered. `web/src/demo/hero/__tests__/`
+pins that — a cut with a gap in it, or a clip that lost its board provenance,
+fails there rather than in a loop nobody watches to the end.
+
+Two things the reel needed that the harness did not have:
+
+- **Pinned media on a document cast.** A `DocDemoCast` may now carry an
+  `assets` manifest and address it as `cast-asset://<key>`, the way the graph
+  and timeline casts do; `DocDemoPlayer` rewrites those refs through its
+  `resolveAssetUrl`. Six two-second clips do not fit in a `data:` URI.
+- **A playhead for in-DOM video.** The shot cards play through plain
+  `<video>` elements, which a frame renderer never advances — so a board of
+  six rendered clips captured as a board of six stills, and the render pass
+  read as nothing happening. `DocDemoPlayer`'s `mediaTimeMs`
+  (`web/src/demo/videoPlayhead.ts`) seeks them per frame.
+
 ## Adding a demo
 
 1. **Author the cast.** Write a module in `web/src/demo/` exporting a

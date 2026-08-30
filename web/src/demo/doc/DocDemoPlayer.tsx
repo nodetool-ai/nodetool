@@ -45,8 +45,10 @@ import {
   AssistantDock,
   ASSISTANT_DOCK_WIDTH_PX
 } from "../assistant/AssistantDock";
+import { resolveAssetUrlsIn } from "../assetSubstitution";
 import { seedDemoAuth, seedDemoSecrets } from "../demoEngine";
 import { useMediaReadiness, type PendingMediaHandler } from "../mediaReadiness";
+import { useVideoPlayhead } from "../videoPlayhead";
 import type {
   AppCastDoc,
   DocDemoCast,
@@ -96,6 +98,18 @@ export interface DocDemoPlayerProps {
   timeMs: number;
   /** Width of the assistant dock in px. Pass 0 to hide it. */
   assistantWidthPx?: number;
+  /**
+   * Maps a pinned file from the cast's `assets` manifest to a host URL
+   * (Remotion `staticFile`, the demo page's public dir). Required only by a
+   * cast that carries `assets`; casts with inline `data:` media need nothing.
+   */
+  resolveAssetUrl?: (file: string) => string;
+  /**
+   * Where to park every `<video>` on the surface, in media time. A rendered
+   * clip on a shot card otherwise sits on its first frame, which is exactly
+   * what a still looks like. Omit to leave the elements alone.
+   */
+  mediaTimeMs?: number;
   /** Called with a promise per not-yet-decoded video so a frame renderer can
    *  block the capture until media is paintable (see ../mediaReadiness.ts). */
   onPendingMedia?: PendingMediaHandler;
@@ -107,10 +121,13 @@ export function DocDemoPlayer({
   cast,
   timeMs,
   assistantWidthPx = ASSISTANT_DOCK_WIDTH_PX,
+  resolveAssetUrl,
+  mediaTimeMs,
   onPendingMedia,
   style
 }: DocDemoPlayerProps): React.JSX.Element {
   const rootRef = useRef<HTMLDivElement>(null);
+  useVideoPlayhead(rootRef, mediaTimeMs);
   useMediaReadiness(rootRef, timeMs, onPendingMedia);
 
   // The document surfaces read the same globals the graph canvas does: shot
@@ -121,7 +138,15 @@ export function DocDemoPlayer({
     seedDemoSecrets();
   });
 
-  const doc = useMemo(() => docStateAt(cast, timeMs), [cast, timeMs]);
+  const doc = useMemo(
+    () =>
+      resolveAssetUrlsIn(
+        docStateAt(cast, timeMs),
+        cast.assets,
+        resolveAssetUrl
+      ),
+    [cast, timeMs, resolveAssetUrl]
+  );
 
   // Seed synchronously before paint so each frame's DOM reflects exactly the
   // cast state at `timeMs`, the same way the other two players seek.

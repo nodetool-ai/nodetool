@@ -320,9 +320,11 @@ Rendered by the demo harness from real product casts, not mocked up.
 `render:hero:vertical`, `render:surfaces`, `render:tab-chaos` in `demo/`.
 The homepage's `SurfaceShowcase` plays the five loops (W2).
 
-- [x] Hero 3-stage pipeline video — `hero-pipeline.{mp4,webm}` (16:9) and
-      `hero-pipeline-vertical.{mp4,webm}` (9:16), 15 s silent loop, ~2.5 MB
-      each, WebP posters alongside
+- [x] Hero project reel — `hero-project.{mp4,webm}` (16:9) and
+      `hero-project-vertical.{mp4,webm}` (9:16), 44 s silent loop, WebP
+      posters alongside. It runs the same project the section below the fold
+      describes: a sentence in chat, a board that renders stills and then
+      clips, a timeline cut, the finished teaser
 - [x] Five surface micro-loops — `surface-storyboard`, `surface-script`,
       `surface-timeline`, `surface-sketch`, `surface-3d`, 6 s each. Sketch
       needed a renderer fix: its WebGPU display canvas reads back empty when

@@ -13,9 +13,10 @@ export { DemoEngine, seedCastMetadata } from "./demoEngine";
 export type { DemoEngineOptions } from "./demoEngine";
 export { DemoPlayer } from "./DemoPlayer";
 export type { DemoPlayerProps } from "./DemoPlayer";
-export { resolveAssetUrls } from "./assetSubstitution";
+export { resolveAssetUrls, resolveAssetUrlsIn } from "./assetSubstitution";
 export { useMediaReadiness } from "./mediaReadiness";
 export type { PendingMediaHandler } from "./mediaReadiness";
+export { useVideoPlayhead } from "./videoPlayhead";
 export { sampleCast } from "./sampleCast";
 export { promoTrailerCast } from "./promoTrailerCast";
 export { tutorialCast } from "./tutorialCast";
@@ -44,6 +45,15 @@ export type { TimelineDemoPlayerProps } from "./timeline/TimelineDemoPlayer";
 export { TimelineDemoEngine, seedTimelineCastAssets } from "./timeline/timelineReplay";
 export type { TimelineDemoEngineOptions } from "./timeline/timelineReplay";
 export { timelineEditingCast } from "./timeline/timelineEditingCast";
+export {
+  heroBriefCast,
+  heroStoryboardCast,
+  heroTimelineCast,
+  HERO_BRIEF,
+  HERO_MODEL,
+  HERO_SHOTS,
+  HERO_TITLE,
+} from "./hero";
 export {
   promoTimelineCast,
   PROMO_PLAYHEAD_MODEL,

@@ -20,6 +20,8 @@
  */
 import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
 
+import type { CastAsset } from "../castTypes";
+
 import type { LanguageModel, Workflow } from "../../stores/ApiTypes";
 import type {
   SketchDocument,
@@ -68,6 +70,13 @@ interface DocDemoCastBase<Surface extends DocSurface, Doc> {
   doc: Doc;
   /** Patches, sorted ascending by `t`. */
   events: DocCastEvent<Doc>[];
+  /**
+   * Media too large to inline, pinned next to the cast and addressed from the
+   * document as `cast-asset://<key>` — the same scheme the graph and timeline
+   * casts use. The player rewrites those refs through its `resolveAssetUrl`.
+   * Casts whose media fits in a `data:` URI omit this.
+   */
+  assets?: CastAsset[];
   /** The assistant turn(s) that drove the edits, shown in the side dock. */
   assistant: ChatCastEvent[];
   /** Model badge the assistant dock's composer shows. */
