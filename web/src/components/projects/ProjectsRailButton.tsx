@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import DiamondOutlinedIcon from "@mui/icons-material/DiamondOutlined";
 
 import { ToolbarIconButton, Tooltip } from "../ui_primitives";
+import type { TooltipProps } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
   PROJECT_LIST_REF,
@@ -13,7 +14,13 @@ import { PROJECT_COLOR } from "./projectIdentity";
  * The rail's Projects entry. Unlike the views below it this opens a tab
  * rather than a drawer — the projects list is a surface, not a sidebar.
  */
-const ProjectsRailButton = () => {
+const ProjectsRailButton = ({
+  onSelect,
+  tooltipPlacement = "right-start"
+}: {
+  onSelect?: () => void;
+  tooltipPlacement?: TooltipProps["placement"];
+}) => {
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const onProjectSurface = useWorkspaceTabsStore((state) => {
     const active = state.tabs.find((tab) => tab.id === state.activeTabId);
@@ -27,12 +34,13 @@ const ProjectsRailButton = () => {
       mode: "view",
       title: "Projects"
     });
-  }, [openTab]);
+    onSelect?.();
+  }, [openTab, onSelect]);
 
   return (
     <Tooltip
       title="Projects"
-      placement="right-start"
+      placement={tooltipPlacement}
       delay={TOOLTIP_ENTER_DELAY}
     >
       <ToolbarIconButton
