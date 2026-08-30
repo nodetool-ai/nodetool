@@ -55,19 +55,6 @@ export const DOCUMENT_KINDS: readonly DocumentKind[] = [
   "text"
 ];
 
-export const DOCUMENT_KIND_LABEL: Record<DocumentKind, string> = {
-  app: "Apps",
-  sketch: "Sketches",
-  timeline: "Videos",
-  storyboard: "Storyboards",
-  script: "Scripts",
-  jsscript: "JS scripts",
-  image: "Images",
-  audio: "Audio",
-  model3d: "3D models",
-  text: "Text"
-};
-
 /** The workspace tab that opens a document of each kind. */
 const KIND_TAB_TYPE: Record<DocumentKind, WorkspaceTabType> = {
   app: "application",
