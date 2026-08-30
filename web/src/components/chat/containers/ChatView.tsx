@@ -283,6 +283,9 @@ const ChatView = ({
   // Right rails use fixed widths. Below `md` they leave the conversation
   // almost no room, so they drop out entirely on phones and narrow panels.
   const railsFit = useMediaQuery(theme.breakpoints.up("md"));
+  // The overlay's copy-conversation and new-chat buttons crowd the header on
+  // phones, where the composer already exposes a new-chat action.
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const hasAgentExecutionMessages = useMemo(
     () => messages.some((message) => message.role === "agent_execution"),
     [messages]
@@ -324,10 +327,10 @@ const ChatView = ({
     <div className="chat-view" css={cssStyles}>
       <div className="chat-main">
         {(canShowMemorySidebar ||
-          messages.length > 0 ||
-          (showNewChatButton && onNewChat)) && (
+          (!isMobile && messages.length > 0) ||
+          (!isMobile && showNewChatButton && onNewChat)) && (
           <FlexRow className="chat-overlay-actions" align="center" gap={2}>
-            {messages.length > 0 && (
+            {!isMobile && messages.length > 0 && (
               <ToolbarIconButton
                 onClick={handleCopyConversation}
                 tooltip="Copy conversation as JSON"
@@ -342,7 +345,7 @@ const ChatView = ({
                 icon={<PsychologyOutlinedIcon fontSize="small" />}
               />
             )}
-            {showNewChatButton && onNewChat && (
+            {!isMobile && showNewChatButton && onNewChat && (
               <ToolbarIconButton
                 onClick={onNewChat}
                 tooltip="New chat"
