@@ -62,7 +62,6 @@
     "build:3d-scene": "tsx scripts/build-3d-cast-scene.ts",
     "render:tab-chaos": "remotion render src/index.ts Tab-Chaos out/tab-chaos.mp4",
     "still:promo": "remotion still src/index.ts Promo-Master out/promo-frame.jpg --frame=300",
-    "pin-assets": "tsx scripts/pin-cast-assets.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

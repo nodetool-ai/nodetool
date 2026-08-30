@@ -3,14 +3,15 @@
 Scripted, reproducible product-demo videos of the real NodeTool graph UI —
 generations, streaming, and outputs — rendered with [Remotion](https://remotion.dev).
 
-The trick: instead of running the live backend (and burning generation credits)
-every time you render, you **record one real run into a `cast`** and replay that
-cast deterministically. The same recording can be re-rendered any number of
-times, retimed, captioned, and recomposed — with zero further generations.
+The trick: instead of running the live backend (and paying provider rates)
+every time you render, you author a **cast** — a timeline of the exact protocol
+messages a run emits — and the player replays it deterministically. The same
+cast re-renders any number of times, retimed, captioned, and recomposed, with
+no generations at all.
 
 ```
-record real run ──▶  cast.json  +  pinned assets  ──▶  Remotion render ──▶  demo.mp4
-   (once, costs)        (stored, replayable)            (free, repeatable)
+authored cast  +  pinned assets  ──▶  Remotion render ──▶  demo.mp4
+    (stored, replayable)                (free, repeatable)
 ```
 
 ## How it fits together
@@ -20,7 +21,6 @@ record real run ──▶  cast.json  +  pinned assets  ──▶  Remotion rend
 | **Cast format** | `web/src/demo/castTypes.ts` | The stored demo: workflow graph + node metadata + a time-stamped timeline of the exact protocol messages + an asset manifest. Plain, editable JSON. |
 | **DemoEngine** | `web/src/demo/demoEngine.ts` | Replays a cast deterministically: `seekToTime(ms)` makes the execution stores reflect exactly the events up to `ms`. Backward seeks reset and replay. |
 | **DemoPlayer** | `web/src/demo/DemoPlayer.tsx` | Renders the **real** `BaseNode`/`PreviewNode`/`OutputNode` etc. for a cast at a given time. The single rendering surface, shared by Remotion and the preview page. |
-| **CastRecorder** | `web/src/demo/recorder.ts` | Taps the live message stream during a real run and assembles a cast. |
 | **Preview page** | `web/demo.html` + `web/src/demo-entry.tsx` | Scrub/preview a cast in a browser (`npm start` in `web/`, open `/demo.html`). |
 | **Remotion project** | `demo/` (this dir) | Compositions that embed `DemoPlayer`, drive it from the frame clock, and add title cards / captions. |
 
@@ -41,7 +41,7 @@ npm run render          # render WorkflowDemo → demo/out/workflow-demo.mp4
 
 The sample cast (`web/src/demo/sampleCast.ts`) is fully synthetic (inline assets,
 no backend) — a two-node "stream text → image preview" demo. Use it to validate
-the pipeline before recording your own.
+the pipeline before authoring your own.
 
 ## Intro tutorial (no backend)
 
@@ -60,7 +60,7 @@ assets, no backend) — under a title card, a step indicator that tracks the act
 node, lower-third captions, and a closing call-to-action (`demo/src/Tutorial.tsx`).
 Edit the entry's `steps` / `captions` in `demo/src/tutorials.ts` to retime or
 reword the narration; the timeline itself lives in `tutorialCast.ts`. To narrate
-a real recorded run instead, point the entry's `castId` at your own cast.
+a different run, point the entry's `castId` at your own cast.
 
 ## Cookbook recipe videos (no backend)
 
@@ -277,47 +277,28 @@ The promo's casts live with the other synthetic casts —
 `web/src/demo/timeline/promoTimelineCast.ts` (invariants guarded by
 `web/src/demo/__tests__/promoCasts.test.ts`).
 
-## Recording a real demo
+## Adding a demo
 
-1. **Record.** From the editor (dev build), capture one real run:
+1. **Author the cast.** Write a module in `web/src/demo/` exporting a
+   `DemoCast` — the workflow graph, the node metadata for the types it uses,
+   and the timeline of protocol messages with their `t` offsets. Start from
+   `sampleCast.ts` (fully self-contained) or `promoTrailerCast.ts` (references
+   pinned media). Export it from `web/src/demo/index.ts`.
 
-   ```ts
-   import { CastRecorder, downloadCastJson } from "@/demo"; // web/src/demo
+2. **Pin any media** it references under `demo/public/casts/<castId>/` and
+   address them from the cast as `cast-asset://<key>`, with a matching manifest
+   entry in `assets`. The player rewrites those refs to host URLs at load time
+   (`web/src/demo/assetSubstitution.ts`), so a cast replays with no backend and
+   no further generations.
 
-   const rec = new CastRecorder();
-   rec.start({
-     workflowId,
-     getWorkflow: () => nodeStore.getState().getWorkflow(),
-     getMetadata: () => useMetadataStore.getState().metadata,
-   });
-   // …click Run, let the workflow finish…
-   const cast = rec.stop({ name: "Image generation", fps: 30 });
-   downloadCastJson(cast); // saves <name>.cast.json
-   ```
-
-   (Wire this to a dev-only "Record demo" button, or call it from the console.)
-
-2. **Store.** Drop the file in `demo/casts/`, e.g. `demo/casts/image-gen.cast.json`.
-
-3. **Pin assets** so replay needs no backend (run once, while the server that
-   produced the run is still up so the asset URLs resolve):
-
-   ```bash
-   cd demo
-   npm run pin-assets -- casts/image-gen.cast.json --api http://localhost:7777
-   ```
-
-   This downloads every generated image/audio/video into
-   `demo/public/casts/<castId>/` and rewrites the cast's manifest in place.
-
-4. **Register** the cast in `demo/src/casts/registry.ts`:
+3. **Register** the cast in `demo/src/casts/registry.ts`:
 
    ```ts
-   import imageGen from "../../casts/image-gen.cast.json";
-   const casts: DemoCast[] = [sampleCast, imageGen as DemoCast];
+   import { imageGenCast } from "@web-demo";
+   const casts: DemoCast[] = [sampleCast, imageGenCast];
    ```
 
-5. **Render.** It now has its own composition (`Demo-<castId>`), or point the
+4. **Render.** It now has its own composition (`Demo-<castId>`), or point the
    default `WorkflowDemo` composition at it:
 
    ```bash
@@ -327,7 +308,7 @@ The promo's casts live with the other synthetic casts —
 
 ## Editing a cast
 
-A cast is just JSON. After recording you can:
+A cast is plain data. You can:
 
 - **Trim / retime**: adjust `events[].t` and `durationMs`.
 - **Add captions / title**: pass `captions` and `title` to the composition
@@ -381,8 +362,8 @@ rule/alias to `webpackOverride.ts`:
 player is served as a standalone page at `web/demo.html` (run `npm start` in
 `web/`). You can drive that page from Remotion via an `<IFrame>` + the
 `window.nodetoolDemo.seek(ms)` API instead of embedding the component — at the
-cost of some CSS-animation determinism. The cast format, recorder, and player
-are identical either way.
+cost of some CSS-animation determinism. The cast format and player are
+identical either way.
 
 ## Determinism notes
 

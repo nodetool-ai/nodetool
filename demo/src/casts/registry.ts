@@ -1,12 +1,10 @@
 /**
- * Cast registry — the set of demo recordings Remotion can render.
+ * Cast registry — the set of demo casts Remotion can render.
  *
- * `sampleCast` is the built-in synthetic demo. To add a recorded one, drop its
- * JSON in demo/casts/, pin its assets (`npm run pin-assets -- casts/<file>`),
- * then import it here:
- *
- *   import myDemo from "../../casts/my-demo.cast.json";
- *   const casts: DemoCast[] = [sampleCast, myDemo as DemoCast];
+ * `sampleCast` is the built-in synthetic demo. To add one, author its module in
+ * `web/src/demo/`, export it from that barrel, then import it here and append
+ * it to `casts`. Media it references go in `demo/public/casts/<castId>/` and
+ * are addressed as `cast-asset://<key>`.
  */
 import {
   sampleCast,
