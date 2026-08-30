@@ -61,11 +61,6 @@ export const useCreateProject = () => {
   return trpc.projects.create.useMutation({ onSuccess: invalidate });
 };
 
-export const useRenameProject = () => {
-  const invalidate = useInvalidateProjects();
-  return trpc.projects.update.useMutation({ onSuccess: invalidate });
-};
-
 export const useAssignDocument = () => {
   const invalidate = useInvalidateProjects();
   return trpc.projects.assignDocument.useMutation({ onSuccess: invalidate });

@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useRef } from "react";
+import { memo, useMemo, useRef } from "react";
 import { ProgressBar } from "../../ui_primitives";
 
 interface ProgressProps {
