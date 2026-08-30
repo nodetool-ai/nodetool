@@ -525,6 +525,7 @@ export const SURFACES: SurfaceEntry[] = [
     paths: [
       "chrome-extension/",
       "packages/automation-nodes/src/lib/",
+      "packages/automation-nodes/tests/",
       "packages/agents/src/capabilities/browser.ts",
       "packages/agents/src/capabilities/browser.specs.ts",
       "packages/agents/src/capabilities/browser-runner.ts",
