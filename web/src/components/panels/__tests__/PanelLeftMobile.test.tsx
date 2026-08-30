@@ -155,8 +155,18 @@ it("keeps the visible desktop groups in the mobile tab row", () => {
     ["Sketches", "Scripts", "Storyboards", "Entities", "Timelines"],
     ["JS Scripts", "Skills"],
     ["Workspace", "Assets", "Library"],
-    ["More"]
+    ["Projects", "More"]
   ]);
+});
+
+it("offers Projects in the workspace shell", async () => {
+  const user = userEvent.setup();
+  renderPanel();
+
+  const projects = screen.getByLabelText("Projects");
+  expect(projects).toBeInTheDocument();
+
+  await user.click(projects);
 });
 
 it("reaches the app pages through More, not a second menu button", async () => {

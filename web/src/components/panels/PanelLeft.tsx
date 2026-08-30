@@ -865,6 +865,8 @@ const MobilePanelLeft: React.FC<{
    * (MobileRailLauncher), so this variant renders only the sheet.
    */
   hideLauncher?: boolean;
+  /** Same condition as the desktop rail's showProjects. */
+  showProjects?: boolean;
 }> = ({
   activeView,
   activeNodeCategory,
@@ -876,7 +878,8 @@ const MobilePanelLeft: React.FC<{
   onViewChange,
   handlePanelToggle,
   hiddenViews,
-  hideLauncher = false
+  hideLauncher = false,
+  showProjects = false
 }) => {
   const theme = useTheme();
   // The app pages (Settings, Help, Downloads, …) are a section of this sheet
@@ -971,6 +974,12 @@ const MobilePanelLeft: React.FC<{
             ))}
 
             <FlexRow className="mobile-tab-group" gap={SPACING.xs}>
+              {showProjects && (
+                <ProjectsRailButton
+                  onSelect={onClose}
+                  tooltipPlacement="bottom"
+                />
+              )}
               <Tooltip
                 title="More"
                 placement="bottom"
@@ -1128,6 +1137,7 @@ const PanelLeft: React.FC = () => {
         handlePanelToggle={handlePanelToggle}
         hiddenViews={hiddenViews}
         hideLauncher={isWorkspace}
+        showProjects={isWorkspace}
       />
     );
   }
