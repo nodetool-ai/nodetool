@@ -241,6 +241,14 @@ async function seedLocalStorage(
   }, panelsArg);
 }
 
+type SeededTab = {
+  type: string;
+  ref: string;
+  title: string;
+  /** Tabs sharing a project render as one group in the tab bar. */
+  projectId?: string;
+};
+
 /**
  * Pre-open workspace tabs (the tabbed-document shell at /workspace) by seeding
  * the WorkspaceTabsStore persist slot. `active` must be one of the seeded
@@ -248,27 +256,38 @@ async function seedLocalStorage(
  */
 async function seedWorkspaceTabs(
   page: Page,
-  tabs: Array<{ type: string; ref: string; title: string }>,
-  active: string
+  tabs: SeededTab[],
+  active: string,
+  activeProjectId: string | null = null
 ): Promise<void> {
   await page.addInitScript(
     (args: {
-      tabs: Array<{ type: string; ref: string; title: string }>;
+      tabs: SeededTab[];
       active: string;
+      activeProjectId: string | null;
     }) => {
       try {
         window.localStorage.setItem(
           "workspace-tabs-storage",
           JSON.stringify({
             state: {
-              tabs: args.tabs.map((t) => ({
-                id: `${t.type}:${t.ref}`,
-                type: t.type,
-                ref: t.ref,
-                mode: "edit",
-                title: t.title
-              })),
-              activeTabId: args.active
+              tabs: args.tabs.map((t) => {
+                const tab: Record<string, string> = {
+                  id: `${t.type}:${t.ref}`,
+                  type: t.type,
+                  ref: t.ref,
+                  mode: "edit",
+                  title: t.title
+                };
+                // A tab with no project is loose, and the store reads that as
+                // the key being absent rather than empty.
+                if (t.projectId) {
+                  tab.projectId = t.projectId;
+                }
+                return tab;
+              }),
+              activeTabId: args.active,
+              activeProjectId: args.activeProjectId
             },
             // Must match WorkspaceTabsStore's persist `version` or zustand
             // discards the seeded state on rehydrate.
@@ -279,8 +298,58 @@ async function seedWorkspaceTabs(
         /* ignore — localStorage may be unavailable */
       }
     },
-    { tabs, active }
+    { tabs, active, activeProjectId }
   );
+}
+
+/**
+ * Pre-select the chat model. A composer with none reads "Pick a language model
+ * to send" — true of a fresh install, and not what a conversation looks like.
+ */
+async function seedChatModel(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    try {
+      window.localStorage.setItem(
+        "global-chat-storage",
+        JSON.stringify({
+          state: {
+            threads: {},
+            selectedModel: {
+              type: "language_model",
+              id: "claude-sonnet-5",
+              name: "Claude Sonnet 5",
+              provider: "anthropic"
+            }
+          },
+          // Must match GlobalChatStore's persist `version`.
+          version: 1
+        })
+      );
+    } catch {
+      /* ignore — localStorage may be unavailable */
+    }
+  });
+}
+
+/**
+ * The opposite of {@link seedFirstRunOnboarding}: onboarding dismissed, under
+ * the key the current store persists to. The new-project surface renders the
+ * getting-started checklist until this is set.
+ */
+async function seedFinishedOnboarding(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    try {
+      window.localStorage.setItem(
+        "nodetool-onboarding",
+        JSON.stringify({
+          state: { completedSteps: [], dismissed: true },
+          version: 1
+        })
+      );
+    } catch {
+      /* ignore — localStorage may be unavailable */
+    }
+  });
 }
 
 /**
@@ -346,6 +415,26 @@ async function gotoPage(
   await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
   await waitForAnimation(page, 600);
   await assertNoErrorBoundary(page);
+}
+
+/**
+ * Block until every <img> on the page has decoded. A card captured while its
+ * still is still loading shows the broken-image glyph, which is exactly what
+ * the seeded frames exist to avoid.
+ */
+async function waitForImages(page: Page, timeout = 15000): Promise<void> {
+  await page
+    .waitForFunction(
+      () =>
+        Array.from(document.images).every(
+          (image) => image.complete && image.naturalWidth > 0
+        ),
+      undefined,
+      { timeout }
+    )
+    .catch(() => {
+      console.warn("  ⚠ Some images never decoded — capturing anyway");
+    });
 }
 
 /**
@@ -1418,6 +1507,123 @@ if (process.env.JEST_WORKER_ID) {
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 800);
       await saveScreenshot(page, "storyboard-board.png");
+    });
+
+    // ── Projects ───────────────────────────────────────────────────────────
+    //
+    // A project is a name over the documents carrying its id, so these three
+    // surfaces are only worth a picture when something is filed under one.
+    // `screenshot-projects.ts` seeds three: SCRAPHEART (a trailer with a
+    // board, a script, a cut and the conversation that built them), The Silent
+    // Abyss (a second trailer, stills rendered, nothing animated yet), and
+    // SINGULARITY (key art and not much else). Their stills are the frames the
+    // repo already ships, copied into the asset store, so the cards render
+    // what a real render would have left behind.
+
+    test("Projects – list", async ({ page }) => {
+      test.skip(shouldSkip("project-list.png"), "Already captured");
+      await seedWorkspaceTabs(
+        page,
+        [{ type: "project-list", ref: "projects", title: "Projects" }],
+        "project-list:projects"
+      );
+      await gotoPage(page, "/workspace");
+      await page
+        .getByText("SCRAPHEART — Trailer")
+        .first()
+        .waitFor({ state: "visible", timeout: 20000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForImages(page);
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "project-list.png");
+    });
+
+    test("Projects – new project", async ({ page }) => {
+      test.skip(shouldSkip("project-new.png"), "Already captured");
+      // A veteran's view: the getting-started checklist otherwise sits between
+      // the prompt and the blank-document strip and is documented elsewhere.
+      await seedFinishedOnboarding(page);
+      await seedWorkspaceTabs(
+        page,
+        [{ type: "project-new", ref: "new", title: "New project" }],
+        "project-new:new"
+      );
+      await gotoPage(page, "/workspace");
+      await page
+        .getByText("What do you want to make?")
+        .first()
+        .waitFor({ state: "visible", timeout: 20000 })
+        .catch(() => {});
+      // The estimate is read off past projects of the shape being started, and
+      // the two the fixture prices are trailers — so pick that shape to shoot
+      // the surface with the line it exists to show.
+      await page
+        .getByRole("button", { name: "Trailer", exact: true })
+        .first()
+        .click()
+        .catch(() => {});
+      await page
+        .getByText(/from 2 past projects/i)
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 600);
+      await saveScreenshot(page, "project-new.png");
+    });
+
+    test("Projects – overview (agent + documents)", async ({ page }) => {
+      test.skip(shouldSkip("project-overview.png"), "Already captured");
+      await seedChatModel(page);
+      // The project's own tabs, so the bar shows the group the overview heads.
+      await seedWorkspaceTabs(
+        page,
+        [
+          {
+            type: "project",
+            ref: "proj-scrapheart",
+            title: "SCRAPHEART — Trailer",
+            projectId: "proj-scrapheart"
+          },
+          {
+            type: "storyboard",
+            ref: "sb-scrapheart",
+            title: "SCRAPHEART — shot board",
+            projectId: "proj-scrapheart"
+          },
+          {
+            type: "script",
+            ref: "script-scrapheart",
+            title: "SCRAPHEART — voiceover",
+            projectId: "proj-scrapheart"
+          },
+          {
+            type: "timeline",
+            ref: "tl-scrapheart",
+            title: "SCRAPHEART — cut v3",
+            projectId: "proj-scrapheart"
+          }
+        ],
+        "project:proj-scrapheart",
+        "proj-scrapheart"
+      );
+      await gotoPage(page, "/workspace");
+      // The right column lists the documents; the left replays the thread.
+      await page
+        .getByText("SCRAPHEART — shot board")
+        .first()
+        .waitFor({ state: "visible", timeout: 20000 })
+        .catch(() => {});
+      await page
+        .getByText(/six shots, all on long lenses/i)
+        .first()
+        .waitFor({ state: "visible", timeout: 20000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForImages(page);
+      await waitForAnimation(page, 1000);
+      await saveScreenshot(page, "project-overview.png");
     });
 
     // ── Component-preview captures ─────────────────────────────────────────
