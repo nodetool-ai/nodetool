@@ -48,6 +48,12 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Integrations | `/api/integrations/{provider}/link/complete` | `POST`  | `NODETOOL_INTEGRATION_TOKEN` bearer (no session) | no                        | Redeem a link code, binding the external account to a NodeTool user |
 | Integrations | `/api/integrations/{provider}/token` | `POST`            | `NODETOOL_INTEGRATION_TOKEN` bearer (no session) | no                        | Exchange a linked external id for a one-hour delegated user token; `409` in local single-user mode |
 | Integrations | `/api/integrations/{provider}/link` | `DELETE`           | `NODETOOL_INTEGRATION_TOKEN` bearer (no session) | no                        | Unlink an external account; `{"unlinked": false}` when it was not linked |
+| MCP OAuth | `/.well-known/oauth-protected-resource` | `GET`       | none                                           | no                          | RFC 9728 resource metadata for `/mcp`; `404` unless the flow is enabled. The path-inserted form `…/mcp` returns the same document |
+| MCP OAuth | `/.well-known/oauth-authorization-server` | `GET`     | none                                           | no                          | RFC 8414 authorization-server metadata — the endpoint URLs a client discovers; `404` unless the flow is enabled |
+| MCP OAuth | `/oauth/authorize`                | `GET`             | none (PKCE)                                    | no                          | Park an authorization request and `302` to the consent page `/oauth/consent?request_id=…` |
+| MCP OAuth | `/oauth/token`                    | `POST`            | none (PKCE)                                    | no                          | Exchange an authorization code or refresh token for an `nta_` access token |
+| MCP OAuth | `/oauth/register`                 | `POST`            | none                                           | no                          | RFC 7591 dynamic client registration |
+| MCP OAuth | `/oauth/revoke`                   | `POST`            | none                                           | no                          | RFC 7009 revocation of an access or refresh token |
 | Nodes     | `/api/nodes/metadata`             | `GET`             | none                                           | no                          | The node registry the editor loads at boot; slim summaries by default, one node's full metadata with `?node_type=` |
 | Workspaces | `/api/workspaces/{id}/download/{path}` | `GET`        | Depends on `AUTH_PROVIDER`                     | streaming                   | One file out of a workspace as an attachment; `403` when `NODETOOL_ENV=production` |
 | Assets    | `/api/assets/{id}/extract-audio`  | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Extract a video asset's audio track into a new WAV asset |
@@ -57,6 +63,8 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Assets    | `/api/assets/download`            | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Bulk ZIP download; `501` on this server |
 | Apps      | `/api/applications/{id}/released-document` | `GET`    | Depends on `AUTH_PROVIDER`                     | no                          | The snapshot a published app should run, with each operation's pinned graph; `null` when nothing is published |
 | Apps      | `/api/applications/{id}/export-bundle` | `GET`        | Depends on `AUTH_PROVIDER`                     | no                          | One app and the full graph of every workflow it binds, as a downloadable `ApplicationBundle` |
+| Apps      | `/api/applications/build`         | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Build a mini app from a prompt or a pinned spec; returns the `BuildReport`. `poll: true` returns a session id instead |
+| Apps      | `/api/applications/debug`         | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Simulate a saved app by `application_id`, or a draft posted inline as `document`; returns the compacted debug report |
 | Apps      | `/api/applications/examples`      | `GET`             | none                                           | no                          | The shipped example apps — slug, name, description, workflow names, operation count |
 | Apps      | `/api/applications/examples/{slug}` | `GET`           | none                                           | no                          | One example's full `ApplicationBundle`; `404` when the slug names nothing shipped |
 | Apps      | `/api/applications/examples/{slug}/install` | `POST`  | Depends on `AUTH_PROVIDER`                     | no                          | Install an example into the caller's library, creating the workflows it binds |
@@ -83,6 +91,8 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Extension WS | `/ws/extension`                | WebSocket         | Follows global auth settings                   | yes                         | Browser extension channel |
 | Download WS | `/ws/download`                  | WebSocket         | Follows global auth settings                   | yes                         | Model/file downloads |
 | Storage   | `/api/storage/*`                  | `HEAD/GET`        | Depends on `AUTH_PROVIDER`                     | streaming for `GET`         | Asset bytes at `<userId>/<assetId>.<ext>`, scoped to the caller. Read-only: writes go through the asset API, deletes through tRPC `storage.delete` |
+| Config    | `/api/config`                     | `GET`             | none                                           | no                          | How this server is configured, for a client that has not signed in yet: auth mode, Supabase URL and anon key, Google Workspace scopes, version |
+| Admin     | `/admin/secrets/import`           | `POST`            | none                                           | no                          | Stub — always `501`. Bulk secret import is not part of the standalone server |
 | Health    | `/health`                         | `GET`             | none                                           | no                          | JSON: `{status, timestamp, uptime, services}` (`200`/`503`) |
 | Health    | `/api/health`                     | `GET`             | none                                           | no                          | JSON: `{version, uptime}` |
 | Liveness  | `/ready`                          | `GET`             | none                                           | no                          | Always `200` with `{status:"ok"}` |
@@ -437,6 +447,75 @@ four routes:
 Design and the bot's side of the flow:
 [Telegram bot design](telegram-bot-design.md). The bridge command is
 [`nodetool telegram`](cli.md#nodetool-telegram).
+
+### MCP OAuth Discovery
+
+For `/mcp`, NodeTool is both the OAuth authorization server and the protected
+resource. An MCP client that meets a `401` on `/mcp` follows the
+`WWW-Authenticate` challenge to two discovery documents and takes the endpoint
+URLs from there — so a client needs no NodeTool-specific configuration beyond
+the server's address.
+
+```bash
+curl "https://nodetool.example.com/.well-known/oauth-protected-resource"
+```
+
+```json
+{
+  "resource": "https://nodetool.example.com/mcp",
+  "authorization_servers": ["https://nodetool.example.com"],
+  "scopes_supported": ["mcp"],
+  "bearer_methods_supported": ["header"],
+  "resource_name": "NodeTool MCP"
+}
+```
+
+```bash
+curl "https://nodetool.example.com/.well-known/oauth-authorization-server"
+```
+
+```json
+{
+  "issuer": "https://nodetool.example.com",
+  "authorization_endpoint": "https://nodetool.example.com/oauth/authorize",
+  "token_endpoint": "https://nodetool.example.com/oauth/token",
+  "registration_endpoint": "https://nodetool.example.com/oauth/register",
+  "revocation_endpoint": "https://nodetool.example.com/oauth/revoke",
+  "response_types_supported": ["code"],
+  "grant_types_supported": ["authorization_code", "refresh_token"],
+  "code_challenge_methods_supported": ["S256"],
+  "token_endpoint_auth_methods_supported": ["none"],
+  "scopes_supported": ["mcp"],
+  "client_id_metadata_document_supported": true,
+  "authorization_response_iss_parameter_supported": true
+}
+```
+
+Both documents come back with `Cache-Control: public, max-age=3600`. Deployed
+under a sub-path, RFC 8414 and RFC 9728 put them at the path-inserted forms
+instead — issuer `https://host/base` publishes at
+`/.well-known/oauth-authorization-server/base`, and the resource document for
+`https://host/base/mcp` at `/.well-known/oauth-protected-resource/base/mcp`. At
+the origin root the resource form is `/.well-known/oauth-protected-resource/mcp`,
+which returns the same document as the bare path above.
+
+**All six routes answer `404` unless the flow can actually complete**, and four
+conditions decide that: `NODETOOL_DISABLE_MCP_OAUTH` is not `1`, the `/mcp`
+mount is enabled (in production that needs `NODETOOL_ENABLE_MCP=1`; in dev it is
+on by default), `NODETOOL_PUBLIC_URL` is set, and that URL is HTTPS or loopback.
+The server never advertises a discovery document it would then refuse to serve —
+with the flow off, `/mcp` sends no `WWW-Authenticate` challenge at all.
+
+The flow itself is authorization code with PKCE (`S256`) and no client secret.
+`GET /oauth/authorize` parks the request and `302`s to `/oauth/consent?request_id=…`,
+a page the web app renders; approving it mints the code that `POST /oauth/token`
+exchanges for an `nta_` access token. Replaying a code revokes the grant, per the
+OAuth 2.1 rule.
+
+Pasting an `ntk_` token minted in **Settings → MCP → Connect an agent remotely**
+stays the alternative for a client that does not do OAuth. See
+[MCP in production](mcp-production.md) for the operator's walkthrough and
+[MCP OAuth design](mcp-oauth-design.md) for the full flow.
 
 ### Chat API (OpenAI-Compatible)
 
@@ -1236,6 +1315,113 @@ which answer you want to handle. `released-document` calls it a `200` with a
 An id the caller does not own is also a `404`. The CLI wraps the same call as
 `nodetool apps export-bundle <id> [-o file] [--released]`.
 
+### Building an App on the Server
+
+`POST /api/applications/build` runs the same six-stage build the CLI's
+`nodetool app build` runs — spec, plan, author, check, run, judge — and answers
+with the `BuildReport`. Reach for it when a caller wants a batch build without a
+CLI on the machine.
+
+Provider and model come from the body, falling back to
+`NODETOOL_APP_BUILD_PROVIDER` and `NODETOOL_APP_BUILD_MODEL`. Neither one set
+either way is a `400`:
+
+```bash
+curl -X POST "http://localhost:7777/api/applications/build" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "an app that drafts a note from a prompt",
+    "provider": "anthropic",
+    "model": "claude-sonnet-5"
+  }'
+```
+
+Body fields, all optional except one of `prompt` or `spec`:
+
+| Field | Meaning |
+|---|---|
+| `prompt` | What to build, in words. Either this or `spec` |
+| `spec` | A pinned `BuildSpec`, skipping the Spec stage. Either this or `prompt` |
+| `provider` / `model` | The builder's provider and model |
+| `judge_model` | `provider/model` for the Judge stage. Omitted, the server picks a configured model the builder did not use |
+| `workflow_ids` | Workflows to pin, in operation declaration order, instead of planning them |
+| `max_repairs` | Repair rounds allowed (default 3) |
+| `cost_cap_usd` | Ceiling on build spend (default 2) |
+| `timeout_ms` | Wall-clock cap on the build |
+| `poll` | Return a session id immediately instead of holding the request open |
+
+`max_repairs` must be a non-negative integer and `cost_cap_usd` a positive
+number. A present-but-invalid value is a `400` rather than silently becoming the
+default — `cost_cap_usd: 0` turning into $2 would spend money the caller said
+not to.
+
+A build runs for minutes, so `poll: true` answers as soon as it starts:
+
+```json
+{
+  "status": "running",
+  "session_id": "…",
+  "build_id": "…",
+  "poll": "GET /api/debug/sessions/…",
+  "cancel": "POST /api/debug/sessions/…/cancel"
+}
+```
+
+Read those two paths until the session settles. A cancelled build settles as
+`failed` with `reason: "cancelled"`.
+
+The bundle behind a green verdict is offered, never installed: turning it into
+an application is a separate `POST /api/applications/import-bundle`.
+
+### Debugging an App on the Server
+
+`POST /api/applications/debug` simulates a mini app headlessly — it validates
+every widget binding, seeds input defaults, replays an interaction script, runs
+the workflows on the kernel, and reports what each widget ended up showing.
+
+Name a saved app with `application_id`, or post the live draft as `document`.
+Neither is a `400` (`"An app debug run needs either an application_id or a
+document."`).
+
+```bash
+curl -X POST "http://localhost:7777/api/applications/debug" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"application_id": "<application_id>", "run": false}'
+```
+
+| Field | Meaning |
+|---|---|
+| `application_id` | A saved application, read from the row. Either this or `document` |
+| `document` | The live draft, verbatim. Either this or `application_id` |
+| `params` | Reactive values applied before the interactions, keyed by input name |
+| `interact` | The interaction script. Omitted, the app's natural run trigger fires |
+| `run` | Execute workflow runs (default `true`); `false` is a static wiring check |
+| `timeout_ms` | Per-run timeout |
+| `poll` | Return a session id immediately, as with `build` above |
+
+The response is the compacted report — the verdict plus what each widget shows.
+`target.ref` echoes what was named: an application id, or `inline-document` when
+the draft was posted as `document`.
+
+```json
+{
+  "debug_id": "app-debug-186814b9-d387-4e67-8b8f-e7eab397575d",
+  "status": "failed",
+  "target": { "ref": "inline-document", "source": "application", "workflowId": null },
+  "app": { "title": "Ask Your Documents", "widgetCount": 25 },
+  "verdict": {
+    "ok": false,
+    "headline": "App has issues — TextInput \"in-ask-search\": bound to \"op:ask/in:search_input\" but operation \"ask\" runs a workflow with no node \"search_input\".",
+    "issues": ["…"]
+  }
+}
+```
+
+`nodetool app debug` runs the same simulation locally and writes a full bundle
+to disk; see [CLI](cli.md#nodetool-app-debug-application_id_or_file).
+
 ### Exporting a Storyboard as a Zip
 
 The web app reads and writes boards over `/trpc/storyboards.*`. `GET
@@ -1995,6 +2181,41 @@ directory looking for `chrome-extension/dist/manifest.json`. When none of those
 holds a build, the answer is `404` with
 `{"detail": "Extension build not found"}` — build it first, per
 [Chrome Extension](chrome-extension.md#installing).
+
+### How This Server Is Configured
+
+A client has to decide whether to show a login screen before it has a token, so
+`GET /api/config` needs none. It reports the auth mode the server picked and the
+values a browser needs to complete a sign-in.
+
+```bash
+curl "http://localhost:7777/api/config"
+```
+
+```json
+{
+  "authMode": "local",
+  "supabaseUrl": null,
+  "supabaseAnonKey": null,
+  "authRedirectUrl": null,
+  "googleWorkspace": false,
+  "googleScopes": [],
+  "version": "0.7.0-rc.38"
+}
+```
+
+`authMode` is `"supabase"` when both `SUPABASE_URL` and `SUPABASE_KEY` are set,
+and `"local"` otherwise — the same choice the server's own auth hook makes, so a
+client never has to guess it from the other fields. `supabaseUrl`,
+`supabaseAnonKey` and `authRedirectUrl` mirror `SUPABASE_URL`,
+`SUPABASE_ANON_KEY` and `AUTH_REDIRECT_URL`; each is `null` when unset. Note the
+anon key is the public one — the service key (`SUPABASE_KEY`) is never in this
+response.
+
+`googleWorkspace` says whether the Google Workspace capability is on (see
+`NODETOOL_GOOGLE_WORKSPACE` in [Configuration](configuration.md)). When it is,
+`googleScopes` lists the OAuth scopes the connect step must request; when it is
+not, that array is empty.
 
 ### Health Check
 
