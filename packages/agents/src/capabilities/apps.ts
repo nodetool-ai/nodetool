@@ -424,12 +424,16 @@ async function bindableWorkflows(
   }
 
   const bindable: Record<string, BindableWorkflow> = {};
-  for (const id of ids) {
-    const workflow = await Workflow.find(userId, id);
+  const idArray = Array.from(ids);
+  if (idArray.length === 0) return bindable;
+
+  const workflows = await Workflow.findMany(userId, idArray);
+
+  for (const workflow of workflows) {
     const graph = debugGraphOf(workflow?.graph);
     if (!graph) continue;
     const io = extractAppIO(graph);
-    bindable[id] = {
+    bindable[workflow.id] = {
       inputs: io.inputs.map((input) => ({
         nodeId: input.nodeId,
         name: input.name,
