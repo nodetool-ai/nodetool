@@ -321,7 +321,7 @@ Rendered by the demo harness from real product casts, not mocked up.
 The homepage's `SurfaceShowcase` plays the five loops (W2).
 
 - [x] Hero project reel — `hero-project.{mp4,webm}` (16:9) and
-      `hero-project-vertical.{mp4,webm}` (9:16), 22 s silent loop, WebP
+      `hero-project-vertical.{mp4,webm}` (9:16), 44 s silent loop, WebP
       posters alongside. It runs the same project the section below the fold
       describes: a sentence in chat, a board that renders stills and then
       clips, a timeline cut, the finished teaser

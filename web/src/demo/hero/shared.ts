@@ -21,7 +21,7 @@ export const HERO_MODEL: LanguageModel = {
 
 /** The project, in the words the hero's first frame puts on screen. */
 export const HERO_BRIEF =
-  "Make me a 12-second teaser for SCRAPHEART — one last run across the flats, nothing left to lose. Board it, render it, cut it.";
+  "Make me a 12-second teaser for SCRAPHEART — a desert chase across the flats.";
 
 export const HERO_TITLE = "SCRAPHEART — Desert Chase (Teaser)";
 

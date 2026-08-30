@@ -52,6 +52,7 @@ import {
   DISSOLVE,
   HeroCaption,
   LoopFade,
+  paced,
   Settle,
   StageRail,
   surfaceBand,
@@ -60,16 +61,20 @@ import {
 } from "./heroChrome";
 
 export const HERO_FPS = 30;
-export const HERO_DURATION_FRAMES = 660;
+export const HERO_DURATION_FRAMES = paced(660);
 
-/** Stage boundaries, in reel frames. Each stage overlaps the next by DISSOLVE. */
-const BRIEF_TO = 60;
-const CHAT_FROM = 52;
-const BOARD_FROM = 170;
+/**
+ * Stage boundaries, in authored frames — `paced` stretches them, and every
+ * beat inside a stage goes through it too, so the whole reel slows together.
+ * Each stage overlaps the next by DISSOLVE.
+ */
+const BRIEF_TO = paced(60);
+const CHAT_FROM = paced(52);
+const BOARD_FROM = paced(170);
 /** Where the board's stills pass hands over to its clips pass. */
-const RENDER_FROM = 300;
-const CUT_FROM = 430;
-const DELIVER_FROM = 540;
+const RENDER_FROM = paced(300);
+const CUT_FROM = paced(430);
+const DELIVER_FROM = paced(540);
 
 /** What the rail across the top shows. `Board` spans the two board passes. */
 const STAGES: HeroStage[] = [
@@ -175,15 +180,20 @@ const BriefStage: React.FC = () => {
   const scale = useScale();
 
   // Out on a lift, so the sentence hands off to the chat rather than cutting.
-  const lift = interpolate(frame, [CHAT_FROM - 8, BRIEF_TO], [0, -38], {
+  const lift = interpolate(frame, [CHAT_FROM - paced(8), BRIEF_TO], [0, -38], {
     easing: Easing.in(Easing.cubic),
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const out = interpolate(frame, [CHAT_FROM - 4, CHAT_FROM + 4], [1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const out = interpolate(
+    frame,
+    [CHAT_FROM - paced(4), CHAT_FROM + paced(4)],
+    [1, 0],
+    {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    }
+  );
 
   return (
     <AbsoluteFill style={{ background: PROMO_BG }}>
@@ -215,20 +225,20 @@ const BriefStage: React.FC = () => {
           }}
         >
           {BRIEF_WORDS.map((word, i) => {
-            const at = 5 + i * 1.15;
+            const at = paced(5 + i * 1.15);
             return (
               <span
                 key={`${word}-${i}`}
                 style={{
                   display: "inline-block",
                   marginRight: "0.32em",
-                  opacity: interpolate(frame, [at, at + 9], [0, 1], {
+                  opacity: interpolate(frame, [at, at + paced(9)], [0, 1], {
                     extrapolateLeft: "clamp",
                     extrapolateRight: "clamp",
                   }),
                   transform: `translateY(${interpolate(
                     frame,
-                    [at, at + 11],
+                    [at, at + paced(11)],
                     [16, 0],
                     {
                       easing: Easing.out(Easing.cubic),
@@ -257,7 +267,7 @@ const ChatStage: React.FC = () => {
 
   // The brief is already on screen from stage 0, so open on the user bubble
   // and run through the plan and the board being written.
-  const castMs = interpolate(frame, [0, 14, length], [300, 1500, 11400], {
+  const castMs = interpolate(frame, [0, paced(14), length], [300, 1500, 11400], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -343,10 +353,10 @@ const DeliverStage: React.FC = () => {
    * Five quick cuts resolving on a long last shot — the montage carries the
    * energy, the held getaway lets the headline land on something still.
    */
-  const quick = 18;
+  const quick = paced(18);
   const held = length - quick * (HERO_SHOTS.length - 1);
 
-  const headline = interpolate(frame, [22, 44], [0, 1], {
+  const headline = interpolate(frame, [paced(22), paced(44)], [0, 1], {
     easing: Easing.out(Easing.cubic),
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
@@ -396,7 +406,7 @@ const DeliverStage: React.FC = () => {
           padding: `0 ${90 * scale}px`,
           textAlign: "center",
           opacity: headline,
-          transform: `translateY(${interpolate(frame, [26, 50], [22, 0], {
+          transform: `translateY(${interpolate(frame, [paced(26), paced(50)], [22, 0], {
             easing: Easing.out(Easing.cubic),
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
@@ -449,7 +459,7 @@ export const HeroProject: React.FC = () => {
         <HeroCaption
           claim="Describe the project."
           small="One sentence. The agent picks the shape and plans the documents."
-          from={16}
+          from={paced(16)}
           to={BOARD_FROM - CHAT_FROM}
         />
       </Sequence>
@@ -461,13 +471,13 @@ export const HeroProject: React.FC = () => {
         <HeroCaption
           claim="Board it before you spend."
           small="A still for every shot — cheap frames first, video only on what works."
-          from={14}
+          from={paced(14)}
           to={RENDER_FROM - BOARD_FROM}
         />
         <HeroCaption
           claim="Then animate the stills."
           small="Each approved frame becomes a clip, on the model you picked."
-          from={RENDER_FROM - BOARD_FROM + 4}
+          from={RENDER_FROM - BOARD_FROM + paced(4)}
           to={CUT_FROM - BOARD_FROM}
         />
       </Sequence>
@@ -479,7 +489,7 @@ export const HeroProject: React.FC = () => {
         <HeroCaption
           claim="Cut it on the timeline."
           small="Every clip keeps the shot it came from. Re-roll one, the cut updates."
-          from={14}
+          from={paced(14)}
           to={DELIVER_FROM - CUT_FROM}
         />
       </Sequence>

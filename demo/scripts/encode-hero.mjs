@@ -23,7 +23,7 @@ const PUBLIC = path.resolve(DEMO, "../marketing/public");
 
 /** Frame the 16:9 poster is taken from. The default is the assembled cut. */
 const frameArg = process.argv.indexOf("--frame");
-const POSTER_FRAME = frameArg === -1 ? 520 : Number(process.argv[frameArg + 1]);
+const POSTER_FRAME = frameArg === -1 ? 1040 : Number(process.argv[frameArg + 1]);
 const FPS = 30;
 
 const ffmpeg = (args) =>
@@ -37,13 +37,13 @@ function encode(master, slug) {
   const base = path.join(PUBLIC, slug);
   ffmpeg([
     "-i", master,
-    "-c:v", "libx264", "-crf", "27", "-preset", "slow",
+    "-c:v", "libx264", "-crf", "29", "-preset", "slow",
     "-pix_fmt", "yuv420p", "-an", "-movflags", "+faststart",
     `${base}.mp4`
   ]);
   ffmpeg([
     "-i", master,
-    "-c:v", "libvpx-vp9", "-crf", "42", "-b:v", "0",
+    "-c:v", "libvpx-vp9", "-crf", "46", "-b:v", "0",
     "-row-mt", "1", "-deadline", "good", "-cpu-used", "2", "-an",
     `${base}.webm`
   ]);

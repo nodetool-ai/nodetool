@@ -24,13 +24,27 @@ import {
 } from "../promo/theme";
 
 /**
+ * How much slower the reel runs than it was authored.
+ *
+ * The beats below and in `HeroProject.tsx` are written at their original
+ * cadence and stretched through {@link paced}. A hero loop is read rather
+ * than watched — at the authored speed the board filled faster than the eye
+ * follows it — and scaling one number keeps every fade, stagger and cast ramp
+ * in the same relative place instead of retiming twenty literals by hand.
+ */
+export const PACE = 2;
+
+/** Reel frames for `frames` authored frames. */
+export const paced = (frames: number): number => Math.round(frames * PACE);
+
+/**
  * Length of every cross-dissolve, and of the opening and closing fades.
  *
  * Short on purpose. Two of the transitions land one dense UI on top of
  * another, and anything longer reads as a double exposure of two screens
  * rather than as a cut; the scale settle carries the motion instead.
  */
-export const DISSOLVE = 8;
+export const DISSOLVE = paced(8);
 
 /**
  * The reel is banded rather than full-bleed: a rail across the top, the
@@ -115,11 +129,11 @@ export const StageRail: React.FC<{
   const band = surfaceBand(width, height, scale);
 
   const opacity = Math.min(
-    interpolate(frame, [stages[0].from, stages[0].from + 12], [0, 1], {
+    interpolate(frame, [stages[0].from, stages[0].from + paced(12)], [0, 1], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
     }),
-    interpolate(frame, [until - 14, until], [1, 0], {
+    interpolate(frame, [until - paced(14), until], [1, 0], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
     })
@@ -212,11 +226,11 @@ export const HeroCaption: React.FC<{
   const scale = useScale();
   const { width, height } = useVideoConfig();
   const band = surfaceBand(width, height, scale);
-  const opacity = fadeBand(frame - from, to - from, 11, 11);
+  const opacity = fadeBand(frame - from, to - from, paced(11), paced(11));
   if (opacity <= 0) return null;
 
   const rise = (delay: number): string => {
-    const y = interpolate(frame - from - delay, [0, 16], [26, 0], {
+    const y = interpolate(frame - from - paced(delay), [0, paced(16)], [26, 0], {
       easing: Easing.out(Easing.cubic),
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
@@ -224,7 +238,7 @@ export const HeroCaption: React.FC<{
     return `translateY(${y * scale}px)`;
   };
   const appear = (delay: number): number =>
-    interpolate(frame - from - delay, [0, 14], [0, 1], {
+    interpolate(frame - from - paced(delay), [0, paced(14)], [0, 1], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
     });
