@@ -16,6 +16,7 @@ import {
   AlertBanner,
   EmptyState,
   FlexColumn,
+  FlexRow,
   LoadingSpinner,
   Panel,
   Box
@@ -27,6 +28,9 @@ import type {
 } from "../../appbuilder/workflowInputForm";
 import { getWorkflowInputKind } from "../../appbuilder/inputKinds";
 import { useSketchGenerationStore } from "../../../stores/sketch/SketchGenerationStore";
+import { useGraphCostEstimate } from "../../../hooks/useGraphCostEstimate";
+import CostEstimateLine from "../../costs/CostEstimateLine";
+import { workflowCostLine } from "../../costs/costLine";
 import { GeneratedLayerHeader } from "./GeneratedLayerHeader";
 import { LayerActions } from "./LayerActions";
 import { LayerVersionList } from "./LayerVersionList";
@@ -149,6 +153,10 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
         );
     }, [workflow]);
 
+    // What one run of the bound workflow spends, priced off the graph the
+    // panel already fetched — no open editor needed.
+    const costEstimate = useGraphCostEstimate(workflow?.graph?.nodes);
+
     const handleInputChange = useCallback(
       (name: string, value: unknown) => {
         setParamOverride(layer.id, name, value);
@@ -236,6 +244,12 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
           </Box>
 
           <Box css={actionsSectionStyles(theme)}>
+            <FlexRow justify="flex-end" fullWidth sx={{ px: 0.5, pb: 0.5 }}>
+              <CostEstimateLine
+                estimate={workflowCostLine(costEstimate)}
+                title="Estimated cost of one run of this workflow"
+              />
+            </FlexRow>
             <LayerActions layerId={layer.id} binding={binding} />
           </Box>
 

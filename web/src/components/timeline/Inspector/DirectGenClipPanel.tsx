@@ -23,6 +23,9 @@ import { findClipById } from "../../../stores/timeline/clipLookup";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useGenerateClip } from "../../../hooks/timeline/useGenerateClip";
+import { useClipCostEstimate } from "../../../hooks/timeline/useClipCostEstimate";
+import CostEstimateLine from "../../costs/CostEstimateLine";
+import { generationCostLine } from "../../costs/costLine";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import VideoModelSelect from "../../properties/VideoModelSelect";
 import TTSModelSelect from "../../properties/TTSModelSelect";
@@ -141,6 +144,9 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
         ? "audio"
         : "image";
   const isImageToImage = clip?.bindingKind === "image-to-image";
+
+  // What pressing Generate spends, at the model and settings picked above.
+  const costEstimate = useClipCostEstimate(clip);
 
   // Per-model option constraints from the provider manifest — the same source
   // the media chat composer uses, so both surfaces offer identical choices.
@@ -523,6 +529,13 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
                 />
               </FlexRow>
             )}
+
+            <FlexRow justify="flex-end" fullWidth>
+              <CostEstimateLine
+                estimate={generationCostLine(costEstimate)}
+                title="Estimated cost of this generation"
+              />
+            </FlexRow>
 
             <EditorButton
               fullWidth

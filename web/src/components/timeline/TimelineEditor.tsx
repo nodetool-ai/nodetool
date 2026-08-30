@@ -55,6 +55,7 @@ import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
+import { useTimelineCostEstimate } from "../../hooks/timeline/useTimelineCostEstimate";
 import { ProjectSettingsDialog } from "./ProjectSettingsDialog";
 import SaveToFolderMenu from "../assets/SaveToFolderMenu";
 import {
@@ -438,6 +439,7 @@ const TimelineStatusBar: React.FC<{ actionSlot?: React.ReactNode }> = memo(
 
   const generatingCount = useGeneratingCount();
   const failedCount = useFailedCount();
+  const costEstimate = useTimelineCostEstimate();
 
   return (
     <BottomStatusBar
@@ -446,6 +448,7 @@ const TimelineStatusBar: React.FC<{ actionSlot?: React.ReactNode }> = memo(
       onZoomChange={handleZoomChange}
       generatingCount={generatingCount}
       failedCount={failedCount}
+      costEstimate={costEstimate}
       actionSlot={actionSlot}
     />
   );
