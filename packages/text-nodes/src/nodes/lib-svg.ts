@@ -2,7 +2,6 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { importHidden } from "@nodetool-ai/config";
 import type { Platform } from "@nodetool-ai/protocol";
-import { isFunction, isObjectLike } from "../type-predicates.js";
 
 // SVGToImage rasterizes via the native `sharp` addon, so it is Node-only (its
 // per-class override below wins over the list-level tagAsServer). Document is a
@@ -22,15 +21,19 @@ const SHARP_UNAVAILABLE_MESSAGE =
 // is never cached, so a fixed install is picked up on the next call.
 type SharpModule = typeof import("sharp");
 type SharpFn = SharpModule["default"];
+
+/** sharp's CJS export is either the callable itself or a namespace with `default`. */
+function isSharpFn(mod: SharpModule | SharpFn): mod is SharpFn {
+  return typeof mod === "function";
+}
+
 let _sharpPromise: Promise<SharpFn | null> | null = null;
 async function loadSharp(): Promise<SharpFn | null> {
   if (!_sharpPromise) {
     const attempt = (async (): Promise<SharpFn | null> => {
       const mod = await importHidden<SharpModule | SharpFn>("sharp");
       if (!mod) return null;
-      // SAFETY: sharp's CJS export is either the callable itself or a
-      // namespace with `default`; a callable `mod` is the former.
-      if (isFunction(mod)) return mod as SharpFn;
+      if (isSharpFn(mod)) return mod;
       return mod.default ?? null;
     })();
     _sharpPromise = attempt;
@@ -47,6 +50,28 @@ type SvgElementLike = {
   children?: SvgElementLike[];
   content?: string;
 };
+
+/**
+ * What a `list[svg_element]` slot delivers: an element, a nested list of them,
+ * or a scalar somebody wired straight into the slot.
+ */
+type SvgContent =
+  | SvgElementLike
+  | SvgContent[]
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
+
+function isSvgElement(content: SvgContent): content is SvgElementLike {
+  return (
+    content !== null &&
+    typeof content === "object" &&
+    !Array.isArray(content) &&
+    "name" in content
+  );
+}
 
 function escapeXmlText(value: string): string {
   return value
@@ -78,12 +103,12 @@ function svgDocument(
   return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${viewBox}">${content}</svg>`;
 }
 
-function normalizeContent(content: unknown): string {
+function normalizeContent(content: SvgContent): string {
   if (Array.isArray(content)) {
-    return content.map((c) => normalizeContent(c)).join("\n");
+    return content.map((child) => normalizeContent(child)).join("\n");
   }
-  if (isObjectLike(content) && "name" in content) {
-    return elementToString(content as SvgElementLike);
+  if (isSvgElement(content)) {
+    return elementToString(content);
   }
   return String(content ?? "");
 }

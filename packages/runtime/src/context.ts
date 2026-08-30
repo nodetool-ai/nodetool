@@ -3391,9 +3391,11 @@ export class ProcessingContext {
 
   /**
    * HOLDOUT (anti-slop/no-unknown-returns): the honest return type is
-   * {@link ProviderPredictionResult} (see {@link dispatchCapability}), but
-   * `text-nodes` asserts the result of an ASR prediction `as string`, which no
-   * longer compiles against that union. Typing it means editing that call site.
+   * {@link ProviderPredictionResult} (see {@link dispatchCapability}), but the
+   * node and capability call sites assert their own capability's result off it
+   * (`as Uint8Array`, `as number[][]`, …), and those assertions do not compile
+   * against the union. Typing it means editing every one of them. `text-nodes`
+   * is done — it parses each result with a predicate instead.
    */
   async runProviderPrediction(
     req: ProviderPredictionRequest
