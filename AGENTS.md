@@ -2336,6 +2336,13 @@ npm run dev:nodetool -- workflows export-example workflow.json -o example.json
 # and in the editor command menu (Export/Import Workflow as Bundle).
 npm run dev:nodetool -- workflows export-bundle <id> [<id2> ...] -o my-pack.nodetool
 npm run dev:nodetool -- workflows import-bundle my-pack.nodetool   # → local library
+
+# Rewrite saved Code node bodies for the `inputs` object. A declared input used
+# to arrive as a global of its own name, so an old body ReferenceErrors on its
+# first read. The rewrite is done on the AST — a name in a string, a comment, an
+# object key, or a local binding is left alone — and is safe to re-run.
+npm run dev:nodetool -- workflows migrate-code-inputs --dry-run
+npm run dev:nodetool -- workflows migrate-code-inputs [--user-id <id>] [--json]
 ```
 
 ### nodetool apps

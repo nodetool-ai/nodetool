@@ -345,6 +345,43 @@ imported assets.
 nodetool workflows import-bundle my-pack.nodetool
 ```
 
+#### `nodetool workflows migrate-code-inputs`
+
+A one-time repair for saved `nodetool.code.Code` bodies. A Code node's declared
+inputs used to arrive as globals of their own name; they now arrive on one
+`inputs` object, so a body written the old way throws a `ReferenceError` on its
+first input read. This walks the saved workflows and rewrites `name` to
+`inputs.name` for every name the node can read — its declared slots, its inline
+dynamic properties, and any handle an edge feeds it.
+
+The rewrite is done on the AST, so a name inside a string, a comment, an object
+key, or a local binding is left alone. It is safe to re-run: a body already
+reading `inputs.*` has nothing to rewrite.
+
+**Options:**
+
+- `--dry-run` — report what would change and write nothing.
+- `--user-id <id>` — migrate this user's workflows instead of the local user's (`1`).
+- `--json` — print the report as JSON rather than the per-node lines.
+
+```bash
+# See what would change first
+nodetool workflows migrate-code-inputs --dry-run
+
+# Then do it
+nodetool workflows migrate-code-inputs
+```
+
+Each rewritten node prints one line naming the inputs it moved, followed by a
+count:
+
+```
+4 Code node(s) in 3 workflow(s) were rewritten (11 scanned across 7 workflows).
+```
+
+A body that fails to parse is counted under a trailing `N failed.` line and left
+untouched, so one bad node does not stop the pass.
+
 ### `nodetool validate <workflow_id_or_file>`
 
 Check a workflow against the node registry **without running it**: unknown node
