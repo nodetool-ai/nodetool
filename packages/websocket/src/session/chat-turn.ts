@@ -140,9 +140,11 @@ import type { ClientSession } from "./client-session.js";
 import {
   createRelayActivityWaiter,
   DEFAULT_RUN_JOB_EXECUTION_OPTIONS,
-  type ActiveJob,
-  type ToolBridge,
-  type UnifiedWebSocketRunnerOptions
+  type ActiveJob
+} from "./job-execution.js";
+import type {
+  ToolBridge,
+  UnifiedWebSocketRunnerOptions
 } from "../unified-websocket-runner.js";
 
 const log = createLogger("nodetool.websocket.runner");
