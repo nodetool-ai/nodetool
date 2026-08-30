@@ -182,6 +182,28 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "download_file",
   "http_request",
 
+  // Live browser — one real Chrome page, driven action by action. Either a
+  // headless one this process launches or, through the NodeTool Chrome
+  // extension, the tab the user is already signed in to. The action layer
+  // lives in the node packages and registers itself
+  // (`capabilities/browser-runner.ts`); a process that loaded none answers
+  // every one of these with a sentence saying so, which is why they are
+  // listed unconditionally.
+  "browser_status",
+  "browser_view",
+  "browser_navigate",
+  "browser_restart",
+  "browser_click",
+  "browser_input_text",
+  "browser_move_mouse",
+  "browser_press_key",
+  "browser_select_option",
+  "browser_scroll",
+  "browser_console_exec",
+  "browser_console_view",
+  "browser_capture_media",
+  "browser_upload_asset",
+
   // Host media binaries
   "ffmpeg",
   "ffprobe",

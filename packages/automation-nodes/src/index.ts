@@ -3,9 +3,14 @@ export * from "./nodes/lib-browser.js";
 export * from "./nodes/triggers.js";
 export * from "./nodes/lib-sqlite.js";
 
-// Browser-automation helpers exposed for sibling packages (code-nodes calls
-// buildBrowserAgentToolClasses to register the browser_* agent tools).
-export * from "./lib/browser-agent-tools.js";
+// The browser action layer behind the `browser_*` agent capabilities.
+// `registerBrowserActions` hands it to @nodetool-ai/agents, which owns the
+// capabilities but cannot import the actions (the dependency runs the other
+// way). base-nodes calls it, so every host with a node registry serves them.
+export {
+  browserActionRunner,
+  registerBrowserActions
+} from "./lib/browser-actions.js";
 
 // File-watch matching/debounce logic shared with the host file-watch adapter
 // (packages/websocket/src/triggers/file-watch.ts) so both call sites stay in

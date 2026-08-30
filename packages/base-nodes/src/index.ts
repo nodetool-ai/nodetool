@@ -447,6 +447,7 @@ import { LIB_IMAGE_COLOR_GRADING_NODES } from "@nodetool-ai/image-nodes/nodes/li
 import { LIB_AUDIO_DSP_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-audio-dsp";
 import { LIB_SQLITE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-sqlite";
 import { LIB_BROWSER_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-browser";
+import { registerBrowserActions } from "@nodetool-ai/automation-nodes/lib/browser-actions";
 import { LIB_SEABORN_NODES } from "@nodetool-ai/data-nodes/nodes/lib-charts";
 import { LIB_PEDALBOARD_EXTRA_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-audio-effects";
 import { LIB_PDF_NODES } from "@nodetool-ai/document-nodes/nodes/lib-pdf";
@@ -458,8 +459,6 @@ import { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging"
 import { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 import { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
-import { registerBuiltinAgentToolFactory } from "@nodetool-ai/llm-nodes";
-import { buildBrowserAgentToolClasses } from "@nodetool-ai/automation-nodes";
 import { LIB_IMAGE_EFFECTS_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-effects";
 import { LIB_IMAGE_KEYER_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-keyer";
 import { LIB_IMAGE_MASK_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-mask";
@@ -530,9 +529,11 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_IMAGE_COLOR_NODES
 ];
 
-// Live Chrome CDP tools stay on the Agent tool picker after the specialist
-// LiveBrowserAgent node was removed.
-registerBuiltinAgentToolFactory(() => buildBrowserAgentToolClasses());
+// Serve the `browser_*` capabilities — one live Chrome page, headless or the
+// user's own signed-in one behind the extension relay. The actions cannot be
+// imported by the capability module that declares them (agents sits below this
+// package), so a host registers them here.
+registerBrowserActions();
 
 export { LIB_IMAGE_EFFECTS_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-effects";
 export { LIB_IMAGE_KEYER_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-keyer";

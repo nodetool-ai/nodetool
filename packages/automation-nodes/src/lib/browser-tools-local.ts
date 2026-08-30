@@ -38,6 +38,8 @@ import type {
   BrowserCaptureMediaRaw,
   BrowserUploadAssetRaw,
   BrowserUploadAssetOutput,
+  BrowserStatusOutput,
+  BrowserTransport,
   BrowserElement,
   BrowserConsoleMessage
 } from "./browser-schemas.js";
@@ -107,9 +109,6 @@ function attachResponseTracker(client: CaptureCdpClient): ResponseTracker {
   };
 }
 
-/** Which transport backs the shared {@link CdpPage}. */
-type BrowserTransport = "local" | "extension";
-
 interface BrowserState {
   page: CdpPage;
   close: () => Promise<void>;
@@ -127,6 +126,8 @@ interface BrowserState {
 
 let state: BrowserState | null = null;
 let shutdownHooked = false;
+/** Transport a caller pinned with `browser_restart`, overriding the env. */
+let transportOverride: BrowserTransport | null = null;
 
 /**
  * Resolve the transport for the shared browser session.
@@ -136,9 +137,25 @@ let shutdownHooked = false;
  * or implied by the presence of `NODETOOL_EXTENSION_WS_URL`.
  */
 function resolveTransport(): BrowserTransport {
+  if (transportOverride) return transportOverride;
   if (process.env.NODETOOL_BROWSER_TRANSPORT === "extension") return "extension";
   if (process.env.NODETOOL_EXTENSION_WS_URL) return "extension";
   return "local";
+}
+
+/**
+ * Whether an extension currently holds the server's `/ws/extension` socket.
+ *
+ * Only the process that owns the `ExtensionBridge` can answer: elsewhere the
+ * transport is a WS URL and finding out would mean opening a socket, so the
+ * answer is `null` rather than a guess.
+ */
+async function extensionConnected(): Promise<boolean | null> {
+  const { getInProcessExtensionChannel } = await import(
+    "./extension-channel-provider.js"
+  );
+  const channel = getInProcessExtensionChannel();
+  return channel?.connected ?? null;
 }
 
 /**
@@ -190,10 +207,10 @@ async function ensureState(): Promise<BrowserState> {
     // In-server: ride the ExtensionBridge channel. Out-of-server (e.g. CLI):
     // fall back to the WS-URL client (NODETOOL_EXTENSION_WS_URL / default).
     const channel = getInProcessExtensionChannel();
-    // The in-process bridge channel exposes `connected` (whether an extension
+    // The in-process bridge channel answers `connected` (whether an extension
     // socket is currently registered) — the single most useful signal when the
     // extension "fails": if false here, no extension is attached to the server.
-    const connected = (channel as { connected?: boolean } | null)?.connected;
+    const connected = channel?.connected;
     log.info("Extension transport selected", {
       channel: channel ? "in-process bridge" : "ws-url fallback",
       extensionConnected: connected ?? "unknown",
@@ -338,6 +355,12 @@ export async function browserRestart(
   // Extension transport: close() detaches the debugger (Chrome stays alive),
   // ensureState() re-attaches to the active tab. Same detach+re-attach cycle,
   // no Chrome process is killed.
+  //
+  // A restart is also the only point where the transport can change: the
+  // session is a process singleton, so switching means tearing it down first.
+  if (input.transport) {
+    transportOverride = input.transport;
+  }
   if (state) {
     try {
       await state.close();
@@ -350,7 +373,54 @@ export async function browserRestart(
   if (input.url) {
     await s.page.goto(input.url, { waitUntil: "load" });
   }
-  return { url: s.page.url() };
+  return { url: s.page.url(), transport: s.transport };
+}
+
+/**
+ * Report what a browser action would drive right now, without opening a
+ * session — which transport is selected, whether an extension is attached to
+ * the server, and where an already-open session is pointed.
+ *
+ * The question this answers is the one that used to be a 30-second attach
+ * timeout: an agent asked to drive the user's logged-in Chrome can find out
+ * that nobody has clicked "Attach to this tab" before it spends the wait.
+ */
+export async function browserStatus(): Promise<BrowserStatusOutput> {
+  const transport = resolveTransport();
+  const connected =
+    transport === "extension" ? await extensionConnected() : null;
+
+  let hint: string | null = null;
+  if (transport === "local") {
+    hint =
+      "Driving a headless Chrome launched by this process — the page carries " +
+      "no login. Call browser_restart with transport:'extension' to drive " +
+      "the user's own signed-in Chrome instead.";
+  } else if (connected === false) {
+    hint =
+      "No Chrome extension is connected to /ws/extension. Ask the user to " +
+      "install the NodeTool extension and click 'Attach to this tab'; until " +
+      "then every browser action will time out attaching.";
+  }
+
+  if (!state) {
+    return {
+      transport,
+      session_open: false,
+      extension_connected: connected,
+      url: null,
+      title: null,
+      hint
+    };
+  }
+  return {
+    transport: state.transport,
+    session_open: true,
+    extension_connected: connected,
+    url: state.page.url(),
+    title: await state.page.title(),
+    hint
+  };
 }
 
 export async function browserClick(
@@ -525,6 +595,7 @@ export async function browserUploadAsset(
 }
 
 export async function _shutdownLocalBrowser(): Promise<void> {
+  transportOverride = null;
   if (state) {
     try {
       await state.close();

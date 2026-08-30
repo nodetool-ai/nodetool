@@ -68,15 +68,44 @@ export const BrowserNavigateOutput = z.object({
 });
 export type BrowserNavigateOutput = z.infer<typeof BrowserNavigateOutput>;
 
+/**
+ * `transport` is how a caller switches between the headless Chrome this
+ * process launches and the user's own logged-in Chrome behind the extension
+ * relay. It only takes effect on a restart: the session is a process
+ * singleton, so switching means tearing the current one down.
+ */
+export const BrowserTransport = z.enum(["local", "extension"]);
+export type BrowserTransport = z.infer<typeof BrowserTransport>;
+
 export const BrowserRestartInput = z.object({
-  url: z.string().optional()
+  url: z.string().optional(),
+  transport: BrowserTransport.optional()
 });
 export type BrowserRestartInput = z.infer<typeof BrowserRestartInput>;
 
 export const BrowserRestartOutput = z.object({
-  url: z.string()
+  url: z.string(),
+  transport: BrowserTransport
 });
 export type BrowserRestartOutput = z.infer<typeof BrowserRestartOutput>;
+
+/** What `browser_status` answers without opening a session. */
+export const BrowserStatusOutput = z.object({
+  transport: BrowserTransport,
+  /** Whether a page session is already open in this process. */
+  session_open: z.boolean(),
+  /**
+   * Whether a Chrome extension currently holds the `/ws/extension` socket.
+   * `null` when this process cannot answer — it is not the server holding the
+   * bridge, so it would have to open a socket to find out.
+   */
+  extension_connected: z.boolean().nullable(),
+  url: z.string().nullable(),
+  title: z.string().nullable(),
+  /** What to do next when the session cannot be driven as configured. */
+  hint: z.string().nullable()
+});
+export type BrowserStatusOutput = z.infer<typeof BrowserStatusOutput>;
 
 export const BrowserClickInput = ElementRef;
 export type BrowserClickInput = z.infer<typeof BrowserClickInput>;

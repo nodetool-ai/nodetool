@@ -779,6 +779,146 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "browser_status",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "58ec839719ca",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_view",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "b4c94f55cac8",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_navigate",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "9660cd6b5c02",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_restart",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "defb85a11e39",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_click",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "d1b6b204cd27",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_input_text",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "4d24b135bb69",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_move_mouse",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "1a36915fa601",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_press_key",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "d1b1b2fc95c9",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_select_option",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "73c53d222990",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_scroll",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "e2012b881bd6",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_console_exec",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "7add1995b4bc",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_console_view",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "daf5f59b767f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_capture_media",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "92363bd381a2",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_upload_asset",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "f083302fd2b9",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
     name: "debug_app",
     module: "apps",
     impl: "packages/agents/src/capabilities/apps.ts",

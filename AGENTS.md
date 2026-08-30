@@ -1706,6 +1706,34 @@ gated loudness, silence, onsets, tempo) and `video-frames.ts` (per-frame
 statistics, histograms, motion, palettes, cuts), both tested on signals whose
 answers are known analytically. `media-decode.ts` is the Mediabunny seam.
 
+### Live browser tools (your own signed-in Chrome)
+
+Fourteen `browser_*` capabilities drive one real Chrome page action by action —
+`browser_view` (URL, title, indexed interactive elements, screenshot),
+`browser_navigate`, `browser_click`, `browser_input_text`, `browser_press_key`,
+`browser_select_option`, `browser_move_mouse`, `browser_scroll`,
+`browser_console_exec`, `browser_console_view`, `browser_capture_media`,
+`browser_upload_asset`, `browser_restart`, `browser_status`. Element indexes
+are rebuilt on every view, so a caller views before it acts on an index.
+
+The page is either a headless Chrome the process launched or, through the
+**Chrome extension** relay on `/ws/extension`, the tab the user is already
+signed in to — cookies, sessions and 2FA in place, which is what makes
+Midjourney, Sora and the rest reachable at all. The action loop is the same
+either way, so only two capabilities mention transports: `browser_status`
+reports the one in force (and whether an extension is actually attached, so an
+agent learns that before spending a 30-second attach timeout), and
+`browser_restart` changes it.
+
+The actions live in `@nodetool-ai/automation-nodes`; the capability module that
+declares them (`packages/agents/src/capabilities/browser.ts`) sits below that
+package, so they arrive through a registration seam
+(`capabilities/browser-runner.ts`) that `@nodetool-ai/base-nodes` calls at
+load. A process that loaded no node packages answers every call with a sentence
+saying so rather than hanging. One session exists per process and every caller
+shares it. Extension setup, the wire protocol and its limits:
+[docs/chrome-extension.md](docs/chrome-extension.md).
+
 ### Code authoring tools (no workflow, no browser)
 
 An agent writes, checks, and debugs a `nodetool.code.Code` body without

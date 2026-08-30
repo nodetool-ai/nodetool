@@ -45,6 +45,12 @@ export interface ExtensionChannel {
   onMessage(handler: (frame: ExtensionFrame) => void): void;
   /** Tear down the channel. */
   close(): void;
+  /**
+   * Whether an extension socket is currently registered. Only the in-process
+   * bridge can answer — the WS-URL transport would have to open a socket to
+   * find out — so it is absent there rather than guessed at.
+   */
+  readonly connected?: boolean;
 }
 
 /** Listener for forwarded CDP events, keyed by fully-qualified method name. */

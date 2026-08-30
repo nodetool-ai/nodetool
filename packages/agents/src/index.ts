@@ -107,6 +107,8 @@ export {
   createCapabilityRun,
   contextSecretAvailability,
   resolveCapabilityMessage,
+  setBrowserActionRunner,
+  getBrowserActionRunner,
   UNGATED
 } from "./capabilities/index.js";
 export type {
@@ -124,7 +126,9 @@ export type {
   SecretPromptStatus,
   SubAgentRuntime,
   CapabilityRunSource,
-  CreateCapabilityRunOptions
+  CreateCapabilityRunOptions,
+  BrowserActionRunner,
+  BrowserSessionStatus
 } from "./capabilities/index.js";
 export {
   SecurityMonitor,

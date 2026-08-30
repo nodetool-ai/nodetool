@@ -512,6 +512,26 @@ export const SURFACES: SurfaceEntry[] = [
     ]
   },
   {
+    id: "live-browser",
+    title: "Live browser (browser_* capabilities, CDP, the Chrome extension relay)",
+    harnesses: ["capability-suites"],
+    // `capability-suites` covers the seam — dispatch, classification, and what
+    // a process with no action layer answers. The half below it runs in
+    // `npm run test:integration --workspace=packages/automation-nodes`, which
+    // launches a real Chrome with the built extension loaded and drives the
+    // production transport end to end. It is not a selfcheck: it downloads
+    // Chrome and binds port 7777, so a diff to the relay still needs it run
+    // by hand.
+    paths: [
+      "chrome-extension/",
+      "packages/automation-nodes/src/lib/",
+      "packages/agents/src/capabilities/browser.ts",
+      "packages/agents/src/capabilities/browser.specs.ts",
+      "packages/agents/src/capabilities/browser-runner.ts",
+      "packages/websocket/src/extension-cdp-bridge.ts"
+    ],
+  },
+  {
     id: "provider-clients",
     title: "LLM and media provider clients (request shaping + response decoding)",
     harnesses: ["provider-contract", "eval"],

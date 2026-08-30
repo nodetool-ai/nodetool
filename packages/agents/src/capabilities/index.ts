@@ -26,6 +26,14 @@ export {
   toolForCapabilityName
 } from "./lazy-tool.js";
 export {
+  setBrowserActionRunner,
+  getBrowserActionRunner
+} from "./browser-runner.js";
+export type {
+  BrowserActionRunner,
+  BrowserSessionStatus
+} from "./browser-runner.js";
+export {
   DECLARED_CAPABILITY_MODULES,
   listCapabilitySpecs,
   capabilitySpec,
