@@ -33,8 +33,8 @@ see below.
 
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|
-| `test.yml` | Full quality gate (typecheck, lint, tests) via `quality-checks.yml` | 0 | Required |
-| `quality-checks.yml` | Reusable gate: deps/lint static legs, one shared build, five `built` legs (typecheck+parity+examples, test-packages, test-app, bundle+ring0, app-build), and a path-gated `docker` leg that builds the image, boots it, and loads the app in a browser | 0 | Required (infra called by `test.yml`) |
+| `test.yml` | Full quality gate (typecheck, lint, tests) via `quality-checks.yml`, scoped to the trees the diff can reach | 0 | Required |
+| `quality-checks.yml` | Reusable gate: deps/lint static legs, one shared build, five `built` legs (typecheck+parity+examples, test-packages, test-app, bundle+ring0, app-build), a standalone `mobile` leg, and a path-gated `docker` leg that builds the image, boots it, and loads the app in a browser | 0 | Required (infra called by `test.yml`) |
 | `page-load-smoke.yml` | Playwright: every route loads against a seeded backend | 0 | Required |
 | `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack | 1 | Required (also gates PRs today, ahead of the ring split) |
 | `docker.yml` | Build and push the GHCR image (main, `preview/**`, tags) | 1 | Required |
@@ -148,6 +148,39 @@ explicit "prose only", so a `changes` job that never reported runs everything.
 
 Prose still gets its own checks: `docs-lint.yml` on any `**/*.md`, and
 `docs-ci.yml` (site build plus link check) on `docs/**`.
+
+## Three trees, three scopes
+
+The repo is three npm projects, not one, and the gate no longer treats them as
+one. The `changes` job in `test.yml` classifies the diff into two more outputs
+alongside the prose one, and `quality-checks.yml` takes them as the `shared`
+and `mobile` inputs:
+
+| tree | what it is | what a change to it runs |
+| --- | --- | --- |
+| root workspace (`packages/`, `web/`, `electron/`, `examples/`, `reliability/`, `scripts/`, root config) | the one npm workspace | the whole gate — static legs, the package build, the five `built` legs, `docker`, plus `integration` and `workflow-runner-e2e` |
+| `mobile/` | Expo app, own lockfile, `@nodetool-ai/protocol` from the registry | the two static legs (they cover mobile's lockfile, its pinned SDK versions and `mobile/src`) and the `mobile` job (`typecheck:mobile` + `test:mobile`) |
+| `marketing/` | Next.js site, own lockfile, deployed to Cloudflare | nothing in `test.yml` — `marketing-ci.yml` is its gate |
+
+The two real dependency edges are wired in, so "separate" never means "stale":
+
+- **mobile → root workspace.** `mobile/tsconfig.json` maps `@nodetool-ai/`
+  `app-runtime`, `timeline`, `gpu` and two `protocol` subpaths to
+  `../packages/*/src`, so a change to any of those four packages runs the
+  `mobile` job as well.
+- **marketing → root workspace.** Three of `marketing-ci.yml`'s steps check
+  committed generated files against data in `packages/`:
+  `packages/base-nodes/nodetool/examples|assets/nodetool-base/**` and
+  `packages/*-nodes/src/*-manifest.json` are in that workflow's `paths` for
+  exactly that reason.
+
+Within the root workspace the backend suite prunes itself: on PRs the
+`test-packages` leg runs `turbo run test --affected`, so only packages the diff
+changed and their dependents are tested.
+
+Same fail-safe reading as the prose filter: both outputs default to "true", and
+the legs skip only on an explicit "false", so a `changes` job that never
+reported runs the whole gate.
 
 ## Manual Trigger
 

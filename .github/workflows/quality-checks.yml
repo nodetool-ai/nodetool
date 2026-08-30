@@ -28,6 +28,28 @@ on:
         required: false
         type: boolean
         default: false
+      shared:
+        description: >-
+          Whether this push can reach the root workspace tree (packages/, web/,
+          electron/, examples/, reliability/, scripts/, root config). When
+          false the diff is confined to `mobile/` and/or `marketing/` — both
+          separate npm projects with their own lockfiles — so the package
+          build and everything downstream of it (typecheck, the backend and
+          app test legs, the release gates, the image build) has nothing to
+          say and is skipped. The `quality` gate job still runs and reports.
+        required: false
+        type: boolean
+        default: true
+      mobile:
+        description: >-
+          Whether this push can reach the Expo app in `mobile/` — either
+          `mobile/**` itself or one of the packages its tsconfig `paths`
+          resolve to source. When false the mobile leg is skipped. Independent
+          of `shared`: a mobile-only PR is `shared: false, mobile: true`, a
+          packages-only PR is usually the reverse.
+        required: false
+        type: boolean
+        default: true
     outputs:
       all-passed:
         description: 'Whether every quality check leg passed.'
@@ -56,9 +78,10 @@ jobs:
   # cannot resolve a base builds the image rather than waving it through.
   changes:
     name: changes
-    # Nothing to decide when the caller already knows the diff is prose: the
-    # only consumer of this job is the `docker` leg, which is skipped too.
-    if: ${{ !inputs.docs-only }}
+    # Nothing to decide when the caller already knows the diff is prose, or
+    # that it never leaves mobile/ and marketing/: the only consumer of this
+    # job is the `docker` leg, which is skipped in both cases too.
+    if: ${{ !inputs.docs-only && inputs.shared }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -89,9 +112,15 @@ jobs:
   # Static checks that need no built packages. Kept independent of `build` so
   # the fastest signals (lint, dependency guards) are not delayed behind the
   # ~minutes-long package build. Each leg surfaces its own status check.
+  # Runs for a mobile-only PR too, deliberately: `check-lockfile-sync.mjs`
+  # resolves `mobile/package-lock.json`, `check-coupled-deps.mjs` compares
+  # mobile's pinned SDK versions against web's and electron's, and
+  # `check-key-boundaries.mjs` covers `mobile/src` — as does the `lint` leg's
+  # oxlint pass. Both legs run on source with no package build, so they cost a
+  # couple of minutes rather than the gate's full critical path.
   static:
     name: ${{ matrix.check }}
-    if: ${{ !inputs.docs-only }}
+    if: ${{ !inputs.docs-only && (inputs.shared || inputs.mobile) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -145,8 +174,9 @@ jobs:
   build:
     name: build
     # `built` needs this job, so skipping it skips every leg that consumes the
-    # dist artifact too.
-    if: ${{ !inputs.docs-only }}
+    # dist artifact too — which is exactly what a mobile-only or marketing-only
+    # PR wants: none of those legs reads a line the diff touched.
+    if: ${{ !inputs.docs-only && inputs.shared }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -245,8 +275,11 @@ jobs:
           #      `next build`s cost minutes each and belong to deploys, not
           #      the PR gate.
           - check: typecheck
-            command: npm run typecheck && npm run lint:design --workspace=web && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples
-            mobile-deps: "true"
+            # `typecheck:web` + `typecheck:electron`, not the root `typecheck`
+            # script: `typecheck:mobile` belongs to the `mobile` job below, so
+            # a packages-only PR does not pay for `npm ci --prefix mobile`, and
+            # a mobile-only PR does not drag this whole leg along with it.
+            command: npm run typecheck:web && npm run typecheck:electron && npm run lint:design --workspace=web && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples
             extra-apt: ""
             is-test: "false"
             fetch-depth: "1"
@@ -263,13 +296,12 @@ jobs:
             # main (no base sha) the full suite runs. Needs fetch-depth: 0 for
             # the SCM diff and TURBO_SCM_BASE (set on the Run step below).
             command: npm run test:packages${{ github.event_name == 'pull_request' && ' -- --affected' || '' }}
-            mobile-deps: "false"
             extra-apt: "mesa-vulkan-drivers ffmpeg"
             is-test: "true"
             fetch-depth: "0"
           - check: test-app
-            command: npm run test
-            mobile-deps: "true"
+            # web + electron only; `test:mobile` runs in the `mobile` job.
+            command: npm run test:web && npm run test:electron
             extra-apt: ""
             is-test: "true"
             fetch-depth: "1"
@@ -294,7 +326,6 @@ jobs:
           # (matching the Ring 0 flake budget of zero).
           - check: bundle
             command: npm run backend:smoke && npm run reliability:ring0
-            mobile-deps: "false"
             extra-apt: ""
             is-test: "false"
             fetch-depth: "1"
@@ -308,7 +339,6 @@ jobs:
           # is not green, the harness broke.
           - check: app-build
             command: npm run dev:nodetool -- eval app-build --cases greeting-card,draft-then-publish -p ollama -m none --no-find-model --min-success 1
-            mobile-deps: "false"
             extra-apt: ""
             is-test: "false"
             fetch-depth: "1"
@@ -344,20 +374,6 @@ jobs:
           name: reliability-harness-dist
           path: reliability/harness/dist
 
-      # mobile is NOT a root workspace (separate dependency tree), so its
-      # node_modules is cached on its own lockfile and `npm ci` is skipped on hit.
-      - name: Cache mobile node_modules
-        if: matrix.mobile-deps == 'true'
-        id: mobile-node-modules
-        uses: actions/cache@v6
-        with:
-          path: mobile/node_modules
-          key: ${{ runner.os }}-mobile-node-modules-${{ hashFiles('mobile/package-lock.json') }}
-
-      - name: Install mobile dependencies
-        if: matrix.mobile-deps == 'true' && steps.mobile-node-modules.outputs.cache-hit != 'true'
-        run: cd mobile && npm ci
-
       - name: Run ${{ matrix.check }}
         # skip-tests drops the package + app test legs without touching the
         # static checks. The leg still spins up but does no work, so it stays
@@ -371,6 +387,56 @@ jobs:
           echo "::group::${{ matrix.check }}"
           ${{ matrix.command }}
           echo "::endgroup::"
+
+  # The Expo app. Its own job rather than a leg of `built`, because it needs
+  # nothing that job produces: `mobile/` is a separate npm project (its own
+  # lockfile, `@nodetool-ai/protocol` resolved from the registry) and the four
+  # root packages its tsconfig `paths` point at are read as TypeScript source,
+  # not as built dist. Keeping it off `needs: build` is the whole point — a
+  # mobile-only PR then skips the ~55-package build and every leg behind it,
+  # and finishes in the time the build alone used to take.
+  #
+  # It still installs the root workspace: `npm run typecheck:mobile` runs
+  # `tsc --build packages/protocol` first, which needs the root TypeScript.
+  # Lint is not here — the `static` leg's oxlint pass already covers
+  # `mobile/src`, and that leg runs whenever this one does.
+  mobile:
+    name: mobile
+    if: ${{ !inputs.docs-only && inputs.mobile }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node, install deps
+        uses: ./.github/actions/setup-build
+        with:
+          build-packages: "false"
+
+      # mobile is NOT a root workspace (separate dependency tree), so its
+      # node_modules is cached on its own lockfile and `npm ci` is skipped on hit.
+      - name: Cache mobile node_modules
+        id: mobile-node-modules
+        uses: actions/cache@v6
+        with:
+          path: mobile/node_modules
+          key: ${{ runner.os }}-mobile-node-modules-${{ hashFiles('mobile/package-lock.json') }}
+
+      - name: Install mobile dependencies
+        if: steps.mobile-node-modules.outputs.cache-hit != 'true'
+        run: cd mobile && npm ci
+
+      - name: Typecheck mobile
+        run: npm run typecheck:mobile
+
+      # Same reading as the `built` test legs: skip-tests drops the test suite
+      # and leaves the typecheck above as the gate.
+      - name: Test mobile
+        if: ${{ !inputs.skip-tests }}
+        run: npm run test:mobile
 
   # The deploy artifact. docker.yml only builds after a merge to main, so until
   # this leg existed nothing verified the image before it landed: a Dockerfile
@@ -388,7 +454,7 @@ jobs:
   docker:
     name: docker
     needs: changes
-    if: ${{ !inputs.docs-only && needs.changes.outputs.docker == 'true' }}
+    if: ${{ !inputs.docs-only && inputs.shared && needs.changes.outputs.docker == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -498,12 +564,13 @@ jobs:
   #
   # `always()` so the gate reports even when a leg is skipped. A `skipped` job
   # passes: `docker` is skipped by design when the diff cannot reach the image,
-  # and a leg skipped that way must not hold the required check red. Anything
-  # else — failure, cancelled, or a leg skipped because its own upstream failed
-  # — fails the gate.
+  # `mobile` when it cannot reach the Expo app, and `build`/`built` when it
+  # never leaves mobile/ or marketing/ — a leg skipped that way must not hold
+  # the required check red. Anything else — failure, cancelled, or a leg
+  # skipped because its own upstream failed — fails the gate.
   quality:
     name: quality
-    needs: [changes, static, build, built, docker]
+    needs: [changes, static, build, built, mobile, docker]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -520,6 +587,7 @@ jobs:
             "static:${{ needs.static.result }}" \
             "build:${{ needs.build.result }}" \
             "built:${{ needs.built.result }}" \
+            "mobile:${{ needs.mobile.result }}" \
             "docker:${{ needs.docker.result }}"; do
             name="${leg%%:*}"
             result="${leg#*:}"

@@ -56,12 +56,38 @@ jobs:
   # Fails open: the step is `continue-on-error` and the output falls back to
   # "true", so a filter that cannot resolve a base runs everything rather than
   # waving a change through.
+  #
+  # It also decides which of the three independent trees this push can reach.
+  # The repo holds three npm projects, not one: the root workspace
+  # (packages/, web/, electron/, examples/, reliability/), `mobile/` (its own
+  # lockfile, installed with `npm --prefix mobile ci`), and `marketing/` (its
+  # own lockfile, built and deployed by marketing-ci.yml). A change confined to
+  # one of them has nothing to say about the others, and every leg it starts
+  # anyway holds a runner the rest of the queue waits behind.
+  #
+  #   shared → the root workspace tree. Everything except docs, `marketing/**`,
+  #            `mobile/**` and those two trees' own workflows. Drives the
+  #            package build, the backend/app test legs, the image build and
+  #            the integration/E2E jobs below.
+  #   mobile → `mobile/**` plus the four packages its tsconfig `paths` resolve
+  #            to source (protocol, app-runtime, timeline, gpu), and the root
+  #            files the mobile job itself stands on (the workspace lockfile
+  #            and package.json, tsconfig.base.json, .nvmrc) — between them,
+  #            every way a root-workspace change can break
+  #            `npm run typecheck:mobile`.
+  #
+  # `marketing/**` gets no output here on purpose: nothing in this workflow
+  # touches it. It is built, linted, tested and deployed by marketing-ci.yml,
+  # which carries the reverse edge (the packages whose data its generated files
+  # are checked against).
   changes:
     name: changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       code: ${{ steps.filter.outputs.code || 'true' }}
+      shared: ${{ steps.filter.outputs.shared || 'true' }}
+      mobile: ${{ steps.filter.outputs.mobile || 'true' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -76,6 +102,20 @@ jobs:
           filters: |
             code:
               - '!{docs/**,*.md,**/AGENTS.md,**/CLAUDE.md,.github/**/*.md}'
+            shared:
+              - '!{docs/**,*.md,**/AGENTS.md,**/CLAUDE.md,.github/**/*.md,marketing/**,mobile/**,.github/workflows/marketing-ci.yml,.github/workflows/eas-build.yml}'
+            mobile:
+              - 'mobile/**'
+              - 'packages/protocol/**'
+              - 'packages/app-runtime/**'
+              - 'packages/timeline/**'
+              - 'packages/gpu/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'tsconfig.base.json'
+              - '.nvmrc'
+              - '.github/workflows/test.yml'
+              - '.github/workflows/quality-checks.yml'
 
   quality:
     name: Quality Gate (npm run check)
@@ -102,6 +142,14 @@ jobs:
       # A documentation-only push skips every leg inside the gate. The gate job
       # itself still runs and reports, so the required check lands green.
       docs-only: ${{ needs.changes.outputs.code == 'false' }}
+      # Which trees the gate has to check. A marketing-only PR sets both to
+      # false and every leg inside skips (marketing-ci.yml is its gate); a
+      # mobile-only PR runs the cheap guards plus the mobile leg and skips the
+      # 55-package build and everything downstream of it. Same fail-safe
+      # reading as `docs-only`: the outputs default to 'true', so a filter that
+      # could not resolve a base runs the whole gate.
+      shared: ${{ needs.changes.outputs.shared != 'false' }}
+      mobile: ${{ needs.changes.outputs.mobile != 'false' }}
 
   # Heavy jobs run concurrently with the quality gate (both wait only on the
   # seconds-long `changes` job) rather than after it, so
@@ -114,8 +162,11 @@ jobs:
   integration:
     name: Workflow Integration Tests
     needs: changes
-    # Same fail-safe reading as the gate above: skip only on an explicit "prose".
-    if: ${{ always() && needs.changes.outputs.code != 'false' }}
+    # Same fail-safe reading as the gate above: skip only on an explicit
+    # "prose", or an explicit "this diff never leaves marketing/ or mobile/" —
+    # it runs shipped-workflow execution out of packages/base-nodes, which
+    # neither of those trees can reach.
+    if: ${{ always() && needs.changes.outputs.code != 'false' && needs.changes.outputs.shared != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -132,7 +183,7 @@ jobs:
   workflow-runner-e2e:
     name: Workflow Runner Browser E2E
     needs: changes
-    if: ${{ always() && needs.changes.outputs.code != 'false' }}
+    if: ${{ always() && needs.changes.outputs.code != 'false' && needs.changes.outputs.shared != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
