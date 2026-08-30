@@ -25,6 +25,9 @@ const removeClipVersionMock = jest.fn();
 let linkedScriptId: string | null = null;
 /** Assembled cut the board links, if any — set per test before rendering. */
 let linkedTimelineId: string | null = null;
+/** The board's render models — set per test before rendering. */
+let boardImageModel: unknown = null;
+let boardVideoModel: unknown = null;
 jest.mock("../../../stores/storyboard/StoryboardStore", () => {
   const actual = jest.requireActual(
     "../../../stores/storyboard/StoryboardStore"
@@ -45,6 +48,8 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => {
           "board-1": {
             entityIds: [],
             timelineId: linkedTimelineId,
+            imageModel: boardImageModel,
+            videoModel: boardVideoModel,
             screenplay: linkedScriptId ? { script_id: linkedScriptId } : null
           }
         }
@@ -188,6 +193,8 @@ describe("ShotInspector", () => {
     generateClipMock.mockClear();
     linkedScriptId = null;
     lineIsVoiced = true;
+    boardImageModel = null;
+    boardVideoModel = null;
   });
 
   it("names the selected shot and shows its status", () => {
@@ -694,6 +701,95 @@ describe("ShotInspector camera selects", () => {
     expect(
       screen.getByRole("option", { name: "static then subtle" })
     ).toBeInTheDocument();
+  });
+
+  describe("cost", () => {
+    // This suite's parent describe does not reset the board, and picking a
+    // model would otherwise leak into the tests that expect none.
+    beforeEach(() => {
+      boardImageModel = null;
+      boardVideoModel = null;
+    });
+
+    /** Two shipped catalog entries: $0.08 per image at 1K, $0.15/s at 1080p. */
+    const pickModels = () => {
+      boardImageModel = {
+        type: "image_model",
+        id: "fal-ai/nano-banana-2",
+        provider: "fal_ai",
+        name: "Nano Banana 2",
+        path: ""
+      };
+      boardVideoModel = {
+        type: "video_model",
+        id: "wan/v2.6/image-to-video",
+        provider: "fal_ai",
+        name: "Wan 2.6"
+      };
+    };
+
+    it("prices the still and the clip apart", () => {
+      pickModels();
+      renderInspector(makeShot({ duration_seconds: 4 }));
+
+      expect(screen.getByText("Still ~$0.08")).toBeInTheDocument();
+      expect(screen.getByText("Clip ~$0.6")).toBeInTheDocument();
+      expect(screen.getByText("total ~$0.68")).toBeInTheDocument();
+    });
+
+    it("moves the clip figure with the shot's length, not the still", () => {
+      pickModels();
+      const { rerender } = renderInspector(makeShot({ duration_seconds: 4 }));
+      rerender(
+        <ThemeProvider theme={mockTheme}>
+          <ShotInspector
+            boardId="board-1"
+            shot={makeShot({ duration_seconds: 8 })}
+          />
+        </ThemeProvider>
+      );
+
+      expect(screen.getByText("Clip ~$1.2")).toBeInTheDocument();
+      expect(screen.getByText("Still ~$0.08")).toBeInTheDocument();
+    });
+
+    it("charges a direct shot for the clip only", () => {
+      pickModels();
+      renderInspector(makeShot({ duration_seconds: 4, render_mode: "direct" }));
+
+      expect(screen.queryByText(/^Still/)).not.toBeInTheDocument();
+      expect(screen.getByText("Clip ~$0.6")).toBeInTheDocument();
+    });
+
+    it("reports the last render's cost when the board picks no models", () => {
+      renderInspector(makeShot({ duration_seconds: 4, cost_estimate: 0.42 }));
+
+      expect(screen.getByText("last render $0.42")).toBeInTheDocument();
+      expect(screen.queryByText(/^Clip/)).not.toBeInTheDocument();
+    });
+
+    it("names the step it cannot price rather than dropping it", () => {
+      boardImageModel = {
+        type: "image_model",
+        id: "fal-ai/nano-banana-2",
+        provider: "fal_ai",
+        name: "Nano Banana 2",
+        path: ""
+      };
+      renderInspector(makeShot({ duration_seconds: 4 }));
+
+      expect(screen.getByText("Still ~$0.08")).toBeInTheDocument();
+      // No clip model on the board: the step still appears, with a dash.
+      expect(screen.getByText("Clip —")).toBeInTheDocument();
+      expect(screen.queryByText(/^total/)).not.toBeInTheDocument();
+    });
+
+    it("shows both steps as unpriced when the board has no models at all", () => {
+      renderInspector(makeShot({ duration_seconds: 4 }));
+
+      expect(screen.getByText("Still —")).toBeInTheDocument();
+      expect(screen.getByText("Clip —")).toBeInTheDocument();
+    });
   });
 
   it("reads the camera line as text in read-only mode", () => {

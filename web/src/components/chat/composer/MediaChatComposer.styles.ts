@@ -149,7 +149,22 @@ export const createMediaComposerStyles = (theme: Theme) =>
     ".media-primary-action": {
       display: "inline-flex",
       alignItems: "center",
+      gap: theme.spacing(1),
       flexShrink: 0
+    },
+
+    // The list price of the next generation. Quiet enough to ignore, close
+    // enough to the button to read before pressing it.
+    ".media-cost-estimate": {
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.text.disabled,
+      whiteSpace: "nowrap",
+      cursor: "default",
+      transition: `color ${MOTION.normal}`,
+      "&:hover": {
+        color: theme.vars.palette.text.secondary
+      }
     },
 
     ".media-generate-btn": {

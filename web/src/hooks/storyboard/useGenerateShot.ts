@@ -37,6 +37,7 @@ import {
   type ShotJobKind
 } from "../../stores/storyboard/StoryboardGenerationStore";
 import { fetchShotDurationSeconds } from "./useShotDuration";
+import { CLIP_RESOLUTION, STILL_RESOLUTION } from "./renderSpec";
 import { getErrorMessage } from "../../utils/errorHandling";
 
 /**
@@ -127,15 +128,6 @@ const entityTokenSuffix = (entities: Entity[]): string =>
 
 const hasReferenceImage = (entities: Entity[]): boolean =>
   entities.some((e) => (e.reference_images?.length ?? 0) > 0);
-
-/**
- * Resolution tiers the old generation nodes applied implicitly through their
- * property defaults — `1K` on the image nodes (packages/image-nodes), `1080p`
- * on ImageToVideo (packages/video-nodes). The direct requests must carry them
- * or the provider falls back to its own default.
- */
-const STILL_RESOLUTION = "1K";
-const CLIP_RESOLUTION = "1080p";
 
 interface UseGenerateShotResult {
   generateKeyframe: (boardId: string, shot: Shot) => Promise<void>;

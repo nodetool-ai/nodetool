@@ -40,6 +40,7 @@ import {
   SelectField,
   TextInput,
   ToolbarIconButton,
+  Tooltip,
   BORDER_RADIUS,
   CONTROL,
   SPACING,
@@ -65,7 +66,10 @@ import {
   useBoardScriptLines,
   useShotDuration
 } from "../../hooks/storyboard/useShotDuration";
-import { useShotCostEstimate } from "../../hooks/storyboard/useShotCostEstimate";
+import {
+  useShotCostEstimate,
+  type ShotCostEstimate
+} from "../../hooks/storyboard/useShotCostEstimate";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 import { useEntities } from "../../serverState/useEntities";
 import { getEntityChipSx, getEntityKindDotSx } from "../entities/entityKind";
@@ -73,6 +77,7 @@ import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { requestDocumentFocus } from "../../stores/DocumentFocusStore";
 import { useShotTimelineLink } from "../../hooks/storyboard/useShotTimelineLink";
 import { isShotGenerating } from "./ShotStatusPill";
+import type { SxProps, Theme } from "@mui/material/styles";
 import { colorForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
 
@@ -215,6 +220,94 @@ const useShotTextField = (
   };
 };
 
+/**
+ * What rendering this shot costs, one figure per step: the still and the clip
+ * are priced by different models and only the clip's moves with the shot's
+ * length, so a single total hides which number a change affected.
+ *
+ * A step nothing prices shows a dash and says why in its tooltip — the board
+ * has no model picked for it, or no catalog carries the one it has. Leaving it
+ * out instead is what makes a missing clip cost look broken.
+ */
+const ShotCostLine: React.FC<{
+  estimate: ShotCostEstimate;
+  sx?: SxProps<Theme>;
+}> = ({ estimate, sx }) => {
+  const listPrice = (
+    <Caption color="secondary">
+      List price from the provider catalog. The render is billed by the provider
+      at its own rates.
+    </Caption>
+  );
+
+  if (estimate.source === "stored") {
+    return (
+      <Tooltip
+        placement="top"
+        title={
+          <Text size="small">
+            What the last render of this shot cost. Pick the board&apos;s still
+            and clip models to estimate the next one.
+          </Text>
+        }
+      >
+        <Caption color="muted" noWrap sx={sx}>
+          {`last render ${formatUsd(estimate.cost)}`}
+        </Caption>
+      </Tooltip>
+    );
+  }
+
+  if (estimate.steps.length === 0) {
+    return null;
+  }
+
+  const pricedCount = estimate.steps.filter(
+    (step) => step.cost !== null
+  ).length;
+
+  return (
+    <FlexRow align="center" gap={SPACING.sm} wrap sx={sx}>
+      {estimate.steps.map((step) => (
+        <Tooltip
+          key={step.label}
+          placement="top"
+          title={
+            <FlexColumn gap={SPACING.micro}>
+              <Text size="small">
+                {step.cost === null
+                  ? `${step.label}: ${step.reason}`
+                  : `${step.label}: ${step.breakdown ?? formatUsd(step.cost)}`}
+              </Text>
+              {step.cost !== null && (
+                <>
+                  {estimate.notes.map((note) => (
+                    <Caption key={note} color="secondary">
+                      {note}
+                    </Caption>
+                  ))}
+                  {listPrice}
+                </>
+              )}
+            </FlexColumn>
+          }
+        >
+          <Caption color={step.cost === null ? "muted" : "secondary"} noWrap>
+            {step.cost === null
+              ? `${step.label} —`
+              : `${step.label} ~${formatUsd(step.cost)}`}
+          </Caption>
+        </Tooltip>
+      ))}
+      {pricedCount > 1 && (
+        <Caption color="muted" noWrap>
+          {`total ~${formatUsd(estimate.cost)}`}
+        </Caption>
+      )}
+    </FlexRow>
+  );
+};
+
 const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
   boardId,
   shot,
@@ -308,11 +401,8 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
       : "model default";
   // Cost sits in the same quiet line as the camera controls. A read-only
   // inspector has no controls, so there the camera reads as text beside it.
+  // The figure stays one number; which step costs what is in its tooltip.
   const costEstimate = useShotCostEstimate(boardId, shot);
-  const costLabel = costEstimate ? `~${formatUsd(costEstimate.cost)}` : "";
-  const metaLine = [camera.length > 0 ? camera : null, costLabel || null]
-    .filter((p): p is string => p !== null)
-    .join(" · ");
 
   // Where this shot lands in the project's other documents: the script line it
   // covers, and the clip it owns in the assembled cut.
@@ -687,11 +777,11 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
         )}
 
         {readOnly ? (
-          metaLine.length > 0 || duration.seconds != null ? (
+          camera.length > 0 || duration.seconds != null ? (
             <FlexRow align="center" gap={SPACING.sm} wrap>
-              {metaLine.length > 0 && (
+              {camera.length > 0 && (
                 <Caption color="secondary" noWrap>
-                  {metaLine}
+                  {camera}
                 </Caption>
               )}
               {duration.seconds != null && (
@@ -699,6 +789,7 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
                   {durationLabel}
                 </Caption>
               )}
+              <ShotCostLine estimate={costEstimate} />
             </FlexRow>
           ) : null
         ) : (
@@ -771,11 +862,10 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
                 onClick={handleToggleDurationSource}
               />
             )}
-            {costLabel !== "" && (
-              <Caption color="secondary" noWrap sx={{ mb: SPACING.micro }}>
-                {costLabel}
-              </Caption>
-            )}
+            <ShotCostLine
+              estimate={costEstimate}
+              sx={{ mb: SPACING.micro }}
+            />
           </FlexRow>
         )}
 
