@@ -1,10 +1,18 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import {
   countTextTokens,
   countMessageTokens,
   countMessagesTokens
 } from "../src/token-counter.js";
 import type { Message } from "@nodetool-ai/runtime";
+
+// The first count builds js-tiktoken's cl100k_base ranks, which takes seconds
+// on a loaded CI runner and is then cached for every later call. Pay it here
+// with a timeout of its own so it is not charged to whichever assertion
+// happens to run first.
+beforeAll(() => {
+  countTextTokens("warm the encoder");
+}, 60_000);
 
 describe("countTextTokens", () => {
   it("returns 0 for null/undefined/empty", () => {

@@ -31,6 +31,14 @@ export default defineConfig({
       "@nodetool-ai/execution": resolve(__dirname, "../execution/src/index.ts"),
       "@nodetool-ai/kernel": resolve(__dirname, "../kernel/src/index.ts"),
       "@nodetool-ai/protocol": resolve(__dirname, "../protocol/src"),
+      "@nodetool-ai/node-sdk/cost-estimate": resolve(
+        __dirname,
+        "../node-sdk/src/cost-estimate.ts"
+      ),
+      "@nodetool-ai/node-sdk/pricing-params": resolve(
+        __dirname,
+        "../node-sdk/src/pricing-params.ts"
+      ),
       "@nodetool-ai/node-sdk/code-body": resolve(
         __dirname,
         "../node-sdk/src/code-body.ts"

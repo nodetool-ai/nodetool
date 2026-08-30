@@ -6,10 +6,14 @@ import {
   type CostEstimateInput,
   type NodeMetadataLike
 } from "../src/cost-estimate.js";
+import { extractPricingParams } from "../src/pricing-params.js";
 
 const FAL_TYPE = "fal.image.FluxSchnell";
 const FAL_VAGUE_TYPE = "fal.text_to_image.GptImage2";
 const KIE_TYPE = "kie.video.Veo";
+const FAL_PER_SECOND_TYPE = "fal.text_to_video.KlingVideoV3ProTextToVideo";
+const KIE_PER_SECOND_TYPE = "kie.video.Runway";
+const FAL_LIVE_TYPE = "fal.text_to_video.LiveRow";
 const LLM_TYPE = "nodetool.agents.Agent";
 const GENERIC_TYPE = "nodetool.image.TextToImage";
 
@@ -29,6 +33,35 @@ const metadataByType: Record<string, NodeMetadataLike> = {
       unit_price: 1,
       billing_unit: "units",
       currency: "USD",
+      source: "bundle"
+    }
+  },
+  [FAL_PER_SECOND_TYPE]: {
+    properties: [{ name: "duration", type: { type: "str" } }],
+    fal_unit_pricing: {
+      endpoint_id: "fal-ai/kling-video/v3/pro/text-to-video",
+      unit_price: 0.14,
+      billing_unit: "seconds",
+      currency: "USD",
+      source: "bundle"
+    }
+  },
+  [FAL_LIVE_TYPE]: {
+    fal_unit_pricing: {
+      endpoint_id: "fal-ai/live-row",
+      unit_price: 0.2,
+      billing_unit: "seconds",
+      currency: "USD",
+      source: "live"
+    }
+  },
+  [KIE_PER_SECOND_TYPE]: {
+    kie_unit_pricing: {
+      model_id: "runway",
+      unit_price: 20,
+      billing_unit: "second",
+      currency: "credits",
+      usd_price: 0.1,
       source: "bundle"
     }
   },
@@ -64,6 +97,38 @@ const getModelPrice: CostEstimateInput["getModelPrice"] = (model) => {
     : null;
 };
 
+/**
+ * A published grid for the per-second endpoint: the rung decides the rate, and
+ * 4K is a rung this model does not sell. Stands in for the GenSpend catalog,
+ * which the estimator reaches only through this hook.
+ */
+const gridRows: Record<string, number> = { "720p": 0.1, "1080p": 0.15 };
+
+const getGridPrice: CostEstimateInput["getModelPrice"] = (model, params) => {
+  if (model.id !== "fal-ai/kling-video/v3/pro/text-to-video") return null;
+  const seconds = params?.seconds ?? 1;
+  const resolution = params?.resolution;
+  const rate = resolution ? gridRows[resolution] : gridRows["720p"];
+  if (rate === undefined) {
+    return {
+      unit_price: 0,
+      billing_unit: "",
+      currency: "USD",
+      source: "bundle" as const,
+      declined: `no published price at ${resolution}`
+    };
+  }
+  return {
+    unit_price: rate * seconds,
+    billing_unit: "seconds",
+    currency: "USD",
+    source: "bundle" as const,
+    fromGrid: true,
+    seconds,
+    resolution: resolution ?? "720p"
+  };
+};
+
 describe("estimateWorkflowCost", () => {
   it("prices a fal node as unit_price * quantity with fan-out", () => {
     const estimate = estimateWorkflowCost({
@@ -84,6 +149,109 @@ describe("estimateWorkflowCost", () => {
     expect(item.confidence).toBe("estimate");
     expect(item.estimated_cost).toBeCloseTo(0.06, 10);
     expect(estimate.total).toBeCloseTo(0.06, 10);
+  });
+
+  it("bills a per-second fal node for the duration the node states", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [
+        { id: "v1", type: FAL_PER_SECOND_TYPE, data: { duration: "10" } }
+      ],
+      getMetadata,
+      getParams: (node) => extractPricingParams(node.data)
+    });
+
+    const item = estimate.items[0];
+    expect(item.unit_price).toBeCloseTo(1.4, 10);
+    expect(item.estimated_cost).toBeCloseTo(1.4, 10);
+    expect(item.seconds).toBe(10);
+    expect(item.breakdown).toBe("10 s × $0.14/s");
+  });
+
+  it("prices a per-second fal node at one second when no duration is set", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [{ id: "v1", type: FAL_PER_SECOND_TYPE }],
+      getMetadata,
+      getParams: (node) => extractPricingParams(node.data)
+    });
+
+    const item = estimate.items[0];
+    expect(item.unit_price).toBeCloseTo(0.14, 10);
+    expect(item.seconds).toBe(1);
+    expect(item.assumptions?.[0]).toContain("duration not set");
+  });
+
+  it("bills a per-second kie node for the duration the node states", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [{ id: "k2", type: KIE_PER_SECOND_TYPE, data: { duration: 8 } }],
+      getMetadata,
+      getParams: (node) => extractPricingParams(node.data)
+    });
+
+    const item = estimate.items[0];
+    expect(item.unit_price).toBeCloseTo(0.8, 10);
+    expect(item.seconds).toBe(8);
+  });
+
+  it("moves a fal node's price with the resolution the node states", () => {
+    const estimate = (resolution: string) =>
+      estimateWorkflowCost({
+        nodes: [
+          {
+            id: "v1",
+            type: FAL_PER_SECOND_TYPE,
+            data: { duration: "8", resolution }
+          }
+        ],
+        getMetadata,
+        getModelPrice: getGridPrice,
+        getParams: (node) => extractPricingParams(node.data)
+      });
+
+    const cheap = estimate("720p").items[0];
+    expect(cheap.unit_price).toBeCloseTo(0.8, 10);
+    expect(cheap.resolution).toBe("720p");
+
+    const dear = estimate("1080p").items[0];
+    expect(dear.unit_price).toBeCloseTo(1.2, 10);
+    expect(dear.resolution).toBe("1080p");
+  });
+
+  it("keeps the node-type rate as a floor when the grid has no such rung", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [
+        {
+          id: "v1",
+          type: FAL_PER_SECOND_TYPE,
+          data: { duration: "8", resolution: "4K" }
+        }
+      ],
+      getMetadata,
+      getModelPrice: getGridPrice,
+      getParams: (node) => extractPricingParams(node.data)
+    });
+
+    const item = estimate.items[0];
+    expect(item.unit_price).toBeCloseTo(1.12, 10);
+    expect(item.assumptions?.[0]).toBe("no published price at 4K");
+  });
+
+  it("keeps a live node-type rate over a flat catalog answer", () => {
+    const flat: CostEstimateInput["getModelPrice"] = () => ({
+      unit_price: 0.05,
+      billing_unit: "seconds",
+      currency: "USD",
+      source: "bundle" as const
+    });
+    const estimate = estimateWorkflowCost({
+      nodes: [{ id: "v1", type: FAL_LIVE_TYPE, data: { duration: "8" } }],
+      getMetadata,
+      getModelPrice: flat,
+      getParams: (node) => extractPricingParams(node.data)
+    });
+
+    const item = estimate.items[0];
+    expect(item.unit_price).toBeCloseTo(1.6, 10);
+    expect(item.confidence).toBe("exact");
   });
 
   it("prices a kie node from usd_price and marks live prices exact", () => {

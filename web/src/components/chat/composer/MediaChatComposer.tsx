@@ -93,6 +93,7 @@ import {
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { useChatDraftStore } from "../../../stores/ChatDraftStore";
 import { StopGenerationButton } from "./StopGenerationButton";
+import MediaCostEstimate from "./MediaCostEstimate";
 import PermissionSelector from "./PermissionSelector";
 import { useAutoFocusEnabled } from "../../../hooks/useAutoFocusEnabled";
 
@@ -1543,6 +1544,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               the chips, so it joins the workflow action buttons on one line
               when the row wraps. */}
           <div className="media-primary-action">
+            {/* What the next Generate would cost, next to the button that
+                spends it. Silent in chat mode and whenever no price can be
+                reached. */}
+            {isMediaMode && !isBusy && <MediaCostEstimate mode={mode} />}
             <VoiceInputControl
               onTranscript={handleVoiceTranscript}
               overlayHost={composeCardRef}

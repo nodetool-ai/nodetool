@@ -32,6 +32,9 @@ import type {
   GenspendVariant
 } from "./genspend-catalog.js";
 import { GENSPEND_CURRENCY } from "./genspend-catalog.js";
+import { formatUsd } from "@nodetool-ai/node-sdk/cost-estimate";
+
+export { formatUsd };
 
 /** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
@@ -55,6 +58,8 @@ export interface ModelParamPrice extends ModelUnitPricingLike {
   seconds?: number;
   /** The rung the figure was billed at, in the catalog's own spelling. */
   resolution?: string;
+  /** The figure came off a published grid row, not a flat rate. */
+  fromGrid?: boolean;
 }
 
 /**
@@ -136,21 +141,6 @@ function tierForMegapixels(megapixels: number): string | null {
   }
   return bestRatio <= 1.5 ? best.tier : null;
 }
-
-const trimZeros = (text: string): string =>
-  text.includes(".") ? text.replace(/0+$/, "").replace(/\.$/, "") : text;
-
-/**
- * A price as text. Sub-cent figures get as many decimal places as they need:
- * `String(3e-7)` is `3e-7`, and a breakdown reading "$3e-7/s" is unreadable.
- */
-export const formatUsd = (usd: number): string => {
-  if (!Number.isFinite(usd)) return "$0";
-  if (usd >= 0.01) return `$${trimZeros(usd.toFixed(3))}`;
-  if (usd <= 0) return "$0";
-  const places = Math.min(12, Math.ceil(-Math.log10(usd)) + 2);
-  return `$${trimZeros(usd.toFixed(places))}`;
-};
 
 const money = formatUsd;
 
@@ -451,6 +441,11 @@ export function priceGenspendEntry(
     source: "bundle",
     breakdown
   };
+  if (row) {
+    // A row was selected off the published grid, so this figure moves with the
+    // resolution, duration and audio state the node states.
+    price.fromGrid = true;
+  }
   if (seconds !== null) {
     price.seconds = seconds;
   }

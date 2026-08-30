@@ -2,8 +2,9 @@
  * Pure pre-run cost estimation for a workflow graph.
  *
  * Walks the nodes, resolves per-node unit pricing attached to node metadata
- * (`fal_unit_pricing` first, then `kie_unit_pricing`), multiplies by an expected
- * run count, and returns a {@link WorkflowCostEstimate}. Nodes without a known
+ * (`fal_unit_pricing` first, then `kie_unit_pricing`) — or, where the model
+ * catalogs publish a grid for the same endpoint, off that grid — multiplies by
+ * an expected run count, and returns a {@link WorkflowCostEstimate}. Nodes without a known
  * price are still reported (cost 0, confidence "unknown") and counted, never
  * hidden — the plan-before-spend view must surface uncertainty.
  *
@@ -106,6 +107,236 @@ export interface ModelParamPricingLike extends ModelUnitPricingLike {
   seconds?: number;
   /** The rung the figure was billed at, in the catalog's own spelling. */
   resolution?: string;
+  /**
+   * The figure came off a published grid row, so it moves with the resolution,
+   * duration and audio state the node states. A flat rate leaves it unset.
+   */
+  fromGrid?: boolean;
+}
+
+/* -------------------------------------------------------------------------
+ * Scalar catalog prices
+ * ---------------------------------------------------------------------- */
+
+/** The trimmed, lower-cased billing unit — rows ship `"1000 characters "`. */
+function unitKey(billingUnit: string): string {
+  return billingUnit.trim().toLowerCase();
+}
+
+/** Units whose figure is one second of output. */
+const PER_SECOND_UNITS = new Set(["second", "seconds"]);
+
+/** Units whose figure is one minute of output. */
+const PER_MINUTE_UNITS = new Set(["minute", "minutes"]);
+
+/** Units whose figure is one megapixel of the image produced. */
+const PER_MEGAPIXEL_UNITS = new Set([
+  "megapixels",
+  "megapixel",
+  "processed megapixels",
+  "processed megapixel"
+]);
+
+/**
+ * Units carrying no fixed amount of anything: a credit has no USD value here,
+ * and a bare count names no deliverable. Priced as a per-run figure they would
+ * read as a real number, so the caller is told why there is none.
+ */
+const UNCONVERTIBLE_UNITS = new Set(["", "unit", "units", "credit", "credits"]);
+
+/**
+ * Rates over something the node states nothing about: wall-clock time on FAL's
+ * machines, the length of an *input* it has not been given, training steps,
+ * tokens. Multiplying them by anything would be an invention, and reporting the
+ * rate as a run understates it by however many units the job really takes.
+ */
+const UNSTATED_RATE_UNITS = new Set([
+  "compute second",
+  "compute seconds",
+  "input second",
+  "input seconds",
+  "step",
+  "steps",
+  "train unit",
+  "train units",
+  "1m tokens"
+]);
+
+/** `"5 seconds"`, `"30 seconds"`, `"16 frames"` — a block of N somethings. */
+const BLOCK_UNIT = /^(\d+(?:\.\d+)?) (.+)$/;
+
+const trimZeros = (text: string): string =>
+  text.includes(".") ? text.replace(/0+$/, "").replace(/\.$/, "") : text;
+
+/**
+ * A price as text. Sub-cent figures get as many decimal places as they need:
+ * `String(3e-7)` is `3e-7`, and a breakdown reading "$3e-7/s" is unreadable.
+ */
+export const formatUsd = (usd: number): string => {
+  if (!Number.isFinite(usd)) return "$0";
+  if (usd >= 0.01) return `$${trimZeros(usd.toFixed(3))}`;
+  if (usd <= 0) return "$0";
+  const places = Math.min(12, Math.ceil(-Math.log10(usd)) + 2);
+  return `$${trimZeros(usd.toFixed(places))}`;
+};
+
+/** Extra facts a catalog row states about its own fidelity. */
+export interface ScalarPriceOptions {
+  /** >1 means the figure is the cheapest of several published tiers. */
+  tierCount?: number;
+}
+
+/**
+ * Turn a catalog scalar into a per-run figure for the stated job.
+ *
+ * A per-second, per-minute or per-megapixel scalar times what the node states;
+ * a block unit times the number of blocks the duration needs. Everything else
+ * is already a per-run price, and a unit we cannot convert — one with no fixed
+ * value (credits) or a rate over something the node never states (compute
+ * seconds, training steps) — declines rather than passing off a per-unit number
+ * as the cost of a run.
+ *
+ * Every catalog scalar goes through here: the FAL/kie rows
+ * `@nodetool-ai/model-pricing` looks a selected model up in, and the same rows
+ * attached to node metadata as `fal_unit_pricing`. A 10-second clip on a
+ * $0.14/second endpoint costs $1.40 whichever of the two answered.
+ */
+export function priceScalarUnit(
+  price: ModelUnitPricingLike,
+  params?: ModelPriceParams,
+  options?: ScalarPriceOptions
+): ModelParamPricingLike {
+  const unit = unitKey(price.billing_unit);
+  const warnings: string[] = [];
+  const assumptions: string[] = [];
+
+  if (options?.tierCount !== undefined && options.tierCount > 1) {
+    warnings.push(
+      `this model publishes ${options.tierCount} priced tiers and the catalog carries only the cheapest — the figure is a lower bound`
+    );
+  }
+
+  const attach = (result: ModelParamPricingLike): ModelParamPricingLike => {
+    if (assumptions.length > 0) result.assumptions = assumptions;
+    if (warnings.length > 0) result.warnings = warnings;
+    return result;
+  };
+
+  const decline = (reason: string): ModelParamPricingLike =>
+    attach({
+      unit_price: 0,
+      billing_unit: price.billing_unit,
+      currency: price.currency,
+      source: price.source,
+      declined: reason
+    });
+
+  if (UNCONVERTIBLE_UNITS.has(unit)) {
+    return decline(
+      `the catalog prices this model per "${
+        price.billing_unit.trim() || "unit"
+      }", which has no fixed value per run`
+    );
+  }
+  if (UNSTATED_RATE_UNITS.has(unit)) {
+    return decline(
+      `the catalog prices this model per "${price.billing_unit.trim()}", which the node states nothing about`
+    );
+  }
+
+  const seconds =
+    params?.seconds !== undefined &&
+    Number.isFinite(params.seconds) &&
+    params.seconds > 0
+      ? params.seconds
+      : null;
+
+  if (PER_SECOND_UNITS.has(unit)) {
+    if (seconds === null) {
+      assumptions.push("duration not set on the node — priced at 1 s of output");
+      return attach({
+        ...price,
+        breakdown: `1 s × ${formatUsd(price.unit_price)}/s`,
+        seconds: 1
+      });
+    }
+    return attach({
+      ...price,
+      unit_price: price.unit_price * seconds,
+      breakdown: `${seconds} s × ${formatUsd(price.unit_price)}/s`,
+      seconds
+    });
+  }
+
+  if (PER_MINUTE_UNITS.has(unit)) {
+    if (seconds === null) {
+      assumptions.push(
+        "duration not set on the node — priced at one minute of output"
+      );
+      return attach({
+        ...price,
+        breakdown: `1 min × ${formatUsd(price.unit_price)}/min`,
+        seconds: 60
+      });
+    }
+    return attach({
+      ...price,
+      unit_price: (price.unit_price * seconds) / 60,
+      breakdown: `${seconds} s × ${formatUsd(price.unit_price)}/min`,
+      seconds
+    });
+  }
+
+  if (PER_MEGAPIXEL_UNITS.has(unit)) {
+    const megapixels =
+      params?.megapixels !== undefined &&
+      Number.isFinite(params.megapixels) &&
+      params.megapixels > 0
+        ? params.megapixels
+        : null;
+    if (megapixels === null) {
+      assumptions.push(
+        "output size not set on the node — priced at one megapixel"
+      );
+      return attach({
+        ...price,
+        breakdown: `1 MP × ${formatUsd(price.unit_price)}/MP`
+      });
+    }
+    return attach({
+      ...price,
+      unit_price: price.unit_price * megapixels,
+      breakdown: `${megapixels} MP × ${formatUsd(price.unit_price)}/MP`
+    });
+  }
+
+  const block = BLOCK_UNIT.exec(unit);
+  if (block) {
+    const size = Number(block[1]);
+    const noun = block[2];
+    if (PER_SECOND_UNITS.has(noun) && size > 0) {
+      if (seconds === null) {
+        assumptions.push(
+          `duration not set on the node — priced at one ${size}-second block`
+        );
+        return attach({ ...price, seconds: size });
+      }
+      const blocks = Math.ceil(seconds / size);
+      return attach({
+        ...price,
+        unit_price: price.unit_price * blocks,
+        breakdown: `${blocks} × ${size} s block${
+          blocks === 1 ? "" : "s"
+        } × ${formatUsd(price.unit_price)} (${seconds} s of output)`,
+        seconds
+      });
+    }
+    return decline(
+      `the catalog prices this model per "${price.billing_unit.trim()}", which the node states nothing about`
+    );
+  }
+
+  return attach({ ...price });
 }
 
 /**
@@ -302,10 +533,52 @@ function selectedModel(
   return null;
 }
 
+/** Provider ids the model catalogs key FAL and kie rows by. */
+const PROVIDER_FAL = "fal_ai";
+const PROVIDER_KIE = "kie";
+
 /**
- * Resolve a node's unit price. Node-type metadata pricing wins (FAL, then kie);
- * for generic nodes that carry none, fall back to the model chosen on a
- * provider-model property, priced through `getModelPrice`.
+ * The model catalogs' answer for an endpoint a node's own metadata prices,
+ * when that answer came off a published grid — the rows that move with the
+ * resolution, duration and audio state the node states.
+ *
+ * A flat catalog answer is not preferred over a live node-type row: freshness
+ * wins when neither figure responds to the job. A grid row wins regardless,
+ * because a live rate for the wrong rung is exact about the wrong number.
+ */
+function gridPrice(
+  getModelPrice: CostEstimateInput["getModelPrice"],
+  model: SelectedModel,
+  params: ModelPriceParams | undefined,
+  metadataSource: "live" | "bundle" | undefined
+): ModelParamPricingLike | null {
+  if (!getModelPrice || !model.id) return null;
+  const price = getModelPrice(model, params);
+  if (!price) return null;
+  // A refusal travels back so the caller can say why its own row is a floor.
+  if (price.declined) return price;
+  if (!Number.isFinite(price.unit_price)) return null;
+  if (isVagueBillingUnit(price.billing_unit)) return null;
+  if (!price.fromGrid && metadataSource === "live") return null;
+  return price;
+}
+
+/** The decline reason first, so the reader sees why the figure is a floor. */
+function withReason(
+  reason: string | undefined,
+  assumptions: string[] | undefined
+): string[] | undefined {
+  if (!reason) return assumptions;
+  return [reason, ...(assumptions ?? [])];
+}
+
+/**
+ * Resolve a node's unit price. A node-type row (FAL, then kie) is asked about
+ * first, but it is one number for a whole endpoint: when `getModelPrice` has a
+ * published grid for the same endpoint, that grid answers instead, so the
+ * figure moves with the resolution and duration the node states. A generic
+ * node carrying no row at all is priced from the model chosen on its
+ * provider-model property, through the same hook.
  */
 function resolvePrice(
   metadata: NodeMetadataLike | undefined,
@@ -315,15 +588,49 @@ function resolvePrice(
 ): ResolvedPrice | null {
   const fal = metadata?.fal_unit_pricing;
   if (fal && Number.isFinite(fal.unit_price)) {
+    // A node-type row is one number for the whole endpoint, so nothing the
+    // user changes can move it. Ask the model catalogs for the same endpoint
+    // first: they publish the resolution ladder a run really bills at.
+    const graded = gridPrice(
+      getModelPrice,
+      { id: fal.endpoint_id ?? "", provider: PROVIDER_FAL },
+      params,
+      fal.source
+    );
+    if (graded && !graded.declined) {
+      return {
+        provider: "fal",
+        model: fal.endpoint_id ?? null,
+        unitPrice: graded.unit_price,
+        billingUnit: graded.billing_unit || fal.billing_unit,
+        confidence: confidenceFromSource(graded.source),
+        breakdown: graded.breakdown,
+        assumptions: graded.assumptions,
+        warnings: graded.warnings,
+        seconds: graded.seconds,
+        resolution: graded.resolution
+      };
+    }
     if (isVagueBillingUnit(fal.billing_unit)) {
+      return null;
+    }
+    // The catalog row is a rate, not a run: a $0.14/second endpoint costs
+    // $1.40 for the 10-second clip the node asks for. Same conversion the
+    // selected-model path applies, so the two agree on one endpoint.
+    const priced = priceScalarUnit(fal, params);
+    if (priced.declined) {
       return null;
     }
     return {
       provider: "fal",
       model: fal.endpoint_id ?? null,
-      unitPrice: fal.unit_price,
+      unitPrice: priced.unit_price,
       billingUnit: fal.billing_unit,
-      confidence: confidenceFromSource(fal.source)
+      confidence: confidenceFromSource(fal.source),
+      breakdown: priced.breakdown,
+      assumptions: withReason(graded?.declined, priced.assumptions),
+      warnings: priced.warnings,
+      seconds: priced.seconds
     };
   }
 
@@ -332,14 +639,47 @@ function resolvePrice(
     // Only the USD conversion enters the total. A raw credit price has no
     // fixed USD value, so folding it in would corrupt the sum — without
     // usd_price the node is reported but stays "unknown" (cost 0).
-    const usd = kie.usd_price;
-    if (isFiniteNumber(usd)) {
+    const graded = gridPrice(
+      getModelPrice,
+      { id: kie.model_id ?? "", provider: PROVIDER_KIE },
+      params,
+      kie.source
+    );
+    if (graded && !graded.declined) {
       return {
         provider: "kie",
         model: kie.model_id ?? null,
-        unitPrice: usd,
+        unitPrice: graded.unit_price,
+        billingUnit: graded.billing_unit || kie.billing_unit,
+        confidence: confidenceFromSource(graded.source),
+        breakdown: graded.breakdown,
+        assumptions: graded.assumptions,
+        warnings: graded.warnings,
+        seconds: graded.seconds,
+        resolution: graded.resolution
+      };
+    }
+
+    const usd = kie.usd_price;
+    if (isFiniteNumber(usd)) {
+      // A third of the kie rows bill per second, so the USD figure is scaled
+      // the same way FAL's is. A row whose unit names credits declines the
+      // conversion — its `usd_price` is already the whole run.
+      const priced = priceScalarUnit(
+        { ...kie, unit_price: usd, currency: "USD" },
+        params
+      );
+      const converted = priced.declined ? null : priced;
+      return {
+        provider: "kie",
+        model: kie.model_id ?? null,
+        unitPrice: converted?.unit_price ?? usd,
         billingUnit: kie.billing_unit,
-        confidence: confidenceFromSource(kie.source)
+        confidence: confidenceFromSource(kie.source),
+        breakdown: converted?.breakdown,
+        assumptions: withReason(graded?.declined, converted?.assumptions),
+        warnings: converted?.warnings,
+        seconds: converted?.seconds
       };
     }
   }
