@@ -445,10 +445,13 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
     if (!Number.isFinite(seconds) || seconds <= 0) {
       return;
     }
-    updateShot(boardId, shot.id, {
-      duration_seconds: seconds,
-      ...(linksLines ? { duration_source: "manual" as const } : {})
-    });
+    const patch: Parameters<typeof updateShot>[2] = {
+      duration_seconds: seconds
+    };
+    if (linksLines) {
+      patch.duration_source = "manual";
+    }
+    updateShot(boardId, shot.id, patch);
   }, [durationDraft, updateShot, boardId, shot.id, linksLines]);
 
   const handleDurationKeyDown = useCallback(
