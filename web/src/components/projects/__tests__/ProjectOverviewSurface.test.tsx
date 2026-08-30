@@ -1,12 +1,13 @@
 /**
  * The project overview tab: the header's derived status and next step, the
- * document cards, the spend bar, and that opening a document keeps it inside
- * the project's tab group.
+ * document cards, the spend bar, that opening a document keeps it inside the
+ * project's tab group, and that a phone-width viewport gives the screen to the
+ * conversation and the documents to a sheet.
  *
  * The agent column is stubbed — it is a live chat surface with its own thread
  * hydration, covered by its own tests.
  */
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -70,6 +71,14 @@ jest.mock("../../../trpc/client", () => ({
   }
 }));
 
+// The viewport the surface reads. jsdom has no matchMedia for `useMediaQuery`
+// to ask, so it would report a desktop width for every case otherwise.
+let narrowViewport = false;
+jest.mock("@mui/material/useMediaQuery", () => ({
+  __esModule: true,
+  default: () => narrowViewport
+}));
+
 jest.mock("../ProjectAgentPanel", () => ({
   __esModule: true,
   default: () => <div data-testid="agent-panel" />
@@ -90,7 +99,10 @@ const renderSurface = () =>
     </ThemeProvider>
   );
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  narrowViewport = false;
+});
 
 describe("ProjectOverviewSurface", () => {
   it("reports the derived status and a spend that names what was unpriced", () => {
@@ -138,5 +150,36 @@ describe("ProjectOverviewSurface", () => {
     renderSurface();
     expect(screen.getByText("Late is when ideas show up.")).toBeInTheDocument();
     expect(screen.getByText("stale")).toBeInTheDocument();
+  });
+
+  it("gives a phone the conversation, and the documents on demand", async () => {
+    narrowViewport = true;
+    renderSurface();
+
+    expect(screen.getByTestId("agent-panel")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Script")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Documents · 2" }));
+    expect(screen.getByLabelText("Script")).toBeInTheDocument();
+    // The spend the narrow header drops is on the bar inside the sheet.
+    expect(screen.getByText("clips $2.60")).toBeInTheDocument();
+  });
+
+  it("closes the sheet when a document opens, so the chat is what returns", async () => {
+    narrowViewport = true;
+    renderSurface();
+
+    await userEvent.click(screen.getByRole("button", { name: "Documents · 2" }));
+    await userEvent.click(screen.getByLabelText("Script"));
+
+    expect(openTab).toHaveBeenCalledWith({
+      type: "script",
+      ref: "s1",
+      title: "Script",
+      projectId: "p1"
+    });
+    await waitFor(() =>
+      expect(screen.queryByLabelText("Script")).not.toBeInTheDocument()
+    );
   });
 });
