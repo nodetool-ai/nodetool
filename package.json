@@ -154,6 +154,8 @@
     "codegen:dsl": "npm run codegen --workspace=packages/dsl",
     "codegen:dsl:check": "npm run codegen:check --workspace=packages/dsl",
     "gen:example-thumbnails": "node scripts/generate-example-thumbnails.mjs",
+    "gen:icons": "node scripts/generate-brand-icons.mjs",
+    "gen:icons:check": "node scripts/generate-brand-icons.mjs --check",
     "build:example-storyboards": "node scripts/build-example-storyboards.mjs",
     "build:example-storyboards:check": "node scripts/build-example-storyboards.mjs --check",
     "examples:smoke": "node scripts/smoke-examples.mjs",

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { useEffect, useState, useCallback, memo } from "react";
 import { DATA_TYPES } from "../config/data_types";
-import { useColorScheme, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { MOTION, SPACING, getSpacingPx } from "./ui_primitives";
 
@@ -19,8 +19,7 @@ const logoStyles = (
   height: string,
   fontSize: string,
   borderRadius: string,
-  small: boolean,
-  invertLogo: boolean
+  small: boolean
 ) =>
   css({
     display: "flex",
@@ -66,8 +65,7 @@ const logoStyles = (
     ".logo-image": {
       cursor: "pointer",
       width: "16px",
-      height: "16px",
-      filter: invertLogo ? "invert(1)" : undefined
+      height: "16px"
     }
   });
 
@@ -108,7 +106,6 @@ const Logo = memo(function Logo({
   }, []);
 
   const theme = useTheme();
-  const { mode } = useColorScheme();
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -132,8 +129,7 @@ const Logo = memo(function Logo({
         height,
         fontSize,
         borderRadius,
-        small,
-        mode === "light"
+        small
       )}
       onClick={onClick}
       onKeyDown={onClick ? handleKeyDown : undefined}
