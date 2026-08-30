@@ -159,15 +159,20 @@ and `mobile` inputs:
 | tree | what it is | what a change to it runs |
 | --- | --- | --- |
 | root workspace (`packages/`, `web/`, `electron/`, `examples/`, `reliability/`, `scripts/`, root config) | the one npm workspace | the whole gate — static legs, the package build, the five `built` legs, `docker`, plus `integration` and `workflow-runner-e2e` |
-| `mobile/` | Expo app, own lockfile, `@nodetool-ai/protocol` from the registry | the two static legs (they cover mobile's lockfile, its pinned SDK versions and `mobile/src`) and the `mobile` job (`typecheck:mobile` + `test:mobile`) |
+| `mobile/` | Expo app, own lockfile, installed with `npm --prefix mobile ci` | the two static legs (they cover mobile's lockfile, its pinned SDK versions and `mobile/src`), the shared package `build`, and the `mobile` job (`typecheck:mobile` + `test:mobile`) — but none of the five `built` legs, `docker`, `integration` or `workflow-runner-e2e` |
 | `marketing/` | Next.js site, own lockfile, deployed to Cloudflare | nothing in `test.yml` — `marketing-ci.yml` is its gate |
 
 The two real dependency edges are wired in, so "separate" never means "stale":
 
-- **mobile → root workspace.** `mobile/tsconfig.json` maps `@nodetool-ai/`
-  `app-runtime`, `timeline`, `gpu` and two `protocol` subpaths to
-  `../packages/*/src`, so a change to any of those four packages runs the
-  `mobile` job as well.
+- **mobile → root workspace.** Two edges, and they pull in different
+  directions. `mobile/tsconfig.json` maps `@nodetool-ai/app-runtime`,
+  `timeline`, `gpu` and two `protocol` subpaths to `../packages/*/src`, so a
+  change to any of those four packages runs the `mobile` job. Everything else
+  mobile imports from the workspace — notably the AppRouter type from
+  `@nodetool-ai/websocket/trpc`, which is not a mobile dependency at all —
+  resolves through the root `node_modules` symlink to a package's `dist`, so
+  the `mobile` job consumes the shared `build` artifact. That is why `build`
+  runs for a mobile-only PR while `built` does not.
 - **marketing → root workspace.** Three of `marketing-ci.yml`'s steps check
   committed generated files against data in `packages/`:
   `packages/base-nodes/nodetool/examples|assets/nodetool-base/**` and

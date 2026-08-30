@@ -72,9 +72,11 @@ jobs:
   #   mobile → `mobile/**` plus the four packages its tsconfig `paths` resolve
   #            to source (protocol, app-runtime, timeline, gpu), and the root
   #            files the mobile job itself stands on (the workspace lockfile
-  #            and package.json, tsconfig.base.json, .nvmrc) — between them,
-  #            every way a root-workspace change can break
-  #            `npm run typecheck:mobile`.
+  #            and package.json, tsconfig.base.json, .nvmrc). Not a complete
+  #            list of what the mobile typecheck reads — it also resolves
+  #            `@nodetool-ai/websocket`'s router types through the root
+  #            workspace, so the mobile leg consumes the shared package build
+  #            rather than standing alone.
   #
   # `marketing/**` gets no output here on purpose: nothing in this workflow
   # touches it. It is built, linted, tested and deployed by marketing-ci.yml,

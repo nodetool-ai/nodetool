@@ -173,10 +173,14 @@ jobs:
   # as a cache hit rather than rebuilding its `^build` dependencies.
   build:
     name: build
-    # `built` needs this job, so skipping it skips every leg that consumes the
-    # dist artifact too — which is exactly what a mobile-only or marketing-only
-    # PR wants: none of those legs reads a line the diff touched.
-    if: ${{ !inputs.docs-only && inputs.shared }}
+    # Also runs for a mobile-only PR. `mobile/` is a separate npm project, but
+    # its typecheck is not self-contained: `@nodetool-ai/websocket/trpc` (the
+    # AppRouter type) is not a mobile dependency at all and resolves only
+    # through the root workspace symlink, whose `exports` point at
+    # `dist/trpc/router.d.ts`. So the mobile leg needs this artifact, and both
+    # it and `built` are skipped together only when the diff reaches neither
+    # tree — a marketing-only or docs-only PR.
+    if: ${{ !inputs.docs-only && (inputs.shared || inputs.mobile) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -232,6 +236,9 @@ jobs:
   built:
     name: ${{ matrix.check }}
     needs: build
+    # `build` alone no longer implies these legs should run: it also runs for a
+    # mobile-only PR, which has nothing for the root-workspace checks to say.
+    if: ${{ !inputs.docs-only && inputs.shared }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -388,20 +395,23 @@ jobs:
           ${{ matrix.command }}
           echo "::endgroup::"
 
-  # The Expo app. Its own job rather than a leg of `built`, because it needs
-  # nothing that job produces: `mobile/` is a separate npm project (its own
-  # lockfile, `@nodetool-ai/protocol` resolved from the registry) and the four
-  # root packages its tsconfig `paths` point at are read as TypeScript source,
-  # not as built dist. Keeping it off `needs: build` is the whole point — a
-  # mobile-only PR then skips the ~55-package build and every leg behind it,
-  # and finishes in the time the build alone used to take.
+  # The Expo app. Its own job rather than a leg of `built` so it can run when
+  # `built` does not: a mobile-only PR reaches this job and skips the five
+  # root-workspace legs, `docker`, `integration` and `workflow-runner-e2e`.
   #
-  # It still installs the root workspace: `npm run typecheck:mobile` runs
-  # `tsc --build packages/protocol` first, which needs the root TypeScript.
+  # It does share `built`'s dist artifact, though. `mobile/` is a separate npm
+  # project, but its typecheck is not self-contained: it imports the AppRouter
+  # type from `@nodetool-ai/websocket/trpc`, which is not a mobile dependency
+  # at all and resolves only through the root workspace symlink, whose
+  # `exports` point at `dist/trpc/router.d.ts`. The same goes for
+  # `@nodetool-ai/protocol` — the four packages mobile's tsconfig `paths` map
+  # to source are the exception, not the rule.
+  #
   # Lint is not here — the `static` leg's oxlint pass already covers
   # `mobile/src`, and that leg runs whenever this one does.
   mobile:
     name: mobile
+    needs: build
     if: ${{ !inputs.docs-only && inputs.mobile }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -415,6 +425,12 @@ jobs:
         uses: ./.github/actions/setup-build
         with:
           build-packages: "false"
+
+      - name: Download package dist
+        uses: actions/download-artifact@v8
+        with:
+          name: packages-dist
+          path: packages
 
       # mobile is NOT a root workspace (separate dependency tree), so its
       # node_modules is cached on its own lockfile and `npm ci` is skipped on hit.
@@ -564,10 +580,10 @@ jobs:
   #
   # `always()` so the gate reports even when a leg is skipped. A `skipped` job
   # passes: `docker` is skipped by design when the diff cannot reach the image,
-  # `mobile` when it cannot reach the Expo app, and `build`/`built` when it
-  # never leaves mobile/ or marketing/ — a leg skipped that way must not hold
-  # the required check red. Anything else — failure, cancelled, or a leg
-  # skipped because its own upstream failed — fails the gate.
+  # `mobile` when it cannot reach the Expo app, and `built` when it never
+  # leaves mobile/ or marketing/ — a leg skipped that way must not hold the
+  # required check red. Anything else — failure, cancelled, or a leg skipped
+  # because its own upstream failed — fails the gate.
   quality:
     name: quality
     needs: [changes, static, build, built, mobile, docker]
