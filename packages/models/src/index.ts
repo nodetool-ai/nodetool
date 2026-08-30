@@ -248,7 +248,10 @@ export type {
   StoryboardStatus,
   TimelineStatus
 } from "./project-summary.js";
-export { moveDocumentToProject } from "./project-membership.js";
+export {
+  moveDocumentToProject,
+  reassignProjectDocuments
+} from "./project-membership.js";
 export {
   Script,
   ScriptConflictError,

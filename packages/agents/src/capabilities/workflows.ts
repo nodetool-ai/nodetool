@@ -518,7 +518,9 @@ const runWorkflowCapability: CapabilityExport = {
       userId: userIdOf(run.context),
       environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
-      interactive: params["interactive"] === true
+      interactive: params["interactive"] === true,
+      // A run started from a project's agent thread is that project's spend.
+      projectId: run.projectId ?? null
     });
     return annotateEscalatedRun(outcomeResult(outcome));
   }
@@ -541,7 +543,8 @@ const debugWorkflow: CapabilityExport = {
       debug: true,
       environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
-      interactive: params["interactive"] === true
+      interactive: params["interactive"] === true,
+      projectId: run.projectId ?? null
     });
     // A run the service refused never started, so there is no report to nest.
     // Nesting it under `run` put the failure where nothing looks: the caller
@@ -791,7 +794,8 @@ const startBackgroundJob: CapabilityExport = {
       userId: userIdOf(run.context),
       environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
-      background: true
+      background: true,
+      projectId: run.projectId ?? null
     });
     return outcomeResult(outcome);
   }

@@ -95,6 +95,10 @@ export interface OpenProjectInput {
 }
 
 interface WorkspaceTabsState {
+  /**
+   * The tabs, in the order the bar renders them: the active project's tabs are
+   * always one contiguous run. See {@link gatherProjectTabs}.
+   */
   tabs: WorkspaceTab[];
   activeTabId: string | null;
   /**
@@ -157,11 +161,20 @@ const stillOpen = (
     : null;
 
 /**
- * The tab order the bar renders: the active project's tabs gathered into one
- * contiguous run, at the position of the first of them. Every other tab keeps
- * its place. Pure, so the bar renders a group the store never has to maintain.
+ * The store's tab order, canonicalized: the active project's tabs gathered
+ * into one contiguous run, at the position of the first of them. Every other
+ * tab keeps its place.
+ *
+ * This is the store invariant, not a view transform — `tabs` is what the bar
+ * renders, so a tab's index in `tabs` is its index on screen and drag-and-drop
+ * and close-focus arithmetic need no translation. Every action that can break
+ * contiguity (opening a tab, moving one, switching project scope) runs its
+ * result through this.
+ *
+ * Returns the input array unchanged when the order already holds, so an action
+ * that reorders nothing does not churn subscribers.
  */
-export const orderTabsForRender = (
+export const gatherProjectTabs = (
   tabs: WorkspaceTab[],
   activeProjectId: string | null
 ): WorkspaceTab[] => {
@@ -176,12 +189,39 @@ export const orderTabsForRender = (
   // Everything before the first group member is loose, so its index is also
   // how many loose tabs precede the group.
   const head = tabs.findIndex((t) => t.projectId === activeProjectId);
-  return [...rest.slice(0, head), ...grouped, ...rest.slice(head)];
+  const gathered = [...rest.slice(0, head), ...grouped, ...rest.slice(head)];
+  return gathered.every((t, i) => t === tabs[i]) ? tabs : gathered;
 };
 
 /**
- * Pick the tab that should become active after `closingId` is removed:
- * the tab to the right, else the tab to the left, else null.
+ * The index `moveTab` must be given to drop `sourceId` on the `position` side
+ * of `targetId`. Null when either tab is gone or the drop is a no-op.
+ *
+ * Indices are store indices, which are also screen indices — see
+ * {@link gatherProjectTabs}.
+ */
+export const dropTargetIndex = (
+  tabs: WorkspaceTab[],
+  sourceId: string,
+  targetId: string,
+  position: "left" | "right"
+): number | null => {
+  if (sourceId === targetId) {
+    return null;
+  }
+  const sourceIndex = tabs.findIndex((t) => t.id === sourceId);
+  const targetIndex = tabs.findIndex((t) => t.id === targetId);
+  if (sourceIndex === -1 || targetIndex === -1) {
+    return null;
+  }
+  const insertAt = position === "right" ? targetIndex + 1 : targetIndex;
+  return sourceIndex < insertAt ? insertAt - 1 : insertAt;
+};
+
+/**
+ * Pick the tab that should become active after `closingId` is removed: the tab
+ * to the right, else the tab to the left, else null. `tabs` is in store order,
+ * which is screen order, so the neighbour is the visible one.
  */
 export const nextActiveAfterClose = (
   tabs: WorkspaceTab[],
@@ -264,15 +304,18 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
         if (existing) {
           set((state) => ({
             activeTabId: id,
-            tabs: state.tabs.map((t) =>
-              t.id === id
-                ? {
-                    ...t,
-                    mode: mode ?? t.mode,
-                    title: title ?? t.title,
-                    projectId: projectId === undefined ? t.projectId : project
-                  }
-                : t
+            tabs: gatherProjectTabs(
+              state.tabs.map((t) =>
+                t.id === id
+                  ? {
+                      ...t,
+                      mode: mode ?? t.mode,
+                      title: title ?? t.title,
+                      projectId: projectId === undefined ? t.projectId : project
+                    }
+                  : t
+              ),
+              state.activeProjectId
             )
           }));
           return id;
@@ -288,7 +331,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           tab.projectId = project;
         }
         set((state) => ({
-          tabs: [...state.tabs, tab],
+          tabs: gatherProjectTabs([...state.tabs, tab], state.activeProjectId),
           activeTabId: id
         }));
         return id;
@@ -297,10 +340,11 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
       closeTab: (id) =>
         set((state) => {
           const tabs = state.tabs.filter((t) => t.id !== id);
+          const activeProjectId = stillOpen(tabs, state.activeProjectId);
           return {
-            tabs,
+            tabs: gatherProjectTabs(tabs, activeProjectId),
             activeTabId: nextActiveAfterClose(state.tabs, state.activeTabId, id),
-            activeProjectId: stillOpen(tabs, state.activeProjectId)
+            activeProjectId
           };
         }),
 
@@ -320,9 +364,11 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
       setActiveTab: (id) =>
         set((state) => {
           const project = state.tabs.find((t) => t.id === id)?.projectId;
+          const activeProjectId = project ?? state.activeProjectId;
           return {
             activeTabId: id,
-            activeProjectId: project ?? state.activeProjectId
+            activeProjectId,
+            tabs: gatherProjectTabs(state.tabs, activeProjectId)
           };
         }),
 
@@ -361,7 +407,9 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           const tabs = [...state.tabs];
           const [moved] = tabs.splice(from, 1);
           tabs.splice(clampIndex(toIndex, tabs.length + 1), 0, moved);
-          return { tabs };
+          // A drop that would break the group is pulled back to the nearest
+          // order that keeps it contiguous — the bar can show no other.
+          return { tabs: gatherProjectTabs(tabs, state.activeProjectId) };
         }),
 
       getActiveTab: () => {
@@ -369,7 +417,11 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
         return tabs.find((t) => t.id === activeTabId) ?? null;
       },
 
-      setActiveProjectId: (projectId) => set({ activeProjectId: projectId }),
+      setActiveProjectId: (projectId) =>
+        set((state) => ({
+          activeProjectId: projectId,
+          tabs: gatherProjectTabs(state.tabs, projectId)
+        })),
 
       openProject: ({ id, name, documents = [] }) =>
         set((state) => {
@@ -404,7 +456,13 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           const at = state.tabs.findIndex((t) => wantedIds.has(t.id));
           const head = at === -1 ? others.length : Math.min(at, others.length);
           return {
-            tabs: [...others.slice(0, head), ...wanted, ...others.slice(head)],
+            // Gather again: a tab already carrying this project id but absent
+            // from `documents` (deleted server-side, past the per-type cap)
+            // sits in `others` and would otherwise split the group.
+            tabs: gatherProjectTabs(
+              [...others.slice(0, head), ...wanted, ...others.slice(head)],
+              id
+            ),
             activeTabId: overview.id,
             activeProjectId: id
           };
@@ -414,13 +472,20 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
         set((state) => {
           const tabs = state.tabs.filter((t) => t.projectId !== projectId);
           const activeStillOpen = tabs.some((t) => t.id === state.activeTabId);
+          // Focus what the group left behind: the tab that slid into its
+          // place, else the one just before it. All tabs before `at` survive
+          // the filter, so `tabs[at]` is the first survivor past the group's
+          // first member — contiguous or not.
+          const at = state.tabs.findIndex((t) => t.projectId === projectId);
+          const neighbour = tabs[at] ?? tabs[at - 1] ?? tabs[tabs.length - 1];
+          const activeProjectId =
+            state.activeProjectId === projectId ? null : state.activeProjectId;
           return {
-            tabs,
+            tabs: gatherProjectTabs(tabs, activeProjectId),
             activeTabId: activeStillOpen
               ? state.activeTabId
-              : (tabs[tabs.length - 1]?.id ?? null),
-            activeProjectId:
-              state.activeProjectId === projectId ? null : state.activeProjectId
+              : (neighbour?.id ?? null),
+            activeProjectId
           };
         })
     }),
@@ -431,7 +496,29 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
         tabs: state.tabs,
         activeTabId: state.activeTabId,
         activeProjectId: state.activeProjectId
-      })
+      }),
+      // State persisted before the store kept its tabs gathered (or edited by
+      // hand) is canonicalized on the way in, so the invariant holds from the
+      // first render.
+      merge: (persisted, current) => {
+        // Safety: the persisted blob is whatever `partialize` wrote, and any
+        // field it is missing falls back to `current`.
+        const merged = {
+          ...current,
+          ...(persisted as Partial<WorkspaceTabsState> | undefined)
+        };
+        // A persisted active project whose tabs are all gone must not keep
+        // catching new documents invisibly.
+        const activeProjectId = stillOpen(
+          merged.tabs ?? [],
+          merged.activeProjectId ?? null
+        );
+        return {
+          ...merged,
+          activeProjectId,
+          tabs: gatherProjectTabs(merged.tabs ?? [], activeProjectId)
+        };
+      }
     }
   )
 );

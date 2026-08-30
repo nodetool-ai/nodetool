@@ -126,7 +126,31 @@ describe("ShotCard status pill", () => {
     expect(pill()).toHaveAttribute("data-tone", "neutral");
   });
 
-  it("reads still · clip queued once the shot has a still", () => {
+  it("reads a neutral 'still' once the shot has a still but no clip render was requested (F18)", () => {
+    renderCard(
+      makeShot({
+        status: "keyframe_ready",
+        keyframe: { type: "image", uri: "http://example.com/still.png" }
+      })
+    );
+    expect(pill()).toHaveTextContent("still");
+    expect(pill()).not.toHaveTextContent("queued");
+  });
+
+  it("reads still · clip queued only while a clip job is actually queued or running", () => {
+    act(() =>
+      useStoryboardGenerationStore.setState({
+        shotJobs: {
+          "shot-1": {
+            shotId: "shot-1",
+            boardId: "board-1",
+            jobId: "req-1",
+            kind: "clip",
+            status: "queued"
+          }
+        }
+      })
+    );
     renderCard(
       makeShot({
         status: "keyframe_ready",
@@ -134,6 +158,7 @@ describe("ShotCard status pill", () => {
       })
     );
     expect(pill()).toHaveTextContent("still · clip queued");
+    act(() => useStoryboardGenerationStore.setState({ shotJobs: {} }));
   });
 
   it("says nothing once the clip is rendered", () => {

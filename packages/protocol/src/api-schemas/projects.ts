@@ -16,8 +16,34 @@ export const projectResponse = z.object({
 });
 export type ProjectResponse = z.infer<typeof projectResponse>;
 
+/**
+ * The loose bucket's id. It names no project row, so a client may not claim it
+ * — a project holding it would swallow every unassigned document.
+ */
+const LOOSE_PROJECT_ID = "default";
+
 export const createProjectInput = z.object({
-  id: z.string().optional(),
+  /**
+   * A client-chosen id, for a create that must be idempotent. Re-creating with
+   * an id the caller already owns answers with the existing row and discards
+   * the `name` and `kind` sent with the repeat — a create is not a rename.
+   *
+   * The id is trimmed first, so `" abc"` cannot store a row addressable only by
+   * a string with a space in it. Blank ids and the loose bucket's id are
+   * refused: the first slips past the model's `??=` default and stores a row
+   * nothing can address, the second is reserved.
+   */
+  id: z
+    .string()
+    .max(128)
+    .transform((value) => value.trim())
+    .refine((value) => value.length > 0, {
+      message: "Project id must not be blank"
+    })
+    .refine((value) => value !== LOOSE_PROJECT_ID, {
+      message: `"${LOOSE_PROJECT_ID}" is reserved for documents in no project`
+    })
+    .optional(),
   name: z.string().min(1).max(200),
   kind: z.string().max(64).default("")
 });
@@ -151,9 +177,11 @@ export const categorySpend = z.object({
 export type CategorySpend = z.infer<typeof categorySpend>;
 
 export const projectSpend = z.object({
-  /** A lower bound whenever `unpricedCount` is non-zero. */
+  /** A lower bound whenever `unpricedCount` or `partial` says so. */
   totalUsd: z.number(),
   unpricedCount: z.number(),
+  /** True when the ledger read hit its cap, so rows are missing from the sum. */
+  partial: z.boolean().optional(),
   byCategory: z.array(categorySpend)
 });
 export type ProjectSpend = z.infer<typeof projectSpend>;
@@ -161,6 +189,8 @@ export type ProjectSpend = z.infer<typeof projectSpend>;
 export const projectDetail = z.object({
   project: projectResponse,
   documents: z.array(projectDocumentSummary),
+  /** True when a document table hit its per-type cap, so documents are missing. */
+  documentsPartial: z.boolean().optional(),
   spend: projectSpend
 });
 export type ProjectDetail = z.infer<typeof projectDetail>;

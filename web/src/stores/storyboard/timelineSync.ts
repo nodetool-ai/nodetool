@@ -11,8 +11,32 @@
  */
 
 import { trpcClient } from "../../trpc/client";
+import { queryClient } from "../../queryClient";
 import { useStoryboardStore } from "./StoryboardStore";
 import type { TimelineClip } from "@nodetool-ai/timeline";
+
+/**
+ * Invalidate the cached `timeline.get` query for one sequence. Writes here go
+ * through the vanilla `trpcClient`, which never touches the React-Query cache
+ * `trpc.timeline.get.useQuery` reads from — without this, a view built on
+ * that cache (the "Appears in" chip, startMs after a take swap) keeps
+ * rendering the pre-write document until the 30s staleTime lapses.
+ */
+export function invalidateTimelineGetQuery(id: string): void {
+  queryClient.invalidateQueries({
+    predicate: (query) => {
+      const [path, opts] = query.queryKey as [
+        string[] | undefined,
+        { input?: unknown } | undefined
+      ];
+      if (!Array.isArray(path) || path[0] !== "timeline" || path[1] !== "get") {
+        return false;
+      }
+      const input = opts?.input as { id?: string } | undefined;
+      return input?.id === id;
+    }
+  });
+}
 
 export async function syncShotClipToTimeline(
   boardId: string,
@@ -56,6 +80,7 @@ export async function syncShotClipToTimeline(
         markers: sequence.markers ?? []
       }
     });
+    invalidateTimelineGetQuery(timelineId);
     return true;
   } catch (err) {
     console.warn(

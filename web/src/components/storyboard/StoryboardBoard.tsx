@@ -192,9 +192,13 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     []
   );
 
+  // Clicking the selected card deselects it (the card's aria-pressed
+  // contract); the store's selectShot stays idempotent for programmatic
+  // callers.
   const handleSelectShot = useCallback(
-    (shotId: string) => selectShot(boardId, shotId),
-    [selectShot, boardId]
+    (shotId: string) =>
+      selectShot(boardId, shotId === activeShotId ? null : shotId),
+    [selectShot, boardId, activeShotId]
   );
   const clearSelection = useCallback(
     () => selectShot(boardId, null),
@@ -590,6 +594,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
 
         {activeShot && (
           <ShotInspector
+            key={activeShot.id}
             boardId={boardId}
             shot={activeShot}
             readOnly={readOnly}

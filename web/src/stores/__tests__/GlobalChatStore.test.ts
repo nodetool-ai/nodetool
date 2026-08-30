@@ -1039,6 +1039,95 @@ describe("GlobalChatStore", () => {
       });
     });
 
+    // BUG F2: the two paths below used to return with no signal at all, so a
+    // caller that consumed something to build the turn could not tell a
+    // delivered turn from a dropped one.
+    it("trySendMessage reports the unselected-model refusal", async () => {
+      store.setState({
+        selectedModel: {
+          type: "language_model",
+          provider: "empty",
+          id: "gpt-5.4-mini",
+          name: "gpt-5.4-mini"
+        }
+      } as any);
+      const message: Message = {
+        role: "user",
+        type: "message",
+        content: "hello"
+      } as Message;
+
+      const outcome = await store.getState().trySendMessage(message);
+
+      expect(outcome).toEqual({
+        ok: false,
+        reason: "no_model",
+        error: expect.stringContaining("No model selected")
+      });
+      expect(mockGlobalWebSocketManager.send).not.toHaveBeenCalledWith(
+        expect.objectContaining({ command: "chat_message" })
+      );
+    });
+
+    it("trySendMessage reports a failed connect", async () => {
+      mockGlobalWebSocketManager.ensureConnection.mockRejectedValueOnce(
+        new Error("Not connected")
+      );
+      const message: Message = {
+        role: "user",
+        type: "message",
+        content: "hello"
+      } as Message;
+
+      const outcome = await store.getState().trySendMessage(message);
+
+      expect(outcome).toEqual({
+        ok: false,
+        reason: "not_connected",
+        error: expect.stringContaining("Not connected to chat service")
+      });
+      expect(mockGlobalWebSocketManager.send).not.toHaveBeenCalledWith(
+        expect.objectContaining({ command: "chat_message" })
+      );
+    });
+
+    it("trySendMessage reports the thread a delivered turn went to", async () => {
+      const threadId = await store.getState().createNewThread();
+      const message: Message = {
+        role: "user",
+        type: "message",
+        content: "hello"
+      } as Message;
+
+      const outcome = await store.getState().trySendMessage(message);
+
+      expect(outcome).toEqual({ ok: true, threadId });
+    });
+
+    // BUG F4: callers holding their own copy of the turn (the project agent's
+    // staged first turn) read a rejection as "it is in the thread now" and
+    // stop holding it. That only works while the two refusals above stay
+    // pre-cache and a socket failure stays a rejection.
+    it("trySendMessage rejects, with the turn already cached, when the socket send fails", async () => {
+      const threadId = await store.getState().createNewThread();
+      mockGlobalWebSocketManager.send.mockRejectedValueOnce(
+        new Error("socket closed")
+      );
+      const message: Message = {
+        role: "user",
+        type: "message",
+        content: "hello"
+      } as Message;
+
+      await expect(
+        store.getState().trySendMessage(message)
+      ).rejects.toThrow("socket closed");
+
+      expect(store.getState().messageCache[threadId]).toEqual([
+        expect.objectContaining({ role: "user", content: "hello" })
+      ]);
+    });
+
     it("sendMessage subscribes to loaded thread before sending", async () => {
       const threadId = "existing-thread";
       const now = new Date().toISOString();

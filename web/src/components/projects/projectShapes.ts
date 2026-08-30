@@ -142,12 +142,23 @@ export interface SpendEstimate {
 }
 
 /**
- * What this shape has cost before, read off the user's own finished projects
- * of the same kind. A project carrying unpriced calls is left out — its total
- * is a lower bound, and a range built from lower bounds understates.
+ * Below this, a project's total reads as someone poking at the shape once and
+ * moving on rather than a spend a real run of it produced.
+ */
+const MIN_HISTORICAL_SPEND_USD = 1;
+
+/**
+ * What this shape has cost before, read off the user's own past projects of
+ * the same kind that plausibly ran their chain to the end. There is no
+ * "completed" flag on a project, so completion is inferred: a priced total
+ * (no unpriced calls, so the number is not a lower bound), above a spend floor
+ * that rules out a project abandoned after one cheap call, *and* a timeline
+ * document with at least one clip — the cut a shape's chain always ends on. A
+ * project whose chain has no cut (the `app` shape) never has enough signal to
+ * qualify, so it never contributes an estimate.
  *
- * Fewer than two priced projects is no range, and no line: an estimate nothing
- * was measured for would be a number we made up.
+ * Fewer than two projects meeting all of that is no range, and no line: an
+ * estimate nothing was measured for would be a number we made up.
  */
 export const estimateFromHistory = (
   summaries: readonly ProjectDetail[],
@@ -161,7 +172,10 @@ export const estimateFromHistory = (
       (entry) =>
         entry.project.kind === kind &&
         entry.spend.unpricedCount === 0 &&
-        entry.spend.totalUsd > 0
+        entry.spend.totalUsd >= MIN_HISTORICAL_SPEND_USD &&
+        entry.documents.some(
+          (doc) => doc.status?.kind === "timeline" && doc.status.clips > 0
+        )
     )
     .map((entry) => entry.spend.totalUsd);
   if (totals.length < 2) {

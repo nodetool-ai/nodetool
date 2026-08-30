@@ -38,6 +38,11 @@ export const useStoryboardShotFocus = (
     }
     selectShot(request.ref, request.shotId);
     clearDocumentFocus(request);
+    // `scrollIntoView` is absent under jsdom, so the call is guarded rather
+    // than the test environment stubbed.
+    document
+      .querySelector<HTMLElement>(`[data-shot-id="${request.shotId}"]`)
+      ?.scrollIntoView?.({ block: "center" });
   }, [request, hasShot, selectShot, clearDocumentFocus]);
 };
 
