@@ -561,7 +561,10 @@ export class DirectInferenceHandler {
         workflow_id: null,
         name: `${req.mode}_${Date.now()}`,
         content_type: contentType,
-        // Home — see the chat media generation path above.
+        // Home, the same folder an upload lands in — the rule
+        // `handleMediaGenerationMessage` in unified-websocket-runner.ts
+        // applies. A null parent is unreachable from the folder the
+        // asset browser opens on.
         parent_id: userId
       });
       const fileName = `${asset.id}.${ext}`;
