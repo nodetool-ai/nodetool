@@ -25,6 +25,7 @@ import {
   EditorButton,
   EmptyState,
   FlexColumn,
+  FlexRow,
   LoadingSpinner,
   Panel,
   Box
@@ -36,6 +37,9 @@ import type {
 } from "../../appbuilder/workflowInputForm";
 import { getWorkflowInputKind } from "../../appbuilder/inputKinds";
 import { useGenerateClip } from "../../../hooks/timeline/useGenerateClip";
+import { useGraphCostEstimate } from "../../../hooks/useGraphCostEstimate";
+import CostEstimateLine from "../../costs/CostEstimateLine";
+import { workflowCostLine } from "../../costs/costLine";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
@@ -119,6 +123,10 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
       return () => transientNodeStore.getState().cleanup();
     }, [transientNodeStore]);
     const nodeStoreForForm = managerNodeStore ?? transientNodeStore;
+
+    // What one run of the bound workflow spends, priced off the graph the
+    // panel already fetched — no open editor needed.
+    const costEstimate = useGraphCostEstimate(workflow?.graph?.nodes);
 
     const inputDefinitions = useMemo<WorkflowInputDefinition[]>(() => {
       const nodes = workflow?.graph?.nodes ?? [];
@@ -223,6 +231,12 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
 
           {workflowId && (
             <FlexColumn gap={0.5} sx={{ px: 1, pb: 1 }}>
+              <FlexRow justify="flex-end" fullWidth>
+                <CostEstimateLine
+                  estimate={workflowCostLine(costEstimate)}
+                  title="Estimated cost of one run of this workflow"
+                />
+              </FlexRow>
               <EditorButton
                 fullWidth
                 variant={isActive ? "outlined" : "contained"}

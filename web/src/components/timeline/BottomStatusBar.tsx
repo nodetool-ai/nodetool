@@ -2,8 +2,8 @@
 /**
  * BottomStatusBar — Timeline Editor bottom status bar.
  *
- * Contains: local/cloud indicator, generating count, failed count, cost
- * estimate, and a zoom slider.
+ * Contains: local/cloud indicator, generating count, failed count, the
+ * sequence's list-price cost estimate, and a zoom slider.
  */
 
 import React, { memo } from "react";
@@ -18,6 +18,9 @@ import {
   BORDER_RADIUS
 } from "../ui_primitives";
 import type { StatusType } from "../ui_primitives";
+import CostEstimateLine, {
+  type CostLineDetail
+} from "../costs/CostEstimateLine";
 import CloudIcon from "@mui/icons-material/Cloud";
 import ComputerIcon from "@mui/icons-material/Computer";
 
@@ -53,6 +56,11 @@ interface BottomStatusBarProps {
   generatingCount?: number;
   /** Number of failed generations */
   failedCount?: number;
+  /**
+   * List price of generating every clip in the sequence. Omitted (or null)
+   * when nothing in the sequence can be priced.
+   */
+  costEstimate?: CostLineDetail | null;
   /** Current zoom level (1 = 100%) */
   zoom?: number;
   /** Callback when zoom changes */
@@ -72,6 +80,7 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
     mode = "local",
     generatingCount = 0,
     failedCount = 0,
+    costEstimate = null,
     zoom = 1,
     onZoomChange,
     actionSlot
@@ -114,6 +123,12 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
               <Caption color="error">{failedCount} failed</Caption>
             </FlexRow>
           )}
+
+          <CostEstimateLine
+            estimate={costEstimate}
+            title="Estimated cost of generating every clip in this sequence"
+            ariaPrefix="Estimated sequence cost"
+          />
         </FlexRow>
 
         {/* Right: zoom */}

@@ -55,6 +55,9 @@ import { useSketchStore } from "../state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useDirectGenJob } from "../../../hooks/sketch/useDirectGenJob";
 import { useMediaOptions } from "../../../hooks/useModelsByProvider";
+import { useLayerCostEstimate } from "../../../hooks/sketch/useLayerCostEstimate";
+import CostEstimateLine from "../../costs/CostEstimateLine";
+import { generationCostLine } from "../../costs/costLine";
 import { SKETCH_SPACING } from "../sketchStyles";
 
 /** Most recent direct-gen binding's model, to seed the form's picker. */
@@ -222,6 +225,16 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
     }
   }, [model, prompt, provider, resolution, aspectRatio, start]);
 
+  // The form creates a text-to-image binding with exactly these fields, so it
+  // prices through the same hook the layer inspector uses.
+  const costEstimate = useLayerCostEstimate({
+    kind: "text-to-image",
+    provider,
+    model,
+    resolution,
+    aspectRatio
+  });
+
   const actionDisabled = generating || !prompt.trim() || !model;
 
   // No bound document → no session to act on (the in-node sketch modal).
@@ -330,6 +343,13 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
               value={aspectRatio}
               options={aspectOptions}
               onChange={handleAspectChange}
+            />
+          </FlexRow>
+
+          <FlexRow justify="flex-end" fullWidth>
+            <CostEstimateLine
+              estimate={generationCostLine(costEstimate)}
+              title="Estimated cost of this generation"
             />
           </FlexRow>
 

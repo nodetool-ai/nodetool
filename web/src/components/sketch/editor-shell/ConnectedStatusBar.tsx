@@ -1,8 +1,9 @@
 /**
  * ConnectedStatusBar — full-width status strip at the bottom of the standalone
  * image editor. Shows canvas dimensions, color space / bit depth, zoom, the
- * active foreground color, live cursor position, selection size, and layer
- * count — all from real store state. It replaces the floating info pill in the
+ * active foreground color, live cursor position, selection size, what
+ * regenerating the document's generated layers costs, and layer count — all
+ * from real store state. It replaces the floating info pill in the
  * standalone editor (the in-node modal keeps the pill).
  *
  * Narrow selectors only; the selection bounds are memoised on the selection
@@ -16,6 +17,8 @@ import React, { memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 
 import { ColorSwatch, FlexRow, Tooltip } from "../../ui_primitives";
+import CostEstimateLine from "../../costs/CostEstimateLine";
+import { useSketchCostEstimate } from "../../../hooks/sketch/useSketchCostEstimate";
 import { useSketchStore } from "../state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useSketchCanvasRefStore } from "../../../stores/sketch/SketchCanvasRefStore";
@@ -40,6 +43,7 @@ const ConnectedStatusBarInner: React.FC = () => {
   const selection = useSketchStore((s) => s.selection);
   const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
   const fitViewToScreen = useSketchCanvasRefStore((s) => s.fitViewToScreen);
+  const costEstimate = useSketchCostEstimate();
 
   const selBounds = useMemo(
     () =>
@@ -116,9 +120,16 @@ const ConnectedStatusBarInner: React.FC = () => {
         </span>
       )}
 
-      <span style={{ marginLeft: "auto" }}>
-        {layerCount} {layerCount === 1 ? "layer" : "layers"}
-      </span>
+      <FlexRow align="center" gap={1.5} sx={{ marginLeft: "auto" }}>
+        <CostEstimateLine
+          estimate={costEstimate}
+          title="Estimated cost of regenerating every generated layer"
+          ariaPrefix="Estimated document cost"
+        />
+        <span>
+          {layerCount} {layerCount === 1 ? "layer" : "layers"}
+        </span>
+      </FlexRow>
     </FlexRow>
   );
 };

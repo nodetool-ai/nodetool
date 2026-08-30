@@ -30,6 +30,9 @@ import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineDirectGenJob } from "../../hooks/timeline/useTimelineDirectGenJob";
 import { useLastDirectGenModel } from "../../hooks/timeline/useLastDirectGenModel";
+import { useClipCostEstimate } from "../../hooks/timeline/useClipCostEstimate";
+import CostEstimateLine from "../costs/CostEstimateLine";
+import { generationCostLine } from "../costs/costLine";
 import {
   EditorButton,
   FlexColumn,
@@ -251,6 +254,24 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
     />
   );
 
+  // The bar creates a text-to-video clip with exactly these fields, so it
+  // prices through the same hook the clip inspector uses.
+  const costEstimate = useClipCostEstimate({
+    bindingKind: "text-to-video",
+    provider: selectedModel?.provider,
+    model: selectedModel?.id,
+    resolution,
+    aspectRatio: aspect,
+    durationMs: duration * 1000
+  });
+
+  const costLine = (
+    <CostEstimateLine
+      estimate={generationCostLine(costEstimate)}
+      title="Estimated cost of this generation"
+    />
+  );
+
   const generateButton = (
     <EditorButton
       variant="contained"
@@ -400,6 +421,7 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
             }}
           >
             {settingChips}
+            {costLine}
           </FlexRow>
         </FlexColumn>
       ) : (
@@ -411,6 +433,7 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
         >
           {promptField}
           {settingChips}
+          {costLine}
           {generateButton}
         </FlexRow>
       )}

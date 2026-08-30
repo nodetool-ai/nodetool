@@ -45,6 +45,9 @@ import { useMediaOptions } from "../../../hooks/useModelsByProvider";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useSketchStore } from "../state/useSketchStore";
 import { useDirectGenJob } from "../../../hooks/sketch/useDirectGenJob";
+import { useLayerCostEstimate } from "../../../hooks/sketch/useLayerCostEstimate";
+import CostEstimateLine from "../../costs/CostEstimateLine";
+import { generationCostLine } from "../../costs/costLine";
 
 // Defaults for image-to-image controls when the binding has no explicit
 // value yet — same as the media chat composer's image_edit defaults.
@@ -123,6 +126,9 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
         .map((l) => ({ value: l.id, label: l.name })),
     [layers, layer.id]
   );
+
+  // What pressing Generate spends, at the model and size picked above.
+  const costEstimate = useLayerCostEstimate(binding);
 
   const canGenerate =
     !!binding.provider &&
@@ -210,6 +216,13 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
               size="small"
             />
           ))}
+
+        <FlexRow justify="flex-end" fullWidth>
+          <CostEstimateLine
+            estimate={generationCostLine(costEstimate)}
+            title="Estimated cost of this generation"
+          />
+        </FlexRow>
 
         {isRunning ? (
           <EditorButton
