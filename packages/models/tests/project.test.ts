@@ -417,22 +417,27 @@ describe("summarizeProject", () => {
 describe("rollup limits", () => {
   beforeEach(() => initTestDb());
 
-  it("sums ledger rows past the old 1000-row read, and says it is complete", async () => {
-    const rows = Array.from({ length: 1100 }, () =>
-      Prediction.create<Prediction>({
-        user_id: "u1",
-        project_id: "p1",
-        cost: 0.01,
-        node_type: "nodetool.agents.Agent"
-      })
-    );
-    await Promise.all(rows);
+  it(
+    "sums ledger rows past the old 1000-row read, and says it is complete",
+    // 1100 real inserts run ~7s on a loaded CI runner.
+    { timeout: 30_000 },
+    async () => {
+      const rows = Array.from({ length: 1100 }, () =>
+        Prediction.create<Prediction>({
+          user_id: "u1",
+          project_id: "p1",
+          cost: 0.01,
+          node_type: "nodetool.agents.Agent"
+        })
+      );
+      await Promise.all(rows);
 
-    const summary = await summarizeProject("u1", "p1");
-    expect(summary.spend.totalUsd).toBeCloseTo(11, 6);
-    expect(summary.spend.partial).toBe(false);
-    expect(summary.documentsPartial).toBe(false);
-  });
+      const summary = await summarizeProject("u1", "p1");
+      expect(summary.spend.totalUsd).toBeCloseTo(11, 6);
+      expect(summary.spend.partial).toBe(false);
+      expect(summary.documentsPartial).toBe(false);
+    }
+  );
 
   it("marks a capped read partial rather than reporting it as the whole total", () => {
     const spend = summarizeSpend([{ cost: 1 }], true);
