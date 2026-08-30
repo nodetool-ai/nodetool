@@ -183,9 +183,7 @@ describe("CapabilityRun secret-availability audit", () => {
     expect(sites.length).toBeGreaterThan(10);
     const files = new Set(sites.map((s) => s.file));
     // The three hosts with a real secret store, named rather than counted.
-    expect(files).toContain(
-      "packages/websocket/src/unified-websocket-runner.ts"
-    );
+    expect(files).toContain("packages/websocket/src/session/chat-turn.ts");
     expect(files).toContain("packages/websocket/src/mcp-agent-tools.ts");
     expect(files).toContain("packages/cli/src/stdin.ts");
   });
