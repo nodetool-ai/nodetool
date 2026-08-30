@@ -132,6 +132,27 @@ declare module "@web-demo" {
     clipReady: number;
   };
 
+  // ── The landing-page hero reel (demo/src/hero/HeroProject.tsx) ──────────
+  /** The sentence the reel opens on, and the chat cast's first message. */
+  export const HERO_BRIEF: string;
+  /** The six SCRAPHEART shots, in cut order, with the clip each renders to. */
+  export const HERO_SHOTS: ReadonlyArray<{
+    id: string;
+    slug: string;
+    action: string;
+    framing: string;
+    movement: string;
+    seconds: number;
+    /** `cast-asset://` key, pinned under demo/public/casts/promo. */
+    clip: string;
+  }>;
+  /** Stage 1 — a brief goes in, the agent writes the board. */
+  export const heroBriefCast: ChatDemoCast;
+  /** Stages 2-3 — the board renders a still per shot, then a clip per still. */
+  export const heroStoryboardCast: DocDemoCast;
+  /** Stage 4 — the six clips assemble into a cut. */
+  export const heroTimelineCast: TimelineDemoCast;
+
   /** Mirror of web/src/demo/doc/docCastTypes.ts `DocSurface`. */
   export type DocSurface =
     | "sketch"
@@ -162,6 +183,10 @@ declare module "@web-demo" {
     timeMs: number;
     /** Width of the assistant dock in px. Pass 0 to hide it. */
     assistantWidthPx?: number;
+    /** Maps a pinned file from the cast's `assets` manifest to a host URL. */
+    resolveAssetUrl?: (file: string) => string;
+    /** Where to park every `<video>` on the surface, in media time. */
+    mediaTimeMs?: number;
     /** Lets a frame renderer block the capture until videos are paintable. */
     onPendingMedia?: PendingMediaHandler;
     style?: React.CSSProperties;

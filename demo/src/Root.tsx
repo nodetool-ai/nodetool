@@ -17,8 +17,8 @@ import { PROMO_DURATION_FRAMES, PROMO_FPS, Promo } from "./promo/Promo";
 import {
   HERO_DURATION_FRAMES,
   HERO_FPS,
-  HeroPipeline,
-} from "./hero/HeroPipeline";
+  HeroProject,
+} from "./hero/HeroProject";
 import {
   TAB_CHAOS_FPS,
   TAB_CHAOS_FRAMES,
@@ -152,19 +152,19 @@ export const Root: React.FC = () => {
         height={HEIGHT}
         durationInFrames={PROMO_DURATION_FRAMES}
       />
-      {/* The landing-page hero reel (marketing/POSITIONING_PLAN.md Part 5):
-          a silent ~15s loop, cut for 16:9 and for the 9:16 social slot. */}
+      {/* The landing-page hero reel: one project from a sentence to a cut,
+          silent and looping, in 16:9 and in the 9:16 social slot. */}
       <Composition
-        id="Hero-Pipeline"
-        component={HeroPipeline}
+        id="Hero-Project"
+        component={HeroProject}
         fps={HERO_FPS}
         width={WIDTH}
         height={HEIGHT}
         durationInFrames={HERO_DURATION_FRAMES}
       />
       <Composition
-        id="Hero-Pipeline-Vertical"
-        component={HeroPipeline}
+        id="Hero-Project-Vertical"
+        component={HeroProject}
         fps={HERO_FPS}
         width={1080}
         height={1920}

@@ -3,7 +3,12 @@
  * Sibling to `../doc/casts.ts`.
  */
 import { agentChatCast } from "./agentChatCast";
+import { heroBriefCast } from "../hero/heroBriefCast";
 import { marketingChatCasts } from "./marketing";
 import type { ChatDemoCast } from "./chatCastTypes";
 
-export const chatCasts: ChatDemoCast[] = [agentChatCast, ...marketingChatCasts];
+export const chatCasts: ChatDemoCast[] = [
+  agentChatCast,
+  heroBriefCast,
+  ...marketingChatCasts
+];

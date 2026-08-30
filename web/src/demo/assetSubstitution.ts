@@ -27,6 +27,20 @@ function mapStrings(value: unknown, replace: (s: string) => string): unknown {
   return value;
 }
 
+/** The `cast-asset://<key>` → host URL replacer for one asset manifest. */
+function replacerFor(
+  assets: CastAsset[],
+  resolveAssetUrl: (file: string) => string
+): (s: string) => string {
+  const fileByKey = new Map(assets.map((a) => [a.key, a.file]));
+  return (s) => {
+    if (!s.startsWith(CAST_ASSET_SCHEME)) return s;
+    const key = s.slice(CAST_ASSET_SCHEME.length);
+    const file = fileByKey.get(key);
+    return file ? resolveAssetUrl(file) : s;
+  };
+}
+
 /**
  * Replace every `cast-asset://<key>` with the host URL for the pinned file, via
  * `resolveAssetUrl(file)`. Unknown keys are left untouched so a missing asset
@@ -37,17 +51,24 @@ export function resolveAssetUrls(
   assets: CastAsset[],
   resolveAssetUrl: (file: string) => string
 ): CastEvent[] {
-  const fileByKey = new Map(assets.map((a) => [a.key, a.file]));
-
-  const replace = (s: string): string => {
-    if (!s.startsWith(CAST_ASSET_SCHEME)) return s;
-    const key = s.slice(CAST_ASSET_SCHEME.length);
-    const file = fileByKey.get(key);
-    return file ? resolveAssetUrl(file) : s;
-  };
-
+  const replace = replacerFor(assets, resolveAssetUrl);
   return events.map((e) => ({
     t: e.t,
     message: mapStrings(e.message, replace) as CastEvent["message"],
   }));
+}
+
+/**
+ * The same rewrite over an arbitrary value rather than a message timeline —
+ * a document cast's folded document, whose media refs (`{ type: "video", uri }`)
+ * sit anywhere in the tree. Returns `value` untouched when there is nothing to
+ * resolve, so a cast with no pinned media pays no clone.
+ */
+export function resolveAssetUrlsIn<T>(
+  value: T,
+  assets: CastAsset[] | undefined,
+  resolveAssetUrl: ((file: string) => string) | undefined
+): T {
+  if (!assets?.length || !resolveAssetUrl) return value;
+  return mapStrings(value, replacerFor(assets, resolveAssetUrl)) as T;
 }

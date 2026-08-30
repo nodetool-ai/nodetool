@@ -1,7 +1,8 @@
 "use client";
 /**
- * The hero's looping demo: prompt → cut → delivered, rendered by the demo
- * harness from real product casts (demo/src/hero/HeroPipeline.tsx).
+ * The hero's looping demo: one project from a sentence to a finished cut —
+ * chat, storyboard, timeline — rendered by the demo harness from real product
+ * casts (demo/src/hero/HeroProject.tsx).
  *
  * The poster is a plain <img> with a srcSet and high fetch priority, and it
  * stays the LCP element — a <video poster> cannot carry either. The video
@@ -22,7 +23,7 @@ export default function HeroDemoPlayer({ alt }: HeroDemoPlayerProps) {
   const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(false);
 
-  // Load the reel only when the hero is actually on screen — a 2.4 MB file
+  // Load the reel only when the hero is actually on screen — a multi-MB file
   // has no business competing with the first paint.
   useEffect(() => {
     const frame = frameRef.current;
@@ -71,8 +72,8 @@ export default function HeroDemoPlayer({ alt }: HeroDemoPlayerProps) {
     <div ref={frameRef} className="relative">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/hero-pipeline-poster.webp"
-        srcSet="/hero-pipeline-poster-960.webp 960w, /hero-pipeline-poster.webp 1920w"
+        src="/hero-project-poster.webp"
+        srcSet="/hero-project-poster-960.webp 960w, /hero-project-poster.webp 1920w"
         sizes="(max-width: 1023px) 100vw, 58vw"
         alt={alt}
         width={1920}
@@ -95,8 +96,8 @@ export default function HeroDemoPlayer({ alt }: HeroDemoPlayerProps) {
             ready ? "opacity-100" : "opacity-0"
           }`}
         >
-          <source src="/hero-pipeline.webm" type="video/webm" />
-          <source src="/hero-pipeline.mp4" type="video/mp4" />
+          <source src="/hero-project.webm" type="video/webm" />
+          <source src="/hero-project.mp4" type="video/mp4" />
         </video>
       )}
 

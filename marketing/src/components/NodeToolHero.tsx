@@ -96,7 +96,7 @@ export default function NodeToolHero() {
             }}
           />
           <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
-            <HeroDemoPlayer alt="NodeTool: a prompt becomes shots on the canvas, a cut on the timeline, and a finished film" />
+            <HeroDemoPlayer alt="NodeTool: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film" />
           </div>
         </div>
       </div>
