@@ -4,7 +4,7 @@ title: "Templates Gallery"
 description: "Browse ready-to-run example workflows and use them as starting points."
 ---
 
-The **Templates Gallery** is a curated library of example workflows you can run and customize without starting from scratch. Templates surface in two places: the **Templates** section on the [Dashboard](getting-started.md) (`/dashboard`), and the dedicated **Examples** page — open it from the **Examples** item in the app menu (the logo dropdown) or by navigating to `/examples`.
+The **Templates Gallery** is a curated library of example workflows you can run and customize without starting from scratch. Templates live on the **Examples** page — open it from the **Examples** item in the app menu (the logo dropdown), from **Browse examples** on the workspace's empty state, or by navigating to `/examples`.
 
 ---
 

@@ -96,7 +96,7 @@ See [Models &amp; Providers]({{ '/models-and-providers' | relative_url }}) to se
 
 ## Next steps
 
-- Open the template: **Templates → SEO Content Engine** in the dashboard
+- Open the template: **Examples → SEO Content Engine** in the app menu
 - [Ad Creative Factory]({{ '/use-cases/ad-creative-factory' | relative_url }}) — paid acquisition from the same brief-style inputs
 - [Podcast Repurposing Studio]({{ '/use-cases/podcast-repurposing-studio' | relative_url }}) — the content pack for what you've already recorded
 - [All use cases]({{ '/use-cases' | relative_url }})

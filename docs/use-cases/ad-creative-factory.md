@@ -108,7 +108,7 @@ See [Models &amp; Providers]({{ '/models-and-providers' | relative_url }}) to se
 
 ## Next steps
 
-- Open the template: **Templates → Ad Creative Factory** in the dashboard
+- Open the template: **Examples → Ad Creative Factory** in the app menu
 - [Product Video Generator]({{ '/use-cases/product-video' | relative_url }}) — one cinematic hero video instead of a test batch
 - [Movie Trailer Generator]({{ '/use-cases/movie-trailer' | relative_url }}) — the same fan-out pattern, pointed at film
 - [All use cases]({{ '/use-cases' | relative_url }})

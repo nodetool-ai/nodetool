@@ -479,20 +479,23 @@ Routes:
 
 | Path | Component | Description |
 |---|---|---|
-| `/` | NavigateToStart | Redirects to editor or dashboard |
-| `/dashboard` | Dashboard | Home screen |
-| `/editor/:workflow` | TabsNodeEditor | Multi-tab workflow editor |
-| `/chat/:thread_id?` | GlobalChat | AI chat interface |
-| `/standalone-chat/:thread_id?` | StandaloneChat | Full-screen chat |
-| `/apps/:workflowId?` | WorkflowAppRedirect | Opens the workflow in the workspace, View mode |
-| `/miniapp/:workflowId` | WorkflowAppView | Standalone app runner for one workflow |
+| `/` | NavigateToStart | Redirects to `/workspace`, or `/login` when auth is required |
+| `/workspace` | WorkspaceShell | The tabbed workspace; its empty state is the new-project surface |
+| `/dashboard`, `/welcome`, `/chat/:thread_id?` | — | Legacy routes, all redirect to `/workspace` |
+| `/settings` | SettingsRedirect | Opens Settings as a workspace tab |
+| `/editor/:workflow` | WorkflowEditorRedirect | Opens the workflow as a workspace tab |
+| `/miniapp/:workflowId` | LegacyAppRedirect | Standalone app runner for one workflow |
+| `/a/:token` | PublicAppPage | A mini app published to a hidden URL |
 | `/assets` | AssetExplorer | Asset browser |
 | `/collections` | CollectionsExplorer | Vector collection browser |
-| `/templates` | ExampleGrid | Template workflow gallery |
-| `/models` | ModelListIndex | HuggingFace model browser |
+| `/examples` | ExamplesPage | Template workflow gallery |
+| `/models` | ModelsPage | Model browser |
+| `/timeline/:sequenceId` | TimelineEditor | Multi-track video editor |
+| `/sketch/:documentId` | SketchEditorPage | Image document editor |
 | `/login` | Login | Authentication page |
 
-All routes except `/login` and dev routes are wrapped in `ProtectedRoute`.
+All routes except `/login`, `/a/:token`, and dev routes are wrapped in
+`ProtectedRoute`.
 
 ### State Management
 
@@ -538,15 +541,13 @@ web/src/components/
 ├── node/              # Individual node rendering and property editing
 ├── node_menu/         # Node search and quick-add menu
 ├── panels/            # App layout (Header, PanelLeft, PanelRight, PanelBottom)
-├── editor/            # Multi-tab editor (TabsNodeEditor)
-├── chat/              # Chat UI (GlobalChat, messages, streaming)
-├── dashboard/         # Dashboard / home page
+├── workspace/         # The tabbed workspace shell and its tab content
+├── projects/          # Project list, overview, and the new-project surface
+├── chat/              # Chat UI (messages, streaming)
 ├── assets/            # Asset explorer and editor
 ├── workflows/         # Workflow templates and grid views
 ├── collections/       # Vector collection management
 ├── hugging_face/      # Model browser and download manager
-├── vibecoding/        # AI-assisted coding integration
-├── terminal/          # Terminal emulator (xterm.js)
 ├── textEditor/        # Rich text editor (Lexical)
 ├── audio/             # Audio player and waveform components
 ├── video/             # Video player components
@@ -598,15 +599,18 @@ Vite production builds use manual chunk splitting:
 
 | Chunk | Contents |
 |---|---|
+| `vendor-buffer` | `buffer`, `base64-js`, `ieee754` |
 | `vendor-react` | React, ReactDOM, React Router |
 | `vendor-mui` | Material-UI, Emotion |
-| `vendor-plotly` | Plotly.js |
-| `vendor-three` | Three.js, React Three Fiber |
-| `vendor-editor` | Monaco Editor, Lexical |
-| `vendor-pdf` | React PDF viewer |
-| `vendor-waveform` | WaveSurfer.js |
+| `vendor-flow` | `@xyflow/react` |
+| `vendor-query` | TanStack Query, tRPC, msgpack |
+| `vendor-supabase` | Supabase client |
+| `vendor-utils` | `cmdk`, `chroma-js`, `uuid`, `zod` |
 
-Heavy components (PanelLeft, PanelRight, PanelBottom, Dashboard, Chat, Editor) are lazy-loaded with `React.lazy()` and `<Suspense>` boundaries.
+Everything else — Monaco, Lexical, Plotly, Three.js, pdf.js, WaveSurfer — is
+feature-only and stays unnamed on purpose, so the boot path does not pull it in.
+
+Heavy components (PanelLeft, PanelRight, PanelBottom, WorkspaceShell, Chat, Editor) are lazy-loaded with `React.lazy()` and `<Suspense>` boundaries.
 
 ---
 

@@ -78,8 +78,9 @@ NodeTool's AI assistant interface. Chat with AI models, run workflows conversati
 ### Inspector / Properties Panel
 The panel (usually on the right) that shows settings for the selected node. This is where you configure how each node behaves.
 
-### Dashboard
-Your home screen showing recent workflows, templates, and chat threads.
+### Workspace
+The tabbed surface the app opens on. Every document and app page is a tab in
+it; with no tabs open it shows the new-project surface instead.
 
 ---
 

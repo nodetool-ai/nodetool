@@ -101,7 +101,7 @@ See [Models &amp; Providers]({{ '/models-and-providers' | relative_url }}) to se
 
 ## Next steps
 
-- Open the template: **Templates → Podcast Repurposing Studio** in the dashboard
+- Open the template: **Examples → Podcast Repurposing Studio** in the app menu
 - [Ad Creative Factory]({{ '/use-cases/ad-creative-factory' | relative_url }}) — the same fan-out, pointed at paid social
 - [Transcribe Audio]({{ '/workflows/transcribe-audio' | relative_url }}) — the transcription building block on its own
 - [All use cases]({{ '/use-cases' | relative_url }})

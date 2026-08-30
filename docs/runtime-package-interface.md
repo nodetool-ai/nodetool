@@ -9,7 +9,7 @@ single interface every runtime package implements, regardless of backend.
 
 ## Goals
 
-- One interface covers every runtime: language interpreters (python, ruby),
+- One interface covers every runtime: language interpreters (python, nodejs),
   CLI tools (ffmpeg, pandoc), and npm libraries (transformers-js).
 - Consumers (workflow nodes) resolve runtimes by id and get back binary paths
   and env vars — they don't care how it was installed.
