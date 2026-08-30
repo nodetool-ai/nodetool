@@ -31,6 +31,7 @@ import type { Tool } from "./base-tool.js";
 import { registerTool } from "./tool-registry.js";
 import { toolForCapabilityName } from "../capabilities/lazy-tool.js";
 import { isYtDlpEnabled } from "../yt-dlp-gate.js";
+import { isBrowserEnabled } from "../browser-gate.js";
 
 export const BUILTIN_TOOL_NAMES: readonly string[] = [
   // Filesystem (workspace-relative)
@@ -187,6 +188,8 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   // extension, the tab the user is already signed in to. The action loop is
   // `@nodetool-ai/browser`, which this package depends on directly, so every
   // host assembling this belt can serve them.
+  //
+  // Dropped under the cloud profile — see `availableBuiltinToolNames`.
   "browser_status",
   "browser_view",
   "browser_navigate",
@@ -229,16 +232,29 @@ export function getBuiltinTools(): Tool[] {
   return availableBuiltinToolNames().map((name) => toolForCapabilityName(name));
 }
 
+/** The `browser_*` names, which stand or fall together. */
+const BROWSER_TOOL_NAMES: readonly string[] = BUILTIN_TOOL_NAMES.filter((name) =>
+  name.startsWith("browser_")
+);
+
 /**
  * {@link BUILTIN_TOOL_NAMES} minus the ones this deployment does not offer.
  *
- * Only `yt_dlp` is conditional today: the cloud profile drops it (see
- * {@link isYtDlpEnabled}), so an agent, a Code node and a JS script all see the
- * same belt as the node catalog — one gate rather than a per-host filter.
+ * Both conditions are the cloud profile: it drops `yt_dlp` (see
+ * {@link isYtDlpEnabled}) and the `browser_*` capabilities (see
+ * {@link isBrowserEnabled}), so an agent, a Code node and a JS script all see
+ * the same belt as the node catalog — one gate rather than a per-host filter.
+ *
+ * Dropping a name here is what a model sees; it is not the enforcement. A
+ * guest that imports the owning capability module reaches the implementation
+ * without a belt, so each gated implementation refuses on its own too.
  */
 export function availableBuiltinToolNames(): readonly string[] {
-  if (isYtDlpEnabled()) return BUILTIN_TOOL_NAMES;
-  return BUILTIN_TOOL_NAMES.filter((name) => name !== "yt_dlp");
+  const dropped = new Set<string>();
+  if (!isYtDlpEnabled()) dropped.add("yt_dlp");
+  if (!isBrowserEnabled()) for (const name of BROWSER_TOOL_NAMES) dropped.add(name);
+  if (dropped.size === 0) return BUILTIN_TOOL_NAMES;
+  return BUILTIN_TOOL_NAMES.filter((name) => !dropped.has(name));
 }
 
 /**

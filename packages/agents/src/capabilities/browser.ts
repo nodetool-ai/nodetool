@@ -14,6 +14,10 @@
  * `browser_status`, which reports the one in force, and `browser_restart`,
  * which changes it.
  *
+ * Not offered under the cloud profile: the session is one page per server
+ * process, shared by every caller, which is a single-tenant shape. See
+ * `../browser-gate.ts`.
+ *
  * What this file owns is the half the action package deliberately does not:
  * the `ProcessingContext`. A screenshot comes back from `@nodetool-ai/browser`
  * as base64 and leaves here as an asset reference; an upload arrives as an
@@ -45,6 +49,7 @@ import {
 } from "@nodetool-ai/browser";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
+import { BROWSER_DISABLED_ERROR, isBrowserEnabled } from "../browser-gate.js";
 import { persistOutput } from "../tools/asset-persist.js";
 import type {
   CapabilityExport,
@@ -277,6 +282,9 @@ function action(spec: CapabilitySpec): CapabilityExport {
   return {
     spec,
     impl: async (run: CapabilityRun, args: Record<string, unknown>) => {
+      // The cloud profile leaves these off every belt, so a model never sees
+      // them. A guest that imports this module by name still lands here.
+      if (!isBrowserEnabled()) return { error: BROWSER_DISABLED_ERROR };
       const { context } = run;
       try {
         const params =
@@ -308,6 +316,7 @@ function action(spec: CapabilitySpec): CapabilityExport {
 const browserStatusCapability: CapabilityExport = {
   spec: browserStatusSpec,
   impl: async () => {
+    if (!isBrowserEnabled()) return { error: BROWSER_DISABLED_ERROR };
     try {
       return await browserStatus();
     } catch (err) {

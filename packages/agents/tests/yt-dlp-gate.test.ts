@@ -60,13 +60,18 @@ describe("the belt", () => {
     expect(getBuiltinTools().map((tool) => tool.name)).toContain("yt_dlp");
   });
 
-  it("drops only yt_dlp under the cloud profile", () => {
+  it("drops yt_dlp under the cloud profile, keeping the rest of its neighbours", () => {
     process.env["NODETOOL_NODE_PROFILE"] = "cloud";
     const names = availableBuiltinToolNames();
     expect(names).not.toContain("yt_dlp");
     expect(names).toContain("ffmpeg");
-    expect(names).toHaveLength(BUILTIN_TOOL_NAMES.length - 1);
     expect(getBuiltinTools().map((tool) => tool.name)).not.toContain("yt_dlp");
+    // The profile drops the `browser_*` capabilities too (browser-gate.test.ts),
+    // so what leaves the belt is this one plus those — and nothing else.
+    const dropped = BUILTIN_TOOL_NAMES.filter((name) => !names.includes(name));
+    expect(dropped.filter((name) => !name.startsWith("browser_"))).toEqual([
+      "yt_dlp"
+    ]);
   });
 });
 
