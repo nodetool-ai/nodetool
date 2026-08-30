@@ -46,22 +46,45 @@ const NodeContent: React.FC<NodeContentProps> = ({
   const connectedEdges = useNodes(connectedEdgesSelector);
 
   const properties = nodeMetadata.properties;
+  // Classification reads four `data` fields. Keying it on `data` itself rebuilt
+  // all three arrays on every property edit and every streamed result, since
+  // those replace the whole blob.
+  const {
+    exposedInputs,
+    exposedInputsLabeled,
+    exposedInputsHidden,
+    codeNodeMode
+  } = data;
   const { allProperties, inlineProperties, inputProperties } = useMemo(() => {
+    const placement = {
+      exposedInputs,
+      exposedInputsLabeled,
+      exposedInputsHidden
+    };
+    const isSnippet = isSnippetCodeNode(nodeType, { codeNodeMode });
     const all = properties ?? [];
     const inlineFieldNames = new Set(
-      resolveInlineFieldNames(nodeMetadata, data).filter(
-        (n) => !(isSnippetCodeNode(nodeType, data) && n === "code")
+      resolveInlineFieldNames(nodeMetadata, placement).filter(
+        (n) => !(isSnippet && n === "code")
       )
     );
     const inputFieldNames = new Set(
-      resolveExposedInputNames(nodeMetadata, data)
+      resolveExposedInputNames(nodeMetadata, placement)
     );
     return {
       allProperties: all,
       inlineProperties: all.filter((p) => inlineFieldNames.has(p.name)),
       inputProperties: all.filter((p) => inputFieldNames.has(p.name))
     };
-  }, [properties, nodeMetadata, data, nodeType]);
+  }, [
+    properties,
+    nodeMetadata,
+    nodeType,
+    exposedInputs,
+    exposedInputsLabeled,
+    exposedInputsHidden,
+    codeNodeMode
+  ]);
 
   const BespokeBody = getBespokeBody(nodeMetadata);
   if (BespokeBody) {

@@ -736,17 +736,24 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     nodeMetadata.inline_fields !== undefined ||
     nodeMetadata.input_fields !== undefined;
   const properties = nodeMetadata.properties ?? EMPTY_PROPERTIES;
+  // Classification reads the three placement lists and nothing else. Keying it
+  // on `data` rebuilt both sets on every property edit and streamed result.
+  const { exposedInputs, exposedInputsLabeled, exposedInputsHidden } = data;
+  const placement = useMemo(
+    () => ({ exposedInputs, exposedInputsLabeled, exposedInputsHidden }),
+    [exposedInputs, exposedInputsLabeled, exposedInputsHidden]
+  );
   const inlineFieldNameSet = useMemo(
-    () => new Set(resolveInlineFieldNames(nodeMetadata, data)),
-    [nodeMetadata, data]
+    () => new Set(resolveInlineFieldNames(nodeMetadata, placement)),
+    [nodeMetadata, placement]
   );
   // Handle column = metadata input_fields ∪ user-promoted exposedInputs.
   const handleNames = useMemo(
     () =>
       useNewLayout
-        ? new Set(resolveExposedInputNames(nodeMetadata, data))
+        ? new Set(resolveExposedInputNames(nodeMetadata, placement))
         : null,
-    [useNewLayout, nodeMetadata, data]
+    [useNewLayout, nodeMetadata, placement]
   );
   const inlineProps = useMemo(
     () =>
@@ -762,10 +769,17 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
         : properties.filter(
             (p) =>
               !inlineFieldNameSet.has(p.name) &&
-              !(data.exposedInputsLabeled ?? []).includes(p.name) &&
-              !(data.exposedInputsHidden ?? []).includes(p.name)
+              !(exposedInputsLabeled ?? []).includes(p.name) &&
+              !(exposedInputsHidden ?? []).includes(p.name)
           ),
-    [useNewLayout, properties, handleNames, inlineFieldNameSet, data]
+    [
+      useNewLayout,
+      properties,
+      handleNames,
+      inlineFieldNameSet,
+      exposedInputsLabeled,
+      exposedInputsHidden
+    ]
   );
 
   // Only rendered when the node opts into `supports_dynamic_inputs`; delegates
