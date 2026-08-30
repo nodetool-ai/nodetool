@@ -16,6 +16,17 @@ import { create, type StoreApi, type UseBoundStore } from "zustand";
 
 export type TimelineTool = "select" | "cut";
 
+/**
+ * Rubber-band marquee rectangle in lanes-content space (the coordinate space
+ * of the lanes container, so the band can span several track lanes).
+ */
+export interface TimelineRubberBand {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
 /** A reference to one transcript word: its clip and the word index within it. */
 interface WordRef {
   clipId: string;
@@ -77,6 +88,14 @@ export interface TimelineUIState {
   clearSelection: () => void;
   /** Replace the selection with a new set of IDs (rubber-band). */
   setSelection: (ids: string[]) => void;
+  /**
+   * The in-progress rubber-band rect, or null when no band gesture is active.
+   * The band starts on one lane but is drawn and hit-tested across all of
+   * them, so it lives here rather than in the lane that owns the gesture.
+   */
+  rubberBand: TimelineRubberBand | null;
+  /** Set (or clear, with null) the rubber-band rect. */
+  setRubberBand: (rect: TimelineRubberBand | null) => void;
 
   // ── Transcript word selection ──────────────────────────────────────────────
 
@@ -182,6 +201,10 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   clearSelection: () => set({ selectedClipIds: new Set() }),
 
   setSelection: (ids) => set({ selectedClipIds: new Set(ids) }),
+
+  rubberBand: null,
+
+  setRubberBand: (rect) => set({ rubberBand: rect }),
 
   wordSelection: null,
 

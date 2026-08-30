@@ -9,7 +9,8 @@
  *
  * Supports:
  *   - Click on empty space → clear selection
- *   - Rubber-band selection (pointer drag on empty space)
+ *   - Rubber-band selection (pointer drag on empty space), which extends
+ *     across every lane the band covers, not just this one
  *   - Drop target for clips dragged from other tracks
  *   - Drop target for assets dragged from AssetExplorer (NOD-304)
  */
@@ -93,22 +94,6 @@ const laneStyles = (
     transition: `opacity ${MOTION.fast}`
   });
 
-const rubberBandStyles = (theme: Theme) =>
-  css({
-    position: "absolute",
-    border: `1px solid ${theme.vars.palette.secondary.main}`,
-    backgroundColor: `${theme.vars.palette.secondary.main}22`,
-    pointerEvents: "none",
-    zIndex: Z_INDEX.sticky
-  });
-
-interface RubberBandRect {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
-
 interface TrackLaneProps {
   track: TimelineTrack;
 }
@@ -133,6 +118,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const clearSelection = useTimelineUIStore((s) => s.clearSelection);
   const seek = useTimelinePlaybackStore((s) => s.seek);
   const setSelection = useTimelineUIStore((s) => s.setSelection);
+  const setRubberBand = useTimelineUIStore((s) => s.setRubberBand);
   const addImportedClip = useTimelineStore((s) => s.addImportedClip);
   const addClip = useTimelineStore((s) => s.addClip);
   const importVideoWithAudio = useVideoAudioImport();
@@ -141,26 +127,41 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
   const laneRef = useRef<HTMLDivElement>(null);
   const isRubberBandingRef = useRef(false);
+  /** Band origin in lanes-content space. */
   const rbStartRef = useRef({ x: 0, y: 0 });
   /** Selection snapshot taken at pointerdown when Shift is held (union mode). */
   const rbBaseSelectionRef = useRef<Set<string> | null>(null);
-  /** This track's clips snapshotted at pointerdown — the clip list doesn't
-   *  change during a rubber-band gesture, so we avoid filtering the full clip
-   *  array twice on every pointermove. */
-  const rbTrackClipsRef = useRef<
-    Array<{ id: string; startMs: number; durationMs: number }>
+  /** Every clip, snapshotted at pointerdown. The band can reach any lane, so
+   *  the hit-test is not limited to this track; the clip list doesn't change
+   *  during the gesture, so the full array is read once instead of per move. */
+  const rbClipsRef = useRef<
+    Array<{
+      id: string;
+      trackId: string;
+      startMs: number;
+      durationMs: number;
+    }>
   >([]);
+  /** Each lane's vertical extent in lanes-content space, snapshotted at
+   *  pointerdown alongside the clips. Lanes don't move during the gesture. */
+  const rbTrackBoundsRef = useRef<
+    Map<string, { top: number; bottom: number }>
+  >(new Map());
   /** Coalesces selection updates to one per animation frame. */
-  const rbLastAppliedRef = useRef<{ startMs: number; endMs: number } | null>(
-    null
-  );
-  /** Lane's bounding rect, captured once at pointerdown. The lane can't move
-   *  during a captured rubber-band gesture, so pointermove reuses this instead
-   *  of calling getBoundingClientRect() (forces layout) on every move. */
-  const rbLaneRectRef = useRef<DOMRect | null>(null);
-  const [rubberBand, setRubberBand] = React.useState<RubberBandRect | null>(
-    null
-  );
+  const rbLastAppliedRef = useRef<{
+    startMs: number;
+    endMs: number;
+    topPx: number;
+    bottomPx: number;
+  } | null>(null);
+  /** Lanes container rect, captured once at pointerdown. The container can't
+   *  move during a captured rubber-band gesture, so pointermove reuses this
+   *  instead of calling getBoundingClientRect() (forces layout) per move. */
+  const rbContainerRectRef = useRef<DOMRect | null>(null);
+  /** True while this lane owns a band gesture — drives the lane cursor only,
+   *  the band rect itself lives in the UI store so the overlay can draw it
+   *  across lanes. */
+  const [isRubberBanding, setIsRubberBanding] = useState(false);
 
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragReject, setIsDragReject] = useState(false);
@@ -343,10 +344,11 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         // The hold became a menu, not a band — drop the gesture pointerdown
         // started so releasing doesn't re-select.
         isRubberBandingRef.current = false;
+        setIsRubberBanding(false);
         setRubberBand(null);
         openLaneMenuAt(point.clientX, point.clientY, laneEl);
       },
-      [openLaneMenuAt]
+      [openLaneMenuAt, setRubberBand]
     )
   );
 
@@ -383,34 +385,57 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         );
       }
 
-      // Snapshot this track's clips once — they don't move during the band
-      // gesture, so the hit-test on pointermove reads from this list instead of
-      // re-filtering the global clip array each frame.
-      rbTrackClipsRef.current = useTimelineStore
-        .getState()
-        .clips.filter((c) => c.trackId === track.id)
-        .map((c) => ({
-          id: c.id,
-          startMs: c.startMs,
-          durationMs: c.durationMs
-        }));
+      const laneEl = e.currentTarget;
+      // The band is measured against the lanes container so it can cross into
+      // the lanes above and below this one. Standalone renders (tests) have no
+      // container, in which case the starting lane is the whole space.
+      const containerEl =
+        laneEl.closest<HTMLElement>("[data-timeline-lanes]") ??
+        laneEl.parentElement ??
+        laneEl;
+      const containerRect = containerEl.getBoundingClientRect();
+      rbContainerRectRef.current = containerRect;
 
-      e.currentTarget.setPointerCapture(e.pointerId);
-      const rect = e.currentTarget.getBoundingClientRect();
-      rbLaneRectRef.current = rect;
-      const localX = e.clientX - rect.left;
+      // Snapshot the clips and each lane's vertical extent once — neither
+      // changes during the band gesture, so the hit-test on pointermove reads
+      // these instead of touching the DOM or re-filtering clips each frame.
+      rbClipsRef.current = useTimelineStore.getState().clips.map((c) => ({
+        id: c.id,
+        trackId: c.trackId,
+        startMs: c.startMs,
+        durationMs: c.durationMs
+      }));
+
+      const bounds = new Map<string, { top: number; bottom: number }>();
+      containerEl
+        .querySelectorAll<HTMLElement>("[data-track-lane-id]")
+        .forEach((el) => {
+          const laneTrackId = el.dataset.trackLaneId;
+          if (!laneTrackId) {
+            return;
+          }
+          const laneRect = el.getBoundingClientRect();
+          bounds.set(laneTrackId, {
+            top: laneRect.top - containerRect.top,
+            bottom: laneRect.bottom - containerRect.top
+          });
+        });
+      rbTrackBoundsRef.current = bounds;
+
+      laneEl.setPointerCapture(e.pointerId);
+      const localX = e.clientX - containerRect.left;
       rbStartRef.current = {
         x: localX,
-        y: e.clientY - rect.top
+        y: e.clientY - containerRect.top
       };
       isRubberBandingRef.current = true;
 
-      // Move the playhead to the clicked position. The lane is inside the
-      // scrolling container, so localX is already content-space.
+      // Move the playhead to the clicked position. The lanes container is
+      // inside the scrolling element, so localX is already content-space.
       const timeMs = Math.round(localX * msPerPx);
       seek(timeMs);
     },
-    [clearSelection, laneLongPress, msPerPx, seek, track.id]
+    [clearSelection, laneLongPress, msPerPx, seek]
   );
 
   // Apply the rubber-band selection for the given content-space range. Deduped
@@ -418,15 +443,34 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   // browser already coalesces moves to ~one per frame) skip the O(n) overlap
   // filter and the setSelection call entirely.
   const applyRubberBandSelection = useCallback(
-    (startMs: number, endMs: number) => {
+    (startMs: number, endMs: number, topPx: number, bottomPx: number) => {
       const last = rbLastAppliedRef.current;
-      if (last && last.startMs === startMs && last.endMs === endMs) {
+      if (
+        last &&
+        last.startMs === startMs &&
+        last.endMs === endMs &&
+        last.topPx === topPx &&
+        last.bottomPx === bottomPx
+      ) {
         return;
       }
-      rbLastAppliedRef.current = { startMs, endMs };
+      rbLastAppliedRef.current = { startMs, endMs, topPx, bottomPx };
 
-      const selected = rbTrackClipsRef.current
+      const trackBounds = rbTrackBoundsRef.current;
+      const selected = rbClipsRef.current
         .filter((c) => {
+          // A clip counts when the band covers both its lane vertically and
+          // its span horizontally. Lane bounds are compared inclusively so a
+          // lane the band only grazes still takes part, and so a lane that
+          // measured zero-height (jsdom, display:none) is not dropped.
+          const laneBounds = trackBounds.get(c.trackId);
+          if (
+            !laneBounds ||
+            laneBounds.top > bottomPx ||
+            laneBounds.bottom < topPx
+          ) {
+            return false;
+          }
           const clipEnd = c.startMs + c.durationMs;
           return clipEnd > startMs && c.startMs < endMs;
         })
@@ -446,7 +490,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       if (!isRubberBandingRef.current || e.buttons !== 1) {
         return;
       }
-      const rect = rbLaneRectRef.current;
+      const rect = rbContainerRectRef.current;
       if (!rect) {
         return;
       }
@@ -458,15 +502,21 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       const width = Math.abs(curX - rbStartRef.current.x);
       const height = Math.abs(curY - rbStartRef.current.y);
 
+      setIsRubberBanding(true);
       setRubberBand({ left, top, width, height });
 
-      // Compute which clips overlap the rubber-band. The lane renders inside
-      // the scrolling lanes container, so lane-local coordinates are already
-      // content-space — no scroll offset.
+      // Compute which clips the rubber-band covers. The lanes container
+      // renders inside the scrolling element, so container-local coordinates
+      // are already content-space — no scroll offset.
       const rbStartMs = left * msPerPx;
-      applyRubberBandSelection(rbStartMs, rbStartMs + width * msPerPx);
+      applyRubberBandSelection(
+        rbStartMs,
+        rbStartMs + width * msPerPx,
+        top,
+        top + height
+      );
     },
-    [laneLongPress, msPerPx, applyRubberBandSelection]
+    [laneLongPress, msPerPx, applyRubberBandSelection, setRubberBand]
   );
 
   const handleLanePointerUp = useCallback(() => {
@@ -474,10 +524,12 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     isRubberBandingRef.current = false;
     rbBaseSelectionRef.current = null;
     rbLastAppliedRef.current = null;
-    rbTrackClipsRef.current = [];
-    rbLaneRectRef.current = null;
+    rbClipsRef.current = [];
+    rbTrackBoundsRef.current = new Map();
+    rbContainerRectRef.current = null;
+    setIsRubberBanding(false);
     setRubberBand(null);
-  }, [laneLongPress]);
+  }, [laneLongPress, setRubberBand]);
 
   const handleLaneContextMenu = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -532,9 +584,6 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     setAddClipAnchorEl(null);
   }, []);
 
-  // A rubber-band gesture re-renders the lane per pointermove; only the band's
-  // own inline rect changes during it.
-  const isRubberBanding = rubberBand !== null;
   const laneCss = useMemo(
     () =>
       laneStyles(
@@ -547,13 +596,13 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       ),
     [theme, heightPx, track.visible, isRubberBanding, isDragOver, isDragReject]
   );
-  const rubberBandCss = useMemo(() => rubberBandStyles(theme), [theme]);
 
   return (
     <div
       ref={laneRef}
       css={laneCss}
       data-testid={`track-lane-${track.id}`}
+      data-track-lane-id={track.id}
       onPointerDown={handleLanePointerDown}
       onPointerMove={handleLanePointerMove}
       onPointerUp={handleLanePointerUp}
@@ -570,20 +619,6 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       {clipIds.map((id) => (
         <Clip key={id} clipId={id} />
       ))}
-
-      {/* Rubber-band selection rect */}
-      {rubberBand && (
-        <div
-          css={rubberBandCss}
-          style={{
-            left: rubberBand.left,
-            top: rubberBand.top,
-            width: rubberBand.width,
-            height: rubberBand.height
-          }}
-          aria-hidden="true"
-        />
-      )}
 
       {/* Right-click context menu (lane background) */}
       <ContextMenu
