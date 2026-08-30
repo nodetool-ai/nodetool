@@ -252,6 +252,7 @@ import type {
   FrontendRendererToolCall,
   FrontendRendererToolResult
 } from "./frontend-renderer-registry.js";
+import type { ClientSession } from "./session/client-session.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]{1,100})?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -2153,7 +2154,7 @@ interface SkillEntry {
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export class UnifiedWebSocketRunner {
+export class UnifiedWebSocketRunner implements ClientSession {
   websocket: WebSocketConnection | null = null;
   mode: WebSocketMode = "binary";
   userId: string | null;
@@ -2167,17 +2168,17 @@ export class UnifiedWebSocketRunner {
 
   private defaultModel: string;
   private defaultProvider: string;
-  private resolveExecutor: UnifiedWebSocketRunnerOptions["resolveExecutor"];
-  private resolveNodeType?: UnifiedWebSocketRunnerOptions["resolveNodeType"];
-  private resolveProvider?: UnifiedWebSocketRunnerOptions["resolveProvider"];
+  readonly resolveExecutor: UnifiedWebSocketRunnerOptions["resolveExecutor"];
+  readonly resolveNodeType?: UnifiedWebSocketRunnerOptions["resolveNodeType"];
+  readonly resolveProvider?: UnifiedWebSocketRunnerOptions["resolveProvider"];
   private getSystemStats: () => Record<string, unknown>;
   private systemStatsEnabled: boolean;
-  private workspaceResolver?: UnifiedWebSocketRunnerOptions["workspaceResolver"];
+  readonly workspaceResolver?: UnifiedWebSocketRunnerOptions["workspaceResolver"];
   private beforeRunJob?: UnifiedWebSocketRunnerOptions["beforeRunJob"];
-  private getNodeMetadata?: UnifiedWebSocketRunnerOptions["getNodeMetadata"];
-  private validateNode?: UnifiedWebSocketRunnerOptions["validateNode"];
-  private nodeRegistry?: NodeRegistry;
-  private pythonBridge?: PythonBridge;
+  readonly getNodeMetadata?: UnifiedWebSocketRunnerOptions["getNodeMetadata"];
+  readonly validateNode?: UnifiedWebSocketRunnerOptions["validateNode"];
+  readonly nodeRegistry?: NodeRegistry;
+  readonly pythonBridge?: PythonBridge;
   private getPythonBridgeReady?: () => boolean;
   private apiOptions?: HttpApiOptions;
   private frontendRendererRegistry?: FrontendRendererRegistry;
@@ -2308,7 +2309,7 @@ export class UnifiedWebSocketRunner {
       this.sendToSocket(message)
   };
 
-  private logError(context: string, error: unknown): void {
+  logError(context: string, error: unknown): void {
     log.error(context, formatSanitizedError(error));
   }
 
@@ -2367,7 +2368,7 @@ export class UnifiedWebSocketRunner {
     if (controller && this.chatAbort === controller) this.chatAbort = null;
   }
 
-  private sendDetached(message: Record<string, unknown>): void {
+  sendDetached(message: Record<string, unknown>): void {
     void this.sendMessage(message).catch((err) => {
       this.logError("detached websocket send failed", err);
     });
@@ -2700,6 +2701,10 @@ export class UnifiedWebSocketRunner {
     // SAFETY: bytes, dates, arrays and objects are handled above; what is left
     // is a JSON scalar.
     return value as JsonSafeValue;
+  }
+
+  send(message: Record<string, unknown>): Promise<void> {
+    return this.sendMessage(message);
   }
 
   async sendMessage(message: Record<string, unknown>): Promise<void> {
