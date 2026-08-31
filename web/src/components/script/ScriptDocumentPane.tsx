@@ -10,6 +10,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import MovieIcon from "@mui/icons-material/Movie";
 import SubtitlesIcon from "@mui/icons-material/Subtitles";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import {
   FlexColumn,
   FlexRow,
@@ -24,12 +25,16 @@ import {
   Caption,
   LoadingSpinner,
   Tooltip,
+  EditorMenu,
+  MenuItemPrimitive,
   SPACING,
   BORDER_RADIUS,
   TYPOGRAPHY,
   MOTION,
   Z_INDEX
 } from "../ui_primitives";
+import { formatDuration } from "../../utils/formatUtils";
+import { useInStudio } from "../../studio/StudioContext";
 import {
   useScript,
   useScriptCast,
@@ -506,6 +511,7 @@ const ScriptDocumentPane = ({
 }: ScriptDocumentPaneProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const inStudio = useInStudio();
   const { sections, timelineId } = useScript(scriptId);
   // A linked board means the cut carries picture as well as voice, so the
   // button stops promising a voiceover track and offers the whole video.
@@ -529,6 +535,7 @@ const ScriptDocumentPane = ({
   const focusedLineId = useScriptLineFocus(scriptId, sections.length > 0);
   const highlightedLineId = currentLineId ?? focusedLineId;
   const [voicingAll, setVoicingAll] = useState(false);
+  const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
   const { assemble, assembling, error: assembleError } =
     useAssembleScriptTimeline();
 
@@ -669,21 +676,32 @@ const ScriptDocumentPane = ({
 
   // Every header stat from one walk; `hasVoicedLine` used to rescan the whole
   // document on each render.
-  const { lineCount, wordCount, hasVoicedLine } = useMemo(() => {
+  const { lineCount, wordCount, hasVoicedLine, voicedDurationMs } = useMemo(() => {
     let lines = 0;
     let words = 0;
     let voiced = false;
+    let durationMs = 0;
     for (const section of sections)
       for (const line of section.lines) {
         lines += 1;
         const trimmed = line.text.trim();
         if (trimmed) words += trimmed.split(/\s+/).length;
-        if (!voiced && line.takes.some((t) => t.id === line.currentTakeId))
+        const take = line.takes.find((t) => t.id === line.currentTakeId);
+        if (take) {
           voiced = true;
+          durationMs += take.durationMs + (line.pauseAfterMs ?? 0);
+        }
       }
-    return { lineCount: lines, wordCount: words, hasVoicedLine: voiced };
+    return {
+      lineCount: lines,
+      wordCount: words,
+      hasVoicedLine: voiced,
+      voicedDurationMs: durationMs
+    };
   }, [sections]);
   const isEmpty = lineCount === 0;
+  const durationLabel = voicedDurationMs > 0 ? formatDuration(voicedDurationMs) : null;
+  const showAssemble = !readOnly && !inStudio;
 
   return (
     <FlexColumn
@@ -737,24 +755,36 @@ const ScriptDocumentPane = ({
             Stop
           </EditorButton>
         ) : (
-          <EditorButton
-            size="small"
-            variant="text"
-            startIcon={<PlayArrowIcon fontSize="small" />}
-            onClick={play}
+          <Tooltip
+            title={
+              hasVoicedLine
+                ? "Play current takes in order"
+                : "Voice at least one line to play"
+            }
           >
-            Play through
-          </EditorButton>
+            <span>
+              <EditorButton
+                size="small"
+                variant="text"
+                startIcon={<PlayArrowIcon fontSize="small" />}
+                onClick={play}
+                disabled={!hasVoicedLine}
+              >
+                Play through
+              </EditorButton>
+            </span>
+          </Tooltip>
         )}
         <Box sx={{ flex: 1 }} />
         {!isEmpty && (
           <Text size="smaller" sx={{ color: "text.secondary" }}>
             {lineCount} {lineCount === 1 ? "line" : "lines"} · {wordCount}{" "}
             {wordCount === 1 ? "word" : "words"}
+            {durationLabel ? ` · ${durationLabel}` : ""}
           </Text>
         )}
         {!readOnly && <ScriptSaveIndicator scriptId={scriptId} />}
-        {!readOnly && (
+        {showAssemble && (
           <EditorButton
             size="small"
             variant="text"
@@ -780,20 +810,35 @@ const ScriptDocumentPane = ({
         )}
         {!readOnly && <StoryboardLinkControl scriptId={scriptId} />}
         {!readOnly && (
-          <EditorButton
-            size="small"
-            variant="text"
-            startIcon={<SubtitlesIcon fontSize="small" />}
-            onClick={onExportSubtitles}
-            disabled={!hasVoicedLine}
-            title={
-              hasVoicedLine
-                ? "Download SRT subtitles from the voiced takes"
-                : "Voice at least one line to export subtitles"
-            }
-          >
-            Export SRT
-          </EditorButton>
+          <>
+            <ToolbarIconButton
+              tooltip="More actions"
+              ariaLabel="More actions"
+              onClick={(e) => setMoreAnchor(e.currentTarget)}
+              icon={<MoreVertIcon fontSize="small" />}
+            />
+            <EditorMenu
+              anchorEl={moreAnchor}
+              open={!!moreAnchor}
+              onClose={() => setMoreAnchor(null)}
+            >
+              <MenuItemPrimitive
+                compact
+                icon={<SubtitlesIcon fontSize="small" />}
+                label="Export SRT"
+                disabled={!hasVoicedLine}
+                tooltip={
+                  hasVoicedLine
+                    ? undefined
+                    : "Voice at least one line to export subtitles"
+                }
+                onClick={() => {
+                  setMoreAnchor(null);
+                  onExportSubtitles();
+                }}
+              />
+            </EditorMenu>
+          </>
         )}
       </FlexRow>
 
@@ -818,7 +863,7 @@ const ScriptDocumentPane = ({
         {isEmpty && (
           <EmptyState
             title="Empty script"
-            description="Add a line to start writing. Assign speakers and voices in the Cast panel, then voice each line into a take."
+            description="Add a line to start writing. Enter splits a line. Assign speakers from the gutter, then voice them."
             actionText={readOnly ? undefined : "Add first line"}
             onAction={readOnly ? undefined : () => addLine(scriptId)}
           />

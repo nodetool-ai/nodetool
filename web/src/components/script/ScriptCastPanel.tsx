@@ -268,7 +268,9 @@ const ScriptCastPanel = ({
       {cast.length === 0 ? (
         <EmptyState
           title="No speakers"
-          description="Add a speaker and assign a voice to start voicing lines."
+          description="Add a speaker, pick a voice, then click a line's name to assign it."
+          actionText={readOnly ? undefined : "Add speaker"}
+          onAction={readOnly ? undefined : onAdd}
         />
       ) : (
         cast.map((speaker) => (
