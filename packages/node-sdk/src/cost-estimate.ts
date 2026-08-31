@@ -147,6 +147,26 @@ const PER_MEGAPIXEL_UNITS = new Set([
  * Units carrying no fixed amount of anything: a credit has no USD value here,
  * and a bare count names no deliverable. Priced as a per-run figure they would
  * read as a real number, so the caller is told why there is none.
+ *
+ * Reading `"units"` as one run is the obvious-looking shortcut, and it is
+ * wrong. Measured over the 56 FAL image/video/audio endpoints billed this way
+ * (2026-08-31), the figure spans $0.001 to $1.50 — 1,500× — and the two ends
+ * cannot both be a run: `fal-ai/minimax/hailuo-2.3/standard/image-to-video` at
+ * $0.28 reads as a video, `bytedance/seedance-2.0/image-to-video` at $0.014
+ * does not, and `krea/v2/large/text-to-image` at $0.001 is a fraction of a
+ * cent for an image GenSpend prices at $0.06. The unit means something
+ * different per endpoint, and FAL does not say what: its pricing API
+ * (`https://api.fal.ai/v1/models/pricing`) returns exactly `endpoint_id`,
+ * `unit_price`, `unit` and `currency` per row — no grid, no variants, no
+ * per-parameter breakdown — so there is nothing further to read there either.
+ *
+ * The route that does work is GenSpend: since a scalar decline stopped hiding
+ * a GenSpend entry for the same model, any of these endpoints GenSpend prices
+ * under `fal_ai` already resolves that way. None of the 248 endpoints
+ * currently declining on an ambiguous or unstated unit carries one, so that
+ * path is exhausted rather than unexplored — they are upstream gaps in
+ * GenSpend's FAL coverage, and they close when GenSpend adds the model, not
+ * when this set is loosened.
  */
 const UNCONVERTIBLE_UNITS = new Set(["", "unit", "units", "credit", "credits"]);
 
