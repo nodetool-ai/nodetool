@@ -118,7 +118,8 @@ describe("application budget gate", () => {
     // The gate's job is to decide whether a run starts; the run itself is
     // covered elsewhere, so stub it and assert on whether it was reached.
     startJob = vi.fn(async () => undefined);
-    (asAny(runner) as unknown as { startJob: unknown }).startJob = startJob;
+    // The job region owns startJob since T3; patch it where it lives.
+    (asAny(runner).jobs as unknown as { startJob: unknown }).startJob = startJob;
   });
 
   afterEach(async () => {
@@ -305,7 +306,10 @@ describe("application budget gate", () => {
     await seedApp();
     await setApplicationBudget(APP, { period: "total", maxUsd: 10 });
     const broken = vi
-      .spyOn(runner as unknown as { estimateRunCost: () => number }, "estimateRunCost")
+      .spyOn(
+        asAny(runner).jobs as unknown as { estimateRunCost: () => number },
+        "estimateRunCost"
+      )
       .mockImplementation(() => {
         throw new Error("pricing bundle unavailable");
       });
@@ -485,7 +489,7 @@ describe("pre-run cost estimate", () => {
       getNodeMetadata: () => metadata as never
     });
     return (
-      runner as unknown as {
+      asAny(runner).jobs as unknown as {
         estimateRunCost(req: Record<string, unknown>): number;
       }
     ).estimateRunCost({ graph: { nodes, edges: [] } });

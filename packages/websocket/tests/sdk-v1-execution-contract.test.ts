@@ -49,6 +49,10 @@ const runnerSource = readFileSync(
   new URL("../src/unified-websocket-runner.ts", import.meta.url),
   "utf8"
 );
+const commandRouterSource = readFileSync(
+  new URL("../src/session/commands.ts", import.meta.url),
+  "utf8"
+);
 const websocketPluginSource = readFileSync(
   new URL("../src/plugins/websocket.ts", import.meta.url),
   "utf8"
@@ -98,10 +102,11 @@ describe("SDK v1 execution contract", () => {
     ]);
     expect(goldenCommands).toEqual(declaredExecutionCommands);
     for (const command of declaredExecutionCommands) {
-      const occurrences = runnerSource.match(
-        new RegExp(`case ["']${command}["']`, "g")
+      // The command dispatch is CommandRouter's table, one entry per command.
+      const occurrences = commandRouterSource.match(
+        new RegExp(`^ {4}${command}: `, "gm")
       );
-      expect(occurrences, `${command}: live runner case`).toHaveLength(1);
+      expect(occurrences, `${command}: live runner dispatch`).toHaveLength(1);
     }
   });
 
