@@ -134,12 +134,35 @@ export function enumValuesFor(
   return fromField && fromField.length > 0 ? fromField.map(String) : undefined;
 }
 
+/**
+ * Seconds from one declared duration option.
+ *
+ * The manifests spell a clip length three ways, because the providers do:
+ * a bare number (`8`), a numeric string (`"8"`), and — across the FAL Veo and
+ * Marey families — a unit-suffixed string (`"8s"`). A bare `Number("8s")` is
+ * `NaN`, so the suffixed spelling used to drop the whole enum and leave those
+ * endpoints looking unconstrained: 22 FAL video endpoints, the Veo 3.1
+ * image-to-video and first-last-frame families among them, offered the app's
+ * full duration ladder when FAL sells them only 4, 6 and 8 seconds.
+ *
+ * Only a plain count of seconds is read. `"auto"` (FAL's Seedance rows) and
+ * `-1` (AtlasCloud's) name no length, and neither does a range or a frame
+ * count, so they stay out rather than becoming a number nothing published.
+ */
+function durationSeconds(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (trimmed === "") return undefined;
+  const digits = /^(\d+(?:\.\d+)?)\s*s(?:ec(?:onds?)?)?$/i.exec(trimmed)?.[1] ?? trimmed;
+  const parsed = Number(digits);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 /** Option constraints (duration/resolution/aspect) for a video endpoint. */
 export function videoConstraints(n: ManifestNode) {
   const durationEnum = enumValuesFor(n, "duration");
   const durations = durationEnum
-    ?.map((v) => Number(v))
-    .filter((v) => Number.isFinite(v));
+    ?.map(durationSeconds)
+    .filter((v): v is number => v !== undefined);
   return {
     durations: durations && durations.length > 0 ? durations : undefined,
     resolutions: enumValuesFor(n, "resolution"),

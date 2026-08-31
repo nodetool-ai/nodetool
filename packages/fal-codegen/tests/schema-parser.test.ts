@@ -1118,3 +1118,79 @@ describe("parse() — synthetic schema edge cases", () => {
     expect(spec.outputType).toBe("image");
   });
 });
+
+// ---------------------------------------------------------------------------
+// JSON Schema `const` — an enum of one
+// ---------------------------------------------------------------------------
+
+/** A minimal FAL-shaped OpenAPI document around one Input schema. */
+const schemaAround = (properties: Record<string, unknown>) => ({
+  info: { "x-fal-metadata": { endpointId: "fal-ai/test/const" } },
+  paths: {
+    "/": {
+      post: {
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/Input" }
+            }
+          }
+        }
+      }
+    }
+  },
+  components: {
+    schemas: {
+      Input: { type: "object", properties },
+      Output: { type: "object", properties: { video: { type: "object" } } }
+    }
+  }
+});
+
+describe("const-valued properties", () => {
+  it("reads `const` as a one-value enum", () => {
+    // What `fal-ai/veo3.1/reference-to-video` publishes: the endpoint sells
+    // exactly one clip length, stated as a const rather than a one-item enum.
+    const spec = parser.parse(
+      schemaAround({
+        duration: {
+          title: "Duration",
+          const: "8s",
+          type: "string",
+          description: "The duration of the generated video.",
+          default: "8s"
+        }
+      })
+    );
+    const field = spec.inputFields.find((f) => f.name === "duration");
+    expect(field?.tsType).toBe("enum");
+    const enumDef = spec.enums.find((e) => e.name === field?.enumRef);
+    expect(enumDef?.values.map(([, v]) => v)).toEqual(["8s"]);
+  });
+
+  it("reads `const` nested in an anyOf variant", () => {
+    const spec = parser.parse(
+      schemaAround({
+        duration: {
+          title: "Duration",
+          anyOf: [{ type: "null" }, { type: "string", const: "5s" }],
+          default: "5s"
+        }
+      })
+    );
+    const field = spec.inputFields.find((f) => f.name === "duration");
+    const enumDef = spec.enums.find((e) => e.name === field?.enumRef);
+    expect(enumDef?.values.map(([, v]) => v)).toEqual(["5s"]);
+  });
+
+  it("still prefers an explicit enum over a sibling const", () => {
+    const spec = parser.parse(
+      schemaAround({
+        duration: { type: "string", enum: ["4s", "6s", "8s"], default: "8s" }
+      })
+    );
+    const field = spec.inputFields.find((f) => f.name === "duration");
+    const enumDef = spec.enums.find((e) => e.name === field?.enumRef);
+    expect(enumDef?.values.map(([, v]) => v)).toEqual(["4s", "6s", "8s"]);
+  });
+});
