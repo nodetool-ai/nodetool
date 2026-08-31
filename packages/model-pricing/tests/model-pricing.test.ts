@@ -88,12 +88,96 @@ describe("getModelUnitPrice", () => {
     });
   });
 
-  it("does not price a GenSpend model against the wrong provider", () => {
+  it("does not let an unconvertible FAL unit hide a GenSpend price", () => {
+    // FAL bills a slice of its endpoints in "units" — a word naming no fixed
+    // amount, so the scalar path refuses to turn it into a run. That refusal
+    // is not a price: where GenSpend carries a real number for the same
+    // endpoint, that number is the answer.
+    const id = Object.entries(falUnitPricingCatalog.prices ?? {}).find(
+      ([endpoint, entry]) => {
+        const unit = (entry as { billing_unit?: unknown }).billing_unit;
+        const genspend = genspendPricingCatalog.prices[`fal_ai:${endpoint}`];
+        return (
+          typeof unit === "string" &&
+          /^units?$/i.test(unit.trim()) &&
+          genspend !== undefined &&
+          !isParameterPriceable(genspend)
+        );
+      }
+    )?.[0];
+    if (!id) return; // No such overlap in today's catalogs — nothing to pin.
+
+    const priced = getModelUnitPrice({ id, provider: "fal_ai" });
+    expect(priced?.declined).toBeUndefined();
+    expect(priced?.unit_price).toBe(
+      genspendPricingCatalog.prices[`fal_ai:${id}`].unit_price
+    );
+  });
+
+  it("never prices a model at another provider's rate", () => {
+    const [key, price] = Object.entries(genspendPricingCatalog.prices).find(
+      ([k, entry]) => k.startsWith("replicate:") && !isParameterPriceable(entry)
+    )!;
+    const id = key.slice("replicate:".length);
+
+    // The provider that publishes the price gets it.
+    expect(getModelUnitPrice({ id, provider: "replicate" })?.unit_price).toBe(
+      price.unit_price
+    );
+    // Another provider selling the same model id does not: its own margin is
+    // not Replicate's, and a figure that is not the price of the run this node
+    // will make is worse than no figure.
+    const other = getModelUnitPrice({ id, provider: "together" });
+    expect(other?.unit_price).not.toBe(price.unit_price);
+    expect(other?.declined).toBeTruthy();
+  });
+
+  it("says which providers the catalog does price, when this one has none", () => {
     const [key] = Object.entries(genspendPricingCatalog.prices).find(([k]) =>
       k.startsWith("replicate:")
     )!;
     const id = key.slice("replicate:".length);
-    expect(getModelUnitPrice({ id, provider: "together" })).toBeNull();
+
+    const declined = getModelUnitPrice({ id, provider: "no-such-provider" });
+    // A decline, not a price: nothing here can enter a total.
+    expect(declined?.unit_price).toBe(0);
+    expect(declined?.declined).toContain("no no-such-provider price");
+    expect(declined?.declined).toContain("replicate");
+  });
+
+  it("does not answer for a model no catalog carries under any provider", () => {
+    expect(
+      getModelUnitPrice({ id: "no-such/model", provider: "atlascloud" })
+    ).toBeNull();
+  });
+
+  it("reads the FAL and kie scalar catalogs only for their own provider", () => {
+    // Those catalogs are keyed by bare endpoint id, and a reseller lists the
+    // vendor's id verbatim — an unscoped lookup priced an AtlasCloud model off
+    // FAL's row. Pick an endpoint GenSpend tracks under no provider at all, so
+    // the FAL scalar is the only row that could answer either lookup.
+    const tracked = new Set(
+      Object.keys(genspendPricingCatalog.prices).map((key) =>
+        key.slice(key.indexOf(":") + 1)
+      )
+    );
+    const id = Object.entries(falUnitPricingCatalog.prices ?? {}).find(
+      ([endpoint, entry]) => {
+        const row = entry as Record<string, unknown>;
+        const unit =
+          typeof row.billing_unit === "string" ? row.billing_unit.trim() : "";
+        return (
+          !tracked.has(endpoint) &&
+          typeof row.unit_price === "number" &&
+          row.unit_price > 0 &&
+          PER_RUN_UNITS.has(unit)
+        );
+      }
+    )?.[0];
+    if (!id) throw new Error("no untracked per-run FAL endpoint");
+
+    expect(getModelUnitPrice({ id, provider: "fal_ai" })?.unit_price).toBeGreaterThan(0);
+    expect(getModelUnitPrice({ id, provider: "atlascloud" })).toBeNull();
   });
 
   it("returns null for a model in no catalog", () => {

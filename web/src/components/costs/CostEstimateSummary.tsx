@@ -181,7 +181,7 @@ const CostEstimateSummaryInternal: React.FC<CostEstimateSummaryProps> = ({
           const rowEl = (
             <div className="cost-row">
               <span className="cost-cell-node" title={row.nodeType}>
-                {row.nodeType}
+                {row.nodeTitle}
               </span>
               {row.unknown ? (
                 <Tooltip title={row.unknownReason} arrow>

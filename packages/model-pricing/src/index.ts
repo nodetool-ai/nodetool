@@ -1,7 +1,8 @@
 /**
  * Look up a unit price for a model chosen on a generic node's provider-model
  * property (e.g. `model` on `nodetool.image.TextToImage`), given what the node
- * states about the job. Three catalogs answer, in this order:
+ * states about the job. The catalogs answer in this order, each of them for
+ * the provider the node selected and no other:
  *
  * - The GenSpend catalog (`genspend-catalog.ts`, refreshed nightly from
  *   genspend.io) whenever it carries a *parameter-priceable* entry for the
@@ -10,7 +11,19 @@
  *   the run rather than one unit of it.
  * - The FAL (`endpoint_id`) and kie (`model_id`) codegen catalogs otherwise,
  *   with their one scalar per endpoint converted to a per-run figure here.
- * - The GenSpend base-spec scalar last, for a flat entry with no grid.
+ *   Those catalogs are keyed by bare endpoint id and are consulted only for
+ *   their own provider: a reseller lists the vendor's id verbatim, and an
+ *   unscoped lookup was quoting FAL's rate — or FAL's refusal to convert a
+ *   "units" row — for models FAL does not sell.
+ * - The GenSpend base-spec scalar, for a flat entry with no grid. It also
+ *   answers when the provider's own scalar row cannot be converted to a run,
+ *   so a model the catalog does price is never reported unpriced.
+ *
+ * Every answer is the selected provider's own published price, and there is no
+ * fallback that quotes another's: a reseller's margin is its own, and a figure
+ * that is not the price of the run the node will make is worse than no figure.
+ * A model the catalog carries only for other providers comes back as a decline
+ * naming them, which the cost views show in place of a number.
  *
  * Shared on purpose: the web cost preview and the server-side pre-run budget
  * estimate (`estimateRunCost`) both call this, so a run is gated on the same
@@ -32,8 +45,17 @@ import {
 } from "./genspend-calc.js";
 import falUnitPricingCatalog from "@nodetool-ai/fal-nodes/unit-pricing-catalog";
 import kieUnitPricingCatalog from "@nodetool-ai/kie-nodes/unit-pricing-catalog";
-import { getGenspendPrice, GENSPEND_CURRENCY } from "./genspend-catalog.js";
-import { resolveNodetoolDelegate } from "@nodetool-ai/protocol";
+import {
+  getGenspendPrice,
+  getGenspendPricesByModelId,
+  GENSPEND_CURRENCY,
+  type GenspendPrice
+} from "./genspend-catalog.js";
+import { PROVIDER_IDS, resolveNodetoolDelegate } from "@nodetool-ai/protocol";
+
+/** Providers whose scalar catalogs this module carries, keyed by their own id. */
+const PROVIDER_FAL_AI: string = PROVIDER_IDS.FAL_AI;
+const PROVIDER_KIE: string = PROVIDER_IDS.KIE;
 
 interface CatalogPrice {
   unit_price?: unknown;
@@ -126,6 +148,68 @@ function kiePrice(modelId: string): ScalarPrice | null {
 }
 
 /**
+ * The scalar catalog that belongs to a provider. The FAL and kie catalogs are
+ * keyed by bare endpoint id, and resellers list the vendor's id verbatim, so an
+ * unscoped lookup answers for models that are not theirs: an AtlasCloud
+ * `google/gemini-omni-flash/image-to-video` was priced — and, because FAL bills
+ * that endpoint in "units", declined — off FAL's row. A provider whose id we do
+ * not know still gets the id-keyed lookup: those ids are FAL/kie-shaped and
+ * nothing else can answer for them.
+ */
+function ownScalarPrice(model: SelectedModel): ScalarPrice | null {
+  const provider = model.provider;
+  if (provider === null || provider === PROVIDER_FAL_AI) {
+    const fal = falPrice(model.id);
+    if (fal) return fal;
+  }
+  if (provider === null || provider === PROVIDER_KIE) {
+    return kiePrice(model.id);
+  }
+  return null;
+}
+
+/** A flat GenSpend entry: one number per generation, nothing to narrow. */
+function flatGenspendPrice(entry: GenspendPrice): ModelParamPrice {
+  return {
+    unit_price: entry.unit_price,
+    billing_unit: entry.billing_unit,
+    currency: GENSPEND_CURRENCY,
+    source: "bundle"
+  };
+}
+
+/**
+ * Why a model the catalogs know went unpriced here: the provider the node
+ * selected publishes no price for it.
+ *
+ * A reseller lists the vendor's own model id verbatim — AtlasCloud and fal both
+ * sell `google/gemini-omni-flash/image-to-video` — so the id alone would happily
+ * find another vendor's number. That number is another vendor's margin, and an
+ * estimate is only worth showing when it is the price of the run the node will
+ * actually make, so it is never quoted. What travels instead is the reason,
+ * which the cost views show in place of the figure: the model is tracked, just
+ * not for this provider, which is a gap in the catalog someone can close.
+ */
+function untrackedProviderPrice(model: SelectedModel): ModelParamPrice | null {
+  if (!model.provider) return null;
+  const elsewhere = [
+    ...new Set(
+      getGenspendPricesByModelId(model.id)
+        .map((offering) => offering.provider)
+        .filter((provider) => provider !== model.provider)
+    )
+  ].sort();
+  if (elsewhere.length === 0) return null;
+  return {
+    unit_price: 0,
+    billing_unit: "",
+    currency: GENSPEND_CURRENCY,
+    source: "bundle",
+    declined: `the catalog has no ${model.provider} price for this model — it prices the same model on ${elsewhere.join(", ")}, and one provider's rate is not another's`
+  };
+}
+
+/**
  * The unit price for a selected model, as the whole per-run figure with the
  * reasoning attached.
  *
@@ -160,28 +244,32 @@ export function getModelUnitPrice(
   }
 
   const entry = getGenspendPrice(model.provider, model.id);
-  const grid = entry !== null && isParameterPriceable(entry);
-  if (entry && grid) {
+  if (entry && isParameterPriceable(entry)) {
     return priceGenspendEntry(entry, params ?? {});
   }
 
-  const scalar = falPrice(model.id) ?? kiePrice(model.id);
+  // The provider's own scalar row. A row billed in a unit that names no fixed
+  // amount ("units", "credits") declines, and a decline is not a price: fall
+  // through to whatever else prices this model rather than reporting the node
+  // unpriced next to a catalog that does carry a number for it.
+  const scalar = ownScalarPrice(model);
   if (scalar) {
-    return priceScalarUnit(scalar.price, params, {
+    const priced = priceScalarUnit(scalar.price, params, {
       tierCount: scalar.tierCount
     });
+    if (!priced.declined) return priced;
+    if (entry) return flatGenspendPrice(entry);
+    // Keep the refusal: the reason it carries is what the cost views show
+    // instead of a bare "unknown".
+    return priced;
   }
 
   if (entry) {
     // A flat GenSpend entry: one number per generation, nothing to narrow.
-    return {
-      unit_price: entry.unit_price,
-      billing_unit: entry.billing_unit,
-      currency: GENSPEND_CURRENCY,
-      source: "bundle"
-    };
+    return flatGenspendPrice(entry);
   }
-  return null;
+
+  return untrackedProviderPrice(model);
 }
 
 export {

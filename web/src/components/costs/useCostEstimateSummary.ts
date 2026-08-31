@@ -10,9 +10,10 @@
  */
 
 import { useMemo } from "react";
-import type {
-  NodeCostEstimateDetail,
-  WorkflowCostEstimateDetail
+import {
+  humanizeNodeType,
+  type NodeCostEstimateDetail,
+  type WorkflowCostEstimateDetail
 } from "@nodetool-ai/node-sdk/cost-estimate";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 
@@ -58,6 +59,9 @@ const isApproximate = (item: NodeCostEstimateDetail): boolean =>
 
 export interface CostEstimateRow {
   key: string;
+  /** What the row is labeled with: the node's title, not its dotted type. */
+  nodeTitle: string;
+  /** The full node type, kept for the row's hover title. */
   nodeType: string;
   unknown: boolean;
   /** Why the price could not be quoted, for an unknown row's tooltip. */
@@ -96,6 +100,7 @@ export function useCostEstimateSummary(
       const unknown = item.confidence === "unknown";
       return {
         key: item.node_id,
+        nodeTitle: item.node_title ?? humanizeNodeType(item.node_type),
         nodeType: item.node_type,
         unknown,
         unknownReason:
