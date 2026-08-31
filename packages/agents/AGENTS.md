@@ -988,8 +988,9 @@ sets the context variable for chat-triggered runs):
 turn constructs a CodeAct session, never an `Agent`; the `AgentNode` that used
 to gate here has no plan mode any more. The gate stays for the CLI's agent
 command and for a host that builds an `Agent` of its own. The chat's plan mode
-is `create_plan` above, which produces a plan and stops — there is nothing to
-approve because nothing would run.
+does not use it: `create_plan` produces a plan and stops, and the approval for
+running one is the permission gate on `execute_plan`, which the user answers in
+the same place as every other action.
 
 ```typescript
 const agent = new Agent({
@@ -1320,7 +1321,7 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `tests/chat-codeact.test.ts`, `tests/nodetool-api.test.ts` and
   `tests/nodetool-api-*.test.ts` (scripted provider, real sandbox, no network).
 
-## `create_plan` — the chat's plan mode
+## `create_plan` / `execute_plan` — the chat's plan mode
 
 The chat's **Plan** permission mode blocks every mutating capability, so a
 multi-step request used to come back as prose. `create_plan` (in the `agents`
@@ -1334,6 +1335,42 @@ the model can call it outright; a deliverable reachable only by writing a
 sandbox action to import it is one the model does not reach for. The planner
 sees the parent belt minus `create_plan` itself, so steps route to real tool
 names and no plan contains "call create_plan".
+
+`execute_plan` is the other half: it takes that plan back and runs it on
+`ParallelTaskExecutor`, the machinery `Agent` runs a plan on. **The plan
+travels inline** — `title` plus the `tasks` array the model copies out of
+`create_plan`'s result. There is no plan store and no plan id: passing the plan
+itself is what survives the mode switch, keeps what runs identical to what the
+user is looking at, and lets "run it, but drop task 3" be expressible. Plans
+are a few hundred tokens.
+
+The plan is checked before anything runs, by `PlanBuilder` — one authority for
+what a plan may be, so a plan `create_plan` produced cannot be rejected here.
+`buildPlanFromTasks` (`tools/plan-builder-tools.ts`) sorts the tasks so every
+dependency precedes its dependents (a hand-edited plan need not arrive that
+way) and feeds them through `addTask`/`finish`. Kahn's residue is exactly the
+tasks in a cycle, so a cycle is reported by name rather than as a task that was
+"not added yet". A rejection returns `invalid_plan` with one issue per
+offender and runs nothing.
+
+Every message the executor yields is forwarded verbatim — the `task_update`
+events are what the thread and the sidebar render, so re-summarizing them would
+leave the user watching nothing until the end. The call returns each task's
+`completed`/`failed` (with the step and error behind a failure) plus a
+`results` map keyed by task id. The step results also stay in the run's shared
+memory under `task:<id>`, which the description points at so the model reads
+one back with `read_shared` instead of redoing the work.
+
+`execute_plan` is classified `external`: running a plan is not one action but
+every action in it. That is what blocks it in plan mode — the permission gate
+is the confirmation, and there is no second approval step — and asks once
+everywhere else. Each step's own tool calls stay gated inside its child loop.
+The steps see the parent belt minus both plan capabilities: a step that
+re-plans or re-runs the plan it belongs to is a loop.
+
+In `chat-turn.ts` it sits on the belt in **every** mode, gated, so a call in
+plan mode answers `blocked_in_plan_mode` rather than "unknown tool"; it joins
+`DIRECT_TOOL_NAMES` in every mode **except** plan.
 
 ## Sub-Agent Core (`src/subagent.ts`)
 

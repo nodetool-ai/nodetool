@@ -1435,6 +1435,19 @@ export class ChatTurnHandler {
         serverTools.unshift(toolForCapabilityName("create_plan", delegationRun));
       }
 
+      // The other half: `execute_plan` runs a plan the user has already seen,
+      // on the same ParallelTaskExecutor `Agent` uses. It is on the belt in
+      // every mode, gated — in plan mode the gate answers
+      // `blocked_in_plan_mode`, which tells the model to have the user switch
+      // out, where dropping it from the belt entirely would only say the tool
+      // does not exist. It is *offered* everywhere but plan mode, below.
+      serverTools.unshift(
+        ...gateTools(
+          [toolForCapabilityName("execute_plan", delegationRun)],
+          chatGate
+        )
+      );
+
       // Read-only fan-out search (opt-in). Reuses the same runtime — the
       // capability filters the parent belt to its read-only allowlist
       // internally, so passing the full snapshot is correct.
@@ -1584,8 +1597,11 @@ export class ChatTurnHandler {
       // `create_plan` joins them in plan mode: the plan is that turn's whole
       // deliverable, and a deliverable reached only by writing a sandbox action
       // to import it is one the model routinely does not reach for.
+      // `execute_plan` is direct for the same reason, in every other mode:
+      // running the plan the user just approved is that turn's whole point.
       const directNames = new Set<string>(DIRECT_TOOL_NAMES);
       if (permissionMode === "plan") directNames.add("create_plan");
+      else directNames.add("execute_plan");
       const directSchemas = allSchemas.filter(
         (s) => s.name !== "view_image" && directNames.has(s.name)
       );

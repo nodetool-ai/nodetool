@@ -502,6 +502,146 @@ describe("permission gate", () => {
 
     await runner.disconnect();
   });
+
+  it("offers execute_plan everywhere but plan mode", async () => {
+    const offered: string[][] = [];
+    const provider = async () =>
+      ({
+        provider: "mock",
+        async *generateMessagesTraced(args: {
+          tools?: Array<{ name: string }>;
+        }) {
+          offered.push((args.tools ?? []).map((t) => t.name));
+          yield { type: "chunk" as const, content: "ok" };
+        },
+        async generateMessageTraced() {
+          return {};
+        },
+        generateMessage: vi.fn(),
+        hasToolSupport: async () => true,
+        getAvailableLanguageModels: async () => [],
+        getAvailableImageModels: async () => [],
+        getAvailableVideoModels: async () => [],
+        getAvailableTTSModels: async () => [],
+        getAvailableASRModels: async () => [],
+        getAvailableEmbeddingModels: async () => [],
+        getContainerEnv: () => ({}),
+        generateLoop: BaseProvider.prototype.generateLoop
+      }) as any;
+
+    const runner = new WebSocketClientSession({
+      resolveExecutor: noop,
+      resolveProvider: provider
+    });
+    await runner.connect(ws);
+
+    for (const [threadId, mode] of [
+      ["t-plan-exec", "plan"],
+      ["t-default-exec", "default"],
+      ["t-auto-exec", "auto"]
+    ] as const) {
+      await runner.handleCommand({
+        command: "chat_message",
+        data: {
+          thread_id: threadId,
+          content: "run the plan",
+          provider: "mock",
+          model: "m",
+          permission_mode: mode
+        }
+      });
+      await new Promise((r) => setTimeout(r, 200));
+    }
+
+    const [planTools, defaultTools, autoTools] = offered;
+    // Running a plan in plan mode is the opposite of planning.
+    expect(planTools ?? []).not.toContain("execute_plan");
+    expect(defaultTools).toContain("execute_plan");
+    expect(autoTools).toContain("execute_plan");
+
+    await runner.disconnect();
+  });
+
+  it("blocks execute_plan in plan mode without running any of it", async () => {
+    let callCount = 0;
+    const provider = async () =>
+      ({
+        provider: "mock",
+        async *generateMessagesTraced() {
+          callCount++;
+          if (callCount === 1) {
+            // Not offered in plan mode, but reachable — through a code action,
+            // or a model that names it anyway. The gate is what answers.
+            yield {
+              id: "tc-exec-plan",
+              name: "execute_plan",
+              args: {
+                title: "A Plan",
+                tasks: [
+                  {
+                    id: "gather",
+                    title: "Gather",
+                    depends_on: [],
+                    steps: [
+                      {
+                        id: "gather_read",
+                        instructions: "Read the files",
+                        depends_on: []
+                      }
+                    ]
+                  }
+                ]
+              }
+            };
+          } else {
+            yield { type: "chunk" as const, content: "here is the plan" };
+          }
+        },
+        async generateMessageTraced() {
+          return {};
+        },
+        generateMessage: vi.fn(),
+        hasToolSupport: async () => true,
+        getAvailableLanguageModels: async () => [],
+        getAvailableImageModels: async () => [],
+        getAvailableVideoModels: async () => [],
+        getAvailableTTSModels: async () => [],
+        getAvailableASRModels: async () => [],
+        getAvailableEmbeddingModels: async () => [],
+        getContainerEnv: () => ({}),
+        generateLoop: BaseProvider.prototype.generateLoop
+      }) as any;
+
+    const runner = new WebSocketClientSession({
+      resolveExecutor: noop,
+      resolveProvider: provider
+    });
+    await runner.connect(ws);
+    await runner.handleCommand({
+      command: "chat_message",
+      data: {
+        thread_id: "t-plan-exec-blocked",
+        content: "run it",
+        provider: "mock",
+        model: "m",
+        permission_mode: "plan"
+      }
+    });
+    await new Promise((r) => setTimeout(r, 200));
+
+    const msgs = sentMsgs(ws);
+    const toolMsg = msgs.find((m) => m.type === "message" && m.role === "tool");
+    expect(toolMsg).toBeDefined();
+    const content =
+      typeof toolMsg?.content === "string"
+        ? JSON.parse(toolMsg.content)
+        : toolMsg?.content;
+    expect(content.error).toBe("blocked_in_plan_mode");
+    // No task ever started.
+    expect(msgs.some((m) => m.type === "task_update")).toBe(false);
+
+    await runner.disconnect();
+  });
 });
 
 // ── dbMessageToProviderMessage ──────────────────────────────────────
