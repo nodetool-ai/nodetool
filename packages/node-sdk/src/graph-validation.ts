@@ -1045,6 +1045,241 @@ export function collectJsScriptLinks(
   return [...seen.values()];
 }
 
+/**
+ * DSL wiring handles stored as property values. The builders mint these to
+ * wire an edge; one that survives into a bag means the connection was never
+ * made, so the input is unconnected and the node producing it may be missing
+ * from the graph entirely. Runs before the registry guard: the marker is
+ * shape-level, not type-level.
+ */
+function collectLeftoverWiringHandleIssues(
+  nodeId: string,
+  nodeType: string,
+  node: GraphValidationNode
+): GraphValidationIssue[] {
+  const issues: GraphValidationIssue[] = [];
+  for (const [propName, value] of Object.entries(readProperties(node))) {
+    const handlePaths: string[] = [];
+    collectWiringHandlePaths(value, propName, handlePaths);
+    for (const path of handlePaths) {
+      issues.push({
+        severity: "error",
+        code: "leftover_wiring_handle",
+        nodeId,
+        nodeType,
+        message:
+          `Property "${path}" on node "${nodeId}" still holds a wiring ` +
+          "handle — the connection was never created, so the node " +
+          "producing this output may be missing from the graph. Re-wire " +
+          "it as an edge."
+      });
+    }
+  }
+  return issues;
+}
+
+/**
+ * Properties the node does not have. A misspelled name is dead data: the value
+ * sits in the graph, the real property keeps its default, and nothing reports
+ * it. A required property left unset is already an error elsewhere, so what
+ * reaches here is an optional one silently ignored — a warning, not a refusal.
+ * Nodes taking dynamic properties are exempt: an undeclared name is the
+ * feature there.
+ */
+function collectUnknownPropertyIssues(
+  nodeId: string,
+  nodeType: string,
+  node: GraphValidationNode,
+  meta: NodeMetadata
+): GraphValidationIssue[] {
+  if (meta.supports_dynamic_inputs === true) return [];
+  const declaredNames = new Set(meta.properties.map((prop) => prop.name));
+  const dynamic = readDynamicProperties(node);
+  const unknown = Object.keys(readProperties(node)).filter(
+    (name) =>
+      !declaredNames.has(name) &&
+      !isReservedHandle(name) &&
+      dynamic[name] === undefined
+  );
+  if (unknown.length === 0) return [];
+
+  const plural = unknown.length > 1;
+  const named = unknown.map((name) => `"${name}"`).join(", ");
+  const known = [...declaredNames].sort().join(", ");
+  return [
+    {
+      severity: "warning",
+      code: "unknown_property",
+      nodeId,
+      nodeType,
+      message: `${named} ${plural ? "are" : "is"} not a property of ${nodeType}, so ${plural ? "they are" : "it is"} ignored at run time.${known ? ` It takes: ${known}.` : ""}`
+    }
+  ];
+}
+
+/**
+ * Dynamic slot types: a JSON-Schema/TypeScript spelling of a type NodeTool
+ * already has passes the transport schema, then silently refuses to connect.
+ * Custom names stay legal — only known aliases are flagged. Inputs are
+ * reported before outputs.
+ */
+function collectSlotTypeAliasIssues(
+  nodeId: string,
+  nodeType: string,
+  node: GraphValidationNode
+): GraphValidationIssue[] {
+  const issues: GraphValidationIssue[] = [];
+  const check = (
+    direction: "input" | "output",
+    slotName: string,
+    slotType: unknown
+  ) => {
+    for (const alias of portTypeAliases(slotType)) {
+      issues.push({
+        severity: "error",
+        code: "slot_type_alias",
+        nodeId,
+        nodeType,
+        message:
+          `Dynamic ${direction} "${slotName}" is typed "${alias.used}", which is not a ` +
+          `NodeTool type — use "${alias.canonical}". A handle typed with an unknown ` +
+          "name will not connect."
+      });
+    }
+  };
+  for (const [slotName, slot] of Object.entries(readDynamicInputs(node))) {
+    check("input", slotName, slot?.type);
+  }
+  for (const [slotName, slotType] of Object.entries(
+    readDynamicOutputs(node)
+  )) {
+    check("output", slotName, slotType);
+  }
+  return issues;
+}
+
+/**
+ * A Code node's linked script: the node carries a *copy* of the pinned
+ * script's body, so the body itself is checked exactly like an inline one.
+ * What the link adds is a freshness question — does the node's shape still
+ * match the script it came from? Nothing here blocks a run, because a run no
+ * longer reads the script row.
+ */
+function collectJsScriptLinkIssues(
+  nodeId: string,
+  nodeType: string,
+  node: GraphValidationNode,
+  link: JsScriptLink,
+  connectedInputs: string[],
+  lookup: JsScriptLinkLookup | null | undefined
+): GraphValidationIssue[] {
+  const resolved = lookup ? lookup(link) : undefined;
+  if (!resolved) {
+    return [
+      {
+        severity: "warning",
+        code: lookup ? "js_script_missing" : "js_script_unverified",
+        nodeId,
+        nodeType,
+        message:
+          `Node "${nodeId}" is linked to JS script ${link.id} v${link.version}, ` +
+          (lookup
+            ? "which no longer exists, so the link's freshness cannot be " +
+              "verified. The node runs the body it copied at link time."
+            : "whose freshness cannot be verified here — no script store is " +
+              "available. The node runs the body it copied at link time.")
+      }
+    ];
+  }
+
+  // Compare the script to slots the node actually stores. Names the body reads
+  // are implicit handles for the editor; they must not hide a missing stored
+  // slot on a linked node.
+  const nodeInputs = [
+    ...Object.keys(readDynamicInputs(node)),
+    ...Object.keys(readDynamicProperties(node)),
+    ...connectedInputs
+  ].filter((name) => !isReservedHandle(name));
+  return jsScriptPortMismatches({
+    scriptInputs: resolved.document.inputs.map((port) => port.name),
+    scriptOutputs: resolved.document.outputs.map((port) => port.name),
+    nodeInputs,
+    nodeOutputs: Object.keys(readDynamicOutputs(node))
+  }).map((mismatch) => ({
+    severity: "error",
+    code: "js_script_ports",
+    nodeId,
+    nodeType,
+    message: `Node "${nodeId}": ${mismatch}.`
+  }));
+}
+
+/**
+ * Code nodes: the body is only checked by running it, and a run costs the
+ * whole graph. Everything decidable from the graph is decided here.
+ */
+function collectCodeNodeIssues(
+  nodeId: string,
+  nodeType: string,
+  node: GraphValidationNode,
+  connectedHandles: ReadonlySet<string>,
+  consumedHandles: ReadonlySet<string>,
+  sandboxModuleCatalog: SandboxModuleCatalog | null | undefined,
+  jsScriptLookup: JsScriptLinkLookup | null | undefined
+): GraphValidationIssue[] {
+  const props = readProperties(node);
+  const code = String(props.code ?? "");
+  const connectedInputs = [...connectedHandles].filter(
+    (name) => !isReservedHandle(name)
+  );
+  // A named `inputs.foo` / `stream("foo")` read is a handle. The editor shows
+  // it; an agent can connect to it. Count it as declared so the body is not
+  // rejected for a slot the code itself just created.
+  const availableInputs = new Set<string>([
+    ...Object.keys(readDynamicInputs(node)),
+    ...Object.keys(readDynamicProperties(node)),
+    ...connectedInputs,
+    ...inferredCodeInputNames(code)
+  ]);
+
+  const link = readJsScriptLink(props);
+  const issues: GraphValidationIssue[] = link
+    ? collectJsScriptLinkIssues(
+        nodeId,
+        nodeType,
+        node,
+        link,
+        connectedInputs,
+        jsScriptLookup
+      )
+    : [];
+
+  for (const codeIssue of validateCodeNodeBody({
+    code: props.code,
+    availableInputs: [...availableInputs].filter(
+      (name) => !isReservedHandle(name)
+    ),
+    connectedInputs,
+    declaredOutputs: [
+      ...new Set([
+        ...Object.keys(readDynamicOutputs(node)),
+        ...inferredCodeOutputNames(code)
+      ])
+    ],
+    connectedOutputs: [...consumedHandles],
+    sandboxModuleCatalog
+  })) {
+    issues.push({
+      severity: codeIssue.severity,
+      code: codeIssue.code,
+      nodeId,
+      nodeType,
+      message: `Node "${nodeId}": ${codeIssue.message}`
+    });
+  }
+  return issues;
+}
+
 export function validateGraph(
   rawGraph: GraphValidationInput,
   registry: GraphValidationRegistry,
@@ -1116,22 +1351,24 @@ export function validateGraph(
   // Source handles other nodes read — the output handles that have to exist.
   const consumedByNode = new Map<string, Set<string>>();
   const normEdges = edges.map(normalizeEdge);
+  const addHandle = (
+    map: Map<string, Set<string>>,
+    nodeId: string,
+    handle: string
+  ) => {
+    const set = map.get(nodeId);
+    if (set) {
+      set.add(handle);
+    } else {
+      map.set(nodeId, new Set([handle]));
+    }
+  };
   for (const e of normEdges) {
     if (e.target && e.targetHandle) {
-      let set = connectedByNode.get(e.target);
-      if (!set) {
-        set = new Set<string>();
-        connectedByNode.set(e.target, set);
-      }
-      set.add(e.targetHandle);
+      addHandle(connectedByNode, e.target, e.targetHandle);
     }
     if (e.source && e.sourceHandle && !isReservedHandle(e.sourceHandle)) {
-      let set = consumedByNode.get(e.source);
-      if (!set) {
-        set = new Set<string>();
-        consumedByNode.set(e.source, set);
-      }
-      set.add(e.sourceHandle);
+      addHandle(consumedByNode, e.source, e.sourceHandle);
     }
   }
 
@@ -1139,29 +1376,9 @@ export function validateGraph(
   // validating the shadowed copy's properties would report everything twice.
   for (const [id, node] of byId) {
     const type = String(node.type ?? "");
+    const connected = connectedByNode.get(id) ?? new Set<string>();
 
-    // ── DSL wiring handles stored as property values. The builders mint
-    // these to wire an edge; one that survives into a bag means the
-    // connection was never made, so the input is unconnected and the node
-    // producing it may be missing from the graph entirely. Checked before the
-    // registry guard: the marker is shape-level, not type-level.
-    for (const [propName, value] of Object.entries(readProperties(node))) {
-      const handlePaths: string[] = [];
-      collectWiringHandlePaths(value, propName, handlePaths);
-      for (const path of handlePaths) {
-        issues.push({
-          severity: "error",
-          code: "leftover_wiring_handle",
-          nodeId: id,
-          nodeType: type,
-          message:
-            `Property "${path}" on node "${id}" still holds a wiring ` +
-            "handle — the connection was never created, so the node " +
-            "producing this output may be missing from the graph. Re-wire " +
-            "it as an edge."
-        });
-      }
-    }
+    issues.push(...collectLeftoverWiringHandleIssues(id, type, node));
 
     if (!type || !registry.has(type)) continue;
     const propIssues = registry.validateNode(
@@ -1174,7 +1391,7 @@ export function validateGraph(
         dynamic_inputs: readDynamicInputs(node),
         dynamic_properties: readDynamicProperties(node)
       },
-      connectedByNode.get(id) ?? new Set<string>()
+      connected
     );
     for (const pi of propIssues) {
       issues.push({
@@ -1187,179 +1404,38 @@ export function validateGraph(
     }
 
     const meta = registry.getMetadata(type);
-
-    // ── Properties blank that the selected model declares required. The
-    // registry's own check above knows which properties this node requires; it
-    // cannot know which ones the model behind `model` requires.
     if (meta) {
+      // Properties blank that the selected model declares required. The
+      // registry's own check above knows which properties this node requires;
+      // it cannot know which ones the model behind `model` requires.
       issues.push(
         ...collectRequiredModelInputIssues(
           id,
           type,
           node,
           new Set(meta.properties.map((prop) => prop.name)),
-          connectedByNode.get(id) ?? new Set<string>(),
+          connected,
           registry
+        ),
+        ...collectUnknownPropertyIssues(id, type, node, meta)
+      );
+    }
+
+    issues.push(...collectSlotTypeAliasIssues(id, type, node));
+
+    // A `code` handle fed by an edge carries a body nothing here can see.
+    if (isJsCodeNodeType(type) && !connected.has("code")) {
+      issues.push(
+        ...collectCodeNodeIssues(
+          id,
+          type,
+          node,
+          connected,
+          consumedByNode.get(id) ?? new Set<string>(),
+          sandboxModuleCatalog,
+          options.jsScriptLookup
         )
       );
-    }
-
-    // ── Properties the node does not have. A misspelled name is dead data:
-    // the value sits in the graph, the real property keeps its default, and
-    // nothing reports it. A required property left unset is already an error
-    // above, so what reaches here is an optional one silently ignored — a
-    // warning, not a refusal. Nodes taking dynamic properties are exempt:
-    // an undeclared name is the feature there.
-    if (meta && meta.supports_dynamic_inputs !== true) {
-      const declaredNames = new Set(meta.properties.map((prop) => prop.name));
-      const dynamic = readDynamicProperties(node);
-      const unknown = Object.keys(readProperties(node)).filter(
-        (name) =>
-          !declaredNames.has(name) &&
-          !isReservedHandle(name) &&
-          dynamic[name] === undefined
-      );
-      if (unknown.length > 0) {
-        const plural = unknown.length > 1;
-        const named = unknown.map((name) => `"${name}"`).join(", ");
-        const known = [...declaredNames].sort().join(", ");
-        issues.push({
-          severity: "warning",
-          code: "unknown_property",
-          nodeId: id,
-          nodeType: type,
-          message: `${named} ${plural ? "are" : "is"} not a property of ${type}, so ${plural ? "they are" : "it is"} ignored at run time.${known ? ` It takes: ${known}.` : ""}`
-        });
-      }
-    }
-
-    // ── Dynamic slot types: a JSON-Schema/TypeScript spelling of a type
-    // NodeTool already has passes the transport schema, then silently refuses
-    // to connect. Custom names stay legal — only known aliases are flagged.
-    for (const [slotName, slot] of Object.entries(readDynamicInputs(node))) {
-      for (const alias of portTypeAliases(slot?.type)) {
-        issues.push({
-          severity: "error",
-          code: "slot_type_alias",
-          nodeId: id,
-          nodeType: type,
-          message:
-            `Dynamic input "${slotName}" is typed "${alias.used}", which is not a ` +
-            `NodeTool type — use "${alias.canonical}". A handle typed with an unknown ` +
-            "name will not connect."
-        });
-      }
-    }
-    for (const [slotName, slotType] of Object.entries(
-      readDynamicOutputs(node)
-    )) {
-      for (const alias of portTypeAliases(slotType)) {
-        issues.push({
-          severity: "error",
-          code: "slot_type_alias",
-          nodeId: id,
-          nodeType: type,
-          message:
-            `Dynamic output "${slotName}" is typed "${alias.used}", which is not a ` +
-            `NodeTool type — use "${alias.canonical}". A handle typed with an unknown ` +
-            "name will not connect."
-        });
-      }
-    }
-
-    // ── Code nodes: the body is only checked by running it, and a run costs
-    // the whole graph. Everything decidable from the graph is decided here.
-    // A `code` handle fed by an edge carries a body nothing here can see.
-    if (isJsCodeNodeType(type) && !connectedByNode.get(id)?.has("code")) {
-      const props = readProperties(node);
-      const connectedInputs = [...(connectedByNode.get(id) ?? [])].filter(
-        (name) => !isReservedHandle(name)
-      );
-      const availableInputs = new Set<string>([
-        ...Object.keys(readDynamicInputs(node)),
-        ...Object.keys(readDynamicProperties(node)),
-        ...connectedInputs
-      ]);
-      // A named `inputs.foo` / `stream("foo")` read is a handle. The editor
-      // shows it; an agent can connect to it. Count it as declared so the
-      // body is not rejected for a slot the code itself just created.
-      for (const name of inferredCodeInputNames(String(props.code ?? ""))) {
-        if (!isReservedHandle(name)) availableInputs.add(name);
-      }
-
-      // A linked node carries a *copy* of the pinned script's body, so the
-      // body below is checked exactly like an inline one. What the link adds
-      // is a freshness question: does the node's shape still match the script
-      // it came from? Nothing here blocks a run, because a run no longer reads
-      // the script row.
-      const link = readJsScriptLink(props);
-      if (link) {
-        const lookup = options.jsScriptLookup;
-        const resolved = lookup ? lookup(link) : undefined;
-        if (!resolved) {
-          issues.push({
-            severity: "warning",
-            code: lookup ? "js_script_missing" : "js_script_unverified",
-            nodeId: id,
-            nodeType: type,
-            message:
-              `Node "${id}" is linked to JS script ${link.id} v${link.version}, ` +
-              (lookup
-                ? "which no longer exists, so the link's freshness cannot be " +
-                  "verified. The node runs the body it copied at link time."
-                : "whose freshness cannot be verified here — no script store is " +
-                  "available. The node runs the body it copied at link time.")
-          });
-        } else {
-          // Compare the script to slots the node actually stores. Names the
-          // body reads are implicit handles for the editor; they must not
-          // hide a missing stored slot on a linked node.
-          const nodeInputs = [
-            ...Object.keys(readDynamicInputs(node)),
-            ...Object.keys(readDynamicProperties(node)),
-            ...connectedInputs
-          ].filter((name) => !isReservedHandle(name));
-          const nodeOutputs = Object.keys(readDynamicOutputs(node));
-          for (const mismatch of jsScriptPortMismatches({
-            scriptInputs: resolved.document.inputs.map((port) => port.name),
-            scriptOutputs: resolved.document.outputs.map((port) => port.name),
-            nodeInputs,
-            nodeOutputs
-          })) {
-            issues.push({
-              severity: "error",
-              code: "js_script_ports",
-              nodeId: id,
-              nodeType: type,
-              message: `Node "${id}": ${mismatch}.`
-            });
-          }
-        }
-      }
-
-      for (const codeIssue of validateCodeNodeBody({
-        code: props.code,
-        availableInputs: [...availableInputs].filter(
-          (name) => !isReservedHandle(name)
-        ),
-        connectedInputs,
-        declaredOutputs: [
-          ...new Set([
-            ...Object.keys(readDynamicOutputs(node)),
-            ...inferredCodeOutputNames(String(props.code ?? ""))
-          ])
-        ],
-        connectedOutputs: [...(consumedByNode.get(id) ?? [])],
-        sandboxModuleCatalog
-      })) {
-        issues.push({
-          severity: codeIssue.severity,
-          code: codeIssue.code,
-          nodeId: id,
-          nodeType: type,
-          message: `Node "${id}": ${codeIssue.message}`
-        });
-      }
     }
   }
 
