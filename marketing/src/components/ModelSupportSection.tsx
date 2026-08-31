@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Cpu, Zap, Layers, Box, Sparkles, Cloud, Bot, ShieldCheck } from "lucide-react";
 import {
@@ -69,10 +69,34 @@ const frontierModels = [
 export default function ModelSupportSection({
     reducedMotion = false,
 }: ModelSupportSectionProps) {
+    const sectionRef = useRef<HTMLElement>(null);
+    // Chrome cannot hand these marquees to the compositor, so every frame they
+    // run costs a style recalculation over ~50 moving cards — measured at 1.2s
+    // of the main thread per 3s on a 4x-throttled phone, whether or not the
+    // section is on screen. That is the tax that made the rest of the page
+    // (the hamburger menu among it) feel stuck. Run them only while visible.
+    const [onScreen, setOnScreen] = useState(false);
+
+    useEffect(() => {
+        const section = sectionRef.current;
+        if (!section || reducedMotion) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => setOnScreen(entry.isIntersecting),
+            { rootMargin: "200px" }
+        );
+        observer.observe(section);
+        return () => observer.disconnect();
+    }, [reducedMotion]);
+
+    const marqueesRunning = onScreen && !reducedMotion;
+
     return (
         <section
+            ref={sectionRef}
             aria-labelledby="model-support-title"
-            className="relative py-16 overflow-clip-safe"
+            className={`relative py-16 overflow-clip-safe${
+                marqueesRunning ? "" : " marquees-paused"
+            }`}
         >
             {/* Background Glow */}
             <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[800px] h-[500px] bg-emerald-900/20 blur-[120px] rounded-full pointer-events-none" />
@@ -233,6 +257,11 @@ export default function ModelSupportSection({
                 }
                 .animate-marquee-models {
                     animation: marquee-models 25s linear infinite;
+                }
+                .marquees-paused .animate-marquee,
+                .marquees-paused .animate-marquee-reverse,
+                .marquees-paused .animate-marquee-models {
+                    animation-play-state: paused;
                 }
             `}</style>
         </section>
