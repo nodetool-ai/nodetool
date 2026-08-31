@@ -83,6 +83,12 @@ const SaveButton: React.FC<{ onSave: (data: Data) => void }> = ({ onSave }) => {
 
 type PreviewWidth = "phone" | "tablet" | "fit";
 
+/** Puck sidebars start closed. Header buttons still toggle them. */
+const INITIAL_UI = {
+  leftSideBarVisible: false,
+  rightSideBarVisible: false
+};
+
 /**
  * Constrains the canvas preview width so container-query-driven widgets
  * (e.g. Columns) can be checked at narrow/wide breakpoints deliberately. The
@@ -253,6 +259,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
             <Puck
               config={appConfig}
               data={data}
+              ui={INITIAL_UI}
               onPublish={onPublish}
               onChange={onChange}
               overrides={overrides}
