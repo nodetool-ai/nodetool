@@ -62,6 +62,14 @@ import type { NodeData } from "./NodeData";
  * Merge one external graph write into a dirty canvas: run the engine against
  * the last known server copy, apply without an undo entry or dirty-flag
  * change, roll the sync tokens, and list what the draft refused.
+ *
+ * The base rolls wholly to `fresh`, so a refused node stays refused silently
+ * until the next write changes it again — the per-unit base the document
+ * surfaces keep (`MergeResult.nextBase`) is not used here. Reaching it would
+ * mean converting merged ReactFlow units back to graph shape, and that round
+ * trip is lossy: it made the *second* agent write to an untouched node read
+ * as a contest, which "takes a second agent write to a node the draft never
+ * touched" pins.
  */
 function mergeExternalGraph(
   store: NodeStore,

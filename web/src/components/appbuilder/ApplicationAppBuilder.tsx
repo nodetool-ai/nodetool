@@ -305,7 +305,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
       const draft = handler.document();
       if (!base) return;
 
-      const { doc: merged, conflicts } = mergeAppDocuments(
+      const { doc: merged, conflicts, nextBase } = mergeAppDocuments(
         appDocumentToMerge(base),
         appDocumentToMerge(draft),
         appDocumentToMerge(fresh.document),
@@ -340,12 +340,33 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
       // leaves the draft branched off the old base, and moving the base under
       // it would make every unit the server wrote read as a draft edit.
       revisionRef.current = fresh.updatedAt;
-      if (!replaced) lastSyncedRef.current = JSON.stringify(fresh.document);
+      if (!replaced) {
+        // The server copy, except in the units the draft refused, which keep
+        // the base they had. Rolling those forward too makes the refusal
+        // permanent and silent: the next write reads a refused unit as
+        // unchanged on the server, so the draft wins with nothing listed and
+        // the external value can never be taken again.
+        // SAFETY: same widening as the apply above — `ui` is an open record
+        // and only the keys the merge resolved are replaced.
+        const freshUi = fresh.document.ui as unknown as Record<string, unknown>;
+        lastSyncedRef.current = JSON.stringify({
+          ...fresh.document,
+          ui: {
+            ...freshUi,
+            content: nextBase.content,
+            zones: nextBase.zones,
+            root: { props: nextBase.rootProps }
+          } as AppDocument["ui"],
+          operations: nextBase.operations as AppDocument["operations"],
+          variables: nextBase.variables as AppDocument["variables"],
+          resources: nextBase.resources as AppDocument["resources"]
+        } satisfies AppDocument);
+      }
 
       const listed = conflicts.map((c) =>
         c.unit.id ? c : { ...c, unit: { ...c.unit, id: c.unit.kind } }
       );
-      useConflictStore.getState().setConflicts(`application:${applicationId}`, listed, {
+      useConflictStore.getState().addConflicts(`application:${applicationId}`, listed, {
         onAccept: (unitId) => {
           const entry =
             useConflictStore.getState().byKey[`application:${applicationId}`];
