@@ -471,6 +471,10 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         title: screenplay.title || board.title,
         aspectRatio: screenplay.aspect_ratio ?? board.aspectRatio,
         style: screenplay.style_bible ?? board.style,
+        // The screenplay's cast becomes the board's cast: `entityIds` is what
+        // seasons every shot prompt, and a screenplay that names entities the
+        // board does not carry would generate them out.
+        entityIds: screenplay.entity_ids ?? board.entityIds,
         // An explicit `brief` wins. A logline fills an empty brief only — the
         // editor directs *from* the brief, so a returned logline must never
         // overwrite what the user wrote.

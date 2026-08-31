@@ -101,6 +101,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         brief: board.brief,
         style: board.style,
         aspectRatio: board.aspectRatio,
+        entityIds: board.entityIds,
         hasScreenplay: board.screenplay !== null,
         scriptId: linkedScriptId(board),
         selectedShotId: board.activeShotId,
@@ -113,6 +114,12 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
 
       setScreenplay(screenplay: Screenplay) {
         store().setScreenplay(boardId, screenplay);
+        return getSnapshot();
+      },
+
+      setEntityIds(entityIds: string[]) {
+        requireBoard();
+        store().setEntityIds(boardId, entityIds);
         return getSnapshot();
       },
 

@@ -33,6 +33,7 @@ const snapshot = (): StoryboardSnapshot => ({
   brief: "A short film",
   style: "noir",
   aspectRatio: "16:9",
+  entityIds: [],
   hasScreenplay: true,
   scriptId: null,
   selectedShotId: null,
@@ -42,6 +43,7 @@ const snapshot = (): StoryboardSnapshot => ({
 const createMockHandler = (): jest.Mocked<StoryboardAgentHandler> => ({
   getSnapshot: jest.fn(),
   setScreenplay: jest.fn(),
+  setEntityIds: jest.fn(),
   addShot: jest.fn(),
   updateShot: jest.fn(),
   generateKeyframe: jest.fn(),
@@ -72,6 +74,7 @@ describe("ui_storyboard_* tools", () => {
       expect.arrayContaining([
         "ui_storyboard_get_state",
         "ui_storyboard_set_screenplay",
+        "ui_storyboard_set_entities",
         "ui_storyboard_add_shot",
         "ui_storyboard_update_shot",
         "ui_storyboard_generate_keyframe",
@@ -348,6 +351,34 @@ describe("ui_storyboard_* tools", () => {
       expect(play.style_bible).toBe("noir, high contrast");
     });
 
+    it("carries the screenplay's entityIds through as `entity_ids`", async () => {
+      const handler = createMockHandler();
+      handler.setScreenplay.mockReturnValue(snapshot());
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      await FrontendToolRegistry.call(
+        "ui_storyboard_set_screenplay",
+        {
+          storyboard_id: BOARD_ID,
+          screenplay: {
+            ...agentScreenplay,
+            entityIds: ["ent-buddy", "ent-winston"],
+            shots: [
+              { ...agentScreenplay.shots[0], entityIds: ["ent-buddy"] },
+              agentScreenplay.shots[1]
+            ]
+          }
+        },
+        "tc-sp-entities",
+        ctx
+      );
+
+      const play = handler.setScreenplay.mock.calls[0][0];
+      expect(play.entity_ids).toEqual(["ent-buddy", "ent-winston"]);
+      expect(play.shots[0].entity_ids).toEqual(["ent-buddy"]);
+      expect(play.shots[1].entity_ids).toBeUndefined();
+    });
+
     it("rejects a shot with no action, naming its position", async () => {
       const handler = createMockHandler();
       setStoryboardAgentHandler(BOARD_ID, handler);
@@ -470,6 +501,65 @@ describe("ui_storyboard_* tools", () => {
     );
 
     expect(handler.selectShot).toHaveBeenCalledWith(null);
+  });
+
+  describe("ui_storyboard_set_entities", () => {
+    it("casts the entities through the handler and reports them back", async () => {
+      const handler = createMockHandler();
+      handler.setEntityIds.mockReturnValue({
+        ...snapshot(),
+        entityIds: ["ent-buddy", "ent-coco"]
+      });
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      const result = (await FrontendToolRegistry.call(
+        "ui_storyboard_set_entities",
+        { storyboard_id: BOARD_ID, entity_ids: ["ent-buddy", "ent-coco"] },
+        "tc-ent-1",
+        ctx
+      )) as { ok: boolean } & StoryboardSnapshot;
+
+      expect(handler.setEntityIds).toHaveBeenCalledWith([
+        "ent-buddy",
+        "ent-coco"
+      ]);
+      expect(result.ok).toBe(true);
+      expect(result.entityIds).toEqual(["ent-buddy", "ent-coco"]);
+    });
+
+    it("clears the cast with an empty array", async () => {
+      const handler = createMockHandler();
+      handler.setEntityIds.mockReturnValue(snapshot());
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      await FrontendToolRegistry.call(
+        "ui_storyboard_set_entities",
+        { storyboard_id: BOARD_ID, entity_ids: [] },
+        "tc-ent-2",
+        ctx
+      );
+
+      expect(handler.setEntityIds).toHaveBeenCalledWith([]);
+    });
+
+    it("fails the call when the cast does not persist", async () => {
+      const handler = createMockHandler();
+      handler.setEntityIds.mockReturnValue(snapshot());
+      setStoryboardAgentHandler(BOARD_ID, handler);
+      registerStoryboardSaver(BOARD_ID, async () => ({
+        ok: false,
+        error: "offline"
+      }));
+
+      await expect(
+        FrontendToolRegistry.call(
+          "ui_storyboard_set_entities",
+          { storyboard_id: BOARD_ID, entity_ids: ["ent-buddy"] },
+          "tc-ent-3",
+          ctx
+        )
+      ).rejects.toThrow(/entity cast.*did not persist: offline/i);
+    });
   });
 
   describe("script link tools", () => {

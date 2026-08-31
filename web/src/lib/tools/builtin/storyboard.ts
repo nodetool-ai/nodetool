@@ -121,7 +121,7 @@ const shotStatusEnum = z.enum([
 FrontendToolRegistry.register({
   name: "ui_storyboard_get_state",
   description:
-    "Read the specified storyboard: title, brief, style, aspect ratio, whether a screenplay is loaded, the selected shot, and every shot with its index, slug, action, camera, motion, duration, status, and whether it has a rendered keyframe/clip. Call this first to discover the shot ids/indexes the other tools need.",
+    "Read the specified storyboard: title, brief, style, aspect ratio, the entity ids cast on the board, whether a screenplay is loaded, the selected shot, and every shot with its index, slug, action, camera, motion, duration, status, and whether it has a rendered keyframe/clip. Call this first to discover the shot ids/indexes the other tools need.",
   parameters: z.object({ storyboard_id: storyboardIdParam }),
   async execute({ storyboard_id }) {
     const snapshot = getStoryboardAgentHandler(storyboard_id).getSnapshot();
@@ -132,7 +132,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_set_screenplay",
   description:
-    "Load a full screenplay onto the specified storyboard, replacing its shots. `screenplay` is a Screenplay object ({ type:'screenplay', title, shots: Shot[], ... }) — typically the output of the Director node. Shot ids, indexes and statuses are filled in for you; every shot needs an `action`.",
+    "Load a full screenplay onto the specified storyboard, replacing its shots. `screenplay` is a Screenplay object ({ type:'screenplay', title, shots: Shot[], ... }) — typically the output of the Director node. Shot ids, indexes and statuses are filled in for you; every shot needs an `action`. A top-level `entityIds` casts those entities on the board (use ui_storyboard_set_entities to change the cast without replacing the shots); a shot's own `entityIds` overrides the board cast for that shot.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
     screenplay: screenplayParam
@@ -144,6 +144,31 @@ FrontendToolRegistry.register({
     const snapshot =
       getStoryboardAgentHandler(storyboard_id).setScreenplay(play);
     const persisted = await persistBoard(storyboard_id, "The screenplay");
+    return {
+      ok: true,
+      ...snapshot,
+      ...persisted,
+      url: docUrl("storyboard", storyboard_id)
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_storyboard_set_entities",
+  description:
+    "Cast library entities (characters, locations, styles, props) on the specified storyboard, replacing the current selection. Their descriptors and reference images season every shot's still and clip prompt — a style or location applies to every shot, a character or prop applies to the shots whose text names it. Pass an empty array to clear the cast. Discover ids with ui_entity_list.",
+  parameters: z.object({
+    storyboard_id: storyboardIdParam,
+    entity_ids: z
+      .array(z.string())
+      .describe(
+        "Entity (asset) ids to cast on the board, replacing the current selection."
+      )
+  }),
+  async execute({ storyboard_id, entity_ids }) {
+    const snapshot =
+      getStoryboardAgentHandler(storyboard_id).setEntityIds(entity_ids);
+    const persisted = await persistBoard(storyboard_id, "The entity cast");
     return {
       ok: true,
       ...snapshot,
