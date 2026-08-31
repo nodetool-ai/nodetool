@@ -51,7 +51,7 @@ For Supabase, both URLs are on the project's *Settings → Database* page.
 | Variable | Description |
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string (Supabase pooler or direct) |
-| `NODETOOL_DB_PATH` | SQLite file path (defaults to `~/.nodetool/nodetool.db`) |
+| `DB_PATH` | SQLite file path (defaults to `~/.local/share/nodetool/nodetool.sqlite3`). Do not set together with `DATABASE_URL` |
 
 ## Running Supabase Migrations
 

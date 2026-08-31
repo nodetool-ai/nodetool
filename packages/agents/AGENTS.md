@@ -1276,19 +1276,20 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `codeact-api-surfaces.ts`) whose fakes are named like real belt tools so
   the object-model prelude lights up. `tests/codeact-api-coverage.test.ts`
   fails when a namespace loses its last case.
-  Four more cases (`src/evals/codeact-sandbox-pack-cases.ts`) cover sandbox
+  Five more cases (`src/evals/codeact-sandbox-pack-cases.ts`) cover sandbox
   packages: importing a pack the session allows and computing from what it
   parses, reading a pack's SKILL.md through `get_sandbox_package_docs` instead
-  of guessing its API, reporting a pack as unavailable rather than working
+  of guessing its API, reading the catalog instead of guessing what is
+  installed, reporting a pack as unavailable rather than working
   around it, and using two packs in one action. A case names its allowlist in
   `sandboxPackages`, and the runner puts a catalog over the shipped packs
   (`shippedPackCatalog()`) on the context: the three host packs plus
-  `@nodetool-ai/sandbox-dsl`, whose modules are guest JavaScript the pack ships
-  outright — a pack with an npm dependency would need
+  `@nodetool-ai/sandbox-dsl` and `@nodetool-ai/sandbox-flow`, whose modules are
+  guest JavaScript the packs ship outright — a pack with an npm dependency
+  would need
   `@nodetool-ai/sandbox-compiler`, which this package does not depend on.
   `requiredSessionTools` scores tools the
   executor adds rather than the case, which the recorder cannot see.
-  Measured on `claude_agent_sdk`/sonnet: 4/4, mean score 1.00, ~2 actions each.
   `scripts/dump-codeact-run.ts <case> <provider> <model>` replays one case
   live and writes every action's code to `nodetool-debug/` — the tool to
   reach for before touching the action-contract prompt. Measured on

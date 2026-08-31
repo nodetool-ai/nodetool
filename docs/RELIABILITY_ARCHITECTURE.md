@@ -37,7 +37,7 @@ failures live in places unit tests structurally cannot reach:
 `WorkflowRunner` (`packages/kernel/src/runner.ts`), but each surface wires
 it by hand. The CLI (`packages/cli/src/nodetool.ts:751`), the debug
 harness (`packages/cli/src/debug/server-runner.ts:101`), the WebSocket
-runner (`packages/websocket/src/unified-websocket-runner.ts:2788`), the
+runner (`packages/websocket/src/session/job-execution.ts:1305`), the
 headless job runner, the HTTP API, the MCP server, and the browser
 workflow-runner each independently repeat graph hydration, executor
 resolution, param seeding, and result handling. A unit test exercises the
@@ -197,7 +197,7 @@ feature coverage. Seed set, mapped to the recent bug classes:
    guards (`runner.ts:1259`, `:1778`).
 6. **Mid-run cancellation** at three anchors: while queued, during a node,
    during streaming — including the tRPC DB-cancel/start race the code
-   comments at `unified-websocket-runner.ts:2834` describe.
+   comments at `session/job-execution.ts:1393` describe.
 7. **Python-node workflow** over the real stdio bridge against the real
    worker (nightly ring) and a *faithful* length-prefixed fake (PR ring) —
    closing the "no stdio fake exists" gap.
