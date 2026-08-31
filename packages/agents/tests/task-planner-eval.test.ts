@@ -11,6 +11,7 @@ import {
   checkTaskPlanExpectations,
   criticalPathDepth,
   TASK_PLANNER_EVAL_CASES,
+  AGENT_NODE_SYSTEM_PROMPT,
   type TaskPlannerEvalCase
 } from "../src/index.js";
 import type { Task, TaskPlan } from "../src/types.js";
@@ -306,6 +307,109 @@ describe("runTaskPlannerEval", () => {
     expect(text).toContain("fanout");
     // One task only → the minTasks>=2 check fails and is listed.
     expect(text).toContain("✗ tasks>=2");
+  });
+});
+
+describe("runTaskPlannerEval — the shape the product runs", () => {
+  /** Captures the planner's system prompt and the tools it was offered. */
+  function createCapturingProvider(seen: {
+    system: string;
+    tools: string[];
+  }): BaseProvider {
+    return {
+      provider: "capture",
+      hasToolSupport: async () => true,
+      getTotalCost: () => 0,
+      async *generateLoop(args: {
+        messages: Array<{ content?: unknown }>;
+      }): AsyncGenerator<ProviderStreamItem> {
+        seen.system = String(args.messages[0]?.content ?? "");
+        seen.tools = /Available execution tools[^]*/.test(
+          String(args.messages[1]?.content ?? "")
+        )
+          ? ["some"]
+          : [];
+        yield { type: "chunk", content: "", done: true };
+      }
+    } as unknown as BaseProvider;
+  }
+
+  const bare: TaskPlannerEvalCase = {
+    id: "bare",
+    description: "x",
+    objective: "Do a thing.",
+    expect: {}
+  };
+
+  it("plans behind the AgentNode's own system prompt by default", async () => {
+    const seen = { system: "", tools: [] as string[] };
+    await runTaskPlannerEval({
+      provider: createCapturingProvider(seen),
+      model: "m",
+      cases: [bare]
+    });
+    expect(seen.system).toContain(AGENT_NODE_SYSTEM_PROMPT);
+    expect(seen.system).toContain("TaskArchitect");
+  });
+
+  it("scores the bare contract when the caller clears the preamble", async () => {
+    const seen = { system: "", tools: [] as string[] };
+    await runTaskPlannerEval({
+      provider: createCapturingProvider(seen),
+      model: "m",
+      cases: [bare],
+      systemPrompt: ""
+    });
+    expect(seen.system).not.toContain(AGENT_NODE_SYSTEM_PROMPT);
+    expect(seen.system).toContain("TaskArchitect");
+  });
+
+  it('offers no tools for a case whose toolbelt is "none"', async () => {
+    const seen = { system: "", tools: [] as string[] };
+    await runTaskPlannerEval({
+      provider: createCapturingProvider(seen),
+      model: "m",
+      cases: [{ ...bare, toolbelt: "none" }]
+    });
+    expect(seen.tools).toEqual([]);
+    expect(seen.system).toContain("## No Execution Tools");
+    expect(seen.system).not.toContain("generate_image");
+  });
+});
+
+describe("forbidToolWork", () => {
+  const planWith = (instructions: string): TaskPlan => ({
+    title: "p",
+    tasks: [
+      {
+        ...task("a", ["a_1"]),
+        steps: [
+          {
+            id: "a_1",
+            instructions,
+            completed: false,
+            dependsOn: [],
+            logs: []
+          }
+        ]
+      }
+    ]
+  });
+
+  it("fails a step that instructs work no tool can do", () => {
+    const checks = checkTaskPlanExpectations(
+      planWith("Search the web for node-based workflow tools."),
+      { forbidToolWork: true }
+    );
+    expect(checks.find((c) => c.name === "no-tool-work")?.pass).toBe(false);
+  });
+
+  it("passes a step a model can answer from its own knowledge", () => {
+    const checks = checkTaskPlanExpectations(
+      planWith("List the node-based workflow tools you know and how they differ."),
+      { forbidToolWork: true }
+    );
+    expect(checks.find((c) => c.name === "no-tool-work")?.pass).toBe(true);
   });
 });
 

@@ -8,7 +8,11 @@
  */
 import { describe, expect, it } from "vitest";
 import { Command } from "commander";
-import { registerEvalCommand, EVAL_SUITES } from "../src/commands/eval.js";
+import {
+  registerEvalCommand,
+  EVAL_SUITES,
+  evalGateFailures
+} from "../src/commands/eval.js";
 
 function evalCommand() {
   const program = new Command();
@@ -49,9 +53,61 @@ describe("registerEvalCommand", () => {
           "--max-retries",
           "--judge-model",
           "--min-success",
+          "--min-score",
+          "--system-prompt",
           "--no-find-model"
         ])
       );
     }
+  });
+});
+
+describe("evalGateFailures", () => {
+  const green = { successRate: 1, meanScore: 1 };
+
+  it("passes a run that clears both thresholds", () => {
+    expect(
+      evalGateFailures(green, "task-planner", {
+        minScore: "1",
+        minSuccess: "1"
+      })
+    ).toEqual([]);
+  });
+
+  it("fails a degraded plan that --min-success alone would pass", () => {
+    // The shape the planner suite actually produces on a regression: the plan
+    // committed (success 1.0) but lost half its parallelism (score 0.92).
+    const degraded = { successRate: 1, meanScore: 0.92 };
+    expect(evalGateFailures(degraded, "task-planner", { minSuccess: "1" })).toEqual(
+      []
+    );
+    const failures = evalGateFailures(degraded, "task-planner", {
+      minScore: "1",
+      minSuccess: "1"
+    });
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain("0.92");
+  });
+
+  it("fails loudly when the suite reports no score", () => {
+    const failures = evalGateFailures(
+      { successRate: 1 },
+      "code-gen",
+      { minScore: "0.5" }
+    );
+    expect(failures).toEqual(['--min-score: suite "code-gen" reports no score']);
+  });
+
+  it("reports both gates when both are missed", () => {
+    expect(
+      evalGateFailures({ successRate: 0.4, meanScore: 0.4 }, "task-planner", {
+        minScore: "0.8",
+        minSuccess: "0.8"
+      })
+    ).toHaveLength(2);
+  });
+
+  it("is silent when neither threshold is given", () => {
+    expect(evalGateFailures({ successRate: 0 }, "task-planner", {})).toEqual([]);
   });
 });

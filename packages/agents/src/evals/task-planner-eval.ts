@@ -36,6 +36,13 @@ import {
 const SYNTHESIS_PATTERN =
   /\b(aggregat\w*|synthesi[sz]\w*|assembl\w*|consolidat\w*|final report|final answer|combine (?:the )?results?|compile (?:the )?(?:results?|report|findings))\b/i;
 
+/**
+ * Instruction verbs that need a tool: retrieval, I/O, or generation. Matched
+ * against step instructions for {@link TaskPlannerEvalExpectations.forbidToolWork}.
+ */
+const TOOL_WORK_PATTERN =
+  /\b(search|google|browse|crawl|scrape|fetch|download|visit|look up|read the file|write (?:the |a )?file|save to|generate an? (?:image|video|audio)|call the api|query the api)\b/i;
+
 export interface TaskPlanCaseResult {
   caseId: string;
   description: string;
@@ -82,6 +89,13 @@ export interface TaskPlanEvalReport {
   };
 }
 
+/**
+ * The `AgentNode`'s default system prompt, mirrored here so the suite plans
+ * behind the same preamble a real run does. Kept as a literal rather than
+ * imported: `packages/agents` sits below `llm-nodes` in the dependency order.
+ */
+export const AGENT_NODE_SYSTEM_PROMPT = "You are a friendly assistant";
+
 export interface RunTaskPlannerEvalOptions {
   provider: BaseProvider;
   model: string;
@@ -91,6 +105,12 @@ export interface RunTaskPlannerEvalOptions {
   cases?: readonly TaskPlannerEvalCase[];
   /** Planning attempts per case. */
   maxRetries?: number;
+  /**
+   * The caller preamble every case plans behind. Defaults to the `AgentNode`'s
+   * own default system prompt, because that is what the product sends; pass
+   * `""` to score the bare planner contract instead.
+   */
+  systemPrompt?: string;
   signal?: AbortSignal;
   /** Progress callback (one line per event, for CLI display). */
   onEvent?: (line: string) => void;
@@ -233,6 +253,20 @@ export function checkTaskPlanExpectations(
     });
   }
 
+  // An empty toolbelt cannot search, fetch, or generate. A planner told so
+  // still writes "search the web for …" unless the contract says otherwise,
+  // and the run then returns the model's own recall dressed as findings.
+  if (expect.forbidToolWork) {
+    const offender = steps.find((s) => TOOL_WORK_PATTERN.test(s.instructions));
+    checks.push({
+      name: "no-tool-work",
+      pass: offender === undefined,
+      detail: offender
+        ? `step "${offender.id}" instructs work no tool can do`
+        : undefined
+    });
+  }
+
   for (const pattern of expect.requiredInstructionPatterns ?? []) {
     const re = new RegExp(pattern, "i");
     const pass = re.test(instructions);
@@ -282,10 +316,15 @@ async function runCase(
   const costBefore = opts.provider.getTotalCost();
   const startedAt = Date.now();
 
+  // Run the shape the product runs. An `AgentNode` always supplies a system
+  // prompt and often no tools at all; constructing the planner bare made this
+  // suite blind to both — it stayed green while every node-driven plan was
+  // authored without the TaskArchitect contract.
   const planner = new TaskPlanner({
     provider: opts.provider,
     model: opts.model,
-    tools: createPlannerTools(),
+    tools: evalCase.toolbelt === "none" ? [] : createPlannerTools(),
+    systemPrompt: opts.systemPrompt ?? AGENT_NODE_SYSTEM_PROMPT,
     outputSchema: evalCase.outputSchema,
     inputs: evalCase.inputs,
     maxRetries: opts.maxRetries,

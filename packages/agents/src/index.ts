@@ -785,7 +785,8 @@ export {
   runTaskPlannerEval,
   formatTaskPlanReport,
   checkTaskPlanExpectations,
-  criticalPathDepth
+  criticalPathDepth,
+  AGENT_NODE_SYSTEM_PROMPT
 } from "./evals/task-planner-eval.js";
 export type {
   TaskPlanCaseResult,

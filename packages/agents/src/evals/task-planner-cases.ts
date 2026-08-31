@@ -30,6 +30,12 @@ export interface TaskPlannerEvalExpectations {
   requiredInstructionPatterns?: string[];
   /** Opt out of the universal "no synthesis task" check. */
   allowSynthesisTask?: boolean;
+  /**
+   * No step may instruct work the toolbelt cannot do. Checked against the
+   * instruction text rather than the `tools` array, because a planner with no
+   * tools writes "search the web for …" in prose instead of routing.
+   */
+  forbidToolWork?: boolean;
 }
 
 export interface TaskPlannerEvalCase {
@@ -40,8 +46,17 @@ export interface TaskPlannerEvalCase {
   outputSchema?: Record<string, unknown>;
   /** Case needs configured model providers — skipped when there are none. */
   needsModelProviders?: boolean;
+  /**
+   * The toolbelt this case plans against. `"all"` offers the declarative
+   * library; `"none"` offers nothing, which is the shape an `AgentNode` with
+   * no tools selected actually runs — the majority of real runs, and the one
+   * the suite could not see before.
+   */
+  toolbelt?: "all" | "none";
   expect: TaskPlannerEvalExpectations;
 }
+
+import { PLANNER_TOOL_NAMES } from "./planner-tools.js";
 
 export const TASK_PLANNER_EVAL_CASES: readonly TaskPlannerEvalCase[] = [
   {
@@ -110,6 +125,20 @@ export const TASK_PLANNER_EVAL_CASES: readonly TaskPlannerEvalCase[] = [
       minIndependentTasks: 3,
       requiredTools: ["generate_image"],
       requiredInstructionPatterns: ["lighthouse", "harbour"]
+    }
+  },
+  {
+    id: "no-tools-research",
+    description:
+      "With an empty toolbelt the plan must not instruct steps to search or fetch",
+    objective:
+      "Plan a research project on node-based AI workflow tools: what exists, how they differ architecturally, and where they fall short.",
+    toolbelt: "none",
+    expect: {
+      minTasks: 3,
+      minIndependentTasks: 3,
+      forbidToolWork: true,
+      forbiddenTools: [...PLANNER_TOOL_NAMES]
     }
   },
   {

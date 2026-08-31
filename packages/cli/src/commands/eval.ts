@@ -31,10 +31,16 @@ interface EvalCliOptions {
   maxIterations?: string;
   timeout?: string;
   minSuccess?: string;
+  /** Gate on the mean expectation score, for suites that compute one. */
+  minScore?: string;
   /** `provider/model` for the suites that judge their own output. */
   judgeModel?: string;
   /** commander negated flag: `--no-find-model` sets this to false. */
   findModel?: boolean;
+  /** Caller preamble for the planner suites; `--bare-prompt` clears it. */
+  systemPrompt?: string;
+  /** commander negated flag: `--no-agent-prompt` sets this to false. */
+  agentPrompt?: boolean;
 }
 
 /** Metadata for one eval case, shown by `--list`. */
@@ -75,6 +81,53 @@ interface EvalRunDeps {
   log: (line: string) => void;
   /** Progress callback (one line per event, for CLI display). */
   onEvent: (line: string) => void;
+  /**
+   * Caller system prompt the planner suites plan behind. Undefined keeps the
+   * suite's own default (the AgentNode's prompt — what the product sends);
+   * `""` scores the bare planner contract.
+   */
+  systemPrompt?: string;
+}
+
+/**
+ * Threshold gates for one suite run: the reasons it should exit non-zero.
+ * Extracted from the command action so both gates — including the failing
+ * paths, which otherwise only a paid model run reaches — are unit-testable.
+ */
+export function evalGateFailures(
+  result: Pick<EvalRunResult, "successRate" | "meanScore">,
+  suiteId: string,
+  opts: Pick<EvalCliOptions, "minScore" | "minSuccess">
+): string[] {
+  const failures: string[] = [];
+
+  if (opts.minScore !== undefined) {
+    const threshold = parseNumericOption(opts.minScore, "--min-score", {
+      min: 0,
+      max: 1
+    });
+    if (result.meanScore === undefined) {
+      failures.push(`--min-score: suite "${suiteId}" reports no score`);
+    } else if (result.meanScore < threshold) {
+      failures.push(
+        `Mean score ${result.meanScore.toFixed(2)} below threshold ${threshold}`
+      );
+    }
+  }
+
+  if (opts.minSuccess !== undefined) {
+    const threshold = parseNumericOption(opts.minSuccess, "--min-success", {
+      min: 0,
+      max: 1
+    });
+    if (result.successRate < threshold) {
+      failures.push(
+        `Success rate ${result.successRate.toFixed(2)} below threshold ${threshold}`
+      );
+    }
+  }
+
+  return failures;
 }
 
 /** Outcome of a suite run, consumed by the shared runner. */
@@ -85,6 +138,13 @@ interface EvalRunResult {
   formatted: string;
   /** Overall success rate (0..1) for the `--min-success` gate. */
   successRate: number;
+  /**
+   * Mean expectation score (0..1), where the suite computes one, for the
+   * `--min-score` gate. `successRate` alone cannot gate quality: the planner
+   * suites count a *committed* plan as a success, so a plan that lost half its
+   * parallelism still reports pass. Both gates apply when both are given.
+   */
+  meanScore?: number;
 }
 
 /**
@@ -162,7 +222,8 @@ const graphPlannerSuite: EvalSuite = {
     return {
       report,
       formatted: formatEvalReport(report),
-      successRate: report.summary.successRate
+      successRate: report.summary.successRate,
+      meanScore: report.summary.meanScore
     };
   }
 };
@@ -367,7 +428,8 @@ const codeActSuite: EvalSuite = {
     return {
       report,
       formatted: formatCodeActReport(report),
-      successRate: report.summary.successRate
+      successRate: report.summary.successRate,
+      meanScore: report.summary.meanScore
     };
   }
 };
@@ -403,13 +465,15 @@ const taskPlannerSuite: EvalSuite = {
       providers: deps.providers,
       cases,
       maxRetries: deps.maxRetries,
+      systemPrompt: deps.systemPrompt,
       onEvent: deps.onEvent
     });
 
     return {
       report,
       formatted: formatTaskPlanReport(report),
-      successRate: report.summary.successRate
+      successRate: report.summary.successRate,
+      meanScore: report.summary.meanScore
     };
   }
 };
@@ -494,7 +558,8 @@ const appBuildSuite: EvalSuite = {
     return {
       report,
       formatted: formatAppBuildReport(report),
-      successRate: report.summary.greenWithinBudgetRate
+      successRate: report.summary.greenWithinBudgetRate,
+      meanScore: report.summary.meanScore
     };
   }
 };
@@ -559,7 +624,8 @@ function makeToolLoopSuite<TFinal>(
       return {
         report,
         formatted: formatToolLoopReport(report),
-        successRate: report.summary.successRate
+        successRate: report.summary.successRate,
+        meanScore: report.summary.meanScore
       };
     }
   };
@@ -718,6 +784,14 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
         if (!opts.json) console.log(line);
       }
     };
+    // `--no-agent-prompt` scores the bare contract; `--system-prompt` swaps in
+    // another caller's. Neither given, the suite plans behind the prompt the
+    // product actually sends.
+    if (opts.agentPrompt === false) {
+      runOptions.systemPrompt = "";
+    } else if (opts.systemPrompt !== undefined) {
+      runOptions.systemPrompt = opts.systemPrompt;
+    }
     if (judge) {
       runOptions.judge = judge;
     }
@@ -739,18 +813,9 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
       console.log("\n" + result.formatted);
     }
 
-    if (opts.minSuccess !== undefined) {
-      const threshold = parseNumericOption(opts.minSuccess, "--min-success", {
-        min: 0,
-        max: 1
-      });
-      if (result.successRate < threshold) {
-        console.error(
-          `Success rate ${result.successRate.toFixed(2)} below threshold ${threshold}`
-        );
-        process.exitCode = 1;
-      }
-    }
+    const gateFailures = evalGateFailures(result, suite.id, opts);
+    for (const line of gateFailures) console.error(line);
+    if (gateFailures.length > 0) process.exitCode = 1;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(message);
@@ -823,6 +888,18 @@ export function registerEvalCommand(program: Command): void {
       .option(
         "--no-find-model",
         "Run without configured model providers (skips model-dependent cases)"
+      )
+      .option(
+        "--min-score <rate>",
+        "Exit non-zero when the mean expectation score is below this threshold (0..1)"
+      )
+      .option(
+        "--system-prompt <text>",
+        "Caller preamble the planner suites plan behind (default: the AgentNode's own prompt)"
+      )
+      .option(
+        "--no-agent-prompt",
+        "Plan with no caller preamble — scores the bare planner contract"
       )
       .action((opts: EvalCliOptions) => runSuite(suite, opts));
   }
