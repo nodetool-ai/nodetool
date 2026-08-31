@@ -110,6 +110,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   edit_storyboard: "write",
   edit_timeline: "write",
   embed_text: "write",
+  execute_plan: "external",
   export_workflow_digraph: "read",
   extract_pdf_tables: "read",
   extract_pdf_text: "read",

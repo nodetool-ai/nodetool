@@ -126,9 +126,14 @@ The permission chip sets how far the agent may act on its own. It's per-thread, 
 In Plan mode a request that needs several steps is decomposed by the task
 planner rather than described in prose: the agent calls `create_plan`, and the
 plan arrives as a DAG of tasks and steps with the independent ones marked, so
-you can see what would run concurrently. Nothing in it executes — switch to
-Default or Auto to act on it. A question that needs no plan still gets a plain
-answer.
+you can see what would run concurrently. Nothing in it executes. A question
+that needs no plan still gets a plain answer.
+
+Switch to Default or Auto and say to run it, and the agent calls `execute_plan`
+with that same plan — not a fresh one derived from the conversation. You are
+asked once, for the plan as a whole, and then tasks stream in as they finish,
+independent ones together. Ask for a change first ("run it without the last
+task") and the amended plan is what runs.
 
 In Auto the agent labels every code action it writes `low` or `high` risk. A `low` action — reading, computing, work you asked for and can undo — runs with no prompt. A `high` one — deleting or overwriting something, publishing or sending anything outside the account, spending real money — asks you first, once, showing the program it wants to run. Unlabeled counts as high. "Allow for this chat" stops the asking for the rest of the thread.
 

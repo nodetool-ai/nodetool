@@ -6,6 +6,10 @@
  * task in isolation and against previously added tasks so failures are
  * caught at the moment they're introduced, pointing to one task rather
  * than the whole plan.
+ *
+ * `buildPlanFromTasks` runs the same rules over a plan that already exists —
+ * the object `execute_plan` is handed — so a plan is validated by one
+ * authority whether a model built it call by call or pasted it back whole.
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -238,6 +242,103 @@ export class PlanBuilder {
     }
     return errors;
   }
+}
+
+/**
+ * Build a committed plan from a plan *object* rather than from a model's
+ * `add_task` calls. This is the shape `create_plan` hands the user and
+ * `execute_plan` takes back.
+ *
+ * The rules are {@link PlanBuilder}'s — one authority for what a plan may be.
+ * The only thing added here is ordering: `addTask` requires a dependency to be
+ * added before its dependent, which a hand-edited plan need not satisfy, so
+ * the tasks are sorted first. Kahn's algorithm leaves exactly the tasks in a
+ * dependency cycle unplaced, so the residue names the cycle instead of the
+ * plan being rejected as "depends on a task that has not been added yet".
+ */
+export function buildPlanFromTasks(
+  title: string,
+  rawTasks: readonly Record<string, unknown>[]
+): { ok: true; plan: TaskPlan } | { ok: false; errors: string[] } {
+  const builder = new PlanBuilder();
+  const ordered = orderTasksByDependency(rawTasks);
+  if (!ordered.ok) return { ok: false, errors: ordered.errors };
+  for (const raw of ordered.tasks) {
+    const added = builder.addTask(raw);
+    if (!added.ok) return { ok: false, errors: added.errors };
+  }
+  return builder.finish(title);
+}
+
+/** A raw task's declared id, or null when it declares none. */
+function rawTaskId(raw: Record<string, unknown>): string | null {
+  return isNonEmptyString(raw["id"]) ? raw["id"] : null;
+}
+
+/** A raw task's declared task-level dependencies, in either casing. */
+function rawTaskDependsOn(raw: Record<string, unknown>): string[] {
+  const value = Array.isArray(raw["depends_on"])
+    ? raw["depends_on"]
+    : Array.isArray(raw["dependsOn"])
+      ? raw["dependsOn"]
+      : [];
+  return value.filter((id): id is string => isNonEmptyString(id));
+}
+
+/**
+ * Sort tasks so every dependency precedes its dependents, reporting the two
+ * graph problems the sort itself discovers: a dependency on a task the plan
+ * does not contain, and a cycle.
+ */
+function orderTasksByDependency(
+  rawTasks: readonly Record<string, unknown>[]
+):
+  | { ok: true; tasks: Record<string, unknown>[] }
+  | { ok: false; errors: string[] } {
+  const ids = rawTasks.map(rawTaskId);
+  const known = new Set(ids.filter((id): id is string => id !== null));
+  const label = (index: number): string => ids[index] ?? `#${index + 1}`;
+
+  const errors: string[] = [];
+  const deps = rawTasks.map((raw, index) => {
+    const declared = rawTaskDependsOn(raw);
+    for (const dep of declared) {
+      if (!known.has(dep)) {
+        errors.push(
+          `Task '${label(index)}' depends on task '${dep}', which is not in the plan. Add that task or drop the dependency.`
+        );
+      }
+    }
+    return declared.filter((dep) => known.has(dep));
+  });
+  if (errors.length > 0) return { ok: false, errors };
+
+  const pending = new Set(rawTasks.map((_, index) => index));
+  const placed = new Set<string>();
+  const tasks: Record<string, unknown>[] = [];
+  let progressed = true;
+  while (pending.size > 0 && progressed) {
+    progressed = false;
+    for (const index of [...pending]) {
+      if (!deps[index].every((dep) => placed.has(dep))) continue;
+      pending.delete(index);
+      const id = ids[index];
+      if (id !== null) placed.add(id);
+      tasks.push(rawTasks[index]);
+      progressed = true;
+    }
+  }
+
+  if (pending.size > 0) {
+    const cyclic = [...pending].map(label);
+    return {
+      ok: false,
+      errors: [
+        `Circular dependency among tasks: ${cyclic.join(", ")}. Each one depends, directly or through others, on another in that set.`
+      ]
+    };
+  }
+  return { ok: true, tasks };
 }
 
 // ---------------------------------------------------------------------------

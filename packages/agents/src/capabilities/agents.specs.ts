@@ -177,11 +177,101 @@ export const createPlanSpec: CapabilitySpec = {
   }
 };
 
+export const EXECUTE_PLAN_DESCRIPTION = [
+  "Run a plan that already exists — the one `create_plan` produced and the",
+  "user has seen. It EXECUTES: every step runs with the tools it needs, and",
+  "independent tasks run concurrently.",
+  "",
+  "Pass the plan itself, not a reference to it: `title` plus the `tasks`",
+  "array exactly as `create_plan` returned it. Copy it verbatim unless the",
+  "user asked for a change (dropping a task, reordering, editing a step) — in",
+  "that case pass the amended plan, and it is the amended plan that runs.",
+  "",
+  "Tasks stream into the conversation as they finish. Each task's result is",
+  "also written to shared memory under `task:<task id>`, so read it back with",
+  "`read_shared` instead of re-running the work. The call returns how every",
+  "task settled; write the answer yourself from those results."
+].join("\n");
+
+const EXECUTE_PLAN_STEP_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    id: {
+      type: "string",
+      description: "Step id, unique across the whole plan."
+    },
+    instructions: {
+      type: "string",
+      description: "What this step does, self-contained."
+    },
+    depends_on: {
+      type: "array",
+      items: { type: "string" },
+      description:
+        "Ids of steps in the same task that must finish first ([] for none)."
+    }
+  },
+  required: ["id", "instructions"]
+};
+
+export const EXECUTE_PLAN_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    title: { type: "string", description: "The plan's title." },
+    tasks: {
+      type: "array",
+      description:
+        "The plan's tasks, as `create_plan` returned them. Dependencies form a DAG; independent tasks run concurrently.",
+      items: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+            description: "Task id, unique across the plan."
+          },
+          title: { type: "string", description: "Task title." },
+          depends_on: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "Ids of tasks that must finish first ([] for an independent task)."
+          },
+          steps: {
+            type: "array",
+            items: EXECUTE_PLAN_STEP_SCHEMA,
+            description: "The task's steps, forming their own DAG."
+          }
+        },
+        required: ["id", "title", "steps"]
+      }
+    }
+  },
+  required: ["title", "tasks"]
+};
+
+export const executePlanSpec: CapabilitySpec = {
+  name: "execute_plan",
+  description: EXECUTE_PLAN_DESCRIPTION,
+  inputSchema: EXECUTE_PLAN_SCHEMA,
+  // Running a plan is the opposite of planning: every step acts, with whatever
+  // the belt offers. `external` is what blocks it in plan mode and asks once
+  // everywhere else — the confirmation for the whole plan. Each step's own
+  // tool calls stay gated inside the child loops.
+  category: "external",
+  userMessage: (params) => {
+    const title = isString(params["title"]) ? params["title"].trim() : "";
+    const tasks = Array.isArray(params["tasks"]) ? params["tasks"].length : 0;
+    const scope = tasks === 1 ? "1 task" : `${tasks} tasks`;
+    return title ? `Running plan: ${title} (${scope})` : `Running plan (${scope})`;
+  }
+};
+
 /** Every spec this module declares, in declaration order. */
 export const agentsSpecs: readonly CapabilitySpec[] = [
   runSubtaskSpec,
   runSearchSpec,
   startSubtaskSpec,
   waitSubtasksSpec,
-  createPlanSpec
+  createPlanSpec,
+  executePlanSpec
 ];

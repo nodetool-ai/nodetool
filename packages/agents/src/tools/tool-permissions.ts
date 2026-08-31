@@ -313,6 +313,11 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
 
   // --- external: third-party side effects ---
   browser: "external",
+  // Running a plan is not one action but every action in it, with whatever the
+  // belt offers — writes, spend, third-party calls. `external` blocks it in
+  // plan mode (running a plan there is the opposite of planning) and asks once
+  // everywhere else; each step's own calls are still gated inside its loop.
+  execute_plan: "external",
   // Publishing a workflow discloses it outside the account, and cannot be
   // taken back from whoever read it while it was public.
   set_workflow_access: "external",

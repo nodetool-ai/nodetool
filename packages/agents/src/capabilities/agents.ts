@@ -1,8 +1,11 @@
 /**
- * The `agents` capability module — delegation to a child agent loop.
+ * The `agents` capability module — delegation to a child agent loop, and the
+ * chat's plan mode.
  *
- * Four capabilities: `run_subtask` (blocking), `run_search` (read-only
- * child), `start_subtask` (background spawn) and `wait_subtasks` (collect).
+ * Four delegation capabilities: `run_subtask` (blocking), `run_search`
+ * (read-only child), `start_subtask` (background spawn) and `wait_subtasks`
+ * (collect). Two plan capabilities: `create_plan` builds a task DAG and runs
+ * none of it, `execute_plan` takes that DAG back and runs it.
  * Unlike every other ported namespace their classes stay exactly as they
  * are. `SubAgentTool` is not a schema plus a function: it owns the depth gate, the child context, the
  * streamed events, the tagging, and the settlement, and the runner constructs
@@ -16,8 +19,10 @@
  * `Tool.executeTool`. A run with no `subAgent` cannot delegate, and says so
  * naming the field rather than failing somewhere inside the child loop.
  *
- * Both are classified `read`: the call itself has no side effects, and the
- * child's own tools are gated in the child loop.
+ * The delegation capabilities are classified `read`: the call itself has no
+ * side effects, and the child's own tools are gated in the child loop. So is
+ * `create_plan`, which is what keeps it callable in plan mode. `execute_plan`
+ * is `external` — it is the one call here that acts.
  *
  * Design: docs/tool-class-retirement-design.md § "PRs 4–9 — remaining
  * namespaces" (`/agents`).
@@ -39,11 +44,16 @@ import {
   startSubtaskSpec,
   waitSubtasksSpec,
   createPlanSpec,
+  executePlanSpec,
   RUN_SUBTASK_DESCRIPTION,
   RUN_SUBTASK_SCHEMA,
   RUN_SEARCH_SCHEMA
 } from "./agents.specs.js";
-import { isString } from "../utils/type-guards.js";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isString
+} from "../utils/type-guards.js";
 
 export {
   RUN_SUBTASK_DESCRIPTION,
@@ -168,7 +178,7 @@ const createPlan: CapabilityExport = {
       provider: runtime.provider,
       model: runtime.model,
       tools: runtime.parentTools().filter((t) => t.name !== createPlanSpec.name),
-      ...(run.context.signal ? { signal: run.context.signal } : {})
+      signal: run.context.signal
     });
 
     const generator = planner.planMultiTask(objective, run.context);
@@ -212,13 +222,156 @@ const createPlan: CapabilityExport = {
   }
 };
 
-/** Every delegation capability. */
+/** What one task of an executed plan ended up as. */
+interface ExecutedTask {
+  id: string;
+  title: string;
+  status: "completed" | "failed";
+  error?: string;
+}
+
+/** A rejected plan, shaped so the model can fix the offending task. */
+function invalidPlan(issues: string[]): Record<string, unknown> {
+  return {
+    error: "invalid_plan",
+    issues,
+    message: `The plan cannot run as given. ${issues.join(" ")}`,
+    executed: false
+  };
+}
+
+/**
+ * Run a plan the user has already seen.
+ *
+ * The other half of plan mode. `create_plan` produces a DAG and stops; this
+ * takes that DAG back — inline, as the object the user watched arrive — and
+ * hands it to `ParallelTaskExecutor`, the same machinery `Agent` runs a plan
+ * on. Passing the plan itself rather than an id is what makes it survive the
+ * mode switch with no store behind it, keeps what runs identical to what is
+ * on screen, and lets "drop task 3" be expressible.
+ *
+ * The plan is checked before anything runs, by `PlanBuilder` — the same rules
+ * that governed the plan when the planner built it, so a plan that came out of
+ * `create_plan` unedited cannot be rejected here.
+ *
+ * The executor's own messages are forwarded verbatim: the `task_update` events
+ * are what the thread and the sidebar render, and re-summarizing them into a
+ * final blob would leave the user watching nothing until the end. The call
+ * returns how each task settled plus its result; the step results also stay in
+ * shared memory under `task:<id>`, which the description points at.
+ */
+const executePlan: CapabilityExport = {
+  spec: executePlanSpec,
+  impl: async (run, args) => {
+    const runtime = subAgentRuntime(run, "execute_plan");
+
+    const rawTasks = args["tasks"];
+    if (!Array.isArray(rawTasks)) {
+      return invalidPlan([
+        "`execute_plan` needs a `tasks` array — pass the plan `create_plan` returned, verbatim."
+      ]);
+    }
+    const shapeIssues: string[] = [];
+    const taskObjects: Record<string, unknown>[] = [];
+    rawTasks.forEach((raw, index) => {
+      if (!isObjectLike(raw)) {
+        shapeIssues.push(`Task #${index + 1} is not an object.`);
+        return;
+      }
+      const task = raw as Record<string, unknown>;
+      if (!isNonEmptyString(task["id"])) {
+        shapeIssues.push(`Task #${index + 1} has no \`id\`.`);
+      }
+      taskObjects.push(task);
+    });
+    if (shapeIssues.length > 0) return invalidPlan(shapeIssues);
+
+    const title = isString(args["title"]) ? args["title"].trim() : "";
+    const { buildPlanFromTasks } = await import(
+      "../tools/plan-builder-tools.js"
+    );
+    const built = buildPlanFromTasks(title || "Plan", taskObjects);
+    if (!built.ok) return invalidPlan(built.errors);
+    const plan = built.plan;
+
+    const { ParallelTaskExecutor } = await import(
+      "../parallel-task-executor.js"
+    );
+    const { TaskUpdateEvent } = await import("@nodetool-ai/protocol");
+    const { memoryKeys } = await import("@nodetool-ai/runtime");
+
+    const executor = new ParallelTaskExecutor({
+      provider: runtime.provider,
+      model: runtime.model,
+      context: run.context,
+      // Every step gets the parent belt, minus the two plan capabilities: a
+      // step that re-plans or re-runs the plan it is part of is a loop.
+      tools: runtime
+        .parentTools()
+        .filter(
+          (t) =>
+            t.name !== executePlanSpec.name && t.name !== createPlanSpec.name
+        ),
+      taskPlan: plan,
+      // The thread's own signal: cancelling the turn cancels every task.
+      signal: run.context.signal
+    });
+
+    // The executor reports a task's failure reason only through the terminal
+    // `task_update` it emits, so read it off the stream on the way past.
+    const failureReasons = new Map<string, string>();
+    for await (const message of executor.execute()) {
+      if (
+        message.type === "task_update" &&
+        message.event === TaskUpdateEvent.TaskFailed &&
+        isNonEmptyString(message.task.id)
+      ) {
+        failureReasons.set(
+          message.task.id,
+          isNonEmptyString(message.task.error)
+            ? message.task.error
+            : "unknown error"
+        );
+      }
+      await runtime.forwardMessage(message);
+    }
+
+    const failed = new Set(executor.getFailedTaskIds());
+    const results: Record<string, unknown> = {};
+    const tasks: ExecutedTask[] = plan.tasks.map((task) => {
+      if (failed.has(task.id)) {
+        return {
+          id: task.id,
+          title: task.title,
+          status: "failed",
+          error: failureReasons.get(task.id) ?? "unknown error"
+        };
+      }
+      const value = run.context.memory.getValue(memoryKeys.task(task.id));
+      if (value !== undefined) results[task.id] = value;
+      return { id: task.id, title: task.title, status: "completed" };
+    });
+
+    return {
+      title: plan.title,
+      executed: true,
+      task_count: tasks.length,
+      completed_count: tasks.filter((t) => t.status === "completed").length,
+      failed_count: tasks.filter((t) => t.status === "failed").length,
+      tasks,
+      results
+    };
+  }
+};
+
+/** Every capability this module declares. */
 export const AGENT_CAPABILITIES: readonly CapabilityExport[] = [
   runSubtask,
   runSearch,
   startSubtask,
   waitSubtasks,
-  createPlan
+  createPlan,
+  executePlan
 ];
 
 export const module: CapabilityModule = {
@@ -226,4 +379,11 @@ export const module: CapabilityModule = {
   exports: AGENT_CAPABILITIES
 };
 
-export { runSubtask, runSearch, startSubtask, waitSubtasks, createPlan };
+export {
+  runSubtask,
+  runSearch,
+  startSubtask,
+  waitSubtasks,
+  createPlan,
+  executePlan
+};

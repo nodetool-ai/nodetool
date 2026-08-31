@@ -22,7 +22,8 @@ import {
   runSubtask,
   startSubtask,
   waitSubtasks,
-  createPlan
+  createPlan,
+  executePlan
 } from "../src/capabilities/agents.js";
 import {
   capabilityModuleDrift,
@@ -37,6 +38,8 @@ import {
   TOOL_CALL_ID_FIELD
 } from "../src/tools/subtask-fields.js";
 import { RunSubtaskTool } from "../src/tools/run-subtask-tool.js";
+import { createMockContext } from "./_helpers/mock-context.js";
+import { isString } from "../src/utils/type-guards.js";
 import { RunSearchTool } from "../src/tools/run-search-tool.js";
 import { StartSubtaskTool } from "../src/tools/start-subtask-tool.js";
 
@@ -118,17 +121,25 @@ describe("the agents capability module", () => {
       "run_search",
       "start_subtask",
       "wait_subtasks",
-      "create_plan"
+      "create_plan",
+      "execute_plan"
     ]);
   });
 
-  it("classes both as read, exactly as the permission map does", () => {
+  it("classes each exactly as the permission map does", () => {
     for (const entry of AGENT_CAPABILITIES) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
         permissionCategoryFor(entry.spec.name)
       ]);
-      expect(entry.spec.category).toBe("read");
+    }
+    // Delegating and planning have no side effect of their own; running a plan
+    // is every side effect in it, which is what the gate must see.
+    for (const entry of AGENT_CAPABILITIES) {
+      expect([entry.spec.name, entry.spec.category]).toEqual([
+        entry.spec.name,
+        entry.spec.name === "execute_plan" ? "external" : "read"
+      ]);
     }
   });
 
@@ -466,5 +477,317 @@ describe("create_plan", () => {
       { objective: "Do the thing" }
     )) as Record<string, unknown>;
     expect(result["error"]).toBe("plan_failed");
+  });
+});
+
+describe("execute_plan", () => {
+  /**
+   * A provider that finishes each prose step from a plain assistant message,
+   * except for the step ids in `failing`, where it blows up the way a real
+   * provider outage does. It records the step it was asked about and the tool
+   * names it was offered, so a test can assert both the order steps ran in and
+   * the belt each child loop actually saw.
+   */
+  function stepProvider(failing: string[] = []) {
+    const seenSteps: string[] = [];
+    const offeredTools: string[][] = [];
+    const promptText: string[] = [];
+    const provider = {
+      provider: "step-mock",
+      hasToolSupport: async () => true,
+      async *generateMessages(opts: {
+        messages?: Array<{ content?: unknown }>;
+        tools?: Array<{ name: string }>;
+      }) {
+        const text = (opts.messages ?? [])
+          .map((m) => (isString(m.content) ? m.content : ""))
+          .join(" ");
+        offeredTools.push((opts.tools ?? []).map((t) => t.name));
+        promptText.push(text);
+        const match = text.match(/STEP:([a-z_0-9]+)/);
+        if (match) seenSteps.push(match[1]);
+        const broken = failing.find((id) => text.includes(`STEP:${id}`));
+        if (broken) {
+          throw new Error(`provider failed on ${broken}`);
+        }
+        yield {
+          type: "message" as const,
+          message: { role: "assistant", content: `did ${match?.[1] ?? "?"}` }
+        };
+      },
+      async *generateMessagesTraced(...args: unknown[]) {
+        yield* (
+          provider as {
+            generateMessages: (...a: unknown[]) => AsyncGenerator<unknown>;
+          }
+        ).generateMessages(...args);
+      },
+      generateLoop(args: unknown) {
+        return (
+          BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+        ).generateLoop.call(provider, args);
+      },
+      async generateMessageTraced() {
+        return null;
+      },
+      generateMessage: vi.fn(),
+      getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
+      getContainerEnv: () => ({}),
+      isContextLengthError: () => false
+    } as unknown as BaseProvider & { provider: string };
+    return { provider, seenSteps, offeredTools, promptText };
+  }
+
+  /** A named tool the child loops should see on their belt. */
+  function namedTool(name: string) {
+    return {
+      name,
+      description: `the ${name} tool`,
+      inputSchema: { type: "object", properties: {} },
+      process: async () => "ok",
+      toProviderTool() {
+        return {
+          name: this.name,
+          description: this.description,
+          inputSchema: this.inputSchema
+        };
+      }
+    };
+  }
+
+  /** Two tasks, the second depending on the first. */
+  function twoTaskPlan(): Record<string, unknown> {
+    return {
+      title: "A Plan",
+      tasks: [
+        {
+          id: "gather",
+          title: "Gather the inputs",
+          depends_on: [],
+          steps: [
+            { id: "gather_read", instructions: "STEP:gather_read", depends_on: [] }
+          ]
+        },
+        {
+          id: "draft",
+          title: "Draft the output",
+          depends_on: ["gather"],
+          steps: [
+            { id: "draft_write", instructions: "STEP:draft_write", depends_on: [] }
+          ]
+        }
+      ]
+    };
+  }
+
+  async function runPlan(
+    plan: Record<string, unknown>,
+    opts: {
+      failing?: string[];
+      parentTools?: () => unknown[];
+    } = {}
+  ) {
+    const { provider, seenSteps, offeredTools, promptText } = stepProvider(
+      opts.failing
+    );
+    const forwarded: ProcessingMessage[] = [];
+    const result = (await executePlan.impl(
+      createCapabilityRun({
+        context: createMockContext() as never,
+        gate: UNGATED,
+        subAgent: stubRuntime({
+          provider,
+          ...(opts.parentTools
+            ? { parentTools: opts.parentTools as never }
+            : {}),
+          forwardMessage: (msg) => {
+            forwarded.push(msg);
+          }
+        })
+      }),
+      plan
+    )) as Record<string, unknown>;
+    return { result, forwarded, seenSteps, offeredTools, promptText };
+  }
+
+  it("runs both tasks in dependency order and returns each one's result", async () => {
+    const { result, forwarded, seenSteps } = await runPlan(twoTaskPlan());
+
+    expect(result["executed"]).toBe(true);
+    expect(result["title"]).toBe("A Plan");
+    expect(result["task_count"]).toBe(2);
+    expect(result["completed_count"]).toBe(2);
+    expect(result["failed_count"]).toBe(0);
+    expect(result["tasks"]).toEqual([
+      { id: "gather", title: "Gather the inputs", status: "completed" },
+      { id: "draft", title: "Draft the output", status: "completed" }
+    ]);
+    // The dependent ran after the task it depends on, not concurrently.
+    expect(seenSteps).toEqual(["gather_read", "draft_write"]);
+    // Every task's result comes back, keyed by task id.
+    expect(Object.keys(result["results"] as object).sort()).toEqual([
+      "draft",
+      "gather"
+    ]);
+    // The run streams: the thread sees each task resolve as it happens.
+    expect(forwarded.some((m) => m.type === "task_update")).toBe(true);
+  });
+
+  it("reports a failing step as its task failing, naming the step and the error", async () => {
+    const { result, forwarded } = await runPlan(twoTaskPlan(), {
+      failing: ["gather_read"]
+    });
+
+    expect(result["executed"]).toBe(true);
+    expect(result["completed_count"]).toBe(0);
+    expect(result["failed_count"]).toBe(2);
+    const tasks = result["tasks"] as Array<Record<string, unknown>>;
+    expect(tasks[0]["status"]).toBe("failed");
+    expect(tasks[0]["error"]).toContain("gather_read");
+    expect(tasks[0]["error"]).toContain("provider failed on gather_read");
+    // The dependent is terminal too, and says what blocked it.
+    expect(tasks[1]["status"]).toBe("failed");
+    expect(tasks[1]["error"]).toContain("gather");
+    // Nothing is reported as a result, and the failure reached the thread.
+    expect(result["results"]).toEqual({});
+    expect(
+      forwarded.some(
+        (m) => m.type === "task_update" && m.event === "task_failed"
+      )
+    ).toBe(true);
+  });
+
+  it("never hands the plan capabilities to the child loops", async () => {
+    const { result, promptText } = await runPlan(twoTaskPlan(), {
+      parentTools: () => [
+        namedTool("execute_plan"),
+        namedTool("create_plan"),
+        namedTool("ledger_reconcile")
+      ]
+    });
+
+    expect(result["completed_count"]).toBe(2);
+    const prompts = promptText.join("\n");
+    // A step that re-runs or re-plans the plan it belongs to is a loop, so
+    // neither plan capability reaches the child's belt — while the rest of the
+    // parent belt does.
+    expect(prompts).not.toContain("execute_plan");
+    expect(prompts).not.toContain("create_plan");
+    expect(prompts).toContain("ledger_reconcile");
+  });
+
+  describe("refuses a plan it cannot run, naming the offender", () => {
+    async function reject(plan: Record<string, unknown>) {
+      const { result, seenSteps } = await runPlan(plan);
+      expect(result["error"]).toBe("invalid_plan");
+      expect(result["executed"]).toBe(false);
+      // Nothing runs before the plan is known to be sound.
+      expect(seenSteps).toEqual([]);
+      return (result["issues"] as string[]).join(" ");
+    }
+
+    const step = (id: string) => ({
+      id,
+      instructions: `STEP:${id}`,
+      depends_on: []
+    });
+
+    it("a plan with no tasks", async () => {
+      const issues = await reject({ title: "Empty", tasks: [] });
+      expect(issues).toContain("at least one task");
+    });
+
+    it("a task that is not an object, or has no id", async () => {
+      expect(
+        ((
+          await runPlan({ title: "T", tasks: ["gather"] })
+        ).result["issues"] as string[]).join(" ")
+      ).toContain("Task #1");
+      const issues = await reject({
+        title: "T",
+        tasks: [{ title: "No id", steps: [step("a")] }]
+      });
+      expect(issues).toContain("Task #1 has no `id`");
+    });
+
+    it("a duplicate task id", async () => {
+      const issues = await reject({
+        title: "T",
+        tasks: [
+          { id: "gather", title: "One", depends_on: [], steps: [step("a")] },
+          { id: "gather", title: "Two", depends_on: [], steps: [step("b")] }
+        ]
+      });
+      expect(issues).toContain("'gather'");
+      expect(issues).toContain("already added");
+    });
+
+    it("a duplicate step id", async () => {
+      const issues = await reject({
+        title: "T",
+        tasks: [
+          { id: "gather", title: "One", depends_on: [], steps: [step("s1")] },
+          { id: "draft", title: "Two", depends_on: [], steps: [step("s1")] }
+        ]
+      });
+      expect(issues).toContain("'s1'");
+    });
+
+    it("a dependency on a task the plan does not contain", async () => {
+      const issues = await reject({
+        title: "T",
+        tasks: [
+          {
+            id: "draft",
+            title: "Two",
+            depends_on: ["ghost"],
+            steps: [step("s1")]
+          }
+        ]
+      });
+      expect(issues).toContain("'draft'");
+      expect(issues).toContain("'ghost'");
+      expect(issues).toContain("not in the plan");
+    });
+
+    it("a cycle", async () => {
+      const issues = await reject({
+        title: "T",
+        tasks: [
+          { id: "a", title: "A", depends_on: ["b"], steps: [step("s1")] },
+          { id: "b", title: "B", depends_on: ["a"], steps: [step("s2")] }
+        ]
+      });
+      expect(issues).toContain("Circular dependency");
+      expect(issues).toContain("a, b");
+    });
+
+    it("a `tasks` that is not an array at all", async () => {
+      const { result } = await runPlan({ title: "T", tasks: "gather, draft" });
+      expect(result["error"]).toBe("invalid_plan");
+      expect((result["issues"] as string[]).join(" ")).toContain(
+        "`tasks` array"
+      );
+    });
+  });
+
+  it("accepts a plan whose tasks arrive after their dependents", async () => {
+    const plan = twoTaskPlan();
+    (plan["tasks"] as unknown[]).reverse();
+    const { result, seenSteps } = await runPlan(plan);
+    expect(result["completed_count"]).toBe(2);
+    expect(seenSteps).toEqual(["gather_read", "draft_write"]);
+  });
+
+  it("refuses a run with no sub-agent runtime, by name", async () => {
+    await expect(
+      executePlan.impl(
+        createCapabilityRun({
+          context: createMockContext() as never,
+          gate: UNGATED
+        }),
+        twoTaskPlan()
+      )
+    ).rejects.toThrow(/execute_plan/);
   });
 });
