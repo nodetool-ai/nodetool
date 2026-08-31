@@ -57,12 +57,37 @@ export default function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const stars = useGithubStars();
 
+  // Opening the panel pins the page rather than only setting `overflow:
+  // hidden`, which iOS Safari ignores — without the pin a flick inside the menu
+  // scrolls the document behind it.
   useEffect(() => {
     if (!mobileOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const { body, documentElement: html } = document;
+    const scrollY = window.scrollY;
+    const restore = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      overflow: body.style.overflow,
+    };
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.overflow = "hidden";
+
     return () => {
-      document.body.style.overflow = prev;
+      body.style.position = restore.position;
+      body.style.top = restore.top;
+      body.style.left = restore.left;
+      body.style.right = restore.right;
+      body.style.overflow = restore.overflow;
+      // `html { scroll-behavior: smooth }` would animate this restore.
+      const behavior = html.style.scrollBehavior;
+      html.style.scrollBehavior = "auto";
+      window.scrollTo(0, scrollY);
+      html.style.scrollBehavior = behavior;
     };
   }, [mobileOpen]);
 
@@ -149,7 +174,7 @@ export default function SiteHeader() {
 
       {mobileOpen && (
         <div
-          className="md:hidden fixed inset-0 z-50"
+          className="md:hidden fixed inset-0 z-[70]"
           role="dialog"
           aria-modal="true"
         >
@@ -159,7 +184,7 @@ export default function SiteHeader() {
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
           />
-          <div className="absolute inset-y-0 right-0 w-full overflow-y-auto bg-gradient-to-b from-slate-900 to-slate-950 px-6 py-6 sm:max-w-sm border-l border-slate-800/60">
+          <div className="mobile-menu-panel absolute inset-y-0 right-0 w-full overflow-y-auto bg-gradient-to-b from-slate-900 to-slate-950 px-6 py-6 sm:max-w-sm border-l border-slate-800/60">
             <div className="flex items-center justify-between">
               <Wordmark />
               <button

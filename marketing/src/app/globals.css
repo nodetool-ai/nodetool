@@ -532,3 +532,8 @@
 .legal-article ul li::marker {
   color: rgb(100 116 139);
 }
+
+/* A flick past the end of the mobile menu must not chain to the page behind. */
+.mobile-menu-panel {
+  overscroll-behavior: contain;
+}
