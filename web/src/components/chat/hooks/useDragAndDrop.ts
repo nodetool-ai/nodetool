@@ -21,7 +21,7 @@ const generateFileId = () => `file_${Date.now()}_${Math.random().toString(36).su
  * a video). The asset's `get_url` rides along as `dataUri` purely so the file
  * preview tile can render a thumbnail.
  */
-function assetToDroppedFile(asset: Asset): DroppedFile {
+export function assetToDroppedFile(asset: Asset): DroppedFile {
   const mimeType = asset.content_type || "application/octet-stream";
   return {
     id: generateFileId(),

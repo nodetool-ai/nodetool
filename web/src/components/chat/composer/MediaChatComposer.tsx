@@ -11,6 +11,7 @@ import React, {
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import AddIcon from "@mui/icons-material/Add";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import AppsIcon from "@mui/icons-material/Apps";
 import DisplaySettingsIcon from "@mui/icons-material/Tv";
@@ -28,7 +29,7 @@ import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import TuneIcon from "@mui/icons-material/Tune";
 import LayersIcon from "@mui/icons-material/Layers";
 
-import { FlexRow, Text } from "../../ui_primitives";
+import { FlexRow, LoadingSpinner, Text } from "../../ui_primitives";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import useMediaGenerationStore, {
   IMAGE_VARIATIONS,
@@ -81,6 +82,7 @@ import { VoiceInputControl } from "./voice/VoiceInputControl";
 import { FilePreview } from "./FilePreview";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
+import { useComposerAssetUpload } from "../hooks/useComposerAssetUpload";
 import { usePromptHistory } from "../hooks/usePromptHistory";
 import { useMessageQueue } from "../../../hooks/useMessageQueue";
 import { createMediaComposerStyles } from "./MediaChatComposer.styles";
@@ -273,6 +275,25 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     useFileHandling();
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
     useDragAndDrop(addFiles, addDroppedFiles);
+
+  // The + button uploads what it picks to the asset library and attaches the
+  // resulting `asset://` reference, so the file survives the turn instead of
+  // riding along as inline bytes.
+  const attachInputRef = useRef<HTMLInputElement>(null);
+  const { uploadFiles, isUploading } = useComposerAssetUpload(addDroppedFiles);
+
+  const openAttachPicker = useCallback(() => {
+    attachInputRef.current?.click();
+  }, []);
+
+  const handleAttachPicked = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      uploadFiles(Array.from(e.target.files ?? []));
+      // Reset so picking the same file twice fires change again.
+      e.target.value = "";
+    },
+    [uploadFiles]
+  );
 
   // Typing `@` opens the asset picker; a picked asset is attached as an
   // `asset://` reference (like a drag from the asset library) rather than
@@ -1050,6 +1071,27 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           {leadingActions}
           {/* Chip cluster: mode/model chips. */}
           <div className="media-chip-main">
+          {/* Attach: uploads to the asset library and attaches the asset. */}
+          <input
+            ref={attachInputRef}
+            type="file"
+            hidden
+            multiple
+            onChange={handleAttachPicked}
+          />
+          <MediaControlChip
+            icon={
+              isUploading ? (
+                <LoadingSpinner inline size={16} color="inherit" />
+              ) : (
+                <AddIcon fontSize="small" />
+              )
+            }
+            title={isUploading ? "Uploading…" : "Attach files"}
+            onClick={openAttachPicker}
+            disabled={disabled}
+            showChevron={false}
+          />
           {/* Mode selector chip */}
           {!hideModePicker && (
             <>
