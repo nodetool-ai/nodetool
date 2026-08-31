@@ -93,7 +93,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You extract action items from meeting transcripts. Give owner, action and any stated deadline. Put items with no clear owner under 'Unassigned'.",
           "prompt": "",
           "tools": [],

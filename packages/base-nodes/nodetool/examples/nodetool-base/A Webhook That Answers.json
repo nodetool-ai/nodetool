@@ -73,7 +73,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You receive the JSON body of a webhook. Reply with one sentence stating what happened and whether it needs attention. No preamble.",
           "prompt": "",
           "tools": [],

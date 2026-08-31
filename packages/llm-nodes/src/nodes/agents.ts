@@ -8,11 +8,9 @@ import type {
   ProviderTool
 } from "@nodetool-ai/runtime";
 import type {
-  Chunk,
   LanguageModel,
   OutputCorrelation
 } from "@nodetool-ai/protocol";
-import { Agent, DEFAULT_AGENT_POLICY } from "@nodetool-ai/agents";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 import type { ToolLike } from "./agent-utils.js";
@@ -20,7 +18,6 @@ import {
   isCallable,
   isNonEmptyString,
   isObjectLike,
-  isRecord,
   isString
 } from "./type-predicates.js";
 import {
@@ -32,7 +29,6 @@ import {
   parseCategory,
   normalizeMessage,
   buildUserMessage,
-  toRefArray,
   uniqueToolName,
   normalizeTools,
   isChunkItem,
@@ -57,7 +53,6 @@ import {
   yieldSplitThinkChunks
 } from "./agent-thinking.js";
 import { buildControlTools } from "./agent-control-tools.js";
-import { ToolLikeAdapter } from "./agent-loop.js";
 import {
   SUMMARIZER_RECOMMENDED_MODELS,
   ENHANCE_PROMPT_RECOMMENDED_MODELS,
@@ -827,16 +822,6 @@ export class AgentNode extends BaseNode {
   declare model: LanguageModel;
 
   @prop({
-    type: "enum",
-    default: "loop",
-    title: "Mode",
-    description:
-      "How the agent runs.\n\n• loop: standard tool‑calling loop — the LLM responds to the prompt and may iteratively call the connected tools until it produces a final answer. Use this for chat, Q&A, and most tool‑using tasks. Only loop mode uses conversation history, threads, and image/audio inputs.\n• plan: the LLM first drafts a multi‑step task plan from the objective, then executes the steps in dependency order (independent steps run in parallel). Best for longer, structured jobs with clear sub‑tasks. Plan mode ignores/rejects the Thread ID, Messages (history), Images, and Audio inputs — it plans purely from the prompt objective.",
-    values: ["loop", "plan"]
-  })
-  declare mode: string;
-
-  @prop({
     type: "str",
     default: "You are a friendly assistant",
     title: "System",
@@ -850,7 +835,7 @@ export class AgentNode extends BaseNode {
     default: "",
     title: "Prompt",
     description:
-      "The user message for this run — the actual question, task, or content the agent should act on. Appended after the system prompt and conversation history as the latest user turn. Any connected Image or Audio inputs are attached to this message (loop mode). In plan mode this is treated as the objective for planning."
+      "The user message for this run — the actual question, task, or content the agent should act on. Appended after the system prompt and conversation history as the latest user turn. Any connected Image or Audio inputs are attached to this message."
   })
   declare prompt: string;
 
@@ -868,7 +853,7 @@ export class AgentNode extends BaseNode {
     default: [],
     title: "Images",
     description:
-      "Images to attach to the prompt. Loop mode only — plan mode rejects image inputs. Wire a list[image] source to send several at once, or a single Image (auto-wrapped into a one-item list). Each image becomes a separate block in the user message sent to the provider."
+      "Images to attach to the prompt. Wire a list[image] source to send several at once, or a single Image (auto-wrapped into a one-item list). Each image becomes a separate block in the user message sent to the provider."
   })
   declare image: ImageRef[];
 
@@ -877,7 +862,7 @@ export class AgentNode extends BaseNode {
     default: [],
     title: "Audio",
     description:
-      "Audio clips to attach to the prompt. Loop mode only — plan mode rejects audio inputs. Wire a list[audio] source to send several at once, or a single Audio (auto-wrapped into a one-item list). Each clip becomes a separate block in the user message sent to the provider."
+      "Audio clips to attach to the prompt. Wire a list[audio] source to send several at once, or a single Audio (auto-wrapped into a one-item list). Each clip becomes a separate block in the user message sent to the provider."
   })
   declare audio: AudioRef[];
 
@@ -886,7 +871,7 @@ export class AgentNode extends BaseNode {
     default: [],
     title: "Messages",
     description:
-      "Prior conversation turns to include before the current prompt, in chronological order (oldest first). Loop mode only — plan mode rejects a non-empty history. Each item is a Message with a role (user/assistant/tool) and content. Use this to supply ad‑hoc context — for example, few‑shot examples, a previous chat transcript piped in from another node, or the messages output of an upstream Agent. Inserted between the system prompt and the new user prompt. If a Thread ID is also set, history loaded from the thread comes first, then this list, then the current prompt."
+      "Prior conversation turns to include before the current prompt, in chronological order (oldest first). Each item is a Message with a role (user/assistant/tool) and content. Use this to supply ad‑hoc context — for example, few‑shot examples, a previous chat transcript piped in from another node, or the messages output of an upstream Agent. Inserted between the system prompt and the new user prompt. If a Thread ID is also set, history loaded from the thread comes first, then this list, then the current prompt."
   })
   declare history: Message[];
 
@@ -895,7 +880,7 @@ export class AgentNode extends BaseNode {
     default: "",
     title: "Thread ID",
     description:
-      "Identifier for a persistent conversation thread. Loop mode only — plan mode rejects a thread_id. When set, the agent loads all earlier messages stored under this ID before this turn and saves the new user message, assistant reply, and any tool messages back to it — giving the agent long‑term memory across runs and across nodes that share the same ID. Leave empty for a stateless one‑shot call. Use the Create Thread node to mint a fresh ID, or wire in the same string from upstream to continue an existing conversation."
+      "Identifier for a persistent conversation thread. When set, the agent loads all earlier messages stored under this ID before this turn and saves the new user message, assistant reply, and any tool messages back to it — giving the agent long‑term memory across runs and across nodes that share the same ID. Leave empty for a stateless one‑shot call. Use the Create Thread node to mint a fresh ID, or wire in the same string from upstream to continue an existing conversation."
   })
   declare thread_id: string;
 
@@ -904,7 +889,7 @@ export class AgentNode extends BaseNode {
     default: AGENT_DEFAULT_MAX_TOKENS,
     title: "Max Tokens",
     description:
-      "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Applies in both loop and plan mode (plan mode threads it to every step executor and the final compiler pass). Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192–16384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
+      "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192–16384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
     min: 1,
     max: 100000
   })
@@ -920,17 +905,6 @@ export class AgentNode extends BaseNode {
     max: 1000
   })
   declare max_turns: number;
-
-  @prop({
-    type: "int",
-    default: DEFAULT_AGENT_POLICY.maxSteps,
-    title: "Max Steps",
-    description:
-      "Plan mode only: upper bound on the number of plan steps the executor dispatches. Caps plan size, not turn count — the per-step turn budget is Max Turns. Raise for plans that legitimately decompose into many steps; lower to fail fast on an over-decomposed plan.",
-    min: 1,
-    max: 200
-  })
-  declare max_steps: number;
 
   /**
    * Build the tool list for this run. Override in subclasses to inject
@@ -974,13 +948,6 @@ export class AgentNode extends BaseNode {
         modelId
       });
       throw new Error("Processing context is required");
-    }
-
-    // --- Dispatch to Agent (TaskPlanner → ParallelTaskExecutor → CompilerAgent) for "plan" mode ---
-    const agentMode = String(this.mode ?? "loop").trim();
-    if (agentMode === "plan") {
-      yield* this.genProcessPlanMode(context, providerId, modelId);
-      return;
     }
 
     const prompt = asText(this.prompt ?? "");
@@ -1230,7 +1197,7 @@ export class AgentNode extends BaseNode {
         maxIterations: maxTurns,
         sequentialTools: true,
         threadId: threadId || undefined,
-        // Loop mode is the default: without this a cancelled workflow leaves
+        // Without this a cancelled workflow leaves
         // the provider loop (and any tool calls it makes) running.
         signal: context?.signal
       });
@@ -1392,201 +1359,6 @@ export class AgentNode extends BaseNode {
     };
   }
 
-  /**
-   * Dispatch to Agent for "plan" mode.
-   * Converts ToolLike[] to AgentTool[] and bridges ProcessingMessage to node outputs.
-   */
-  private async *genProcessPlanMode(
-    context: ProcessingContext,
-    providerId: string,
-    modelId: string
-  ): AsyncGenerator<Record<string, unknown>> {
-    // Plan mode runs a fresh planning agent off the objective — it has no
-    // conversation transcript, thread persistence, or media attachment path.
-    // Reject those inputs loudly instead of silently dropping them (the old
-    // behavior); they only apply in loop mode.
-    const threadId = String(this.thread_id ?? "").trim();
-    const history = Array.isArray(this.history) ? this.history : [];
-    const images = toRefArray(this.image);
-    const audios = toRefArray(this.audio);
-    if (
-      threadId ||
-      history.length > 0 ||
-      images.length > 0 ||
-      audios.length > 0
-    ) {
-      throw new Error(
-        "thread_id, history, image, and audio inputs only apply in loop mode. " +
-          'Set Mode to "loop" to use conversation history, threads, or image/audio inputs.'
-      );
-    }
-
-    const prompt = asText(this.prompt ?? "");
-    const system = asText(this.system ?? DEFAULT_SYSTEM_PROMPT);
-    const rawTools: ToolLike[] = await this.buildTools(context);
-    const structuredSchema = getStructuredOutputSchema(this);
-
-    // Build control tools
-    const controlContext =
-      this.getDynamic<Record<string, unknown>>("_control_context");
-    const controlTools = buildControlTools(controlContext);
-    if (controlTools.length > 0) {
-      rawTools.push(...controlTools);
-    }
-
-    // Convert ToolLike[] to AgentTool[] for Agent
-    const agentTools = rawTools.map((t) => new ToolLikeAdapter(t));
-
-    const provider = await context.getProvider(providerId);
-
-    const agent = new Agent({
-      name: `AgentNode_${this.__node_id ?? "default"}`,
-      objective: prompt,
-      provider,
-      model: modelId,
-      tools: agentTools,
-      systemPrompt: system,
-      outputSchema: structuredSchema ?? undefined,
-      planningModel: modelId,
-      // Per-turn output-token cap, matching loop mode's use of max_tokens.
-      // Threaded to every step executor and the final compiler pass.
-      maxTokens: Number(this.max_tokens ?? AGENT_DEFAULT_MAX_TOKENS),
-      // maxSteps caps the *number of plan steps* the executor dispatches
-      // (`stepsTaken < maxSteps` in TaskExecutor), not the per-step tool-call
-      // iteration count. The node's `max_turns` is a turn/iteration budget, so
-      // it maps to maxStepIterations; plan size gets its own `max_steps` prop.
-      // Both used to be hardcoded here, which silently overrode the node's own
-      // declared budgets in plan mode.
-      maxSteps: Math.max(
-        1,
-        Number(this.max_steps ?? DEFAULT_AGENT_POLICY.maxSteps)
-      ),
-      maxStepIterations: Math.max(1, Number(this.max_turns ?? 100))
-    });
-
-    let lastText = "";
-
-    const statusChunk = (
-      kind: string,
-      content: string,
-      metadata: Record<string, unknown> = {}
-    ): Chunk =>
-      ({
-        type: "chunk",
-        content_type: "agent_status",
-        content,
-        content_metadata: { kind, ...metadata },
-        done: false
-      });
-
-    // Thread the run's cancellation signal in: cancelling the workflow aborts
-    // WorkflowRunner, but without this the agent's provider work carries on.
-    for await (const msg of agent.execute(context, {
-      signal: context?.signal
-    })) {
-      const pmsg = msg;
-      if (pmsg.type === "chunk") {
-        const chunk = pmsg;
-        const content = chunk.content ?? "";
-        lastText += content;
-        yield {
-          chunk: { type: "chunk", content, done: false },
-          thinking: null,
-          text: null,
-          audio: null
-        };
-      } else if (pmsg.type === "step_result") {
-        const result = (pmsg as any).result;
-        if (result != null) {
-          const resultText = isString(result)
-            ? result
-            : JSON.stringify(result);
-          lastText = resultText;
-        }
-      } else if (pmsg.type === "log_update") {
-        const p = pmsg as any;
-        log.info("Agent log", {
-          nodeId: this.__node_id ?? null,
-          content: p.content
-        });
-        yield {
-          chunk: statusChunk("log", String(p.content ?? ""), {
-            severity: p.severity ?? "info"
-          }),
-          thinking: null,
-          text: null,
-          audio: null
-        };
-      } else if (pmsg.type === "planning_update") {
-        const p = pmsg as any;
-        const content = p.content ?? `${p.phase}: ${p.status}`;
-        yield {
-          chunk: statusChunk("planning", String(content), {
-            phase: p.phase,
-            status: p.status
-          }),
-          thinking: null,
-          text: null,
-          audio: null
-        };
-      } else if (pmsg.type === "task_update") {
-        const p = pmsg as any;
-        const taskTitle = p.task?.title ?? p.task?.id ?? "task";
-        const stepTitle = p.step?.instructions ?? p.step?.id ?? "";
-        const content = stepTitle
-          ? `${p.event}: ${taskTitle} — ${stepTitle}`
-          : `${p.event}: ${taskTitle}`;
-        yield {
-          chunk: statusChunk("task", content, {
-            event: p.event,
-            task_id: p.task?.id,
-            step_id: p.step?.id
-          }),
-          thinking: null,
-          text: null,
-          audio: null
-        };
-      } else if (pmsg.type === "tool_call_update") {
-        const p = pmsg as any;
-        const argsPreview = (() => {
-          try {
-            return JSON.stringify(p.args ?? {});
-          } catch {
-            return "";
-          }
-        })();
-        yield {
-          chunk: statusChunk(
-            "tool_call",
-            `${p.name}(${argsPreview.slice(0, 200)})`,
-            { name: p.name, args: p.args, message: p.message }
-          ),
-          thinking: null,
-          text: null,
-          audio: null
-        };
-      }
-    }
-
-    const finalResults = agent.getResults();
-    const resultText =
-      lastText ||
-      (finalResults != null
-        ? isString(finalResults)
-          ? finalResults
-          : JSON.stringify(finalResults)
-        : "");
-
-    yield { chunk: null, thinking: null, text: resultText, audio: null };
-
-    // When the node declares dynamic outputs, surface the agent's structured
-    // result as a bare object so process()/the kernel route it to those output
-    // handles — mirroring loop mode's `yield structuredResult`. Without this,
-    // plan mode only ever emits `text` and dynamic outputs stay empty.
-    if (structuredSchema && isRecord(finalResults)) {
-      yield finalResults;
-    }
-  }
 }
 
 export const AGENT_NODES = tagAsServer([

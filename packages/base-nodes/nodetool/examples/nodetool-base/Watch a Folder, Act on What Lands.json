@@ -45,7 +45,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You are given the path of a file that just landed in a watched folder. Say in one line what kind of file it looks like and what a sensible next step would be. No preamble.",
           "prompt": "",
           "tools": [],

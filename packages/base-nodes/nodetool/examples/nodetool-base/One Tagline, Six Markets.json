@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You localise taglines into German, French, Spanish, Italian, Japanese and Brazilian Portuguese. For each: the tagline, then a literal back-translation into English in brackets.",
           "prompt": "",
           "tools": [],

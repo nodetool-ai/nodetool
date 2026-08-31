@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You cluster customer feedback into themes. For each: a name, roughly how many comments it covers, and one representative verbatim quote. Order by frequency.",
           "prompt": "",
           "tools": [],

@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You write FAQ answers. One paragraph each, under 60 words, direct, no marketing language. Keep the questions in the order given.",
           "prompt": "",
           "tools": [],

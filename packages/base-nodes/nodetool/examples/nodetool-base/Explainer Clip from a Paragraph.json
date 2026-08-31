@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You write a single sentence describing a literal, filmable scene that illustrates the given text. No metaphors, no text on screen.",
           "prompt": "",
           "tools": [],

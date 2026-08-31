@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You localise product listings for the UK market from US English. Convert units to metric, currency to GBP with a placeholder rate, and adjust spelling. Flag anything that needs a human decision.",
           "prompt": "",
           "tools": [],

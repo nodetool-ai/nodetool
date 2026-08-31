@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You write press releases. Standard structure: headline, dateline, two body paragraphs, one quote attributed to a role rather than a person, closing boilerplate placeholder.",
           "prompt": "",
           "tools": [],

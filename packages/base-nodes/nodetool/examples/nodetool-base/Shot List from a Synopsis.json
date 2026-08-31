@@ -48,7 +48,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You write shot lists. Give eight numbered shots. Each: framing, subject, camera move, duration in seconds. No dialogue.",
           "prompt": "",
           "tools": [],

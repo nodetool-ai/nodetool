@@ -69,7 +69,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You write prompts for a music generation model. One sentence naming instrumentation, tempo and texture. No lyrics, no artist names.",
           "prompt": "",
           "tools": [],

@@ -93,7 +93,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You summarise recorded calls in three labelled sections: Decisions, Open questions, Next steps. Be brief and concrete.",
           "prompt": "",
           "tools": [],

@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You write email subject lines. Give eight under 50 characters: four curiosity-led, four clarity-led, grouped and labelled.",
           "prompt": "",
           "tools": [],

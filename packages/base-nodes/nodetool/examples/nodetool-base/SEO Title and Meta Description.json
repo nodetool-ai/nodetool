@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You write SEO metadata. Return a title of at most 60 characters and a meta description of at most 155, each on its own labelled line. Count the characters.",
           "prompt": "",
           "tools": [],

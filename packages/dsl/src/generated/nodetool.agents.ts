@@ -92,7 +92,6 @@ export function classifier(inputs: ClassifierInputs): DslNode<ClassifierOutputs,
 // Agent — nodetool.agents.Agent
 export type AgentInputs = {
   model?: Connectable<unknown>;
-  mode?: Connectable<"loop" | "plan">;
   system?: Connectable<string>;
   prompt?: Connectable<string>;
   tools?: Connectable<unknown[]>;
@@ -102,7 +101,6 @@ export type AgentInputs = {
   thread_id?: Connectable<string>;
   max_tokens?: Connectable<number>;
   max_turns?: Connectable<number>;
-  max_steps?: Connectable<number>;
 };
 
 export interface AgentOutputs {

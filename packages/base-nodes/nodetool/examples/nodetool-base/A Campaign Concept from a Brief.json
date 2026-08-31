@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You are a creative director. From the brief give: a campaign line, a one-paragraph visual concept, and three channel executions (out of home, social, and a 15-second film).",
           "prompt": "",
           "tools": [],

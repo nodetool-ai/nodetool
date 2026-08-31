@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You rewrite technical text for a general reader at roughly a UK Year 9 reading level. Keep every fact. Replace jargon or explain it inline. Do not add new claims.",
           "prompt": "",
           "tools": [],

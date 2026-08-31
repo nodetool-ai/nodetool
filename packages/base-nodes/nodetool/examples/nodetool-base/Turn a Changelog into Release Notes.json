@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You turn changelogs into customer release notes. Group under New, Improved, Fixed. Describe user-visible effect, not implementation. Drop internal-only entries.",
           "prompt": "",
           "tools": [],

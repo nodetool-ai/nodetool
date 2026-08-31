@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You turn support conversations into bug reports: title, steps to reproduce, expected result, actual result, environment. List anything the thread does not tell you under 'Missing information'.",
           "prompt": "",
           "tools": [],

@@ -93,7 +93,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You write podcast show notes from a transcript: a two-sentence summary, five topic bullets, and any named resources. Do not invent timestamps you cannot support.",
           "prompt": "",
           "tools": [],

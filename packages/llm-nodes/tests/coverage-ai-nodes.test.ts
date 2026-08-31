@@ -567,31 +567,32 @@ describe("AgentNode", () => {
     await expect(n.process()).rejects.toThrow("Select a model");
   });
 
-  it("plan mode rejects loop-only inputs (thread_id/history/image/audio)", async () => {
+  it("runs the tool loop with a saved workflow's leftover mode property", async () => {
+    // Plan mode is gone; a graph saved before that still carries `mode: "plan"`
+    // and the loop-only inputs it used to reject. Both must be inert, not fatal.
     const mockContext = {
-      getProvider: async () => withAgentLoop({
-        async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
-          yield { type: "chunk", content: "x", content_type: "text", done: true };
-        }
-      })
+      getProvider: async () =>
+        withAgentLoop({
+          async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
+            yield {
+              type: "chunk",
+              content: "ok",
+              content_type: "text",
+              done: true
+            };
+          }
+        })
     };
-    for (const loopOnly of [
-      { thread_id: "t1" },
-      { history: [{ role: "user", content: "hi" }] },
-      { image: [{ uri: "file://a.png" }] },
-      { audio: [{ data: "YXVkaW8=" }] }
-    ]) {
-      const n = new (AgentNode as any)();
-      n.assign({
-        mode: "plan",
-        prompt: "Do a task",
-        model: { provider: "test", id: "m1" },
-        ...loopOnly
-      });
-      await expect(n.process(mockContext as any)).rejects.toThrow(
-        /only apply in loop mode/i
-      );
-    }
+    const n = new (AgentNode as any)();
+    n.assign({
+      mode: "plan",
+      max_steps: 20,
+      thread_id: "t1",
+      prompt: "Do a task",
+      model: { provider: "test", id: "m1" }
+    });
+    const result = await n.process(mockContext as any);
+    expect(result.text).toBe("ok");
   });
 
   it("streams text chunks and final text from the provider", async () => {

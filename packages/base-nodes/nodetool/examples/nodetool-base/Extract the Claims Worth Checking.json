@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You extract verifiable claims from text. List each factual claim, its rough checkability (easy, hard, impossible), and where you would look. Ignore opinions.",
           "prompt": "",
           "tools": [],

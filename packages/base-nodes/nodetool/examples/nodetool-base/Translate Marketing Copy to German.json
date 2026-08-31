@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You translate marketing copy into German. Translate for effect, not literally. Use Sie unless the source is clearly informal, and say at the end which you chose and why.",
           "prompt": "",
           "tools": [],

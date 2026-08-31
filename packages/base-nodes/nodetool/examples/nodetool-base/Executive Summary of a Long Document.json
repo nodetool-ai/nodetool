@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You write executive summaries. Open with the decision required, then three findings with their evidence, then risks. Under 300 words.",
           "prompt": "",
           "tools": [],

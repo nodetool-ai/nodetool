@@ -48,7 +48,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You translate scripts into natural spoken Spanish. Return only the translated script, no notes, no English.",
           "prompt": "",
           "tools": [],

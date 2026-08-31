@@ -48,7 +48,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You write marketplace listings. Lead with the concrete: material, size cues, finish. No superlatives, no invented specifications.",
           "prompt": "Write a product title under 70 characters and a description of about 80 words for the product in this image.",
           "tools": [],

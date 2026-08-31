@@ -145,7 +145,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "tools": [],
           "max_tokens": 4096,
           "prompt": "",

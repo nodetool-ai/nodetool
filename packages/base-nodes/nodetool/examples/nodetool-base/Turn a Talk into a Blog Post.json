@@ -93,7 +93,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You turn talk transcripts into blog posts. Restructure into a title, an opening that states the point, three sections with headings, and a short close. Written register, not spoken.",
           "prompt": "",
           "tools": [],

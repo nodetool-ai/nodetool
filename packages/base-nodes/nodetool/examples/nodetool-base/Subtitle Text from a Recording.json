@@ -93,7 +93,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You prepare subtitle text from a transcript. Break into lines of at most 42 characters, at most two lines per caption, split at natural phrase boundaries. Number each caption.",
           "prompt": "",
           "tools": [],

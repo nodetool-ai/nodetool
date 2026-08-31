@@ -40,8 +40,12 @@
 
 - **`yield` an agent's structured results so the kernel routes them to dynamic
   output handles — don't `return` them from the generator** (`yield*` discards a
-  `return` value). Plan mode must yield `agent.getResults()` when an `outputSchema`
-  is present, mirroring loop mode, or dynamic outputs stay empty.
+  `return` value), or dynamic outputs stay empty.
+- **`AgentNode` runs one way: the tool-calling loop.** Its `mode` prop and the
+  `plan` branch behind it are gone, along with the plan-only `max_steps`. A graph
+  saved with `mode: "plan"` still loads — the property is simply unknown now and
+  the node ignores it. `Agent`/`TaskPlanner` in `@nodetool-ai/agents` are
+  untouched: chat, the CLI and the eval suites still plan.
 - **Every tool named in an agent's system prompt must be registered in its
   toolset, and every declared prop must be consumed or injected into the prompt.**
   A prompt referencing an unregistered tool, or a declared-but-unwired prop, is a

@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You write landing page headlines. Give five, each under 60 characters, each taking a different angle, and name the angle after each one.",
           "prompt": "",
           "tools": [],

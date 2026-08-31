@@ -48,7 +48,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You structure trailers. Give the beats in order with a one-line description and a duration for each: hook, setup, escalation, turn, title card.",
           "prompt": "",
           "tools": [],

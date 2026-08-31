@@ -679,7 +679,6 @@
                 "path": null,
                 "supported_tasks": []
               },
-              "mode": "loop",
               "tools": [],
               "max_tokens": 2000,
               "system": "You are a documentation assistant that answers strictly from the provided context passages.\n\nRules:\n- Use ONLY the information in the context passages. Never use outside knowledge or assumptions.\n- If the answer is not present in the context, reply exactly: \"I couldn't find that in the provided documents.\"\n- After each factual claim, cite its source in parentheses using the passage's Markdown heading, e.g. (Battery & Charging).\n- Answer in concise Markdown — short paragraphs or bullet points.\n- Never fabricate specifications, dates, prices, or contact details."
@@ -1024,7 +1023,6 @@
                 "path": null,
                 "supported_tasks": []
               },
-              "mode": "loop",
               "tools": [],
               "max_tokens": 4096,
               "prompt": "",

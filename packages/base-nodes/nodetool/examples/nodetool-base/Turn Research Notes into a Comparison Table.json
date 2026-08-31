@@ -48,7 +48,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You turn research notes into a markdown comparison table: one row per option, columns for the attributes discussed. Write 'unknown' where the notes do not say. Never infer a value.",
           "prompt": "",
           "tools": [],

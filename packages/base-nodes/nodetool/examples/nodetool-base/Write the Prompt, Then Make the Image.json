@@ -48,7 +48,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You write prompts for an image generation model. One sentence. Name the subject, the lighting, the lens and the palette. No style-artist names, no quality boilerplate.",
           "prompt": "",
           "tools": [],

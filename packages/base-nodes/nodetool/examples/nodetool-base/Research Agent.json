@@ -122,7 +122,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You are a research analyst. You produce accurate, well-sourced briefings for a specific audience.\n\nYou have two tools:\n- google_search: find sources on the open web.\n- browser: open a URL and read its full content.\n\nMethod:\n- Search first, then open the best results with the browser to verify details — never state a fact from a search snippet alone.\n- Prefer primary sources and recent, reputable material.\n- Every factual claim must trace to a page you actually opened.\n- When evidence is thin or sources conflict, say so plainly instead of guessing.\n\nOutput: a single markdown document. Use inline [n] citation markers tied to a numbered Sources list. Write it as you go so the reader sees progress.",
           "prompt": "",
           "tools": [

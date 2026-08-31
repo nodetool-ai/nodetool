@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You turn specification lists into product descriptions. Use only facts present in the input. If a detail is missing, leave it out rather than guessing.",
           "prompt": "",
           "tools": [],

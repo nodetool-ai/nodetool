@@ -47,7 +47,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "mode": "loop",
           "system": "You write ad copy. Produce three versions of the same offer \u2014 plain, playful, premium \u2014 each about 40 words, labelled.",
           "prompt": "",
           "tools": [],

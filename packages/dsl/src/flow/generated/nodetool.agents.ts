@@ -102,7 +102,6 @@ export function classifier(inputs: ClassifierInputs): Promise<ClassifierOutputs>
 // Agent — nodetool.agents.Agent
 export type AgentInputs = {
   model?: unknown;
-  mode?: "loop" | "plan";
   system?: string;
   prompt?: string;
   tools?: unknown[];
@@ -112,7 +111,6 @@ export type AgentInputs = {
   thread_id?: string;
   max_tokens?: number;
   max_turns?: number;
-  max_steps?: number;
 };
 
 export interface AgentOutputs {
