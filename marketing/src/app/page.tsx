@@ -32,8 +32,6 @@ import ComparisonSection from "../components/ComparisonSection";
 import UseCasesShowcase from "../components/UseCasesShowcase";
 import WaysInSection from "../components/WaysInSection";
 import FaqBlock from "../components/FaqBlock";
-import JsonLd from "../components/JsonLd";
-import { demoVideoSchema } from "../lib/siteSchema";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Download } from "lucide-react";
 import { SmartDownloadButton } from "./SmartDownloadButton";
@@ -209,9 +207,6 @@ export default function Home() {
           <rect width="100%" height="100%" fill="url(#page-grid)" />
         </svg>
       </div>
-      {/* The demo video below lives on this page, so its schema does too. */}
-      <JsonLd data={demoVideoSchema} />
-
       {/* Shared site header (P3) */}
       <SiteHeader />
 
@@ -228,48 +223,12 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Name the pain before showing the fix — the demo answers this block */}
+        {/* Name the pain before showing the fix */}
         <StatusQuoSection />
 
         {/* The core differentiator, right after the problem: the agent leaves
             an executable, editable process behind — not a transcript */}
         <ProjectSection />
-
-        {/* Demo video — surface the product immediately after the hero */}
-        <section id="demo-video" aria-label="NodeTool Demo" className="rhythm-section relative scroll-mt-24">
-          <div className={`${sectionContainer}`}>
-            <motion.div
-              initial={false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: 0.05, ease: "easeOut" }}
-              className="scroll-fade relative group"
-            >
-              <div
-                className="absolute -inset-4 rounded-3xl opacity-60 blur-3xl transition-opacity duration-500 group-hover:opacity-80"
-                style={{
-                  background:
-                    "radial-gradient(ellipse at center, rgba(139, 92, 246, 0.3) 0%, rgba(59, 130, 246, 0.2) 40%, transparent 70%)",
-                }}
-              />
-              <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 p-2 shadow-2xl shadow-amber-900/20 backdrop-blur-sm ring-1 ring-white/5 overflow-hidden">
-                <video
-                  src="/demo.mp4"
-                  poster="/demo-poster-960.webp"
-                  width={1500}
-                  height={1000}
-                  className="block aspect-[3/2] h-auto w-full rounded-xl"
-                  controls
-                  playsInline
-                  preload="none"
-                />
-              </div>
-              <p className="mt-4 text-center text-sm text-slate-400">
-                A trailer generated end-to-end in NodeTool — script, key art,
-                animation, and sound from one workflow on the canvas.
-              </p>
-            </motion.div>
-          </div>
-        </section>
 
         {/* How it works (Describe / Run / Inspect) — the 3-step mental model */}
         <section aria-labelledby="how-title" className="rhythm-section pt-4">
