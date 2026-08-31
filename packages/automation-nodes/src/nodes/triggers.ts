@@ -10,27 +10,23 @@ import {
   FileWatchDebouncer,
   shouldEmitFileWatchEvent
 } from "../lib/file-watch-match.js";
+import type {
+  FileWatchEvent,
+  IntervalTickEvent
+} from "../lib/trigger-payload.js";
+import {
+  parseFileWatchEvent,
+  parseIntervalTick,
+  parseManualEvent,
+  parseWebhookEvent
+} from "../lib/trigger-payload.js";
 
 // Minimum wait time in seconds to prevent tight loops when drift compensation
 // causes wait_time to be near zero.
 const MIN_WAIT_SECONDS = 0.001;
 
-/** View a trigger-event payload as a record; non-objects yield {}. */
-function payloadRecord(payload: unknown): Record<string, unknown> {
-  return payload !== null &&
-    typeof payload === "object" &&
-    !Array.isArray(payload)
-    ? (payload as Record<string, unknown>)
-    : {};
-}
-
-function stringOr(value: unknown, fallback: string): string {
-  return typeof value === "string" ? value : fallback;
-}
-
-function numberOr(value: unknown, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
+/** A trigger's buffered run emits nothing — `emitTriggerEvent` and `genProcess` do. */
+type NoBufferedOutputs = Record<string, never>;
 
 /**
  * Async queue used by trigger nodes to receive events from external sources
@@ -90,6 +86,13 @@ class AsyncQueue<T> {
 // WaitNode — suspends workflow until timeout
 // ---------------------------------------------------------------------------
 
+/** Output handles WaitNode.process() emits. */
+type WaitOutputs = {
+  data: unknown;
+  resumed_at: string;
+  waited_seconds: number;
+};
+
 export class WaitNode extends BaseNode {
   static readonly nodeType = "nodetool.triggers.Wait";
   static readonly title = "Wait";
@@ -125,7 +128,7 @@ export class WaitNode extends BaseNode {
   })
   declare input: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<WaitOutputs> {
     const timeoutSeconds = Number(this.timeout_seconds ?? 0);
     const inputData = this.input ?? "";
 
@@ -199,7 +202,7 @@ export class ManualTriggerNode extends BaseNode {
   })
   declare timeout_seconds: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<NoBufferedOutputs> {
     return {};
   }
 
@@ -212,18 +215,14 @@ export class ManualTriggerNode extends BaseNode {
     event: TriggerEvent,
     outputs: StreamingOutputs
   ): Promise<void> {
-    const p = payloadRecord(event.payload);
-    const data = "data" in p ? p.data : event.payload;
-    await outputs.emit("data", data);
-    await outputs.emit(
-      "timestamp",
-      stringOr(p.timestamp, new Date().toISOString())
+    const parsed = parseManualEvent(
+      event.payload,
+      String(this.name ?? "manual_trigger")
     );
-    await outputs.emit(
-      "source",
-      stringOr(p.source, String(this.name ?? "manual_trigger"))
-    );
-    await outputs.emit("event_type", "manual");
+    await outputs.emit("data", parsed.data);
+    await outputs.emit("timestamp", parsed.timestamp);
+    await outputs.emit("source", parsed.source);
+    await outputs.emit("event_type", parsed.event_type);
   }
 
   /**
@@ -350,7 +349,7 @@ export class IntervalTriggerNode extends BaseNode {
   })
   declare include_drift_compensation: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<NoBufferedOutputs> {
     return {};
   }
 
@@ -363,22 +362,19 @@ export class IntervalTriggerNode extends BaseNode {
     event: TriggerEvent,
     outputs: StreamingOutputs
   ): Promise<void> {
-    const p = payloadRecord(event.payload);
-    await outputs.emit("tick", numberOr(p.tick, 1));
-    await outputs.emit("elapsed_seconds", numberOr(p.elapsed_seconds, 0));
-    await outputs.emit(
-      "interval_seconds",
-      numberOr(p.interval_seconds, Number(this.interval_seconds ?? 60))
+    const parsed = parseIntervalTick(
+      event.payload,
+      Number(this.interval_seconds ?? 60)
     );
-    await outputs.emit(
-      "timestamp",
-      stringOr(p.timestamp, new Date().toISOString())
-    );
-    await outputs.emit("source", "interval");
-    await outputs.emit("event_type", "tick");
+    await outputs.emit("tick", parsed.tick);
+    await outputs.emit("elapsed_seconds", parsed.elapsed_seconds);
+    await outputs.emit("interval_seconds", parsed.interval_seconds);
+    await outputs.emit("timestamp", parsed.timestamp);
+    await outputs.emit("source", parsed.source);
+    await outputs.emit("event_type", parsed.event_type);
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<IntervalTickEvent> {
     const intervalMs = Number(this.interval_seconds ?? 60) * 1000;
     const initialDelayMs = Number(this.initial_delay_seconds ?? 0) * 1000;
     const maxEvents = Number(this.max_events ?? 0);
@@ -423,10 +419,7 @@ export class IntervalTriggerNode extends BaseNode {
     }
   }
 
-  private _createEvent(
-    tick: number,
-    startTime: number
-  ) {
+  private _createEvent(tick: number, startTime: number): IntervalTickEvent {
     return {
       tick,
       elapsed_seconds: (Date.now() - startTime) / 1000,
@@ -471,7 +464,7 @@ export class WebhookTriggerNode extends BaseNode {
 
   static readonly isTrigger = true;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<NoBufferedOutputs> {
     return {};
   }
 
@@ -484,20 +477,15 @@ export class WebhookTriggerNode extends BaseNode {
     event: TriggerEvent,
     outputs: StreamingOutputs
   ): Promise<void> {
-    const p = payloadRecord(event.payload);
-    const isEnvelope =
-      "body" in p || "headers" in p || "query" in p || "method" in p;
-    await outputs.emit("body", isEnvelope ? p.body : event.payload);
-    await outputs.emit("headers", payloadRecord(p.headers));
-    await outputs.emit("query", payloadRecord(p.query));
-    await outputs.emit("method", stringOr(p.method, "POST"));
-    await outputs.emit("path", stringOr(p.path, ""));
-    await outputs.emit(
-      "timestamp",
-      stringOr(p.timestamp, new Date().toISOString())
-    );
-    await outputs.emit("source", stringOr(p.source, "webhook"));
-    await outputs.emit("event_type", "webhook");
+    const parsed = parseWebhookEvent(event.payload);
+    await outputs.emit("body", parsed.body);
+    await outputs.emit("headers", parsed.headers);
+    await outputs.emit("query", parsed.query);
+    await outputs.emit("method", parsed.method);
+    await outputs.emit("path", parsed.path);
+    await outputs.emit("timestamp", parsed.timestamp);
+    await outputs.emit("source", parsed.source);
+    await outputs.emit("event_type", parsed.event_type);
   }
 }
 
@@ -586,7 +574,7 @@ export class FileWatchTriggerNode extends BaseNode {
   })
   declare debounce_seconds: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<NoBufferedOutputs> {
     return {};
   }
 
@@ -598,21 +586,15 @@ export class FileWatchTriggerNode extends BaseNode {
     event: TriggerEvent,
     outputs: StreamingOutputs
   ): Promise<void> {
-    const p = payloadRecord(event.payload);
-    await outputs.emit("event", stringOr(p.event, "modified"));
-    await outputs.emit("path", stringOr(p.path, ""));
-    await outputs.emit("dest_path", stringOr(p.dest_path, ""));
-    await outputs.emit(
-      "is_directory",
-      typeof p.is_directory === "boolean" ? p.is_directory : false
-    );
-    await outputs.emit(
-      "timestamp",
-      stringOr(p.timestamp, new Date().toISOString())
-    );
+    const parsed = parseFileWatchEvent(event.payload);
+    await outputs.emit("event", parsed.event);
+    await outputs.emit("path", parsed.path);
+    await outputs.emit("dest_path", parsed.dest_path);
+    await outputs.emit("is_directory", parsed.is_directory);
+    await outputs.emit("timestamp", parsed.timestamp);
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<FileWatchEvent> {
     const watchPath = path.resolve(String(this.path ?? "."));
     const recursive = Boolean(this.recursive ?? false);
     const patterns: string[] = Array.isArray(this.patterns)
@@ -631,7 +613,7 @@ export class FileWatchTriggerNode extends BaseNode {
       throw new Error(`Watch path does not exist: ${watchPath}`);
     }
 
-    const queue = new AsyncQueue<Record<string, unknown>>();
+    const queue = new AsyncQueue<FileWatchEvent>();
     const debouncer = new FileWatchDebouncer(debounceMs);
     const filter = {
       patterns,
@@ -658,9 +640,11 @@ export class FileWatchTriggerNode extends BaseNode {
     };
 
     const watchers: fs.FSWatcher[] = [];
-    let watchError: unknown = null;
 
-    const watchDir = (dir: string) => {
+    // Returns the failure rather than throwing it, so a path that watches
+    // nowhere (e.g. recursive watch unsupported on this platform) is reported
+    // below instead of leaving the generator blocked on queue.get() forever.
+    const watchDir = (dir: string): Error | null => {
       try {
         const watcher = fs.watch(
           dir,
@@ -684,21 +668,18 @@ export class FileWatchTriggerNode extends BaseNode {
           }
         );
         watchers.push(watcher);
+        return null;
       } catch (err) {
-        // Record the failure so it can be surfaced if no watcher starts at all
-        // (e.g. recursive watch unsupported on this platform). Swallowing it
-        // silently would leave the generator blocked on queue.get() forever
-        // with no diagnostic.
-        watchError = err;
+        return err instanceof Error ? err : null;
       }
     };
 
-    watchDir(watchPath);
+    const watchError = watchDir(watchPath);
 
     if (watchers.length === 0) {
       throw new Error(
         `Failed to watch path: ${watchPath}` +
-          (watchError instanceof Error ? ` (${watchError.message})` : "")
+          (watchError === null ? "" : ` (${watchError.message})`)
       );
     }
 

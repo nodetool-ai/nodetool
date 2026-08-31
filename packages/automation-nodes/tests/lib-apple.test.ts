@@ -20,6 +20,7 @@ import {
   LIB_APPLE_NODES,
   __testing__
 } from "../src/nodes/lib-apple.js";
+import type { DateParts } from "../src/nodes/lib-apple.js";
 
 const {
   escAS,
@@ -79,7 +80,10 @@ describe("lib.apple helpers", () => {
 
   it("rejects clearly invalid date input", () => {
     expect(() => parseDateInput("not a date")).toThrow();
-    expect(() => parseDateInput({ foo: "bar" } as unknown)).toThrow();
+    // SAFETY: an object with no date fields is the input this asserts
+    // parseDateInput rejects; only the cast lets a `DateInput` caller say it.
+    const notADate = { foo: "bar" } as unknown as DateParts;
+    expect(() => parseDateInput(notADate)).toThrow();
   });
 
   it("emits AppleScript that sets year/month/day/hours/minutes/seconds", () => {

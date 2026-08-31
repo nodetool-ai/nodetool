@@ -113,6 +113,7 @@
       "files": [
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",
+        "packages/automation-nodes/src/**",
         "packages/base-nodes/src/**",
         "packages/chat/src/**",
         "packages/code-nodes/src/**",
@@ -208,6 +209,7 @@
         "packages/app-runtime/src/**",
         "packages/audio-nodes/src/**",
         "packages/auth/src/**",
+        "packages/automation-nodes/src/**",
         "packages/base-nodes/src/**",
         "packages/chat/src/**",
         "packages/cli/src/**",
@@ -242,6 +244,7 @@
     {
       "files": [
         "packages/auth/src/**",
+        "packages/automation-nodes/src/**",
         "packages/base-nodes/src/**",
         "packages/chat/src/**",
         "packages/code-nodes/src/**",
@@ -319,6 +322,7 @@
     {
       "files": [
         "packages/auth/src/**",
+        "packages/automation-nodes/src/**",
         "packages/base-nodes/src/**",
         "packages/chat/src/**",
         "packages/code-nodes/src/**",
@@ -342,6 +346,7 @@
     {
       "files": [
         "packages/auth/src/**",
+        "packages/automation-nodes/src/**",
         "packages/base-nodes/src/**",
         "packages/chat/src/**",
         "packages/code-nodes/src/**",
