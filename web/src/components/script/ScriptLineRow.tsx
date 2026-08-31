@@ -6,6 +6,7 @@ import type {
   KeyboardEvent,
   MouseEvent
 } from "react";
+import { useTheme } from "@mui/material/styles";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import HistoryIcon from "@mui/icons-material/History";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -13,20 +14,27 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import TheaterComedyIcon from "@mui/icons-material/TheaterComedy";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import PersonAddIcon from "@mui/icons-material/PersonAddAlt";
 import {
   FlexColumn,
   FlexRow,
   Box,
   Text,
+  Caption,
   TextInput,
   Tooltip,
   ToolbarIconButton,
   LoadingSpinner,
   Popover,
+  EditorMenu,
+  MenuItemPrimitive,
+  TruncatedText,
   SPACING,
   BORDER_RADIUS,
   TYPOGRAPHY,
-  MOTION
+  MOTION,
+  getSpacingPx
 } from "../ui_primitives";
 import {
   useScriptStore,
@@ -34,11 +42,16 @@ import {
   lineStatus,
   effectiveVoice,
   type ScriptLine,
-  type ScriptSpeaker
+  type ScriptSpeaker,
+  type VoiceBinding
 } from "../../stores/script/ScriptStore";
+import type { TTSModelValue } from "../../stores/ApiTypes";
 import { voiceLine } from "../../stores/script/scriptVoicing";
 import { playTake } from "../../stores/script/playTake";
 import { getErrorMessage } from "../../utils/errorHandling";
+import { formatDuration } from "../../utils/formatUtils";
+import { useInStudio } from "../../studio/StudioContext";
+import { STUDIO_VOICE } from "../../studio/curatedModels";
 import ScriptTakeGallery from "./ScriptTakeGallery";
 import ScriptShotChip from "./ScriptShotChip";
 import type { ScriptLineShotLink } from "../../hooks/script/useScriptShotLinks";
@@ -94,10 +107,27 @@ const DRAG_RAIL = 20;
 
 /**
  * Left offset (px) of the line's text column: drag rail + gutter and the two
- * 16px flex gaps around them. Add-line buttons and insert affordances align to
- * this so they sit under the dialogue, not the speaker names.
+ * SPACING.xl flex gaps around them. Add-line buttons and insert affordances
+ * align to this so they sit under the dialogue, not the speaker names.
  */
-export const TEXT_INSET = DRAG_RAIL + 16 + GUTTER + 16;
+export const TEXT_INSET = DRAG_RAIL + SPACING.xl * 4 + GUTTER + SPACING.xl * 4;
+
+const PAUSE_AFTER_MS = [
+  { ms: 0, label: "No pause after" },
+  { ms: 500, label: "0.5s pause" },
+  { ms: 1000, label: "1s pause" },
+  { ms: 2000, label: "2s pause" }
+] as const;
+
+let speakerCounter = 0;
+const newSpeakerId = (): string =>
+  `spk_${Date.now().toString(36)}_${(speakerCounter++).toString(36)}`;
+
+const voiceFromStudio = (value: TTSModelValue): VoiceBinding => ({
+  provider: String(value.provider),
+  model: value.id,
+  voice: value.selected_voice || value.voices?.[0] || ""
+});
 
 /**
  * Borderless field styling: the script reads as a document, so the input
@@ -117,6 +147,186 @@ const quietField = {
     }
   }
 } as const;
+
+const SpeakerDot = ({ color }: { color: string | undefined }) => (
+  <Box
+    aria-hidden
+    sx={{
+      width: getSpacingPx(SPACING.md),
+      height: getSpacingPx(SPACING.md),
+      borderRadius: BORDER_RADIUS.circle,
+      backgroundColor: color ?? "action.disabled",
+      flexShrink: 0
+    }}
+  />
+);
+
+const SpeakerPicker = ({
+  scriptId,
+  lineId,
+  speaker,
+  cast,
+  readOnly,
+  mobile
+}: {
+  scriptId: string;
+  lineId: string;
+  speaker: ScriptSpeaker | null;
+  cast: ScriptSpeaker[];
+  readOnly: boolean;
+  mobile: boolean;
+}) => {
+  const theme = useTheme();
+  const inStudio = useInStudio();
+  const patchLine = useScriptStore((s) => s.patchLine);
+  const addSpeaker = useScriptStore((s) => s.addSpeaker);
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+
+  const close = useCallback(() => setAnchor(null), []);
+
+  const assign = useCallback(
+    (speakerId: string | null) => {
+      patchLine(scriptId, lineId, { speakerId });
+      close();
+    },
+    [patchLine, scriptId, lineId, close]
+  );
+
+  const addAndAssign = useCallback(() => {
+    const id = newSpeakerId();
+    const palette = [
+      theme.vars.palette.primary.main,
+      theme.vars.palette.secondary.main,
+      theme.vars.palette.success.main,
+      theme.vars.palette.warning.main,
+      theme.vars.palette.info.main,
+      theme.vars.palette.error.main
+    ];
+    addSpeaker(scriptId, {
+      id,
+      name: `Speaker ${cast.length + 1}`,
+      color: palette[cast.length % palette.length],
+      voice: inStudio && STUDIO_VOICE ? voiceFromStudio(STUDIO_VOICE) : null
+    });
+    patchLine(scriptId, lineId, { speakerId: id });
+    close();
+  }, [
+    addSpeaker,
+    patchLine,
+    scriptId,
+    lineId,
+    cast.length,
+    theme,
+    inStudio,
+    close
+  ]);
+
+  const label = speaker?.name ?? "no speaker";
+  const canOpen = !readOnly;
+
+  return (
+    <>
+      <Tooltip
+        title={
+          readOnly
+            ? label
+            : cast.length
+              ? "Change speaker"
+              : "Add a speaker"
+        }
+      >
+        <Box
+          component="span"
+          sx={{
+            flexShrink: 0,
+            display: "inline-flex",
+            width: mobile ? "auto" : GUTTER,
+            marginTop: mobile ? SPACING.none : SPACING.sm
+          }}
+        >
+          <Box
+            component="button"
+            type="button"
+            disabled={!canOpen}
+            aria-haspopup="menu"
+            aria-expanded={!!anchor}
+            aria-label={
+              speaker ? `${speaker.name}, change speaker` : "Assign speaker"
+            }
+            onClick={
+              canOpen
+                ? (e: MouseEvent<HTMLElement>) => setAnchor(e.currentTarget)
+                : undefined
+            }
+            sx={{
+              width: "100%",
+              minWidth: 0,
+              padding: SPACING.none,
+              border: "none",
+              background: "none",
+              textAlign: mobile ? "left" : "right",
+              cursor: canOpen ? "pointer" : "default",
+              ...TYPOGRAPHY.sans.label,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: speaker ? speaker.color ?? "text.primary" : "text.disabled",
+              transition: MOTION.fast,
+              "&:hover:not(:disabled)": { color: "primary.main" }
+            }}
+          >
+            <TruncatedText
+              component="span"
+              sx={{
+                display: "block",
+                width: "100%",
+                margin: SPACING.none,
+                font: "inherit",
+                letterSpacing: "inherit",
+                textTransform: "inherit",
+                color: "inherit"
+              }}
+            >
+              {label}
+            </TruncatedText>
+          </Box>
+        </Box>
+      </Tooltip>
+      <EditorMenu
+        anchorEl={anchor}
+        open={!!anchor}
+        onClose={close}
+        anchorOrigin={{ vertical: "bottom", horizontal: mobile ? "left" : "right" }}
+        transformOrigin={{ vertical: "top", horizontal: mobile ? "left" : "right" }}
+      >
+        <MenuItemPrimitive
+          compact
+          label="No speaker"
+          selected={!speaker}
+          onClick={() => assign(null)}
+        />
+        {cast.map((candidate) => (
+          <MenuItemPrimitive
+            key={candidate.id}
+            compact
+            label={candidate.name}
+            selected={candidate.id === speaker?.id}
+            icon={<SpeakerDot color={candidate.color} />}
+            onClick={() => assign(candidate.id)}
+          />
+        ))}
+        {!readOnly && (
+          <MenuItemPrimitive
+            compact
+            dividerBefore
+            label="Add speaker"
+            icon={<PersonAddIcon fontSize="small" />}
+            onClick={addAndAssign}
+          />
+        )}
+      </EditorMenu>
+    </>
+  );
+};
 
 const ScriptLineRow = ({
   scriptId,
@@ -139,6 +349,7 @@ const ScriptLineRow = ({
   const duplicateLine = useScriptStore((s) => s.duplicateLine);
   const voicing = useLineVoicing(line.id);
   const [galleryAnchor, setGalleryAnchor] = useState<HTMLElement | null>(null);
+  const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [directionOpen, setDirectionOpen] = useState(false);
 
@@ -193,14 +404,6 @@ const ScriptLineRow = ({
     [patchLine, scriptId, line.id]
   );
 
-  const cycleSpeaker = useCallback(() => {
-    if (cast.length === 0) return;
-    const idx = cast.findIndex((s) => s.id === line.speakerId);
-    // Cycle: none → first → … → last → none.
-    const next = idx < 0 ? cast[0] : (cast[idx + 1] ?? null);
-    patchLine(scriptId, line.id, { speakerId: next?.id ?? null });
-  }, [cast, line.speakerId, patchLine, scriptId, line.id]);
-
   const onVoice = useCallback(async () => {
     setVoiceError(null);
     try {
@@ -222,6 +425,8 @@ const ScriptLineRow = ({
   // the author asks for it, so untouched lines sit as tight as printed dialogue.
   const hasDirection = !!line.direction?.trim();
   const showDirection = hasDirection || directionOpen;
+  const pauseMs = line.pauseAfterMs ?? 0;
+  const pauseLabel = pauseMs > 0 ? formatDuration(pauseMs) : null;
 
   const toggleDirection = useCallback(() => {
     setDirectionOpen((open) => {
@@ -232,6 +437,16 @@ const ScriptLineRow = ({
       return true;
     });
   }, [hasDirection, patchLine, scriptId, line.id]);
+
+  const closeMore = useCallback(() => setMoreAnchor(null), []);
+
+  const setPause = useCallback(
+    (ms: number) => {
+      patchLine(scriptId, line.id, { pauseAfterMs: ms || undefined });
+      closeMore();
+    },
+    [patchLine, scriptId, line.id, closeMore]
+  );
 
   const draggable = !readOnly && !mobile && !!onDragStart;
 
@@ -245,45 +460,15 @@ const ScriptLineRow = ({
     [onDragStart, line.id]
   );
 
-  const speakerDisabled = readOnly || !cast.length;
   const speakerButton = (
-    // The button is disabled read-only or with no cast, and a disabled element
-    // emits no hover events — so the Tooltip anchors to a wrapper span that
-    // carries the flex sizing, keeping the hint reachable in every state.
-    <Tooltip title={cast.length ? "Change speaker" : "Add a speaker first"}>
-      <Box
-        component="span"
-        sx={{
-          flexShrink: 0,
-          display: "inline-flex",
-          width: mobile ? "auto" : GUTTER,
-          marginTop: mobile ? SPACING.none : SPACING.sm
-        }}
-      >
-        <Box
-          component="button"
-          type="button"
-          disabled={speakerDisabled}
-          onClick={readOnly ? undefined : cycleSpeaker}
-          sx={{
-            width: "100%",
-            padding: SPACING.none,
-            border: "none",
-            background: "none",
-            textAlign: mobile ? "left" : "right",
-            cursor: speakerDisabled ? "default" : "pointer",
-            ...TYPOGRAPHY.sans.label,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            color: speaker ? speaker.color ?? "text.primary" : "text.disabled",
-            transition: MOTION.fast,
-            "&:hover:not(:disabled)": { color: "primary.main" }
-          }}
-        >
-          {speaker?.name ?? "no speaker"}
-        </Box>
-      </Box>
-    </Tooltip>
+    <SpeakerPicker
+      scriptId={scriptId}
+      lineId={line.id}
+      speaker={speaker}
+      cast={cast}
+      readOnly={readOnly}
+      mobile={mobile}
+    />
   );
 
   // Gutter link block: the covering shot's still (click through to the board),
@@ -361,6 +546,11 @@ const ScriptLineRow = ({
           }}
         />
       )}
+      {pauseLabel && (
+        <Caption color="secondary" sx={{ paddingLeft: SPACING.sm }}>
+          {pauseLabel} pause
+        </Caption>
+      )}
       {voiceError && (
         <Text size="smaller" color="error" sx={{ paddingLeft: SPACING.sm }}>
           {voiceError}
@@ -387,6 +577,54 @@ const ScriptLineRow = ({
         />
       </Tooltip>
     );
+
+  const moreMenu = !readOnly && (
+    <>
+      <ToolbarIconButton
+        tooltip="More line actions"
+        ariaLabel="More line actions"
+        onClick={(e: MouseEvent<HTMLElement>) => setMoreAnchor(e.currentTarget)}
+        icon={<MoreVertIcon fontSize="small" />}
+      />
+      <EditorMenu
+        anchorEl={moreAnchor}
+        open={!!moreAnchor}
+        onClose={closeMore}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        {PAUSE_AFTER_MS.map((option) => (
+          <MenuItemPrimitive
+            key={option.ms}
+            compact
+            label={option.label}
+            selected={pauseMs === option.ms}
+            onClick={() => setPause(option.ms)}
+          />
+        ))}
+        <MenuItemPrimitive
+          compact
+          dividerBefore
+          label="Duplicate line"
+          icon={<ContentCopyIcon fontSize="small" />}
+          onClick={() => {
+            duplicateLine(scriptId, line.id);
+            closeMore();
+          }}
+        />
+        <MenuItemPrimitive
+          compact
+          color="error"
+          label="Delete line"
+          icon={<DeleteOutlineIcon fontSize="small" />}
+          onClick={() => {
+            removeLine(scriptId, line.id);
+            closeMore();
+          }}
+        />
+      </EditorMenu>
+    </>
+  );
 
   const actions = (
     <FlexRow
@@ -440,20 +678,7 @@ const ScriptLineRow = ({
         }
         icon={<HistoryIcon fontSize="small" />}
       />
-      {!readOnly && (
-        <ToolbarIconButton
-          tooltip="Duplicate line"
-          onClick={() => duplicateLine(scriptId, line.id)}
-          icon={<ContentCopyIcon fontSize="small" />}
-        />
-      )}
-      {!readOnly && (
-        <ToolbarIconButton
-          tooltip="Delete line"
-          onClick={() => removeLine(scriptId, line.id)}
-          icon={<DeleteOutlineIcon fontSize="small" />}
-        />
-      )}
+      {moreMenu}
     </FlexRow>
   );
 
@@ -505,7 +730,7 @@ const ScriptLineRow = ({
   return (
     <FlexRow
       align="flex-start"
-      gap={SPACING.md}
+      gap={SPACING.xl}
       fullWidth
       data-line-id={line.id}
       onDragOver={onDragOver}
