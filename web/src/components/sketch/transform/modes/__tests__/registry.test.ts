@@ -3,9 +3,9 @@
  *
  * Pure math correctness for each gesture is covered by
  * `tools/transform/__tests__/...` and `__tests__/transformCorrectness.test.ts`;
- * this file only verifies registry wiring and metadata after the
- * Affinity-parity consolidation (Scale, Perspective, Mesh Warp, Deform —
- * with Skew kept as an internal-only mode driven by Ctrl+edge promotion).
+ * this file only verifies registry wiring and metadata: Scale, Perspective
+ * and Deform are the toolbar modes, with Skew driven by Ctrl+edge promotion
+ * and Mesh Warp kept only so documents tagged with it still render.
  */
 
 import {
@@ -14,6 +14,7 @@ import {
   getToolbarTransformModes,
   type ModeDragInput
 } from "../index";
+import { resolveTransformGestureMode } from "../../../tools/transform/computeTransform";
 import type { Point, TransformMode } from "../../../types";
 import { IDENTITY_AFFINE } from "../../../types";
 
@@ -78,15 +79,30 @@ describe("transform/modes registry", () => {
     }
   });
 
-  it("toolbar exposes scale and perspective; hides skew, distort, mesh-warp", () => {
-    // Deform (`distort`) and Mesh Warp are hidden until their real Affinity
-    // implementations (MLS anchors / Bezier grid) ship. Skew is reachable
-    // via Ctrl/Cmd+edge promotion from scale, never as a standalone mode.
+  it("toolbar exposes scale, perspective and distort; hides skew and mesh-warp", () => {
+    // Skew is reachable via Ctrl/Cmd+edge promotion from scale, never as a
+    // standalone mode. Mesh Warp is a distort-equivalent shim kept so saved
+    // documents carrying that tag still render.
     const toolbar = getToolbarTransformModes().map((h) => h.id);
-    expect(toolbar).toEqual(expect.arrayContaining(["scale", "perspective"]));
+    expect(toolbar).toEqual(
+      expect.arrayContaining(["scale", "perspective", "distort"])
+    );
     expect(toolbar).not.toContain("skew");
-    expect(toolbar).not.toContain("distort");
     expect(toolbar).not.toContain("mesh-warp");
+  });
+
+  it("a toolbar-selected distort is honored as the gesture mode", () => {
+    // No modifier promotes a scale drag into distort, so the toolbar is the
+    // only way in.
+    for (const handle of ["top-left", "bottom-right"] as const) {
+      expect(
+        resolveTransformGestureMode("distort", handle, {
+          ctrlOrMeta: false,
+          shift: false,
+          alt: false
+        })
+      ).toBe("distort");
+    }
   });
 
   it("non-scale corner drags produce a quad-kind transform", () => {

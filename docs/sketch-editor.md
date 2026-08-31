@@ -22,7 +22,7 @@ The Sketch Editor is a layered raster editor with a built-in AI generation pipel
 - Painting tools: brush, pencil, eraser, fill, gradient, blur, clone stamp, color adjust
 - Selection tools: rectangular marquee and AI-assisted magic wand / segmentation
 - Shape tools: line, rectangle, ellipse, arrow
-- Crop and free transform (scale, rotate, skew, perspective warp)
+- Crop and free transform (scale, rotate, skew, perspective, deform)
 - Pen-pressure support, stroke stabilization, and drawing symmetry
 - **AI layers** — generate a layer from a prompt or bind it to a workflow; regenerate when inputs change
 - Unlimited undo/redo with a full history
@@ -126,7 +126,15 @@ Reframe the canvas. Drag the crop box, then press `Enter` to commit or `Esc` to 
 
 ### Transform — `F` (or `Ctrl/⌘ + T`)
 
-Free-transform the active layer or selection — scale, rotate, skew, and perspective-warp with a handle box.
+Free-transform the active layer or selection with a handle box. The **Mode** toggle in the tool options picks how corner drags behave:
+
+| Mode | Behavior |
+|------|----------|
+| **Move/Scale** | Scale and rotate the box. `Ctrl/⌘` on a side handle shears; `Ctrl/⌘ + Alt + Shift` promotes the drag to Perspective. |
+| **Perspective** | Four-point projective transform — drag a corner and the opposite edge mirrors via axis projection. |
+| **Deform** | Free four-point quad — only the corner you drag moves, the other three stay put. `Shift` locks the drag to one axis. |
+
+Perspective and Deform produce a four-point quad, so a layer carrying one is transformed on its own: a multi-layer union applies a single affine delta and cannot carry a quad.
 
 - `Enter` commits, `Esc` cancels, `.` resets the box to identity.
 - `Ctrl/⌘ + Shift + T` repeats the last transform.
