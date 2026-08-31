@@ -247,7 +247,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   ),
   {
     ...guardedMedia(
-      "packages/websocket/src/unified-websocket-runner.ts",
+      "packages/websocket/src/websocket-client-session.ts",
       "chat source images",
       "Held a third copy of the address table and screened only the first URL; both sites now take the shared policy."
     ),

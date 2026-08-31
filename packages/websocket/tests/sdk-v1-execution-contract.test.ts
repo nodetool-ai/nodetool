@@ -46,7 +46,7 @@ const declaredExecutionCommands = sdkV1WebSocketOperations
   .sort();
 
 const runnerSource = readFileSync(
-  new URL("../src/unified-websocket-runner.ts", import.meta.url),
+  new URL("../src/websocket-client-session.ts", import.meta.url),
   "utf8"
 );
 const commandRouterSource = readFileSync(
