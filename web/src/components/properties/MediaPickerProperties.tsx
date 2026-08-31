@@ -21,6 +21,37 @@ import {
   IMAGE_EDIT_STRENGTHS,
   type AspectRatioOption
 } from "../../stores/MediaGenerationStore";
+import {
+  buildAspectOptions,
+  clampToAllowed
+} from "../chat/composer/videoModelOptions";
+import {
+  useNodeImageModelConstraints,
+  useNodeVideoModelConstraints
+} from "../../hooks/useMediaModelConstraints";
+
+/**
+ * Keep only the values the node's own enum can express, and fall back to the
+ * whole vocabulary when that leaves nothing.
+ *
+ * A manifest states resolutions in the provider's spelling — `480p`,
+ * `720p-SR`, `1080p`, `4k` — while these properties are declared over a fixed
+ * ladder (`720p`/`1080p`/`1440p`/`4K` for video, `1K`/`2K`/`4K` for images)
+ * that the runtime maps onto each provider. Offering a rung outside that
+ * ladder would write a value the node cannot round-trip; offering none at all
+ * would leave the user with an empty menu. So: narrow where the two agree,
+ * and treat "no overlap" as "unknown", exactly as `imageModelConstraints`
+ * already does for the composer.
+ */
+function narrowToVocabulary<T extends string>(
+  declared: string[] | undefined,
+  vocabulary: readonly T[]
+): readonly T[] {
+  const allowed = (declared ?? []).filter((r): r is T =>
+    (vocabulary as readonly string[]).includes(r)
+  );
+  return allowed.length > 0 ? allowed : vocabulary;
+}
 
 interface AspectRatioBaseProps extends PropertyProps {
   options: AspectRatioOption[];
@@ -38,7 +69,10 @@ const AspectRatioPicker: React.FC<AspectRatioBaseProps> = ({
   const ref = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const id = `media-aspect-${property.name}-${propertyIndex}`;
-  const current = String(value ?? defaultId);
+  // Show a ratio the offered list actually contains. The stored value is left
+  // alone until the user picks — see the note on OptionPicker below.
+  const optionIds = useMemo(() => options.map((o) => o.id), [options]);
+  const current = clampToAllowed(String(value ?? defaultId), optionIds);
   return (
     <div className="media-aspect-ratio-property">
       <PropertyLabel
@@ -66,34 +100,34 @@ const AspectRatioPicker: React.FC<AspectRatioBaseProps> = ({
   );
 };
 
-// Full static image aspect ratios: this generic per-property input receives
-// only PropertyProps (this field's own value), not the node's selected image
-// model, so it can't constrain the list per-model. Given the model object,
-// derive the options with buildImageModelOptions() and snap the current value
-// with clampToAllowed() from ../chat/composer/imageModelOptions (mirroring the
-// video controls' videoModelOptions usage).
-export const MediaAspectRatioImageProperty = memo<PropertyProps>(
-  (props) => (
-    <AspectRatioPicker
-      {...props}
-      options={IMAGE_ASPECT_RATIOS}
-      defaultId="1:1"
-    />
-  ),
-  isEqual
-);
+export const MediaAspectRatioImageProperty = memo<PropertyProps>((props) => {
+  const { aspectRatios } = useNodeImageModelConstraints(props.nodeId);
+  const options = useMemo(
+    () =>
+      aspectRatios && aspectRatios.length > 0
+        ? buildAspectOptions(aspectRatios, IMAGE_ASPECT_RATIOS)
+        : IMAGE_ASPECT_RATIOS,
+    [aspectRatios]
+  );
+  return (
+    <AspectRatioPicker {...props} options={options} defaultId="1:1" />
+  );
+}, isEqual);
 MediaAspectRatioImageProperty.displayName = "MediaAspectRatioImageProperty";
 
-export const MediaAspectRatioVideoProperty = memo<PropertyProps>(
-  (props) => (
-    <AspectRatioPicker
-      {...props}
-      options={VIDEO_ASPECT_RATIOS}
-      defaultId="16:9"
-    />
-  ),
-  isEqual
-);
+export const MediaAspectRatioVideoProperty = memo<PropertyProps>((props) => {
+  const { aspectRatios } = useNodeVideoModelConstraints(props.nodeId);
+  const options = useMemo(
+    () =>
+      aspectRatios && aspectRatios.length > 0
+        ? buildAspectOptions(aspectRatios, VIDEO_ASPECT_RATIOS)
+        : VIDEO_ASPECT_RATIOS,
+    [aspectRatios]
+  );
+  return (
+    <AspectRatioPicker {...props} options={options} defaultId="16:9" />
+  );
+}, isEqual);
 MediaAspectRatioVideoProperty.displayName = "MediaAspectRatioVideoProperty";
 
 interface OptionPickerProps<T extends string | number> extends PropertyProps {
@@ -117,7 +151,15 @@ function OptionPicker<T extends string | number>({
 }: OptionPickerProps<T>) {
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null);
   const id = `media-option-${property.name}-${propertyIndex}`;
-  const current = (value ?? defaultValue) as T;
+  const optionIds = useMemo(() => options.map((o) => o.id), [options]);
+  // Snap only what is shown. A node saved before its model narrowed the list —
+  // 5 seconds on a Veo 3.1 that sells 4, 6 and 8 — displays the nearest
+  // offered option, but its stored value is rewritten only when the user
+  // picks one: silently editing a saved workflow on render would change what
+  // the node runs without anyone asking for it. Until then the cost row for
+  // that node stays blank, which is the honest answer — the provider
+  // publishes no price for the duration the node still holds.
+  const current = clampToAllowed((value ?? defaultValue) as T, optionIds);
   const labelText = formatLabel
     ? formatLabel(current)
     : String(current);
@@ -148,20 +190,16 @@ function OptionPicker<T extends string | number>({
   );
 }
 
-// Full static image resolutions: like the image aspect-ratio control above,
-// this per-property input has no access to the selected image model object, so
-// it can't constrain the list per-model. Given the model, source the options
-// from buildImageModelOptions() and snap the value with clampToAllowed()
-// (../chat/composer/imageModelOptions).
 export const MediaResolutionImageProperty = memo<PropertyProps>((props) => {
+  const { resolutions } = useNodeImageModelConstraints(props.nodeId);
   const options = useMemo<MediaOption<string>[]>(
     () =>
-      IMAGE_RESOLUTIONS.map((r) => ({
+      narrowToVocabulary(resolutions, IMAGE_RESOLUTIONS).map((r) => ({
         id: r,
         label: r,
         icon: <DisplaySettingsIcon fontSize="small" />
       })),
-    []
+    [resolutions]
   );
   return (
     <OptionPicker<string>
@@ -176,14 +214,15 @@ export const MediaResolutionImageProperty = memo<PropertyProps>((props) => {
 MediaResolutionImageProperty.displayName = "MediaResolutionImageProperty";
 
 export const MediaResolutionVideoProperty = memo<PropertyProps>((props) => {
+  const { resolutions } = useNodeVideoModelConstraints(props.nodeId);
   const options = useMemo<MediaOption<string>[]>(
     () =>
-      VIDEO_RESOLUTIONS.map((r) => ({
+      narrowToVocabulary(resolutions, VIDEO_RESOLUTIONS).map((r) => ({
         id: r,
         label: r,
         icon: <DisplaySettingsIcon fontSize="small" />
       })),
-    []
+    [resolutions]
   );
   return (
     <OptionPicker<string>
@@ -198,14 +237,21 @@ export const MediaResolutionVideoProperty = memo<PropertyProps>((props) => {
 MediaResolutionVideoProperty.displayName = "MediaResolutionVideoProperty";
 
 export const MediaDurationProperty = memo<PropertyProps>((props) => {
+  const { durations } = useNodeVideoModelConstraints(props.nodeId);
+  // Durations are not narrowed to the node's static list the way resolutions
+  // are: the property is a plain integer of seconds, so every length the model
+  // declares is expressible — including the 7, 9, 11, 13 and 14 second clips
+  // the static ladder skips.
   const options = useMemo<MediaOption<number>[]>(
     () =>
-      VIDEO_DURATIONS.map((d) => ({
-        id: d,
-        label: `${d} Sec`,
-        icon: <AccessTimeIcon fontSize="small" />
-      })),
-    []
+      (durations && durations.length > 0 ? durations : VIDEO_DURATIONS).map(
+        (d) => ({
+          id: d,
+          label: `${d} Sec`,
+          icon: <AccessTimeIcon fontSize="small" />
+        })
+      ),
+    [durations]
   );
   return (
     <OptionPicker<number>

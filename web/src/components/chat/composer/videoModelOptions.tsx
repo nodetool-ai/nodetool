@@ -21,7 +21,14 @@ import {
 
 /** Extract per-model option constraints (manifest enums) from a raw model. */
 export function videoModelConstraints(model: VideoModel) {
-  const durations = model.durations?.filter((d) => Number.isFinite(d));
+  // Positive only: a handful of manifests declare a sentinel duration — `-1`
+  // on the AtlasCloud Seedance 2.0 family, `0` on `fal-ai/wan/v2.7/edit-video`
+  // — meaning "let the model choose". The duration controls render every
+  // option as `${d} Sec`, so a sentinel reaches the user as "-1 Sec", and no
+  // catalog can price a run whose length is unstated. Dropping it leaves the
+  // real durations; a model whose enum is nothing but sentinels falls back to
+  // the full static list, same as a model that declares no enum at all.
+  const durations = model.durations?.filter((d) => Number.isFinite(d) && d > 0);
   const resolutions = model.resolutions ?? undefined;
   const aspectRatios = model.aspect_ratios ?? undefined;
   return {
