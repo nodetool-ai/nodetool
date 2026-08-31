@@ -2,10 +2,20 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback, memo } from "react";
-import { EditorButton, Text, Box } from "./ui_primitives";
+import { memo } from "react";
+import {
+  Text,
+  Caption,
+  Box,
+  ExternalLink,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
+} from "./ui_primitives";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
 import Logo from "./Logo";
+
+const STUDIO_URL = "https://nodetool.ai/studio";
 
 const styles = (theme: Theme) =>
   css({
@@ -13,123 +23,94 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: "10vh",
-    height: "80vh",
-    ".flex": {
+    gap: getSpacingPx(SPACING.xxl),
+    minHeight: "100vh",
+    padding: getSpacingPx(SPACING.xxl),
+    ".hero": {
       display: "flex",
       flexDirection: "column",
-      alignItems: "flex-start",
-      justifyContent: "center",
-      gap: "1em"
+      alignItems: "center",
+      gap: getSpacingPx(SPACING.lg),
+      maxWidth: "420px",
+      textAlign: "center"
     },
-    h3: {
-      fontFamily: theme.fontFamily1,
-      fontSize: "2em",
-      color: "white",
-      textAlign: "center",
-      lineHeight: "1.25em",
-      width: "260px",
-      padding: "0 0 1.5em 0"
+    ".alpha-badge": {
+      color: theme.vars.palette.warning.main,
+      border: `1px solid ${theme.vars.palette.warning.main}`,
+      borderRadius: BORDER_RADIUS.pill,
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.lg)}`,
+      textTransform: "uppercase",
+      letterSpacing: "0.08em"
     },
-    h4: {
-      fontFamily: "monospace",
-      fontSize: "1em",
-      lineHeight: "1.25em",
-      maxWidth: "250px",
-      textAlign: "left",
-      textTransform: "uppercase"
-    },
-    ".button-group": {
-      display: "flex",
-      flexDirection: "row",
-      gap: "0.5em",
-      marginTop: "auto"
-    },
-    ".list-button": {
-      fontSize: theme.fontSizeNormal,
-      fontFamily: theme.fontFamily1,
-      background: theme.vars.palette.grey[900],
-      color: theme.vars.palette.grey[200],
-      textTransform: "none",
-      padding: "0 .5em"
-    },
-    ".list-button:hover": {
+    ".headline": {
       color: theme.vars.palette.grey[0]
     },
+    ".subhead": {
+      color: theme.vars.palette.grey[200]
+    },
+    ".footnotes": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: getSpacingPx(SPACING.md),
+      maxWidth: "420px",
+      textAlign: "center"
+    },
+    // The Google button ships a fixed-width, uppercase label that clipped to
+    // "SIGN IN WITH GOO…". Let it size to its own text.
     ".gsi-material-button": {
-      width: "240px",
-      fontSize: "1em",
+      minWidth: "260px",
+      height: "48px",
       border: "none",
-      background: theme.vars.palette.grey[0],
-      padding: "1.5em 1em"
+      background: theme.vars.palette.grey[0]
     },
     ".gsi-material-button:hover": {
       background: theme.vars.palette.grey[100]
     }
   });
 
-interface LinkButtonProps {
-  name: string;
-  url: string;
-  onClick: (url: string) => void;
-}
-
-const LinkButton = memo(({ name, url, onClick }: LinkButtonProps) => {
-  const handleClick = useCallback(() => {
-    onClick(url);
-  }, [url, onClick]);
-
-  return (
-    <EditorButton
-      onClick={handleClick}
-      className="list-button"
-      density="normal"
-    >
-      {name}
-    </EditorButton>
-  );
-});
-
-LinkButton.displayName = "LinkButton";
-
 function Login() {
   const theme = useTheme();
-  const linkItems = [
-    { name: "Anthropic", url: "https://www.anthropic.com" },
-    { name: "HuggingFace", url: "https://huggingface.co" },
-    { name: "OpenAI", url: "https://openai.com" },
-    { name: "Replicate", url: "https://replicate.com" },
-    { name: "StabilityAI", url: "https://stability.ai/" }
-  ];
-  const handleClick = useCallback((url: string) => {
-    window.open(url, "_blank", "noopener,noreferrer");
-  }, []);
 
   return (
     <Box css={styles(theme)}>
-      <div className="flex">
+      <div className="hero">
         <Logo
-          width="250px"
-          height="250px"
-          fontSize="80px"
-          borderRadius="1.5em"
+          width="150px"
+          height="150px"
+          fontSize="48px"
+          borderRadius={BORDER_RADIUS.xl}
           small={false}
+          enableText
         />
-        <Text component="h3">
-          Node-based AI <br />
-          for text, image, audio & video.
+        <Caption className="alpha-badge" size="smaller" color="warning">
+          Cloud · Alpha
+        </Caption>
+        <Text component="h1" size="giant" className="headline">
+          You direct the vision. The agent builds the film.
+        </Text>
+        <Text component="p" size="normal" className="subhead">
+          Describe your idea. The agent writes the script, boards every scene,
+          generates the footage, and cuts a multi-track timeline you can still
+          edit.
         </Text>
       </div>
+
       <GoogleAuthButton />
-      <div className="button-group">
-        {linkItems.map((item) => (
-          <LinkButton
-            key={item.name}
-            name={item.name}
-            url={item.url}
-            onClick={handleClick}
-          />
-        ))}
+
+      <div className="footnotes">
+        <Caption size="small" color="secondary">
+          Bring your own keys. You pay every provider directly, at their
+          published prices.
+        </Caption>
+        <Caption size="small" color="secondary">
+          Cloud is in alpha — expect rough edges and occasional downtime. For
+          work that has to ship today,{" "}
+          <ExternalLink href={STUDIO_URL} size="small" iconVariant="arrow">
+            run NodeTool Studio on your own machine
+          </ExternalLink>
+          .
+        </Caption>
       </div>
     </Box>
   );
