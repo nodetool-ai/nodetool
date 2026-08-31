@@ -35,7 +35,7 @@ describe("PlanDocument", () => {
   it("renders the title, counts, steps, and dependency titles", () => {
     renderPlan();
     expect(screen.getByRole("article", { name: "Add caching" })).toBeInTheDocument();
-    expect(screen.getByText("Add caching")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Add caching" })).toBeInTheDocument();
     expect(screen.getByText("2 tasks · 2 steps")).toBeInTheDocument();
     expect(screen.getByText("Inspect the cache layer")).toBeInTheDocument();
     expect(screen.getByText("Read the current cache config")).toBeInTheDocument();
@@ -48,16 +48,20 @@ describe("PlanDocument", () => {
       parallelizable: 2,
       executed: false
     });
-    expect(screen.getByText(/2 can run together/)).toBeInTheDocument();
+    expect(screen.getByText("2 can run together")).toBeInTheDocument();
     expect(
-      screen.getByText("Nothing ran. Switch to Default or Auto to execute.")
+      screen.getByText(
+        "Nothing ran. Switch to Default or Auto, then send a message."
+      )
     ).toBeInTheDocument();
   });
 
   it("hides the idle note when the plan is not a dry run", () => {
     renderPlan({ ...plan, executed: null });
     expect(
-      screen.queryByText("Nothing ran. Switch to Default or Auto to execute.")
+      screen.queryByText(
+        "Nothing ran. Switch to Default or Auto, then send a message."
+      )
     ).not.toBeInTheDocument();
   });
 });

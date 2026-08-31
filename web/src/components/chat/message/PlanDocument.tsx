@@ -9,10 +9,12 @@ import {
   FlexRow,
   Text,
   BORDER_RADIUS,
-  SPACING,
-  getSpacingPx
+  SPACING
 } from "../../ui_primitives";
 import type { PlanDocumentModel } from "./parsePlanDocument";
+
+const PLAN_IDLE_NOTE =
+  "Nothing ran. Switch to Default or Auto, then send a message.";
 
 interface PlanDocumentProps {
   plan: PlanDocumentModel;
@@ -32,63 +34,42 @@ const styles = (theme: Theme) =>
       overflow: "hidden"
     },
     ".plan-document-header": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(SPACING.md),
-      padding: theme.spacing(SPACING.sm, SPACING.md),
+      padding: theme.spacing(SPACING.md, SPACING.lg),
       borderBottom: `1px solid ${theme.vars.palette.divider}`
+    },
+    ".plan-document-kicker": {
+      textTransform: "uppercase",
+      letterSpacing: 1
     },
     ".plan-document-counts": {
       fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
       fontVariantNumeric: "tabular-nums",
-      whiteSpace: "nowrap",
-      marginLeft: "auto"
+      whiteSpace: "nowrap"
+    },
+    ".plan-document-title": {
+      wordBreak: "break-word"
     },
     ".plan-document-tasks": {
-      padding: theme.spacing(SPACING.sm, SPACING.md)
-    },
-    ".plan-task-index": {
-      width: getSpacingPx(5),
-      height: getSpacingPx(5),
-      borderRadius: BORDER_RADIUS.circle,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeSmaller)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      flexShrink: 0
+      padding: theme.spacing(SPACING.md, SPACING.lg, SPACING.lg)
     },
     ".plan-task + .plan-task": {
-      marginTop: theme.spacing(SPACING.sm)
+      marginTop: theme.spacing(SPACING.lg)
+    },
+    ".plan-task-index": {
+      color: theme.vars.palette.text.disabled,
+      fontVariantNumeric: "tabular-nums",
+      flexShrink: 0,
+      minWidth: "1.4em",
+      textAlign: "right"
     },
     ".plan-task-deps": {
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       minWidth: 0
     },
-    ".plan-step": {
-      display: "flex",
-      alignItems: "flex-start",
-      gap: theme.spacing(SPACING.xs),
-      color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeSmall)",
-      lineHeight: 1.45,
-      "&::before": {
-        content: '""',
-        width: theme.spacing(SPACING.xs),
-        height: theme.spacing(SPACING.xs),
-        borderRadius: BORDER_RADIUS.circle,
-        background: theme.vars.palette.text.disabled,
-        flexShrink: 0,
-        marginTop: "0.5em"
-      }
-    },
     ".plan-document-note": {
-      padding: theme.spacing(SPACING.sm, SPACING.md),
+      padding: theme.spacing(SPACING.md, SPACING.lg),
       borderTop: `1px solid ${theme.vars.palette.divider}`
     }
   });
@@ -111,15 +92,9 @@ const PlanDocument: React.FC<PlanDocumentProps> = ({
     return map;
   }, [plan.tasks]);
 
-  const counts = [
-    plural(plan.tasks.length, "task"),
-    plural(stepCount, "step"),
-    plan.parallelizable > 1
-      ? `${plan.parallelizable} can run together`
-      : null
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const counts = [plural(plan.tasks.length, "task"), plural(stepCount, "step")].join(
+    " · "
+  );
 
   return (
     <div
@@ -128,17 +103,33 @@ const PlanDocument: React.FC<PlanDocumentProps> = ({
       role="article"
       aria-label={plan.title}
     >
-      <div className="plan-document-header">
-        <FlexColumn gap={SPACING.none}>
-          <Text size="small" weight={500}>
+      <FlexColumn className="plan-document-header" gap={SPACING.xs}>
+        <FlexRow
+          align="baseline"
+          justify="space-between"
+          gap={SPACING.md}
+          fullWidth
+          sx={{ minWidth: 0 }}
+        >
+          <Caption className="plan-document-kicker" color="secondary">
             Plan
-          </Text>
-          <Text size="smaller" color="secondary">
-            {plan.title}
-          </Text>
-        </FlexColumn>
-        <span className="plan-document-counts">{counts}</span>
-      </div>
+          </Caption>
+          <span className="plan-document-counts">{counts}</span>
+        </FlexRow>
+        <Text
+          component="h2"
+          size="big"
+          className="plan-document-title"
+          sx={{ m: SPACING.none }}
+        >
+          {plan.title}
+        </Text>
+        {plan.parallelizable > 1 && (
+          <Caption color="secondary">
+            {plan.parallelizable} can run together
+          </Caption>
+        )}
+      </FlexColumn>
       <div className="plan-document-tasks">
         {plan.tasks.map((task, i) => {
           const depTitles = task.dependsOn
@@ -151,22 +142,31 @@ const PlanDocument: React.FC<PlanDocumentProps> = ({
               align="flex-start"
               gap={SPACING.md}
             >
-              <span className="plan-task-index">{i + 1}</span>
-              <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0, flex: 1 }}>
-                <FlexRow align="center" gap={SPACING.md} sx={{ minWidth: 0 }}>
-                  <Text size="small" weight={500} sx={{ minWidth: 0 }}>
-                    {task.title}
-                  </Text>
-                  {depTitles.length > 0 && (
-                    <span className="plan-task-deps">
-                      after {depTitles.join(", ")}
-                    </span>
-                  )}
-                </FlexRow>
+              <Text
+                component="span"
+                size="small"
+                className="plan-task-index"
+              >
+                {i + 1}
+              </Text>
+              <FlexColumn gap={SPACING.xs} sx={{ minWidth: 0, flex: 1 }}>
+                <Text size="small" sx={{ minWidth: 0, wordBreak: "break-word" }}>
+                  {task.title}
+                </Text>
+                {depTitles.length > 0 && (
+                  <Caption className="plan-task-deps">
+                    after {depTitles.join(", ")}
+                  </Caption>
+                )}
                 {task.steps.map((step) => (
-                  <span key={step.id} className="plan-step">
+                  <Text
+                    key={step.id}
+                    size="small"
+                    color="secondary"
+                    sx={{ wordBreak: "break-word" }}
+                  >
                     {step.instructions}
-                  </span>
+                  </Text>
                 ))}
               </FlexColumn>
             </FlexRow>
@@ -174,8 +174,8 @@ const PlanDocument: React.FC<PlanDocumentProps> = ({
         })}
       </div>
       {plan.executed === false && (
-        <Caption size="smaller" color="secondary" className="plan-document-note">
-          Nothing ran. Switch to Default or Auto to execute.
+        <Caption color="secondary" className="plan-document-note">
+          {PLAN_IDLE_NOTE}
         </Caption>
       )}
     </div>

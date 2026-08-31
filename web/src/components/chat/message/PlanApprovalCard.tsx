@@ -3,12 +3,13 @@ import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { EditorButton } from "../../editor_ui";
 import {
+  FlexColumn,
   FlexRow,
+  Text,
   TextInput,
+  Tooltip,
   BORDER_RADIUS,
   SPACING
 } from "../../ui_primitives";
@@ -29,25 +30,37 @@ interface PlanApprovalCardProps {
   ) => void;
 }
 
+const QUESTION = "Run this plan?";
+
 const styles = (theme: Theme) =>
   css({
-    border: `1px solid ${theme.vars.palette.divider}`,
+    border: `1px solid ${theme.vars.palette.info.main}66`,
     borderRadius: BORDER_RADIUS.lg,
+    background: `rgb(${theme.vars.palette.info.mainChannel} / 0.06)`,
     overflow: "hidden",
+    ".plan-approval-fallback": {
+      padding: theme.spacing(SPACING.md, SPACING.lg)
+    },
     ".plan-approval-footer": {
-      display: "flex",
-      flexDirection: "column",
-      gap: theme.spacing(SPACING.sm),
-      padding: theme.spacing(SPACING.sm, SPACING.md),
+      padding: theme.spacing(SPACING.md, SPACING.lg, SPACING.lg),
       borderTop: `1px solid ${theme.vars.palette.divider}`
+    },
+    ".plan-approval-actions": {
+      button: {
+        borderRadius: BORDER_RADIUS.pill,
+        textTransform: "none",
+        letterSpacing: 0
+      },
+      ".plan-approval-dismiss": {
+        marginLeft: "auto"
+      }
     }
   });
 
 /**
- * Inline approval prompt for an agent's proposed execution plan. Shows the
- * plan title and its tasks/steps, with an optional feedback field. Approve
- * starts execution; Reject with feedback asks the agent to revise the plan;
- * Reject without feedback aborts the run.
+ * Inline approval prompt for an agent's proposed execution plan. The plan
+ * is the content; the footer asks one question with three answers: run it,
+ * revise it (needs a note), or don't run it.
  */
 const PlanApprovalCard: React.FC<PlanApprovalCardProps> = ({
   approvalId,
@@ -60,56 +73,104 @@ const PlanApprovalCard: React.FC<PlanApprovalCardProps> = ({
 
   const { plan } = approval;
   const planDocument = useMemo(() => parsePlanDocument(plan), [plan]);
+  const hasFeedback = feedback.trim().length > 0;
 
   const handleApprove = useCallback(
     () => onResolve(approvalId, "approve"),
     [approvalId, onResolve]
   );
-  const handleReject = useCallback(
-    () => onResolve(approvalId, "reject", feedback.trim() || undefined),
-    [approvalId, feedback, onResolve]
+  const handleRevise = useCallback(() => {
+    const note = feedback.trim();
+    if (!note) {
+      return;
+    }
+    onResolve(approvalId, "reject", note);
+  }, [approvalId, feedback, onResolve]);
+  const handleDismiss = useCallback(
+    () => onResolve(approvalId, "reject"),
+    [approvalId, onResolve]
   );
   const handleFeedbackChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => setFeedback(e.target.value),
     []
   );
-
-  const hasFeedback = feedback.trim().length > 0;
+  const handleFeedbackKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleRevise();
+      }
+    },
+    [handleRevise]
+  );
 
   return (
-    <div css={cssStyles} className="plan-approval-card" role="group">
-      {planDocument && <PlanDocument plan={planDocument} framed={false} />}
-      <div className="plan-approval-footer">
+    <div
+      css={cssStyles}
+      className="plan-approval-card"
+      role="group"
+      aria-label={QUESTION}
+    >
+      {planDocument ? (
+        <PlanDocument plan={planDocument} framed={false} />
+      ) : (
+        <Text size="big" className="plan-approval-fallback">
+          {plan.title}
+        </Text>
+      )}
+      <FlexColumn className="plan-approval-footer" gap={SPACING.md}>
         <TextInput
           size="small"
           compact
-          placeholder="Request changes (optional). Sent on reject."
+          label="What should change?"
+          hideLabel
+          placeholder="What should change?"
           value={feedback}
           onChange={handleFeedbackChange}
+          onKeyDown={handleFeedbackKeyDown}
           multiline
           maxRows={3}
         />
-        <FlexRow gap={SPACING.md} align="center" justify="flex-end">
-          <EditorButton
-            variant="outlined"
-            color="error"
-            density="normal"
-            onClick={handleReject}
-            startIcon={<CloseRoundedIcon />}
-          >
-            {hasFeedback ? "Reject with feedback" : "Reject"}
-          </EditorButton>
+        <FlexRow
+          gap={SPACING.md}
+          align="center"
+          className="plan-approval-actions"
+        >
           <EditorButton
             variant="contained"
             color="primary"
             density="normal"
             onClick={handleApprove}
-            startIcon={<PlayArrowRoundedIcon />}
           >
-            Approve & run
+            Run this plan
+          </EditorButton>
+          <Tooltip
+            title="Describe the change first"
+            disabled={hasFeedback}
+          >
+            <span>
+              <EditorButton
+                variant="text"
+                color="primary"
+                density="normal"
+                disabled={!hasFeedback}
+                onClick={handleRevise}
+              >
+                Revise
+              </EditorButton>
+            </span>
+          </Tooltip>
+          <EditorButton
+            variant="text"
+            color="error"
+            density="normal"
+            className="plan-approval-dismiss"
+            onClick={handleDismiss}
+          >
+            Don't run
           </EditorButton>
         </FlexRow>
-      </div>
+      </FlexColumn>
     </div>
   );
 };
