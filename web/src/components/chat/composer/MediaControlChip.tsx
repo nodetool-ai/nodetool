@@ -34,10 +34,9 @@ interface MediaControlChipProps {
   truncate?: boolean;
   /**
    * Let the chip claim the row's leftover width (up to `maxWidth`) instead of
-   * hugging its label. A grown chip also takes a field surface and pins its
-   * caret to the right edge, so the extra width reads as a select rather than
-   * a label with a gap after it. For the one chip in a row that deserves the
-   * space — the model select.
+   * hugging its label, pinning its caret to the right edge so the extra width
+   * reads as a select rather than a label with a gap after it. For the one
+   * chip in a row that deserves the space — the model select.
    */
   grow?: boolean;
   /** Max width in px when truncating or growing. Defaults to 200. */
@@ -71,7 +70,7 @@ const createStyles = (
     border: "1px solid transparent",
     backgroundColor: active
       ? theme.vars.palette.c_overlay_strong
-      : emphasis === "primary" || grow
+      : emphasis === "primary"
         ? theme.vars.palette.c_overlay
         : "transparent",
     color: theme.vars.palette.grey[100],
