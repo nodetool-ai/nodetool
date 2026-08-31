@@ -59,15 +59,17 @@ const resolveExecutor = () => ({
   }
 });
 
-/** Reach the runner's private job wiring, the way the sibling suites do. */
+/** The job manager, with the fake ActiveJob these tests stage typed away. */
 const asAny = (r: WebSocketClientSession) =>
-  r as unknown as Record<string, never> & {
-    activeJobs: Map<string, unknown>;
-    jobDeliveryTarget: { deliver(m: Record<string, unknown>): Promise<void> };
-    streamJobMessages(
-      active: unknown,
-      promise: Promise<unknown>
-    ): Promise<void>;
+  r as unknown as {
+    jobs: {
+      jobDeliveryTarget: { deliver(m: Record<string, unknown>): Promise<void> };
+      registerJob(jobId: string, active: unknown): void;
+      streamJobMessages(
+        active: unknown,
+        promise: Promise<unknown>
+      ): Promise<void>;
+    };
   };
 
 function decodeAll(ws: MockWebSocket): Record<string, unknown>[] {
@@ -142,8 +144,8 @@ function registerRun(
     },
     runSession: jobRunRegistry.open("1", jobId, "wf", hooks)
   };
-  active.runSession.attach(asAny(runner).jobDeliveryTarget, 0);
-  asAny(runner).activeJobs.set(jobId, active);
+  active.runSession.attach(asAny(runner).jobs.jobDeliveryTarget, 0);
+  asAny(runner).jobs.registerJob(jobId, active);
   registeredJobIds.push(jobId);
   return active;
 }
@@ -203,7 +205,7 @@ describe("workflow runs survive a dropped socket", () => {
     const executePromise = new Promise<{ status: "completed" }>((resolve) => {
       settle = resolve;
     });
-    const streamTask = asAny(runner1).streamJobMessages(active, executePromise);
+    const streamTask = asAny(runner1).jobs.streamJobMessages(active, executePromise);
 
     active.context.emit({
       type: "node_update",
@@ -357,10 +359,7 @@ describe("workflow runs survive a dropped socket", () => {
 
     // The run is detached, not this connection's, and still occupies a slot:
     // otherwise four abandoned sockets plus a fresh one is eight runs.
-    const asCounts = runner2 as unknown as {
-      inFlightJobCount: number;
-      countActiveJobsForWorkflow(workflowId: string | null): number;
-    };
+    const asCounts = runner2.jobs;
     expect(asCounts.inFlightJobCount).toBe(1);
     expect(asCounts.countActiveJobsForWorkflow("wf")).toBe(1);
     expect(asCounts.countActiveJobsForWorkflow("other-wf")).toBe(0);
@@ -375,7 +374,7 @@ describe("workflow runs survive a dropped socket", () => {
   it("does not double-count its own running job", async () => {
     const jobId = "resilient-job-7";
     registerRun(runner1, jobId, makeHooks());
-    const asCounts = runner1 as unknown as { inFlightJobCount: number };
+    const asCounts = runner1.jobs;
     expect(asCounts.inFlightJobCount).toBe(1);
   });
 

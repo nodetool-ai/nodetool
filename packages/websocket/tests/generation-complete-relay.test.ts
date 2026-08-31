@@ -120,7 +120,7 @@ describe("generation_complete relay", () => {
     });
 
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOB1",
       workflow_id: "WF1",
       graph: {
@@ -188,7 +188,7 @@ describe("generation_complete relay", () => {
     });
 
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOB2",
       workflow_id: "WF2",
       graph: {
@@ -231,7 +231,7 @@ describe("generation_complete relay", () => {
     });
 
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOB3",
       workflow_id: "WF3",
       graph: {

@@ -48,9 +48,9 @@ function settle(messages: Array<Record<string, unknown>>): number | null {
   const runner = access();
   const active: Record<string, unknown> = {};
   for (const message of messages) {
-    runner._handleNodeProviderCost(active, message);
+    runner.jobs._handleNodeProviderCost(active, message);
   }
-  return runner.runMeasuredCost(active);
+  return runner.jobs.runMeasuredCost(active);
 }
 
 const prediction = (

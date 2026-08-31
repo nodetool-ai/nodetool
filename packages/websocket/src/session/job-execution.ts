@@ -309,7 +309,12 @@ export class JobExecutionManager {
     private readonly deps: JobExecutionDeps
   ) {}
 
-  activeJobs = new Map<string, ActiveJob>();
+  /**
+   * The runs in flight on this connection. Private since T8's D2: chat's runs
+   * and the suites that stage one go through the methods below, so every
+   * mutation of the connection's slot accounting happens in this file.
+   */
+  private activeJobs = new Map<string, ActiveJob>();
   /**
    * Runs that arrived while {@link MAX_CONCURRENT_JOBS} runs were already in
    * flight. They start automatically (FIFO) as active jobs finish.
@@ -338,6 +343,36 @@ export class JobExecutionManager {
   /** Ids of the runs in flight on this connection. Read for diagnostics. */
   activeJobIds(): string[] {
     return [...this.activeJobs.keys()];
+  }
+
+  /**
+   * Register a run against this connection's slots. A chat turn that starts a
+   * workflow shares the connection's concurrency accounting, so its run is
+   * registered here rather than in a map of chat's own.
+   */
+  registerJob(jobId: string, active: ActiveJob): void {
+    this.activeJobs.set(jobId, active);
+  }
+
+  /** Drop a run without draining the queue — the caller's `finally` does that. */
+  dropJob(jobId: string): void {
+    this.activeJobs.delete(jobId);
+  }
+
+  /** Drop a run and start whatever was queued behind it. */
+  releaseJob(jobId: string): void {
+    this.activeJobs.delete(jobId);
+    this.drainQueue();
+  }
+
+  /** The run registered under `jobId`, if it is still in flight. */
+  getActiveJob(jobId: string): ActiveJob | undefined {
+    return this.activeJobs.get(jobId);
+  }
+
+  /** Whether a run is registered under `jobId`. */
+  hasActiveJob(jobId: string): boolean {
+    return this.activeJobs.has(jobId);
   }
 
   /**

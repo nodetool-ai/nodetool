@@ -1000,7 +1000,7 @@ export interface TestUiServerOptions extends HttpApiOptions {
   /**
    * Called with each per-connection `WebSocketClientSession` right after it is
    * constructed. The runner is otherwise private to the upgrade handler; the
-   * reliability harness needs it to read `slotCounters` for leak accounting.
+   * reliability harness needs it to read `jobs.slotCounters` for leak accounting.
    */
   onRunnerCreated?: (runner: WebSocketClientSession) => void;
 }

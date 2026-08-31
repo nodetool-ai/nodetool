@@ -762,7 +762,7 @@ describe("synchronous helpers", () => {
 
   it("getStatus returns not_found for an unknown job", async () => {
     const runner = await makeRunner(ws);
-    expect(runner.getStatus("ghost")).toEqual({
+    expect(runner.jobs.getStatus("ghost")).toEqual({
       status: "not_found",
       job_id: "ghost"
     });
@@ -771,19 +771,19 @@ describe("synchronous helpers", () => {
 
   it("getStatus with no id returns an empty active-jobs list", async () => {
     const runner = await makeRunner(ws);
-    expect(runner.getStatus()).toEqual({ active_jobs: [] });
+    expect(runner.jobs.getStatus()).toEqual({ active_jobs: [] });
     await runner.disconnect();
   });
 
   it("cancelJob returns an error object for an empty job id", async () => {
     const runner = await makeRunner(ws);
-    expect(await runner.cancelJob("")).toEqual({ error: "No job_id provided" });
+    expect(await runner.jobs.cancelJob("")).toEqual({ error: "No job_id provided" });
     await runner.disconnect();
   });
 
   it("cancelJob reports not-found for an unknown, unqueued job", async () => {
     const runner = await makeRunner(ws);
-    const res = await runner.cancelJob("unknown-job", "wf-9");
+    const res = await runner.jobs.cancelJob("unknown-job", "wf-9");
     expect(res.error).toBe("Job not found or already completed");
     expect(res.job_id).toBe("unknown-job");
     expect(res.workflow_id).toBe("wf-9");

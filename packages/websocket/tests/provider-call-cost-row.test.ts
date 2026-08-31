@@ -16,17 +16,7 @@ const provider = (cost: number, unpricedReason: string | null): BaseProvider =>
   ({ cost, unpricedReason }) as unknown as BaseProvider;
 
 const logCall = (runner: WebSocketClientSession, p: BaseProvider) =>
-  (
-    runner as unknown as {
-      _logProviderCall(
-        userId: string,
-        provider: BaseProvider,
-        providerId: string,
-        model: string,
-        workflowId: string | null
-      ): Promise<void>;
-    }
-  )._logProviderCall("1", p, "openai", "gpt-4o", null);
+  runner.chat._logProviderCall("1", p, "openai", "gpt-4o", null);
 
 describe("provider call cost row", () => {
   let runner: WebSocketClientSession;

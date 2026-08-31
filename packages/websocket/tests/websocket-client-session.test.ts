@@ -218,7 +218,7 @@ describe("WebSocketClientSession", () => {
       command: "run_job",
       data: { graph, params: {} }
     });
-    const status = runner.getStatus() as {
+    const status = runner.jobs.getStatus() as {
       active_jobs: Array<{ job_id: string }>;
     };
     expect(status.active_jobs.length).toBeGreaterThan(0);
@@ -653,8 +653,8 @@ describe("WebSocketClientSession", () => {
     await r.connect(ws);
     const graph = { nodes: [{ id: "n1", type: "nodetool.constant.String", name: "nodetool.constant.String", properties: { value: "x" } }], edges: [] };
 
-    await r.runJob({ job_id: "A", workflow_id: "wf", graph });
-    await r.runJob({ job_id: "B", workflow_id: "wf", graph });
+    await r.jobs.runJob({ job_id: "A", workflow_id: "wf", graph });
+    await r.jobs.runJob({ job_id: "B", workflow_id: "wf", graph });
     await new Promise((res) => setTimeout(res, 20));
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
@@ -675,8 +675,8 @@ describe("WebSocketClientSession", () => {
     await r.connect(ws);
     const graph = { nodes: [{ id: "n1", type: "nodetool.constant.String", name: "nodetool.constant.String", properties: { value: "x" } }], edges: [] };
 
-    await r.runJob({ job_id: "A", workflow_id: "wf", graph, concurrent: true });
-    await r.runJob({ job_id: "B", workflow_id: "wf", graph, concurrent: true });
+    await r.jobs.runJob({ job_id: "A", workflow_id: "wf", graph, concurrent: true });
+    await r.jobs.runJob({ job_id: "B", workflow_id: "wf", graph, concurrent: true });
     await new Promise((res) => setTimeout(res, 20));
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
@@ -700,9 +700,9 @@ describe("WebSocketClientSession", () => {
       await r.connect(ws);
       const graph = { nodes: [{ id: "n1", type: "nodetool.constant.String", name: "nodetool.constant.String", properties: { value: "x" } }], edges: [] };
 
-      await r.runJob({ job_id: "A", workflow_id: "wf", graph, concurrent: true });
-      await r.runJob({ job_id: "B", workflow_id: "wf", graph, concurrent: true });
-      await r.runJob({ job_id: "C", workflow_id: "wf", graph, concurrent: true });
+      await r.jobs.runJob({ job_id: "A", workflow_id: "wf", graph, concurrent: true });
+      await r.jobs.runJob({ job_id: "B", workflow_id: "wf", graph, concurrent: true });
+      await r.jobs.runJob({ job_id: "C", workflow_id: "wf", graph, concurrent: true });
       await new Promise((res) => setTimeout(res, 20));
 
       const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
@@ -827,8 +827,8 @@ describe("WebSocketClientSession", () => {
       await Job.create({ id: "RUN_A", workflow_id: "wf", user_id: "1", status: "scheduled" });
       await Job.create({ id: "RUN_B", workflow_id: "wf", user_id: "1", status: "scheduled" });
 
-      await r.runJob({ job_id: "RUN_A", workflow_id: "wf", graph, concurrent: true });
-      await r.runJob({ job_id: "RUN_B", workflow_id: "wf", graph, concurrent: true });
+      await r.jobs.runJob({ job_id: "RUN_A", workflow_id: "wf", graph, concurrent: true });
+      await r.jobs.runJob({ job_id: "RUN_B", workflow_id: "wf", graph, concurrent: true });
       await new Promise((res) => setTimeout(res, 20));
 
       // RUN_B is queued behind RUN_A (cap of 1). Disconnecting must cancel it.
@@ -885,7 +885,7 @@ describe("WebSocketClientSession", () => {
         status: "scheduled"
       });
 
-      await r.runJob({ job_id: "RUN_ACTIVE", workflow_id: "wf-active", graph });
+      await r.jobs.runJob({ job_id: "RUN_ACTIVE", workflow_id: "wf-active", graph });
       // Let the job reach the active map before cancelling.
       await new Promise((res) => setTimeout(res, 20));
 
@@ -1007,13 +1007,8 @@ describe("WebSocketClientSession image tool results", () => {
     return { ctx, stored };
   }
 
-  // materializeToolResultImages is private; exercise it directly.
   const materialize = (result: unknown, ctx: unknown) =>
-    (
-      runner as unknown as {
-        materializeToolResultImages: (r: unknown, c: unknown) => Promise<unknown>;
-      }
-    ).materializeToolResultImages(result, ctx);
+    runner.chat.materializeToolResultImages(result, ctx as never);
 
   it("stores an image_content blob as a temp asset and returns a handle", async () => {
     const { ctx, stored } = makeCtx();

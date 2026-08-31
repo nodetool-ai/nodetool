@@ -65,7 +65,7 @@ async function settledSlotCounters(
   const total = (): { activeJobs: number; startingJobs: number } =>
     runners.reduce(
       (acc, runner) => {
-        const slots = runner.slotCounters;
+        const slots = runner.jobs.slotCounters;
         return {
           activeJobs: acc.activeJobs + slots.activeJobs,
           startingJobs: acc.startingJobs + slots.startingJobs

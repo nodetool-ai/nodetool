@@ -191,7 +191,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
     });
     const runnerTargetId = sdkLiveRunnerRegistry?.register(
       req.userId ?? "1",
-      runner
+      runner.jobs
     );
     if (runnerTargetId) {
       try {

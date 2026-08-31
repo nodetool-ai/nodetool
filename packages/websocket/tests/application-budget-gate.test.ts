@@ -127,11 +127,7 @@ describe("application budget gate", () => {
   });
 
   const run = (over: Record<string, unknown> = {}) =>
-    (
-      runner as unknown as {
-        runJob(req: Record<string, unknown>): Promise<void>;
-      }
-    ).runJob({
+    runner.jobs.runJob({
       job_id: "job-1",
       workflow_id: "wf1",
       graph: { nodes: [], edges: [] },
@@ -389,11 +385,7 @@ describe("application invocation settlement", () => {
   };
 
   const stream = (active: unknown, result: unknown) =>
-    (
-      runner as unknown as {
-        streamJobMessages(a: unknown, p: Promise<unknown>): Promise<void>;
-      }
-    ).streamJobMessages(active, Promise.resolve(result));
+    asAny(runner).jobs.streamJobMessages(active, Promise.resolve(result));
 
   it("closes the ledger row out at what the run actually cost", async () => {
     await recordInvocation({

@@ -137,7 +137,7 @@ describe("drain-loop failure bookkeeping", () => {
     });
 
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOBFAIL",
       workflow_id: "WFFAIL",
       graph
@@ -179,7 +179,7 @@ describe("drain-loop failure bookkeeping", () => {
 
     const runner = makeRunner();
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOBOK",
       workflow_id: "WFOK",
       graph

@@ -128,7 +128,7 @@ describe("job persistence failure during run_job (task D3, pinned behavior)", ()
         Object.assign(new Error("database is locked"), { code: "SQLITE_BUSY" })
       );
 
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: jobId,
       workflow_id: "wf",
       graph: trivialGraph,
@@ -163,7 +163,7 @@ describe("job persistence failure during run_job (task D3, pinned behavior)", ()
         Object.assign(new Error("database is locked"), { code: "SQLITE_BUSY" })
       );
 
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: jobId,
       workflow_id: "wf",
       graph: trivialGraph,

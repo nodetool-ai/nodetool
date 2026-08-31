@@ -5,6 +5,7 @@ import {
   type WebSocketConnection,
   type WebSocketReceiveFrame
 } from "../src/websocket-client-session.js";
+import { extractTextContent } from "../src/session/chat-history.js";
 import { resetEnvironment } from "@nodetool-ai/config";
 import { initTestDb, Job } from "@nodetool-ai/models";
 
@@ -100,7 +101,7 @@ describe("WebSocketClientSession lifecycle — handleCommand dispatch guards", (
       )?.error
     ).toBe("No active job/context");
     // Active job present but a blank input name is rejected before touching it.
-    asAny(runner).activeJobs.set("J", {
+    asAny(runner).jobs.registerJob("J", {
       jobId: "J",
       workflowId: "wf",
       status: "running",
@@ -121,7 +122,7 @@ describe("WebSocketClientSession lifecycle — handleCommand dispatch guards", (
       .fn()
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error("push boom"));
-    asAny(runner).activeJobs.set("J", {
+    asAny(runner).jobs.registerJob("J", {
       jobId: "J",
       workflowId: "wf",
       status: "running",
@@ -156,7 +157,7 @@ describe("WebSocketClientSession lifecycle — handleCommand dispatch guards", (
     ).toBe("No active job/context");
 
     const finishInputStream = vi.fn();
-    asAny(runner).activeJobs.set("J", {
+    asAny(runner).jobs.registerJob("J", {
       jobId: "J",
       workflowId: "wf",
       status: "running",
@@ -179,7 +180,7 @@ describe("WebSocketClientSession lifecycle — handleCommand dispatch guards", (
   });
 
   it("end_input_stream surfaces a thrown finishInputStream error", async () => {
-    asAny(runner).activeJobs.set("J", {
+    asAny(runner).jobs.registerJob("J", {
       jobId: "J",
       workflowId: "wf",
       status: "running",
@@ -232,7 +233,7 @@ describe("WebSocketClientSession lifecycle — handleCommand dispatch guards", (
     ).toBe(false);
     // Active job → delegates to the runner and returns its boolean.
     const updateNodeProperties = vi.fn().mockReturnValue(true);
-    asAny(runner).activeJobs.set("J", {
+    asAny(runner).jobs.registerJob("J", {
       jobId: "J",
       workflowId: "wf",
       status: "running",
@@ -307,13 +308,13 @@ describe("WebSocketClientSession lifecycle — handleCommand dispatch guards", (
       finished: false,
       session: { cancel }
     };
-    asAny(runner).activeJobs.set("J", active);
+    asAny(runner).jobs.registerJob("J", active);
     const cancelToolScope = vi.spyOn(asAny(runner).toolBridge, "cancelScope");
     const cancelApprovalScope = vi.spyOn(
       asAny(runner).approvalBridge,
       "cancelScope"
     );
-    const seqBefore = asAny(runner).chatRequestSeq;
+    const seqBefore = runner.chat.currentRequestSeq;
 
     const res = await runner.handleCommand({
       command: "stop",
@@ -327,7 +328,7 @@ describe("WebSocketClientSession lifecycle — handleCommand dispatch guards", (
     expect(active.status).toBe("cancelled");
     expect(cancelToolScope).toHaveBeenCalledWith("T");
     expect(cancelApprovalScope).toHaveBeenCalledWith("T");
-    expect(asAny(runner).chatRequestSeq).toBe(seqBefore + 1);
+    expect(runner.chat.currentRequestSeq).toBe(seqBefore + 1);
 
     const stopped = decodeAll(ws).find((m) => m.type === "generation_stopped");
     expect(stopped).toBeDefined();
@@ -360,29 +361,29 @@ describe("WebSocketClientSession lifecycle — job status/cancel/reconnect", () 
   });
 
   it("getStatus reports not_found, a single job, and the active list", async () => {
-    expect(runner.getStatus("missing")).toEqual({
+    expect(runner.jobs.getStatus("missing")).toEqual({
       status: "not_found",
       job_id: "missing"
     });
-    asAny(runner).activeJobs.set("J", {
+    asAny(runner).jobs.registerJob("J", {
       jobId: "J",
       workflowId: "wf",
       status: "running"
     });
-    expect(runner.getStatus("J")).toEqual({
+    expect(runner.jobs.getStatus("J")).toEqual({
       status: "running",
       job_id: "J",
       workflow_id: "wf"
     });
-    const all = runner.getStatus() as {
+    const all = runner.jobs.getStatus() as {
       active_jobs: Array<{ job_id: string }>;
     };
     expect(all.active_jobs.map((j) => j.job_id)).toContain("J");
   });
 
   it("cancelJob rejects an empty id and an unknown job", async () => {
-    expect((await runner.cancelJob("")).error).toBe("No job_id provided");
-    const res = await runner.cancelJob("ghost", "wf");
+    expect((await runner.jobs.cancelJob("")).error).toBe("No job_id provided");
+    const res = await runner.jobs.cancelJob("ghost", "wf");
     expect(res.error).toBe("Job not found or already completed");
     expect(res.job_id).toBe("ghost");
     expect(res.workflow_id).toBe("wf");
@@ -390,18 +391,18 @@ describe("WebSocketClientSession lifecycle — job status/cancel/reconnect", () 
 
   it("cancelJob on an active job cancels the runner without an eager terminal frame", async () => {
     const cancel = vi.fn();
-    asAny(runner).activeJobs.set("J", {
+    asAny(runner).jobs.registerJob("J", {
       jobId: "J",
       workflowId: "wf-a",
       status: "running",
       finished: false,
       session: { cancel }
     });
-    const res = await runner.cancelJob("J");
+    const res = await runner.jobs.cancelJob("J");
     expect(res.message).toBe("Job cancellation requested");
     expect(cancel).toHaveBeenCalledOnce();
     // finished is intentionally NOT flipped so the runner drains its messages.
-    expect(asAny(runner).activeJobs.get("J").finished).toBe(false);
+    expect(asAny(runner).jobs.getActiveJob("J").finished).toBe(false);
     // No out-of-band terminal frame: the kernel's own cancelled job_update
     // relays through the drain loop after the node-level terminal updates
     // (lifecycle.running-after-job-terminal). The RPC response above is the
@@ -414,7 +415,7 @@ describe("WebSocketClientSession lifecycle — job status/cancel/reconnect", () 
   });
 
   it("reconnectJob reports an unknown job and replays active statuses", async () => {
-    await runner.reconnectJob("missing");
+    await runner.jobs.reconnectJob("missing");
     expect(decodeAll(ws)).toContainEqual(
       expect.objectContaining({
         type: "job_update",
@@ -422,7 +423,7 @@ describe("WebSocketClientSession lifecycle — job status/cancel/reconnect", () 
         error: "Job missing not found"
       })
     );
-    asAny(runner).activeJobs.set("J", {
+    asAny(runner).jobs.registerJob("J", {
       jobId: "J",
       workflowId: "wf",
       status: "running",
@@ -442,7 +443,7 @@ describe("WebSocketClientSession lifecycle — job status/cancel/reconnect", () 
       }
     });
     ws.sentBytes = [];
-    await runner.reconnectJob("J", "wf-override");
+    await runner.jobs.reconnectJob("J", "wf-override");
     const sent = decodeAll(ws);
     expect(
       sent.some(
@@ -468,7 +469,7 @@ describe("WebSocketClientSession lifecycle — job status/cancel/reconnect", () 
       status: "completed"
     });
 
-    await runner.reconnectJob("completed-job");
+    await runner.jobs.reconnectJob("completed-job");
 
     // The missing events are an `error` note, not a verdict: flipping the
     // status to "failed" here told clients a successful run had crashed.
@@ -491,7 +492,7 @@ describe("WebSocketClientSession lifecycle — job status/cancel/reconnect", () 
       status: "queued"
     });
 
-    await runner.reconnectJob("queued-job");
+    await runner.jobs.reconnectJob("queued-job");
 
     // The queue this row sat in died with its connection. Reporting "queued"
     // (which the editor renders as running, Stop button and all) leaves the
@@ -515,7 +516,7 @@ describe("WebSocketClientSession lifecycle — job status/cancel/reconnect", () 
       status: "running"
     });
 
-    await runner.reconnectJob("orphaned-job");
+    await runner.jobs.reconnectJob("orphaned-job");
 
     expect(decodeAll(ws)).toContainEqual(
       expect.objectContaining({
@@ -736,8 +737,9 @@ describe("WebSocketClientSession lifecycle — runRpc frame", () => {
   });
 
   it("sends an rpc_response with the result and returns null on success", async () => {
-    const ret = await asAny(runner).runRpc(
-      { command: "list_workflows", request_id: "r1", data: {} },
+    const ret = await runner.commands.runRpc(
+      "list_workflows",
+      "r1",
       async () => ({ items: [1, 2] })
     );
     expect(ret).toBeNull();
@@ -747,8 +749,9 @@ describe("WebSocketClientSession lifecycle — runRpc frame", () => {
   });
 
   it("maps a thrown apiCode into the rpc_response error payload", async () => {
-    const ret = await asAny(runner).runRpc(
-      { command: "get_workflow", request_id: "r2", data: {} },
+    const ret = await runner.commands.runRpc(
+      "get_workflow",
+      "r2",
       async () => {
         throw Object.assign(new Error("nope"), {
           code: "BAD_REQUEST",
@@ -766,8 +769,9 @@ describe("WebSocketClientSession lifecycle — runRpc frame", () => {
   });
 
   it("rejects an RPC command missing a request_id", async () => {
-    const ret = await asAny(runner).runRpc(
-      { command: "list_assets", data: {} },
+    const ret = await runner.commands.runRpc(
+      "list_assets",
+      undefined,
       async () => ({})
     );
     expect(ret?.error).toBe("request_id is required for RPC commands");
@@ -778,7 +782,7 @@ describe("WebSocketClientSession lifecycle — private graph/type helpers", () =
   const runner = new WebSocketClientSession({ resolveExecutor });
 
   it("normalizeGraph lifts data→properties and normalizes edge types", () => {
-    const out = asAny(runner).normalizeGraph({
+    const out = asAny(runner).jobs.normalizeGraph({
       nodes: [
         { id: "a", type: "T", data: { x: 1 } },
         { id: "b", type: "T", properties: { y: 2 } }
@@ -800,7 +804,7 @@ describe("WebSocketClientSession lifecycle — private graph/type helpers", () =
   });
 
   it("inferOutputType classifies primitives, arrays, and objects", () => {
-    const infer = (v: unknown) => asAny(runner).inferOutputType(v);
+    const infer = (v: unknown) => asAny(runner).jobs.inferOutputType(v);
     expect(infer(null)).toBe("any");
     expect(infer(undefined)).toBe("any");
     expect(infer("s")).toBe("str");
@@ -813,7 +817,7 @@ describe("WebSocketClientSession lifecycle — private graph/type helpers", () =
 
   it("extractTextContent flattens strings and text-content arrays", () => {
     const extract = (c: unknown, f?: string) =>
-      asAny(runner).extractTextContent(c, f);
+      extractTextContent(c, f);
     expect(extract("hello")).toBe("hello");
     expect(
       extract([
@@ -829,7 +833,7 @@ describe("WebSocketClientSession lifecycle — private graph/type helpers", () =
   });
 
   it("getRawGraph throws when neither graph nor workflow_id is supplied", () => {
-    expect(() => asAny(runner).getRawGraph({})).toThrow(
+    expect(() => asAny(runner).jobs.getRawGraph({})).toThrow(
       /workflow_id or graph is required/
     );
   });
@@ -896,7 +900,7 @@ describe("WebSocketClientSession lifecycle — disconnect cleanup", () => {
     const runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
     const cancel = vi.fn();
-    asAny(runner).activeJobs.set("J", {
+    asAny(runner).jobs.registerJob("J", {
       jobId: "J",
       workflowId: "wf",
       status: "running",
@@ -904,7 +908,7 @@ describe("WebSocketClientSession lifecycle — disconnect cleanup", () => {
     });
     await runner.disconnect();
     expect(cancel).toHaveBeenCalledOnce();
-    expect(asAny(runner).activeJobs.size).toBe(0);
+    expect(runner.jobs.slotCounters.activeJobs).toBe(0);
     expect(ws.closed).toBe(true);
     expect(runner.websocket).toBeNull();
   });

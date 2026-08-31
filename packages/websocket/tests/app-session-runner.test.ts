@@ -148,7 +148,7 @@ describe("a runner connected by a deployed app's visitor", () => {
     const ws = new MockWS();
     await runner.connect(ws);
 
-    await runner.runJob({ workflow_id: "wf-published" });
+    await runner.jobs.runJob({ workflow_id: "wf-published" });
 
     await vi.waitFor(() => {
       expect(
@@ -169,7 +169,7 @@ describe("a runner connected by a deployed app's visitor", () => {
     await runner.connect(ws);
 
     const visitorJobId = "6f9619ff-8b86-4d11-b42d-00c04fc964ff";
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: visitorJobId,
       workflow_id: "wf-the-owners-private-one",
       job_name: "The visitor's label",
@@ -210,7 +210,7 @@ describe("a runner connected by a deployed app's visitor", () => {
     const ws = new MockWS();
     await runner.connect(ws);
 
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "job-ok",
       workflow_id: "wf-published",
       operation_id: "main"
@@ -242,7 +242,7 @@ describe("a runner connected by a deployed app's visitor", () => {
     const ws = new MockWS();
     await runner.connect(ws);
 
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: taken,
       workflow_id: "wf-published",
       operation_id: "main"
@@ -266,7 +266,7 @@ describe("a runner connected by a deployed app's visitor", () => {
     const ws = new MockWS();
     await runner.connect(ws);
 
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "6f9619ff-8b86-4d11-b42d-00c04fc96411",
       workflow_id: "wf-published",
       operation_id: "main"
@@ -315,7 +315,7 @@ describe("a runner connected by a deployed app's visitor", () => {
     const runner = appRunner(application.id, version);
     const ws = new MockWS();
     await runner.connect(ws);
-    await runner.runJob({ workflow_id: "wf-published", operation_id: "main" });
+    await runner.jobs.runJob({ workflow_id: "wf-published", operation_id: "main" });
 
     expect(
       sentMsgs(ws).some(

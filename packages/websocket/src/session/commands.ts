@@ -74,10 +74,8 @@ export interface CommandRouterHost {
 }
 
 /**
- * What the command surface needs from the job region. `JobExecutionManager`
- * implements all of it; the host passes an adapter rather than the manager
- * itself because four of these are still reached through the runner's own
- * transitional delegators, which is where the job suites drive them.
+ * What the command surface needs from the job region. The host passes its
+ * `JobExecutionManager`, which implements all of it.
  */
 export interface CommandRouterJobs {
   runJob(req: RunJobRequest): Promise<void>;
@@ -214,9 +212,8 @@ export class CommandRouter {
    * Errors thrown by the procedure are mapped to `rpc_response.error` using
    * the `apiCode` cause attached by `throwApiError` in the tRPC layer.
    *
-   * Public only because the runner's transitional `runRpc` delegator — driven
-   * by the lifecycle suite — forwards to it; it goes private when those suites
-   * move onto the router.
+   * Public because the lifecycle suite drives an RPC frame straight at it,
+   * without a tRPC caller behind the command it names.
    */
   async runRpc<TResult>(
     command: string,

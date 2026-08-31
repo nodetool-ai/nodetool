@@ -104,7 +104,7 @@ describe("WebSocketClientSession malformed-protocol corpus", () => {
     expect(String(rejection?.details)).toContain("run_job");
 
     // The bad frame never reached runJob: no job was registered.
-    const status = runner.getStatus() as {
+    const status = runner.jobs.getStatus() as {
       active_jobs: Array<{ job_id: string }>;
     };
     expect(status.active_jobs).toHaveLength(0);
@@ -114,7 +114,7 @@ describe("WebSocketClientSession malformed-protocol corpus", () => {
   });
 
   it("accepts MessagePack nil in the C# SDK run_job envelope", async () => {
-    const runJob = vi.spyOn(runner, "runJob").mockResolvedValue();
+    const runJob = vi.spyOn(runner.jobs, "runJob").mockResolvedValue();
     ws.queue.push({
       type: "websocket.message",
       bytes: pack({

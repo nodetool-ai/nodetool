@@ -28,14 +28,6 @@ vi.mock("@nodetool-ai/models", async (orig) => {
   return { ...actual, Asset: FakeAsset };
 });
 
-interface MaterializeRunner {
-  materializeAssistantImageContent(
-    content: MessageContent[],
-    userId: string,
-    workflowId: string | null
-  ): Promise<Array<Record<string, unknown>>>;
-}
-
 describe("materializeAssistantImageContent", () => {
   let runner: WebSocketClientSession;
 
@@ -61,9 +53,7 @@ describe("materializeAssistantImageContent", () => {
       }
     ];
 
-    const out = await (
-      runner as unknown as MaterializeRunner
-    ).materializeAssistantImageContent(content, "user-9", "wf-1");
+    const out = await runner.chat.materializeAssistantImageContent(content, "user-9", "wf-1");
 
     expect(storeMock).toHaveBeenCalledTimes(1);
     expect(out[0]).toEqual({ type: "text", text: "Here is your image" });
@@ -88,9 +78,7 @@ describe("materializeAssistantImageContent", () => {
       }
     ];
 
-    const out = await (
-      runner as unknown as MaterializeRunner
-    ).materializeAssistantImageContent(content, "user-9", null);
+    const out = await runner.chat.materializeAssistantImageContent(content, "user-9", null);
 
     expect(storeMock).not.toHaveBeenCalled();
     expect(out).toEqual(content);
@@ -114,9 +102,7 @@ describe("materializeAssistantImageContent", () => {
       }
     ];
 
-    const out = await (
-      runner as unknown as MaterializeRunner
-    ).materializeAssistantImageContent(content, "user-9", "wf-1");
+    const out = await runner.chat.materializeAssistantImageContent(content, "user-9", "wf-1");
 
     // The failed block degrades to a text notice; the sibling image and the
     // assistant text still make it through, and no base64 leaks.
@@ -142,9 +128,7 @@ describe("materializeAssistantImageContent", () => {
       }
     ];
 
-    const out = await (
-      runner as unknown as MaterializeRunner
-    ).materializeAssistantImageContent(content, "user-9", "wf-2");
+    const out = await runner.chat.materializeAssistantImageContent(content, "user-9", "wf-2");
 
     expect(storeMock).toHaveBeenCalledTimes(1);
     expect(out[0]).toEqual({

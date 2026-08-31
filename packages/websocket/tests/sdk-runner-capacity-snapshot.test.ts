@@ -11,10 +11,10 @@ describe("SDK runner capacity snapshot", () => {
       })
     });
 
-    const first = await runner.getSdkExecutionCapacitySnapshot({
+    const first = await runner.jobs.getSdkExecutionCapacitySnapshot({
       workflowId: "workflow-1"
     });
-    const second = await runner.getSdkExecutionCapacitySnapshot({
+    const second = await runner.jobs.getSdkExecutionCapacitySnapshot({
       workflowId: "workflow-1"
     });
 

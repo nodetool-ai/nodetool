@@ -51,13 +51,7 @@ const makeRunner = (totalCost: number): WebSocketClientSession =>
 const generate = async (
   runner: WebSocketClientSession
 ): Promise<{ asset_ids: string[] }> =>
-  (
-    runner as unknown as {
-      runDirectMediaGeneration(req: Record<string, unknown>): Promise<{
-        asset_ids: string[];
-      }>;
-    }
-  ).runDirectMediaGeneration({
+  runner.inference.runDirectMediaGeneration({
     mode: "video",
     provider: "nodetool",
     model: MODEL,

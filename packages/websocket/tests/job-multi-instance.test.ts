@@ -141,7 +141,7 @@ describe("multi-instance job routing", () => {
     process.env["NODETOOL_INSTANCE_ID"] = "machine-a";
     const jobId = "stamped-job";
 
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: jobId,
       workflow_id: "wf",
       graph: trivialGraph,
@@ -165,7 +165,7 @@ describe("multi-instance job routing", () => {
       runner_instance: "machine-a"
     });
 
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: jobId,
       workflow_id: "wf",
       graph: trivialGraph,
@@ -179,7 +179,7 @@ describe("multi-instance job routing", () => {
   it("leaves the stamp null when no instance id is configured", async () => {
     const jobId = "unstamped-job";
 
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: jobId,
       workflow_id: "wf",
       graph: trivialGraph,

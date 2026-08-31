@@ -89,7 +89,7 @@ describe("supervisor message relay", () => {
     });
 
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOB1",
       workflow_id: "WF1",
       graph: { nodes: [{ id: "n1", type: "test.Node" }], edges: [] }
