@@ -247,7 +247,11 @@ describe("flushStoryboardSave", () => {
 });
 
 describe("useStoryboardServerSync — external changes merge into a dirty draft", () => {
-  const shot = (id: string, index: number, action: string) => ({
+  const shot = (
+    id: string,
+    index: number,
+    action: string
+  ): Record<string, unknown> => ({
     type: "shot",
     id,
     index,
@@ -255,7 +259,7 @@ describe("useStoryboardServerSync — external changes merge into a dirty draft"
     status: "planned"
   });
 
-  const docWith = (shots: ReturnType<typeof shot>[]) => ({
+  const docWith = (shots: Record<string, unknown>[]) => ({
     ...emptyDocument,
     shots
   });
@@ -529,6 +533,142 @@ describe("useStoryboardServerSync — external changes merge into a dirty draft"
     expect(shots.find((s) => s.id === "s3")?.action).toBe("Three — draft");
     expect(conflictsFor()).toEqual([]);
     expect(useStoryboardStore.getState().serverRevisions["board-1"]).toBe("rev-10");
+
+    rendered.unmount();
+    useConflictStore.getState().clear("storyboard:board-1");
+  });
+
+  it("keeps a refused still on offer through the rest of a render batch", async () => {
+    // A batch render is one write per shot. Each merge used to replace the
+    // banner's whole list, so the offer carrying shot 1's still vanished when
+    // shot 2's write landed — and the base rolled past the refusal, so nothing
+    // ever offered it again. The still was unreachable from the UI.
+    const still = (id: string) => ({
+      type: "image",
+      asset_id: id,
+      uri: `asset://${id}.png`
+    });
+    const rendered_ = await (async () => {
+      getQuery.mockResolvedValue(
+        serverResponse(docWith([shot("s1", 0, "One"), shot("s2", 1, "Two")]))
+      );
+      return mountLoaded();
+    })();
+
+    // The user is rewriting shot 1 while the batch runs.
+    act(() =>
+      useStoryboardStore
+        .getState()
+        .updateShot("board-1", "s1", { action: "One — draft" })
+    );
+
+    getQuery.mockResolvedValue(
+      serverResponse(
+        docWith([
+          { ...shot("s1", 0, "One"), status: "keyframe_ready", keyframe: still("a1") },
+          shot("s2", 1, "Two")
+        ]),
+        "rev-9"
+      )
+    );
+    await act(async () => {
+      handleDocumentResourceChange("storyboard", {
+        event: "updated",
+        id: "board-1",
+        updatedAt: "rev-9",
+        ops: [{ tool: "update_shot", input: { id: "s1" } }]
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(conflictsFor()).toEqual(["s1"]);
+
+    // Shot 2's render lands before the user answers the banner.
+    getQuery.mockResolvedValue(
+      serverResponse(
+        docWith([
+          { ...shot("s1", 0, "One"), status: "keyframe_ready", keyframe: still("a1") },
+          { ...shot("s2", 1, "Two"), status: "keyframe_ready", keyframe: still("a2") }
+        ]),
+        "rev-10"
+      )
+    );
+    await act(async () => {
+      handleDocumentResourceChange("storyboard", {
+        event: "updated",
+        id: "board-1",
+        updatedAt: "rev-10",
+        ops: [{ tool: "update_shot", input: { id: "s2" } }]
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const shotsAfter = useStoryboardStore.getState().boards["board-1"]?.shots ?? [];
+    // Shot 2 was untouched by the draft, so its still merged straight in.
+    expect(shotsAfter.find((s) => s.id === "s2")?.keyframe).toEqual(still("a2"));
+    // Shot 1's still is still on offer, and taking it works.
+    expect(conflictsFor()).toContain("s1");
+    act(() => useConflictStore.getState().accept("storyboard:board-1", "s1"));
+    expect(
+      useStoryboardStore
+        .getState()
+        .boards["board-1"]?.shots.find((s) => s.id === "s1")?.keyframe
+    ).toEqual(still("a1"));
+
+    rendered_.unmount();
+    useConflictStore.getState().clear("storyboard:board-1");
+  });
+
+  it("re-offers a refused shot on the next write that touches it", async () => {
+    // The merge base must not roll past a refusal. When it did, the next
+    // write naming the same shot read its server value as unchanged, so the
+    // draft won in silence and the refused value became unreachable.
+    getQuery.mockResolvedValue(serverResponse(docWith([shot("s1", 0, "One")])));
+    const rendered = await mountLoaded();
+
+    act(() =>
+      useStoryboardStore
+        .getState()
+        .updateShot("board-1", "s1", { action: "One — draft" })
+    );
+
+    const rendered_s1 = docWith([
+      {
+        ...shot("s1", 0, "One"),
+        status: "keyframe_ready",
+        keyframe: { type: "image", asset_id: "a1", uri: "asset://a1.png" }
+      }
+    ]);
+    const deliver = async (updatedAt: string) => {
+      getQuery.mockResolvedValue(serverResponse(rendered_s1, updatedAt));
+      await act(async () => {
+        handleDocumentResourceChange("storyboard", {
+          event: "updated",
+          id: "board-1",
+          updatedAt,
+          ops: [{ tool: "update_shot", input: { id: "s1" } }]
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+    };
+
+    await deliver("rev-9");
+    expect(conflictsFor()).toEqual(["s1"]);
+    // The user reads the banner and keeps their own line for now.
+    act(() => useConflictStore.getState().discard("storyboard:board-1", "s1"));
+    expect(conflictsFor()).toEqual([]);
+
+    // The shot is written again, with the same content the draft refused.
+    await deliver("rev-10");
+    expect(conflictsFor()).toEqual(["s1"]);
+    act(() => useConflictStore.getState().accept("storyboard:board-1", "s1"));
+    expect(
+      useStoryboardStore
+        .getState()
+        .boards["board-1"]?.shots.find((s) => s.id === "s1")?.keyframe
+    ).toEqual({ type: "image", asset_id: "a1", uri: "asset://a1.png" });
 
     rendered.unmount();
     useConflictStore.getState().clear("storyboard:board-1");

@@ -196,10 +196,6 @@ export const useStoryboardServerSync = (
       });
     };
 
-    // The server copy behind the newest merge, for a conflict accept that
-    // takes the whole external document ("replaced").
-    let externalBoard: StoryboardBoard | null = null;
-
     /**
      * Take one refused external value into the draft through the store's own
      * actions, so the accept is an undoable user edit (ADR 0001).
@@ -298,16 +294,23 @@ export const useStoryboardServerSync = (
         id: boardId,
         updatedAt: Date.now()
       };
-      externalBoard = serverBoard;
-
-      const { doc: merged, conflicts } = mergeByUnits(base, draft, serverBoard, storyboardMergeAdapter, { ops: notice.ops });
+      const { doc: merged, conflicts, nextBase } = mergeByUnits(
+        base,
+        draft,
+        serverBoard,
+        storyboardMergeAdapter,
+        { ops: notice.ops }
+      );
       store.getState().applyMerged(boardId, merged);
       revisionRef.current = res.updatedAt;
       store.getState().setServerRevision(boardId, res.updatedAt);
-      // Roll the merge base to what the server now holds, not the merged draft.
-      // Without this, a second external write on the same unit reads as "both
-      // changed" and the agent's second edit is refused.
-      syncedRef.current = serverBoard;
+      // Roll the merge base to what the server now holds, except in the shots
+      // the draft refused, which keep theirs. Rolling everything forward made
+      // a refusal permanent and silent — the next write in a render batch read
+      // the refused shot as unchanged on the server, so its still could never
+      // be offered again. Keeping the merged draft instead would refuse the
+      // agent's *second* edit to a shot it had already merged.
+      syncedRef.current = { ...nextBase, id: boardId, updatedAt: Date.now() };
 
       // A whole-document replacement has no unit id; name it "document" so
       // the banner's accept/discard can address it.
@@ -316,11 +319,14 @@ export const useStoryboardServerSync = (
           ? conflict
           : { ...conflict, unit: { ...conflict.unit, id: conflict.unit.kind } }
       );
-      useConflictStore.getState().setConflicts(`storyboard:${boardId}`, listed, {
+      useConflictStore.getState().addConflicts(`storyboard:${boardId}`, listed, {
         onAccept: (unitId) => {
           const entry = useConflictStore.getState().byKey[`storyboard:${boardId}`];
           const conflict = entry?.conflicts.find((c) => c.unit.id === unitId);
-          if (conflict) acceptConflict(conflict, externalBoard);
+          // `serverBoard` from this merge, not the newest one: offers
+          // outlive the merge that made them, and a whole-document accept
+          // must apply the copy the user was shown.
+          if (conflict) acceptConflict(conflict, serverBoard);
         },
         onDiscard: () => {}
       });

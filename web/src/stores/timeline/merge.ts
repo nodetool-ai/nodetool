@@ -210,6 +210,7 @@ export function mergeTimelineDocuments(
       ...result.doc,
       clips: clips.filter((c) => !dropped.has(c.id))
     },
+    nextBase: result.nextBase,
     conflicts
   };
 }

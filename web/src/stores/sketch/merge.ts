@@ -107,6 +107,8 @@ export function mergeSketchDocuments(
   if (ops?.some((op) => SKETCH_WHOLE_DOCUMENT_OPS.has(op.tool))) {
     return {
       doc: draft,
+      // The draft took none of it, so none of it becomes the next base.
+      nextBase: base,
       conflicts: [
         {
           unit: { kind: "document", id: "document", label: "document" },

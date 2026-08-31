@@ -381,6 +381,73 @@ describe("refreshWorkflow — the merge base follows the editor's own saves", ()
     ).toEqual([]);
   });
 
+  it("takes a second agent write to a node the draft never touched", async () => {
+    // The base a merge leaves behind is round-tripped through the graph
+    // converters. If that round trip were lossy, the second write would read
+    // the node as changed on both sides and contest what the draft never
+    // touched.
+    const queryClient = new QueryClient();
+    const store = createWorkflowManagerStore(queryClient);
+    store.getState().addWorkflow(noEdgeWorkflow);
+
+    // A canvas that folds a merge back in, the way the real store does.
+    let nodes: unknown[] = (noEdgeWorkflow.graph?.nodes ?? []).map((node) =>
+      graphNodeToReactFlowNode(noEdgeWorkflow, node)
+    );
+    const applyExternalGraph = jest.fn((merged: unknown[]) => {
+      nodes = merged;
+    });
+    const fakeStore = {
+      setState: jest.fn(),
+      getState: () => ({
+        workflowIsDirty: true,
+        nodes,
+        edges: [],
+        getWorkflow: () =>
+          ({ ...noEdgeWorkflow, updated_at: "2026-08-11T00:00:00Z" }) as Workflow,
+        setWorkflowDirty: jest.fn(),
+        applyExternalGraph,
+        findNode: (id: string) =>
+          nodes.find((n) => (n as { id: string }).id === id),
+        updateNodeData: jest.fn(),
+        updateNode: jest.fn(),
+        addNode: jest.fn(),
+        deleteNode: jest.fn(),
+        deleteEdge: jest.fn(),
+        cleanup: jest.fn()
+      })
+    } as unknown as NodeStoreApi;
+    store.setState((state: { nodeStores: Record<string, NodeStoreApi> }) => ({
+      nodeStores: { ...state.nodeStores, "wf-1": fakeStore }
+    }));
+
+    const agentWrite = async (value: string, etag: string, at: string) => {
+      fetchWorkflowById.mockResolvedValue({
+        ...noEdgeWorkflow,
+        updated_at: at,
+        etag,
+        graph: { nodes: [graphNode("A", "Input", { value })], edges: [] }
+      });
+      await store
+        .getState()
+        .refreshWorkflow("wf-1", etag, [
+          { tool: "ui_update_node_data", input: { node_id: "A" } }
+        ]);
+    };
+
+    await agentWrite("v1", "etag-1", "2026-08-12T00:00:00Z");
+    await agentWrite("v2", "etag-2", "2026-08-13T00:00:00Z");
+
+    expect(applyExternalGraph).toHaveBeenCalledTimes(2);
+    expect(
+      (nodes as { id: string; data: { properties?: Record<string, unknown> } }[])
+        .find((n) => n.id === "A")?.data.properties
+    ).toMatchObject({ properties: { value: "v2" } });
+    expect(
+      useConflictStore.getState().byKey["workflow:wf-1"]?.conflicts ?? []
+    ).toEqual([]);
+  });
+
   it("holds a foreign write during a save and reports it once the save settles", async () => {
     const queryClient = new QueryClient();
     const store = createWorkflowManagerStore(queryClient);

@@ -310,6 +310,7 @@ export function mergeAppDocuments(
   );
   return {
     doc: result.doc,
+    nextBase: result.nextBase,
     conflicts: [...surviving, ...dangling]
   };
 }

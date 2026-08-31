@@ -44,6 +44,16 @@ export interface MergeConflict {
 export interface MergeResult<TDoc> {
   doc: TDoc;
   conflicts: MergeConflict[];
+  /**
+   * The base to merge the *next* external write against.
+   *
+   * It is the server document, except in the slots the draft refused, which
+   * keep the base they had. Rolling those forward too would make the refusal
+   * permanent and silent: the next write reads the refused slot as unchanged
+   * on the server and changed by the draft, so the draft wins with nothing
+   * listed and the external value can never be taken again.
+   */
+  nextBase: TDoc;
 }
 
 /**
@@ -235,6 +245,13 @@ function resolveSlot(
   return { value: draftValue, contested: true };
 }
 
+/** The base one slot carries into the next merge. See `MergeResult.nextBase`. */
+const nextBaseSlot = (
+  baseValue: unknown,
+  serverValue: unknown,
+  contested: boolean
+): unknown => (contested ? baseValue : serverValue);
+
 /**
  * One refused external sub-item, reported by a field spec that declares
  * `conflictKind`. Shaped like a MergeConflict minus the label bookkeeping.
@@ -270,7 +287,12 @@ function mergeByFieldSpecs(
   pathPrefix: string,
   unitIdForTouch: string,
   report?: (entry: ReportedSubConflict) => void
-): { unit: Record<string, unknown>; contested: boolean } {
+): {
+  unit: Record<string, unknown>;
+  contested: boolean;
+  /** This unit's base for the next merge. See `MergeResult.nextBase`. */
+  nextBase: Record<string, unknown>;
+} {
   const declared = new Set(fields.map((f) => f.field));
 
   const pickRest = (unit: unknown): Record<string, unknown> => {
@@ -294,6 +316,15 @@ function mergeByFieldSpecs(
   const resolved: Record<string, unknown> = {
     ...(rest.value as Record<string, unknown>)
   };
+  // A slot the draft refused keeps its base whether or not the refusal was
+  // listed: an unlisted one is just as unreachable if the base rolls past it.
+  const nextBase: Record<string, unknown> = {
+    ...(nextBaseSlot(
+      pickRest(baseUnit),
+      pickRest(serverUnit),
+      rest.contested
+    ) as Record<string, unknown>)
+  };
 
   const childPath = (field: string): string =>
     pathPrefix ? `${pathPrefix}.${field}` : field;
@@ -302,6 +333,7 @@ function mergeByFieldSpecs(
     const read = (unit: unknown): unknown =>
       (unit as Record<string, unknown> | null | undefined)?.[spec.field];
     if (spec.itemId) {
+      const itemId = spec.itemId;
       const readList = (unit: unknown): unknown[] =>
         ((read(unit) as unknown[] | undefined) ?? []);
       const baseSub = listById(readList(baseUnit), spec.itemId);
@@ -333,6 +365,11 @@ function mergeByFieldSpecs(
       // Start from the draft's items; fold in what the server did.
       const mergedItems: unknown[] = [...readList(draftUnit)];
       let subContested = false;
+      // Item ids whose external value the draft refused, so the field's next
+      // base can keep theirs instead of rolling past the refusal.
+      const refusedItems = new Set<string>();
+      // Per-item next bases from a nested field spec, which computes its own.
+      const nestedBases = new Map<string, Record<string, unknown>>();
 
       // Server additions, and server changes to an item the draft deleted.
       // Existence decides; ops do not gate these.
@@ -347,14 +384,14 @@ function mergeByFieldSpecs(
         if (!dEntry && bEntry) {
           // Draft deleted it; a changed server copy this write touched
           // contests the deletion, and the deletion stands (the draft wins).
-          if (
-            !structuralEqual(bEntry.item, sEntry.item) &&
-            touchesSlot(itemPath, id)
-          ) {
-            if (reportItem) {
-              reportItem(id, sEntry.item, undefined, sEntry.item, "deleted");
-            } else {
-              subContested = true;
+          if (!structuralEqual(bEntry.item, sEntry.item)) {
+            refusedItems.add(id);
+            if (touchesSlot(itemPath, id)) {
+              if (reportItem) {
+                reportItem(id, sEntry.item, undefined, sEntry.item, "deleted");
+              } else {
+                subContested = true;
+              }
             }
           }
         }
@@ -370,6 +407,7 @@ function mergeByFieldSpecs(
         if (!sEntry) {
           if (bEntry && !structuralEqual(bEntry.item, draftItem)) {
             // External delete against a dirty item.
+            refusedItems.add(id);
             if (reportItem) {
               if (touchesSlot(itemPath, id)) {
                 reportItem(id, draftItem, draftItem, null, "deleted");
@@ -385,6 +423,7 @@ function mergeByFieldSpecs(
         if (!bEntry) {
           // Created in the draft; the server made its own version too.
           if (!structuralEqual(draftItem, sEntry.item)) {
+            refusedItems.add(id);
             if (reportItem) {
               if (touchesSlot(itemPath, id)) {
                 reportItem(id, draftItem, draftItem, sEntry.item, "edited");
@@ -409,6 +448,7 @@ function mergeByFieldSpecs(
             report
           );
           mergedItems[i] = nested.unit;
+          nestedBases.set(id, nested.nextBase);
           if (nested.contested && touchesSlot(itemPath, id)) {
             if (reportItem) {
               reportItem(id, draftItem, draftItem, sEntry.item, "edited");
@@ -420,16 +460,27 @@ function mergeByFieldSpecs(
         }
         const outcome = resolveSlot(bEntry.item, draftItem, sEntry.item);
         mergedItems[i] = outcome.value;
-        if (outcome.contested && touchesSlot(itemPath, id)) {
-          if (reportItem) {
-            reportItem(id, outcome.value, outcome.value, sEntry.item, "edited");
-          } else {
-            subContested = true;
+        if (outcome.contested) {
+          refusedItems.add(id);
+          if (touchesSlot(itemPath, id)) {
+            if (reportItem) {
+              reportItem(id, outcome.value, outcome.value, sEntry.item, "edited");
+            } else {
+              subContested = true;
+            }
           }
         }
       }
 
       resolved[spec.field] = mergedItems;
+      // The field's next base follows the server's membership, so an item the
+      // draft deleted is not resurrected as a server-only addition next time.
+      nextBase[spec.field] = readList(serverUnit).map((item) => {
+        const id = itemId(item);
+        const nested = nestedBases.get(id);
+        if (nested) return nested;
+        return refusedItems.has(id) ? (baseSub.get(id)?.item ?? item) : item;
+      });
       contested = contested || subContested;
     } else {
       const outcome = resolveSlot(
@@ -438,11 +489,16 @@ function mergeByFieldSpecs(
         read(serverUnit)
       );
       resolved[spec.field] = outcome.value;
+      nextBase[spec.field] = nextBaseSlot(
+        read(baseUnit),
+        read(serverUnit),
+        outcome.contested
+      );
       contested = contested || (outcome.contested && unitTouched);
     }
   }
 
-  return { unit: resolved, contested };
+  return { unit: resolved, contested, nextBase };
 }
 
 /**
@@ -458,8 +514,8 @@ function mergeUnit(
   touchesSlot: (kind: string, unitId: string) => boolean,
   unitId: string,
   report?: (entry: ReportedSubConflict) => void
-): { unit: unknown; contested: boolean } {
-  const outcome = mergeByFieldSpecs(
+): { unit: unknown; contested: boolean; nextBase: unknown } {
+  return mergeByFieldSpecs(
     collection.unitFields ?? [],
     baseUnit,
     draftUnit,
@@ -469,7 +525,6 @@ function mergeUnit(
     unitId,
     report
   );
-  return { unit: outcome.unit, contested: outcome.contested };
 }
 
 /**
@@ -484,7 +539,7 @@ function mergeCollection(
   server: unknown,
   touchesSlot: (kind: string, unitId: string) => boolean,
   conflicts: MergeConflict[]
-): unknown[] {
+): { units: unknown[]; nextBase: unknown[] } {
   const baseMap = listById(collection.read(base), collection.unitId);
   const draftList = collection.read(draft) ?? [];
   const draftMap = listById(draftList, collection.unitId);
@@ -513,6 +568,10 @@ function mergeCollection(
   };
 
   const result: unknown[] = [];
+  // Units whose external value the draft refused, and the merged base of a
+  // unit that resolved field by field. Both feed the next-merge base below.
+  const refused = new Set<string>();
+  const mergedBases = new Map<string, unknown>();
 
   for (const [id, dEntry] of draftMap) {
     const bEntry = baseMap.get(id);
@@ -530,6 +589,7 @@ function mergeCollection(
       if (!draftChanged) continue; // external delete, draft untouched
       // External delete against a dirty draft unit: the draft survives. A
       // delete this write did not touch keeps the draft silently.
+      refused.add(id);
       if (touchesSlot(collection.kind, id)) {
         conflict(
           id,
@@ -546,17 +606,17 @@ function mergeCollection(
     if (!bEntry) {
       // Created on both sides. Same value → done; otherwise draft wins, and
       // only a unit this write touched is listed.
-      if (
-        !structuralEqual(dEntry.item, sEntry.item) &&
-        touchesSlot(collection.kind, id)
-      ) {
-        conflict(
-          id,
-          collection.unitLabel(dEntry.item),
-          sEntry.item,
-          "edited",
-          dEntry.item
-        );
+      if (!structuralEqual(dEntry.item, sEntry.item)) {
+        refused.add(id);
+        if (touchesSlot(collection.kind, id)) {
+          conflict(
+            id,
+            collection.unitLabel(dEntry.item),
+            sEntry.item,
+            "edited",
+            dEntry.item
+          );
+        }
       }
       result.push(dEntry.item);
       continue;
@@ -568,10 +628,17 @@ function mergeCollection(
         result.push(dEntry.item);
         continue;
       }
-      result.push(
-        mergeUnit(collection, bEntry.item, dEntry.item, sEntry.item, touchesSlot, id, report)
-          .unit
+      const takenFromServer = mergeUnit(
+        collection,
+        bEntry.item,
+        dEntry.item,
+        sEntry.item,
+        touchesSlot,
+        id,
+        report
       );
+      result.push(takenFromServer.unit);
+      mergedBases.set(id, takenFromServer.nextBase);
       continue;
     }
 
@@ -595,6 +662,7 @@ function mergeCollection(
       report
     );
     result.push(merged.unit);
+    mergedBases.set(id, merged.nextBase);
     if (merged.contested) {
       conflict(
         id,
@@ -615,7 +683,17 @@ function mergeCollection(
     placed.add(id);
   }
 
-  return result;
+  // The next base follows the server's membership — a unit the draft deleted
+  // must stay in it, or the next merge reads it as a server-only addition and
+  // resurrects it — and keeps the base of every unit the draft refused.
+  const nextBase = [...serverMap.values()].map(({ item }) => {
+    const id = collection.unitId(item);
+    const fieldMerged = mergedBases.get(id);
+    if (fieldMerged !== undefined) return fieldMerged;
+    return refused.has(id) ? (baseMap.get(id)?.item ?? item) : item;
+  });
+
+  return { units: result, nextBase };
 }
 
 /**
@@ -644,6 +722,8 @@ export function mergeByUnits<TDoc>(
   if (!hasOps) {
     return {
       doc: draft,
+      // The draft took none of it, so none of it becomes the next base.
+      nextBase: base,
       conflicts: [
         {
           unit: { kind: "document", id: "document", label: "document" },
@@ -656,6 +736,7 @@ export function mergeByUnits<TDoc>(
 
   const conflicts: MergeConflict[] = [];
   let doc = draft;
+  let nextBase = server;
 
   for (const collection of adapter.collections) {
     const original = collection.read(draft);
@@ -667,14 +748,15 @@ export function mergeByUnits<TDoc>(
       touchesSlot,
       conflicts
     );
+    nextBase = collection.write(nextBase, merged.nextBase);
     if (
       original &&
-      merged.length === original.length &&
-      merged.every((unit, i) => unit === original[i])
+      merged.units.length === original.length &&
+      merged.units.every((unit, i) => unit === original[i])
     ) {
       continue;
     }
-    doc = collection.write(doc, merged);
+    doc = collection.write(doc, merged.units);
   }
 
   for (const scalar of adapter.scalars ?? []) {
@@ -684,6 +766,10 @@ export function mergeByUnits<TDoc>(
       scalar.read(server)
     );
     doc = scalar.write(doc, outcome.value);
+    nextBase = scalar.write(
+      nextBase,
+      nextBaseSlot(scalar.read(base), scalar.read(server), outcome.contested)
+    );
     if (outcome.contested && touchesSlot("field", scalar.name)) {
       conflicts.push({
         unit: { kind: "field", id: scalar.name, label: scalar.name },
@@ -694,5 +780,5 @@ export function mergeByUnits<TDoc>(
     }
   }
 
-  return { doc, conflicts };
+  return { doc, conflicts, nextBase };
 }

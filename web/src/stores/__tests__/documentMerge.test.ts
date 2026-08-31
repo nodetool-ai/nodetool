@@ -757,6 +757,106 @@ describe("mergeByUnits", () => {
     });
   });
 
+  describe("nextBase — the base for the write after this one", () => {
+    it("rolls forward the units the draft took, and keeps the ones it refused", () => {
+      const draft: Doc = {
+        ...base,
+        units: [{ ...base.units[0], value: "draft" }, base.units[1]]
+      };
+      const server: Doc = {
+        ...base,
+        units: [
+          { ...base.units[0], value: "agent" },
+          { ...base.units[1], value: "agent-b" }
+        ]
+      };
+
+      const { conflicts, nextBase } = mergeByUnits(base, draft, server, adapter(), {
+        ops: [
+          { tool: "update_unit", input: { id: "a" } },
+          { tool: "update_unit", input: { id: "b" } }
+        ]
+      });
+
+      expect(conflicts.map((c) => c.unit.id)).toEqual(["a"]);
+      // "a" was refused, so its base stays where the contest can be found
+      // again; "b" was taken, so its base is what the server now holds.
+      expect(nextBase.units).toEqual([
+        { id: "a", label: "Unit A", value: "1" },
+        { id: "b", label: "Unit B", value: "agent-b" }
+      ]);
+    });
+
+    it("finds the same contest again when the next write repeats it", () => {
+      const draft: Doc = {
+        ...base,
+        units: [{ ...base.units[0], value: "draft" }, base.units[1]]
+      };
+      const server: Doc = {
+        ...base,
+        units: [{ ...base.units[0], value: "agent" }, base.units[1]]
+      };
+      const ops: DocumentOp[] = [{ tool: "update_unit", input: { id: "a" } }];
+
+      const first = mergeByUnits(base, draft, server, adapter(), { ops });
+      expect(first.conflicts.map((c) => c.unit.id)).toEqual(["a"]);
+
+      // The server writes "a" again without changing it. Against the rolled
+      // base this read as "only the draft changed" and the refused value was
+      // silently unreachable.
+      const second = mergeByUnits(first.nextBase, first.doc, server, adapter(), {
+        ops
+      });
+      expect(second.conflicts.map((c) => c.unit.id)).toEqual(["a"]);
+      expect(second.conflicts[0].external).toEqual({
+        id: "a",
+        label: "Unit A",
+        value: "agent"
+      });
+    });
+
+    it("keeps a unit the draft deleted, so the next write cannot resurrect it", () => {
+      const draft: Doc = { ...base, units: [base.units[0]] };
+      const server: Doc = {
+        ...base,
+        units: [base.units[0], { ...base.units[1], value: "agent-b" }]
+      };
+
+      const { nextBase } = mergeByUnits(base, draft, server, adapter(), {
+        ops: [{ tool: "update_unit", input: { id: "b" } }]
+      });
+
+      expect(nextBase.units.map((u) => u.id)).toEqual(["a", "b"]);
+    });
+
+    it("keeps the whole base when the write had no ops to merge by", () => {
+      const draft: Doc = {
+        ...base,
+        units: [{ ...base.units[0], value: "draft" }, base.units[1]]
+      };
+      const server: Doc = { ...base, name: "renamed" };
+
+      const { nextBase } = mergeByUnits(base, draft, server, adapter());
+
+      expect(nextBase).toBe(base);
+    });
+
+    it("keeps a refused scalar and rolls forward one the draft took", () => {
+      const draft: Doc = { ...base, name: "draft name" };
+      const server: Doc = { ...base, name: "agent name" };
+
+      const { nextBase } = mergeByUnits(base, draft, server, adapter(), {
+        ops: [{ tool: "set_name", input: {} }]
+      });
+      expect(nextBase.name).toBe("board");
+
+      const taken = mergeByUnits(base, base, server, adapter(), {
+        ops: [{ tool: "set_name", input: {} }]
+      });
+      expect(taken.nextBase.name).toBe("agent name");
+    });
+  });
+
   it("never mutates its inputs", () => {
     const draft: Doc = { ...base, units: [{ ...base.units[0], value: "draft" }] };
     const server: Doc = {

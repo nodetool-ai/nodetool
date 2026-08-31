@@ -472,7 +472,7 @@ describe("useTimelineExternalSync conflict resolution", () => {
 
     const undoCountBefore = getTimelineTemporal().pastStates.length;
     act(() => {
-      entry?.onAccept?.("T1");
+      useConflictStore.getState().accept("timelinesequence:seq-1", "T1");
     });
     expect(useTimelineStore.getState().tracks[0]?.name).toBe("Agent video");
     // Accepting is the user's own edit: it goes on the undo stack (ADR 0001).

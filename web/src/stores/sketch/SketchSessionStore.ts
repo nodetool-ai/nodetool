@@ -1106,7 +1106,7 @@ export function useStandaloneSketchDocument(
           canvas: serverSketch.canvas ?? draftSketch.canvas
         };
 
-        const { doc, conflicts } = mergeSketchDocuments(
+        const { doc, conflicts, nextBase } = mergeSketchDocuments(
           baseDoc,
           draftDoc,
           serverDoc,
@@ -1144,7 +1144,12 @@ export function useStandaloneSketchDocument(
         );
         // Roll the merge base to what the server now holds, not the merged
         // draft, and advance the CAS token. The next autosave then persists
-        // the merged document on top of the external write.
+        // the merged document on top of the external write. The units the
+        // draft refused keep the base they had: rolling those forward too
+        // makes the refusal permanent and silent, because the next write
+        // reads them as unchanged on the server and the draft wins with
+        // nothing listed. The hash stays the server's — it answers "has this
+        // editor drifted from the row", not "what did the merge take".
         const serverHash = computeImageDocumentHash(
           toPersistedSketchEditorState(
             fromPersistedSketchEditorState(
@@ -1154,8 +1159,12 @@ export function useStandaloneSketchDocument(
           fresh.document.layerBindings ?? []
         );
         sessionStore.getState().markSaved(fresh.updatedAt, serverHash, {
-          sketch: serverSketch as unknown as Record<string, unknown>,
-          layerBindings: fresh.document.layerBindings ?? []
+          sketch: {
+            ...(serverSketch as unknown as Record<string, unknown>),
+            layers: nextBase.layers,
+            canvas: nextBase.canvas
+          },
+          layerBindings: nextBase.layerBindings as LayerWorkflowBinding[]
         });
         const replaced = conflicts.some(
           (conflict) => conflict.reason === "replaced"

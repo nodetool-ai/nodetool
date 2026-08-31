@@ -251,7 +251,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
           const base: TimelineMergeDoc =
             before.syncedDocument ?? draft;
 
-          const { doc, conflicts } = mergeTimelineDocuments(
+          const { doc, conflicts, nextBase } = mergeTimelineDocuments(
             base,
             draft,
             serverDoc,
@@ -277,22 +277,27 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
             temporal.resume();
           }
           // The merge base for the next external change is what the SERVER
-          // now holds — not the merged draft. Snapshotting the draft here
-          // would let a second external write clobber local clip edits.
+          // now holds — not the merged draft; snapshotting the draft here
+          // would let a second external write clobber local clip edits —
+          // except in the units the draft refused, which keep the base they
+          // had. Rolling those forward too makes the refusal permanent and
+          // silent: the next write reads them as unchanged on the server, so
+          // the draft wins with nothing listed and the external value can
+          // never be taken again.
           store
             .getState()
             .setBaseUpdatedAt(sequence.updatedAt, {
-              tracks: serverDoc.tracks as TimelineStoreState["tracks"],
-              clips: serverDoc.clips as TimelineStoreState["clips"],
-              markers: serverDoc.markers as TimelineStoreState["markers"],
-              transcript: serverDoc.transcript as TimelineStoreState["transcript"],
-              scriptEnabled: serverDoc.scriptEnabled,
-              fps: serverDoc.fps,
-              width: serverDoc.width,
-              height: serverDoc.height
+              tracks: nextBase.tracks as TimelineStoreState["tracks"],
+              clips: nextBase.clips as TimelineStoreState["clips"],
+              markers: nextBase.markers as TimelineStoreState["markers"],
+              transcript: nextBase.transcript as TimelineStoreState["transcript"],
+              scriptEnabled: nextBase.scriptEnabled,
+              fps: nextBase.fps,
+              width: nextBase.width,
+              height: nextBase.height
             });
 
-          useConflictStore.getState().setConflicts(
+          useConflictStore.getState().addConflicts(
             conflictKey(sequenceId),
             listable(conflicts),
             {

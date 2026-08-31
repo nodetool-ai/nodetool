@@ -329,7 +329,7 @@ export const useJsScriptServerSync = (
       if (!base || !draft || base === draft) return;
 
       const serverEntry = responseToEntry(res);
-      const { doc: merged, conflicts } = mergeJsScriptDocuments(
+      const { doc: merged, conflicts, nextBase } = mergeJsScriptDocuments(
         toMergeDoc(base),
         toMergeDoc(draft),
         toMergeDoc(serverEntry),
@@ -344,10 +344,15 @@ export const useJsScriptServerSync = (
       });
       revisionRef.current = res.updatedAt;
       store.getState().setServerRevision(scriptId, res.updatedAt);
+      // The server copy, except in the units the draft refused, which keep the
+      // base they had — otherwise the next external write reads a refused unit
+      // as unchanged on the server and the draft wins with nothing listed, so
+      // the external value can never be taken again.
+      const nextBaseEntry = documentFromMerge(nextBase);
       syncedRef.current = {
         id: scriptId,
-        name: serverEntry.name,
-        document: serverEntry.document,
+        name: nextBaseEntry.name,
+        document: nextBaseEntry.document,
         updatedAt: Date.now()
       };
 
@@ -356,7 +361,7 @@ export const useJsScriptServerSync = (
           ? conflict
           : { ...conflict, unit: { ...conflict.unit, id: conflict.unit.kind } }
       );
-      useConflictStore.getState().setConflicts(`jsscript:${scriptId}`, listed, {
+      useConflictStore.getState().addConflicts(`jsscript:${scriptId}`, listed, {
         onAccept: (unitId) => {
           const entry =
             useConflictStore.getState().byKey[`jsscript:${scriptId}`];

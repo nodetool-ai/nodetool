@@ -209,6 +209,7 @@ export function mergeWorkflowDocuments(
   );
   const result: MergeResult<WorkflowMergeDoc> = {
     conflicts: merged.conflicts,
+    nextBase: merged.nextBase,
     doc: {
       nodes: restoreRuntime(merged.doc.nodes, draft.nodes, "node"),
       edges: restoreRuntime(merged.doc.edges, draft.edges, "edge")
@@ -237,6 +238,7 @@ export function mergeWorkflowDocuments(
       ...result.doc,
       edges: result.doc.edges.filter((e) => !dropped.has(nodeIdOf(e)))
     },
+    nextBase: result.nextBase,
     conflicts,
     danglingEdges
   };
