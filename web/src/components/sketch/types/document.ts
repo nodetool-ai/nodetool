@@ -156,18 +156,6 @@ export interface LayerImageReference {
   objectFit: LayerImageObjectFit;
 }
 
-// ─── Layer Effects ────────────────────────────────────────────────────────────
-
-/**
- * Supported per-layer effect types.
- * Each effect is evaluated between "draw raster" and "blend into composite"
- * via the runtime's `evaluateLayerEffects` method.
- */
-export type LayerEffectType =
-  | "brightness_contrast"
-  | "hue_saturation"
-  | "exposure";
-
 // ─── Per-effect typed interfaces ──────────────────────────────────────────────
 
 interface BrightnessContrastEffect {

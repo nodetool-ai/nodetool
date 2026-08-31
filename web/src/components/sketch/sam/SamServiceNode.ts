@@ -55,7 +55,7 @@ const ACTIVE_DOWNLOAD_STATUSES = new Set([
   "progress"
 ]);
 
-export interface SamNodeConfig {
+interface SamNodeConfig {
   backendId: SegmentBackend;
   nodeType: string;
   displayName: string;
@@ -65,7 +65,7 @@ export interface SamNodeConfig {
   requiredSecret: string | null;
 }
 
-export const SAM_NODE_CONFIGS: Record<string, SamNodeConfig> = {
+const SAM_NODE_CONFIGS: Record<string, SamNodeConfig> = {
   "local-sam3": {
     backendId: "local-sam3",
     nodeType: LOCAL_SAM3_NODE_TYPE,
@@ -86,7 +86,7 @@ export const SAM_NODE_CONFIGS: Record<string, SamNodeConfig> = {
   }
 };
 
-export const DEFAULT_SAM_NODE_BACKEND = "local-sam3";
+const DEFAULT_SAM_NODE_BACKEND = "local-sam3";
 
 interface LocalSam3PromptMetadata {
   capabilities: SamBackendCapabilities;

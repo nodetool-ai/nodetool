@@ -88,7 +88,7 @@ export function redactDeep(value: unknown, depth = 0): unknown {
 }
 
 /** Where the report was started from. Sets the issue title and the context. */
-export type BugReportSource =
+type BugReportSource =
   | "node-error"
   | "app-crash"
   | "panel-crash"
@@ -140,7 +140,7 @@ export interface BundleSection {
   defaultIncluded: boolean;
 }
 
-export interface BundleInput {
+interface BundleInput {
   context: BugReportContext;
   systemInfo: string;
   /** The open workflow, as returned by the workflow store. */
@@ -243,13 +243,13 @@ export function buildBundleSections(input: BundleInput): BundleSection[] {
   return sections;
 }
 
-export interface ReportFormFields {
+interface ReportFormFields {
   description: string;
   steps: string;
   expected: string;
 }
 
-export interface IssueBodyInput extends ReportFormFields {
+interface IssueBodyInput extends ReportFormFields {
   context: BugReportContext;
   systemInfo: string;
   /** File names present in the bundle, listed so a maintainer knows to look. */

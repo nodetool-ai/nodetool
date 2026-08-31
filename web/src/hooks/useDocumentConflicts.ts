@@ -20,7 +20,7 @@ const externalDetail = (conflict: MergeConflict): string | undefined =>
   typeof conflict.external === "string" ? conflict.external : undefined;
 
 /** One-line description of a refused external value, for the banner. */
-export function conflictBannerLabel(conflict: MergeConflict): string {
+function conflictBannerLabel(conflict: MergeConflict): string {
   switch (conflict.reason) {
     case "replaced":
       return "The whole document was replaced outside the editor";
@@ -33,7 +33,7 @@ export function conflictBannerLabel(conflict: MergeConflict): string {
   }
 }
 
-export interface DocumentConflictItem {
+interface DocumentConflictItem {
   unitId: string;
   label: string;
   reason: MergeConflict["reason"];
@@ -43,7 +43,7 @@ export interface DocumentConflictItem {
   draftDetail?: string;
 }
 
-export interface DocumentConflicts {
+interface DocumentConflicts {
   items: DocumentConflictItem[];
   /** Take the external value into the draft (an undoable user edit). */
   accept: (unitId: string) => void;

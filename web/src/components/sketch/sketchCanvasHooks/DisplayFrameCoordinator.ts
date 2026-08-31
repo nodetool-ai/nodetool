@@ -85,12 +85,12 @@ export type RedrawReason =
  * - `immediate`: composite synchronously (low-latency path for direct drawing)
  * - `raf`: schedule via requestAnimationFrame (batched, coalesced)
  */
-export type RedrawUrgency = "immediate" | "raf";
+type RedrawUrgency = "immediate" | "raf";
 
 /**
  * A typed redraw request that records why and how urgently a frame is needed.
  */
-export interface RedrawRequest {
+interface RedrawRequest {
   reason: RedrawReason;
   urgency: RedrawUrgency;
   /** Optional dirty rect for partial compositing. */
@@ -106,12 +106,12 @@ export interface RedrawRequest {
  * - `bootstrap`: Canvas2D temp surface while WebGPU initializes
  * - `display`: real display canvas (WebGPU or Canvas2D final)
  */
-export type DisplayTarget = "bootstrap" | "display";
+type DisplayTarget = "bootstrap" | "display";
 
 /**
  * Which rendering backend is active.
  */
-export type DisplayBackend = "webgpu" | "canvas2d";
+type DisplayBackend = "webgpu" | "canvas2d";
 
 // ─── Interaction readiness ───────────────────────────────────────────────────
 
@@ -121,7 +121,7 @@ export type DisplayBackend = "webgpu" | "canvas2d";
  * When all flags are true, the display pipeline is ready for preview-only
  * and click-only interactions without requiring a prior stroke.
  */
-export interface InteractionReadiness {
+interface InteractionReadiness {
   /** The runtime (Canvas2D or WebGPU) has been initialized. */
   runtimeReady: boolean;
   /** A hydration cycle has been scheduled and is still pending decode/upload. */
@@ -135,7 +135,7 @@ export interface InteractionReadiness {
 /**
  * Returns true when all readiness conditions are met.
  */
-export function isInteractionReady(state: InteractionReadiness): boolean {
+function isInteractionReady(state: InteractionReadiness): boolean {
   return (
     state.runtimeReady &&
     !state.hydrationPending &&
@@ -147,7 +147,7 @@ export function isInteractionReady(state: InteractionReadiness): boolean {
 /**
  * Create a fresh readiness state (nothing ready yet).
  */
-export function createInitialReadiness(): InteractionReadiness {
+function createInitialReadiness(): InteractionReadiness {
   return {
     runtimeReady: false,
     hydrationPending: false,
@@ -189,7 +189,7 @@ const MAX_TRACE_EVENTS = 200;
  * Stores the last N events so temporal startup bugs can be debugged
  * without scattering temporary logs across tools and runtimes.
  */
-export class DisplayTracer {
+class DisplayTracer {
   private events: TraceEvent[] = [];
   private enabled: boolean;
 
@@ -234,7 +234,7 @@ export class DisplayTracer {
 
 // ─── Frame coordinator ───────────────────────────────────────────────────────
 
-export interface FrameCoordinatorCallbacks {
+interface FrameCoordinatorCallbacks {
   /** Execute pending stroke buffer merge. */
   drainPendingStroke: () => void;
   /** Run the composite pipeline immediately. */
