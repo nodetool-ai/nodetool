@@ -10,7 +10,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 const createProject = jest.fn(async () => ({
   id: "p9",
   name: "A spot for our desk lamp",
-  kind: "spot",
+  kind: "launch-commercial",
   threadId: null,
   createdAt: "",
   updatedAt: ""
@@ -21,6 +21,30 @@ jest.mock("../../../hooks/useProjects", () => ({
   useCreateProject: () => ({ mutateAsync: createProject }),
   useOpenProject: () => openProject,
   useProjectSummaries: () => ({ data: [] })
+}));
+
+let skills: { id: string; name: string; description: string; updatedAt: string; system: boolean }[] = [
+  {
+    id: "system:launch-commercial",
+    name: "launch-commercial",
+    description: "Turn a product page into a finished launch commercial.",
+    updatedAt: "",
+    system: true
+  },
+  {
+    id: "s1",
+    name: "house-style",
+    description: "Our house grade and typography.",
+    updatedAt: "",
+    system: false
+  }
+];
+const useSkillsOptions = jest.fn();
+jest.mock("../../../hooks/skills/useSkills", () => ({
+  useSkills: (options: unknown) => {
+    useSkillsOptions(options);
+    return { data: skills };
+  }
 }));
 
 jest.mock("../../../serverState/useEntities", () => ({
@@ -171,22 +195,67 @@ beforeEach(() => {
   // An earlier test's start may have left a turn staged for this project id.
   takeProjectFirstTurn("p9");
   useOnboardingStore.setState({ completedSteps: [], dismissed: false });
+  skills = [
+    {
+      id: "system:launch-commercial",
+      name: "launch-commercial",
+      description: "Turn a product page into a finished launch commercial.",
+      updatedAt: "",
+      system: true
+    },
+    {
+      id: "s1",
+      name: "house-style",
+      description: "Our house grade and typography.",
+      updatedAt: "",
+      system: false
+    }
+  ];
   useProviderOnboardingStore.setState({ open: false });
 });
 
 describe("NewProjectSurface", () => {
-  it("shows the selected shape's document chain", async () => {
+  it("offers every skill as a starter, the user's own and the shipped ones", () => {
     renderSurface();
-    expect(screen.getByText("30s spot sets up")).toBeInTheDocument();
-    expect(screen.getByText("Board")).toBeInTheDocument();
-    expect(screen.getByText("Cut")).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: "Music video" }));
-    expect(screen.getByText("Music video sets up")).toBeInTheDocument();
-    expect(screen.queryByText("Script")).not.toBeInTheDocument();
+    expect(useSkillsOptions).toHaveBeenCalledWith({ includeSystem: true });
+    expect(
+      screen.getByRole("button", { name: "Launch commercial" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "House style" })
+    ).toBeInTheDocument();
   });
 
-  it("shows no estimate when no past project of the shape was priced", () => {
+  it("names the picked starter's slash command and what it does", async () => {
+    renderSurface();
+    expect(
+      screen.getByText(/Pick a skill to start from/)
+    ).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Launch commercial" })
+    );
+    expect(screen.getByText("/launch-commercial")).toBeInTheDocument();
+    expect(
+      screen.getByText("Turn a product page into a finished launch commercial.")
+    ).toBeInTheDocument();
+
+    // Pressing the picked starter again starts the project from nothing.
+    await userEvent.click(
+      screen.getByRole("button", { name: "Launch commercial" })
+    );
+    expect(screen.queryByText("/launch-commercial")).not.toBeInTheDocument();
+  });
+
+  it("shows no starter row when there are no skills", () => {
+    skills = [];
+    renderSurface();
+    expect(
+      screen.queryByText(/Pick a skill to start from/)
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows no estimate when no past project of the starter was priced", () => {
     renderSurface();
     expect(screen.queryByText(/est\. \$/)).not.toBeInTheDocument();
   });
@@ -207,15 +276,20 @@ describe("NewProjectSurface", () => {
       screen.getByPlaceholderText(/30-second launch spot/),
       "A spot for our desk lamp"
     );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Launch commercial" })
+    );
     await userEvent.click(screen.getByRole("button", { name: "Entities · none" }));
     await userEvent.click(screen.getByText("Aurora lamp"));
     await userEvent.keyboard("{Escape}");
     await userEvent.click(screen.getByRole("button", { name: "Start" }));
 
+    // The starter is the project's kind, which is what its spend history is
+    // read back by.
     await waitFor(() =>
       expect(createProject).toHaveBeenCalledWith({
         name: "A spot for our desk lamp",
-        kind: "spot"
+        kind: "launch-commercial"
       })
     );
     await waitFor(() =>
@@ -225,12 +299,33 @@ describe("NewProjectSurface", () => {
     );
     expect(closeTab).toHaveBeenCalledWith("project-new:new");
 
+    // The staged turn triggers the skill the way a typed `/name` does.
     const staged = takeProjectFirstTurn("p9");
     expect(staged).not.toBeNull();
     const text = staged?.[0].type === "text" ? staged[0].text : "";
-    expect(text).toContain("A spot for our desk lamp");
-    expect(text).toContain("30-second spot");
-    expect(text).toContain("Use these entities: Aurora lamp.");
+    expect(text).toBe(
+      "/launch-commercial\n\nA spot for our desk lamp\n\n" +
+        "Use these entities: Aurora lamp."
+    );
+  });
+
+  it("starts with no starter, and then sends the prompt alone", async () => {
+    renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A spot for our desk lamp"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+
+    await waitFor(() =>
+      expect(createProject).toHaveBeenCalledWith({
+        name: "A spot for our desk lamp",
+        kind: ""
+      })
+    );
+    const staged = takeProjectFirstTurn("p9");
+    const text = staged?.[0].type === "text" ? staged[0].text : "";
+    expect(text).toBe("A spot for our desk lamp");
   });
 
   it("opens blank documents outside any project", async () => {
@@ -287,7 +382,7 @@ describe("NewProjectSurface", () => {
     await waitFor(() =>
       expect(createProject).toHaveBeenCalledWith({
         name: "A spot for our desk lamp",
-        kind: "spot"
+        kind: ""
       })
     );
   });

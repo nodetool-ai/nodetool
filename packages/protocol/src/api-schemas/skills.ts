@@ -17,7 +17,12 @@ export const skillListItem = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string(),
-  updatedAt: z.string()
+  updatedAt: z.string(),
+  /**
+   * A shipped skill, read off disk rather than the table: it has no row, so
+   * it cannot be renamed, edited or deleted. Its id is `system:<name>`.
+   */
+  system: z.boolean().default(false)
 });
 export type SkillListItem = z.infer<typeof skillListItem>;
 

@@ -53,6 +53,41 @@ describe("skills router", () => {
     );
   });
 
+  // The shipped skills answer to `/name` in a turn like any user row, so the
+  // surfaces that only name a skill can list them. They carry no row, so they
+  // are opt-in: the panel that renames and deletes rows must not see them.
+  it("merges the shipped skills into the list only when asked", async () => {
+    const own = await createSkill();
+    expect((await caller().skills.list({})).map((item) => item.id)).toEqual([
+      own.id
+    ]);
+
+    const merged = await caller().skills.list({ includeSystem: true });
+    const shipped = merged.filter((item) => item.system);
+    expect(shipped.length).toBeGreaterThan(0);
+    for (const item of shipped) {
+      expect(item.id).toBe(`system:${item.name}`);
+      expect(item.description.length).toBeGreaterThan(0);
+    }
+    expect(merged.filter((item) => !item.system).map((item) => item.id)).toEqual(
+      [own.id]
+    );
+  });
+
+  it("lets a user row shadow the shipped skill of the same name", async () => {
+    const shipped = (await caller().skills.list({ includeSystem: true })).find(
+      (item) => item.system
+    );
+    expect(shipped).toBeDefined();
+
+    const own = await createSkill(shipped!.name);
+    const merged = await caller().skills.list({ includeSystem: true });
+    const sameName = merged.filter((item) => item.name === shipped!.name);
+    expect(sameName).toEqual([
+      expect.objectContaining({ id: own.id, system: false })
+    ]);
+  });
+
   it("scopes reads and lists to the authenticated user", async () => {
     const created = await createSkill();
     const other = caller("user-2");

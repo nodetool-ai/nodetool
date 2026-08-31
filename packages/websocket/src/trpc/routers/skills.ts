@@ -13,6 +13,7 @@
  */
 
 import { z } from "zod";
+import { loadSystemSkills } from "@nodetool-ai/agents";
 import { Skill } from "@nodetool-ai/models";
 import {
   createSkillInput,
@@ -25,7 +26,13 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 
-const listInput = z.object({});
+/**
+ * `includeSystem` merges the skills that ship with NodeTool into the list. They
+ * are read off disk, carry no row, and are named `system:<name>` so a caller
+ * cannot mistake one for something it can rename or delete. Off by default, so
+ * the skills panel keeps listing only what its context menu can act on.
+ */
+const listInput = z.object({ includeSystem: z.boolean().optional() });
 
 const idInput = z.object({ id: z.string() });
 
@@ -43,8 +50,29 @@ function toListItem(skill: Skill) {
     id: skill.id,
     name: skill.name,
     description: skill.description,
-    updatedAt: skill.updated_at
+    updatedAt: skill.updated_at,
+    system: false
   };
+}
+
+/** The prefix a shipped skill's id carries, since it has no row of its own. */
+export const SYSTEM_SKILL_ID_PREFIX = "system:";
+
+/**
+ * The shipped skills, minus any whose name a user row already holds — that row
+ * shadows the shipped one everywhere else (`load_skill`, the chat catalog), so
+ * listing both would offer the same `/name` twice.
+ */
+function systemListItems(taken: ReadonlySet<string>) {
+  return loadSystemSkills()
+    .filter((skill) => !taken.has(skill.name.toLowerCase()))
+    .map((skill) => ({
+      id: `${SYSTEM_SKILL_ID_PREFIX}${skill.name}`,
+      name: skill.name,
+      description: skill.description,
+      updatedAt: "",
+      system: true
+    }));
 }
 
 function isUniqueConstraintViolation(error: unknown): boolean {
@@ -86,9 +114,13 @@ export const skillsRouter = router({
   list: protectedProcedure
     .input(listInput)
     .output(z.array(skillListItem))
-    .query(async ({ ctx }) => {
-      const items = await Skill.listByUser(ctx.userId);
-      return items.map(toListItem);
+    .query(async ({ ctx, input }) => {
+      const items = (await Skill.listByUser(ctx.userId)).map(toListItem);
+      if (!input.includeSystem) {
+        return items;
+      }
+      const taken = new Set(items.map((item) => item.name.toLowerCase()));
+      return [...items, ...systemListItems(taken)];
     }),
 
   get: protectedProcedure
