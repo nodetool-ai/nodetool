@@ -55,7 +55,6 @@ const KEY_PAGE_BLURBS = {
   "/cloud": "the hosted, browser-based edition (alpha).",
   "/pricing": "edition comparison and how BYOK pricing works.",
   "/agents": "the agent-first model: every editor exposed to agents as tools.",
-  "/creatives": "artists, motion designers, AI-native illustrators.",
   "/developers": "The QuickJS sandbox, the node DSL inside it, and how agents drive NodeTool from sandboxed code.",
   "/marketing": "hand a brief to an agent; campaign assets at volume.",
 };
@@ -66,7 +65,6 @@ const KEY_PAGE_LABELS = {
   "/cloud": "Cloud",
   "/pricing": "Pricing",
   "/agents": "Agents",
-  "/creatives": "For creatives",
   "/developers": "For developers",
   "/marketing": "For marketing teams",
 };
@@ -154,11 +152,6 @@ Read the [agent documentation](https://docs.nodetool.ai/agents/index.md) for ins
     title: "NodeTool Pricing",
     description: "Studio is free; Cloud provides managed hosting.",
     body: `NodeTool Studio is free and open source under AGPL-3.0. NodeTool Cloud provides managed hosting. In both editions, users supply provider keys and pay model providers directly.`,
-  },
-  "creatives.md": {
-    title: "NodeTool for Creatives",
-    description: "An agent-first workspace for creative AI work.",
-    body: `NodeTool lets creative teams combine image, video, audio, and language models in reusable visual workflows — and lets an agent do the building: describe the piece and the agent plans the shots, authors the workflow, and runs it. It supports local and cloud models, editing tools, and provider keys that stay under the user's control.`,
   },
   "marketing.md": {
     title: "NodeTool for Marketing Teams",

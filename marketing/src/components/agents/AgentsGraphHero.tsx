@@ -52,7 +52,7 @@ export default function AgentsGraphHero() {
                                 icon={<Download className="w-5 h-5" />}
                                 classNameOverride="px-8 py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 transition-all shadow-lg shadow-rose-900/40 flex items-center gap-2"
                             />
-                            <a href="/creatives" className="px-8 py-4 rounded-xl font-semibold text-white bg-white/5 border border-white/15 hover:bg-white/10 transition-all flex items-center gap-2">
+                            <a href="/studio" className="px-8 py-4 rounded-xl font-semibold text-white bg-white/5 border border-white/15 hover:bg-white/10 transition-all flex items-center gap-2">
                                 See the full studio
                             </a>
                         </div>
