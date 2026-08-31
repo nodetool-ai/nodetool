@@ -2,6 +2,16 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { withPage } from "@nodetool-ai/browser";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
+/** The single `output` slot `lib.browser.Screenshot` declares: a PNG image ref. */
+type ScreenshotLibNodeOutputs = {
+  output: {
+    type: "image";
+    /** Raw base64 PNG bytes — never a `data:` URI. */
+    data: string;
+    mime_type: string;
+  };
+};
+
 export class ScreenshotLibNode extends BaseNode {
   static readonly nodeType = "lib.browser.Screenshot";
   static readonly title = "Screenshot";
@@ -37,7 +47,7 @@ export class ScreenshotLibNode extends BaseNode {
   })
   declare timeout: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ScreenshotLibNodeOutputs> {
     const url = String(this.url ?? "");
     const selector = String(this.selector ?? "");
     const timeout = Number(this.timeout ?? 30000);

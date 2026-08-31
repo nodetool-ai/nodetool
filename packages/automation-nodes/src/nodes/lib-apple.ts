@@ -101,28 +101,67 @@ function escAS(input: string): string {
     .replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/g, "");
 }
 
+/** A date given field by field, as a JSON caller sends one. */
+export type DateParts = {
+  year: number;
+  /** 1-based, the way a caller writes it — January is 1, not 0. */
+  month: number;
+  day?: number;
+  hour?: number;
+  minute?: number;
+  second?: number;
+  millisecond?: number;
+};
+
+/**
+ * Every form a date prop reaches a node in. Anything else — a null prop, an
+ * unparseable string, an object without year and month — is not a date and
+ * {@link parseDateInput} throws on it.
+ */
+export type DateInput = Date | number | string | DateParts | null | undefined;
+
+function isEpochMillis(input: DateInput): input is number {
+  return typeof input === "number";
+}
+
+/** A non-blank string, the only string form `new Date(...)` can make sense of. */
+function isDateText(input: DateInput): input is string {
+  return typeof input === "string" && input.trim() !== "";
+}
+
+function isDateParts(input: DateInput): input is DateParts {
+  return (
+    input !== null &&
+    input !== undefined &&
+    typeof input === "object" &&
+    "year" in input &&
+    "month" in input &&
+    // `in` is TypeScript taking the value's word for it. A caller can still put
+    // a string in `year`, which would build an Invalid Date instead of throwing.
+    typeof input.year === "number" &&
+    typeof input.month === "number"
+  );
+}
+
 /** Parse anything date-like into a Date. Accepts Date, number, ISO string, or {year,month,day,...}. */
-function parseDateInput(input: unknown): Date {
+function parseDateInput(input: DateInput): Date {
   if (input instanceof Date) return new Date(input.getTime());
-  if (typeof input === "number") return new Date(input);
-  if (typeof input === "string" && input.trim()) {
+  if (isEpochMillis(input)) return new Date(input);
+  if (isDateText(input)) {
     const d = new Date(input);
     if (!Number.isNaN(d.getTime())) return d;
     throw new Error(`Could not parse date: ${JSON.stringify(input)}`);
   }
-  if (input && typeof input === "object") {
-    const obj = input as Record<string, unknown>;
-    if (typeof obj.year === "number" && typeof obj.month === "number") {
-      return new Date(
-        Number(obj.year),
-        Number(obj.month) - 1,
-        Number(obj.day ?? 1),
-        Number(obj.hour ?? 0),
-        Number(obj.minute ?? 0),
-        Number(obj.second ?? 0),
-        Number(obj.millisecond ?? 0)
-      );
-    }
+  if (isDateParts(input)) {
+    return new Date(
+      input.year,
+      input.month - 1,
+      input.day ?? 1,
+      input.hour ?? 0,
+      input.minute ?? 0,
+      input.second ?? 0,
+      input.millisecond ?? 0
+    );
   }
   throw new Error(`Could not parse date: ${JSON.stringify(input)}`);
 }
@@ -187,10 +226,10 @@ export class CreateCalendarEventAppleNode extends BaseNode {
   declare event_title: string;
 
   @prop({ type: "any", default: "", title: "Start Date", description: "Start date and time" })
-  declare start_date: unknown;
+  declare start_date: DateInput;
 
   @prop({ type: "any", default: "", title: "End Date", description: "End date and time" })
-  declare end_date: unknown;
+  declare end_date: DateInput;
 
   @prop({ type: "str", default: "Calendar", title: "Calendar Name", description: "Name of the target calendar" })
   declare calendar_name: string;
@@ -441,7 +480,7 @@ export class CreateReminderAppleNode extends BaseNode {
   declare title: string;
 
   @prop({ type: "any", default: "", title: "Due Date", description: "Optional due date; leave empty for none" })
-  declare due_date: unknown;
+  declare due_date: DateInput;
 
   @prop({ type: "str", default: "Reminders", title: "List", description: "Reminders list name" })
   declare list_name: string;
