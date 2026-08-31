@@ -174,7 +174,7 @@ export interface TimelineAddShapeClipOptions {
 }
 
 /** Render/audio params the agent can patch on any clip. */
-export interface TimelineClipParamsPatch {
+interface TimelineClipParamsPatch {
   name?: string;
   opacity?: number;
   speedMultiplier?: number;
@@ -207,7 +207,7 @@ interface TimelineClipBindingPatch {
   regenerate?: boolean;
 }
 
-export interface TimelineTrimPatch {
+interface TimelineTrimPatch {
   /** New clip duration on the timeline (ms). */
   durationMs?: number;
   /** Source-time trim start (ms). */
@@ -216,7 +216,7 @@ export interface TimelineTrimPatch {
   outPointMs?: number;
 }
 
-export interface TimelineMovePatch {
+interface TimelineMovePatch {
   /** New absolute start on the timeline (ms). */
   startMs?: number;
   /** Reassign the clip to a different track. */
@@ -285,7 +285,7 @@ export interface TimelineAddMediaClipOptions {
 }
 
 /** How {@link TimelineAgentHandler.setClipAnimations} applies its inputs. */
-export type ClipAnimationMode = "add" | "replace";
+type ClipAnimationMode = "add" | "replace";
 
 /**
  * Operations the live {@link TimelineEditor} exposes to the agent tooling

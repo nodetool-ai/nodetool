@@ -19,7 +19,7 @@ import type {
 import { mergeByUnits } from "../../stores/documentMerge";
 
 /** One flattened component: the Puck node plus where it hangs. */
-export interface FlatComponent {
+interface FlatComponent {
   node: { type: string; props: Record<string, unknown> & { id: string } };
   parentId: string | null;
   slot: string | null;
@@ -31,7 +31,7 @@ export interface FlatComponent {
  * Puck tree on the way out (the adapter's write rebuilds it), so a merged
  * result drops straight back into `ui.content`.
  */
-export interface AppMergeDoc {
+interface AppMergeDoc {
   content: unknown[];
   operations: unknown[];
   variables: unknown[];
@@ -67,7 +67,7 @@ type ComponentNodeLike = {
 };
 
 /** Flatten a Puck content tree into per-component merge units. */
-export function flattenAppComponents(content: unknown[]): FlatComponent[] {
+function flattenAppComponents(content: unknown[]): FlatComponent[] {
   const out: FlatComponent[] = [];
   const walk = (
     items: AnyNode[],
@@ -107,7 +107,7 @@ export function flattenAppComponents(content: unknown[]): FlatComponent[] {
  * Rebuild the Puck content tree from merged flat units. Roots keep their
  * merged order; children hang off their parent's slot in merged order.
  */
-export function rebuildAppComponents(flat: FlatComponent[]): unknown[] {
+function rebuildAppComponents(flat: FlatComponent[]): unknown[] {
   // Drop units whose parent is gone (recursively: a dropped child can
   // orphan its own children).
   let kept = [...flat];
@@ -170,7 +170,7 @@ const named = (unit: unknown): string => {
   return String(unitRecord.name ?? byId(unit));
 };
 
-export const appMergeAdapter: DocumentMergeAdapter<AppMergeDoc> = {
+const appMergeAdapter: DocumentMergeAdapter<AppMergeDoc> = {
   collections: [
     {
       kind: "component",

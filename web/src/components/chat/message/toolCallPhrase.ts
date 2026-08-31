@@ -12,7 +12,7 @@ import { formatToolName } from "../../../utils/formatUtils";
 import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 /** What a tool does, as far as the row phrasing is concerned. */
-export type ToolPhraseKind =
+type ToolPhraseKind =
   | "search"
   | "page"
   | "read"
@@ -74,7 +74,7 @@ const DETAIL_KEYS = [
 ] as const;
 
 /** A single row's label plus the mono-rendered thing it acted on. */
-export interface ToolRowPhrase {
+interface ToolRowPhrase {
   label: string;
   detail: string | null;
 }
@@ -114,7 +114,7 @@ export function toolCallDetail(
 const LOCATION_KEYS = ["url", "uri", "path", "file", "filename"] as const;
 
 /** Whether a call's detail identifies a location rather than free text. */
-export function hasLocationDetail(call: ToolCall): boolean {
+function hasLocationDetail(call: ToolCall): boolean {
   const args = call.args;
   if (!isObjectLike(args)) {
     return false;
@@ -144,7 +144,7 @@ function compactUrl(value: string): string {
 }
 
 /** How a run of same-tool calls renders: one row each, or one counted row. */
-export type RunDisplay = "list" | "count";
+type RunDisplay = "list" | "count";
 
 /** Above this, a run is always counted — a wall of rows is not a timeline. */
 const MAX_LISTED_RUN = 4;

@@ -11,7 +11,7 @@ import type { RouterOutputs } from "../../trpc/client";
 
 export type ProjectDetail = RouterOutputs["projects"]["summaries"][number];
 export type ProjectDocument = ProjectDetail["documents"][number];
-export type ProjectDocumentStatus = NonNullable<ProjectDocument["status"]>;
+type ProjectDocumentStatus = NonNullable<ProjectDocument["status"]>;
 
 const statusOfKind = <K extends ProjectDocumentStatus["kind"]>(
   documents: readonly ProjectDocument[],
@@ -78,7 +78,7 @@ export const projectStatusLine = (
   return parts.join(" · ") + partialSuffix;
 };
 
-export interface ProjectProgress {
+interface ProjectProgress {
   label: string;
   /** Everything the board set out to render exists. */
   done: boolean;
@@ -132,7 +132,7 @@ export const documentStatusLine = (document: ProjectDocument): string => {
   }
 };
 
-export interface DocumentProgress {
+interface DocumentProgress {
   label: string;
   tone: "done" | "neutral" | "rendering";
 }
@@ -183,7 +183,7 @@ export const formatDocumentSpend = (document: ProjectDocument): string => {
 };
 
 /** The step a project is waiting on, and the document that performs it. */
-export interface ProjectNextStep {
+interface ProjectNextStep {
   label: string;
   document: ProjectDocument;
 }

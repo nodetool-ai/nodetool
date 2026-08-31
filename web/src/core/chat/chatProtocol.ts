@@ -77,7 +77,7 @@ export interface WorkflowUpdatedUpdate {
   graph: Graph;
 }
 
-export interface GenerationStoppedUpdate {
+interface GenerationStoppedUpdate {
   type: "generation_stopped";
   message: string;
 }
@@ -131,7 +131,7 @@ interface SecretRequestMessage {
   help_url: string | null;
 }
 
-export interface ToolCallMessage {
+interface ToolCallMessage {
   type: "tool_call";
   tool_call_id: string;
   name: string;
@@ -164,7 +164,7 @@ interface ChatTurnActiveUpdate {
   last_seq: number;
 }
 
-export type MsgpackData =
+type MsgpackData =
   | JobUpdate
   | Chunk
   | Prediction
@@ -191,7 +191,7 @@ export type MsgpackData =
   | ChatTurnActiveUpdate
   | ErrorMessage;
 
-export interface ToolResultMessage {
+interface ToolResultMessage {
   type: "tool_result";
   tool_call_id: string;
   result: unknown;

@@ -15,7 +15,7 @@ import type { Layer, Point, Selection } from "./types";
 /**
  * For copy/export: zero or scale RGBA alpha by the document-space mask inside `bounds`.
  */
-export function multiplyImageDataAlphaBySelectionMask(
+function multiplyImageDataAlphaBySelectionMask(
   imageData: ImageData,
   bounds: { x: number; y: number; width: number; height: number },
   sel: Selection
@@ -35,7 +35,7 @@ export function multiplyImageDataAlphaBySelectionMask(
 }
 
 /** Best-effort: decode the first image on the system clipboard into a canvas. */
-export async function readSystemClipboardImageCanvas(): Promise<HTMLCanvasElement | null> {
+async function readSystemClipboardImageCanvas(): Promise<HTMLCanvasElement | null> {
   try {
     const items = await navigator.clipboard.read();
 
@@ -90,7 +90,7 @@ export function writeImageCanvasToSystemClipboardPng(canvas: HTMLCanvasElement):
   }
 }
 
-export interface ResolveSketchPasteImageOptions {
+interface ResolveSketchPasteImageOptions {
   internalBuffer: HTMLCanvasElement | null;
   /**
    * When true (e.g. Ctrl+Shift+V), read the in-app buffer before the OS clipboard
@@ -122,7 +122,7 @@ export async function resolveSketchPasteImageCanvas(
   return image;
 }
 
-export interface BuildSketchInternalClipboardParams {
+interface BuildSketchInternalClipboardParams {
   snapshot: HTMLCanvasElement;
   layer: Layer;
   documentCanvasWidth: number;
@@ -192,7 +192,7 @@ export function buildSketchInternalClipboardCanvas(
   return tmp;
 }
 
-export interface SketchPasteDrawParams {
+interface SketchPasteDrawParams {
   /** Layer composite offset in document space (from {@link getLayerGeometry}). */
   offset: Point;
   /** Document-space top-left of pixel under cursor, if known. */

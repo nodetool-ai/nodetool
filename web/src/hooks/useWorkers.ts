@@ -15,7 +15,7 @@ import { trpcClient, type RouterOutputs } from "../trpc/client";
 
 export type WorkerTarget = "runpod" | "vast";
 export type TokenPolicy = "generate" | "fixed";
-export type WorkerStatus =
+type WorkerStatus =
   | "provisioning"
   | "running"
   | "attached"
@@ -67,12 +67,12 @@ export interface CreateWorkerProfileInput {
   max_lifetime_minutes?: number | null;
 }
 
-export type WorkerConnection = RouterOutputs["worker"]["attach"];
+type WorkerConnection = RouterOutputs["worker"]["attach"];
 
 /** Readiness of a `running` worker, from the backend health probe. */
 export type WorkerHealth = RouterOutputs["worker"]["health"];
 
-export type ReconcileSummary = RouterOutputs["worker"]["reconcile"];
+type ReconcileSummary = RouterOutputs["worker"]["reconcile"];
 
 /** Hierarchical query keys so a single action can target the right cache. */
 const workerQueryKeys = {
