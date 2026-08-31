@@ -21,6 +21,7 @@ describe("toolPhraseKind", () => {
     expect(toolPhraseKind("write_file")).toBe("write");
     expect(toolPhraseKind("read_file")).toBe("read");
     expect(toolPhraseKind("run_workflow")).toBe("run");
+    expect(toolPhraseKind("create_plan")).toBe("plan");
     expect(toolPhraseKind("frobnicate")).toBe("generic");
   });
 
@@ -93,6 +94,14 @@ describe("toolCallPhrase", () => {
       detail: "x"
     });
   });
+
+  it("phrases create_plan as Planned plus the objective, not as an edit", () => {
+    expect(
+      toolCallPhrase(
+        call("create_plan", { objective: "add caching to the api" })
+      )
+    ).toEqual({ label: "Planned", detail: "add caching to the api" });
+  });
 });
 
 describe("toolCallCountLabel", () => {
@@ -101,6 +110,8 @@ describe("toolCallCountLabel", () => {
     expect(toolCallCountLabel("web_search", 1)).toBe("Ran 1 search");
     expect(toolCallCountLabel("browser", 5)).toBe("Opened 5 pages");
     expect(toolCallCountLabel("write_file", 3)).toBe("Made 3 edits");
+    expect(toolCallCountLabel("create_plan", 1)).toBe("Wrote a plan");
+    expect(toolCallCountLabel("create_plan", 2)).toBe("Wrote 2 plans");
   });
 
   it("names an unrecognized tool and how often it ran", () => {

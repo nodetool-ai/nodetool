@@ -19,7 +19,7 @@ import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
 
 const CATEGORIES: Array<{ pattern: RegExp; Icon: SvgIconComponent }> = [
-  { pattern: /subtask|agent|task/, Icon: AccountTreeOutlinedIcon },
+  { pattern: /subtask|agent|task|plan/, Icon: AccountTreeOutlinedIcon },
   {
     pattern: /database|query|sql|collection|vector|index|table|record/,
     Icon: StorageRoundedIcon

@@ -6,7 +6,7 @@ import { PlanningUpdate } from "../../stores/ApiTypes";
 import { css } from "@emotion/react";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
-import { MOTION, reducedMotion } from "../ui_primitives";
+import { MOTION, reducedMotion, SPACING } from "../ui_primitives";
 
 interface PlanningUpdateDisplayProps {
   planningUpdate: PlanningUpdate;
@@ -16,16 +16,17 @@ const styles = (theme: Theme) =>
   css({
     "&.planning-item": {
       display: "flex",
-      alignItems: "center",
-      gap: "0.5rem",
+      alignItems: "flex-start",
+      gap: theme.spacing(SPACING.md),
       width: "100%",
-      padding: `${theme.spacing(0.5)} 0`
+      padding: `${theme.spacing(SPACING.micro)} 0`
     },
 
     ".planning-icon": {
       display: "flex",
       alignItems: "center",
       flexShrink: 0,
+      marginTop: theme.spacing(SPACING.micro),
       color: theme.vars.palette.success.main,
       "& svg": { fontSize: "var(--fontSizeNormal)" },
       "&.active svg": {
@@ -53,13 +54,14 @@ const styles = (theme: Theme) =>
       fontWeight: 400,
       color: theme.vars.palette.text.disabled,
       lineHeight: "1.4",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
+      minWidth: 0,
+      flex: 1,
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
+      overflow: "hidden"
     }
   });
-
-const PLANNING_CONTENT_TRUNCATE_LENGTH = 120;
 
 const PlanningUpdateDisplay: React.FC<PlanningUpdateDisplayProps> = ({
   planningUpdate
@@ -67,10 +69,6 @@ const PlanningUpdateDisplay: React.FC<PlanningUpdateDisplayProps> = ({
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const trimmedContent = planningUpdate?.content?.trim() || "";
-  const truncatedContent =
-    trimmedContent.length > PLANNING_CONTENT_TRUNCATE_LENGTH
-      ? trimmedContent.slice(0, PLANNING_CONTENT_TRUNCATE_LENGTH) + "..."
-      : trimmedContent;
 
   const isComplete =
     planningUpdate.status === "Success" ||
@@ -87,8 +85,8 @@ const PlanningUpdateDisplay: React.FC<PlanningUpdateDisplayProps> = ({
         )}
       </span>
       <span className="planning-name">{planningUpdate.phase}</span>
-      {truncatedContent && (
-        <span className="planning-message">{truncatedContent}</span>
+      {trimmedContent && (
+        <span className="planning-message">{trimmedContent}</span>
       )}
     </div>
   );

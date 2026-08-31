@@ -266,7 +266,9 @@ const StatusFooter = memo<StatusFooterProps>(
             <Progress progress={progress} total={total} />
           </div>
         )}
-        {!hasAgentExecutionMessages && currentPlanningUpdate && (
+        {!hasAgentExecutionMessages &&
+          currentPlanningUpdate &&
+          !currentTaskUpdate && (
           <div className="chat-message-list-item">
             <PlanningUpdateDisplay planningUpdate={currentPlanningUpdate} />
           </div>

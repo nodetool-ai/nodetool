@@ -49,6 +49,8 @@ import AgentExecutionView from "./AgentExecutionView";
 import MediaOutputGroup from "./MediaOutputGroup";
 import { isMediaOnlyContent } from "./MediaOutputGroup.helpers";
 import { ToolResult } from "./toolResults";
+import PlanDocument from "./PlanDocument";
+import { parsePlanDocument } from "./parsePlanDocument";
 import { formatDuration, formatToolName } from "../../../utils/formatUtils";
 import { formatJavaScriptForDisplay } from "../../../utils/formatJavaScript";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
@@ -115,6 +117,12 @@ const RUN_SUBTASK_TOOL_NAME = "run_subtask";
 const EXECUTE_CODE_TOOL_NAME = "execute_code";
 
 /**
+ * `create_plan` is plan mode's deliverable: the plan is the result, so the
+ * row shows it open rather than hiding it behind a JSON dump.
+ */
+const CREATE_PLAN_TOOL_NAME = "create_plan";
+
+/**
  * ToolRowRail — the glyph column and the hairline that ties one row to the
  * next. The rail is what makes a sequence of calls read as a timeline rather
  * than a stack of cards.
@@ -145,6 +153,7 @@ const ToolCallRow: React.FC<{
 }> = React.memo(({ tc, result, durationMs, connected = false, tight = false }) => {
   const isSubtask = tc.name === RUN_SUBTASK_TOOL_NAME;
   const isCodeAction = tc.name === EXECUTE_CODE_TOOL_NAME;
+  const isPlan = tc.name === CREATE_PLAN_TOOL_NAME;
   const [open, setOpen] = useState(false);
   const runningToolCallId = useGlobalChatStore(
     (s) => s.currentRunningToolCallId
@@ -186,13 +195,18 @@ const ToolCallRow: React.FC<{
       delete stripped["title"];
       return Object.keys(stripped).length > 0 ? stripped : null;
     }
+    if (isPlan) {
+      const stripped = { ...base } satisfies Record<string, unknown>;
+      delete stripped["objective"];
+      return Object.keys(stripped).length > 0 ? stripped : null;
+    }
     if (!isSubtask) return base;
     const stripped = { ...base } satisfies Record<string, unknown>;
     for (const k of ["description", "prompt", "title", "instructions"]) {
       delete stripped[k];
     }
     return Object.keys(stripped).length > 0 ? stripped : null;
-  }, [rawArgs, isSubtask, isCodeAction]);
+  }, [rawArgs, isSubtask, isCodeAction, isPlan]);
 
   const hasArgs = !!displayArgs && Object.keys(displayArgs).length > 0;
   const resultContent = result?.content;
@@ -200,8 +214,13 @@ const ToolCallRow: React.FC<{
   const hasResult =
     resultContent != null &&
     !(isString(resultContent) && resultContent.trim().length === 0);
+  const planDocument = isPlan ? parsePlanDocument(resultContent) : null;
   const hasDetails =
-    !!hasArgs || (isSubtask && !!subtaskInstructions) || !!actionCode || hasResult;
+    !planDocument &&
+    (!!hasArgs ||
+      (isSubtask && !!subtaskInstructions) ||
+      !!actionCode ||
+      hasResult);
   const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
   const durationLabel =
     !isRunning && durationMs != null
@@ -227,7 +246,9 @@ const ToolCallRow: React.FC<{
     ? subtaskTitle || formatToolName(tc.name)
     : isCodeAction
       ? actionTitle || liveMessage || formatToolName(tc.name)
-      : liveMessage || phrase.label;
+      : isPlan
+        ? phrase.label
+        : liveMessage || phrase.label;
   const detail =
     !isSubtask &&
     !isCodeAction &&
@@ -241,7 +262,7 @@ const ToolCallRow: React.FC<{
     <div
       className={`tool-row${isRunning ? " running" : ""}${
         isSubtask ? " subtask" : ""
-      }${tight ? " tight" : ""}`}
+      }${isPlan ? " plan" : ""}${tight ? " tight" : ""}`}
     >
       <ToolRowRail Icon={ToolIcon} connected={connected} />
       <div className="tool-row-main">
@@ -281,6 +302,11 @@ const ToolCallRow: React.FC<{
           activePredictions.map((prediction) => (
             <MediaPredictionInline key={prediction.id} prediction={prediction} />
           ))}
+        {planDocument && (
+          <div className="tool-row-plan">
+            <PlanDocument plan={planDocument} />
+          </div>
+        )}
         <Collapse in={open} timeout="auto" unmountOnExit>
           <FlexColumn className="tool-row-details" gap={SPACING.xs}>
             {isSubtask && subtaskInstructions && (

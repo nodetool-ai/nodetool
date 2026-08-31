@@ -430,6 +430,15 @@ export const createStyles = (theme: Theme) => ({
       color: theme.vars.palette.text.primary
     },
 
+    ".tool-row.plan .tool-row-label": {
+      color: theme.vars.palette.text.primary
+    },
+
+    ".tool-row-plan": {
+      padding: theme.spacing(SPACING.xs, 0, SPACING.md),
+      minWidth: 0
+    },
+
     // The thing the row acted on: a URL, a path, a query. Mono so it reads
     // apart from the prose that names the action.
     ".tool-row-detail": {

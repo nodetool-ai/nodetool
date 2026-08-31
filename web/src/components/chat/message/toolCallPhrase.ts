@@ -13,6 +13,7 @@ import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 /** What a tool does, as far as the row phrasing is concerned. */
 type ToolPhraseKind =
+  | "plan"
   | "search"
   | "page"
   | "read"
@@ -26,6 +27,7 @@ type ToolPhraseKind =
  * any segment wins.
  */
 const KINDS: Array<{ words: readonly string[]; kind: ToolPhraseKind }> = [
+  { words: ["plan"], kind: "plan" },
   { words: ["search", "grep", "glob", "lookup", "query"], kind: "search" },
   {
     words: ["browser", "crawl", "scrape", "fetch", "http", "url", "download", "visit"],
@@ -70,7 +72,8 @@ const DETAIL_KEYS = [
   "filename",
   "target",
   "query",
-  "q"
+  "q",
+  "objective"
 ] as const;
 
 /** A single row's label plus the mono-rendered thing it acted on. */
@@ -173,6 +176,8 @@ const plural = (count: number, word: string) => {
 /** The label for a run collapsed to a single counted row. */
 export function toolCallCountLabel(name: string, count: number): string {
   switch (toolPhraseKind(name)) {
+    case "plan":
+      return count === 1 ? "Wrote a plan" : `Wrote ${count} plans`;
     case "search":
       return `Ran ${count} ${plural(count, "search")}`;
     case "page":
@@ -197,6 +202,10 @@ export function toolCallPhrase(call: ToolCall): ToolRowPhrase {
   const name = call.name ?? "";
   const detail = toolCallDetail(call);
   switch (toolPhraseKind(name)) {
+    case "plan":
+      return detail
+        ? { label: "Planned", detail }
+        : { label: "Wrote a plan", detail: null };
     case "search":
       return detail
         ? { label: "Searched", detail }

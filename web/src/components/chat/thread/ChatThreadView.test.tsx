@@ -512,6 +512,30 @@ describe("ChatThreadView", () => {
     expect(screen.getByTestId("task-update")).toBeInTheDocument();
   });
 
+  it("hides the planning one-liner once a task update is on screen", () => {
+    renderWithTheme(
+      <ChatThreadView
+        {...defaultProps}
+        currentPlanningUpdate={
+          {
+            id: "plan-1",
+            status: "in_progress",
+            plan: { steps: [] }
+          } as any
+        }
+        currentTaskUpdate={
+          {
+            id: "task-1",
+            status: "in_progress",
+            task: { id: "t1", description: "test" }
+          } as any
+        }
+      />
+    );
+    expect(screen.queryByTestId("planning-update")).not.toBeInTheDocument();
+    expect(screen.getByTestId("task-update")).toBeInTheDocument();
+  });
+
   it("collapses consecutive tool-call-only messages of the same tool", () => {
     const toolMessage = (id: string, callId: string): Message =>
       ({

@@ -2,8 +2,8 @@
  * Consecutive same-tool grouping for the chat tool-call chain.
  *
  * A run of two or more calls with the same groupable name collapses into
- * one header. `execute_code` / `run_subtask` stay as individual cards —
- * each one carries a distinct title the user needs to read.
+ * one header. `execute_code` / `run_subtask` / `create_plan` stay as
+ * individual cards — each one carries a distinct title the user needs to read.
  */
 
 import type { Message, ToolCall } from "../../../stores/ApiTypes";
@@ -16,7 +16,8 @@ const UNGROUPABLE_TOOL_NAMES = new Set([
   "run_subtask",
   "run_search",
   "ask_user",
-  "request_secret"
+  "request_secret",
+  "create_plan"
 ]);
 
 /** Minimum consecutive same-name calls before a run becomes a group. */

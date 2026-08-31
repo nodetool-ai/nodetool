@@ -21,13 +21,13 @@ const MODES: ModeItem[] = [
   {
     id: "plan",
     label: "Plan",
-    description: "Read & propose only. No actions.",
+    description: "Investigate and propose a plan. Nothing runs.",
     tone: "info"
   },
   {
     id: "default",
     label: "Default",
-    description: "Reads run; actions ask first.",
+    description: "Reads run. Actions ask first.",
     tone: "warning"
   },
   {
@@ -51,17 +51,17 @@ const menuStyles = (theme: Theme) =>
     minWidth: 260,
     ".permission-menu-header": {
       padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xs)}`,
-      color: theme.vars.palette.grey[400],
+      color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
       letterSpacing: 1
     },
     ".permission-menu-item": {
       display: "flex",
       alignItems: "flex-start",
-      gap: 8,
-      padding: theme.spacing(2, 4),
+      gap: theme.spacing(SPACING.md),
+      padding: theme.spacing(SPACING.md, SPACING.xl),
       cursor: "pointer",
-      color: theme.vars.palette.grey[100],
+      color: theme.vars.palette.text.primary,
       transition: MOTION.background,
       "&:hover": {
         backgroundColor: theme.vars.palette.c_overlay
@@ -72,7 +72,7 @@ const menuStyles = (theme: Theme) =>
     },
     ".permission-menu-dot": {
       // Nudge down so the dot aligns with the label's first line.
-      marginTop: 6
+      marginTop: theme.spacing(SPACING.sm)
     },
     ".permission-menu-check": {
       marginLeft: "auto",

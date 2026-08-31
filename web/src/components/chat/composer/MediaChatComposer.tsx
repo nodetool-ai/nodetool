@@ -236,6 +236,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   // Language-model selection from chat store (used in chat mode & forwarded
   // as provider/model for media calls when a media model is not picked).
   const languageModel = useGlobalChatStore((s) => s.selectedModel);
+  const permissionMode = useGlobalChatStore((s) =>
+    s.getPermissionMode(threadId ?? s.currentThreadId)
+  );
 
   // Pure-chat panels force chat mode and ignore the global media mode.
   const mode = hideModePicker ? "chat" : storeMode;
@@ -546,10 +549,15 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "motion_control") {
       return "Describe the motion…";
     }
+    if (mode === "chat" && permissionMode === "plan") {
+      return isMobile
+        ? "Describe the work to plan…"
+        : "Describe the work. The agent will propose a plan, not run it.";
+    }
     return isMobile
       ? "Message… or @ to add an asset"
       : "Continue the thread — or type @ to add an asset…";
-  }, [mode, isMobile, placeholderOverride]);
+  }, [mode, isMobile, placeholderOverride, permissionMode]);
 
   const isMediaMode =
     mode === "image" ||

@@ -4,6 +4,8 @@ import { normalizeSearchResults } from "./parseSearchResults";
 import { SearchResults } from "./SearchResults";
 import { ToolResultJson } from "./ToolResultJson";
 import { isString } from "../../../../utils/typePredicates";
+import { parsePlanDocument } from "../parsePlanDocument";
+import PlanDocument from "../PlanDocument";
 
 interface ToolResultProps {
   toolName?: string | null;
@@ -13,6 +15,7 @@ interface ToolResultProps {
 /**
  * Renders a tool-call result, picking a structured renderer by shape:
  *  - search-style results (arrays / `{ results }` / numbered text) → SearchResults
+ *  - a plan (`title` + `tasks`) → PlanDocument
  *  - plain strings → text
  *  - anything else → pretty-printed JSON
  *
@@ -23,6 +26,11 @@ const ToolResultBase: React.FC<ToolResultProps> = ({ content }) => {
   const searchItems = normalizeSearchResults(content);
   if (searchItems) {
     return <SearchResults items={searchItems} />;
+  }
+
+  const plan = parsePlanDocument(content);
+  if (plan) {
+    return <PlanDocument plan={plan} />;
   }
 
   if (isString(content)) {

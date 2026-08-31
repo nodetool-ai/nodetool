@@ -423,3 +423,64 @@ describe("MessageView tool-call result copy", () => {
     );
   });
 });
+
+describe("MessageView create_plan", () => {
+  it("renders the plan in the thread, not as collapsed JSON", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <MessageView
+          message={
+            {
+              id: "m-plan",
+              role: "assistant",
+              tool_calls: [
+                {
+                  id: "p1",
+                  name: "create_plan",
+                  args: { objective: "add caching to the api" }
+                }
+              ]
+            } as Message
+          }
+          isThoughtExpanded={() => false}
+          onToggleThought={() => {}}
+          toolResultsByCallId={{
+            p1: {
+              name: "create_plan",
+              content: {
+                title: "Add caching",
+                executed: false,
+                parallelizable: 1,
+                tasks: [
+                  {
+                    id: "inspect",
+                    title: "Inspect the cache layer",
+                    depends_on: [],
+                    steps: [
+                      {
+                        id: "s1",
+                        instructions: "Read the current cache config"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByText("Planned")).toBeInTheDocument();
+    expect(screen.getByText("add caching to the api")).toBeInTheDocument();
+    expect(
+      screen.getByRole("article", { name: "Add caching" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Inspect the cache layer")).toBeInTheDocument();
+    expect(
+      screen.getByText("Read the current cache config")
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Result")).not.toBeInTheDocument();
+    expect(document.querySelector(".pretty-json")).toBeNull();
+  });
+});

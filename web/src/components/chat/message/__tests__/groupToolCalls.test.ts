@@ -68,6 +68,14 @@ describe("groupConsecutiveToolCalls", () => {
     ]);
   });
 
+  it("does not group create_plan", () => {
+    const calls = [call("a", "create_plan"), call("b", "create_plan")];
+    expect(groupConsecutiveToolCalls(calls)).toEqual([
+      { kind: "single", call: calls[0] },
+      { kind: "single", call: calls[1] }
+    ]);
+  });
+
   it("splits mixed tools into group and single runs", () => {
     const searches = [call("a", "web_search"), call("b", "web_search")];
     const code = call("c", "execute_code");
