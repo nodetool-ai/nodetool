@@ -95,7 +95,7 @@ export class KernelDriver implements RunDriver {
           // A5 hydration-gap fix (docs/RELIABILITY_TASKS.md Track A):
           // connect the bridge here (not inside `ExecutionSession.create`)
           // so its discovered metadata can back a `resolveNodeType` fallback
-          // — the same shape `unified-websocket-runner.ts`'s ws-server driver
+          // — the same shape `websocket-client-session.ts`'s ws-server driver
           // gets via `createTestUiServer`'s `resolveUnknownNodeType`. Without
           // `propertyTypes`/`outputs` resolved, the oracle surface can't tell
           // a genuine multi-edge list-typed fan-in from an invalid non-list

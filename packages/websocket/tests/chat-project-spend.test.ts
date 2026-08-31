@@ -7,10 +7,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { initTestDb, Prediction, Project } from "@nodetool-ai/models";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 class MockWS implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -101,7 +101,7 @@ async function ledgerRowsWhenWritten(
 /** Run one chat turn and answer with the ledger rows it wrote. */
 async function chatTurn(threadId: string): Promise<Prediction[]> {
   const ws = new MockWS();
-  const runner = new UnifiedWebSocketRunner({
+  const runner = new WebSocketClientSession({
     resolveExecutor: noop,
     resolveProvider: billingProvider()
   });

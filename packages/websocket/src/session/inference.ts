@@ -562,7 +562,7 @@ export class DirectInferenceHandler {
         name: `${req.mode}_${Date.now()}`,
         content_type: contentType,
         // Home, the same folder an upload lands in — the rule
-        // `handleMediaGenerationMessage` in unified-websocket-runner.ts
+        // `handleMediaGenerationMessage` in websocket-client-session.ts
         // applies. A null parent is unreachable from the folder the
         // asset browser opens on.
         parent_id: userId

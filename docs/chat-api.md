@@ -80,7 +80,7 @@ curl http://localhost:7777/v1/models \
 ## WebSocket API
 
 NodeTool also exposes a `/ws` WebSocket endpoint for real time conversations. The server side is implemented by
-`UnifiedWebSocketRunner` which handles message parsing, tool execution and streaming responses.
+`WebSocketClientSession` which handles message parsing, tool execution and streaming responses.
 
 The connection supports both binary (MessagePack) and text (JSON) messages. Authentication can be provided via
 `Authorization: Bearer <token>` headers or an `api_key` query parameter.

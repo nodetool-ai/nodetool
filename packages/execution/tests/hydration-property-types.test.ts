@@ -1,7 +1,7 @@
 /**
  * A5 hydration-gap regression: `hydrateGraphNodeFlags` alone never populates
  * `propertyTypes` on hydrated nodes — only the richer `Graph.loadFromDict`
- * resolver path does (what `unified-websocket-runner.ts` used before its A5
+ * resolver path does (what `websocket-client-session.ts` used before its A5
  * migration onto this facade). Two kernel checks key off `propertyTypes` to
  * decide whether a handle receiving more than one edge is a legitimate
  * multi-edge *list* fan-in:

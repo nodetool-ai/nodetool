@@ -8,10 +8,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { unpack } from "msgpackr";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 import type { ASRResult } from "@nodetool-ai/runtime";
 
 vi.mock("@nodetool-ai/models", async (orig) => {
@@ -87,9 +87,9 @@ function makeFakeAsrProvider(opts: {
 
 async function makeRunner(
   ws: MockWebSocket,
-  resolveProvider: UnifiedWebSocketRunnerOptionsResolveProvider
-): Promise<UnifiedWebSocketRunner> {
-  const runner = new UnifiedWebSocketRunner({
+  resolveProvider: WebSocketClientSessionOptionsResolveProvider
+): Promise<WebSocketClientSession> {
+  const runner = new WebSocketClientSession({
     resolveExecutor: () => ({
       async process() {
         return {};
@@ -115,8 +115,8 @@ async function makeRunner(
   return runner;
 }
 
-type UnifiedWebSocketRunnerOptionsResolveProvider = ConstructorParameters<
-  typeof UnifiedWebSocketRunner
+type WebSocketClientSessionOptionsResolveProvider = ConstructorParameters<
+  typeof WebSocketClientSession
 >[0]["resolveProvider"];
 
 function decodeFrame(ws: MockWebSocket, idx: number): Record<string, unknown> {
@@ -128,7 +128,7 @@ function decodeFrame(ws: MockWebSocket, idx: number): Record<string, unknown> {
 
 async function runOne(
   ws: MockWebSocket,
-  runner: UnifiedWebSocketRunner,
+  runner: WebSocketClientSession,
   frame: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
   ws.queue.push({ type: "websocket.message", text: JSON.stringify(frame) });

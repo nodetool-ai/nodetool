@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { unpack } from "msgpackr";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 import { FrontendRendererRegistry } from "../src/frontend-renderer-registry.js";
 
 class MockWebSocket implements WebSocketConnection {
@@ -28,11 +28,11 @@ class MockWebSocket implements WebSocketConnection {
   }
 }
 
-describe("UnifiedWebSocketRunner renderer transport", () => {
+describe("WebSocketClientSession renderer transport", () => {
   it("registers, receives renderer results, and unregisters on disconnect", async () => {
     const registry = new FrontendRendererRegistry();
     const socket = new MockWebSocket();
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: () => ({ process: async () => ({}) }),
       frontendRendererRegistry: registry
     });
@@ -90,7 +90,7 @@ describe("UnifiedWebSocketRunner renderer transport", () => {
     const registry = new FrontendRendererRegistry();
     const socket = new MockWebSocket();
     socket.failSend = true;
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: () => ({ process: async () => ({}) }),
       frontendRendererRegistry: registry
     });
@@ -103,11 +103,11 @@ describe("UnifiedWebSocketRunner renderer transport", () => {
     const registry = new FrontendRendererRegistry();
     const firstSocket = new MockWebSocket();
     const secondSocket = new MockWebSocket();
-    const firstRunner = new UnifiedWebSocketRunner({
+    const firstRunner = new WebSocketClientSession({
       resolveExecutor: () => ({ process: async () => ({}) }),
       frontendRendererRegistry: registry
     });
-    const secondRunner = new UnifiedWebSocketRunner({
+    const secondRunner = new WebSocketClientSession({
       resolveExecutor: () => ({ process: async () => ({}) }),
       frontendRendererRegistry: registry
     });

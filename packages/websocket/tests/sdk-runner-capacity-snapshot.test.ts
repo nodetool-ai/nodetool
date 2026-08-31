@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { UnifiedWebSocketRunner } from "../src/unified-websocket-runner.js";
+import { WebSocketClientSession } from "../src/websocket-client-session.js";
 
 describe("SDK runner capacity snapshot", () => {
   it("reads the admission state without reserving or queueing a job", async () => {
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: () => ({
         async process() {
           return {};

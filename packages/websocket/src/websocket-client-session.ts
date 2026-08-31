@@ -1830,7 +1830,3 @@ export class WebSocketClientSession implements ClientSession {
     }
   }
 }
-
-// Pre-T7 names. Deleted in T8, once every caller uses the new ones.
-export { WebSocketClientSession as UnifiedWebSocketRunner };
-export type { WebSocketClientSessionOptions as UnifiedWebSocketRunnerOptions };

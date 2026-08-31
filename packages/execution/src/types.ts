@@ -88,7 +88,7 @@ export interface ExecutionSessionOptions {
    * Node registry used for both hydration and TS executor resolution.
    * Optional only for a host that injects its own `resolveExecutor` (below)
    * AND has no `NodeRegistry` instance of its own to hand the facade — e.g.
-   * `unified-websocket-runner.ts`'s `resolveExecutor` is wired in wholesale at
+   * `websocket-client-session.ts`'s `resolveExecutor` is wired in wholesale at
    * server bootstrap, closing over a registry this class never sees. Without
    * a registry, hydration falls back to `withExplicitNodeFlags` (flags
    * default to `false` rather than being resolved from a registered class) —
@@ -102,7 +102,7 @@ export interface ExecutionSessionOptions {
    * Bypass the facade's own registry-based executor resolution
    * (`createExecutorResolver`) entirely and use this instead. Required when
    * `registry` is omitted. Exists for hosts whose executor resolution isn't
-   * "registry, else Python bridge, else throw" — `unified-websocket-runner.ts`
+   * "registry, else Python bridge, else throw" — `websocket-client-session.ts`
    * injects its own `resolveExecutor` at bootstrap (a closure over a registry
    * and an already-connected bridge this class never sees), so migrating it
    * onto `ExecutionSession` means using its resolver as-is rather than
@@ -161,7 +161,7 @@ export interface ExecutionSessionOptions {
   limits?: ExecutionLimits;
   /**
    * Renames terminal Output-node keys to their public `properties.name`
-   * before the run starts, matching `unified-websocket-runner.ts`'s
+   * before the run starts, matching `websocket-client-session.ts`'s
    * `require_terminal_result` behavior (output-name rewriting).
    */
   requireTerminalResult?: boolean;

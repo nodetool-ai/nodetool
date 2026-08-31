@@ -8,7 +8,7 @@
  * asset, and non-image blocks, pass through untouched.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { UnifiedWebSocketRunner } from "../src/unified-websocket-runner.js";
+import { WebSocketClientSession } from "../src/websocket-client-session.js";
 import type { MessageContent } from "@nodetool-ai/protocol";
 
 const storeMock = vi.fn(async () => undefined);
@@ -37,12 +37,12 @@ interface MaterializeRunner {
 }
 
 describe("materializeAssistantImageContent", () => {
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(() => {
     assetSeq = 0;
     storeMock.mockClear();
-    runner = new UnifiedWebSocketRunner({
+    runner = new WebSocketClientSession({
       resolveExecutor: () => ({
         async process() {
           return {};

@@ -20,7 +20,7 @@
 // imports the functions below. The runner declares its own `RunJobRequest`
 // (a superset of the protocol's), and confining a run means producing exactly
 // the shape it will act on.
-import type { RunJobRequest } from "../unified-websocket-runner.js";
+import type { RunJobRequest } from "../websocket-client-session.js";
 
 /** The app this connection may act on, and the release it loaded. */
 export interface AppSessionScope {

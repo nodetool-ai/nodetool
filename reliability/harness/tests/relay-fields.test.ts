@@ -79,7 +79,7 @@ describe("isConnectionControlMessage", () => {
 /**
  * Regression guard for Ring 1 run 31619279663, which failed
  * `linear-text-pipeline` on the packaged surface and blocked the Fly deploy of
- * 2868cffe. `UnifiedWebSocketRunner.startStatsBroadcast` fires its first
+ * 2868cffe. `WebSocketClientSession.startStatsBroadcast` fires its first
  * sample ~1s after connect; that run took just long enough for it to land
  * between two `edge_update`s, shifting every later entry in the control
  * channel and mismatching the stream-shape golden by three. This is the exact

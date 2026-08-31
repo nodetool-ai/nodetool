@@ -8,18 +8,18 @@
  * through the session's hooks.
  *
  * These tests drive `streamJobMessages` directly against a fake ActiveJob (the
- * same harness `unified-websocket-runner-runjob-coverage.test.ts` uses) so the
+ * same harness `websocket-client-session-runjob-coverage.test.ts` uses) so the
  * disconnect can be timed precisely mid-run, and wire the session exactly as
  * `startJobInner` does.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { unpack } from "msgpackr";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   resolveRunJobExecutionOptions,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 import {
   jobRunRegistry,
   type JobRunExecutionHooks
@@ -60,7 +60,7 @@ const resolveExecutor = () => ({
 });
 
 /** Reach the runner's private job wiring, the way the sibling suites do. */
-const asAny = (r: UnifiedWebSocketRunner) =>
+const asAny = (r: WebSocketClientSession) =>
   r as unknown as Record<string, never> & {
     activeJobs: Map<string, unknown>;
     jobDeliveryTarget: { deliver(m: Record<string, unknown>): Promise<void> };
@@ -115,7 +115,7 @@ function makeHooks(): JobRunExecutionHooks & {
  * connection's job delivery target.
  */
 function registerRun(
-  runner: UnifiedWebSocketRunner,
+  runner: WebSocketClientSession,
   jobId: string,
   hooks: JobRunExecutionHooks
 ) {
@@ -171,13 +171,13 @@ async function waitFor(predicate: () => boolean, label: string): Promise<void> {
 
 describe("workflow runs survive a dropped socket", () => {
   let ws1: MockWebSocket;
-  let runner1: UnifiedWebSocketRunner;
+  let runner1: WebSocketClientSession;
 
   beforeEach(async () => {
     await initTestDb();
     vi.clearAllMocks();
     ws1 = new MockWebSocket();
-    runner1 = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner1 = new WebSocketClientSession({ resolveExecutor });
     await runner1.connect(ws1);
   });
 
@@ -238,7 +238,7 @@ describe("workflow runs survive a dropped socket", () => {
 
     // A fresh connection resubscribes from the last seq it saw.
     const ws2 = new MockWebSocket();
-    const runner2 = new UnifiedWebSocketRunner({ resolveExecutor });
+    const runner2 = new WebSocketClientSession({ resolveExecutor });
     await runner2.connect(ws2);
     const lastSeq = decodeAll(ws1).at(-1)?.job_seq as number;
     await runner2.handleCommand({
@@ -278,7 +278,7 @@ describe("workflow runs survive a dropped socket", () => {
     await runner1.disconnect();
 
     const ws2 = new MockWebSocket();
-    const runner2 = new UnifiedWebSocketRunner({ resolveExecutor });
+    const runner2 = new WebSocketClientSession({ resolveExecutor });
     await runner2.connect(ws2);
     const result = await runner2.handleCommand({
       command: "cancel_job",
@@ -298,7 +298,7 @@ describe("workflow runs survive a dropped socket", () => {
     await runner1.disconnect();
 
     const ws2 = new MockWebSocket();
-    const runner2 = new UnifiedWebSocketRunner({ resolveExecutor });
+    const runner2 = new WebSocketClientSession({ resolveExecutor });
     await runner2.connect(ws2);
     await runner2.handleCommand({
       command: "reconnect_job",
@@ -352,7 +352,7 @@ describe("workflow runs survive a dropped socket", () => {
     await runner1.disconnect();
 
     const ws2 = new MockWebSocket();
-    const runner2 = new UnifiedWebSocketRunner({ resolveExecutor });
+    const runner2 = new WebSocketClientSession({ resolveExecutor });
     await runner2.connect(ws2);
 
     // The run is detached, not this connection's, and still occupies a slot:

@@ -13,10 +13,10 @@ import { initTestDb } from "@nodetool-ai/models";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Escalation } from "@nodetool-ai/protocol";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 class MockWS implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -62,7 +62,7 @@ beforeEach(async () => {
 
 describe("supervisor message relay", () => {
   it("relays escalation and decision messages to the client", async () => {
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: () => ({
         async process(
           _inputs: Record<string, unknown>,

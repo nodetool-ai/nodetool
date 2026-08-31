@@ -2,15 +2,15 @@ import type { WebSocketMode } from "@nodetool-ai/protocol";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import type { AppSessionScope } from "../lib/app-session-scope.js";
-import type { UnifiedWebSocketRunnerOptions } from "../unified-websocket-runner.js";
+import type { WebSocketClientSessionOptions } from "../websocket-client-session.js";
 
-export type ResolveExecutor = UnifiedWebSocketRunnerOptions["resolveExecutor"];
-export type ResolveProvider = UnifiedWebSocketRunnerOptions["resolveProvider"];
-export type ResolveNodeType = UnifiedWebSocketRunnerOptions["resolveNodeType"];
-export type GetNodeMetadata = UnifiedWebSocketRunnerOptions["getNodeMetadata"];
-export type ValidateNode = UnifiedWebSocketRunnerOptions["validateNode"];
+export type ResolveExecutor = WebSocketClientSessionOptions["resolveExecutor"];
+export type ResolveProvider = WebSocketClientSessionOptions["resolveProvider"];
+export type ResolveNodeType = WebSocketClientSessionOptions["resolveNodeType"];
+export type GetNodeMetadata = WebSocketClientSessionOptions["getNodeMetadata"];
+export type ValidateNode = WebSocketClientSessionOptions["validateNode"];
 export type WorkspaceResolver =
-  UnifiedWebSocketRunnerOptions["workspaceResolver"];
+  WebSocketClientSessionOptions["workspaceResolver"];
 
 /**
  * What a domain class knows about the connection it serves: identity, the two

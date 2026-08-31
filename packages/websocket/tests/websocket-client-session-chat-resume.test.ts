@@ -7,10 +7,10 @@ import { unpack } from "msgpackr";
 import { initTestDb } from "@nodetool-ai/models";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 import { chatTurnRegistry } from "../src/chat-turn-registry.js";
 
 class MockWS implements WebSocketConnection {
@@ -94,7 +94,7 @@ describe("chat turn resilience across disconnect", () => {
     const threadId = `t-resume-${Date.now()}-${Math.random()}`;
     const { provider, release } = gatedProvider();
 
-    const runnerA = new UnifiedWebSocketRunner({
+    const runnerA = new WebSocketClientSession({
       resolveExecutor: noopExecutor,
       resolveProvider: provider
     });
@@ -130,7 +130,7 @@ describe("chat turn resilience across disconnect", () => {
     });
 
     // A fresh connection resumes and receives everything after lastSeq.
-    const runnerB = new UnifiedWebSocketRunner({
+    const runnerB = new WebSocketClientSession({
       resolveExecutor: noopExecutor,
       resolveProvider: provider
     });
@@ -175,7 +175,7 @@ describe("chat turn resilience across disconnect", () => {
     const threadId = `t-reload-${Date.now()}-${Math.random()}`;
     const { provider, release } = gatedProvider();
 
-    const runnerA = new UnifiedWebSocketRunner({
+    const runnerA = new WebSocketClientSession({
       resolveExecutor: noopExecutor,
       resolveProvider: provider
     });
@@ -193,7 +193,7 @@ describe("chat turn resilience across disconnect", () => {
 
     // The page reloads: old socket gone, new connection with zero state.
     await runnerA.disconnect();
-    const runnerB = new UnifiedWebSocketRunner({
+    const runnerB = new WebSocketClientSession({
       resolveExecutor: noopExecutor,
       resolveProvider: provider
     });
@@ -242,7 +242,7 @@ describe("chat turn resilience across disconnect", () => {
     const threadId = `t-reload-late-${Date.now()}-${Math.random()}`;
     const { provider, release } = gatedProvider();
 
-    const runnerA = new UnifiedWebSocketRunner({
+    const runnerA = new WebSocketClientSession({
       resolveExecutor: noopExecutor,
       resolveProvider: provider
     });
@@ -265,7 +265,7 @@ describe("chat turn resilience across disconnect", () => {
     // message is persisted, so a fresh attach must not replay the chunks
     // that built it — REST history already carries the final text and a
     // chunk replay would render it twice.
-    const runnerB = new UnifiedWebSocketRunner({
+    const runnerB = new WebSocketClientSession({
       resolveExecutor: noopExecutor,
       resolveProvider: provider
     });
@@ -291,7 +291,7 @@ describe("chat turn resilience across disconnect", () => {
   });
 
   it("answers resume_chat for an unknown thread with status unknown", async () => {
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noopExecutor
     });
     const ws = new MockWS();
@@ -310,7 +310,7 @@ describe("chat turn resilience across disconnect", () => {
     const threadId = `t-stop-${Date.now()}-${Math.random()}`;
     const { provider } = gatedProvider();
 
-    const runnerA = new UnifiedWebSocketRunner({
+    const runnerA = new WebSocketClientSession({
       resolveExecutor: noopExecutor,
       resolveProvider: provider
     });
@@ -326,7 +326,7 @@ describe("chat turn resilience across disconnect", () => {
     await runnerA.disconnect();
     expect(chatTurnRegistry.get("1", threadId)!.status).toBe("running");
 
-    const runnerB = new UnifiedWebSocketRunner({
+    const runnerB = new WebSocketClientSession({
       resolveExecutor: noopExecutor,
       resolveProvider: provider
     });

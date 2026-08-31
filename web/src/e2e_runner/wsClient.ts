@@ -1,7 +1,7 @@
 /**
  * Minimal JSON-text WebSocket client for the E2E runner.
  *
- * The backend's UnifiedWebSocketRunner supports a "text mode" in which messages
+ * The backend's WebSocketClientSession supports a "text mode" in which messages
  * are JSON strings instead of MsgPack. The harness opts into it with
  * `set_mode {mode:text}` right after connecting, which keeps this client
  * dependency-free (no MsgPack, no auth/Supabase) and easy to reason about in CI.

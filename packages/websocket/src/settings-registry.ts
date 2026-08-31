@@ -1,6 +1,6 @@
 /**
  * Settings registry — shared between the tRPC settings router,
- * http-api.ts (for /api/settings/secrets handlers), and unified-websocket-runner.ts
+ * http-api.ts (for /api/settings/secrets handlers), and websocket-client-session.ts
  * (for getSetting()).
  *
  * The *definitions* live in `@nodetool-ai/config` (`setting-catalog.ts`) so the

@@ -8,10 +8,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { pack, unpack } from "msgpackr";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 import { resetEnvironment } from "@nodetool-ai/config";
 
 class MockWebSocket implements WebSocketConnection {
@@ -62,15 +62,15 @@ const resolveExecutor = () => ({
 
 const KEY = "NODETOOL_WS_MAX_MESSAGE_BYTES";
 
-describe("UnifiedWebSocketRunner malformed-protocol corpus", () => {
+describe("WebSocketClientSession malformed-protocol corpus", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     resetEnvironment();
     delete process.env[KEY];
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 

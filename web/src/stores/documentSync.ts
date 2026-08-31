@@ -9,7 +9,7 @@
  *
  * The backend already broadcasts every DBModel write as a `resource_change`
  * carrying the row's new `updated_at` and, when the writer attached them, the
- * per-merge-unit ops (see `packages/websocket/src/unified-websocket-runner.ts`
+ * per-merge-unit ops (see `packages/websocket/src/websocket-client-session.ts`
  * `onModelChange`). This module routes those notices to whichever editor has
  * that row open:
  *

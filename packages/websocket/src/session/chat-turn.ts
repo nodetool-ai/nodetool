@@ -144,8 +144,8 @@ import {
 } from "./job-execution.js";
 import type {
   ToolBridge,
-  UnifiedWebSocketRunnerOptions
-} from "../unified-websocket-runner.js";
+  WebSocketClientSessionOptions
+} from "../websocket-client-session.js";
 
 const log = createLogger("nodetool.websocket.runner");
 
@@ -227,7 +227,7 @@ export interface ChatTurnDeps {
   clientTools: () => Record<string, Record<string, unknown>>;
   /** The connection's bearer token, for tools that call back into the API. */
   authToken: () => string | null;
-  beforeRunJob?: UnifiedWebSocketRunnerOptions["beforeRunJob"];
+  beforeRunJob?: WebSocketClientSessionOptions["beforeRunJob"];
   defaults: { provider: string; model: string };
   hydrateGraph: (graph: {
     nodes: Array<Record<string, unknown>>;

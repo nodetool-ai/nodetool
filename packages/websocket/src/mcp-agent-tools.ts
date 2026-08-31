@@ -13,7 +13,7 @@
  *
  * The bridged set is *derived*, not hand-listed: `getAgentToolbelt()` plus
  * `getAllMcpTools()` plus the Google Workspace tools are exactly what
- * `unified-websocket-runner` assembles for a chat turn, so a tool added to
+ * `websocket-client-session` assembles for a chat turn, so a tool added to
  * either catalog reaches the sandbox belt with no edit here. Only tools whose
  * constructor needs something the catalogs can't supply (a timeline loader, the
  * lazily probed provider map) are named
@@ -301,7 +301,7 @@ function errorResponse(err: unknown) {
 
 /**
  * Every agent tool the bridge offers, in registration order. Derived from the
- * same catalogs `unified-websocket-runner` assembles a chat toolbelt from, so
+ * same catalogs `websocket-client-session` assembles a chat toolbelt from, so
  * the two surfaces cannot drift.
  *
  * `providers` is the map `find_model` and `list_models` read at call time — it

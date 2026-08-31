@@ -1,10 +1,10 @@
 export {
-  UnifiedWebSocketRunner,
-  type UnifiedWebSocketRunnerOptions,
+  WebSocketClientSession,
+  type WebSocketClientSessionOptions,
   type WebSocketConnection,
   type WebSocketReceiveFrame,
   type RunJobRequest
-} from "./unified-websocket-runner.js";
+} from "./websocket-client-session.js";
 export {
   packWebSocketMessage,
   unpackWebSocketMessage

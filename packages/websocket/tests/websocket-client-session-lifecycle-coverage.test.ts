@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { pack, unpack } from "msgpackr";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 import { resetEnvironment } from "@nodetool-ai/config";
 import { initTestDb, Job } from "@nodetool-ai/models";
 
@@ -56,17 +56,17 @@ function decodeAll(ws: MockWebSocket): Record<string, unknown>[] {
   return [...binary, ...text];
 }
 
-const asAny = (r: UnifiedWebSocketRunner) =>
+const asAny = (r: WebSocketClientSession) =>
   r as unknown as Record<string, any>;
 
-describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", () => {
+describe("WebSocketClientSession lifecycle — handleCommand dispatch guards", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     await initTestDb();
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
   });
 
   it("clear_models returns the managed-by-provider message", async () => {
@@ -344,14 +344,14 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
   });
 });
 
-describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () => {
+describe("WebSocketClientSession lifecycle — job status/cancel/reconnect", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     await initTestDb();
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -529,13 +529,13 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
   });
 });
 
-describe("UnifiedWebSocketRunner lifecycle — sendMessage encoding", () => {
+describe("WebSocketClientSession lifecycle — sendMessage encoding", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(() => {
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
   });
 
   it("is a no-op when no websocket is attached", async () => {
@@ -614,14 +614,14 @@ describe("UnifiedWebSocketRunner lifecycle — sendMessage encoding", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner lifecycle — receiveMessages dispatch", () => {
+describe("WebSocketClientSession lifecycle — receiveMessages dispatch", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     await initTestDb();
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -721,13 +721,13 @@ describe("UnifiedWebSocketRunner lifecycle — receiveMessages dispatch", () => 
   });
 });
 
-describe("UnifiedWebSocketRunner lifecycle — runRpc frame", () => {
+describe("WebSocketClientSession lifecycle — runRpc frame", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -774,8 +774,8 @@ describe("UnifiedWebSocketRunner lifecycle — runRpc frame", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner lifecycle — private graph/type helpers", () => {
-  const runner = new UnifiedWebSocketRunner({ resolveExecutor });
+describe("WebSocketClientSession lifecycle — private graph/type helpers", () => {
+  const runner = new WebSocketClientSession({ resolveExecutor });
 
   it("normalizeGraph lifts data→properties and normalizes edge types", () => {
     const out = asAny(runner).normalizeGraph({
@@ -835,7 +835,7 @@ describe("UnifiedWebSocketRunner lifecycle — private graph/type helpers", () =
   });
 });
 
-describe("UnifiedWebSocketRunner lifecycle — run_job + beforeRunJob failure", () => {
+describe("WebSocketClientSession lifecycle — run_job + beforeRunJob failure", () => {
   let ws: MockWebSocket;
 
   beforeEach(async () => {
@@ -856,7 +856,7 @@ describe("UnifiedWebSocketRunner lifecycle — run_job + beforeRunJob failure", 
   };
 
   it("run_job command acknowledges with 'Job started'", async () => {
-    const runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    const runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
     const res = await runner.handleCommand({
       command: "run_job",
@@ -868,7 +868,7 @@ describe("UnifiedWebSocketRunner lifecycle — run_job + beforeRunJob failure", 
   });
 
   it("emits a failed job_update when beforeRunJob throws", async () => {
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor,
       beforeRunJob: async () => {
         throw new Error("bridge down");
@@ -889,11 +889,11 @@ describe("UnifiedWebSocketRunner lifecycle — run_job + beforeRunJob failure", 
   });
 });
 
-describe("UnifiedWebSocketRunner lifecycle — disconnect cleanup", () => {
+describe("WebSocketClientSession lifecycle — disconnect cleanup", () => {
   it("cancels active job runners and closes the socket", async () => {
     await initTestDb();
     const ws = new MockWebSocket();
-    const runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    const runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
     const cancel = vi.fn();
     asAny(runner).activeJobs.set("J", {

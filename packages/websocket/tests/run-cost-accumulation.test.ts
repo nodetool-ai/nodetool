@@ -11,7 +11,7 @@
 import { describe, expect, it } from "vitest";
 import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
 
-import { UnifiedWebSocketRunner } from "../src/unified-websocket-runner.js";
+import { WebSocketClientSession } from "../src/websocket-client-session.js";
 
 /** A per-image Replicate model the shipped catalog carries. */
 const PRICED = {
@@ -39,7 +39,7 @@ type CostAccess = {
 };
 
 const access = (): CostAccess =>
-  new UnifiedWebSocketRunner({
+  new WebSocketClientSession({
     resolveExecutor: () => undefined as never
   }) as unknown as CostAccess;
 

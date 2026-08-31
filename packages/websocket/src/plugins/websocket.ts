@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { createLogger } from "@nodetool-ai/config";
 import { WsAdapter } from "../ws-adapter.js";
-import { UnifiedWebSocketRunner } from "../unified-websocket-runner.js";
+import { WebSocketClientSession } from "../websocket-client-session.js";
 import { createGraphNodeTypeResolver, type NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import { PythonNodeExecutor, getProvider } from "@nodetool-ai/runtime";
@@ -111,7 +111,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
     socket.on("error", (error: Error) => {
       log.error("WebSocket client error", error);
     });
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       userId: req.userId ?? "1",
       authToken: req.authToken ?? undefined,
       // Set only for a visitor to a deployed app's hidden URL. `userId` above

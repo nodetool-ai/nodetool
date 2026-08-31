@@ -67,7 +67,7 @@ const log = createLogger("nodetool.runtime.python-bridge-base");
  * dispatching malformed data.
  *
  * Mirrors `shouldValidateOutboundWs` in
- * `packages/websocket/src/unified-websocket-runner.ts`: set
+ * `packages/websocket/src/websocket-client-session.ts`: set
  * `NODETOOL_VALIDATE_BRIDGE_FRAMES=1`/`=0` to force on/off; unset, it
  * defaults to on under `NODE_ENV=test`/Vitest and off otherwise, so a worker
  * bug that emits a malformed frame fails the test that exercised it rather

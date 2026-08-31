@@ -4,7 +4,7 @@
  * callers that need `output_update`/terminal-result addressing to agree with
  * their declared interface names set `requireTerminalResult`.
  *
- * Ported from `unified-websocket-runner.ts`'s `startJobInner`
+ * Ported from `websocket-client-session.ts`'s `startJobInner`
  * (`req.require_terminal_result` branch) — the only site that did this
  * before this package existed.
  */

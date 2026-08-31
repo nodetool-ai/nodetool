@@ -3,7 +3,7 @@
  * admission gates, the concurrency queue, run start-up, the message stream,
  * reconnect, cancel, and terminal-status persistence.
  *
- * Extracted from `UnifiedWebSocketRunner` (T3 of
+ * Extracted from `WebSocketClientSession` (T3 of
  * docs/websocket-runner-refactor-plan.md). It knows the connection only
  * through {@link ClientSession}; what the seam does not carry arrives as
  * {@link JobExecutionDeps}.

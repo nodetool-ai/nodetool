@@ -241,7 +241,7 @@ export class PackagedDriver implements RunDriver {
       ) as Record<string, unknown>;
       // The packaged server is a relay, exactly like `ws-server.ts`'s surface:
       // it boots the real `server.mjs`, whose Fastify plugin announces the
-      // connection and whose `UnifiedWebSocketRunner` backfills run identity
+      // connection and whose `WebSocketClientSession` backfills run identity
       // onto frames the kernel oracle emits bare. Both are cancelled here so
       // the packaged stream is comparable to the oracle frame-for-frame.
       if (isConnectionControlMessage(raw)) return;

@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { pack, unpack } from "msgpackr";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 import { resetEnvironment } from "@nodetool-ai/config";
 import { initTestDb, Job } from "@nodetool-ai/models";
 
@@ -47,13 +47,13 @@ const resolveExecutor = () => ({
   }
 });
 
-describe("UnifiedWebSocketRunner", () => {
+describe("WebSocketClientSession", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(() => {
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
   });
 
   it("connects and defaults user id", async () => {
@@ -242,7 +242,7 @@ describe("UnifiedWebSocketRunner", () => {
   });
 
   it("emits output_update for constant -> output graph", async () => {
-    const outputRunner = new UnifiedWebSocketRunner({
+    const outputRunner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "nodetool.constant.String") {
           return {
@@ -309,7 +309,7 @@ describe("UnifiedWebSocketRunner", () => {
   });
 
   it("streams node_update events for executed nodes", async () => {
-    const outputRunner = new UnifiedWebSocketRunner({
+    const outputRunner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "nodetool.text.Template") {
           return {
@@ -387,7 +387,7 @@ describe("UnifiedWebSocketRunner", () => {
   });
 
   it("emits one authoritative terminal job_update when requested", async () => {
-    const outputRunner = new UnifiedWebSocketRunner({
+    const outputRunner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "nodetool.constant.String") {
           return {
@@ -464,7 +464,7 @@ describe("UnifiedWebSocketRunner", () => {
   });
 
   it("emits output_update in text mode", async () => {
-    const outputRunner = new UnifiedWebSocketRunner({
+    const outputRunner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "nodetool.constant.String") {
           return {
@@ -541,7 +541,7 @@ describe("UnifiedWebSocketRunner", () => {
     const sinkValues: unknown[] = [];
     let processCalls = 0;
     let genProcessCalls = 0;
-    const outputRunner = new UnifiedWebSocketRunner({
+    const outputRunner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "test.Streamer") {
           return {
@@ -647,7 +647,7 @@ describe("UnifiedWebSocketRunner", () => {
     await initTestDb();
     let release!: () => void;
     const gate = new Promise<void>((r) => { release = r; });
-    const r = new UnifiedWebSocketRunner({
+    const r = new WebSocketClientSession({
       resolveExecutor: () => ({ async process() { await gate; return {}; } })
     });
     await r.connect(ws);
@@ -669,7 +669,7 @@ describe("UnifiedWebSocketRunner", () => {
     await initTestDb();
     let release!: () => void;
     const gate = new Promise<void>((r2) => { release = r2; });
-    const r = new UnifiedWebSocketRunner({
+    const r = new WebSocketClientSession({
       resolveExecutor: () => ({ async process() { await gate; return {}; } })
     });
     await r.connect(ws);
@@ -694,7 +694,7 @@ describe("UnifiedWebSocketRunner", () => {
     try {
       let release!: () => void;
       const gate = new Promise<void>((r2) => { release = r2; });
-      const r = new UnifiedWebSocketRunner({
+      const r = new WebSocketClientSession({
         resolveExecutor: () => ({ async process() { await gate; return {}; } })
       });
       await r.connect(ws);
@@ -743,7 +743,7 @@ describe("UnifiedWebSocketRunner", () => {
     });
 
     let executed = 0;
-    runner = new UnifiedWebSocketRunner({
+    runner = new WebSocketClientSession({
       resolveExecutor: () => ({
         async process() {
           executed++;
@@ -804,7 +804,7 @@ describe("UnifiedWebSocketRunner", () => {
       const gate = new Promise<void>((r2) => {
         release = r2;
       });
-      const r = new UnifiedWebSocketRunner({
+      const r = new WebSocketClientSession({
         resolveExecutor: () => ({
           async process() {
             await gate;
@@ -857,7 +857,7 @@ describe("UnifiedWebSocketRunner", () => {
     const gate = new Promise<void>((r2) => {
       release = r2;
     });
-    const r = new UnifiedWebSocketRunner({
+    const r = new WebSocketClientSession({
       resolveExecutor: () => ({
         async process() {
           await gate;
@@ -925,16 +925,16 @@ describe("UnifiedWebSocketRunner", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner binary frame size guard", () => {
+describe("WebSocketClientSession binary frame size guard", () => {
   const KEY = "NODETOOL_WS_MAX_MESSAGE_BYTES";
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     resetEnvironment();
     delete process.env[KEY];
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -990,8 +990,8 @@ describe("UnifiedWebSocketRunner binary frame size guard", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner image tool results", () => {
-  const runner = new UnifiedWebSocketRunner({ resolveExecutor });
+describe("WebSocketClientSession image tool results", () => {
+  const runner = new WebSocketClientSession({ resolveExecutor });
 
   function makeCtx() {
     const stored: Array<{ key: string; bytes: Uint8Array; mimeType: string }> =

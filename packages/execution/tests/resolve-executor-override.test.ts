@@ -1,7 +1,7 @@
 /**
  * A5: `resolveExecutor`/optional `registry` — the escape hatch that lets a
  * host with its own executor-resolution closure (no `NodeRegistry` instance
- * of its own, e.g. `unified-websocket-runner.ts`) migrate onto
+ * of its own, e.g. `websocket-client-session.ts`) migrate onto
  * `ExecutionSession` without the facade rebuilding a second, possibly
  * divergent resolver from a `bridgeFactory`.
  */

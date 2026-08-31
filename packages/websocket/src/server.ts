@@ -51,7 +51,7 @@ import {
 } from "@nodetool-ai/runtime";
 import { deriveKey, getMasterKey, initMasterKey } from "@nodetool-ai/security";
 import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
-import { serverModelInterfaces } from "./unified-websocket-runner.js";
+import { serverModelInterfaces } from "./websocket-client-session.js";
 import {
   WorkerManager,
   attachWorkerActivityHeartbeat,

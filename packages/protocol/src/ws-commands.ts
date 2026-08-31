@@ -9,7 +9,7 @@
  * `plan_approval_response`, `secret_request_response`, `renderer_tool_result`).
  *
  * Schemas here are intentionally loose: every field is optional (the
- * per-command handler in `unified-websocket-runner.ts` still decides what's
+ * per-command handler in `websocket-client-session.ts` still decides what's
  * required and returns its own `{ error }` reply for missing fields — that
  * behavior predates this file and must not change), and `.passthrough()` is
  * used everywhere so an extra/forward-compatible field never fails
@@ -460,7 +460,7 @@ export type ControlMessageInType = keyof typeof controlMessageInSchemas;
 // shapes that carry a recognizable `type` but aren't part of that union —
 // `pong`, `rpc_response`, `system_stats`, `resource_change`. Together with
 // `processingMessageSchemas` they back the outbound validation gate in
-// `unified-websocket-runner.ts` (`NODETOOL_VALIDATE_OUTBOUND_WS`). A frame
+// `websocket-client-session.ts` (`NODETOOL_VALIDATE_OUTBOUND_WS`). A frame
 // whose `type` matches neither map is intentionally left unvalidated — the
 // runner also sends ad hoc, type-less reply objects
 // (`{ error: "invalid_command", details }`, `{ message: "Job started" }`,

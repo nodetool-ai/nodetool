@@ -19,10 +19,10 @@ import { initTestDb, Asset } from "@nodetool-ai/models";
 import type { NodeTypeResolver, ResolvedNodeType } from "@nodetool-ai/kernel";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 class MockWS implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -195,7 +195,7 @@ const getNodeMetadata = (nodeType: string): NodeMetadata | undefined => {
 // A ForEach(N) → ImageGen graph: N iterations, each emitting one image
 // generation_complete for node "gen".
 function makeRunner() {
-  return new UnifiedWebSocketRunner({
+  return new WebSocketClientSession({
     resolveExecutor: (node) => {
       if (node.type === "nodetool.control.ForEach") {
         return {
@@ -438,7 +438,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
     // code autosaved on node_update; the cutover moved autosave exclusively to
     // generation_complete. So the asset count must equal the generation_complete
     // count (exactly 1) — never doubled by a surviving node_update branch.
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "test.ImageGen") {
           return {

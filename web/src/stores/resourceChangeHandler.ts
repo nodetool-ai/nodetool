@@ -37,7 +37,7 @@ export function setWorkflowResourceReloader(
  * will be invalidated to trigger refetch.
  *
  * `resource_type` matches the lowercased model class name emitted by the
- * backend ModelObserver (see packages/websocket/src/unified-websocket-runner.ts
+ * backend ModelObserver (see packages/websocket/src/websocket-client-session.ts
  * `onModelChange`).
  *
  * Keys here are matched as prefixes by TanStack Query: `["assets"]` matches

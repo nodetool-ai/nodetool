@@ -61,7 +61,7 @@ export const TRANSPORT_ONLY_FIELDS: readonly string[] = [
 /**
  * Node type prefixes whose `node_update`/`generation_complete` frames are
  * dropped from comparison (added by C2). This mirrors a real, documented,
- * intentional ws-server behavior (`unified-websocket-runner.ts`: "Skip
+ * intentional ws-server behavior (`websocket-client-session.ts`: "Skip
  * messages for constant/input nodes — they produce trivial outputs that
  * don't need to be relayed to the frontend") that the raw kernel stream has
  * no equivalent for — the kernel emits every node's lifecycle unconditionally.
@@ -151,7 +151,7 @@ function normalizeValue(value: unknown, key: string | null, mapper: IdMapper): u
  * `job_update`'s optional `result` field (added by C2): the ws-server relay
  * appends an "authoritative terminal snapshot" `job_update` carrying the
  * full `result.outputs` whenever the relayed kernel terminal frame lacked
- * one (`unified-websocket-runner.ts`'s `terminalWithResultSeen` check) — the
+ * one (`websocket-client-session.ts`'s `terminalWithResultSeen` check) — the
  * kernel's own `job_update` emissions (`runner.ts`) never set `result` at
  * all. Dropped only on `job_update` (not `node_update`, whose own `result`
  * is real per-node data the outputs assertion depends on).

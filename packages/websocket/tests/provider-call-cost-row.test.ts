@@ -10,12 +10,12 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { initTestDb, Prediction } from "@nodetool-ai/models";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 
-import { UnifiedWebSocketRunner } from "../src/unified-websocket-runner.js";
+import { WebSocketClientSession } from "../src/websocket-client-session.js";
 
 const provider = (cost: number, unpricedReason: string | null): BaseProvider =>
   ({ cost, unpricedReason }) as unknown as BaseProvider;
 
-const logCall = (runner: UnifiedWebSocketRunner, p: BaseProvider) =>
+const logCall = (runner: WebSocketClientSession, p: BaseProvider) =>
   (
     runner as unknown as {
       _logProviderCall(
@@ -29,11 +29,11 @@ const logCall = (runner: UnifiedWebSocketRunner, p: BaseProvider) =>
   )._logProviderCall("1", p, "openai", "gpt-4o", null);
 
 describe("provider call cost row", () => {
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(() => {
     initTestDb();
-    runner = new UnifiedWebSocketRunner({
+    runner = new WebSocketClientSession({
       resolveExecutor: () => undefined as never
     });
   });

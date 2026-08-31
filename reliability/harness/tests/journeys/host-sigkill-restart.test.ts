@@ -22,7 +22,7 @@
  *   - Nothing silently "fixes" the killed run's Job row on the new process's
  *     startup: its status right after the kill and its status once the new
  *     process is healthy are identical — because no reconciliation code
- *     exists (confirmed by reading `unified-websocket-runner.ts`/
+ *     exists (confirmed by reading `websocket-client-session.ts`/
  *     `server.ts` — there is no startup pass that revisits `running` Job
  *     rows). This is the "document what isn't assertable hermetically" half
  *     of the task: if the row was "running" the instant the process died, it

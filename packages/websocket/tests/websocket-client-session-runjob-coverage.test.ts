@@ -24,12 +24,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { unpack } from "msgpackr";
 import {
   DEFAULT_RUN_JOB_EXECUTION_OPTIONS,
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   resolveRunJobExecutionOptions,
   resolveRunJobUserId,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 import { initTestDb, Job } from "@nodetool-ai/models";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
@@ -73,7 +73,7 @@ const resolveExecutor = () => ({
   }
 });
 
-const asAny = (r: UnifiedWebSocketRunner) =>
+const asAny = (r: WebSocketClientSession) =>
   r as unknown as Record<string, any>;
 
 /** Decode every frame sent over the wire (binary first, then text). */
@@ -234,22 +234,22 @@ describe("run_job execution option defaults", () => {
 
 /** Run streamJobMessages to completion for a resolved/rejected executePromise. */
 async function streamTo(
-  runner: UnifiedWebSocketRunner,
+  runner: WebSocketClientSession,
   active: unknown,
   executePromise: Promise<unknown>
 ): Promise<void> {
   await asAny(runner).streamJobMessages(active, executePromise);
 }
 
-describe("UnifiedWebSocketRunner run_job — streamJobMessages relay", () => {
+describe("WebSocketClientSession run_job — streamJobMessages relay", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     await initTestDb();
     vi.clearAllMocks();
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -611,15 +611,15 @@ describe("UnifiedWebSocketRunner run_job — streamJobMessages relay", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner run_job — terminal persistence", () => {
+describe("WebSocketClientSession run_job — terminal persistence", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     await initTestDb();
     vi.clearAllMocks();
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -688,15 +688,15 @@ describe("UnifiedWebSocketRunner run_job — terminal persistence", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner run_job — provider cost", () => {
+describe("WebSocketClientSession run_job — provider cost", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     await initTestDb();
     vi.clearAllMocks();
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -757,7 +757,7 @@ describe("UnifiedWebSocketRunner run_job — provider cost", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner run_job — generation autosave", () => {
+describe("WebSocketClientSession run_job — generation autosave", () => {
   let ws: MockWebSocket;
 
   beforeEach(async () => {
@@ -773,7 +773,7 @@ describe("UnifiedWebSocketRunner run_job — generation autosave", () => {
       outputs: [{ name: "image", type: { type: "image" } }],
       primary_output: "image"
     };
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor,
       getNodeMetadata: () => meta as never
     });
@@ -806,7 +806,7 @@ describe("UnifiedWebSocketRunner run_job — generation autosave", () => {
   });
 
   it("temporary asset mode relays generation output without autosaving it", async () => {
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor,
       getNodeMetadata: () =>
         ({
@@ -844,9 +844,9 @@ describe("UnifiedWebSocketRunner run_job — generation autosave", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner run_job — queue path", () => {
+describe("WebSocketClientSession run_job — queue path", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   const graph = {
     nodes: [
@@ -877,7 +877,7 @@ describe("UnifiedWebSocketRunner run_job — queue path", () => {
     await initTestDb();
     vi.clearAllMocks();
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -940,7 +940,7 @@ describe("UnifiedWebSocketRunner run_job — queue path", () => {
   it("drainQueue starts a queued run once a slot frees up", async () => {
     fillSlots(4);
     const runProcess = vi.fn(async () => ({ output: "done" }));
-    const drainRunner = new UnifiedWebSocketRunner({
+    const drainRunner = new WebSocketClientSession({
       resolveExecutor: () => ({ process: runProcess })
     });
     await drainRunner.connect(ws);
@@ -970,7 +970,7 @@ describe("UnifiedWebSocketRunner run_job — queue path", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner run_job — startJobInner branches", () => {
+describe("WebSocketClientSession run_job — startJobInner branches", () => {
   let ws: MockWebSocket;
 
   const graph = {
@@ -993,7 +993,7 @@ describe("UnifiedWebSocketRunner run_job — startJobInner branches", () => {
 
   it("uses the connection user and temporary media policy for an SDK session run", async () => {
     let outputContext: ProcessingContext | undefined;
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "nodetool.constant.String") {
           return {
@@ -1078,7 +1078,7 @@ describe("UnifiedWebSocketRunner run_job — startJobInner branches", () => {
       params: {},
       graph
     });
-    const runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    const runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
     await asAny(runner).startJob({
       job_id: "CANCELLED_START",
@@ -1107,7 +1107,7 @@ describe("UnifiedWebSocketRunner run_job — startJobInner branches", () => {
       params: {},
       graph
     });
-    const runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    const runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
     await asAny(runner).startJob({
       job_id: "QUEUED_START",
@@ -1133,7 +1133,7 @@ describe("UnifiedWebSocketRunner run_job — startJobInner branches", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner run_job — emitBeforeRunFailure persistence", () => {
+describe("WebSocketClientSession run_job — emitBeforeRunFailure persistence", () => {
   it("persists a failed job row and emits a failed job_update", async () => {
     await initTestDb();
     const ws = new MockWebSocket();
@@ -1146,7 +1146,7 @@ describe("UnifiedWebSocketRunner run_job — emitBeforeRunFailure persistence", 
       params: {},
       graph: { nodes: [], edges: [] }
     });
-    const runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    const runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
     await asAny(runner).emitBeforeRunFailure(
       "BRF",

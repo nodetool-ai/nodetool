@@ -9,7 +9,7 @@
  * They are the odd namespace: a `ui_*` tool is a schema, not a host function.
  * A renderer holds the live, possibly unsaved graph, so a host that has one
  * routes the call there — the chat runner prefers the client whose manifest
- * declares the tool (`unified-websocket-runner.ts`), and the MCP mount asks its
+ * declares the tool (`websocket-client-session.ts`), and the MCP mount asks its
  * frontend bridge first (`mcp-agent-tools.ts`). What lives here is the
  * *headless fallback* those two fall back to: read the stored workflow, apply
  * the document op, and write the graph back under the same optimistic-

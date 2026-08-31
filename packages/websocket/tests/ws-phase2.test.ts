@@ -205,16 +205,16 @@ describe("T-WS-11: Storage KV API", () => {
 
 // ── T-WS-18 — Job persistence in WebSocket runner ───────────────────
 
-describe("T-WS-18: Job persistence in unified-websocket-runner", () => {
+describe("T-WS-18: Job persistence in websocket-client-session", () => {
   beforeEach(() => {
     initTestDb();
   });
 
   it("Job record exists with status completed after successful run_job", async () => {
-    const { UnifiedWebSocketRunner } =
-      await import("../src/unified-websocket-runner.js");
+    const { WebSocketClientSession } =
+      await import("../src/websocket-client-session.js");
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: () => ({
         process: async () => ({ output: "done" })
       })
@@ -252,10 +252,10 @@ describe("T-WS-18: Job persistence in unified-websocket-runner", () => {
   });
 
   it("Job record exists with status failed after failed run_job", async () => {
-    const { UnifiedWebSocketRunner } =
-      await import("../src/unified-websocket-runner.js");
+    const { WebSocketClientSession } =
+      await import("../src/websocket-client-session.js");
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: () => ({
         process: async () => ({ output: "ok" }),
         initialize: async () => {

@@ -18,10 +18,10 @@ import {
 } from "@nodetool-ai/models";
 
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 class MockWS implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -88,7 +88,7 @@ const seedPublishedApp = async (): Promise<{
 };
 
 const appRunner = (applicationId: string, version: number) =>
-  new UnifiedWebSocketRunner({
+  new WebSocketClientSession({
     userId: USER,
     appSession: { applicationId, version },
     resolveExecutor: noopExecutor
@@ -125,7 +125,7 @@ describe("a runner connected by a deployed app's visitor", () => {
   it("answers those commands normally on an ordinary session", async () => {
     // The refusal above must come from the app scope, not from the commands
     // being broken.
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       userId: USER,
       resolveExecutor: noopExecutor
     });

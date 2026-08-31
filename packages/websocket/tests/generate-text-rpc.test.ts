@@ -16,10 +16,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { pack, unpack } from "msgpackr";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 class MockWebSocket implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -47,14 +47,14 @@ class MockWebSocket implements WebSocketConnection {
 }
 
 type ResolveProvider = ConstructorParameters<
-  typeof UnifiedWebSocketRunner
+  typeof WebSocketClientSession
 >[0]["resolveProvider"];
 
 async function makeRunner(
   ws: MockWebSocket,
   resolveProvider: ResolveProvider
-): Promise<UnifiedWebSocketRunner> {
-  const runner = new UnifiedWebSocketRunner({
+): Promise<WebSocketClientSession> {
+  const runner = new WebSocketClientSession({
     resolveExecutor: () => ({
       async process() {
         return {};
@@ -94,7 +94,7 @@ function decodeFrame(ws: MockWebSocket, idx: number): Record<string, unknown> {
  */
 async function runOne(
   ws: MockWebSocket,
-  runner: UnifiedWebSocketRunner,
+  runner: WebSocketClientSession,
   frame: Record<string, unknown>,
   transport: "bytes" | "text" = "bytes"
 ): Promise<Record<string, unknown>> {

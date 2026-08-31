@@ -5,7 +5,7 @@ import {
   RESIDENT_TOOL_NAMES,
   CHAT_AGENT_SYSTEM_PROMPT,
   focusedUiToolNames
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 describe("resident toolbelt", () => {
   it("keeps the tools with no `nodetool.*` form resident", () => {
