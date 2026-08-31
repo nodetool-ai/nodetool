@@ -20,6 +20,7 @@ import { useResolvedMedia } from "../../../hooks/useResolvedMediaUri";
 import ResourceChip from "./ResourceChip";
 import { EntityMentionChip } from "../../node_types/editing/promptComposer/EntityMentionChip";
 import { remarkEntityMentions } from "./remarkEntityMentions";
+import { remarkResourceMentions } from "./remarkResourceMentions";
 import { isNumber, isString } from "../../../utils/typePredicates";
 import "../../../styles/markdown/github-markdown.css";
 
@@ -90,7 +91,8 @@ const markdownStyles = css({
 
 const REMARK_PLUGINS: Options["remarkPlugins"] = [
   remarkGfm,
-  remarkEntityMentions
+  remarkEntityMentions,
+  remarkResourceMentions
 ];
 const REHYPE_PLUGINS: Options["rehypePlugins"] = [rehypeRaw];
 
