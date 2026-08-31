@@ -207,6 +207,10 @@ type RowItemProps = {
   onToggle: (key: string) => void;
 };
 
+/** Derived per call: only the visible window and the expanded set need a key. */
+const rowKeyAt = (row: LogRow, index: number) =>
+  `${row.timestamp}:${row.severity}:${row.content}:${index}`;
+
 const RowItem = memo(({
   row,
   rowKey,
@@ -368,7 +372,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
   showTimestampColumn = true
 }) => {
   const theme = useTheme();
-  const styles = tableStyles(theme);
+  const styles = useMemo(() => tableStyles(theme), [theme]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -382,17 +386,12 @@ export const LogsTable: React.FC<LogsTableProps> = ({
       : rows;
   }, [rows, severities]);
 
-  const rowKeys = useMemo(
-    () =>
-      filteredRows.map((r, index) =>
-        `${r.timestamp}:${r.severity}:${r.content}:${index}`
-      ),
-    [filteredRows]
-  );
-
+  // A key carries its index, so any change to the row set invalidates every
+  // expanded key. Returning `prev` when the set is empty keeps a live log
+  // stream from forcing a second render pass per appended line.
   useEffect(() => {
-    setExpandedKeys(new Set());
-  }, [rowKeys]);
+    setExpandedKeys((prev) => (prev.size === 0 ? prev : new Set()));
+  }, [filteredRows]);
 
   const toggleExpand = useCallback((key: string) => {
     setExpandedKeys((prev) => {
@@ -438,21 +437,24 @@ export const LogsTable: React.FC<LogsTableProps> = ({
   const virtualizer = useVirtualizer({
     count: filteredRows.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: (index) =>
-      estimateRowHeight(
-        filteredRows[index],
-        listWidth,
-        expandedKeys.has(rowKeys[index])
-      ),
+    estimateSize: (index) => {
+      const row = filteredRows[index];
+      return row
+        ? estimateRowHeight(row, listWidth, expandedKeys.has(rowKeyAt(row, index)))
+        : rowHeight;
+    },
     overscan: theme.virtualScroll.overscan.small,
-    getItemKey: (index) => rowKeys[index] ?? index,
+    getItemKey: (index) => {
+      const row = filteredRows[index];
+      return row ? rowKeyAt(row, index) : index;
+    },
   });
 
   // estimateSize closes over expandedKeys/listWidth, but the virtualizer
   // caches per-index sizes. Force re-measurement when those inputs change.
   useEffect(() => {
     virtualizer.measure();
-  }, [expandedKeys, listWidth, rowKeys, virtualizer]);
+  }, [expandedKeys, listWidth, filteredRows, virtualizer]);
 
   // Auto-scroll to bottom when new logs arrive (if at bottom)
   useEffect(() => {
@@ -514,7 +516,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
                 >
                   {virtualizer.getVirtualItems().map((vi) => {
                     const row = filteredRows[vi.index];
-                    const rowKey = rowKeys[vi.index];
+                    const rowKey = rowKeyAt(row, vi.index);
                     return (
                       <RowItem
                         key={vi.key}

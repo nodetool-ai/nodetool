@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import ReactDOM from "react-dom";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { css } from "@emotion/react";
 import CloseIcon from "@mui/icons-material/Close";
@@ -433,6 +433,7 @@ const DataframeEditorModal = ({
   readOnly = false
 }: DataframeEditorModalProps) => {
   const theme = useTheme();
+  const modalStyles = useMemo(() => styles(theme), [theme]);
   const modalOverlayRef = useRef<HTMLDivElement>(null);
 
   const { isFullscreen, toggleFullscreen } = useFullscreenMode({
@@ -523,7 +524,7 @@ const DataframeEditorModal = ({
   }, []);
 
   const content = (
-    <div className="dataframe-editor-modal" css={styles(theme)}>
+    <div className="dataframe-editor-modal" css={modalStyles}>
       <div
         className={`modal-overlay ${isFullscreen ? "fullscreen" : ""}`}
         role="presentation"

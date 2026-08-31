@@ -235,6 +235,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
     setSelectedOutputType
   }) => {
     const theme = useTheme();
+    const chipsStyles = useMemo(() => typeFilterChipsStyles(theme), [theme]);
     const { selectedProviderType, setSelectedProviderType } = useNodeMenuStore(
       useShallow((state) => ({
         selectedProviderType: state.selectedProviderType,
@@ -356,7 +357,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
     const menuOpen = Boolean(menuAnchor);
 
     return (
-      <Box className="type-filter-chips" css={typeFilterChipsStyles(theme)}>
+      <Box className="type-filter-chips" css={chipsStyles}>
         <Box className="quick-filters">
           <Box className="provider-quick">
             <Chip

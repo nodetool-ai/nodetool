@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useCallback, useEffect, useRef, useState, memo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import Public from "@mui/icons-material/Public";
 import Folder from "@mui/icons-material/Folder";
@@ -162,6 +162,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   width
 }) => {
   const theme = useTheme();
+  const rootStyles = useMemo(() => styles(theme), [theme]);
   const inputRef = useRef<HTMLInputElement>(null);
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   // Global search state and hooks
@@ -379,7 +380,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
       className={`asset-search-input-container with-global-search ${
         isGlobalSearchMode ? "global-mode" : "local-mode"
       }`}
-      css={styles(theme)}
+      css={rootStyles}
       style={{
         width: "100%",
         maxWidth:

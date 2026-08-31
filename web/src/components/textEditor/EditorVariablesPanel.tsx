@@ -176,6 +176,7 @@ const EditorVariablesPanel = ({
   readOnly = false
 }: EditorVariablesPanelProps) => {
   const theme = useTheme();
+  const panelStyles = useMemo(() => styles(theme), [theme]);
   const [editingName, setEditingName] = useState<string | null>(null);
   const [draftValue, setDraftValue] = useState("");
   const [addOpen, setAddOpen] = useState(false);
@@ -238,7 +239,7 @@ const EditorVariablesPanel = ({
   }, [addName, onInsert]);
 
   return (
-    <div className="editor-variables-panel" css={styles(theme)}>
+    <div className="editor-variables-panel" css={panelStyles}>
       <div className="variables-head">
         <div className="variables-title">
           <DataObjectIcon />

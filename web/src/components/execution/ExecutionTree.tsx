@@ -812,6 +812,7 @@ interface ExecutionTreeProps {
 
 const ExecutionTree: React.FC<ExecutionTreeProps> = ({ state, onToggleTask }) => {
   const theme = useTheme();
+  const rootStyles = useMemo(() => treeStyles(theme), [theme]);
 
   const counts = useMemo(() => {
     const c = { completed: 0, running: 0, waiting: 0, failed: 0 };
@@ -826,7 +827,7 @@ const ExecutionTree: React.FC<ExecutionTreeProps> = ({ state, onToggleTask }) =>
   const progressPct = total > 0 ? (counts.completed / total) * 100 : 0;
 
   return (
-    <div css={treeStyles(theme)}>
+    <div css={rootStyles}>
       {/* Planning trace is a live indicator — only keep it on screen while
           planning is still running. Once planning is complete, the plan
           timeline below is the durable representation. */}
