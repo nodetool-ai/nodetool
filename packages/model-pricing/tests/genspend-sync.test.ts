@@ -379,6 +379,92 @@ describe("resolveOfferingPrices", () => {
     ]);
   });
 
+  it("prices each pinned id at the published rung the alias names", () => {
+    // AtlasCloud sells Ideogram 4.0 at two rungs and GenSpend records both,
+    // but as prose the automatic `variant` route cannot verify as a model id.
+    // Each endpoint must take its own rung, not the headline.
+    const result = resolve(
+      model({ slug: "ideogram-4", modality: "image" }),
+      offering({
+        priceUsd: 0.008,
+        unitClass: "per-image",
+        variants: [
+          { spec: "Turbo rendering tier", priceUsd: 0.008, unitClass: "per-image", tier: "turbo", isBase: true },
+          { spec: "Quality rendering tier", priceUsd: 0.025, unitClass: "per-image", tier: "quality" }
+        ]
+      }),
+      {
+        atlascloud: {
+          "ideogram-4": {
+            "ideogram/v4/turbo/text-to-image": "Turbo rendering tier",
+            "ideogram/v4/quality/text-to-image": "Quality rendering tier"
+          }
+        }
+      }
+    );
+    expect(result.entries).toEqual([
+      expect.objectContaining({
+        modelId: "ideogram/v4/turbo/text-to-image",
+        unitPrice: 0.008,
+        unitClass: "per-image",
+        match: "alias"
+      }),
+      expect.objectContaining({
+        modelId: "ideogram/v4/quality/text-to-image",
+        unitPrice: 0.025,
+        unitClass: "per-image",
+        match: "alias"
+      })
+    ]);
+  });
+
+  it("refuses a pin whose variant the offering no longer publishes", () => {
+    // Falling back to the headline here would quote the Quality endpoint at
+    // Turbo's rate — a number the provider does not publish for it. The sync
+    // must stop so the pin gets re-read against what GenSpend now ships.
+    expect(() =>
+      resolve(
+        model({ slug: "ideogram-4", modality: "image" }),
+        offering({
+          priceUsd: 0.008,
+          variants: [{ spec: "Turbo rendering tier", priceUsd: 0.008 }]
+        }),
+        {
+          atlascloud: {
+            "ideogram-4": {
+              "ideogram/v4/quality/text-to-image": "Quality rendering tier"
+            }
+          }
+        }
+      )
+    ).toThrow(/does not publish/);
+  });
+
+  it("falls back to the headline for a pin whose variant carries no price", () => {
+    const result = resolve(
+      model({ slug: "ideogram-4", modality: "image" }),
+      offering({
+        priceUsd: 0.008,
+        unitClass: "per-image",
+        variants: [{ spec: "Quality rendering tier", tier: "quality" }]
+      }),
+      {
+        atlascloud: {
+          "ideogram-4": {
+            "ideogram/v4/quality/text-to-image": "Quality rendering tier"
+          }
+        }
+      }
+    );
+    expect(result.entries).toEqual([
+      expect.objectContaining({
+        modelId: "ideogram/v4/quality/text-to-image",
+        unitPrice: 0.008,
+        match: "alias"
+      })
+    ]);
+  });
+
   it("blocks a model an alias pins to null", () => {
     const result = resolve(model(), offering(), { atlascloud: { "seedance-2": null } });
     expect(result).toMatchObject({ entries: [], reason: "blocked" });

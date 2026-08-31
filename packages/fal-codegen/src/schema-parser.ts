@@ -285,17 +285,28 @@ export class SchemaParser {
       // Check for enum — either top-level or inside anyOf/oneOf variants
       let enumRef: string | undefined;
       let enumValues: string[] | undefined;
-      if ("enum" in (prop as AnyRecord)) {
-        enumValues = (prop as AnyRecord)["enum"] as string[];
-      } else {
+      const declaredOptions = (schema: AnyRecord): string[] | undefined => {
+        if ("enum" in schema) return schema["enum"] as string[];
+        // JSON Schema `const` is an enum of one, and FAL uses it where an
+        // endpoint accepts a single value: `fal-ai/veo3.1/reference-to-video`
+        // declares `duration: {const: "8s"}` where its image-to-video sibling
+        // declares `enum: ["4s", "6s", "8s"]`. Read as no options at all, the
+        // endpoint looked unconstrained and the app offered clip lengths FAL
+        // does not sell there.
+        if ("const" in schema) return [schema["const"] as string];
+        return undefined;
+      };
+      enumValues = declaredOptions(prop as AnyRecord);
+      if (!enumValues) {
         // Look for enum inside anyOf/oneOf (common FAL pattern:
         // anyOf: [{$ref: "#/.../ImageSize"}, {type: "string", enum: [...]}])
         const variants = ((prop as AnyRecord)["anyOf"] ??
           (prop as AnyRecord)["oneOf"]) as AnyRecord[] | undefined;
         if (variants) {
           for (const variant of variants) {
-            if ("enum" in variant) {
-              enumValues = variant["enum"] as string[];
+            const options = declaredOptions(variant);
+            if (options) {
+              enumValues = options;
               break;
             }
           }

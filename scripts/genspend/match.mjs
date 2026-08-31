@@ -122,17 +122,67 @@ function verifyId(index, providerId, claimedId) {
 }
 
 /**
- * Alias overrides, keyed `<provider_id>` → `<genspend slug>` → array of model
- * ids, or `null` to block the model for that provider. Hand-maintained: it is
- * how a maintainer pins a match the name comparison cannot see, and how a bad
- * match gets killed without weakening the rules for everything else.
+ * Alias overrides, keyed `<provider_id>` → `<genspend slug>` → one of:
+ *
+ *   - `null` — block the model for that provider.
+ *   - `string[]` — pin these model ids at the offering's headline price.
+ *   - `{ [modelId]: variantSpec }` — pin each model id to the published
+ *     `variants[]` row whose `spec` matches, and price it at *that* row.
+ *
+ * The object form exists because a tier is sometimes a rung the provider
+ * publishes and sometimes prose. AtlasCloud sells Ideogram 4.0 at $0.008
+ * (Turbo) and $0.025 (Quality), and GenSpend records both — but as
+ * `"Quality rendering tier"`, not as a model id the automatic `variant` route
+ * can verify. Pinning the id to the headline price would have quoted the
+ * Quality endpoint at Turbo's rate: a number the provider does not publish
+ * for it. Naming the row keeps the figure the provider's own.
+ *
+ * Hand-maintained: it is how a maintainer pins a match the name comparison
+ * cannot see, and how a bad match gets killed without weakening the rules for
+ * everything else.
  */
 function aliasIdsFor(aliases, providerId, slug) {
   const provider = aliases?.[providerId];
   if (!provider || !(slug in provider)) return undefined;
   const value = provider[slug];
   if (value === null) return null;
-  return Array.isArray(value) ? value.filter((id) => typeof id === "string") : undefined;
+  if (Array.isArray(value)) {
+    return {
+      pins: value
+        .filter((id) => typeof id === "string")
+        .map((id) => ({ id, spec: null }))
+    };
+  }
+  if (value && typeof value === "object") {
+    return {
+      pins: Object.entries(value)
+        .filter(([, spec]) => typeof spec === "string")
+        .map(([id, spec]) => ({ id, spec }))
+    };
+  }
+  return undefined;
+}
+
+/**
+ * The published `variants[]` row an alias pin names, by exact `spec`.
+ *
+ * A pin that names no row throws rather than falling back to the headline
+ * price: the whole point of the object form is that the headline is the wrong
+ * number for that endpoint, so a spec GenSpend has renamed or dropped must
+ * stop the sync and be re-pinned, not silently become a figure nobody
+ * published.
+ */
+function pinnedVariant(offering, slug, providerId, pin) {
+  const variants = Array.isArray(offering.variants) ? offering.variants : [];
+  const found = variants.find((v) => v?.spec === pin.spec);
+  if (!found) {
+    const available = variants.map((v) => JSON.stringify(v?.spec)).join(", ");
+    throw new Error(
+      `aliases.json pins ${providerId}/${slug} → ${pin.id} to variant ${JSON.stringify(pin.spec)}, ` +
+        `which this offering does not publish. Available specs: ${available || "(none)"}`
+    );
+  }
+  return found;
 }
 
 /**
@@ -197,12 +247,23 @@ export function resolveOfferingPrices({
   if (alias === null) {
     return { providerId, entries: [], reason: "blocked" };
   }
-  if (alias && alias.length > 0) {
+  if (alias && alias.pins.length > 0) {
     return {
       providerId,
-      entries: alias.map((id) =>
-        priceEntry(id, headlinePrice, headlineClass, "alias")
-      ),
+      entries: alias.pins.map((pin) => {
+        if (pin.spec === null) {
+          return priceEntry(pin.id, headlinePrice, headlineClass, "alias");
+        }
+        const variant = pinnedVariant(offering, model.slug, providerId, pin);
+        const price = isFiniteNumber(variant.priceUsd)
+          ? variant.priceUsd
+          : headlinePrice;
+        const unitClass =
+          typeof variant.unitClass === "string" && variant.unitClass
+            ? variant.unitClass
+            : headlineClass;
+        return priceEntry(pin.id, price, unitClass, "alias", variant);
+      }),
       reason: null
     };
   }

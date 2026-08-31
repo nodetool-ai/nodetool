@@ -93,6 +93,31 @@ describe("videoConstraints", () => {
     };
     expect(videoConstraints(n).durations).toBeUndefined();
   });
+  it("reads FAL's unit-suffixed duration spellings", () => {
+    // The Veo 3.1 image-to-video and first-last-frame families, and Marey,
+    // declare `["4s", "6s", "8s"]`. `Number("4s")` is NaN, so the whole enum
+    // used to drop and the endpoint looked unconstrained.
+    const n = {
+      inputFields: [
+        { name: "duration", propType: "x", enumValues: ["4s", "6s", "8s"] }
+      ]
+    };
+    expect(videoConstraints(n).durations).toEqual([4, 6, 8]);
+  });
+
+  it("reads a mixed bag of spellings and drops what names no length", () => {
+    const n = {
+      inputFields: [
+        {
+          name: "duration",
+          propType: "x",
+          enumValues: ["auto", "5", "8s", "2.5s", "10 seconds", "", "s"]
+        }
+      ]
+    };
+    expect(videoConstraints(n).durations).toEqual([5, 8, 2.5, 10]);
+  });
+
   it("passes resolution and aspect_ratio enums through", () => {
     const n = {
       inputFields: [

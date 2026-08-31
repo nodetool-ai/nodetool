@@ -62,7 +62,12 @@ interface AggregatedProviderModels<T> {
   refetch: () => Promise<void>;
 }
 
-const MODEL_STALE_TIME = 5 * 60 * 1000;
+/**
+ * How long a provider's model list stays fresh. Exported so the per-node
+ * constraint hooks (`useMediaModelConstraints`) can register a query that
+ * shares these cache entries exactly rather than fighting them over staleness.
+ */
+export const MODEL_STALE_TIME = 5 * 60 * 1000;
 
 /**
  * Fan one per-provider fetch out across `providers` and flatten the results.

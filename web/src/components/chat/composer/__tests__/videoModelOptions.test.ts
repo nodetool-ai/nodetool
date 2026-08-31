@@ -36,6 +36,22 @@ describe("videoModelConstraints", () => {
     expect(result.durations).toEqual([3, 5, 10]);
   });
 
+  it("drops sentinel durations that name no length", () => {
+    // `-1` on the AtlasCloud Seedance 2.0 family and `0` on
+    // `fal-ai/wan/v2.7/edit-video` mean "let the model choose". The duration
+    // chips render `${d} Sec`, so a sentinel would read as "-1 Sec", and no
+    // catalog can price a clip whose length is unstated.
+    const result = videoModelConstraints(
+      makeVideoModel({ durations: [-1, 4, 5, 6] })
+    );
+    expect(result.durations).toEqual([4, 5, 6]);
+  });
+
+  it("treats an all-sentinel duration enum as no constraint", () => {
+    const result = videoModelConstraints(makeVideoModel({ durations: [-1, 0] }));
+    expect(result.durations).toBeUndefined();
+  });
+
   it("filters non-finite durations", () => {
     const result = videoModelConstraints(
       makeVideoModel({ durations: [3, NaN, Infinity, 5] })

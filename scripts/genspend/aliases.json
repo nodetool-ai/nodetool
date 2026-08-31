@@ -1,12 +1,27 @@
 {
-  "_comment": "Hand-maintained overrides for the GenSpend price sync. Keyed <provider_id> → <genspend model slug> → array of NodeTool model ids to price, or null to block the model for that provider. Use an array to pin a match the name comparison cannot see; use null to kill a match that is wrong. Every unresolved offering is listed by `npm run sync:genspend`.",
+  "_comment": "Hand-maintained overrides for the GenSpend price sync. Keyed <provider_id> → <genspend model slug> → an array of NodeTool model ids to price at the offering's headline rate, an object mapping each NodeTool model id to the exact `variants[]` spec whose published price it takes, or null to block the model for that provider. Use an array to pin a match the name comparison cannot see; use the object form when the provider publishes several rungs and the headline is the wrong one for that endpoint — a pinned spec GenSpend no longer publishes fails the sync rather than quietly falling back to the headline; use null to kill a match that is wrong. Every unresolved offering is listed by `npm run sync:genspend`.",
   "fal_ai": {},
   "replicate": {},
   "kie": {
-    "eleven-multilingual-v2": ["elevenlabs/text-to-speech-multilingual-v2"],
-    "eleven-turbo-v2.5": ["elevenlabs/text-to-speech-turbo-2-5"]
+    "eleven-multilingual-v2": [
+      "elevenlabs/text-to-speech-multilingual-v2"
+    ],
+    "eleven-turbo-v2.5": [
+      "elevenlabs/text-to-speech-turbo-2-5"
+    ]
   },
-  "atlascloud": {},
+  "atlascloud": {
+    "grok-imagine": {
+      "xai/grok-imagine-image/text-to-image": "standard mode (xai/grok-imagine-image, 1k or 2k)",
+      "xai/grok-imagine-image/edit": "standard mode (xai/grok-imagine-image, 1k or 2k)",
+      "xai/grok-imagine-image-quality/text-to-image": "quality mode (xai/grok-imagine-image-quality, 1k or 2k)",
+      "xai/grok-imagine-image-quality/edit": "quality mode (xai/grok-imagine-image-quality, 1k or 2k)"
+    },
+    "ideogram-4": {
+      "ideogram/v4/turbo/text-to-image": "Turbo rendering tier",
+      "ideogram/v4/quality/text-to-image": "Quality rendering tier"
+    }
+  },
   "together": {},
   "gemini": {},
   "openai": {},

@@ -21,6 +21,7 @@
     "@nodetool-ai/protocol": "*"
   },
   "devDependencies": {
+    "@nodetool-ai/atlascloud-nodes": "*",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },

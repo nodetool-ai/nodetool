@@ -2,8 +2,8 @@
   "schemaVersion": 3,
   "source": "https://genspend.io/api/v1/export",
   "attribution": "Prices via genspend.io",
-  "updatedAt": "2026-08-30T15:32:26.276Z",
-  "catalogGeneratedAt": "2026-08-30T15:32:25.319Z",
+  "updatedAt": "2026-08-31T18:03:18.084Z",
+  "catalogGeneratedAt": "2026-08-31T18:02:47.610Z",
   "etag": "\"363cbe11286573b29e5168540f6d2da959d39eab\"",
   "catalogModels": 142,
   "catalogOfferings": 478,
@@ -18,7 +18,7 @@
     "replicate",
     "together"
   ],
-  "pricedModels": 325,
+  "pricedModels": 328,
   "prices": {
     "atlascloud:alibaba/happyhorse-1.1/image-to-video": {
       "unit_price": 0.07,
@@ -1110,14 +1110,39 @@
         "max": 8
       }
     },
+    "atlascloud:ideogram/v4/quality/text-to-image": {
+      "unit_price": 0.025,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "ideogram-4",
+      "match": "alias",
+      "live": true,
+      "source_url": "https://www.atlascloud.ai/models/ideogram/v4/turbo/text-to-image",
+      "tier": "quality",
+      "variants": [
+        {
+          "price_usd": 0.008,
+          "unit_class": "per-image",
+          "tier": "turbo",
+          "is_base": true
+        },
+        {
+          "price_usd": 0.025,
+          "unit_class": "per-image",
+          "tier": "quality",
+          "is_base": false
+        }
+      ]
+    },
     "atlascloud:ideogram/v4/turbo/text-to-image": {
       "unit_price": 0.008,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "ideogram-4",
-      "match": "provider-id",
+      "match": "alias",
       "live": true,
       "source_url": "https://www.atlascloud.ai/models/ideogram/v4/turbo/text-to-image",
+      "tier": "turbo",
       "variants": [
         {
           "price_usd": 0.008,
@@ -1608,14 +1633,70 @@
       "live": true,
       "source_url": "https://www.atlascloud.ai/models/xai/grok-imagine-image-2.0/text-to-image"
     },
+    "atlascloud:xai/grok-imagine-image-quality/edit": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "grok-imagine",
+      "match": "alias",
+      "live": true,
+      "source_url": "https://www.atlascloud.ai/models/xai/grok-imagine-image/edit",
+      "tier": "quality",
+      "resolution": "1K",
+      "variants": [
+        {
+          "price_usd": 0.02,
+          "unit_class": "per-image",
+          "resolution": "1K",
+          "tier": "standard",
+          "is_base": true
+        },
+        {
+          "price_usd": 0.05,
+          "unit_class": "per-image",
+          "resolution": "1K",
+          "tier": "quality",
+          "is_base": false
+        }
+      ]
+    },
+    "atlascloud:xai/grok-imagine-image-quality/text-to-image": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "grok-imagine",
+      "match": "alias",
+      "live": true,
+      "source_url": "https://www.atlascloud.ai/models/xai/grok-imagine-image/edit",
+      "tier": "quality",
+      "resolution": "1K",
+      "variants": [
+        {
+          "price_usd": 0.02,
+          "unit_class": "per-image",
+          "resolution": "1K",
+          "tier": "standard",
+          "is_base": true
+        },
+        {
+          "price_usd": 0.05,
+          "unit_class": "per-image",
+          "resolution": "1K",
+          "tier": "quality",
+          "is_base": false
+        }
+      ]
+    },
     "atlascloud:xai/grok-imagine-image/edit": {
       "unit_price": 0.02,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "grok-imagine",
-      "match": "provider-id",
+      "match": "alias",
       "live": true,
       "source_url": "https://www.atlascloud.ai/models/xai/grok-imagine-image/edit",
+      "tier": "standard",
+      "resolution": "1K",
       "variants": [
         {
           "price_usd": 0.02,
@@ -1638,9 +1719,11 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "grok-imagine",
-      "match": "catalog",
+      "match": "alias",
       "live": true,
       "source_url": "https://www.atlascloud.ai/models/xai/grok-imagine-image/edit",
+      "tier": "standard",
+      "resolution": "1K",
       "variants": [
         {
           "price_usd": 0.02,
