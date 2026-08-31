@@ -365,7 +365,14 @@ const ADD_TASK_INPUT_SCHEMA = {
             type: "array",
             items: { type: "string" }
           },
-          output_schema: { type: "string" },
+          output_schema: {
+            type: "string",
+            description:
+              "Optional. A JSON Schema, serialized as a JSON string — not a " +
+              'prose description. Example: "{\\"type\\":\\"object\\",' +
+              '\\"properties\\":{\\"items\\":{\\"type\\":\\"array\\"}}}". ' +
+              "Omit it when the step produces prose."
+          },
           tools: { type: "array", items: { type: "string" } }
         },
         required: ["id", "instructions", "depends_on"]

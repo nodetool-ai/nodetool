@@ -87,9 +87,8 @@ const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objec
 
 ## Step Instructions
 - Specific and concise. State exactly what to do, not the whole objective.
-- Reference available tools by name.
 - Bad: "Research NLP and write a summary including main ideas and relevance."
-- Good: "Use google_search to find recent NLP advances. Summarize key findings in 2-3 sentences."
+- Good: "Summarize the three most cited NLP advances of the last year in 2-3 sentences."
 
 ## Step Granularity (hard rule)
 - One step = one focused operation that a sub-agent can finish in ~3 LLM turns.
@@ -103,6 +102,18 @@ const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objec
 - Do NOT attach the overall plan output schema to any step — the Compiler
   owns the final schema-conformant result.
 - Use type "object" at the top level.
+`;
+
+
+/**
+ * Appended to the planner contract only when the run actually carries
+ * execution tools. Advertising `find_model` / `generate_image` / `save_asset`
+ * to a planner whose steps have an empty toolbelt made it plan work no step
+ * could do, against the one line that said so.
+ */
+const TOOL_ENABLED_PLANNING_SECTIONS = `
+## Step Instructions (tools)
+- Reference available tools by name, e.g. "Use google_search to find recent NLP advances."
 
 ## Models & Media (use the right tools)
 - Before generating media, call \`find_model\` once for the relevant capability
@@ -117,6 +128,21 @@ const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objec
 - For non-media artifacts the user should keep (reports, JSON, manifests),
   call \`save_asset\` with \`name\` + \`content\` (text) or \`content_base64\`
   (binary). Use \`read_asset\` / \`list_assets\` / \`get_asset\` to retrieve.`;
+
+/**
+ * Appended instead when the toolbelt is empty. Without it the planner writes
+ * "research and enumerate" steps that no step can carry out, and the run
+ * returns the model's own recall formatted as findings.
+ */
+const NO_TOOL_PLANNING_SECTIONS = `
+## No Execution Tools
+- This run has NO execution tools. Steps cannot search the web, read files,
+  call APIs, or generate media.
+- Plan only steps a model can complete from its own knowledge and from the
+  results of earlier steps. Never instruct a step to search, fetch, or download.
+- If the objective genuinely requires tools this run does not have, say so in
+  the first task's instructions instead of planning around it.
+`;
 
 const DEFAULT_SINGLE_TASK_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objectives into executable step plans.
 
@@ -190,6 +216,7 @@ export class TaskPlanner {
   readonly reasoningModel: string;
   private tools: Tool[];
   private systemPrompt: string;
+  private readonly preamble: string | undefined;
   private outputSchema: Record<string, unknown> | undefined;
   private inputs: Record<string, unknown>;
   private maxRetries: number;
@@ -202,6 +229,15 @@ export class TaskPlanner {
     this.model = opts.model;
     this.reasoningModel = opts.reasoningModel ?? opts.model;
     this.tools = opts.tools ?? [];
+    // A caller-supplied prompt is a PREAMBLE, not a replacement — the same rule
+    // the step executors already follow. It used to replace the whole contract,
+    // and every AgentNode supplies one ("You are a friendly assistant"), so a
+    // node-driven run planned with no ID rules, no parallelism rules, no
+    // output-schema rules and no "synthesis is not your job".
+    this.preamble =
+      opts.systemPrompt && opts.systemPrompt !== DEFAULT_PLANNING_SYSTEM_PROMPT
+        ? opts.systemPrompt
+        : undefined;
     this.systemPrompt = opts.systemPrompt ?? DEFAULT_PLANNING_SYSTEM_PROMPT;
     this.outputSchema = opts.outputSchema;
     this.inputs = opts.inputs ?? {};
@@ -219,10 +255,7 @@ export class TaskPlanner {
       model: this.model,
       outputSchema: this.outputSchema ?? null,
       inputKeys: Object.keys(this.inputs),
-      systemPrompt:
-        this.systemPrompt !== DEFAULT_PLANNING_SYSTEM_PROMPT
-          ? this.systemPrompt
-          : null
+      systemPrompt: this.preamble ?? null
     });
   }
 
@@ -265,10 +298,7 @@ export class TaskPlanner {
           : "None specified"
       );
 
-    const systemPrompt =
-      this.systemPrompt !== DEFAULT_PLANNING_SYSTEM_PROMPT
-        ? this.systemPrompt
-        : DEFAULT_SINGLE_TASK_SYSTEM_PROMPT;
+    const systemPrompt = this.buildSystemPrompt(true);
 
     const messages: Message[] = [
       { role: "system", content: systemPrompt },
@@ -413,7 +443,7 @@ export class TaskPlanner {
       );
 
     const messages: Message[] = [
-      { role: "system", content: this.systemPrompt },
+      { role: "system", content: this.buildSystemPrompt(false) },
       { role: "user", content: userPrompt }
     ];
 
@@ -423,6 +453,18 @@ export class TaskPlanner {
       status: "started",
       content: "Starting parallel task planning..."
     } satisfies PlanningUpdate;
+
+    // A plan whose steps have no toolbelt can only produce what the model
+    // already knows. Say it once, where the reader of the run will see it.
+    if (this.tools.length === 0) {
+      yield {
+        type: "planning_update",
+        phase: "initialization",
+        status: "running",
+        content:
+          "No execution tools available — steps cannot search, fetch, read files or generate media."
+      } satisfies PlanningUpdate;
+    }
 
     const builder = new PlanBuilder(this.inputs);
     const addTaskTool = new AddTaskTool(builder);
@@ -468,6 +510,9 @@ export class TaskPlanner {
       const taskId = isString(args["id"]) ? args["id"] : undefined;
       if (status === "task_added") {
         const added = builder.currentTasks[builder.currentTasks.length - 1];
+        // The task landed, so its earlier rejections are spent: the counter
+        // must not carry over and abort a later, unrelated correction.
+        perTaskFailures.delete(taskId ?? "_");
         if (added) uiEvents.push(this.taskPlannedEvent(added));
         uiEvents.push({
           type: "planning_update",
@@ -538,7 +583,16 @@ export class TaskPlanner {
         ).length;
         log.info("Multi-task plan created", {
           title: plan.title,
-          tasks: plan.tasks.length
+          tasks: plan.tasks.length,
+          steps: totalSteps,
+          parallelizable: independent,
+          // The shape is the thing worth reading back: a plan of six tasks in
+          // a chain and one of six in parallel logged identically before this.
+          plan: plan.tasks.map((t) => ({
+            id: t.id,
+            dependsOn: t.dependsOn ?? [],
+            steps: t.steps.map((st) => st.id)
+          }))
         });
         uiEvents.push({
           type: "planning_update",
@@ -586,6 +640,12 @@ export class TaskPlanner {
 
     try {
       for await (const item of stream) {
+        // Planning is over: the plan committed, a task exhausted its retries,
+        // or the user cancelled. The loop is aborting, so anything the provider
+        // still emits describes work it can no longer do — including the model
+        // narrating a retry of the finish_plan call that just succeeded. Drop
+        // it instead of showing the user a contradiction.
+        if (finished || abortedReason !== null || abort.signal.aborted) break;
         // A tool call is announced before it runs — surface it for live display.
         if ("id" in item && "name" in item && "args" in item) {
           const tc = item;
@@ -647,14 +707,36 @@ export class TaskPlanner {
       return null;
     }
 
-    log.error("Multi-task plan exhausted call budget", {
-      tasksSoFar: builder.taskCount
+    // The user pressed Stop. That is not a planning defect, and reporting it as
+    // an exhausted call budget sends the reader looking for a bug.
+    if (this.signal?.aborted) {
+      log.info("Multi-task planning cancelled", {
+        tasksSoFar: builder.taskCount
+      });
+      yield {
+        type: "planning_update",
+        phase: "complete",
+        status: "failed",
+        content: "Planning cancelled."
+      } satisfies PlanningUpdate;
+      return null;
+    }
+
+    // The stream ended without finish_plan. Report what actually happened —
+    // "exhausted N calls" was printed for a model that simply stopped after one
+    // task, which sends the reader after a budget that was never spent.
+    log.error("Multi-task planning ended without finish_plan", {
+      tasksSoFar: builder.taskCount,
+      maxCalls: MAX_CALLS
     });
     yield {
       type: "planning_update",
       phase: "complete",
       status: "failed",
-      content: `Plan generation exhausted ${MAX_CALLS} calls without calling finish_plan`
+      content:
+        builder.taskCount === 0
+          ? "Planning ended without adding any task."
+          : `Planning ended after ${builder.taskCount} task(s) without calling finish_plan (call budget ${MAX_CALLS}).`
     } satisfies PlanningUpdate;
     return null;
   }
@@ -764,8 +846,28 @@ export class TaskPlanner {
     } satisfies TaskUpdate;
   }
 
+  /**
+   * The planner contract, with the caller's prompt in front of it and the
+   * tool-dependent sections included only when this run has tools.
+   */
+  private buildSystemPrompt(singleTask: boolean): string {
+    const contract = singleTask
+      ? DEFAULT_SINGLE_TASK_SYSTEM_PROMPT
+      : DEFAULT_PLANNING_SYSTEM_PROMPT +
+        (this.tools.length > 0
+          ? TOOL_ENABLED_PLANNING_SECTIONS
+          : NO_TOOL_PLANNING_SECTIONS);
+    return this.preamble ? `${this.preamble}\n\n${contract}` : contract;
+  }
+
   private formatToolsInfo(): string {
-    if (this.tools.length === 0) return "No execution tools available.";
+    if (this.tools.length === 0) {
+      return (
+        "No execution tools available. Steps run with no tools at all: they " +
+        "cannot search the web, read or write files, call APIs, or generate " +
+        "media. Plan only steps a model can complete from its own knowledge."
+      );
+    }
 
     const lines: string[] = ["Available execution tools for steps:"];
     for (const tool of this.tools) {

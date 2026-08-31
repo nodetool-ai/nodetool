@@ -246,6 +246,13 @@ export class NodeActor {
    * (single-edge single-input handle).
    */
   private _currentInvocationLineage: CorrelationLineage | undefined;
+  /**
+   * A node fed by a streaming handle is invoked once per chunk, so logging
+   * every invocation at INFO buries the run: one Preview on an agent's chunk
+   * output produced 1112 of 1142 lines in a run whose plan, six tasks and
+   * twelve steps took 30. The first invocation is the informative one.
+   */
+  private _executionsLogged = 0;
 
   /**
    * Most recent envelope consumed per handle during the current gather.
@@ -1412,11 +1419,13 @@ export class NodeActor {
     }
 
     // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
-    log.info("Executing node", {
+    (this._executionsLogged === 0 ? log.info : log.debug)("Executing node", {
       nodeId: this.node.id,
       type: this.node.type,
-      inputHandles: Object.keys(inputs)
+      inputHandles: Object.keys(inputs),
+      invocation: this._executionsLogged + 1
     });
+    this._executionsLogged += 1;
 
     this._currentInvocationLineage = this._computeInvocationLineage();
 

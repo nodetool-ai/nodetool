@@ -188,7 +188,7 @@ export class TaskExecutor {
           signal: this.signal,
           sandboxPackages: this.sandboxPackages
         });
-        return executor.execute();
+        return this.withStepLog(step, executor.execute());
       });
 
       if (this.parallelExecution && stepGenerators.length > 1) {
@@ -211,6 +211,36 @@ export class TaskExecutor {
       yield* this.failBlockedSteps(
         `step budget exhausted after ${stepsTaken} round(s)`
       );
+    }
+  }
+
+  /**
+   * Bracket one step with a start/finish line. The run log recorded task
+   * boundaries and nothing between them, so a plan that spent minutes in a
+   * step left no trace of which step, how long, or how it settled. Bounded by
+   * the plan's step count, so it cannot become the log-volume problem it fixes.
+   */
+  private async *withStepLog(
+    step: Step,
+    gen: AsyncGenerator<ProcessingMessage>
+  ): AsyncGenerator<ProcessingMessage> {
+    const startedAt = Date.now();
+    log.info("Step started", {
+      taskId: this.task.id,
+      stepId: step.id,
+      tools: this.toolsForStep(step).length
+    });
+    try {
+      yield* gen;
+    } finally {
+      log.info("Step finished", {
+        taskId: this.task.id,
+        stepId: step.id,
+        durationMs: Date.now() - startedAt,
+        completed: step.completed === true,
+        failed: step.failed === true,
+        error: step.error
+      });
     }
   }
 
