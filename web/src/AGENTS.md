@@ -49,7 +49,7 @@ web/src/
 ## Specialized Guides
 
 - **[Components](components/AGENTS.md)** — UI component guidelines, MUI styling
-- **[UI Primitives Strategy](components/ui_primitives/STRATEGY.md)** — **MUST READ for all frontend work.** Primitives-first policy, decision tree for which primitive to use, migration rules, and full catalog of 90+ primitives.
+- **[UI Primitives Strategy](components/ui_primitives/STRATEGY.md)** — **MUST READ for all frontend work.** Primitives-first policy, decision tree for which primitive to use, migration rules, and the full primitive catalog.
 - **[Design System](../../docs/DESIGN.md)** — **MUST READ for any UI work.** Token rules for SPACING, TYPOGRAPHY, BORDER_RADIUS, MOTION, Z_INDEX. Includes migration checklist and forbidden-value tables.
 - **[Stores](stores/AGENTS.md)** — Zustand state management, selectors, persist/temporal middleware
 - **[Contexts](contexts/AGENTS.md)** — React context patterns, provider hierarchy
@@ -100,7 +100,7 @@ See **[DEVELOPMENT_STANDARDS.md](../../docs/DEVELOPMENT_STANDARDS.md)** for the 
 
 Key reminders for this package:
 
-- **UI Primitives are mandatory.** Never import raw MUI components (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, etc.) in component files. Use the 90+ primitives from `components/ui_primitives/` instead. See the **[Primitives Strategy](components/ui_primitives/STRATEGY.md)** for the decision tree and [DEVELOPMENT_STANDARDS §5](../../docs/DEVELOPMENT_STANDARDS.md#5-mui-v7--emotion--ui-primitives).
+- **UI Primitives are mandatory.** Never import raw MUI components (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, etc.) in component files. Use the primitives from `components/ui_primitives/` instead. See the **[Primitives Strategy](components/ui_primitives/STRATEGY.md)** for the decision tree and [DEVELOPMENT_STANDARDS §5](../../docs/DEVELOPMENT_STANDARDS.md#5-mui-v7--emotion--ui-primitives).
 - **Opportunistic migration**: When touching any file for any reason, migrate raw MUI usage to primitives and fix design token violations (see checklist below).
 - Use TypeScript with explicit types. No `any` — use `unknown` + narrowing or generics. See [§1](../../docs/DEVELOPMENT_STANDARDS.md#1-typescript).
 - Use functional components with typed props interfaces.

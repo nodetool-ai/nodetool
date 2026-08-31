@@ -238,10 +238,11 @@ prompt, so the guest contract leads the `execute_code` description and is also
 the server `instructions` string. The machine-readable form is
 `nodetool://capabilities` (tools) plus `nodetool://sandbox` (guest surface).
 
-It used to register all ~95 bridged tools flat, which made a scoped MCP session
-NodeTool's largest surface anywhere — 120 tools and ~27k tokens of schema before
-the caller did anything. It is one action tool plus the direct set now, and it
-cannot drift from the chat surface because both call the same session builder.
+Registering every bridged tool flat is what this replaced: it made a scoped MCP
+session NodeTool's largest surface anywhere, tens of thousands of tokens of
+schema before the caller did anything. It is one action tool plus the direct set
+now, and it cannot drift from the chat surface because both call the same
+session builder.
 
 `mcp-server.ts` used to hand-build a second product surface beside that one —
 native `run_workflow` / `get_asset` / `get_node_info` / collection tools, a flat
