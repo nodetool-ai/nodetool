@@ -281,7 +281,7 @@ NodeTool is a monorepo: TypeScript backend, React frontend, Electron desktop she
 
 ```
 nodetool/
-├── packages/          # Backend monorepo (56 packages)
+├── packages/          # Backend monorepo (58 packages)
 │   ├── kernel/        #   Workflow graph & runner
 │   ├── node-sdk/      #   BaseNode class & node registry
 │   ├── base-nodes/    #   100+ built-in node types
