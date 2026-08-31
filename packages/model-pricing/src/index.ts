@@ -1,8 +1,8 @@
 /**
  * Look up a unit price for a model chosen on a generic node's provider-model
  * property (e.g. `model` on `nodetool.image.TextToImage`), given what the node
- * states about the job. The catalogs answer in this order, and every step
- * before the last quotes the selected provider's own published price:
+ * states about the job. The catalogs answer in this order, each of them for
+ * the provider the node selected and no other:
  *
  * - The GenSpend catalog (`genspend-catalog.ts`, refreshed nightly from
  *   genspend.io) whenever it carries a *parameter-priceable* entry for the
@@ -18,11 +18,12 @@
  * - The GenSpend base-spec scalar, for a flat entry with no grid. It also
  *   answers when the provider's own scalar row cannot be converted to a run,
  *   so a model the catalog does price is never reported unpriced.
- * - Last, the same model id on a provider the catalog *does* track, since
- *   resellers reuse the vendor's id. That figure is another vendor's margin,
- *   so it comes back with an assumption naming whose rate it is and the cost
- *   views render it as "~$X" — a named borrowing beats a blank row for a node
- *   that has already stated its model, duration and resolution.
+ *
+ * Every answer is the selected provider's own published price, and there is no
+ * fallback that quotes another's: a reseller's margin is its own, and a figure
+ * that is not the price of the run the node will make is worse than no figure.
+ * A model the catalog carries only for other providers comes back as a decline
+ * naming them, which the cost views show in place of a number.
  *
  * Shared on purpose: the web cost preview and the server-side pre-run budget
  * estimate (`estimateRunCost`) both call this, so a run is gated on the same
@@ -178,88 +179,33 @@ function flatGenspendPrice(entry: GenspendPrice): ModelParamPrice {
 }
 
 /**
- * The price of the same model on a provider the catalog does track, for a
- * provider it does not.
+ * Why a model the catalogs know went unpriced here: the provider the node
+ * selected publishes no price for it.
  *
- * Resellers publish the vendor's own model id (AtlasCloud and fal both sell
- * `google/gemini-omni-flash/image-to-video`), so an untracked offering of a
- * tracked model is the common case, not a coincidence — and a node stating a
- * model, a duration and a resolution deserves a figure rather than a blank.
- * What it is not is a quote: the margin is the reseller's own, so the figure
- * comes back with an assumption naming whose rate it is, which the cost views
- * render as "~$X" rather than an exact price.
- *
- * Two guards keep it from inventing a number. The offerings must agree on a
- * unit class — a per-second rate and a per-generation rate are not comparable,
- * and picking either would be arbitrary — and the cheapest of them is quoted,
- * so a model sold at four prices reports the one that overstates least.
+ * A reseller lists the vendor's own model id verbatim — AtlasCloud and fal both
+ * sell `google/gemini-omni-flash/image-to-video` — so the id alone would happily
+ * find another vendor's number. That number is another vendor's margin, and an
+ * estimate is only worth showing when it is the price of the run the node will
+ * actually make, so it is never quoted. What travels instead is the reason,
+ * which the cost views show in place of the figure: the model is tracked, just
+ * not for this provider, which is a gap in the catalog someone can close.
  */
-function borrowedPrice(
-  model: SelectedModel,
-  params?: ModelPriceParams
-): ModelParamPrice | null {
-  return (
-    borrowedGenspendPrice(model, params) ?? borrowedScalarPrice(model, params)
-  );
-}
-
-/** {@link borrowedPrice} off a GenSpend offering of the same model id. */
-function borrowedGenspendPrice(
-  model: SelectedModel,
-  params?: ModelPriceParams
-): ModelParamPrice | null {
+function untrackedProviderPrice(model: SelectedModel): ModelParamPrice | null {
   if (!model.provider) return null;
-  const offerings = getGenspendPricesByModelId(model.id).filter(
-    (offering) => offering.provider !== model.provider
-  );
-  if (offerings.length === 0) return null;
-  const unitClass = offerings[0].price.unit_class;
-  if (offerings.some((offering) => offering.price.unit_class !== unitClass)) {
-    return null;
-  }
-  const cheapest = offerings.reduce((best, offering) =>
-    offering.price.unit_price < best.price.unit_price ? offering : best
-  );
-
-  const priced = isParameterPriceable(cheapest.price)
-    ? priceGenspendEntry(cheapest.price, params ?? {})
-    : flatGenspendPrice(cheapest.price);
-  if (priced.declined) return priced;
-  return borrowed(priced, model.provider, cheapest.provider);
-}
-
-/**
- * {@link borrowedPrice} off the FAL or kie scalar catalog, for a reseller that
- * lists the same endpoint id. Last, because those rows are one number for a
- * whole endpoint where a GenSpend offering carries the grid.
- */
-function borrowedScalarPrice(
-  model: SelectedModel,
-  params?: ModelPriceParams
-): ModelParamPrice | null {
-  if (!model.provider) return null;
-  const fal = falPrice(model.id);
-  const scalar = fal ?? kiePrice(model.id);
-  if (!scalar) return null;
-  const priced = priceScalarUnit(scalar.price, params, {
-    tierCount: scalar.tierCount
-  });
-  if (priced.declined) return priced;
-  return borrowed(priced, model.provider, fal ? PROVIDER_FAL_AI : PROVIDER_KIE);
-}
-
-/** Say whose rate a figure is, when it is not the selected provider's own. */
-function borrowed(
-  priced: ModelParamPrice,
-  provider: string,
-  source: string
-): ModelParamPrice {
+  const elsewhere = [
+    ...new Set(
+      getGenspendPricesByModelId(model.id)
+        .map((offering) => offering.provider)
+        .filter((provider) => provider !== model.provider)
+    )
+  ].sort();
+  if (elsewhere.length === 0) return null;
   return {
-    ...priced,
-    assumptions: [
-      `no published price for this model on ${provider} — priced at ${source}'s rate for the same model`,
-      ...(priced.assumptions ?? [])
-    ]
+    unit_price: 0,
+    billing_unit: "",
+    currency: GENSPEND_CURRENCY,
+    source: "bundle",
+    declined: `the catalog has no ${model.provider} price for this model — it prices the same model on ${elsewhere.join(", ")}, and one provider's rate is not another's`
   };
 }
 
@@ -313,9 +259,9 @@ export function getModelUnitPrice(
     });
     if (!priced.declined) return priced;
     if (entry) return flatGenspendPrice(entry);
-    // Keep the refusal when nothing else can price the model: the reason it
-    // carries is what the cost views show instead of a bare "unknown".
-    return borrowedPrice(model, params) ?? priced;
+    // Keep the refusal: the reason it carries is what the cost views show
+    // instead of a bare "unknown".
+    return priced;
   }
 
   if (entry) {
@@ -323,7 +269,7 @@ export function getModelUnitPrice(
     return flatGenspendPrice(entry);
   }
 
-  return borrowedPrice(model, params);
+  return untrackedProviderPrice(model);
 }
 
 export {

@@ -166,9 +166,10 @@ let offeringsByModelId: Map<string, GenspendOffering[]> | null = null;
  *
  * Resellers list the vendor's own id verbatim — AtlasCloud and fal both call
  * it `google/gemini-omni-flash/image-to-video` — so a model the catalog knows
- * under one provider is usually the same model under another. Callers use this
- * only when the exact `<provider>:<id>` key is untracked, and must say whose
- * rate they ended up quoting.
+ * under one provider is usually the same model under another. That is a fact
+ * to *explain* an untracked offering with, never one to price it with: a
+ * caller quotes `getGenspendPrice` for the provider it was asked about and
+ * uses this only to say which providers the catalog does carry.
  */
 export function getGenspendPricesByModelId(
   modelId: string
