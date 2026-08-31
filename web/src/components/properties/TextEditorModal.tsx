@@ -756,6 +756,7 @@ const TextEditorModal = ({
   showFindReplace = true
 }: TextEditorModalProps) => {
   const theme = useTheme();
+  const modalStyles = useMemo(() => styles(theme), [theme]);
   const modalOverlayRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -1168,7 +1169,7 @@ const TextEditorModal = ({
   const content = (
     <div
       className={`text-editor-modal ${readOnly ? "read-only" : ""}`}
-      css={styles(theme)}
+      css={modalStyles}
     >
       <div
         className={`modal-overlay ${isFullscreen ? "fullscreen" : ""}`}

@@ -195,6 +195,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   containerWidth = 1200
 }) => {
   const theme = useTheme();
+  const rootStyles = useMemo(() => styles(theme), [theme]);
   const { selectedAssetIds, handleSelectAsset } = useAssetSelection(results);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const globalSearchQuery = useAssetGridStore(
@@ -373,7 +374,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   if (results.length === 0) {
     return (
       <Box
-        css={styles(theme)}
+        css={rootStyles}
         className="global-search-results global-search-empty"
       >
         <div className="global-search-results-container search-results-container">
@@ -412,7 +413,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
 
   return (
     <Box
-      css={styles(theme)}
+      css={rootStyles}
       className="global-search-results global-search-with-results"
       data-testid="global-search-results"
     >

@@ -44,6 +44,7 @@ const SEVERITY_LABELS = {
 
 const LogPanel: React.FC = memo(function LogPanel() {
   const theme = useTheme();
+  const rootStyles = useMemo(() => containerStyles(theme), [theme]);
   const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
   const openWorkflows = useWorkflowManager((s) => s.openWorkflows);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -102,7 +103,7 @@ const LogPanel: React.FC = memo(function LogPanel() {
 
   return (
     <Box
-      css={containerStyles(theme)}
+      css={rootStyles}
       className={isFullscreen ? "fullscreen" : undefined}
     >
       <PanelToolbar

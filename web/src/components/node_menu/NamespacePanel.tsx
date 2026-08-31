@@ -177,6 +177,7 @@ const namespacePanelStyles = (theme: Theme) =>
 
 const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
   const theme = useTheme();
+  const panelStyles = useMemo(() => namespacePanelStyles(theme), [theme]);
   const { searchTerm, selectedPath, setSelectedPath } = useNodeMenuStore(
     useShallow((state) => ({
       searchTerm: state.searchTerm,
@@ -242,7 +243,7 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
 
   return (
     <div
-      css={namespacePanelStyles(theme)}
+      css={panelStyles}
       className="namespace-panel-container"
     >
       <ListGroup className="namespace-list">
