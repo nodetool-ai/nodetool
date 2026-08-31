@@ -215,7 +215,7 @@ const seeds: FaqSeed[] = [
     answerMd:
       "A diffusion model makes an image, video, or sound by starting from random noise and clearing it away step by step, guided by your prompt, until a clear result appears. Flux, Stable Diffusion, and most image generators work this way. In NodeTool you run them as blocks alongside everything else.",
     category: "glossary",
-    relatedRoute: "/creatives",
+    relatedRoute: "/studio",
     surfaces: [],
   },
   {

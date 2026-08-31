@@ -3,16 +3,15 @@ import React from "react";
 import {
   Monitor,
   Cloud,
-  Sparkles,
   Code2,
   Megaphone,
   ArrowRight,
 } from "lucide-react";
 
 /**
- * One workspace, several doors. Routes visitors by intent to the five entry
- * pages — Studio, Cloud, Creatives, Developers, Marketing — framed as ways
- * to use the same product, not as separate products.
+ * One workspace, several doors. Routes visitors by intent to the four entry
+ * pages — Studio, Cloud, Developers, Marketing — framed as ways to use the
+ * same product, not as separate products.
  */
 
 const entries = [
@@ -33,15 +32,6 @@ const entries = [
     icon: Cloud,
     accent: "text-blue-300",
     chip: "border-blue-500/30 bg-blue-500/10",
-  },
-  {
-    intent: "For creators",
-    name: "Creatives",
-    href: "/creatives",
-    body: "Focus on the creative vision — images, video, voice — and let the software handle the technical plumbing.",
-    icon: Sparkles,
-    accent: "text-rose-300",
-    chip: "border-rose-500/30 bg-rose-500/10",
   },
   {
     intent: "For developers",

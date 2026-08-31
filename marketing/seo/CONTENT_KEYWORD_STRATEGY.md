@@ -13,7 +13,7 @@ competition and phrasing, not from a keyword tool.
 
 | Engine | Route shape | Count today | Data module |
 |---|---|---|---|
-| Static | `/`, `/studio`, `/cloud`, `/pricing`, `/agents`, `/creatives`, `/developers`, `/marketing` | 8 + legal | `staticEntries.ts` |
+| Static | `/`, `/studio`, `/cloud`, `/pricing`, `/agents`, `/developers`, `/marketing` | 7 + legal | `staticEntries.ts` |
 | Competitors | `/vs/<slug>`, `/alternatives/<slug>` | 13 competitors × 2 | `competitorEntries.ts` |
 | Models | `/models/<slug>`, `/models/<a>-vs-<b>` | 10 + pairs | `modelEntries.ts`, `modelComparisonEntries.ts` |
 | Providers | `/providers/<slug>` | 24 | `providerEntries.ts` |

@@ -6,8 +6,8 @@ import { track } from "../lib/analytics";
 
 interface CommunitySectionProps {
   stars?: number | null;
-  /** Visual treatment: blue glass card (home), warm gradient card (creatives), or amber/emerald card (marketing). */
-  variant?: "home" | "creatives" | "marketing";
+  /** Visual treatment: blue glass card (home), or amber/emerald card (marketing). */
+  variant?: "home" | "marketing";
   id?: string;
 }
 
@@ -25,22 +25,6 @@ const variants = {
     githubHover: "hover:bg-blue-50",
     discord:
       "bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20",
-  },
-  creatives: {
-    heading: (
-      <>
-        Join the{" "}
-        <span className="text-white">
-          community
-        </span>
-      </>
-    ),
-    body: "Share workflows and prompts, and compare notes with other working creatives. NodeTool is open source under AGPL-3.0.",
-    card: "rounded-3xl border border-white/10 bg-gradient-to-br from-rose-500/10 via-teal-500/10 to-cyan-500/10 backdrop-blur-xl p-8 md:p-16 text-center overflow-hidden relative",
-    topBar:
-      "absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 via-teal-500 to-cyan-500 opacity-50",
-    githubHover: "hover:bg-slate-100",
-    discord: "bg-[#5865F2] hover:bg-[#4752C4] shadow-lg",
   },
   marketing: {
     heading: (

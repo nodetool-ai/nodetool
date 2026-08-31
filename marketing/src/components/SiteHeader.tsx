@@ -18,7 +18,6 @@ type NavItem = { name: string; href: string; external?: boolean };
 const NAV: NavItem[] = [
   { name: "Studio", href: "/studio" },
   { name: "Cloud", href: "/cloud" },
-  { name: "Creatives", href: "/creatives" },
   { name: "Agents", href: "/agents" },
   { name: "Developers", href: "/developers" },
   { name: "Marketing", href: "/marketing" },
