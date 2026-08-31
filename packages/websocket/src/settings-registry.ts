@@ -1,20 +1,13 @@
 /**
- * Settings registry — shared between the tRPC settings router,
- * http-api.ts (for /api/settings/secrets handlers), and websocket-client-session.ts
- * (for getSetting()).
+ * Reading a setting's value — the half of settings handling that needs the
+ * database.
  *
  * The *definitions* live in `@nodetool-ai/config` (`setting-catalog.ts`) so the
  * `settings` capability module can read the same table without importing the
- * server. What stays here is the half that needs the database: resolving one
- * setting's value.
+ * server. Callers that need the definitions call `settingCatalog()` there.
  */
 
 import { Setting } from "@nodetool-ai/models";
-import {
-  registerSettingDefinition,
-  settingCatalog,
-  type SettingCatalogEntry
-} from "@nodetool-ai/config";
 
 export interface SettingWithValue {
   package_name: string;
@@ -24,16 +17,6 @@ export interface SettingWithValue {
   enum: string[] | null;
   value: unknown;
   is_secret: boolean;
-}
-
-export type SettingDefinition = SettingCatalogEntry;
-
-/** Register a setting definition. Called by packages at startup. */
-export const registerSetting = registerSettingDefinition;
-
-/** Get all registered definitions. */
-export function getRegisteredSettings(): SettingDefinition[] {
-  return settingCatalog();
 }
 
 /** Get a single setting value from DB, then env var. */
