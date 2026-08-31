@@ -137,7 +137,8 @@ describe("skill list mutations", () => {
         id: "skill-1",
         name: "my-skill",
         description: "A valid description",
-        updatedAt: "2026-08-27T00:00:00.000Z"
+        updatedAt: "2026-08-27T00:00:00.000Z",
+        system: false
       }
     ];
     cachedList = previous;

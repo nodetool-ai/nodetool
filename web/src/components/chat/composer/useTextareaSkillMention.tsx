@@ -154,7 +154,9 @@ export const useTextareaSkillMention = ({
   value,
   setValue
 }: UseTextareaSkillMentionOptions): UseTextareaSkillMention => {
-  const { data: skills = [] } = useSkills();
+  // The shipped skills answer to `/name` in a turn exactly as a user's own row
+  // does, so the menu that completes that name offers both.
+  const { data: skills = [] } = useSkills({ includeSystem: true });
   const [trigger, setTrigger] = useState<SkillTrigger | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);

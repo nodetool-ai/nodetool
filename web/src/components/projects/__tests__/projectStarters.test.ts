@@ -8,12 +8,16 @@ import {
   estimateFromHistory,
   formatEstimate,
   projectNameFromPrompt,
-  shapeById
-} from "../projectShapes";
+  starterLabel,
+  type ProjectStarter
+} from "../projectStarters";
 import type { ProjectDetail } from "../projectStatus";
 
-const spot = shapeById("spot");
-const empty = shapeById("empty");
+const launch: ProjectStarter = {
+  name: "launch-commercial",
+  description: "Turn a product page into a finished launch commercial.",
+  system: true
+};
 
 const assembledCut = {
   type: "timeline",
@@ -49,37 +53,53 @@ const summary = (
 describe("projectNameFromPrompt", () => {
   it("names the project after the prompt's first line", () => {
     expect(
-      projectNameFromPrompt("Aurora launch spot\nwarm and minimal", spot)
+      projectNameFromPrompt("Aurora launch spot\nwarm and minimal", launch)
     ).toBe("Aurora launch spot");
   });
 
   it("cuts a long first line at a word boundary", () => {
-    const name = projectNameFromPrompt("word ".repeat(30), spot);
+    const name = projectNameFromPrompt("word ".repeat(30), launch);
     expect(name.length).toBeLessThanOrEqual(61);
     expect(name.endsWith("…")).toBe(true);
   });
 
-  it("falls back to the shape when the prompt says nothing", () => {
-    expect(projectNameFromPrompt("   ", spot)).toBe("30s spot");
-    expect(projectNameFromPrompt("", empty)).toBe("New project");
+  it("falls back to the starter when the prompt says nothing", () => {
+    expect(projectNameFromPrompt("   ", launch)).toBe("Launch commercial");
+    expect(projectNameFromPrompt("", null)).toBe("New project");
+  });
+});
+
+describe("starterLabel", () => {
+  it("reads a skill name as a label", () => {
+    expect(starterLabel("launch-commercial")).toBe("Launch commercial");
+    expect(starterLabel("music_video_treatment")).toBe(
+      "Music video treatment"
+    );
   });
 });
 
 describe("composeFirstTurn", () => {
-  it("carries the prompt, the shape's brief, and the named entities", () => {
+  it("invokes the starter as a slash command above the prompt", () => {
     const turn = composeFirstTurn({
       prompt: "A spot for our desk lamp",
-      shape: spot,
+      starter: launch,
       entityNames: ["Aurora lamp", "Night street"]
     });
-    expect(turn).toContain("A spot for our desk lamp");
-    expect(turn).toContain("30-second spot");
-    expect(turn).toContain("Use these entities: Aurora lamp, Night street.");
+    expect(turn).toBe(
+      "/launch-commercial\n\nA spot for our desk lamp\n\n" +
+        "Use these entities: Aurora lamp, Night street."
+    );
   });
 
-  it("is the prompt alone for a shape that briefs nothing", () => {
+  // The host matches `/name` at the start of the text or after whitespace, so
+  // the command must lead its own line and the prompt must survive verbatim.
+  it("leaves a prompt of its own alone when no starter is picked", () => {
     expect(
-      composeFirstTurn({ prompt: "Whatever I want", shape: empty, entityNames: [] })
+      composeFirstTurn({
+        prompt: "Whatever I want",
+        starter: null,
+        entityNames: []
+      })
     ).toBe("Whatever I want");
   });
 });
@@ -107,7 +127,7 @@ describe("estimateFromHistory", () => {
     ).toBeNull();
   });
 
-  it("has nothing to read for a shape with no kind", () => {
+  it("has nothing to read for a project started with no starter", () => {
     expect(estimateFromHistory([summary("", 3.1), summary("", 5.8)], "")).toBeNull();
   });
 

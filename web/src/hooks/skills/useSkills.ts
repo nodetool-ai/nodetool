@@ -17,9 +17,17 @@ type SkillsList = RouterOutputs["skills"]["list"];
 type Skill = RouterOutputs["skills"]["get"];
 type SkillListMutationContext = { previous: SkillsList | undefined };
 
-export const useSkills = (): UseTRPCQueryResult<SkillsList, SkillsError> =>
+/**
+ * The user's skills. `includeSystem` adds the ones NodeTool ships — read-only,
+ * flagged `system`, and invocable as `/<name>` like any other. Surfaces that
+ * only name a skill (the composer's `/` menu, the new-project starters) want
+ * them; the skills panel, whose rows are renamed and deleted, does not.
+ */
+export const useSkills = (
+  options: { includeSystem?: boolean } = {}
+): UseTRPCQueryResult<SkillsList, SkillsError> =>
   trpc.skills.list.useQuery(
-    {},
+    { includeSystem: options.includeSystem },
     {
       staleTime: SKILL_LIST_STALE_TIME,
       retry: false
@@ -57,7 +65,8 @@ export const useCreateSkill = (): UseTRPCMutationResult<
           id: optimisticId,
           name: input.name,
           description: input.description ?? "",
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
+          system: false
         }
       ]);
       return { previous };
@@ -76,7 +85,8 @@ export const useCreateSkill = (): UseTRPCMutationResult<
                 id: created.id,
                 name: created.name,
                 description: created.description,
-                updatedAt: created.updatedAt
+                updatedAt: created.updatedAt,
+                system: false
               }
             : skill
         )
@@ -126,7 +136,8 @@ export const useUpdateSkill = (): UseTRPCMutationResult<
                 id: updated.id,
                 name: updated.name,
                 description: updated.description,
-                updatedAt: updated.updatedAt
+                updatedAt: updated.updatedAt,
+                system: false
               }
             : skill
         )

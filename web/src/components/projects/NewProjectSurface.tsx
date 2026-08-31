@@ -1,10 +1,14 @@
 /**
  * "What do you want to make?" — the surface a project is started from.
  *
- * The prompt goes to the project's own agent, which builds the documents; the
- * shape shortcut says what chain to expect and is stored as the project's
- * kind. Blank documents keep their place at the foot of the view, opening
- * loose tabs the way the `+ New` menu always did.
+ * The prompt goes to the project's own agent, which builds the documents. A
+ * starter is one of the user's skills — their own or one NodeTool ships — and
+ * picking one prefixes the opening turn with `/<name>`, the same slash command
+ * the composer sends, so the agent reads that skill's instructions before it
+ * plans anything. The picked skill is stored as the project's kind, which is
+ * what its spend history is read back by. Blank documents keep their place at
+ * the foot of the view, opening loose tabs the way the `+ New` menu always
+ * did.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -64,14 +68,13 @@ import { openPageTab } from "../workspace/openPageTab";
 import { clearProjectFirstTurn, stageProjectFirstTurn } from "./projectAgent";
 import { PROJECT_COLOR } from "./projectIdentity";
 import {
-  DEFAULT_SHAPE_ID,
-  PROJECT_SHAPES,
   composeFirstTurn,
   estimateFromHistory,
   formatEstimate,
   projectNameFromPrompt,
-  shapeById
-} from "./projectShapes";
+  starterLabel
+} from "./projectStarters";
+import { useSkills } from "../../hooks/skills/useSkills";
 
 /** Width of the centered column, per the new-project mockup. */
 const COLUMN_WIDTH = 860;
@@ -84,7 +87,9 @@ interface SubmenuAnchor {
 
 const NewProjectSurface = () => {
   const [prompt, setPrompt] = useState("");
-  const [shapeId, setShapeId] = useState(DEFAULT_SHAPE_ID);
+  // The skill this project starts from, by name. Null is a bare start, where
+  // the prompt is the whole ask.
+  const [starterName, setStarterName] = useState<string | null>(null);
   const [entityIds, setEntityIds] = useState<string[]>([]);
   const [entityAnchor, setEntityAnchor] = useState<HTMLElement | null>(null);
   const [submenu, setSubmenu] = useState<SubmenuAnchor | null>(null);
@@ -97,10 +102,12 @@ const NewProjectSurface = () => {
   const refInputRef = useRef<HTMLInputElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
 
-  const shape = shapeById(shapeId);
   const { droppedFiles, addFiles, removeFile, getFileContents } =
     useFileHandling();
   const { data: entities } = useEntities();
+  // Both the user's own skills and the ones NodeTool ships: either is a
+  // starter, and either is invoked the same way.
+  const { data: skills } = useSkills({ includeSystem: true });
   const summaries = useProjectSummaries();
   const createProject = useCreateProject();
   const openProject = useOpenProject();
@@ -114,8 +121,8 @@ const NewProjectSurface = () => {
     (state) => state.setSelectedModel
   );
   const { handleCreateNewWorkflow } = useWorkflowActions();
-  // Starter cards and the checklist retire together once the getting-started
-  // steps are done or dismissed; veterans get the plain project surface.
+  // The checklist retires once the getting-started steps are done or
+  // dismissed; veterans get the plain project surface.
   const showOnboarding = useOnboardingStore(
     (state) =>
       !isOnboardingFinished({
@@ -143,9 +150,19 @@ const NewProjectSurface = () => {
     [entities, entityIds]
   );
 
+  const starters = useMemo(() => skills ?? [], [skills]);
+
+  // A starter the list no longer carries (a skill renamed or deleted while
+  // this tab sat open) is no starter at all, rather than a `/name` the agent
+  // would fail to resolve.
+  const starter = useMemo(
+    () => starters.find((entry) => entry.name === starterName) ?? null,
+    [starterName, starters]
+  );
+
   const estimate = useMemo(
-    () => estimateFromHistory(summaries.data ?? [], shape.kind),
-    [summaries.data, shape.kind]
+    () => estimateFromHistory(summaries.data ?? [], starter?.name ?? ""),
+    [starter, summaries.data]
   );
 
   const toggleEntity = useCallback((entity: Entity) => {
@@ -200,15 +217,17 @@ const NewProjectSurface = () => {
     setStarting(true);
     try {
       const project = await createProject.mutateAsync({
-        name: projectNameFromPrompt(text, shape),
-        kind: shape.kind
+        name: projectNameFromPrompt(text, starter),
+        // The starter's own name, so a later project of the same starter reads
+        // its spend history back.
+        kind: starter?.name ?? ""
       });
       const content: MessageContent[] = [
         {
           type: "text",
           text: composeFirstTurn({
             prompt: text,
-            shape,
+            starter,
             entityNames: selectedEntities.map((entity) => entity.name)
           })
         },
@@ -247,7 +266,7 @@ const NewProjectSurface = () => {
     prompt,
     selectedEntities,
     selectedModel,
-    shape,
+    starter,
     starting
   ]);
 
@@ -394,54 +413,62 @@ const NewProjectSurface = () => {
             </FlexRow>
           </FlexColumn>
 
-          <FlexRow justify="center" gap={SPACING.md} wrap>
-            {PROJECT_SHAPES.map((entry) => {
-              const active = entry.id === shapeId;
-              return (
-                <Box
-                  key={entry.id}
-                  component="button"
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setShapeId(entry.id)}
-                  sx={{
-                    height: "28px",
-                    px: SPACING.lg,
-                    cursor: "pointer",
-                    borderRadius: BORDER_RADIUS.pill,
-                    border: "1px solid",
-                    borderColor: active ? PROJECT_COLOR : "divider",
-                    color: active ? PROJECT_COLOR : "text.secondary",
-                    bgcolor: "transparent",
-                    ...TYPOGRAPHY.sans.body
-                  }}
-                >
-                  {entry.label}
-                </Box>
-              );
-            })}
-          </FlexRow>
-
-          <FlexRow justify="center" align="center" gap={SPACING.md} wrap>
-            <Caption color="muted">
-              {shape.chain.length === 0
-                ? `${shape.label} starts bare — ask the agent for what you need`
-                : `${shape.label} sets up`}
-            </Caption>
-            {shape.chain.map((step, index) => (
-              <FlexRow key={step.type} align="center" gap={SPACING.md}>
-                {index > 0 && <Caption color="muted">→</Caption>}
-                <Box
-                  component="span"
-                  aria-hidden
-                  sx={{ color: TYPE_COLOR[step.type] }}
-                >
-                  {TYPE_GLYPH[step.type]}
-                </Box>
-                <Caption color="secondary">{step.label}</Caption>
+          {starters.length > 0 && (
+            <FlexColumn gap={SPACING.md} align="center">
+              <FlexRow justify="center" gap={SPACING.md} wrap>
+                {starters.map((entry) => {
+                  const active = entry.name === starter?.name;
+                  return (
+                    <Box
+                      key={entry.name}
+                      component="button"
+                      type="button"
+                      aria-pressed={active}
+                      // What the skill does, before it is picked; the picked
+                      // one says it in full below the row.
+                      title={entry.description}
+                      onClick={() =>
+                        setStarterName(active ? null : entry.name)
+                      }
+                      sx={{
+                        height: "28px",
+                        px: SPACING.lg,
+                        cursor: "pointer",
+                        borderRadius: BORDER_RADIUS.pill,
+                        border: "1px solid",
+                        borderColor: active ? PROJECT_COLOR : "divider",
+                        color: active ? PROJECT_COLOR : "text.secondary",
+                        bgcolor: "transparent",
+                        ...TYPOGRAPHY.sans.body
+                      }}
+                    >
+                      {starterLabel(entry.name)}
+                    </Box>
+                  );
+                })}
               </FlexRow>
-            ))}
-          </FlexRow>
+              {starter ? (
+                <FlexColumn gap={SPACING.xs} align="center">
+                  <Box
+                    component="span"
+                    sx={{ ...TYPOGRAPHY.mono.caption, color: PROJECT_COLOR }}
+                  >
+                    {`/${starter.name}`}
+                  </Box>
+                  <Caption
+                    color="secondary"
+                    sx={{ maxWidth: "620px", textAlign: "center" }}
+                  >
+                    {starter.description}
+                  </Caption>
+                </FlexColumn>
+              ) : (
+                <Caption color="muted">
+                  Pick a skill to start from, or just describe what you want.
+                </Caption>
+              )}
+            </FlexColumn>
+          )}
 
           {showOnboarding && (
             <Box sx={{ pt: SPACING.lg }}>
