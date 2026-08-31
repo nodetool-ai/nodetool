@@ -56,13 +56,14 @@ function createScriptedProvider(script: ScriptedCall[]): BaseProvider {
 // --- createStoryboardToolBridge ----------------------------------------------
 
 describe("createStoryboardToolBridge", () => {
-  it("exposes exactly the 11 ui_storyboard_* tools", () => {
+  it("exposes exactly the 12 ui_storyboard_* tools", () => {
     const bridge = createStoryboardToolBridge();
     const names = bridge.tools.map((t) => t.name).sort();
     expect(names).toEqual(
       [
         "ui_storyboard_get_state",
         "ui_storyboard_set_screenplay",
+        "ui_storyboard_set_entities",
         "ui_storyboard_add_shot",
         "ui_storyboard_update_shot",
         "ui_storyboard_generate_keyframe",
@@ -74,7 +75,7 @@ describe("createStoryboardToolBridge", () => {
         "ui_storyboard_select_shot"
       ].sort()
     );
-    expect(names).toHaveLength(11);
+    expect(names).toHaveLength(12);
   });
 
   it("rejects a set_screenplay call with an invalid object", async () => {
@@ -320,6 +321,29 @@ describe("createStoryboardToolBridge", () => {
     await expect(
       byName["ui_storyboard_extract_script"].execute({})
     ).rejects.toThrow(/nothing to extract/);
+  });
+
+  it("casts entities from a screenplay and from set_entities", async () => {
+    const bridge = createStoryboardToolBridge();
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+
+    const loaded = (await byName["ui_storyboard_set_screenplay"].execute({
+      screenplay: {
+        ...SAMPLE_SCREENPLAY,
+        entityIds: ["ent-buddy", "ent-winston"]
+      } as unknown as Record<string, unknown>
+    })) as { entityIds: string[] };
+    expect(loaded.entityIds).toEqual(["ent-buddy", "ent-winston"]);
+
+    const recast = (await byName["ui_storyboard_set_entities"].execute({
+      entity_ids: ["ent-coco"]
+    })) as { entityIds: string[] };
+    expect(recast.entityIds).toEqual(["ent-coco"]);
+
+    const state = (await byName["ui_storyboard_get_state"].execute({})) as {
+      entityIds: string[];
+    };
+    expect(state.entityIds).toEqual(["ent-coco"]);
   });
 
   it("loads a valid screenplay, replacing existing shots", async () => {

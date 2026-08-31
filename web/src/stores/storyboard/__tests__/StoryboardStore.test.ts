@@ -319,6 +319,41 @@ describe("setScreenplay", () => {
     expect(board?.shots[0].duration_seconds).toBe(4);
   });
 
+  it("casts the screenplay's entity_ids on the board", () => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(BOARD);
+    store.setScreenplay(BOARD, {
+      type: "screenplay",
+      id: "sp-1",
+      title: "Four Dogs",
+      entity_ids: ["ent-buddy", "ent-winston"],
+      shots: [play()]
+    });
+
+    // `entityIds` is what seasons each shot prompt — a screenplay that names
+    // its cast and leaves the board empty generates the entities out.
+    expect(useStoryboardStore.getState().boards[BOARD]?.entityIds).toEqual([
+      "ent-buddy",
+      "ent-winston"
+    ]);
+  });
+
+  it("keeps the board's cast when the screenplay names none", () => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(BOARD);
+    store.setEntityIds(BOARD, ["ent-buddy"]);
+    store.setScreenplay(BOARD, {
+      type: "screenplay",
+      id: "sp-1",
+      title: "T",
+      shots: [play()]
+    });
+
+    expect(useStoryboardStore.getState().boards[BOARD]?.entityIds).toEqual([
+      "ent-buddy"
+    ]);
+  });
+
   it("fills an empty brief from the logline but never overwrites one", () => {
     const store = useStoryboardStore.getState();
     store.ensureBoard(BOARD);

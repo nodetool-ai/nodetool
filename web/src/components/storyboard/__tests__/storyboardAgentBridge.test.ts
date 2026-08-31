@@ -9,6 +9,7 @@ import type { StoryboardAgentHandler } from "../storyboardAgentBridge";
 const makeMockHandler = (): StoryboardAgentHandler => ({
   getSnapshot: jest.fn(),
   setScreenplay: jest.fn(),
+  setEntityIds: jest.fn(),
   addShot: jest.fn(),
   updateShot: jest.fn(),
   generateKeyframe: jest.fn(),

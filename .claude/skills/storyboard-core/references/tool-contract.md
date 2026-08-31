@@ -63,6 +63,7 @@ shot id, index as a string, or `"selected"`. **Slugs are not resolved here.**
 |---|---|
 | `ui_storyboard_get_state` | `storyboard_id` |
 | `ui_storyboard_set_screenplay` | `storyboard_id`, `screenplay` |
+| `ui_storyboard_set_entities` | `storyboard_id`, `entity_ids` (replaces the cast; `[]` clears it) |
 | `ui_storyboard_add_shot` | `storyboard_id`, `action`, `camera?`, `motion?`, `durationSeconds?`, `index?` |
 | `ui_storyboard_update_shot` | `storyboard_id`, `target`, `action?`, `camera?`, `motion?`, `status?` |
 | `ui_storyboard_generate_keyframe` | `storyboard_id`, `target` |
@@ -113,6 +114,13 @@ sets it. Do not use it as a gate.)
 
 Ids, indexes and statuses are filled in. `style` is accepted as an alias of
 `styleBible`. Only `action` is required per shot.
+
+The top-level `entityIds` casts those entities on the **board** — that cast is what
+seasons every shot's still and clip prompt. Use `ui_storyboard_set_entities` to
+recast without replacing the shots; `ui_storyboard_get_state` reports the current
+cast as `entityIds`. A shot's own `entityIds` overrides the board cast for that shot
+(`[]` means "no entities on this shot"); without one, styles and locations apply to
+every shot and characters and props apply to the shots whose text names them.
 
 ## Entities
 

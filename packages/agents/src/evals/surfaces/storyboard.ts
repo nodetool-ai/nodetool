@@ -285,6 +285,7 @@ export function createStoryboardToolBridge(
   const brief = initial.brief ?? "";
   const style = initial.style ?? "";
   const aspectRatio = initial.aspectRatio ?? "16:9";
+  let entityIds: string[] = [];
   let hasScreenplay = false;
   let selectedShotId: string | null = null;
   let shotSeq = 0;
@@ -363,6 +364,7 @@ export function createStoryboardToolBridge(
       brief,
       style,
       aspectRatio,
+      entityIds,
       hasScreenplay,
       selectedShotId,
       shots: shots.map(serialize)
@@ -372,14 +374,14 @@ export function createStoryboardToolBridge(
   const tools: HeadlessTool[] = [
     tool(
       "ui_storyboard_get_state",
-      "Read the specified storyboard: title, brief, style, aspect ratio, whether a screenplay is loaded, the selected shot, and every shot with its index, slug, action, camera, motion, duration, status, and whether it has a rendered keyframe/clip. Call this first to discover the shot ids/indexes the other tools need.",
+      "Read the specified storyboard: title, brief, style, aspect ratio, the entity ids cast on the board, whether a screenplay is loaded, the selected shot, and every shot with its index, slug, action, camera, motion, duration, status, and whether it has a rendered keyframe/clip. Call this first to discover the shot ids/indexes the other tools need.",
       z.object({}),
       async () => ({ ok: true, ...snapshot() })
     ),
 
     tool(
       "ui_storyboard_set_screenplay",
-      "Load a full screenplay onto the specified storyboard, replacing its shots. `screenplay` is a Screenplay object ({ type:'screenplay', title, shots: Shot[], ... }) — typically the output of the Director node. Shot ids, indexes and statuses are filled in for you; every shot needs an `action`.",
+      "Load a full screenplay onto the specified storyboard, replacing its shots. `screenplay` is a Screenplay object ({ type:'screenplay', title, shots: Shot[], ... }) — typically the output of the Director node. Shot ids, indexes and statuses are filled in for you; every shot needs an `action`. A top-level `entityIds` casts those entities on the board (use ui_storyboard_set_entities to change the cast without replacing the shots); a shot's own `entityIds` overrides the board cast for that shot.",
       z.object({ screenplay: screenplayParam }),
       async ({ screenplay }) => {
         const play = storyboards.normalizeStoryboardScreenplay(screenplay, {
@@ -390,7 +392,22 @@ export function createStoryboardToolBridge(
         hasScreenplay = true;
         screenplayId = play.id;
         if (play.title) title = play.title;
+        if (play.entity_ids) entityIds = play.entity_ids;
         selectedShotId = null;
+        return { ok: true, ...snapshot() };
+      }
+    ),
+
+    tool(
+      "ui_storyboard_set_entities",
+      "Cast library entities (characters, locations, styles, props) on the specified storyboard, replacing the current selection. Their descriptors and reference images season every shot's still and clip prompt — a style or location applies to every shot, a character or prop applies to the shots whose text names it. Pass an empty array to clear the cast. Discover ids with ui_entity_list.",
+      z.object({ entity_ids: z.array(z.string()) }),
+      async ({ entity_ids }) => {
+        // The headless tool signature erases the parsed shape to `unknown`;
+        // the schema above has already refused anything but a string array.
+        entityIds = (Array.isArray(entity_ids) ? entity_ids : []).filter(
+          isString
+        );
         return { ok: true, ...snapshot() };
       }
     ),

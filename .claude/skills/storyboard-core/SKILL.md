@@ -51,7 +51,8 @@ Bridge the two with `ui_open_document {type: "storyboard", id}`.
 2. **Cast the entities.** `list_entities` first. A new one needs an image asset —
    `generate_image` or the user's upload — then
    `create_entity {asset_id, kind, name, descriptor}`. **There is no create-from-text.**
-3. **Attach the cast to the board:** `edit_storyboard` → `{op: "set_board", entity_ids: [...]}`.
+3. **Attach the cast to the board:** `edit_storyboard` → `{op: "set_board", entity_ids: [...]}`,
+   or `ui_storyboard_set_entities {storyboard_id, entity_ids}` on an open board.
    An entity not on the board seasons nothing, no matter what the shots say.
 4. **Pin the models.** `find_model` with `capability` `text_to_image`, then
    `image_to_video` or `text_to_video`; write both through

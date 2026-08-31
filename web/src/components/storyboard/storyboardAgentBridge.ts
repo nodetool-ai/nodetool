@@ -47,6 +47,11 @@ export interface StoryboardSnapshot {
   brief: string;
   style: string;
   aspectRatio: string;
+  /**
+   * Library entity (asset) ids cast on this board. Their descriptors season
+   * every shot prompt, subject to each shot's own `entity_ids` override.
+   */
+  entityIds: string[];
   /** True once a screenplay has been loaded onto the board. */
   hasScreenplay: boolean;
   /** Script this board's words come from, or null when it is unlinked. */
@@ -111,6 +116,8 @@ export interface StoryboardUpdateShotPatch {
 export interface StoryboardAgentHandler {
   getSnapshot: () => StoryboardSnapshot;
   setScreenplay: (screenplay: Screenplay) => StoryboardSnapshot;
+  /** Replace the board's entity cast. An empty array clears it. */
+  setEntityIds: (entityIds: string[]) => StoryboardSnapshot;
   addShot: (input: StoryboardAddShotInput) => StoryboardShotNode;
   updateShot: (
     target: string,
