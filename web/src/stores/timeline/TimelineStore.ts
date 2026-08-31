@@ -225,7 +225,10 @@ export interface TimelineStoreState {
   splitClipAtTime: (clipId: string, atMs: number) => void;
 
   /** Split all selected clips at the current playhead (passed as argument). */
-  splitSelectedAtPlayhead: (currentTimeMs: number, selectedIds: Set<string>) => void;
+  splitSelectedAtPlayhead: (
+    currentTimeMs: number,
+    selectedIds: Set<string>
+  ) => void;
 
   /**
    * Duplicate selected clips. Each duplicate is placed immediately after its
@@ -235,10 +238,7 @@ export interface TimelineStoreState {
    *
    * Returns the IDs of the newly created clips so callers can update selection.
    */
-  duplicateSelected: (
-    selectedIds: Set<string>,
-    offsetMs?: number
-  ) => string[];
+  duplicateSelected: (selectedIds: Set<string>, offsetMs?: number) => string[];
 
   /** Delete selected clips. */
   deleteSelected: (selectedIds: Set<string>) => void;
@@ -338,7 +338,10 @@ export interface TimelineStoreState {
    * Set `selectedOutputNodeId` for every clip with the given workflowId.
    * Also marks those clips as stale so they will be regenerated.
    */
-  setClipsOutputNode: (workflowId: string, selectedOutputNodeId: string) => void;
+  setClipsOutputNode: (
+    workflowId: string,
+    selectedOutputNodeId: string
+  ) => void;
 
   /**
    * Create a generated clip bound to `sourceWorkflowId` (no clone) and
@@ -798,8 +801,14 @@ export function isOlderUpdatedAt(
 const syncedSnapshotOf = (
   state: Pick<
     TimelineStoreState,
-    "tracks" | "clips" | "markers" | "transcript" | "scriptEnabled" |
-    "fps" | "width" | "height"
+    | "tracks"
+    | "clips"
+    | "markers"
+    | "transcript"
+    | "scriptEnabled"
+    | "fps"
+    | "width"
+    | "height"
   >
 ): NonNullable<TimelineStoreState["syncedDocument"]> => ({
   tracks: state.tracks,
@@ -936,10 +945,7 @@ export const createTimelineStore = (
             if (patch.width != null && patch.width !== state.width) {
               next.width = patch.width;
             }
-            if (
-              patch.height != null &&
-              patch.height !== state.height
-            ) {
+            if (patch.height != null && patch.height !== state.height) {
               next.height = patch.height;
             }
             return next;
@@ -1083,9 +1089,7 @@ export const createTimelineStore = (
               tracks: state.tracks.map((t) => {
                 if (t.id !== trackId) return t;
                 const effects = (t.effects ?? []).map((e) =>
-                  e.id === effectId
-                    ? ({ ...e, ...patch } as TrackEffect)
-                    : e
+                  e.id === effectId ? ({ ...e, ...patch } as TrackEffect) : e
                 );
                 return { ...t, effects };
               })
@@ -1125,7 +1129,14 @@ export const createTimelineStore = (
 
         // ── Clips ───────────────────────────────────────────────────────────
 
-        moveClip: (clipId, deltaMs, toTrackId, snapCandidates, msPerPx, disableSnap) =>
+        moveClip: (
+          clipId,
+          deltaMs,
+          toTrackId,
+          snapCandidates,
+          msPerPx,
+          disableSnap
+        ) =>
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
             if (!clip) {
@@ -1135,7 +1146,12 @@ export const createTimelineStore = (
             let newStartMs = Math.max(0, clip.startMs + deltaMs);
 
             if (!disableSnap && snapCandidates && msPerPx !== undefined) {
-              newStartMs = snap(newStartMs, snapCandidates, SNAP_THRESHOLD_PX, msPerPx);
+              newStartMs = snap(
+                newStartMs,
+                snapCandidates,
+                SNAP_THRESHOLD_PX,
+                msPerPx
+              );
               const endSnap = snap(
                 newStartMs + clip.durationMs,
                 snapCandidates,
@@ -1172,7 +1188,10 @@ export const createTimelineStore = (
                 // Linked siblings follow the same start delta but keep their
                 // own track — audio stays on the audio track.
                 if (linkedIds?.has(c.id)) {
-                  return { ...c, startMs: Math.max(0, c.startMs + appliedDelta) };
+                  return {
+                    ...c,
+                    startMs: Math.max(0, c.startMs + appliedDelta)
+                  };
                 }
                 return c;
               })
@@ -1210,7 +1229,8 @@ export const createTimelineStore = (
             // Clamp the delta ONCE for the whole group so relative spacing is
             // preserved when the selection is dragged against t=0.
             const minStartMs = state.clips.reduce(
-              (min, c) => (selectedIds.has(c.id) ? Math.min(min, c.startMs) : min),
+              (min, c) =>
+                selectedIds.has(c.id) ? Math.min(min, c.startMs) : min,
               primary.startMs
             );
             const effectiveDelta = Math.max(snappedDelta, -minStartMs);
@@ -1363,7 +1383,10 @@ export const createTimelineStore = (
               const id = createTimeOrderedUuid();
               newIds.push(id);
               let linkId: string | undefined;
-              if (c.linkId !== undefined && (groupCount.get(c.linkId) ?? 0) >= 2) {
+              if (
+                c.linkId !== undefined &&
+                (groupCount.get(c.linkId) ?? 0) >= 2
+              ) {
                 let fresh = freshLinkByGroup.get(c.linkId);
                 if (fresh === undefined) {
                   fresh = createTimeOrderedUuid();
@@ -1397,21 +1420,24 @@ export const createTimelineStore = (
 
             if (affectedLinkIds.size > 0) {
               const linkCounts = new Map<string, number>();
-              for (const c of clips) {
-                if (c.linkId !== undefined && affectedLinkIds.has(c.linkId)) {
-                  linkCounts.set(c.linkId, (linkCounts.get(c.linkId) ?? 0) + 1);
+              const lastSeenLinkIndex = new Map<string, number>();
+
+              for (let j = 0; j < clips.length; j++) {
+                const linkId = clips[j].linkId;
+                if (linkId !== undefined && affectedLinkIds.has(linkId)) {
+                  const count = (linkCounts.get(linkId) ?? 0) + 1;
+                  linkCounts.set(linkId, count);
+                  if (count === 1) {
+                    lastSeenLinkIndex.set(linkId, j);
+                  } else if (count === 2) {
+                    lastSeenLinkIndex.delete(linkId);
+                  }
                 }
               }
-              clips = clips.map((c) => {
-                if (
-                  c.linkId !== undefined &&
-                  affectedLinkIds.has(c.linkId) &&
-                  (linkCounts.get(c.linkId) ?? 0) < 2
-                ) {
-                  return { ...c, linkId: undefined };
-                }
-                return c;
-              });
+
+              for (const idx of lastSeenLinkIndex.values()) {
+                clips[idx] = { ...clips[idx], linkId: undefined };
+              }
             }
 
             return { clips };
@@ -1420,13 +1446,22 @@ export const createTimelineStore = (
         deleteClip: (clipId) =>
           set((state) => {
             const linkId = state.clips.find((c) => c.id === clipId)?.linkId;
-            let clips = state.clips.filter((c) => c.id !== clipId);
+            const clips = state.clips.filter((c) => c.id !== clipId);
             if (linkId !== undefined) {
-              const remaining = clips.filter((c) => c.linkId === linkId);
-              if (remaining.length < 2) {
-                clips = clips.map((c) =>
-                  c.linkId === linkId ? { ...c, linkId: undefined } : c
-                );
+              let linkedClipCount = 0;
+              let lastLinkedClipIndex = -1;
+              for (let j = 0; j < clips.length; j++) {
+                if (clips[j].linkId === linkId) {
+                  linkedClipCount++;
+                  lastLinkedClipIndex = j;
+                  if (linkedClipCount >= 2) break;
+                }
+              }
+              if (linkedClipCount < 2 && lastLinkedClipIndex !== -1) {
+                clips[lastLinkedClipIndex] = {
+                  ...clips[lastLinkedClipIndex],
+                  linkId: undefined
+                };
               }
             }
             return { clips };
@@ -1471,9 +1506,7 @@ export const createTimelineStore = (
             // Shallow-equal patch → the result would be value-identical, so
             // skip the array allocation entirely.
             const keys = Object.keys(patch) as Array<keyof TimelineClip>;
-            const unchanged = keys.every((k) =>
-              Object.is(clip[k], patch[k])
-            );
+            const unchanged = keys.every((k) => Object.is(clip[k], patch[k]));
             if (unchanged) {
               return state;
             }
@@ -1630,9 +1663,7 @@ export const createTimelineStore = (
             const clips = state.clips.map((c) => {
               if (c.workflowId !== workflowId) return c;
               const current = c.paramOverrides ?? {};
-              const hasAddition = added.some(
-                ({ name }) => !(name in current)
-              );
+              const hasAddition = added.some(({ name }) => !(name in current));
               const hasRemoval = removed.some((name) => name in current);
               if (!hasAddition && !hasRemoval) {
                 return c;
@@ -1688,7 +1719,8 @@ export const createTimelineStore = (
         },
 
         addDirectGenClip: (opts) => {
-          const bindingKind: ClipBindingKind = opts.bindingKind ?? "text-to-image";
+          const bindingKind: ClipBindingKind =
+            opts.bindingKind ?? "text-to-image";
           const mediaType = opts.mediaType ?? "image";
           const durationMs = opts.durationMs ?? 4000;
           const trimmedPrompt = opts.prompt.trim();
@@ -1917,4 +1949,3 @@ export {
   useTimelineStoreApi,
   getTimelineTemporal
 } from "./TimelineInstance";
-
