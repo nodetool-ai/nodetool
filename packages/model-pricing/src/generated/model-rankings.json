@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "artificialanalysis.ai",
-  "generatedAt": "2026-08-30T09:29:59.399Z",
+  "generatedAt": "2026-08-31T10:07:52.051Z",
   "models": {
     "atlascloud:alibaba/happyhorse-1.1/image-to-video": {
       "canonical": "happyhorse-1-1",
@@ -60,6 +60,106 @@
         }
       }
     },
+    "atlascloud:alibaba/wan-2.6/image-edit": {
+      "canonical": "wan-2.6",
+      "name": "Wan2.6 Text to Image",
+      "creator": "Alibaba",
+      "tasks": {
+        "text_to_image": {
+          "score": 1207,
+          "normalized": 0.8117,
+          "rank": 30,
+          "of": 155
+        },
+        "text_to_video": {
+          "score": 1185,
+          "normalized": 0.6329,
+          "rank": 30,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1208,
+          "normalized": 0.4658,
+          "rank": 40,
+          "of": 74
+        }
+      }
+    },
+    "atlascloud:alibaba/wan-2.6/image-to-video": {
+      "canonical": "wan-2.6",
+      "name": "Wan2.6 Text to Image",
+      "creator": "Alibaba",
+      "tasks": {
+        "text_to_image": {
+          "score": 1207,
+          "normalized": 0.8117,
+          "rank": 30,
+          "of": 155
+        },
+        "text_to_video": {
+          "score": 1185,
+          "normalized": 0.6329,
+          "rank": 30,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1208,
+          "normalized": 0.4658,
+          "rank": 40,
+          "of": 74
+        }
+      }
+    },
+    "atlascloud:alibaba/wan-2.6/text-to-image": {
+      "canonical": "wan-2.6",
+      "name": "Wan2.6 Text to Image",
+      "creator": "Alibaba",
+      "tasks": {
+        "text_to_image": {
+          "score": 1207,
+          "normalized": 0.8117,
+          "rank": 30,
+          "of": 155
+        },
+        "text_to_video": {
+          "score": 1185,
+          "normalized": 0.6329,
+          "rank": 30,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1208,
+          "normalized": 0.4658,
+          "rank": 40,
+          "of": 74
+        }
+      }
+    },
+    "atlascloud:alibaba/wan-2.6/text-to-video": {
+      "canonical": "wan-2.6",
+      "name": "Wan2.6 Text to Image",
+      "creator": "Alibaba",
+      "tasks": {
+        "text_to_image": {
+          "score": 1207,
+          "normalized": 0.8117,
+          "rank": 30,
+          "of": 155
+        },
+        "text_to_video": {
+          "score": 1185,
+          "normalized": 0.6329,
+          "rank": 30,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1208,
+          "normalized": 0.4658,
+          "rank": 40,
+          "of": 74
+        }
+      }
+    },
     "atlascloud:alibaba/wan-2.7/image-edit": {
       "canonical": "wan-2.7",
       "name": "Wan 2.7",
@@ -92,6 +192,37 @@
       }
     },
     "atlascloud:alibaba/wan-2.7/image-to-video": {
+      "canonical": "wan-2.7",
+      "name": "Wan 2.7",
+      "creator": "Alibaba",
+      "tasks": {
+        "text_to_image": {
+          "score": 1166,
+          "normalized": 0.6234,
+          "rank": 59,
+          "of": 155
+        },
+        "image_to_image": {
+          "score": 1188,
+          "normalized": 0.6429,
+          "rank": 26,
+          "of": 71
+        },
+        "text_to_video": {
+          "score": 1214,
+          "normalized": 0.8608,
+          "rank": 12,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1268,
+          "normalized": 0.7945,
+          "rank": 16,
+          "of": 74
+        }
+      }
+    },
+    "atlascloud:alibaba/wan-2.7/reference-to-video": {
       "canonical": "wan-2.7",
       "name": "Wan 2.7",
       "creator": "Alibaba",
@@ -184,6 +315,152 @@
         }
       }
     },
+    "atlascloud:alibaba/wan-2.7/video-edit": {
+      "canonical": "wan-2.7",
+      "name": "Wan 2.7",
+      "creator": "Alibaba",
+      "tasks": {
+        "text_to_image": {
+          "score": 1166,
+          "normalized": 0.6234,
+          "rank": 59,
+          "of": 155
+        },
+        "image_to_image": {
+          "score": 1188,
+          "normalized": 0.6429,
+          "rank": 26,
+          "of": 71
+        },
+        "text_to_video": {
+          "score": 1214,
+          "normalized": 0.8608,
+          "rank": 12,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1268,
+          "normalized": 0.7945,
+          "rank": 16,
+          "of": 74
+        }
+      }
+    },
+    "atlascloud:black-forest-labs/flux-2-flex/edit": {
+      "canonical": "flux-2-flex",
+      "name": "FLUX.2 [flex]",
+      "creator": "Black Forest Labs",
+      "tasks": {
+        "text_to_image": {
+          "score": 1222,
+          "normalized": 0.8831,
+          "rank": 19,
+          "of": 155
+        },
+        "image_to_image": {
+          "score": 1162,
+          "normalized": 0.4857,
+          "rank": 37,
+          "of": 71
+        }
+      }
+    },
+    "atlascloud:black-forest-labs/flux-2-flex/text-to-image": {
+      "canonical": "flux-2-flex",
+      "name": "FLUX.2 [flex]",
+      "creator": "Black Forest Labs",
+      "tasks": {
+        "text_to_image": {
+          "score": 1222,
+          "normalized": 0.8831,
+          "rank": 19,
+          "of": 155
+        },
+        "image_to_image": {
+          "score": 1162,
+          "normalized": 0.4857,
+          "rank": 37,
+          "of": 71
+        }
+      }
+    },
+    "atlascloud:black-forest-labs/flux-2-pro/edit": {
+      "canonical": "flux-2-pro",
+      "name": "FLUX.2 [pro]",
+      "creator": "Black Forest Labs",
+      "tasks": {
+        "text_to_image": {
+          "score": 1206,
+          "normalized": 0.8052,
+          "rank": 31,
+          "of": 155
+        },
+        "image_to_image": {
+          "score": 1171,
+          "normalized": 0.5571,
+          "rank": 32,
+          "of": 71
+        }
+      }
+    },
+    "atlascloud:black-forest-labs/flux-2-pro/text-to-image": {
+      "canonical": "flux-2-pro",
+      "name": "FLUX.2 [pro]",
+      "creator": "Black Forest Labs",
+      "tasks": {
+        "text_to_image": {
+          "score": 1206,
+          "normalized": 0.8052,
+          "rank": 31,
+          "of": 155
+        },
+        "image_to_image": {
+          "score": 1171,
+          "normalized": 0.5571,
+          "rank": 32,
+          "of": 71
+        }
+      }
+    },
+    "atlascloud:black-forest-labs/flux-dev": {
+      "canonical": "flux-1-dev",
+      "name": "FLUX.1 [dev]",
+      "creator": "Black Forest Labs",
+      "tasks": {
+        "text_to_image": {
+          "score": 1039,
+          "normalized": 0.2273,
+          "rank": 120,
+          "of": 155
+        }
+      }
+    },
+    "atlascloud:black-forest-labs/flux-kontext-dev": {
+      "canonical": "flux-1-kontext-dev",
+      "name": "FLUX.1 Kontext [dev]",
+      "creator": "Black Forest Labs",
+      "tasks": {
+        "image_to_image": {
+          "score": 1015,
+          "normalized": 0.1,
+          "rank": 64,
+          "of": 71
+        }
+      }
+    },
+    "atlascloud:black-forest-labs/flux-schnell": {
+      "canonical": "flux-1-schnell",
+      "name": "FLUX.1 [schnell]",
+      "creator": "Black Forest Labs",
+      "tasks": {
+        "text_to_image": {
+          "score": 1000,
+          "normalized": 0.1494,
+          "rank": 132,
+          "of": 155
+        }
+      }
+    },
     "atlascloud:bytedance/seedance-2.0/image-to-video": {
       "canonical": "seedance-2",
       "name": "Dreamina Seedance 2.0 720p",
@@ -238,6 +515,82 @@
           "normalized": 0.9726,
           "rank": 3,
           "of": 74
+        }
+      }
+    },
+    "atlascloud:bytedance/seedance-v1.5-pro/image-to-video": {
+      "canonical": "seedance-1.5-pro",
+      "name": "Seedance 1.5 pro",
+      "creator": "ByteDance Seed",
+      "tasks": {
+        "text_to_video": {
+          "score": 1170,
+          "normalized": 0.5823,
+          "rank": 34,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1248,
+          "normalized": 0.6575,
+          "rank": 26,
+          "of": 74
+        }
+      }
+    },
+    "atlascloud:bytedance/seedance-v1.5-pro/text-to-video": {
+      "canonical": "seedance-1.5-pro",
+      "name": "Seedance 1.5 pro",
+      "creator": "ByteDance Seed",
+      "tasks": {
+        "text_to_video": {
+          "score": 1170,
+          "normalized": 0.5823,
+          "rank": 34,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1248,
+          "normalized": 0.6575,
+          "rank": 26,
+          "of": 74
+        }
+      }
+    },
+    "atlascloud:bytedance/seedream-v4.5": {
+      "canonical": "seedream-4.5",
+      "name": "Seedream 4.5",
+      "creator": "ByteDance Seed",
+      "tasks": {
+        "text_to_image": {
+          "score": 1204,
+          "normalized": 0.7922,
+          "rank": 33,
+          "of": 155
+        },
+        "image_to_image": {
+          "score": 1187,
+          "normalized": 0.6286,
+          "rank": 27,
+          "of": 71
+        }
+      }
+    },
+    "atlascloud:bytedance/seedream-v4.5/edit": {
+      "canonical": "seedream-4.5",
+      "name": "Seedream 4.5",
+      "creator": "ByteDance Seed",
+      "tasks": {
+        "text_to_image": {
+          "score": 1204,
+          "normalized": 0.7922,
+          "rank": 33,
+          "of": 155
+        },
+        "image_to_image": {
+          "score": 1187,
+          "normalized": 0.6286,
+          "rank": 27,
+          "of": 71
         }
       }
     },
@@ -412,6 +765,25 @@
         }
       }
     },
+    "atlascloud:google/veo3.1-lite/start-end-frame-to-video": {
+      "canonical": "veo-3.1-lite",
+      "name": "Veo 3.1 Lite",
+      "creator": "Google",
+      "tasks": {
+        "text_to_video": {
+          "score": 1206,
+          "normalized": 0.7468,
+          "rank": 21,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1246,
+          "normalized": 0.6438,
+          "rank": 27,
+          "of": 74
+        }
+      }
+    },
     "atlascloud:google/veo3.1-lite/text-to-video": {
       "canonical": "veo-3.1-lite",
       "name": "Veo 3.1 Lite",
@@ -450,6 +822,25 @@
         }
       }
     },
+    "atlascloud:google/veo3.1/reference-to-video": {
+      "canonical": "veo-3.1",
+      "name": "Veo 3.1",
+      "creator": "Google",
+      "tasks": {
+        "text_to_video": {
+          "score": 1199,
+          "normalized": 0.7215,
+          "rank": 23,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1249,
+          "normalized": 0.6712,
+          "rank": 25,
+          "of": 74
+        }
+      }
+    },
     "atlascloud:google/veo3.1/text-to-video": {
       "canonical": "veo-3.1",
       "name": "Veo 3.1",
@@ -466,6 +857,19 @@
           "normalized": 0.6712,
           "rank": 25,
           "of": 74
+        }
+      }
+    },
+    "atlascloud:ideogram/v4/turbo/text-to-image": {
+      "canonical": "ideogram-4",
+      "name": "Ideogram 4.0",
+      "creator": "Ideogram",
+      "tasks": {
+        "text_to_image": {
+          "score": 1220,
+          "normalized": 0.8701,
+          "rank": 21,
+          "of": 155
         }
       }
     },
@@ -583,6 +987,101 @@
         }
       }
     },
+    "atlascloud:minimax/h3/image-to-video": {
+      "canonical": "minimax-h3",
+      "name": "MiniMax H3",
+      "creator": "MiniMax",
+      "tasks": {
+        "text_to_video": {
+          "score": 1301,
+          "normalized": 0.9873,
+          "rank": 2,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1347,
+          "normalized": 0.9863,
+          "rank": 2,
+          "of": 74
+        }
+      }
+    },
+    "atlascloud:minimax/h3/reference-to-video": {
+      "canonical": "minimax-h3",
+      "name": "MiniMax H3",
+      "creator": "MiniMax",
+      "tasks": {
+        "text_to_video": {
+          "score": 1301,
+          "normalized": 0.9873,
+          "rank": 2,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1347,
+          "normalized": 0.9863,
+          "rank": 2,
+          "of": 74
+        }
+      }
+    },
+    "atlascloud:minimax/h3/text-to-video": {
+      "canonical": "minimax-h3",
+      "name": "MiniMax H3",
+      "creator": "MiniMax",
+      "tasks": {
+        "text_to_video": {
+          "score": 1301,
+          "normalized": 0.9873,
+          "rank": 2,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1347,
+          "normalized": 0.9863,
+          "rank": 2,
+          "of": 74
+        }
+      }
+    },
+    "atlascloud:minimax/hailuo-2.3/i2v-pro": {
+      "canonical": "hailuo-2.3",
+      "name": "Hailuo 2.3",
+      "creator": "MiniMax",
+      "tasks": {
+        "text_to_video": {
+          "score": 1169,
+          "normalized": 0.557,
+          "rank": 36,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1241,
+          "normalized": 0.6164,
+          "rank": 29,
+          "of": 74
+        }
+      }
+    },
+    "atlascloud:minimax/hailuo-2.3/t2v-pro": {
+      "canonical": "hailuo-2.3",
+      "name": "Hailuo 2.3",
+      "creator": "MiniMax",
+      "tasks": {
+        "text_to_video": {
+          "score": 1169,
+          "normalized": 0.557,
+          "rank": 36,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1241,
+          "normalized": 0.6164,
+          "rank": 29,
+          "of": 74
+        }
+      }
+    },
     "atlascloud:openai/gpt-image-1.5/edit": {
       "canonical": "gpt-image-1.5",
       "name": "GPT Image 1.5 (high)",
@@ -659,7 +1158,121 @@
         }
       }
     },
+    "atlascloud:qwen-image-3.0/edit": {
+      "canonical": "qwen-image-3",
+      "name": "Qwen-Image-3.0",
+      "creator": "Alibaba",
+      "tasks": {
+        "text_to_image": {
+          "score": 1269,
+          "normalized": 0.9286,
+          "rank": 12,
+          "of": 155
+        },
+        "image_to_image": {
+          "score": 1218,
+          "normalized": 0.7857,
+          "rank": 16,
+          "of": 71
+        }
+      }
+    },
+    "atlascloud:qwen-image-3.0/text-to-image": {
+      "canonical": "qwen-image-3",
+      "name": "Qwen-Image-3.0",
+      "creator": "Alibaba",
+      "tasks": {
+        "text_to_image": {
+          "score": 1269,
+          "normalized": 0.9286,
+          "rank": 12,
+          "of": 155
+        },
+        "image_to_image": {
+          "score": 1218,
+          "normalized": 0.7857,
+          "rank": 16,
+          "of": 71
+        }
+      }
+    },
+    "atlascloud:vidu/q3-pro/image-to-video": {
+      "canonical": "vidu-q3-pro",
+      "name": "Vidu Q3 Pro",
+      "creator": "Vidu",
+      "tasks": {
+        "text_to_video": {
+          "score": 1212,
+          "normalized": 0.8101,
+          "rank": 16,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1280,
+          "normalized": 0.8493,
+          "rank": 12,
+          "of": 74
+        }
+      }
+    },
+    "atlascloud:vidu/q3-pro/text-to-video": {
+      "canonical": "vidu-q3-pro",
+      "name": "Vidu Q3 Pro",
+      "creator": "Vidu",
+      "tasks": {
+        "text_to_video": {
+          "score": 1212,
+          "normalized": 0.8101,
+          "rank": 16,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1280,
+          "normalized": 0.8493,
+          "rank": 12,
+          "of": 74
+        }
+      }
+    },
     "atlascloud:xai/grok-imagine-video-v1.5/image-to-video": {
+      "canonical": "grok-imagine-video",
+      "name": "grok-imagine-video",
+      "creator": "SpaceXAI",
+      "tasks": {
+        "text_to_video": {
+          "score": 1221,
+          "normalized": 0.8987,
+          "rank": 9,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1325,
+          "normalized": 0.9452,
+          "rank": 5,
+          "of": 74
+        }
+      }
+    },
+    "atlascloud:xai/grok-imagine-video-v1.5/reference-to-video": {
+      "canonical": "grok-imagine-video",
+      "name": "grok-imagine-video",
+      "creator": "SpaceXAI",
+      "tasks": {
+        "text_to_video": {
+          "score": 1221,
+          "normalized": 0.8987,
+          "rank": 9,
+          "of": 80
+        },
+        "image_to_video": {
+          "score": 1325,
+          "normalized": 0.9452,
+          "rank": 5,
+          "of": 74
+        }
+      }
+    },
+    "atlascloud:xai/grok-imagine-video-v1.5/text-to-video": {
       "canonical": "grok-imagine-video",
       "name": "grok-imagine-video",
       "creator": "SpaceXAI",
@@ -697,7 +1310,7 @@
       "creator": "ElevenLabs",
       "tasks": {
         "text_to_speech": {
-          "score": 1180,
+          "score": 1178,
           "normalized": 0.86,
           "rank": 15,
           "of": 101
@@ -805,7 +1418,7 @@
       "creator": "Resemble AI",
       "tasks": {
         "text_to_speech": {
-          "score": 1021,
+          "score": 1019,
           "normalized": 0.24,
           "rank": 77,
           "of": 101
@@ -818,7 +1431,7 @@
       "creator": "ElevenLabs",
       "tasks": {
         "text_to_speech": {
-          "score": 1180,
+          "score": 1178,
           "normalized": 0.86,
           "rank": 15,
           "of": 101
@@ -831,7 +1444,7 @@
       "creator": "ElevenLabs",
       "tasks": {
         "text_to_speech": {
-          "score": 1180,
+          "score": 1178,
           "normalized": 0.86,
           "rank": 15,
           "of": 101
@@ -1138,7 +1751,7 @@
       "creator": "Google",
       "tasks": {
         "text_to_speech": {
-          "score": 1210,
+          "score": 1207,
           "normalized": 0.93,
           "rank": 8,
           "of": 101
@@ -1300,7 +1913,7 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1113,
+          "score": 1111,
           "normalized": 0.69,
           "rank": 32,
           "of": 101
@@ -1313,9 +1926,9 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_speech": {
-          "score": 927,
-          "normalized": 0.11,
-          "rank": 90,
+          "score": 923,
+          "normalized": 0.1,
+          "rank": 91,
           "of": 101
         }
       }
@@ -2023,7 +2636,7 @@
       "creator": "Google",
       "tasks": {
         "text_to_speech": {
-          "score": 1210,
+          "score": 1207,
           "normalized": 0.93,
           "rank": 8,
           "of": 101
@@ -2636,7 +3249,7 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1113,
+          "score": 1111,
           "normalized": 0.69,
           "rank": 32,
           "of": 101
@@ -2649,7 +3262,7 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1136,
+          "score": 1133,
           "normalized": 0.78,
           "rank": 23,
           "of": 101
@@ -2700,9 +3313,9 @@
       "creator": "OpenAI",
       "tasks": {
         "text_to_speech": {
-          "score": 1095,
-          "normalized": 0.64,
-          "rank": 37,
+          "score": 1091,
+          "normalized": 0.63,
+          "rank": 38,
           "of": 101
         }
       }
@@ -2713,7 +3326,7 @@
       "creator": "OpenAI",
       "tasks": {
         "text_to_speech": {
-          "score": 1109,
+          "score": 1107,
           "normalized": 0.68,
           "rank": 33,
           "of": 101
@@ -2861,7 +3474,7 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1113,
+          "score": 1111,
           "normalized": 0.69,
           "rank": 32,
           "of": 101
@@ -2887,7 +3500,7 @@
       "creator": "Resemble AI",
       "tasks": {
         "text_to_speech": {
-          "score": 1021,
+          "score": 1019,
           "normalized": 0.24,
           "rank": 77,
           "of": 101
@@ -2960,19 +3573,6 @@
           "normalized": 0.1429,
           "rank": 61,
           "of": 71
-        }
-      }
-    },
-    "together:black-forest-labs/FLUX.1-schnell": {
-      "canonical": "flux-1-schnell",
-      "name": "FLUX.1 [schnell]",
-      "creator": "Black Forest Labs",
-      "tasks": {
-        "text_to_image": {
-          "score": 1000,
-          "normalized": 0.1494,
-          "rank": 132,
-          "of": 155
         }
       }
     },
