@@ -780,10 +780,12 @@ describe("DockerDeployer with port 7777", () => {
 });
 
 describe("DockerDeployer construction", () => {
-  it("should create state manager when not provided", () => {
+  // `../src/state.js` is module-mocked here, so the default config path is not
+  // observable; state.test.ts covers that half.
+  it("should construct a StateManager when none is provided", () => {
     const deployment = makeDockerDeployment();
     const deployer = new DockerDeployer("auto-state", deployment);
-    expect(deployer.stateManager).toBeDefined();
+    expect(deployer.stateManager).toBeInstanceOf(StateManager);
   });
 
   it("should detect localhost correctly", () => {

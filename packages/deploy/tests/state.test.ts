@@ -130,34 +130,23 @@ describe("StateManager", () => {
       expect(state).toBeNull();
     });
 
-    it("returns default state fields for docker deployment", async () => {
-      const state = await manager.readState("prod");
-      expect(state).not.toBeNull();
-      expect(state!.last_deployed).toBeNull();
-      expect(state!.container_id).toBeNull();
-      expect(state!.container_name).toBeNull();
-    });
-
-    it("returns default state fields for staging (docker) deployment", async () => {
-      const state = await manager.readState("staging");
-      expect(state).not.toBeNull();
-      expect(state!.container_id).toBeNull();
-      expect(state!.container_name).toBeNull();
-      expect(state!.url).toBeNull();
-    });
-
-    it("returns default state fields for cloud (docker) deployment", async () => {
-      const state = await manager.readState("cloud");
-      expect(state).not.toBeNull();
-      expect(state!.container_hash).toBeNull();
-      expect(state!.last_deployed).toBeNull();
-    });
-
-    it("returns default state for dev (docker) deployment", async () => {
-      const state = await manager.readState("dev");
-      expect(state).not.toBeNull();
-      expect(state!.status).toBe("unknown");
-    });
+    // Asserted as a whole object: a subset check cannot catch a wrong default
+    // on a field it does not name.
+    it.each(["prod", "staging", "cloud", "dev"])(
+      "returns the full default state for an unwritten %s deployment",
+      async (name) => {
+        const state = await manager.readState(name);
+        expect(state).toEqual({
+          status: "unknown",
+          last_deployed: null,
+          container_id: null,
+          container_name: null,
+          url: null,
+          container_hash: null,
+          container_run_hash: null
+        });
+      }
+    );
   });
 
   // --------------------------------------------------------------------------

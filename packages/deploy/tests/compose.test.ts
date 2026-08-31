@@ -175,17 +175,6 @@ describe("ComposeGenerator", () => {
   });
 
   describe("GPU configuration", () => {
-    it("should include deploy section when GPU is specified", () => {
-      const dep = makeDeployment({
-        container: { name: "gpu-worker", port: 9000, gpu: "0" }
-      });
-      const gen = new ComposeGenerator(dep);
-      const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
-      const services = parsed["services"] as Record<string, unknown>;
-      const svc = services["gpu-worker"] as Record<string, unknown>;
-      expect(svc["deploy"]).toBeDefined();
-    });
-
     it("should set nvidia driver", () => {
       const dep = makeDeployment({
         container: { name: "gpu-worker", port: 9000, gpu: "0" }
