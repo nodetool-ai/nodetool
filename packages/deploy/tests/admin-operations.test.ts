@@ -310,7 +310,9 @@ describe("AdminDownloadManager", () => {
     _existsSyncOverride = null;
   });
 
-  it("downloadWithProgress yields error status on download failure", async () => {
+  // Status "error" is reserved for a whole-repo failure; one bad file is a
+  // "progress" update carrying error_file.
+  it("downloadWithProgress reports a failed file without aborting the repo", async () => {
     const failHub = createMockHub({
       listRepoFiles: vi
         .fn()
@@ -321,10 +323,15 @@ describe("AdminDownloadManager", () => {
     const updates = await collect(
       mgr.downloadWithProgress({ repoId: "org/model" })
     );
-    const errorUpdate = updates.find((u) =>
-      u.message?.includes("Error downloading model.bin")
-    );
-    expect(errorUpdate).toBeDefined();
+    const errorUpdate = updates.find((u) => u.error_file === "model.bin");
+    expect(errorUpdate).toMatchObject({
+      status: "progress",
+      repo_id: "org/model",
+      current_file: "model.bin",
+      error_file: "model.bin"
+    });
+    expect(errorUpdate!.message).toContain("Error downloading model.bin");
+    expect(updates.some((u) => u.status === "error")).toBe(false);
   });
 
   it("downloadWithProgress handles repo listing failure", async () => {
