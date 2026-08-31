@@ -76,6 +76,25 @@ describe("WorkflowCostEstimatePanel", () => {
     });
   });
 
+  it("names a row by the node's title, keeping the type as its hover text", () => {
+    mockHook.mockReturnValue({
+      ...estimate,
+      items: [{ ...estimate.items[0], node_title: "Hero shot" }]
+    } as never);
+    renderPanel();
+
+    const cell = screen.getByText("Hero shot");
+    expect(cell).toHaveAttribute("title", "nodetool.image.TextToImage");
+    expect(screen.queryByText("nodetool.image.TextToImage")).toBeNull();
+  });
+
+  it("falls back to the type's spaced class name when no title travelled", () => {
+    mockHook.mockReturnValue(estimate as never);
+    renderPanel();
+
+    expect(screen.getByText("Text To Image")).toBeInTheDocument();
+  });
+
   it("reads fan-out, clip length and rung as one units phrase from the structured fields", () => {
     mockHook.mockReturnValue({
       ...estimate,

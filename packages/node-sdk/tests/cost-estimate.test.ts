@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   estimateWorkflowCost,
+  humanizeNodeType,
   nodeExpectedQuantity,
   usesAiModel,
   type CostEstimateInput,
@@ -559,6 +560,53 @@ describe("estimateWorkflowCost with pricing parameters", () => {
 
     expect(estimate.items[0].confidence).toBe("unknown");
     expect(estimate.items[0].warnings).toEqual(["the figure is a lower bound"]);
+  });
+});
+
+describe("node titles", () => {
+  it("spaces a class name apart, so a row is not a dotted path", () => {
+    expect(humanizeNodeType("nodetool.video.ImageToVideo")).toBe(
+      "Image To Video"
+    );
+    expect(humanizeNodeType("nodetool.agents.Agent")).toBe("Agent");
+    expect(humanizeNodeType("fal.text_to_image.GptImage2")).toBe("Gpt Image 2");
+    expect(humanizeNodeType("HTTPRequest")).toBe("HTTP Request");
+    expect(humanizeNodeType("")).toBe("");
+  });
+
+  it("prefers the user's title, then the metadata title, then the type", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [
+        { id: "named", type: FAL_TYPE },
+        { id: "registered", type: KIE_TYPE },
+        { id: "bare", type: "nodetool.video.ImageToVideo" }
+      ],
+      getMetadata: (type) =>
+        type === KIE_TYPE
+          ? { ...metadataByType[type], title: "Veo Clip" }
+          : metadataByType[type],
+      titles: { named: "Hero shot", registered: "   " }
+    });
+
+    const byId = Object.fromEntries(
+      estimate.items.map((item) => [item.node_id, item.node_title])
+    );
+    expect(byId.named).toBe("Hero shot");
+    // A blank title is not a title — fall through to the registered one.
+    expect(byId.registered).toBe("Veo Clip");
+    expect(byId.bare).toBe("Image To Video");
+  });
+
+  it("titles a node it could not price, which is where the name matters", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [{ id: "n1", type: LLM_TYPE }],
+      getMetadata,
+      titles: { n1: "Script writer" }
+    });
+
+    expect(estimate.unknown_count).toBe(1);
+    expect(estimate.items[0].node_title).toBe("Script writer");
+    expect(estimate.items[0].node_type).toBe(LLM_TYPE);
   });
 });
 

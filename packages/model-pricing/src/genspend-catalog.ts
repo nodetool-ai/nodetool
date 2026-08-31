@@ -151,4 +151,41 @@ export function getGenspendPrice(
   return genspendPricingCatalog.prices[`${provider}:${modelId}`] ?? null;
 }
 
+/** One provider's offering of a model, as {@link getGenspendPricesByModelId} returns it. */
+export interface GenspendOffering {
+  /** The NodeTool provider id the price belongs to. */
+  provider: string;
+  price: GenspendPrice;
+}
+
+/** Built once on first use: model id → every provider that publishes a price. */
+let offeringsByModelId: Map<string, GenspendOffering[]> | null = null;
+
+/**
+ * Every tracked offering of one provider-native model id, across providers.
+ *
+ * Resellers list the vendor's own id verbatim — AtlasCloud and fal both call
+ * it `google/gemini-omni-flash/image-to-video` — so a model the catalog knows
+ * under one provider is usually the same model under another. Callers use this
+ * only when the exact `<provider>:<id>` key is untracked, and must say whose
+ * rate they ended up quoting.
+ */
+export function getGenspendPricesByModelId(
+  modelId: string
+): readonly GenspendOffering[] {
+  if (!offeringsByModelId) {
+    offeringsByModelId = new Map();
+    for (const [key, price] of Object.entries(genspendPricingCatalog.prices)) {
+      const separator = key.indexOf(":");
+      if (separator <= 0) continue;
+      const id = key.slice(separator + 1);
+      const offerings = offeringsByModelId.get(id);
+      const offering = { provider: key.slice(0, separator), price };
+      if (offerings) offerings.push(offering);
+      else offeringsByModelId.set(id, [offering]);
+    }
+  }
+  return offeringsByModelId.get(modelId) ?? [];
+}
+
 export default genspendPricingCatalog;

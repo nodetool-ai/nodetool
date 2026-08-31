@@ -54,7 +54,7 @@ export function workflowCostLine(
   }
   const lines = priced.map((item) =>
     [
-      `${item.node_type}: ${formatUsd(item.estimated_cost)}`,
+      `${item.node_title ?? item.node_type}: ${formatUsd(item.estimated_cost)}`,
       item.breakdown,
       ...(item.warnings ?? [])
     ]

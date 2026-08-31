@@ -46,6 +46,19 @@ function propertyValues(data: unknown): Record<string, unknown> | undefined {
     : outer;
 }
 
+/**
+ * The title the user put on the node, which lives beside `properties` rather
+ * than in it. Absent, the estimator falls back to the node type's registered
+ * title.
+ */
+function userTitle(data: unknown): string | undefined {
+  if (!data || typeof data !== "object") {
+    return undefined;
+  }
+  const title = (data as { title?: unknown }).title;
+  return typeof title === "string" && title.trim() !== "" ? title : undefined;
+}
+
 /** Price a graph. Pure but for the metadata lookup the caller supplies. */
 export function estimateGraphCost(
   nodes: readonly CostEstimateNode[],
@@ -62,6 +75,13 @@ export function estimateGraphCost(
       nodeExpectedQuantity(propertyValues(node.data))
     ])
   );
+  // A renamed node is named that way in the cost table too — four Agent nodes
+  // are only told apart by what the user called them.
+  const titles: Record<string, string> = Object.fromEntries(
+    aiNodes
+      .map((node) => [node.id, userTitle(node.data)] as const)
+      .filter((entry): entry is readonly [string, string] => !!entry[1])
+  );
   return estimateWorkflowCost({
     nodes: aiNodes.map((node) => ({
       id: node.id,
@@ -74,6 +94,7 @@ export function estimateGraphCost(
     // audio), so a per-second model prices the clip and not one second.
     getParams: (node) => extractPricingParams(node.data),
     quantities,
+    titles,
     currency: "USD"
   });
 }

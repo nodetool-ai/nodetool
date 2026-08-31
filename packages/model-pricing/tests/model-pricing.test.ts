@@ -88,12 +88,131 @@ describe("getModelUnitPrice", () => {
     });
   });
 
-  it("does not price a GenSpend model against the wrong provider", () => {
-    const [key] = Object.entries(genspendPricingCatalog.prices).find(([k]) =>
-      k.startsWith("replicate:")
+  it("does not let an unconvertible FAL unit hide a GenSpend price", () => {
+    // FAL bills a slice of its endpoints in "units" — a word naming no fixed
+    // amount, so the scalar path refuses to turn it into a run. That refusal
+    // is not a price: where GenSpend carries a real number for the same
+    // endpoint, that number is the answer.
+    const id = Object.entries(falUnitPricingCatalog.prices ?? {}).find(
+      ([endpoint, entry]) => {
+        const unit = (entry as { billing_unit?: unknown }).billing_unit;
+        const genspend = genspendPricingCatalog.prices[`fal_ai:${endpoint}`];
+        return (
+          typeof unit === "string" &&
+          /^units?$/i.test(unit.trim()) &&
+          genspend !== undefined &&
+          !isParameterPriceable(genspend)
+        );
+      }
+    )?.[0];
+    if (!id) return; // No such overlap in today's catalogs — nothing to pin.
+
+    const priced = getModelUnitPrice({ id, provider: "fal_ai" });
+    expect(priced?.declined).toBeUndefined();
+    expect(priced?.unit_price).toBe(
+      genspendPricingCatalog.prices[`fal_ai:${id}`].unit_price
+    );
+  });
+
+  it("says whose rate it quoted when the selected provider publishes none", () => {
+    // Only-offering ids, so the borrowed figure can only be this one.
+    const offerings = new Map<string, number>();
+    for (const id of Object.keys(genspendPricingCatalog.prices)) {
+      const model = id.slice(id.indexOf(":") + 1);
+      offerings.set(model, (offerings.get(model) ?? 0) + 1);
+    }
+    const [key, price] = Object.entries(genspendPricingCatalog.prices).find(
+      ([k, entry]) =>
+        k.startsWith("replicate:") &&
+        !isParameterPriceable(entry) &&
+        offerings.get(k.slice("replicate:".length)) === 1
     )!;
     const id = key.slice("replicate:".length);
-    expect(getModelUnitPrice({ id, provider: "together" })).toBeNull();
+    // A reseller lists the vendor's own id, so the same id under another
+    // provider is the same model — priced, but never passed off as that
+    // provider's own quote.
+    const borrowed = getModelUnitPrice({ id, provider: "together" });
+    expect(borrowed?.unit_price).toBe(price.unit_price);
+    expect(borrowed?.assumptions).toEqual([
+      "no published price for this model on together — priced at replicate's rate for the same model"
+    ]);
+    // The provider that does publish it gets the figure with nothing attached.
+    expect(
+      getModelUnitPrice({ id, provider: "replicate" })?.assumptions
+    ).toBeUndefined();
+  });
+
+  it("quotes the cheapest tracked offering, and only within one unit class", () => {
+    const byId = new Map<string, { provider: string; unitClass: string; price: number }[]>();
+    for (const [key, entry] of Object.entries(genspendPricingCatalog.prices)) {
+      const at = key.indexOf(":");
+      const id = key.slice(at + 1);
+      const rows = byId.get(id) ?? [];
+      rows.push({
+        provider: key.slice(0, at),
+        unitClass: entry.unit_class,
+        price: entry.unit_price
+      });
+      byId.set(id, rows);
+    }
+
+    const mixed = [...byId].find(
+      ([, rows]) => new Set(rows.map((r) => r.unitClass)).size > 1
+    );
+    if (mixed) {
+      // Per-second and per-generation rates are not comparable, so there is no
+      // cheapest one to quote: the model stays unpriced for a third provider.
+      expect(
+        getModelUnitPrice({ id: mixed[0], provider: "no-such-provider" })
+      ).toBeNull();
+    }
+
+    const shared = [...byId].find(
+      ([id, rows]) =>
+        rows.length > 1 &&
+        new Set(rows.map((r) => r.unitClass)).size === 1 &&
+        new Set(rows.map((r) => r.price)).size > 1 &&
+        !falUnitPricingCatalog.prices?.[id] &&
+        !kieUnitPricingCatalog.prices?.[id]
+    );
+    if (shared) {
+      const cheapest = Math.min(...shared[1].map((r) => r.price));
+      const quoted = getModelUnitPrice({
+        id: shared[0],
+        provider: "no-such-provider"
+      });
+      expect(quoted?.unit_price).toBe(cheapest);
+    }
+  });
+
+  it("prices a reseller off the FAL row only as a named borrowing", () => {
+    // An endpoint GenSpend tracks under no provider at all, so the FAL scalar
+    // is the only row that can answer for either lookup.
+    const tracked = new Set(
+      Object.keys(genspendPricingCatalog.prices).map((key) =>
+        key.slice(key.indexOf(":") + 1)
+      )
+    );
+    const id = Object.entries(falUnitPricingCatalog.prices ?? {}).find(
+      ([endpoint, entry]) => {
+        const row = entry as Record<string, unknown>;
+        const unit =
+          typeof row.billing_unit === "string" ? row.billing_unit.trim() : "";
+        return (
+          !tracked.has(endpoint) &&
+          typeof row.unit_price === "number" &&
+          row.unit_price > 0 &&
+          PER_RUN_UNITS.has(unit)
+        );
+      }
+    )?.[0];
+    if (!id) throw new Error("no untracked per-run FAL endpoint");
+
+    const own = getModelUnitPrice({ id, provider: "fal_ai" });
+    const reseller = getModelUnitPrice({ id, provider: "atlascloud" });
+    expect(own?.assumptions).toBeUndefined();
+    expect(reseller?.unit_price).toBe(own?.unit_price);
+    expect(reseller?.assumptions?.[0]).toContain("fal_ai");
   });
 
   it("returns null for a model in no catalog", () => {

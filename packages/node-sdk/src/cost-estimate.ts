@@ -51,6 +51,8 @@ export interface NodePropertyLike {
 
 /** Minimal slice of `NodeMetadata` this estimator reads. */
 export interface NodeMetadataLike {
+  /** The node's registered display name ("Image To Video"). */
+  title?: string | null;
   fal_unit_pricing?: FalUnitPricingLike | null;
   kie_unit_pricing?: KieUnitPricingLike | null;
   /** Properties, used to find a provider-model selection on generic nodes. */
@@ -423,10 +425,38 @@ export function priceScalarUnit(
  * instead of parsing them back out of `breakdown` prose.
  */
 export interface NodeCostEstimateDetail extends NodeCostEstimate {
+  /**
+   * What to call this node in a cost table: the title the user gave it, else
+   * the node's registered title, else its class name spaced out. `node_type`
+   * stays the identity — a reader who needs `nodetool.video.ImageToVideo`
+   * still has it — but a column of dotted paths reads as one repeated prefix,
+   * and the four `nodetool.agents.Agent` rows of a real graph are told apart
+   * by their titles, not their type.
+   */
+  node_title?: string;
   /** Output duration the price was multiplied by, when one applied. */
   seconds?: number;
   /** Rung the price was read off ("720p", "1MP"). */
   resolution?: string;
+}
+
+/**
+ * A node type's class name, spaced: `nodetool.video.ImageToVideo` → "Image To
+ * Video". The last resort behind a user title and the registered metadata
+ * title, for a node type whose metadata a caller could not supply.
+ */
+export function humanizeNodeType(nodeType: string): string {
+  const leaf = nodeType.split(".").pop() ?? nodeType;
+  return (
+    leaf
+      // `ImageToVideo` → `Image To Video`, `TextToImage2` → `Text To Image 2`,
+      // `HTTPRequest` → `HTTP Request`: split before a capital that starts a
+      // new word and between a letter run and a digit run.
+      .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+      .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+      .replace(/([A-Za-z])(\d)/g, "$1 $2")
+      .trim() || nodeType
+  );
 }
 
 /** {@link estimateWorkflowCost}'s result, with the detailed items. */
@@ -534,6 +564,12 @@ export interface CostEstimateInput {
   /** Optional per-node expected run count (fan-out). Defaults to 1. */
   quantities?: Record<string, number>;
   /**
+   * Optional per-node display title, keyed by node id — the name the user gave
+   * the node on the canvas. Falls back to the metadata title, then to the node
+   * type's spaced class name.
+   */
+  titles?: Record<string, string>;
+  /**
    * Explicitly identifies graph plumbing or local utility nodes known not to
    * create a billable provider request. Excluded nodes do not become
    * misleading unknown-cost items.
@@ -550,6 +586,19 @@ const DEFAULT_CURRENCY = "USD";
 
 function positiveQuantity(value: number | undefined): number {
   return isFiniteNumber(value) && value > 0 ? value : 1;
+}
+
+/** What to call a node in the table: user title, registered title, class name. */
+function nodeTitle(
+  userTitle: string | undefined,
+  metadata: NodeMetadataLike | undefined,
+  nodeType: string
+): string {
+  const given = userTitle?.trim();
+  if (given) return given;
+  const registered = metadata?.title?.trim();
+  if (registered) return registered;
+  return humanizeNodeType(nodeType);
 }
 
 function confidenceFromSource(
@@ -809,6 +858,7 @@ export function estimateWorkflowCost(
 ): WorkflowCostEstimateDetail {
   const currency = input.currency ?? DEFAULT_CURRENCY;
   const quantities = input.quantities ?? {};
+  const titles = input.titles ?? {};
 
   const items: NodeCostEstimateDetail[] = [];
   let total = 0;
@@ -819,8 +869,10 @@ export function estimateWorkflowCost(
       continue;
     }
     const quantity = positiveQuantity(quantities[node.id]);
+    const metadata = input.getMetadata(node.type);
+    const title = nodeTitle(titles[node.id], metadata, node.type);
     const price = resolvePrice(
-      input.getMetadata(node.type),
+      metadata,
       node.data,
       input.getModelPrice,
       input.getParams?.(node)
@@ -831,6 +883,7 @@ export function estimateWorkflowCost(
       const unknownItem: UnknownItemFields = {
         node_id: node.id,
         node_type: node.type,
+        node_title: title,
         provider: price?.provider ?? null,
         model: price?.model ?? null,
         quantity,
@@ -854,6 +907,7 @@ export function estimateWorkflowCost(
     const item: ItemFields = {
       node_id: node.id,
       node_type: node.type,
+      node_title: title,
       provider: price.provider,
       model: price.model,
       unit_price: price.unitPrice,

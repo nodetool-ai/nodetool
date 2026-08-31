@@ -267,6 +267,37 @@ describe("useWorkflowCostEstimate", () => {
     ).toBeCloseTo(0.8, 5);
   });
 
+  it("carries the node's own title, so the table is not a column of types", () => {
+    mockNodes = [
+      {
+        id: "t2v",
+        type: "nodetool.video.TextToVideo",
+        data: {
+          title: "Establishing shot",
+          properties: {
+            model: {
+              type: "video_model",
+              provider: "genspend_provider",
+              id: "video/per-second"
+            },
+            duration: 5
+          }
+        }
+      },
+      // Untitled: falls back to the type's spaced class name, since the mocked
+      // metadata carries no `title` either.
+      { id: "n1", type: "fal.Image", data: {} }
+    ];
+
+    const { result } = renderHook(() => useWorkflowCostEstimate("wf1"));
+
+    const byId = Object.fromEntries(
+      result.current!.items.map((item) => [item.node_id, item.node_title])
+    );
+    expect(byId.t2v).toBe("Establishing shot");
+    expect(byId.n1).toBe("Image");
+  });
+
   it("multiplies a node's cost by its fan-out output count", () => {
     // fal.Image at 0.05/image with num_images: 3 → quantity 3, cost 0.15.
     mockNodes = [{ id: "n1", type: "fal.Image", data: { num_images: 3 } }];
