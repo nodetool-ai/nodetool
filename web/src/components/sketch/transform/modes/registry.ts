@@ -14,15 +14,13 @@ import { PerspectiveMode } from "./perspective";
 import { MeshWarpMode } from "./warp";
 
 /**
- * After Affinity-parity consolidation the user-facing modes are:
- *   - `scale` (Move/Scale; Ctrl+edge auto-promotes to skew)
- *   - `perspective` (Perspective)
- *   - `mesh-warp` (Mesh Warp)
- *   - `distort` (Deform)
+ * Toolbar modes: `scale` (Move/Scale; Ctrl+edge auto-promotes to skew),
+ * `perspective`, and `distort` (Deform).
  *
  * `skew` is kept in the registry because `resolveTransformGestureMode`
- * promotes Ctrl+edge scale gestures to it, but it is hidden from the
- * toolbar (`visibleInToolbar: false`).
+ * promotes Ctrl+edge scale gestures to it, and `mesh-warp` because
+ * documents saved with that tag still have to render. Neither is
+ * user-pickable (`visibleInToolbar: false`).
  */
 export const TRANSFORM_MODES: Record<TransformMode, TransformModeHandler> = {
   scale: ScaleMode,
@@ -60,7 +58,7 @@ export function getTransformMode(id: TransformMode | string): TransformModeHandl
   return TRANSFORM_MODES.scale;
 }
 
-/** Modes the user can pick from the toolbar (mesh-warp is hidden today). */
+/** Modes the user can pick from the toolbar (skew and mesh-warp are not). */
 export function getToolbarTransformModes(): readonly TransformModeHandler[] {
   return Object.values(TRANSFORM_MODES).filter((m) => m.visibleInToolbar);
 }
