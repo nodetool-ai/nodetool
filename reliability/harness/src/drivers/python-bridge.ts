@@ -49,7 +49,7 @@ export const FAKE_BRIDGE_STARTUP_TIMEOUT_MS = 3000;
  * `FAKE_WORKER_*` env vars the fake fixture reads, not by changing this
  * factory. Both the kernel driver (directly, as `ExecutionSession`'s
  * `bridgeFactory`) and the ws-server driver (via its own `resolveExecutor`,
- * `connectPythonBridgeForGraph` isn't wired into `UnifiedWebSocketRunner`
+ * `connectPythonBridgeForGraph` isn't wired into `WebSocketClientSession`
  * automatically the way it is into `ExecutionSession`) use this one factory.
  */
 export const journeyPythonBridgeFactory: BridgeFactory = (

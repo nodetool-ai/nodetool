@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { SdkExecutionCapacitySnapshot } from "../unified-websocket-runner.js";
+import type { SdkExecutionCapacitySnapshot } from "../websocket-client-session.js";
 
 interface SdkLiveRunnerCapacitySource {
   getSdkExecutionCapacitySnapshot(input: {

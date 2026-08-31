@@ -2,7 +2,7 @@
  * FIFO queue for run-job requests that arrive while a client already has the
  * maximum number of concurrent runs in flight.
  *
- * The {@link UnifiedWebSocketRunner} is per-connection, so this queue is
+ * The {@link WebSocketClientSession} is per-connection, so this queue is
  * per-client: it caps how many workflow runs one client can execute at once
  * (configurable via the `MAX_CONCURRENT_JOBS` setting) and holds the rest
  * until a running job finishes. This prevents a single click on "Run

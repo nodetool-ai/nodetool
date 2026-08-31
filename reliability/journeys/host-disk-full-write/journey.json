@@ -1,6 +1,6 @@
 {
   "name": "host-disk-full-write",
-  "description": "Task D3 (docs/RELIABILITY_ARCHITECTURE.md §9): an injectable `StorageAdapter` (`faults/host-faults.ts`'s `host-disk-full`) makes a mid-run asset write fail with ENOSPC. Kernel-surface only — the ws-server driver's asset storage comes from `unified-websocket-runner.ts`'s own module-level singleton, which task A5 reserves for a later migration rather than a fault-injection seam (see `faults/host-faults.ts`'s doc comment). Happy path writes successfully; the `host-disk-full` fault must still end the run in a sane failed terminal with zero invariant violations.",
+  "description": "Task D3 (docs/RELIABILITY_ARCHITECTURE.md §9): an injectable `StorageAdapter` (`faults/host-faults.ts`'s `host-disk-full`) makes a mid-run asset write fail with ENOSPC. Kernel-surface only — the ws-server driver's asset storage comes from `websocket-client-session.ts`'s own module-level singleton, which task A5 reserves for a later migration rather than a fault-injection seam (see `faults/host-faults.ts`'s doc comment). Happy path writes successfully; the `host-disk-full` fault must still end the run in a sane failed terminal with zero invariant violations.",
   "workflow": { "ref": "workflow.json" },
   "params": {},
   "interactions": "interactions.json",

@@ -13,10 +13,10 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { unpack } from "msgpackr";
 import { initTestDb, Asset } from "@nodetool-ai/models";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 class MockWS implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -91,7 +91,7 @@ beforeEach(async () => {
 describe("generation_complete relay", () => {
   it("stamps arrival-order index 0..N-1 per (job, node) and backfills job_id", async () => {
     const list = ["p0", "p1", "p2", "p3", "p4", "p5"];
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "nodetool.control.ForEach") {
           return {
@@ -120,7 +120,7 @@ describe("generation_complete relay", () => {
     });
 
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOB1",
       workflow_id: "WF1",
       graph: {
@@ -171,7 +171,7 @@ describe("generation_complete relay", () => {
   });
 
   it("normalizes .outputs (raw bytes → client-bytes wrapper) before relay", async () => {
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "test.TextToImage") {
           return {
@@ -188,7 +188,7 @@ describe("generation_complete relay", () => {
     });
 
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOB2",
       workflow_id: "WF2",
       graph: {
@@ -216,7 +216,7 @@ describe("generation_complete relay", () => {
     // isolating the generation_complete path. We assert both that the event is
     // relayed AND that zero Asset rows exist for the job, so a future author who
     // wires autosave onto generation_complete here hits a failing test.
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "test.TextToImage") {
           return {
@@ -231,7 +231,7 @@ describe("generation_complete relay", () => {
     });
 
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOB3",
       workflow_id: "WF3",
       graph: {

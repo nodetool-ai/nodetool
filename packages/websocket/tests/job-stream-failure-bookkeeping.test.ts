@@ -17,10 +17,10 @@ import { initTestDb, Asset, Job } from "@nodetool-ai/models";
 import type { NodeTypeResolver, ResolvedNodeType } from "@nodetool-ai/kernel";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 class MockWS implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -83,7 +83,7 @@ const imageGenMeta = {
 } as unknown as NodeMetadata;
 
 function makeRunner() {
-  return new UnifiedWebSocketRunner({
+  return new WebSocketClientSession({
     resolveExecutor: () => ({
       async process() {
         return { image: { type: "image", data: new Uint8Array([1, 2, 3]) } };
@@ -137,7 +137,7 @@ describe("drain-loop failure bookkeeping", () => {
     });
 
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOBFAIL",
       workflow_id: "WFFAIL",
       graph
@@ -179,7 +179,7 @@ describe("drain-loop failure bookkeeping", () => {
 
     const runner = makeRunner();
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOBOK",
       workflow_id: "WFOK",
       graph

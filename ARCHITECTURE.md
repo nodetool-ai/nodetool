@@ -260,7 +260,7 @@ HTTP API routes (40+ endpoints):
 | `/v1/*` | OpenAI-compatible API endpoints |
 | `/api/oauth/*` | OAuth flows |
 
-WebSocket commands handled by `UnifiedWebSocketRunner`:
+WebSocket commands handled by `WebSocketClientSession`:
 | Command | Purpose |
 |---|---|
 | `run_job` | Execute a workflow DAG |
@@ -283,7 +283,7 @@ The server also registers all node types (base + provider nodes), initializes th
 Client sends "run_job" via WebSocket
         │
         ▼
-UnifiedWebSocketRunner (packages/websocket)
+WebSocketClientSession (packages/websocket)
   ├── Creates ProcessingContext (storage, cache, secrets, LLM providers)
   ├── Provides resolveExecutor() for kernel
   │

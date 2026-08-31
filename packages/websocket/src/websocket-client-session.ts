@@ -1,6 +1,5 @@
 import { getSetting } from "./settings-registry.js";
 import { ConfiguredProviderCache } from "./configured-providers.js";
-import { JobConcurrencyQueue } from "./job-queue.js";
 import { packWebSocketMessage, unpackWebSocketMessage } from "./messagepack.js";
 import { createLogger, getByteLimitEnv } from "@nodetool-ai/config";
 import { getAssetAdapter } from "./lib/storage.js";
@@ -27,7 +26,6 @@ import type {
   ChatTurnExecutionHooks,
   ChatTurnSession
 } from "./chat-turn-registry.js";
-import type { JobRunSession } from "./job-run-registry.js";
 import {
   Asset,
   ModelChangeEvent,
@@ -35,21 +33,13 @@ import {
   ModelObserver,
   type DBModel
 } from "@nodetool-ai/models";
-import type {
-  MessageContent,
-  BaseProvider,
-  ProcessingContext,
-  PromptAssetRef
-} from "@nodetool-ai/runtime";
+import type { BaseProvider } from "@nodetool-ai/runtime";
 import {
   ProcessingContext as RuntimeProcessingContext,
   fetchExternalMedia,
   type Workspace
 } from "@nodetool-ai/runtime";
-import type {
-  HydratedGraphData,
-  NodeDescriptor
-} from "@nodetool-ai/protocol";
+import type { NodeDescriptor } from "@nodetool-ai/protocol";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
@@ -64,7 +54,6 @@ import {
   type ControlMessageInType
 } from "@nodetool-ai/protocol";
 import { type SandboxClock } from "@nodetool-ai/agents";
-import { type CapabilityRun } from "@nodetool-ai/agents";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import type { HttpApiOptions } from "./http-api.js";
@@ -96,13 +85,9 @@ import {
   DirectInferenceHandler,
   entityRefResolver,
   estimateDirectTextSpend,
-  resolveEntityReferenceImages,
-  type DirectMediaGenerationRequest
+  resolveEntityReferenceImages
 } from "./session/inference.js";
-import {
-  attachPlanApproval as attachPlanApprovalTo,
-  extractTextContent as extractMessageText
-} from "./session/chat-history.js";
+import { attachPlanApproval as attachPlanApprovalTo } from "./session/chat-history.js";
 
 // The pure helpers moved to ./session/*; re-exported here so every existing
 // import path keeps working.
@@ -122,8 +107,6 @@ import {
   JobExecutionManager,
   resolveRunJobExecutionOptions,
   resolveRunJobUserId,
-  type ActiveJob,
-  type RawGraphData,
   type RunJobExecutionOptions,
   type RunJobRequest,
   type SdkExecutionCapacitySnapshot
@@ -447,7 +430,7 @@ export class WebSocketClientSession implements ClientSession {
    * the concurrency queue and the slot counters; nothing outside it holds a
    * reference to them.
    */
-  private readonly jobs: JobExecutionManager;
+  readonly jobs: JobExecutionManager;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
   private statsPrimeTimer: NodeJS.Timeout | null = null;
@@ -458,7 +441,7 @@ export class WebSocketClientSession implements ClientSession {
    */
   private readonly rpcAborts = new Set<AbortController>();
   /** One-shot model calls: the `inference` stream and the direct-generation RPCs. */
-  private readonly inference: DirectInferenceHandler;
+  readonly inference: DirectInferenceHandler;
   private clientToolsManifest: Record<string, Record<string, unknown>> = {};
   private clientToolsManifestReady = false;
   private toolBridge = new ToolBridge();
@@ -467,9 +450,9 @@ export class WebSocketClientSession implements ClientSession {
   /** Round-trips permission approvals for gated tool calls. */
   private approvalBridge = new ToolBridge();
   /** This connection's chat turns: state, permissions, and the turn loop. */
-  private readonly chat: ChatTurnHandler;
+  readonly chat: ChatTurnHandler;
   /** The client's command surface: one dispatch table over the wire commands. */
-  private readonly commands: CommandRouter;
+  readonly commands: CommandRouter;
   private observerRegistered = false;
   /**
    * The detachable session for the chat turn THIS connection is executing.
@@ -497,77 +480,6 @@ export class WebSocketClientSession implements ClientSession {
   };
   logError(context: string, error: unknown): void {
     log.error(context, formatSanitizedError(error));
-  }
-
-  /** The run built for the last chat turn — what PR 11 hands to the sandbox. */
-  getChatCapabilityRun(): CapabilityRun | null {
-    return this.chat.getCapabilityRun();
-  }
-
-  /**
-   * The turn a stale `requestSeq` is measured against. Transitional: the
-   * counter itself now lives on {@link ChatTurnHandler}, and this accessor
-   * keeps the direct-inference handler's `currentRequestSeq` callback — and
-   * the existing suites — reading it from here. Removed with the other
-   * delegating members in T7/T8.
-   */
-  private get chatRequestSeq(): number {
-    return this.chat.currentRequestSeq;
-  }
-
-  /** Abort the in-flight turn, if any. Idempotent. */
-  private cancelChatTurn(): void {
-    this.chat.cancel();
-  }
-
-  /**
-   * Extract text from message content that may be a string or array of content items.
-   * Mirrors Python's _extract_query_text / _extract_objective / _extract_text_content.
-   */
-  extractTextContent(content: unknown, fallback = ""): string {
-    return extractMessageText(content, fallback);
-  }
-
-  /**
-   * Chat-turn internals the existing suites drive directly. Transitional, like
-   * {@link chatRequestSeq}: the implementations live on {@link ChatTurnHandler}
-   * and these delegates go when the suites move onto it in T8.
-   */
-  materializeAssistantImageContent(
-    content: MessageContent[],
-    userId: string,
-    workflowId: string | null
-  ): Promise<Array<Record<string, unknown>>> {
-    return this.chat.materializeAssistantImageContent(
-      content,
-      userId,
-      workflowId
-    );
-  }
-
-  materializeToolResultImages(
-    toolResult: unknown,
-    ctx: ProcessingContext
-  ): Promise<unknown> {
-    return this.chat.materializeToolResultImages(toolResult, ctx);
-  }
-
-  _logProviderCall(
-    userId: string,
-    provider: BaseProvider,
-    providerId: string,
-    model: string,
-    workflowId: string | null,
-    projectId: string | null
-  ): Promise<void> {
-    return this.chat._logProviderCall(
-      userId,
-      provider,
-      providerId,
-      model,
-      workflowId,
-      projectId
-    );
   }
 
   /**
@@ -632,7 +544,7 @@ export class WebSocketClientSession implements ClientSession {
       options.systemStatsEnabled ?? systemStatsBroadcastEnabled();
     this.inference = new DirectInferenceHandler(this, {
       defaults: { provider: this.defaultProvider, model: this.defaultModel },
-      currentRequestSeq: () => this.chatRequestSeq,
+      currentRequestSeq: () => this.chat.currentRequestSeq,
       registerAbort: (controller) => this.registerAbort(controller)
     });
     this.jobs = new JobExecutionManager(this, {
@@ -658,19 +570,12 @@ export class WebSocketClientSession implements ClientSession {
       // accounting, so it is registered and released here rather than in a
       // map of chat's own.
       jobs: {
-        registerJob: (jobId, active) => {
-          this.activeJobs.set(jobId, active);
-        },
-        dropJob: (jobId) => {
-          this.activeJobs.delete(jobId);
-        },
-        releaseJob: (jobId) => {
-          this.activeJobs.delete(jobId);
-          this.drainQueue();
-        },
+        registerJob: (jobId, active) => this.jobs.registerJob(jobId, active),
+        dropJob: (jobId) => this.jobs.dropJob(jobId),
+        releaseJob: (jobId) => this.jobs.releaseJob(jobId),
         handleNodeProviderCost: (active, outbound) =>
-          this._handleNodeProviderCost(active, outbound),
-        runMeasuredCost: (active) => this.runMeasuredCost(active)
+          this.jobs._handleNodeProviderCost(active, outbound),
+        runMeasuredCost: (active) => this.jobs.runMeasuredCost(active)
       },
       toolBridge: this.toolBridge,
       approvalBridge: this.approvalBridge,
@@ -681,30 +586,17 @@ export class WebSocketClientSession implements ClientSession {
         provider: this.defaultProvider,
         model: this.defaultModel
       },
-      hydrateGraph: (graph) => this.hydrateGraph(graph),
+      hydrateGraph: (graph) => this.jobs.hydrateGraph(graph),
       configuredProviders: (userId) =>
         this.configuredProvidersCache.get(userId),
-      entityRefResolver: (userId) => this.entityRefResolver(userId),
-      resolveEntityReferenceImages: (userId, refs) =>
-        this.resolveEntityReferenceImages(userId, refs),
+      entityRefResolver,
+      resolveEntityReferenceImages,
       resolveSourceImageBytes: (data, mediaGeneration, userId) =>
         this.resolveSourceImageBytes(data, mediaGeneration, userId)
     });
     this.commands = new CommandRouter({
       session: this,
-      // The job region as this connection exposes it: the four commands the
-      // job suites drive through the runner keep going through it, so a spy
-      // on `runner.runJob` still intercepts a `run_job` command.
-      jobs: {
-        runJob: (req) => this.runJob(req),
-        reconnectJob: (jobId, workflowId, lastSeq) =>
-          this.reconnectJob(jobId, workflowId, lastSeq),
-        cancelJob: (jobId, workflowId) => this.cancelJob(jobId, workflowId),
-        getStatus: (jobId) => this.getStatus(jobId),
-        resolveJobControl: (jobId) => this.jobs.resolveJobControl(jobId),
-        stopJob: (jobId) => this.jobs.stopJob(jobId),
-        activeJobIds: () => this.jobs.activeJobIds()
-      },
+      jobs: this.jobs,
       chat: this.chat,
       inference: this.inference,
       // What a command does to the connection itself: the socket, the wire
@@ -877,7 +769,7 @@ export class WebSocketClientSession implements ClientSession {
     } else {
       this.toolBridge.cancelAll();
       this.approvalBridge.cancelAll();
-      this.cancelChatTurn();
+      this.chat.cancel();
     }
     for (const session of this.adoptedSessions.values()) {
       session.detach(this.chatDeliveryTarget);
@@ -934,7 +826,7 @@ export class WebSocketClientSession implements ClientSession {
     // Adopted sessions are checked too so a `cancel_job` this connection
     // issued against a run owned by another connection still buffers its
     // acknowledgement into that run's session rather than only this socket.
-    const jobSession = this.resolveJobSession(message.job_id);
+    const jobSession = this.jobs.resolveJobSession(message.job_id);
     if (jobSession && jobSession.status === "running") {
       jobSession.emit(message);
       return;
@@ -1111,152 +1003,6 @@ export class WebSocketClientSession implements ClientSession {
     return { value, at: now };
   }
 
-  // ---------------------------------------------------------------------
-  // Job region — delegators onto JobExecutionManager.
-  //
-  // The job code moved out in T3 (docs/websocket-runner-refactor-plan.md).
-  // The chat, RPC and command regions still call these members on the runner;
-  // they move onto the manager's own surface in T7/T8, and every method below
-  // goes with them. Each one forwards and does nothing else.
-  // ---------------------------------------------------------------------
-
-  /** Transitional: `handleCommand`'s `run_job` — removed in T7/T8. */
-  async runJob(incoming: RunJobRequest): Promise<void> {
-    return this.jobs.runJob(incoming);
-  }
-
-  /** Transitional: `handleCommand`'s `reconnect_job` — removed in T7/T8. */
-  async reconnectJob(
-    jobId: string,
-    workflowId?: string,
-    lastSeq = 0
-  ): Promise<void> {
-    return this.jobs.reconnectJob(jobId, workflowId, lastSeq);
-  }
-
-  /** Transitional: `handleCommand`'s `cancel_job` — removed in T7/T8. */
-  async cancelJob(
-    jobId: string,
-    workflowId?: string
-  ): Promise<Record<string, unknown>> {
-    return this.jobs.cancelJob(jobId, workflowId);
-  }
-
-  /** Transitional: `handleCommand`'s `get_status` — removed in T7/T8. */
-  getStatus(jobId?: string) {
-    return this.jobs.getStatus(jobId);
-  }
-
-  /** Transitional: the SDK live-runner registry reads it — removed in T7/T8. */
-  async getSdkExecutionCapacitySnapshot(input: {
-    workflowId: string;
-    concurrent?: boolean;
-  }): Promise<SdkExecutionCapacitySnapshot> {
-    return this.jobs.getSdkExecutionCapacitySnapshot(input);
-  }
-
-  /** Transitional: the reliability harness reads it — removed in T7/T8. */
-  get slotCounters(): { activeJobs: number; startingJobs: number } {
-    return this.jobs.slotCounters;
-  }
-
-  /** Transitional: `sendMessage` routes a run's frames — removed in T7/T8. */
-  private resolveJobSession(jobId: unknown): JobRunSession | null {
-    return this.jobs.resolveJobSession(jobId);
-  }
-
-  /** Transitional: chat's workflow runs register here — removed in T7/T8. */
-  private get activeJobs(): Map<string, ActiveJob> {
-    return this.jobs.activeJobs;
-  }
-
-  /** Transitional: read by the runner's own suites — removed in T7/T8. */
-  get jobQueue(): JobConcurrencyQueue<RunJobRequest> {
-    return this.jobs.jobQueue;
-  }
-
-  /** Transitional: read by the job-resilience suite — removed in T7/T8. */
-  get jobDeliveryTarget(): {
-    deliver(message: Record<string, unknown>): Promise<void>;
-  } {
-    return this.jobs.jobDeliveryTarget;
-  }
-
-  /** Transitional: read by the job-resilience suite — removed in T7/T8. */
-  get inFlightJobCount(): number {
-    return this.jobs.inFlightJobCount;
-  }
-
-  /** Transitional: read by the job-resilience suite — removed in T7/T8. */
-  countActiveJobsForWorkflow(workflowId: string | null | undefined): number {
-    return this.jobs.countActiveJobsForWorkflow(workflowId);
-  }
-
-  /** Transitional: a chat-triggered run frees its slot — removed in T7/T8. */
-  private drainQueue(): void {
-    this.jobs.drainQueue();
-  }
-
-  /** Transitional: driven directly by the run_job suite — removed in T7/T8. */
-  startJob(req: RunJobRequest): Promise<void> {
-    return this.jobs.startJob(req);
-  }
-
-  /** Transitional: driven directly by the job suites — removed in T7/T8. */
-  streamJobMessages(
-    active: ActiveJob,
-    executePromise: Promise<{
-      status: "completed" | "failed" | "cancelled";
-      error?: string;
-      outputs?: Record<string, unknown[]>;
-    }>
-  ): Promise<void> {
-    return this.jobs.streamJobMessages(active, executePromise);
-  }
-
-  /** Transitional: driven directly by the run_job suite — removed in T7/T8. */
-  emitBeforeRunFailure(
-    jobId: string,
-    workflowId: string | null,
-    err: unknown,
-    persistJob: boolean
-  ): Promise<void> {
-    return this.jobs.emitBeforeRunFailure(jobId, workflowId, err, persistJob);
-  }
-
-  /** Transitional: driven directly by the lifecycle suite — removed in T7/T8. */
-  getRawGraph(req: RunJobRequest): Promise<RawGraphData> | RawGraphData {
-    return this.jobs.getRawGraph(req);
-  }
-
-  /** Transitional: driven directly by the lifecycle suite — removed in T7/T8. */
-  normalizeGraph(graph: RawGraphData): RawGraphData {
-    return this.jobs.normalizeGraph(graph);
-  }
-
-  /** Transitional: chat hydrates a graph the same way — removed in T7/T8. */
-  private hydrateGraph(graph: RawGraphData): Promise<HydratedGraphData> {
-    return this.jobs.hydrateGraph(graph);
-  }
-
-  /** Transitional: driven directly by the lifecycle suite — removed in T7/T8. */
-  inferOutputType(value: unknown): string {
-    return this.jobs.inferOutputType(value);
-  }
-
-  /** Transitional: chat's workflow runs accumulate cost — removed in T7/T8. */
-  private _handleNodeProviderCost(
-    active: ActiveJob,
-    outbound: Record<string, unknown>
-  ): void {
-    this.jobs._handleNodeProviderCost(active, outbound);
-  }
-
-  /** Transitional: chat's workflow runs settle cost — removed in T7/T8. */
-  private runMeasuredCost(active: ActiveJob): number | null {
-    return this.jobs.runMeasuredCost(active);
-  }
-
   async clearModels(): Promise<Record<string, unknown>> {
     return {
       message:
@@ -1420,47 +1166,6 @@ export class WebSocketClientSession implements ClientSession {
       })
     );
     return result;
-  }
-
-  /**
-   * The direct-generation entry point the cost-row suite drives directly.
-   * Transitional: the implementation lives on {@link DirectInferenceHandler},
-   * and the RPC commands call it there through {@link CommandRouter}.
-   */
-  runDirectMediaGeneration(
-    req: DirectMediaGenerationRequest
-  ): Promise<{ asset_ids: string[] }> {
-    return this.inference.runDirectMediaGeneration(req);
-  }
-
-  /**
-   * Entity-mention resolution for the chat media-generation path. The
-   * direct-generation surfaces call the same functions in `session/inference`
-   * directly; these stay as methods until the chat region moves too.
-   */
-  private entityRefResolver(userId: string): ReturnType<
-    typeof entityRefResolver
-  > {
-    return entityRefResolver(userId);
-  }
-
-  private resolveEntityReferenceImages(
-    userId: string,
-    refs: PromptAssetRef[]
-  ): Promise<Uint8Array[]> {
-    return resolveEntityReferenceImages(userId, refs);
-  }
-
-  /**
-   * Transitional: the lifecycle suite drives the RPC frame through the runner.
-   * The implementation is {@link CommandRouter.runRpc}; this adapts the wire
-   * envelope to it and goes when the suite moves onto the router.
-   */
-  runRpc<TResult>(
-    command: WebSocketCommandEnvelope,
-    fn: () => Promise<TResult>
-  ): Promise<Record<string, unknown> | null> {
-    return this.commands.runRpc(command.command, command.request_id, fn);
   }
 
   async handleCommand(
@@ -1830,7 +1535,3 @@ export class WebSocketClientSession implements ClientSession {
     }
   }
 }
-
-// Pre-T7 names. Deleted in T8, once every caller uses the new ones.
-export { WebSocketClientSession as UnifiedWebSocketRunner };
-export type { WebSocketClientSessionOptions as UnifiedWebSocketRunnerOptions };

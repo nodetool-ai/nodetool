@@ -15,10 +15,10 @@ import { unpack } from "msgpackr";
 import { initTestDb, Thread, Message } from "@nodetool-ai/models";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 // ── Mock WebSocket ──────────────────────────────────────────────────
 
@@ -123,7 +123,7 @@ describe("handleChatMessage: system prompt", () => {
         generateLoop: BaseProvider.prototype.generateLoop
       }) as any;
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: provider
     });
@@ -152,7 +152,7 @@ describe("handleChatMessage: done chunk and final message", () => {
   });
 
   it("sends done chunk followed by final assistant message", async () => {
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: mockProvider({ type: "chunk", content: "Hello!" })
     });
@@ -182,7 +182,7 @@ describe("handleChatMessage: done chunk and final message", () => {
   });
 
   it("persists final assistant message to DB", async () => {
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: mockProvider({ type: "chunk", content: "Saved!" })
     });
@@ -250,7 +250,7 @@ describe("handleChatMessage: tool call loop", () => {
         generateLoop: BaseProvider.prototype.generateLoop
       }) as any;
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: provider
     });
@@ -327,7 +327,7 @@ describe("handleChatMessage: error handling", () => {
         generateLoop: BaseProvider.prototype.generateLoop
       }) as any;
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: provider
     });
@@ -417,7 +417,7 @@ describe("permission gate", () => {
         generateLoop: BaseProvider.prototype.generateLoop
       }) as any;
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: provider
     });
@@ -503,7 +503,7 @@ describe("dbMessageToProviderMessage filtering", () => {
         generateLoop: BaseProvider.prototype.generateLoop
       }) as any;
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: provider
     });
@@ -586,7 +586,7 @@ describe("tool-call thought signatures survive the database", () => {
         generateLoop: BaseProvider.prototype.generateLoop
       }) as any;
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: provider
     });
@@ -625,7 +625,7 @@ describe("saveMessageToDb", () => {
   });
 
   it("strips id, type, user_id before saving to DB", async () => {
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: mockProvider({ type: "chunk", content: "x" })
     });
@@ -690,7 +690,7 @@ describe("handleChatMessage: request sequence cancellation", () => {
         generateLoop: BaseProvider.prototype.generateLoop
       }) as any;
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: provider
     });

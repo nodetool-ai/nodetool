@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   normalizeToolCallName,
   unroutableToolMessage
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 describe("normalizeToolCallName", () => {
   it("strips the `tools.` prefix the CodeAct prompt teaches", () => {

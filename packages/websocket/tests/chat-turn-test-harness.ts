@@ -13,7 +13,7 @@ import {
   type ChatTurnDeps
 } from "../src/session/chat-turn.js";
 import type { ActiveJob } from "../src/session/job-execution.js";
-import { ToolBridge } from "../src/unified-websocket-runner.js";
+import { ToolBridge } from "../src/websocket-client-session.js";
 import {
   FakeClientSession,
   type FakeClientSessionOptions

@@ -13,10 +13,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { initTestDb, Skill, Memory } from "@nodetool-ai/models";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 class MockWS implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -83,7 +83,7 @@ async function runTurn(
     }) as never;
 
   const ws = new MockWS();
-  const runner = new UnifiedWebSocketRunner({
+  const runner = new WebSocketClientSession({
     resolveExecutor: noop,
     resolveProvider: provider
   });

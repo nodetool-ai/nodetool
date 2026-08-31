@@ -11,7 +11,7 @@
  *
  * Five different address tables existed when this file was written — one in
  * `providers/safe-url.ts`, one in the sandbox's `network-guard.ts`, a private
- * copy inside `unified-websocket-runner.ts`, and two more in node packs — plus
+ * copy inside `websocket-client-session.ts`, and two more in node packs — plus
  * a dozen sites with no check at all. The consolidation is recorded in
  * `docs/url-egress-inventory.md`; this is the list it is kept honest against.
  *

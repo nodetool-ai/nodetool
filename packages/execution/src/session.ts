@@ -256,7 +256,7 @@ export class ExecutionSession {
       if (options.resolveNodeType) {
         // Richer path: resolves `propertyTypes`/`outputs` from registry
         // metadata too (async — the resolver may lazy-load a namespace),
-        // matching `unified-websocket-runner.ts`'s `Graph.loadFromDict`
+        // matching `websocket-client-session.ts`'s `Graph.loadFromDict`
         // hydration. Without this, multi-edge fan-in into a non-list
         // property is misclassified as list aggregation (the kernel only
         // gates on a populated `propertyTypes` map).

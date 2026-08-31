@@ -45,7 +45,7 @@ const EXPECTED_STATUS: Readonly<Record<string, string>> = {
 
 /**
  * The ws-server driver's asset-autosave path
- * (`unified-websocket-runner.ts`'s `Asset.paginate` warm-up on a completed
+ * (`websocket-client-session.ts`'s `Asset.paginate` warm-up on a completed
  * generation) assumes an initialized DB the hermetic test server never sets
  * up — a pre-existing gap in `packages/websocket`, outside D1's scope
  * (reliability/harness, packages/runtime, packages/cli). Every fault that

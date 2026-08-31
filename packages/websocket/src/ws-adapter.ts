@@ -1,5 +1,5 @@
 import type { WebSocket } from "@fastify/websocket";
-import type { WebSocketConnection } from "./unified-websocket-runner.js";
+import type { WebSocketConnection } from "./websocket-client-session.js";
 import { WsMessageRateLimiter } from "./lib/ws-rate-limit.js";
 import {
   getWsConnectionHealthConfig,
@@ -14,7 +14,7 @@ type WsFrame = {
 };
 
 /**
- * Adapts a ws WebSocket to the WebSocketConnection interface used by UnifiedWebSocketRunner.
+ * Adapts a ws WebSocket to the WebSocketConnection interface used by WebSocketClientSession.
  *
  * Beyond the plumbing it enforces the per-connection health limits described in
  * `lib/ws-connection-health.ts`: a ping/idle deadline that closes half-open

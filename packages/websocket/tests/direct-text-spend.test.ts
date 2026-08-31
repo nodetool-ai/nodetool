@@ -7,7 +7,7 @@
  * under-books the answer that comes back.
  */
 import { describe, it, expect } from "vitest";
-import { estimateDirectTextSpend } from "../src/unified-websocket-runner.js";
+import { estimateDirectTextSpend } from "../src/websocket-client-session.js";
 
 const messages = (chars: number) => [{ content: "x".repeat(chars) }];
 

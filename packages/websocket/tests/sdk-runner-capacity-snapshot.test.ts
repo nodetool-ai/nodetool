@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { UnifiedWebSocketRunner } from "../src/unified-websocket-runner.js";
+import { WebSocketClientSession } from "../src/websocket-client-session.js";
 
 describe("SDK runner capacity snapshot", () => {
   it("reads the admission state without reserving or queueing a job", async () => {
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: () => ({
         async process() {
           return {};
@@ -11,10 +11,10 @@ describe("SDK runner capacity snapshot", () => {
       })
     });
 
-    const first = await runner.getSdkExecutionCapacitySnapshot({
+    const first = await runner.jobs.getSdkExecutionCapacitySnapshot({
       workflowId: "workflow-1"
     });
-    const second = await runner.getSdkExecutionCapacitySnapshot({
+    const second = await runner.jobs.getSdkExecutionCapacitySnapshot({
       workflowId: "workflow-1"
     });
 

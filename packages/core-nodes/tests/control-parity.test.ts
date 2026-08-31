@@ -59,7 +59,7 @@ async function runWorkflow(
 // registry so per-output `output_correlation` and per-input `input_mode`
 // metadata are populated before the correlation scheduler runs. `runner.run`
 // does not hydrate on its own (production does this in
-// unified-websocket-runner.hydrateGraph before calling run); passing raw
+// websocket-client-session.hydrateGraph before calling run); passing raw
 // descriptors leaves buffered control nodes (If, Reroute) without the
 // iteration tokens the lineage-keyed scheduler needs to fire per stream item,
 // collapsing a stream to its last value. See docs/correlation-design.md §1.

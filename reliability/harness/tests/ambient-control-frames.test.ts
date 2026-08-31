@@ -2,7 +2,7 @@
  * Reproduction for Ring 1 run 31619279663, which failed `linear-text-pipeline`
  * on the packaged surface and blocked the Fly deploy of 2868cffe.
  *
- * `UnifiedWebSocketRunner` starts two wall-clock timers on every connection —
+ * `WebSocketClientSession` starts two wall-clock timers on every connection —
  * a stats broadcast (first sample ~1s after connect, then every 5s) and a 25s
  * heartbeat ping. Neither has anything to do with the run, but a relay driver
  * that records them puts them in the stream at whatever position the run's own

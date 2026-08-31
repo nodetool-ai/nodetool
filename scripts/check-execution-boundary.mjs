@@ -37,7 +37,7 @@ const ALWAYS_ALLOWED_PACKAGES = new Set(["kernel", "execution"]);
 // Do not add new entries — a new direct `WorkflowRunner` construction site
 // should use `@nodetool-ai/execution` instead.
 // A5 (docs/RELIABILITY_TASKS.md Track A) migrated
-// `packages/websocket/src/unified-websocket-runner.ts` onto
+// `packages/websocket/src/websocket-client-session.ts` onto
 // `ExecutionSession` — it no longer imports `WorkflowRunner` at all, so it's
 // removed from this list rather than left in place.
 // `packages/agents/src/agent-workflow-runner.ts` was flattened into

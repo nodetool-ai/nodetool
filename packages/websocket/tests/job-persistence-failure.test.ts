@@ -1,7 +1,7 @@
 /**
  * Task D3 (docs/RELIABILITY_ARCHITECTURE.md §9 "Process/host" faults): pins
  * the CURRENTLY-swallowed job-persistence failure in
- * `unified-websocket-runner.ts`'s `runJob` — the
+ * `websocket-client-session.ts`'s `runJob` — the
  * `catch (error) { this.logError("runJob persistence failed", error); }`
  * block guarding the `Job.get`/`Job.create`/`existing.save()` calls made when
  * `execution_options.persistence === "job"` (~line 2940 as of this writing;
@@ -16,7 +16,7 @@
  * or fail the run on a persistence error, update this test and this comment
  * deliberately; don't just relax the assertions to make it pass again.
  *
- * Per docs/RELIABILITY_TASKS.md's A5 note, `unified-websocket-runner.ts`
+ * Per docs/RELIABILITY_TASKS.md's A5 note, `websocket-client-session.ts`
  * itself is not refactored here — this test only observes it through its
  * public `runJob`/socket surface, same as every other `unified-websocket-
  * runner*.test.ts` file.
@@ -24,10 +24,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { unpack } from "msgpackr";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 import { initTestDb, Job } from "@nodetool-ai/models";
 
 class MockWebSocket implements WebSocketConnection {
@@ -106,12 +106,12 @@ const trivialGraph = {
 
 describe("job persistence failure during run_job (task D3, pinned behavior)", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     await initTestDb();
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -128,7 +128,7 @@ describe("job persistence failure during run_job (task D3, pinned behavior)", ()
         Object.assign(new Error("database is locked"), { code: "SQLITE_BUSY" })
       );
 
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: jobId,
       workflow_id: "wf",
       graph: trivialGraph,
@@ -163,7 +163,7 @@ describe("job persistence failure during run_job (task D3, pinned behavior)", ()
         Object.assign(new Error("database is locked"), { code: "SQLITE_BUSY" })
       );
 
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: jobId,
       workflow_id: "wf",
       graph: trivialGraph,

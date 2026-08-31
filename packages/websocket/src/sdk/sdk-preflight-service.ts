@@ -22,7 +22,7 @@ import {
 } from "./sdk-execution-readiness-probe.js";
 import { createNodeToolSdkV1WorkflowSource } from "./sdk-preflight-workflow-source.js";
 import type { SdkV1ExecutionReadiness } from "./sdk-static-preflight-service.js";
-import type { SdkExecutionCapacitySnapshot } from "../unified-websocket-runner.js";
+import type { SdkExecutionCapacitySnapshot } from "../websocket-client-session.js";
 import { getExistingDownloadManager } from "@nodetool-ai/huggingface";
 import { createNodeToolSdkV1HuggingFaceDownloadStateReader } from "./sdk-huggingface-download-state.js";
 import { isFunctionValue } from "../lib/wire-values.js";

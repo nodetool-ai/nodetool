@@ -8,10 +8,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { unpack } from "msgpackr";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
@@ -90,7 +90,7 @@ const FOO_NODE: NodeMetadata = {
 function makeRunner(ws: MockWebSocket) {
   const registry = new NodeRegistry();
   registry.loadMetadata("foo.Bar", FOO_NODE, { source: "typescript" });
-  const runner = new UnifiedWebSocketRunner({
+  const runner = new WebSocketClientSession({
     resolveExecutor: () => ({
       async process() {
         return {};
@@ -164,7 +164,7 @@ function makeAssetRow(overrides: Record<string, unknown> = {}) {
 
 async function runOne(
   ws: MockWebSocket,
-  runner: UnifiedWebSocketRunner,
+  runner: WebSocketClientSession,
   frame: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
   ws.queue.push({
@@ -178,7 +178,7 @@ async function runOne(
 
 describe("RPC read-only commands", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(() => {
     vi.clearAllMocks();

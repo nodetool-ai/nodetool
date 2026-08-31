@@ -1,6 +1,6 @@
 /**
  * Journey #14's transport half (docs/RELIABILITY_ARCHITECTURE.md §5 item 14,
- * §9; task D2 step 4). `packages/websocket/tests/unified-websocket-runner-
+ * §9; task D2 step 4). `packages/websocket/tests/websocket-client-session-
  * malformed-protocol.test.ts` (Track B task B2) already covers the
  * application-layer corpus (wrong field type, unknown `type`) against a
  * mocked `WebSocketConnection` — no real socket, no proxy. This is the

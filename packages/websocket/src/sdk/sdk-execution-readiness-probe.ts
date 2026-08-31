@@ -1,4 +1,4 @@
-import type { SdkExecutionCapacitySnapshot } from "../unified-websocket-runner.js";
+import type { SdkExecutionCapacitySnapshot } from "../websocket-client-session.js";
 import type { SdkV1ExecutionReadiness } from "./sdk-static-preflight-service.js";
 
 export interface SdkV1ExecutionTargetReadiness {

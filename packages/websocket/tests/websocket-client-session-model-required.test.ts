@@ -7,10 +7,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { unpack } from "msgpackr";
 import { initTestDb, Message } from "@nodetool-ai/models";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 class MockWS implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -44,7 +44,7 @@ async function sendChat(
   data: Record<string, unknown>
 ): Promise<{ ws: MockWS; resolveProvider: ReturnType<typeof vi.fn> }> {
   const resolveProvider = vi.fn();
-  const runner = new UnifiedWebSocketRunner({
+  const runner = new WebSocketClientSession({
     resolveExecutor: noopExecutor,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolveProvider: resolveProvider as any

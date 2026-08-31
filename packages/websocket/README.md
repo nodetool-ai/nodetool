@@ -6,7 +6,7 @@ tRPC routers and REST endpoints.
 
 ## Responsibilities
 
-- `UnifiedWebSocketRunner` — per-connection runner with a job concurrency queue.
+- `WebSocketClientSession` — per-connection runner with a job concurrency queue.
 - tRPC routers (`src/trpc/`) with a consistent error shape (`apiCode`).
 - REST endpoints (assets, workflows, models, …) and MsgPack WebSocket messages.
 

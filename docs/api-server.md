@@ -13,7 +13,7 @@ The server is implemented in the `@nodetool-ai/websocket` package (`packages/web
 ## Key Modules
 
 - **`server.ts`** – HTTP/WebSocket server entry point. Registers all API routes and starts listeners.
-- **`unified-websocket-runner.ts`** – Handles WebSocket connections for workflow execution and chat.
+- **`websocket-client-session.ts`** – Handles WebSocket connections for workflow execution and chat.
 - **`http-api.ts`** – Core REST API routes (workflows, jobs, assets, etc.).
 - **`models-api.ts`** – Model management and provider registration.
 - **`settings-registry.ts`** – Settings and configuration handling.

@@ -17,7 +17,7 @@ import {
   createTestUiServer,
   packWebSocketMessage,
   unpackWebSocketMessage,
-  type UnifiedWebSocketRunner
+  type WebSocketClientSession
 } from "@nodetool-ai/websocket";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
@@ -60,12 +60,12 @@ const SLOT_SETTLE_POLL_MS = 10;
  * survives the wait and is recorded as non-zero.
  */
 async function settledSlotCounters(
-  runners: readonly UnifiedWebSocketRunner[]
+  runners: readonly WebSocketClientSession[]
 ): Promise<ResourceCounterSnapshot> {
   const total = (): { activeJobs: number; startingJobs: number } =>
     runners.reduce(
       (acc, runner) => {
-        const slots = runner.slotCounters;
+        const slots = runner.jobs.slotCounters;
         return {
           activeJobs: acc.activeJobs + slots.activeJobs,
           startingJobs: acc.startingJobs + slots.startingJobs
@@ -132,7 +132,7 @@ export class WsServerDriver implements RunDriver {
     // §6 "Cleanup and leaks" needs the server's own WS slot accounting, which
     // lives on the per-connection runner. `createTestUiServer` builds one per
     // upgrade and keeps it private; this hook is the only way to read it.
-    const runners: UnifiedWebSocketRunner[] = [];
+    const runners: WebSocketClientSession[] = [];
     const srv = createTestUiServer({
       host: "127.0.0.1",
       port: 0,
@@ -217,7 +217,7 @@ export class WsServerDriver implements RunDriver {
     // relayed `job_update running` ("Authoritative SDK runs can use [the
     // kernel's] update and avoid an otherwise duplicate WebSocket frame.
     // Legacy clients keep the eager acknowledgement" —
-    // `unified-websocket-runner.ts`), and, for any non-"completed" terminal
+    // `websocket-client-session.ts`), and, for any non-"completed" terminal
     // status, an "authoritative terminal snapshot" appended after the
     // relayed one because the kernel's own terminal frame never carries a
     // `result` field.
@@ -251,7 +251,7 @@ export class WsServerDriver implements RunDriver {
         return claim("ws-authoritative-terminal-snapshot");
       }
       // `cancel_job` is acknowledged with a `cancelled` job_update right away
-      // (`unified-websocket-runner.ts`'s cancel handler: "the runner's own
+      // (`websocket-client-session.ts`'s cancel handler: "the runner's own
       // cleanup can lag"), which the kernel's own relayed terminal then
       // repeats. Only ever allowed for a cancel this driver actually asked
       // for.

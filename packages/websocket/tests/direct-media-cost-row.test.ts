@@ -11,7 +11,7 @@ import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
 import { initTestDb, Prediction } from "@nodetool-ai/models";
 import type { TextToVideoParams } from "@nodetool-ai/runtime";
 
-import { UnifiedWebSocketRunner } from "../src/unified-websocket-runner.js";
+import { WebSocketClientSession } from "../src/websocket-client-session.js";
 
 vi.mock("../src/lib/thumbnail.js", () => ({
   storeAssetWithThumbnail: vi.fn(async () => undefined)
@@ -36,8 +36,8 @@ vi.mock("@nodetool-ai/models", async (orig) => {
 const MODEL = "nodetool/kling-turbo";
 const SECONDS = 5;
 
-const makeRunner = (totalCost: number): UnifiedWebSocketRunner =>
-  new UnifiedWebSocketRunner({
+const makeRunner = (totalCost: number): WebSocketClientSession =>
+  new WebSocketClientSession({
     resolveExecutor: () => undefined as never,
     resolveProvider: (async () => ({
       provider: "fake",
@@ -49,15 +49,9 @@ const makeRunner = (totalCost: number): UnifiedWebSocketRunner =>
   });
 
 const generate = async (
-  runner: UnifiedWebSocketRunner
+  runner: WebSocketClientSession
 ): Promise<{ asset_ids: string[] }> =>
-  (
-    runner as unknown as {
-      runDirectMediaGeneration(req: Record<string, unknown>): Promise<{
-        asset_ids: string[];
-      }>;
-    }
-  ).runDirectMediaGeneration({
+  runner.inference.runDirectMediaGeneration({
     mode: "video",
     provider: "nodetool",
     model: MODEL,

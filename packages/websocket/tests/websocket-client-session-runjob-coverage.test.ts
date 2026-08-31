@@ -24,12 +24,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { unpack } from "msgpackr";
 import {
   DEFAULT_RUN_JOB_EXECUTION_OPTIONS,
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   resolveRunJobExecutionOptions,
   resolveRunJobUserId,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 import { initTestDb, Job } from "@nodetool-ai/models";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
@@ -73,7 +73,7 @@ const resolveExecutor = () => ({
   }
 });
 
-const asAny = (r: UnifiedWebSocketRunner) =>
+const asAny = (r: WebSocketClientSession) =>
   r as unknown as Record<string, any>;
 
 /** Decode every frame sent over the wire (binary first, then text). */
@@ -234,22 +234,22 @@ describe("run_job execution option defaults", () => {
 
 /** Run streamJobMessages to completion for a resolved/rejected executePromise. */
 async function streamTo(
-  runner: UnifiedWebSocketRunner,
+  runner: WebSocketClientSession,
   active: unknown,
   executePromise: Promise<unknown>
 ): Promise<void> {
-  await asAny(runner).streamJobMessages(active, executePromise);
+  await asAny(runner).jobs.streamJobMessages(active, executePromise);
 }
 
-describe("UnifiedWebSocketRunner run_job — streamJobMessages relay", () => {
+describe("WebSocketClientSession run_job — streamJobMessages relay", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     await initTestDb();
     vi.clearAllMocks();
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -611,15 +611,15 @@ describe("UnifiedWebSocketRunner run_job — streamJobMessages relay", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner run_job — terminal persistence", () => {
+describe("WebSocketClientSession run_job — terminal persistence", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     await initTestDb();
     vi.clearAllMocks();
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -688,15 +688,15 @@ describe("UnifiedWebSocketRunner run_job — terminal persistence", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner run_job — provider cost", () => {
+describe("WebSocketClientSession run_job — provider cost", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     await initTestDb();
     vi.clearAllMocks();
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -757,7 +757,7 @@ describe("UnifiedWebSocketRunner run_job — provider cost", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner run_job — generation autosave", () => {
+describe("WebSocketClientSession run_job — generation autosave", () => {
   let ws: MockWebSocket;
 
   beforeEach(async () => {
@@ -773,7 +773,7 @@ describe("UnifiedWebSocketRunner run_job — generation autosave", () => {
       outputs: [{ name: "image", type: { type: "image" } }],
       primary_output: "image"
     };
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor,
       getNodeMetadata: () => meta as never
     });
@@ -806,7 +806,7 @@ describe("UnifiedWebSocketRunner run_job — generation autosave", () => {
   });
 
   it("temporary asset mode relays generation output without autosaving it", async () => {
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor,
       getNodeMetadata: () =>
         ({
@@ -844,9 +844,9 @@ describe("UnifiedWebSocketRunner run_job — generation autosave", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner run_job — queue path", () => {
+describe("WebSocketClientSession run_job — queue path", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   const graph = {
     nodes: [
@@ -863,7 +863,7 @@ describe("UnifiedWebSocketRunner run_job — queue path", () => {
   /** Occupy `n` concurrency slots with inert fake active jobs. */
   function fillSlots(n: number): void {
     for (let i = 0; i < n; i++) {
-      asAny(runner).activeJobs.set(`busy-${i}`, {
+      asAny(runner).jobs.registerJob(`busy-${i}`, {
         jobId: `busy-${i}`,
         workflowId: `busy-wf-${i}`,
         status: "running",
@@ -877,7 +877,7 @@ describe("UnifiedWebSocketRunner run_job — queue path", () => {
     await initTestDb();
     vi.clearAllMocks();
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -887,10 +887,10 @@ describe("UnifiedWebSocketRunner run_job — queue path", () => {
 
   it("queues a run when the global concurrency cap is reached", async () => {
     fillSlots(4); // default MAX_CONCURRENT_JOBS
-    await runner.runJob({ job_id: "Q1", workflow_id: "wf", graph });
+    await runner.jobs.runJob({ job_id: "Q1", workflow_id: "wf", graph });
     // enqueueJob sends the `queued` frame fire-and-forget; let it flush.
     await new Promise((r) => setTimeout(r, 10));
-    expect(asAny(runner).jobQueue.size).toBe(1);
+    expect(asAny(runner).jobs.jobQueue.size).toBe(1);
     const queued = decodeAll(ws).find(
       (m) =>
         m.type === "job_update" && m.status === "queued" && m.job_id === "Q1"
@@ -903,16 +903,16 @@ describe("UnifiedWebSocketRunner run_job — queue path", () => {
   });
 
   it("queues a non-concurrent run when its workflow already has one in flight", async () => {
-    asAny(runner).activeJobs.set("live", {
+    asAny(runner).jobs.registerJob("live", {
       jobId: "live",
       workflowId: "wfx",
       status: "running",
       finished: false,
       runner: { cancel: vi.fn() }
     });
-    await runner.runJob({ job_id: "Q2", workflow_id: "wfx", graph });
+    await runner.jobs.runJob({ job_id: "Q2", workflow_id: "wfx", graph });
     await new Promise((r) => setTimeout(r, 10));
-    expect(asAny(runner).jobQueue.size).toBe(1);
+    expect(asAny(runner).jobs.jobQueue.size).toBe(1);
     const queued = decodeAll(ws).find(
       (m) => m.status === "queued" && m.job_id === "Q2"
     );
@@ -921,13 +921,13 @@ describe("UnifiedWebSocketRunner run_job — queue path", () => {
 
   it("cancelJob removes a still-queued run and announces it cancelled", async () => {
     fillSlots(4);
-    await runner.runJob({ job_id: "Q3", workflow_id: "wf", graph });
-    expect(asAny(runner).jobQueue.size).toBe(1);
+    await runner.jobs.runJob({ job_id: "Q3", workflow_id: "wf", graph });
+    expect(asAny(runner).jobs.jobQueue.size).toBe(1);
     ws.sentBytes = [];
     ws.sentText = [];
-    const res = await runner.cancelJob("Q3", "wf");
+    const res = await runner.jobs.cancelJob("Q3", "wf");
     expect(res.message).toBe("Queued job cancelled");
-    expect(asAny(runner).jobQueue.size).toBe(0);
+    expect(asAny(runner).jobs.jobQueue.size).toBe(0);
     const cancelled = decodeAll(ws).find(
       (m) =>
         m.type === "job_update" && m.status === "cancelled" && m.job_id === "Q3"
@@ -940,13 +940,13 @@ describe("UnifiedWebSocketRunner run_job — queue path", () => {
   it("drainQueue starts a queued run once a slot frees up", async () => {
     fillSlots(4);
     const runProcess = vi.fn(async () => ({ output: "done" }));
-    const drainRunner = new UnifiedWebSocketRunner({
+    const drainRunner = new WebSocketClientSession({
       resolveExecutor: () => ({ process: runProcess })
     });
     await drainRunner.connect(ws);
     // Fill this runner's own slots, then enqueue a real runnable job.
     for (let i = 0; i < 4; i++) {
-      asAny(drainRunner).activeJobs.set(`b-${i}`, {
+      asAny(drainRunner).jobs.registerJob(`b-${i}`, {
         jobId: `b-${i}`,
         workflowId: `bw-${i}`,
         status: "running",
@@ -954,23 +954,23 @@ describe("UnifiedWebSocketRunner run_job — queue path", () => {
         runner: { cancel: vi.fn() }
       });
     }
-    await drainRunner.runJob({ job_id: "DQ", workflow_id: "wfq", graph });
-    expect(asAny(drainRunner).jobQueue.size).toBe(1);
+    await drainRunner.jobs.runJob({ job_id: "DQ", workflow_id: "wfq", graph });
+    expect(asAny(drainRunner).jobs.jobQueue.size).toBe(1);
     // Free every slot, then drain — the queued job must start.
-    for (let i = 0; i < 4; i++) asAny(drainRunner).activeJobs.delete(`b-${i}`);
-    asAny(drainRunner).drainQueue();
+    for (let i = 0; i < 4; i++) asAny(drainRunner).jobs.dropJob(`b-${i}`);
+    asAny(drainRunner).jobs.drainQueue();
     // Wait for the queued job to leave the queue and start executing.
-    for (let i = 0; i < 50 && asAny(drainRunner).jobQueue.size > 0; i++) {
+    for (let i = 0; i < 50 && asAny(drainRunner).jobs.jobQueue.size > 0; i++) {
       await new Promise((r) => setTimeout(r, 10));
     }
-    expect(asAny(drainRunner).jobQueue.size).toBe(0);
+    expect(asAny(drainRunner).jobs.jobQueue.size).toBe(0);
     // Give the real run a moment to complete and drain.
     await new Promise((r) => setTimeout(r, 40));
     await drainRunner.disconnect();
   });
 });
 
-describe("UnifiedWebSocketRunner run_job — startJobInner branches", () => {
+describe("WebSocketClientSession run_job — startJobInner branches", () => {
   let ws: MockWebSocket;
 
   const graph = {
@@ -993,7 +993,7 @@ describe("UnifiedWebSocketRunner run_job — startJobInner branches", () => {
 
   it("uses the connection user and temporary media policy for an SDK session run", async () => {
     let outputContext: ProcessingContext | undefined;
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "nodetool.constant.String") {
           return {
@@ -1015,7 +1015,7 @@ describe("UnifiedWebSocketRunner run_job — startJobInner branches", () => {
     });
     await runner.connect(ws, "connection-user");
 
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "SDK_TEMPORARY_SESSION",
       workflow_id: "wf",
       user_id: "",
@@ -1078,15 +1078,15 @@ describe("UnifiedWebSocketRunner run_job — startJobInner branches", () => {
       params: {},
       graph
     });
-    const runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    const runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
-    await asAny(runner).startJob({
+    await asAny(runner).jobs.startJob({
       job_id: "CANCELLED_START",
       workflow_id: "wf",
       graph
     });
     // The job was un-registered instead of executing.
-    expect(asAny(runner).activeJobs.has("CANCELLED_START")).toBe(false);
+    expect(runner.jobs.hasActiveJob("CANCELLED_START")).toBe(false);
     const cancelled = decodeAll(ws).find(
       (m) =>
         m.type === "job_update" &&
@@ -1107,9 +1107,9 @@ describe("UnifiedWebSocketRunner run_job — startJobInner branches", () => {
       params: {},
       graph
     });
-    const runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    const runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
-    await asAny(runner).startJob({
+    await asAny(runner).jobs.startJob({
       job_id: "QUEUED_START",
       workflow_id: "wf",
       graph
@@ -1117,7 +1117,7 @@ describe("UnifiedWebSocketRunner run_job — startJobInner branches", () => {
     // Let the real run finish and persist its final status.
     for (
       let i = 0;
-      i < 50 && asAny(runner).activeJobs.has("QUEUED_START");
+      i < 50 && runner.jobs.hasActiveJob("QUEUED_START");
       i++
     ) {
       await new Promise((r) => setTimeout(r, 10));
@@ -1133,7 +1133,7 @@ describe("UnifiedWebSocketRunner run_job — startJobInner branches", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner run_job — emitBeforeRunFailure persistence", () => {
+describe("WebSocketClientSession run_job — emitBeforeRunFailure persistence", () => {
   it("persists a failed job row and emits a failed job_update", async () => {
     await initTestDb();
     const ws = new MockWebSocket();
@@ -1146,9 +1146,9 @@ describe("UnifiedWebSocketRunner run_job — emitBeforeRunFailure persistence", 
       params: {},
       graph: { nodes: [], edges: [] }
     });
-    const runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    const runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
-    await asAny(runner).emitBeforeRunFailure(
+    await asAny(runner).jobs.emitBeforeRunFailure(
       "BRF",
       "wf",
       new Error("bridge down"),

@@ -7,7 +7,7 @@
  * The harness has no browser and no `WebSocketManager` — this models the
  * journey pragmatically with the harness's own raw msgpack `ws` client(s)
  * plus the wire protocol's own resubscribe command, `reconnect_job`
- * (`unified-websocket-runner.ts`'s `reconnectJob`), and records this test's
+ * (`websocket-client-session.ts`'s `reconnectJob`), and records this test's
  * client-side actions as `RecordedTransition`s mapped onto
  * `WebSocketManager.ts`'s declared machine (`core/invariants/state-
  * machine.ts`'s `CLIENT_STATE_TRANSITIONS`) so that invariant has real data
@@ -26,8 +26,8 @@
  *   reconnect (disconnected->reconnecting) — a fresh client 2 dials in
  *   connected (reconnecting->connected) — client 2's `open` event
  *
- * `unified-websocket-runner.ts` gives each WS connection its own
- * `UnifiedWebSocketRunner` instance (`test-ui-server.ts`, and production's
+ * `websocket-client-session.ts` gives each WS connection its own
+ * `WebSocketClientSession` instance (`test-ui-server.ts`, and production's
  * `plugins/websocket.ts` — same shape), so `reconnect_job` on a genuinely
  * new connection can never hit that runner's in-memory `activeJobs` map.
  * What it hits instead is the process-wide `jobRunRegistry`

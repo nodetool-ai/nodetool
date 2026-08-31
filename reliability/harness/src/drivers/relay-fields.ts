@@ -2,7 +2,7 @@
  * Relay-only field policy, shared by every driver whose surface speaks the
  * WS wire protocol (`ws-server.ts`, `packaged.ts`).
  *
- * Both of those surfaces run the same relay — `UnifiedWebSocketRunner` — so
+ * Both of those surfaces run the same relay — `WebSocketClientSession` — so
  * both receive the same downstream enrichment the kernel oracle's raw stream
  * never carries. `packages/protocol/src/messages.ts` specifies this: `job_id`
  * is "Stamped downstream by the relay (the unified websocket runner and the
@@ -17,7 +17,7 @@
 
 /**
  * Message `type`s the relay backfills `job_id` onto uniformly (its "outbound
- * spread", `unified-websocket-runner.ts`) that the kernel's own emissions for
+ * spread", `websocket-client-session.ts`) that the kernel's own emissions for
  * these types (`runner.ts`/`actor.ts`) never carry at all. Scoped per-type
  * (not a blanket drop) because `job_update` DOES set both, and `edge_update`
  * DOES set `job_id`, on the raw kernel stream too — dropping either there
@@ -62,7 +62,7 @@ export const RELAY_ONLY_WORKFLOW_ID_TYPES: ReadonlySet<string> = new Set([
  *
  * The rest are the relay's own timers and observers, which fire on wall-clock
  * cadence rather than on anything the run does
- * (`unified-websocket-runner.ts`): `system_stats` ~1s after connect and every
+ * (`websocket-client-session.ts`): `system_stats` ~1s after connect and every
  * 5s after, `ping` every 25s, `pong` in reply to a client ping,
  * `resource_change` whenever a model or resource event lands. Whether one of
  * them interleaves into a run depends on how long the run happens to take, so
@@ -92,7 +92,7 @@ export function isConnectionControlMessage(message: Record<string, unknown>): bo
  * so the two are comparable frame-for-frame (see
  * {@link RELAY_ONLY_JOB_ID_TYPES}/{@link RELAY_ONLY_WORKFLOW_ID_TYPES}).
  * `generation_complete.index` is the same kind of addition — an
- * arrival-order stamp (`unified-websocket-runner.ts`'s
+ * arrival-order stamp (`websocket-client-session.ts`'s
  * `generationIndexByNode`) the kernel's own `generation_complete` emission
  * never sets. */
 export function stripRelayOnlyFields(

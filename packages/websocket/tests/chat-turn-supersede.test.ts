@@ -15,10 +15,10 @@ import { initTestDb, Message } from "@nodetool-ai/models";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import type { Message as ProviderMessage } from "@nodetool-ai/runtime";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 import { SUPERSEDED_TOOL_RESULT } from "../src/chat-tool-call-repair.js";
 
 class MockWS implements WebSocketConnection {
@@ -142,7 +142,7 @@ describe("a superseded chat turn keeps the transcript well-formed", () => {
     const { provider, announced, release } = supersedableProvider({
       deliversResult: true
     });
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: provider
     });
@@ -183,7 +183,7 @@ describe("a superseded chat turn keeps the transcript well-formed", () => {
     const { provider, announced, release } = supersedableProvider({
       deliversResult: false
     });
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: provider
     });
@@ -271,7 +271,7 @@ describe("loading a thread that already carries an orphaned tool call", () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any;
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: provider
     });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildChatAgentSystemPrompt } from "../src/unified-websocket-runner.js";
+import { buildChatAgentSystemPrompt } from "../src/websocket-client-session.js";
 
 describe("buildChatAgentSystemPrompt — the workflow the turn is bound to", () => {
   it("names the bound workflow when the client sends no ui_context", () => {

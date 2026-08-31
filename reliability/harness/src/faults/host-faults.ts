@@ -8,13 +8,13 @@
  *   ENOSPC. Wired into the **kernel driver only** (`drivers/kernel.ts`
  *   consults {@link getInjectedHostStorage} when building the run's
  *   `ProcessingContext`) — the ws-server driver's asset storage comes from
- *   `unified-websocket-runner.ts`'s own module-level `getTempAdapter()`
+ *   `websocket-client-session.ts`'s own module-level `getTempAdapter()`
  *   singleton (`lib/storage.ts`), which task A5 explicitly reserves for a
  *   later `ExecutionSession` migration ("do not refactor
- *   `unified-websocket-runner.ts`... pin behavior with tests around it").
+ *   `websocket-client-session.ts`... pin behavior with tests around it").
  *   Journeys exercising this fault must scope it to `"surface": "kernel"`.
  * - `host-db-locked` has no `FaultModule`: the swallowed failure it pins
- *   (`unified-websocket-runner.ts` ~2868) is job-table persistence, which
+ *   (`websocket-client-session.ts` ~2868) is job-table persistence, which
  *   neither driver's hermetic runs touch (both run with `persistence:
  *   "session"`/no persistence hook) — see
  *   `packages/websocket/tests/job-persistence-failure.test.ts` for the

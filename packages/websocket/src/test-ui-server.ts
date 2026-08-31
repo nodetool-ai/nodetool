@@ -25,10 +25,10 @@ import {
   applyProductionNodePolicy
 } from "./node-registry-setup.js";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
-  type UnifiedWebSocketRunnerOptions
-} from "./unified-websocket-runner.js";
+  type WebSocketClientSessionOptions
+} from "./websocket-client-session.js";
 import { appRouter } from "./trpc/router.js";
 import { createContextFactory } from "./trpc/context.js";
 import { ScriptedProvider, autoScript } from "@nodetool-ai/runtime";
@@ -970,12 +970,12 @@ export interface TestUiServerOptions extends HttpApiOptions {
    * ScriptedProvider so agent/LLM workflows run without API keys. An e2e
    * harness can pass a resolver that returns real providers when keys exist.
    */
-  resolveProvider?: UnifiedWebSocketRunnerOptions["resolveProvider"];
+  resolveProvider?: WebSocketClientSessionOptions["resolveProvider"];
   /**
    * Override executor resolution for unknown node types. Receives the registry
    * so the default (registry.resolve) can be reused for known types.
    */
-  resolveExecutor?: UnifiedWebSocketRunnerOptions["resolveExecutor"];
+  resolveExecutor?: WebSocketClientSessionOptions["resolveExecutor"];
   /**
    * When true, unknown node types resolve to a permissive passthrough instead
    * of failing graph hydration/execution. Lets the harness run CLI fixtures
@@ -998,11 +998,11 @@ export interface TestUiServerOptions extends HttpApiOptions {
     nodeType: string
   ) => Promise<import("@nodetool-ai/kernel").ResolvedNodeType | null>;
   /**
-   * Called with each per-connection `UnifiedWebSocketRunner` right after it is
+   * Called with each per-connection `WebSocketClientSession` right after it is
    * constructed. The runner is otherwise private to the upgrade handler; the
-   * reliability harness needs it to read `slotCounters` for leak accounting.
+   * reliability harness needs it to read `jobs.slotCounters` for leak accounting.
    */
-  onRunnerCreated?: (runner: UnifiedWebSocketRunner) => void;
+  onRunnerCreated?: (runner: WebSocketClientSession) => void;
 }
 
 function detectMetadataRootsFromPip(): string[] {
@@ -1334,7 +1334,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
       return inputs;
     }
   };
-  const resolveExecutor: UnifiedWebSocketRunnerOptions["resolveExecutor"] =
+  const resolveExecutor: WebSocketClientSessionOptions["resolveExecutor"] =
     options.resolveExecutor ??
     ((node) => {
       if (options.passthroughUnknownNodes && !registry.has(node.type)) {
@@ -1474,7 +1474,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
       ws.on("error", (error: Error) => {
         log.error("WebSocket client error", error);
       });
-      const runner = new UnifiedWebSocketRunner({
+      const runner = new WebSocketClientSession({
         resolveExecutor,
         resolveNodeType: graphNodeTypeResolver,
         resolveProvider:

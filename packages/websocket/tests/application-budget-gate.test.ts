@@ -18,10 +18,10 @@ import kieUnitPricingCatalog from "@nodetool-ai/kie-nodes/unit-pricing-catalog";
 import { genspendPricingCatalog } from "@nodetool-ai/model-pricing/genspend-catalog";
 import {
   DEFAULT_RUN_JOB_EXECUTION_OPTIONS,
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import {
   Application,
@@ -104,14 +104,14 @@ const seedApp = async (
 
 describe("application budget gate", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
   let startJob: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     await initTestDb();
     vi.clearAllMocks();
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({
+    runner = new WebSocketClientSession({
       resolveExecutor: () => undefined as never
     });
     await runner.connect(ws, OWNER);
@@ -127,11 +127,7 @@ describe("application budget gate", () => {
   });
 
   const run = (over: Record<string, unknown> = {}) =>
-    (
-      runner as unknown as {
-        runJob(req: Record<string, unknown>): Promise<void>;
-      }
-    ).runJob({
+    runner.jobs.runJob({
       job_id: "job-1",
       workflow_id: "wf1",
       graph: { nodes: [], edges: [] },
@@ -329,7 +325,7 @@ describe("application budget gate", () => {
 
 describe("application invocation settlement", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     await initTestDb();
@@ -339,7 +335,7 @@ describe("application invocation settlement", () => {
     await seedApp({ id: "other-app" });
     vi.clearAllMocks();
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({
+    runner = new WebSocketClientSession({
       resolveExecutor: () => ({ async process() { return {}; } }) as never
     });
     await runner.connect(ws);
@@ -389,11 +385,7 @@ describe("application invocation settlement", () => {
   };
 
   const stream = (active: unknown, result: unknown) =>
-    (
-      runner as unknown as {
-        streamJobMessages(a: unknown, p: Promise<unknown>): Promise<void>;
-      }
-    ).streamJobMessages(active, Promise.resolve(result));
+    asAny(runner).jobs.streamJobMessages(active, Promise.resolve(result));
 
   it("closes the ledger row out at what the run actually cost", async () => {
     await recordInvocation({
@@ -484,7 +476,7 @@ describe("pre-run cost estimate", () => {
     nodes: Array<Record<string, unknown>>,
     metadata: unknown = genericMetadata
   ): number => {
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: () => undefined as never,
       getNodeMetadata: () => metadata as never
     });

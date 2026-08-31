@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { primaryTextOutputName } from "../src/unified-websocket-runner.js";
+import { primaryTextOutputName } from "../src/websocket-client-session.js";
 
 describe("primaryTextOutputName", () => {
   it("returns the first output name when its type is str", () => {

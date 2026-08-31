@@ -15,10 +15,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { unpack } from "msgpackr";
 
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 import {
   jobRunRegistry,
   type JobRunExecutionHooks
@@ -118,13 +118,13 @@ function openSession(jobId: string, hooks: JobRunExecutionHooks) {
 
 describe("multi-instance job routing", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     await initTestDb();
     vi.clearAllMocks();
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -141,7 +141,7 @@ describe("multi-instance job routing", () => {
     process.env["NODETOOL_INSTANCE_ID"] = "machine-a";
     const jobId = "stamped-job";
 
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: jobId,
       workflow_id: "wf",
       graph: trivialGraph,
@@ -165,7 +165,7 @@ describe("multi-instance job routing", () => {
       runner_instance: "machine-a"
     });
 
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: jobId,
       workflow_id: "wf",
       graph: trivialGraph,
@@ -179,7 +179,7 @@ describe("multi-instance job routing", () => {
   it("leaves the stamp null when no instance id is configured", async () => {
     const jobId = "unstamped-job";
 
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: jobId,
       workflow_id: "wf",
       graph: trivialGraph,

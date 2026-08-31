@@ -19,10 +19,10 @@ import { unpack } from "msgpackr";
 import { initTestDb, Thread, Message, Workflow, Job } from "@nodetool-ai/models";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 // ── Mock WebSocket ──────────────────────────────────────────────────
 
@@ -188,7 +188,7 @@ describe("Routing priority: workflow_id/workflow_target", () => {
       }
     });
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: makeExecutor,
       resolveProvider: mockProvider()
     });
@@ -250,7 +250,7 @@ describe("Routing priority: workflow_id/workflow_target", () => {
       }
     });
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: makeExecutor,
       resolveProvider: mockProvider()
     });
@@ -280,7 +280,7 @@ describe("Routing priority: workflow_id/workflow_target", () => {
   });
 
   it("falls through to regular chat when no workflow_id or workflow_target", async () => {
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: mockProvider()
     });
@@ -333,7 +333,7 @@ describe("Routing priority: workflow_id/workflow_target", () => {
       }
     });
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "test.Streamer") {
           return {
@@ -409,7 +409,7 @@ describe("Routing priority: workflow_id/workflow_target", () => {
       }
     });
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "test.Streamer") {
           return {
@@ -501,7 +501,7 @@ describe("handleWorkflowMessage: workflow execution and response", () => {
       }
     });
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: makeExecutor,
       resolveProvider: mockProvider()
     });
@@ -539,7 +539,7 @@ describe("handleWorkflowMessage: workflow execution and response", () => {
   });
 
   it("sends error + done chunk when workflow_id not found", async () => {
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: mockProvider()
     });
@@ -582,7 +582,7 @@ describe("handleWorkflowMessage: workflow execution and response", () => {
       }
     });
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: makeExecutor,
       resolveProvider: mockProvider()
     });
@@ -666,7 +666,7 @@ describe("detectMessageInputNames: scans graph for input node types", () => {
 
     // We verify detection indirectly by checking that the workflow runs with
     // the detected input names. The runner should pass params using detected names.
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: makeExecutor,
       resolveProvider: mockProvider()
     });
@@ -737,7 +737,7 @@ describe("createResponseMessage: converts workflow outputs to typed content", ()
       }
     });
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: makeExecutor,
       resolveProvider: mockProvider()
     });
@@ -814,7 +814,7 @@ describe("createResponseMessage: converts workflow outputs to typed content", ()
       }
     });
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: makeExecutor,
       resolveProvider: mockProvider()
     });
@@ -867,7 +867,7 @@ describe("createResponseMessage: converts workflow outputs to typed content", ()
       }
     });
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: makeExecutor,
       resolveProvider: mockProvider()
     });
@@ -940,7 +940,7 @@ describe("handleWorkflowMessage: error handling", () => {
       }
     });
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: makeExecutor,
       resolveProvider: mockProvider()
     });
@@ -1021,7 +1021,7 @@ describe("Chat workflow routing: run_mode='chat'", () => {
       }
     });
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: makeExecutor,
       resolveProvider: mockProvider()
     });
@@ -1094,7 +1094,7 @@ describe("handleWorkflowMessage: message persistence", () => {
       }
     });
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: makeExecutor,
       resolveProvider: mockProvider()
     });

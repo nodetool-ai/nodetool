@@ -19,10 +19,10 @@ import { initTestDb, Asset } from "@nodetool-ai/models";
 import type { NodeTypeResolver, ResolvedNodeType } from "@nodetool-ai/kernel";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 class MockWS implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -195,7 +195,7 @@ const getNodeMetadata = (nodeType: string): NodeMetadata | undefined => {
 // A ForEach(N) → ImageGen graph: N iterations, each emitting one image
 // generation_complete for node "gen".
 function makeRunner() {
-  return new UnifiedWebSocketRunner({
+  return new WebSocketClientSession({
     resolveExecutor: (node) => {
       if (node.type === "nodetool.control.ForEach") {
         return {
@@ -287,7 +287,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
   it("persists one distinct asset per generation_complete (N events → N assets)", async () => {
     const runner = makeRunner();
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOBN",
       workflow_id: "WFN",
       graph: foreachGraph(["a", "b", "c", "d", "e", "f"])
@@ -322,7 +322,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
     // all 6.
     const runner = makeRunner();
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOBL",
       workflow_id: "WFL",
       graph: foreachGraph(["a", "b", "c"], "test.ListImageGen")
@@ -350,7 +350,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
     // count of persisted assets (6, two per slot) never confuses the dedupe.
     const runner1 = makeRunner();
     await runner1.connect(ws);
-    await runner1.runJob({
+    await runner1.jobs.runJob({
       job_id: "JOBLR",
       workflow_id: "WFLR",
       graph: foreachGraph(["a", "b", "c"], "test.ListImageGen")
@@ -368,7 +368,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
     const ws2 = new MockWS();
     const runner2 = makeRunner();
     await runner2.connect(ws2);
-    await runner2.runJob({
+    await runner2.jobs.runJob({
       job_id: "JOBLR",
       workflow_id: "WFLR",
       graph: foreachGraph(["a", "b", "c"], "test.ListImageGen")
@@ -391,7 +391,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
     // First run persists 6 assets.
     const runner1 = makeRunner();
     await runner1.connect(ws);
-    await runner1.runJob({
+    await runner1.jobs.runJob({
       job_id: "JOBR",
       workflow_id: "WFR",
       graph: foreachGraph(["a", "b", "c", "d", "e", "f"])
@@ -412,7 +412,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
     const ws2 = new MockWS();
     const runner2 = makeRunner();
     await runner2.connect(ws2);
-    await runner2.runJob({
+    await runner2.jobs.runJob({
       job_id: "JOBR",
       workflow_id: "WFR",
       graph: foreachGraph(["a", "b", "c", "d", "e", "f"])
@@ -438,7 +438,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
     // code autosaved on node_update; the cutover moved autosave exclusively to
     // generation_complete. So the asset count must equal the generation_complete
     // count (exactly 1) — never doubled by a surviving node_update branch.
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "test.ImageGen") {
           return {
@@ -458,7 +458,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
     });
 
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOBU",
       workflow_id: "WFU",
       graph: {
@@ -510,7 +510,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
     // metadata.json) so the node reloads its generation on reopen.
     const runner = makeRunner();
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOBJ",
       workflow_id: "WFJ",
       graph: {
@@ -546,7 +546,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
     // text that generated the image.
     const runner = makeRunner();
     await runner.connect(ws);
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: "JOBP",
       workflow_id: "WFP",
       graph: foreachGraph(["a sunset over the sea", "a snowy mountain"])

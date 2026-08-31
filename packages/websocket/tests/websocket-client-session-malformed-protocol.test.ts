@@ -8,10 +8,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { pack, unpack } from "msgpackr";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 import { resetEnvironment } from "@nodetool-ai/config";
 
 class MockWebSocket implements WebSocketConnection {
@@ -62,15 +62,15 @@ const resolveExecutor = () => ({
 
 const KEY = "NODETOOL_WS_MAX_MESSAGE_BYTES";
 
-describe("UnifiedWebSocketRunner malformed-protocol corpus", () => {
+describe("WebSocketClientSession malformed-protocol corpus", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     resetEnvironment();
     delete process.env[KEY];
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -104,7 +104,7 @@ describe("UnifiedWebSocketRunner malformed-protocol corpus", () => {
     expect(String(rejection?.details)).toContain("run_job");
 
     // The bad frame never reached runJob: no job was registered.
-    const status = runner.getStatus() as {
+    const status = runner.jobs.getStatus() as {
       active_jobs: Array<{ job_id: string }>;
     };
     expect(status.active_jobs).toHaveLength(0);
@@ -114,7 +114,7 @@ describe("UnifiedWebSocketRunner malformed-protocol corpus", () => {
   });
 
   it("accepts MessagePack nil in the C# SDK run_job envelope", async () => {
-    const runJob = vi.spyOn(runner, "runJob").mockResolvedValue();
+    const runJob = vi.spyOn(runner.jobs, "runJob").mockResolvedValue();
     ws.queue.push({
       type: "websocket.message",
       bytes: pack({

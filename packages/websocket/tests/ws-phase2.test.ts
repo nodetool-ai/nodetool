@@ -205,16 +205,16 @@ describe("T-WS-11: Storage KV API", () => {
 
 // ── T-WS-18 — Job persistence in WebSocket runner ───────────────────
 
-describe("T-WS-18: Job persistence in unified-websocket-runner", () => {
+describe("T-WS-18: Job persistence in websocket-client-session", () => {
   beforeEach(() => {
     initTestDb();
   });
 
   it("Job record exists with status completed after successful run_job", async () => {
-    const { UnifiedWebSocketRunner } =
-      await import("../src/unified-websocket-runner.js");
+    const { WebSocketClientSession } =
+      await import("../src/websocket-client-session.js");
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: () => ({
         process: async () => ({ output: "done" })
       })
@@ -227,7 +227,7 @@ describe("T-WS-18: Job persistence in unified-websocket-runner", () => {
     runner.userId = "u1";
 
     const jobId = "test-job-success";
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: jobId,
       graph: {
         nodes: [{ id: "n1", type: "test.Node" }],
@@ -235,14 +235,8 @@ describe("T-WS-18: Job persistence in unified-websocket-runner", () => {
       }
     });
 
-    // Wait for the stream task to finish
-    const active = (
-      runner as unknown as {
-        activeJobs: Map<string, { streamTask?: Promise<void> }>;
-      }
-    ).activeJobs;
-    // The job may already be removed from activeJobs if streamTask completed synchronously,
-    // so we wait a bit for the async streaming to finish
+    // The run may already have left the active map if its stream task finished
+    // synchronously, so wait for the detached streaming instead of polling it.
     await new Promise((resolve) => setTimeout(resolve, 200));
 
     const job = (await Job.get(jobId)) as Job | null;
@@ -252,10 +246,10 @@ describe("T-WS-18: Job persistence in unified-websocket-runner", () => {
   });
 
   it("Job record exists with status failed after failed run_job", async () => {
-    const { UnifiedWebSocketRunner } =
-      await import("../src/unified-websocket-runner.js");
+    const { WebSocketClientSession } =
+      await import("../src/websocket-client-session.js");
 
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: () => ({
         process: async () => ({ output: "ok" }),
         initialize: async () => {
@@ -271,7 +265,7 @@ describe("T-WS-18: Job persistence in unified-websocket-runner", () => {
     runner.userId = "u1";
 
     const jobId = "test-job-failure";
-    await runner.runJob({
+    await runner.jobs.runJob({
       job_id: jobId,
       graph: {
         nodes: [{ id: "n1", type: "test.Node" }],

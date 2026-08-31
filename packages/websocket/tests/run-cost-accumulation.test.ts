@@ -11,7 +11,7 @@
 import { describe, expect, it } from "vitest";
 import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
 
-import { UnifiedWebSocketRunner } from "../src/unified-websocket-runner.js";
+import { WebSocketClientSession } from "../src/websocket-client-session.js";
 
 /** A per-image Replicate model the shipped catalog carries. */
 const PRICED = {
@@ -39,7 +39,7 @@ type CostAccess = {
 };
 
 const access = (): CostAccess =>
-  new UnifiedWebSocketRunner({
+  new WebSocketClientSession({
     resolveExecutor: () => undefined as never
   }) as unknown as CostAccess;
 
@@ -48,9 +48,9 @@ function settle(messages: Array<Record<string, unknown>>): number | null {
   const runner = access();
   const active: Record<string, unknown> = {};
   for (const message of messages) {
-    runner._handleNodeProviderCost(active, message);
+    runner.jobs._handleNodeProviderCost(active, message);
   }
-  return runner.runMeasuredCost(active);
+  return runner.jobs.runMeasuredCost(active);
 }
 
 const prediction = (

@@ -12,10 +12,10 @@ import { pack, unpack } from "msgpackr";
 import { initTestDb } from "@nodetool-ai/models";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 class MockWS implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -108,7 +108,7 @@ describe("codeact permission prompts", () => {
   it("asks the user from inside a code action and resumes the program", async () => {
     initTestDb();
     const ws = new MockWS();
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: codeActProvider(
         'import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +
@@ -164,7 +164,7 @@ describe("codeact permission prompts", () => {
   it("reports a denial to the program as a thrown tool error", async () => {
     initTestDb();
     const ws = new MockWS();
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: codeActProvider(
         'import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +
@@ -211,7 +211,7 @@ describe("codeact permission prompts", () => {
   it("asks once for a high-risk action in auto mode, and runs nothing when denied", async () => {
     initTestDb();
     const ws = new MockWS();
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: codeActProvider(
         'import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +
@@ -268,7 +268,7 @@ describe("codeact permission prompts", () => {
   it("runs a low-risk action in auto mode with no prompt", async () => {
     initTestDb();
     const ws = new MockWS();
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: codeActProvider(
         'import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +
@@ -304,7 +304,7 @@ describe("codeact permission prompts", () => {
   it("switching to auto mid-turn allows a pending write without another prompt", async () => {
     initTestDb();
     const ws = new MockWS();
-    const runner = new UnifiedWebSocketRunner({
+    const runner = new WebSocketClientSession({
       resolveExecutor: noop,
       resolveProvider: codeActProvider(
         'import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +

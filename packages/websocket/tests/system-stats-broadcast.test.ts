@@ -15,10 +15,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { unpack } from "msgpackr";
 import { systemStatsBroadcastEnabled } from "../src/system-stats.js";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 
 class MockWS implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -55,11 +55,11 @@ const SAMPLE = {
 
 /** Runner plus a call counter for the sampler, which is what a stray timer keeps alive. */
 function makeRunner(options: { systemStatsEnabled?: boolean } = {}): {
-  runner: UnifiedWebSocketRunner;
+  runner: WebSocketClientSession;
   samples: () => number;
 } {
   let sampled = 0;
-  const runner = new UnifiedWebSocketRunner({
+  const runner = new WebSocketClientSession({
     ...options,
     getSystemStats: () => {
       sampled += 1;

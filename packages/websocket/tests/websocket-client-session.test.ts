@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { pack, unpack } from "msgpackr";
 import {
-  UnifiedWebSocketRunner,
+  WebSocketClientSession,
   type WebSocketConnection,
   type WebSocketReceiveFrame
-} from "../src/unified-websocket-runner.js";
+} from "../src/websocket-client-session.js";
 import { resetEnvironment } from "@nodetool-ai/config";
 import { initTestDb, Job } from "@nodetool-ai/models";
 
@@ -47,13 +47,13 @@ const resolveExecutor = () => ({
   }
 });
 
-describe("UnifiedWebSocketRunner", () => {
+describe("WebSocketClientSession", () => {
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(() => {
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
   });
 
   it("connects and defaults user id", async () => {
@@ -218,7 +218,7 @@ describe("UnifiedWebSocketRunner", () => {
       command: "run_job",
       data: { graph, params: {} }
     });
-    const status = runner.getStatus() as {
+    const status = runner.jobs.getStatus() as {
       active_jobs: Array<{ job_id: string }>;
     };
     expect(status.active_jobs.length).toBeGreaterThan(0);
@@ -242,7 +242,7 @@ describe("UnifiedWebSocketRunner", () => {
   });
 
   it("emits output_update for constant -> output graph", async () => {
-    const outputRunner = new UnifiedWebSocketRunner({
+    const outputRunner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "nodetool.constant.String") {
           return {
@@ -309,7 +309,7 @@ describe("UnifiedWebSocketRunner", () => {
   });
 
   it("streams node_update events for executed nodes", async () => {
-    const outputRunner = new UnifiedWebSocketRunner({
+    const outputRunner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "nodetool.text.Template") {
           return {
@@ -387,7 +387,7 @@ describe("UnifiedWebSocketRunner", () => {
   });
 
   it("emits one authoritative terminal job_update when requested", async () => {
-    const outputRunner = new UnifiedWebSocketRunner({
+    const outputRunner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "nodetool.constant.String") {
           return {
@@ -464,7 +464,7 @@ describe("UnifiedWebSocketRunner", () => {
   });
 
   it("emits output_update in text mode", async () => {
-    const outputRunner = new UnifiedWebSocketRunner({
+    const outputRunner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "nodetool.constant.String") {
           return {
@@ -541,7 +541,7 @@ describe("UnifiedWebSocketRunner", () => {
     const sinkValues: unknown[] = [];
     let processCalls = 0;
     let genProcessCalls = 0;
-    const outputRunner = new UnifiedWebSocketRunner({
+    const outputRunner = new WebSocketClientSession({
       resolveExecutor: (node) => {
         if (node.type === "test.Streamer") {
           return {
@@ -647,14 +647,14 @@ describe("UnifiedWebSocketRunner", () => {
     await initTestDb();
     let release!: () => void;
     const gate = new Promise<void>((r) => { release = r; });
-    const r = new UnifiedWebSocketRunner({
+    const r = new WebSocketClientSession({
       resolveExecutor: () => ({ async process() { await gate; return {}; } })
     });
     await r.connect(ws);
     const graph = { nodes: [{ id: "n1", type: "nodetool.constant.String", name: "nodetool.constant.String", properties: { value: "x" } }], edges: [] };
 
-    await r.runJob({ job_id: "A", workflow_id: "wf", graph });
-    await r.runJob({ job_id: "B", workflow_id: "wf", graph });
+    await r.jobs.runJob({ job_id: "A", workflow_id: "wf", graph });
+    await r.jobs.runJob({ job_id: "B", workflow_id: "wf", graph });
     await new Promise((res) => setTimeout(res, 20));
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
@@ -669,14 +669,14 @@ describe("UnifiedWebSocketRunner", () => {
     await initTestDb();
     let release!: () => void;
     const gate = new Promise<void>((r2) => { release = r2; });
-    const r = new UnifiedWebSocketRunner({
+    const r = new WebSocketClientSession({
       resolveExecutor: () => ({ async process() { await gate; return {}; } })
     });
     await r.connect(ws);
     const graph = { nodes: [{ id: "n1", type: "nodetool.constant.String", name: "nodetool.constant.String", properties: { value: "x" } }], edges: [] };
 
-    await r.runJob({ job_id: "A", workflow_id: "wf", graph, concurrent: true });
-    await r.runJob({ job_id: "B", workflow_id: "wf", graph, concurrent: true });
+    await r.jobs.runJob({ job_id: "A", workflow_id: "wf", graph, concurrent: true });
+    await r.jobs.runJob({ job_id: "B", workflow_id: "wf", graph, concurrent: true });
     await new Promise((res) => setTimeout(res, 20));
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
@@ -694,15 +694,15 @@ describe("UnifiedWebSocketRunner", () => {
     try {
       let release!: () => void;
       const gate = new Promise<void>((r2) => { release = r2; });
-      const r = new UnifiedWebSocketRunner({
+      const r = new WebSocketClientSession({
         resolveExecutor: () => ({ async process() { await gate; return {}; } })
       });
       await r.connect(ws);
       const graph = { nodes: [{ id: "n1", type: "nodetool.constant.String", name: "nodetool.constant.String", properties: { value: "x" } }], edges: [] };
 
-      await r.runJob({ job_id: "A", workflow_id: "wf", graph, concurrent: true });
-      await r.runJob({ job_id: "B", workflow_id: "wf", graph, concurrent: true });
-      await r.runJob({ job_id: "C", workflow_id: "wf", graph, concurrent: true });
+      await r.jobs.runJob({ job_id: "A", workflow_id: "wf", graph, concurrent: true });
+      await r.jobs.runJob({ job_id: "B", workflow_id: "wf", graph, concurrent: true });
+      await r.jobs.runJob({ job_id: "C", workflow_id: "wf", graph, concurrent: true });
       await new Promise((res) => setTimeout(res, 20));
 
       const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
@@ -743,7 +743,7 @@ describe("UnifiedWebSocketRunner", () => {
     });
 
     let executed = 0;
-    runner = new UnifiedWebSocketRunner({
+    runner = new WebSocketClientSession({
       resolveExecutor: () => ({
         async process() {
           executed++;
@@ -804,7 +804,7 @@ describe("UnifiedWebSocketRunner", () => {
       const gate = new Promise<void>((r2) => {
         release = r2;
       });
-      const r = new UnifiedWebSocketRunner({
+      const r = new WebSocketClientSession({
         resolveExecutor: () => ({
           async process() {
             await gate;
@@ -827,8 +827,8 @@ describe("UnifiedWebSocketRunner", () => {
       await Job.create({ id: "RUN_A", workflow_id: "wf", user_id: "1", status: "scheduled" });
       await Job.create({ id: "RUN_B", workflow_id: "wf", user_id: "1", status: "scheduled" });
 
-      await r.runJob({ job_id: "RUN_A", workflow_id: "wf", graph, concurrent: true });
-      await r.runJob({ job_id: "RUN_B", workflow_id: "wf", graph, concurrent: true });
+      await r.jobs.runJob({ job_id: "RUN_A", workflow_id: "wf", graph, concurrent: true });
+      await r.jobs.runJob({ job_id: "RUN_B", workflow_id: "wf", graph, concurrent: true });
       await new Promise((res) => setTimeout(res, 20));
 
       // RUN_B is queued behind RUN_A (cap of 1). Disconnecting must cancel it.
@@ -857,7 +857,7 @@ describe("UnifiedWebSocketRunner", () => {
     const gate = new Promise<void>((r2) => {
       release = r2;
     });
-    const r = new UnifiedWebSocketRunner({
+    const r = new WebSocketClientSession({
       resolveExecutor: () => ({
         async process() {
           await gate;
@@ -885,7 +885,7 @@ describe("UnifiedWebSocketRunner", () => {
         status: "scheduled"
       });
 
-      await r.runJob({ job_id: "RUN_ACTIVE", workflow_id: "wf-active", graph });
+      await r.jobs.runJob({ job_id: "RUN_ACTIVE", workflow_id: "wf-active", graph });
       // Let the job reach the active map before cancelling.
       await new Promise((res) => setTimeout(res, 20));
 
@@ -925,16 +925,16 @@ describe("UnifiedWebSocketRunner", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner binary frame size guard", () => {
+describe("WebSocketClientSession binary frame size guard", () => {
   const KEY = "NODETOOL_WS_MAX_MESSAGE_BYTES";
   let ws: MockWebSocket;
-  let runner: UnifiedWebSocketRunner;
+  let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     resetEnvironment();
     delete process.env[KEY];
     ws = new MockWebSocket();
-    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
   });
 
@@ -990,8 +990,8 @@ describe("UnifiedWebSocketRunner binary frame size guard", () => {
   });
 });
 
-describe("UnifiedWebSocketRunner image tool results", () => {
-  const runner = new UnifiedWebSocketRunner({ resolveExecutor });
+describe("WebSocketClientSession image tool results", () => {
+  const runner = new WebSocketClientSession({ resolveExecutor });
 
   function makeCtx() {
     const stored: Array<{ key: string; bytes: Uint8Array; mimeType: string }> =
@@ -1007,13 +1007,8 @@ describe("UnifiedWebSocketRunner image tool results", () => {
     return { ctx, stored };
   }
 
-  // materializeToolResultImages is private; exercise it directly.
   const materialize = (result: unknown, ctx: unknown) =>
-    (
-      runner as unknown as {
-        materializeToolResultImages: (r: unknown, c: unknown) => Promise<unknown>;
-      }
-    ).materializeToolResultImages(result, ctx);
+    runner.chat.materializeToolResultImages(result, ctx as never);
 
   it("stores an image_content blob as a temp asset and returns a handle", async () => {
     const { ctx, stored } = makeCtx();
