@@ -244,9 +244,10 @@ straight in — moves nothing across the boundary but small objects.
 That is the difference between working and not. The guest is a courier: in the
 shape that motivated this (generate two images, combine them) it never reads a
 pixel. Carrying them *as* bytes cost a guest→host copy plus a base64 round trip
-per hop, ~2.3× the payload live in the guest, and past roughly 16 MB a run
-aborted the runtime at teardown. Measured on a 45-op chain over a 2.2 MB PNG:
-132 s and an abort at three ops, against 4.7 s with handles.
+per hop, several times the payload live in the guest, and past roughly 16 MB a
+run aborted the runtime at teardown. A long op chain over a single photo-sized
+PNG went from aborting after a few ops to finishing in seconds once handles
+replaced bytes.
 
 Audio and video transforms use Mediabunny directly. Browsers use WebCodecs;
 Node registers Mediabunny's server codec adapter. No audio-node or video-node
@@ -1271,12 +1272,12 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `tests/codeact-graph-dsl.test.ts`.
 - Eval suite `codeact` scores the executor on offline instrumented cases:
   `nodetool eval codeact -p <p> -m <m>`. Beyond the four toy-toolbelt cases
-  it covers the full `nodetool.*` API surface: 19 cases over two
+  it covers the full `nodetool.*` API surface over two
   deterministic in-memory worlds (`src/evals/codeact-api-core.ts`,
   `codeact-api-surfaces.ts`) whose fakes are named like real belt tools so
   the object-model prelude lights up. `tests/codeact-api-coverage.test.ts`
   fails when a namespace loses its last case.
-  Five more cases (`src/evals/codeact-sandbox-pack-cases.ts`) cover sandbox
+  Further cases (`src/evals/codeact-sandbox-pack-cases.ts`) cover sandbox
   packages: importing a pack the session allows and computing from what it
   parses, reading a pack's SKILL.md through `get_sandbox_package_docs` instead
   of guessing its API, reading the catalog instead of guessing what is
@@ -1292,11 +1293,10 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   executor adds rather than the case, which the recorder cannot see.
   `scripts/dump-codeact-run.ts <case> <provider> <model>` replays one case
   live and writes every action's code to `nodetool-debug/` — the tool to
-  reach for before touching the action-contract prompt. Measured on
-  `claude_agent_sdk`/sonnet (`IS_SANDBOX=1 … --max-iterations 40`): 20-22 of
-  23 per run, mean score ~0.98, ~2.3 actions per case; the residual misses
-  rotate with sampling, so judge prompt changes on the per-action dumps, not
-  on one run's pass count.
+  reach for before touching the action-contract prompt. Run it with
+  `IS_SANDBOX=1 … --max-iterations 40`. The residual misses rotate with
+  sampling, so judge a prompt change on the per-action dumps, not on one run's
+  pass count.
 - Tests: `tests/codeact-executor.test.ts`, `tests/codeact-eval.test.ts`,
   `tests/chat-codeact.test.ts`, `tests/nodetool-api.test.ts` and
   `tests/nodetool-api-*.test.ts` (scripted provider, real sandbox, no network).
@@ -1689,11 +1689,9 @@ order and failed models that used another.
   notes as a sign-off — a complete loop scored as "review changed nothing". It
   is now `cutRevisedAfterAssembly`, which accepts either order.
 
-Measured on `claude_agent_sdk`/sonnet: `full-pipeline` 1.00 in 93 calls (401s,
-~$2.6), `review-catches-overrun` 1.00 in ~25, `brief-constraints-hold` 0.91 in
-97. The SDK throws on its turn cap rather than stopping, so a low cap scores
-the whole case zero — `--max-iterations 220` clears the full case. The suite
-costs real money.
+The SDK throws on its turn cap rather than stopping, so a low cap scores the
+whole case zero — `full-pipeline` needs `--max-iterations 220` to clear. The
+suite costs real money.
 
 ```bash
 IS_SANDBOX=1 npm run dev:nodetool -- eval creative-pipeline \
@@ -1723,20 +1721,19 @@ one for an opt-in path.
 
 Stills default to `openai/gpt-image-2`, clips to
 `ltx-2-19b/distilled/image-to-video`; override with `CREATIVE_IMAGE_MODEL` /
-`CREATIVE_VIDEO_MODEL`. The first draft used `flux/schnell` at $0.003 per
-megapixel on cost grounds and it was the wrong trade — flux mangles hands and
-the brief requires them in three of four shots. Video stays cheap at $0.0008
-per megapixel; the agent loop driving the run is still the dominant cost at
-~$2.60.
+`CREATIVE_VIDEO_MODEL`. The first draft picked `flux/schnell` on cost grounds
+and it was the wrong trade — flux mangles hands and the brief requires them in
+three of four shots. Media is the cheap part of a live run; the agent loop
+driving it dominates the bill.
 
 Three caveats. The timeline still lays clips at the simulated overshoot, so the
-scored runtime is not the runtime of the files on disk — LTX returned 4.84s
-takes for 3s requests, a 1.61× overshoot against the 1.35× modelled, so the
-planted defect is conservative. The provider reads `FAL_API_KEY`, not
-`FAL_KEY`. And no predicate can see the pixels: `forbiddenAvoided` reads shot
-text and layer names, so a run passed it while gpt-image-2 branded a bottle
-with lettering the brief forbade. The suite grades the plan; grading the
-artifact needs a human or a vision model.
+scored runtime is not the runtime of the files on disk — the real overshoot has
+run wider than the 1.35× modelled, so the planted defect is conservative; check
+a runtime assertion against the takes on disk. The provider reads
+`FAL_API_KEY`, not `FAL_KEY`. And no predicate can see the pixels:
+`forbiddenAvoided` reads shot text and layer names, so a run passed it while
+gpt-image-2 branded a bottle with lettering the brief forbade. The suite grades
+the plan; grading the artifact needs a human or a vision model.
 
 ```bash
 FAL_API_KEY=$FAL_KEY IS_SANDBOX=1 npx tsx \
@@ -1778,14 +1775,11 @@ npm run dev:nodetool -- eval workflow-escalation -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval workflow-escalation -p openai -m gpt-5.4-mini --min-success 0.8
 ```
 
-Measured on `claude_agent_sdk`/sonnet (`--max-iterations 40 --no-find-model`,
-5/5 accepted, $0.80 for the suite, scored before check weighting landed):
-`ask-for-missing-names` 1.00 in 13 calls, `ask-which-step` 1.00 in 7,
-`no-escalation-needed` 1.00 in 9, `escalate-missing-capability` 0.92 in 30 (24
-of them `ui_search_nodes`, hunting for an image node the catalog doesn't have
-before accepting it isn't there), and `confirm-before-delete` 0.62 — it read the
-graph, deleted the dead branch, and never asked. The destructive-confirmation
-case is the one models fail here.
+`confirm-before-delete` is the case models fail: they read the graph, delete
+the dead branch, and never ask. `escalate-missing-capability` costs the most
+calls, most of them `ui_search_nodes` hunting for an image node the catalog
+does not have before accepting it isn't there. Run it with
+`--max-iterations 40 --no-find-model`.
 
 Harness tests, including a golden transcript per case so no case can be
 unsatisfiable: `tests/escalation-tool-loop.test.ts`.

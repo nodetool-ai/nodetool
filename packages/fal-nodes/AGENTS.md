@@ -1,6 +1,6 @@
 # FAL Nodes
 
-Dynamic node factory generating ~1,473 nodes from `fal-manifest.json` at
+Dynamic node factory generating one node per `fal-manifest.json` entry at
 runtime.
 
 ## Generated Files

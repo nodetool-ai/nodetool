@@ -34,6 +34,35 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/deploy` | Cloud deployment utilities |
 | `@nodetool-ai/dsl` | Workflow DSL for programmatic workflow creation |
 
+## Package Overlays
+
+Each of these adds package-specific rules on top of this file. Read this file
+first, then the overlay for the package you are touching.
+
+- [`agents`](agents/AGENTS.md) — planning, execution, capabilities, evals
+- [`atlascloud-nodes`](atlascloud-nodes/AGENTS.md) — AtlasCloud API wrapper
+- [`audio-nodes`](audio-nodes/AGENTS.md) — audio editing & DSP
+- [`automation-nodes`](automation-nodes/AGENTS.md) — triggers, Apple/OS automation, browser, SQLite path
+- [`base-nodes`](base-nodes/AGENTS.md) — core workflow nodes
+- [`data-nodes`](data-nodes/AGENTS.md) — dataframes, filtering, feeds & charts
+- [`fal-codegen`](fal-codegen/AGENTS.md) — FAL manifest generator
+- [`fal-nodes`](fal-nodes/AGENTS.md) — FAL node factory
+- [`image-nodes`](image-nodes/AGENTS.md) — image processing & shaders
+- [`kie-codegen`](kie-codegen/AGENTS.md) — KIE config & manifest generator
+- [`kie-nodes`](kie-nodes/AGENTS.md) — KIE node factory
+- [`llm-nodes`](llm-nodes/AGENTS.md) — LLM, image, TTS & agent nodes
+- [`models`](models/AGENTS.md) — persistence layer, tables, migrations
+- [`node-sdk`](node-sdk/AGENTS.md) — `BaseNode`, `NodeRegistry`, type system
+- [`replicate-nodes`](replicate-nodes/AGENTS.md) — Replicate node factory
+- [`runtime`](runtime/AGENTS.md) — `ProcessingContext` & LLM providers
+- [`security`](security/AGENTS.md) — secret storage & encryption
+- [`timeline`](timeline/AGENTS.md) — clip editing math
+- [`topaz-nodes`](topaz-nodes/AGENTS.md) — Topaz API wrapper
+- [`transformers-js-nodes`](transformers-js-nodes/AGENTS.md) — local transformers.js inference
+- [`video-nodes`](video-nodes/AGENTS.md) — video editing & assembly
+
+A package with no overlay is governed by this file alone.
+
 ## Build Commands
 
 All packages use TypeScript and are built with `tsc`. The recommended way to build is:
@@ -201,10 +230,9 @@ Backend-specific standards (full detail in `DEVELOPMENT_STANDARDS.md`):
 
 ## Node Authoring — Bug Patterns to Avoid
 
-Most `*-nodes` packages have **no** AGENTS.md of their own, so these
-cross-cutting rules — distilled from shipped bug fixes — apply to **every** node
-you write or edit. Package-specific overlays (e.g. `audio-nodes`, `image-nodes`,
-`llm-nodes`) add to, not replace, this list.
+These cross-cutting rules — distilled from shipped bug fixes — apply to **every**
+node you write or edit, whether or not its package has an overlay. The overlays
+listed above add to, not replace, this list.
 
 ### Output contract
 

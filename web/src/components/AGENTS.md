@@ -4,7 +4,7 @@
 
 ## UI Primitives — Mandatory
 
-**All UI must be built from primitives.** The `ui_primitives/` directory contains 90+ reusable, theme-driven components. Read the **[Primitives Strategy](ui_primitives/STRATEGY.md)** before writing any frontend code.
+**All UI must be built from primitives.** The `ui_primitives/` directory holds the reusable, theme-driven components. Read the **[Primitives Strategy](ui_primitives/STRATEGY.md)** before writing any frontend code.
 
 ### The Rule
 
@@ -56,7 +56,7 @@ All primitives are re-exported from `ui_primitives/index.ts`. Use relative impor
 
 ### Opportunistic Migration
 
-When editing any component file for any reason, **also migrate** raw MUI usage in that file to primitives. This is how we incrementally eliminate the ~600 raw MUI usages still in the codebase.
+When editing any component file for any reason, **also migrate** raw MUI usage in that file to primitives. That incremental migration is the only thing draining the raw MUI usage still left in the codebase.
 
 ### Creating New Primitives
 

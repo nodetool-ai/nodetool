@@ -1,6 +1,6 @@
 # Replicate Nodes
 
-Dynamic node factory generating ~655 nodes from `replicate-manifest.json`.
+Dynamic node factory generating one node per `replicate-manifest.json` entry.
 
 ## Architecture
 

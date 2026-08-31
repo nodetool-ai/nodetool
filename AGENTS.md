@@ -7,8 +7,18 @@ This file is the single source of truth for agents working in this repository:
 architecture, commands, harnesses, and linter-like rules. `CLAUDE.md` is a macro
 that points here — never put content there.
 
-> _Last updated: 2026-08-17._ When the architecture, commands, or rules below
-> drift from the codebase, update this file in the same PR.
+Every directory with an `AGENTS.md` carries a sibling `CLAUDE.md` holding the
+single line `@AGENTS.md`, and every `AGENTS.md` is reachable by link from this
+one (directly, or through `packages/AGENTS.md` for a per-package overlay).
+`npm run check:agents-docs` enforces all of it: a new `AGENTS.md` needs its
+`CLAUDE.md` and a navigation entry in the same PR.
+
+> When the architecture, commands, or rules below drift from the codebase,
+> update this file in the same PR. **No stats and nothing ephemeral**: no
+> counts of packages, nodes, tools or lint findings, no dates, no eval scores,
+> no "currently"/"today"/"as of" status. Those are stale the day after they are
+> written and an agent cannot tell a stale number from a true one. Point at the
+> command that measures instead.
 
 > **Canonical standards live in [docs/DEVELOPMENT_STANDARDS.md](docs/DEVELOPMENT_STANDARDS.md).**
 > That document is the single source of truth for enforceable rules and
@@ -173,7 +183,7 @@ Everything else in the document is downstream of these.
 - **[Harness-First Engineering](docs/HARNESS_FIRST.md)** — The doctrine: every surface headlessly drivable, the registry, `nodetool harness audit`
 - **[Agent Harnesses & Tooling](#agent-harnesses--tooling)** — Validate, debug, run, single-node, browser, deploy, trace (the tools that close the build→verify loop)
 - **[CLI](#cli)** — Full command and flag reference (see also [docs/cli.md](docs/cli.md))
-- **[TypeScript Backend](packages/AGENTS.md)** — TypeScript backend packages (`packages/`)
+- **[TypeScript Backend](packages/AGENTS.md)** — TypeScript backend packages (`packages/`), and the index of the per-package overlays
 - **[Agent System](packages/agents/AGENTS.md)** — Planning, execution, parallelism, skills, tuning
 - **[Agent Architecture & Tools](docs/AGENTS.md)** — Agent architecture, tools, skills, workflow nodes
 - **[JavaScript Sandbox](docs/javascript-sandbox.md)** — The QuickJS guest: capabilities, limits, imports, security model, and how the Code node and CodeAct use it
@@ -183,6 +193,7 @@ Everything else in the document is downstream of these.
 - **[Electron](electron/src/AGENTS.md)** — Desktop app
 - **[Mobile](mobile/AGENTS.md)** — React Native / Expo app
 - **[Scripts](scripts/AGENTS.md)** — Build and release scripts
+- **[Workflow Runner Example](examples/workflow_runner/AGENTS.md)** — Embeddable workflow-runner example app
 - **[URL Egress Inventory](docs/url-egress-inventory.md)** — Every surface that fetches a caller-provided URL, the one address table, and the SSRF policy each surface applies
 - **[Writing Style](docs/WRITING_STYLE.md)** — Anti-slop prose rules and the forbidden-expressions list for all docs and Markdown
 - **[Brand & Verbal Guidelines](docs/BRAND.md)** — Positioning, voice, messaging pillars, and product lexicon for anything user-facing
@@ -192,7 +203,7 @@ Everything else in the document is downstream of these.
 ## Architecture
 
 ```
-packages/           # 58 npm workspace packages (TypeScript backend)
+packages/           # npm workspace packages (TypeScript backend)
   protocol/         # Shared message types — base dependency for everything
   config/           # Configuration loading, logging
   security/         # Secret storage, encryption
@@ -246,7 +257,7 @@ protocol → config → security → auth → storage
 ### Key Patterns
 
 - **State management**: Zustand stores (web/src/stores/), React Context wraps Zustand, TanStack Query for server state
-- **UI Primitives (MANDATORY)**: All frontend UI must use primitives from `web/src/components/ui_primitives/`. **Never import raw MUI components** (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, etc.) outside of `ui_primitives/` or `editor_ui/`. See the **[Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** for the decision tree, migration rules, and full catalog of 90+ primitives. When touching any file, migrate raw MUI usage to primitives.
+- **UI Primitives (MANDATORY)**: All frontend UI must use primitives from `web/src/components/ui_primitives/`. **Never import raw MUI components** (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, etc.) outside of `ui_primitives/` or `editor_ui/`. See the **[Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** for the decision tree, migration rules, and the full primitive catalog. When touching any file, migrate raw MUI usage to primitives.
 - **Media rendering (MANDATORY)**: `asset://<id>` is a stored identifier, not a URL — the bytes live under `<user_id>/<asset_id>.<ext>` and, on the cloud backends, behind a signed URL only the server can mint. Never set `src`/`poster` from a locator. Render stored media through `ResponsiveImage`, `VideoPlayer`, or `AudioPlayback` with a `locator` prop; those primitives resolve it. Their `src` prop takes a `ResolvedMediaUrl`, minted only by `utils/resolveMediaUri.ts` and `hooks/useResolvedMediaUri.ts`, so a raw string does not typecheck. The lint rule `design-tokens/no-unresolved-media-src` rejects a locator literal in a JSX url attribute; the rendering surfaces are inventoried in `web/src/__tests__/mediaResolutionBoundary.test.ts`.
 - **Design tokens (MANDATORY)**: See **[docs/DESIGN.md](docs/DESIGN.md)** for the token systems — `SPACING` (4px grid), `TYPOGRAPHY` (4-size scale), `BORDER_RADIUS`, `MOTION`, `Z_INDEX`. **Never** hardcode border radii (`4`, `10`, `18px`), transition strings (`"all 200ms ease"`), font sizes (`"14px"`, `"0.85rem"`), or off-grid spacing (`5px`, `10px`, `13px`). Use the named constants from `ui_primitives`. When touching any UI file, fix violations in the same PR.
 - **Styling**: MUI v7 + `sx` prop for one-off, `styled()` for reusable. Theme values only, no hardcoded colors/spacing. Prefer `FlexRow`/`FlexColumn` over `Box sx={{ display: "flex" }}` when the shorthand props (`gap`, `align`, `justify`) reduce verbosity; use `Box` directly when you have significant additional `sx` overrides anyway.
@@ -389,192 +400,93 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 18,145 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
   inside `npm run lint`, so it cannot come back.
 
-The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
-61 trees is 549 pairs, and 282 of them are already at zero — so a rule still
-over a thousand findings deep across the repo is nonetheless finished in
-fifty-eight packages, and those fifty-eight are ratcheted today rather than
-after the last one lands. Seven rules are at zero everywhere and sit in the
-enforced config's top-level `rules`; the rest are enforced per-path, one
-override block per rule listing the trees at zero for it.
+The unit of enforcement is a **(rule, tree) pair**, not a rule: a rule still
+thousands of findings deep across the repo is nonetheless finished in most
+packages, and those are ratcheted now rather than after the last one lands. A
+rule at zero everywhere sits in the enforced config's top-level `rules`; the
+rest are enforced per-path, one override block per rule listing the trees at
+zero for it.
 
 `.github/workflows/anti-slop-ratchet.yaml` runs this loop daily: measure, fix
 one tree, regenerate the overrides, and induce a failure to prove the new ones
 bite. It opens a PR; it merges nothing.
 
 Those override blocks are generated, never hand-edited:
-`npm run lint:anti-slop:count` prints the table below, `:targets` adds the
-trees closest to zero and the cheapest remaining pairs, `:write` regenerates
-the overrides from a fresh measurement, and `:check` fails when the config and
-the measurement disagree. Read the counts off `:targets` rather than off a raw
-`oxlint` run — oxlint's own default rules report through the same channel, so
-counting diagnostics instead of `anti-slop(...)` codes overstates a tree by
-several times. Hand-maintaining them is how the numbers here drifted
-before (6,991/18,453 recorded against an actual 7,016/18,504). The generator
-lints one tree per oxlint invocation and rejects any tree whose scan touched
-zero files: oxlint does not expand `packages/*/src` itself, and a glob that
-reaches it unexpanded lints nothing while reporting nothing — which is
-indistinguishable from a clean tree, and would ratchet all 549 pairs on a
-broken run.
+`npm run lint:anti-slop:count` prints the current counts, `:targets` adds the
+trees closest to zero, the cheapest remaining pairs, and the largest ones,
+`:write` regenerates the overrides from a fresh measurement, and `:check` fails
+when the config and the measurement disagree. Read the counts off `:targets`
+rather than off a raw `oxlint` run — oxlint's own default rules report through
+the same channel, so counting diagnostics instead of `anti-slop(...)` codes
+overstates a tree by several times. Never record a count in a doc: the numbers
+drift the day after they are written, which is how hand-maintained ones went
+wrong before. The generator lints one tree per oxlint invocation and rejects
+any tree whose scan touched zero files: oxlint does not expand `packages/*/src`
+itself, and a glob that reaches it unexpanded lints nothing while reporting
+nothing — which is indistinguishable from a clean tree, and would ratchet every
+pair on a broken run.
 
-A rule that does not fit NodeTool is deleted from the plugin
-instead — upstream ships it to be vendored and edited. That is why
-`no-shape-in-symbol-names` is gone: it banned the substring "shape" in every
-identifier, and here that is the sketch editor's drawing tools, tensor shapes,
-and third-party contracts. Enforcement goes through the enforced config, not `.oxlintrc.json`,
-because `web/`, `electron/` and `mobile/` carry their own `.oxlintrc.json` and
-oxlint resolves the nearest config per file — a rule added at the root silently
-skips those trees. `no-runtime-typeof` runs with `allowInTypeGuards: true`: a `typeof` directly
-inside a function returning `v is T` is the rule's sanctioned form, so working
-the backlog means consolidating repeated inline checks into named predicates
-(each tree has a predicate module: `packages/protocol/src/predicates.ts`,
-`web/src/utils/typePredicates.ts`, mobile's twin, per-package siblings), never
-deleting guards. It is enforced for the twenty-four trees at zero on it (read
-the list off the enforced config), with the decoder
-`packages/protocol/src/typecheck.ts`
-exempt: in the package that owns the schemas, an inline `typeof` means someone
-bypassed the parse. One tradeoff: predicates take `value: unknown`, so
-consolidation moves findings into `no-unknown-parameters`, which is why that
-count rose while this one fell.
+A rule that does not fit NodeTool is deleted from the plugin instead — upstream
+ships it to be vendored and edited. That is why `no-shape-in-symbol-names` is
+gone: it banned the substring "shape" in every identifier, and here that is the
+sketch editor's drawing tools, tensor shapes, and third-party contracts.
+Enforcement goes through the enforced config, not `.oxlintrc.json`, because
+`web/`, `electron/` and `mobile/` carry their own `.oxlintrc.json` and oxlint
+resolves the nearest config per file — a rule added at the root silently skips
+those trees.
 
-Two shapes the rule does **not** flag, because no predicate can replace them.
-A `typeof` whose operand resolves to no variable in scope is a global-existence
-probe — reading the bare name throws `ReferenceError`, so passing it to a
-predicate is a crash, not a refactor. A `typeof` interpolated into a template
-literal or returned is a value, not a narrowing. Both stop exactly there: an
-operand that *does* resolve still reports, and `const kind = typeof value`
-still reports, because narrowing laundered through a local is still narrowing.
-`tools/oxlint/anti-slop/tests/` pins all of it.
+Working the backlog:
 
-Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:count`:
+- **`no-runtime-typeof`** runs with `allowInTypeGuards: true`. A `typeof`
+  directly inside a function returning `v is T` is the sanctioned form, so the
+  work is consolidating repeated inline checks into named predicates (each tree
+  has a predicate module: `packages/protocol/src/predicates.ts`,
+  `web/src/utils/typePredicates.ts`, mobile's twin, per-package siblings),
+  never deleting guards. `packages/protocol/src/typecheck.ts` is exempt: in the
+  package that owns the schemas, an inline `typeof` means someone bypassed the
+  parse. Predicates take `value: unknown`, so consolidation moves findings into
+  `no-unknown-parameters`. Two shapes the rule does not flag, because no
+  predicate can replace them: a `typeof` whose operand resolves to no variable
+  in scope (a global-existence probe — reading the bare name throws
+  `ReferenceError`), and one interpolated into a template literal or returned
+  (a value, not a narrowing). An operand that *does* resolve still reports, and
+  `const kind = typeof value` still reports — narrowing laundered through a
+  local is still narrowing.
+- **`require-safety-comment-for-type-assertion`** is present nearly everywhere
+  and moves only when the values crossing a boundary get named.
+- **`no-module-mocking`** is concentrated in the frontend test suites and is a
+  test-seam problem, not a typing one — worth its own change rather than a slot
+  in the typing work.
+- **`no-hand-written-any`** and **`no-implicit-return-type`** are NodeTool's
+  own rules, both enforced everywhere. The first reports `any` in annotation
+  positions (parameters, returns, variables, properties, type arguments) and
+  deliberately skips `declare` class properties — the ambient field `@prop`
+  requires — plus `as any` and anything `no-unsafe-dictionary-type` already
+  classifies. The second reports an inferred return type on a module's public
+  surface: an exported function, an exported `const` bound to one, and the
+  non-`private` members of an exported class. Inference inside a module is
+  fine; across the boundary it means the contract is whatever today's
+  implementation happens to produce. Annotating `unknown` to silence it just
+  moves the finding to `no-unknown-returns`. Typing test doubles is what
+  `web/src/test-utils/doubles.ts` is for.
+- **`no-unknown-returns`** has stalled short of zero on one thing said many
+  ways — a node output, an app-state slot, a stream item — for which NodeTool
+  has no named type, plus the `Tool.process` contract that erases every tool's
+  result to share one registry. Those sites carry a
+  `HOLDOUT (anti-slop/no-unknown-returns)` comment saying so. Naming that value
+  domain is a modelling change, not an annotation.
 
-| rule | findings | trees at zero |
-|---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 7552 | 16 / 61 |
-| `no-unsafe-dictionary-type` | 4472 | 16 / 61 |
-| `no-unknown-parameters` | 2131 | 19 / 61 |
-| `no-module-mocking` | 1610 | 58 / 61 |
-| `no-known-value-widening` | 856 | 21 / 61 |
-| `no-runtime-typeof` | 671 | 25 / 61 |
-| `no-implicit-return-type` | 472 | 34 / 61 |
-| `no-unknown-returns` | 271 | 44 / 61 |
-| `no-chained-type-assertions` | 110 | 49 / 61 |
+A large pair does not finish in one PR and only ratchets when it reaches zero.
+Bound such a change to one directory and report the before/after count in the
+PR rather than implying the win is already held.
 
-18,145 findings over 61 trees; 282 of 549 (rule, tree) pairs are at zero.
-
-The two columns rank differently, and that is the scheduling signal.
-`no-module-mocking` is 1,610 findings but zero in 58 of 61 trees: it is
-concentrated in the frontend test suites and is a test-seam problem, not a
-typing one — enforced everywhere else already, and worth its own change rather
-than a slot in the typing work. `require-safety-comment-for-type-assertion` is
-the opposite, present nearly everywhere, and moves only when the values crossing
-a boundary get named. Sixteen trees are at zero on all nine rules:
-`packages/auth`, `packages/base-nodes`, `packages/chat`, `packages/code-nodes`,
-`packages/config`, `packages/data-nodes`, `packages/document-nodes`,
-`packages/kie-codegen`, `packages/model-pricing`, `packages/nodes-utils`,
-`packages/reve-nodes`, `packages/sdk`, `packages/security`, `packages/storage`,
-`packages/text-nodes`, `packages/workflow-runner`.
-
-`no-hand-written-any` is the newest, and it exists because
-`.github/workflows/type-safety.yaml` had no way to keep what it won: it greps
-`web/`, `electron/` and `mobile/` nightly, fixes five to ten files, and nothing
-stopped the next PR putting `any` back in the file it just cleaned.
-
-What decided the rule's shape was counting first. Of the 1,012 `: any`
-annotations in `packages/*/src`, **960** are `declare <name>: any` — the ambient
-class field the `@prop` decorator requires for a node property, a deliberate
-contract in `@nodetool-ai/node-sdk` and not fixable at the site. Reporting it
-would have put the rule 960 findings deep on day one with nothing to do about
-them, which is where `no-shape-in-symbol-names` was when it was deleted. So the
-rule skips a `PropertyDefinition` with `declare: true` — decided from the AST,
-not a name or a path — and what was left was 302 hand-written annotations.
-
-Those 302 are now zero, so the rule sits in the enforced config's top-level
-`rules` rather than in the backlog table above. **All 246 in `web/`,
-`electron/` and `mobile/` were in test files** — the doubles, not the code under
-test — which is why the nightly workflow kept finding more: it was cleaning
-scaffolding, and scaffolding is where the next PR writes `any` again. Typing
-them is what `web/src/test-utils/doubles.ts` is for, and it grew two helpers
-in the sweep: `selectorOver(state)` types a mocked zustand selector from the
-members a test supplies, and `mustFind(items, match)` reads what a test expects
-to be there instead of dereferencing `Array.find`'s `T | undefined`. Ten such
-dereferences were hiding behind the `any`-typed callbacks that mask them.
-
-The remaining 56 were production code, and three of them were load-bearing.
-`packages/models` annotated every `db.transaction` callback `any` because the
-connection is typed as the SQLite driver while the Postgres branch calls
-`.for("update")`; that is now `DbTransaction` plus a `forUpdate()` helper that
-names the one capability the dialects do not share, and throws rather than
-silently returning an unlocked query. `packages/vectorstore` sorted embeddings
-by an `index` field its own declared response type omitted. `DBModel`'s
-`[key: string]: any` — which made every property read on every model `any` — is
-`unknown`, at the cost of one narrowing in `partitionValue()`.
-
-It reports `any` in annotation positions: parameters, returns, variables,
-properties, and type arguments (`any[]`, `Promise<any>`, `Map<string, any>`). It
-deliberately does not report `as any` — `require-safety-comment-for-type-assertion`
-asks whether an assertion is justified in writing, this one asks whether a type
-can be written at all, and a third report on the same syntax buys nothing — nor a
-type-alias body or a type-parameter default, neither of which is an annotation.
-`Record<string, any>` is one finding, not two: an `any` under a type
-`no-unsafe-dictionary-type` classifies belongs to that rule. The boundary is
-exact and pinned by test — `Record<string, any[]>` has an array value type, so
-the dictionary rule classifies nothing and the `any` is this rule's to report.
-
-`.github/workflows/type-safety.yaml` is **gone**, folded into the ratchet. It
-was a second nightly agent over `web/`, `electron/` and `mobile/`, and by the
-time `no-hand-written-any` reached zero it had nothing of its own left. Its
-`: any` scan was not merely redundant but unable to report zero: a grep for
-`: any` in `web/src` matches twenty lines, every one of them prose or an
-identifier named `anyType`, so the gate was pinned open on a signal no agent
-could clear. Its `as any` half is `require-safety-comment-for-type-assertion` ×
-{`web`, `electron`, `mobile`} — three pairs the ratchet already measures, and
-holds once won, which the deleted workflow never did.
-
-That left one thing the ratchet could not express, so it became a rule.
-**`no-implicit-return-type`** reports an inferred return type on a module's
-public surface: an exported function, an exported `const` bound to one, and the
-non-`private` members of an exported class. Inference inside a module is fine —
-the compiler reads the body. Across the boundary it means the contract is
-whatever today's implementation happens to produce. `no-unknown-returns` reports
-a return typed `unknown`; this one reports a return typed nothing, and the two
-do not overlap: annotating `unknown` to silence this rule just moves the finding
-to that one.
-
-Counting first kept it shippable: scoped to exports it is **448 findings, at
-zero in 29 of 58 trees** on the day it landed — the same order as
-`no-runtime-typeof`, not the 6,990 that would have arrived from reporting every
-arrow callback in the repo. Two boundaries are deliberate and pinned by test.
-The rule walks *down* from the export declaration, so `const f = () => {}`
-followed by `export { f }` is out of reach — reaching it needs binding
-resolution the rule does not do. And a contract written on the binding
-(`export const load: (a: string) => Promise<string> = …`) is an answer, not a
-finding, which is also how a typed React component is usually written.
-
-Deleting a workflow removed the only thing that ever worked the app trees, so
-`:targets` grew a **largest (rule, tree) pairs** table and the ratchet takes
-from it on every fourth run. The two tables it printed before — trees closest to
-zero, and the forty cheapest pairs — are both selections for *small* work, so
-`web` at thousands of findings appeared in neither. It was invisible to the
-agent, which is the mechanical reason it needed a workflow of its own. A large
-pair does not finish in one PR and only ratchets when it reaches zero; the
-prompt says to bound it to one directory and report the before/after count
-rather than imply the win is already held.
-
-A rule can also stall short of zero. `no-unknown-returns` went 604 → 232 (the
-predicate consolidation above put twenty back); what
-is left is one thing said many ways — a node output, an app-state slot, a
-stream item — for which NodeTool has no named type, plus the `Tool.process`
-contract that erases every tool's result to share one registry. Those sites
-carry a `HOLDOUT (anti-slop/no-unknown-returns)` comment saying so. Naming that
-value domain is a modelling change, not an annotation, and until someone makes
-it the rule stays in the backlog.
-
-See [tools/oxlint/anti-slop/README.md](tools/oxlint/anti-slop/README.md).
+See [tools/oxlint/anti-slop/README.md](tools/oxlint/anti-slop/README.md) for
+the rule-by-rule design record and the boundaries each rule's tests pin.
 
 ### Backend Packages
 
@@ -1713,7 +1625,7 @@ answers are known analytically. `media-decode.ts` is the Mediabunny seam.
 
 ### Live browser tools (your own signed-in Chrome)
 
-Fourteen `browser_*` capabilities drive one real Chrome page action by action —
+The `browser_*` capabilities drive one real Chrome page action by action —
 `browser_view` (URL, title, indexed interactive elements, screenshot),
 `browser_navigate`, `browser_click`, `browser_input_text`, `browser_press_key`,
 `browser_select_option`, `browser_move_mouse`, `browser_scroll`,
@@ -1739,7 +1651,7 @@ the half that needs a `ProcessingContext`, turning those bytes into an asset
 reference and an asset id into bytes. That split is what lets the capabilities
 and the `lib.browser.Screenshot` node share one implementation. One session
 exists per process and every caller shares it — which is why the cloud profile
-drops all fourteen (`packages/agents/src/browser-gate.ts`): one shared page
+drops them all (`packages/agents/src/browser-gate.ts`): one shared page
 across tenants is a single-tenant shape, and the node catalog already agreed by
 leaving `lib.browser` out of `CLOUD_NODE_NAMESPACES`. Extension setup, the wire
 protocol and its limits: [docs/chrome-extension.md](docs/chrome-extension.md).
@@ -2013,50 +1925,12 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
-global — the `data.*` namespace is gone. NodeTool ships thirty-eight packs in
+global — the `data.*` namespace is gone. The packs live in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md, and
-every one of them is available out of the box:
-
-| Pack | Library | Runs |
-|---|---|---|
-| `@nodetool-ai/sandbox-dates` | date-fns | guest |
-| `@nodetool-ai/sandbox-yaml` | js-yaml | guest |
-| `@nodetool-ai/sandbox-markdown` | marked | guest |
-| `@nodetool-ai/sandbox-qr` | uqr | guest |
-| `@nodetool-ai/sandbox-subtitle` | subtitle | host |
-| `@nodetool-ai/sandbox-tokens` | js-tiktoken | host |
-| `@nodetool-ai/sandbox-color` | culori | guest |
-| `@nodetool-ai/sandbox-decimal` | decimal.js | guest |
-| `@nodetool-ai/sandbox-expr` | expr-eval | host |
-| `@nodetool-ai/sandbox-jmespath` | jmespath | guest |
-| `@nodetool-ai/sandbox-chrono` | chrono-node | host |
-| `@nodetool-ai/sandbox-exif` | exifr | host |
-| `@nodetool-ai/sandbox-stats` | simple-statistics | guest |
-| `@nodetool-ai/sandbox-rrule` | rrule | guest |
-| `@nodetool-ai/sandbox-ics` | ics | host |
-| `@nodetool-ai/sandbox-gif` | gifenc | guest |
-| `@nodetool-ai/sandbox-csv` | papaparse | host |
-| `@nodetool-ai/sandbox-html` | cheerio + turndown | host |
-| `@nodetool-ai/sandbox-xml` | fast-xml-parser | host |
-| `@nodetool-ai/sandbox-xlsx` | exceljs | host |
-| `@nodetool-ai/sandbox-diff` | diff | host |
-| `@nodetool-ai/sandbox-zip` | fflate | host |
-| `@nodetool-ai/sandbox-ocr` | tesseract.js | host |
-| `@nodetool-ai/sandbox-tfjs` | TensorFlow.js + model zoo | host |
-| `@nodetool-ai/sandbox-docx` | docx | host |
-| `@nodetool-ai/sandbox-mammoth` | mammoth | host |
-| `@nodetool-ai/sandbox-epub` | epub2 | host |
-| `@nodetool-ai/sandbox-fabric` | fabric | host |
-| `@nodetool-ai/sandbox-pdflib` | pdf-lib | host |
-| `@nodetool-ai/sandbox-pptxgen` | pptxgenjs | host |
-| `@nodetool-ai/sandbox-pptx` | office-text-extractor | host |
-| `@nodetool-ai/sandbox-pdf` | pdf-parse | host |
-| `@nodetool-ai/sandbox-aws` | NodeTool's SigV4 signer | host |
-| `@nodetool-ai/sandbox-notion` | NodeTool's Notion helper | host |
-| `@nodetool-ai/sandbox-supabase` | NodeTool's PostgREST helper | host |
-| `@nodetool-ai/sandbox-twilio` | NodeTool's Twilio helper | host |
-| `@nodetool-ai/sandbox-dsl` | NodeTool's generated graph builder | guest |
-| `@nodetool-ai/sandbox-flow` | NodeTool's generated node callables | guest |
+every one of them is available out of the box. The current list — which library
+each wraps and whether it runs guest-side or host-side — is the table in
+[packages/sandbox-packs/README.md](packages/sandbox-packs/README.md); read it
+there rather than from a copy that drifts.
 
 **guest** means the compiler bundles the library into QuickJS. **host** means it
 runs where the sandbox runs — needed when the library wants Node builtins or a
@@ -2064,7 +1938,7 @@ DOM, when it carries a limit the guest could not enforce on itself (zip's
 50 MB inflation cap), or when the code is NodeTool's own and a config-only pack
 therefore cannot ship it.
 
-The last two are authored guest code rather than a library: `-dsl` builds a
+Two packs are authored guest code rather than a library: `-dsl` builds a
 workflow graph, `-flow` calls nodes as typed async functions
 (docs/dsl-native-flow-design.md). Both are generated from `packages/dsl` and
 rebuilt by `npm run build:sandbox-dsl` / `build:sandbox-flow`.
@@ -2084,7 +1958,7 @@ const r = await concat({ a: inputs.left, b: inputs.right });
 await output("joined", r.output);
 ```
 
-One module per node namespace (65 namespaces, 399 nodes), generated by the
+One module per node namespace, generated by the
 same `npm run codegen` pass as the graph DSL and shipped as the
 `sandbox-flow` pack. Streaming-output nodes carry `.stream(inputs)` — an
 async iterable over cursor calls; early `break` closes the stream and runs
@@ -2701,7 +2575,7 @@ See [packages/agents/AGENTS.md](packages/agents/AGENTS.md) for agent architectur
 ## MUI / Styling Rules
 
 - **MANDATORY: Use UI primitives from `web/src/components/ui_primitives/` for all frontend UI.** Never import raw MUI components (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, `Skeleton`, `Tabs`, `Drawer`, `Breadcrumbs`, `Select`, `Switch`, `TextField`) directly in component files. These are only allowed inside `ui_primitives/` and `editor_ui/` where the primitives are defined.
-- See the **[Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** for the full decision tree, migration rules, and 90+ available primitives.
+- See the **[Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** for the full decision tree, migration rules, and the available primitives.
 - When touching any component file, **opportunistically migrate** raw MUI usage to primitives.
 - Replace `display: "flex"` / `flexDirection` patterns with `FlexRow` / `FlexColumn` layout primitives.
 - Replace `<Typography>` with `Text`, `Label`, or `Caption` primitives.
@@ -2861,21 +2735,25 @@ These three areas have full sections in the central standards doc:
 
 ## Technologies
 
+Exact versions live in each `package.json` and in `.nvmrc` — read them there.
+Node 22.22.1 is the one pin stated in prose, because it is a hard constraint
+(see [Prerequisites](#prerequisites)).
+
 ### TypeScript Backend (`packages/`)
-- **Node.js 22.22.1**, **TypeScript 5.7**, **ES Modules**
-- **Vitest 4** for testing
+- **Node.js**, **TypeScript**, **ES Modules**
+- **Vitest** for testing
 - Key packages: `@nodetool-ai/websocket` (server), `@nodetool-ai/kernel` (runtime), `@nodetool-ai/cli` (CLI)
-- See [packages/AGENTS.md](packages/AGENTS.md) for full package list
+- See [packages/AGENTS.md](packages/AGENTS.md) for the full package list
 
 ### Web
-- **React 19.2**, **TypeScript 5.9**, **Vite 8**
-- **MUI v7.3** + Emotion, **Zustand 5**, **ReactFlow 12.11**
+- **React**, **TypeScript**, **Vite**
+- **MUI v7** + Emotion, **Zustand**, **ReactFlow**
 - **TanStack Query v5**, **React Router v7**
-- **Jest 29.7** + React Testing Library 16.3, **Playwright** for E2E
+- **Jest** + React Testing Library, **Playwright** for E2E
 
 ### Electron
-- **Electron 39.8.10**, **React 19.2**, **TypeScript 5.9**
-- **Zustand 5**, **Vite 8**
+- **Electron**, **React**, **TypeScript**
+- **Zustand**, **Vite**
 
 ### Mobile
-- **React Native / Expo** - See [mobile/README.md](mobile/README.md)
+- **React Native / Expo** — see [mobile/README.md](mobile/README.md)
