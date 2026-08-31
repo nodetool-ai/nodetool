@@ -4,8 +4,8 @@
  * - `settings.list` / `settings.update` replace GET/PUT /api/settings.
  * - `settings.secrets.list|get|upsert|delete` replace /api/settings/secrets[/:key].
  *
- * Relies on the registry in `../../settings-registry.ts` (side-effect import
- * populates the registry at module load time).
+ * The setting definitions come from `settingCatalog()` in `@nodetool-ai/config`,
+ * which its own module load populates; values come from the database.
  */
 
 import { z } from "zod";
@@ -27,10 +27,8 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
-import {
-  getRegisteredSettings,
-  type SettingWithValue
-} from "../../settings-registry.js";
+import { settingCatalog } from "@nodetool-ai/config";
+import type { SettingWithValue } from "../../settings-registry.js";
 import {
   listOutput,
   updateInput,
@@ -97,7 +95,7 @@ const secretsRouter = router({
     const configuredMap = new Map(configuredSecrets.map((s) => [s.key, s]));
 
     // Registry secrets: mark configured if in map, else unconfigured placeholder.
-    const registrySecrets = getRegisteredSettings().filter((d) => d.isSecret);
+    const registrySecrets = settingCatalog().filter((d) => d.isSecret);
     const normalizedResults: SecretResponse[] = await Promise.all(
       registrySecrets.map(async (def) => {
         const configured = configuredMap.get(def.envVar);
@@ -273,7 +271,7 @@ export const settingsRouter = router({
     const result: SettingWithValue[] = [];
 
     // Non-secret settings: read from DB then env.
-    for (const def of getRegisteredSettings()) {
+    for (const def of settingCatalog()) {
       if (def.isSecret) continue;
       result.push({
         package_name: def.packageName,
@@ -287,7 +285,7 @@ export const settingsRouter = router({
     }
 
     // Secrets: "****" if configured (DB or env), null otherwise.
-    for (const def of getRegisteredSettings()) {
+    for (const def of settingCatalog()) {
       if (!def.isSecret) continue;
       const hasSecret = secretsMap.has(def.envVar);
       const hasEnvVar = Boolean(process.env[def.envVar]);
