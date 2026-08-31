@@ -1,66 +1,71 @@
-const { performance } = require('perf_hooks');
+const perf = require('perf_hooks');
 
-const R = 5000;
-const C = 100;
+const state = {
+    clips: Array.from({ length: 50000 }, (_, i) => ({
+        id: `clip_${i}`,
+        linkId: i < 5 ? `link_${i}` : undefined,
+    }))
+};
 
-const rows = Array.from({ length: R }, () => Array.from({ length: C }, (_, i) => `val${i}`));
-const dataframeColumns = Array.from({ length: C }, (_, i) => ({ name: `col${i}`, data_type: 'string' }));
+const selectedIds = new Set(['clip_0', 'clip_1', 'clip_2']);
 
-const columnMapping = new Map();
-for (let i = 0; i < C; i++) {
-  columnMapping.set(i, i);
+const t0 = perf.performance.now();
+
+// Original implementation
+for (let i = 0; i < 100; i++) {
+    const affectedLinkIds = new Set(['link_0', 'link_1', 'link_2']);
+    let clips = state.clips.filter((c) => !selectedIds.has(c.id));
+
+    if (affectedLinkIds.size > 0) {
+      const linkCounts = new Map();
+      for (const c of clips) {
+        if (c.linkId !== undefined && affectedLinkIds.has(c.linkId)) {
+          linkCounts.set(c.linkId, (linkCounts.get(c.linkId) ?? 0) + 1);
+        }
+      }
+      clips = clips.map((c) => {
+        if (
+          c.linkId !== undefined &&
+          affectedLinkIds.has(c.linkId) &&
+          (linkCounts.get(c.linkId) ?? 0) < 2
+        ) {
+          return { ...c, linkId: undefined };
+        }
+        return c;
+      });
+    }
 }
+const t1 = perf.performance.now();
 
-const dfToPasteIdx = new Map();
-for (let i = 0; i < C; i++) {
-  dfToPasteIdx.set(i, i);
-}
+// Optimized implementation 3
+for (let i = 0; i < 100; i++) {
+    const affectedLinkIds = new Set(['link_0', 'link_1', 'link_2']);
+    let clips = state.clips.filter((c) => !selectedIds.has(c.id));
 
-function isString(val) {
-  return typeof val === 'string';
-}
+    if (affectedLinkIds.size > 0) {
+      const linkCounts = new Map();
+      const lastSeenLinkIndex = new Map();
 
-function before() {
-  const start = performance.now();
-  const newRows = rows.map((row) => {
-    const newRow = { rownum: 0 };
-    dataframeColumns.forEach((col, dfIdx) => {
-      let value = "";
-      for (const [pasteIdx, mappedDfIdx] of columnMapping.entries()) {
-        if (mappedDfIdx === dfIdx) {
-          value = row[pasteIdx] ?? "";
-          if (isString(value)) {
-            value = value.replace(/^"|"$/g, "");
+      for (let j = 0; j < clips.length; j++) {
+        const linkId = clips[j].linkId;
+        if (linkId !== undefined && affectedLinkIds.has(linkId)) {
+          const count = (linkCounts.get(linkId) ?? 0) + 1;
+          linkCounts.set(linkId, count);
+          if (count === 1) {
+            lastSeenLinkIndex.set(linkId, j);
+          } else if (count === 2) {
+            lastSeenLinkIndex.delete(linkId); // We have at least 2, don't need to unlink
           }
-          break;
         }
       }
-      newRow[col.name] = value;
-    });
-    return newRow;
-  });
-  return performance.now() - start;
-}
 
-function after() {
-  const start = performance.now();
-  const newRows = rows.map((row) => {
-    const newRow = { rownum: 0 };
-    dataframeColumns.forEach((col, dfIdx) => {
-      let value = "";
-      const pasteIdx = dfToPasteIdx.get(dfIdx);
-      if (pasteIdx !== undefined) {
-        value = row[pasteIdx] ?? "";
-        if (isString(value)) {
-          value = value.replace(/^"|"$/g, "");
-        }
+      for (const idx of lastSeenLinkIndex.values()) {
+        clips[idx] = { ...clips[idx], linkId: undefined };
       }
-      newRow[col.name] = value;
-    });
-    return newRow;
-  });
-  return performance.now() - start;
+    }
 }
+const t2 = perf.performance.now();
 
-console.log('Before:', before(), 'ms');
-console.log('After:', after(), 'ms');
+console.log(`Original: ${t1 - t0}ms`);
+console.log(`Optimized: ${t2 - t1}ms`);
+
