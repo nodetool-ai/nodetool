@@ -413,7 +413,11 @@ function parseSize(value: string): { w: number; h: number } | null {
  * The field is a free string on some models and a fixed enum on others, and
  * the separator differs by family (`1024x1024` on GPT Image, `1024*1024` on
  * Seedream / Qwen / Wan). Free-string fields take the requested dimensions
- * verbatim under the separator the model's own default uses; enum fields get
+ * verbatim under the separator the model's own default uses — `*` when the
+ * default declares none, which is what every free-string `size` on AtlasCloud
+ * wants: the `x` form is an OpenAI-family enum, and Qwen Image 3 rejects it
+ * outright (`invalid qwen image size "1024x1024"; use width*height`) while
+ * FLUX 2 fails evaluating its per-megapixel price. Enum fields get
  * the declared option closest in aspect ratio, then in area. Enums with no
  * parseable dimensions at all (Wan's `1K`/`2K`) yield null — the caller leaves
  * the model default in place instead of sending an option that would 422.
@@ -421,7 +425,7 @@ function parseSize(value: string): { w: number; h: number } | null {
 function renderSize(field: FieldInfo, w: number, h: number): string | null {
   const allowed = field.values;
   if (!allowed || allowed.length === 0) {
-    const sep = String(field.default ?? "").includes("*") ? "*" : "x";
+    const sep = String(field.default ?? "").includes("x") ? "x" : "*";
     return `${w}${sep}${h}`;
   }
   const exact = allowed.find(
@@ -456,14 +460,21 @@ function mapImageParams(
 ) {
   const input: Record<string, unknown> = { prompt: params.prompt };
   setIfDeclared(input, info, params.aspectRatio, "aspect_ratio", "ratio");
-  // Wan expresses resolution as a `size` enum (`1K`/`2K`/`4K`); the membership
-  // check in setIfDeclared keeps the fallback from firing on pixel-size models.
-  setIfDeclared(input, info, params.resolution, "resolution", "size");
+  setIfDeclared(input, info, params.resolution, "resolution");
   setIfDeclared(input, info, params.quality, "quality");
   setIfDeclared(input, info, params.negativePrompt, "negative_prompt");
   setIfDeclared(input, info, params.seed, "seed");
   setIfDeclared(input, info, params.guidanceScale, "cfg_scale");
   const sizeField = info.fields.get("size");
+  // Wan expresses resolution as a `size` enum (`1K`/`2K`/`4K`), so a named tier
+  // belongs there — but only when the enum declares it. A free-string `size`
+  // takes `width*height` and nothing else: AtlasCloud prices FLUX 2 by
+  // megapixels parsed out of that string, so a `size: "1K"` it never declared
+  // is rejected before the job exists ("failed to evaluate price: … asFloat:
+  // cannot convert 1K"). Leave that field to the pixel renderer below.
+  if (sizeField?.values && sizeField.values.length > 0) {
+    setIfDeclared(input, info, params.resolution, "size");
+  }
   if (sizeField && input.size === undefined) {
     const w =
       (params as TextToImageParams).width ??

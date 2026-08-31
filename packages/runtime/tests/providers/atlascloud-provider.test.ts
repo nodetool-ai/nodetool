@@ -315,6 +315,39 @@ describe("AtlasCloudProvider — textToImage", () => {
     expect(capture.submitBody!.size).toBe("1K");
   });
 
+  it("keeps a resolution tier out of a free-string `size`", async () => {
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    // FLUX 2 Pro's `size` is a free string of pixel dimensions, and AtlasCloud
+    // parses its per-megapixel price out of it: a `size: "1K"` is rejected at
+    // submit with "failed to evaluate price: … asFloat: cannot convert 1K".
+    // The named tier belongs to the pixel pair the caller sent with it.
+    await p.textToImage({
+      model: imageModel("black-forest-labs/flux-2-pro/text-to-image"),
+      prompt: "a cat",
+      resolution: "1K",
+      width: 1024,
+      height: 1024
+    });
+    expect(capture.submitBody!.size).toBe("1024*1024");
+  });
+
+  it("renders a separator-less `size` default with `*`", async () => {
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    // Qwen Image 3 declares `size` with an empty default, and rejects the `x`
+    // form outright: `invalid qwen image size "1024x1024"; use width*height`.
+    await p.textToImage({
+      model: imageModel("qwen-image-3.0/text-to-image"),
+      prompt: "a cat",
+      width: 1024,
+      height: 1024
+    });
+    expect(capture.submitBody!.size).toBe("1024*1024");
+  });
+
   it("drops an aspect ratio the model does not declare", async () => {
     const capture: { submitBody?: Record<string, unknown> } = {};
     mockAtlasFetch({ capture });
