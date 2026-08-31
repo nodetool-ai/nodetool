@@ -1425,6 +1425,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "create_plan",
+    module: "agents",
+    impl: "packages/agents/src/capabilities/agents.ts",
+    contract: "b3a92d89d2f2",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-agents.test.ts",
+    ],
+  },
+  {
     name: "google_drive_search",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",

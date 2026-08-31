@@ -21,7 +21,8 @@ import {
   runSearch,
   runSubtask,
   startSubtask,
-  waitSubtasks
+  waitSubtasks,
+  createPlan
 } from "../src/capabilities/agents.js";
 import {
   capabilityModuleDrift,
@@ -116,7 +117,8 @@ describe("the agents capability module", () => {
       "run_subtask",
       "run_search",
       "start_subtask",
-      "wait_subtasks"
+      "wait_subtasks",
+      "create_plan"
     ]);
   });
 
@@ -293,5 +295,176 @@ describe("the agents capability module", () => {
       unknown
     >;
     expect(waited.error).toBe("background_unavailable");
+  });
+});
+
+describe("create_plan", () => {
+  /** A provider that drives the plan builder: two tasks, then finish. */
+  function planningProvider(): BaseProvider {
+    const script = [
+      {
+        id: "c1",
+        name: "add_task",
+        args: {
+          id: "gather",
+          title: "Gather the inputs",
+          depends_on: [],
+          steps: [
+            { id: "gather_read", instructions: "Read the files", depends_on: [] }
+          ]
+        }
+      },
+      {
+        id: "c2",
+        name: "add_task",
+        args: {
+          id: "draft",
+          title: "Draft the output",
+          depends_on: ["gather"],
+          steps: [
+            { id: "draft_write", instructions: "Write it", depends_on: [] }
+          ]
+        }
+      },
+      { id: "c3", name: "finish_plan", args: { title: "A Plan" } }
+    ];
+    return {
+      provider: "planning-mock",
+      hasToolSupport: async () => true,
+      async *generateMessages() {
+        yield { type: "chunk", content: "", done: true };
+      },
+      async *generateMessagesTraced() {
+        yield { type: "chunk", content: "", done: true };
+      },
+      async *generateLoop(args: {
+        tools?: Array<{
+          name: string;
+          execute?: (a: Record<string, unknown>) => Promise<unknown>;
+        }>;
+      }) {
+        const byName = new Map((args.tools ?? []).map((t) => [t.name, t]));
+        for (const call of script) {
+          yield call;
+          await byName.get(call.name)?.execute?.(call.args);
+        }
+        yield { type: "chunk", content: "", done: true };
+      }
+    } as unknown as BaseProvider;
+  }
+
+  it("returns the plan's shape and executes nothing", async () => {
+    const forwarded: ProcessingMessage[] = [];
+    const ran: string[] = [];
+    const runtime = stubRuntime({
+      provider: planningProvider(),
+      // A belt whose tools would record a call if the planner ever ran one.
+      parentTools: () =>
+        [
+          {
+            name: "write_file",
+            description: "Write a file",
+            inputSchema: { type: "object", properties: {} },
+            process: async () => {
+              ran.push("write_file");
+              return {};
+            },
+            toProviderTool() {
+              return {
+                name: this.name,
+                description: this.description,
+                inputSchema: this.inputSchema
+              };
+            }
+          }
+        ] as never,
+      forwardMessage: (msg) => {
+        forwarded.push(msg);
+      }
+    });
+
+    const result = (await createPlan.impl(
+      createCapabilityRun({
+        context: makeCtx(),
+        gate: UNGATED,
+        subAgent: runtime
+      }),
+      { objective: "Do the thing" }
+    )) as Record<string, unknown>;
+
+    expect(result["title"]).toBe("A Plan");
+    expect(result["task_count"]).toBe(2);
+    expect(result["step_count"]).toBe(2);
+    expect(result["parallelizable"]).toBe(1);
+    expect(result["executed"]).toBe(false);
+    // No step of the plan ran, and no tool on the belt was called.
+    expect(ran).toEqual([]);
+  });
+
+  it("streams the plan into the conversation as it is built", async () => {
+    const forwarded: ProcessingMessage[] = [];
+    const result = (await createPlan.impl(
+      createCapabilityRun({
+        context: makeCtx(),
+        gate: UNGATED,
+        subAgent: stubRuntime({
+          provider: planningProvider(),
+          forwardMessage: (msg) => {
+            forwarded.push(msg);
+          }
+        })
+      }),
+      { objective: "Do the thing" }
+    )) as Record<string, unknown>;
+
+    expect(result["title"]).toBe("A Plan");
+    const types = forwarded.map((m) => m.type);
+    expect(types).toContain("planning_update");
+    expect(types).toContain("task_update");
+  });
+
+  it("refuses an empty objective and a run with no sub-agent runtime", async () => {
+    const empty = (await createPlan.impl(
+      createCapabilityRun({
+        context: makeCtx(),
+        gate: UNGATED,
+        subAgent: stubRuntime()
+      }),
+      { objective: "   " }
+    )) as Record<string, unknown>;
+    expect(empty["error"]).toBe("invalid_objective");
+
+    await expect(
+      createPlan.impl(
+        createCapabilityRun({ context: makeCtx(), gate: UNGATED }),
+        { objective: "Do the thing" }
+      )
+    ).rejects.toThrow(/create_plan/);
+  });
+
+  it("reports a planner that commits nothing instead of inventing a plan", async () => {
+    const silent = {
+      provider: "silent",
+      hasToolSupport: async () => true,
+      async *generateMessages() {
+        yield { type: "chunk", content: "", done: true };
+      },
+      async *generateMessagesTraced() {
+        yield { type: "chunk", content: "", done: true };
+      },
+      async *generateLoop() {
+        yield { type: "chunk", content: "", done: true };
+      }
+    } as unknown as BaseProvider;
+
+    const result = (await createPlan.impl(
+      createCapabilityRun({
+        context: makeCtx(),
+        gate: UNGATED,
+        subAgent: stubRuntime({ provider: silent })
+      }),
+      { objective: "Do the thing" }
+    )) as Record<string, unknown>;
+    expect(result["error"]).toBe("plan_failed");
   });
 });

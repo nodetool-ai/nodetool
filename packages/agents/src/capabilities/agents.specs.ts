@@ -135,10 +135,53 @@ export const waitSubtasksSpec: CapabilitySpec = {
   category: "read"
 };
 
+export const CREATE_PLAN_DESCRIPTION = [
+  "Decompose an objective into an executable plan and show it to the user.",
+  "It PLANS ONLY — nothing in the plan runs, and no tool in it is called.",
+  "",
+  "Call this when the user asks for work that takes several steps and they",
+  "want to see the shape of it first: the planner returns a DAG of tasks,",
+  "each with its own steps and dependencies, and independent tasks are marked",
+  "as such so the user can see what would run concurrently.",
+  "",
+  "The plan streams into the conversation as it is built. Return your own",
+  "short summary afterwards — do not re-list every step the user can already",
+  "see."
+].join("\n");
+
+export const CREATE_PLAN_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    objective: {
+      type: "string",
+      description:
+        "What the plan must achieve, self-contained. The planner does not see the chat history, so restate any constraint that matters (inputs, formats, limits)."
+    }
+  },
+  required: ["objective"],
+  additionalProperties: false
+};
+
+export const createPlanSpec: CapabilitySpec = {
+  name: "create_plan",
+  description: CREATE_PLAN_DESCRIPTION,
+  inputSchema: CREATE_PLAN_SCHEMA,
+  // Planning reads the toolbelt's names to route steps and calls none of them,
+  // so it is read-only — which is also what keeps it callable in plan mode,
+  // where every other category is blocked.
+  category: "read",
+  userMessage: (params) => {
+    const objective =
+      isString(params["objective"]) ? params["objective"].trim() : "";
+    return objective ? `Planning: ${objective.slice(0, 60)}` : "Planning";
+  }
+};
+
 /** Every spec this module declares, in declaration order. */
 export const agentsSpecs: readonly CapabilitySpec[] = [
   runSubtaskSpec,
   runSearchSpec,
   startSubtaskSpec,
-  waitSubtasksSpec
+  waitSubtasksSpec,
+  createPlanSpec
 ];

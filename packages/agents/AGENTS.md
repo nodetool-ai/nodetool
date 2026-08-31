@@ -43,6 +43,19 @@ memoryKeys.shared("note");         // "shared:note"  — cross-agent scratch
 
 A step executor always builds the default execution prompt (the CodeAct action contract, the output schema, the `finish()` discipline). A caller-supplied `systemPrompt` is layered as a preamble *before* the default — it cannot override the execution contract. Earlier versions allowed this and broke result capture in plan mode.
 
+`TaskPlanner` follows the same rule, and did not until recently: a caller's
+`systemPrompt` replaced the whole TaskArchitect contract — ID rules,
+parallelism, output schemas, "synthesis is not your job". Every `AgentNode`
+supplies one (default: "You are a friendly assistant"), so every node-driven
+plan was authored without it. It is a preamble now.
+
+The contract's tool-dependent half is conditional on the run's toolbelt. With
+tools it carries the `find_model` / `generate_*` / `save_asset` instructions;
+with an empty belt it carries `## No Execution Tools` instead, and the planner
+is told to plan only what a model can do from its own knowledge. Advertising
+tools no step can call produced research plans whose every step was the
+model's own recall.
+
 ### Final synthesis: CompilerAgent
 
 `Agent` ends with a dedicated `CompilerAgent` pass after `ParallelTaskExecutor` finishes. The compiler reads the gathered memory snapshot, fetches values via `read_shared`, and produces the final deliverable:
@@ -969,8 +982,14 @@ route instead of failing the whole step.
 `Agent` can pause after planning and present the plan for user approval before
 executing it. Wire a callback either as the `requestPlanApproval` option or on
 the ProcessingContext under `PLAN_APPROVAL_CONTEXT_KEY` (the websocket runner
-sets the context variable for chat-triggered runs, so Agent nodes in plan mode
-gate without explicit wiring):
+sets the context variable for chat-triggered runs):
+
+**No chat turn reaches this today.** Its only consumer is `Agent`, and a chat
+turn constructs a CodeAct session, never an `Agent`; the `AgentNode` that used
+to gate here has no plan mode any more. The gate stays for the CLI's agent
+command and for a host that builds an `Agent` of its own. The chat's plan mode
+is `create_plan` above, which produces a plan and stops — there is nothing to
+approve because nothing would run.
 
 ```typescript
 const agent = new Agent({
@@ -1300,6 +1319,21 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
 - Tests: `tests/codeact-executor.test.ts`, `tests/codeact-eval.test.ts`,
   `tests/chat-codeact.test.ts`, `tests/nodetool-api.test.ts` and
   `tests/nodetool-api-*.test.ts` (scripted provider, real sandbox, no network).
+
+## `create_plan` — the chat's plan mode
+
+The chat's **Plan** permission mode blocks every mutating capability, so a
+multi-step request used to come back as prose. `create_plan` (in the `agents`
+capability module) runs `TaskPlanner.planMultiTask` over the objective,
+forwards the `planning_update` / `task_update` events into the thread — the web
+already renders both — and returns the plan's shape. It executes nothing: the
+planner produces a plan, and the turn ends with it on screen.
+
+It is offered **only** in plan mode, and there it joins `DIRECT_TOOL_NAMES` so
+the model can call it outright; a deliverable reachable only by writing a
+sandbox action to import it is one the model does not reach for. The planner
+sees the parent belt minus `create_plan` itself, so steps route to real tool
+names and no plan contains "call create_plan".
 
 ## Sub-Agent Core (`src/subagent.ts`)
 

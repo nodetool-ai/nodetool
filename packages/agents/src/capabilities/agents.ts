@@ -38,6 +38,7 @@ import {
   runSearchSpec,
   startSubtaskSpec,
   waitSubtasksSpec,
+  createPlanSpec,
   RUN_SUBTASK_DESCRIPTION,
   RUN_SUBTASK_SCHEMA,
   RUN_SEARCH_SCHEMA
@@ -135,12 +136,89 @@ const waitSubtasks: CapabilityExport = {
   }
 };
 
+/**
+ * Plan an objective without running any of it.
+ *
+ * This is what the chat's **plan mode** reaches for: every mutating capability
+ * is blocked there, so a multi-step request used to come back as prose the
+ * user had to read and re-derive. `TaskPlanner` already produces the structured
+ * thing — a DAG of tasks and steps, with the independent ones visible as
+ * such — and the chat already renders the `planning_update` / `task_update`
+ * events it streams. Nothing here executes the plan: `planMultiTask` returns
+ * one, and the turn ends with it on screen.
+ *
+ * The planner sees the parent's toolbelt so it can route steps to real tool
+ * names, minus this capability itself — a plan whose step says "call
+ * create_plan" is a loop, not a plan.
+ */
+const createPlan: CapabilityExport = {
+  spec: createPlanSpec,
+  impl: async (run, args) => {
+    const runtime = subAgentRuntime(run, "create_plan");
+    const objective = isString(args["objective"]) ? args["objective"].trim() : "";
+    if (!objective) {
+      return {
+        error: "invalid_objective",
+        message: "`create_plan` needs a non-empty `objective`."
+      };
+    }
+
+    const { TaskPlanner } = await import("../task-planner.js");
+    const planner = new TaskPlanner({
+      provider: runtime.provider,
+      model: runtime.model,
+      tools: runtime.parentTools().filter((t) => t.name !== createPlanSpec.name),
+      ...(run.context.signal ? { signal: run.context.signal } : {})
+    });
+
+    const generator = planner.planMultiTask(objective, run.context);
+    let next = await generator.next();
+    while (!next.done) {
+      // The plan is the deliverable, so it goes to the user as it is built
+      // rather than being summarized back by the model afterwards.
+      await runtime.forwardMessage(next.value);
+      next = await generator.next();
+    }
+    const plan = next.value;
+
+    if (!plan) {
+      return {
+        error: "plan_failed",
+        message:
+          "The planner did not commit a plan. The objective may be too vague to decompose — restate it with the concrete outcome and try again."
+      };
+    }
+
+    return {
+      title: plan.title,
+      tasks: plan.tasks.map((task) => ({
+        id: task.id,
+        title: task.title,
+        depends_on: task.dependsOn ?? [],
+        steps: task.steps.map((step) => ({
+          id: step.id,
+          instructions: step.instructions,
+          depends_on: step.dependsOn
+        }))
+      })),
+      // What a reader of the plan wants to know first, and what the model
+      // should not have to count for itself.
+      task_count: plan.tasks.length,
+      step_count: plan.tasks.reduce((n, t) => n + t.steps.length, 0),
+      parallelizable: plan.tasks.filter((t) => (t.dependsOn?.length ?? 0) === 0)
+        .length,
+      executed: false
+    };
+  }
+};
+
 /** Every delegation capability. */
 export const AGENT_CAPABILITIES: readonly CapabilityExport[] = [
   runSubtask,
   runSearch,
   startSubtask,
-  waitSubtasks
+  waitSubtasks,
+  createPlan
 ];
 
 export const module: CapabilityModule = {
@@ -148,4 +226,4 @@ export const module: CapabilityModule = {
   exports: AGENT_CAPABILITIES
 };
 
-export { runSubtask, runSearch, startSubtask, waitSubtasks };
+export { runSubtask, runSearch, startSubtask, waitSubtasks, createPlan };

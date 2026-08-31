@@ -240,8 +240,16 @@ const PERMISSION_MODE_PROMPTS = {
     "\n# Permission mode: PLAN (read-only)\n" +
     "You may only use read-only tools (search, read, inspect, query " +
     "collections). Tools that write, run, or act are blocked. Do NOT attempt " +
-    "them — instead investigate and produce a concrete, step-by-step plan the " +
-    "user can run after switching out of plan mode.\n",
+    "them — investigate, then produce the plan the user can run after " +
+    "switching out of plan mode.\n" +
+    "Call `create_plan` to build that plan whenever the request needs more " +
+    "than one step. It decomposes the objective into a task DAG, shows it to " +
+    "the user, and runs none of it. Investigate first if you need to, so the " +
+    "objective you pass names real files, nodes, or workflows. Afterwards say " +
+    "what the plan does in a sentence or two — the user can already see the " +
+    "steps.\n" +
+    "Answer a question that needs no plan directly; do not wrap an answer in " +
+    "a plan.\n",
   default:
     "\n# Permission mode: DEFAULT\n" +
     "Read-only tools run automatically. Actions (writing files, running nodes " +

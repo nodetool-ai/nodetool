@@ -445,6 +445,63 @@ describe("permission gate", () => {
 
     await runner.disconnect();
   });
+
+  it("offers create_plan in plan mode and only there", async () => {
+    const offered: string[][] = [];
+    const provider = async () =>
+      ({
+        provider: "mock",
+        async *generateMessagesTraced(args: {
+          tools?: Array<{ name: string }>;
+        }) {
+          offered.push((args.tools ?? []).map((t) => t.name));
+          yield { type: "chunk" as const, content: "ok" };
+        },
+        async generateMessageTraced() {
+          return {};
+        },
+        generateMessage: vi.fn(),
+        hasToolSupport: async () => true,
+        getAvailableLanguageModels: async () => [],
+        getAvailableImageModels: async () => [],
+        getAvailableVideoModels: async () => [],
+        getAvailableTTSModels: async () => [],
+        getAvailableASRModels: async () => [],
+        getAvailableEmbeddingModels: async () => [],
+        getContainerEnv: () => ({}),
+        generateLoop: BaseProvider.prototype.generateLoop
+      }) as any;
+
+    const runner = new WebSocketClientSession({
+      resolveExecutor: noop,
+      resolveProvider: provider
+    });
+    await runner.connect(ws);
+
+    for (const [threadId, mode] of [
+      ["t-plan-tool", "plan"],
+      ["t-default-tool", "default"]
+    ] as const) {
+      await runner.handleCommand({
+        command: "chat_message",
+        data: {
+          thread_id: threadId,
+          content: "add caching to the api",
+          provider: "mock",
+          model: "m",
+          permission_mode: mode
+        }
+      });
+      await new Promise((r) => setTimeout(r, 200));
+    }
+
+    const [planTools, defaultTools] = offered;
+    expect(planTools).toContain("create_plan");
+    // Everywhere else the agent does the work rather than describing it.
+    expect(defaultTools ?? []).not.toContain("create_plan");
+
+    await runner.disconnect();
+  });
 });
 
 // ── dbMessageToProviderMessage ──────────────────────────────────────

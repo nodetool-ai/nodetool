@@ -1424,6 +1424,17 @@ export class ChatTurnHandler {
         toolForCapabilityName("wait_subtasks", delegationRun)
       );
 
+      // Plan mode's own capability: `create_plan` runs the TaskPlanner over the
+      // objective and streams the plan into the thread, executing nothing. It
+      // is offered only here, because plan mode is the one place where a plan
+      // *is* the deliverable — everywhere else the agent does the work instead
+      // of describing it. The belt is a per-turn snapshot, so this reads the
+      // mode the turn started in — `liveMode` covers a mid-turn switch for the
+      // gate, not for which tools were offered.
+      if (permissionMode === "plan") {
+        serverTools.unshift(toolForCapabilityName("create_plan", delegationRun));
+      }
+
       // Read-only fan-out search (opt-in). Reuses the same runtime — the
       // capability filters the parent belt to its read-only allowlist
       // internally, so passing the full snapshot is correct.
@@ -1570,8 +1581,13 @@ export class ChatTurnHandler {
       // plain tool calls: one question with one answer, which routing through
       // a sandbox action only delays. They stay on the belt so code can still
       // compose them; the prompt documents the direct call.
+      // `create_plan` joins them in plan mode: the plan is that turn's whole
+      // deliverable, and a deliverable reached only by writing a sandbox action
+      // to import it is one the model routinely does not reach for.
+      const directNames = new Set<string>(DIRECT_TOOL_NAMES);
+      if (permissionMode === "plan") directNames.add("create_plan");
       const directSchemas = allSchemas.filter(
-        (s) => s.name !== "view_image" && DIRECT_TOOL_NAMES.has(s.name)
+        (s) => s.name !== "view_image" && directNames.has(s.name)
       );
       codeactSession = createChatCodeActSession({
         tools: allSchemas
