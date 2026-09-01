@@ -62,6 +62,26 @@ describe("document edit tools", () => {
     }
   });
 
+  /**
+   * The create half of the same four surfaces. `edit_*` on the belt without
+   * `create_*` is worse than neither: the namespace lights up, so
+   * `nodetool.<surface>.create()` is documented and reachable, and it throws
+   * "not in this toolbelt" — leaving a blank document only obtainable by
+   * editing one the user already has.
+   */
+  it("registers the create half of each surface too", () => {
+    const creates = [
+      "create_timeline",
+      "create_sketch",
+      "create_script",
+      "create_storyboard"
+    ];
+    expect(BUILTIN_TOOL_NAMES).toEqual(expect.arrayContaining(creates));
+    for (const name of creates) {
+      expect(permissionCategoryFor(name)).toBe("write");
+    }
+  });
+
   describe("edit_timeline", () => {
     it("applies ops and persists the new document", async () => {
       const sequence = await makeTimeline();
