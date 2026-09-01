@@ -63,9 +63,6 @@ describe("agents index exports", () => {
     expect(mod.buildReadOnlySearchPrompt).toBeDefined();
     expect(mod.READ_ONLY_SEARCH_DESCRIPTION).toBeDefined();
 
-    // Agents
-    expect(mod.Agent).toBeDefined();
-
     // Planning & orchestration
     expect(mod.TaskPlanner).toBeDefined();
     expect(mod.TaskExecutor).toBeDefined();

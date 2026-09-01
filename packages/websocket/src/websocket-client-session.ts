@@ -34,11 +34,7 @@ import {
   type DBModel
 } from "@nodetool-ai/models";
 import type { BaseProvider } from "@nodetool-ai/runtime";
-import {
-  ProcessingContext as RuntimeProcessingContext,
-  fetchExternalMedia,
-  type Workspace
-} from "@nodetool-ai/runtime";
+import { fetchExternalMedia, type Workspace } from "@nodetool-ai/runtime";
 import type { NodeDescriptor } from "@nodetool-ai/protocol";
 import type {
   UnifiedCommandType,
@@ -53,7 +49,6 @@ import {
   processingMessageSchemas,
   type ControlMessageInType
 } from "@nodetool-ai/protocol";
-import { type SandboxClock } from "@nodetool-ai/agents";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import type { HttpApiOptions } from "./http-api.js";
@@ -87,7 +82,6 @@ import {
   estimateDirectTextSpend,
   resolveEntityReferenceImages
 } from "./session/inference.js";
-import { attachPlanApproval as attachPlanApprovalTo } from "./session/chat-history.js";
 
 // The pure helpers moved to ./session/*; re-exported here so every existing
 // import path keeps working.
@@ -558,8 +552,6 @@ export class WebSocketClientSession implements ClientSession {
         WebSocketClientSession.DEFAULT_MAX_CONCURRENT_RUNS_PER_WORKFLOW,
       sendToSocket: (message) => this.sendToSocket(message),
       isSocketConnected: () => this.isRendererConnected(),
-      attachPlanApproval: (context, jobId) =>
-        this.attachPlanApproval(context, jobId),
       defaults: {
         provider: this.defaultProvider,
         model: this.defaultModel
@@ -1008,25 +1000,6 @@ export class WebSocketClientSession implements ClientSession {
       message:
         "Model clearing is managed by provider implementations in TS runtime"
     };
-  }
-
-  /**
-   * Expose the plan-approval round-trip on a processing context so any Agent
-   * that plans inside this run (e.g. an Agent node in plan mode) pauses for
-   * user approval before executing. See PLAN_APPROVAL_CONTEXT_KEY in
-   * `@nodetool-ai/agents`.
-   */
-  private attachPlanApproval(
-    context: RuntimeProcessingContext,
-    threadId: string | null,
-    clock?: SandboxClock
-  ): void {
-    attachPlanApprovalTo(
-      context,
-      threadId,
-      (id, plan) => this.chat.requestPlanApproval(id, plan),
-      clock
-    );
   }
 
   /**

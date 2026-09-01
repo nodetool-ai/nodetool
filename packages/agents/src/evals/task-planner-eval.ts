@@ -8,7 +8,7 @@
  * that is what this suite measures: does the planner exploit parallelism, keep
  * decomposition proportional to the objective, route work to the right tool,
  * respect the step-granularity and id-prefix conventions, and leave final
- * synthesis to the Compiler stage instead of planning an "assemble" task?
+ * synthesis to the calling loop instead of planning an "assemble" task?
  *
  * Scoring is structural (see {@link checkTaskPlanExpectations}) — task/step
  * counts, DAG shape, tool routing, instruction patterns — never an exact plan,
@@ -30,7 +30,7 @@ import {
 
 /**
  * Task titles and step instructions that mean "assemble the final answer".
- * The planner prompt forbids such a task outright — the Compiler stage owns
+ * The planner prompt forbids such a task outright — the calling loop owns
  * final synthesis and already has every `task_result` in memory.
  */
 const SYNTHESIS_PATTERN =
@@ -103,8 +103,6 @@ export interface RunTaskPlannerEvalOptions {
   providers?: Record<string, BaseProvider>;
   /** Cases to run; defaults to the built-in suite. */
   cases?: readonly TaskPlannerEvalCase[];
-  /** Planning attempts per case. */
-  maxRetries?: number;
   /**
    * The caller preamble every case plans behind. Defaults to the `AgentNode`'s
    * own default system prompt, because that is what the product sends; pass
@@ -292,7 +290,7 @@ export function checkTaskPlanExpectations(
         : `unprefixed: ${unprefixed.join(", ")}`
   });
 
-  // Universal: final synthesis belongs to the Compiler stage, not the plan.
+  // Universal: final synthesis belongs to the calling loop, not the plan.
   if (!expect.allowSynthesisTask) {
     const offender =
       plan.tasks.find((t) => SYNTHESIS_PATTERN.test(t.title))?.title ??
@@ -327,7 +325,6 @@ async function runCase(
     systemPrompt: opts.systemPrompt ?? AGENT_NODE_SYSTEM_PROMPT,
     outputSchema: evalCase.outputSchema,
     inputs: evalCase.inputs,
-    maxRetries: opts.maxRetries,
     signal: opts.signal
   });
 

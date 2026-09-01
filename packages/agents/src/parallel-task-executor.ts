@@ -33,8 +33,6 @@ import { mergeAsyncGenerators } from "./utils/merge-generators.js";
 import { DEFAULT_AGENT_POLICY } from "./agent-policy.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Task, TaskPlan } from "./types.js";
-import type { Checkpoint, CheckpointStore } from "./checkpoint-store.js";
-import { hashPlanCheckpointKey } from "./checkpoint-store.js";
 
 const log = createLogger("nodetool.agents.parallel-task-executor");
 
@@ -60,23 +58,6 @@ export interface ParallelTaskExecutorOptions {
   /** Cap on output tokens per step turn. Forwarded to each TaskExecutor. */
   maxTokens?: number;
   /**
-   * Opt-in checkpoint store. When supplied with a {@link runId}, the executor
-   * loads any checkpoint whose `planHash` matches this plan, marks its
-   * completed tasks as done (seeding their results into memory), and resumes
-   * from the remaining tasks. After each task completes it persists an updated
-   * checkpoint. Omit to keep the original behavior (no resume, no persistence).
-   */
-  checkpointStore?: CheckpointStore;
-  /** Run identifier the checkpoint is keyed by. Required for checkpointing. */
-  runId?: string;
-  /**
-   * Tool names used to compute this plan's hash for checkpoint matching. When
-   * omitted, the hash is derived from the executor's own tool array. Pass the
-   * planning tool set when it differs from the execution tool set so the hash
-   * lines up with the plan cache key.
-   */
-  planTools?: string[];
-  /**
    * The run's budget, forwarded to every task (and through it to every step),
    * and used as the concurrency bound the task fan-out shares with them.
    * Omitted, the budget on {@link context} is used.
@@ -101,9 +82,6 @@ export class ParallelTaskExecutor {
   private readonly maxSteps?: number;
   private readonly maxConcurrentAgents: number;
   private readonly maxTokens?: number;
-  private readonly checkpointStore?: CheckpointStore;
-  private readonly runId?: string;
-  private readonly planTools?: string[];
   private readonly budget?: RunBudget;
   /**
    * The run's permit pool, when this executor is the layer drawing from it —
@@ -115,7 +93,7 @@ export class ParallelTaskExecutor {
   /**
    * IDs of tasks that ran but did not genuinely succeed (budget exhausted,
    * unsatisfiable dependency, or an error result). Tracked separately from
-   * `task.completed` so a failed task is never checkpointed as success nor
+   * `task.completed` so a failed task is never recorded as success nor
    * counted as a satisfied dependency, while still terminating the scheduler
    * loop instead of being re-dispatched forever.
    */
@@ -136,40 +114,9 @@ export class ParallelTaskExecutor {
     this.maxConcurrentAgents =
       opts.maxConcurrentAgents ?? DEFAULT_AGENT_POLICY.maxConcurrentAgents;
     this.maxTokens = opts.maxTokens;
-    this.checkpointStore = opts.checkpointStore;
-    this.runId = opts.runId;
-    this.planTools = opts.planTools;
     this.budget = opts.budget ?? budgetFromContext(opts.context);
     this.signal = opts.signal;
     this.sandboxPackages = opts.sandboxPackages ?? [];
-  }
-
-  /**
-   * Stable hash matching a saved checkpoint to the current plan — see
-   * {@link hashPlanCheckpointKey} for what it covers.
-   */
-  private planHash(): string {
-    return hashPlanCheckpointKey({
-      taskPlan: this.taskPlan,
-      tools: this.planTools ?? this.tools.map((t) => t.name),
-      model: this.model,
-      systemPrompt: this.systemPrompt ?? null
-    });
-  }
-
-  /** Persist the current execution progress under {@link runId} (idempotent). */
-  private persistCheckpoint(planHash: string = this.planHash()): void {
-    if (!this.checkpointStore || !this.runId) return;
-    const completedTaskIds = this.taskPlan.tasks
-      .filter((t) => t.completed)
-      .map((t) => t.id);
-    const taskResults: Record<string, unknown> = {};
-    for (const id of completedTaskIds) {
-      const value = this.context.memory.getValue(memoryKeys.task(id));
-      if (value !== undefined) taskResults[id] = value;
-    }
-    const checkpoint: Checkpoint = { planHash, completedTaskIds, taskResults };
-    this.checkpointStore.save(this.runId, checkpoint);
   }
 
   /**
@@ -209,50 +156,6 @@ export class ParallelTaskExecutor {
         value,
         title: key
       });
-    }
-
-    // Checkpoint resume (opt-in): a matching saved checkpoint marks already-done
-    // tasks as complete and seeds their results so they are skipped below and
-    // their outputs remain available to dependents.
-    const planHash = this.checkpointStore && this.runId ? this.planHash() : "";
-    if (this.checkpointStore && this.runId) {
-      const checkpoint = this.checkpointStore.load(this.runId);
-      if (checkpoint && checkpoint.planHash === planHash) {
-        const completed = new Set(checkpoint.completedTaskIds);
-        let resumed = 0;
-        for (const task of this.taskPlan.tasks) {
-          if (!completed.has(task.id)) continue;
-          task.completed = true;
-          resumed++;
-          const result = checkpoint.taskResults?.[task.id];
-          if (
-            result !== undefined &&
-            !this.context.memory.has(memoryKeys.task(task.id))
-          ) {
-            this.context.memory.set({
-              key: memoryKeys.task(task.id),
-              kind: "task_result",
-              value: result,
-              source: task.id,
-              title: task.title,
-              description: task.description
-            });
-          }
-        }
-        if (resumed > 0) {
-          log.info("Resumed from checkpoint", {
-            runId: this.runId,
-            resumedTasks: resumed
-          });
-          yield {
-            type: "log_update",
-            node_id: "parallel_task_executor",
-            node_name: "ParallelTaskExecutor",
-            content: `Resuming from checkpoint: ${resumed} task(s) already complete.`,
-            severity: "info"
-          } satisfies LogUpdate;
-        }
-      }
     }
 
     const totalTasks = this.taskPlan.tasks.length;
@@ -413,7 +316,7 @@ export class ParallelTaskExecutor {
     // A TaskExecutor returns without throwing even when its steps failed
     // (StepExecutor writes an `{ error }` result and emits an error
     // step_result rather than raising). Decide whether the task actually
-    // succeeded before recording it as complete or checkpointing it.
+    // succeeded before recording it as complete.
     const failureReason = this.detectTaskFailure(task, taskResult);
     if (failureReason) {
       this.failedTaskIds.add(task.id);
@@ -461,10 +364,6 @@ export class ParallelTaskExecutor {
 
     task.completed = true;
 
-    // Persist progress so a re-run resumes past this task (no-op without a
-    // checkpoint store + runId).
-    this.persistCheckpoint();
-
     yield {
       type: "task_update",
       event: TaskUpdateEvent.TaskCompleted,
@@ -508,7 +407,7 @@ export class ParallelTaskExecutor {
       // results and is always marked completed, even when every item failed
       // (each item is an `{ error }` object). isErrorResult returns false for
       // arrays, so an all-failed fan-out would otherwise be recorded as a
-      // success and checkpointed, never retried. Treat a non-empty array whose
+      // success, never retried. Treat a non-empty array whose
       // every element is an error result as a failed step.
       if (
         Array.isArray(value) &&

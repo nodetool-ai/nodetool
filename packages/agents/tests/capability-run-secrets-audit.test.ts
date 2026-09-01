@@ -185,7 +185,7 @@ describe("CapabilityRun secret-availability audit", () => {
     // The three hosts with a real secret store, named rather than counted.
     expect(files).toContain("packages/websocket/src/session/chat-turn.ts");
     expect(files).toContain("packages/websocket/src/mcp-agent-tools.ts");
-    expect(files).toContain("packages/cli/src/stdin.ts");
+    expect(files).toContain("packages/cli/src/chat-codeact.ts");
   });
 
   // The belt hosts inject through `getAllMcpTools`, which takes a factory

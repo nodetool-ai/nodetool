@@ -1,14 +1,15 @@
 /**
- * AgentPolicy — the one execution policy every agent mode obeys.
+ * The default bounds the two DAG executors fall back to.
  *
- * The three planning modes (single task, multi-task plan, graph) used to carry
- * their own ad-hoc bounds: `maxTokens` reached the task-plan executors but not
- * the graph runner, `maxSteps` was ignored once a plan had more than one task,
- * and the plan-approval gate ran for multi-task plans alone. Nodes that wrap an
- * agent hardcoded their own numbers on top.
+ * `DEFAULT_AGENT_POLICY` is what `parallel-task-executor.ts` and
+ * `task-executor.ts` read when a caller names no bound of its own, which keeps
+ * one number in one place instead of a literal per executor.
  *
- * One object resolves all of it, so a knob means the same thing in every mode
- * and a new mode inherits the bounds instead of inventing them.
+ * `resolveAgentPolicy` and `AgentPolicyOptions` have no caller left: the loop
+ * that resolved a per-run policy object is gone, and `execute_plan` passes the
+ * run's budget and the parent's per-step iteration cap directly. A7 folds the
+ * per-step iteration bound into `RunBudget`, which today carries a concurrency
+ * semaphore but no iteration cap; these stay until it does.
  */
 
 export interface AgentPolicyOptions {

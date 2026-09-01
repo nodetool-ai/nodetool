@@ -19,7 +19,14 @@
  */
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 
-import type { AgentSkill } from "../agent.js";
+/** A skill as the prompt renders it: a name, a one-line description, a body. */
+export interface AgentSkill {
+  name: string;
+  description: string;
+  instructions: string;
+  /** Where the body came from, for provenance in the transcript. */
+  path: string;
+}
 
 /** The pack a specifier belongs to: the package name, scope included. */
 export function packNameForSpecifier(specifier: string): string {

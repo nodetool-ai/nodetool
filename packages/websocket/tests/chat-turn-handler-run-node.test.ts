@@ -366,13 +366,15 @@ describe("the gate a run_node child inherits", () => {
   /**
    * `run_node` runs the node on a context it builds itself, not on the turn's,
    * so the turn's gate has to be handed across. Without it the node's own
-   * agent loop finds nothing and runs headless in `auto` — which is how a chat
-   * in plan mode could mutate through an `AgentNode`.
+   * agent loop finds nothing on the context and runs headless in `auto` — a
+   * write inside the node then runs with no prompt, on the strength of the
+   * user having approved "run this node".
    */
-  async function modeSeenByNode(
+  async function runTurnAndReadGate(
     permissionMode: "plan" | "default" | "auto"
-  ): Promise<string> {
-    const seen: string[] = [];
+  ): Promise<{ modes: string[]; toolResult: string }> {
+    const modes: string[] = [];
+    const results: unknown[] = [];
     const harness = makeChatTurnHarness({
       session: {
         resolveExecutor: () => ({
@@ -380,18 +382,20 @@ describe("the gate a run_node child inherits", () => {
             _inputs: Record<string, unknown>,
             context?: ProcessingContext
           ) {
-            seen.push(gateFromContext(context, "test").mode);
+            modes.push(gateFromContext(context, "test").mode);
             return { output: "" };
           }
         }),
         resolveProvider: async () =>
           fakeProvider({
             generateLoop: async function* (args: GenerateLoopArgs) {
-              await args.executeTool?.({
-                id: "call_run",
-                name: "run_node",
-                args: { node_type: "test.Echo" }
-              });
+              results.push(
+                await args.executeTool?.({
+                  id: "call_run",
+                  name: "run_node",
+                  args: { node_type: "test.Echo" }
+                })
+              );
               yield { type: "chunk", content: "ok", done: true };
             }
           })
@@ -406,17 +410,28 @@ describe("the gate a run_node child inherits", () => {
     } finally {
       stop();
     }
-    return seen.join(",");
+    return { modes, toolResult: String(results[0]) };
   }
 
-  it("hands the node the turn's mode, so plan mode blocks a write inside it", async () => {
-    const mode = await modeSeenByNode("plan");
+  it("hands the node the turn's mode, not the headless auto", async () => {
+    const { modes } = await runTurnAndReadGate("default");
 
-    expect(mode).toBe("plan");
-    expect(decidePermission("plan", "write")).toBe("block");
+    // `auto` here would mean the node found no gate: a write inside it would
+    // then run without asking.
+    expect(modes).toEqual(["default"]);
+    expect(decidePermission("default", "write")).toBe("ask");
   });
 
-  it("hands the node a default turn's mode rather than the headless auto", async () => {
-    expect(await modeSeenByNode("default")).toBe("default");
+  it("carries auto through when that is the turn's mode", async () => {
+    const { modes } = await runTurnAndReadGate("auto");
+
+    expect(modes).toEqual(["auto"]);
+  });
+
+  it("never reaches the node in plan mode: the belt blocks run_node first", async () => {
+    const { modes, toolResult } = await runTurnAndReadGate("plan");
+
+    expect(toolResult).toContain("blocked_in_plan_mode");
+    expect(modes).toEqual([]);
   });
 });

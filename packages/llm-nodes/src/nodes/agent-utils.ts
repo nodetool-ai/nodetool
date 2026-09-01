@@ -1,5 +1,10 @@
 import type { BaseNode } from "@nodetool-ai/node-sdk";
-import { gateTools, Tool, type PermissionGateOptions } from "@nodetool-ai/agents";
+import {
+  gateTools,
+  Tool,
+  TOOL_CALL_ID_FIELD,
+  type PermissionGateOptions
+} from "@nodetool-ai/agents";
 import type {
   BaseProvider,
   JsonSchema,
@@ -542,6 +547,14 @@ export function normalizeTools(
 class AdaptedAgentTool extends Tool {
   readonly name: string;
   readonly description: string;
+  /**
+   * Always ask for the call id. A `ToolLike` takes it as a third argument to
+   * `execute`, which the gate's `Tool` contract has no room for, so it comes
+   * through the reserved arg field and is put back below. A tool that nests
+   * its own events (`run_subtask`) stamps it on them; losing it un-nests every
+   * card the call produces.
+   */
+  override readonly needsToolCallId = true;
 
   constructor(private readonly inner: ToolLike) {
     super();
@@ -576,13 +589,20 @@ class AdaptedAgentTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
+    const { [TOOL_CALL_ID_FIELD]: toolCallId, ...args } = params;
     // `execute` first, the way the node's own dispatch prefers it: it is where
     // a tool coerces its params before `process` sees them.
-    const call = this.inner.execute ?? this.inner.process;
-    if (!isCallable(call)) {
+    if (isCallable(this.inner.execute)) {
+      return this.inner.execute(
+        context,
+        args,
+        isString(toolCallId) ? { toolCallId } : {}
+      );
+    }
+    if (!isCallable(this.inner.process)) {
       return { status: "error", error: `Non-executable tool: ${this.name}` };
     }
-    return call.call(this.inner, context, params);
+    return this.inner.process(context, args);
   }
 }
 

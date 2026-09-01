@@ -2,18 +2,12 @@ import type { Message } from "@nodetool-ai/models";
 import type {
   MessageContent,
   Message as ProviderMessage,
-  ProcessingContext as RuntimeProcessingContext,
   ToolCall as ProviderToolCall
 } from "@nodetool-ai/runtime";
 import { isRecord, isString } from "../lib/wire-values.js";
 import {
   findInvokedSkillNames,
-  formatInvokedSkillsForPrompt,
-  PLAN_APPROVAL_CONTEXT_KEY,
-  type PlanApprovalDecision,
-  type RequestPlanApproval,
-  type SandboxClock,
-  type TaskPlan
+  formatInvokedSkillsForPrompt
 } from "@nodetool-ai/agents";
 import { resolveContentForProvider } from "../resolve-media-urls.js";
 
@@ -149,34 +143,6 @@ export function invokedSkillsSection(
         content: skill.content
       }))
   );
-}
-
-/**
- * Expose the plan-approval round-trip on a processing context so any Agent
- * that plans inside this run (e.g. an Agent node in plan mode) pauses for
- * user approval before executing. See PLAN_APPROVAL_CONTEXT_KEY in
- * `@nodetool-ai/agents`.
- */
-export function attachPlanApproval(
-  context: RuntimeProcessingContext,
-  threadId: string | null,
-  requestPlanApproval: (
-    threadId: string | null,
-    plan: TaskPlan
-  ) => Promise<PlanApprovalDecision>,
-  clock?: SandboxClock
-): void {
-  // Same reasoning as the tool-approval gate: a plan presented from inside a
-  // code action parks the guest program, and the wait belongs to the user.
-  const request: RequestPlanApproval = async (plan) => {
-    const resume = clock?.suspend();
-    try {
-      return await requestPlanApproval(threadId, plan);
-    } finally {
-      resume?.();
-    }
-  };
-  context.set(PLAN_APPROVAL_CONTEXT_KEY, request);
 }
 
 /**

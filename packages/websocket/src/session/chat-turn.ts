@@ -110,10 +110,8 @@ import {
   type PermissionMode,
   type ApprovalDecision,
   type ApprovalRequest,
-  type PlanApprovalDecision,
   type SecretPromptRequest,
-  type SecretPromptStatus,
-  type TaskPlan
+  type SecretPromptStatus
 } from "@nodetool-ai/agents";
 import { mcpToolHostDeps } from "../mcp-tool-deps.js";
 import {
@@ -139,7 +137,6 @@ import {
   extractTextContent,
   invokedSkillsSection,
   toolResultDisplayText,
-  attachPlanApproval,
   type SkillEntry
 } from "./chat-history.js";
 import type { ClientSession } from "./client-session.js";
@@ -944,56 +941,6 @@ export class ChatTurnHandler {
   }
 
   /**
-   * Round-trip a plan approval to the client and resolve with the user's
-   * decision. Emits a `plan_approval_request` carrying the serialized plan,
-   * then waits for the matching `plan_approval_response` (resolved via
-   * {@link approvalBridge}). A cancelled wait (stop) is treated as a
-   * rejection without feedback, which aborts the agent run.
-   */
-  async requestPlanApproval(
-    threadId: string | null,
-    plan: TaskPlan
-  ): Promise<PlanApprovalDecision> {
-    const approvalId = `plan_${randomUUID()}`;
-    await this.session.send({
-      type: "plan_approval_request",
-      thread_id: threadId,
-      approval_id: approvalId,
-      plan: {
-        title: plan.title,
-        tasks: plan.tasks.map((t) => ({
-          id: t.id,
-          title: t.title,
-          depends_on: t.dependsOn ?? [],
-          steps: t.steps.map((s) => ({
-            id: s.id,
-            instructions: s.instructions
-          }))
-        }))
-      }
-    });
-    try {
-      // No timeout — the user may take a while; `stop` cancels this run.
-      const response = await this.deps.approvalBridge.createWaiter(
-        approvalId,
-        0,
-        threadId ?? undefined
-      );
-      if (response.decision === "approve") {
-        return { decision: "approve" };
-      }
-      const feedback =
-        isString(response.feedback) && response.feedback.trim()
-          ? response.feedback.trim()
-          : undefined;
-      return { decision: "reject", feedback };
-    } catch {
-      // Cancelled (generation stopped) — treat as a rejection.
-      return { decision: "reject" };
-    }
-  }
-
-  /**
    * Execute a single node by type and return its output. Builds a one-node
    * graph and runs it through a fresh `ExecutionSession` (@nodetool-ai/execution),
    * then returns the
@@ -1005,7 +952,6 @@ export class ChatTurnHandler {
     nodeType: string,
     inputs: Record<string, unknown>,
     userId: string,
-    threadId: string | null = null,
     projectId: string | null = null,
     /** The calling turn's gate, when a chat turn is what started this node. */
     gate: PermissionGateOptions | null = null
@@ -1049,9 +995,6 @@ export class ChatTurnHandler {
         : null,
       assetOutputMode: this.session.mode === "text" ? "data_uri" : "temp_url"
     });
-    attachPlanApproval(context, threadId, (id, plan) =>
-      this.requestPlanApproval(id, plan)
-    );
     // This context is built here rather than copied from the turn, so the
     // turn's gate has to be put on it by hand. The node's own loops read it
     // with `gateFromContext`; a node run outside a chat turn carries none and
@@ -1440,14 +1383,7 @@ export class ChatTurnHandler {
     // agent loop would find no gate and run headless, which is how a chat in
     // plan mode could mutate through an `AgentNode`.
     const runNodeTool = new RunNodeTool((nodeType, inputs) =>
-      this.runSingleNode(
-        nodeType,
-        inputs,
-        userId,
-        threadId,
-        chatProjectId,
-        chatGate
-      )
+      this.runSingleNode(nodeType, inputs, userId, chatProjectId, chatGate)
     );
     // The bounds this turn runs under, created once and shared by everything
     // it starts (invariant I-2). A loop that made its own would hand every
@@ -1678,14 +1614,6 @@ export class ChatTurnHandler {
       projectId: chatProjectId ?? null,
       resolveSecret: (key) => ctx.getSecret(key)
     });
-    // Any agent planning inside this turn (e.g. via run_node spawning an
-    // Agent node in plan mode) pauses for user plan approval.
-    attachPlanApproval(
-      ctx,
-      threadId || null,
-      (id, plan) => this.requestPlanApproval(id, plan),
-      codeactClock
-    );
     // Stamp the turn's own selection so a tool that launches another harness
     // inherits this chat's provider/model when the call doesn't name one.
     ctx.set(ACTIVE_MODEL_CONTEXT_KEY, {

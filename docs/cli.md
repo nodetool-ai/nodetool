@@ -2060,7 +2060,6 @@ its metrics — success rate, expectation score, tool calls, duration, and cost.
 - `--list` — list the suite's cases and exit.
 - `--json` — print the full report as JSON.
 - `--out <path>` — write the JSON report to a file.
-- `--max-retries <n>` — planner attempts per case (default 3).
 - `--max-iterations <n>` — turn cap per case for the loop-style suites (default 12).
 - `--timeout <ms>` — per-case execution timeout for the suites that run what they plan (default 300000).
 - `--judge-model <provider/model>` — the model that judges outputs in the self-judging suites (`graph-e2e`, `app-build`). Defaults to the run's own provider and model, which grades its own work.

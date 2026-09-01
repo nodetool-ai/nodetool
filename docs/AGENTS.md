@@ -15,43 +15,48 @@ The **agent system** (`@nodetool-ai/agents`) gives LLMs the ability to decompose
 
 ## Architecture Overview
 
+There is one loop. A host — a chat turn, `nodetool agent run`, an MCP client —
+builds a **CodeAct session** over a gated toolbelt and hands the user's message
+to it. The model acts by writing sandboxed JavaScript; decomposition is
+something it can ask for, not a stage the host imposes.
+
 ```
-Objective (user goal)
-    │
-    ▼
-┌── Agent ──────────────────────────────────────────────┐
-│                                                        │
-│  1. Skill resolution    (load user skills from DB)     │
-│  2. Planning phase      (TaskPlanner → Task with Steps)│
-│  3. Execution phase     (TaskExecutor → CodeActExecutor)│
-│                                                        │
-└────────────────────────────────────────────────────────┘
-    │
-    ▼
-Structured result (validated against output JSON schema)
+user message ──▶ CodeAct session (one turn over the gated belt)
+                   │
+                   ├── execute_code ──▶ QuickJS sandbox ──▶ nodetool.* toolbelt
+                   │
+                   └── create_plan ──▶ TaskPlanner ──▶ a task DAG, shown, not run
+                            │
+                            └── execute_plan ──▶ ParallelTaskExecutor
+                                                   └── TaskExecutor
+                                                        └── CodeActExecutor (per step)
+
+                     each task's result ──▶ context.memory  ("task:<id>")
+                     the session's next turn reads it and writes the answer
 ```
 
-### Agent Classes
+### The classes behind that
 
-| Class | When to Use | Source |
+| Class | What it does | Source |
 |---|---|---|
-| **Agent** | Multi-step objectives needing decomposition (full DAG planning + execution) | `packages/agents/src/agent.ts` |
-| **ParallelTaskExecutor** | Execute independent tasks of a plan concurrently | `packages/agents/src/parallel-task-executor.ts` |
-| **TaskPlanner** | Decompose an objective into a task DAG | `packages/agents/src/task-planner.ts` |
-| **TaskExecutor** | Walk the step DAG, respecting dependency order | `packages/agents/src/task-executor.ts` |
-| **CodeActExecutor** | Run the sandboxed-JavaScript action loop for a single step | `packages/agents/src/codeact/codeact-executor.ts` |
+| **CodeActExecutor** | The action loop: one step or one turn, sandboxed JavaScript over the belt | `packages/agents/src/codeact/codeact-executor.ts` |
+| **TaskPlanner** | `planMultiTask` decomposes an objective into a task DAG; `create_plan` is its only caller | `packages/agents/src/task-planner.ts` |
+| **ParallelTaskExecutor** | Runs a plan's independent tasks concurrently; `execute_plan` is its only caller | `packages/agents/src/parallel-task-executor.ts` |
+| **TaskExecutor** | Walks one task's step DAG in dependency order | `packages/agents/src/task-executor.ts` |
+| **SubAgentTool** | `run_subtask` / `start_subtask` / `run_search` — a child loop under the parent's budget and gate | `packages/agents/src/subagent.ts` |
 
-The top-level **Agent** orchestrates planning (via `TaskPlanner`) and execution (via `TaskExecutor` →
-`CodeActExecutor`), then validates the final result against the output schema. Its constructor accepts a
-`provider` (`BaseProvider`), `model`, `tools`, `objective`, and the options in the
-[Configuration Reference](#configuration-reference) below. It exposes
-`execute(context): AsyncGenerator<ProcessingMessage>` and `getResults(): unknown`.
+`createChatCodeActSession` (`src/codeact/chat-codeact.ts`) is what a host
+constructs. It owns the system prompt, the sandbox package allowlist, the
+split between resident and direct tools, and the clock that stops an action's
+wall clock while a permission prompt is open.
 
 ---
 
 ## Planning Phase
 
-When you use the full **Agent**, the first thing it does is call **TaskPlanner** to decompose the objective into a **Task** — an ordered DAG of **Steps** with dependency edges.
+Planning happens when the model calls `create_plan`, and not before.
+**TaskPlanner** decomposes the objective into **Tasks**, each an ordered DAG of
+**Steps** with dependency edges.
 
 ```ts
 interface Task {
@@ -73,15 +78,24 @@ interface Step {
 }
 ```
 
-The planner sends the objective to the LLM with a `create_task` tool. The response is parsed, validated as a DAG (no circular dependencies), and retried up to three times on failure.
+The planner builds the plan incrementally: the model calls `add_task` once per
+task and `finish_plan` to commit. Each task is validated as it arrives — unique
+ids, dependencies that resolve, no cycle — and a rejected one comes back as the
+tool result for the model to fix.
 
-You can skip planning entirely by passing a pre-built `task` object to the Agent constructor.
+`create_plan` stops there. Running the plan is a separate call, `execute_plan`,
+which takes the tasks inline — so the user sees what will run before it does,
+and a caller that already knows the decomposition skips `create_plan`
+altogether.
 
 ---
 
 ## Execution Phase
 
-**TaskExecutor** walks the step DAG, respecting dependency order. For each step, it creates a **CodeActExecutor** that runs the code-action loop:
+`execute_plan` hands the plan to **ParallelTaskExecutor**, which dispatches the
+tasks whose dependencies are satisfied. Each task's **TaskExecutor** walks its
+step DAG in dependency order, and each step gets a **CodeActExecutor** running
+the code-action loop:
 
 1. Build messages — the CodeAct contract, the tool catalog, the step instructions
 2. Stream the LLM response
@@ -89,6 +103,11 @@ You can skip planning entirely by passing a pre-built `task` object to the Agent
 4. Feed the observation (return value, logs, error) back as the tool result
 5. Repeat until the program calls `finish(result)`, the run's budget stops it, or max iterations are reached
 6. Validate the result against the step's output schema — host-side, in `finish`
+
+Each task's result lands in `context.memory` under `task:<id>` and comes back
+in `execute_plan`'s answer. There is no synthesis stage: the session's next
+turn writes the answer, reading `read_shared` for anything the return did not
+carry.
 
 A run's bounds — a USD cap, a wall clock, a limit on open provider
 conversations, and a cumulative turn count — are one `RunBudget` the host
@@ -394,10 +413,10 @@ class WeatherTool extends Tool {
 ## Skills
 
 Skills are user-scoped database records with `name`, `description`, and
-markdown `content` columns. The agent loads records for `context.userId` and
-injects selected content into the system prompt under an `# Agent Skills`
-header. Trusted sandbox-pack skills are merged into the same available-skill
-set for the session.
+markdown `content` columns. A turn's system prompt carries the **catalog** —
+one line per skill the user owns, name and description — and the body arrives
+only when the model calls `load_skill` or the user types `/<name>`. Two tiers
+share that catalog: the user's own rows, and the system skills below.
 
 ### System Skills
 
@@ -419,7 +438,7 @@ description: Turn a product page URL into a finished launch commercial — ... U
 You are a single agent. Your job: …
 ```
 
-The `description` is what auto-select matches an objective against, so it says
+The `description` is what the model chooses from in the catalog, so it says
 *when* the skill applies, not what it contains.
 
 `list_skills` and `load_skill` serve both tiers, so a system skill reaches the
@@ -436,14 +455,17 @@ npm links nothing. A file whose frontmatter is missing or malformed, or whose
 
 ### Skill Resolution
 
-- **Explicit** — pass `skills: ["skill-a"]` in the agent constructor.
-- **Auto-select** — when no names are supplied, the agent matches words in the
-  objective against skill descriptions.
+A turn's system prompt carries the **catalog** — one line per skill, name and
+description — and the model calls `load_skill` for the body it wants. Typing
+`/<name>` skips that round trip: naming a skill is asking for it, so its body
+arrives in the same block.
 
-The deprecated `skillDirs` option and the
-`NODETOOL_AGENT_SKILL_DIRS`, `NODETOOL_AGENT_SKILLS`, and
-`NODETOOL_AGENT_AUTO_SKILLS` environment variables are ignored. Filesystem
-`SKILL.md` discovery is no longer part of agent execution.
+Nothing selects a skill on the model's behalf. Word overlap between an
+objective and a description used to do it, and it picked the wrong document
+often enough that the catalog replaced it. The `skillDirs` option, the
+`NODETOOL_AGENT_SKILL_DIRS`, `NODETOOL_AGENT_SKILLS` and
+`NODETOOL_AGENT_AUTO_SKILLS` environment variables, and filesystem `SKILL.md`
+discovery are all gone.
 
 ---
 
@@ -472,83 +494,64 @@ AgentNode ──control edge──> ImageGeneratorNode
 
 ---
 
-## Using Agents Programmatically
+## Running an agent from code
 
-### Full Agent with Planning
-
-```ts
-import { Agent } from "@nodetool-ai/agents";
-import { BrowserTool, GoogleSearchTool, WriteFileTool } from "@nodetool-ai/agents";
-
-const agent = new Agent({
-  name: "researcher",
-  objective: "Research TypeScript ORMs and write a comparison report",
-  provider: openaiProvider,
-  model: "gpt-5.6",
-  tools: [new GoogleSearchTool(), new BrowserTool(), new WriteFileTool()],
-  workspace: "/tmp/research-output",
-  maxSteps: 10,
-  maxStepIterations: 15,
-});
-
-for await (const message of agent.execute(context)) {
-  if (message.type === "chunk") {
-    process.stdout.write(message.content);
-  }
-}
-
-const result = agent.getResults();
-```
-
-### Agent with an Output Schema
-
-Pass an `outputSchema` to have the final result validated against a JSON schema:
+Build a session, hand it the message, read the stream.
+`createChatCodeActSession` turns a toolbelt into the `execute_code` action plus
+whichever tools you want the provider to see directly; the belt itself is
+whatever the host assembles — `getAgentToolbelt()` plus the host's own
+additions, which is what `buildCliAgentBelt` does for the CLI.
 
 ```ts
-import { Agent } from "@nodetool-ai/agents";
+import { createChatCodeActSession } from "@nodetool-ai/agents";
 
-const agent = new Agent({
-  name: "extractor",
-  objective: "Extract all email addresses from this text: ...",
-  provider: openaiProvider,
-  model: "gpt-5.6",
-  tools: [],
-  outputSchema: {
-    type: "object",
-    properties: {
-      emails: { type: "array", items: { type: "string" } },
-    },
-  },
+const session = createChatCodeActSession({
+  tools: belt,                       // ToolSignatureSource[]
+  executeTool: (call) => router(call), // the gated tool router
+  signal: abortController.signal
 });
 
-for await (const message of agent.execute(context)) {
-  // handle streaming messages
-}
-
-const { emails } = agent.getResults() as { emails: string[] };
+// session.systemPrompt goes in the system message; session.tools are what the
+// provider is offered. Run them through the host's own generateLoop.
 ```
+
+`packages/cli/src/commands/agent.ts` is the smallest complete example: it
+assembles the belt, wraps it with `createCliCodeActTurn`, and runs
+`processChat`. The stream it forwards is the shared `ProcessingMessage`
+union — `chunk`, `planning_update`, `task_update`, `tool_call_update`,
+`tool_result_update`, `step_result`, `log_update`.
+
+To validate a structured deliverable, put the schema on the step that produces
+it: `execute_plan`'s steps carry `output_schema`, and `finish()` validates
+host-side. There is no run-level output schema, because there is no run-level
+synthesis stage to validate.
 
 ---
 
 ## Configuration Reference
 
+A session's options, not an agent's — these are the fields of
+`ChatCodeActSessionOptions` (`src/codeact/chat-codeact.ts`) and the run bounds
+that reach it through the context.
+
 | Option | Default | Description |
 |---|---|---|
-| `name` | required | Agent identifier |
-| `objective` | required | Goal to achieve |
-| `provider` | required | LLM provider instance (`BaseProvider`) |
-| `model` | required | Model ID (e.g. `"gpt-5.6"`) |
-| `planningModel` | same as `model` | Alternative model for the planning phase |
-| `reasoningModel` | same as `model` | Alternative model for reasoning-heavy steps |
-| `tools` | `[]` | Array of `Tool` instances |
-| `systemPrompt` | `""` | Custom system instructions |
-| `maxSteps` | `10` | Maximum number of steps in a task |
-| `maxStepIterations` | `15` | Maximum LLM round-trips per step |
-| `outputSchema` | — | JSON schema for the final result |
-| `workspace` | auto-generated | Directory for file artifacts |
-| `skills` | — | Explicit skill names to load |
-| `skillDirs` | — | Deprecated compatibility option, ignored |
-| `task` | — | Pre-planned task (skips planning phase) |
+| `tools` | required | The belt as tool signatures — server and client tools alike |
+| `executeTool` | required | The gated tool router the sandbox's calls go through |
+| `signal` | — | Cancels the turn and every loop under it |
+| `actionTimeoutMs` | `DEFAULT_CODEACT_ACTION_TIMEOUT_MS` | Wall clock for one code action |
+| `maxToolCallsPerAction` | `50` | Tool calls one action may consume |
+| `residentToolNames` | `CODEACT_RESIDENT_TOOL_NAMES` | Tools documented in full in the prompt |
+| `directToolNames` | — | Belt tools also offered as provider tools, documented as direct calls |
+| `clock` | — | `SandboxClock` that stops the action budget while a permission prompt is open |
+| `sandboxPackages` | none | Package specifiers this session consents to import |
+
+Provider, model and permission mode belong to the host's turn, not to the
+session. The run's bounds are one `RunBudget` on the context
+(`RUN_BUDGET_CONTEXT_KEY`) — USD cap, wall clock, concurrency, turn count —
+and the permission gate is likewise on the context
+(`PERMISSION_GATE_CONTEXT_KEY`), so a loop the host never constructed reads
+both instead of inventing its own.
 
 ---
 

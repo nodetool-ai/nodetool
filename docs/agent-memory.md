@@ -310,9 +310,15 @@ Runs a `TaskPlan` of multiple tasks as a DAG. It owns no private result map — 
 
 Downstream tasks see their declared upstream task keys as hints in the step user message and pull values via `read_shared` when needed.
 
-### Agent (`packages/agents/src/agent.ts`)
+### The calling loop (`execute_plan`'s caller)
 
-The top-level entry point. Memory itself is execution-mode-independent: `Agent` delegates to the executors above, which all use `context.memory`.
+There is no synthesis stage that reads memory on the run's behalf. When
+`execute_plan` returns, each task's value is in `context.memory` under
+`task:<id>` and in the call's own `results` object; the CodeAct session that
+made the call writes the answer on its next turn, calling `read_shared` for
+anything the return did not carry. That is what `execute_plan`'s description
+tells the model to do, and it is why the planner is told not to plan an
+assembly task.
 
 ---
 
@@ -321,7 +327,7 @@ The top-level entry point. Memory itself is execution-mode-independent: `Agent` 
 This is the canonical end-to-end flow for a multi-task plan:
 
 ```
-1. Caller: agent.execute(context)
+1. Caller: execute_plan(plan)
 2. ParallelTaskExecutor.execute()
    ├─ Seed inputs:  context.memory.set({ kind: "input", ... })
    └─ For each executable task:
@@ -348,22 +354,21 @@ This is the canonical end-to-end flow for a multi-task plan:
 5. Next iteration: downstream tasks now executable. Their step user
    messages name the upstream task keys; agents call read_shared when
    they actually need the values.
+6. execute_plan returns the task results; the calling session's next turn
+   reads task:<id> via read_shared for anything it still needs and writes
+   the answer.
 ```
 
 ---
 
 ## Examples
 
-### Inspect memory at the end of an agent run
+### Inspect memory at the end of a run
 
 ```ts
-import { Agent } from "@nodetool-ai/agents";
 import { memoryKeys } from "@nodetool-ai/runtime";
 
-const agent = new Agent({ /* ... */ });
-for await (const _msg of agent.execute(context)) { /* drain */ }
-
-console.log("Final result:", agent.getResults());
+// After the turn that called execute_plan has finished:
 console.log("All task results:", context.memory.list({ kind: "task_result" }));
 console.log(
   "Specific task:",
@@ -403,7 +408,7 @@ The model then chooses whether to call `read_shared` or proceed.
 
 ### Pre-populate memory before running
 
-Useful for tests or for restoring state from a checkpoint:
+Useful in tests, and for handing a run what an earlier one already found:
 
 ```ts
 context.memory.set({
@@ -414,14 +419,10 @@ context.memory.set({
   title: "Cached prior research",
   description: "Findings from a previous run; reuse instead of re-researching."
 });
-
-const agent = new Agent({
-  name: "follow-up",
-  objective: "Build on the prior research findings.",
-  /* ... */
-});
-// The agent's first list_shared call will surface this entry.
 ```
+
+The first `list_shared` call in any step under this context surfaces the entry,
+and `read_shared` fetches it.
 
 ### Tool that publishes to shared memory directly (without an LLM round-trip)
 

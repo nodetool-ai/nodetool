@@ -6,20 +6,12 @@
 
 import { describe, expect, it } from "vitest";
 import { Message } from "@nodetool-ai/models";
-import {
-  PLAN_APPROVAL_CONTEXT_KEY,
-  type RequestPlanApproval,
-  type SandboxClock,
-  type TaskPlan
-} from "@nodetool-ai/agents";
-import {
-  ProcessingContext,
-  type MessageContent,
-  type Message as ProviderMessage
+import type {
+  MessageContent,
+  Message as ProviderMessage
 } from "@nodetool-ai/runtime";
 import {
   appendContextToLastUser,
-  attachPlanApproval,
   createWorkflowResponseContent,
   dbMessageToProviderMessage,
   extractTextContent,
@@ -197,50 +189,6 @@ describe("invokedSkillsSection", () => {
     expect(out).toContain("### /Deploy");
     expect(out).toContain("run the deploy");
     expect(out).not.toContain("read the diff");
-  });
-});
-
-describe("attachPlanApproval", () => {
-  const plan: TaskPlan = { title: "plan", tasks: [] };
-
-  it("exposes a callback that forwards the thread id and plan", async () => {
-    const ctx = new ProcessingContext({ jobId: "job-1" });
-    const calls: Array<{ threadId: string | null; plan: TaskPlan }> = [];
-    attachPlanApproval(ctx, "thread-7", async (threadId, p) => {
-      calls.push({ threadId, plan: p });
-      return { decision: "approve" };
-    });
-    const request = ctx.get<RequestPlanApproval>(PLAN_APPROVAL_CONTEXT_KEY);
-    expect(typeof request).toBe("function");
-    await expect(request(plan)).resolves.toEqual({ decision: "approve" });
-    expect(calls).toEqual([{ threadId: "thread-7", plan }]);
-  });
-
-  it("suspends the sandbox clock for the wait and resumes even on rejection", async () => {
-    const ctx = new ProcessingContext({ jobId: "job-2" });
-    let suspended = 0;
-    let resumed = 0;
-    const clock: SandboxClock = {
-      suspend() {
-        suspended++;
-        return () => {
-          resumed++;
-        };
-      },
-      suspendedMs: () => 0
-    };
-    attachPlanApproval(
-      ctx,
-      null,
-      async () => {
-        throw new Error("user closed the dialog");
-      },
-      clock
-    );
-    const request = ctx.get<RequestPlanApproval>(PLAN_APPROVAL_CONTEXT_KEY);
-    await expect(request(plan)).rejects.toThrow("user closed the dialog");
-    expect(suspended).toBe(1);
-    expect(resumed).toBe(1);
   });
 });
 
