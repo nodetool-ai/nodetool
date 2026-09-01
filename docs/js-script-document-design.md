@@ -167,7 +167,6 @@ id; `ui_open_document` bridges "an id exists" → "the tools work".
 | `ui_jsscript_get_state` | document + validation issues + last run/test result |
 | `ui_jsscript_set_code` | replace the body |
 | `ui_jsscript_set_ports` | replace inputs/outputs |
-| `ui_jsscript_set_packages` | leftover no-op: scripts have no packages setting |
 | `ui_jsscript_set_meta` | name, description, secrets, timeout |
 | `ui_jsscript_set_tests` | replace the saved case list |
 | `ui_jsscript_run` | run with given inputs, return outputs/streamed/logs/error |
@@ -344,10 +343,10 @@ a single shareable file.
 
 `validate_js_script` wraps `validateCodeNodeBody`
 (`packages/node-sdk/src/code-node-validation.ts`) with the document's declared
-ports and `allowInstalledPackages` — the analysis (syntax, missing installed
-packs, undefined names, undeclared `inputs.*` reads, unreachable output
-handles) is shared, not forked. A script does not declare packages. On top of
-the body check, document-level rules:
+ports and the installed `sandboxModuleCatalog` — the analysis (syntax, missing
+installed packs, undefined names, undeclared `inputs.*` reads, unreachable
+output handles) is shared, not forked. A script does not declare packages. On
+top of the body check, document-level rules:
 
 - duplicate or non-identifier port names; a port type the type system lacks
 - a test case referencing an undeclared input, staging a stream for one, or

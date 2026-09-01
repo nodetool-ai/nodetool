@@ -11,7 +11,7 @@ pass, and the registry, not the author, decides what "verified" means.
 This is already true for most of NodeTool. Workflows have `nodetool validate`
 and `nodetool debug`, mini apps have `app debug` and `app build`, timelines
 have `timeline validate/debug`, single nodes have `node run`, the planners and
-tool contracts have seventeen eval suites, the kernel has the Ring 0
+tool contracts have eighteen eval suites, the kernel has the Ring 0
 reliability journeys, the packaged backend and deploy image have smoke
 harnesses. This document names the doctrine those grew into and the machinery
 that keeps it true: a registry, an audit, and a gate.
