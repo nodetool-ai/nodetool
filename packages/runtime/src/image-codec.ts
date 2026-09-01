@@ -102,6 +102,97 @@ export async function encodeRawImageRef<T>(ref: T): Promise<T | ImageRef> {
   return { ...ref, data: png, mimeType: "image/png" };
 }
 
+/**
+ * References an SVG may carry to something outside itself: `href`,
+ * `xlink:href`, and CSS `url()`. Fragments (`#id`), `data:` payloads and empty
+ * values stay inside the document; anything else is a fetch.
+ */
+const SVG_EXTERNAL_REF =
+  /(?:xlink:href|href)\s*=\s*["']\s*(?!#|data:)([^"']+)["']|url\(\s*['"]?\s*(?!#|data:)([^'")]+)['"]?\s*\)/i;
+
+/** Largest SVG this rasterizer will hand to the decoder. */
+const MAX_SVG_BYTES = 8 * 1024 * 1024;
+
+/** Longest side an SVG is rendered at when the caller names no `minSide`. */
+const SVG_FALLBACK_SIDE = 1024;
+
+/** Ceiling on the raster an SVG is rendered into, whatever `minSide` asks for. */
+const MAX_SVG_RASTER_SIDE = 4096;
+
+/**
+ * Rasterize SVG markup to PNG bytes.
+ *
+ * Vector sources reach the raster paths (a vision provider's image block, a
+ * crop, a downscale) only through here. Two rules the caller does not have to
+ * know about:
+ *
+ * - **No external references.** The decoder behind `sharp` is librsvg, which
+ *   resolves `href` and `url()` against the process's own filesystem and
+ *   network. Since the markup here is written by a model or uploaded by
+ *   whoever, a document that reaches outward is refused by name rather than
+ *   rendered — the error tells the caller to inline the resource.
+ * - **A usable size.** An SVG that declares `width="24"` renders to a 24px
+ *   PNG, which is not something a model can read. `minSide` scales the render
+ *   up so the result is worth looking at, defaulting to
+ *   {@link SVG_FALLBACK_SIDE}.
+ */
+export async function rasterizeSvg(
+  bytes: Uint8Array,
+  opts: { minSide?: number; maxSide?: number } = {}
+): Promise<{ data: Uint8Array; width: number; height: number }> {
+  if (bytes.byteLength > MAX_SVG_BYTES) {
+    throw new Error(
+      `SVG is ${bytes.byteLength} bytes, over the ${MAX_SVG_BYTES}-byte limit for rasterization.`
+    );
+  }
+  const markup = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+  const external = SVG_EXTERNAL_REF.exec(markup);
+  if (external) {
+    const ref = external[1] ?? external[2] ?? "";
+    throw new Error(
+      `Refusing to render an SVG that references "${ref}". ` +
+        `The renderer would fetch it from this host's filesystem or network. ` +
+        `Inline the resource as a data: URI, or drop the reference.`
+    );
+  }
+
+  const sharp = await loadSharp();
+  if (!sharp) {
+    throw new Error(SHARP_UNAVAILABLE_MESSAGE);
+  }
+
+  const buffer = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const intrinsic = await sharp(buffer).metadata();
+  const srcSide = Math.max(intrinsic.width ?? 0, intrinsic.height ?? 0);
+  const targetSide = Math.min(
+    opts.minSide ?? SVG_FALLBACK_SIDE,
+    MAX_SVG_RASTER_SIDE
+  );
+  // librsvg scales the whole render by DPI, so a density is how an SVG is asked
+  // for more pixels than it declares; 72 is the 1:1 baseline. The density is
+  // left unbounded because what it produces is not: the render lands at
+  // `targetSide` however few units the document declares, so a `width="0.01"`
+  // document costs the same pixels as any other.
+  const density =
+    srcSide > 0 && srcSide < targetSide
+      ? Math.ceil((72 * targetSide) / srcSide)
+      : 72;
+
+  let pipeline = sharp(buffer, { density, failOn: "none" });
+  if (opts.maxSide && opts.maxSide > 0) {
+    pipeline = pipeline.resize({
+      width: opts.maxSide,
+      height: opts.maxSide,
+      fit: "inside",
+      withoutEnlargement: true
+    });
+  }
+  const { data, info } = await pipeline
+    .png()
+    .toBuffer({ resolveWithObject: true });
+  return { data: new Uint8Array(data), width: info.width, height: info.height };
+}
+
 /** A crop box in source-image pixels. */
 export interface ImageRegion {
   x: number;

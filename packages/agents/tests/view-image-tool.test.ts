@@ -42,6 +42,11 @@ const TINY_PNG_B64 =
 const TINY_PNG_DATA_URI = `data:image/png;base64,${TINY_PNG_B64}`;
 const TINY_PNG_BYTES = new Uint8Array(Buffer.from(TINY_PNG_B64, "base64"));
 
+const SVG_MARKUP =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" ' +
+  'height="16"><rect width="16" height="16" fill="#c00"/></svg>';
+const SVG_BYTES = new Uint8Array(Buffer.from(SVG_MARKUP, "utf8"));
+
 function imageContext(bytes: Uint8Array | null) {
   return {
     ...createMockContext(),
@@ -150,6 +155,43 @@ describe("ViewImageTool", () => {
     // width/height are populated only when the codec ran; the region note is
     // always present.
     expect(result.note).toContain("region 0,0 1×1");
+  });
+
+  it("renders an SVG asset instead of shipping markup labeled as a PNG", async () => {
+    // `sniffImageMime` answers "image/png" for anything it does not recognize,
+    // and SVG has no magic number — so before the raster step this returned the
+    // markup itself under a PNG label and the provider saw a broken image.
+    const tool = viewImageTool();
+    const result = (await tool.process(imageContext(SVG_BYTES), {
+      image_id: "asset://vector1.svg"
+    })) as Record<string, any>;
+
+    expect(result.ok).toBe(true);
+    expect(result.mimeType).toBe("image/png");
+    const payload = String(result.image_content.uri).split(",")[1] ?? "";
+    const decoded = Buffer.from(payload, "base64");
+    expect([...decoded.subarray(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
+    expect(decoded.toString("utf8")).not.toContain("<svg");
+    // A 16-unit document is unreadable at 1:1; the note reports what it became.
+    expect(result.note).toMatch(/Rendered SVG at \d+×\d+/);
+    expect(result.width).toBeGreaterThan(16);
+  });
+
+  it("refuses an SVG that would make the renderer fetch something", async () => {
+    const outward = new Uint8Array(
+      Buffer.from(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8">' +
+          '<image href="file:///etc/passwd" width="8" height="8"/></svg>',
+        "utf8"
+      )
+    );
+    const tool = viewImageTool();
+    const result = (await tool.process(imageContext(outward), {
+      image_id: "asset://outward.svg"
+    })) as Record<string, any>;
+
+    expect(result.ok).toBeUndefined();
+    expect(String(result.error)).toContain("/etc/passwd");
   });
 
   it("errors on a missing image_id", async () => {

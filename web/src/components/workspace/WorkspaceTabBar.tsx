@@ -43,6 +43,7 @@ import { TYPE_COLOR, TYPE_GLYPH } from "./tabTypeIdentity";
 const SUPPORTS_BOTH_MODES = {
   workflow: false,
   image: true,
+  svg: true,
   sketch: false,
   timeline: true,
   storyboard: false,
@@ -487,6 +488,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             });
             break;
           case "model3d":
+          case "svg":
           case "text":
             await useAssetStore.getState().update({ id: tab.ref, name: trimmed });
             break;

@@ -178,7 +178,8 @@ export {
 export {
   encodeRawRgbaToPng,
   encodeRawImageRef,
-  extractImageRegion
+  extractImageRegion,
+  rasterizeSvg
 } from "./image-codec.js";
 export type { ImageRegion } from "./image-codec.js";
 export { PythonNodeExecutor } from "./python-node-executor.js";

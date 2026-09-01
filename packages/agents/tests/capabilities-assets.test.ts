@@ -183,6 +183,39 @@ describe("assets capabilities against the database", () => {
     expect(read.content).toBe("# hello");
   });
 
+  it("types text content from the filename when no content_type is given", async () => {
+    // An SVG saved as text/plain is a file nothing renders: the asset grid
+    // shows a document icon, the workspace opens it in the text editor, and
+    // `view_image` will not rasterize it. The name is the declaration.
+    let created = 1;
+    const ctx = makeContext({
+      hasModelInterface: (name: string) => name === "createAsset",
+      createAsset: async () => ({ id: `as_${created++}` })
+    });
+
+    const svg = (await asTool("save_asset", ctx).process(ctx, {
+      name: "logo.svg",
+      content: '<svg xmlns="http://www.w3.org/2000/svg"/>'
+    })) as Record<string, unknown>;
+    expect(svg.content_type).toBe("image/svg+xml");
+    expect(svg.asset_uri).toBe(`asset://${String(svg.asset_id)}.svg`);
+
+    // An explicit content_type still wins.
+    const forced = (await asTool("save_asset", ctx).process(ctx, {
+      name: "logo.svg",
+      content: "<svg/>",
+      content_type: "text/plain"
+    })) as Record<string, unknown>;
+    expect(forced.content_type).toBe("text/plain");
+
+    // A name that declares nothing keeps the old fallback.
+    const plain = (await asTool("save_asset", ctx).process(ctx, {
+      name: "report",
+      content: "hello"
+    })) as Record<string, unknown>;
+    expect(plain.content_type).toBe("text/plain");
+  });
+
   it("returns an asset_uri that carries the file extension", async () => {
     let created = 1;
     // `asset://<id>` alone types nothing: a chat embed of a saved mp4 rendered

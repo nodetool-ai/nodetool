@@ -11,6 +11,7 @@ import type { WorkspaceTabType } from "../../stores/WorkspaceTabsStore";
 export const TYPE_GLYPH = {
   workflow: "⬡",
   image: "▦",
+  svg: "◇",
   sketch: "✎",
   timeline: "▤",
   storyboard: "▥",
@@ -33,6 +34,7 @@ export const TYPE_GLYPH = {
 export const TYPE_COLOR = {
   workflow: colorForType("any"),
   image: colorForType("image"),
+  svg: colorForType("image"),
   sketch: colorForType("image"),
   timeline: colorForType("video"),
   storyboard: colorForType("video"),

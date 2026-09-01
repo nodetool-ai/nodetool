@@ -11,7 +11,9 @@ export type { PricingTier, UsageInfo } from "./cost-calculator.js";
 export { OLLAMA_DEFAULT_URL, LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 export {
   IMAGE_MIME_TO_EXT,
+  SVG_MIME,
   sniffImageMime,
+  isSvgBytes,
   detectImageMime,
   bytesToImageDataUri,
   extForImageMime

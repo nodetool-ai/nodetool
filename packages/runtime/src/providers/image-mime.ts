@@ -69,6 +69,29 @@ export function sniffImageMime(bytes: Uint8Array): string | null {
   return null;
 }
 
+/** The MIME type SVG markup is stored and served under. */
+export const SVG_MIME = "image/svg+xml";
+
+/**
+ * Whether these bytes are SVG markup.
+ *
+ * Deliberately not part of `sniffImageMime`: that answers "which raster
+ * container is this", and its callers (provider uploads, asset extensions)
+ * read a `null` as "not a picture I can hand over". SVG is text with no magic
+ * number, so it is sniffed on its own, by the callers that can actually do
+ * something with a vector — today, the rasterizer behind `view_image`.
+ *
+ * Reads only the leading bytes: an SVG document begins with an XML
+ * declaration, a doctype, comments or whitespace before its `<svg` root, and
+ * a whole-file decode of an arbitrary upload is not worth paying for.
+ */
+export function isSvgBytes(bytes: Uint8Array): boolean {
+  const head = new TextDecoder("utf-8", { fatal: false }).decode(
+    bytes.subarray(0, 1024)
+  );
+  return /<svg[\s>]/i.test(head);
+}
+
 /**
  * PNG-fallback variant, for the callers that must produce a string (a `data:`
  * URI). Where the label gets stored or forwarded, prefer `sniffImageMime` and
