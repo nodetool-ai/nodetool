@@ -4,6 +4,7 @@
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import "../builtin/setNodeTitle";
+import { callTool } from "../../../test-utils/frontendTools";
 
 function createMockNodeStore(
   nodes: Array<{ id: string; data?: Record<string, unknown> }> = []
@@ -51,17 +52,15 @@ describe("ui_set_node_title tool", () => {
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
-    const result = await FrontendToolRegistry.call(
+    const result = await callTool<{ ok: boolean; node_id: string; title: string }>(
       "ui_set_node_title",
       { node_id: "node-1", title: "My Custom Title" },
       "tc-1",
       { getState: () => state }
     );
-
-    const typed = result as { ok: boolean; node_id: string; title: string };
-    expect(typed.ok).toBe(true);
-    expect(typed.node_id).toBe("node-1");
-    expect(typed.title).toBe("My Custom Title");
+    expect(result.ok).toBe(true);
+    expect(result.node_id).toBe("node-1");
+    expect(result.title).toBe("My Custom Title");
     expect(store.dataUpdates[0]).toEqual({
       id: "node-1",
       data: { title: "My Custom Title" },
@@ -74,14 +73,14 @@ describe("ui_set_node_title tool", () => {
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
-    const result = await FrontendToolRegistry.call(
+    const result = await callTool<{ ok: boolean }>(
       "ui_set_node_title",
       { node_id: "node-1", title: "" },
       "tc-2",
       { getState: () => state }
     );
 
-    expect((result as { ok: boolean }).ok).toBe(true);
+    expect(result.ok).toBe(true);
     expect(store.dataUpdates[0].data).toEqual({ title: "" });
   });
 

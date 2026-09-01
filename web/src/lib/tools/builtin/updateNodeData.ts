@@ -6,6 +6,15 @@ import { deriveCodeIOUpdates } from "../../../utils/codeOutputInference";
 import { isCodeNodeType } from "../../../utils/codeNodeHandles";
 import { isObjectLike, isString } from "../../../utils/typePredicates";
 
+/**
+ * A node-data overlay as the tool receives it. `properties` is merged into the
+ * node's property bag; every other key is merged into `data` itself.
+ */
+type NodeDataOverlay = {
+  properties?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
 const TYPED_MODEL_FIELDS = new Set([
   "language_model",
   "image_model",
@@ -32,13 +41,17 @@ FrontendToolRegistry.register({
       throw new Error(`Node not found: ${node_id}`);
     }
 
+    // Split `properties` from the rest so we can merge property updates
+    // instead of replacing the whole dict (the bare `updateNodeData` shallow-
+    // merges into `data`, which would wipe untouched properties).
+    const { properties: incomingProperties, ...restData }: NodeDataOverlay =
+      data;
+
     // Narrowly catch the common LLM mistake: passing a bare string id for a
     // typed-model field. Everything else falls through to the store, which
     // tolerates loose shapes.
     const metadata = state.nodeMetadata[node.type ?? ""];
-    const incomingProperties = (data as { properties?: Record<string, unknown> })
-      ?.properties;
-    if (metadata && incomingProperties && isObjectLike(incomingProperties)) {
+    if (metadata && isObjectLike(incomingProperties)) {
       for (const property of metadata.properties) {
         const fieldType = property.type?.type;
         if (!fieldType || !TYPED_MODEL_FIELDS.has(fieldType)) continue;
@@ -53,29 +66,22 @@ FrontendToolRegistry.register({
       }
     }
 
-    // Split `properties` from the rest so we can merge property updates
-    // instead of replacing the whole dict (the bare `updateNodeData` shallow-
-    // merges into `data`, which would wipe untouched properties).
-    const { properties: propsUpdate, ...restData } = data as {
-      properties?: Record<string, unknown>;
-      [key: string]: unknown;
-    };
     if (Object.keys(restData).length > 0) {
       nodeStore.updateNodeData(node_id, restData);
     }
-    if (propsUpdate && isObjectLike(propsUpdate)) {
-      nodeStore.updateNodeProperties(node_id, propsUpdate);
+    if (isObjectLike(incomingProperties)) {
+      nodeStore.updateNodeProperties(node_id, incomingProperties);
     }
     if (
       isCodeNodeType(node.type) &&
-      propsUpdate &&
-      isString(propsUpdate.code)
+      incomingProperties &&
+      isString(incomingProperties.code)
     ) {
       const latest = nodeStore.findNode(node_id);
       nodeStore.updateNodeData(
         node_id,
         deriveCodeIOUpdates(
-          propsUpdate.code,
+          incomingProperties.code,
           latest?.data?.dynamic_properties || {},
           latest?.data?.dynamic_outputs || {}
         )

@@ -9,6 +9,7 @@ import {
   type Model3DToolHandler
 } from "../../../components/model_editor/model3DToolBridge";
 import "../builtin/model3d";
+import { callTool, toolContext } from "../../../test-utils/frontendTools";
 
 const node = (overrides: Partial<Model3DSceneNode> = {}): Model3DSceneNode => ({
   uuid: "uuid-1",
@@ -37,7 +38,7 @@ const createMockHandler = (): jest.Mocked<Model3DToolHandler> => ({
 });
 
 // The 3D tools never touch the workflow state, so a bare stub satisfies the ctx.
-const ctx = { getState: () => ({}) as FrontendToolState };
+const ctx = toolContext();
 
 afterEach(() => {
   setModel3DToolHandler(null);
@@ -73,12 +74,12 @@ describe("ui_3d_* tools", () => {
     handler.addPrimitive.mockReturnValue(node({ name: "Sun" }));
     setModel3DToolHandler(handler);
 
-    const result = (await FrontendToolRegistry.call(
+    const result = await callTool<{ ok: boolean; object: Model3DSceneNode }>(
       "ui_3d_add_object",
       { kind: "sphere", name: "Sun" },
       "tc-2",
       ctx
-    )) as { ok: boolean; object: Model3DSceneNode };
+    );
 
     expect(handler.addPrimitive).toHaveBeenCalledWith("sphere", "Sun");
     expect(result.ok).toBe(true);
@@ -121,12 +122,12 @@ describe("ui_3d_* tools", () => {
     handler.listScene.mockReturnValue([node({ name: "A" }), node({ name: "B" })]);
     setModel3DToolHandler(handler);
 
-    const result = (await FrontendToolRegistry.call(
+    const result = await callTool<{ ok: boolean; count: number; objects: Model3DSceneNode[] }>(
       "ui_3d_list_scene",
       {},
       "tc-5",
       ctx
-    )) as { ok: boolean; count: number; objects: Model3DSceneNode[] };
+    );
 
     expect(result.count).toBe(2);
     expect(result.objects.map((o) => o.name)).toEqual(["A", "B"]);
@@ -154,16 +155,16 @@ describe("ui_3d_* tools", () => {
     );
     setModel3DToolHandler(handler);
 
-    const result = (await FrontendToolRegistry.call(
+    const result = await callTool<{
+      ok: boolean;
+      note: string;
+      image_content: { data: string; mimeType: string };
+    }>(
       "ui_3d_capture_view",
       {},
       "tc-7",
       ctx
-    )) as {
-      ok: boolean;
-      note: string;
-      image_content: { data: string; mimeType: string };
-    };
+    );
 
     expect(handler.captureView).toHaveBeenCalled();
     expect(result.ok).toBe(true);

@@ -119,6 +119,9 @@ export const FrontendToolRegistry = {
         ? parseWithTypeCoercion(tool.parameters, args)
         : args;
 
+      // SAFETY: `validatedArgs` was parsed against this same tool's own
+      // `parameters`, which is the schema its `execute` declares. `never` is
+      // only how the registry erases per-tool arg types to store them together.
       const result = await tool.execute(validatedArgs as never, {
         abortSignal: controller.signal,
         getState: ctx.getState

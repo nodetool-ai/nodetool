@@ -4,6 +4,7 @@
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import "../builtin/deleteNode";
+import { callTool } from "../../../test-utils/frontendTools";
 
 function createMockNodeStore(nodes: Array<{ id: string }> = []) {
   const deletedIds: string[] = [];
@@ -47,15 +48,15 @@ describe("ui_delete_node tool", () => {
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
-    const result = await FrontendToolRegistry.call(
+    const result = await callTool<{ ok: boolean; node_id: string }>(
       "ui_delete_node",
       { node_id: "node-1" },
       "tc-1",
       { getState: () => state }
     );
 
-    expect((result as { ok: boolean }).ok).toBe(true);
-    expect((result as { node_id: string }).node_id).toBe("node-1");
+    expect(result.ok).toBe(true);
+    expect(result.node_id).toBe("node-1");
     expect(store.deletedIds).toContain("node-1");
   });
 

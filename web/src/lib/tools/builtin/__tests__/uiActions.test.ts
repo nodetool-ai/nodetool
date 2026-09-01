@@ -38,6 +38,7 @@ jest.mock("../../../../stores/WorkflowRunner", () => ({
 
 // Side-effect import: registers the 5 tools with FrontendToolRegistry
 import "../uiActions";
+import { stub } from "../../../../test-utils/doubles";
 
 function makeMockState(
   overrides?: Partial<FrontendToolState>
@@ -54,12 +55,12 @@ function makeMockState(
     getCurrentWorkflow: jest.fn(() => undefined),
     setCurrentWorkflowId: jest.fn(),
     fetchWorkflow: jest.fn(async () => {}),
-    newWorkflow: jest.fn(() => ({}) as Workflow),
-    createNew: jest.fn(async () => ({}) as Workflow),
+    newWorkflow: jest.fn(() => stub<Workflow>({})),
+    createNew: jest.fn(async () => stub<Workflow>({})),
     searchTemplates: jest.fn(
-      async () => ({ workflows: [], next: null }) as WorkflowList
+      async () => stub<WorkflowList>({ workflows: [], next: null })
     ),
-    copy: jest.fn(async () => ({}) as Workflow),
+    copy: jest.fn(async () => stub<Workflow>({})),
     ...overrides
   };
 }
@@ -88,7 +89,7 @@ describe("uiActions", () => {
 
     it("falls back to fetchWorkflow + setCurrentWorkflowId", async () => {
       const fetchWorkflow = jest.fn(async () => {});
-      const getWorkflow = jest.fn(() => ({ id: "wf-2" }) as Workflow);
+      const getWorkflow = jest.fn(() => stub<Workflow>({ id: "wf-2" }));
       const setCurrentWorkflowId = jest.fn();
       const state = makeMockState({
         fetchWorkflow,

@@ -4,6 +4,7 @@
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import "../builtin/moveNode";
+import { callTool } from "../../../test-utils/frontendTools";
 
 function createMockNodeStore(
   nodes: Array<{ id: string; position?: { x: number; y: number } }> = []
@@ -53,17 +54,15 @@ describe("ui_move_node tool", () => {
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
-    const result = await FrontendToolRegistry.call(
+    const result = await callTool<{ ok: boolean; node_id: string; position: { x: number; y: number } }>(
       "ui_move_node",
       { node_id: "node-1", position: { x: 300, y: 400 } },
       "tc-1",
       { getState: () => state }
     );
-
-    const typed = result as { ok: boolean; node_id: string; position: { x: number; y: number } };
-    expect(typed.ok).toBe(true);
-    expect(typed.node_id).toBe("node-1");
-    expect(typed.position).toEqual({ x: 300, y: 400 });
+    expect(result.ok).toBe(true);
+    expect(result.node_id).toBe("node-1");
+    expect(result.position).toEqual({ x: 300, y: 400 });
     expect(store.updates[0].patch).toEqual({
       position: { x: 300, y: 400 },
     });
@@ -75,14 +74,14 @@ describe("ui_move_node tool", () => {
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
-    const result = await FrontendToolRegistry.call(
+    const result = await callTool<{ ok: boolean }>(
       "ui_move_node",
       { node_id: "node-1", position: { x: -50, y: -100 } },
       "tc-2",
       { getState: () => state }
     );
 
-    expect((result as { ok: boolean }).ok).toBe(true);
+    expect(result.ok).toBe(true);
     expect(store.updates[0].patch).toEqual({
       position: { x: -50, y: -100 },
     });

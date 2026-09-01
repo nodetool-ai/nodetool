@@ -19,6 +19,7 @@ import {
   PuckAgentHandler,
   PuckSnapshot
 } from "../../../components/appbuilder/puck/puckAgentBridge";
+import { callTool } from "../../../test-utils/frontendTools";
 
 const APP_ID = "app-1";
 
@@ -31,7 +32,7 @@ const emptySnapshot: PuckSnapshot = {
 };
 
 const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler =>
-  ({
+  stub<PuckAgentHandler>({
   getSnapshot: () => emptySnapshot,
   listComponentTypes: () => [],
   addComponent: () => ({
@@ -98,17 +99,17 @@ const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler =>
     variables: []
   }),
   ...over
-  }) as PuckAgentHandler;
+  });
 
-const restFetchMock = restFetch as jest.MockedFunction<typeof restFetch>;
+const restFetchMock = jest.mocked(restFetch);
 
 const jsonResponse = (body: unknown): Response =>
   stub<Response>({ ok: true, status: 200, json: async () => body });
 
 const ctx = { getState: () => stub<FrontendToolState>({}) };
 
-const call = (name: string, args: Record<string, unknown>) =>
-  FrontendToolRegistry.call(name, args, `call-${name}`, ctx);
+const call = <T extends object>(name: string, args: Record<string, unknown>) =>
+  callTool<T>(name, args, `call-${name}`, ctx);
 
 /** The tool's JSON schema as flat text, with JSON's own quote escaping undone
  * so an example written into a description reads the way an agent sees it. */
@@ -140,17 +141,17 @@ describe("ui_app_add_component identifies what it created", () => {
       })
     );
 
-    const result = (await call("ui_app_add_component", {
-      application_id: APP_ID,
-      type: "Heading",
-      props: { text: "Hi" }
-    })) as {
+    const result = await call<{
       ok: boolean;
       id: string;
       type: string;
       parent_id: string | null;
       slot: string | null;
-    };
+    }>("ui_app_add_component", {
+      application_id: APP_ID,
+      type: "Heading",
+      props: { text: "Hi" }
+    });
 
     expect(result.ok).toBe(true);
     expect(result.id).toBe("Heading-7");
@@ -163,6 +164,9 @@ describe("ui_app_add_component identifies what it created", () => {
     setPuckAgentHandler(
       APP_ID,
       stubHandler({
+        // SAFETY: the invalid value is the fixture. This pins that the tool
+        // survives an editor that reports no widget for what it just added,
+        // which its declared return type says cannot happen.
         addComponent: () => null as never
       })
     );

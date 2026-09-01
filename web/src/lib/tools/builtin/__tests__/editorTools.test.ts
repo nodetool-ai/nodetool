@@ -3,6 +3,7 @@ import { setEditorAdapter } from "../editorTools";
 import { FrontendToolRegistry } from "../../frontendTools";
 import type { FrontendToolState } from "../../frontendTools";
 import type { Workflow, WorkflowList } from "../../../../stores/ApiTypes";
+import { stub } from "../../../../test-utils/doubles";
 
 const mockState: FrontendToolState = {
   nodeMetadata: {},
@@ -16,10 +17,10 @@ const mockState: FrontendToolState = {
   getCurrentWorkflow: () => undefined,
   setCurrentWorkflowId: () => {},
   fetchWorkflow: async () => {},
-  newWorkflow: () => ({} as Workflow),
-  createNew: async () => ({} as Workflow),
-  searchTemplates: async () => ({ workflows: [], next: null } as WorkflowList),
-  copy: async () => ({} as Workflow),
+  newWorkflow: () => stub<Workflow>({}),
+  createNew: async () => stub<Workflow>({}),
+  searchTemplates: async () => stub<WorkflowList>({ workflows: [], next: null }),
+  copy: async () => stub<Workflow>({}),
 };
 
 const ctx = { getState: () => mockState };

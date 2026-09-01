@@ -3,6 +3,17 @@ import { stub } from "../../../test-utils/doubles";
 import type { FrontendToolState } from "../frontendTools";
 import "../builtin/searchNodes";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
+import { callTool } from "../../../test-utils/frontendTools";
+
+/** What `ui_search_nodes` answers. */
+type SearchNodesResult = {
+  ok: boolean;
+  query: string;
+  results: Array<{
+    properties?: Array<Record<string, unknown>>;
+    outputs?: Array<Record<string, unknown>>;
+  }>;
+};
 
 describe("ui_search_nodes tool", () => {
   it("accepts boolean-like string flags", async () => {
@@ -24,7 +35,7 @@ describe("ui_search_nodes tool", () => {
       outputs: [{ name: "output", type: { type: "str" }, stream: false }],
     });
 
-    const result = await FrontendToolRegistry.call(
+    const result = await callTool<SearchNodesResult>(
       "ui_search_nodes",
       {
         query: "string",
@@ -42,20 +53,14 @@ describe("ui_search_nodes tool", () => {
           }),
       },
     );
-
-    const typed = result as {
-      ok: boolean;
-      query: string;
-      results: Array<Record<string, unknown>>;
-    };
-    expect(typed.ok).toBe(true);
-    expect(typed.query).toBe("string");
-    expect(typed.results.length).toBeGreaterThan(0);
-    const first = typed.results[0];
+    expect(result.ok).toBe(true);
+    expect(result.query).toBe("string");
+    expect(result.results.length).toBeGreaterThan(0);
+    const first = result.results[0];
     expect(first).not.toHaveProperty("description");
     expect(first).toHaveProperty("properties");
     expect(first).toHaveProperty("outputs");
-    const firstProperty = (first.properties as Array<Record<string, unknown>>)[0];
+    const firstProperty = first.properties?.[0];
     expect(firstProperty).toEqual(
       expect.objectContaining({
         name: "value",

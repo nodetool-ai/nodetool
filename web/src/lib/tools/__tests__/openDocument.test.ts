@@ -12,6 +12,8 @@ import {
   type TimelineSnapshot
 } from "../../../components/timeline/timelineAgentBridge";
 import "../builtin/openDocument";
+import { toolParameterSchema } from "../../../test-utils/frontendTools";
+import type { NodeStore } from "../../../stores/NodeStore";
 
 const snapshot = (sequenceId: string | null): TimelineSnapshot => ({
   sequenceId,
@@ -30,11 +32,16 @@ const timelineHandler = (sequenceId: string | null): TimelineAgentHandler =>
     getSnapshot: () => snapshot(sequenceId)
   });
 
+// SAFETY: `ui_open_document` only asks whether `getNodeStore` answers at all
+// (`!== undefined`) and never calls into the store, so the presence of a value
+// is the whole contract this double has to meet.
+const openEditorStore = {} as NodeStore;
+
 const ctx = {
   getState: () =>
     stub<FrontendToolState>({
       getNodeStore: (workflowId: string) =>
-        workflowId === "wf-open" ? ({} as never) : undefined
+        workflowId === "wf-open" ? openEditorStore : undefined
     })
 };
 
@@ -56,15 +63,8 @@ afterEach(() => {
 
 describe("ui_open_document", () => {
   it("is in the manifest with the openable document types", () => {
-    const tool = FrontendToolRegistry.getManifest().find(
-      (t) => t.name === "ui_open_document"
-    );
-    expect(tool).toBeDefined();
-    const schema = tool?.parameters as {
-      properties?: { type?: { enum?: string[] } };
-      required?: string[];
-    };
-    expect(schema.properties?.type?.enum).toEqual([
+    const schema = toolParameterSchema("ui_open_document");
+    expect(schema.properties.type.enum).toEqual([
       "workflow",
       "timeline",
       "storyboard",

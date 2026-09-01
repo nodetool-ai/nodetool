@@ -1,12 +1,21 @@
 import { z } from "zod";
 import { uiGetGraphParams } from "@nodetool-ai/protocol";
-import type { Node as GraphNode, Edge as GraphEdge } from "../../../stores/ApiTypes";
+import type {
+  Node as GraphNode,
+  Edge as GraphEdge,
+  NodeMetadata
+} from "../../../stores/ApiTypes";
 import { fetchWorkflowById } from "../../../serverState/useWorkflow";
 import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 import { COMMENT_NODE_TYPE, GROUP_NODE_TYPE } from "../../../constants/nodeTypes";
 import { parsesAsCodeBody } from "../../../utils/codeOutputInference";
-import { isObjectLike, isString } from "../../../utils/typePredicates";
+import {
+  isNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "../../../utils/typePredicates";
 
 /**
  * Node types that are not expected to have incoming edges.
@@ -46,9 +55,7 @@ interface ValidationResult {
 const CODE_NODE_TYPE = "nodetool.code.Code";
 
 function asRecord(value: unknown): Record<string, unknown> {
-  return isObjectLike(value) && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
+  return isRecord(value) ? value : {};
 }
 
 /**
@@ -85,7 +92,7 @@ function validateGraph(
     sourceHandle: string | null | undefined;
     targetHandle: string | null | undefined;
   }>,
-  nodeMetadata: Record<string, unknown>
+  nodeMetadata: Record<string, NodeMetadata>
 ): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -113,8 +120,8 @@ function validateGraph(
       validateCodeNode(node, nodeLabel, connectedInputs, errors);
     }
 
-    const meta = (nodeMetadata as Record<string, { properties?: Array<{ name: string; required: boolean; type: { type: string; optional: boolean }; default?: unknown }> }>)[nodeType];
-    if (!meta || !meta.properties) {continue;}
+    const meta = nodeMetadata[nodeType];
+    if (!meta?.properties) {continue;}
 
     for (const prop of meta.properties) {
       if (!prop.required) {continue;}
@@ -157,6 +164,10 @@ interface ReadNode {
   data: Record<string, unknown>;
 }
 
+function isPosition(value: unknown): value is ReadNode["position"] {
+  return isObjectLike(value) && isNumber(value.x) && isNumber(value.y);
+}
+
 interface ReadEdge {
   id: string | null | undefined;
   source: string;
@@ -174,14 +185,8 @@ interface ReadEdge {
  * collapsed state) are left out: this is a read of the graph, not a render.
  */
 function storedNodeToReadNode(node: GraphNode): ReadNode {
-  const ui =
-    isObjectLike(node.ui_properties)
-      ? (node.ui_properties as Record<string, unknown>)
-      : {};
-  const position =
-    isObjectLike(ui.position)
-      ? (ui.position as { x: number; y: number })
-      : { x: 0, y: 0 };
+  const ui = isObjectLike(node.ui_properties) ? node.ui_properties : {};
+  const position = isPosition(ui.position) ? ui.position : { x: 0, y: 0 };
   return {
     id: node.id,
     type: node.type,
@@ -229,7 +234,7 @@ FrontendToolRegistry.register({
         id: node.id,
         type: node.type,
         position: node.position,
-        data: node.data as Record<string, unknown>
+        data: { ...node.data }
       }));
       edges = nodeStore.edges.map((edge) => ({
         id: edge.id,

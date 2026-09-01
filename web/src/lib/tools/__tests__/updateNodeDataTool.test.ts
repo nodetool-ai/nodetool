@@ -4,6 +4,7 @@
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import "../builtin/updateNodeData";
+import { callTool, nodeMetadataMap } from "../../../test-utils/frontendTools";
 
 function createMockNodeStore(
   nodes: Array<{ id: string; type?: string; data: Record<string, unknown> }>
@@ -49,22 +50,20 @@ describe("ui_update_node_data tool", () => {
     ];
     const store = createMockNodeStore(nodes);
     const state = createMockState({
-      nodeMetadata: {
-        "test.MyNode": { properties: [] } as never,
-      },
+      nodeMetadata: nodeMetadataMap({
+        "test.MyNode": { properties: [] },
+      }),
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
-    const result = await FrontendToolRegistry.call(
+    const result = await callTool<{ ok: boolean; node_id: string }>(
       "ui_update_node_data",
       { node_id: "n1", data: { properties: { value: "new" } } },
       "tc-1",
       { getState: () => state }
     );
-
-    const typed = result as { ok: boolean; node_id: string };
-    expect(typed.ok).toBe(true);
-    expect(typed.node_id).toBe("n1");
+    expect(result.ok).toBe(true);
+    expect(result.node_id).toBe("n1");
     expect(store.getState().updateNodeProperties).toHaveBeenCalledWith("n1", { value: "new" });
   });
 
@@ -74,21 +73,19 @@ describe("ui_update_node_data tool", () => {
     ];
     const store = createMockNodeStore(nodes);
     const state = createMockState({
-      nodeMetadata: {
-        "test.MyNode": { properties: [] } as never,
-      },
+      nodeMetadata: nodeMetadataMap({
+        "test.MyNode": { properties: [] },
+      }),
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
-    const result = await FrontendToolRegistry.call(
+    const result = await callTool<{ ok: boolean }>(
       "ui_update_node_data",
       { node_id: "n1", data: { workflow_id: "wf-2" } },
       "tc-2",
       { getState: () => state }
     );
-
-    const typed = result as { ok: boolean };
-    expect(typed.ok).toBe(true);
+    expect(result.ok).toBe(true);
     expect(store.getState().updateNodeData).toHaveBeenCalledWith("n1", { workflow_id: "wf-2" });
   });
 
@@ -114,13 +111,13 @@ describe("ui_update_node_data tool", () => {
     ];
     const store = createMockNodeStore(nodes);
     const state = createMockState({
-      nodeMetadata: {
+      nodeMetadata: nodeMetadataMap({
         "test.LLMNode": {
           properties: [
             { name: "model", type: { type: "language_model" } },
           ],
-        } as never,
-      },
+        },
+      }),
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -140,17 +137,17 @@ describe("ui_update_node_data tool", () => {
     ];
     const store = createMockNodeStore(nodes);
     const state = createMockState({
-      nodeMetadata: {
+      nodeMetadata: nodeMetadataMap({
         "test.LLMNode": {
           properties: [
             { name: "model", type: { type: "language_model" } },
           ],
-        } as never,
-      },
+        },
+      }),
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
-    const result = await FrontendToolRegistry.call(
+    const result = await callTool<{ ok: boolean }>(
       "ui_update_node_data",
       {
         node_id: "n1",
@@ -163,9 +160,7 @@ describe("ui_update_node_data tool", () => {
       "tc-5",
       { getState: () => state }
     );
-
-    const typed = result as { ok: boolean };
-    expect(typed.ok).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   it("handles mixed property and non-property updates", async () => {
@@ -174,13 +169,13 @@ describe("ui_update_node_data tool", () => {
     ];
     const store = createMockNodeStore(nodes);
     const state = createMockState({
-      nodeMetadata: {
-        "test.MyNode": { properties: [] } as never,
-      },
+      nodeMetadata: nodeMetadataMap({
+        "test.MyNode": { properties: [] },
+      }),
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
-    const result = await FrontendToolRegistry.call(
+    const result = await callTool<{ ok: boolean }>(
       "ui_update_node_data",
       {
         node_id: "n1",
@@ -192,9 +187,7 @@ describe("ui_update_node_data tool", () => {
       "tc-6",
       { getState: () => state }
     );
-
-    const typed = result as { ok: boolean };
-    expect(typed.ok).toBe(true);
+    expect(result.ok).toBe(true);
     expect(store.getState().updateNodeData).toHaveBeenCalledWith("n1", { workflow_id: "wf-2" });
     expect(store.getState().updateNodeProperties).toHaveBeenCalledWith("n1", { value: "new" });
   });
@@ -230,11 +223,11 @@ describe("ui_update_node_data tool", () => {
       ];
       const store = createMockNodeStore(nodes);
       const state = createMockState({
-        nodeMetadata: {
+        nodeMetadata: nodeMetadataMap({
           "test.Node": {
             properties: [{ name: "model", type: { type: fieldType } }],
-          } as never,
-        },
+          },
+        }),
         getNodeStore: jest.fn().mockReturnValue(store),
       });
 
@@ -263,9 +256,9 @@ describe("ui_update_node_data tool", () => {
     ];
     const store = createMockNodeStore(nodes);
     const state = createMockState({
-      nodeMetadata: {
-        "nodetool.code.Code": { properties: [] } as never,
-      },
+      nodeMetadata: nodeMetadataMap({
+        "nodetool.code.Code": { properties: [] },
+      }),
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 

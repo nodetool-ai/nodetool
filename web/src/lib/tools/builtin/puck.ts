@@ -25,7 +25,7 @@ import type { PuckAgentHandler } from "../../../components/appbuilder/puck/puckA
 import { getPuckAgentHandler } from "../../../components/appbuilder/puck/puckAgentBridge";
 import { docUrl } from "./resourceLinks";
 import { restFetch } from "../../rest-fetch";
-import { isObjectLike, isString } from "../../../utils/typePredicates";
+import { isObjectLike, isRecord, isString } from "../../../utils/typePredicates";
 
 const applicationIdParam = z
   .string()
@@ -261,12 +261,8 @@ function parseInputMappings(
   const out: Record<string, InputMapping> = {};
   for (const [nodeId, value] of Object.entries(raw)) {
     const where = `inputs["${nodeId}"]`;
-    const mapping = value as {
-      from?: unknown;
-      variableId?: unknown;
-      resourceBindingId?: unknown;
-    };
-    const from = mapping?.from;
+    const mapping = isRecord(value) ? value : {};
+    const from = mapping.from;
     if (from === "widget") {
       out[nodeId] = { from: "widget" };
     } else if (from === "variable") {
@@ -279,7 +275,7 @@ function parseInputMappings(
     } else if (from === "constant") {
       out[nodeId] = {
         from: "constant",
-        value: (mapping as { value?: unknown }).value
+        value: mapping.value
       };
     } else if (from === "resource") {
       if (!isString(mapping.resourceBindingId)) {
@@ -311,10 +307,10 @@ function parseOutputMappings(
   const out: Record<string, OutputMapping> = {};
   for (const [nodeId, value] of Object.entries(raw)) {
     const where = `outputs["${nodeId}"]`;
-    const mapping = value as { to?: unknown; variableId?: unknown };
-    if (mapping?.to === "display") {
+    const mapping = isRecord(value) ? value : {};
+    if (mapping.to === "display") {
       out[nodeId] = { to: "display" };
-    } else if (mapping?.to === "variable") {
+    } else if (mapping.to === "variable") {
       if (!isString(mapping.variableId)) {
         throw new Error(
           `${where}: {"to":"variable"} needs "variableId" (an id from ui_app_list_variables).`
@@ -833,35 +829,34 @@ function checkInteractions(
 ): InteractionStepInput[] {
   steps.forEach((step, index) => {
     const stepNumber = index + 1;
-    const record = step as Record<string, unknown>;
-    if (isString(record.click)) {
-      assertWidgetRef(record.click, stepNumber, handler);
+    if ("click" in step && isString(step.click)) {
+      assertWidgetRef(step.click, stepNumber, handler);
       return;
     }
-    if (isString(record.change)) {
-      assertWidgetRef(record.change, stepNumber, handler);
+    if ("change" in step && isString(step.change)) {
+      assertWidgetRef(step.change, stepNumber, handler);
       return;
     }
-    if (isString(record.run) || isString(record.cancel)) {
-      return;
-    }
-    const set = record.set as { key?: unknown } | undefined;
-    if (set !== undefined && isString(set?.key)) {
-      return;
-    }
-    const seed = record.seedResource as
-      | { id?: unknown; items?: unknown }
-      | undefined;
     if (
-      seed !== undefined &&
-      isString(seed?.id) &&
-      Array.isArray(seed.items)
+      ("run" in step && isString(step.run)) ||
+      ("cancel" in step && isString(step.cancel))
+    ) {
+      return;
+    }
+    if ("set" in step && isRecord(step.set) && isString(step.set.key)) {
+      return;
+    }
+    if (
+      "seedResource" in step &&
+      isRecord(step.seedResource) &&
+      isString(step.seedResource.id) &&
+      Array.isArray(step.seedResource.items)
     ) {
       return;
     }
     throw new Error(
       `Interaction step ${stepNumber} is not a valid step (keys: ` +
-        `${Object.keys(record).join(", ") || "none"}). Valid steps: ` +
+        `${Object.keys(step).join(", ") || "none"}). Valid steps: ` +
         INTERACTION_FORMS
     );
   });
@@ -936,7 +931,10 @@ FrontendToolRegistry.register({
           : `App debug failed (${response.status})`;
       return { ok: false, error: detail };
     }
-    return { ok: true, application_id, ...(report as object | null) };
+    if (isObjectLike(report)) {
+      return { ok: true, application_id, ...report };
+    }
+    return { ok: true, application_id };
   }
 });
 

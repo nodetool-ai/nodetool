@@ -3,7 +3,6 @@ import { injectEntities, type Entity } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { trpcClient } from "../../../trpc/client";
 import { assetToEntity } from "../../../serverState/useEntities";
-import type { Asset } from "../../../stores/ApiTypes";
 
 /**
  * Agent tools for the reusable-entity ("ingredients") library. Entities are
@@ -19,7 +18,7 @@ async function fetchEntities(): Promise<Entity[]> {
   });
   const entities: Entity[] = [];
   for (const asset of result.assets) {
-    const entity = assetToEntity(asset as Asset);
+    const entity = assetToEntity(asset);
     if (entity) {
       entities.push(entity);
     }
