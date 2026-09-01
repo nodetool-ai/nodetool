@@ -115,6 +115,7 @@ describe("timelines capability module", () => {
       "delete_timeline_version",
       "edit_timeline",
       "validate_timeline",
+      "preview_timeline_frame",
       "delete_timeline"
     ]);
   });

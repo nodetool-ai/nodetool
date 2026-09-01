@@ -930,6 +930,44 @@ frame's own magnitude — the wobble is ~2%, a real onset is a large fraction of
 adaptive one, because where the curve is flat the local deviation collapses and
 every ripple clears mean + 1.5σ.
 
+## Timeline Frame Preview (`src/timeline-preview/`)
+
+`preview_timeline_frame` composites a timeline at chosen timecodes and returns
+one image handle per frame. It is the only way an agent sees what a cut *looks*
+like: `validate_timeline` reads the document, `ui_timeline_get_clip_frames`
+samples one clip's source media in a browser, and neither shows the composited
+picture — the title over the shot, an animation mid-flight, a transition part
+way through, the track order deciding what covers what.
+
+It resolves the scene through `@nodetool-ai/timeline/scene`
+(`computeActiveLayers` → `resolveAnimatedLayerProps`), rasterizes the
+text/shape/caption layers with the shared `draw.ts` rules, decodes media with
+Mediabunny, and composites with the shared `drawTimelineFrame` — so a previewed
+frame follows the same rules the editor's preview and the video export do.
+`rasterize.ts` is `NodeRasterizer`'s twin, differing only in returning the
+`@napi-rs/canvas` surface instead of an RGBA buffer, because Canvas 2D draws it
+rather than uploading it.
+
+Three properties worth keeping:
+
+- **No GPU, no ffmpeg, no browser.** It imports `@nodetool-ai/timeline/scene`,
+  not `/render`, so TypeGPU never enters this package's graph. That is what
+  lets the capability run wherever the agent runs — the headless kernel, the
+  CLI, a sandboxed CI box with no Vulkan ICD.
+- **Frames are handles, not pixels.** `view_image` is the one mechanism that
+  pulls pixels into context, so each frame is persisted with `persistOutput`
+  and returned as an `asset_id`. Three inline base64 frames would sit in every
+  later turn of the conversation whether or not the model looked at them.
+- **What it cannot draw, it names.** Color and blur adjustments map onto the
+  canvas filter; chroma key, vignette and sharpen have no Canvas 2D form and
+  come back in `effects_not_applied`. A layer that drew nothing carries a
+  `skipped` reason — an unrendered `draft` clip, an unreadable asset, no
+  decodable frame at that source time — rather than vanishing from the report.
+
+Tests: `tests/capabilities-timeline-preview.test.ts`, which reads pixels off
+the rendered PNGs (layer order, a fade's mid-ramp opacity, text actually drawn)
+rather than asserting a call happened.
+
 ## Google Workspace Tools (`src/tools/google-workspace-tools.ts`)
 
 Drive, Gmail, Docs, Sheets and Calendar tools that authenticate with the access

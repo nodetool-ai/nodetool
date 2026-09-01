@@ -345,6 +345,76 @@ export const validateTimelineSpec: CapabilitySpec = {
       : "Validating timeline document"
 };
 
+/** Largest previewed frame edge. Bigger costs bytes and shows nothing more. */
+export const MAX_PREVIEW_WIDTH = 1280;
+/** Default previewed frame width — legible without being expensive. */
+export const DEFAULT_PREVIEW_WIDTH = 640;
+/** Most timecodes one call renders. */
+export const MAX_PREVIEW_TIMES = 8;
+/** Frames rendered when the caller names no timecodes. */
+export const DEFAULT_PREVIEW_COUNT = 3;
+
+export const PREVIEW_TIMELINE_FRAME_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: {
+      type: "string",
+      description:
+        "Timeline sequence to render. Omit when passing an inline `document`."
+    },
+    document: {
+      type: "object",
+      description:
+        "An inline timeline document ({tracks, clips, markers}) to render " +
+        "instead of a saved sequence. Needs `width`, `height` and `fps` " +
+        "unless they are on the document."
+    },
+    times_ms: {
+      type: "array",
+      items: { type: "number" },
+      description:
+        `Absolute timeline positions to render, in milliseconds. Up to ` +
+        `${MAX_PREVIEW_TIMES}. Omit to sample evenly across the sequence.`
+    },
+    count: {
+      type: "number",
+      description:
+        `How many evenly spaced frames to render when times_ms is omitted. ` +
+        `Default 3, max ${MAX_PREVIEW_TIMES}.`
+    },
+    width: {
+      type: "number",
+      description:
+        `Frame width in pixels; the height follows the sequence aspect. ` +
+        `Default ${DEFAULT_PREVIEW_WIDTH}, max ${MAX_PREVIEW_WIDTH}.`
+    }
+  },
+  required: []
+};
+
+export const previewTimelineFrameSpec: CapabilitySpec = {
+  name: "preview_timeline_frame",
+  description:
+    "Render what a timeline actually LOOKS LIKE at chosen timecodes — the " +
+    "composited frame, with every track layered in order, clip transforms " +
+    "and opacity applied, animations sampled mid-flight, transitions part " +
+    "way through, and text and shape clips drawn. This is the tool that " +
+    "answers 'is the title readable', 'does the lower-third cover the " +
+    "face', 'is the fade halfway at 2s'. Returns one image handle per " +
+    "timecode (call view_image on one to see the pixels) plus, for each " +
+    "frame, the layers in composite order with their opacity, blend mode " +
+    "and wipe progress. Unlike get_clip_frames, which samples one clip's " +
+    "source media, this is the finished picture. Needs no browser, GPU or " +
+    "open editor. Sample the middle of an animation, not its endpoints — " +
+    "the endpoints are the states you already know.",
+  inputSchema: PREVIEW_TIMELINE_FRAME_SCHEMA,
+  category: "read",
+  userMessage: (params) =>
+    params["timeline_id"]
+      ? `Rendering frames of timeline ${String(params["timeline_id"])}`
+      : "Rendering timeline frames"
+};
+
 export const deleteTimelineSpec: CapabilitySpec = {
   name: "delete_timeline",
   description:
@@ -377,5 +447,6 @@ export const timelinesSpecs: readonly CapabilitySpec[] = [
   deleteTimelineVersionSpec,
   editTimelineSpec,
   validateTimelineSpec,
+  previewTimelineFrameSpec,
   deleteTimelineSpec
 ];
