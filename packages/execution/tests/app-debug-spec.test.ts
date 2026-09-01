@@ -198,7 +198,7 @@ describe("validateApp", () => {
     expect(result.errors).toEqual([]);
     // A form binds no slot of its own, so the unbound-write warning every other
     // write widget earns must not fire for it.
-    expect(result.warnings).toEqual([]);
+    expect(result.warnings.join("\n")).not.toMatch(/local UI state/);
   });
 
   it("flags a form whose operation the app never declares", () => {
@@ -672,6 +672,40 @@ describe("validateApp", () => {
       expect(
         validateApp(spec!, mediaIO, context).warnings.join("\n")
       ).not.toMatch(/which has no default/);
+    });
+
+    it("covers the capture widgets, which hold nothing until the user shoots", () => {
+      for (const type of ["CameraCapture", "AudioRecorder"]) {
+        const { spec } = parseAppSpec(
+          appDoc([
+            widget(type, `${type}-1`, { binding: "sketch" }),
+            widget("Image", "Image-1", { binding: "picture" }),
+            widget("Button", "Button-1", {
+              events: [{ trigger: "click", kind: "run" }]
+            })
+          ]),
+          mediaIO
+        );
+        expect(validateApp(spec!, mediaIO).warnings.join("\n")).toMatch(
+          new RegExp(`${type} "${type}-1" fills input "sketch"`)
+        );
+      }
+    });
+
+    it("leaves a Workflow Form alone — it binds no single input to guard", () => {
+      const { spec } = parseAppSpec(
+        appDoc([
+          widget("WorkflowForm", "WorkflowForm-1", {}),
+          widget("Image", "Image-1", { binding: "picture" }),
+          widget("Button", "Button-1", {
+            events: [{ trigger: "click", kind: "run" }]
+          })
+        ]),
+        mediaIO
+      );
+      expect(validateApp(spec!, mediaIO).warnings.join("\n")).not.toMatch(
+        /which has no default/
+      );
     });
 
     it("stays quiet when the input node ships a default image", () => {

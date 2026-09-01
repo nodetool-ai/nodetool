@@ -163,12 +163,17 @@ const modeToBindingMode = (mode: AppWidgetSpec["bindingMode"]): BindingMode =>
 /**
  * Widgets whose value is a file the user has to supply on the spot. None of
  * them starts with a value — a Sketch Pad publishes nothing until the first
- * stroke — so a run they feed can start with the input unset.
+ * stroke, a recorder nothing until the first take — so a run they feed can
+ * start with the input unset. A Workflow Form is deliberately not one of
+ * these: it renders every input of its operation rather than binding one, so
+ * there is no single binding a run trigger could be guarded on.
  */
 const MEDIA_INPUT_WIDGETS = new Set([
   "ImageInput",
   "SketchPad",
+  "CameraCapture",
   "AudioInput",
+  "AudioRecorder",
   "VideoInput",
   "DocumentInput"
 ]);
