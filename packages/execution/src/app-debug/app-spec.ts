@@ -708,19 +708,6 @@ export function validateApp(
     );
   }
 
-  // The app's own title is rendered by the runner's header, so a heading
-  // repeating it puts the same words on screen twice.
-  const titleText = spec.title?.trim().toLowerCase();
-  if (titleText) {
-    for (const w of spec.widgets) {
-      if (w.type !== "Heading") continue;
-      if (w.label?.trim().toLowerCase() !== titleText) continue;
-      warnings.push(
-        `Heading "${w.id}" repeats the app title "${spec.title}" — the runner renders the title in the app header, so it shows twice. Give the heading its own text or remove it.`
-      );
-    }
-  }
-
   // No policy refuses a second click, so an unguarded run button is a race the
   // user drives: what the second click does depends only on the policy.
   for (const trigger of runTriggers) {

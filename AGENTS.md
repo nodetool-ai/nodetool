@@ -964,17 +964,17 @@ state of an operation nothing can run, and an elapsed `timeoutMs`. A
 `persist: true` variable that is `instance`-scoped warns rather than being
 silently downgraded.
 
-Four warnings cover the app an agent builds that wires up correctly and still
-fails a user. A `Heading` repeating the root title shows the same words twice,
-because the runner already renders the title in the header. A run button with
-no `disabledWhen` on `op:<id>/exec#running` is a race the user drives — no
-policy refuses the second click, so it cancels the job and restarts it
-(`replace`), stacks another run (`queue`), or starts one alongside
-(`parallel`). An operation nothing binds `exec#error` to fails invisibly: the
-app looks idle and says nothing. And a media input widget — Image, Sketch Pad,
-Audio, Video, Document — filling an input with no default, behind a run trigger
-guarded on nothing, lets the run start with the input unset, which is a paid
-call the user did not get to fill in.
+Three warnings cover the app an agent builds that wires up correctly and still
+fails a user. A run button with no `disabledWhen` on `op:<id>/exec#running` is
+a race the user drives — no policy refuses the second click, so it cancels the
+job and restarts it (`replace`), stacks another run (`queue`), or starts one
+alongside (`parallel`). An operation nothing binds `exec#error` to fails
+invisibly: the app looks idle and says nothing. And a media input widget —
+Image, Sketch Pad, Camera Capture, Audio, Audio Recorder, Video, Document —
+filling an input with no default, behind a run trigger guarded on nothing, lets
+the run start with the input unset, which is a paid call the user did not get
+to fill in. A Workflow Form is not one of those: it renders every input of its
+operation rather than binding one, so there is no single binding to guard.
 
 The bundle (`nodetool-debug/app-<id>-<ts>/`) contains `report.json`/`report.md`,
 `app.json` (the app document), `workflow.json`, and

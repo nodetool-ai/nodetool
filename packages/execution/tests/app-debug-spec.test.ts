@@ -416,42 +416,7 @@ describe("validateApp", () => {
     expect(warnings.join("\n")).toMatch(/local UI state/);
   });
 
-  it("warns when a heading repeats the app title the header already shows", () => {
-    const { spec } = parseAppSpec(
-      appDoc(
-        [
-          widget("Heading", "Heading-1", { text: "Sketch to Picture" }),
-          widget("Button", "Button-1", {
-            events: [{ trigger: "click", kind: "run" }]
-          })
-        ],
-        "Sketch to Picture"
-      ),
-      io
-    );
-    const { warnings } = validateApp(spec!, io);
-    expect(warnings.join("\n")).toMatch(
-      /Heading "Heading-1" repeats the app title/
-    );
-  });
 
-  it("leaves a heading with its own text alone", () => {
-    const { spec } = parseAppSpec(
-      appDoc(
-        [
-          widget("Heading", "Heading-1", { text: "1. Draw" }),
-          widget("Button", "Button-1", {
-            events: [{ trigger: "click", kind: "run" }]
-          })
-        ],
-        "Sketch to Picture"
-      ),
-      io
-    );
-    expect(validateApp(spec!, io).warnings.join("\n")).not.toMatch(
-      /repeats the app title/
-    );
-  });
 
   it("warns that an unguarded run button lets a second click restart the job", () => {
     const context: AppContext = {
