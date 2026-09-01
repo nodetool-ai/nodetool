@@ -126,7 +126,7 @@ describe("validateTimelineSequence — field_stripped", () => {
               text: "Hello",
               fontSizePx: 48,
               color: "#fff",
-              letterSpacingPx: 2
+              notATextStyleField: 2
             },
             mediaType: "text"
           })
@@ -136,7 +136,7 @@ describe("validateTimelineSequence — field_stripped", () => {
     const paths = result.warnings
       .filter((w) => w.code === "field_stripped")
       .map((w) => w.path);
-    expect(paths).toEqual(["clips[*].textStyle.letterSpacingPx"]);
+    expect(paths).toEqual(["clips[*].textStyle.notATextStyleField"]);
   });
 
   it("ignores undefined values in the input", () => {

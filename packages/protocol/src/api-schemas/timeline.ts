@@ -39,9 +39,37 @@ export type TimelineMarker = z.infer<typeof timelineMarker>;
 export const captionWord = z.object({
   word: z.string(),
   startMs: z.number(),
-  endMs: z.number()
+  endMs: z.number(),
+  /** Token classification; absent means a normal spoken word. Without this
+   * field Zod strips it on every PATCH, so filler-word removal — which reads
+   * `kind` — stops finding anything after one save. */
+  kind: z.enum(["word", "filler", "pause"]).optional(),
+  /** ASR confidence 0..1. Without this field Zod strips it on every PATCH. */
+  confidence: z.number().min(0).max(1).optional()
 });
 export type CaptionWord = z.infer<typeof captionWord>;
+
+/**
+ * Authored look of a caption layer. Every field is optional: an absent one
+ * keeps the drawing default, so a caption written before styling existed
+ * renders exactly as it did.
+ */
+export const captionStyle = z.object({
+  fontFamily: z.string().optional(),
+  fontSizeFrac: z.number().optional(),
+  color: z.string().optional(),
+  activeColor: z.string().optional(),
+  outline: z.object({ color: z.string(), widthPx: z.number() }).optional(),
+  bottomMarginFrac: z.number().optional(),
+  background: z
+    .object({
+      color: z.string(),
+      paddingPx: z.number(),
+      radiusPx: z.number().optional()
+    })
+    .optional()
+});
+export type CaptionStyle = z.infer<typeof captionStyle>;
 
 /**
  * Word-level caption data carried by a caption clip. Sourced from the
@@ -49,7 +77,10 @@ export type CaptionWord = z.infer<typeof captionWord>;
  * for the MVP, so no style fields are persisted yet.
  */
 export const clipCaption = z.object({
-  words: z.array(captionWord)
+  words: z.array(captionWord),
+  /** Caption look. Without this field Zod strips it on every PATCH, so a
+   * restyled caption reverts to the built-in look on the next save. */
+  style: captionStyle.optional()
 });
 export type ClipCaption = z.infer<typeof clipCaption>;
 
@@ -198,8 +229,49 @@ export const clipTransform = z.object({
 });
 export type ClipTransform = z.infer<typeof clipTransform>;
 
+/**
+ * Per-clip incoming transition. `easing` and `direction` are plain strings on
+ * the wire for the same forward compat `preset` has: a value this build cannot
+ * parse falls back rather than failing the document. Without the new members
+ * Zod strips the whole `transitionIn` of any non-crossfade transition on every
+ * PATCH, so the cut silently reverts to a hard one.
+ */
 export const clipTransition = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("crossfade"), durationMs: z.number() })
+  z.object({
+    type: z.literal("crossfade"),
+    durationMs: z.number(),
+    easing: z.string().optional()
+  }),
+  z.object({
+    type: z.literal("dipToColor"),
+    durationMs: z.number(),
+    color: z.string(),
+    easing: z.string().optional()
+  }),
+  z.object({
+    type: z.literal("wipe"),
+    durationMs: z.number(),
+    direction: z.string(),
+    softness: z.number().optional(),
+    easing: z.string().optional()
+  }),
+  z.object({
+    type: z.literal("push"),
+    durationMs: z.number(),
+    direction: z.string(),
+    easing: z.string().optional()
+  }),
+  z.object({
+    type: z.literal("slide"),
+    durationMs: z.number(),
+    direction: z.string(),
+    easing: z.string().optional()
+  }),
+  z.object({
+    type: z.literal("zoom"),
+    durationMs: z.number(),
+    easing: z.string().optional()
+  })
 ]);
 export type ClipTransition = z.infer<typeof clipTransition>;
 
@@ -225,9 +297,104 @@ export const clipBlurEffect = z.object({
   sigma: z.number().optional()
 });
 
+/** One control point of a tone curve. Both axes are normalized 0..1. */
+export const curvePoint = z.object({ x: z.number(), y: z.number() });
+export type CurvePoint = z.infer<typeof curvePoint>;
+
+export const clipGlowEffect = z.object({
+  id: z.string(),
+  type: z.literal("glow"),
+  enabled: z.boolean(),
+  radius: z.number(),
+  intensity: z.number(),
+  color: z.string().optional()
+});
+
+export const clipDropShadowEffect = z.object({
+  id: z.string(),
+  type: z.literal("dropShadow"),
+  enabled: z.boolean(),
+  offsetX: z.number(),
+  offsetY: z.number(),
+  blur: z.number(),
+  color: z.string(),
+  opacity: z.number().optional()
+});
+
+export const clipVignetteEffect = z.object({
+  id: z.string(),
+  type: z.literal("vignette"),
+  enabled: z.boolean(),
+  amount: z.number(),
+  softness: z.number()
+});
+
+export const clipSharpenEffect = z.object({
+  id: z.string(),
+  type: z.literal("sharpen"),
+  enabled: z.boolean(),
+  amount: z.number(),
+  radius: z.number().optional()
+});
+
+export const clipChromaKeyEffect = z.object({
+  id: z.string(),
+  type: z.literal("chromaKey"),
+  enabled: z.boolean(),
+  color: z.string(),
+  tolerance: z.number(),
+  softness: z.number(),
+  spill: z.number().optional()
+});
+
+export const clipCurvesEffect = z.object({
+  id: z.string(),
+  type: z.literal("curves"),
+  enabled: z.boolean(),
+  master: z.array(curvePoint),
+  r: z.array(curvePoint).optional(),
+  g: z.array(curvePoint).optional(),
+  b: z.array(curvePoint).optional()
+});
+
+export const clipLevelsEffect = z.object({
+  id: z.string(),
+  type: z.literal("levels"),
+  enabled: z.boolean(),
+  inBlack: z.number(),
+  inWhite: z.number(),
+  gamma: z.number(),
+  outBlack: z.number(),
+  outWhite: z.number()
+});
+
+const rgbTriple = z.tuple([z.number(), z.number(), z.number()]);
+
+export const clipLiftGammaGainEffect = z.object({
+  id: z.string(),
+  type: z.literal("liftGammaGain"),
+  enabled: z.boolean(),
+  lift: rgbTriple,
+  gamma: rgbTriple,
+  gain: rgbTriple
+});
+
+/**
+ * The clip effect chain. Without the members below Zod drops any effect whose
+ * type it does not carry on every PATCH, so a graded clip loses that step of
+ * its chain on the next save.
+ */
 export const clipEffect = z.discriminatedUnion("type", [
   clipColorEffect,
-  clipBlurEffect
+  clipBlurEffect,
+  clipGlowEffect,
+  clipDropShadowEffect,
+  clipVignetteEffect,
+  clipSharpenEffect,
+  clipChromaKeyEffect,
+  clipCurvesEffect,
+  clipLevelsEffect,
+  clipLiftGammaGainEffect
 ]);
 export type ClipEffect = z.infer<typeof clipEffect>;
 
@@ -373,6 +540,24 @@ export const clipAnimation = z.object({
 });
 export type ClipAnimation = z.infer<typeof clipAnimation>;
 
+/**
+ * How a shape or a text run is filled. Stop offsets are normalized 0..1, so a
+ * fill is independent of the shape's size.
+ */
+export const shapeFill = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("solid"), color: z.string() }),
+  z.object({
+    type: z.literal("linear"),
+    angle: z.number(),
+    stops: z.array(z.object({ offset: z.number(), color: z.string() }))
+  }),
+  z.object({
+    type: z.literal("radial"),
+    stops: z.array(z.object({ offset: z.number(), color: z.string() }))
+  })
+]);
+export type ShapeFill = z.infer<typeof shapeFill>;
+
 export const clipTextStyle = z.object({
   text: z.string(),
   fontFamily: z.string().optional(),
@@ -380,12 +565,39 @@ export const clipTextStyle = z.object({
   fontWeight: z.number().optional(),
   color: z.string(),
   align: z.enum(["left", "center", "right"]).optional(),
-  maxWidthFrac: z.number().optional()
+  maxWidthFrac: z.number().optional(),
+  /** Every field below is styling the rasterizer reads. Without them Zod
+   * strips the styling on every PATCH, so a stroked, shadowed or backed title
+   * reverts to plain fill on the next save. */
+  fontStyle: z.string().optional(),
+  letterSpacingPx: z.number().optional(),
+  lineHeight: z.number().optional(),
+  verticalAlign: z.string().optional(),
+  stroke: z.object({ color: z.string(), widthPx: z.number() }).optional(),
+  shadow: z
+    .object({
+      color: z.string(),
+      blurPx: z.number(),
+      offsetX: z.number(),
+      offsetY: z.number()
+    })
+    .optional(),
+  background: z
+    .object({
+      color: z.string(),
+      paddingPx: z.number(),
+      radiusPx: z.number().optional()
+    })
+    .optional(),
+  fill: shapeFill.optional()
 });
 export type ClipTextStyle = z.infer<typeof clipTextStyle>;
 
 export const clipShapeStyle = z.object({
-  kind: z.enum(["rect", "ellipse", "line"]),
+  /** Widened past `rect | ellipse | line` for the path renderer. A narrower
+   * enum here would fail the whole document on a path shape rather than
+   * carrying it. */
+  kind: z.enum(["rect", "ellipse", "line", "path", "polygon", "star"]),
   fill: z.string().optional(),
   stroke: z.string().optional(),
   strokeWidthPx: z.number().optional(),
@@ -394,9 +606,62 @@ export const clipShapeStyle = z.object({
   width: z.number().optional(),
   height: z.number().optional(),
   x2: z.number().optional(),
-  y2: z.number().optional()
+  y2: z.number().optional(),
+  /** Every field below is authored geometry. Without them Zod strips the
+   * geometry on every PATCH, so a path, gradient, dash or trim reverts to a
+   * plain filled box on the next save. */
+  d: z.string().optional(),
+  sides: z.number().optional(),
+  innerRadius: z.number().optional(),
+  cornerRadius: z.number().optional(),
+  fillStyle: shapeFill.optional(),
+  dash: z.array(z.number()).optional(),
+  lineCap: z.string().optional(),
+  lineJoin: z.string().optional(),
+  trimStart: z.number().optional(),
+  trimEnd: z.number().optional()
 });
 export type ClipShapeStyle = z.infer<typeof clipShapeStyle>;
+
+/**
+ * Shape mask on one clip, in the layer's own normalized 0..1 space. `kind` is
+ * a plain string for forward compat: an unknown kind parses and is skipped at
+ * render time rather than failing the document.
+ */
+export const clipMask = z.object({
+  kind: z.string(),
+  x: z.number().optional(),
+  y: z.number().optional(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  d: z.string().optional(),
+  featherPx: z.number().optional(),
+  invert: z.boolean().optional()
+});
+export type ClipMask = z.infer<typeof clipMask>;
+
+/** Track matte: another clip's alpha or luma drives this layer's alpha. */
+export const clipMatte = z.object({
+  sourceClipId: z.string(),
+  mode: z.string(),
+  invert: z.boolean().optional()
+});
+export type ClipMatte = z.infer<typeof clipMatte>;
+
+/**
+ * Retimes a clip's source. `t` is normalized 0..1 over the clip's window and
+ * must ascend; `sourceMs` may descend, which is reverse playback.
+ */
+export const clipTimeRemap = z.object({
+  keyframes: z.array(
+    z.object({
+      t: z.number(),
+      sourceMs: z.number(),
+      easing: z.string().optional()
+    })
+  )
+});
+export type ClipTimeRemap = z.infer<typeof clipTimeRemap>;
 
 export const timelineClip = z.object({
   id: z.string(),
@@ -406,7 +671,17 @@ export const timelineClip = z.object({
   durationMs: z.number(),
   inPointMs: z.number().optional(),
   outPointMs: z.number().optional(),
-  mediaType: z.enum(["image", "video", "audio", "overlay", "text", "shape"]),
+  /** `"group"` carries no media: it is a transform parent children name with
+   * `parentId`. Without it here Zod fails a document containing a group. */
+  mediaType: z.enum([
+    "image",
+    "video",
+    "audio",
+    "overlay",
+    "text",
+    "shape",
+    "group"
+  ]),
   sourceType: z.enum(["imported", "generated"]),
   bindingKind: clipBindingKind.optional(),
   workflowId: z.string().optional(),
@@ -480,7 +755,26 @@ export const timelineClip = z.object({
   paragraphId: z.string().optional(),
   /** Motion-design animations. Without this field Zod strips it on every
    * PATCH, so autosave erases animations. */
-  animations: z.array(clipAnimation).optional()
+  animations: z.array(clipAnimation).optional(),
+  /** Group this clip is parented to. Without this field Zod strips it on every
+   * PATCH, so autosave unparents every child of a group. */
+  parentId: z.string().optional(),
+  /** Shape mask. Without this field Zod strips it on every PATCH, so a masked
+   * layer reverts to its full rectangle on the next save. */
+  mask: clipMask.optional(),
+  /** Track matte. Without this field Zod strips it on every PATCH, so the
+   * matted layer reverts to opaque on the next save. */
+  matte: clipMatte.optional(),
+  /** Time remap. Without this field Zod strips it on every PATCH, so a
+   * retimed or reversed clip plays back at its plain rate after one save. */
+  timeRemap: clipTimeRemap.optional(),
+  /** Composition provenance stamped by `insert_composition`. Without these
+   * fields Zod strips them on every PATCH, so an instantiated composition
+   * loses the link to its template and its parameter values. */
+  compositionId: z.string().optional(),
+  compositionParams: z
+    .record(z.string(), z.union([z.number(), z.string(), z.boolean()]))
+    .optional()
 });
 export type TimelineClip = z.infer<typeof timelineClip>;
 
