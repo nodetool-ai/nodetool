@@ -76,7 +76,10 @@ const MessageParts: React.FC<{ content: unknown }> = ({ content }) => {
   );
 };
 
-const Bubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
+// A thread re-renders once per streamed chunk. The history messages keep their
+// identity across those renders, so memoizing here leaves only the reply in
+// flight re-rendering.
+const Bubble: React.FC<{ message: ChatMessage }> = React.memo(({ message }) => {
   const isUser = message.role === "user";
   return (
     <FlexRow
@@ -102,7 +105,8 @@ const Bubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
       </FlexColumn>
     </FlexRow>
   );
-};
+});
+Bubble.displayName = "Bubble";
 
 interface ChatThreadWidgetProps {
   id: string;
@@ -165,12 +169,17 @@ export const ChatThreadWidget: React.FC<ChatThreadWidgetProps> = ({
     write
   ]);
 
-  const live =
-    streamValue != null &&
-    streamValue !== "" &&
-    foldedInvocation !== streamInvocationId
-      ? messagesFrom(streamValue).map((m) => ({ ...m, role: "assistant" }))
-      : [];
+  // `messagesFrom` walks every accumulated chunk and rejoins the reply, so keep
+  // it on the stream value instead of re-running it for a runner-state render.
+  const live = useMemo(
+    () =>
+      streamValue != null &&
+      streamValue !== "" &&
+      foldedInvocation !== streamInvocationId
+        ? messagesFrom(streamValue).map((m) => ({ ...m, role: "assistant" }))
+        : [],
+    [foldedInvocation, streamInvocationId, streamValue]
+  );
 
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -178,7 +187,7 @@ export const ChatThreadWidget: React.FC<ChatThreadWidgetProps> = ({
     if (element) element.scrollTop = element.scrollHeight;
   }, [messages, live.length, streamValue]);
 
-  const all = [...messages, ...live];
+  const all = useMemo(() => [...messages, ...live], [messages, live]);
 
   return (
     <FlexColumn gap={SPACING.xs} fullWidth>

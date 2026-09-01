@@ -116,6 +116,38 @@ export const PDFWidget: React.FC<ReadWidgetProps & { height?: number }> = (
 
 const TILE_SIZE = 140;
 
+// The grid is fed by a streaming output that grows an item at a time, so
+// without the memo each emitted image rebuilds the styles of every tile before
+// it.
+const GalleryTile: React.FC<{ src: string; size: number }> = React.memo(
+  ({ src, size }) => (
+    <Box
+      sx={{
+        height: size,
+        p: SPACING.xs,
+        borderRadius: BORDER_RADIUS.md,
+        border: "1px solid",
+        borderColor: "divider",
+        transition: MOTION.border,
+        "&:hover": { borderColor: "primary.light" }
+      }}
+    >
+      <Box
+        component="img"
+        src={src}
+        alt=""
+        sx={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          borderRadius: BORDER_RADIUS.sm
+        }}
+      />
+    </Box>
+  )
+);
+GalleryTile.displayName = "GalleryTile";
+
 /**
  * A bound array of media refs as a tiled grid — the shape a batch run that emits
  * N images has. Tiles match the resource gallery's look so the two read as one
@@ -125,9 +157,13 @@ export const GalleryWidget: React.FC<
   ReadWidgetProps & { label?: string; tileSize?: number }
 > = (props) => {
   const { value } = useReadBinding(props);
-  const sources = asItems(value)
-    .map(resolveImageSrc)
-    .filter((src): src is string => src !== null);
+  const sources = React.useMemo(
+    () =>
+      asItems(value)
+        .map(resolveImageSrc)
+        .filter((src): src is string => src !== null),
+    [value]
+  );
   const size = props.tileSize ?? TILE_SIZE;
 
   if (sources.length === 0) {
@@ -150,30 +186,7 @@ export const GalleryWidget: React.FC<
         }}
       >
         {sources.map((src, index) => (
-          <Box
-            key={index}
-            sx={{
-              height: size,
-              p: SPACING.xs,
-              borderRadius: BORDER_RADIUS.md,
-              border: "1px solid",
-              borderColor: "divider",
-              transition: MOTION.border,
-              "&:hover": { borderColor: "primary.light" }
-            }}
-          >
-            <Box
-              component="img"
-              src={src}
-              alt=""
-              sx={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                borderRadius: BORDER_RADIUS.sm
-              }}
-            />
-          </Box>
+          <GalleryTile key={index} src={src} size={size} />
         ))}
       </Box>
     </FlexColumn>

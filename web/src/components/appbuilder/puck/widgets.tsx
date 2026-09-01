@@ -147,42 +147,45 @@ const MediaPlaceholder: React.FC<{ height: number; text: string }> = ({
  * A bound media value carries an `asset://` locator, which fetches nowhere —
  * every media leaf resolves its source to the asset's own `get_url` first.
  * Anything else (data:, blob:, http:, package://) passes through unchanged.
+ *
+ * All three are memoized: a widget bound to a streaming output re-renders once
+ * per emitted item, and without this every item already on screen re-renders
+ * with it.
  */
-const ImageItem: React.FC<{ src: string; fit?: string; height: number }> = ({
-  src,
-  fit,
-  height
-}) => (
-  <ResponsiveImage
-    locator={src}
-    alt=""
-    fit={fit === "cover" ? "cover" : "contain"}
-    borderRadius={BORDER_RADIUS.md}
-    sx={{ height }}
-  />
-);
+const ImageItem: React.FC<{ src: string; fit?: string; height: number }> =
+  React.memo(({ src, fit, height }) => (
+    <ResponsiveImage
+      locator={src}
+      alt=""
+      fit={fit === "cover" ? "cover" : "contain"}
+      borderRadius={BORDER_RADIUS.md}
+      sx={{ height }}
+    />
+  ));
+ImageItem.displayName = "ImageItem";
 
-const AudioItem: React.FC<{ src: string }> = ({ src }) => (
+const AudioItem: React.FC<{ src: string }> = React.memo(({ src }) => (
   <AudioPlayback locator={src} />
-);
+));
+AudioItem.displayName = "AudioItem";
 
-const VideoItem: React.FC<{ src: string; height: number }> = ({
-  src,
-  height
-}) => (
-  // `VideoPlayer` fills its container, so the widget's height cap becomes the
-  // container's height rather than a max on the element.
-  <Box
-    sx={{
-      width: "100%",
-      height,
-      borderRadius: BORDER_RADIUS.md,
-      overflow: "hidden"
-    }}
-  >
-    <VideoPlayer locator={src} />
-  </Box>
+const VideoItem: React.FC<{ src: string; height: number }> = React.memo(
+  ({ src, height }) => (
+    // `VideoPlayer` fills its container, so the widget's height cap becomes the
+    // container's height rather than a max on the element.
+    <Box
+      sx={{
+        width: "100%",
+        height,
+        borderRadius: BORDER_RADIUS.md,
+        overflow: "hidden"
+      }}
+    >
+      <VideoPlayer locator={src} />
+    </Box>
+  )
 );
+VideoItem.displayName = "VideoItem";
 
 export const MarkdownBlock: React.FC<{ text: string }> = React.memo(
   ({ text }) => (
