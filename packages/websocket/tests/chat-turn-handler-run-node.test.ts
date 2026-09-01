@@ -5,6 +5,8 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { initTestDb, Message, Thread } from "@nodetool-ai/models";
+import { decidePermission, gateFromContext } from "@nodetool-ai/agents";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   makeChatTurnHarness,
   fakeProvider,
@@ -353,5 +355,68 @@ describe("thread bootstrap", () => {
     expect(threads).not.toBeNull();
     const [rows] = await Message.paginate("t-reuse", { limit: 10 });
     expect(rows.filter((m) => m.role === "user")).toHaveLength(2);
+  });
+});
+
+describe("the gate a run_node child inherits", () => {
+  beforeEach(() => {
+    initTestDb();
+  });
+
+  /**
+   * `run_node` runs the node on a context it builds itself, not on the turn's,
+   * so the turn's gate has to be handed across. Without it the node's own
+   * agent loop finds nothing and runs headless in `auto` — which is how a chat
+   * in plan mode could mutate through an `AgentNode`.
+   */
+  async function modeSeenByNode(
+    permissionMode: "plan" | "default" | "auto"
+  ): Promise<string> {
+    const seen: string[] = [];
+    const harness = makeChatTurnHarness({
+      session: {
+        resolveExecutor: () => ({
+          async process(
+            _inputs: Record<string, unknown>,
+            context?: ProcessingContext
+          ) {
+            seen.push(gateFromContext(context, "test").mode);
+            return { output: "" };
+          }
+        }),
+        resolveProvider: async () =>
+          fakeProvider({
+            generateLoop: async function* (args: GenerateLoopArgs) {
+              await args.executeTool?.({
+                id: "call_run",
+                name: "run_node",
+                args: { node_type: "test.Echo" }
+              });
+              yield { type: "chunk", content: "ok", done: true };
+            }
+          })
+      }
+    });
+    const stop = autoApprove(harness);
+    try {
+      await harness.handler.handleChatMessage({
+        ...chatTurn(`t-gate-${permissionMode}`),
+        permission_mode: permissionMode
+      });
+    } finally {
+      stop();
+    }
+    return seen.join(",");
+  }
+
+  it("hands the node the turn's mode, so plan mode blocks a write inside it", async () => {
+    const mode = await modeSeenByNode("plan");
+
+    expect(mode).toBe("plan");
+    expect(decidePermission("plan", "write")).toBe("block");
+  });
+
+  it("hands the node a default turn's mode rather than the headless auto", async () => {
+    expect(await modeSeenByNode("default")).toBe("default");
   });
 });
