@@ -424,8 +424,8 @@ export const DEFAULT_SELECT_SETTINGS: SelectSettings = {
 };
 
 export const DEFAULT_SEGMENT_SETTINGS: SegmentSettings = {
-  // Auto pairs with the shipped model: SAM 3.1 segments by concept, and a
-  // point or a box on its own returns nothing.
+  // Auto pairs with the shipped model: SAM 3.1 finds what the Concept names.
+  // A point or a box drives it too, so those modes work with no concept.
   promptMode: "auto",
   conceptPrompt: "",
   maxObjects: 5,

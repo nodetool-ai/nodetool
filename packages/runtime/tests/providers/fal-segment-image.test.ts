@@ -188,16 +188,86 @@ describe("FalProvider.segmentImage", () => {
     await expect(p.segmentImage(new Uint8Array([1]), baseParams)).resolves.toEqual([]);
   });
 
-  it("refuses a concept model a point prompt cannot drive", async () => {
+  it("refuses a prompt-driven model given no prompt at all", async () => {
     const { p, subscribe } = providerWithResult({ masks: [] });
 
     await expect(
       p.segmentImage(new Uint8Array([1]), {
-        model: { id: SAM, name: "SAM 3.1", provider: "fal_ai" },
-        points: [{ x: 10, y: 20, include: true }]
+        model: { id: SAM, name: "SAM 3.1", provider: "fal_ai" }
       })
-    ).rejects.toThrow(/segments by concept/);
+    ).rejects.toThrow(/needs a prompt/);
     expect(subscribe).not.toHaveBeenCalled();
+  });
+
+  it("refuses sam2/image with no prompt instead of paying for its 422", async () => {
+    // fal answers this call with 422 "Please provide at least one of prompts
+    // or box_prompts to segment the image".
+    const { p, subscribe } = providerWithResult({ masks: [] });
+
+    await expect(
+      p.segmentImage(new Uint8Array([1]), {
+        model: { id: "fal-ai/sam2/image", name: "SAM2", provider: "fal_ai" }
+      })
+    ).rejects.toThrow(/needs a prompt/);
+    expect(subscribe).not.toHaveBeenCalled();
+  });
+
+  it("runs a model that finds objects on its own with no prompt", async () => {
+    stubMaskDownloads();
+    const { p, subscribe } = providerWithResult({
+      individual_masks: [{ url: "https://fal.ai/mask-a.png", width: 8, height: 6 }]
+    });
+
+    await p.segmentImage(new Uint8Array([1]), {
+      model: {
+        id: "fal-ai/sam2/auto-segment",
+        name: "SAM2 auto",
+        provider: "fal_ai"
+      }
+    });
+
+    expect(subscribe).toHaveBeenCalled();
+  });
+
+  it("sends an empty text prompt when only a point drives the run", async () => {
+    stubMaskDownloads();
+    const { p, subscribe } = providerWithResult({ masks: [] });
+
+    // fal fills an absent field with the endpoint's default, and sam-3.1
+    // defaults `prompt` to "wheel" — which segments a wheel and drops the
+    // click.
+    await p.segmentImage(new Uint8Array([1]), {
+      model: { id: SAM, name: "SAM 3.1", provider: "fal_ai" },
+      points: [{ x: 10, y: 20, include: true }]
+    });
+
+    const input = subscribe.mock.calls[0][1].input;
+    expect(input.prompt).toBe("");
+    expect(input.point_prompts).toEqual([{ x: 10, y: 20, label: 1 }]);
+  });
+
+  it("sends an empty text prompt when only a box drives the run", async () => {
+    stubMaskDownloads();
+    const { p, subscribe } = providerWithResult({ masks: [] });
+
+    await p.segmentImage(new Uint8Array([1]), {
+      model: { id: SAM, name: "SAM 3.1", provider: "fal_ai" },
+      box: { x: 1, y: 2, width: 3, height: 4 }
+    });
+
+    expect(subscribe.mock.calls[0][1].input.prompt).toBe("");
+  });
+
+  it("keeps the concept when one is given alongside a point", async () => {
+    stubMaskDownloads();
+    const { p, subscribe } = providerWithResult({ masks: [] });
+
+    await p.segmentImage(new Uint8Array([1]), {
+      ...baseParams,
+      points: [{ x: 10, y: 20, include: true }]
+    });
+
+    expect(subscribe.mock.calls[0][1].input.prompt).toBe("cat");
   });
 
   it("lets a point-driven model take a point prompt with no concept", async () => {

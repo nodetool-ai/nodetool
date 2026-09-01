@@ -246,6 +246,11 @@ class FalArgsBuilder {
     return this.known ? this.accepted.has(apiName) : true;
   }
 
+  /** True only when the manifest describes this endpoint and lists `apiName`. */
+  declares(apiName: string): boolean {
+    return this.known && this.accepted.has(apiName);
+  }
+
   /** propType for a manifest field by API name, lowercased. */
   propType(apiName: string): string | undefined {
     return this.accepted.get(apiName)?.propType.toLowerCase();
@@ -297,6 +302,21 @@ class FalArgsBuilder {
     }
     // The endpoint declares none of them — an unknown key would 422 the call,
     // and the model simply does not take this prompt kind.
+    return this;
+  }
+
+  /**
+   * Write `value` to the first name in `apiNames` the endpoint declares, even
+   * when {@link set} would drop it. An empty string is a meaningful value on a
+   * segmentation prompt field: fal fills an absent field with the endpoint's
+   * own default, and sam-3.1 defaults `prompt` to `"wheel"`.
+   */
+  forceFirst(apiNames: readonly string[], value: unknown): this {
+    for (const apiName of apiNames) {
+      if (this.has(apiName)) {
+        return this.force(apiName, value);
+      }
+    }
     return this;
   }
 
@@ -1163,15 +1183,21 @@ export class FalProvider extends BaseProvider {
       abortSignal: params.signal
     });
     const data = (result.data ?? result) as Record<string, unknown>;
-    const masks = await collectSegmentationMasks(data, params.minConfidence);
+    const { masks, decoded, bestScore } = await collectSegmentationMasks(
+      data,
+      params.minConfidence
+    );
     if (masks.length === 0) {
-      // A segmentation call that answers with no mask this decoder recognizes
-      // is either a model that found nothing or a response shape not handled
-      // here — and those look identical from the caller. Name the fields the
-      // response actually carried so the second case is diagnosable.
+      // Three different failures end here and look alike from the caller: the
+      // model found nothing, the response carries a shape this decoder does
+      // not read, or every mask it did read fell under `minConfidence`. Name
+      // the fields the response carried and what was decoded so they separate.
       log.warn("FAL segmentImage returned no masks", {
         model: modelId,
-        responseFields: Object.keys(data)
+        responseFields: Object.keys(data),
+        decodedMasks: decoded,
+        minConfidence: params.minConfidence ?? null,
+        bestScore
       });
     }
     return masks;
@@ -1313,8 +1339,16 @@ function buildSegmentImageArgs(
   // endpoint does not declare is dropped rather than sent — so a prompt written
   // to one name only would be silently discarded on half the SAM catalog.
   const prompt = params.prompt?.trim();
+  const hasVisualPrompt = Boolean(params.points?.length || params.box);
   if (prompt) {
     b.setFirst(SEGMENT_TEXT_PROMPT_FIELDS, prompt);
+  } else if (hasVisualPrompt) {
+    // An absent field takes the endpoint's own default, and sam-3.1 defaults
+    // `prompt` to "wheel" — so omitting the text prompt runs a concept search
+    // for a wheel and the click is ignored. Measured against the live API: a
+    // point alone returns `masks: []`, the same point with `prompt: ""`
+    // returns the mask at score 0.51.
+    b.forceFirst(SEGMENT_TEXT_PROMPT_FIELDS, "");
   }
   if (params.points?.length) {
     b.setFirst(
@@ -1341,40 +1375,36 @@ function buildSegmentImageArgs(
 }
 
 /**
- * Endpoints that segment by concept only.
+ * Refuse a call whose target nothing names.
  *
- * They declare `point_prompts` and `box_prompts`, accept them without
- * complaint, and then return `masks: []` with no error when no text prompt
- * came with them — which is indistinguishable from "found nothing". Measured
- * against the live API: a point on the subject returns nothing, the same point
- * plus `prompt: "cat"` returns the mask at score 0.94.
- */
-const FAL_CONCEPT_ONLY_SEGMENT_PREFIXES = ["fal-ai/sam-3"] as const;
-
-function isConceptOnlySegmentModel(modelId: string): boolean {
-  return FAL_CONCEPT_ONLY_SEGMENT_PREFIXES.some((prefix) =>
-    modelId.startsWith(prefix)
-  );
-}
-
-/**
- * Refuse a call the model will answer with silence. Spending the request to
- * get an empty mask list back teaches the caller nothing about why.
+ * An endpoint that declares a prompt field segments only what a prompt points
+ * at, and answers an unprompted call with either a 422 (`fal-ai/sam2/image`:
+ * "Please provide at least one of prompts or box_prompts") or a silent empty
+ * mask list (`fal-ai/sam-3-1/image`, which fills the absent `prompt` with its
+ * own default). Both cost a request and neither says what to do about it.
+ * Endpoints that declare no prompt field at all — sam2/auto-segment, birefnet
+ * — find objects on their own and run unprompted.
  */
 function assertSegmentPromptIsUsable(
   modelId: string,
   params: SegmentImageParams
 ): void {
-  if (params.prompt?.trim()) {
+  if (params.prompt?.trim() || params.points?.length || params.box) {
     return;
   }
-  if (!isConceptOnlySegmentModel(modelId)) {
+  const b = new FalArgsBuilder(modelId);
+  const takesAPrompt = [
+    ...SEGMENT_TEXT_PROMPT_FIELDS,
+    ...SEGMENT_POINT_PROMPT_FIELDS,
+    ...SEGMENT_BOX_PROMPT_FIELDS
+  ].some((field) => b.declares(field));
+  if (!takesAPrompt) {
     return;
   }
   throw new Error(
-    `${modelId} segments by concept: name what to find (for example "the dog"). ` +
-      "Point and box prompts do nothing on this model — pick a point-driven " +
-      "model such as fal-ai/sam2/image to click at an object instead."
+    `${modelId} needs a prompt: name what to find (for example "the dog"), ` +
+      "click a point, or drag a box. To split a layer with no prompt, pick a " +
+      "model that finds objects on its own, such as fal-ai/sam2/auto-segment."
   );
 }
 
@@ -1526,22 +1556,38 @@ function falMaskMetadata(
   };
 }
 
+/**
+ * The masks a response carries, with what the decoder saw before filtering:
+ * `decoded` is how many mask images it read and `bestScore` the highest
+ * confidence among them, so an empty result says which of "found nothing",
+ * "unread response shape" and "all below the threshold" happened.
+ */
+interface DecodedSegmentation {
+  masks: ImageSegmentationMask[];
+  decoded: number;
+  bestScore: number | null;
+}
+
 async function collectSegmentationMasks(
   data: Record<string, unknown>,
   minConfidence?: number | null
-): Promise<ImageSegmentationMask[]> {
+): Promise<DecodedSegmentation> {
   const rawMasks = collectFalMaskImages(data);
   const scores = parseFalJsonField(data.scores);
   const boxes = parseFalJsonField(data.boxes);
   const threshold = minConfidence ?? null;
 
   const masks: ImageSegmentationMask[] = [];
+  let bestScore: number | null = null;
   for (let i = 0; i < rawMasks.length; i++) {
     const { url, width, height } = rawMasks[i];
     const meta = falMaskMetadata(data.metadata, i);
     const confidence =
       meta.score ??
       (Array.isArray(scores) ? finiteNumberOrNull(scores[i]) : null);
+    if (confidence != null && (bestScore == null || confidence > bestScore)) {
+      bestScore = confidence;
+    }
     if (threshold != null && confidence != null && confidence < threshold) {
       continue;
     }
@@ -1558,7 +1604,7 @@ async function collectSegmentationMasks(
       box
     });
   }
-  return masks;
+  return { masks, decoded: rawMasks.length, bestScore };
 }
 
 export function extractImageUrl(result: Record<string, unknown>): string {

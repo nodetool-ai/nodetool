@@ -35,5 +35,6 @@ export {
   drawMaskBoundsOverlay,
   drawMaskImageOverlay,
   generateCutoutDataUrl,
+  toAlphaMaskDataUrl,
   generateSegmentationRunId
 } from "./segmentMaskOverlay";

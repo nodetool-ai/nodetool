@@ -39,6 +39,58 @@ function getMaskOutlineColor(maskIndex: number): string {
 }
 
 /**
+ * A mask image redrawn as an alpha mask: white where the object is, fully
+ * transparent everywhere else.
+ *
+ * fal's SAM endpoints answer with an **opaque** grayscale PNG — white object on
+ * a black ground, alpha 255 on every pixel. Canvas compositing reads alpha, not
+ * luminance, so `destination-in` and `source-in` against one of those keep the
+ * whole image: the cutout layer came out containing everything.
+ *
+ * Alpha becomes `existing alpha × luma`, which lands both mask conventions on
+ * the same result — a white-on-black mask carries its shape in luma, one
+ * already cut out carries it in alpha, and a mask transformed into document
+ * space carries the padding around it in alpha and the shape in luma.
+ */
+function toAlphaMaskCanvas(
+  img: HTMLImageElement,
+  width: number,
+  height: number
+): HTMLCanvasElement | null {
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(width));
+  canvas.height = Math.max(1, Math.round(height));
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) {
+    return null;
+  }
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  applyLumaToAlpha(image.data);
+  ctx.putImageData(image, 0, 0);
+  return canvas;
+}
+
+/**
+ * Fold each pixel's luma into its alpha, in place, and paint the color white.
+ * The pixel half of {@link toAlphaMaskCanvas}, kept apart from the canvas so it
+ * is testable without one.
+ */
+export function applyLumaToAlpha(pixels: Uint8ClampedArray): void {
+  for (let i = 0; i < pixels.length; i += 4) {
+    // Rec. 601 luma. The masks are grayscale, so any channel would do, but a
+    // model that colors its masks still thresholds sensibly this way.
+    const luma =
+      pixels[i] * 0.299 + pixels[i + 1] * 0.587 + pixels[i + 2] * 0.114;
+    pixels[i + 3] = Math.round((pixels[i + 3] * luma) / 255);
+    pixels[i] = 255;
+    pixels[i + 1] = 255;
+    pixels[i + 2] = 255;
+  }
+}
+
+/**
  * Render segmentation mask bounds as colored rectangles on an overlay context.
  *
  * Used for quick bounding-box preview while masks are loading or when
@@ -127,10 +179,14 @@ export async function drawMaskImageOverlay(
       continue;
     }
 
-    // Draw the mask (white = object)
-    tintCtx.drawImage(img, 0, 0, width, height);
+    // Draw the mask as alpha (white = object), then fill with the overlay
+    // color through it.
+    const alphaMask = toAlphaMaskCanvas(img, width, height);
+    if (!alphaMask) {
+      continue;
+    }
+    tintCtx.drawImage(alphaMask, 0, 0);
 
-    // Use the mask as alpha, fill with overlay color
     tintCtx.globalCompositeOperation = "source-in";
     tintCtx.fillStyle = color;
     tintCtx.fillRect(0, 0, width, height);
@@ -193,6 +249,10 @@ export async function generateCutoutDataUrl(
     ctx.drawImage(sourceImg, x, y, width, height, 0, 0, width, height);
 
     // Apply mask as alpha: use destination-in to keep only masked pixels
+    const alphaMask = toAlphaMaskCanvas(maskImg, width, height);
+    if (!alphaMask) {
+      return null;
+    }
     const maskCanvas = document.createElement("canvas");
     maskCanvas.width = width;
     maskCanvas.height = height;
@@ -201,14 +261,13 @@ export async function generateCutoutDataUrl(
       return null;
     }
 
-    // Draw mask, optionally with feather (blur)
+    // Feather softens the alpha edge, so it blurs the alpha mask — blurring the
+    // opaque source mask would have softened nothing.
     if (featherRadius > 0) {
       maskCtx.filter = `blur(${featherRadius}px)`;
-      maskCtx.drawImage(maskImg, 0, 0, width, height);
-      maskCtx.filter = "none";
-    } else {
-      maskCtx.drawImage(maskImg, 0, 0, width, height);
     }
+    maskCtx.drawImage(alphaMask, 0, 0);
+    maskCtx.filter = "none";
 
     // Apply the mask as alpha channel
     ctx.globalCompositeOperation = "destination-in";
@@ -219,6 +278,27 @@ export async function generateCutoutDataUrl(
   } catch (err) {
     console.error("[generateCutoutDataUrl] Failed:", err);
     return null;
+  }
+}
+
+/**
+ * A mask as a PNG data URL whose alpha carries the mask, for a layer that holds
+ * the silhouette itself rather than a cutout of the source. Returns the input
+ * untouched when it cannot be decoded.
+ */
+export async function toAlphaMaskDataUrl(maskDataUrl: string): Promise<string> {
+  try {
+    const img = await loadImage(maskDataUrl);
+    const canvas = toAlphaMaskCanvas(
+      img,
+      img.naturalWidth || img.width,
+      img.naturalHeight || img.height
+    );
+    return canvas ? canvas.toDataURL("image/png") : maskDataUrl;
+  } catch {
+    // An undecodable mask is the caller's problem to report; hand back what it
+    // gave rather than losing the reference here.
+    return maskDataUrl;
   }
 }
 
