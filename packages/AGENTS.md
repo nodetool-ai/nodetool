@@ -33,6 +33,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/cli` | Command-line interface (`nodetool` command) |
 | `@nodetool-ai/deploy` | Cloud deployment utilities |
 | `@nodetool-ai/dsl` | Workflow DSL for programmatic workflow creation |
+| `@nodetool-ai/app-runtime` | Mini-app document, bindings, instance state, and the streaming fold — dependency-free, shared by web, mobile, and `app debug` ([README](app-runtime/README.md)) |
 
 ## Package Overlays
 
