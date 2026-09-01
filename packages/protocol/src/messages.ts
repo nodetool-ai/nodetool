@@ -614,6 +614,50 @@ export const llmCallUpdateSchema = z.object({
 });
 export type LLMCallUpdate = z.infer<typeof llmCallUpdateSchema>;
 
+/**
+ * One provider call that failed, with everything a maintainer needs to
+ * reproduce it. Emitted once per failure from `BaseProvider`'s central failure
+ * paths, so chat, workflow nodes and the media surfaces all report the same
+ * record instead of each re-deriving it from the error prose.
+ */
+export const providerCallFailedSchema = z.object({
+  type: z.literal("provider_call_failed"),
+  /** Provider id as the runtime knows it (e.g. `openai`). */
+  provider: z.string(),
+  /** Model the call asked for, when it named one. */
+  model: z.string().nullable().optional(),
+  /** Provider method that threw (e.g. `generateMessages`, `textToImage`). */
+  operation: z.string(),
+  /**
+   * Failure class, derived once on the server: `auth`, `payment`,
+   * `not_found`, `rate_limit`, `timeout`, `server`, `network`, `client` or
+   * `unknown`. Surfaces branch on this instead of matching prose.
+   */
+  kind: z.string(),
+  /** HTTP status, when the failure carried one. */
+  status: z.number().nullable().optional(),
+  /** Error message as the provider wrote it, plus NodeTool's remedy hint. */
+  message: z.string(),
+  /** Error class name, when the provider threw a typed error. */
+  error_name: z.string().nullable().optional(),
+  /** Provider-side request id, when the error carried one. */
+  request_id: z.string().nullable().optional(),
+  /** Milliseconds from the call starting to the throw. */
+  duration_ms: z.number().nullable().optional(),
+  /** `wire` when the payload below is the body the provider sent. */
+  request_source: z.string().nullable().optional(),
+  /** The request, redacted and size-bounded. Secrets never reach this. */
+  request: z.unknown().nullable().optional(),
+  /**
+   * The run the call belonged to. Stamped downstream by the relay, not by the
+   * provider — which knows nothing about workflows.
+   */
+  workflow_id: z.string().nullable().optional(),
+  job_id: z.string().nullable().optional(),
+  timestamp: z.string()
+});
+export type ProviderCallFailed = z.infer<typeof providerCallFailedSchema>;
+
 // ---------------------------------------------------------------------------
 // Unified websocket command/control/update types
 // ---------------------------------------------------------------------------
@@ -933,6 +977,7 @@ export const processingMessageSchema = z.discriminatedUnion("type", [
   chunkSchema,
   predictionSchema,
   llmCallUpdateSchema,
+  providerCallFailedSchema,
   todoUpdateSchema,
   supervisorEscalationSchema,
   supervisorDecisionSchema
@@ -981,6 +1026,7 @@ export const processingMessageSchemas = {
   chunk: chunkSchema,
   prediction: predictionSchema,
   llm_call: llmCallUpdateSchema,
+  provider_call_failed: providerCallFailedSchema,
   todo_update: todoUpdateSchema,
   supervisor_escalation: supervisorEscalationSchema,
   supervisor_decision: supervisorDecisionSchema
@@ -1062,6 +1108,11 @@ export function isPrediction(value: unknown): value is Prediction {
 }
 export function isLLMCallUpdate(value: unknown): value is LLMCallUpdate {
   return hasType(value, "llm_call");
+}
+export function isProviderCallFailed(
+  value: unknown
+): value is ProviderCallFailed {
+  return hasType(value, "provider_call_failed");
 }
 export function isTodoUpdate(value: unknown): value is TodoUpdate {
   return hasType(value, "todo_update");

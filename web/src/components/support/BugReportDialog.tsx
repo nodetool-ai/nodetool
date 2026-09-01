@@ -22,6 +22,11 @@ import {
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useLogsStore from "../../stores/LogStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import {
+  failuresForRun,
+  useProviderCallFailureStore
+} from "../../stores/ProviderCallFailureStore";
+import { formatProviderCallFailures } from "../../utils/providerCallReport";
 import { getConsoleEntries, formatConsoleEntries } from "../../utils/consoleCapture";
 import { getSystemInfo } from "../../utils/systemInfo";
 import {
@@ -72,6 +77,9 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
     (state) => state.getCurrentWorkflow
   );
   const logs = useLogsStore((state) => state.logs);
+  const providerFailures = useProviderCallFailureStore(
+    (state) => state.failures
+  );
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -95,11 +103,26 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
     const consoleText =
       consoleEntries.length > 0 ? formatConsoleEntries(consoleEntries) : undefined;
 
+    // A surface that knows the failed call passes it in. One that only knows
+    // the run — a node error, a failed job — gets the calls that run made,
+    // so every report names the provider, model and status without the
+    // reporter digging them out.
+    const runFailures = failuresForRun(providerFailures, {
+      jobId: context.jobId,
+      workflowId: context.workflowId
+    });
+    const providerCallDetail =
+      context.providerCallDetail ??
+      (runFailures.length > 0
+        ? formatProviderCallFailures(runFailures)
+        : undefined);
+
     return buildBundleSections({
       context,
       systemInfo,
       workflow,
       nodeDetail: context.nodeDetail,
+      providerCallDetail,
       logText: logText || undefined,
       consoleText
     });

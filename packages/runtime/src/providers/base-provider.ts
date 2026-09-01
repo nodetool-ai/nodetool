@@ -65,6 +65,10 @@ import {
 } from "../type-predicates.js";
 import { logProviderRequestFailure } from "./provider-request-log.js";
 import { annotateProviderError } from "./provider-error.js";
+import {
+  buildProviderCallFailure,
+  type ProviderCallFailureInput
+} from "./provider-call-failure.js";
 import { applyEntityReferences } from "./entity-references.js";
 import {
   expandVideoContentAsFrames,
@@ -316,6 +320,31 @@ export abstract class BaseProvider {
   }
 
   /**
+   * Record a failed provider call: a server-side log with the exact request,
+   * and a `provider_call_failed` message so the surface showing the failure
+   * can report it without the user copying a status code out of a toast.
+   *
+   * One call, so the log and the report can never disagree about what failed.
+   * Public because the modality generator wrapper below is a free function.
+   * @internal
+   */
+  recordCallFailure(input: Omit<ProviderCallFailureInput, "provider">): void {
+    logProviderRequestFailure({
+      provider: this.provider,
+      model: input.model ?? "unknown",
+      request: input.request,
+      nodetoolArgs: input.nodetoolArgs,
+      error: input.error
+    });
+    if (!this._emitMessage) return;
+    const failure = buildProviderCallFailure({
+      ...input,
+      provider: this.provider
+    });
+    if (failure) this.emitMessage(failure);
+  }
+
+  /**
    * Record the exact payload this provider is about to send to the upstream
    * API. Call this right before the network request in `generateMessage` /
    * `generateMessages`. On failure, the traced wrappers log precisely what was
@@ -362,6 +391,7 @@ export abstract class BaseProvider {
           // Central entity expansion: descriptors into the prompt, reference
           // images onto the source list, before the concrete provider runs.
           const args = applyEntityReferences(name, rawArgs);
+          const startedAt = Date.now();
           try {
             return await original.apply(this, args);
           } catch (err) {
@@ -370,12 +400,13 @@ export abstract class BaseProvider {
               model: extractModelId(args)
             });
             if (!alreadyActive) {
-              logProviderRequestFailure({
-                provider: this.provider,
+              this.recordCallFailure({
                 model: extractModelId(args),
+                operation: name,
                 request: peekLastRequest(),
                 nodetoolArgs: args,
-                error: err
+                error: err,
+                startedAt
               });
             }
             throw err;
@@ -391,7 +422,7 @@ export abstract class BaseProvider {
       }
       const original = fn as (...args: unknown[]) => AsyncGenerator<unknown>;
       Reflect.set(this, name, (...args: unknown[]): AsyncGenerator<unknown> =>
-        wrapModalityGenerator(this, original, args)
+        wrapModalityGenerator(this, original, args, name)
       );
     }
   }
@@ -779,6 +810,7 @@ export abstract class BaseProvider {
     let error: string | undefined;
     let usage: LlmUsage | null = null;
     let requestPayload: unknown = null;
+    const startedAt = Date.now();
     try {
       // withUsageCapture creates a per-call AsyncLocalStorage slot so
       // trackUsage() in the provider hands its numbers back to us.
@@ -799,16 +831,17 @@ export abstract class BaseProvider {
         model: args.model
       });
       error = String(err);
-      logProviderRequestFailure({
-        provider: this.provider,
+      this.recordCallFailure({
         model: args.model,
+        operation: "generateMessage",
         request: requestPayload,
         nodetoolArgs: {
           model: args.model,
           messages: args.messages,
           tools: args.tools
         },
-        error: err
+        error: err,
+        startedAt
       });
       throw err;
     } finally {
@@ -899,6 +932,7 @@ export abstract class BaseProvider {
       ? this._tracedStream(args, tracer)
       : this.generateMessages(args);
     let exhausted = false;
+    const startedAt = Date.now();
 
     try {
       while (true) {
@@ -932,16 +966,17 @@ export abstract class BaseProvider {
         model: args.model
       });
       error = String(err);
-      logProviderRequestFailure({
-        provider: this.provider,
+      this.recordCallFailure({
         model: args.model,
+        operation: "generateMessages",
         request: getRequest(),
         nodetoolArgs: {
           model: args.model,
           messages: args.messages,
           tools: args.tools
         },
-        error: err
+        error: err,
+        startedAt
       });
       throw err;
     } finally {
@@ -1792,9 +1827,11 @@ function extractModelId(args: unknown[]): string {
 async function* wrapModalityGenerator(
   provider: BaseProvider,
   original: (...args: unknown[]) => AsyncGenerator<unknown>,
-  args: unknown[]
+  args: unknown[],
+  operationName: string
 ): AsyncGenerator<unknown> {
   const { runInSlot, getRequest } = createUsageSlot();
+  const startedAt = Date.now();
   const source = original.apply(provider, args);
   let exhausted = false;
   try {
@@ -1811,12 +1848,13 @@ async function* wrapModalityGenerator(
       provider: provider.provider,
       model: extractModelId(args)
     });
-    logProviderRequestFailure({
-      provider: provider.provider,
+    provider.recordCallFailure({
       model: extractModelId(args),
+      operation: operationName,
       request: getRequest(),
       nodetoolArgs: args,
-      error: err
+      error: err,
+      startedAt
     });
     throw err;
   } finally {
