@@ -160,7 +160,11 @@ const createApp: CapabilityExport = {
       }
       document = parsed;
     } else {
-      document = createEmptyDocument(name.trim());
+      // No title: the application row already carries the name, and the
+      // runtime renders `root.props.title` as a heading at the top of the
+      // page. Stamping the name there gave every new app a heading nothing
+      // asked for, which the first Heading widget then repeated.
+      document = createEmptyDocument();
       const fromWorkflowId = params["from_workflow_id"];
       if (isString(fromWorkflowId) && fromWorkflowId) {
         const workflow = await Workflow.find(userId, fromWorkflowId);

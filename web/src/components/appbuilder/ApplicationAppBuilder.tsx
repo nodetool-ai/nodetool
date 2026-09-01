@@ -401,7 +401,9 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
     if (!application) return null;
     return (
       parseApplicationDocument(application.document) ??
-      createEmptyDocument(application.name)
+      // Untitled on purpose — see createEmptyDocument's caller in
+      // `capabilities/apps.ts`. The name lives on the row, not in the page.
+      createEmptyDocument()
     );
   }, [application]);
 

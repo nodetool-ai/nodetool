@@ -95,6 +95,21 @@ describe("apps capability module", () => {
 });
 
 describe("create_app and edit_app", () => {
+  it("creates the app untitled — the name lives on the row, not in the page", async () => {
+    const created = (await asTool("create_app").process(ctx, {
+      name: "Note drafter"
+    })) as Record<string, unknown>;
+    const read = (await asTool("get_app").process(ctx, {
+      application_id: String(created.application_id)
+    })) as Record<string, unknown>;
+    const document = read.document as {
+      ui: { root: { props: Record<string, unknown> } };
+    };
+    // The runtime renders a root title as a heading of its own, so stamping the
+    // name here gave every new app a heading nobody placed.
+    expect(document.ui.root.props.title).toBeUndefined();
+  });
+
   /** The whole authoring loop a headless agent has: create, edit, read back. */
   it("creates an app and edits it through the App Builder tools", async () => {
     const created = (await asTool("create_app").process(ctx, {

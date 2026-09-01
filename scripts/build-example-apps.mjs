@@ -554,7 +554,10 @@ function buildApp(app, templates) {
 
   const document = {
     schemaVersion: APP_SCHEMA_VERSION,
-    ui: { root: { props: { title: app.name } }, content, zones: {} },
+    // No root title: the first widget is already a Heading carrying the app's
+    // emoji and name, and the runtime renders a root title as a heading of its
+    // own — so setting both printed the name twice on every example.
+    ui: { root: { props: {} }, content, zones: {} },
     operations: documentOperations,
     resources: [],
     variables: (app.variables ?? []).map((variable) => ({

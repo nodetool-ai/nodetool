@@ -6,9 +6,7 @@
     "schemaVersion": 3,
     "ui": {
       "root": {
-        "props": {
-          "title": "Film Studio"
-        }
+        "props": {}
       },
       "content": [
         {
@@ -1386,6 +1384,17 @@
             "targetHandle": "image",
             "ui_properties": {
               "className": "image"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_shots_animate",
+            "source": "shots",
+            "sourceHandle": "shot_prompt",
+            "target": "animate",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
             },
             "edge_type": "data"
           },
