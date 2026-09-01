@@ -122,13 +122,20 @@ export const EDIT_SKETCH_SCHEMA: JsonSchema = {
       type: "array",
       description:
         'Operations in order. Each is {"op": <name>, ...arguments}: ' +
-        'add_layer {name?, type?: "raster"|"mask", index?}, ' +
+        'add_layer {name?, type?: "raster"|"mask", index?, image?, x?, y?, width?, height?}, ' +
         "remove_layer {target}, rename_layer {target, name}, " +
         "set_layer_props {target, visible?, locked?, opacity?, blendMode?}, " +
+        "set_layer_image {target, image, x?, y?, width?, height?}, " +
         "reorder_layer {target, index}, duplicate_layer {target}, " +
         "select_layer {target}, resize_canvas {width, height}. " +
         '`target` is a layer id, its name, or "active". Layer index 0 is the ' +
-        "bottom layer.",
+        "bottom layer. " +
+        "`image` puts a picture on the layer: an asset id (from list_assets), " +
+        "an asset:// locator, a data: URL, or an http(s) URL. It is drawn at " +
+        "its natural size from the top-left of {x, y, width, height}, which " +
+        "defaults to the whole canvas — pass the image's own dimensions when " +
+        "you know them. Pass `image` to add_layer to place a picture on a new " +
+        "layer in one op.",
       items: { type: "object" }
     }
   },
@@ -218,9 +225,9 @@ export const createSketchSpec: CapabilitySpec = {
   description:
     "Create a blank sketch (image document) and return its id. This is the " +
     "first step of drawing one headlessly: create it, then add and arrange " +
-    "layers with edit_sketch. An open editor picks the new document up once " +
-    "you open it. Pixels stay empty — painting and generation happen in an " +
-    "open editor or a workflow run.",
+    "layers with edit_sketch, which also places images on them by asset id " +
+    "or URL. An open editor picks the new document up once you open it. " +
+    "Painting and generation happen in an open editor or a workflow run.",
   inputSchema: CREATE_SKETCH_SCHEMA,
   category: "write",
   userMessage: (params) => {
@@ -328,13 +335,15 @@ export const deleteSketchVersionSpec: CapabilitySpec = {
 export const editSketchSpec: CapabilitySpec = {
   name: "edit_sketch",
   description:
-    "Edit a saved sketch's layer structure headlessly: add, remove, rename, " +
-    "reorder and duplicate layers, set visibility/lock/opacity/blend mode, " +
-    "choose the active layer, and resize the canvas. Operations run in order " +
-    "against the stored document and the result is saved; an open editor " +
-    "picks the change up live. Pixels are never read or written — painting " +
-    "and generation happen in an open editor or a workflow run. Call " +
-    "list_sketches to find one and validate_sketch afterwards.",
+    "Edit a saved sketch's layers headlessly: add, remove, rename, reorder " +
+    "and duplicate layers, set visibility/lock/opacity/blend mode, put an " +
+    "image on a layer (set_layer_image, or `image` on add_layer), choose the " +
+    "active layer, and resize the canvas. Operations run in order against the " +
+    "stored document and the result is saved; an open editor picks the change " +
+    "up live. An image is placed by reference — the layer points at an asset " +
+    "or URL and the editor draws it. Pixels themselves are never read or " +
+    "written: painting and generation happen in an open editor or a workflow " +
+    "run. Call list_sketches to find one and validate_sketch afterwards.",
   inputSchema: EDIT_SKETCH_SCHEMA,
   category: "write",
   userMessage: (params) => {

@@ -10,6 +10,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { ImageDocument, ModelObserver, initTestDb } from "@nodetool-ai/models";
+import { decodeSketchLayerData } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 import { module as sketches } from "../src/capabilities/sketches.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import { capabilityModuleIssues } from "../src/capabilities/registry.js";
@@ -279,6 +280,88 @@ describe("sketches capability behaviour", () => {
     expect(result).toMatchObject({ applied: 1, failed: 0 });
     expect(result.layers.map((l) => l.name)).toEqual(["Background", "Shadow"]);
     expect(result.active_layer_id).not.toBe("layer-1");
+  });
+
+  it("puts an asset on a layer, so the editor has something to draw", async () => {
+    const { Asset } = await import("@nodetool-ai/models");
+    const asset = await Asset.create<InstanceType<typeof Asset>>({
+      user_id: "u1",
+      name: "photo.png",
+      content_type: "image/png"
+    });
+    const row = await makeSketch();
+
+    const result = (await run().invoke("edit_sketch", {
+      image_document_id: row.id,
+      ops: [
+        { op: "add_layer", name: "Photo", image: asset.id, width: 640, height: 480 },
+        { op: "set_layer_image", target: "Background", image: `asset://${asset.id}.png` }
+      ]
+    })) as { applied: number; failed: number; ops: Array<{ error?: string }> };
+    expect(result).toMatchObject({ applied: 2, failed: 0 });
+
+    const stored = await ImageDocument.findById(row.id);
+    const layers = stored!.toDocumentData().sketch.layers as Array<{
+      name: string;
+      data: string | null;
+      contentBounds?: { width: number; height: number };
+    }>;
+
+    const photo = layers.find((l) => l.name === "Photo")!;
+    expect(decodeSketchLayerData(photo.data, 1024, 768)).toEqual({
+      image: `asset://${asset.id}`,
+      bounds: { x: 0, y: 0, width: 640, height: 480 }
+    });
+    expect(photo.contentBounds).toMatchObject({ width: 640, height: 480 });
+
+    // No bounds given: the layer covers the canvas.
+    const background = layers.find((l) => l.name === "Background")!;
+    expect(decodeSketchLayerData(background.data, 1, 1)).toEqual({
+      image: `asset://${asset.id}.png`,
+      bounds: { x: 0, y: 0, width: 1024, height: 768 }
+    });
+  });
+
+  it("refuses an image reference no asset backs, instead of writing an empty layer", async () => {
+    const row = await makeSketch();
+    const result = (await run().invoke("edit_sketch", {
+      image_document_id: row.id,
+      ops: [{ op: "set_layer_image", target: "Background", image: "no-such-asset" }]
+    })) as { error?: string };
+    expect(result.error).toContain("no-such-asset");
+
+    const stored = await ImageDocument.findById(row.id);
+    const layers = stored!.toDocumentData().sketch.layers as Array<{
+      data: string | null;
+    }>;
+    expect(layers[0].data).toBeNull();
+  });
+
+  it("hides another user's asset from set_layer_image", async () => {
+    const { Asset } = await import("@nodetool-ai/models");
+    const theirs = await Asset.create<InstanceType<typeof Asset>>({
+      user_id: "u2",
+      name: "secret.png",
+      content_type: "image/png"
+    });
+    const row = await makeSketch();
+    const result = (await run().invoke("edit_sketch", {
+      image_document_id: row.id,
+      ops: [{ op: "set_layer_image", target: "Background", image: theirs.id }]
+    })) as { error?: string };
+    expect(result.error).toContain(theirs.id);
+  });
+
+  it("rejects an image scheme the sketch canvas cannot load", async () => {
+    const row = await makeSketch();
+    const result = (await run().invoke("edit_sketch", {
+      image_document_id: row.id,
+      ops: [
+        { op: "set_layer_image", target: "Background", image: "ftp://host/x.png" }
+      ]
+    })) as { failed: number; ops: Array<{ error?: string }> };
+    expect(result.failed).toBe(1);
+    expect(result.ops[0].error).toContain("scheme the sketch canvas cannot load");
   });
 
   it("rejects a blend mode the compositor does not ship", async () => {

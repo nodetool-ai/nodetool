@@ -332,6 +332,36 @@ interface SketchPickColorResult {
   rgba: { r: number; g: number; b: number; a: number };
 }
 
+export interface SketchPlaceImageOptions {
+  /**
+   * Image to place: an asset id, an `asset://` locator, a data: URL, or an
+   * http(s) URL.
+   */
+  image: string;
+  /** Layer to place it on. Omit to create a new one. */
+  target?: string | null;
+  /** Name for the layer created when `target` is omitted. */
+  name?: string;
+  /** Top-left corner on the canvas. Defaults to (0, 0). */
+  x?: number;
+  /** Drawn size. Defaults to the image's own dimensions. */
+  width?: number;
+  height?: number;
+  y?: number;
+}
+
+export interface SketchPlaceImageResult {
+  layerId: string;
+  layerName: string;
+  /** The locator stored on the layer. */
+  image: string;
+  /** Where the image sits on the canvas. */
+  bounds: { x: number; y: number; width: number; height: number };
+  /** The image's own pixel dimensions, as loaded. */
+  naturalWidth: number;
+  naturalHeight: number;
+}
+
 /**
  * Operations the live {@link SketchEditor} exposes to the agent tooling layer.
  * Layers are addressed by id, by (case-insensitive) name, or the literal
@@ -352,6 +382,12 @@ export interface SketchAgentHandler {
   mergeLayerDown: (target: string) => SketchLayerNode | null;
   flattenVisible: () => SketchLayerNode;
   generate: (opts: SketchGenerateOptions) => Promise<SketchGenerateResult>;
+  /**
+   * Put an existing image — an asset or a URL — onto a layer. The layer stores
+   * the locator, not the pixels, so the document stays small and the canvas
+   * resolves and draws it the way a sketch seeded from an asset loads.
+   */
+  placeImage: (opts: SketchPlaceImageOptions) => Promise<SketchPlaceImageResult>;
   setForegroundColor: (color: string) => string;
   setBackgroundColor: (color: string) => string;
   setActiveTool: (tool: SketchToolName) => SketchToolName;

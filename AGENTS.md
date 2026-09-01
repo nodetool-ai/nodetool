@@ -1352,6 +1352,15 @@ lists that under `notSimulated`. Layer bitmaps stay opaque throughout.
 The same static check is exposed to agents through the **`validate_sketch`**
 tool: pass an inline `document` to check a sketch being built, or an
 `image_document_id` to validate a saved one (scoped to the requesting user).
+**`edit_sketch`** places an image on a layer as well as editing the layer
+stack: `set_layer_image` (or `image` on `add_layer`) points a layer at an asset
+id, an `asset://` locator, a data: URL or an http(s) URL, and the editor
+resolves and draws it on load — the same reference a sketch seeded from an
+asset carries, so nothing inlines a bitmap into the document. An asset id that
+resolves to nothing is refused rather than stored, because a stored one shows
+up as an empty layer. With an editor open, **`ui_sketch_place_image`** does the
+same against the live canvas.
+
 Agents also get the version history headlessly: **`list_sketches`**,
 **`create_sketch`** (a blank canvas, then `edit_sketch`),
 **`list_sketch_versions`**, **`get_sketch_version`** (read one snapshot's

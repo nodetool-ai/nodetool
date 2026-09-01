@@ -259,6 +259,39 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  name: "ui_sketch_place_image",
+  description:
+    "Put an existing image onto a layer — an asset from the library, or a URL. `image` is an asset id (find one with the asset tools), an asset:// locator, a data: URL, or an http(s) URL. Omit `target` to place it on a new layer, or name a layer to replace what it shows. The image is drawn at its own size from (`x`, `y`) unless `width`/`height` say otherwise. This is how a picture gets onto a canvas; ui_sketch_generate makes a new one from a prompt instead.",
+  parameters: z.object({
+    sketch_id: sketchIdParam,
+    image: z
+      .string()
+      .describe(
+        "An asset id, an asset:// locator, a data: URL, or an http(s) URL."
+      ),
+    target: targetParam
+      .optional()
+      .describe("Layer to place it on. Omit to create a new one."),
+    name: z
+      .string()
+      .optional()
+      .describe("Name for the layer created when `target` is omitted."),
+    x: z.number().optional(),
+    y: z.number().optional(),
+    width: z.number().optional(),
+    height: z.number().optional()
+  }),
+  async execute({ sketch_id, ...args }) {
+    const result = await getSketchAgentHandler(sketch_id).placeImage(args);
+    return {
+      ok: true,
+      ...result,
+      url: docUrl("sketch", sketch_id, { key: "layer", value: result.layerId })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
   name: "ui_sketch_set_color",
   description:
     "Set the specified image document's foreground and/or background color (hex). The foreground color is used by the brush, fill, and shape tools.",
