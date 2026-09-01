@@ -46,6 +46,11 @@ interface CompositeRenderOptions {
   /** Destination video file. */
   outPath: string;
   onProgress?: (frame: number, totalFrames: number) => void;
+  /**
+   * Run cancellation. Checked once per frame, so a cancelled render stops
+   * within one frame's work instead of encoding the whole timeline first.
+   */
+  signal?: AbortSignal;
 }
 
 interface CompositeRenderResult {
@@ -64,6 +69,11 @@ export class CompositorUnavailableError extends Error {
     this.name = "CompositorUnavailableError";
     this.cause = cause;
   }
+}
+
+/** The rejection a cancelled render throws, named the way callers test for. */
+function abortError(): Error {
+  return new DOMException("Timeline render cancelled", "AbortError");
 }
 
 async function acquireDevice(): Promise<GPUDevice> {
@@ -85,13 +95,14 @@ interface ClipVideoSource {
 export async function renderTimelineComposited(
   opts: CompositeRenderOptions
 ): Promise<CompositeRenderResult> {
-  const { sequence, fps, durationMs, resolveAssetPath, outPath } = opts;
+  const { sequence, fps, durationMs, resolveAssetPath, outPath, signal } = opts;
   // H.264 requires even dimensions.
   const width = Math.max(2, Math.floor(opts.width / 2) * 2);
   const height = Math.max(2, Math.floor(opts.height / 2) * 2);
   const totalFrames = Math.max(1, Math.round((durationMs / 1000) * fps));
   const canvas = { width, height };
 
+  if (signal?.aborted) throw abortError();
   const device = await acquireDevice();
   const compositor = new HeadlessFrameCompositor(device, width, height);
   const rasterizer = new NodeRasterizer(width, height);
@@ -153,6 +164,7 @@ export async function renderTimelineComposited(
 
   try {
     for (let frame = 0; frame < totalFrames; frame++) {
+      if (signal?.aborted) throw abortError();
       const timeMs = (frame * 1000) / fps;
 
       for (const [clipId, source] of videoSources) {

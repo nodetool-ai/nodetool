@@ -43,7 +43,8 @@ RUN npm run build:packages
 
 # Bundle the backend with esbuild (scripts/bundle-backend.mjs — the same
 # bundler the Electron app uses; the server profile skips desktop-only natives
-# like webgpu/keytar). The bundle is the entire backend runtime artifact:
+# like keytar and playwright, but stages webgpu, which every profile needs).
+# The bundle is the entire backend runtime artifact:
 # server.mjs, the staged external native/lazy packages, provider manifests,
 # template examples + thumbnails, and the bundled migration runner — the image
 # ships no workspace node_modules tree. esbuild itself resolves from
@@ -99,13 +100,15 @@ ENV NODE_ENV=production \
 #   postgresql-client — psql/pg_dump for DATABASE_URL deployments
 #   jq/zip/unzip      — everyday shell plumbing for agents
 #   mesa-vulkan-drivers — lavapipe, a software Vulkan device. The image nodes
-#                     run their shaders on Dawn, which reaches the GPU only
-#                     through a Vulkan ICD and bundles no software fallback of
-#                     its own. With no ICD installed, `vkCreateInstance` fails
-#                     outright (VK_ERROR_INCOMPATIBLE_DRIVER) and every
-#                     nodetool.image.* node dies on "No WebGPU adapter
-#                     available" — crop and resize included. Containers have no
-#                     GPU, so lavapipe is what makes them runnable at all.
+#                     and the timeline compositor run their shaders on Dawn,
+#                     which reaches the GPU only through a Vulkan ICD and
+#                     bundles no software fallback of its own. With no ICD
+#                     installed, `vkCreateInstance` fails outright
+#                     (VK_ERROR_INCOMPATIBLE_DRIVER), every nodetool.image.*
+#                     node dies on "No WebGPU adapter available" — crop and
+#                     resize included — and nodetool.timeline.RenderTimeline
+#                     drops to its rough cut. Containers have no GPU, so
+#                     lavapipe is what makes all of them runnable at all.
 #                     Pinned to bookworm-backports: bookworm ships Mesa 22.3,
 #                     whose lavapipe Dawn rejects with "Vulkan
 #                     shaderUniform*ArrayDynamicIndexing required" and still

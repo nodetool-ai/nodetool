@@ -117,19 +117,36 @@ function audioClip(overrides: Record<string, unknown> = {}) {
   };
 }
 
+let posted: Array<Record<string, unknown>> = [];
+
 function contextFor(seq: unknown) {
   return {
     getTimelineSequence: vi.fn().mockResolvedValue(seq),
     resolveAssetBytes: vi
       .fn()
-      .mockResolvedValue({ bytes: new Uint8Array([1, 2, 3]) })
+      .mockResolvedValue({ bytes: new Uint8Array([1, 2, 3]) }),
+    postMessage: (msg: Record<string, unknown>) => posted.push(msg),
+    workflowId: "wf-1",
+    signal: new AbortController().signal
   };
 }
 
 async function render(seq: unknown, props: Record<string, unknown> = {}) {
   const node = new RenderTimelineNode();
-  Object.assign(node, { timeline: { type: "timeline", id: "seq-1" }, ...props });
+  Object.assign(node, {
+    timeline: { type: "timeline", id: "seq-1" },
+    __node_id: "node-1",
+    ...props
+  });
   return node.process(contextFor(seq) as never);
+}
+
+/** Log lines the node posted, joined for substring assertions. */
+function logs(severity: string): string {
+  return posted
+    .filter((m) => m.type === "log_update" && m.severity === severity)
+    .map((m) => String(m.content))
+    .join(" ");
 }
 
 function ffmpegArgs(): string[] {
@@ -140,6 +157,7 @@ function ffmpegArgs(): string[] {
 
 beforeEach(() => {
   execFileCalls = [];
+  posted = [];
   renderComposited.mockReset();
   renderComposited.mockResolvedValue({ totalFrames: 120, skippedClips: [] });
 });
@@ -158,6 +176,47 @@ describe("RenderTimeline — composited path", () => {
     });
     // No segment-per-clip encode: the rough cut is not involved.
     expect(ffmpegArgs().some((a) => a.includes("-f concat"))).toBe(false);
+  });
+
+  it("reports which path produced the bytes", async () => {
+    const out = await render(sequence({ clips: [videoClip()] }));
+    expect(out.output.metadata).toEqual({ render_mode: "composited" });
+  });
+
+  it("passes the run's abort signal down to the frame loop", async () => {
+    await render(sequence({ clips: [videoClip()] }));
+    expect(renderComposited.mock.calls[0][0].signal).toBeInstanceOf(
+      AbortSignal
+    );
+  });
+
+  it("posts node_progress at most four times a second, last frame included", () => {
+    const node = new RenderTimelineNode();
+    Object.assign(node, { __node_id: "node-1" });
+    const context = contextFor(null);
+    const report = (
+      node as unknown as {
+        progressReporter: (
+          c: unknown
+        ) => (frame: number, total: number) => void;
+      }
+    ).progressReporter(context);
+
+    const now = vi.spyOn(Date, "now");
+    now.mockReturnValue(1_000);
+    report(1, 4);
+    now.mockReturnValue(1_100);
+    report(2, 4);
+    now.mockReturnValue(1_150);
+    report(3, 4);
+    now.mockReturnValue(1_160);
+    report(4, 4);
+    now.mockRestore();
+
+    const progress = posted.filter((m) => m.type === "node_progress");
+    // Frames 2 and 3 fall inside the 250 ms window; the final frame always posts.
+    expect(progress.map((m) => m.progress)).toEqual([1, 4]);
+    expect(progress[1]).toMatchObject({ node_id: "node-1", total: 4 });
   });
 
   it("renders a text-only timeline, which has no clip media at all", async () => {
@@ -221,22 +280,20 @@ describe("RenderTimeline — fallback when no GPU is available", () => {
     );
   });
 
-  it("falls back to the rough cut", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    await render(sequence({ clips: [videoClip()] }));
+  it("falls back to the rough cut and says so on the job log", async () => {
+    const out = await render(sequence({ clips: [videoClip()] }));
 
     expect(ffmpegArgs().some((a) => a.includes("-f concat"))).toBe(true);
-    expect(warn.mock.calls.flat().join(" ")).toMatch(/rough cut/);
-    warn.mockRestore();
+    expect(logs("warning")).toMatch(/rough cut/);
+    expect(logs("warning")).toMatch(/no adapter/);
+    expect(out.output.metadata).toEqual({ render_mode: "rough_cut" });
   });
 
   it("keeps the rough cut's own soundtrack in the mix", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
     await render(sequence({ clips: [videoClip(), audioClip()] }));
 
     const mix = ffmpegArgs().find((a) => a.includes("amix"));
     expect(mix).toContain("[0:a]");
-    vi.restoreAllMocks();
   });
 
   it("surfaces a non-GPU failure instead of silently degrading", async () => {

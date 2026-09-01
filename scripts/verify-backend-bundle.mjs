@@ -16,7 +16,9 @@
  *
  * Standalone usage: node scripts/verify-backend-bundle.mjs [bundleDir]
  *                   [--profile desktop|server]
- *                   Defaults: electron/backend-bundle, desktop profile.
+ *                   Defaults: electron/backend-bundle, desktop profile. The
+ *                   profile names the artifact in the log; every check below
+ *                   applies to both, webgpu included (D9).
  *                   Exits 1 with diagnostics if any check fails.
  */
 
@@ -134,11 +136,11 @@ function listShippedSandboxPackNames() {
 
 /**
  * Verify the staged bundle layout. Returns human-readable summary lines on
- * success; throws an Error listing every failed check otherwise.
- * `requireWebgpu` is true for the desktop profile; the server profile does no
- * local GPU compute and deliberately ships without webgpu.
+ * success; throws an Error listing every failed check otherwise. Every check
+ * applies to both profiles — the server renders timelines on the same GPU
+ * compositor the desktop app does, so webgpu is required there too (D9).
  */
-export function verifyBackendBundle(bundleDir, { requireWebgpu = true } = {}) {
+export function verifyBackendBundle(bundleDir) {
   const errors = [];
   const summary = [];
 
@@ -275,24 +277,23 @@ export function verifyBackendBundle(bundleDir, { requireWebgpu = true } = {}) {
     summary.push("sandbox worker entry staged");
   }
 
-  // 3. webgpu dawn binaries (desktop profile only). The GPU compositor loads
+  // 3. webgpu dawn binaries, on every profile. The GPU compositor loads
   //    `webgpu` through a variable-specifier dynamic import esbuild can't see,
   //    so nothing else fails the build when it's missing from _modules/.
-  if (requireWebgpu) {
-    const dawnFiles = (
-      listFiles(path.join(bundleDir, "_modules", "webgpu", "dist")) ?? []
-    ).filter((f) => f.endsWith(".dawn.node"));
-    if (dawnFiles.length === 0) {
-      errors.push(
-        "no *.dawn.node binary under _modules/webgpu/dist — the packaged GPU " +
-          'compositor would fail with "requires the optional \'webgpu\' package". ' +
-          "Keep webgpu in DESKTOP_ONLY_EXTERNAL_PACKAGES in bundle-backend.mjs."
-      );
-    } else {
-      summary.push(
-        `webgpu staged with ${dawnFiles.length} dawn.node binary(ies)`
-      );
-    }
+  const dawnFiles = (
+    listFiles(path.join(bundleDir, "_modules", "webgpu", "dist")) ?? []
+  ).filter((f) => f.endsWith(".dawn.node"));
+  if (dawnFiles.length === 0) {
+    errors.push(
+      "no *.dawn.node binary under _modules/webgpu/dist — the packaged GPU " +
+        'compositor would fail with "requires the optional \'webgpu\' package", ' +
+        "so image nodes and RenderTimeline would drop to their fallbacks. " +
+        "Keep webgpu in COMMON_EXTERNAL_PACKAGES in bundle-backend.mjs."
+    );
+  } else {
+    summary.push(
+      `webgpu staged with ${dawnFiles.length} dawn.node binary(ies)`
+    );
   }
 
   // 3b. Sandbox packs staged under _sandbox/ must be complete: the pack
@@ -489,12 +490,10 @@ if (isCli) {
       )
   );
   try {
-    for (const line of verifyBackendBundle(bundleDir, {
-      requireWebgpu: profile === "desktop",
-    })) {
+    for (const line of verifyBackendBundle(bundleDir)) {
       console.log(`verify-backend-bundle: ${line}`);
     }
-    console.log(`verify-backend-bundle: ${bundleDir} OK`);
+    console.log(`verify-backend-bundle: ${bundleDir} OK (${profile} profile)`);
   } catch (e) {
     console.error(`verify-backend-bundle: ${e.message}`);
     process.exit(1);
