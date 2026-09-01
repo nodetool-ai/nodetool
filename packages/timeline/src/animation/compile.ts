@@ -8,6 +8,7 @@
  */
 
 import type {
+  AnimatedProperty,
   AnimationRole,
   AnimationStagger,
   ClipAnimation,
@@ -20,21 +21,11 @@ import {
   resolvePresetParams,
   type Canvas
 } from "./presets.js";
-
-export type AnimatedProperty =
-  | "offsetX" // canvas px, added to transform.position.x
-  | "offsetY" // canvas px, added to transform.position.y
-  | "scale" // uniform multiplier on ClipTransform.scale
-  | "rotation" // radians, added to ClipTransform.rotation
-  | "opacity" // multiplier on the layer's resolved opacity
-  | "wipeProgress" // 0 = fully hidden, 1 = fully revealed (mask presets only)
-  // Effect params applied through the compositor's per-layer effect pre-pass.
-  // The engine stays pure: these values compose into synthesized `ClipEffect`s
-  // at the render site (see `resolveAnimatedLayerProps`), matching what the
-  // `color.grade` / Gaussian-blur pipeline already applies.
-  | "blur" // added to the layer's blur radius, in source px (identity 0)
-  | "brightness" // added to the grade shader's brightness term, -1..1 (identity 0)
-  | "saturation"; // multiplies the grade shader's saturation, 0..4 (identity 1)
+import {
+  CUSTOM_ANIMATION_PRESET_ID,
+  normalizeCustomCurves,
+  resolveCustomMask
+} from "./custom.js";
 
 export interface Keyframe {
   /** Normalized 0..1 within the animation window. */
@@ -214,6 +205,9 @@ export interface CompileClipAnimationsOptions {
  *   that start at or after clip end are dropped.
  * - Unknown presets and roles the preset does not allow are skipped (with a
  *   console warning) — forward compatibility with newer documents.
+ * - The reserved preset `"custom"` takes its curves from `animation.custom`
+ *   (baked by a JS body, see `custom.ts`) instead of the catalog. Unusable
+ *   baked curves are skipped the same way an unknown preset is.
  * - A `stagger` config (with `options.staggerCount` ≥ 2) stretches the
  *   compiled window to the full stagger span: each unit animates for the
  *   authored `durationMs`, delayed `offsetMs` from the previous, so the span
@@ -233,32 +227,67 @@ export function compileClipAnimations(
 
   for (const animation of animations) {
     if (animation.enabled === false) continue;
-    const preset = getAnimationPreset(animation.preset);
-    if (!preset) {
-      console.warn(
-        `[timeline] unknown animation preset "${animation.preset}" — skipped`
-      );
-      continue;
-    }
-    if (!preset.roles.includes(animation.role)) {
-      console.warn(
-        `[timeline] preset "${animation.preset}" does not support role "${animation.role}" — skipped`
-      );
-      continue;
+
+    let curves: PropertyCurve[];
+    let mask: CompiledAnimationMask | undefined;
+    let baseEasing: EasingId | undefined;
+    let fullClip = false;
+
+    if (animation.preset === CUSTOM_ANIMATION_PRESET_ID) {
+      // A custom animation's curves are already baked (see `custom.ts`), so
+      // this path only checks them. Two deliberate differences from a preset:
+      // the curves are NOT time-reversed for `"out"` — the body is handed its
+      // `role` and authors the motion it wants — and the default segment
+      // easing is linear, because a body that sampled `f(t)` densely has
+      // already shaped its own values and a role easing on top would distort
+      // them. An explicit `animation.easing` or per-keyframe easing still wins.
+      const baked = normalizeCustomCurves(animation.custom?.curves);
+      if (!baked.ok) {
+        console.warn(
+          `[timeline] custom animation "${animation.id}" has unusable curves (${baked.error}) — skipped`
+        );
+        continue;
+      }
+      const resolvedMask = resolveCustomMask(baked.curves, animation.custom?.mask);
+      if (!resolvedMask.ok) {
+        console.warn(
+          `[timeline] custom animation "${animation.id}": ${resolvedMask.error} — skipped`
+        );
+        continue;
+      }
+      curves = baked.curves;
+      mask = resolvedMask.mask;
+      baseEasing = "linear";
+    } else {
+      const preset = getAnimationPreset(animation.preset);
+      if (!preset) {
+        console.warn(
+          `[timeline] unknown animation preset "${animation.preset}" — skipped`
+        );
+        continue;
+      }
+      if (!preset.roles.includes(animation.role)) {
+        console.warn(
+          `[timeline] preset "${animation.preset}" does not support role "${animation.role}" — skipped`
+        );
+        continue;
+      }
+      const params = resolvePresetParams(preset, animation.params);
+      mask = preset.mask?.(params);
+      curves = preset.curves(params, canvas, animation.role);
+      if (animation.role === "out") {
+        curves = curves.map(reverseCurve);
+      }
+      baseEasing = preset.defaultEasing;
+      fullClip = preset.fullClip === true;
     }
 
-    const params = resolvePresetParams(preset, animation.params);
-    const mask = preset.mask?.(params);
-    let curves = preset.curves(params, canvas, animation.role);
-    if (animation.role === "out") {
-      curves = curves.map(reverseCurve);
-    }
-    curves = applyEasing(curves, animation, animation.role, preset.defaultEasing);
+    curves = applyEasing(curves, animation, animation.role, baseEasing);
 
     const delayMs = Math.max(0, animation.delayMs ?? 0);
     const durationMs = Math.max(1, animation.durationMs);
 
-    if (preset.fullClip) {
+    if (fullClip) {
       // kenBurns: one-shot over the whole clip; duration/delay/stagger ignored.
       out.push({
         role: animation.role,

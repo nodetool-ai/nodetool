@@ -42,6 +42,25 @@ export interface AnimationStagger {
   from?: StaggerFrom;
 }
 
+/**
+ * A baked custom-animation payload as it sits in the document. Strings are
+ * loose here for the same forward compat `preset` has: a curve naming a
+ * property or easing this build does not know parses fine and is rejected (or
+ * ignored) at compile time rather than failing the whole document. The one
+ * gate is `normalizeCustomCurves` in `custom.ts`.
+ */
+export interface CustomClipAnimation {
+  /** JS script document the curves were baked from. */
+  scriptId?: string;
+  /** Inline body the curves were baked from. */
+  code?: string;
+  /** ISO timestamp of the bake that produced `curves`. */
+  bakedAt?: string;
+  curves: { property: string; keyframes: { t: number; value: number; easing?: string }[] }[];
+  /** Required when a curve drives `wipeProgress`. */
+  mask?: { direction: string; softness: number };
+}
+
 export interface ClipAnimation {
   /** `crypto.randomUUID()` at creation. */
   id: string;
@@ -67,6 +86,11 @@ export interface ClipAnimation {
   enabled?: boolean;
   /** Preset-specific knobs; unknown keys ignored. See the preset catalog. */
   params?: Record<string, number | string | boolean>;
+  /**
+   * Baked curves for a `"custom"` preset animation — motion written as
+   * JavaScript rather than picked from the catalog. See `custom.ts`.
+   */
+  custom?: CustomClipAnimation;
   /**
    * Per-word stagger. When set on a text clip, this animation's
    * transform/opacity curves run once per word with a per-word time offset
@@ -103,3 +127,36 @@ export type AnimationPresetId =
   | "float"
   | "breathe"
   | "rotate";
+
+/**
+ * Every property a curve can drive, as a runtime list so a custom animation's
+ * curves can be checked against it (see `custom.ts`).
+ *
+ * - `offsetX` / `offsetY` — canvas px, added to `transform.position`
+ * - `scale` — uniform multiplier on `ClipTransform.scale`
+ * - `rotation` — radians, added to `ClipTransform.rotation`
+ * - `opacity` — multiplier on the layer's resolved opacity
+ * - `wipeProgress` — 0 = fully hidden, 1 = fully revealed (needs a mask)
+ *
+ * The last three are effect params applied through the compositor's per-layer
+ * effect pre-pass. The engine stays pure: they compose into synthesized
+ * `ClipEffect`s at the render site (see `resolveAnimatedLayerProps`), matching
+ * what the `color.grade` / Gaussian-blur pipeline already applies.
+ *
+ * - `blur` — added to the layer's blur radius, in source px (identity 0)
+ * - `brightness` — added to the grade shader's brightness term, -1..1 (identity 0)
+ * - `saturation` — multiplies the grade shader's saturation, 0..4 (identity 1)
+ */
+export const ANIMATED_PROPERTIES = [
+  "offsetX",
+  "offsetY",
+  "scale",
+  "rotation",
+  "opacity",
+  "wipeProgress",
+  "blur",
+  "brightness",
+  "saturation"
+] as const;
+
+export type AnimatedProperty = (typeof ANIMATED_PROPERTIES)[number];

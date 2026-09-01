@@ -243,6 +243,100 @@ export type ClipBindingKind = z.infer<typeof clipBindingKind>;
 // ── Motion-design animations ─────────────────────────────────────────────────
 
 /**
+ * One keyframe of a baked custom-animation curve. `t` is normalized 0..1
+ * within the animation window; `easing` names the segment ENDING at this
+ * keyframe and is a plain string for the same forward compat as `preset`.
+ */
+export const animationKeyframe = z.object({
+  t: z.number(),
+  value: z.number(),
+  easing: z.string().optional()
+});
+export type AnimationKeyframe = z.infer<typeof animationKeyframe>;
+
+/**
+ * One baked property curve. `property` is a plain string on the wire: a curve
+ * naming a property this build does not animate parses fine and is dropped at
+ * compile time, the same forward compat `preset` has.
+ */
+export const animationPropertyCurve = z.object({
+  property: z.string(),
+  keyframes: z.array(animationKeyframe)
+});
+export type AnimationPropertyCurve = z.infer<typeof animationPropertyCurve>;
+
+/**
+ * A custom animation: curves produced by a JS body rather than by a shipped
+ * preset. The body runs ONCE, host-side in the QuickJS sandbox, and its
+ * keyframes are baked in here — so playback, export, and the headless
+ * compositor sample identical curves and no renderer needs a JS engine.
+ *
+ * `scriptId`/`code` are provenance: they say what produced `curves` so the
+ * editor can re-bake, and are never executed at render time.
+ */
+export const customClipAnimation = z.object({
+  /** JS script document (`js_scripts` row) the curves were baked from. */
+  scriptId: z.string().optional(),
+  /** Inline body the curves were baked from. */
+  code: z.string().optional(),
+  /** ISO timestamp of the bake that produced `curves`. */
+  bakedAt: z.string().optional(),
+  curves: z.array(animationPropertyCurve),
+  /**
+   * Required when a curve drives `wipeProgress`: direction and softness never
+   * animate, so they ride here rather than on a curve.
+   */
+  mask: z
+    .object({ direction: z.string(), softness: z.number() })
+    .optional()
+});
+export type CustomClipAnimation = z.infer<typeof customClipAnimation>;
+
+/**
+ * `POST /api/timelines/animations/bake` — run a custom animation's JS body once
+ * and get back the keyframes to store on the clip. Exactly one of `code` and
+ * `script_id` names the body; the rest is the context the body reads off
+ * `inputs` (see `buildCustomAnimationInputs` in `@nodetool-ai/timeline`).
+ */
+export const bakeCustomAnimationRequest = z
+  .object({
+    code: z.string().min(1).optional(),
+    script_id: z.string().min(1).optional(),
+    role: z.enum(["in", "out", "emphasis", "loop"]),
+    duration_ms: z.number().positive(),
+    clip_duration_ms: z.number().positive(),
+    canvas: z.object({
+      width: z.number().positive(),
+      height: z.number().positive()
+    }),
+    params: z
+      .record(z.string(), z.union([z.number(), z.string(), z.boolean()]))
+      .optional(),
+    stagger_count: z.number().int().nonnegative().optional(),
+    sample_count: z.number().int().positive().optional()
+  })
+  .refine(
+    (body) => (body.code === undefined) !== (body.script_id === undefined),
+    { message: "Pass exactly one of `code` or `script_id`" }
+  );
+export type BakeCustomAnimationRequest = z.infer<
+  typeof bakeCustomAnimationRequest
+>;
+
+export const bakeCustomAnimationResponse = z.object({
+  ok: z.boolean(),
+  /** Present only when `ok`. Store these under the animation's `custom`. */
+  curves: z.array(animationPropertyCurve).optional(),
+  mask: z.object({ direction: z.string(), softness: z.number() }).optional(),
+  logs: z.array(z.string()),
+  error: z.string().optional(),
+  duration_ms: z.number()
+});
+export type BakeCustomAnimationResponse = z.infer<
+  typeof bakeCustomAnimationResponse
+>;
+
+/**
  * One motion-design animation attached to a clip. `preset` and `easing` are
  * plain strings on the wire by design (forward compat): a document saved by a
  * newer client may carry ids this build doesn't know — they parse fine and are
@@ -261,6 +355,10 @@ export const clipAnimation = z.object({
   params: z
     .record(z.string(), z.union([z.number(), z.string(), z.boolean()]))
     .optional(),
+  /** Baked curves for a `"custom"` preset animation. Without this field Zod
+   * strips it on every PATCH, silently reverting custom motion to nothing on
+   * save. */
+  custom: customClipAnimation.optional(),
   /** Per-word stagger on a text clip's animation. `unit` is a plain string on
    * the wire (only "word" is implemented; unknown units compile un-staggered)
    * for the same forward compat as `preset`. Without this field Zod strips it

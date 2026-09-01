@@ -14,7 +14,13 @@ import {
   type TimelineClip,
   type TimelineDocument
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
-import { ANIMATION_PRESETS, sourceRate } from "@nodetool-ai/timeline";
+import {
+  ANIMATION_PRESETS,
+  CUSTOM_ANIMATION_PRESET_ID,
+  normalizeCustomCurves,
+  resolveCustomMask,
+  sourceRate
+} from "@nodetool-ai/timeline";
 
 import type { TimelineDebugIssue, TimelineValidation } from "./types.js";
 
@@ -26,9 +32,10 @@ export interface TimelineValidationMeta {
 
 const DEFAULT_FPS = 30;
 
-const PRESET_IDS = new Set<string>(
-  ANIMATION_PRESETS.map((preset) => preset.id)
-);
+const PRESET_IDS = new Set<string>([
+  ...ANIMATION_PRESETS.map((preset) => preset.id),
+  CUSTOM_ANIMATION_PRESET_ID
+]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -246,6 +253,43 @@ function checkClip(
         code: "unknown_animation_preset",
         message: `Clip "${label}" animation "${animation.id}" uses preset "${animation.preset}", which this build does not ship.`,
         path: "animations[*].preset",
+        ...at
+      });
+      continue;
+    }
+    if (animation.preset !== CUSTOM_ANIMATION_PRESET_ID) continue;
+
+    // A custom animation renders nothing unless its baked curves survive the
+    // one gate every render site applies, so what the compiler would skip with
+    // a console warning is reported here instead.
+    const baked = normalizeCustomCurves(animation.custom?.curves);
+    if (!baked.ok) {
+      issues.push({
+        severity: "error",
+        code: "custom_animation_invalid",
+        message: `Clip "${label}" animation "${animation.id}" is a custom animation whose baked curves are unusable: ${baked.error}. Re-bake it from its script.`,
+        path: "animations[*].custom.curves",
+        ...at
+      });
+      continue;
+    }
+    const mask = resolveCustomMask(baked.curves, animation.custom?.mask);
+    if (!mask.ok) {
+      issues.push({
+        severity: "error",
+        code: "custom_animation_invalid",
+        message: `Clip "${label}" animation "${animation.id}": ${mask.error}.`,
+        path: "animations[*].custom.mask",
+        ...at
+      });
+      continue;
+    }
+    if (!animation.custom?.scriptId && !animation.custom?.code) {
+      issues.push({
+        severity: "warning",
+        code: "custom_animation_unsourced",
+        message: `Clip "${label}" animation "${animation.id}" carries baked curves but names neither a scriptId nor code, so nothing can re-bake it.`,
+        path: "animations[*].custom",
         ...at
       });
     }
