@@ -93,13 +93,39 @@ export function openAIContextExceeded(
   return null;
 }
 
-const GEMINI_OVERFLOW =
-  /exceeds the maximum number of tokens allowed|input token count[^.]*exceeds/i;
+const GEMINI_MAX_TOKENS = "exceeds the maximum number of tokens allowed";
+const GEMINI_TOKEN_COUNT = "input token count";
+const GEMINI_EXCEEDS = "exceeds";
+
+/**
+ * Gemini's overflow message, scanned rather than matched with a pattern.
+ *
+ * The wildcard form of this — `input token count[^.]*exceeds` — is quadratic on
+ * a message that repeats "input token count" and never says "exceeds": each
+ * repetition is another start position from which the engine runs to the end
+ * and backtracks. On 20 000 repetitions it takes ten seconds. The message is
+ * provider text, so its shape is not ours to bound, which is why the pattern is
+ * replaced rather than annotated.
+ *
+ * Scanning says the same thing in linear time: the count and the verb in one
+ * sentence. Only the first occurrence is considered, which is the one in the
+ * message Google documents; walking every occurrence would restore the
+ * quadratic scan this exists to remove.
+ */
+function geminiOverflowMessage(message: string): boolean {
+  const text = message.toLowerCase();
+  if (text.includes(GEMINI_MAX_TOKENS)) return true;
+  const start = text.indexOf(GEMINI_TOKEN_COUNT);
+  if (start === -1) return false;
+  const rest = text.slice(start + GEMINI_TOKEN_COUNT.length);
+  const stop = rest.indexOf(".");
+  return (stop === -1 ? rest : rest.slice(0, stop)).includes(GEMINI_EXCEEDS);
+}
 
 /** @see {@link ContextExceededSignal} for what the return value names. */
 export function geminiContextExceeded(
   raw: unknown
 ): ContextExceededSignal | null {
   const { message } = failureFields(raw);
-  return GEMINI_OVERFLOW.test(message) ? "message" : null;
+  return geminiOverflowMessage(message) ? "message" : null;
 }
