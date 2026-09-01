@@ -74,7 +74,7 @@ describe("deploy index exports", () => {
     expect(mod.AdminHTTPClient).toBeDefined();
 
     // admin-operations
-    expect(mod.AdminDownloadManager).toBeDefined();
+    expect(mod.streamHFModelDownload).toBeDefined();
     expect(mod.getHFToken).toBeDefined();
 
     // admin-routes

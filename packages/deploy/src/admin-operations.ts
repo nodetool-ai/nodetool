@@ -198,238 +198,7 @@ export async function getHFToken(options?: {
   return null;
 }
 
-// ── AdminDownloadManager ───────────────────────────────────
-
-export interface AdminDownloadManagerOptions {
-  token?: string;
-  hub?: HFHubAdapter;
-}
-
-/**
- * Download manager for admin operations that yields progress updates.
- */
-export class AdminDownloadManager {
-  token: string | null;
-  hub: HFHubAdapter;
-  private tokenInitialized: boolean;
-
-  constructor(options: AdminDownloadManagerOptions & { hub: HFHubAdapter }) {
-    this.token = options.token ?? null;
-    this.hub = options.hub;
-    this.tokenInitialized = options.token != null;
-
-    if (this.token) {
-      console.debug(
-        `AdminDownloadManager initialized with HF_TOKEN (${this.token.length} chars)`
-      );
-    } else {
-      console.debug("AdminDownloadManager initialized without HF_TOKEN");
-    }
-  }
-
-  /**
-   * Factory that resolves the token asynchronously before construction.
-   */
-  static async create(
-    hub: HFHubAdapter,
-    options?: {
-      userId?: string;
-      getSecret?: (key: string, userId: string) => Promise<string | null>;
-    }
-  ): Promise<AdminDownloadManager> {
-    const token = await getHFToken({
-      userId: options?.userId,
-      getSecret: options?.getSecret
-    });
-    return new AdminDownloadManager({
-      token: token ?? undefined,
-      hub
-    });
-  }
-
-  /**
-   * Download a HuggingFace model with detailed progress updates.
-   */
-  async *downloadWithProgress(options: {
-    repoId: string;
-    cacheDir?: string;
-    filePath?: string;
-    ignorePatterns?: string[] | null;
-    allowPatterns?: string[] | null;
-    userId?: string;
-    getSecret?: (key: string, userId: string) => Promise<string | null>;
-  }): AsyncGenerator<AdminProgressUpdate> {
-    const {
-      repoId,
-      cacheDir = "/app/.cache/huggingface/hub",
-      filePath,
-      ignorePatterns,
-      allowPatterns,
-      userId
-    } = options;
-
-    // Lazy token init
-    if (!this.tokenInitialized && userId) {
-      this.token = await getHFToken({
-        userId,
-        getSecret: options.getSecret
-      });
-      this.tokenInitialized = true;
-    }
-
-    try {
-      console.info(`Starting HF model download: ${repoId}`);
-
-      yield {
-        status: "starting",
-        repo_id: repoId,
-        message: `Starting download of ${repoId}`
-      };
-
-      // Single file download
-      if (filePath) {
-        yield {
-          status: "progress",
-          repo_id: repoId,
-          message: `Downloading single file: ${filePath}`,
-          current_file: filePath
-        };
-
-        const localPath = await this.hub.downloadFile(
-          repoId,
-          filePath,
-          cacheDir,
-          this.token ?? undefined
-        );
-
-        yield {
-          status: "completed",
-          repo_id: repoId,
-          local_path: localPath,
-          message: `Successfully downloaded ${repoId}/${filePath}`
-        };
-        return;
-      }
-
-      // Repository download
-      yield {
-        status: "progress",
-        repo_id: repoId,
-        message: "Fetching file list..."
-      };
-
-      let files = await this.hub.listRepoFiles(repoId, this.token ?? undefined);
-      files = filterRepoFiles(files, allowPatterns, ignorePatterns);
-
-      // Partition into cached vs. uncached
-      const filesToDownload: HFRepoFile[] = [];
-      const cachedPaths: string[] = [];
-
-      for (const file of files) {
-        const cachePath = this.hub.tryLoadFromCache(repoId, file.path);
-        if (cachePath && fs.existsSync(cachePath)) {
-          cachedPaths.push(file.path);
-        } else {
-          filesToDownload.push(file);
-        }
-      }
-
-      const totalFiles = filesToDownload.length;
-      const totalSize = filesToDownload.reduce((s, f) => s + (f.size ?? 0), 0);
-
-      yield {
-        status: "progress",
-        repo_id: repoId,
-        message: `Found ${totalFiles} files to download, ${cachedPaths.length} already cached`,
-        total_files: totalFiles,
-        total_size: totalSize,
-        cached_files: cachedPaths.length
-      };
-
-      if (totalFiles === 0) {
-        yield {
-          status: "completed",
-          repo_id: repoId,
-          message: `All files already cached for ${repoId}`,
-          total_files: 0,
-          cached_files: cachedPaths.length
-        };
-        return;
-      }
-
-      // Download each file
-      const downloadedFiles: string[] = [];
-      let downloadedSize = 0;
-
-      for (let i = 0; i < filesToDownload.length; i++) {
-        const file = filesToDownload[i];
-
-        yield {
-          status: "progress",
-          repo_id: repoId,
-          message: `Downloading ${file.path}`,
-          current_file: file.path,
-          file_progress: i + 1,
-          total_files: totalFiles,
-          downloaded_size: downloadedSize,
-          total_size: totalSize
-        };
-
-        try {
-          await this.hub.downloadFile(
-            repoId,
-            file.path,
-            cacheDir,
-            this.token ?? undefined
-          );
-          downloadedFiles.push(file.path);
-          downloadedSize += file.size ?? 0;
-
-          yield {
-            status: "progress",
-            repo_id: repoId,
-            message: `Downloaded ${file.path}`,
-            current_file: file.path,
-            file_progress: i + 1,
-            total_files: totalFiles,
-            downloaded_files: downloadedFiles.length,
-            downloaded_size: downloadedSize,
-            total_size: totalSize
-          };
-        } catch (err) {
-          console.error(`Error downloading file ${file.path}: ${err}`);
-          yield {
-            status: "progress",
-            repo_id: repoId,
-            message: `Error downloading ${file.path}: ${err}`,
-            current_file: file.path,
-            error_file: file.path
-          };
-        }
-      }
-
-      yield {
-        status: "completed",
-        repo_id: repoId,
-        message: `Successfully downloaded ${downloadedFiles.length}/${totalFiles} files for ${repoId}`,
-        downloaded_files: downloadedFiles.length,
-        total_files: totalFiles,
-        total_size: totalSize,
-        downloaded_size: downloadedSize
-      };
-    } catch (err) {
-      console.error(`Error in HF model download ${repoId}: ${err}`);
-      yield {
-        status: "error",
-        repo_id: repoId,
-        error: String(err),
-        message: `Error downloading ${repoId}: ${err}`
-      };
-    }
-  }
-}
-
-// ── Standalone streaming functions ─────────────────────────
+// ── Streaming downloads ────────────────────────────────────
 
 /**
  * Stream Ollama model download progress.
@@ -467,7 +236,7 @@ export async function* streamOllamaModelPull(
 }
 
 /**
- * Stream HuggingFace model download progress using AdminDownloadManager.
+ * Download a HuggingFace model, yielding detailed progress updates.
  */
 export async function* streamHFModelDownload(
   hub: HFHubAdapter,
@@ -481,11 +250,166 @@ export async function* streamHFModelDownload(
     getSecret?: (key: string, userId: string) => Promise<string | null>;
   }
 ): AsyncGenerator<AdminProgressUpdate> {
-  const manager = await AdminDownloadManager.create(hub, {
-    userId: options.userId,
-    getSecret: options.getSecret
-  });
-  yield* manager.downloadWithProgress(options);
+  const {
+    repoId,
+    cacheDir = "/app/.cache/huggingface/hub",
+    filePath,
+    ignorePatterns,
+    allowPatterns,
+    userId
+  } = options;
+
+  const token = await getHFToken({ userId, getSecret: options.getSecret });
+
+  try {
+    console.info(`Starting HF model download: ${repoId}`);
+
+    yield {
+      status: "starting",
+      repo_id: repoId,
+      message: `Starting download of ${repoId}`
+    };
+
+    // Single file download
+    if (filePath) {
+      yield {
+        status: "progress",
+        repo_id: repoId,
+        message: `Downloading single file: ${filePath}`,
+        current_file: filePath
+      };
+
+      const localPath = await hub.downloadFile(
+        repoId,
+        filePath,
+        cacheDir,
+        token ?? undefined
+      );
+
+      yield {
+        status: "completed",
+        repo_id: repoId,
+        local_path: localPath,
+        message: `Successfully downloaded ${repoId}/${filePath}`
+      };
+      return;
+    }
+
+    // Repository download
+    yield {
+      status: "progress",
+      repo_id: repoId,
+      message: "Fetching file list..."
+    };
+
+    let files = await hub.listRepoFiles(repoId, token ?? undefined);
+    files = filterRepoFiles(files, allowPatterns, ignorePatterns);
+
+    // Partition into cached vs. uncached
+    const filesToDownload: HFRepoFile[] = [];
+    const cachedPaths: string[] = [];
+
+    for (const file of files) {
+      const cachePath = hub.tryLoadFromCache(repoId, file.path);
+      if (cachePath && fs.existsSync(cachePath)) {
+        cachedPaths.push(file.path);
+      } else {
+        filesToDownload.push(file);
+      }
+    }
+
+    const totalFiles = filesToDownload.length;
+    const totalSize = filesToDownload.reduce((s, f) => s + (f.size ?? 0), 0);
+
+    yield {
+      status: "progress",
+      repo_id: repoId,
+      message: `Found ${totalFiles} files to download, ${cachedPaths.length} already cached`,
+      total_files: totalFiles,
+      total_size: totalSize,
+      cached_files: cachedPaths.length
+    };
+
+    if (totalFiles === 0) {
+      yield {
+        status: "completed",
+        repo_id: repoId,
+        message: `All files already cached for ${repoId}`,
+        total_files: 0,
+        cached_files: cachedPaths.length
+      };
+      return;
+    }
+
+    // Download each file
+    const downloadedFiles: string[] = [];
+    let downloadedSize = 0;
+
+    for (let i = 0; i < filesToDownload.length; i++) {
+      const file = filesToDownload[i];
+
+      yield {
+        status: "progress",
+        repo_id: repoId,
+        message: `Downloading ${file.path}`,
+        current_file: file.path,
+        file_progress: i + 1,
+        total_files: totalFiles,
+        downloaded_size: downloadedSize,
+        total_size: totalSize
+      };
+
+      try {
+        await hub.downloadFile(
+          repoId,
+          file.path,
+          cacheDir,
+          token ?? undefined
+        );
+        downloadedFiles.push(file.path);
+        downloadedSize += file.size ?? 0;
+
+        yield {
+          status: "progress",
+          repo_id: repoId,
+          message: `Downloaded ${file.path}`,
+          current_file: file.path,
+          file_progress: i + 1,
+          total_files: totalFiles,
+          downloaded_files: downloadedFiles.length,
+          downloaded_size: downloadedSize,
+          total_size: totalSize
+        };
+      } catch (err) {
+        console.error(`Error downloading file ${file.path}: ${err}`);
+        yield {
+          status: "progress",
+          repo_id: repoId,
+          message: `Error downloading ${file.path}: ${err}`,
+          current_file: file.path,
+          error_file: file.path
+        };
+      }
+    }
+
+    yield {
+      status: "completed",
+      repo_id: repoId,
+      message: `Successfully downloaded ${downloadedFiles.length}/${totalFiles} files for ${repoId}`,
+      downloaded_files: downloadedFiles.length,
+      total_files: totalFiles,
+      total_size: totalSize,
+      downloaded_size: downloadedSize
+    };
+  } catch (err) {
+    console.error(`Error in HF model download ${repoId}: ${err}`);
+    yield {
+      status: "error",
+      repo_id: repoId,
+      error: String(err),
+      message: `Error downloading ${repoId}: ${err}`
+    };
+  }
 }
 
 /**
@@ -514,12 +438,8 @@ export async function* downloadHFModel(
   if (stream) {
     yield* streamHFModelDownload(hub, options);
   } else {
-    const manager = await AdminDownloadManager.create(hub, {
-      userId: options.userId,
-      getSecret: options.getSecret
-    });
     let finalResult: AdminProgressUpdate | null = null;
-    for await (const update of manager.downloadWithProgress(options)) {
+    for await (const update of streamHFModelDownload(hub, options)) {
       finalResult = update;
     }
     if (finalResult) {
