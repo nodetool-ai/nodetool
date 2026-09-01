@@ -5,12 +5,14 @@ import type { TimelineClip, TimelineTrack } from "../src/index.js";
 import {
   clipSourceTimeSec,
   computeActiveLayers,
+  computeActiveLayersWithHorizon,
   crossfadeOpacity,
   effectiveAssetId,
   isClipActive,
   resolveCaptionAtTime,
   trackZ,
-  LAYER_Z_BASE
+  LAYER_Z_BASE,
+  MAX_VIDEO_LAYERS
 } from "../src/render/sceneModel.js";
 
 const clip = (overrides: Partial<TimelineClip>): TimelineClip =>
@@ -181,6 +183,54 @@ describe("computeActiveLayers", () => {
       clip({ id: `c-${t.id}`, trackId: t.id, startMs: 0, durationMs: 1000 })
     );
     expect(computeActiveLayers(tracks, clips, 100, { maxVideoLayers: 8 })).toHaveLength(8);
+  });
+
+  it("names every clip the cap turned away (F17)", () => {
+    // Nine video clips, one per track, all live at 100ms. The default cap
+    // draws eight, so exactly one is dropped — the one on the bottom track,
+    // since the cap fills slots top-down.
+    const tracks = Array.from({ length: 9 }, (_, i) =>
+      track({ id: `t${i}`, index: i })
+    );
+    const clips = tracks.map((t) =>
+      clip({ id: `c-${t.id}`, trackId: t.id, startMs: 0, durationMs: 1000 })
+    );
+    const result = computeActiveLayersWithHorizon(tracks, clips, 100);
+    expect(result.layers).toHaveLength(MAX_VIDEO_LAYERS);
+    expect(result.droppedLayers).toEqual([
+      { clipId: "c-t8", reason: "video_layer_cap" }
+    ]);
+  });
+
+  it("reports nothing dropped when the layer set fits", () => {
+    const tracks = Array.from({ length: 8 }, (_, i) =>
+      track({ id: `t${i}`, index: i })
+    );
+    const clips = tracks.map((t) =>
+      clip({ id: `c-${t.id}`, trackId: t.id, startMs: 0, durationMs: 1000 })
+    );
+    expect(
+      computeActiveLayersWithHorizon(tracks, clips, 100).droppedLayers
+    ).toEqual([]);
+  });
+
+  it("does not report an over-cap clip that had no asset to draw anyway", () => {
+    // A draft clip resolves no assetId, so it never consumed a video slot and
+    // the cap is not what kept it off the screen.
+    const tracks = Array.from({ length: 10 }, (_, i) =>
+      track({ id: `t${i}`, index: i })
+    );
+    const clips = tracks.map((t, i) =>
+      clip({
+        id: `c-${t.id}`,
+        trackId: t.id,
+        startMs: 0,
+        durationMs: 1000,
+        status: i === 9 ? "draft" : "generated"
+      })
+    );
+    const { droppedLayers } = computeActiveLayersWithHorizon(tracks, clips, 100);
+    expect(droppedLayers.map((d) => d.clipId)).toEqual(["c-t8"]);
   });
 
   it("does not cap image layers", () => {

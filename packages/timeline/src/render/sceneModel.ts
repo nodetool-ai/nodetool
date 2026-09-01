@@ -224,12 +224,28 @@ export interface ComputeActiveLayersOptions {
   maxVideoLayers?: number;
 }
 
+/** Why a clip that was active at the query time contributed no layer. */
+export type DroppedLayerReason = "video_layer_cap";
+
+/** A clip the scene model resolved and then left out of the composite. */
+export interface DroppedLayer {
+  clipId: string;
+  reason: DroppedLayerReason;
+}
+
 /**
  * Result of {@link computeActiveLayersWithHorizon}: the resolved layers plus
  * the change horizon (see that function for what the horizon means).
  */
 export interface ActiveLayersResult {
   layers: ActiveLayer[];
+  /**
+   * Clips active at the query time that the scene model refused to draw. The
+   * layer cap used to discard them with a bare `continue`, so a frame quietly
+   * lost a layer and no host could say which one. Every caller that reports
+   * what it drew reports these beside it.
+   */
+  droppedLayers: DroppedLayer[];
   /**
    * The minimum time (ms), strictly greater than the query `currentTimeMs`,
    * at which the resolved layer set OR any layer's active caption word could
@@ -260,7 +276,9 @@ export interface ActiveLayersResult {
  *
  * Video layers are capped to keep parity with the live preview's video pool;
  * the cap is applied in composite order (top tracks win, matching the preview
- * which fills slots while iterating top-to-bottom).
+ * which fills slots while iterating top-to-bottom). Each clip the cap turns
+ * away is named in `droppedLayers` so a host can say what is missing from the
+ * frame instead of showing a picture that quietly lost a layer.
  */
 export function computeActiveLayersWithHorizon(
   tracks: TimelineTrack[],
@@ -280,6 +298,7 @@ export function computeActiveLayersWithHorizon(
 
   const mediaLayers: ActiveLayer[] = [];
   const captionLayers: ActiveLayer[] = [];
+  const droppedLayers: DroppedLayer[] = [];
   let videoCount = 0;
 
   // Change horizon: the smallest upcoming time at which `isClipActive`,
@@ -411,7 +430,13 @@ export function computeActiveLayersWithHorizon(
       } else {
         // video | overlay
         if (common.assetId) {
-          if (videoCount >= maxVideoLayers) continue;
+          if (videoCount >= maxVideoLayers) {
+            droppedLayers.push({
+              clipId: clip.id,
+              reason: "video_layer_cap"
+            });
+            continue;
+          }
           videoCount += 1;
         }
         mediaLayers.push({ kind: "video", ...common });
@@ -419,7 +444,11 @@ export function computeActiveLayersWithHorizon(
     }
   }
 
-  return { layers: [...mediaLayers, ...captionLayers], nextChangeMs };
+  return {
+    layers: [...mediaLayers, ...captionLayers],
+    droppedLayers,
+    nextChangeMs
+  };
 }
 
 /**

@@ -21,6 +21,7 @@ import {
   resolveCustomMask,
   sourceRate
 } from "@nodetool-ai/timeline";
+import { MAX_VIDEO_LAYERS } from "@nodetool-ai/timeline/scene";
 
 import type { TimelineDebugIssue, TimelineValidation } from "./types.js";
 
@@ -362,6 +363,67 @@ function checkOverlaps(doc: TimelineDocument): TimelineDebugIssue[] {
   return issues;
 }
 
+/**
+ * Instants where more video clips overlap than the compositor will draw.
+ *
+ * The cap is applied while resolving a frame, so the clips past it never reach
+ * the picture. Sampling frames to find that would miss an overlap shorter than
+ * the sample interval, so this is a sweep over the clip windows themselves:
+ * every start raises the count and every end lowers it, ends first at a shared
+ * instant because a clip is active over `[startMs, startMs + durationMs)`. The
+ * count is therefore exact at every boundary, and the peak between boundaries
+ * is one of them.
+ *
+ * What counts is what the scene model would count: a clip on a visible video or
+ * overlay track whose media is picture the compositor holds in its video pool.
+ * Images are not capped, and audio, text, shape and group clips draw through
+ * other paths.
+ */
+function checkVideoLayerCap(doc: TimelineDocument): TimelineDebugIssue[] {
+  const cappedTrackIds = new Set(
+    doc.tracks
+      .filter(
+        (track) =>
+          track.visible && (track.type === "video" || track.type === "overlay")
+      )
+      .map((track) => track.id)
+  );
+  const capped = doc.clips.filter(
+    (clip) =>
+      cappedTrackIds.has(clip.trackId) &&
+      (clip.mediaType === "video" || clip.mediaType === "overlay") &&
+      clip.durationMs > 0
+  );
+
+  // -1 before +1 at one instant, so a clip ending where another starts does
+  // not read as two simultaneous layers.
+  const events = capped.flatMap((clip) => [
+    { timeMs: clip.startMs, delta: 1 },
+    { timeMs: clip.startMs + clip.durationMs, delta: -1 }
+  ]);
+  events.sort((a, b) => a.timeMs - b.timeMs || a.delta - b.delta);
+
+  let open = 0;
+  let peak = 0;
+  let peakAtMs = 0;
+  for (const event of events) {
+    open += event.delta;
+    if (open > peak) {
+      peak = open;
+      peakAtMs = event.timeMs;
+    }
+  }
+  if (peak <= MAX_VIDEO_LAYERS) return [];
+
+  return [
+    {
+      severity: "warning",
+      code: "layer_cap_exceeded",
+      message: `${peak} video clips overlap at ${peakAtMs}ms — the compositor draws ${MAX_VIDEO_LAYERS} and silently discards the rest, keeping the ones on the topmost tracks.`
+    }
+  ];
+}
+
 function checkDocumentLevel(doc: TimelineDocument): TimelineDebugIssue[] {
   const issues: TimelineDebugIssue[] = [];
 
@@ -475,6 +537,7 @@ export function validateTimelineSequence(
     ...checkDuplicateIds(doc),
     ...doc.clips.flatMap((clip) => checkClip(clip, trackIds, fps)),
     ...checkOverlaps(doc),
+    ...checkVideoLayerCap(doc),
     ...checkDocumentLevel(doc)
   ];
 
