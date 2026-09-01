@@ -116,9 +116,6 @@ const ChainEditorPage = React.lazy(
 const CostsDashboard = React.lazy(
   () => import("./components/costs/CostsDashboard")
 );
-const ChatMarkdownTest = React.lazy(
-  () => import("./components/ChatMarkdownTest")
-);
 const ComponentPreview = React.lazy(
   () => import("./components/preview/ComponentPreview")
 );
@@ -509,10 +506,6 @@ function getRoutes() {
   ];
 
   if (isLocalhost) {
-    routes.push({
-      path: "/chatmarkdowntest",
-      element: <ChatMarkdownTest />
-    });
     // Component preview routes for isolated documentation screenshots
     routes.push({
       path: "/preview/:component?",
@@ -603,7 +596,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
   // Allow dev-only test pages to render without backend metadata
   const isDevTestRoute =
     isLocalhost &&
-    ["/chatmarkdowntest", "/graph", "/preview"].some((p) =>
+    ["/graph", "/preview"].some((p) =>
       window.location.pathname.startsWith(p)
     );
 
