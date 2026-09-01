@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  AdminDownloadManager,
   filterRepoFiles,
   getHFToken,
   streamOllamaModelPull,
@@ -196,9 +195,9 @@ describe("getHFToken", () => {
   });
 });
 
-// ── AdminDownloadManager ─────────────────────────────────────
+// ── streamHFModelDownload ────────────────────────────────────
 
-describe("AdminDownloadManager", () => {
+describe("streamHFModelDownload", () => {
   let hub: HFHubAdapter;
   const originalEnv = process.env["HF_TOKEN"];
 
@@ -222,54 +221,45 @@ describe("AdminDownloadManager", () => {
     }
   });
 
-  it("constructor sets token from options", () => {
-    const mgr = new AdminDownloadManager({ hub, token: "tok" });
-    expect(mgr.token).toBe("tok");
-  });
-
-  it("constructor defaults token to null", () => {
-    const mgr = new AdminDownloadManager({ hub });
-    expect(mgr.token).toBeNull();
-  });
-
-  it("static create resolves token", async () => {
+  it("passes the resolved HF_TOKEN to the hub", async () => {
     process.env["HF_TOKEN"] = "env-tok";
-    const mgr = await AdminDownloadManager.create(hub);
-    expect(mgr.token).toBe("env-tok");
+    await collect(streamHFModelDownload(hub, { repoId: "org/model" }));
+    expect(hub.listRepoFiles).toHaveBeenCalledWith("org/model", "env-tok");
   });
 
-  it("downloadWithProgress yields starting status", async () => {
-    const mgr = new AdminDownloadManager({ hub });
+  it("passes undefined to the hub when no token resolves", async () => {
+    await collect(streamHFModelDownload(hub, { repoId: "org/model" }));
+    expect(hub.listRepoFiles).toHaveBeenCalledWith("org/model", undefined);
+  });
+
+  it("yields starting status", async () => {
     const updates = await collect(
-      mgr.downloadWithProgress({ repoId: "org/model" })
+      streamHFModelDownload(hub, { repoId: "org/model" })
     );
     expect(updates[0].status).toBe("starting");
     expect(updates[0].repo_id).toBe("org/model");
   });
 
-  it("downloadWithProgress yields progress for each file", async () => {
-    const mgr = new AdminDownloadManager({ hub });
+  it("yields progress for each file", async () => {
     const updates = await collect(
-      mgr.downloadWithProgress({ repoId: "org/model" })
+      streamHFModelDownload(hub, { repoId: "org/model" })
     );
     const progressUpdates = updates.filter((u) => u.status === "progress");
     // file list + per-file progress (downloading + downloaded) for 2 files
     expect(progressUpdates.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("downloadWithProgress yields completed status", async () => {
-    const mgr = new AdminDownloadManager({ hub });
+  it("yields completed status", async () => {
     const updates = await collect(
-      mgr.downloadWithProgress({ repoId: "org/model" })
+      streamHFModelDownload(hub, { repoId: "org/model" })
     );
     const last = updates[updates.length - 1];
     expect(last.status).toBe("completed");
   });
 
-  it("downloadWithProgress handles single file download", async () => {
-    const mgr = new AdminDownloadManager({ hub });
+  it("handles single file download", async () => {
     const updates = await collect(
-      mgr.downloadWithProgress({
+      streamHFModelDownload(hub, {
         repoId: "org/model",
         filePath: "model.bin"
       })
@@ -280,7 +270,7 @@ describe("AdminDownloadManager", () => {
     expect(completed!.local_path).toBe("/cache/downloaded");
   });
 
-  it("downloadWithProgress skips cached files", async () => {
+  it("skips cached files", async () => {
     const hubWithCache = createMockHub({
       listRepoFiles: vi.fn().mockResolvedValue([
         { path: "model.bin", size: 500 },
@@ -294,9 +284,8 @@ describe("AdminDownloadManager", () => {
     // Override fs.existsSync for the cached file
     _existsSyncOverride = (p) => String(p) === "/cache/config.json";
 
-    const mgr = new AdminDownloadManager({ hub: hubWithCache });
     const updates = await collect(
-      mgr.downloadWithProgress({ repoId: "org/model" })
+      streamHFModelDownload(hubWithCache, { repoId: "org/model" })
     );
 
     const foundMsg = updates.find((u) =>
@@ -312,16 +301,15 @@ describe("AdminDownloadManager", () => {
 
   // Status "error" is reserved for a whole-repo failure; one bad file is a
   // "progress" update carrying error_file.
-  it("downloadWithProgress reports a failed file without aborting the repo", async () => {
+  it("reports a failed file without aborting the repo", async () => {
     const failHub = createMockHub({
       listRepoFiles: vi
         .fn()
         .mockResolvedValue([{ path: "model.bin", size: 500 }]),
       downloadFile: vi.fn().mockRejectedValue(new Error("network error"))
     });
-    const mgr = new AdminDownloadManager({ hub: failHub });
     const updates = await collect(
-      mgr.downloadWithProgress({ repoId: "org/model" })
+      streamHFModelDownload(failHub, { repoId: "org/model" })
     );
     const errorUpdate = updates.find((u) => u.error_file === "model.bin");
     expect(errorUpdate).toMatchObject({
@@ -334,20 +322,19 @@ describe("AdminDownloadManager", () => {
     expect(updates.some((u) => u.status === "error")).toBe(false);
   });
 
-  it("downloadWithProgress handles repo listing failure", async () => {
+  it("handles repo listing failure", async () => {
     const failHub = createMockHub({
       listRepoFiles: vi.fn().mockRejectedValue(new Error("repo not found"))
     });
-    const mgr = new AdminDownloadManager({ hub: failHub });
     const updates = await collect(
-      mgr.downloadWithProgress({ repoId: "org/missing" })
+      streamHFModelDownload(failHub, { repoId: "org/missing" })
     );
     const errorUpdate = updates.find((u) => u.status === "error");
     expect(errorUpdate).toBeDefined();
     expect(errorUpdate!.error).toContain("repo not found");
   });
 
-  it("downloadWithProgress reports all cached when nothing to download", async () => {
+  it("reports all cached when nothing to download", async () => {
     const allCachedHub = createMockHub({
       listRepoFiles: vi
         .fn()
@@ -356,9 +343,8 @@ describe("AdminDownloadManager", () => {
     });
     _existsSyncOverride = () => true;
 
-    const mgr = new AdminDownloadManager({ hub: allCachedHub });
     const updates = await collect(
-      mgr.downloadWithProgress({ repoId: "org/model" })
+      streamHFModelDownload(allCachedHub, { repoId: "org/model" })
     );
     const completed = updates.find((u) => u.status === "completed");
     expect(completed).toBeDefined();
@@ -367,10 +353,9 @@ describe("AdminDownloadManager", () => {
     _existsSyncOverride = null;
   });
 
-  it("downloadWithProgress applies filter patterns", async () => {
-    const mgr = new AdminDownloadManager({ hub });
-    const updates = await collect(
-      mgr.downloadWithProgress({
+  it("applies filter patterns", async () => {
+    await collect(
+      streamHFModelDownload(hub, {
         repoId: "org/model",
         allowPatterns: ["*.bin"]
       })
@@ -379,17 +364,16 @@ describe("AdminDownloadManager", () => {
     expect(hub.downloadFile).toHaveBeenCalledTimes(1);
   });
 
-  it("downloadWithProgress lazy-inits token with userId", async () => {
+  it("resolves the token from the secret store with userId", async () => {
     const getSecret = vi.fn().mockResolvedValue("lazy-token");
-    const mgr = new AdminDownloadManager({ hub });
     await collect(
-      mgr.downloadWithProgress({
+      streamHFModelDownload(hub, {
         repoId: "org/model",
         userId: "u1",
         getSecret
       })
     );
-    expect(mgr.token).toBe("lazy-token");
+    expect(hub.listRepoFiles).toHaveBeenCalledWith("org/model", "lazy-token");
   });
 });
 
