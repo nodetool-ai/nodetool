@@ -567,6 +567,137 @@ describe("TypeHandler", () => {
       // This is allowed via the "any" rule, not collect
       expect(isConnectable(str, listAny)).toBe(true);
     });
+
+    const t = (
+      type: string,
+      type_args: TypeMetadata[] = [],
+      type_name?: string
+    ): TypeMetadata => ({ type, optional: false, type_args, type_name });
+
+    describe("enum policy", () => {
+      it("connects enum to enum only when type_name matches", () => {
+        expect(
+          isConnectable(t("enum", [], "Model"), t("enum", [], "Model"))
+        ).toBe(true);
+        expect(
+          isConnectable(t("enum", [], "Model"), t("enum", [], "Voice"))
+        ).toBe(false);
+      });
+
+      it("refuses enum to enum when either side lacks a type_name", () => {
+        expect(isConnectable(t("enum"), t("enum", [], "Model"))).toBe(false);
+        expect(isConnectable(t("enum", [], "Model"), t("enum"))).toBe(false);
+        expect(isConnectable(t("enum"), t("enum"))).toBe(false);
+      });
+
+      it("refuses a non-str, non-enum source into an enum target", () => {
+        expect(isConnectable(t("number"), t("enum", [], "Model"))).toBe(false);
+        expect(isConnectable(t("image"), t("enum", [], "Model"))).toBe(false);
+      });
+
+      it("refuses an enum source into anything but str", () => {
+        expect(isConnectable(t("enum", [], "Model"), t("number"))).toBe(false);
+        expect(isConnectable(t("enum", [], "Model"), t("image"))).toBe(false);
+      });
+    });
+
+    describe("unions", () => {
+      it("refuses an empty union on either side", () => {
+        expect(isConnectable(t("union", []), t("str"))).toBe(false);
+        expect(isConnectable(t("str"), t("union", []))).toBe(false);
+      });
+
+      it("refuses a source union with no compatible member", () => {
+        expect(
+          isConnectable(t("union", [t("str"), t("number")]), t("image"))
+        ).toBe(false);
+      });
+
+      it("refuses a target union with no compatible member", () => {
+        expect(
+          isConnectable(t("image"), t("union", [t("str"), t("number")]))
+        ).toBe(false);
+      });
+
+      it("connects a union source into an object target via its members", () => {
+        expect(
+          isConnectable(t("union", [t("str"), t("image")]), t("object"))
+        ).toBe(true);
+        expect(
+          isConnectable(t("union", [t("str"), t("number")]), t("object"))
+        ).toBe(false);
+      });
+    });
+
+    describe("lists", () => {
+      it("refuses a list source into a non-list target", () => {
+        expect(isConnectable(t("list", [t("str")]), t("str"))).toBe(false);
+      });
+
+      it("accepts a list pair whose arities are not both one", () => {
+        expect(
+          isConnectable(t("list", [t("str"), t("str")]), t("list", [t("number")]))
+        ).toBe(true);
+      });
+
+      it("accepts a list pair when either side is untyped", () => {
+        expect(isConnectable(t("list", []), t("list", [t("number")]))).toBe(
+          true
+        );
+        expect(isConnectable(t("list", [t("str")]), t("list", []))).toBe(true);
+      });
+    });
+
+    describe("dicts", () => {
+      it("refuses a dict source into a non-dict target", () => {
+        expect(
+          isConnectable(t("dict", [t("str"), t("str")]), t("str"))
+        ).toBe(false);
+      });
+
+      it("refuses dicts with incompatible key or value types", () => {
+        expect(
+          isConnectable(
+            t("dict", [t("str"), t("str")]),
+            t("dict", [t("str"), t("number")])
+          )
+        ).toBe(false);
+      });
+
+      it("accepts a dict pair when either side has fewer than two args", () => {
+        expect(
+          isConnectable(t("dict", [t("str")]), t("dict", [t("str"), t("number")]))
+        ).toBe(true);
+      });
+
+      it("refuses a dict pair with more than two args on one side", () => {
+        expect(
+          isConnectable(
+            t("dict", [t("str"), t("str"), t("str")]),
+            t("dict", [t("str"), t("str")])
+          )
+        ).toBe(false);
+      });
+    });
+
+    it("refuses a type whose name is empty", () => {
+      expect(isConnectable(t(""), t("str"))).toBe(false);
+      expect(isConnectable(t("str"), t(""))).toBe(false);
+    });
+
+    it("keeps cv/chunk interop even when allowAny is off", () => {
+      expect(isConnectable(t("cv"), t("chunk"), false)).toBe(true);
+      expect(isConnectable(t("chunk"), t("cv"), false)).toBe(true);
+    });
+
+    it("does not collect T into list[T] when the element itself is a union", () => {
+      expect(
+        isConnectable(t("str"), t("list", [t("union", [t("image")])]))
+      ).toBe(false);
+      expect(
+        isConnectable(t("str"), t("list", [t("union", [t("str")])]))
+      ).toBe(true);
+    });
   });
 
   describe("isCollectType", () => {
