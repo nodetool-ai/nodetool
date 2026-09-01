@@ -25,12 +25,14 @@ import {
   type BindingScope,
   type ConditionProps,
   type OperationBinding,
+  type OperationPolicy,
   type VariableDeclaration
 } from "@nodetool-ai/app-runtime";
 
 import type { DebugGraph } from "../debug/types.js";
 import type {
   AppEventSpec,
+  AppInputIO,
   AppIO,
   AppOperationSpec,
   AppSpec,
@@ -149,6 +151,44 @@ const usesResourceBinding = (type: string): boolean =>
 
 const modeToBindingMode = (mode: AppWidgetSpec["bindingMode"]): BindingMode =>
   mode === "write" ? "write" : mode === "read" ? "read" : "none";
+
+/**
+ * Widgets whose value is a file the user has to supply on the spot. None of
+ * them starts with a value — a Sketch Pad publishes nothing until the first
+ * stroke — so a run they feed can start with the input unset.
+ */
+const MEDIA_INPUT_WIDGETS = new Set([
+  "ImageInput",
+  "SketchPad",
+  "AudioInput",
+  "VideoInput",
+  "DocumentInput"
+]);
+
+/** True when an input node ships a media value of its own to fall back on. */
+const hasMediaDefault = (value: unknown): boolean => {
+  if (isNonEmptyString(value)) return true;
+  if (!isRecord(value)) return false;
+  return isNonEmptyString(value.uri) || isNonEmptyString(value.asset_id);
+};
+
+/** Record that some widget displays `field` of `operationId`. */
+const addExecField = (
+  fields: Map<string, Set<string>>,
+  operationId: string,
+  field: string
+): void => {
+  const set = fields.get(operationId) ?? new Set<string>();
+  set.add(field);
+  fields.set(operationId, set);
+};
+
+/** What a second click does under each policy, for the re-entry warning. */
+const REENTRY_CONSEQUENCE = {
+  replace: "cancels the running job and starts it again",
+  queue: "queues another run behind the one in flight",
+  parallel: "starts a second run alongside the one in flight"
+} satisfies Record<OperationPolicy, string>;
 
 /**
  * The operations a parsed document declares, as report specs. A document with
@@ -499,6 +539,12 @@ export function validateApp(
   const runnableOperations = new Set<string>();
   /** Operation ids whose execution state a widget shows. */
   const execBindings = new Map<string, string[]>();
+  /** Execution fields a widget actually displays, per operation. */
+  const execFields = new Map<string, Set<string>>();
+  /** Widgets whose click runs an operation — the re-entry surface. */
+  const runTriggers: Array<{ widget: AppWidgetSpec; operationId: string }> = [];
+  /** Media input widgets — the ones a run can start without a value for. */
+  const mediaWidgets: AppWidgetSpec[] = [];
 
   for (const w of spec.widgets) {
     const where = `${w.type} "${w.id}"`;
@@ -576,6 +622,8 @@ export function validateApp(
         );
       } else if (extra.ref.kind === "output") {
         displayedOutputs.add(`${extra.ref.operationId}:${extra.ref.nodeId}`);
+      } else if (extra.ref.kind === "execution") {
+        addExecField(execFields, extra.ref.operationId, extra.ref.field);
       }
     }
     if (w.ref?.kind === "output") {
@@ -585,6 +633,10 @@ export function validateApp(
       const list = execBindings.get(w.ref.operationId) ?? [];
       list.push(`${where} (${w.ref.field})`);
       execBindings.set(w.ref.operationId, list);
+      addExecField(execFields, w.ref.operationId, w.ref.field);
+    }
+    if (MEDIA_INPUT_WIDGETS.has(w.type) && w.ref) {
+      mediaWidgets.push(w);
     }
 
     for (const event of w.events) {
@@ -592,6 +644,9 @@ export function validateApp(
       if (event.kind === "run") {
         hasRunTrigger = true;
         runnableOperations.add(target);
+        if (event.trigger === "click") {
+          runTriggers.push({ widget: w, operationId: target });
+        }
       }
       if (
         (event.kind === "run" || event.kind === "cancel") &&
@@ -628,6 +683,98 @@ export function validateApp(
     );
   }
 
+  // The app's own title is rendered by the runner's header, so a heading
+  // repeating it puts the same words on screen twice.
+  const titleText = spec.title?.trim().toLowerCase();
+  if (titleText) {
+    for (const w of spec.widgets) {
+      if (w.type !== "Heading") continue;
+      if (w.label?.trim().toLowerCase() !== titleText) continue;
+      warnings.push(
+        `Heading "${w.id}" repeats the app title "${spec.title}" — the runner renders the title in the app header, so it shows twice. Give the heading its own text or remove it.`
+      );
+    }
+  }
+
+  // No policy refuses a second click, so an unguarded run button is a race the
+  // user drives: what the second click does depends only on the policy.
+  for (const trigger of runTriggers) {
+    const guard = trigger.widget.disabledWhen?.binding
+      ? resolveBinding(trigger.widget.disabledWhen.binding, scope)
+      : null;
+    if (
+      guard?.kind === "execution" &&
+      guard.operationId === trigger.operationId &&
+      guard.field === "running"
+    ) {
+      continue;
+    }
+    const policy =
+      operations.find((op) => op.id === trigger.operationId)?.policy ??
+      "parallel";
+    warnings.push(
+      `${trigger.widget.type} "${trigger.widget.id}" runs operation "${trigger.operationId}" but has no disabledWhen on its running state — a second click ${REENTRY_CONSEQUENCE[policy]}. Guard it with disabledWhen on "op:${trigger.operationId}/exec#running".`
+    );
+  }
+
+  // A media input starts empty by construction — no file is picked and a Sketch
+  // Pad publishes nothing until the first stroke — so an unguarded run sends
+  // nothing for it. The model answers from the prompt alone or the provider
+  // rejects the call, and either way the run is paid for.
+  const declaredDefaults = new Map(
+    (context?.variables ?? spec.variables).map((v) => [v.id, v.default])
+  );
+  for (const widget of mediaWidgets) {
+    for (const { operationId, input } of operationInputsFilledBy(
+      widget,
+      operations
+    )) {
+      if (!runnableOperations.has(operationId)) continue;
+      if (hasMediaDefault(input.defaultValue)) continue;
+      if (
+        widget.ref?.kind === "variable" &&
+        hasMediaDefault(declaredDefaults.get(widget.ref.variableId))
+      ) {
+        continue;
+      }
+      const guarded = runTriggers.some(
+        (trigger) =>
+          trigger.operationId === operationId &&
+          [trigger.widget.disabledWhen, trigger.widget.visibleWhen].some(
+            (props) => {
+              if (props?.binding == null || widget.stateKey == null) {
+                return false;
+              }
+              const ref = resolveBinding(props.binding, scope);
+              return ref != null && stateKey(ref) === widget.stateKey;
+            }
+          )
+      );
+      if (guarded) continue;
+      warnings.push(
+        `${widget.type} "${widget.id}" fills input "${input.name}" of operation "${operationId}", which has no default — nothing stops a run before the user supplies it. Guard the run trigger with disabledWhen on "${widget.binding ?? widget.canonicalBinding ?? ""}".`
+      );
+    }
+  }
+
+  for (const operationId of runnableOperations) {
+    const shown = execFields.get(operationId) ?? new Set<string>();
+    if (!shown.has("error")) {
+      warnings.push(
+        `No widget shows the error state of operation "${operationId}" — a failed run leaves the app looking idle with nothing explaining why. Add an Alert bound to "op:${operationId}/exec#error".`
+      );
+    }
+    if (
+      !shown.has("running") &&
+      !shown.has("progress") &&
+      !shown.has("activity")
+    ) {
+      warnings.push(
+        `No widget shows the progress of operation "${operationId}" — the user gets no sign a run is underway. Add a Progress bound to "op:${operationId}/exec#progress".`
+      );
+    }
+  }
+
   for (const operation of operations) {
     const label = `Operation "${operation.id}"`;
     if (operation.unavailable) {
@@ -662,6 +809,36 @@ export function validateApp(
   }
 
   return { errors, warnings };
+}
+
+/**
+ * The operation inputs a widget's value reaches: the one it binds directly, and
+ * any input mapped `{from: "variable"}` from the variable it writes — the shape
+ * the shipped apps use, where one picker feeds several operations.
+ */
+function operationInputsFilledBy(
+  widget: AppWidgetSpec,
+  operations: readonly AppOperationSpec[]
+): Array<{ operationId: string; input: AppInputIO }> {
+  const filled: Array<{ operationId: string; input: AppInputIO }> = [];
+  for (const operation of operations) {
+    const inputs = operation.io?.inputs ?? [];
+    for (const input of inputs) {
+      const direct =
+        widget.ref?.kind === "input" &&
+        widget.ref.operationId === operation.id &&
+        widget.ref.nodeId === input.nodeId;
+      const mapping = operation.inputs[input.nodeId];
+      const viaVariable =
+        widget.ref?.kind === "variable" &&
+        mapping?.from === "variable" &&
+        mapping.variableId === widget.ref.variableId;
+      if (direct || viaVariable) {
+        filled.push({ operationId: operation.id, input });
+      }
+    }
+  }
+  return filled;
 }
 
 /** Check one operation's input/output mappings against what the app declares. */
