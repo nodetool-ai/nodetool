@@ -51,6 +51,37 @@ describe("setDefaultModelInterfaces", () => {
     ).resolves.toEqual({ id: "own" });
   });
 
+  it("keeps the interfaces a context did not wire itself", async () => {
+    const getTimelineSequence = vi.fn(async () => null);
+    setDefaultModelInterfaces({
+      createAsset: async () => ({ id: "default" }),
+      getTimelineSequence
+    });
+
+    // The HTTP run route wires the asset pair and nothing else. Replacing the
+    // floor wholesale uninstalled `getTimelineSequence`, so RenderTimeline
+    // threw "model interface is not configured" over HTTP while running fine
+    // from the editor.
+    const context = new ProcessingContext({ jobId: "j4", userId: "u1" });
+    context.setModelInterfaces({ createAsset: async () => ({ id: "own" }) });
+
+    expect(context.hasModelInterface("getTimelineSequence")).toBe(true);
+    await expect(
+      context.getTimelineSequence("t1")
+    ).resolves.toBeNull();
+    expect(getTimelineSequence).toHaveBeenCalledWith({
+      userId: "u1",
+      id: "t1"
+    });
+    await expect(
+      context.createAsset({
+        name: "out.png",
+        contentType: "image/png",
+        content: bytes
+      })
+    ).resolves.toEqual({ id: "own" });
+  });
+
   it("leaves a host that installed nothing exactly as it was", async () => {
     const context = new ProcessingContext({ jobId: "j3", userId: "u1" });
     expect(context.hasModelInterface("createAsset")).toBe(false);
