@@ -980,6 +980,10 @@ export class CodeActExecutor {
         // One assistant message per provider turn, so this counts the round's
         // iterations against the budget the round was given.
         let turnsThisRound = 0;
+        // Every finalized message the round produced, in order: the assistant
+        // turns and the observations the actions returned. The provider copies
+        // the message array, so none of it lands on `history` by itself.
+        const roundMessages: Message[] = [];
 
         for await (const item of stream) {
           if (isProviderStop(item)) {
@@ -1027,6 +1031,9 @@ export class CodeActExecutor {
                 isString(m.content)
                   ? { ...m, content: removeThinkTags(m.content) }
                   : m;
+              roundMessages.push(lastAssistant);
+            } else if (m) {
+              roundMessages.push(m);
             }
           }
           yield* drainUi();
@@ -1039,12 +1046,24 @@ export class CodeActExecutor {
         }
         nudges++;
         // The provider copies the message array, so this round's transcript
-        // never came back to us. Carrying the prose forward is what makes the
-        // nudge a reply to it instead of a repetition of the brief. An empty
-        // assistant turn is not carried: several provider APIs reject a
-        // content-less message outright.
-        if (lastAssistant && hasContent(lastAssistant)) {
-          history.push(lastAssistant);
+        // never came back to us. Carrying the whole round forward — the
+        // actions and the observations they returned, not just the closing
+        // prose — is what lets the model answer the nudge from what it
+        // computed instead of re-deriving it from the brief. A content-less
+        // assistant turn that called nothing is dropped: several provider APIs
+        // reject a message with neither content nor tool calls, and it says
+        // nothing the next round needs. One that carries tool calls always
+        // rides along, otherwise its results arrive orphaned.
+        for (const message of roundMessages) {
+          const toolCalls = message.toolCalls;
+          if (
+            message.role === "assistant" &&
+            !hasContent(message) &&
+            (!toolCalls || toolCalls.length === 0)
+          ) {
+            continue;
+          }
+          history.push(message);
         }
         history.push({ role: "user", content: FINISH_CONTRACT_NUDGE });
         log.debug("CodeAct step ended in prose; re-prompting to finish", {
