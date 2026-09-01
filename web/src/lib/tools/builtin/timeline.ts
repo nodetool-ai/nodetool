@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { ANIMATION_PRESETS } from "@nodetool-ai/timeline";
+import {
+  ANIMATED_PROPERTIES,
+  ANIMATION_PRESETS,
+  CUSTOM_ANIMATION_CONTRACT
+} from "@nodetool-ai/timeline";
 import { FrontendToolRegistry } from "../frontendTools";
 import { getTimelineAgentHandler } from "../../../components/timeline/timelineAgentBridge";
 import { docUrl } from "./resourceLinks";
@@ -36,6 +40,50 @@ const targetParam = z
   .describe(
     'Clip id, clip name (case-insensitive), or the literal "selected" for the currently-selected clip.'
   );
+
+/**
+ * The `custom` preset's inputs: keyframes written out, or a body baked into
+ * them. Values are checked by the engine's own gates
+ * (`normalizeCustomCurves`, `resolveCustomMask`), so Zod only pins the shape.
+ */
+const customCurvesParam = z
+  .array(
+    z.object({
+      property: z
+        .string()
+        .describe(`One of: ${ANIMATED_PROPERTIES.join(", ")}.`),
+      keyframes: z
+        .array(
+          z.object({
+            t: z.number().describe("0..1 across the animation's window."),
+            value: z.number(),
+            easing: z.string().optional()
+          })
+        )
+        .min(1)
+    })
+  )
+  .optional()
+  .describe(
+    'Keyframes for `preset: "custom"`. Exactly one of `curves` and `code`.'
+  );
+
+const customCodeParam = z
+  .string()
+  .optional()
+  .describe(
+    'JS body for `preset: "custom"`, baked into curves once, host-side. ' +
+      "It returns `{curves}` or `{samples}` and reads its clip context off " +
+      "`inputs`. Exactly one of `curves` and `code`."
+  );
+
+const customMaskParam = z
+  .object({
+    direction: z.enum(["left", "right", "up", "down"]),
+    softness: z.number().min(0).max(1)
+  })
+  .optional()
+  .describe("Required when a curve drives wipeProgress, ignored otherwise.");
 
 FrontendToolRegistry.register({
   name: "ui_timeline_get_state",
@@ -373,7 +421,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_animate_clip",
   description:
-    'Attach motion-design animations to a clip — no keyframing, just named presets. Roles: `in` (entrance: fade, slide, pop, spin, wipe, blur, colorFade), `out` (exit: fade, slide, pop, spin, wipe, blur, colorFade), `emphasis` (mid-clip: pulse, flash, shake, bounce), `loop` (continuous: kenBurns, float, breathe, rotate). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. On text clips, add `stagger` for per-word motion typography: each word runs the animation for `durationMs`, offset `stagger.offsetMs` from the previous word (`from`: start|end|center picks the leading word) — e.g. a pop-in title whose words land one after another. `mode` "replace" (default) swaps the clip\'s animations; "add" appends. Call ui_timeline_list_animation_presets for the full param list. Recommended loop: ui_timeline_get_state -> animate -> ui_timeline_get_clip_frames at the window boundaries -> adjust.',
+    'Attach motion-design animations to a clip — no keyframing, just named presets. Roles: `in` (entrance: fade, slide, pop, spin, wipe, blur, colorFade), `out` (exit: fade, slide, pop, spin, wipe, blur, colorFade), `emphasis` (mid-clip: pulse, flash, shake, bounce), `loop` (continuous: kenBurns, float, breathe, rotate). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. On text clips, add `stagger` for per-word motion typography: each word runs the animation for `durationMs`, offset `stagger.offsetMs` from the previous word (`from`: start|end|center picks the leading word) — e.g. a pop-in title whose words land one after another. For motion no preset covers, use `preset: "custom"` with exactly one of `curves` (keyframes you write: [{property, keyframes:[{t, value, easing?}]}], `t` running 0..1 over the window) or `code` (a JS body baked into curves once); add `mask` when a curve drives wipeProgress. `mode` "replace" (default) swaps the clip\'s animations; "add" appends. Call ui_timeline_list_animation_presets for the full param list and the animatable properties. Recommended loop: ui_timeline_get_state -> animate -> ui_timeline_get_clip_frames at the window boundaries -> adjust.',
   parameters: z.object({
     timeline_id: timelineIdParam,
     target: targetParam,
@@ -385,7 +433,7 @@ FrontendToolRegistry.register({
           preset: z
             .string()
             .describe(
-              "Preset id, e.g. fade, slide, wipe, pop, kenBurns, float."
+              'Preset id, e.g. fade, slide, wipe, pop, kenBurns, float — or "custom" with `curves` or `code`.'
             ),
           durationMs: z.number().positive().optional(),
           delayMs: z.number().nonnegative().optional(),
@@ -393,6 +441,9 @@ FrontendToolRegistry.register({
           params: z
             .record(z.string(), z.union([z.number(), z.string(), z.boolean()]))
             .optional(),
+          curves: customCurvesParam,
+          code: customCodeParam,
+          mask: customMaskParam,
           stagger: z
             .object({
               unit: z.literal("word"),
@@ -449,7 +500,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_list_animation_presets",
   description:
-    "List the motion-design animation presets: id, allowed roles, params (with defaults and ranges), default duration/easing, and a one-line description. Use this to discover the exact preset names and params for ui_timeline_animate_clip.",
+    "List the motion-design animation presets: id, allowed roles, params (with defaults and ranges), default duration/easing, and a one-line description. Also returns the `custom` preset's contract and every animatable property with its fold, identity and range, for keyframed motion no preset covers. Use this to discover the exact preset names and params for ui_timeline_animate_clip.",
   parameters: z.object({}),
   async execute() {
     const presets = ANIMATION_PRESETS.map((p) => ({
@@ -460,7 +511,12 @@ FrontendToolRegistry.register({
       params: p.params,
       describe: p.describe
     }));
-    return { ok: true, presets };
+    return {
+      ok: true,
+      presets,
+      custom: CUSTOM_ANIMATION_CONTRACT,
+      properties: CUSTOM_ANIMATION_CONTRACT.properties
+    };
   }
 });
 

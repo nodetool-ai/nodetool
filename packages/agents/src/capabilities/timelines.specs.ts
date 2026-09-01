@@ -128,7 +128,13 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "list_animation_presets, select_clip, seek. Start with get_state to " +
         "read track and clip ids. To lay existing videos end to end, call " +
         'add_media_clip once per asset ({"op": "add_media_clip", "asset": ' +
-        '"asset://<id>.mp4"}) — each appends after the last.',
+        '"asset://<id>.mp4"}) — each appends after the last. animate_clip ' +
+        'takes catalog presets and, for motion none of them covers, ' +
+        '{"preset": "custom"} with exactly one of `curves` ' +
+        '([{property, keyframes: [{t, value, easing?}]}], `t` running 0..1 ' +
+        "over the animation's window) or `code` (a JS body baked into curves " +
+        "once, host-side); add `mask` when a curve drives wipeProgress. " +
+        "list_animation_presets reports the animatable properties.",
       items: { type: "object" }
     }
   },
@@ -313,7 +319,8 @@ export const editTimelineSpec: CapabilitySpec = {
   description:
     "Edit a saved timeline sequence headlessly: add tracks, add text and " +
     "shape clips, split, trim, move, duplicate and delete clips, set clip " +
-    "params and workflow bindings, and animate clips with presets. Pass a " +
+    "params and workflow bindings, and animate clips with presets or " +
+    "keyframed custom curves. Pass a " +
     "list of operations; they run in order against the stored document and " +
     "the result is saved. An open editor picks the change up live. Call " +
     "list_timelines to find a sequence and validate_timeline afterwards. " +
