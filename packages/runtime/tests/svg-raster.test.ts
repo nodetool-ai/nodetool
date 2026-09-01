@@ -93,12 +93,17 @@ describe("rasterizeSvg", () => {
   it.each([
     ["url( followed by spaces and never closed", `url(${" ".repeat(20000)}`],
     ["an href quote opened and never closed", `<svg href="${" ".repeat(20000)}`],
-    ["doubled spaces throughout", `<svg ${"  ".repeat(20000)}/>`]
+    ["doubled spaces throughout", `<svg ${"  ".repeat(20000)}/>`],
+    ["nothing but url( openers", "url(".repeat(500000)],
+    ["nothing but href= openers", "href=".repeat(500000)],
+    ["an href with a long run of spaces before its =", `href${" ".repeat(200000)}`]
   ])("scans %s in linear time", async (_label, markup) => {
-    // The reference screen used to filter values inline, which put `\s*` beside
-    // a class that also matches whitespace. `"url(" + 2000 spaces` — markup a
-    // model can produce by accident — did not finish in five minutes, so
-    // `view_image` on an agent-written SVG was a way to hang the process.
+    // Two shapes of the same bug, both found by CodeQL and both reproduced
+    // before fixing. A regex that screened the value inline put `\s*` beside a
+    // class matching whitespace, and `"url(" + 2000 spaces` did not finish in
+    // five minutes. Matching the value at all then restarted the scan at every
+    // candidate: `"url(".repeat(400_000)` took 15 seconds. Either one made
+    // `view_image` on an agent-written SVG a way to hang the process.
     const started = Date.now();
     await rasterizeSvg(bytes(markup)).catch(() => undefined);
     expect(Date.now() - started).toBeLessThan(2000);

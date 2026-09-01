@@ -103,23 +103,46 @@ export async function encodeRawImageRef<T>(ref: T): Promise<T | ImageRef> {
 }
 
 /**
- * Every place an SVG can name a resource: an `href` / `xlink:href` attribute,
- * and a CSS `url()`.
+ * Where an SVG can name a resource: an `href` / `xlink:href` attribute, and a
+ * CSS `url()`. Used to *split* the markup, so each piece that follows is where
+ * one value begins.
  *
- * Matches the reference and nothing about its contents — deciding whether a
- * value points outside the document is {@link isExternalReference}'s job. That
- * split is not stylistic. The first version of this regex screened the value
- * inline, which put `\s*` next to `[^"']+` and next to an optional quote in
- * `url(\s*['"]?\s*…`; both give the engine many ways to split one run of
- * spaces, and `"url(" + 2000 spaces` — an input a model can produce by
- * accident — did not finish in five minutes. Every quantifier here is bounded
- * by a delimiter it cannot itself match, so the scan is linear.
+ * Splitting rather than matching the values is the whole point, and it took
+ * two CodeQL findings to arrive at. A regex that matches a value restarts at
+ * the next candidate when it fails, and a value scan that runs to the end of
+ * the document on each of n candidates is quadratic: `"url(" + 2000 spaces`
+ * never finished against the first version, and `"url(".repeat(400_000)`
+ * took 15s against the second. Pieces, by contrast, partition the document —
+ * bounded work per piece sums to linear however many openers there are.
  */
-const SVG_REFERENCE = /(?:xlink:href|href)\s*=\s*["']([^"']*)["']|url\(([^)]*)\)/gi;
+const REFERENCE_OPENER = /(url\(|(?:xlink:)?href\s*=\s*)/i;
 
-/** Strip one layer of surrounding quotes and whitespace from a raw reference. */
-const unquote = (value: string): string =>
-  value.trim().replace(/^["']/, "").replace(/["']$/, "").trim();
+/** Longest value the screen reads. Past this it is not a URL anyone meant. */
+const MAX_REFERENCE_VALUE = 2048;
+
+const isSpace = (ch: string): boolean =>
+  ch === " " || ch === "\t" || ch === "\n" || ch === "\r" || ch === "\f";
+
+/** Characters that end a reference value in either syntax. */
+const VALUE_END = new Set([")", '"', "'", ">", " ", "\t", "\n", "\r", "\f"]);
+
+/**
+ * Read the value out of the text following an opener.
+ *
+ * Truncating at {@link MAX_REFERENCE_VALUE} is safe in the direction that
+ * matters: the value is only tested for a `#` or `data:` prefix, and a
+ * truncated value keeps its prefix — so a long `data:` payload still reads as
+ * internal, and anything else still reads as external.
+ */
+function referenceValue(piece: string): string {
+  let i = 0;
+  while (i < piece.length && isSpace(piece[i]!)) i++;
+  if (piece[i] === '"' || piece[i] === "'") i++;
+  const start = i;
+  const limit = Math.min(piece.length, start + MAX_REFERENCE_VALUE);
+  while (i < limit && !VALUE_END.has(piece[i]!)) i++;
+  return piece.slice(start, i);
+}
 
 /**
  * Whether a reference points outside the document. A fragment (`#id`) and a
@@ -128,13 +151,16 @@ const unquote = (value: string): string =>
 function isExternalReference(value: string): boolean {
   if (!value) return false;
   if (value.startsWith("#")) return false;
-  return !/^data:/i.test(value);
+  return !value.slice(0, 5).toLowerCase().startsWith("data:");
 }
 
 /** The first reference in this markup that points outside it, if any. */
 function firstExternalReference(markup: string): string | null {
-  for (const match of markup.matchAll(SVG_REFERENCE)) {
-    const value = unquote(match[1] ?? match[2] ?? "");
+  // One capture group, so `split` interleaves: text, opener, text, opener, …
+  // Every even index from 2 up is the text a value starts in.
+  const parts = markup.split(REFERENCE_OPENER);
+  for (let i = 2; i < parts.length; i += 2) {
+    const value = referenceValue(parts[i]!);
     if (isExternalReference(value)) return value;
   }
   return null;
