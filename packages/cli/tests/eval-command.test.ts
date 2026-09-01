@@ -50,7 +50,6 @@ describe("registerEvalCommand", () => {
           "--list",
           "--json",
           "--out",
-          "--max-retries",
           "--judge-model",
           "--min-success",
           "--min-score",
