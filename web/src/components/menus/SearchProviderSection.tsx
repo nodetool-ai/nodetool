@@ -25,15 +25,18 @@ import {
   DEFAULT_SERP_PROVIDER,
   type SerpProviderId
 } from "../../utils/searchProviders";
+import { matchesSearch } from "./settingsSearch";
 
 interface SearchProviderSectionProps {
   settingValues: Record<string, string>;
   onChange: (envVar: string, value: string) => void;
+  search?: string;
 }
 
 const SearchProviderSection = memo(function SearchProviderSection({
   settingValues,
-  onChange
+  onChange,
+  search = ""
 }: SearchProviderSectionProps) {
   const theme = useTheme();
   const selectedProvider = (settingValues["SERP_PROVIDER"] ||
@@ -60,6 +63,15 @@ const SearchProviderSection = memo(function SearchProviderSection({
     },
     [onChange]
   );
+
+  if (
+    !matchesSearch(
+      "search provider serp brave serpapi dataforseo apify",
+      search
+    )
+  ) {
+    return null;
+  }
 
   return (
     <div className="settings-section">

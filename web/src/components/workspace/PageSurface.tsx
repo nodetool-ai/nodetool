@@ -48,8 +48,8 @@ const SCROLLING_SURFACE_STYLE: React.CSSProperties = {
 };
 
 // These pages fill the tab and scroll inside their own chrome. The rest
-// (settings, costs, …) are document-length and scroll this surface.
-const SELF_SCROLLING_PAGES = new Set<PageTabKey>(["assets"]);
+// (costs, …) are document-length and scroll this surface.
+const SELF_SCROLLING_PAGES = new Set<PageTabKey>(["assets", "settings"]);
 
 interface PageSurfaceProps {
   pageKey: PageTabKey;

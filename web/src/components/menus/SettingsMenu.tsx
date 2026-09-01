@@ -13,12 +13,13 @@ import {
   LabeledSwitch,
   SelectField,
   Text,
+  Caption,
+  TextLink,
   Tooltip,
   EditorButton,
   FlexColumn,
   Box,
-  Tabs,
-  Tab,
+  TabGroup,
   SPACING,
   DocsHelpLink
 } from "../ui_primitives";
@@ -56,34 +57,19 @@ import {
 import { isFunction } from "../../utils/typePredicates";
 import { NumberSetting } from "./NumberSetting";
 import StorageHistorySettings from "../settings/StorageHistorySettings";
+import {
+  SETTINGS_TAB_ITEMS,
+  matchesSearch,
+  otherMatchingTabs,
+  settingsTabLabel,
+  tabHasMatches
+} from "./settingsSearch";
 
-// Tab indices. Models, Collections, Workspaces, and the Package Manager now
-// live as standalone full-screen pages reachable from the logo menu.
-const TAB_GENERAL = 0;
-const TAB_API_KEYS = 1;
-const TAB_INTEGRATIONS = 2;
-const aboutTabIndex = 3;
+const settingsDocsTopic = (section: SettingsSection): DocsTopic =>
+  section === "providers" ? "providers" : "configuration";
 
-// Section names are the public handle — `openSettingsTab("providers")` — so a
-// caller never depends on the tab order.
-const SECTION_TO_TAB = {
-  general: TAB_GENERAL,
-  providers: TAB_API_KEYS,
-  integrations: TAB_INTEGRATIONS,
-  about: aboutTabIndex
-} satisfies Record<SettingsSection, number>;
-const TAB_TO_SECTION: SettingsSection[] = [
-  "general",
-  "providers",
-  "integrations",
-  "about"
-];
-
-const settingsDocsTopic = (tab: number): DocsTopic =>
-  tab === TAB_API_KEYS ? "providers" : "configuration";
-
-const settingsDocsLabel = (tab: number): string =>
-  tab === TAB_API_KEYS ? "Models & providers" : "Configuration";
+const settingsDocsLabel = (section: SettingsSection): string =>
+  section === "providers" ? "Models & providers" : "Configuration";
 
 const UPDATE_CHANNEL_OPTIONS = [
   { value: "latest", label: "Stable" },
@@ -122,23 +108,23 @@ const TIME_FORMAT_OPTIONS = [
 
 interface TabPanelProps {
   children?: React.ReactNode;
-  index: number;
-  value: number;
+  section: SettingsSection;
+  current: SettingsSection;
 }
 
 const TabPanel = React.memo(function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
+  const { children, section, current, ...other } = props;
 
   return (
     <div
       role="tabpanel"
-      hidden={value !== index}
-      id={`settings-tabpanel-${index}`}
-      aria-labelledby={`settings-tab-${index}`}
+      hidden={section !== current}
+      id={`settings-tabpanel-${section}`}
+      aria-labelledby={`settings-tab-${section}`}
       className="tab-panel"
       {...other}
     >
-      {value === index && <Box className="tab-panel-content">{children}</Box>}
+      {section === current && <Box className="tab-panel-content">{children}</Box>}
     </div>
   );
 });
@@ -180,21 +166,6 @@ function SettingsPage() {
   const setSection = useSettingsPageStore((state) => state.setSection);
   const session = useAuth((state) => state.session);
 
-  const tabSubtitle = (tab: number): string => {
-    switch (tab) {
-      case TAB_GENERAL:
-        return "Editor and workspace preferences.";
-      case TAB_API_KEYS:
-        return "Provider API keys and credentials.";
-      case TAB_INTEGRATIONS:
-        return "Service endpoints, MCP servers, storage, and the Nodetool API.";
-      default:
-        return "Manage API keys, providers, and editor preferences.";
-    }
-  };
-
-  const settingsTab = SECTION_TO_TAB[section];
-
   const setSnapToGrid = useSettingsStore((state) => state.setSnapToGrid);
   const setGridSnap = useSettingsStore((state) => state.setGridSnap);
   const setConnectionSnap = useSettingsStore(
@@ -217,18 +188,15 @@ function SettingsPage() {
   );
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const settings = useSettingsStore((state) => state.settings);
-  const [apiSearchTerm, setApiSearchTerm] = useState("");
-  const [generalSearchTerm, setGeneralSearchTerm] = useState("");
-  const generalSearch = generalSearchTerm.toLowerCase().trim();
-  // Sections/components that aren't individual settings rows still need to hide
-  // when they don't match the search.
+  const [searchTerm, setSearchTerm] = useState("");
+  const search = searchTerm.toLowerCase().trim();
   const generalMatches = useCallback(
-    (keywords: string) =>
-      !generalSearch || keywords.toLowerCase().includes(generalSearch),
-    [generalSearch]
+    (keywords: string) => matchesSearch(keywords, search),
+    [search]
   );
 
   const [activeSection, setActiveSection] = useState("editor");
+  const skipScrollSpyUntilRef = useRef(0);
   const [, setSecretsUpdated] = useState(0);
   const settingsContentRef = useRef<HTMLDivElement | null>(null);
   const [closeBehavior, setCloseBehavior] = useState<
@@ -346,11 +314,16 @@ function SettingsPage() {
     return unsubscribe;
   }, []);
 
-  const handleTabChange = useCallback(
-    (_event: React.SyntheticEvent, newValue: number) => {
-      setSection(TAB_TO_SECTION[newValue] ?? "general");
-      setApiSearchTerm("");
-      setGeneralSearchTerm("");
+  const handleSectionChange = useCallback(
+    (next: string) => {
+      if (
+        next === "general" ||
+        next === "providers" ||
+        next === "integrations" ||
+        next === "about"
+      ) {
+        setSection(next);
+      }
     },
     [setSection]
   );
@@ -434,8 +407,8 @@ function SettingsPage() {
 
   const scrollToSection = (sectionId: string) => {
     setActiveSection(sectionId);
+    skipScrollSpyUntilRef.current = Date.now() + 500;
 
-    // Scope scrolling to this component's visible tab panel.
     requestAnimationFrame(() => {
       const container = settingsContentRef.current;
       if (!container) {
@@ -467,34 +440,27 @@ function SettingsPage() {
     });
   };
 
-  // Tab 0: General sidebar folders — every section listed, in page order.
   const generalSidebarSections = [
     {
       category: "Workspace",
       items: [
         { id: "editor", label: "Editor" },
         ...(isElectron ? [{ id: "updates", label: "Updates" }] : []),
-        ...(isElectron ? [{ id: "vaults", label: "Vaults" }] : [])
+        ...(isElectron ? [{ id: "vaults", label: "Vaults" }] : []),
+        { id: "appearance", label: "Appearance" }
       ]
     },
     {
-      category: "Execution",
-      items: [{ id: "execution", label: "Execution" }]
-    },
-    {
-      category: "Canvas",
-      items: [{ id: "canvas-navigation", label: "Canvas & Navigation" }]
-    },
-    {
-      category: "AI",
-      items: [{ id: "default-models", label: "Default Models" }]
+      category: "Workflow",
+      items: [
+        { id: "execution", label: "Execution" },
+        { id: "canvas-navigation", label: "Canvas" },
+        { id: "default-models", label: "Default Models" }
+      ]
     },
     {
       category: "History",
-      items: [
-        { id: "autosave", label: "Autosave" },
-        { id: "appearance", label: "Appearance" }
-      ]
+      items: [{ id: "autosave", label: "Autosave" }]
     }
   ];
 
@@ -543,6 +509,58 @@ function SettingsPage() {
     ];
   }, [remoteSettings, session?.access_token]);
 
+  const sidebarSections =
+    section === "general"
+      ? generalSidebarSections
+      : section === "integrations"
+        ? integrationsSidebarSections
+        : section === "about"
+          ? getAboutSidebarSections()
+          : [];
+
+  useEffect(() => {
+    const container = settingsContentRef.current;
+    if (!container) {
+      return;
+    }
+    const panel = container.querySelector(".tab-panel:not([hidden])");
+    if (!panel) {
+      return;
+    }
+    const headings = [
+      ...panel.querySelectorAll<HTMLElement>(".settings-heading[id]")
+    ];
+    if (headings.length === 0) {
+      return;
+    }
+    setActiveSection(headings[0].id);
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (Date.now() < skipScrollSpyUntilRef.current) {
+          return;
+        }
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        const id = visible[0]?.target.id;
+        if (id) {
+          setActiveSection(id);
+        }
+      },
+      {
+        root: container,
+        rootMargin: "-8% 0px -72% 0px",
+        threshold: 0
+      }
+    );
+    headings.forEach((heading) => observer.observe(heading));
+    return () => observer.disconnect();
+  }, [section, search]);
+
+  const matchingOtherTabs = otherMatchingTabs(section, searchTerm);
+  const currentTabHasMatches = tabHasMatches(section, searchTerm);
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   // The right sidebar is wider than the search/cards layout it sits next to;
@@ -565,78 +583,86 @@ function SettingsPage() {
             <div className="settings-page-header__heading">
               <h1 className="settings-page-header__title">Settings</h1>
               <DocsHelpLink
-                topic={settingsDocsTopic(settingsTab)}
-                label={settingsDocsLabel(settingsTab)}
+                topic={settingsDocsTopic(section)}
+                label={settingsDocsLabel(section)}
               />
             </div>
-            <p className="settings-page-header__subtitle">
-              {settingsTab === aboutTabIndex
-                ? "About this application."
-                : tabSubtitle(settingsTab)}
-            </p>
+          </div>
+          <div className="settings-page-header__search">
+            <SearchInput
+              placeholder="Search settings..."
+              value={searchTerm}
+              onChange={setSearchTerm}
+              size="medium"
+              fullWidth
+              showClear
+              ariaLabel="Search settings"
+            />
           </div>
         </header>
 
           <div className="settings-menu">
             <div className="sticky-header">
-              <Tabs
-                value={settingsTab}
-                onChange={handleTabChange}
+              <TabGroup
                 className="settings-tabs"
                 aria-label="settings tabs"
+                tabs={[...SETTINGS_TAB_ITEMS]}
+                value={section}
+                onChange={handleSectionChange}
                 variant={isMobile ? "scrollable" : "standard"}
                 scrollButtons={false}
-              >
-                <Tab label="General" id="settings-tab-0" />
-                <Tab label="Models & Providers" id="settings-tab-1" />
-                <Tab label="Integrations" id="settings-tab-2" />
-                <Tab label="About" id={`settings-tab-${aboutTabIndex}`} />
-              </Tabs>
+                size="small"
+              />
             </div>
 
-            <div className={`settings-container${settingsTab === TAB_API_KEYS && !isCompact ? " settings-container--api-keys" : ""}`}>
-              {!isMobile &&
-                (settingsTab === TAB_GENERAL ||
-                  settingsTab === TAB_INTEGRATIONS ||
-                  settingsTab === aboutTabIndex) && (
+            <div className={`settings-container${section === "providers" && !isCompact ? " settings-container--api-keys" : ""}`}>
+              {!isMobile && section !== "providers" && (
                   <SettingsSidebar
-                    key={`sidebar-${settingsTab}`}
+                    key={`sidebar-${section}`}
                     activeSection={activeSection}
-                    sections={
-                      settingsTab === TAB_GENERAL
-                        ? generalSidebarSections
-                        : settingsTab === TAB_INTEGRATIONS
-                          ? integrationsSidebarSections
-                          : settingsTab === aboutTabIndex
-                            ? getAboutSidebarSections()
-                            : []
-                    }
+                    sections={sidebarSections}
                     onSectionClick={scrollToSection}
                   />
                 )}
 
               <div
-                className={`settings-content${settingsTab === TAB_API_KEYS ? " settings-content--api-keys" : ""}`}
+                className={`settings-content${section === "providers" ? " settings-content--api-keys" : ""}`}
                 ref={settingsContentRef}
               >
+                {search && (
+                  <div className="settings-search-alts">
+                    {!currentTabHasMatches && (
+                      <Caption>
+                        No matches in {settingsTabLabel(section)}.
+                      </Caption>
+                    )}
+                    {matchingOtherTabs.length > 0 && (
+                      <>
+                        <Caption>
+                          {currentTabHasMatches ? "Also in" : "See"}
+                        </Caption>
+                        {matchingOtherTabs.map((tab) => (
+                          <TextLink
+                            key={tab}
+                            asButton
+                            onClick={() => setSection(tab)}
+                          >
+                            {settingsTabLabel(tab)}
+                          </TextLink>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                )}
                 {/* Tab 0: General */}
-                <TabPanel value={settingsTab} index={TAB_GENERAL}>
-                  <Box sx={{ marginBottom: theme.spacing(SPACING.xxl) }}>
-                    <SearchInput
-                      placeholder="Search settings..."
-                      value={generalSearchTerm}
-                      onChange={setGeneralSearchTerm}
-                      size="small"
-                      showClear
-                    />
-                  </Box>
+                <TabPanel section="general" current={section}>
                   <div className="general-settings">
                     <div className="settings-section">
                       <Text size="big" id="editor" className="settings-heading">
                         Editor
                       </Text>
                       <SearchItem
-                        search={generalSearch}
+                        search={search}
                         keywords="editor workspace select nodes on drag selection"
                       >
                         <LabeledSwitch
@@ -655,7 +681,7 @@ function SettingsPage() {
 
                       {isElectron && (
                         <SearchItem
-                          search={generalSearch}
+                          search={search}
                           keywords="editor workspace sound notifications beep"
                         >
                           <LabeledSwitch
@@ -667,42 +693,45 @@ function SettingsPage() {
                         </SearchItem>
                       )}
 
-                      {supportsDesktopUpdateSettings && (
-                        <SearchItem
-                          search={generalSearch}
-                          keywords="editor workspace updates automatic desktop"
-                        >
-                          <LabeledSwitch
-                            label="Automatic Updates"
-                            checked={autoUpdatesEnabled}
-                            onChange={handleAutoUpdatesChange}
-                            description="Check for and download desktop app updates from the selected release channel."
-                          />
-                        </SearchItem>
-                      )}
+                    </div>
 
-                      {supportsDesktopUpdateSettings && (
+                    {isElectron && (
+                      <div className="settings-section">
+                        <Text size="big" id="updates" className="settings-heading">
+                          Updates
+                        </Text>
+                        {supportsDesktopUpdateSettings && (
+                          <SearchItem
+                            search={search}
+                            keywords="editor workspace updates automatic desktop"
+                          >
+                            <LabeledSwitch
+                              label="Automatic Updates"
+                              checked={autoUpdatesEnabled}
+                              onChange={handleAutoUpdatesChange}
+                              description="Check for and download desktop app updates from the selected release channel."
+                            />
+                          </SearchItem>
+                        )}
+                        {supportsDesktopUpdateSettings && (
+                          <SearchItem
+                            search={search}
+                            keywords="editor workspace update channel stable nightly"
+                          >
+                            <SelectField
+                              label="Update Channel"
+                              value={updateChannel}
+                              onChange={handleUpdateChannelChange}
+                              options={UPDATE_CHANNEL_OPTIONS}
+                            />
+                            <Text className="description">
+                              Stable follows full releases. Nightly follows prerelease nightly builds.
+                              Nightly builds default to the Nightly channel.
+                            </Text>
+                          </SearchItem>
+                        )}
                         <SearchItem
-                          search={generalSearch}
-                          id="updates"
-                          keywords="editor workspace update channel stable nightly"
-                        >
-                          <SelectField
-                            label="Update Channel"
-                            value={updateChannel}
-                            onChange={handleUpdateChannelChange}
-                            options={UPDATE_CHANNEL_OPTIONS}
-                          />
-                          <Text className="description">
-                            Stable follows full releases. Nightly follows prerelease nightly builds.
-                            Nightly builds default to the Nightly channel.
-                          </Text>
-                        </SearchItem>
-                      )}
-
-                      {isElectron && (
-                        <SearchItem
-                          search={generalSearch}
+                          search={search}
                           keywords="editor workspace on close behavior quit background tray"
                         >
                           <SelectField
@@ -726,10 +755,35 @@ function SettingsPage() {
                             tray.
                           </Text>
                         </SearchItem>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
-                    {isElectron && <VaultsSettings />}
+                    {isElectron &&
+                      generalMatches("vaults isolated database") && (
+                        <VaultsSettings />
+                      )}
+
+                    <div className="settings-section">
+                      <Text
+                        size="big"
+                        id="appearance"
+                        className="settings-heading"
+                      >
+                        Appearance
+                      </Text>
+                      <SearchItem
+                        search={search}
+                        keywords="appearance time format 12h 24h"
+                      >
+                        <SelectField
+                          label="Time Format"
+                          value={settings.timeFormat}
+                          onChange={handleTimeFormatChange}
+                          options={TIME_FORMAT_OPTIONS}
+                          description="Display time in 12h or 24h format."
+                        />
+                      </SearchItem>
+                    </div>
 
                     <div className="settings-section">
                       <Text
@@ -740,7 +794,7 @@ function SettingsPage() {
                         Execution
                       </Text>
                       <SearchItem
-                        search={generalSearch}
+                        search={search}
                         keywords="execution warn before large runs confirmation"
                       >
                         <LabeledSwitch
@@ -754,7 +808,7 @@ function SettingsPage() {
                       </SearchItem>
 
                       <SearchItem
-                        search={generalSearch}
+                        search={search}
                         keywords="execution large-run threshold"
                       >
                         <NumberSetting
@@ -771,7 +825,7 @@ function SettingsPage() {
                       </SearchItem>
 
                       <SearchItem
-                        search={generalSearch}
+                        search={search}
                         keywords="audio buffer latency realtime synth playback dropout"
                       >
                         <NumberSetting
@@ -788,7 +842,7 @@ function SettingsPage() {
                       </SearchItem>
 
                       <SearchItem
-                        search={generalSearch}
+                        search={search}
                         keywords="execution max concurrent jobs runs queue concurrency parallel"
                       >
                         <ServerNumberSetting
@@ -802,7 +856,7 @@ function SettingsPage() {
                       </SearchItem>
 
                       <SearchItem
-                        search={generalSearch}
+                        search={search}
                         keywords="execution max concurrent runs per workflow same queue concurrency parallel"
                       >
                         <ServerNumberSetting
@@ -825,7 +879,7 @@ function SettingsPage() {
                         Canvas & Navigation
                       </Text>
                       <SearchItem
-                        search={generalSearch}
+                        search={search}
                         keywords="canvas navigation pan controls mouse select left click drag"
                       >
                         <SelectField
@@ -850,7 +904,7 @@ function SettingsPage() {
                       </SearchItem>
 
                       <SearchItem
-                        search={generalSearch}
+                        search={search}
                         keywords="canvas navigation node selection mode full partial"
                       >
                         <SelectField
@@ -869,7 +923,7 @@ function SettingsPage() {
                       </SearchItem>
 
                       <SearchItem
-                        search={generalSearch}
+                        search={search}
                         keywords="canvas navigation grid snap align nodes"
                       >
                         <LabeledSwitch
@@ -881,7 +935,7 @@ function SettingsPage() {
                       </SearchItem>
 
                       <SearchItem
-                        search={generalSearch}
+                        search={search}
                         keywords="canvas navigation grid snap precision"
                       >
                         <NumberSetting
@@ -898,7 +952,7 @@ function SettingsPage() {
                       </SearchItem>
 
                       <SearchItem
-                        search={generalSearch}
+                        search={search}
                         keywords="canvas navigation connection snap range"
                       >
                         <NumberSetting
@@ -927,7 +981,7 @@ function SettingsPage() {
                         Autosave & Version History
                       </Text>
                       <SearchItem
-                        search={generalSearch}
+                        search={search}
                         keywords="autosave version history enable"
                       >
                         <LabeledSwitch
@@ -941,7 +995,7 @@ function SettingsPage() {
                       </SearchItem>
 
                       <SearchItem
-                        search={generalSearch}
+                        search={search}
                         keywords="autosave version history interval minutes"
                       >
                         <SelectField
@@ -959,7 +1013,7 @@ function SettingsPage() {
                       </SearchItem>
 
                       <SearchItem
-                        search={generalSearch}
+                        search={search}
                         keywords="autosave version history save before running checkpoint"
                       >
                         <LabeledSwitch
@@ -975,7 +1029,7 @@ function SettingsPage() {
                       </SearchItem>
 
                       <SearchItem
-                        search={generalSearch}
+                        search={search}
                         keywords="autosave version history save on window close"
                       >
                         <LabeledSwitch
@@ -994,72 +1048,53 @@ function SettingsPage() {
                         "autosave version history storage database cleanup limits runs compact"
                       ) && <StorageHistorySettings />}
                     </div>
-
-                    <div className="settings-section">
-                      <Text
-                        size="big"
-                        id="appearance"
-                        className="settings-heading"
-                      >
-                        Appearance
-                      </Text>
-                      <SearchItem
-                        search={generalSearch}
-                        keywords="appearance time format 12h 24h"
-                      >
-                        <SelectField
-                          label="Time Format"
-                          value={settings.timeFormat}
-                          onChange={handleTimeFormatChange}
-                          options={TIME_FORMAT_OPTIONS}
-                          description="Display time in 12h or 24h format."
-                        />
-                      </SearchItem>
-                    </div>
                   </div>
                 </TabPanel>
 
-                {/* Tab 1: API Keys (provider credentials only) */}
-                <TabPanel value={settingsTab} index={TAB_API_KEYS}>
-                  <Box sx={{ marginBottom: theme.spacing(SPACING.xxl) }}>
-                    <SearchInput
-                      placeholder="Search providers..."
-                      value={apiSearchTerm}
-                      onChange={setApiSearchTerm}
-                      size="small"
-                      showClear
-                    />
-                  </Box>
-                  <APIKeysTabContent searchTerm={apiSearchTerm} />
+                <TabPanel section="providers" current={section}>
+                  <APIKeysTabContent searchTerm={searchTerm} />
                   <Box sx={{ marginTop: theme.spacing(SPACING.xxl) }}>
                     <SecurityNotice />
                   </Box>
                 </TabPanel>
 
-                {/* Tab 2: Integrations (endpoints, MCP, storage, Nodetool API) */}
-                <TabPanel value={settingsTab} index={TAB_INTEGRATIONS}>
+                <TabPanel section="integrations" current={section}>
                   <div className="integrations-settings">
-                  {/* Meta-sections from the registry + the Web-search picker. */}
-                  <RemoteSettingsMenuComponent />
+                  <RemoteSettingsMenuComponent search={searchTerm} />
 
-                  {/* Data & storage: Folders browser. */}
-                  <Text size="big" id="folders" className="settings-heading">
-                    Folders
-                  </Text>
-                  <FoldersSettings />
+                  {matchesSearch(
+                    "folders assets workspace directory storage",
+                    search
+                  ) && (
+                    <>
+                      <Text size="big" id="folders" className="settings-heading">
+                        Folders
+                      </Text>
+                      <FoldersSettings />
+                    </>
+                  )}
 
-                  {/* Messaging bridges: link a Telegram/Discord account. */}
-                  <Text
-                    size="big"
-                    id="connected-accounts"
-                    className="settings-heading"
-                  >
-                    Connected Accounts
-                  </Text>
-                  <ConnectedAccountsSettings />
+                  {matchesSearch(
+                    "connected accounts telegram discord messaging",
+                    search
+                  ) && (
+                    <>
+                      <Text
+                        size="big"
+                        id="connected-accounts"
+                        className="settings-heading"
+                      >
+                        Connected Accounts
+                      </Text>
+                      <ConnectedAccountsSettings />
+                    </>
+                  )}
 
-                  {/* Servers (localhost only): MCP + Browser Extension. */}
-                  {isLocalhost && (
+                  {isLocalhost &&
+                    matchesSearch(
+                      "mcp servers claude desktop",
+                      search
+                    ) && (
                     <>
                       <Text
                         size="big"
@@ -1069,7 +1104,15 @@ function SettingsPage() {
                         MCP Integration
                       </Text>
                       <MCPSettingsMenu />
+                    </>
+                  )}
 
+                  {isLocalhost &&
+                    matchesSearch(
+                      "browser extension chrome",
+                      search
+                    ) && (
+                    <>
                       <Text
                         size="big"
                         id="browser-extension"
@@ -1081,8 +1124,9 @@ function SettingsPage() {
                     </>
                   )}
 
-                  {/* Nodetool API (hosted only): token copy card. */}
-                  {session?.access_token && !isLocalhost && (
+                  {session?.access_token &&
+                    !isLocalhost &&
+                    matchesSearch("nodetool api token", search) && (
                     <>
                       <Text
                         size="big"
@@ -1159,13 +1203,12 @@ function SettingsPage() {
                   </div>
                 </TabPanel>
 
-                {/* About */}
-                <TabPanel value={settingsTab} index={aboutTabIndex}>
+                <TabPanel section="about" current={section}>
                   <AboutMenu />
                 </TabPanel>
               </div>
 
-              {settingsTab === TAB_API_KEYS && !isCompact && (
+              {section === "providers" && !isCompact && (
                 <APIKeysRightSidebar />
               )}
             </div>

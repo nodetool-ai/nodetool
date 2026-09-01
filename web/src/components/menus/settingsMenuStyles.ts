@@ -3,6 +3,7 @@ import type { CSSObject } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import {
   BORDER_RADIUS,
+  CONTROL,
   MOTION,
   SPACING,
   Z_INDEX,
@@ -15,7 +16,6 @@ import {
  */
 const SECTION_GAP_PX = getSpacingPx(SPACING.xl); // 16px between sections
 const SECTION_HEADING_TOP_PX = getSpacingPx(SPACING.xxl); // 24px above each new group heading
-const SIDEBAR_ITEM_LEFT_PADDING_PX = getSpacingPx(SPACING.xxxl);
 
 /**
  * Readable content column width. The form tabs cap at 760px so labels,
@@ -221,17 +221,26 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     marginBottom: `${getSpacingPx(SPACING.xl)}`,
     paddingTop: 0,
     lineHeight: 1.5,
+    minHeight: `${CONTROL.height.xl}px`,
     "& .MuiTabs-indicator": {
       backgroundColor: "var(--palette-primary-main)",
       height: "3px",
       borderRadius: BORDER_RADIUS.xs
     },
+    // The settings tabs are the page's primary navigation, so they read at
+    // body size rather than the compact size TabGroup uses inside panels.
     "& .MuiTab-root": {
       color: theme.vars.palette.grey[200],
       transition: `color ${MOTION.normal}`,
-      paddingBottom: 0,
+      fontSize: theme.fontSizeNormal,
+      fontWeight: 500,
+      letterSpacing: "0.01em",
+      minHeight: `${CONTROL.height.xl}px`,
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
+      paddingBottom: `${getSpacingPx(SPACING.sm)}`,
       "&.Mui-selected": {
-        color: theme.vars.palette.grey[0]
+        color: theme.vars.palette.grey[0],
+        fontWeight: 600
       },
       "&:hover": {
         color: theme.vars.palette.grey[0]
@@ -258,23 +267,21 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing(6),
-    padding: theme.spacing(6, 6, 4),
+    justifyContent: "space-between",
+    gap: theme.spacing(SPACING.xl),
+    padding: theme.spacing(SPACING.xl, SPACING.xl, SPACING.lg),
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
-    "& .settings-back": {
-      flexShrink: 0
-    },
     "& .settings-page-header__titles": {
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
       minWidth: 0
     },
     "& .settings-page-header__heading": {
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
-      gap: theme.spacing(0.5)
+      gap: theme.spacing(SPACING.micro)
     },
     "& .settings-page-header__title": {
       margin: 0,
@@ -284,12 +291,27 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
       lineHeight: 1.2,
       letterSpacing: "-0.01em"
     },
-    "& .settings-page-header__subtitle": {
-      margin: 0,
-      color: theme.vars.palette.text.secondary,
-      fontSize: theme.fontSizeSmall,
-      lineHeight: 1.4
+    "& .settings-page-header__search": {
+      flex: "0 1 auto",
+      width: "22em",
+      maxWidth: "100%",
+      minWidth: "12em",
+      "& .MuiInputBase-root": {
+        minHeight: `${CONTROL.height.lg}px`,
+        backgroundColor: theme.vars.palette.background.paper,
+        borderRadius: BORDER_RADIUS.sm
+      },
+      "& .MuiInputBase-input": {
+        fontSize: theme.fontSizeSmall
+      }
     }
+  },
+  ".settings-search-alts": {
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: getSpacingPx(SPACING.md),
+    margin: `0 0 ${getSpacingPx(SPACING.xl)}`
   },
   ".settings-menu": {
     position: "relative",
@@ -340,6 +362,9 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
   ".settings-sidebar-folder": {
     display: "flex",
     flexDirection: "column",
+    "&:first-of-type .settings-sidebar-category": {
+      marginTop: 0
+    },
     "& + &": {
       marginTop: `${getSpacingPx(SPACING.xs)}`
     }
@@ -350,63 +375,46 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     paddingBottom: `${getSpacingPx(SPACING.xs)}`
   },
   ".settings-sidebar-item": {
-    padding: `${getSpacingPx(SPACING.xs)} ${SECTION_HEADING_TOP_PX} ${getSpacingPx(SPACING.xs)} ${SIDEBAR_ITEM_LEFT_PADDING_PX}`,
+    appearance: "none",
+    background: "transparent",
+    border: "0 none",
+    width: "100%",
+    textAlign: "left",
+    fontFamily: "inherit",
+    padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xl)}`,
     cursor: "pointer",
-    fontSize: theme.fontSizeNormal,
+    fontSize: theme.fontSizeSmall,
     lineHeight: 1.4,
-    color: theme.vars.palette.grey[0],
-    opacity: 0.7,
-    transition: MOTION.all,
-    borderLeft: "2px solid transparent",
+    fontWeight: 400,
+    color: theme.vars.palette.text.secondary,
+    borderRadius: BORDER_RADIUS.sm,
+    transition: MOTION.background,
     "&:hover": {
-      opacity: 1,
+      color: theme.vars.palette.text.primary,
       backgroundColor: theme.vars.palette.action.hover
     },
+    "&:focus-visible": {
+      outline: `2px solid ${theme.vars.palette.primary.main}`,
+      outlineOffset: "-2px"
+    },
     "&.active": {
-      opacity: 1,
-      borderLeftColor: "var(--palette-primary-main)",
+      color: theme.vars.palette.text.primary,
+      fontWeight: 500,
       backgroundColor: theme.vars.palette.action.selected
     }
   },
   ".settings-sidebar-category": {
-    display: "flex",
-    alignItems: "center",
-    gap: getSpacingPx(SPACING.md),
-    padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
-    color: theme.vars.palette.grey[0],
-    fontSize: theme.fontSizeSmall,
+    display: "block",
+    margin: `${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.xs)}`,
+    padding: `0 ${getSpacingPx(SPACING.xl)}`,
+    color: theme.vars.palette.text.secondary,
+    fontSize: theme.fontSizeSmaller,
     lineHeight: 1.35,
     fontWeight: 600,
     letterSpacing: "0.04em",
     textTransform: "uppercase",
-    opacity: 0.85,
-    cursor: "pointer",
-    userSelect: "none",
-    transition: `all ${MOTION.fast}`,
-    borderRadius: BORDER_RADIUS.sm,
-    outline: "none",
-    "&:hover": {
-      opacity: 1,
-      backgroundColor: theme.vars.palette.action.hover
-    },
-    "&:focus-visible": {
-      boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}`
-    },
-    "&.open .settings-sidebar-chevron": {
-      transform: "rotate(0deg)"
-    },
-    ".settings-sidebar-chevron": {
-      fontSize: "var(--fontSizeNormal)",
-      color: theme.vars.palette.text.secondary,
-      transition: `transform ${MOTION.normal}`,
-      transform: "rotate(-90deg)"
-    },
-    ".settings-sidebar-folder-icon": {
-      fontSize: "var(--fontSizeBig)",
-      color: "var(--palette-primary-main)"
-    },
     ".settings-sidebar-category-label": {
-      flex: 1
+      display: "block"
     }
   },
   ".sticky-header": {
@@ -486,31 +494,18 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
   },
   ".secrets": {
     backgroundColor: `rgba(${theme.vars.palette.warning.mainChannel} / 0.12)`,
-    backdropFilter: "blur(5px)",
     color: theme.vars.palette.text.primary,
-    fontSize: theme.fontSizeBig,
-    marginTop: `${SPACING.md + 0.5}em`,
+    fontSize: theme.fontSizeNormal,
+    marginTop: getSpacingPx(SPACING.lg),
     padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
     borderRadius: BORDER_RADIUS.sm,
     display: "flex",
     alignItems: "center",
     gap: `${getSpacingPx(SPACING.md)}`,
-    border: `1px solid ${theme.vars.palette.warning.main}`,
-    boxShadow: "0 2px 8px rgba(255, 152, 0, 0.1)"
-  },
-  ".settings-button": {
-    transition: `transform ${MOTION.normal}`,
-    "&:hover": {
-      transform: "rotate(30deg)"
-    }
+    border: `1px solid ${theme.vars.palette.warning.main}`
   },
   "button.MuiButton-root": {
-    borderRadius: BORDER_RADIUS.sm,
-    transition: MOTION.all,
-    "&:hover": {
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 8px rgba(0,0,0,0.2)"
-    }
+    borderRadius: BORDER_RADIUS.sm
   },
   // Blanket body size for Typography, but leave section headings alone so they
   // can use their larger heading size.
@@ -529,8 +524,14 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
   // columns run edge-to-edge so form fields aren't squeezed into a thin strip.
   [theme.breakpoints.down("sm")]: {
     ".settings-page-header": {
-      padding: theme.spacing(3, 3, 2),
-      gap: theme.spacing(3)
+      flexDirection: "column",
+      alignItems: "stretch",
+      padding: theme.spacing(SPACING.lg, SPACING.lg, SPACING.md),
+      gap: theme.spacing(SPACING.lg)
+    },
+    ".settings-page-header__search": {
+      width: "100%",
+      maxWidth: "100%"
     },
     ".sticky-header": {
       padding: `0 ${getSpacingPx(SPACING.md)}`

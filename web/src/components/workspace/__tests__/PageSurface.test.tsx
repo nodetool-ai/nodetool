@@ -21,7 +21,7 @@ jest.mock("../../portal/ExamplesPage", () => ({
 }));
 jest.mock("../../costs/CostsDashboard", () => ({
   __esModule: true,
-  default: () => null
+  default: () => <div>costs page</div>
 }));
 jest.mock("../../hugging_face/model_list/ModelsPage", () => ({
   __esModule: true,
@@ -51,9 +51,15 @@ describe("PageSurface", () => {
     expect(pane).toHaveStyle({ overflow: "hidden", height: "100%" });
   });
 
-  it("lets document-length pages scroll the tab surface", async () => {
+  it("gives the Settings tab a bounded pane so the sidebar stays put", async () => {
     render(<PageSurface pageKey="settings" />);
     const pane = await screen.findByLabelText("Settings");
+    expect(pane).toHaveStyle({ overflow: "hidden", height: "100%" });
+  });
+
+  it("lets document-length pages scroll the tab surface", async () => {
+    render(<PageSurface pageKey="costs" />);
+    const pane = await screen.findByLabelText("Costs");
     expect(pane).toHaveStyle({ overflow: "auto" });
   });
 });

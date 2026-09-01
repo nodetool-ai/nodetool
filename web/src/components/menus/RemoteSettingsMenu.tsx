@@ -28,6 +28,7 @@ import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { formatSettingLabel } from "./settingsLabel";
 import ExternalLink from "../common/ExternalLink";
 import SearchProviderSection from "./SearchProviderSection";
+import { matchesSearch } from "./settingsSearch";
 
 /**
  * Groups surfaced elsewhere (General tab, Folders panel) or via
@@ -332,7 +333,17 @@ const SettingItem = memo(function SettingItem({
 
 SettingItem.displayName = "SettingItem";
 
-const RemoteSettings = () => {
+interface RemoteSettingsProps {
+  search?: string;
+}
+
+const settingMatches = (setting: SettingWithValue, search: string): boolean =>
+  matchesSearch(
+    `${formatSettingLabel(setting.env_var)} ${setting.env_var} ${setting.description ?? ""}`,
+    search
+  );
+
+const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
   const queryClient = useQueryClient();
   const updateSettings = useRemoteSettingsStore((state) => state.updateSettings);
   const fetchSettings = useRemoteSettingsStore((state) => state.fetchSettings);
@@ -514,9 +525,21 @@ const RemoteSettings = () => {
                 (SearchProviderSection) sits right after Local Model Servers. */}
             {META_SECTION_GROUPS.map((section) => {
               const sec = sectionsMap.get(section.key);
+              const headingMatches = sec
+                ? matchesSearch(sec.label, search)
+                : false;
+              const visibleSettings = sec
+                ? sec.entries.flatMap(({ settings }) =>
+                    headingMatches
+                      ? settings
+                      : settings.filter((setting) =>
+                          settingMatches(setting, search)
+                        )
+                  )
+                : [];
               return (
                 <Fragment key={section.key}>
-                  {sec && (
+                  {sec && visibleSettings.length > 0 && (
                     <div className="settings-section">
                       <Text
                         size="big"
@@ -525,22 +548,21 @@ const RemoteSettings = () => {
                       >
                         {sec.label}
                       </Text>
-                      {sec.entries.flatMap(({ settings }) =>
-                        settings.map((setting) => (
-                          <SettingItem
-                            key={setting.env_var}
-                            setting={setting}
-                            value={settingValues[setting.env_var] || ""}
-                            onChange={handleChange}
-                          />
-                        ))
-                      )}
+                      {visibleSettings.map((setting) => (
+                        <SettingItem
+                          key={setting.env_var}
+                          setting={setting}
+                          value={settingValues[setting.env_var] || ""}
+                          onChange={handleChange}
+                        />
+                      ))}
                     </div>
                   )}
                   {section.key === "local-model-servers" && data && (
                     <SearchProviderSection
                       settingValues={settingValues}
                       onChange={handleChange}
+                      search={search}
                     />
                   )}
                 </Fragment>
