@@ -383,7 +383,14 @@ describe("input/output nodes", () => {
           return (
             BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
           ).generateLoop.call(this, loopArgs);
-        }
+        },
+        // AgentNode always budgets its loop now, and the base loop reserves
+        // through these BaseProvider members.
+        provider: "openai",
+        _admitTurn(this: any, ...args: any[]) {
+          return (BaseProvider.prototype as any)._admitTurn.call(this, ...args);
+        },
+        getTotalCost: () => 0
       })
     } as unknown as ProcessingContext;
     agent.assign({

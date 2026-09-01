@@ -442,4 +442,25 @@ describe("classifyProviderStream", () => {
     expect(events[4].chunk.content_type).toBe("text");
     expect(events[5].message.role).toBe("assistant");
   });
+
+  it("surfaces the loop's stop item instead of dropping it", async () => {
+    async function* raw() {
+      yield { type: "chunk", content: "partial", content_type: "text" };
+      yield {
+        type: "stop",
+        reason: "budget",
+        detail: "turn budget of $5 reached"
+      };
+    }
+    const events: any[] = [];
+    for await (const ev of classifyProviderStream(raw() as any)) {
+      events.push(ev);
+    }
+    expect(events.map((e) => e.kind)).toEqual(["text", "stop"]);
+    expect(events[1].stop).toEqual({
+      type: "stop",
+      reason: "budget",
+      detail: "turn budget of $5 reached"
+    });
+  });
 });

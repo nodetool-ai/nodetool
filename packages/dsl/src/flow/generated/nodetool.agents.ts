@@ -111,6 +111,8 @@ export type AgentInputs = {
   thread_id?: string;
   max_tokens?: number;
   max_turns?: number;
+  cost_cap_usd?: number;
+  timeout_s?: number;
 };
 
 export interface AgentOutputs {

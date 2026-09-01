@@ -514,9 +514,17 @@ export function createRunBudget(opts: CreateRunBudgetOptions): RunBudget {
  */
 export const RUN_BUDGET_CONTEXT_KEY = "nodetool_run_budget";
 
-/** Minimal reader for the context bag, so this stays free of a context import. */
+/**
+ * Minimal reader for the context bag, so this stays free of a context import.
+ *
+ * `get` is optional because the callers are hosts and nodes that accept a
+ * partial context — a test double, or a node invoked with none at all. A
+ * context that cannot answer has no budget on it, which is the same answer as
+ * a context that answers with nothing; throwing instead would make reading the
+ * budget riskier than not having one.
+ */
 interface RunBudgetContext {
-  get<T = unknown>(key: string, defaultValue?: T): T;
+  get?<T = unknown>(key: string, defaultValue?: T): T;
 }
 
 /**
@@ -528,6 +536,9 @@ interface RunBudgetContext {
 export function budgetFromContext(
   context: RunBudgetContext | undefined | null
 ): RunBudget | undefined {
-  const value = context?.get<unknown>(RUN_BUDGET_CONTEXT_KEY);
-  return isRunBudget(value as RunBudget | undefined) ? (value as RunBudget) : undefined;
+  if (typeof context?.get !== "function") return undefined;
+  const value = context.get<unknown>(RUN_BUDGET_CONTEXT_KEY);
+  return isRunBudget(value as RunBudget | undefined)
+    ? (value as RunBudget)
+    : undefined;
 }

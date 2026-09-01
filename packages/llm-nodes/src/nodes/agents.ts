@@ -1,12 +1,15 @@
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, getEnv } from "@nodetool-ai/config";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ImageRef, AudioRef } from "@nodetool-ai/node-sdk";
 import type {
   Message,
   MessageContent,
   ProcessingContext,
-  ProviderTool
+  ProviderStop,
+  ProviderTool,
+  RunBudget
 } from "@nodetool-ai/runtime";
+import { budgetFromContext, createRunBudget } from "@nodetool-ai/runtime";
 import type {
   LanguageModel,
   OutputCorrelation
@@ -80,6 +83,18 @@ export { runAgentLoop } from "./agent-loop.js";
 export type { AgentLoopOptions, AgentLoopResult } from "./agent-loop.js";
 
 const log = createLogger("nodetool.base-nodes.agents");
+
+/**
+ * An install-wide agent bound read from the environment, or its documented
+ * default. These two have no node prop of their own: an unpriced model's
+ * prompt ceiling and the run's concurrency bound are install policy, not
+ * per-node authoring decisions. Names and defaults come from
+ * `settingCatalog()` in `@nodetool-ai/config`.
+ */
+function agentEnvInt(key: string, fallback: number): number {
+  const parsed = Number(getEnv(key));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 const DEFAULT_SYSTEM_PROMPT = "You are a friendly assistant";
 const AGENT_DEFAULT_MAX_TOKENS = 16_384;
@@ -906,6 +921,28 @@ export class AgentNode extends BaseNode {
   })
   declare max_turns: number;
 
+  @prop({
+    type: "float",
+    default: 5.0,
+    title: "Cost Cap (USD)",
+    description:
+      "Ceiling on provider spend for this run, in US dollars. A turn whose worst case (this prompt plus Max Tokens of output) would cross it is refused before the call is made, and the node fails with an error naming the cap — so the ceiling holds instead of being noticed after the money is gone. Zero or less means no cap, which is what a local-only install wants. Matches the install-wide default in NODETOOL_AGENT_TURN_COST_CAP_USD. Ignored when the node runs inside an agent run that already has a budget (a chat turn calling run_node): it reserves against that run's cap instead of opening a second allowance.",
+    min: 0,
+    max: 1000
+  })
+  declare cost_cap_usd: number;
+
+  @prop({
+    type: "int",
+    default: 1200,
+    title: "Timeout (s)",
+    description:
+      "Wall-clock bound on this run, in seconds (default 1200, i.e. 20 minutes). Checked before every model turn, so a run stalled on a slow provider or a tool loop ends with an error naming the timeout instead of hanging until the workflow is cancelled. Ignored when the node runs inside an agent run that already has a budget — that run's deadline applies.",
+    min: 1,
+    max: 86400
+  })
+  declare timeout_s: number;
+
   /**
    * Build the tool list for this run. Override in subclasses to inject
    * additional tools (e.g. sandbox shell/file/browser tools) alongside the
@@ -963,6 +1000,32 @@ export class AgentNode extends BaseNode {
     const threadId = String(this.thread_id ?? "").trim();
     const maxTokens = Number(this.max_tokens ?? AGENT_DEFAULT_MAX_TOKENS);
     const maxTurns = Math.max(1, Number(this.max_turns ?? 100));
+    // A prop that is not a number must not read as "no cap" — that is the one
+    // direction of this coercion that silently removes a ceiling.
+    const capProp = Number(this.cost_cap_usd);
+    const costCapUsd = Number.isFinite(capProp) ? capProp : 5;
+    const timeoutS = Math.max(1, Number(this.timeout_s) || 1200);
+    const inheritedBudget = budgetFromContext(context);
+    // Invariant I-2: one budget per run, shared downward. A node a chat turn
+    // started through `run_node` inherits that turn's budget and reserves
+    // against the same cap; only a node whose context carries none opens an
+    // allowance of its own. Creating one unconditionally would give every
+    // nested node a fresh $5 of headroom, which is no cap at all.
+    const budget: RunBudget =
+      inheritedBudget ??
+      createRunBudget({
+        // A cap of zero would refuse every turn rather than lift the ceiling,
+        // so non-positive means "no USD cap".
+        capUsd: costCapUsd > 0 ? costCapUsd : null,
+        maxOutputTokens: maxTokens,
+        unpricedTokenCeiling: agentEnvInt(
+          "NODETOOL_AGENT_UNPRICED_TOKEN_CEILING",
+          400000
+        ),
+        deadlineMs: timeoutS * 1000,
+        maxConcurrency: agentEnvInt("NODETOOL_AGENT_MAX_CONCURRENCY", 8),
+        maxTurns
+      });
     const tools: ToolLike[] = await this.buildTools(context);
 
     // Build control tools from _control_context (injected by the kernel
@@ -1197,11 +1260,20 @@ export class AgentNode extends BaseNode {
         maxIterations: maxTurns,
         sequentialTools: true,
         threadId: threadId || undefined,
+        turnBudget: budget,
         // Without this a cancelled workflow leaves
         // the provider loop (and any tool calls it makes) running.
         signal: context?.signal
       });
+      // The loop's own reason for ending, when it was not the model ending its
+      // turn. Read after the stream drains so any text the run did produce is
+      // emitted before the node decides whether to fail.
+      let stop: ProviderStop | null = null;
       for await (const event of classifyProviderStream(stream)) {
+        if (event.kind === "stop") {
+          stop = event.stop;
+          continue;
+        }
         if (event.kind === "tool_call") {
           const toolCall = event.toolCall;
           log.info("AgentNode received tool call", {
@@ -1295,6 +1367,22 @@ export class AgentNode extends BaseNode {
       // Flush any trailing turn for providers that stream final text without a
       // closing assistant message event (no-op once a turn has been finalized).
       yield* finalizeAssistantTurn();
+
+      // A budget or deadline stop is a failure: the node did not finish the
+      // job it was given, and returning its partial text as if it had would
+      // hide the cap from the user who set it (decision D2, invariant I-3).
+      // `iterations` keeps its long-standing behavior — reaching Max Turns has
+      // always just ended the node — and `aborted` is a cancelled workflow,
+      // which must stay a clean stop.
+      if (stop && (stop.reason === "budget" || stop.reason === "deadline")) {
+        log.warn("AgentNode stopped by the run budget", {
+          nodeId: this.__node_id ?? null,
+          reason: stop.reason,
+          detail: stop.detail,
+          spentUsd: budget.turns.spentUsd
+        });
+        throw new Error(`Agent stopped: ${stop.detail}`);
+      }
     }
 
     if (structuredSchema && structuredResult) {

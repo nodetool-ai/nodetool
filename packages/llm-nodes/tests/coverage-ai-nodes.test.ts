@@ -42,8 +42,20 @@ function withAgentLoop<T extends Record<string, any>>(provider: T): T {
     };
   return {
     ...provider,
+    // `_admitTurn` prices the turn by provider id; an undefined one reaches the
+    // cost calculator as `undefined.toLowerCase()`.
+    provider: provider.provider ?? "mock",
     generateMessagesTraced: traced,
-    generateLoop: delegateGenerateLoop
+    generateLoop: delegateGenerateLoop,
+    // AgentNode now always hands generateLoop a run budget, and the base loop
+    // reserves against it through these two BaseProvider methods. A mock that
+    // only implements generateMessages has neither, so borrow them.
+    _admitTurn:
+      provider._admitTurn ??
+      function (this: any, ...args: any[]) {
+        return (BaseProvider.prototype as any)._admitTurn.call(this, ...args);
+      },
+    getTotalCost: provider.getTotalCost ?? (() => 0)
   };
 }
 

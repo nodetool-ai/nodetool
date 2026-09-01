@@ -6,13 +6,15 @@ import type {
   MessageContent,
   MessageImageContent,
   ProcessingContext,
+  ProviderStop,
   ProviderStreamItem,
   ToolCall
 } from "@nodetool-ai/runtime";
 import {
   expandAssetReferences,
   extractJson,
-  generateStructured
+  generateStructured,
+  isProviderStop
 } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
@@ -441,21 +443,33 @@ export type ProviderStreamEvent =
   | { kind: "audio"; chunk: Chunk }
   | { kind: "text"; chunk: Chunk; delta: string }
   | { kind: "assistant_message"; message: Message }
-  | { kind: "tool_message"; message: Message };
+  | { kind: "tool_message"; message: Message }
+  /**
+   * The loop ended for a reason other than the model ending its turn — a
+   * budget, the deadline, the iteration cap, or an abort. Dropping it would
+   * make a refused run read exactly like a finished one (invariant I-3), so
+   * every consumer sees it and decides what to do.
+   */
+  | { kind: "stop"; stop: ProviderStop };
 
 /**
  * Normalize and classify a provider stream into {@link ProviderStreamEvent}s.
  * Mirrors the branch structure both consumers previously inlined: tool-call
  * announcements, thinking chunks, audio chunks, any other content chunk (as
  * `text`, carrying the original chunk so a consumer can inspect content_type),
- * and finalized `{ type: "message" }` events split by role. The `text` event's
- * `delta` is the chunk's string content ("" for non-string payloads).
+ * finalized `{ type: "message" }` events split by role, and the loop's `stop`
+ * item. The `text` event's `delta` is the chunk's string content ("" for
+ * non-string payloads).
  */
 export async function* classifyProviderStream(
   stream: AsyncIterable<ProviderStreamItem>
 ): AsyncGenerator<ProviderStreamEvent> {
   for await (const raw of stream) {
     const item = normalizeProviderStreamItem(raw);
+    if (isProviderStop(item)) {
+      yield { kind: "stop", stop: item };
+      continue;
+    }
     if (isToolCallItem(item)) {
       yield { kind: "tool_call", toolCall: item };
       continue;
