@@ -61,3 +61,4 @@ export {
   ungatedCapabilityRun
 } from "./invoke.js";
 export type { CreateCapabilityRunOptions } from "./invoke.js";
+export { gateFromContext } from "./gate-from-context.js";

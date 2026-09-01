@@ -10,7 +10,10 @@ export type {
   PlanApprovalDecision,
   RequestPlanApproval
 } from "./types.js";
-export { PLAN_APPROVAL_CONTEXT_KEY } from "./types.js";
+export {
+  PLAN_APPROVAL_CONTEXT_KEY,
+  PERMISSION_GATE_CONTEXT_KEY
+} from "./types.js";
 
 // Tools
 export { Tool } from "./tools/base-tool.js";
@@ -75,9 +78,12 @@ export type { VecCollection } from "./tools/vector-tools.js";
 export {
   TOOL_PERMISSION_CATEGORIES,
   permissionCategoryFor,
-  decidePermission
+  decidePermission,
+  headlessGate,
+  headlessDenialReason
 } from "./tools/tool-permissions.js";
 export { gateTools } from "./capabilities/gate-tools.js";
+export { gateFromContext } from "./capabilities/gate-from-context.js";
 export type {
   PermissionCategory,
   PermissionMode,
