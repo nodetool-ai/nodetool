@@ -16,6 +16,7 @@ import {
   type WebSocketConnection,
   type WebSocketReceiveFrame
 } from "../src/websocket-client-session.js";
+import { borrowedLoopBudgetMembers } from "./chat-turn-test-harness.js";
 
 class MockWS implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -86,7 +87,8 @@ function codeActProvider(code: string, risk: "low" | "high" = "low") {
       getAvailableASRModels: async () => [],
       getAvailableEmbeddingModels: async () => [],
       getContainerEnv: () => ({}),
-      generateLoop: BaseProvider.prototype.generateLoop
+      generateLoop: BaseProvider.prototype.generateLoop,
+      ...borrowedLoopBudgetMembers
     }) as never;
 }
 

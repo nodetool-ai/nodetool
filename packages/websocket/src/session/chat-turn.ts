@@ -53,13 +53,17 @@ import type {
 import {
   ACTIVE_MODEL_CONTEXT_KEY,
   DIRECT_TOOL_NAMES,
+  RUN_BUDGET_CONTEXT_KEY,
+  createRunBudget,
   detectImageMime,
   IMAGE_MIME_TO_EXT,
   expandEntitiesForGeneration,
   getProcessSandboxModuleCatalog,
   isProviderSessionUpdate,
   isProviderMessageEvent,
-  type ActiveModelSelection
+  isProviderStop,
+  type ActiveModelSelection,
+  type RunBudget
 } from "@nodetool-ai/runtime";
 import {
   isModelSelection,
@@ -126,6 +130,7 @@ import {
   unroutableToolMessage
 } from "./chat-prompt.js";
 import { createRuntimeContext } from "./model-interfaces.js";
+import { getSetting } from "../settings-registry.js";
 import {
   appendContextToLastUser,
   createWorkflowResponseContent,
@@ -165,6 +170,106 @@ const MEMORY_BLOCK_LIMIT = 100;
  * full thread load.
  */
 const SESSION_PROBE_WINDOW = 50;
+
+/**
+ * Output-token worst case assumed when reserving a chat turn. The chat loop
+ * sends no `maxTokens`, so nothing bounds the answer from this side; the
+ * reservation charges the same ceiling the Agent node defaults to, which is
+ * what makes the dollar cap hold instead of being noticed after the money is
+ * spent.
+ */
+const CHAT_TURN_MAX_OUTPUT_TOKENS = 16_384;
+
+/** Documented defaults for the five `NODETOOL_AGENT_*` budget settings. */
+const AGENT_BUDGET_DEFAULTS = {
+  costCapUsd: 5,
+  deadlineMs: 1_800_000,
+  maxConcurrency: 8,
+  maxTurns: 200,
+  unpricedTokenCeiling: 400_000
+} as const;
+
+/**
+ * Read one budget setting. The store is best-effort — the same rule the rest
+ * of the runner follows for settings: an unreachable database falls back to
+ * the documented default rather than failing the turn.
+ */
+async function readBudgetSetting(key: string): Promise<string | null> {
+  try {
+    return await getSetting(key);
+  } catch {
+    // Settings store unavailable — the caller's default stands.
+    return null;
+  }
+}
+
+async function budgetSettingNumber(
+  key: string,
+  fallback: number
+): Promise<number> {
+  const raw = await readBudgetSetting(key);
+  if (raw === null) return fallback;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/**
+ * The run's USD ceiling, or `null` for no ceiling at all.
+ *
+ * `Number("")` is 0 and a cap of 0 refuses every turn rather than lifting the
+ * ceiling, so a blank or non-positive value means *no cap* — which is what a
+ * local-only install wants. An absent setting takes the documented $5 default;
+ * `getSetting` cannot tell an empty stored value from an unset one (it falls
+ * through both), so "no cap" is expressed by storing a non-positive number.
+ */
+async function budgetCostCapUsd(): Promise<number | null> {
+  const raw = await readBudgetSetting("NODETOOL_AGENT_TURN_COST_CAP_USD");
+  // `getSetting` answers null for both an unset and an empty stored value, so
+  // clearing the field restores the default rather than removing the cap.
+  // Removing it is `0`, which is why a non-positive number means "no cap"
+  // instead of a cap nothing could ever pass.
+  if (raw === null) return AGENT_BUDGET_DEFAULTS.costCapUsd;
+  const parsed = Number(raw.trim());
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+}
+
+/**
+ * The one budget a chat turn shares downward (invariant I-2): the capability
+ * runs, the sub-agent runtime, the provider loop, and — through the context
+ * key — an Agent node started by `run_node` and any JS script the turn runs.
+ * Every one of them reserves against the same cap instead of opening its own.
+ */
+async function createChatTurnBudget(): Promise<RunBudget> {
+  const [capUsd, deadlineMs, maxConcurrency, maxTurns, unpricedTokenCeiling] =
+    await Promise.all([
+      budgetCostCapUsd(),
+      budgetSettingNumber(
+        "NODETOOL_AGENT_TURN_DEADLINE_MS",
+        AGENT_BUDGET_DEFAULTS.deadlineMs
+      ),
+      budgetSettingNumber(
+        "NODETOOL_AGENT_MAX_CONCURRENCY",
+        AGENT_BUDGET_DEFAULTS.maxConcurrency
+      ),
+      budgetSettingNumber(
+        "NODETOOL_AGENT_MAX_TURNS",
+        AGENT_BUDGET_DEFAULTS.maxTurns
+      ),
+      budgetSettingNumber(
+        "NODETOOL_AGENT_UNPRICED_TOKEN_CEILING",
+        AGENT_BUDGET_DEFAULTS.unpricedTokenCeiling
+      )
+    ]);
+  return createRunBudget({
+    capUsd,
+    maxOutputTokens: CHAT_TURN_MAX_OUTPUT_TOKENS,
+    unpricedTokenCeiling,
+    deadlineMs,
+    maxConcurrency,
+    maxTurns
+  });
+}
 
 /**
  * Find the continuation token to resume this thread with: the `provider_session`
@@ -1326,12 +1431,17 @@ export class ChatTurnHandler {
         this.requestToolApproval(threadId, request),
       clock: codeactClock
     };
+    // The bounds this turn runs under, created once and shared by everything
+    // it starts (invariant I-2). A loop that made its own would hand every
+    // nested agent a fresh allowance, which is no ceiling at all.
+    const turnBudget = await createChatTurnBudget();
     const gatedRun = (context: ProcessingContext): CapabilityRun =>
       createCapabilityRun({
         context,
         gate: chatGate,
         projectId: chatProjectId,
-        availableSecrets: contextSecretAvailability(context)
+        availableSecrets: contextSecretAvailability(context),
+        budget: turnBudget
       });
     const rawToolbelt: Tool[] = [
       ...getAgentToolbelt(),
@@ -1397,7 +1507,10 @@ export class ChatTurnHandler {
         model,
         parentTools: () => baseTools,
         forwardMessage: forwardSubtaskMessage,
-        background: new BackgroundSubtaskRegistry()
+        background: new BackgroundSubtaskRegistry(),
+        // Every delegated loop reserves against this turn's cap rather than
+        // opening one of its own.
+        budget: turnBudget
       };
       // All four delegation tools reach the belt as capabilities over this
       // runtime. The class is still what runs — the `agents` module builds one
@@ -1414,7 +1527,8 @@ export class ChatTurnHandler {
           // effect of its own, and the child's tools are the gated `baseTools`.
           gate: UNGATED,
           availableSecrets: contextSecretAvailability(context),
-          subAgent: subAgentRuntime
+          subAgent: subAgentRuntime,
+          budget: turnBudget
         });
       serverTools.unshift(toolForCapabilityName("run_subtask", delegationRun));
       serverTools.unshift(
@@ -1560,6 +1674,10 @@ export class ChatTurnHandler {
       provider: providerId,
       model
     } satisfies ActiveModelSelection);
+    // The channel every nested loop already carries: an Agent node started
+    // through `run_node`, a JS script, a sub-agent three levels down all read
+    // the budget off the context instead of creating one (`budgetFromContext`).
+    ctx.set(RUN_BUDGET_CONTEXT_KEY, turnBudget);
 
     // The capability run for this turn: the same gate the belt is wrapped in,
     // this context, and the singletons the tool constructors take today. Every
@@ -1575,6 +1693,7 @@ export class ChatTurnHandler {
       nodeRegistry: this.session.nodeRegistry,
       providers: chatProviders,
       subAgent: subAgentRuntime,
+      budget: turnBudget,
       secretPrompt: (request) => this.requestSecretEntry(threadId, request),
       ...mcpToolHostDeps(),
       capabilities: [capabilityFromTool(runNodeTool)]
@@ -1980,6 +2099,7 @@ export class ChatTurnHandler {
         loadFullHistory: loadFullHistory ?? undefined,
         executeTool: useTools ? effectiveExecuteTool : undefined,
         maxIterations: MAX_TOOL_ROUNDS,
+        turnBudget,
         sequentialTools: session ? true : undefined,
         workspaceDir: chatWorkspace?.localDir ?? undefined,
         skills: skillsForProvider,
@@ -2015,6 +2135,34 @@ export class ChatTurnHandler {
               openToolCalls: openToolCalls.size
             });
             break;
+          }
+          continue;
+        }
+
+        if (isProviderStop(item)) {
+          // A limit ended the turn, not the model finishing its answer. Said
+          // nowhere, the two are indistinguishable to the user (invariant
+          // I-3), so the reason is persisted as an ordinary assistant message:
+          // it belongs in the transcript the next turn reads, and it is
+          // per-turn text that must never reach the system prompt (I-7).
+          //
+          // `aborted` is the user pressing Stop or a newer message superseding
+          // this one. They already know why it stopped, and a notice there
+          // would scold them for using the control. The other three are limits
+          // nobody asked for in the moment: the dollar cap, the wall clock,
+          // and the tool-round ceiling all leave the turn unfinished mid-work.
+          if (item.reason !== "aborted") {
+            // The budget names the ceiling it hit ("turn budget of $5
+            // reached"); the round cap is not a budget stop, and reading a
+            // budget a sub-agent exhausted earlier would name the wrong limit.
+            const detail =
+              item.reason === "iterations"
+                ? item.detail
+                : (turnBudget.exhausted?.detail ?? item.detail);
+            await persistTurnMessage(
+              { role: "assistant", content: `Stopped: ${detail}` },
+              true
+            );
           }
           continue;
         }
@@ -2067,7 +2215,14 @@ export class ChatTurnHandler {
         thread_id: threadId
       });
 
-      log.debug("Chat complete", { threadId, chars: content.length });
+      log.debug("Chat complete", {
+        threadId,
+        chars: content.length,
+        // What the whole run — this loop plus every sub-agent and node it
+        // started — reserved and committed against the shared budget.
+        spentUsd: turnBudget.turns.spentUsd,
+        stoppedBy: turnBudget.exhausted?.kind ?? null
+      });
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       log.error("Chat processing error", { threadId, error: errMsg });

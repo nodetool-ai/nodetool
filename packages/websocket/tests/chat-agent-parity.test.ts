@@ -19,6 +19,7 @@ import {
   type WebSocketConnection,
   type WebSocketReceiveFrame
 } from "../src/websocket-client-session.js";
+import { borrowedLoopBudgetMembers } from "./chat-turn-test-harness.js";
 
 // ── Mock WebSocket ──────────────────────────────────────────────────
 
@@ -77,7 +78,8 @@ function mockProvider(...items: unknown[]) {
       getAvailableASRModels: async () => [],
       getAvailableEmbeddingModels: async () => [],
       getContainerEnv: () => ({}),
-        generateLoop: BaseProvider.prototype.generateLoop
+        generateLoop: BaseProvider.prototype.generateLoop,
+        ...borrowedLoopBudgetMembers
     }) as any;
 }
 
@@ -120,7 +122,8 @@ describe("handleChatMessage: system prompt", () => {
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
         getContainerEnv: () => ({}),
-        generateLoop: BaseProvider.prototype.generateLoop
+        generateLoop: BaseProvider.prototype.generateLoop,
+        ...borrowedLoopBudgetMembers
       }) as any;
 
     const runner = new WebSocketClientSession({
@@ -247,7 +250,8 @@ describe("handleChatMessage: tool call loop", () => {
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
         getContainerEnv: () => ({}),
-        generateLoop: BaseProvider.prototype.generateLoop
+        generateLoop: BaseProvider.prototype.generateLoop,
+        ...borrowedLoopBudgetMembers
       }) as any;
 
     const runner = new WebSocketClientSession({
@@ -324,7 +328,8 @@ describe("handleChatMessage: error handling", () => {
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
         getContainerEnv: () => ({}),
-        generateLoop: BaseProvider.prototype.generateLoop
+        generateLoop: BaseProvider.prototype.generateLoop,
+        ...borrowedLoopBudgetMembers
       }) as any;
 
     const runner = new WebSocketClientSession({
@@ -414,7 +419,8 @@ describe("permission gate", () => {
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
         getContainerEnv: () => ({}),
-        generateLoop: BaseProvider.prototype.generateLoop
+        generateLoop: BaseProvider.prototype.generateLoop,
+        ...borrowedLoopBudgetMembers
       }) as any;
 
     const runner = new WebSocketClientSession({
@@ -469,7 +475,8 @@ describe("permission gate", () => {
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
         getContainerEnv: () => ({}),
-        generateLoop: BaseProvider.prototype.generateLoop
+        generateLoop: BaseProvider.prototype.generateLoop,
+        ...borrowedLoopBudgetMembers
       }) as any;
 
     const runner = new WebSocketClientSession({
@@ -526,7 +533,8 @@ describe("permission gate", () => {
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
         getContainerEnv: () => ({}),
-        generateLoop: BaseProvider.prototype.generateLoop
+        generateLoop: BaseProvider.prototype.generateLoop,
+        ...borrowedLoopBudgetMembers
       }) as any;
 
     const runner = new WebSocketClientSession({
@@ -609,7 +617,8 @@ describe("permission gate", () => {
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
         getContainerEnv: () => ({}),
-        generateLoop: BaseProvider.prototype.generateLoop
+        generateLoop: BaseProvider.prototype.generateLoop,
+        ...borrowedLoopBudgetMembers
       }) as any;
 
     const runner = new WebSocketClientSession({
@@ -697,7 +706,8 @@ describe("dbMessageToProviderMessage filtering", () => {
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
         getContainerEnv: () => ({}),
-        generateLoop: BaseProvider.prototype.generateLoop
+        generateLoop: BaseProvider.prototype.generateLoop,
+        ...borrowedLoopBudgetMembers
       }) as any;
 
     const runner = new WebSocketClientSession({
@@ -780,7 +790,8 @@ describe("tool-call thought signatures survive the database", () => {
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
         getContainerEnv: () => ({}),
-        generateLoop: BaseProvider.prototype.generateLoop
+        generateLoop: BaseProvider.prototype.generateLoop,
+        ...borrowedLoopBudgetMembers
       }) as any;
 
     const runner = new WebSocketClientSession({
@@ -884,7 +895,8 @@ describe("handleChatMessage: request sequence cancellation", () => {
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
         getContainerEnv: () => ({}),
-        generateLoop: BaseProvider.prototype.generateLoop
+        generateLoop: BaseProvider.prototype.generateLoop,
+        ...borrowedLoopBudgetMembers
       }) as any;
 
     const runner = new WebSocketClientSession({

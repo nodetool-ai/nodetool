@@ -137,7 +137,7 @@ s(
 s(
   "NODETOOL_AGENT_TURN_COST_CAP_USD",
   "Agents",
-  "Ceiling on provider spend for one agent run, in US dollars (default: 5.00). The whole run shares it: sub-agents, background subtasks, and agent nodes reserve against the same cap rather than opening their own. A turn whose worst case would cross it is refused before the call, and the run stops with a message naming the cap. Set to an empty value for no cap, which is what a local-only install wants."
+  "Ceiling on provider spend for one agent run, in US dollars (default: 5.00). The whole run shares it: sub-agents, background subtasks, and agent nodes reserve against the same cap rather than opening their own. A turn whose worst case would cross it is refused before the call, and the run stops with a message naming the cap. Set it to 0 for no cap at all, which is what a local-only install wants — clearing the value restores the default instead, because an empty setting is indistinguishable from an unset one."
 );
 s(
   "NODETOOL_AGENT_TURN_DEADLINE_MS",
