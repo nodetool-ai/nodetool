@@ -60,7 +60,7 @@ import {
   DEFAULT_CLONE_STAMP_SETTINGS,
   DEFAULT_SELECT_SETTINGS,
   DEFAULT_SEGMENT_SETTINGS,
-  normalizeSegmentBackend,
+  normalizeSegmentModel,
   DEFAULT_MOVE_SETTINGS,
   DEFAULT_TRANSFORM_SETTINGS
 } from "./tools";
@@ -774,7 +774,7 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         segment: {
           ...DEFAULT_SEGMENT_SETTINGS,
           ...doc.toolSettings?.segment,
-          backend: normalizeSegmentBackend(doc.toolSettings?.segment?.backend)
+          model: normalizeSegmentModel(doc.toolSettings?.segment?.model)
         },
         move: {
           ...DEFAULT_MOVE_SETTINGS,

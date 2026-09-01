@@ -78,6 +78,9 @@ function relight(inputs) {
 function vectorize(inputs) {
   return createNode("nodetool.image.Vectorize", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
+function segment(inputs) {
+  return createNode("nodetool.image.Segment", inputs, { outputNames: ["masks", "labels", "scores"] });
+}
 export {
   batchToList,
   blur,
@@ -102,6 +105,7 @@ export {
   saveImage,
   saveImageFile,
   scale,
+  segment,
   textToImage,
   upscale,
   vectorize

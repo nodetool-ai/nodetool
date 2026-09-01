@@ -81,6 +81,7 @@ describe("the media capability module", () => {
     expect(media.exports.map((e) => e.spec.name)).toEqual([
       "generate_image",
       "edit_image",
+      "segment_image",
       "generate_video",
       "animate_image",
       "generate_speech",

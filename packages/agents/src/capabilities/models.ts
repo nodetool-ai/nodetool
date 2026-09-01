@@ -151,6 +151,7 @@ const CAPABILITY_REF_TYPE = {
   generate_message: "language_model",
   text_to_image: "image_model",
   image_to_image: "image_model",
+  segment_image: "image_model",
   text_to_video: "video_model",
   image_to_video: "video_model",
   text_to_speech: "tts_model",
@@ -194,6 +195,9 @@ function capabilityToRecommendedTasks(
       return new Set(["text_to_image"]);
     case "image_to_image":
       return new Set(["image_to_image"]);
+    case "segment_image":
+      // No recommended entry is a segmentation model, so nothing is boosted.
+      return new Set(["segment"]);
     case "text_to_video":
       return new Set(["text_to_video"]);
     case "image_to_video":
@@ -215,6 +219,7 @@ function capabilityToRecommendedModalities(
   switch (capability) {
     case "text_to_image":
     case "image_to_image":
+    case "segment_image":
       return new Set(["image"]);
     case "text_to_video":
     case "image_to_video":
@@ -238,6 +243,7 @@ async function fetchModelsForCapability(
   switch (capability) {
     case "text_to_image":
     case "image_to_image":
+    case "segment_image":
       return await provider.getAvailableImageModels();
     case "text_to_video":
     case "image_to_video":
@@ -274,6 +280,10 @@ async function fetchModelsForCapability(
  */
 function capabilityTask(capability: SupportedCapability): string | null {
   switch (capability) {
+    // The image catalog tags a segmentation endpoint `segment`, which is what
+    // keeps a FLUX from being offered as the answer to "segment this".
+    case "segment_image":
+      return "segment";
     case "text_to_image":
     case "image_to_image":
     case "text_to_video":

@@ -119,6 +119,7 @@ interface SketchToolTopBarProps {
   segmentSettings?: SegmentSettings;
   onSegmentSettingsChange?: (settings: Partial<SegmentSettings>) => void;
   segmentationStatus?: SegmentationStatus;
+  segmentationError?: string | null;
   segmentModelInfo?: SamModelInfo | null;
   onRunSegmentation?: () => void;
   onApplySegmentResult?: () => void;
@@ -186,6 +187,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   segmentSettings,
   onSegmentSettingsChange,
   segmentationStatus,
+  segmentationError,
   segmentModelInfo,
   onRunSegmentation,
   onApplySegmentResult,
@@ -298,6 +300,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
           segmentSettings={segmentSettings}
           onSegmentSettingsChange={onSegmentSettingsChange}
           segmentationStatus={segmentationStatus}
+          segmentationError={segmentationError}
           segmentModelInfo={segmentModelInfo}
           onRunSegmentation={onRunSegmentation}
           onApplySegmentResult={onApplySegmentResult}

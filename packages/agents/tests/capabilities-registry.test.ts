@@ -236,6 +236,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   search_apify_actors: "read",
   search_email: "read",
   search_nodes: "read",
+  segment_image: "write",
   serpapi_search: "read",
   set_setting: "write",
   set_workflow_access: "external",

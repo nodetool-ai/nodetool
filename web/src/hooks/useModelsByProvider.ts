@@ -231,7 +231,8 @@ export type ImageModelTask =
   | "upscale"
   | "remove_background"
   | "relight"
-  | "vectorize";
+  | "vectorize"
+  | "segment";
 
 export type VideoModelTask =
   | "text_to_video"
@@ -250,6 +251,7 @@ const STRICT_MODEL_TASKS = new Set<string>([
   "remove_background",
   "relight",
   "vectorize",
+  "segment",
   "video_to_video",
   "lip_sync"
 ]);

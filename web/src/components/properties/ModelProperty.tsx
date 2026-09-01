@@ -100,6 +100,7 @@ const ModelProperty = (props: PropertyProps) => {
       "nodetool.image.ImageToImage": "image_to_image",
       "nodetool.image.Upscale": "upscale",
       "nodetool.image.RemoveBackground": "remove_background",
+      "nodetool.image.Segment": "segment",
       "nodetool.image.Relight": "relight",
       "nodetool.image.Vectorize": "vectorize"
     } as const;

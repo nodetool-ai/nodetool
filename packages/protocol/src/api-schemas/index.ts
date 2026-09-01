@@ -16,6 +16,7 @@ export * as models from "./models.js";
 export * as nodes from "./nodes.js";
 export * as projects from "./projects.js";
 export * as scripts from "./scripts.js";
+export * as segmentation from "./segmentation.js";
 export * as sdkV1 from "./sdk-v1.js";
 export * as sdkV1Operations from "./sdk-v1-operations.js";
 export * as sdkLifecycleV1 from "./sdk-lifecycle-v1.js";

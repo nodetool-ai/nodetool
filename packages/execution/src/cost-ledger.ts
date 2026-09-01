@@ -51,6 +51,7 @@ const UNIT_BILLED_CAPABILITIES = new Set([
   "upscale_image",
   "remove_background",
   "relight_image",
+  "segment_image",
   "vectorize_image",
   "lip_sync",
   "text_to_speech",

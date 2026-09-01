@@ -237,7 +237,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "find_model",
     module: "models",
     impl: "packages/agents/src/capabilities/models.ts",
-    contract: "e7361c656213",
+    contract: "8340013dc752",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-models.test.ts",
@@ -306,6 +306,17 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
+    ],
+  },
+  {
+    name: "segment_image",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "e65e3ff23393",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-segment-image.test.ts",
     ],
   },
   {

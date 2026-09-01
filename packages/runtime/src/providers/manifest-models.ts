@@ -389,6 +389,29 @@ export function inferImageTasks(name: string, id: string): string[] {
   ) {
     return ["relight"];
   }
+  // Segmentation models return masks, not a picture — keep them out of every
+  // generation picker. "sam" is matched with its separators so it cannot hit
+  // a name that merely contains those three letters, and fal's `sam-audio`
+  // stem separators are excluded outright: they take a recording, not an image.
+  if (
+    // An RLE endpoint answers with run-length text and no mask image, which
+    // nothing downstream here can render — leave it out of the task entirely.
+    !matchesAny(hay, "sam-audio", "image-rle", "video-rle") &&
+    matchesAny(
+      hay,
+      "segment",
+      "segmentation",
+      "/sam",
+      "sam-2",
+      "sam2",
+      "sam-3",
+      "sam3",
+      "evf-sam",
+      "birefnet"
+    )
+  ) {
+    return ["segment"];
+  }
   if (
     matchesAny(
       hay,

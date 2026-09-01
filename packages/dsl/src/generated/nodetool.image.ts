@@ -422,3 +422,24 @@ export interface VectorizeOutputs {
 export function vectorize(inputs: VectorizeInputs): DslNode<VectorizeOutputs, "output"> {
   return createNode("nodetool.image.Vectorize", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
+
+// Segment Image — nodetool.image.Segment
+export type SegmentInputs = {
+  model?: Connectable<unknown>;
+  image?: Connectable<ImageRef>;
+  prompt?: Connectable<string>;
+  points?: Connectable<Record<string, unknown>[]>;
+  box?: Connectable<Record<string, unknown>>;
+  max_masks?: Connectable<number>;
+  min_confidence?: Connectable<number>;
+};
+
+export interface SegmentOutputs {
+  masks: ImageRef[];
+  labels: string[];
+  scores: number[];
+}
+
+export function segment(inputs: SegmentInputs): DslNode<SegmentOutputs> {
+  return createNode("nodetool.image.Segment", inputs, { outputNames: ["masks", "labels", "scores"] });
+}

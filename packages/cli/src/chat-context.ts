@@ -11,7 +11,7 @@
  * anything downstream to reference.
  */
 
-import { getSecret } from "@nodetool-ai/models";
+import { resolveLocalSecret } from "./local-secrets.js";
 import { createLocalWorkspace, ProcessingContext } from "@nodetool-ai/runtime";
 import { localModelInterfaces } from "./local-model-interfaces.js";
 
@@ -24,7 +24,7 @@ export async function createChatContext(opts: {
     jobId: crypto.randomUUID(),
     userId: opts.userId ?? "1",
     workspace: workspaceDir ? createLocalWorkspace(workspaceDir) : null,
-    secretResolver: getSecret
+    secretResolver: resolveLocalSecret
   });
   context.setModelInterfaces(await localModelInterfaces());
   return context;

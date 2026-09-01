@@ -323,6 +323,10 @@ export type TextToSpeechInputs = {
   model?: Connectable<unknown>;
   text?: Connectable<string>;
   speed?: Connectable<number>;
+  reference_audio?: Connectable<AudioRef>;
+  reference_text?: Connectable<string>;
+  language?: Connectable<string>;
+  instructions?: Connectable<string>;
 };
 
 export interface TextToSpeechOutputs {

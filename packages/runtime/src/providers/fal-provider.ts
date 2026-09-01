@@ -26,6 +26,9 @@ import type {
   ImageToVideoParams,
   UpscaleImageParams,
   RemoveBackgroundParams,
+  SegmentImageParams,
+  ImageSegmentationMask,
+  ImageBox,
   RelightImageParams,
   VectorizeImageParams,
   VideoToVideoParams,
@@ -47,6 +50,7 @@ import { safeFetch } from "./safe-url.js";
 import {
   isNonEmptyString,
   isObjectLike,
+  isRecord,
   isString
 } from "../type-predicates.js";
 
@@ -276,6 +280,23 @@ class FalArgsBuilder {
   /** Same as set() but always writes (used for required canonical keys like prompt). */
   force(apiName: string, value: unknown): this {
     if (value != null) this.args[apiName] = value;
+    return this;
+  }
+
+  /**
+   * Write `value` to the first name in `apiNames` the endpoint declares. Used
+   * where one concept has many spellings across endpoints (a segmentation text
+   * prompt is `prompt`, `text_prompt`, `text_input` or `object`), so writing a
+   * single name would drop the value on every endpoint using another.
+   */
+  setFirst(apiNames: readonly string[], value: unknown): this {
+    for (const apiName of apiNames) {
+      if (this.has(apiName)) {
+        return this.set(apiName, value);
+      }
+    }
+    // The endpoint declares none of them — an unknown key would 422 the call,
+    // and the model simply does not take this prompt kind.
     return this;
   }
 
@@ -1114,6 +1135,48 @@ export class FalProvider extends BaseProvider {
     return this.runImageEndpoint(endpointId, b.args);
   }
 
+  /**
+   * Segment an image into object masks. fal's SAM endpoints answer with mask
+   * images plus loose side-channels — `scores`, `boxes` and `metadata` arrive
+   * as JSON-encoded strings, and boxes are normalized `[cx, cy, w, h]` — so
+   * everything past the mask list is parsed defensively and left absent when
+   * it does not decode.
+   */
+  override async segmentImage(
+    image: Uint8Array,
+    params: SegmentImageParams
+  ): Promise<ImageSegmentationMask[]> {
+    if (image.length === 0) {
+      throw new Error("segmentImage requires a non-empty image");
+    }
+    const modelId = params.model.id;
+    assertSegmentPromptIsUsable(modelId, params);
+    const client = await this.getClient();
+    const [imageUrl] = await this.uploadImages([image]);
+    const args = buildSegmentImageArgs(modelId, imageUrl, params);
+    this.recordRequestPayload(args);
+    log.debug("FAL segmentImage", { model: modelId });
+    const result = await client.subscribe(modelId, {
+      input: args,
+      logs: true,
+      onQueueUpdate: this.makeQueueUpdateHandler(),
+      abortSignal: params.signal
+    });
+    const data = (result.data ?? result) as Record<string, unknown>;
+    const masks = await collectSegmentationMasks(data, params.minConfidence);
+    if (masks.length === 0) {
+      // A segmentation call that answers with no mask this decoder recognizes
+      // is either a model that found nothing or a response shape not handled
+      // here — and those look identical from the caller. Name the fields the
+      // response actually carried so the second case is diagnosable.
+      log.warn("FAL segmentImage returned no masks", {
+        model: modelId,
+        responseFields: Object.keys(data)
+      });
+    }
+    return masks;
+  }
+
   override async removeBackground(
     image: Uint8Array,
     params: RemoveBackgroundParams
@@ -1223,6 +1286,279 @@ export function extractImageUrls(result: Record<string, unknown>): string[] {
   const image = result.image as Record<string, unknown> | undefined;
   if (image?.url) return [image.url as string];
   throw new Error(`Unexpected FAL image response: ${JSON.stringify(result)}`);
+}
+
+/**
+ * Shape the inputs a SAM endpoint declares. The prompt kinds are optional and
+ * an endpoint that does not declare one simply drops it — {@link
+ * FalArgsBuilder.set} writes only fields the manifest knows.
+ */
+function buildSegmentImageArgs(
+  modelId: string,
+  imageUrl: string,
+  params: SegmentImageParams
+): Record<string, unknown> {
+  const b = new FalArgsBuilder(modelId);
+  const maxMasks = params.maxMasks != null ? Math.max(1, params.maxMasks) : null;
+  b.attachAsset("image", imageUrl)
+    // The mask images are the answer; a masked copy of the source is not.
+    .set("apply_mask", false)
+    .set("output_format", "png")
+    .set("include_scores", true)
+    .set("include_boxes", true);
+  if (maxMasks != null) {
+    b.set("max_masks", maxMasks).set("return_multiple_masks", maxMasks > 1);
+  }
+  // Each prompt kind is spelled differently per endpoint, and a name the
+  // endpoint does not declare is dropped rather than sent — so a prompt written
+  // to one name only would be silently discarded on half the SAM catalog.
+  const prompt = params.prompt?.trim();
+  if (prompt) {
+    b.setFirst(SEGMENT_TEXT_PROMPT_FIELDS, prompt);
+  }
+  if (params.points?.length) {
+    b.setFirst(
+      SEGMENT_POINT_PROMPT_FIELDS,
+      params.points.map((p) => ({
+        x: Math.round(p.x),
+        y: Math.round(p.y),
+        label: p.include ? 1 : 0
+      }))
+    );
+  }
+  if (params.box) {
+    // fal takes box corners, not an origin and a size.
+    b.setFirst(SEGMENT_BOX_PROMPT_FIELDS, [
+      {
+        x_min: Math.round(params.box.x),
+        y_min: Math.round(params.box.y),
+        x_max: Math.round(params.box.x + params.box.width),
+        y_max: Math.round(params.box.y + params.box.height)
+      }
+    ]);
+  }
+  return b.args;
+}
+
+/**
+ * Endpoints that segment by concept only.
+ *
+ * They declare `point_prompts` and `box_prompts`, accept them without
+ * complaint, and then return `masks: []` with no error when no text prompt
+ * came with them — which is indistinguishable from "found nothing". Measured
+ * against the live API: a point on the subject returns nothing, the same point
+ * plus `prompt: "cat"` returns the mask at score 0.94.
+ */
+const FAL_CONCEPT_ONLY_SEGMENT_PREFIXES = ["fal-ai/sam-3"] as const;
+
+function isConceptOnlySegmentModel(modelId: string): boolean {
+  return FAL_CONCEPT_ONLY_SEGMENT_PREFIXES.some((prefix) =>
+    modelId.startsWith(prefix)
+  );
+}
+
+/**
+ * Refuse a call the model will answer with silence. Spending the request to
+ * get an empty mask list back teaches the caller nothing about why.
+ */
+function assertSegmentPromptIsUsable(
+  modelId: string,
+  params: SegmentImageParams
+): void {
+  if (params.prompt?.trim()) {
+    return;
+  }
+  if (!isConceptOnlySegmentModel(modelId)) {
+    return;
+  }
+  throw new Error(
+    `${modelId} segments by concept: name what to find (for example "the dog"). ` +
+      "Point and box prompts do nothing on this model — pick a point-driven " +
+      "model such as fal-ai/sam2/image to click at an object instead."
+  );
+}
+
+/** Text-prompt field names across fal's segmentation endpoints, in priority order. */
+const SEGMENT_TEXT_PROMPT_FIELDS = [
+  "prompt",
+  "text_prompt",
+  "text_input",
+  "object"
+] as const;
+const SEGMENT_POINT_PROMPT_FIELDS = ["point_prompts", "prompts"] as const;
+const SEGMENT_BOX_PROMPT_FIELDS = ["box_prompts"] as const;
+
+/** A mask image, normalized out of whatever shape the endpoint returned. */
+interface FalMaskImage {
+  url: string;
+  width: number | null;
+  height: number | null;
+}
+
+/**
+ * Read one mask image.
+ *
+ * fal is inconsistent here: a `list[Image]` field usually holds `{url, width,
+ * height}` objects, but the string-typed mask fields (`combined_mask`,
+ * `mask_image`) hold a bare URL, and some endpoints nest the image one level
+ * down. Accepting only the object form dropped whole responses on the floor.
+ */
+function asFalMaskImage(value: unknown): FalMaskImage | null {
+  if (isNonEmptyString(value)) {
+    return { url: value, width: null, height: null };
+  }
+  if (!isRecord(value)) {
+    return null;
+  }
+  if (isNonEmptyString(value.url)) {
+    return {
+      url: value.url,
+      width: finiteNumberOrNull(value.width),
+      height: finiteNumberOrNull(value.height)
+    };
+  }
+  return asFalMaskImage(value.image);
+}
+
+/**
+ * The mask images in a fal segmentation response, in the order the endpoints
+ * prefer: every list field first, then the single-mask fields.
+ *
+ * Each endpoint names this differently — sam-3/3-1 answer with `masks`,
+ * sam2/auto-segment with `individual_masks` plus a `combined_mask` URL, and
+ * the single-mask endpoints (evf-sam, sam2/image, birefnet, the florence
+ * variants) with one `image` or `mask_image`.
+ */
+function collectFalMaskImages(data: Record<string, unknown>): FalMaskImage[] {
+  for (const field of ["masks", "individual_masks", "images"]) {
+    const value = data[field];
+    if (Array.isArray(value)) {
+      const masks = value
+        .map(asFalMaskImage)
+        .filter((mask): mask is FalMaskImage => mask !== null);
+      if (masks.length > 0) {
+        return masks;
+      }
+    }
+  }
+  for (const field of ["image", "mask_image", "combined_mask", "mask"]) {
+    const mask = asFalMaskImage(data[field]);
+    if (mask) {
+      return [mask];
+    }
+  }
+  return [];
+}
+
+/** A side-channel field fal sends as JSON text on some endpoints and as a value on others. */
+function parseFalJsonField(value: unknown): unknown {
+  if (!isString(value)) {
+    return value;
+  }
+  try {
+    return JSON.parse(value);
+  } catch {
+    // Not JSON — the field carries an opaque string this parser has no use for.
+    return null;
+  }
+}
+
+function finiteNumberOrNull(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/**
+ * Convert one entry of fal's `boxes` output into source-image pixels. fal sends
+ * normalized `[cx, cy, w, h]` (center and size, 0–1), which needs the mask's
+ * own size to become a rectangle.
+ */
+function normalizeFalBox(
+  value: unknown,
+  width: number | null,
+  height: number | null
+): ImageBox | null {
+  if (Array.isArray(value) && value.length >= 4) {
+    const [cx, cy, w, h] = value.map(finiteNumberOrNull);
+    if (cx == null || cy == null || w == null || h == null) {
+      return null;
+    }
+    if (width == null || height == null) {
+      return null;
+    }
+    return {
+      x: Math.round((cx - w / 2) * width),
+      y: Math.round((cy - h / 2) * height),
+      width: Math.round(w * width),
+      height: Math.round(h * height)
+    };
+  }
+  if (isRecord(value)) {
+    const x = finiteNumberOrNull(value.x);
+    const y = finiteNumberOrNull(value.y);
+    const w = finiteNumberOrNull(value.width);
+    const h = finiteNumberOrNull(value.height);
+    if (x != null && y != null && w != null && h != null) {
+      return { x, y, width: w, height: h };
+    }
+  }
+  return null;
+}
+
+/** The label and score fal reports per mask under `metadata`. */
+function falMaskMetadata(
+  entries: unknown,
+  index: number
+): { label: string | null; score: number | null; box: unknown } {
+  const list = parseFalJsonField(entries);
+  const entry = Array.isArray(list) ? list[index] : index === 0 ? list : null;
+  if (!isRecord(entry)) {
+    return { label: null, score: null, box: null };
+  }
+  const label = isNonEmptyString(entry.label)
+    ? entry.label
+    : isNonEmptyString(entry.name)
+      ? entry.name
+      : null;
+  return {
+    label,
+    score: finiteNumberOrNull(entry.score),
+    box: entry.box ?? entry.bbox ?? entry.bounds ?? null
+  };
+}
+
+async function collectSegmentationMasks(
+  data: Record<string, unknown>,
+  minConfidence?: number | null
+): Promise<ImageSegmentationMask[]> {
+  const rawMasks = collectFalMaskImages(data);
+  const scores = parseFalJsonField(data.scores);
+  const boxes = parseFalJsonField(data.boxes);
+  const threshold = minConfidence ?? null;
+
+  const masks: ImageSegmentationMask[] = [];
+  for (let i = 0; i < rawMasks.length; i++) {
+    const { url, width, height } = rawMasks[i];
+    const meta = falMaskMetadata(data.metadata, i);
+    const confidence =
+      meta.score ??
+      (Array.isArray(scores) ? finiteNumberOrNull(scores[i]) : null);
+    if (threshold != null && confidence != null && confidence < threshold) {
+      continue;
+    }
+    const box =
+      normalizeFalBox(meta.box, width, height) ??
+      (Array.isArray(boxes) ? normalizeFalBox(boxes[i], width, height) : null);
+    masks.push({
+      mask: await downloadBytes(url),
+      mimeType: "image/png",
+      width,
+      height,
+      label: meta.label,
+      confidence,
+      box
+    });
+  }
+  return masks;
 }
 
 export function extractImageUrl(result: Record<string, unknown>): string {

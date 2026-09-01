@@ -432,3 +432,24 @@ export interface VectorizeOutputs {
 export function vectorize(inputs: VectorizeInputs): Promise<VectorizeOutputs> {
   return callNode<VectorizeOutputs>("nodetool.image.Vectorize", inputs);
 }
+
+// Segment Image — nodetool.image.Segment
+export type SegmentInputs = {
+  model?: unknown;
+  image?: ImageRef;
+  prompt?: string;
+  points?: Record<string, unknown>[];
+  box?: Record<string, unknown>;
+  max_masks?: number;
+  min_confidence?: number;
+};
+
+export interface SegmentOutputs {
+  masks: ImageRef[];
+  labels: string[];
+  scores: number[];
+}
+
+export function segment(inputs: SegmentInputs): Promise<SegmentOutputs> {
+  return callNode<SegmentOutputs>("nodetool.image.Segment", inputs);
+}

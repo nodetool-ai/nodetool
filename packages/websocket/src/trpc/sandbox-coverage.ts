@@ -700,6 +700,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "scripts.get": { capability: "get_script" },
   "scripts.list": { capability: "list_scripts" },
   "scripts.update": { capability: "edit_script" },
+  "segmentation.segment": { capability: "segment_image" },
   "settings.list": { capability: "list_settings" },
   "settings.history.get": {
     withheld:

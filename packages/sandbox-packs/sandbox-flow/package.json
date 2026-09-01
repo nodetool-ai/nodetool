@@ -38,6 +38,11 @@
         "file": "sandbox/generated/kie.dynamic_schema.js"
       },
       {
+        "name": "lib.apple",
+        "kind": "js",
+        "file": "sandbox/generated/lib.apple.js"
+      },
+      {
         "name": "lib.audio",
         "kind": "js",
         "file": "sandbox/generated/lib.audio.js"

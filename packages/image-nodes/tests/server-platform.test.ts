@@ -29,7 +29,8 @@ import {
   UpscaleImageNode,
   RemoveBackgroundNode,
   RelightImageNode,
-  VectorizeImageNode
+  VectorizeImageNode,
+  SegmentImageNode
 } from "@nodetool-ai/image-nodes";
 
 type NodeClassLike = {
@@ -58,7 +59,8 @@ const SERVER_PORTABLE_NODES: NodeClassLike[] = [
   UpscaleImageNode,
   RemoveBackgroundNode,
   RelightImageNode,
-  VectorizeImageNode
+  VectorizeImageNode,
+  SegmentImageNode
 ];
 
 describe("IMAGE_SERVER_NODES platform split", () => {

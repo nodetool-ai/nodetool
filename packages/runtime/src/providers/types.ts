@@ -466,6 +466,57 @@ export interface RemoveBackgroundParams {
   model: ImageModel;
 }
 
+/** A rectangle in source-image pixels. */
+export interface ImageBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A click that includes or excludes a region, in source-image pixels. */
+export interface SegmentPoint {
+  x: number;
+  y: number;
+  /** true = the object is here; false = it is not. */
+  include: boolean;
+}
+
+/**
+ * Segment an image into object masks. The prompts are alternatives, not a
+ * pipeline: a `prompt` names the concept to find ("the dog"), `points` and
+ * `box` point at one object, and passing none asks the model for whatever it
+ * finds. A model serves only the prompt kinds its endpoint declares.
+ */
+export interface SegmentImageParams {
+  model: ImageModel;
+  /** Concept to segment, for text-promptable models. */
+  prompt?: string | null;
+  points?: SegmentPoint[] | null;
+  box?: ImageBox | null;
+  /** Upper bound on how many masks to return. */
+  maxMasks?: number | null;
+  /** Drop masks the model scores below this (0–1). */
+  minConfidence?: number | null;
+  signal?: AbortSignal;
+}
+
+/** One object found by {@link SegmentImageParams}. */
+export interface ImageSegmentationMask {
+  /** Encoded mask image — white inside the object, black outside. */
+  mask: Uint8Array;
+  mimeType: string;
+  /** Mask size in pixels, when the provider reports it. */
+  width?: number | null;
+  height?: number | null;
+  /** What the model called this object, when it names them. */
+  label?: string | null;
+  /** Model confidence 0–1, when the model scores its masks. */
+  confidence?: number | null;
+  /** Bounding box in source-image pixels, when the provider reports one. */
+  box?: ImageBox | null;
+}
+
 /**
  * Re-light a subject according to a text prompt and/or a background reference.
  */

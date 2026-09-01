@@ -150,10 +150,9 @@ export {
   drawSketchPasteOnLayerContext
 } from "./sketchClipboard";
 
-export { getSamService, SamServiceStub } from "./sam";
+export { getSegmentationService, SegmentationService } from "./sam";
 export { DEFAULT_SAM_MODEL_ID, DEFAULT_SAM_MODEL_NAME } from "./sam";
 export type {
-  SamService,
   SamModelStatus,
   SamModelInfo,
   SegmentationRequest,

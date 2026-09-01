@@ -139,20 +139,30 @@ export interface CloneStampSettings {
 /** Prompt mode for SAM-based segmentation. */
 export type SegmentPromptMode = "point" | "box" | "auto";
 
-/** Backend used for segmentation inference. */
-export type SegmentBackend = "fal" | "local-sam3";
-
-const DEFAULT_LOCAL_SAM3_POINTS_PER_SIDE = 32;
-const DEFAULT_LOCAL_SAM3_PRED_IOU_THRESH = 0.88;
-
-export function normalizeSegmentBackend(value: unknown): SegmentBackend {
-  if (value === "local-sam3" || value === "fal") {
-    return value;
+/**
+ * A stored model selection, or null when the document names none or names one
+ * that is missing a provider or an id.
+ */
+export function normalizeSegmentModel(
+  value: unknown
+): SegmentModelSelection | null {
+  if (!value || typeof value !== "object") {
+    return null;
   }
-  if (value === "node") {
-    return "local-sam3";
+  const candidate = value as Partial<SegmentModelSelection>;
+  if (
+    typeof candidate.provider !== "string" ||
+    candidate.provider.length === 0 ||
+    typeof candidate.id !== "string" ||
+    candidate.id.length === 0
+  ) {
+    return null;
   }
-  return "fal";
+  return {
+    provider: candidate.provider,
+    id: candidate.id,
+    name: typeof candidate.name === "string" ? candidate.name : candidate.id
+  };
 }
 
 /** What to do with the source layer after segmentation is applied. */
@@ -210,8 +220,6 @@ export interface SegmentationMask {
   confidence: number;
   /** Bounding box of the mask region in canvas space. */
   bounds: { x: number; y: number; width: number; height: number };
-  /** Backend that produced this mask. */
-  backendId: SegmentBackend;
   /** Model identifier used for this mask. */
   modelId: string;
   /** Node type that produced this mask when known. */
@@ -232,8 +240,6 @@ export interface SegmentationResult {
   timestamp: number;
   /** Model ID used for this run. */
   modelId: string;
-  /** Backend used for this run. */
-  backendId?: SegmentBackend;
   /** Node type used for this run when known. */
   nodeType?: string;
   /** Original source-layer metadata when available. */
@@ -249,6 +255,13 @@ export type SegmentationStatus =
   | "previewing"
   | "applying"
   | "error";
+
+/** A segmentation model the user picked, as the provider node takes it. */
+export interface SegmentModelSelection {
+  provider: string;
+  id: string;
+  name: string;
+}
 
 /** Settings for the segment tool. */
 export interface SegmentSettings {
@@ -268,12 +281,11 @@ export interface SegmentSettings {
   maskFeather: number;
   /** Whether the result should be cutout layers (true) or mask layers (false). */
   outputCutouts: boolean;
-  /** Inference backend for sketch SAM actions. */
-  backend: SegmentBackend;
-  /** Automatic mask generation density for Local SAM3. */
-  pointsPerSide: number;
-  /** Automatic mask IoU filter for Local SAM3. */
-  predIouThresh: number;
+  /**
+   * The segmentation model to run. Null means the shipped default — a document
+   * saved before the picker existed says nothing about a model.
+   */
+  model: SegmentModelSelection | null;
 }
 
 /** Metadata stored on layers created by segmentation. */
@@ -282,8 +294,6 @@ export interface SegmentationLayerMeta {
   segmentationRunId: string;
   /** Layer ID that was segmented. */
   sourceLayerId: string;
-  /** Backend used for segmentation. */
-  backendId?: SegmentBackend;
   /** Model identifier used for segmentation. */
   modelId: string;
   /** Node type used for segmentation when known. */
@@ -414,7 +424,9 @@ export const DEFAULT_SELECT_SETTINGS: SelectSettings = {
 };
 
 export const DEFAULT_SEGMENT_SETTINGS: SegmentSettings = {
-  promptMode: "point",
+  // Auto pairs with the shipped model: SAM 3.1 segments by concept, and a
+  // point or a box on its own returns nothing.
+  promptMode: "auto",
   conceptPrompt: "",
   maxObjects: 5,
   minObjectSize: 100,
@@ -422,9 +434,7 @@ export const DEFAULT_SEGMENT_SETTINGS: SegmentSettings = {
   sourceLayerAction: "keep",
   maskFeather: 0,
   outputCutouts: true,
-  backend: "fal",
-  pointsPerSide: DEFAULT_LOCAL_SAM3_POINTS_PER_SIDE,
-  predIouThresh: DEFAULT_LOCAL_SAM3_PRED_IOU_THRESH
+  model: null
 };
 
 export const DEFAULT_TOOL_SETTINGS: ToolSettings = {

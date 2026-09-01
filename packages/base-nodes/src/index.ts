@@ -208,6 +208,7 @@ export {
   RemoveBackgroundNode,
   RelightImageNode,
   VectorizeImageNode,
+  SegmentImageNode,
   IMAGE_NODES
 } from "@nodetool-ai/image-nodes/nodes/image";
 export {

@@ -2,29 +2,29 @@
  * SAM module barrel export.
  */
 
-export { SamServiceStub, getSamService } from "./SamService";
 export {
-  FAL_SAM_CAPABILITIES,
+  SegmentationService,
+  getSegmentationService
+} from "./SegmentationService";
+
+export {
   DEFAULT_SAM_MODEL_ID,
   DEFAULT_SAM_MODEL_NAME,
-  getDefaultSamModelId,
-  LOCAL_SAM3_MODEL_ID,
-  LOCAL_SAM3_MODEL_NAME,
-  LOCAL_SAM3_CAPABILITIES
-} from "./SamService";
+  DEFAULT_SAM_MODEL_PROVIDER
+} from "./SamConstants";
 
 export type {
-  SamService,
   SamModelStatus,
   SamModelInfo,
-  SamBackendCapabilities,
   SegmentationRequest,
   SegmentationResponse
 } from "./SamService";
 
-export { SamServiceFal, resizeForInference, MAX_INFERENCE_DIMENSION } from "./SamServiceFal";
+export {
+  resizeForInference,
+  MAX_INFERENCE_DIMENSION
+} from "./resizeForInference";
 
-export { SamServiceNode } from "./SamServiceNode";
 export { normalizeSamMasks } from "./normalizeSamMasks";
 export {
   rasterizeSegmentationToDocumentSpace,

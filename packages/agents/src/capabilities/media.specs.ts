@@ -79,6 +79,66 @@ export const EDIT_IMAGE_SCHEMA: JsonSchema = {
   required: ["provider", "model", "input_file", "prompt"]
 };
 
+export const SEGMENT_IMAGE_SCHEMA: JsonSchema = {
+  type: "object" as const,
+  properties: {
+    provider: {
+      type: "string" as const,
+      description:
+        "Provider id from find_model. Optional when `model` is a find_model hit or its `.ref`."
+    },
+    model: {
+      type: "string" as const,
+      description:
+        "Model id from find_model, or the whole find_model hit / `.ref` object."
+    },
+    input_file: {
+      type: "string" as const,
+      description:
+        "Workspace-relative path of the image to segment (or asset:// URI)."
+    },
+    prompt: {
+      type: "string" as const,
+      description:
+        "The concept to segment, e.g. \"the red car\". Leave it out to ask the model for whatever objects it finds."
+    },
+    points: {
+      type: "array" as const,
+      description:
+        "Clicks that point at one object, in source-image pixels. `include: false` marks a point that is NOT part of it.",
+      items: {
+        type: "object" as const,
+        properties: {
+          x: { type: "number" as const },
+          y: { type: "number" as const },
+          include: { type: "boolean" as const }
+        },
+        required: ["x", "y"]
+      }
+    },
+    box: {
+      type: "object" as const,
+      description: "A rectangle around one object, in source-image pixels.",
+      properties: {
+        x: { type: "number" as const },
+        y: { type: "number" as const },
+        width: { type: "number" as const },
+        height: { type: "number" as const }
+      },
+      required: ["x", "y", "width", "height"]
+    },
+    max_masks: {
+      type: "number" as const,
+      description: "Upper bound on how many masks to return."
+    },
+    min_confidence: {
+      type: "number" as const,
+      description: "Drop masks the model scores below this (0-1)."
+    }
+  },
+  required: ["provider", "model", "input_file"]
+};
+
 export const GENERATE_VIDEO_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
@@ -370,6 +430,21 @@ export const editImageSpec: CapabilitySpec = {
     `Editing image with ${String(params["provider"])}:${String(params["model"])}`
 };
 
+export const segmentImageSpec: CapabilitySpec = {
+  name: "segment_image",
+  description:
+    "Find objects in an image and return one mask per object, using a " +
+    "provider+model selected via find_model (capability=segment_image). Name " +
+    "the object in `prompt`, point at it with `points` or `box`, or pass " +
+    "neither to get whatever the model finds. Each mask is saved as an asset " +
+    "(white inside the object) and carries its label, confidence and bounding " +
+    "box, so a later call can cut the object out or edit only that region.",
+  inputSchema: SEGMENT_IMAGE_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Segmenting image with ${String(params["provider"])}:${String(params["model"])}`
+};
+
 export const generateVideoSpec: CapabilitySpec = {
   name: "generate_video",
   description:
@@ -649,6 +724,7 @@ export const ytDlpSpec: CapabilitySpec = {
 export const mediaSpecs: readonly CapabilitySpec[] = [
   generateImageSpec,
   editImageSpec,
+  segmentImageSpec,
   generateVideoSpec,
   animateImageSpec,
   generateSpeechSpec,

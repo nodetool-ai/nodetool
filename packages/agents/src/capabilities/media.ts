@@ -25,8 +25,11 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import type {
+  ImageBox,
+  ImageSegmentationMask,
   JsonSchema,
   ProcessingContext,
+  SegmentPoint,
   Workspace
 } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
@@ -71,6 +74,7 @@ import type { CapabilityExport, CapabilityModule } from "./types.js";
 import {
   generateImageSpec,
   editImageSpec,
+  segmentImageSpec,
   generateVideoSpec,
   animateImageSpec,
   generateSpeechSpec,
@@ -324,6 +328,90 @@ const editImage: CapabilityExport = {
       };
     } catch (e) {
       return predictionError("image_to_image", m, e);
+    }
+  }
+};
+
+/** Coerce one `points` entry from the model's arguments. */
+function parseSegmentPoint(value: unknown): SegmentPoint | null {
+  if (!isRecord(value)) return null;
+  const x = value["x"];
+  const y = value["y"];
+  if (typeof x !== "number" || typeof y !== "number") return null;
+  return { x, y, include: value["include"] !== false };
+}
+
+function parseSegmentBox(value: unknown): ImageBox | null {
+  if (!isRecord(value)) return null;
+  const { x, y, width, height } = value;
+  if (
+    typeof x !== "number" ||
+    typeof y !== "number" ||
+    typeof width !== "number" ||
+    typeof height !== "number"
+  ) {
+    return null;
+  }
+  return { x, y, width, height };
+}
+
+const segmentImage: CapabilityExport = {
+  spec: segmentImageSpec,
+  impl: async (run, params) => {
+    const context = run.context;
+    const m = parseModelArgs(params);
+    if ("error" in m) return m;
+    const inputFile = params["input_file"];
+    if (!isNonEmptyString(inputFile))
+      return { error: "input_file is required" };
+
+    const rawPoints = params["points"];
+    const points = Array.isArray(rawPoints)
+      ? rawPoints.map(parseSegmentPoint).filter((p): p is SegmentPoint => p !== null)
+      : [];
+
+    try {
+      const image = await readWorkspaceOrAssetFile(context, inputFile);
+      const masks = (await context.runProviderPrediction({
+        provider: m.provider,
+        capability: "segment_image",
+        model: m.model,
+        params: {
+          image,
+          prompt: params["prompt"],
+          points: points.length > 0 ? points : undefined,
+          box: parseSegmentBox(params["box"]) ?? undefined,
+          max_masks: params["max_masks"],
+          min_confidence: params["min_confidence"]
+        }
+      })) as ImageSegmentationMask[];
+
+      const saved = [];
+      for (const [index, found] of masks.entries()) {
+        const persisted = await persistOutput(context, found.mask, {
+          namePrefix: `segment-mask-${index + 1}`,
+          mime: found.mimeType || inferImageMime(found.mask)
+        });
+        saved.push({
+          label: found.label ?? null,
+          confidence: found.confidence ?? null,
+          box: found.box ?? null,
+          width: found.width ?? null,
+          height: found.height ?? null,
+          ...persisted
+        });
+      }
+      return {
+        type: "segmentation",
+        provider: m.provider,
+        model: m.model,
+        // An empty list is the model's answer, not a failure — say so, because
+        // a bare `[]` reads as a broken call.
+        found: saved.length,
+        masks: saved
+      };
+    } catch (e) {
+      return predictionError("segment_image", m, e);
     }
   }
 };
@@ -1889,6 +1977,7 @@ const ytDlp: CapabilityExport = {
 export const MEDIA_CAPABILITIES: readonly CapabilityExport[] = [
   generateImage,
   editImage,
+  segmentImage,
   generateVideo,
   animateImage,
   generateSpeech,
@@ -1913,6 +2002,7 @@ export const module: CapabilityModule = {
 export {
   generateImage,
   editImage,
+  segmentImage,
   generateVideo,
   animateImage,
   generateSpeech,

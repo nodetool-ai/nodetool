@@ -255,7 +255,8 @@ async function runAppBuild(
     { buildFullRegistry },
     { runOnServer },
     { defaultBuildOutDir, writeBuildBundle, writeRunMessages },
-    { initDb, Workflow, getSecret },
+    { initDb, Workflow },
+    { resolveLocalSecret },
     { initMasterKey },
     { getDefaultAssetsPath, getDefaultDbPath },
     { ProcessingContext, FileStorageAdapter }
@@ -266,6 +267,7 @@ async function runAppBuild(
     import("../debug/server-runner.js"),
     import("../app-build/bundle.js"),
     import("@nodetool-ai/models"),
+    import("../local-secrets.js"),
     import("@nodetool-ai/security"),
     import("@nodetool-ai/config"),
     import("@nodetool-ai/runtime")
@@ -310,7 +312,7 @@ async function runAppBuild(
     jobId: buildId,
     workflowId: null,
     userId: "1",
-    secretResolver: getSecret,
+    secretResolver: resolveLocalSecret,
     storage: new FileStorageAdapter(getDefaultAssetsPath())
   });
 

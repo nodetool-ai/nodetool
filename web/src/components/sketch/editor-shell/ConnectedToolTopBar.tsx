@@ -152,6 +152,7 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
       segmentSettings={toolSettings.segment}
       onSegmentSettingsChange={setSegmentSettings}
       segmentationStatus={props.segmentation.status}
+      segmentationError={props.segmentation.errorMessage}
       segmentModelInfo={props.segmentation.modelInfo}
       onRunSegmentation={props.onRunSegmentation}
       onApplySegmentResult={props.segmentation.applyResult}

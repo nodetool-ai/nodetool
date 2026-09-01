@@ -43,11 +43,6 @@ export const DYNAMIC_KIE_NODE_TYPE = "kie.dynamic_schema.KieAI";
 export const DYNAMIC_REPLICATE_NODE_TYPE = "replicate.DynamicReplicate";
 export const DYNAMIC_COMFY_NODE_TYPE = "lib.comfy.RunWorkflow";
 
-// --- Image segmentation (SAM) ----------------------------------------------
-export const FAL_SAM_NODE_TYPE = "fal.image_to_image.Sam3Image";
-export const LOCAL_SAM3_NODE_TYPE =
-  "huggingface.image_segmentation.MaskGeneration";
-
 // --- Image-editing node bodies ---------------------------------------------
 export const BLUR_NODE_TYPE = "nodetool.image.Blur";
 export const CHANNELS_NODE_TYPE = "nodetool.image.Channels";

@@ -14,7 +14,12 @@ import type {
   Platform
 } from "@nodetool-ai/protocol";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  ImageBox,
+  ImageSegmentationMask,
+  ProcessingContext,
+  SegmentPoint
+} from "@nodetool-ai/runtime";
 // Import from browser-safe subpaths (not the runtime barrel, which drags in the
 // provider / python-bridge stack) so this module can bundle for the browser.
 import { loadMediaRefBytes } from "@nodetool-ai/runtime/media-ref-bytes";
@@ -3098,6 +3103,165 @@ export class RelightImageNode extends BaseNode {
   }
 }
 
+/** A `points` entry that names a pixel. */
+function isSegmentPointLike(
+  value: unknown
+): value is { x: number; y: number; include?: unknown } {
+  return isObjectLike(value) && isNumber(value.x) && isNumber(value.y);
+}
+
+/** A `box` value that names a rectangle. */
+function isSegmentBoxLike(value: unknown): value is ImageBox {
+  return (
+    isObjectLike(value) &&
+    isNumber(value.x) &&
+    isNumber(value.y) &&
+    isNumber(value.width) &&
+    isNumber(value.height)
+  );
+}
+
+/** The `points` property, keeping only entries that name a pixel. */
+function segmentPoints(value: unknown): SegmentPoint[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const points = value
+    .filter(isSegmentPointLike)
+    .map(({ x, y, include }) => ({ x, y, include: include !== false }));
+  return points.length > 0 ? points : undefined;
+}
+
+/** The `box` property, or undefined when it is the empty default. */
+function segmentBox(value: unknown): ImageBox | undefined {
+  return isSegmentBoxLike(value) ? value : undefined;
+}
+
+/** Output handles SegmentImageNode.process() emits. */
+type SegmentImageNodeOutputs = {
+  masks: ImageRef[];
+  labels: string[];
+  scores: number[];
+};
+
+export class SegmentImageNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.Segment";
+  static readonly body = "content_card";
+  static readonly title = "Segment Image";
+  static readonly description =
+    "Find objects in an image and return one mask per object, using any supported segmentation provider.\n    image, segment, mask, sam, cutout, AI";
+  static readonly metadataOutputTypes = {
+    masks: "list[image]",
+    labels: "list[str]",
+    scores: "list[float]"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image", "prompt"];
+
+  @prop({
+    type: "image_model",
+    default: {
+      type: "image_model",
+      provider: "fal_ai",
+      id: "fal-ai/sam-3-1/image",
+      name: "SAM 3.1",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The segmentation model to use"
+  })
+  declare model: any;
+
+  @prop({
+    type: "image",
+    default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Image",
+    description: "Input image to segment"
+  })
+  declare image: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description:
+      "The object to find, e.g. \"the red car\". Most models need this: a concept-driven model such as SAM 3.1 segments nothing without it, and ignores points and boxes. Leave it empty only for a model that finds objects on its own, such as fal-ai/sam2/auto-segment."
+  })
+  declare prompt: any;
+
+  @prop({
+    type: "list[dict]",
+    default: [],
+    title: "Points",
+    description:
+      "Clicks that point at one object, in source-image pixels: {x, y, include}. `include: false` marks a point that is NOT part of it."
+  })
+  declare points: any;
+
+  @prop({
+    type: "dict",
+    default: {},
+    title: "Box",
+    description:
+      "A rectangle around one object, in source-image pixels: {x, y, width, height}"
+  })
+  declare box: any;
+
+  @prop({
+    type: "int",
+    default: 3,
+    title: "Max Masks",
+    description: "Upper bound on how many masks to return"
+  })
+  declare max_masks: any;
+
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Min Confidence",
+    description: "Drop masks the model scores below this (0 = keep every mask)"
+  })
+  declare min_confidence: any;
+
+  async process(context?: ProcessingContext): Promise<SegmentImageNodeOutputs> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const bytes = await imageBytesAsync(image, context);
+    if (bytes.length === 0) throw new Error("The input image is empty.");
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    if (!hasProviderSupport(context, providerId, modelId)) {
+      throw new Error("No provider available for image segmentation.");
+    }
+    const minConfidence = Number(this.min_confidence ?? 0);
+    const found = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "segment_image",
+      model: modelId,
+      params: {
+        image: bytes,
+        prompt: this.prompt ? String(this.prompt) : undefined,
+        points: segmentPoints(this.points),
+        box: segmentBox(this.box),
+        max_masks: Number(this.max_masks ?? 3) || undefined,
+        // 0 is "keep every mask", not a threshold to send.
+        min_confidence: minConfidence > 0 ? minConfidence : undefined
+      }
+    })) as ImageSegmentationMask[];
+
+    return {
+      masks: found.map((entry) =>
+        imageRef(entry.mask, {
+          mimeType: entry.mimeType,
+          width: entry.width ?? undefined,
+          height: entry.height ?? undefined
+        })
+      ),
+      // Positional: the label and score at index i belong to mask i, so an
+      // unlabeled or unscored mask keeps its slot rather than shifting the rest.
+      labels: found.map((entry, index) => entry.label ?? `Object ${index + 1}`),
+      scores: found.map((entry) => entry.confidence ?? 0)
+    };
+  }
+}
+
 /** Output handles VectorizeImageNode.process() emits. */
 type VectorizeImageNodeOutputs = {
   output: { content: string };
@@ -3177,7 +3341,8 @@ const IMAGE_TRANSFORM_NODES = tagAsContentCard(
 // members below pin themselves to `NODE_ONLY` (they cannot run on the workers /
 // edge V8 isolates: no fs, no native addons). The pure-JS list nodes
 // (BatchToList, ImagesToList) and the provider/HTTP generation nodes
-// (TextToImage, ImageToImage, Upscale, RemoveBackground, Relight, Vectorize)
+// (TextToImage, ImageToImage, Upscale, RemoveBackground, Relight, Vectorize,
+// Segment)
 // keep the full server set — they only touch sharp via metadataFor, which
 // degrades to undefined dimensions off-Node.
 const IMAGE_SERVER_NODES = tagAsServer([
@@ -3195,7 +3360,8 @@ const IMAGE_SERVER_NODES = tagAsServer([
   UpscaleImageNode,
   RemoveBackgroundNode,
   RelightImageNode,
-  VectorizeImageNode
+  VectorizeImageNode,
+  SegmentImageNode
 ]);
 
 export const IMAGE_NODES = [

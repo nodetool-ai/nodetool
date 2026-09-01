@@ -305,6 +305,7 @@ const CAPABILITY_CATEGORY: Record<string, SpendCategory> = {
   inpainting: "stills",
   upscale_image: "stills",
   remove_background: "stills",
+  segment_image: "stills",
   relight_image: "stills",
   vectorize_image: "stills",
   text_to_video: "clips",

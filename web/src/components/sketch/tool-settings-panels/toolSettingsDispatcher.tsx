@@ -90,6 +90,7 @@ export interface ToolSettingsPanelProps {
   segmentSettings?: SegmentSettings;
   onSegmentSettingsChange?: (settings: Partial<SegmentSettings>) => void;
   segmentationStatus?: SegmentationStatus;
+  segmentationError?: string | null;
   segmentModelInfo?: SamModelInfo | null;
   onRunSegmentation?: () => void;
   onApplySegmentResult?: () => void;
@@ -151,6 +152,7 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   segmentSettings,
   onSegmentSettingsChange,
   segmentationStatus,
+  segmentationError,
   segmentModelInfo,
   onRunSegmentation,
   onApplySegmentResult,
@@ -311,6 +313,7 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
         settings={segmentSettings}
         onChange={onSegmentSettingsChange}
         segmentationStatus={segmentationStatus ?? "idle"}
+        segmentationError={segmentationError ?? null}
         modelInfo={segmentModelInfo ?? null}
         onRunSegmentation={onRunSegmentation ?? noop}
         onApplyResult={onApplySegmentResult ?? noop}

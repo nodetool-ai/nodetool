@@ -25,6 +25,8 @@ import type {
   TextToSpeechParams,
   RelightImageParams,
   RemoveBackgroundParams,
+  SegmentImageParams,
+  ImageSegmentationMask,
   StreamingAudioChunk,
   TextTo3DParams,
   TextToImageParams,
@@ -150,6 +152,7 @@ export type ProviderCapability =
   | "upscale_image"
   | "remove_background"
   | "relight_image"
+  | "segment_image"
   | "vectorize_image"
   | "text_to_video"
   | "image_to_video"
@@ -206,6 +209,9 @@ export function providerCapabilities(
   }
   if (instance.relightImage !== BaseProvider.prototype.relightImage) {
     capabilities.push("relight_image");
+  }
+  if (instance.segmentImage !== BaseProvider.prototype.segmentImage) {
+    capabilities.push("segment_image");
   }
   if (instance.vectorizeImage !== BaseProvider.prototype.vectorizeImage) {
     capabilities.push("vectorize_image");
@@ -1482,6 +1488,18 @@ export abstract class BaseProvider {
     throw new Error(`${this.provider} does not support removeBackground`);
   }
 
+  /**
+   * Segment an image into object masks. Returns one entry per object the model
+   * found, in the model's own order; an empty array means it found nothing,
+   * which is an answer rather than a failure.
+   */
+  async segmentImage(
+    _image: Uint8Array,
+    _params: SegmentImageParams
+  ): Promise<ImageSegmentationMask[]> {
+    throw new Error(`${this.provider} does not support segmentImage`);
+  }
+
   /** Re-light a subject according to a prompt / background reference. */
   async relightImage(
     _image: Uint8Array,
@@ -1785,6 +1803,7 @@ const MODALITY_PROMISE_METHODS = [
   "removeBackground",
   "relightImage",
   "vectorizeImage",
+  "segmentImage",
   "textToSpeechEncoded",
   "textToMusic",
   "automaticSpeechRecognition",

@@ -13,7 +13,7 @@
  */
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import { ExecutionSession } from "@nodetool-ai/execution";
-import { getSecret } from "@nodetool-ai/models";
+import { resolveLocalSecret } from "./local-secrets.js";
 import type { Intervention } from "@nodetool-ai/protocol";
 import { createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
 import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
@@ -50,7 +50,7 @@ export async function runDslFileSupervised(
       jobId,
       workflowId: null,
       userId: "1",
-      secretResolver: getSecret,
+      secretResolver: resolveLocalSecret,
       storage: new FileStorageAdapter(getDefaultAssetsPath())
     });
 

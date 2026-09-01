@@ -24,7 +24,8 @@ import {
   getAllMcpTools,
   type Tool
 } from "@nodetool-ai/agents";
-import { initDb, getSecret } from "@nodetool-ai/models";
+import { initDb } from "@nodetool-ai/models";
+import { resolveLocalSecret } from "../local-secrets.js";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
 import { createProvider, buildConfiguredProviders } from "../providers.js";
@@ -281,7 +282,7 @@ async function runAgentCommand(opts: RunOptions): Promise<void> {
     jobId: `agent-${Date.now()}`,
     userId: "1",
     workspace: createLocalWorkspace(workspaceDir),
-    secretResolver: getSecret
+    secretResolver: resolveLocalSecret
   });
   for (const [id, p] of Object.entries(configuredProviders)) {
     ctx.registerProvider(id, p);

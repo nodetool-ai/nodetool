@@ -123,6 +123,8 @@ const __dirname = dirname(__filename);
 
 // The local single-user id every direct-DB command runs as, matching the
 // `workflows run` / `secrets` commands and the stdio MCP server.
+import { resolveLocalSecret } from "./local-secrets.js";
+
 const LOCAL_USER_ID = "1";
 
 // Open the local SQLite database for a read-only command. Unlike setupDb() this
@@ -815,7 +817,7 @@ addSupervisorOptions(
         jobId,
         workflowId,
         userId: "1",
-        secretResolver: getSecret,
+        secretResolver: resolveLocalSecret,
         storage: assetStorage,
         assetOutputMode,
         workspace: runWorkspace

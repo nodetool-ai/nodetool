@@ -4,6 +4,7 @@ import {
   RemoveBackgroundNode,
   RelightImageNode,
   VectorizeImageNode,
+  SegmentImageNode,
   VideoToVideoNode,
   LipSyncNode
 } from "../src/index.js";
@@ -69,6 +70,86 @@ describe("RemoveBackgroundNode", () => {
     expect(calls[0].capability).toBe("remove_background");
     expect(calls[0].params.image).toBeInstanceOf(Uint8Array);
     expect((result.output as any).type).toBe("image");
+  });
+});
+
+describe("SegmentImageNode", () => {
+  const maskFor = (label: string, confidence: number) => ({
+    mask: PNG_BYTES,
+    mimeType: "image/png",
+    width: 64,
+    height: 48,
+    label,
+    confidence,
+    box: { x: 1, y: 2, width: 3, height: 4 }
+  });
+
+  it("routes to the segment_image capability with the prompt and bounds", async () => {
+    const { context, calls } = captureContext([maskFor("dog", 0.8)]);
+    const n = new (SegmentImageNode as any)();
+    n.assign({
+      image: imageRefData,
+      prompt: "the dog",
+      max_masks: 5,
+      min_confidence: 0.25,
+      points: [
+        { x: 10, y: 20 },
+        { x: 30, y: 40, include: false },
+        { x: "nope", y: 1 }
+      ],
+      box: { x: 1, y: 2, width: 3, height: 4 },
+      model: { provider: "fal_ai", id: "fal-ai/sam-3-1/image" }
+    });
+    const result = await n.process(context);
+
+    expect(calls[0].capability).toBe("segment_image");
+    expect(calls[0].params.prompt).toBe("the dog");
+    expect(calls[0].params.max_masks).toBe(5);
+    expect(calls[0].params.min_confidence).toBe(0.25);
+    // An omitted `include` means the point is part of the object; a point
+    // without pixel coordinates is dropped rather than sent.
+    expect(calls[0].params.points).toEqual([
+      { x: 10, y: 20, include: true },
+      { x: 30, y: 40, include: false }
+    ]);
+    expect(calls[0].params.box).toEqual({ x: 1, y: 2, width: 3, height: 4 });
+    expect((result.masks as any[])[0].type).toBe("image");
+    expect(result.labels).toEqual(["dog"]);
+    expect(result.scores).toEqual([0.8]);
+  });
+
+  it("sends no prompts and no threshold when the node carries its defaults", async () => {
+    const { context, calls } = captureContext([]);
+    const n = new (SegmentImageNode as any)();
+    n.assign({
+      image: imageRefData,
+      model: { provider: "fal_ai", id: "fal-ai/sam-3-1/image" }
+    });
+    const result = await n.process(context);
+
+    expect(calls[0].params.prompt).toBeUndefined();
+    expect(calls[0].params.points).toBeUndefined();
+    expect(calls[0].params.box).toBeUndefined();
+    // 0 means "keep every mask", not a threshold to send.
+    expect(calls[0].params.min_confidence).toBeUndefined();
+    expect(result.masks).toEqual([]);
+    expect(result.labels).toEqual([]);
+  });
+
+  it("keeps an unlabeled mask in its slot", async () => {
+    const { context } = captureContext([
+      { mask: PNG_BYTES, mimeType: "image/png" },
+      maskFor("cat", 0.5)
+    ]);
+    const n = new (SegmentImageNode as any)();
+    n.assign({
+      image: imageRefData,
+      model: { provider: "fal_ai", id: "fal-ai/sam-3-1/image" }
+    });
+    const result = await n.process(context);
+
+    expect(result.labels).toEqual(["Object 1", "cat"]);
+    expect(result.scores).toEqual([0, 0.5]);
   });
 });
 

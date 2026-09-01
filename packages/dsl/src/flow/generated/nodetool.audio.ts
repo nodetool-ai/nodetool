@@ -333,6 +333,10 @@ export type TextToSpeechInputs = {
   model?: unknown;
   text?: string;
   speed?: number;
+  reference_audio?: AudioRef;
+  reference_text?: string;
+  language?: string;
+  instructions?: string;
 };
 
 export interface TextToSpeechOutputs {

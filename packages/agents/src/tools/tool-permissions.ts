@@ -230,6 +230,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   ui_set_node_title: "write",
   generate_image: "write",
   edit_image: "write",
+  segment_image: "write",
   // Storyboard renders call an image/video model per shot and write the
   // results back onto a local board — costly media, local state.
   render_storyboard_stills: "write",

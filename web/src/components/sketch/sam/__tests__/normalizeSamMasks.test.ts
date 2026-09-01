@@ -9,7 +9,6 @@ import { normalizeSamMasks } from "../normalizeSamMasks";
 
 describe("normalizeSamMasks", () => {
   const baseParams = {
-    backendId: "fal" as const,
     modelId: "sam-2",
     nodeType: "nodetool.segment.Sam"
   };
@@ -156,7 +155,56 @@ describe("normalizeSamMasks", () => {
       rawOutput: []
     });
     expect(result.modelId).toBe("sam-2");
-    expect(result.backendId).toBe("fal");
     expect(result.nodeType).toBe("nodetool.segment.Sam");
+  });
+
+  it("reads the segmentation node's masks, labels and scores handles", async () => {
+    const result = await normalizeSamMasks({
+      rawOutput: {
+        masks: [
+          { uri: "https://example.com/a.png", width: 10, height: 10 },
+          { uri: "https://example.com/b.png", width: 10, height: 10 }
+        ],
+        labels: ["dog", "cat"],
+        scores: [0.9, 0.4]
+      },
+      modelId: "fal-ai/sam-3-1/image",
+      nodeType: "nodetool.image.Segment"
+    });
+
+    expect(result.masks.map((m) => m.label)).toEqual(["dog", "cat"]);
+    expect(result.masks.map((m) => m.confidence)).toEqual([0.9, 0.4]);
+  });
+
+  it("treats a mask the backend did not score as fully confident", async () => {
+    const result = await normalizeSamMasks({
+      rawOutput: {
+        masks: [{ uri: "https://example.com/a.png", width: 10, height: 10 }]
+      },
+      modelId: "fal-ai/sam-3-1/image",
+      nodeType: "nodetool.image.Segment"
+    });
+
+    expect(result.masks[0].confidence).toBe(1);
+  });
+
+  it("accepts a mask the node emitted as inline base64", async () => {
+    const result = await normalizeSamMasks({
+      ...baseParams,
+      rawOutput: {
+        masks: [
+          {
+            type: "image",
+            data: "aGVsbG8=",
+            mimeType: "image/png",
+            width: 10,
+            height: 20
+          }
+        ]
+      }
+    });
+
+    expect(result.masks).toHaveLength(1);
+    expect(result.masks[0].maskDataUrl).toBe("data:image/png;base64,aGVsbG8=");
   });
 });

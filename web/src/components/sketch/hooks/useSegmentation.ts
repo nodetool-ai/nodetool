@@ -18,7 +18,8 @@ import type {
   SegmentationMask,
   SegmentationStatus,
   Point,
-  PushHistoryOptions
+  PushHistoryOptions,
+  SketchDocument
 } from "../types";
 import {
   createDefaultGroupLayer,
@@ -31,8 +32,8 @@ import {
   exportSelectedRasterLayer
 } from "../serialization";
 import {
-  getDefaultSamModelId,
-  getSamService,
+  DEFAULT_SAM_MODEL_ID,
+  getSegmentationService,
   generateSegmentationRunId,
   generateCutoutDataUrl,
   drawMaskBoundsOverlay,
@@ -51,6 +52,10 @@ interface UseSegmentationParams {
   ) => void;
 }
 
+/** Said when a run completes and the model found nothing to isolate. */
+const EMPTY_RESULT_NOTICE =
+  "The model returned no masks. Try another prompt, a lower confidence, or a different model.";
+
 export interface UseSegmentationReturn {
   /** Current segmentation workflow status. */
   status: SegmentationStatus;
@@ -58,6 +63,8 @@ export interface UseSegmentationReturn {
   modelInfo: SamModelInfo | null;
   /** Latest segmentation result (masks). */
   result: SegmentationResult | null;
+  /** What went wrong, when status is "error". */
+  errorMessage: string | null;
   /** Check model availability. */
   checkModel: () => Promise<void>;
   /** Run segmentation on the active layer with the collected prompts. */
@@ -65,7 +72,7 @@ export interface UseSegmentationReturn {
     points: SegmentPointPrompt[],
     box: SegmentBoxPrompt | null
   ) => Promise<void>;
-  /** Run Local SAM3 split on the selected raster layer. */
+  /** Split the selected raster layer into its objects. */
   splitSelectedLayer: () => Promise<void>;
   /** Cancel a running segmentation. */
   cancelSegmentation: () => void;
@@ -91,13 +98,40 @@ export function useSegmentation({
   const [status, setStatus] = useState<SegmentationStatus>("idle");
   const [modelInfo, setModelInfo] = useState<SamModelInfo | null>(null);
   const [result, setResult] = useState<SegmentationResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  /**
+   * Fail with what actually went wrong. The provider's own message names the
+   * model, the credential or the malformed argument; a generic "segmentation
+   * failed" sends the user looking in the wrong place.
+   */
+  const fail = useCallback((context: string, error: unknown): void => {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error(`[useSegmentation] ${context}:`, error);
+    setErrorMessage(detail || context);
+    setStatus("error");
+  }, []);
+
+  /**
+   * Export a layer's pixels, preferring the runtime canvas over `layer.data`.
+   * A layer imported from an asset renders from its `imageReference` and keeps
+   * `layer.data === null`, so the document alone cannot export it.
+   */
+  const exportLayerPixels = useCallback(
+    (doc: SketchDocument, layerId: string) =>
+      exportSelectedRasterLayer(
+        doc,
+        layerId,
+        canvasRef.current?.getLayerData(layerId) ?? undefined
+      ),
+    [canvasRef]
+  );
 
   const applyMasksToDocument = useCallback(async (params: {
     sourceLayerId: string;
     runId: string;
     modelId: string;
-    backendId?: SegmentationResult["backendId"];
     nodeType?: SegmentationResult["nodeType"];
     masks: SegmentationMask[];
     sourceImageDataUrl?: string;
@@ -109,7 +143,6 @@ export function useSegmentation({
       sourceLayerId,
       runId,
       modelId,
-      backendId,
       nodeType,
       masks,
       sourceImageDataUrl,
@@ -124,7 +157,10 @@ export function useSegmentation({
 
     const store = useSketchStore.getState();
     const doc = store.document;
-    const settings = doc.toolSettings.segment;
+    // `store.toolSettings` is the live slice the panels write to; the copy on
+    // the document is the last saved snapshot, so reading it here ran every
+    // segmentation with the shipped defaults and dropped the typed concept.
+    const settings = store.toolSettings.segment;
     const activeSourceMetadata =
       sourceMetadata ?? masks.find((mask) => mask.sourceMetadata)?.sourceMetadata;
     const canvas = canvasRef.current;
@@ -149,7 +185,6 @@ export function useSegmentation({
       layer.segmentationMeta = {
         segmentationRunId: runId,
         sourceLayerId,
-        backendId,
         modelId,
         nodeType,
         confidence: mask.confidence,
@@ -221,18 +256,17 @@ export function useSegmentation({
   const checkModel = useCallback(async () => {
     setStatus("checking-model");
     try {
-      const backend = useSketchStore.getState().toolSettings.segment.backend;
-      const service = getSamService(backend);
-      const info = await service.checkModelAvailability();
+      const segment = useSketchStore.getState().toolSettings.segment;
+      const info = await getSegmentationService().checkModelAvailability(
+        segment.model
+      );
       setModelInfo(info);
+      setErrorMessage(null);
       setStatus("idle");
-    } catch {
-      // Intentionally catching all errors: model check failures (network, timeout, backend
-      // unavailability) are surfaced to the UI via the "error" status. No logging here since
-      // the user action is to retry via the UI.
-      setStatus("error");
+    } catch (err) {
+      fail("Could not check the model", err);
     }
-  }, []);
+  }, [fail]);
 
   const runSegmentation = useCallback(
     async (points: SegmentPointPrompt[], box: SegmentBoxPrompt | null) => {
@@ -245,12 +279,12 @@ export function useSegmentation({
         return;
       }
 
-      const exportedLayer = exportSelectedRasterLayer(doc, activeLayer.id);
+      const exportedLayer = exportLayerPixels(doc, activeLayer.id);
       if (!exportedLayer) {
-        console.error(
-          "[useSegmentation] Cannot run segmentation: active raster layer has no exportable image data."
+        fail(
+          "Segmentation needs pixels",
+          new Error("The selected layer has no image data to segment.")
         );
-        setStatus("error");
         return;
       }
 
@@ -259,17 +293,16 @@ export function useSegmentation({
       const controller = new AbortController();
       abortRef.current = controller;
 
+      setErrorMessage(null);
       setStatus("inferring");
 
       try {
-        const backend = doc.toolSettings.segment.backend;
-        const service = getSamService(backend);
-        const response = await service.runSegmentation(
+        const response = await getSegmentationService().runSegmentation(
           {
             imageDataUrl: exportedLayer.imageDataUrl,
             pointPrompts: points,
             boxPrompt: box,
-            settings: doc.toolSettings.segment,
+            settings: store.toolSettings.segment,
             sourceMetadata: exportedLayer.sourceMetadata
           },
           controller.signal
@@ -291,25 +324,29 @@ export function useSegmentation({
           sourceLayerId: doc.activeLayerId,
           masks: responseMasks,
           timestamp: Date.now(),
-          modelId: response.modelId ?? getDefaultSamModelId(backend),
-          backendId: response.backendId,
+          modelId: response.modelId ?? DEFAULT_SAM_MODEL_ID,
           nodeType: response.nodeType,
           sourceMetadata: responseSourceMetadata
         };
 
         setResult(segResult);
-        setStatus(segResult.masks.length > 0 ? "previewing" : "idle");
+        if (segResult.masks.length === 0) {
+          // A run that finds nothing used to return to idle in silence, which
+          // is indistinguishable from a run that never happened.
+          setErrorMessage(EMPTY_RESULT_NOTICE);
+          setStatus("idle");
+          return;
+        }
+        setStatus("previewing");
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === "AbortError") {
           setStatus("idle");
           return;
         }
-        // Log inference errors for debugging; status is exposed to the UI
-        console.error("[useSegmentation] Inference failed:", err);
-        setStatus("error");
+        fail("Inference failed", err);
       }
     },
-    []
+    [exportLayerPixels]
   );
 
   const splitSelectedLayer = useCallback(async () => {
@@ -330,7 +367,7 @@ export function useSegmentation({
       return;
     }
 
-    const exportedLayer = exportSelectedRasterLayer(doc, sourceLayerId);
+    const exportedLayer = exportLayerPixels(doc, sourceLayerId);
     if (!exportedLayer) {
       return;
     }
@@ -342,14 +379,12 @@ export function useSegmentation({
     setStatus("inferring");
 
     try {
-      const backend = doc.toolSettings.segment.backend;
-      const service = getSamService(backend);
-      const response = await service.runSegmentation(
+      const response = await getSegmentationService().runSegmentation(
           {
             imageDataUrl: exportedLayer.imageDataUrl,
             pointPrompts: [],
             boxPrompt: null,
-            settings: doc.toolSettings.segment,
+            settings: store.toolSettings.segment,
             sourceMetadata: exportedLayer.sourceMetadata
           },
           controller.signal
@@ -360,6 +395,7 @@ export function useSegmentation({
       }
 
       if (response.masks.length === 0) {
+        setErrorMessage(EMPTY_RESULT_NOTICE);
         setStatus("idle");
         return;
       }
@@ -368,8 +404,7 @@ export function useSegmentation({
       await applyMasksToDocument({
         sourceLayerId,
         runId: generateSegmentationRunId(),
-        modelId: response.modelId ?? getDefaultSamModelId(backend),
-        backendId: response.backendId,
+        modelId: response.modelId ?? DEFAULT_SAM_MODEL_ID,
         nodeType: response.nodeType,
         masks: response.masks,
         sourceImageDataUrl: exportedLayer.imageDataUrl,
@@ -384,10 +419,9 @@ export function useSegmentation({
         setStatus("idle");
         return;
       }
-      console.error("[useSegmentation] Split selected layer failed:", err);
-      setStatus("error");
+      fail("Split selected layer failed", err);
     }
-  }, [applyMasksToDocument]);
+  }, [applyMasksToDocument, exportLayerPixels]);
 
   const cancelSegmentation = useCallback(() => {
     abortRef.current?.abort();
@@ -406,7 +440,6 @@ export function useSegmentation({
         sourceLayerId: result.sourceLayerId,
         runId: result.runId,
         modelId: result.modelId,
-        backendId: result.backendId,
         nodeType: result.nodeType,
         masks: result.masks,
         sourceMetadata: result.sourceMetadata,
@@ -416,8 +449,7 @@ export function useSegmentation({
       setResult(null);
       setStatus("idle");
     } catch (err) {
-      console.error("[useSegmentation] Apply result failed:", err);
-      setStatus("error");
+      fail("Applying the masks failed", err);
     }
   }, [applyMasksToDocument, result]);
 
@@ -459,6 +491,7 @@ export function useSegmentation({
     status,
     modelInfo,
     result,
+    errorMessage,
     checkModel,
     runSegmentation,
     splitSelectedLayer,

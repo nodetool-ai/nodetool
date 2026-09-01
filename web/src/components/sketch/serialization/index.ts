@@ -280,17 +280,31 @@ export async function exportLayer(
   return canvas;
 }
 
+/**
+ * Export a raster layer as a PNG data URL plus the metadata that maps its
+ * pixels back into document space.
+ *
+ * `liveData` is the layer's serialized data read straight from the runtime
+ * canvas. Pass it whenever a runtime is available: a layer imported from an
+ * asset carries only an `imageReference` and has `layer.data === null` until
+ * something paints on it, so the document alone cannot export those pixels.
+ */
 export function exportSelectedRasterLayer(
   doc: SketchDocument,
-  layerId: string
+  layerId: string,
+  liveData?: string | null
 ): ExportedRasterLayerData | null {
   const layer = doc.layers.find((entry) => entry.id === layerId);
-  if (!layer || layer.type !== "raster" || !layer.data) {
+  if (!layer || layer.type !== "raster") {
+    return null;
+  }
+  const data = liveData ?? layer.data;
+  if (!data) {
     return null;
   }
 
   const decoded = deserializeLayerData(
-    layer.data,
+    data,
     doc.canvas.width,
     doc.canvas.height
   );

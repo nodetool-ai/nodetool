@@ -506,13 +506,13 @@ const appBuildSuite: EvalSuite = {
       { APP_BUILD_EVAL_CASES, runAppBuildEval, formatAppBuildReport },
       { runOnServer },
       { getDefaultAssetsPath },
-      { getSecret },
+      { resolveLocalSecret },
       { ProcessingContext, FileStorageAdapter }
     ] = await Promise.all([
       import("@nodetool-ai/agents"),
       import("../debug/server-runner.js"),
       import("@nodetool-ai/config"),
-      import("@nodetool-ai/models"),
+      import("../local-secrets.js"),
       import("@nodetool-ai/runtime")
     ]);
 
@@ -532,7 +532,7 @@ const appBuildSuite: EvalSuite = {
         jobId: `eval-app-build-${Date.now()}`,
         workflowId: null,
         userId: "1",
-        secretResolver: getSecret,
+        secretResolver: resolveLocalSecret,
         storage: new FileStorageAdapter(getDefaultAssetsPath())
       }),
       runOnServer,

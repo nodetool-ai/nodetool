@@ -6,7 +6,7 @@ import {
   pressureMinScaleToSliderUnit,
   createStrokeAssistPreset,
   resolveStrokeAssistSettings,
-  normalizeSegmentBackend,
+  normalizeSegmentModel,
   editActionKindForTool,
   isShapeTool,
   isPaintingTool,
@@ -107,24 +107,34 @@ describe("resolveStrokeAssistSettings", () => {
   });
 });
 
-describe("normalizeSegmentBackend", () => {
-  it("passes through 'fal'", () => {
-    expect(normalizeSegmentBackend("fal")).toBe("fal");
+describe("normalizeSegmentModel", () => {
+  it("passes through a model that names a provider and an id", () => {
+    expect(
+      normalizeSegmentModel({
+        provider: "fal_ai",
+        id: "fal-ai/sam-3-1/image",
+        name: "SAM 3.1"
+      })
+    ).toEqual({
+      provider: "fal_ai",
+      id: "fal-ai/sam-3-1/image",
+      name: "SAM 3.1"
+    });
   });
 
-  it("passes through 'local-sam3'", () => {
-    expect(normalizeSegmentBackend("local-sam3")).toBe("local-sam3");
+  it("names an unnamed model by its id", () => {
+    expect(normalizeSegmentModel({ provider: "fal_ai", id: "m" })?.name).toBe(
+      "m"
+    );
   });
 
-  it("migrates legacy 'node' to 'local-sam3'", () => {
-    expect(normalizeSegmentBackend("node")).toBe("local-sam3");
-  });
-
-  it("defaults to 'fal' for unknown values", () => {
-    expect(normalizeSegmentBackend("unknown")).toBe("fal");
-    expect(normalizeSegmentBackend(undefined)).toBe("fal");
-    expect(normalizeSegmentBackend(null)).toBe("fal");
-    expect(normalizeSegmentBackend(42)).toBe("fal");
+  it("reads a model with no provider or no id as none picked", () => {
+    expect(normalizeSegmentModel({ id: "m" })).toBeNull();
+    expect(normalizeSegmentModel({ provider: "fal_ai" })).toBeNull();
+    expect(normalizeSegmentModel({ provider: "", id: "m" })).toBeNull();
+    expect(normalizeSegmentModel(undefined)).toBeNull();
+    expect(normalizeSegmentModel(null)).toBeNull();
+    expect(normalizeSegmentModel(42)).toBeNull();
   });
 });
 

@@ -156,9 +156,11 @@ import type { BaseProvider } from "./providers/base-provider.js";
 import type {
   EncodedAudioResult,
   EntityReference,
+  ImageBox,
   Message,
   MessageContent,
-  ProviderStreamItem
+  ProviderStreamItem,
+  SegmentPoint
 } from "./providers/types.js";
 import {
   CONTENT_FILTER_MAX_RETRIES,
@@ -323,6 +325,7 @@ export type ProviderCapability =
   | "upscale_image"
   | "remove_background"
   | "relight_image"
+  | "segment_image"
   | "vectorize_image"
   | "text_to_video"
   | "image_to_video"
@@ -361,6 +364,7 @@ export type ProviderPredictionResult = Awaited<
       | "upscaleImage"
       | "removeBackground"
       | "relightImage"
+      | "segmentImage"
       | "vectorizeImage"
       | "videoToVideo"
       | "lipSync"
@@ -3336,6 +3340,15 @@ export class ProcessingContext {
           prompt: params.prompt as string | undefined,
           negativePrompt: params.negative_prompt as string | undefined,
           seed: params.seed as number | undefined
+        });
+      case "segment_image":
+        return provider.segmentImage(params.image as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider },
+          prompt: params.prompt as string | undefined,
+          points: params.points as SegmentPoint[] | undefined,
+          box: params.box as ImageBox | undefined,
+          maxMasks: params.max_masks as number | undefined,
+          minConfidence: params.min_confidence as number | undefined
         });
       case "vectorize_image":
         return provider.vectorizeImage(params.image as Uint8Array, {

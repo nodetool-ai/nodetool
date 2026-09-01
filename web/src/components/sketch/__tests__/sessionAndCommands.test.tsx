@@ -480,31 +480,6 @@ describe("useEditorCommands", () => {
     });
   });
 
-  it("routes Local SAM3 auto runs through splitSelectedLayer", () => {
-    useSketchStore.setState((state) => ({
-      document: {
-        ...state.document,
-        toolSettings: {
-          ...state.document.toolSettings,
-          segment: {
-            ...state.document.toolSettings.segment,
-            backend: "local-sam3",
-            promptMode: "auto"
-          }
-        }
-      }
-    }));
-    const params = createParams();
-    const { result } = renderHook(() => useEditorCommands(params));
-
-    act(() => {
-      result.current.handleRunSegmentation();
-    });
-
-    expect(params.segmentation.splitSelectedLayer).toHaveBeenCalledTimes(1);
-    expect(params.segmentation.runSegmentation).not.toHaveBeenCalled();
-  });
-
   it("routes provider auto runs through splitSelectedLayer", () => {
     useSketchStore.setState((state) => ({
       document: {
@@ -513,7 +488,6 @@ describe("useEditorCommands", () => {
           ...state.document.toolSettings,
           segment: {
             ...state.document.toolSettings.segment,
-            backend: "fal",
             promptMode: "auto"
           }
         }
@@ -530,7 +504,7 @@ describe("useEditorCommands", () => {
     expect(params.segmentation.runSegmentation).not.toHaveBeenCalled();
   });
 
-  it("routes Local SAM3 prompt runs through runSegmentation", () => {
+  it("routes prompt runs through runSegmentation", () => {
     useSketchStore.setState((state) => ({
       document: {
         ...state.document,
@@ -538,7 +512,6 @@ describe("useEditorCommands", () => {
           ...state.document.toolSettings,
           segment: {
             ...state.document.toolSettings.segment,
-            backend: "local-sam3",
             promptMode: "point"
           }
         }

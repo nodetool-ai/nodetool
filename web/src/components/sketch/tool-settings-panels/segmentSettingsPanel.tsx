@@ -1,19 +1,13 @@
-import { memo, useEffect } from "react";
+import { memo, useCallback, useEffect } from "react";
 
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import {
   SegmentationStatus,
   SegmentPromptMode,
   SegmentSettings,
-  SegmentSourceLayerAction,
-  SegmentBackend
+  SegmentSourceLayerAction
 } from "../types";
 import type { SamModelInfo } from "../sam";
-import {
-  FAL_SAM_CAPABILITIES,
-  LOCAL_SAM3_CAPABILITIES,
-  LOCAL_SAM3_MODEL_ID
-} from "../sam";
 import {
   FlexRow,
   TextInput,
@@ -32,13 +26,10 @@ import {
   SKETCH_COLORS,
   SKETCH_FONT
 } from "../sketchStyles";
-import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
+import ImageModelSelect from "../../properties/ImageModelSelect";
+import type { ImageModelValue } from "../../../stores/ApiTypes";
 import { useSketchStore } from "../state";
 import { getLayerDataImageUrl } from "../serialization";
-import {
-  IN_PROGRESS_DOWNLOAD_STATES,
-  LOCAL_SAM3_NODE_PACK_HINT
-} from "./shared";
 
 function promptModeHelpText(mode: SegmentPromptMode): string {
   if (mode === "point") {
@@ -47,7 +38,7 @@ function promptModeHelpText(mode: SegmentPromptMode): string {
   if (mode === "box") {
     return "Drag to draw a bounding box";
   }
-  return "Auto-detect prominent objects";
+  return "Finds what Concept names; some models find objects on their own";
 }
 
 function getSegmentationStatusMessage(status: SegmentationStatus): string {
@@ -63,25 +54,12 @@ function getSegmentationStatusMessage(status: SegmentationStatus): string {
   }
 }
 
-function getSegmentModelStatusText(
-  isLocalSam3: boolean,
-  localSam3Downloading: boolean | undefined,
-  localSam3Ready: boolean,
-  modelInfo: SamModelInfo | null
-): string | undefined {
-  if (isLocalSam3 && localSam3Downloading) {
-    return "Local SAM3 is downloading";
-  }
-  if (localSam3Ready) {
-    return "Local SAM3 is ready";
-  }
-  return modelInfo?.errorMessage;
-}
-
 interface SegmentSettingsPanelProps {
   settings: SegmentSettings;
   onChange: (settings: Partial<SegmentSettings>) => void;
   segmentationStatus: SegmentationStatus;
+  /** What went wrong, when the status is "error". */
+  segmentationError: string | null;
   modelInfo: SamModelInfo | null;
   onRunSegmentation: () => void;
   onApplyResult: () => void;
@@ -95,6 +73,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
   settings,
   onChange,
   segmentationStatus,
+  segmentationError,
   modelInfo,
   onRunSegmentation,
   onApplyResult,
@@ -108,12 +87,6 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
     segmentationStatus === "encoding" ||
     segmentationStatus === "checking-model";
   const isPreviewing = segmentationStatus === "previewing";
-  const localSam3Download = useModelDownloadStore(
-    (state) => state.downloads[LOCAL_SAM3_MODEL_ID]
-  );
-  const localSam3DownloadStatus = localSam3Download?.status;
-  const startDownload = useModelDownloadStore((state) => state.startDownload);
-  const cancelDownload = useModelDownloadStore((state) => state.cancelDownload);
   const canSplitSelectedLayer = useSketchStore((state) => {
     const selectedLayerIds =
       state.selectedLayerIds.length > 0
@@ -125,130 +98,78 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
     const selectedLayer = state.document.layers.find(
       (layer) => layer.id === selectedLayerIds[0]
     );
+    if (selectedLayer?.type !== "raster") {
+      return false;
+    }
+    // A layer imported from an asset renders from its `imageReference` and
+    // carries no `data` until something paints on it — still splittable.
     return (
-      selectedLayer?.type === "raster" &&
-      !!getLayerDataImageUrl(selectedLayer.data)
+      !!getLayerDataImageUrl(selectedLayer.data) ||
+      !!selectedLayer.imageReference?.uri
     );
   });
-  const isLocalSam3 = settings.backend === "local-sam3";
-  const localSam3Downloading =
-    localSam3DownloadStatus !== undefined &&
-    IN_PROGRESS_DOWNLOAD_STATES.includes(localSam3DownloadStatus);
-  const localSam3Ready = isLocalSam3 && modelInfo?.status === "available";
-  const backendCapabilities =
-    modelInfo?.capabilities ??
-    (isLocalSam3
-      ? LOCAL_SAM3_CAPABILITIES
-      : {
-          ...FAL_SAM_CAPABILITIES,
-          textPrompts: false,
-          pointPrompts: false,
-          boxPrompts: false
-        });
-  const supportsPointPrompts = Boolean(backendCapabilities.pointPrompts);
-  const supportsBoxPrompts = Boolean(backendCapabilities.boxPrompts);
-  const supportsTextPrompts = Boolean(backendCapabilities.textPrompts);
-  const backendReady = modelInfo?.status === "available";
+  const modelReady = modelInfo?.status === "available";
   const canRunSegmentation =
-    backendReady &&
+    modelReady &&
     (settings.promptMode === "auto" ? canSplitSelectedLayer : true);
-  const canDownloadLocalSam3 =
-    isLocalSam3 &&
-    !!modelInfo &&
-    modelInfo.status === "not-installed" &&
-    modelInfo.errorMessage !== LOCAL_SAM3_NODE_PACK_HINT &&
-    localSam3DownloadStatus !== "completed" &&
-    !localSam3Downloading;
-  const visiblePromptModes: SegmentPromptMode[] = [
-    ...(supportsPointPrompts ? ["point" as const] : []),
-    ...(supportsBoxPrompts ? ["box" as const] : []),
-    "auto"
-  ];
-  const isCurrentPromptModeVisible =
-    settings.promptMode === "auto" ||
-    (settings.promptMode === "point" && supportsPointPrompts) ||
-    (settings.promptMode === "box" && supportsBoxPrompts);
   const segmentActionLabel =
     settings.promptMode === "auto" ? "Split selected layer" : "Segment";
   const showClearPrompts = settings.promptMode !== "auto";
-  const backendLabel =
-    modelInfo?.backendLabel ??
-    (isLocalSam3 ? "Local SAM3" : "Selected backend");
-  const modelStatusText = getSegmentModelStatusText(
-    isLocalSam3,
-    localSam3Downloading,
-    localSam3Ready,
-    modelInfo
-  );
+  // The picker names the model, so its status line is only worth a row when
+  // the model cannot run.
+  const showModelStatus = modelInfo !== null && !modelReady;
 
-  useEffect(() => {
-    if (isCurrentPromptModeVisible) {
-      return;
-    }
-    onChange({ promptMode: "auto" });
-  }, [isCurrentPromptModeVisible, onChange, settings.promptMode]);
-
-  useEffect(() => {
-    if (!isLocalSam3) {
-      return;
-    }
-    if (
-      localSam3DownloadStatus === "completed" ||
-      localSam3DownloadStatus === "cancelled" ||
-      localSam3DownloadStatus === "error"
-    ) {
+  const handleModelChange = useCallback(
+    (value: ImageModelValue) => {
+      if (!value.provider || !value.id) {
+        return;
+      }
+      onChange({
+        model: {
+          provider: value.provider,
+          id: value.id,
+          name: value.name || value.id
+        }
+      });
       onCheckModel();
-    }
-  }, [isLocalSam3, localSam3DownloadStatus, onCheckModel]);
+    },
+    [onChange, onCheckModel]
+  );
 
   return (
     <>
-      <Box className="setting-row" sx={{ gap: getSpacingPx(SPACING.xs) }}>
-        <Text className="setting-label">Backend</Text>
-        <SketchModeToggle
-          value={settings.backend}
-          onChange={(_, v) => {
-            if (v) {
-              const next: Partial<SegmentSettings> = {
-                backend: v as SegmentBackend
-              };
-              // Default Local SAM3 to auto mode; prompted modes appear
-              // only when installed node metadata confirms them.
-              if (v === "local-sam3") next.promptMode = "auto";
-              onChange(next);
-              onCheckModel();
-            }
-          }}
-        >
-          <SketchModeOption value="fal">fal.ai</SketchModeOption>
-          <SketchModeOption value="local-sam3">Local SAM3</SketchModeOption>
-        </SketchModeToggle>
+      <Box
+        className="setting-row"
+        sx={{ gap: getSpacingPx(SPACING.xs), minWidth: 220 }}
+      >
+        <Text className="setting-label">Model</Text>
+        <ImageModelSelect
+          task="segment"
+          // With nothing picked the run uses the shipped default, so name it
+          // rather than showing an empty picker.
+          value={settings.model?.id ?? modelInfo?.modelId ?? ""}
+          onChange={handleModelChange}
+        />
       </Box>
 
-      {modelInfo && (
+      {showModelStatus && (
         <Box sx={{ mb: getSpacingPx(SPACING.xs) }}>
           <Text
             sx={{
               fontSize: SKETCH_FONT.xs,
               lineHeight: 1.3,
               color:
-                modelInfo.status === "available"
-                  ? "success.main"
-                  : modelInfo.status === "error" ||
-                      modelInfo.status === "not-installed"
-                    ? "warning.main"
-                    : SKETCH_COLORS.textFaint
+                modelInfo.status === "error" ||
+                modelInfo.status === "not-installed"
+                  ? "warning.main"
+                  : SKETCH_COLORS.textFaint
             }}
           >
-            {modelInfo.status === "available" &&
-              (modelStatusText ?? `✓ ${modelInfo.modelName}`)}
             {modelInfo.status === "not-installed" &&
-              (modelStatusText ?? "Model not available")}
+              (modelInfo.errorMessage ?? "Model not available")}
             {modelInfo.status === "error" &&
-              (modelStatusText ?? "Connection failed")}
+              (modelInfo.errorMessage ?? "Connection failed")}
             {modelInfo.status === "checking" && "Checking…"}
-            {modelInfo.status === "downloading" &&
-              `${modelStatusText ?? "Downloading…"} ${Math.round((modelInfo.downloadProgress ?? 0) * 100)}%`}
           </Text>
         </Box>
       )}
@@ -262,12 +183,8 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         }}
         sx={{ mb: getSpacingPx(SPACING.xs) }}
       >
-        {visiblePromptModes.includes("point") && (
-          <SketchModeOption value="point">Point</SketchModeOption>
-        )}
-        {visiblePromptModes.includes("box") && (
-          <SketchModeOption value="box">Box</SketchModeOption>
-        )}
+        <SketchModeOption value="point">Point</SketchModeOption>
+        <SketchModeOption value="box">Box</SketchModeOption>
         <SketchModeOption value="auto">Auto</SketchModeOption>
       </SketchModeToggle>
 
@@ -360,8 +277,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         sx={{ mt: getSpacingPx(SPACING.micro), ml: 0 }}
       />
 
-      {supportsTextPrompts && (
-        <Box className="setting-row" sx={{ alignItems: "flex-start" }}>
+      <Box className="setting-row" sx={{ alignItems: "flex-start" }}>
           <Text className="setting-label" sx={{ pt: getSpacingPx(SPACING.sm) }}>
             Concept
           </Text>
@@ -381,75 +297,11 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               }
             }}
           />
-        </Box>
-      )}
-
-      {isLocalSam3 && (
-        <>
-          <Box className="setting-row">
-            <Text className="setting-label">Points / Side</Text>
-            <Slider
-              sx={sketchSliderSx}
-              size="small"
-              min={4}
-              max={128}
-              step={4}
-              value={settings.pointsPerSide}
-              onChange={(_, value) =>
-                onChange({ pointsPerSide: value as number })
-              }
-            />
-            <Text className="setting-value">{settings.pointsPerSide}</Text>
-          </Box>
-
-          <Box className="setting-row">
-            <Text className="setting-label">Pred IoU</Text>
-            <Slider
-              sx={sketchSliderSx}
-              size="small"
-              min={0}
-              max={1}
-              step={0.01}
-              value={settings.predIouThresh}
-              onChange={(_, value) =>
-                onChange({ predIouThresh: value as number })
-              }
-            />
-            <Text className="setting-value">
-              {settings.predIouThresh.toFixed(2)}
-            </Text>
-          </Box>
-        </>
-      )}
+      </Box>
 
       <FlexRow wrap gap={0.5} sx={{ mt: getSpacingPx(SPACING.xs) }}>
         {!isRunning && !isPreviewing && (
           <>
-            {canDownloadLocalSam3 && (
-              <EditorButton
-                size="small"
-                variant="outlined"
-                onClick={() => {
-                  startDownload(LOCAL_SAM3_MODEL_ID, "hf.model");
-                }}
-                sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
-              >
-                Download Local SAM3
-              </EditorButton>
-            )}
-            {isLocalSam3 && localSam3Downloading && (
-              <EditorButton
-                size="small"
-                variant="outlined"
-                color="warning"
-                onClick={() => {
-                  cancelDownload(LOCAL_SAM3_MODEL_ID);
-                }}
-                sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
-              >
-                Cancel download
-              </EditorButton>
-            )}
             <EditorButton
               size="small"
               variant="contained"
@@ -528,9 +380,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           mt: getSpacingPx(SPACING.xs)
         }}
       >
-        {supportsPointPrompts || supportsBoxPrompts || supportsTextPrompts
-          ? promptModeHelpText(settings.promptMode)
-          : `${backendLabel} currently supports automatic layer split only.`}
+        {promptModeHelpText(settings.promptMode)}
       </Text>
 
       {settings.promptMode === "auto" && !canSplitSelectedLayer && (
@@ -546,16 +396,24 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         </Text>
       )}
 
-      {segmentationStatus === "error" && (
+      {segmentationError !== null && (
         <Text
           sx={{
             fontSize: SKETCH_FONT.xs,
-            color: "error.main",
+            // A run that found nothing is a result, not a failure.
+            color:
+              segmentationStatus === "error"
+                ? "error.main"
+                : SKETCH_COLORS.textFaint,
             lineHeight: 1.3,
-            mt: getSpacingPx(SPACING.micro)
+            mt: getSpacingPx(SPACING.micro),
+            maxWidth: 520,
+            // The provider's own message names the model, the credential or
+            // the argument it refused — worth every character.
+            wordBreak: "break-word"
           }}
         >
-          Segmentation failed. Check model availability and try again.
+          {segmentationError ?? "Segmentation failed."}
         </Text>
       )}
     </>

@@ -50,7 +50,8 @@ export function registerNodeCommands(program: Command): void {
           | ((key: string) => Promise<string | null>)
           | undefined;
         if (useSecrets) {
-          const { initDb, getSecret } = await import("@nodetool-ai/models");
+          const { initDb } = await import("@nodetool-ai/models");
+          const { resolveLocalSecret } = await import("../local-secrets.js");
           const { initMasterKey } = await import("@nodetool-ai/security");
           const { getDefaultDbPath } = await import("@nodetool-ai/config");
           initDb(getDefaultDbPath());
@@ -59,7 +60,7 @@ export function registerNodeCommands(program: Command): void {
           } catch {
             // Secret decryption is best-effort; only nodes needing secrets care.
           }
-          secretResolver = (key) => getSecret(key);
+          secretResolver = resolveLocalSecret;
         }
 
         const runOptions: Parameters<typeof runSingleNode>[1] = { props };

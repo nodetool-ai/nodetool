@@ -618,6 +618,36 @@ describe("inferImageTasks", () => {
     it(`vectorize fragment "${f}"`, () =>
       expect(inferImageTasks(f, "")).toEqual(["vectorize"]));
   }
+  const segment = [
+    "segment",
+    "segmentation",
+    "fal-ai/sam-3-1/image",
+    "fal-ai/sam2/auto-segment",
+    "fal-ai/evf-sam",
+    "birefnet"
+  ];
+  for (const f of segment) {
+    it(`segment fragment "${f}"`, () =>
+      expect(inferImageTasks(f, "")).toEqual(["segment"]));
+  }
+  it("leaves the RLE variants out — they answer with text, not a mask image", () => {
+    expect(inferImageTasks("fal-ai/sam-3-1/image-rle", "")).toEqual([
+      "text_to_image",
+      "image_to_image"
+    ]);
+  });
+  it("leaves fal's audio stem separators out of the segmentation task", () => {
+    expect(inferImageTasks("fal-ai/sam-audio/separate", "")).toEqual([
+      "text_to_image",
+      "image_to_image"
+    ]);
+  });
+  it("keeps a generator whose name merely contains the letters sam", () => {
+    expect(inferImageTasks("samsung-style", "x")).toEqual([
+      "text_to_image",
+      "image_to_image"
+    ]);
+  });
   it("defaults a plain generator to both generation tasks", () => {
     expect(inferImageTasks("plain-generator", "x")).toEqual([
       "text_to_image",

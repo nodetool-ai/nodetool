@@ -7,7 +7,6 @@ import { callNode, streamNode } from "../guest-core.js";
 // Code — nodetool.code.Code
 export type CodeInputs = {
   code?: string;
-  packages?: Record<string, unknown>[];
   secrets?: string[];
   script?: Record<string, unknown>;
   timeout?: number;

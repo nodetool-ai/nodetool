@@ -14,6 +14,7 @@ import type { JsonSchema } from "@nodetool-ai/runtime";
 export const SUPPORTED_CAPABILITIES = [
   "text_to_image",
   "image_to_image",
+  "segment_image",
   "text_to_video",
   "image_to_video",
   "text_to_speech",

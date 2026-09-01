@@ -2,6 +2,7 @@ import { z } from "zod";
 import { router, publicProcedure } from "./index.js";
 import { assetsRouter } from "./routers/assets.js";
 import { codeGenRouter } from "./routers/code-gen.js";
+import { segmentationRouter } from "./routers/segmentation.js";
 import { collectionsRouter } from "./routers/collections.js";
 import { costsRouter } from "./routers/costs.js";
 import { customProvidersRouter } from "./routers/custom-providers.js";
@@ -42,6 +43,7 @@ export const appRouter = router({
   })),
   assets: assetsRouter,
   codeGen: codeGenRouter,
+  segmentation: segmentationRouter,
   collections: collectionsRouter,
   costs: costsRouter,
   credits: creditsRouter,
