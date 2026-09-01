@@ -101,6 +101,8 @@ export type AgentInputs = {
   thread_id?: Connectable<string>;
   max_tokens?: Connectable<number>;
   max_turns?: Connectable<number>;
+  cost_cap_usd?: Connectable<number>;
+  timeout_s?: Connectable<number>;
 };
 
 export interface AgentOutputs {

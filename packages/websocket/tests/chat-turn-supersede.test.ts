@@ -20,6 +20,7 @@ import {
   type WebSocketReceiveFrame
 } from "../src/websocket-client-session.js";
 import { SUPERSEDED_TOOL_RESULT } from "../src/chat-tool-call-repair.js";
+import { borrowedLoopBudgetMembers } from "./chat-turn-test-harness.js";
 
 class MockWS implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -267,7 +268,8 @@ describe("loading a thread that already carries an orphaned tool call", () => {
           sent = args.messages;
           yield { type: "chunk", content: "hi", done: true };
         },
-        generateLoop: BaseProvider.prototype.generateLoop
+        generateLoop: BaseProvider.prototype.generateLoop,
+        ...borrowedLoopBudgetMembers
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any;
 

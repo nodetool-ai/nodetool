@@ -13,7 +13,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { budgetFromContext, type ProcessingContext } from "@nodetool-ai/runtime";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import {
   enterSubAgentDepth,
@@ -99,6 +99,7 @@ export class StartSubtaskTool extends SubAgentTool {
       forwardMessage: this.forward,
       maxDepth: this.maxDepth,
       maxIterations: this.maxIterations,
+      budget: this.budget,
       background: this.registry
     };
   }
@@ -147,6 +148,9 @@ export class StartSubtaskTool extends SubAgentTool {
       outputSchema: run.outputSchema,
       systemPrompt: run.systemPrompt,
       maxIterations: run.maxIterations ?? this.maxIterations,
+      // A detached child still spends the parent's allowance, and still draws
+      // one of the run's concurrency permits before it opens a conversation.
+      turnBudget: this.budget ?? budgetFromContext(context),
       signal: context.signal
     });
 

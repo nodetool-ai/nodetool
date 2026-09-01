@@ -7,13 +7,28 @@
  * conversations simultaneously. Script mode has had a semaphore since it
  * shipped; this is the same bound for the task-plan modes.
  *
+ * A number bounds *this* merge and nothing else, so nested fan-outs multiply:
+ * eight tasks, each dispatching eight steps, each fanning out over eight items
+ * is 512 provider conversations under a `concurrency` of 8. A {@link Semaphore}
+ * is the run's own permit pool, so passing one bounds every merge that shares
+ * it together. Both may be given: the number caps this merge, the pool caps the
+ * run.
+ *
  * Generators are lazy: one that has not been started yet has issued no provider
  * call, so holding it back costs nothing.
  */
 
-interface MergeOptions {
+import type { Release, Semaphore } from "@nodetool-ai/runtime";
+
+export interface MergeOptions {
   /** Maximum generators consumed at once. Defaults to unbounded. */
   concurrency?: number;
+  /**
+   * Run-level permit pool. A generator holds one permit for as long as it is
+   * consumed, so several merges sharing a pool share one bound rather than
+   * each getting `concurrency` of their own.
+   */
+  semaphore?: Semaphore;
 }
 
 export async function* mergeAsyncGenerators<T>(
@@ -50,7 +65,13 @@ export async function* mergeAsyncGenerators<T>(
       activeCount++;
       tasks.push(
         (async () => {
+          // A generator waiting for a permit still occupies its numeric slot:
+          // admitting another in its place would let `concurrency` generators
+          // run *and* a queue of them wait, which is not the bound the caller
+          // asked for.
+          let release: Release | null = null;
           try {
+            if (options.semaphore) release = await options.semaphore.acquire();
             for await (const item of gen) {
               queue.push(item);
               notify();
@@ -61,6 +82,7 @@ export async function* mergeAsyncGenerators<T>(
               firstError = e;
             }
           } finally {
+            release?.();
             activeCount--;
             // A finished slot admits the next generator.
             pump();

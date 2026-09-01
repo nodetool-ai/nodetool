@@ -1122,9 +1122,69 @@ const agent = new Agent({
 defaults in `DEFAULT_AGENT_POLICY`) and hands the same object to every mode —
 single task, multi-task plan, graph. A knob therefore means the same thing
 everywhere: `maxTokens` reaches the graph runner, `maxSteps` bounds multi-task
-runs, and task/fan-out dispatch is capped by one semaphore
+runs, and task/fan-out dispatch is bounded by `mergeAsyncGenerators`
 (`utils/merge-generators.ts`). The plan-approval gate is likewise a property of
 the run, not of the planning mode: a planned graph goes through it too.
+
+`maxConcurrentAgents` alone bounds one `mergeAsyncGenerators` call, not the
+run — tasks, steps and sub-agents each apply it separately, so the three
+multiply. The run-level bound is the budget's semaphore below.
+
+### One budget per run (`@nodetool-ai/runtime` → `RunBudget`)
+
+A run's bounds are one object, created by the host and shared downward, never
+re-created by a child. `RunBudget` carries four:
+
+| Bound | What refuses | Setting |
+|---|---|---|
+| `turns` | a turn whose worst case would cross the USD cap | `NODETOOL_AGENT_TURN_COST_CAP_USD` |
+| `deadline` | any turn or tool call after the wall clock runs out | `NODETOOL_AGENT_TURN_DEADLINE_MS` |
+| `concurrency` | a branch beyond the run's open-conversation limit | `NODETOOL_AGENT_MAX_CONCURRENCY` |
+| `turnCount` | a turn past the run's cumulative total | `NODETOOL_AGENT_MAX_TURNS` |
+
+Spend admission is reserve-then-commit, because the next call's cost is only
+known afterwards: $0.49 spent under a $0.50 cap still admits a $0.30 call.
+`turns.reserve` is the single admission point and records the first reason it
+refuses; `exhausted` is set once, so a run that ran out of money and then ran
+out of time stopped for the money.
+
+**An unpriced model is not a free one.** A model the price catalog does not
+cover has no worst case to reserve, so it is admitted only while its prompt
+fits `NODETOOL_AGENT_UNPRICED_TOKEN_CEILING`, counted in `unpricedTurns`, and
+leaves `spentUsd` a declared lower bound — the `unpriced` convention `nodetool
+costs` already follows. With no USD cap configured there is nothing for the
+ceiling to protect and it does not apply; the run stays bounded by its deadline
+and turn count.
+
+**How a child reserves against its parent.** The budget rides
+`CapabilityRun.budget` and `SubAgentToolRuntime.budget`, and `subAgentRuntime()`
+(`capabilities/agents.ts`) is the one seam where it joins the runtime, so every
+delegation capability inherits it from a single place. `runSubAgent` hands that
+object — never a new one — to its `CodeActExecutor`; `execute_plan` carries it
+into `ParallelTaskExecutor`, which forwards it to every `TaskExecutor` and on to
+every CodeAct step. It also rides `RUN_BUDGET_CONTEXT_KEY` on the context, which
+is how a loop the host never constructs finds it: an `AgentNode` started through
+`run_node`, or a JS script. `ProcessingContext.copy()` shallow-copies the
+variable bag, so a child context shares the same budget object rather than a
+clone — that sharing is what makes a cap a run total.
+
+**Permits are taken once per branch.** A run-total semaphore deadlocks if a
+holder queues for a second permit, which nested merges do by construction:
+`ParallelTaskExecutor` holds permits for tasks whose `TaskExecutor`s then queue
+for step permits. `acquireRunSlot` is therefore re-entrant on a context flag,
+and each DAG executor holds one slot for the length of its run.
+
+**A budget stop is visible, never silent.** `generateLoop` used to `return`, so
+a consumer could not tell a refused turn from the model ending its turn. It
+yields one `ProviderStop` as its final item — `budget`, `deadline`,
+`iterations`, or `aborted` — and a turn the model ends on its own yields none.
+Every consumer surfaces it: a CodeAct step fails naming the reason the budget
+recorded, and `AgentNode` raises a node error. `classifyProviderStream`
+(`llm-nodes/agent-utils.ts`) yields a `stop` event for it; before that branch
+existed the item fell through its chunk/tool-call/message chain and vanished.
+
+Absent means unbudgeted, not exhausted: a kernel workflow run with no host
+budget behaves exactly as it did before.
 
 ### Step failure is terminal, not completion
 
@@ -2207,7 +2267,8 @@ Steps can enforce structured output via JSON schema:
 - Schema'd steps finalize ONLY through the finishing tool — `finish_step` in tool mode, `finish()` in a CodeAct action. There is no JSON-from-text extraction path, so a step that never calls it fails and emits an explicit error result.
 - Unstructured steps (no schema) finalize when the model emits a no-tool-call assistant message; that text becomes the result.
 - Two things make that contract visible to a model that believes `return graph` finished the step, because the observation for the losing move used to be indistinguishable from success. A CodeAct observation for a schema'd step that returned a value without finishing carries `finished: false` and a `note` — which says so explicitly when the returned value already matched the schema. And a schema'd step whose turn ended in prose is re-prompted with the contract, at most `MAX_FINISH_NUDGES` (2) times, before it fails.
-- The failure message names the terminal state it actually hit: the provider's error, `exceeded N iterations` only when the loop really used its budget, else "ended after N action(s) / model turn(s) without calling finish", quoting the model's last message.
+- The failure message names the terminal state it actually hit: the provider's error, the run budget's own reason when a cost cap or deadline stopped the step, `exceeded N iterations` only when the loop really used its budget, else "ended after N action(s) / model turn(s) without calling finish", quoting the model's last message. A budget stop reported as "without calling finish" blamed the model for something it never got to do.
+- `maxIterations` bounds the **step**, not each finish-nudge round. Each round is given what is left of the allowance and a round with nothing left is not run, so `MAX_FINISH_NUDGES` no longer multiplies the ceiling — a step configured for 4 model turns used to be able to make 12.
 
 ### Skills System
 

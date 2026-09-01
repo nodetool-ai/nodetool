@@ -46,16 +46,22 @@ import type {
   SDKUserMessage
 } from "@anthropic-ai/claude-agent-sdk";
 import { z, type ZodTypeAny } from "zod";
-import { BaseProvider } from "./base-provider.js";
+import {
+  BaseProvider,
+  budgetStopItem,
+  resolveTurnBudget
+} from "./base-provider.js";
 import { sdkNativeReplacements } from "./core-tools.js";
 import {
   isProviderMessageEvent,
   isProviderSessionUpdate,
+  isProviderStop,
   type LanguageModel,
   type Message,
   type MessageContent,
   type MessageTextContent,
   type ProviderSession,
+  type ProviderStop,
   type ProviderStreamItem,
   type ProviderSkill,
   type ProviderTool,
@@ -68,7 +74,7 @@ import {
   isObjectLike,
   isString
 } from "../type-predicates.js";
-import type { TurnBudget } from "../turn-budget.js";
+import type { RunBudget, TurnBudget } from "../turn-budget.js";
 
 const log = createLogger("nodetool.runtime.providers.claude-agent");
 
@@ -298,7 +304,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     args: Parameters<ClaudeAgentProvider["generateMessages"]>[0] & {
       executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
       maxIterations?: number;
-      turnBudget?: TurnBudget;
+      turnBudget?: TurnBudget | RunBudget;
       workspaceDir?: string;
       /**
        * The user's DB skills. Materialized into an isolated local plugin so the
@@ -314,8 +320,13 @@ export class ClaudeAgentProvider extends BaseProvider {
     // reserve before the first turn, and again after every assistant turn that
     // requested tools — that is the point where the SDK will make another call.
     // A refusal aborts the session instead of letting it spend past the cap.
-    const turnBudget = args.turnBudget;
+    const { runBudget, turnBudget } = resolveTurnBudget(args.turnBudget);
+    if (runBudget?.deadline.expired()) {
+      yield budgetStopItem(runBudget);
+      return;
+    }
     if (turnBudget && !this._admitTurn(turnBudget, args.model, args.messages)) {
+      yield budgetStopItem(runBudget);
       return;
     }
     // Drop every NodeTool tool the SDK ships a built-in for. Those built-ins
@@ -399,6 +410,10 @@ export class ClaudeAgentProvider extends BaseProvider {
     }
 
     const costBefore = turnBudget ? this.getTotalCost() : 0;
+    // Set when the budget refuses a further turn: the SDK session is aborted
+    // and the stop is yielded once the stream has drained, so it stays the
+    // loop's final item.
+    let budgetStop: ProviderStop | null = null;
     try {
       const stream = this.runWithSession(
         { ...args, signal: abortController.signal },
@@ -431,6 +446,7 @@ export class ClaudeAgentProvider extends BaseProvider {
           isToolCallingTurn &&
           !this._admitTurn(turnBudget, args.model, transcript)
         ) {
+          budgetStop = budgetStopItem(runBudget);
           abortController.abort();
         }
       }
@@ -460,6 +476,9 @@ export class ClaudeAgentProvider extends BaseProvider {
           .rm(skillsPlugin.dir, { recursive: true, force: true })
           .catch(() => {});
       }
+    }
+    if (budgetStop) {
+      yield budgetStop;
     }
   }
 
@@ -873,7 +892,11 @@ export class ClaudeAgentProvider extends BaseProvider {
     let content = "";
     const toolCalls: ToolCall[] = [];
     for await (const item of this.generateMessages(args)) {
-      if (isProviderSessionUpdate(item) || isProviderMessageEvent(item))
+      if (
+        isProviderSessionUpdate(item) ||
+        isProviderMessageEvent(item) ||
+        isProviderStop(item)
+      )
         continue;
       if ("args" in item) {
         toolCalls.push(item);

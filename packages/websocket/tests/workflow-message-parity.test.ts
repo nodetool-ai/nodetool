@@ -23,6 +23,7 @@ import {
   type WebSocketConnection,
   type WebSocketReceiveFrame
 } from "../src/websocket-client-session.js";
+import { borrowedLoopBudgetMembers } from "./chat-turn-test-harness.js";
 
 // ── Mock WebSocket ──────────────────────────────────────────────────
 
@@ -127,7 +128,8 @@ function mockProvider() {
       getAvailableASRModels: async () => [],
       getAvailableEmbeddingModels: async () => [],
       getContainerEnv: () => ({}),
-        generateLoop: BaseProvider.prototype.generateLoop
+        generateLoop: BaseProvider.prototype.generateLoop,
+        ...borrowedLoopBudgetMembers
     }) as any;
 }
 

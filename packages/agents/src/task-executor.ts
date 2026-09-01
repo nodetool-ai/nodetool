@@ -14,9 +14,13 @@
  */
 
 import { createHash } from "node:crypto";
-import type { BaseProvider } from "@nodetool-ai/runtime";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { memoryKeys } from "@nodetool-ai/runtime";
+import type {
+  BaseProvider,
+  ProcessingContext,
+  RunBudget,
+  Semaphore
+} from "@nodetool-ai/runtime";
+import { budgetFromContext, memoryKeys } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import {
   TaskUpdateEvent,
@@ -27,6 +31,7 @@ import {
 
 const log = createLogger("nodetool.agents.task-executor");
 import { CodeActExecutor } from "./codeact/codeact-executor.js";
+import { holdsRunSlot, markRunSlotHeld } from "./subagent.js";
 import { mergeAsyncGenerators } from "./utils/merge-generators.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Step, Task } from "./types.js";
@@ -64,6 +69,13 @@ export interface TaskExecutorOptions {
    * upstream context. Forwarded to {@link CodeActExecutor.upstreamMemoryKeys}.
    */
   upstreamMemoryKeys?: string[];
+  /**
+   * The run's budget, forwarded to every step executor so the whole task
+   * reserves against one cap, and used as the concurrency bound its fan-outs
+   * share. Omitted, the budget on {@link context} is used; absent there too,
+   * the task is unbudgeted.
+   */
+  budget?: RunBudget;
   /** External cancellation, forwarded to every step executor. */
   signal?: AbortSignal;
   /**
@@ -88,6 +100,15 @@ export class TaskExecutor {
   private parallelExecution: boolean;
   private maxConcurrentAgents: number;
   private upstreamMemoryKeys: string[];
+  private readonly budget?: RunBudget;
+  /**
+   * The run's permit pool, when this executor is the layer drawing from it.
+   * Set for the length of a run by {@link enterRunSlot}: a nested executor, or
+   * a sub-agent under one of these steps, sees the branch already holding a
+   * permit and takes none, because a holder that queues for a second permit
+   * deadlocks the run.
+   */
+  private mergeSemaphore?: Semaphore;
   private signal?: AbortSignal;
   private readonly sandboxPackages: readonly string[];
   private _finishStepId: string | undefined;
@@ -110,7 +131,21 @@ export class TaskExecutor {
     this.maxConcurrentAgents =
       opts.maxConcurrentAgents ?? DEFAULT_AGENT_POLICY.maxConcurrentAgents;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
+    this.budget = opts.budget ?? budgetFromContext(opts.context);
     this.signal = opts.signal;
+  }
+
+  /**
+   * Claim this branch's run slot for the fan-outs below, and hand back the
+   * undo. A branch already holding one keeps its numeric bound only.
+   */
+  private enterRunSlot(): () => void {
+    if (!this.budget || holdsRunSlot(this.context)) {
+      this.mergeSemaphore = undefined;
+      return () => {};
+    }
+    this.mergeSemaphore = this.budget.concurrency;
+    return markRunSlotHeld(this.context);
   }
 
   /**
@@ -118,6 +153,15 @@ export class TaskExecutor {
    * Supports both sequential and parallel execution modes.
    */
   async *executeTasks(): AsyncGenerator<ProcessingMessage> {
+    const leaveRunSlot = this.enterRunSlot();
+    try {
+      yield* this.runSteps();
+    } finally {
+      leaveRunSlot();
+    }
+  }
+
+  private async *runSteps(): AsyncGenerator<ProcessingMessage> {
     // Seed inputs into shared memory so every step sees them. Skip keys that
     // were already seeded by an upstream caller (e.g. ParallelTaskExecutor) to
     // avoid redundant writes and extra subscriber notifications.
@@ -183,6 +227,7 @@ export class TaskExecutor {
           systemPrompt: this.systemPrompt,
           maxIterations: this.maxStepIterations,
           maxTokens: this.maxTokens,
+          turnBudget: this.budget,
           useFinishTask: this.isFinishStep(step),
           upstreamMemoryKeys: this.upstreamMemoryKeys,
           signal: this.signal,
@@ -193,7 +238,8 @@ export class TaskExecutor {
 
       if (this.parallelExecution && stepGenerators.length > 1) {
         yield* mergeAsyncGenerators(stepGenerators, {
-          concurrency: this.maxConcurrentAgents
+          concurrency: this.maxConcurrentAgents,
+          semaphore: this.mergeSemaphore
         });
       } else {
         for (const generator of stepGenerators) {
@@ -463,6 +509,7 @@ export class TaskExecutor {
         systemPrompt: this.systemPrompt,
         maxIterations: this.maxStepIterations,
         maxTokens: this.maxTokens,
+        turnBudget: this.budget,
         useFinishTask: false,
         upstreamMemoryKeys: this.upstreamMemoryKeys,
         signal: this.signal,
@@ -489,7 +536,8 @@ export class TaskExecutor {
 
     if (this.parallelExecution && generators.length > 1) {
       for await (const msg of mergeAsyncGenerators(generators, {
-        concurrency: this.maxConcurrentAgents
+        concurrency: this.maxConcurrentAgents,
+        semaphore: this.mergeSemaphore
       })) {
         collect(msg);
         yield msg;

@@ -23,7 +23,15 @@ function asLoopProvider(p: any): any {
       return (
         BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
       ).generateLoop.call(this, loopArgs);
-    }
+    },
+    // AgentNode now always hands generateLoop a run budget, and the base loop
+    // reserves against it through these BaseProvider members. A mock that only
+    // implements generateMessages has none of them.
+    provider: p.provider ?? "mock",
+    _admitTurn(this: any, ...args: any[]) {
+      return (BaseProvider.prototype as any)._admitTurn.call(this, ...args);
+    },
+    getTotalCost: p.getTotalCost ?? (() => 0)
   };
 }
 

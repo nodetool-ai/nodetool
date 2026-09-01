@@ -2,6 +2,7 @@
  * The bounded generator merge that backs task and fan-out dispatch.
  */
 import { describe, it, expect } from "vitest";
+import { createSemaphore } from "@nodetool-ai/runtime";
 import { mergeAsyncGenerators } from "../src/utils/merge-generators.js";
 
 function tracked(id: string, items: number, state: { active: number; peak: number }) {
@@ -69,6 +70,48 @@ describe("mergeAsyncGenerators", () => {
     }
 
     expect(started).toEqual(["g0", "g1"]);
+  });
+
+  it("never runs more than the semaphore's permits at once", async () => {
+    const state = { active: 0, peak: 0 };
+    const generators = Array.from({ length: 8 }, (_, i) =>
+      tracked(`g${i}`, 2, state)
+    );
+
+    const out: string[] = [];
+    for await (const item of mergeAsyncGenerators(generators, {
+      semaphore: createSemaphore(2)
+    })) {
+      out.push(item);
+    }
+
+    expect(out).toHaveLength(16);
+    expect(state.peak).toBeLessThanOrEqual(2);
+  });
+
+  it("bounds two merges together when they share one semaphore", async () => {
+    // The nesting the number cannot bound: two fan-outs of 4 under a
+    // `concurrency` of 4 each run 8 at once, and a run's permit pool is what
+    // makes them 3 between them.
+    const state = { active: 0, peak: 0 };
+    const semaphore = createSemaphore(3);
+    const fanOut = (prefix: string) =>
+      mergeAsyncGenerators(
+        Array.from({ length: 4 }, (_, i) => tracked(`${prefix}${i}`, 2, state)),
+        { concurrency: 4, semaphore }
+      );
+
+    const out: string[] = [];
+    await Promise.all(
+      [fanOut("a"), fanOut("b")].map(async (merged) => {
+        for await (const item of merged) {
+          out.push(item);
+        }
+      })
+    );
+
+    expect(out).toHaveLength(16);
+    expect(state.peak).toBeLessThanOrEqual(3);
   });
 
   it("rethrows the first error after draining", async () => {

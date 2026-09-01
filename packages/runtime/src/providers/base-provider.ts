@@ -14,6 +14,7 @@ import type {
   MusicModel,
   ProviderId,
   ProviderSession,
+  ProviderStop,
   ProviderStreamItem,
   ProviderThinkingConfig,
   ProviderEffort,
@@ -41,7 +42,9 @@ import type {
 import {
   isProviderSessionUpdate,
   isProviderMessageEvent,
-  isProviderToolErrorResult
+  isProviderStop,
+  isProviderToolErrorResult,
+  PROVIDER_STOP_ABORTED
 } from "./types.js";
 import { CostCalculator } from "./cost-calculator.js";
 import type { UsageInfo } from "./cost-calculator.js";
@@ -57,7 +60,8 @@ import {
   createUsageSlot,
   type LlmUsage
 } from "../tracing-helpers.js";
-import type { TurnBudget } from "../turn-budget.js";
+import type { RunBudget, TurnBudget } from "../turn-budget.js";
+import { isRunBudget } from "../turn-budget.js";
 import { countTokens } from "../token-counter.js";
 import {
   isCallable,
@@ -81,6 +85,38 @@ import { SpanStatusCode } from "@opentelemetry/api";
 import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.runtime.provider");
+
+/**
+ * Split the `turnBudget` argument into the run-level bounds (when the caller
+ * passed a {@link RunBudget}) and the per-turn admission object every loop
+ * reserves against. One argument serves both, so callers holding only a bare
+ * {@link TurnBudget} — the supervisor — keep working unchanged.
+ *
+ * A free function rather than a method: `generateLoop` is called unbound on
+ * duck-typed test providers (`BaseProvider.prototype.generateLoop.call(mock)`),
+ * where `this` has no class methods.
+ */
+export function resolveTurnBudget(
+  budget: TurnBudget | RunBudget | undefined
+): { runBudget: RunBudget | null; turnBudget: TurnBudget | undefined } {
+  if (isRunBudget(budget)) {
+    return { runBudget: budget, turnBudget: budget.turns };
+  }
+  return { runBudget: null, turnBudget: budget };
+}
+
+/**
+ * The stop item for a refused turn. A {@link RunBudget} says which ceiling
+ * refused it; a bare {@link TurnBudget} only knows that one did.
+ */
+export function budgetStopItem(runBudget: RunBudget | null): ProviderStop {
+  const exhausted = runBudget?.exhausted ?? null;
+  return {
+    type: "stop",
+    reason: exhausted?.kind === "deadline" ? "deadline" : "budget",
+    detail: exhausted?.detail ?? "the turn budget refused the next model turn"
+  };
+}
 
 /**
  * Collapse a tool result to plain text. Used by string-only tool channels (the
@@ -1087,7 +1123,13 @@ export abstract class BaseProvider {
        * advisory for every model it serves. Both current overrides honor it
        * (the Claude Agent SDK loop and OpenAI's Responses loop). TypeScript
        * cannot enforce this, so a new override that owns its turns owns this
-       * too.
+       * too — including yielding one {@link ProviderStop} as its final item
+       * when a refusal, rather than the model, ended the loop. Returning
+       * silently reads to every consumer as a finished answer.
+       *
+       * Accepts a {@link RunBudget} as well, and then also honors that run's
+       * deadline and cumulative turn count; the stop item names which ceiling
+       * refused the turn.
        *
        * Reserve against the *evolving* transcript, not the opening prompt: a
        * backend that keeps the conversation server-side still bills for it,
@@ -1099,7 +1141,7 @@ export abstract class BaseProvider {
        * driving concurrently; the supervisor owns its provider for exactly
        * this reason.
        */
-      turnBudget?: TurnBudget;
+      turnBudget?: TurnBudget | RunBudget;
       /**
        * The run's workspace directory. Only providers that drive their own
        * agent loop over host tools read it — the Claude Agent SDK uses it as
@@ -1123,11 +1165,12 @@ export abstract class BaseProvider {
       executeTool,
       maxIterations: _omitMax,
       sequentialTools,
-      turnBudget,
+      turnBudget: budgetArg,
       workspaceDir: _omitWorkspaceDir,
       skills: _omitSkills,
       ...turnArgs
     } = args;
+    const { runBudget, turnBudget } = resolveTurnBudget(budgetArg);
     const messages = [...args.messages];
 
     // Tools may carry their own `execute` (provider-dispatched) and/or a
@@ -1157,8 +1200,16 @@ export abstract class BaseProvider {
       : turnArgs.onToolCall;
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {
-      if (turnArgs.signal?.aborted) return;
+      if (turnArgs.signal?.aborted) {
+        yield PROVIDER_STOP_ABORTED;
+        return;
+      }
+      if (runBudget?.deadline.expired()) {
+        yield budgetStopItem(runBudget);
+        return;
+      }
       if (turnBudget && !this._admitTurn(turnBudget, args.model, messages)) {
+        yield budgetStopItem(runBudget);
         return;
       }
       const costBeforeTurn = turnBudget ? this.getTotalCost() : 0;
@@ -1194,6 +1245,12 @@ export abstract class BaseProvider {
           if ("id" in item && "name" in item && "args" in item) {
             pending.push(item);
             yield item;
+            continue;
+          }
+          if (isProviderStop(item)) {
+            // Only this loop ends a loop. A single turn never yields a stop,
+            // so one arriving from `generateMessages` is not the loop's stop
+            // and must not be forwarded as if it were.
             continue;
           }
           const chunk = item;
@@ -1236,14 +1293,18 @@ export abstract class BaseProvider {
         }
         if (finalizedAssistant) {
           messages.push(finalizedAssistant);
-          return;
+        } else {
+          const assistantMsg: Message = {
+            role: "assistant",
+            content: assistantText || null
+          };
+          messages.push(assistantMsg);
+          yield { type: "message", message: assistantMsg };
         }
-        const assistantMsg: Message = {
-          role: "assistant",
-          content: assistantText || null
-        };
-        messages.push(assistantMsg);
-        yield { type: "message", message: assistantMsg };
+        // An abort mid-stream cut the turn short; the model did not end it.
+        if (turnArgs.signal?.aborted) {
+          yield PROVIDER_STOP_ABORTED;
+        }
         return;
       }
 
@@ -1343,7 +1404,10 @@ export abstract class BaseProvider {
           }
         }
       } else {
-        if (turnArgs.signal?.aborted) return;
+        if (turnArgs.signal?.aborted) {
+          yield PROVIDER_STOP_ABORTED;
+          return;
+        }
         const results = await Promise.all(
           pending.map(async (tc) => ({ tc, content: await runTool(tc) }))
         );
@@ -1355,9 +1419,16 @@ export abstract class BaseProvider {
 
       messages.push(...imageMessages);
 
-      // A terminal tool ran this turn — stop after emitting its results.
+      // A terminal tool ran this turn — stop after emitting its results. That
+      // is the loop doing what it was asked, not a limit being hit, so it
+      // carries no stop item.
       if (terminated) return;
     }
+    yield {
+      type: "stop",
+      reason: "iterations",
+      detail: `stopped after ${maxIterations} tool-calling round(s)`
+    };
   }
 
   /** Internal: wrap generateMessages with OTel span */

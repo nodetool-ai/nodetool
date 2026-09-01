@@ -5,8 +5,8 @@
  * so a suite can assert the register/drop/release accounting a workflow-bound
  * chat run performs.
  */
-import type { HydratedGraphData } from "@nodetool-ai/protocol";
-import type { BaseProvider } from "@nodetool-ai/runtime";
+import type { HydratedGraphData, ProviderId } from "@nodetool-ai/protocol";
+import type { BaseProvider, TurnBudget } from "@nodetool-ai/runtime";
 import {
   ChatTurnHandler,
   type ChatJobAccess,
@@ -184,3 +184,35 @@ export function fakeProvider(shape: FakeProviderShape): BaseProvider {
   // only the ones the double provides, and a missing one fails the test loudly.
   return base as unknown as BaseProvider;
 }
+
+/**
+ * What `BaseProvider.prototype.generateLoop` calls on `this` that a
+ * plain-object double does not inherit. The chat turn hands the loop a run
+ * budget, and the loop then reserves before every model turn — so a double
+ * that borrows the loop without these dies on `this._admitTurn is not a
+ * function` before the first call.
+ *
+ * Spread it beside `generateLoop: BaseProvider.prototype.generateLoop`.
+ */
+export const borrowedLoopBudgetMembers = {
+  _admitTurn(
+    this: { provider: string },
+    budget: TurnBudget,
+    model: string,
+    messages: readonly unknown[]
+  ): boolean {
+    return budget.reserve({
+      model,
+      // SAFETY: the doubles name themselves "mock". The budget reads the pair
+      // only to look up a price, and an unknown provider prices as unknown.
+      provider: this.provider as ProviderId,
+      // The real loop counts prompt tokens; four characters per token is close
+      // enough for a double, and keeps a token ceiling testable.
+      inputTokens: Math.ceil(JSON.stringify(messages ?? []).length / 4)
+    });
+  },
+  /** Nothing was billed, so the turn commits a real zero. */
+  getTotalCost(): number {
+    return 0;
+  }
+};

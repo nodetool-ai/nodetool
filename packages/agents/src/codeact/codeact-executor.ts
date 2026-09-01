@@ -19,12 +19,16 @@ import type {
   ProcessingContext,
   Message,
   MessageContent,
+  ProviderStop,
   ProviderStreamItem,
+  RunBudget,
   ToolCall,
   TurnBudget
 } from "@nodetool-ai/runtime";
 import {
   ACTIVE_MODEL_CONTEXT_KEY,
+  isProviderStop,
+  isRunBudget,
   memoryKeys,
   withAgentSpanGen,
   type ActiveModelSelection
@@ -269,8 +273,12 @@ export interface CodeActExecutorOptions {
   /**
    * Spend admission, consulted before every provider turn. A refusal ends the
    * loop, so a caller's cost cap bounds the step rather than being overrun.
+   *
+   * A {@link RunBudget} carries the run's other bounds too, and the step then
+   * also checks the deadline before every action and every bridged tool call.
+   * A bare {@link TurnBudget} keeps its existing meaning — spend only.
    */
-  turnBudget?: TurnBudget;
+  turnBudget?: TurnBudget | RunBudget;
   useFinishTask?: boolean;
   threadId?: string;
   upstreamMemoryKeys?: string[];
@@ -375,7 +383,9 @@ export class CodeActExecutor {
   private readonly systemPrompt: string;
   private readonly maxIterations: number;
   private readonly maxTokens?: number;
-  private readonly turnBudget?: TurnBudget;
+  private readonly turnBudget?: TurnBudget | RunBudget;
+  /** The same budget when it carries the run's deadline; otherwise absent. */
+  private readonly runBudget?: RunBudget;
   private readonly useFinishTask: boolean;
   private readonly threadId?: string;
   private readonly upstreamMemoryKeys: string[];
@@ -419,6 +429,7 @@ export class CodeActExecutor {
     this.maxIterations = opts.maxIterations ?? DEFAULT_CODEACT_MAX_ITERATIONS;
     this.maxTokens = opts.maxTokens;
     this.turnBudget = opts.turnBudget;
+    if (isRunBudget(opts.turnBudget)) this.runBudget = opts.turnBudget;
     this.useFinishTask = opts.useFinishTask ?? false;
     this.threadId = opts.threadId;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
@@ -654,12 +665,47 @@ export class CodeActExecutor {
       maxToolCallsPerAction: this.maxToolCallsPerAction
     });
 
+    // The run's wall clock, when the host gave this step one. A step that has
+    // run out of time must stop where it is: an expired deadline aborts the
+    // controller the provider loop and the action's sandbox both run on, and
+    // the stop is remembered here so the step fails naming the deadline rather
+    // than the abort it caused (invariant I-3).
+    let deadlineStop: ProviderStop | null = null;
+    const stopIfPastDeadline = (): ProviderStop | null => {
+      const budget = this.runBudget;
+      if (!budget || !budget.deadline.expired()) return null;
+      if (!deadlineStop) {
+        const exhausted = budget.exhausted;
+        deadlineStop = {
+          type: "stop",
+          reason: "deadline",
+          detail:
+            exhausted?.kind === "deadline"
+              ? exhausted.detail
+              : "the run deadline passed"
+        };
+      }
+      abort.abort();
+      return deadlineStop;
+    };
+
     // `__callTool` serves the graft as well as the belt, so gating is
     // unchanged on either path.
-    const callBeltTool = bridge.globals["__callTool"] as (
+    const bridgedCall = bridge.globals["__callTool"] as (
       name: unknown,
       argsJson: unknown
     ) => Promise<{ ok: true; result: unknown } | { ok: false; error: string }>;
+    const callBeltTool = async (
+      name: unknown,
+      argsJson: unknown
+    ): Promise<{ ok: true; result: unknown } | { ok: false; error: string }> => {
+      const expired = stopIfPastDeadline();
+      if (expired) return { ok: false, error: expired.detail };
+      return bridgedCall(name, argsJson);
+    };
+    // The guest reaches tools through this global, so the check covers every
+    // bridged call an action makes, not just the ones the host initiates.
+    bridge.globals["__callTool"] = callBeltTool;
 
     const finishBridge = async (
       resultJson: unknown
@@ -751,6 +797,14 @@ export class CodeActExecutor {
     const executeAction = async (
       args: Record<string, unknown>
     ): Promise<string | MessageContent[]> => {
+      const expired = stopIfPastDeadline();
+      if (expired) {
+        return JSON.stringify({
+          ok: false,
+          error: expired.detail,
+          toolCalls: 0
+        } satisfies ActionObservation);
+      }
       const code = isString(args?.["code"]) ? args["code"] : "";
       if (!code.trim()) {
         return JSON.stringify({
@@ -803,7 +857,10 @@ export class CodeActExecutor {
         code: `${this.prelude}\n${code}`,
         context: this.context,
         timeoutMs: this.actionTimeoutMs ?? DEFAULT_CODEACT_ACTION_TIMEOUT_MS,
-        signal: this.signal,
+        // The linked controller, not the caller's raw signal: it fires for the
+        // caller's cancellation *and* for a deadline that expires mid-action,
+        // which is the only way an in-flight program is stopped.
+        signal: abort.signal,
         clock: this.clock,
         modules: mount.modules,
         capabilities: platform.mount,
@@ -889,15 +946,29 @@ export class CodeActExecutor {
     // "exceeded N iterations"; the loop below distinguishes them.
     let exhaustedIterations = false;
     let nudges = 0;
+    // Model turns across every nudge round. `maxIterations` bounds the *step*,
+    // so each round is given what is left of it — handing every round the full
+    // allowance let MAX_FINISH_NUDGES multiply the ceiling by three.
+    let turnsTotal = 0;
+    // Why the provider loop stopped, when it was not the model ending its turn.
+    let providerStop: ProviderStop | null = null;
 
     try {
       for (;;) {
+        const remainingIterations = this.maxIterations - turnsTotal;
+        if (remainingIterations <= 0) {
+          // Nothing left to spend on another round, so there is no round to
+          // run: `generateLoop` with a non-positive budget makes no turn and
+          // would report an iteration stop nobody asked for.
+          exhaustedIterations = true;
+          break;
+        }
         const loopArgs: Parameters<BaseProvider["generateLoop"]>[0] = {
           messages: history,
           model: this.model,
           tools: providerTools,
           threadId: this.threadId,
-          maxIterations: this.maxIterations,
+          maxIterations: remainingIterations,
           maxTokens: this.maxTokens,
           sequentialTools: true,
           workspaceDir: this.context.workspaceDir ?? undefined,
@@ -911,6 +982,13 @@ export class CodeActExecutor {
         let turnsThisRound = 0;
 
         for await (const item of stream) {
+          if (isProviderStop(item)) {
+            // The loop ran out of something. Recorded rather than yielded: it
+            // is what the step's failure message names.
+            providerStop = item;
+            yield* drainUi();
+            continue;
+          }
           if (isToolCall(item)) {
             const coreTool =
               item.name === EXECUTE_CODE_TOOL_NAME
@@ -953,7 +1031,8 @@ export class CodeActExecutor {
           }
           yield* drainUi();
         }
-        exhaustedIterations = turnsThisRound >= this.maxIterations;
+        turnsTotal += turnsThisRound;
+        exhaustedIterations = turnsTotal >= this.maxIterations;
 
         if (!this.shouldNudgeToFinish(lastAssistant, nudges, abort.signal)) {
           break;
@@ -1002,15 +1081,24 @@ export class CodeActExecutor {
 
     if (!this.step.completed) {
       this.step.endTime = Date.now();
+      // A deadline this executor tripped outranks the abort it caused; an
+      // `iterations` stop keeps the wording it always had.
+      const budgetStop =
+        deadlineStop ??
+        (providerStop && providerStop.reason !== "iterations"
+          ? providerStop
+          : null);
       const message = generationError
         ? `Step failed: ${generationError.message}`
-        : exhaustedIterations
-          ? `Step failed: exceeded ${this.maxIterations} iterations without completion`
-          : this.resultSchema !== null
-            ? `Step failed: ended after ${this.actionCount} action(s) without ` +
-              `calling finish().${lastProseHint(lastAssistant)}`
-            : `Step failed: ended after ${this.actionCount} action(s) with no ` +
-              `final message to use as the result.`;
+        : budgetStop
+          ? `Step failed: ${this.stopDetail(budgetStop)}`
+          : exhaustedIterations
+            ? `Step failed: exceeded ${this.maxIterations} iterations without completion`
+            : this.resultSchema !== null
+              ? `Step failed: ended after ${this.actionCount} action(s) without ` +
+                `calling finish().${lastProseHint(lastAssistant)}`
+              : `Step failed: ended after ${this.actionCount} action(s) with no ` +
+                `final message to use as the result.`;
       this.step.failed = true;
       this.step.error = message;
       const errorResult = { error: message };
@@ -1031,6 +1119,19 @@ export class CodeActExecutor {
         is_task_result: this.useFinishTask
       } satisfies StepResult;
     }
+  }
+
+  /**
+   * What to say about a stop the step ended on. A {@link RunBudget} knows which
+   * ceiling it was and says so ("turn budget of $5 reached"); a bare
+   * {@link TurnBudget} only knows that one refused, and the stop item's own
+   * text is all there is.
+   */
+  private stopDetail(stop: ProviderStop): string {
+    if (stop.reason === "budget" || stop.reason === "deadline") {
+      return this.runBudget?.exhausted?.detail ?? stop.detail;
+    }
+    return stop.detail;
   }
 
   /**

@@ -12,6 +12,7 @@ import {
   type WebSocketReceiveFrame
 } from "../src/websocket-client-session.js";
 import { chatTurnRegistry } from "../src/chat-turn-registry.js";
+import { borrowedLoopBudgetMembers } from "./chat-turn-test-harness.js";
 
 class MockWS implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -79,7 +80,8 @@ function gatedProvider() {
       getAvailableASRModels: async () => [],
       getAvailableEmbeddingModels: async () => [],
       getContainerEnv: () => ({}),
-      generateLoop: BaseProvider.prototype.generateLoop
+      generateLoop: BaseProvider.prototype.generateLoop,
+      ...borrowedLoopBudgetMembers
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
   return { provider, release: () => release() };

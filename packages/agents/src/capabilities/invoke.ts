@@ -12,7 +12,12 @@
  * lives".
  */
 
-import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  BaseProvider,
+  ProcessingContext,
+  RunBudget
+} from "@nodetool-ai/runtime";
+import { budgetFromContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { VectorCollection } from "@nodetool-ai/vectorstore";
 import { Tool } from "../tools/base-tool.js";
@@ -99,6 +104,8 @@ export interface CreateCapabilityRunOptions {
   /** Opens the bespoke secret dialog; see {@link CapabilityRun.secretPrompt}. */
   secretPrompt?: SecretPrompt;
   subAgent?: SubAgentRuntime;
+  /** The run's budget; see {@link CapabilityRun.budget}. */
+  budget?: RunBudget;
   /**
    * Which declared credentials this install holds; see
    * {@link CapabilityRun.availableSecrets}. Build it with
@@ -142,6 +149,7 @@ export function createCapabilityRun(
     projectId: options.projectId,
     secretPrompt: options.secretPrompt,
     subAgent: options.subAgent,
+    budget: options.budget ?? budgetFromContext(options.context),
     availableSecrets: options.availableSecrets,
     nodeRegistry: options.nodeRegistry,
     providers: options.providers,

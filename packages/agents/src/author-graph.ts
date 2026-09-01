@@ -20,10 +20,13 @@
 import type {
   BaseProvider,
   ProcessingContext,
+  RunBudget,
   SandboxModuleCatalog,
   TurnBudget
 } from "@nodetool-ai/runtime";
 import {
+  budgetFromContext,
+  isRunBudget,
   getProcessSandboxModuleCatalog,
   withAgentSpanGen
 } from "@nodetool-ai/runtime";
@@ -112,8 +115,12 @@ export interface AuthorGraphOptions {
   providers?: Record<string, BaseProvider>;
   /** External cancellation. Stops the authoring loop mid-flight. */
   signal?: AbortSignal;
-  /** Spend admission, consulted before every provider turn. */
-  turnBudget?: TurnBudget;
+  /**
+   * Spend admission, consulted before every provider turn. Pass the run's
+   * {@link RunBudget} so authoring spends the caller's remaining headroom;
+   * omitted, the budget on {@link context} is used.
+   */
+  turnBudget?: TurnBudget | RunBudget;
   threadId?: string;
   /** Provider rounds. Defaults to {@link AUTHOR_GRAPH_MAX_ITERATIONS}. */
   maxIterations?: number;
@@ -255,6 +262,16 @@ function resolveCatalog(
 }
 
 /**
+ * The run budget behind an authoring run: the caller's when it passed one, the
+ * context's otherwise. A bare {@link TurnBudget} carries no run-level bounds,
+ * so it is not one.
+ */
+function resolveAuthoringBudget(opts: AuthorGraphOptions): RunBudget | undefined {
+  if (isRunBudget(opts.turnBudget)) return opts.turnBudget;
+  return budgetFromContext(opts.context);
+}
+
+/**
  * Discovery, graph validation, and the Code-body harness — plus `find_model`
  * when providers are configured. Everything else the agent needs is the pack.
  */
@@ -262,6 +279,9 @@ export function buildAuthoringBelt(opts: AuthorGraphOptions): Tool[] {
   const runOptions: CreateCapabilityRunOptions = {
     context: opts.context,
     gate: UNGATED,
+    // The belt's capabilities run inside the authoring run, so they share its
+    // budget rather than starting one.
+    budget: resolveAuthoringBudget(opts),
     // The belt carries `validate_workflow`, so a graph the child authors
     // against a provider this install has no key for comes back saying so.
     // A hermetic caller's context resolves no secrets and gets no callback.
