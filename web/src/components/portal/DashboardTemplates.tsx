@@ -34,7 +34,7 @@ import {
 const MAX_VISIBLE = 18;
 
 /** Anchor the dashboard checklist scrolls to for its "open a template" step. */
-export const DASHBOARD_TEMPLATES_SECTION_ID = "dashboard-templates";
+const DASHBOARD_TEMPLATES_SECTION_ID = "dashboard-templates";
 
 const styles = (theme: Theme) =>
   css({

@@ -28,7 +28,7 @@ const scalar =
  * and a reorder changes no content. The render path emits the shot id as
  * `input.id`, the editor ops as `input.target` — read both.
  */
-export const storyboardUnitsTouchedByOp = (
+const storyboardUnitsTouchedByOp = (
   op: DocumentOp
 ): { kind: string; unitId?: string }[] => {
   // set_board rewrites the board's own fields; set_link only its timeline.

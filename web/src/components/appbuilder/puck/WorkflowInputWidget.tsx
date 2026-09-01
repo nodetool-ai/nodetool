@@ -277,7 +277,7 @@ export const WorkflowInputWidget: React.FC<WorkflowInputWidgetProps> = (
  * input form resolves, picked here by the app author instead of by a node's
  * type — an app often wants to drive an LLM node's `model` property directly.
  */
-export const MODEL_WIDGET_KINDS = [
+const MODEL_WIDGET_KINDS = [
   "language_model",
   "image_model",
   "video_model",
@@ -287,7 +287,7 @@ export const MODEL_WIDGET_KINDS = [
   "huggingface_model"
 ] as const;
 
-export type ModelWidgetKind = (typeof MODEL_WIDGET_KINDS)[number];
+type ModelWidgetKind = (typeof MODEL_WIDGET_KINDS)[number];
 
 const MODEL_KIND_NODE_TYPE = {
   language_model: "nodetool.input.LanguageModelInput",

@@ -28,7 +28,7 @@ export interface JsScriptMergeDoc {
 const byName = (unit: unknown): string =>
   String((unit as { name?: unknown }).name ?? "");
 
-export const jsScriptMergeAdapter: DocumentMergeAdapter<JsScriptMergeDoc> = {
+const jsScriptMergeAdapter: DocumentMergeAdapter<JsScriptMergeDoc> = {
   collections: [
     {
       kind: "input",

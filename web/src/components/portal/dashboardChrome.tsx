@@ -8,7 +8,7 @@ import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
 /** Shared horizontal rhythm for the Examples page: a centered column that
  *  section borders bleed past, while content stays aligned. */
-export const wrapStyles = (theme: Theme) =>
+const wrapStyles = (theme: Theme) =>
   css({
     maxWidth: 1240,
     margin: "0 auto",

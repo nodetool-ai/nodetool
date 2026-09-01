@@ -118,7 +118,7 @@ const restoreRuntime = (
   });
 };
 
-export const workflowMergeAdapter: DocumentMergeAdapter<WorkflowMergeDoc> = {
+const workflowMergeAdapter: DocumentMergeAdapter<WorkflowMergeDoc> = {
   collections: [
     {
       kind: "edge",

@@ -28,8 +28,8 @@ const LazyPlotlyChart = React.lazy(
 );
 
 /** The trace kinds a mini app can pick, and what each maps to in Plotly. */
-export const CHART_KINDS = ["line", "bar", "scatter", "pie"] as const;
-export type ChartKind = (typeof CHART_KINDS)[number];
+const CHART_KINDS = ["line", "bar", "scatter", "pie"] as const;
+type ChartKind = (typeof CHART_KINDS)[number];
 
 const isChartKind = (value: unknown): value is ChartKind =>
   CHART_KINDS.includes(value as ChartKind);

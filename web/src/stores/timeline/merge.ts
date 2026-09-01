@@ -130,7 +130,7 @@ export const timelineUnitsTouchedByOp = (
   return (ownKind ? [ownKind] : ALL_UNIT_KINDS).map((kind) => ({ kind }));
 };
 
-export const timelineMergeAdapter: DocumentMergeAdapter<TimelineMergeDoc> = {
+const timelineMergeAdapter: DocumentMergeAdapter<TimelineMergeDoc> = {
   collections: [
     collectionOf("track", "tracks", (t) => (t as { id: string }).id),
     collectionOf(
