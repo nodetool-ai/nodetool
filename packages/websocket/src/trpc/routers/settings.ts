@@ -113,11 +113,10 @@ const secretsRouter = router({
     );
 
     // DB secrets not in the registry.
-    for (const s of configuredSecrets) {
-      if (!registrySecrets.some((d) => d.envVar === s.key)) {
-        normalizedResults.push(await toSecretResponse(s));
-      }
-    }
+    const registrySecretKeys = new Set(registrySecrets.map((d) => d.envVar));
+    const extraSecrets = configuredSecrets.filter((s) => !registrySecretKeys.has(s.key));
+    const extraResponses = await Promise.all(extraSecrets.map((s) => toSecretResponse(s)));
+    normalizedResults.push(...extraResponses);
 
     return { secrets: normalizedResults, next_key: null };
   }),
