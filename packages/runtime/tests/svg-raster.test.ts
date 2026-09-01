@@ -90,6 +90,20 @@ describe("rasterizeSvg", () => {
     expect([...out.data.subarray(0, 8)]).toEqual(PNG_SIGNATURE);
   });
 
+  it.each([
+    ["url( followed by spaces and never closed", `url(${" ".repeat(20000)}`],
+    ["an href quote opened and never closed", `<svg href="${" ".repeat(20000)}`],
+    ["doubled spaces throughout", `<svg ${"  ".repeat(20000)}/>`]
+  ])("scans %s in linear time", async (_label, markup) => {
+    // The reference screen used to filter values inline, which put `\s*` beside
+    // a class that also matches whitespace. `"url(" + 2000 spaces` — markup a
+    // model can produce by accident — did not finish in five minutes, so
+    // `view_image` on an agent-written SVG was a way to hang the process.
+    const started = Date.now();
+    await rasterizeSvg(bytes(markup)).catch(() => undefined);
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
   it("refuses a document over the size cap", async () => {
     const huge = bytes(svg(`<!--${"x".repeat(9 * 1024 * 1024)}-->`));
     await expect(rasterizeSvg(huge)).rejects.toThrow(/limit for rasterization/);

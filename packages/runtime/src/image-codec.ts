@@ -103,12 +103,42 @@ export async function encodeRawImageRef<T>(ref: T): Promise<T | ImageRef> {
 }
 
 /**
- * References an SVG may carry to something outside itself: `href`,
- * `xlink:href`, and CSS `url()`. Fragments (`#id`), `data:` payloads and empty
- * values stay inside the document; anything else is a fetch.
+ * Every place an SVG can name a resource: an `href` / `xlink:href` attribute,
+ * and a CSS `url()`.
+ *
+ * Matches the reference and nothing about its contents — deciding whether a
+ * value points outside the document is {@link isExternalReference}'s job. That
+ * split is not stylistic. The first version of this regex screened the value
+ * inline, which put `\s*` next to `[^"']+` and next to an optional quote in
+ * `url(\s*['"]?\s*…`; both give the engine many ways to split one run of
+ * spaces, and `"url(" + 2000 spaces` — an input a model can produce by
+ * accident — did not finish in five minutes. Every quantifier here is bounded
+ * by a delimiter it cannot itself match, so the scan is linear.
  */
-const SVG_EXTERNAL_REF =
-  /(?:xlink:href|href)\s*=\s*["']\s*(?!#|data:)([^"']+)["']|url\(\s*['"]?\s*(?!#|data:)([^'")]+)['"]?\s*\)/i;
+const SVG_REFERENCE = /(?:xlink:href|href)\s*=\s*["']([^"']*)["']|url\(([^)]*)\)/gi;
+
+/** Strip one layer of surrounding quotes and whitespace from a raw reference. */
+const unquote = (value: string): string =>
+  value.trim().replace(/^["']/, "").replace(/["']$/, "").trim();
+
+/**
+ * Whether a reference points outside the document. A fragment (`#id`) and a
+ * `data:` payload are self-contained; an empty value names nothing.
+ */
+function isExternalReference(value: string): boolean {
+  if (!value) return false;
+  if (value.startsWith("#")) return false;
+  return !/^data:/i.test(value);
+}
+
+/** The first reference in this markup that points outside it, if any. */
+function firstExternalReference(markup: string): string | null {
+  for (const match of markup.matchAll(SVG_REFERENCE)) {
+    const value = unquote(match[1] ?? match[2] ?? "");
+    if (isExternalReference(value)) return value;
+  }
+  return null;
+}
 
 /** Largest SVG this rasterizer will hand to the decoder. */
 const MAX_SVG_BYTES = 8 * 1024 * 1024;
@@ -146,11 +176,10 @@ export async function rasterizeSvg(
     );
   }
   const markup = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
-  const external = SVG_EXTERNAL_REF.exec(markup);
-  if (external) {
-    const ref = external[1] ?? external[2] ?? "";
+  const external = firstExternalReference(markup);
+  if (external !== null) {
     throw new Error(
-      `Refusing to render an SVG that references "${ref}". ` +
+      `Refusing to render an SVG that references "${external}". ` +
         `The renderer would fetch it from this host's filesystem or network. ` +
         `Inline the resource as a data: URI, or drop the reference.`
     );
