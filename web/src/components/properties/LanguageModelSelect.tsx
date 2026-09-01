@@ -13,6 +13,8 @@ import useModelSelectMenu from "./shared/useModelSelectMenu";
 interface LanguageModelSelectProps {
   onChange: (value: LanguageModelValue) => void;
   value: string;
+  /** Provider of the selected model. Disambiguates an id several providers serve. */
+  provider?: string;
   allowedProviders?: string[];
   /**
    * Hide models the provider declares as non-tool-capable. Pass `true` from
@@ -28,6 +30,7 @@ interface LanguageModelSelectProps {
 const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   onChange,
   value,
+  provider,
   allowedProviders,
   requireToolSupport,
   placeholder = "Select Model",
@@ -43,8 +46,13 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
 
   const currentSelectedModelDetails = useMemo(() => {
     if (!fetchedModels || !value) { return null; }
-    return fetchedModels.find((m) => m.id === value);
-  }, [fetchedModels, value]);
+    const matches = fetchedModels.filter((m) => m.id === value);
+    if (provider) {
+      const exact = matches.find((m) => m.provider === provider);
+      if (exact) { return exact; }
+    }
+    return matches[0] ?? null;
+  }, [fetchedModels, value, provider]);
 
   return (
     <>

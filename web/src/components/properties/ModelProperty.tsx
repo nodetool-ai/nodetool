@@ -128,6 +128,7 @@ const ModelProperty = (props: PropertyProps) => {
         <LanguageModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
+          provider={props.value?.provider}
           allowedProviders={lockedProviders}
           recommendedModels={recommendedModels}
           modelPacks={modelPacks}
