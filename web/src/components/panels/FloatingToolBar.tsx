@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useEffect } from "react";
 import { useMediaQuery } from "@mui/material";
 import { EditorMenu } from "../ui_primitives";
-import { Tooltip, AlertBanner, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Tooltip, AlertBanner, FlexRow, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -40,6 +40,7 @@ import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPositi
 import { useRunningTime } from "../../hooks/useRunningTime";
 import { formatRunningTime } from "../../utils/timeFormat";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import ProviderFailureReportButton from "../support/ProviderFailureReportButton";
 import useCanvasChatDockStore, {
   MAX_DOCK_WIDTH,
   MIN_DOCK_WIDTH,
@@ -670,7 +671,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
               onClose={clearChatError}
               sx={{ borderRadius: BORDER_RADIUS.xl }}
             >
-              {chatError}
+              <FlexRow align="center" gap={SPACING.sm}>
+                <span>{chatError}</span>
+                <ProviderFailureReportButton errorText={chatError} />
+              </FlexRow>
             </AlertBanner>
           )}
           <CanvasMediaComposer

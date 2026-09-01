@@ -10,6 +10,10 @@ import {
   recordConsoleEntry,
   clearConsoleEntries
 } from "../../../utils/consoleCapture";
+import {
+  recordProviderCallFailure,
+  useProviderCallFailureStore
+} from "../../../stores/ProviderCallFailureStore";
 
 const workflow = {
   id: "wf-1",
@@ -64,6 +68,7 @@ describe("BugReportDialog", () => {
     downloaded = null;
     addNotification.mockClear();
     clearConsoleEntries();
+    useProviderCallFailureStore.getState().clear();
     window.URL.createObjectURL = jest.fn((blob: Blob) => {
       downloaded = blob;
       return "blob:mock";
@@ -116,6 +121,67 @@ describe("BugReportDialog", () => {
     // The graph travels with the report; the key inside it does not.
     expect(entries["workflow.json"]).toContain("My workflow");
     expect(entries["workflow.json"]).not.toContain("hunter2");
+  });
+
+  it("attaches the failed provider call the run made", async () => {
+    const user = userEvent.setup();
+    recordProviderCallFailure({
+      type: "provider_call_failed",
+      provider: "openai",
+      model: "gpt-5.4-mini",
+      operation: "generateMessages",
+      kind: "rate_limit",
+      status: 429,
+      message: "429 Too Many Requests",
+      request_id: "req_abc123",
+      duration_ms: 812,
+      request_source: "wire",
+      request: { api_key: "sk-live-abcdefghijklmnopqr", prompt: "a red fox" },
+      workflow_id: "wf-1",
+      timestamp: "2026-01-02T03:04:05.000Z"
+    });
+
+    renderDialog({
+      source: "node-error",
+      errorText: "Agent failed",
+      nodeType: "nodetool.agents.Agent",
+      workflowId: "wf-1"
+    });
+
+    await user.type(screen.getByLabelText(/what went wrong/i), "the agent 429s");
+    await user.click(screen.getByRole("button", { name: /save report bundle/i }));
+
+    await waitFor(() => expect(downloaded).not.toBeNull());
+    const entries = await bundleEntries(downloaded!);
+
+    const call = entries["provider-call.txt"];
+    expect(call).toContain("Provider: openai");
+    expect(call).toContain("Model: gpt-5.4-mini");
+    expect(call).toContain("HTTP status: 429");
+    expect(call).toContain("Provider request id: req_abc123");
+    expect(call).toContain("a red fox");
+    expect(call).not.toContain("sk-live-abcdefghijklmnopqr");
+  });
+
+  it("attaches no provider call when the failure belongs to another run", async () => {
+    const user = userEvent.setup();
+    recordProviderCallFailure({
+      type: "provider_call_failed",
+      provider: "openai",
+      operation: "generateMessages",
+      kind: "server",
+      message: "500",
+      workflow_id: "wf-other",
+      timestamp: "2026-01-02T03:04:05.000Z"
+    });
+
+    renderDialog({ source: "node-error", errorText: "boom", workflowId: "wf-1" });
+    await user.type(screen.getByLabelText(/what went wrong/i), "unrelated");
+    await user.click(screen.getByRole("button", { name: /save report bundle/i }));
+
+    await waitFor(() => expect(downloaded).not.toBeNull());
+    const entries = await bundleEntries(downloaded!);
+    expect(Object.keys(entries)).not.toContain("provider-call.txt");
   });
 
   it("leaves out a section the reporter unchecks", async () => {

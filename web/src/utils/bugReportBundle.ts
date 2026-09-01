@@ -93,6 +93,7 @@ type BugReportSource =
   | "app-crash"
   | "panel-crash"
   | "job-failure"
+  | "provider-call"
   | "notification"
   | "manual";
 
@@ -101,6 +102,7 @@ const SOURCE_LABELS: Record<BugReportSource, string> = {
   "app-crash": "App crash",
   "panel-crash": "Panel crash",
   "job-failure": "Job failure",
+  "provider-call": "Failed provider call",
   notification: "Error notification",
   manual: "Manual report"
 };
@@ -126,6 +128,16 @@ export interface BugReportContext {
    * cannot read them itself — the node store is scoped to the editor.
    */
   nodeDetail?: string;
+  /**
+   * The provider calls behind this failure, already formatted — provider,
+   * model, status, request id, timing and the redacted request. Set by any
+   * surface that can name the run the calls belong to.
+   */
+  providerCallDetail?: string;
+  /** Provider named in the failure, for the issue title. */
+  provider?: string;
+  /** Model named in the failure, for the issue title. */
+  model?: string;
 }
 
 /** One attachable file, shown as its own consent row in the dialog. */
@@ -147,6 +159,8 @@ interface BundleInput {
   workflow?: unknown;
   /** Node configuration and wiring, when a node failed. */
   nodeDetail?: string;
+  /** The failed provider calls, when the failure came from one. */
+  providerCallDetail?: string;
   logText?: string;
   consoleText?: string;
   notificationText?: string;
@@ -190,6 +204,18 @@ export function buildBundleSections(input: BundleInput): BundleSection[] {
         "The failing node's settings and the nodes wired into it. API keys are removed.",
       fileName: "node.txt",
       content: redactSecretsInText(input.nodeDetail),
+      defaultIncluded: true
+    });
+  }
+
+  if (input.providerCallDetail) {
+    sections.push({
+      id: "provider-call",
+      label: "Failed provider call",
+      description:
+        "Provider, model, HTTP status, the provider's request id, how long the call ran, and the request that was sent. API keys are removed.",
+      fileName: "provider-call.txt",
+      content: redactSecretsInText(input.providerCallDetail),
       defaultIncluded: true
     });
   }
@@ -268,6 +294,11 @@ export function buildIssueBody(input: IssueBodyInput): string {
       `Node: \`${context.nodeType}\`${context.nodeTitle ? ` ("${context.nodeTitle}")` : ""}`
     );
   }
+  if (context.provider) {
+    contextLines.push(
+      `Provider: \`${context.provider}\`${context.model ? ` model \`${context.model}\`` : ""}`
+    );
+  }
   if (context.workflowId) {
     contextLines.push(`Workflow: \`${context.workflowId}\``);
   }
@@ -329,7 +360,11 @@ export function buildIssueTitle(
     context.summary ||
     context.errorText?.split("\n")[0] ||
     sourceLabel(context.source);
-  const prefix = context.nodeType ? `${context.nodeType}: ` : "";
+  const prefix = context.nodeType
+    ? `${context.nodeType}: `
+    : context.provider
+      ? `${context.provider}: `
+      : "";
   return `[Bug]: ${prefix}${subject}`.slice(0, 120);
 }
 
