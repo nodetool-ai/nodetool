@@ -59,10 +59,10 @@ const transitionMirror: MutuallyAssignable<
   NonNullable<WireClip["transitionIn"]>,
   ModelClipTransition
 > = true;
-// The whole clip only holds in one direction today: the wire types
-// `ClipAnimation.easing` as a plain string and the model still narrows it to
-// `EasingId`. T6 (easing grammar) is what widens the model side.
-const wholeClipMirror: Extends<ModelClip, WireClip> = true;
+// The whole clip, both ways. `ClipAnimation.easing` was the last field the
+// model narrowed further than the wire; T6 widened it to a string so the
+// easing grammar (`cubic-bezier(...)`, `spring(...)`) fits.
+const wholeClipMirror: MutuallyAssignable<ModelClip, WireClip> = true;
 
 const clip = (overrides: Record<string, unknown>): Record<string, unknown> => ({
   trackId: "track-1",

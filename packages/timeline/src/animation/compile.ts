@@ -31,8 +31,12 @@ export interface Keyframe {
   /** Normalized 0..1 within the animation window. */
   t: number;
   value: number;
-  /** Easing of the segment ending at this keyframe. Undefined → linear. */
-  easing?: EasingId;
+  /**
+   * Easing of the segment ending at this keyframe. Undefined → linear. A
+   * string rather than an {@link EasingId} so it carries the easing grammar
+   * too (see `parseEasing`).
+   */
+  easing?: string;
 }
 
 export interface PropertyCurve {
@@ -174,7 +178,7 @@ function applyEasing(
   curves: PropertyCurve[],
   animation: ClipAnimation,
   role: AnimationRole,
-  presetEasing: EasingId | undefined
+  presetEasing: string | undefined
 ): PropertyCurve[] {
   const override = animation.easing; // overrides every segment when set
   const base = presetEasing ?? roleDefaultEasing(role);
@@ -230,7 +234,7 @@ export function compileClipAnimations(
 
     let curves: PropertyCurve[];
     let mask: CompiledAnimationMask | undefined;
-    let baseEasing: EasingId | undefined;
+    let baseEasing: string | undefined;
     let fullClip = false;
 
     if (animation.preset === CUSTOM_ANIMATION_PRESET_ID) {

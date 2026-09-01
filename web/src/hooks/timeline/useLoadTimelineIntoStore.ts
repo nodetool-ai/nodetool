@@ -17,10 +17,10 @@ import type { TimelineSequence } from "@nodetool-ai/timeline";
 import type { RouterOutputs } from "../../trpc/client";
 
 /**
- * The wire shape from `trpc.timeline.get` types animation `easing`/`preset` as
- * plain strings (forward compat); the store's `TimelineSequence` narrows
- * `easing` to `EasingId`. The compiler tolerates unknown ids at sample time, so
- * the wire→store cast on load is safe.
+ * The wire shape from `trpc.timeline.get` types the loose forward-compat
+ * strings (animation `preset`/`easing`, transition and mask kinds) exactly as
+ * the store's `TimelineSequence` does, and the compiler tolerates a value it
+ * cannot read at sample time — so the wire→store cast on load is safe.
  */
 export type WireSequence = RouterOutputs["timeline"]["get"];
 

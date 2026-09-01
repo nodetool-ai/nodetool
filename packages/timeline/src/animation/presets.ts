@@ -16,7 +16,6 @@ import type {
   AnimatedProperty,
   AnimationPresetId,
   AnimationRole,
-  EasingId,
   WipeDirection
 } from "./types.js";
 import type {
@@ -48,8 +47,12 @@ export interface AnimationPreset {
   id: AnimationPresetId;
   roles: AnimationRole[];
   defaultDurationMs: number;
-  /** When set, overrides the per-role default segment easing. */
-  defaultEasing?: EasingId;
+  /**
+   * When set, overrides the per-role default segment easing. A string so a
+   * preset can pin a parametric easing (`spring(...)`, `cubic-bezier(...)`)
+   * as well as a named id; `parseEasing` reads both.
+   */
+  defaultEasing?: string;
   params: PresetParamSpec[];
   describe: string;
   /**

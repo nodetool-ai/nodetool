@@ -1707,10 +1707,9 @@ export const createTimelineStore = (
             mediaTypeOverride: opts?.mediaTypeOverride
           });
 
-          // The wire schema types animation `easing`/`preset` as plain strings
-          // (forward compat); the store's TimelineClip narrows `easing` to
-          // EasingId. The compiler tolerates unknown ids at sample time, so the
-          // wire→store cast is safe here.
+          // The wire schema and the store's TimelineClip type the loose
+          // forward-compat strings the same way, and the compiler tolerates a
+          // value it cannot read at sample time, so the cast is safe here.
           set((state) => ({
             clips: [...state.clips, newClip as TimelineClip]
           }));

@@ -80,8 +80,14 @@ export interface ClipAnimation {
    * end). Default 0.
    */
   delayMs?: number;
-  /** Overrides the preset default and every per-segment easing when set. */
-  easing?: EasingId;
+  /**
+   * Overrides the preset default and every per-segment easing when set.
+   * Typed `string` for the same reason `preset` is: it carries the easing
+   * grammar (`cubic-bezier(...)`, `spring(...)`) as well as an
+   * {@link EasingId}, and an id this build cannot parse eases linearly rather
+   * than failing the document. `parseEasing` is the gate.
+   */
+  easing?: string;
   /** Default true. Disabled animations are kept but not evaluated. */
   enabled?: boolean;
   /** Preset-specific knobs; unknown keys ignored. See the preset catalog. */

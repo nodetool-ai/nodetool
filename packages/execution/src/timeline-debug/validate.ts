@@ -17,7 +17,9 @@ import {
 import {
   ANIMATION_PRESETS,
   CUSTOM_ANIMATION_PRESET_ID,
+  EASING_IDS,
   normalizeCustomCurves,
+  parseEasing,
   resolveCustomMask,
   sourceRate
 } from "@nodetool-ai/timeline";
@@ -42,6 +44,31 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 const clipLabel = (clip: TimelineClip): string => `${clip.name || clip.id}`;
+
+/** What an `easing` field accepts, for the `unknown_easing` message. */
+const EASING_GRAMMAR = `${EASING_IDS.join(", ")}, cubic-bezier(x1,y1,x2,y2), spring(stiffness,damping,mass)`;
+
+/**
+ * An easing string nothing in the grammar parses. A warning, not an error: the
+ * sampler eases linearly rather than dropping the motion, so a document from a
+ * newer build still plays (I2). The offending string is named because it is
+ * almost always a typo — `ease-out` for `easeOut`, a spring with two arguments.
+ */
+function unknownEasingIssue(
+  clip: TimelineClip,
+  easing: string | undefined,
+  path: string
+): TimelineDebugIssue | null {
+  if (easing === undefined || parseEasing(easing) !== null) return null;
+  return {
+    severity: "warning",
+    code: "unknown_easing",
+    message: `Clip "${clipLabel(clip)}" eases with "${easing}", which this build cannot parse — it will ease linearly. Expected one of ${EASING_GRAMMAR}.`,
+    path,
+    clipId: clip.id,
+    trackId: clip.trackId
+  };
+}
 
 /** Collect every leaf/branch path the parse output dropped from the input. */
 function collectStrippedPaths(
@@ -247,7 +274,30 @@ function checkClip(
     });
   }
 
+  const transitionEasing = unknownEasingIssue(
+    clip,
+    clip.transitionIn?.easing,
+    "transitionIn.easing"
+  );
+  if (transitionEasing) issues.push(transitionEasing);
+
+  for (const [index, keyframe] of (clip.timeRemap?.keyframes ?? []).entries()) {
+    const issue = unknownEasingIssue(
+      clip,
+      keyframe.easing,
+      `timeRemap.keyframes[${index}].easing`
+    );
+    if (issue) issues.push(issue);
+  }
+
   for (const animation of clip.animations ?? []) {
+    const animationEasing = unknownEasingIssue(
+      clip,
+      animation.easing,
+      "animations[*].easing"
+    );
+    if (animationEasing) issues.push(animationEasing);
+
     if (!PRESET_IDS.has(animation.preset)) {
       issues.push({
         severity: "error",
@@ -274,6 +324,15 @@ function checkClip(
       });
       continue;
     }
+    for (const easing of baked.unknownEasings ?? []) {
+      const issue = unknownEasingIssue(
+        clip,
+        easing,
+        "animations[*].custom.curves[*].keyframes[*].easing"
+      );
+      if (issue) issues.push(issue);
+    }
+
     const mask = resolveCustomMask(baked.curves, animation.custom?.mask);
     if (!mask.ok) {
       issues.push({
