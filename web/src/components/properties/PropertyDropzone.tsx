@@ -549,10 +549,10 @@ const PropertyDropzone = ({
           )}
         </div>
         {contentType.split("/")[0] === "audio" && showRecorder && (
-          <WaveRecorder onChange={onChangeAsset} />
+          <WaveRecorder onChange={onChangeAsset} workflowId={props.workflowId} />
         )}
         {contentType.split("/")[0] === "video" && showRecorder && (
-          <VideoRecorder onChange={onChangeAsset} />
+          <VideoRecorder onChange={onChangeAsset} workflowId={props.workflowId} />
         )}
       </div>
     </div>

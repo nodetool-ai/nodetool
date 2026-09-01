@@ -34,6 +34,8 @@ its own settings.
 | Table | A list, as rows. Max height, placeholder. |
 | Output | A value whose type varies; picks a display based on what arrives. |
 | Progress | How far along the run is. |
+| Gallery | A list of images as tiles. Tile size, placeholder. Set `selectionBinding` and a tap picks one. |
+| Image Compare | Two images under one wipe handle. `binding` is before, `compareBinding` after. Max height, placeholder. |
 
 Sketch and Timeline take a document reference — `{type: "sketch", id}` or
 `{type: "timeline", id}` — which is what the nodes that produce them emit. They
@@ -50,6 +52,7 @@ That's what makes on-release pacing possible — see
 
 | Widget | Takes | Commits |
 | --- | --- | --- |
+| Workflow Form | Every input of one operation at once, each rendered to match. | no |
 | Workflow Input | Whatever the bound Input node declares, rendered to match. | no |
 | Text Input | Text. Single-line or multiline. | yes |
 | Number Input | A number. Min, max, step. | yes |
@@ -59,12 +62,31 @@ That's what makes on-release pacing possible — see
 | Image Input | An image. | no |
 | Sketch Pad | A drawing the user makes on the spot. Canvas size, white or transparent paper. | yes |
 | Audio Input | An audio file. | no |
+| Audio Recorder | Audio recorded from the microphone, then and there. | no |
 | Video Input | A video. | no |
+| Camera Capture | Video recorded from the camera, then and there. | no |
 | Document Input | A document. | no |
 | Color Input | A color. | no |
 | Resource Picker | Picks which document a resource points at. | no |
 | Resource Gallery | The same, from a grid of tiles. Tile size. | no |
 | Storyboard Scenes | Edits the bound storyboard directly. Fires no event. | no |
+
+A Workflow Form is one widget where placing each input by hand would be several.
+It renders the inputs of the operation it names — the app's only operation
+unless you pick another — so an Input node added to the workflow shows up in the
+app with no edit. Place the inputs one by one instead when the layout matters:
+a form renders them in graph order, top to bottom.
+
+The Audio Recorder and Camera Capture write the same `{type, uri, asset_id}` ref
+an upload writes, so bind them to an Audio or Video Input and the workflow reads
+one value either way. The recording uploads as an asset when it finishes. On the
+builder canvas they show a placeholder instead of asking for the microphone or
+camera, so laying out an app never raises a permission prompt.
+
+A Gallery with a `selectionBinding` is the generate-then-pick loop: bind the
+gallery to a run's list of images, the selection to the input of the next step,
+and wire a run event to the selection so picking a tile starts it. What lands in
+the binding is the item the run emitted, not the URL it rendered.
 
 The Sketch Pad is the sketch editor's canvas with a four-tool chrome — brush,
 pencil, eraser, fill, plus colors, stroke size, undo and clear. Each finished

@@ -50,7 +50,7 @@ Outputs fill in as the run streams them.
 ## Widgets
 
 Every widget in the builder's catalog has a native renderer. The document
-decides layout and behavior; only the controls differ. Four render differently
+decides layout and behavior; only the controls differ. These render differently
 enough to be worth knowing:
 
 | Widget | On the phone |
@@ -58,6 +58,10 @@ enough to be worth knowing:
 | **Columns** | Stacks vertically. Two columns side by side are unusable at phone width. |
 | **ImageInput / AudioInput / VideoInput / DocumentInput** | Opens the system photo or file picker. The pick is uploaded to the server so the workflow gets a URL it can fetch; if the upload fails the local file is used, which still previews on the device. |
 | **Sketch Pad** | An image picker. The app bundles no drawing surface, so the pad offers the camera and photo library for the same binding and says drawing needs the desktop app. |
+| **Audio Recorder / Camera Capture** | Records for real: the microphone through a record/stop control with elapsed time and playback, the camera through the system camera sheet. Both upload the take, so the workflow reads the same `{type, uri, asset_id}` an upload writes. A denied permission says so and leaves the file picker as the way through. |
+| **Workflow Form** | One row per workflow input, in graph order. |
+| **Gallery** | Tapping a tile opens the pager; when the app wired a `selectionBinding`, tapping picks and a long press previews. |
+| **Image Compare** | Two labelled panes, before above after — a wipe handle needs more width than a phone has, and a thumb would cover it. |
 | **ResourcePicker / ResourceGallery** | A list of rows rather than a grid of tiles. Tapping one opens that document in the screen its kind already has — a storyboard in the storyboard editor, a sketch in the sketch viewer, an asset in the asset viewer. |
 | **ChatThread / ChatComposer / ModelSelect** | Native bubbles, a multiline composer, and a two-step provider-then-model picker. |
 

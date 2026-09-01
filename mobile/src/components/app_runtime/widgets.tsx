@@ -32,6 +32,7 @@ import {
 } from "react-native";
 import {
   composeUserMessage,
+  encodeBinding,
   formatDuration,
   messagesFrom,
   messageText,
@@ -69,8 +70,17 @@ import {
 import { useWidgetRuntime } from "./useWidgetRuntime";
 import { SliderControl } from "./SliderControl";
 import { RESOURCE_RENDERERS } from "./resourceWidgets";
+import type { WorkflowInputIO } from "./workflowIO";
 import { ModelSelectWidget } from "./ModelSelectWidget";
-import { pickMediaValue, type MediaKind } from "./mediaPicker";
+import {
+  captureVideoValue,
+  pickMediaValue,
+  uploadCapturedFile,
+  type CapturedFile,
+  type MediaKind,
+  type MediaValue,
+} from "./mediaPicker";
+import { AudioCaptureControl } from "./audioCapture";
 import { clampNumber } from "./inputKinds";
 import { isFiniteNumber, isNumber, isRecord, isString } from "../../utils/typePredicates";
 
@@ -895,18 +905,60 @@ const GalleryViewer: React.FC<{
 };
 
 /**
+ * Whether a tile holds the value the selection binding currently points at.
+ *
+ * The bound array holds whatever the run emitted — a ref, a locator string, a
+ * data URI — and the selection binding stores that item verbatim, so the
+ * comparison has to work on the item rather than on the URL it resolved to.
+ * Two refs for one asset differ by field order alone, which is why the locator
+ * is tried before the structural compare.
+ */
+const sameBoundItem = (a: unknown, b: unknown): boolean => {
+  if (a === b) {return true;}
+  const left = mediaLocator(a);
+  const right = mediaLocator(b);
+  if (left !== null && right !== null) {return left === right;}
+  if (isRecord(a) && isRecord(b)) {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+  return false;
+};
+
+/**
  * A tiled grid of a bound array of media refs. Unlike the three cards above this
  * one renders for real: the tiles are the same `Image` the `Image` widget draws.
- * Tapping a tile opens `GalleryViewer`, where the images are swiped through.
+ *
+ * With no `selectionBinding` a tap opens `GalleryViewer`, where the images are
+ * swiped through. With one, a tap picks — it writes the tile's original item
+ * (the array element, not the resolved URL) to that binding and fires "change",
+ * which is the generate-N-pick-one loop. Preview stays reachable there on a
+ * long press: a phone has one gesture per tile, and when picking is what the app
+ * asked for it gets the primary one.
  */
 const GalleryWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
-  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const { write } = useAppRuntimeContext();
+  const { value, emit } = useWidgetRuntime({ ...widget, bindingMode: "read" });
   const tileSize = numOr(widget.props.tileSize, 120);
-  const uris = useMediaUris(asItems(value));
   const [openedAt, setOpenedAt] = useState<number | null>(null);
 
-  if (uris.length === 0) {
+  const selectionRef = useBindingRef(
+    isString(widget.props.selectionBinding)
+      ? widget.props.selectionBinding
+      : undefined,
+    "write"
+  );
+  const selected = useBindingValue(selectionRef);
+
+  // Resolution is positional, so the resolved URL keeps the item it came from —
+  // which is the item a tap has to write.
+  const items = asItems(value);
+  const resolved = useResolvedMediaUris(items.map(mediaLocator));
+  const tiles = items
+    .map((item, index) => ({ item, uri: resolved[index] }))
+    .filter((tile): tile is { item: unknown; uri: string } => tile.uri !== null);
+
+  if (tiles.length === 0) {
     return (
       <Placeholder
         text={str(widget.props.placeholder) || "No images yet"}
@@ -918,38 +970,122 @@ const GalleryWidget: React.FC<WidgetProps> = (widget) => {
     <View style={styles.field}>
       <FieldLabel text={str(widget.props.label)} colors={colors} />
       <View style={styles.tileGrid}>
-        {uris.map((uri, index) => (
-          <TouchableOpacity
-            key={`${uri}-${index}`}
-            testID="gallery-tile"
-            accessibilityRole="imagebutton"
-            accessibilityLabel={`Image ${index + 1} of ${uris.length}`}
-            disabled={widget.disabled}
-            onPress={() => setOpenedAt(index)}
-          >
-            <Image
-              accessibilityRole="image"
-              source={{ uri }}
-              style={[
-                styles.tile,
-                {
-                  width: tileSize,
-                  height: tileSize,
-                  borderColor: colors.border,
-                },
-              ]}
-              resizeMode="cover"
-            />
-          </TouchableOpacity>
-        ))}
+        {tiles.map(({ item, uri }, index) => {
+          const isSelected =
+            selectionRef !== null && sameBoundItem(selected, item);
+          return (
+            <TouchableOpacity
+              key={`${uri}-${index}`}
+              testID="gallery-tile"
+              accessibilityRole="imagebutton"
+              accessibilityLabel={`Image ${index + 1} of ${tiles.length}`}
+              accessibilityState={{ selected: isSelected }}
+              disabled={widget.disabled}
+              onPress={() => {
+                if (!selectionRef) {
+                  setOpenedAt(index);
+                  return;
+                }
+                write(selectionRef, item);
+                emit("change");
+              }}
+              onLongPress={() => setOpenedAt(index)}
+            >
+              <Image
+                accessibilityRole="image"
+                source={{ uri }}
+                style={[
+                  styles.tile,
+                  {
+                    width: tileSize,
+                    height: tileSize,
+                    borderColor: isSelected ? colors.primary : colors.border,
+                    borderWidth: isSelected ? 2 : StyleSheet.hairlineWidth,
+                  },
+                ]}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
+          );
+        })}
       </View>
       {openedAt !== null && (
         <GalleryViewer
-          uris={uris}
+          uris={tiles.map((tile) => tile.uri)}
           initialIndex={openedAt}
           onClose={() => setOpenedAt(null)}
         />
       )}
+    </View>
+  );
+};
+
+/**
+ * Two bound images, before and after. The web widget puts them under one wipe
+ * handle; a wipe at phone width gives each side a few hundred pixels and a
+ * handle the thumb covers, so this labels them and stacks them instead — the
+ * same two values, read the way a phone can read them. `height` caps each pane.
+ * One binding filled renders that one, named; neither renders the placeholder.
+ */
+const ImageComparePane: React.FC<{
+  title: string;
+  uri: string;
+  height: number;
+  colors: ThemeColors;
+}> = ({ title, uri, height, colors }) => (
+  <View style={styles.field}>
+    <Text style={[styles.hint, { color: colors.textTertiary }]}>{title}</Text>
+    <Image
+      accessibilityRole="image"
+      accessibilityLabel={title}
+      source={{ uri }}
+      style={[styles.image, { height }]}
+      resizeMode="contain"
+    />
+  </View>
+);
+
+const ImageCompareWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const compareRef = useBindingRef(
+    isString(widget.props.compareBinding)
+      ? widget.props.compareBinding
+      : undefined,
+    "read"
+  );
+  const compareValue = useBindingValue(compareRef);
+  const height = numOr(widget.props.height, 240);
+  const beforeUri = useMediaUri(asItems(value)[0]);
+  const afterUri = useMediaUri(asItems(compareValue)[0]);
+
+  if (!beforeUri && !afterUri) {
+    return (
+      <Placeholder
+        text={str(widget.props.placeholder) || "Nothing to compare yet"}
+        colors={colors}
+      />
+    );
+  }
+  return (
+    <View style={styles.field}>
+      <FieldLabel text={str(widget.props.label)} colors={colors} />
+      {beforeUri ? (
+        <ImageComparePane
+          title="Before"
+          uri={beforeUri}
+          height={height}
+          colors={colors}
+        />
+      ) : null}
+      {afterUri ? (
+        <ImageComparePane
+          title="After"
+          uri={afterUri}
+          height={height}
+          colors={colors}
+        />
+      ) : null}
     </View>
   );
 };
@@ -1438,6 +1574,155 @@ const MediaInputWidget: React.FC<WidgetProps & { kind: MediaKind }> = ({
           {uri}
         </Text>
       ) : null}
+    </View>
+  );
+};
+
+/**
+ * Capture instead of upload — `AudioRecorder` and `CameraCapture`.
+ *
+ * The value is the point: both write the same `{type, uri, asset_id}` an
+ * `AudioInput` / `VideoInput` writes, because the captured file goes through
+ * the same upload the picker uses. One document therefore runs on both surfaces
+ * and a workflow reads one shape either way.
+ *
+ * The capture itself is real: the camera through `launchCameraAsync`, the
+ * microphone through expo-audio. Both need a permission the user can refuse, so
+ * a refusal is stated inline, and the file picker stays on the widget as the
+ * way out when the device has no camera or the permission is off for good.
+ */
+const CAPTURE_COPY = {
+  audio: {
+    label: "Audio recording",
+    action: "Record",
+    hint: "Record with the microphone, or pick an audio file you already have.",
+  },
+  video: {
+    label: "Camera capture",
+    action: "Record video",
+    hint: "Record with the camera, or pick a clip you already have.",
+  },
+} satisfies Record<"audio" | "video", { label: string; action: string; hint: string }>;
+
+const CaptureInputWidget: React.FC<
+  WidgetProps & { kind: "audio" | "video" }
+> = ({ kind, ...widget }) => {
+  const { colors } = useTheme();
+  const { value, setValue, emit } = useWidgetRuntime({
+    ...widget,
+    bindingMode: "write",
+  });
+  const uri = useMediaUri(value);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const copy = CAPTURE_COPY[kind];
+
+  /** One writer for every source, so the stored shape cannot drift by path. */
+  const store = useCallback(
+    async (produce: () => Promise<MediaValue | null>) => {
+      setBusy(true);
+      try {
+        const stored = await produce();
+        if (stored) {
+          setValue(stored);
+          emit("change");
+        }
+      } finally {
+        setBusy(false);
+      }
+    },
+    [emit, setValue]
+  );
+
+  const recordVideo = useCallback(async () => {
+    setNotice(null);
+    await store(async () => {
+      const outcome = await captureVideoValue();
+      if (outcome.status === "captured") {
+        return outcome.value;
+      }
+      if (outcome.status !== "canceled") {
+        setNotice(outcome.message);
+      }
+      return null;
+    });
+  }, [store]);
+
+  const captureAudio = useCallback(
+    (file: CapturedFile) => {
+      setNotice(null);
+      void store(() => uploadCapturedFile("audio", file));
+    },
+    [store]
+  );
+
+  const pick = useCallback(() => {
+    setNotice(null);
+    void store(() => pickMediaValue(kind));
+  }, [kind, store]);
+
+  return (
+    <View style={styles.field}>
+      <FieldLabel
+        text={str(widget.props.label) || copy.label}
+        colors={colors}
+      />
+      {kind === "audio" ? (
+        <AudioCaptureControl
+          colors={colors}
+          disabled={widget.disabled}
+          busy={busy}
+          onCaptured={captureAudio}
+        />
+      ) : (
+        <TouchableOpacity
+          accessibilityRole="button"
+          disabled={widget.disabled || busy}
+          onPress={() => void recordVideo()}
+          style={[
+            styles.secondaryButton,
+            { borderColor: colors.border, backgroundColor: colors.inputBg },
+          ]}
+        >
+          {busy ? (
+            <ActivityIndicator color={colors.primary} size="small" />
+          ) : (
+            <Text style={{ color: colors.primary }}>
+              {uri ? "Record again" : copy.action}
+            </Text>
+          )}
+        </TouchableOpacity>
+      )}
+      {notice ? (
+        <Text style={[styles.hint, { color: colors.error }]}>{notice}</Text>
+      ) : null}
+      {/* The way out: no camera, no microphone, or a permission turned off for
+          good still leaves the user a file to choose — the same button, and the
+          same stored value, an `AudioInput` / `VideoInput` offers. */}
+      <TouchableOpacity
+        accessibilityRole="button"
+        disabled={widget.disabled || busy}
+        onPress={pick}
+        style={[
+          styles.secondaryButton,
+          { borderColor: colors.border, backgroundColor: colors.inputBg },
+        ]}
+      >
+        <Text style={{ color: colors.primary }}>
+          {uri ? `Replace ${MEDIA_LABEL[kind]}` : `Choose ${MEDIA_LABEL[kind]}`}
+        </Text>
+      </TouchableOpacity>
+      {uri ? (
+        <Text
+          numberOfLines={1}
+          style={[styles.hint, { color: colors.textTertiary }]}
+        >
+          {uri}
+        </Text>
+      ) : null}
+      <Text style={[styles.hint, { color: colors.textTertiary }]}>
+        {copy.hint}
+      </Text>
     </View>
   );
 };
@@ -1966,6 +2251,17 @@ const WorkflowInputWidget: React.FC<WidgetProps> = (widget) => {
     return <UnknownWidget label={`Unbound input: ${widget.binding ?? ""}`} />;
   }
 
+  return <WorkflowInputControl {...widget} input={input} />;
+};
+
+/**
+ * The control one Input node needs, given where its value lives. Split out of
+ * `WorkflowInputWidget` so `WorkflowForm` can render the same control per row
+ * without going through a binding string it would have to invent twice.
+ */
+const WorkflowInputControl: React.FC<
+  WidgetProps & { input: WorkflowInputIO }
+> = ({ input, ...widget }) => {
   const props = {
     ...widget,
     props: {
@@ -2044,6 +2340,90 @@ const WorkflowInputWidget: React.FC<WidgetProps> = (widget) => {
     default:
       return <TextInputWidget {...props} />;
   }
+};
+
+/**
+ * One row of `WorkflowForm`: the control for one Input node, writing that
+ * node's own slot. Hooks cannot run in a loop, so a row is its own component —
+ * that is the only reason this exists.
+ *
+ * The row builds its binding rather than reading one off the document, which is
+ * what makes an Input node added to the graph appear here with no edit to the
+ * app. The form's events ride along on the control, so a row change fires them
+ * with the same pacing every other input widget uses.
+ */
+const WorkflowFormRow: React.FC<{
+  formId: string;
+  input: WorkflowInputIO;
+  operationId: string;
+  showDescription: boolean;
+  events?: AppEvent[];
+  disabled?: boolean;
+}> = ({ formId, input, operationId, showDescription, events, disabled }) => {
+  const { colors } = useTheme();
+  const binding = encodeBinding({
+    kind: "input",
+    operationId,
+    nodeId: input.nodeId,
+  });
+  return (
+    <View style={styles.field}>
+      <WorkflowInputControl
+        id={`${formId}:${input.nodeId}`}
+        binding={binding}
+        events={events}
+        disabled={disabled}
+        props={{}}
+        input={input}
+      />
+      {showDescription && input.description ? (
+        <Text style={[styles.hint, { color: colors.textTertiary }]}>
+          {input.description}
+        </Text>
+      ) : null}
+    </View>
+  );
+};
+
+/**
+ * Every input of one operation in one widget. `WorkflowInput` binds one node;
+ * this binds none and resolves the operation's inputs from the graph at render
+ * time.
+ *
+ * A screen holds exactly one workflow (see `useAppRuntime`), so the context's
+ * `io` is that operation's bindable surface: `operationId` selects which
+ * operation's state slots the rows write, not which graph they read.
+ */
+const WorkflowFormWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { io, scope } = useAppRuntimeContext();
+  const operationId =
+    (isString(widget.props.operationId) && widget.props.operationId) ||
+    scope.defaultOperationId;
+  const label = str(widget.props.label);
+
+  return (
+    <View style={styles.stack}>
+      <FieldLabel text={label} colors={colors} />
+      {io.inputs.length === 0 ? (
+        <Text style={[styles.hint, { color: colors.textTertiary }]}>
+          This operation has no inputs.
+        </Text>
+      ) : (
+        io.inputs.map((input) => (
+          <WorkflowFormRow
+            key={input.nodeId}
+            formId={widget.id}
+            input={input}
+            operationId={operationId}
+            showDescription={widget.props.showDescriptions !== "no"}
+            events={widget.events}
+            disabled={widget.disabled}
+          />
+        ))
+      )}
+    </View>
+  );
 };
 
 // ── Actions ─────────────────────────────────────────────────────────────────
@@ -2417,6 +2797,8 @@ export const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   Chart: ChartWidget,
   PDF: PDFWidget,
   Gallery: GalleryWidget,
+  ImageCompare: ImageCompareWidget,
+  WorkflowForm: WorkflowFormWidget,
   WorkflowInput: WorkflowInputWidget,
   TextInput: TextInputWidget,
   NumberInput: NumberInputWidget,
@@ -2431,6 +2813,8 @@ export const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   SketchPad: SketchPadWidget,
   AudioInput: (props) => <MediaInputWidget {...props} kind="audio" />,
   VideoInput: (props) => <MediaInputWidget {...props} kind="video" />,
+  AudioRecorder: (props) => <CaptureInputWidget {...props} kind="audio" />,
+  CameraCapture: (props) => <CaptureInputWidget {...props} kind="video" />,
   DocumentInput: (props) => <MediaInputWidget {...props} kind="document" />,
   Model3DInput: (props) => <MediaInputWidget {...props} kind="model_3d" />,
   DataFrameInput: DataFrameInputWidget,

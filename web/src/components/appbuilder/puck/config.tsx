@@ -68,6 +68,12 @@ import { ChatThreadWidget, ChatComposerWidget } from "./ChatWidgets";
 import { SketchWidget, TimelineWidget } from "./DocumentWidgets";
 import { SketchPadWidget } from "./SketchPadWidget";
 import { GalleryWidget, Model3DWidget, PDFWidget } from "./MediaWidgets";
+import { ImageComparerWidget } from "./ImageComparerWidget";
+import { WorkflowFormWidget } from "./WorkflowFormWidget";
+import {
+  AudioRecorderWidget,
+  CameraCaptureWidget
+} from "./RecorderWidgets";
 import { ChartWidget } from "./ChartWidget";
 
 const ACTION_OPTIONS = [
@@ -321,6 +327,7 @@ export const appConfig: Config = {
     inputs: {
       title: "Inputs",
       components: [
+        "WorkflowForm",
         "WorkflowInput",
         "TextInput",
         "NumberInput",
@@ -336,7 +343,9 @@ export const appConfig: Config = {
         "ImageInput",
         "SketchPad",
         "AudioInput",
+        "AudioRecorder",
         "VideoInput",
+        "CameraCapture",
         "DocumentInput",
         "ColorInput",
         "DataFrameInput",
@@ -376,7 +385,8 @@ export const appConfig: Config = {
         "Model3D",
         "Chart",
         "PDF",
-        "Gallery"
+        "Gallery",
+        "ImageCompare"
       ]
     },
     layout: {
@@ -700,9 +710,11 @@ export const appConfig: Config = {
       label: "Gallery",
       fields: {
         binding: bindingField("read"),
+        selectionBinding: bindingField("write", "Selection"),
         label: { type: "text", label: "Label" },
         tileSize: { type: "number", label: "Tile size (px)" },
         placeholder: { type: "text", label: "Placeholder" },
+        events: eventsField("change", { commits: false }),
         ...conditionalFields({ format: false })
       },
       defaultProps: {
@@ -712,7 +724,43 @@ export const appConfig: Config = {
       },
       render: withConditions((props) => <GalleryWidget {...props} />)
     },
+    ImageCompare: {
+      label: "Image Compare",
+      fields: {
+        binding: bindingField("read", "Before"),
+        compareBinding: bindingField("read", "After"),
+        label: { type: "text", label: "Label" },
+        height: { type: "number", label: "Max height (px)" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        label: "",
+        height: 320,
+        placeholder: "Nothing to compare yet"
+      },
+      render: withConditions((props) => <ImageComparerWidget {...props} />)
+    },
     // ── Inputs ──
+    WorkflowForm: {
+      label: "Workflow Form",
+      fields: {
+        operationId: operationField("Operation"),
+        label: { type: "text", label: "Label" },
+        showDescriptions: {
+          type: "radio",
+          label: "Descriptions",
+          options: [
+            { label: "Show", value: "yes" },
+            { label: "Hide", value: "no" }
+          ]
+        },
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { label: "", showDescriptions: "yes" },
+      render: withConditions((props) => <WorkflowFormWidget {...props} />)
+    },
     WorkflowInput: {
       label: "Workflow Input",
       fields: {
@@ -1028,6 +1076,28 @@ export const appConfig: Config = {
     },
     AudioInput: fixedInputEntry("Audio Input", "audio"),
     VideoInput: fixedInputEntry("Video Input", "video"),
+    AudioRecorder: {
+      label: "Audio Recorder",
+      fields: {
+        binding: bindingField("write", "Workflow input"),
+        label: { type: "text", label: "Label" },
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { binding: "", label: "Record audio" },
+      render: withConditions((props) => <AudioRecorderWidget {...props} />)
+    },
+    CameraCapture: {
+      label: "Camera Capture",
+      fields: {
+        binding: bindingField("write", "Workflow input"),
+        label: { type: "text", label: "Label" },
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { binding: "", label: "Record video" },
+      render: withConditions((props) => <CameraCaptureWidget {...props} />)
+    },
     DocumentInput: fixedInputEntry("Document Input", "document"),
     ColorInput: fixedInputEntry("Color Input", "color"),
     Model3DInput: fixedInputEntry("3D Model Input", "model3d"),
