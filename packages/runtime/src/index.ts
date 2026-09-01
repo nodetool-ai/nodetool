@@ -101,9 +101,27 @@ export {
 } from "./invocation-account.js";
 export {
   CostCappedTurnBudget,
+  CompositeTurnBudget,
+  createRunBudget,
+  createDeadline,
+  createSemaphore,
+  createCounter,
+  isRunBudget,
+  BUDGET_EXHAUSTION_KINDS,
+  TURN_REFUSALS,
   type TurnBudget,
   type TurnReservation,
-  type CostCappedTurnBudgetOptions
+  type CostCappedTurnBudgetOptions,
+  type CompositeTurnBudgetOptions,
+  type CreateRunBudgetOptions,
+  type RunBudget,
+  type BudgetExhaustion,
+  type BudgetExhaustionKind,
+  type TurnRefusal,
+  type Deadline,
+  type Semaphore,
+  type Release,
+  type Counter
 } from "./turn-budget.js";
 export { packContext, type PackedContext } from "./context-packer.js";
 export {

@@ -656,11 +656,35 @@ export interface ProviderMessageEvent {
   message: Message;
 }
 
+/**
+ * Why an agentic loop ({@link BaseProvider.generateLoop}) stopped, when it was
+ * not the model ending its turn. Yielded as the loop's final item, exactly
+ * once, so a consumer can tell a budget stop from a finished answer — a silent
+ * return reads identically to success and is a bug (invariant I-3).
+ */
+export interface ProviderStop {
+  type: "stop";
+  reason: "budget" | "deadline" | "iterations" | "aborted";
+  /** Human-readable reason, naming the limit that was hit. */
+  detail: string;
+}
+
+/**
+ * The loop ended because the caller aborted it. One shared value so every
+ * abort path — the base loop's and each override's — says the same thing.
+ */
+export const PROVIDER_STOP_ABORTED: ProviderStop = {
+  type: "stop",
+  reason: "aborted",
+  detail: "the run was aborted"
+};
+
 export type ProviderStreamItem =
   | Chunk
   | ToolCall
   | ProviderSessionUpdate
-  | ProviderMessageEvent;
+  | ProviderMessageEvent
+  | ProviderStop;
 
 /**
  * Narrow a stream item to a {@link ProviderSessionUpdate}. `Chunk` carries
@@ -675,6 +699,16 @@ export function isProviderSessionUpdate(
     item !== null &&
     "type" in item &&
     item.type === "session"
+  );
+}
+
+/** Narrow a stream item to a {@link ProviderStop}. */
+export function isProviderStop(item: ProviderStreamItem): item is ProviderStop {
+  return (
+    typeof item === "object" &&
+    item !== null &&
+    "type" in item &&
+    item.type === "stop"
   );
 }
 

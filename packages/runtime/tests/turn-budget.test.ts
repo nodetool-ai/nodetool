@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { CostCappedTurnBudget } from "../src/turn-budget.js";
 import { BaseProvider } from "../src/providers/base-provider.js";
 import { OpenAIProvider } from "../src/providers/openai-provider.js";
+import { isProviderStop } from "../src/providers/types.js";
 import type { ProviderStreamItem } from "../src/providers/types.js";
 
 const PRICED_MODEL = "gpt-4o-mini";
@@ -132,14 +133,20 @@ describe("generateLoop turn admission", () => {
       capUsd: 0,
       maxOutputTokens: 2048
     });
-    for await (const _item of provider.generateLoop({
+    const items: ProviderStreamItem[] = [];
+    for await (const item of provider.generateLoop({
       messages: [{ role: "user", content: "hi" }],
       model: PRICED_MODEL,
       turnBudget: budget
     } as Parameters<BaseProvider["generateLoop"]>[0])) {
-      // drain
+      items.push(item);
     }
     expect(provider.turns).toBe(0);
+    // A silent return here reads exactly like a model that finished answering,
+    // which is how a budget stop went unnoticed by every consumer.
+    expect(items.filter(isProviderStop).map((s) => s.reason)).toEqual([
+      "budget"
+    ]);
   });
 });
 
@@ -191,14 +198,18 @@ describe("OpenAI Responses loop honors the budget", () => {
       capUsd: 0,
       maxOutputTokens: 2048
     });
-    for await (const _item of instance.generateLoop({
+    const items: ProviderStreamItem[] = [];
+    for await (const item of instance.generateLoop({
       messages: [{ role: "user", content: "hi" }],
       model: RESPONSES_MODEL,
       turnBudget: budget
     } as Parameters<OpenAIProvider["generateLoop"]>[0])) {
-      // drain
+      items.push(item);
     }
     expect(turnsCollected()).toBe(0);
+    expect(items.filter(isProviderStop).map((s) => s.reason)).toEqual([
+      "budget"
+    ]);
   });
 });
 

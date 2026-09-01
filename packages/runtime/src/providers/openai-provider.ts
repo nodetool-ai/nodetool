@@ -6,10 +6,15 @@ import OpenAI, { toFile } from "openai";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { createLogger, importHidden } from "@nodetool-ai/config";
-import { BaseProvider, splitToolResultImages } from "./base-provider.js";
+import {
+  BaseProvider,
+  budgetStopItem,
+  resolveTurnBudget,
+  splitToolResultImages
+} from "./base-provider.js";
 import { hashSystemPrompt } from "./provider-session.js";
 import { sniffAudioMime } from "./audio-mime.js";
-import type { TurnBudget } from "../turn-budget.js";
+import type { RunBudget, TurnBudget } from "../turn-budget.js";
 
 /** Extension for each mime `sniffAudioMime` can return; anything else is mp3. */
 const AUDIO_MIME_EXT: Record<string, string> = {
@@ -38,6 +43,7 @@ import {
   isProviderMessageEvent,
   isProviderSessionUpdate,
   IMAGE_GENERATION_TOOL_NAME,
+  PROVIDER_STOP_ABORTED,
   WEB_SEARCH_TOOL_NAME
 } from "./types.js";
 
@@ -1451,7 +1457,7 @@ export class OpenAIProvider extends BaseProvider {
       executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
       maxIterations?: number;
       sequentialTools?: boolean;
-      turnBudget?: TurnBudget;
+      turnBudget?: TurnBudget | RunBudget;
     }
   ): AsyncGenerator<ProviderStreamItem> {
     if (!this.usesResponsesApi(args.model)) {
@@ -1463,9 +1469,10 @@ export class OpenAIProvider extends BaseProvider {
       executeTool,
       maxIterations: _omitMaxIterations,
       sequentialTools,
-      turnBudget,
+      turnBudget: budgetArg,
       ...turnArgs
     } = args;
+    const { runBudget, turnBudget } = resolveTurnBudget(budgetArg);
     const systemHash = hashSystemPrompt(responsesSystemPrompt(args.messages));
     const prior = args.providerSession ?? null;
     const canResume =
@@ -1488,7 +1495,8 @@ export class OpenAIProvider extends BaseProvider {
           firstPreviousResponseId: prior.token,
           systemHash,
           firstTurnState,
-          turnBudget
+          turnBudget,
+          runBudget
         });
         return;
       } catch (err) {
@@ -1513,7 +1521,8 @@ export class OpenAIProvider extends BaseProvider {
       firstPreviousResponseId: null,
       systemHash,
       firstTurnState: this.createResponsesTurnState(null),
-      turnBudget
+      turnBudget,
+      runBudget
     });
   }
 
@@ -1600,6 +1609,8 @@ export class OpenAIProvider extends BaseProvider {
     systemHash: string;
     firstTurnState: StreamTurnState;
     turnBudget?: TurnBudget;
+    /** Run-level bounds, when the caller passed a {@link RunBudget}. */
+    runBudget?: RunBudget | null;
   }): AsyncGenerator<ProviderStreamItem> {
     const toolMap = new Map<string, ProviderTool>(
       (config.args.tools ?? []).map((tool) => [tool.name, tool])
@@ -1616,12 +1627,21 @@ export class OpenAIProvider extends BaseProvider {
     // so the reservation grows with the turn it is admitting.
     const transcript: Message[] = [...config.firstMessages];
 
+    const runBudget = config.runBudget ?? null;
     for (let iteration = 0; iteration < config.maxIterations; iteration++) {
-      if (config.args.signal?.aborted) return;
+      if (config.args.signal?.aborted) {
+        yield PROVIDER_STOP_ABORTED;
+        return;
+      }
+      if (runBudget?.deadline.expired()) {
+        yield budgetStopItem(runBudget);
+        return;
+      }
       if (
         config.turnBudget &&
         !this._admitTurn(config.turnBudget, config.args.model, transcript)
       ) {
+        yield budgetStopItem(runBudget);
         return;
       }
       const costBeforeTurn = config.turnBudget ? this.getTotalCost() : 0;
@@ -1751,6 +1771,11 @@ export class OpenAIProvider extends BaseProvider {
     }
 
     yield { type: "chunk", content: "", done: true };
+    yield {
+      type: "stop",
+      reason: "iterations",
+      detail: `stopped after ${config.maxIterations} tool-calling round(s)`
+    };
   }
 
   private async *collectResponsesTurn(

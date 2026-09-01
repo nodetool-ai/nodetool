@@ -308,6 +308,7 @@ export type {
   ProviderSession,
   ProviderSessionUpdate,
   ProviderMessageEvent,
+  ProviderStop,
   StreamingAudioChunk,
   EncodedAudioResult,
   AudioChunk,
@@ -320,7 +321,9 @@ export {
 export {
   isProviderSessionUpdate,
   isProviderMessageEvent,
+  isProviderStop,
   isProviderToolErrorResult,
+  PROVIDER_STOP_ABORTED,
   WEB_SEARCH_TOOL_NAME,
   IMAGE_GENERATION_TOOL_NAME
 } from "./types.js";
