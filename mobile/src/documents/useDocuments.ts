@@ -40,7 +40,7 @@ const listKey = (kind: DocumentKind, limit: number): QueryKey => [
 ];
 
 /** One kind's documents. */
-export function useDocumentsOfKind(
+function useDocumentsOfKind(
   kind: DocumentKind,
   limit = 50
 ): UseQueryResult<DocumentListEntry[], Error> {

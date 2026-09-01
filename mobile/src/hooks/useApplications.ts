@@ -77,7 +77,7 @@ export function useApplication(
 }
 
 /** The released snapshot, or null when the app has never been published. */
-export function useApplicationRelease(
+function useApplicationRelease(
   id: string | undefined
 ): UseQueryResult<ApplicationReleaseResponse | null, Error> {
   return useQuery({

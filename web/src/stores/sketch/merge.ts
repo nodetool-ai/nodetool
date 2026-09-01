@@ -39,7 +39,7 @@ const bindingId = (unit: unknown): string =>
  * attributes, the engine falls back to diff mode and every slot the three
  * sides disagree on is a conflict.
  */
-export const sketchUnitsTouchedByOp = (
+const sketchUnitsTouchedByOp = (
   op: DocumentOp
 ): { kind: string; unitId?: string }[] => {
   const input = (op.input ?? {}) as Record<string, unknown>;
@@ -60,7 +60,7 @@ export const sketchUnitsTouchedByOp = (
   }
 };
 
-export const sketchMergeAdapter: DocumentMergeAdapter<SketchMergeDoc> = {
+const sketchMergeAdapter: DocumentMergeAdapter<SketchMergeDoc> = {
   collections: [
     {
       kind: "layer",
@@ -91,7 +91,7 @@ export const sketchMergeAdapter: DocumentMergeAdapter<SketchMergeDoc> = {
 };
 
 /** The op names that redraw the whole canvas rather than edit one unit. */
-export const SKETCH_WHOLE_DOCUMENT_OPS = new Set(["resize_canvas"]);
+const SKETCH_WHOLE_DOCUMENT_OPS = new Set(["resize_canvas"]);
 
 /**
  * Merge one external sketch write into the dirty draft. A `resize_canvas`

@@ -72,7 +72,7 @@ function resolveLayerStructure(
 /**
  * Build a LayerStructureSnapshot array from current document layers.
  */
-export function captureLayerStructure(layers: readonly Layer[]): LayerStructureSnapshot[] {
+function captureLayerStructure(layers: readonly Layer[]): LayerStructureSnapshot[] {
   return layers.map((l) => ({
     id: l.id,
     name: l.name,
@@ -101,7 +101,7 @@ function captureDocumentCanvas(
 }
 
 /** Which layer units an external merge took out of the draft's hands. */
-export interface ExternalLayerOwnership {
+interface ExternalLayerOwnership {
   /** Layers the external write added or rewrote; the merged value wins. */
   changedLayerIds: ReadonlySet<string>;
   /** Layers the external write removed from the draft. */

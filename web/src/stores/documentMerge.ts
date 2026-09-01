@@ -21,10 +21,10 @@
 import type { DocumentOp } from "@nodetool-ai/protocol";
 
 /** Why the draft refused an external value. */
-export type MergeConflictReason = "edited" | "deleted" | "dangling" | "replaced";
+type MergeConflictReason = "edited" | "deleted" | "dangling" | "replaced";
 
 /** The merge unit a conflict is about. */
-export interface MergeConflictUnit {
+interface MergeConflictUnit {
   /** Unit kind, e.g. `"shot"`, `"clip"`, `"node"`, `"edge"`, `"document"`. */
   kind: string;
   id: string;
@@ -101,7 +101,7 @@ export interface MergeCollection<TDoc> {
 }
 
 /** A scalar document field the engine merges last-write-wins. */
-export interface MergeScalarField<TDoc> {
+interface MergeScalarField<TDoc> {
   /** Field name, used in conflict labels. */
   name: string;
   read(doc: TDoc): unknown;
@@ -256,7 +256,7 @@ const nextBaseSlot = (
  * One refused external sub-item, reported by a field spec that declares
  * `conflictKind`. Shaped like a MergeConflict minus the label bookkeeping.
  */
-export interface ReportedSubConflict {
+interface ReportedSubConflict {
   kind: string;
   id: string;
   label: string;

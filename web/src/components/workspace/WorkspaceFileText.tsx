@@ -39,7 +39,7 @@ interface WorkspaceFileTextProps {
 /** Cap CSV/TSV rows so a huge file can't lock up the table render. */
 const MAX_CSV_ROWS = 2000;
 
-export const workspaceFileTextKey = (workspaceId: string, path: string) =>
+const workspaceFileTextKey = (workspaceId: string, path: string) =>
   ["workspaceFile", workspaceId, path] as const;
 
 const styles = (theme: Theme) =>

@@ -56,7 +56,7 @@ export type JsonValue =
   | { [key: string]: JsonValue };
 
 /** JSON when it parses, the raw string otherwise. An empty field is `null`. */
-export const parseInputValue = (raw: string): JsonValue => {
+const parseInputValue = (raw: string): JsonValue => {
   const trimmed = raw.trim();
   if (trimmed === "") return null;
   try {
