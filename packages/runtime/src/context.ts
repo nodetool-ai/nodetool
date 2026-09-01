@@ -1627,9 +1627,19 @@ export class ProcessingContext {
    * its context. Six hosts assembled these by hand and three of them forgot
    * `createAsset`, so the same workflow saved an image under `workflows run`
    * and died under `debug` with "model interface is not configured".
+   *
+   * The two compose key by key, the context's own winning, so wiring one
+   * interface does not uninstall the rest of the floor.
    */
   private modelInterfaces(): ProcessingContextModelInterfaces | null {
-    return this._modelInterfaces ?? getDefaultModelInterfaces();
+    const own = this._modelInterfaces;
+    const floor = getDefaultModelInterfaces();
+    if (!own) return floor;
+    if (!floor) return own;
+    // Per key, not per object: a host that wires two interfaces of its own
+    // keeps the other twelve. Replacing wholesale is how the HTTP run route
+    // lost `getTimelineSequence` while setting only the asset pair.
+    return { ...floor, ...own };
   }
 
   /**

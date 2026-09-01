@@ -26,11 +26,12 @@ import type {
   ActiveLayer,
   Canvas2DLayer,
   CompositeContext2D,
+  DroppedLayerReason,
   MaskScratch
 } from "@nodetool-ai/timeline/scene";
 import {
   clipSourceTimeSec,
-  computeActiveLayers,
+  computeActiveLayersWithHorizon,
   createAnimationCompileCache,
   drawTimelineFrame,
   resolveAnimatedLayerProps,
@@ -78,6 +79,14 @@ export interface PreviewLayerReport {
   skipped?: string;
 }
 
+/** A clip that was active at the frame's time and still did not draw. */
+export interface PreviewDroppedLayer {
+  clip_id: string;
+  clip_name: string;
+  /** Why the scene model refused it. */
+  reason: DroppedLayerReason;
+}
+
 export interface PreviewFrame {
   time_ms: number;
   /** PNG bytes of the composited frame. */
@@ -85,6 +94,12 @@ export interface PreviewFrame {
   width: number;
   height: number;
   layers: PreviewLayerReport[];
+  /**
+   * Clips the scene model left out of this frame. Empty on almost every
+   * frame; non-empty means the picture is missing a layer the document asks
+   * for, which is otherwise invisible in the pixels.
+   */
+  dropped: PreviewDroppedLayer[];
 }
 
 export interface RenderTimelineFramesResult {
@@ -138,6 +153,11 @@ function layerText(layer: ActiveLayer): string | undefined {
     return layer.caption.words.map((w) => w.text).join(" ");
   }
   return undefined;
+}
+
+/** A clip's authored name, for a report that only holds its id. */
+function clipName(sequence: TimelineSequence, clipId: string): string {
+  return sequence.clips.find((clip) => clip.id === clipId)?.name ?? clipId;
 }
 
 /**
@@ -203,7 +223,7 @@ export async function renderTimelineFrames(
   const effectsNotApplied = new Set<string>();
 
   for (const timeMs of options.timesMs) {
-    const active = computeActiveLayers(
+    const { layers: active, droppedLayers } = computeActiveLayersWithHorizon(
       sequence.tracks,
       sequence.clips,
       timeMs
@@ -365,7 +385,12 @@ export async function renderTimelineFrames(
       width,
       height,
       // Top of the stack first: the reader's question is what is on top.
-      layers: reports.sort((a, b) => b.z_index - a.z_index)
+      layers: reports.sort((a, b) => b.z_index - a.z_index),
+      dropped: droppedLayers.map((dropped) => ({
+        clip_id: dropped.clipId,
+        clip_name: clipName(sequence, dropped.clipId),
+        reason: dropped.reason
+      }))
     });
   }
 

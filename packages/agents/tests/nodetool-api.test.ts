@@ -41,7 +41,11 @@ const MEDIA_TOOLS = [
   "ffmpeg",
   "yt_dlp"
 ].map(toolDef);
-const TIMELINE_TOOLS = ["list_timelines", "validate_timeline"].map(toolDef);
+const TIMELINE_TOOLS = [
+  "list_timelines",
+  "validate_timeline",
+  "preview_timeline_frame"
+].map(toolDef);
 
 /** In-memory router: records calls, plays a tiny workflow store. */
 function createFakeRouter() {
@@ -145,6 +149,8 @@ function createFakeRouter() {
         return JSON.stringify({ timelines: [] });
       case "validate_timeline":
         return JSON.stringify({ ok: true, target: args });
+      case "preview_timeline_frame":
+        return JSON.stringify({ frames: [{ time_ms: 0 }], target: args });
       default:
         return JSON.stringify({ error: `Unknown tool ${call.name}` });
     }
@@ -384,6 +390,53 @@ describe("nodetool object model", () => {
     expect(obs.ok).toBe(true);
     expect(calls[0].args).toEqual({ timeline_id: "tl1" });
     expect(calls[1].args).toEqual({ document: { tracks: [] } });
+  });
+
+  it("routes timeline preview to preview_timeline_frame by target type", async () => {
+    const { executeTool, calls } = createFakeRouter();
+    const session = makeSession(TIMELINE_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `const saved = await nodetool.timelines.preview("tl1", {
+         times_ms: [0, 1500],
+         width: 480
+       });
+       const inline = await nodetool.timelines.preview({ tracks: [] }, {
+         count: 2
+       });
+       return { saved, inline };`
+    );
+    expect(obs.ok).toBe(true);
+    // The method reaches the capability, not a stub: both calls land on
+    // preview_timeline_frame, and the options ride along beside the target.
+    expect(calls.map((c) => c.name)).toEqual([
+      "preview_timeline_frame",
+      "preview_timeline_frame"
+    ]);
+    expect(calls[0].args).toEqual({
+      timeline_id: "tl1",
+      times_ms: [0, 1500],
+      width: 480
+    });
+    expect(calls[1].args).toEqual({ document: { tracks: [] }, count: 2 });
+    const r = obs.result as { saved: { frames: unknown[] } };
+    expect(r.saved.frames).toHaveLength(1);
+  });
+
+  it("names preview_timeline_frame when the belt lacks it", async () => {
+    const { executeTool, calls } = createFakeRouter();
+    const session = makeSession(
+      TIMELINE_TOOLS.filter((t) => t.name !== "preview_timeline_frame"),
+      executeTool
+    );
+    const obs = await runAction(
+      session,
+      `try { await nodetool.timelines.preview("tl1"); return "called"; }
+       catch (e) { return e.message; }`
+    );
+    expect(obs.ok).toBe(true);
+    expect(String(obs.result)).toContain("preview_timeline_frame");
+    expect(calls).toEqual([]);
   });
 
   it("workflows.open explains itself when the ui_* tools are absent", async () => {

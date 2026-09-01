@@ -42,6 +42,169 @@ const get = async (path) => {
   }
 };
 
+const postJson = async (path, body) => {
+  const res = await fetch(new URL(path, baseUrl), {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = summarize(await res.text());
+    throw new Error(`POST ${path} -> ${res.status} ${detail}`);
+  }
+  return res.json();
+};
+
+/** One tRPC mutation, unwrapped to the procedure's own result. */
+const trpc = async (procedure, input) =>
+  (await postJson(`/trpc/${procedure}`, input)).result.data;
+
+/**
+ * Render a two-clip timeline — a text clip over a solid shape — through
+ * `nodetool.timeline.RenderTimeline` and assert the job composited it.
+ *
+ * This is the check that proves the image renders the picture the editor
+ * previews. The node falls back to an ffmpeg concatenation when it cannot
+ * acquire a WebGPU device, and that fallback is silent apart from a job log:
+ * the run still succeeds and still returns an mp4. `render_mode` is what
+ * separates the two, so an image that shipped without Dawn — or without the
+ * lavapipe Vulkan driver it reaches the CPU through — fails here instead of
+ * quietly serving flat cuts in production.
+ */
+async function checkTimelineRender() {
+  const stamp = Date.now();
+  try {
+    const project = await trpc("projects.create", {
+      name: `docker-smoke-${stamp}`,
+      kind: "",
+    });
+    const timeline = await trpc("timeline.create", {
+      name: `docker-smoke-${stamp}`,
+      projectId: project.id,
+      fps: 10,
+      width: 320,
+      height: 180,
+    });
+    await trpc("timeline.update", {
+      id: timeline.id,
+      document: {
+        tracks: [
+          {
+            id: "t-text",
+            name: "Text",
+            type: "overlay",
+            index: 0,
+            visible: true,
+            locked: false,
+          },
+          {
+            id: "t-shape",
+            name: "Shape",
+            type: "video",
+            index: 1,
+            visible: true,
+            locked: false,
+          },
+        ],
+        clips: [
+          {
+            id: "clip-text",
+            trackId: "t-text",
+            name: "Title",
+            startMs: 0,
+            durationMs: 500,
+            mediaType: "text",
+            sourceType: "generated",
+            status: "generated",
+            locked: false,
+            versions: [],
+            textStyle: { text: "Smoke", fontSizePx: 32, color: "#ffffff" },
+          },
+          {
+            id: "clip-shape",
+            trackId: "t-shape",
+            name: "Card",
+            startMs: 0,
+            durationMs: 500,
+            mediaType: "shape",
+            sourceType: "generated",
+            status: "generated",
+            locked: false,
+            versions: [],
+            shapeStyle: {
+              kind: "rect",
+              fill: "#1e3a8a",
+              x: 0.1,
+              y: 0.1,
+              width: 0.8,
+              height: 0.8,
+            },
+          },
+        ],
+        markers: [],
+      },
+    });
+
+    const workflow = await trpc("workflows.create", {
+      name: `docker-smoke-render-${stamp}`,
+      description: "RenderTimeline smoke",
+      access: "private",
+      graph: {
+        nodes: [
+          {
+            id: "render",
+            type: "nodetool.timeline.RenderTimeline",
+            data: {
+              timeline: { type: "timeline", id: timeline.id, data: null },
+              include_audio: false,
+            },
+          },
+          {
+            id: "out",
+            type: "nodetool.output.Output",
+            data: { name: "video" },
+          },
+        ],
+        edges: [
+          {
+            id: "e1",
+            source: "render",
+            sourceHandle: "output",
+            target: "out",
+            targetHandle: "value",
+            ui_properties: null,
+          },
+        ],
+      },
+    });
+
+    const run = await postJson(`/api/workflows/${workflow.id}/run`, {});
+    if (run.status !== "completed") {
+      failures.push(
+        `RenderTimeline run -> ${run.status} (${run.error ?? "no error"}). ` +
+          "A text-and-shape timeline gives the rough-cut fallback nothing to " +
+          "concatenate, so a failure here usually means the same thing a " +
+          '"rough_cut" verdict does: no WebGPU device in the container.'
+      );
+      return;
+    }
+    // An output slot collects every value the node emitted, so it arrives as
+    // an array even for a single-shot node.
+    const video = [run.outputs?.video].flat()[0];
+    const mode = video?.metadata?.render_mode;
+    if (mode !== "composited") {
+      failures.push(
+        `RenderTimeline rendered in "${mode ?? "unknown"}" mode, expected ` +
+          `"composited" — the container has no WebGPU device, so the node fell ` +
+          `back to an ffmpeg concatenation. Check that bundle-backend.mjs ` +
+          `staged webgpu and that mesa-vulkan-drivers is installed.`
+      );
+    }
+  } catch (cause) {
+    failures.push(`RenderTimeline smoke — ${cause.message}`);
+  }
+}
+
 const config = await get("/api/config");
 if (config && !config.ok) {
   failures.push(`GET /api/config -> ${config.status}`);
@@ -61,6 +224,8 @@ if (workflows && !workflows.ok) {
 if (failures.length > 0) {
   report();
 }
+
+await checkTimelineRender();
 
 const browser = await chromium.launch();
 const page = await browser.newPage();

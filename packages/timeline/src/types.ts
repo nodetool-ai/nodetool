@@ -85,6 +85,27 @@ export interface CaptionWord {
  */
 export interface ClipCaption {
   words: CaptionWord[];
+  /** Look of the caption layer. Absent means the built-in default style. */
+  style?: CaptionStyle;
+}
+
+/**
+ * Authored look of a caption layer. Every field is optional: an absent one
+ * keeps the drawing default, so a caption written before styling existed
+ * renders exactly as it did.
+ */
+export interface CaptionStyle {
+  fontFamily?: string;
+  /** Font size as a fraction of frame height. */
+  fontSizeFrac?: number;
+  /** Colour of inactive words. */
+  color?: string;
+  /** Colour of the word being spoken. */
+  activeColor?: string;
+  outline?: { color: string; widthPx: number };
+  /** Distance from the frame bottom as a fraction of frame height. */
+  bottomMarginFrac?: number;
+  background?: { color: string; paddingPx: number; radiusPx?: number };
 }
 
 /**
@@ -99,11 +120,53 @@ export interface ClipTextStyle {
   color: string;
   align?: "left" | "center" | "right";
   maxWidthFrac?: number;
+  /** `"normal"` (default) or `"italic"`. A plain string for forward compat. */
+  fontStyle?: string;
+  /** Extra advance between glyphs, in sequence px. Default 0. */
+  letterSpacingPx?: number;
+  /** Line advance as a multiple of the font size. Default 1.2. */
+  lineHeight?: number;
+  /** `"top" | "middle" | "bottom"`. Default `"middle"`. */
+  verticalAlign?: string;
+  /** Outline drawn under the fill. */
+  stroke?: { color: string; widthPx: number };
+  shadow?: { color: string; blurPx: number; offsetX: number; offsetY: number };
+  /** Scrim drawn behind the wrapped block. */
+  background?: { color: string; paddingPx: number; radiusPx?: number };
+  /** Gradient fill. Wins over `color` when set. */
+  fill?: ShapeFill;
 }
+
+/**
+ * How a shape or a text run is filled. `solid` is the same thing a plain
+ * colour string says; the gradients carry their stops in normalized 0..1
+ * offsets so a fill is independent of the shape's size.
+ */
+export type ShapeFill =
+  | { type: "solid"; color: string }
+  | {
+      type: "linear";
+      /** Gradient axis in degrees, 0 = left→right. */
+      angle: number;
+      stops: { offset: number; color: string }[];
+    }
+  | { type: "radial"; stops: { offset: number; color: string }[] };
+
+/**
+ * Every geometry a shape clip can draw. `rect`, `ellipse` and `line` are
+ * rasterized today; the rest are drawn by the path renderer.
+ */
+export type ClipShapeKind =
+  | "rect"
+  | "ellipse"
+  | "line"
+  | "path"
+  | "polygon"
+  | "star";
 
 /** Authored vector-like geometry drawn by a rasterized shape clip. */
 export interface ClipShapeStyle {
-  kind: "rect" | "ellipse" | "line";
+  kind: ClipShapeKind;
   fill?: string;
   stroke?: string;
   strokeWidthPx?: number;
@@ -114,6 +177,25 @@ export interface ClipShapeStyle {
   height?: number;
   x2?: number;
   y2?: number;
+  /** SVG path data in normalized 0..1 space. `kind: "path"` only. */
+  d?: string;
+  /** Point count for `polygon` and `star`. */
+  sides?: number;
+  /** Inner radius as a fraction of the outer radius. `star` only. */
+  innerRadius?: number;
+  /** Corner rounding in normalized units. */
+  cornerRadius?: number;
+  /** Gradient or solid fill. Wins over `fill` when set. */
+  fillStyle?: ShapeFill;
+  /** Dash pattern in normalized units, as `ctx.setLineDash` takes it. */
+  dash?: number[];
+  /** `"butt" | "round" | "square"`. */
+  lineCap?: string;
+  /** `"miter" | "round" | "bevel"`. */
+  lineJoin?: string;
+  /** Stroke the sub-range `[trimStart, trimEnd]` of the path, 0..1. Animatable. */
+  trimStart?: number;
+  trimEnd?: number;
 }
 
 /**
@@ -323,6 +405,19 @@ export type ClipBindingKind =
   | "text-to-video"
   | "text-to-audio";
 
+/**
+ * What a clip draws. `"group"` carries no media: it is a transform parent its
+ * children name with `parentId` (see {@link TimelineClip.parentId}).
+ */
+export type ClipMediaType =
+  | "image"
+  | "video"
+  | "audio"
+  | "overlay"
+  | "text"
+  | "shape"
+  | "group";
+
 export interface TimelineClip {
   id: string;
   trackId: string;
@@ -331,7 +426,7 @@ export interface TimelineClip {
   durationMs: number;
   inPointMs?: number;
   outPointMs?: number;
-  mediaType: "image" | "video" | "audio" | "overlay" | "text" | "shape";
+  mediaType: ClipMediaType;
   sourceType: "imported" | "generated";
   /** Defaults to "workflow" when absent on legacy persisted data. */
   bindingKind?: ClipBindingKind;
@@ -446,19 +541,125 @@ export interface TimelineClip {
    * only. Must also exist on the protocol zod schema or PATCH would strip it.
    */
   animations?: ClipAnimation[];
+  /**
+   * Group this clip belongs to. The parent's transform composes with this
+   * clip's, its opacity multiplies, and its window clips this one. Must name a
+   * clip with `mediaType: "group"`; a missing or cyclic parent is a validator
+   * error and renders unparented.
+   */
+  parentId?: string;
+  /** Shape mask applied to this layer before it is blended. */
+  mask?: ClipMask;
+  /** Track matte: another clip's alpha or luma drives this layer's alpha. */
+  matte?: ClipMatte;
+  /** Retime the clip's source. Replaces `speedMultiplier` when set. */
+  timeRemap?: ClipTimeRemap;
+  /** Composition provenance, stamped by `insert_composition`. */
+  compositionId?: string;
+  /** Parameter values the composition was instantiated with. */
+  compositionParams?: Record<string, number | string | boolean>;
 }
 
 /**
- * Per-clip incoming transition. Only `crossfade` is implemented today; the
- * union is open for future types (`fade`, `wipe`, etc.) without a schema
- * break.
+ * A shape mask on one clip, in the layer's own normalized 0..1 space so it
+ * rotates and scales with the layer. `kind` is a plain string for the same
+ * forward compat `preset` has: an unknown kind parses and is skipped.
  */
-export type ClipTransition = ClipCrossfadeTransition;
+export interface ClipMask {
+  /** `"rect" | "ellipse" | "path"`. */
+  kind: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  /** SVG path data in normalized 0..1 space. `kind: "path"` only. */
+  d?: string;
+  /** Feathered edge width in source px. 0 = hard edge. */
+  featherPx?: number;
+  /** Keep what the mask excludes instead of what it covers. */
+  invert?: boolean;
+}
+
+/**
+ * Track matte: `sourceClipId` names the clip whose pixels drive this layer's
+ * alpha. A matte source never draws itself.
+ */
+export interface ClipMatte {
+  sourceClipId: string;
+  /** `"alpha" | "luma"`. */
+  mode: string;
+  invert?: boolean;
+}
+
+/**
+ * Retimes a clip's source. `t` is normalized 0..1 over the clip's own window
+ * and must ascend; `sourceMs` may descend, which is reverse playback. A clip
+ * carrying a remap cannot be split or trimmed until it is baked.
+ */
+export interface ClipTimeRemap {
+  keyframes: { t: number; sourceMs: number; easing?: string }[];
+}
+
+/**
+ * Per-clip incoming transition, resolved for both the incoming clip and the
+ * outgoing clip it overlaps on the same track. `easing` takes the same string
+ * grammar animations take; an unparseable one falls back to linear.
+ */
+export type ClipTransition =
+  | ClipCrossfadeTransition
+  | ClipDipToColorTransition
+  | ClipWipeTransition
+  | ClipPushTransition
+  | ClipSlideTransition
+  | ClipZoomTransition;
 
 export interface ClipCrossfadeTransition {
   type: "crossfade";
   /** Length of the cross-fade in milliseconds. */
   durationMs: number;
+  easing?: string;
+}
+
+/** Both clips fade through a solid colour that peaks at the midpoint. */
+export interface ClipDipToColorTransition {
+  type: "dipToColor";
+  durationMs: number;
+  color: string;
+  easing?: string;
+}
+
+/** The incoming clip is revealed behind a feathered edge. */
+export interface ClipWipeTransition {
+  type: "wipe";
+  durationMs: number;
+  /** Edge the reveal starts from: `"left" | "right" | "up" | "down"`. */
+  direction: string;
+  /** Feathered edge width as a fraction of the wipe axis. 0 = hard edge. */
+  softness?: number;
+  easing?: string;
+}
+
+/** The incoming clip pushes the outgoing one off the frame. */
+export interface ClipPushTransition {
+  type: "push";
+  durationMs: number;
+  direction: string;
+  easing?: string;
+}
+
+/** The incoming clip slides in over a stationary outgoing one. */
+export interface ClipSlideTransition {
+  type: "slide";
+  durationMs: number;
+  direction: string;
+  easing?: string;
+}
+
+/** The outgoing clip scales up while the incoming one scales in. */
+export interface ClipZoomTransition {
+  type: "zoom";
+  durationMs: number;
+  easing?: string;
 }
 
 /**
@@ -475,7 +676,28 @@ export interface ClipTransform {
   anchor: { x: number; y: number };
 }
 
-export type ClipEffect = ClipColorEffect | ClipBlurEffect;
+/**
+ * Effects a clip applies in order. Every member carries `id` and `enabled`:
+ * the compositor filters the chain on `enabled` and pools intermediates per
+ * effect, so both are part of the union's shared shape.
+ */
+export type ClipEffect =
+  | ClipColorEffect
+  | ClipBlurEffect
+  | ClipGlowEffect
+  | ClipDropShadowEffect
+  | ClipVignetteEffect
+  | ClipSharpenEffect
+  | ClipChromaKeyEffect
+  | ClipCurvesEffect
+  | ClipLevelsEffect
+  | ClipLiftGammaGainEffect;
+
+/** One control point of a tone curve. Both axes are normalized 0..1. */
+export interface CurvePoint {
+  x: number;
+  y: number;
+}
 
 export interface ClipColorEffect {
   id: string;
@@ -507,6 +729,101 @@ export interface ClipBlurEffect {
   radius: number;
   /** Optional Gaussian sigma. Defaults to radius / 3. */
   sigma?: number;
+}
+
+export interface ClipGlowEffect {
+  id: string;
+  type: "glow";
+  enabled: boolean;
+  /** Bloom radius in source pixels. */
+  radius: number;
+  /** Bloom strength, 0..2 typical. */
+  intensity: number;
+  /** Tint of the bloom. Defaults to the source colour. */
+  color?: string;
+}
+
+export interface ClipDropShadowEffect {
+  id: string;
+  type: "dropShadow";
+  enabled: boolean;
+  /** Offset in source pixels. */
+  offsetX: number;
+  offsetY: number;
+  /** Shadow blur radius in source pixels. */
+  blur: number;
+  color: string;
+  /** 0..1, default 1. */
+  opacity?: number;
+}
+
+export interface ClipVignetteEffect {
+  id: string;
+  type: "vignette";
+  enabled: boolean;
+  /** 0..1. */
+  amount: number;
+  /** Falloff width, 0..1. */
+  softness: number;
+}
+
+export interface ClipSharpenEffect {
+  id: string;
+  type: "sharpen";
+  enabled: boolean;
+  /** 0..2 typical. */
+  amount: number;
+  /** Unsharp-mask radius in source pixels. */
+  radius?: number;
+}
+
+export interface ClipChromaKeyEffect {
+  id: string;
+  type: "chromaKey";
+  enabled: boolean;
+  /** Key colour as `#rrggbb`. */
+  color: string;
+  /** Match tolerance 0..1. */
+  tolerance: number;
+  /** Edge softness 0..1. */
+  softness: number;
+  /** Spill suppression 0..1. */
+  spill?: number;
+}
+
+export interface ClipCurvesEffect {
+  id: string;
+  type: "curves";
+  enabled: boolean;
+  /** Luminance curve applied to every channel. */
+  master: CurvePoint[];
+  r?: CurvePoint[];
+  g?: CurvePoint[];
+  b?: CurvePoint[];
+}
+
+export interface ClipLevelsEffect {
+  id: string;
+  type: "levels";
+  enabled: boolean;
+  /** Input black/white points, 0..1. */
+  inBlack: number;
+  inWhite: number;
+  /** Midtone gamma. 1 = unchanged. */
+  gamma: number;
+  /** Output black/white points, 0..1. */
+  outBlack: number;
+  outWhite: number;
+}
+
+export interface ClipLiftGammaGainEffect {
+  id: string;
+  type: "liftGammaGain";
+  enabled: boolean;
+  /** Per-channel RGB triples. */
+  lift: [number, number, number];
+  gamma: [number, number, number];
+  gain: [number, number, number];
 }
 
 export interface ClipVersion {

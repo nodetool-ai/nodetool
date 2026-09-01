@@ -1,5 +1,11 @@
 import { makeClip } from "@nodetool-ai/timeline";
-import type { CaptionWord, TimelineClip, TranscriptLine } from "@nodetool-ai/timeline";
+import type {
+  CaptionWord,
+  CaptionWordKind,
+  TimelineClip,
+  TranscriptLine
+} from "@nodetool-ai/timeline";
+import { timelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 
 import {
   PLACEHOLDER_BEAT_MS,
@@ -478,6 +484,62 @@ describe("filler words", () => {
       )
     });
     const out = removeFillers([c]);
+    const texts = buildTranscriptDoc(out.clips)
+      .segments.flatMap((s) => s.tokens)
+      .map((t) => t.text);
+    expect(texts).toEqual(["okay", "sure"]);
+    expect(out.durationMs).toBe(800);
+  });
+
+  // F16: `kind` was missing from the Zod `captionWord`, so a save stripped it
+  // and a filler the lexicon does not know — "like", "basically" — came back as
+  // ordinary speech. The words below carry no lexicon fillers on purpose, so
+  // removal finds them only if `kind` survived the round trip.
+  it("still cuts tagged fillers after a save round trip", () => {
+    const tagged = (
+      word: string,
+      startMs: number,
+      endMs: number,
+      kind: CaptionWordKind
+    ): CaptionWord => ({ word, startMs, endMs, kind, confidence: 0.5 });
+
+    const c = beat("c", {
+      startMs: 0,
+      durationMs: 1200,
+      words: [
+        tagged("like", 0, 200, "filler"),
+        tagged("okay", 200, 500, "word"),
+        tagged("basically", 500, 700, "filler"),
+        tagged("sure", 700, 1200, "word")
+      ]
+    });
+
+    const saved = timelineDocument.parse({
+      tracks: [
+        {
+          id: "audio",
+          name: "Voiceover",
+          type: "audio",
+          index: 0,
+          visible: true,
+          locked: false
+        }
+      ],
+      clips: [c],
+      markers: []
+    });
+    // The wire clip narrows nothing this test reads; the schema is the thing
+    // under test, so the parse output is what removal must run on.
+    const reloaded = saved.clips as unknown as TimelineClip[];
+
+    expect(reloaded[0].caption?.words.map((w) => w.kind)).toEqual([
+      "filler",
+      "word",
+      "filler",
+      "word"
+    ]);
+
+    const out = removeFillers(reloaded);
     const texts = buildTranscriptDoc(out.clips)
       .segments.flatMap((s) => s.tokens)
       .map((t) => t.text);

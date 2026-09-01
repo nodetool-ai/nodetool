@@ -97,25 +97,18 @@ const PROFILE = OPTIONS.profile;
 // ---------------------------------------------------------------------------
 
 // Packages that MUST be found and copied — build fails if any are missing.
-const COMMON_REQUIRED_EXTERNAL_PACKAGES = [
+// webgpu (Dawn) is on this list for every profile: the server renders
+// timelines through the same GPU compositor the editor previews with, on
+// lavapipe in the container (D9, docs/plans/motion-graphics.md).
+const REQUIRED_EXTERNAL_PACKAGES = [
   "sharp",
   "better-sqlite3",
   "@jitl/quickjs-ng-wasmfile-release-sync",
   "mediabunny",
   "@mediabunny/server",
   "node-av",
+  "webgpu",
 ];
-// webgpu is required on desktop only: the GPU compositor needs the dawn.node
-// binary there, while the server profile does no local GPU compute (the gpu
-// package lazy-imports webgpu behind an install-hint error).
-const DESKTOP_REQUIRED_EXTERNAL_PACKAGES = ["webgpu"];
-const REQUIRED_EXTERNAL_PACKAGES =
-  PROFILE === "desktop"
-    ? [
-        ...COMMON_REQUIRED_EXTERNAL_PACKAGES,
-        ...DESKTOP_REQUIRED_EXTERNAL_PACKAGES,
-      ]
-    : COMMON_REQUIRED_EXTERNAL_PACKAGES;
 
 // Staged into _modules/ on every profile.
 const COMMON_EXTERNAL_PACKAGES = [
@@ -123,6 +116,10 @@ const COMMON_EXTERNAL_PACKAGES = [
   "better-sqlite3",
   "sqlite-vec",
   "sharp",
+  // Dawn. The GPU compositor behind nodetool.image.* and RenderTimeline needs
+  // it on the server as well as on desktop; the Docker image installs lavapipe
+  // so the container has a Vulkan ICD for it to reach.
+  "webgpu",
   // @img/sharp-* is deliberately NOT seeded here. Other packages in the tree
   // depend on older sharp majors, so npm hoists their @img/sharp-<platform>
   // prebuilds to the root node_modules while sharp's own (matching) copies sit
@@ -198,8 +195,6 @@ const COMMON_EXTERNAL_PACKAGES = [
 // module-init side effects would break server.mjs); the server profile just
 // doesn't ship them, matching today's Docker image.
 const DESKTOP_ONLY_EXTERNAL_PACKAGES = [
-  // Server: no local GPU compute; gpu lazy-imports with an install-hint error.
-  "webgpu",
   // Server: both call sites (packages/security/src/master-key.ts,
   // packages/runtime/src/providers/oauth/secure-credential-store.ts) are lazy
   // try/catch imports, and headless deployments run without a keychain.
@@ -1303,9 +1298,7 @@ async function main() {
   // regression fails the build here instead of silently shipping an app with
   // empty model lists.
   console.log("\nVerifying staged bundle layout...");
-  for (const line of verifyBackendBundle(BUNDLE_DIR, {
-    requireWebgpu: PROFILE === "desktop",
-  })) {
+  for (const line of verifyBackendBundle(BUNDLE_DIR)) {
     console.log(`  ${line}`);
   }
 

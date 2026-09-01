@@ -49,7 +49,12 @@ export default defineConfig({
         "../app-runtime/src/index.ts"
       ),
       // Same reason: the timeline validator should check the assembly code as
-      // written, not a build of it.
+      // written, not a build of it. `/scene` is the GPU-free render surface,
+      // and must be aliased before the root (Vite alias is prefix-based).
+      "@nodetool-ai/timeline/scene": resolve(
+        __dirname,
+        "../timeline/src/scene.ts"
+      ),
       "@nodetool-ai/timeline": resolve(__dirname, "../timeline/src/index.ts")
     }
   },

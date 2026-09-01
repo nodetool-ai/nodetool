@@ -10,10 +10,13 @@
  * visual track. ffmpeg decodes clip media into RGBA and encodes the result.
  *
  * Compositing needs a WebGPU device, which means the optional `webgpu` (Dawn)
- * package and a working driver — the desktop app ships both; the headless
- * server image today ships neither. Without one the node falls back to the
- * older ffmpeg rough cut — video/image clips normalized and concatenated in
- * start order — which ignores everything above and says so in the log.
+ * package and a working driver. Both profiles ship Dawn (D9,
+ * docs/plans/motion-graphics.md), and the Docker image installs lavapipe as its
+ * Vulkan driver, so a server render is composited too. A host that still has no
+ * adapter falls back to the older ffmpeg rough cut — video/image clips
+ * normalized and concatenated in start order — which ignores everything above.
+ * The fallback is a `warning` on the job and `metadata.render_mode` on the
+ * output says which path ran: "composited" or "rough_cut".
  */
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
@@ -551,6 +554,9 @@ async function mixAudioInto(opts: {
   return outPath;
 }
 
+/** Shortest gap between two `node_progress` posts — four a second. */
+const PROGRESS_INTERVAL_MS = 250;
+
 /** Output handles RenderTimelineNode.process() emits. */
 type RenderTimelineNodeOutputs = {
   output: VideoRef;
@@ -613,6 +619,7 @@ export class RenderTimelineNode extends BaseNode {
       let basePath: string;
       let baseHasAudio: boolean;
       let audioToMix: TimelineClip[];
+      let renderMode: "composited" | "rough_cut";
 
       try {
         basePath = path.join(workDir, "composited.mp4");
@@ -623,13 +630,18 @@ export class RenderTimelineNode extends BaseNode {
           fps,
           durationMs,
           resolveAssetPath: (assetId) => assets.path(assetId),
-          outPath: basePath
+          outPath: basePath,
+          onProgress: this.progressReporter(ctx),
+          signal: ctx.signal
         });
         for (const name of skippedClips) {
-          console.warn(
-            `RenderTimeline: clip "${name}" was skipped — its media could not be decoded`
+          this.log(
+            ctx,
+            `Clip "${name}" was skipped — its media could not be decoded`,
+            "warning"
           );
         }
+        renderMode = "composited";
         // A composite carries no sound: every audible clip is mixed in below,
         // including the audio muxed into video clips.
         baseHasAudio = false;
@@ -638,10 +650,11 @@ export class RenderTimelineNode extends BaseNode {
           : [];
       } catch (error) {
         if (!(error instanceof CompositorUnavailableError)) throw error;
-        console.warn(
-          `RenderTimeline: ${error.message} Falling back to a rough cut — ` +
-            "clip transforms, effects, transitions, captions and overlay " +
-            "tracks are not applied."
+        this.log(
+          ctx,
+          `${error.message} Falling back to a rough cut — clip transforms, ` +
+            "effects, transitions, captions and overlay tracks are not applied.",
+          "warning"
         );
         basePath = await renderRoughCut({
           seq,
@@ -653,6 +666,7 @@ export class RenderTimelineNode extends BaseNode {
           height,
           fps
         });
+        renderMode = "rough_cut";
         baseHasAudio = true;
         audioToMix = audioClips;
       }
@@ -673,12 +687,60 @@ export class RenderTimelineNode extends BaseNode {
       return {
         output: videoRef(rendered, {
           format: "mp4",
-          duration: duration > 0 ? duration : null
+          duration: duration > 0 ? duration : null,
+          // Which of the two paths produced these bytes. The docker smoke test
+          // asserts "composited": it is what proves the image renders the
+          // picture the editor previews rather than a concatenation.
+          metadata: { render_mode: renderMode }
         })
       };
     } finally {
       await fs.rm(workDir, { recursive: true, force: true });
     }
+  }
+
+  /** Post on the node's log channel, where the run has one. */
+  private log(
+    context: ProcessingContext,
+    content: string,
+    severity: "info" | "warning" | "error"
+  ): void {
+    if (!this.__node_id) return;
+    context.postMessage({
+      type: "log_update",
+      node_id: this.__node_id,
+      node_name: RenderTimelineNode.title,
+      content,
+      severity,
+      workflow_id: context.workflowId
+    });
+  }
+
+  /**
+   * A `node_progress` reporter for the frame loop, rate-limited to four posts a
+   * second. A minute of 1080p is thousands of frames and every post crosses the
+   * websocket; the final frame always posts, so the bar reaches its end.
+   */
+  private progressReporter(
+    context: ProcessingContext
+  ): (frame: number, totalFrames: number) => void {
+    const nodeId = this.__node_id;
+    let lastPostMs = 0;
+    return (frame, totalFrames) => {
+      if (!nodeId) return;
+      const now = Date.now();
+      if (frame < totalFrames && now - lastPostMs < PROGRESS_INTERVAL_MS) {
+        return;
+      }
+      lastPostMs = now;
+      context.postMessage({
+        type: "node_progress",
+        node_id: nodeId,
+        progress: frame,
+        total: totalFrames,
+        workflow_id: context.workflowId
+      });
+    };
   }
 }
 

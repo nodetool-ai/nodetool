@@ -36,7 +36,14 @@ export interface TimelineClipNode {
   trackId: string;
   /** Name of the clip's track, or null when the track is gone. */
   trackName: string | null;
-  mediaType: "image" | "video" | "audio" | "overlay" | "text" | "shape";
+  mediaType:
+    | "image"
+    | "video"
+    | "audio"
+    | "overlay"
+    | "text"
+    | "shape"
+    | "group";
   sourceType: "imported" | "generated";
   bindingKind?: string;
   /** Absolute start on the sequence timeline (ms). */
@@ -83,7 +90,7 @@ interface TimelineTextStyle {
 }
 
 interface TimelineShapeStyle {
-  kind: "rect" | "ellipse" | "line";
+  kind: "rect" | "ellipse" | "line" | "path" | "polygon" | "star";
   fill?: string;
   stroke?: string;
   strokeWidthPx?: number;

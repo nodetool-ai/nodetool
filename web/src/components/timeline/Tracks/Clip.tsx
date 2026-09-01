@@ -84,7 +84,8 @@ function isClipCompatibleWithTrack(
   if (
     clipMediaType === "overlay" ||
     clipMediaType === "text" ||
-    clipMediaType === "shape"
+    clipMediaType === "shape" ||
+    clipMediaType === "group"
   ) {
     return trackType === "video" || trackType === "overlay";
   }

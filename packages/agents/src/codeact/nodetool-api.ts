@@ -123,6 +123,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "restore_timeline_version",
     "delete_timeline_version",
     "validate_timeline",
+    "preview_timeline_frame",
     "edit_timeline"
   ],
   sketches: [
@@ -1143,6 +1144,20 @@ const nodetool = (() => {
         typeof target === "string"
           ? __need("validate_timeline")({ timeline_id: target })
           : __need("validate_timeline")({ document: target }),
+      /**
+       * Composited frames at chosen timecodes — the finished picture, with
+       * every track layered, animations sampled mid-flight and transitions
+       * part way through. Takes an id or an inline document, like validate().
+       * Options: {times_ms, count, width}.
+       */
+      preview: (target, opts) =>
+        typeof target === "string"
+          ? __need("preview_timeline_frame")(
+              __merge(opts, { timeline_id: target })
+            )
+          : __need("preview_timeline_frame")(
+              __merge(opts, { document: target })
+            ),
       /** Apply document edits to a saved sequence, server-side. */
       edit: (id, ops) => __need("edit_timeline")({ timeline_id: id, ops: ops })
     },
@@ -1578,7 +1593,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     doc: `- \`nodetool.timelines\` — \`list()\` (→ \`{timelines}\`),
   \`create(name, {fps, width, height})\` (→ \`{timeline_id}\`; make your own
   rather than editing one the user has open — vertical is 1080×1920),
-  \`validate(idOrDocument)\`, \`versions(id)\`,
+  \`validate(idOrDocument)\`,
+  \`preview(idOrDocument, {times_ms, count, width})\` (composited frames at
+  chosen timecodes — read the picture back instead of guessing at it),
+  \`versions(id)\`,
   \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`,
   \`deleteVersion(id, n)\`, and
   \`edit(id, ops)\` — the cut itself, server-side: \`[{op: "add_track", type:

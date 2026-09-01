@@ -146,17 +146,77 @@ export type AnimationPresetId =
  * - `blur` — added to the layer's blur radius, in source px (identity 0)
  * - `brightness` — added to the grade shader's brightness term, -1..1 (identity 0)
  * - `saturation` — multiplies the grade shader's saturation, 0..4 (identity 1)
+ * - `contrast` — multiplies the grade shader's contrast, 0..4 (identity 1)
+ * - `hue` — added to the grade shader's hue rotation, degrees (identity 0)
+ * - `temperature` — added to the grade's cool→warm term, -1..1 (identity 0)
+ * - `tint` — added to the grade's green→magenta term, -1..1 (identity 0)
+ *
+ * Four channels set an absolute value rather than composing with the clip's:
+ *
+ * - `positionX` / `positionY` — replace `transform.position`, canvas px
+ * - `anchorX` / `anchorY` — replace `transform.anchor`, normalized 0..1
+ * - `trimStart` / `trimEnd` — replace the shape's stroked sub-range, 0..1
  */
 export const ANIMATED_PROPERTIES = [
   "offsetX",
   "offsetY",
   "scale",
+  "scaleX",
+  "scaleY",
   "rotation",
   "opacity",
   "wipeProgress",
   "blur",
   "brightness",
-  "saturation"
+  "saturation",
+  "contrast",
+  "hue",
+  "temperature",
+  "tint",
+  "positionX",
+  "positionY",
+  "anchorX",
+  "anchorY",
+  "trimStart",
+  "trimEnd"
 ] as const;
 
 export type AnimatedProperty = (typeof ANIMATED_PROPERTIES)[number];
+
+/**
+ * How several animations driving one channel combine. The sampler folds by
+ * this table rather than by a switch, so a new channel declares its fold here
+ * and nowhere else (I3).
+ *
+ * - `add` — offsets and additive grade terms sum
+ * - `multiply` — scale, opacity and multiplicative grade terms multiply
+ * - `min` — overlapping wipes keep the smaller progress: more hidden wins
+ * - `replace` — the last enabled animation in document order wins; the
+ *   validator warns when two replace curves overlap in time
+ */
+export const ANIMATED_PROPERTY_FOLD: Record<
+  AnimatedProperty,
+  "add" | "multiply" | "replace" | "min"
+> = {
+  offsetX: "add",
+  offsetY: "add",
+  scale: "multiply",
+  scaleX: "multiply",
+  scaleY: "multiply",
+  rotation: "add",
+  opacity: "multiply",
+  wipeProgress: "min",
+  blur: "add",
+  brightness: "add",
+  saturation: "multiply",
+  contrast: "multiply",
+  hue: "add",
+  temperature: "add",
+  tint: "add",
+  positionX: "replace",
+  positionY: "replace",
+  anchorX: "replace",
+  anchorY: "replace",
+  trimStart: "replace",
+  trimEnd: "replace"
+};
