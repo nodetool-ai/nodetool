@@ -57,7 +57,7 @@ jobs:
           echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
 
       - name: Run Claude Code
-        uses: anthropics/claude-code-action@v1.0.200
+        uses: anthropics/claude-code-action@v1.0.210
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |
