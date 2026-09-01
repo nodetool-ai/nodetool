@@ -147,6 +147,8 @@ written three or four times (`step-executor.ts:1221`, `compiler-agent.ts:488`,
 
 ## 2. Decisions
 
+D1 and D2 are recorded with their evidence in [ADR 0002](../adr/0002-codeact-is-the-one-agent-loop.md).
+
 - **D1. CodeAct is the one product loop; `Agent` is retired.** The CLI's
   `agent run` becomes a single CodeAct session over the same belt chat uses,
   with `create_plan`/`execute_plan` reachable the way they are in chat. What
