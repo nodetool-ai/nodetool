@@ -63,7 +63,17 @@ import { CohereProvider } from "./cohere-provider.js";
 import { VoyageProvider } from "./voyage-provider.js";
 import { JinaProvider } from "./jina-provider.js";
 import { FakeProvider } from "./fake-provider.js";
-export { BaseProvider, providerCapabilities } from "./base-provider.js";
+export {
+  BaseProvider,
+  estimatePromptTokens,
+  providerCapabilities
+} from "./base-provider.js";
+export {
+  anthropicContextExceeded,
+  geminiContextExceeded,
+  openAIContextExceeded,
+  type ContextExceededSignal
+} from "./context-exceeded.js";
 export {
   generateStructured,
   extractJson,

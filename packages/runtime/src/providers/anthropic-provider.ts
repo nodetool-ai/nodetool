@@ -8,6 +8,7 @@ import type {
 } from "@anthropic-ai/sdk/resources/messages/messages.js";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
+import { anthropicContextExceeded } from "./context-exceeded.js";
 import { safeFetch } from "./safe-url.js";
 import {
   isNumber,
@@ -1538,6 +1539,10 @@ export class AnthropicProvider extends BaseProvider {
 
   asHttpStatusError(error: unknown): Error {
     return new Error(String(error));
+  }
+
+  override isContextExceededError(error: unknown): boolean {
+    return anthropicContextExceeded(error) !== null;
   }
 
   isContextLengthError(error: unknown): boolean {
