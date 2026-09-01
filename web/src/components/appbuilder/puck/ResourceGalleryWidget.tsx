@@ -95,17 +95,15 @@ const GalleryTile: React.FC<TileProps> = ({
   onFocus,
   registerRef
 }) => (
-  <Box
+  <FlexColumn
     ref={registerRef}
     role="option"
     aria-selected={selected}
     tabIndex={focusable ? 0 : -1}
     onClick={onSelect}
     onFocus={onFocus}
+    gap={SPACING.xs}
     sx={{
-      display: "flex",
-      flexDirection: "column",
-      gap: SPACING.xs,
       height: size,
       p: SPACING.xs,
       cursor: "pointer",
@@ -131,7 +129,7 @@ const GalleryTile: React.FC<TileProps> = ({
     >
       {item.name}
     </Box>
-  </Box>
+  </FlexColumn>
 );
 
 /** Which tile an arrow key moves to. Columns are unknown, so up/down step by one. */

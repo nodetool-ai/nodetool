@@ -94,7 +94,7 @@ const ProjectSpendBar = ({ spend }: ProjectSpendBarProps) => {
       <Caption color="muted" sx={{ textTransform: "uppercase" }}>
         Spend
       </Caption>
-      <Box
+      <FlexRow
         role="img"
         aria-label={
           segments.length > 0
@@ -104,7 +104,6 @@ const ProjectSpendBar = ({ spend }: ProjectSpendBarProps) => {
         sx={{
           flex: 1,
           minWidth: 0,
-          display: "flex",
           height: `${BAR_HEIGHT}px`,
           borderRadius: BORDER_RADIUS.xs,
           overflow: "hidden",
@@ -120,7 +119,7 @@ const ProjectSpendBar = ({ spend }: ProjectSpendBarProps) => {
             }}
           />
         ))}
-      </Box>
+      </FlexRow>
       <FlexRow
         align="center"
         gap={SPACING.lg}

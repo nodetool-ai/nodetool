@@ -26,7 +26,7 @@ import {
   useReactFlow,
   useNodesInitialized
 } from "@xyflow/react";
-import { Box, BORDER_RADIUS } from "../ui_primitives";
+import { Box, BORDER_RADIUS, FlexRow } from "../ui_primitives";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeData } from "../../stores/NodeData";
 import { createReadOnlyNodeStore } from "../../stores/readOnlyNodeStore";
@@ -136,13 +136,12 @@ export const WorkflowGraphPreview: React.FC<WorkflowGraphPreviewProps> = ({
 
   if (data.nodes.length === 0) {
     return (
-      <Box
+      <FlexRow
+        align="center"
+        justify="center"
         sx={{
           width,
           height,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
           border: "1px solid var(--palette-divider)",
           borderRadius: BORDER_RADIUS.md,
           color: "text.secondary",
@@ -150,7 +149,7 @@ export const WorkflowGraphPreview: React.FC<WorkflowGraphPreviewProps> = ({
         }}
       >
         Empty workflow
-      </Box>
+      </FlexRow>
     );
   }
 

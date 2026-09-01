@@ -141,15 +141,14 @@ const StatusTile = memo(function StatusTile({
 }) {
   const visual = statusTileVisual(job, cancelling);
   return (
-    <Box
+    <FlexRow
+      align="center"
+      justify="center"
       sx={{
         width: TILE_SIZE,
         height: TILE_SIZE,
         flex: "0 0 auto",
         borderRadius: BORDER_RADIUS.lg,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         color: visual.fg,
         backgroundColor: visual.tint
           ? (theme) => alpha(theme.palette[visual.tint!].main, 0.16)
@@ -158,7 +157,7 @@ const StatusTile = memo(function StatusTile({
       }}
     >
       {visual.icon}
-    </Box>
+    </FlexRow>
   );
 });
 
@@ -198,12 +197,14 @@ const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
 
   return (
     <Tooltip title={asset.name || asset.content_type}>
-      <Box
+      <FlexRow
         role="button"
         tabIndex={0}
         aria-label="Open job output"
         onClick={handleOpen}
         onKeyDown={handleKeyDown}
+        align="center"
+        justify="center"
         sx={{
           width: TILE_SIZE,
           height: TILE_SIZE,
@@ -213,10 +214,7 @@ const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
           border: 1,
           borderColor: "divider",
           backgroundColor: "action.hover",
-          cursor: asset.get_url ? "pointer" : "default",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
+          cursor: asset.get_url ? "pointer" : "default"
         }}
       >
         {src ? (
@@ -230,7 +228,7 @@ const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
         ) : (
           <Text size="smaller" color="secondary" truncate sx={{ px: 0.5 }}>{asset.content_type?.split("/")[1] || "file"}</Text>
         )}
-      </Box>
+      </FlexRow>
     </Tooltip>
   );
 });

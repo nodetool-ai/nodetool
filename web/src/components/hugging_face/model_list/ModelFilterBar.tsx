@@ -166,11 +166,10 @@ const ModelFilterBar: React.FC<ModelFilterBarProps> = ({
       )}
 
       <FilterRow label="Max size">
-        <Box
+        <FlexRow
+          align="center"
           sx={{
             width: 160,
-            display: "flex",
-            alignItems: "center",
             px: SPACING.xs
           }}
         >
@@ -184,7 +183,7 @@ const ModelFilterBar: React.FC<ModelFilterBarProps> = ({
             min={0}
             max={50}
           />
-        </Box>
+        </FlexRow>
         <Text
           size="small"
           sx={{
