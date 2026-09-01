@@ -23,6 +23,7 @@ import type {
 } from "./compile.js";
 import {
   ANIMATED_PROPERTIES,
+  ANIMATED_PROPERTY_FOLD,
   type AnimatedProperty,
   type AnimationRole,
   type WipeDirection
@@ -55,6 +56,181 @@ const WIPE_DIRECTIONS: readonly WipeDirection[] = [
 ];
 
 const PROPERTY_SET = new Set<string>(ANIMATED_PROPERTIES);
+
+/**
+ * What one animatable channel means to a caller writing curves by hand: the
+ * value that changes nothing, the range values are read in, and how several
+ * animations driving the channel combine.
+ *
+ * `identity` is null for a `replace` channel — those set the clip's value
+ * outright rather than composing with it, so there is nothing to leave alone.
+ */
+export interface AnimatedPropertyDoc {
+  property: AnimatedProperty;
+  fold: (typeof ANIMATED_PROPERTY_FOLD)[AnimatedProperty];
+  identity: number | null;
+  /** Unit and usable span, e.g. "0..1" or "canvas px". */
+  range: string;
+  describe: string;
+}
+
+const PROPERTY_RANGES: Record<
+  AnimatedProperty,
+  { identity: number | null; range: string; describe: string }
+> = {
+  offsetX: {
+    identity: 0,
+    range: "canvas px",
+    describe: "Horizontal offset added to the clip's position."
+  },
+  offsetY: {
+    identity: 0,
+    range: "canvas px",
+    describe: "Vertical offset added to the clip's position."
+  },
+  scale: {
+    identity: 1,
+    range: "0..n",
+    describe: "Uniform multiplier on the clip's scale."
+  },
+  scaleX: {
+    identity: 1,
+    range: "0..n",
+    describe: "Horizontal multiplier on the clip's scale."
+  },
+  scaleY: {
+    identity: 1,
+    range: "0..n",
+    describe: "Vertical multiplier on the clip's scale."
+  },
+  rotation: {
+    identity: 0,
+    range: "radians",
+    describe: "Rotation added to the clip's own rotation."
+  },
+  opacity: {
+    identity: 1,
+    range: "0..1",
+    describe: "Multiplier on the layer's opacity."
+  },
+  wipeProgress: {
+    identity: 1,
+    range: "0..1",
+    describe:
+      "0 hides the layer, 1 reveals it. Needs a mask {direction, softness}."
+  },
+  blur: {
+    identity: 0,
+    range: "source px",
+    describe: "Added to the layer's blur radius."
+  },
+  brightness: {
+    identity: 0,
+    range: "-1..1",
+    describe: "Added to the grade's brightness term."
+  },
+  saturation: {
+    identity: 1,
+    range: "0..4",
+    describe: "Multiplies the grade's saturation."
+  },
+  contrast: {
+    identity: 1,
+    range: "0..4",
+    describe: "Multiplies the grade's contrast."
+  },
+  hue: {
+    identity: 0,
+    range: "degrees",
+    describe: "Added to the grade's hue rotation."
+  },
+  temperature: {
+    identity: 0,
+    range: "-1..1",
+    describe: "Added to the grade's cool-to-warm term."
+  },
+  tint: {
+    identity: 0,
+    range: "-1..1",
+    describe: "Added to the grade's green-to-magenta term."
+  },
+  positionX: {
+    identity: null,
+    range: "canvas px",
+    describe: "Replaces the clip's horizontal position."
+  },
+  positionY: {
+    identity: null,
+    range: "canvas px",
+    describe: "Replaces the clip's vertical position."
+  },
+  anchorX: {
+    identity: null,
+    range: "0..1",
+    describe: "Replaces the clip's horizontal anchor."
+  },
+  anchorY: {
+    identity: null,
+    range: "0..1",
+    describe: "Replaces the clip's vertical anchor."
+  },
+  trimStart: {
+    identity: null,
+    range: "0..1",
+    describe: "Replaces the start of a shape's stroked sub-range."
+  },
+  trimEnd: {
+    identity: null,
+    range: "0..1",
+    describe: "Replaces the end of a shape's stroked sub-range."
+  }
+};
+
+/**
+ * Every animatable channel with its fold, identity and range — what
+ * `list_animation_presets` prints so an agent can write a curve without
+ * reading the engine. Keyed off {@link ANIMATED_PROPERTIES}, so a new channel
+ * cannot reach the document without an entry here.
+ */
+export const ANIMATED_PROPERTY_DOCS: readonly AnimatedPropertyDoc[] =
+  ANIMATED_PROPERTIES.map((property) => ({
+    property,
+    fold: ANIMATED_PROPERTY_FOLD[property],
+    ...PROPERTY_RANGES[property]
+  }));
+
+/**
+ * The `custom` preset as the preset catalog describes a preset: what an author
+ * passes instead of `params`, which roles it takes, and the channels a curve
+ * may drive. `custom` is not in `ANIMATION_PRESETS` — its motion comes from
+ * the document rather than the catalog — so the tools that list presets append
+ * this.
+ */
+export const CUSTOM_ANIMATION_CONTRACT = {
+  id: CUSTOM_ANIMATION_PRESET_ID,
+  roles: ["in", "out", "emphasis", "loop"] as readonly AnimationRole[],
+  describe:
+    "Keyframed motion written out rather than picked: pass `curves` " +
+    "directly, or `code` (a JS body) to bake into curves. Exactly one of " +
+    "the two.",
+  inputs: {
+    curves:
+      "[{property, keyframes: [{t, value, easing?}]}] — `t` runs 0..1 over " +
+      `the animation's window. At most ${MAX_CUSTOM_CURVES} curves, one per ` +
+      `property, ${MAX_CUSTOM_KEYFRAMES} keyframes each.`,
+    code:
+      "A JS body run once, host-side, returning `{curves}` or `{samples}`. " +
+      "It reads role, durationMs, clipDurationMs, canvasWidth, canvasHeight, " +
+      "params, staggerCount and sampleCount off `inputs`.",
+    mask:
+      "{direction: left|right|up|down, softness: 0..1} — required when a " +
+      "curve drives wipeProgress, ignored otherwise.",
+    durationMs:
+      "The animation's window in ms. Defaults to the clip's own duration, " +
+      "so curves span the whole clip."
+  },
+  properties: ANIMATED_PROPERTY_DOCS
+} as const;
 
 /**
  * The bag a custom-animation body reads off `inputs`. Everything the compiler

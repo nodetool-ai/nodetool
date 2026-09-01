@@ -306,6 +306,68 @@ describe("TIMELINE_TOOL_LOOP_CASES", () => {
     expect(report.cases[0].score).toBe(1);
   });
 
+  it("keyframed-slide: animate_clip with custom curves instead of a preset", async () => {
+    const script: ScriptedCall[] = [
+      { name: "ui_timeline_get_state", args: {} },
+      { name: "ui_timeline_add_text_clip", args: { text: "Launch" } },
+      { name: "ui_timeline_list_animation_presets", args: {} },
+      {
+        name: "ui_timeline_animate_clip",
+        args: {
+          target: "Launch",
+          animations: [
+            {
+              role: "in",
+              preset: "custom",
+              durationMs: 800,
+              curves: [
+                {
+                  property: "offsetY",
+                  keyframes: [
+                    { t: 0, value: 120 },
+                    { t: 1, value: 0 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ];
+    const provider = createScriptedProvider(script);
+    const report = await runToolLoopEval({
+      provider,
+      model: "test-model",
+      cases: [TIMELINE_TOOL_LOOP_CASES[3]]
+    });
+
+    expect(report.cases[0].success).toBe(true);
+    expect(report.cases[0].score).toBe(1);
+  });
+
+  it("keyframed-slide: a preset entrance does not satisfy the case", async () => {
+    // The predicate reads the stored curves, so an ordinary slide-in — the
+    // shape a model reaches for first — must fail it.
+    const provider = createScriptedProvider([
+      { name: "ui_timeline_add_text_clip", args: { text: "Launch" } },
+      {
+        name: "ui_timeline_animate_clip",
+        args: {
+          target: "Launch",
+          animations: [{ role: "in", preset: "slide", durationMs: 800 }]
+        }
+      }
+    ]);
+    const report = await runToolLoopEval({
+      provider,
+      model: "test-model",
+      cases: [TIMELINE_TOOL_LOOP_CASES[3]]
+    });
+
+    expect(report.cases[0].success).toBe(false);
+    expect(report.cases[0].criticalFailures).toBeGreaterThan(0);
+  });
+
   it("cut-and-trim: split_clip by name then delete_clip the second half", async () => {
     const script: ScriptedCall[] = [
       { name: "ui_timeline_get_state", args: {} },

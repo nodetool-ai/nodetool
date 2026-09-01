@@ -26,9 +26,12 @@ import type {
 } from "@nodetool-ai/models";
 import type { TimelineValidation } from "@nodetool-ai/execution/timeline-debug";
 import type {
+  TimelineAnimationBakeRequest,
+  TimelineAnimationBakeResult,
   TimelineBridgeAsset,
   TimelineBridgeFinalState
 } from "../evals/surfaces/timeline.js";
+import type { BakeCustomAnimationParams } from "../custom-animation-bake.js";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -571,6 +574,39 @@ async function resolveTimelineAsset(
 }
 
 /**
+ * Run a custom animation's body once and return its curves.
+ *
+ * The bake is the only place that code runs — the curves are stored and every
+ * render site samples them — so it goes through `bakeCustomAnimation`, the
+ * same hermetic path `POST /api/timelines/animations/bake` uses. Imported
+ * lazily: the sandbox is a heavy dependency for a capability most calls never
+ * reach.
+ */
+async function bakeTimelineAnimation(
+  run: CapabilityRun,
+  request: TimelineAnimationBakeRequest
+): Promise<TimelineAnimationBakeResult> {
+  const { bakeCustomAnimation } = await import("../custom-animation-bake.js");
+  const params: BakeCustomAnimationParams = {
+    code: request.code,
+    role: request.role,
+    durationMs: request.durationMs,
+    clipDurationMs: request.clipDurationMs,
+    canvas: request.canvas
+  };
+  if (request.params !== undefined) params.params = request.params;
+  if (request.staggerCount !== undefined) {
+    params.staggerCount = request.staggerCount;
+  }
+  const baked = await bakeCustomAnimation(run.context, params);
+  const result: TimelineAnimationBakeResult = { ok: baked.ok };
+  if (baked.curves !== undefined) result.curves = baked.curves;
+  if (baked.mask !== undefined) result.mask = baked.mask;
+  if (baked.error !== undefined) result.error = baked.error;
+  return result;
+}
+
+/**
  * Run `ops` against a bridge seeded from `document`.
  *
  * A failing op is recorded and the script continues: stopping at the first
@@ -592,7 +628,8 @@ async function applyOps(
       tracks: document.tracks,
       clips: document.clips
     },
-    resolveAsset: (ref) => resolveTimelineAsset(run, ref)
+    resolveAsset: (ref) => resolveTimelineAsset(run, ref),
+    bakeAnimation: (request) => bakeTimelineAnimation(run, request)
   });
   const byName = new Map(
     bridge.tools
@@ -1035,7 +1072,8 @@ const previewTimelineFrame: CapabilityExport = {
           mime_type: saved.mime_type,
           bytes: saved.bytes
         },
-        layers: frame.layers
+        layers: frame.layers,
+        dropped: frame.dropped
       });
     }
 

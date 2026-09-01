@@ -285,15 +285,6 @@ function checkClip(
       });
       continue;
     }
-    if (!animation.custom?.scriptId && !animation.custom?.code) {
-      issues.push({
-        severity: "warning",
-        code: "custom_animation_unsourced",
-        message: `Clip "${label}" animation "${animation.id}" carries baked curves but names neither a scriptId nor code, so nothing can re-bake it.`,
-        path: "animations[*].custom",
-        ...at
-      });
-    }
   }
 
   if (clip.sourceType === "generated" && !clip.workflowId && !clip.prompt) {

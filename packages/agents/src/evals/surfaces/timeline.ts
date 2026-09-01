@@ -28,6 +28,11 @@ import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
 import {
   splitClip,
   ANIMATION_PRESETS,
+  ANIMATED_PROPERTIES,
+  CUSTOM_ANIMATION_CONTRACT,
+  CUSTOM_ANIMATION_PRESET_ID,
+  normalizeCustomCurves,
+  resolveCustomMask,
   makeClip,
   makeTrack,
   DEFAULT_TEXT_CLIP_DURATION_MS,
@@ -39,6 +44,9 @@ import {
   DEFAULT_MEDIA_CLIP_DURATION_MS,
   mediaTypeForContentType,
   trackTypeForMediaType,
+  type AnimationRole,
+  type CustomClipAnimation,
+  type PropertyCurve,
   type TimelineClip,
   type TimelineTrack,
   type ClipAnimation
@@ -51,6 +59,51 @@ import type {
 } from "../tool-loop-eval.js";
 
 const animationRole = z.enum(["in", "out", "emphasis", "loop"]);
+
+/**
+ * The `custom` preset's inputs. Values are checked by
+ * `normalizeCustomCurves`/`resolveCustomMask` rather than by Zod: those are the
+ * gates the compiler and the validator already run, and a second, looser copy
+ * of the rules here would refuse or admit different curves than the engine.
+ */
+const customCurvesParam = z
+  .array(
+    z.object({
+      property: z
+        .string()
+        .describe(`One of: ${ANIMATED_PROPERTIES.join(", ")}.`),
+      keyframes: z
+        .array(
+          z.object({
+            t: z.number().describe("0..1 across the animation's window."),
+            value: z.number(),
+            easing: z.string().optional()
+          })
+        )
+        .min(1)
+    })
+  )
+  .optional()
+  .describe(
+    'Keyframes for `preset: "custom"`. Exactly one of `curves` and `code`.'
+  );
+
+const customCodeParam = z
+  .string()
+  .optional()
+  .describe(
+    'JS body for `preset: "custom"`, baked into curves once. It returns ' +
+      "`{curves}` or `{samples}` and reads its clip context off `inputs`. " +
+      "Exactly one of `curves` and `code`."
+  );
+
+const customMaskParam = z
+  .object({
+    direction: z.enum(["left", "right", "up", "down"]),
+    softness: z.number().min(0).max(1)
+  })
+  .optional()
+  .describe("Required when a curve drives wipeProgress, ignored otherwise.");
 
 const targetParam = z
   .string()
@@ -119,6 +172,36 @@ export interface TimelineBridgeSequenceSeed {
   clips: TimelineClip[];
 }
 
+/**
+ * One custom-animation bake: a JS body plus the clip context it is written
+ * against. The bridge never runs the body itself — a sandbox belongs to the
+ * host, so `edit_timeline` hands `bakeCustomAnimation` down and the eval
+ * surface runs without one.
+ */
+export interface TimelineAnimationBakeRequest {
+  code: string;
+  role: AnimationRole;
+  /** The animation's own window, in ms. */
+  durationMs: number;
+  clipDurationMs: number;
+  canvas: { width: number; height: number };
+  params?: Record<string, number | string | boolean>;
+  /** Stagger units the clip splits into (a text clip's word count), else 0. */
+  staggerCount?: number;
+}
+
+/** What a bake returns. Mirrors `BakeCustomAnimationResult` minus the logs. */
+export interface TimelineAnimationBakeResult {
+  ok: boolean;
+  curves?: CustomClipAnimation["curves"];
+  mask?: { direction: string; softness: number };
+  error?: string;
+}
+
+export type TimelineAnimationBaker = (
+  request: TimelineAnimationBakeRequest
+) => Promise<TimelineAnimationBakeResult>;
+
 /** Case-supplied starting point for a run. */
 export interface TimelineBridgeInitialState {
   fps?: number;
@@ -138,6 +221,12 @@ export interface TimelineBridgeInitialState {
    * clip that points at nothing.
    */
   resolveAsset?: TimelineAssetResolver;
+  /**
+   * Bake a `preset: "custom"` animation's `code` into curves. Without one the
+   * op says so and points at `curves`, rather than storing an animation whose
+   * body nothing ever ran.
+   */
+  bakeAnimation?: TimelineAnimationBaker;
   tracks?: { name?: string; type: "video" | "audio" | "overlay" | "subtitle" }[];
   clips?: {
     name: string;
@@ -200,6 +289,21 @@ function capitalize(s: string): string {
 }
 
 /**
+ * Units a staggered animation splits into — a text clip's word count, which is
+ * what a custom body reads off `inputs.staggerCount`. Zero when the clip does
+ * not stagger, matching the un-staggered block case.
+ */
+function staggerUnitCount(
+  clip: TimelineClip,
+  stagger: ClipAnimation["stagger"]
+): number {
+  if (!stagger || clip.mediaType !== "text") return 0;
+  const text = clip.textStyle?.text ?? "";
+  const words = text.trim().split(/\s+/).filter((word) => word.length > 0);
+  return words.length;
+}
+
+/**
  * Build an in-memory timeline bridge whose tools share the `ui_timeline_*`
  * contract but run headlessly against a plain sequence of tracks/clips (no
  * Zustand stores, no rendering).
@@ -209,6 +313,7 @@ export function createTimelineToolBridge(
 ): HeadlessSurfaceBridge<TimelineBridgeFinalState> {
   const seed = initial.sequence;
   const resolveAsset = initial.resolveAsset;
+  const bakeAnimation = initial.bakeAnimation;
   const fps = seed?.fps ?? initial.fps ?? 30;
   const width = seed?.width ?? initial.width ?? 1920;
   const height = seed?.height ?? initial.height ?? 1080;
@@ -300,6 +405,100 @@ export function createTimelineToolBridge(
       muted: t.muted ?? false,
       solo: t.solo ?? false,
       clipCount: clips.filter((c) => c.trackId === t.id).length
+    };
+  }
+
+  /**
+   * Build one `preset: "custom"` animation. `curves` are checked and stored;
+   * `code` is baked into curves first, by the host that supplied a baker. Both
+   * paths end at `normalizeCustomCurves`, the single gate the compiler and the
+   * validator also run, so what is stored is what will render.
+   */
+  async function buildCustomAnimation(
+    clip: TimelineClip,
+    input: {
+      role: ClipAnimation["role"];
+      durationMs?: number;
+      delayMs?: number;
+      easing?: ClipAnimation["easing"];
+      params?: ClipAnimation["params"];
+      curves?: unknown;
+      code?: string;
+      mask?: unknown;
+      stagger?: ClipAnimation["stagger"];
+    }
+  ): Promise<ClipAnimation> {
+    const code = typeof input.code === "string" ? input.code.trim() : "";
+    const hasCurves = input.curves !== undefined;
+    const hasCode = code !== "";
+    if (hasCurves && hasCode) {
+      throw new Error(
+        'A "custom" animation takes exactly one of `curves` and `code`; both were given. Pass the keyframes, or the body that produces them.'
+      );
+    }
+    if (!hasCurves && !hasCode) {
+      throw new Error(
+        'A "custom" animation needs `curves` (keyframes: [{property, keyframes:[{t, value}]}]) or `code` (a JS body baked into curves).'
+      );
+    }
+
+    // Curves are normalized to 0..1 over the window, so a custom animation
+    // with no duration of its own spans the clip and nothing is cropped.
+    const durationMs = input.durationMs ?? clip.durationMs;
+
+    let curves: PropertyCurve[];
+    let maskInput: unknown;
+    if (hasCurves) {
+      const normalized = normalizeCustomCurves(input.curves);
+      if (!normalized.ok) throw new Error(normalized.error);
+      curves = normalized.curves;
+      maskInput = input.mask;
+    } else {
+      if (!bakeAnimation) {
+        throw new Error(
+          'This surface cannot run `code`: no animation baker is wired to it. Pass `curves` instead, or bake the body through POST /api/timelines/animations/bake.'
+        );
+      }
+      const baked = await bakeAnimation({
+        code,
+        role: input.role as AnimationRole,
+        durationMs,
+        clipDurationMs: clip.durationMs,
+        canvas: { width, height },
+        params: input.params,
+        staggerCount: staggerUnitCount(clip, input.stagger)
+      });
+      if (!baked.ok || !baked.curves) {
+        throw new Error(
+          baked.error ?? "The animation body returned no curves."
+        );
+      }
+      const normalized = normalizeCustomCurves(baked.curves);
+      if (!normalized.ok) throw new Error(normalized.error);
+      curves = normalized.curves;
+      maskInput = baked.mask ?? input.mask;
+    }
+
+    const mask = resolveCustomMask(curves, maskInput);
+    if (!mask.ok) throw new Error(mask.error);
+
+    const custom: CustomClipAnimation = {
+      curves,
+      bakedAt: new Date().toISOString()
+    };
+    if (hasCode) custom.code = code;
+    if (mask.mask) custom.mask = mask.mask;
+
+    return {
+      id: nextAnimId(),
+      role: input.role,
+      preset: CUSTOM_ANIMATION_PRESET_ID,
+      durationMs,
+      delayMs: input.delayMs,
+      easing: input.easing,
+      params: input.params,
+      stagger: input.stagger,
+      custom
     };
   }
 
@@ -823,7 +1022,7 @@ export function createTimelineToolBridge(
 
     tool(
       "ui_timeline_animate_clip",
-      'Attach motion-design animations to a clip — no keyframing, just named presets. Roles: `in` (entrance: fade, slide, pop, spin, wipe, blur, colorFade), `out` (exit: fade, slide, pop, spin, wipe, blur, colorFade), `emphasis` (mid-clip: pulse, flash, shake, bounce), `loop` (continuous: kenBurns, float, breathe, rotate). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. On text clips, add `stagger` for per-word motion typography: each word runs the animation for `durationMs`, offset `stagger.offsetMs` from the previous word (`from`: start|end|center picks the leading word) — e.g. a pop-in title whose words land one after another. `mode` "replace" (default) swaps the clip\'s animations; "add" appends. Call ui_timeline_list_animation_presets for the full param list.',
+      'Attach motion-design animations to a clip. Roles: `in` (entrance: fade, slide, pop, spin, wipe, blur, colorFade), `out` (exit: fade, slide, pop, spin, wipe, blur, colorFade), `emphasis` (mid-clip: pulse, flash, shake, bounce), `loop` (continuous: kenBurns, float, breathe, rotate). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. For motion no preset covers, use `preset: "custom"` with exactly one of `curves` (keyframes you write: [{property, keyframes:[{t, value, easing?}]}], `t` running 0..1 over the window) or `code` (a JS body baked into curves once, host-side); add `mask` when a curve drives wipeProgress. On text clips, add `stagger` for per-word motion typography: each word runs the animation for `durationMs`, offset `stagger.offsetMs` from the previous word (`from`: start|end|center picks the leading word) — e.g. a pop-in title whose words land one after another. `mode` "replace" (default) swaps the clip\'s animations; "add" appends. Call ui_timeline_list_animation_presets for the full param list and the animatable properties.',
       z.object({
         target: targetParam,
         mode: z.enum(["add", "replace"]).optional(),
@@ -834,7 +1033,7 @@ export function createTimelineToolBridge(
               preset: z
                 .string()
                 .describe(
-                  "Preset id, e.g. fade, slide, wipe, pop, kenBurns, float."
+                  'Preset id, e.g. fade, slide, wipe, pop, kenBurns, float — or "custom" with `curves` or `code`.'
                 ),
               durationMs: z.number().positive().optional(),
               delayMs: z.number().nonnegative().optional(),
@@ -842,6 +1041,9 @@ export function createTimelineToolBridge(
               params: z
                 .record(z.string(), z.union([z.number(), z.string(), z.boolean()]))
                 .optional(),
+              curves: customCurvesParam,
+              code: customCodeParam,
+              mask: customMaskParam,
               stagger: z
                 .object({
                   unit: z.literal("word"),
@@ -868,14 +1070,22 @@ export function createTimelineToolBridge(
           delayMs?: number;
           easing?: ClipAnimation["easing"];
           params?: ClipAnimation["params"];
+          curves?: unknown;
+          code?: string;
+          mask?: unknown;
           stagger?: ClipAnimation["stagger"];
         }>;
-        const built: ClipAnimation[] = inputs.map((input) => {
+        const built: ClipAnimation[] = [];
+        for (const input of inputs) {
+          if (input.preset === CUSTOM_ANIMATION_PRESET_ID) {
+            built.push(await buildCustomAnimation(clip, input));
+            continue;
+          }
           const preset = ANIMATION_PRESETS.find((p) => p.id === input.preset);
           if (!preset) {
             const ids = ANIMATION_PRESETS.map((p) => p.id).join(", ");
             throw new Error(
-              `Unknown animation preset "${input.preset}". Valid presets: ${ids}.`
+              `Unknown animation preset "${input.preset}". Valid presets: ${ids}, ${CUSTOM_ANIMATION_PRESET_ID}.`
             );
           }
           if (!preset.roles.includes(input.role)) {
@@ -883,7 +1093,7 @@ export function createTimelineToolBridge(
               `Preset "${input.preset}" does not support role "${input.role}". Valid roles for "${input.preset}": ${preset.roles.join(", ")}.`
             );
           }
-          return {
+          built.push({
             id: nextAnimId(),
             role: input.role,
             preset: input.preset,
@@ -892,8 +1102,8 @@ export function createTimelineToolBridge(
             easing: input.easing,
             params: input.params,
             stagger: input.stagger
-          };
-        });
+          });
+        }
         clip.animations =
           (mode as string | undefined) === "add"
             ? [...(clip.animations ?? []), ...built]
@@ -920,7 +1130,7 @@ export function createTimelineToolBridge(
 
     tool(
       "ui_timeline_list_animation_presets",
-      "List the motion-design animation presets: id, allowed roles, params (with defaults and ranges), default duration/easing, and a one-line description. Use this to discover the exact preset names and params for ui_timeline_animate_clip.",
+      "List the motion-design animation presets: id, allowed roles, params (with defaults and ranges), default duration/easing, and a one-line description. Also returns the `custom` preset's contract and every animatable property with its fold, identity and range, for keyframed motion no preset covers. Use this to discover the exact preset names and params for ui_timeline_animate_clip.",
       z.object({}),
       async () => {
         const presets = ANIMATION_PRESETS.map((p) => ({
@@ -931,7 +1141,12 @@ export function createTimelineToolBridge(
           params: p.params,
           describe: p.describe
         }));
-        return { ok: true, presets };
+        return {
+          ok: true,
+          presets,
+          custom: CUSTOM_ANIMATION_CONTRACT,
+          properties: CUSTOM_ANIMATION_CONTRACT.properties
+        };
       }
     ),
 
@@ -1005,6 +1220,7 @@ Use the ui_timeline_* tools to inspect and modify the sequence:
 - Add content with ui_timeline_add_text_clip, ui_timeline_add_shape_clip, or ui_timeline_generate_clip; add tracks with ui_timeline_add_track when needed.
 - Address existing clips by id, name, or "selected" with ui_timeline_split_clip, ui_timeline_trim_clip, ui_timeline_move_clip, ui_timeline_delete_clip, ui_timeline_duplicate_clip, ui_timeline_set_clip_params, ui_timeline_set_clip_binding, ui_timeline_animate_clip, ui_timeline_clear_animations, ui_timeline_select_clip.
 - Before animating a clip, call ui_timeline_list_animation_presets to discover the exact preset ids, allowed roles, and params.
+- For motion no preset covers, animate with preset "custom" and pass curves — [{property, keyframes: [{t, value}]}], where t runs 0..1 over the animation window. list_animation_presets reports which properties a curve may drive.
 - ui_timeline_seek moves the playhead (useful before a playhead-relative split).
 
 Call one tool at a time and use the result before the next call. When the objective is fully satisfied, STOP calling tools and give a one-line summary.`;
@@ -1094,6 +1310,55 @@ export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeF
             name: "oneClipLeftAt3000ms",
             detail: "expected exactly 1 clip with durationMs 3000",
             test: (s) => s.clips.length === 1 && s.clips[0].durationMs === 3000
+          }
+        ]
+      }
+    },
+    {
+      id: "keyframed-slide",
+      description:
+        "Keyframe an entrance with a custom animation instead of a preset",
+      objective:
+        "Add a text clip that says 'Launch' and give it a keyframed entrance: over the first 800ms it rises 120 pixels into place, from offsetY 120 down to 0. Use a custom animation with explicit keyframes, not a preset.",
+      createBridge: () => createTimelineToolBridge(),
+      systemPrompt: TIMELINE_SYSTEM_PROMPT,
+      expect: {
+        requiredTools: [
+          "ui_timeline_add_text_clip",
+          "ui_timeline_animate_clip"
+        ],
+        ordering: [["ui_timeline_add_text_clip", "ui_timeline_animate_clip"]],
+        noErrorResults: true,
+        minToolCalls: 2,
+        maxToolCalls: 12,
+        finalState: [
+          {
+            name: "hasCustomOffsetYCurve",
+            detail:
+              "no text clip carrying a custom 'in' animation whose offsetY curve ends at 0",
+            test: (s) =>
+              s.documentClips.some((clip) => {
+                if (clip.mediaType !== "text") return false;
+                const animation = (clip.animations ?? []).find(
+                  (a) => a.role === "in" && a.preset === "custom"
+                );
+                const curve = animation?.custom?.curves.find(
+                  (c) => c.property === "offsetY"
+                );
+                if (!curve) return false;
+                const keyframes = curve.keyframes;
+                const first = keyframes[0];
+                const last = keyframes[keyframes.length - 1];
+                // A rise into place: starts below, lands on the layout
+                // position, and the window is the 800ms that was asked for.
+                return (
+                  first.t === 0 &&
+                  last.t === 1 &&
+                  first.value >= 100 &&
+                  last.value === 0 &&
+                  animation?.durationMs === 800
+                );
+              })
           }
         ]
       }

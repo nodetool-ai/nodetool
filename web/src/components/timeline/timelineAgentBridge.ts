@@ -261,6 +261,15 @@ interface TimelineClipFramesResult {
 export interface ClipAnimationInput {
   role: "in" | "out" | "emphasis" | "loop";
   preset: string;
+  /**
+   * Keyframes for `preset: "custom"` — the motion no preset covers. `t` runs
+   * 0..1 over the animation's window. The browser path takes curves only: a
+   * `code` body is baked host-side, and the editor has no client for that
+   * route, so it is refused here rather than silently ignored.
+   */
+  curves?: unknown;
+  code?: string;
+  mask?: unknown;
   durationMs?: number;
   delayMs?: number;
   easing?: string;

@@ -8,7 +8,8 @@
  * only asserted "a PNG came back" would pass on a black frame.
  */
 
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { initTestDb, ModelObserver } from "@nodetool-ai/models";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import type {
   TimelineClip,
@@ -246,6 +247,41 @@ describe("renderTimelineFrames", () => {
     expect(frames[0].layers[0].skipped).toContain("draft");
   });
 
+  it("names the layers the video cap kept out of the frame", async () => {
+    // Nine video clips overlap; the compositor holds eight. The ninth used to
+    // vanish with no trace anywhere in the report.
+    const tracks = Array.from({ length: 9 }, (_, i) => track(i));
+    const clips = tracks.map((t, i) => ({
+      ...shapeClip(`shot-${i}`, t.id, "#ff0000"),
+      name: `Shot ${i}`,
+      mediaType: "video" as const,
+      currentAssetId: `asset-${i}`,
+      shapeStyle: undefined
+    }));
+
+    const { frames } = await renderTimelineFrames({
+      sequence: sequence(tracks, clips),
+      timesMs: [1000],
+      width: 160,
+      loadAsset: noAssets
+    });
+
+    expect(frames[0].dropped).toEqual([
+      { clip_id: "shot-8", clip_name: "Shot 8", reason: "video_layer_cap" }
+    ]);
+  });
+
+  it("reports no dropped layer for a frame that fits", async () => {
+    const { frames } = await renderTimelineFrames({
+      sequence: sequence([track(0)], [shapeClip("red", "track-0", "#ff0000")]),
+      timesMs: [1000],
+      width: 160,
+      loadAsset: noAssets
+    });
+
+    expect(frames[0].dropped).toEqual([]);
+  });
+
   it("names the effects Canvas 2D cannot draw", async () => {
     const { effectsNotApplied } = await renderTimelineFrames({
       sequence: sequence(
@@ -332,5 +368,117 @@ describe("preview_timeline_frame", () => {
       document: { tracks: [track(0)], clips: [], markers: [] }
     });
     expect(String(result.error)).toContain("no clips");
+  });
+});
+
+/**
+ * The acceptance for the custom-animation op (T4): keyframes an agent writes
+ * through `edit_timeline` have to reach the picture, not just the document.
+ * The curve here is arithmetic — a white layer over black at opacity 0.5 —
+ * so the pixel is the assertion.
+ */
+describe("edit_timeline custom curves through preview_timeline_frame", () => {
+  beforeEach(() => initTestDb());
+  afterEach(() => ModelObserver.clear());
+
+  /** Context with an asset store, so a previewed frame's bytes are readable. */
+  function contextWithAssets() {
+    const stored = new Map<string, Uint8Array>();
+    const context = {
+      userId: "u1",
+      hasModelInterface: (name: string) => name === "createAsset",
+      createAsset: async ({ content }: { content: Uint8Array }) => {
+        const id = `asset-${stored.size + 1}`;
+        stored.set(id, content);
+        return { id };
+      }
+    } as unknown as ProcessingContext;
+    return { context, stored };
+  }
+
+  it("renders the interpolated opacity at mid-curve", async () => {
+    const { TimelineSequence } = await import("@nodetool-ai/models");
+    const white = shapeClip("plate", "track-0", "#ffffff");
+    const row = await TimelineSequence.create<
+      InstanceType<typeof TimelineSequence>
+    >({
+      user_id: "u1",
+      project_id: "default",
+      name: "Fade plate",
+      fps: 30,
+      width: 640,
+      height: 360,
+      duration_ms: 4000,
+      document: JSON.stringify({
+        tracks: [track(0)],
+        clips: [white],
+        markers: []
+      })
+    });
+
+    const { context, stored } = contextWithAssets();
+    const edit = (await toolForCapabilityName("edit_timeline").process(context, {
+      timeline_id: row.id,
+      ops: [
+        {
+          op: "animate_clip",
+          target: "plate",
+          animations: [
+            {
+              role: "in",
+              preset: "custom",
+              durationMs: 2000,
+              curves: [
+                {
+                  property: "opacity",
+                  keyframes: [
+                    { t: 0, value: 0 },
+                    { t: 1, value: 1 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    })) as { applied: number; failed: number };
+    expect(edit).toMatchObject({ applied: 1, failed: 0 });
+
+    const saved = await TimelineSequence.findById(row.id);
+    const document = JSON.parse(String(saved?.document)) as {
+      clips: TimelineClip[];
+    };
+    expect(document.clips[0].animations?.[0].custom?.curves[0].property).toBe(
+      "opacity"
+    );
+
+    const preview = (await toolForCapabilityName(
+      "preview_timeline_frame"
+    ).process(context, {
+      document,
+      // Half way through a 2000ms window whose curve runs 0 → 1 linearly.
+      times_ms: [1000],
+      width: 160,
+      width_px: 640,
+      height_px: 360
+    })) as {
+      error?: string;
+      frames: Array<{
+        image: { asset_id: string };
+        layers: Array<{ opacity: number }>;
+      }>;
+    };
+    expect(preview.error).toBeUndefined();
+    expect(preview.frames[0].layers[0].opacity).toBeCloseTo(0.5, 2);
+
+    const png = stored.get(preview.frames[0].image.asset_id);
+    expect(png).toBeDefined();
+    // White at half opacity over the compositor's black ground is mid grey.
+    // Full opacity would read 255 and a dropped curve 0 — both outside this.
+    const [r, g, b] = await pixelAt(png as Uint8Array, 80, 45);
+    expect(r).toBeGreaterThan(110);
+    expect(r).toBeLessThan(145);
+    expect(g).toBe(r);
+    expect(b).toBe(r);
   });
 });
