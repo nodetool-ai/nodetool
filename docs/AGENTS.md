@@ -87,8 +87,15 @@ You can skip planning entirely by passing a pre-built `task` object to the Agent
 2. Stream the LLM response
 3. Run the action's JavaScript in the QuickJS sandbox, where the toolbelt is imported from `@nodetool-ai/sandbox-nodetool/<namespace>`
 4. Feed the observation (return value, logs, error) back as the tool result
-5. Repeat until the program calls `finish(result)` or max iterations are reached
+5. Repeat until the program calls `finish(result)`, the run's budget stops it, or max iterations are reached
 6. Validate the result against the step's output schema — host-side, in `finish`
+
+A run's bounds — a USD cap, a wall clock, a limit on open provider
+conversations, and a cumulative turn count — are one `RunBudget` the host
+creates and every loop below it shares, so a sub-agent reserves against its
+parent instead of opening a fresh allowance. A step that a cap or deadline
+stops fails naming that reason. See
+[packages/agents/AGENTS.md § One budget per run](../packages/agents/AGENTS.md).
 
 See [codeact-design.md](codeact-design.md) for the action protocol and
 the sandbox limits that apply per action, and [javascript-sandbox.md](javascript-sandbox.md)
