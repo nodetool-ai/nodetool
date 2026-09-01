@@ -54,6 +54,7 @@ const createMockHandler = (): jest.Mocked<SketchAgentHandler> => ({
   mergeLayerDown: jest.fn(),
   flattenVisible: jest.fn(),
   generate: jest.fn(),
+  placeImage: jest.fn(),
   setForegroundColor: jest.fn(),
   setBackgroundColor: jest.fn(),
   setActiveTool: jest.fn(),
@@ -95,6 +96,7 @@ describe("ui_sketch_* tools", () => {
         "ui_sketch_merge_down",
         "ui_sketch_flatten_visible",
         "ui_sketch_generate",
+        "ui_sketch_place_image",
         "ui_sketch_set_color",
         "ui_sketch_set_tool",
         "ui_sketch_resize_canvas",
@@ -128,6 +130,34 @@ describe("ui_sketch_* tools", () => {
     expect(schema.required).toContain("target");
     expect(schema.properties).toHaveProperty("sketch_id");
     expect(schema.required).toContain("sketch_id");
+  });
+
+  it("passes a placement through to the handler and links the layer", async () => {
+    const handler = createMockHandler();
+    handler.placeImage.mockResolvedValue({
+      layerId: "layer-9",
+      layerName: "Photo",
+      image: "asset://asset-42",
+      bounds: { x: 0, y: 0, width: 640, height: 480 },
+      naturalWidth: 640,
+      naturalHeight: 480
+    });
+    setSketchAgentHandler(DOC, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_sketch_place_image",
+      { sketch_id: DOC, image: "asset-42", name: "Photo" },
+      "sk-place",
+      ctx
+    )) as { ok: boolean; layerId: string; image: string; url: string };
+
+    expect(handler.placeImage).toHaveBeenCalledWith({
+      image: "asset-42",
+      name: "Photo"
+    });
+    expect(result.ok).toBe(true);
+    expect(result.image).toBe("asset://asset-42");
+    expect(result.url).toContain("layer-9");
   });
 
   it("rejects with a descriptive error when the document is not open", async () => {

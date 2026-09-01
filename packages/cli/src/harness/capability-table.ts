@@ -1840,7 +1840,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "create_sketch",
     module: "sketches",
     impl: "packages/agents/src/capabilities/sketches.ts",
-    contract: "e507b2c7a329",
+    contract: "72b119db3396",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-sketches.test.ts",
@@ -1910,7 +1910,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_sketch",
     module: "sketches",
     impl: "packages/agents/src/capabilities/sketches.ts",
-    contract: "5ccbf0eab2c9",
+    contract: "8592a69488a7",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-sketches.test.ts",

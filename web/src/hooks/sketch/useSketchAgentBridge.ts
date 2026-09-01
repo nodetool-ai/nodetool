@@ -39,6 +39,8 @@ import {
   renderLayersMerged
 } from "../../lib/sketch/renderLayerToAsset";
 import { getRememberedModel } from "../../stores/lastModelStore";
+import { resolveMediaUri } from "../../utils/resolveMediaUri";
+import { serializeLayerData } from "../../components/sketch/serialization";
 import type { Layer, SketchDocument } from "../../components/sketch/types";
 import type { LayerWorkflowBinding } from "@nodetool-ai/image-editor";
 import { CoordinateMapper } from "../../components/sketch/painting/CoordinateMapper";
@@ -97,6 +99,44 @@ function toLayerNode(
     model: binding?.model,
     bindingStatus: binding?.status
   };
+}
+
+/**
+ * Normalize what a caller named as an image into a locator the canvas runtime
+ * resolves. A bare id becomes `asset://<id>` — the form every sketch surface
+ * stores a reference to a stored image in.
+ */
+function normalizeImageReference(image: string): string {
+  const trimmed = image.trim();
+  if (!trimmed) {
+    throw new Error(
+      "place_image needs an `image`: an asset id, an asset:// locator, a data: URL, or an http(s) URL."
+    );
+  }
+  if (/^(asset:\/\/|data:|https?:\/\/)/.test(trimmed)) {
+    return trimmed;
+  }
+  if (trimmed.includes("://")) {
+    throw new Error(
+      `image "${trimmed}" uses a scheme the sketch canvas cannot load. Use an asset id, asset://, data:, or http(s)://.`
+    );
+  }
+  return `asset://${trimmed}`;
+}
+
+/** Load an image to learn its dimensions, so a placed layer is sized to it. */
+async function measureImage(
+  url: string
+): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () =>
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = () =>
+      reject(new Error(`Could not load the image at ${url}.`));
+    img.src = url;
+  });
 }
 
 export const useSketchAgentBridge = (documentId: string | null): void => {
@@ -381,6 +421,49 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
           layer: layerNode(reReadLayer(layerId)),
           generationStarted,
           note
+        };
+      },
+
+      async placeImage(opts) {
+        const image = normalizeImageReference(opts.image);
+        // Resolve and load before touching the document: an unreachable image
+        // must fail here rather than leave an empty layer behind, which is
+        // exactly the failure this tool exists to end.
+        const url = await resolveMediaUri(image);
+        if (!url) {
+          throw new Error(
+            `Could not resolve ${image}. Use list_assets to find an asset id.`
+          );
+        }
+        const natural = await measureImage(url);
+
+        const bounds = {
+          x: opts.x ?? 0,
+          y: opts.y ?? 0,
+          width: opts.width ?? natural.width,
+          height: opts.height ?? natural.height
+        };
+
+        const state = editor.getState();
+        const layerId = opts.target
+          ? requireLayer(opts.target).id
+          : state.addLayer(uniqueLayerName(opts.name ?? "Image"));
+
+        // The layer stores the locator, not the pixels: hydration resolves it
+        // and draws it, and the persisted document stays small.
+        state.updateLayerData(layerId, serializeLayerData(image, bounds));
+        state.setLayerContentBounds(layerId, bounds);
+        state.setActiveLayer(layerId);
+        state.pushHistory("place image");
+
+        const layer = reReadLayer(layerId);
+        return {
+          layerId,
+          layerName: layer.name,
+          image,
+          bounds,
+          naturalWidth: natural.width,
+          naturalHeight: natural.height
         };
       },
 

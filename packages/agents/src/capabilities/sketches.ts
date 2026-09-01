@@ -78,6 +78,7 @@ export {
   VALIDATE_SKETCH_SCHEMA
 } from "./sketches.specs.js";
 import { resolveProjectId } from "./project-scope.js";
+import { encodeSketchLayerData } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 
 type ToolError = { error: string };
 
@@ -523,7 +524,8 @@ const OPS = [
   "reorder_layer",
   "duplicate_layer",
   "select_layer",
-  "resize_canvas"
+  "resize_canvas",
+  "set_layer_image"
 ] as const;
 
 type OpName = (typeof OPS)[number];
@@ -606,11 +608,108 @@ function mintLayerId(layers: SketchLayer[]): string {
   return `layer-${n}`;
 }
 
+/**
+ * The layer image references a caller may name. An asset id and an
+ * `asset://` locator both resolve through the asset's own `get_url` when the
+ * editor loads the layer; a data URL and an http(s) URL load directly.
+ */
+const IMAGE_URI_SCHEMES = ["asset://", "data:", "http://", "https://"];
+
+/**
+ * Normalize what a caller passed as an image into a locator the editor's
+ * canvas runtime resolves. A bare id becomes `asset://<id>`, which is how
+ * every other sketch surface stores a reference to a stored image.
+ */
+function normalizeImageReference(value: unknown): string | ToolError {
+  if (!isNonBlankString(value)) {
+    return {
+      error:
+        "set_layer_image needs an `image`: an asset id, an asset:// locator, a data: URL, or an http(s) URL."
+    };
+  }
+  const image = value.trim();
+  if (IMAGE_URI_SCHEMES.some((scheme) => image.startsWith(scheme))) {
+    return image;
+  }
+  if (image.includes("://")) {
+    return {
+      error: `image "${image}" uses a scheme the sketch canvas cannot load. Use an asset id, asset://, data:, or http(s)://.`
+    };
+  }
+  return `asset://${image}`;
+}
+
+/** The asset id an `asset://` locator names, ignoring any file extension. */
+function assetIdOfReference(image: string): string | null {
+  if (!image.startsWith("asset://")) return null;
+  const rest = image.slice("asset://".length).split(/[?#]/)[0];
+  const last = rest.includes("/") ? rest.slice(rest.lastIndexOf("/") + 1) : rest;
+  return last.replace(/\.[^.]+$/, "") || null;
+}
+
 interface SketchState {
   layers: SketchLayer[];
   activeLayerId: string;
   canvas: { width: number; height: number; backgroundColor?: string };
   bindings: LayerBinding[];
+}
+
+/**
+ * Point a layer at an image. The bitmap is not inlined: `data` holds the
+ * locator plus the bounds it occupies, and the editor's canvas runtime
+ * resolves and draws it on load. That is the same shape a sketch seeded from
+ * an asset carries, so a layer written here opens exactly like one the editor
+ * itself produced.
+ *
+ * Bounds default to the whole canvas. The image is drawn at its natural size
+ * anchored at the bounds' top-left, so a caller that knows the image's
+ * dimensions should pass them rather than leave the layer canvas oversized.
+ */
+function setLayerImage(
+  layer: SketchLayer,
+  args: Record<string, unknown>,
+  canvasWidth: number,
+  canvasHeight: number
+): {
+  layer: SketchLayer;
+  image: string;
+  bounds: { x: number; y: number; width: number; height: number };
+} {
+  const image = normalizeImageReference(args["image"]);
+  if (isError(image)) {
+    throw new Error(image.error);
+  }
+  const dimension = (value: unknown, fallback: number, name: string): number => {
+    if (value === undefined || value === null) return fallback;
+    const n = Number(value);
+    if (!Number.isFinite(n) || !Number.isInteger(n) || n < 1) {
+      throw new Error(`set_layer_image needs a positive integer \`${name}\`.`);
+    }
+    return n;
+  };
+  const offset = (value: unknown, name: string): number => {
+    if (value === undefined || value === null) return 0;
+    const n = Number(value);
+    if (!Number.isFinite(n) || !Number.isInteger(n)) {
+      throw new Error(`set_layer_image needs an integer \`${name}\`.`);
+    }
+    return n;
+  };
+  const bounds = {
+    x: offset(args["x"], "x"),
+    y: offset(args["y"], "y"),
+    width: dimension(args["width"], canvasWidth, "width"),
+    height: dimension(args["height"], canvasHeight, "height")
+  };
+  return {
+    layer: {
+      ...layer,
+      data: encodeSketchLayerData(image, bounds),
+      contentBounds: bounds
+    },
+    image,
+    bounds
+  };
 }
 
 /** Apply one operation. Returns the result summary, or throws with the reason. */
@@ -628,13 +727,25 @@ function applyOp(
           ? args["name"].trim()
           : `Layer ${layers.length + 1}`;
       const type = args["type"] === "mask" ? "mask" : "raster";
-      const layer = makeLayer(
+      let layer = makeLayer(
         mintLayerId(layers),
         name,
         type,
         state.canvas.width,
         state.canvas.height
       );
+      // An `image` makes this one op instead of add_layer + set_layer_image,
+      // which is how a caller places a picture on a fresh layer.
+      const placed =
+        args["image"] === undefined
+          ? null
+          : setLayerImage(
+              layer,
+              args,
+              state.canvas.width,
+              state.canvas.height
+            );
+      if (placed) layer = placed.layer;
       // Layers are ordered bottom-to-top, so a new one goes on top unless the
       // caller pins an index.
       const at =
@@ -643,7 +754,18 @@ function applyOp(
           : layers.length;
       layers.splice(at, 0, layer);
       state.activeLayerId = layer.id;
-      return { id: layer.id, name: layer.name, index: at };
+      const summary: {
+        id: string;
+        name: string;
+        index: number;
+        image?: string;
+        bounds?: { x: number; y: number; width: number; height: number };
+      } = { id: layer.id, name: layer.name, index: at };
+      if (placed) {
+        summary.image = placed.image;
+        summary.bounds = placed.bounds;
+      }
+      return summary;
     }
 
     case "remove_layer": {
@@ -748,6 +870,25 @@ function applyOp(
       return { activeLayerId: state.activeLayerId };
     }
 
+    case "set_layer_image": {
+      const index = findLayerIndex(layers, state.activeLayerId, args["target"]);
+      if (index < 0)
+        throw new Error(`No layer matches "${String(args["target"])}".`);
+      const applied = setLayerImage(
+        layers[index],
+        args,
+        state.canvas.width,
+        state.canvas.height
+      );
+      layers[index] = applied.layer;
+      return {
+        id: applied.layer.id,
+        name: applied.layer.name,
+        image: applied.image,
+        bounds: applied.bounds
+      };
+    }
+
     case "resize_canvas": {
       const width = Number(args["width"] ?? state.canvas.width);
       const height = Number(args["height"] ?? state.canvas.height);
@@ -775,6 +916,34 @@ interface OpRecord {
   error?: string;
 }
 
+/**
+ * Asset ids named by an op's `image` that this user has no asset for. Reading
+ * them up front turns "the layer is empty" into a message naming the id.
+ */
+async function missingAssetReferences(
+  run: CapabilityRun,
+  ops: ParsedOp[]
+): Promise<string[]> {
+  const ids = new Set<string>();
+  for (const { op, args } of ops) {
+    if (op !== "set_layer_image" && op !== "add_layer") continue;
+    const image = normalizeImageReference(args["image"]);
+    if (isError(image)) continue;
+    const assetId = assetIdOfReference(image);
+    if (assetId) ids.add(assetId);
+  }
+  if (ids.size === 0) return [];
+  const userId = run.context.userId;
+  if (!userId) return [...ids];
+  // `findMany` is user-scoped, so another user's asset reads as missing — the
+  // same rule the rest of this module applies to sketches.
+  const { Asset } = await import("@nodetool-ai/models");
+  const found = new Set(
+    (await Asset.findMany(userId, [...ids])).map((asset) => asset.id)
+  );
+  return [...ids].filter((id) => !found.has(id));
+}
+
 const editSketch: CapabilityExport = {
   spec: editSketchSpec,
   impl: async (run, params) => {
@@ -798,6 +967,18 @@ const editSketch: CapabilityExport = {
       return { error: `Sketch ${sketchId} was not found.` };
     }
 
+    // Verify every referenced asset before writing. An id that resolves to
+    // nothing would otherwise be stored happily and show up as an empty layer
+    // in the editor — the failure this reports instead.
+    const missing = await missingAssetReferences(run, ops);
+    if (missing.length > 0) {
+      return {
+        error:
+          `No asset matches ${missing.map((id) => `"${id}"`).join(", ")}. ` +
+          "Use list_assets to find one, and pass its id as `image`."
+      };
+    }
+
     let records: OpRecord[] = [];
     let layerSummary: { id: string; name: string; index: number }[] = [];
     let activeLayerId = "";
@@ -811,6 +992,7 @@ const editSketch: CapabilityExport = {
         if (
           typeof rawTarget === "string" &&
           (parsed.op === "set_layer_props" ||
+            parsed.op === "set_layer_image" ||
             parsed.op === "rename_layer" ||
             parsed.op === "duplicate_layer" ||
             parsed.op === "remove_layer" ||

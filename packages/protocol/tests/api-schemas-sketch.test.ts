@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
+  decodeSketchLayerData,
+  encodeSketchLayerData,
   layerVersion,
   layerBindingKind,
   layerWorkflowBinding,
@@ -316,5 +318,65 @@ describe("sketch document version schemas", () => {
     expect(
       restoreSketchVersionInput.safeParse({ id: "d1", version: 1.5 }).success
     ).toBe(false);
+  });
+});
+
+describe("layer data codec", () => {
+  const bounds = { x: 10, y: 20, width: 640, height: 480 };
+
+  it("round-trips an asset locator with its bounds", () => {
+    const encoded = encodeSketchLayerData("asset://a1.png", bounds);
+    expect(encoded.startsWith("ntlayer:")).toBe(true);
+    expect(decodeSketchLayerData(encoded, 1, 1)).toEqual({
+      image: "asset://a1.png",
+      bounds
+    });
+  });
+
+  it("decodes the envelope the editor writes", () => {
+    // The exact bytes the editor's serializer produces: base64 of the payload,
+    // behind the prefix. A decoder that stopped matching this would silently
+    // blank every stored layer.
+    const payload = btoa(
+      JSON.stringify({ version: 1, image: "asset://a1", bounds })
+    );
+    expect(decodeSketchLayerData(`ntlayer:${payload}`, 1, 1)).toEqual({
+      image: "asset://a1",
+      bounds
+    });
+  });
+
+  it("survives a non-Latin-1 image reference", () => {
+    const image = "https://example.com/café-日本.png";
+    const encoded = encodeSketchLayerData(image, bounds);
+    expect(decodeSketchLayerData(encoded, 1, 1).image).toBe(image);
+  });
+
+  it("reads a bare image as legacy data at the fallback bounds", () => {
+    expect(decodeSketchLayerData("data:image/png;base64,AAA", 800, 600)).toEqual(
+      {
+        image: "data:image/png;base64,AAA",
+        bounds: { x: 0, y: 0, width: 800, height: 600 }
+      }
+    );
+  });
+
+  it("falls back on missing, empty, and unparseable data", () => {
+    const fallback = { x: 0, y: 0, width: 4, height: 3 };
+    expect(decodeSketchLayerData(null, 4, 3)).toEqual({
+      image: null,
+      bounds: fallback
+    });
+    expect(decodeSketchLayerData("ntlayer:@@@", 4, 3).bounds).toEqual(fallback);
+  });
+
+  it("fills in bounds the payload omits", () => {
+    const partial = btoa(JSON.stringify({ version: 1, image: "x", bounds: {} }));
+    expect(decodeSketchLayerData(`ntlayer:${partial}`, 7, 9).bounds).toEqual({
+      x: 0,
+      y: 0,
+      width: 7,
+      height: 9
+    });
   });
 });

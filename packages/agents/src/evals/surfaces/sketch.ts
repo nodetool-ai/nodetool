@@ -21,7 +21,10 @@
  * shapes — minus the `sketch_id` param, since this bridge addresses a single
  * implicit document rather than a registry of open editors.
  *
- * `ui_sketch_render_to_asset` stays excluded: it needs an asset-upload service,
+ * `ui_sketch_place_image` records the locator it is given without fetching the
+ * bytes — there is no asset store here — so it moves the layer's reference,
+ * not its pixels. `ui_sketch_render_to_asset` stays excluded: it needs an
+ * asset-upload service,
  * which has no meaningful headless equivalent. To look at what a run drew, take
  * the composite PNG off the bridge instead ({@link SketchToolBridge.compositePng},
  * or {@link getLastSketchToolBridge} when the eval runner owns the instance).
@@ -254,6 +257,8 @@ export interface SketchBridgeFinalState {
     provider?: string;
     model?: string;
     fillColor?: string;
+    imageRef?: string;
+    imageBounds?: { x: number; y: number; width: number; height: number };
   }[];
 }
 
@@ -276,6 +281,14 @@ interface Layer {
   bindingStatus?: string;
   /** Solid fill applied to the bitmap when it is first materialized. */
   fillColor?: string;
+  /**
+   * Locator of an image placed on this layer. Recorded, not decoded: the
+   * surface has no asset store to fetch bytes from, so a placement changes
+   * what the layer references rather than what it contains.
+   */
+  imageRef?: string;
+  /** Where a placed image sits on the canvas. */
+  imageBounds?: { x: number; y: number; width: number; height: number };
   /** Strokes committed to this layer, so a fill and a drawing stay tellable apart. */
   strokeCount: number;
   /**
@@ -288,6 +301,27 @@ interface Layer {
 
 /** Serializable view handed back to the model — the bitmap never crosses. */
 type LayerView = Omit<Layer, "raster">;
+
+/**
+ * Normalize what a caller named as an image into the locator form the editor
+ * stores. A bare id becomes `asset://<id>`; a scheme the canvas cannot load is
+ * refused here the way the live bridge refuses it.
+ */
+function normalizePlacedImage(value: unknown): string {
+  const image = isString(value) ? value.trim() : "";
+  if (!image) {
+    throw new Error(
+      "place_image needs an `image`: an asset id, an asset:// locator, a data: URL, or an http(s) URL."
+    );
+  }
+  if (/^(asset:\/\/|data:|https?:\/\/)/.test(image)) return image;
+  if (image.includes("://")) {
+    throw new Error(
+      `image "${image}" uses a scheme the sketch canvas cannot load. Use an asset id, asset://, data:, or http(s)://.`
+    );
+  }
+  return `asset://${image}`;
+}
 
 function tool<TResult>(
   name: string,
@@ -825,6 +859,52 @@ export function createSketchToolBridge(
           result.note = "Generation not started (autoGenerate=false).";
         }
         return result;
+      }
+    ),
+
+    tool(
+      "ui_sketch_place_image",
+      "Put an existing image onto a layer — an asset from the library, or a URL. `image` is an asset id (find one with the asset tools), an asset:// locator, a data: URL, or an http(s) URL. Omit `target` to place it on a new layer, or name a layer to replace what it shows. The image is drawn at its own size from (`x`, `y`) unless `width`/`height` say otherwise. This is how a picture gets onto a canvas; ui_sketch_generate makes a new one from a prompt instead.",
+      z.object({
+        image: z.string(),
+        target: targetParam.optional(),
+        name: z.string().optional(),
+        x: z.number().optional(),
+        y: z.number().optional(),
+        width: z.number().optional(),
+        height: z.number().optional()
+      }),
+      async (args) => {
+        const image = normalizePlacedImage(args["image"]);
+        const layer = isString(args["target"]) && args["target"]
+          ? resolveTarget(args["target"])
+          : (() => {
+              const id = nextLayerId();
+              const created = makeLayer(
+                id,
+                (isString(args["name"]) && args["name"]) || `Layer ${layerSeq}`,
+                "raster"
+              );
+              const idx = activeLayerId
+                ? indexOf(activeLayerId) + 1
+                : layers.length;
+              layers.splice(idx, 0, created);
+              activeLayerId = id;
+              return created;
+            })();
+        const num = (value: unknown, fallback: number) =>
+          typeof value === "number" && Number.isFinite(value)
+            ? value
+            : fallback;
+        layer.imageRef = image;
+        layer.imageBounds = {
+          x: num(args["x"], 0),
+          y: num(args["y"], 0),
+          width: num(args["width"], width),
+          height: num(args["height"], height)
+        };
+        activeLayerId = layer.id;
+        return { ok: true, layer: serialize(layer) };
       }
     ),
 
@@ -1425,6 +1505,8 @@ export function createSketchToolBridge(
           if (l.provider !== undefined) entry.provider = l.provider;
           if (l.model !== undefined) entry.model = l.model;
           if (l.fillColor !== undefined) entry.fillColor = l.fillColor;
+          if (l.imageRef !== undefined) entry.imageRef = l.imageRef;
+          if (l.imageBounds !== undefined) entry.imageBounds = l.imageBounds;
           return entry;
         })
       };
@@ -1441,7 +1523,7 @@ Use the ui_sketch_* tools to inspect and modify the open image document:
 - Call ui_sketch_get_state first to see the layer stack, active layer, colors, and tool.
 - Layers are addressed by id, by (case-insensitive) name, or the literal "active" for the active layer.
 - Add layers with ui_sketch_add_layer, adjust them with ui_sketch_set_layer_props (opacity, blend mode, name, visibility, lock).
-- Generate imagery with ui_sketch_generate; recolor with ui_sketch_set_color; resize the canvas with ui_sketch_resize_canvas; shape the pixel selection with ui_sketch_selection or ui_sketch_set_selection_shape.
+- Put an existing image (an asset id or a URL) on a layer with ui_sketch_place_image; generate a new one with ui_sketch_generate; recolor with ui_sketch_set_color; resize the canvas with ui_sketch_resize_canvas; shape the pixel selection with ui_sketch_selection or ui_sketch_set_selection_shape.
 - Paint regions with ui_sketch_fill, ui_sketch_gradient, and ui_sketch_draw_shape. Transform or grade a layer with ui_sketch_transform and ui_sketch_adjust_layer. Crop with ui_sketch_crop. Sample a pixel with ui_sketch_pick_color.
 
 You can draw. ui_sketch_stroke paints real pixels with the editor's brush, pencil and eraser:

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isNumber, isString } from "../predicates.js";
+
 // ── Layer version ──────────────────────────────────────────────────────────
 
 export const layerVersion = z.object({
@@ -300,3 +302,106 @@ export const deleteSketchVersionInput = z.object({
   version: z.number().int()
 });
 export type DeleteSketchVersionInput = z.infer<typeof deleteSketchVersionInput>;
+
+// ── Layer raster payload codec ─────────────────────────────────────────────
+
+/**
+ * A layer's `data` field carries `ntlayer:<base64 JSON>` — the image (a data
+ * URL, an `asset://` locator, or an http(s) URL) plus the bounds it occupies
+ * on the canvas. It lives here because four surfaces read and write it: the
+ * editor's serializer, the canvas runtime, the `nodetool.image` sketch nodes,
+ * and the headless `edit_sketch` capability. A format they each re-derived is
+ * a format they can each get subtly wrong.
+ */
+export const SERIALIZED_LAYER_DATA_PREFIX = "ntlayer:";
+
+export interface SketchLayerBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface SerializedSketchLayerData {
+  version: 1;
+  image: string | null;
+  bounds: SketchLayerBounds;
+}
+
+/**
+ * Base64 of a UTF-8 string. `btoa`/`atob` are globals in Node and in the
+ * browser, and the byte dance around them is what keeps a non-Latin-1
+ * character from throwing.
+ */
+function toBase64(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+/** Inverse of {@link toBase64}. */
+function fromBase64(base64: string): string {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new TextDecoder().decode(bytes);
+}
+
+/** Encode a layer image plus its canvas bounds into the `data` field. */
+export function encodeSketchLayerData(
+  image: string | null,
+  bounds: SketchLayerBounds
+): string {
+  const payload: SerializedSketchLayerData = { version: 1, image, bounds };
+  return `${SERIALIZED_LAYER_DATA_PREFIX}${toBase64(JSON.stringify(payload))}`;
+}
+
+const numberOr = (value: unknown, fallback: number): number =>
+  isNumber(value) && Number.isFinite(value) ? value : fallback;
+
+/**
+ * Decode a layer `data` field. Anything without the prefix is a legacy bare
+ * image (a data URL or a locator) and is returned as the image with the
+ * fallback bounds, which is what every reader did before the envelope existed.
+ */
+export function decodeSketchLayerData(
+  data: string | null | undefined,
+  fallbackWidth: number,
+  fallbackHeight: number
+): { image: string | null; bounds: SketchLayerBounds } {
+  const fallbackBounds: SketchLayerBounds = {
+    x: 0,
+    y: 0,
+    width: fallbackWidth,
+    height: fallbackHeight
+  };
+  if (!data) {
+    return { image: null, bounds: fallbackBounds };
+  }
+  if (!data.startsWith(SERIALIZED_LAYER_DATA_PREFIX)) {
+    return { image: data, bounds: fallbackBounds };
+  }
+  try {
+    const decoded: unknown = JSON.parse(
+      fromBase64(data.slice(SERIALIZED_LAYER_DATA_PREFIX.length))
+    );
+    const payload = (decoded ?? {}) as Partial<SerializedSketchLayerData>;
+    const bounds = payload.bounds;
+    return {
+      image: isString(payload.image) ? payload.image : null,
+      bounds: {
+        x: numberOr(bounds?.x, fallbackBounds.x),
+        y: numberOr(bounds?.y, fallbackBounds.y),
+        width: numberOr(bounds?.width, fallbackBounds.width),
+        height: numberOr(bounds?.height, fallbackBounds.height)
+      }
+    };
+  } catch {
+    return { image: data, bounds: fallbackBounds };
+  }
+}

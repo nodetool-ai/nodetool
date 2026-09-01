@@ -133,6 +133,61 @@ describe("createSketchToolBridge", () => {
     expect(state.activeLayerId).toBe(result.layer.id);
   });
 
+  it("place_image puts an asset on a new layer, sized to the canvas by default", async () => {
+    const bridge = createSketchToolBridge({ width: 800, height: 600 });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+
+    const result = (await byName["ui_sketch_place_image"].execute({
+      image: "asset-42",
+      name: "Photo"
+    })) as { ok: boolean; layer: { id: string; name: string } };
+    expect(result.ok).toBe(true);
+
+    const state = bridge.finalState();
+    const layer = state.layers.find((l) => l.id === result.layer.id);
+    expect(layer?.name).toBe("Photo");
+    expect(layer?.imageRef).toBe("asset://asset-42");
+    expect(layer?.imageBounds).toEqual({
+      x: 0,
+      y: 0,
+      width: 800,
+      height: 600
+    });
+    expect(state.activeLayerId).toBe(result.layer.id);
+  });
+
+  it("place_image targets an existing layer and honors explicit bounds", async () => {
+    const bridge = createSketchToolBridge({ layers: [{ name: "Base" }] });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+
+    await byName["ui_sketch_place_image"].execute({
+      target: "Base",
+      image: "https://example.com/pic.png",
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 50
+    });
+
+    const state = bridge.finalState();
+    expect(state.layers).toHaveLength(1);
+    expect(state.layers[0].imageRef).toBe("https://example.com/pic.png");
+    expect(state.layers[0].imageBounds).toEqual({
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 50
+    });
+  });
+
+  it("place_image refuses a scheme the canvas cannot load", async () => {
+    const bridge = createSketchToolBridge();
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    await expect(
+      byName["ui_sketch_place_image"].execute({ image: "ftp://host/pic.png" })
+    ).rejects.toThrow(/scheme the sketch canvas cannot load/);
+  });
+
   it("generate with autoGenerate false does not start generation", async () => {
     const bridge = createSketchToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));

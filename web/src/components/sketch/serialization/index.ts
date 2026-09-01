@@ -18,11 +18,10 @@ import {
 } from "../types";
 import { blendModeToComposite } from "../drawingUtils";
 import {
-  isNumber,
-  isString
-} from "../../../utils/typePredicates";
-
-const SERIALIZED_LAYER_DATA_PREFIX = "ntlayer:";
+  decodeSketchLayerData,
+  encodeSketchLayerData
+} from "@nodetool-ai/protocol/api-schemas/sketch.js";
+import { isNumber } from "../../../utils/typePredicates";
 
 export type LayerRasterBounds = {
   x: number;
@@ -37,20 +36,6 @@ interface ExportedRasterLayerData {
   imageDataUrl: string;
   byteLength: number;
   sourceMetadata: ExportedRasterLayerSourceMetadata;
-}
-
-type SerializedLayerData = {
-  version: 1;
-  image: string | null;
-  bounds: LayerRasterBounds;
-};
-
-function getDefaultBounds(width: number, height: number): LayerRasterBounds {
-  return { x: 0, y: 0, width, height };
-}
-
-function numberOr(value: unknown, fallback: number): number {
-  return isNumber(value) && Number.isFinite(value) ? value : fallback;
 }
 
 function getDataUrlByteLength(dataUrl: string): number {
@@ -80,12 +65,7 @@ export function serializeLayerData(
   image: string | null,
   bounds: LayerRasterBounds
 ): string {
-  const payload: SerializedLayerData = {
-    version: 1,
-    image,
-    bounds
-  };
-  return `${SERIALIZED_LAYER_DATA_PREFIX}${window.btoa(JSON.stringify(payload))}`;
+  return encodeSketchLayerData(image, bounds);
 }
 
 export function deserializeLayerData(
@@ -93,31 +73,7 @@ export function deserializeLayerData(
   fallbackWidth: number,
   fallbackHeight: number
 ) {
-  const fallbackBounds = getDefaultBounds(fallbackWidth, fallbackHeight);
-  if (!data) {
-    return { image: null, bounds: fallbackBounds };
-  }
-  if (!data.startsWith(SERIALIZED_LAYER_DATA_PREFIX)) {
-    return { image: data, bounds: fallbackBounds };
-  }
-  try {
-    const decoded: unknown = JSON.parse(
-      window.atob(data.slice(SERIALIZED_LAYER_DATA_PREFIX.length))
-    );
-    const payload = (decoded ?? {}) as Partial<SerializedLayerData>;
-    const bounds = payload.bounds;
-    return {
-      image: isString(payload.image) ? payload.image : null,
-      bounds: {
-        x: numberOr(bounds?.x, fallbackBounds.x),
-        y: numberOr(bounds?.y, fallbackBounds.y),
-        width: numberOr(bounds?.width, fallbackBounds.width),
-        height: numberOr(bounds?.height, fallbackBounds.height)
-      }
-    };
-  } catch {
-    return { image: data, bounds: fallbackBounds };
-  }
+  return decodeSketchLayerData(data, fallbackWidth, fallbackHeight);
 }
 
 export function serializeDocument(doc: SketchDocument): string {
