@@ -68,16 +68,13 @@ interface ApplicationAppViewProps {
    * the app's budget. Absent only where no application backs the document.
    */
   application?: ApplicationRunIdentity;
-  /** Falls back to the app's name when the document's root has no title. */
-  title?: string;
 }
 
 const ApplicationAppView: React.FC<ApplicationAppViewProps> = ({
   document,
   applicationId,
   workflow,
-  application,
-  title
+  application
 }) => {
   const { colors } = useTheme();
   const runtimeOptions: Parameters<typeof useAppRuntime>[1] = { document };
@@ -89,7 +86,10 @@ const ApplicationAppView: React.FC<ApplicationAppViewProps> = ({
   }
   const runtime = useAppRuntime(workflow, runtimeOptions);
 
-  const heading = String(document.ui.root.props?.title ?? title ?? "");
+  // Only what the document says. The screen's own navigation header already
+  // shows the application name (AppScreen sets it), so falling back to it here
+  // printed the name twice on one screen.
+  const heading = String(document.ui.root.props?.title ?? "");
   const content = document.ui.content as ComponentNode[];
 
   return (

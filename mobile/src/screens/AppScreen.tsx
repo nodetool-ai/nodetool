@@ -59,7 +59,6 @@ export default function AppScreen({ route, navigation }: Props) {
       applicationId={applicationId}
       workflow={workflow}
       {...(application ? { application } : {})}
-      title={name}
     />
   );
 }

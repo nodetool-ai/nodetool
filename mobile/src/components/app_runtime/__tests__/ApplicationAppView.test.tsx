@@ -237,7 +237,7 @@ describe("ApplicationAppView", () => {
     expect(screen.queryByText("leaked")).toBeNull();
   });
 
-  it("falls back to the app's name when the document has no title", () => {
+  it("shows no heading of its own when the document has no title", () => {
     const untitled: ApplicationDocument = {
       ...document,
       ui: { ...document.ui, root: { props: {} } },
@@ -246,10 +246,11 @@ describe("ApplicationAppView", () => {
       <ApplicationAppView
         document={untitled}
         workflow={makeWorkflow("wf-untitled")}
-        title="Published app"
       />
     );
 
-    expect(screen.getByText("Published app")).toBeTruthy();
+    // AppScreen puts the application name in the navigation header, so a
+    // fallback here printed it twice on one screen.
+    expect(screen.queryByText("Greeter")).toBeNull();
   });
 });

@@ -6,9 +6,7 @@
     "schemaVersion": 3,
     "ui": {
       "root": {
-        "props": {
-          "title": "Photo Studio"
-        }
+        "props": {}
       },
       "content": [
         {
