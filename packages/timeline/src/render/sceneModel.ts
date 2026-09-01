@@ -19,6 +19,7 @@ import type {
   TrackEffect
 } from "../types.js";
 import type {
+  AnimationSample,
   AnimationSampleMask,
   ClipAnimation,
   CompiledAnimation
@@ -28,6 +29,7 @@ import {
   countStaggerUnits,
   hasActiveAnimationWindow,
   hasStaggeredAnimation,
+  isIdentitySample,
   sampleAnimations
 } from "../animation/index.js";
 import type { ResolvedCaption, TextRenderStagger } from "./draw.js";
@@ -481,10 +483,16 @@ export interface AnimatedLayerProps {
   mask?: AnimationSampleMask;
   /**
    * Effects to feed the compositor's per-layer effect pre-pass: the clip's
-   * static `effects` with any animated blur/brightness/saturation composed in.
+   * static `effects` with any animated blur and grade channels composed in.
    * Equal to the clip's own `effects` when no effect animation is active.
    */
   effects?: ClipEffect[];
+  /**
+   * The clip's `shapeStyle` with any animated `trimStart`/`trimEnd` applied.
+   * Equal to the clip's own when neither is driven. The shape rasterizer does
+   * not read the trim range yet, so today this is carried, not drawn.
+   */
+  shapeStyle?: TimelineClip["shapeStyle"];
 }
 
 interface CompileCacheEntry {
@@ -579,33 +587,32 @@ export function resolveAnimatedLayerProps(
   const clip = layer.clip;
   const compiled = compiledFor(clip, canvas, cache);
   if (compiled.length === 0) {
-    return { transform: layer.transform, opacity: layer.opacity, effects: clip.effects };
+    return staticProps(layer);
   }
 
   const s = sampleAnimations(compiled, currentTimeMs - clip.startMs);
-  if (
-    s.offsetX === 0 &&
-    s.offsetY === 0 &&
-    s.scale === 1 &&
-    s.rotation === 0 &&
-    s.opacity === 1 &&
-    s.blur === 0 &&
-    s.brightness === 0 &&
-    s.saturation === 1 &&
-    s.mask === undefined
-  ) {
-    return { transform: layer.transform, opacity: layer.opacity, effects: clip.effects };
+  if (isIdentitySample(s)) {
+    return staticProps(layer);
   }
 
   const base = layer.transform ?? IDENTITY_TRANSFORM;
+  // `positionX/Y` and `anchorX/Y` replace the clip's own value when driven;
+  // `offsetX/Y` still add on top, so an offset animation composes with a
+  // position one instead of fighting it.
   const transform: ClipTransform = {
     position: {
-      x: base.position.x + s.offsetX,
-      y: base.position.y + s.offsetY
+      x: (s.positionX ?? base.position.x) + s.offsetX,
+      y: (s.positionY ?? base.position.y) + s.offsetY
     },
-    scale: { x: base.scale.x * s.scale, y: base.scale.y * s.scale },
+    scale: {
+      x: base.scale.x * s.scale * s.scaleX,
+      y: base.scale.y * s.scale * s.scaleY
+    },
     rotation: base.rotation + s.rotation,
-    anchor: base.anchor
+    anchor:
+      s.anchorX === undefined && s.anchorY === undefined
+        ? base.anchor
+        : { x: s.anchorX ?? base.anchor.x, y: s.anchorY ?? base.anchor.y }
   };
   // `s.mask` is freshly allocated per sampleAnimations call here (no scratch
   // is passed), so handing it out is safe.
@@ -613,37 +620,84 @@ export function resolveAnimatedLayerProps(
     transform,
     opacity: layer.opacity * s.opacity,
     mask: s.mask,
-    effects: composeAnimatedEffects(clip.effects, s.blur, s.brightness, s.saturation)
+    effects: composeAnimatedEffects(clip.effects, s),
+    shapeStyle: composeAnimatedShapeStyle(clip.shapeStyle, s)
+  };
+}
+
+/** The layer's own values, for a clip with no animation in flight. */
+function staticProps(layer: {
+  clip: TimelineClip;
+  transform?: ClipTransform;
+  opacity: number;
+}): AnimatedLayerProps {
+  return {
+    transform: layer.transform,
+    opacity: layer.opacity,
+    effects: layer.clip.effects,
+    shapeStyle: layer.clip.shapeStyle
   };
 }
 
 /**
  * Fold the sampled effect values into the clip's static effects for the
- * compositor pre-pass. The animated blur/brightness ADD to the aggregated blur
- * radius / grade brightness (both additive terms in the pipeline) and the
- * animated saturation MULTIPLIES the aggregated saturation — so a synthesized
- * blur effect and a synthesized color effect appended to the static list land
- * exactly on those aggregation rules (see `effectsProcessor` / `canvas2d`
- * `computeFilterForEffects`). Returns the static array unchanged when the
- * sampled values are identity (no allocation on the steady path).
+ * compositor pre-pass. The animated blur and the grade's additive terms ADD to
+ * the aggregated values and its multipliers MULTIPLY — the same aggregation
+ * `effectsProcessor` / `canvas2d` `computeFilterForEffects` apply across
+ * effects — so a synthesized blur effect and a synthesized color effect
+ * appended to the static list land on exactly those rules. Returns the static
+ * array unchanged when the sampled values are identity (no allocation on the
+ * steady path).
  */
 function composeAnimatedEffects(
   staticEffects: ClipEffect[] | undefined,
-  blur: number,
-  brightness: number,
-  saturation: number
+  s: AnimationSample
 ): ClipEffect[] | undefined {
-  const hasColor = brightness !== 0 || saturation !== 1;
-  const hasBlur = blur > 0;
+  const hasColor =
+    s.brightness !== 0 ||
+    s.saturation !== 1 ||
+    s.contrast !== 1 ||
+    s.hue !== 0 ||
+    s.temperature !== 0 ||
+    s.tint !== 0;
+  const hasBlur = s.blur > 0;
   if (!hasColor && !hasBlur) return staticEffects;
   const out: ClipEffect[] = staticEffects ? [...staticEffects] : [];
   if (hasColor) {
-    out.push({ id: "anim-color", type: "color", enabled: true, brightness, saturation });
+    out.push({
+      id: "anim-color",
+      type: "color",
+      enabled: true,
+      brightness: s.brightness,
+      saturation: s.saturation,
+      contrast: s.contrast,
+      hue: s.hue,
+      temperature: s.temperature,
+      tint: s.tint
+    });
   }
   if (hasBlur) {
-    out.push({ id: "anim-blur", type: "blur", enabled: true, radius: blur });
+    out.push({ id: "anim-blur", type: "blur", enabled: true, radius: s.blur });
   }
   return out;
+}
+
+/**
+ * Apply the sampled trim range to the clip's shape style. Both channels
+ * replace rather than compose, so an undriven one leaves the clip's own value
+ * in place; an unanimated clip keeps its own object.
+ */
+function composeAnimatedShapeStyle(
+  staticStyle: TimelineClip["shapeStyle"],
+  s: AnimationSample
+): TimelineClip["shapeStyle"] {
+  if (!staticStyle) return staticStyle;
+  if (s.trimStart === undefined && s.trimEnd === undefined) return staticStyle;
+  return {
+    ...staticStyle,
+    trimStart: s.trimStart ?? staticStyle.trimStart,
+    trimEnd: s.trimEnd ?? staticStyle.trimEnd
+  };
 }
 
 /**

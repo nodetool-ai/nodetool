@@ -114,6 +114,59 @@ describe("buildTransformMatrix", () => {
     }
   });
 
+  describe("non-uniform scale", () => {
+    /** Map a quad corner through the matrix and convert NDC → pixels. */
+    const cornerPx = (
+      m: Float32Array,
+      qx: number,
+      qy: number,
+      w: number,
+      h: number
+    ) => ({
+      x: (m[0] * qx + m[4] * qy + m[12]) * (w / 2),
+      y: (m[1] * qx + m[5] * qy + m[13]) * (h / 2),
+    });
+
+    it("scales the axes independently on a 16:9 canvas without shearing", () => {
+      const W = 1920;
+      const H = 1080;
+      const base = containBaseScale(1920, 1080, W, H);
+      const wide = buildTransformMatrix(
+        { ...IDENTITY_TRANSFORM, scale: { x: 2, y: 1 } },
+        base,
+        W,
+        H
+      );
+      const unit = buildTransformMatrix(IDENTITY_TRANSFORM, base, W, H);
+      const a = cornerPx(wide, 1, 1, W, H);
+      const b = cornerPx(unit, 1, 1, W, H);
+      // Twice as wide, exactly as tall, and square to the frame: an axis-only
+      // scale must not leak into the other axis.
+      expect(a.x).toBeCloseTo(b.x * 2, 4);
+      expect(a.y).toBeCloseTo(b.y, 4);
+      expect(wide[1]).toBeCloseTo(0, 6);
+      expect(wide[4]).toBeCloseTo(0, 6);
+    });
+
+    it("keys the matrix cache on both axes", () => {
+      const base = { x: 1, y: 1 };
+      const first = buildTransformMatrix(
+        { ...IDENTITY_TRANSFORM, scale: { x: 2, y: 1 } },
+        base,
+        640,
+        480
+      );
+      const second = buildTransformMatrix(
+        { ...IDENTITY_TRANSFORM, scale: { x: 2, y: 3 } },
+        base,
+        640,
+        480
+      );
+      expect(first[5]).toBeCloseTo(1);
+      expect(second[5]).toBeCloseTo(3);
+    });
+  });
+
   describe("aspect-corrected rotation", () => {
     /** Map a quad corner through the matrix and convert NDC → pixels. */
     const cornerPx = (

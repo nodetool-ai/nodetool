@@ -10,7 +10,10 @@
 
 import type { ClipShapeStyle, ClipTextStyle } from "../types.js";
 import type { AnimationSample, CompiledAnimation } from "../animation/index.js";
-import { sampleStaggeredAnimations } from "../animation/index.js";
+import {
+  createAnimationSample,
+  sampleStaggeredAnimations
+} from "../animation/index.js";
 
 /**
  * A fill or stroke paint. Canvas also accepts gradients and patterns, which
@@ -362,16 +365,7 @@ export function staggerPhase(stagger: TextRenderStagger): "active" | string {
 
 /** A fresh scratch sample for {@link drawStaggeredText}. */
 export function createStaggerScratch(): AnimationSample {
-  return {
-    offsetX: 0,
-    offsetY: 0,
-    scale: 1,
-    rotation: 0,
-    opacity: 1,
-    blur: 0,
-    brightness: 0,
-    saturation: 1
-  };
+  return createAnimationSample();
 }
 
 // ── Shapes ───────────────────────────────────────────────────────────────────

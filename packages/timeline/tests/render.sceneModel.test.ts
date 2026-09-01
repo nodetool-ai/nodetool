@@ -10,10 +10,12 @@ import {
   effectiveAssetId,
   isClipActive,
   resolveCaptionAtTime,
+  resolveAnimatedLayerProps,
   trackZ,
   LAYER_Z_BASE,
   MAX_VIDEO_LAYERS
 } from "../src/render/sceneModel.js";
+import type { AnimatedProperty, ClipAnimation } from "../src/animation/index.js";
 
 const clip = (overrides: Partial<TimelineClip>): TimelineClip =>
   makeClip({
@@ -405,5 +407,112 @@ describe("shape clips", () => {
     const clips = [clip({ id: "shape", trackId: "overlay", mediaType: "shape", currentAssetId: undefined, shapeStyle: { kind: "rect", fill: "#334455" } })];
     const layers = computeActiveLayers(tracks, clips, 100);
     expect(layers[0]).toMatchObject({ kind: "shape", clipId: "shape", assetId: undefined, shapeStyle: clips[0].shapeStyle });
+  });
+});
+
+describe("resolveAnimatedLayerProps", () => {
+  const CANVAS = { width: 1000, height: 1000 };
+
+  /** One flat curve per channel, so the resolved value is the one declared. */
+  const driver = (
+    id: string,
+    values: Partial<Record<AnimatedProperty, number>>
+  ): ClipAnimation => ({
+    id,
+    role: "in",
+    preset: "custom",
+    durationMs: 1000,
+    easing: "linear",
+    custom: {
+      curves: Object.entries(values).map(([property, value]) => ({
+        property,
+        keyframes: [
+          { t: 0, value: value as number },
+          { t: 1, value: value as number }
+        ]
+      }))
+    }
+  });
+
+  const layerFor = (animations: ClipAnimation[], over: Partial<TimelineClip> = {}) => ({
+    clip: clip({ startMs: 0, durationMs: 2000, animations, ...over }),
+    transform: {
+      position: { x: 20, y: 30 },
+      scale: { x: 2, y: 2 },
+      rotation: 0,
+      anchor: { x: 0.5, y: 0.5 }
+    },
+    opacity: 1
+  });
+
+  it("scales each axis by its own channel, on top of the uniform one", () => {
+    const props = resolveAnimatedLayerProps(
+      layerFor([driver("a", { scale: 1.5, scaleX: 2, scaleY: 0.5 })]),
+      500,
+      CANVAS
+    );
+    expect(props.transform?.scale).toEqual({ x: 2 * 1.5 * 2, y: 2 * 1.5 * 0.5 });
+  });
+
+  it("replaces the position it is given and still adds the offset", () => {
+    const props = resolveAnimatedLayerProps(
+      layerFor([driver("a", { positionX: 100, offsetX: 5, offsetY: 7 })]),
+      500,
+      CANVAS
+    );
+    expect(props.transform?.position).toEqual({ x: 105, y: 37 });
+  });
+
+  it("replaces the anchor axis that is driven and keeps the other", () => {
+    const props = resolveAnimatedLayerProps(
+      layerFor([driver("a", { anchorX: 0 })]),
+      500,
+      CANVAS
+    );
+    expect(props.transform?.anchor).toEqual({ x: 0, y: 0.5 });
+  });
+
+  it("folds the grade channels into one synthesized color effect", () => {
+    const props = resolveAnimatedLayerProps(
+      layerFor([driver("a", { contrast: 1.4, hue: 90, temperature: 0.3, tint: -0.2 })]),
+      500,
+      CANVAS
+    );
+    expect(props.effects).toEqual([
+      {
+        id: "anim-color",
+        type: "color",
+        enabled: true,
+        brightness: 0,
+        saturation: 1,
+        contrast: 1.4,
+        hue: 90,
+        temperature: 0.3,
+        tint: -0.2
+      }
+    ]);
+  });
+
+  it("carries the animated trim range on the shape style", () => {
+    const props = resolveAnimatedLayerProps(
+      layerFor([driver("a", { trimEnd: 0.4 })], {
+        mediaType: "shape",
+        shapeStyle: { kind: "rect", fill: "#fff", trimStart: 0.1 }
+      }),
+      500,
+      CANVAS
+    );
+    expect(props.shapeStyle).toMatchObject({ trimStart: 0.1, trimEnd: 0.4 });
+  });
+
+  it("returns the clip's own objects when every channel is at identity", () => {
+    const layer = layerFor([driver("a", { scaleX: 1, hue: 0 })], {
+      effects: [{ id: "e", type: "blur", enabled: true, radius: 3 }],
+      shapeStyle: { kind: "rect", fill: "#fff" }
+    });
+    const props = resolveAnimatedLayerProps(layer, 500, CANVAS);
+    expect(props.transform).toBe(layer.transform);
+    expect(props.effects).toBe(layer.clip.effects);
+    expect(props.shapeStyle).toBe(layer.clip.shapeStyle);
   });
 });

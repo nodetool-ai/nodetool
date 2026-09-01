@@ -19,6 +19,8 @@ import type {
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
+import { resolveAnimatedLayerProps } from "@nodetool-ai/timeline/scene";
+
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { renderTimelineFrames } from "../src/timeline-preview/frames.js";
 
@@ -88,6 +90,29 @@ async function pixelAt(
   ctx.drawImage(image, 0, 0);
   const d = ctx.getImageData(x, y, 1, 1).data;
   return [d[0], d[1], d[2], d[3]];
+}
+
+/** How many pixels of a row or column of a PNG frame are red. */
+async function redSpan(
+  png: Uint8Array,
+  axis: "row" | "column"
+): Promise<{ length: number; total: number }> {
+  const image = await loadImage(Buffer.from(png));
+  const canvas = createCanvas(image.width, image.height);
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(image, 0, 0);
+  const data =
+    axis === "row"
+      ? ctx.getImageData(0, Math.floor(image.height / 2), image.width, 1).data
+      : ctx.getImageData(Math.floor(image.width / 2), 0, 1, image.height).data;
+  let length = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i] > 200 && data[i + 1] < 60 && data[i + 2] < 60) length += 1;
+  }
+  return {
+    length,
+    total: axis === "row" ? image.width : image.height
+  };
 }
 
 describe("renderTimelineFrames", () => {
@@ -280,6 +305,83 @@ describe("renderTimelineFrames", () => {
     });
 
     expect(frames[0].dropped).toEqual([]);
+  });
+
+  /**
+   * The channels T7 added have to reach the picture, not just the sample. A
+   * `scaleX` curve widens the layer and leaves its height alone, and the span
+   * the frame actually shows is the one the scene model resolved — the harness
+   * and the renderer read the same sample or this diverges silently.
+   */
+  it("widens a shape with scaleX and leaves its height alone", async () => {
+    const middleSquare = {
+      kind: "rect" as const,
+      fill: "#ff0000",
+      x: 0.25,
+      y: 0.25,
+      width: 0.5,
+      height: 0.5
+    };
+    const plain = shapeClip("plain", "track-0", "#ff0000", {
+      shapeStyle: middleSquare
+    });
+    const widened: TimelineClip = {
+      ...plain,
+      id: "widened",
+      name: "widened",
+      animations: [
+        {
+          id: "wide",
+          role: "loop",
+          preset: "custom",
+          durationMs: 1000,
+          easing: "linear",
+          custom: {
+            curves: [
+              {
+                property: "scaleX",
+                keyframes: [
+                  { t: 0, value: 2 },
+                  { t: 1, value: 2 }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    };
+
+    const render = (clip: TimelineClip) =>
+      renderTimelineFrames({
+        sequence: sequence([track(0)], [clip]),
+        timesMs: [1000],
+        width: 160,
+        loadAsset: noAssets
+      });
+
+    const before = await render(plain);
+    const after = await render(widened);
+
+    const baseRow = await redSpan(before.frames[0].png, "row");
+    const wideRow = await redSpan(after.frames[0].png, "row");
+    const baseColumn = await redSpan(before.frames[0].png, "column");
+    const wideColumn = await redSpan(after.frames[0].png, "column");
+
+    // The scene model is the authority on the factor; the pixels must match it.
+    const props = resolveAnimatedLayerProps(
+      { clip: widened, opacity: 1 },
+      1000,
+      { width: 640, height: 360 }
+    );
+    expect(props.transform?.scale.x).toBe(2);
+    expect(props.transform?.scale.y).toBe(1);
+
+    // Antialiased edges cost a pixel either side, so the widths are compared
+    // with a small tolerance; the height is untouched and must match exactly.
+    const expectedWide = baseRow.length * (props.transform?.scale.x ?? 1);
+    expect(Math.abs(wideRow.length - expectedWide)).toBeLessThanOrEqual(4);
+    expect(wideRow.length).toBeGreaterThan(wideRow.total - 5);
+    expect(wideColumn.length).toBe(baseColumn.length);
   });
 
   it("names the effects Canvas 2D cannot draw", async () => {

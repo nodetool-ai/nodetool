@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { compileClipAnimations } from "../src/animation/compile.js";
+import { sampleAnimations } from "../src/animation/sample.js";
 import type { ClipAnimation } from "../src/animation/types.js";
 
 const CANVAS = { width: 1920, height: 1080 };
@@ -134,5 +135,45 @@ describe("compileClipAnimations", () => {
         expect(kf.easing).toBe("linear");
       }
     }
+  });
+});
+
+describe("channel presets", () => {
+  it("squash drives the two scale axes in opposite directions", () => {
+    const [c] = compileClipAnimations(
+      [anim({ role: "emphasis", preset: "squash", durationMs: 500, params: { amount: 0.2 } })],
+      3000,
+      CANVAS
+    );
+    const values = (property: string) =>
+      c.curves.find((cu) => cu.property === property)?.keyframes.map((k) => k.value);
+    expect(values("scaleX")).toEqual([1, 1.2, 1]);
+    expect(values("scaleY")).toEqual([1, 0.8, 1]);
+    // Wider and shorter at the same instant is what makes it a squash.
+    const mid = sampleAnimations([c], 250);
+    expect(mid.scaleX).toBeGreaterThan(1);
+    expect(mid.scaleY).toBeLessThan(1);
+    expect(mid.scale).toBe(1);
+  });
+
+  it("hueShift drives a full turn of hue and nothing else", () => {
+    const [c] = compileClipAnimations(
+      [anim({ role: "loop", preset: "hueShift", durationMs: 1000 })],
+      3000,
+      CANVAS
+    );
+    expect(c.curves.map((cu) => cu.property)).toEqual(["hue"]);
+    expect(c.curves[0].keyframes.map((k) => k.value)).toEqual([0, 360]);
+    // Sampled a quarter into the cycle: a quarter of the wheel.
+    expect(sampleAnimations([c], 250).hue).toBeCloseTo(90, 6);
+  });
+
+  it("hueShift reverses with direction", () => {
+    const [c] = compileClipAnimations(
+      [anim({ role: "loop", preset: "hueShift", durationMs: 1000, params: { direction: "reverse" } })],
+      3000,
+      CANVAS
+    );
+    expect(sampleAnimations([c], 250).hue).toBeCloseTo(-90, 6);
   });
 });

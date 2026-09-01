@@ -132,7 +132,9 @@ export type AnimationPresetId =
   | "kenBurns"
   | "float"
   | "breathe"
-  | "rotate";
+  | "rotate"
+  | "squash"
+  | "hueShift";
 
 /**
  * Every property a curve can drive, as a runtime list so a custom animation's
@@ -225,4 +227,39 @@ export const ANIMATED_PROPERTY_FOLD: Record<
   anchorY: "replace",
   trimStart: "replace",
   trimEnd: "replace"
+};
+
+/**
+ * Which fold pass a channel belongs to when its animation is staggered. A
+ * staggered animation's transform and opacity channels run once per unit
+ * (word) at that unit's own time; the effect, mask and shape channels stay
+ * block-level over the full stagger span, because the compositor applies them
+ * to the whole layer. The sampler classifies by this table rather than by a
+ * list of its own, so a new channel picks its pass here.
+ */
+export const ANIMATED_PROPERTY_PASS: Record<
+  AnimatedProperty,
+  "motion" | "effects"
+> = {
+  offsetX: "motion",
+  offsetY: "motion",
+  scale: "motion",
+  scaleX: "motion",
+  scaleY: "motion",
+  rotation: "motion",
+  opacity: "motion",
+  wipeProgress: "effects",
+  blur: "effects",
+  brightness: "effects",
+  saturation: "effects",
+  contrast: "effects",
+  hue: "effects",
+  temperature: "effects",
+  tint: "effects",
+  positionX: "motion",
+  positionY: "motion",
+  anchorX: "motion",
+  anchorY: "motion",
+  trimStart: "effects",
+  trimEnd: "effects"
 };

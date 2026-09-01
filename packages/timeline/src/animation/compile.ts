@@ -126,6 +126,12 @@ function effectiveStagger(
 }
 
 export interface CompiledAnimation {
+  /**
+   * The `ClipAnimation.id` this was compiled from. The sampler records it as
+   * the winner of a `replace` channel, so a validator can name the animation
+   * that took the channel.
+   */
+  id: string;
   role: AnimationRole;
   /** Clip-local ms, resolved from role + delay + duration. */
   windowStartMs: number;
@@ -294,6 +300,7 @@ export function compileClipAnimations(
     if (fullClip) {
       // kenBurns: one-shot over the whole clip; duration/delay/stagger ignored.
       out.push({
+        id: animation.id,
         role: animation.role,
         windowStartMs: 0,
         windowEndMs: clipDurationMs,
@@ -317,6 +324,7 @@ export function compileClipAnimations(
       const windowStartMs = Math.max(0, delayMs);
       if (windowStartMs >= clipDurationMs) continue;
       const compiled: CompiledAnimation = {
+        id: animation.id,
         role: "loop",
         windowStartMs,
         windowEndMs: clipDurationMs,
@@ -375,6 +383,7 @@ export function compileClipAnimations(
     }
 
     const compiled: CompiledAnimation = {
+      id: animation.id,
       role: animation.role,
       windowStartMs,
       windowEndMs,
