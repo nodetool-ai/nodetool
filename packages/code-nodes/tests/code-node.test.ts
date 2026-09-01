@@ -107,10 +107,8 @@ describe("CodeNode — return values", () => {
     expect(r).toHaveProperty("output");
   });
 
-  it("wraps Map return (serialized via JSON)", async () => {
-    const r = await run("return new Map([['a', 1]])");
-    // Map serializes to {} via JSON
-    expect(r).toBeDefined();
+  it("returns {} for a Map (JSON serializes it to no keys)", async () => {
+    expect(await run("return new Map([['a', 1]])")).toEqual({});
   });
 });
 
@@ -803,20 +801,18 @@ describe("CodeNode — output type coverage", () => {
     expect(r).toHaveProperty("output");
   });
 
-  it("wraps Set return (serialized via JSON)", async () => {
-    const r = await run("return new Set([1])");
-    // Set serializes to {} via JSON, then normalizeOutput wraps or returns it
-    expect(r).toBeDefined();
+  // These reach normalizeCodeOutput as {} — a plain object, so it becomes the
+  // output bag rather than the `output` handle. The node produces nothing.
+  it("returns {} for a Set", async () => {
+    expect(await run("return new Set([1])")).toEqual({});
   });
 
-  it("wraps RegExp return (serialized via JSON)", async () => {
-    const r = await run("return /abc/");
-    expect(r).toBeDefined();
+  it("returns {} for a RegExp", async () => {
+    expect(await run("return /abc/")).toEqual({});
   });
 
-  it("wraps Error return (serialized via JSON)", async () => {
-    const r = await run('return new Error("x")');
-    expect(r).toBeDefined();
+  it("returns {} for an Error", async () => {
+    expect(await run('return new Error("x")')).toEqual({});
   });
 
   it("wraps empty string return as { output }", async () => {

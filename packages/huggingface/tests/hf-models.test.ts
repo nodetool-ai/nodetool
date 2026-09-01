@@ -520,10 +520,11 @@ describe("_derivePipelineTag", () => {
 // ---------------------------------------------------------------------------
 
 describe("_buildSearchConfigForType", () => {
-  it("returns config for known types", () => {
+  it("returns the type's own config for known types, not the fallback", () => {
     const config = _buildSearchConfigForType("hf.flux");
     expect(config).not.toBeNull();
-    expect(config).toHaveProperty("filename_pattern");
+    expect(config!.repo_pattern).toContain("*flux*");
+    expect(config!.filename_pattern).toContain("*.safetensors");
   });
 
   it("returns a wildcard fallback for unknown hf.* types", () => {

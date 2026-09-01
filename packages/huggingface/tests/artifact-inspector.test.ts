@@ -58,7 +58,8 @@ describe("inspectPaths", () => {
 
     const result = inspectPaths([configPath]);
     expect(result).not.toBeNull();
-    expect(result!.family).toBeTruthy();
+    expect(result!.family).toBe("whisper");
+    expect(result!.component).toBe("llm");
   });
 
   it("returns null when only unrecognised files are present", async () => {
@@ -95,8 +96,8 @@ describe("detectFromJson", () => {
     });
     const result = detectFromJson([configPath], []);
     expect(result).not.toBeNull();
-    // LLaMA family detection
-    expect(result!.family).toBeTruthy();
+    expect(result!.family).toBe("llama-family");
+    expect(result!.component).toBe("llm");
   });
 
   it("detects diffusers model from model_index.json _class_name", async () => {
