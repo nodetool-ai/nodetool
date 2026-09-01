@@ -158,11 +158,6 @@ const srcDir = resolve(dirname(fileURLToPath(import.meta.url)), "../src");
  * construction site qualifies when the `Tool` it builds is gated from outside
  * by `gateTools`, or when the capability it serves is read-class — reading a
  * SKILL.md has nothing for the ladder to withhold.
- *
- * `js-script-sandbox.ts` is neither: it builds an ungated run for a script the
- * model wrote, which is the hole A2 exists to close. T-A2.2 replaces it with
- * `gateFromContext(context)` and removes this entry; it is listed so this test
- * describes the tree as it is today rather than failing mid-package.
  */
 const MAY_BE_UNGATED: Record<string, string> = {
   "capabilities/invoke.ts": "declares it",
@@ -173,9 +168,7 @@ const MAY_BE_UNGATED: Record<string, string> = {
   "capabilities/packs.ts": "reads a SKILL.md, a read-class call",
   "tools/serp-tool-factory.ts":
     "builds the one Tool a belt cannot assemble from the registry; " +
-    "gated from outside like lazy-tool",
-  // T-A2.2 removes this entry.
-  "js-script-sandbox.ts": "T-A2.2 replaces it with gateFromContext"
+    "gated from outside like lazy-tool"
 };
 
 /**

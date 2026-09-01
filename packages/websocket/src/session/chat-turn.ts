@@ -102,6 +102,7 @@ import {
   contextSecretAvailability,
   BackgroundSubtaskRegistry,
   UNGATED,
+  PERMISSION_GATE_CONTEXT_KEY,
   extractInjectableImages,
   type CapabilityRun,
   type PermissionGateOptions,
@@ -1005,7 +1006,9 @@ export class ChatTurnHandler {
     inputs: Record<string, unknown>,
     userId: string,
     threadId: string | null = null,
-    projectId: string | null = null
+    projectId: string | null = null,
+    /** The calling turn's gate, when a chat turn is what started this node. */
+    gate: PermissionGateOptions | null = null
   ): Promise<unknown> {
     const jobId = randomUUID();
     const nodeId = "node_0";
@@ -1049,6 +1052,11 @@ export class ChatTurnHandler {
     attachPlanApproval(context, threadId, (id, plan) =>
       this.requestPlanApproval(id, plan)
     );
+    // This context is built here rather than copied from the turn, so the
+    // turn's gate has to be put on it by hand. The node's own loops read it
+    // with `gateFromContext`; a node run outside a chat turn carries none and
+    // gates headless.
+    if (gate) context.set(PERMISSION_GATE_CONTEXT_KEY, gate);
     context.setResolveExecutor((node) => this.session.resolveExecutor(node));
     if (this.session.resolveNodeType) {
       const resolverObj = isFunctionValue(this.session.resolveNodeType)
@@ -1398,12 +1406,6 @@ export class ChatTurnHandler {
     // and everything the turn spends is billed to it.
     const chatProjectId =
       (await Project.findByThread(userId, threadId))?.id ?? undefined;
-    // The single-node runner is a closure only this package can build, so
-    // `run_node` reaches a capability run as a host-supplied capability rather
-    // than out of the registry.
-    const runNodeTool = new RunNodeTool((nodeType, inputs) =>
-      this.runSingleNode(nodeType, inputs, userId, threadId, chatProjectId)
-    );
     // The permission gate the belt is wrapped in below. Built before the belt
     // because the Apify tools carry it into their own run: in discovery mode
     // the actor policy asks this gate to approve an actor the install has not
@@ -1431,6 +1433,22 @@ export class ChatTurnHandler {
         this.requestToolApproval(threadId, request),
       clock: codeactClock
     };
+    // The single-node runner is a closure only this package can build, so
+    // `run_node` reaches a capability run as a host-supplied capability rather
+    // than out of the registry. It runs the node on a context of its own, so
+    // the turn's gate is handed over explicitly — without it the node's own
+    // agent loop would find no gate and run headless, which is how a chat in
+    // plan mode could mutate through an `AgentNode`.
+    const runNodeTool = new RunNodeTool((nodeType, inputs) =>
+      this.runSingleNode(
+        nodeType,
+        inputs,
+        userId,
+        threadId,
+        chatProjectId,
+        chatGate
+      )
+    );
     // The bounds this turn runs under, created once and shared by everything
     // it starts (invariant I-2). A loop that made its own would hand every
     // nested agent a fresh allowance, which is no ceiling at all.
@@ -1678,6 +1696,12 @@ export class ChatTurnHandler {
     // through `run_node`, a JS script, a sub-agent three levels down all read
     // the budget off the context instead of creating one (`budgetFromContext`).
     ctx.set(RUN_BUDGET_CONTEXT_KEY, turnBudget);
+    // The same channel carries the turn's permission gate, so a loop this
+    // package never constructs gates through the user's mode instead of
+    // building an ungated run of its own (`gateFromContext`, invariant I-1).
+    // The object is shared by reference: `chatGate.mode` reads `liveMode`, so
+    // a mid-turn `set_permission_mode` reaches a node that started before it.
+    ctx.set(PERMISSION_GATE_CONTEXT_KEY, chatGate);
 
     // The capability run for this turn: the same gate the belt is wrapped in,
     // this context, and the singletons the tool constructors take today. Every

@@ -150,6 +150,16 @@ export function usesCloudWorkspaces(): boolean {
  * the node reported "The input image is empty". The host passes the same two
  * adapters the streaming WebSocket runner uses; a host that passes neither
  * keeps the old read-nothing behaviour rather than guessing at a backend.
+ *
+ * No permission gate goes on this context, and that is the decision, not an
+ * omission: a workflow run is consent — the user pressed Run on a graph whose
+ * nodes list their tools — so an agent loop inside it gates in `auto` with no
+ * human to ask. That is exactly what `gateFromContext` in
+ * `@nodetool-ai/agents` answers for a context carrying no host gate, and
+ * building the same object here would invert the package edge (`agents`
+ * depends on `execution`, not the reverse) to say what its absence already
+ * says. A host that does have a user to ask — a chat turn — puts its own gate
+ * on the context it hands in.
  */
 export function buildWorkspaceExecutionContext(opts: {
   jobId: string;

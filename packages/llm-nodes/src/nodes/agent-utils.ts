@@ -1,6 +1,8 @@
 import type { BaseNode } from "@nodetool-ai/node-sdk";
+import { gateTools, Tool, type PermissionGateOptions } from "@nodetool-ai/agents";
 import type {
   BaseProvider,
+  JsonSchema,
   Message,
   MessageAudioContent,
   MessageContent,
@@ -8,6 +10,7 @@ import type {
   ProcessingContext,
   ProviderStop,
   ProviderStreamItem,
+  ProviderTool,
   ToolCall
 } from "@nodetool-ai/runtime";
 import {
@@ -525,6 +528,88 @@ export function normalizeTools(
         (context?.getInjectedTool?.(tool.name) as ToolLike | null) ??
         (hydrateBuiltinAgentTool(tool) as ToolLike)
     );
+}
+
+/**
+ * A {@link ToolLike} that is not a `Tool`, presented as one.
+ *
+ * The gate takes `Tool`s: it reads the identity and schema a capability needs
+ * and calls `process`. Most of an agent node's tools already are one — the
+ * builtin registry hands back instances — but a caller can inject any shape
+ * through `context.setInjectedTools`, and a tool that reaches the model
+ * ungated because of its shape is the hole A2 exists to close.
+ */
+class AdaptedAgentTool extends Tool {
+  readonly name: string;
+  readonly description: string;
+
+  constructor(private readonly inner: ToolLike) {
+    super();
+    this.name = inner.name;
+    this.description = inner.description ?? "";
+  }
+
+  override get inputSchema(): JsonSchema {
+    // A ToolLike declares its schema as a bare record; JsonSchema is the same
+    // record with the fields a provider reads spelled out.
+    return (this.inner.inputSchema ?? {
+      type: "object",
+      properties: {}
+    }) as JsonSchema;
+  }
+
+  override toProviderTool(): ProviderTool {
+    // The same two branches `toProviderTools` took before the gate existed, so
+    // wrapping a tool does not change what the model is shown.
+    return isCallable(this.inner.toProviderTool)
+      ? (this.inner.toProviderTool() as ProviderTool)
+      : {
+          name: this.name,
+          description: this.description,
+          inputSchema: this.inputSchema
+        };
+  }
+
+  // HOLDOUT (anti-slop/no-unknown-returns): `Tool.process` answers whatever
+  // the wrapped tool answers.
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    // `execute` first, the way the node's own dispatch prefers it: it is where
+    // a tool coerces its params before `process` sees them.
+    const call = this.inner.execute ?? this.inner.process;
+    if (!isCallable(call)) {
+      return { status: "error", error: `Non-executable tool: ${this.name}` };
+    }
+    return call.call(this.inner, context, params);
+  }
+}
+
+/**
+ * Wrap an agent node's tools in the run's permission gate.
+ *
+ * One ladder covers every host (invariant I-1): the node's tools go through
+ * the same `decidePermission` a chat turn's belt does, with the gate the host
+ * put on the context. A node a chat turn started in plan mode therefore
+ * refuses a mutation from inside the node, where before the node resolved its
+ * tools ungated and the mode promised something it could not hold.
+ *
+ * A name-stub that never hydrated is left alone: it has nothing to run, and
+ * the node's dispatch already answers for it by name.
+ */
+export function gateAgentTools(
+  tools: ToolLike[],
+  gate: PermissionGateOptions
+): ToolLike[] {
+  return tools.map((tool) => {
+    if (!isCallable(tool.process) && !isCallable(tool.execute)) return tool;
+    const gateable = tool instanceof Tool ? tool : new AdaptedAgentTool(tool);
+    // `Tool` satisfies ToolLike structurally except for `process`, which
+    // answers `unknown` where ToolLike names the values a result can take —
+    // the same crossing `normalizeTools` makes when it hydrates.
+    return gateTools([gateable], gate)[0] as ToolLike;
+  });
 }
 
 export function uniqueToolName(baseName: string, existingNames: string[]): string {
