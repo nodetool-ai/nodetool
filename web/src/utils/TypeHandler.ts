@@ -208,16 +208,10 @@ export const isConnectable = (
   // Note: We exclude list sources here because list -> list connections
   // are handled separately in the switch statement below with proper element
   // type compatibility checking.
-  const isTargetListWithElement =
-    target.type === "list" &&
-    target.type_args &&
-    target.type_args.length === 1 &&
-    target.type_args[0];
-  const isSourceNotAList = source.type !== "list";
-
-  if (isTargetListWithElement && isSourceNotAList) {
-    const targetElementType = target.type_args[0];
-    if (isConnectable(source, targetElementType, allowAny)) {
+  if (source.type !== "list" && target.type === "list") {
+    const element =
+      target.type_args?.length === 1 ? target.type_args[0] : undefined;
+    if (element && isConnectable(source, element, allowAny)) {
       return true;
     }
   }
@@ -225,22 +219,14 @@ export const isConnectable = (
   if (source.type === "union") {
     // this is not 100% safe but we want to be able to connect
     // if the union is a subset of the target
-    return source.type_args.length > 0
-      ? source.type_args.some((t) => isConnectable(t, target))
-      : false;
+    return source.type_args.some((t) => isConnectable(t, target));
   }
 
   if (target.type === "union") {
-    return target.type_args.length > 0
-      ? target.type_args.some((t) => isConnectable(source, t))
-      : false;
+    return target.type_args.some((t) => isConnectable(source, t));
   }
 
   if (target.type === "object") {
-    if (source.type === "union" && source.type_args.length > 0) {
-      // For unions, some types in the union must be compatible with object
-      return source.type_args.some((t) => !nonObjectTypes.includes(t.type));
-    }
     return !nonObjectTypes.includes(source.type);
   }
 
@@ -249,61 +235,54 @@ export const isConnectable = (
   // - enum -> str: allowed (enum value is a string)
   // - enum -> enum: allowed only when type_name matches
   if (target.type === "enum") {
-    if (source.type === "str") {
-      return true;
-    }
     if (source.type === "enum") {
       return isEnumConnectable(source, target);
     }
-    return false;
+    return source.type === "str";
   }
 
   switch (source.type) {
-    case "union":
-      break;
     case "enum":
-      if (target.type === "str") {
+      // enum -> enum already handled above
+      return target.type === "str";
+    case "list": {
+      if (target.type !== "list") {
+        return false;
+      }
+      const sourceArgs = source.type_args;
+      const targetArgs = target.type_args;
+      // Only a list[T] pair states an element type on both sides. Untyped or
+      // multi-arg lists connect unchecked rather than being guessed at.
+      if (sourceArgs.length !== 1 || targetArgs.length !== 1) {
         return true;
       }
-      // enum -> enum already handled above
-      return false;
-    case "list":
-      if (target.type === "list") {
-        if (source.type_args.length === 0 || target.type_args.length === 0) {
-          return true;
-        }
-        if (
-          source.type_args.length === 1 &&
-          target.type_args.length === 1 &&
-          source.type_args[0] !== undefined &&
-          target.type_args[0] !== undefined
-        ) {
-          return isConnectable(source.type_args[0], target.type_args[0]);
-        } else {
-          return true;
-        }
-      } else {
+      if (sourceArgs[0] === undefined || targetArgs[0] === undefined) {
+        return true;
+      }
+      return isConnectable(sourceArgs[0], targetArgs[0]);
+    }
+    case "dict": {
+      if (target.type !== "dict") {
         return false;
       }
-    case "dict":
-      if (target.type === "dict") {
-        if (source.type_args.length < 2 || target.type_args.length < 2) {
-          return true;
-        }
-        if (source.type_args.length === 2 && target.type_args.length === 2) {
-          return (
-            isConnectable(source.type_args[0], target.type_args[0]) &&
-            isConnectable(source.type_args[1], target.type_args[1])
-          );
-        }
-      } else {
+      const sourceArgs = source.type_args;
+      const targetArgs = target.type_args;
+      // Under two args the key/value types are unstated, so there is nothing
+      // to compare; over two is not a dict shape at all.
+      if (sourceArgs.length < 2 || targetArgs.length < 2) {
+        return true;
+      }
+      if (sourceArgs.length !== 2 || targetArgs.length !== 2) {
         return false;
       }
-      break;
+      return (
+        isConnectable(sourceArgs[0], targetArgs[0]) &&
+        isConnectable(sourceArgs[1], targetArgs[1])
+      );
+    }
     default:
       return source.type === target.type;
   }
-  return false;
 };
 
 /**
