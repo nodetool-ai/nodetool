@@ -113,34 +113,6 @@ Cancel a running job.
 }
 ```
 
-#### `pause_job`
-
-Pause a running job.
-
-```json
-{
-  "command": "pause_job",
-  "data": {
-    "job_id": "<uuid>",
-    "workflow_id": "<uuid>"
-  }
-}
-```
-
-#### `resume_job`
-
-Resume a paused or suspended job.
-
-```json
-{
-  "command": "resume_job",
-  "data": {
-    "job_id": "<uuid>",
-    "workflow_id": "<uuid>"
-  }
-}
-```
-
 #### `reconnect_job`
 
 Reconnect to an in-flight job (e.g. after a page reload). The server replays
@@ -304,23 +276,6 @@ Delivers a final output value from an output node.
 | `output_type` | `string` | Type descriptor (e.g. `"image"`, `"string"`) |
 | `metadata` | `object` | Additional metadata |
 | `workflow_id` | `string \| null` | Workflow UUID for routing |
-
-#### `preview_update`
-
-Delivers an intermediate preview value during execution.
-
-```json
-{
-  "type": "preview_update",
-  "node_id": "<uuid>",
-  "value": { "type": "image", "data": "<binary>" }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `node_id` | `string` | Node UUID |
-| `value` | `any` | Preview data (see [Value Types](#value-types)) |
 
 #### `edge_update`
 
@@ -491,7 +446,7 @@ Streams incremental text/media content from a node.
 
 ### Value Types
 
-Output and preview values are typically objects with a `type` discriminator:
+Output values are typically objects with a `type` discriminator:
 
 | Type | Shape | Description |
 |------|-------|-------------|
@@ -535,7 +490,6 @@ Client                              Server
   |<-- node_update (node A completed) |
   |                                   |
   |<---- node_update (node B running) |
-  |<---------- preview_update (B)     |
   |<-- node_update (node B completed) |
   |                                   |
   |<---------- output_update (final)  |

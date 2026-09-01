@@ -204,7 +204,7 @@ lazy implementation table disagree.
 | `memory` | `memory_save`, `memory_list`, `memory_search`, `memory_update`, `memory_delete` — durable notes scoped to the **user**, not the thread. A memory saved in one conversation is readable from every later one; `memory_search` is a keyword match over title and content — every word must appear. The turn's prompt block carries this thread's memories in full plus a count of the ones held elsewhere. |
 | `threads` | `list_threads`, `get_thread`, `get_message` |
 | `shared` | `list_shared`, `read_shared`, `share_result` |
-| `agents` | `run_subtask`, `run_search`, `start_subtask`, `wait_subtasks` |
+| `agents` | `run_subtask`, `run_search`, `start_subtask`, `wait_subtasks`, `create_plan`, `execute_plan` |
 | `google` | `google_drive_*`, `gmail_*`, `google_docs_*`, `google_sheets_*`, `google_calendar_*` |
 | `packs` | `list_sandbox_packages`, `get_sandbox_package_docs` |
 | `settings` | `list_settings`, `get_setting`, `set_setting`, `list_secrets`, `request_secret` |

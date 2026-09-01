@@ -5,20 +5,21 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useWaveRecorder } from "../useWaveRecorder";
 
-// Mock dependencies
+// The hook takes the workflow id as a prop, so no NodeProvider is mocked or
+// mounted anywhere in this suite — a published mini app has neither.
+const mockUploadAsset = jest.fn();
+const mockRecordHandlers = new Map<string, (blob: Blob) => void>();
+
 jest.mock("../../../serverState/useAssetUpload", () => ({
   useAssetUpload: () => ({
-    uploadAsset: jest.fn()
+    uploadAsset: mockUploadAsset
   })
 }));
 
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn(() => ({
-    workflow: { id: "test-workflow-id" }
-  }))
-}));
-
+// `__esModule` matters: without it the default-import interop hands the hook
+// the whole module object and `RecordPlugin.create` is undefined.
 jest.mock("wavesurfer.js", () => ({
+  __esModule: true,
   default: {
     create: jest.fn(() => ({
       on: jest.fn(),
@@ -28,9 +29,12 @@ jest.mock("wavesurfer.js", () => ({
 }));
 
 jest.mock("wavesurfer.js/dist/plugins/record", () => ({
+  __esModule: true,
   default: {
     create: jest.fn(() => ({
-      on: jest.fn(),
+      on: jest.fn((event: string, handler: (blob: Blob) => void) => {
+        mockRecordHandlers.set(event, handler);
+      }),
       unAll: jest.fn(),
       isRecording: jest.fn(() => false),
       startRecording: jest.fn(() => Promise.resolve()),
@@ -45,6 +49,7 @@ describe("useWaveRecorder", () => {
 
   beforeEach(() => {
     mockOnChange = jest.fn();
+    mockRecordHandlers.clear();
     jest.clearAllMocks();
     
     // Mock navigator.mediaDevices
@@ -291,6 +296,48 @@ describe("useWaveRecorder", () => {
       await waitFor(() => {
         expect(result.current.error).not.toBe("Previous error");
       });
+    });
+  });
+
+  describe("Asset attribution", () => {
+    /** Mounts the waveform, which only happens once the container ref is set. */
+    const mountRecorder = (workflowId?: string) => {
+      const { result, rerender } = renderHook(
+        ({ onChange }: { onChange: () => void }) =>
+          useWaveRecorder({ onChange, workflowId }),
+        { initialProps: { onChange: mockOnChange } }
+      );
+      act(() => {
+        result.current.micRef.current = document.createElement("div");
+      });
+      // A new onChange re-runs the effect that creates the recorder, now that
+      // the container exists.
+      rerender({ onChange: jest.fn() });
+      return result;
+    };
+
+    it("stamps the given workflow id on the uploaded recording", () => {
+      mountRecorder("wf-77");
+
+      act(() => {
+        mockRecordHandlers.get("record-end")?.(new Blob(["x"]));
+      });
+
+      expect(mockUploadAsset).toHaveBeenCalledWith(
+        expect.objectContaining({ workflow_id: "wf-77" })
+      );
+    });
+
+    it("uploads without a workflow id when the app has none", () => {
+      mountRecorder();
+
+      act(() => {
+        mockRecordHandlers.get("record-end")?.(new Blob(["x"]));
+      });
+
+      expect(mockUploadAsset).toHaveBeenCalledWith(
+        expect.objectContaining({ workflow_id: undefined })
+      );
     });
   });
 

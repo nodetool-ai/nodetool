@@ -244,14 +244,51 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
   Gallery: {
     label: "Gallery",
     mode: "read",
+    // Tapping a tile writes it to `selectionBinding` — the generate-N-pick-one
+    // loop, which otherwise needs a second widget the picked value cannot reach.
+    trigger: "change",
+    bindingProps: [{ prop: "selectionBinding", mode: "write" }],
     fields: {
       binding: "custom",
+      selectionBinding: "custom",
       label: "text",
       tileSize: "number",
+      placeholder: "text",
+      events: "array"
+    }
+  },
+  // Two bound images under one wipe handle — what an edit-an-image run needs to
+  // show, since `Image` binds one value and a pair side by side hides the
+  // difference the run was asked to make.
+  ImageCompare: {
+    label: "Image Compare",
+    mode: "read",
+    bindingProps: [{ prop: "compareBinding", mode: "read" }],
+    fields: {
+      binding: "custom",
+      compareBinding: "custom",
+      label: "text",
+      height: "number",
       placeholder: "text"
     }
   },
   // Inputs
+  //
+  // Every input of one operation in a single widget, resolved from the graph at
+  // render time: an input added to the workflow shows up without an edit to the
+  // app. `WorkflowInput` stays the way to place and arrange inputs one by one.
+  WorkflowForm: {
+    label: "Workflow Form",
+    mode: "write",
+    trigger: "change",
+    commits: false,
+    fields: {
+      operationId: "custom",
+      label: "text",
+      showDescriptions: "radio",
+      events: "array"
+    }
+  },
   WorkflowInput: {
     label: "Workflow Input",
     mode: "write",
@@ -393,6 +430,22 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
   },
   VideoInput: {
     label: "Video Input",
+    mode: "write",
+    trigger: "change",
+    commits: false,
+    fields: { binding: "custom", label: "text", events: "array" }
+  },
+  // Capture instead of upload. The recorder writes the same AudioRef/VideoRef
+  // an upload writes, so a workflow reads one value either way.
+  AudioRecorder: {
+    label: "Audio Recorder",
+    mode: "write",
+    trigger: "change",
+    commits: false,
+    fields: { binding: "custom", label: "text", events: "array" }
+  },
+  CameraCapture: {
+    label: "Camera Capture",
     mode: "write",
     trigger: "change",
     commits: false,

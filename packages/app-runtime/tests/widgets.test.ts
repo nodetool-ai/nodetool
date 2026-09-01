@@ -127,12 +127,52 @@ describe("widget catalog", () => {
   it("declares a display widget for every result shape a run can emit", () => {
     // A 3D result, a plotted series, a PDF and a batch of images each used to
     // land in Json or Output, which render them as an opaque ref.
-    for (const type of ["Model3D", "Chart", "PDF", "Gallery"]) {
+    for (const type of ["Model3D", "Chart", "PDF", "Gallery", "ImageCompare"]) {
       expect(widgetMode(type)).toBe("read");
-      expect(WIDGET_CATALOG[type].trigger).toBeUndefined();
       // None renders formattable text, so a template would replace the preview.
       expect(WIDGET_CATALOG[type].format).toBeUndefined();
       expect(widgetFields(type)).toHaveProperty("placeholder", "text");
+    }
+    for (const type of ["Model3D", "Chart", "PDF", "ImageCompare"]) {
+      expect(WIDGET_CATALOG[type].trigger).toBeUndefined();
+    }
+  });
+
+  it("lets a gallery report which tile was picked", () => {
+    // Generate N, pick one: the gallery reads the batch and writes the choice,
+    // so a display widget carries a write binding and fires an event.
+    expect(widgetMode("Gallery")).toBe("read");
+    expect(WIDGET_CATALOG.Gallery.trigger).toBe("change");
+    expect(widgetBindingProps("Gallery")).toEqual([
+      { prop: "selectionBinding", mode: "write" }
+    ]);
+    expect(widgetFields("Gallery")).toHaveProperty("events", "array");
+  });
+
+  it("reads both sides of an image comparison", () => {
+    expect(widgetBindingProps("ImageCompare")).toEqual([
+      { prop: "compareBinding", mode: "read" }
+    ]);
+  });
+
+  it("renders one operation's whole input surface as a form", () => {
+    // A form binds no single slot: it names an operation and writes each of
+    // that operation's inputs, so it carries `operationId` where the other
+    // write widgets carry `binding`.
+    expect(widgetMode("WorkflowForm")).toBe("write");
+    expect(WIDGET_CATALOG.WorkflowForm.trigger).toBe("change");
+    expect(widgetFields("WorkflowForm")).toHaveProperty("operationId", "custom");
+    expect(widgetFields("WorkflowForm")).not.toHaveProperty("binding");
+  });
+
+  it("offers capture next to upload for audio and video", () => {
+    // A recorder writes the same ref an upload writes, so a workflow reads one
+    // value either way.
+    for (const type of ["AudioRecorder", "CameraCapture"]) {
+      expect(widgetMode(type)).toBe("write");
+      expect(WIDGET_CATALOG[type].trigger).toBe("change");
+      expect(WIDGET_CATALOG[type].commits).toBe(false);
+      expect(widgetFields(type)).toHaveProperty("binding", "custom");
     }
   });
 

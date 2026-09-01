@@ -110,6 +110,12 @@ export interface AppWidgetSpec {
    */
   extraBindings: Array<{ prop: string; binding: string; ref: BindingRef | null }>;
   label: string | null;
+  /**
+   * The operation a widget renders the whole input surface of (`WorkflowForm`).
+   * Null for every widget that binds one slot — those name their operation
+   * inside the binding token instead.
+   */
+  operationId: string | null;
   events: AppEventSpec[];
   parentId: string | null;
   slot: string | null;

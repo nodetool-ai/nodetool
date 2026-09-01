@@ -149,6 +149,14 @@ export function bindingScopeFor(io: AppIO, context?: AppContext): BindingScope {
 const usesResourceBinding = (type: string): boolean =>
   WIDGET_CATALOG[type]?.fields.resourceBindingId !== undefined;
 
+/**
+ * A widget that renders one operation's whole input surface rather than one
+ * slot. It carries `operationId` where the state widgets carry `binding`, so
+ * the unbound-write warning does not apply to it.
+ */
+const rendersOperationInputs = (type: string): boolean =>
+  WIDGET_CATALOG[type]?.fields.operationId !== undefined;
+
 const modeToBindingMode = (mode: AppWidgetSpec["bindingMode"]): BindingMode =>
   mode === "write" ? "write" : mode === "read" ? "read" : "none";
 
@@ -352,6 +360,9 @@ export function parseAppSpec(
           }
         ),
         label: str(item.props.label) ?? str(item.props.text) ?? null,
+        operationId: rendersOperationInputs(item.type)
+          ? str(item.props.operationId) || null
+          : null,
         events: parseEvents(item.props.events),
         parentId,
         slot
@@ -563,7 +574,8 @@ export function validateApp(
     } else if (
       !w.binding &&
       w.bindingMode === "write" &&
-      !usesResourceBinding(w.type)
+      !usesResourceBinding(w.type) &&
+      !rendersOperationInputs(w.type)
     ) {
       warnings.push(
         `${where}: not bound to an input — its value stays local UI state.`
@@ -581,6 +593,14 @@ export function validateApp(
           `${where}: bound to resource "${w.resourceBindingId}" but the app declares no such resource binding.`
         );
       }
+    }
+    // A form renders the inputs of the operation it names; a stale name renders
+    // an empty form, which a run-only check reads as an app that asks for
+    // nothing rather than one that lost its inputs.
+    if (w.operationId && !operationIds.has(w.operationId)) {
+      errors.push(
+        `${where}: renders the inputs of operation "${w.operationId}" but the app declares no such operation.`
+      );
     }
     // An explicit `op:<id>/…` token resolves on its own syntax, so a token
     // naming an operation the document never declared has to be caught here.
