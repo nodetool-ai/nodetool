@@ -7,10 +7,16 @@ import { CodeActExecutor } from "../src/codeact/codeact-executor.js";
 import { Tool } from "../src/tools/base-tool.js";
 import type { Step, Task } from "../src/types.js";
 import type {
-  BaseProvider,
   ProcessingContext,
   ProviderStreamItem,
+  RunBudget,
   ToolCall
+} from "@nodetool-ai/runtime";
+import {
+  BaseProvider,
+  createCounter,
+  createRunBudget,
+  createSemaphore
 } from "@nodetool-ai/runtime";
 import { createMockContext } from "./_helpers/mock-context.js";
 
@@ -740,5 +746,225 @@ describe("coercionArtifactPaths", () => {
         word: "SHIP IT"
       })
     ).toEqual([]);
+  });
+});
+
+/**
+ * The run's bounds, seen from a step: `maxIterations` is what the whole step
+ * may spend on model turns (nudge rounds included), and a deadline stops the
+ * work in flight. Both failures have to name themselves — a step that ran out
+ * of budget and reports "ended without calling finish()" sends the reader
+ * looking for a prompt bug (invariants I-3, I-5).
+ */
+describe("CodeActExecutor run budget", () => {
+  /**
+   * Drives the real `BaseProvider.generateLoop`, so `maxIterations` and turn
+   * admission behave exactly as they do in production. Every turn calls
+   * `execute_code` except every `proseEvery`-th, which ends in prose — the one
+   * shape that earns a finish-nudge round.
+   */
+  class ScriptedTurnProvider extends BaseProvider {
+    readonly provider = "openai" as const;
+    turns = 0;
+
+    constructor(private readonly proseEvery: number) {
+      super();
+    }
+
+    async *generateMessages(): AsyncGenerator<ProviderStreamItem> {
+      this.turns++;
+      if (this.turns % this.proseEvery === 0) {
+        yield { type: "chunk", content: "I will finish next time.", done: true };
+        return;
+      }
+      yield {
+        id: `call_${this.turns}`,
+        name: "execute_code",
+        args: { code: "return 1;" }
+      };
+    }
+
+    async generateMessage(): Promise<never> {
+      throw new Error("not used");
+    }
+  }
+
+  /** A belt tool that reports each call, so a test can act on the first one. */
+  class TickTool extends Tool {
+    readonly name = "tick";
+    readonly description = "Records a call.";
+    calls = 0;
+    constructor(private readonly onCall: () => void) {
+      super();
+    }
+    async process(): Promise<unknown> {
+      this.calls++;
+      this.onCall();
+      return { ok: true };
+    }
+  }
+
+  const runBudget = (opts: Partial<Parameters<typeof createRunBudget>[0]>) =>
+    createRunBudget({
+      capUsd: null,
+      maxOutputTokens: 2048,
+      unpricedTokenCeiling: 400_000,
+      deadlineMs: 600_000,
+      maxConcurrency: 4,
+      maxTurns: 1000,
+      ...opts
+    });
+
+  it("spends maxIterations across the whole step, not once per nudge round", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    // Round shape: three tool turns then prose, which is what triggers a nudge.
+    const provider = new ScriptedTurnProvider(4);
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "gpt-4o-mini",
+      tools: [],
+      maxIterations: 4
+    });
+    const results: Array<{ type: string; error?: string }> = [];
+    for await (const msg of executor.execute()) {
+      results.push(msg as { type: string; error?: string });
+    }
+
+    // Two nudges used to hand each round the full four, for twelve turns.
+    expect(provider.turns).toBe(4);
+    expect(step.completed).toBe(false);
+    expect(results.find((m) => m.type === "step_result")?.error).toContain(
+      "exceeded 4 iterations"
+    );
+  });
+
+  it("fails with the deadline reason when the run is already out of time", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    const provider = new ScriptedTurnProvider(1);
+    const budget = runBudget({ deadlineMs: 0 });
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "gpt-4o-mini",
+      tools: [],
+      turnBudget: budget
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    expect(provider.turns).toBe(0);
+    expect(step.failed).toBe(true);
+    expect(budget.exhausted?.kind).toBe("deadline");
+    expect(step.error).toContain("run deadline");
+    expect(step.error).not.toContain("without calling finish()");
+  });
+
+  it("aborts the action through the sandbox signal when the deadline passes mid-action", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    // A deadline the first bridged tool call trips, so expiry lands *inside*
+    // the running action rather than before it starts.
+    let outOfTime = false;
+    const budget: RunBudget = {
+      turns: { reserve: () => true, commit: () => {}, spentUsd: 0 },
+      deadline: {
+        at: Number.POSITIVE_INFINITY,
+        remainingMs: () => (outOfTime ? 0 : 1000),
+        expired: () => outOfTime
+      },
+      concurrency: createSemaphore(1),
+      turnCount: createCounter(10),
+      get exhausted() {
+        return outOfTime
+          ? { kind: "deadline" as const, detail: "run deadline of 1000ms reached" }
+          : null;
+      }
+    };
+    const tick = new TickTool(() => {
+      outOfTime = true;
+    });
+
+    const observations: string[] = [];
+    const provider = {
+      provider: "fake",
+      hasToolSupport: async () => true,
+      async *generateLoop(args: {
+        tools?: Array<{
+          name: string;
+          execute?: (a: Record<string, unknown>) => Promise<string | unknown>;
+        }>;
+      }) {
+        const tool = (args.tools ?? []).find((t) => t.name === "execute_code");
+        const result = await tool?.execute?.({
+          code: `import { tick } from "@nodetool-ai/sandbox-nodetool/session";
+                 await tick({});
+                 await tick({});
+                 await finish({answer: 1});`
+        });
+        observations.push(String(result));
+        yield {
+          type: "message",
+          message: { role: "assistant", content: "ran out of time" }
+        };
+        yield { type: "chunk", content: "", done: true };
+      }
+    } as unknown as BaseProvider;
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: [tick],
+      turnBudget: budget
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    // The second call never reached the tool, and the program never finished.
+    expect(tick.calls).toBe(1);
+    expect(step.completed).toBe(false);
+    const observation = JSON.parse(observations[0] ?? "{}") as {
+      ok: boolean;
+      error?: string;
+    };
+    expect(observation.ok).toBe(false);
+    // "Execution cancelled" is what the sandbox reports for an aborted run —
+    // the action stopped on the signal, it did not merely see a failing call.
+    expect(observation.error).toBe("Execution cancelled");
+    expect(step.error).toContain("run deadline of 1000ms reached");
+    expect(step.error).not.toContain("without calling finish()");
+  });
+
+  it("fails naming the cost cap when the budget refuses the first turn", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    const provider = new ScriptedTurnProvider(1);
+    // Below one turn's worst case on a priced model.
+    const budget = runBudget({ capUsd: 0.000001 });
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "gpt-4o-mini",
+      tools: [],
+      turnBudget: budget
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    expect(provider.turns).toBe(0);
+    expect(step.failed).toBe(true);
+    expect(step.error).toContain("turn budget of $");
+    expect(step.error).not.toContain("without calling finish()");
   });
 });
