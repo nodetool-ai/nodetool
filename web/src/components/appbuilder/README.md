@@ -100,6 +100,14 @@ the existing worker path.
     to every widget in one place.
   - `ResourcePickerWidget.tsx` — chooses a member of a bound resource
     collection through the `resources` provider router.
+  - `SketchPadWidget.tsx` / `SketchPadSurface.tsx` — the sketch editor's canvas
+    as an image input: the editor's own `useEditorSession` and
+    `SketchCanvasPane` under a four-tool chrome, writing the flattened PNG to
+    the binding. The surface is lazy so the editor stays out of the bundle of
+    every app that places no pad.
+  - `sketchPadDocument.ts` — the pad's starting document (paper layer, ink) and
+    the value it reads and writes; `sketchPadOptions.ts` holds the canvas
+    options both halves need, so the eager half imports no sketch module.
   - `useWidgetRuntime.ts` — binds a widget's props to reactive state + events.
   - `BuilderWorkflowContext.tsx` — supplies the bindable surface to fields.
   - `PuckAppEditor.tsx` — the `<Puck>` editor wrapper.

@@ -57,6 +57,7 @@ That's what makes on-release pacing possible — see
 | Switch | On or off. | no |
 | Select | One option from a fixed list. | no |
 | Image Input | An image. | no |
+| Sketch Pad | A drawing the user makes on the spot. Canvas size, white or transparent paper. | yes |
 | Audio Input | An audio file. | no |
 | Video Input | A video. | no |
 | Document Input | A document. | no |
@@ -64,6 +65,16 @@ That's what makes on-release pacing possible — see
 | Resource Picker | Picks which document a resource points at. | no |
 | Resource Gallery | The same, from a grid of tiles. Tile size. | no |
 | Storyboard Scenes | Edits the bound storyboard directly. Fires no event. | no |
+
+The Sketch Pad is the sketch editor's canvas with a four-tool chrome — brush,
+pencil, eraser, fill, plus colors, stroke size, undo and clear. Each finished
+stroke flattens the drawing to a PNG and writes it as `{type: "image", uri}`, so
+bind it to an Image Input and the workflow reads it the way it reads an upload.
+White paper is the default because an image model is fed an opaque picture;
+transparent keeps the alpha for a mask or an overlay. Nothing is written until
+the user draws, so a pad wired to a run does not fire it on load. The drawing
+travels inline as a data URI, so keep the canvas near its 512×384 default
+rather than at the 2048px ceiling.
 
 ### Chat and AI
 
