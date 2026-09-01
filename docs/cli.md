@@ -1427,7 +1427,11 @@ mount, or an authenticated session). File tools read and write under a per-user 
 
 ### `nodetool agent`
 
-Run the agent loop from the command line, over the default toolbelt.
+Run one CodeAct turn from the command line, over the default toolbelt. The
+objective becomes the user message and the model acts by writing sandboxed
+JavaScript — the same loop the chat runs. `create_plan` and `execute_plan` are
+on the belt, so an objective that wants decomposing gets a task DAG and the
+`planning_update` / `task_update` events stream with the rest of the trace.
 
 **Subcommands:** `run`, `diagnose`
 
@@ -1438,13 +1442,17 @@ nodetool agent run -p anthropic -m claude-sonnet-5 --objective "Research AI tren
 # Or pipe the objective
 echo "Research AI trends" | nodetool agent run -p anthropic -m claude-sonnet-5
 
-# Bound the run
+# Bound the tool-calling rounds
 nodetool agent run -p openai -m gpt-5.4-mini -o "Summarize the README" \
-  --max-steps 10 --max-iterations 8
+  --max-iterations 8
 
 # Aggregate a failed run into one report
 nodetool agent diagnose <job_id>
 ```
+
+`--max-steps` is gone with the planner→compiler pipeline the command used to
+run, along with plan approval, checkpoints, the planning/reasoning model split,
+and skill auto-select. See [Agent CLI](agent-cli.md).
 
 See the [Agent CLI](agent-cli.md) reference for full details.
 

@@ -137,7 +137,10 @@ vi.mock("@nodetool-ai/chat", async () => {
 vi.mock("@nodetool-ai/websocket", () => ({ mcpToolHostDeps: () => ({}) }));
 vi.mock("../src/node-registry.js", () => ({ buildFullRegistry: () => ({}) }));
 vi.mock("../src/chat-context.js", () => ({
-  createChatContext: async () => ({ set: () => {} })
+  createChatContext: async () => ({
+    set: () => {},
+    registerProvider: () => {}
+  })
 }));
 
 const scriptedCalls: unknown[][] = [];

@@ -259,6 +259,12 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
 
   const provider = await createProvider(providerId);
   const context = await createChatContext({ workspaceDir });
+  // Hand the context the instances already configured above, so a tool that
+  // dispatches by provider id gets this run's provider rather than resolving a
+  // second one of its own.
+  for (const [id, configured] of Object.entries(configuredProviders)) {
+    context.registerProvider(id, configured);
+  }
 
   const traceOpts: TraceOptions = {
     json: !!opts.json,
