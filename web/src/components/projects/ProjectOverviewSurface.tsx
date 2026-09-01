@@ -204,12 +204,12 @@ const ProjectOverviewSurface = ({ refId }: ProjectOverviewSurfaceProps) => {
 
       <FlexRow sx={{ flex: 1, minHeight: 0 }}>
         {narrow ? (
-          <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex" }}>
+          <FlexRow sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
             {agent}
-          </Box>
+          </FlexRow>
         ) : (
           <>
-            <Box sx={{ flexShrink: 0, minHeight: 0, display: "flex" }}>
+            <FlexRow sx={{ flexShrink: 0, minHeight: 0 }}>
               <ResizableSideDock
                 storageKey="projectAgent"
                 side="left"
@@ -220,7 +220,7 @@ const ProjectOverviewSurface = ({ refId }: ProjectOverviewSurfaceProps) => {
               >
                 {agent}
               </ResizableSideDock>
-            </Box>
+            </FlexRow>
 
             <FlexColumn sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
               <ScrollArea sx={{ flex: 1, minHeight: 0, px: SPACING.xxl }}>

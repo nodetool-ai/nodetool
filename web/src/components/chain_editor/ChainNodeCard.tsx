@@ -167,16 +167,17 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
         aria-label={node.metadata.title}
         sx={{ cursor: "pointer", "&:hover": { backgroundColor: theme.vars.palette.action.hover } }}
       >
-        <Box
+        <FlexRow
+          align="center"
+          justify="center"
           sx={{
             width: 32, height: 32, borderRadius: BORDER_RADIUS.sm,
-            display: "flex", alignItems: "center", justifyContent: "center",
             backgroundColor: `${nsColor}18`, color: nsColor,
             fontSize: "var(--fontSizeSmall)", fontWeight: 600,
           }}
         >
           {index + 1}
-        </Box>
+        </FlexRow>
 
         <FlexColumn gap={0.5} sx={{ flex: 1, minWidth: 0 }}>
           <Text size="small" weight={600} truncate>{node.metadata.title}</Text>

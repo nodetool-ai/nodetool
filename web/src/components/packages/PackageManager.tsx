@@ -379,13 +379,12 @@ function PackageManager() {
               gap={1}
               sx={{ textAlign: "center", py: 9 }}
             >
-              <Box
+              <FlexRow
+                align="center"
+                justify="center"
                 sx={(theme) => ({
                   width: 46,
                   height: 46,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
                   borderRadius: BORDER_RADIUS.xl,
                   border: `1px solid ${theme.vars.palette.divider}`,
                   color: theme.vars.palette.text.secondary,
@@ -393,7 +392,7 @@ function PackageManager() {
                 })}
               >
                 <SearchOutlinedIcon sx={{ fontSize: 20 }} />
-              </Box>
+              </FlexRow>
               <Text size="normal" weight={600} color="secondary">
                 No packs match
               </Text>

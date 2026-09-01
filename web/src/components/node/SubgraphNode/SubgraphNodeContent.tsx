@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from "react";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
-import { Box, Caption, FlexRow, MOTION } from "../../ui_primitives";
+import { Box, Caption, FlexColumn, FlexRow, MOTION } from "../../ui_primitives";
 import { useNodes } from "../../../contexts/NodeContext";
 import { useOpenSubgraph } from "../../../hooks/nodes/useOpenSubgraph";
 import { NodeInputs } from "../NodeInputs";
@@ -50,26 +50,22 @@ export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
     );
 
     return (
-      <Box
+      <FlexColumn
         sx={{
           position: "relative",
           width: "100%",
           height: "100%",
           minHeight: 0,
-          display: "flex",
-          flexDirection: "column",
           paddingTop: 1
         }}
       >
         <SubgraphSync nodeId={id} data={data} />
-        <Box
+        <FlexColumn
           className="subgraph-node-inputs"
           sx={{
             flex: "1 1 auto",
             minHeight: 40,
-            overflow: "visible",
-            display: "flex",
-            flexDirection: "column"
+            overflow: "visible"
           }}
         >
           <NodeInputs
@@ -82,7 +78,7 @@ export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
             showHandle={true}
             editableDynamicInputs={true}
           />
-        </Box>
+        </FlexColumn>
         {nodeMetadata.supports_dynamic_outputs && (
           <NodePropertyForm
             id={id}
@@ -141,7 +137,7 @@ export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
               : `${innerNodeCount} inner node${innerNodeCount === 1 ? "" : "s"}`}
           </Caption>
         </Box>
-      </Box>
+      </FlexColumn>
     );
   }
 );
