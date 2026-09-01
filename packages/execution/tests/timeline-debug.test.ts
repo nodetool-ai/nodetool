@@ -377,7 +377,7 @@ describe("validateTimelineSequence — structural checks", () => {
     expect(codes(result.errors)).toContain("custom_animation_invalid");
   });
 
-  it("warns when baked curves name nothing that could re-bake them", () => {
+  it("accepts inline curves that name no script or code", () => {
     const result = validateTimelineSequence(
       doc({
         clips: [
@@ -399,7 +399,10 @@ describe("validateTimelineSequence — structural checks", () => {
         ]
       })
     );
-    expect(codes(result.warnings)).toContain("custom_animation_unsourced");
+    // Inline curves are the source (D2), not an orphaned bake: an agent that
+    // writes keyframes through edit_timeline has nothing to re-bake from, so
+    // the shape must validate clean rather than warn on every animation.
+    expect(codes(result.warnings)).not.toContain("custom_animation_unsourced");
     expect(result.ok).toBe(true);
   });
 
@@ -427,7 +430,7 @@ describe("validateTimelineSequence — structural checks", () => {
       })
     );
     expect(result.ok).toBe(true);
-    expect(codes(result.warnings)).not.toContain("custom_animation_unsourced");
+    expect(result.warnings).toEqual([]);
   });
 
   it("accepts a shipped animation preset", () => {

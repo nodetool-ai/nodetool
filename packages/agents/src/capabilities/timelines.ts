@@ -1072,7 +1072,8 @@ const previewTimelineFrame: CapabilityExport = {
           mime_type: saved.mime_type,
           bytes: saved.bytes
         },
-        layers: frame.layers
+        layers: frame.layers,
+        dropped: frame.dropped
       });
     }
 

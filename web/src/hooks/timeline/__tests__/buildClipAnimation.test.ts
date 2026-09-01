@@ -67,4 +67,64 @@ describe("buildClipAnimation", () => {
     const b = buildClipAnimation({ role: "loop", preset: "float" });
     expect(a.id).not.toBe(b.id);
   });
+
+  describe("preset custom", () => {
+    const curves = [
+      { property: "opacity", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 1 }] }
+    ];
+
+    it("stores the curves it was handed", () => {
+      const anim = buildClipAnimation({ role: "in", preset: "custom", curves });
+      expect(anim.preset).toBe("custom");
+      expect(anim.custom?.curves).toEqual([
+        { property: "opacity", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 1 }] }
+      ]);
+      expect(anim.custom?.bakedAt).toEqual(expect.any(String));
+    });
+
+    // The tool schema accepts `code`, but baking runs host-side and the editor
+    // has no client for that route. Refusing beats storing an animation whose
+    // curves never arrive.
+    it("refuses a code body", () => {
+      expect(() =>
+        buildClipAnimation({ role: "in", preset: "custom", code: "return {curves: []};" })
+      ).toThrow(/baked host-side/);
+    });
+
+    it("refuses curves that drive nothing", () => {
+      expect(() =>
+        buildClipAnimation({ role: "in", preset: "custom", curves: [] })
+      ).toThrow(/unusable/);
+    });
+
+    it("needs curves at all", () => {
+      expect(() =>
+        buildClipAnimation({ role: "in", preset: "custom" })
+      ).toThrow(/needs `curves`/);
+    });
+
+    it("refuses a wipeProgress curve with no mask", () => {
+      expect(() =>
+        buildClipAnimation({
+          role: "in",
+          preset: "custom",
+          curves: [
+            { property: "wipeProgress", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 1 }] }
+          ]
+        })
+      ).toThrow(/needs a mask/);
+    });
+
+    it("keeps the mask when one is given", () => {
+      const anim = buildClipAnimation({
+        role: "in",
+        preset: "custom",
+        curves: [
+          { property: "wipeProgress", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 1 }] }
+        ],
+        mask: { direction: "left", softness: 0.2 }
+      });
+      expect(anim.custom?.mask).toEqual({ direction: "left", softness: 0.2 });
+    });
+  });
 });

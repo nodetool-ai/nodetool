@@ -188,8 +188,9 @@ tool rather than out of this document.
 `nodetool timeline validate` and the `validate_timeline` tool report
 `custom_animation_invalid` for curves the compiler would skip (an unknown
 property, a keyframe with no finite value, a `wipeProgress` curve with no mask)
-and warn `custom_animation_unsourced` when baked curves name neither a script
-nor code, so nothing could re-bake them.
+Curves that are absent or empty are reported by that same code — an animation
+that drives nothing. Inline curves need no script or code behind them: under
+the agent path they are the source, not a bake of one.
 
 ## Code
 
