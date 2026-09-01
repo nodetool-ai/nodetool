@@ -36,6 +36,7 @@ import {
   getSegmentationService,
   generateSegmentationRunId,
   generateCutoutDataUrl,
+  toAlphaMaskDataUrl,
   drawMaskBoundsOverlay,
   drawMaskImageOverlay,
   projectSegmentationMasksToDocumentSpace,
@@ -199,7 +200,10 @@ export function useSegmentation({
               mask.bounds,
               settings.maskFeather
             )
-          : mask.maskDataUrl;
+          : // A mask layer holds the silhouette, so the model's opaque
+            // white-on-black PNG becomes alpha here too — stored raw it is a
+            // full-canvas black rectangle covering the layers below.
+            await toAlphaMaskDataUrl(mask.maskDataUrl);
 
       if (effectiveSourceMetadata && rasterSource) {
         const documentSpaceRaster = await rasterizeSegmentationToDocumentSpace(
