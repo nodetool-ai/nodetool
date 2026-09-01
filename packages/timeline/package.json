@@ -37,6 +37,12 @@
       "import": "./dist/render/index.js",
       "default": "./dist/render/index.js"
     },
+    "./scene": {
+      "nodetool-dev": "./src/scene.ts",
+      "types": "./dist/scene.d.ts",
+      "import": "./dist/scene.js",
+      "default": "./dist/scene.js"
+    },
     "./dependencyHash.js": {
       "nodetool-dev": "./src/dependencyHash.ts",
       "types": "./dist/dependencyHash.d.ts",

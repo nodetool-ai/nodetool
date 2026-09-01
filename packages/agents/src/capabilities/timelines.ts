@@ -45,6 +45,9 @@ import {
   deleteTimelineVersionSpec,
   editTimelineSpec,
   validateTimelineSpec,
+  previewTimelineFrameSpec,
+  DEFAULT_PREVIEW_COUNT,
+  MAX_PREVIEW_TIMES,
   DEFAULT_VERSION_LIMIT,
   MAX_VERSION_LIMIT,
   SAVE_TYPE_PROPERTY,
@@ -865,6 +868,193 @@ const validateTimeline: CapabilityExport = {
   }
 };
 
+/**
+ * The timecodes to render when the caller names none: evenly spaced across the
+ * sequence, avoiding both ends — the first and last frame of a cut are the two
+ * least informative places to look.
+ */
+function evenlySpacedTimes(durationMs: number, count: number): number[] {
+  const span = Math.max(1, durationMs);
+  return Array.from({ length: count }, (_, i) =>
+    Math.round((span * (i + 1)) / (count + 1))
+  );
+}
+
+/** The timecodes a `preview_timeline_frame` call asks for. */
+function requestedTimes(
+  params: Record<string, unknown>,
+  durationMs: number
+): number[] | ToolError {
+  const raw = params["times_ms"];
+  if (raw === undefined || raw === null) {
+    const count = Math.max(
+      1,
+      Math.min(
+        MAX_PREVIEW_TIMES,
+        Math.round(Number(params["count"]) || DEFAULT_PREVIEW_COUNT)
+      )
+    );
+    return evenlySpacedTimes(durationMs, count);
+  }
+  if (!Array.isArray(raw)) {
+    return { error: "times_ms must be an array of milliseconds." };
+  }
+  if (raw.length === 0) {
+    return { error: "times_ms was empty — omit it to sample evenly instead." };
+  }
+  if (raw.length > MAX_PREVIEW_TIMES) {
+    return {
+      error: `times_ms holds ${raw.length} timecodes; at most ${MAX_PREVIEW_TIMES} render per call.`
+    };
+  }
+  const times: number[] = [];
+  for (const value of raw) {
+    if (!isFiniteNumber(value) || value < 0) {
+      return {
+        error: `times_ms must hold non-negative numbers; got ${JSON.stringify(value)}.`
+      };
+    }
+    times.push(value);
+  }
+  return times;
+}
+
+/**
+ * Render the composited frame at chosen timecodes.
+ *
+ * Frames are persisted as assets and returned as handles, not as pixels: this
+ * follows the rule `view_image` exists for — a tool that produces an image
+ * hands back a reference, and the model pulls the pixels into context only for
+ * the frame it decides to look at. Three frames of inline base64 would be in
+ * every subsequent turn of the conversation whether or not they were read.
+ */
+const previewTimelineFrame: CapabilityExport = {
+  spec: previewTimelineFrameSpec,
+  impl: async (run, params) => {
+    const timelineId = params["timeline_id"];
+    const inline = params["document"];
+
+    let document: unknown = inline;
+    let meta = {
+      fps: numberParam(params["fps"]) ?? 30,
+      width: numberParam(params["width_px"]) ?? 1920,
+      height: numberParam(params["height_px"]) ?? 1080
+    };
+    let durationMs = 0;
+    let name = "Inline timeline";
+
+    if (document === undefined || document === null) {
+      const seq = await loadTimeline(run, timelineId);
+      if (isError(seq)) return seq;
+      const resolved = seq.toTimelineSequence();
+      document = resolved;
+      meta = { fps: resolved.fps, width: resolved.width, height: resolved.height };
+      durationMs = resolved.durationMs;
+      name = resolved.name;
+    }
+
+    if (!isRecord(document)) {
+      return {
+        error:
+          "No timeline to render — pass an inline `document` ({tracks, clips, markers}) or a valid `timeline_id`."
+      };
+    }
+
+    const tracks = Array.isArray(document["tracks"]) ? document["tracks"] : [];
+    const clips = Array.isArray(document["clips"]) ? document["clips"] : [];
+    if (clips.length === 0) {
+      return {
+        error: `${name} has no clips to render.`,
+        timeline_id: isString(timelineId) ? timelineId : undefined
+      };
+    }
+    if (durationMs <= 0) {
+      // An inline document carries no stored duration, so derive it from the
+      // clips: the end of the last one is the end of the cut.
+      durationMs = clips.reduce((end: number, clip: unknown) => {
+        if (!isRecord(clip)) return end;
+        const start = Number(clip["startMs"]) || 0;
+        const length = Number(clip["durationMs"]) || 0;
+        return Math.max(end, start + length);
+      }, 0);
+    }
+
+    const times = requestedTimes(params, durationMs);
+    if (isError(times)) return times;
+
+    const { renderTimelineFrames } = await import(
+      "../timeline-preview/frames.js"
+    );
+    const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
+    const { persistOutput } = await import("../tools/asset-persist.js");
+
+    let result;
+    try {
+      result = await renderTimelineFrames({
+        sequence: {
+          ...(document as object),
+          tracks,
+          clips,
+          fps: meta.fps,
+          width: meta.width,
+          height: meta.height,
+          durationMs
+        } as Parameters<typeof renderTimelineFrames>[0]["sequence"],
+        timesMs: times,
+        width: numberParam(params["width"]),
+        loadAsset: (assetId) =>
+          loadMediaRefBytes(
+            { uri: `asset://${assetId}`, asset_id: assetId },
+            run.context
+          )
+      });
+    } catch (error) {
+      return {
+        error: `Could not render the timeline: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      };
+    }
+
+    const frames = [];
+    for (const frame of result.frames) {
+      const saved = await persistOutput(run.context, frame.png, {
+        namePrefix: "timeline-frame",
+        mime: "image/png"
+      });
+      frames.push({
+        time_ms: frame.time_ms,
+        width: frame.width,
+        height: frame.height,
+        image: {
+          type: "image",
+          asset_id: saved.asset_id,
+          asset_uri: saved.asset_uri,
+          uri: saved.asset_uri ?? saved.path,
+          path: saved.path,
+          mime_type: saved.mime_type,
+          bytes: saved.bytes
+        },
+        layers: frame.layers
+      });
+    }
+
+    return {
+      timeline_id: isString(timelineId) ? timelineId : undefined,
+      name,
+      fps: meta.fps,
+      sequence_width: meta.width,
+      sequence_height: meta.height,
+      duration_ms: durationMs,
+      frames,
+      effects_not_applied: result.effectsNotApplied,
+      hint:
+        "Call view_image with a frame's asset_id to see it. The layers are " +
+        "listed top of the stack first — the first one covers the rest."
+    };
+  }
+};
+
 /** Every timeline capability, in the order the tool files declared them. */
 /**
  * Delete a timeline sequence the caller owns.
@@ -898,6 +1088,7 @@ export const TIMELINE_CAPABILITIES: readonly CapabilityExport[] = [
   deleteTimelineVersion,
   editTimeline,
   validateTimeline,
+  previewTimelineFrame,
   deleteTimeline
 ];
 
@@ -917,5 +1108,6 @@ export {
   deleteTimelineVersion,
   editTimeline,
   validateTimeline,
+  previewTimelineFrame,
   deleteTimeline
 };

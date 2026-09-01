@@ -41,14 +41,28 @@
 
 ## Rendering (`src/render`, `@nodetool-ai/timeline/render`)
 
-- **One scene model, one compositor, three hosts.** The live preview, the
-  browser export and the server-side `RenderTimeline` node all resolve layers
-  with `computeActiveLayers` + `resolveAnimatedLayerProps` and place them with
-  `buildTransformMatrix`. A rule that lives in only one host is a rule the other
-  two will drift from — put it here.
+- **One scene model, one compositor, four hosts.** The live preview, the
+  browser export, the server-side `RenderTimeline` node and the agent-facing
+  `preview_timeline_frame` all resolve layers with `computeActiveLayers` +
+  `resolveAnimatedLayerProps` and place them with `buildTransformMatrix`. A
+  rule that lives in only one host is a rule the others will drift from — put
+  it here.
+- **Two compositors, one set of rules.** `frameCompositor.ts` is the GPU path;
+  `canvas2d.ts` is the same placement, opacity, blend, wipe and rounded-corner
+  math against a Canvas 2D context, and both the browser's WebGPU fallback and
+  the headless frame preview draw through it. Effects are where the two
+  genuinely differ, so `unsupportedEffectTypes` names what Canvas 2D drops
+  rather than letting a caller show a different picture silently.
 - **Nothing in `src/render` may be re-exported from the package root.** The root
   export stays runtime-dependency-free (mobile compiles it from source); the
   render module pulls in WebGPU through `@nodetool-ai/gpu`.
+- **`./scene` is `./render` without the GPU.** It re-exports the scene model,
+  transform math, draw rules and Canvas 2D rules — everything but
+  `frameCompositor` and `effects`, the two files that import
+  `@nodetool-ai/gpu/webgpu` and through it TypeGPU. A caller that only resolves
+  and draws (`packages/agents`) imports `./scene`; a caller that wants the GPU
+  compositor imports `./render`. Both re-export the same modules, so the paths
+  cannot drift.
 - **Never read a WebGPU flag namespace (`GPUTextureUsage`, `GPUShaderStage`) at
   module scope.** Under Node those globals only exist after the Dawn adapter
   installs them with the device, so a module-scope read throws on import.

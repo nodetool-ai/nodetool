@@ -12,5 +12,6 @@
 export * from "./sceneModel.js";
 export * from "./transform.js";
 export * from "./draw.js";
+export * from "./canvas2d.js";
 export * from "./effects.js";
 export * from "./frameCompositor.js";
