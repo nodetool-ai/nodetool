@@ -131,6 +131,34 @@ s(
   "Execution",
   "Maximum number of concurrent runs of the same workflow before additional runs queue (default: 4). Only applies to runs that opt into concurrency (e.g. timeline/sketch generation); canvas runs always stay sequential per workflow. Also bounded by MAX_CONCURRENT_JOBS."
 );
+// Agent budgets — the bounds one agent run shares across every loop it starts
+// (a chat turn, its sub-agents, an AgentNode it spawns). See A1 in
+// docs/plans/agent-system-improvements.md.
+s(
+  "NODETOOL_AGENT_TURN_COST_CAP_USD",
+  "Agents",
+  "Ceiling on provider spend for one agent run, in US dollars (default: 5.00). The whole run shares it: sub-agents, background subtasks, and agent nodes reserve against the same cap rather than opening their own. A turn whose worst case would cross it is refused before the call, and the run stops with a message naming the cap. Set to an empty value for no cap, which is what a local-only install wants."
+);
+s(
+  "NODETOOL_AGENT_TURN_DEADLINE_MS",
+  "Agents",
+  "Wall-clock bound on one agent run, in milliseconds (default: 1800000, i.e. 30 minutes). Checked before every model turn and every tool call, so a run that stalls on a slow provider ends instead of hanging."
+);
+s(
+  "NODETOOL_AGENT_MAX_CONCURRENCY",
+  "Agents",
+  "Maximum provider conversations an agent run may have open at once (default: 8). Shared by the whole run, so a fan-out of sub-agents inside a fan-out of steps cannot multiply into hundreds of simultaneous calls."
+);
+s(
+  "NODETOOL_AGENT_MAX_TURNS",
+  "Agents",
+  "Maximum model turns an agent run may make in total (default: 200), counted across every loop it starts. This is the bound that still holds for a local model with no price, where the dollar cap cannot apply."
+);
+s(
+  "NODETOOL_AGENT_UNPRICED_TOKEN_CEILING",
+  "Agents",
+  "Prompt-token ceiling for a turn on a model the price catalog does not cover (default: 400000). An unpriced model has no worst-case cost to reserve, so admitting it freely would make the dollar cap advisory; this bounds it by size instead. Such turns are counted as unpriced rather than as free spend."
+);
 // Provider endpoints
 s(
   "VLLM_BASE_URL",

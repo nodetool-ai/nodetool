@@ -107,6 +107,8 @@ export {
   createSemaphore,
   createCounter,
   isRunBudget,
+  budgetFromContext,
+  RUN_BUDGET_CONTEXT_KEY,
   BUDGET_EXHAUSTION_KINDS,
   TURN_REFUSALS,
   type TurnBudget,

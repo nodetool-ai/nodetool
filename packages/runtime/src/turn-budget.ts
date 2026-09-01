@@ -498,3 +498,36 @@ export function createRunBudget(opts: CreateRunBudgetOptions): RunBudget {
     }
   };
 }
+
+/**
+ * Context variable holding the run's {@link RunBudget}.
+ *
+ * A budget has to reach loops the host never sees: an `AgentNode` a chat turn
+ * started through `run_node`, a JS script, a sub-agent three levels down. The
+ * context bag is the one channel every one of them already carries, and
+ * `ProcessingContext.copy()` shallow-copies it, so a child context shares the
+ * same object rather than a clone of it — which is what makes the cap a run
+ * total instead of a per-loop allowance (invariant I-2).
+ *
+ * It lives here, beside the type it names, so that hosts, `agents`, and
+ * `llm-nodes` agree on the key without any of them importing each other.
+ */
+export const RUN_BUDGET_CONTEXT_KEY = "nodetool_run_budget";
+
+/** Minimal reader for the context bag, so this stays free of a context import. */
+interface RunBudgetContext {
+  get<T = unknown>(key: string, defaultValue?: T): T;
+}
+
+/**
+ * The run budget a host put on the context, or `undefined` when none did.
+ *
+ * Absent means unbudgeted, not exhausted: a workflow run started from the
+ * kernel with no host budget must keep working exactly as it does today.
+ */
+export function budgetFromContext(
+  context: RunBudgetContext | undefined | null
+): RunBudget | undefined {
+  const value = context?.get<unknown>(RUN_BUDGET_CONTEXT_KEY);
+  return isRunBudget(value as RunBudget | undefined) ? (value as RunBudget) : undefined;
+}
