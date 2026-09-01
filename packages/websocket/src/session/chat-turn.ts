@@ -1379,9 +1379,9 @@ export class ChatTurnHandler {
     // The single-node runner is a closure only this package can build, so
     // `run_node` reaches a capability run as a host-supplied capability rather
     // than out of the registry. It runs the node on a context of its own, so
-    // the turn's gate is handed over explicitly — without it the node's own
-    // agent loop would find no gate and run headless, which is how a chat in
-    // plan mode could mutate through an `AgentNode`.
+    // the turn's gate is handed over explicitly — without it an agent loop
+    // inside the node finds no gate and runs headless, and approving
+    // `run_node` becomes approval for whatever the node then calls.
     const runNodeTool = new RunNodeTool((nodeType, inputs) =>
       this.runSingleNode(nodeType, inputs, userId, chatProjectId, chatGate)
     );
