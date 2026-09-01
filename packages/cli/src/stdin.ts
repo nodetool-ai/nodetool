@@ -21,18 +21,15 @@
 
 import readline from "node:readline";
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
-import { ProcessingContext } from "@nodetool-ai/runtime";
 import { processChat } from "@nodetool-ai/chat";
-import { applySystemPrompt, createCliCodeActTurn } from "./chat-codeact.js";
-import { createChatContext } from "./chat-context.js";
 import {
-  BackgroundSubtaskRegistry,
-  createCapabilityRun,
-  contextSecretAvailability,
-  getBuiltinTools,
-  toolForCapabilityName,
-  UNGATED
-} from "@nodetool-ai/agents";
+  applySystemPrompt,
+  buildCliAgentBelt,
+  createCliCodeActTurn
+} from "./chat-codeact.js";
+import { createChatContext } from "./chat-context.js";
+import { isString } from "./predicates.js";
+import { getBuiltinTools } from "@nodetool-ai/agents";
 import type { Tool } from "@nodetool-ai/agents/tool";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -231,52 +228,19 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
     // naming a tool the belt did not carry. `createCliCodeActTurn` adds
     // `execute_code` itself and appends `view_image` only if it finds it here,
     // which is why an empty belt silently removed the one channel for pixels.
-    const baseTools: Tool[] = getBuiltinTools();
-    const forwardMessage = (msg: ProcessingMessage) => {
-      if (msg.type === "chunk") {
-        process.stdout.write((msg as { content?: string }).content ?? "");
-      } else if (msg.type === "tool_call_update") {
-        process.stderr.write(`[tool] ${msg.name}\n`);
-      }
-    };
-    // All delegation tools reach the belt as capabilities over one runtime.
-    // The class is still what runs — the `agents` module builds one per call —
-    // so the depth gate, the child's inherited belt (with a `run_subtask` of
-    // its own stitched in, since this snapshot predates the tools below it)
-    // and the event tagging are unchanged. The background registry is built
-    // ONCE here (not inside `delegationRun`) so every `start_subtask` call
-    // this turn writes records the same turn's `wait_subtasks` reads.
-    const backgroundSubtasks = new BackgroundSubtaskRegistry();
-    const subAgentRuntime = {
+    return buildCliAgentBelt({
+      baseTools: getBuiltinTools(),
       provider: prov,
       model: opts.model,
-      parentTools: () => baseTools,
-      forwardMessage,
-      background: backgroundSubtasks
-    };
-    const delegationRun = (context: ProcessingContext) =>
-      createCapabilityRun({
-        context,
-        gate: UNGATED,
-        availableSecrets: contextSecretAvailability(context),
-        subAgent: subAgentRuntime
-      });
-    const subtaskTool = toolForCapabilityName("run_subtask", delegationRun);
-    const startSubtaskTool = toolForCapabilityName(
-      "start_subtask",
-      delegationRun
-    );
-    const waitSubtasksTool = toolForCapabilityName(
-      "wait_subtasks",
-      delegationRun
-    );
-    // Read-only fan-out search (on by default). Filters baseTools to its
-    // read-only allowlist internally, so passing the full snapshot is correct.
-    if (opts.enableReadOnlySearch !== false) {
-      const searchTool = toolForCapabilityName("run_search", delegationRun);
-      return [searchTool, subtaskTool, startSubtaskTool, waitSubtasksTool, ...baseTools];
-    }
-    return [subtaskTool, startSubtaskTool, waitSubtasksTool, ...baseTools];
+      forwardMessage: (msg: ProcessingMessage) => {
+        if (msg.type === "chunk") {
+          process.stdout.write(isString(msg.content) ? msg.content : "");
+        } else if (msg.type === "tool_call_update") {
+          process.stderr.write(`[tool] ${msg.name}\n`);
+        }
+      },
+      readOnlySearch: opts.enableReadOnlySearch !== false
+    });
   };
 
   /**

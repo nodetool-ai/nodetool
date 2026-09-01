@@ -18,16 +18,23 @@
  */
 
 import type {
+  BaseProvider,
   JsonSchema,
   Message,
   ProcessingContext
 } from "@nodetool-ai/runtime";
 import { DIRECT_TOOL_NAMES } from "@nodetool-ai/runtime";
 import {
+  BackgroundSubtaskRegistry,
+  contextSecretAvailability,
+  createCapabilityRun,
   Tool,
+  toolForCapabilityName,
+  UNGATED,
   createChatCodeActSession,
   type ChatCodeActSession
 } from "@nodetool-ai/agents";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { isNonBlankString } from "./predicates.js";
 
 /** The tool that stays a direct provider tool alongside `execute_code`. */
@@ -117,6 +124,73 @@ export function createCliCodeActTurn(
   if (viewImage) tools.push(viewImage);
 
   return { tools, systemPrompt: session.systemPromptSection, session };
+}
+
+// ---------------------------------------------------------------------------
+// The belt
+// ---------------------------------------------------------------------------
+
+export interface CliAgentBeltOptions {
+  /** The platform belt. Every delegated loop inherits this snapshot. */
+  baseTools: Tool[];
+  provider: BaseProvider;
+  model: string;
+  /** Where a delegated loop's messages go — its chunks, tool calls, plan events. */
+  forwardMessage: (message: ProcessingMessage) => void;
+  /** Read-only `run_search` fan-out. On unless set false. */
+  readOnlySearch?: boolean;
+  /** `create_plan` and `execute_plan`. Off unless set true. */
+  planning?: boolean;
+}
+
+/**
+ * The toolbelt a local CLI loop runs on: the platform tools plus the
+ * capabilities that spawn loops of their own.
+ *
+ * One builder for both entrances — `nodetool agent run` and `--stdin` chat —
+ * so an objective and a chat message reach the same tools. The delegation
+ * capabilities are built over one runtime, and the background registry is
+ * created once here rather than per call, so every `start_subtask` this
+ * session writes is what the same session's `wait_subtasks` reads.
+ */
+export function buildCliAgentBelt(options: CliAgentBeltOptions): Tool[] {
+  const { baseTools, provider, model, forwardMessage } = options;
+  const subAgent = {
+    provider,
+    model,
+    parentTools: () => baseTools,
+    forwardMessage,
+    background: new BackgroundSubtaskRegistry()
+  };
+  // Ungated: spawning a child loop has no side effect of its own, and the
+  // child's tools are `baseTools`. This is where the CLI's permission gate
+  // (`--permission-mode`) and the run budget thread in.
+  const delegationRun = (context: ProcessingContext) =>
+    createCapabilityRun({
+      context,
+      gate: UNGATED,
+      availableSecrets: contextSecretAvailability(context),
+      subAgent
+    });
+
+  const spawned: Tool[] = [];
+  if (options.readOnlySearch !== false) {
+    spawned.push(toolForCapabilityName("run_search", delegationRun));
+  }
+  spawned.push(
+    toolForCapabilityName("run_subtask", delegationRun),
+    toolForCapabilityName("start_subtask", delegationRun),
+    toolForCapabilityName("wait_subtasks", delegationRun)
+  );
+  if (options.planning) {
+    // The two halves of plan mode: `create_plan` decomposes the objective and
+    // streams the DAG, `execute_plan` runs it on the ParallelTaskExecutor.
+    spawned.push(
+      toolForCapabilityName("create_plan", delegationRun),
+      toolForCapabilityName("execute_plan", delegationRun)
+    );
+  }
+  return [...spawned, ...baseTools];
 }
 
 /**
