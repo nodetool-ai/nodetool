@@ -33,6 +33,7 @@ import {
 } from "@nodetool-ai/timeline/render";
 import { CaptionRasterizer } from "../preview/captionRender";
 import { TextRasterizer } from "../preview/textRender";
+import { textMeasurer } from "../preview/textMeasure";
 import { ShapeRasterizer } from "../preview/shapeRender";
 import { OffscreenVideoPool } from "./OffscreenVideoPool";
 import { renderTimelineAudio } from "./renderAudio";
@@ -230,7 +231,11 @@ export async function renderTimeline(
 
     // Motion-design animations resolve against the sequence resolution (px),
     // matching the live preview. The compile cache lives for the whole render.
-    const animCanvas = { width: opts.width, height: opts.height };
+    const animCanvas = {
+      width: opts.width,
+      height: opts.height,
+      measureText: textMeasurer()
+    };
     const animCache = createAnimationCompileCache();
 
     const frameDurationSec = 1 / fps;

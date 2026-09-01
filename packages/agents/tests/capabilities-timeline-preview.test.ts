@@ -115,6 +115,30 @@ async function redSpan(
   };
 }
 
+/** First and last column of a PNG's middle row that carries a bright pixel. */
+async function brightColumns(
+  png: Uint8Array
+): Promise<{ first: number; last: number; count: number }> {
+  const image = await loadImage(Buffer.from(png));
+  const canvas = createCanvas(image.width, image.height);
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(image, 0, 0);
+  const row = ctx.getImageData(0, Math.floor(image.height / 2), image.width, 1)
+    .data;
+  let first = -1;
+  let last = -1;
+  let count = 0;
+  for (let i = 0; i < row.length; i += 4) {
+    if (row[i] > 60) {
+      const column = i / 4;
+      if (first < 0) first = column;
+      last = column;
+      count += 1;
+    }
+  }
+  return { first, last, count };
+}
+
 describe("renderTimelineFrames", () => {
   it("composites a shape clip's pixels into the frame", async () => {
     const { frames } = await renderTimelineFrames({
@@ -248,6 +272,46 @@ describe("renderTimelineFrames", () => {
       brightest = Math.max(brightest, row[i]);
     }
     expect(brightest).toBeGreaterThan(150);
+  });
+
+  it("draws a character stagger one glyph at a time", async () => {
+    // Each glyph fades in over 200ms, 300ms after the one before it, so at
+    // 650ms only the first three have opened. A raster that ignored the
+    // stagger would light the whole word at once.
+    const staggered = {
+      ...shapeClip("stagger", "track-0", "#000000"),
+      mediaType: "text" as const,
+      shapeStyle: undefined,
+      textStyle: {
+        text: "HHHHHHHHHH",
+        fontSizePx: 30,
+        color: "#ffffff"
+      },
+      animations: [
+        {
+          id: "a1",
+          role: "in" as const,
+          preset: "fade",
+          durationMs: 200,
+          easing: "linear",
+          stagger: { unit: "character", offsetMs: 300 }
+        }
+      ]
+    };
+    const { frames } = await renderTimelineFrames({
+      sequence: sequence([track(0)], [staggered]),
+      timesMs: [650, 3500],
+      width: 320,
+      loadAsset: noAssets
+    });
+
+    const mid = await brightColumns(frames[0].png);
+    const settled = await brightColumns(frames[1].png);
+    expect(mid.count).toBeGreaterThan(0);
+    // The word is centered, so the un-opened glyphs are the right-hand ones.
+    expect(mid.first).toBeCloseTo(settled.first, -1);
+    expect(mid.last).toBeLessThan(settled.last - 20);
+    expect(mid.count).toBeLessThan(settled.count);
   });
 
   it("says why a layer contributed nothing instead of dropping it", async () => {

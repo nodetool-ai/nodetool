@@ -374,11 +374,13 @@ describe("compileClipAnimations with a custom preset", () => {
     expect(compiled.loop).toBe(true);
     expect(compiled.periodMs).toBe(800);
     expect(compiled.stagger).toEqual({
+      unit: "word",
       count: 3,
       offsetMs: 100,
       from: "start",
       unitDurationMs: 800,
-      maxDelayMs: 200
+      maxDelayMs: 200,
+      compressed: false
     });
   });
 });

@@ -7,6 +7,7 @@ import {
   resolveTextStaggerContext
 } from "@nodetool-ai/timeline/render";
 import { ShapeRasterizer } from "./shapeRender";
+import { textMeasurer } from "./textMeasure";
 import { TextRasterizer } from "./textRender";
 
 interface RasterClipFrame {
@@ -65,6 +66,11 @@ export async function renderRasterClipFrames(
   }
 
   const animationCache = createAnimationCompileCache();
+  const animationCanvas = {
+    width: sequenceWidth,
+    height: sequenceHeight,
+    measureText: textMeasurer()
+  };
   try {
     return timelineTimes.map((timelineTimeMs) => {
       const animated = resolveAnimatedLayerProps(
@@ -74,7 +80,7 @@ export async function renderRasterClipFrames(
           opacity: clip.opacity ?? 1
         },
         timelineTimeMs,
-        { width: sequenceWidth, height: sequenceHeight },
+        animationCanvas,
         animationCache
       );
       // A staggered text clip re-rasterizes per requested time so the agent
@@ -84,7 +90,7 @@ export async function renderRasterClipFrames(
         const stagger = resolveTextStaggerContext(
           clip,
           timelineTimeMs,
-          { width: sequenceWidth, height: sequenceHeight },
+          animationCanvas,
           animationCache
         );
         if (stagger) {

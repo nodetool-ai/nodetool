@@ -13,6 +13,8 @@ import {
   CUSTOM_ANIMATION_PRESET_ID,
   getAnimationPreset,
   normalizeCustomCurves,
+  parseStaggerUnit,
+  STAGGER_UNITS,
   resolveCustomMask,
   type ClipAnimation
 } from "@nodetool-ai/timeline";
@@ -46,9 +48,9 @@ export function buildClipAnimation(input: ClipAnimationInput): ClipAnimation {
     throw new Error("Animation delayMs must be a non-negative finite number.");
   }
   if (input.stagger !== undefined) {
-    if (input.stagger.unit !== "word") {
+    if (parseStaggerUnit(input.stagger.unit) === null) {
       throw new Error(
-        `Unknown stagger unit "${input.stagger.unit}". Only "word" is supported.`
+        `Unknown stagger unit "${input.stagger.unit}". Valid units: ${STAGGER_UNITS.join(", ")}.`
       );
     }
     if (

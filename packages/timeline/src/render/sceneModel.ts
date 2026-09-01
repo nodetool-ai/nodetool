@@ -22,17 +22,19 @@ import type {
   AnimationSample,
   AnimationSampleMask,
   ClipAnimation,
-  CompiledAnimation
+  CompiledAnimation,
+  StaggerUnit
 } from "../animation/index.js";
 import {
   compileClipAnimations,
-  countStaggerUnits,
   hasActiveAnimationWindow,
   hasStaggeredAnimation,
   isIdentitySample,
+  parseStaggerUnit,
   sampleAnimations
 } from "../animation/index.js";
 import type { ResolvedCaption, TextRenderStagger } from "./draw.js";
+import { countTextStaggerUnits, type RenderCanvas } from "./textLayout.js";
 
 /** Blend mode a layer composites with. */
 export type CompositorBlendMode = NonNullable<TimelineClip["blendMode"]>;
@@ -502,7 +504,9 @@ interface CompileCacheEntry {
   durationMs: number;
   canvasW: number;
   canvasH: number;
-  /** Word count of a text clip (stagger span math depends on it). 0 otherwise. */
+  /** The unit the clip's staggers were counted in. */
+  staggerUnit: StaggerUnit;
+  /** Unit count of a text clip (stagger span math depends on it). 0 otherwise. */
   staggerCount: number;
   compiled: CompiledAnimation[];
 }
@@ -518,21 +522,41 @@ export function createAnimationCompileCache(): AnimationCompileCache {
   return new Map();
 }
 
-/** Stagger unit count for a clip: text clips split into words, others 0. */
-function clipStaggerCount(clip: TimelineClip): number {
-  return clip.mediaType === "text" && clip.textStyle
-    ? countStaggerUnits(clip.textStyle.text)
-    : 0;
+/**
+ * The unit a clip's staggered animations are timed and drawn in, and how many
+ * of it the clip's text holds. A clip lays out in ONE unit — the rasterizer
+ * walks a single list — so the first enabled animation naming a unit this
+ * build knows decides it, and the compiler drops a stagger declaring another.
+ *
+ * Non-text clips and clips with no stagger count zero, which is how a stagger
+ * config stays a no-op outside text.
+ */
+export function clipStaggerCount(
+  clip: TimelineClip,
+  canvas: RenderCanvas
+): { unit: StaggerUnit; count: number } {
+  const none = { unit: "word" as StaggerUnit, count: 0 };
+  if (clip.mediaType !== "text" || !clip.textStyle) return none;
+  for (const animation of clip.animations ?? []) {
+    if (animation.enabled === false || !animation.stagger) continue;
+    const unit = parseStaggerUnit(animation.stagger.unit);
+    if (!unit) continue;
+    return { unit, count: countTextStaggerUnits(clip.textStyle, canvas, unit) };
+  }
+  return none;
 }
 
 function compiledFor(
   clip: TimelineClip,
-  canvas: { width: number; height: number },
+  canvas: RenderCanvas,
   cache?: AnimationCompileCache
 ): CompiledAnimation[] {
   const animations = clip.animations;
   if (!animations || animations.length === 0) return [];
-  const staggerCount = clipStaggerCount(clip);
+  const { unit: staggerUnit, count: staggerCount } = clipStaggerCount(
+    clip,
+    canvas
+  );
   if (cache) {
     const hit = cache.get(clip.id);
     if (
@@ -541,25 +565,29 @@ function compiledFor(
       hit.durationMs === clip.durationMs &&
       hit.canvasW === canvas.width &&
       hit.canvasH === canvas.height &&
+      hit.staggerUnit === staggerUnit &&
       hit.staggerCount === staggerCount
     ) {
       return hit.compiled;
     }
     const compiled = compileClipAnimations(animations, clip.durationMs, canvas, {
-      staggerCount
+      staggerCount,
+      staggerUnit
     });
     cache.set(clip.id, {
       animationsRef: animations,
       durationMs: clip.durationMs,
       canvasW: canvas.width,
       canvasH: canvas.height,
+      staggerUnit,
       staggerCount,
       compiled
     });
     return compiled;
   }
   return compileClipAnimations(animations, clip.durationMs, canvas, {
-    staggerCount
+    staggerCount,
+    staggerUnit
   });
 }
 
@@ -581,7 +609,7 @@ const IDENTITY_TRANSFORM: ClipTransform = {
 export function resolveAnimatedLayerProps(
   layer: { clip: TimelineClip; transform?: ClipTransform; opacity: number },
   currentTimeMs: number,
-  canvas: { width: number; height: number },
+  canvas: RenderCanvas,
   cache?: AnimationCompileCache
 ): AnimatedLayerProps {
   const clip = layer.clip;
@@ -709,7 +737,7 @@ function composeAnimatedShapeStyle(
 export function resolveTextStaggerContext(
   clip: TimelineClip,
   currentTimeMs: number,
-  canvas: { width: number; height: number },
+  canvas: RenderCanvas,
   cache?: AnimationCompileCache
 ): TextRenderStagger | null {
   if (clip.mediaType !== "text") return null;
@@ -726,7 +754,7 @@ export function resolveTextStaggerContext(
 export function hasActiveAnimation(
   layers: ActiveLayer[],
   currentTimeMs: number,
-  canvas: { width: number; height: number },
+  canvas: RenderCanvas,
   cache?: AnimationCompileCache
 ): boolean {
   for (const layer of layers) {

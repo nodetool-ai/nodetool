@@ -14,8 +14,10 @@ import type {
   ClipAnimation,
   EasingId,
   StaggerFrom,
+  StaggerUnit,
   WipeDirection
 } from "./types.js";
+import { parseStaggerUnit } from "./types.js";
 import {
   getAnimationPreset,
   resolvePresetParams,
@@ -67,7 +69,9 @@ export interface CompiledAnimationMask {
  * `sampleStaggeredAnimations`.
  */
 export interface CompiledStagger {
-  /** Number of units (words). Always ≥ 2 — fewer compiles un-staggered. */
+  /** What the text splits into. The rasterizer walks the same unit. */
+  unit: StaggerUnit;
+  /** Number of units. Always ≥ 2 — fewer compiles un-staggered. */
   count: number;
   /**
    * Effective per-step delay in ms. May be smaller than the authored
@@ -79,6 +83,12 @@ export interface CompiledStagger {
   unitDurationMs: number;
   /** Largest per-unit delay: `maxStaggerFactor(from, count) * offsetMs`. */
   maxDelayMs: number;
+  /**
+   * True when the span did not fit the clip and `offsetMs` was shrunk to make
+   * it — the units still all complete, but they overlap more than the author
+   * asked for. The validator warns on it; nothing at render time reads it.
+   */
+  compressed: boolean;
 }
 
 /**
@@ -107,19 +117,26 @@ function maxStaggerFactor(from: StaggerFrom, count: number): number {
 }
 
 /**
- * Number of stagger units in a text — whitespace-separated words across all
- * lines, matching the text rasterizer's wrap tokenization.
+ * Word count of a text — whitespace-separated words across all lines, matching
+ * the text rasterizer's wrap tokenization. The `"word"` case of
+ * `countTextStaggerUnits`, which is where the other units are counted (they
+ * need the wrap, and this module has no text measurement).
  */
 export function countStaggerUnits(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;
 }
 
-/** The stagger config when it can take effect for `staggerCount` units. */
+/**
+ * The stagger config when it can take effect: a known unit, matching the one
+ * the clip's text is laid out in, a positive offset, and at least two units.
+ * Anything else compiles as a plain block animation.
+ */
 function effectiveStagger(
   stagger: AnimationStagger | undefined,
+  clipUnit: StaggerUnit,
   staggerCount: number | undefined
 ): AnimationStagger | undefined {
-  if (!stagger || stagger.unit !== "word") return undefined;
+  if (!stagger || parseStaggerUnit(stagger.unit) !== clipUnit) return undefined;
   if (!(stagger.offsetMs > 0)) return undefined;
   if (staggerCount === undefined || staggerCount < 2) return undefined;
   return stagger;
@@ -200,11 +217,19 @@ function applyEasing(
 
 export interface CompileClipAnimationsOptions {
   /**
-   * Number of stagger units the clip's content splits into (word count of a
-   * text clip). Omitted or < 2 → `stagger` configs compile as plain block
+   * Number of stagger units the clip's content splits into, counted in
+   * `staggerUnit`. Omitted or < 2 → `stagger` configs compile as plain block
    * animations, which is how stagger stays a no-op on non-text clips.
+   * `countTextStaggerUnits` (render/textLayout.ts) is what produces it, from
+   * the same wrap the rasterizer draws through.
    */
   staggerCount?: number;
+  /**
+   * The unit `staggerCount` was counted in. A clip is laid out in one unit, so
+   * an animation declaring a different one compiles un-staggered. Defaults to
+   * `"word"`, which is what a caller that only passes a count means.
+   */
+  staggerUnit?: StaggerUnit;
 }
 
 /**
@@ -314,6 +339,7 @@ export function compileClipAnimations(
 
     const staggerConfig = effectiveStagger(
       animation.stagger,
+      options.staggerUnit ?? "word",
       options.staggerCount
     );
     const staggerCount = staggerConfig ? (options.staggerCount as number) : 0;
@@ -335,14 +361,17 @@ export function compileClipAnimations(
         curves
       };
       if (staggerConfig) {
-        // Loops need no span stretch or clamp: the delay is a phase shift.
+        // Loops need no span stretch or clamp: the delay is a phase shift, so
+        // nothing can compress it.
         compiled.stagger = {
+          unit: options.staggerUnit ?? "word",
           count: staggerCount,
           offsetMs: staggerConfig.offsetMs,
           from: staggerFrom,
           unitDurationMs: durationMs,
           maxDelayMs:
-            maxStaggerFactor(staggerFrom, staggerCount) * staggerConfig.offsetMs
+            maxStaggerFactor(staggerFrom, staggerCount) * staggerConfig.offsetMs,
+          compressed: false
         };
       }
       out.push(compiled);
@@ -355,12 +384,14 @@ export function compileClipAnimations(
     // last unit still completes inside the clip.
     let staggerOffsetMs = 0;
     let staggerMaxDelayMs = 0;
+    let staggerCompressed = false;
     if (staggerConfig) {
       const maxFactor = maxStaggerFactor(staggerFrom, staggerCount);
       const availableMs = clipDurationMs - delayMs;
       staggerOffsetMs = staggerConfig.offsetMs;
       if (durationMs + maxFactor * staggerOffsetMs > availableMs) {
         staggerOffsetMs = Math.max(0, (availableMs - durationMs) / maxFactor);
+        staggerCompressed = true;
       }
       staggerMaxDelayMs = maxFactor * staggerOffsetMs;
     }
@@ -395,11 +426,13 @@ export function compileClipAnimations(
     if (mask) compiled.mask = mask;
     if (staggerConfig && staggerOffsetMs > 0) {
       compiled.stagger = {
+        unit: options.staggerUnit ?? "word",
         count: staggerCount,
         offsetMs: staggerOffsetMs,
         from: staggerFrom,
         unitDurationMs: durationMs,
-        maxDelayMs: staggerMaxDelayMs
+        maxDelayMs: staggerMaxDelayMs,
+        compressed: staggerCompressed
       };
     }
     out.push(compiled);

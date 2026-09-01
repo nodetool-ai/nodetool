@@ -59,6 +59,7 @@ import type { ActiveLayer, ResolvedCaption } from "@nodetool-ai/timeline/render"
 import { CaptionRasterizer } from "./captionRender";
 import { TextRasterizer } from "./textRender";
 import { ShapeRasterizer } from "./shapeRender";
+import { textMeasurer } from "./textMeasure";
 
 interface PlaceholderLayer {
   clipId: string;
@@ -861,7 +862,11 @@ export const PreviewCompositor: React.FC = memo(() => {
     (atMs: number): CompositeLayer[] => {
       const out: CompositeLayer[] = [];
       const pool = videoRefs.current;
-      const canvas = { width: sequenceWidth, height: sequenceHeight };
+      const canvas = {
+        width: sequenceWidth,
+        height: sequenceHeight,
+        measureText: textMeasurer()
+      };
       const cache = animCacheRef.current;
 
       activeVideoSlots.forEach((slot) => {

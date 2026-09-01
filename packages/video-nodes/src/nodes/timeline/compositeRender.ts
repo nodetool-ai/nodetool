@@ -11,16 +11,21 @@
  */
 
 import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
-import type { FrameLayer } from "@nodetool-ai/timeline/render";
+import type {
+  FrameLayer,
+  RasterContext2D
+} from "@nodetool-ai/timeline/render";
 import {
   HeadlessFrameCompositor,
   clipSourceTimeSec,
   computeActiveLayers,
   createAnimationCompileCache,
+  measureTextWith,
   resolveAnimatedLayerProps,
   resolveTextStaggerContext,
   trackZ
 } from "@nodetool-ai/timeline/render";
+import { createCanvas } from "@napi-rs/canvas";
 
 import {
   decodeImageRgba,
@@ -100,7 +105,17 @@ export async function renderTimelineComposited(
   const width = Math.max(2, Math.floor(opts.width / 2) * 2);
   const height = Math.max(2, Math.floor(opts.height / 2) * 2);
   const totalFrames = Math.max(1, Math.round((durationMs / 1000) * fps));
-  const canvas = { width, height };
+  const canvas = {
+    width,
+    height,
+    // A `"line"` stagger is counted against the wrapped line count, so the
+    // count measures through the same kind of context the rasterizer draws on.
+    // SAFETY: `RasterContext2D` is the subset of the 2D canvas API the
+    // measurement uses, and a skia context provides all of it.
+    measureText: measureTextWith(
+      createCanvas(1, 1).getContext("2d") as unknown as RasterContext2D
+    )
+  };
 
   if (signal?.aborted) throw abortError();
   const device = await acquireDevice();

@@ -9,11 +9,22 @@
  */
 
 import type { ClipShapeStyle, ClipTextStyle } from "../types.js";
-import type { AnimationSample, CompiledAnimation } from "../animation/index.js";
+import type {
+  AnimationSample,
+  CompiledAnimation,
+  StaggerUnit
+} from "../animation/index.js";
 import {
   createAnimationSample,
   sampleStaggeredAnimations
 } from "../animation/index.js";
+import type { MeasureTextWidth } from "./textLayout.js";
+import {
+  layoutStaggerUnits,
+  textFontSpec,
+  textMaxWidthPx,
+  wrapTextLines
+} from "./textLayout.js";
 
 /**
  * A fill or stroke paint. Canvas also accepts gradients and patterns, which
@@ -167,6 +178,19 @@ export function drawCaption(
   }
 }
 
+/**
+ * A {@link MeasureTextWidth} backed by a 2D context. A host hands one to the
+ * scene model so a `"line"` stagger is counted against the same wrap the
+ * rasterizer draws through; the context is measured, never drawn to, so a
+ * 1×1 scratch canvas is enough.
+ */
+export function measureTextWith(ctx: RasterContext2D): MeasureTextWidth {
+  return (text, font) => {
+    ctx.font = font;
+    return ctx.measureText(text).width;
+  };
+}
+
 // ── Text clips ───────────────────────────────────────────────────────────────
 
 /** Content signature of a text raster, for host-side caching. */
@@ -178,88 +202,7 @@ export function textStyleSignature(
   return `${width}x${height}|${style.text}|${style.fontFamily ?? "Inter"}|${style.fontSizePx}|${style.fontWeight ?? 400}|${style.color}|${style.align ?? "center"}|${style.maxWidthFrac ?? 0.8}`;
 }
 
-interface TextLayoutWord {
-  text: string;
-  /** Left edge in canvas px. */
-  x: number;
-  width: number;
-  /** Vertical center of the word's line (textBaseline "middle"). */
-  y: number;
-}
-
-interface WrappedLine {
-  text: string;
-  words: string[];
-}
-
-/**
- * Greedy word-wrap by measured candidate width — the one wrap rule for both
- * draw paths, so a staggered title breaks lines exactly like its
- * un-staggered self.
- */
-function wrapLines(
-  ctx: RasterContext2D,
-  text: string,
-  maxWidth: number
-): WrappedLine[] {
-  const lines: WrappedLine[] = [];
-  for (const paragraph of text.split(/\r?\n/)) {
-    const words = paragraph.split(/\s+/).filter(Boolean);
-    let line = "";
-    let lineWords: string[] = [];
-    for (const word of words) {
-      const candidate = line ? `${line} ${word}` : word;
-      if (line && ctx.measureText(candidate).width > maxWidth) {
-        lines.push({ text: line, words: lineWords });
-        line = word;
-        lineWords = [word];
-      } else {
-        line = candidate;
-        lineWords.push(word);
-      }
-    }
-    lines.push({ text: line, words: lineWords });
-  }
-  return lines;
-}
-
-/** Word-wrap `style.text` into positioned word boxes. */
-function layoutWords(
-  ctx: RasterContext2D,
-  style: ClipTextStyle,
-  width: number,
-  height: number
-): TextLayoutWord[] {
-  const fontSize = Math.max(1, style.fontSizePx);
-  const align = style.align ?? "center";
-  const maxWidth =
-    width * Math.min(1, Math.max(0.05, style.maxWidthFrac ?? 0.8));
-  const lines = wrapLines(ctx, style.text, maxWidth);
-  const spaceWidth = ctx.measureText(" ").width;
-  const lineHeight = fontSize * 1.2;
-  const firstY = height / 2 - ((lines.length - 1) * lineHeight) / 2;
-  const out: TextLayoutWord[] = [];
-
-  lines.forEach((line, lineIndex) => {
-    const widths = line.words.map((w) => ctx.measureText(w).width);
-    const lineWidth =
-      widths.reduce((sum, w) => sum + w, 0) +
-      spaceWidth * Math.max(0, line.words.length - 1);
-    let x =
-      align === "left"
-        ? (width - maxWidth) / 2
-        : align === "right"
-          ? (width + maxWidth) / 2 - lineWidth
-          : (width - lineWidth) / 2;
-    const y = firstY + lineIndex * lineHeight;
-    line.words.forEach((word, i) => {
-      out.push({ text: word, x, width: widths[i], y });
-      x += widths[i] + spaceWidth;
-    });
-  });
-  return out;
-}
-
+/** Draw a text style as one block: wrapped lines, centered on the raster. */
 export function drawText(
   ctx: RasterContext2D,
   style: ClipTextStyle,
@@ -268,11 +211,12 @@ export function drawText(
 ): void {
   const fontSize = Math.max(1, style.fontSizePx);
   const align = style.align ?? "center";
-  const maxWidth =
-    width * Math.min(1, Math.max(0.05, style.maxWidthFrac ?? 0.8));
+  const maxWidth = textMaxWidthPx(style, width);
 
-  ctx.font = `${style.fontWeight ?? 400} ${fontSize}px ${style.fontFamily ?? "Inter, Arial, sans-serif"}`;
-  const lines = wrapLines(ctx, style.text, maxWidth);
+  ctx.font = textFontSpec(style);
+  const lines = wrapTextLines(style.text, maxWidth, (text) =>
+    ctx.measureText(text).width
+  );
 
   const lineHeight = fontSize * 1.2;
   const firstBaseline = height / 2 - ((lines.length - 1) * lineHeight) / 2;
@@ -300,9 +244,36 @@ export interface TextRenderStagger {
 }
 
 /**
- * Draw each word with its own animation sample: translate to the word's
- * center (plus the sample's offset), rotate/scale about it, multiply alpha.
- * Effect/mask properties are not applied per word (block-level, v1).
+ * The unit every staggered animation on this clip was compiled against, and
+ * how many of them the compiler timed. A clip lays out in one unit — the
+ * compiler drops a stagger declaring a different one — so the first staggered
+ * animation answers for all of them.
+ */
+function staggerLayout(
+  compiled: CompiledAnimation[]
+): { unit: StaggerUnit; count: number } | null {
+  for (const anim of compiled) {
+    if (anim.stagger) {
+      return { unit: anim.stagger.unit, count: anim.stagger.count };
+    }
+  }
+  return null;
+}
+
+/**
+ * Draw each unit — word, grapheme cluster or wrapped line — with its own
+ * animation sample: place it at its own pivot (plus the sample's offset),
+ * rotate and scale about that pivot, multiply alpha.
+ *
+ * The channels a per-unit draw can honor are the transform ones:
+ * `offsetX/Y` shift the unit, `positionX/Y` move its pivot to an absolute
+ * point on the raster (canvas px from the center, like a layer's
+ * `transform.position`), `anchorX/Y` move the pivot inside the unit's own box,
+ * `scale`/`scaleX`/`scaleY` scale about it, `rotation` turns it, `opacity`
+ * multiplies. Effect, mask and shape channels are not per-unit: the compositor
+ * applies those to the whole layer, which is why the sampler classifies them
+ * as block-level (`ANIMATED_PROPERTY_PASS`) and folds them over the full span
+ * instead of dropping them.
  */
 export function drawStaggeredText(
   ctx: RasterContext2D,
@@ -312,26 +283,61 @@ export function drawStaggeredText(
   stagger: TextRenderStagger,
   scratch: AnimationSample
 ): void {
-  ctx.font = `${style.fontWeight ?? 400} ${Math.max(1, style.fontSizePx)}px ${style.fontFamily ?? "Inter, Arial, sans-serif"}`;
-  const words = layoutWords(ctx, style, width, height);
+  const layout = staggerLayout(stagger.compiled);
+  if (!layout) {
+    drawText(ctx, style, width, height);
+    return;
+  }
+  ctx.font = textFontSpec(style);
+  const units = layoutStaggerUnits(
+    (text) => ctx.measureText(text).width,
+    style,
+    width,
+    height,
+    layout.unit
+  );
   ctx.fillStyle = style.color;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
 
-  words.forEach((word, index) => {
+  units.forEach((unit, index) => {
+    // A whitespace unit takes its index — the units after it are timed as if
+    // it were drawn — and draws nothing.
+    if (unit.text === "") return;
+    // A host that counted units without a text measurer can lay out more lines
+    // than the compiler timed; clamping lets the extra ones ride the last
+    // unit's window instead of sitting outside the span, invisible.
     const s = sampleStaggeredAnimations(
       stagger.compiled,
       stagger.localMs,
-      index,
+      Math.min(index, layout.count - 1),
       scratch
     );
-    if (s.opacity <= 0 || s.scale <= 0) return;
+    const scaleX = s.scale * s.scaleX;
+    const scaleY = s.scale * s.scaleY;
+    if (s.opacity <= 0 || scaleX <= 0 || scaleY <= 0) return;
+    const anchorX = s.anchorX ?? 0.5;
+    const anchorY = s.anchorY ?? 0.5;
+    // The pivot is the point the unit rotates and scales about, and the point
+    // `positionX/Y` replaces when driven.
+    const pivotX =
+      (s.positionX === undefined
+        ? unit.x + unit.width * anchorX
+        : width / 2 + s.positionX) + s.offsetX;
+    const pivotY =
+      (s.positionY === undefined
+        ? unit.y + (anchorY - 0.5) * unit.height
+        : height / 2 + s.positionY) + s.offsetY;
     ctx.save();
-    ctx.translate(word.x + word.width / 2 + s.offsetX, word.y + s.offsetY);
+    ctx.translate(pivotX, pivotY);
     if (s.rotation !== 0) ctx.rotate(s.rotation);
-    if (s.scale !== 1) ctx.scale(s.scale, s.scale);
+    if (scaleX !== 1 || scaleY !== 1) ctx.scale(scaleX, scaleY);
     ctx.globalAlpha = s.opacity;
-    ctx.fillText(word.text, -word.width / 2, 0);
+    ctx.fillText(
+      unit.text,
+      -unit.width * anchorX,
+      -(anchorY - 0.5) * unit.height
+    );
     ctx.restore();
   });
 }

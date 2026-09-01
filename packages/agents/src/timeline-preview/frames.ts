@@ -27,13 +27,15 @@ import type {
   Canvas2DLayer,
   CompositeContext2D,
   DroppedLayerReason,
-  MaskScratch
+  MaskScratch,
+  RasterContext2D
 } from "@nodetool-ai/timeline/scene";
 import {
   clipSourceTimeSec,
   computeActiveLayersWithHorizon,
   createAnimationCompileCache,
   drawTimelineFrame,
+  measureTextWith,
   resolveAnimatedLayerProps,
   resolveTextStaggerContext,
   trackZ,
@@ -174,7 +176,14 @@ export async function renderTimelineFrames(
   // smaller and the transform math is told the reference size.
   const animationCanvas = {
     width: Math.max(1, sequence.width || 1920),
-    height: Math.max(1, sequence.height || 1080)
+    height: Math.max(1, sequence.height || 1080),
+    // A `"line"` stagger is counted against the wrapped line count, so the
+    // count measures through the same kind of context the rasterizer draws on.
+    measureText: measureTextWith(
+      // SAFETY: `RasterContext2D` is the subset of the 2D canvas API the
+      // measurement uses, and a skia context provides all of it.
+      createCanvas(1, 1).getContext("2d") as unknown as RasterContext2D
+    )
   };
   const geometry = {
     canvasWidth: width,

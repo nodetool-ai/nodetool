@@ -44,6 +44,7 @@ import {
   DEFAULT_MEDIA_CLIP_DURATION_MS,
   mediaTypeForContentType,
   trackTypeForMediaType,
+  STAGGER_UNITS,
   type AnimationRole,
   type CustomClipAnimation,
   type PropertyCurve,
@@ -1046,16 +1047,16 @@ export function createTimelineToolBridge(
               mask: customMaskParam,
               stagger: z
                 .object({
-                  unit: z.literal("word"),
+                  unit: z.enum(STAGGER_UNITS),
                   offsetMs: z
                     .number()
                     .positive()
-                    .describe("Delay between successive words in ms."),
+                    .describe("Delay between successive units in ms."),
                   from: z.enum(["start", "end", "center"]).optional()
                 })
                 .optional()
                 .describe(
-                  "Per-word stagger — text clips only. The animation runs once per word, each word offset from the previous."
+                  "Per-unit stagger — text clips only. The animation runs once per word, grapheme or wrapped line, each unit offset from the previous."
                 )
             })
           )
