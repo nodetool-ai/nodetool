@@ -611,9 +611,9 @@ class AdaptedAgentTool extends Tool {
  *
  * One ladder covers every host (invariant I-1): the node's tools go through
  * the same `decidePermission` a chat turn's belt does, with the gate the host
- * put on the context. A node a chat turn started in plan mode therefore
- * refuses a mutation from inside the node, where before the node resolved its
- * tools ungated and the mode promised something it could not hold.
+ * put on the context. Approving `run_node` is then approval to run the node,
+ * not to run whatever the node decides to call — its tools used to resolve
+ * ungated, so every call inside it ran unasked.
  *
  * A name-stub that never hydrated is left alone: it has nothing to run, and
  * the node's dispatch already answers for it by name.
