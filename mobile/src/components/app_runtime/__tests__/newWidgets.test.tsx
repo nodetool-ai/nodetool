@@ -121,6 +121,20 @@ describe("catalog coverage", () => {
   });
 });
 
+describe("sketch pad fallback", () => {
+  it("offers an image picker and says the pad needs the desktop app", () => {
+    // The app bundles no drawing surface, so the honest affordance for an
+    // image binding is the one the phone already has.
+    renderApp("wf-sketchpad", appDoc("SketchPad", { label: "Your drawing" }));
+
+    expect(screen.getByText("Your drawing")).toBeTruthy();
+    expect(screen.getByText("Choose image")).toBeTruthy();
+    expect(
+      screen.getByText("Drawing needs the desktop app — pick an image here instead.")
+    ).toBeTruthy();
+  });
+});
+
 describe("display fallbacks", () => {
   it("names a 3D model and offers to open it", async () => {
     renderApp(

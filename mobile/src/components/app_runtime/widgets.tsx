@@ -1443,6 +1443,24 @@ const MediaInputWidget: React.FC<WidgetProps & { kind: MediaKind }> = ({
 };
 
 /**
+ * A Sketch Pad, without the pad. The app bundles no drawing surface — no
+ * react-native-svg, no Skia — and the web pad's canvas is a DOM one, so there
+ * is nothing here to paint on. The binding is an image either way, so this
+ * offers the camera and photo library for it and says why the pad is missing.
+ */
+const SketchPadWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  return (
+    <View>
+      <MediaInputWidget {...widget} kind="image" />
+      <Text style={[styles.hint, { color: colors.textTertiary }]}>
+        Drawing needs the desktop app — pick an image here instead.
+      </Text>
+    </View>
+  );
+};
+
+/**
  * A typed path rather than a browser: a phone sandbox has no user-visible
  * filesystem to walk, and the path a `FilePathInput`/`FolderPathInput` feeds is
  * read by the server running the workflow, not by the device. So the control is
@@ -2410,6 +2428,7 @@ export const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   DateInput: DateInputWidget,
   ColorInput: ColorInputWidget,
   ImageInput: (props) => <MediaInputWidget {...props} kind="image" />,
+  SketchPad: SketchPadWidget,
   AudioInput: (props) => <MediaInputWidget {...props} kind="audio" />,
   VideoInput: (props) => <MediaInputWidget {...props} kind="video" />,
   DocumentInput: (props) => <MediaInputWidget {...props} kind="document" />,

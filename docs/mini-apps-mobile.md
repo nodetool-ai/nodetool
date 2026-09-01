@@ -57,6 +57,7 @@ enough to be worth knowing:
 | --- | --- |
 | **Columns** | Stacks vertically. Two columns side by side are unusable at phone width. |
 | **ImageInput / AudioInput / VideoInput / DocumentInput** | Opens the system photo or file picker. The pick is uploaded to the server so the workflow gets a URL it can fetch; if the upload fails the local file is used, which still previews on the device. |
+| **Sketch Pad** | An image picker. The app bundles no drawing surface, so the pad offers the camera and photo library for the same binding and says drawing needs the desktop app. |
 | **ResourcePicker / ResourceGallery** | A list of rows rather than a grid of tiles. Tapping one opens that document in the screen its kind already has — a storyboard in the storyboard editor, a sketch in the sketch viewer, an asset in the asset viewer. |
 | **ChatThread / ChatComposer / ModelSelect** | Native bubbles, a multiline composer, and a two-step provider-then-model picker. |
 

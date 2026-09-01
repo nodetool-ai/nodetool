@@ -62,6 +62,24 @@ describe("widget catalog", () => {
     }
   });
 
+  it("declares the sketch pad as an image input that settles", () => {
+    // The pad is a write widget like the pickers, but unlike them a stroke ends
+    // on pointer-up — which is what makes "on release" pacing offerable.
+    expect(widgetMode("SketchPad")).toBe("write");
+    expect(WIDGET_CATALOG.SketchPad.trigger).toBe("change");
+    expect(WIDGET_CATALOG.SketchPad.commits).toBe(true);
+    expect(widgetBindingProps("SketchPad")).toEqual([]);
+    // It draws rather than renders text, so a format template has nothing to
+    // rewrite and the editor must not offer one.
+    expect(WIDGET_CATALOG.SketchPad.format).toBeUndefined();
+    expect(widgetFields("SketchPad")).not.toHaveProperty("format");
+    expect(widgetFields("SketchPad")).toMatchObject({
+      width: "number",
+      height: "number",
+      background: "select"
+    });
+  });
+
   it("reports no extra bindings for a widget that binds once", () => {
     expect(widgetBindingProps("Text")).toEqual([]);
     expect(widgetBindingProps("Bogus")).toEqual([]);

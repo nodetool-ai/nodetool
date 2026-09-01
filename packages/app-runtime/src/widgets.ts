@@ -366,6 +366,24 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
     commits: false,
     fields: { binding: "custom", label: "text", events: "array" }
   },
+  // Draws the image instead of picking one: the sketch editor's canvas, trimmed
+  // to brush, pencil, eraser and fill, writing the flattened PNG as the same
+  // `{type: "image", uri}` value `ImageInput` writes. A stroke settles on
+  // pointer-up, so unlike the pickers this one commits.
+  SketchPad: {
+    label: "Sketch Pad",
+    mode: "write",
+    trigger: "change",
+    commits: true,
+    fields: {
+      binding: "custom",
+      label: "text",
+      width: "number",
+      height: "number",
+      background: "select",
+      events: "array"
+    }
+  },
   AudioInput: {
     label: "Audio Input",
     mode: "write",

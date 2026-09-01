@@ -25,8 +25,14 @@ export {
   useLayerActions,
   useCanvasActions,
   useColorActions,
+  useColorIntentRouter,
+  useToolChromeActions,
+  useEditorSession,
   useSegmentation
 } from "./hooks";
+
+/** The store-connected canvas, for a surface that composes its own chrome. */
+export { SketchCanvasPane } from "./editor-shell";
 
 export {
   useCompositing,
@@ -105,6 +111,7 @@ export {
   DEFAULT_BLUR_SETTINGS,
   DEFAULT_TOOL_SETTINGS,
   DEFAULT_SWATCHES,
+  SKETCH_PRESET_SWATCHES,
   DEFAULT_SEGMENT_SETTINGS,
   CANVAS_PRESETS,
   createDefaultDocument,

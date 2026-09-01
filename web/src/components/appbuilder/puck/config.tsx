@@ -66,6 +66,7 @@ import {
 } from "./WorkflowInputWidget";
 import { ChatThreadWidget, ChatComposerWidget } from "./ChatWidgets";
 import { SketchWidget, TimelineWidget } from "./DocumentWidgets";
+import { SketchPadWidget } from "./SketchPadWidget";
 import { GalleryWidget, Model3DWidget, PDFWidget } from "./MediaWidgets";
 import { ChartWidget } from "./ChartWidget";
 
@@ -333,6 +334,7 @@ export const appConfig: Config = {
         "ResourceGallery",
         "StoryboardSceneList",
         "ImageInput",
+        "SketchPad",
         "AudioInput",
         "VideoInput",
         "DocumentInput",
@@ -997,6 +999,33 @@ export const appConfig: Config = {
       render: withConditions((props) => <ModelSelectWidget {...props} />)
     },
     ImageInput: fixedInputEntry("Image Input", "image"),
+    SketchPad: {
+      label: "Sketch Pad",
+      fields: {
+        binding: bindingField("write"),
+        label: { type: "text", label: "Label" },
+        width: { type: "number", label: "Canvas width (px)" },
+        height: { type: "number", label: "Canvas height (px)" },
+        background: {
+          type: "select",
+          label: "Background",
+          options: [
+            { label: "White", value: "white" },
+            { label: "Transparent", value: "transparent" }
+          ]
+        },
+        events: eventsField("change"),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        binding: "",
+        label: "",
+        width: 512,
+        height: 384,
+        background: "white"
+      },
+      render: withConditions((props) => <SketchPadWidget {...props} />)
+    },
     AudioInput: fixedInputEntry("Audio Input", "audio"),
     VideoInput: fixedInputEntry("Video Input", "video"),
     DocumentInput: fixedInputEntry("Document Input", "document"),
