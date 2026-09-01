@@ -38,8 +38,11 @@ import { randomUUID } from "node:crypto";
 import type {
   BaseProvider,
   ProcessingContext,
+  Release,
+  RunBudget,
   TurnBudget
 } from "@nodetool-ai/runtime";
+import { budgetFromContext, isRunBudget } from "@nodetool-ai/runtime";
 import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 import type { BackgroundSubtaskRegistry } from "./background-subtasks.js";
 import { CodeActExecutor } from "./codeact/codeact-executor.js";
@@ -50,6 +53,65 @@ import {
 } from "./tools/subtask-fields.js";
 import type { Step, Task } from "./types.js";
 import { isString } from "./utils/type-guards.js";
+
+/**
+ * Context flag marking that this branch already holds one of the run's
+ * concurrency permits.
+ *
+ * The pool is a run total, so a holder that blocks waiting for a *second*
+ * permit deadlocks the run: a parent holding the last one while its child
+ * queues for another stops both until the deadline. A permit is therefore
+ * taken once per branch. `ProcessingContext.copy()` gives every spawn its own
+ * variable bag over the same budget object, so siblings each take one and
+ * everything below a holder inherits the flag and takes none.
+ */
+const RUN_SLOT_KEY = "nodetool_run_slot_held";
+
+/** Release for a branch that took no permit because it already holds one. */
+const NO_PERMIT: Release = () => {};
+
+/** Whether this branch already holds one of the run's concurrency permits. */
+export function holdsRunSlot(context: ProcessingContext): boolean {
+  return context.get<boolean>(RUN_SLOT_KEY) === true;
+}
+
+/**
+ * Mark this branch as holding a run permit for the fan-outs beneath it, and
+ * hand back the undo. Used by a layer that draws permits itself (the DAG
+ * executors, which acquire per merged generator) so nothing below it draws a
+ * second one.
+ */
+export function markRunSlotHeld(context: ProcessingContext): () => void {
+  const previous = context.get<boolean>(RUN_SLOT_KEY);
+  context.set(RUN_SLOT_KEY, true);
+  let undone = false;
+  return () => {
+    if (undone) return;
+    undone = true;
+    context.set(RUN_SLOT_KEY, previous);
+  };
+}
+
+/**
+ * Take one of the run's concurrency permits for this branch, or nothing when
+ * the branch already holds one. Returns the release either way, so the caller
+ * has one `finally`.
+ */
+export async function acquireRunSlot(
+  budget: RunBudget | undefined,
+  context: ProcessingContext
+): Promise<Release> {
+  if (!budget || holdsRunSlot(context)) return NO_PERMIT;
+  const release = await budget.concurrency.acquire();
+  const undo = markRunSlotHeld(context);
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    undo();
+    release();
+  };
+}
 
 /** Forwards child agent events upward (typically to the websocket sender). */
 export type ForwardMessage = (msg: ProcessingMessage) => Promise<void> | void;
@@ -82,8 +144,14 @@ export interface SubAgentRunOptions {
   systemPrompt?: string;
   maxIterations?: number;
   maxTokens?: number;
-  /** Spend admission, consulted before every provider turn of the child. */
-  turnBudget?: TurnBudget;
+  /**
+   * Spend admission, consulted before every provider turn of the child. A
+   * {@link RunBudget} is the run's own — passed down rather than re-created, so
+   * the child spends the parent's remaining headroom instead of a fresh
+   * allowance (invariant I-2). Omitted, the budget on {@link context} is used;
+   * absent there too, the child is unbudgeted.
+   */
+  turnBudget?: TurnBudget | RunBudget;
   threadId?: string;
   /**
    * Sandbox package specifiers the child's actions may import. Defaults to
@@ -145,6 +213,12 @@ export async function* runSubAgent(
     steps: [step]
   };
 
+  // The run's budget, never a fresh one: a caller that passes none still gets
+  // the one the host put on the context, so a child spawned three levels down
+  // spends the same allowance as the turn that started it.
+  const turnBudget = opts.turnBudget ?? budgetFromContext(opts.context);
+  const runBudget = isRunBudget(turnBudget) ? turnBudget : undefined;
+
   const executor = new CodeActExecutor({
     task,
     step,
@@ -155,7 +229,7 @@ export async function* runSubAgent(
     systemPrompt: opts.systemPrompt,
     maxIterations: opts.maxIterations,
     maxTokens: opts.maxTokens,
-    turnBudget: opts.turnBudget,
+    turnBudget,
     threadId: opts.threadId,
     sandboxPackages: opts.sandboxPackages,
     // Without the run's signal a cancelled parent leaves its children driving
@@ -164,6 +238,11 @@ export async function* runSubAgent(
   });
 
   let outcome: SubAgentOutcome | null = null;
+  // One of the run's permits for the whole child loop. `start_subtask` detaches
+  // its children, so nothing else bounds a fan-out of twenty of them: the
+  // permit is what keeps the twenty-first from opening a provider conversation
+  // before one of the first two finishes.
+  const release = await acquireRunSlot(runBudget, opts.context);
   try {
     for await (const msg of executor.execute()) {
       yield msg;
@@ -176,6 +255,8 @@ export async function* runSubAgent(
     }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  } finally {
+    release();
   }
 
   // A child that settled without a value is not a failure — callers decide
@@ -378,6 +459,13 @@ export interface SubAgentToolRuntime {
   /** Max LLM iterations per child loop. */
   maxIterations?: number;
   /**
+   * The run's budget, shared with the parent loop rather than re-created for
+   * the child — the cap is a run total, so a spawn that starts a fresh one
+   * makes it an allowance per loop (invariant I-2). A host that carries none
+   * leaves this off and the child falls back to the budget on its context.
+   */
+  budget?: RunBudget;
+  /**
    * Per-turn registry behind `start_subtask` / `wait_subtasks`. A host that
    * does not build one (an MCP mount, a headless harness) leaves the field
    * off, and background delegation refuses by name instead of half-working.
@@ -425,6 +513,8 @@ export abstract class SubAgentTool extends Tool {
   protected readonly forward: ForwardMessage;
   protected readonly maxDepth: number;
   protected readonly maxIterations?: number;
+  /** The run's budget, held once here for every subclass. */
+  protected readonly budget?: RunBudget;
 
   protected constructor(runtime: SubAgentToolRuntime) {
     super();
@@ -434,6 +524,7 @@ export abstract class SubAgentTool extends Tool {
     this.forward = runtime.forwardMessage;
     this.maxDepth = runtime.maxDepth ?? DEFAULT_SUBAGENT_MAX_DEPTH;
     this.maxIterations = runtime.maxIterations;
+    this.budget = runtime.budget;
   }
 
   /**
@@ -472,6 +563,9 @@ export abstract class SubAgentTool extends Tool {
       outputSchema: run.outputSchema,
       systemPrompt: run.systemPrompt,
       maxIterations: run.maxIterations ?? this.maxIterations,
+      // The parent's budget, not a new one. Dropping it here was the hole:
+      // every child of a capped turn ran unbudgeted.
+      turnBudget: this.budget ?? budgetFromContext(context),
       signal: context.signal
     });
 

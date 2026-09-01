@@ -1,6 +1,14 @@
-import { describe, it, expect, vi } from "vitest";
-import { ProcessingContext, BaseProvider } from "@nodetool-ai/runtime";
+import { describe, it, expect } from "vitest";
+import {
+  ProcessingContext,
+  RUN_BUDGET_CONTEXT_KEY,
+  createRunBudget
+} from "@nodetool-ai/runtime";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import {
+  createLoopingMockProvider,
+  type MockStreamItem
+} from "./_helpers/looping-mock-provider.js";
 import {
   RunSubtaskTool,
   SUBTASK_DEPTH_KEY,
@@ -12,58 +20,13 @@ function makeCtx(): ProcessingContext {
 }
 
 /**
- * Minimal mock BaseProvider — just enough surface for the subtask's
- * StepExecutor. The provider replays a queued sequence of stream events
- * per `generateMessages` call.
+ * The looping mock every sub-agent suite shares — a scripted turn under the
+ * real `BaseProvider.generateLoop`.
  */
-function createMockProvider(
-  responseSequence: Array<
-    Array<
-      | { type: "chunk"; content: string; done?: boolean }
-      | { id: string; name: string; args: Record<string, unknown> }
-    >
-  >
-) {
-  let callIndex = 0;
-  return {
-    provider: "mock",
-    hasToolSupport: async () => true,
-    generateMessages: async function* () {
-      const items = responseSequence[callIndex] ?? [];
-      callIndex++;
-      for (const item of items) {
-        yield item;
-      }
-    },
-    async *generateMessagesTraced(...args: any[]) {
-      yield* (this as any).generateMessages(...args);
-    },
-    generateLoop(args: unknown) {
-      return (
-        BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
-      ).generateLoop.call(this, args);
-    },
-    async generateMessageTraced(...args: any[]) {
-      return (this as any).generateMessage(...args);
-    },
-    generateMessage: vi.fn(),
-    getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
-    getAvailableImageModels: vi.fn().mockResolvedValue([]),
-    getAvailableVideoModels: vi.fn().mockResolvedValue([]),
-    getAvailableTTSModels: vi.fn().mockResolvedValue([]),
-    getAvailableASRModels: vi.fn().mockResolvedValue([]),
-    getAvailableEmbeddingModels: vi.fn().mockResolvedValue([]),
-    getContainerEnv: () => ({}),
-    textToImage: vi.fn(),
-    imageToImage: vi.fn(),
-    textToSpeech: vi.fn(),
-    automaticSpeechRecognition: vi.fn(),
-    textToVideo: vi.fn(),
-    imageToVideo: vi.fn(),
-    generateEmbedding: vi.fn(),
-    isContextLengthError: () => false
-  } as any;
-}
+const createMockProvider = (
+  responseSequence: MockStreamItem[][]
+): ReturnType<typeof createLoopingMockProvider> =>
+  createLoopingMockProvider(responseSequence);
 
 describe("RunSubtaskTool", () => {
   describe("name + schema", () => {
@@ -169,6 +132,94 @@ describe("RunSubtaskTool", () => {
       ) as { subtask_depth?: number; parent_tool_call_id?: string } | undefined;
       expect(sample).toBeDefined();
       expect(sample?.subtask_depth).toBe(1);
+    });
+  });
+
+  describe("run budget", () => {
+    /** A cap no turn can fit under, so a refusal is unambiguous. */
+    function exhaustedBudget() {
+      return createRunBudget({
+        capUsd: 0,
+        maxOutputTokens: 1024,
+        unpricedTokenCeiling: 0,
+        deadlineMs: Infinity,
+        maxConcurrency: 4,
+        maxTurns: 10
+      });
+    }
+
+    it("reserves against the budget the runtime carries", async () => {
+      const budget = exhaustedBudget();
+      const provider = createLoopingMockProvider(
+        [[{ type: "chunk", content: "answer", done: true }]],
+        { provider: "openai" }
+      );
+      const tool = new RunSubtaskTool({
+        provider,
+        model: "gpt-4o-mini",
+        parentTools: () => [],
+        forwardMessage: () => {},
+        budget
+      });
+
+      const result = (await tool.process(makeCtx(), {
+        description: "d",
+        prompt: "do a thing"
+      })) as Record<string, unknown>;
+
+      expect(provider.turnsStarted).toBe(0);
+      expect(result.error).toBe("subtask_failed");
+      expect(String(result.message)).toContain("budget");
+      expect(budget.exhausted?.kind).toBe("cost");
+    });
+
+    it("falls back to the budget the host left on the context", async () => {
+      // The host that put a budget on the context never sees the sub-agent
+      // runtime this tool is built from — the fallback is what makes a child
+      // three levels down share the turn's cap.
+      const budget = exhaustedBudget();
+      const provider = createLoopingMockProvider(
+        [[{ type: "chunk", content: "answer", done: true }]],
+        { provider: "openai" }
+      );
+      const tool = new RunSubtaskTool({
+        provider,
+        model: "gpt-4o-mini",
+        parentTools: () => [],
+        forwardMessage: () => {}
+      });
+      const ctx = makeCtx();
+      ctx.set(RUN_BUDGET_CONTEXT_KEY, budget);
+
+      const result = (await tool.process(ctx, {
+        description: "d",
+        prompt: "do a thing"
+      })) as Record<string, unknown>;
+
+      expect(provider.turnsStarted).toBe(0);
+      expect(result.error).toBe("subtask_failed");
+      expect(budget.exhausted?.kind).toBe("cost");
+    });
+
+    it("leaves an unbudgeted run unbounded rather than exhausted", async () => {
+      const provider = createLoopingMockProvider(
+        [[{ type: "chunk", content: "answer", done: true }]],
+        { provider: "openai" }
+      );
+      const tool = new RunSubtaskTool({
+        provider,
+        model: "gpt-4o-mini",
+        parentTools: () => [],
+        forwardMessage: () => {}
+      });
+
+      const result = await tool.process(makeCtx(), {
+        description: "d",
+        prompt: "do a thing"
+      });
+
+      expect(provider.turnsStarted).toBe(1);
+      expect(String(result)).toContain("answer");
     });
   });
 

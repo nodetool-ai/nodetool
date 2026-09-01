@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
-import { ProcessingContext, BaseProvider } from "@nodetool-ai/runtime";
+import { ProcessingContext, createRunBudget } from "@nodetool-ai/runtime";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import { createLoopingMockProvider } from "./_helpers/looping-mock-provider.js";
 import {
   BackgroundSubtaskRegistry,
   StartSubtaskTool,
@@ -13,58 +14,15 @@ function makeCtx(): ProcessingContext {
   return new ProcessingContext({ jobId: "test-job", userId: "test" });
 }
 
-type StreamItem =
-  | { type: "chunk"; content: string; done?: boolean }
-  | { id: string; name: string; args: Record<string, unknown> };
-
 /**
- * Minimal mock BaseProvider — the same shape run-subtask-tool.test.ts uses.
- * `gates` holds one promise per generateMessages call, resolved by the test
- * to hold the child loop open before its scripted response plays.
+ * The shared looping mock, holding each turn behind its gate: `gates[i]` is
+ * resolved by the test to let child *i* past its scripted response.
  */
 function createMockProvider(gates: Array<Promise<void>> = []) {
-  let callIndex = 0;
-  const responseSequence: Array<Array<StreamItem>> = [
-    [{ type: "chunk", content: "late answer", done: true }]
-  ];
-  return {
-    provider: "mock",
-    hasToolSupport: async () => true,
-    generateMessages: async function* () {
-      const gate = gates[callIndex];
-      callIndex++;
-      if (gate) await gate;
-      const items = responseSequence[0] ?? [];
-      for (const item of items) yield item;
-    },
-    async *generateMessagesTraced(...args: any[]) {
-      yield* (this as any).generateMessages(...args);
-    },
-    generateLoop(args: unknown) {
-      return (
-        BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
-      ).generateLoop.call(this, args);
-    },
-    async generateMessageTraced(...args: any[]) {
-      return (this as any).generateMessage(...args);
-    },
-    generateMessage: vi.fn(),
-    getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
-    getAvailableImageModels: vi.fn().mockResolvedValue([]),
-    getAvailableVideoModels: vi.fn().mockResolvedValue([]),
-    getAvailableTTSModels: vi.fn().mockResolvedValue([]),
-    getAvailableASRModels: vi.fn().mockResolvedValue([]),
-    getAvailableEmbeddingModels: vi.fn().mockResolvedValue([]),
-    getContainerEnv: () => ({}),
-    textToImage: vi.fn(),
-    imageToImage: vi.fn(),
-    textToSpeech: vi.fn(),
-    automaticSpeechRecognition: vi.fn(),
-    textToVideo: vi.fn(),
-    imageToVideo: vi.fn(),
-    generateEmbedding: vi.fn(),
-    isContextLengthError: () => false
-  } as any;
+  return createLoopingMockProvider(
+    [[{ type: "chunk", content: "late answer", done: true }]],
+    { repeatLast: true, gate: (call) => gates[call] }
+  );
 }
 
 describe("BackgroundSubtaskRegistry", () => {
@@ -173,6 +131,44 @@ describe("StartSubtaskTool", () => {
       prompt: "p"
     })) as Record<string, unknown>;
     expect(result.error).toBe("background_unavailable");
+  });
+
+  it("hands the run's budget to the detached child", async () => {
+    // The child runs after `process()` returned, so nothing but the budget it
+    // was given stops it — a fresh one here would be an uncapped background
+    // loop per spawn.
+    const budget = createRunBudget({
+      capUsd: 0,
+      maxOutputTokens: 1024,
+      unpricedTokenCeiling: 0,
+      deadlineMs: Infinity,
+      maxConcurrency: 4,
+      maxTurns: 10
+    });
+    const provider = createLoopingMockProvider(
+      [[{ type: "chunk", content: "late answer", done: true }]],
+      { provider: "openai", repeatLast: true }
+    );
+    const registry = new BackgroundSubtaskRegistry();
+    const tool = new StartSubtaskTool({
+      provider,
+      model: "gpt-4o-mini",
+      parentTools: () => [],
+      forwardMessage: () => {},
+      background: registry,
+      budget
+    });
+
+    const receipt = (await tool.process(makeCtx(), {
+      description: "capped",
+      prompt: "work"
+    })) as Record<string, unknown>;
+    expect(receipt.status).toBe("running");
+
+    await vi.waitFor(() => expect(registry.runningCount).toBe(0));
+    expect(provider.turnsStarted).toBe(0);
+    expect(registry.snapshot()[0].status).toBe("failed");
+    expect(budget.exhausted?.kind).toBe("cost");
   });
 
   it("still enforces the recursion depth gate", async () => {

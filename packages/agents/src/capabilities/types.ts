@@ -13,7 +13,8 @@
 import type {
   BaseProvider,
   JsonSchema,
-  ProcessingContext
+  ProcessingContext,
+  RunBudget
 } from "@nodetool-ai/runtime";
 import type { ZodType } from "zod";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -169,6 +170,13 @@ export interface CapabilityRun {
   readonly secretPrompt?: SecretPrompt;
   /** What `run_subtask` / `run_search` need. */
   readonly subAgent?: SubAgentRuntime;
+  /**
+   * The one budget this run shares downward: every loop it spawns reserves
+   * against the same cap, deadline, permit pool and turn count instead of
+   * getting an allowance of its own (invariant I-2). Absent means unbudgeted,
+   * not exhausted — a kernel workflow run with no host budget is unchanged.
+   */
+  readonly budget?: RunBudget;
   /**
    * Answers which declared credentials this install holds, so
    * `validate_workflow` can report a graph whose nodes need a key nobody has

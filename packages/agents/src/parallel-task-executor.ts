@@ -13,9 +13,13 @@
  *     → repeats until all tasks complete
  */
 
-import type { BaseProvider } from "@nodetool-ai/runtime";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { memoryKeys } from "@nodetool-ai/runtime";
+import type {
+  BaseProvider,
+  ProcessingContext,
+  RunBudget,
+  Semaphore
+} from "@nodetool-ai/runtime";
+import { budgetFromContext, memoryKeys } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   ProcessingMessage,
@@ -24,6 +28,7 @@ import type {
 } from "@nodetool-ai/protocol";
 import { TaskUpdateEvent } from "@nodetool-ai/protocol";
 import { TaskExecutor } from "./task-executor.js";
+import { holdsRunSlot, markRunSlotHeld } from "./subagent.js";
 import { mergeAsyncGenerators } from "./utils/merge-generators.js";
 import { DEFAULT_AGENT_POLICY } from "./agent-policy.js";
 import type { Tool } from "./tools/base-tool.js";
@@ -71,6 +76,12 @@ export interface ParallelTaskExecutorOptions {
    * lines up with the plan cache key.
    */
   planTools?: string[];
+  /**
+   * The run's budget, forwarded to every task (and through it to every step),
+   * and used as the concurrency bound the task fan-out shares with them.
+   * Omitted, the budget on {@link context} is used.
+   */
+  budget?: RunBudget;
   /** External cancellation, forwarded to every task and step executor. */
   signal?: AbortSignal;
   /** Sandbox package specifiers the session consents to, forwarded per task. */
@@ -93,6 +104,12 @@ export class ParallelTaskExecutor {
   private readonly checkpointStore?: CheckpointStore;
   private readonly runId?: string;
   private readonly planTools?: string[];
+  private readonly budget?: RunBudget;
+  /**
+   * The run's permit pool, when this executor is the layer drawing from it —
+   * see {@link TaskExecutor}'s own field for why only one layer per branch may.
+   */
+  private mergeSemaphore?: Semaphore;
   private readonly signal?: AbortSignal;
   private readonly sandboxPackages: readonly string[];
   /**
@@ -122,6 +139,7 @@ export class ParallelTaskExecutor {
     this.checkpointStore = opts.checkpointStore;
     this.runId = opts.runId;
     this.planTools = opts.planTools;
+    this.budget = opts.budget ?? budgetFromContext(opts.context);
     this.signal = opts.signal;
     this.sandboxPackages = opts.sandboxPackages ?? [];
   }
@@ -159,6 +177,30 @@ export class ParallelTaskExecutor {
    * Independent tasks run concurrently as separate sub-agents.
    */
   async *execute(): AsyncGenerator<ProcessingMessage> {
+    const leaveRunSlot = this.enterRunSlot();
+    try {
+      yield* this.runPlan();
+    } finally {
+      leaveRunSlot();
+    }
+  }
+
+  /**
+   * Claim this branch's run slot for the task fan-out, and hand back the undo.
+   * The `TaskExecutor`s built below then see the branch holding it and bound
+   * their own step fan-outs numerically, instead of queueing for permits this
+   * executor is already holding on their behalf — which would deadlock.
+   */
+  private enterRunSlot(): () => void {
+    if (!this.budget || holdsRunSlot(this.context)) {
+      this.mergeSemaphore = undefined;
+      return () => {};
+    }
+    this.mergeSemaphore = this.budget.concurrency;
+    return markRunSlotHeld(this.context);
+  }
+
+  private async *runPlan(): AsyncGenerator<ProcessingMessage> {
     // Seed inputs into shared agent memory so every task and step sees them.
     for (const [key, value] of Object.entries(this.inputs)) {
       this.context.memory.set({
@@ -261,7 +303,8 @@ export class ParallelTaskExecutor {
 
       if (taskGenerators.length > 1) {
         yield* mergeAsyncGenerators(taskGenerators, {
-          concurrency: this.maxConcurrentAgents
+          concurrency: this.maxConcurrentAgents,
+          semaphore: this.mergeSemaphore
         });
       } else {
         // Single task — no need for merge overhead
@@ -334,6 +377,7 @@ export class ParallelTaskExecutor {
       maxStepIterations: this.maxStepIterations,
       maxTokens: this.maxTokens,
       maxConcurrentAgents: this.maxConcurrentAgents,
+      budget: this.budget,
       parallelExecution: true, // Enable parallel step execution within each task
       upstreamMemoryKeys,
       signal: this.signal,

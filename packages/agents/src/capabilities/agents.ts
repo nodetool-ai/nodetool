@@ -29,6 +29,7 @@
  */
 
 import type { JsonSchema } from "@nodetool-ai/runtime";
+import { budgetFromContext } from "@nodetool-ai/runtime";
 import { Tool } from "../tools/base-tool.js";
 import { TOOL_CALL_ID_FIELD } from "../tools/subtask-fields.js";
 import { READ_ONLY_SEARCH_DESCRIPTION } from "../prompts/read-only-search-prompt.js";
@@ -65,6 +66,11 @@ export {
  * The sub-agent runtime this run carries, or an error naming what is missing.
  * A headless run (an eval, an MCP mount, a CLI invocation with no forwarder)
  * has no runtime, and no child loop can be spawned without one.
+ *
+ * Every delegation capability goes through here, so this is also where the
+ * run's budget joins the runtime: a host that put one on the `CapabilityRun`
+ * (or on the context) has it reach `run_subtask`, `run_search`,
+ * `start_subtask` and `execute_plan` without naming it six times.
  */
 function subAgentRuntime(
   run: CapabilityRun,
@@ -78,7 +84,9 @@ function subAgentRuntime(
         "that builds the CapabilityRun must supply it."
     );
   }
-  return runtime;
+  if (runtime.budget) return runtime;
+  const budget = run.budget ?? budgetFromContext(run.context);
+  return budget ? { ...runtime, budget } : runtime;
 }
 
 /**
@@ -313,6 +321,11 @@ const executePlan: CapabilityExport = {
             t.name !== executePlanSpec.name && t.name !== createPlanSpec.name
         ),
       taskPlan: plan,
+      // The run's budget and the parent's per-step iteration cap: every step
+      // this plan runs is a loop of the same run, so it reserves against the
+      // same cap and gets the same bound as a `run_subtask` child would.
+      budget: runtime.budget,
+      maxStepIterations: runtime.maxIterations,
       // The thread's own signal: cancelling the turn cancels every task.
       signal: run.context.signal
     });

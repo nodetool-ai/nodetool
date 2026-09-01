@@ -1,6 +1,10 @@
-import { describe, it, expect, vi } from "vitest";
-import { ProcessingContext, BaseProvider } from "@nodetool-ai/runtime";
+import { describe, it, expect } from "vitest";
+import { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import {
+  createLoopingMockProvider,
+  type MockStreamItem
+} from "./_helpers/looping-mock-provider.js";
 import { RunSearchTool } from "../src/tools/run-search-tool.js";
 import {
   SUBTASK_DEPTH_KEY,
@@ -13,58 +17,13 @@ function makeCtx(): ProcessingContext {
 }
 
 /**
- * Minimal mock BaseProvider — just enough surface for the search's
- * StepExecutor. The provider replays a queued sequence of stream events per
- * `generateMessages` call. (Reused verbatim from run-subtask-tool.test.ts.)
+ * The looping mock every sub-agent suite shares — a scripted turn under the
+ * real `BaseProvider.generateLoop`.
  */
-function createMockProvider(
-  responseSequence: Array<
-    Array<
-      | { type: "chunk"; content: string; done?: boolean }
-      | { id: string; name: string; args: Record<string, unknown> }
-    >
-  >
-) {
-  let callIndex = 0;
-  return {
-    provider: "mock",
-    hasToolSupport: async () => true,
-    generateMessages: async function* () {
-      const items = responseSequence[callIndex] ?? [];
-      callIndex++;
-      for (const item of items) {
-        yield item;
-      }
-    },
-    async *generateMessagesTraced(...args: any[]) {
-      yield* (this as any).generateMessages(...args);
-    },
-    generateLoop(args: unknown) {
-      return (
-        BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
-      ).generateLoop.call(this, args);
-    },
-    async generateMessageTraced(...args: any[]) {
-      return (this as any).generateMessage(...args);
-    },
-    generateMessage: vi.fn(),
-    getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
-    getAvailableImageModels: vi.fn().mockResolvedValue([]),
-    getAvailableVideoModels: vi.fn().mockResolvedValue([]),
-    getAvailableTTSModels: vi.fn().mockResolvedValue([]),
-    getAvailableASRModels: vi.fn().mockResolvedValue([]),
-    getAvailableEmbeddingModels: vi.fn().mockResolvedValue([]),
-    getContainerEnv: () => ({}),
-    textToImage: vi.fn(),
-    imageToImage: vi.fn(),
-    textToSpeech: vi.fn(),
-    automaticSpeechRecognition: vi.fn(),
-    textToVideo: vi.fn(),
-    imageToVideo: vi.fn(),
-    generateEmbedding: vi.fn(),
-    isContextLengthError: () => false
-  } as any;
-}
+const createMockProvider = (
+  responseSequence: MockStreamItem[][]
+): ReturnType<typeof createLoopingMockProvider> =>
+  createLoopingMockProvider(responseSequence);
 
 const makeTool = (name: string): any => ({
   name,
