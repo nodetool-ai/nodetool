@@ -54,6 +54,7 @@ import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
 import { useEditVideoAsset } from "../../hooks/useEditVideoAsset";
 import { useNavigate } from "react-router-dom";
 import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
+import { assetTabType } from "../workspace/assetTabType";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
 import {
@@ -462,18 +463,26 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     setCompareAssetB(null);
   }, []);
 
+  // An SVG is an image to `isImage` (and to the compare view), but the image
+  // tab hosts the raster sketch editor — editing a vector there and saving
+  // would replace the markup with pixels. It has its own tab.
+  const isSvg = useMemo(
+    () => (currentAsset ? assetTabType(currentAsset) === "svg" : false),
+    [currentAsset]
+  );
+
   const handleOpenImageEditor = useCallback(() => {
     if (currentAsset && isImage) {
       openTab({
-        type: "image",
+        type: isSvg ? "svg" : "image",
         ref: currentAsset.id,
         mode: "edit",
-        title: currentAsset.name || "Image"
+        title: currentAsset.name || (isSvg ? "SVG" : "Image")
       });
       navigate("/workspace");
       handleClose();
     }
-  }, [currentAsset, isImage, openTab, navigate, handleClose]);
+  }, [currentAsset, isImage, isSvg, openTab, navigate, handleClose]);
 
   const handleOpenModel3DEditor = useCallback(() => {
     if (currentAsset && isModel3D) {
@@ -880,7 +889,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           {isImage && !compareMode && (
             <ToolbarIconButton
               icon={<EditIcon />}
-              tooltip="Edit Image"
+              tooltip={isSvg ? "Edit SVG" : "Edit Image"}
               onClick={handleOpenImageEditor}
               className="button edit"
               nodrag={false}

@@ -11,6 +11,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
@@ -61,6 +62,11 @@ const createBlankImageFile = (): Promise<File> =>
       resolve(new File([blob], "Untitled.png", { type: "image/png" }));
     }, "image/png");
   });
+
+/** The blank canvas a "New SVG" tab starts from. */
+const BLANK_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" ' +
+  'width="512" height="512">\n</svg>\n';
 
 /**
  * Build a starter `.glb` (a single box, like a default cube) to seed a
@@ -277,6 +283,22 @@ export const useNewDocumentCatalog = (
     [runCreate, createAsset, openTab]
   );
 
+  const createSvg = useCallback(
+    () =>
+      runCreate("SVG", async () => {
+        const asset = await createAsset(
+          new File([BLANK_SVG], "Untitled.svg", { type: "image/svg+xml" })
+        );
+        openTab({
+          type: "svg",
+          ref: asset.id,
+          mode: "edit",
+          title: asset.name || "Untitled.svg"
+        });
+      }),
+    [runCreate, createAsset, openTab]
+  );
+
   const createVideo = useCallback(
     () =>
       runCreate("video", async () => {
@@ -452,6 +474,14 @@ export const useNewDocumentCatalog = (
       type: "image",
       icon: <ImageOutlinedIcon fontSize="small" />,
       create: createImage
+    },
+    {
+      key: "svg",
+      label: "SVG",
+      menuLabel: "New SVG",
+      type: "svg",
+      icon: <CategoryOutlinedIcon fontSize="small" />,
+      create: createSvg
     },
     {
       key: "video",

@@ -17,6 +17,9 @@ import { persist } from "zustand/middleware";
 export type WorkspaceTabType =
   | "workflow"
   | "image"
+  // SVG assets. `ref` is an asset id; the surface previews the vector and
+  // edits its markup, which is why it is not an `image` tab.
+  | "svg"
   | "sketch"
   | "timeline"
   | "storyboard"

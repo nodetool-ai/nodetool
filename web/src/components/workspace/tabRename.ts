@@ -10,6 +10,7 @@ const RENAMEABLE_TYPES = new Set<WorkspaceTabType>([
   "workflow",
   "sketch",
   "image",
+  "svg",
   "timeline",
   "storyboard",
   "script",

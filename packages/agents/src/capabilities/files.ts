@@ -1087,7 +1087,11 @@ const grep: CapabilityExport = {
       });
     }
 
-    // Filter out binary-looking files by extension
+    // Filter out binary-looking files by extension. `.svg` is deliberately not
+    // here: it is XML, an agent writes and edits it as text, and skipping it
+    // meant a grep for a path or a gradient id in a drawing found nothing. The
+    // per-file null-byte check below still catches anything that really is
+    // binary.
     const binaryExts = new Set([
       ".png",
       ".jpg",
@@ -1095,7 +1099,6 @@ const grep: CapabilityExport = {
       ".gif",
       ".bmp",
       ".ico",
-      ".svg",
       ".webp",
       ".mp3",
       ".mp4",

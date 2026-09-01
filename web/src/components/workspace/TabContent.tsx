@@ -10,6 +10,7 @@ import { isPageTabKey } from "./pageTabs";
 // and the common case (no tabs open) needs none of them.
 const WorkflowEditorSurface = React.lazy(() => import("./WorkflowEditorSurface"));
 const ImageSurface = React.lazy(() => import("./ImageSurface"));
+const SvgSurface = React.lazy(() => import("./SvgSurface"));
 const SketchSurface = React.lazy(() => import("./SketchSurface"));
 const TextSurface = React.lazy(() => import("./TextSurface"));
 const Model3DSurface = React.lazy(() => import("./Model3DSurface"));
@@ -46,6 +47,8 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
       return <WorkflowEditorSurface workflowId={tab.ref} active={active} />;
     case "image":
       return <ImageSurface refId={tab.ref} mode={tab.mode} active={active} />;
+    case "svg":
+      return <SvgSurface refId={tab.ref} mode={tab.mode} active={active} />;
     case "sketch":
       return <SketchSurface refId={tab.ref} mode={tab.mode} active={active} />;
     case "text":

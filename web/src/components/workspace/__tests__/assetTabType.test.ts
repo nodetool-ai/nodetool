@@ -9,7 +9,34 @@ describe("assetTabType", () => {
       expect(assetTabType({ content_type: "image/png" })).toBe("image");
       expect(assetTabType({ content_type: "image/jpeg" })).toBe("image");
       expect(assetTabType({ content_type: "image/webp" })).toBe("image");
-      expect(assetTabType({ content_type: "image/svg+xml" })).toBe("image");
+    });
+  });
+
+  describe("svg assets", () => {
+    it("returns 'svg' for the SVG content type", () => {
+      expect(assetTabType({ content_type: "image/svg+xml" })).toBe("svg");
+    });
+
+    it("returns 'svg' for a .svg name whatever the content type", () => {
+      // Saved without an explicit type, an SVG lands as text/plain or
+      // octet-stream; the name is then the only thing that says vector.
+      expect(assetTabType({ content_type: "text/plain", name: "logo.svg" })).toBe(
+        "svg"
+      );
+      expect(
+        assetTabType({ content_type: "application/octet-stream", name: "Logo.SVG" })
+      ).toBe("svg");
+    });
+
+    it("wins over both the image and the text branch", () => {
+      // Either would otherwise claim it: image/ by prefix, text by the xml
+      // language mapping for the .svg extension.
+      expect(assetTabType({ content_type: "image/svg+xml", name: "a.svg" })).not.toBe(
+        "image"
+      );
+      expect(assetTabType({ content_type: "image/svg+xml", name: "a.svg" })).not.toBe(
+        "text"
+      );
     });
   });
 

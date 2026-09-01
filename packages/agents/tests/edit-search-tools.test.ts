@@ -153,6 +153,26 @@ describe("GrepTool", () => {
     expect(Date.now() - started).toBeLessThan(2000);
   });
 
+  it("searches .svg, and still skips a raster file with the same content", async () => {
+    // An SVG is XML an agent writes and edits. It used to be filtered out with
+    // the raster formats, so a grep for a gradient id in a drawing found
+    // nothing; the null-byte check is what keeps real binaries out.
+    await writeFile(
+      join(workspace, "logo.svg"),
+      '<svg xmlns="http://www.w3.org/2000/svg"><rect id="badge"/></svg>\n'
+    );
+    await writeFile(
+      join(workspace, "logo.png"),
+      Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00]), Buffer.from("badge\n")])
+    );
+    const res: any = await toolForCapabilityName("grep").process(ctxFor(workspace), {
+      pattern: "badge"
+    });
+    expect(res.success).toBe(true);
+    expect(res.matches.some((m: any) => m.file === "logo.svg")).toBe(true);
+    expect(res.matches.every((m: any) => m.file !== "logo.png")).toBe(true);
+  });
+
   it("skips files larger than the size cap (OOM guard)", async () => {
     // 11 MB file containing the pattern — must be skipped, not buffered.
     const big = "needle\n".repeat(Math.ceil((11 * 1024 * 1024) / 7));

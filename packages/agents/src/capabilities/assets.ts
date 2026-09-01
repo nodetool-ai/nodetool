@@ -33,9 +33,12 @@ import {
 } from "@nodetool-ai/runtime";
 import type { Asset as AssetRow } from "@nodetool-ai/models";
 import {
+  SVG_MIME,
   detectImageMime as sniffImageMime,
   isSafePublicHttpsUrl,
+  isSvgBytes,
   loadMediaRefBytes,
+  rasterizeSvg,
   safeFetch
 } from "@nodetool-ai/runtime";
 import { mimeForPath } from "../sandbox-media-ref.js";
@@ -422,12 +425,15 @@ const saveAsset: CapabilityExport = {
             error: "`content_base64` decoded to 0 bytes — nothing to save."
           };
         }
+        // The filename before the generic fallback: an agent that writes
+        // `save_asset({name: "logo.svg", content: "<svg…"})` means an SVG, and
+        // storing it as text/plain is what made it a file nothing would render.
+        // The `source` branch above already infers this way.
         mime =
-          isString(contentTypeArg) && contentTypeArg
+          (isString(contentTypeArg) && contentTypeArg
             ? contentTypeArg
-            : hasBinary
-              ? "application/octet-stream"
-              : "text/plain";
+            : mimeForPath(name)) ??
+          (hasBinary ? "application/octet-stream" : "text/plain");
       }
 
       // Prefer the model interface (DB + storage). This is what the chat
@@ -752,6 +758,14 @@ function parseDataUri(
 
 const LOW_DETAIL_MAX_SIDE = 768;
 
+/**
+ * Longest side an SVG is rendered at before any crop or downscale. A vector
+ * declares whatever size it likes — a 24px icon renders to 24 pixels, which is
+ * not something a model can read — so the render is sized for reading, not for
+ * the markup's own units.
+ */
+const SVG_RENDER_MIN_SIDE = 1536;
+
 function parseRegion(value: unknown): ImageRegion | undefined {
   if (!isObjectLike(value)) return undefined;
   const r = value as Record<string, unknown>;
@@ -816,7 +830,11 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
       const { bytes } = await context.resolveAssetBytes(imageId);
       if (bytes && bytes.length > 0) {
         sourceBytes = bytes;
-        sourceMime = sniffImageMime(bytes);
+        // `sniffImageMime` falls back to PNG for anything it does not
+        // recognize, and SVG has no magic number — so an SVG asset arrived
+        // labeled `image/png`, passed the provider-safe check below, and was
+        // shipped to the model as markup wearing a PNG label.
+        sourceMime = isSvgBytes(bytes) ? SVG_MIME : sniffImageMime(bytes);
       }
     } catch (e) {
       // Keep why. A caller that passed a perfectly good asset id — one
@@ -848,6 +866,32 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
   let width = 0;
   let height = 0;
   const notes: string[] = [];
+
+  if (sourceBytes && sourceMime === SVG_MIME) {
+    // A vector has no pixels until something renders it, and no vision provider
+    // renders one. Rasterize here so an agent can look at the SVG it just
+    // wrote; a crop or a downscale then applies to the render, exactly as for
+    // any other source.
+    try {
+      const raster = await rasterizeSvg(sourceBytes, {
+        minSide: maxSide ?? SVG_RENDER_MIN_SIDE
+      });
+      sourceBytes = raster.data;
+      sourceMime = "image/png";
+      // Carry the render's size into the result even when nothing downstream
+      // re-encodes: "how big is what I am looking at" is the SVG's own answer
+      // only until it is rasterized.
+      width = raster.width;
+      height = raster.height;
+      notes.push(`Rendered SVG at ${raster.width}×${raster.height}.`);
+    } catch (e) {
+      return {
+        error:
+          `Could not render the SVG "${imageId}": ` +
+          `${e instanceof Error ? e.message : String(e)}`
+      };
+    }
+  }
 
   if (sourceBytes) {
     // Vision providers only accept these formats; anything else must be

@@ -15,6 +15,10 @@ interface AssetLike {
 export const assetTabType = (asset: AssetLike): WorkspaceTabType | null => {
   const ct = asset.content_type ?? "";
   const name = (asset.name ?? "").toLowerCase();
+  // Before the image and text branches, both of which claim SVG: it is a raster
+  // image to neither and editable markup to both, and its own surface shows the
+  // rendered vector next to the source.
+  if (ct === "image/svg+xml" || name.endsWith(".svg")) return "svg";
   if (ct.startsWith("image/")) return "image";
   if (ct.startsWith("audio/")) return "audio";
   if (

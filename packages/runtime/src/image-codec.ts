@@ -102,6 +102,152 @@ export async function encodeRawImageRef<T>(ref: T): Promise<T | ImageRef> {
   return { ...ref, data: png, mimeType: "image/png" };
 }
 
+/**
+ * Where an SVG can name a resource: an `href` / `xlink:href` attribute, and a
+ * CSS `url()`. Used to *split* the markup, so each piece that follows is where
+ * one value begins.
+ *
+ * Splitting rather than matching the values is the whole point, and it took
+ * two CodeQL findings to arrive at. A regex that matches a value restarts at
+ * the next candidate when it fails, and a value scan that runs to the end of
+ * the document on each of n candidates is quadratic: `"url(" + 2000 spaces`
+ * never finished against the first version, and `"url(".repeat(400_000)`
+ * took 15s against the second. Pieces, by contrast, partition the document —
+ * bounded work per piece sums to linear however many openers there are.
+ */
+const REFERENCE_OPENER = /(url\(|(?:xlink:)?href\s*=\s*)/i;
+
+/** Longest value the screen reads. Past this it is not a URL anyone meant. */
+const MAX_REFERENCE_VALUE = 2048;
+
+const isSpace = (ch: string): boolean =>
+  ch === " " || ch === "\t" || ch === "\n" || ch === "\r" || ch === "\f";
+
+/** Characters that end a reference value in either syntax. */
+const VALUE_END = new Set([")", '"', "'", ">", " ", "\t", "\n", "\r", "\f"]);
+
+/**
+ * Read the value out of the text following an opener.
+ *
+ * Truncating at {@link MAX_REFERENCE_VALUE} is safe in the direction that
+ * matters: the value is only tested for a `#` or `data:` prefix, and a
+ * truncated value keeps its prefix — so a long `data:` payload still reads as
+ * internal, and anything else still reads as external.
+ */
+function referenceValue(piece: string): string {
+  let i = 0;
+  while (i < piece.length && isSpace(piece[i]!)) i++;
+  if (piece[i] === '"' || piece[i] === "'") i++;
+  const start = i;
+  const limit = Math.min(piece.length, start + MAX_REFERENCE_VALUE);
+  while (i < limit && !VALUE_END.has(piece[i]!)) i++;
+  return piece.slice(start, i);
+}
+
+/**
+ * Whether a reference points outside the document. A fragment (`#id`) and a
+ * `data:` payload are self-contained; an empty value names nothing.
+ */
+function isExternalReference(value: string): boolean {
+  if (!value) return false;
+  if (value.startsWith("#")) return false;
+  return !value.slice(0, 5).toLowerCase().startsWith("data:");
+}
+
+/** The first reference in this markup that points outside it, if any. */
+function firstExternalReference(markup: string): string | null {
+  // One capture group, so `split` interleaves: text, opener, text, opener, …
+  // Every even index from 2 up is the text a value starts in.
+  const parts = markup.split(REFERENCE_OPENER);
+  for (let i = 2; i < parts.length; i += 2) {
+    const value = referenceValue(parts[i]!);
+    if (isExternalReference(value)) return value;
+  }
+  return null;
+}
+
+/** Largest SVG this rasterizer will hand to the decoder. */
+const MAX_SVG_BYTES = 8 * 1024 * 1024;
+
+/** Longest side an SVG is rendered at when the caller names no `minSide`. */
+const SVG_FALLBACK_SIDE = 1024;
+
+/** Ceiling on the raster an SVG is rendered into, whatever `minSide` asks for. */
+const MAX_SVG_RASTER_SIDE = 4096;
+
+/**
+ * Rasterize SVG markup to PNG bytes.
+ *
+ * Vector sources reach the raster paths (a vision provider's image block, a
+ * crop, a downscale) only through here. Two rules the caller does not have to
+ * know about:
+ *
+ * - **No external references.** The decoder behind `sharp` is librsvg, which
+ *   resolves `href` and `url()` against the process's own filesystem and
+ *   network. Since the markup here is written by a model or uploaded by
+ *   whoever, a document that reaches outward is refused by name rather than
+ *   rendered — the error tells the caller to inline the resource.
+ * - **A usable size.** An SVG that declares `width="24"` renders to a 24px
+ *   PNG, which is not something a model can read. `minSide` scales the render
+ *   up so the result is worth looking at, defaulting to
+ *   {@link SVG_FALLBACK_SIDE}.
+ */
+export async function rasterizeSvg(
+  bytes: Uint8Array,
+  opts: { minSide?: number; maxSide?: number } = {}
+): Promise<{ data: Uint8Array; width: number; height: number }> {
+  if (bytes.byteLength > MAX_SVG_BYTES) {
+    throw new Error(
+      `SVG is ${bytes.byteLength} bytes, over the ${MAX_SVG_BYTES}-byte limit for rasterization.`
+    );
+  }
+  const markup = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+  const external = firstExternalReference(markup);
+  if (external !== null) {
+    throw new Error(
+      `Refusing to render an SVG that references "${external}". ` +
+        `The renderer would fetch it from this host's filesystem or network. ` +
+        `Inline the resource as a data: URI, or drop the reference.`
+    );
+  }
+
+  const sharp = await loadSharp();
+  if (!sharp) {
+    throw new Error(SHARP_UNAVAILABLE_MESSAGE);
+  }
+
+  const buffer = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const intrinsic = await sharp(buffer).metadata();
+  const srcSide = Math.max(intrinsic.width ?? 0, intrinsic.height ?? 0);
+  const targetSide = Math.min(
+    opts.minSide ?? SVG_FALLBACK_SIDE,
+    MAX_SVG_RASTER_SIDE
+  );
+  // librsvg scales the whole render by DPI, so a density is how an SVG is asked
+  // for more pixels than it declares; 72 is the 1:1 baseline. The density is
+  // left unbounded because what it produces is not: the render lands at
+  // `targetSide` however few units the document declares, so a `width="0.01"`
+  // document costs the same pixels as any other.
+  const density =
+    srcSide > 0 && srcSide < targetSide
+      ? Math.ceil((72 * targetSide) / srcSide)
+      : 72;
+
+  let pipeline = sharp(buffer, { density, failOn: "none" });
+  if (opts.maxSide && opts.maxSide > 0) {
+    pipeline = pipeline.resize({
+      width: opts.maxSide,
+      height: opts.maxSide,
+      fit: "inside",
+      withoutEnlargement: true
+    });
+  }
+  const { data, info } = await pipeline
+    .png()
+    .toBuffer({ resolveWithObject: true });
+  return { data: new Uint8Array(data), width: info.width, height: info.height };
+}
+
 /** A crop box in source-image pixels. */
 export interface ImageRegion {
   x: number;
