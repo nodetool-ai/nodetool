@@ -69,7 +69,10 @@ jest.mock('expo-video', () => ({
   }),
 }));
 
-// Mock expo-audio for audio playback
+// Mock expo-audio for audio playback and recording. The recording half is here
+// because the app_runtime `AudioRecorder` widget reads `RecordingPresets` at
+// module scope, so every suite that imports the widget file needs it; a suite
+// that drives a recording mocks the module itself.
 jest.mock('expo-audio', () => ({
   useAudioPlayer: jest.fn(() => ({
     play: jest.fn(),
@@ -86,6 +89,29 @@ jest.mock('expo-audio', () => ({
     didJustFinish: false,
   })),
   setAudioModeAsync: jest.fn(),
+  RecordingPresets: {
+    HIGH_QUALITY: { extension: '.m4a' },
+    LOW_QUALITY: { extension: '.m4a' },
+  },
+  requestRecordingPermissionsAsync: jest
+    .fn()
+    .mockResolvedValue({ status: 'granted', granted: true, canAskAgain: true }),
+  getRecordingPermissionsAsync: jest
+    .fn()
+    .mockResolvedValue({ status: 'granted', granted: true, canAskAgain: true }),
+  useAudioRecorder: jest.fn(() => ({
+    uri: null,
+    prepareToRecordAsync: jest.fn().mockResolvedValue(undefined),
+    record: jest.fn(),
+    stop: jest.fn().mockResolvedValue(undefined),
+  })),
+  useAudioRecorderState: jest.fn(() => ({
+    canRecord: true,
+    isRecording: false,
+    durationMillis: 0,
+    mediaServicesDidReset: false,
+    url: null,
+  })),
 }));
 
 // Mock react-syntax-highlighter. The app deep-imports the two themes it uses

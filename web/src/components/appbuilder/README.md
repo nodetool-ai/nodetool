@@ -35,6 +35,10 @@ framework-independent core the web runtime, the CLI `app debug` harness, and the
   default props), so `puck/__tests__/configCatalog.test.ts` asserts the two
   agree type for type and field for field — that test is what keeps the agent
   from being offered a widget the editor cannot place, or the reverse.
+- A `Gallery` can also **write**: with a `selectionBinding` set, tapping a tile
+  writes that array element to the bound slot and emits `change`, which is the
+  generate-N-pick-one loop. Selection lives in the binding, not in the
+  component, so it survives a reload.
 - **Widgets** bind one slot (read for displays, two-way for inputs) and emit
   **events** (`click` / `change`) that dispatch **actions** (`run`, `cancel`,
   `setVariable`, `toggleVariable`, `resourceCommand`, `openResource`). A `run`
@@ -108,6 +112,17 @@ the existing worker path.
   - `sketchPadDocument.ts` — the pad's starting document (paper layer, ink) and
     the value it reads and writes; `sketchPadOptions.ts` holds the canvas
     options both halves need, so the eager half imports no sketch module.
+  - `WorkflowFormWidget.tsx` — every input of one operation in a single widget,
+    resolved from the graph at render time, so an input added to the workflow
+    appears without an edit to the app. One row per input, each writing its own
+    input binding; `WorkflowInput` stays the way to place inputs one by one.
+  - `RecorderWidgets.tsx` — mic and webcam capture (`AudioRecorder`,
+    `CameraCapture`), writing the same media ref an upload writes so a workflow
+    reads one value either way. The builder canvas renders a placeholder rather
+    than asking for a device permission.
+  - `ImageComparerWidget.tsx` — two bound images under one wipe handle, reusing
+    `components/widgets/ImageComparer`. Both bindings resolve through
+    `useResolvedMediaUri`, never a raw locator.
   - `useWidgetRuntime.ts` — binds a widget's props to reactive state + events.
   - `BuilderWorkflowContext.tsx` — supplies the bindable surface to fields.
   - `PuckAppEditor.tsx` — the `<Puck>` editor wrapper.

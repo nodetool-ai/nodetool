@@ -180,6 +180,40 @@ describe("validateApp", () => {
     );
   });
 
+  it("accepts a form that renders the default operation's inputs", () => {
+    const { spec } = parseAppSpec(
+      appDoc([
+        widget("WorkflowForm", "WorkflowForm-1", {}),
+        widget("Markdown", "Markdown-1", { binding: "result" }),
+        widget("Button", "Button-1", {
+          events: [{ trigger: "click", kind: "run" }]
+        })
+      ]),
+      io
+    );
+    const result = validateApp(spec!, io);
+    expect(result.errors).toEqual([]);
+    // A form binds no slot of its own, so the unbound-write warning every other
+    // write widget earns must not fire for it.
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("flags a form whose operation the app never declares", () => {
+    const { spec } = parseAppSpec(
+      appDoc([
+        widget("WorkflowForm", "WorkflowForm-1", { operationId: "renamed" }),
+        widget("Button", "Button-1", {
+          events: [{ trigger: "click", kind: "run" }]
+        })
+      ]),
+      io
+    );
+    const { errors } = validateApp(spec!, io);
+    expect(errors.join("\n")).toMatch(
+      /renders the inputs of operation "renamed" but the app declares no such operation/
+    );
+  });
+
   it("flags bindings that reference missing inputs/outputs/variables", () => {
     const { spec } = parseAppSpec(
       appDoc([

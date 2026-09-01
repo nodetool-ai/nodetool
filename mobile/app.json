@@ -25,7 +25,8 @@
           }
         ],
         "NSSpeechRecognitionUsageDescription": "NodeTool transcribes your speech on-device to fill the chat composer.",
-        "NSMicrophoneUsageDescription": "NodeTool uses the microphone so you can dictate messages to the assistant."
+        "NSMicrophoneUsageDescription": "NodeTool uses the microphone so you can dictate messages to the assistant.",
+        "NSCameraUsageDescription": "NodeTool uses the camera so a Mini App can record video you feed to a workflow."
       }
     },
     "android": {
@@ -38,6 +39,7 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
@@ -84,6 +86,13 @@
           "savePhotosPermission": "NodeTool saves generated images and video to your photo library.",
           "photosPermission": "NodeTool reads photos you pick as workflow input.",
           "isAccessMediaLocationEnabled": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "NodeTool reads photos and videos you pick as workflow input.",
+          "cameraPermission": "NodeTool uses the camera so a Mini App can record video you feed to a workflow."
         }
       ],
       "expo-video",

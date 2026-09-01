@@ -7,7 +7,7 @@
  * card names the value and offers to open it, not that it draws it.
  */
 import { Dimensions } from "react-native";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 
 /** The pager pages by window width, so a scripted swipe offsets by it. */
 const WINDOW_WIDTH = Dimensions.get("window").width;
@@ -33,11 +33,15 @@ jest.mock("@react-navigation/native", () => ({
   useNavigation: () => ({ navigate: jest.fn() }),
 }));
 
+// Captured so a widget that writes into an input slot can be checked through
+// the run params — the name-keyed bag the server receives.
+const mockRun = jest.fn().mockResolvedValue(undefined);
+
 jest.mock("../../../stores/WorkflowRunner", () => ({
   useWorkflowRunner: () => ({
     getState: () => ({
       job_id: null,
-      run: jest.fn().mockResolvedValue(undefined),
+      run: mockRun,
       cancel: jest.fn().mockResolvedValue(undefined),
     }),
     subscribe: () => () => {},
@@ -93,16 +97,17 @@ const appDoc = (
   ],
 });
 
-const makeWorkflow = (id: string): Workflow =>
+const makeWorkflow = (id: string, nodes: unknown[] = []): Workflow =>
   ({
     id,
     name: "Catalog",
     description: "",
-    graph: { nodes: [], edges: [] },
+    graph: { nodes, edges: [] },
     access: "private",
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
-  });
+    // The fixtures carry only the fields the widgets read.
+  }) as unknown as Workflow;
 
 const renderApp = (id: string, doc: unknown) =>
   render(
@@ -111,6 +116,65 @@ const renderApp = (id: string, doc: unknown) =>
       workflow={makeWorkflow(id)}
     />
   );
+
+/** A document of several widgets over one variable, plus a Run button. */
+const runnableDoc = (content: unknown[], value?: unknown) => ({
+  schemaVersion: 3,
+  ui: {
+    root: { props: { title: "Catalog" } },
+    content: [
+      ...content,
+      {
+        type: "Button",
+        props: {
+          id: "btn-run",
+          label: "Run",
+          events: [{ trigger: "click", kind: "run" }],
+        },
+      },
+    ],
+    zones: {},
+  },
+  operations: [
+    {
+      id: "main",
+      name: "Run",
+      workflowId: "wf-new",
+      inputs: {},
+      outputs: {},
+      policy: "replace",
+    },
+  ],
+  resources: [],
+  variables: [
+    {
+      id: "data",
+      name: "data",
+      scope: "instance",
+      persist: false,
+      default: value,
+    },
+  ],
+});
+
+const renderRunnable = (
+  id: string,
+  content: unknown[],
+  value: unknown,
+  nodes: unknown[]
+) =>
+  render(
+    <ApplicationAppView
+      document={
+        parseApplicationDocument(runnableDoc(content, value)) as ApplicationDocument
+      }
+      workflow={makeWorkflow(id, nodes)}
+    />
+  );
+
+beforeEach(() => {
+  mockRun.mockClear();
+});
 
 describe("catalog coverage", () => {
   it("has a native renderer for every catalog type", () => {
@@ -255,6 +319,175 @@ describe("display fallbacks", () => {
     renderApp("wf-gallery-empty", appDoc("Gallery", { placeholder: "Nothing" }, []));
 
     expect(screen.getByText("Nothing")).toBeTruthy();
+  });
+});
+
+describe("gallery selection", () => {
+  const IMAGES = [
+    { type: "image", uri: "https://x.test/a.png" },
+    { type: "image", uri: "https://x.test/b.png" },
+  ];
+
+  const gallery = (props: Record<string, unknown> = {}) => [
+    {
+      type: "Gallery",
+      props: { id: "gal-1", binding: "var:data", ...props },
+    },
+  ];
+
+  const PICKED_NODE = [
+    { id: "n1", type: "nodetool.input.ImageInput", data: { name: "picked" } },
+  ];
+
+  it("writes the tapped tile's original item, not its resolved URL", async () => {
+    renderRunnable(
+      "wf-gallery-pick",
+      gallery({ selectionBinding: "op:main/in:n1" }),
+      IMAGES,
+      PICKED_NODE
+    );
+
+    fireEvent.press((await screen.findAllByTestId("gallery-tile"))[1]);
+    await act(async () => {
+      fireEvent.press(screen.getByText("Run"));
+    });
+
+    // The array element verbatim: a workflow that expects an ImageRef gets one,
+    // not the string the tile happened to render from.
+    expect(mockRun.mock.calls[0][0]).toEqual({ picked: IMAGES[1] });
+  });
+
+  it("marks the tile the selection binding currently holds", async () => {
+    renderRunnable(
+      "wf-gallery-marked",
+      gallery({ selectionBinding: "op:main/in:n1" }),
+      IMAGES,
+      PICKED_NODE
+    );
+
+    const tiles = await screen.findAllByTestId("gallery-tile");
+    expect(tiles[0].props.accessibilityState.selected).toBe(false);
+
+    fireEvent.press(tiles[0]);
+
+    const marked = screen.getAllByTestId("gallery-tile");
+    expect(marked[0].props.accessibilityState.selected).toBe(true);
+    expect(marked[1].props.accessibilityState.selected).toBe(false);
+  });
+
+  it("picks instead of previewing, and keeps the preview on a long press", async () => {
+    renderRunnable(
+      "wf-gallery-longpress",
+      gallery({ selectionBinding: "op:main/in:n1" }),
+      IMAGES,
+      PICKED_NODE
+    );
+
+    const tiles = await screen.findAllByTestId("gallery-tile");
+    fireEvent.press(tiles[1]);
+    expect(screen.queryByTestId("gallery-pager")).toBeNull();
+
+    fireEvent(tiles[1], "longPress");
+    expect(screen.getByTestId("gallery-pager")).toBeTruthy();
+  });
+
+  it("leaves an unselectable gallery opening the viewer on tap", async () => {
+    renderRunnable("wf-gallery-plain", gallery(), IMAGES, PICKED_NODE);
+
+    const tiles = await screen.findAllByTestId("gallery-tile");
+    expect(tiles[0].props.accessibilityState.selected).toBe(false);
+
+    fireEvent.press(tiles[0]);
+
+    expect(screen.getByTestId("gallery-pager")).toBeTruthy();
+    // Nothing is written, so nothing is ever marked.
+    expect(
+      screen.getAllByTestId("gallery-tile")[0].props.accessibilityState.selected
+    ).toBe(false);
+  });
+});
+
+describe("image compare", () => {
+  /**
+   * Two bindings, so the widget needs a document of its own: `before` on
+   * `binding`, `after` on `compareBinding`. Each case gets its own workflow id —
+   * the runtime store is cached per instance, so a shared one would carry the
+   * previous case's values.
+   */
+  const compareDoc = (before?: unknown, after?: unknown, props = {}) => ({
+    schemaVersion: 3,
+    ui: {
+      root: { props: { title: "Catalog" } },
+      content: [
+        {
+          type: "ImageCompare",
+          props: {
+            id: "cmp-1",
+            binding: "var:before",
+            compareBinding: "var:after",
+            ...props,
+          },
+        },
+      ],
+      zones: {},
+    },
+    operations: [
+      {
+        id: "main",
+        name: "Run",
+        workflowId: "wf-new",
+        inputs: {},
+        outputs: {},
+        policy: "replace",
+      },
+    ],
+    resources: [],
+    variables: [
+      { id: "before", name: "before", scope: "instance", persist: false, default: before },
+      { id: "after", name: "after", scope: "instance", persist: false, default: after },
+    ],
+  });
+
+  const BEFORE = { type: "image", uri: "https://x.test/before.png" };
+  const AFTER = { type: "image", uri: "https://x.test/after.png" };
+
+  it("labels both bound images before and after", async () => {
+    renderApp("wf-compare-both", compareDoc(BEFORE, AFTER, { label: "Edit" }));
+
+    expect(await screen.findByText("Edit")).toBeTruthy();
+    expect(screen.getByLabelText("Before").props.source.uri).toBe(BEFORE.uri);
+    expect(screen.getByLabelText("After").props.source.uri).toBe(AFTER.uri);
+  });
+
+  it("renders only the half that is bound", async () => {
+    renderApp("wf-compare-one", compareDoc(BEFORE));
+
+    expect(await screen.findByLabelText("Before")).toBeTruthy();
+    expect(screen.queryByLabelText("After")).toBeNull();
+  });
+
+  it("renders the after half on its own", async () => {
+    renderApp("wf-compare-after", compareDoc(undefined, AFTER));
+
+    expect(await screen.findByLabelText("After")).toBeTruthy();
+    expect(screen.queryByLabelText("Before")).toBeNull();
+  });
+
+  it("caps each pane at the widget's height", async () => {
+    renderApp("wf-compare-height", compareDoc(BEFORE, AFTER, { height: 120 }));
+
+    const pane = await screen.findByLabelText("Before");
+    expect(pane.props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining({ height: 120 })])
+    );
+  });
+
+  it("shows the placeholder when neither half is bound", () => {
+    renderApp("wf-compare-empty", compareDoc(undefined, undefined, {
+      placeholder: "Run it first",
+    }));
+
+    expect(screen.getByText("Run it first")).toBeTruthy();
   });
 });
 

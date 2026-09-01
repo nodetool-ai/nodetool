@@ -1,10 +1,14 @@
 import { type Dispatch, type MutableRefObject, type SetStateAction, useEffect, useRef, useState, useCallback } from "react";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { Asset } from "../../stores/ApiTypes";
-import { useNodes } from "../../contexts/NodeContext";
 
 export type VideoRecorderProps = {
   onChange: (asset: Asset) => void;
+  /**
+   * Stamped on the uploaded asset. Optional because a published mini app has
+   * no graph editor around it — the recorder works without one.
+   */
+  workflowId?: string;
 };
 
 export type VideoDevice = {
@@ -32,10 +36,12 @@ interface VideoRecorderReturn {
   handleAudioDeviceChange: (deviceId: string) => void;
 }
 
-export function useVideoRecorder({ onChange }: VideoRecorderProps): Readonly<VideoRecorderReturn> {
+export function useVideoRecorder({
+  onChange,
+  workflowId
+}: VideoRecorderProps): Readonly<VideoRecorderReturn> {
   const defaultFileType = "webm";
   const { uploadAsset } = useAssetUpload();
-  const workflow = useNodes((state) => state.workflow);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -267,7 +273,7 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps): Readonly<Vid
 
         uploadAsset({
           file,
-          workflow_id: workflow.id,
+          workflow_id: workflowId,
           onCompleted: (asset: Asset) => {
             onChange(asset);
             stopStream();
@@ -295,7 +301,7 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps): Readonly<Vid
     defaultFileType,
     onChange,
     uploadAsset,
-    workflow.id,
+    workflowId,
     stopStream
   ]);
 

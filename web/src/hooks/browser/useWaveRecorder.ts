@@ -3,10 +3,14 @@ import WaveSurfer from "wavesurfer.js";
 import RecordPlugin from "wavesurfer.js/dist/plugins/record";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { Asset } from "../../stores/ApiTypes";
-import { useNodes } from "../../contexts/NodeContext";
 
 export type WaveRecorderProps = {
   onChange: (asset: Asset) => void;
+  /**
+   * Stamped on the uploaded asset. Optional because a published mini app has
+   * no graph editor around it — the recorder works without one.
+   */
+  workflowId?: string;
 };
 
 export type AudioDevice = {
@@ -29,10 +33,12 @@ interface WaveRecorderReturn {
   handleInputDeviceChange: (deviceId: string) => void;
 }
 
-export function useWaveRecorder({ onChange }: WaveRecorderProps): Readonly<WaveRecorderReturn> {
+export function useWaveRecorder({
+  onChange,
+  workflowId
+}: WaveRecorderProps): Readonly<WaveRecorderReturn> {
   const defaultFileType = "webm";
   const { uploadAsset } = useAssetUpload();
-  const workflow = useNodes((state) => state.workflow);
   const micRef = useRef<HTMLDivElement | null>(null);
   const waveSurferRef = useRef<WaveSurfer | null>(null);
   const recordRef = useRef<RecordPlugin | null>(null);
@@ -203,7 +209,7 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps): Readonly<WaveR
         });
         uploadAsset({
           file,
-          workflow_id: workflow.id,
+          workflow_id: workflowId,
           onCompleted: (asset: Asset) => {
             onChange(asset);
           },
@@ -211,7 +217,7 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps): Readonly<WaveR
         });
       });
     }
-  }, [defaultFileType, onChange, uploadAsset, workflow.id]);
+  }, [defaultFileType, onChange, uploadAsset, workflowId]);
 
   const [isDeviceListVisible, setIsDeviceListVisible] =
     useState<boolean>(false);

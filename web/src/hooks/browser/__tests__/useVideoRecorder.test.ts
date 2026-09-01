@@ -1,22 +1,13 @@
-import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
-import { act } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { useVideoRecorder } from "../useVideoRecorder";
 
-// Mock the dependencies
+// The hook takes the workflow id as a prop, so nothing here mounts a
+// NodeProvider — a published mini app has none, and the hook must still work.
 jest.mock("../../../serverState/useAssetUpload", () => ({
   useAssetUpload: () => ({
     uploadAsset: jest.fn()
   })
 }));
-
-const { renderHook } = nodeStoreRenderers(
-  makeNodeStore({
-      workflow: {
-        id: "test-workflow-id",
-        name: "Test Workflow"
-      }
-    })
-);
 // Mock navigator.mediaDevices
 const mockGetUserMedia = jest.fn();
 const mockEnumerateDevices = jest.fn();

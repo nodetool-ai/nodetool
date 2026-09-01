@@ -22,6 +22,11 @@ import {
 import LazyModel3DViewer from "../../asset_viewer/LazyModel3DViewer";
 import LazyPDFViewer from "../../asset_viewer/LazyPDFViewer";
 import { AppEvent } from "../types";
+import {
+  useAppRuntimeContext,
+  useBindingRef,
+  useBindingValue
+} from "../runtime/AppRuntimeContext";
 import { useWidgetRuntime } from "./useWidgetRuntime";
 import { resolveImageSrc } from "./widgets";
 
@@ -116,35 +121,97 @@ export const PDFWidget: React.FC<ReadWidgetProps & { height?: number }> = (
 
 const TILE_SIZE = 140;
 
+/**
+ * One array element and the source it resolved to, kept paired so a click
+ * writes the element the run produced rather than its display URL.
+ */
+interface GalleryEntry {
+  item: unknown;
+  src: string;
+}
+
+/**
+ * Two bound values are the same choice when they carry the same data: the
+ * selection slot holds a copy of the array element (serialized on reload), so
+ * reference equality would lose the mark the moment the app is reopened.
+ */
+const sameSelection = (a: unknown, b: unknown): boolean => {
+  if (a === b) return true;
+  if (a == null || b == null) return false;
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    // Cyclic or otherwise unserializable values: reference equality already lost.
+    return false;
+  }
+};
+
+interface GalleryTileProps {
+  index: number;
+  src: string;
+  size: number;
+  /** Set when the widget carries a `selectionBinding` and can write to it. */
+  selectable: boolean;
+  selected: boolean;
+  disabled?: boolean;
+  onSelect: (index: number) => void;
+}
+
+const tileSx = (size: number) => ({
+  height: size,
+  p: SPACING.xs,
+  borderRadius: BORDER_RADIUS.md,
+  border: "1px solid",
+  borderColor: "divider",
+  transition: MOTION.border,
+  "&:hover": { borderColor: "primary.light" }
+});
+
+const imageSx = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  borderRadius: BORDER_RADIUS.sm
+} as const;
+
 // The grid is fed by a streaming output that grows an item at a time, so
 // without the memo each emitted image rebuilds the styles of every tile before
 // it.
-const GalleryTile: React.FC<{ src: string; size: number }> = React.memo(
-  ({ src, size }) => (
-    <Box
-      sx={{
-        height: size,
-        p: SPACING.xs,
-        borderRadius: BORDER_RADIUS.md,
-        border: "1px solid",
-        borderColor: "divider",
-        transition: MOTION.border,
-        "&:hover": { borderColor: "primary.light" }
-      }}
-    >
+const GalleryTile: React.FC<GalleryTileProps> = React.memo(
+  ({ index, src, size, selectable, selected, disabled, onSelect }) => {
+    const image = <Box component="img" src={src} alt="" sx={imageSx} />;
+    if (!selectable) {
+      return <Box sx={tileSx(size)}>{image}</Box>;
+    }
+    return (
       <Box
-        component="img"
-        src={src}
-        alt=""
+        component="button"
+        type="button"
+        aria-pressed={selected}
+        aria-label={`Select item ${index + 1}`}
+        disabled={disabled}
+        onClick={() => onSelect(index)}
         sx={{
+          ...tileSx(size),
+          display: "block",
           width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          borderRadius: BORDER_RADIUS.sm
+          background: "none",
+          font: "inherit",
+          cursor: disabled ? "default" : "pointer",
+          borderColor: selected ? "primary.main" : "divider",
+          backgroundColor: selected ? "action.selected" : "transparent",
+          transition: `${MOTION.border}, ${MOTION.background}`,
+          "&:focus-visible": {
+            outline: "2px solid",
+            outlineColor: "primary.main",
+            outlineOffset: 2
+          }
         }}
-      />
-    </Box>
-  )
+      >
+        {image}
+      </Box>
+    );
+  }
 );
 GalleryTile.displayName = "GalleryTile";
 
@@ -152,21 +219,51 @@ GalleryTile.displayName = "GalleryTile";
  * A bound array of media refs as a tiled grid — the shape a batch run that emits
  * N images has. Tiles match the resource gallery's look so the two read as one
  * component.
+ *
+ * With a `selectionBinding` the grid becomes the generate-N-pick-one loop:
+ * picking a tile writes that array element — the ref as the run emitted it, not
+ * the resolved URL — to the bound slot and emits `change`, so a wired `run`
+ * event carries the choice into the next operation. The mark is read back out
+ * of that slot, so a reopened app shows the same choice.
  */
 export const GalleryWidget: React.FC<
-  ReadWidgetProps & { label?: string; tileSize?: number }
+  ReadWidgetProps & {
+    label?: string;
+    tileSize?: number;
+    /** Write slot the picked array element lands in. */
+    selectionBinding?: string;
+  }
 > = (props) => {
-  const { value } = useReadBinding(props);
-  const sources = React.useMemo(
-    () =>
-      asItems(value)
-        .map(resolveImageSrc)
-        .filter((src): src is string => src !== null),
-    [value]
-  );
+  const { value, emit, designMode } = useReadBinding(props);
+  const { write } = useAppRuntimeContext();
+  const selectionRef = useBindingRef(props.selectionBinding, "write");
+  const selectedValue = useBindingValue(selectionRef);
+  const selectable = props.selectionBinding != null && !designMode;
+
+  const entries = React.useMemo<GalleryEntry[]>(() => {
+    const paired: GalleryEntry[] = [];
+    for (const item of asItems(value)) {
+      const src = resolveImageSrc(item);
+      // An item that resolves to nothing has no tile, so it must not take an
+      // index either — the click handler indexes into this same list.
+      if (src !== null) paired.push({ item, src });
+    }
+    return paired;
+  }, [value]);
+
   const size = props.tileSize ?? TILE_SIZE;
 
-  if (sources.length === 0) {
+  const onSelect = React.useCallback(
+    (index: number) => {
+      const entry = entries[index];
+      if (!entry || !selectionRef || !selectable) return;
+      write(selectionRef, entry.item);
+      emit("change");
+    },
+    [emit, entries, selectable, selectionRef, write]
+  );
+
+  if (entries.length === 0) {
     return (
       <Caption color="secondary">
         {props.placeholder ?? "Nothing to show yet"}
@@ -185,8 +282,17 @@ export const GalleryWidget: React.FC<
           gridTemplateColumns: `repeat(auto-fill, minmax(${size}px, 1fr))`
         }}
       >
-        {sources.map((src, index) => (
-          <GalleryTile key={index} src={src} size={size} />
+        {entries.map((entry, index) => (
+          <GalleryTile
+            key={index}
+            index={index}
+            src={entry.src}
+            size={size}
+            selectable={selectable}
+            selected={selectable && sameSelection(selectedValue, entry.item)}
+            disabled={props.disabled}
+            onSelect={onSelect}
+          />
         ))}
       </Box>
     </FlexColumn>
