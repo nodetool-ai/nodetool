@@ -27,7 +27,7 @@ export function quaternionToEulerDegrees(q: Quat): Vec3 {
   const m23 = 2 * (y * z - x * w);
   const m33 = 1 - 2 * (x * x + y * y);
   const m22 = 1 - 2 * (x * x + z * z);
-  const m21 = 2 * (x * y + z * w);
+  const m32 = 2 * (y * z + x * w);
 
   const ey = Math.asin(clamp(m13, -1, 1));
   let ex: number;
@@ -36,7 +36,11 @@ export function quaternionToEulerDegrees(q: Quat): Vec3 {
     ex = Math.atan2(-m23, m33);
     ez = Math.atan2(-m12, m11);
   } else {
-    ex = Math.atan2(m21, m22);
+    // At |m13| = 1 the X and Z rotations are one degree of freedom, so ez is
+    // pinned to 0 and ex carries the combination — which depends on the sign of
+    // m13. Only m32 tracks both poles: it is sin(ex + ez) at m13 = +1 and
+    // sin(ex - ez) at m13 = -1. m21 agrees at +1 and flips the sign at -1.
+    ex = Math.atan2(m32, m22);
     ez = 0;
   }
   return [ex * DEG, ey * DEG, ez * DEG];

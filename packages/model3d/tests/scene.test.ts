@@ -101,6 +101,37 @@ describe("transforms", () => {
     }
   });
 
+  it("rebuilds every rotation on a swept Euler grid, both poles included", () => {
+    // At pitch = +/-90 roll and yaw are one degree of freedom, so the reader
+    // pins yaw to 0 and the triple it returns is not the one it was given.
+    // Compare the rotations instead — and a quaternion and its negation are the
+    // same rotation. The tolerance is what asin delivers next to +/-1, where
+    // its slope is infinite; a wrong pole costs a radian, not an epsilon.
+    const grid = [-180, -135, -90, -45, -10, 0, 10, 45, 90, 135, 180];
+    for (const rx of grid) {
+      for (const ry of grid) {
+        for (const rz of grid) {
+          const q = eulerDegreesToQuaternion([rx, ry, rz]);
+          const rebuilt = eulerDegreesToQuaternion(quaternionToEulerDegrees(q));
+          const same = rebuilt.every((v, i) => Math.abs(v - q[i]) < 1e-6);
+          const negated = rebuilt.every((v, i) => Math.abs(v + q[i]) < 1e-6);
+          expect(same || negated, `[${rx}, ${ry}, ${rz}]`).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("reads back a negative-pitch rotation it was given", () => {
+    const file = build(["box"]);
+    applyOperations(file, [
+      { op: "set_transform", target: "Box", rotation: [30, -90, 0] }
+    ]);
+    const object = listScene(file.json)[0];
+    expect(object.rotation[0]).toBeCloseTo(30, 5);
+    expect(object.rotation[1]).toBeCloseTo(-90, 5);
+    expect(object.rotation[2]).toBeCloseTo(0, 5);
+  });
+
   it("applies a partial patch and leaves the rest alone", () => {
     const file = build(["box"]);
     applyOperations(file, [
