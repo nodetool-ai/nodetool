@@ -1271,7 +1271,8 @@ npm run dev:nodetool -- timeline debug <id> --out ./mydebug --json
 
 `validate` reads what a headless check can decide: a clip on a track the
 document does not have, a field the schema round trip would strip, an animation
-preset that does not exist, timings that cannot render. `debug` runs the same
+preset that does not exist, baked curves a custom animation could not render
+from, timings that cannot render. `debug` runs the same
 check, then executes each `--interact` step against the headless
 `ui_timeline_*` bridge — the one the `timeline-tools` eval drives — and
 validates the document the session left behind. A step names a tool with or

@@ -307,6 +307,129 @@ describe("validateTimelineSequence — structural checks", () => {
     expect(codes(result.errors)).toContain("unknown_animation_preset");
   });
 
+  it("flags a custom animation whose baked curves are unusable", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            animations: [
+              {
+                id: "anim-1",
+                role: "in",
+                preset: "custom",
+                durationMs: 300,
+                custom: {
+                  code: "return {samples: []};",
+                  curves: [
+                    { property: "skewX", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 1 }] }
+                  ]
+                }
+              }
+            ]
+          })
+        ]
+      })
+    );
+    expect(codes(result.errors)).toContain("custom_animation_invalid");
+  });
+
+  it("flags a custom animation with no payload at all", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            animations: [
+              { id: "anim-1", role: "in", preset: "custom", durationMs: 300 }
+            ]
+          })
+        ]
+      })
+    );
+    expect(codes(result.errors)).toContain("custom_animation_invalid");
+  });
+
+  it("flags a wipeProgress curve with no mask behind it", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            animations: [
+              {
+                id: "anim-1",
+                role: "in",
+                preset: "custom",
+                durationMs: 300,
+                custom: {
+                  code: "return {samples: []};",
+                  curves: [
+                    {
+                      property: "wipeProgress",
+                      keyframes: [{ t: 0, value: 0 }, { t: 1, value: 1 }]
+                    }
+                  ]
+                }
+              }
+            ]
+          })
+        ]
+      })
+    );
+    expect(codes(result.errors)).toContain("custom_animation_invalid");
+  });
+
+  it("warns when baked curves name nothing that could re-bake them", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            animations: [
+              {
+                id: "anim-1",
+                role: "in",
+                preset: "custom",
+                durationMs: 300,
+                custom: {
+                  curves: [
+                    { property: "opacity", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 1 }] }
+                  ]
+                }
+              }
+            ]
+          })
+        ]
+      })
+    );
+    expect(codes(result.warnings)).toContain("custom_animation_unsourced");
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts a well-formed custom animation", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            animations: [
+              {
+                id: "anim-1",
+                role: "in",
+                preset: "custom",
+                durationMs: 300,
+                custom: {
+                  scriptId: "script-1",
+                  curves: [
+                    { property: "opacity", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 1 }] }
+                  ]
+                }
+              }
+            ]
+          })
+        ]
+      })
+    );
+    expect(result.ok).toBe(true);
+    expect(codes(result.warnings)).not.toContain("custom_animation_unsourced");
+  });
+
   it("accepts a shipped animation preset", () => {
     const result = validateTimelineSequence(
       doc({

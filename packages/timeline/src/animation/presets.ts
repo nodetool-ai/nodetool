@@ -13,13 +13,13 @@
  */
 
 import type {
+  AnimatedProperty,
   AnimationPresetId,
   AnimationRole,
   EasingId,
   WipeDirection
 } from "./types.js";
 import type {
-  AnimatedProperty,
   CompiledAnimationMask,
   Keyframe,
   PropertyCurve

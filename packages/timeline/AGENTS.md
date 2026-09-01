@@ -52,6 +52,13 @@
 - **Never read a WebGPU flag namespace (`GPUTextureUsage`, `GPUShaderStage`) at
   module scope.** Under Node those globals only exist after the Dawn adapter
   installs them with the device, so a module-scope read throws on import.
+- **A custom animation's JavaScript runs once, at bake time, never at render
+  time.** There is no JS engine in the browser compositor and there must not be
+  one: the body returns keyframes (`animation/custom.ts`), they are stored on
+  the clip, and every surface samples them like a preset's. `normalizeCustomCurves`
+  is the single gate — the compiler, the validator, and the bake all call it, so
+  curves that would render nothing are refused in one place. See
+  [docs/timeline-custom-animations.md](../../docs/timeline-custom-animations.md).
 - **Draw code takes a `RasterContext2D`, not a concrete canvas.** The browser
   passes an `OffscreenCanvas` context and the server `@napi-rs/canvas`; a type
   that only one of them satisfies breaks the other silently at build time.

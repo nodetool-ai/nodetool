@@ -954,6 +954,14 @@ export type {
 // the JS-script run endpoint executes a script document with (with the
 // Code-node toolbelt).
 export { runCodeBody } from "./capabilities/code.js";
+export {
+  bakeCustomAnimation,
+  CUSTOM_ANIMATION_BAKE_TIMEOUT_SECONDS
+} from "./custom-animation-bake.js";
+export type {
+  BakeCustomAnimationParams,
+  BakeCustomAnimationResult
+} from "./custom-animation-bake.js";
 export { createJsScriptAppRunner } from "./js-script-app-runner.js";
 export type { HarnessRunResult } from "./capabilities/code.js";
 
