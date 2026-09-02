@@ -877,6 +877,71 @@ describe("ClaudeAgentProvider", () => {
     expect(executed[0]).toMatchObject({ name: "echo", args: { text: "hi" } });
   });
 
+  // The SDK splits one API assistant turn into a frame per content block:
+  // thinking, then text, then each tool_use. A message per frame would put a
+  // text-only assistant message in the middle of a tool round, which every chat
+  // surface reads as the end of the turn (the composer flips back to Send and
+  // hides Stop), and would persist an empty row for the thinking frame.
+  it("coalesces the block-split frames of one assistant turn into one message", async () => {
+    const assistantThinking = (thinking: string): SDKMessage =>
+      ({
+        type: "assistant",
+        session_id: "s",
+        parent_tool_use_id: null,
+        uuid: "u-asst-think",
+        message: {
+          model: "claude-haiku-4-5",
+          content: [{ type: "thinking", thinking }]
+        }
+      }) as unknown as SDKMessage;
+
+    const { fn } = fakeQuery([
+      sysInit("sess-split"),
+      assistantThinking("weighing it up"),
+      assistantTextMsg("Let me check."),
+      assistantToolUse("tu_1", "mcp__nodetool_tools__echo", { text: "hi" }),
+      userToolResult("tu_1", "echoed: hi"),
+      assistantTextMsg("all done"),
+      successResult()
+    ]);
+    const mcp = fakeCreateMcpServer();
+    const provider = new ClaudeAgentProvider(
+      {},
+      { queryFn: fn, createMcpServerFn: mcp.fn }
+    );
+    const items = await collect(
+      provider.generateLoop({
+        messages: [userMsg("echo hi")],
+        model: "haiku",
+        threadId: "t1",
+        tools: [
+          {
+            name: "echo",
+            description: "Echo the input",
+            inputSchema: { type: "object", properties: {} }
+          }
+        ],
+        executeTool: async () => "ok"
+      })
+    );
+
+    const msgs = messagesOf(items);
+    // Two assistant messages, not four: the tool round, then the closing text.
+    expect(msgs.filter((m) => m.role === "assistant")).toHaveLength(2);
+    expect(msgs[0]).toMatchObject({
+      role: "assistant",
+      content: "Let me check.",
+      toolCalls: [{ id: "tu_1", name: "echo" }]
+    });
+    // The turn that asked for the tool is emitted before its result.
+    expect(msgs[1]).toMatchObject({ role: "tool", toolCallId: "tu_1" });
+    expect(msgs[2]).toMatchObject({ role: "assistant", content: "all done" });
+    // The closing text lands before the done chunk, so nothing after it says
+    // the turn is still running.
+    const last = items.at(-1);
+    expect(last).toMatchObject({ type: "chunk", done: true });
+  });
+
   it("replaces NodeTool tools with the SDK built-ins that cover them", async () => {
     const { fn, calls } = fakeQuery([
       sysInit("sess-native"),

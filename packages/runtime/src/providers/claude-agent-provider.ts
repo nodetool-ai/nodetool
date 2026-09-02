@@ -63,6 +63,7 @@ import {
   type ProviderSession,
   type ProviderStop,
   type ProviderStreamItem,
+  type ProviderMessageEvent,
   type ProviderSkill,
   type ProviderTool,
   type ToolCall
@@ -751,6 +752,34 @@ export class ClaudeAgentProvider extends BaseProvider {
     // back to the final message's content blocks.
     let streamedFromPartials = false;
 
+    // The SDK splits one API assistant turn into one frame per content block —
+    // thinking, then text, then each tool_use. Emitting a message per frame
+    // would hand the consumer a text-only assistant message in the middle of a
+    // tool round, which every chat surface reads as "the turn ended" (the chat
+    // UI flips the composer back to Send and hides Stop), and would write an
+    // empty row for a thinking-only frame. Buffer the blocks and emit one
+    // message per assistant turn, text and tool calls together, the way every
+    // other provider does.
+    let pending: {
+      parentToolUseId: string | null;
+      text: string;
+      toolCalls: ToolCall[];
+    } | null = null;
+    const flushPending = (): ProviderMessageEvent | null => {
+      const buffered = pending;
+      pending = null;
+      if (!buffered) return null;
+      if (!buffered.text && buffered.toolCalls.length === 0) return null;
+      return {
+        type: "message",
+        message: {
+          role: "assistant",
+          content: buffered.text || null,
+          toolCalls: buffered.toolCalls.length ? buffered.toolCalls : null
+        }
+      };
+    };
+
     try {
       for await (const msg of queryFn({ prompt: plan.prompt, options })) {
         if (msg.type === "system" && msg.subtype === "init") {
@@ -812,27 +841,31 @@ export class ClaudeAgentProvider extends BaseProvider {
           }
           // The loop needs each assistant turn (text + any tool calls) as a
           // persistable message, and a ToolCall item per call for live display.
+          // The ToolCall items go out immediately; the message waits for the
+          // rest of the turn's blocks (see `pending`).
           if (plan.config.emitMessages) {
-            const { text, toolCalls } = assistantParts(
-              msg
-            );
+            const { text, toolCalls } = assistantParts(msg);
             for (const tc of toolCalls) yield tc;
-            yield {
-              type: "message",
-              message: {
-                role: "assistant",
-                content: text || null,
-                toolCalls: toolCalls.length ? toolCalls : null
-              }
-            };
+            const parentToolUseId = msg.parent_tool_use_id ?? null;
+            if (pending && pending.parentToolUseId !== parentToolUseId) {
+              // A subagent's turn and the main agent's are different turns.
+              const flushed = flushPending();
+              if (flushed) yield flushed;
+            }
+            pending ??= { parentToolUseId, text: "", toolCalls: [] };
+            pending.text += text;
+            pending.toolCalls.push(...toolCalls);
           }
           continue;
         }
 
         // Tool results come back as a user message; surface them as tool
-        // messages so the harness can persist them.
+        // messages so the harness can persist them. The assistant turn that
+        // asked for them is complete by now, so it goes out first.
         if (msg.type === "user") {
           if (plan.config.emitMessages) {
+            const flushed = flushPending();
+            if (flushed) yield flushed;
             for (const tr of toolResultsFromUser(msg)) {
               yield {
                 type: "message",
@@ -852,6 +885,8 @@ export class ClaudeAgentProvider extends BaseProvider {
           // errored/max-turns run still consumed (and was charged for) tokens.
           this.trackResultUsage(msg, resolvedModel);
           if (msg.subtype === "success") {
+            const flushed = flushPending();
+            if (flushed) yield flushed;
             yield { type: "chunk", content: "", done: true };
           } else {
             throw resultError(msg);
@@ -859,6 +894,10 @@ export class ClaudeAgentProvider extends BaseProvider {
           continue;
         }
       }
+      // A stream that ended without a terminal `result` still owes its last
+      // assistant turn.
+      const trailing = flushPending();
+      if (trailing) yield trailing;
     } catch (err) {
       // The query can reject (auth failure, missing session, spawn error). Never
       // collapse to a generic string — surface the real message.
