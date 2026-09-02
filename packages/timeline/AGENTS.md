@@ -87,10 +87,22 @@
   against — the text, not the raster. A draw that computes its own wrap puts a
   staggered title somewhere its un-staggered self is not.
 - **A raster cache key names every field of the style it caches.** A host hands
-  back the bitmap a key hits, so a field `textStyleSignature` does not read
-  renders as the frame drawn before that field changed. The check is the
-  `Object.keys` enumeration in `tests/render.textStyle.test.ts`, which walks the
-  document schema, so a field added under I1 fails there until the key reads it.
+  back the bitmap a key hits, so a field `textStyleSignature` or
+  `captionSignature` does not read renders as the frame drawn before that field
+  changed. The checks are the `Object.keys` enumerations in
+  `tests/render.textStyle.test.ts` and `tests/render.captionStyle.test.ts`,
+  which walk the document schema, so a field added under I1 fails there until
+  the key reads it.
+- **A caption keeps its own layout, and its built-in look is a default rather
+  than a constant.** `drawCaption` anchors an alphabetic baseline to the frame
+  bottom and colours the block word by word, neither of which `layoutTextBlock`
+  expresses; the two share the font shorthand and the scrim, which is where
+  they agree. Every value `caption.style` leaves out is the one the drawing
+  hard-coded before it was authorable, and
+  `packages/agents/tests/timeline-caption-frames.test.ts` compares an unstyled
+  caption against that prior drawing pixel for pixel — so a default nudged
+  while "cleaning up" fails rather than quietly restyling every shipped
+  caption.
 - **A rasterized layer's pixels can depend on its animation sample.** A shape's
   `trimStart`/`trimEnd` change the outline, so every host rasterizes
   `AnimatedLayerProps.shapeStyle`, not the clip's own; a host that reaches for

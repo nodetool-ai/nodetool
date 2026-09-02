@@ -91,6 +91,20 @@ interface TimelineTextStyle {
   maxWidthFrac?: number;
 }
 
+/**
+ * A caption's look. Every field is optional; an absent one keeps the built-in
+ * value, so a patch restyles one thing rather than resetting the rest.
+ */
+interface TimelineCaptionStyle {
+  fontFamily?: string;
+  fontSizeFrac?: number;
+  color?: string;
+  activeColor?: string;
+  outline?: { color: string; widthPx: number };
+  bottomMarginFrac?: number;
+  background?: { color: string; paddingPx: number; radiusPx?: number };
+}
+
 interface TimelineShapeStyle {
   kind: "rect" | "ellipse" | "line" | "path" | "polygon" | "star";
   fill?: string;
@@ -197,6 +211,7 @@ interface TimelineClipParamsPatch {
   locked?: boolean;
   textStyle?: TimelineTextStyle;
   shapeStyle?: TimelineShapeStyle;
+  captionStyle?: TimelineCaptionStyle;
 }
 
 /** Generation-binding fields the agent can change on a generated clip. */

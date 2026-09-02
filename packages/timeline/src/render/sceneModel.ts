@@ -213,7 +213,8 @@ export function resolveCaptionAtTime(
     words: clip.caption.words.map((w) => ({
       text: w.word,
       active: local >= w.startMs && local < w.endMs
-    }))
+    })),
+    style: clip.caption.style
   };
 }
 

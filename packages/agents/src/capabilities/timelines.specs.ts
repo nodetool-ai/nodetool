@@ -146,6 +146,10 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         'set_matte takes {"target", "matte": {source, mode: "alpha"|"luma", ' +
         "invert?} | null}; the source clip stops drawing itself and its alpha " +
         "or brightness becomes the target's transparency. " +
+        'set_clip_params takes {"target", ...fields}; a caption clip\'s look ' +
+        'is "captionStyle": {fontFamily?, fontSizeFrac?, color?, activeColor?, ' +
+        "outline?, bottomMarginFrac?, background?}, each field optional and " +
+        "each absent one keeping the built-in value. " +
         'set_effects takes {"target", "effects": [{type, ...}]} and replaces ' +
         "the whole chain — types color, blur, glow, dropShadow, vignette, " +
         "sharpen, chromaKey, curves, levels, liftGammaGain, applied in the " +
