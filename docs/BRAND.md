@@ -25,9 +25,9 @@ change.
 - **Elevator pitch.** NodeTool is the open canvas for multi-modal AI. It
   connects image, video, audio, and language models into repeatable workflows
   that run in the cloud, locally on your own hardware, or headless over MCP.
-- **What we are against.** The five-tab workflow: brand context lost in chat
-  threads, prompts and seeds stranded between tools, and a markup on every
-  generation.
+- **What we are against.** The closed AI studio: a model list they picked,
+  priced in their credits, saved in a project only their app opens. Five
+  browser tabs, lost context and markups are symptoms of it, not the enemy.
 
 The pitch above is the general-purpose one — README, docs, conference blurb,
 app store listing. The marketing homepage runs a narrower, filmmaker-first
@@ -100,7 +100,8 @@ Vocabulary: MCP server, headless execution, API endpoints, CLI, spec-driven.
 
 | Term | Means |
 |---|---|
-| Canvas | The visual workspace where the work happens. |
+| Studio | The product. Not "workspace", "platform", or "tool". |
+| Canvas | The surface where the work happens, inside the studio. |
 | Orchestrate / wire | Connecting models and steps. |
 | Pipeline / workflow | The repeatable system the user builds. |
 | Agent | The built-in assistant that configures the canvas. |

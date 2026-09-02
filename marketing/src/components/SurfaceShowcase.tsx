@@ -4,9 +4,7 @@
  * editor. The loops are rendered by the demo harness from product casts
  * (demo/src/hero/SurfaceLoop.tsx), so what a tab shows is what the app does.
  *
- * Each tab is deep-linkable as `#surface-<id>`. The long-form section for a
- * surface keeps its own `#<id>` anchor further down the page; these are
- * separate ids on purpose.
+ * Each tab is deep-linkable as `#surface-<id>`.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -26,8 +24,6 @@ interface Surface {
   body: string;
   /** Basename in `public/` — `.mp4`, `.webm`, and `-poster.webp` alongside. */
   asset: string;
-  /** Where the long-form section for this surface lives, when there is one. */
-  deepLink?: string;
 }
 
 const SURFACES: Surface[] = [
@@ -38,7 +34,6 @@ const SURFACES: Surface[] = [
     headline: "Visual storyboards",
     body: "Board the film shot by shot. Generate cheap stills first to lock the look, then pay to animate only the shots you approved.",
     asset: "surface-storyboard",
-    deepLink: "#storyboard",
   },
   {
     id: "script",
@@ -47,7 +42,6 @@ const SURFACES: Surface[] = [
     headline: "Scripting & casting",
     body: "Draft the dialogue, cast a voice per character, and audition alternate line readings. Change the words and the take flags itself stale, so you see exactly what still needs voicing.",
     asset: "surface-script",
-    deepLink: "#script-editor",
   },
   {
     id: "timeline",
@@ -56,7 +50,6 @@ const SURFACES: Surface[] = [
     headline: "Multi-track timeline",
     body: "Arrange, trim, and layer generated video and audio across multiple tracks, down to the frame and the stem. The agent edits the same document when you ask it to tighten the opening.",
     asset: "surface-timeline",
-    deepLink: "#timeline-editor",
   },
   {
     id: "sketch",
@@ -65,7 +58,6 @@ const SURFACES: Surface[] = [
     headline: "Layered drawing canvas",
     body: "Sketch, paint with brushes, and blend hand-drawn elements with AI-generated layers. Bind a layer to a prompt and regenerate that layer alone.",
     asset: "surface-sketch",
-    deepLink: "#sketch-editor",
   },
   {
     id: "3d",
@@ -213,14 +205,6 @@ export default function SurfaceShowcase() {
                 {surface.headline}
               </h3>
               <p className="mt-2 text-slate-300">{surface.body}</p>
-              {surface.deepLink && (
-                <a
-                  href={surface.deepLink}
-                  className="mt-3 inline-block text-sm text-blue-400 hover:text-blue-300 focus-ring"
-                >
-                  More on {surface.label.toLowerCase()} →
-                </a>
-              )}
             </div>
           </div>
         ))}

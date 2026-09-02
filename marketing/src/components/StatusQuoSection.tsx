@@ -2,28 +2,27 @@ import React from "react";
 import { ArrowRight } from "lucide-react";
 
 /**
- * The pain, stated once and briefly, between the hero and the demo.
+ * The enemy, named once, between the hero and the project demo.
  *
- * Deliberately low-chrome: no icon cards, no grid of features. It exists to
- * name the reader's current workflow so the demo that follows lands harder.
+ * One enemy: the closed AI studio. Five browser tabs was the 2024 pain and
+ * the closed studios already solve it; what holds against them is their
+ * models, their credits, and a project only their app opens
+ * (NARRATIVE.md § The enemy). Deliberately low-chrome, so the demo that
+ * follows lands harder.
  */
 
-const frictions = [
+const locks = [
   {
-    where: "Five browser tabs per shot",
-    what: "One app for images, another for animation, a third for voiceovers, and a separate editor to stitch it together.",
+    what: "Their models",
+    how: "A list they picked. A better model ships and you wait for them to add it.",
   },
   {
-    where: "Export, import, repeat",
-    what: "Every hop between apps drops your settings, your prompts, and the reasoning behind them.",
+    what: "Their credits",
+    how: "Priced above what the model costs, spendable only on their list.",
   },
   {
-    where: "Token markups on every take",
-    what: "Credit packs priced above what the models cost, spendable only on the models that platform picked.",
-  },
-  {
-    where: "One flat file, no way back in",
-    what: "A finished render you cannot re-cut, in a project format that opens nowhere else.",
+    what: "Their project",
+    how: "You get an exported video. The board, the takes, and the cut stay in their app.",
   },
 ];
 
@@ -35,23 +34,24 @@ export default function StatusQuoSection() {
     >
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="rounded-2xl border border-slate-800/70 bg-slate-950/40 p-8 md:p-10">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,20rem)_1fr] lg:gap-12">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,24rem)_1fr] lg:gap-12">
             <div>
               <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-rose-300/80">
                 <span className="h-px w-8 bg-rose-400/50" />
-                The way it works today
+                The closed studio
               </div>
               <h2
                 id="status-quo-title"
                 className="text-2xl font-bold tracking-tight text-white md:text-3xl"
               >
-                One film
+                They make the film.
                 <br />
-                shouldn&apos;t take five separate apps.
+                Then they keep it.
               </h2>
               <p className="mt-4 text-slate-400 leading-relaxed">
-                Direct it on one canvas. Run it on your own accounts. Keep the
-                editable project when you&apos;re done.
+                Runway, LTX Studio, Figma Weave and the rest will generate your
+                trailer. When they raise the price or drop the model, the film
+                goes with it. NodeTool hands the project back, on your keys.
               </p>
               <a
                 href="#differences"
@@ -63,17 +63,17 @@ export default function StatusQuoSection() {
             </div>
 
             <ul className="space-y-5">
-              {frictions.map((f) => (
+              {locks.map((l) => (
                 <li
-                  key={f.where}
+                  key={l.what}
                   className="flex gap-4 border-l border-slate-800 pl-5"
                 >
                   <div>
                     <div className="text-sm font-semibold text-slate-200">
-                      {f.where}
+                      {l.what}
                     </div>
                     <p className="mt-1 text-sm leading-relaxed text-slate-400">
-                      {f.what}
+                      {l.how}
                     </p>
                   </div>
                 </li>

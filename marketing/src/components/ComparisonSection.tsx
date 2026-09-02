@@ -10,41 +10,46 @@ interface ComparisonSectionProps {
 interface ComparisonRow {
   label: string;
   nodetool: string;
-  comfyui: string;
-  weave: string;
+  closed: string;
 }
 
-/** Cells match the per-competitor tables on the /alternatives/* pages. */
+/**
+ * One competitor set: the closed AI studios. That is who a production team
+ * is choosing between. ComfyUI, n8n and the LLM builders are compared on
+ * /alternatives, where the reader who wants them goes (NARRATIVE.md § The
+ * enemy). Every cell is a claim that holds for Runway, LTX Studio and Figma
+ * Weave alike; a claim true of only one of them belongs on its own page.
+ */
 const comparisonRows: ComparisonRow[] = [
   {
-    label: "Media on one canvas",
-    nodetool: "Image, video, audio, text",
-    comfyui: "Diffusion images",
-    weave: "Hosted creative canvas",
+    label: "Models",
+    nodetool: "Every major provider, switched in one click",
+    closed: "The list they picked",
   },
   {
-    label: "Models",
-    nodetool: "Every major provider and media type",
-    comfyui: "Stable Diffusion and other diffusion models",
-    weave: "Hand-picked list",
+    label: "When a better model ships",
+    nodetool: "Add it the day it ships",
+    closed: "Wait for them to add it",
   },
   {
     label: "What you pay",
     nodetool: "Provider list prices, on your own keys",
-    comfyui: "Your own compute and provider accounts",
-    weave: "Figma Weave AI credits",
+    closed: "Their credits",
+  },
+  {
+    label: "What you keep",
+    nodetool: "The board, the takes, and the multi-track cut as an editable project",
+    closed: "An exported video. The project stays in their app.",
   },
   {
     label: "Source",
-    nodetool: "Open source (AGPL-3.0)",
-    comfyui: "Open source",
-    weave: "Closed",
+    nodetool: "Open, AGPL-3.0",
+    closed: "Closed",
   },
   {
     label: "Where it runs",
     nodetool: "Desktop app and browser, self-host any time",
-    comfyui: "Your own machine",
-    weave: "Browser only",
+    closed: "Their servers only",
   },
 ];
 
@@ -58,7 +63,7 @@ export default function ComparisonSection({
       className="relative py-24 scroll-mt-24"
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <header className="scroll-fade mb-14 max-w-3xl">
+        <header className="scroll-fade mb-10 max-w-3xl">
           <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/80">
             <span className="h-px w-8 bg-amber-300/60" />
             Comparison
@@ -71,7 +76,7 @@ export default function ComparisonSection({
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            Bring all your creative tools under one roof.
+            What changes when the studio is open
           </motion.h2>
           <motion.p
             initial={false}
@@ -80,55 +85,30 @@ export default function ComparisonSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
           >
-            You&apos;re probably using two or three of these already. Here&apos;s
-            what changes when they all live on one canvas.
+            Runway, LTX Studio, and Figma Weave will make the film. Each keeps
+            the model list, the billing, and the project. Here is the same
+            table with the studio open.
           </motion.p>
         </header>
 
-        <div className="scroll-fade grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/60 border border-slate-800/80 rounded-2xl overflow-hidden">
-          <ComparisonCard
-            competitor="Image-only node tools (like ComfyUI)"
-            sentence="Specialized node tools only create pictures. NodeTool provides a complete studio that connects images, video, audio, text, and editing on one canvas."
-            reducedMotion={reducedMotion}
-            delay={0}
-          />
-          <ComparisonCard
-            competitor="Closed platforms"
-            sentence="Other platforms force you into monthly credit bundles and restricted feature lists. NodeTool is open source: you use your direct provider accounts and pay raw rates with no middleman markup."
-            reducedMotion={reducedMotion}
-            delay={0.05}
-          />
-          <ComparisonCard
-            competitor="A dozen separate web apps"
-            sentence="Instead of copying files between disconnected websites, NodeTool connects your favorite AI tools into a single, repeatable workflow."
-            reducedMotion={reducedMotion}
-            delay={0.1}
-          />
-        </div>
-
         {/* Head-to-head table — the shape answer engines quote. */}
-        <div className="scroll-fade mt-10">
+        <div className="scroll-fade">
           <h3
             id="comparison-table-title"
             className="text-xl md:text-2xl font-semibold tracking-tight text-white"
           >
-            How does NodeTool compare with ComfyUI and Figma Weave?
+            How does NodeTool compare with Runway, LTX Studio, and Figma Weave?
           </h3>
-          <p className="mt-3 max-w-2xl text-slate-400 leading-relaxed">
-            ComfyUI goes deep on diffusion images and runs locally. Figma Weave
-            is a hosted canvas with a curated model list, billed in its own AI
-            credits. NodeTool is open source, covers image, video, audio, and
-            text, and calls every provider on your own keys.
-          </p>
           <div
             className="mt-6 overflow-x-auto rounded-2xl border border-slate-800/80"
             role="region"
             aria-labelledby="comparison-table-title"
             tabIndex={0}
           >
-            <table className="w-full min-w-[42rem] border-collapse text-left">
+            <table className="w-full min-w-[36rem] border-collapse text-left">
               <caption className="sr-only">
-                NodeTool compared with ComfyUI and Figma Weave
+                NodeTool compared with the closed AI studios: Runway, LTX
+                Studio, and Figma Weave
               </caption>
               <thead>
                 <tr className="bg-slate-900/60 text-sm">
@@ -139,10 +119,7 @@ export default function ComparisonSection({
                     NodeTool
                   </th>
                   <th scope="col" className="px-5 py-4 font-semibold text-slate-200">
-                    ComfyUI
-                  </th>
-                  <th scope="col" className="px-5 py-4 font-semibold text-slate-200">
-                    Figma Weave
+                    Closed AI studios
                   </th>
                 </tr>
               </thead>
@@ -159,13 +136,29 @@ export default function ComparisonSection({
                       {row.label}
                     </th>
                     <td className="px-5 py-4 text-sm text-white">{row.nodetool}</td>
-                    <td className="px-5 py-4 text-sm text-slate-400">{row.comfyui}</td>
-                    <td className="px-5 py-4 text-sm text-slate-400">{row.weave}</td>
+                    <td className="px-5 py-4 text-sm text-slate-400">{row.closed}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          <p className="mt-4 text-sm text-slate-500">
+            Choosing against a node tool instead? See{" "}
+            <a
+              href="/alternatives/comfyui"
+              className="text-blue-300 underline decoration-blue-300/40 underline-offset-2 hover:text-blue-200"
+            >
+              NodeTool and ComfyUI
+            </a>{" "}
+            and{" "}
+            <a
+              href="/alternatives/figma-weave"
+              className="text-blue-300 underline decoration-blue-300/40 underline-offset-2 hover:text-blue-200"
+            >
+              NodeTool and Figma Weave
+            </a>
+            .
+          </p>
         </div>
 
         {/* Position panel */}
@@ -203,7 +196,7 @@ export default function ComparisonSection({
                 Where NodeTool fits
               </div>
               <h3 className="text-2xl md:text-3xl font-semibold text-white mb-5 tracking-tight">
-                Model freedom. No platform lock-in.
+                Pick the model. Pick the price.
               </h3>
               <p className="text-slate-300 leading-relaxed mb-4 text-[1.025rem]">
                 Take Seedance, one of today&apos;s best video models. It is sold
@@ -212,50 +205,14 @@ export default function ComparisonSection({
                 Kling arrives, you switch to it in one click.
               </p>
               <p className="text-slate-400 leading-relaxed text-[1.025rem]">
-                That is what sovereignty buys you: the best model at the best
-                price each week, and nothing to lose if your favorite tool gets
-                bought, repriced, or shut down.
+                That is what holding the keys buys you: the best model at the
+                best price each week, and nothing to lose if your favorite tool
+                gets bought, repriced, or shut down.
               </p>
             </div>
           </div>
         </motion.div>
       </div>
     </section>
-  );
-}
-
-interface ComparisonCardProps {
-  competitor: string;
-  sentence: string;
-  reducedMotion: boolean;
-  delay: number;
-}
-
-function ComparisonCard({
-  competitor,
-  sentence,
-  reducedMotion,
-  delay,
-}: ComparisonCardProps) {
-  const [before, after] = sentence.split("NodeTool");
-
-  return (
-    <motion.article
-      initial={false}
-      whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.25, delay }}
-      className="relative bg-slate-950/70 p-8 lg:p-10 flex flex-col"
-    >
-      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 mb-6">
-        vs <span className="text-slate-300">{competitor}</span>
-      </div>
-
-      <p className="text-slate-200 leading-relaxed text-[1.025rem]">
-        {before}
-        <span className="font-semibold text-blue-300">NodeTool</span>
-        {after}
-      </p>
-    </motion.article>
   );
 }
