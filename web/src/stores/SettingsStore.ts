@@ -86,7 +86,6 @@ interface SettingsStore {
   setSoundNotifications: (value: boolean) => void;
   setInstantUpdate: (value: boolean) => void;
   setEditorViewMode: (value: "graph" | "chain") => void;
-  setImageEditorOpenMode: (value: "modal" | "standalone") => void;
   updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) => void;
 }
 
@@ -230,13 +229,6 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             editorViewMode: value
-          }
-        })),
-      setImageEditorOpenMode: (value: "modal" | "standalone") =>
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            imageEditorOpenMode: value
           }
         })),
       updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) =>

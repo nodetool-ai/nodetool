@@ -167,7 +167,6 @@ export interface SketchSessionState {
   setBindings: (bindings: LayerWorkflowBinding[]) => void;
   upsertBinding: (binding: LayerWorkflowBinding) => void;
   removeBinding: (layerId: string) => void;
-  getBinding: (layerId: string) => LayerWorkflowBinding | undefined;
   setParamOverride: (
     layerId: string,
     inputName: string,
@@ -182,7 +181,6 @@ export interface SketchSessionState {
     selectedOutputNodeId: string
   ) => void;
   setInputAssetHashes: (layerId: string, hashes: string[]) => void;
-  markStale: (layerId: string) => void;
   setStatus: (layerId: string, status: LayerStatus) => void;
   recordGeneratedVersion: (
     layerId: string,
@@ -197,10 +195,6 @@ export interface SketchSessionState {
   restoreVersion: (layerId: string, versionId: string) => void;
   setLocked: (layerId: string, locked: boolean) => void;
   revert: (layerId: string) => void;
-  setParamOverrides: (
-    layerId: string,
-    paramOverrides: Record<string, unknown>
-  ) => void;
   setBindingsOutputNode: (
     workflowId: string,
     selectedOutputNodeId: string
@@ -372,8 +366,6 @@ export const createSketchSessionStore = (): SketchSessionStoreApi =>
       return { bindings: nextBindings, extras: nextExtras };
     }),
 
-  getBinding: (layerId) => get().bindings[layerId],
-
   setParamOverride: (layerId, inputName, value) =>
     set((state) => {
       const binding = state.bindings[layerId];
@@ -436,18 +428,6 @@ export const createSketchSessionStore = (): SketchSessionStoreApi =>
       return {
         bindings: { ...state.bindings, [layerId]: updated },
         extras: { ...state.extras, [layerId]: nextExtras }
-      };
-    }),
-
-  markStale: (layerId) =>
-    set((state) => {
-      const binding = state.bindings[layerId];
-      if (!binding) return state;
-      return {
-        bindings: {
-          ...state.bindings,
-          [layerId]: { ...binding, status: "stale" }
-        }
       };
     }),
 
@@ -589,17 +569,6 @@ export const createSketchSessionStore = (): SketchSessionStoreApi =>
       };
       const updated = recomputeBinding(
         reverted,
-        getExtras(state.extras, layerId)
-      );
-      return { bindings: { ...state.bindings, [layerId]: updated } };
-    }),
-
-  setParamOverrides: (layerId, paramOverrides) =>
-    set((state) => {
-      const binding = state.bindings[layerId];
-      if (!binding) return state;
-      const updated = recomputeBinding(
-        { ...binding, paramOverrides: { ...paramOverrides } },
         getExtras(state.extras, layerId)
       );
       return { bindings: { ...state.bindings, [layerId]: updated } };

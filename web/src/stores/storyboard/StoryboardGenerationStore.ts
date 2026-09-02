@@ -105,7 +105,6 @@ interface StoryboardGenerationStoreState {
     errorMessage: string
   ) => void;
   clear: (shotId: string) => void;
-  getShotJobState: (shotId: string) => ShotJobState | undefined;
 }
 
 // ── Derived membership (status-only) ─────────────────────────────────────────
@@ -335,9 +334,7 @@ export const useStoryboardGenerationStore =
         jobToShot: nextJobToShot,
         ...deriveMembership(nextShotJobs, state)
       }));
-    },
-
-    getShotJobState: (shotId) => get().shotJobs[shotId]
+    }
   }));
 
 // ── WebSocket request machinery ──────────────────────────────────────────────

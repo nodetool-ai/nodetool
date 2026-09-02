@@ -50,11 +50,7 @@ import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { FrontendToolRegistry } from "../lib/tools/frontendTools";
-import {
-  handleChatWebSocketMessage,
-  WorkflowCreatedUpdate,
-  WorkflowUpdatedUpdate
-} from "../core/chat/chatProtocol";
+import { handleChatWebSocketMessage } from "../core/chat/chatProtocol";
 import type { ChatOutgoingMessage } from "./MediaGenerationStore";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -309,9 +305,6 @@ export interface GlobalChatState {
   // Per-thread todo lists (TodoWrite-style checklist)
   todosByThread: Record<string, TodoItem[]>;
 
-  // Workflow graph updates
-  lastWorkflowGraphUpdate: WorkflowCreatedUpdate | WorkflowUpdatedUpdate | null;
-
   // Safety timeout tracking for loadMessages after delete
   loadMessagesTimeoutId: ReturnType<typeof setTimeout> | null;
 
@@ -364,7 +357,6 @@ export interface GlobalChatState {
   switchThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
   getCurrentMessages: () => Message[];
-  getCurrentMessagesSync: () => Message[];
   loadMessages: (threadId: string, cursor?: string) => Promise<Message[]>;
   updateThreadTitle: (threadId: string, title: string) => Promise<void>;
   summarizeThread: (
@@ -695,9 +687,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       // Per-thread todo lists
       todosByThread: {},
-
-      // Workflow graph updates
-      lastWorkflowGraphUpdate: null,
 
       loadMessagesTimeoutId: null,
 
@@ -1533,15 +1522,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       getCurrentMessages: () => {
-        const { currentThreadId, messageCache } = get();
-        if (!currentThreadId) {
-          return [];
-        }
-        return messageCache[currentThreadId] || [];
-      },
-
-      // Get current messages synchronously from cache
-      getCurrentMessagesSync: () => {
         const { currentThreadId, messageCache } = get();
         if (!currentThreadId) {
           return [];

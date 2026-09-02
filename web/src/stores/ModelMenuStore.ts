@@ -12,7 +12,6 @@ import type {
 } from "./ApiTypes";
 import useModelPreferencesStore from "./ModelPreferencesStore";
 import React from "react";
-import { useSecrets } from "../hooks/useSecrets";
 import { rankModels } from "../utils/modelRanking";
 
 type SidebarTab = "favorites" | "recent";
@@ -182,14 +181,12 @@ interface ModelMenuData<TModel extends ModelSelectorModel> {
   recentModels: TModel[];
   totalCount: number;
   filteredCount: number;
-  totalActiveCount: number;
 }
 
 export const useModelMenuData = <TModel extends ModelSelectorModel>(
   models: TModel[] | undefined,
   storeHook: ModelMenuStoreHook<TModel>
 ): ModelMenuData<TModel> => {
-  const { isApiKeySet } = useSecrets();
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const favoritesSet = useModelPreferencesStore((s) => s.favorites);
   const recentsList = useModelPreferencesStore((s) => s.recents);
@@ -249,20 +246,6 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
 
   const totalCount = models?.length ?? 0;
   const filteredCount = filteredModels.length;
-  const totalActiveCount = React.useMemo(() => {
-    const isEnabled = (p?: string) => enabledProviders?.[p || ""] !== false;
-    const isEnvOk = (p?: string) => {
-      const env = requiredSecretForProvider(p);
-      if (!env) {
-        return true;
-      }
-      return isApiKeySet(env);
-    };
-    return (
-      models?.filter((m) => isEnabled(m.provider) && isEnvOk(m.provider))
-        .length ?? 0
-    );
-  }, [models, enabledProviders, isApiKeySet]);
 
   return {
     models,
@@ -271,8 +254,7 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
     favoriteModels,
     recentModels,
     totalCount,
-    filteredCount,
-    totalActiveCount
+    filteredCount
   };
 };
 
