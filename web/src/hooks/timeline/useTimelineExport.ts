@@ -20,6 +20,17 @@ import {
   type RenderProgress
 } from "../../components/timeline/render/TimelineRenderer";
 
+/** The render choices the export dialog collects. */
+export interface TimelineExportOptions {
+  /** Container to write. Default MP4. */
+  format?: BrowserExportFormat;
+  /**
+   * Keep the alpha channel. `renderTimeline` refuses `mp4` with alpha, so the
+   * error surfaces the same way any other render failure does.
+   */
+  alpha?: boolean;
+}
+
 interface UseTimelineExportResult {
   /**
    * Render + download the timeline. Resolves when the file is saved. `format`
@@ -27,7 +38,7 @@ interface UseTimelineExportResult {
    */
   exportVideo: (
     filename?: string,
-    format?: BrowserExportFormat
+    options?: TimelineExportOptions
   ) => Promise<void>;
   /**
    * Render the timeline and save the result as a new asset in `folderId` (or
@@ -38,7 +49,7 @@ interface UseTimelineExportResult {
   saveAsAsset: (
     folderId: string | null,
     filename?: string,
-    format?: BrowserExportFormat
+    options?: TimelineExportOptions
   ) => Promise<void>;
   /** Abort an in-flight render. */
   cancel: () => void;
@@ -111,7 +122,7 @@ export function useTimelineExport(): UseTimelineExportResult {
         extension: string
       ) => void | Promise<void>,
       filename?: string,
-      format?: BrowserExportFormat
+      options?: TimelineExportOptions
     ) => {
       if (abortRef.current) return; // already running
       const controller = new AbortController();
@@ -169,7 +180,8 @@ export function useTimelineExport(): UseTimelineExportResult {
           height: state.height,
           fps: state.fps,
           durationMs: exportDurationMs,
-          format,
+          format: options?.format,
+          alpha: options?.alpha,
           resolveUrl,
           signal: controller.signal,
           onProgress: handleProgress
@@ -196,13 +208,13 @@ export function useTimelineExport(): UseTimelineExportResult {
   );
 
   const exportVideo = useCallback(
-    (filename?: string, format?: BrowserExportFormat) =>
+    (filename?: string, options?: TimelineExportOptions) =>
       runExport(
         (bytes, mimeType, name, extension) => {
           downloadBlob(bytes, mimeType, `${name}.${extension}`);
         },
         filename,
-        format
+        options
       ),
     [runExport]
   );
@@ -211,7 +223,7 @@ export function useTimelineExport(): UseTimelineExportResult {
     (
       folderId: string | null,
       filename?: string,
-      format?: BrowserExportFormat
+      options?: TimelineExportOptions
     ) =>
       runExport(async (bytes, mimeType, name, extension) => {
         const file = new File([bytes as BlobPart], `${name}.${extension}`, {
@@ -233,7 +245,7 @@ export function useTimelineExport(): UseTimelineExportResult {
           type: "success",
           content: "Saved timeline to assets."
         });
-      }, filename, format),
+      }, filename, options),
     [runExport, createAsset, updateAsset, store]
   );
 

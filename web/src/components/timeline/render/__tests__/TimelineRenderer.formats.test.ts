@@ -203,6 +203,21 @@ describe("renderTimeline — alpha", () => {
     await render("webm");
     expect(mockSetAlpha).toHaveBeenCalledWith(false);
   });
+
+  it("tells the encoder to keep the channel on a WebM alpha export", async () => {
+    // mediabunny defaults to `discard`: without this the compositor draws a
+    // transparent frame and the encoder throws the channel away.
+    await render("webm", true);
+    expect(videoConfigs[0]).toMatchObject({ codec: "vp9", alpha: "keep" });
+  });
+
+  it("discards alpha when it was not asked for", async () => {
+    await render("webm");
+    expect(videoConfigs[0]).toMatchObject({ alpha: "discard" });
+    videoConfigs.length = 0;
+    await render();
+    expect(videoConfigs[0]).toMatchObject({ alpha: "discard" });
+  });
 });
 
 describe("renderTimeline — png_sequence", () => {
