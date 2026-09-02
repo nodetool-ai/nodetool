@@ -8,7 +8,8 @@ import {
   MAX_PERSISTED_LOG_ENTRIES,
   MAX_PERSISTED_OUTPUT_BYTES,
   persistableLogs,
-  persistableOutputs
+  persistableOutputs,
+  withoutInlineAssetBytes
 } from "../src/service/workflow-run.js";
 import { collectExecutionSummary } from "../src/debug/collector.js";
 
@@ -39,6 +40,39 @@ describe("persistableOutputs", () => {
     const stored = persistableOutputs(cyclic) as Record<string, unknown>;
     expect(stored.omitted).toBe(true);
     expect(stored.handles).toEqual(["self"]);
+  });
+});
+
+
+describe("withoutInlineAssetBytes", () => {
+  it("drops the base64 of a ref that already names its asset", () => {
+    const outputs = {
+      video: [
+        {
+          type: "video",
+          data: "A".repeat(MAX_PERSISTED_OUTPUT_BYTES),
+          asset_id: "asset-1",
+          uri: "asset://asset-1.mp4",
+          metadata: { render_mode: "composited" }
+        }
+      ]
+    };
+    const stripped = withoutInlineAssetBytes(outputs) as typeof outputs;
+    expect(stripped.video[0].data).toBeNull();
+    expect(stripped.video[0].asset_id).toBe("asset-1");
+    expect(stripped.video[0].metadata).toEqual({ render_mode: "composited" });
+    // The whole point: the row now carries the ref instead of the marker.
+    expect(persistableOutputs(stripped)).toBe(stripped);
+  });
+
+  it("keeps the bytes when nothing else says where they live", () => {
+    const outputs = { video: [{ type: "video", data: "AAAA" }] };
+    expect(withoutInlineAssetBytes(outputs)).toEqual(outputs);
+  });
+
+  it("leaves values that are not asset refs alone", () => {
+    const outputs = { script: ["a line"], count: [3], flag: [true] };
+    expect(withoutInlineAssetBytes(outputs)).toEqual(outputs);
   });
 });
 

@@ -50,6 +50,9 @@ import {
   validateTimelineSpec,
   setTimelineDocumentSpec,
   previewTimelineFrameSpec,
+  renderTimelineSpec,
+  DEFAULT_RENDER_TIMEOUT_MS,
+  MAX_RENDER_TIMEOUT_MS,
   DEFAULT_PREVIEW_COUNT,
   MAX_PREVIEW_TIMES,
   DEFAULT_VERSION_LIMIT,
@@ -837,6 +840,15 @@ function numberParam(value: unknown): number | undefined {
     : undefined;
 }
 
+/**
+ * Like {@link numberParam} but keeps 0, for a shutter angle: 0 degrees is a
+ * closed shutter, a value the schema can express and `numberParam` would read
+ * as unset and silently replace with the 180-degree default.
+ */
+function angleParam(value: unknown): number | undefined {
+  return isFiniteNumber(value) && value >= 0 ? value : undefined;
+}
+
 /** Unwrap a stored document that may still be JSON text. */
 function parseStoredDocument(document: unknown): unknown {
   if (!isString(document)) return document;
@@ -1228,6 +1240,10 @@ const previewTimelineFrame: CapabilityExport = {
         } as Parameters<typeof renderTimelineFrames>[0]["sequence"],
         timesMs: times,
         width: numberParam(params["width"]),
+        motionBlur: {
+          samplesPerFrame: numberParam(params["motion_blur_samples"]),
+          shutterAngle: angleParam(params["shutter_angle"])
+        },
         loadAsset: (assetId) =>
           loadMediaRefBytes(
             { uri: `asset://${assetId}`, asset_id: assetId },
@@ -1282,6 +1298,207 @@ const previewTimelineFrame: CapabilityExport = {
   }
 };
 
+/** The node id the one render node carries inside the graph this builds. */
+const RENDER_NODE_ID = "render";
+/** The Output node that turns the rendered bytes into an asset. */
+const RENDER_OUTPUT_NODE_ID = "output";
+/** The handle the render's asset comes back under. */
+const RENDER_OUTPUT_NAME = "video";
+
+/** How often a `wait: true` render re-reads the job row. */
+const RENDER_POLL_INTERVAL_MS = 1000;
+
+/**
+ * The call arguments that are render-node properties, passed through under the
+ * same name. Everything else in the call — `wait`, `timeout_ms` — is how long
+ * this capability watches the job, and never reaches the graph.
+ */
+const RENDER_NODE_PROPS: readonly string[] = [
+  "format",
+  "alpha",
+  "video_codec",
+  "bitrate",
+  "motion_blur_samples",
+  "shutter_angle",
+  "preview_scale",
+  "include_audio"
+];
+
+/**
+ * The graph a render runs as: the render node, and an Output node that turns
+ * its bytes into an asset.
+ *
+ * The Output node is what makes the result addressable. `RenderTimeline` emits
+ * a `VideoRef` carrying base64 and no asset id, so a graph ending at it leaves
+ * the render inside the job row and nowhere else; `nodetool.output.Output`
+ * stores the bytes and stamps the id `render_timeline` hands back.
+ */
+export function buildRenderTimelineGraph(
+  timelineId: string,
+  params: Record<string, unknown>
+): { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] } {
+  const properties: Record<string, unknown> = {
+    timeline: { type: "timeline", id: timelineId, data: null }
+  };
+  for (const prop of RENDER_NODE_PROPS) {
+    const value = params[prop];
+    if (value !== undefined && value !== null) properties[prop] = value;
+  }
+  return {
+    nodes: [
+      {
+        id: RENDER_NODE_ID,
+        type: "nodetool.timeline.RenderTimeline",
+        data: properties
+      },
+      {
+        id: RENDER_OUTPUT_NODE_ID,
+        type: "nodetool.output.Output",
+        data: { name: RENDER_OUTPUT_NAME }
+      }
+    ],
+    edges: [
+      {
+        id: "render-to-output",
+        source: RENDER_NODE_ID,
+        sourceHandle: "output",
+        target: RENDER_OUTPUT_NODE_ID,
+        targetHandle: "value"
+      }
+    ]
+  };
+}
+
+/** The video ref a finished render left on the job row, wherever it sits. */
+export function findRenderedVideo(
+  outputs: unknown
+): Record<string, unknown> | null {
+  if (Array.isArray(outputs)) {
+    for (const item of outputs) {
+      const found = findRenderedVideo(item);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (!isRecord(outputs)) return null;
+  if (outputs["type"] === "video") return outputs;
+  for (const value of Object.values(outputs)) {
+    const found = findRenderedVideo(value);
+    if (found) return found;
+  }
+  return null;
+}
+
+/** The job row fields a settled render is read out of. */
+interface SettledRenderJob {
+  status: string;
+  error_message?: string | null;
+  error?: string | null;
+  metadata_json?: Record<string, unknown> | null;
+}
+
+/** What a settled render reports beyond its job id. */
+export function renderResult(job: SettledRenderJob): Record<string, unknown> {
+  const metadata = job.metadata_json ?? {};
+  const video = findRenderedVideo(metadata["outputs"]);
+  const refMetadata =
+    video && isRecord(video["metadata"]) ? video["metadata"] : {};
+  const duration = video ? Number(video["duration"]) : Number.NaN;
+  return {
+    status: job.status,
+    asset_id: video && isString(video["asset_id"]) ? video["asset_id"] : null,
+    uri: video && isString(video["uri"]) ? video["uri"] : null,
+    render_mode: isString(refMetadata["render_mode"])
+      ? refMetadata["render_mode"]
+      : null,
+    duration_ms: Number.isFinite(duration) ? Math.round(duration * 1000) : null,
+    job_error: job.error_message ?? job.error ?? null
+  };
+}
+
+/**
+ * Render a timeline sequence as a job (D12, docs/plans/motion-graphics.md).
+ *
+ * The run goes through the same execution service `run_workflow` uses, so the
+ * render gets the job row, the logs, the `node_progress` messages and cancel
+ * without a workflow being saved for it. Always detached: `wait` polls the job
+ * row rather than blocking the service call, so a render that outlives the
+ * caller's patience still hands back a `job_id` to come back to.
+ */
+const renderTimeline: CapabilityExport = {
+  spec: renderTimelineSpec,
+  impl: async (run, params) => {
+    const seq = await loadTimeline(run, params["timeline_id"]);
+    if (isError(seq)) return seq;
+
+    const { resolveRunEnvironment, userIdOf, noRegistryError } = await import(
+      "../tools/mcp-tool-support.js"
+    );
+    const environment = await resolveRunEnvironment(
+      run.workflowEnvironment,
+      run.nodeRegistry
+    );
+    if (!environment) return noRegistryError("render a timeline");
+
+    const { runWorkflow } = await import("@nodetool-ai/execution/service");
+    const userId = userIdOf(run.context);
+    const outcome = await runWorkflow({
+      workflowId: "",
+      userId,
+      environment,
+      graph: buildRenderTimelineGraph(seq.id, params),
+      jobName: `Render ${seq.name}`,
+      background: true,
+      projectId: run.projectId ?? null
+    });
+    if (outcome.kind !== "payload") {
+      return { error: outcome.detail, status: outcome.status };
+    }
+    const jobId = outcome.payload["job_id"];
+    if (!isString(jobId)) {
+      return { error: "The render started but reported no job id." };
+    }
+
+    const receipt = { job_id: jobId, timeline_id: seq.id };
+    const stillRunning = {
+      ...receipt,
+      status: "running",
+      poll:
+        `Poll get_job with job_id "${jobId}" until it settles. get_job_logs ` +
+        "reports what the render is doing and cancel_job stops it."
+    };
+    if (params["wait"] !== true) return stillRunning;
+
+    const timeoutMs = Math.min(
+      MAX_RENDER_TIMEOUT_MS,
+      Math.max(
+        RENDER_POLL_INTERVAL_MS,
+        numberParam(params["timeout_ms"]) ?? DEFAULT_RENDER_TIMEOUT_MS
+      )
+    );
+    const { Job } = await import("@nodetool-ai/models");
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+      const job = await Job.find(userId, jobId);
+      if (job && job.status !== "running" && job.status !== "queued") {
+        return { ...receipt, ...renderResult(job) };
+      }
+      if (Date.now() >= deadline) {
+        return {
+          ...stillRunning,
+          timed_out: true,
+          note:
+            `The render did not finish within ${timeoutMs}ms. It is still ` +
+            "running — read it back with get_job."
+        };
+      }
+      await new Promise((resolve) =>
+        setTimeout(resolve, RENDER_POLL_INTERVAL_MS)
+      );
+    }
+  }
+};
+
 /** Every timeline capability, in the order the tool files declared them. */
 /**
  * Delete a timeline sequence the caller owns.
@@ -1317,6 +1534,7 @@ export const TIMELINE_CAPABILITIES: readonly CapabilityExport[] = [
   validateTimeline,
   setTimelineDocument,
   previewTimelineFrame,
+  renderTimeline,
   deleteTimeline
 ];
 
@@ -1338,5 +1556,6 @@ export {
   validateTimeline,
   setTimelineDocument,
   previewTimelineFrame,
+  renderTimeline,
   deleteTimeline
 };

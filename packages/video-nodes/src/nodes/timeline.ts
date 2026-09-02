@@ -599,6 +599,27 @@ type TimelineFramesRef = DocumentRef & {
   data?: string | null;
   metadata?: Record<string, unknown> | null;
 };
+/** Smallest draft render. Below this a frame says nothing about the cut. */
+const MIN_PREVIEW_SCALE = 0.1;
+
+/**
+ * The fraction of the sequence size this render runs at.
+ *
+ * Unset, non-finite, and anything at or above 1 mean full size; anything
+ * smaller is clamped up to {@link MIN_PREVIEW_SCALE} rather than refused, so a
+ * draft is never rendered at a size nobody could read.
+ */
+function previewScaleOf(value: unknown): number {
+  const scale = Number(value);
+  if (!Number.isFinite(scale) || scale >= 1) return 1;
+  return Math.max(MIN_PREVIEW_SCALE, scale);
+}
+
+/** A scaled edge, rounded to an even number — h.264 encodes nothing else. */
+function evenScaled(edge: number, scale: number): number {
+  if (scale >= 1) return edge;
+  return Math.max(2, Math.round((edge * scale) / 2) * 2);
+}
 
 /** Output handles RenderTimelineNode.process() emits. */
 type RenderTimelineNodeOutputs = {
@@ -709,13 +730,23 @@ export class RenderTimelineNode extends BaseNode {
   })
   declare bitrate: number;
 
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Preview scale",
+    description:
+      "Render at this fraction of the sequence size. 0.5 is a quarter of the pixels and roughly a quarter of the time — a draft to look at before spending on the full render. 1 is full size."
+  })
+  declare preview_scale: number;
+
   async process(
     context?: ProcessingContext
   ): Promise<RenderTimelineNodeOutputs> {
     const seq = await loadTimelineSequence(this.timeline, context);
     const ctx = context as ProcessingContext;
-    const width = seq.width > 0 ? seq.width : 1920;
-    const height = seq.height > 0 ? seq.height : 1080;
+    const scale = previewScaleOf(this.preview_scale);
+    const width = evenScaled(seq.width > 0 ? seq.width : 1920, scale);
+    const height = evenScaled(seq.height > 0 ? seq.height : 1080, scale);
     const fps = seq.fps > 0 ? seq.fps : 30;
 
     const includeAudio = this.include_audio !== false;
