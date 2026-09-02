@@ -117,6 +117,75 @@ describe("resolveTrackPlacement", () => {
     expect(result!.startMs).toBe(0);
   });
 
+  it("detects overlap against the clamped start, not the negative one", () => {
+    // Dragged well left of zero: the unclamped span [-400, -300) reaches no
+    // clip, but the clip lands at 0 — on top of c1.
+    const clips = [{ id: "c1", trackId: "t1", startMs: 0, durationMs: 2000 }];
+    const result = resolveTrackPlacement({
+      tracks,
+      trackLayouts,
+      pointerY: 20,
+      desiredStartMs: -400,
+      durationMs: 100,
+      clips,
+    });
+    expect(result!.startMs).toBe(0);
+    expect(result!.overlappingClipIds).toEqual(["c1"]);
+    expect(result!.wouldOverlap).toBe(true);
+  });
+
+  it("reports every clip the clamped footprint reaches", () => {
+    // The unclamped span [-300, 100) touches only ca; the placed span
+    // [0, 400) touches both.
+    const clips = [
+      { id: "ca", trackId: "t1", startMs: 0, durationMs: 100 },
+      { id: "cb", trackId: "t1", startMs: 100, durationMs: 100 },
+    ];
+    const result = resolveTrackPlacement({
+      tracks,
+      trackLayouts,
+      pointerY: 20,
+      desiredStartMs: -300,
+      durationMs: 400,
+      clips,
+    });
+    expect(result!.startMs).toBe(0);
+    expect(result!.overlappingClipIds).toEqual(["ca", "cb"]);
+  });
+
+  it("keeps overlappingClipIds consistent with the startMs it reports", () => {
+    // Two clips overlap when their half-open spans intersect. Stated as
+    // max(start) < min(end) so it is the rule, not a copy of the two
+    // comparisons the implementation uses.
+    const clips = [
+      { id: "ca", trackId: "t1", startMs: 0, durationMs: 100 },
+      { id: "cb", trackId: "t1", startMs: 100, durationMs: 100 },
+      { id: "cc", trackId: "t1", startMs: 400, durationMs: 100 },
+    ];
+    for (const desiredStartMs of [-500, -300, -200, -100, -1, 0, 50, 150, 350]) {
+      for (const durationMs of [1, 50, 100, 250, 600]) {
+        const result = resolveTrackPlacement({
+          tracks,
+          trackLayouts,
+          pointerY: 20,
+          desiredStartMs,
+          durationMs,
+          clips,
+        });
+        const placedEnd = result!.startMs + durationMs;
+        const expected = clips
+          .filter(
+            (c) =>
+              Math.max(result!.startMs, c.startMs) <
+              Math.min(placedEnd, c.startMs + c.durationMs)
+          )
+          .map((c) => c.id);
+        expect({ desiredStartMs, durationMs, ids: result!.overlappingClipIds })
+          .toEqual({ desiredStartMs, durationMs, ids: expected });
+      }
+    }
+  });
+
   it("returns overlapping clip IDs sorted by intersection", () => {
     const clips = [
       { id: "c1", trackId: "t1", startMs: 0, durationMs: 1000 },
