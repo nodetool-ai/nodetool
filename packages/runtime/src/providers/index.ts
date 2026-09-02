@@ -63,7 +63,17 @@ import { CohereProvider } from "./cohere-provider.js";
 import { VoyageProvider } from "./voyage-provider.js";
 import { JinaProvider } from "./jina-provider.js";
 import { FakeProvider } from "./fake-provider.js";
-export { BaseProvider, providerCapabilities } from "./base-provider.js";
+export {
+  BaseProvider,
+  estimatePromptTokens,
+  providerCapabilities
+} from "./base-provider.js";
+export {
+  anthropicContextExceeded,
+  geminiContextExceeded,
+  openAIContextExceeded,
+  type ContextExceededSignal
+} from "./context-exceeded.js";
 export {
   generateStructured,
   extractJson,
@@ -220,8 +230,13 @@ export type {
 export {
   annotateProviderError,
   httpStatusFromError,
+  markContextExceeded,
   providerFailureDetail
 } from "./provider-error.js";
+// The redaction the provider debug dump applies to a failed request. Exported
+// because anything that sends a transcript somewhere else — chat compaction
+// hands one to a summarizer — must strip the same credentials on the way out.
+export { sanitizeForLog, type LogSafeValue } from "./provider-request-log.js";
 export type { ProviderFailureDetail } from "./provider-error.js";
 export {
   ContentFilterRefusal,

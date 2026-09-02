@@ -23,6 +23,9 @@ import {
 } from "@nodetool-ai/execution";
 import {
   Asset,
+  COMPACTION_EVENT_TYPE,
+  compactionMessageContent,
+  isCompactionMessage,
   Job,
   Message,
   Prediction,
@@ -59,9 +62,11 @@ import {
   IMAGE_MIME_TO_EXT,
   expandEntitiesForGeneration,
   getProcessSandboxModuleCatalog,
+  estimatePromptTokens,
   isProviderSessionUpdate,
   isProviderMessageEvent,
   isProviderStop,
+  providerFailureDetail,
   type ActiveModelSelection,
   type RunBudget
 } from "@nodetool-ai/runtime";
@@ -102,6 +107,7 @@ import {
   contextSecretAvailability,
   BackgroundSubtaskRegistry,
   UNGATED,
+  PERMISSION_GATE_CONTEXT_KEY,
   extractInjectableImages,
   type CapabilityRun,
   type PermissionGateOptions,
@@ -109,10 +115,8 @@ import {
   type PermissionMode,
   type ApprovalDecision,
   type ApprovalRequest,
-  type PlanApprovalDecision,
   type SecretPromptRequest,
-  type SecretPromptStatus,
-  type TaskPlan
+  type SecretPromptStatus
 } from "@nodetool-ai/agents";
 import { mcpToolHostDeps } from "../mcp-tool-deps.js";
 import {
@@ -136,11 +140,17 @@ import {
   createWorkflowResponseContent,
   dbMessageToProviderMessage,
   extractTextContent,
+  historySinceCompaction,
   invokedSkillsSection,
   toolResultDisplayText,
-  attachPlanApproval,
   type SkillEntry
 } from "./chat-history.js";
+import {
+  chooseCompactionCut,
+  holdsTranscriptServerSide,
+  readCompactionSettings,
+  summarizeForCompaction
+} from "./chat-compaction.js";
 import type { ClientSession } from "./client-session.js";
 import {
   createRelayActivityWaiter,
@@ -943,56 +953,6 @@ export class ChatTurnHandler {
   }
 
   /**
-   * Round-trip a plan approval to the client and resolve with the user's
-   * decision. Emits a `plan_approval_request` carrying the serialized plan,
-   * then waits for the matching `plan_approval_response` (resolved via
-   * {@link approvalBridge}). A cancelled wait (stop) is treated as a
-   * rejection without feedback, which aborts the agent run.
-   */
-  async requestPlanApproval(
-    threadId: string | null,
-    plan: TaskPlan
-  ): Promise<PlanApprovalDecision> {
-    const approvalId = `plan_${randomUUID()}`;
-    await this.session.send({
-      type: "plan_approval_request",
-      thread_id: threadId,
-      approval_id: approvalId,
-      plan: {
-        title: plan.title,
-        tasks: plan.tasks.map((t) => ({
-          id: t.id,
-          title: t.title,
-          depends_on: t.dependsOn ?? [],
-          steps: t.steps.map((s) => ({
-            id: s.id,
-            instructions: s.instructions
-          }))
-        }))
-      }
-    });
-    try {
-      // No timeout — the user may take a while; `stop` cancels this run.
-      const response = await this.deps.approvalBridge.createWaiter(
-        approvalId,
-        0,
-        threadId ?? undefined
-      );
-      if (response.decision === "approve") {
-        return { decision: "approve" };
-      }
-      const feedback =
-        isString(response.feedback) && response.feedback.trim()
-          ? response.feedback.trim()
-          : undefined;
-      return { decision: "reject", feedback };
-    } catch {
-      // Cancelled (generation stopped) — treat as a rejection.
-      return { decision: "reject" };
-    }
-  }
-
-  /**
    * Execute a single node by type and return its output. Builds a one-node
    * graph and runs it through a fresh `ExecutionSession` (@nodetool-ai/execution),
    * then returns the
@@ -1004,8 +964,9 @@ export class ChatTurnHandler {
     nodeType: string,
     inputs: Record<string, unknown>,
     userId: string,
-    threadId: string | null = null,
-    projectId: string | null = null
+    projectId: string | null = null,
+    /** The calling turn's gate, when a chat turn is what started this node. */
+    gate: PermissionGateOptions | null = null
   ): Promise<unknown> {
     const jobId = randomUUID();
     const nodeId = "node_0";
@@ -1046,9 +1007,11 @@ export class ChatTurnHandler {
         : null,
       assetOutputMode: this.session.mode === "text" ? "data_uri" : "temp_url"
     });
-    attachPlanApproval(context, threadId, (id, plan) =>
-      this.requestPlanApproval(id, plan)
-    );
+    // This context is built here rather than copied from the turn, so the
+    // turn's gate has to be put on it by hand. The node's own loops read it
+    // with `gateFromContext`; a node run outside a chat turn carries none and
+    // gates headless.
+    if (gate) context.set(PERMISSION_GATE_CONTEXT_KEY, gate);
     context.setResolveExecutor((node) => this.session.resolveExecutor(node));
     if (this.session.resolveNodeType) {
       const resolverObj = isFunctionValue(this.session.resolveNodeType)
@@ -1327,24 +1290,44 @@ export class ChatTurnHandler {
         limit: SESSION_PROBE_WINDOW
       });
       const probeHasWholeThread = recent.length < SESSION_PROBE_WINDOW;
-      // `recent` is newest-first. Walk to the most recent assistant carrying a
-      // session token — that message is the resume boundary.
+      // `recent` is newest-first. Walk to the first boundary marker: an
+      // assistant carrying a session token, or a compaction record. Both claim
+      // to say where history starts, and whichever is newer wins — the walk
+      // meets it first, so the loop decides by stopping.
+      //
+      // A compaction newer than the session must win: the upstream transcript
+      // that session token resumes is the very history compaction just replaced,
+      // so resuming it would send back everything the cut removed (and the cut
+      // usually happened because that transcript no longer fits).
       let probeSession: ProviderSession | null = null;
-      const sinceSessionNewestFirst: Message[] = [];
+      let probeCompaction: Message | null = null;
+      const sinceMarkerNewestFirst: Message[] = [];
       for (const m of recent) {
+        if (isCompactionMessage(m)) {
+          probeCompaction = m;
+          break;
+        }
         if (m.role === "assistant" && m.provider_session) {
           const s = m.provider_session;
           if (s.providerId === providerId && s.model === model)
             probeSession = s;
           break;
         }
-        sinceSessionNewestFirst.push(m);
+        sinceMarkerNewestFirst.push(m);
       }
 
-      if (probeSession) {
+      if (probeCompaction) {
+        // COMPACTED path: the summary row plus everything after it, already in
+        // hand from the probe. No session resumes across a compaction, so
+        // `priorSession` stays null and the provider rebuilds from these rows.
+        chatHistory = convertDbMessages([
+          probeCompaction,
+          ...sinceMarkerNewestFirst.reverse()
+        ]);
+      } else if (probeSession) {
         // RESUME fast path: the SDK already holds the prior turns, so send only
         // the messages since the session — no full-thread load.
-        const newTurns = convertDbMessages(sinceSessionNewestFirst.reverse());
+        const newTurns = convertDbMessages(sinceMarkerNewestFirst.reverse());
         chatHistory = newTurns;
         // The single system message prepended below sits at index 0, so the new
         // turns begin at index 1 (the provider's relative resume checkpoint).
@@ -1361,21 +1344,24 @@ export class ChatTurnHandler {
           probeSession.checkpoint + 1 + newTurns.length;
         loadFullHistory = async () => {
           const [rows] = await Message.paginate(threadId, { limit: 1000 });
-          const full = convertDbMessages(rows);
+          const full = convertDbMessages(historySinceCompaction(rows));
           full.unshift(systemChatMessage());
           return full;
         };
       } else if (probeHasWholeThread) {
         // The whole thread fit in the probe window — reuse it, no second query.
-        const rows = [...recent].reverse();
+        const rows = historySinceCompaction([...recent].reverse());
         chatHistory = convertDbMessages(rows);
         priorSession = lastMatchingProviderSession(rows, providerId, model);
       } else {
         // Long thread without a resumable session in the recent window: load it
-        // all (a far-back session still resumes via the slice path).
+        // all (a far-back session still resumes via the slice path). A session
+        // older than the compaction cut is not one of them: searching only the
+        // compacted slice is what keeps the newest marker winning here too.
         const [rows] = await Message.paginate(threadId, { limit: 1000 });
-        chatHistory = convertDbMessages(rows);
-        priorSession = lastMatchingProviderSession(rows, providerId, model);
+        const kept = historySinceCompaction(rows);
+        chatHistory = convertDbMessages(kept);
+        priorSession = lastMatchingProviderSession(kept, providerId, model);
       }
     }
 
@@ -1398,12 +1384,6 @@ export class ChatTurnHandler {
     // and everything the turn spends is billed to it.
     const chatProjectId =
       (await Project.findByThread(userId, threadId))?.id ?? undefined;
-    // The single-node runner is a closure only this package can build, so
-    // `run_node` reaches a capability run as a host-supplied capability rather
-    // than out of the registry.
-    const runNodeTool = new RunNodeTool((nodeType, inputs) =>
-      this.runSingleNode(nodeType, inputs, userId, threadId, chatProjectId)
-    );
     // The permission gate the belt is wrapped in below. Built before the belt
     // because the Apify tools carry it into their own run: in discovery mode
     // the actor policy asks this gate to approve an actor the install has not
@@ -1431,6 +1411,15 @@ export class ChatTurnHandler {
         this.requestToolApproval(threadId, request),
       clock: codeactClock
     };
+    // The single-node runner is a closure only this package can build, so
+    // `run_node` reaches a capability run as a host-supplied capability rather
+    // than out of the registry. It runs the node on a context of its own, so
+    // the turn's gate is handed over explicitly — without it an agent loop
+    // inside the node finds no gate and runs headless, and approving
+    // `run_node` becomes approval for whatever the node then calls.
+    const runNodeTool = new RunNodeTool((nodeType, inputs) =>
+      this.runSingleNode(nodeType, inputs, userId, chatProjectId, chatGate)
+    );
     // The bounds this turn runs under, created once and shared by everything
     // it starts (invariant I-2). A loop that made its own would hand every
     // nested agent a fresh allowance, which is no ceiling at all.
@@ -1660,14 +1649,6 @@ export class ChatTurnHandler {
       projectId: chatProjectId ?? null,
       resolveSecret: (key) => ctx.getSecret(key)
     });
-    // Any agent planning inside this turn (e.g. via run_node spawning an
-    // Agent node in plan mode) pauses for user plan approval.
-    attachPlanApproval(
-      ctx,
-      threadId || null,
-      (id, plan) => this.requestPlanApproval(id, plan),
-      codeactClock
-    );
     // Stamp the turn's own selection so a tool that launches another harness
     // inherits this chat's provider/model when the call doesn't name one.
     ctx.set(ACTIVE_MODEL_CONTEXT_KEY, {
@@ -1678,6 +1659,12 @@ export class ChatTurnHandler {
     // through `run_node`, a JS script, a sub-agent three levels down all read
     // the budget off the context instead of creating one (`budgetFromContext`).
     ctx.set(RUN_BUDGET_CONTEXT_KEY, turnBudget);
+    // The same channel carries the turn's permission gate, so a loop this
+    // package never constructs gates through the user's mode instead of
+    // building an ungated run of its own (`gateFromContext`, invariant I-1).
+    // The object is shared by reference: `chatGate.mode` reads `liveMode`, so
+    // a mid-turn `set_permission_mode` reaches a node that started before it.
+    ctx.set(PERMISSION_GATE_CONTEXT_KEY, chatGate);
 
     // The capability run for this turn: the same gate the belt is wrapped in,
     // this context, and the singletons the tool constructors take today. Every
@@ -1851,16 +1838,20 @@ export class ChatTurnHandler {
     // resolved to a data URI. Text-document mentions are inlined as their
     // decoded contents. Without this step the provider would see literal
     // `asset://…` text and never look at the referenced media.
-    messagesToSend = await ctx.resolveMessageMediaUris(messagesToSend);
-
-    // After resolution, so a memory's `asset://` reference stays a reference
-    // instead of being inlined as a data URI.
-    if (volatileContext.length > 0) {
-      messagesToSend = appendContextToLastUser(
-        messagesToSend,
-        volatileContext.join("\n\n")
-      );
-    }
+    //
+    // The volatile block is appended after resolution, so a memory's
+    // `asset://` reference stays a reference instead of being inlined as a
+    // data URI. Both steps are one closure because compaction rebuilds the
+    // wire messages from a shortened history and must reproduce them exactly.
+    const withTurnContext = async (
+      base: ProviderMessage[]
+    ): Promise<ProviderMessage[]> => {
+      const resolved = await ctx.resolveMessageMediaUris(base);
+      return volatileContext.length > 0
+        ? appendContextToLastUser(resolved, volatileContext.join("\n\n"))
+        : resolved;
+    };
+    messagesToSend = await withTurnContext(messagesToSend);
 
     // Run one tool call and return the result to feed back to the model. Owns
     // server/client tool routing, side effects (client round-trips via the
@@ -2089,7 +2080,172 @@ export class ChatTurnHandler {
           }))
         : undefined;
 
-    try {
+    // ── Compaction (D5) ──────────────────────────────────────────────────
+    // A long thread eventually stops fitting, and from then on every turn dies
+    // on a provider error the user cannot act on. Compaction replaces the
+    // turns before the last few with one summary row and sends that instead.
+    // The rows stay in the database for the UI and `nodetool.threads.*`; only
+    // the provider's view is cut.
+    const compaction = await readCompactionSettings();
+    /** Spent by the reactive trigger below; bounds the turn to one retry. */
+    let compactionRetryUsed = false;
+
+    /** Tell the user what was compacted, or why it was not. */
+    const compactionLog = async (
+      content: string,
+      severity: "info" | "warning"
+    ): Promise<void> => {
+      await this.session.send({
+        type: "log_update",
+        node_id: "",
+        node_name: "compaction",
+        content,
+        severity,
+        thread_id: threadId
+      });
+    };
+
+    /**
+     * Which model writes the summary: `NODETOOL_COMPACTION_MODEL` when set,
+     * otherwise the one the turn is already running on. The setting takes the
+     * `provider/model` form the supervisor's does, and a bare id names a model
+     * on this turn's provider.
+     */
+    const summarizerModel = async (): Promise<{
+      provider: BaseProvider;
+      model: string;
+    }> => {
+      const configured = compaction.model;
+      if (configured === null) return { provider, model };
+      const slash = configured.indexOf("/");
+      if (slash <= 0) return { provider, model: configured };
+      const otherId = configured.slice(0, slash);
+      const otherModel = configured.slice(slash + 1);
+      if (otherId === providerId) return { provider, model: otherModel };
+      const resolved = await this.session.resolveProvider?.(otherId, userId);
+      if (!resolved) {
+        throw new Error(`No provider registered for "${otherId}"`);
+      }
+      return { provider: resolved, model: otherModel };
+    };
+
+    /**
+     * Summarize this thread up to the cut, persist the record, and rebuild the
+     * wire messages from what survives. Answers whether it compacted.
+     *
+     * Everything that can go wrong here leaves the turn running against the
+     * history it already had: a thread too short to cut, a summarizer that
+     * failed, a summarizer with nothing to say. This is the one place A4 does
+     * not fail closed (I-4), because the alternative to a missing summary is a
+     * turn that cannot run at all.
+     */
+    const compactThread = async (reason: string): Promise<boolean> => {
+      const [rows] = await Message.paginate(threadId, { limit: 1000 });
+      const cut = chooseCompactionCut(
+        historySinceCompaction(rows),
+        compaction.keepUserTurns
+      );
+      if (!cut) return false;
+      let summary: string | null;
+      try {
+        const summarizer = await summarizerModel();
+        summary = await summarizeForCompaction({
+          provider: summarizer.provider,
+          model: summarizer.model,
+          // The stored rows, not the wire messages: an `asset://` uri is still
+          // a uri here rather than the data it resolves to, which is what lets
+          // the summary carry the reference forward.
+          messages: convertDbMessages(cut.summarize),
+          signal
+        });
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        log.warn("Compaction summary failed", { threadId, error: detail });
+        await compactionLog(
+          `Could not summarize this conversation (${detail}). Sending it in full.`,
+          "warning"
+        );
+        return false;
+      }
+      if (summary === null) {
+        await compactionLog(
+          "The summary of this conversation came back empty. Sending it in full.",
+          "warning"
+        );
+        return false;
+      }
+      // The record belongs at the cut, not at the end of the thread: history
+      // assembly starts from the newest one, so a record written after the kept
+      // turns would drop them from the next turn's view. Rows are ordered by
+      // `created_at`, so it takes the millisecond before the first survivor.
+      const boundary = Date.parse(cut.keep[0].created_at);
+      const record = await Message.create<Message>({
+        thread_id: threadId,
+        user_id: userId,
+        role: "user",
+        execution_event_type: COMPACTION_EVENT_TYPE,
+        content: compactionMessageContent(summary),
+        created_at: Number.isFinite(boundary)
+          ? new Date(boundary - 1).toISOString()
+          : cut.keep[0].created_at
+      });
+      messagesToSend = await withTurnContext([
+        systemChatMessage(),
+        ...convertDbMessages([record, ...cut.keep])
+      ]);
+      // The upstream transcript a session token resumes is the history the cut
+      // just replaced, so nothing resumes across a compaction.
+      capturedSession = null;
+      loadFullHistory = null;
+      sessionCheckpointOverride = null;
+      await this.session.send({
+        type: "message",
+        role: "user",
+        execution_event_type: COMPACTION_EVENT_TYPE,
+        content: record.content,
+        thread_id: threadId,
+        workflow_id: workflowId
+      });
+      log.info("Compacted chat history", {
+        threadId,
+        summarized: cut.summarize.length,
+        kept: cut.keep.length
+      });
+      await compactionLog(
+        `Summarized the earlier part of this conversation because ${reason}.`,
+        "info"
+      );
+      return true;
+    };
+
+    // Trigger 1, proactive: the estimated prompt is over the configured
+    // ceiling. `estimatePromptTokens` tokenizes the serialized messages and
+    // their tool calls and nothing else, so the number is not the prompt: the
+    // tool definitions this turn also sends are missing from it, while a
+    // resolved image is counted as the length of its base64. It is a size
+    // signal, which is why the default ceiling sits well under any shipping
+    // context window rather than close to one.
+    //
+    // A provider holding the conversation upstream is sent only the turns since
+    // its session token, so this number would describe a fraction of what it
+    // actually has. Those get trigger 2 alone: the provider itself says when
+    // the transcript stopped fitting.
+    if (!holdsTranscriptServerSide(providerId, capturedSession !== null)) {
+      const promptTokens = estimatePromptTokens(messagesToSend);
+      if (promptTokens > compaction.thresholdTokens) {
+        await compactThread(
+          `it reached about ${promptTokens} tokens, over the ` +
+            `${compaction.thresholdTokens}-token limit`
+        );
+      }
+    }
+
+    /**
+     * One pass of the provider's tool-calling loop over the current
+     * `messagesToSend`. A function rather than a statement so the reactive
+     * compaction below can run it a second time against a shortened history.
+     */
+    const streamTurn = async (): Promise<void> => {
       for await (const item of provider.generateLoop({
         messages: messagesToSend,
         model,
@@ -2189,6 +2345,38 @@ export class ChatTurnHandler {
           const tc = item as ProviderToolCall;
           toolNames.set(tc.id, tc.name);
           log.info("Tool call", { tool: tc.name, args: tc.args });
+        }
+      }
+    };
+
+    try {
+      // At most two passes. The second happens only when the first ended with
+      // the provider's own context-exceeded signal and compaction answered it
+      // by shortening the history. A second such failure is surfaced: the
+      // shortened transcript did not fit either, and compacting again would
+      // buy another summarizer call to learn the same thing.
+      //
+      // A provider rejects an oversized request before it generates anything,
+      // so the retry re-reads a turn that produced no messages of its own.
+      for (;;) {
+        try {
+          await streamTurn();
+          break;
+        } catch (err) {
+          if (
+            compactionRetryUsed ||
+            providerFailureDetail(err)?.code !== "context_exceeded"
+          ) {
+            throw err;
+          }
+          compactionRetryUsed = true;
+          const compacted = await compactThread(
+            "the provider refused the request: this conversation no longer fits its context window"
+          );
+          if (!compacted) throw err;
+          log.info("Retrying the turn against the compacted history", {
+            threadId
+          });
         }
       }
 

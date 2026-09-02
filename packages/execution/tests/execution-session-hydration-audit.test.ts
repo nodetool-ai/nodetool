@@ -103,14 +103,7 @@ const PREFLIGHT_PROPAGATORS: Record<string, string> = {
   // that case's error, which is exactly what a graph the runtime cannot
   // honour should score.
   "packages/cli/src/evals/graph-runner.ts":
-    "a refusal is the eval case's failure",
-  // Both run a planned graph inside an agent turn. The refusal is the agent
-  // loop's to report — these only detach their forwarding listener on the way
-  // out, which their own `catch` around `create()` does.
-  "packages/agents/src/execute-agent-graph.ts":
-    "propagates to the agent loop after detaching its message listener",
-  "packages/agents/src/workflow-agent.ts":
-    "propagates to the agent loop after detaching its message listener"
+    "a refusal is the eval case's failure"
 };
 
 describe("ExecutionSession preflight audit", () => {

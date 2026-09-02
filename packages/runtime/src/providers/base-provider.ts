@@ -70,7 +70,10 @@ import {
   isString
 } from "../type-predicates.js";
 import { logProviderRequestFailure } from "./provider-request-log.js";
-import { annotateProviderError } from "./provider-error.js";
+import {
+  annotateProviderError,
+  markContextExceeded
+} from "./provider-error.js";
 import {
   buildProviderCallFailure,
   type ProviderCallFailureInput
@@ -299,7 +302,7 @@ export function providerCapabilities(
  * and a per-provider exact count would cost a tokenizer round-trip per turn to
  * refine a number that only has to be an upper-ish bound.
  */
-function estimatePromptTokens(messages: readonly Message[]): number {
+export function estimatePromptTokens(messages: readonly Message[]): number {
   let total = 0;
   for (const message of messages) {
     const content = message.content;
@@ -872,6 +875,9 @@ export abstract class BaseProvider {
         provider: this.provider,
         model: args.model
       });
+      if (this.isContextExceededError(err)) {
+        markContextExceeded(err, this.provider);
+      }
       error = String(err);
       this.recordCallFailure({
         model: args.model,
@@ -1007,6 +1013,9 @@ export abstract class BaseProvider {
         provider: this.provider,
         model: args.model
       });
+      if (this.isContextExceededError(err)) {
+        markContextExceeded(err, this.provider);
+      }
       error = String(err);
       this.recordCallFailure({
         model: args.model,
@@ -1698,6 +1707,17 @@ export abstract class BaseProvider {
     dimensions?: number;
   }): Promise<number[][]> {
     throw new Error(`${this.provider} does not support generateEmbedding`);
+  }
+
+  /**
+   * Whether `error` is this provider refusing the request because it exceeds
+   * the model's context window. Default `false`: a provider whose signal has
+   * not been established must not have one guessed for it, because a false
+   * positive rewrites a transcript over an unrelated failure. Overridden by the
+   * providers in `context-exceeded.ts`.
+   */
+  isContextExceededError(_error: unknown): boolean {
+    return false;
   }
 
   isContextLengthError(error: unknown): boolean {

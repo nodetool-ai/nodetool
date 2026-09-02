@@ -543,8 +543,8 @@ using the library inside the sandbox: the specifier, the main functions
 with one example each, and the gotchas that matter there (input caps,
 the 64 MB guest heap, no timers). A pack without one stays runnable;
 only agent discoverability suffers. Format and parser are the existing
-`AgentSkill` machinery (`packages/agents/src/agent.ts`), hoisted so
-node-sdk can call it.
+`AgentSkill` machinery (`packages/agents/src/codeact/sandbox-package-docs.ts`
+and `parseSkillMarkdown` in protocol), hoisted so node-sdk can call it.
 
 Disclosure is two-tier so prompt size stays flat: **one line per
 specifier** (specifier + a description derived from manifest fields

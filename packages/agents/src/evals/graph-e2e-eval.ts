@@ -35,7 +35,7 @@ import {
   type EvalCheck,
   type GraphPlannerEvalExpectations
 } from "./graph-planner-eval.js";
-import { applyRunPolicy } from "../execute-agent-graph.js";
+import { applyRunPolicy } from "../run-policy.js";
 import { judgeGoalAchievement, type GoalJudgeVerdict } from "./goal-judge.js";
 import { GRAPH_E2E_EVAL_CASES } from "./graph-e2e-cases.js";
 import { isNumber, isObjectLike, isString } from "../utils/type-guards.js";
@@ -432,7 +432,7 @@ async function runCase(
     opts.onEvent?.(`    [run] ${graph.nodes.length} nodes`);
     // Authoring deliberately leaves Agent nodes model-less — the run owns
     // that choice — so an authored graph is only runnable once the run policy is
-    // stamped on, exactly as `executeAgentGraph` does before executing one.
+    // stamped on, which is what makes a planned graph runnable at all.
     // Without this every LLM step dies on "Select a model".
     runnableGraph = applyRunPolicy(graph, {
       providerId: opts.executionProviderId ?? opts.provider.provider,

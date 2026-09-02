@@ -12,6 +12,7 @@ import {
   resolveTurnBudget,
   splitToolResultImages
 } from "./base-provider.js";
+import { openAIContextExceeded } from "./context-exceeded.js";
 import { hashSystemPrompt } from "./provider-session.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import type { RunBudget, TurnBudget } from "../turn-budget.js";
@@ -2421,6 +2422,10 @@ export class OpenAIProvider extends BaseProvider {
     const response = await this.getClient().embeddings.create(request);
 
     return response.data.map((row) => row.embedding);
+  }
+
+  override isContextExceededError(error: unknown): boolean {
+    return openAIContextExceeded(error) !== null;
   }
 
   isContextLengthError(error: unknown): boolean {

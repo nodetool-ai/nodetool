@@ -1,6 +1,12 @@
 /**
- * `nodetool agent` — run the agent loop over the default toolbelt, with full
+ * `nodetool agent` — run one CodeAct turn over the default toolbelt, with full
  * trace output.
+ *
+ * The loop is the chat's loop: the belt is assembled by `buildCliAgentBelt`
+ * and the turn by `createCliCodeActTurn`, both shared with `--stdin` chat, so
+ * the provider is offered `execute_code` and the toolbelt lives in the sandbox.
+ * `create_plan` and `execute_plan` are on the belt, so an objective that wants
+ * a plan gets one and the `planning_update` / `task_update` events stream.
  *
  * Subcommands:
  *   nodetool agent run --objective "..."   # objective may also come from stdin
@@ -13,24 +19,34 @@ import * as path from "node:path";
 import { Command } from "commander";
 import chalk from "chalk";
 
+import type { BaseProvider, Message } from "@nodetool-ai/runtime";
 import {
-  createLocalWorkspace,
-  ProcessingContext,
-  type BaseProvider
-} from "@nodetool-ai/runtime";
-import {
-  Agent,
   getAgentToolbelt,
   getAllMcpTools,
+  PERMISSION_GATE_CONTEXT_KEY,
   type Tool
 } from "@nodetool-ai/agents";
+import { processChat } from "@nodetool-ai/chat";
 import { initDb } from "@nodetool-ai/models";
-import { resolveLocalSecret } from "../local-secrets.js";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
-import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
+import {
+  TRPC_MAX_BATCH_SIZE,
+  type ProcessingMessage
+} from "@nodetool-ai/protocol";
 import { createProvider, buildConfiguredProviders } from "../providers.js";
 import { buildFullRegistry } from "../node-registry.js";
 import { mcpToolHostDeps } from "@nodetool-ai/websocket";
+import {
+  applySystemPrompt,
+  buildCliAgentBelt,
+  createCliCodeActTurn
+} from "../chat-codeact.js";
+import { createChatContext } from "../chat-context.js";
+import {
+  createCliPermissionGate,
+  parsePermissionMode,
+  PERMISSION_MODE_NAMES
+} from "../permission-gate.js";
 import {
   diagnoseRun,
   renderDiagnosis,
@@ -38,7 +54,7 @@ import {
   type DiagnoseJob,
   type TraceSpanLite
 } from "../diagnose.js";
-import { isString } from "../predicates.js";
+import { isRecord, isString } from "../predicates.js";
 
 const PROVIDER_ALIASES: Record<string, string> = {
   google: "gemini",
@@ -106,14 +122,7 @@ function ts(): string {
   return d.toISOString().slice(11, 23);
 }
 
-/** Whatever `Agent.execute` yields — the union this printer switches on. */
-type TraceMessage = Awaited<ReturnType<ReturnType<Agent["execute"]>["next"]>> extends {
-  value: infer V;
-}
-  ? Exclude<V, void>
-  : never;
-
-function traceEvent(msg: TraceMessage, opts: TraceOptions): void {
+function traceEvent(msg: ProcessingMessage, opts: TraceOptions): void {
   if (opts.json) {
     process.stderr.write(JSON.stringify(msg) + "\n");
     return;
@@ -164,7 +173,7 @@ function traceEvent(msg: TraceMessage, opts: TraceOptions): void {
       break;
     }
     case "chunk":
-      if (opts.verbose && msg.content) {
+      if (opts.verbose && isString(msg.content)) {
         process.stderr.write(
           `${t} ${chalk.gray("chunk")}    ${shorten(msg.content, 80)}\n`
         );
@@ -194,18 +203,31 @@ async function readObjectiveFromStdin(): Promise<string | null> {
   return text || null;
 }
 
-interface RunOptions {
+export interface RunOptions {
   objective?: string;
   provider?: string;
   model?: string;
   workspace?: string;
   maxIterations?: string;
-  maxSteps?: string;
+  permissionMode?: string;
   json?: boolean;
   verbose?: boolean;
 }
 
-async function runAgentCommand(opts: RunOptions): Promise<void> {
+/** The text the run answers with: the last assistant message that carries any. */
+function finalAssistantText(messages: Message[]): string | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+    if (message.role !== "assistant") continue;
+    if (isString(message.content) && message.content.trim()) {
+      return message.content;
+    }
+  }
+  return null;
+}
+
+/** Exit code for the process: 0 when the turn finished without an error. */
+export async function runAgentCommand(opts: RunOptions): Promise<number> {
   // Quiet the runtime's INFO logger so it doesn't interleave the trace.
   // Users who want raw logs can set NODETOOL_LOG_LEVEL=info before running.
   if (!process.env["NODETOOL_LOG_LEVEL"]) {
@@ -239,11 +261,6 @@ async function runAgentCommand(opts: RunOptions): Promise<void> {
   // Configured providers (for find_model + media tool dispatch)
   const configuredProviders = await buildConfiguredProviders();
 
-  // One belt, every run. A narrowing flag made each invocation its own
-  // configuration — the thing YAML configs were removed for — and an agent
-  // run that behaves differently from the last one is not reproducible.
-  const tools = [...buildToolMap(configuredProviders).values()];
-
   const workspaceDir = expandTilde(opts.workspace ?? process.cwd());
   try {
     fs.mkdirSync(workspaceDir, { recursive: true });
@@ -252,81 +269,135 @@ async function runAgentCommand(opts: RunOptions): Promise<void> {
   }
 
   const provider = await createProvider(providerId);
-
-  if (!opts.json) {
-    process.stderr.write(
-      chalk.bold(`\n▸ agent\n`) +
-        chalk.gray(
-          `  provider=${providerId} model=${modelId} tools=${tools.length}\n`
-        ) +
-        chalk.gray(`  objective: ${shorten(objective, 200)}\n\n`)
-    );
-  }
-
-  const agentOptions: ConstructorParameters<typeof Agent>[0] = {
-    name: "cli-agent",
-    objective,
-    provider,
-    model: modelId,
-    tools
-  };
-  if (opts.maxIterations !== undefined) {
-    agentOptions.maxStepIterations = Number(opts.maxIterations);
-  }
-  if (opts.maxSteps !== undefined) {
-    agentOptions.maxSteps = Number(opts.maxSteps);
-  }
-  const agent = new Agent(agentOptions);
-
-  const ctx = new ProcessingContext({
-    jobId: `agent-${Date.now()}`,
-    userId: "1",
-    workspace: createLocalWorkspace(workspaceDir),
-    secretResolver: resolveLocalSecret
-  });
-  for (const [id, p] of Object.entries(configuredProviders)) {
-    ctx.registerProvider(id, p);
+  const context = await createChatContext({ workspaceDir });
+  // Hand the context the instances already configured above, so a tool that
+  // dispatches by provider id gets this run's provider rather than resolving a
+  // second one of its own.
+  for (const [id, configured] of Object.entries(configuredProviders)) {
+    context.registerProvider(id, configured);
   }
 
   const traceOpts: TraceOptions = {
     json: !!opts.json,
     verbose: !!opts.verbose
   };
+  const emit = (message: ProcessingMessage): void => {
+    traceEvent(message, traceOpts);
+  };
 
-  let finalText: string | null = null;
-  let errored = false;
-
-  try {
-    for await (const msg of agent.execute(ctx)) {
-      traceEvent(msg, traceOpts);
-      if (msg.type === "step_result") {
-        const sr = msg;
-        if (sr.is_task_result) {
-          finalText =
-            isString(sr.result)
-              ? sr.result
-              : JSON.stringify(sr.result, null, 2);
-        }
-      } else if (msg.type === "error") {
-        errored = true;
+  // The run's gate, built once. `readObjectiveFromStdin` already returned null
+  // on a TTY, so the same test says whether anyone is there to answer a
+  // prompt: an objective that arrived down a pipe leaves nobody at the
+  // keyboard, and the run gates headless with the notice below.
+  const gate = createCliPermissionGate({
+    hostName: "nodetool agent run",
+    mode: parsePermissionMode(opts.permissionMode),
+    interactive: process.stdin.isTTY === true,
+    // In `--json` the notice and any prompt ride the event stream, so it stays
+    // one JSON object per line.
+    write: (text) => {
+      if (opts.json) {
+        emit({
+          type: "log_update",
+          node_id: "agent",
+          node_name: "permissions",
+          content: text,
+          severity: "info"
+        });
+      } else {
+        process.stderr.write(chalk.gray(`${text}\n`));
       }
     }
-  } catch (e) {
-    errored = true;
-    process.stderr.write(chalk.red(`\nagent failed: ${String(e)}\n`));
+  });
+  // Loops this command never constructs — an `AgentNode` reached through
+  // `run_node`, a JS script — read the gate off the context rather than
+  // building an ungated run of their own (`gateFromContext`, invariant I-1).
+  context.set(PERMISSION_GATE_CONTEXT_KEY, gate);
+
+  // One belt, every run. A narrowing flag made each invocation its own
+  // configuration — the thing YAML configs were removed for — and an agent
+  // run that behaves differently from the last one is not reproducible.
+  const belt = buildCliAgentBelt({
+    baseTools: [...buildToolMap(configuredProviders).values()],
+    provider,
+    model: modelId,
+    forwardMessage: emit,
+    gate,
+    // An objective is a job, not a conversation: the two plan capabilities are
+    // on the belt so the model can decompose one and run the DAG itself.
+    planning: true
+  });
+
+  if (!opts.json) {
+    process.stderr.write(
+      chalk.bold(`\n▸ agent\n`) +
+        chalk.gray(
+          `  provider=${providerId} model=${modelId} tools=${belt.length}\n`
+        ) +
+        chalk.gray(`  objective: ${shorten(objective, 200)}\n\n`)
+    );
   }
 
-  if (finalText === null) {
-    const r = agent.getResults();
-    if (r != null) {
-      finalText = isString(r) ? r : JSON.stringify(r, null, 2);
+  const turn = createCliCodeActTurn({
+    tools: belt,
+    context,
+    // Calls the sandbox makes have no provider tool-call id of their own.
+    onToolCall: ({ name, args }) => {
+      emit({ type: "tool_call_update", name, args });
+    }
+  });
+  const messages: Message[] = [];
+  applySystemPrompt(messages, turn.systemPrompt);
+
+  let errored = false;
+  try {
+    await processChat({
+      userInput: objective,
+      messages,
+      model: modelId,
+      provider,
+      context,
+      tools: turn.tools,
+      maxIterations:
+        opts.maxIterations === undefined ? undefined : Number(opts.maxIterations),
+      callbacks: {
+        onChunk: (content) => {
+          emit({ type: "chunk", content, done: false });
+        },
+        onToolCall: (call) => {
+          emit({
+            type: "tool_call_update",
+            name: call.name,
+            args: call.args,
+            tool_call_id: call.id
+          });
+        },
+        onToolResult: (call, result) => {
+          emit({
+            type: "tool_result_update",
+            node_id: "agent",
+            name: call.name,
+            tool_call_id: call.id,
+            result: isRecord(result) ? result : { value: result }
+          });
+        }
+      }
+    });
+  } catch (e) {
+    errored = true;
+    const message = e instanceof Error ? e.message : String(e);
+    emit({ type: "error", message });
+    if (!opts.json) {
+      process.stderr.write(chalk.red(`\nagent failed: ${message}\n`));
     }
   }
+
+  const finalText = finalAssistantText(messages);
 
   if (!opts.json) process.stderr.write(chalk.bold("\n— result —\n"));
   if (finalText) process.stdout.write(finalText + "\n");
 
-  process.exit(errored ? 1 : 0);
+  return errored ? 1 : 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -496,19 +567,20 @@ export function registerAgentCommands(program: Command): void {
     .option("-p, --provider <id>", "Provider id")
     .option("-m, --model <id>", "Model id")
     .option("-w, --workspace <path>", "Workspace dir (default: cwd)")
-    // The default of 15 is too low for a step that must discover nodes, build
-    // a graph and validate it — and `claude_agent_sdk` THROWS on the cap
-    // instead of stopping, so the step fails and blocks everything after it.
     .option(
       "--max-iterations <n>",
-      "Action rounds per step (default 15; raise for claude_agent_sdk)"
+      "Tool-calling rounds in the turn (default 25)"
     )
-    .option("--max-steps <n>", "Steps allowed in the run (default 50)")
+    .option(
+      "--permission-mode <mode>",
+      `Permission mode (${PERMISSION_MODE_NAMES.join(" | ")}); on a TTY the ` +
+        "default asks before each write, execute or external call"
+    )
     .option("--json", "Emit each event as a JSON line on stderr")
     .option("-v, --verbose", "Include chunk/other low-level events in trace")
     .action(async (opts: RunOptions) => {
       try {
-        await runAgentCommand(opts);
+        process.exit(await runAgentCommand(opts));
       } catch (e) {
         process.stderr.write(chalk.red(`error: ${String(e)}\n`));
         process.exit(1);

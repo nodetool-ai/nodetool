@@ -45,10 +45,8 @@ export interface TaskState {
 }
 
 export interface ExecutionState {
-  phase: "idle" | "planning" | "executing" | "compiling" | "done";
+  phase: "idle" | "planning" | "executing" | "done";
   planningContent: string;
-  /** Latest status content from the CompilerAgent (set during phase==="compiling"). */
-  compileContent: string;
   tasks: TaskState[];
   selectedIndex: number;
 }
@@ -56,7 +54,6 @@ export interface ExecutionState {
 const INITIAL_STATE: ExecutionState = {
   phase: "idle",
   planningContent: "",
-  compileContent: "",
   tasks: [],
   selectedIndex: 0,
 };
@@ -83,17 +80,6 @@ export function useExecutionState() {
       switch (msg.type) {
         case "planning_update": {
           const pu = msg;
-          // CompilerAgent emits planning_updates with phase==="compile" so the
-          // UI can switch from "executing" → "compiling" → "done" without
-          // losing the planning_update channel for the planner itself.
-          if (pu.phase === "compile") {
-            setState((prev) => ({
-              ...prev,
-              phase: pu.status === "completed" ? "done" : "compiling",
-              compileContent: pu.content ?? prev.compileContent,
-            }));
-            break;
-          }
           setState((prev) => ({
             ...prev,
             phase: "planning",

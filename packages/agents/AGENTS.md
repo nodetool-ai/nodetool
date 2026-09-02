@@ -56,14 +56,17 @@ is told to plan only what a model can do from its own knowledge. Advertising
 tools no step can call produced research plans whose every step was the
 model's own recall.
 
-### Final synthesis: CompilerAgent
+### Final synthesis: the calling loop's next turn
 
-`Agent` ends with a dedicated `CompilerAgent` pass after `ParallelTaskExecutor` finishes. The compiler reads the gathered memory snapshot, fetches values via `read_shared`, and produces the final deliverable:
+There is no synthesis stage. `execute_plan` runs the DAG, writes each task's
+result to `task:<id>`, and returns those values with the tasks; the loop that
+called it then writes the answer on its next turn, reading `task:<id>` via
+`read_shared` for anything the return did not carry. That is what
+`execute_plan`'s own description tells the model to do.
 
-- **Structured mode** (an `outputSchema` is set): `finish_step` is included in the toolset, and the compiler returns a schema-conformant value.
-- **Prose mode** (no `outputSchema`): `finish_step` is omitted; the compiler emits a final assistant message and the absence of any tool call ends the loop. The text becomes the result.
-
-The planner is told NOT to create an aggregation/synthesis step — final assembly is the compiler's job. There is no "schema grafted onto the last step" hack anymore.
+The planner is still told NOT to create an aggregation/synthesis task: a step
+that assembles the answer duplicates the turn that follows the call, and it
+does it with a smaller view of the run than the caller has.
 
 ### Threading task-level deps through executors
 
@@ -73,7 +76,7 @@ The planner is told NOT to create an aggregation/synthesis step — final assemb
 
 - `packages/runtime/tests/agent-memory.test.ts` — unit tests for `AgentMemory`
 - `packages/agents/tests/memory-tools.test.ts` — unit tests for the `shared` capabilities `list_shared` / `read_shared` / `share_result`, and the belt `getMemoryTools()` builds from them
-- `packages/agents/tests/memory-propagation.test.ts` — end-to-end through `Agent`, including a fake-provider round trip that drives `list_shared` → `read_shared` → `finish_step`
+- `packages/agents/tests/memory-propagation.test.ts` — end-to-end through `execute_plan`, `TaskExecutor` and `StepExecutor`, including a fake-provider round trip that drives `list_shared` → `read_shared` → `finish_step`
 - `packages/agents/tests/_helpers/mock-context.ts` — shared mock context with a real `AgentMemory` for executor tests
 
 When asserting memory writes in tests, prefer `context.memory.has(memoryKeys.task("..."))` and `context.memory.subscribe(...)` over spies on `set` / `storeStepResult`.
@@ -365,9 +368,15 @@ A session that allows packages also carries **`get_sandbox_package_docs`**
 (`capabilities/packs.ts`): it serves one pack's SKILL.md, refuses a
 specifier off the session allowlist, and wraps the body of a pack the operator
 has not put on the pack-loader allowlist in `<untrusted-package-docs>` — read
-as reference, never as instructions. A trusted pack's skill instead registers
-as an ordinary `AgentSkill` (`AgentOptions.sandboxPackages`). The ambient
-prompt tier stays one sanitized, capped line per allowed specifier.
+as reference, never as instructions. The ambient prompt tier stays one
+sanitized, capped line per allowed specifier.
+
+`sandboxPackageSkills` (`codeact/sandbox-package-docs.ts`) turns a trusted
+pack's skill into an ordinary `AgentSkill`, which is the injection tier the
+untrusted path is contrasted against. **No host mounts it.** Its one caller was
+the retired `Agent`, so a trusted pack's body reaches the model only through
+`get_sandbox_package_docs`. Wiring it into the chat session's skill catalog is
+the follow-up; nothing depends on it being absent.
 
 ### Host WASM modules (`src/wasm-sandbox/`)
 
@@ -573,33 +582,25 @@ echo "Summarize this codebase" | nodetool-chat --provider anthropic
 /tools    — List enabled tools
 ```
 
-### Programmatic Usage
+### `nodetool agent run`
 
-```typescript
-import { Agent } from "@nodetool-ai/agents";
-import { createRuntimeContext } from "@nodetool-ai/runtime";
+An objective is one CodeAct turn over the same belt chat uses, so there is no
+second loop to configure. `packages/cli/src/commands/agent.ts` assembles it:
+`buildCliAgentBelt({ ..., planning: true })` puts `create_plan` and
+`execute_plan` on the belt, `createCliCodeActTurn` turns that belt into the
+`execute_code` action plus the direct tools, and `processChat` runs the turn.
+The model decides whether the objective wants decomposing; nothing plans on its
+behalf.
 
-const ctx = createRuntimeContext({ jobId: "...", userId: "1", workspaceDir: "." });
+The stream is the same `ProcessingMessage` union every host emits — `chunk`,
+`planning_update`, `task_update`, `tool_call_update`, `tool_result_update`,
+`step_result`, `log_update` — which is why `--json` output and the chat
+renderer read the same events.
 
-const agent = new Agent({
-  name: "my-agent",
-  objective: "Research and summarize AI trends",
-  provider,          // BaseProvider instance
-  model: "claude-sonnet-5",
-  tools: [readFileTool, writeFileTool, searchTool],
-  outputSchema: {    // Optional: structured output
-    type: "object",
-    properties: { summary: { type: "string" } },
-    required: ["summary"]
-  }
-});
-
-for await (const msg of agent.execute(ctx)) {
-  // msg.type: "chunk" | "planning_update" | "task_update" | "tool_call_update" | "step_result" | "log_update"
-}
-
-const result = agent.getResults();
-```
+To build a session of your own, use `createChatCodeActSession`
+(`src/codeact/chat-codeact.ts`) rather than assembling an executor: it owns the
+system prompt, the sandbox package allowlist, the resident/direct tool split,
+and the clock that stops the action budget while a permission prompt is open.
 
 ## Capability registry (`src/capabilities/`)
 
@@ -1015,46 +1016,125 @@ A missing or revoked credential surfaces as `{ error }` telling the user to sign
 in with Google again, rather than throwing — the agent can then pick another
 route instead of failing the whole step.
 
-## Plan Approval Gate
+## Where the permission gate is set
 
-`Agent` can pause after planning and present the plan for user approval before
-executing it. Wire a callback either as the `requestPlanApproval` option or on
-the ProcessingContext under `PLAN_APPROVAL_CONTEXT_KEY` (the websocket runner
-sets the context variable for chat-triggered runs):
+One ladder decides every actionable call. `decidePermission`
+(`tools/tool-permissions.ts`) reads a mode and a category, `gatedCall`
+(`capabilities/invoke.ts`) runs the sequence around it (read-class fast path,
+mode decision, session allow-set, approval round trip), and `gateTools`
+(`capabilities/gate-tools.ts`) is the door a `Tool` walks through it. What
+differs between hosts is who answers when the ladder asks.
 
-**No chat turn reaches this today.** Its only consumer is `Agent`, and a chat
-turn constructs a CodeAct session, never an `Agent`; the `AgentNode` that used
-to gate here has no plan mode any more. The gate stays for the CLI's agent
-command and for a host that builds an `Agent` of its own. The chat's plan mode
-does not use it: `create_plan` produces a plan and stops, and the approval for
-running one is the permission gate on `execute_plan`, which the user answers in
-the same place as every other action.
+A host publishes one `PermissionGateOptions` under
+`PERMISSION_GATE_CONTEXT_KEY` (`src/types.ts`), and every loop under it reads
+that object with `gateFromContext` instead of building a gate of its own
+(invariant I-1). This is the channel `RunBudget` already travels on, for the
+same reason: `ProcessingContext.copy()` shallow-copies the variable bag, so a
+child shares the host's gate object rather than a clone, which is what makes a
+mid-turn `set_permission_mode` and an "allow for this chat" answer reach a loop
+that started before them.
 
-```typescript
-const agent = new Agent({
-  ...,
-  requestPlanApproval: async (plan) =>
-    userSaysYes(plan) ? { decision: "approve" } : { decision: "reject", feedback: "..." }
-});
-```
+| Host | Where its gate comes from | Mode | Approver |
+|---|---|---|---|
+| Chat turn (web, Telegram, MCP) | `chat-turn.ts` sets `chatGate` on the turn context | the thread's live mode, read through a getter so `set_permission_mode` lands mid-turn | round trip to the client (`requestToolApproval`) |
+| `run_node` child | `runSingleNode` builds a context of its own, so the turn's gate is passed in as an argument and set on it | the calling turn's, the same object | the calling turn's client |
+| `AgentNode` in a workflow | `genProcess` wraps what `buildTools` returned in `gateFromContext(context, "Agent node")` | the host's, or `auto` when no host set one | the host's, or the headless deny |
+| JS script | `js-script-sandbox.ts` passes `gateFromContext(context, "JS script")` to `createCapabilityRun` | same | same |
+| Kernel workflow run | nothing is set, deliberately (see below) | `auto` | nobody: the headless deny |
+| `nodetool agent run` on a TTY | `createCliPermissionGate` (`packages/cli/src/permission-gate.ts`), host name `nodetool agent run`, set on the run's context | `--permission-mode`, defaulting to `default` | the terminal: `y / n / a` prompted on stderr, because stdout carries the result. `a` answers `allow_for_chat`, and the name lands in the run's shared `sessionAllow` |
+| `nodetool agent run` with the objective piped in | the same builder, not interactive | `--permission-mode`, defaulting to `auto` | nobody: `headlessGate`'s deny, its reason printed once per run |
+| `nodetool-chat` reading piped stdin (`runStdinMode`) | the same builder, host name `nodetool-chat`, set on each line's context | `--permission-mode`, defaulting to `auto` | nobody: the headless deny |
+| `nodetool-chat --url` | no gate is built here | — | the server's chat turn, which gates the belt it runs |
+| `nodetool-chat` interactive session | **nothing**: the Ink session builds its own belt in `app.tsx`, wraps it in no `gateTools`, and puts no key on its context | none | nobody |
 
-- **approve** — execution proceeds.
-- **reject with feedback** — the planner re-runs with the feedback appended to
-  the objective (bounded by `MAX_PLAN_REVISIONS`, 3) and the revised plan is
-  presented again.
-- **reject without feedback** — the run ends; `getResults()` returns a
-  rejection notice.
+A CLI run that cannot prompt keeps the mode it was asked for and changes only
+the approver, so a piped `--permission-mode plan` still blocks what plan mode
+blocks. The `sessionAllow` Set is created once per run and shared by reference,
+which is what makes `a` outlive the call that answered it: `nodetool-chat`
+rebuilds its belt for every input line and consults the same Set. Under
+`--json` the notice and any prompt ride the event stream rather than stderr, so
+that stream stays one JSON object per line.
 
-The gate emits `planning_update` events with phase `awaiting_approval`
-(status Running/Success/Failed) and `revision` so UIs can show state. Over the
-websocket this round-trips as `plan_approval_request` / `plan_approval_response`
-messages; the web chat renders a `PlanApprovalCard` with approve/reject and a
-feedback field. Without a callback, planning flows straight into execution as
-before. Tests: `packages/agents/tests/plan-approval.test.ts`.
+**The interactive CLI session is the host A2 left open.** Its belt is
+`RunSubtaskTool` plus raw tools, so nothing there meets the ladder. The reason
+is the terminal, not the design: the Ink session reads stdin itself
+(`useInput`), so the `readline` prompt every other CLI path uses cannot share
+it, and an approval there needs an Ink component instead. Rather than accept a
+mode it would ignore, `packages/cli/src/index.ts` prints that
+`--permission-mode` does not apply to the interactive session.
+
+**Both gated CLI hosts wrap their belt the way chat does.** `gateTools` covers
+the belt, and `execute_plan` is wrapped on its own, because
+`toolForCapabilityName` builds a `LazyCapabilityTool` whose `process` calls the
+implementation directly: a gate on the delegation run covers what that
+implementation invokes, not the tool itself. The delegation primitives
+(`run_subtask`, `start_subtask`, `wait_subtasks`, `run_search`, `create_plan`)
+stay ungated in both hosts, because spawning a child loop has no effect of its
+own and the child acts through the belt that is already gated.
+
+**The kernel row is a decision, not an omission.** A workflow run is consent:
+the user pressed Run on a graph whose nodes list their tools, so an agent loop
+inside it runs `auto` with nobody to ask, which is what `gateFromContext`
+already answers for a context carrying no gate. Building the same object in
+`buildWorkspaceExecutionContext` would also invert the package edge, since
+`@nodetool-ai/agents` depends on `@nodetool-ai/execution` and not the reverse,
+and it would be a second construction of the ladder's default. The doc comment
+in `workflow-workspace.ts` records this, so nobody closes the "gap" later.
+
+**Plan mode already blocks `run_node` one level above the node.** `run_node`
+is classified `execute`, and `decidePermission("plan", "execute")` is `block`,
+so a chat in plan mode gets `blocked_in_plan_mode` from the belt before the
+node runs. The gate on the node closes the same hole reached another way: a
+`set_permission_mode` to `plan` while a node is already running, or any other
+host that puts a plan-mode gate on a context. What the child inherits is pinned
+by `packages/websocket/tests/chat-turn-handler-run-node.test.ts`, which asks
+`gateFromContext` from inside the node's own executor.
+
+**Control tools and `submit_result` stay ungated on an `AgentNode`.** They are
+graph wiring rather than capabilities: a control tool fires an outgoing control
+edge, and `submit_result` hands the node's structured outputs back to the node.
+Both are appended after `gateAgentTools` has run. The wrap sits at the
+`genProcess` call site rather than inside `buildTools` because `buildTools` is
+the hook a subclass overrides, and gating inside it would be skipped by any
+override that does not call `super`.
+
+**The headless gate denies, and names the host that had nobody to ask.**
+`headlessGate(hostName)` runs `auto` with an approver that resolves `"deny"`
+and logs the refusal. In `auto` the ladder allows read, write, execute and
+external outright, so that approver is reached only by an escalation the ladder
+itself raises: `admitCodeAction` asks before a high-risk `execute_code` action
+in auto, and the Apify actor policy asks before an actor the install has not
+allowlisted. Resolving `"allow"` would grant what those escalations exist to
+withhold, and never resolving would hang the run (invariant I-4).
+`headlessDenialReason` is exported so a host that runs headless on purpose can
+print the same sentence once at the start instead of once per denied call.
+
+**Three construction sites may still build an ungated run.**
+`capabilities/lazy-tool.ts` and `tools/serp-tool-factory.ts` build a `Tool` the
+host gates from outside with `gateTools`; `capabilities/packs.ts` reads a
+SKILL.md, a read-class call with nothing for the ladder to withhold.
+`packages/agents/tests/gate-from-context.test.ts` walks `src/` for
+`ungatedCapabilityRun` and fails on any file its allowlist does not cover. It
+also asserts that the three sites it names by hand were found, so it cannot
+pass on a walk that matched nothing.
+
+## Approving a plan is the permission gate
+
+There is no plan-approval callback. `execute_plan` is classified `external` in
+`tools/tool-permissions.ts`, so running a plan is approved where every other
+action is approved — one ladder, one dialog, one mode
+(`set_permission_mode`) — instead of a second round trip the host had to wire
+by hand. `create_plan` produces a plan and stops, so the user sees what will
+run before anything does.
+
+A host with nobody to ask fails closed at `execute_plan` rather than inside the
+loop, which is what invariant I-4 asks for.
 
 ## Parallel Task Execution
 
-The Agent class automatically decomposes objectives into parallel tasks via `TaskPlanner.planMultiTask()`. Tasks form a DAG — independent tasks run concurrently.
+`create_plan` decomposes an objective into parallel tasks via
+`TaskPlanner.planMultiTask()`, and `execute_plan` runs them. Tasks form a DAG —
+independent tasks run concurrently.
 
 ### How It Works
 
@@ -1089,22 +1169,10 @@ interface Step {
 
 ### Skipping Planning
 
-Provide a pre-defined `task` to bypass the planning phase:
-
-```typescript
-const agent = new Agent({
-  objective: "...",
-  provider, model,
-  task: {
-    id: "my-task",
-    title: "Direct task",
-    steps: [
-      { id: "s1", instructions: "Do X", dependsOn: [], completed: false, logs: [] },
-      { id: "s2", instructions: "Do Y", dependsOn: ["s1"], completed: false, logs: [] }
-    ]
-  }
-});
-```
+`execute_plan` takes the tasks as its argument, so a caller that already knows
+the decomposition passes it straight in and never calls `create_plan`. The
+shape is the `TaskPlan` above with snake_case keys (`depends_on`), validated by
+`buildPlanFromTasks` (`tools/plan-builder-tools.ts`) before anything runs.
 
 ### Concurrency Defaults
 
@@ -1113,18 +1181,18 @@ const agent = new Agent({
 | `DEFAULT_MAX_TASK_ITERATIONS` | 100 | `parallel-task-executor.ts` |
 | `DEFAULT_MAX_STEP_ITERATIONS` | 10 | `parallel-task-executor.ts` |
 | `DEFAULT_MAX_STEPS` | 50 | `task-executor.ts` |
-| `MAX_RETRIES` (planning) | 3 | `task-planner.ts` |
 
-### One policy per run (`agent-policy.ts`)
+### Executor defaults (`agent-policy.ts`)
 
-`Agent` resolves `maxSteps`, `maxStepIterations`, `maxTokens` and
-`maxConcurrentAgents` into a single `AgentPolicy` (`resolveAgentPolicy`,
-defaults in `DEFAULT_AGENT_POLICY`) and hands the same object to every mode —
-single task, multi-task plan, graph. A knob therefore means the same thing
-everywhere: `maxTokens` reaches the graph runner, `maxSteps` bounds multi-task
-runs, and task/fan-out dispatch is bounded by `mergeAsyncGenerators`
-(`utils/merge-generators.ts`). The plan-approval gate is likewise a property of
-the run, not of the planning mode: a planned graph goes through it too.
+`agent-policy.ts` is a constants file. `DEFAULT_AGENT_POLICY` supplies the
+fallback `maxSteps`, `maxStepIterations` and `maxConcurrentAgents` that
+`parallel-task-executor.ts` and `task-executor.ts` read when a caller names
+none, so one number lives in one place instead of a literal per executor.
+
+Nothing resolves a per-run policy object: `execute_plan` passes the run's
+budget and the parent's per-step iteration cap directly, and
+`resolveAgentPolicy` has no caller. A7 folds the per-step iteration bound into
+`RunBudget`, which carries a concurrency semaphore but no iteration cap.
 
 `maxConcurrentAgents` alone bounds one `mergeAsyncGenerators` call, not the
 run — tasks, steps and sub-agents each apply it separately, so the three
@@ -1435,8 +1503,8 @@ sees the parent belt minus `create_plan` itself, so steps route to real tool
 names and no plan contains "call create_plan".
 
 `execute_plan` is the other half: it takes that plan back and runs it on
-`ParallelTaskExecutor`, the machinery `Agent` runs a plan on. **The plan
-travels inline** — `title` plus the `tasks` array the model copies out of
+`ParallelTaskExecutor`. **The plan travels inline** — `title` plus the `tasks`
+array the model copies out of
 `create_plan`'s result. There is no plan store and no plan id: passing the plan
 itself is what survives the mode switch, keeps what runs identical to what the
 user is looking at, and lets "run it, but drop task 3" be expressible. Plans
@@ -1539,10 +1607,10 @@ API, the second planner prompt, and the second set of budget knobs
 
 ## Authoring a graph (`src/author-graph.ts`)
 
-`authorGraph(objective, opts)` is how a graph gets written, and what both
-graph callers use — `Agent`'s graph mode (`executeGraphPlan`) and the
-app-build plan stage (one call per operation). It streams `ProcessingMessage`s
-and returns the graph.
+`authorGraph(objective, opts)` is how a graph gets written. The app-build plan
+stage calls it once per operation (`app-build/build.ts`), and the
+`graph-planner` and `graph-e2e` eval suites drive it directly. It streams
+`ProcessingMessage`s and returns the graph.
 
 It runs no loop of its own. `runSubAgent` drives one CodeAct child whose
 allowlist carries `@nodetool-ai/sandbox-dsl`, so the child authors with the
@@ -1632,9 +1700,11 @@ as a success when all three hold:
 
 1. **plan** — `authorGraph()` produces a graph, scored structurally by the
    same `checkExpectations` the graph-planner suite uses.
-2. **execute** — `applyRunPolicy` stamps the run's provider/model onto the
-   planner's Agent nodes (the planner leaves them model-less on purpose — the
-   run owns that choice — so an unstamped graph dies on "Select a model"),
+2. **execute** — `applyRunPolicy` (`src/run-policy.ts`) stamps the run's
+   provider/model onto the planner's Agent nodes (the planner leaves them
+   model-less on purpose — the run owns that choice — so an unstamped graph
+   dies on "Select a model"). This suite is its only importer, and the reason
+   the function outlived the retired `Agent` graph branch,
    then the graph runs for real with the case's inputs as run params, through a
    caller-supplied `GraphRunner`. The runner is injected so this package needs
    no execution dependency and the harness tests can drive scripted runs with
@@ -2236,21 +2306,50 @@ Costs are logged via `logProviderCall()` and included in `llm_call` messages.
 
 ### Model Selection
 
-Use separate models for planning vs execution to optimize cost/quality:
+One run, one model. `create_plan` and `execute_plan` both use the calling
+session's provider and model (`subAgentRuntime`), so planning and step
+execution cannot drift apart or bill against a model the user did not pick.
+The per-phase model idea survives only as a possible argument on those two
+specs; nothing selects a second model.
 
-```typescript
-const agent = new Agent({
-  model: "claude-haiku-4-5",           // Fast/cheap for step execution
-  planningModel: "claude-sonnet-5",  // Better for plan decomposition
-  reasoningModel: "claude-opus-4-6",   // Best for complex reasoning
-  ...
-});
-```
+### Tool Result Truncation and Chat Compaction
 
-### Tool Result Truncation
+A single result is cut, and a whole thread is summarized. Two different limits,
+in two different places.
 
-- Tool results are truncated to 20,000 chars (`MAX_TOOL_RESULT_CHARS`) before being added to history.
-- Step executors delegate the tool-calling loop to `provider.generateLoop`, so each provider manages its own context window (the Claude Agent SDK compacts internally; stateless providers send the full transcript). There is no NodeTool-side per-step token budget, compaction, or eviction.
+- **One tool result** is capped at 25 000 characters (`MAX_TOOL_RESULT_CHARS`
+  in `constants.ts`) before it enters history, with a notice telling the model
+  the output was cut and how to ask for a smaller slice. A broad grep or a
+  large file read otherwise returns tens of megabytes and the next request
+  fails outright.
+- **A step transcript is never summarized.** Step executors hand the
+  tool-calling loop to `provider.generateLoop`, so each provider manages its
+  own window — the Claude Agent SDK compacts internally, a stateless provider
+  is sent everything. What bounds a step instead is the cumulative iteration
+  cap and the result cut above.
+- **A chat thread is compacted**, in `packages/websocket`
+  (`session/chat-compaction.ts`, driven from `chat-turn.ts`). One
+  summarizer call replaces everything before the last
+  `NODETOOL_CHAT_COMPACTION_KEEP_TURNS` user turns, and the summary is
+  persisted as a `role: "user"` row marked `execution_event_type:
+  "compaction"`. History assembly starts from the newest such row, so only the
+  provider's view is shortened — the full thread stays in the database for the
+  UI and `nodetool.threads.*`. The cut lands on a user message, which is what
+  keeps a tool call attached to its result.
+- **Two triggers**: the estimated prompt crossing
+  `NODETOOL_CHAT_COMPACTION_TOKENS` before the loop, and the provider itself
+  reporting that the prompt did not fit, which compacts and retries the turn
+  once. A provider holding the transcript upstream skips the first, since
+  shortening what NodeTool sends does not shorten what that provider already
+  has.
+- **A failed summarizer leaves the thread uncompacted** and the turn runs
+  against the full history, with a `log_update` saying so. The alternative to
+  an imperfect summary is a turn that cannot run at all.
+- **The user sees the cut.** The web renders the compaction row as a collapsed
+  "Earlier conversation summarized" card
+  (`web/src/components/chat/message/CompactionCard.tsx`), reached from
+  `MessageView` before the plain user-message path — without that branch the
+  summary reads as something the user typed.
 
 ### Plan Validation
 
@@ -2258,7 +2357,8 @@ Plans are validated before execution:
 - Step/task IDs must be unique across the entire plan
 - Dependencies must reference valid IDs
 - No circular dependencies (DAG validation via DFS)
-- On failure, error is fed back to LLM for retry (up to `maxRetries`)
+- On failure, the error is fed back to the model as the tool result, and it
+  calls `add_task` again
 
 ### Output Schema Validation
 
@@ -2302,11 +2402,12 @@ Each record has `name`, `description`, and markdown `content` columns. Agent dis
 the current user's records through the models layer and merges trusted
 sandbox-pack skills supplied for the session.
 
-The agent options `skills` field explicitly selects names. Without explicit
-names, skills are auto-selected when words in their descriptions match words
-in the objective. Filesystem `SKILL.md` discovery and the old
-`NODETOOL_AGENT_SKILL_DIRS`, `NODETOOL_AGENT_SKILLS`, and
-`NODETOOL_AGENT_AUTO_SKILLS` environment variables are deprecated and ignored.
+Nothing auto-selects a skill. Word overlap between an objective and a
+description picked the wrong document often enough that the catalog plus
+`load_skill` replaced it: the model reads what exists and asks for the one it
+wants. Filesystem `SKILL.md` discovery and the `NODETOOL_AGENT_SKILL_DIRS`,
+`NODETOOL_AGENT_SKILLS` and `NODETOOL_AGENT_AUTO_SKILLS` environment variables
+are gone with it.
 
 A chat turn discovers skills the way it discovers sandbox packs — a catalog in
 context, a body behind a call. The websocket runner's `buildSystemContent` folds
@@ -2338,15 +2439,20 @@ Tests: `tests/capabilities-skills.test.ts`.
 
 ### Tuning Checklist
 
-1. **Reduce cost**: Use cheaper `model` for execution, better `planningModel` for decomposition
-2. **Improve plan quality**: Increase `maxRetries` on `TaskPlanner`, use custom `systemPrompt`
-3. **Speed up execution**: Decompose into more independent tasks (maximizes parallelism)
-4. **Control scope**: Set `maxSteps` and `maxStepIterations` to prevent runaway execution
-5. **Validate output**: Use `outputSchema` to enforce structured results
-6. **Restrict tools**: Per-step `tools` arrays limit which tools a step can call
-7. **Observe**: Enable tracing (`OTEL_TRACES_EXPORTER=console`) to see every LLM call
-8. **Iterate on skills**: Add domain-specific records in the Skills panel to
-   improve agent behavior
+1. **Reduce cost**: run the session on a cheaper model, and give the run a
+   `RunBudget` with a USD cap so a loop stops instead of billing
+2. **Improve plan quality**: pass a `systemPrompt` preamble to `TaskPlanner` —
+   it is prepended to the TaskArchitect contract, not swapped for it
+3. **Speed up execution**: decompose into more independent tasks, since
+   dependency edges are what serialize the DAG
+4. **Control scope**: `maxStepIterations` bounds one step's action rounds;
+   `maxSteps` bounds a task's dispatch rounds
+5. **Validate output**: use `outputSchema` to enforce structured step results
+6. **Restrict tools**: per-step `tools` arrays limit which tools a step can call
+7. **Observe**: enable tracing (`OTEL_TRACES_EXPORTER=console`) to see every
+   LLM call
+8. **Iterate on skills**: add domain-specific records in the Skills panel, and
+   name one with `/<name>` to load its body without a round trip
 
 ## Authoring Agent Nodes — Pitfalls
 

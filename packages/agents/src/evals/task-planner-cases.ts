@@ -144,7 +144,7 @@ export const TASK_PLANNER_EVAL_CASES: readonly TaskPlannerEvalCase[] = [
   {
     id: "gather-not-assemble",
     description:
-      "Under an output schema the plan must gather facts and leave assembly to the Compiler",
+      "Under an output schema the plan must gather facts and leave assembly to the calling loop",
     objective:
       "Produce a competitive brief on three note-taking apps: Obsidian, Notion, and Logseq. Gather pricing, platform support, and the standout feature for each.",
     outputSchema: {

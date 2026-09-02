@@ -18,16 +18,24 @@
  */
 
 import type {
+  BaseProvider,
   JsonSchema,
   Message,
   ProcessingContext
 } from "@nodetool-ai/runtime";
 import { DIRECT_TOOL_NAMES } from "@nodetool-ai/runtime";
 import {
+  BackgroundSubtaskRegistry,
+  contextSecretAvailability,
+  createCapabilityRun,
+  gateTools,
   Tool,
+  toolForCapabilityName,
   createChatCodeActSession,
-  type ChatCodeActSession
+  type ChatCodeActSession,
+  type PermissionGateOptions
 } from "@nodetool-ai/agents";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { isNonBlankString } from "./predicates.js";
 
 /** The tool that stays a direct provider tool alongside `execute_code`. */
@@ -117,6 +125,90 @@ export function createCliCodeActTurn(
   if (viewImage) tools.push(viewImage);
 
   return { tools, systemPrompt: session.systemPromptSection, session };
+}
+
+// ---------------------------------------------------------------------------
+// The belt
+// ---------------------------------------------------------------------------
+
+export interface CliAgentBeltOptions {
+  /** The platform belt. Every delegated loop inherits this snapshot. */
+  baseTools: Tool[];
+  provider: BaseProvider;
+  model: string;
+  /** Where a delegated loop's messages go — its chunks, tool calls, plan events. */
+  forwardMessage: (message: ProcessingMessage) => void;
+  /**
+   * The run's permission gate. Built once by the host (`createCliPermissionGate`)
+   * and shared by reference, so a mode change and an "allow for this session"
+   * answer reach every loop this belt starts.
+   */
+  gate: PermissionGateOptions;
+  /** Read-only `run_search` fan-out. On unless set false. */
+  readOnlySearch?: boolean;
+  /** `create_plan` and `execute_plan`. Off unless set true. */
+  planning?: boolean;
+}
+
+/**
+ * The toolbelt a local CLI loop runs on: the platform tools plus the
+ * capabilities that spawn loops of their own.
+ *
+ * One builder for both entrances — `nodetool agent run` and `--stdin` chat —
+ * so an objective and a chat message reach the same tools. The delegation
+ * capabilities are built over one runtime, and the background registry is
+ * created once here rather than per call, so every `start_subtask` this
+ * session writes is what the same session's `wait_subtasks` reads.
+ */
+export function buildCliAgentBelt(options: CliAgentBeltOptions): Tool[] {
+  const { baseTools, provider, model, forwardMessage, gate } = options;
+  // The belt runs through the ladder, as chat's does: `gateTools` is the door
+  // a `Tool` takes into `decidePermission` (invariant I-1). A delegated loop
+  // is handed the gated belt, not the raw one, so approving `run_subtask` is
+  // not approval for whatever the child then calls.
+  const gatedBase = gateTools(baseTools, gate);
+  const subAgent = {
+    provider,
+    model,
+    parentTools: () => gatedBase,
+    forwardMessage,
+    background: new BackgroundSubtaskRegistry()
+  };
+  const delegationRun = (context: ProcessingContext) =>
+    createCapabilityRun({
+      context,
+      gate,
+      availableSecrets: contextSecretAvailability(context),
+      subAgent
+    });
+
+  // The delegation capabilities stay ungated, as they are in chat: spawning a
+  // child loop has no side effect of its own, and the child acts through
+  // `gatedBase`. `create_plan` writes nothing either — it decomposes an
+  // objective and streams the DAG.
+  const spawned: Tool[] = [];
+  if (options.readOnlySearch !== false) {
+    spawned.push(toolForCapabilityName("run_search", delegationRun));
+  }
+  spawned.push(
+    toolForCapabilityName("run_subtask", delegationRun),
+    toolForCapabilityName("start_subtask", delegationRun),
+    toolForCapabilityName("wait_subtasks", delegationRun)
+  );
+  if (options.planning) {
+    spawned.push(toolForCapabilityName("create_plan", delegationRun));
+    // `execute_plan` is the exception, and is gated for what it is: not one
+    // action but every action in the plan. In plan mode the ladder answers
+    // `blocked_in_plan_mode`, which tells the model to have the user switch
+    // out; elsewhere it asks once.
+    spawned.push(
+      ...gateTools(
+        [toolForCapabilityName("execute_plan", delegationRun)],
+        gate
+      )
+    );
+  }
+  return [...spawned, ...gatedBase];
 }
 
 /**

@@ -34,6 +34,7 @@ import {
   buildUserMessage,
   uniqueToolName,
   normalizeTools,
+  gateAgentTools,
   isChunkItem,
   isToolCallItem,
   classifyProviderStream,
@@ -56,6 +57,7 @@ import {
   yieldSplitThinkChunks
 } from "./agent-thinking.js";
 import { buildControlTools } from "./agent-control-tools.js";
+import { gateFromContext } from "@nodetool-ai/agents";
 import {
   SUMMARIZER_RECOMMENDED_MODELS,
   ENHANCE_PROMPT_RECOMMENDED_MODELS,
@@ -949,6 +951,10 @@ export class AgentNode extends BaseNode {
    * user-selected ones. Control tools from kernel control edges are
    * appended separately by the genProcess paths and don't need to be
    * handled here.
+   *
+   * An override returns the tools ungated: `genProcess` wraps whatever comes
+   * back in the run's permission gate, so a subclass cannot inject a tool that
+   * skips the ladder.
    */
   protected async buildTools(
     context?: ProcessingContext
@@ -1026,7 +1032,16 @@ export class AgentNode extends BaseNode {
         maxConcurrency: agentEnvInt("NODETOOL_AGENT_MAX_CONCURRENCY", 8),
         maxTurns
       });
-    const tools: ToolLike[] = await this.buildTools(context);
+    // One permission ladder on every host (invariant I-1). The gate is wrapped
+    // here rather than inside `buildTools` because `buildTools` is the hook
+    // subclasses override to inject their own tools: gating inside it would be
+    // skipped by any override that does not call `super`. A node whose context
+    // carries no host gate runs headless — `auto`, denying what the ladder
+    // itself escalates.
+    const tools: ToolLike[] = gateAgentTools(
+      await this.buildTools(context),
+      gateFromContext(context, "Agent node")
+    );
 
     // Build control tools from _control_context (injected by the kernel
     // for nodes that have outgoing control edges). This lets the LLM

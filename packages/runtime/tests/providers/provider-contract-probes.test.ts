@@ -66,6 +66,7 @@ function withoutPath(value: unknown, path: string): unknown {
 describe("provider contract probe manifest", () => {
   it("covers the providers the roadmap names", () => {
     expect(probeProviders().sort()).toEqual([
+      "anthropic",
       "fal_ai",
       "gemini",
       "kie",

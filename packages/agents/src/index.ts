@@ -3,14 +3,8 @@
  */
 
 // Types
-export type {
-  Step,
-  Task,
-  TaskPlan,
-  PlanApprovalDecision,
-  RequestPlanApproval
-} from "./types.js";
-export { PLAN_APPROVAL_CONTEXT_KEY } from "./types.js";
+export type { Step, Task, TaskPlan } from "./types.js";
+export { PERMISSION_GATE_CONTEXT_KEY } from "./types.js";
 
 // Tools
 export { Tool } from "./tools/base-tool.js";
@@ -75,9 +69,12 @@ export type { VecCollection } from "./tools/vector-tools.js";
 export {
   TOOL_PERMISSION_CATEGORIES,
   permissionCategoryFor,
-  decidePermission
+  decidePermission,
+  headlessGate,
+  headlessDenialReason
 } from "./tools/tool-permissions.js";
 export { gateTools } from "./capabilities/gate-tools.js";
+export { gateFromContext } from "./capabilities/gate-from-context.js";
 export type {
   PermissionCategory,
   PermissionMode,
@@ -195,7 +192,6 @@ export { installedSandboxPacks } from "./prompts/sandbox-pack-catalog.js";
 export type { InstalledSandboxPack } from "./prompts/sandbox-pack-catalog.js";
 export { ControlNodeTool, sanitizeToolName } from "./tools/control-tool.js";
 export type { ControlNodeInfo } from "./tools/control-tool.js";
-export { CreateTaskPlanTool } from "./tools/create-task-tool.js";
 export {
   runSubAgent,
   forwardSubAgentStream,
@@ -361,6 +357,7 @@ export {
   sandboxPackageSkills,
   wrapUntrustedPackageDocs
 } from "./codeact/sandbox-package-docs.js";
+export type { AgentSkill } from "./codeact/sandbox-package-docs.js";
 export {
   SANDBOX_PACKAGE_DOCS_TOOL_NAME,
   SANDBOX_PACKAGE_LIST_TOOL_NAME,
@@ -426,10 +423,6 @@ export {
   withFabricPackage
 } from "./codeact/fabric-package.js";
 
-// Agents
-export { Agent, loadSkillsFromDirectory } from "./agent.js";
-export type { AgentSkill, AgentOptions } from "./agent.js";
-
 // Skills in the prompt: the always-on catalog, and the bodies a `/name`
 // invocation pulls in.
 export {
@@ -469,24 +462,7 @@ export { STORYBOARD_RENDER_TOOL_NAMES } from "./tools/storyboard-render-tools.js
 export { SKETCH_VERSION_TOOL_NAMES } from "./tools/sketch-version-tools.js";
 export { TIMELINE_VERSION_TOOL_NAMES } from "./tools/timeline-version-tools.js";
 
-// Plan cache + checkpoint store (opt-in planning/execution persistence)
-export {
-  hashPlanKey,
-  hashPlanCheckpointKey,
-  InMemoryPlanCache,
-  FilePlanCache,
-  InMemoryCheckpointStore,
-  FileCheckpointStore
-} from "./checkpoint-store.js";
-export type {
-  PlanCache,
-  CheckpointStore,
-  Checkpoint,
-  PlanKeyInput,
-  PlanCheckpointKeyInput
-} from "./checkpoint-store.js";
-
-// Shared execution policy (bounds every agent mode obeys)
+// Executor defaults (the bounds the two DAG executors fall back to)
 export { DEFAULT_AGENT_POLICY, resolveAgentPolicy } from "./agent-policy.js";
 export type { AgentPolicy, AgentPolicyOptions } from "./agent-policy.js";
 
@@ -497,8 +473,6 @@ export { TaskExecutor } from "./task-executor.js";
 export type { TaskExecutorOptions } from "./task-executor.js";
 export { ParallelTaskExecutor } from "./parallel-task-executor.js";
 export type { ParallelTaskExecutorOptions } from "./parallel-task-executor.js";
-export { CompilerAgent } from "./compiler-agent.js";
-export type { CompilerAgentOptions } from "./compiler-agent.js";
 
 // GraphPlanner evaluation harness
 export {
@@ -842,16 +816,8 @@ export { normalizeModelProperties } from "./normalize-model-properties.js";
 export type { ModelPropertyRegistry } from "./normalize-model-properties.js";
 export { authorGraph, AUTHOR_GRAPH_MAX_ITERATIONS } from "./author-graph.js";
 export type { AuthorGraphOptions } from "./author-graph.js";
-export { executeAgentGraph, applyRunPolicy } from "./execute-agent-graph.js";
-export type {
-  ExecuteAgentGraphOptions,
-  RunPolicy
-} from "./execute-agent-graph.js";
-export { resolveAgentGraph, runWorkflowAsAgent } from "./workflow-agent.js";
-export type {
-  AgentGraphSource,
-  WorkflowAgentRunOptions
-} from "./workflow-agent.js";
+export { applyRunPolicy } from "./run-policy.js";
+export type { RunPolicy } from "./run-policy.js";
 export {
   SupervisorAgent,
   DEFAULT_MAX_SUPERVISOR_COST_USD,

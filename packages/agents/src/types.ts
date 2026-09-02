@@ -50,27 +50,19 @@ export interface TaskPlan {
 }
 
 /**
- * User decision on a proposed {@link TaskPlan}. A rejection may carry
- * feedback; the agent replans with it (bounded) instead of aborting.
+ * ProcessingContext variable key under which a host publishes the
+ * `PermissionGateOptions` every loop under it must gate through.
+ *
+ * The gate has to reach loops the host never constructs: an `AgentNode` a chat
+ * turn started through `run_node`, a JS script, a sub-agent several levels
+ * down. The context bag is the one channel all of them already carry, and
+ * `ProcessingContext.copy()` shallow-copies it, so a child context shares the
+ * host's gate object rather than a clone — which is what makes
+ * `set_permission_mode` mid-turn reach a node that started before it
+ * (invariant I-1).
+ *
+ * Read it with `gateFromContext`, never directly: a context with no gate on it
+ * is a headless host, and the answer there is the deny-by-default gate, not
+ * "ungated".
  */
-export type PlanApprovalDecision =
-  | { decision: "approve" }
-  | { decision: "reject"; feedback?: string };
-
-/**
- * Callback a host wires in to gate execution on user plan approval.
- * Called after planning with the proposed plan; execution proceeds only on
- * an approve decision.
- */
-export type RequestPlanApproval = (
-  plan: TaskPlan
-) => Promise<PlanApprovalDecision>;
-
-/**
- * ProcessingContext variable key under which hosts (e.g. the websocket
- * runner) expose a {@link RequestPlanApproval} callback. `Agent.execute`
- * falls back to this when no `requestPlanApproval` option was passed, so
- * plan gating reaches agents buried inside workflow nodes without explicit
- * wiring at every construction site.
- */
-export const PLAN_APPROVAL_CONTEXT_KEY = "request_plan_approval";
+export const PERMISSION_GATE_CONTEXT_KEY = "nodetool_permission_gate";

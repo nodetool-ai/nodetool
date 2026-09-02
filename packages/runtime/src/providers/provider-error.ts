@@ -21,8 +21,12 @@ const ANNOTATED = Symbol.for("nodetool.provider.errorAnnotated");
  * instead of matching the message text.
  */
 export interface ProviderFailureDetail {
-  /** `provider_auth` is the only code today: the credential was refused. */
-  code: "provider_auth";
+  /**
+   * `provider_auth`: the credential was refused. `context_exceeded`: the
+   * request did not fit the model's context window, which a caller holding the
+   * transcript can answer by shortening it and retrying.
+   */
+  code: "provider_auth" | "context_exceeded";
   /** Provider id as the runtime knows it (e.g. `openai`). */
   provider: string;
   /** Secret key holding that provider's credential, when one is registered. */
@@ -52,6 +56,25 @@ export function providerFailureDetail(
 ): ProviderFailureDetail | null {
   if (!isObjectLike(error)) return null;
   return (error as ErrorLike)[FAILURE_DETAIL] ?? null;
+}
+
+/**
+ * Tag `error` as the provider refusing a request larger than the model's
+ * context window. Kept apart from {@link annotateProviderError}: the prose hint
+ * is written from an HTTP status, while this classification comes from the
+ * provider's own overflow signal.
+ */
+export function markContextExceeded<TError>(
+  error: TError,
+  provider: string
+): TError {
+  if (!(error instanceof Error)) return error;
+  (error as Error & ErrorLike)[FAILURE_DETAIL] = {
+    code: "context_exceeded",
+    provider,
+    secretKey: null
+  };
+  return error;
 }
 
 function numericStatus(value: unknown): number | null {

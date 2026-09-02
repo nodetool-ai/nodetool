@@ -4,7 +4,8 @@ A cassette proves NodeTool still handles a response a provider gave us once. It
 cannot notice that the provider changed the response today — replay never
 reaches the network, so a renamed field or a dropped usage block is invisible
 until a user hits it. The contract probes close that gap for the providers whose
-wire shapes a run depends on most: OpenAI, Gemini, fal, KIE, and Replicate.
+wire shapes a run depends on most: Anthropic, OpenAI, Gemini, fal, KIE, and
+Replicate.
 
 A probe has two halves, and both run the **same production decoder**:
 
@@ -28,10 +29,14 @@ and — where a live call is cheap enough — the single request that fetches it
 
 | Entry | Decoder | Live |
 |---|---|---|
+| `anthropic.context-window-exceeded` | `anthropicContextExceeded` | fixture only |
+| `anthropic.context-window-exceeded-stop` | `anthropicContextExceeded` | fixture only |
 | `openai.chat-completion` | `decodeChatCompletion` | 1 request, ≤ USD 0.05 |
 | `openai.models-list` | `decodeOpenAIModelList` | fixture only |
+| `openai.context-length-exceeded` | `openAIContextExceeded` | fixture only |
 | `gemini.generate-content` | `decodeGeminiGenerateContent` | 1 request, ≤ USD 0.05 |
 | `gemini.models-list` | `decodeGeminiModelsPage` | fixture only |
+| `gemini.context-window-exceeded` | `geminiContextExceeded` | fixture only |
 | `fal_ai.language-catalog` | `decodeFalLanguageCatalog` | 1 request, no key, free |
 | `fal_ai.image-result` | `extractImageUrls` | fixture only |
 | `fal_ai.video-result` | `extractVideoUrl` | fixture only |
@@ -45,6 +50,12 @@ The budget is **one request and USD 0.05 per provider per run**, enforced by
 `runProbes` and asserted by the manifest test. A fixture-only entry must say in
 `liveGap` why there is no live probe; most say the same thing — a live result
 would mean paying for a generation. Raising the budget is how those become live.
+
+The context-window entries pin a different kind of shape: the refusal a run gets
+when the prompt outgrew the model's window. That one is recoverable — the caller
+can shorten the transcript and retry — so the recognizer that identifies it is
+as much a decoder as the ones that read a successful response, and its check
+asserts which of the provider's signals fired rather than only that some did.
 
 ### Probing a different model
 

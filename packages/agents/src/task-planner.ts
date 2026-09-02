@@ -4,8 +4,6 @@
  * planMultiTask() builds the plan incrementally: the LLM calls add_task one
  * task at a time, with per-task validation. Progress is yielded as task_update
  * events (TaskPlanned) so clients can watch the plan take shape in real time.
- *
- * plan() (single-task) keeps the original one-shot create_task tool.
  */
 
 import type {
@@ -27,10 +25,7 @@ import {
 
 const log = createLogger("nodetool.agents.planner");
 import type { Task, TaskPlan, Step } from "./types.js";
-import type { PlanCache } from "./checkpoint-store.js";
-import { hashPlanKey } from "./checkpoint-store.js";
 import { Tool } from "./tools/base-tool.js";
-import { CreateTaskPlanTool } from "./tools/create-task-tool.js";
 import {
   PlanBuilder,
   AddTaskTool,
@@ -43,7 +38,6 @@ import {
   isString
 } from "./utils/type-guards.js";
 
-const MAX_RETRIES = 3;
 const MAX_PER_TASK_RETRIES = 3;
 
 const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objectives into parallel executable plans by calling tools.
@@ -73,16 +67,14 @@ const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objec
 
 ## Final Synthesis Is NOT Your Job
 - Do NOT create an "assemble", "aggregate", "synthesize", "compile",
-  "combine", or "final report" task or step. Final synthesis runs as a
-  separate Compiler stage AFTER your plan finishes. It has full access to
-  every \`task_result\` your plan produced and will assemble them into the
-  declared output schema.
+  "combine", or "final report" task or step. The loop that ran your plan
+  writes the answer on its next turn, reading every task result you produced.
 - Plan tasks should GATHER and PRODUCE concrete artifacts (search results,
   generated media, computed values, written sections, extracted facts).
-  Each task's result is automatically stored in shared memory under
-  \`task:<task_id>\` and made available to the Compiler.
+  Each task's result is stored in shared memory under \`task:<task_id>\`,
+  which is where that loop reads it.
 - The schema shown below is informational — it tells you what facts the
-  Compiler will need so you can plan tasks that produce them. Do NOT attach
+  answer will need so you can plan tasks that produce them. Do NOT attach
   it to any step's \`output_schema\`.
 
 ## Step Instructions
@@ -99,8 +91,8 @@ const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objec
 ## Output Schemas
 - Include \`output_schema\` (as a JSON schema string) on steps that produce
   structured data the next step needs to consume programmatically.
-- Do NOT attach the overall plan output schema to any step — the Compiler
-  owns the final schema-conformant result.
+- Do NOT attach the overall plan output schema to any step — the final
+  schema-conformant result is assembled after the plan finishes.
 - Use type "object" at the top level.
 `;
 
@@ -170,42 +162,22 @@ Objective: {{objective}}
 Available tools (reference by name in step instructions):
 {{toolsInfo}}
 
-Final result schema (informational — the Compiler stage will produce this from your tasks' results; do NOT attach it to any step):
+Final result schema (informational — assembled from your tasks' results after the plan finishes; do NOT attach it to any step):
 {{outputSchema}}
 
 Remember:
 - Prefix step IDs with their task ID (e.g. "task1_search", "task1_summarize") to avoid collisions.
 - Call add_task for each task in dependency order.
-- Do NOT add an aggregation/synthesis/assemble task — the Compiler handles final assembly from \`task_result\` memory entries automatically.`;
-
-const TASK_CREATION_PROMPT_TEMPLATE = `Create an executable task plan using the create_task tool.
-
-Objective: {{objective}}
-
-Available tools (reference by name in step instructions):
-{{toolsInfo}}
-
-Output schema for the final step:
-{{outputSchema}}`;
+- Do NOT add an aggregation/synthesis/assemble task — the loop that ran the plan reads each task's result from memory and writes the answer itself.`;
 
 export interface TaskPlannerOptions {
   provider: BaseProvider;
   model: string;
-  reasoningModel?: string;
   tools?: Tool[];
   systemPrompt?: string;
   outputSchema?: Record<string, unknown>;
   inputs?: Record<string, unknown>;
-  maxRetries?: number;
   threadId?: string;
-  /**
-   * Optional plan cache. When supplied, {@link TaskPlanner.planMultiTask}
-   * checks the cache (keyed by objective + sorted tool names + model) before
-   * planning and reuses a hit instead of re-running the LLM loop. After a
-   * successful plan it stores the result. Omit to keep the original behavior
-   * (no caching). A `planMultiTask` argument overrides this.
-   */
-  planCache?: PlanCache;
   /** External cancellation. Aborts the planning provider loop mid-flight. */
   signal?: AbortSignal;
 }
@@ -213,21 +185,17 @@ export interface TaskPlannerOptions {
 export class TaskPlanner {
   private provider: BaseProvider;
   private model: string;
-  readonly reasoningModel: string;
   private tools: Tool[];
   private systemPrompt: string;
   private readonly preamble: string | undefined;
   private outputSchema: Record<string, unknown> | undefined;
   private inputs: Record<string, unknown>;
-  private maxRetries: number;
   private threadId?: string;
-  private planCache?: PlanCache;
   private signal?: AbortSignal;
 
   constructor(opts: TaskPlannerOptions) {
     this.provider = opts.provider;
     this.model = opts.model;
-    this.reasoningModel = opts.reasoningModel ?? opts.model;
     this.tools = opts.tools ?? [];
     // A caller-supplied prompt is a PREAMBLE, not a replacement — the same rule
     // the step executors already follow. It used to replace the whole contract,
@@ -241,142 +209,8 @@ export class TaskPlanner {
     this.systemPrompt = opts.systemPrompt ?? DEFAULT_PLANNING_SYSTEM_PROMPT;
     this.outputSchema = opts.outputSchema;
     this.inputs = opts.inputs ?? {};
-    this.maxRetries = opts.maxRetries ?? MAX_RETRIES;
     this.threadId = opts.threadId;
-    this.planCache = opts.planCache;
     this.signal = opts.signal;
-  }
-
-  /** Build the stable plan-cache key for the given objective. */
-  private buildPlanKey(objective: string): string {
-    return hashPlanKey({
-      objective,
-      tools: this.tools.map((t) => t.name),
-      model: this.model,
-      outputSchema: this.outputSchema ?? null,
-      inputKeys: Object.keys(this.inputs),
-      systemPrompt: this.preamble ?? null
-    });
-  }
-
-  // ---------------------------------------------------------------------------
-  // Single-task planning (legacy one-shot)
-  // ---------------------------------------------------------------------------
-
-  async *plan(
-    objective: string,
-    context: ProcessingContext
-  ): AsyncGenerator<ProcessingMessage, Task | null> {
-    return yield* withAgentSpanGen(
-      "plan",
-      {
-        objective,
-        provider: this.provider.provider,
-        model: this.model,
-        toolsCount: this.tools.length,
-        extra: { "agent.plan.kind": "single" }
-      },
-      () => this._planImpl(objective, context)
-    );
-  }
-
-  private async *_planImpl(
-    objective: string,
-    _context: ProcessingContext
-  ): AsyncGenerator<ProcessingMessage, Task | null> {
-    const toolsInfo = this.formatToolsInfo();
-
-    const userPrompt = TASK_CREATION_PROMPT_TEMPLATE.replace(
-      "{{objective}}",
-      objective
-    )
-      .replace("{{toolsInfo}}", toolsInfo)
-      .replace(
-        "{{outputSchema}}",
-        this.outputSchema
-          ? JSON.stringify(this.outputSchema, null, 2)
-          : "None specified"
-      );
-
-    const systemPrompt = this.buildSystemPrompt(true);
-
-    const messages: Message[] = [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt }
-    ];
-
-    yield {
-      type: "planning_update",
-      phase: "initialization",
-      status: "started",
-      content: "Starting task planning..."
-    } satisfies PlanningUpdate;
-
-    const createTaskTool = new CreateTaskPlanTool(this.inputs);
-
-    for (let attempt = 0; attempt < this.maxRetries; attempt++) {
-      yield {
-        type: "planning_update",
-        phase: "generation",
-        status: "running",
-        content:
-          attempt > 0
-            ? `Retry attempt ${attempt + 1}/${this.maxRetries}...`
-            : "Generating plan..."
-      } satisfies PlanningUpdate;
-
-      const toolCallResult = yield* this.callSingleTaskTool(
-        messages,
-        createTaskTool
-      );
-
-      if (createTaskTool.task) {
-        yield {
-          type: "planning_update",
-          phase: "complete",
-          status: "success",
-          content: `Plan created: ${createTaskTool.task.title} (${createTaskTool.task.steps.length} steps)`
-        } satisfies PlanningUpdate;
-        return createTaskTool.task;
-      }
-
-      const errorMsg =
-        toolCallResult.error ??
-        `Planning tool was not called successfully on attempt ${attempt + 1}/${this.maxRetries}`;
-
-      yield {
-        type: "planning_update",
-        phase: "validation",
-        status: "failed",
-        content: errorMsg
-      } satisfies PlanningUpdate;
-
-      if (toolCallResult.assistantContent) {
-        messages.push({
-          role: "assistant",
-          content: toolCallResult.assistantContent
-        });
-      }
-      messages.push({
-        role: "user",
-        content: `Error: ${errorMsg}. Please call the create_task tool with a corrected plan.`
-      });
-    }
-
-    yield {
-      type: "chunk",
-      content: `\nFailed to generate a task plan after ${this.maxRetries} attempts.\n`,
-      done: true
-    } satisfies Chunk;
-
-    yield {
-      type: "planning_update",
-      phase: "complete",
-      status: "failed",
-      content: `Plan generation failed after ${this.maxRetries} attempts`
-    } satisfies PlanningUpdate;
-
-    return null;
   }
 
   // ---------------------------------------------------------------------------
@@ -385,8 +219,7 @@ export class TaskPlanner {
 
   async *planMultiTask(
     objective: string,
-    context: ProcessingContext,
-    planCache?: PlanCache
+    context: ProcessingContext
   ): AsyncGenerator<ProcessingMessage, TaskPlan | null> {
     return yield* withAgentSpanGen(
       "plan",
@@ -397,37 +230,14 @@ export class TaskPlanner {
         toolsCount: this.tools.length,
         extra: { "agent.plan.kind": "multi" }
       },
-      () => this._planMultiTaskImpl(objective, context, planCache)
+      () => this._planMultiTaskImpl(objective, context)
     );
   }
 
   private async *_planMultiTaskImpl(
     objective: string,
-    context: ProcessingContext,
-    planCacheArg?: PlanCache
+    context: ProcessingContext
   ): AsyncGenerator<ProcessingMessage, TaskPlan | null> {
-    // Plan cache (opt-in): on a hit, skip the LLM planning + validation-retry
-    // loop entirely and return the cached plan. No cache ⇒ unchanged behavior.
-    const planCache = planCacheArg ?? this.planCache;
-    const planKey = planCache ? this.buildPlanKey(objective) : undefined;
-    if (planCache && planKey) {
-      const cached = planCache.get(planKey);
-      if (cached) {
-        log.info("Multi-task plan cache hit", { title: cached.title });
-        yield {
-          type: "planning_update",
-          phase: "complete",
-          status: "success",
-          content: `Plan cache hit: ${cached.title} (${cached.tasks.length} tasks)`
-        } satisfies PlanningUpdate;
-        // Return a private deep copy: execution mutates the plan in place
-        // (task.completed = true, step.logs.push, …). Handing out the cached
-        // reference would leave the template marked completed, so the NEXT
-        // cache hit would run zero tasks and produce an empty result.
-        return structuredClone(cached);
-      }
-    }
-
     const toolsInfo = this.formatToolsInfo();
 
     const userPrompt = PLAN_CREATION_PROMPT_TEMPLATE.replace(
@@ -688,12 +498,6 @@ export class TaskPlanner {
     yield* drainUi();
 
     if (finished) {
-      // Persist a successful plan so an identical objective + tool set reuses it.
-      // Store a deep copy so the executor's in-place mutation of the returned
-      // plan cannot corrupt the cached template.
-      if (planCache && planKey && builder.plan) {
-        planCache.set(planKey, structuredClone(builder.plan));
-      }
       return builder.plan;
     }
 
@@ -739,89 +543,6 @@ export class TaskPlanner {
           : `Planning ended after ${builder.taskCount} task(s) without calling finish_plan (call budget ${MAX_CALLS}).`
     } satisfies PlanningUpdate;
     return null;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Single-task one-shot call
-  // ---------------------------------------------------------------------------
-
-  private async *callSingleTaskTool(
-    messages: Message[],
-    planningTool: CreateTaskPlanTool
-  ): AsyncGenerator<
-    ProcessingMessage,
-    { error?: string; assistantContent?: string }
-  > {
-    let content = "";
-    let toolCallArgs: Record<string, unknown> | null = null;
-
-    const providerTool = planningTool.toProviderTool();
-
-    const onToolCall = async (
-      name: string,
-      args: Record<string, unknown>
-    ): Promise<string> => {
-      if (name === planningTool.name) {
-        toolCallArgs = args;
-        return JSON.stringify({ status: "tool_called" });
-      }
-      return JSON.stringify({ error: `Unknown tool: ${name}` });
-    };
-
-    const stream = this.provider.generateMessagesTraced({
-      messages: [...messages],
-      model: this.model,
-      tools: [providerTool],
-      toolChoice: planningTool.name,
-      threadId: this.threadId,
-      onToolCall
-    });
-
-    for await (const item of stream) {
-      if (
-        "type" in item &&
-        item.type === "chunk"
-      ) {
-        const chunk = item as { content?: string };
-        if (isString(chunk.content)) {
-          content += chunk.content;
-          yield {
-            type: "chunk",
-            content: chunk.content,
-            done: false
-          } satisfies Chunk;
-        }
-      }
-      if ("name" in item && item.name === planningTool.name) {
-        toolCallArgs = item.args;
-      }
-    }
-
-    if (!toolCallArgs) {
-      return {
-        error: `LLM did not call ${planningTool.name} tool`,
-        assistantContent: content || undefined
-      };
-    }
-
-    const result = await Tool.executeTool(
-      planningTool,
-      {} as ProcessingContext,
-      toolCallArgs
-    );
-
-    if (
-      isObjectLike(result) &&
-      (result as Record<string, unknown>)["status"] === "validation_failed"
-    ) {
-      const errors = (result as Record<string, unknown>)["errors"] as string[];
-      return {
-        error: `Plan validation failed:\n${errors.map((e) => `- ${e}`).join("\n")}`,
-        assistantContent: content || undefined
-      };
-    }
-
-    return { assistantContent: content || undefined };
   }
 
   // ---------------------------------------------------------------------------

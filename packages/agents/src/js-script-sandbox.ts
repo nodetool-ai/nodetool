@@ -14,7 +14,11 @@ import {
 } from "@nodetool-ai/protocol";
 
 import { mountCapabilityModules } from "./codeact/capability-modules.js";
-import { ungatedCapabilityRun } from "./capabilities/invoke.js";
+import { gateFromContext } from "./capabilities/gate-from-context.js";
+import {
+  contextSecretAvailability,
+  createCapabilityRun
+} from "./capabilities/invoke.js";
 import type { SandboxCapabilityMount } from "./js-sandbox.js";
 
 export type PackResolution =
@@ -87,9 +91,17 @@ export async function mountJsScriptSandbox(
   code: string,
   context: ProcessingContext
 ): Promise<JsScriptSandboxMount> {
+  // A script's capability calls go through the gate its host set (invariant
+  // I-1): a script a chat turn ran is bound by that turn's mode, and one with
+  // no host gate on its context runs headless rather than ungated. The budget
+  // comes off the same context inside `createCapabilityRun`.
   const platform = await mountCapabilityModules(
     code,
-    ungatedCapabilityRun(context)
+    createCapabilityRun({
+      context,
+      gate: gateFromContext(context, "JS script"),
+      availableSecrets: contextSecretAvailability(context)
+    })
   );
   if (!platform.ok) {
     return {

@@ -400,3 +400,47 @@ export interface PermissionGateOptions {
    */
   recentTranscript?: () => string;
 }
+
+/**
+ * Why a headless host refuses an escalation, in one sentence naming it.
+ *
+ * Exported because two callers need the same words: the gate reports it when
+ * it denies, and a host that runs headless on purpose (the CLI behind a pipe)
+ * prints it once up front so the user is not left guessing why a later call
+ * was refused.
+ */
+export function headlessDenialReason(hostName: string): string {
+  return (
+    `${hostName} runs without a user to ask, so calls the permission ladder ` +
+    `escalates are denied.`
+  );
+}
+
+/**
+ * The gate for a host with nobody to ask: `auto`, denying every escalation.
+ *
+ * `decidePermission` allows read, write, execute and external outright in
+ * `auto`, so this approver is reached only by a request the ladder itself
+ * raises — a security-monitor consult, or a category that starts asking in
+ * `auto` later. Denying is the only answer a host with no user can give
+ * honestly: resolving `"allow"` would grant exactly what the escalation was
+ * raised to withhold, and never resolving would hang the run (invariant I-4).
+ *
+ * `hostName` names the caller so the refusal says which host had no one to
+ * ask, rather than only that something was refused.
+ */
+export function headlessGate(hostName: string): PermissionGateOptions {
+  const reason = headlessDenialReason(hostName);
+  const headlessDeny: RequestApproval = async (request) => {
+    // Loud on the refusal (I-4): a denial nobody can see reads as a tool that
+    // silently did nothing. `console` rather than a logger keeps the
+    // type-only-imports rule at the top of this file.
+    console.warn(`Denied \`${request.toolName}\` without asking: ${reason}`);
+    return "deny";
+  };
+  return {
+    mode: "auto",
+    sessionAllow: new Set<string>(),
+    requestApproval: headlessDeny
+  };
+}

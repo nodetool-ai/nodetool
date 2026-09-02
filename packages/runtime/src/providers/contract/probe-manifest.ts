@@ -39,9 +39,16 @@ import {
   kieEnvelopeError
 } from "../kie-provider.js";
 import { decodeReplicateOutput } from "../replicate-provider.js";
+import {
+  anthropicContextExceeded,
+  geminiContextExceeded,
+  openAIContextExceeded,
+  type ContextExceededSignal
+} from "../context-exceeded.js";
 
 /** Providers the first manifest covers. */
 export type ProbeProvider =
+  | "anthropic"
   | "openai"
   | "gemini"
   | "fal_ai"
@@ -126,10 +133,80 @@ function checkChatCompletion(raw: unknown): void {
   );
 }
 
+/**
+ * A context-window refusal the caller must be able to recognize: overflowing
+ * the window is the one provider failure a long conversation can recover from,
+ * by shortening the transcript and retrying. The check asserts the *named*
+ * signal, not just the classification, so a provider dropping the field the
+ * recognizer reads is reported even while the English message still matches.
+ */
+function checkContextExceeded(
+  recognize: (raw: unknown) => ContextExceededSignal | null,
+  expected: ContextExceededSignal
+): (raw: unknown) => void {
+  return (raw) => {
+    const signal = recognize(raw);
+    expect(
+      signal === expected,
+      `context-window refusal no longer reports the ${expected} signal (got ${signal ?? "no match"})`
+    );
+  };
+}
+
+/** Why no context-window entry makes a live request. */
+const CONTEXT_EXCEEDED_LIVE_GAP =
+  "Reproducing the refusal means sending a prompt larger than the model's " +
+  "context window, which is far above the per-provider request budget. The " +
+  "wire shape is pinned by the fixture.";
+
 const OPENAI_PROBE_MODEL = "gpt-5.4-mini";
 const GEMINI_PROBE_MODEL = "gemini-3-flash";
 
 export const PROBE_MANIFEST: ProbeManifestEntry[] = [
+  {
+    id: "anthropic.context-window-exceeded",
+    provider: "anthropic",
+    target: "POST https://api.anthropic.com/v1/messages (input over the window)",
+    decoder: "anthropicContextExceeded",
+    fixture: "anthropic/context-window-exceeded.json",
+    check: checkContextExceeded(anthropicContextExceeded, "message"),
+    requiredFields: ["error", "error.message"],
+    live: null,
+    liveGap: CONTEXT_EXCEEDED_LIVE_GAP
+  },
+  {
+    id: "anthropic.context-window-exceeded-stop",
+    provider: "anthropic",
+    target: "POST https://api.anthropic.com/v1/messages (generation hits the window)",
+    decoder: "anthropicContextExceeded",
+    fixture: "anthropic/context-window-exceeded-stop.json",
+    check: checkContextExceeded(anthropicContextExceeded, "stop_reason"),
+    requiredFields: ["stop_reason"],
+    live: null,
+    liveGap: CONTEXT_EXCEEDED_LIVE_GAP
+  },
+  {
+    id: "openai.context-length-exceeded",
+    provider: "openai",
+    target: "POST https://api.openai.com/v1/chat/completions (input over the window)",
+    decoder: "openAIContextExceeded",
+    fixture: "openai/context-length-exceeded.json",
+    check: checkContextExceeded(openAIContextExceeded, "error_code"),
+    requiredFields: ["error", "error.code"],
+    live: null,
+    liveGap: CONTEXT_EXCEEDED_LIVE_GAP
+  },
+  {
+    id: "gemini.context-window-exceeded",
+    provider: "gemini",
+    target: "POST :generateContent (input over the window)",
+    decoder: "geminiContextExceeded",
+    fixture: "gemini/context-window-exceeded.json",
+    check: checkContextExceeded(geminiContextExceeded, "message"),
+    requiredFields: ["error", "error.message"],
+    live: null,
+    liveGap: CONTEXT_EXCEEDED_LIVE_GAP
+  },
   {
     id: "openai.chat-completion",
     provider: "openai",

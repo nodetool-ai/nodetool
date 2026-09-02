@@ -297,8 +297,6 @@ export interface JobExecutionDeps {
   sendToSocket: (message: Record<string, unknown>) => Promise<void>;
   /** Whether the socket is still usable — a dropped one settles the run instead. */
   isSocketConnected: () => boolean;
-  /** Chat's plan-approval hook, attached to a run's context. */
-  attachPlanApproval: (context: ProcessingContext, jobId: string) => void;
   /** Provider/model this connection falls back to. */
   defaults: { provider: string; model: string };
 }
@@ -1367,10 +1365,6 @@ export class JobExecutionManager {
       assetOutputMode: this.session.mode === "text" ? "data_uri" : "temp_url",
       persistOutputAssets: executionOptions.assetPersistence === "auto"
     });
-    // Agents planning inside this run pause for user approval over this
-    // socket before executing their plan.
-    this.deps.attachPlanApproval(context, jobId);
-
     // Expose executor/node-type resolution on the context so that
     // sub-workflow nodes (WorkflowNode) can create child runners.
     context.setResolveExecutor((node) => this.session.resolveExecutor(node));

@@ -27,7 +27,6 @@ interface EvalCliOptions {
   list?: boolean;
   json?: boolean;
   out?: string;
-  maxRetries?: string;
   maxIterations?: string;
   timeout?: string;
   minSuccess?: string;
@@ -63,7 +62,6 @@ interface EvalRunDeps {
   providers?: Record<string, BaseProvider>;
   /** Case ids to run; undefined runs the whole suite. */
   caseIds?: string[];
-  maxRetries?: number;
   /** Turn cap per case, for loop-style suites (tool-loop). */
   maxIterations?: number;
   /** Per-case execution timeout (ms), for suites that run what they plan. */
@@ -464,7 +462,6 @@ const taskPlannerSuite: EvalSuite = {
       model: deps.model,
       providers: deps.providers,
       cases,
-      maxRetries: deps.maxRetries,
       systemPrompt: deps.systemPrompt,
       onEvent: deps.onEvent
     });
@@ -756,13 +753,6 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
       registry,
       providers,
       caseIds,
-      maxRetries:
-        opts.maxRetries !== undefined
-          ? parseNumericOption(opts.maxRetries, "--max-retries", {
-              integer: true,
-              min: 0
-            })
-          : undefined,
       maxIterations:
         opts.maxIterations !== undefined
           ? parseNumericOption(opts.maxIterations, "--max-iterations", {
@@ -868,7 +858,6 @@ export function registerEvalCommand(program: Command): void {
       .option("--list", "List available cases and exit")
       .option("--json", "Print the full report as JSON")
       .option("--out <path>", "Write the JSON report to a file")
-      .option("--max-retries <n>", "Planner attempts per case (default 3)")
       .option(
         "--max-iterations <n>",
         "Turn cap per case for loop-style suites (tool-loop; default 12)"

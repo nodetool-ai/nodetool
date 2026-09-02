@@ -3,10 +3,14 @@
  * through the real QuickJS sandbox and tool bridge. No network, no model.
  */
 import { describe, it, expect } from "vitest";
-import { CodeActExecutor } from "../src/codeact/codeact-executor.js";
+import {
+  CodeActExecutor,
+  FINISH_CONTRACT_NUDGE
+} from "../src/codeact/codeact-executor.js";
 import { Tool } from "../src/tools/base-tool.js";
 import type { Step, Task } from "../src/types.js";
 import type {
+  Message,
   ProcessingContext,
   ProviderStreamItem,
   RunBudget,
@@ -966,5 +970,81 @@ describe("CodeActExecutor run budget", () => {
     expect(step.failed).toBe(true);
     expect(step.error).toContain("turn budget of $");
     expect(step.error).not.toContain("without calling finish()");
+  });
+});
+
+/**
+ * The finish nudge asks a model to complete work it already did. Asked without
+ * the observations that work produced, it is a repetition of the brief.
+ */
+describe("CodeActExecutor finish nudge", () => {
+  /** Acts once, then answers in prose — the shape that earns a nudge. */
+  class ActThenProseProvider extends BaseProvider {
+    readonly provider = "openai" as const;
+    turns = 0;
+
+    async *generateMessages(): AsyncGenerator<ProviderStreamItem> {
+      this.turns++;
+      if (this.turns === 1) {
+        yield {
+          id: "call_1",
+          name: "execute_code",
+          args: { code: "return { partial: 41 };" }
+        };
+        return;
+      }
+      yield { type: "chunk", content: "The partial answer is 41.", done: true };
+    }
+
+    async generateMessage(): Promise<never> {
+      throw new Error("not used");
+    }
+  }
+
+  it("carries the round's observations into the nudged request", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    const provider = new ActThenProseProvider();
+    const requests: Message[][] = [];
+    const inner = provider.generateLoop.bind(provider);
+    provider.generateLoop = ((args: { messages: Message[] }) => {
+      // Snapshot per round: the executor passes its own `history` array and
+      // keeps appending to it, so the live reference would read as the last
+      // round for every round.
+      requests.push([...args.messages]);
+      return inner(args as never);
+    }) as typeof provider.generateLoop;
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "gpt-4o-mini",
+      tools: []
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    expect(requests.length).toBeGreaterThan(1);
+    const nudged = requests[1] as Message[];
+
+    // The observation the first round computed from is in the second round's
+    // request, not just the prose the model closed on.
+    const observations = nudged.filter((m) => m.role === "tool");
+    expect(observations).toHaveLength(1);
+    expect(String(observations[0]?.content)).toContain("partial");
+    expect(String(observations[0]?.content)).toContain("41");
+
+    // The action that produced it rides along, so the result is not orphaned.
+    const action = nudged.find(
+      (m) => m.role === "assistant" && (m.toolCalls?.length ?? 0) > 0
+    );
+    expect(action?.toolCalls?.[0]?.id).toBe(observations[0]?.toolCallId);
+
+    // And the nudge is still the last thing the model is asked.
+    expect(nudged[nudged.length - 1]).toEqual({
+      role: "user",
+      content: FINISH_CONTRACT_NUDGE
+    });
   });
 });

@@ -1,10 +1,20 @@
 /**
  * The `run_node` chat tool (a one-node kernel run inside a chat turn), the
- * provider-session resume fast path with its `loadFullHistory` fallback, and
- * the persistence branches for array-content assistant messages.
+ * provider-session resume fast path with its `loadFullHistory` fallback, how
+ * that path resolves against a compaction record, and the persistence branches
+ * for array-content assistant messages.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { initTestDb, Message, Thread } from "@nodetool-ai/models";
+import {
+  COMPACTION_EVENT_TYPE,
+  compactionMessageContent,
+  initTestDb,
+  Message,
+  Thread
+} from "@nodetool-ai/models";
+import { SUPERSEDED_TOOL_RESULT } from "../src/chat-tool-call-repair.js";
+import { decidePermission, gateFromContext } from "@nodetool-ai/agents";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   makeChatTurnHarness,
   fakeProvider,
@@ -353,5 +363,243 @@ describe("thread bootstrap", () => {
     expect(threads).not.toBeNull();
     const [rows] = await Message.paginate("t-reuse", { limit: 10 });
     expect(rows.filter((m) => m.role === "user")).toHaveLength(2);
+  });
+});
+
+describe("the gate a run_node child inherits", () => {
+  beforeEach(() => {
+    initTestDb();
+  });
+
+  /**
+   * `run_node` runs the node on a context it builds itself, not on the turn's,
+   * so the turn's gate has to be handed across. Without it the node's own
+   * agent loop finds nothing on the context and runs headless in `auto` — a
+   * write inside the node then runs with no prompt, on the strength of the
+   * user having approved "run this node".
+   */
+  async function runTurnAndReadGate(
+    permissionMode: "plan" | "default" | "auto"
+  ): Promise<{ modes: string[]; toolResult: string }> {
+    const modes: string[] = [];
+    const results: unknown[] = [];
+    const harness = makeChatTurnHarness({
+      session: {
+        resolveExecutor: () => ({
+          async process(
+            _inputs: Record<string, unknown>,
+            context?: ProcessingContext
+          ) {
+            modes.push(gateFromContext(context, "test").mode);
+            return { output: "" };
+          }
+        }),
+        resolveProvider: async () =>
+          fakeProvider({
+            generateLoop: async function* (args: GenerateLoopArgs) {
+              results.push(
+                await args.executeTool?.({
+                  id: "call_run",
+                  name: "run_node",
+                  args: { node_type: "test.Echo" }
+                })
+              );
+              yield { type: "chunk", content: "ok", done: true };
+            }
+          })
+      }
+    });
+    const stop = autoApprove(harness);
+    try {
+      await harness.handler.handleChatMessage({
+        ...chatTurn(`t-gate-${permissionMode}`),
+        permission_mode: permissionMode
+      });
+    } finally {
+      stop();
+    }
+    return { modes, toolResult: String(results[0]) };
+  }
+
+  it("hands the node the turn's mode, not the headless auto", async () => {
+    const { modes } = await runTurnAndReadGate("default");
+
+    // `auto` here would mean the node found no gate: a write inside it would
+    // then run without asking.
+    expect(modes).toEqual(["default"]);
+    expect(decidePermission("default", "write")).toBe("ask");
+  });
+
+  it("carries auto through when that is the turn's mode", async () => {
+    const { modes } = await runTurnAndReadGate("auto");
+
+    expect(modes).toEqual(["auto"]);
+  });
+
+  it("never reaches the node in plan mode: the belt blocks run_node first", async () => {
+    const { modes, toolResult } = await runTurnAndReadGate("plan");
+
+    expect(toolResult).toContain("blocked_in_plan_mode");
+    expect(modes).toEqual([]);
+  });
+});
+
+/**
+ * A compaction record and a `provider_session` both claim to say where the
+ * provider's view of a thread starts. The newest of the two wins.
+ */
+describe("compaction and the provider-session probe", () => {
+  beforeEach(() => {
+    initTestDb();
+  });
+
+  const at = (n: number) =>
+    `2026-01-01T00:00:00.${String(n).padStart(3, "0")}Z`;
+
+  const session = (checkpoint: number) => ({
+    providerId: "mock",
+    model: "m",
+    token: "resume-token",
+    systemHash: "h1",
+    checkpoint
+  });
+
+  /**
+   * Sixty rows: a compaction record at position 40, an assistant carrying a
+   * session token at `sessionAt`, and a tool-call pair in every other turn.
+   */
+  async function seed(threadId: string, sessionAt: number): Promise<void> {
+    for (let i = 1; i <= 60; i++) {
+      const base = { thread_id: threadId, user_id: "1", created_at: at(i) };
+      if (i === 40) {
+        await Message.create({
+          ...base,
+          role: "user",
+          execution_event_type: COMPACTION_EVENT_TYPE,
+          content: compactionMessageContent("The user wants a teal palette.")
+        });
+      } else if (i === sessionAt) {
+        await Message.create({
+          ...base,
+          role: "assistant",
+          content: `answer ${i}`,
+          provider: "mock",
+          model: "m",
+          provider_session: session(i)
+        });
+      } else if (i % 3 === 1) {
+        await Message.create({ ...base, role: "user", content: `ask ${i}` });
+      } else if (i % 3 === 2) {
+        await Message.create({
+          ...base,
+          role: "assistant",
+          content: `thinking ${i}`,
+          tool_calls: [{ id: `call-${i}`, name: "search", args: {} }]
+        });
+      } else {
+        await Message.create({
+          ...base,
+          role: "tool",
+          content: `result ${i}`,
+          tool_call_id: `call-${i - 1}`
+        });
+      }
+    }
+  }
+
+  /** Run one turn and report what the provider was handed. */
+  async function runTurn(threadId: string): Promise<{
+    messages: GenerateLoopArgs["messages"];
+    providerSession: Record<string, unknown> | null;
+  }> {
+    let messages: GenerateLoopArgs["messages"] = [];
+    let providerSession: Record<string, unknown> | null = null;
+    const harness = makeChatTurnHarness({
+      session: {
+        resolveProvider: async () =>
+          fakeProvider({
+            generateLoop: async function* (args: GenerateLoopArgs) {
+              messages = args.messages;
+              providerSession =
+                (args.providerSession as Record<string, unknown> | null) ??
+                null;
+              yield { type: "chunk", content: "ok", done: true };
+            }
+          })
+      }
+    });
+    await harness.handler.handleChatMessage(chatTurn(threadId, "and then?"));
+    return { messages, providerSession };
+  }
+
+  const texts = (messages: GenerateLoopArgs["messages"]): string[] =>
+    messages.map((m) =>
+      typeof m.content === "string" ? m.content : JSON.stringify(m.content)
+    );
+
+  it("cuts history at a compaction newer than the session", async () => {
+    const threadId = "t-compaction-newest";
+    await seed(threadId, 20);
+
+    const { messages, providerSession } = await runTurn(threadId);
+
+    // The system message, the compaction record, rows 41-60, and this turn's
+    // own user message.
+    expect(messages[0].role).toBe("system");
+    expect(messages[1].role).toBe("user");
+    expect(texts(messages)[1]).toContain("[Conversation so far]");
+    expect(messages).toHaveLength(1 + 1 + 20 + 1);
+    const flat = texts(messages).join("\n");
+    expect(flat).toContain("ask 43");
+    expect(flat).not.toContain("ask 37");
+    expect(flat).not.toContain("answer 20");
+    // Resuming that session would replay upstream the very history the cut
+    // dropped, so the compaction refuses it.
+    expect(providerSession).toBeNull();
+    // No tool call was separated from its result, so nothing needed patching.
+    expect(flat).not.toContain(SUPERSEDED_TOOL_RESULT);
+  });
+
+  it("keeps the resume fast path when the session is newer than the compaction", async () => {
+    const threadId = "t-session-newest";
+    await seed(threadId, 55);
+
+    const { messages, providerSession } = await runTurn(threadId);
+
+    // Only the turns after the session ride the wire; the compaction record is
+    // already behind the boundary the provider holds upstream.
+    expect(providerSession).toMatchObject({
+      token: "resume-token",
+      checkpoint: 1
+    });
+    const flat = texts(messages).join("\n");
+    expect(flat).not.toContain("[Conversation so far]");
+    expect(flat).not.toContain("ask 43");
+    expect(flat).toContain("ask 58");
+  });
+
+  it("applies the cut to the priming fallback the resume path hands back", async () => {
+    const threadId = "t-session-newest-priming";
+    await seed(threadId, 55);
+
+    let full: GenerateLoopArgs["messages"] = [];
+    const harness = makeChatTurnHarness({
+      session: {
+        resolveProvider: async () =>
+          fakeProvider({
+            generateLoop: async function* (args: GenerateLoopArgs) {
+              full = (await args.loadFullHistory?.()) ?? [];
+              yield { type: "chunk", content: "ok", done: true };
+            }
+          })
+      }
+    });
+    await harness.handler.handleChatMessage(chatTurn(threadId, "and then?"));
+
+    expect(full[0].role).toBe("system");
+    expect(texts(full)[1]).toContain("[Conversation so far]");
+    const flat = texts(full).join("\n");
+    expect(flat).toContain("ask 43");
+    expect(flat).not.toContain("ask 37");
   });
 });

@@ -159,6 +159,24 @@ s(
   "Agents",
   "Prompt-token ceiling for a turn on a model the price catalog does not cover (default: 400000). An unpriced model has no worst-case cost to reserve, so admitting it freely would make the dollar cap advisory; this bounds it by size instead. Such turns are counted as unpriced rather than as free spend."
 );
+// Chat compaction — replacing the earlier turns of a long thread with one
+// summary the provider is sent instead. See A4 in
+// docs/plans/agent-system-improvements.md.
+s(
+  "NODETOOL_CHAT_COMPACTION_TOKENS",
+  "Agents",
+  "Estimated prompt size, in tokens, at which a chat turn summarizes the earlier part of its thread before calling the model (default: 120000). The estimate tokenizes the messages and their tool calls alone — it misses the tool definitions the same turn sends and reads an image as the length of its base64 — so leave room under the model's context window rather than setting it close. A provider that holds the conversation itself (a resumed session, the Claude Agent SDK) is not measured this way; it compacts when it reports that the transcript no longer fits."
+);
+s(
+  "NODETOOL_CHAT_COMPACTION_KEEP_TURNS",
+  "Agents",
+  "How many of the most recent user turns a compaction leaves verbatim (default: 4). Everything before them becomes the summary. The cut always lands on a user message, so a tool call is never separated from its result."
+);
+s(
+  "NODETOOL_COMPACTION_MODEL",
+  "Agents",
+  "Model that writes the compaction summary, as `provider/model` or a bare model id on the turn's own provider. Unset, the turn summarizes with the model it is already running. A summarizer that fails leaves the thread uncompacted and the turn runs against the full history."
+);
 // Provider endpoints
 s(
   "VLLM_BASE_URL",

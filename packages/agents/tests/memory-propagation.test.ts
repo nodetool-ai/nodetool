@@ -2,8 +2,8 @@
  * End-to-end tests for the unified agent memory system with progressive
  * disclosure.
  *
- * Drives `Agent` in plan mode and `TaskExecutor` directly with a
- * scriptable mock provider, then verifies that:
+ * Drives `execute_plan`, `TaskExecutor` and `StepExecutor` with a scriptable
+ * mock provider, then verifies that:
  *
  *   1. Every step / task / input is written to `context.memory` under a
  *      canonical namespaced key.
@@ -16,7 +16,6 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { Agent } from "../src/agent.js";
 import { TaskExecutor } from "../src/task-executor.js";
 import { StepExecutor } from "../src/step-executor.js";
 import { EXECUTE_CODE_TOOL_NAME } from "../src/codeact/codeact-executor.js";
@@ -24,6 +23,9 @@ import { ParallelTaskExecutor } from "../src/parallel-task-executor.js";
 import { memoryKeys, BaseProvider } from "@nodetool-ai/runtime";
 import type { Task, TaskPlan } from "../src/types.js";
 import { createMockContext } from "./_helpers/mock-context.js";
+import { executePlan } from "../src/capabilities/agents.js";
+import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
+import type { SubAgentToolRuntime } from "../src/subagent.js";
 
 // ---------------------------------------------------------------------------
 // Mock provider that records the messages it sees on every call.
@@ -117,7 +119,7 @@ const finishAction = (id: string, result: unknown) => ({
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("Agent memory propagation", () => {
+describe("agent memory propagation", () => {
   it("writes step and task results to memory under canonical keys", async () => {
     const provider = createRecordingProvider([
       [finishAction("tc1", { value: 42 })]
@@ -357,59 +359,46 @@ describe("Agent memory propagation", () => {
     expect(sys).toContain("# Output schema");
   });
 
-  it("plan mode emits a final task_result discoverable by callers", async () => {
-    // Two-task plan via Agent driven by the planner tool sequence.
+  it("execute_plan leaves each task result in shared memory for its caller", async () => {
+    // What replaced the compiler: `execute_plan` runs the DAG and the calling
+    // loop reads `task:<id>` from memory on its next turn. The capability
+    // returns the same values in `results`, so both halves are asserted here.
     const provider = createRecordingProvider([
-      // Planner: add_task #1
-      [
-        {
-          id: "tc_add_1",
-          name: "add_task",
-          args: {
-            id: "task_one",
-            title: "Task One",
-            depends_on: [],
-            steps: [
-              {
-                id: "task_one_s1",
-                instructions: "Do A",
-                depends_on: [],
-                output_schema: JSON.stringify({
-                  type: "object",
-                  properties: { greeting: { type: "string" } },
-                  required: ["greeting"]
-                })
-              }
-            ]
-          }
-        }
-      ],
-      // Planner: finish_plan
-      [{ id: "tc_finish_plan", name: "finish_plan", args: { title: "P" } }],
       // Step task_one_s1
       [finishAction("tc_step", { greeting: "Hello" })]
     ]);
     const context = createMockContext();
 
-    const agent = new Agent({
-      name: "test-plan-mode",
-      objective: "Greet the user",
-      provider,
-      model: "test"
-    });
+    const result = (await executePlan.impl(
+      createCapabilityRun({
+        context: context as never,
+        gate: UNGATED,
+        subAgent: {
+          provider,
+          model: "test",
+          parentTools: () => [],
+          forwardMessage: () => {}
+        } as unknown as SubAgentToolRuntime
+      }),
+      {
+        title: "P",
+        tasks: [
+          {
+            id: "task_one",
+            title: "Task One",
+            depends_on: [],
+            steps: [
+              { id: "task_one_s1", instructions: "Do A", depends_on: [] }
+            ]
+          }
+        ]
+      }
+    )) as Record<string, unknown>;
 
-    for await (const _ of agent.execute(context)) {
-      /* drain */
-    }
-
-    // The task result must be in shared memory under the canonical key —
-    // callers (including the downstream CompilerAgent) discover it from
-    // there. The agent's own `getResults()` reflects the compiler's
-    // synthesis pass, not this raw value.
     expect(context.memory.getValue(memoryKeys.task("task_one"))).toEqual({
       greeting: "Hello"
     });
-    void agent;
+    expect(result["results"]).toEqual({ task_one: { greeting: "Hello" } });
   });
 
   it("agent discovers and reads memory via list_shared → read_shared → finish_step", async () => {

@@ -1,16 +1,12 @@
 /**
  * ChatTurnHandler turn lifecycle: the seq/abort pair `beginTurn` hands out,
  * supersede-by-new-turn, `cancel`/`endTurn` controller bookkeeping, the
- * permission-mode switch, plan approval round-trips, and provider-call cost
- * logging. All through the public surface, against {@link FakeClientSession}.
+ * permission-mode switch, and provider-call cost logging. All through the
+ * public surface, against {@link FakeClientSession}.
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { initTestDb, Prediction } from "@nodetool-ai/models";
-import type { TaskPlan } from "@nodetool-ai/agents";
 import { makeChatTurnHarness, fakeProvider } from "./chat-turn-test-harness.js";
-
-/** Let the handler's awaited send land before reading recorded frames. */
-const tick = (): Promise<void> => new Promise((r) => setImmediate(r));
 
 describe("turn lifecycle", () => {
   it("beginTurn aborts the previous turn and bumps the seq", () => {
@@ -101,99 +97,6 @@ describe("permission mode and tool results", () => {
     const waiting = toolBridge.createWaiter("call_9", 0);
     handler.resolveToolResult("call_9", { result: 42 });
     await expect(waiting).resolves.toEqual({ result: 42 });
-  });
-});
-
-describe("requestPlanApproval", () => {
-  const plan: TaskPlan = {
-    title: "Build the thing",
-    tasks: [
-      {
-        id: "t1",
-        title: "First",
-        // dependsOn deliberately absent: the frame must default it to [].
-        steps: [
-          {
-            id: "s1",
-            instructions: "do it",
-            completed: false,
-            dependsOn: [],
-            logs: []
-          }
-        ]
-      }
-    ]
-  };
-
-  it("emits the serialized plan and resolves approve", async () => {
-    const { handler, session, approvalBridge } = makeChatTurnHarness();
-    const pending = handler.requestPlanApproval("thread-p", plan);
-    await tick();
-    const [frame] = session.messagesOfType("plan_approval_request");
-    expect(frame).toBeDefined();
-    expect(frame.thread_id).toBe("thread-p");
-    expect(frame.plan).toEqual({
-      title: "Build the thing",
-      tasks: [
-        {
-          id: "t1",
-          title: "First",
-          depends_on: [],
-          steps: [{ id: "s1", instructions: "do it" }]
-        }
-      ]
-    });
-    approvalBridge.resolveResult(String(frame.approval_id), {
-      decision: "approve"
-    });
-    await expect(pending).resolves.toEqual({ decision: "approve" });
-  });
-
-  it("returns reject with trimmed feedback", async () => {
-    const { handler, session, approvalBridge } = makeChatTurnHarness();
-    const pending = handler.requestPlanApproval("thread-p", plan);
-    await tick();
-    const [frame] = session.messagesOfType("plan_approval_request");
-    approvalBridge.resolveResult(String(frame.approval_id), {
-      decision: "reject",
-      feedback: "  too broad  "
-    });
-    await expect(pending).resolves.toEqual({
-      decision: "reject",
-      feedback: "too broad"
-    });
-  });
-
-  it("returns reject without feedback when feedback is blank", async () => {
-    const { handler, session, approvalBridge } = makeChatTurnHarness();
-    const pending = handler.requestPlanApproval("thread-p", plan);
-    await tick();
-    const [frame] = session.messagesOfType("plan_approval_request");
-    approvalBridge.resolveResult(String(frame.approval_id), {
-      decision: "reject",
-      feedback: "   "
-    });
-    await expect(pending).resolves.toEqual({ decision: "reject" });
-  });
-
-  it("treats a cancelled wait as a rejection", async () => {
-    const { handler, approvalBridge } = makeChatTurnHarness();
-    const pending = handler.requestPlanApproval("thread-p", plan);
-    await tick();
-    approvalBridge.cancelScope("thread-p");
-    await expect(pending).resolves.toEqual({ decision: "reject" });
-  });
-
-  it("carries a null thread id through the frame", async () => {
-    const { handler, session, approvalBridge } = makeChatTurnHarness();
-    const pending = handler.requestPlanApproval(null, plan);
-    await tick();
-    const [frame] = session.messagesOfType("plan_approval_request");
-    expect(frame.thread_id).toBeNull();
-    approvalBridge.resolveResult(String(frame.approval_id), {
-      decision: "approve"
-    });
-    await expect(pending).resolves.toEqual({ decision: "approve" });
   });
 });
 

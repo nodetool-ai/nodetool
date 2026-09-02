@@ -50,7 +50,7 @@ export type WebSocketMessageData =
   | TaskUpdateMessage;
 
 /**
- * Planning-phase status from agents (TaskPlanner, CompilerAgent, etc.).
+ * Planning-phase status from the planner behind `create_plan`.
  * Used to drive the chat status banner during long-running agent runs.
  */
 export interface PlanningUpdate {

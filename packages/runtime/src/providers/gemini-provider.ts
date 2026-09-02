@@ -1,6 +1,7 @@
 import type { Chunk } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
+import { geminiContextExceeded } from "./context-exceeded.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import { sniffVideoMime } from "./video-mime.js";
 import { safeFetch } from "./safe-url.js";
@@ -2374,6 +2375,10 @@ export class GeminiProvider extends BaseProvider {
   // ---------------------------------------------------------------------------
   // Error detection
   // ---------------------------------------------------------------------------
+
+  override isContextExceededError(error: unknown): boolean {
+    return geminiContextExceeded(error) !== null;
+  }
 
   isContextLengthError(error: unknown): boolean {
     const msg = String(error).toLowerCase();
