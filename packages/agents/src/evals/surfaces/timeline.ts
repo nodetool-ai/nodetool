@@ -124,6 +124,40 @@ const textStyleParams = z.object({
   maxWidthFrac: z.number().optional()
 });
 
+/**
+ * A caption's look. Every field is optional and an absent one keeps the
+ * built-in value, so a partial patch restyles one thing rather than resetting
+ * the rest.
+ */
+const captionStyleParams = z.object({
+  fontFamily: z.string().optional(),
+  fontSizeFrac: z
+    .number()
+    .optional()
+    .describe("Font size as a fraction of frame height. Default 0.05."),
+  color: z.string().optional().describe("Colour of the words not being spoken."),
+  activeColor: z
+    .string()
+    .optional()
+    .describe("Colour of the word being spoken. Default #FFD60A."),
+  outline: z
+    .object({ color: z.string(), widthPx: z.number() })
+    .optional()
+    .describe("Outline under the glyphs. widthPx 0 draws none."),
+  bottomMarginFrac: z
+    .number()
+    .optional()
+    .describe("Gap from the frame bottom, as a fraction of height. Default 0.12."),
+  background: z
+    .object({
+      color: z.string(),
+      paddingPx: z.number(),
+      radiusPx: z.number().optional()
+    })
+    .optional()
+    .describe("Scrim behind the whole block.")
+});
+
 const shapeStyleParams = z.object({
   kind: z.enum(["rect", "ellipse", "line"]),
   fill: z.string().optional(),
@@ -844,6 +878,7 @@ export function createTimelineToolBridge(
       locked: c.locked,
       textStyle: c.textStyle,
       shapeStyle: c.shapeStyle,
+      captionStyle: c.caption?.style,
       transitionIn: c.transitionIn,
       mask: c.mask,
       matte: c.matte,
@@ -1252,7 +1287,7 @@ export function createTimelineToolBridge(
 
     tool(
       "ui_timeline_set_clip_params",
-      "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, or a shape clip's `shapeStyle`. Omit a field to leave it unchanged.",
+      "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. Omit a field to leave it unchanged.",
       z.object({
         target: targetParam,
         name: z.string().optional(),
@@ -1267,7 +1302,8 @@ export function createTimelineToolBridge(
         muted: z.boolean().optional(),
         locked: z.boolean().optional(),
         textStyle: fullTextStyleParams.optional(),
-        shapeStyle: shapeStyleParams.optional()
+        shapeStyle: shapeStyleParams.optional(),
+        captionStyle: captionStyleParams.optional()
       }),
       async ({ target, ...patch }) => {
         const clip = resolveClip(target as string);
@@ -1289,6 +1325,20 @@ export function createTimelineToolBridge(
           clip.textStyle = patch.textStyle as TimelineClip["textStyle"];
         if (patch.shapeStyle !== undefined)
           clip.shapeStyle = patch.shapeStyle as TimelineClip["shapeStyle"];
+        if (patch.captionStyle !== undefined) {
+          // The style rides on the clip's caption, so a clip with no words to
+          // draw has nowhere to put it. Say so rather than storing a look
+          // nothing renders.
+          if (!clip.caption) {
+            throw new Error(`Clip "${clip.name}" carries no caption to style.`);
+          }
+          clip.caption = {
+            ...clip.caption,
+            style: patch.captionStyle as NonNullable<
+              TimelineClip["caption"]
+            >["style"]
+          };
+        }
         return { ok: true, clip: serializeClip(clip) };
       }
     ),

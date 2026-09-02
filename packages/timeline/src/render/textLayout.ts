@@ -47,8 +47,21 @@ export interface RenderCanvas {
  */
 const FONT_SLANTS = new Set(["italic", "oblique"]);
 
+/**
+ * What the `font` shorthand is built from. Narrower than `ClipTextStyle` so a
+ * caption, which carries no text of its own, resolves its font through the
+ * same builder — and the `Inter, Arial, sans-serif` fallback stays in one
+ * place.
+ */
+export interface FontSpecStyle {
+  fontFamily?: string;
+  fontSizePx: number;
+  fontWeight?: number;
+  fontStyle?: string;
+}
+
 /** The `ctx.font` shorthand a text style renders with. */
-export function textFontSpec(style: ClipTextStyle): string {
+export function textFontSpec(style: FontSpecStyle): string {
   const fontSize = Math.max(1, style.fontSizePx);
   const family = style.fontFamily ?? "Inter, Arial, sans-serif";
   const slant = FONT_SLANTS.has(style.fontStyle ?? "")
