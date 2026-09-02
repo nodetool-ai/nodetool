@@ -747,6 +747,8 @@ authored motion did not fit the clip.
 | `unknown_easing` | warning | An `easing` outside the grammar; it eases linearly |
 | `unknown_effect` | warning | A clip effect type this build cannot apply; the layer draws ungraded |
 | `mask_path_invalid` | warning | A mask `kind` or path `d` that cannot rasterize; the layer draws unmasked |
+| `unknown_shape_kind` | warning | A `shapeStyle.kind` this build has no geometry for; the shape draws nothing |
+| `font_not_portable` | warning | A font family NodeTool does not ship; every host resolves it against its own installed fonts, so the editor preview and the render can differ |
 | `parent_missing`, `parent_not_group` | warning | A `parentId` naming nothing, or naming a clip that is not a group; the child renders unparented |
 | `layer_cap_exceeded` | warning | More video clips overlap at an instant than the compositor draws |
 | `animation_exceeds_clip` | warning | The window does not fit the clip after its delay, so the motion is clamped — or never runs |
