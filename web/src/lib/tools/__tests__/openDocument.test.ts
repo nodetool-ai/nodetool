@@ -22,7 +22,8 @@ const snapshot = (sequenceId: string | null): TimelineSnapshot => ({
   playheadMs: 0,
   selectedClipIds: [],
   tracks: [],
-  clips: []
+  clips: [],
+  markers: []
 });
 
 const timelineHandler = (sequenceId: string | null): TimelineAgentHandler =>

@@ -44,9 +44,20 @@ vi.mock("@nodetool-ai/runtime", () => ({
   },
   // The chat context builds the run's workspace from the --workspace path.
   createLocalWorkspace: (dir: string) => ({ localDir: dir }),
-  // This mock replaces the shared stub wholesale, so re-state the one other
-  // export the CodeAct wiring reads.
-  DIRECT_TOOL_NAMES: DIRECT_TOOL_NAMES_STUB
+  // This mock replaces the shared stub wholesale, so re-state the other
+  // exports the CodeAct wiring and the turn budget read.
+  DIRECT_TOOL_NAMES: DIRECT_TOOL_NAMES_STUB,
+  RUN_BUDGET_CONTEXT_KEY: "nodetool_run_budget",
+  createRunBudget: () => ({
+    turns: { reserve: () => ({}), commit: () => {}, spentUsd: 0 },
+    deadline: { at: Infinity, remainingMs: () => Infinity, expired: () => false },
+    concurrency: {
+      permits: 1,
+      acquire: async () => () => {}
+    },
+    turnCount: { max: 1, current: 0, increment: () => true },
+    exhausted: null
+  })
 }));
 
 vi.mock("@nodetool-ai/chat", () => ({
@@ -70,6 +81,7 @@ vi.mock("@nodetool-ai/agents", async () => ({
   // it, and a second copy of the classification map is the thing A2 exists to
   // prevent.
   ...(await import("../../agents/src/tools/tool-permissions.js")),
+  EXECUTE_CODE_TOOL_NAME: "execute_code",
   PERMISSION_GATE_CONTEXT_KEY: "nodetool_permission_gate",
   gateTools: (tools: unknown[]) => tools,
   Tool: class {

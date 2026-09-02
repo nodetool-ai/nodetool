@@ -118,3 +118,6 @@
 ## 2026-08-30 - N+1 await bottleneck in trpc settings list
 **Learning:** Checking an object's presence in another list via `.some` creates O(N*M) lookups inside an iteration over `configuredSecrets`. Additionally, sequentially `await`ing the database result mapping in the `for...of` loop inside `settings.list` introduced N+1 latency waiting on database retrieval.
 **Action:** Extract the environment variables from `registrySecrets` into a `Set` for O(1) existence checks. Replaced the `for...of` sequential mapping to a `.map()` mapped into `Promise.all(...)` to resolve multiple unlisted secrets concurrently.
+## 2024-11-23 - Bolt: Optimize thread message deletion with single query
+**Learning:** Found an N+1 query and latency bottleneck in `packages/websocket/src/trpc/routers/threads.ts` where messages were paginated and deleted individually in batches during thread deletion. This sequentially looped over database `select` and `delete` calls over the network, causing significant latency for threads with many messages.
+**Action:** Replaced the batched `.paginate()` and individual `msg.delete()` loop with a static `Message.deleteByThread()` method that executes a single bulk `DELETE FROM messages WHERE thread_id = ?` query. This reduces network roundtrips to 1 and eliminates the N+1 latency bottleneck entirely.

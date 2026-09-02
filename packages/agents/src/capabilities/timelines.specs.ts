@@ -126,7 +126,8 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "add_group, split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
         "set_clip_params, set_parent, set_clip_binding, set_transition, set_mask, " +
         "set_matte, set_effects, animate_clip, " +
-        "clear_animations, list_animation_presets, select_clip, seek. " +
+        "clear_animations, list_animation_presets, select_clip, seek, " +
+        "add_marker, delete_marker, set_markers_from_beats, snap_to_beats. " +
         "Start with get_state to " +
         "read track and clip ids. To lay existing videos end to end, call " +
         'add_media_clip once per asset ({"op": "add_media_clip", "asset": ' +
@@ -160,7 +161,17 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         'set_effects takes {"target", "effects": [{type, ...}]} and replaces ' +
         "the whole chain — types color, blur, glow, dropShadow, vignette, " +
         "sharpen, chromaKey, curves, levels, liftGammaGain, applied in the " +
-        "order given. An empty list clears it.",
+        "order given. An empty list clears it. " +
+        'add_marker takes {"timeMs", "label"?, "color"?, "note"?} and ' +
+        'delete_marker {"target"} (marker id or label). ' +
+        "set_markers_from_beats and snap_to_beats both take a grid — " +
+        '"onsets_ms" (detect_audio_events reports `onsets.times` in SECONDS, ' +
+        'so multiply by 1000) or "bpm" with "offset_ms"?; ' +
+        'set_markers_from_beats also needs "count". snap_to_beats takes ' +
+        '"targets" (clip ids or names, or "all"), "tolerance_ms"? (default ' +
+        '60), "mode"? ("start" | "end" | "both") and "action"? ("move" slides ' +
+        'the clip, "trim" changes its length), and reports every target — ' +
+        "including the ones no beat was in reach of, with the reason.",
       items: { type: "object" }
     }
   },

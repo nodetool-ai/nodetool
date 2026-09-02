@@ -677,3 +677,36 @@ FrontendToolRegistry.register({
     return { ok: true, playheadMs };
   }
 });
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_add_marker",
+  description:
+    "Drop a marker at an absolute time on the specified timeline sequence, to flag a moment — a beat, a scene boundary, a note for the user. Markers do not render; they are annotations on the ruler.",
+  parameters: z.object({
+    timeline_id: timelineIdParam,
+    timeMs: z
+      .number()
+      .describe("Absolute position on the timeline in ms. Must be >= 0."),
+    label: z.string().optional().describe("Short label shown on the ruler."),
+    color: z.string().optional().describe("CSS colour for the marker dot."),
+    note: z.string().optional().describe("Longer note attached to the marker.")
+  }),
+  async execute({ timeline_id, ...opts }) {
+    const marker = getTimelineAgentHandler(timeline_id).addMarker(opts);
+    return { ok: true, marker, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_delete_marker",
+  description:
+    "Remove a marker from the specified timeline sequence by id or by its label (case-insensitive). Call ui_timeline_get_state to see the markers it carries.",
+  parameters: z.object({
+    timeline_id: timelineIdParam,
+    target: z.string().describe("Marker id or label (case-insensitive).")
+  }),
+  async execute({ timeline_id, target }) {
+    const deleted = getTimelineAgentHandler(timeline_id).deleteMarker(target);
+    return { ok: true, deleted, url: docUrl("timeline", timeline_id) };
+  }
+});

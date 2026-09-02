@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { ZodType } from "zod";
-import { isNumber, isObjectLike, isString } from "./type-predicates.js";
+import { isNumber, isObjectLike, isString } from "./predicates.js";
 
 export type JsonSchema = Record<string, unknown>;
 export type ZodOrJsonSchema = ZodType | JsonSchema;

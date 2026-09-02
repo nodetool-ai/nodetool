@@ -20,6 +20,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
+import { RUN_BUDGET_CONTEXT_KEY } from "@nodetool-ai/runtime";
 import {
   getAgentToolbelt,
   getAllMcpTools,
@@ -42,6 +43,11 @@ import {
   createCliCodeActTurn
 } from "../chat-codeact.js";
 import { createChatContext } from "../chat-context.js";
+import {
+  budgetStopReason,
+  budgetSummaryLine,
+  createCliRunBudget
+} from "../run-budget.js";
 import {
   createCliPermissionGate,
   parsePermissionMode,
@@ -210,6 +216,10 @@ export interface RunOptions {
   workspace?: string;
   maxIterations?: string;
   permissionMode?: string;
+  /** `--cost-cap <usd>`; `0` lifts the cap. Defaults to the agent settings. */
+  costCap?: string;
+  /** `--timeout <s>`; `0` leaves the run no time. Defaults to the settings. */
+  timeout?: string;
   json?: boolean;
   verbose?: boolean;
 }
@@ -314,6 +324,15 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
   // building an ungated run of their own (`gateFromContext`, invariant I-1).
   context.set(PERMISSION_GATE_CONTEXT_KEY, gate);
 
+  // The bounds this run shares downward, created once (invariant I-2). The
+  // same channel the gate takes: a loop this command never constructs reads
+  // the budget off the context instead of opening an allowance of its own.
+  const budget = await createCliRunBudget({
+    ...(opts.costCap !== undefined && { costCap: opts.costCap }),
+    ...(opts.timeout !== undefined && { timeout: opts.timeout })
+  });
+  context.set(RUN_BUDGET_CONTEXT_KEY, budget);
+
   // One belt, every run. A narrowing flag made each invocation its own
   // configuration — the thing YAML configs were removed for — and an agent
   // run that behaves differently from the last one is not reproducible.
@@ -325,7 +344,8 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
     gate,
     // An objective is a job, not a conversation: the two plan capabilities are
     // on the belt so the model can decompose one and run the DAG itself.
-    planning: true
+    planning: true,
+    budget
   });
 
   if (!opts.json) {
@@ -358,6 +378,7 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
       provider,
       context,
       tools: turn.tools,
+      turnBudget: budget,
       maxIterations:
         opts.maxIterations === undefined ? undefined : Number(opts.maxIterations),
       callbacks: {
@@ -396,6 +417,33 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
 
   if (!opts.json) process.stderr.write(chalk.bold("\n— result —\n"));
   if (finalText) process.stdout.write(finalText + "\n");
+
+  // What the whole run — this loop plus every sub-agent and node it started —
+  // committed against the shared cap.
+  const summary = budgetSummaryLine(budget);
+  if (opts.json) {
+    emit({
+      type: "log_update",
+      node_id: "agent",
+      node_name: "budget",
+      content: summary,
+      severity: "info"
+    });
+  } else {
+    process.stderr.write(chalk.gray(`\n${summary}\n`));
+  }
+
+  // A ceiling ended the run, not the model finishing its answer. Said nowhere,
+  // the two are indistinguishable from an empty transcript (invariant I-3), so
+  // the reason is reported before anything else about how the run ended.
+  const stopReason = budgetStopReason(budget);
+  if (!errored && stopReason) {
+    emit({ type: "error", message: stopReason });
+    if (!opts.json) {
+      process.stderr.write(chalk.red(`\nagent stopped: ${stopReason}\n`));
+    }
+    return 1;
+  }
 
   // A run that ended on a tool call or a contentless assistant turn produced
   // no answer. Writing nothing and exiting 0 is indistinguishable from an
@@ -588,6 +636,16 @@ export function registerAgentCommands(program: Command): void {
       "--permission-mode <mode>",
       `Permission mode (${PERMISSION_MODE_NAMES.join(" | ")}); on a TTY the ` +
         "default asks before each write, execute or external call"
+    )
+    .option(
+      "--cost-cap <usd>",
+      "Ceiling on provider spend for the whole run, shared by every loop it " +
+        "starts; 0 lifts it (default: NODETOOL_AGENT_TURN_COST_CAP_USD)"
+    )
+    .option(
+      "--timeout <s>",
+      "Wall-clock bound on the run in seconds; 0 leaves it no time at all " +
+        "(default: NODETOOL_AGENT_TURN_DEADLINE_MS)"
     )
     .option("--json", "Emit each event as a JSON line on stderr")
     .option("-v, --verbose", "Include chunk/other low-level events in trace")

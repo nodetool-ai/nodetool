@@ -17,6 +17,7 @@ import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { Message, MessageContent } from '../../types';
 import { ChatMarkdown } from './ChatMarkdown';
+import { COMPACTION_EVENT_TYPE, CompactionRow } from './CompactionRow';
 import { MessageContentRenderer } from './MessageContentRenderer';
 import { useTheme } from '../../hooks/useTheme';
 import { isRecord, isString } from '../../utils/typePredicates';
@@ -113,6 +114,12 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(({ message }) 
 
   if (message.role === 'system' || message.role === 'tool') {
     return null;
+  }
+
+  // A compaction record is stored as a user turn, so it would otherwise render
+  // as though the user typed the summary.
+  if (message.execution_event_type === COMPACTION_EVENT_TYPE) {
+    return <CompactionRow text={textContent} />;
   }
 
   const renderSimpleMessage = () => {

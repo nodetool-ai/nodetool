@@ -27,11 +27,22 @@ vi.mock("@nodetool-ai/config", async () => {
 vi.mock("@nodetool-ai/runtime", async () => {
   const stub = await import("./__stubs__/nodetool.js");
   const types = await import("../../runtime/src/providers/types.js");
+  const budget = await import("../../runtime/src/turn-budget.js");
   return {
     ...stub,
     ACTIVE_MODEL_CONTEXT_KEY: "active_agent_model",
     isProviderSessionUpdate: types.isProviderSessionUpdate,
-    isProviderMessageEvent: types.isProviderMessageEvent
+    isProviderMessageEvent: types.isProviderMessageEvent,
+    isProviderStop: types.isProviderStop,
+    isChunk: types.isChunk,
+    isToolCall: types.isToolCall,
+    // The real budget: what this file pins is that the CLI builds one and
+    // reports the ceiling it hit, which a stub that admits everything could
+    // not show.
+    createRunBudget: budget.createRunBudget,
+    isRunBudget: budget.isRunBudget,
+    budgetFromContext: budget.budgetFromContext,
+    RUN_BUDGET_CONTEXT_KEY: budget.RUN_BUDGET_CONTEXT_KEY
   };
 });
 
@@ -364,6 +375,50 @@ describe("the gate a CLI run belts through", () => {
     expect(notices).toHaveLength(1);
     expect(String((notices[0] as { content: string }).content)).toBe(
       headlessDenialReason("nodetool agent run")
+    );
+  });
+});
+
+describe("the budget a CLI run holds", () => {
+  it("refuses the run before the first model call when --cost-cap is below one turn", async () => {
+    const provider = new ScriptedProvider([textScript("never reached")]);
+
+    const { code, stdout, events } = await runWithCapture(provider, {
+      objective: "list my workflows",
+      model: "gpt-4o",
+      costCap: "0.01"
+    });
+
+    // The cap is admission, not accounting: the turn is refused before the
+    // provider is asked for anything.
+    expect(provider.callLog).toHaveLength(0);
+    expect(code).toBe(1);
+    expect(stdout).toBe("");
+    const errors = events.filter(
+      (e) => (e as { type?: string }).type === "error"
+    );
+    expect(errors).toHaveLength(1);
+    expect(String((errors[0] as { message: string }).message)).toContain(
+      "turn budget of $0.01 reached"
+    );
+  });
+
+  it("stops with the deadline reason when --timeout leaves the run no time", async () => {
+    const provider = new ScriptedProvider([textScript("never reached")]);
+
+    const { code, events } = await runWithCapture(provider, {
+      objective: "list my workflows",
+      timeout: "0"
+    });
+
+    expect(provider.callLog).toHaveLength(0);
+    expect(code).toBe(1);
+    const errors = events.filter(
+      (e) => (e as { type?: string }).type === "error"
+    );
+    expect(errors).toHaveLength(1);
+    expect(String((errors[0] as { message: string }).message)).toContain(
+      "run deadline of 0ms reached"
     );
   });
 });

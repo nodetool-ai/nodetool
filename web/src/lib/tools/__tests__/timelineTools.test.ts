@@ -60,7 +60,8 @@ const snapshot = (): TimelineSnapshot => ({
   playheadMs: 0,
   selectedClipIds: [],
   tracks: [trackNode()],
-  clips: [clipNode()]
+  clips: [clipNode()],
+  markers: []
 });
 
 const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
@@ -87,7 +88,9 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   setMatte: jest.fn(),
   setEffects: jest.fn(),
   selectClip: jest.fn(),
-  seek: jest.fn()
+  seek: jest.fn(),
+  addMarker: jest.fn(),
+  deleteMarker: jest.fn()
 });
 
 // The timeline tools never touch the workflow state, so a bare stub satisfies ctx.
@@ -529,5 +532,65 @@ describe("ui_timeline_* tools", () => {
     );
     const kenBurns = result.presets.find((p) => p.id === "kenBurns");
     expect(kenBurns?.roles).toContain("loop");
+  });
+});
+
+describe("marker tools", () => {
+  const marker = {
+    id: "marker-1",
+    timeMs: 4500,
+    label: "Chorus",
+    color: "#ff0055"
+  };
+
+  it("adds a marker, passing every field through to the handler", async () => {
+    const handler = createMockHandler();
+    handler.addMarker.mockReturnValue(marker);
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_add_marker",
+      {
+        timeline_id: SEQ_ID,
+        timeMs: 4500,
+        label: "Chorus",
+        color: "#ff0055"
+      },
+      "tc-marker-add",
+      ctx
+    )) as { ok: boolean; marker: typeof marker };
+
+    expect(handler.addMarker).toHaveBeenCalledWith({
+      timeMs: 4500,
+      label: "Chorus",
+      color: "#ff0055"
+    });
+    expect(result).toMatchObject({ ok: true, marker });
+  });
+
+  it("deletes a marker by label", async () => {
+    const handler = createMockHandler();
+    handler.deleteMarker.mockReturnValue(marker);
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_delete_marker",
+      { timeline_id: SEQ_ID, target: "Chorus" },
+      "tc-marker-del",
+      ctx
+    )) as { ok: boolean; deleted: typeof marker };
+
+    expect(handler.deleteMarker).toHaveBeenCalledWith("Chorus");
+    expect(result.deleted).toEqual(marker);
+  });
+
+  it("requires timeMs, so a marker cannot land at an unstated time", () => {
+    const tool = FrontendToolRegistry.getManifest().find(
+      (t) => t.name === "ui_timeline_add_marker"
+    );
+    const schema = tool?.parameters as { required?: string[] };
+    expect(schema.required).toEqual(
+      expect.arrayContaining(["timeline_id", "timeMs"])
+    );
   });
 });

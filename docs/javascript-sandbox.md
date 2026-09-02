@@ -339,6 +339,12 @@ one the host granted.
   party access. Publishing is the one exception, and it asks —
   `set_workflow_access` is classified `external`, so the permission gate
   prompts before a workflow becomes readable outside the account.
+- **The gate is the host's, not the sandbox's.** A Code node and a JS script
+  read `PERMISSION_GATE_CONTEXT_KEY` off the run's context, so a body reached
+  from a chat in plan mode is refused a write capability through both doors —
+  the `@nodetool-ai/sandbox-nodetool/*` import and the belt bridge. A kernel
+  workflow run sets no gate and runs `auto`, since pressing Run on the graph
+  was the consent.
 - **Bridges are the boundary, not the hiding.** The host and WASM module
   dispatchers validate module identity, export name and argument list before any
   implementation loads, and their bindings are deleted before user code starts.

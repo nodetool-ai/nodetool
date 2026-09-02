@@ -19,6 +19,7 @@ import {
   type RunBudget
 } from "../src/turn-budget.js";
 import { BaseProvider } from "../src/providers/base-provider.js";
+import { CostCalculator } from "../src/providers/cost-calculator.js";
 import {
   isProviderStop,
   type ProviderStop,
@@ -43,8 +44,9 @@ describe("CompositeTurnBudget: priced models", () => {
       maxOutputTokens: 2048,
       unpricedTokenCeiling: 100
     });
-    expect(budget.reserve(pricedTurn())).toBe(true);
-    budget.commit(0.5);
+    const held = budget.reserve(pricedTurn());
+    expect(held).not.toBeNull();
+    budget.commit(held!, 0.5);
     expect(budget.spentUsd).toBeCloseTo(0.5);
     expect(budget.unpricedTurns).toBe(0);
   });
@@ -55,7 +57,7 @@ describe("CompositeTurnBudget: priced models", () => {
       maxOutputTokens: 2048,
       unpricedTokenCeiling: 100
     });
-    expect(budget.reserve(pricedTurn())).toBe(false);
+    expect(budget.reserve(pricedTurn())).toBeNull();
   });
 });
 
@@ -66,8 +68,9 @@ describe("CompositeTurnBudget: unpriced models", () => {
       maxOutputTokens: 2048,
       unpricedTokenCeiling: 5000
     });
-    expect(budget.reserve(unpricedTurn(4999))).toBe(true);
-    budget.commit(null);
+    const held = budget.reserve(unpricedTurn(4999));
+    expect(held).not.toBeNull();
+    budget.commit(held!, null);
     // Never booked as $0 spend: the turn is counted where a caller can see it,
     // and `spentUsd` is a lower bound rather than a claim the turn was free.
     expect(budget.unpricedTurns).toBe(1);
@@ -81,9 +84,9 @@ describe("CompositeTurnBudget: unpriced models", () => {
       maxOutputTokens: 2048,
       unpricedTokenCeiling: 5000
     });
-    expect(budget.reserve(unpricedTurn(5001))).toBe(false);
+    expect(budget.reserve(unpricedTurn(5001))).toBeNull();
     expect(budget.lastRefusal).toBe("unpriced-token-ceiling");
-    expect(budget.reserve(unpricedTurn(10))).toBe(true);
+    expect(budget.reserve(unpricedTurn(10))).not.toBeNull();
     expect(budget.lastRefusal).toBeNull();
   });
 
@@ -93,8 +96,9 @@ describe("CompositeTurnBudget: unpriced models", () => {
       maxOutputTokens: 2048,
       unpricedTokenCeiling: 5000
     });
-    expect(budget.reserve(unpricedTurn(10))).toBe(true);
-    budget.commit(0.02);
+    const held = budget.reserve(unpricedTurn(10));
+    expect(held).not.toBeNull();
+    budget.commit(held!, 0.02);
     expect(budget.spentUsd).toBeCloseTo(0.02);
     expect(budget.unpricedTurns).toBe(1);
   });
@@ -108,8 +112,65 @@ describe("CompositeTurnBudget: unpriced models", () => {
       maxOutputTokens: 2048,
       unpricedTokenCeiling: 10
     });
-    expect(budget.reserve(unpricedTurn(1_000_000))).toBe(true);
-    expect(budget.reserve(pricedTurn(1_000_000))).toBe(true);
+    expect(budget.reserve(unpricedTurn(1_000_000))).not.toBeNull();
+    expect(budget.reserve(pricedTurn(1_000_000))).not.toBeNull();
+  });
+});
+
+describe("CompositeTurnBudget: concurrent loops", () => {
+  /** Worst case of `pricedTurn()` at 2048 output tokens, from the catalog. */
+  function worstCase(): number {
+    const usd = CostCalculator.estimateTokenCostUsd(
+      PRICED_MODEL,
+      { inputTokens: 1000, outputTokens: 2048 },
+      "openai"
+    );
+    if (usd === null) throw new Error("test model must be priced");
+    return usd;
+  }
+
+  it("keeps another loop's reservation outstanding when one commits", () => {
+    const budget = new CompositeTurnBudget({
+      capUsd: worstCase() * 2.5,
+      maxOutputTokens: 2048,
+      unpricedTokenCeiling: 5000
+    });
+    const a = budget.reserve(pricedTurn());
+    const b = budget.reserve(pricedTurn());
+    expect(a).not.toBeNull();
+    expect(b).not.toBeNull();
+    expect(budget.reserve(pricedTurn())).toBeNull();
+
+    // A cost nothing, so exactly one worst case of headroom comes back:
+    // committing A must not release B, whose turn is still in flight.
+    budget.commit(a!, 0);
+    expect(budget.reserve(pricedTurn())).not.toBeNull();
+    expect(budget.reserve(pricedTurn())).toBeNull();
+  });
+
+  it("books each handle by its own pricing, not by whichever reserved last", () => {
+    // Invariant I-4: an unpriced turn is never booked as priced, and a priced
+    // turn is never booked as unpriced, however the two interleave.
+    const budget = new CompositeTurnBudget({
+      capUsd: 1,
+      maxOutputTokens: 2048,
+      unpricedTokenCeiling: 5000
+    });
+    const priced = budget.reserve(pricedTurn());
+    const unpriced = budget.reserve(unpricedTurn(10));
+    expect(priced).not.toBeNull();
+    expect(unpriced).not.toBeNull();
+    expect(priced!.unpriced).toBe(false);
+    expect(unpriced!.unpriced).toBe(true);
+
+    budget.commit(priced!, null);
+    expect(budget.spentUsd).toBeCloseTo(priced!.worstCaseUsd, 10);
+    expect(budget.unpricedTurns).toBe(0);
+
+    budget.commit(unpriced!, null);
+    // Unknown adds nothing to the money, and is reported as a turn instead.
+    expect(budget.spentUsd).toBeCloseTo(priced!.worstCaseUsd, 10);
+    expect(budget.unpricedTurns).toBe(1);
   });
 });
 
@@ -212,22 +273,23 @@ describe("RunBudget", () => {
 
   it("admits a turn and counts it", () => {
     const budget = createRunBudget(options);
-    expect(budget.turns.reserve(pricedTurn())).toBe(true);
+    expect(budget.turns.reserve(pricedTurn())).not.toBeNull();
     expect(budget.turnCount.current).toBe(1);
     expect(budget.exhausted).toBeNull();
   });
 
   it("refuses on an expired deadline and says so", () => {
     const budget = createRunBudget({ ...options, deadlineMs: 0 });
-    expect(budget.turns.reserve(pricedTurn())).toBe(false);
+    expect(budget.turns.reserve(pricedTurn())).toBeNull();
     expect(budget.exhausted?.kind).toBe("deadline");
   });
 
   it("refuses once the turn count is spent", () => {
     const budget = createRunBudget({ ...options, maxTurns: 1 });
-    expect(budget.turns.reserve(pricedTurn())).toBe(true);
-    budget.turns.commit(0);
-    expect(budget.turns.reserve(pricedTurn())).toBe(false);
+    const held = budget.turns.reserve(pricedTurn());
+    expect(held).not.toBeNull();
+    budget.turns.commit(held!, 0);
+    expect(budget.turns.reserve(pricedTurn())).toBeNull();
     expect(budget.exhausted?.kind).toBe("turns");
   });
 
@@ -236,14 +298,14 @@ describe("RunBudget", () => {
     // out when the real problem is a 100-token ceiling sends them to the wrong
     // setting.
     const budget = createRunBudget({ ...options, unpricedTokenCeiling: 5 });
-    expect(budget.turns.reserve(unpricedTurn(500))).toBe(false);
+    expect(budget.turns.reserve(unpricedTurn(500))).toBeNull();
     expect(budget.exhausted?.kind).toBe("cost");
     expect(budget.exhausted?.detail).toContain("unpriced ceiling of 5");
   });
 
   it("refuses on the USD cap and names it", () => {
     const budget = createRunBudget({ ...options, capUsd: 0 });
-    expect(budget.turns.reserve(pricedTurn())).toBe(false);
+    expect(budget.turns.reserve(pricedTurn())).toBeNull();
     expect(budget.exhausted?.kind).toBe("cost");
     expect(budget.exhausted?.detail).toContain("$0");
     // A turn that was never made must not consume a turn slot — the count is
@@ -255,12 +317,12 @@ describe("RunBudget", () => {
     // Reporting the deadline for a run that had already run out of money would
     // point whoever reads it at the wrong limit.
     const budget = createRunBudget({ ...options, capUsd: 0, deadlineMs: 10 });
-    expect(budget.turns.reserve(pricedTurn())).toBe(false);
+    expect(budget.turns.reserve(pricedTurn())).toBeNull();
     expect(budget.exhausted?.kind).toBe("cost");
 
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(budget.deadline.expired()).toBe(true);
-    expect(budget.turns.reserve(pricedTurn())).toBe(false);
+    expect(budget.turns.reserve(pricedTurn())).toBeNull();
     expect(budget.exhausted?.kind).toBe("cost");
   });
 });

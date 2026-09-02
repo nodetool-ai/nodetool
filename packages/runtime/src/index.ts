@@ -113,10 +113,12 @@ export {
   TURN_REFUSALS,
   type TurnBudget,
   type TurnReservation,
+  type TurnReservationHandle,
   type CostCappedTurnBudgetOptions,
   type CompositeTurnBudgetOptions,
   type CreateRunBudgetOptions,
   type RunBudget,
+  type RunTurnBudget,
   type BudgetExhaustion,
   type BudgetExhaustionKind,
   type TurnRefusal,
@@ -126,13 +128,14 @@ export {
   type Counter
 } from "./turn-budget.js";
 export { packContext, type PackedContext } from "./context-packer.js";
+// Public API re-export — the source of truth lives in @nodetool-ai/protocol
 export {
   isZodSchema,
   parseWithTypeCoercion,
   zodToJsonSchema,
   type JsonSchema,
   type ZodOrJsonSchema
-} from "./zod-schema.js";
+} from "@nodetool-ai/protocol/zod-schema";
 export { VariableChannel } from "./variable-channel.js";
 export { countTokens, truncateToTokens } from "./token-counter.js";
 export {

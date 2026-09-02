@@ -14,6 +14,7 @@ import type {
   LanguageModel,
   OutputCorrelation
 } from "@nodetool-ai/protocol";
+import { isChunk } from "@nodetool-ai/protocol";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 import type { ToolLike } from "./agent-utils.js";
@@ -35,8 +36,6 @@ import {
   uniqueToolName,
   normalizeTools,
   gateAgentTools,
-  isChunkItem,
-  isToolCallItem,
   classifyProviderStream,
   toProviderTools,
   serializeToolResult,
@@ -76,8 +75,6 @@ export { expandAssetReferences } from "@nodetool-ai/runtime";
 export type { ToolLike };
 export {
   streamProviderMessages,
-  isChunkItem,
-  isToolCallItem,
   toProviderTools,
   serializeToolResult
 };
@@ -283,7 +280,7 @@ export class SummarizerNode extends BaseNode {
       model: modelId,
       maxTokens: Math.max(64, maxSentences * 128)
     })) {
-      if (isChunkItem(item) && !item.thinking) {
+      if (isChunk(item) && !item.thinking) {
         const piece = isString(item.content) ? item.content : "";
         if (piece) {
           full += piece;
@@ -442,7 +439,7 @@ export class EnhancePromptNode extends BaseNode {
       model: modelId,
       maxTokens: ENHANCE_PROMPT_MAX_TOKENS
     })) {
-      if (isChunkItem(item) && !item.thinking) {
+      if (isChunk(item) && !item.thinking) {
         const piece = isString(item.content) ? item.content : "";
         if (piece) {
           full += piece;

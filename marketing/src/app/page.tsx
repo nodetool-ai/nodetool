@@ -12,24 +12,14 @@ import StatusQuoSection from "../components/StatusQuoSection";
 import BuildRunDeploy from "../components/BuildRunDeploy";
 import OwnershipSection from "../components/OwnershipSection";
 import ModelSupportSection from "../components/ModelSupportSection";
-import ModelManagerSection from "../components/ModelManagerSection";
-import CostDashboardSection from "../components/CostDashboardSection";
 import SurfaceShowcase from "../components/SurfaceShowcase";
-import GraphToAppSplit from "../components/GraphToAppSplit";
 import ByokCalculator from "../components/ByokCalculator";
-import StoryboardSection from "../components/StoryboardSection";
-import ScriptEditorSection from "../components/ScriptEditorSection";
-import TimelineEditorSection from "../components/TimelineEditorSection";
-import SketchEditorSection from "../components/SketchEditorSection";
-import AppBuilderSection from "../components/AppBuilderSection";
-import FeaturesSection from "../components/FeaturesSection";
-import NodeMenuSection from "../components/NodeMenuSection";
 import ProjectSection from "../components/ProjectSection";
-import AssetManagerSection from "../components/AssetManagerSection";
 import CommunitySection from "../components/CommunitySection";
 import ContactSection from "../components/ContactSection";
 import ComparisonSection from "../components/ComparisonSection";
-import UseCasesShowcase from "../components/UseCasesShowcase";
+import RecipeShowcase from "../components/RecipeShowcase";
+import UnderneathSection from "../components/UnderneathSection";
 import WaysInSection from "../components/WaysInSection";
 import FaqBlock from "../components/FaqBlock";
 import { XMarkIcon } from "@heroicons/react/24/outline";
@@ -223,7 +213,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Name the pain before showing the fix */}
+        {/* The enemy, once: the closed studio (NARRATIVE.md § The enemy) */}
         <StatusQuoSection />
 
         {/* The core differentiator, right after the problem: the agent leaves
@@ -237,60 +227,27 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Concrete proof right after the mental model: a complete, runnable workflow */}
-        <UseCasesShowcase />
+        {/* The jobs: four recipes, each a real run with its bundle */}
+        <RecipeShowcase />
 
         {/* The five editors, each over a loop of the real thing (#surface-<id>) */}
         <SurfaceShowcase />
 
-        {/* Route by intent once the core story has landed */}
-        <WaysInSection />
-
-        {/* Position vs. the alternatives — answers the status-quo block up top */}
-        <ComparisonSection reducedMotion={reducedMotion} />
-
-        {/* Ownership — the core pillar, kept adjacent to the model story it explains */}
+        {/* Ownership — keys, project file, source; local inference stays on /studio */}
         <OwnershipSection reducedMotion={reducedMotion} />
         <ModelSupportSection reducedMotion={reducedMotion} />
 
-        {/* Cost transparency — the payoff of your own keys: real per-run cost */}
-        <CostDashboardSection />
-
-        {/* Put a number on it: a month of work at provider list prices */}
+        {/* The one place cost is proven with numbers */}
         <ByokCalculator />
 
-        {/* --- Secondary: what's inside, once the narrative has landed --- */}
+        {/* Against the closed studios — answers the enemy block up top */}
+        <ComparisonSection reducedMotion={reducedMotion} />
 
-        {/* What the canvas does */}
-        <FeaturesSection />
+        {/* Route by intent once the core story has landed */}
+        <WaysInSection />
 
-        {/* Plan the piece before paying for it — storyboard, then the script it speaks */}
-        <StoryboardSection />
-        <ScriptEditorSection />
-
-        {/* Assemble the generated clips — built-in timeline editor */}
-        <TimelineEditorSection />
-
-        {/* Paint and generate on one canvas — built-in sketch editor (sibling to the timeline editor) */}
-        <SketchEditorSection />
-
-        {/* One workflow, two views: the graph and the app it becomes */}
-        <GraphToAppSplit />
-
-        {/* Wrap a finished workflow in a screen someone else can run */}
-        <AppBuilderSection />
-
-        {/* What's in the canvas */}
-        <NodeMenuSection />
-
-        {/* Asset Manager — companion to the canvas story */}
-        <AssetManagerSection />
-
-        {/* Local model library — supports the "runs on your machine" claim above */}
-        <ModelManagerSection />
-
-        {/* Templates Gallery */}
-        {/* <ExamplesGrid /> */}
+        {/* What is underneath, as one strip of routes rather than ten sections */}
+        <UnderneathSection />
 
         {/* Feature Modal (accessible) */}
         {selectedFeature && (
@@ -363,8 +320,8 @@ export default function Home() {
             <p className="mt-4 text-lg text-slate-300">
               Download the open-source studio for macOS, Windows, and Linux.
               Free, AGPL-3.0, and built alongside working filmmakers, designers,
-              and video editors. Or open it in your browser with nothing to
-              install.
+              and video editors. Or try Cloud in your browser, in alpha, with
+              nothing to install.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton
@@ -378,7 +335,7 @@ export default function Home() {
                 onClick={() => track("Try Cloud")}
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/10 px-6 py-3.5 text-sm font-semibold text-blue-200 transition-all hover:border-blue-400 hover:bg-blue-500/20 focus-ring"
               >
-                Try NodeTool in your browser
+                Try Cloud in your browser (alpha)
               </a>
               <a
                 href="https://github.com/nodetool-ai/nodetool"

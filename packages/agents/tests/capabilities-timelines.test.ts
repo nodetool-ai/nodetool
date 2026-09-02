@@ -288,6 +288,59 @@ describe("timelines capability behaviour", () => {
     expect(result.tracks.map((t) => t.name)).toContain("Music");
   });
 
+  it("writes markers back to the stored document, and snaps a clip to them", async () => {
+    // Markers used to ride along untouched because no op edited them; the beat
+    // ops do, so the bridge's copy has to reach the row.
+    const row = await makeTimeline();
+    const result = (await run().invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [
+        { op: "set_markers_from_beats", bpm: 120, count: 3, label: "Beat" },
+        { op: "move_clip", target: "Shot 1", startMs: 530 },
+        { op: "snap_to_beats", targets: ["Shot 1"], bpm: 120 }
+      ]
+    })) as { applied: number; failed: number; ops: { result?: unknown }[] };
+    expect(result).toMatchObject({ applied: 3, failed: 0 });
+
+    const stored = (await run().invoke("get_timeline", {
+      timeline_id: row.id
+    })) as {
+      timeline: {
+        markers: { timeMs: number; label: string }[];
+        clips: { start_ms?: number; startMs?: number }[];
+      };
+    };
+    expect(stored.timeline.markers.map((m) => m.timeMs)).toEqual([0, 500, 1000]);
+
+    const snap = result.ops[2].result as {
+      snapped: number;
+      clips: { before: { startMs: number }; after: { startMs: number } }[];
+    };
+    expect(snap.snapped).toBe(1);
+    expect(snap.clips[0].before.startMs).toBe(530);
+    expect(snap.clips[0].after.startMs).toBe(500);
+  });
+
+  it("keeps the markers a document already carried through an unrelated edit", async () => {
+    const row = await makeTimeline({
+      document: JSON.stringify({
+        ...JSON.parse(document()),
+        markers: [{ id: "m1", timeMs: 750, label: "Intro" }]
+      })
+    });
+    await run().invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [{ op: "add_track", type: "audio", name: "Music" }]
+    });
+
+    const stored = (await run().invoke("get_timeline", {
+      timeline_id: row.id
+    })) as { timeline: { markers: { id: string }[] } };
+    expect(stored.timeline.markers).toEqual([
+      { id: "m1", timeMs: 750, label: "Intro" }
+    ]);
+  });
+
   it("lays two library videos end to end with add_media_clip", async () => {
     const row = await makeTimeline();
     const first = (await Asset.create({

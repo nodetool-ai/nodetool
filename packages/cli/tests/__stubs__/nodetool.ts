@@ -310,6 +310,13 @@ export class SQLiteAdapterFactory {
 }
 export const setGlobalAdapterResolver = (_fn?: unknown) => {};
 export const initDb = (_path?: string) => {};
+// models — the settings row a budget/provider lookup reads. No database in a
+// unit test, so the lookup falls through to the environment and the defaults.
+export class Setting {
+  static async find(_userId?: string, _key?: string): Promise<null> {
+    return null;
+  }
+}
 export class Secret {
   static async createTable() {}
   static async listForUser(_userId?: string, _limit?: number) {
@@ -456,3 +463,6 @@ export async function createAssetModelInterface(args: {
 }): Promise<{ id: string; name: string }> {
   return { id: "stub-asset", name: args.name };
 }
+
+/** The tool name a code action is admitted under; the ladder keys on it. */
+export const EXECUTE_CODE_TOOL_NAME = "execute_code";

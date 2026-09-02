@@ -145,4 +145,17 @@ export class Message extends DBModel {
     const cursor = items[items.length - 1]?.id ?? "";
     return [items, cursor];
   }
+
+  /** Delete all messages for a thread. */
+  static async deleteByThread(threadId: string): Promise<number> {
+    const db = getDb();
+    const where = eq(messages.thread_id, threadId);
+    const existing = await db
+      .select({ id: messages.id })
+      .from(messages)
+      .where(where);
+    if (existing.length === 0) return 0;
+    await db.delete(messages).where(where);
+    return existing.length;
+  }
 }

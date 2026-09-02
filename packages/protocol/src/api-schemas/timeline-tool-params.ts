@@ -533,5 +533,9 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_clear_animations",
   "ui_timeline_list_animation_presets",
   "ui_timeline_select_clip",
-  "ui_timeline_seek"
+  "ui_timeline_seek",
+  // T20's markers. Both surfaces register them, so they belong here rather
+  // than in a hand-written list on either side.
+  "ui_timeline_add_marker",
+  "ui_timeline_delete_marker"
 ] as const;

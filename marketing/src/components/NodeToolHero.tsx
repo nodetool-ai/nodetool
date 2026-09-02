@@ -18,7 +18,7 @@ export default function NodeToolHero() {
         <div className="hero-rise lg:col-span-5">
           <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-300">
             <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-            Free &amp; Open Source
+            Open-source AI film studio
           </span>
 
           {/*
@@ -42,8 +42,9 @@ export default function NodeToolHero() {
 
           <p className="mt-5 max-w-lg text-lg leading-relaxed text-slate-300">
             Describe your idea. The agent writes the script, storyboards every
-            scene, generates the footage, and cuts the timeline. Experience
-            end-to-end production with complete creative control.
+            scene, generates the footage, and cuts the timeline. What comes back
+            is a project, not a render: re-roll one shot, re-voice one line,
+            re-cut the ending.
           </p>
 
           <div className="mt-7 flex">
@@ -60,7 +61,7 @@ export default function NodeToolHero() {
             </li>
             <li className="flex items-center gap-1.5">
               <KeyRound className="h-3.5 w-3.5 text-emerald-400" />
-              Your own API keys, no token markups
+              Your own keys, provider list prices
             </li>
             <li className="flex items-center gap-1.5">
               <Code2 className="h-3.5 w-3.5 text-blue-400" />

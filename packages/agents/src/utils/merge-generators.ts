@@ -17,11 +17,10 @@
  * Generators are lazy: one that has not been started yet has issued no provider
  * call, so holding it back costs nothing.
  *
- * {@link createDynamicMerge} is the same machine with an open end: generators
- * may be added while the stream is being consumed, which is what lets the DAG
- * scheduler start a node the moment its last dependency settles instead of at
- * the end of a barrier round. {@link mergeAsyncGenerators} is that merge with
- * every generator added up front and the end closed immediately.
+ * {@link createDynamicMerge} has an open end: generators may be added while the
+ * stream is being consumed, which is what lets the DAG scheduler start a node
+ * the moment its last dependency settles instead of at the end of a barrier
+ * round.
  */
 
 import type { Release, Semaphore } from "@nodetool-ai/runtime";
@@ -188,22 +187,4 @@ export function createDynamicMerge<T>(
     },
     stream
   };
-}
-
-export async function* mergeAsyncGenerators<T>(
-  generators: AsyncGenerator<T>[],
-  options: MergeOptions = {}
-): AsyncGenerator<T> {
-  const merge = createDynamicMerge<T>({
-    concurrency:
-      options.concurrency && options.concurrency > 0
-        ? Math.min(options.concurrency, generators.length)
-        : undefined,
-    semaphore: options.semaphore
-  });
-  for (const generator of generators) {
-    merge.add(generator);
-  }
-  merge.close();
-  yield* merge.stream();
 }

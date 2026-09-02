@@ -16,6 +16,7 @@
 
 import readline from "node:readline";
 import {
+  EXECUTE_CODE_TOOL_NAME,
   headlessDenialReason,
   headlessGate,
   type ApprovalDecision,
@@ -125,7 +126,14 @@ export function createCliPermissionGate(
     // The requested mode still governs the ladder — a piped `--permission-mode
     // plan` blocks what plan mode blocks. Only the approver changes, and a
     // host with no user denies (invariant I-4).
-    return { ...headlessGate(options.hostName), mode };
+    const gate = { ...headlessGate(options.hostName), mode };
+    // A code action that declares no `risk` reads as high, and in `auto` the
+    // ladder asks the approver for it. Nobody is there to ask: the person
+    // launched the command with the objective, which is the approval, the
+    // same way an MCP client shows its user the code before sending. What a
+    // run escalates on its own still reaches the approver and is denied.
+    gate.sessionAllow.add(EXECUTE_CODE_TOOL_NAME);
+    return gate;
   }
 
   const readLine = lineReader(options.input ?? process.stdin);

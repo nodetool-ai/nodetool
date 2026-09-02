@@ -2,7 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import Tilt3D from "./Tilt3D";
-import { Shield, Cpu, Globe, Lock } from "lucide-react";
+import { Shield, FolderOpen, Globe, Lock } from "lucide-react";
 
 const features = [
   {
@@ -11,7 +11,7 @@ const features = [
     icon: Lock,
   },
   {
-    title: "No token markups",
+    title: "No markups",
     body: "No credit packs, no subscription traps. If an image costs $0.03 at the provider, you pay $0.03 to the provider. NodeTool takes no cut.",
     icon: Shield,
   },
@@ -21,9 +21,9 @@ const features = [
     icon: Globe,
   },
   {
-    title: "Run it on your own hardware",
-    body: "Download open-weight models and run inference locally — MLX, Ollama, llama.cpp, vLLM, and LM Studio — with no internet connection.",
-    icon: Cpu,
+    title: "A project file that opens anywhere",
+    body: "The board, the script with its takes, and the multi-track cut are ordinary files on your disk. Export a .nodetool bundle and open it on another machine, or in a fork.",
+    icon: FolderOpen,
   },
 ];
 
@@ -57,10 +57,9 @@ export default function OwnershipSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            No locked project formats, no token markups, zero subscription
-            traps. Run inference locally or bring your own API keys, and switch
-            between providers with one click. You own the files, the workflow,
-            and the final cut.
+            No locked project formats, no markups, no subscription tiers.
+            Bring your own keys and switch providers with one click. You own
+            the project file, the workflow, and the final cut.
           </motion.p>
         </div>
 

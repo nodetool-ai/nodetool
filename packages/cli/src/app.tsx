@@ -22,6 +22,7 @@ import Spinner from "ink-spinner";
 import { ExecutionTree } from "./ExecutionTree.js";
 import { useExecutionState } from "./useExecutionState.js";
 import type { Message, ToolCall } from "@nodetool-ai/runtime";
+import { RUN_BUDGET_CONTEXT_KEY } from "@nodetool-ai/runtime";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { processChat } from "@nodetool-ai/chat";
 import {
@@ -31,6 +32,7 @@ import {
 } from "@nodetool-ai/agents";
 import { availableProviders, configuredProviderIds, createProvider, DEFAULT_MODELS, KNOWN_PROVIDERS, providerSecretKey, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient } from "./websocket-client.js";
+import { budgetStopReason, createCliRunBudget } from "./run-budget.js";
 import { renderMarkdown } from "./markdown.js";
 import {
   isBasicTool,
@@ -74,6 +76,10 @@ interface AppProps {
     string,
     import("@nodetool-ai/runtime").BaseProvider
   >;
+  /** `--cost-cap <usd>`; `0` lifts the cap. Bounds each turn. */
+  costCap?: string;
+  /** `--timeout <s>`; `0` leaves the turn no time at all. */
+  timeout?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -345,6 +351,8 @@ export function App({
   wsUrl,
   registry,
   agentProviders,
+  costCap,
+  timeout,
 }: AppProps) {
   const { exit } = useApp();
 
@@ -797,6 +805,15 @@ export function App({
 
     try {
       const ctx = await createChatContext({ workspaceDir });
+      // One budget per turn, as a server chat turn does. It goes on the
+      // context too, so `RunSubtaskTool` and anything else this file never
+      // constructs reserves against it rather than opening its own
+      // (invariant I-2).
+      const budget = await createCliRunBudget({
+        ...(costCap !== undefined && { costCap }),
+        ...(timeout !== undefined && { timeout })
+      });
+      ctx.set(RUN_BUDGET_CONTEXT_KEY, budget);
       const tools = buildTools();
 
       // The unified chat loop is used for every turn — there is no longer a
@@ -898,6 +915,7 @@ export function App({
           context: ctx,
           tools: turn.tools,
           signal: abortController.signal,
+          turnBudget: budget,
           callbacks: {
             onChunk: (text) => {
               if (abortRef.current) throw new Error("aborted");
@@ -923,6 +941,10 @@ export function App({
         setChatHistory(updatedHistory);
         commitStreamSegment(); // final assistant answer
       }
+      // A ceiling ended the turn, not the model finishing its answer. Shown
+      // nowhere, the two are indistinguishable from a short reply (I-3).
+      const stopReason = budgetStopReason(budget);
+      if (stopReason) await addMessage("system", `Stopped: ${stopReason}`);
     } catch (err) {
       if (!abortRef.current) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -941,7 +963,7 @@ export function App({
       submittingRef.current = false;
       abortControllerRef.current = null;
     }
-  }, [handleCommand, addMessage, appendStream, commitStreamSegment, startLiveTool, finishLiveTool, workspaceDir, enabledTools]);
+  }, [handleCommand, addMessage, appendStream, commitStreamSegment, startLiveTool, finishLiveTool, workspaceDir, enabledTools, costCap, timeout]);
 
   // ---------------------------------------------------------------------------
   // Keyboard: history navigation and tab completion

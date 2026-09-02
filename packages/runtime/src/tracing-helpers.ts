@@ -32,7 +32,7 @@ import {
 import { getTracer } from "./telemetry.js";
 import { recordInvocationCost } from "./invocation-account.js";
 
-export type AgentSpanKind = "execute" | "plan" | "step" | "compile";
+export type AgentSpanKind = "execute" | "plan" | "step";
 
 /** Token counts and computed cost for one LLM call. */
 export interface LlmUsage {

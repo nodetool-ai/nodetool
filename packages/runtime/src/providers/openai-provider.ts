@@ -15,7 +15,11 @@ import {
 import { openAIContextExceeded } from "./context-exceeded.js";
 import { hashSystemPrompt } from "./provider-session.js";
 import { sniffAudioMime } from "./audio-mime.js";
-import type { RunBudget, TurnBudget } from "../turn-budget.js";
+import type {
+  RunBudget,
+  TurnBudget,
+  TurnReservationHandle
+} from "../turn-budget.js";
 
 /** Extension for each mime `sniffAudioMime` can return; anything else is mp3. */
 const AUDIO_MIME_EXT: Record<string, string> = {
@@ -1638,12 +1642,17 @@ export class OpenAIProvider extends BaseProvider {
         yield budgetStopItem(runBudget);
         return;
       }
-      if (
-        config.turnBudget &&
-        !this._admitTurn(config.turnBudget, config.args.model, transcript)
-      ) {
-        yield budgetStopItem(runBudget);
-        return;
+      let reservation: TurnReservationHandle | null = null;
+      if (config.turnBudget) {
+        reservation = this._admitTurn(
+          config.turnBudget,
+          config.args.model,
+          transcript
+        );
+        if (reservation === null) {
+          yield budgetStopItem(runBudget);
+          return;
+        }
       }
       const costBeforeTurn = config.turnBudget ? this.getTotalCost() : 0;
 
@@ -1665,7 +1674,12 @@ export class OpenAIProvider extends BaseProvider {
           state
         );
       } finally {
-        config.turnBudget?.commit(this.getTotalCost() - costBeforeTurn);
+        if (config.turnBudget && reservation) {
+          config.turnBudget.commit(
+            reservation,
+            this.getTotalCost() - costBeforeTurn
+          );
+        }
       }
 
       previousResponseId = state.responseId;

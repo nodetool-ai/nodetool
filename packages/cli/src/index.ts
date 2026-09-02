@@ -81,6 +81,16 @@ program
       "unset runs auto, since stdin carries the messages and not a user"
   )
   .option(
+    "--cost-cap <usd>",
+    "Ceiling on provider spend for one turn, shared by every loop it starts; " +
+      "0 lifts it (default: NODETOOL_AGENT_TURN_COST_CAP_USD)"
+  )
+  .option(
+    "--timeout <s>",
+    "Wall-clock bound on one turn in seconds; 0 leaves it no time at all " +
+      "(default: NODETOOL_AGENT_TURN_DEADLINE_MS)"
+  )
+  .option(
     "--trace-file <path>",
     "Append every LLM/agent/workflow span as JSONL to <path> (analyzer-friendly)"
   )
@@ -105,6 +115,8 @@ const opts = program.opts<{
   url?: string;
   readOnlySearch?: boolean;
   permissionMode?: string;
+  costCap?: string;
+  timeout?: string;
   traceFile?: string;
   traceStdout?: string | boolean;
 }>();
@@ -248,7 +260,9 @@ if (!process.stdin.isTTY) {
       registry: cliRegistry,
       agentProviders: cliAgentProviders,
       enableReadOnlySearch: opts.readOnlySearch !== false,
-      ...(permissionMode !== undefined && { permissionMode })
+      ...(permissionMode !== undefined && { permissionMode }),
+      ...(opts.costCap !== undefined && { costCap: opts.costCap }),
+      ...(opts.timeout !== undefined && { timeout: opts.timeout })
     });
   } finally {
     await shutdownTelemetry();
@@ -273,7 +287,9 @@ const { waitUntilExit } = render(
     workspaceDir: workspace,
     wsUrl: opts.url,
     registry: cliRegistry,
-    agentProviders: cliAgentProviders
+    agentProviders: cliAgentProviders,
+    ...(opts.costCap !== undefined && { costCap: opts.costCap }),
+    ...(opts.timeout !== undefined && { timeout: opts.timeout })
   }),
   { exitOnCtrlC: false }
 );

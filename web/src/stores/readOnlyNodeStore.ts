@@ -31,7 +31,6 @@ interface ReadOnlyNodeStoreState {
   updateNodeData: () => void;
   getSelectedNodeCount: () => number;
   findNode: (id: string) => Node<NodeData> | undefined;
-  getNodesByType: () => never[];
 }
 
 /**
@@ -67,8 +66,7 @@ export const createReadOnlyNodeStore = (
     updateNode: () => {},
     updateNodeData: () => {},
     getSelectedNodeCount: () => 0,
-    findNode: (id: string) => nodesById.get(id),
-    getNodesByType: () => []
+    findNode: (id: string) => nodesById.get(id)
   }));
   // SAFETY: see the docblock — the members a rendered node reads are all
   // present; the editor-only rest of `NodeStoreState` is never reached from a

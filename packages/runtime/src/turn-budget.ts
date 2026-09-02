@@ -30,14 +30,33 @@ export interface TurnReservation {
   inputTokens: number;
 }
 
+/**
+ * One admitted turn's reservation. `reserve` hands it back and `commit` takes
+ * it, so a budget shared by several loops settles the turn that finished
+ * rather than whichever one reserved last.
+ *
+ * It carries its own worst case and its own pricing, because both are
+ * per-turn: two loops can hold reservations of different sizes at the same
+ * time, and one of them can be on a model the catalog does not price.
+ */
+export interface TurnReservationHandle {
+  /** USD this reservation holds against the cap. Zero for an unpriced turn. */
+  readonly worstCaseUsd: number;
+  /** True when the turn's model has no catalog price. */
+  readonly unpriced: boolean;
+}
+
 export interface TurnBudget {
   /**
-   * Admit or refuse the turn. A refusal is final for this loop: the provider
-   * stops rather than making the call.
+   * Admit or refuse the turn. A refusal — `null` — is final for this loop: the
+   * provider stops rather than making the call. An admission is the handle to
+   * hand back to {@link TurnBudget.commit}.
    */
-  reserve(turn: TurnReservation): boolean;
+  reserve(turn: TurnReservation): TurnReservationHandle | null;
   /**
-   * Reconcile the reservation against what the turn actually cost, in USD.
+   * Reconcile one reservation against what its turn actually cost, in USD.
+   * Only the named handle is settled; every other loop's reservation stays
+   * outstanding. Committing a handle twice is a no-op.
    *
    * Pass `null` when turns provably ran but their cost was never reported —
    * the Claude Agent SDK only reports usage on a terminal `result` message,
@@ -45,7 +64,7 @@ export interface TurnBudget {
    * booking it as zero would hand the reserved headroom back for spend that
    * really happened. The reserved worst case is charged instead.
    */
-  commit(actualUsd: number | null): void;
+  commit(handle: TurnReservationHandle, actualUsd: number | null): void;
   /** Committed spend so far, in USD. */
   readonly spentUsd: number;
 }
@@ -70,7 +89,9 @@ export class CostCappedTurnBudget implements TurnBudget {
   private readonly _capUsd: number;
   private readonly _maxOutputTokens: number;
   private _spentUsd = 0;
-  /** Worst case of the turn currently in flight, released by `commit`. */
+  /** Reservations of the turns in flight, released one at a time by `commit`. */
+  private readonly _outstanding = new Set<TurnReservationHandle>();
+  /** Sum over {@link _outstanding}, kept incrementally. */
   private _reservedUsd = 0;
 
   constructor(opts: CostCappedTurnBudgetOptions) {
@@ -82,28 +103,34 @@ export class CostCappedTurnBudget implements TurnBudget {
     return this._spentUsd;
   }
 
-  reserve(turn: TurnReservation): boolean {
+  reserve(turn: TurnReservation): TurnReservationHandle | null {
     const worstCase = CostCalculator.estimateTokenCostUsd(
       turn.model,
       { inputTokens: turn.inputTokens, outputTokens: this._maxOutputTokens },
       turn.provider
     );
-    if (worstCase === null) return false;
+    if (worstCase === null) return null;
     if (this._spentUsd + this._reservedUsd + worstCase > this._capUsd) {
-      return false;
+      return null;
     }
-    this._reservedUsd += worstCase;
-    return true;
+    return this._hold({ worstCaseUsd: worstCase, unpriced: false });
   }
 
-  commit(actualUsd: number | null): void {
+  commit(handle: TurnReservationHandle, actualUsd: number | null): void {
+    if (!this._outstanding.delete(handle)) return;
+    this._reservedUsd -= handle.worstCaseUsd;
     // Unknown must not read as free — the same rule invocation-cost accounting
-    // follows. With no number to book, the reservation becomes the charge.
+    // follows. With no number to book, this turn's reservation is the charge.
     this._spentUsd +=
       actualUsd === null || !Number.isFinite(actualUsd)
-        ? this._reservedUsd
+        ? handle.worstCaseUsd
         : Math.max(actualUsd, 0);
-    this._reservedUsd = 0;
+  }
+
+  private _hold(handle: TurnReservationHandle): TurnReservationHandle {
+    this._outstanding.add(handle);
+    this._reservedUsd += handle.worstCaseUsd;
+    return handle;
   }
 }
 
@@ -279,10 +306,11 @@ export class CompositeTurnBudget implements TurnBudget {
   private readonly _maxOutputTokens: number;
   private readonly _unpricedTokenCeiling: number;
   private _spentUsd = 0;
+  /** Reservations of the turns in flight, released one at a time by `commit`. */
+  private readonly _outstanding = new Set<TurnReservationHandle>();
+  /** Sum over {@link _outstanding}, kept incrementally. */
   private _reservedUsd = 0;
   private _unpricedTurns = 0;
-  /** Set when the in-flight reservation is for a model with no price. */
-  private _pendingUnpriced = false;
   private _lastRefusal: TurnRefusal | null = null;
 
   constructor(opts: CompositeTurnBudgetOptions) {
@@ -313,7 +341,7 @@ export class CompositeTurnBudget implements TurnBudget {
     return this._unpricedTurns > 0;
   }
 
-  reserve(turn: TurnReservation): boolean {
+  reserve(turn: TurnReservation): TurnReservationHandle | null {
     const worstCase = CostCalculator.estimateTokenCostUsd(
       turn.model,
       { inputTokens: turn.inputTokens, outputTokens: this._maxOutputTokens },
@@ -322,45 +350,39 @@ export class CompositeTurnBudget implements TurnBudget {
     if (worstCase === null) {
       return this._reserveUnpriced(turn);
     }
-    this._pendingUnpriced = false;
-    if (this._capUsd === null) {
-      this._lastRefusal = null;
-      this._reservedUsd += worstCase;
-      return true;
-    }
-    if (this._spentUsd + this._reservedUsd + worstCase > this._capUsd) {
+    if (
+      this._capUsd !== null &&
+      this._spentUsd + this._reservedUsd + worstCase > this._capUsd
+    ) {
       this._lastRefusal = "cost-cap";
-      return false;
+      return null;
     }
     this._lastRefusal = null;
-    this._reservedUsd += worstCase;
-    return true;
+    return this._hold({ worstCaseUsd: worstCase, unpriced: false });
   }
 
-  commit(actualUsd: number | null): void {
-    if (this._pendingUnpriced) {
-      this._pendingUnpriced = false;
+  commit(handle: TurnReservationHandle, actualUsd: number | null): void {
+    if (!this._outstanding.delete(handle)) return;
+    this._reservedUsd -= handle.worstCaseUsd;
+    const reported =
+      actualUsd !== null && Number.isFinite(actualUsd)
+        ? Math.max(actualUsd, 0)
+        : null;
+    if (handle.unpriced) {
       this._unpricedTurns++;
-      // No reservation to fall back on: an unpriced model has no worst case.
-      // A number the provider reported anyway is real money and is booked; an
-      // unknown adds nothing to `spentUsd` and is visible as an unpriced turn.
-      if (actualUsd !== null && Number.isFinite(actualUsd)) {
-        this._spentUsd += Math.max(actualUsd, 0);
-      }
+      // No worst case to fall back on: an unpriced model has none. A number
+      // the provider reported anyway is real money and is booked; an unknown
+      // adds nothing to `spentUsd` and is visible as an unpriced turn.
+      if (reported !== null) this._spentUsd += reported;
       return;
     }
-    this._spentUsd +=
-      actualUsd === null || !Number.isFinite(actualUsd)
-        ? this._reservedUsd
-        : Math.max(actualUsd, 0);
-    this._reservedUsd = 0;
+    this._spentUsd += reported ?? handle.worstCaseUsd;
   }
 
-  private _reserveUnpriced(turn: TurnReservation): boolean {
+  private _reserveUnpriced(turn: TurnReservation): TurnReservationHandle | null {
     if (this._capUsd === null) {
       this._lastRefusal = null;
-      this._pendingUnpriced = true;
-      return true;
+      return this._hold({ worstCaseUsd: 0, unpriced: true });
     }
     const key = `${turn.provider}/${turn.model}`;
     if (!loggedUnpricedModels.has(key)) {
@@ -373,18 +395,32 @@ export class CompositeTurnBudget implements TurnBudget {
     }
     if (turn.inputTokens > this._unpricedTokenCeiling) {
       this._lastRefusal = "unpriced-token-ceiling";
-      return false;
+      return null;
     }
     this._lastRefusal = null;
-    this._pendingUnpriced = true;
-    return true;
+    return this._hold({ worstCaseUsd: 0, unpriced: true });
   }
+
+  private _hold(handle: TurnReservationHandle): TurnReservationHandle {
+    this._outstanding.add(handle);
+    this._reservedUsd += handle.worstCaseUsd;
+    return handle;
+  }
+}
+
+/**
+ * The run's spend admission, plus what `spentUsd` leaves out: turns admitted
+ * on a model the price catalog does not cover, so a reported total reads as
+ * the lower bound it is (invariant I-4).
+ */
+export interface RunTurnBudget extends TurnBudget {
+  readonly unpricedTurns: number;
 }
 
 /** The four bounds one run shares, plus the reason it stopped. */
 export interface RunBudget {
   /** USD admission; reserve before a turn, commit after. */
-  turns: TurnBudget;
+  turns: RunTurnBudget;
   /** Absolute deadline; every loop checks it before a turn and before a tool call. */
   deadline: Deadline;
   /** Process-wide bound on concurrent provider conversations for this run. */
@@ -459,32 +495,36 @@ export function createRunBudget(opts: CreateRunBudgetOptions): RunBudget {
     }
   };
 
-  const turns: TurnBudget = {
-    reserve(turn: TurnReservation): boolean {
-      if (deadline.expired()) return false;
+  const turns: RunTurnBudget = {
+    reserve(turn: TurnReservation): TurnReservationHandle | null {
+      if (deadline.expired()) return null;
       // Read the count before spending it: a turn refused on cost must not
       // also consume a turn slot, and a reservation cannot be handed back.
       if (turnCount.current >= turnCount.max) {
         markExhausted("turns", `turn limit of ${opts.maxTurns} reached`);
-        return false;
+        return null;
       }
-      if (!cost.reserve(turn)) {
+      const handle = cost.reserve(turn);
+      if (handle === null) {
         markExhausted(
           "cost",
           cost.lastRefusal === "unpriced-token-ceiling"
             ? `${turn.model} has no catalog price and the turn's ${turn.inputTokens} prompt tokens exceed the unpriced ceiling of ${opts.unpricedTokenCeiling}`
             : `turn budget of $${opts.capUsd} reached`
         );
-        return false;
+        return null;
       }
       turnCount.increment();
-      return true;
+      return handle;
     },
-    commit(actualUsd: number | null): void {
-      cost.commit(actualUsd);
+    commit(handle: TurnReservationHandle, actualUsd: number | null): void {
+      cost.commit(handle, actualUsd);
     },
     get spentUsd(): number {
       return cost.spentUsd;
+    },
+    get unpricedTurns(): number {
+      return cost.unpricedTurns;
     }
   };
 

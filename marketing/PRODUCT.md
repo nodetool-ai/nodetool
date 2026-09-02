@@ -6,7 +6,7 @@ brand
 
 ## Users
 
-Primary: **creators and makers** — artists, designers, indie hackers, and AI tinkerers who want to build with generative models (image, video, audio, text) without writing infrastructure. They arrive curious and skeptical, often having been burned by credit-metered tools and walled-garden model rosters. Their context is a creative session: exploring, wiring models together on a canvas, iterating fast. They judge the product in the first ten seconds by whether it looks capable and whether it feels like it's on their side.
+Primary: **small production teams doing paid, repeated work** — performance and social teams shipping ad variants weekly, catalogue teams with more SKUs than shoot days, studios re-releasing a talk into another market. They arrive from a closed AI studio whose credits and model list they have outgrown, and they judge the product in the first ten seconds by whether it looks capable and whether it feels like it's on their side. The **solo filmmaker** making one trailer is the on-ramp: they arrive through the trailer recipe, pay little, and bring the team they work with. [NARRATIVE.md § Audience](NARRATIVE.md#audience) has the reasoning.
 
 Secondary tracks (each with its own surface, not the homepage's first voice): developers (`/developers` — CLI, API, self-hosting), agent builders (`/agents`), and business/teams evaluating cost, ownership, and deployment.
 

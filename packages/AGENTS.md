@@ -21,7 +21,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/kernel` | Workflow graph model, NodeInbox, NodeActor, WorkflowRunner |
 | `@nodetool-ai/agents` | Planning agent system — TaskPlanner, TaskExecutor, CodeActExecutor, Tool registry |
 | `@nodetool-ai/chat` | Chat message processing and token counting |
-| `@nodetool-ai/base-nodes` | Core workflow nodes (text, image, LLM, agents, math, etc.) |
+| `@nodetool-ai/base-nodes` | Compatibility shell re-exporting the domain node packages (`core-nodes`, `text-nodes`, `llm-nodes`, `data-nodes`, `document-nodes`, `image-nodes`, `audio-nodes`, `video-nodes`, `integration-nodes`, `code-nodes`, `automation-nodes`) as `ALL_BASE_NODES` |
 | `@nodetool-ai/fal-nodes` | FAL AI integration nodes |
 | `@nodetool-ai/fal-codegen` | Code generator for FAL AI node definitions |
 | `@nodetool-ai/replicate-nodes` | Replicate integration nodes |
@@ -135,7 +135,7 @@ protocol → config → security → auth → storage
 ### `@nodetool-ai/websocket` — API Server
 
 The main entry point for the backend. Provides:
-- REST API endpoints (`/api/workflows`, `/api/jobs`, `/api/assets`, etc.)
+- REST API endpoints (`/api/workflows`, `/api/assets`, `/api/applications`, etc.). Jobs, settings, projects, and collection CRUD moved to the tRPC routers in `src/trpc/routers/`; `POST /api/collections/:name/index` stayed on REST for the multipart upload
 - WebSocket endpoint (`/ws`) for streaming workflow execution (MsgPack serialization)
 - OpenAI-compatible endpoint (`/v1/chat/completions`)
 - MCP server integration
@@ -165,9 +165,9 @@ Provides adapters for AI providers:
 
 Multi-step planning agent with:
 - `TaskPlanner` — decomposes objectives into a DAG of Steps
-- `TaskExecutor` / `StepExecutor` — walks the DAG with tool-calling loops
-- `Tool` base class and registry — 100+ built-in tools
-- Skills system — SKILL.md files inject domain-specific instructions
+- `ParallelTaskExecutor` / `TaskExecutor` — walk the DAG, one `CodeActExecutor` per step
+- `Tool` base class and the capability registry (`src/capabilities/`)
+- Skills system — user-scoped records plus the `SKILL.md` files shipped in `packages/system-skills/`, both reached through `list_skills` / `load_skill`
 - See [docs/AGENTS.md](../docs/AGENTS.md) for full architecture documentation
 
 ### `@nodetool-ai/node-sdk` — Node Authoring
@@ -389,5 +389,4 @@ fixes:
 1. Create directory under `packages/<name>/` with `package.json`, `tsconfig.json`, `src/index.ts`.
 2. Set `"name": "@nodetool-ai/<name>"` and `"type": "module"` in package.json.
 3. Add the workspace path to the root `package.json` `workspaces` array.
-4. Add the build step in the correct position in `npm run build:packages` script (respecting dependency order).
-5. Run `npm install` from the repo root to link the workspace.
+4. Run `npm install` from the repo root to link the workspace. `npm run build:packages` is `turbo run build --filter="./packages/*"`, which derives build order from each package's declared dependencies — there is no per-package step to add.

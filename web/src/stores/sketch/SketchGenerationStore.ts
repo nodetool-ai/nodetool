@@ -51,7 +51,6 @@ interface SketchGenerationStoreState {
   ) => void;
   updateJobProgress: (jobId: string, progress: number) => void;
   clearJob: (layerId: string) => void;
-  getLayerJobState: (layerId: string) => LayerJobState | undefined;
   resolveOutputAssetId: (
     workflowId: string,
     jobId: string,
@@ -206,8 +205,6 @@ export const useSketchGenerationStore = create<SketchGenerationStoreState>(
         persistLayerJobs(newLayerJobs);
         set({ layerJobs: newLayerJobs, jobToLayer: newJobToLayer });
       },
-
-      getLayerJobState: (layerId) => get().layerJobs[layerId],
 
       resolveOutputAssetId: (workflowId, jobId, selectedOutputNodeId) =>
         extractAssetId(

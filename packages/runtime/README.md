@@ -14,7 +14,7 @@ normalization, and telemetry for the NodeTool runtime.
 ## Usage
 
 ```ts
-import { createRuntimeContext, BaseProvider } from "@nodetool-ai/runtime";
+import { ProcessingContext, BaseProvider } from "@nodetool-ai/runtime";
 ```
 
 ## Develop

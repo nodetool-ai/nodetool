@@ -156,15 +156,21 @@ Audience-specific taglines:
 
 Use these differentiators verbatim on `/compare/*` pages.
 
-| Dimension | NodeTool | ComfyUI | Zapier / Make / n8n | Runway / Midjourney | Langflow / Flowise / Dify |
+The homepage compares against one competitor set: the **closed AI studios**
+(Runway, LTX Studio, Figma Weave, Flora, Higgsfield). That is who a production
+team is choosing between. The other columns feed `/alternatives/*` pages.
+
+| Dimension | NodeTool | Closed AI studios (Runway, LTX Studio, Figma Weave) | ComfyUI | Zapier / Make / n8n | Langflow / Flowise / Dify |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| Media depth | Full suite: video, audio, image, text, 3D, with editors | Diffusion images; little native editing | Text/JSON payloads | Siloed single-asset generation | Media as URL attachments |
-| Timeline editing | Native multi-track NLE, generation at the playhead | None | None | Web editor, not scriptable/batchable | None |
-| Script-to-voice | Native multi-speaker casting, stale-take tracking | None | Basic TTS API node | Per-tool | None |
-| App deployment | Built-in visual app builder | Brittle wrappers | Forms only | Closed SaaS | Chat UIs |
-| Pricing | Open source + BYOK, no markup | Open source | Task-execution tiers | Credit packs | Mixed |
-| Agent/MCP support | 120+ MCP tools + CodeAct | Community scripts | Webhooks | Closed | LLM chains only |
-| Deployment | Desktop (offline) or cloud | Local only | Cloud/self-hosted | Cloud only | Self-hosted |
+| Media depth | Full suite: video, audio, image, text, 3D, with editors | Image and video, one vendor's editors | Diffusion images; little native editing | Text/JSON payloads | Media as URL attachments |
+| Models | Every major provider, switch in one click | The list they picked | Diffusion models | None | LLMs |
+| What you pay | Provider list prices on your own keys | Their credits | Your own compute | Task-execution tiers | Mixed |
+| The project | An editable multi-track project you keep | An exported video; the project stays in their app | A graph file, images only | Forms only | Chat UIs |
+| Timeline editing | Native multi-track NLE, generation at the playhead | Web editor, not scriptable/batchable | None | None | None |
+| Script-to-voice | Native multi-speaker casting, stale-take tracking | Per-tool | None | Basic TTS API node | None |
+| Source | Open (AGPL-3.0) | Closed | Open | Closed | Open |
+| Agent/MCP support | MCP tools + CodeAct | Closed | Community scripts | Webhooks | LLM chains only |
+| Deployment | Desktop (offline) or cloud | Cloud only | Local only | Cloud/self-hosted | Self-hosted |
 
 Comparison-page punchlines:
 
@@ -172,8 +178,8 @@ Comparison-page punchlines:
   studio." (No timeline, no voice casting, no app builder, Python environment
   wrangling.)
 - **vs Zapier/Make/n8n:** "Built for pixels and waveforms, not just JSON."
-- **vs Runway/Midjourney/Firefly:** "Zero vendor lock-in. When a better model
-  drops tomorrow, switch in one click."
+- **vs the closed studios (Runway, LTX Studio, Figma Weave):** "They make the
+  film. Then they keep it. NodeTool hands the project back, on your keys."
 - **vs Langflow/Flowise/Dify:** "True multimodal execution, not text chains
   with attachments."
 
@@ -183,25 +189,34 @@ Comparison-page punchlines:
 
 ### Page architecture
 
-1. **Hero** — "From prompt to final cut on one canvas" + interactive 3-step
-   pipeline demo + dual CTA.
-2. **The pain grid** — "The five-tab tax": fragmented stack vs. one canvas.
-3. **The five creative surfaces** — interactive tabs: Storyboard, Script &
+The order below is the one [NARRATIVE.md § Order of the page](NARRATIVE.md#order-of-the-page)
+pins; that file wins when the two drift.
+
+1. **Hero** — "You are the director. The agent is your crew." + the project
+   reel + download CTA. The subhead carries the project-not-render claim.
+2. **The enemy** — the closed AI studio, once, briefly: their models, their
+   credits, their locked project.
+3. **The project the agent leaves behind** — four frames of one session.
+4. **Three steps** — Pitch / Automate / Direct, each visual a film frame.
+5. **The jobs** — the four recipes, each with its real run, the models it
+   calls, and its `.nodetool` bundle.
+6. **The five creative surfaces** — interactive tabs: Storyboard, Script &
    Voice, Timeline, Sketch, 3D.
-4. **Graph-to-app** — node graph on the left, generated mini-app on the right.
-5. **Developer & agentic power** — MCP, headless flow SDK, DSL, sandboxed code.
-6. **BYOK ROI calculator** — interactive SaaS-stack vs. wholesale-API cost
-   comparison.
-7. **Competitive battleground** — matrix + links to `/compare/*` pages.
-8. **Template gallery + social proof** — 1-click cloneable recipes.
-9. **Final CTA + footer.**
+7. **Ownership** — keys, project file, source. Local inference stays on
+   `/studio`.
+8. **BYOK calculator** — the one place cost is proven with numbers.
+9. **Comparison** — against the closed studios; ComfyUI on `/alternatives`.
+10. **Ways in** — Studio, Cloud (alpha), Developers, Marketing.
+11. **What is underneath** — one strip of links (app builder, node catalog,
+    asset and model managers), not ten sections.
+12. **FAQ, community, final CTA + footer.**
 
 ### Hero section
 
 - **Badge:** `Open Source (AGPL-3.0) · Local-First · BYOK Direct Pricing`
-- **Headline:** **From prompt to final cut on one canvas.**
-  (Adopted; [NARRATIVE.md](NARRATIVE.md) pins the same line, and the homepage
-  H1 carries it.)
+- **Headline:** **You are the director. The agent is your crew.**
+  ([NARRATIVE.md](NARRATIVE.md) pins the line, and the homepage H1 carries it.
+  "From prompt to final cut on one canvas" was the earlier line.)
 - **Subhead:** *Stop juggling Midjourney, Runway, ElevenLabs, and Premiere.
   NodeTool combines visual AI models, a multi-track timeline, layered
   sketching, and scripts into one open-source workspace you drive manually or

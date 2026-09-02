@@ -649,10 +649,10 @@ export function createCreativePipelineBridge(
     "Check the assembled sequence without rendering it: tracks and clips a render would refuse, timings that cannot lay out, animation presets that do not exist. Returns errors and warnings. Call it on the delivered cut — a sequence that assembled is not necessarily a sequence that validates.",
     z.object({}),
     async () => {
-      const { fps, width, height, documentTracks, documentClips } =
+      const { fps, width, height, documentTracks, documentClips, markers } =
         timeline.finalState();
       timelineValidation = validateTimelineSequence(
-        { tracks: documentTracks, clips: documentClips, markers: [] },
+        { tracks: documentTracks, clips: documentClips, markers },
         { fps, width, height }
       );
       // `ok` here is the validator's verdict, not "the call succeeded" — a cut

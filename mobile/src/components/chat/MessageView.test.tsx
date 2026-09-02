@@ -2,7 +2,7 @@
  * Tests for MessageView component
  */
 
-import { render, screen } from '@testing-library/react-native';
+import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
 import { MessageView } from './MessageView';
 import { Message } from '../../types';
 
@@ -247,6 +247,37 @@ describe('MessageView', () => {
 
       render(<MessageView message={message} />);
       expect(screen.getByLabelText('You: ')).toBeTruthy();
+    });
+  });
+
+  describe('Compaction record', () => {
+    const compaction: Message = {
+      id: '18',
+      type: 'message',
+      role: 'user',
+      execution_event_type: 'compaction',
+      content: '[Conversation so far]\nWe picked the blue palette.',
+    };
+
+    it('renders a collapsed row instead of a user bubble', () => {
+      render(<MessageView message={compaction} />);
+
+      expect(screen.getByLabelText('Earlier conversation summarized')).toBeTruthy();
+      // Collapsed: neither the summary nor a user bubble is on screen.
+      expect(screen.queryByText('We picked the blue palette.')).toBeNull();
+      expect(screen.queryByLabelText(/^You: /)).toBeNull();
+    });
+
+    it('reveals the summary without its header when expanded', async () => {
+      const user = userEvent.setup();
+      render(<MessageView message={compaction} />);
+
+      await user.press(screen.getByLabelText('Earlier conversation summarized'));
+
+      await waitFor(() => {
+        expect(screen.getByText('We picked the blue palette.')).toBeTruthy();
+      });
+      expect(screen.queryByText(/\[Conversation so far\]/)).toBeNull();
     });
   });
 });

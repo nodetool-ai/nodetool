@@ -270,6 +270,18 @@ Starts an interactive TUI chat session.
 - `--permission-mode <default|auto|plan>` — how tool calls are gated when the
   input is piped (see [Permission mode](#permission-mode)). Unset runs `auto`.
   The interactive TUI does not gate its belt, and says so if the flag is passed.
+- `--cost-cap <usd>` — ceiling on provider spend for one turn; `0` lifts it.
+  Default: the `NODETOOL_AGENT_TURN_COST_CAP_USD` setting.
+- `--timeout <s>` — wall-clock bound on one turn, in seconds; `0` leaves it no
+  time at all. Default: the `NODETOOL_AGENT_TURN_DEADLINE_MS` setting.
+
+Both flags override two of the five `NODETOOL_AGENT_*` settings; the other
+three — concurrency, total turns, unpriced-token ceiling — come from the
+settings alone. The budget is one object per turn, shared by every loop the
+turn starts, so a ceiling bounds the turn rather than each loop separately. A
+turn a ceiling refuses prints the reason: `[stopped] turn budget of $5 reached`
+piped, or a `Stopped:` line in the TUI. Unlike `--permission-mode`, these two
+apply to the interactive session as well.
 
 **Examples:**
 
@@ -1492,6 +1504,10 @@ nodetool agent run -p openai -m gpt-5.4-mini -o "Summarize the README" \
 nodetool agent run -p anthropic -m claude-sonnet-5 -o "Tidy the workflows" \
   --permission-mode default
 
+# Bound what the run may spend and how long it may take
+nodetool agent run -p openai -m gpt-5.4-mini -o "Research AI trends" \
+  --cost-cap 0.50 --timeout 120
+
 # Aggregate a failed run into one report
 nodetool agent diagnose <job_id>
 ```
@@ -1499,6 +1515,33 @@ nodetool agent diagnose <job_id>
 `--max-steps` is gone with the planner→compiler pipeline the command used to
 run, along with plan approval, checkpoints, the planning/reasoning model split,
 and skill auto-select. See [Agent CLI](agent-cli.md).
+
+### Run budget
+
+`--cost-cap <usd>` and `--timeout <s>` bound one run. They override two of the
+five `NODETOOL_AGENT_*` settings a chat turn reads
+(`NODETOOL_AGENT_TURN_COST_CAP_USD`, `NODETOOL_AGENT_TURN_DEADLINE_MS`); the
+other three — `NODETOOL_AGENT_MAX_CONCURRENCY`, `NODETOOL_AGENT_MAX_TURNS`,
+`NODETOOL_AGENT_UNPRICED_TOKEN_CEILING` — come from the settings alone.
+`--cost-cap 0` lifts the dollar cap, which is what a local-only install wants;
+`--timeout 0` leaves the run no time and stops it before its first model turn.
+
+One budget covers the whole run, not each loop: a sub-agent, an `execute_plan`
+DAG, and an `AgentNode` reached through `run_node` all reserve against it. A
+cap is *admission*, so a turn whose worst case would cross it is refused before
+the call rather than noticed after the money is spent — a model the price
+catalog does not cover has no worst case and is admitted against a prompt-token
+ceiling instead, never as free.
+
+A run a ceiling stops prints the reason and exits non-zero:
+
+```
+agent stopped: turn budget of $0.01 reached
+```
+
+With `--json` the same reason arrives as an `error` event. Every run ends with
+what it committed against the cap, as `spent $0.0123` on stderr or a
+`log_update` in `--json`.
 
 ### Permission mode
 

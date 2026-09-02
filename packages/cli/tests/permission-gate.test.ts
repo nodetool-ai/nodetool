@@ -17,7 +17,10 @@ import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@nodetool-ai/agents", async () => {
   const real = await import("../../agents/src/tools/tool-permissions.js");
-  return { ...real };
+  const contract = await import(
+    "../../agents/src/codeact/execute-code-contract.js"
+  );
+  return { ...real, EXECUTE_CODE_TOOL_NAME: contract.EXECUTE_CODE_TOOL_NAME };
 });
 
 const { headlessDenialReason, decidePermission, permissionCategoryFor } =
@@ -28,6 +31,9 @@ type PermissionGateOptions = import(
 
 const { createCliPermissionGate, parsePermissionMode } = await import(
   "../src/permission-gate.js"
+);
+const { admitCodeAction } = await import(
+  "../../agents/src/codeact/execute-code-contract.js"
 );
 
 /** A fake stdin the test writes answers into, one line at a time. */
@@ -110,6 +116,33 @@ describe("a piped run", () => {
 
     // Once per run, not once per call.
     expect(notices.lines).toHaveLength(1);
+  });
+
+  it("runs a code action that declares no risk, with nobody to ask", async () => {
+    const gate = createCliPermissionGate({
+      hostName: "nodetool agent run",
+      interactive: false,
+      write: () => {},
+      input: fakeStdin()
+    });
+
+    // A code action with no `risk` reads as high, and in `auto` the ladder
+    // asks the approver for it. Piped input has no one to ask: the person
+    // launched the command with the objective, which is the approval.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const admission = await admitCodeAction(gate, {
+      title: "List the workflows",
+      code: "await nodetool.workflows.list();"
+    });
+    warn.mockRestore();
+    expect(admission.allowed).toBe(true);
+
+    // What a run escalates on its own still reaches the approver and denies.
+    const spy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await expect(gate.requestApproval(request("delete_workflow"))).resolves.toBe(
+      "deny"
+    );
+    spy.mockRestore();
   });
 
   it("keeps an explicitly asked-for mode, with nobody to ask", async () => {

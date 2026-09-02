@@ -44,6 +44,10 @@ import {
   UNGATED,
   createCapabilityRun,
   contextSecretAvailability,
+  gateTools,
+  headlessGate,
+  EXECUTE_CODE_TOOL_NAME,
+  type PermissionGateOptions,
   type CapabilityRun,
   NODETOOL_API_NAMESPACE_TOOLS,
   MCP_GUEST_CONTRACT,
@@ -336,13 +340,17 @@ function collectBridgedTools(
     // Google Workspace runs on the token from the user's Google sign-in, so it
     // only exists on deployments that have a login — same gate the runner uses.
     ...(isGoogleWorkspaceEnabled() ? getGoogleWorkspaceTools() : []),
-    // Apify and SerpAPI: same belt the chat runner offers. Ungated here, as
-    // every bridged tool is — this surface has no approval prompt to show.
+    // Apify and SerpAPI: same belt the chat runner offers. The gate is not
+    // set here: `registerAgentMcpTools` wraps the whole belt in `gateTools`,
+    // so these run past the same ladder as everything else.
     ...getApifyTools(),
     ...getSerpApiTools(),
     // Timelines have no REST route (the API is tRPC-only), so this capability
     // reads a loader off the run instead of fetching, and `getAllMcpTools`
     // cannot build it.
+    // `UNGATED` on the inner run, because the belt-level `gateTools` wrapper
+    // is what carries this mount's gate — a second ladder here would decide
+    // the same call twice. The run exists for the loader, not for permissions.
     toolForCapabilityName("validate_timeline", (context) =>
       createCapabilityRun({
         context,
@@ -385,6 +393,33 @@ function collectBridgedTools(
       )
     )
   ];
+}
+
+/**
+ * The gate an MCP session runs under: `auto`, denying every escalation the
+ * ladder raises, with one standing approval.
+ *
+ * `auto` is D4 — a client's user connected this agent deliberately, and the
+ * session has no approval UI of its own, so a gate that could ask would only
+ * deadlock. The approver therefore denies: resolving `"allow"` would grant
+ * exactly what an escalation exists to withhold, and never resolving would
+ * hang the run (invariant I-4).
+ *
+ * The exception is `execute_code` itself, seeded into `sessionAllow`. Every
+ * action arrives as an MCP tool call the *client* put in front of its user —
+ * with the code in it — before sending it, and `sessionAllow` is the ladder's
+ * own channel for "the user already said yes". Without the seed,
+ * `admitCodeAction` would refuse every action that does not declare
+ * `risk: "low"` (an omitted declaration reads as `high`), which is most of
+ * them: the mount would answer and never act. Escalations raised *inside* a
+ * run — an Apify actor this install has not allowlisted, a security-monitor
+ * consult — are a different matter and still deny, because nothing here can
+ * put those in front of that user.
+ */
+function mcpSessionGate(): PermissionGateOptions {
+  const gate = headlessGate("MCP");
+  gate.sessionAllow.add(EXECUTE_CODE_TOOL_NAME);
+  return gate;
 }
 
 /** URI of the structured capability catalog this mount publishes. */
@@ -609,6 +644,10 @@ function buildCapabilityCatalog(
  * Register the agent surface on `server`: one `execute_code` action tool and
  * `view_image`.
  *
+ * `gate` defaults to {@link mcpSessionGate} — `auto` with an approver that
+ * denies, because an MCP session has no user of its own to ask. A host that
+ * does have an approval channel passes its own gate instead.
+ *
  * Everything else the catalogs offer becomes the sandbox belt instead of an MCP
  * tool. It stays fully reachable — `tools.<name>()`, the `nodetool.*` object
  * model, `await nodetool.searchTools("query")` — and the `execute_code` description
@@ -617,7 +656,8 @@ function buildCapabilityCatalog(
  */
 export function registerAgentMcpTools(
   server: McpServer,
-  options: McpServerOptions
+  options: McpServerOptions,
+  gate: PermissionGateOptions = mcpSessionGate()
 ): CapabilityRun {
   // Every bridged tool runs against one user's secrets and assets, so a session
   // without an explicit user binding has no surface at all — a default user
@@ -642,19 +682,17 @@ export function registerAgentMcpTools(
     return providersPromise;
   };
 
-  // MCP runs every call in `auto`: an MCP session has no approval UI to prompt
-  // through, so a gate that could ask would only deadlock. What bounds this
-  // surface is the session's user binding above, not a per-call question.
-  // The codeact session mounts it, so an action can import
+  // The gate: `auto` with the headless deny, `mcpSessionGate` above. What
+  // bounds this surface is the session's user binding, not a per-call
+  // question the mount has nobody to ask.
+  //
+  // The codeact session mounts this run, so an action can import
   // `@nodetool-ai/sandbox-nodetool/<namespace>` and land on `run.invoke`; the
-  // belt remains what `tools.<name>()` calls, past the same gate.
+  // belt is wrapped in `gateTools` below, so `tools.<name>()` and the direct
+  // MCP registrations reach the same ladder (invariant I-1).
   const capabilityRun = createCapabilityRun({
     context,
-    gate: {
-      mode: "auto",
-      sessionAllow: new Set<string>(),
-      requestApproval: async () => "allow"
-    },
+    gate,
     availableSecrets: contextSecretAvailability(context),
     nodeRegistry: options.registry,
     ...mcpToolHostDeps({
@@ -737,7 +775,7 @@ export function registerAgentMcpTools(
 
   // The belt the sandbox sees. Deduped by name, because the two catalogs
   // overlap and a session must not offer one tool under two instances.
-  const belt: Tool[] = [];
+  const rawBelt: Tool[] = [];
   const beltNames = new Set<string>();
   for (const originalTool of [
     ...collectBridgedTools(options, sharedProviders),
@@ -748,8 +786,15 @@ export function registerAgentMcpTools(
       : originalTool;
     if (beltNames.has(tool.name)) continue;
     beltNames.add(tool.name);
-    belt.push(tool);
+    rawBelt.push(tool);
   }
+  // Every belt tool goes through the one ladder. `runBridgedTool` ends in
+  // `tool.process`, so wrapping here covers both entrances — the direct MCP
+  // registrations below and `tools.<name>()` inside a code action — with no
+  // second gate of their own. The wrapper is transparent otherwise (identity,
+  // schema, message template are the inner tool's), so the catalog and the
+  // sandbox belt are unchanged.
+  const belt = gateTools(rawBelt, gate);
   const byName = new Map(belt.map((tool) => [tool.name, tool]));
 
   // `view_image` is the one channel that puts pixels into a caller's context,
@@ -817,10 +862,10 @@ export function registerAgentMcpTools(
   // rejected on validation. It stays in the schema — described, and the
   // contract in the description still asks for one — but is optional here.
   //
-  // `risk` is optional here for the same reason, and one more: this session's
-  // gate runs in `auto` with an always-allow approval (there is no MCP client
-  // to prompt), so the declared risk decides nothing on this surface. A
-  // missing one still reads as `high` — it just resolves to allow.
+  // `risk` is optional here for the same reason, and it still decides
+  // nothing: `admitCodeAction` reads the standing `execute_code` approval in
+  // this session's gate (see `mcpSessionGate`) before it looks at the declared
+  // risk, because the client already asked its user about this very call.
   //
   // `description` follows `risk`: it is the text an approval dialog asks the
   // user about, and this surface never opens one.

@@ -162,27 +162,43 @@ export interface SubAgentRunOptions {
 }
 
 /**
- * Settle a `step_result` into an outcome.
+ * Settle a step's *value* into an outcome — the one place that knows what a
+ * failure looks like once it is a value rather than a protocol field.
  *
- * The executor reports failures through the protocol-level `error` field.
- * In schema-free mode, a result object with a string `error` property is also
- * treated as a legacy failure shape (prose mode normally returns text). With
- * a schema, the object shape was explicitly requested and passes through.
+ * `null`/`undefined` is not a settlement at all (the step produced nothing
+ * yet), so it answers `null`. A plain object carrying a non-empty string
+ * `error` is the failure payload a step writes on its error path
+ * (`{ error: "Step failed: ..." }`). An **array is never that payload**: a
+ * fan-out step stores an array of per-item results, and whether that array
+ * failed is a question about its items, not about the array. With an output
+ * schema the object shape was explicitly requested, so it passes through.
+ */
+export function settleResultValue(
+  result: unknown,
+  opts: { hasOutputSchema?: boolean } = {}
+): SubAgentOutcome | null {
+  if (result === null || result === undefined) return null;
+  if (typeof result === "object" && !Array.isArray(result)) {
+    const error = (result as Record<string, unknown>).error;
+    if (isString(error) && error.length > 0 && !opts.hasOutputSchema) {
+      return { ok: false, error };
+    }
+  }
+  return { ok: true, result };
+}
+
+/**
+ * Settle a `step_result` message into an outcome.
+ *
+ * The executor reports failures through the protocol-level `error` field;
+ * everything else is decided by {@link settleResultValue}.
  */
 export function settleStepResult(
   sr: StepResult,
   opts: { hasOutputSchema?: boolean } = {}
 ): SubAgentOutcome | null {
   if (sr.error) return { ok: false, error: sr.error };
-  const result = sr.result;
-  if (result === null || result === undefined) return null;
-  if (typeof result === "object" && !Array.isArray(result)) {
-    const record = result as Record<string, unknown>;
-    if (isString(record.error) && !opts.hasOutputSchema) {
-      return { ok: false, error: record.error };
-    }
-  }
-  return { ok: true, result };
+  return settleResultValue(sr.result, opts);
 }
 
 /**

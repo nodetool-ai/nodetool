@@ -60,6 +60,7 @@ export interface TimelineBridgeTool {
 export interface TimelineBridgeSnapshot {
   documentTracks?: TimelineDocument["tracks"];
   documentClips?: TimelineDocument["clips"];
+  markers?: TimelineDocument["markers"];
 }
 
 export interface TimelineBridge {
@@ -71,6 +72,7 @@ export type CreateTimelineBridge = (initial: {
   sequence: TimelineSequenceSettings & {
     tracks: TimelineDocument["tracks"];
     clips: TimelineDocument["clips"];
+    markers?: TimelineDocument["markers"];
   };
 }) => TimelineBridge;
 
@@ -169,7 +171,8 @@ export async function runTimelineDebug(
       sequence: {
         ...resolved.meta,
         tracks: resolved.document.tracks,
-        clips: resolved.document.clips
+        clips: resolved.document.clips,
+        markers: resolved.document.markers
       }
     });
     const byName = new Map(bridge.tools.map((t) => [t.name, t]));
@@ -210,15 +213,15 @@ export async function runTimelineDebug(
     snapshot = bridge.finalState();
   }
 
-  // The bridge hands back its full tracks and clips, so the document the
-  // session ended with is a real document — markers ride along untouched,
-  // since no timeline tool edits them.
+  // The bridge hands back its full tracks, clips and markers, so the document
+  // the session ended with is a real document. Markers fall back to the ones
+  // the target carried, for a bridge that does not report them.
   const finalDocument: TimelineDocument | undefined =
     snapshot?.documentTracks && snapshot.documentClips
       ? {
           tracks: snapshot.documentTracks,
           clips: snapshot.documentClips,
-          markers: resolved.document.markers
+          markers: snapshot.markers ?? resolved.document.markers
         }
       : undefined;
 

@@ -156,34 +156,32 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
     [activeInput, onSetInputMapping, handleClosePicker]
   );
 
-  // All source options per field, computed once per render of the list.
-  const sourcesByInput = useMemo(() => {
-    const map = new Map<string, SourceOption[]>();
-    for (const prop of properties) {
-      const options: SourceOption[] = [];
-      previousNodes.forEach((node, i) => {
-        for (const output of node.metadata.outputs) {
-          options.push({
-            node,
-            step: i + 1,
-            output,
-            compatible: areTypesCompatible(output.type, prop.type),
-          });
-        }
-      });
-      map.set(prop.name, options);
-    }
-    return map;
-  }, [properties, previousNodes]);
-
   const activeProp = activeInput
     ? properties.find((p) => p.name === activeInput)
     : undefined;
-  const activeOptions = activeInput
-    ? sourcesByInput.get(activeInput) ?? []
-    : [];
-  const compatibleOptions = activeOptions.filter((o) => o.compatible);
-  const incompatibleOptions = activeOptions.filter((o) => !o.compatible);
+
+  // Only the open picker's options are ever rendered. Building them for every
+  // property cost properties × previousNodes × outputs option objects, each
+  // with an `areTypesCompatible` call, on every render of an expanded card.
+  const { compatibleOptions, incompatibleOptions } = useMemo(() => {
+    const compatible: SourceOption[] = [];
+    const incompatible: SourceOption[] = [];
+    if (activeProp) {
+      previousNodes.forEach((node, i) => {
+        for (const output of node.metadata.outputs) {
+          const option: SourceOption = {
+            node,
+            step: i + 1,
+            output,
+            compatible: areTypesCompatible(output.type, activeProp.type),
+          };
+          (option.compatible ? compatible : incompatible).push(option);
+        }
+      });
+    }
+    return { compatibleOptions: compatible, incompatibleOptions: incompatible };
+  }, [activeProp, previousNodes]);
+
   const activeMapping = activeInput ? inputMappings[activeInput] : undefined;
 
   if (properties.length === 0) {

@@ -9,17 +9,19 @@ import type {
   Message,
   MessageContent,
   ToolCall,
-  ProviderStreamItem,
-  ProviderSession
+  ProviderSession,
+  RunBudget,
+  TurnBudget
 } from "@nodetool-ai/runtime";
 import {
   ACTIVE_MODEL_CONTEXT_KEY,
+  isChunk,
   isProviderSessionUpdate,
   isProviderMessageEvent,
+  isToolCall,
   type ActiveModelSelection
 } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { Chunk } from "@nodetool-ai/protocol";
 import {
   Tool,
   extractInjectableImages,
@@ -86,14 +88,6 @@ export async function runTool(
 // Chat processing loop
 // ---------------------------------------------------------------------------
 
-function isChunk(item: ProviderStreamItem): item is Chunk {
-  return "type" in item && item.type === "chunk";
-}
-
-function isToolCall(item: ProviderStreamItem): item is ToolCall {
-  return "name" in item && "id" in item && !("type" in item);
-}
-
 /** A tool result that is already plain text, so it needs no JSON encoding. */
 function isTextResult(result: ExecutedToolCall["result"]): result is string {
   return typeof result === "string";
@@ -158,6 +152,12 @@ export async function processChat(opts: {
    * invalid tool calls and gets the same error back. Defaults to 25.
    */
   maxIterations?: number;
+  /**
+   * The run's spend/deadline/turn admission, consulted before every model
+   * turn. Passed straight to `generateLoop`, which refuses a turn that would
+   * cross a ceiling instead of making the call. Absent means unbudgeted.
+   */
+  turnBudget?: TurnBudget | RunBudget;
 }): Promise<Message[]> {
   const {
     userInput,
@@ -170,7 +170,8 @@ export async function processChat(opts: {
     threadId,
     providerSession,
     signal,
-    maxIterations = 25
+    maxIterations = 25,
+    turnBudget
   } = opts;
 
   // Stamp the turn's own selection so a tool that launches another harness
@@ -222,6 +223,7 @@ export async function processChat(opts: {
     providerSession,
     executeTool: tools.length > 0 ? executeTool : undefined,
     maxIterations,
+    turnBudget,
     signal
   })) {
     if (signal?.aborted) break;
@@ -242,8 +244,8 @@ export async function processChat(opts: {
     }
     if (isChunk(item)) {
       if (item.thinking) continue;
-      // A chunk's content is either text or raw audio samples; only text is
-      // streamed to the caller.
+      // `isChunk` already excludes raw audio samples; the check narrows
+      // `content` to the string `onChunk` takes.
       if (item.content instanceof Float32Array) continue;
       callbacks?.onChunk?.(item.content);
     }

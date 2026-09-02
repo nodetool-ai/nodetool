@@ -632,7 +632,8 @@ async function applyOps(
       width: sequence.width,
       height: sequence.height,
       tracks: document.tracks,
-      clips: document.clips
+      clips: document.clips,
+      markers: document.markers
     },
     resolveAsset: (ref) => resolveTimelineAsset(run, ref),
     bakeAnimation: (request) => bakeTimelineAnimation(run, request)
@@ -694,9 +695,10 @@ function resolveNamedUnit(
 /**
  * The unit ids one op's result names.
  *
- * The bridge answers `{ok, clip}`, `{ok, track}`, `{ok, clips}` (a split),
- * `{ok, deleted}` (a delete) or `{ok, selected}` — never a bare `id`, which
- * is why reading `result.id` alone left every `"selected"` target unresolved.
+ * The bridge answers `{ok, clip}`, `{ok, track}`, `{ok, marker}`, `{ok, clips}`
+ * (a split), `{ok, deleted}` (a delete) or `{ok, selected}` — never a bare
+ * `id`, which is why reading `result.id` alone left every `"selected"` target
+ * unresolved.
  */
 export function resultUnitIds(result: unknown): string[] {
   if (!isRecord(result)) return [];
@@ -704,7 +706,7 @@ export function resultUnitIds(result: unknown): string[] {
   const push = (value: unknown): void => {
     if (isRecord(value) && isString(value["id"])) ids.push(value["id"]);
   };
-  for (const key of ["clip", "track", "deleted", "selected"]) {
+  for (const key of ["clip", "track", "marker", "deleted", "selected"]) {
     push(result[key]);
   }
   const clips = result["clips"];
@@ -778,12 +780,14 @@ const editTimeline: CapabilityExport = {
       const document = sequence.toDocument();
       const { records, state } = await applyOps(run, sequence, document, ops);
 
-      // Markers and the transcript ride along untouched: no timeline operation
-      // edits them, so the stored copies stay authoritative.
+      // The transcript rides along untouched — no timeline operation edits it,
+      // so the stored copy stays authoritative. Markers come back from the
+      // bridge, which seeded them and which the marker ops write to.
       const next: TimelineDocument = {
         ...document,
         tracks: state.documentTracks,
-        clips: state.documentClips
+        clips: state.documentClips,
+        markers: state.markers
       };
       const saved = await TimelineSequence.updateDocumentIfUnchanged(
         timelineId,

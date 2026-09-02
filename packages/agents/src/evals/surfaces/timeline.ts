@@ -45,12 +45,19 @@ import {
   mediaTypeForContentType,
   trackTypeForMediaType,
   STAGGER_UNITS,
+  DEFAULT_BEAT_TOLERANCE_MS,
+  buildBeatGrid,
+  beatCountToCover,
+  snapClipsToGrid,
   type AnimationRole,
   type CustomClipAnimation,
   type PropertyCurve,
   type ClipEffect,
   type ClipMask,
+  type SnapBoundaryMode,
+  type SnapAction,
   type TimelineClip,
+  type TimelineMarker,
   type TimelineTrack,
   type ClipAnimation
 } from "@nodetool-ai/timeline";
@@ -155,6 +162,8 @@ export interface TimelineBridgeSequenceSeed {
   height?: number;
   tracks: TimelineTrack[];
   clips: TimelineClip[];
+  /** The document's markers. Absent reads as a sequence with none. */
+  markers?: TimelineMarker[];
 }
 
 /**
@@ -247,6 +256,11 @@ export interface TimelineBridgeFinalState {
    */
   documentTracks: TimelineTrack[];
   documentClips: TimelineClip[];
+  /**
+   * The document's markers. There is no reduced twin: a marker is four fields
+   * wide, so a predicate and a document reader want the same shape.
+   */
+  markers: TimelineMarker[];
 }
 
 function tool<TResult>(
@@ -308,8 +322,10 @@ export function createTimelineToolBridge(
   let trackSeq = 0;
   let clipSeq = 0;
   let animSeq = 0;
+  let markerSeq = 0;
   const tracks: TimelineTrack[] = [];
   let clips: TimelineClip[] = [];
+  let markers: TimelineMarker[] = [];
 
   // Ids the sequence already uses. A seeded document brings its own, which the
   // `track_1`/`clip_1` counters would otherwise collide with on the first edit.
@@ -323,6 +339,7 @@ export function createTimelineToolBridge(
   const nextTrackId = () => mint("track", () => ++trackSeq);
   const nextClipId = () => mint("clip", () => ++clipSeq);
   const nextAnimId = () => mint("anim", () => ++animSeq);
+  const nextMarkerId = () => mint("marker", () => ++markerSeq);
 
   function addTrackInternal(
     type: TimelineTrack["type"],
@@ -401,6 +418,51 @@ export function createTimelineToolBridge(
     throw new Error(
       `No clip found matching "${target}". ${validUnits(clips, "clip")}`
     );
+  }
+
+  /** Resolve a marker by id, or by case-insensitive label. */
+  function resolveMarker(target: string): TimelineMarker {
+    const byId = markers.find((m) => m.id === target);
+    if (byId) return byId;
+    const lower = target.toLowerCase();
+    const byLabel = markers.find((m) => m.label.toLowerCase() === lower);
+    if (byLabel) return byLabel;
+    const known = markers
+      .map((m) => `${m.id} ("${m.label}") at ${m.timeMs}ms`)
+      .join(", ");
+    throw new Error(
+      `No marker matches "${target}". Use a marker id or its label. ` +
+        (known.length > 0
+          ? `Markers: ${known}.`
+          : "This sequence has no markers yet.")
+    );
+  }
+
+  /**
+   * Resolve the clips one beat op addresses: the named ones, or every clip.
+   *
+   * A target that matches nothing comes back as a miss rather than throwing —
+   * a batch op that dies on one bad name hides what the other targets did.
+   */
+  function resolveSnapTargets(targets: string[] | undefined): {
+    clips: TimelineClip[];
+    missing: string[];
+  } {
+    if (!targets || targets.length === 0) {
+      return { clips: [...clips], missing: [] };
+    }
+    const resolved: TimelineClip[] = [];
+    const missing: string[] = [];
+    for (const target of targets) {
+      try {
+        const clip = resolveClip(target);
+        if (!resolved.includes(clip)) resolved.push(clip);
+      } catch {
+        // Recorded as a skip in the op's own report, with the reason.
+        missing.push(target);
+      }
+    }
+    return { clips: resolved, missing };
   }
 
   function serializeTrack(t: TimelineTrack) {
@@ -562,6 +624,11 @@ export function createTimelineToolBridge(
       for (const animation of copy.animations ?? []) usedIds.add(animation.id);
       clips.push(copy);
     }
+    for (const marker of seed.markers ?? []) {
+      const copy = structuredClone(marker);
+      usedIds.add(copy.id);
+      markers.push(copy);
+    }
   }
 
   // Seed initial tracks and clips.
@@ -609,7 +676,8 @@ export function createTimelineToolBridge(
           playheadMs,
           selectedClipIds: [...selectedClipIds],
           tracks: tracks.map(serializeTrack),
-          clips: clips.map(serializeClip)
+          clips: clips.map(serializeClip),
+          markers: markers.map((m) => ({ ...m }))
         };
       }
     ),
@@ -1368,6 +1436,231 @@ export function createTimelineToolBridge(
         playheadMs = Math.max(0, timeMs as number);
         return { ok: true, playheadMs };
       }
+    ),
+
+    tool(
+      "ui_timeline_add_marker",
+      "Drop a marker at an absolute time on the timeline, to flag a moment — a beat, a scene boundary, a note for the user. Markers do not render; they are annotations on the ruler.",
+      z.object({
+        timeMs: z
+          .number()
+          .describe("Absolute position on the timeline in ms. Must be >= 0."),
+        label: z.string().optional().describe("Short label shown on the ruler."),
+        color: z.string().optional().describe("CSS colour for the marker dot."),
+        note: z.string().optional().describe("Longer note attached to the marker.")
+      }),
+      async ({ timeMs, label, color, note }) => {
+        const at = timeMs as number;
+        if (at < 0) {
+          throw new Error(`A marker cannot sit before zero; got ${at}ms.`);
+        }
+        const marker: TimelineMarker = {
+          id: nextMarkerId(),
+          timeMs: Math.round(at),
+          label: (label as string | undefined) ?? ""
+        };
+        if (color !== undefined) marker.color = color as string;
+        if (note !== undefined) marker.note = note as string;
+        markers.push(marker);
+        return { ok: true, marker: { ...marker } };
+      }
+    ),
+
+    tool(
+      "ui_timeline_delete_marker",
+      "Remove a marker by id or by its label (case-insensitive). Call ui_timeline_get_state to see the markers a sequence carries.",
+      z.object({
+        target: z.string().describe("Marker id or label (case-insensitive).")
+      }),
+      async ({ target }) => {
+        const marker = resolveMarker(target as string);
+        markers = markers.filter((m) => m.id !== marker.id);
+        return { ok: true, deleted: { ...marker } };
+      }
+    ),
+
+    tool(
+      "ui_timeline_set_markers_from_beats",
+      "Lay a marker on every beat of a grid, so the cut has something to work against. The grid is either `onsets_ms` — detect_audio_events reports `onsets.times` in SECONDS, so multiply by 1000 — or `bpm` with `count` and an optional `offset_ms` for where beat one sits. Markers already on the sequence are kept, and a beat that already carries one is skipped, so re-running the same grid changes nothing.",
+      z.object({
+        onsets_ms: z
+          .array(z.number())
+          .optional()
+          .describe("Absolute beat times in ms. Exactly one of this and `bpm`."),
+        bpm: z.number().optional().describe("Tempo. Needs `count`."),
+        offset_ms: z
+          .number()
+          .optional()
+          .describe("Where beat one sits, in ms. Default 0."),
+        count: z.number().optional().describe("Beats to lay down, with `bpm`."),
+        label: z
+          .string()
+          .optional()
+          .describe(
+            'Label stem; each marker is numbered from 1 ("Beat 1", "Beat 2", …). Default "Beat".'
+          )
+      }),
+      async ({ onsets_ms, bpm, offset_ms, count, label }) => {
+        const grid = buildBeatGrid({
+          onsetsMs: onsets_ms as number[] | undefined,
+          bpm: bpm as number | undefined,
+          offsetMs: offset_ms as number | undefined,
+          count: count as number | undefined
+        });
+        const stem = ((label as string | undefined) ?? "Beat").trim() || "Beat";
+        const taken = new Set(markers.map((m) => m.timeMs));
+        const added: TimelineMarker[] = [];
+        const skipped: number[] = [];
+        for (const [index, timeMs] of grid.entries()) {
+          if (taken.has(timeMs)) {
+            skipped.push(timeMs);
+            continue;
+          }
+          const marker: TimelineMarker = {
+            id: nextMarkerId(),
+            timeMs,
+            label: `${stem} ${index + 1}`
+          };
+          markers.push(marker);
+          taken.add(timeMs);
+          added.push(marker);
+        }
+        return {
+          ok: true,
+          grid: { count: grid.length, firstMs: grid[0], lastMs: grid[grid.length - 1] },
+          added: added.map((m) => ({ ...m })),
+          skipped_times_ms: skipped,
+          markers: markers.length
+        };
+      }
+    ),
+
+    tool(
+      "ui_timeline_snap_to_beats",
+      "Put clip boundaries on a beat grid. The grid is either `onsets_ms` — detect_audio_events reports `onsets.times` in SECONDS, so multiply by 1000 — or `bpm` with an optional `offset_ms`. `mode` picks the boundary, `action` picks how it gets there: `move` slides the whole clip and keeps its length, `trim` holds the opposite boundary and changes the length. A boundary further than `tolerance_ms` from every beat is left where it is and reported with the reason, so read the per-clip result rather than assuming everything moved.",
+      z.object({
+        targets: z
+          .union([z.array(z.string()), z.literal("all")])
+          .optional()
+          .describe(
+            'Clip ids or names, or "all". Default: every clip on the sequence.'
+          ),
+        onsets_ms: z
+          .array(z.number())
+          .optional()
+          .describe("Absolute beat times in ms. Exactly one of this and `bpm`."),
+        bpm: z.number().optional().describe("Tempo. The grid is generated far enough to reach every target."),
+        offset_ms: z
+          .number()
+          .optional()
+          .describe("Where beat one sits, in ms. Default 0."),
+        tolerance_ms: z
+          .number()
+          .optional()
+          .describe(
+            `How far a boundary may travel to reach a beat. Default ${DEFAULT_BEAT_TOLERANCE_MS}ms.`
+          ),
+        mode: z
+          .enum(["start", "end", "both"])
+          .optional()
+          .describe('Which boundary lands on a beat. Default "start".'),
+        action: z
+          .enum(["move", "trim"])
+          .optional()
+          .describe('"move" slides the clip, "trim" changes its length. Default "move".')
+      }),
+      async ({
+        targets,
+        onsets_ms,
+        bpm,
+        offset_ms,
+        tolerance_ms,
+        mode,
+        action
+      }) => {
+        const named =
+          targets === undefined || targets === "all"
+            ? undefined
+            : (targets as string[]);
+        const { clips: targeted, missing } = resolveSnapTargets(named);
+
+        const offsetMs = (offset_ms as number | undefined) ?? 0;
+        // A tempo grid has to reach the last boundary being snapped, so its
+        // length comes from the targets rather than from the caller.
+        const reachMs = targeted.reduce(
+          (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
+          0
+        );
+        const grid = buildBeatGrid({
+          onsetsMs: onsets_ms as number[] | undefined,
+          bpm: bpm as number | undefined,
+          offsetMs: offset_ms as number | undefined,
+          count:
+            bpm === undefined
+              ? undefined
+              : beatCountToCover(bpm as number, offsetMs, reachMs)
+        });
+
+        const options: {
+          toleranceMs?: number;
+          mode?: SnapBoundaryMode;
+          action?: SnapAction;
+        } = {};
+        if (tolerance_ms !== undefined) {
+          options.toleranceMs = tolerance_ms as number;
+        }
+        if (mode !== undefined) options.mode = mode as SnapBoundaryMode;
+        if (action !== undefined) options.action = action as SnapAction;
+
+        const result = snapClipsToGrid(
+          targeted.map((clip) => ({
+            id: clip.id,
+            startMs: clip.startMs,
+            durationMs: clip.durationMs
+          })),
+          grid,
+          options
+        );
+
+        const byId = new Map(targeted.map((clip) => [clip.id, clip]));
+        const reported = result.clips.map((entry) => {
+          const clip = byId.get(entry.clipId);
+          if (entry.snapped && clip) {
+            clip.startMs = entry.after.startMs;
+            clip.durationMs = entry.after.durationMs;
+          }
+          return { ...entry, clipName: clip?.name ?? null };
+        });
+
+        // A name nothing matched is a skip like any other: the caller has to
+        // see it in the same list, not infer it from a shorter one.
+        for (const target of missing) {
+          reported.push({
+            clipId: target,
+            clipName: null,
+            snapped: false,
+            before: { startMs: 0, endMs: 0, durationMs: 0 },
+            after: { startMs: 0, endMs: 0, durationMs: 0 },
+            delta: { startMs: 0, endMs: 0 },
+            reason: `no clip matches "${target}"`
+          });
+        }
+
+        return {
+          ok: true,
+          grid: {
+            count: grid.length,
+            firstMs: grid[0],
+            lastMs: grid[grid.length - 1]
+          },
+          toleranceMs: result.toleranceMs,
+          mode: result.mode,
+          action: result.action,
+          snapped: result.snapped,
+          skipped: result.skipped + missing.length,
+          clips: reported
+        };
+      }
     )
   ];
 
@@ -1402,7 +1695,8 @@ export function createTimelineToolBridge(
         }))
       })),
       documentTracks: tracks.map((t) => structuredClone(t)),
-      documentClips: clips.map((c) => structuredClone(c))
+      documentClips: clips.map((c) => structuredClone(c)),
+      markers: markers.map((m) => structuredClone(m))
     })
   };
 }
@@ -1416,6 +1710,7 @@ Use the ui_timeline_* tools to inspect and modify the sequence:
 - Before animating a clip, call ui_timeline_list_animation_presets to discover the exact preset ids, allowed roles, and params.
 - For motion no preset covers, animate with preset "custom" and pass curves — [{property, keyframes: [{t, value}]}], where t runs 0..1 over the animation window. list_animation_presets reports which properties a curve may drive.
 - ui_timeline_seek moves the playhead (useful before a playhead-relative split).
+- Flag moments with ui_timeline_add_marker / ui_timeline_delete_marker. To cut to music, lay the grid down with ui_timeline_set_markers_from_beats and put clip boundaries on it with ui_timeline_snap_to_beats, then read its per-clip report — a clip further than the tolerance from every beat is left alone and says so.
 
 Call one tool at a time and use the result before the next call. When the objective is fully satisfied, STOP calling tools and give a one-line summary.`;
 
