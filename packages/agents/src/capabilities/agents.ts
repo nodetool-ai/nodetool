@@ -30,6 +30,7 @@
 
 import type { JsonSchema } from "@nodetool-ai/runtime";
 import { budgetFromContext } from "@nodetool-ai/runtime";
+import { createLogger } from "@nodetool-ai/config";
 import { Tool } from "../tools/base-tool.js";
 import { TOOL_CALL_ID_FIELD } from "../tools/subtask-fields.js";
 import { READ_ONLY_SEARCH_DESCRIPTION } from "../prompts/read-only-search-prompt.js";
@@ -61,6 +62,8 @@ export {
   RUN_SUBTASK_SCHEMA,
   RUN_SEARCH_SCHEMA
 } from "./agents.specs.js";
+
+const log = createLogger("nodetool.agents.capabilities.agents");
 
 /**
  * The sub-agent runtime this run carries, or an error naming what is missing.
@@ -236,6 +239,13 @@ interface ExecutedTask {
   title: string;
   status: "completed" | "failed";
   error?: string;
+  /**
+   * Set when the task ran to completion but wrote nothing under its
+   * `task:<id>` key, so `results` has no entry for it. The description sends
+   * the model to that key for the answer; without this the model is sent to a
+   * key that is not there and told nothing went wrong.
+   */
+  result_missing?: boolean;
 }
 
 /** A rejected plan, shaped so the model can fix the offending task. */
@@ -266,7 +276,9 @@ function invalidPlan(issues: string[]): Record<string, unknown> {
  * are what the thread and the sidebar render, and re-summarizing them into a
  * final blob would leave the user watching nothing until the end. The call
  * returns how each task settled plus its result; the step results also stay in
- * shared memory under `task:<id>`, which the description points at.
+ * shared memory under `task:<id>`, which the description points at. A task
+ * that completed and left nothing under that key comes back with
+ * `result_missing`, so the model is not sent to a key that is not there.
  */
 const executePlan: CapabilityExport = {
   spec: executePlanSpec,
@@ -361,7 +373,20 @@ const executePlan: CapabilityExport = {
         };
       }
       const value = run.context.memory.getValue(memoryKeys.task(task.id));
-      if (value !== undefined) results[task.id] = value;
+      if (value === undefined) {
+        log.warn("Task completed with no result in shared memory", {
+          taskId: task.id,
+          title: task.title,
+          key: memoryKeys.task(task.id)
+        });
+        return {
+          id: task.id,
+          title: task.title,
+          status: "completed",
+          result_missing: true
+        };
+      }
+      results[task.id] = value;
       return { id: task.id, title: task.title, status: "completed" };
     });
 

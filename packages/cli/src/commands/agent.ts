@@ -397,6 +397,19 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
   if (!opts.json) process.stderr.write(chalk.bold("\n— result —\n"));
   if (finalText) process.stdout.write(finalText + "\n");
 
+  // A run that ended on a tool call or a contentless assistant turn produced
+  // no answer. Writing nothing and exiting 0 is indistinguishable from an
+  // empty-but-successful result, so it fails instead (invariant I-3).
+  if (!errored && !finalText) {
+    const message =
+      "agent produced no answer: the turn ended without a final assistant message";
+    emit({ type: "error", message });
+    if (!opts.json) {
+      process.stderr.write(chalk.red(`\nagent failed: ${message}\n`));
+    }
+    return 1;
+  }
+
   return errored ? 1 : 0;
 }
 

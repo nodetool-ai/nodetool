@@ -1,7 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { TaskExecutor } from "../src/task-executor.js";
 import type { Step, Task } from "../src/types.js";
-import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import {
+  TaskUpdateEvent,
+  type ProcessingMessage
+} from "@nodetool-ai/protocol";
 import { memoryKeys, BaseProvider } from "@nodetool-ai/runtime";
 import { createMockContext } from "./_helpers/mock-context.js";
 import { finishAction } from "./_helpers/codeact-provider.js";
@@ -578,4 +581,196 @@ describe("TaskExecutor", () => {
       { item: "dog" }
     ]);
   });
+
+  it("fails a fan-out whose item produced no result instead of completing it", async () => {
+    // Regression: a failed ephemeral step answers with `{error}`, which the
+    // aggregate stored as if it were a result and the step was marked
+    // completed. A fan-out missing an item is a failed step (I-5).
+    const provider = createFanOutProvider((item) =>
+      item === "beta" ? null : { item }
+    );
+
+    const context = createMockContext();
+    context.memory.set({
+      key: memoryKeys.step("discover"),
+      kind: "step_result",
+      value: ["alpha", "beta", "gamma"],
+      source: "discover",
+      title: "discover"
+    });
+
+    const processStep: Step = {
+      id: "process",
+      instructions: "handle {item}",
+      completed: false,
+      dependsOn: ["discover"],
+      mode: "process",
+      outputSchema: JSON.stringify({
+        type: "object",
+        properties: { item: { type: "string" } }
+      }),
+      logs: []
+    } as Step;
+    const task: Task = {
+      id: "t1",
+      title: "Fan-out",
+      steps: [
+        {
+          id: "discover",
+          instructions: "list",
+          completed: true,
+          dependsOn: [],
+          logs: []
+        },
+        processStep
+      ]
+    };
+
+    const executor = new TaskExecutor({
+      provider,
+      model: "test-model",
+      context,
+      tools: [],
+      task,
+      parallelExecution: true
+    });
+
+    const messages: ProcessingMessage[] = [];
+    for await (const msg of executor.executeTasks()) {
+      messages.push(msg);
+    }
+
+    expect(processStep.completed).toBe(false);
+    expect(processStep.failed).toBe(true);
+    expect(processStep.error).toContain("1");
+    expect(processStep.error).toMatch(/no result/i);
+
+    // The partial aggregate is never stored as the step's result.
+    expect(context.memory.getValue(memoryKeys.step("process"))).toEqual({
+      error: processStep.error
+    });
+
+    const failed = messages.filter(
+      (m) =>
+        m.type === "task_update" &&
+        (m as { node_id?: string }).node_id === "process" &&
+        (m as { event?: string }).event === TaskUpdateEvent.StepFailed
+    );
+    expect(failed).toHaveLength(1);
+  });
+
+  it("validates the aggregate against outputSchema when perItemSchema was used", async () => {
+    // With both schemas declared, `perItemSchema` checks each item and the
+    // step's own `outputSchema` was checked by nobody.
+    const provider = createFanOutProvider((item) => ({ item }));
+
+    const context = createMockContext();
+    context.memory.set({
+      key: memoryKeys.step("discover"),
+      kind: "step_result",
+      value: ["alpha", "beta"],
+      source: "discover",
+      title: "discover"
+    });
+
+    const processStep: Step = {
+      id: "process",
+      instructions: "handle {item}",
+      completed: false,
+      dependsOn: ["discover"],
+      mode: "process",
+      perItemSchema: JSON.stringify({
+        type: "object",
+        properties: { item: { type: "string" } },
+        required: ["item"]
+      }),
+      // The aggregate must be a list of at least three items; the fan-out
+      // produces two.
+      outputSchema: JSON.stringify({ type: "array", minItems: 3 }),
+      logs: []
+    } as Step;
+    const task: Task = {
+      id: "t1",
+      title: "Fan-out",
+      steps: [
+        {
+          id: "discover",
+          instructions: "list",
+          completed: true,
+          dependsOn: [],
+          logs: []
+        },
+        processStep
+      ]
+    };
+
+    const executor = new TaskExecutor({
+      provider,
+      model: "test-model",
+      context,
+      tools: [],
+      task,
+      parallelExecution: true
+    });
+
+    for await (const _msg of executor.executeTasks()) {
+      // consume
+    }
+
+    expect(processStep.completed).toBe(false);
+    expect(processStep.failed).toBe(true);
+    expect(processStep.error).toMatch(/at least 3 items/);
+    expect(context.memory.getValue(memoryKeys.step("process"))).toEqual({
+      error: processStep.error
+    });
+  });
 });
+
+/**
+ * A provider for fan-out tests: `answer` maps the item named in the prompt to
+ * the result its ephemeral step finishes with, or `null` to give up without
+ * calling `finish()` (which is how a step fails).
+ */
+function createFanOutProvider(answer: (item: string) => unknown) {
+  return {
+    provider: "mock",
+    hasToolSupport: async () => true,
+    generateMessages: async function* (args: any) {
+      const text = JSON.stringify(args?.messages ?? "");
+      const item = text.match(/handle (\w+)/)?.[1] ?? "unknown";
+      const result = answer(item);
+      if (result === null) {
+        yield { type: "chunk" as const, content: "Giving up", done: true };
+        return;
+      }
+      yield finishAction(result);
+    },
+    async *generateMessagesTraced(...args: any[]) {
+      yield* (this as any).generateMessages(...args);
+    },
+    generateLoop(args: unknown) {
+      return (
+        BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+      ).generateLoop.call(this, args);
+    },
+    async generateMessageTraced(...args: any[]) {
+      return (this as any).generateMessage(...args);
+    },
+    generateMessage: vi.fn(),
+    getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
+    getAvailableImageModels: vi.fn().mockResolvedValue([]),
+    getAvailableVideoModels: vi.fn().mockResolvedValue([]),
+    getAvailableTTSModels: vi.fn().mockResolvedValue([]),
+    getAvailableASRModels: vi.fn().mockResolvedValue([]),
+    getAvailableEmbeddingModels: vi.fn().mockResolvedValue([]),
+    getContainerEnv: () => ({}),
+    textToImage: vi.fn(),
+    imageToImage: vi.fn(),
+    textToSpeech: vi.fn(),
+    automaticSpeechRecognition: vi.fn(),
+    textToVideo: vi.fn(),
+    imageToVideo: vi.fn(),
+    generateEmbedding: vi.fn(),
+    isContextLengthError: () => false
+  } as any;
+}
