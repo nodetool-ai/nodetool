@@ -1,24 +1,7 @@
 import { z } from "zod";
 import { FrontendToolRegistry } from "../frontendTools";
-import type { FrontendToolDefinition, FrontendToolState } from "../frontendTools";
-
-const createMockState = (): FrontendToolState => ({
-  nodeMetadata: {},
-  currentWorkflowId: null,
-  getWorkflow: jest.fn(),
-  addWorkflow: jest.fn(),
-  removeWorkflow: jest.fn(),
-  getNodeStore: jest.fn(),
-  updateWorkflow: jest.fn(),
-  saveWorkflow: jest.fn(),
-  getCurrentWorkflow: jest.fn(),
-  setCurrentWorkflowId: jest.fn(),
-  fetchWorkflow: jest.fn(),
-  newWorkflow: jest.fn(),
-  createNew: jest.fn(),
-  searchTemplates: jest.fn(),
-  copy: jest.fn()
-});
+import type { FrontendToolDefinition } from "../frontendTools";
+import { makeFrontendToolState } from "../../../test-utils/frontendToolState";
 
 describe("FrontendToolRegistry", () => {
   const toolName = "ui_test_tool" as const;
@@ -143,7 +126,7 @@ describe("FrontendToolRegistry", () => {
       };
       unregister = FrontendToolRegistry.register(tool);
 
-      const mockState = createMockState();
+      const mockState = makeFrontendToolState();
       const result = await FrontendToolRegistry.call(
         toolName,
         { value: 5 },
@@ -159,7 +142,7 @@ describe("FrontendToolRegistry", () => {
     });
 
     it("throws on unknown tool name", async () => {
-      const mockState = createMockState();
+      const mockState = makeFrontendToolState();
       await expect(
         FrontendToolRegistry.call("ui_nonexistent", {}, "call-2", {
           getState: () => mockState
@@ -177,7 +160,7 @@ describe("FrontendToolRegistry", () => {
       };
       unregister = FrontendToolRegistry.register(tool);
 
-      const mockState = createMockState();
+      const mockState = makeFrontendToolState();
       await FrontendToolRegistry.call(
         toolName,
         { flag: "true" },
@@ -201,7 +184,7 @@ describe("FrontendToolRegistry", () => {
       };
       unregister = FrontendToolRegistry.register(tool);
 
-      const mockState = createMockState();
+      const mockState = makeFrontendToolState();
       await FrontendToolRegistry.call(
         toolName,
         { count: "42" },
@@ -224,7 +207,7 @@ describe("FrontendToolRegistry", () => {
       };
       unregister = FrontendToolRegistry.register(tool);
 
-      const mockState = createMockState();
+      const mockState = makeFrontendToolState();
       await expect(
         FrontendToolRegistry.call(
           toolName,

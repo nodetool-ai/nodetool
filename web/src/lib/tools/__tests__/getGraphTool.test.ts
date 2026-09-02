@@ -6,7 +6,7 @@ jest.mock("../../../serverState/useWorkflow", () => ({
 }));
 
 import { FrontendToolRegistry } from "../frontendTools";
-import type { FrontendToolState } from "../frontendTools";
+import { makeFrontendToolState } from "../../../test-utils/frontendToolState";
 import { fetchWorkflowById } from "../../../serverState/useWorkflow";
 import "../builtin/getGraph";
 
@@ -31,29 +31,6 @@ function createMockNodeStore(
   };
 }
 
-function createMockState(
-  overrides: Partial<FrontendToolState> = {}
-): FrontendToolState {
-  return {
-    nodeMetadata: {},
-    currentWorkflowId: "wf-1",
-    getWorkflow: jest.fn(),
-    addWorkflow: jest.fn(),
-    removeWorkflow: jest.fn(),
-    getNodeStore: jest.fn(),
-    updateWorkflow: jest.fn(),
-    saveWorkflow: jest.fn(),
-    getCurrentWorkflow: jest.fn(),
-    setCurrentWorkflowId: jest.fn(),
-    fetchWorkflow: jest.fn(),
-    newWorkflow: jest.fn(),
-    createNew: jest.fn(),
-    searchTemplates: jest.fn(),
-    copy: jest.fn(),
-    ...overrides,
-  };
-}
-
 describe("ui_get_graph tool", () => {
   it("returns nodes and edges from the current workflow", async () => {
     const nodes = [
@@ -65,7 +42,7 @@ describe("ui_get_graph tool", () => {
     ];
     const store = createMockNodeStore(nodes, edges);
 
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -85,7 +62,7 @@ describe("ui_get_graph tool", () => {
 
   it("returns empty graph for workflow with no nodes", async () => {
     const store = createMockNodeStore([], []);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -121,7 +98,7 @@ describe("ui_get_graph tool", () => {
       },
     } as never);
 
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(undefined),
     });
 
@@ -149,7 +126,7 @@ describe("ui_get_graph tool", () => {
   });
 
   it("reads the already-cached workflow without a server call", async () => {
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(undefined),
       getWorkflow: jest.fn().mockReturnValue({
         id: "wf-1",
@@ -171,7 +148,7 @@ describe("ui_get_graph tool", () => {
 
   it("names the workflow when neither an editor nor the server has it", async () => {
     fetchWorkflowByIdMock.mockRejectedValue(new Error("404 not found"));
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(undefined),
     });
 
@@ -183,7 +160,7 @@ describe("ui_get_graph tool", () => {
   });
 
   it("marks a graph read from an open editor as source editor", async () => {
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(createMockNodeStore([], [])),
     });
 
@@ -198,7 +175,7 @@ describe("ui_get_graph tool", () => {
   });
 
   it("throws when no current workflow is selected", async () => {
-    const state = createMockState({
+    const state = makeFrontendToolState({
       currentWorkflowId: null,
     });
 
@@ -214,7 +191,7 @@ describe("ui_get_graph tool", () => {
       { id: "n1", type: "test.NodeType", position: { x: 0, y: 0 }, data: {} },
     ];
     const store = createMockNodeStore(nodes, []);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: {
         "test.NodeType": {
           properties: [
@@ -247,7 +224,7 @@ describe("ui_get_graph tool", () => {
       { id: "e1", source: "n1", target: "n2", sourceHandle: "output", targetHandle: "prompt" },
     ];
     const store = createMockNodeStore(nodes, edges);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: {
         "test.NodeType": {
           properties: [
@@ -274,7 +251,7 @@ describe("ui_get_graph tool", () => {
       { id: "n1", type: "test.Processor", position: { x: 0, y: 0 }, data: {} },
     ];
     const store = createMockNodeStore(nodes, []);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: {
         "test.Processor": { properties: [] } as never,
       },
@@ -300,7 +277,7 @@ describe("ui_get_graph tool", () => {
       { id: "n3", type: "nodetool.workflows.base_node.Comment", position: { x: 400, y: 0 }, data: {} },
     ];
     const store = createMockNodeStore(nodes, []);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: {
         "nodetool.input.TextInput": { properties: [] } as never,
         "nodetool.constant.Integer": { properties: [] } as never,
@@ -325,7 +302,7 @@ describe("ui_get_graph tool", () => {
       { id: "n1", type: "nodetool.output.TextOutput", position: { x: 0, y: 0 }, data: {} },
     ];
     const store = createMockNodeStore(nodes, []);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: {
         "nodetool.output.TextOutput": { properties: [] } as never,
       },
@@ -353,7 +330,7 @@ describe("ui_get_graph tool", () => {
         { id: "c1", type: "nodetool.code.Code", position: { x: 0, y: 0 }, data },
         ...extraNodes,
       ];
-      const state = createMockState({
+      const state = makeFrontendToolState({
         nodeMetadata: { "nodetool.code.Code": { properties: [] } as never },
         getNodeStore: jest.fn().mockReturnValue(createMockNodeStore(nodes, edges)),
       });

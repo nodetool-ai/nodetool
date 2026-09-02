@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 import { FrontendToolRegistry } from "../frontendTools";
-import type { FrontendToolState } from "../frontendTools";
+import { makeFrontendToolState } from "../../../test-utils/frontendToolState";
 import "../builtin/updateNodeData";
 
 function createMockNodeStore(
@@ -19,36 +19,13 @@ function createMockNodeStore(
   };
 }
 
-function createMockState(
-  overrides: Partial<FrontendToolState> = {}
-): FrontendToolState {
-  return {
-    nodeMetadata: {},
-    currentWorkflowId: "wf-1",
-    getWorkflow: jest.fn(),
-    addWorkflow: jest.fn(),
-    removeWorkflow: jest.fn(),
-    getNodeStore: jest.fn(),
-    updateWorkflow: jest.fn(),
-    saveWorkflow: jest.fn(),
-    getCurrentWorkflow: jest.fn(),
-    setCurrentWorkflowId: jest.fn(),
-    fetchWorkflow: jest.fn(),
-    newWorkflow: jest.fn(),
-    createNew: jest.fn(),
-    searchTemplates: jest.fn(),
-    copy: jest.fn(),
-    ...overrides,
-  };
-}
-
 describe("ui_update_node_data tool", () => {
   it("updates node properties via updateNodeProperties", async () => {
     const nodes = [
       { id: "n1", type: "test.MyNode", data: { properties: { value: "old" } } },
     ];
     const store = createMockNodeStore(nodes);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: {
         "test.MyNode": { properties: [] } as never,
       },
@@ -73,7 +50,7 @@ describe("ui_update_node_data tool", () => {
       { id: "n1", type: "test.MyNode", data: {} },
     ];
     const store = createMockNodeStore(nodes);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: {
         "test.MyNode": { properties: [] } as never,
       },
@@ -94,7 +71,7 @@ describe("ui_update_node_data tool", () => {
 
   it("throws for non-existent node", async () => {
     const store = createMockNodeStore([]);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -113,7 +90,7 @@ describe("ui_update_node_data tool", () => {
       { id: "n1", type: "test.LLMNode", data: { properties: {} } },
     ];
     const store = createMockNodeStore(nodes);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: {
         "test.LLMNode": {
           properties: [
@@ -139,7 +116,7 @@ describe("ui_update_node_data tool", () => {
       { id: "n1", type: "test.LLMNode", data: { properties: {} } },
     ];
     const store = createMockNodeStore(nodes);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: {
         "test.LLMNode": {
           properties: [
@@ -173,7 +150,7 @@ describe("ui_update_node_data tool", () => {
       { id: "n1", type: "test.MyNode", data: { properties: { value: "old" } } },
     ];
     const store = createMockNodeStore(nodes);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: {
         "test.MyNode": { properties: [] } as never,
       },
@@ -200,7 +177,7 @@ describe("ui_update_node_data tool", () => {
   });
 
   it("throws when no node store found", async () => {
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(undefined),
     });
 
@@ -229,7 +206,7 @@ describe("ui_update_node_data tool", () => {
         { id: "n1", type: "test.Node", data: { properties: {} } },
       ];
       const store = createMockNodeStore(nodes);
-      const state = createMockState({
+      const state = makeFrontendToolState({
         nodeMetadata: {
           "test.Node": {
             properties: [{ name: "model", type: { type: fieldType } }],
@@ -262,7 +239,7 @@ describe("ui_update_node_data tool", () => {
       },
     ];
     const store = createMockNodeStore(nodes);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: {
         "nodetool.code.Code": { properties: [] } as never,
       },

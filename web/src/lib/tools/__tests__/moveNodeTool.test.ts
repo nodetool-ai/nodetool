@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 import { FrontendToolRegistry } from "../frontendTools";
-import type { FrontendToolState } from "../frontendTools";
+import { makeFrontendToolState } from "../../../test-utils/frontendToolState";
 import "../builtin/moveNode";
 
 function createMockNodeStore(
@@ -21,35 +21,12 @@ function createMockNodeStore(
   };
 }
 
-function createMockState(
-  overrides: Partial<FrontendToolState> = {}
-): FrontendToolState {
-  return {
-    nodeMetadata: {},
-    currentWorkflowId: "wf-1",
-    getWorkflow: jest.fn(),
-    addWorkflow: jest.fn(),
-    removeWorkflow: jest.fn(),
-    getNodeStore: jest.fn(),
-    updateWorkflow: jest.fn(),
-    saveWorkflow: jest.fn(),
-    getCurrentWorkflow: jest.fn(),
-    setCurrentWorkflowId: jest.fn(),
-    fetchWorkflow: jest.fn(),
-    newWorkflow: jest.fn(),
-    createNew: jest.fn(),
-    searchTemplates: jest.fn(),
-    copy: jest.fn(),
-    ...overrides,
-  };
-}
-
 describe("ui_move_node tool", () => {
   it("moves a node to the specified position", async () => {
     const store = createMockNodeStore([
       { id: "node-1", position: { x: 0, y: 0 } },
     ]);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -71,7 +48,7 @@ describe("ui_move_node tool", () => {
 
   it("moves to negative coordinates", async () => {
     const store = createMockNodeStore([{ id: "node-1" }]);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -90,7 +67,7 @@ describe("ui_move_node tool", () => {
 
   it("throws when node is not found", async () => {
     const store = createMockNodeStore([]);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -105,7 +82,7 @@ describe("ui_move_node tool", () => {
   });
 
   it("throws when no node store found", async () => {
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(undefined),
     });
 
