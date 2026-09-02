@@ -46,6 +46,7 @@ import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import { getToolIcon } from "./toolCallIcon";
 
 import AgentExecutionView from "./AgentExecutionView";
+import CompactionCard, { isCompactionMessage } from "./CompactionCard";
 import MediaOutputGroup from "./MediaOutputGroup";
 import { isMediaOnlyContent } from "./MediaOutputGroup.helpers";
 import { ToolResult } from "./toolResults";
@@ -832,6 +833,13 @@ export const MessageView: React.FC<
       },
       [isThoughtExpanded, createToggleHandler, onInsertCode, insertIntoEditor]
     );
+
+    // A compaction record is stored as a user message so the model reads it as
+    // ordinary history. Intercepted before the role paths below, which would
+    // otherwise render the summary as something the user typed.
+    if (isCompactionMessage(message)) {
+      return <CompactionCard content={message.content} />;
+    }
 
     if (message.role === "agent_execution") {
       const key = message.agent_execution_id || "__ungrouped__";

@@ -171,6 +171,43 @@ The default execution system prompt explains these tools; the user message names
 
 For the full API, tool schemas, propagation flow, examples, and troubleshooting, see [Agent Memory System](agent-memory.md).
 
+### Transcript compaction
+
+Memory is what survives between steps. Compaction is what the model still sees
+of the conversation those steps happened in.
+
+A stateless provider is sent the whole thread on every turn, so a long session
+eventually exceeds the model's context window and each turn from then on fails
+with an error the user can do nothing about. Before that happens, the chat turn
+summarizes everything before its last few user turns and sends the summary in
+their place. The summarizer prompt names what must survive verbatim: standing
+goals and constraints, decisions taken, every artifact reference (`asset://`
+uris, workflow and document ids, file paths), open questions, and what the last
+tool results concluded.
+
+The summary is persisted as a `role: "user"` message marked
+`execution_event_type: "compaction"`. History assembly starts at the newest such
+row, so the cut lands on a user-message boundary and a tool call is never
+separated from its result. Only the provider's view shortens — every original
+row stays in the database for the UI and for `nodetool.threads.*`, and the web
+renders the record as a collapsed "Earlier conversation summarized" card the
+user can open.
+
+Two triggers: the estimated prompt crossing
+`NODETOOL_CHAT_COMPACTION_TOKENS`, and the provider reporting that the prompt
+did not fit, which compacts and retries the turn once. A provider that holds the
+transcript itself skips the first — shortening what NodeTool sends does not
+shorten what that provider already has. A summarizer call that fails leaves the
+thread whole and lets the turn run, since the alternative to an imperfect
+summary is no turn at all.
+
+`NODETOOL_CHAT_COMPACTION_KEEP_TURNS` sets how many recent user turns stay
+verbatim and `NODETOOL_COMPACTION_MODEL` picks a different model to write the
+summary. Implementation:
+`packages/websocket/src/session/chat-compaction.ts`. Compaction applies to a
+chat thread, not to a step: a step transcript is bounded by the iteration cap
+and the tool-result cut instead (`MAX_TOOL_RESULT_CHARS`, 25 000 characters).
+
 ---
 
 ## Tool System

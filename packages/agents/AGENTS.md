@@ -2312,10 +2312,44 @@ execution cannot drift apart or bill against a model the user did not pick.
 The per-phase model idea survives only as a possible argument on those two
 specs; nothing selects a second model.
 
-### Tool Result Truncation
+### Tool Result Truncation and Chat Compaction
 
-- Tool results are truncated to 20,000 chars (`MAX_TOOL_RESULT_CHARS`) before being added to history.
-- Step executors delegate the tool-calling loop to `provider.generateLoop`, so each provider manages its own context window (the Claude Agent SDK compacts internally; stateless providers send the full transcript). There is no NodeTool-side per-step token budget, compaction, or eviction.
+A single result is cut, and a whole thread is summarized. Two different limits,
+in two different places.
+
+- **One tool result** is capped at 25 000 characters (`MAX_TOOL_RESULT_CHARS`
+  in `constants.ts`) before it enters history, with a notice telling the model
+  the output was cut and how to ask for a smaller slice. A broad grep or a
+  large file read otherwise returns tens of megabytes and the next request
+  fails outright.
+- **A step transcript is never summarized.** Step executors hand the
+  tool-calling loop to `provider.generateLoop`, so each provider manages its
+  own window — the Claude Agent SDK compacts internally, a stateless provider
+  is sent everything. What bounds a step instead is the cumulative iteration
+  cap and the result cut above.
+- **A chat thread is compacted**, in `packages/websocket`
+  (`session/chat-compaction.ts`, driven from `chat-turn.ts`). One
+  summarizer call replaces everything before the last
+  `NODETOOL_CHAT_COMPACTION_KEEP_TURNS` user turns, and the summary is
+  persisted as a `role: "user"` row marked `execution_event_type:
+  "compaction"`. History assembly starts from the newest such row, so only the
+  provider's view is shortened — the full thread stays in the database for the
+  UI and `nodetool.threads.*`. The cut lands on a user message, which is what
+  keeps a tool call attached to its result.
+- **Two triggers**: the estimated prompt crossing
+  `NODETOOL_CHAT_COMPACTION_TOKENS` before the loop, and the provider itself
+  reporting that the prompt did not fit, which compacts and retries the turn
+  once. A provider holding the transcript upstream skips the first, since
+  shortening what NodeTool sends does not shorten what that provider already
+  has.
+- **A failed summarizer leaves the thread uncompacted** and the turn runs
+  against the full history, with a `log_update` saying so. The alternative to
+  an imperfect summary is a turn that cannot run at all.
+- **The user sees the cut.** The web renders the compaction row as a collapsed
+  "Earlier conversation summarized" card
+  (`web/src/components/chat/message/CompactionCard.tsx`), reached from
+  `MessageView` before the plain user-message path — without that branch the
+  summary reads as something the user typed.
 
 ### Plan Validation
 
