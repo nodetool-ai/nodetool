@@ -17,10 +17,16 @@
  * normalized and concatenated in start order — which ignores everything above.
  * The fallback is a `warning` on the job and `metadata.render_mode` on the
  * output says which path ran: "composited" or "rough_cut".
+ *
+ * `format` picks the container and `alpha` decides whether the frames keep a
+ * transparency channel: `webm` (VP9, `yuva420p`), `mov` (ProRes 4444,
+ * `yuva444p10le`) and `png_sequence` (a zip of PNGs plus a `manifest.json`)
+ * carry it, `mp4` does not and refuses the pair. The table is
+ * `timeline/outputFormats.ts`.
  */
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { TimelineRef, VideoRef } from "@nodetool-ai/protocol";
+import type { DocumentRef, TimelineRef, VideoRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import {
@@ -47,6 +53,18 @@ import {
   CompositorUnavailableError,
   renderTimelineComposited
 } from "./timeline/compositeRender.js";
+import {
+  ALPHA_OUTPUT_FORMATS,
+  MissingEncoderError,
+  resolveTimelineOutput,
+  TIMELINE_OUTPUT_FORMATS,
+  type ResolvedTimelineOutput
+} from "./timeline/outputFormats.js";
+import { ffmpegHasEncoder } from "./timeline/rawFrames.js";
+import {
+  DEFAULT_SHUTTER_ANGLE,
+  MAX_MOTION_BLUR_SAMPLES
+} from "@nodetool-ai/timeline/render";
 import {
   isNonEmptyString,
   isNumber,
@@ -487,6 +505,10 @@ async function renderRoughCut(opts: {
  * Mix `clips` into `basePath` at their timeline offsets. `baseHasAudio` says
  * whether the base video carries a soundtrack of its own to keep (the rough
  * cut does; a composited render does not).
+ *
+ * The mux copies the video stream, so the container has to be the one the base
+ * was encoded into and the audio codec has to be legal inside it — AAC is not a
+ * WebM track, which is why `audioCodec` is passed rather than assumed.
  */
 async function mixAudioInto(opts: {
   basePath: string;
@@ -494,8 +516,18 @@ async function mixAudioInto(opts: {
   baseHasAudio: boolean;
   assets: AssetFiles;
   workDir: string;
+  extension: string;
+  audioCodec: string;
 }): Promise<string> {
-  const { basePath, clips, baseHasAudio, assets, workDir } = opts;
+  const {
+    basePath,
+    clips,
+    baseHasAudio,
+    assets,
+    workDir,
+    extension,
+    audioCodec
+  } = opts;
   const inputs: string[] = ["-i", basePath];
   const filters: string[] = [];
   const labels: string[] = [];
@@ -525,7 +557,7 @@ async function mixAudioInto(opts: {
     sources.length === 1
       ? `${sources[0]}apad[aout]`
       : `${sources.join("")}amix=inputs=${sources.length}:duration=longest:normalize=0,apad[aout]`;
-  const outPath = path.join(workDir, "mixed.mp4");
+  const outPath = path.join(workDir, `mixed.${extension}`);
   await execFfmpeg(
     [
       "-y",
@@ -539,7 +571,7 @@ async function mixAudioInto(opts: {
       "-c:v",
       "copy",
       "-c:a",
-      "aac",
+      audioCodec,
       "-ar",
       "48000",
       "-ac",
@@ -557,19 +589,62 @@ async function mixAudioInto(opts: {
 /** Shortest gap between two `node_progress` posts — four a second. */
 const PROGRESS_INTERVAL_MS = 250;
 
+/**
+ * The PNG-sequence archive on the `frames` handle. `DocumentRef` in the
+ * protocol declares only `uri` and `asset_id`; the document nodes' own refs
+ * carry `data` and `metadata` as well, and that is how a node hands fresh bytes
+ * to the next node.
+ */
+type TimelineFramesRef = DocumentRef & {
+  data?: string | null;
+  metadata?: Record<string, unknown> | null;
+};
+/** Smallest draft render. Below this a frame says nothing about the cut. */
+const MIN_PREVIEW_SCALE = 0.1;
+
+/**
+ * The fraction of the sequence size this render runs at.
+ *
+ * Unset, non-finite, and anything at or above 1 mean full size; anything
+ * smaller is clamped up to {@link MIN_PREVIEW_SCALE} rather than refused, so a
+ * draft is never rendered at a size nobody could read.
+ */
+function previewScaleOf(value: unknown): number {
+  const scale = Number(value);
+  if (!Number.isFinite(scale) || scale >= 1) return 1;
+  return Math.max(MIN_PREVIEW_SCALE, scale);
+}
+
+/** A scaled edge, rounded to an even number — h.264 encodes nothing else. */
+function evenScaled(edge: number, scale: number): number {
+  if (scale >= 1) return edge;
+  return Math.max(2, Math.round((edge * scale) / 2) * 2);
+}
+
 /** Output handles RenderTimelineNode.process() emits. */
 type RenderTimelineNodeOutputs = {
   output: VideoRef;
+  frames: TimelineFramesRef;
 };
+
+/** An unset ref on the handle this render did not fill. */
+function emptyVideoRef(): VideoRef {
+  return { type: "video", uri: "", data: null, asset_id: null };
+}
+
+function emptyFramesRef(): TimelineFramesRef {
+  return { type: "document", uri: "", asset_id: null, data: null };
+}
 
 export class RenderTimelineNode extends BaseNode {
   static readonly nodeType = "nodetool.timeline.RenderTimeline";
   static readonly title = "Render Timeline";
   static readonly description =
-    "Render a timeline sequence to a video, composited exactly as the timeline editor previews it (tracks, transforms, transitions, effects, captions and text), with audio mixed in at each clip's offset.\n    timeline, render, video, export, cut\n\n    Use cases:\n    - Turn an edit assembled in the timeline editor into a shareable video\n    - Feed a rough cut into captioning, review, or upload nodes\n    - Automate exports of timelines built by other workflow nodes";
+    "Render a timeline sequence to a video, composited exactly as the timeline editor previews it (tracks, transforms, transitions, effects, captions and text), with audio mixed in at each clip's offset. Writes MP4, WebM, MOV or a zipped PNG sequence, with an optional transparent background.\n    timeline, render, video, export, cut, alpha\n\n    Use cases:\n    - Turn an edit assembled in the timeline editor into a shareable video\n    - Export a title or lower third over transparency to composite elsewhere\n    - Feed a rough cut into captioning, review, or upload nodes\n    - Automate exports of timelines built by other workflow nodes";
   static readonly requiredRuntimes = ["ffmpeg"];
   static readonly metadataOutputTypes = {
-    output: "video"
+    output: "video",
+    frames: "document"
   };
   static readonly inlineFields = ["timeline"];
   static readonly inputFields = ["timeline"];
@@ -590,13 +665,88 @@ export class RenderTimelineNode extends BaseNode {
   })
   declare include_audio: boolean;
 
+  @prop({
+    type: "enum",
+    default: "mp4",
+    title: "Format",
+    description:
+      "Output container. mp4 is H.264. webm is VP9, mov is ProRes, and png_sequence is a zip of PNGs with a manifest.json — those three carry alpha.",
+    values: [...TIMELINE_OUTPUT_FORMATS]
+  })
+  declare format: string;
+
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Transparent background",
+    description:
+      "Composite over a transparent ground and keep the alpha channel. Needs a format that carries alpha: " +
+      `${ALPHA_OUTPUT_FORMATS.join(", ")}.`
+  })
+  declare alpha: boolean;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Video codec",
+    description:
+      "Override the container's default video encoder (mp4 only — webm pins VP9 and mov pins ProRes, the codecs that carry their alpha). Empty uses the default."
+  })
+  declare video_codec: string;
+
+  @prop({
+    type: "int",
+    default: 1,
+    title: "Motion blur samples",
+    description:
+      "Average this many sub-frame instants into every frame, so fast motion " +
+      "smears instead of strobing. 1 is off. Each extra sample costs another " +
+      "full render pass.",
+    min: 1,
+    max: MAX_MOTION_BLUR_SAMPLES
+  })
+  declare motion_blur_samples: number;
+
+  @prop({
+    type: "float",
+    default: DEFAULT_SHUTTER_ANGLE,
+    title: "Shutter angle",
+    description:
+      "How far the shutter opens, in degrees of one frame. 180 is the film " +
+      "convention (open for half the frame); 360 smears across the whole " +
+      "frame. Ignored unless motion blur samples is above 1.",
+    min: 0,
+    max: 360
+  })
+  declare shutter_angle: number;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Bitrate",
+    description:
+      "Target video bitrate in bits per second. 0 leaves the rate to the encoder.",
+    min: 0
+  })
+  declare bitrate: number;
+
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Preview scale",
+    description:
+      "Render at this fraction of the sequence size. 0.5 is a quarter of the pixels and roughly a quarter of the time — a draft to look at before spending on the full render. 1 is full size."
+  })
+  declare preview_scale: number;
+
   async process(
     context?: ProcessingContext
   ): Promise<RenderTimelineNodeOutputs> {
     const seq = await loadTimelineSequence(this.timeline, context);
     const ctx = context as ProcessingContext;
-    const width = seq.width > 0 ? seq.width : 1920;
-    const height = seq.height > 0 ? seq.height : 1080;
+    const scale = previewScaleOf(this.preview_scale);
+    const width = evenScaled(seq.width > 0 ? seq.width : 1920, scale);
+    const height = evenScaled(seq.height > 0 ? seq.height : 1080, scale);
     const fps = seq.fps > 0 ? seq.fps : 30;
 
     const includeAudio = this.include_audio !== false;
@@ -611,6 +761,19 @@ export class RenderTimelineNode extends BaseNode {
       throw new Error(`Timeline "${seq.name}" has zero duration`);
     }
 
+    // Resolved before anything is decoded: an impossible format/alpha pair, or
+    // an ffmpeg with no encoder for it, must fail in a second rather than after
+    // a thousand composited frames.
+    const output = resolveTimelineOutput({
+      format: this.format,
+      alpha: this.alpha === true,
+      videoCodec: this.video_codec,
+      bitrate: this.bitrate,
+      motionBlurSamples: this.motion_blur_samples,
+      shutterAngle: this.shutter_angle
+    });
+    await this.assertEncoderAvailable(output);
+
     const workDir = await fs.mkdtemp(
       path.join(os.tmpdir(), "nodetool-timeline-")
     );
@@ -622,7 +785,7 @@ export class RenderTimelineNode extends BaseNode {
       let renderMode: "composited" | "rough_cut";
 
       try {
-        basePath = path.join(workDir, "composited.mp4");
+        basePath = path.join(workDir, `composited.${output.extension}`);
         const { skippedClips } = await renderTimelineComposited({
           sequence: seq,
           width,
@@ -631,6 +794,7 @@ export class RenderTimelineNode extends BaseNode {
           durationMs,
           resolveAssetPath: (assetId) => assets.path(assetId),
           outPath: basePath,
+          output,
           onProgress: this.progressReporter(ctx),
           signal: ctx.signal
         });
@@ -650,6 +814,17 @@ export class RenderTimelineNode extends BaseNode {
           : [];
       } catch (error) {
         if (!(error instanceof CompositorUnavailableError)) throw error;
+        // The rough cut is H.264 in MP4 over opaque black — it concatenates
+        // normalized segments and never touches the compositor. Handing that
+        // back for an alpha or non-MP4 request would answer a different
+        // question than the one asked, so the request fails instead.
+        if (output.format !== "mp4" || output.alpha) {
+          throw new Error(
+            `${error.message} The "${output.format}" format` +
+              `${output.alpha ? " with transparency" : ""} needs the ` +
+              "compositor; the rough-cut fallback only writes opaque MP4."
+          );
+        }
         this.log(
           ctx,
           `${error.message} Falling back to a rough cut — clip transforms, ` +
@@ -671,6 +846,35 @@ export class RenderTimelineNode extends BaseNode {
         audioToMix = audioClips;
       }
 
+      // A PNG sequence is a zip of stills: there is no stream to mux a
+      // soundtrack onto, so the audio clips are reported rather than dropped
+      // silently.
+      if (output.format === "png_sequence") {
+        if (audioToMix.length > 0) {
+          this.log(
+            ctx,
+            "A PNG sequence carries no audio; the timeline's audio clips were not mixed in.",
+            "warning"
+          );
+        }
+        const archive = await fs.readFile(basePath);
+        return {
+          output: emptyVideoRef(),
+          frames: {
+            type: "document",
+            uri: "",
+            asset_id: null,
+            data: archive.toString("base64"),
+            metadata: {
+              render_mode: renderMode,
+              format: output.format,
+              alpha: output.alpha,
+              content_type: output.mimeType
+            }
+          }
+        };
+      }
+
       const outPath =
         audioToMix.length > 0
           ? await mixAudioInto({
@@ -678,7 +882,9 @@ export class RenderTimelineNode extends BaseNode {
               clips: audioToMix,
               baseHasAudio,
               assets,
-              workDir
+              workDir,
+              extension: output.extension,
+              audioCodec: output.audioCodec ?? "aac"
             })
           : basePath;
 
@@ -686,17 +892,40 @@ export class RenderTimelineNode extends BaseNode {
       const duration = await ffprobeDuration(outPath);
       return {
         output: videoRef(rendered, {
-          format: "mp4",
+          format: output.extension,
           duration: duration > 0 ? duration : null,
           // Which of the two paths produced these bytes. The docker smoke test
           // asserts "composited": it is what proves the image renders the
           // picture the editor previews rather than a concatenation.
-          metadata: { render_mode: renderMode }
-        })
+          metadata: {
+            render_mode: renderMode,
+            format: output.format,
+            alpha: output.alpha
+          }
+        }),
+        frames: emptyFramesRef()
       };
     } finally {
       await fs.rm(workDir, { recursive: true, force: true });
     }
+  }
+
+  /**
+   * Refuse a format this ffmpeg cannot encode, by name.
+   *
+   * ProRes and VP9 are both optional at ffmpeg build time. Without this the
+   * render composites every frame first and then dies on ffmpeg's own
+   * "Unknown encoder" line, which says nothing about what to pick instead.
+   */
+  private async assertEncoderAvailable(
+    output: ResolvedTimelineOutput
+  ): Promise<void> {
+    const encoder = output.requiredEncoder;
+    // MP4/H.264 is the path every existing render already took, and probing it
+    // would turn "ffmpeg is not installed" into a message about an encoder.
+    if (!encoder || output.format === "mp4") return;
+    if (await ffmpegHasEncoder(encoder)) return;
+    throw new MissingEncoderError(encoder, output.format);
   }
 
   /** Post on the node's log channel, where the run has one. */

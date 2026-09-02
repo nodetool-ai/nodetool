@@ -114,6 +114,12 @@ export interface TimelineCompositor {
   init(canvas: HTMLCanvasElement): Promise<CompositorInitResult>;
   /** Reference (sequence) resolution that `transform.position` is stored in. */
   setReferenceSize(width: number, height: number): void;
+  /**
+   * Seed each frame fully transparent instead of opaque black — an alpha
+   * export. Off until a caller says otherwise, so the live preview keeps the
+   * ground it has.
+   */
+  setAlpha(alpha: boolean): void;
   resize(width: number, height: number): void;
   /**
    * The frame to draw: the layers, and the groups that composite their children

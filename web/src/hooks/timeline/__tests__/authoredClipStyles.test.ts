@@ -23,6 +23,36 @@ describe("authored clip style defaults", () => {
     });
   });
 
+  it("keeps the styling the rasterizer draws past the original six fields", () => {
+    // Listing the fields dropped every one the schema gained after this was
+    // written, so a stroked, shadowed or gradient-filled title reverted to a
+    // plain fill on the way in.
+    expect(
+      textStyleWithDefaults({
+        text: "Title",
+        style: {
+          fontStyle: "italic",
+          letterSpacingPx: 4,
+          lineHeight: 1.4,
+          verticalAlign: "top",
+          stroke: { color: "#000000", widthPx: 2 },
+          shadow: { color: "#000000", blurPx: 8, offsetX: 2, offsetY: 2 },
+          background: { color: "#00000088", paddingPx: 12 },
+          fill: { type: "solid", color: "#ff0000" }
+        }
+      })
+    ).toMatchObject({
+      fontStyle: "italic",
+      letterSpacingPx: 4,
+      lineHeight: 1.4,
+      verticalAlign: "top",
+      stroke: { color: "#000000", widthPx: 2 },
+      shadow: { color: "#000000", blurPx: 8, offsetX: 2, offsetY: 2 },
+      background: { color: "#00000088", paddingPx: 12 },
+      fill: { type: "solid", color: "#ff0000" }
+    });
+  });
+
   it("creates visible defaults for filled shapes and lines", () => {
     expect(shapeStyleWithDefaults({ kind: "rect" })).toEqual({
       kind: "rect",

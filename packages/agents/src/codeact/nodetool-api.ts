@@ -125,7 +125,8 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "validate_timeline",
     "preview_timeline_frame",
     "edit_timeline",
-    "set_timeline_document"
+    "set_timeline_document",
+    "render_timeline"
   ],
   sketches: [
     "list_sketches",
@@ -1171,7 +1172,15 @@ const nodetool = (() => {
       setDocument: (id, document, opts) =>
         __need("set_timeline_document")(
           __merge(opts, { timeline_id: id, document: document })
-        )
+        ),
+      /**
+       * Render the finished cut as a job. Returns {job_id} immediately;
+       * {wait: true} blocks and returns the rendered asset. Options:
+       * {format, alpha, video_codec, bitrate, motion_blur_samples,
+       * shutter_angle, preview_scale, include_audio, wait, timeout_ms}.
+       */
+      render: (id, opts) =>
+        __need("render_timeline")(__merge(opts, { timeline_id: id }))
     },
 
     sketches: {
@@ -1613,7 +1622,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`deleteVersion(id, n)\`,
   \`setDocument(id, document, {fps, width, height, expected_updated_at,
   snapshot_name})\` — the whole document in one call, validated before it is
-  written and snapshotted first, for authoring a cut from scratch — and
+  written and snapshotted first, for authoring a cut from scratch —
+  \`render(id, {wait, preview_scale, format, alpha, timeout_ms})\` — the cut
+  as a video, run as a job; render and look before you call a cut done, and
+  draft at a \`preview_scale\` below 1 while you are still iterating — and
   \`edit(id, ops)\` — the cut itself, server-side: \`[{op: "add_track", type:
   "audio"}, {op: "add_text_clip", text: "Hi"}, {op: "split_clip", target:
   "shot", atMs: 3000}, {op: "animate_clip", target: "Hi", animations:

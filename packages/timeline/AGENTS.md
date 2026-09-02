@@ -16,6 +16,19 @@
 - **An inverse op must use the same rate-aware quantity the forward op wrote.**
   Merge undoing split compares `outPointMs ?? (inPointMs + durationMs)` for
   contiguity — the `+ durationMs` reconstruction is only correct at 1× speed.
+- **A `timeRemap` replaces the rate, it does not scale it** (`timeRemap.ts`,
+  D13). Its keyframes name absolute source milliseconds against a `t`
+  normalized over the clip's own window, so neither `speedMultiplier` nor
+  `inPointMs` applies on top; `clipSourceTimeSec` asks `clipRemapSourceMs`
+  first and falls back to `sourceRate` only when there is no curve. The
+  interpolation is `evalCurve`'s — the segment is eased by its *ending*
+  keyframe and held flat past both ends — so one keyframe is a freeze frame
+  and the easing grammar is the one the rest of the document speaks.
+- **Split and trim refuse a remapped clip** (`assertNotTimeRemapped`). The
+  curve is normalized over the window, so changing the window retimes every
+  frame the clip shows, including the ones the edit did not touch. The refusal
+  is the contract: there is no `bakeTimeRemap` in this build, and the message
+  names `bake_time_remap` for the caller.
 
 ## Splitting / cloning entities
 
@@ -63,6 +76,16 @@
   and draws (`packages/agents`) imports `./scene`; a caller that wants the GPU
   compositor imports `./render`. Both re-export the same modules, so the paths
   cannot drift.
+- **A frame's shutter window is decided in one place.** Motion blur is N
+  sub-frame instants averaged (D10), and every surface asks
+  `motionBlurSampleTimes` for those instants — the browser export, the server
+  render and the agent frame preview. A host that computed its own offsets
+  would blur a cut differently from the preview the user approved. One sample
+  returns the frame's own time, so a render with blur off is byte-identical to
+  the render it was before blur existed. The Canvas 2D accumulation is
+  `accumulateBlurSample` (`lighter` at 1/N — a sum, not a fade); the GPU one is
+  `HeadlessFrameCompositor.renderFrameSamples`, which folds premultiplied
+  samples into an `rgba16float` texture and un-premultiplies once at the end.
 - **Never read a WebGPU flag namespace (`GPUTextureUsage`, `GPUShaderStage`) at
   module scope.** Under Node those globals only exist after the Dawn adapter
   installs them with the device, so a module-scope read throws on import.

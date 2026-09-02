@@ -14,14 +14,17 @@ import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
 import type {
   FrameLayer,
   FramePrecomposite,
+  FrameSample,
   RasterContext2D
 } from "@nodetool-ai/timeline/render";
+import { hasTimeRemap } from "@nodetool-ai/timeline";
 import {
   HeadlessFrameCompositor,
   clipSourceTimeSec,
   computeActiveLayersWithHorizon,
   createAnimationCompileCache,
   measureTextWith,
+  motionBlurSampleTimes,
   resolveAnimatedLayerProps,
   resolveTextStaggerContext,
   trackZ
@@ -32,11 +35,17 @@ import {
   decodeImageRgba,
   fitWithin,
   openFrameEncoder,
+  openSourceFrameStream,
   openVideoFrameStream,
   probeVideoSize,
-  type RawImage,
-  type VideoFrameStream
+  type FrameEncoder,
+  type RawImage
 } from "./rawFrames.js";
+import { openPngSequenceEncoder } from "./pngSequence.js";
+import {
+  resolveTimelineOutput,
+  type ResolvedTimelineOutput
+} from "./outputFormats.js";
 import { NodeRasterizer } from "./rasterizers.js";
 
 interface CompositeRenderOptions {
@@ -49,8 +58,13 @@ interface CompositeRenderOptions {
   durationMs: number;
   /** Resolve a clip's asset to a readable local file, or null if unavailable. */
   resolveAssetPath: (assetId: string) => Promise<string | null>;
-  /** Destination video file. */
+  /** Destination file — a video container, or the PNG sequence's zip. */
   outPath: string;
+  /**
+   * Container, encoder and alpha, resolved by `resolveTimelineOutput`. Absent
+   * means today's default: H.264 in MP4 over an opaque ground.
+   */
+  output?: ResolvedTimelineOutput;
   onProgress?: (frame: number, totalFrames: number) => void;
   /**
    * Run cancellation. Checked once per frame, so a cancelled render stops
@@ -91,10 +105,25 @@ async function acquireDevice(): Promise<GPUDevice> {
   }
 }
 
-/** Per-clip decode state, opened on first use and closed when the clip ends. */
+/** One clip's decoded frame at a timeline instant, with a cache key for it. */
+interface ClipFrame {
+  rgba: Uint8Array;
+  /** Identifies these pixels to the compositor's texture cache. */
+  version: string;
+}
+
+/**
+ * Per-clip decode state, opened on first use and closed when the clip ends.
+ *
+ * `frameAt` takes a timeline time rather than a frame index because a clip's
+ * source position is not always linear in it: a `timeRemap` makes it a curve,
+ * which the source-addressed stream serves and the index-addressed one cannot.
+ */
 interface ClipVideoSource {
-  stream: VideoFrameStream;
-  /** Frames already consumed — a stream only moves forward. */
+  width: number;
+  height: number;
+  frameAt(timeMs: number): Promise<ClipFrame | null>;
+  close(): void;
   endMs: number;
 }
 
@@ -102,10 +131,16 @@ export async function renderTimelineComposited(
   opts: CompositeRenderOptions
 ): Promise<CompositeRenderResult> {
   const { sequence, fps, durationMs, resolveAssetPath, outPath, signal } = opts;
-  // H.264 requires even dimensions.
+  const output = opts.output ?? resolveTimelineOutput({ format: "mp4" });
+  // H.264 and the yuv420p family require even dimensions.
   const width = Math.max(2, Math.floor(opts.width / 2) * 2);
   const height = Math.max(2, Math.floor(opts.height / 2) * 2);
   const totalFrames = Math.max(1, Math.round((durationMs / 1000) * fps));
+  const frameMs = 1000 / fps;
+  // Resolved with the format rather than passed separately, so one object
+  // carries every render choice. N samples cost N× this render — every layer
+  // is decoded, rasterized and composited once per sample.
+  const motionBlur = output.motionBlur;
   const canvas = {
     width,
     height,
@@ -122,7 +157,22 @@ export async function renderTimelineComposited(
   const device = await acquireDevice();
   const compositor = new HeadlessFrameCompositor(device, width, height);
   const rasterizer = new NodeRasterizer(width, height);
-  const encoder = openFrameEncoder({ outPath, width, height, fps });
+  const encoder: FrameEncoder =
+    output.format === "png_sequence"
+      ? openPngSequenceEncoder({
+          outPath,
+          width,
+          height,
+          fps,
+          alpha: output.alpha
+        })
+      : openFrameEncoder({
+          outPath,
+          width,
+          height,
+          fps,
+          encoderArgs: output.encoderArgs
+        });
   const animCache = createAnimationCompileCache();
 
   const videoSources = new Map<string, ClipVideoSource>();
@@ -154,42 +204,81 @@ export async function renderTimelineComposited(
   const videoFor = async (
     clip: TimelineClip,
     assetId: string
-  ): Promise<VideoFrameStream | null> => {
+  ): Promise<ClipVideoSource | null> => {
     const existing = videoSources.get(clip.id);
-    if (existing) return existing.stream;
+    if (existing) return existing;
     const file = await pathFor(assetId);
     if (!file) return null;
     const size = await probeVideoSize(file);
     if (!size) return null;
-    const stream = openVideoFrameStream({
-      filePath: file,
-      size: fitWithin(size, canvas),
-      fps,
-      // `clipSourceTimeSec` at the clip's own start is its in point, expressed
-      // the same way the preview seeks — so the first decoded frame is the
-      // frame the preview shows at the cut.
-      startSec: clipSourceTimeSec(clip, clip.startMs),
-      speed: clip.speedBaked ? 1 : Math.max(0.0001, clip.speedMultiplier ?? 1)
-    });
-    videoSources.set(clip.id, {
-      stream,
-      endMs: clip.startMs + clip.durationMs
-    });
-    return stream;
+    const decodeSize = fitWithin(size, canvas);
+    // `clipSourceTimeSec` at the clip's own start is its in point — or, for a
+    // remapped clip, its curve's first source position — expressed the same way
+    // the preview seeks, so the first decoded frame is the frame the preview
+    // shows at the cut.
+    const startSec = clipSourceTimeSec(clip, clip.startMs);
+    const endMs = clip.startMs + clip.durationMs;
+    let source: ClipVideoSource;
+    if (hasTimeRemap(clip)) {
+      // A curve can hold, revisit or reverse through the source, which a
+      // forward-only stream cannot serve; this one reopens ffmpeg to seek back.
+      const stream = openSourceFrameStream({
+        filePath: file,
+        size: decodeSize,
+        fps,
+        startSec
+      });
+      source = {
+        width: stream.width,
+        height: stream.height,
+        endMs,
+        async frameAt(timeMs: number): Promise<ClipFrame | null> {
+          const sourceSec = clipSourceTimeSec(clip, timeMs);
+          const rgba = await stream.frameAtSourceSec(sourceSec);
+          if (!rgba) return null;
+          // Keyed on the source instant, not the timeline one: a hold shows the
+          // same pixels at many timeline frames and should upload once.
+          return { rgba, version: `${clip.id}@${Math.round(sourceSec * fps)}` };
+        },
+        close: () => stream.close()
+      };
+    } else {
+      const stream = openVideoFrameStream({
+        filePath: file,
+        size: decodeSize,
+        fps,
+        startSec,
+        speed: clip.speedBaked ? 1 : Math.max(0.0001, clip.speedMultiplier ?? 1)
+      });
+      source = {
+        width: stream.width,
+        height: stream.height,
+        endMs,
+        async frameAt(timeMs: number): Promise<ClipFrame | null> {
+          const index = Math.max(
+            0,
+            Math.round(((timeMs - clip.startMs) * fps) / 1000)
+          );
+          const rgba = await stream.frameAt(index);
+          if (!rgba) return null;
+          return { rgba, version: `${clip.id}:${index}` };
+        },
+        close: () => stream.close()
+      };
+    }
+    videoSources.set(clip.id, source);
+    return source;
   };
 
   try {
-    for (let frame = 0; frame < totalFrames; frame++) {
-      if (signal?.aborted) throw abortError();
-      const timeMs = (frame * 1000) / fps;
-
-      for (const [clipId, source] of videoSources) {
-        if (source.endMs < timeMs) {
-          source.stream.close();
-          videoSources.delete(clipId);
-        }
-      }
-
+    /**
+     * The scene at one instant, as something the compositor can composite.
+     *
+     * One call is a whole frame with motion blur off, and one sample of the
+     * shutter window with it on — the layers are resolved the same way either
+     * way, so a blurred render is N of the render it would otherwise have been.
+     */
+    const sampleAt = async (timeMs: number): Promise<FrameSample> => {
       const layers: FrameLayer[] = [];
       const { layers: active, precomposites } = computeActiveLayersWithHorizon(
         sequence.tracks,
@@ -291,20 +380,16 @@ export async function renderTimelineComposited(
             skippedClips.add(layer.clip.name);
             return null;
           }
-          const index = Math.max(
-            0,
-            Math.round(((timeMs - layer.clip.startMs) * fps) / 1000)
-          );
-          const rgba = await stream.frameAt(index);
-          if (!rgba) return null;
+          const decoded = await stream.frameAt(timeMs);
+          if (!decoded) return null;
           return finish({
             ...common,
             id: id("v"),
             source: {
-              rgba,
+              rgba: decoded.rgba,
               width: stream.width,
               height: stream.height,
-              version: `${layer.clipId}:${index}`
+              version: decoded.version
             }
           });
         }
@@ -337,20 +422,42 @@ export async function renderTimelineComposited(
         layers.push(built);
       }
 
-      await encoder.write(
-        await compositor.renderFrame(
-          layers,
-          precomposites.map(
-            (group): FramePrecomposite => ({
-              id: group.clipId,
-              zIndex: trackZ(group.trackIndex),
-              opacity: group.opacity,
-              blendMode: group.blendMode,
-              effects: group.effects,
-              precomposeGroupId: group.precomposeGroupId
-            })
-          )
+      return {
+        layers,
+        precomposites: precomposites.map(
+          (group): FramePrecomposite => ({
+            id: group.clipId,
+            zIndex: trackZ(group.trackIndex),
+            opacity: group.opacity,
+            blendMode: group.blendMode,
+            effects: group.effects,
+            precomposeGroupId: group.precomposeGroupId
+          })
         )
+      };
+    };
+
+    for (let frame = 0; frame < totalFrames; frame++) {
+      if (signal?.aborted) throw abortError();
+      const timeMs = (frame * 1000) / fps;
+
+      for (const [clipId, source] of videoSources) {
+        if (source.endMs < timeMs) {
+          source.close();
+          videoSources.delete(clipId);
+        }
+      }
+
+      const samples: FrameSample[] = [];
+      // Sequential, not concurrent: a clip's frames come off one forward-only
+      // ffmpeg stream, so two samples decoding at once would race for it.
+      const sampleTimes = motionBlurSampleTimes(timeMs, frameMs, motionBlur);
+      for (const sampleMs of sampleTimes) {
+        samples.push(await sampleAt(sampleMs));
+      }
+
+      await encoder.write(
+        await compositor.renderFrameSamples(samples, { alpha: output.alpha })
       );
       opts.onProgress?.(frame + 1, totalFrames);
     }
@@ -361,7 +468,7 @@ export async function renderTimelineComposited(
     encoder.abort();
     throw error;
   } finally {
-    for (const source of videoSources.values()) source.stream.close();
+    for (const source of videoSources.values()) source.close();
     compositor.dispose();
   }
 }

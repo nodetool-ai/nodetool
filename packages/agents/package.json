@@ -73,6 +73,8 @@
     "turndown": "^7.2.2"
   },
   "devDependencies": {
+    "@nodetool-ai/audio-nodes": "*",
+    "@nodetool-ai/gpu": "*",
     "@nodetool-ai/video-nodes": "*",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",

@@ -15,6 +15,7 @@ import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 
 import type { TimelineClip } from "@nodetool-ai/timeline";
+import { hasTimeRemap } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -632,6 +633,11 @@ export const PreviewCompositor: React.FC = memo(() => {
       const rate = clip?.speedBaked
         ? 1
         : Math.max(0.0001, clip?.speedMultiplier ?? 1);
+      // A remapped clip has no constant rate to hand the element: the curve can
+      // hold, accelerate, or run backwards, and `playbackRate` is positive-only.
+      // Its element stays paused and is seeked to the curve instead — here on
+      // every scene bump, and once per rAF tick while playing (below).
+      const remapped = clip !== undefined && hasTimeRemap(clip);
 
       // Setting currentTime before HAVE_METADATA is silently clamped to 0 and
       // a subsequent play() can reject with AbortError. Defer until the
@@ -649,22 +655,19 @@ export const PreviewCompositor: React.FC = memo(() => {
         const targetSec = clip
           ? clipSourceTimeSec(clip, isPlaying ? getTimeMs() : currentTimeMs)
           : 0;
-        if (!isPlaying) {
-          if (Math.abs(el.currentTime - targetSec) > 0.04) {
-            el.currentTime = targetSec;
-          }
-        } else {
-          if (Math.abs(el.currentTime - targetSec) > 0.15) {
-            el.currentTime = targetSec;
-          }
+        // A remapped element never runs on its own clock, so its position is
+        // always wrong by more than a playing element's tolerance would allow.
+        const toleranceSec = isPlaying && !remapped ? 0.15 : 0.04;
+        if (Math.abs(el.currentTime - targetSec) > toleranceSec) {
+          el.currentTime = targetSec;
         }
-        el.playbackRate = rate;
+        el.playbackRate = remapped ? 1 : rate;
 
-        if (isPlaying && el.paused) {
+        if (isPlaying && !remapped && el.paused) {
           void el.play().catch(() => {
             // Autoplay blocked; continue scrubbing via currentTime.
           });
-        } else if (!isPlaying && !el.paused) {
+        } else if ((!isPlaying || remapped) && !el.paused) {
           el.pause();
         }
       };
@@ -944,6 +947,8 @@ export const PreviewCompositor: React.FC = memo(() => {
   latestTracksRef.current = tracks;
   const latestClipsRef = useRef(clips);
   latestClipsRef.current = clips;
+  const clipByIdRef = useRef(clipById);
+  clipByIdRef.current = clipById;
 
   // Change-horizon bookkeeping for the tick loop below: the `tracks`/`clips`
   // identities and playhead position the last signature+horizon computation
@@ -1006,12 +1011,29 @@ export const PreviewCompositor: React.FC = memo(() => {
       }
       lastLiveMsRef.current = liveMs;
 
+      // A remapped clip's element is paused on purpose — its curve is not a
+      // playback rate — so nothing advances it between scene bumps. Seek it
+      // every tick, and treat that as new pixels: `el.paused` is true, so the
+      // decoding-video check below would call the scene static.
+      let remapSeeked = false;
+      for (const [clipId, slotIndex] of clipSlotMap.current) {
+        const clip = clipByIdRef.current.get(clipId);
+        if (!clip || !hasTimeRemap(clip)) continue;
+        const el = videoRefs.current[slotIndex];
+        if (!el || el.readyState < 1) continue;
+        const targetSec = clipSourceTimeSec(clip, liveMs);
+        if (Math.abs(el.currentTime - targetSec) > 0.01) {
+          el.currentTime = targetSec;
+        }
+        remapSeeked = true;
+      }
+
       // A frame needs re-compositing when the active set just changed, or when
       // any active video is decoding new pixels (i.e. actually playing). Pure
       // image/caption scenes are static between boundary changes, so skip the
       // redundant clear+blit — UNLESS a motion-design animation is in flight,
       // which changes transform/opacity every tick even with a cached layer set.
-      let dirty = setChanged || forceRender;
+      let dirty = setChanged || forceRender || remapSeeked;
       forceRender = false;
       if (!dirty) {
         const pool = videoRefs.current;

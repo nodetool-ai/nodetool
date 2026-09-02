@@ -17,7 +17,11 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import type { Readable } from "node:stream";
 
-import { MissingBinaryError, execFfprobe } from "../ffmpeg-helpers.js";
+import {
+  MissingBinaryError,
+  execFfmpeg,
+  execFfprobe
+} from "../ffmpeg-helpers.js";
 
 /** Pixel dimensions of a decoded source. */
 interface RawSize {
@@ -228,6 +232,82 @@ export function openVideoFrameStream(
 }
 
 /**
+ * A clip's frames addressed by absolute source time rather than by frame index.
+ *
+ * The forward-only stream above is enough while a clip consumes its source at a
+ * constant rate: decoded frame *k* is the frame the timeline wants at clip
+ * frame *k*. A time remap breaks that — the source position is a curve, and a
+ * reverse curve walks it backwards — so this holds one forward-only decode and
+ * reopens it whenever the asked-for source time is behind where the decode has
+ * reached. Correct, and slow in exactly the case that earns it: a descending
+ * curve reopens ffmpeg once per frame.
+ */
+export interface SourceFrameStream extends RawSize {
+  /** The frame at absolute source time `sec`, or `null` past the media's end. */
+  frameAtSourceSec(sec: number): Promise<Uint8Array | null>;
+  /** Backwards seeks served so far, i.e. how many decodes were reopened. */
+  readonly reopens: number;
+  close(): void;
+}
+
+/**
+ * Open a source-time-addressed decode of `filePath`, sampling the source on a
+ * `1/fps` grid starting at `startSec`.
+ *
+ * The underlying decode always runs at the source's own rate (`speed: 1`): the
+ * remap curve, not `setpts`, decides which source instant a timeline frame
+ * shows.
+ */
+export function openSourceFrameStream(opts: {
+  filePath: string;
+  size: RawSize;
+  fps: number;
+  startSec: number;
+}): SourceFrameStream {
+  const { filePath, size, fps } = opts;
+  let originSec = Math.max(0, opts.startSec);
+  let reopens = 0;
+  let stream = openVideoFrameStream({
+    filePath,
+    size,
+    fps,
+    startSec: originSec,
+    speed: 1
+  });
+
+  return {
+    width: size.width,
+    height: size.height,
+    get reopens(): number {
+      return reopens;
+    },
+    async frameAtSourceSec(sec: number): Promise<Uint8Array | null> {
+      const target = Math.max(0, sec);
+      let index = Math.round((target - originSec) * fps);
+      if (index < 0) {
+        // Behind the decode. ffmpeg streams forward only, so the only way back
+        // is a new process seeked to the frame we now want.
+        stream.close();
+        originSec = target;
+        stream = openVideoFrameStream({
+          filePath,
+          size,
+          fps,
+          startSec: originSec,
+          speed: 1
+        });
+        reopens += 1;
+        index = 0;
+      }
+      return stream.frameAt(index);
+    },
+    close(): void {
+      stream.close();
+    }
+  };
+}
+
+/**
  * Pull exact-size frames out of a byte stream, with the read-ahead bounded by
  * pausing the stream — a 1080p frame is 8 MB, so an unbounded buffer would let
  * a fast decoder outrun the compositor into gigabytes of RAM.
@@ -327,8 +407,8 @@ class FrameReader {
   }
 }
 
-/** A running encoder that turns written RGBA frames into a video file. */
-interface FrameEncoder {
+/** A running encoder that turns written RGBA frames into an output file. */
+export interface FrameEncoder {
   write(rgba: Uint8Array): Promise<void>;
   /** Close the input and wait for the file to be finalized. */
   finish(): Promise<void>;
@@ -336,17 +416,56 @@ interface FrameEncoder {
 }
 
 /**
- * Start encoding RGBA frames written at `fps` into `outPath` (H.264/MP4). The
- * alpha channel is dropped by the `yuv420p` conversion — every frame arrives
- * composited over opaque black, so there is nothing to keep.
+ * Report whether this ffmpeg build ships `encoder`.
+ *
+ * ProRes 4444 and VP9 are both optional at build time — a distro ffmpeg may
+ * carry neither — and a render that discovers this after compositing every
+ * frame has burned the whole render. Probed once before the frame loop starts.
+ *
+ * A build that cannot be asked (no ffmpeg, an unparsable listing) answers
+ * `false`, so the caller refuses with a message naming the encoder rather than
+ * failing on ffmpeg's own output an hour later.
+ */
+export async function ffmpegHasEncoder(encoder: string): Promise<boolean> {
+  try {
+    const { stdout } = await execFfmpeg(["-hide_banner", "-encoders"], {
+      maxBuffer: 8 * 1024 * 1024
+    });
+    // The listing is `<flags> <name> <description>`; match the name column so
+    // an encoder merely mentioned in a description does not count.
+    return stdout
+      .split("\n")
+      .some((line) => line.trim().split(/\s+/)[1] === encoder);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Start encoding RGBA frames written at `fps` into `outPath`.
+ *
+ * `encoderArgs` decides the codec, profile and pixel format — the alpha-capable
+ * combinations are the table in `outputFormats.ts`. Frames arrive as
+ * straight-alpha RGBA either way; a `yuv*` pixel format drops the channel, a
+ * `yuva*` one keeps it.
  */
 export function openFrameEncoder(opts: {
   outPath: string;
   width: number;
   height: number;
   fps: number;
+  /** Output codec arguments. Defaults to H.264 at `yuv420p`. */
+  encoderArgs?: readonly string[];
 }): FrameEncoder {
   const { outPath, width, height, fps } = opts;
+  const encoderArgs = opts.encoderArgs ?? [
+    "-c:v",
+    "libx264",
+    "-preset",
+    "veryfast",
+    "-pix_fmt",
+    "yuv420p"
+  ];
   const child = spawnFfmpeg([
     "-y",
     "-v",
@@ -361,12 +480,7 @@ export function openFrameEncoder(opts: {
     String(fps),
     "-i",
     "pipe:0",
-    "-c:v",
-    "libx264",
-    "-preset",
-    "veryfast",
-    "-pix_fmt",
-    "yuv420p",
+    ...encoderArgs,
     outPath
   ]);
   const stderr = captureStderr(child.stderr);

@@ -274,15 +274,22 @@ const knownClipTransition = z.discriminatedUnion("type", [
   })
 ]);
 
-/** Every transition `type` the members above spell out field by field. */
-const KNOWN_TRANSITION_TYPES: ReadonlySet<string> = new Set([
+/**
+ * Every transition `type` the members above spell out field by field. Exported
+ * as a list so the agent tool schemas in `timeline-tool-params.ts` enumerate
+ * the same cuts this schema stores — an enum written out twice drifts.
+ */
+export const KNOWN_TRANSITION_TYPE_LIST = [
   "crossfade",
   "dipToColor",
   "wipe",
   "push",
   "slide",
   "zoom"
-]);
+] as const;
+const KNOWN_TRANSITION_TYPES: ReadonlySet<string> = new Set(
+  KNOWN_TRANSITION_TYPE_LIST
+);
 
 /**
  * A cut authored by a newer build (I2). The `refine` is what keeps the two
@@ -437,8 +444,11 @@ const knownClipEffect = z.discriminatedUnion("type", [
   clipLiftGammaGainEffect
 ]);
 
-/** Every effect `type` the members above spell out field by field. */
-const KNOWN_CLIP_EFFECT_TYPES: ReadonlySet<string> = new Set([
+/**
+ * Every effect `type` the members above spell out field by field. Exported as
+ * a list for the same reason {@link KNOWN_TRANSITION_TYPE_LIST} is.
+ */
+export const KNOWN_CLIP_EFFECT_TYPE_LIST = [
   "color",
   "blur",
   "glow",
@@ -449,7 +459,10 @@ const KNOWN_CLIP_EFFECT_TYPES: ReadonlySet<string> = new Set([
   "curves",
   "levels",
   "liftGammaGain"
-]);
+] as const;
+const KNOWN_CLIP_EFFECT_TYPES: ReadonlySet<string> = new Set(
+  KNOWN_CLIP_EFFECT_TYPE_LIST
+);
 
 /**
  * An effect authored by a newer build (I2), same construction as

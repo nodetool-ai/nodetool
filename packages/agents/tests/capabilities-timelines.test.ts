@@ -103,7 +103,8 @@ const PAIRS: Array<[string, () => Tool]> = [
   [
     "set_timeline_document",
     () => toolForCapabilityName("set_timeline_document")
-  ]
+  ],
+  ["render_timeline", () => toolForCapabilityName("render_timeline")]
 ];
 
 describe("timelines capability module", () => {
@@ -122,6 +123,7 @@ describe("timelines capability module", () => {
       "validate_timeline",
       "set_timeline_document",
       "preview_timeline_frame",
+      "render_timeline",
       "delete_timeline"
     ]);
   });

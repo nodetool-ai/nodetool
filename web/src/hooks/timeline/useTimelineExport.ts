@@ -1,10 +1,11 @@
 /**
  * useTimelineExport — drives the offline {@link renderTimeline} export from the
- * timeline editor and downloads the resulting MP4.
+ * timeline editor and downloads the result.
  *
  * Pulls the live document straight from {@link useTimelineStore} and resolves
  * clip assets through {@link useAssetStore}, so the export renders exactly the
- * sequence the user is editing.
+ * sequence the user is editing. The format the caller picks decides both the
+ * encode and the file extension — MP4, WebM, or a zip of PNGs.
  */
 
 import { useCallback, useRef, useState } from "react";
@@ -15,18 +16,30 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
 import {
   renderTimeline,
+  type BrowserExportFormat,
   type RenderProgress
 } from "../../components/timeline/render/TimelineRenderer";
 
 interface UseTimelineExportResult {
-  /** Render + download the timeline as an MP4. Resolves when the file is saved. */
-  exportVideo: (filename?: string) => Promise<void>;
   /**
-   * Render the timeline and save the MP4 as a new asset in `folderId` (or the
-   * library root when null), linked back to this timeline via `timeline_id`.
-   * Shares the render + progress + cancel machinery with {@link exportVideo}.
+   * Render + download the timeline. Resolves when the file is saved. `format`
+   * defaults to MP4; the extension follows what was actually written.
    */
-  saveAsAsset: (folderId: string | null, filename?: string) => Promise<void>;
+  exportVideo: (
+    filename?: string,
+    format?: BrowserExportFormat
+  ) => Promise<void>;
+  /**
+   * Render the timeline and save the result as a new asset in `folderId` (or
+   * the library root when null), linked back to this timeline via
+   * `timeline_id`. Shares the render + progress + cancel machinery with
+   * {@link exportVideo}.
+   */
+  saveAsAsset: (
+    folderId: string | null,
+    filename?: string,
+    format?: BrowserExportFormat
+  ) => Promise<void>;
   /** Abort an in-flight render. */
   cancel: () => void;
   /** Dismiss a surfaced error. */
@@ -94,9 +107,11 @@ export function useTimelineExport(): UseTimelineExportResult {
       sink: (
         bytes: Uint8Array,
         mimeType: string,
-        name: string
+        name: string,
+        extension: string
       ) => void | Promise<void>,
-      filename?: string
+      filename?: string,
+      format?: BrowserExportFormat
     ) => {
       if (abortRef.current) return; // already running
       const controller = new AbortController();
@@ -147,18 +162,24 @@ export function useTimelineExport(): UseTimelineExportResult {
           throw new Error("Add a clip before exporting.");
         }
 
-        const { bytes, mimeType } = await renderTimeline({
+        const { bytes, mimeType, extension } = await renderTimeline({
           tracks: state.tracks,
           clips: state.clips,
           width: state.width,
           height: state.height,
           fps: state.fps,
           durationMs: exportDurationMs,
+          format,
           resolveUrl,
           signal: controller.signal,
           onProgress: handleProgress
         });
-        await sink(bytes, mimeType, sanitizeFilename(filename ?? "timeline"));
+        await sink(
+          bytes,
+          mimeType,
+          sanitizeFilename(filename ?? "timeline"),
+          extension
+        );
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
           // User cancelled — not an error.
@@ -175,17 +196,25 @@ export function useTimelineExport(): UseTimelineExportResult {
   );
 
   const exportVideo = useCallback(
-    (filename?: string) =>
-      runExport((bytes, mimeType, name) => {
-        downloadBlob(bytes, mimeType, `${name}.mp4`);
-      }, filename),
+    (filename?: string, format?: BrowserExportFormat) =>
+      runExport(
+        (bytes, mimeType, name, extension) => {
+          downloadBlob(bytes, mimeType, `${name}.${extension}`);
+        },
+        filename,
+        format
+      ),
     [runExport]
   );
 
   const saveAsAsset = useCallback(
-    (folderId: string | null, filename?: string) =>
-      runExport(async (bytes, mimeType, name) => {
-        const file = new File([bytes as BlobPart], `${name}.mp4`, {
+    (
+      folderId: string | null,
+      filename?: string,
+      format?: BrowserExportFormat
+    ) =>
+      runExport(async (bytes, mimeType, name, extension) => {
+        const file = new File([bytes as BlobPart], `${name}.${extension}`, {
           type: mimeType
         });
         const asset = await createAsset(
@@ -204,7 +233,7 @@ export function useTimelineExport(): UseTimelineExportResult {
           type: "success",
           content: "Saved timeline to assets."
         });
-      }, filename),
+      }, filename, format),
     [runExport, createAsset, updateAsset, store]
   );
 

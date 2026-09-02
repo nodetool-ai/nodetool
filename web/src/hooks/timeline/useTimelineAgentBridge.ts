@@ -15,10 +15,17 @@ import { useEffect, useMemo } from "react";
 import { makeClip, trackTypeForMediaType } from "@nodetool-ai/timeline";
 import type {
   ClipAnimation,
+  ClipMatte,
   TimelineClip,
   TimelineMarker,
   TimelineTrack
 } from "@nodetool-ai/timeline";
+import {
+  buildEffect,
+  buildMask,
+  buildTransition
+} from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
+import { parseSvgPath } from "@nodetool-ai/timeline/scene";
 import { buildClipAnimation } from "./buildClipAnimation";
 import {
   shapeStyleWithDefaults,
@@ -145,7 +152,8 @@ function toClipNode(
     locked: clip.locked,
     animations: clip.animations?.map(toAnimationNode),
     textStyle: clip.textStyle,
-    shapeStyle: clip.shapeStyle
+    shapeStyle: clip.shapeStyle,
+    parentId: clip.parentId
   };
 }
 
@@ -760,6 +768,115 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           dataUrl: frame.dataUrl
         }));
         return { clip: clipNode(clip), frames: frameNodes };
+      },
+
+      addGroup({ name, startMs, durationMs, trackId, children }) {
+        // Resolve every child before anything is written: a half-applied group
+        // leaves the user with an empty group and no idea which of their clips
+        // moved.
+        const targets = (children ?? []).map((ref) => requireClip(ref));
+        const store = doc.getState();
+        const existing = trackId
+          ? requireTrack(trackId)
+          : store.tracks.find((track) => track.type === "overlay");
+        if (!existing) store.addTrack("overlay", "Groups");
+        const track = existing ?? doc.getState().tracks.at(-1);
+        if (!track) {
+          throw new Error("Could not create an overlay track for the group.");
+        }
+        const group = makeClip({
+          trackId: track.id,
+          name,
+          startMs,
+          durationMs,
+          mediaType: "group",
+          sourceType: "imported",
+          status: "generated"
+        });
+        doc.getState().addClip(group);
+        for (const child of targets) {
+          doc.getState().patchClip(child.id, { parentId: group.id });
+        }
+        ui.getState().selectClip(group.id);
+        return {
+          clip: clipNode(reReadClip(group.id)),
+          children: targets.map((c) => c.id)
+        };
+      },
+
+      setParent(target, parentId) {
+        const clip = requireClip(target);
+        if (parentId === null) {
+          doc.getState().patchClip(clip.id, { parentId: undefined });
+          return clipNode(reReadClip(clip.id));
+        }
+        const parent = requireClip(parentId);
+        if (parent.mediaType !== "group") {
+          throw new Error(
+            `Clip "${parent.name}" is a ${parent.mediaType} clip, not a group — parent to a clip created with ui_timeline_add_group.`
+          );
+        }
+        // A cycle renders unparented and warns, so refusing it here is the
+        // only place it can still be fixed.
+        const { clips } = doc.getState();
+        let cursor: TimelineClip | undefined = parent;
+        while (cursor) {
+          if (cursor.id === clip.id) {
+            throw new Error(
+              `Clip "${parent.name}" is inside "${clip.name}" — parenting them would make a cycle.`
+            );
+          }
+          const next: string | undefined = cursor.parentId;
+          cursor = next ? clips.find((c) => c.id === next) : undefined;
+        }
+        doc.getState().patchClip(clip.id, { parentId: parent.id });
+        return clipNode(reReadClip(clip.id));
+      },
+
+      setTransition(target, transition) {
+        const clip = requireClip(target);
+        doc.getState().patchClip(clip.id, {
+          transitionIn: transition ? buildTransition(transition) : undefined
+        });
+        return clipNode(reReadClip(clip.id));
+      },
+
+      setMask(target, mask) {
+        const clip = requireClip(target);
+        doc.getState().patchClip(clip.id, {
+          mask: mask ? buildMask(mask, parseSvgPath) : undefined
+        });
+        return clipNode(reReadClip(clip.id));
+      },
+
+      setMatte(target, matte) {
+        const clip = requireClip(target);
+        if (matte === null) {
+          doc.getState().patchClip(clip.id, { matte: undefined });
+          return clipNode(reReadClip(clip.id));
+        }
+        const source = requireClip(matte.source);
+        if (source.id === clip.id) {
+          throw new Error(
+            `Clip "${clip.name}" cannot be its own matte source — name another clip.`
+          );
+        }
+        const next: ClipMatte = {
+          sourceClipId: source.id,
+          mode: matte.mode
+        };
+        if (matte.invert !== undefined) next.invert = matte.invert;
+        doc.getState().patchClip(clip.id, { matte: next });
+        return clipNode(reReadClip(clip.id));
+      },
+
+      setEffects(target, effects) {
+        const clip = requireClip(target);
+        const chain = effects.map(buildEffect);
+        doc.getState().patchClip(clip.id, {
+          effects: chain.length > 0 ? chain : undefined
+        });
+        return clipNode(reReadClip(clip.id));
       },
 
       selectClip(target) {

@@ -123,8 +123,8 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         '{"op": "add_track", "type": "audio", "name": "Music"} or ' +
         '{"op": "animate_clip", "target": "Title", "animations": [{"role": "in", "preset": "fade"}]}. ' +
         "Ops: get_state, add_track, add_media_clip, add_text_clip, add_shape_clip, " +
-        "split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
-        "set_clip_params, set_clip_binding, set_transition, set_mask, " +
+        "add_group, split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
+        "set_clip_params, set_parent, set_clip_binding, set_transition, set_mask, " +
         "set_matte, set_effects, animate_clip, " +
         "clear_animations, list_animation_presets, select_clip, seek, " +
         "add_marker, delete_marker, set_markers_from_beats, snap_to_beats. " +
@@ -147,6 +147,13 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         'set_matte takes {"target", "matte": {source, mode: "alpha"|"luma", ' +
         "invert?} | null}; the source clip stops drawing itself and its alpha " +
         "or brightness becomes the target's transparency. " +
+        'add_group takes {"name", "startMs", "durationMs", trackId?, ' +
+        'children?: [clip, ...]} and creates a clip with no media whose ' +
+        "transform, opacity and window every clip naming it inherits — move " +
+        "the group and its children move with it. Children keep their own " +
+        "tracks, so what covers what is unchanged. " +
+        'set_parent takes {"target", "parentId": <group> | null}; the parent ' +
+        "must be a clip made with add_group, and a cycle is refused. " +
         'set_clip_params takes {"target", ...fields}; a caption clip\'s look ' +
         'is "captionStyle": {fontFamily?, fontSizeFrac?, color?, activeColor?, ' +
         "outline?, bottomMarginFrac?, background?}, each field optional and " +
@@ -349,8 +356,9 @@ export const editTimelineSpec: CapabilitySpec = {
   description:
     "Edit a saved timeline sequence headlessly: add tracks, add text and " +
     "shape clips, split, trim, move, duplicate and delete clips, set clip " +
-    "params and workflow bindings, and animate clips with presets or " +
-    "keyframed custom curves. Pass a " +
+    "params and workflow bindings, group clips under a shared transform, " +
+    "set transitions, masks, mattes and effect chains, and animate clips " +
+    "with presets or keyframed custom curves. Pass a " +
     "list of operations; they run in order against the stored document and " +
     "the result is saved. An open editor picks the change up live. Call " +
     "list_timelines to find a sequence and validate_timeline afterwards. " +
@@ -456,6 +464,15 @@ export const DEFAULT_PREVIEW_WIDTH = 640;
 export const MAX_PREVIEW_TIMES = 8;
 /** Frames rendered when the caller names no timecodes. */
 export const DEFAULT_PREVIEW_COUNT = 3;
+/**
+ * Documented ceiling on previewed motion-blur samples. The render clamps to
+ * `MAX_MOTION_BLUR_SAMPLES` in `@nodetool-ai/timeline/scene`; this states the
+ * same number without importing it, because this file is the eager spec table
+ * and pulls in no implementation.
+ */
+export const MAX_PREVIEW_BLUR_SAMPLES = 32;
+/** The film convention: the shutter is open for half of each frame. */
+export const DEFAULT_PREVIEW_SHUTTER_ANGLE = 180;
 
 export const PREVIEW_TIMELINE_FRAME_SCHEMA: JsonSchema = {
   type: "object",
@@ -490,6 +507,22 @@ export const PREVIEW_TIMELINE_FRAME_SCHEMA: JsonSchema = {
       description:
         `Frame width in pixels; the height follows the sequence aspect. ` +
         `Default ${DEFAULT_PREVIEW_WIDTH}, max ${MAX_PREVIEW_WIDTH}.`
+    },
+    motion_blur_samples: {
+      type: "number",
+      description:
+        `Average this many sub-frame instants into each frame, so fast ` +
+        `motion smears the way a render with motion blur on will. 1 (the ` +
+        `default) is off; max ${MAX_PREVIEW_BLUR_SAMPLES}. Each sample ` +
+        `composites the whole frame again.`
+    },
+    shutter_angle: {
+      type: "number",
+      description:
+        `How far the shutter opens, in degrees of one frame. ` +
+        `${DEFAULT_PREVIEW_SHUTTER_ANGLE} is the film convention (open for ` +
+        `half the frame); 360 smears across the whole frame. Ignored unless ` +
+        `motion_blur_samples is above 1.`
     }
   },
   required: []
@@ -516,6 +549,101 @@ export const previewTimelineFrameSpec: CapabilitySpec = {
     params["timeline_id"]
       ? `Rendering frames of timeline ${String(params["timeline_id"])}`
       : "Rendering timeline frames"
+};
+
+/** Longest a `wait: true` render blocks before handing back the job id. */
+export const MAX_RENDER_TIMEOUT_MS = 30 * 60_000;
+/** How long `wait: true` waits when the caller names no timeout. */
+export const DEFAULT_RENDER_TIMEOUT_MS = 10 * 60_000;
+
+export const RENDER_TIMELINE_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: {
+      type: "string",
+      description: "Timeline sequence to render (from list_timelines)."
+    },
+    format: {
+      type: "string",
+      description:
+        "Container to write: 'mp4' (default), 'webm', 'mov', or " +
+        "'png_sequence' (frames zipped with a manifest). Only webm, mov and " +
+        "png_sequence carry alpha."
+    },
+    alpha: {
+      type: "boolean",
+      description:
+        "Keep transparency instead of compositing onto black. Refused with " +
+        "an mp4."
+    },
+    video_codec: {
+      type: "string",
+      description:
+        "Video codec, when the container allows more than one. Omit for the " +
+        "format's default."
+    },
+    bitrate: {
+      type: "string",
+      description:
+        "Target video bitrate, e.g. '8M'. Omit for the encoder's default."
+    },
+    motion_blur_samples: {
+      type: "number",
+      description:
+        "Sub-frame samples averaged per frame. 1 (default) is no blur; 8 is " +
+        "a smooth smear and costs 8x the render time."
+    },
+    shutter_angle: {
+      type: "number",
+      description:
+        "Fraction of the frame the shutter is open, in degrees (180 = half " +
+        "the frame). Only read when motion_blur_samples is above 1."
+    },
+    preview_scale: {
+      type: "number",
+      description:
+        "Render at this fraction of the sequence size. 0.5 is roughly a " +
+        "quarter of the time — use it for the drafts you look at, then " +
+        "render at 1 once the cut is right."
+    },
+    include_audio: {
+      type: "boolean",
+      description: "Mix audio-track clips into the render. Default true."
+    },
+    wait: {
+      type: "boolean",
+      description:
+        "Block until the render settles and return the finished asset. " +
+        "Default false: the call returns a job_id immediately and get_job " +
+        "reports it."
+    },
+    timeout_ms: {
+      type: "number",
+      description:
+        `How long to wait when wait is true. Default ` +
+        `${DEFAULT_RENDER_TIMEOUT_MS}, max ${MAX_RENDER_TIMEOUT_MS}. On a ` +
+        `timeout the render keeps going and the job_id comes back anyway.`
+    }
+  },
+  required: ["timeline_id"]
+};
+
+export const renderTimelineSpec: CapabilitySpec = {
+  name: "render_timeline",
+  description:
+    "Render a timeline sequence to a video file — the finished cut, " +
+    "composited exactly as the editor previews it, with audio mixed in. " +
+    "Runs as a job, so `get_job` and `get_job_logs` report on it and " +
+    "`cancel_job` stops it. With `wait` it blocks and hands back the " +
+    "rendered asset. Render before you say a cut is done, then look at what " +
+    "came out: `preview_timeline_frame` answers what one timecode looks " +
+    "like, `analyze_video` measures the file, and `understand_video` " +
+    "describes it. `preview_scale` renders a draft at a fraction of the " +
+    "size while you are still iterating.",
+  inputSchema: RENDER_TIMELINE_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Rendering timeline ${String(params["timeline_id"])}`
 };
 
 export const deleteTimelineSpec: CapabilitySpec = {
@@ -552,5 +680,6 @@ export const timelinesSpecs: readonly CapabilitySpec[] = [
   validateTimelineSpec,
   setTimelineDocumentSpec,
   previewTimelineFrameSpec,
+  renderTimelineSpec,
   deleteTimelineSpec
 ];

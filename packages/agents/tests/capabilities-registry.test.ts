@@ -216,6 +216,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   read_media_bytes: "read",
   read_shared: "read",
   render_storyboard_clips: "write",
+  render_timeline: "write",
   render_storyboard_stills: "write",
   request_secret: "write",
   resolve_workflow_escalation: "external",

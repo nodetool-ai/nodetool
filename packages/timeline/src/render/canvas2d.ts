@@ -244,6 +244,11 @@ export interface DrawTimelineFrameOptions<TSource> {
    * surface the other is not using. Without it a matted layer draws unmatted.
    */
   matteSurface?: CompositeSurfaceFactory<TSource>;
+  /**
+   * Seed the frame fully transparent instead of opaque black — an alpha export.
+   * Off by default, so a preview keeps the ground it has.
+   */
+  alpha?: boolean;
 }
 
 /**
@@ -345,8 +350,9 @@ function clearShadow<TSource>(ctx: CompositeContext2D<TSource>): void {
 
 /**
  * Composite `layers` onto `ctx`, bottom-up by `zIndex`, over an opaque black
- * ground — the same clear the GPU compositor starts from. The context is left
- * in the reset state. Returns the layers that drew nothing, in composite order.
+ * ground — the same clear the GPU compositor starts from, and with
+ * `options.alpha` the same transparent one. The context is left in the reset
+ * state. Returns the layers that drew nothing, in composite order.
  *
  * A layer naming a precomposite in `options.precomposites` draws onto that
  * group's own surface first, and the surface blends once at the group's z. With
@@ -360,8 +366,12 @@ export function drawTimelineFrame<TSource>(
   options: DrawTimelineFrameOptions<TSource> = {}
 ): Canvas2DLayer<TSource>[] {
   resetContext(ctx);
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
+  if (options.alpha === true) {
+    ctx.clearRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
+  } else {
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
+  }
 
   const skipped: Canvas2DLayer<TSource>[] = [];
   const stack = composePrecomposites(layers, geometry, options, skipped);

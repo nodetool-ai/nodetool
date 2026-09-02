@@ -3,8 +3,15 @@
  * `resource_change` broadcast, so a merging editor can attribute each write to
  * the unit it touched (ADR 0001).
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { TimelineDocument } from "@nodetool-ai/models";
+import {
+  ModelObserver,
+  TimelineSequence,
+  initTestDb
+} from "@nodetool-ai/models";
+import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import { ANIMATED_PROPERTIES } from "@nodetool-ai/timeline";
 import {
   createTimelineToolBridge,
@@ -12,6 +19,7 @@ import {
   type TimelineBridgeFinalState,
   type TimelineBridgeInitialState
 } from "../src/evals/surfaces/timeline.js";
+import { SHARED_TIMELINE_TOOL_NAMES } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import {
   resolveTimelineOpInput,
   resultUnitIds
@@ -646,6 +654,423 @@ describe("set_effects", () => {
         effects: [{ type: "halation", radius: 12 }]
       })
     ).toThrow(/liftGammaGain/);
+  });
+});
+
+/**
+ * The three style bags are the document schemas themselves (I1, I11). They had
+ * each been written out by hand on three surfaces and each copy fell behind the
+ * renderer, so a stroked title or a dashed path was storable in the document
+ * and unreachable from a tool call.
+ */
+describe("style bags reach every field the renderer honours", () => {
+  async function bridgeWithClips() {
+    const bridge = createTimelineToolBridge({
+      tracks: [{ type: "overlay" }],
+      clips: [
+        {
+          name: "title",
+          trackIndex: 0,
+          mediaType: "text",
+          startMs: 0,
+          durationMs: 2000
+        },
+        {
+          name: "badge",
+          trackIndex: 0,
+          mediaType: "shape",
+          startMs: 0,
+          durationMs: 2000
+        }
+      ]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    return { bridge, byName };
+  }
+
+  const clipNamed = (
+    bridge: { finalState: () => TimelineBridgeFinalState },
+    name: string
+  ) => bridge.finalState().documentClips.find((c) => c.name === name);
+
+  it("stores a text clip's stroke, shadow, background and gradient fill", async () => {
+    const { bridge, byName } = await bridgeWithClips();
+    await byName["ui_timeline_set_clip_params"].execute({
+      target: "title",
+      textStyle: {
+        text: "SCRAPHEART",
+        fontSizePx: 120,
+        color: "#ffffff",
+        fontStyle: "italic",
+        letterSpacingPx: 6,
+        lineHeight: 1.1,
+        verticalAlign: "top",
+        stroke: { color: "#000000", widthPx: 3 },
+        shadow: { color: "#000000", blurPx: 12, offsetX: 0, offsetY: 4 },
+        background: { color: "#00000099", paddingPx: 24, radiusPx: 8 },
+        fill: {
+          type: "linear",
+          angle: 90,
+          stops: [
+            { offset: 0, color: "#ff0000" },
+            { offset: 1, color: "#0000ff" }
+          ]
+        }
+      }
+    });
+
+    expect(clipNamed(bridge, "title")?.textStyle).toMatchObject({
+      fontStyle: "italic",
+      letterSpacingPx: 6,
+      lineHeight: 1.1,
+      verticalAlign: "top",
+      stroke: { color: "#000000", widthPx: 3 },
+      shadow: { color: "#000000", blurPx: 12, offsetX: 0, offsetY: 4 },
+      background: { color: "#00000099", paddingPx: 24, radiusPx: 8 },
+      fill: { type: "linear", angle: 90 }
+    });
+  });
+
+  it("stores a path shape's geometry, dash and trim", async () => {
+    const { bridge, byName } = await bridgeWithClips();
+    await byName["ui_timeline_set_clip_params"].execute({
+      target: "badge",
+      shapeStyle: {
+        kind: "path",
+        d: "M 0 0 L 1 1 Z",
+        dash: [0.02, 0.01],
+        lineCap: "round",
+        lineJoin: "bevel",
+        trimStart: 0.1,
+        trimEnd: 0.8,
+        fillStyle: { type: "radial", stops: [{ offset: 0, color: "#fff" }] }
+      }
+    });
+
+    expect(clipNamed(bridge, "badge")?.shapeStyle).toMatchObject({
+      kind: "path",
+      d: "M 0 0 L 1 1 Z",
+      dash: [0.02, 0.01],
+      lineCap: "round",
+      lineJoin: "bevel",
+      trimStart: 0.1,
+      trimEnd: 0.8,
+      fillStyle: { type: "radial" }
+    });
+  });
+
+  it("authors a polygon straight from add_shape_clip", async () => {
+    // The kind enum used to stop at rect | ellipse | line, so a star was
+    // storable in the document and unreachable from a tool call.
+    const { bridge, byName } = await bridgeWithClips();
+    await byName["ui_timeline_add_shape_clip"].execute({
+      shape: { kind: "star", sides: 5, innerRadius: 0.4, cornerRadius: 0.02 }
+    });
+    const star = bridge
+      .finalState()
+      .documentClips.find((c) => c.shapeStyle?.kind === "star");
+    expect(star?.shapeStyle).toMatchObject({
+      kind: "star",
+      sides: 5,
+      innerRadius: 0.4,
+      cornerRadius: 0.02
+    });
+  });
+});
+
+/**
+ * Groups (T11) reached from the bridge, which is what `edit_timeline`'s
+ * `add_group` / `set_parent` ops dispatch to and what the browser twin calls
+ * through its own handler (I11).
+ */
+describe("add_group and set_parent", () => {
+  async function bridgeWithTwoClips() {
+    const bridge = createTimelineToolBridge({
+      tracks: [{ type: "video" }],
+      clips: [
+        {
+          name: "shot a",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 0,
+          durationMs: 2000
+        },
+        {
+          name: "shot b",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 2000,
+          durationMs: 2000
+        }
+      ]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    return { bridge, byName };
+  }
+
+  const clipNamed = (
+    bridge: { finalState: () => TimelineBridgeFinalState },
+    name: string
+  ) => bridge.finalState().documentClips.find((c) => c.name === name);
+
+  it("creates a group clip and parents the children it was given", async () => {
+    const { bridge, byName } = await bridgeWithTwoClips();
+    const result = (await byName["ui_timeline_add_group"].execute({
+      name: "Title block",
+      startMs: 0,
+      durationMs: 4000,
+      children: ["shot a", "shot b"]
+    })) as { clip: { id: string; mediaType: string }; children: string[] };
+
+    expect(result.clip.mediaType).toBe("group");
+    expect(result.children).toHaveLength(2);
+    expect(clipNamed(bridge, "shot a")?.parentId).toBe(result.clip.id);
+    expect(clipNamed(bridge, "shot b")?.parentId).toBe(result.clip.id);
+    // A child keeps its own track, so its z-order is unchanged (I9).
+    expect(clipNamed(bridge, "shot a")?.trackId).toBe(
+      clipNamed(bridge, "shot b")?.trackId
+    );
+  });
+
+  it("parents nothing when one named child does not exist", async () => {
+    // Resolving every child first is what keeps a half-applied group from
+    // leaving the caller guessing which of its clips moved.
+    const { bridge, byName } = await bridgeWithTwoClips();
+    await expect(
+      byName["ui_timeline_add_group"].execute({
+        name: "Title block",
+        startMs: 0,
+        durationMs: 4000,
+        children: ["shot a", "shot z"]
+      })
+    ).rejects.toThrow(/shot z/);
+    expect(clipNamed(bridge, "shot a")?.parentId).toBeUndefined();
+    // And no empty group is left behind for the caller to clean up.
+    expect(clipNamed(bridge, "Title block")).toBeUndefined();
+  });
+
+  it("parents and unparents a clip after the fact", async () => {
+    const { bridge, byName } = await bridgeWithTwoClips();
+    const group = (await byName["ui_timeline_add_group"].execute({
+      name: "Title block",
+      startMs: 0,
+      durationMs: 4000
+    })) as { clip: { id: string } };
+
+    await byName["ui_timeline_set_parent"].execute({
+      target: "shot a",
+      parentId: "Title block"
+    });
+    expect(clipNamed(bridge, "shot a")?.parentId).toBe(group.clip.id);
+
+    await byName["ui_timeline_set_parent"].execute({
+      target: "shot a",
+      parentId: null
+    });
+    expect(clipNamed(bridge, "shot a")?.parentId).toBeUndefined();
+  });
+
+  it("refuses a parent that is not a group, listing the groups there are", async () => {
+    const { byName } = await bridgeWithTwoClips();
+    await byName["ui_timeline_add_group"].execute({
+      name: "Title block",
+      startMs: 0,
+      durationMs: 4000
+    });
+    const call = byName["ui_timeline_set_parent"].execute({
+      target: "shot a",
+      parentId: "shot b"
+    });
+    await expect(call).rejects.toThrow(/not a group/);
+    await expect(call).rejects.toThrow(/Title block/);
+  });
+
+  it("refuses a cycle rather than storing one the renderer drops", async () => {
+    const { byName } = await bridgeWithTwoClips();
+    const outer = (await byName["ui_timeline_add_group"].execute({
+      name: "Outer",
+      startMs: 0,
+      durationMs: 4000
+    })) as { clip: { id: string } };
+    await byName["ui_timeline_add_group"].execute({
+      name: "Inner",
+      startMs: 0,
+      durationMs: 4000
+    });
+    await byName["ui_timeline_set_parent"].execute({
+      target: "Inner",
+      parentId: outer.clip.id
+    });
+
+    await expect(
+      byName["ui_timeline_set_parent"].execute({
+        target: "Outer",
+        parentId: "Inner"
+      })
+    ).rejects.toThrow(/cycle/);
+  });
+});
+
+/**
+ * A failed op names what the caller could have said instead. Without the ids
+ * an agent guesses again, and the guess is another failed op.
+ */
+describe("target errors list the valid ids", () => {
+  async function bridgeWithOneClip() {
+    const bridge = createTimelineToolBridge({
+      tracks: [{ type: "video", name: "Video 1" }],
+      clips: [
+        {
+          name: "shot a",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 0,
+          durationMs: 2000
+        }
+      ]
+    });
+    return Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+  }
+
+  it("names every clip a structural op could have addressed", async () => {
+    const byName = await bridgeWithOneClip();
+    for (const op of [
+      "ui_timeline_set_transition",
+      "ui_timeline_set_mask",
+      "ui_timeline_set_matte",
+      "ui_timeline_set_effects",
+      "ui_timeline_set_parent"
+    ]) {
+      const input: Record<string, unknown> = { target: "shot z" };
+      if (op === "ui_timeline_set_transition") {
+        input["transition"] = { type: "crossfade", durationMs: 200 };
+      }
+      if (op === "ui_timeline_set_mask") input["mask"] = { kind: "rect" };
+      if (op === "ui_timeline_set_matte") {
+        input["matte"] = { source: "shot a", mode: "alpha" };
+      }
+      if (op === "ui_timeline_set_effects") input["effects"] = [];
+      if (op === "ui_timeline_set_parent") input["parentId"] = null;
+      await expect(byName[op].execute(input)).rejects.toThrow(
+        /Valid clips: .*\("shot a"\)/
+      );
+    }
+  });
+
+  it("names every track an add_group could have landed on", async () => {
+    const byName = await bridgeWithOneClip();
+    await expect(
+      byName["ui_timeline_add_group"].execute({
+        name: "Group",
+        startMs: 0,
+        durationMs: 1000,
+        trackId: "Audio 9"
+      })
+    ).rejects.toThrow(/Valid tracks: .*\("Video 1"\)/);
+  });
+});
+
+/**
+ * I11: the browser registry and this bridge must expose one tool set. A shared
+ * field list cannot catch a tool one surface has and the other lacks, so each
+ * side asserts the shared name list — this is the headless half, and
+ * `web/src/lib/tools/__tests__/timelineTools.test.ts` is the other.
+ */
+describe("shared tool surface", () => {
+  it("exposes every tool the browser twin must also register", () => {
+    const bridge = createTimelineToolBridge();
+    const names = new Set(bridge.tools.map((t) => t.name));
+    expect(SHARED_TIMELINE_TOOL_NAMES.length).toBeGreaterThan(0);
+    for (const name of SHARED_TIMELINE_TOOL_NAMES) {
+      expect(names.has(name), `bridge is missing ${name}`).toBe(true);
+    }
+  });
+});
+
+/**
+ * A script of ops runs to the end. Stopping at the first error hides every
+ * problem behind it, and the caller wants the whole picture — so a failing op
+ * is recorded and the ones after it still land.
+ */
+describe("edit_timeline continues past a failing op", () => {
+  beforeEach(() => initTestDb());
+  afterEach(() => ModelObserver.clear());
+
+  const seedDocument = () =>
+    JSON.stringify({
+      tracks: [
+        {
+          id: "track-1",
+          name: "Video 1",
+          type: "video",
+          index: 0,
+          visible: true,
+          locked: false
+        }
+      ],
+      clips: [
+        {
+          id: "clip-1",
+          trackId: "track-1",
+          name: "Shot 1",
+          startMs: 0,
+          durationMs: 2000,
+          mediaType: "video",
+          sourceType: "imported",
+          status: "generated",
+          locked: false,
+          versions: []
+        }
+      ],
+      markers: []
+    });
+
+  it("records the failures and applies the ops around them", async () => {
+    const row = await TimelineSequence.create<TimelineSequence>({
+      user_id: "u1",
+      project_id: "default",
+      name: "Trailer cut",
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      duration_ms: 2000,
+      document: seedDocument()
+    });
+    const run = createCapabilityRun({
+      context: { userId: "u1" } as unknown as ProcessingContext,
+      gate: UNGATED
+    });
+
+    const result = (await run.invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [
+        // 1 fails: no such clip.
+        { op: "set_effects", target: "nothing", effects: [] },
+        // 2 succeeds, and must land despite op 1.
+        { op: "add_group", name: "Title block", startMs: 0, durationMs: 4000 },
+        // 3 fails: a group cannot hold a clip that does not exist.
+        { op: "set_parent", target: "nothing", parentId: "Title block" },
+        // 4 succeeds, and must land despite op 3.
+        { op: "set_parent", target: "Shot 1", parentId: "Title block" }
+      ]
+    })) as {
+      applied: number;
+      failed: number;
+      ops: { ok: boolean; error?: string }[];
+      clips: { name: string; media_type: string }[];
+    };
+
+    expect(result).toMatchObject({ applied: 2, failed: 2 });
+    expect(result.ops.map((o) => o.ok)).toEqual([false, true, false, true]);
+    // The recorded errors name what the caller could have said instead.
+    expect(result.ops[0].error).toMatch(/Valid clips: .*\("Shot 1"\)/);
+    expect(result.ops[2].error).toMatch(/nothing/);
+
+    const saved = await TimelineSequence.findById(row.id);
+    const clips = saved!.toDocument().clips;
+    const group = clips.find((c) => c.name === "Title block");
+    expect(group?.mediaType).toBe("group");
+    expect(clips.find((c) => c.name === "Shot 1")?.parentId).toBe(group?.id);
   });
 });
 

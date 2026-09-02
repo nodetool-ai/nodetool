@@ -28,6 +28,7 @@ import type {
 } from "@nodetool-ai/runtime";
 import { attachRunCostLedger, nodeTypeLookup } from "../cost-ledger.js";
 import { normalizeGraph } from "../normalize-graph.js";
+import type { RawGraphInput } from "../types.js";
 import {
   collectPreflightIssues,
   formatPreflightDetail,
@@ -52,7 +53,12 @@ import {
   buildWorkspaceExecutionContext,
   resolveWorkflowWorkspace
 } from "./workflow-workspace.js";
-import { isFunctionValue, isNumber, isString } from "../predicates.js";
+import {
+  isFunctionValue,
+  isNumber,
+  isRecord,
+  isString
+} from "../predicates.js";
 
 // The preflight moved to `../preflight.ts` so `ExecutionSession` can run the
 // same checks without importing the models database. Re-exported here because
@@ -139,8 +145,27 @@ export interface WorkflowRunEnvironment {
 }
 
 export interface RunWorkflowOptions {
+  /**
+   * The saved workflow to run. With {@link RunWorkflowOptions.graph} nothing
+   * is looked up and this is only the label the job row and the cost ledger
+   * carry, so a run that belongs to no workflow passes `""`.
+   */
   workflowId: string;
   userId: string;
+  /**
+   * Run this graph instead of the one stored on `workflowId`.
+   *
+   * A caller that assembles a graph on the fly — `render_timeline` builds a
+   * `nodetool.timeline.RenderTimeline` graph (D12,
+   * docs/plans/motion-graphics.md) — gets the job row, the logs, the progress
+   * messages and cancel without first saving a workflow nobody asked for.
+   */
+  graph?: RawGraphInput;
+  /**
+   * Name for the job row. A graph run has no workflow to name it, so without
+   * this the job lists as an unlabelled row.
+   */
+  jobName?: string;
   /**
    * The run environment, or a lazy resolver for it. Pass the resolver form
    * when constructing the environment is expensive (registry bootstrap,
@@ -243,6 +268,48 @@ async function markJobFailed(job: Job, message: string): Promise<void> {
  */
 export const MAX_PERSISTED_OUTPUT_BYTES = 256_000;
 
+/**
+ * Drop inline bytes from an asset ref that already says where its bytes live.
+ *
+ * A media output travels as `{type, data: "<base64>", asset_id, uri}` — the
+ * bytes and the handle, both. The job row wants only the handle: it is read
+ * back by `get_job`, which hands it to an agent. Carrying the base64 pushed
+ * every real media run past {@link MAX_PERSISTED_OUTPUT_BYTES}, so the row
+ * recorded the omission marker instead of the asset the run produced, and a
+ * caller that ran a render in the background could not find its video.
+ *
+ * A ref with no `asset_id` and no `uri` keeps its `data`: dropping that loses
+ * the only copy.
+ */
+export function withoutInlineAssetBytes(
+  outputs: Record<string, unknown>
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(outputs).map(([key, value]) => [key, stripInlineBytes(value)])
+  );
+}
+
+/** {@link withoutInlineAssetBytes}, one output value deep. */
+function stripInlineBytes(value: unknown) {
+  if (Array.isArray(value)) {
+    const items: unknown[] = [];
+    for (const item of value) {
+      items.push(stripInlineBytes(item));
+    }
+    return items;
+  }
+  if (!isRecord(value)) return value;
+  const record = { ...value };
+  for (const [key, item] of Object.entries(record)) {
+    record[key] = stripInlineBytes(item);
+  }
+  const hasHandle =
+    (isString(record["asset_id"]) && record["asset_id"] !== "") ||
+    (isString(record["uri"]) && record["uri"] !== "");
+  if (hasHandle && isString(record["data"])) record["data"] = null;
+  return record;
+}
+
 /** What the row holds instead of an outputs bag it cannot carry. */
 export interface OmittedOutputs {
   omitted: true;
@@ -338,7 +405,7 @@ async function finalizeWorkflowRunJob(
   // job answered "completed" and the caller could never read what it produced.
   job.metadata_json = {
     ...(job.metadata_json ?? {}),
-    outputs: persistableOutputs(result.outputs ?? {})
+    outputs: persistableOutputs(withoutInlineAssetBytes(result.outputs ?? {}))
   };
   job.logs = persistableLogs(collectExecutionSummary(result.messages));
   await job.save();
@@ -440,24 +507,28 @@ export async function runWorkflow(
   const debug = options.debug === true;
   const interactive = options.interactive === true;
 
-  const workflow = await Workflow.find(userId, workflowId);
-  if (!workflow) {
-    return { kind: "error", status: 404, detail: "Workflow not found" };
-  }
-
-  const runMode = workflow.run_mode ?? "workflow";
-  if (runMode !== "workflow") {
-    return {
-      kind: "error",
-      status: 400,
-      detail: `Workflow run mode "${runMode}" is not supported by the standalone backend`
-    };
-  }
-
   // One normalization for every host: `data` → `properties`, editor-only nodes
   // (Comment/Group/Reroute) pruned, and edges typed from `edge_type` or the
   // legacy `type`.
-  const runnableGraph = normalizeGraph(workflow.getGraph());
+  let runnableGraph: ReturnType<typeof normalizeGraph>;
+  if (options.graph) {
+    runnableGraph = normalizeGraph(options.graph);
+  } else {
+    const workflow = await Workflow.find(userId, workflowId);
+    if (!workflow) {
+      return { kind: "error", status: 404, detail: "Workflow not found" };
+    }
+
+    const runMode = workflow.run_mode ?? "workflow";
+    if (runMode !== "workflow") {
+      return {
+        kind: "error",
+        status: 400,
+        detail: `Workflow run mode "${runMode}" is not supported by the standalone backend`
+      };
+    }
+    runnableGraph = normalizeGraph(workflow.getGraph());
+  }
 
   // The same refusal `ExecutionSession` raises, one layer up: a provider that
   // would construct without its key fails mid-run today, after the upstream
@@ -499,6 +570,7 @@ export async function runWorkflow(
     workflow_id: workflowId,
     user_id: userId,
     status: "running",
+    name: options.jobName ?? "",
     params,
     graph: runnableGraph
   })) as Job;
@@ -513,7 +585,7 @@ export async function runWorkflow(
   try {
     const workspace = await (
       options.resolveWorkspace ?? resolveWorkflowWorkspace
-    )(workflowId, userId);
+    )(workflowId || null, userId);
     if (interactive) {
       // `BoundedHandle` keeps the same guarantees an LLM supervisor gets —
       // decision/retry caps, a per-decision timeout that fails closed, sticky

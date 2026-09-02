@@ -38,6 +38,7 @@ export class Canvas2DCompositor implements TimelineCompositor {
   private refHeight = 0;
   private layers: CompositeLayer[] = [];
   private precomposites: CompositePrecomposite[] = [];
+  private alpha = false;
   /** Scratch canvas for feathered wipe masks, reused across layers/frames. */
   private maskScratch: HTMLCanvasElement | null = null;
   /**
@@ -68,6 +69,10 @@ export class Canvas2DCompositor implements TimelineCompositor {
   setReferenceSize(width: number, height: number): void {
     this.refWidth = width;
     this.refHeight = height;
+  }
+
+  setAlpha(alpha: boolean): void {
+    this.alpha = alpha;
   }
 
   resize(width: number, height: number): void {
@@ -113,7 +118,8 @@ export class Canvas2DCompositor implements TimelineCompositor {
         precomposites: this.precomposites,
         precompositeSurface: (width, height) => this.takeSurface(width, height),
         maskSurface: (width, height) => this.takeSurface(width, height),
-        matteSurface: (width, height) => this.takeSurface(width, height)
+        matteSurface: (width, height) => this.takeSurface(width, height),
+        alpha: this.alpha
       }
     );
   }

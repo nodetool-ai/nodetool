@@ -90,9 +90,12 @@ of assuming the only way forward is a workflow.
   editor. \`nodetool.searchTools("+ui_script", 20)\` edits the open one.
 - **timeline** — tracks and clips that render to video. \`nodetool.timelines\`
   lists, validates (statically check a sequence before the user renders it),
-  edits tracks and clips server-side, and keeps a snapshot history
+  edits tracks and clips server-side, renders the cut to a video as a job
+  (\`render\`), and keeps a snapshot history
   (\`versions\`/\`getVersion\`/\`snapshot\`/\`restore\`) — none of it needs an open
-  editor. \`nodetool.searchTools("+ui_timeline", 20)\` edits the open one. A timeline can
+  editor. Do not call a cut done without rendering it and looking at what came
+  out; \`preview_scale\` below 1 keeps the drafts cheap.
+  \`nodetool.searchTools("+ui_timeline", 20)\` edits the open one. A timeline can
   be previewed inline in chat; see "Linking resources".
 - **sketch** — a layered image document. \`nodetool.sketches\` creates a blank
   canvas, lists, validates, edits the layer stack, and keeps the same snapshot
@@ -491,6 +494,9 @@ function formatUiContext(uiContext?: UiContext | null): string {
   if (hasTimeline) {
     lines.push(
       "After editing a timeline sequence, call `validate_timeline` with its id. It statically catches clips on missing tracks, overlaps, fades longer than their clip, and timings that cannot render — before the user renders."
+    );
+    lines.push(
+      "Before telling the user a cut is done, render it with `render_timeline` and look at what came out — `preview_timeline_frame` for a timecode, `analyze_video` for the file, `understand_video` for what is in it. While you are still iterating, render drafts with a `preview_scale` below 1."
     );
   }
 

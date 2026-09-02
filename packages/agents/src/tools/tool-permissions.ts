@@ -270,6 +270,10 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   edit_sketch: "write",
   // Replaces a timeline's whole document, after snapshotting what it replaces.
   set_timeline_document: "write",
+  // Composites the cut locally and saves the video as an asset. No model
+  // is called, so it sits with the other renders rather than with the
+  // arbitrary-compute tools.
+  render_timeline: "write",
   // Writes the glTF back over the asset it came from.
   edit_model3d: "write",
   create_model3d: "write",

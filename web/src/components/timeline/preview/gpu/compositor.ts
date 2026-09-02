@@ -58,6 +58,7 @@ export class WebGPUCompositor implements TimelineCompositor {
   private sourceTextures = new Map<string, SourceTexture>();
   private layers: CompositeLayer[] = [];
   private precomposites: CompositePrecomposite[] = [];
+  private alpha = false;
   /** Shape masks rasterized to coverage bitmaps for the GPU mask pass. */
   private readonly masks = new MaskRasterizer();
 
@@ -110,6 +111,10 @@ export class WebGPUCompositor implements TimelineCompositor {
    */
   setReferenceSize(width: number, height: number): void {
     this.core?.setReferenceSize(width, height);
+  }
+
+  setAlpha(alpha: boolean): void {
+    this.alpha = alpha;
   }
 
   resize(width: number, height: number): void {
@@ -250,7 +255,12 @@ export class WebGPUCompositor implements TimelineCompositor {
     }
 
     const frameLayers = this.layers.map((layer) => this.toFrameLayer(layer));
-    const { texture, drawn } = core.composite(frameLayers, this.precomposites);
+    const { texture, drawn } = core.composite(frameLayers, this.precomposites, {
+      r: 0,
+      g: 0,
+      b: 0,
+      a: this.alpha ? 0 : 1
+    });
 
     // Every active clip was mid-decode (e.g. the incoming clip at a cut is
     // still seeking). Skip the present so the swap chain keeps showing the last

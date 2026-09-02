@@ -7,14 +7,19 @@ import type { VideoRef } from "../types.js";
 export type RenderTimelineInputs = {
   timeline?: Connectable<unknown>;
   include_audio?: Connectable<boolean>;
+  format?: Connectable<"mp4" | "webm" | "mov" | "png_sequence">;
+  alpha?: Connectable<boolean>;
+  video_codec?: Connectable<string>;
+  bitrate?: Connectable<number>;
 };
 
 export interface RenderTimelineOutputs {
   output: VideoRef;
+  frames: unknown;
 }
 
-export function renderTimeline(inputs: RenderTimelineInputs): DslNode<RenderTimelineOutputs, "output"> {
-  return createNode("nodetool.timeline.RenderTimeline", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function renderTimeline(inputs: RenderTimelineInputs): DslNode<RenderTimelineOutputs> {
+  return createNode("nodetool.timeline.RenderTimeline", inputs, { outputNames: ["output", "frames"] });
 }
 
 // Timeline Transcript — nodetool.timeline.Transcript

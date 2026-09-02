@@ -62,6 +62,22 @@ import {
   type ClipAnimation
 } from "@nodetool-ai/timeline";
 import { parseSvgPath } from "@nodetool-ai/timeline/scene";
+import {
+  addGroupParams,
+  buildEffect,
+  buildMask,
+  buildTransition,
+  captionStyleParams,
+  effectParams,
+  maskParams,
+  matteParams,
+  partialTextStyleParams,
+  setParentParams,
+  shapeStyleParams,
+  targetParam,
+  textStyleParams,
+  transitionParams
+} from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import type { HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
@@ -70,6 +86,9 @@ import type {
 } from "../tool-loop-eval.js";
 
 const animationRole = z.enum(["in", "out", "emphasis", "loop"]);
+
+/** Units a failed lookup names before it stops and points at get_state. */
+const MAX_LISTED_UNITS = 12;
 
 /**
  * The `custom` preset's inputs. Values are checked by
@@ -115,388 +134,6 @@ const customMaskParam = z
   })
   .optional()
   .describe("Required when a curve drives wipeProgress, ignored otherwise.");
-
-const targetParam = z
-  .string()
-  .describe(
-    'Clip id, clip name (case-insensitive), or the literal "selected" for the currently-selected clip.'
-  );
-
-const textStyleParams = z.object({
-  fontFamily: z.string().optional(),
-  fontSizePx: z.number().optional(),
-  fontWeight: z.number().optional(),
-  color: z.string().optional(),
-  align: z.enum(["left", "center", "right"]).optional(),
-  maxWidthFrac: z.number().optional()
-});
-
-/**
- * A caption's look. Every field is optional and an absent one keeps the
- * built-in value, so a partial patch restyles one thing rather than resetting
- * the rest.
- */
-const captionStyleParams = z.object({
-  fontFamily: z.string().optional(),
-  fontSizeFrac: z
-    .number()
-    .optional()
-    .describe("Font size as a fraction of frame height. Default 0.05."),
-  color: z.string().optional().describe("Colour of the words not being spoken."),
-  activeColor: z
-    .string()
-    .optional()
-    .describe("Colour of the word being spoken. Default #FFD60A."),
-  outline: z
-    .object({ color: z.string(), widthPx: z.number() })
-    .optional()
-    .describe("Outline under the glyphs. widthPx 0 draws none."),
-  bottomMarginFrac: z
-    .number()
-    .optional()
-    .describe("Gap from the frame bottom, as a fraction of height. Default 0.12."),
-  background: z
-    .object({
-      color: z.string(),
-      paddingPx: z.number(),
-      radiusPx: z.number().optional()
-    })
-    .optional()
-    .describe("Scrim behind the whole block.")
-});
-
-const shapeStyleParams = z.object({
-  kind: z.enum(["rect", "ellipse", "line"]),
-  fill: z.string().optional(),
-  stroke: z.string().optional(),
-  strokeWidthPx: z.number().optional(),
-  x: z.number().optional(),
-  y: z.number().optional(),
-  width: z.number().optional(),
-  height: z.number().optional(),
-  x2: z.number().optional(),
-  y2: z.number().optional()
-});
-
-/**
- * A cut, authored on the incoming clip (D5). The type is an enum so a model
- * inventing one is refused with the list, rather than saving a document the
- * renderer then quietly cross-fades.
- */
-const transitionParams = z.object({
-  type: z.enum(["crossfade", "dipToColor", "wipe", "push", "slide", "zoom"]),
-  durationMs: z
-    .number()
-    .describe(
-      "Length of the cut from the clip's start. 0 or less is a hard cut."
-    ),
-  easing: z
-    .string()
-    .optional()
-    .describe(
-      "Easing id, cubic-bezier(x1,y1,x2,y2) or spring(stiffness,damping,mass)."
-    ),
-  color: z.string().optional().describe("dipToColor only, e.g. #000000."),
-  direction: z
-    .enum(["left", "right", "up", "down"])
-    .optional()
-    .describe(
-      "wipe, push and slide only: the edge the incoming clip arrives from."
-    ),
-  softness: z
-    .number()
-    .optional()
-    .describe("wipe only: feathered edge width, 0..1 of the wipe axis.")
-});
-
-/**
- * The union member the named type actually takes. The input schema is one flat
- * object because that is what a tool call can express, so a `color` sent with a
- * `push` would otherwise be stored and then silently stripped on the next save
- * — a `field_stripped` warning for a field that never meant anything.
- */
-function buildTransition(
-  input: z.infer<typeof transitionParams>
-): NonNullable<TimelineClip["transitionIn"]> {
-  const { type, durationMs, easing } = input;
-  const direction = input.direction ?? "left";
-  switch (type) {
-    case "dipToColor":
-      return { type, durationMs, easing, color: input.color ?? "#000000" };
-    case "wipe":
-      return { type, durationMs, easing, direction, softness: input.softness };
-    case "push":
-    case "slide":
-      return { type, durationMs, easing, direction };
-    case "crossfade":
-    case "zoom":
-      return { type, durationMs, easing };
-  }
-}
-
-/**
- * A shape mask on one clip, in the layer's own normalized 0..1 space (D6).
- * `kind` is an enum here even though the document carries a plain string: a
- * kind the renderer cannot rasterize is a mask that silently does nothing, and
- * refusing it at the call is cheaper than finding it in the pixels.
- */
-const maskParams = z.object({
-  kind: z.enum(["rect", "ellipse", "path"]),
-  x: z
-    .number()
-    .optional()
-    .describe("Left edge, 0..1 of the layer's width. Default 0."),
-  y: z
-    .number()
-    .optional()
-    .describe("Top edge, 0..1 of the layer's height. Default 0."),
-  width: z
-    .number()
-    .optional()
-    .describe("Width, 0..1 of the layer's width. Default 1."),
-  height: z
-    .number()
-    .optional()
-    .describe("Height, 0..1 of the layer's height. Default 1."),
-  d: z
-    .string()
-    .optional()
-    .describe(
-      "kind \"path\" only: SVG path data in the same 0..1 space. M, L, C, Q and Z, absolute or relative."
-    ),
-  featherPx: z
-    .number()
-    .optional()
-    .describe("Soft edge width in the layer's own pixels. 0 is a hard edge."),
-  invert: z
-    .boolean()
-    .optional()
-    .describe("Keep what the mask excludes instead of what it covers.")
-});
-
-/** A track matte: another clip's alpha or luminance drives this layer's alpha. */
-const matteParams = z.object({
-  source: z
-    .string()
-    .describe("The clip whose pixels drive the alpha, by id or name."),
-  mode: z
-    .enum(["alpha", "luma"])
-    .describe(
-      "alpha reads the source's transparency; luma reads its brightness."
-    ),
-  invert: z.boolean().optional()
-});
-
-/**
- * The stored mask, with the fields the named kind does not use left off — the
- * same reason {@link buildTransition} narrows a flat input: a `d` sent with a
- * rect would be stored and then stripped on the next save, which reads as a
- * `field_stripped` warning about a field that never meant anything.
- *
- * Path data is parsed here rather than at render time so a path the renderer
- * cannot read is refused while the caller can still fix it.
- */
-function buildMask(input: z.infer<typeof maskParams>): ClipMask {
-  const { kind, x, y, width, height, featherPx, invert } = input;
-  const bounds = { x, y, width, height, featherPx, invert };
-  if (kind !== "path") return { kind, ...bounds };
-  const parsed = parseSvgPath(input.d ?? "");
-  if (!parsed.ok) {
-    throw new Error(
-      `mask.d is not path data this build can draw: ${parsed.error}`
-    );
-  }
-  return { kind, d: input.d, featherPx, invert };
-}
-
-/** A tone-curve control point list, normalized on both axes. */
-const curvePoints = z.array(z.object({ x: z.number(), y: z.number() }));
-
-/** Three numbers, one per channel, for the three-way grade. */
-const rgbTriple = z.tuple([z.number(), z.number(), z.number()]);
-
-/**
- * One effect in a clip's chain (D7). `type` decides which of the other fields
- * mean anything, the way {@link transitionParams} does: a tool call sends one
- * flat object, so {@link buildEffect} keeps only the fields the named type
- * uses rather than storing a `radius` on a `levels` that the next save strips.
- *
- * `enabled` and `id` are not asked for — the chain is replaced whole, so an
- * effect the caller sent is an effect it wants on, and an id it never sees is
- * one it cannot get wrong.
- */
-const effectParams = z.object({
-  type: z.enum([
-    "color",
-    "blur",
-    "glow",
-    "dropShadow",
-    "vignette",
-    "sharpen",
-    "chromaKey",
-    "curves",
-    "levels",
-    "liftGammaGain"
-  ]),
-  brightness: z.number().optional().describe("color: -1..1, 0 is unchanged."),
-  contrast: z.number().optional().describe("color: 0..4, 1 is unchanged."),
-  saturation: z.number().optional().describe("color: 0..4, 1 is unchanged."),
-  hue: z.number().optional().describe("color: degrees, -180..180."),
-  temperature: z.number().optional().describe("color: -1..1, cool to warm."),
-  tint: z.number().optional().describe("color: -1..1, green to magenta."),
-  shadows: z.number().optional().describe("color: -1..1."),
-  highlights: z.number().optional().describe("color: -1..1."),
-  radius: z
-    .number()
-    .optional()
-    .describe("blur, glow and sharpen: radius in the clip's own pixels."),
-  intensity: z.number().optional().describe("glow: bloom strength, 0..2."),
-  offsetX: z
-    .number()
-    .optional()
-    .describe("dropShadow: offset in the clip's own pixels, positive is right."),
-  offsetY: z
-    .number()
-    .optional()
-    .describe("dropShadow: offset in the clip's own pixels, positive is down."),
-  blur: z.number().optional().describe("dropShadow: blur radius in pixels."),
-  color: z
-    .string()
-    .optional()
-    .describe("dropShadow shadow colour, chromaKey key colour, e.g. #00ff00."),
-  opacity: z.number().optional().describe("dropShadow: 0..1."),
-  amount: z.number().optional().describe("vignette and sharpen: strength."),
-  softness: z
-    .number()
-    .optional()
-    .describe("vignette falloff and chromaKey edge, 0..1."),
-  tolerance: z.number().optional().describe("chromaKey: match width, 0..1."),
-  spill: z.number().optional().describe("chromaKey: spill suppression, 0..1."),
-  master: curvePoints.optional().describe("curves: the luminance curve."),
-  r: curvePoints.optional().describe("curves: red channel."),
-  g: curvePoints.optional().describe("curves: green channel."),
-  b: curvePoints.optional().describe("curves: blue channel."),
-  inBlack: z.number().optional().describe("levels: input black point, 0..1."),
-  inWhite: z.number().optional().describe("levels: input white point, 0..1."),
-  gamma: z.number().optional().describe("levels: midtone gamma, 1 is neutral."),
-  outBlack: z.number().optional().describe("levels: output black point, 0..1."),
-  outWhite: z.number().optional().describe("levels: output white point, 0..1."),
-  lift: rgbTriple.optional().describe("liftGammaGain: shadow offset per channel."),
-  gain: rgbTriple.optional().describe("liftGammaGain: highlight scale per channel."),
-  gammaRgb: rgbTriple
-    .optional()
-    .describe("liftGammaGain: midtone gamma per channel.")
-});
-
-/**
- * The stored effect, narrowed to the fields its type reads. Defaults are the
- * neutral value of each knob, so an effect named with nothing else set is
- * harmless rather than refused.
- */
-function buildEffect(
-  input: z.infer<typeof effectParams>,
-  index: number
-): ClipEffect {
-  const base = { id: `fx-${index + 1}`, enabled: true };
-  switch (input.type) {
-    case "color":
-      return {
-        ...base,
-        type: "color",
-        brightness: input.brightness,
-        contrast: input.contrast,
-        saturation: input.saturation,
-        hue: input.hue,
-        temperature: input.temperature,
-        tint: input.tint,
-        shadows: input.shadows,
-        highlights: input.highlights
-      };
-    case "blur":
-      return { ...base, type: "blur", radius: input.radius ?? 0 };
-    case "glow":
-      return {
-        ...base,
-        type: "glow",
-        radius: input.radius ?? 8,
-        intensity: input.intensity ?? 1,
-        color: input.color
-      };
-    case "dropShadow":
-      return {
-        ...base,
-        type: "dropShadow",
-        offsetX: input.offsetX ?? 0,
-        offsetY: input.offsetY ?? 0,
-        blur: input.blur ?? input.radius ?? 8,
-        color: input.color ?? "#000000",
-        opacity: input.opacity
-      };
-    case "vignette":
-      return {
-        ...base,
-        type: "vignette",
-        amount: input.amount ?? 0.5,
-        softness: input.softness ?? 0.5
-      };
-    case "sharpen":
-      return {
-        ...base,
-        type: "sharpen",
-        amount: input.amount ?? 1,
-        radius: input.radius
-      };
-    case "chromaKey":
-      return {
-        ...base,
-        type: "chromaKey",
-        color: input.color ?? "#00ff00",
-        tolerance: input.tolerance ?? 0.1,
-        softness: input.softness ?? 0.05,
-        spill: input.spill
-      };
-    case "curves":
-      return {
-        ...base,
-        type: "curves",
-        master: input.master ?? [
-          { x: 0, y: 0 },
-          { x: 1, y: 1 }
-        ],
-        r: input.r,
-        g: input.g,
-        b: input.b
-      };
-    case "levels":
-      return {
-        ...base,
-        type: "levels",
-        inBlack: input.inBlack ?? 0,
-        inWhite: input.inWhite ?? 1,
-        gamma: input.gamma ?? 1,
-        outBlack: input.outBlack ?? 0,
-        outWhite: input.outWhite ?? 1
-      };
-    case "liftGammaGain":
-      return {
-        ...base,
-        type: "liftGammaGain",
-        lift: input.lift ?? [0, 0, 0],
-        gamma: input.gammaRgb ?? [1, 1, 1],
-        gain: input.gain ?? [1, 1, 1]
-      };
-  }
-}
-
-const fullTextStyleParams = z.object({
-  text: z.string(),
-  fontFamily: z.string().optional(),
-  fontSizePx: z.number(),
-  fontWeight: z.number().optional(),
-  color: z.string(),
-  align: z.enum(["left", "center", "right"]).optional(),
-  maxWidthFrac: z.number().optional()
-});
 
 /**
  * What the bridge needs to know about an asset to place it as a clip. A host
@@ -725,13 +362,35 @@ export function createTimelineToolBridge(
     return addTrackInternal(type);
   }
 
+  /**
+   * The ids and names a caller could have used, for the message a failed
+   * lookup throws. Capped, because a long cut has hundreds of clips and an
+   * error listing all of them is one an agent stops reading.
+   */
+  function validUnits(
+    units: readonly { id: string; name: string }[],
+    kind: string
+  ): string {
+    if (units.length === 0) return `The timeline has no ${kind}s yet.`;
+    const shown = units
+      .slice(0, MAX_LISTED_UNITS)
+      .map((u) => `${u.id} ("${u.name}")`)
+      .join(", ");
+    const rest = units.length - MAX_LISTED_UNITS;
+    return rest > 0
+      ? `Valid ${kind}s: ${shown}, and ${rest} more — call get_state for the full list.`
+      : `Valid ${kind}s: ${shown}.`;
+  }
+
   function resolveTrack(idOrName: string): TimelineTrack {
     const byId = tracks.find((t) => t.id === idOrName);
     if (byId) return byId;
     const lower = idOrName.toLowerCase();
     const byName = tracks.find((t) => t.name.toLowerCase() === lower);
     if (byName) return byName;
-    throw new Error(`No track found matching "${idOrName}".`);
+    throw new Error(
+      `No track found matching "${idOrName}". ${validUnits(tracks, "track")}`
+    );
   }
 
   function trackEndMs(trackId: string): number {
@@ -756,7 +415,9 @@ export function createTimelineToolBridge(
     const lower = target.toLowerCase();
     const byName = clips.find((c) => c.name.toLowerCase() === lower);
     if (byName) return byName;
-    throw new Error(`No clip found matching "${target}".`);
+    throw new Error(
+      `No clip found matching "${target}". ${validUnits(clips, "clip")}`
+    );
   }
 
   /** Resolve a marker by id, or by case-insensitive label. */
@@ -944,7 +605,8 @@ export function createTimelineToolBridge(
       transitionIn: c.transitionIn,
       mask: c.mask,
       matte: c.matte,
-      effects: c.effects
+      effects: c.effects,
+      parentId: c.parentId
     };
   }
 
@@ -1044,13 +706,14 @@ export function createTimelineToolBridge(
         trackId: z.string().optional(),
         startMs: z.number().optional(),
         durationMs: z.number().optional(),
-        style: textStyleParams.optional()
+        style: partialTextStyleParams.optional()
       }),
       async ({ text, trackId, startMs, durationMs, style }) => {
         const track = trackId
           ? resolveTrack(trackId as string)
           : findOrCreateTrack("overlay");
-        const s = (style as z.infer<typeof textStyleParams> | undefined) ?? {};
+        const s =
+          (style as z.infer<typeof partialTextStyleParams> | undefined) ?? {};
         const clip = makeClip({
           id: nextClipId(),
           trackId: track.id,
@@ -1061,14 +724,13 @@ export function createTimelineToolBridge(
           mediaType: "text",
           sourceType: "imported",
           status: "generated",
+          // Spread rather than list the fields: the style bag is the document
+          // schema, so a field added there is authored here the same day.
           textStyle: {
+            ...s,
             text: text as string,
-            fontFamily: s.fontFamily,
             fontSizePx: s.fontSizePx ?? DEFAULT_TEXT_CLIP_FONT_SIZE_PX,
-            fontWeight: s.fontWeight,
-            color: s.color ?? DEFAULT_TEXT_CLIP_COLOR,
-            align: s.align,
-            maxWidthFrac: s.maxWidthFrac
+            color: s.color ?? DEFAULT_TEXT_CLIP_COLOR
           }
         });
         clips.push(clip);
@@ -1158,17 +820,17 @@ export function createTimelineToolBridge(
           mediaType: "shape",
           sourceType: "imported",
           status: "generated",
+          // Spread for the same reason add_text_clip does: a path's `d`, a
+          // gradient or a dash is geometry the caller asked for, and listing
+          // the fields dropped every one the schema gained after this was
+          // written.
           shapeStyle: {
-            kind: shapeArg.kind,
-            fill: isLine ? shapeArg.fill : (shapeArg.fill ?? DEFAULT_SHAPE_FILL_COLOR),
+            ...shapeArg,
+            fill: isLine
+              ? shapeArg.fill
+              : (shapeArg.fill ?? DEFAULT_SHAPE_FILL_COLOR),
             stroke: shapeArg.stroke ?? DEFAULT_SHAPE_STROKE_COLOR,
-            strokeWidthPx: shapeArg.strokeWidthPx ?? DEFAULT_SHAPE_STROKE_WIDTH_PX,
-            x: shapeArg.x,
-            y: shapeArg.y,
-            width: shapeArg.width,
-            height: shapeArg.height,
-            x2: shapeArg.x2,
-            y2: shapeArg.y2
+            strokeWidthPx: shapeArg.strokeWidthPx ?? DEFAULT_SHAPE_STROKE_WIDTH_PX
           }
         });
         clips.push(clip);
@@ -1369,7 +1031,7 @@ export function createTimelineToolBridge(
         hidden: z.boolean().optional(),
         muted: z.boolean().optional(),
         locked: z.boolean().optional(),
-        textStyle: fullTextStyleParams.optional(),
+        textStyle: textStyleParams.optional(),
         shapeStyle: shapeStyleParams.optional(),
         captionStyle: captionStyleParams.optional()
       }),
@@ -1412,6 +1074,79 @@ export function createTimelineToolBridge(
     ),
 
     tool(
+      "ui_timeline_add_group",
+      "Create a group clip: a clip with no media of its own whose transform, opacity and window every clip naming it inherits. Move the group and its children move with it; fade the group and they fade together; a child outside the group's window is not drawn. Children keep their own tracks, so what covers what is unchanged. Pass `children` to parent clips as the group is created, or use set_parent afterwards.",
+      addGroupParams,
+      async ({ name, startMs, durationMs, trackId, children }) => {
+        // Resolve every child before anything is written: a half-applied group
+        // leaves the caller with an empty group and no idea which of its clips
+        // moved.
+        const targets = ((children as string[] | undefined) ?? []).map((ref) =>
+          resolveClip(ref)
+        );
+        const track = trackId
+          ? resolveTrack(trackId as string)
+          : findOrCreateTrack("overlay");
+        const group = makeClip({
+          id: nextClipId(),
+          trackId: track.id,
+          name: name as string,
+          startMs: startMs as number,
+          durationMs: durationMs as number,
+          mediaType: "group",
+          sourceType: "imported",
+          status: "generated"
+        });
+        clips.push(group);
+        for (const child of targets) {
+          child.parentId = group.id;
+        }
+        selectedClipIds = [group.id];
+        return {
+          ok: true,
+          clip: serializeClip(group),
+          children: targets.map((c) => c.id)
+        };
+      }
+    ),
+
+    tool(
+      "ui_timeline_set_parent",
+      "Parent a clip to a group so it inherits the group's transform, opacity and window, or release it with `parentId: null`. The parent must be a clip created with add_group; a clip cannot parent itself or any group beneath it.",
+      setParentParams,
+      async ({ target, parentId }) => {
+        const clip = resolveClip(target as string);
+        if (parentId === null) {
+          delete clip.parentId;
+          return { ok: true, clip: serializeClip(clip) };
+        }
+        const parent = resolveClip(parentId as string);
+        if (parent.mediaType !== "group") {
+          throw new Error(
+            `"${parent.name}" is a ${parent.mediaType} clip, not a group — parent to a clip created with add_group. ${validUnits(
+              clips.filter((c) => c.mediaType === "group"),
+              "group"
+            )}`
+          );
+        }
+        // A cycle renders unparented and warns, so refusing it here is the
+        // only place it can still be fixed.
+        let cursor: TimelineClip | undefined = parent;
+        while (cursor) {
+          if (cursor.id === clip.id) {
+            throw new Error(
+              `"${parent.name}" is inside "${clip.name}" — parenting them would make a cycle.`
+            );
+          }
+          const next: string | undefined = cursor.parentId;
+          cursor = next ? clips.find((c) => c.id === next) : undefined;
+        }
+        clip.parentId = parent.id;
+        return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    tool(
       "ui_timeline_set_transition",
       "Set the transition a clip opens with, or clear it with `transition: null`. A transition is between two clips: it plays over the head of `target` against whatever sits beneath it on the same track, so overlap the two clips by at least `durationMs` for both to be seen. Types: crossfade (dissolve), dipToColor (through a solid), wipe (feathered reveal), push (both clips travel), slide (only the incoming moves), zoom. With no transition set, overlapping clips still auto-dissolve across the overlap.",
       z.object({
@@ -1443,7 +1178,7 @@ export function createTimelineToolBridge(
         if (mask === null) {
           delete clip.mask;
         } else {
-          clip.mask = buildMask(mask as z.infer<typeof maskParams>);
+          clip.mask = buildMask(mask as z.infer<typeof maskParams>, parseSvgPath);
         }
         return { ok: true, clip: serializeClip(clip) };
       }

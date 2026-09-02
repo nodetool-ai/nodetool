@@ -1,6 +1,7 @@
 /**
  * @jest-environment node
  */
+import { SHARED_TIMELINE_TOOL_NAMES } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import {
@@ -80,6 +81,12 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   setClipAnimations: jest.fn(),
   clearClipAnimations: jest.fn(),
   getClipFrames: jest.fn(),
+  addGroup: jest.fn(),
+  setParent: jest.fn(),
+  setTransition: jest.fn(),
+  setMask: jest.fn(),
+  setMatte: jest.fn(),
+  setEffects: jest.fn(),
   selectClip: jest.fn(),
   seek: jest.fn(),
   addMarker: jest.fn(),
@@ -99,32 +106,18 @@ afterEach(() => {
 });
 
 describe("ui_timeline_* tools", () => {
-  it("registers all timeline tools in the manifest", () => {
+  // I11: the headless bridge and this registry must expose one tool set. The
+  // list this used to spell out was hand-maintained, which is how four
+  // structural tools stayed in the bridge and never reached the browser.
+  // `packages/agents/tests/timelines-op-input.test.ts` asserts the other half.
+  it("registers every tool the headless bridge also exposes", () => {
     const names = FrontendToolRegistry.getManifest().map((t) => t.name);
-    expect(names).toEqual(
-      expect.arrayContaining([
-        "ui_timeline_get_state",
-        "ui_timeline_add_track",
-        "ui_timeline_add_text_clip",
-        "ui_timeline_add_shape_clip",
-        "ui_timeline_generate_clip",
-        "ui_timeline_split_clip",
-        "ui_timeline_trim_clip",
-        "ui_timeline_move_clip",
-        "ui_timeline_delete_clip",
-        "ui_timeline_duplicate_clip",
-        "ui_timeline_set_clip_params",
-        "ui_timeline_set_clip_binding",
-        "ui_timeline_animate_clip",
-        "ui_timeline_clear_animations",
-        "ui_timeline_list_animation_presets",
-        "ui_timeline_get_clip_frames",
-        "ui_timeline_select_clip",
-        "ui_timeline_seek",
-        "ui_timeline_add_marker",
-        "ui_timeline_delete_marker"
-      ])
-    );
+    expect(SHARED_TIMELINE_TOOL_NAMES.length).toBeGreaterThan(0);
+    for (const name of SHARED_TIMELINE_TOOL_NAMES) {
+      expect(names).toContain(name);
+    }
+    // Browser-only: it samples rendered video frames, so no headless twin.
+    expect(names).toContain("ui_timeline_get_clip_frames");
   });
 
   it("exposes split_clip's parameter schema with target required", () => {
