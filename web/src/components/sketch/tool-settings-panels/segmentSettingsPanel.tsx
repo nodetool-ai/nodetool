@@ -13,8 +13,7 @@ import {
   TextInput,
   Box,
   Text,
-  SPACING,
-  getSpacingPx,
+  TYPOGRAPHY,
   FormControlLabel,
   Slider,
   Switch
@@ -23,8 +22,7 @@ import { EditorButton } from "../../editor_ui";
 import {
   sketchButtonSmallSx,
   sketchSliderSx,
-  SKETCH_COLORS,
-  SKETCH_FONT
+  SKETCH_COLORS
 } from "../sketchStyles";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import type { ImageModelValue } from "../../../stores/ApiTypes";
@@ -138,168 +136,170 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
 
   return (
     <>
-      <Box
-        className="setting-row"
-        sx={{ gap: getSpacingPx(SPACING.xs), minWidth: 220 }}
-      >
-        <Text className="setting-label">Model</Text>
-        <ImageModelSelect
-          task="segment"
-          // With nothing picked the run uses the shipped default, so name it
-          // rather than showing an empty picker.
-          value={settings.model?.id ?? modelInfo?.modelId ?? ""}
-          onChange={handleModelChange}
-        />
-      </Box>
-
-      {showModelStatus && (
-        <Box sx={{ mb: getSpacingPx(SPACING.xs) }}>
-          <Text
-            sx={{
-              fontSize: SKETCH_FONT.xs,
-              lineHeight: 1.3,
-              color:
-                modelInfo.status === "error" ||
-                modelInfo.status === "not-installed"
-                  ? "warning.main"
-                  : SKETCH_COLORS.textFaint
-            }}
-          >
-            {modelInfo.status === "not-installed" &&
-              (modelInfo.errorMessage ?? "Model not available")}
-            {modelInfo.status === "error" &&
-              (modelInfo.errorMessage ?? "Connection failed")}
-            {modelInfo.status === "checking" && "Checking…"}
-          </Text>
+      {/* What runs, and how the user points at the object. */}
+      <Box className="setting-group">
+        <Box className="setting-row">
+          <Text className="setting-label">Model</Text>
+          {/* The picker's button is `width: 100%`, so it needs a box to fill
+              — left free it stretched to a third of the bar. */}
+          <Box sx={{ width: 192, flexShrink: 0 }}>
+            <ImageModelSelect
+              task="segment"
+              // With nothing picked the run uses the shipped default, so name
+              // it rather than showing an empty picker.
+              value={settings.model?.id ?? modelInfo?.modelId ?? ""}
+              onChange={handleModelChange}
+            />
+          </Box>
+          {showModelStatus && (
+            <Text
+              sx={{
+                ...TYPOGRAPHY.sans.caption,
+                whiteSpace: "nowrap",
+                color:
+                  modelInfo.status === "error" ||
+                  modelInfo.status === "not-installed"
+                    ? "warning.main"
+                    : SKETCH_COLORS.textFaint
+              }}
+            >
+              {modelInfo.status === "not-installed" &&
+                (modelInfo.errorMessage ?? "Model not available")}
+              {modelInfo.status === "error" &&
+                (modelInfo.errorMessage ?? "Connection failed")}
+              {modelInfo.status === "checking" && "Checking…"}
+            </Text>
+          )}
         </Box>
-      )}
 
-      <SketchModeToggle
-        value={settings.promptMode}
-        onChange={(_, v) => {
-          if (v) {
-            onChange({ promptMode: v as SegmentPromptMode });
-          }
-        }}
-        sx={{ mb: getSpacingPx(SPACING.xs) }}
-      >
-        <SketchModeOption value="point">Point</SketchModeOption>
-        <SketchModeOption value="box">Box</SketchModeOption>
-        <SketchModeOption value="auto">Auto</SketchModeOption>
-      </SketchModeToggle>
-
-      <Box className="setting-row">
-        <Text className="setting-label">Max Objects</Text>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={1}
-          max={20}
-          value={settings.maxObjects}
-          onChange={(_, v) => onChange({ maxObjects: v as number })}
-        />
-        <Text className="setting-value">{settings.maxObjects}</Text>
-      </Box>
-
-      <Box className="setting-row">
-        <Text className="setting-label">Confidence</Text>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={0}
-          max={1}
-          step={0.05}
-          value={settings.confidenceThreshold}
-          onChange={(_, v) => onChange({ confidenceThreshold: v as number })}
-        />
-        <Text className="setting-value">
-          {settings.confidenceThreshold.toFixed(2)}
-        </Text>
-      </Box>
-
-      <Box className="setting-row">
-        <Text className="setting-label">Min Size</Text>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={0}
-          max={10000}
-          step={100}
-          value={settings.minObjectSize}
-          onChange={(_, v) => onChange({ minObjectSize: v as number })}
-        />
-        <Text className="setting-value">{settings.minObjectSize}</Text>
-      </Box>
-
-      <Box className="setting-row">
-        <Text className="setting-label">Feather</Text>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={0}
-          max={20}
-          step={1}
-          value={settings.maskFeather}
-          onChange={(_, v) => onChange({ maskFeather: v as number })}
-        />
-        <Text className="setting-value">{settings.maskFeather}</Text>
-      </Box>
-
-      <Box className="setting-row" sx={{ gap: getSpacingPx(SPACING.xs) }}>
-        <Text className="setting-label">Source Layer</Text>
         <SketchModeToggle
-          value={settings.sourceLayerAction}
+          value={settings.promptMode}
           onChange={(_, v) => {
             if (v) {
-              onChange({ sourceLayerAction: v as SegmentSourceLayerAction });
+              onChange({ promptMode: v as SegmentPromptMode });
             }
           }}
         >
-          <SketchModeOption value="keep">Keep</SketchModeOption>
-          <SketchModeOption value="hide">Hide</SketchModeOption>
-          <SketchModeOption value="lock">Lock</SketchModeOption>
+          <SketchModeOption value="point">Point</SketchModeOption>
+          <SketchModeOption value="box">Box</SketchModeOption>
+          <SketchModeOption value="auto">Auto</SketchModeOption>
         </SketchModeToggle>
       </Box>
 
-      <FormControlLabel
-        control={
-          <Switch
+      {/* What counts as an object. */}
+      <Box className="setting-group">
+        <Box className="setting-row">
+          <Text className="setting-label">Max Objects</Text>
+          <Slider
+            sx={sketchSliderSx}
             size="small"
-            checked={settings.outputCutouts}
-            onChange={(e) => onChange({ outputCutouts: e.target.checked })}
+            min={1}
+            max={20}
+            value={settings.maxObjects}
+            onChange={(_, v) => onChange({ maxObjects: v as number })}
           />
-        }
-        label={
-          <Text sx={{ fontSize: SKETCH_FONT.xs }}>
-            {settings.outputCutouts ? "Cutout layers" : "Mask layers"}
-          </Text>
-        }
-        sx={{ mt: getSpacingPx(SPACING.micro), ml: 0 }}
-      />
+          <Text className="setting-value">{settings.maxObjects}</Text>
+        </Box>
 
-      <Box className="setting-row" sx={{ alignItems: "flex-start" }}>
-          <Text className="setting-label" sx={{ pt: getSpacingPx(SPACING.sm) }}>
-            Concept
+        <Box className="setting-row">
+          <Text className="setting-label">Confidence</Text>
+          <Slider
+            sx={sketchSliderSx}
+            size="small"
+            min={0}
+            max={1}
+            step={0.05}
+            value={settings.confidenceThreshold}
+            onChange={(_, v) => onChange({ confidenceThreshold: v as number })}
+          />
+          <Text className="setting-value">
+            {settings.confidenceThreshold.toFixed(2)}
           </Text>
+        </Box>
+
+        <Box className="setting-row">
+          <Text className="setting-label">Min Size</Text>
+          <Slider
+            sx={sketchSliderSx}
+            size="small"
+            min={0}
+            max={10000}
+            step={100}
+            value={settings.minObjectSize}
+            onChange={(_, v) => onChange({ minObjectSize: v as number })}
+          />
+          <Text className="setting-value">{settings.minObjectSize}</Text>
+        </Box>
+
+        <Box className="setting-row">
+          <Text className="setting-label">Feather</Text>
+          <Slider
+            sx={sketchSliderSx}
+            size="small"
+            min={0}
+            max={20}
+            step={1}
+            value={settings.maskFeather}
+            onChange={(_, v) => onChange({ maskFeather: v as number })}
+          />
+          <Text className="setting-value">{settings.maskFeather}</Text>
+        </Box>
+      </Box>
+
+      {/* What the run leaves behind. */}
+      <Box className="setting-group">
+        <Box className="setting-row">
+          <Text className="setting-label">Source Layer</Text>
+          <SketchModeToggle
+            value={settings.sourceLayerAction}
+            onChange={(_, v) => {
+              if (v) {
+                onChange({ sourceLayerAction: v as SegmentSourceLayerAction });
+              }
+            }}
+          >
+            <SketchModeOption value="keep">Keep</SketchModeOption>
+            <SketchModeOption value="hide">Hide</SketchModeOption>
+            <SketchModeOption value="lock">Lock</SketchModeOption>
+          </SketchModeToggle>
+        </Box>
+
+        <FormControlLabel
+          control={
+            <Switch
+              size="small"
+              checked={settings.outputCutouts}
+              onChange={(e) => onChange({ outputCutouts: e.target.checked })}
+            />
+          }
+          label={
+            <Text sx={{ ...TYPOGRAPHY.sans.label }}>
+              {settings.outputCutouts ? "Cutout layers" : "Mask layers"}
+            </Text>
+          }
+          sx={{ ml: 0, mr: 0 }}
+        />
+      </Box>
+
+      <Box className="setting-group">
+        <Box className="setting-row">
+          <Text className="setting-label">Concept</Text>
           <TextInput
             compact
             value={settings.conceptPrompt}
             onChange={(event) =>
               onChange({ conceptPrompt: event.target.value })
             }
-            placeholder="Describe the object to isolate"
-            fullWidth
+            placeholder="Describe the object"
             inputProps={{ "aria-label": "Concept prompt" }}
-            sx={{
-              flex: 1,
-              "& .MuiInputBase-root": {
-                fontSize: SKETCH_FONT.xs
-              }
-            }}
+            // Wide enough for the placeholder to read in full, and it keeps
+            // the bar from being dominated by one text field.
+            sx={{ width: 200 }}
           />
+        </Box>
       </Box>
 
-      <FlexRow wrap gap={0.5} sx={{ mt: getSpacingPx(SPACING.xs) }}>
+      <FlexRow className="setting-group" gap={0.5} sx={{ flexShrink: 0 }}>
         {!isRunning && !isPreviewing && (
           <>
             <EditorButton
@@ -327,12 +327,8 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           <>
             <Text
               sx={{
-                fontSize: SKETCH_FONT.xs,
-                color: "info.main",
-                lineHeight: 1.3,
-                mr: 0.5,
-                display: "flex",
-                alignItems: "center"
+                ...TYPOGRAPHY.sans.label,
+                color: "info.main"
               }}
             >
               {getSegmentationStatusMessage(segmentationStatus)}
@@ -369,44 +365,34 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             </EditorButton>
           </>
         )}
+        {/* The hint belongs beside the button it explains, not on a line of
+            its own at the far end of a wrapped bar. A run in flight says what
+            it is doing instead. */}
+        {!isRunning && !isPreviewing && (
+          <Text
+            sx={{
+              ...TYPOGRAPHY.sans.caption,
+              color: SKETCH_COLORS.textFaint,
+              maxWidth: 320
+            }}
+          >
+            {settings.promptMode === "auto" && !canSplitSelectedLayer
+              ? "Select exactly one raster layer to split."
+              : promptModeHelpText(settings.promptMode)}
+          </Text>
+        )}
       </FlexRow>
-
-      <Text
-        sx={{
-          fontSize: SKETCH_FONT.xs,
-          color: SKETCH_COLORS.textFaint,
-          lineHeight: 1.3,
-          maxWidth: 320,
-          mt: getSpacingPx(SPACING.xs)
-        }}
-      >
-        {promptModeHelpText(settings.promptMode)}
-      </Text>
-
-      {settings.promptMode === "auto" && !canSplitSelectedLayer && (
-        <Text
-          sx={{
-            fontSize: SKETCH_FONT.xs,
-            color: SKETCH_COLORS.textFaint,
-            lineHeight: 1.3,
-            mt: getSpacingPx(SPACING.micro)
-          }}
-        >
-          Select exactly one raster layer to split.
-        </Text>
-      )}
 
       {segmentationError !== null && (
         <Text
+          className="setting-group"
           sx={{
-            fontSize: SKETCH_FONT.xs,
+            ...TYPOGRAPHY.sans.caption,
             // A run that found nothing is a result, not a failure.
             color:
               segmentationStatus === "error"
                 ? "error.main"
                 : SKETCH_COLORS.textFaint,
-            lineHeight: 1.3,
-            mt: getSpacingPx(SPACING.micro),
             maxWidth: 520,
             // The provider's own message names the model, the credential or
             // the argument it refused — worth every character.

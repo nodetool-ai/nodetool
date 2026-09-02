@@ -15,25 +15,28 @@ import React, { memo } from "react";
 import {
   ToggleGroup,
   ToggleOption,
+  SPACING,
+  TYPOGRAPHY,
   type ToggleGroupProps,
   type ToggleOptionProps
 } from "../../ui_primitives";
-import { SKETCH_FONT, SKETCH_SPACING } from "../sketchStyles";
+import { SKETCH_SIZE } from "../sketchStyles";
 import type { SxProps, Theme } from "@mui/material/styles";
 
 const TEXT_OPTION_SX: SxProps<Theme> = {
-  fontSize: SKETCH_FONT.xs,
-  py: SKETCH_SPACING.xs,
-  px: SKETCH_SPACING.md,
-  fontWeight: 500
+  ...TYPOGRAPHY.sans.label,
+  py: SPACING.micro,
+  px: SPACING.md,
+  minHeight: SKETCH_SIZE.control
 };
 
 const ICON_OPTION_SX: SxProps<Theme> = {
-  fontSize: SKETCH_FONT.xs,
-  py: 0.5,
-  px: 0.5,
+  ...TYPOGRAPHY.sans.label,
+  py: SPACING.micro,
+  px: SPACING.micro,
   minWidth: 30,
-  "& .MuiSvgIcon-root": { fontSize: 18 }
+  minHeight: SKETCH_SIZE.control,
+  "& .MuiSvgIcon-root": { fontSize: "1.2em" }
 };
 
 export type SketchModeToggleProps = Omit<ToggleGroupProps, "size">;

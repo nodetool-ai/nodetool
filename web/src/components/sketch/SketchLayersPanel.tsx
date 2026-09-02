@@ -41,6 +41,7 @@ import {
   SPACING,
   getSpacingPx,
   IconButton,
+  Button,
   Menu,
   Slider,
   Select,
@@ -186,9 +187,43 @@ const opsIconSx = (activeColor: string | null): SystemStyleObject<Theme> => {
 };
 
 /**
- * Add-row generative / structural actions (text-to-image, image-to-image, new
- * group, generate): the same flat muted icon language as the ops toolbar,
- * sized for the tighter eight-button add row.
+ * The two generative actions are the point of the sketch editor, so they read
+ * as buttons — labelled, filled with the secondary accent — instead of sitting
+ * in the row of small icon actions below them.
+ */
+const GENERATE_ACTION_SX = {
+  flex: 1,
+  minWidth: 0,
+  height: 32,
+  paddingInline: getSpacingPx(SPACING.sm),
+  borderRadius: BORDER_RADIUS.md,
+  border: "1px solid",
+  borderColor: "grey.700",
+  backgroundColor: "grey.800",
+  color: "text.primary",
+  fontSize: "var(--fontSizeSmaller)",
+  fontWeight: 500,
+  letterSpacing: "0.01em",
+  textTransform: "none",
+  whiteSpace: "nowrap",
+  transition: `${MOTION.background}, ${MOTION.border}`,
+  "& .MuiButton-startIcon": {
+    marginRight: getSpacingPx(SPACING.xs),
+    marginLeft: 0,
+    color: "common.white"
+  },
+  "&:hover": {
+    borderColor: "grey.500",
+    backgroundColor: "grey.700"
+  },
+  "&:active": {
+    backgroundColor: "grey.600"
+  }
+};
+
+/**
+ * Structural add-row actions (new group, generate from a workflow): the same
+ * flat muted icon language as the ops toolbar, sized for the tighter add row.
  */
 const ADD_ACTION_ICON_SX = {
   width: 26,
@@ -980,8 +1015,49 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         </Box>
       )}
 
-      {/* Add layers (row 1) + layer ops (row 2), left-aligned for predictable icon positions */}
+      {/* Generate (row 1), add layers (row 2), layer ops (row 3) */}
       <Box className="layer-actions sketch-layers-panel__layer-toolbar">
+        <FlexRow
+          className="sketch-layers-panel__generate-row"
+          align="center"
+          gap={SPACING.sm}
+          sx={{ marginBottom: getSpacingPx(SPACING.md) }}
+        >
+          <Tooltip
+            title="New layer generated from a text prompt"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
+            <Button
+              aria-label="Add Text-to-Image Layer"
+              onClick={() => addDirectGenLayer("text-to-image")}
+              data-testid="layers-panel-add-text-to-image"
+              startIcon={
+                <AutoAwesomeIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
+              }
+              sx={GENERATE_ACTION_SX}
+            >
+              Text to Image
+            </Button>
+          </Tooltip>
+          <Tooltip
+            title="New layer generated from the layers below it"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
+            <Button
+              aria-label="Add Image-to-Image Layer"
+              onClick={() => addDirectGenLayer("image-to-image")}
+              data-testid="layers-panel-add-image-to-image"
+              startIcon={
+                <AutoFixHighIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
+              }
+              sx={GENERATE_ACTION_SX}
+            >
+              Image to Image
+            </Button>
+          </Tooltip>
+        </FlexRow>
         <FlexRow
           className="sketch-layers-panel__add-layers-row"
           align="center"
@@ -1106,43 +1182,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                   color: theme.vars.palette.grey[300]
                 }}
               />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title="Add Text-to-Image Layer"
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
-          >
-            <IconButton
-              aria-label="Add Text-to-Image Layer"
-              size="small"
-              onClick={() => addDirectGenLayer("text-to-image")}
-              data-testid="layers-panel-add-text-to-image"
-              sx={{
-                ...ADD_ACTION_ICON_SX,
-                color: "secondary.main",
-                "&:hover": {
-                  backgroundColor: "grey.800",
-                  color: "secondary.light"
-                }
-              }}
-            >
-              <AutoAwesomeIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title="Add Image-to-Image Layer"
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
-          >
-            <IconButton
-              aria-label="Add Image-to-Image Layer"
-              size="small"
-              onClick={() => addDirectGenLayer("image-to-image")}
-              data-testid="layers-panel-add-image-to-image"
-              sx={ADD_ACTION_ICON_SX}
-            >
-              <AutoFixHighIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
             </IconButton>
           </Tooltip>
           <Tooltip

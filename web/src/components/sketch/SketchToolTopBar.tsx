@@ -13,7 +13,15 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import { FlexRow, IconButton, Text, Tooltip } from "../ui_primitives";
+import {
+  FlexRow,
+  IconButton,
+  Text,
+  Tooltip,
+  SPACING,
+  TYPOGRAPHY,
+  getSpacingPx
+} from "../ui_primitives";
 import { getToolSettingsLabel } from "./tool-settings-panels/getToolSettingsLabel";
 import {
   SketchTool,
@@ -32,19 +40,18 @@ import {
 } from "./types";
 import type { SamModelInfo } from "./sam";
 import { ToolSettingsPanel } from "./ToolSettingsPanels";
-import {
-  SKETCH_FONT,
-  SKETCH_SPACING,
-  settingRowChildrenSx
-} from "./sketchStyles";
+import { settingRowChildrenSx } from "./sketchStyles";
 
 const styles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    gap: SKETCH_SPACING.lg,
-    padding: `${SKETCH_SPACING.sm} ${SKETCH_SPACING.lg}`,
+    // Between groups, not between controls: the group's own gap is tighter,
+    // so a wrapped bar still reads as clusters rather than one long queue.
+    columnGap: getSpacingPx(SPACING.xxl),
+    rowGap: getSpacingPx(SPACING.md),
+    padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
     // Sit on the same chrome tier as the editor's other bars (mode/prompt,
     // tool rail, status): grey[900] surface with a grey[800] hairline. The
     // bar previously rode two tonal steps lighter (grey[800]/grey[700]),
@@ -211,7 +218,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
       >
         <Text
           sx={{
-            fontSize: SKETCH_FONT.xs,
+            ...TYPOGRAPHY.sans.caption,
             color: theme.vars.palette.text.secondary,
             textTransform: "uppercase",
             letterSpacing: "0.06em"
@@ -219,7 +226,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         >
           Tool
         </Text>
-        <Text sx={{ fontSize: SKETCH_FONT.section, fontWeight: 600 }}>
+        <Text sx={{ ...TYPOGRAPHY.sans.label, fontWeight: 600 }}>
           {getToolSettingsLabel(activeTool)}
         </Text>
         {onToggleSettingsCollapsed && (

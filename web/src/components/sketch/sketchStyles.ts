@@ -3,7 +3,13 @@
  */
 
 import type { SxProps, Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  TYPOGRAPHY,
+  getSpacingPx
+} from "../ui_primitives";
 
 // ─── Color Tokens ─────────────────────────────────────────────────────────────
 // Semantic names tied to MUI's grey palette (dark theme).
@@ -59,6 +65,8 @@ export const SKETCH_SIZE = {
   layerItemHeight: "39.2px",
   layerThumbnail: "39.2px",
   panelWidth: "260px",
+  /** One height for every control on a tool bar — picker, toggle, field, button. */
+  control: "28px",
   iconButtonPad: "3px",
   borderRadius: BORDER_RADIUS.sm
 } as const;
@@ -162,38 +170,62 @@ export const colorSwatchSx = {
  * Pass a theme to get resolved palette colors.
  */
 export const settingRowChildrenSx = (t: Theme) => ({
+  // A cluster of related controls. Groups are what wrap on a narrow bar, so
+  // a slider never gets separated from the label and value that name it.
+  // Three gap steps carry the hierarchy, each one step of the 4px scale:
+  // 6px inside a row, 16px inside a group, 24px between groups (the latter
+  // set by the hosting bar).
+  "& .setting-group": {
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "nowrap",
+    gap: getSpacingPx(SPACING.xl),
+    minHeight: SKETCH_SIZE.control
+  },
   "& .setting-row": {
     display: "flex",
     alignItems: "center",
-    // `md` rather than `sm` so neighbouring rows have visible breathing
-    // room — without it sliders, labels, and values from adjacent rows
-    // visually crowd each other on the top bar.
-    gap: SKETCH_SPACING.md,
+    gap: getSpacingPx(SPACING.sm),
+    minHeight: SKETCH_SIZE.control,
     // Reserve a fixed-width column for the numeric value so the row
     // length never changes when digits flip (e.g. 100% → 99% → 100%).
     // Previously `minWidth: 24px` allowed the value cell to grow with
     // its content and shoved every following row a pixel or two to
     // the right, which looked like the whole bar was "jumping".
     "& .setting-value": {
-      fontSize: SKETCH_FONT.sm,
+      ...TYPOGRAPHY.mono.code,
       width: "36px",
       flexShrink: 0,
-      textAlign: "right",
+      // Left, not right: right-aligned digits sat a whole empty cell away
+      // from the slider they belong to and next to the following label, so
+      // the bar read "100 Feather" instead of "Min Size 100".
+      textAlign: "left",
       color: t.vars.palette.grey[100],
     },
     "& .setting-label": {
-      fontSize: SKETCH_FONT.sm,
+      ...TYPOGRAPHY.sans.label,
       whiteSpace: "nowrap",
-      color: t.vars.palette.grey[200],
+      color: t.vars.palette.grey[300],
     },
     "& .MuiSlider-root": {
-      width: "100px",
-      minWidth: "80px",
+      width: "96px",
+      minWidth: "72px",
       // Minimal clearance — the thumb may touch label/value at the
       // extremes but the wider gap looked airy and disconnected.
       marginLeft: getSpacingPx(SPACING.micro),
       marginRight: getSpacingPx(SPACING.micro),
     },
+  },
+  // One control height across the bar: pickers, toggles, fields, and buttons
+  // all sit on the same 28px band, so a wrapped row is a straight line rather
+  // than a staircase.
+  "& .MuiToggleButtonGroup-root, & .MuiInputBase-root, & .MuiButton-root": {
+    minHeight: SKETCH_SIZE.control
+  },
+  "& .MuiInputBase-input": {
+    ...TYPOGRAPHY.sans.label,
+    paddingTop: getSpacingPx(SPACING.xs),
+    paddingBottom: getSpacingPx(SPACING.xs)
   },
   // Opt-in wider slider for the primary "Size" control. Doubling its
   // width (relative to other sliders) gives the user finer control on
@@ -206,8 +238,8 @@ export const settingRowChildrenSx = (t: Theme) => ({
   },
   "& .MuiToggleButtonGroup-root": {
     "& .MuiToggleButton-root": {
-      padding: `${SKETCH_SPACING.xs} ${SKETCH_SPACING.md}`,
-      fontSize: SKETCH_FONT.xs,
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
+      ...TYPOGRAPHY.sans.label,
       // Make the selected state pop against the dark toolbar — MUI's
       // default selected background is barely a few percent lighter
       // than the surrounding bar, so users couldn't tell which option
@@ -246,6 +278,14 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (t) => {
     alignItems: "stretch",
     gap: SKETCH_SPACING.md,
     minWidth: 0,
+    // Stacked context: a group is a column of rows, with no divider.
+    "& .setting-group": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "stretch",
+      gap: SKETCH_SPACING.md,
+      minWidth: 0
+    },
     "& .setting-row": {
       display: "flex",
       alignItems: "center",
@@ -260,12 +300,12 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (t) => {
         marginRight: getSpacingPx(SPACING.micro),
       },
       "& .setting-label": {
-        fontSize: SKETCH_FONT.sm,
+        ...TYPOGRAPHY.sans.label,
         whiteSpace: "nowrap",
-        color: t.vars.palette.grey[200],
+        color: t.vars.palette.grey[300],
       },
       "& .setting-value": {
-        fontSize: SKETCH_FONT.sm,
+        ...TYPOGRAPHY.mono.code,
         width: "36px",
         flexShrink: 0,
         textAlign: "right",
@@ -276,8 +316,8 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (t) => {
       alignSelf: "stretch",
       flexWrap: "wrap",
       "& .MuiToggleButton-root": {
-        padding: `${SKETCH_SPACING.xs} ${SKETCH_SPACING.md}`,
-        fontSize: SKETCH_FONT.xs,
+        padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
+        ...TYPOGRAPHY.sans.label,
         "&.Mui-selected": {
           backgroundColor: t.vars.palette.grey[600],
           color: t.vars.palette.grey[50],
@@ -300,9 +340,10 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (t) => {
  * Keeps font and padding consistent across all panels.
  */
 export const sketchButtonSmallSx: SxProps<Theme> = {
-  fontSize: SKETCH_FONT.sm,
-  py: SKETCH_SPACING.xs,
-  minWidth: "50px",
+  ...TYPOGRAPHY.sans.label,
+  py: SPACING.micro,
+  minHeight: SKETCH_SIZE.control,
+  minWidth: "56px",
 };
 
 /**
