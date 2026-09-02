@@ -196,7 +196,8 @@ describe("runTimelineDebug", () => {
         width: 1280,
         height: 720,
         tracks: [track],
-        clips: [clip]
+        clips: [clip],
+        markers: []
       }
     });
     expect(report.interactions).toEqual([
@@ -252,6 +253,38 @@ describe("runTimelineDebug", () => {
     expect(built.finalDocument?.clips).toEqual([clip]);
     expect(built.finalDocument?.markers).toEqual([]);
     expect(built.finalState).toBeDefined();
+  });
+
+  it("takes the markers the bridge reports over the target's own", async () => {
+    // The marker ops edit them, so a session that added one has to reach the
+    // report — the fallback to the target's markers is for a bridge with none.
+    const core = fakeCore();
+    const marker = { id: "m1", timeMs: 500, label: "Beat 1" };
+    await runTimelineDebug(
+      timelineFile(),
+      {
+        interact: parseInteractionScript(
+          JSON.stringify([{ tool: "add_track", input: { type: "audio" } }])
+        ),
+        outDir: outDir()
+      },
+      {
+        loadSequence: async () => null,
+        core,
+        createBridge: () => {
+          const bridge = fakeBridge();
+          return {
+            ...bridge,
+            finalState: () => ({ ...bridge.finalState(), markers: [marker] })
+          };
+        }
+      }
+    );
+
+    const built = core.calls.build[0] as {
+      finalDocument?: { markers: unknown[] };
+    };
+    expect(built.finalDocument?.markers).toEqual([marker]);
   });
 
   it("runs no bridge at all without an interact script", async () => {

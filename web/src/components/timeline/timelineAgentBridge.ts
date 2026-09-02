@@ -130,6 +130,23 @@ export interface TimelineAnimationNode {
   params?: Record<string, number | string | boolean>;
 }
 
+/** Serializable view of a marker on the ruler. */
+export interface TimelineMarkerNode {
+  id: string;
+  timeMs: number;
+  label: string;
+  color?: string;
+  note?: string;
+}
+
+/** What `addMarker` places. */
+export interface TimelineAddMarkerOptions {
+  timeMs: number;
+  label?: string;
+  color?: string;
+  note?: string;
+}
+
 /** Full snapshot of the open sequence the agent reads to plan edits. */
 export interface TimelineSnapshot {
   sequenceId: string | null;
@@ -144,6 +161,7 @@ export interface TimelineSnapshot {
   selectedClipIds: string[];
   tracks: TimelineTrackNode[];
   clips: TimelineClipNode[];
+  markers: TimelineMarkerNode[];
 }
 
 /** Direct-generation kinds the agent can spawn. */
@@ -380,6 +398,10 @@ export interface TimelineAgentHandler {
   selectClip: (target: string | null) => TimelineClipNode | null;
   /** Move the playhead and return the resulting position (ms). */
   seek: (timeMs: number) => number;
+  /** Flag a moment on the ruler. Markers annotate; they do not render. */
+  addMarker: (opts: TimelineAddMarkerOptions) => TimelineMarkerNode;
+  /** Remove a marker by id or by case-insensitive label. */
+  deleteMarker: (target: string) => TimelineMarkerNode;
 }
 
 const handlers = new Map<string, TimelineAgentHandler>();
