@@ -84,8 +84,16 @@ describe("applicationTarget", () => {
       },
       async () => ({ graph })
     );
-    expect(resolved.document).not.toBeNull();
     expect(resolved.issue).toBeNull();
+    // Parsing normalizes the document (schemaVersion migrates, optional keys
+    // fill in), so assert the parts the string itself carried.
+    expect(resolved.document?.ui.root.props.title).toBe("Demo App");
+    expect(resolved.document?.ui.content).toEqual([
+      { type: "Markdown", props: { id: "Markdown-1", binding: "result" } }
+    ]);
+    expect(
+      resolved.document?.operations.map((o) => [o.id, o.name, o.workflowId])
+    ).toEqual([["main", "Run", "wf1"]]);
   });
 
   it("reports a row whose document does not parse", async () => {

@@ -2,7 +2,7 @@
  * Tests for ChatView component
  */
 
-import { StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { ChatView } from './ChatView';
 import { Message, ChatStatus } from '../../types';
@@ -230,12 +230,12 @@ describe('ChatView', () => {
   });
 
   describe('KeyboardAvoidingView', () => {
-    it('renders with KeyboardAvoidingView', () => {
+    it('pads for the keyboard on iOS and clears the header', () => {
       const { UNSAFE_root } = render(<ChatView {...defaultProps} />);
-      const keyboardAvoiding = UNSAFE_root.findByType(
-        require('react-native').KeyboardAvoidingView
-      );
-      expect(keyboardAvoiding).toBeTruthy();
+      const { props } = UNSAFE_root.findByType(KeyboardAvoidingView);
+      const ios = Platform.OS === 'ios';
+      expect(props.behavior).toBe(ios ? 'padding' : undefined);
+      expect(props.keyboardVerticalOffset).toBe(ios ? 90 : 0);
     });
   });
 });
