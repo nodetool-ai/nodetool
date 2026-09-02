@@ -60,7 +60,11 @@ import {
   createUsageSlot,
   type LlmUsage
 } from "../tracing-helpers.js";
-import type { RunBudget, TurnBudget } from "../turn-budget.js";
+import type {
+  RunBudget,
+  TurnBudget,
+  TurnReservationHandle
+} from "../turn-budget.js";
 import { isRunBudget } from "../turn-budget.js";
 import { countTokens } from "../token-counter.js";
 import {
@@ -1088,12 +1092,16 @@ export abstract class BaseProvider {
    * Ask a {@link TurnBudget} to admit the turn that is about to be made.
    * Exposed to subclasses because a provider driving a backend's own agent
    * loop has to make the same call at the same point.
+   *
+   * Answers the reservation to hand back to `commit` after the turn, or `null`
+   * when the budget refused. The handle belongs to this turn alone: another
+   * loop sharing the budget settles its own.
    */
   protected _admitTurn(
     budget: TurnBudget,
     model: string,
     messages: readonly Message[]
-  ): boolean {
+  ): TurnReservationHandle | null {
     return budget.reserve({
       model,
       provider: this.provider,
@@ -1217,9 +1225,13 @@ export abstract class BaseProvider {
         yield budgetStopItem(runBudget);
         return;
       }
-      if (turnBudget && !this._admitTurn(turnBudget, args.model, messages)) {
-        yield budgetStopItem(runBudget);
-        return;
+      let reservation: TurnReservationHandle | null = null;
+      if (turnBudget) {
+        reservation = this._admitTurn(turnBudget, args.model, messages);
+        if (reservation === null) {
+          yield budgetStopItem(runBudget);
+          return;
+        }
       }
       const costBeforeTurn = turnBudget ? this.getTotalCost() : 0;
       let assistantText = "";
@@ -1293,7 +1305,9 @@ export abstract class BaseProvider {
         // completed call, so nothing recorded means nothing was billed. (The
         // Claude Agent SDK path cannot say that, which is why it commits
         // `null` instead — see its override.)
-        turnBudget?.commit(this.getTotalCost() - costBeforeTurn);
+        if (turnBudget && reservation) {
+          turnBudget.commit(reservation, this.getTotalCost() - costBeforeTurn);
+        }
       }
 
       if (pending.length === 0) {

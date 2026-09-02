@@ -2395,6 +2395,24 @@ export class ChatTurnHandler {
         chatProjectId ?? null
       );
 
+      // What the run spent, where the user can see it. A number only the
+      // server log carries is a number nobody reads; `unpricedTurns` rides
+      // along when there were any, so the total reads as the lower bound it
+      // is rather than as the whole bill (invariant I-4).
+      const spentUsd = turnBudget.turns.spentUsd;
+      const unpricedTurns = turnBudget.turns.unpricedTurns;
+      await this.session.send({
+        type: "log_update",
+        node_id: "",
+        node_name: "budget",
+        content:
+          unpricedTurns > 0
+            ? `Run spent at least $${spentUsd.toFixed(4)} (${unpricedTurns} turn(s) on a model with no catalog price)`
+            : `Run spent $${spentUsd.toFixed(4)}`,
+        severity: "info",
+        thread_id: threadId
+      });
+
       // Signal completion — matches Python's done chunk.
       await this.session.send({
         type: "chunk",
