@@ -17,10 +17,12 @@ import {
 import {
   ANIMATION_PRESETS,
   CLIP_EFFECT_TYPES,
+  CLIP_SHAPE_KINDS,
   CUSTOM_ANIMATION_PRESET_ID,
   EASING_IDS,
   normalizeCustomCurves,
   BUNDLED_FONT_FAMILIES,
+  isKnownShapeKind,
   parseClipEffectType,
   parseEasing,
   resolveFontFamily,
@@ -449,6 +451,8 @@ function checkClip(
 
   issues.push(...maskIssues(clip));
   issues.push(...unknownEffectIssues(clip));
+  const shapeKind = unknownShapeKindIssue(clip);
+  if (shapeKind) issues.push(shapeKind);
   issues.push(...fontPortabilityIssues(clip));
 
   const frameMs = 1000 / fps;
@@ -525,6 +529,30 @@ function unknownEffectIssues(clip: TimelineClip): TimelineDebugIssue[] {
     });
   }
   return issues;
+}
+
+/** What a shape's `kind` accepts, for the `unknown_shape_kind` message. */
+const SHAPE_KIND_GRAMMAR = CLIP_SHAPE_KINDS.join(", ");
+
+/**
+ * A shape geometry this build cannot draw.
+ *
+ * `kind` is a plain string on the wire (I2), so a shape a newer build authored
+ * parses and reaches the renderer, which builds no outline for it — the clip
+ * draws nothing. A warning rather than an error: the rest of the document
+ * plays, and the alternative is refusing the whole timeline over one shape.
+ */
+function unknownShapeKindIssue(clip: TimelineClip): TimelineDebugIssue | null {
+  const kind = clip.shapeStyle?.kind;
+  if (kind === undefined || isKnownShapeKind(kind)) return null;
+  return {
+    severity: "warning",
+    code: "unknown_shape_kind",
+    message: `Clip "${clipLabel(clip)}" draws a "${kind}" shape, which this build has no geometry for — it draws nothing. Expected one of ${SHAPE_KIND_GRAMMAR}.`,
+    path: "shapeStyle.kind",
+    clipId: clip.id,
+    trackId: clip.trackId
+  };
 }
 
 /** What a mask's `kind` accepts, for the `mask_path_invalid` message. */

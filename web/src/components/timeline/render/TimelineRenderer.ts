@@ -340,7 +340,11 @@ export async function renderTimeline(
     const videoSource = muxer
       ? new CanvasSource(frameCanvas, {
           codec: opts.videoCodec ?? (format === "webm" ? "vp9" : "avc"),
-          bitrate: opts.videoBitrate ?? QUALITY_HIGH
+          bitrate: opts.videoBitrate ?? QUALITY_HIGH,
+          // mediabunny defaults to `discard`, which would drop the channel the
+          // transparent compositor just drew. VP9 emits it as packet side
+          // data, which WebM carries.
+          alpha: opts.alpha === true ? "keep" : "discard"
         })
       : null;
     if (muxer && videoSource) {

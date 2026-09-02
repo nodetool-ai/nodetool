@@ -278,6 +278,14 @@ const CANVAS_EFFECT_TYPES = new Set([
  * caller with precomposites passes them in too — `Canvas2DPrecomposite` carries
  * `effects` for exactly that. Leaving them out is how a group blur that this
  * path never applied would go unreported.
+ *
+ * A grade is reported per channel rather than per type: `ctx.filter` carries
+ * brightness, contrast, saturation and hue, and has no white balance at all, so
+ * a `color` or `colorCorrection` effect that moves temperature or tint is
+ * partly applied. Those two come back as `color.temperature` and `color.tint`,
+ * at the identity the GPU grade uses (0 for both) — including on the effect the
+ * scene model synthesizes for an animated grade, which arrives here as an
+ * ordinary enabled `color`.
  */
 export function unsupportedEffectTypes(
   layers: readonly {
@@ -286,12 +294,23 @@ export function unsupportedEffectTypes(
   }[]
 ): string[] {
   const found = new Set<string>();
+  const grade = (channel: {
+    temperature?: number;
+    tint?: number;
+  }): void => {
+    if (Math.abs(channel.temperature ?? 0) > 0.001) found.add("color.temperature");
+    if (Math.abs(channel.tint ?? 0) > 0.001) found.add("color.tint");
+  };
   for (const layer of layers) {
     for (const e of layer.effects ?? []) {
-      if (e.enabled && !CANVAS_EFFECT_TYPES.has(e.type)) found.add(e.type);
+      if (!e.enabled) continue;
+      if (!CANVAS_EFFECT_TYPES.has(e.type)) found.add(e.type);
+      if (isClipColorEffect(e)) grade(e);
     }
     for (const e of layer.trackEffects ?? []) {
-      if (e.enabled && !CANVAS_EFFECT_TYPES.has(e.type)) found.add(e.type);
+      if (!e.enabled) continue;
+      if (!CANVAS_EFFECT_TYPES.has(e.type)) found.add(e.type);
+      if (e.type === "colorCorrection") grade(e);
     }
   }
   return [...found].sort();

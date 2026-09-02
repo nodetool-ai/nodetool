@@ -125,9 +125,10 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "Ops: get_state, add_track, add_media_clip, add_text_clip, add_shape_clip, " +
         "add_group, split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
         "set_clip_params, set_parent, set_clip_binding, set_transition, set_mask, " +
-        "set_matte, set_effects, animate_clip, " +
+        "set_matte, set_time_remap, set_effects, animate_clip, " +
         "clear_animations, list_animation_presets, select_clip, seek, " +
-        "add_marker, delete_marker, set_markers_from_beats, snap_to_beats. " +
+        "add_marker, delete_marker, set_markers_from_beats, snap_to_beats, " +
+        "insert_composition. " +
         "Start with get_state to " +
         "read track and clip ids. To lay existing videos end to end, call " +
         'add_media_clip once per asset ({"op": "add_media_clip", "asset": ' +
@@ -147,6 +148,12 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         'set_matte takes {"target", "matte": {source, mode: "alpha"|"luma", ' +
         "invert?} | null}; the source clip stops drawing itself and its alpha " +
         "or brightness becomes the target's transparency. " +
+        'set_time_remap takes {"target", "timeRemap": {keyframes: [{t, ' +
+        "sourceMs, easing?}]} | null}; `t` runs 0..1 over the clip's window " +
+        "and must start at 0, end at 1 and ascend, while `sourceMs` says " +
+        "which millisecond of the source plays there — descending is reverse, " +
+        "a flat pair is a freeze. It replaces the clip's rate, and split and " +
+        "trim refuse a remapped clip. " +
         'add_group takes {"name", "startMs", "durationMs", trackId?, ' +
         'children?: [clip, ...]} and creates a clip with no media whose ' +
         "transform, opacity and window every clip naming it inherits — move " +
@@ -171,7 +178,13 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         '"targets" (clip ids or names, or "all"), "tolerance_ms"? (default ' +
         '60), "mode"? ("start" | "end" | "both") and "action"? ("move" slides ' +
         'the clip, "trim" changes its length), and reports every target — ' +
-        "including the ones no beat was in reach of, with the reason.",
+        "including the ones no beat was in reach of, with the reason. " +
+        'insert_composition takes {"composition_id", "startMs", trackId?, ' +
+        'params?} and drops a stored template — a lower third, a title card, a ' +
+        "callout — in as a group with its children, each template track " +
+        "becoming an overlay track of its own so the layering survives. " +
+        "`params` overrides the template's defaults by name; list_compositions " +
+        "reports the ids and what each one takes.",
       items: { type: "object" }
     }
   },
@@ -465,6 +478,16 @@ export const MAX_PREVIEW_TIMES = 8;
 /** Frames rendered when the caller names no timecodes. */
 export const DEFAULT_PREVIEW_COUNT = 3;
 /**
+ * Most frames a `range` samples. Higher than `MAX_PREVIEW_TIMES` because a
+ * dense sweep is read as one contact sheet: the cost is one image handle and
+ * one read, not one per timecode.
+ */
+export const MAX_PREVIEW_RANGE_COUNT = 24;
+/** Widest contact sheet. Past this the cells are too small to read anyway. */
+export const MAX_SHEET_WIDTH = 1280;
+/** Frame width a compare renders at, so a pair fits a cell of the sheet. */
+export const DEFAULT_COMPARE_WIDTH = 320;
+/**
  * Documented ceiling on previewed motion-blur samples. The render clamps to
  * `MAX_MOTION_BLUR_SAMPLES` in `@nodetool-ai/timeline/scene`; this states the
  * same number without importing it, because this file is the eager spec table
@@ -501,6 +524,28 @@ export const PREVIEW_TIMELINE_FRAME_SCHEMA: JsonSchema = {
       description:
         `How many evenly spaced frames to render when times_ms is omitted. ` +
         `Default 3, max ${MAX_PREVIEW_TIMES}.`
+    },
+    range: {
+      type: "object",
+      properties: {
+        from_ms: { type: "number" },
+        to_ms: { type: "number" },
+        count: { type: "number" }
+      },
+      description:
+        `Sweep a window instead of naming timecodes: count frames evenly ` +
+        `spaced from from_ms to to_ms, both ends included. Up to ` +
+        `${MAX_PREVIEW_RANGE_COUNT} — more than times_ms allows, because a ` +
+        `sweep is meant to be read as one sheet. Refused together with ` +
+        `times_ms.`
+    },
+    sheet: {
+      type: "boolean",
+      description:
+        `Tile every frame into one image, each cell labelled with its ` +
+        `timecode, instead of one image per frame. One handle to view, and ` +
+        `the layer report of each frame comes back unchanged. Up to ` +
+        `${MAX_SHEET_WIDTH}px wide.`
     },
     width: {
       type: "number",
@@ -542,13 +587,97 @@ export const previewTimelineFrameSpec: CapabilitySpec = {
     "and wipe progress. Unlike get_clip_frames, which samples one clip's " +
     "source media, this is the finished picture. Needs no browser, GPU or " +
     "open editor. Sample the middle of an animation, not its endpoints — " +
-    "the endpoints are the states you already know.",
+    "the endpoints are the states you already know. `range` sweeps a window " +
+    "densely and `sheet` returns the sweep as one labelled contact sheet, " +
+    "which is how you watch a move play out rather than checking one instant.",
   inputSchema: PREVIEW_TIMELINE_FRAME_SCHEMA,
   category: "read",
   userMessage: (params) =>
     params["timeline_id"]
       ? `Rendering frames of timeline ${String(params["timeline_id"])}`
       : "Rendering timeline frames"
+};
+
+/** The three ways either side of a comparison names a timeline. */
+const COMPARE_SIDE_SCHEMA = {
+  type: "object" as const,
+  properties: {
+    timeline_id: {
+      type: "string",
+      description: "A saved sequence."
+    },
+    version: {
+      type: "number",
+      description:
+        "With timeline_id, the snapshot of that number rather than the " +
+        "sequence as it stands now (from list_timeline_versions)."
+    },
+    document: {
+      type: "object",
+      description: "An inline document ({tracks, clips, markers})."
+    }
+  }
+};
+
+export const COMPARE_TIMELINE_FRAMES_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    a: {
+      ...COMPARE_SIDE_SCHEMA,
+      description:
+        "The baseline side. A bare timeline id string works too. " +
+        "{timeline_id}, {timeline_id, version} or {document}."
+    },
+    b: {
+      ...COMPARE_SIDE_SCHEMA,
+      description:
+        "The side to compare against the baseline. Same three forms as `a`."
+    },
+    times_ms: {
+      type: "array",
+      items: { type: "number" },
+      description:
+        `Absolute timeline positions to compare, in milliseconds. Up to ` +
+        `${MAX_PREVIEW_RANGE_COUNT}. Omit for an even sweep of the cut.`
+    },
+    range: {
+      type: "object",
+      properties: {
+        from_ms: { type: "number" },
+        to_ms: { type: "number" },
+        count: { type: "number" }
+      },
+      description:
+        `count frames evenly spaced from from_ms to to_ms, both ends ` +
+        `included. Up to ${MAX_PREVIEW_RANGE_COUNT}. Refused together with ` +
+        `times_ms.`
+    },
+    width: {
+      type: "number",
+      description:
+        `Width of each rendered frame; a pair sits side by side in one cell ` +
+        `of the sheet. Default ${DEFAULT_COMPARE_WIDTH}.`
+    }
+  },
+  required: ["a", "b"]
+};
+
+export const compareTimelineFramesSpec: CapabilitySpec = {
+  name: "compare_timeline_frames",
+  description:
+    "Measure what actually changed between two timelines — two documents, " +
+    "two sequences, or a sequence and one of its snapshots — by " +
+    "compositing both at the same timecodes and differencing the pixels. " +
+    "Each frame comes back with a mean absolute difference from 0 (nothing " +
+    "moved) to 1, and one side-by-side contact sheet shows the pairs. Run " +
+    "it after a change nobody asked for — a restructure, a composition " +
+    "insert, a snap pass — so you can say which frames it touched instead " +
+    "of hoping it touched none. A difference of 0 everywhere is the proof " +
+    "an edit was cosmetic; a difference at times you did not expect is the " +
+    "regression.",
+  inputSchema: COMPARE_TIMELINE_FRAMES_SCHEMA,
+  category: "read",
+  userMessage: () => "Comparing timeline frames"
 };
 
 /** Longest a `wait: true` render blocks before handing back the job id. */
@@ -680,6 +809,7 @@ export const timelinesSpecs: readonly CapabilitySpec[] = [
   validateTimelineSpec,
   setTimelineDocumentSpec,
   previewTimelineFrameSpec,
+  compareTimelineFramesSpec,
   renderTimelineSpec,
   deleteTimelineSpec
 ];

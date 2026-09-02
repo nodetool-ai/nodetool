@@ -1,0 +1,143 @@
+{
+  "id": "cta-end-card",
+  "name": "CTA end card",
+  "description": "The closing card: one instruction over a full-frame ground, underlined in the accent colour. T5 — one CTA, at the end.",
+  "params": {
+    "text": {
+      "type": "string",
+      "default": "Try it free",
+      "path": "/2/textStyle/text"
+    },
+    "accentColor": {
+      "type": "color",
+      "default": "#FF375F",
+      "path": "/1/shapeStyle/fill"
+    },
+    "backgroundColor": {
+      "type": "color",
+      "default": "#0B0B0F",
+      "path": "/0/shapeStyle/fill"
+    },
+    "textColor": {
+      "type": "color",
+      "default": "#FFFFFF",
+      "path": "/2/textStyle/color"
+    }
+  },
+  "group": {
+    "sourceType": "imported",
+    "status": "generated",
+    "locked": false,
+    "versions": [],
+    "id": "cta-end-card-group",
+    "trackId": "Plate",
+    "name": "CTA end card",
+    "startMs": 0,
+    "durationMs": 4000,
+    "mediaType": "group"
+  },
+  "children": [
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "cta-end-card-0-ground",
+      "trackId": "Plate",
+      "name": "Ground",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "shapeStyle": {
+        "kind": "rect",
+        "fill": "#0B0B0F",
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "cta-end-card-1-underline",
+      "trackId": "Accent",
+      "name": "Underline",
+      "startMs": 400,
+      "durationMs": 3600,
+      "mediaType": "shape",
+      "shapeStyle": {
+        "kind": "rect",
+        "fill": "#FF375F",
+        "x": 0.4,
+        "y": 0.615,
+        "width": 0.2,
+        "height": 0.012
+      },
+      "animations": [
+        {
+          "id": "cta-underline-in",
+          "role": "in",
+          "preset": "slide",
+          "durationMs": 500,
+          "delayMs": 200,
+          "params": {
+            "direction": "right",
+            "distance": 0.06
+          }
+        }
+      ]
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "cta-end-card-2-cta",
+      "trackId": "Text",
+      "name": "CTA",
+      "startMs": 200,
+      "durationMs": 3800,
+      "mediaType": "text",
+      "textStyle": {
+        "text": "Try it free",
+        "fontSizePx": 66,
+        "color": "#FFFFFF",
+        "align": "center",
+        "maxWidthFrac": 0.7,
+        "fontWeight": 600
+      },
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 22
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "animations": [
+        {
+          "id": "cta-text-in",
+          "role": "in",
+          "preset": "fade",
+          "durationMs": 400
+        },
+        {
+          "id": "cta-text-out",
+          "role": "out",
+          "preset": "fade",
+          "durationMs": 400
+        }
+      ]
+    }
+  ]
+}

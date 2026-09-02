@@ -34,6 +34,7 @@ import { assetsSpecs } from "./assets.specs.js";
 import { browserSpecs } from "./browser.specs.js";
 import { codeSpecs } from "./code.specs.js";
 import { collectionsSpecs } from "./collections.specs.js";
+import { compositionsSpecs } from "./compositions.specs.js";
 import { costsSpecs } from "./costs.specs.js";
 import { documentsSpecs } from "./documents.specs.js";
 import { emailSpecs } from "./email.specs.js";
@@ -92,6 +93,7 @@ const MODULES: Readonly<Record<string, Loader>> = {
   scripts: () => import("./scripts.js").then((m) => m.module),
   storyboards: () => import("./storyboards.js").then((m) => m.module),
   entities: () => import("./entities.js").then((m) => m.module),
+  compositions: () => import("./compositions.js").then((m) => m.module),
   code: () => import("./code.js").then((m) => m.module),
   flow: () => import("./flow.js").then((m) => m.module),
   "js-scripts": () => import("./js-scripts.js").then((m) => m.module),
@@ -137,6 +139,7 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "scripts",
   "storyboards",
   "entities",
+  "compositions",
   "code",
   "flow",
   "js-scripts",
@@ -187,6 +190,7 @@ const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
   scripts: scriptsSpecs,
   storyboards: storyboardsSpecs,
   entities: entitiesSpecs,
+  compositions: compositionsSpecs,
   code: codeSpecs,
   flow: flowSpecs,
   "js-scripts": jsScriptsSpecs,

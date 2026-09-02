@@ -125,6 +125,48 @@ function fakeHandler(selectedClipIds: string[]): TimelineAgentHandler {
       record('duplicateClip', [target, gapMs], [node(resolve(target))]),
     setClipParams: (target, patch) =>
       record('setClipParams', [target, patch], node(resolve(target))),
+    addMediaClip: async (input) =>
+      record('addMediaClip', [input], node(clips[0])),
+    setClipBinding: (target, patch) =>
+      record('setClipBinding', [target, patch], node(resolve(target))),
+    animateClip: (target, animations, mode) =>
+      record('animateClip', [target, animations, mode], node(resolve(target))),
+    clearAnimations: (target, role) =>
+      record('clearAnimations', [target, role], node(resolve(target))),
+    addGroup: (input) =>
+      record('addGroup', [input], {
+        clip: node(clips[0]),
+        children: input.children ?? [],
+      }),
+    setParent: (target, parentId) =>
+      record('setParent', [target, parentId], node(resolve(target))),
+    setTransition: (target, transition) =>
+      record('setTransition', [target, transition], node(resolve(target))),
+    setMask: (target, mask) =>
+      record('setMask', [target, mask], node(resolve(target))),
+    setMatte: (target, matte) =>
+      record('setMatte', [target, matte], node(resolve(target))),
+    setEffects: (target, effects) =>
+      record('setEffects', [target, effects], node(resolve(target))),
+    setTimeRemap: (target, timeRemap) =>
+      record('setTimeRemap', [target, timeRemap], node(resolve(target))),
+    setMarkersFromBeats: (input) =>
+      record('setMarkersFromBeats', [input], {
+        grid: { count: 2, firstMs: 0, lastMs: 500 },
+        added: [],
+        skippedTimesMs: [],
+        markers: 1,
+      }),
+    snapToBeats: (input) =>
+      record('snapToBeats', [input], {
+        grid: { count: 2, firstMs: 0, lastMs: 500 },
+        toleranceMs: 60,
+        mode: 'start' as const,
+        action: 'move' as const,
+        snapped: 1,
+        skipped: 0,
+        clips: [],
+      }),
     addMarker: (input) =>
       record('addMarker', [input], {
         id: 'm2',
@@ -161,7 +203,48 @@ const WRITE_TOOLS = [
   'ui_timeline_delete_marker',
   'ui_timeline_rename',
   'ui_timeline_save',
+  'ui_timeline_add_media_clip',
+  'ui_timeline_set_clip_binding',
+  'ui_timeline_animate_clip',
+  'ui_timeline_clear_animations',
+  'ui_timeline_add_group',
+  'ui_timeline_set_parent',
+  'ui_timeline_set_transition',
+  'ui_timeline_set_mask',
+  'ui_timeline_set_matte',
+  'ui_timeline_set_effects',
+  'ui_timeline_set_time_remap',
+  'ui_timeline_set_markers_from_beats',
+  'ui_timeline_snap_to_beats',
+  'ui_timeline_edit',
 ];
+
+/** Arguments that satisfy every write tool's required fields at once. */
+const EVERY_REQUIRED_ARG = {
+  target: 'c1',
+  type: 'video',
+  text: 'x',
+  name: 'x',
+  timeMs: 0,
+  startMs: 0,
+  durationMs: 1000,
+  shape: { kind: 'rect' },
+  asset: 'asset-1',
+  animations: [{ role: 'in', preset: 'fade' }],
+  parentId: null,
+  transition: null,
+  mask: null,
+  matte: null,
+  effects: [],
+  timeRemap: null,
+  ops: [{ tool: 'ui_timeline_get_state' }],
+};
+
+/**
+ * The one tool that reads the preset catalog rather than a sequence, so it is
+ * the one tool with no `timeline_id`.
+ */
+const CATALOG_TOOL = 'ui_timeline_list_animation_presets';
 
 describe('timelineTools', () => {
   beforeEach(() => {
@@ -192,10 +275,12 @@ describe('timelineTools', () => {
       entry.name.startsWith('ui_timeline_')
     );
 
-    expect(timelineTools).toHaveLength(4 + WRITE_TOOLS.length);
+    expect(timelineTools).toHaveLength(5 + WRITE_TOOLS.length);
     for (const tool of timelineTools) {
       expect(tool.description).not.toMatch(/read-only/);
-      expect(tool.parameters.required).toContain('timeline_id');
+      if (tool.name !== CATALOG_TOOL) {
+        expect(tool.parameters.required).toContain('timeline_id');
+      }
     }
   });
 
@@ -486,17 +571,362 @@ describe('timelineTools', () => {
     resetDocumentHandlers();
 
     for (const toolName of WRITE_TOOLS) {
-      await expect(
-        call(toolName, {
+      if (toolName === 'ui_timeline_edit') {
+        // The batch reports its ops' failures rather than throwing.
+        const result = await call(toolName, {
           timeline_id: SEQ_ID,
-          target: 'c1',
-          type: 'video',
-          text: 'x',
-          name: 'x',
-          timeMs: 0,
-          shape: { kind: 'rect' },
-        })
+          ops: [{ tool: 'add_track', input: { type: 'video' } }],
+        });
+        expect(result).toMatchObject({ applied: 0, failed: 1 });
+        continue;
+      }
+      await expect(
+        call(toolName, { timeline_id: SEQ_ID, ...EVERY_REQUIRED_ARG })
       ).rejects.toThrow(/No timeline documents are currently open/);
     }
+  });
+
+  // ── Media, binding, motion ───────────────────────────────────────────────
+
+  it('ui_timeline_add_media_clip forwards the asset reference and placement', async () => {
+    const result = await call('ui_timeline_add_media_clip', {
+      timeline_id: SEQ_ID,
+      asset: 'asset://abc.mp4',
+      trackId: 'Video 1',
+      startMs: 2000,
+    });
+
+    expect(calls[0]).toEqual({
+      name: 'addMediaClip',
+      args: [
+        {
+          asset: 'asset://abc.mp4',
+          trackId: 'Video 1',
+          startMs: 2000,
+          durationMs: undefined,
+          name: undefined,
+        },
+      ],
+    });
+    expect(result).toMatchObject({ ok: true, clip: { id: 'c1' } });
+  });
+
+  it('ui_timeline_set_clip_binding forwards only binding fields', async () => {
+    await call('ui_timeline_set_clip_binding', {
+      timeline_id: SEQ_ID,
+      target: 'c1',
+      prompt: 'a fox at dawn',
+      seed: 7,
+    });
+
+    expect(calls[0]).toEqual({
+      name: 'setClipBinding',
+      args: ['c1', { prompt: 'a fox at dawn', seed: 7 }],
+    });
+  });
+
+  it('ui_timeline_set_clip_binding says aspectRatio and resolution are not taken', () => {
+    const tool = MobileToolRegistry.getManifest().find(
+      (entry) => entry.name === 'ui_timeline_set_clip_binding'
+    );
+
+    expect(Object.keys(tool?.parameters.properties ?? {})).not.toContain(
+      'aspectRatio'
+    );
+    expect(tool?.description).toMatch(/aspectRatio` and `resolution` are not/);
+  });
+
+  it('ui_timeline_animate_clip forwards the animation list and the mode', async () => {
+    const result = await call('ui_timeline_animate_clip', {
+      timeline_id: SEQ_ID,
+      target: 'c1',
+      mode: 'add',
+      animations: [{ role: 'in', preset: 'fade', durationMs: 400 }],
+    });
+
+    expect(calls[0]).toEqual({
+      name: 'animateClip',
+      args: ['c1', [{ role: 'in', preset: 'fade', durationMs: 400 }], 'add'],
+    });
+    expect(result).toMatchObject({ ok: true, clip: { id: 'c1' } });
+  });
+
+  it('ui_timeline_animate_clip points a `code` body at the headless tool', () => {
+    const tool = MobileToolRegistry.getManifest().find(
+      (entry) => entry.name === 'ui_timeline_animate_clip'
+    );
+
+    expect(tool?.description).toMatch(/`code` body into curves is not available/);
+    expect(tool?.description).toMatch(/edit_timeline/);
+  });
+
+  it('ui_timeline_clear_animations forwards the role, or undefined for all', async () => {
+    await call('ui_timeline_clear_animations', {
+      timeline_id: SEQ_ID,
+      target: 'c1',
+      role: 'out',
+    });
+    await call('ui_timeline_clear_animations', {
+      timeline_id: SEQ_ID,
+      target: 'c1',
+    });
+
+    expect(calls.map((entry) => entry.args)).toEqual([
+      ['c1', 'out'],
+      ['c1', undefined],
+    ]);
+  });
+
+  it('ui_timeline_list_animation_presets reads the catalog with no timeline', async () => {
+    const result = (await call(CATALOG_TOOL, {})) as {
+      ok: boolean;
+      presets: { id: string; roles: string[] }[];
+      custom: unknown;
+    };
+
+    expect(result.ok).toBe(true);
+    expect(result.presets.length).toBeGreaterThan(0);
+    expect(result.presets.map((preset) => preset.id)).toContain('fade');
+    expect(result.custom).toBeDefined();
+    // It touched no handler, so it works with nothing open.
+    expect(calls).toEqual([]);
+  });
+
+  // ── Groups and compositing ───────────────────────────────────────────────
+
+  it('ui_timeline_add_group forwards the window and the children', async () => {
+    const result = await call('ui_timeline_add_group', {
+      timeline_id: SEQ_ID,
+      name: 'Title block',
+      startMs: 0,
+      durationMs: 3000,
+      children: ['c1'],
+    });
+
+    expect(calls[0]).toEqual({
+      name: 'addGroup',
+      args: [
+        {
+          name: 'Title block',
+          startMs: 0,
+          durationMs: 3000,
+          trackId: undefined,
+          children: ['c1'],
+        },
+      ],
+    });
+    expect(result).toMatchObject({ ok: true, children: ['c1'] });
+  });
+
+  it('ui_timeline_set_parent forwards null as a release', async () => {
+    await call('ui_timeline_set_parent', {
+      timeline_id: SEQ_ID,
+      target: 'c1',
+      parentId: null,
+    });
+    await call('ui_timeline_set_parent', {
+      timeline_id: SEQ_ID,
+      target: 'c1',
+      parentId: 'c2',
+    });
+
+    expect(calls.map((entry) => entry.args)).toEqual([
+      ['c1', null],
+      ['c1', 'c2'],
+    ]);
+  });
+
+  it('ui_timeline_set_transition forwards the transition, and null to clear', async () => {
+    await call('ui_timeline_set_transition', {
+      timeline_id: SEQ_ID,
+      target: 'c1',
+      transition: { type: 'wipe', durationMs: 500, direction: 'left' },
+    });
+    await call('ui_timeline_set_transition', {
+      timeline_id: SEQ_ID,
+      target: 'c1',
+      transition: null,
+    });
+
+    expect(calls.map((entry) => entry.args[1])).toEqual([
+      { type: 'wipe', durationMs: 500, direction: 'left' },
+      null,
+    ]);
+  });
+
+  it('ui_timeline_set_mask and set_matte forward their payloads', async () => {
+    await call('ui_timeline_set_mask', {
+      timeline_id: SEQ_ID,
+      target: 'c1',
+      mask: { kind: 'ellipse', x: 0.2, featherPx: 4 },
+    });
+    await call('ui_timeline_set_matte', {
+      timeline_id: SEQ_ID,
+      target: 'c1',
+      matte: { source: 'c2', mode: 'luma' },
+    });
+
+    expect(calls).toEqual([
+      { name: 'setMask', args: ['c1', { kind: 'ellipse', x: 0.2, featherPx: 4 }] },
+      { name: 'setMatte', args: ['c1', { source: 'c2', mode: 'luma' }] },
+    ]);
+  });
+
+  it('ui_timeline_set_effects forwards the whole chain, empty to clear', async () => {
+    await call('ui_timeline_set_effects', {
+      timeline_id: SEQ_ID,
+      target: 'c1',
+      effects: [{ type: 'blur', radius: 6 }],
+    });
+    await call('ui_timeline_set_effects', {
+      timeline_id: SEQ_ID,
+      target: 'c1',
+      effects: [],
+    });
+
+    expect(calls.map((entry) => entry.args[1])).toEqual([
+      [{ type: 'blur', radius: 6 }],
+      [],
+    ]);
+  });
+
+  it('ui_timeline_set_time_remap forwards the curve, and null to clear', async () => {
+    const timeRemap = {
+      keyframes: [
+        { t: 0, sourceMs: 0 },
+        { t: 1, sourceMs: 4000 },
+      ],
+    };
+    await call('ui_timeline_set_time_remap', {
+      timeline_id: SEQ_ID,
+      target: 'c1',
+      timeRemap,
+    });
+    await call('ui_timeline_set_time_remap', {
+      timeline_id: SEQ_ID,
+      target: 'c1',
+      timeRemap: null,
+    });
+
+    expect(calls.map((entry) => entry.args[1])).toEqual([timeRemap, null]);
+  });
+
+  // ── Beats ────────────────────────────────────────────────────────────────
+
+  it('ui_timeline_set_markers_from_beats renames the snake_case grid fields', async () => {
+    const result = await call('ui_timeline_set_markers_from_beats', {
+      timeline_id: SEQ_ID,
+      bpm: 120,
+      offset_ms: 250,
+      count: 8,
+      label: 'Hit',
+    });
+
+    expect(calls[0]).toEqual({
+      name: 'setMarkersFromBeats',
+      args: [
+        {
+          onsetsMs: undefined,
+          bpm: 120,
+          offsetMs: 250,
+          count: 8,
+          label: 'Hit',
+        },
+      ],
+    });
+    expect(result).toMatchObject({ ok: true, markers: 1 });
+  });
+
+  it('ui_timeline_snap_to_beats renames the snake_case fields and passes targets', async () => {
+    const result = await call('ui_timeline_snap_to_beats', {
+      timeline_id: SEQ_ID,
+      targets: ['c1'],
+      onsets_ms: [0, 500],
+      tolerance_ms: 80,
+      mode: 'both',
+      action: 'trim',
+    });
+
+    expect(calls[0]).toEqual({
+      name: 'snapToBeats',
+      args: [
+        {
+          targets: ['c1'],
+          onsetsMs: [0, 500],
+          bpm: undefined,
+          offsetMs: undefined,
+          toleranceMs: 80,
+          mode: 'both',
+          action: 'trim',
+        },
+      ],
+    });
+    expect(result).toMatchObject({ ok: true, snapped: 1, skipped: 0 });
+  });
+
+  // ── Batch ────────────────────────────────────────────────────────────────
+
+  it('ui_timeline_edit applies each op in order, filling in timeline_id', async () => {
+    const result = await call('ui_timeline_edit', {
+      timeline_id: SEQ_ID,
+      ops: [
+        { tool: 'ui_timeline_add_track', input: { type: 'overlay', name: 'Titles' } },
+        { tool: 'set_clip_params', input: { target: 'c1', opacity: 0.4 } },
+      ],
+    });
+
+    expect(calls).toEqual([
+      { name: 'addTrack', args: ['overlay', 'Titles'] },
+      { name: 'setClipParams', args: ['c1', { opacity: 0.4 }] },
+    ]);
+    expect(result).toMatchObject({ ok: true, applied: 2, failed: 0 });
+    expect(
+      (result.results as { index: number; tool: string; ok: boolean }[]).map(
+        (entry) => [entry.index, entry.tool, entry.ok]
+      )
+    ).toEqual([
+      [0, 'ui_timeline_add_track', true],
+      [1, 'ui_timeline_set_clip_params', true],
+    ]);
+  });
+
+  it('ui_timeline_edit continues past a failing op and reports its error', async () => {
+    const result = await call('ui_timeline_edit', {
+      timeline_id: SEQ_ID,
+      ops: [
+        { tool: 'delete_clip', input: { target: 'nope' } },
+        { tool: 'delete_clip', input: { target: 'c1' } },
+      ],
+    });
+
+    expect(result).toMatchObject({ ok: true, applied: 1, failed: 1 });
+    const results = result.results as {
+      ok: boolean;
+      error?: string;
+      result?: unknown;
+    }[];
+    expect(results[0].ok).toBe(false);
+    expect(results[0].error).toMatch(/No clip matches "nope"/);
+    expect(results[1]).toMatchObject({ ok: true });
+    // The second op still reached the handler.
+    expect(calls).toEqual([{ name: 'deleteClip', args: ['c1'] }]);
+  });
+
+  it('ui_timeline_edit refuses an unknown tool and refuses to nest', async () => {
+    const result = await call('ui_timeline_edit', {
+      timeline_id: SEQ_ID,
+      ops: [{ tool: 'burn_it_down' }, { tool: 'ui_timeline_edit', input: { ops: [] } }],
+    });
+
+    expect(result).toMatchObject({ applied: 0, failed: 2 });
+    const results = result.results as { error?: string }[];
+    expect(results[0].error).toMatch(/Unknown tool "burn_it_down"/);
+    expect(results[1].error).toMatch(/cannot nest/);
+  });
+
+  it('ui_timeline_edit rejects an empty op list', async () => {
+    await expect(
+      call('ui_timeline_edit', { timeline_id: SEQ_ID, ops: [] })
+    ).rejects.toThrow(/at least one op/);
   });
 });

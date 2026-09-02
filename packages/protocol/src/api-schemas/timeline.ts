@@ -685,10 +685,11 @@ export const clipTextStyle = z.object({
 export type ClipTextStyle = z.infer<typeof clipTextStyle>;
 
 export const clipShapeStyle = z.object({
-  /** Widened past `rect | ellipse | line` for the path renderer. A narrower
-   * enum here would fail the whole document on a path shape rather than
-   * carrying it. */
-  kind: z.enum(["rect", "ellipse", "line", "path", "polygon", "star"]),
+  /** A plain string for forward compat (I2): a kind a newer build authored
+   * parses and is skipped at render time — the geometry builder returns no
+   * outline and the validator reports `unknown_shape_kind` — rather than
+   * failing the whole document. */
+  kind: z.string(),
   fill: z.string().optional(),
   stroke: z.string().optional(),
   strokeWidthPx: z.number().optional(),

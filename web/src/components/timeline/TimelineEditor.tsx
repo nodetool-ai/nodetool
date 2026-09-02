@@ -58,7 +58,7 @@ import { BottomStatusBar } from "./BottomStatusBar";
 import { useTimelineCostEstimate } from "../../hooks/timeline/useTimelineCostEstimate";
 import { ProjectSettingsDialog } from "./ProjectSettingsDialog";
 import { ExportVideoDialog } from "./ExportVideoDialog";
-import type { BrowserExportFormat } from "./render/TimelineRenderer";
+import type { ExportVideoChoice } from "./ExportVideoDialog";
 import SaveToFolderMenu from "../assets/SaveToFolderMenu";
 import {
   useCreateTimeline,
@@ -547,8 +547,8 @@ const TimelineEditorBody: React.FC<
     []
   );
   const handleStartExport = useCallback(
-    (format: BrowserExportFormat) => {
-      void exportVideo(sequence?.name, format);
+    (choice: ExportVideoChoice) => {
+      void exportVideo(sequence?.name, choice);
     },
     [exportVideo, sequence?.name]
   );

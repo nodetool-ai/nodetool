@@ -498,6 +498,9 @@ function formatUiContext(uiContext?: UiContext | null): string {
     lines.push(
       "Before telling the user a cut is done, render it with `render_timeline` and look at what came out — `preview_timeline_frame` for a timecode, `analyze_video` for the file, `understand_video` for what is in it. While you are still iterating, render drafts with a `preview_scale` below 1."
     );
+    lines.push(
+      "Snapshot before a large edit: `create_timeline_version` with a name, or `set_timeline_document`'s `snapshot_name`, so a restructure the user did not like is one `restore_timeline_version` away."
+    );
   }
 
   const hasSketch =

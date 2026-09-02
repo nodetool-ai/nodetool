@@ -49,6 +49,7 @@ import {
 } from '../documents/agentBridge';
 import { clearUiSelection, setUiSelection } from '../documents/uiContext';
 import * as edits from '../documents/timelineEdits';
+import { trpc } from '../trpc/client';
 import {
   clipToNode,
   resolveClip,
@@ -152,6 +153,10 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
 
   const store = useMemo(() => documentStore<TimelineDocument>('timeline', id), [id]);
+  // `ui_timeline_add_media_clip` needs the asset's content type and duration
+  // before it can place a clip. The edits stay pure and synchronous, so the
+  // lookup happens here and the resolved descriptor is handed to them.
+  const trpcUtils = trpc.useUtils();
   const { doc, docName, dirty, status, error } = store(
     useShallow((state) => ({
       doc: state.doc,
@@ -394,6 +399,127 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
           return { doc: next.doc, result: node(next.doc, next.clip) };
         }),
 
+      addMediaClip: async (input) => {
+        const ref = input.asset.trim();
+        // `asset://<id>.<ext>` and a bare id are both accepted, the way
+        // list_assets reports them.
+        const assetId = ref.startsWith('asset://')
+          ? ref.slice('asset://'.length).split('.')[0]!
+          : ref;
+        const asset = await trpcUtils.assets.get.fetch({ id: assetId });
+        if (!asset) {
+          throw new Error(
+            `No asset found for "${input.asset}". Pass an asset id or an asset:// URI.`
+          );
+        }
+        return apply((current) => {
+          const next = edits.addMediaClip(current, input, {
+            id: asset.id,
+            name: asset.name,
+            contentType: asset.content_type,
+            durationMs:
+              asset.duration == null
+                ? undefined
+                : Math.round(asset.duration * 1000),
+          });
+          return { doc: next.doc, result: node(next.doc, next.clip) };
+        });
+      },
+
+      setClipBinding: (target, patch) =>
+        apply((current) => {
+          const next = edits.setClipBinding(current, target, patch, selectedIds());
+          return { doc: next.doc, result: node(next.doc, next.clip) };
+        }),
+
+      animateClip: (target, animations, mode) =>
+        apply((current) => {
+          const next = edits.animateClip(
+            current,
+            target,
+            animations,
+            mode,
+            selectedIds()
+          );
+          return { doc: next.doc, result: node(next.doc, next.clip) };
+        }),
+
+      clearAnimations: (target, role) =>
+        apply((current) => {
+          const next = edits.clearAnimations(current, target, role, selectedIds());
+          return { doc: next.doc, result: node(next.doc, next.clip) };
+        }),
+
+      addGroup: (input) =>
+        apply((current) => {
+          const next = edits.addGroup(current, input);
+          return {
+            doc: next.doc,
+            result: {
+              clip: node(next.doc, next.clip),
+              children: next.children,
+            },
+          };
+        }),
+
+      setParent: (target, parentId) =>
+        apply((current) => {
+          const next = edits.setParent(current, target, parentId, selectedIds());
+          return { doc: next.doc, result: node(next.doc, next.clip) };
+        }),
+
+      setTransition: (target, transition) =>
+        apply((current) => {
+          const next = edits.setTransition(
+            current,
+            target,
+            transition,
+            selectedIds()
+          );
+          return { doc: next.doc, result: node(next.doc, next.clip) };
+        }),
+
+      setMask: (target, mask) =>
+        apply((current) => {
+          const next = edits.setMask(current, target, mask, selectedIds());
+          return { doc: next.doc, result: node(next.doc, next.clip) };
+        }),
+
+      setMatte: (target, matte) =>
+        apply((current) => {
+          const next = edits.setMatte(current, target, matte, selectedIds());
+          return { doc: next.doc, result: node(next.doc, next.clip) };
+        }),
+
+      setEffects: (target, effects) =>
+        apply((current) => {
+          const next = edits.setEffects(current, target, effects, selectedIds());
+          return { doc: next.doc, result: node(next.doc, next.clip) };
+        }),
+
+      setTimeRemap: (target, timeRemap) =>
+        apply((current) => {
+          const next = edits.setTimeRemap(
+            current,
+            target,
+            timeRemap,
+            selectedIds()
+          );
+          return { doc: next.doc, result: node(next.doc, next.clip) };
+        }),
+
+      setMarkersFromBeats: (input) =>
+        apply((current) => {
+          const next = edits.setMarkersFromBeats(current, input);
+          return { doc: next.doc, result: next.report };
+        }),
+
+      snapToBeats: (input) =>
+        apply((current) => {
+          const next = edits.snapToBeats(current, input);
+          return { doc: next.doc, result: next.report };
+        }),
+
       addMarker: (input) =>
         apply((current) => {
           const next = edits.addMarker(current, input);
@@ -426,7 +552,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
     // re-registering the handler mid-turn is churn the bridge does not need.
     // `setDocumentTitle` below keeps the agent-visible title current instead.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store, id, name, select, movePlayhead, runSave]);
+  }, [store, id, name, select, movePlayhead, runSave, trpcUtils]);
 
   useEffect(() => {
     if (docName) {

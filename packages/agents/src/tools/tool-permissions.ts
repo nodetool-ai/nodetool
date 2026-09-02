@@ -105,6 +105,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   get_message: "read",
   validate_timeline: "read",
   preview_timeline_frame: "read",
+  compare_timeline_frames: "read",
   validate_sketch: "read",
   validate_model3d: "read",
   list_model3ds: "read",
@@ -124,6 +125,13 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   create_entity: "write",
   update_entity: "write",
   delete_entity: "write",
+  // Timeline compositions: the shipped templates are files on disk and a saved
+  // one is a JSON asset, so reading either touches nothing. Saving writes an
+  // asset and deleting removes one.
+  list_compositions: "read",
+  get_composition: "read",
+  save_composition: "write",
+  delete_composition: "write",
   // Skills are the user's own instruction documents in the local DB: reading
   // the catalog or one body touches nothing, authoring one is a local write.
   list_skills: "read",

@@ -13,7 +13,21 @@ List and read the selected timeline first. It must contain picture clips. If it 
 
 ## Lock one type system before adding text
 
-Resolve type family and tier weights, five size tiers as fractions of frame height, text/accent/scrim palette, safe inset and maximum width, and per-tier motion presets. Prefer a supplied brand kit, then existing text on the timeline, then a platform-safe system. Keep these tiers consistent: T1 title/end card, T2 lower-third, T3 captions, T4 callouts, T5 CTA. Every live-picture T2–T4 element gets a matching scrim unless the plate is demonstrably controlled.
+Resolve type family and tier weights, five size tiers as fractions of frame height, text/accent/scrim palette, safe inset and maximum width, and per-tier motion presets. Prefer a supplied brand kit, then existing text on the timeline, then a platform-safe system. Keep these tiers consistent: T1 title/end card, T2 lower-third, T3 captions, T4 callouts, T5 CTA.
+
+Each tier has a shipped composition. Insert it with `{"op": "insert_composition", "composition_id": "<id>", ...}` and override its `params` rather than building the rig from bare clips — the timing and motion inside it are already balanced.
+
+| Tier | Composition id |
+|---|---|
+| T1 title | `title-card` |
+| T2 lower-third | `lower-third` |
+| T3 captions | `caption-bar` |
+| T4 callouts | `callout` |
+| T5 CTA / end card | `cta-end-card` |
+
+A brand mark at the head or tail is `logo-sting`.
+
+Every live-picture T2–T4 element gets a matching scrim unless the plate is demonstrably controlled.
 
 ## Caption map
 

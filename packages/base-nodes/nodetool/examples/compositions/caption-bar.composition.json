@@ -1,0 +1,106 @@
+{
+  "id": "caption-bar",
+  "name": "Caption bar",
+  "description": "One caption line on a dark scrim across the lower frame. T3 — one idea per frame.",
+  "params": {
+    "text": {
+      "type": "string",
+      "default": "Caption line",
+      "path": "/1/textStyle/text"
+    },
+    "scrimColor": {
+      "type": "color",
+      "default": "#000000",
+      "path": "/0/shapeStyle/fill"
+    },
+    "textColor": {
+      "type": "color",
+      "default": "#FFFFFF",
+      "path": "/1/textStyle/color"
+    }
+  },
+  "group": {
+    "sourceType": "imported",
+    "status": "generated",
+    "locked": false,
+    "versions": [],
+    "id": "caption-bar-group",
+    "trackId": "Plate",
+    "name": "Caption bar",
+    "startMs": 0,
+    "durationMs": 2500,
+    "mediaType": "group"
+  },
+  "children": [
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "caption-bar-0-scrim",
+      "trackId": "Plate",
+      "name": "Scrim",
+      "startMs": 0,
+      "durationMs": 2500,
+      "mediaType": "shape",
+      "shapeStyle": {
+        "kind": "rect",
+        "fill": "#000000",
+        "x": 0.12,
+        "y": 0.775,
+        "width": 0.76,
+        "height": 0.13,
+        "cornerRadius": 0.01
+      },
+      "opacity": 0.65
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "caption-bar-1-caption",
+      "trackId": "Text",
+      "name": "Caption",
+      "startMs": 0,
+      "durationMs": 2500,
+      "mediaType": "text",
+      "textStyle": {
+        "text": "Caption line",
+        "fontSizePx": 50,
+        "color": "#FFFFFF",
+        "align": "center",
+        "maxWidthFrac": 0.7
+      },
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 367
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "animations": [
+        {
+          "id": "caption-bar-in",
+          "role": "in",
+          "preset": "fade",
+          "durationMs": 250
+        },
+        {
+          "id": "caption-bar-out",
+          "role": "out",
+          "preset": "fade",
+          "durationMs": 250
+        }
+      ]
+    }
+  ]
+}

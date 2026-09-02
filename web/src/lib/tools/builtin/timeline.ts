@@ -3,7 +3,14 @@ import {
   ANIMATED_PROPERTIES,
   ANIMATION_PRESETS,
   CUSTOM_ANIMATION_CONTRACT,
-  STAGGER_UNITS
+  DEFAULT_BEAT_TOLERANCE_MS,
+  STAGGER_UNITS,
+  beatCountToCover,
+  buildBeatGrid,
+  snapClipsToGrid,
+  type ClipSnapResult,
+  type SnapBoundaryMode,
+  type SnapAction
 } from "@nodetool-ai/timeline";
 import {
   addGroupParams,
@@ -13,13 +20,18 @@ import {
   matteParams,
   partialTextStyleParams,
   setParentParams,
+  setTimeRemapParams,
   shapeStyleParams,
   targetParam,
   textStyleParams,
   transitionParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import { FrontendToolRegistry } from "../frontendTools";
-import { getTimelineAgentHandler } from "../../../components/timeline/timelineAgentBridge";
+import {
+  getTimelineAgentHandler,
+  type TimelineClipNode,
+  type TimelineMarkerNode
+} from "../../../components/timeline/timelineAgentBridge";
 import { docUrl } from "./resourceLinks";
 
 const animationRole = z.enum(["in", "out", "emphasis", "loop"]);
@@ -708,5 +720,353 @@ FrontendToolRegistry.register({
   async execute({ timeline_id, target }) {
     const deleted = getTimelineAgentHandler(timeline_id).deleteMarker(target);
     return { ok: true, deleted, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_set_time_remap",
+  description:
+    "Retime a clip from a curve — ramps, freezes, speed changes — or clear it with `timeRemap: null` so it plays at its own rate. Each keyframe maps a position in the clip's window (`t`, 0..1) to a point in the source media (`sourceMs`); the curve must start at t 0 and end at t 1, ascending, with at least two keyframes. A remapped clip refuses splits and trims: clear the curve first.",
+  parameters: setTimeRemapParams.extend({ timeline_id: timelineIdParam }),
+  async execute({ timeline_id, target, timeRemap }) {
+    const clip = getTimelineAgentHandler(timeline_id).setTimeRemap(
+      target,
+      timeRemap
+    );
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_set_markers_from_beats",
+  description:
+    "Lay a marker on every beat of a grid, so the cut has something to work against. The grid is either `onsets_ms` — detect_audio_events reports `onsets.times` in SECONDS, so multiply by 1000 — or `bpm` with `count` and an optional `offset_ms` for where beat one sits. Markers already on the sequence are kept, and a beat that already carries one is skipped, so re-running the same grid changes nothing.",
+  parameters: z.object({
+    timeline_id: timelineIdParam,
+    onsets_ms: z
+      .array(z.number())
+      .optional()
+      .describe("Absolute beat times in ms. Exactly one of this and `bpm`."),
+    bpm: z.number().optional().describe("Tempo. Needs `count`."),
+    offset_ms: z
+      .number()
+      .optional()
+      .describe("Where beat one sits, in ms. Default 0."),
+    count: z.number().optional().describe("Beats to lay down, with `bpm`."),
+    label: z
+      .string()
+      .optional()
+      .describe(
+        'Label stem; each marker is numbered from 1 ("Beat 1", "Beat 2", …). Default "Beat".'
+      )
+  }),
+  async execute({ timeline_id, onsets_ms, bpm, offset_ms, count, label }) {
+    const handler = getTimelineAgentHandler(timeline_id);
+    const grid = buildBeatGrid({
+      onsetsMs: onsets_ms,
+      bpm,
+      offsetMs: offset_ms,
+      count
+    });
+    const stem = (label ?? "Beat").trim() || "Beat";
+    const taken = new Set(
+      handler.getSnapshot().markers.map((marker) => marker.timeMs)
+    );
+    const added: TimelineMarkerNode[] = [];
+    const skipped: number[] = [];
+    for (const [index, timeMs] of grid.entries()) {
+      if (taken.has(timeMs)) {
+        skipped.push(timeMs);
+        continue;
+      }
+      added.push(handler.addMarker({ timeMs, label: `${stem} ${index + 1}` }));
+      taken.add(timeMs);
+    }
+    return {
+      ok: true,
+      grid: {
+        count: grid.length,
+        firstMs: grid[0],
+        lastMs: grid[grid.length - 1]
+      },
+      added,
+      skipped_times_ms: skipped,
+      markers: handler.getSnapshot().markers.length,
+      url: docUrl("timeline", timeline_id)
+    };
+  }
+});
+
+/** Clips a snap targets: named ones resolved by id or name, else every clip. */
+function resolveSnapTargets(
+  clips: TimelineClipNode[],
+  targets: string[] | undefined
+): { clips: TimelineClipNode[]; missing: string[] } {
+  if (!targets || targets.length === 0) {
+    return { clips: [...clips], missing: [] };
+  }
+  const resolved: TimelineClipNode[] = [];
+  const missing: string[] = [];
+  for (const target of targets) {
+    const lower = target.toLowerCase();
+    const clip =
+      clips.find((c) => c.id === target) ??
+      clips.find((c) => c.name.toLowerCase() === lower);
+    // Recorded as a skip in the op's own report, with the reason.
+    if (!clip) missing.push(target);
+    else if (!resolved.includes(clip)) resolved.push(clip);
+  }
+  return { clips: resolved, missing };
+}
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_snap_to_beats",
+  description:
+    'Put clip boundaries on a beat grid. The grid is either `onsets_ms` — detect_audio_events reports `onsets.times` in SECONDS, so multiply by 1000 — or `bpm` with an optional `offset_ms`. `mode` picks the boundary, `action` picks how it gets there: `move` slides the whole clip and keeps its length, `trim` holds the opposite boundary and changes the length. A boundary further than `tolerance_ms` from every beat is left where it is and reported with the reason, so read the per-clip result rather than assuming everything moved.',
+  parameters: z.object({
+    timeline_id: timelineIdParam,
+    targets: z
+      .union([z.array(z.string()), z.literal("all")])
+      .optional()
+      .describe(
+        'Clip ids or names, or "all". Default: every clip on the sequence.'
+      ),
+    onsets_ms: z
+      .array(z.number())
+      .optional()
+      .describe("Absolute beat times in ms. Exactly one of this and `bpm`."),
+    bpm: z
+      .number()
+      .optional()
+      .describe("Tempo. The grid is generated far enough to reach every target."),
+    offset_ms: z
+      .number()
+      .optional()
+      .describe("Where beat one sits, in ms. Default 0."),
+    tolerance_ms: z
+      .number()
+      .optional()
+      .describe(
+        `How far a boundary may travel to reach a beat. Default ${DEFAULT_BEAT_TOLERANCE_MS}ms.`
+      ),
+    mode: z
+      .enum(["start", "end", "both"])
+      .optional()
+      .describe('Which boundary lands on a beat. Default "start".'),
+    action: z
+      .enum(["move", "trim"])
+      .optional()
+      .describe('"move" slides the clip, "trim" changes its length. Default "move".')
+  }),
+  async execute({
+    timeline_id,
+    targets,
+    onsets_ms,
+    bpm,
+    offset_ms,
+    tolerance_ms,
+    mode,
+    action
+  }) {
+    const handler = getTimelineAgentHandler(timeline_id);
+    const named = targets === undefined || targets === "all" ? undefined : targets;
+    const { clips: targeted, missing } = resolveSnapTargets(
+      handler.getSnapshot().clips,
+      named
+    );
+
+    const offsetMs = offset_ms ?? 0;
+    // A tempo grid has to reach the last boundary being snapped, so its length
+    // comes from the targets rather than from the caller.
+    const reachMs = targeted.reduce(
+      (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
+      0
+    );
+    const grid = buildBeatGrid({
+      onsetsMs: onsets_ms,
+      bpm,
+      offsetMs: offset_ms,
+      count: bpm === undefined ? undefined : beatCountToCover(bpm, offsetMs, reachMs)
+    });
+
+    const options: {
+      toleranceMs?: number;
+      mode?: SnapBoundaryMode;
+      action?: SnapAction;
+    } = {};
+    if (tolerance_ms !== undefined) options.toleranceMs = tolerance_ms;
+    if (mode !== undefined) options.mode = mode;
+    if (action !== undefined) options.action = action;
+
+    const result = snapClipsToGrid(
+      targeted.map((clip) => ({
+        id: clip.id,
+        startMs: clip.startMs,
+        durationMs: clip.durationMs
+      })),
+      grid,
+      options
+    );
+
+    const byId = new Map(targeted.map((clip) => [clip.id, clip]));
+    const reported: (ClipSnapResult & { clipName: string | null })[] = [];
+    let applied = 0;
+    for (const entry of result.clips) {
+      const clip = byId.get(entry.clipId);
+      if (!entry.snapped) {
+        reported.push({ ...entry, clipName: clip?.name ?? null });
+        continue;
+      }
+      try {
+        // The move carries a group's children with it; the trim then holds the
+        // far boundary, so the two together land the clip on `after`.
+        if (entry.after.startMs !== entry.before.startMs) {
+          handler.moveClip(entry.clipId, { startMs: entry.after.startMs });
+        }
+        if (entry.after.durationMs !== entry.before.durationMs) {
+          handler.trimClip(entry.clipId, { durationMs: entry.after.durationMs });
+        }
+        applied += 1;
+        reported.push({ ...entry, clipName: clip?.name ?? null });
+      } catch (e) {
+        reported.push({
+          ...entry,
+          snapped: false,
+          after: entry.before,
+          delta: { startMs: 0, endMs: 0 },
+          clipName: clip?.name ?? null,
+          reason: e instanceof Error ? e.message : String(e)
+        });
+      }
+    }
+
+    // A name nothing matched is a skip like any other: the caller has to see it
+    // in the same list, not infer it from a shorter one.
+    for (const target of missing) {
+      reported.push({
+        clipId: target,
+        clipName: null,
+        snapped: false,
+        before: { startMs: 0, endMs: 0, durationMs: 0 },
+        after: { startMs: 0, endMs: 0, durationMs: 0 },
+        delta: { startMs: 0, endMs: 0 },
+        reason: `no clip matches "${target}"`
+      });
+    }
+
+    return {
+      ok: true,
+      grid: {
+        count: grid.length,
+        firstMs: grid[0],
+        lastMs: grid[grid.length - 1]
+      },
+      toleranceMs: result.toleranceMs,
+      mode: result.mode,
+      action: result.action,
+      snapped: applied,
+      skipped: reported.length - applied,
+      clips: reported,
+      url: docUrl("timeline", timeline_id)
+    };
+  }
+});
+
+/** Ops one `ui_timeline_edit` call may carry — the headless cap (D-batch). */
+const MAX_TIMELINE_EDIT_OPS = 60;
+const TIMELINE_TOOL_PREFIX = "ui_timeline_";
+
+/** Op names `ui_timeline_edit` dispatches to, without the prefix. */
+function timelineOpNames(): string[] {
+  return FrontendToolRegistry.getManifest()
+    .map((tool) => tool.name)
+    .filter(
+      (name) =>
+        name.startsWith(TIMELINE_TOOL_PREFIX) && name !== "ui_timeline_edit"
+    )
+    .map((name) => name.slice(TIMELINE_TOOL_PREFIX.length))
+    .sort();
+}
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_edit",
+  description:
+    "Apply several timeline edits in one call. Each op names any ui_timeline_* tool — with or without the `ui_timeline_` prefix — and carries that tool's own input; `timeline_id` is taken from this call, so ops need not repeat it. Ops run in order and a failing one does not stop the rest: read `results` for the per-op outcome. Call ui_timeline_get_state afterwards when you need the ids the edits created.",
+  parameters: z.object({
+    timeline_id: timelineIdParam,
+    ops: z
+      .array(
+        z.object({
+          tool: z
+            .string()
+            .describe(
+              'A ui_timeline_* tool name, with or without the "ui_timeline_" prefix.'
+            ),
+          input: z
+            .record(z.string(), z.unknown())
+            .optional()
+            .describe("That tool's own input, minus timeline_id.")
+        })
+      )
+      .min(1)
+      .describe(`Up to ${MAX_TIMELINE_EDIT_OPS} operations, applied in order.`)
+  }),
+  async execute({ timeline_id, ops }, ctx) {
+    if (ops.length > MAX_TIMELINE_EDIT_OPS) {
+      throw new Error(
+        `ops holds ${ops.length} entries; at most ${MAX_TIMELINE_EDIT_OPS} per call.`
+      );
+    }
+    const results: {
+      tool: string;
+      ok: boolean;
+      result?: unknown;
+      error?: string;
+    }[] = [];
+    let applied = 0;
+    for (const [index, op] of ops.entries()) {
+      const name = op.tool.startsWith(TIMELINE_TOOL_PREFIX)
+        ? op.tool
+        : `${TIMELINE_TOOL_PREFIX}${op.tool}`;
+      // A batch inside a batch has no meaning and would recurse.
+      if (name === "ui_timeline_edit" || !FrontendToolRegistry.has(name)) {
+        results.push({
+          tool: op.tool,
+          ok: false,
+          error: `No timeline operation named "${name.slice(
+            TIMELINE_TOOL_PREFIX.length
+          )}". Available: ${timelineOpNames().join(", ")}.`
+        });
+        continue;
+      }
+      try {
+        const result = await FrontendToolRegistry.call(
+          name,
+          { ...op.input, timeline_id },
+          `ui_timeline_edit-${index}-${Date.now()}`,
+          { getState: ctx.getState }
+        );
+        applied += 1;
+        results.push({ tool: name, ok: true, result });
+      } catch (e) {
+        results.push({
+          tool: name,
+          ok: false,
+          error: e instanceof Error ? e.message : String(e)
+        });
+      }
+    }
+    const failed = results.length - applied;
+    return {
+      ok: failed === 0,
+      applied,
+      failed,
+      results,
+      url: docUrl("timeline", timeline_id)
+    };
   }
 });

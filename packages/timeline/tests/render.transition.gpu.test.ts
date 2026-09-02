@@ -156,6 +156,24 @@ describe.runIf(noAdapterReason === null)(
       }
     });
 
+    it("dips to a colour named the way a fillStyle names one", async () => {
+      // The dip used to parse `#rgb`/`#rrggbb` and nothing else, and a colour
+      // it could not parse drew no dip at all — so `white`, which the Canvas
+      // 2D path takes without comment, left the cut showing both clips.
+      const frame = await cutFrame({
+        type: "dipToColor",
+        durationMs: CUT_MS,
+        color: "white"
+      });
+
+      for (const x of [4, SIZE / 2, SIZE - 4]) {
+        const [r, g, b] = pixelAt(frame, x, SIZE / 2);
+        expect(r).toBeGreaterThan(240);
+        expect(g).toBeGreaterThan(240);
+        expect(b).toBeGreaterThan(240);
+      }
+    });
+
     it("wipe reveals the incoming clip over an outgoing one that holds", async () => {
       const frame = await cutFrame({
         type: "wipe",

@@ -684,6 +684,111 @@ describe("preview_timeline_frame", () => {
     });
     expect(String(result.error)).toContain("no clips");
   });
+
+  it("spaces a range evenly and includes both ends", async () => {
+    const result = await call({
+      document,
+      range: { from_ms: 0, to_ms: 4000, count: 5 },
+      width: 96,
+      width_px: 640,
+      height_px: 360
+    });
+
+    expect(result.error).toBeUndefined();
+    const times = (result.frames as Array<{ time_ms: number }>).map(
+      (f) => f.time_ms
+    );
+    // Inclusive: a range is how a move's start and end get looked at.
+    expect(times).toEqual([0, 1000, 2000, 3000, 4000]);
+  });
+
+  it("refuses times_ms and range together rather than picking one", async () => {
+    const result = await call({
+      document,
+      times_ms: [500],
+      range: { from_ms: 0, to_ms: 1000, count: 2 }
+    });
+    expect(String(result.error)).toContain("not both");
+  });
+
+  it("refuses a range denser than it will render", async () => {
+    const result = await call({
+      document,
+      range: { from_ms: 0, to_ms: 4000, count: 25 }
+    });
+    expect(String(result.error)).toContain("at most 24");
+  });
+});
+
+/**
+ * The contact sheet: five frames must land as three columns over two rows, and
+ * the tiled image must really be that grid — a report saying "3 × 2" over a
+ * one-cell PNG would pass an assertion on the numbers alone.
+ */
+describe("preview_timeline_frame contact sheet", () => {
+  const document = {
+    tracks: [track(0)],
+    clips: [
+      shapeClip("red", "track-0", "#ff0000", { startMs: 0, durationMs: 2000 }),
+      shapeClip("blue", "track-0", "#0000ff", { startMs: 2000, durationMs: 2000 })
+    ],
+    markers: []
+  };
+
+  it("tiles five frames into three columns over two rows", async () => {
+    const stored = new Map<string, Uint8Array>();
+    const context = {
+      userId: "u1",
+      hasModelInterface: (name: string) => name === "createAsset",
+      createAsset: async ({ content }: { content: Uint8Array }) => {
+        const id = `asset-${stored.size + 1}`;
+        stored.set(id, content);
+        return { id };
+      }
+    } as unknown as ProcessingContext;
+
+    const result = (await toolForCapabilityName(
+      "preview_timeline_frame"
+    ).process(context, {
+      document,
+      range: { from_ms: 0, to_ms: 4000, count: 5 },
+      sheet: true,
+      width: 96,
+      width_px: 640,
+      height_px: 360
+    })) as {
+      error?: string;
+      frames: Array<Record<string, unknown>>;
+      sheet: {
+        columns: number;
+        rows: number;
+        cells: number;
+        cell_width: number;
+        cell_height: number;
+        width: number;
+        height: number;
+        image: { asset_id: string };
+      };
+    };
+
+    expect(result.error).toBeUndefined();
+    expect(result.sheet.columns).toBe(3);
+    expect(result.sheet.rows).toBe(2);
+    expect(result.sheet.cells).toBe(5);
+    // One handle for the sheet, and none per frame — the layer reports stay.
+    expect(result.frames).toHaveLength(5);
+    for (const frame of result.frames) {
+      expect(frame.image).toBeUndefined();
+      expect(Array.isArray(frame.layers)).toBe(true);
+    }
+
+    const png = stored.get(result.sheet.image.asset_id);
+    expect(png).toBeDefined();
+    const image = await loadImage(Buffer.from(png as Uint8Array));
+    expect(image.width).toBe(3 * result.sheet.cell_width);
+    expect(image.height).toBe(2 * result.sheet.cell_height);
+    expect(image.width).toBeLessThanOrEqual(1280);
+  });
 });
 
 /**

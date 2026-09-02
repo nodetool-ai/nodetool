@@ -29,6 +29,7 @@ import {
   KNOWN_CLIP_EFFECT_TYPE_LIST,
   KNOWN_TRANSITION_TYPE_LIST,
   type ClipMask,
+  type ClipTimeRemap,
   type KnownClipEffect,
   type KnownClipTransition
 } from "./timeline.js";
@@ -273,6 +274,87 @@ export const matteParams = z.object({
 });
 
 export type MatteParams = z.infer<typeof matteParams>;
+
+/**
+ * A time-remap curve: where in the source each instant of the clip sits (D13).
+ *
+ * `t` is normalized over the clip's own window, so the curve has to span it —
+ * a list starting at 0.3 would leave the first third of the clip held on a
+ * frame the caller never asked for, and `evaluateTimeRemapMs` holds flat
+ * outside the ends rather than reporting that. The ordering rule is the
+ * sampler's: it reads keyframes in array order and never sorts, so a list that
+ * does not ascend samples wrong instead of failing.
+ */
+export const timeRemapParams = z.object({
+  keyframes: z
+    .array(
+      z.object({
+        t: z
+          .number()
+          .min(0)
+          .max(1)
+          .describe("Position in the clip's window, 0..1."),
+        sourceMs: z
+          .number()
+          .min(0)
+          .describe(
+            "Milliseconds into the source media shown at this position."
+          ),
+        easing: z
+          .string()
+          .optional()
+          .describe("Easing for the segment ending here. Default linear.")
+      })
+    )
+    .min(2)
+    .describe(
+      "At least two keyframes, ascending in `t`, starting at 0 and ending at 1."
+    )
+});
+
+export type TimeRemapParams = z.infer<typeof timeRemapParams>;
+
+/** `set_time_remap`'s whole input: a curve, or null to play at the clip's rate. */
+export const setTimeRemapParams = z.object({
+  target: targetParam,
+  timeRemap: timeRemapParams
+    .nullable()
+    .describe("The curve, or null to clear it and play at the clip's rate.")
+});
+
+export type SetTimeRemapParams = z.infer<typeof setTimeRemapParams>;
+
+/**
+ * The stored remap, refusing the curves the sampler cannot read.
+ *
+ * Checked here rather than in Zod so every host reports one message, and so a
+ * caller that built the object itself gets the same refusal a tool call does.
+ */
+export function buildTimeRemap(input: TimeRemapParams): ClipTimeRemap {
+  const kfs = input.keyframes;
+  if (kfs.length < 2) {
+    throw new Error(
+      "timeRemap needs at least two keyframes — one is a freeze frame, not a curve."
+    );
+  }
+  if (kfs[0]!.t !== 0 || kfs[kfs.length - 1]!.t !== 1) {
+    throw new Error(
+      `timeRemap must span the clip: the first keyframe's t must be 0 and the last 1 (got ${kfs[0]!.t} and ${kfs[kfs.length - 1]!.t}).`
+    );
+  }
+  for (let i = 1; i < kfs.length; i++) {
+    if (kfs[i]!.t <= kfs[i - 1]!.t) {
+      throw new Error(
+        `timeRemap keyframes must ascend in t — keyframe ${i} is at ${kfs[i]!.t}, after ${kfs[i - 1]!.t}.`
+      );
+    }
+  }
+  return {
+    keyframes: kfs.map(({ t, sourceMs, easing }) =>
+      easing === undefined ? { t, sourceMs } : { t, sourceMs, easing }
+    )
+  };
+}
 
 // ── Effects ─────────────────────────────────────────────────────────────────
 
@@ -527,6 +609,7 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_set_transition",
   "ui_timeline_set_mask",
   "ui_timeline_set_matte",
+  "ui_timeline_set_time_remap",
   "ui_timeline_set_effects",
   "ui_timeline_set_clip_binding",
   "ui_timeline_animate_clip",

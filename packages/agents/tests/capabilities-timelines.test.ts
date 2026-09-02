@@ -123,6 +123,7 @@ describe("timelines capability module", () => {
       "validate_timeline",
       "set_timeline_document",
       "preview_timeline_frame",
+      "compare_timeline_frames",
       "render_timeline",
       "delete_timeline"
     ]);

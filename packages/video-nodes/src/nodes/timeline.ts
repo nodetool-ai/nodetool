@@ -30,9 +30,12 @@ import type { DocumentRef, TimelineRef, VideoRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import {
+  hasTimeRemap,
   makeClip,
   makeSequence,
   makeTrack,
+  timeRemapAudioSegments,
+  type TimeRemapAudioSegment,
   type TimelineClip,
   type TimelineSequence,
   type TimelineTrack
@@ -347,6 +350,51 @@ function audioClipFilter(
   return `[${inputIndex}:a]${steps.join(",")}[${label}]`;
 }
 
+/** `rate` as atempo factors, each inside the filter's own 0.5–2 range. */
+function atempoChain(rate: number): string[] {
+  const factors: string[] = [];
+  let remaining = rate;
+  while (remaining > 2) {
+    factors.push("2");
+    remaining /= 2;
+  }
+  while (remaining < 0.5) {
+    factors.push("0.5");
+    remaining *= 2;
+  }
+  factors.push(String(Number(remaining.toFixed(6))));
+  return factors;
+}
+
+/**
+ * One constant-rate stretch of a time-remapped clip: trim the source span the
+ * curve names, retime it to the stretch's timeline length, apply the clip's
+ * gain, and delay it to where the stretch starts.
+ *
+ * `atempo` retimes without moving the pitch and needs no knowledge of the
+ * input's sample rate, which `asetrate` would. The browser preview has no
+ * time-stretch to reach for — WebAudio offers only `playbackRate` — so a steep
+ * ramp is pitched there and is not here.
+ */
+function audioRemapSegmentFilter(
+  clip: TimelineClip,
+  segment: TimeRemapAudioSegment,
+  inputIndex: number,
+  label: string
+): string {
+  const steps: string[] = [
+    `atrim=start=${segment.sourceStartMs / 1000}:end=${segment.sourceEndMs / 1000}`,
+    "asetpts=PTS-STARTPTS",
+    ...atempoChain(segment.rate).map((f) => `atempo=${f}`)
+  ];
+  if (isNumber(clip.volumeDb) && clip.volumeDb !== 0) {
+    steps.push(`volume=${clip.volumeDb}dB`);
+  }
+  const delay = Math.max(0, Math.round(segment.timelineStartMs));
+  steps.push(`adelay=${delay}|${delay}`);
+  return `[${inputIndex}:a]${steps.join(",")}[${label}]`;
+}
+
 /** Anything that draws: media, titles, shapes, or a caption riding a clip. */
 function hasRenderableVisual(seq: TimelineSequence): boolean {
   const tracks = trackById(seq.tracks);
@@ -544,11 +592,26 @@ async function mixAudioInto(opts: {
       continue;
     }
     if (!baseHasAudio && !(await ffprobeHasAudio(audioPath))) continue;
-    inputs.push("-i", audioPath);
-    const label = `a${i}`;
-    filters.push(audioClipFilter(clip, inputIndex, label));
-    labels.push(`[${label}]`);
-    inputIndex += 1;
+    if (!hasTimeRemap(clip)) {
+      inputs.push("-i", audioPath);
+      const label = `a${i}`;
+      filters.push(audioClipFilter(clip, inputIndex, label));
+      labels.push(`[${label}]`);
+      inputIndex += 1;
+      continue;
+    }
+    // A remapped clip is not one span at one rate: the curve becomes
+    // constant-rate stretches and each is decoded, retimed and delayed on its
+    // own. A stretch the curve runs backwards over — or holds still on — is
+    // silent, as it is in the preview.
+    for (const [j, segment] of timeRemapAudioSegments(clip).entries()) {
+      if (segment.reverse || !Number.isFinite(segment.rate)) continue;
+      inputs.push("-i", audioPath);
+      const label = `a${i}_${j}`;
+      filters.push(audioRemapSegmentFilter(clip, segment, inputIndex, label));
+      labels.push(`[${label}]`);
+      inputIndex += 1;
+    }
   }
   if (labels.length === 0) return basePath;
 

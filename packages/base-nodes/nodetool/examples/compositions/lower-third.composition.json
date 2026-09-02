@@ -1,0 +1,164 @@
+{
+  "id": "lower-third",
+  "name": "Lower third",
+  "description": "A name and role on an accent bar in the lower left. T2 — arrives after a person does and holds a few seconds.",
+  "params": {
+    "name": {
+      "type": "string",
+      "default": "Name",
+      "path": "/1/textStyle/text"
+    },
+    "role": {
+      "type": "string",
+      "default": "Role",
+      "path": "/2/textStyle/text"
+    },
+    "accentColor": {
+      "type": "color",
+      "default": "#0A84FF",
+      "path": "/0/shapeStyle/fill"
+    },
+    "textColor": {
+      "type": "color",
+      "default": "#FFFFFF",
+      "path": "/1/textStyle/color"
+    }
+  },
+  "group": {
+    "sourceType": "imported",
+    "status": "generated",
+    "locked": false,
+    "versions": [],
+    "id": "lower-third-group",
+    "trackId": "Plate",
+    "name": "Lower third",
+    "startMs": 0,
+    "durationMs": 3500,
+    "mediaType": "group"
+  },
+  "children": [
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "lower-third-0-bar",
+      "trackId": "Plate",
+      "name": "Bar",
+      "startMs": 0,
+      "durationMs": 3500,
+      "mediaType": "shape",
+      "shapeStyle": {
+        "kind": "rect",
+        "fill": "#0A84FF",
+        "x": 0.1,
+        "y": 0.7,
+        "width": 0.42,
+        "height": 0.16,
+        "cornerRadius": 0.008
+      }
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "lower-third-1-name",
+      "trackId": "Text",
+      "name": "Name",
+      "startMs": 150,
+      "durationMs": 3350,
+      "mediaType": "text",
+      "textStyle": {
+        "text": "Name",
+        "fontSizePx": 60,
+        "color": "#FFFFFF",
+        "align": "center",
+        "maxWidthFrac": 0.36,
+        "fontWeight": 600
+      },
+      "transform": {
+        "position": {
+          "x": -365,
+          "y": 265
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "animations": [
+        {
+          "id": "lower-third-name-in",
+          "role": "in",
+          "preset": "slide",
+          "durationMs": 450,
+          "params": {
+            "direction": "right",
+            "distance": 0.05
+          }
+        },
+        {
+          "id": "lower-third-name-out",
+          "role": "out",
+          "preset": "fade",
+          "durationMs": 350
+        }
+      ]
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "lower-third-2-role",
+      "trackId": "Subtext",
+      "name": "Role",
+      "startMs": 250,
+      "durationMs": 3250,
+      "mediaType": "text",
+      "textStyle": {
+        "text": "Role",
+        "fontSizePx": 37,
+        "color": "#EAF3FF",
+        "align": "center",
+        "maxWidthFrac": 0.36
+      },
+      "transform": {
+        "position": {
+          "x": -365,
+          "y": 340
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "animations": [
+        {
+          "id": "lower-third-role-in",
+          "role": "in",
+          "preset": "fade",
+          "durationMs": 400,
+          "delayMs": 150
+        },
+        {
+          "id": "lower-third-role-out",
+          "role": "out",
+          "preset": "fade",
+          "durationMs": 350
+        }
+      ]
+    }
+  ]
+}

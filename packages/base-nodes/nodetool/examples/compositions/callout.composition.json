@@ -1,0 +1,108 @@
+{
+  "id": "callout",
+  "name": "Callout",
+  "description": "A small plate in the upper right that names what is on screen. T4.",
+  "params": {
+    "text": {
+      "type": "string",
+      "default": "Callout",
+      "path": "/1/textStyle/text"
+    },
+    "plateColor": {
+      "type": "color",
+      "default": "#111827",
+      "path": "/0/shapeStyle/fill"
+    },
+    "textColor": {
+      "type": "color",
+      "default": "#FFFFFF",
+      "path": "/1/textStyle/color"
+    }
+  },
+  "group": {
+    "sourceType": "imported",
+    "status": "generated",
+    "locked": false,
+    "versions": [],
+    "id": "callout-group",
+    "trackId": "Plate",
+    "name": "Callout",
+    "startMs": 0,
+    "durationMs": 3000,
+    "mediaType": "group"
+  },
+  "children": [
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "callout-0-plate",
+      "trackId": "Plate",
+      "name": "Plate",
+      "startMs": 0,
+      "durationMs": 3000,
+      "mediaType": "shape",
+      "shapeStyle": {
+        "kind": "rect",
+        "fill": "#111827",
+        "x": 0.58,
+        "y": 0.18,
+        "width": 0.34,
+        "height": 0.14,
+        "cornerRadius": 0.016
+      }
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "callout-1-callout",
+      "trackId": "Text",
+      "name": "Callout",
+      "startMs": 100,
+      "durationMs": 2900,
+      "mediaType": "text",
+      "textStyle": {
+        "text": "Callout",
+        "fontSizePx": 42,
+        "color": "#FFFFFF",
+        "align": "center",
+        "maxWidthFrac": 0.28
+      },
+      "transform": {
+        "position": {
+          "x": 480,
+          "y": -270
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "animations": [
+        {
+          "id": "callout-in",
+          "role": "in",
+          "preset": "pop",
+          "durationMs": 400,
+          "params": {
+            "overshoot": 0.2
+          }
+        },
+        {
+          "id": "callout-out",
+          "role": "out",
+          "preset": "fade",
+          "durationMs": 300
+        }
+      ]
+    }
+  ]
+}

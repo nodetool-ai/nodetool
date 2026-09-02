@@ -257,6 +257,66 @@ describe.runIf(noAdapterReason === null)(
       expect(pixelAt(shadowed, QUAD.lo - 4, QUAD.lo - 4)[0]).toBeLessThan(24);
     });
 
+    it("reads every spelling of one shadow colour as that colour", async () => {
+      // The parser this replaces matched six-digit hex and answered pure green
+      // for everything else, so a shadow written `black` or `rgb(0,0,0)` cast
+      // green on the GPU and black on the Canvas 2D path, with nothing to read
+      // about the difference. The frame's ground is white here so a black
+      // shadow is visible and a green one is unmistakable.
+      const cutout = pixels("cutout-parity", (x, y) =>
+        x >= QUAD.lo && x < QUAD.hi && y >= QUAD.lo && y < QUAD.hi
+          ? [255, 0, 0, 255]
+          : [0, 0, 0, 0]
+      );
+      const ground = (): FrameLayer => ({
+        id: "ground",
+        source: uniform(255, 255, 255),
+        opacity: 1,
+        blendMode: "normal",
+        zIndex: -1
+      });
+      const shadowIn = async (color: string): Promise<[number, number, number]> => {
+        const frame = await renderFrame([
+          ground(),
+          layerWith(
+            cutout,
+            [
+              {
+                id: "ds",
+                type: "dropShadow",
+                enabled: true,
+                offsetX: 8,
+                offsetY: 8,
+                blur: 2,
+                color,
+                opacity: 1
+              }
+            ],
+            { id: `shadow-${color}` }
+          )
+        ]);
+        const [r, g, b] = pixelAt(frame, QUAD.hi + 4, QUAD.hi + 4);
+        return [r, g, b];
+      };
+
+      const hex = await shadowIn("#000");
+      const named = await shadowIn("black");
+      const functional = await shadowIn("rgb(0, 0, 0)");
+
+      for (const sample of [hex, named, functional]) {
+        // Darkened by the shadow at all…
+        expect(sample[1]).toBeLessThan(200);
+        // …and not the green the old fallback produced, which would leave the
+        // green channel far above the other two rather than level with them.
+        expect(Math.abs(sample[1] - sample[0])).toBeLessThan(8);
+        expect(Math.abs(sample[1] - sample[2])).toBeLessThan(8);
+      }
+      for (let channel = 0; channel < 3; channel++) {
+        expect(Math.abs(named[channel]! - hex[channel]!)).toBeLessThan(4);
+        expect(Math.abs(functional[channel]! - hex[channel]!)).toBeLessThan(4);
+      }
+    });
+
     it("a curve that pulls the midtones down darkens a mid-grey", async () => {
       const mid = uniform(128, 128, 128);
       const graded = await renderFrame([

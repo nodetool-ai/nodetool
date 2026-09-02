@@ -1794,7 +1794,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "c493d78c1f68",
+    contract: "3de996ce0ff2",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
@@ -1842,11 +1842,28 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "preview_timeline_frame",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "d06d661c70ed",
+    contract: "b28a18fe7574",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
       "packages/agents/tests/capabilities-timeline-preview.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/surfaces/timeline.ts",
+        cases: ["looked-before-done"],
+      },
+    ],
+  },
+  {
+    name: "compare_timeline_frames",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "6f1e9b2a38fc",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+      "packages/agents/tests/capabilities-timeline-compare.test.ts",
     ],
   },
   {
@@ -2327,6 +2344,46 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-entities.test.ts",
+    ],
+  },
+  {
+    name: "list_compositions",
+    module: "compositions",
+    impl: "packages/agents/src/capabilities/compositions.ts",
+    contract: "93cb1b05b76c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-compositions.test.ts",
+    ],
+  },
+  {
+    name: "get_composition",
+    module: "compositions",
+    impl: "packages/agents/src/capabilities/compositions.ts",
+    contract: "107ce31b2f59",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-compositions.test.ts",
+    ],
+  },
+  {
+    name: "save_composition",
+    module: "compositions",
+    impl: "packages/agents/src/capabilities/compositions.ts",
+    contract: "08fa8b0e28ec",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-compositions.test.ts",
+    ],
+  },
+  {
+    name: "delete_composition",
+    module: "compositions",
+    impl: "packages/agents/src/capabilities/compositions.ts",
+    contract: "774bfb43b032",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-compositions.test.ts",
     ],
   },
   {

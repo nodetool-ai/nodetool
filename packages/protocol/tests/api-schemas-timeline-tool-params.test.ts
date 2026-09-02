@@ -20,11 +20,13 @@ import {
   addGroupParams,
   buildEffect,
   buildMask,
+  buildTimeRemap,
   buildTransition,
   captionStyleParams,
   effectParams,
   partialTextStyleParams,
   setParentParams,
+  setTimeRemapParams,
   shapeStyleParams,
   textStyleParams,
   transitionParams,
@@ -158,6 +160,7 @@ describe("the shared tool name list", () => {
       "ui_timeline_set_transition",
       "ui_timeline_set_mask",
       "ui_timeline_set_matte",
+      "ui_timeline_set_time_remap",
       "ui_timeline_set_effects"
     ]) {
       expect(SHARED_TIMELINE_TOOL_NAMES).toContain(name);
@@ -192,5 +195,77 @@ describe("a note cannot outlive the field it describes", () => {
         activeColor: "Colour of the word being spoken."
       })
     ).toThrow(/no field "activeColor" to describe/);
+  });
+});
+
+describe("the time-remap curve", () => {
+  const two = [
+    { t: 0, sourceMs: 0 },
+    { t: 1, sourceMs: 1000 }
+  ];
+
+  it("takes a curve, and null as the way to play at the clip's rate", () => {
+    expect(
+      setTimeRemapParams.parse({ target: "shot a", timeRemap: { keyframes: two } })
+    ).toMatchObject({ target: "shot a" });
+    expect(
+      setTimeRemapParams.parse({ target: "shot a", timeRemap: null })
+    ).toEqual({ target: "shot a", timeRemap: null });
+  });
+
+  it("refuses a single keyframe, a t off the window, and a negative source", () => {
+    expect(() =>
+      setTimeRemapParams.parse({
+        target: "shot a",
+        timeRemap: { keyframes: [{ t: 0, sourceMs: 0 }] }
+      })
+    ).toThrow();
+    expect(() =>
+      setTimeRemapParams.parse({
+        target: "shot a",
+        timeRemap: { keyframes: [{ t: 0, sourceMs: 0 }, { t: 1.5, sourceMs: 10 }] }
+      })
+    ).toThrow();
+    expect(() =>
+      setTimeRemapParams.parse({
+        target: "shot a",
+        timeRemap: { keyframes: [{ t: 0, sourceMs: -1 }, { t: 1, sourceMs: 10 }] }
+      })
+    ).toThrow();
+  });
+
+  it("refuses a list that does not ascend in t", () => {
+    // The sampler reads array order and never sorts, so an out-of-order list
+    // reads the wrong source instant rather than failing.
+    expect(() =>
+      buildTimeRemap({
+        keyframes: [
+          { t: 0, sourceMs: 0 },
+          { t: 0.7, sourceMs: 100 },
+          { t: 0.3, sourceMs: 200 },
+          { t: 1, sourceMs: 300 }
+        ]
+      })
+    ).toThrow(/ascend/);
+  });
+
+  it("refuses a curve that does not span the clip's window", () => {
+    expect(() =>
+      buildTimeRemap({ keyframes: [{ t: 0.2, sourceMs: 0 }, { t: 1, sourceMs: 10 }] })
+    ).toThrow(/first keyframe/);
+    expect(() =>
+      buildTimeRemap({ keyframes: [{ t: 0, sourceMs: 0 }, { t: 0.9, sourceMs: 10 }] })
+    ).toThrow(/last/);
+  });
+
+  it("leaves an unset easing off the stored keyframe", () => {
+    const built = buildTimeRemap({
+      keyframes: [
+        { t: 0, sourceMs: 0 },
+        { t: 1, sourceMs: 500, easing: "easeIn" }
+      ]
+    });
+    expect(built.keyframes[0]).toEqual({ t: 0, sourceMs: 0 });
+    expect(built.keyframes[1]).toEqual({ t: 1, sourceMs: 500, easing: "easeIn" });
   });
 });

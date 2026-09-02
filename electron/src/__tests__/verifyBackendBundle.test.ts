@@ -34,6 +34,11 @@ function writeValidBundle(dir: string): void {
     path.join(dir, "examples", "storyboards", "hello.storyboard.json"),
     JSON.stringify(STORYBOARD_BUNDLE)
   );
+  fs.mkdirSync(path.join(dir, "examples", "compositions"), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "examples", "compositions", "hello.composition.json"),
+    "{}"
+  );
   fs.mkdirSync(path.join(dir, "assets", "nodetool-base", "storyboards", "hello"), {
     recursive: true,
   });
@@ -257,6 +262,16 @@ describe("verify-backend-bundle", () => {
     const { status, output } = runVerify(tempDir);
     expect(output).toContain("example storyboard media not staged");
     expect(output).toContain("storyboards/hello/shot.mp4");
+    expect(status).toBe(1);
+  });
+
+  it("fails when no example composition is staged at all", () => {
+    fs.rmSync(path.join(tempDir, "examples", "compositions"), {
+      recursive: true,
+      force: true,
+    });
+    const { status, output } = runVerify(tempDir);
+    expect(output).toContain("examples/compositions/ is missing");
     expect(status).toBe(1);
   });
 

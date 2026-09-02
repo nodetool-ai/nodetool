@@ -10,15 +10,28 @@
 import { makeClipVersion, type TimelineClip } from '@nodetool-ai/timeline';
 
 import {
+  addGroup,
   addMarker,
+  addMediaClip,
   addShapeClip,
   addTextClip,
   addTrack,
+  animateClip,
+  clearAnimations,
   deleteClip,
   deleteMarker,
   duplicateClip,
   moveClip,
+  setClipBinding,
   setClipParams,
+  setEffects,
+  setMarkersFromBeats,
+  setMask,
+  setMatte,
+  setParent,
+  setTimeRemap,
+  setTransition,
+  snapToBeats,
   splitClipAt,
   trimClip,
 } from '../timelineEdits';
@@ -708,5 +721,431 @@ describe('markers', () => {
     expect(() => deleteMarker(baseDoc(), 'nope')).toThrow(
       /No marker matches "nope".*m1 \("Cut"\)/s
     );
+  });
+});
+
+// ── Groups ──────────────────────────────────────────────────────────────────
+
+/** A group with one child on its own track, plus an unrelated clip. */
+const groupedDoc = (): TimelineDocument => ({
+  ...baseDoc(),
+  clips: [
+    clip({
+      id: 'g',
+      trackId: 't3',
+      name: 'Title block',
+      startMs: 1000,
+      durationMs: 4000,
+      mediaType: 'group',
+      sourceType: 'imported',
+    }),
+    clip({
+      id: 'child',
+      trackId: 't1',
+      name: 'Card',
+      startMs: 2000,
+      durationMs: 1000,
+      parentId: 'g',
+    }),
+    clip({ id: 'loose', trackId: 't1', name: 'Loose', startMs: 6000, durationMs: 1000 }),
+  ],
+});
+
+describe('addGroup', () => {
+  it('creates a group clip and parents the named children', () => {
+    const next = addGroup(baseDoc(), {
+      name: 'Title block',
+      startMs: 0,
+      durationMs: 3000,
+      children: ['Opening shot'],
+    });
+
+    expect(next.clip.mediaType).toBe('group');
+    expect(next.children).toEqual(['c1']);
+    expect(next.doc.clips.find((c) => c.id === 'c1')?.parentId).toBe(next.clip.id);
+    // It lands on an overlay track rather than creating one, since t3 exists.
+    expect(next.clip.trackId).toBe('t3');
+  });
+
+  it('resolves every child before writing anything', () => {
+    const doc = baseDoc();
+
+    expect(() =>
+      addGroup(doc, {
+        name: 'G',
+        startMs: 0,
+        durationMs: 1000,
+        children: ['c1', 'nope'],
+      })
+    ).toThrow(/No clip matches "nope"/);
+    expect(doc.clips.some((c) => c.mediaType === 'group')).toBe(false);
+  });
+});
+
+describe('setParent', () => {
+  it('parents a clip to a group and releases it with null', () => {
+    const parented = setParent(groupedDoc(), 'loose', 'Title block');
+    expect(parented.clip.parentId).toBe('g');
+
+    const released = setParent(parented.doc, 'loose', null);
+    expect(released.clip.parentId).toBeUndefined();
+  });
+
+  it('refuses a non-group parent', () => {
+    expect(() => setParent(groupedDoc(), 'loose', 'child')).toThrow(
+      /not a group/
+    );
+  });
+
+  it('refuses a cycle between two groups', () => {
+    const outer = groupedDoc();
+    const doc: TimelineDocument = {
+      ...outer,
+      clips: [
+        ...outer.clips,
+        clip({
+          id: 'inner',
+          trackId: 't3',
+          name: 'Inner',
+          mediaType: 'group',
+          sourceType: 'imported',
+          parentId: 'g',
+        }),
+      ],
+    };
+
+    // `inner` is under `g`, so parenting `g` to `inner` would close the loop.
+    expect(() => setParent(doc, 'g', 'inner')).toThrow(/cycle/);
+  });
+});
+
+describe('group-aware move, trim and delete', () => {
+  it('moveClip carries a group\'s descendants with it', () => {
+    const next = moveClip(groupedDoc(), 'g', { startMs: 3000 });
+
+    const byId = new Map(next.doc.clips.map((c) => [c.id, c]));
+    expect(byId.get('g')?.startMs).toBe(3000);
+    expect(byId.get('child')?.startMs).toBe(4000);
+    // A clip outside the group does not move.
+    expect(byId.get('loose')?.startMs).toBe(6000);
+    expect(next.clips.map((c) => c.id).sort()).toEqual(['child', 'g']);
+  });
+
+  it('moveClip keeps a child on its own track when the group changes track', () => {
+    const next = moveClip(groupedDoc(), 'g', { trackId: 'Video 1' });
+
+    const byId = new Map(next.doc.clips.map((c) => [c.id, c]));
+    expect(byId.get('g')?.trackId).toBe('t1');
+    expect(byId.get('child')?.trackId).toBe('t1');
+  });
+
+  it('trimClip pulls a group\'s children inside the shorter window', () => {
+    // 1000..5000 becomes 1000..2500, so the child at 2000..3000 is trimmed.
+    const next = trimClip(groupedDoc(), 'g', { durationMs: 1500 });
+
+    const byId = new Map(next.doc.clips.map((c) => [c.id, c]));
+    expect(byId.get('g')?.durationMs).toBe(1500);
+    expect(byId.get('child')!.startMs + byId.get('child')!.durationMs).toBeLessThanOrEqual(
+      2500
+    );
+  });
+
+  it('trimClip refuses source in/out points on a group', () => {
+    expect(() => trimClip(groupedDoc(), 'g', { inPointMs: 0 })).toThrow(
+      /group and has no source media/
+    );
+  });
+
+  it('deleteClip releases a group\'s children instead of orphaning them', () => {
+    const next = deleteClip(groupedDoc(), 'g');
+
+    expect(next.doc.clips.some((c) => c.id === 'g')).toBe(false);
+    const child = next.doc.clips.find((c) => c.id === 'child');
+    expect(child).toBeDefined();
+    expect(child?.parentId).toBeUndefined();
+  });
+});
+
+// ── Motion, compositing, beats ──────────────────────────────────────────────
+
+describe('animateClip', () => {
+  it('attaches a preset animation and replaces by default', () => {
+    const first = animateClip(baseDoc(), 'c1', [{ role: 'in', preset: 'fade' }]);
+    expect(first.clip.animations).toHaveLength(1);
+    expect(first.clip.animations?.[0]).toMatchObject({ role: 'in', preset: 'fade' });
+    expect(first.clip.animations?.[0].durationMs).toBeGreaterThan(0);
+
+    const replaced = animateClip(first.doc, 'c1', [
+      { role: 'out', preset: 'fade' },
+    ]);
+    expect(replaced.clip.animations).toHaveLength(1);
+
+    const added = animateClip(replaced.doc, 'c1', [{ role: 'in', preset: 'fade' }], 'add');
+    expect(added.clip.animations).toHaveLength(2);
+  });
+
+  it('refuses an unknown preset and a role the preset does not take', () => {
+    expect(() =>
+      animateClip(baseDoc(), 'c1', [{ role: 'in', preset: 'nope' }])
+    ).toThrow(/Unknown animation preset "nope"/);
+    expect(() =>
+      animateClip(baseDoc(), 'c1', [{ role: 'loop', preset: 'fade' }])
+    ).toThrow(/does not support role "loop"/);
+  });
+
+  it('takes custom curves and refuses a code body, naming the headless tool', () => {
+    const custom = animateClip(baseDoc(), 'c1', [
+      {
+        role: 'in',
+        preset: 'custom',
+        curves: [
+          {
+            property: 'opacity',
+            keyframes: [
+              { t: 0, value: 0 },
+              { t: 1, value: 1 },
+            ],
+          },
+        ],
+      },
+    ]);
+    expect(custom.clip.animations?.[0].custom?.curves).toHaveLength(1);
+
+    expect(() =>
+      animateClip(baseDoc(), 'c1', [
+        { role: 'in', preset: 'custom', code: 'return {};' },
+      ])
+    ).toThrow(/edit_timeline/);
+  });
+
+  it('leaves the clip untouched when one animation of a list is invalid', () => {
+    const doc = baseDoc();
+
+    expect(() =>
+      animateClip(doc, 'c1', [
+        { role: 'in', preset: 'fade' },
+        { role: 'in', preset: 'nope' },
+      ])
+    ).toThrow();
+    expect(doc.clips.find((c) => c.id === 'c1')?.animations).toBeUndefined();
+  });
+});
+
+describe('clearAnimations', () => {
+  it('clears one role or all of them', () => {
+    const animated = animateClip(baseDoc(), 'c1', [
+      { role: 'in', preset: 'fade' },
+      { role: 'out', preset: 'fade' },
+    ]);
+
+    const oneRole = clearAnimations(animated.doc, 'c1', 'in');
+    expect(oneRole.clip.animations?.map((a) => a.role)).toEqual(['out']);
+
+    expect(clearAnimations(oneRole.doc, 'c1').clip.animations).toEqual([]);
+  });
+});
+
+describe('setTransition, setMask, setMatte, setEffects', () => {
+  it('keeps only the fields the transition type uses', () => {
+    const wipe = setTransition(baseDoc(), 'c1', {
+      type: 'wipe',
+      durationMs: 500,
+      direction: 'up',
+      color: '#ff0000',
+    });
+
+    expect(wipe.clip.transitionIn).toEqual({
+      type: 'wipe',
+      durationMs: 500,
+      direction: 'up',
+    });
+    expect(setTransition(wipe.doc, 'c1', null).clip.transitionIn).toBeUndefined();
+  });
+
+  it('refuses an unknown transition type', () => {
+    expect(() =>
+      setTransition(baseDoc(), 'c1', { type: 'melt', durationMs: 100 })
+    ).toThrow(/Unknown transition type "melt"/);
+  });
+
+  it('keeps only the fields the mask kind uses and needs `d` for a path', () => {
+    const rect = setMask(baseDoc(), 'c1', {
+      kind: 'rect',
+      x: 0.1,
+      width: 0.5,
+      d: 'M0 0',
+    });
+    expect(rect.clip.mask).toEqual({ kind: 'rect', x: 0.1, width: 0.5 });
+
+    expect(() => setMask(baseDoc(), 'c1', { kind: 'path' })).toThrow(/needs `d`/);
+    expect(() => setMask(baseDoc(), 'c1', { kind: 'blob' })).toThrow(
+      /Unknown mask kind "blob"/
+    );
+  });
+
+  it('resolves the matte source by name and refuses the clip itself', () => {
+    const matte = setMatte(baseDoc(), 'c1', { source: 'Theme', mode: 'luma' });
+    expect(matte.clip.matte).toEqual({ sourceClipId: 'c2', mode: 'luma' });
+
+    expect(() =>
+      setMatte(baseDoc(), 'c1', { source: 'c1', mode: 'alpha' })
+    ).toThrow(/its own matte source/);
+  });
+
+  it('replaces the whole effect chain and clears it with an empty list', () => {
+    const chain = setEffects(baseDoc(), 'c1', [
+      { type: 'blur', radius: 6 },
+      { type: 'vignette' },
+    ]);
+
+    expect(chain.clip.effects).toEqual([
+      { id: 'fx-1', enabled: true, type: 'blur', radius: 6 },
+      { id: 'fx-2', enabled: true, type: 'vignette', amount: 0.5, softness: 0.5 },
+    ]);
+    expect(setEffects(chain.doc, 'c1', []).clip.effects).toBeUndefined();
+    expect(() => setEffects(baseDoc(), 'c1', [{ type: 'sparkle' }])).toThrow(
+      /Unknown effect type "sparkle"/
+    );
+  });
+});
+
+describe('setTimeRemap', () => {
+  it('stores a curve that spans the clip and ascends', () => {
+    const next = setTimeRemap(baseDoc(), 'c1', {
+      keyframes: [
+        { t: 0, sourceMs: 0 },
+        { t: 0.5, sourceMs: 3000, easing: 'easeIn' },
+        { t: 1, sourceMs: 4000 },
+      ],
+    });
+
+    expect(next.clip.timeRemap?.keyframes).toHaveLength(3);
+    expect(next.clip.timeRemap?.keyframes[0]).toEqual({ t: 0, sourceMs: 0 });
+    expect(setTimeRemap(next.doc, 'c1', null).clip.timeRemap).toBeUndefined();
+  });
+
+  it('refuses a curve that does not span the clip, or does not ascend', () => {
+    expect(() =>
+      setTimeRemap(baseDoc(), 'c1', {
+        keyframes: [
+          { t: 0.3, sourceMs: 0 },
+          { t: 1, sourceMs: 100 },
+        ],
+      })
+    ).toThrow(/must span the clip/);
+
+    expect(() =>
+      setTimeRemap(baseDoc(), 'c1', {
+        keyframes: [
+          { t: 0, sourceMs: 0 },
+          { t: 0, sourceMs: 100 },
+          { t: 1, sourceMs: 200 },
+        ],
+      })
+    ).toThrow(/must ascend in t/);
+
+    expect(() =>
+      setTimeRemap(baseDoc(), 'c1', { keyframes: [{ t: 0, sourceMs: 0 }] })
+    ).toThrow(/at least two keyframes/);
+  });
+});
+
+describe('setClipBinding', () => {
+  it('marks a rendered clip stale and refuses an imported one', () => {
+    const doc = baseDoc();
+    doc.clips[0] = { ...doc.clips[0], currentAssetId: 'asset-1', status: 'generated' };
+
+    const next = setClipBinding(doc, 'c1', { prompt: 'a fox at dawn' });
+    expect(next.clip.prompt).toBe('a fox at dawn');
+    expect(next.clip.status).toBe('stale');
+
+    // c2 is imported.
+    expect(() => setClipBinding(doc, 'c2', { prompt: 'x' })).toThrow(
+      /not a generated clip/
+    );
+    expect(() => setClipBinding(doc, 'c1', {})).toThrow(/Nothing to set/);
+  });
+});
+
+describe('beats', () => {
+  it('setMarkersFromBeats lays one marker per beat and re-runs idempotently', () => {
+    const first = setMarkersFromBeats(baseDoc(), { bpm: 120, count: 4 });
+
+    expect(first.report.grid.count).toBe(4);
+    expect(first.report.added).toHaveLength(4);
+    expect(first.report.added[0].label).toBe('Beat 1');
+    // The pre-existing marker survives.
+    expect(first.doc.markers).toHaveLength(5);
+
+    const again = setMarkersFromBeats(first.doc, { bpm: 120, count: 4 });
+    expect(again.report.added).toHaveLength(0);
+    expect(again.report.skippedTimesMs).toHaveLength(4);
+    expect(again.doc.markers).toHaveLength(5);
+  });
+
+  it('snapToBeats moves a clip onto a beat and leaves a far one alone', () => {
+    const doc: TimelineDocument = {
+      ...baseDoc(),
+      clips: [
+        clip({ id: 'near', trackId: 't1', startMs: 1020, durationMs: 500 }),
+        clip({ id: 'far', trackId: 't1', startMs: 3400, durationMs: 500 }),
+      ],
+    };
+
+    const next = snapToBeats(doc, { onsetsMs: [0, 1000, 2000, 3000] });
+
+    const byId = new Map(next.doc.clips.map((c) => [c.id, c]));
+    expect(byId.get('near')?.startMs).toBe(1000);
+    // 3400 is 400ms from the nearest beat, past the 60ms default tolerance.
+    expect(byId.get('far')?.startMs).toBe(3400);
+    expect(next.report.snapped).toBe(1);
+    expect(next.report.skipped).toBe(1);
+    expect(next.report.clips.map((entry) => entry.clipName)).toEqual([
+      'Clip',
+      'Clip',
+    ]);
+  });
+
+  it('snapToBeats reports a name nothing matched as a skip in the same list', () => {
+    const next = snapToBeats(baseDoc(), {
+      targets: ['c1', 'ghost'],
+      onsetsMs: [0, 1000],
+    });
+
+    const ghost = next.report.clips.find((entry) => entry.clipId === 'ghost');
+    expect(ghost?.snapped).toBe(false);
+    expect(ghost?.reason).toMatch(/no clip matches "ghost"/);
+    expect(next.report.skipped).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('addMediaClip', () => {
+  const asset = {
+    id: 'asset-9',
+    name: 'b-roll.mp4',
+    contentType: 'video/mp4',
+    durationMs: 2500,
+  };
+
+  it('places the asset on a track for its media kind, appending by default', () => {
+    const next = addMediaClip(baseDoc(), { asset: 'asset-9' }, asset);
+
+    expect(next.clip).toMatchObject({
+      mediaType: 'video',
+      sourceType: 'imported',
+      status: 'generated',
+      currentAssetId: 'asset-9',
+      name: 'b-roll.mp4',
+      durationMs: 2500,
+      trackId: 't1',
+    });
+    // Appended after the existing clip on t1 (1000 + 4000).
+    expect(next.clip.startMs).toBe(5000);
+  });
+
+  it('refuses an asset that is not video, image, or audio', () => {
+    expect(() =>
+      addMediaClip(baseDoc(), { asset: 'a' }, { ...asset, contentType: 'text/csv' })
+    ).toThrow(/not video, image, or audio/);
   });
 });

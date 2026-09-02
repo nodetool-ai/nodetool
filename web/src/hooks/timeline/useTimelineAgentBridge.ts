@@ -23,6 +23,7 @@ import type {
 import {
   buildEffect,
   buildMask,
+  buildTimeRemap,
   buildTransition
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import { parseSvgPath } from "@nodetool-ai/timeline/scene";
@@ -547,26 +548,37 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
 
       trimClip(target, patch) {
         const clip = requireClip(target);
-        const next: Partial<TimelineClip> = {};
+        // Through the store, not `patchClip`: trimming a group pulls its
+        // children inside the new window, and a raw duration write would leave
+        // them hanging outside it.
         if (patch.durationMs !== undefined) {
-          next.durationMs = Math.max(1, patch.durationMs);
+          const durationMs = Math.max(1, patch.durationMs);
+          doc.getState().trimClipEnd(clip.id, durationMs - clip.durationMs);
         }
+        // Source in/out points are a clip's own trim window; a group has none.
+        const next: Partial<TimelineClip> = {};
         if (patch.inPointMs !== undefined) next.inPointMs = patch.inPointMs;
         if (patch.outPointMs !== undefined) next.outPointMs = patch.outPointMs;
-        doc.getState().patchClip(clip.id, next);
+        if (Object.keys(next).length > 0) {
+          doc.getState().patchClip(clip.id, next);
+        }
         return clipNode(reReadClip(clip.id));
       },
 
       moveClip(target, patch) {
         const clip = requireClip(target);
-        const next: Partial<TimelineClip> = {};
-        if (patch.startMs !== undefined) {
-          next.startMs = Math.max(0, patch.startMs);
-        }
-        if (patch.trackId !== undefined) {
-          next.trackId = requireTrack(patch.trackId).id;
-        }
-        doc.getState().patchClip(clip.id, next);
+        // Through the store, not `patchClip`: a group carries what it holds, so
+        // the store shifts its children by the same delta. Writing `startMs`
+        // straight onto the clip left them behind.
+        const toTrackId =
+          patch.trackId !== undefined ? requireTrack(patch.trackId).id : undefined;
+        const deltaMs =
+          patch.startMs === undefined
+            ? 0
+            : Math.max(0, patch.startMs) - clip.startMs;
+        doc
+          .getState()
+          .moveClip(clip.id, deltaMs, toTrackId, undefined, undefined, true);
         return clipNode(reReadClip(clip.id));
       },
 
@@ -867,6 +879,14 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         };
         if (matte.invert !== undefined) next.invert = matte.invert;
         doc.getState().patchClip(clip.id, { matte: next });
+        return clipNode(reReadClip(clip.id));
+      },
+
+      setTimeRemap(target, timeRemap) {
+        const clip = requireClip(target);
+        doc.getState().patchClip(clip.id, {
+          timeRemap: timeRemap ? buildTimeRemap(timeRemap) : undefined
+        });
         return clipNode(reReadClip(clip.id));
       },
 
