@@ -1,22 +1,4 @@
-import type { FrontendToolState } from "../frontendTools";
-
-const createMockState = (): FrontendToolState => ({
-  nodeMetadata: {},
-  currentWorkflowId: null,
-  getWorkflow: jest.fn(),
-  addWorkflow: jest.fn(),
-  removeWorkflow: jest.fn(),
-  getNodeStore: jest.fn(),
-  updateWorkflow: jest.fn(),
-  saveWorkflow: jest.fn(),
-  getCurrentWorkflow: jest.fn(),
-  setCurrentWorkflowId: jest.fn(),
-  fetchWorkflow: jest.fn(),
-  newWorkflow: jest.fn(),
-  createNew: jest.fn(),
-  searchTemplates: jest.fn(),
-  copy: jest.fn()
-});
+import { makeFrontendToolState } from "../../../test-utils/frontendToolState";
 
 describe("frontendToolRuntimeState", () => {
   beforeEach(() => {
@@ -37,7 +19,7 @@ describe("frontendToolRuntimeState", () => {
     const { setFrontendToolRuntimeState, getFrontendToolRuntimeState } =
       await import("../frontendToolRuntimeState");
 
-    const mockState = createMockState();
+    const mockState = makeFrontendToolState();
     setFrontendToolRuntimeState(mockState);
 
     expect(() => getFrontendToolRuntimeState()).not.toThrow();
@@ -47,7 +29,7 @@ describe("frontendToolRuntimeState", () => {
     const { setFrontendToolRuntimeState, getFrontendToolRuntimeState } =
       await import("../frontendToolRuntimeState");
 
-    const mockState = createMockState();
+    const mockState = makeFrontendToolState();
     setFrontendToolRuntimeState(mockState);
 
     expect(getFrontendToolRuntimeState()).toBe(mockState);
@@ -57,8 +39,8 @@ describe("frontendToolRuntimeState", () => {
     const { setFrontendToolRuntimeState, getFrontendToolRuntimeState } =
       await import("../frontendToolRuntimeState");
 
-    const firstState = createMockState();
-    const secondState = createMockState();
+    const firstState = makeFrontendToolState();
+    const secondState = makeFrontendToolState();
     secondState.currentWorkflowId = "workflow-123";
 
     setFrontendToolRuntimeState(firstState);

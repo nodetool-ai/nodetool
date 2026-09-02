@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 import { FrontendToolRegistry } from "../frontendTools";
-import type { FrontendToolState } from "../frontendTools";
+import { makeFrontendToolState } from "../../../test-utils/frontendToolState";
 import "../builtin/deleteNode";
 
 function createMockNodeStore(nodes: Array<{ id: string }> = []) {
@@ -17,33 +17,10 @@ function createMockNodeStore(nodes: Array<{ id: string }> = []) {
   };
 }
 
-function createMockState(
-  overrides: Partial<FrontendToolState> = {}
-): FrontendToolState {
-  return {
-    nodeMetadata: {},
-    currentWorkflowId: "wf-1",
-    getWorkflow: jest.fn(),
-    addWorkflow: jest.fn(),
-    removeWorkflow: jest.fn(),
-    getNodeStore: jest.fn(),
-    updateWorkflow: jest.fn(),
-    saveWorkflow: jest.fn(),
-    getCurrentWorkflow: jest.fn(),
-    setCurrentWorkflowId: jest.fn(),
-    fetchWorkflow: jest.fn(),
-    newWorkflow: jest.fn(),
-    createNew: jest.fn(),
-    searchTemplates: jest.fn(),
-    copy: jest.fn(),
-    ...overrides,
-  };
-}
-
 describe("ui_delete_node tool", () => {
   it("deletes an existing node", async () => {
     const store = createMockNodeStore([{ id: "node-1" }]);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -61,7 +38,7 @@ describe("ui_delete_node tool", () => {
 
   it("throws when node is not found", async () => {
     const store = createMockNodeStore([]);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -76,7 +53,7 @@ describe("ui_delete_node tool", () => {
   });
 
   it("throws when no node store found", async () => {
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(undefined),
     });
 

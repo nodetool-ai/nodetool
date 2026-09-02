@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 import { FrontendToolRegistry } from "../frontendTools";
-import type { FrontendToolState } from "../frontendTools";
+import { makeFrontendToolState } from "../../../test-utils/frontendToolState";
 
 jest.mock("../../../utils/handleUtils", () => ({
   findOutputHandle: jest.fn(),
@@ -63,29 +63,6 @@ function createMockNodeStore(
   };
 }
 
-function createMockState(
-  overrides: Partial<FrontendToolState> = {}
-): FrontendToolState {
-  return {
-    nodeMetadata: {},
-    currentWorkflowId: "wf-1",
-    getWorkflow: jest.fn(),
-    addWorkflow: jest.fn(),
-    removeWorkflow: jest.fn(),
-    getNodeStore: jest.fn(),
-    updateWorkflow: jest.fn(),
-    saveWorkflow: jest.fn(),
-    getCurrentWorkflow: jest.fn(),
-    setCurrentWorkflowId: jest.fn(),
-    fetchWorkflow: jest.fn(),
-    newWorkflow: jest.fn(),
-    createNew: jest.fn(),
-    searchTemplates: jest.fn(),
-    copy: jest.fn(),
-    ...overrides,
-  };
-}
-
 beforeEach(() => {
   jest.clearAllMocks();
   mockedFindOutputHandle.mockReturnValue({ name: "output", type: { type: "str" } });
@@ -105,7 +82,7 @@ describe("ui_connect_nodes tool", () => {
       { id: "n2", type: "test.Target" },
     ];
     const store = createMockNodeStore(nodes);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -136,7 +113,7 @@ describe("ui_connect_nodes tool", () => {
       { id: "e-existing", source: "n1", target: "n2", sourceHandle: "output", targetHandle: "input" },
     ];
     const store = createMockNodeStore(nodes, existingEdges);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -162,7 +139,7 @@ describe("ui_connect_nodes tool", () => {
   it("throws when source node is not found", async () => {
     const nodes = [{ id: "n2", type: "test.Target" }];
     const store = createMockNodeStore(nodes);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -184,7 +161,7 @@ describe("ui_connect_nodes tool", () => {
   it("throws when target node is not found", async () => {
     const nodes = [{ id: "n1", type: "test.Source" }];
     const store = createMockNodeStore(nodes);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -211,7 +188,7 @@ describe("ui_connect_nodes tool", () => {
       { id: "n2", type: "test.Target" },
     ];
     const store = createMockNodeStore(nodes);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -238,7 +215,7 @@ describe("ui_connect_nodes tool", () => {
       { id: "n2", type: "test.Target" },
     ];
     const store = createMockNodeStore(nodes);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -265,7 +242,7 @@ describe("ui_connect_nodes tool", () => {
       { id: "n2", type: "test.Target" },
     ];
     const store = createMockNodeStore(nodes);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -292,7 +269,7 @@ describe("ui_connect_nodes tool", () => {
       { id: "n2", type: "test.Target" },
     ];
     const store = createMockNodeStore(nodes);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -324,7 +301,7 @@ describe("ui_connect_nodes tool", () => {
       { id: "n2", type: "nodetool.code.Code" },
     ];
     const store = createMockNodeStore(nodes);
-    const state = createMockState({
+    const state = makeFrontendToolState({
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 

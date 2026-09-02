@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 import { FrontendToolRegistry } from "../frontendTools";
-import type { FrontendToolState } from "../frontendTools";
+import { makeFrontendToolState } from "../../../test-utils/frontendToolState";
 import "../builtin/addNode";
 
 jest.mock("../../../utils/TypeHandler", () => ({
@@ -19,29 +19,6 @@ function createMockNodeStore() {
   };
 }
 
-function createMockState(
-  overrides: Partial<FrontendToolState> = {}
-): FrontendToolState {
-  return {
-    nodeMetadata: {},
-    currentWorkflowId: "wf-1",
-    getWorkflow: jest.fn(),
-    addWorkflow: jest.fn(),
-    removeWorkflow: jest.fn(),
-    getNodeStore: jest.fn(),
-    updateWorkflow: jest.fn(),
-    saveWorkflow: jest.fn(),
-    getCurrentWorkflow: jest.fn(),
-    setCurrentWorkflowId: jest.fn(),
-    fetchWorkflow: jest.fn(),
-    newWorkflow: jest.fn(),
-    createNew: jest.fn(),
-    searchTemplates: jest.fn(),
-    copy: jest.fn(),
-    ...overrides,
-  };
-}
-
 describe("ui_add_node tool", () => {
   it("adds a node with object position", async () => {
     const store = createMockNodeStore();
@@ -54,7 +31,7 @@ describe("ui_add_node tool", () => {
         outputs: [],
       },
     };
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: metadata as never,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
@@ -81,7 +58,7 @@ describe("ui_add_node tool", () => {
         outputs: [],
       },
     };
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: metadata as never,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
@@ -107,7 +84,7 @@ describe("ui_add_node tool", () => {
         outputs: [],
       },
     };
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: metadata as never,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
@@ -133,7 +110,7 @@ describe("ui_add_node tool", () => {
         outputs: [],
       },
     };
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: metadata as never,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
@@ -157,7 +134,7 @@ describe("ui_add_node tool", () => {
       "nodetool.text.Template": { node_type: "nodetool.text.Template", properties: [], outputs: [] },
     };
     const store = createMockNodeStore();
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: metadata as never,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
@@ -177,7 +154,7 @@ describe("ui_add_node tool", () => {
       "nodetool.text.Join": { node_type: "nodetool.text.Join", properties: [], outputs: [] },
     };
     const store = createMockNodeStore();
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: metadata as never,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
@@ -196,7 +173,7 @@ describe("ui_add_node tool", () => {
     const metadata = {
       "test.MyNode": { node_type: "test.MyNode", properties: [], outputs: [] },
     };
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: metadata as never,
       getNodeStore: jest.fn().mockReturnValue(undefined),
     });
@@ -222,7 +199,7 @@ describe("ui_add_node tool", () => {
         outputs: [],
       },
     };
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: metadata as never,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
@@ -252,7 +229,7 @@ describe("ui_add_node tool", () => {
         outputs: [],
       },
     };
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: metadata as never,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
@@ -283,7 +260,7 @@ describe("ui_add_node tool", () => {
         outputs: [],
       },
     };
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: metadata as never,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
@@ -302,7 +279,7 @@ describe("ui_add_node tool", () => {
 
   it("stamps inferred Code handles from the body", async () => {
     const store = createMockNodeStore();
-    const state = createMockState({
+    const state = makeFrontendToolState({
       nodeMetadata: {
         "nodetool.code.Code": {
           node_type: "nodetool.code.Code",
