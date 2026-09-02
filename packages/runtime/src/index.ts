@@ -126,13 +126,14 @@ export {
   type Counter
 } from "./turn-budget.js";
 export { packContext, type PackedContext } from "./context-packer.js";
+// Public API re-export — the source of truth lives in @nodetool-ai/protocol
 export {
   isZodSchema,
   parseWithTypeCoercion,
   zodToJsonSchema,
   type JsonSchema,
   type ZodOrJsonSchema
-} from "./zod-schema.js";
+} from "@nodetool-ai/protocol/zod-schema";
 export { VariableChannel } from "./variable-channel.js";
 export { countTokens, truncateToTokens } from "./token-counter.js";
 export {
