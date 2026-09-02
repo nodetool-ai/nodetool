@@ -30,7 +30,12 @@ import { createModel3DToolBridge } from "../evals/surfaces/model3d.js";
 import { createScriptToolBridge } from "../evals/surfaces/script.js";
 import { createSketchToolBridge } from "../evals/surfaces/sketch.js";
 import { createExplainerStoryboardToolBridge, createStoryboardToolBridge } from "../evals/surfaces/storyboard.js";
-import { createTimelineToolBridge } from "../evals/surfaces/timeline.js";
+import {
+  createTimelineToolBridge,
+  previewedAfterLastEdit,
+  staggerSpanFitsClip,
+  staggerUnitsOf
+} from "../evals/surfaces/timeline.js";
 import { findSystemSkill } from "../system-skills.js";
 import { defineJob, type ErasedJob } from "./run.js";
 
@@ -91,6 +96,24 @@ export const JOBS_TO_BE_DONE: readonly ErasedJob[] = [
     outcomes: [
       { name: "text-layer", describe: "Titles and captions are on overlay or subtitle tracks.", test: (s) => s.tracks.some((t) => t.type === "overlay") && s.clips.filter((c) => c.mediaType === "text").length >= 4 },
       { name: "readable-animated", describe: "Every text clip stays readable and has entry and exit motion.", test: (s) => s.clips.filter((c) => c.mediaType === "text").every((c) => c.durationMs >= 1200 && c.animations.some((a) => a.role === "in") && c.animations.some((a) => a.role === "out")) }
+    ]
+  }),
+
+  defineJob({
+    id: "motion-title-sequence",
+    statement: "When I have picture and a music bed, I want a title sequence that moves with the track, so I can hand over a cut that looks designed instead of typed over.",
+    surfaces: ["timeline"], difficulty: "long-horizon", maxIterations: 18, expectedToolCalls: 14,
+    objective: "This vertical cut has three shots roughly laid out over a 120 BPM music bed that starts at zero. Open it with a title sequence that lands on the beat, put 'Maya Chen' under the second shot as a lower third, and finish on an end card that says 'SEE YOU THERE'. Keep each title together as one unit I can move later, and have the type move on and off rather than pop in and sit there. Do not render.",
+    systemPrompt: `${findSystemSkill("motion-graphics")?.content ?? ""}\nEvaluation adapter: this surface exposes the edits as ui_timeline_* tools — read get_timeline as ui_timeline_get_state and each edit_timeline op as the matching tool. preview_timeline_frame is here and reports the layer stack rather than pixels. There is no rendering and no version history to snapshot.`,
+    createBridge: () => createTimelineToolBridge({ preview: true, width: 1080, height: 1920, tracks: [{ type: "video", name: "Picture" }, { type: "audio", name: "Music" }], clips: [{ name: "Shot 1", trackIndex: 0, mediaType: "video", startMs: 0, durationMs: 4180 }, { name: "Shot 2", trackIndex: 0, mediaType: "video", startMs: 4180, durationMs: 5150 }, { name: "Shot 3", trackIndex: 0, mediaType: "video", startMs: 9330, durationMs: 5670 }, { name: "Music", trackIndex: 1, mediaType: "audio", startMs: 0, durationMs: 15000 }] }),
+    outcomes: [
+      // 120 BPM is a beat every 500ms; 60ms is the tolerance a cut reads as
+      // landing on one. Either the grid is written down as markers or the
+      // picture sits on it — both are "the cut follows the track".
+      { name: "on-the-beat", describe: "Markers or every picture boundary sit on the 120 BPM grid.", test: (s) => { const onGrid = (ms: number) => Math.abs(ms - Math.round(ms / 500) * 500) <= 60; const picture = s.clips.filter((c) => c.mediaType === "video"); return (s.markers.length >= 4 && s.markers.every((m) => onGrid(m.timeMs))) || (picture.length > 0 && picture.every((c) => onGrid(c.startMs) && onGrid(c.startMs + c.durationMs))); } },
+      { name: "titles-are-units", describe: "A title is one movable thing: a group or a composition.", test: (s) => s.documentClips.some((c) => c.mediaType === "group" || Boolean(c.compositionId)) },
+      { name: "type-moves-and-fits", describe: "Every text clip enters and exits, and a staggered entrance finishes inside its clip.", test: (s) => { const texts = s.documentClips.filter((c) => c.mediaType === "text"); return texts.length >= 2 && texts.every((c) => (c.animations ?? []).some((a) => a.role === "in") && (c.animations ?? []).some((a) => a.role === "out")) && texts.some((c) => (c.animations ?? []).some((a) => a.stagger && staggerUnitsOf(c, a.stagger.unit) >= 2)) && texts.every((c) => (c.animations ?? []).every((a) => staggerSpanFitsClip(c, a))); } },
+      { name: "looked-at-it", describe: "The last edit was followed by a look at the frame.", test: (s) => previewedAfterLastEdit(s.toolLog) }
     ]
   }),
 

@@ -179,6 +179,71 @@ describe("the job registry", () => {
     }
   });
 
+  it("motion-title-sequence: a solved world passes every outcome", async () => {
+    // The untouched-world rule above proves the job's checks can fail. This is
+    // the other half: a beat grid, three animated titles inside a group, and a
+    // look at the frame satisfies all four, so the job is winnable rather than
+    // merely strict.
+    const job = findJob("motion-title-sequence");
+    if (!job) throw new Error("motion-title-sequence is not registered");
+    const world = job.start();
+    const tool = Object.fromEntries(world.tools.map((t) => [t.name, t]));
+    const run = (name: string, args: Record<string, unknown>) =>
+      tool[name].execute(args);
+    const clipId = async (
+      text: string,
+      startMs: number,
+      durationMs: number
+    ): Promise<string> => {
+      const added = (await run("ui_timeline_add_text_clip", {
+        text,
+        startMs,
+        durationMs
+      })) as { clip: { id: string } };
+      return added.clip.id;
+    };
+
+    // 120 BPM over 15s is 31 beats counting the downbeat at 0.
+    await run("ui_timeline_set_markers_from_beats", { bpm: 120, count: 31 });
+    await run("ui_timeline_snap_to_beats", { bpm: 120, count: 31 });
+    const title = await clipId("NIGHT SHIFT SESSIONS", 0, 3000);
+    await run("ui_timeline_animate_clip", {
+      target: title,
+      animations: [
+        {
+          role: "in",
+          preset: "pop",
+          durationMs: 400,
+          stagger: { unit: "word", offsetMs: 400 }
+        },
+        { role: "out", preset: "fade", durationMs: 400 }
+      ]
+    });
+    for (const [text, startMs] of [
+      ["Maya Chen", 4500],
+      ["SEE YOU THERE", 12000]
+    ] as const) {
+      const id = await clipId(text, startMs, 3000);
+      await run("ui_timeline_animate_clip", {
+        target: id,
+        animations: [
+          { role: "in", preset: "slide", durationMs: 400 },
+          { role: "out", preset: "fade", durationMs: 400 }
+        ]
+      });
+    }
+    await run("ui_timeline_add_group", {
+      name: "Title",
+      startMs: 0,
+      durationMs: 3000,
+      children: [title]
+    });
+    await run("preview_timeline_frame", { times_ms: [1000, 5000, 13000] });
+
+    const graded = world.grade();
+    expect(graded.filter((o) => !o.passed).map((o) => o.name)).toEqual([]);
+  });
+
   it("finds a job by id", () => {
     expect(findJob("workflow-from-prompt")?.id).toBe("workflow-from-prompt");
     expect(findJob("no-such-job")).toBeUndefined();

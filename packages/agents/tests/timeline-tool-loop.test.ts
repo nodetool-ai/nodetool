@@ -7,11 +7,19 @@
  */
 import { describe, it, expect } from "vitest";
 import type { BaseProvider, ProviderStreamItem, ProviderTool } from "@nodetool-ai/runtime";
-import { makeClip, makeTrack, makeTrackEffect } from "@nodetool-ai/timeline";
+import {
+  makeClip,
+  makeTrack,
+  makeTrackEffect,
+  type TimelineClip,
+  type TimelineMarker,
+  type TimelineTrack
+} from "@nodetool-ai/timeline";
 import { runToolLoopEval } from "../src/evals/tool-loop-eval.js";
 import {
   createTimelineToolBridge,
-  TIMELINE_TOOL_LOOP_CASES
+  TIMELINE_TOOL_LOOP_CASES,
+  type TimelineBridgeFinalState
 } from "../src/evals/surfaces/timeline.js";
 
 // --- scripted provider -------------------------------------------------------
@@ -389,5 +397,319 @@ describe("TIMELINE_TOOL_LOOP_CASES", () => {
 
     expect(report.cases[0].accepted).toBe(true);
     expect(report.cases[0].score).toBe(1);
+  });
+});
+
+// --- motion predicates (hand-built final states) ------------------------------
+
+/**
+ * The shipped predicate for a case, so a test grades the state the eval grades
+ * — not a copy of the rule that can drift from it.
+ */
+function predicateOf(
+  caseId: string,
+  name: string
+): (state: TimelineBridgeFinalState) => boolean {
+  const found = TIMELINE_TOOL_LOOP_CASES.find((c) => c.id === caseId);
+  if (!found) throw new Error(`no case "${caseId}"`);
+  const predicate = found.expect.finalState?.find((p) => p.name === name);
+  if (!predicate) throw new Error(`case "${caseId}" has no check "${name}"`);
+  return predicate.test;
+}
+
+/** A final state built from tracks and clips, with the reduced view derived. */
+function stateOf(
+  tracks: TimelineTrack[],
+  clips: TimelineClip[],
+  extra: { markers?: TimelineMarker[]; toolLog?: string[] } = {}
+): TimelineBridgeFinalState {
+  return {
+    fps: 30,
+    width: 1080,
+    height: 1920,
+    durationMs: clips.reduce((m, c) => Math.max(m, c.startMs + c.durationMs), 0),
+    playheadMs: 0,
+    tracks: tracks.map((t) => ({
+      id: t.id,
+      name: t.name,
+      type: t.type,
+      index: t.index
+    })),
+    clips: clips.map((c) => ({
+      id: c.id,
+      name: c.name,
+      trackId: c.trackId,
+      mediaType: c.mediaType,
+      startMs: c.startMs,
+      durationMs: c.durationMs,
+      animations: (c.animations ?? []).map((a) => ({
+        role: a.role,
+        preset: a.preset
+      }))
+    })),
+    documentTracks: tracks,
+    documentClips: clips,
+    markers: extra.markers ?? [],
+    toolLog: extra.toolLog ?? []
+  };
+}
+
+const overlay = makeTrack({ id: "t_text", type: "overlay", index: 0 });
+const scrimTrack = makeTrack({ id: "t_scrim", type: "overlay", index: 1 });
+const pictureTrack = makeTrack({ id: "t_pic", type: "video", index: 2 });
+
+function textClip(
+  over: Partial<TimelineClip> & { text: string }
+): TimelineClip {
+  const { text, ...rest } = over;
+  return makeClip({
+    trackId: overlay.id,
+    mediaType: "text",
+    textStyle: { text },
+    durationMs: 2500,
+    ...rest
+  });
+}
+
+describe("the timeline eval system prompt", () => {
+  it("embeds the shipped motion-graphics skill", () => {
+    // The suite scores motion the skill teaches, so the model is given that
+    // document rather than a paraphrase of it. A build that cannot find the
+    // skill would drop it silently.
+    const prompt = TIMELINE_TOOL_LOOP_CASES[0].systemPrompt ?? "";
+    expect(prompt).toContain("# Motion Graphics");
+    expect(prompt).toContain("preview_timeline_frame");
+  });
+});
+
+describe("motion eval predicates", () => {
+  it("kinetic-title-staggered: a stagger that fits passes, one that overruns fails", () => {
+    const test = predicateOf("kinetic-title-staggered", "staggerSpanFitsTheCard");
+    // "MAKE IT MOVE" is three words: 400 + 300 x 2 = 1000ms inside a 2500ms card.
+    const fits = textClip({
+      id: "c_fits",
+      text: "MAKE IT MOVE",
+      animations: [
+        {
+          id: "a1",
+          role: "in",
+          preset: "pop",
+          durationMs: 400,
+          stagger: { unit: "word", offsetMs: 300 }
+        }
+      ]
+    });
+    // Same three words at 1200ms apart: the last word starts at 2400 and is
+    // still moving when the card leaves.
+    const overruns = textClip({
+      id: "c_over",
+      text: "MAKE IT MOVE",
+      animations: [
+        {
+          id: "a1",
+          role: "in",
+          preset: "pop",
+          durationMs: 400,
+          stagger: { unit: "word", offsetMs: 1200 }
+        }
+      ]
+    });
+    expect(test(stateOf([overlay], [fits]))).toBe(true);
+    expect(test(stateOf([overlay], [overruns]))).toBe(false);
+  });
+
+  it("kinetic-title-staggered: an unstaggered entrance is not a stagger", () => {
+    const test = predicateOf("kinetic-title-staggered", "staggerSpanFitsTheCard");
+    const block = textClip({
+      id: "c_block",
+      text: "MAKE IT MOVE",
+      animations: [{ id: "a1", role: "in", preset: "pop", durationMs: 400 }]
+    });
+    expect(test(stateOf([overlay], [block]))).toBe(false);
+  });
+
+  it("lower-third-layered: the scrim must be under the text and inside the shot", () => {
+    const test = predicateOf(
+      "lower-third-layered",
+      "scrimBehindTextInsideTheShot"
+    );
+    const host = makeClip({
+      id: "c_host",
+      trackId: pictureTrack.id,
+      mediaType: "video",
+      name: "Host",
+      startMs: 0,
+      durationMs: 6000
+    });
+    const name = textClip({
+      id: "c_name",
+      text: "Maya Chen",
+      startMs: 1000,
+      durationMs: 3000
+    });
+    const scrim = makeClip({
+      id: "c_scrim",
+      trackId: scrimTrack.id,
+      mediaType: "shape",
+      startMs: 1000,
+      durationMs: 3000
+    });
+    const tracks = [overlay, scrimTrack, pictureTrack];
+    expect(test(stateOf(tracks, [host, name, scrim]))).toBe(true);
+
+    // Same two clips with the scrim on the front-most track: it covers the
+    // words instead of backing them.
+    const covering = { ...scrim, trackId: overlay.id };
+    const behindText = { ...name, trackId: scrimTrack.id };
+    expect(test(stateOf(tracks, [host, behindText, covering]))).toBe(false);
+
+    // Right layering, wrong window: the plate outlives the shot.
+    const overrunning = { ...name, startMs: 5000, durationMs: 3000 };
+    expect(test(stateOf(tracks, [host, overrunning, scrim]))).toBe(false);
+  });
+
+  it("entrance-decelerates: ease-out and spring pass, easeIn and linear fail", () => {
+    const test = predicateOf("entrance-decelerates", "everyEntranceDecelerates");
+    const withEasing = (id: string, easing?: string): TimelineClip =>
+      textClip({
+        id,
+        text: "Chapter",
+        animations: [
+          easing === undefined
+            ? { id: `${id}_a`, role: "in", preset: "fade" }
+            : { id: `${id}_a`, role: "in", preset: "fade", easing }
+        ]
+      });
+    expect(
+      test(
+        stateOf(
+          [overlay],
+          [withEasing("c1", "easeOutBack"), withEasing("c2", "spring(180,12,1)")]
+        )
+      )
+    ).toBe(true);
+    // No easing at all: `fade` pins easeOut, and the `in` role defaults to it.
+    expect(test(stateOf([overlay], [withEasing("c1"), withEasing("c2")]))).toBe(
+      true
+    );
+    expect(
+      test(stateOf([overlay], [withEasing("c1", "easeOut"), withEasing("c2", "easeIn")]))
+    ).toBe(false);
+    expect(
+      test(stateOf([overlay], [withEasing("c1", "linear"), withEasing("c2", "easeOut")]))
+    ).toBe(false);
+  });
+
+  it("beat-cut: boundaries within 60ms of an onset pass, a drifted cut fails", () => {
+    const test = predicateOf("beat-cut", "everyBoundaryOnAnOnset");
+    const shots = (bounds: [number, number][]): TimelineClip[] =>
+      bounds.map(([startMs, endMs], i) =>
+        makeClip({
+          id: `c${i}`,
+          trackId: pictureTrack.id,
+          mediaType: "video",
+          name: String.fromCharCode(65 + i),
+          startMs,
+          durationMs: endMs - startMs
+        })
+      );
+    expect(
+      test(
+        stateOf(
+          [pictureTrack],
+          shots([
+            [0, 2000],
+            [2000, 4040],
+            [4040, 6000]
+          ])
+        )
+      )
+    ).toBe(true);
+    expect(
+      test(
+        stateOf(
+          [pictureTrack],
+          shots([
+            [0, 2180],
+            [2180, 4260],
+            [4260, 6000]
+          ])
+        )
+      )
+    ).toBe(false);
+  });
+
+  it("looked-before-done: a preview after the last edit passes, one before it fails", () => {
+    const test = predicateOf("looked-before-done", "previewedAfterTheLastEdit");
+    const card = textClip({ id: "c_end", text: "END", startMs: 4000 });
+    expect(
+      test(
+        stateOf([overlay], [card], {
+          toolLog: [
+            "ui_timeline_add_text_clip",
+            "ui_timeline_animate_clip",
+            "preview_timeline_frame"
+          ]
+        })
+      )
+    ).toBe(true);
+    // Looked, then kept editing: the frame it saw is not the one it shipped.
+    expect(
+      test(
+        stateOf([overlay], [card], {
+          toolLog: [
+            "ui_timeline_add_text_clip",
+            "preview_timeline_frame",
+            "ui_timeline_animate_clip"
+          ]
+        })
+      )
+    ).toBe(false);
+    // Reads and selections after the preview are not edits.
+    expect(
+      test(
+        stateOf([overlay], [card], {
+          toolLog: [
+            "ui_timeline_add_text_clip",
+            "preview_timeline_frame",
+            "ui_timeline_get_state"
+          ]
+        })
+      )
+    ).toBe(true);
+    expect(test(stateOf([overlay], [card], { toolLog: [] }))).toBe(false);
+  });
+});
+
+describe("preview_timeline_frame (eval surface)", () => {
+  it("reports the layers at a timecode, top of the stack first", async () => {
+    const bridge = createTimelineToolBridge({ preview: true });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    await byName["ui_timeline_add_text_clip"].execute({
+      text: "END",
+      startMs: 0,
+      durationMs: 2000
+    });
+
+    const result = (await byName["preview_timeline_frame"].execute({
+      times_ms: [1000]
+    })) as {
+      frames: { time_ms: number; layers: { text?: string; z_index: number }[] }[];
+    };
+
+    expect(result.frames).toHaveLength(1);
+    expect(result.frames[0].layers[0].text).toBe("END");
+    expect(bridge.finalState().toolLog).toEqual([
+      "ui_timeline_add_text_clip",
+      "preview_timeline_frame"
+    ]);
+  });
+
+  it("is absent unless the case asks for it", () => {
+    // `edit_timeline` builds this bridge and reads its ops off the
+    // `ui_timeline_` prefix, so the default surface must not carry it.
+    const names = createTimelineToolBridge().tools.map((t) => t.name);
+    expect(names).not.toContain("preview_timeline_frame");
+    expect(names.every((name) => name.startsWith("ui_timeline_"))).toBe(true);
   });
 });

@@ -45,6 +45,7 @@ import {
   mediaTypeForContentType,
   trackTypeForMediaType,
   STAGGER_UNITS,
+  parseStaggerUnit,
   DEFAULT_BEAT_TOLERANCE_MS,
   buildBeatGrid,
   beatCountToCover,
@@ -67,7 +68,11 @@ import {
   instantiateComposition,
   type TimelineComposition
 } from "@nodetool-ai/timeline";
-import { parseSvgPath } from "@nodetool-ai/timeline/scene";
+import {
+  computeActiveLayers,
+  countTextStaggerUnits,
+  parseSvgPath
+} from "@nodetool-ai/timeline/scene";
 import {
   addGroupParams,
   buildEffect,
@@ -93,6 +98,7 @@ import type {
   ToolLoopEvalCase,
   ToolLoopStatePredicate
 } from "../tool-loop-eval.js";
+import { findSystemSkill } from "../../system-skills.js";
 
 const animationRole = z.enum(["in", "out", "emphasis", "loop"]);
 
@@ -247,6 +253,13 @@ export interface TimelineBridgeInitialState {
    * a template.
    */
   loadComposition?: TimelineCompositionLoader;
+  /**
+   * Offer `preview_timeline_frame` — a look at the layer stack at a timecode.
+   * Off by default: `edit_timeline` builds this bridge too and reads its ops
+   * off the `ui_timeline_` prefix, so a tool outside it would sit in that
+   * catalogue as a verb nothing can call.
+   */
+  preview?: boolean;
   tracks?: { name?: string; type: "video" | "audio" | "overlay" | "subtitle" }[];
   clips?: {
     name: string;
@@ -287,6 +300,100 @@ export interface TimelineBridgeFinalState {
    * wide, so a predicate and a document reader want the same shape.
    */
   markers: TimelineMarker[];
+  /**
+   * Every tool this bridge ran, in call order, by name — failed calls
+   * included, because a call that errored still happened. A document cannot
+   * say whether the agent *looked* at what it made: "previewed after the last
+   * edit" is a fact about the transcript, and a final-state predicate is all
+   * the runner hands a case.
+   */
+  toolLog: string[];
+}
+
+/**
+ * Tools that read the sequence without changing it. Everything else is an
+ * edit, which is what {@link previewedAfterLastEdit} measures "last" against.
+ */
+export const TIMELINE_READ_ONLY_TOOLS: readonly string[] = [
+  "ui_timeline_get_state",
+  "ui_timeline_list_animation_presets",
+  "ui_timeline_select_clip",
+  "ui_timeline_seek",
+  "preview_timeline_frame"
+];
+
+/** Whether the last edit in a transcript is followed by a preview call. */
+export function previewedAfterLastEdit(toolLog: readonly string[]): boolean {
+  const lastEdit = toolLog.reduce(
+    (index, name, i) => (TIMELINE_READ_ONLY_TOOLS.includes(name) ? index : i),
+    -1
+  );
+  if (lastEdit === -1) return false;
+  return toolLog.indexOf("preview_timeline_frame", lastEdit + 1) !== -1;
+}
+
+/**
+ * Whether a staggered animation finishes inside its clip: the last unit
+ * starts `offsetMs × (units − 1)` in and still runs the full `durationMs`.
+ * An animation with no stagger, or one on a clip that splits into fewer than
+ * two units, fits by construction — it is one block.
+ */
+export function staggerSpanFitsClip(
+  clip: TimelineClip,
+  animation: ClipAnimation
+): boolean {
+  const stagger = animation.stagger;
+  if (!stagger || !(stagger.offsetMs > 0)) return true;
+  const units = staggerUnitsOf(clip, stagger.unit);
+  if (units < 2) return true;
+  const preset = ANIMATION_PRESETS.find((p) => p.id === animation.preset);
+  const durationMs = animation.durationMs ?? preset?.defaultDurationMs ?? 0;
+  const span =
+    (animation.delayMs ?? 0) + durationMs + stagger.offsetMs * (units - 1);
+  return span <= clip.durationMs;
+}
+
+/**
+ * How many units a clip's text splits into for a stagger unit. Line counting
+ * wraps against the sequence size; with no text measurer every authored
+ * paragraph is one line, which is what a headless surface can know.
+ */
+export function staggerUnitsOf(clip: TimelineClip, unit: string): number {
+  const style = clip.textStyle;
+  const parsed = parseStaggerUnit(unit);
+  // An unknown unit compiles as a plain block animation, so it splits into
+  // nothing — same answer as a clip with no text.
+  if (!style || !parsed) return 0;
+  return countTextStaggerUnits(
+    style,
+    { width: 1920, height: 1080 },
+    parsed
+  );
+}
+
+/**
+ * The easing an animation actually runs with: its own, else the preset's, else
+ * the role default (`in` decelerates, `out` accelerates).
+ */
+export function effectiveEasing(animation: ClipAnimation): string {
+  if (animation.easing) return animation.easing;
+  const preset = ANIMATION_PRESETS.find((p) => p.id === animation.preset);
+  if (preset?.defaultEasing) return preset.defaultEasing;
+  switch (animation.role) {
+    case "in":
+      return "easeOut";
+    case "out":
+      return "easeIn";
+    case "emphasis":
+      return "easeInOut";
+    default:
+      return "linear";
+  }
+}
+
+/** Whether an easing decelerates into its landing: an ease-out or a spring. */
+export function easingDecelerates(easing: string): boolean {
+  return /^easeOut/.test(easing) || /^spring\(/.test(easing.replace(/\s+/g, ""));
 }
 
 function tool<TResult>(
@@ -353,6 +460,7 @@ export function createTimelineToolBridge(
   const tracks: TimelineTrack[] = [];
   let clips: TimelineClip[] = [];
   let markers: TimelineMarker[] = [];
+  const toolLog: string[] = [];
 
   // Ids the sequence already uses. A seeded document brings its own, which the
   // `track_1`/`clip_1` counters would otherwise collide with on the first edit.
@@ -1832,8 +1940,58 @@ export function createTimelineToolBridge(
     )
   ];
 
+  // Opt-in, and outside the `ui_timeline_` prefix on purpose: `edit_timeline`
+  // builds this same bridge and matches its ops by that prefix, so a preview
+  // tool it can never call has no business in its op catalogue. A case that
+  // grades "did it look at the frame" asks for it.
+  if (initial.preview) {
+    tools.push(
+      tool(
+        "preview_timeline_frame",
+        "Look at the sequence at one or more timecodes: what is on screen, layered top of the stack first, with each layer's opacity and track index. This surface has no rasterizer, so it reports the layer stack rather than pixels — enough to see a layer that is covered, missing, or drawing nothing. Call it after an edit, before you say you are done.",
+        z.object({
+          times_ms: z
+            .array(z.number().nonnegative())
+            .min(1)
+            .max(8)
+            .describe("Absolute timeline positions to look at, in ms.")
+        }),
+        async ({ times_ms }) => {
+          const frames = (times_ms as number[]).map((timeMs) => ({
+            time_ms: timeMs,
+            layers: computeActiveLayers(tracks, clips, timeMs)
+              .map((layer) => ({
+                clip_id: layer.clipId,
+                clip_name:
+                  clips.find((c) => c.id === layer.clipId)?.name ?? layer.clipId,
+                kind: layer.kind,
+                track_index: layer.trackIndex,
+                z_index: 1000 - layer.trackIndex,
+                opacity: layer.opacity,
+                text: layer.textStyle?.text
+              }))
+              // Top of the stack first, the order the skill's report describes.
+              .sort((a, b) => b.z_index - a.z_index)
+          }));
+          return { ok: true, width, height, frames };
+        }
+      )
+    );
+  }
+
+  // Recorded rather than counted: a predicate asks where the last edit sits
+  // relative to a preview, which a tally cannot answer. The push happens
+  // before the call, so a tool that throws is still in the transcript.
+  const recorded: HeadlessTool[] = tools.map((entry) => ({
+    ...entry,
+    execute: (args: Record<string, unknown>) => {
+      toolLog.push(entry.name);
+      return entry.execute(args);
+    }
+  }));
+
   return {
-    tools,
+    tools: recorded,
     finalState: (): TimelineBridgeFinalState => ({
       fps,
       width,
@@ -1864,7 +2022,8 @@ export function createTimelineToolBridge(
       })),
       documentTracks: tracks.map((t) => structuredClone(t)),
       documentClips: clips.map((c) => structuredClone(c)),
-      markers: markers.map((m) => structuredClone(m))
+      markers: markers.map((m) => structuredClone(m)),
+      toolLog: [...toolLog]
     })
   };
 }
@@ -1880,7 +2039,28 @@ Use the ui_timeline_* tools to inspect and modify the sequence:
 - ui_timeline_seek moves the playhead (useful before a playhead-relative split).
 - Flag moments with ui_timeline_add_marker / ui_timeline_delete_marker. To cut to music, lay the grid down with ui_timeline_set_markers_from_beats and put clip boundaries on it with ui_timeline_snap_to_beats, then read its per-clip report — a clip further than the tolerance from every beat is left alone and says so.
 
-Call one tool at a time and use the result before the next call. When the objective is fully satisfied, STOP calling tools and give a one-line summary.`;
+- Look at what you made with preview_timeline_frame before you stop.
+
+Call one tool at a time and use the result before the next call. When the objective is fully satisfied, STOP calling tools and give a one-line summary.
+${motionGraphicsSection()}`;
+
+/**
+ * The shipped `motion-graphics` skill, verbatim, plus the two lines that
+ * reconcile it with this surface. The eval measures motion the skill teaches,
+ * so the model gets the same document a product agent gets rather than a
+ * paraphrase that drifts from it. Empty when the build ships no skills —
+ * a skill file missing is not a reason to fail every timeline case.
+ */
+function motionGraphicsSection(): string {
+  const skill = findSystemSkill("motion-graphics")?.content;
+  if (!skill) return "";
+  return `
+---
+
+The motion-graphics craft, as shipped. It names the capability tools: read \`get_timeline\` as ui_timeline_get_state and every \`edit_timeline\` op as the matching ui_timeline_* tool. \`preview_timeline_frame\` is here and reports the layer stack rather than pixels.
+
+${skill}`;
+}
 
 export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeFinalState>[] =
   [
@@ -2016,6 +2196,215 @@ export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeF
                   animation?.durationMs === 800
                 );
               })
+          }
+        ]
+      }
+    },
+    {
+      id: "kinetic-title-staggered",
+      description:
+        "Stagger a title's words so the entrance still finishes inside the clip",
+      objective:
+        "Put the title 'MAKE IT MOVE' on screen for 2500ms and have the words arrive one after another instead of all at once. The whole entrance has to be over while the card is still up.",
+      createBridge: () => createTimelineToolBridge({ preview: true }),
+      systemPrompt: TIMELINE_SYSTEM_PROMPT,
+      expect: {
+        requiredTools: [
+          "ui_timeline_add_text_clip",
+          "ui_timeline_animate_clip"
+        ],
+        ordering: [["ui_timeline_add_text_clip", "ui_timeline_animate_clip"]],
+        noErrorResults: true,
+        minToolCalls: 2,
+        maxToolCalls: 14,
+        finalState: [
+          {
+            name: "staggerSpanFitsTheCard",
+            detail:
+              "no text clip whose entrance staggers over at least two units and finishes inside the clip",
+            test: (s) =>
+              s.documentClips.some((clip) => {
+                if (clip.mediaType !== "text") return false;
+                const entrance = (clip.animations ?? []).find(
+                  (a) => a.role === "in" && a.stagger
+                );
+                const stagger = entrance?.stagger;
+                if (!entrance || !stagger) return false;
+                return (
+                  staggerUnitsOf(clip, stagger.unit) >= 2 &&
+                  staggerSpanFitsClip(clip, entrance)
+                );
+              })
+          }
+        ]
+      }
+    },
+    {
+      id: "lower-third-layered",
+      description:
+        "Put a scrim behind a name plate and keep both inside the shot",
+      objective:
+        "The shot named 'Host' runs from 0ms to 6000ms. While it is on screen, put the name 'Maya Chen' on the picture with a dark bar behind the words so they stay readable against the shot. Both have to sit inside that shot's window.",
+      createBridge: () =>
+        createTimelineToolBridge({
+          preview: true,
+          tracks: [{ type: "video", name: "Picture" }],
+          clips: [
+            {
+              name: "Host",
+              trackIndex: 0,
+              mediaType: "video",
+              startMs: 0,
+              durationMs: 6000
+            }
+          ]
+        }),
+      systemPrompt: TIMELINE_SYSTEM_PROMPT,
+      expect: {
+        requiredTools: [
+          "ui_timeline_add_text_clip",
+          "ui_timeline_add_shape_clip"
+        ],
+        noErrorResults: true,
+        minToolCalls: 2,
+        maxToolCalls: 14,
+        finalState: [
+          {
+            name: "scrimBehindTextInsideTheShot",
+            detail:
+              "no shape clip on a higher-index track than the text, both inside 0-6000ms",
+            test: (s) => {
+              const indexOf = (trackId: string): number =>
+                s.tracks.find((t) => t.id === trackId)?.index ?? -1;
+              const inShot = (c: { startMs: number; durationMs: number }) =>
+                c.startMs >= 0 && c.startMs + c.durationMs <= 6000;
+              const texts = s.clips.filter(
+                (c) => c.mediaType === "text" && inShot(c)
+              );
+              const shapes = s.clips.filter(
+                (c) => c.mediaType === "shape" && inShot(c)
+              );
+              // Lowest index draws on top, so the scrim's track index must be
+              // the larger one for the words to sit over it.
+              return texts.some((text) =>
+                shapes.some(
+                  (shape) => indexOf(shape.trackId) > indexOf(text.trackId)
+                )
+              );
+            }
+          }
+        ]
+      }
+    },
+    {
+      id: "entrance-decelerates",
+      description: "Every entrance eases out or springs, never accelerates in",
+      objective:
+        "Add two title cards, 'Chapter One' and 'Chapter Two', and bring each one on so it arrives and settles rather than speeding up as it lands.",
+      createBridge: () => createTimelineToolBridge({ preview: true }),
+      systemPrompt: TIMELINE_SYSTEM_PROMPT,
+      expect: {
+        requiredTools: ["ui_timeline_animate_clip"],
+        noErrorResults: true,
+        minToolCalls: 2,
+        maxToolCalls: 16,
+        finalState: [
+          {
+            name: "everyEntranceDecelerates",
+            detail:
+              "an 'in' animation runs on an easing that is neither an ease-out family nor a spring",
+            test: (s) => {
+              const entrances = s.documentClips.flatMap((clip) =>
+                (clip.animations ?? []).filter((a) => a.role === "in")
+              );
+              return (
+                entrances.length >= 2 &&
+                entrances.every((a) => easingDecelerates(effectiveEasing(a)))
+              );
+            }
+          }
+        ]
+      }
+    },
+    {
+      id: "beat-cut",
+      description: "Move every picture boundary onto a named musical onset",
+      objective:
+        "The music hits at 0ms, 2000ms, 4000ms and 6000ms. My three shots — A, B and C — are roughly laid out and none of the cuts land on those hits. Put every cut on a hit, keeping the shots back to back with no gap.",
+      createBridge: () =>
+        createTimelineToolBridge({
+          preview: true,
+          tracks: [{ type: "video", name: "Picture" }],
+          clips: [
+            {
+              name: "A",
+              trackIndex: 0,
+              mediaType: "video",
+              startMs: 0,
+              durationMs: 2180
+            },
+            {
+              name: "B",
+              trackIndex: 0,
+              mediaType: "video",
+              startMs: 2180,
+              durationMs: 2080
+            },
+            {
+              name: "C",
+              trackIndex: 0,
+              mediaType: "video",
+              startMs: 4260,
+              durationMs: 1740
+            }
+          ]
+        }),
+      systemPrompt: TIMELINE_SYSTEM_PROMPT,
+      expect: {
+        noErrorResults: true,
+        minToolCalls: 1,
+        maxToolCalls: 16,
+        finalState: [
+          {
+            name: "everyBoundaryOnAnOnset",
+            detail:
+              "a picture clip's start or end is further than 60ms from 0/2000/4000/6000ms",
+            test: (s) => {
+              const onsets = [0, 2000, 4000, 6000];
+              const onBeat = (ms: number) =>
+                onsets.some((onset) => Math.abs(ms - onset) <= 60);
+              const picture = s.clips.filter((c) => c.mediaType === "video");
+              return (
+                picture.length === 3 &&
+                picture.every(
+                  (c) => onBeat(c.startMs) && onBeat(c.startMs + c.durationMs)
+                )
+              );
+            }
+          }
+        ]
+      }
+    },
+    {
+      id: "looked-before-done",
+      description: "Check the frame after the last edit, before reporting done",
+      objective:
+        "Add an end card that says 'END' starting at 4000ms, then look at what is actually on screen there before you tell me it is finished.",
+      createBridge: () => createTimelineToolBridge({ preview: true }),
+      systemPrompt: TIMELINE_SYSTEM_PROMPT,
+      expect: {
+        requiredTools: ["ui_timeline_add_text_clip", "preview_timeline_frame"],
+        noErrorResults: true,
+        minToolCalls: 2,
+        maxToolCalls: 12,
+        finalState: [
+          {
+            name: "previewedAfterTheLastEdit",
+            detail:
+              "the run's last edit is not followed by a preview_timeline_frame call",
+            test: (s) =>
+              s.clips.some((c) => c.mediaType === "text") &&
+              previewedAfterLastEdit(s.toolLog)
           }
         ]
       }
