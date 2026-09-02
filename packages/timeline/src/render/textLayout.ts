@@ -39,11 +39,48 @@ export interface RenderCanvas {
   measureText?: MeasureTextWidth;
 }
 
+/**
+ * The slants the `font` shorthand accepts. An unknown `fontStyle` is dropped
+ * rather than emitted: the shorthand is parsed as a whole, so one unreadable
+ * token would make a context ignore the assignment and keep whatever font it
+ * last had — a wrong picture instead of an unstyled one (I2).
+ */
+const FONT_SLANTS = new Set(["italic", "oblique"]);
+
 /** The `ctx.font` shorthand a text style renders with. */
 export function textFontSpec(style: ClipTextStyle): string {
   const fontSize = Math.max(1, style.fontSizePx);
   const family = style.fontFamily ?? "Inter, Arial, sans-serif";
-  return `${style.fontWeight ?? 400} ${fontSize}px ${family}`;
+  const slant = FONT_SLANTS.has(style.fontStyle ?? "")
+    ? `${style.fontStyle} `
+    : "";
+  return `${slant}${style.fontWeight ?? 400} ${fontSize}px ${family}`;
+}
+
+/** Line advance in px: the `lineHeight` multiple of the font size, default 1.2. */
+export function textLineHeightPx(style: ClipTextStyle): number {
+  const fontSize = Math.max(1, style.fontSizePx);
+  const multiple = style.lineHeight;
+  return fontSize * (multiple !== undefined && multiple > 0 ? multiple : 1.2);
+}
+
+/** Extra advance after each grapheme, in canvas px. */
+export function textLetterSpacingPx(style: ClipTextStyle): number {
+  const spacing = style.letterSpacingPx ?? 0;
+  return Number.isFinite(spacing) ? spacing : 0;
+}
+
+/**
+ * A width function that charges `spacingPx` for every grapheme, the way a
+ * canvas with `letterSpacing` set reports its own advances — trailing space
+ * included, so a spaced line is as wide as it draws.
+ */
+function spacedMeasure(
+  measure: (text: string) => number,
+  spacingPx: number
+): (text: string) => number {
+  if (spacingPx === 0) return measure;
+  return (text) => measure(text) + spacingPx * segmentGraphemes(text).length;
 }
 
 /** The px the text wraps within, from `maxWidthFrac` of the canvas. */
@@ -149,7 +186,9 @@ export function countTextStaggerUnits(
 /**
  * A width function for `style`, or one that reports zero when the canvas
  * carries no measurer — under which nothing ever exceeds the wrap width, so
- * `wrapTextLines` returns one line per authored paragraph.
+ * `wrapTextLines` returns one line per authored paragraph. Letter spacing is
+ * charged only on the measuring branch: adding it to the zero fallback would
+ * wrap a title the rasterizer could not measure.
  */
 function measurerFor(
   style: ClipTextStyle,
@@ -158,7 +197,136 @@ function measurerFor(
   const measure = canvas.measureText;
   if (!measure) return () => 0;
   const font = textFontSpec(style);
-  return (text) => measure(text, font);
+  return spacedMeasure(
+    (text) => measure(text, font),
+    textLetterSpacingPx(style)
+  );
+}
+
+/** One wrapped line placed on the raster, in canvas px. */
+export interface LaidOutTextLine {
+  text: string;
+  words: string[];
+  /** Advance width of each word, letter spacing included. */
+  wordWidths: number[];
+  /** Left edge. */
+  x: number;
+  width: number;
+  /** Vertical center of the line box (textBaseline "middle"). */
+  y: number;
+}
+
+/** A box on the raster, in canvas px. */
+export interface TextBlockBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** Everything a draw needs about a wrapped text block. */
+export interface TextBlockLayout {
+  lines: LaidOutTextLine[];
+  lineHeight: number;
+  /** Advance of one space, letter spacing included. */
+  spaceWidth: number;
+  letterSpacingPx: number;
+  /**
+   * The union of the line boxes: what a background scrim sits behind and what
+   * a gradient fill is measured against — the text, not the raster.
+   */
+  box: TextBlockBox;
+}
+
+/**
+ * Vertical center of the first line. `verticalAlign` moves the whole block
+ * within the raster, which covers the frame, so `"top"` sits the first line
+ * against the top edge and `"bottom"` the last against the bottom. An unknown
+ * value reads as `"middle"` (I2).
+ */
+function firstLineCenterY(
+  style: ClipTextStyle,
+  lineCount: number,
+  height: number,
+  lineHeight: number
+): number {
+  const align = style.verticalAlign ?? "middle";
+  const block = lineCount * lineHeight;
+  if (align === "top") return lineHeight / 2;
+  if (align === "bottom") return height - block + lineHeight / 2;
+  return height / 2 - block / 2 + lineHeight / 2;
+}
+
+/**
+ * Wrap `style.text` and place every line on the raster. The one layout the
+ * plain draw, the staggered draw and the background scrim all read, so a
+ * staggered title breaks and sits exactly where its un-staggered self does.
+ *
+ * `measure` reports unspaced advances; `letterSpacingPx` is charged here, so a
+ * host measuring through a context that applies spacing of its own must ask it
+ * with spacing off.
+ */
+export function layoutTextBlock(
+  measure: (text: string) => number,
+  style: ClipTextStyle,
+  width: number,
+  height: number
+): TextBlockLayout {
+  const letterSpacingPx = textLetterSpacingPx(style);
+  const advance = spacedMeasure(measure, letterSpacingPx);
+  const align = style.align ?? "center";
+  const maxWidth = textMaxWidthPx(style, width);
+  const wrapped = wrapTextLines(style.text, maxWidth, advance);
+  const spaceWidth = advance(" ");
+  const lineHeight = textLineHeightPx(style);
+  const firstY = firstLineCenterY(style, wrapped.length, height, lineHeight);
+
+  const lines: LaidOutTextLine[] = wrapped.map((line, index) => {
+    const wordWidths = line.words.map((word) => advance(word));
+    const lineWidth =
+      wordWidths.reduce((sum, w) => sum + w, 0) +
+      spaceWidth * Math.max(0, line.words.length - 1);
+    const x =
+      align === "left"
+        ? (width - maxWidth) / 2
+        : align === "right"
+          ? (width + maxWidth) / 2 - lineWidth
+          : (width - lineWidth) / 2;
+    return {
+      text: line.text,
+      words: line.words,
+      wordWidths,
+      x,
+      width: lineWidth,
+      y: firstY + index * lineHeight
+    };
+  });
+
+  let left = Number.POSITIVE_INFINITY;
+  let right = Number.NEGATIVE_INFINITY;
+  for (const line of lines) {
+    if (line.width <= 0) continue;
+    left = Math.min(left, line.x);
+    right = Math.max(right, line.x + line.width);
+  }
+  // An empty title has no ink, so its block collapses to a point rather than
+  // spanning the raster — a scrim behind nothing would otherwise be full-frame.
+  if (right <= left) {
+    left = width / 2;
+    right = width / 2;
+  }
+  return {
+    lines,
+    lineHeight,
+    spaceWidth,
+    letterSpacingPx,
+    box: {
+      x: left,
+      y: firstY - lineHeight / 2,
+      width: right - left,
+      height: lines.length * lineHeight
+    }
+  };
 }
 
 /**
@@ -195,62 +363,43 @@ export function layoutStaggerUnits(
   height: number,
   unit: StaggerUnit
 ): TextStaggerUnit[] {
-  const fontSize = Math.max(1, style.fontSizePx);
-  const align = style.align ?? "center";
-  const maxWidth = textMaxWidthPx(style, width);
-  const lines = wrapTextLines(style.text, maxWidth, measure);
-  const spaceWidth = measure(" ");
-  const lineHeight = fontSize * 1.2;
-  const firstY = height / 2 - ((lines.length - 1) * lineHeight) / 2;
+  const layout = layoutTextBlock(measure, style, width, height);
+  const { lineHeight, spaceWidth, letterSpacingPx } = layout;
   const out: TextStaggerUnit[] = [];
 
-  lines.forEach((line, lineIndex) => {
-    const widths = line.words.map((word) => measure(word));
-    const lineWidth =
-      widths.reduce((sum, w) => sum + w, 0) +
-      spaceWidth * Math.max(0, line.words.length - 1);
-    const lineX =
-      align === "left"
-        ? (width - maxWidth) / 2
-        : align === "right"
-          ? (width + maxWidth) / 2 - lineWidth
-          : (width - lineWidth) / 2;
-    const y = firstY + lineIndex * lineHeight;
-
+  for (const line of layout.lines) {
+    const y = line.y;
     if (unit === "line") {
       out.push({
         text: line.text,
-        x: lineX,
-        width: lineWidth,
+        x: line.x,
+        width: line.width,
         y,
         height: lineHeight
       });
-      return;
+      continue;
     }
     // The break that starts this line ate the space that would have separated
     // it from the previous one, so it takes that separator's index. Counting
     // it here rather than at the end of the previous line is what keeps a
     // blank line (an empty paragraph) from inventing a unit.
     if (unit === "character" && line.words.length > 0 && out.length > 0) {
-      out.push({ text: "", x: lineX, width: 0, y, height: lineHeight });
+      out.push({ text: "", x: line.x, width: 0, y, height: lineHeight });
     }
 
-    let x = lineX;
+    let x = line.x;
     line.words.forEach((word, wordIndex) => {
+      const wordWidth = line.wordWidths[wordIndex]!;
       if (unit === "word") {
-        out.push({
-          text: word,
-          x,
-          width: widths[wordIndex],
-          y,
-          height: lineHeight
-        });
+        out.push({ text: word, x, width: wordWidth, y, height: lineHeight });
       } else {
         let prefixWidth = 0;
         let prefix = "";
+        let glyphs = 0;
         for (const grapheme of segmentGraphemes(word)) {
           prefix += grapheme;
-          const nextWidth = measure(prefix);
+          glyphs += 1;
+          const nextWidth = measure(prefix) + letterSpacingPx * glyphs;
           out.push({
             text: grapheme,
             x: x + prefixWidth,
@@ -263,11 +412,17 @@ export function layoutStaggerUnits(
         // The space between two words on one line is a unit too: timed, and
         // drawn as nothing.
         if (wordIndex < line.words.length - 1) {
-          out.push({ text: "", x: x + widths[wordIndex], width: spaceWidth, y, height: lineHeight });
+          out.push({
+            text: "",
+            x: x + wordWidth,
+            width: spaceWidth,
+            y,
+            height: lineHeight
+          });
         }
       }
-      x += widths[wordIndex] + spaceWidth;
+      x += wordWidth + spaceWidth;
     });
-  });
+  }
   return out;
 }

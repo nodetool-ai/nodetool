@@ -80,6 +80,17 @@
   in surface pixels, arcs included as cubics. Trim, dashes and gradients then
   apply to a rect, an ellipse, a star and an authored `d` the same way — and a
   trimmed ellipse has an arc length to walk, which `ctx.ellipse` would not.
+- **One text layout serves the plain draw, the stagger and the scrim**
+  (`layoutTextBlock` in `render/textLayout.ts`). Wrapping, line height,
+  alignment and letter spacing are decided once, and the block box it returns
+  is what a `background` sits behind and what a gradient `fill` is measured
+  against — the text, not the raster. A draw that computes its own wrap puts a
+  staggered title somewhere its un-staggered self is not.
+- **A raster cache key names every field of the style it caches.** A host hands
+  back the bitmap a key hits, so a field `textStyleSignature` does not read
+  renders as the frame drawn before that field changed. The check is the
+  `Object.keys` enumeration in `tests/render.textStyle.test.ts`, which walks the
+  document schema, so a field added under I1 fails there until the key reads it.
 - **A rasterized layer's pixels can depend on its animation sample.** A shape's
   `trimStart`/`trimEnd` change the outline, so every host rasterizes
   `AnimatedLayerProps.shapeStyle`, not the clip's own; a host that reaches for

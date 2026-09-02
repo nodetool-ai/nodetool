@@ -12,6 +12,7 @@ import type { ClipAnimation } from "../src/animation/types.js";
 import type { ClipTextStyle } from "../src/types.js";
 import {
   drawStaggeredText,
+  drawText,
   createStaggerScratch,
   measureTextWith,
   type RasterContext2D
@@ -46,11 +47,18 @@ class RecordingContext implements RasterContext2D {
   font = "";
   fillStyle: string | object = "";
   strokeStyle: string | object = "";
+  filter = "none";
+  globalCompositeOperation = "source-over";
   lineWidth = 0;
   lineJoin = "";
+  lineCap = "";
   textAlign = "";
   textBaseline = "";
   globalAlpha = 1;
+  shadowColor = "rgba(0, 0, 0, 0)";
+  shadowBlur = 0;
+  shadowOffsetX = 0;
+  shadowOffsetY = 0;
   readonly drawn: DrawnUnit[] = [];
   private stack: {
     x: number;
@@ -85,12 +93,25 @@ class RecordingContext implements RasterContext2D {
   }
   strokeText(): void {}
   beginPath(): void {}
+  closePath(): void {}
   rect(): void {}
   ellipse(): void {}
   moveTo(): void {}
   lineTo(): void {}
+  bezierCurveTo(): void {}
+  quadraticCurveTo(): void {}
   fill(): void {}
   stroke(): void {}
+  clip(): void {}
+  clearRect(): void {}
+  fillRect(): void {}
+  setLineDash(): void {}
+  createLinearGradient(): { addColorStop(): void } {
+    return { addColorStop(): void {} };
+  }
+  createRadialGradient(): { addColorStop(): void } {
+    return { addColorStop(): void {} };
+  }
   save(): void {
     this.stack.push({ ...this.state });
   }
@@ -407,5 +428,42 @@ describe("drawStaggeredText", () => {
       "character"
     );
     expect(ctx.drawn[0].x).toBeCloseTo(laidOut[0].x, 6);
+  });
+});
+
+describe("drawText on a context with no letter spacing of its own", () => {
+  // Both shipping contexts have `letterSpacing`, so this fallback is the path
+  // nothing else exercises — and the one that has to land the glyphs where the
+  // native path lands them.
+  it("issues one call per grapheme at the accumulated advance", () => {
+    const ctx = new RecordingContext();
+    drawText(ctx, style({ text: "abc", letterSpacingPx: 5 }), WIDTH, HEIGHT);
+    expect(ctx.drawn.map((d) => d.text)).toEqual(["a", "b", "c"]);
+    expect(ctx.drawn[1].x - ctx.drawn[0].x).toBeCloseTo(GLYPH_PX + 5, 6);
+    expect(ctx.drawn[2].x - ctx.drawn[1].x).toBeCloseTo(GLYPH_PX + 5, 6);
+  });
+
+  it("issues the whole line in one call when there is no spacing", () => {
+    const ctx = new RecordingContext();
+    drawText(ctx, style({ text: "abc" }), WIDTH, HEIGHT);
+    expect(ctx.drawn.map((d) => d.text)).toEqual(["abc"]);
+  });
+
+  it("outlines each grapheme before it fills it", () => {
+    const ctx = new RecordingContext();
+    drawText(
+      ctx,
+      style({
+        text: "ab",
+        letterSpacingPx: 5,
+        stroke: { color: "#000000", widthPx: 4 }
+      }),
+      WIDTH,
+      HEIGHT
+    );
+    // `strokeText` is not recorded, so the fills are all that show — but a
+    // stroke drawn per line while the fill was drawn per glyph would have put
+    // the outline under a different set of advances.
+    expect(ctx.drawn.map((d) => d.text)).toEqual(["a", "b"]);
   });
 });
