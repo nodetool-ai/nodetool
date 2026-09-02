@@ -1381,3 +1381,352 @@ describe("snap_to_beats", () => {
     ).toThrow(/start/);
   });
 });
+
+describe("set_time_remap", () => {
+  function bridgeWithOneClip() {
+    const bridge = createTimelineToolBridge({
+      tracks: [{ type: "video", name: "Video 1" }],
+      clips: [
+        {
+          name: "shot a",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 0,
+          durationMs: 2000
+        }
+      ]
+    });
+    return {
+      bridge,
+      byName: Object.fromEntries(bridge.tools.map((t) => [t.name, t]))
+    };
+  }
+
+  const clipNamed = (
+    bridge: { finalState: () => TimelineBridgeFinalState },
+    name: string
+  ) => bridge.finalState().documentClips.find((c) => c.name === name);
+
+  it("stores a curve spanning the clip's window", async () => {
+    const { bridge, byName } = bridgeWithOneClip();
+    await byName["ui_timeline_set_time_remap"].execute({
+      target: "shot a",
+      timeRemap: {
+        keyframes: [
+          { t: 0, sourceMs: 0 },
+          { t: 0.5, sourceMs: 200, easing: "easeInOut" },
+          { t: 1, sourceMs: 4000 }
+        ]
+      }
+    });
+
+    expect(clipNamed(bridge, "shot a")?.timeRemap).toEqual({
+      keyframes: [
+        { t: 0, sourceMs: 0 },
+        { t: 0.5, sourceMs: 200, easing: "easeInOut" },
+        { t: 1, sourceMs: 4000 }
+      ]
+    });
+  });
+
+  it("clears the remap with a null", async () => {
+    const { bridge, byName } = bridgeWithOneClip();
+    const set = byName["ui_timeline_set_time_remap"];
+    await set.execute({
+      target: "shot a",
+      timeRemap: {
+        keyframes: [
+          { t: 0, sourceMs: 0 },
+          { t: 1, sourceMs: 1000 }
+        ]
+      }
+    });
+    await set.execute({ target: "shot a", timeRemap: null });
+    expect(clipNamed(bridge, "shot a")?.timeRemap).toBeUndefined();
+  });
+
+  it("refuses keyframes that do not ascend in t", async () => {
+    // The sampler reads the list in array order and never sorts, so a
+    // descending pair samples the wrong source instant instead of failing.
+    const { byName } = bridgeWithOneClip();
+    await expect(
+      byName["ui_timeline_set_time_remap"].execute({
+        target: "shot a",
+        timeRemap: {
+          keyframes: [
+            { t: 0, sourceMs: 0 },
+            { t: 0.8, sourceMs: 500 },
+            { t: 0.4, sourceMs: 900 },
+            { t: 1, sourceMs: 1200 }
+          ]
+        }
+      })
+    ).rejects.toThrow(/ascend/);
+  });
+
+  it("refuses a curve that does not span the clip", async () => {
+    const { byName } = bridgeWithOneClip();
+    await expect(
+      byName["ui_timeline_set_time_remap"].execute({
+        target: "shot a",
+        timeRemap: {
+          keyframes: [
+            { t: 0.25, sourceMs: 0 },
+            { t: 1, sourceMs: 1000 }
+          ]
+        }
+      })
+    ).rejects.toThrow(/first keyframe/);
+  });
+
+  it("names every clip the target could have been", async () => {
+    const { byName } = bridgeWithOneClip();
+    await expect(
+      byName["ui_timeline_set_time_remap"].execute({
+        target: "shot z",
+        timeRemap: {
+          keyframes: [
+            { t: 0, sourceMs: 0 },
+            { t: 1, sourceMs: 1000 }
+          ]
+        }
+      })
+    ).rejects.toThrow(/Valid clips: .*\("shot a"\)/);
+  });
+});
+
+/**
+ * A group op has to reach what the group holds (D4). The bridge used to patch
+ * the target clip alone, so moving a group left its children behind and
+ * deleting one left them naming a parent that no longer existed.
+ */
+describe("group ops reach the clips the group holds", () => {
+  async function bridgeWithGroup() {
+    const bridge = createTimelineToolBridge({
+      tracks: [
+        { type: "video", name: "Video 1" },
+        { type: "video", name: "Video 2" }
+      ],
+      clips: [
+        {
+          name: "shot a",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 0,
+          durationMs: 2000
+        },
+        {
+          name: "shot b",
+          trackIndex: 1,
+          mediaType: "video",
+          startMs: 2000,
+          durationMs: 2000
+        }
+      ]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    const group = (await byName["ui_timeline_add_group"].execute({
+      name: "Block",
+      startMs: 0,
+      durationMs: 4000,
+      children: ["shot a", "shot b"]
+    })) as { clip: { id: string } };
+    return { bridge, byName, groupId: group.clip.id };
+  }
+
+  const clipNamed = (
+    bridge: { finalState: () => TimelineBridgeFinalState },
+    name: string
+  ) => bridge.finalState().documentClips.find((c) => c.name === name);
+
+  it("moves the children by the group's delta and keeps their tracks", async () => {
+    const { bridge, byName } = await bridgeWithGroup();
+    const trackA = clipNamed(bridge, "shot a")?.trackId;
+    const trackB = clipNamed(bridge, "shot b")?.trackId;
+    expect(trackA).not.toBe(trackB);
+
+    await byName["ui_timeline_move_clip"].execute({
+      target: "Block",
+      startMs: 1000
+    });
+
+    expect(clipNamed(bridge, "shot a")?.startMs).toBe(1000);
+    expect(clipNamed(bridge, "shot b")?.startMs).toBe(3000);
+    // Children keep their own track, and with it their z-order (I9).
+    expect(clipNamed(bridge, "shot a")?.trackId).toBe(trackA);
+    expect(clipNamed(bridge, "shot b")?.trackId).toBe(trackB);
+  });
+
+  it("releases the children when the group is deleted", async () => {
+    const { bridge, byName, groupId } = await bridgeWithGroup();
+    await byName["ui_timeline_delete_clip"].execute({ target: "Block" });
+
+    const names = bridge.finalState().documentClips.map((c) => c.name);
+    expect(names).toContain("shot a");
+    expect(names).toContain("shot b");
+    expect(names).not.toContain("Block");
+    for (const clip of bridge.finalState().documentClips) {
+      expect(clip.parentId).toBeUndefined();
+    }
+    expect(groupId).toBeTruthy();
+  });
+
+  it("pulls a child inside the window a trim leaves", async () => {
+    const { bridge, byName } = await bridgeWithGroup();
+    await byName["ui_timeline_trim_clip"].execute({
+      target: "Block",
+      durationMs: 3000
+    });
+
+    expect(clipNamed(bridge, "Block")?.durationMs).toBe(3000);
+    // "shot b" ran to 4000, a second past the new end.
+    expect(clipNamed(bridge, "shot b")?.startMs).toBe(2000);
+    expect(clipNamed(bridge, "shot b")?.durationMs).toBe(1000);
+    // "shot a" fits already and is untouched.
+    expect(clipNamed(bridge, "shot a")?.durationMs).toBe(2000);
+  });
+});
+
+describe("ui_timeline_insert_composition", () => {
+  const composition = {
+    id: "test-lower-third",
+    name: "Lower third",
+    params: {
+      name: { type: "string" as const, default: "Name", path: "/1/textStyle/text" },
+      barColor: {
+        type: "color" as const,
+        default: "#0A84FF",
+        path: "/0/shapeStyle/fill"
+      }
+    },
+    group: {
+      id: "tpl-group",
+      trackId: "Plate",
+      name: "Lower third",
+      startMs: 0,
+      durationMs: 3000,
+      mediaType: "group" as const,
+      sourceType: "imported" as const,
+      status: "generated" as const
+    },
+    children: [
+      {
+        id: "tpl-bar",
+        trackId: "Plate",
+        name: "Bar",
+        startMs: 0,
+        durationMs: 3000,
+        mediaType: "shape" as const,
+        sourceType: "generated" as const,
+        status: "generated" as const,
+        shapeStyle: { kind: "rect", fill: "#0A84FF", x: 0.1, y: 0.7, width: 0.4, height: 0.15 }
+      },
+      {
+        id: "tpl-name",
+        trackId: "Text",
+        name: "Name",
+        startMs: 200,
+        durationMs: 2800,
+        mediaType: "text" as const,
+        sourceType: "generated" as const,
+        status: "generated" as const,
+        textStyle: { text: "Name", fontSizePx: 60, color: "#FFFFFF" }
+      }
+    ]
+  };
+
+  function bridgeWithLibrary(
+    ids: string[] = [composition.id]
+  ): ReturnType<typeof createTimelineToolBridge> {
+    return createTimelineToolBridge({
+      loadComposition: {
+        get: async (id) => (id === composition.id ? composition : null),
+        listIds: async () => ids
+      }
+    });
+  }
+
+  const toolsOf = (bridge: ReturnType<typeof createTimelineToolBridge>) =>
+    Object.fromEntries(bridge.tools.map((tool) => [tool.name, tool]));
+
+  it("drops the group and its children in, on tracks of their own", async () => {
+    const bridge = bridgeWithLibrary();
+    const result = (await toolsOf(bridge)["ui_timeline_insert_composition"].execute({
+      composition_id: "test-lower-third",
+      startMs: 4000,
+      params: { name: "Ada Lovelace" }
+    })) as { compositionId: string; children: { id: string }[] };
+
+    expect(result.compositionId).toBe("test-lower-third");
+    const state = bridge.finalState();
+    expect(state.documentClips).toHaveLength(3);
+
+    const group = state.documentClips.find((c) => c.mediaType === "group");
+    const text = state.documentClips.find((c) => c.mediaType === "text");
+    const shape = state.documentClips.find((c) => c.mediaType === "shape");
+    expect(group?.startMs).toBe(4000);
+    // The child sits 200ms into the group in the template.
+    expect(text?.startMs).toBe(4200);
+    expect(text?.textStyle?.text).toBe("Ada Lovelace");
+    expect(text?.parentId).toBe(group?.id);
+    expect(text?.compositionId).toBe("test-lower-third");
+
+    // A plate and the text over it on one track would auto-dissolve, so the
+    // two template tracks became two document tracks, text on top.
+    expect(text?.trackId).not.toBe(shape?.trackId);
+    const index = new Map(state.tracks.map((t) => [t.id, t.index]));
+    expect(index.get(text?.trackId ?? "")).toBeLessThan(
+      index.get(shape?.trackId ?? "") ?? Infinity
+    );
+  });
+
+  it("reuses the tracks a second insertion needs", async () => {
+    const bridge = bridgeWithLibrary();
+    const tools = toolsOf(bridge);
+    await tools["ui_timeline_insert_composition"].execute({
+      composition_id: "test-lower-third",
+      startMs: 0
+    });
+    const afterFirst = bridge.finalState().tracks.map((t) => t.name);
+    // Two template tracks plus one for the group itself, which draws nothing
+    // but would otherwise read as overlapping its own child.
+    expect(afterFirst).toEqual(["Text", "Plate", "Lower third"]);
+
+    await tools["ui_timeline_insert_composition"].execute({
+      composition_id: "test-lower-third",
+      startMs: 8000
+    });
+    expect(bridge.finalState().tracks.map((t) => t.name)).toEqual(afterFirst);
+  });
+
+  it("lists the available ids when the id is unknown", async () => {
+    const tools = toolsOf(bridgeWithLibrary(["test-lower-third", "title-card"]));
+    await expect(
+      tools["ui_timeline_insert_composition"].execute({
+        composition_id: "nope",
+        startMs: 0
+      })
+    ).rejects.toThrow(/test-lower-third, title-card/);
+  });
+
+  it("refuses a parameter the template does not declare", async () => {
+    const tools = toolsOf(bridgeWithLibrary());
+    await expect(
+      tools["ui_timeline_insert_composition"].execute({
+        composition_id: "test-lower-third",
+        startMs: 0,
+        params: { subtitle: "nope" }
+      })
+    ).rejects.toThrow(/no parameter "subtitle"/);
+  });
+
+  it("says so when the surface has no composition library", async () => {
+    const tools = toolsOf(createTimelineToolBridge());
+    await expect(
+      tools["ui_timeline_insert_composition"].execute({
+        composition_id: "test-lower-third",
+        startMs: 0
+      })
+    ).rejects.toThrow(/no composition library/);
+  });
+});

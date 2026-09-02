@@ -1,0 +1,146 @@
+{
+  "id": "logo-sting",
+  "name": "Logo sting",
+  "description": "A wordmark resolving out of a blur over a solid ground, with an accent rule. T1 tier, used as a bumper.",
+  "params": {
+    "wordmark": {
+      "type": "string",
+      "default": "BRAND",
+      "path": "/2/textStyle/text"
+    },
+    "accentColor": {
+      "type": "color",
+      "default": "#FFD60A",
+      "path": "/1/shapeStyle/fill"
+    },
+    "backgroundColor": {
+      "type": "color",
+      "default": "#05070A",
+      "path": "/0/shapeStyle/fill"
+    },
+    "textColor": {
+      "type": "color",
+      "default": "#FFFFFF",
+      "path": "/2/textStyle/color"
+    }
+  },
+  "group": {
+    "sourceType": "imported",
+    "status": "generated",
+    "locked": false,
+    "versions": [],
+    "id": "logo-sting-group",
+    "trackId": "Plate",
+    "name": "Logo sting",
+    "startMs": 0,
+    "durationMs": 3000,
+    "mediaType": "group"
+  },
+  "children": [
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "logo-sting-0-ground",
+      "trackId": "Plate",
+      "name": "Ground",
+      "startMs": 0,
+      "durationMs": 3000,
+      "mediaType": "shape",
+      "shapeStyle": {
+        "kind": "rect",
+        "fill": "#05070A",
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "logo-sting-1-rule",
+      "trackId": "Accent",
+      "name": "Rule",
+      "startMs": 600,
+      "durationMs": 2400,
+      "mediaType": "shape",
+      "shapeStyle": {
+        "kind": "rect",
+        "fill": "#FFD60A",
+        "x": 0.42,
+        "y": 0.575,
+        "width": 0.16,
+        "height": 0.01
+      },
+      "animations": [
+        {
+          "id": "logo-sting-rule-in",
+          "role": "in",
+          "preset": "slide",
+          "durationMs": 500,
+          "params": {
+            "direction": "right",
+            "distance": 0.05
+          }
+        }
+      ]
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "logo-sting-2-wordmark",
+      "trackId": "Text",
+      "name": "Wordmark",
+      "startMs": 0,
+      "durationMs": 3000,
+      "mediaType": "text",
+      "textStyle": {
+        "text": "BRAND",
+        "fontSizePx": 119,
+        "color": "#FFFFFF",
+        "align": "center",
+        "maxWidthFrac": 0.7,
+        "letterSpacingPx": 10,
+        "fontWeight": 600
+      },
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": -43
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "animations": [
+        {
+          "id": "logo-sting-word-in",
+          "role": "in",
+          "preset": "blur",
+          "durationMs": 600,
+          "params": {
+            "amount": 0.06
+          }
+        },
+        {
+          "id": "logo-sting-word-out",
+          "role": "out",
+          "preset": "fade",
+          "durationMs": 400
+        }
+      ]
+    }
+  ]
+}

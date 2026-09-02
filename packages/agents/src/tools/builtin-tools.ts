@@ -76,6 +76,12 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "update_entity",
   "delete_entity",
 
+  // Timeline compositions (reusable groups: lower thirds, title cards, stings)
+  "list_compositions",
+  "get_composition",
+  "save_composition",
+  "delete_composition",
+
   // Script → voiced takes → timeline, without authoring a workflow
   "list_scripts",
   "create_script",

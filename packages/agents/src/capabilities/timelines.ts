@@ -636,7 +636,23 @@ async function applyOps(
       markers: document.markers
     },
     resolveAsset: (ref) => resolveTimelineAsset(run, ref),
-    bakeAnimation: (request) => bakeTimelineAnimation(run, request)
+    bakeAnimation: (request) => bakeTimelineAnimation(run, request),
+    loadComposition: {
+      get: async (id) => {
+        const { loadComposition } = await import("./compositions.js");
+        const found = await loadComposition(run, id);
+        return found ? found.composition : null;
+      },
+      listIds: async () => {
+        const { loadShippedCompositions, loadUserCompositions } =
+          await import("./compositions.js");
+        const mine = await loadUserCompositions(run);
+        return [
+          ...loadShippedCompositions().map((comp) => comp.id),
+          ...(Array.isArray(mine) ? mine.map((comp) => comp.id) : [])
+        ];
+      }
+    }
   });
   const byName = new Map(
     bridge.tools

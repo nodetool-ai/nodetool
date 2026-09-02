@@ -99,6 +99,25 @@ export const PACKAGE_RUNTIME_ASSET_DIRS: readonly PackageAssetDirRef[] = [
       "PlayfairDisplay-Variable.ttf",
       "SpaceGrotesk-Variable.ttf"
     ]
+  },
+  {
+    // The shipped timeline compositions (D11). Built by
+    // `scripts/build-example-compositions.mjs` from
+    // `scripts/example-compositions/compositions.mjs`, and read straight off
+    // disk by the `compositions` capability module — no database, no user — so
+    // an unstaged file means `list_compositions` reports only what a user has
+    // saved and the shipped half silently disappears from the packaged app.
+    pkg: "@nodetool-ai/base-nodes",
+    path: "nodetool/examples/compositions",
+    bundleDir: "examples/compositions",
+    files: [
+      "callout.composition.json",
+      "caption-bar.composition.json",
+      "cta-end-card.composition.json",
+      "logo-sting.composition.json",
+      "lower-third.composition.json",
+      "title-card.composition.json"
+    ]
   }
 ];
 

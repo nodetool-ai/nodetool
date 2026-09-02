@@ -126,7 +126,11 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "preview_timeline_frame",
     "edit_timeline",
     "set_timeline_document",
-    "render_timeline"
+    "render_timeline",
+    "list_compositions",
+    "get_composition",
+    "save_composition",
+    "delete_composition"
   ],
   sketches: [
     "list_sketches",
@@ -1180,7 +1184,32 @@ const nodetool = (() => {
        * shutter_angle, preview_scale, include_audio, wait, timeout_ms}.
        */
       render: (id, opts) =>
-        __need("render_timeline")(__merge(opts, { timeline_id: id }))
+        __need("render_timeline")(__merge(opts, { timeline_id: id })),
+      /**
+       * Reusable templates — a group of clips with named parameters. The ones
+       * NodeTool ships and the ones this user saved, both listed by list().
+       * Insert one with edit(id, [{op: "insert_composition", composition_id,
+       * startMs, params}]).
+       */
+      compositions: {
+        /** Options: {source: "shipped" | "user", query, limit}. */
+        list: (opts) => __need("list_compositions")(__merge(opts)),
+        get: (id) => __need("get_composition")({ composition_id: id }),
+        /**
+         * Save a group on a timeline as a template. params names what varies:
+         * {"<name>": {type, default, path}}.
+         */
+        save: (timelineId, groupTarget, name, params, opts) =>
+          __need("save_composition")(
+            __merge(opts, {
+              timeline_id: timelineId,
+              group_target: groupTarget,
+              name: name,
+              params: params
+            })
+          ),
+        remove: (id) => __need("delete_composition")({ composition_id: id })
+      }
     },
 
     sketches: {

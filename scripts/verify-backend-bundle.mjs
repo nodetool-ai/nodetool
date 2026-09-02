@@ -220,6 +220,21 @@ export function verifyBackendBundle(bundleDir) {
     summary.push(`${exampleApps.length} example app bundle(s) staged`);
   }
 
+  // The shipped timeline compositions (D11). The `compositions` capability
+  // reads them off disk with no user and no database, so an unstaged file does
+  // not fail — it makes `list_compositions` report only what a user saved.
+  const exampleCompositions = (
+    listFiles(path.join(bundleDir, "examples", "compositions")) ?? []
+  ).filter((f) => f.toLowerCase().endsWith(".composition.json"));
+  if (exampleCompositions.length === 0) {
+    errors.push(
+      "examples/compositions/ is missing or has no composition templates — " +
+        "list_compositions would offer none of the shipped ones."
+    );
+  } else {
+    summary.push(`${exampleCompositions.length} example composition(s) staged`);
+  }
+
   // Every shot of a shipped storyboard points at a `package://` still and
   // clip. Those live under assets/nodetool-base/storyboards/<slug>/, one
   // directory deeper than anything else staged here — so check the files the

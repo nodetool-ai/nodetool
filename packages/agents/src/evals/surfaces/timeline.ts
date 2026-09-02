@@ -49,6 +49,10 @@ import {
   buildBeatGrid,
   beatCountToCover,
   snapClipsToGrid,
+  isGroupClip,
+  moveGroup,
+  ungroup,
+  trimGroup,
   type AnimationRole,
   type CustomClipAnimation,
   type PropertyCurve,
@@ -59,13 +63,16 @@ import {
   type TimelineClip,
   type TimelineMarker,
   type TimelineTrack,
-  type ClipAnimation
+  type ClipAnimation,
+  instantiateComposition,
+  type TimelineComposition
 } from "@nodetool-ai/timeline";
 import { parseSvgPath } from "@nodetool-ai/timeline/scene";
 import {
   addGroupParams,
   buildEffect,
   buildMask,
+  buildTimeRemap,
   buildTransition,
   captionStyleParams,
   effectParams,
@@ -73,6 +80,8 @@ import {
   matteParams,
   partialTextStyleParams,
   setParentParams,
+  setTimeRemapParams,
+  timeRemapParams,
   shapeStyleParams,
   targetParam,
   textStyleParams,
@@ -151,6 +160,16 @@ export interface TimelineBridgeAsset {
 }
 
 /** Look up an asset by id or `asset://<id>[.ext]` URI. */
+/**
+ * Reads a composition by id and lists what is available. The bridge holds no
+ * library of its own: a capability run resolves shipped files and the caller's
+ * assets, and an eval hands over a fixture.
+ */
+export interface TimelineCompositionLoader {
+  get(id: string): Promise<TimelineComposition | null>;
+  listIds(): Promise<string[]>;
+}
+
 export type TimelineAssetResolver = (
   ref: string
 ) => Promise<TimelineBridgeAsset | null>;
@@ -221,6 +240,13 @@ export interface TimelineBridgeInitialState {
    * body nothing ever ran.
    */
   bakeAnimation?: TimelineAnimationBaker;
+  /**
+   * Resolve a composition for `ui_timeline_insert_composition`, and report the
+   * ids this host offers so a bad one can name the alternatives. Without one
+   * the op says this surface has no composition library rather than inventing
+   * a template.
+   */
+  loadComposition?: TimelineCompositionLoader;
   tracks?: { name?: string; type: "video" | "audio" | "overlay" | "subtitle" }[];
   clips?: {
     name: string;
@@ -313,6 +339,7 @@ export function createTimelineToolBridge(
   const seed = initial.sequence;
   const resolveAsset = initial.resolveAsset;
   const bakeAnimation = initial.bakeAnimation;
+  const loadComposition = initial.loadComposition;
   const fps = seed?.fps ?? initial.fps ?? 30;
   const width = seed?.width ?? initial.width ?? 1920;
   const height = seed?.height ?? initial.height ?? 1080;
@@ -605,6 +632,7 @@ export function createTimelineToolBridge(
       transitionIn: c.transitionIn,
       mask: c.mask,
       matte: c.matte,
+      timeRemap: c.timeRemap,
       effects: c.effects,
       parentId: c.parentId
     };
@@ -956,6 +984,20 @@ export function createTimelineToolBridge(
       }),
       async ({ target, durationMs, inPointMs, outPointMs }) => {
         const clip = resolveClip(target as string);
+        // A group carries what it holds (D4): shortening one pulls its
+        // children inside the window that leaves, rather than leaving them
+        // hanging past an edge nothing draws.
+        if (isGroupClip(clip) && durationMs !== undefined) {
+          const next = trimGroup(
+            clips,
+            clip.id,
+            "end",
+            (durationMs as number) - clip.durationMs
+          );
+          clips = next;
+          const trimmed = clips.find((c) => c.id === clip.id)!;
+          return { ok: true, clip: serializeClip(trimmed) };
+        }
         if (durationMs !== undefined) clip.durationMs = durationMs as number;
         if (inPointMs !== undefined) clip.inPointMs = inPointMs as number;
         if (outPointMs !== undefined) clip.outPointMs = outPointMs as number;
@@ -973,6 +1015,18 @@ export function createTimelineToolBridge(
       }),
       async ({ target, startMs, trackId }) => {
         const clip = resolveClip(target as string);
+        // Moving a group moves what it holds by the same delta (D4). Children
+        // keep their own tracks, so their z-order is untouched (I9) — only the
+        // group itself takes a new `trackId`.
+        if (isGroupClip(clip) && startMs !== undefined) {
+          const nextStartMs = Math.max(0, startMs as number);
+          clips = moveGroup(clips, clip.id, nextStartMs - clip.startMs);
+          const moved = clips.find((c) => c.id === clip.id)!;
+          if (trackId !== undefined) {
+            moved.trackId = resolveTrack(trackId as string).id;
+          }
+          return { ok: true, clip: serializeClip(moved) };
+        }
         if (startMs !== undefined) clip.startMs = Math.max(0, startMs as number);
         if (trackId !== undefined) {
           clip.trackId = resolveTrack(trackId as string).id;
@@ -987,7 +1041,12 @@ export function createTimelineToolBridge(
       z.object({ target: targetParam }),
       async ({ target }) => {
         const clip = resolveClip(target as string);
-        clips = clips.filter((c) => c.id !== clip.id);
+        // Deleting a group deletes the parent, not the picture: its children
+        // stay where they are and stop inheriting (D4). Leaving them with a
+        // `parentId` nothing answers is what the validator calls a dangling
+        // parent.
+        const remaining = isGroupClip(clip) ? ungroup(clips, clip.id) : clips;
+        clips = remaining.filter((c) => c.id !== clip.id);
         selectedClipIds = selectedClipIds.filter((id) => id !== clip.id);
         return { ok: true, deleted: serializeClip(clip) };
       }
@@ -1210,6 +1269,23 @@ export function createTimelineToolBridge(
         };
         if (input.invert !== undefined) matteOut.invert = input.invert;
         clip.matte = matteOut;
+        return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    tool(
+      "ui_timeline_set_time_remap",
+      "Retime a clip's source with a curve, or clear it with `timeRemap: null`. Each keyframe says where in the source media (`sourceMs`) the clip sits at position `t`, normalized 0..1 over the clip's own window — so the list must start at 0, end at 1 and ascend in `t`. A `sourceMs` that descends is reverse playback, a flat pair is a freeze, and a steeper segment plays faster. A remap replaces the clip's rate entirely, and split and trim refuse a remapped clip.",
+      setTimeRemapParams,
+      async ({ target, timeRemap }) => {
+        const clip = resolveClip(target as string);
+        if (timeRemap === null) {
+          delete clip.timeRemap;
+        } else {
+          clip.timeRemap = buildTimeRemap(
+            timeRemap as z.infer<typeof timeRemapParams>
+          );
+        }
         return { ok: true, clip: serializeClip(clip) };
       }
     ),
@@ -1661,6 +1737,98 @@ export function createTimelineToolBridge(
           clips: reported
         };
       }
+    ),
+
+    tool(
+      "ui_timeline_insert_composition",
+      "Insert a stored composition — a group of clips with named parameters (a lower third, a title card, a callout) — at a timecode. Its children keep the layering the template declares: each template track becomes an overlay track of its own, front-most on top, reused across insertions. `params` overrides the template's defaults by name; anything omitted keeps its default. Call list_compositions for the ids and their parameters.",
+      z.object({
+        composition_id: z
+          .string()
+          .describe("Composition id, from list_compositions."),
+        startMs: z
+          .number()
+          .describe("Where the group starts on the timeline, in ms."),
+        trackId: z
+          .string()
+          .optional()
+          .describe(
+            "Track for the group clip itself. Its children still get their own overlay tracks. Defaults to an overlay track."
+          ),
+        params: z
+          .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+          .optional()
+          .describe(
+            "Parameter overrides by name, e.g. {name: \"Ada Lovelace\"}. A name the template does not declare, or a value of the wrong type, is refused."
+          )
+      }),
+      async ({ composition_id, startMs, trackId, params }) => {
+        if (!loadComposition) {
+          throw new Error(
+            "This surface has no composition library, so insert_composition cannot resolve a template."
+          );
+        }
+        const id = composition_id as string;
+        const composition = await loadComposition.get(id);
+        if (!composition) {
+          const available = await loadComposition.listIds();
+          throw new Error(
+            `No composition with id "${id}". ` +
+              (available.length > 0
+                ? `Available: ${available.join(", ")}.`
+                : "This install has none — save one with save_composition.")
+          );
+        }
+
+        const minted = instantiateComposition(composition, {
+          startMs: startMs as number,
+          params: params as Record<string, string | number | boolean> | undefined,
+          newId: nextClipId
+        });
+
+        // Template track ids are names, not document ids. Two clips overlapping
+        // on one track auto-dissolve into each other, so each template track
+        // becomes a track of its own — created front-most first, because the
+        // lowest track index draws on top (I9).
+        const templateTracks: string[] = [];
+        for (const child of composition.children) {
+          if (!templateTracks.includes(child.trackId)) {
+            templateTracks.push(child.trackId);
+          }
+        }
+        const mapped = new Map<string, string>();
+        for (const name of [...templateTracks].reverse()) {
+          const existing = tracks.find(
+            (t) => t.type === "overlay" && t.name === name
+          );
+          mapped.set(name, (existing ?? addTrackInternal("overlay", name)).id);
+        }
+
+        // The group draws nothing, but it still occupies its track's timeline,
+        // and a group sharing a track with one of its children reads as an
+        // overlap. It gets a track named after the composition instead.
+        const groupTrack = trackId
+          ? resolveTrack(trackId as string)
+          : (tracks.find(
+              (t) => t.type === "overlay" && t.name === composition.name
+            ) ?? addTrackInternal("overlay", composition.name));
+        const [group, ...children] = minted;
+        group.trackId = groupTrack.id;
+        for (const [index, child] of children.entries()) {
+          child.trackId =
+            mapped.get(composition.children[index].trackId) ?? groupTrack.id;
+        }
+        clips.push(group, ...children);
+        selectedClipIds = [group.id];
+
+        return {
+          ok: true,
+          compositionId: composition.id,
+          clip: serializeClip(group),
+          children: children.map((child) => serializeClip(child)),
+          params: group.compositionParams ?? {}
+        };
+      }
     )
   ];
 
@@ -1706,7 +1874,7 @@ const TIMELINE_SYSTEM_PROMPT = `You are an assistant driving a timeline / video 
 Use the ui_timeline_* tools to inspect and modify the sequence:
 - Call ui_timeline_get_state first to see what's already there and get track/clip ids and names.
 - Add content with ui_timeline_add_text_clip, ui_timeline_add_shape_clip, or ui_timeline_generate_clip; add tracks with ui_timeline_add_track when needed.
-- Address existing clips by id, name, or "selected" with ui_timeline_split_clip, ui_timeline_trim_clip, ui_timeline_move_clip, ui_timeline_delete_clip, ui_timeline_duplicate_clip, ui_timeline_set_clip_params, ui_timeline_set_clip_binding, ui_timeline_set_transition, ui_timeline_animate_clip, ui_timeline_clear_animations, ui_timeline_select_clip.
+- Address existing clips by id, name, or "selected" with ui_timeline_split_clip, ui_timeline_trim_clip, ui_timeline_move_clip, ui_timeline_delete_clip, ui_timeline_duplicate_clip, ui_timeline_set_clip_params, ui_timeline_set_clip_binding, ui_timeline_set_transition, ui_timeline_set_time_remap, ui_timeline_animate_clip, ui_timeline_clear_animations, ui_timeline_select_clip.
 - Before animating a clip, call ui_timeline_list_animation_presets to discover the exact preset ids, allowed roles, and params.
 - For motion no preset covers, animate with preset "custom" and pass curves — [{property, keyframes: [{t, value}]}], where t runs 0..1 over the animation window. list_animation_presets reports which properties a curve may drive.
 - ui_timeline_seek moves the playhead (useful before a playhead-relative split).

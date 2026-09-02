@@ -13,6 +13,7 @@ export * from "./script-link.js";
 export * from "./linked.js";
 export * from "./reassemble.js";
 export * from "./group.js";
+export * from "./composition.js";
 export * from "./splitClip.js";
 export * from "./trimClip.js";
 export * from "./sourceRate.js";

@@ -45,7 +45,11 @@ const TIMELINE_TOOLS = [
   "list_timelines",
   "validate_timeline",
   "preview_timeline_frame",
-  "set_timeline_document"
+  "set_timeline_document",
+  "list_compositions",
+  "get_composition",
+  "save_composition",
+  "delete_composition"
 ].map(toolDef);
 
 /** In-memory router: records calls, plays a tiny workflow store. */
@@ -154,6 +158,11 @@ function createFakeRouter() {
         return JSON.stringify({ frames: [{ time_ms: 0 }], target: args });
       case "set_timeline_document":
         return JSON.stringify({ ok: true, written: true, target: args });
+      case "list_compositions":
+      case "get_composition":
+      case "save_composition":
+      case "delete_composition":
+        return JSON.stringify({ ok: true, target: args });
       default:
         return JSON.stringify({ error: `Unknown tool ${call.name}` });
     }
@@ -393,6 +402,39 @@ describe("nodetool object model", () => {
     expect(obs.ok).toBe(true);
     expect(calls[0].args).toEqual({ timeline_id: "tl1" });
     expect(calls[1].args).toEqual({ document: { tracks: [] } });
+  });
+
+  it("routes timelines.compositions to the composition capabilities", async () => {
+    const { executeTool, calls } = createFakeRouter();
+    const session = makeSession(TIMELINE_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `await nodetool.timelines.compositions.list({ source: "shipped" });
+       await nodetool.timelines.compositions.get("lower-third");
+       await nodetool.timelines.compositions.save("tl1", "Lower third", "Mine", {
+         name: { type: "string", default: "Name", path: "/1/textStyle/text" }
+       });
+       await nodetool.timelines.compositions.remove("comp-1");
+       return "done";`
+    );
+    expect(obs.ok).toBe(true);
+    expect(calls.map((c) => c.name)).toEqual([
+      "list_compositions",
+      "get_composition",
+      "save_composition",
+      "delete_composition"
+    ]);
+    expect(calls[0].args).toEqual({ source: "shipped" });
+    expect(calls[1].args).toEqual({ composition_id: "lower-third" });
+    expect(calls[2].args).toEqual({
+      timeline_id: "tl1",
+      group_target: "Lower third",
+      name: "Mine",
+      params: {
+        name: { type: "string", default: "Name", path: "/1/textStyle/text" }
+      }
+    });
+    expect(calls[3].args).toEqual({ composition_id: "comp-1" });
   });
 
   it("routes timeline preview to preview_timeline_frame by target type", async () => {

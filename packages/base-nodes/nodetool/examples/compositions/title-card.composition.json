@@ -1,0 +1,163 @@
+{
+  "id": "title-card",
+  "name": "Title card",
+  "description": "A full-frame opening title over a solid ground, with a secondary line. T1.",
+  "params": {
+    "title": {
+      "type": "string",
+      "default": "Title",
+      "path": "/1/textStyle/text"
+    },
+    "subtitle": {
+      "type": "string",
+      "default": "Subtitle",
+      "path": "/2/textStyle/text"
+    },
+    "backgroundColor": {
+      "type": "color",
+      "default": "#0B0B0F",
+      "path": "/0/shapeStyle/fill"
+    },
+    "textColor": {
+      "type": "color",
+      "default": "#FFFFFF",
+      "path": "/1/textStyle/color"
+    }
+  },
+  "group": {
+    "sourceType": "imported",
+    "status": "generated",
+    "locked": false,
+    "versions": [],
+    "id": "title-card-group",
+    "trackId": "Plate",
+    "name": "Title card",
+    "startMs": 0,
+    "durationMs": 4000,
+    "mediaType": "group"
+  },
+  "children": [
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "title-card-0-ground",
+      "trackId": "Plate",
+      "name": "Ground",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "shapeStyle": {
+        "kind": "rect",
+        "fill": "#0B0B0F",
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "title-card-1-title",
+      "trackId": "Text",
+      "name": "Title",
+      "startMs": 200,
+      "durationMs": 3600,
+      "mediaType": "text",
+      "textStyle": {
+        "text": "Title",
+        "fontSizePx": 119,
+        "color": "#FFFFFF",
+        "align": "center",
+        "maxWidthFrac": 0.78,
+        "fontWeight": 600
+      },
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": -32
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "animations": [
+        {
+          "id": "title-card-title-in",
+          "role": "in",
+          "preset": "slide",
+          "durationMs": 600,
+          "params": {
+            "direction": "up",
+            "distance": 0.04
+          }
+        },
+        {
+          "id": "title-card-title-out",
+          "role": "out",
+          "preset": "fade",
+          "durationMs": 400
+        }
+      ]
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "title-card-2-subtitle",
+      "trackId": "Subtext",
+      "name": "Subtitle",
+      "startMs": 500,
+      "durationMs": 3300,
+      "mediaType": "text",
+      "textStyle": {
+        "text": "Subtitle",
+        "fontSizePx": 37,
+        "color": "#C7CCD6",
+        "align": "center",
+        "maxWidthFrac": 0.66
+      },
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 86
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "animations": [
+        {
+          "id": "title-card-sub-in",
+          "role": "in",
+          "preset": "fade",
+          "durationMs": 500,
+          "delayMs": 250
+        },
+        {
+          "id": "title-card-sub-out",
+          "role": "out",
+          "preset": "fade",
+          "durationMs": 400
+        }
+      ]
+    }
+  ]
+}

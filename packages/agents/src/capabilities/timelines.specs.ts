@@ -125,9 +125,10 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "Ops: get_state, add_track, add_media_clip, add_text_clip, add_shape_clip, " +
         "add_group, split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
         "set_clip_params, set_parent, set_clip_binding, set_transition, set_mask, " +
-        "set_matte, set_effects, animate_clip, " +
+        "set_matte, set_time_remap, set_effects, animate_clip, " +
         "clear_animations, list_animation_presets, select_clip, seek, " +
-        "add_marker, delete_marker, set_markers_from_beats, snap_to_beats. " +
+        "add_marker, delete_marker, set_markers_from_beats, snap_to_beats, " +
+        "insert_composition. " +
         "Start with get_state to " +
         "read track and clip ids. To lay existing videos end to end, call " +
         'add_media_clip once per asset ({"op": "add_media_clip", "asset": ' +
@@ -147,6 +148,12 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         'set_matte takes {"target", "matte": {source, mode: "alpha"|"luma", ' +
         "invert?} | null}; the source clip stops drawing itself and its alpha " +
         "or brightness becomes the target's transparency. " +
+        'set_time_remap takes {"target", "timeRemap": {keyframes: [{t, ' +
+        "sourceMs, easing?}]} | null}; `t` runs 0..1 over the clip's window " +
+        "and must start at 0, end at 1 and ascend, while `sourceMs` says " +
+        "which millisecond of the source plays there — descending is reverse, " +
+        "a flat pair is a freeze. It replaces the clip's rate, and split and " +
+        "trim refuse a remapped clip. " +
         'add_group takes {"name", "startMs", "durationMs", trackId?, ' +
         'children?: [clip, ...]} and creates a clip with no media whose ' +
         "transform, opacity and window every clip naming it inherits — move " +
@@ -171,7 +178,13 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         '"targets" (clip ids or names, or "all"), "tolerance_ms"? (default ' +
         '60), "mode"? ("start" | "end" | "both") and "action"? ("move" slides ' +
         'the clip, "trim" changes its length), and reports every target — ' +
-        "including the ones no beat was in reach of, with the reason.",
+        "including the ones no beat was in reach of, with the reason. " +
+        'insert_composition takes {"composition_id", "startMs", trackId?, ' +
+        'params?} and drops a stored template — a lower third, a title card, a ' +
+        "callout — in as a group with its children, each template track " +
+        "becoming an overlay track of its own so the layering survives. " +
+        "`params` overrides the template's defaults by name; list_compositions " +
+        "reports the ids and what each one takes.",
       items: { type: "object" }
     }
   },
