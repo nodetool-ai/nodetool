@@ -9,7 +9,7 @@
  * enumerated here and the enumeration is checked against the sources.
  */
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
@@ -149,7 +149,10 @@ describe("headlessGate", () => {
 // The runs that stay ungated
 // ---------------------------------------------------------------------------
 
-const srcDir = resolve(dirname(fileURLToPath(import.meta.url)), "../src");
+const packagesDir = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../.."
+);
 
 /**
  * Files allowed to name `ungatedCapabilityRun`, and why each one is not a hole.
@@ -158,15 +161,20 @@ const srcDir = resolve(dirname(fileURLToPath(import.meta.url)), "../src");
  * construction site qualifies when the `Tool` it builds is gated from outside
  * by `gateTools`, or when the capability it serves is read-class — reading a
  * SKILL.md has nothing for the ladder to withhold.
+ *
+ * The walk covers every package's `src`, not just this package's: the
+ * `nodetool.code.Code` node built its run in `packages/code-nodes`, so a walk
+ * scoped to `agents/src` reported a clean ladder while the node mounted its
+ * capability modules ungated.
  */
 const MAY_BE_UNGATED: Record<string, string> = {
-  "capabilities/invoke.ts": "declares it",
-  "capabilities/index.ts": "re-export",
-  "index.ts": "re-export",
-  "capabilities/lazy-tool.ts":
+  "agents/src/capabilities/invoke.ts": "declares it",
+  "agents/src/capabilities/index.ts": "re-export",
+  "agents/src/index.ts": "re-export",
+  "agents/src/capabilities/lazy-tool.ts":
     "builds a Tool; the host gates it with gateTools",
-  "capabilities/packs.ts": "reads a SKILL.md, a read-class call",
-  "tools/serp-tool-factory.ts":
+  "agents/src/capabilities/packs.ts": "reads a SKILL.md, a read-class call",
+  "agents/src/tools/serp-tool-factory.ts":
     "builds the one Tool a belt cannot assemble from the registry; " +
     "gated from outside like lazy-tool"
 };
@@ -177,9 +185,9 @@ const MAY_BE_UNGATED: Record<string, string> = {
  * symbol, or a walk that found no files, would otherwise read as clean.
  */
 const MUST_REFERENCE = [
-  "capabilities/invoke.ts",
-  "capabilities/lazy-tool.ts",
-  "capabilities/packs.ts"
+  "agents/src/capabilities/invoke.ts",
+  "agents/src/capabilities/lazy-tool.ts",
+  "agents/src/capabilities/packs.ts"
 ];
 
 function* sourceFiles(dir: string): Generator<string> {
@@ -193,10 +201,20 @@ function* sourceFiles(dir: string): Generator<string> {
   }
 }
 
+/** Every `packages/<name>/src` in the monorepo, skipping packages without one. */
+function* packageSourceDirs(root: string): Generator<string> {
+  for (const entry of readdirSync(root)) {
+    if (entry === "node_modules" || entry.startsWith(".")) continue;
+    const src = join(root, entry, "src");
+    if (existsSync(src) && statSync(src).isDirectory()) yield src;
+  }
+}
+
 describe("ungatedCapabilityRun users", () => {
-  const referencing = [...sourceFiles(srcDir)]
+  const referencing = [...packageSourceDirs(packagesDir)]
+    .flatMap((dir) => [...sourceFiles(dir)])
     .filter((file) => readFileSync(file, "utf8").includes("ungatedCapabilityRun"))
-    .map((file) => relative(srcDir, file).split("\\").join("/"))
+    .map((file) => relative(packagesDir, file).split("\\").join("/"))
     .sort();
 
   it("finds the sites the design names", () => {
