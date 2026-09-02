@@ -48,10 +48,10 @@ export default function AssetManagerSection() {
     >
       <div className={`scroll-fade ${sectionNarrow} text-center`}>
         <h2 className="text-base font-medium leading-7 text-blue-400">
-          Assets
+          Organize Everything
         </h2>
         <h3 id="asset-title" className="mt-2 text-3xl font-bold text-white">
-          Every file, in reach of every workflow
+          Built-in Asset Manager
         </h3>
         <p className="section-subtitle mt-4 text-slate-300">
           Drag files in once, use them in any workflow.

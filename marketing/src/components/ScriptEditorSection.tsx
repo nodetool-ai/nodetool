@@ -77,11 +77,11 @@ export default function ScriptEditorSection() {
               transition={{ duration: 0.25, delay: 0.05 }}
               className="text-lg text-slate-300 leading-relaxed"
             >
-              Draft the dialogue, cast a voice per character, and audition
-              alternate readings, each with word-level timing. The script is
-              its own document: the words are the source of truth, the takes
-              derive from them, and an edit shows which line needs voicing
-              again.
+              Go from prompt to screenplay in seconds. Draft the dialogue,
+              cast a voice per character, and audition alternate line readings
+              with automatic word-level sync. The script is its own document —
+              the words are the source of truth, and the takes are derived from
+              them.
             </motion.p>
           </div>
 

@@ -19,7 +19,7 @@ const entries = [
     intent: "Desktop app",
     name: "Studio",
     href: "/studio",
-    body: "Runs on your Mac, Windows, or Linux machine. Project files and keys stay on your disk, and open-weight models run with no connection at all.",
+    body: "Runs directly on your computer. Keeps your files and settings private on your hard drive, with optional offline support.",
     icon: Monitor,
     accent: "text-amber-300",
     chip: "border-amber-500/30 bg-amber-500/10",
@@ -28,7 +28,7 @@ const entries = [
     intent: "In your browser",
     name: "Cloud",
     href: "/cloud",
-    body: "Nothing to install. Open a browser and start a project. Cloud is in alpha, so expect rough edges.",
+    body: "Runs in your web browser with zero installation needed. The fastest way to jump in and start creating. Currently in alpha.",
     icon: Cloud,
     accent: "text-blue-300",
     chip: "border-blue-500/30 bg-blue-500/10",
@@ -37,7 +37,7 @@ const entries = [
     intent: "For developers",
     name: "Developers",
     href: "/developers",
-    body: "Drive the same workflows from code: the SDK, the CLI, or an MCP server that Claude Code and Cursor can call.",
+    body: "Connect custom scripts, automate tasks, and integrate your own code into the visual canvas, through the SDK, the CLI, or an MCP server.",
     icon: Code2,
     accent: "text-violet-300",
     chip: "border-violet-500/30 bg-violet-500/10",
@@ -70,11 +70,12 @@ export default function WaysInSection() {
             id="ways-in-title"
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            Pick where it runs.
+            Choose the setup that fits your workflow.
           </h2>
           <p className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
-            Desktop app or browser, it is the same product: the same agent,
-            the same editors, the same models, and the same project files.
+            Whether you use the desktop app or the browser version, you get
+            the exact same features, tools, and capabilities: the same agent,
+            the same workflows, the same models.
           </p>
         </header>
 

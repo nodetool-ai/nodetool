@@ -88,19 +88,19 @@ export default function ComparisonSection({
         <div className="scroll-fade grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/60 border border-slate-800/80 rounded-2xl overflow-hidden">
           <ComparisonCard
             competitor="Image-only node tools (like ComfyUI)"
-            sentence="Image-only node tools stop at the picture. NodeTool puts image, video, audio, text, and the editors that finish them on one canvas."
+            sentence="Specialized node tools only create pictures. NodeTool provides a complete studio that connects images, video, audio, text, and editing on one canvas."
             reducedMotion={reducedMotion}
             delay={0}
           />
           <ComparisonCard
             competitor="Closed platforms"
-            sentence="Closed platforms sell credit bundles and a model list they picked. NodeTool is open source: you connect your own provider accounts and pay list price, with no middleman."
+            sentence="Other platforms force you into monthly credit bundles and restricted feature lists. NodeTool is open source: you use your direct provider accounts and pay raw rates with no middleman markup."
             reducedMotion={reducedMotion}
             delay={0.05}
           />
           <ComparisonCard
             competitor="A dozen separate web apps"
-            sentence="A dozen web apps means a dozen exports, and every hop loses the prompt and the seed. NodeTool keeps the whole pipeline on one canvas, as a workflow you run again."
+            sentence="Instead of copying files between disconnected websites, NodeTool connects your favorite AI tools into a single, repeatable workflow."
             reducedMotion={reducedMotion}
             delay={0.1}
           />
@@ -203,7 +203,7 @@ export default function ComparisonSection({
                 Where NodeTool fits
               </div>
               <h3 className="text-2xl md:text-3xl font-semibold text-white mb-5 tracking-tight">
-                Pick the model. Pick the price.
+                Model freedom. No platform lock-in.
               </h3>
               <p className="text-slate-300 leading-relaxed mb-4 text-[1.025rem]">
                 Take Seedance, one of today&apos;s best video models. It is sold
@@ -212,9 +212,9 @@ export default function ComparisonSection({
                 Kling arrives, you switch to it in one click.
               </p>
               <p className="text-slate-400 leading-relaxed text-[1.025rem]">
-                That is what holding the keys buys you: the best model at the
-                best price each week, and nothing to lose if your favorite tool
-                gets bought, repriced, or shut down.
+                That is what sovereignty buys you: the best model at the best
+                price each week, and nothing to lose if your favorite tool gets
+                bought, repriced, or shut down.
               </p>
             </div>
           </div>

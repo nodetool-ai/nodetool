@@ -59,9 +59,9 @@ export default function FeaturesSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Script, storyboard, footage, sound, and the cut, on one canvas,
-            with the editing tools right next to the models. You direct the
-            whole piece instead of generating parts of it.
+            Script, storyboard, footage, sound, and the cut — on one canvas,
+            with the editing tools sitting right next to the models. You direct
+            the whole piece instead of generating parts of it.
           </motion.p>
         </div>
 
@@ -114,7 +114,7 @@ export default function FeaturesSection({
             {
               title: "Scripting & casting",
               description:
-                "Draft the dialogue, cast a voice per character, and audition alternate readings. Every take keeps word-level timings for the cut.",
+                "Go from prompt to screenplay in seconds. Draft dialogue, cast character voices, and audition alternate line readings with automatic word-level sync.",
               icon: Mic,
               color: "text-blue-400",
               bg: "bg-blue-500/10",
@@ -123,16 +123,16 @@ export default function FeaturesSection({
             {
               title: "Any model, local or cloud",
               description:
-                "Route your shots through Flux, Seedance, Wan, Whisper, ElevenLabs, Suno, and the rest, or run open weights on your own hardware. No platform lock-in.",
+                "Route your shots through Flux, Seedance, Wan, Whisper, ElevenLabs, Suno, and the rest — or run open weights locally on your own hardware. No platform lock-in.",
               icon: Layers,
               color: "text-purple-400",
               bg: "bg-purple-500/10",
               border: "border-purple-500/20",
             },
             {
-              title: "The project, not just the render",
+              title: "A real timeline, not a black box",
               description:
-                "The agent hands back an editable multi-track project rather than one flat video file. Adjust any frame, layer, or audio stem.",
+                "Instead of a single unfixable video file, the agent hands you a fully editable multi-track project. Fine-tune every frame, layer, and audio stem.",
               icon: Film,
               color: "text-emerald-400",
               bg: "bg-emerald-500/10",

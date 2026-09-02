@@ -66,10 +66,10 @@ export default function AppBuilderSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-300 leading-relaxed"
           >
-            Once a workflow works, give it a screen: a few inputs and a Run
-            button. Hand that screen to a teammate or client so they get
-            results without seeing the canvas underneath, which stays yours to
-            open and change.
+            Once you build a workflow, turn it into a clean interface with a
+            few input boxes and a Generate button. Hand that screen to a
+            teammate or client so they get results without navigating the
+            canvas underneath — which stays yours to open and change.
           </motion.p>
         </div>
 

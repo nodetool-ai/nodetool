@@ -34,9 +34,9 @@ export default function ModelManagerSection() {
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Open weights, <br />
+            Hello <br />
             <span className="text-white">
-              downloaded in the app
+              HuggingFace
             </span>
           </motion.h2>
 
@@ -47,9 +47,9 @@ export default function ModelManagerSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Search Hugging Face, download a model, and run it on your own
-            machine. Your local library lives in the app, so a workflow can
-            reach any weight you have on disk.
+            Search, download, and manage models straight from Hugging Face.
+            <br />
+            Organize your local library without leaving the app.
           </motion.p>
         </div>
 

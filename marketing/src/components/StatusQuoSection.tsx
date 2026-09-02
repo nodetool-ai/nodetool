@@ -18,7 +18,7 @@ const frictions = [
     what: "Every hop between apps drops your settings, your prompts, and the reasoning behind them.",
   },
   {
-    where: "A markup on every take",
+    where: "Token markups on every take",
     what: "Credit packs priced above what the models cost, spendable only on the models that platform picked.",
   },
   {

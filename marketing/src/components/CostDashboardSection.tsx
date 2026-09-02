@@ -104,8 +104,8 @@ export default function CostDashboardSection() {
           <p className="mt-4 text-lg leading-relaxed text-slate-300">
             NodeTool records what each step costs and adds it up by workflow,
             provider, or model. Because you bring your own keys and pay
-            providers directly, with no markup, these are the amounts you are
-            actually billed.
+            providers directly, with no token markups, these are the amounts you
+            are actually billed.
           </p>
         </div>
 
