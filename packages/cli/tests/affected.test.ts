@@ -144,7 +144,10 @@ describe("EXTRA_WORKSPACE_PATHS", () => {
         ) as { workspaces?: string[] }
       ).workspaces ?? []
     );
-    for (const name of Object.keys(EXTRA_WORKSPACE_PATHS)) {
+    const names = Object.keys(EXTRA_WORKSPACE_PATHS);
+    // Emptying the map would satisfy the loop below by iterating nothing.
+    expect(names.length).toBeGreaterThan(0);
+    for (const name of names) {
       const owner = [...workspaces].find((dir) => {
         try {
           const pkg = JSON.parse(

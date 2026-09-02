@@ -545,10 +545,21 @@ describe("HybridSearchNode", () => {
       text: "search query text",
       n_results: 2
     });
-    const result = await node.process();
-    expect(result.ids).toBeDefined();
-    expect(result.scores).toBeDefined();
+    const result = (await node.process()) as {
+      ids: string[];
+      documents: string[];
+      distances: number[];
+      scores: number[];
+    };
     expect(mockCollection.query).toHaveBeenCalledTimes(2);
+    expect(result.ids).toEqual(["id1", "id2"]);
+    expect(result.documents).toEqual(["doc1", "doc2"]);
+    expect(result.distances).toEqual([0.1, 0.5]);
+    // Both legs return both documents, so each score is its reciprocal-rank
+    // contribution counted twice: 2/(rank + 60). Only the scores catch a fusion
+    // that stopped accumulating; the ids and their order are the same either way.
+    expect(result.scores[0]).toBeCloseTo(2 / 60, 10);
+    expect(result.scores[1]).toBeCloseTo(2 / 61, 10);
   });
 
   it("only performs semantic search when no keywords pass min length", async () => {

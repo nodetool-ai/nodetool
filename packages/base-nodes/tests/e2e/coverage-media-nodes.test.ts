@@ -1699,16 +1699,20 @@ describe("video nodes — full coverage", () => {
     expect((result.output as { data: unknown }).data).toBeNull();
   });
 
-  it("GetVideoInfoNode returns metadata via ffprobe", async () => {
-    const ref = videoRef();
+  it("GetVideoInfoNode degrades to a complete zero record on unprobeable bytes", async () => {
+    // `videoRef()` is 18 ASCII bytes, so ffprobe fails and the node degrades.
+    // A declared slot missing from that record is unreachable downstream.
     const _n = new GetVideoInfoNode();
-    _n.assign({ video: ref });
-    const result = await _n.process();
-    // Without ffprobe, the output has multiple named fields (not nested in .output)
-    expect(result.duration).toBeDefined();
-    expect(result.width).toBeDefined();
-    expect(result.height).toBeDefined();
-    expect(result.fps).toBeDefined();
+    _n.assign({ video: videoRef() });
+    expect(await _n.process()).toEqual({
+      duration: 0,
+      width: 0,
+      height: 0,
+      fps: 0,
+      frame_count: 0,
+      codec: "",
+      has_audio: false
+    });
   });
 
   it("video helper functions handle edge cases", async () => {
@@ -1838,7 +1842,9 @@ describe("video nodes — full coverage", () => {
     expect(outData.length).toBe(0);
   });
 
-  it("GetVideoInfoNode handles video with uri", async () => {
+  it("GetVideoInfoNode reads the inline data of a uri-bearing ref", async () => {
+    // Inline `data` wins over `uri`, so ffprobe sees the three junk bytes and
+    // degrades the same way.
     const _n = new GetVideoInfoNode();
     _n.assign({
       video: {
@@ -1846,10 +1852,15 @@ describe("video nodes — full coverage", () => {
         uri: "file://test.mp4"
       }
     });
-    const result = await _n.process();
-    // Without ffprobe, returns metadata with zero values
-    expect(result.duration).toBeDefined();
-    expect(result.fps).toBeDefined();
+    expect(await _n.process()).toEqual({
+      duration: 0,
+      width: 0,
+      height: 0,
+      fps: 0,
+      frame_count: 0,
+      codec: "",
+      has_audio: false
+    });
   });
 });
 
