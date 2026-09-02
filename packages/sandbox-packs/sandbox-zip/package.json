@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-zip",
-  "version": "0.7.0-rc.38",
+  "version": "0.7.0-rc.39",
   "description": "Read and write zip archives inside the NodeTool sandbox, from fflate running on the host with a 50 MB inflation cap",
   "license": "MIT",
   "nodetool": {

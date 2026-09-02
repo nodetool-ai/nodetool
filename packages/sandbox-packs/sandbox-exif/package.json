@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-exif",
-  "version": "0.7.0-rc.38",
+  "version": "0.7.0-rc.39",
   "description": "Read EXIF and other photo metadata inside the NodeTool sandbox, from exifr",
   "license": "MIT",
   "nodetool": {

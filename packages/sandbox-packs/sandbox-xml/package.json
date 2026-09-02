@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-xml",
-  "version": "0.7.0-rc.38",
+  "version": "0.7.0-rc.39",
   "description": "Parse XML feeds and sitemaps inside the NodeTool sandbox, from fast-xml-parser running on the host",
   "license": "MIT",
   "nodetool": {

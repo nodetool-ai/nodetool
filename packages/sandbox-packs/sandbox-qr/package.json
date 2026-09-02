@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-qr",
-  "version": "0.7.0-rc.38",
+  "version": "0.7.0-rc.39",
   "description": "Encode QR codes as a matrix or SVG inside the NodeTool sandbox, from uqr",
   "license": "MIT",
   "dependencies": {

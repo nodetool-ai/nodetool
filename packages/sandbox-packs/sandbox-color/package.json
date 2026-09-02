@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-color",
-  "version": "0.7.0-rc.38",
+  "version": "0.7.0-rc.39",
   "description": "Color conversion, mixing, and difference (deltaE) inside the NodeTool sandbox, from culori",
   "license": "MIT",
   "dependencies": {

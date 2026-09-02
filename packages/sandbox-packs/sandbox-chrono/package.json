@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-chrono",
-  "version": "0.7.0-rc.38",
+  "version": "0.7.0-rc.39",
   "description": "Parse natural-language dates inside the NodeTool sandbox, from chrono-node",
   "license": "MIT",
   "nodetool": {

@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-epub",
-  "version": "0.7.0-rc.38",
+  "version": "0.7.0-rc.39",
   "description": "Read EPUB e-books inside the NodeTool sandbox, from epub2 running on the host",
   "license": "MIT",
   "nodetool": {

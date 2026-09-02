@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/browser",
-  "version": "0.7.0-rc.38",
+  "version": "0.7.0-rc.39",
   "description": "Driving one real Chrome page over CDP: the action loop, element indexing, media capture, file upload, and the Chrome-extension relay that reaches the user's own signed-in browser",
   "type": "module",
   "engines": {

@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-html",
-  "version": "0.7.0-rc.38",
+  "version": "0.7.0-rc.39",
   "description": "CSS selection, HTML-to-markdown/text, and link/media/metadata extraction inside the NodeTool sandbox, from cheerio and turndown running on the host",
   "license": "MIT",
   "nodetool": {

@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-aws",
-  "version": "0.7.0-rc.38",
+  "version": "0.7.0-rc.39",
   "description": "Sign AWS requests with Signature V4 inside the NodeTool sandbox, from NodeTool's signer running on the host",
   "license": "MIT",
   "nodetool": {
