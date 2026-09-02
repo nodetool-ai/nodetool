@@ -10,6 +10,34 @@ import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { messages } from "./schema/messages.js";
 
+/**
+ * `execution_event_type` of a compaction record: the persisted summary that
+ * replaces everything before it in the view a provider is handed.
+ *
+ * The column is free-form text and every other value in it names a streamed
+ * execution event (`planning_update`, `task_update`, `log_update`), so the
+ * marker needs no schema change. The row keeps `role: "user"` so it is
+ * ordinary history to a provider once written, which is what keeps the cached
+ * prefix stable across the turns that follow.
+ */
+export const COMPACTION_EVENT_TYPE = "compaction";
+
+/** Whether a stored message is a compaction record. */
+export function isCompactionMessage(message: {
+  execution_event_type?: string | null;
+}): boolean {
+  return message.execution_event_type === COMPACTION_EVENT_TYPE;
+}
+
+/**
+ * The content a compaction record carries. The header tells the model what it
+ * is reading, since the row is otherwise indistinguishable from something the
+ * user typed.
+ */
+export function compactionMessageContent(summary: string): string {
+  return `[Conversation so far]\n${summary}`;
+}
+
 export class Message extends DBModel {
   static override table = messages;
 

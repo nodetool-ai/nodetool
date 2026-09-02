@@ -23,6 +23,7 @@ import {
 } from "@nodetool-ai/execution";
 import {
   Asset,
+  isCompactionMessage,
   Job,
   Message,
   Prediction,
@@ -135,6 +136,7 @@ import {
   createWorkflowResponseContent,
   dbMessageToProviderMessage,
   extractTextContent,
+  historySinceCompaction,
   invokedSkillsSection,
   toolResultDisplayText,
   type SkillEntry
@@ -1278,24 +1280,44 @@ export class ChatTurnHandler {
         limit: SESSION_PROBE_WINDOW
       });
       const probeHasWholeThread = recent.length < SESSION_PROBE_WINDOW;
-      // `recent` is newest-first. Walk to the most recent assistant carrying a
-      // session token — that message is the resume boundary.
+      // `recent` is newest-first. Walk to the first boundary marker: an
+      // assistant carrying a session token, or a compaction record. Both claim
+      // to say where history starts, and whichever is newer wins — the walk
+      // meets it first, so the loop decides by stopping.
+      //
+      // A compaction newer than the session must win: the upstream transcript
+      // that session token resumes is the very history compaction just replaced,
+      // so resuming it would send back everything the cut removed (and the cut
+      // usually happened because that transcript no longer fits).
       let probeSession: ProviderSession | null = null;
-      const sinceSessionNewestFirst: Message[] = [];
+      let probeCompaction: Message | null = null;
+      const sinceMarkerNewestFirst: Message[] = [];
       for (const m of recent) {
+        if (isCompactionMessage(m)) {
+          probeCompaction = m;
+          break;
+        }
         if (m.role === "assistant" && m.provider_session) {
           const s = m.provider_session;
           if (s.providerId === providerId && s.model === model)
             probeSession = s;
           break;
         }
-        sinceSessionNewestFirst.push(m);
+        sinceMarkerNewestFirst.push(m);
       }
 
-      if (probeSession) {
+      if (probeCompaction) {
+        // COMPACTED path: the summary row plus everything after it, already in
+        // hand from the probe. No session resumes across a compaction, so
+        // `priorSession` stays null and the provider rebuilds from these rows.
+        chatHistory = convertDbMessages([
+          probeCompaction,
+          ...sinceMarkerNewestFirst.reverse()
+        ]);
+      } else if (probeSession) {
         // RESUME fast path: the SDK already holds the prior turns, so send only
         // the messages since the session — no full-thread load.
-        const newTurns = convertDbMessages(sinceSessionNewestFirst.reverse());
+        const newTurns = convertDbMessages(sinceMarkerNewestFirst.reverse());
         chatHistory = newTurns;
         // The single system message prepended below sits at index 0, so the new
         // turns begin at index 1 (the provider's relative resume checkpoint).
@@ -1312,21 +1334,24 @@ export class ChatTurnHandler {
           probeSession.checkpoint + 1 + newTurns.length;
         loadFullHistory = async () => {
           const [rows] = await Message.paginate(threadId, { limit: 1000 });
-          const full = convertDbMessages(rows);
+          const full = convertDbMessages(historySinceCompaction(rows));
           full.unshift(systemChatMessage());
           return full;
         };
       } else if (probeHasWholeThread) {
         // The whole thread fit in the probe window — reuse it, no second query.
-        const rows = [...recent].reverse();
+        const rows = historySinceCompaction([...recent].reverse());
         chatHistory = convertDbMessages(rows);
         priorSession = lastMatchingProviderSession(rows, providerId, model);
       } else {
         // Long thread without a resumable session in the recent window: load it
-        // all (a far-back session still resumes via the slice path).
+        // all (a far-back session still resumes via the slice path). A session
+        // older than the compaction cut is not one of them: searching only the
+        // compacted slice is what keeps the newest marker winning here too.
         const [rows] = await Message.paginate(threadId, { limit: 1000 });
-        chatHistory = convertDbMessages(rows);
-        priorSession = lastMatchingProviderSession(rows, providerId, model);
+        const kept = historySinceCompaction(rows);
+        chatHistory = convertDbMessages(kept);
+        priorSession = lastMatchingProviderSession(kept, providerId, model);
       }
     }
 

@@ -1,4 +1,4 @@
-import type { Message } from "@nodetool-ai/models";
+import { isCompactionMessage, type Message } from "@nodetool-ai/models";
 import type {
   MessageContent,
   Message as ProviderMessage,
@@ -24,6 +24,28 @@ export interface SkillEntry {
   name: string;
   description: string;
   content: string;
+}
+
+/**
+ * The rows a provider is sent: everything from the newest compaction record
+ * onward, that record included.
+ *
+ * Compaction replaces the transcript before it with one summary row, so the
+ * provider view starts there while the older rows stay in the database for the
+ * UI and for `nodetool.threads.*`. The record is itself a `role: "user"`
+ * message, so after the cut it is ordinary history and the prefix a provider
+ * caches keeps growing from it (I-7).
+ *
+ * The cut therefore lands on a user-message boundary by construction, which is
+ * what keeps an assistant's tool call and its result on the same side of it —
+ * Anthropic rejects a `tool_use` with no `tool_result`. `rows` unchanged when
+ * the thread has never been compacted.
+ */
+export function historySinceCompaction(rows: readonly Message[]): Message[] {
+  for (let i = rows.length - 1; i >= 0; i--) {
+    if (isCompactionMessage(rows[i])) return rows.slice(i);
+  }
+  return [...rows];
 }
 
 export function dbMessageToProviderMessage(

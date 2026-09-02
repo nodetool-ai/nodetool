@@ -102,7 +102,12 @@ export { WorkflowShare } from "./workflow-share.js";
 
 export { Asset } from "./asset.js";
 
-export { Message } from "./message.js";
+export {
+  Message,
+  COMPACTION_EVENT_TYPE,
+  compactionMessageContent,
+  isCompactionMessage
+} from "./message.js";
 
 export { Thread } from "./thread.js";
 

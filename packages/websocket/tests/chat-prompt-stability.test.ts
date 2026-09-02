@@ -10,7 +10,14 @@
  * rewrite that hoisted string every turn and invalidate the whole prefix.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { initTestDb, Skill, Memory } from "@nodetool-ai/models";
+import {
+  COMPACTION_EVENT_TYPE,
+  compactionMessageContent,
+  initTestDb,
+  Memory,
+  Message,
+  Skill
+} from "@nodetool-ai/models";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import {
   WebSocketClientSession,
@@ -237,5 +244,27 @@ describe("chat prompt placement", () => {
     const last = lastUser(second);
     expect(textOf(last)).toContain("A memory saved between the two turns.");
     expect(textOf(last)).toContain("Lead with what changed.");
+  });
+
+  it("keeps the system message byte-identical across a compaction", async () => {
+    // I-7: compaction cuts the conversation, never the cached prefix. The
+    // summary is a `role: "user"` row, so the system message a provider hashes
+    // its cache on is the same string before and after.
+    const first = await runTurn("t-compacted", "Hello");
+
+    await Message.create({
+      thread_id: "t-compacted",
+      user_id: "1",
+      role: "user",
+      execution_event_type: COMPACTION_EVENT_TYPE,
+      content: compactionMessageContent("The user greeted us and asked for X.")
+    });
+    const second = await runTurn("t-compacted", "Carry on");
+
+    expect(textOf(second[0])).toBe(textOf(first[0]));
+    expect(second.filter((m) => m.role === "system")).toHaveLength(1);
+    // The summary rides as ordinary conversation, after the system message.
+    expect(second[1].role).toBe("user");
+    expect(textOf(second[1])).toContain("[Conversation so far]");
   });
 });

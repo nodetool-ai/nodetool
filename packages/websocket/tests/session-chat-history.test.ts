@@ -5,7 +5,11 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { Message } from "@nodetool-ai/models";
+import {
+  COMPACTION_EVENT_TYPE,
+  compactionMessageContent,
+  Message
+} from "@nodetool-ai/models";
 import type {
   MessageContent,
   Message as ProviderMessage
@@ -15,9 +19,14 @@ import {
   createWorkflowResponseContent,
   dbMessageToProviderMessage,
   extractTextContent,
+  historySinceCompaction,
   invokedSkillsSection,
   toolResultDisplayText
 } from "../src/session/chat-history.js";
+import {
+  orphanedToolCallIds,
+  repairOrphanedToolCalls
+} from "../src/chat-tool-call-repair.js";
 
 function dbMessage(data: Record<string, unknown>): Message {
   return new Message({ thread_id: "thread-1", user_id: "user-1", ...data });
@@ -262,5 +271,126 @@ describe("extractTextContent", () => {
     expect(extractTextContent([{ type: "image" }], "fb")).toBe("fb");
     expect(extractTextContent(42, "fb")).toBe("fb");
     expect(extractTextContent(null)).toBe("");
+  });
+});
+
+describe("historySinceCompaction", () => {
+  /**
+   * Sixty stored rows with a compaction record as the 40th. Every third row is
+   * a tool result answering the assistant before it, so a cut in the wrong
+   * place separates a `tool_use` from its `tool_result` — which Anthropic
+   * rejects outright.
+   */
+  function thread(): Message[] {
+    const rows: Message[] = [];
+    const at = (n: number) =>
+      `2026-01-01T00:00:00.${String(n).padStart(3, "0")}Z`;
+    for (let i = 1; i <= 60; i++) {
+      const base = { id: `m${i}`, created_at: at(i) };
+      if (i === 40) {
+        rows.push(
+          dbMessage({
+            ...base,
+            role: "user",
+            execution_event_type: COMPACTION_EVENT_TYPE,
+            content: compactionMessageContent("The user wants a teal palette.")
+          })
+        );
+      } else if (i % 3 === 1) {
+        rows.push(dbMessage({ ...base, role: "user", content: `ask ${i}` }));
+      } else if (i % 3 === 2) {
+        rows.push(
+          dbMessage({
+            ...base,
+            role: "assistant",
+            content: `thinking ${i}`,
+            tool_calls: [{ id: `call-${i}`, name: "search", args: {} }]
+          })
+        );
+      } else {
+        rows.push(
+          dbMessage({
+            ...base,
+            role: "tool",
+            content: `result ${i}`,
+            tool_call_id: `call-${i - 1}`
+          })
+        );
+      }
+    }
+    return rows;
+  }
+
+  const provider = (rows: readonly Message[]): ProviderMessage[] => {
+    const out: ProviderMessage[] = [];
+    for (const row of rows) {
+      const pm = dbMessageToProviderMessage(row, "user-1");
+      if (pm) out.push(pm);
+    }
+    return out;
+  };
+
+  /** Tool results whose call is not in the slice — the other broken cut. */
+  const danglingToolResultIds = (messages: readonly ProviderMessage[]) => {
+    const called = new Set<string>();
+    for (const m of messages) {
+      for (const call of m.toolCalls ?? []) called.add(call.id);
+    }
+    return messages
+      .filter((m) => m.role === "tool" && m.toolCallId)
+      .map((m) => m.toolCallId as string)
+      .filter((id) => !called.has(id));
+  };
+
+  it("returns the rows unchanged when the thread was never compacted", () => {
+    const rows = thread().filter((m) => m.id !== "m40");
+    expect(historySinceCompaction(rows).map((m) => m.id)).toEqual(
+      rows.map((m) => m.id)
+    );
+  });
+
+  it("starts at the compaction record and keeps everything after it", () => {
+    const kept = historySinceCompaction(thread());
+
+    expect(kept).toHaveLength(21);
+    expect(kept[0].id).toBe("m40");
+    expect(kept[0].content).toContain("[Conversation so far]");
+    expect(kept.map((m) => m.id)).toEqual([
+      "m40",
+      ...Array.from({ length: 20 }, (_, i) => `m${41 + i}`)
+    ]);
+  });
+
+  it("cuts at the newest record when a thread was compacted twice", () => {
+    const rows = thread();
+    rows[9] = dbMessage({
+      id: "m10",
+      created_at: rows[9].created_at,
+      role: "user",
+      execution_event_type: COMPACTION_EVENT_TYPE,
+      content: compactionMessageContent("an older summary")
+    });
+
+    expect(historySinceCompaction(rows)[0].id).toBe("m40");
+  });
+
+  it("cuts on a user-message boundary, splitting no tool-call pair", () => {
+    const kept = provider(historySinceCompaction(thread()));
+
+    expect(danglingToolResultIds(kept)).toEqual([]);
+    expect(orphanedToolCallIds(kept)).toEqual([]);
+    expect(kept[0].role).toBe("user");
+    // Nothing to patch: the provider sees exactly the rows the cut kept.
+    expect(repairOrphanedToolCalls(kept)).toHaveLength(kept.length);
+  });
+
+  it("changes the repair count when a cut does split a tool-call pair", () => {
+    const kept = provider(historySinceCompaction(thread()));
+    // m60 is the result answering m59's call; a cut that keeps the call and
+    // drops the answer is the failure mode `repairOrphanedToolCalls` covers.
+    const split = kept.slice(0, -1);
+
+    expect(orphanedToolCallIds(split)).toEqual(["call-59"]);
+    expect(repairOrphanedToolCalls(split)).toHaveLength(split.length + 1);
   });
 });
