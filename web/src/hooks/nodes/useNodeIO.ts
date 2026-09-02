@@ -20,6 +20,7 @@ import { edgesTargeting } from "./edgeIndex";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import {
   assetToGeneration,
+  assetsForNode,
   getCurrentGeneration,
   mergeGenerations,
   outputOf,
@@ -48,9 +49,7 @@ const useCurrentGenerationResolver = (
   return useCallback(
     (nodeId, node) => {
       const liveGenerations = useResultsStore.getState().liveGenerations;
-      const persisted = assets
-        .filter((a) => a.node_id === nodeId)
-        .map(assetToGeneration);
+      const persisted = assetsForNode(assets, nodeId).map(assetToGeneration);
       const live = liveGenerations[`${workflowId}:${nodeId}`] ?? [];
       const generations = mergeGenerations(persisted, live);
       const selectedId = node?.data?.selected_generation;

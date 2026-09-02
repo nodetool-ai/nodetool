@@ -6,6 +6,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import type { Asset } from "../../stores/ApiTypes";
 import {
   assetToGeneration,
+  assetsForNode,
   mergeGenerations,
   displayableGenerations,
   getCurrentGeneration,
@@ -47,7 +48,7 @@ export const useNodeGenerations = (workflowId: string, nodeId: string): UseNodeG
       const source = s.assetsByWorkflow[workflowId];
       if (source === lastSource) return lastResult;
       lastSource = source;
-      const next = source?.filter((a) => a.node_id === nodeId) ?? [];
+      const next = source ? assetsForNode(source, nodeId) : [];
       if (
         next.length === lastResult.length &&
         next.every((a, i) => a === lastResult[i])
