@@ -243,6 +243,25 @@ What is still a `Tool` class is what is not request/response: `FinishStepTool`
 (`capabilities/adapters.ts`) wraps one as a capability, and
 `toolFromCapability` goes the other way for a belt that still wants classes.
 
+### The permission gate
+
+Every actionable call runs one ladder, in `capabilities/invoke.ts`: a
+read-class capability goes straight to its implementation, then the mode and
+category decide (`decidePermission`), then the session allow-set, then the
+approval round trip. A capability declares its `category` (`read`, `write`,
+`execute`, `external`) in its spec; a `Tool` reaches the same ladder through
+`gateTools`, which builds a one-call `CapabilityRun` over a capability view of
+the tool and classifies it by name with `permissionCategoryFor`.
+
+The gate is per run, not per tool. A host publishes one
+`PermissionGateOptions` on the context under `PERMISSION_GATE_CONTEXT_KEY`, and
+every loop it never constructed reads that object with `gateFromContext` rather
+than building its own: an `AgentNode` reached through `run_node`, a JS script,
+a sub-agent several levels down. A context with no gate on it is a headless
+host, and the answer there is `auto` with every escalation denied, not
+"ungated". Which host sets what is the table in
+[packages/agents/AGENTS.md § Where the permission gate is set](../packages/agents/AGENTS.md).
+
 ### The MCP surface is CodeAct too
 
 An external agent (Claude Code, ChatGPT, …) that connects to NodeTool's MCP

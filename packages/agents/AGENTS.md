@@ -1016,6 +1016,108 @@ A missing or revoked credential surfaces as `{ error }` telling the user to sign
 in with Google again, rather than throwing — the agent can then pick another
 route instead of failing the whole step.
 
+## Where the permission gate is set
+
+One ladder decides every actionable call. `decidePermission`
+(`tools/tool-permissions.ts`) reads a mode and a category, `gatedCall`
+(`capabilities/invoke.ts`) runs the sequence around it (read-class fast path,
+mode decision, session allow-set, approval round trip), and `gateTools`
+(`capabilities/gate-tools.ts`) is the door a `Tool` walks through it. What
+differs between hosts is who answers when the ladder asks.
+
+A host publishes one `PermissionGateOptions` under
+`PERMISSION_GATE_CONTEXT_KEY` (`src/types.ts`), and every loop under it reads
+that object with `gateFromContext` instead of building a gate of its own
+(invariant I-1). This is the channel `RunBudget` already travels on, for the
+same reason: `ProcessingContext.copy()` shallow-copies the variable bag, so a
+child shares the host's gate object rather than a clone, which is what makes a
+mid-turn `set_permission_mode` and an "allow for this chat" answer reach a loop
+that started before them.
+
+| Host | Where its gate comes from | Mode | Approver |
+|---|---|---|---|
+| Chat turn (web, Telegram, MCP) | `chat-turn.ts` sets `chatGate` on the turn context | the thread's live mode, read through a getter so `set_permission_mode` lands mid-turn | round trip to the client (`requestToolApproval`) |
+| `run_node` child | `runSingleNode` builds a context of its own, so the turn's gate is passed in as an argument and set on it | the calling turn's, the same object | the calling turn's client |
+| `AgentNode` in a workflow | `genProcess` wraps what `buildTools` returned in `gateFromContext(context, "Agent node")` | the host's, or `auto` when no host set one | the host's, or the headless deny |
+| JS script | `js-script-sandbox.ts` passes `gateFromContext(context, "JS script")` to `createCapabilityRun` | same | same |
+| Kernel workflow run | nothing is set, deliberately (see below) | `auto` | nobody: the headless deny |
+| `nodetool agent run` on a TTY | `createCliPermissionGate` (`packages/cli/src/permission-gate.ts`), host name `nodetool agent run`, set on the run's context | `--permission-mode`, defaulting to `default` | the terminal: `y / n / a` prompted on stderr, because stdout carries the result. `a` answers `allow_for_chat`, and the name lands in the run's shared `sessionAllow` |
+| `nodetool agent run` with the objective piped in | the same builder, not interactive | `--permission-mode`, defaulting to `auto` | nobody: `headlessGate`'s deny, its reason printed once per run |
+| `nodetool-chat` reading piped stdin (`runStdinMode`) | the same builder, host name `nodetool-chat`, set on each line's context | `--permission-mode`, defaulting to `auto` | nobody: the headless deny |
+| `nodetool-chat --url` | no gate is built here | — | the server's chat turn, which gates the belt it runs |
+| `nodetool-chat` interactive session | **nothing**: the Ink session builds its own belt in `app.tsx`, wraps it in no `gateTools`, and puts no key on its context | none | nobody |
+
+A CLI run that cannot prompt keeps the mode it was asked for and changes only
+the approver, so a piped `--permission-mode plan` still blocks what plan mode
+blocks. The `sessionAllow` Set is created once per run and shared by reference,
+which is what makes `a` outlive the call that answered it: `nodetool-chat`
+rebuilds its belt for every input line and consults the same Set. Under
+`--json` the notice and any prompt ride the event stream rather than stderr, so
+that stream stays one JSON object per line.
+
+**The interactive CLI session is the host A2 left open.** Its belt is
+`RunSubtaskTool` plus raw tools, so nothing there meets the ladder. The reason
+is the terminal, not the design: the Ink session reads stdin itself
+(`useInput`), so the `readline` prompt every other CLI path uses cannot share
+it, and an approval there needs an Ink component instead. Rather than accept a
+mode it would ignore, `packages/cli/src/index.ts` prints that
+`--permission-mode` does not apply to the interactive session.
+
+**Both gated CLI hosts wrap their belt the way chat does.** `gateTools` covers
+the belt, and `execute_plan` is wrapped on its own, because
+`toolForCapabilityName` builds a `LazyCapabilityTool` whose `process` calls the
+implementation directly: a gate on the delegation run covers what that
+implementation invokes, not the tool itself. The delegation primitives
+(`run_subtask`, `start_subtask`, `wait_subtasks`, `run_search`, `create_plan`)
+stay ungated in both hosts, because spawning a child loop has no effect of its
+own and the child acts through the belt that is already gated.
+
+**The kernel row is a decision, not an omission.** A workflow run is consent:
+the user pressed Run on a graph whose nodes list their tools, so an agent loop
+inside it runs `auto` with nobody to ask, which is what `gateFromContext`
+already answers for a context carrying no gate. Building the same object in
+`buildWorkspaceExecutionContext` would also invert the package edge, since
+`@nodetool-ai/agents` depends on `@nodetool-ai/execution` and not the reverse,
+and it would be a second construction of the ladder's default. The doc comment
+in `workflow-workspace.ts` records this, so nobody closes the "gap" later.
+
+**Plan mode already blocks `run_node` one level above the node.** `run_node`
+is classified `execute`, and `decidePermission("plan", "execute")` is `block`,
+so a chat in plan mode gets `blocked_in_plan_mode` from the belt before the
+node runs. The gate on the node closes the same hole reached another way: a
+`set_permission_mode` to `plan` while a node is already running, or any other
+host that puts a plan-mode gate on a context. What the child inherits is pinned
+by `packages/websocket/tests/chat-turn-handler-run-node.test.ts`, which asks
+`gateFromContext` from inside the node's own executor.
+
+**Control tools and `submit_result` stay ungated on an `AgentNode`.** They are
+graph wiring rather than capabilities: a control tool fires an outgoing control
+edge, and `submit_result` hands the node's structured outputs back to the node.
+Both are appended after `gateAgentTools` has run. The wrap sits at the
+`genProcess` call site rather than inside `buildTools` because `buildTools` is
+the hook a subclass overrides, and gating inside it would be skipped by any
+override that does not call `super`.
+
+**The headless gate denies, and names the host that had nobody to ask.**
+`headlessGate(hostName)` runs `auto` with an approver that resolves `"deny"`
+and logs the refusal. In `auto` the ladder allows read, write, execute and
+external outright, so that approver is reached only by an escalation the ladder
+itself raises: `admitCodeAction` asks before a high-risk `execute_code` action
+in auto, and the Apify actor policy asks before an actor the install has not
+allowlisted. Resolving `"allow"` would grant what those escalations exist to
+withhold, and never resolving would hang the run (invariant I-4).
+`headlessDenialReason` is exported so a host that runs headless on purpose can
+print the same sentence once at the start instead of once per denied call.
+
+**Three construction sites may still build an ungated run.**
+`capabilities/lazy-tool.ts` and `tools/serp-tool-factory.ts` build a `Tool` the
+host gates from outside with `gateTools`; `capabilities/packs.ts` reads a
+SKILL.md, a read-class call with nothing for the ladder to withhold.
+`packages/agents/tests/gate-from-context.test.ts` walks `src/` for
+`ungatedCapabilityRun` and fails on any file its allowlist does not cover. It
+also asserts that the three sites it names by hand were found, so it cannot
+pass on a walk that matched nothing.
+
 ## Approving a plan is the permission gate
 
 There is no plan-approval callback. `execute_plan` is classified `external` in

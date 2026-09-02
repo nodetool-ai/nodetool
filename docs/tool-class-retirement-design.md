@@ -243,6 +243,21 @@ What this costs:
   `unified-websocket-runner.ts:5356-5367`); the suspension moves inside the gate so
   every host gets it, not just the chat runner.
 
+**What shipped since.** The gate is still a wrapper class, but it decides
+nothing itself: `GatedCapabilityTool` (`capabilities/gate-tools.ts`) builds a
+one-call `CapabilityRun` over a capability view of the inner tool and lets
+`invoke` run the ladder, so the single call site described above exists and a
+`Tool` is one door into it. Classification has not moved yet: a tool is classed
+by name through `permissionCategoryFor`, a capability by its spec's `category`.
+What did move is where the gate comes from. A host publishes one
+`PermissionGateOptions` on the context under `PERMISSION_GATE_CONTEXT_KEY`, and
+a loop the host never constructed (an `AgentNode` reached through `run_node`,
+a JS script) reads it with `gateFromContext` instead of building an ungated run
+of its own; absence resolves to a headless gate that runs `auto` and denies
+what the ladder escalates, so a host that sets nothing fails closed. The
+per-host table is in `packages/agents/AGENTS.md` § Where the permission gate is
+set.
+
 ### `ui_*` capabilities: in the pack surface, outside its implementation
 
 `ui_*` tools are schemas, not host functions — the chat runner routes them over the
