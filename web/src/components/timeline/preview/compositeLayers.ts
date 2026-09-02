@@ -17,6 +17,7 @@
 
 import type {
   ActiveLayer,
+  AnimatedLayerProps,
   Canvas2DLayer,
   Canvas2DMatte,
   PrecompositeLayer
@@ -50,9 +51,14 @@ export interface ResolvedCompositeSource {
  * How a host gets one layer's pixels. Null means it has none this frame — a
  * video still seeking, an image still decoding, a raster with nothing on it —
  * and the layer is left out of the frame.
+ *
+ * The layer's sampled props come with it because a rasterized layer's pixels
+ * depend on them: a shape clip with an animated trim draws a different outline
+ * at every timecode, and `anim.shapeStyle` is the one carrying it.
  */
 export type CompositeSourceResolver = (
-  layer: ActiveLayer
+  layer: ActiveLayer,
+  anim: AnimatedLayerProps
 ) => ResolvedCompositeSource | null;
 
 export interface BuildCompositeLayersOptions {
@@ -91,15 +97,15 @@ export function buildCompositeLayer(
   options: BuildCompositeLayersOptions,
   idPrefix = ""
 ): CompositeLayer | null {
-  const resolved = options.resolveSource(layer);
-  if (!resolved) return null;
-
   const anim = resolveAnimatedLayerProps(
     layer,
     options.atMs,
     options.canvas,
     options.animationCache
   );
+  const resolved = options.resolveSource(layer, anim);
+  if (!resolved) return null;
+
   const built: CompositeLayer = {
     id: compositeLayerId(layer, idPrefix),
     source: resolved.source,

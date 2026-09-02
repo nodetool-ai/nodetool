@@ -76,3 +76,11 @@
 - **Draw code takes a `RasterContext2D`, not a concrete canvas.** The browser
   passes an `OffscreenCanvas` context and the server `@napi-rs/canvas`; a type
   that only one of them satisfies breaks the other silently at build time.
+- **Every shape resolves to one `PathSegment[]`** (`render/shapeGeometry.ts`),
+  in surface pixels, arcs included as cubics. Trim, dashes and gradients then
+  apply to a rect, an ellipse, a star and an authored `d` the same way — and a
+  trimmed ellipse has an arc length to walk, which `ctx.ellipse` would not.
+- **A rasterized layer's pixels can depend on its animation sample.** A shape's
+  `trimStart`/`trimEnd` change the outline, so every host rasterizes
+  `AnimatedLayerProps.shapeStyle`, not the clip's own; a host that reaches for
+  `layer.shapeStyle` renders a trim animation as a held first frame.

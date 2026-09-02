@@ -28,9 +28,13 @@ import {
   clipSourceTimeSec,
   computeActiveLayersWithHorizon,
   createAnimationCompileCache,
+  resolveAnimatedLayerProps,
   resolveTextStaggerContext
 } from "@nodetool-ai/timeline/render";
-import type { ActiveLayer } from "@nodetool-ai/timeline/render";
+import type {
+  ActiveLayer,
+  AnimatedLayerProps
+} from "@nodetool-ai/timeline/render";
 import {
   buildCompositeLayer,
   buildCompositePrecomposites,
@@ -275,7 +279,8 @@ export async function renderTimeline(
        * concurrently and the mapping runs after, in scene order.
        */
       const sourceFor = async (
-        layer: ActiveLayer
+        layer: ActiveLayer,
+        anim: AnimatedLayerProps
       ): Promise<ResolvedCompositeSource | null> => {
         if (layer.kind === "caption" && layer.caption) {
           const bitmap = captionRasterizer.rasterize(
@@ -302,12 +307,12 @@ export async function renderTimeline(
           );
           return bitmap ? { source: bitmap } : null;
         }
-        if (layer.kind === "shape" && layer.shapeStyle) {
-          const bitmap = shapeRasterizer.rasterize(
-            layer.shapeStyle,
-            width,
-            height
-          );
+        if (layer.kind === "shape") {
+          // The animated style carries a driven trim range; without it a trim
+          // animation would rasterize its first frame and hold.
+          const shapeStyle = anim.shapeStyle ?? layer.shapeStyle;
+          if (!shapeStyle) return null;
+          const bitmap = shapeRasterizer.rasterize(shapeStyle, width, height);
           return bitmap ? { source: bitmap } : null;
         }
 
@@ -336,7 +341,14 @@ export async function renderTimeline(
       const sources = new Map<ActiveLayer, ResolvedCompositeSource>();
       await Promise.all(
         needed.map(async (layer) => {
-          const source = await sourceFor(layer);
+          // Rasterizing a layer can depend on its sampled props (a shape's trim
+          // range), and this prefetch runs before `buildCompositeLayer` samples
+          // them, so it samples them itself. The compile cache makes the second
+          // call a lookup.
+          const source = await sourceFor(
+            layer,
+            resolveAnimatedLayerProps(layer, timeMs, animCanvas, animCache)
+          );
           if (source) sources.set(layer, source);
         })
       );

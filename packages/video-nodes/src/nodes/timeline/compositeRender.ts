@@ -273,8 +273,12 @@ export async function renderTimelineComposited(
           return finish({ ...common, id: id("t"), source: raster });
         }
 
-        if (layer.kind === "shape" && layer.shapeStyle) {
-          const raster = rasterizer.shape(layer.shapeStyle);
+        if (layer.kind === "shape") {
+          // The animated style carries a driven trim range; without it a trim
+          // animation would rasterize its first frame and hold.
+          const shapeStyle = anim.shapeStyle ?? layer.shapeStyle;
+          if (!shapeStyle) return null;
+          const raster = rasterizer.shape(shapeStyle);
           if (!raster) return null;
           return finish({ ...common, id: id("s"), source: raster });
         }

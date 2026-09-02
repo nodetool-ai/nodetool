@@ -334,7 +334,8 @@ export async function renderTimelineFrames(
       | { skipped: string };
 
     const sourceForLayer = async (
-      layer: ActiveLayer
+      layer: ActiveLayer,
+      anim: AnimatedLayerProps
     ): Promise<LayerSource> => {
       if (layer.kind === "caption" && layer.caption) {
         const raster = rasterizer.caption(layer.caption);
@@ -357,8 +358,12 @@ export async function renderTimelineFrames(
         if (!raster) return { skipped: "nothing to draw" };
         return { source: raster, width: raster.width, height: raster.height };
       }
-      if (layer.kind === "shape" && layer.shapeStyle) {
-        const raster = rasterizer.shape(layer.shapeStyle);
+      if (layer.kind === "shape") {
+        // The animated style carries a driven trim range; without it a trim
+        // animation would rasterize its first frame and hold.
+        const shapeStyle = anim.shapeStyle ?? layer.shapeStyle;
+        if (!shapeStyle) return { skipped: "nothing to draw" };
+        const raster = rasterizer.shape(shapeStyle);
         if (!raster) return { skipped: "nothing to draw" };
         return { source: raster, width: raster.width, height: raster.height };
       }
@@ -413,11 +418,11 @@ export async function renderTimelineFrames(
       layer: ActiveLayer,
       sampled?: AnimatedLayerProps
     ): Promise<Canvas2DLayer<PreviewSource> | string> => {
-      const resolved = await sourceForLayer(layer);
-      if ("skipped" in resolved) return resolved.skipped;
       const anim =
         sampled ??
         resolveAnimatedLayerProps(layer, timeMs, animationCanvas, animCache);
+      const resolved = await sourceForLayer(layer, anim);
+      if ("skipped" in resolved) return resolved.skipped;
       const drawn: Canvas2DLayer<PreviewSource> = {
         source: resolved.source,
         sourceWidth: resolved.width,
