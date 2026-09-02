@@ -22,6 +22,7 @@ import {
   isToolCall,
   memoryKeys,
   withAgentSpanGen,
+  mediaResolverFor,
   type ActiveModelSelection
 } from "@nodetool-ai/runtime";
 import { linkAbort } from "./utils/link-abort.js";
@@ -882,6 +883,7 @@ export class StepExecutor {
         maxTokens: this.maxTokens,
         sequentialTools: true,
         turnBudget: this.turnBudget,
+        resolveMedia: mediaResolverFor(this.context),
         signal: abort.signal
       });
 

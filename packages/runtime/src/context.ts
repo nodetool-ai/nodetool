@@ -3953,3 +3953,24 @@ export class ProcessingContext {
     return value;
   }
 }
+
+
+/**
+ * The media resolver to hand `BaseProvider.generateLoop`, or undefined when
+ * this context cannot dereference one.
+ *
+ * `view_image` answers with an `asset://` reference and the loop turns it into
+ * pixels for the one request that needs them, so every host that drives a tool
+ * loop passes this. A partial context — a test double, a host object built
+ * from a subset of the interface — has no method to call, and the loop then
+ * sends the reference through untouched rather than throwing mid-turn.
+ */
+export function mediaResolverFor(
+  context:
+    | Pick<ProcessingContext, "resolveMessageMediaUris">
+    | undefined
+    | null
+): ((messages: Message[]) => Promise<Message[]>) | undefined {
+  if (!context || !isCallable(context.resolveMessageMediaUris)) return undefined;
+  return (messages) => context.resolveMessageMediaUris(messages);
+}

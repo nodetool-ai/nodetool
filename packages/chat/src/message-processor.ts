@@ -19,6 +19,7 @@ import {
   isProviderSessionUpdate,
   isProviderMessageEvent,
   isToolCall,
+  mediaResolverFor,
   type ActiveModelSelection
 } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -224,6 +225,7 @@ export async function processChat(opts: {
     executeTool: tools.length > 0 ? executeTool : undefined,
     maxIterations,
     turnBudget,
+    resolveMedia: mediaResolverFor(context),
     signal
   })) {
     if (signal?.aborted) break;

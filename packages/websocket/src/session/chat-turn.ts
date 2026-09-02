@@ -66,6 +66,7 @@ import {
   isProviderSessionUpdate,
   isProviderMessageEvent,
   isProviderStop,
+  mediaResolverFor,
   providerFailureDetail,
   type ActiveModelSelection,
   type RunBudget
@@ -2259,6 +2260,7 @@ export class ChatTurnHandler {
         sequentialTools: session ? true : undefined,
         workspaceDir: chatWorkspace?.localDir ?? undefined,
         skills: skillsForProvider,
+        resolveMedia: mediaResolverFor(ctx),
         signal
       })) {
         // A newer turn has taken over. Stop driving the client, but do NOT

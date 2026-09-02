@@ -378,7 +378,7 @@ describe("view_image", () => {
     expect(result.ok).toBe(true);
     expect(result.mimeType).toBe("image/png");
     expect(result.image_content).toEqual({
-      uri: `data:image/png;base64,${TINY_PNG_B64}`,
+      uri: "asset://abc.png",
       mimeType: "image/png"
     });
     expect(extractInjectableImages(result)).not.toBeNull();

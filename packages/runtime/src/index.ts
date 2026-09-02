@@ -13,6 +13,7 @@ export {
   resolveWorkspacePath,
   setDefaultModelInterfaces,
   getDefaultModelInterfaces,
+  mediaResolverFor,
   type AssetOutputMode,
   type CacheAdapter,
   type AssetInfoEntry,

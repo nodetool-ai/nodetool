@@ -488,6 +488,53 @@ describe("BaseProvider.generateLoop – image tool results", () => {
     }
   }
 
+  it("dereferences media at the request, once per appended message", async () => {
+    const provider = new ToolOnceProvider();
+    // What `view_image` answers with: a reference, not the pixels.
+    const image: MessageContent[] = [
+      { type: "text", text: "viewport" },
+      { type: "image_url", image: { uri: "asset://abc.png" } }
+    ];
+    const seen: Message[][] = [];
+    const resolveMedia = async (msgs: Message[]): Promise<Message[]> => {
+      seen.push(msgs);
+      return msgs.map((m) =>
+        Array.isArray(m.content)
+          ? {
+              ...m,
+              content: m.content.map((part) =>
+                part.type === "image_url" && part.image.uri === "asset://abc.png"
+                  ? {
+                      type: "image_url" as const,
+                      image: { uri: "data:image/png;base64,QUJD" }
+                    }
+                  : part
+              )
+            }
+          : m
+      );
+    };
+
+    for await (const _item of provider.generateLoop({
+      messages: [{ role: "user", content: "look" }],
+      model: "m",
+      executeTool: async () => image,
+      resolveMedia
+    })) {
+      // drain
+    }
+
+    // The second turn's request carries the pixels...
+    const sent = JSON.stringify(provider.secondTurnMessages);
+    expect(sent).toContain("data:image/png;base64,QUJD");
+    expect(sent).not.toContain("asset://abc.png");
+
+    // ...and the tail was resolved once, not re-resolved every round: the
+    // opening message on the first call, then only the three the round
+    // appended (the assistant turn, the tool result, the injected image).
+    expect(seen.map((batch) => batch.length)).toEqual([1, 3]);
+  });
+
   it("delivers image tool results via a user message, not the tool message", async () => {
     const provider = new ToolOnceProvider();
     const image: MessageContent[] = [

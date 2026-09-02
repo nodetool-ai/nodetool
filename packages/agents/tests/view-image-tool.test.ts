@@ -118,17 +118,17 @@ describe("ViewImageTool", () => {
     expect(extractInjectableImages(result)).not.toBeNull();
   });
 
-  it("passes original bytes through unchanged at high detail (no re-encode)", async () => {
+  it("answers with the stored reference, never the pixels", async () => {
     const tool = viewImageTool();
     const result = (await tool.process(imageContext(TINY_PNG_BYTES), {
       image_id: "asset://abc123.png",
       detail: "high"
     })) as Record<string, any>;
-    // No region/resize → ship the exact source bytes, not a codec re-encode
-    // (re-encoding a compressed PNG can bloat it many-fold).
-    expect(result.image_content.uri).toBe(
-      `data:image/png;base64,${TINY_PNG_B64}`
-    );
+    // The asset is already in storage, so the message names it. Inlining the
+    // bytes puts them in every following round of the tool loop, where a
+    // screenshot costs ~190k estimated prompt tokens.
+    expect(result.image_content.uri).toBe("asset://abc123.png");
+    expect(result.image_content.uri).not.toContain("base64");
   });
 
   it("resolves an asset id via the context", async () => {
@@ -142,7 +142,7 @@ describe("ViewImageTool", () => {
     expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://abc123.png");
     expect(result.ok).toBe(true);
     expect(result.note).toBe("What is in this image?");
-    expect(result.image_content.uri).toMatch(/^data:image\//);
+    expect(result.image_content.uri).toBe("asset://abc123.png");
   });
 
   it("crops to a region when sharp is available", async () => {

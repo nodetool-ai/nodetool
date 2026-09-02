@@ -31,6 +31,7 @@ import {
   isToolCall,
   memoryKeys,
   withAgentSpanGen,
+  mediaResolverFor,
   type ActiveModelSelection
 } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
@@ -969,6 +970,7 @@ export class CodeActExecutor {
           maxTokens: this.maxTokens,
           sequentialTools: true,
           workspaceDir: this.context.workspaceDir ?? undefined,
+          resolveMedia: mediaResolverFor(this.context),
           signal: abort.signal
         };
         if (this.turnBudget) loopArgs.turnBudget = this.turnBudget;

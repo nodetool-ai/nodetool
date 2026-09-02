@@ -783,6 +783,39 @@ function parseRegion(value: unknown): ImageRegion | undefined {
   return { x, y, width, height };
 }
 
+/**
+ * Put pixels in the temp store and answer the reference that goes in the
+ * message.
+ *
+ * `view_image` answers with a reference, never with base64. The bytes of one
+ * screenshot serialize to ~270k characters, and the message they ride in is
+ * re-sent on every following round of the tool loop — which is how a three-look
+ * turn reached 439k estimated prompt tokens and was refused by the budget. The
+ * provider boundary inlines the bytes for the one request that needs them
+ * (`generateLoop`'s `resolveMedia`), so the conversation carries a URI.
+ *
+ * Answers null when this run has no temp store; the caller then falls back to a
+ * data URI, because a run with nowhere to put the bytes must still be able to
+ * look at the image.
+ */
+async function storeViewedImage(
+  context: ProcessingContext,
+  bytes: Uint8Array,
+  mimeType: string
+): Promise<string | null> {
+  if (!context.storage) return null;
+  const ext = MIME_TO_EXT[mimeType] ?? "png";
+  const key = `view-${crypto.randomUUID()}.${ext}`;
+  try {
+    await context.storage.store(key, bytes, mimeType);
+    return `/api/storage/${key}`;
+  } catch {
+    // Storing is an optimization over shipping base64; a failure is not one the
+    // caller has to handle, and the data-URI fallback still shows the image.
+    return null;
+  }
+}
+
 /** `view_image` without the argument check — what the deprecated class runs. */
 export const viewImageCore: CapabilityImpl = async (run, params) => {
   const context = run.context;
@@ -801,6 +834,10 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
   let sourceMime = "image/png";
   let passthroughUri: string | undefined;
   let resolveError: string | undefined;
+  // The stored reference to hand back when nothing re-encodes the bytes: the
+  // asset is already in storage, so the message can name it instead of
+  // carrying it.
+  let sourceRef: string | undefined;
 
   if (imageId.startsWith("data:")) {
     const parsed = parseDataUri(imageId);
@@ -835,6 +872,11 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
         // labeled `image/png`, passed the provider-safe check below, and was
         // shipped to the model as markup wearing a PNG label.
         sourceMime = isSvgBytes(bytes) ? SVG_MIME : sniffImageMime(bytes);
+        sourceRef = imageId.startsWith("asset://")
+          ? imageId
+          : imageId.startsWith("/api/storage/")
+            ? imageId
+            : `asset://${imageId}`;
       }
     } catch (e) {
       // Keep why. A caller that passed a perfectly good asset id — one
@@ -878,6 +920,8 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
       });
       sourceBytes = raster.data;
       sourceMime = "image/png";
+      // The stored asset is the markup; what the model looks at is this render.
+      sourceRef = undefined;
       // Carry the render's size into the result even when nothing downstream
       // re-encodes: "how big is what I am looking at" is the SVG's own answer
       // only until it is rasterized.
@@ -908,10 +952,13 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
       !PROVIDER_SAFE_MIMES.has(sourceMime);
     if (!needsTransform) {
       // No crop or downscale requested and the source is a provider-safe
-      // format: ship the original bytes unchanged. Re-encoding a
+      // format: show the original bytes unchanged. Re-encoding a
       // well-compressed source through the codec can bloat it many-fold (a
-      // 44KB screenshot PNG re-encoded to >1MB), wasting tokens for no gain.
-      outUri = `data:${sourceMime};base64,${Buffer.from(sourceBytes).toString("base64")}`;
+      // 44KB screenshot PNG re-encoded to >1MB) for no gain.
+      outUri =
+        sourceRef ??
+        (await storeViewedImage(context, sourceBytes, sourceMime)) ??
+        `data:${sourceMime};base64,${Buffer.from(sourceBytes).toString("base64")}`;
       outMime = sourceMime;
     } else {
       try {
@@ -926,12 +973,17 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
           prepared.width === 0 && prepared.height === 0
             ? sourceMime
             : prepared.mimeType;
-        outUri = `data:${outMime};base64,${Buffer.from(prepared.data).toString("base64")}`;
+        outUri =
+          (await storeViewedImage(context, prepared.data, outMime)) ??
+          `data:${outMime};base64,${Buffer.from(prepared.data).toString("base64")}`;
         width = prepared.width;
         height = prepared.height;
       } catch (e) {
         // Codec failed unexpectedly: ship the original bytes uncropped.
-        outUri = `data:${sourceMime};base64,${Buffer.from(sourceBytes).toString("base64")}`;
+        outUri =
+          sourceRef ??
+          (await storeViewedImage(context, sourceBytes, sourceMime)) ??
+          `data:${sourceMime};base64,${Buffer.from(sourceBytes).toString("base64")}`;
         notes.push(
           `Could not crop/resize (${e instanceof Error ? e.message : String(e)}); showing full image.`
         );

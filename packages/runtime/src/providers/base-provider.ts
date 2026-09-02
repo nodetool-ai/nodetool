@@ -1175,6 +1175,24 @@ export abstract class BaseProvider {
        * the system prompt by the caller instead.
        */
       skills?: ProviderSkill[];
+      /**
+       * Dereference the media references a message carries, just before the
+       * request that needs the bytes. Usually
+       * `ProcessingContext.resolveMessageMediaUris`.
+       *
+       * Tool results are appended inside this loop, so a host cannot resolve
+       * them the way it resolves the opening history. Doing it here rather than
+       * at the tool keeps pixels out of the conversation entirely: `view_image`
+       * answers with an `asset://` reference, the transcript and the budget
+       * estimate carry that reference, and the base64 exists only in the one
+       * request body it is needed for. A ~200KB screenshot inlined into the
+       * transcript instead estimates at ~190k tokens and is re-sent every
+       * round.
+       *
+       * Only messages appended since the last turn are resolved, so a loop that
+       * looks at three images reads three assets, not three per round.
+       */
+      resolveMedia?: (messages: Message[]) => Promise<Message[]>;
     }
   ): AsyncGenerator<ProviderStreamItem> {
     const maxIterations = args.maxIterations ?? 25;
@@ -1185,10 +1203,26 @@ export abstract class BaseProvider {
       turnBudget: budgetArg,
       workspaceDir: _omitWorkspaceDir,
       skills: _omitSkills,
+      resolveMedia,
       ...turnArgs
     } = args;
     const { runBudget, turnBudget } = resolveTurnBudget(budgetArg);
     const messages = [...args.messages];
+
+    // What the provider is actually sent: `messages` with every media
+    // reference dereferenced. Kept beside `messages` rather than replacing it,
+    // so the budget still reserves against the references (what the loop
+    // carries) and the tail is resolved once instead of once per round.
+    const sent: Message[] = [];
+    let resolvedUpTo = 0;
+    const resolvedMessages = async (): Promise<Message[]> => {
+      if (!resolveMedia) return messages;
+      if (resolvedUpTo < messages.length) {
+        sent.push(...(await resolveMedia(messages.slice(resolvedUpTo))));
+        resolvedUpTo = messages.length;
+      }
+      return sent;
+    };
 
     // Tools may carry their own `execute` (provider-dispatched) and/or a
     // `terminal` flag (end the loop after they run). Index by name so the
@@ -1248,7 +1282,7 @@ export abstract class BaseProvider {
       try {
         for await (const item of this.generateMessagesTraced({
           ...turnArgs,
-          messages,
+          messages: await resolvedMessages(),
           onToolCall
         })) {
           if (turnArgs.signal?.aborted) break;
