@@ -292,6 +292,74 @@ describe("validateTimelineSequence — structural checks", () => {
     expect(codes(result.warnings)).toContain("transition_exceeds_duration");
   });
 
+  it("flags a transition longer than the clip on a new type", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            durationMs: 500,
+            transitionIn: {
+              type: "wipe",
+              durationMs: 900,
+              direction: "left"
+            }
+          })
+        ]
+      })
+    );
+    expect(codes(result.warnings)).toContain("transition_exceeds_duration");
+  });
+
+  it("accepts a transition that fits", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            durationMs: 900,
+            transitionIn: { type: "push", durationMs: 400, direction: "up" }
+          })
+        ]
+      })
+    );
+    expect(codes(result.warnings)).not.toContain("transition_exceeds_duration");
+    expect(codes(result.warnings)).not.toContain("unknown_transition");
+  });
+
+  it("names a transition type this build cannot draw", () => {
+    const result = validateTimelineSequence(
+      doc({ clips: [clip({ transitionIn: { type: "flip", durationMs: 300 } })] })
+    );
+    const issue = result.warnings.find(
+      (w) => w.code === "unknown_transition" && w.path === "transitionIn.type"
+    );
+    expect(issue?.message).toContain('"flip"');
+    expect(issue?.message).toContain("cross-fades instead");
+  });
+
+  it("names a transition direction this build cannot read", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            transitionIn: {
+              type: "slide",
+              durationMs: 300,
+              direction: "diagonal"
+            }
+          })
+        ]
+      })
+    );
+    // The direction is a plain string in the schema, so unlike an unknown type
+    // this one parses, renders, and only the warning says it did not run the
+    // way the document asked (I2).
+    expect(result.ok).toBe(true);
+    const issue = result.warnings.find(
+      (w) => w.code === "unknown_transition" && w.path === "transitionIn.direction"
+    );
+    expect(issue?.message).toContain('"diagonal"');
+  });
+
   it("flags an animation preset this build does not ship", () => {
     const result = validateTimelineSequence(
       doc({

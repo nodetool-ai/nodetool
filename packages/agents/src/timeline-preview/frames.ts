@@ -74,8 +74,14 @@ export interface PreviewLayerReport {
   /** Final opacity — clip opacity × transition ramp × animation. */
   opacity: number;
   blend_mode: string;
-  /** Present when an animation is masking the layer mid-wipe. */
+  /** Present when an animation or a wipe transition is masking the layer. */
   wipe?: { direction: string; progress: number };
+  /**
+   * Present while a cut is in flight over this layer. Which side of it the
+   * layer is on is what an agent otherwise cannot see in the pixels: a frame
+   * mid-push is two half-frames, and the report says which is arriving.
+   */
+  transition?: { type: string; role: string; progress: number };
   /** The text a text or caption layer drew. */
   text?: string;
   /** Why the layer contributed no pixels, when it didn't. */
@@ -313,10 +319,18 @@ export async function renderTimelineFrames(
         blend_mode: String(layer.blendMode),
         text: layerText(layer)
       };
-      if (anim.mask) {
+      const wipeMask = anim.mask ?? layer.transition?.mask;
+      if (wipeMask) {
         report.wipe = {
-          direction: anim.mask.direction,
-          progress: Number(anim.mask.progress.toFixed(3))
+          direction: wipeMask.direction,
+          progress: Number(wipeMask.progress.toFixed(3))
+        };
+      }
+      if (layer.transition) {
+        report.transition = {
+          type: layer.transition.type,
+          role: layer.transition.role,
+          progress: Number(layer.transition.progress.toFixed(3))
         };
       }
       reports.push(report);
@@ -331,7 +345,8 @@ export async function renderTimelineFrames(
         mask: anim.mask,
         borderRadius: layer.borderRadius,
         effects: anim.effects ?? layer.effects,
-        trackEffects: layer.trackEffects
+        trackEffects: layer.trackEffects,
+        transition: layer.transition
       };
 
       const addLayer = (
@@ -368,7 +383,11 @@ export async function renderTimelineFrames(
                 parentMatrix: undefined,
                 borderRadius: undefined,
                 effects: undefined,
-                trackEffects: undefined
+                trackEffects: undefined,
+                // The cut's opacity is already in `opacity`; dropping the
+                // record here keeps its geometry — and a dip's one solid —
+                // off a layer that composites untransformed anyway.
+                transition: undefined
               }
             : undefined
         );

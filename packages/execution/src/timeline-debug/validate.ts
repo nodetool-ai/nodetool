@@ -23,7 +23,13 @@ import {
   resolveCustomMask,
   sourceRate
 } from "@nodetool-ai/timeline";
-import { MAX_VIDEO_LAYERS } from "@nodetool-ai/timeline/scene";
+import {
+  MAX_VIDEO_LAYERS,
+  TRANSITION_DIRECTIONS,
+  TRANSITION_TYPES,
+  parseTransitionDirection,
+  parseTransitionType
+} from "@nodetool-ai/timeline/scene";
 
 import type { TimelineDebugIssue, TimelineValidation } from "./types.js";
 
@@ -65,6 +71,66 @@ function unknownEasingIssue(
     code: "unknown_easing",
     message: `Clip "${clipLabel(clip)}" eases with "${easing}", which this build cannot parse — it will ease linearly. Expected one of ${EASING_GRAMMAR}.`,
     path,
+    clipId: clip.id,
+    trackId: clip.trackId
+  };
+}
+
+/** What a transition's `type` accepts, for the `unknown_transition` message. */
+const TRANSITION_GRAMMAR = TRANSITION_TYPES.join(", ");
+
+/** What a `wipe`/`push`/`slide` `direction` accepts. */
+const DIRECTION_GRAMMAR = TRANSITION_DIRECTIONS.join(", ");
+
+/**
+ * A transition this build cannot read, on the **raw** document.
+ *
+ * The schema's discriminated union refuses an unknown `type` outright, so by
+ * the time a document is parsed every type is one of ours. That refusal is
+ * reported as `schema_invalid`, which says a shape is wrong and not which cut
+ * a newer build asked for — this names it, and says what the renderer does
+ * instead (I2: it cross-fades, it never throws).
+ */
+function checkRawTransitions(raw: unknown): TimelineDebugIssue[] {
+  if (!isRecord(raw) || !Array.isArray(raw.clips)) return [];
+  const issues: TimelineDebugIssue[] = [];
+  for (const clip of raw.clips) {
+    if (!isRecord(clip)) continue;
+    const transition = clip.transitionIn;
+    if (!isRecord(transition) || typeof transition.type !== "string") continue;
+    if (parseTransitionType(transition.type) !== null) continue;
+    const label =
+      typeof clip.name === "string" && clip.name
+        ? clip.name
+        : String(clip.id ?? "");
+    const issue: TimelineDebugIssue = {
+      severity: "warning",
+      code: "unknown_transition",
+      message: `Clip "${label}" opens with a "${transition.type}" transition, which this build cannot draw — it cross-fades instead. Expected one of ${TRANSITION_GRAMMAR}.`,
+      path: "transitionIn.type"
+    };
+    if (typeof clip.id === "string") issue.clipId = clip.id;
+    if (typeof clip.trackId === "string") issue.trackId = clip.trackId;
+    issues.push(issue);
+  }
+  return issues;
+}
+
+/**
+ * A `direction` the renderer cannot read on a transition whose type it can.
+ * Unlike the type, `direction` is a plain string in the schema, so this one
+ * survives the parse and reaches a real render — where the cut runs `left`
+ * rather than the edge the document asked for.
+ */
+function unknownDirectionIssue(clip: TimelineClip): TimelineDebugIssue | null {
+  const transition = clip.transitionIn;
+  if (!transition || !("direction" in transition)) return null;
+  if (parseTransitionDirection(transition.direction) !== null) return null;
+  return {
+    severity: "warning",
+    code: "unknown_transition",
+    message: `Clip "${clipLabel(clip)}" runs its ${transition.type} toward "${transition.direction}", which this build cannot read — it runs left. Expected one of ${DIRECTION_GRAMMAR}.`,
+    path: "transitionIn.direction",
     clipId: clip.id,
     trackId: clip.trackId
   };
@@ -280,6 +346,9 @@ function checkClip(
     "transitionIn.easing"
   );
   if (transitionEasing) issues.push(transitionEasing);
+
+  const transitionDirection = unknownDirectionIssue(clip);
+  if (transitionDirection) issues.push(transitionDirection);
 
   for (const [index, keyframe] of (clip.timeRemap?.keyframes ?? []).entries()) {
     const issue = unknownEasingIssue(
@@ -625,6 +694,7 @@ export function validateTimelineSequence(
   raw: unknown,
   meta?: TimelineValidationMeta
 ): TimelineValidation {
+  const rawTransitions = checkRawTransitions(raw);
   const parsed = timelineDocument.safeParse(raw);
   if (!parsed.success) {
     const errors: TimelineDebugIssue[] = parsed.error.issues
@@ -648,7 +718,7 @@ export function validateTimelineSequence(
         message: "Document does not match the timeline schema."
       });
     }
-    return { ok: false, errors, warnings: [] };
+    return { ok: false, errors, warnings: rawTransitions };
   }
 
   const doc = parsed.data;
@@ -656,6 +726,7 @@ export function validateTimelineSequence(
   const trackIds = new Set(doc.tracks.map((track) => track.id));
 
   const issues: TimelineDebugIssue[] = [
+    ...rawTransitions,
     ...checkFieldStripping(raw, doc),
     ...checkDuplicateIds(doc),
     ...doc.clips.flatMap((clip) => checkClip(clip, trackIds, fps)),

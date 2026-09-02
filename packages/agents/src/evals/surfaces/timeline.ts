@@ -134,6 +134,62 @@ const shapeStyleParams = z.object({
   y2: z.number().optional()
 });
 
+/**
+ * A cut, authored on the incoming clip (D5). The type is an enum so a model
+ * inventing one is refused with the list, rather than saving a document the
+ * renderer then quietly cross-fades.
+ */
+const transitionParams = z.object({
+  type: z.enum(["crossfade", "dipToColor", "wipe", "push", "slide", "zoom"]),
+  durationMs: z
+    .number()
+    .describe(
+      "Length of the cut from the clip's start. 0 or less is a hard cut."
+    ),
+  easing: z
+    .string()
+    .optional()
+    .describe(
+      "Easing id, cubic-bezier(x1,y1,x2,y2) or spring(stiffness,damping,mass)."
+    ),
+  color: z.string().optional().describe("dipToColor only, e.g. #000000."),
+  direction: z
+    .enum(["left", "right", "up", "down"])
+    .optional()
+    .describe(
+      "wipe, push and slide only: the edge the incoming clip arrives from."
+    ),
+  softness: z
+    .number()
+    .optional()
+    .describe("wipe only: feathered edge width, 0..1 of the wipe axis.")
+});
+
+/**
+ * The union member the named type actually takes. The input schema is one flat
+ * object because that is what a tool call can express, so a `color` sent with a
+ * `push` would otherwise be stored and then silently stripped on the next save
+ * — a `field_stripped` warning for a field that never meant anything.
+ */
+function buildTransition(
+  input: z.infer<typeof transitionParams>
+): NonNullable<TimelineClip["transitionIn"]> {
+  const { type, durationMs, easing } = input;
+  const direction = input.direction ?? "left";
+  switch (type) {
+    case "dipToColor":
+      return { type, durationMs, easing, color: input.color ?? "#000000" };
+    case "wipe":
+      return { type, durationMs, easing, direction, softness: input.softness };
+    case "push":
+    case "slide":
+      return { type, durationMs, easing, direction };
+    case "crossfade":
+    case "zoom":
+      return { type, durationMs, easing };
+  }
+}
+
 const fullTextStyleParams = z.object({
   text: z.string(),
   fontFamily: z.string().optional(),
@@ -530,7 +586,8 @@ export function createTimelineToolBridge(
       muted: c.muted ?? false,
       locked: c.locked,
       textStyle: c.textStyle,
-      shapeStyle: c.shapeStyle
+      shapeStyle: c.shapeStyle,
+      transitionIn: c.transitionIn
     };
   }
 
@@ -977,6 +1034,26 @@ export function createTimelineToolBridge(
     ),
 
     tool(
+      "ui_timeline_set_transition",
+      "Set the transition a clip opens with, or clear it with `transition: null`. A transition is between two clips: it plays over the head of `target` against whatever sits beneath it on the same track, so overlap the two clips by at least `durationMs` for both to be seen. Types: crossfade (dissolve), dipToColor (through a solid), wipe (feathered reveal), push (both clips travel), slide (only the incoming moves), zoom. With no transition set, overlapping clips still auto-dissolve across the overlap.",
+      z.object({
+        target: targetParam,
+        transition: transitionParams.nullable()
+      }),
+      async ({ target, transition }) => {
+        const clip = resolveClip(target as string);
+        if (transition === null) {
+          delete clip.transitionIn;
+        } else {
+          clip.transitionIn = buildTransition(
+            transition as z.infer<typeof transitionParams>
+          );
+        }
+        return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    tool(
       "ui_timeline_set_clip_binding",
       "Edit a generated clip's generation binding — its `prompt`, `negativePrompt`, `provider`/`model`, TTS `voice`, dimensions, `aspectRatio`/`resolution`, `strength`, or `numInferenceSteps`. Set `regenerate` true to immediately re-run generation with the new settings. Only applies to generated clips.",
       z.object({
@@ -1219,7 +1296,7 @@ const TIMELINE_SYSTEM_PROMPT = `You are an assistant driving a timeline / video 
 Use the ui_timeline_* tools to inspect and modify the sequence:
 - Call ui_timeline_get_state first to see what's already there and get track/clip ids and names.
 - Add content with ui_timeline_add_text_clip, ui_timeline_add_shape_clip, or ui_timeline_generate_clip; add tracks with ui_timeline_add_track when needed.
-- Address existing clips by id, name, or "selected" with ui_timeline_split_clip, ui_timeline_trim_clip, ui_timeline_move_clip, ui_timeline_delete_clip, ui_timeline_duplicate_clip, ui_timeline_set_clip_params, ui_timeline_set_clip_binding, ui_timeline_animate_clip, ui_timeline_clear_animations, ui_timeline_select_clip.
+- Address existing clips by id, name, or "selected" with ui_timeline_split_clip, ui_timeline_trim_clip, ui_timeline_move_clip, ui_timeline_delete_clip, ui_timeline_duplicate_clip, ui_timeline_set_clip_params, ui_timeline_set_clip_binding, ui_timeline_set_transition, ui_timeline_animate_clip, ui_timeline_clear_animations, ui_timeline_select_clip.
 - Before animating a clip, call ui_timeline_list_animation_presets to discover the exact preset ids, allowed roles, and params.
 - For motion no preset covers, animate with preset "custom" and pass curves — [{property, keyframes: [{t, value}]}], where t runs 0..1 over the animation window. list_animation_presets reports which properties a curve may drive.
 - ui_timeline_seek moves the playhead (useful before a playhead-relative split).

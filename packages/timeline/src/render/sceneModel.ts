@@ -36,6 +36,7 @@ import {
 import type { ResolvedCaption, TextRenderStagger } from "./draw.js";
 import { countTextStaggerUnits, type RenderCanvas } from "./textLayout.js";
 import { buildTransformMatrix } from "./transform.js";
+import { resolveTransition, type ResolvedTransition } from "./transition.js";
 
 /** Blend mode a layer composites with. */
 export type CompositorBlendMode = NonNullable<TimelineClip["blendMode"]>;
@@ -90,27 +91,7 @@ export function isClipActive(
 }
 
 /**
- * How long clip's head overlaps a preceding same-track clip, in ms (0 if none).
- * `sameTrackClips` must already be filtered to clip's track. Picks the largest
- * overlap when several earlier clips cover the head, and never reports more than
- * clip's own duration.
- */
-function headOverlapMs(
-  clip: TimelineClip,
-  sameTrackClips: TimelineClip[]
-): number {
-  let overlap = 0;
-  for (const prev of sameTrackClips) {
-    if (prev === clip || prev.startMs >= clip.startMs) continue;
-    const prevEnd = prev.startMs + prev.durationMs;
-    if (prevEnd <= clip.startMs) continue; // no overlap
-    overlap = Math.max(overlap, prevEnd - clip.startMs);
-  }
-  return Math.min(overlap, clip.durationMs);
-}
-
-/**
- * Opacity multiplier for a clip's incoming cross-fade given the playhead.
+ * Opacity multiplier for a clip's incoming transition given the playhead.
  *
  * On the same track the later-starting clip composites on top, so a dissolve is
  * just the incoming clip fading in over the one beneath it — the outgoing clip
@@ -118,11 +99,15 @@ function headOverlapMs(
  *
  * - `transitionIn` unset → **auto**: fade in across the overlap with a preceding
  *   same-track clip (the overlap length is the duration). No overlap → 1.
- * - `transitionIn` is a crossfade with `durationMs > 0` → explicit ramp over that
- *   window from the clip's start (independent of overlap; also gives fade-from-
- *   black for a clip with nothing beneath it).
- * - `durationMs <= 0` → opt-out: a zero-length crossfade is a hard cut, so 1
+ * - `transitionIn` set with `durationMs > 0` → explicit ramp over that window
+ *   from the clip's start (independent of overlap; also gives fade-from-black
+ *   for a clip with nothing beneath it).
+ * - `durationMs <= 0` → opt-out: a zero-length transition is a hard cut, so 1
  *   even when the clips overlap.
+ *
+ * The incoming half of {@link resolveTransition}, kept as its own name because
+ * "how visible is this clip mid-dissolve" is the question every caller outside
+ * the compositors asks.
  *
  * `sameTrackClips` must already be filtered to clip's track.
  */
@@ -131,19 +116,49 @@ export function crossfadeOpacity(
   sameTrackClips: TimelineClip[],
   currentTimeMs: number
 ): number {
-  const t = clip.transitionIn;
-  let durationMs: number;
-  if (t) {
-    if (t.durationMs <= 0) return 1; // explicit hard cut
-    durationMs = t.durationMs;
-  } else {
-    durationMs = headOverlapMs(clip, sameTrackClips);
-    if (durationMs <= 0) return 1; // auto, but nothing to cross-fade with
+  return resolveTransition(clip, sameTrackClips, currentTimeMs)?.incoming
+    .opacity ?? 1;
+}
+
+/**
+ * Every cut in flight on one track at `currentTimeMs`, keyed by the clip whose
+ * layer carries it. `activeClips` must be one track's active clips in start
+ * order — during an overlap both sides are active, which is what lets the
+ * outgoing partner be found without walking the whole document.
+ *
+ * A clip can be on both sides at once when its own transition has not finished
+ * before the next one starts. Its own (incoming) record wins the geometry,
+ * because that is the cut it declares; the two opacities multiply, so it still
+ * leaves as the next clip arrives.
+ */
+function resolveTrackTransitions(
+  activeClips: readonly TimelineClip[],
+  currentTimeMs: number
+): Map<string, ResolvedTransition> {
+  const byClipId = new Map<string, ResolvedTransition>();
+  for (const clip of activeClips) {
+    const pair = resolveTransition(clip, activeClips, currentTimeMs);
+    if (!pair) continue;
+    const outgoing = pair.outgoing;
+    if (outgoing && pair.outgoingClip) {
+      const id = pair.outgoingClip.id;
+      const existing = byClipId.get(id);
+      byClipId.set(
+        id,
+        existing
+          ? { ...existing, opacity: existing.opacity * outgoing.opacity }
+          : outgoing
+      );
+    }
+    const existing = byClipId.get(clip.id);
+    byClipId.set(
+      clip.id,
+      existing
+        ? { ...pair.incoming, opacity: pair.incoming.opacity * existing.opacity }
+        : pair.incoming
+    );
   }
-  const intoClip = currentTimeMs - clip.startMs;
-  if (intoClip <= 0) return 0;
-  if (intoClip >= durationMs) return 1;
-  return intoClip / durationMs;
+  return byClipId;
 }
 
 /** The asset id that should be drawn for a clip in its current status. */
@@ -426,6 +441,14 @@ export interface ActiveLayer {
   textStyle?: TimelineClip["textStyle"];
   /** Present only when `kind === "shape"`: authored geometry to rasterize. */
   shapeStyle?: TimelineClip["shapeStyle"];
+  /**
+   * The cut this layer is part of, and which side of it the layer is on. The
+   * opacity it names is already folded into {@link ActiveLayer.opacity}; the
+   * rest — a scale, a frame-relative offset, a reveal mask, the solid a
+   * `dipToColor` fades through — is what the compositors draw with, so both
+   * express one cut the same way.
+   */
+  transition?: ResolvedTransition;
 }
 
 export interface ComputeActiveLayersOptions {
@@ -605,6 +628,11 @@ export function computeActiveLayersWithHorizon(
       .filter((c) => c.mediaType !== "group" && isClipActive(c, currentTimeMs))
       .sort((a, b) => a.startMs - b.startMs);
 
+    // Both sides of every cut in flight on this track, resolved before any
+    // layer is emitted: the outgoing record belongs to a clip that was already
+    // walked past by the time its partner declares the transition (D5).
+    const transitionFor = resolveTrackTransitions(activeClips, currentTimeMs);
+
     for (const clip of activeClips) {
       // Mirrors `isClipActive`'s `<` boundary: the clip stops being active
       // (and its layer disappears) exactly at its end.
@@ -624,11 +652,9 @@ export function computeActiveLayersWithHorizon(
       const precomposeGroupId = parent?.surfaceId;
       if (precomposeGroupId) usedSurfaces.add(precomposeGroupId);
 
+      const transition = transitionFor.get(clip.id);
       const baseOpacity = (clip.opacity ?? 1) * (parent?.opacity ?? 1);
-      // During an overlap both clips are active, so `activeClips` already holds
-      // the preceding clip the auto-crossfade ramps against.
-      const opacity =
-        baseOpacity * crossfadeOpacity(clip, activeClips, currentTimeMs);
+      const opacity = baseOpacity * (transition?.opacity ?? 1);
 
       // Captions ride on their media clip and always render on top.
       const caption = resolveCaptionAtTime(clip, currentTimeMs);
@@ -658,6 +684,8 @@ export function computeActiveLayersWithHorizon(
           transform: clip.transform,
           parentMatrix,
           precomposeGroupId,
+          // A caption is drawn frame-sized and untransformed, so it takes the
+          // cut's opacity (already in `opacity`) and none of its geometry.
           caption
         });
       }
@@ -682,7 +710,8 @@ export function computeActiveLayersWithHorizon(
           borderRadius: clip.borderRadius,
           effects: clip.effects,
           trackEffects: track.effects,
-          textStyle: clip.textStyle
+          textStyle: clip.textStyle,
+          transition
         });
         continue;
       }
@@ -703,7 +732,8 @@ export function computeActiveLayersWithHorizon(
           borderRadius: clip.borderRadius,
           effects: clip.effects,
           trackEffects: track.effects,
-          shapeStyle: clip.shapeStyle
+          shapeStyle: clip.shapeStyle,
+          transition
         });
         continue;
       }
@@ -724,7 +754,8 @@ export function computeActiveLayersWithHorizon(
         precomposeGroupId,
         borderRadius: clip.borderRadius,
         effects: clip.effects,
-        trackEffects: track.effects
+        trackEffects: track.effects,
+        transition
       } satisfies Omit<ActiveLayer, "kind">;
 
       if (clip.mediaType === "image") {

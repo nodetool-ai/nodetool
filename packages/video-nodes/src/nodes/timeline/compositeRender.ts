@@ -209,7 +209,8 @@ export async function renderTimelineComposited(
           mask: anim.mask,
           borderRadius: layer.borderRadius,
           effects: anim.effects ?? layer.effects,
-          trackEffects: layer.trackEffects
+          trackEffects: layer.trackEffects,
+          transition: layer.transition
         };
 
         if (layer.kind === "caption" && layer.caption) {
@@ -225,7 +226,11 @@ export async function renderTimelineComposited(
               parentMatrix: undefined,
               borderRadius: undefined,
               effects: undefined,
-              trackEffects: undefined
+              trackEffects: undefined,
+              // The cut's opacity is already in `opacity`; dropping the record
+              // here keeps its geometry — and a dip's one solid — off a layer
+              // that composites untransformed anyway.
+              transition: undefined
             });
           }
           continue;

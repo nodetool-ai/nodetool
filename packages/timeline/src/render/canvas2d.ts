@@ -35,6 +35,10 @@ import {
   containBaseScale,
   type CanvasAffine
 } from "./transform.js";
+import {
+  transitionTransform,
+  type ResolvedTransition
+} from "./transition.js";
 
 /**
  * The Canvas 2D surface a composite draws through. `drawImage` is generic in
@@ -102,6 +106,12 @@ export interface Canvas2DLayer<TSource> {
   mask?: AnimationSampleMask;
   effects?: ClipEffect[];
   trackEffects?: TrackEffect[];
+  /**
+   * The cut this layer is part of, from the scene model. Its opacity is
+   * already in `opacity`; the offset, scale, reveal mask and dip solid it
+   * names are drawn here.
+   */
+  transition?: ResolvedTransition;
 }
 
 /**
@@ -398,13 +408,34 @@ export function drawTimelineLayer<TSource>(
   const { sourceWidth: width, sourceHeight: height } = layer;
   if (width <= 0 || height <= 0) return false;
 
+  const transition = layer.transition;
   const t = layerCanvasAffine(
-    layer.transform,
+    transitionTransform(
+      layer.transform,
+      transition,
+      geometry.refWidth || geometry.canvasWidth,
+      geometry.refHeight || geometry.canvasHeight
+    ),
     width,
     height,
     geometry,
     layer.parentMatrix
   );
+
+  // A dip goes through the colour, so the solid covers the whole frame rather
+  // than the layer — drawn here, immediately under the incoming clip, so the
+  // outgoing clip beneath is what it hides.
+  const solid = transition?.solid;
+  if (solid && solid.opacity > 0) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = Math.min(1, solid.opacity);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.filter = "none";
+    ctx.fillStyle = solid.color;
+    ctx.fillRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
+    ctx.restore();
+  }
 
   ctx.save();
   ctx.globalAlpha = Math.max(0, Math.min(1, layer.opacity));
@@ -429,7 +460,9 @@ export function drawTimelineLayer<TSource>(
   // a rect clip; a feathered one pre-masks the source on a scratch surface
   // with a destination-in gradient approximating the shader's smoothstep.
   let source = layer.source;
-  const mask = layer.mask;
+  // An animated wipe on the clip and a wipe transition both reduce to one
+  // reveal; the clip's own wins, because it is the motion the author put there.
+  const mask = layer.mask ?? transition?.mask;
   if (mask) {
     const scratch =
       mask.softness > 0 && maskScratch

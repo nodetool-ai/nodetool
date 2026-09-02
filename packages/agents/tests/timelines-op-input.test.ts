@@ -327,3 +327,92 @@ describe("animate_clip custom curves", () => {
     ).toMatchObject({ fold: "multiply", range: "0..1" });
   });
 });
+
+describe("set_transition", () => {
+  async function bridgeWithTwoClips() {
+    const bridge = createTimelineToolBridge({
+      tracks: [{ type: "video" }],
+      clips: [
+        {
+          name: "shot a",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 0,
+          durationMs: 2000
+        },
+        {
+          name: "shot b",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 1600,
+          durationMs: 2000
+        }
+      ]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    return { bridge, byName };
+  }
+
+  const clipNamed = (
+    bridge: { finalState: () => TimelineBridgeFinalState },
+    name: string
+  ) => bridge.finalState().documentClips.find((c) => c.name === name);
+
+  it("writes the cut onto the incoming clip", async () => {
+    const { bridge, byName } = await bridgeWithTwoClips();
+    await byName["ui_timeline_set_transition"].execute({
+      target: "shot b",
+      transition: {
+        type: "wipe",
+        durationMs: 400,
+        direction: "up",
+        softness: 0.1,
+        easing: "easeOut"
+      }
+    });
+
+    expect(clipNamed(bridge, "shot b")?.transitionIn).toEqual({
+      type: "wipe",
+      durationMs: 400,
+      direction: "up",
+      softness: 0.1,
+      easing: "easeOut"
+    });
+    // Authored on the incoming clip only: the outgoing partner is found at
+    // render time, not written to (D5).
+    expect(clipNamed(bridge, "shot a")?.transitionIn).toBeUndefined();
+  });
+
+  it("clears the cut with a null transition", async () => {
+    const { bridge, byName } = await bridgeWithTwoClips();
+    const set = byName["ui_timeline_set_transition"];
+    await set.execute({
+      target: "shot b",
+      transition: { type: "zoom", durationMs: 300 }
+    });
+    await set.execute({ target: "shot b", transition: null });
+    expect(clipNamed(bridge, "shot b")?.transitionIn).toBeUndefined();
+  });
+
+  it("refuses a target no clip matches", async () => {
+    const { byName } = await bridgeWithTwoClips();
+    await expect(
+      byName["ui_timeline_set_transition"].execute({
+        target: "shot z",
+        transition: { type: "crossfade", durationMs: 300 }
+      })
+    ).rejects.toThrow(/shot z/);
+  });
+
+  it("refuses a type this build cannot draw", async () => {
+    const { byName } = await bridgeWithTwoClips();
+    // The schema rejects before the impl runs, so this throws rather than
+    // rejecting — an agent gets the list of types back in the error.
+    expect(() =>
+      byName["ui_timeline_set_transition"].execute({
+        target: "shot b",
+        transition: { type: "flip", durationMs: 300 }
+      })
+    ).toThrow(/crossfade/);
+  });
+});

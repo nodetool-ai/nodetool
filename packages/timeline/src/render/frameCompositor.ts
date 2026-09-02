@@ -34,6 +34,10 @@ import {
   buildTransformMatrix,
   containBaseScale
 } from "./transform.js";
+import {
+  transitionTransform,
+  type ResolvedTransition
+} from "./transition.js";
 
 /** Shader edge codes (see `BLEND_COMPOSITE_FRAGMENT` params2). */
 const WIPE_EDGE = {
@@ -90,6 +94,12 @@ export interface FrameLayer {
   mask?: AnimationSampleMask;
   effects?: ClipEffect[];
   trackEffects?: TrackEffect[];
+  /**
+   * The cut this layer is part of, from the scene model. Its opacity is
+   * already in `opacity`; the offset, scale, reveal mask and dip solid it
+   * names are rendered here.
+   */
+  transition?: ResolvedTransition;
 }
 
 /**
@@ -154,6 +164,8 @@ export class HeadlessFrameCompositor {
   private precompCore: WebGPULayerCompositor | null = null;
   /** One finished, straight-alpha surface per precompositing group, by id. */
   private readonly precompTargets = new Map<string, GPUTexture>();
+  /** One 1×1 texture per colour a `dipToColor` transition fades through. */
+  private readonly solids = new Map<string, GPUTexture>();
   /** Resolves a premultiplied accumulation to the straight alpha the blend
    *  shader reads a source as. Built with the second pass. */
   private unpremultiply: GPURenderPipeline | null = null;
@@ -318,12 +330,27 @@ export class HeadlessFrameCompositor {
       opacity: layer.opacity,
       blendMode: layer.blendMode,
       zIndex: layer.zIndex,
-      invAffine: this.placementOf(layer, src.width, src.height),
+      invAffine: this.placementOf(
+        {
+          transform: transitionTransform(
+            layer.transform,
+            layer.transition,
+            this.width,
+            this.height
+          ),
+          parentMatrix: layer.parentMatrix
+        },
+        src.width,
+        src.height
+      ),
       borderRadius:
         radiusPx > 0
           ? Math.min(0.5, radiusPx / Math.min(src.width, src.height))
           : 0,
-      mask: layer.mask
+      // An animated wipe on the clip and a wipe transition both reduce to one
+      // reveal; the clip's own wins, because it is the motion the author put
+      // there.
+      mask: layer.mask ?? layer.transition?.mask
     };
   }
 
@@ -350,6 +377,64 @@ export class HeadlessFrameCompositor {
   }
 
   /**
+   * The full-frame solid a layer's `dipToColor` fades through, as a layer
+   * sitting immediately beneath it. Null when the layer names no dip, or when
+   * the colour is one the GPU path cannot read.
+   *
+   * One texel stretched over the frame: the source size only decides how the
+   * inverse affine maps screen pixels to texels, and every pixel of a solid
+   * samples the same one.
+   */
+  private dipSolidFor(layer: FrameLayer): ResolvedLayer | null {
+    const solid = layer.transition?.solid;
+    if (!solid || solid.opacity <= 0) return null;
+    const texture = this.solidTexture(solid.color);
+    if (!texture) return null;
+    return {
+      texture,
+      opacity: Math.min(1, solid.opacity),
+      blendMode: "normal",
+      zIndex: layer.zIndex,
+      // The identity base makes the single texel cover clip space [-1,1]².
+      invAffine: forwardClipMatrixToInverseAffine(
+        buildTransformMatrix(
+          IDENTITY_TRANSFORM,
+          { x: 1, y: 1 },
+          this.width,
+          this.height
+        ),
+        1,
+        1,
+        this.width,
+        this.height
+      ),
+      borderRadius: 0
+    };
+  }
+
+  /** A 1×1 opaque texture of `color`, kept for the life of the compositor. */
+  private solidTexture(color: string): GPUTexture | null {
+    const cached = this.solids.get(color);
+    if (cached) return cached;
+    const rgb = parseHexColor(color);
+    if (!rgb) return null;
+    const texture = this.device.createTexture({
+      label: `timeline-headless-solid-${color}`,
+      size: { width: 1, height: 1 },
+      format: TEXTURE_FORMAT,
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+    });
+    this.device.queue.writeTexture(
+      { texture },
+      new Uint8Array([rgb.r, rgb.g, rgb.b, 255]),
+      { bytesPerRow: 4, rowsPerImage: 1 },
+      { width: 1, height: 1 }
+    );
+    this.solids.set(color, texture);
+    return texture;
+  }
+
+  /**
    * Render each precompositing group into its own texture and return the main
    * stack: the layers belonging to no group, plus one entry per group whose
    * texture blends onto the frame.
@@ -364,9 +449,15 @@ export class HeadlessFrameCompositor {
     precomposites: readonly FramePrecomposite[]
   ): ResolvedLayer[] {
     if (precomposites.length === 0) {
-      return layers
-        .map((layer) => this.resolveLayer(layer))
-        .filter((item): item is ResolvedLayer => item !== null);
+      const stack: ResolvedLayer[] = [];
+      for (const layer of layers) {
+        const item = this.resolveLayer(layer);
+        if (!item) continue;
+        const solid = this.dipSolidFor(layer);
+        if (solid) stack.push(solid);
+        stack.push(item);
+      }
+      return stack;
     }
 
     const stack: ResolvedLayer[] = [];
@@ -383,7 +474,12 @@ export class HeadlessFrameCompositor {
 
     for (const layer of layers) {
       const item = this.resolveLayer(layer);
-      if (item) assign(layer.precomposeGroupId, item);
+      if (!item) continue;
+      // The solid shares the layer's z and is pushed first, so the stable sort
+      // that orders the stack keeps it beneath the clip it dips into.
+      const solid = this.dipSolidFor(layer);
+      if (solid) assign(layer.precomposeGroupId, solid);
+      assign(layer.precomposeGroupId, item);
     }
 
     for (const group of precomposites) {
@@ -619,10 +715,31 @@ export class HeadlessFrameCompositor {
     this.sources.clear();
     for (const texture of this.precompTargets.values()) texture.destroy();
     this.precompTargets.clear();
+    for (const texture of this.solids.values()) texture.destroy();
+    this.solids.clear();
     this.effects.dispose();
     this.core.dispose();
     this.precompCore?.dispose();
     this.precompCore = null;
     this.readback.destroy();
   }
+}
+
+/**
+ * `#rgb` / `#rrggbb` to bytes. The GPU path needs the channels a Canvas 2D
+ * `fillStyle` would parse for it; anything else (a named colour, `rgb(...)`)
+ * is refused, and the dip then draws nothing rather than a wrong colour.
+ */
+function parseHexColor(
+  color: string
+): { r: number; g: number; b: number } | null {
+  const match = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
+  if (!match) return null;
+  const hex = match[1];
+  const size = hex.length / 3;
+  const channel = (index: number): number => {
+    const digits = hex.slice(index * size, index * size + size);
+    return Number.parseInt(size === 1 ? digits + digits : digits, 16);
+  };
+  return { r: channel(0), g: channel(1), b: channel(2) };
 }
