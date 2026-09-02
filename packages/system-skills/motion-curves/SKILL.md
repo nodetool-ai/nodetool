@@ -9,16 +9,20 @@ description: Write custom timeline animations — keyframe curves by hand, or a 
 `code` (a JS body baked into curves once, host-side). Add `mask` when a curve
 drives `wipeProgress`.
 
-## Do not reach for this first
+## When to write one
 
-A catalog preset plus an `easing` string covers most motion, and a preset is
-readable in the inspector where a curve is a list of numbers. `easing` already
-takes `cubic-bezier(x1,y1,x2,y2)` and `spring(stiffness,damping,mass)`, so a
-single overshoot or a physical settle needs no curve at all.
+Write curves as soon as a preset is close but not right. The catalog is seven
+entrance shapes and a handful of beats — where motion starts, not where it
+stops — and a piece whose every title arrives with `pop` reads like a template.
+A curve costs one field and a few numbers, and the recipes below are the shapes
+worth reaching for: an entrance that overshoots twice, a hold in the middle of a
+move, two channels on different schedules, a decay, an arc, a wiggle, a path
+draw-on.
 
-Write curves when the motion needs a shape no preset has: an entrance that
-overshoots twice, a hold in the middle of a move, two channels on different
-schedules, a decay, or a path draw-on.
+Two shapes need no curve, and writing one anyway only makes the document harder
+to read: a single overshoot and a physical settle are already `easing` strings.
+`cubic-bezier(0.16,1,0.3,1)` and `spring(180,12,1)` on an ordinary preset do
+both. Everything past that is this file.
 
 ## Curves by hand
 

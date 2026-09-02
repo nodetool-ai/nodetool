@@ -22,7 +22,7 @@ job is about, and come back here for argument shapes.
 | Where does it sit, does it survive 9:16, how do I get depth | `frame-composition` |
 | Where do the cuts land, how do I pace it, how do I ramp a hit | `beat-sync-editing` |
 | Which colours, in what order do I grade, what can actually move | `color-motion` |
-| No preset does this shape: overshoot, bounce, wiggle, draw-on | `motion-curves` |
+| A preset is close but not right; overshoot, decay, wiggle, arc, draw-on | `motion-curves` |
 | A logo sting, an end card, a splash | `logo-reveal` |
 | An ambient bed behind the content | `motion-background` |
 
@@ -99,11 +99,13 @@ default 12), `colorFade` (600ms, grayscale blooming into color).
 
 `emphasis` — `pulse` (600ms; `intensity` 0–0.5, default 0.06), `flash` (400ms;
 `intensity` 0–1, default 0.6), `shake` (600ms; `intensity` 0–0.2 default 0.02,
-`cycles` 1–12 default 4), `bounce` (600ms; `height` 0–0.3, default 0.05).
+`cycles` 1–12 default 4), `bounce` (600ms; `height` 0–0.3, default 0.05),
+`squash` (500ms, easeOutBack; `amount` 0–0.5, default 0.12).
 
 `loop` — `kenBurns` (3000ms; `zoom` 0–1 default 0.12, `direction` in/out,
 `driftX`/`driftY` −0.2–0.2), `float` (3000ms; `amplitude` 0–0.2), `breathe`
-(3000ms; `intensity` 0–0.3), `rotate` (3000ms; `direction` cw/ccw).
+(3000ms; `intensity` 0–0.3), `rotate` (3000ms; `direction` cw/ccw),
+`hueShift` (3000ms; `direction` forward/reverse).
 
 Easing: `linear`, `easeIn`, `easeOut`, `easeInOut`, `easeOutBack`,
 `easeOutElastic`, `easeOutBounce`. Unset means the preset's own default, and
@@ -125,10 +127,14 @@ want. `spring(stiffness,damping,mass)` solves a real spring, so
 not overshoot at all. All three constants must be positive. Anything the parser
 cannot read eases linearly and reports `unknown_easing`.
 
-A preset plus an easing covers almost everything. Write curves when the motion
-needs a shape no preset has: an entrance that overshoots twice, a hold in the
-middle of a move, two channels on different schedules. Then `{"role": "in",
-"preset": "custom", ...}` carrying exactly one of
+The presets are where motion starts, not where it stops. A custom animation is
+one extra field and it reaches shapes no preset has: an entrance that overshoots
+twice, a hold in the middle of a move, two channels on different schedules, a
+decay, an arc, a path draw-on. Reach for one as soon as a preset is close but
+not right — bending `durationMs` and `easing` around a preset that was never the
+shape you wanted takes longer and lands flatter. `motion-curves` carries the
+channel table and nine worked recipes. Then `{"role": "in", "preset": "custom",
+...}` carrying exactly one of
 
 - `curves` — `[{property, keyframes: [{t, value, easing?}]}]`, with `t` running
   0..1 across the animation's window. `list_animation_presets` reports the

@@ -16,6 +16,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+import { ANIMATION_PRESETS } from "@nodetool-ai/timeline";
+
 import { listCapabilitySpecs } from "../src/capabilities/index.js";
 import { EDIT_TIMELINE_SCHEMA } from "../src/capabilities/timelines.specs.js";
 
@@ -132,6 +134,40 @@ describe("shipped motion skills", () => {
       expect(missing, "named in the skill but registered nowhere").toEqual([]);
     });
   }
+
+  /**
+   * The preset catalog drifts the way the tool names do, and one direction is
+   * invisible from the skill: a preset ships and the summary never learns
+   * about it. `squash` and `hueShift` sat in the engine while
+   * `motion-graphics` listed fifteen of seventeen, so a model reading the
+   * skill had no idea they existed.
+   */
+  it("lists every shipped animation preset in motion-graphics", () => {
+    const markdown = readFileSync(skillPath("motion-graphics"), "utf8");
+    const missing = ANIMATION_PRESETS.map((preset) => preset.id).filter(
+      (id) => !markdown.includes(`\`${id}\``)
+    );
+    expect(missing, "shipped but unlisted in the skill").toEqual([]);
+  });
+
+  /** The other direction: a preset quoted in an example that does not exist. */
+  it("quotes only preset ids the engine ships", () => {
+    const ids = new Set<string>([
+      ...ANIMATION_PRESETS.map((preset) => preset.id),
+      // Not a catalog entry — the escape hatch that carries `curves` or `code`.
+      "custom"
+    ]);
+    for (const skill of SKILL_NAMES) {
+      const markdown = readFileSync(skillPath(skill), "utf8");
+      const quoted = [
+        ...markdown.matchAll(/"preset"\s*:\s*"([A-Za-z][A-Za-z0-9]*)"/g)
+      ].map((match) => match[1] as string);
+      expect(
+        quoted.filter((id) => !ids.has(id)),
+        `${skill} quotes a preset the engine does not ship`
+      ).toEqual([]);
+    }
+  });
 
   it("reads calls out of the skills at all", () => {
     const union = new Set(
