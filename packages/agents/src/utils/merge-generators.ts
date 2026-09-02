@@ -16,6 +16,12 @@
  *
  * Generators are lazy: one that has not been started yet has issued no provider
  * call, so holding it back costs nothing.
+ *
+ * {@link createDynamicMerge} is the same machine with an open end: generators
+ * may be added while the stream is being consumed, which is what lets the DAG
+ * scheduler start a node the moment its last dependency settles instead of at
+ * the end of a barrier round. {@link mergeAsyncGenerators} is that merge with
+ * every generator added up front and the end closed immediately.
  */
 
 import type { Release, Semaphore } from "@nodetool-ai/runtime";
@@ -31,24 +37,52 @@ export interface MergeOptions {
   semaphore?: Semaphore;
 }
 
-export async function* mergeAsyncGenerators<T>(
-  generators: AsyncGenerator<T>[],
-  options: MergeOptions = {}
-): AsyncGenerator<T> {
+export interface DynamicMergeOptions extends MergeOptions {
+  /**
+   * Ends the stream when it fires. Every started generator is returned and its
+   * producer task awaited, the same as when a consumer breaks out early.
+   */
+  signal?: AbortSignal;
+}
+
+export interface DynamicMerge<T> {
+  /**
+   * Queue a generator. It starts as soon as a slot and a permit are free, and
+   * is ignored once the stream has ended.
+   */
+  add(generator: AsyncGenerator<T>): void;
+  /** No more generators will be added; the stream ends once the rest drain. */
+  close(): void;
+  /**
+   * The merged stream. Call once — a second call would consume the same queue.
+   * Nothing starts until it is iterated.
+   */
+  stream(): AsyncGenerator<T>;
+}
+
+export function createDynamicMerge<T>(
+  options: DynamicMergeOptions = {}
+): DynamicMerge<T> {
   const limit =
     options.concurrency && options.concurrency > 0
-      ? Math.min(options.concurrency, generators.length)
-      : generators.length;
+      ? options.concurrency
+      : Number.POSITIVE_INFINITY;
 
+  const pending: AsyncGenerator<T>[] = [];
   const queue: T[] = [];
-  let resolve: (() => void) | null = null;
-  let firstError: unknown = undefined;
-  let hasError = false;
-  let nextIndex = 0;
-  let activeCount = 0;
   /** Generators that were actually started — only those need `.return()`. */
   const started: AsyncGenerator<T>[] = [];
   const tasks: Promise<void>[] = [];
+
+  let resolve: (() => void) | null = null;
+  let firstError: unknown = undefined;
+  let hasError = false;
+  /** Index into `pending`, not a shift, so a long queue stays O(1) per start. */
+  let nextIndex = 0;
+  let activeCount = 0;
+  let closed = false;
+  /** The stream has ended (consumer break, abort, or drained): admit nothing. */
+  let stopped = false;
 
   function notify(): void {
     if (resolve) {
@@ -59,8 +93,8 @@ export async function* mergeAsyncGenerators<T>(
   }
 
   function pump(): void {
-    while (activeCount < limit && nextIndex < generators.length) {
-      const gen = generators[nextIndex++];
+    while (!stopped && activeCount < limit && nextIndex < pending.length) {
+      const gen = pending[nextIndex++];
       started.push(gen);
       activeCount++;
       tasks.push(
@@ -93,43 +127,83 @@ export async function* mergeAsyncGenerators<T>(
     }
   }
 
-  pump();
+  async function* stream(): AsyncGenerator<T> {
+    if (options.signal?.aborted) stopped = true;
+    const onAbort = (): void => {
+      stopped = true;
+      notify();
+    };
+    options.signal?.addEventListener("abort", onAbort, { once: true });
 
-  // The try/finally guarantees that if the downstream consumer stops early (its
-  // `for await` breaks or throws, which injects `.return()` into this merge
-  // generator), the child generators terminate instead of leaving the producer
-  // tasks driving them to completion in the background (e.g. LLM calls firing
-  // after cancellation).
-  try {
-    while (activeCount > 0 || queue.length > 0 || nextIndex < generators.length) {
-      if (queue.length > 0) {
-        yield queue.shift()!;
-        continue;
+    // The try/finally guarantees that if the downstream consumer stops early
+    // (its `for await` breaks or throws, which injects `.return()` into this
+    // generator), the child generators terminate instead of leaving the
+    // producer tasks driving them to completion in the background (e.g. LLM
+    // calls firing after cancellation).
+    try {
+      while (!stopped) {
+        if (queue.length > 0) {
+          yield queue.shift()!;
+          continue;
+        }
+        if (closed && activeCount === 0 && nextIndex >= pending.length) break;
+        // Set resolve BEFORE re-checking the queue to avoid a race where an
+        // item is pushed between the check and the await.
+        const waitPromise = new Promise<void>((r) => {
+          resolve = r;
+        });
+        if (queue.length > 0 || stopped) {
+          resolve = null;
+          continue;
+        }
+        await waitPromise;
       }
-      if (activeCount === 0 && nextIndex >= generators.length) break;
-      // Set resolve BEFORE re-checking the queue to avoid a race where an item
-      // is pushed between the check and the await.
-      const waitPromise = new Promise<void>((r) => {
-        resolve = r;
-      });
-      if (queue.length > 0) {
-        resolve = null;
-        continue;
-      }
-      await waitPromise;
+    } finally {
+      // Stop every started generator so its producer `for await` loop
+      // terminates (a generator may already be done — allSettled swallows
+      // those), then let the producer promises settle. Never-started
+      // generators are left alone.
+      stopped = true;
+      options.signal?.removeEventListener("abort", onAbort);
+      await Promise.allSettled(started.map((gen) => gen.return(undefined)));
+      await Promise.allSettled(tasks);
     }
-  } finally {
-    // Stop every started generator so its producer `for await` loop terminates
-    // (a generator may already be done — allSettled swallows those), then let
-    // the producer promises settle. Never-started generators are left alone.
-    nextIndex = generators.length;
-    await Promise.allSettled(started.map((gen) => gen.return(undefined)));
-    await Promise.allSettled(tasks);
+
+    if (hasError) {
+      throw firstError instanceof Error
+        ? firstError
+        : new Error(String(firstError));
+    }
   }
 
-  if (hasError) {
-    throw firstError instanceof Error
-      ? firstError
-      : new Error(String(firstError));
+  return {
+    add(generator: AsyncGenerator<T>): void {
+      if (stopped) return;
+      pending.push(generator);
+      pump();
+    },
+    close(): void {
+      closed = true;
+      notify();
+    },
+    stream
+  };
+}
+
+export async function* mergeAsyncGenerators<T>(
+  generators: AsyncGenerator<T>[],
+  options: MergeOptions = {}
+): AsyncGenerator<T> {
+  const merge = createDynamicMerge<T>({
+    concurrency:
+      options.concurrency && options.concurrency > 0
+        ? Math.min(options.concurrency, generators.length)
+        : undefined,
+    semaphore: options.semaphore
+  });
+  for (const generator of generators) {
+    merge.add(generator);
   }
+  merge.close();
+  yield* merge.stream();
 }
