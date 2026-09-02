@@ -25,10 +25,11 @@ competition and phrasing, not from a keyword tool.
 | Ideas | `/ideas/<category>` | one per catalog category | `ideasEntries.ts` |
 | Showcase | `/showcase/**` | generated per batch | `showcasePages.ts` |
 | Use cases (hand-built) | `/use-cases/{movie-poster,movie-trailer,product-video}` | 3 | route folders |
+| Blog | `/blog/<slug>` | one per file in `content/blog/` | `blogEntries.generated.ts` |
 
-Two structural holes: `/vs` and `/alternatives` have no hub index (only
-`[slug]`), and there is no route that holds a tutorial — no `/guides`, `/blog`,
-or `/learn`. Both are addressed below.
+One structural hole: `/vs` and `/alternatives` have no hub index (only
+`[slug]`). It is addressed below. The tutorial route is `/blog`; its
+editorial formulas and backlog are in [BLOG_STRATEGY.md](BLOG_STRATEGY.md).
 
 ## Seed keyword audit
 
