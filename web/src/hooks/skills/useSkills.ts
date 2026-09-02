@@ -19,9 +19,10 @@ type SkillListMutationContext = { previous: SkillsList | undefined };
 
 /**
  * The user's skills. `includeSystem` adds the ones NodeTool ships — read-only,
- * flagged `system`, and invocable as `/<name>` like any other. Surfaces that
- * only name a skill (the composer's `/` menu, the new-project starters) want
- * them; the skills panel, whose rows are renamed and deleted, does not.
+ * flagged `system`, and invocable as `/<name>` like any other. Every surface
+ * that shows the catalog wants them: the composer's `/` menu, the new-project
+ * starters, and the skills panel, which marks them and offers only the actions
+ * a document with no row accepts.
  */
 export const useSkills = (
   options: { includeSystem?: boolean } = {}

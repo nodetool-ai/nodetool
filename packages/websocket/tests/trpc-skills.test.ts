@@ -74,6 +74,43 @@ describe("skills router", () => {
     );
   });
 
+  // The panel lists the shipped skills beside the user's own, so opening one
+  // has to read: `get` is the only procedure that serves them, and the three
+  // mutations refuse them by name rather than as a missing row.
+  it("serves a shipped skill by id and refuses to change it", async () => {
+    const shipped = (await caller().skills.list({ includeSystem: true })).find(
+      (item) => item.system
+    );
+    expect(shipped).toBeDefined();
+
+    const read = await caller().skills.get({ id: shipped!.id });
+    expect(read.name).toBe(shipped!.name);
+    expect(read.content.length).toBeGreaterThan(0);
+    expect(read.updatedAt).toBe("");
+
+    await expect(
+      caller().skills.update({
+        id: shipped!.id,
+        baseUpdatedAt: "",
+        name: "mine-now"
+      })
+    ).rejects.toThrow(/ships with NodeTool/i);
+    await expect(caller().skills.delete({ id: shipped!.id })).rejects.toThrow(
+      /ships with NodeTool/i
+    );
+
+    // Still readable afterwards: nothing was written.
+    expect((await caller().skills.get({ id: shipped!.id })).name).toBe(
+      shipped!.name
+    );
+  });
+
+  it("reports an unknown system id as missing rather than serving nothing", async () => {
+    await expect(
+      caller().skills.get({ id: "system:no-such-skill" })
+    ).rejects.toThrow(/not found/i);
+  });
+
   it("lets a user row shadow the shipped skill of the same name", async () => {
     const shipped = (await caller().skills.list({ includeSystem: true })).find(
       (item) => item.system

@@ -60,7 +60,12 @@ const SkillSurface = ({ refId, mode }: SkillSurfaceProps) => {
     );
   }
 
-  return <SkillEditorPane skillId={refId} />;
+  // A shipped skill has no row to write back to, and the tab bar lets anyone
+  // flip a tab to Edit — so the pane is opened read-only rather than left to
+  // fail its first autosave against the server's refusal.
+  return (
+    <SkillEditorPane skillId={refId} readOnly={refId.startsWith("system:")} />
+  );
 };
 
 export default SkillSurface;

@@ -101,6 +101,20 @@ describe("useSidebarDocumentMenu", () => {
     expect(menu.openMenuType).toBe("sidebar-document-context-menu");
     expect(menu.nodeId).toBe(item.id);
     expect(menu.menuPosition).toEqual({ x: 120, y: 340 });
-    expect(menu.payload).toEqual(item);
+    expect(menu.payload).toEqual({ ...item, readOnly: false });
+  });
+
+  // A read-only row's menu offers Duplicate alone, so the flag has to reach the
+  // menu's payload — without it the menu would show Rename and Delete for a
+  // document the server refuses to change.
+  it("flags a read-only row in the payload", () => {
+    const { getMenuState } = setup({ isReadOnly: (id) => id === item.id });
+
+    fireEvent.contextMenu(screen.getByRole("button", { name: item.name }), {
+      clientX: 10,
+      clientY: 20
+    });
+
+    expect(getMenuState().payload).toEqual({ ...item, readOnly: true });
   });
 });

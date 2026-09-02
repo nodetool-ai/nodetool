@@ -12,9 +12,10 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 
 /**
- * Right-click menu for sidebar document list items (timelines and sketches).
- * Mirrors WorkflowContextMenu, offering the actions that apply to these
- * documents: rename, duplicate, delete.
+ * Right-click menu for sidebar document list items (timelines, sketches,
+ * skills). Mirrors WorkflowContextMenu, offering the actions that apply to
+ * these documents: rename, duplicate, delete — Duplicate alone on a `readOnly`
+ * row, which is the only one of the three a shipped document accepts.
  */
 const SidebarDocumentContextMenu: React.FC = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
@@ -64,22 +65,26 @@ const SidebarDocumentContextMenu: React.FC = () => {
       <MenuItem disabled>
         <Text>{payload.name}</Text>
       </MenuItem>
-      <ContextMenuItem
-        onClick={handleRename}
-        label="Rename"
-        IconComponent={<EditIcon />}
-      />
+      {!payload.readOnly && (
+        <ContextMenuItem
+          onClick={handleRename}
+          label="Rename"
+          IconComponent={<EditIcon />}
+        />
+      )}
       <ContextMenuItem
         onClick={handleDuplicate}
         label="Duplicate"
         IconComponent={<ContentCopyIcon />}
       />
-      <ContextMenuItem
-        onClick={handleDelete}
-        label="Delete"
-        addButtonClassName="delete"
-        IconComponent={<DeleteIcon />}
-      />
+      {!payload.readOnly && (
+        <ContextMenuItem
+          onClick={handleDelete}
+          label="Delete"
+          addButtonClassName="delete"
+          IconComponent={<DeleteIcon />}
+        />
+      )}
     </ContextMenu>
   );
 };

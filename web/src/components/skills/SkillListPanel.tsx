@@ -1,5 +1,6 @@
 import AddIcon from "@mui/icons-material/Add";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useCallback, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -71,8 +72,23 @@ export const CreateSkillButton = () => {
   );
 };
 
+/**
+ * A shipped skill has no row, so its id carries this prefix (see the skills
+ * router). The panel reads it to decide what a row may do, rather than
+ * threading the list item's `system` flag through every callback.
+ */
+const SYSTEM_SKILL_ID_PREFIX = "system:";
+
+const isSystemSkill = (id: string): boolean =>
+  id.startsWith(SYSTEM_SKILL_ID_PREFIX);
+
 const SkillListPanel = () => {
-  const { data, isLoading, isError, error } = useSkills();
+  // Shipped skills are listed beside the user's own. They read the same in the
+  // agent's catalog, so hiding them here made the panel disagree with what the
+  // agent could actually load.
+  const { data, isLoading, isError, error } = useSkills({
+    includeSystem: true
+  });
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setVisibility = usePanelStore((state) => state.setVisibility);
@@ -88,7 +104,9 @@ const SkillListPanel = () => {
       openTab({
         type: "skill",
         ref: id,
-        mode: "edit",
+        // A shipped skill opens as a read: the editor's save and autosave would
+        // fail against a document with no row behind it.
+        mode: isSystemSkill(id) ? "view" : "edit",
         title: name || "Untitled skill"
       });
       if (!location.pathname.startsWith("/workspace")) {
@@ -147,17 +165,20 @@ const SkillListPanel = () => {
   );
 
   const handleRequestRename = useCallback((item: SidebarDocumentItem) => {
+    if (isSystemSkill(item.id)) return;
     setEditingId(item.id);
   }, []);
 
   const handleRequestDelete = useCallback((item: SidebarDocumentItem) => {
+    if (isSystemSkill(item.id)) return;
     setItemToDelete(item);
   }, []);
 
   const handleContextMenu = useSidebarDocumentMenu({
     onRename: handleRequestRename,
     onDuplicate: handleDuplicate,
-    onDelete: handleRequestDelete
+    onDelete: handleRequestDelete,
+    isReadOnly: isSystemSkill
   });
 
   const handleConfirmDelete = useCallback(() => {
@@ -182,9 +203,12 @@ const SkillListPanel = () => {
         name={skill.name}
         fallbackName="Untitled skill"
         renameLabel="Skill name"
-        icon={AutoAwesomeIcon}
+        // A lock, and "Built in" under the name: enough to tell the two apart
+        // at a glance without a second list or a heading.
+        icon={skill.system ? LockOutlinedIcon : AutoAwesomeIcon}
+        secondary={skill.system ? "Built in" : undefined}
         active={skill.id === activeSkillId}
-        editing={skill.id === editingId}
+        editing={!skill.system && skill.id === editingId}
         onOpen={handleOpen}
         onContextMenu={handleContextMenu}
         onCommitRename={handleCommitRename}

@@ -13,7 +13,7 @@
  */
 
 import { z } from "zod";
-import { loadSystemSkills } from "@nodetool-ai/agents";
+import { findSystemSkill, loadSystemSkills } from "@nodetool-ai/agents";
 import { Skill } from "@nodetool-ai/models";
 import {
   createSkillInput,
@@ -29,8 +29,8 @@ import { throwApiError } from "../error-formatter.js";
 /**
  * `includeSystem` merges the skills that ship with NodeTool into the list. They
  * are read off disk, carry no row, and are named `system:<name>` so a caller
- * cannot mistake one for something it can rename or delete. Off by default, so
- * the skills panel keeps listing only what its context menu can act on.
+ * cannot mistake one for something it can rename or delete. Off by default,
+ * because a caller that cannot tell the two apart would offer edits that fail.
  */
 const listInput = z.object({ includeSystem: z.boolean().optional() });
 
@@ -73,6 +73,26 @@ function systemListItems(taken: ReadonlySet<string>) {
       updatedAt: "",
       system: true
     }));
+}
+
+/**
+ * The shipped skill an id names, or null. `get` serves these so the panel can
+ * open one read-only; every mutation refuses them by name rather than through
+ * `loadOwned`, whose "Skill not found" would suggest a missing row instead of
+ * one that exists and is immutable.
+ */
+function systemSkillById(id: string) {
+  if (!id.startsWith(SYSTEM_SKILL_ID_PREFIX)) return null;
+  return findSystemSkill(id.slice(SYSTEM_SKILL_ID_PREFIX.length));
+}
+
+function refuseSystemSkill(id: string): void {
+  if (systemSkillById(id)) {
+    throwApiError(
+      ApiErrorCode.FORBIDDEN,
+      "This skill ships with NodeTool and cannot be renamed, edited or deleted. Duplicate it to make a copy you own."
+    );
+  }
 }
 
 function isUniqueConstraintViolation(error: unknown): boolean {
@@ -127,6 +147,20 @@ export const skillsRouter = router({
     .input(idInput)
     .output(skillResponse)
     .query(async ({ ctx, input }) => {
+      const shipped = systemSkillById(input.id);
+      if (shipped) {
+        // No row, so no timestamps: the content is part of the build and
+        // changes only when the app is updated. An empty `updatedAt` is what
+        // the list item already reports for these.
+        return skillResponse.parse({
+          id: input.id,
+          name: shipped.name,
+          description: shipped.description,
+          content: shipped.content,
+          createdAt: "",
+          updatedAt: ""
+        });
+      }
       const skill = await loadOwned(ctx.userId, input.id);
       return skillResponse.parse(skill.toResponse());
     }),
@@ -172,6 +206,7 @@ export const skillsRouter = router({
     .input(updateInput)
     .output(skillResponse)
     .mutation(async ({ ctx, input }) => {
+      refuseSystemSkill(input.id);
       const skill = await loadOwned(ctx.userId, input.id);
 
       const expectedUpdatedAt = input.baseUpdatedAt;
@@ -221,6 +256,7 @@ export const skillsRouter = router({
     .input(idInput)
     .output(okOutput)
     .mutation(async ({ ctx, input }) => {
+      refuseSystemSkill(input.id);
       await loadOwned(ctx.userId, input.id);
       await Skill.deleteOwned(ctx.userId, input.id);
       return { ok: true as const };

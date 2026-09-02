@@ -8,6 +8,12 @@ import { useShallow } from "zustand/react/shallow";
 export interface SidebarDocumentItem {
   id: string;
   name: string;
+  /**
+   * The document cannot be renamed or deleted — a shipped skill, say, which
+   * lives in the build rather than a row. The menu offers Duplicate alone, so
+   * the actions on screen are the ones the server will accept.
+   */
+  readOnly?: boolean;
 }
 
 interface SidebarDocumentActionsState {

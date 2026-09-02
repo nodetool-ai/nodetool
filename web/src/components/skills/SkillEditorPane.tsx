@@ -498,6 +498,7 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
           <MonacoPane
             value={content}
             language="markdown"
+            readOnly={readOnly}
             wordWrap={wordWrap}
             onChange={handleContentChange}
             onSave={handleSave}

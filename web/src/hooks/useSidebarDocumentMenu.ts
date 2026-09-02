@@ -17,6 +17,11 @@ export interface SidebarDocumentMenuHandlers {
   onRename: (item: SidebarDocumentItem) => void;
   onDuplicate: (item: SidebarDocumentItem) => void | Promise<void>;
   onDelete: (item: SidebarDocumentItem) => void;
+  /**
+   * Marks a row the menu may only duplicate. Called with the row's id when the
+   * menu opens; must be stable, like the three handlers.
+   */
+  isReadOnly?: (id: string) => boolean;
 }
 
 /**
@@ -27,7 +32,8 @@ export interface SidebarDocumentMenuHandlers {
 export const useSidebarDocumentMenu = ({
   onRename,
   onDuplicate,
-  onDelete
+  onDelete,
+  isReadOnly
 }: SidebarDocumentMenuHandlers): SidebarDocumentContextMenuHandler => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const setActions = useSidebarDocumentActionsStore((state) => state.setActions);
@@ -58,9 +64,9 @@ export const useSidebarDocumentMenu = ({
         undefined,
         undefined,
         undefined,
-        { id, name }
+        { id, name, readOnly: isReadOnly?.(id) === true }
       );
     },
-    [openContextMenu]
+    [openContextMenu, isReadOnly]
   );
 };
