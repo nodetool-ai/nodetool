@@ -560,10 +560,10 @@ describe("ParallelTaskExecutor", () => {
     expect(plan.tasks[0].completed).toBe(false);
   });
 
-  it("treats an all-error fan-out array as a task failure", async () => {
-    // Regression: a process-mode step stores an array and is marked completed
-    // even when every fan-out item errored; isErrorResult ignores arrays, so
-    // the task used to be recorded as a success.
+  it("treats an all-error array result as a task failure", async () => {
+    // Regression: a step stores an array and is marked completed even when
+    // every element errored. An array never settles as a failure on its own,
+    // so the task used to be recorded as a success — the elements decide.
     const provider = {
       ...createMockProvider(),
       generateMessages: async function* () {

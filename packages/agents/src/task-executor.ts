@@ -7,14 +7,8 @@
  * moment its last dependency settles and runs as a `CodeActExecutor`. Nothing
  * counts dispatch rounds, so a chain is as deep as the plan says; what bounds
  * the work is the run budget, the per-step iteration cap, and the permit pool.
- *
- * Process-mode steps automatically fan out over list inputs produced by
- * a preceding discover step. Each item is rendered into the step's
- * `perItemInstructions` template and executed as an ephemeral step.
- * Results are aggregated into a list that downstream aggregate steps consume.
  */
 
-import { createHash } from "node:crypto";
 import type {
   BaseProvider,
   ProcessingContext,
@@ -37,7 +31,6 @@ import {
 const log = createLogger("nodetool.agents.task-executor");
 import { CodeActExecutor } from "./codeact/codeact-executor.js";
 import { holdsRunSlot, markRunSlotHeld } from "./subagent.js";
-import { mergeAsyncGenerators } from "./utils/merge-generators.js";
 import {
   ABORTED,
   UNSATISFIABLE_DEPENDENCY,
@@ -49,11 +42,6 @@ import {
 import type { Tool } from "./tools/base-tool.js";
 import type { Step, Task } from "./types.js";
 import { DEFAULT_AGENT_POLICY } from "./agent-policy.js";
-import {
-  formatViolations,
-  validateAgainstSchema
-} from "./utils/json-schema-validate.js";
-import { isObjectLike, isRecord } from "./utils/type-guards.js";
 
 const DEFAULT_MAX_STEP_ITERATIONS = 10;
 
@@ -73,14 +61,9 @@ export interface TaskExecutorOptions {
   maxStepIterations?: number;
   /** Cap on output tokens per step turn. Forwarded to each step executor. */
   maxTokens?: number;
-  /** ID of the final aggregation step (will use useFinishTask=true). */
-  finalStepId?: string;
-  /** Execute independent steps in parallel (default: false). */
-  parallelExecution?: boolean;
   /**
-   * Concurrent step / fan-out executions. Defaults to the shared agent policy
-   * so a 200-item process-mode fan-out does not open 200 provider
-   * conversations at once.
+   * Steps this task may run at once. Defaults to the shared agent policy, so a
+   * wide task does not open one provider conversation per step.
    */
   maxConcurrentAgents?: number;
   /**
@@ -115,8 +98,6 @@ export class TaskExecutor {
   private systemPrompt: string | undefined;
   private maxStepIterations: number;
   private maxTokens?: number;
-  private finalStepId: string | undefined;
-  private parallelExecution: boolean;
   private maxConcurrentAgents: number;
   private upstreamMemoryKeys: string[];
   private readonly budget?: RunBudget;
@@ -144,8 +125,6 @@ export class TaskExecutor {
     this.maxStepIterations =
       opts.maxStepIterations ?? DEFAULT_MAX_STEP_ITERATIONS;
     this.maxTokens = opts.maxTokens;
-    this.finalStepId = opts.finalStepId;
-    this.parallelExecution = opts.parallelExecution ?? false;
     this.maxConcurrentAgents =
       opts.maxConcurrentAgents ?? DEFAULT_AGENT_POLICY.maxConcurrentAgents;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
@@ -194,21 +173,20 @@ export class TaskExecutor {
       });
     }
 
-    // Auto-detect finish step (last step) like Python does
+    // The last step in the plan is the finish step.
     this._finishStepId =
-      this.finalStepId ??
-      (this.task.steps.length > 0
+      this.task.steps.length > 0
         ? this.task.steps[this.task.steps.length - 1].id
-        : undefined);
+        : undefined;
 
     log.info("Task execution started", {
       title: this.task.title,
       steps: this.task.steps.length
     });
 
-    // Steps this task may run at once. `parallelExecution: false` means one at
-    // a time — a bound on this task rather than on the run.
-    const perTask = this.parallelExecution ? this.maxConcurrentAgents : 1;
+    // Steps this task may run at once — a bound on this task rather than on
+    // the run.
+    const perTask = this.maxConcurrentAgents;
 
     yield* scheduleDag<StepNode, ProcessingMessage>({
       nodes: this.stepNodes(),
@@ -304,27 +282,23 @@ export class TaskExecutor {
   private async *runStep(
     step: Step
   ): AsyncGenerator<ProcessingMessage, DagRunResult> {
-    if (step.mode === "process") {
-      yield* this.withStepLog(step, this.handleProcessStep(step));
-    } else {
-      const executor = new CodeActExecutor({
-        task: this.task,
-        step,
-        context: this.context,
-        provider: this.provider,
-        model: this.model,
-        tools: this.toolsForStep(step),
-        systemPrompt: this.systemPrompt,
-        maxIterations: this.maxStepIterations,
-        maxTokens: this.maxTokens,
-        turnBudget: this.budget,
-        useFinishTask: this.isFinishStep(step),
-        upstreamMemoryKeys: this.upstreamMemoryKeys,
-        signal: this.signal,
-        sandboxPackages: this.sandboxPackages
-      });
-      yield* this.withStepLog(step, executor.execute());
-    }
+    const executor = new CodeActExecutor({
+      task: this.task,
+      step,
+      context: this.context,
+      provider: this.provider,
+      model: this.model,
+      tools: this.toolsForStep(step),
+      systemPrompt: this.systemPrompt,
+      maxIterations: this.maxStepIterations,
+      maxTokens: this.maxTokens,
+      turnBudget: this.budget,
+      useFinishTask: this.isFinishStep(step),
+      upstreamMemoryKeys: this.upstreamMemoryKeys,
+      signal: this.signal,
+      sandboxPackages: this.sandboxPackages
+    });
+    yield* this.withStepLog(step, executor.execute());
     // A step failure does not throw: the executor records it on the step and
     // emits its own terminal events.
     return step.failed
@@ -441,275 +415,8 @@ export class TaskExecutor {
     ];
   }
 
-  /**
-   * Produce a short deterministic hash for a value (used in ephemeral step IDs).
-   */
-  private shortHash(value: unknown): string {
-    const data = JSON.stringify(value, (_key, val) => {
-      if (isRecord(val)) {
-        const sorted: Record<string, unknown> = {};
-        for (const k of Object.keys(val).sort()) {
-          sorted[k] = val[k];
-        }
-        return sorted;
-      }
-      return val;
-    });
-    return createHash("sha1").update(data).digest("hex").slice(0, 12);
-  }
-
-  /**
-   * Handle a process-mode step by fanning out over list inputs.
-   * Creates ephemeral steps for each item in the discover step's result
-   * and aggregates the outputs into a list stored in context.
-   */
-  private async *handleProcessStep(
-    step: Step
-  ): AsyncGenerator<ProcessingMessage> {
-    const discoverStepId = step.dependsOn[0];
-    const discoverStep = discoverStepId
-      ? this.task.steps.find((s) => s.id === discoverStepId)
-      : undefined;
-    if (discoverStep?.failed) {
-      // The scheduler blocks dependents of a step that fails during the run,
-      // so this is only reachable for a discover step that was already failed
-      // when the task started. Fanning out over a failure marker would run the
-      // whole item template against `{error}`.
-      yield* this.failStepEvents(
-        step,
-        `Step blocked: discover step ${discoverStepId} failed`
-      );
-      return;
-    }
-    if (!discoverStepId) {
-      log.warn("Process step has no dependencies, skipping fan-out", {
-        stepId: step.id
-      });
-      step.completed = true;
-      this.context.memory.set({
-        key: memoryKeys.step(step.id),
-        kind: "step_result",
-        value: [],
-        source: step.id,
-        title: step.instructions.slice(0, 60)
-      });
-      step.endTime = Date.now();
-      return;
-    }
-
-    let discoverResult = this.context.memory.getValue(
-      memoryKeys.step(discoverStepId)
-    );
-    if (discoverResult === undefined || discoverResult === null) {
-      log.warn("Discover step result is null/undefined, skipping fan-out", {
-        stepId: step.id
-      });
-      step.completed = true;
-      this.context.memory.set({
-        key: memoryKeys.step(step.id),
-        kind: "step_result",
-        value: [],
-        source: step.id,
-        title: step.instructions.slice(0, 60)
-      });
-      step.endTime = Date.now();
-      return;
-    }
-    if (!Array.isArray(discoverResult)) {
-      log.warn(
-        "Discover step result is not an array, wrapping as single-item list",
-        {
-          stepId: step.id,
-          resultType: typeof discoverResult
-        }
-      );
-      discoverResult = [discoverResult];
-    }
-
-    const items = discoverResult as unknown[];
-    const template = step.perItemInstructions ?? step.instructions;
-    const perItemSchema = step.perItemSchema;
-
-    log.info("Fan-out processing", {
-      stepId: step.id,
-      itemCount: items.length
-    });
-
-    const ephemeralSteps: Step[] = items.map((item, index) => {
-      let instructions = template;
-      if (isObjectLike(item)) {
-        for (const [key, value] of Object.entries(
-          item as Record<string, unknown>
-        )) {
-          const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          const strValue =
-            isObjectLike(value)
-              ? JSON.stringify(value)
-              : String(value);
-          instructions = instructions.replace(
-            new RegExp(`\\{${escapedKey}\\}`, "g"),
-            () => strValue
-          );
-        }
-        instructions = instructions.replace(/\{item\}/g, () =>
-          JSON.stringify(item)
-        );
-      } else {
-        const strItem = String(item);
-        instructions = instructions.replace(/\{item\}/g, () => strItem);
-      }
-
-      // Include the item index so duplicate/deep-equal items get DISTINCT
-      // ephemeral IDs. A content-hash-only id collides for repeated items
-      // (common in LLM discover lists), collapsing the id->index map and
-      // clobbering their shared step:<id> memory key — dropping results and
-      // leaving holes in the aggregated array.
-      const hash = this.shortHash(item);
-      return {
-        id: `${step.id}_item_${index}_${hash}`,
-        instructions,
-        completed: false,
-        dependsOn: [],
-        logs: [],
-        outputSchema: perItemSchema ?? step.outputSchema
-      };
-    });
-
-    const generators = ephemeralSteps.map((ephStep) => {
-      const executor = new CodeActExecutor({
-        task: this.task,
-        step: ephStep,
-        context: this.context,
-        provider: this.provider,
-        model: this.model,
-        tools: this.toolsForStep(step),
-        systemPrompt: this.systemPrompt,
-        maxIterations: this.maxStepIterations,
-        maxTokens: this.maxTokens,
-        turnBudget: this.budget,
-        useFinishTask: false,
-        upstreamMemoryKeys: this.upstreamMemoryKeys,
-        signal: this.signal,
-        sandboxPackages: this.sandboxPackages
-      });
-      return executor.execute();
-    });
-
-    const indexByStepId = new Map(
-      ephemeralSteps.map((ephStep, index) => [ephStep.id, index])
-    );
-    const results: unknown[] = new Array(ephemeralSteps.length);
-    // Which slots a result actually landed in. `results[i] === undefined` is
-    // not the test: an item may legitimately finish with `undefined`.
-    const filled = new Set<number>();
-
-    const collect = (msg: unknown): void => {
-      const stepResult = msg as StepResult;
-      if (stepResult.type !== "step_result") return;
-      const stepId = stepResult.step?.id;
-      if (stepId === undefined) return;
-      const index = indexByStepId.get(stepId);
-      if (index === undefined) return;
-      // A failed item answers with `{error}`, not with a result. Leaving its
-      // slot empty is what makes the aggregate check below see the hole.
-      if (stepResult.error !== undefined) return;
-      results[index] = stepResult.result;
-      filled.add(index);
-    };
-
-    if (this.parallelExecution && generators.length > 1) {
-      // Numeric bound only: the scheduler is already holding this step's
-      // permit from the branch's pool, and a holder that queues for a second
-      // one deadlocks the run.
-      for await (const msg of mergeAsyncGenerators(generators, {
-        concurrency: this.maxConcurrentAgents
-      })) {
-        collect(msg);
-        yield msg;
-      }
-    } else {
-      for (const gen of generators) {
-        for await (const msg of gen) {
-          collect(msg);
-          yield msg;
-        }
-      }
-    }
-
-    // A fan-out is one deliverable: an item that produced no result makes the
-    // step a failure, never a completion with a hole in it (I-5).
-    const missing = ephemeralSteps
-      .map((_ephStep, index) => index)
-      .filter((index) => !filled.has(index));
-    if (missing.length > 0) {
-      yield* this.failStepEvents(
-        step,
-        `Step failed: fan-out produced no result for ` +
-          `${missing.length} of ${ephemeralSteps.length} item(s) — ` +
-          `index ${missing.join(", ")}`
-      );
-      return;
-    }
-
-    // With a `perItemSchema` the per-item executor validated each item against
-    // that schema, so the step's own `outputSchema` describes the aggregate and
-    // nothing has checked it yet.
-    const aggregateSchema = perItemSchema
-      ? this.parseSchema(step.outputSchema, step.id)
-      : null;
-    if (aggregateSchema) {
-      const violations = validateAgainstSchema(results, aggregateSchema);
-      if (violations.length > 0) {
-        yield* this.failStepEvents(
-          step,
-          `Step failed: fan-out result rejected by outputSchema — ` +
-            formatViolations(violations)
-        );
-        return;
-      }
-    }
-
-    this.context.memory.set({
-      key: memoryKeys.step(step.id),
-      kind: "step_result",
-      value: results,
-      source: step.id,
-      title: step.instructions.slice(0, 60)
-    });
-    step.completed = true;
-    step.endTime = Date.now();
-
-    log.info("Fan-out complete", {
-      stepId: step.id,
-      resultCount: results.length
-    });
-  }
-
-  /** A step's declared schema as an object, or null when absent/unparseable. */
-  private parseSchema(
-    schema: string | undefined,
-    stepId: string
-  ): Record<string, unknown> | null {
-    if (!schema) return null;
-    try {
-      const parsed: unknown = JSON.parse(schema);
-      return isRecord(parsed) ? parsed : null;
-    } catch {
-      log.warn("Ignoring unparseable outputSchema", { stepId });
-      return null;
-    }
-  }
-
-  /**
-   * Check if a step is the designated finish/aggregation step.
-   */
+  /** The task's last step, the one whose result is the task's result. */
   private isFinishStep(step: Step): boolean {
-    if (this._finishStepId) {
-      return step.id === this._finishStepId;
-    }
-    return (
-      this.task.steps.length > 0 &&
-      step === this.task.steps[this.task.steps.length - 1]
-    );
+    return step.id === this._finishStepId;
   }
 }

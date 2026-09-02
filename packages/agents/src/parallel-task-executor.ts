@@ -27,7 +27,11 @@ import type {
 } from "@nodetool-ai/protocol";
 import { TaskUpdateEvent } from "@nodetool-ai/protocol";
 import { TaskExecutor } from "./task-executor.js";
-import { holdsRunSlot, markRunSlotHeld } from "./subagent.js";
+import {
+  holdsRunSlot,
+  markRunSlotHeld,
+  settleResultValue
+} from "./subagent.js";
 import {
   ABORTED,
   UNSATISFIABLE_DEPENDENCY,
@@ -271,7 +275,6 @@ export class ParallelTaskExecutor {
       maxTokens: this.maxTokens,
       maxConcurrentAgents: this.maxConcurrentAgents,
       budget: this.budget,
-      parallelExecution: true, // Enable parallel step execution within each task
       upstreamMemoryKeys,
       signal: this.signal,
       sandboxPackages: this.sandboxPackages
@@ -422,8 +425,7 @@ export class ParallelTaskExecutor {
    * Decide whether a task that just returned actually failed. Detects:
    *  - steps that never completed (the run budget stopped them, or a
    *    dependency could never be satisfied), and
-   *  - steps (or the resolved task result) whose value is an `{ error }`
-   *    payload written by StepExecutor's failure path.
+   *  - steps (or the resolved task result) whose value settles as a failure.
    * Returns a human-readable reason on failure, or `null` on success.
    */
   private detectTaskFailure(task: Task, taskResult: unknown): string | null {
@@ -438,28 +440,30 @@ export class ParallelTaskExecutor {
     }
     for (const step of task.steps) {
       const value = this.context.memory.getValue(memoryKeys.step(step.id));
-      if (isErrorResult(value)) {
-        return `step ${step.id}: ${value.error}`;
+      const settled = settleResultValue(value);
+      if (settled && !settled.ok) {
+        return `step ${step.id}: ${settled.error}`;
       }
-      // A process-mode (fan-out) step always stores an array of per-item
-      // results and is always marked completed, even when every item failed
-      // (each item is an `{ error }` object). isErrorResult returns false for
-      // arrays, so an all-failed fan-out would otherwise be recorded as a
-      // success, never retried. Treat a non-empty array whose
-      // every element is an error result as a failed step.
-      if (
-        Array.isArray(value) &&
-        value.length > 0 &&
-        value.every((item) => isErrorResult(item))
-      ) {
-        const first = value.find((item) => isErrorResult(item)) as {
-          error: string;
-        };
-        return `step ${step.id}: all ${value.length} fan-out item(s) failed (${first.error})`;
+      // A fan-out step stores an array of per-item results and is always marked
+      // completed, even when every item failed (each item is an `{ error }`
+      // object). An array is never itself a failure payload, so an all-failed
+      // fan-out would otherwise be recorded as a success and never retried.
+      // Ask the items instead.
+      if (Array.isArray(value) && value.length > 0) {
+        const errors: string[] = [];
+        for (const item of value) {
+          const settledItem = settleResultValue(item);
+          if (settledItem === null || settledItem.ok) break;
+          errors.push(settledItem.error);
+        }
+        if (errors.length === value.length) {
+          return `step ${step.id}: all ${value.length} fan-out item(s) failed (${errors[0]})`;
+        }
       }
     }
-    if (isErrorResult(taskResult)) {
-      return taskResult.error;
+    const settledTask = settleResultValue(taskResult);
+    if (settledTask && !settledTask.ok) {
+      return settledTask.error;
     }
     return null;
   }
@@ -497,19 +501,4 @@ export class ParallelTaskExecutor {
     const lastTask = this.taskPlan.tasks[this.taskPlan.tasks.length - 1];
     return this.context.memory.getValue(memoryKeys.task(lastTask.id)) ?? null;
   }
-}
-
-/**
- * A value is treated as a failure marker when it is a plain object carrying a
- * non-empty string `error` field — the shape StepExecutor writes on its failure
- * path (`{ error: "Step failed: ..." }`).
- */
-function isErrorResult(value: unknown): value is { error: string } {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    !Array.isArray(value) &&
-    typeof (value as Record<string, unknown>).error === "string" &&
-    ((value as Record<string, unknown>).error as string).length > 0
-  );
 }

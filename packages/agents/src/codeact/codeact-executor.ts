@@ -20,15 +20,15 @@ import type {
   Message,
   MessageContent,
   ProviderStop,
-  ProviderStreamItem,
   RunBudget,
-  ToolCall,
   TurnBudget
 } from "@nodetool-ai/runtime";
 import {
   ACTIVE_MODEL_CONTEXT_KEY,
+  isChunk,
   isProviderStop,
   isRunBudget,
+  isToolCall,
   memoryKeys,
   withAgentSpanGen,
   type ActiveModelSelection
@@ -62,6 +62,7 @@ import {
 } from "../utils/json-schema-validate.js";
 import { linkAbort } from "../utils/link-abort.js";
 import { lastProseHint } from "../utils/step-failure.js";
+import { createUiEventBuffer } from "../utils/ui-event-buffer.js";
 import { removeThinkTags } from "../utils/think-tags.js";
 import {
   buildToolBridge,
@@ -638,7 +639,7 @@ export class CodeActExecutor {
 
     const abort = new AbortController();
     const unlinkAbort = linkAbort(abort, this.signal);
-    const uiEvents: ProcessingMessage[] = [];
+    const ui = createUiEventBuffer();
     let lastAssistant: Message | null = null;
     let generationError: Error | null = null;
     let finishedResult: { value: unknown } | null = null;
@@ -646,7 +647,7 @@ export class CodeActExecutor {
     const toolsByName = new Map(this.tools.map((t) => [t.name, t]));
     const onToolCall = (record: ToolCallRecord): void => {
       const tool = toolsByName.get(record.name);
-      uiEvents.push({
+      ui.push({
         type: "tool_call_update",
         node_id: this.step.id,
         tool_call_id: record.toolCallId,
@@ -893,8 +894,8 @@ export class CodeActExecutor {
       if (finishedResult) {
         observation.finished = true;
         this.storeCompletionResult(finishedResult.value);
-        uiEvents.push(this.taskUpdate(TaskUpdateEvent.StepCompleted));
-        uiEvents.push(this.stepResult(finishedResult.value));
+        ui.push(this.taskUpdate(TaskUpdateEvent.StepCompleted));
+        ui.push(this.stepResult(finishedResult.value));
         abort.abort();
       } else if (
         this.resultSchema !== null &&
@@ -936,10 +937,6 @@ export class CodeActExecutor {
         context: this.context
       })
     ];
-
-    const drainUi = function* (): Generator<ProcessingMessage> {
-      while (uiEvents.length > 0) yield uiEvents.shift() as ProcessingMessage;
-    };
 
     // Whether the last generation round used up its iteration budget, as
     // opposed to the model ending its turn on its own. Only the first case is
@@ -990,7 +987,7 @@ export class CodeActExecutor {
             // The loop ran out of something. Recorded rather than yielded: it
             // is what the step's failure message names.
             providerStop = item;
-            yield* drainUi();
+            yield* ui.drain();
             continue;
           }
           if (isToolCall(item)) {
@@ -1008,7 +1005,7 @@ export class CodeActExecutor {
                 ? Tool.resolveMessage(coreTool, item.args)
                 : executeCodeMessage(item.args)
             } satisfies ToolCallUpdate;
-            yield* drainUi();
+            yield* ui.drain();
             continue;
           }
           if (isChunk(item)) {
@@ -1020,7 +1017,7 @@ export class CodeActExecutor {
                 done: false
               } satisfies Chunk;
             }
-            yield* drainUi();
+            yield* ui.drain();
             continue;
           }
           if ("type" in item && item.type === "message") {
@@ -1036,7 +1033,7 @@ export class CodeActExecutor {
               roundMessages.push(m);
             }
           }
-          yield* drainUi();
+          yield* ui.drain();
         }
         turnsTotal += turnsThisRound;
         exhaustedIterations = turnsTotal >= this.maxIterations;
@@ -1081,7 +1078,7 @@ export class CodeActExecutor {
       unlinkAbort();
     }
 
-    yield* drainUi();
+    yield* ui.drain();
 
     // Unschema'd steps also finalize from a no-tool-call assistant message —
     // the same prose-mode rule StepExecutor has.
@@ -1254,17 +1251,4 @@ function hasContent(message: Message): boolean {
   const content = message.content;
   if (isString(content)) return content.trim() !== "";
   return Array.isArray(content) && content.length > 0;
-}
-
-function isChunk(item: ProviderStreamItem): item is Chunk {
-  return (
-    "type" in item &&
-    item.type === "chunk" &&
-    "content" in item &&
-    typeof item.content === "string"
-  );
-}
-
-function isToolCall(item: ProviderStreamItem): item is ToolCall {
-  return "name" in item && typeof item.name === "string" && "id" in item;
 }

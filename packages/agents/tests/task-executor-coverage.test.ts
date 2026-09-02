@@ -8,8 +8,7 @@ import { finishAction } from "./_helpers/codeact-provider.js";
 
 /**
  * Mock provider that finishes each step via a finish_step tool call, echoing
- * the ephemeral step's rendered instructions back so fan-out tests can assert
- * per-item template interpolation. `delayMs` simulates async work.
+ * the step's rendered instructions back. `delayMs` simulates async work.
  */
 function createMockProvider(delayMs = 0) {
   return {
@@ -172,205 +171,7 @@ describe("TaskExecutor coverage", () => {
     expect(s2.completed).toBe(true);
   });
 
-  describe("process-mode fan-out", () => {
-    it("marks a process step complete when it has no dependencies", async () => {
-      const proc: Step = {
-        ...makeStep("p1"),
-        mode: "process"
-      };
-      const task: Task = { id: "t1", title: "T", steps: [proc] };
-      const context = createMockContext();
-      const executor = new TaskExecutor({
-        provider: createMockProvider(),
-        model: "m",
-        context,
-        tools: [],
-        task
-      });
-      const messages = await drain(executor.executeTasks());
-      expect(proc.completed).toBe(true);
-      // No ephemeral step ran, so no step_result was produced by fan-out.
-      expect(messages.some((m) => m.type === "step_result")).toBe(false);
-    });
-
-    it("stores an empty list when the discover result is missing", async () => {
-      const discover = makeStep("d1");
-      discover.completed = true; // pretend it already ran, but no memory value
-      const proc: Step = { ...makeStep("p1", ["d1"]), mode: "process" };
-      const task: Task = { id: "t1", title: "T", steps: [discover, proc] };
-      const context = createMockContext();
-      const executor = new TaskExecutor({
-        provider: createMockProvider(),
-        model: "m",
-        context,
-        tools: [],
-        task
-      });
-      await drain(executor.executeTasks());
-      expect(proc.completed).toBe(true);
-      expect(proc.endTime).toBeTypeOf("number");
-      expect(context.memory.getValue(memoryKeys.step("p1"))).toEqual([]);
-    });
-
-    it("wraps a non-array discover result as a single-item list", async () => {
-      const discover = makeStep("d1");
-      discover.completed = true;
-      const proc: Step = {
-        ...makeStep("p1", ["d1"]),
-        mode: "process",
-        perItemInstructions: "Handle {name}"
-      };
-      const task: Task = { id: "t1", title: "T", steps: [discover, proc] };
-      const context = createMockContext();
-      // Non-array object value.
-      context.memory.set({
-        key: memoryKeys.step("d1"),
-        kind: "step_result",
-        value: { name: "solo" },
-        source: "d1"
-      });
-      const executor = new TaskExecutor({
-        provider: createMockProvider(),
-        model: "m",
-        context,
-        tools: [],
-        task
-      });
-      const messages = await drain(executor.executeTasks());
-      expect(proc.completed).toBe(true);
-      const aggregated = context.memory.getValue(memoryKeys.step("p1")) as any[];
-      expect(aggregated).toHaveLength(1);
-      // Exactly one ephemeral step ran.
-      const stepResults = messages.filter((m) => m.type === "step_result");
-      expect(stepResults).toHaveLength(1);
-      // The {name} placeholder was rendered with the object's field.
-      expect((aggregated[0] as any).rendered).toContain("solo");
-    });
-
-    it("fans out over an array of objects, interpolating {field} per item", async () => {
-      const discover = makeStep("d1");
-      discover.completed = true;
-      const proc: Step = {
-        ...makeStep("p1", ["d1"]),
-        mode: "process",
-        perItemInstructions: "Process city {city}"
-      };
-      const task: Task = { id: "t1", title: "T", steps: [discover, proc] };
-      const context = createMockContext();
-      context.memory.set({
-        key: memoryKeys.step("d1"),
-        kind: "step_result",
-        value: [{ city: "paris" }, { city: "tokyo" }],
-        source: "d1"
-      });
-      const executor = new TaskExecutor({
-        provider: createMockProvider(),
-        model: "m",
-        context,
-        tools: [],
-        task
-      });
-      const messages = await drain(executor.executeTasks());
-      const aggregated = context.memory.getValue(memoryKeys.step("p1")) as any[];
-      expect(aggregated).toHaveLength(2);
-      const rendered = aggregated.map((r) => r.rendered).join("\n");
-      expect(rendered).toContain("paris");
-      expect(rendered).toContain("tokyo");
-      expect(messages.filter((m) => m.type === "step_result")).toHaveLength(2);
-    });
-
-    it("renders {item} for an array of primitive items", async () => {
-      const discover = makeStep("d1");
-      discover.completed = true;
-      const proc: Step = {
-        ...makeStep("p1", ["d1"]),
-        mode: "process",
-        perItemInstructions: "Say {item}"
-      };
-      const task: Task = { id: "t1", title: "T", steps: [discover, proc] };
-      const context = createMockContext();
-      context.memory.set({
-        key: memoryKeys.step("d1"),
-        kind: "step_result",
-        value: ["alpha", "beta"],
-        source: "d1"
-      });
-      const executor = new TaskExecutor({
-        provider: createMockProvider(),
-        model: "m",
-        context,
-        tools: [],
-        task
-      });
-      const messages = await drain(executor.executeTasks());
-      const aggregated = context.memory.getValue(memoryKeys.step("p1")) as any[];
-      expect(aggregated).toHaveLength(2);
-      const rendered = aggregated.map((r) => r.rendered).join("\n");
-      expect(rendered).toContain("alpha");
-      expect(rendered).toContain("beta");
-      expect(messages.filter((m) => m.type === "step_result")).toHaveLength(2);
-    });
-
-    it("falls back to step.instructions when perItemInstructions is absent", async () => {
-      const discover = makeStep("d1");
-      discover.completed = true;
-      const proc: Step = {
-        ...makeStep("p1", ["d1"]),
-        instructions: "Base task for {item}",
-        mode: "process"
-      };
-      const task: Task = { id: "t1", title: "T", steps: [discover, proc] };
-      const context = createMockContext();
-      context.memory.set({
-        key: memoryKeys.step("d1"),
-        kind: "step_result",
-        value: ["only"],
-        source: "d1"
-      });
-      const executor = new TaskExecutor({
-        provider: createMockProvider(),
-        model: "m",
-        context,
-        tools: [],
-        task
-      });
-      await drain(executor.executeTasks());
-      const aggregated = context.memory.getValue(memoryKeys.step("p1")) as any[];
-      expect((aggregated[0] as any).rendered).toContain("only");
-    });
-
-    it("fans out in parallel when parallelExecution=true and >1 item", async () => {
-      const discover = makeStep("d1");
-      discover.completed = true;
-      const proc: Step = {
-        ...makeStep("p1", ["d1"]),
-        mode: "process",
-        perItemInstructions: "Item {item}"
-      };
-      const task: Task = { id: "t1", title: "T", steps: [discover, proc] };
-      const context = createMockContext();
-      context.memory.set({
-        key: memoryKeys.step("d1"),
-        kind: "step_result",
-        value: ["a", "b", "c"],
-        source: "d1"
-      });
-      const executor = new TaskExecutor({
-        provider: createMockProvider(5),
-        model: "m",
-        context,
-        tools: [],
-        task,
-        parallelExecution: true
-      });
-      const messages = await drain(executor.executeTasks());
-      const aggregated = context.memory.getValue(memoryKeys.step("p1")) as any[];
-      expect(aggregated).toHaveLength(3);
-      expect(messages.filter((m) => m.type === "step_result")).toHaveLength(3);
-    });
-  });
-
-  it("surfaces a failing step as an error step_result in parallel mode", async () => {
+  it("surfaces a failing step as an error step_result", async () => {
     const s1 = makeStep("s1");
     const s2 = makeStep("s2");
     const task: Task = { id: "t1", title: "T", steps: [s1, s2] };
@@ -379,8 +180,7 @@ describe("TaskExecutor coverage", () => {
       model: "m",
       context: createMockContext(),
       tools: [],
-      task,
-      parallelExecution: true
+      task
     });
     const messages = await drain(executor.executeTasks());
     // StepExecutor catches the provider error and emits an error step_result;
@@ -391,44 +191,5 @@ describe("TaskExecutor coverage", () => {
     ) as StepResult[];
     expect(errored.length).toBeGreaterThanOrEqual(1);
     expect(String(errored[0].result?.error)).toContain("provider exploded");
-  });
-
-  it("uses perItemSchema for ephemeral step output schema when provided", async () => {
-    // Exercises the perItemSchema branch of ephemeral step construction.
-    const discover = makeStep("d1");
-    discover.completed = true;
-    const proc: Step = {
-      ...makeStep("p1", ["d1"]),
-      mode: "process",
-      perItemInstructions: "Do {item}",
-      perItemSchema: JSON.stringify({
-        type: "object",
-        properties: { done: { type: "boolean" } }
-      }),
-      // With a perItemSchema, the step's own outputSchema describes the
-      // aggregate the fan-out produces — a list, not one item's object.
-      outputSchema: JSON.stringify({
-        type: "array",
-        items: { type: "object", properties: { done: { type: "boolean" } } }
-      })
-    };
-    const task: Task = { id: "t1", title: "T", steps: [discover, proc] };
-    const context = createMockContext();
-    context.memory.set({
-      key: memoryKeys.step("d1"),
-      kind: "step_result",
-      value: ["x"],
-      source: "d1"
-    });
-    const executor = new TaskExecutor({
-      provider: createMockProvider(),
-      model: "m",
-      context,
-      tools: [],
-      task
-    });
-    const messages = await drain(executor.executeTasks());
-    expect(proc.completed).toBe(true);
-    expect(messages.filter((m) => m.type === "step_result")).toHaveLength(1);
   });
 });

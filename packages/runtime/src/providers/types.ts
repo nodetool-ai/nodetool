@@ -702,6 +702,32 @@ export function isProviderSessionUpdate(
   );
 }
 
+/** Narrow a stream item to a {@link Chunk} carrying text content. */
+export function isChunk(item: ProviderStreamItem): item is Chunk {
+  return (
+    typeof item === "object" &&
+    item !== null &&
+    "type" in item &&
+    item.type === "chunk" &&
+    "content" in item &&
+    typeof item.content === "string"
+  );
+}
+
+/**
+ * Narrow a stream item to a {@link ToolCall}. It is the one member of the union
+ * with no `type` discriminator, so it is identified by shape: `name` and `id`.
+ */
+export function isToolCall(item: ProviderStreamItem): item is ToolCall {
+  return (
+    typeof item === "object" &&
+    item !== null &&
+    "name" in item &&
+    typeof item.name === "string" &&
+    "id" in item
+  );
+}
+
 /** Narrow a stream item to a {@link ProviderStop}. */
 export function isProviderStop(item: ProviderStreamItem): item is ProviderStop {
   return (
