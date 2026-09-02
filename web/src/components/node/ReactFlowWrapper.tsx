@@ -70,6 +70,7 @@ import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
 import useDragHandlers from "../../hooks/handlers/useDragHandlers";
 import { useProcessedEdges } from "../../hooks/useProcessedEdges";
 import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
+import { useNodeDragDiagnostics } from "../../hooks/useNodeDragDiagnostics";
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
 import isEqual from "../../utils/isEqual";
@@ -257,6 +258,7 @@ const ReactFlowWrapper = ({
   );
 
   useFitNodeEvent();
+  useNodeDragDiagnostics(import.meta.env.DEV);
 
   const { handleMoveEnd, handleOnMoveStart } = useReactFlowEvents();
 
