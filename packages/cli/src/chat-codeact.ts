@@ -28,11 +28,12 @@ import {
   BackgroundSubtaskRegistry,
   contextSecretAvailability,
   createCapabilityRun,
+  gateTools,
   Tool,
   toolForCapabilityName,
-  UNGATED,
   createChatCodeActSession,
-  type ChatCodeActSession
+  type ChatCodeActSession,
+  type PermissionGateOptions
 } from "@nodetool-ai/agents";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { isNonBlankString } from "./predicates.js";
@@ -137,6 +138,12 @@ export interface CliAgentBeltOptions {
   model: string;
   /** Where a delegated loop's messages go — its chunks, tool calls, plan events. */
   forwardMessage: (message: ProcessingMessage) => void;
+  /**
+   * The run's permission gate. Built once by the host (`createCliPermissionGate`)
+   * and shared by reference, so a mode change and an "allow for this session"
+   * answer reach every loop this belt starts.
+   */
+  gate: PermissionGateOptions;
   /** Read-only `run_search` fan-out. On unless set false. */
   readOnlySearch?: boolean;
   /** `create_plan` and `execute_plan`. Off unless set true. */
@@ -154,25 +161,31 @@ export interface CliAgentBeltOptions {
  * session writes is what the same session's `wait_subtasks` reads.
  */
 export function buildCliAgentBelt(options: CliAgentBeltOptions): Tool[] {
-  const { baseTools, provider, model, forwardMessage } = options;
+  const { baseTools, provider, model, forwardMessage, gate } = options;
+  // The belt runs through the ladder, as chat's does: `gateTools` is the door
+  // a `Tool` takes into `decidePermission` (invariant I-1). A delegated loop
+  // is handed the gated belt, not the raw one, so approving `run_subtask` is
+  // not approval for whatever the child then calls.
+  const gatedBase = gateTools(baseTools, gate);
   const subAgent = {
     provider,
     model,
-    parentTools: () => baseTools,
+    parentTools: () => gatedBase,
     forwardMessage,
     background: new BackgroundSubtaskRegistry()
   };
-  // Ungated: spawning a child loop has no side effect of its own, and the
-  // child's tools are `baseTools`. This is where the CLI's permission gate
-  // (`--permission-mode`) and the run budget thread in.
   const delegationRun = (context: ProcessingContext) =>
     createCapabilityRun({
       context,
-      gate: UNGATED,
+      gate,
       availableSecrets: contextSecretAvailability(context),
       subAgent
     });
 
+  // The delegation capabilities stay ungated, as they are in chat: spawning a
+  // child loop has no side effect of its own, and the child acts through
+  // `gatedBase`. `create_plan` writes nothing either — it decomposes an
+  // objective and streams the DAG.
   const spawned: Tool[] = [];
   if (options.readOnlySearch !== false) {
     spawned.push(toolForCapabilityName("run_search", delegationRun));
@@ -183,14 +196,19 @@ export function buildCliAgentBelt(options: CliAgentBeltOptions): Tool[] {
     toolForCapabilityName("wait_subtasks", delegationRun)
   );
   if (options.planning) {
-    // The two halves of plan mode: `create_plan` decomposes the objective and
-    // streams the DAG, `execute_plan` runs it on the ParallelTaskExecutor.
+    spawned.push(toolForCapabilityName("create_plan", delegationRun));
+    // `execute_plan` is the exception, and is gated for what it is: not one
+    // action but every action in the plan. In plan mode the ladder answers
+    // `blocked_in_plan_mode`, which tells the model to have the user switch
+    // out; elsewhere it asks once.
     spawned.push(
-      toolForCapabilityName("create_plan", delegationRun),
-      toolForCapabilityName("execute_plan", delegationRun)
+      ...gateTools(
+        [toolForCapabilityName("execute_plan", delegationRun)],
+        gate
+      )
     );
   }
-  return [...spawned, ...baseTools];
+  return [...spawned, ...gatedBase];
 }
 
 /**

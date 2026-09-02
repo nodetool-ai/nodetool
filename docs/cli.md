@@ -267,6 +267,9 @@ Starts an interactive TUI chat session.
 - `-u, --url <url>` — WebSocket server URL (default: uses a local provider).
 - `-w, --workspace <path>` — workspace directory for file operations (default: current directory).
 - `--tools <tools>` — comma-separated list of enabled tools.
+- `--permission-mode <default|auto|plan>` — how tool calls are gated when the
+  input is piped (see [Permission mode](#permission-mode)). Unset runs `auto`.
+  The interactive TUI does not gate its belt, and says so if the flag is passed.
 
 **Examples:**
 
@@ -1446,6 +1449,10 @@ echo "Research AI trends" | nodetool agent run -p anthropic -m claude-sonnet-5
 nodetool agent run -p openai -m gpt-5.4-mini -o "Summarize the README" \
   --max-iterations 8
 
+# Ask before every write, execute or external call
+nodetool agent run -p anthropic -m claude-sonnet-5 -o "Tidy the workflows" \
+  --permission-mode default
+
 # Aggregate a failed run into one report
 nodetool agent diagnose <job_id>
 ```
@@ -1453,6 +1460,30 @@ nodetool agent diagnose <job_id>
 `--max-steps` is gone with the planner→compiler pipeline the command used to
 run, along with plan approval, checkpoints, the planning/reasoning model split,
 and skill auto-select. See [Agent CLI](agent-cli.md).
+
+### Permission mode
+
+Every tool call the model makes goes through one ladder, on every host. What a
+mode decides:
+
+| Mode | Read | Write, execute, external |
+|---|---|---|
+| `default` | runs | asks first |
+| `auto` | runs | runs |
+| `plan` | runs | blocked, with a message telling the model to switch out |
+
+`--permission-mode` sets it on `nodetool agent run` and on `nodetool-chat`; an
+unrecognized value is refused rather than falling back to a default.
+
+**In a terminal**, `default` is what an unset flag means: each write, execute or
+external call prints on stderr and waits for `y` (this call), `n` (refuse), or
+`a` (this tool for the rest of the session). Stdout carries the run's result, so
+nothing about the prompt goes there.
+
+**Behind a pipe**, nobody is there to answer, so the run takes the headless gate:
+`auto`, printing once up front that escalated calls are denied. An explicit mode
+still applies — a piped `--permission-mode plan` blocks what plan mode blocks —
+but the answer to anything the ladder escalates is `deny`, never a silent allow.
 
 See the [Agent CLI](agent-cli.md) reference for full details.
 

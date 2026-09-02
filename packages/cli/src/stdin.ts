@@ -29,7 +29,12 @@ import {
 } from "./chat-codeact.js";
 import { createChatContext } from "./chat-context.js";
 import { isString } from "./predicates.js";
-import { getBuiltinTools } from "@nodetool-ai/agents";
+import {
+  getBuiltinTools,
+  PERMISSION_GATE_CONTEXT_KEY,
+  type PermissionMode
+} from "@nodetool-ai/agents";
+import { createCliPermissionGate } from "./permission-gate.js";
 import type { Tool } from "@nodetool-ai/agents/tool";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -56,6 +61,8 @@ interface StdinModeOptions {
    * `run_subtask`. On by default; set `false` to remove it.
    */
   enableReadOnlySearch?: boolean;
+  /** `--permission-mode`. Unset runs `auto`: stdin is the input, not a user. */
+  permissionMode?: PermissionMode;
 }
 
 interface SlashCommand {
@@ -216,11 +223,24 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
   // Direct mode: create provider once for the session
   const directProvider = wsClient ? null : await createProvider(opts.provider);
 
+  // One gate for the whole session, so an "allow for the rest of this session"
+  // answer outlives the line that gave it — the belt below is rebuilt per line.
+  // Stdin carries the messages here, so there is nobody to prompt: this is the
+  // headless gate, and it says so once. In `--url` mode the server holds the
+  // gate for its own belt and this process runs none, so none is built.
+  const gate = directProvider
+    ? createCliPermissionGate({
+        hostName: "nodetool-chat",
+        mode: opts.permissionMode,
+        interactive: false
+      })
+    : null;
+
   // Build the unified-loop toolset for direct mode. `run_subtask` lets the
   // agent decompose work recursively without any flag — the same primitive
   // the websocket server exposes.
   const buildDirectTools = (prov: BaseProvider | null): Tool[] => {
-    if (!prov) return [];
+    if (!prov || !gate) return [];
     // The builtin belt. This used to be an `extras` parameter that only the
     // (now removed) `--sandbox` flag ever filled, so a normal CLI run reached
     // the model with nothing on it: no `view_image`, so a headless turn could
@@ -239,6 +259,7 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
           process.stderr.write(`[tool] ${msg.name}\n`);
         }
       },
+      gate,
       readOnlySearch: opts.enableReadOnlySearch !== false
     });
   };
@@ -256,6 +277,10 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
     const context = await createChatContext({
       workspaceDir: opts.workspaceDir ?? null
     });
+    // Loops this file never constructs — a JS script, an `AgentNode` reached
+    // through `run_node` — read the gate here instead of building an ungated
+    // run of their own (`gateFromContext`).
+    if (gate) context.set(PERMISSION_GATE_CONTEXT_KEY, gate);
     const turn = createCliCodeActTurn({
       tools,
       context,

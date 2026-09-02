@@ -65,7 +65,13 @@ vi.mock("@nodetool-ai/chat", () => ({
   )
 }));
 
-vi.mock("@nodetool-ai/agents", () => ({
+vi.mock("@nodetool-ai/agents", async () => ({
+  // The permission ladder is the real one: the session's gate is built from
+  // it, and a second copy of the classification map is the thing A2 exists to
+  // prevent.
+  ...(await import("../../agents/src/tools/tool-permissions.js")),
+  PERMISSION_GATE_CONTEXT_KEY: "nodetool_permission_gate",
+  gateTools: (tools: unknown[]) => tools,
   Tool: class {
     name = "";
     description = "";

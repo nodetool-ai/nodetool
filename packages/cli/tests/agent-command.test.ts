@@ -94,6 +94,12 @@ class NamedTool extends StubTool {
 const sessionBelts: string[][] = [];
 /** Code bodies the scripted `execute_code` action ran. */
 const actionsRun: string[] = [];
+/** Every `gateTools` call: the names wrapped, and the gate they were given. */
+const gatedWith: Array<{ names: string[]; gate: unknown }> = [];
+/** Every gate a capability run was built over. */
+const runGates: unknown[] = [];
+/** Whatever the run put on the context, keyed by the variable name. */
+const contextVariables = new Map<string, unknown>();
 
 vi.mock("@nodetool-ai/agents", async () => {
   const agentsStub = await import("./__stubs__/nodetool.js");
@@ -106,10 +112,29 @@ vi.mock("@nodetool-ai/agents", async () => {
     getAgentToolbelt: () => [new NamedTool("read_file")],
     getAllMcpTools: () => [new NamedTool("list_workflows")],
     BackgroundSubtaskRegistry: class {},
-    UNGATED: { decide: () => ({ decision: "allow" }) },
+    // The real classification map, headless gate and context key: the CLI's
+    // gate is supposed to be the shared one, not a second table.
+    ...(await import("../../agents/src/tools/tool-permissions.js")),
+    PERMISSION_GATE_CONTEXT_KEY: "nodetool_permission_gate",
+    gateTools: (tools: NamedTool[], gate: unknown) => {
+      gatedWith.push({ names: tools.map((t) => t.name), gate });
+      return tools;
+    },
     contextSecretAvailability: () => new Set<string>(),
-    createCapabilityRun: () => ({}),
-    toolForCapabilityName: (name: string) => new NamedTool(name),
+    createCapabilityRun: ({ gate }: { gate: unknown }) => {
+      runGates.push(gate);
+      return {};
+    },
+    toolForCapabilityName: (
+      name: string,
+      run?: (context: unknown) => unknown
+    ) => {
+      // `LazyCapabilityTool` builds the run from the context on each call.
+      // Building it here is that same construction, so the gate a delegated
+      // loop would carry is observable without invoking the capability.
+      if (typeof run === "function") run({});
+      return new NamedTool(name);
+    },
     createChatCodeActSession: (options: { tools: Array<{ name: string }> }) => {
       sessionBelts.push(options.tools.map((t) => t.name));
       return {
@@ -138,7 +163,7 @@ vi.mock("@nodetool-ai/websocket", () => ({ mcpToolHostDeps: () => ({}) }));
 vi.mock("../src/node-registry.js", () => ({ buildFullRegistry: () => ({}) }));
 vi.mock("../src/chat-context.js", () => ({
   createChatContext: async () => ({
-    set: () => {},
+    set: (key: string, value: unknown) => contextVariables.set(key, value),
     registerProvider: () => {}
   })
 }));
@@ -153,6 +178,9 @@ const { ScriptedProvider, textScript, toolCallScript } = await import(
   "../../runtime/src/providers/scripted-provider.js"
 );
 const { runAgentCommand } = await import("../src/commands/agent.js");
+const { headlessDenialReason } = await import(
+  "../../agents/src/tools/tool-permissions.js"
+);
 
 let currentProvider: InstanceType<typeof ScriptedProvider>;
 
@@ -199,6 +227,9 @@ beforeEach(() => {
   sessionBelts.length = 0;
   actionsRun.length = 0;
   scriptedCalls.length = 0;
+  gatedWith.length = 0;
+  runGates.length = 0;
+  contextVariables.clear();
 });
 
 describe("nodetool agent run", () => {
@@ -262,5 +293,57 @@ describe("nodetool agent run", () => {
           )
       )
     ).toBe(true);
+  });
+});
+
+describe("the gate a CLI run belts through", () => {
+  it("wraps the platform belt and execute_plan in one shared gate", async () => {
+    const provider = new ScriptedProvider([textScript("Ready.")]);
+
+    const { code } = await runWithCapture(provider, {
+      objective: "list my workflows"
+    });
+
+    expect(code).toBe(0);
+    // Vitest runs with stdin piped, so this is the headless path: `auto`, with
+    // the refusal named once.
+    const gate = contextVariables.get("nodetool_permission_gate");
+    expect(gate).toMatchObject({ mode: "auto" });
+
+    // The platform belt goes through the ladder, as chat's does...
+    const beltNames = gatedWith.flatMap((call) => call.names);
+    expect(beltNames).toEqual(
+      expect.arrayContaining(["read_file", "list_workflows", "execute_plan"])
+    );
+    // ...through the gate the host built, not one per call site.
+    for (const call of gatedWith) expect(call.gate).toBe(gate);
+    // Non-empty first: an identity check over nothing passes on nothing.
+    expect(runGates.length).toBeGreaterThan(0);
+    for (const runGate of runGates) expect(runGate).toBe(gate);
+
+    // Spawning a child loop is not itself an action: those stay ungated, and
+    // the child acts through the gated belt above.
+    expect(beltNames).not.toContain("run_subtask");
+    expect(beltNames).not.toContain("create_plan");
+  });
+
+  it("names the headless refusal once, in the event stream", async () => {
+    const provider = new ScriptedProvider([textScript("Ready.")]);
+
+    const { events } = await runWithCapture(provider, {
+      objective: "list my workflows"
+    });
+
+    const notices = events.filter(
+      (e) =>
+        (e as { type?: string }).type === "log_update" &&
+        String((e as { content?: string }).content).includes(
+          "nodetool agent run"
+        )
+    );
+    expect(notices).toHaveLength(1);
+    expect(String((notices[0] as { content: string }).content)).toBe(
+      headlessDenialReason("nodetool agent run")
+    );
   });
 });

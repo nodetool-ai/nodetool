@@ -20,7 +20,12 @@ import { Command } from "commander";
 import chalk from "chalk";
 
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
-import { getAgentToolbelt, getAllMcpTools, type Tool } from "@nodetool-ai/agents";
+import {
+  getAgentToolbelt,
+  getAllMcpTools,
+  PERMISSION_GATE_CONTEXT_KEY,
+  type Tool
+} from "@nodetool-ai/agents";
 import { processChat } from "@nodetool-ai/chat";
 import { initDb } from "@nodetool-ai/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
@@ -37,6 +42,11 @@ import {
   createCliCodeActTurn
 } from "../chat-codeact.js";
 import { createChatContext } from "../chat-context.js";
+import {
+  createCliPermissionGate,
+  parsePermissionMode,
+  PERMISSION_MODE_NAMES
+} from "../permission-gate.js";
 import {
   diagnoseRun,
   renderDiagnosis,
@@ -199,6 +209,7 @@ export interface RunOptions {
   model?: string;
   workspace?: string;
   maxIterations?: string;
+  permissionMode?: string;
   json?: boolean;
   verbose?: boolean;
 }
@@ -274,6 +285,35 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
     traceEvent(message, traceOpts);
   };
 
+  // The run's gate, built once. `readObjectiveFromStdin` already returned null
+  // on a TTY, so the same test says whether anyone is there to answer a
+  // prompt: an objective that arrived down a pipe leaves nobody at the
+  // keyboard, and the run gates headless with the notice below.
+  const gate = createCliPermissionGate({
+    hostName: "nodetool agent run",
+    mode: parsePermissionMode(opts.permissionMode),
+    interactive: process.stdin.isTTY === true,
+    // In `--json` the notice and any prompt ride the event stream, so it stays
+    // one JSON object per line.
+    write: (text) => {
+      if (opts.json) {
+        emit({
+          type: "log_update",
+          node_id: "agent",
+          node_name: "permissions",
+          content: text,
+          severity: "info"
+        });
+      } else {
+        process.stderr.write(chalk.gray(`${text}\n`));
+      }
+    }
+  });
+  // Loops this command never constructs — an `AgentNode` reached through
+  // `run_node`, a JS script — read the gate off the context rather than
+  // building an ungated run of their own (`gateFromContext`, invariant I-1).
+  context.set(PERMISSION_GATE_CONTEXT_KEY, gate);
+
   // One belt, every run. A narrowing flag made each invocation its own
   // configuration — the thing YAML configs were removed for — and an agent
   // run that behaves differently from the last one is not reproducible.
@@ -282,6 +322,7 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
     provider,
     model: modelId,
     forwardMessage: emit,
+    gate,
     // An objective is a job, not a conversation: the two plan capabilities are
     // on the belt so the model can decompose one and run the DAG itself.
     planning: true
@@ -529,6 +570,11 @@ export function registerAgentCommands(program: Command): void {
     .option(
       "--max-iterations <n>",
       "Tool-calling rounds in the turn (default 25)"
+    )
+    .option(
+      "--permission-mode <mode>",
+      `Permission mode (${PERMISSION_MODE_NAMES.join(" | ")}); on a TTY the ` +
+        "default asks before each write, execute or external call"
     )
     .option("--json", "Emit each event as a JSON line on stderr")
     .option("-v, --verbose", "Include chunk/other low-level events in trace")

@@ -18,6 +18,11 @@ import { App } from "./app.js";
 import { ALWAYS_ENABLED_TOOLS, loadSettings } from "./settings.js";
 import { installLocalModelInterfaces } from "./local-model-interfaces.js";
 import { runStdinMode } from "./stdin.js";
+import {
+  parsePermissionMode,
+  PERMISSION_MODE_NAMES
+} from "./permission-gate.js";
+import type { PermissionMode } from "@nodetool-ai/agents";
 import { buildConfiguredProviders, KNOWN_PROVIDERS } from "./providers.js";
 import { initDb, getSecret } from "@nodetool-ai/models";
 import { initMasterKey } from "@nodetool-ai/security";
@@ -71,6 +76,11 @@ program
     "Disable the read-only run_search fan-out primitive (on by default)"
   )
   .option(
+    "--permission-mode <mode>",
+    `Permission mode for piped input (${PERMISSION_MODE_NAMES.join(" | ")}); ` +
+      "unset runs auto, since stdin carries the messages and not a user"
+  )
+  .option(
     "--trace-file <path>",
     "Append every LLM/agent/workflow span as JSONL to <path> (analyzer-friendly)"
   )
@@ -94,9 +104,20 @@ const opts = program.opts<{
   tools?: string;
   url?: string;
   readOnlySearch?: boolean;
+  permissionMode?: string;
   traceFile?: string;
   traceStdout?: string | boolean;
 }>();
+
+// Refused before anything starts: a mode nobody recognizes must not fall back
+// to a default the user did not ask for.
+let permissionMode: PermissionMode | undefined;
+try {
+  permissionMode = parsePermissionMode(opts.permissionMode);
+} catch (err) {
+  process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
+  process.exit(1);
+}
 
 // Initialize OpenLLMetry before any LLM SDK calls are made. Honors CLI flags
 // and env vars (TRACELOOP_API_KEY, OTEL_EXPORTER_OTLP_ENDPOINT,
@@ -226,12 +247,22 @@ if (!process.stdin.isTTY) {
       wsUrl: opts.url,
       registry: cliRegistry,
       agentProviders: cliAgentProviders,
-      enableReadOnlySearch: opts.readOnlySearch !== false
+      enableReadOnlySearch: opts.readOnlySearch !== false,
+      ...(permissionMode !== undefined && { permissionMode })
     });
   } finally {
     await shutdownTelemetry();
   }
   process.exit(0);
+}
+
+// The Ink session builds its own belt and runs no permission gate, so a mode
+// asked for here would be accepted and then ignored. Say so instead.
+if (permissionMode !== undefined) {
+  process.stderr.write(
+    "--permission-mode applies to piped input and `nodetool agent run`; " +
+      "the interactive session does not gate its belt.\n"
+  );
 }
 
 const { waitUntilExit } = render(

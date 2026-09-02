@@ -214,6 +214,7 @@ export const getProvider = async (id: string): Promise<BaseProvider> =>
 // runtime helpers
 export class ProcessingContext {
   private _modelInterfaces: Record<string, unknown> = {};
+  private readonly _variables = new Map<string, unknown>();
   private _secretResolver:
     | ((key: string, userId: string) => Promise<string | null> | string | null)
     | null;
@@ -245,6 +246,15 @@ export class ProcessingContext {
   async getSecret(key: string): Promise<string | null> {
     if (!this._secretResolver) return null;
     return (await this._secretResolver(key, this.userId)) ?? null;
+  }
+  /** The variable bag hosts publish the run's gate and budget on. */
+  set(key: string, value: unknown): void {
+    this._variables.set(key, value);
+  }
+  get<T = unknown>(key: string, defaultValue?: T): T | undefined {
+    return this._variables.has(key)
+      ? (this._variables.get(key) as T)
+      : defaultValue;
   }
 }
 /** Mirrors the real CORE_TOOL_NAMES so the CodeAct split behaves in tests. */
