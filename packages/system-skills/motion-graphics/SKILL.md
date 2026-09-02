@@ -221,14 +221,32 @@ Two checks, and they answer different questions.
 
 **`validate_timeline`** answers "is this document sound": unknown animation
 presets and transitions, fades and cuts longer than the clip carrying them,
-clips on tracks the document lacks, overlapping clips, clips shorter than a frame,
-in/out points that cannot render, duplicate ids. Run it after every batch of
-edits.
+clips on tracks the document lacks, overlapping clips, clips shorter than a
+frame, in/out points that cannot render, duplicate ids. Run it after every batch
+of edits.
 
-Note what it does **not** check, because these are the motion mistakes and you
-own them: an animation window longer than its clip (the compiler clamps it), a
-stagger span that had to be compressed, and anything about whether the result
-is legible.
+It also names the motion failures that used to be yours to remember. Each
+finding carries a stable `code`; these are the ones that mean the picture will
+not perform the motion you wrote:
+
+| Code | What to do about it |
+|---|---|
+| `animation_exceeds_clip` | The window does not fit the clip after its delay, so it is clamped — or dropped. Shorten `durationMs`, cut the delay, or lengthen the clip |
+| `stagger_compressed` | The units did not fit, so the per-unit offset was shrunk. The line lands faster and flatter than you wrote it. Shorten the per-unit `durationMs` or give the clip more time |
+| `replace_curves_overlap` | Two animations drive one absolute channel (`positionX/Y`, `anchorX/Y`, `trimStart/End`) at the same time. Those replace rather than compose, so one is discarded — separate them in time or fold them into one curve |
+| `text_illegible` | Type under 2.5% of frame height, or under a 3:1 contrast ratio against its own `background` plate or a full-frame shape behind it. Raise `fontSizePx`, darken the scrim, or add a `stroke` |
+| `unknown_easing` | Outside the grammar, so it eases linearly. Check the spelling: `easeOut`, not `ease-out` |
+| `unknown_transition`, `unknown_effect` | This build cannot draw it; it cross-fades or draws ungraded. Pick one from the catalog |
+| `parent_missing`, `parent_not_group`, `parent_cycle` | The child renders unparented, losing the group's transform, opacity and window |
+| `matte_source_missing` | An error: the layer draws unmatted, showing everything the matte was there to hide |
+| `mask_path_invalid` | The layer draws unmasked, so the whole picture shows through |
+| `layer_cap_exceeded` | More video clips overlap at that instant than the compositor draws; the ones on lower tracks are dropped |
+| `time_remap_not_monotonic` | An error: `t` must ascend. `sourceMs` may descend — that is how a reverse is written |
+
+The contrast half refuses to guess: a colour it cannot parse, a translucent
+plate, gradient-filled type or a backdrop it cannot prove is behind the text
+produces no finding at all. A silent `text_illegible` is not a pass — that is
+what the frames are for.
 
 **`preview_timeline_frame`** answers "what does it look like". It composites
 the real frame — every track layered in order, transforms and opacity applied,

@@ -35,6 +35,8 @@ import {
   parseTransitionType
 } from "@nodetool-ai/timeline/scene";
 
+import { checkLegibility } from "./legibility.js";
+import { checkClipMotion } from "./motion.js";
 import type { TimelineDebugIssue, TimelineValidation } from "./types.js";
 
 export interface TimelineValidationMeta {
@@ -44,6 +46,9 @@ export interface TimelineValidationMeta {
 }
 
 const DEFAULT_FPS = 30;
+/** The sequence size a document carries no meta for — 1080p, the editor's own. */
+const DEFAULT_WIDTH = 1920;
+const DEFAULT_HEIGHT = 1080;
 
 const PRESET_IDS = new Set<string>([
   ...ANIMATION_PRESETS.map((preset) => preset.id),
@@ -567,10 +572,13 @@ function checkMattes(doc: TimelineDocument): TimelineDebugIssue[] {
 
 /**
  * Parent links (D4). A `parentId` must name a clip the document contains, that
- * clip must be a group, and the chain must reach a root. All three are errors:
- * the scene model renders such a child unparented rather than refusing to draw
- * it, so a broken link costs the group's transform, opacity and window without
- * anything failing at render time.
+ * clip must be a group, and the chain must reach a root.
+ *
+ * The first two are warnings and the cycle is an error, which is the split the
+ * rest of this catalog uses: a child whose parent is missing or is not a group
+ * renders unparented — the wrong picture, from a document a newer build could
+ * have meant (I2) — while a cycle is a document that cannot be resolved at all,
+ * and no read of it produces the scene its author described.
  */
 function checkParents(doc: TimelineDocument): TimelineDebugIssue[] {
   const issues: TimelineDebugIssue[] = [];
@@ -586,7 +594,7 @@ function checkParents(doc: TimelineDocument): TimelineDebugIssue[] {
     const parent = byId.get(parentId);
     if (!parent) {
       issues.push({
-        severity: "error",
+        severity: "warning",
         code: "parent_missing",
         message: `Clip "${clipLabel(clip)}" names parent "${parentId}", which the document does not contain — it renders unparented.`,
         ...at
@@ -595,7 +603,7 @@ function checkParents(doc: TimelineDocument): TimelineDebugIssue[] {
     }
     if (parent.mediaType !== "group") {
       issues.push({
-        severity: "error",
+        severity: "warning",
         code: "parent_not_group",
         message: `Clip "${clipLabel(clip)}" names parent "${clipLabel(parent)}", whose mediaType is "${parent.mediaType}" — only a clip with mediaType "group" can be a transform parent.`,
         ...at
@@ -873,12 +881,18 @@ export function validateTimelineSequence(
 
   const doc = parsed.data;
   const fps = meta?.fps && meta.fps > 0 ? meta.fps : DEFAULT_FPS;
+  const canvas = {
+    width: meta?.width && meta.width > 0 ? meta.width : DEFAULT_WIDTH,
+    height: meta?.height && meta.height > 0 ? meta.height : DEFAULT_HEIGHT
+  };
   const trackIds = new Set(doc.tracks.map((track) => track.id));
 
   const issues: TimelineDebugIssue[] = [
     ...checkFieldStripping(raw, doc),
     ...checkDuplicateIds(doc),
     ...doc.clips.flatMap((clip) => checkClip(clip, trackIds, fps)),
+    ...doc.clips.flatMap((clip) => checkClipMotion(clip, canvas)),
+    ...checkLegibility(doc, canvas.height),
     ...checkParents(doc),
     ...checkMattes(doc),
     ...checkOverlaps(doc),

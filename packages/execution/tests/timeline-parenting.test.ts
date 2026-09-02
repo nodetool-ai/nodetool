@@ -3,10 +3,12 @@
  * with (D4), each with the fixture that triggers it (I12) and a control the
  * check must stay quiet on.
  *
- * All three are errors rather than warnings because none of them fails at
- * render time: the scene model draws such a child unparented, so the picture
- * loses the group's transform, opacity and window while everything reports
- * success.
+ * None of them fails at render time: the scene model draws such a child
+ * unparented, so the picture loses the group's transform, opacity and window
+ * while everything reports success. A missing parent and a parent that is not a
+ * group are warnings — a newer build could have meant either (I2) and the clip
+ * still draws — while a cycle is an error, because there is no reading of the
+ * document that produces the scene its author described.
  */
 import { describe, expect, it } from "vitest";
 
@@ -71,11 +73,11 @@ describe("validateTimelineSequence — parenting", () => {
     const result = validateTimelineSequence(
       doc([clip({ id: "c", name: "Title", parentId: "gone" })])
     );
-    expect(codesOf(result.errors)).toEqual(["parent_missing"]);
-    expect(result.errors[0]?.message).toContain("gone");
-    expect(result.errors[0]?.clipId).toBe("c");
-    expect(result.errors[0]?.path).toBe("parentId");
-    expect(result.ok).toBe(false);
+    expect(codesOf(result.warnings)).toEqual(["parent_missing"]);
+    expect(result.warnings[0]?.message).toContain("gone");
+    expect(result.warnings[0]?.clipId).toBe("c");
+    expect(result.warnings[0]?.path).toBe("parentId");
+    expect(result.errors).toEqual([]);
   });
 
   it("reports parent_not_group when the parent carries media", () => {
@@ -85,8 +87,14 @@ describe("validateTimelineSequence — parenting", () => {
         clip({ id: "c", name: "Title", parentId: "shot" })
       ])
     );
-    expect(codesOf(result.errors)).toEqual(["parent_not_group"]);
-    expect(result.errors[0]?.message).toContain("mediaType is \"video\"");
+    // The two clips share a track and therefore also overlap; this asserts the
+    // parenting finding, not the whole report.
+    const parenting = result.warnings.filter((w) =>
+      w.code.startsWith("parent_")
+    );
+    expect(codesOf(parenting)).toEqual(["parent_not_group"]);
+    expect(parenting[0]?.message).toContain("mediaType is \"video\"");
+    expect(result.errors).toEqual([]);
   });
 
   it("reports parent_cycle for a chain that loops", () => {

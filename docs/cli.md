@@ -708,6 +708,45 @@ nodetool timeline validate <timeline_id> --warnings-as-errors
 ✅ 0 error(s), 0 warning(s)
 ```
 
+Every finding carries a stable `code`. An **error** is a document no reading of
+which produces the scene its author described; a **warning** is a picture that
+renders and is not the one that was written — usually because this build could
+not read something a newer one wrote (forward compatibility), or because the
+authored motion did not fit the clip.
+
+| Code | Severity | What it caught |
+|---|---|---|
+| `schema_invalid` | error | The document does not parse; every structural check is skipped |
+| `duplicate_id` | error | Two tracks, clips or markers share an id |
+| `clip_track_missing` | error | A clip sits on a track the document does not declare |
+| `negative_timing` | error | A clip or marker starts before the origin, or a clip lasts zero |
+| `fade_exceeds_duration` | error | The in and out audio fades overlap |
+| `in_out_points_invalid` | error | The source span is negative or empty |
+| `speed_multiplier_invalid` | error | A non-positive playback rate |
+| `unknown_animation_preset` | error | A preset this build does not ship; nothing animates |
+| `custom_animation_invalid` | error | Baked curves the one gate refuses; re-bake from the script |
+| `parent_cycle` | error | A `parentId` chain loops, so the group cannot be resolved |
+| `matte_source_missing` | error | A `matte` names a clip the document lacks, or itself — the layer draws unmatted, showing everything the matte was hiding |
+| `time_remap_not_monotonic` | error | `timeRemap` keyframe `t` repeats or goes backwards (`sourceMs` may descend — that is a reverse) |
+| `field_stripped` | warning | A field the schema drops, lost on the next save |
+| `in_out_duration_mismatch` | warning | Source span and timeline duration disagree at the clip's rate |
+| `transition_exceeds_duration` | warning | The cut is longer than the clip carrying it |
+| `unknown_transition` | warning | A transition `type` or `direction` this build cannot draw; it cross-fades left |
+| `unknown_easing` | warning | An `easing` outside the grammar; it eases linearly |
+| `unknown_effect` | warning | A clip effect type this build cannot apply; the layer draws ungraded |
+| `mask_path_invalid` | warning | A mask `kind` or path `d` that cannot rasterize; the layer draws unmasked |
+| `parent_missing`, `parent_not_group` | warning | A `parentId` naming nothing, or naming a clip that is not a group; the child renders unparented |
+| `layer_cap_exceeded` | warning | More video clips overlap at an instant than the compositor draws |
+| `animation_exceeds_clip` | warning | The window does not fit the clip after its delay, so the motion is clamped — or never runs |
+| `stagger_compressed` | warning | The stagger span did not fit, so the per-unit offset was shrunk and the units overlap more than authored |
+| `replace_curves_overlap` | warning | Two animations drive one absolute channel (`positionX/Y`, `anchorX/Y`, `trimStart/End`) at the same time; the last in document order wins and the other is discarded |
+| `text_illegible` | warning | Type under 2.5% of frame height, or under a 3:1 contrast ratio against its own background plate or a full-frame shape clip behind it |
+| `clips_overlap`, `clip_shorter_than_frame`, `caption_out_of_range`, `binding_incomplete`, `duplicate_track_index`, `transcript_clip_missing`, `link_partner_missing` | warning | Structural smells that still render |
+
+`text_illegible` refuses to guess: a colour notation it cannot read, a
+translucent plate, gradient-filled type, or a backdrop it cannot prove sits
+behind the text ends the contrast check rather than producing a finding.
+
 #### `nodetool timeline debug <timeline_id_or_file>`
 
 Run the same check, then execute each scripted step against the headless
