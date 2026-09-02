@@ -23,6 +23,8 @@ import {
 } from "@nodetool-ai/execution";
 import {
   Asset,
+  COMPACTION_EVENT_TYPE,
+  compactionMessageContent,
   isCompactionMessage,
   Job,
   Message,
@@ -60,9 +62,11 @@ import {
   IMAGE_MIME_TO_EXT,
   expandEntitiesForGeneration,
   getProcessSandboxModuleCatalog,
+  estimatePromptTokens,
   isProviderSessionUpdate,
   isProviderMessageEvent,
   isProviderStop,
+  providerFailureDetail,
   type ActiveModelSelection,
   type RunBudget
 } from "@nodetool-ai/runtime";
@@ -141,6 +145,12 @@ import {
   toolResultDisplayText,
   type SkillEntry
 } from "./chat-history.js";
+import {
+  chooseCompactionCut,
+  holdsTranscriptServerSide,
+  readCompactionSettings,
+  summarizeForCompaction
+} from "./chat-compaction.js";
 import type { ClientSession } from "./client-session.js";
 import {
   createRelayActivityWaiter,
@@ -1828,16 +1838,20 @@ export class ChatTurnHandler {
     // resolved to a data URI. Text-document mentions are inlined as their
     // decoded contents. Without this step the provider would see literal
     // `asset://…` text and never look at the referenced media.
-    messagesToSend = await ctx.resolveMessageMediaUris(messagesToSend);
-
-    // After resolution, so a memory's `asset://` reference stays a reference
-    // instead of being inlined as a data URI.
-    if (volatileContext.length > 0) {
-      messagesToSend = appendContextToLastUser(
-        messagesToSend,
-        volatileContext.join("\n\n")
-      );
-    }
+    //
+    // The volatile block is appended after resolution, so a memory's
+    // `asset://` reference stays a reference instead of being inlined as a
+    // data URI. Both steps are one closure because compaction rebuilds the
+    // wire messages from a shortened history and must reproduce them exactly.
+    const withTurnContext = async (
+      base: ProviderMessage[]
+    ): Promise<ProviderMessage[]> => {
+      const resolved = await ctx.resolveMessageMediaUris(base);
+      return volatileContext.length > 0
+        ? appendContextToLastUser(resolved, volatileContext.join("\n\n"))
+        : resolved;
+    };
+    messagesToSend = await withTurnContext(messagesToSend);
 
     // Run one tool call and return the result to feed back to the model. Owns
     // server/client tool routing, side effects (client round-trips via the
@@ -2066,7 +2080,172 @@ export class ChatTurnHandler {
           }))
         : undefined;
 
-    try {
+    // ── Compaction (D5) ──────────────────────────────────────────────────
+    // A long thread eventually stops fitting, and from then on every turn dies
+    // on a provider error the user cannot act on. Compaction replaces the
+    // turns before the last few with one summary row and sends that instead.
+    // The rows stay in the database for the UI and `nodetool.threads.*`; only
+    // the provider's view is cut.
+    const compaction = await readCompactionSettings();
+    /** Spent by the reactive trigger below; bounds the turn to one retry. */
+    let compactionRetryUsed = false;
+
+    /** Tell the user what was compacted, or why it was not. */
+    const compactionLog = async (
+      content: string,
+      severity: "info" | "warning"
+    ): Promise<void> => {
+      await this.session.send({
+        type: "log_update",
+        node_id: "",
+        node_name: "compaction",
+        content,
+        severity,
+        thread_id: threadId
+      });
+    };
+
+    /**
+     * Which model writes the summary: `NODETOOL_COMPACTION_MODEL` when set,
+     * otherwise the one the turn is already running on. The setting takes the
+     * `provider/model` form the supervisor's does, and a bare id names a model
+     * on this turn's provider.
+     */
+    const summarizerModel = async (): Promise<{
+      provider: BaseProvider;
+      model: string;
+    }> => {
+      const configured = compaction.model;
+      if (configured === null) return { provider, model };
+      const slash = configured.indexOf("/");
+      if (slash <= 0) return { provider, model: configured };
+      const otherId = configured.slice(0, slash);
+      const otherModel = configured.slice(slash + 1);
+      if (otherId === providerId) return { provider, model: otherModel };
+      const resolved = await this.session.resolveProvider?.(otherId, userId);
+      if (!resolved) {
+        throw new Error(`No provider registered for "${otherId}"`);
+      }
+      return { provider: resolved, model: otherModel };
+    };
+
+    /**
+     * Summarize this thread up to the cut, persist the record, and rebuild the
+     * wire messages from what survives. Answers whether it compacted.
+     *
+     * Everything that can go wrong here leaves the turn running against the
+     * history it already had: a thread too short to cut, a summarizer that
+     * failed, a summarizer with nothing to say. This is the one place A4 does
+     * not fail closed (I-4), because the alternative to a missing summary is a
+     * turn that cannot run at all.
+     */
+    const compactThread = async (reason: string): Promise<boolean> => {
+      const [rows] = await Message.paginate(threadId, { limit: 1000 });
+      const cut = chooseCompactionCut(
+        historySinceCompaction(rows),
+        compaction.keepUserTurns
+      );
+      if (!cut) return false;
+      let summary: string | null = null;
+      try {
+        const summarizer = await summarizerModel();
+        summary = await summarizeForCompaction({
+          provider: summarizer.provider,
+          model: summarizer.model,
+          // The stored rows, not the wire messages: an `asset://` uri is still
+          // a uri here rather than the data it resolves to, which is what lets
+          // the summary carry the reference forward.
+          messages: convertDbMessages(cut.summarize),
+          signal
+        });
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        log.warn("Compaction summary failed", { threadId, error: detail });
+        await compactionLog(
+          `Could not summarize this conversation (${detail}). Sending it in full.`,
+          "warning"
+        );
+        return false;
+      }
+      if (summary === null) {
+        await compactionLog(
+          "The summary of this conversation came back empty. Sending it in full.",
+          "warning"
+        );
+        return false;
+      }
+      // The record belongs at the cut, not at the end of the thread: history
+      // assembly starts from the newest one, so a record written after the kept
+      // turns would drop them from the next turn's view. Rows are ordered by
+      // `created_at`, so it takes the millisecond before the first survivor.
+      const boundary = Date.parse(cut.keep[0].created_at);
+      const record = await Message.create<Message>({
+        thread_id: threadId,
+        user_id: userId,
+        role: "user",
+        execution_event_type: COMPACTION_EVENT_TYPE,
+        content: compactionMessageContent(summary),
+        created_at: Number.isFinite(boundary)
+          ? new Date(boundary - 1).toISOString()
+          : cut.keep[0].created_at
+      });
+      messagesToSend = await withTurnContext([
+        systemChatMessage(),
+        ...convertDbMessages([record, ...cut.keep])
+      ]);
+      // The upstream transcript a session token resumes is the history the cut
+      // just replaced, so nothing resumes across a compaction.
+      capturedSession = null;
+      loadFullHistory = null;
+      sessionCheckpointOverride = null;
+      await this.session.send({
+        type: "message",
+        role: "user",
+        execution_event_type: COMPACTION_EVENT_TYPE,
+        content: record.content,
+        thread_id: threadId,
+        workflow_id: workflowId
+      });
+      log.info("Compacted chat history", {
+        threadId,
+        summarized: cut.summarize.length,
+        kept: cut.keep.length
+      });
+      await compactionLog(
+        `Summarized the earlier part of this conversation because ${reason}.`,
+        "info"
+      );
+      return true;
+    };
+
+    // Trigger 1, proactive: the estimated prompt is over the configured
+    // ceiling. `estimatePromptTokens` tokenizes the serialized messages and
+    // their tool calls and nothing else, so the number is not the prompt: the
+    // tool definitions this turn also sends are missing from it, while a
+    // resolved image is counted as the length of its base64. It is a size
+    // signal, which is why the default ceiling sits well under any shipping
+    // context window rather than close to one.
+    //
+    // A provider holding the conversation upstream is sent only the turns since
+    // its session token, so this number would describe a fraction of what it
+    // actually has. Those get trigger 2 alone: the provider itself says when
+    // the transcript stopped fitting.
+    if (!holdsTranscriptServerSide(providerId, capturedSession !== null)) {
+      const promptTokens = estimatePromptTokens(messagesToSend);
+      if (promptTokens > compaction.thresholdTokens) {
+        await compactThread(
+          `it reached about ${promptTokens} tokens, over the ` +
+            `${compaction.thresholdTokens}-token limit`
+        );
+      }
+    }
+
+    /**
+     * One pass of the provider's tool-calling loop over the current
+     * `messagesToSend`. A function rather than a statement so the reactive
+     * compaction below can run it a second time against a shortened history.
+     */
+    const streamTurn = async (): Promise<void> => {
       for await (const item of provider.generateLoop({
         messages: messagesToSend,
         model,
@@ -2166,6 +2345,38 @@ export class ChatTurnHandler {
           const tc = item as ProviderToolCall;
           toolNames.set(tc.id, tc.name);
           log.info("Tool call", { tool: tc.name, args: tc.args });
+        }
+      }
+    };
+
+    try {
+      // At most two passes. The second happens only when the first ended with
+      // the provider's own context-exceeded signal and compaction answered it
+      // by shortening the history. A second such failure is surfaced: the
+      // shortened transcript did not fit either, and compacting again would
+      // buy another summarizer call to learn the same thing.
+      //
+      // A provider rejects an oversized request before it generates anything,
+      // so the retry re-reads a turn that produced no messages of its own.
+      for (;;) {
+        try {
+          await streamTurn();
+          break;
+        } catch (err) {
+          if (
+            compactionRetryUsed ||
+            providerFailureDetail(err)?.code !== "context_exceeded"
+          ) {
+            throw err;
+          }
+          compactionRetryUsed = true;
+          const compacted = await compactThread(
+            "the provider refused the request: this conversation no longer fits its context window"
+          );
+          if (!compacted) throw err;
+          log.info("Retrying the turn against the compacted history", {
+            threadId
+          });
         }
       }
 

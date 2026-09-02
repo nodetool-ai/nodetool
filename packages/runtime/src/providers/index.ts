@@ -230,8 +230,13 @@ export type {
 export {
   annotateProviderError,
   httpStatusFromError,
+  markContextExceeded,
   providerFailureDetail
 } from "./provider-error.js";
+// The redaction the provider debug dump applies to a failed request. Exported
+// because anything that sends a transcript somewhere else — chat compaction
+// hands one to a summarizer — must strip the same credentials on the way out.
+export { sanitizeForLog, type LogSafeValue } from "./provider-request-log.js";
 export type { ProviderFailureDetail } from "./provider-error.js";
 export {
   ContentFilterRefusal,

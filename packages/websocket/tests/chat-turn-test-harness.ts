@@ -144,6 +144,12 @@ export interface FakeProviderShape {
   unpricedReason?: string | null;
   setMessageEmitter?: (emit: (msg: unknown) => void) => void;
   generateLoop?: (args: GenerateLoopArgs) => AsyncGenerator<unknown>;
+  /** The single-shot call chat compaction summarizes with. */
+  generateMessageTraced?: (args: {
+    messages: Array<{ role: string; content: unknown }>;
+    model: string;
+    maxTokens?: number;
+  }) => Promise<{ role: string; content: unknown }>;
   textToImages?: (...args: unknown[]) => Promise<Uint8Array[]>;
   imageToImages?: (...args: unknown[]) => Promise<Uint8Array[]>;
   textToVideo?: (...args: unknown[]) => Promise<Uint8Array>;

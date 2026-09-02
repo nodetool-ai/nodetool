@@ -76,7 +76,9 @@ async function runTurn(
         yield { type: "chunk" as const, content: "ok" };
       },
       async generateMessageTraced() {
-        return {};
+        // The one-shot call compaction summarizes with. Idle unless a test
+        // pushes a turn over the compaction threshold.
+        return { role: "assistant", content: "Earlier: the user said hello." };
       },
       generateMessage: vi.fn(),
       hasToolSupport: async () => false,
@@ -244,6 +246,28 @@ describe("chat prompt placement", () => {
     const last = lastUser(second);
     expect(textOf(last)).toContain("A memory saved between the two turns.");
     expect(textOf(last)).toContain("Lead with what changed.");
+  });
+
+  it("keeps the system message byte-identical when the turn compacts", async () => {
+    // The same invariant on the turn that *performs* the compaction: it
+    // rebuilds the wire messages from a shortened history, and the string a
+    // provider hashes its prefix cache on has to come out the same.
+    const first = await runTurn("t-compacting", "Hello");
+
+    process.env.NODETOOL_CHAT_COMPACTION_TOKENS = "1";
+    process.env.NODETOOL_CHAT_COMPACTION_KEEP_TURNS = "1";
+    try {
+      const second = await runTurn("t-compacting", "Carry on");
+
+      expect(textOf(second[0])).toBe(textOf(first[0]));
+      expect(second.filter((m) => m.role === "system")).toHaveLength(1);
+      expect(textOf(second[1])).toContain("[Conversation so far]");
+      expect(textOf(second[1])).toContain("the user said hello");
+      expect(textOf(lastUser(second))).toContain("Carry on");
+    } finally {
+      delete process.env.NODETOOL_CHAT_COMPACTION_TOKENS;
+      delete process.env.NODETOOL_CHAT_COMPACTION_KEEP_TURNS;
+    }
   });
 
   it("keeps the system message byte-identical across a compaction", async () => {
