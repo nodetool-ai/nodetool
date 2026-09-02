@@ -575,11 +575,20 @@ echo "Summarize this codebase" | nodetool-chat --provider anthropic
 
 ### Interactive Commands
 
+`COMMANDS` in `packages/cli/src/app.tsx` is the list; anything else prints
+`Unknown command`. There is no `/agent`: every session runs the unified agent
+loop.
+
 ```
-/agent    — Toggle agent mode on/off
-/model    — Set model: /model claude-opus-4-6
-/provider — Set provider: /provider openai
+/help     — Show available commands
+/new      — Start a new chat session
+/clear    — Clear conversation history
+/compact  — Summarize conversation into retained context: /compact [instructions]
+/model    — Set model: /model <model-id>
+/provider — Set provider: /provider <name>
 /tools    — List enabled tools
+/exit     — Exit the chat
+/quit     — Exit the chat
 ```
 
 ### `nodetool agent run`
@@ -1194,25 +1203,26 @@ shape is the `TaskPlan` above with snake_case keys (`depends_on`), validated by
 
 ### Concurrency Defaults
 
-One bound is left in the executors: `DEFAULT_MAX_STEP_ITERATIONS`
-(`parallel-task-executor.ts`), the action rounds a step gets when the caller
-names none. The round caps that sat beside it are gone — see the scheduling
-note above — and the rest of what bounds a run is `RunBudget` below.
+One bound is left in the executors: `DEFAULT_MAX_STEP_ITERATIONS`, the action
+rounds a step gets when the caller names none. `parallel-task-executor.ts` and
+`task-executor.ts` each declare their own copy of it. The round caps that sat
+beside it are gone (see the scheduling note above); the rest of what bounds a
+run is `RunBudget` below.
 
 ### Executor defaults (`agent-policy.ts`)
 
 `agent-policy.ts` is a constants file. `DEFAULT_AGENT_POLICY` supplies the
-fallback `maxStepIterations` and `maxConcurrentAgents` that
-`parallel-task-executor.ts` and `task-executor.ts` read when a caller names
-none, so one number lives in one place instead of a literal per executor. It
-carried a `maxSteps` — dispatch rounds per task — until the executors became
+fallback `maxConcurrentAgents` that `parallel-task-executor.ts` and
+`task-executor.ts` read when a caller names none. Its `maxStepIterations` field
+reaches neither executor: both fall back to their own
+`DEFAULT_MAX_STEP_ITERATIONS`, which holds a lower value, and the field's only
+other reader is `resolveAgentPolicy`, which has no caller. Read the per-step
+default off the executor, not off the policy. `DEFAULT_AGENT_POLICY` also
+carried a `maxSteps` (dispatch rounds per task) until the executors became
 event-driven; nothing counts rounds now.
 
 Nothing resolves a per-run policy object: `execute_plan` passes the run's
-budget and the parent's per-step iteration cap directly, and
-`resolveAgentPolicy` has no caller. The per-step iteration cap stays here
-rather than on `RunBudget`, which carries a concurrency semaphore and no
-iteration bound.
+budget and the parent's per-step iteration cap directly.
 
 `maxConcurrentAgents` alone bounds one merge, not the run — tasks, steps and
 sub-agents each apply it separately, so the three multiply. The run-level bound
