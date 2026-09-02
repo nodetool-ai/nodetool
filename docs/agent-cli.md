@@ -40,8 +40,34 @@ echo "Research the latest AI trends" | \
 - `-m, --model <id>` — Model id (required)
 - `-w, --workspace <path>` — Workspace dir for file tools (default: cwd)
 - `--max-iterations <n>` — Tool-calling rounds in the turn (default 25)
+- `--cost-cap <usd>` — Ceiling on provider spend for the whole run; `0` lifts it
+- `--timeout <s>` — Wall-clock bound on the run in seconds; `0` leaves it none
 - `--json` — Emit each agent event as a JSON line on **stderr**
 - `-v, --verbose` — Include low-level chunk and other events in the trace
+
+### Run budget
+
+`--cost-cap` and `--timeout` override two of the five `NODETOOL_AGENT_*`
+settings a chat turn reads (`NODETOOL_AGENT_TURN_COST_CAP_USD`,
+`NODETOOL_AGENT_TURN_DEADLINE_MS`); concurrency, total turns, and the
+unpriced-token ceiling come from the settings alone.
+
+The run holds one budget and shares it downward — a sub-agent, an
+`execute_plan` DAG, an `AgentNode` reached through `run_node` — so the ceiling
+bounds the run, not each loop. A cap is admission: a turn whose worst case
+would cross it is refused before the call, not noticed after the money is
+spent. A model with no catalog price has no worst case and is admitted against
+a prompt-token ceiling instead, never as free.
+
+A ceiling that stops the run prints its reason and exits non-zero
+(`agent stopped: turn budget of $0.01 reached`); with `--json` the same reason
+arrives as an `error` event. Every run ends with what it committed —
+`spent $0.0123`.
+
+```bash
+nodetool agent run -p openai -m gpt-5.4-mini -o "Research AI trends" \
+  --cost-cap 0.50 --timeout 120
+```
 
 The final result goes to **stdout** and the trace goes to **stderr**, so you can
 capture the result on its own:

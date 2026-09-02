@@ -33,7 +33,7 @@ memoryKeys.shared("note");         // "shared:note"  — cross-agent scratch
 |---|---|---|---|
 | `CodeActExecutor` | Step completion | `step:<step.id>` | `step_result` |
 | `CodeActExecutor` | Last step of a task (finish-task) | `task:<task.id>` | `task_result` |
-| `TaskExecutor` | Startup / process-mode aggregation | `input:<key>` / `step:<step.id>` | `input` / `step_result` |
+| `TaskExecutor` | Startup / terminal step failure | `input:<key>` / `step:<step.id>` | `input` / `step_result` |
 | `ParallelTaskExecutor` | After a task completes (idempotent) | `task:<task.id>` | `task_result` |
 | `share_result` tool | Agent / sub-agent publish | `shared:<key>` | `shared` |
 
@@ -1045,10 +1045,12 @@ that started before them.
 
 | Host | Where its gate comes from | Mode | Approver |
 |---|---|---|---|
-| Chat turn (web, Telegram, MCP) | `chat-turn.ts` sets `chatGate` on the turn context | the thread's live mode, read through a getter so `set_permission_mode` lands mid-turn | round trip to the client (`requestToolApproval`) |
+| Chat turn (web, Telegram) | `chat-turn.ts` sets `chatGate` on the turn context | the thread's live mode, read through a getter so `set_permission_mode` lands mid-turn | round trip to the client (`requestToolApproval`) |
+| MCP mount | `mcpSessionGate()` in `mcp-agent-tools.ts` — `headlessGate("MCP")` with `execute_code` seeded into `sessionAllow` — and the whole belt wrapped in `gateTools`, so the direct registrations and `tools.<name>()` inside a code action meet the same ladder | `auto`: the client's user connected this agent deliberately, and an MCP session has no approval UI of its own to prompt through | nobody: the headless deny. The one standing approval is `execute_code`, because the client already put that call, code included, in front of its user; an escalation from inside a run (an un-allowlisted Apify actor) has no such answer and is denied |
 | `run_node` child | `runSingleNode` builds a context of its own, so the turn's gate is passed in as an argument and set on it | the calling turn's, the same object | the calling turn's client |
 | `AgentNode` in a workflow | `genProcess` wraps what `buildTools` returned in `gateFromContext(context, "Agent node")` | the host's, or `auto` when no host set one | the host's, or the headless deny |
 | JS script | `js-script-sandbox.ts` passes `gateFromContext(context, "JS script")` to `createCapabilityRun` | same | same |
+| `nodetool.code.Code` node | `code-node.ts` reads `gateFromContext(context, "Code node")` once and uses it for both doors: `createCapabilityRun` for the `@nodetool-ai/sandbox-nodetool/*` imports, `gateTools` around the belt the bridge calls | same | same |
 | Kernel workflow run | nothing is set, deliberately (see below) | `auto` | nobody: the headless deny |
 | `nodetool agent run` on a TTY | `createCliPermissionGate` (`packages/cli/src/permission-gate.ts`), host name `nodetool agent run`, set on the run's context | `--permission-mode`, defaulting to `default` | the terminal: `y / n / a` prompted on stderr, because stdout carries the result. `a` answers `allow_for_chat`, and the name lands in the run's shared `sessionAllow` |
 | `nodetool agent run` with the objective piped in | the same builder, not interactive | `--permission-mode`, defaulting to `auto` | nobody: `headlessGate`'s deny, its reason printed once per run |
@@ -1122,10 +1124,11 @@ print the same sentence once at the start instead of once per denied call.
 `capabilities/lazy-tool.ts` and `tools/serp-tool-factory.ts` build a `Tool` the
 host gates from outside with `gateTools`; `capabilities/packs.ts` reads a
 SKILL.md, a read-class call with nothing for the ladder to withhold.
-`packages/agents/tests/gate-from-context.test.ts` walks `src/` for
-`ungatedCapabilityRun` and fails on any file its allowlist does not cover. It
-also asserts that the three sites it names by hand were found, so it cannot
-pass on a walk that matched nothing.
+`packages/agents/tests/gate-from-context.test.ts` walks every
+`packages/*/src` for `ungatedCapabilityRun` and fails on any file its allowlist
+does not cover. It also asserts that the three sites it names by hand were
+found, so it cannot pass on a walk that matched nothing. The walk used to stop
+at this package, which is why the Code node's ungated mount sat outside it.
 
 ## Approving a plan is the permission gate
 
@@ -1201,25 +1204,14 @@ the decomposition passes it straight in and never calls `create_plan`. The
 shape is the `TaskPlan` above with snake_case keys (`depends_on`), validated by
 `buildPlanFromTasks` (`tools/plan-builder-tools.ts`) before anything runs.
 
-### Concurrency Defaults
+### Executor defaults (`constants.ts`)
 
-One bound is left in the executors: `DEFAULT_MAX_STEP_ITERATIONS`, the action
-rounds a step gets when the caller names none. `parallel-task-executor.ts` and
-`task-executor.ts` each declare their own copy of it. The round caps that sat
-beside it are gone (see the scheduling note above); the rest of what bounds a
-run is `RunBudget` below.
-
-### Executor defaults (`agent-policy.ts`)
-
-`agent-policy.ts` is a constants file. `DEFAULT_AGENT_POLICY` supplies the
-fallback `maxConcurrentAgents` that `parallel-task-executor.ts` and
-`task-executor.ts` read when a caller names none. Its `maxStepIterations` field
-reaches neither executor: both fall back to their own
-`DEFAULT_MAX_STEP_ITERATIONS`, which holds a lower value, and the field's only
-other reader is `resolveAgentPolicy`, which has no caller. Read the per-step
-default off the executor, not off the policy. `DEFAULT_AGENT_POLICY` also
-carried a `maxSteps` (dispatch rounds per task) until the executors became
-event-driven; nothing counts rounds now.
+Two bounds are left, both in `constants.ts`, both read by
+`parallel-task-executor.ts` and `task-executor.ts` when a caller names none:
+`DEFAULT_MAX_STEP_ITERATIONS` (action rounds per step) and
+`DEFAULT_MAX_CONCURRENT_AGENTS`. The round caps that sat beside them are gone
+(see the scheduling note above); the rest of what bounds a run is `RunBudget`
+below.
 
 Nothing resolves a per-run policy object: `execute_plan` passes the run's
 budget and the parent's per-step iteration cap directly.
@@ -1246,6 +1238,15 @@ known afterwards: $0.49 spent under a $0.50 cap still admits a $0.30 call.
 `turns.reserve` is the single admission point and records the first reason it
 refuses; `exhausted` is set once, so a run that ran out of money and then ran
 out of time stopped for the money.
+
+**A reservation is a handle, because the budget is shared.** `turns.reserve`
+answers a `TurnReservationHandle` carrying that turn's own worst case and its
+own pricing (or `null` when it refused), and `turns.commit(handle, actualUsd)`
+settles exactly that one — every other loop's reservation stays outstanding.
+One shared counter released whatever was in flight, so a chat turn committing
+its turn handed a concurrent sub-agent's headroom back and the cap stopped
+holding; a single `unpriced` flag likewise booked whichever turn committed
+first under the other's pricing.
 
 **An unpriced model is not a free one.** A model the price catalog does not
 cover has no worst case to reserve, so it is admitted only while its prompt

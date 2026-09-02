@@ -750,9 +750,25 @@ Chat flags:
 -u, --url <ws-url>       Connect to WebSocket server instead of local provider
 --no-read-only-search    Disable the read-only run_search fan-out primitive
                          (on by default)
+--cost-cap <usd>         Ceiling on provider spend for one turn, shared by
+                         every loop it starts; 0 lifts it. Default:
+                         NODETOOL_AGENT_TURN_COST_CAP_USD
+--timeout <s>            Wall-clock bound on one turn, in seconds; 0 leaves it
+                         no time at all. Default:
+                         NODETOOL_AGENT_TURN_DEADLINE_MS
 -a, --agent [mode]       [deprecated] No-op
 --no-agent               [deprecated] No-op
 ```
+
+`--cost-cap` and `--timeout` override two of the five `NODETOOL_AGENT_*`
+settings a chat turn on the server reads; the other three (concurrency, total
+turns, unpriced-token ceiling) come from the settings alone. The budget is one
+object per turn, shared by every loop the turn starts — a sub-agent, an
+`execute_plan` DAG, an `AgentNode` reached through `run_node` — so a ceiling
+bounds the run rather than each loop. A turn a ceiling refuses says which one:
+`Stopped: turn budget of $5 reached`. `nodetool agent run` takes the same two
+flags, bounding the whole command instead of one turn, and exits non-zero on a
+budget stop.
 
 Interactive commands: `/help`, `/new`, `/clear`, `/compact [instructions]`, `/model <id>`, `/provider <name>`, `/tools`, `/exit`, `/quit`
 
