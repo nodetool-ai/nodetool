@@ -366,7 +366,7 @@ Inject at the five real seams, controlled declaratively per journey
 | Provider HTTP | fault-capable `CassetteProvider` | 429/500/timeouts, truncated stream after N chunks, malformed SSE, slow-drip tokens, mid-stream disconnect, cost-field omission |
 | WS transport | proxy in front of `e2e-server` | drop (no FIN — the half-open case), delay, reorder within limits, fragment frames, stall reads (slow consumer → server buffer growth → drain-timeout path), abrupt close during `run_job` ack |
 | Python bridge | fake worker + real-bridge harness | exit mid-request (pre- and post-startup), stderr flood, framing violation (bad length prefix), never-ready (spawn timeout), EPIPE on write, protocol-version mismatch |
-| Process/host | harness-level | SIGKILL the server mid-run then restart (journeys 9/12 assert recovery/observability), disk-full via injectable storage adapter (asset write fails mid-run), DB locked/failed during job persistence (today silently swallowed at `unified-websocket-runner.ts:2868` — a journey must pin what the *intended* behavior is) |
+| Process/host | harness-level | SIGKILL the server mid-run then restart (journeys 9/12 assert recovery/observability), disk-full via injectable storage adapter (asset write fails mid-run), DB locked/failed during job persistence (a journey must pin what the *intended* behavior is) |
 | Client | driver-level | cancel at every event anchor, reconnect storms (connect/drop loops), duplicate commands, out-of-order `end_input_stream` |
 
 Priority order for building: provider faults and WS faults first (they map

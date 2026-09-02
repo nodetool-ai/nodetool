@@ -1,7 +1,7 @@
 # @nodetool-ai/agents
 
-The planning agent system: `TaskPlanner` → `TaskExecutor` → `StepExecutor`,
-plus `ParallelTaskExecutor`, skills, and agent tools.
+The planning agent system: `TaskPlanner` → `ParallelTaskExecutor` →
+`TaskExecutor` → `CodeActExecutor`, plus skills and agent capabilities.
 
 ## Responsibilities
 
@@ -13,10 +13,15 @@ plus `ParallelTaskExecutor`, skills, and agent tools.
 ## Usage
 
 ```ts
-import { Agent } from "@nodetool-ai/agents";
+import { createChatCodeActSession } from "@nodetool-ai/agents";
 
-const agent = new Agent({ name, objective, provider, model, tools });
-for await (const msg of agent.execute(ctx)) { /* … */ }
+const session = createChatCodeActSession({
+  tools: belt,                        // ToolSignatureSource[]
+  executeTool: (call) => router(call), // the gated tool router
+  signal: abortController.signal
+});
+// `session.systemPrompt` goes in the system message; `session.tools` are what
+// the provider is offered. Run them through the host's own generateLoop.
 ```
 
 ## Develop
