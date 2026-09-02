@@ -9,10 +9,15 @@ import type { VideoRef } from "../../types.js";
 export type RenderTimelineInputs = {
   timeline?: unknown;
   include_audio?: boolean;
+  format?: "mp4" | "webm" | "mov" | "png_sequence";
+  alpha?: boolean;
+  video_codec?: string;
+  bitrate?: number;
 };
 
 export interface RenderTimelineOutputs {
   output: VideoRef;
+  frames: unknown;
 }
 
 export function renderTimeline(inputs: RenderTimelineInputs): Promise<RenderTimelineOutputs> {
