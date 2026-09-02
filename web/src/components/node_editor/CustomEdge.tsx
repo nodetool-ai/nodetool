@@ -1,9 +1,6 @@
 /**
  * Custom edge component with tooltip support for stream item counts.
  * Memoized to prevent re-renders for every edge in large workflows.
- *
- * EXPERIMENTAL: Enhanced with data flow particle animation for visual feedback
- * when data is actively flowing through the edge.
  */
 import {
   BaseEdge,
