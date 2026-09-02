@@ -11,8 +11,8 @@ const features = [
     icon: Lock,
   },
   {
-    title: "No token markups",
-    body: "No credit packs, no subscription traps. If an image costs $0.03 at the provider, you pay $0.03 to the provider. NodeTool takes no cut.",
+    title: "No markups",
+    body: "No credit packs, no subscription tiers. An image that costs $0.03 at the provider costs you $0.03, paid to the provider. NodeTool takes no cut.",
     icon: Shield,
   },
   {
@@ -22,7 +22,7 @@ const features = [
   },
   {
     title: "Run it on your own hardware",
-    body: "Download open-weight models and run inference locally — MLX, Ollama, llama.cpp, vLLM, and LM Studio — with no internet connection.",
+    body: "Download open-weight models and run them locally with MLX, Ollama, llama.cpp, vLLM, or LM Studio, with no internet connection.",
     icon: Cpu,
   },
 ];
@@ -57,10 +57,9 @@ export default function OwnershipSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            No locked project formats, no token markups, zero subscription
-            traps. Run inference locally or bring your own API keys, and switch
-            between providers with one click. You own the files, the workflow,
-            and the final cut.
+            Your project files open anywhere, your keys pay providers at list
+            price, and open weights run on your own machine. Switch providers
+            with one click. You own the files, the workflow, and the final cut.
           </motion.p>
         </div>
 

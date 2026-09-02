@@ -66,9 +66,9 @@ export default function UseCasesShowcase() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed"
           >
-            Real projects you can open, run, and re-cut. Each one runs from the
-            pitch to the finished piece without leaving the canvas, and every one
-            is built from the blocks you get on day one.
+            Real projects you can open, run, and re-cut. Each goes from the
+            pitch to the finished piece without leaving the canvas, built from
+            the blocks you get on day one.
           </motion.p>
         </div>
 

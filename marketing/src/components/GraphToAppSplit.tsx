@@ -68,7 +68,7 @@ export default function GraphToAppSplit() {
             Wrap the graph in a screen
           </h2>
           <p className="text-lg text-slate-300">
-            A workflow is for you. An app is for everyone else — the same graph
+            A workflow is for you. An app is for everyone else: the same graph
             with inputs, a run button, and a place for the result. Here is{" "}
             {template.name}, and the app it became.
           </p>
@@ -114,7 +114,7 @@ export default function GraphToAppSplit() {
 
         <p className="mt-8 text-slate-300">
           Nothing is regenerated in between. The app names the workflow&apos;s
-          inputs and outputs, so a change to the graph shows up in the screen —
+          inputs and outputs, so a change to the graph shows up in the screen,
           and an agent can place the widgets for you.{" "}
           <a
             href={app.route}

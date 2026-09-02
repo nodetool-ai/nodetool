@@ -34,16 +34,17 @@ export default function NodeToolHero() {
             id="hero-title"
             className="mt-5 text-balance text-[clamp(2rem,7.5vw,3.25rem)] font-bold leading-[1.1] tracking-tight text-white lg:text-[clamp(2.25rem,3.6vw,3.25rem)]"
           >
-            <span className="block">You are the director.</span>
+            <span className="block">You direct.</span>
             <span className="block bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text pb-[0.12em] text-transparent">
-              The agent is your crew.
+              The agent builds the film.
             </span>
           </h1>
 
           <p className="mt-5 max-w-lg text-lg leading-relaxed text-slate-300">
-            Describe your idea. The agent writes the script, storyboards every
-            scene, generates the footage, and cuts the timeline. Experience
-            end-to-end production with complete creative control.
+            Pitch the idea in a sentence. The agent writes the script, boards
+            every shot, renders the takes, and cuts them on a multi-track
+            timeline. Everything it makes stays open to you: re-roll one shot,
+            re-voice one line, re-cut the ending.
           </p>
 
           <div className="mt-7 flex">
@@ -60,11 +61,11 @@ export default function NodeToolHero() {
             </li>
             <li className="flex items-center gap-1.5">
               <KeyRound className="h-3.5 w-3.5 text-emerald-400" />
-              Your own API keys, no token markups
+              Your own keys, provider list prices
             </li>
             <li className="flex items-center gap-1.5">
               <Code2 className="h-3.5 w-3.5 text-blue-400" />
-              Open source, you own the files
+              Open source, you keep the project files
             </li>
           </ul>
         </div>

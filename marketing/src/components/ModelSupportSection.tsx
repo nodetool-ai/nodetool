@@ -135,10 +135,10 @@ export default function ModelSupportSection({
                         transition={{ duration: 0.25, delay: 0.05 }}
                         className="text-lg text-slate-400 leading-relaxed"
                     >
-                        Route your shots through the best video, image, audio,
-                        and language models on the market — or run open weights
-                        locally on your own hardware. Switch between them with
-                        one click.
+                        Route each shot through the video, image, audio, or
+                        language model that fits it, or run open weights on your
+                        own hardware. Switching is one click, and a new model is
+                        a new node the day it ships.
                     </motion.p>
                 </div>
 

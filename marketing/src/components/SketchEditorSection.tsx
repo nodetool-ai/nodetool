@@ -55,7 +55,7 @@ export default function SketchEditorSection() {
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Built-in <span className="text-white">sketch editor</span>
+            Paint and generate <span className="text-white">on one canvas</span>
           </motion.h2>
 
           <motion.p
@@ -65,9 +65,9 @@ export default function SketchEditorSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-300 leading-relaxed"
           >
-            A full layer-based image editor with generation built in. Paint with
+            A layer-based image editor with generation built in. Paint with
             real brushes, stack layers and blend modes, then prompt a model to
-            create or refine any layer — and export a finished PNG without
+            create or refine any layer, and export a finished PNG without
             leaving the canvas.
           </motion.p>
         </div>

@@ -55,7 +55,7 @@ export default function TimelineEditorSection() {
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            A real timeline. <span className="text-white">Not a black box.</span>
+            A real timeline. <span className="text-white">Yours to re-cut.</span>
           </motion.h2>
 
           <motion.p
@@ -65,9 +65,9 @@ export default function TimelineEditorSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-300 leading-relaxed"
           >
-            Instead of a single unfixable video file, the agent hands you a
-            fully editable multi-track project. Generate at the playhead, then
-            fine-tune every frame, layer, and audio stem before you export.
+            The agent lays its takes on a multi-track timeline, the same one
+            you edit. Generate at the playhead, trim to the frame, swap a stem,
+            and export when the cut is right.
           </motion.p>
         </div>
 

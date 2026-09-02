@@ -33,8 +33,8 @@ export default function ProjectSection() {
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Go from conversation to <br />
-            <span className="text-white">complete project.</span>
+            The agent leaves a project behind, <br />
+            <span className="text-white">not a transcript.</span>
           </motion.h2>
 
           <motion.p
@@ -44,8 +44,10 @@ export default function ProjectSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Stop copy-pasting from chat windows. Describe what you need, and
-            NodeTool generates the full project in seconds.
+            Say what you want made. The agent plans the board, the script,
+            and the cut, runs each step in the open, and files the result as a
+            project: every take, what it cost, and what still needs work. Open
+            it tomorrow and change one shot.
           </motion.p>
 
           <motion.a

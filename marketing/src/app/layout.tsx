@@ -24,7 +24,7 @@ const jetBrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "NodeTool — The agent-first creative workspace",
   description:
-    "You direct the vision. The agent builds the film. Describe your idea and NodeTool's agent writes the script, boards every scene, generates the footage, and cuts a multi-track timeline you can still edit — the open-source, agent-first creative workspace. Run open weights locally or bring your own API keys. No credits, no markups, no lock-in.",
+    "You direct. The agent builds the film. Describe the idea and NodeTool's agent writes the script, boards every shot, renders the takes, and cuts a multi-track timeline you can still edit. Open source, your own keys, provider prices, no lock-in.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/",
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "NodeTool — The agent-first creative workspace",
     description:
-      "Describe your idea. The agent writes the script, boards every scene, generates the footage, and cuts the timeline — and hands you an editable multi-track project, not a flat render. Open source, your own keys, provider prices.",
+      "Describe the idea. The agent writes the script, boards every shot, renders the takes, and cuts the timeline, then hands you an editable multi-track project rather than a flat render. Open source, your own keys, provider prices.",
     url: "https://nodetool.ai",
     siteName: "NodeTool",
     images: [
@@ -75,7 +75,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NodeTool — The agent-first creative workspace",
     description:
-      "You direct the vision. The agent builds the film. Open-source AI film production on a real multi-track timeline — your keys, your models, your files.",
+      "You direct. The agent builds the film. Open-source AI film production on a real multi-track timeline. Your keys, your models, your files.",
     images: ["/preview.png"],
   },
 };

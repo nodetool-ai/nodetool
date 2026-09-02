@@ -66,8 +66,8 @@ export default function StoryboardSection() {
             className="text-lg text-slate-300 leading-relaxed"
           >
             Pitch a concept and a visual style, press Direct, and get a shot
-            list back — action, camera, motion, and duration per card. Approve
-            the stills you like, animate only those, then lay the whole thing
+            list back: action, camera, motion, and duration per card. Approve
+            the stills you like, animate only those, then lay the whole board
             onto the multi-track timeline in one click.
           </motion.p>
         </div>

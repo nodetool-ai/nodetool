@@ -358,13 +358,13 @@ export default function Home() {
               id="closing-cta-title"
               className="text-3xl md:text-4xl font-bold tracking-tight text-white"
             >
-              Ready to call action?
+              Start directing.
             </h2>
             <p className="mt-4 text-lg text-slate-300">
-              Download the open-source studio for macOS, Windows, and Linux.
-              Free, AGPL-3.0, and built alongside working filmmakers, designers,
-              and video editors. Or open it in your browser with nothing to
-              install.
+              Studio is free and open source (AGPL-3.0) for macOS, Windows,
+              and Linux. You pay providers at their list prices, and open
+              weights cost nothing after the download. Or try Cloud in your
+              browser, now in alpha, with nothing to install.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton
@@ -378,7 +378,7 @@ export default function Home() {
                 onClick={() => track("Try Cloud")}
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/10 px-6 py-3.5 text-sm font-semibold text-blue-200 transition-all hover:border-blue-400 hover:bg-blue-500/20 focus-ring"
               >
-                Try NodeTool in your browser
+                Try Cloud in your browser (alpha)
               </a>
               <a
                 href="https://github.com/nodetool-ai/nodetool"

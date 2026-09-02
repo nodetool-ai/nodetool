@@ -141,13 +141,13 @@ export default function SurfaceShowcase() {
             id="surfaces-title"
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Professional post, right next to the models
+            Post-production, right next to the models
           </h2>
           <p className="text-lg text-slate-300">
             Cut and refine on the same canvas you generate on, with no export
             hops. A storyboard becomes a script, the script becomes takes, the
-            takes land on a multi-track timeline — and the agent works every one
-            of them through the tools you click.
+            takes land on a multi-track timeline, and the agent works every one
+            of them through the same tools you click.
           </p>
         </div>
 

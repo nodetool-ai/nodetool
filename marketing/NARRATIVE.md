@@ -14,12 +14,14 @@ creator directs and keeps the project file.
 
 ## Positioning line
 
-**You direct the vision. The agent builds the film.**
+**You direct. The agent builds the film.**
 
 The hero claim is not the feature list and not the category label. It names who
 does what: the agent handles the tedious stretch between a blank page and a
 rough cut — script, board, footage, sound, cut — and the creator stays the
-director throughout. The earlier lines — *"From prompt to final cut on one
+director throughout. The subhead carries claim 1 below, because the hero is the
+one place every reader looks: what the agent makes stays open to re-roll,
+re-voice, and re-cut. The earlier lines — *"From prompt to final cut on one
 canvas"* and *"Describe the piece. Keep the workflow."* — survive as claims 1
 and 2 below: a closed tool generates behind glass and hands you a file;
 NodeTool's agent generates *and* hands you the multi-track project that made
@@ -42,7 +44,7 @@ this order of importance:
    editors — storyboard, timeline, sketch, script — so a piece never leaves the
    workspace to be finished.
 3. **Creative sovereignty.** Your keys, your files, your models, AGPL-3.0, local
-   option. No token markups, no locked project formats. Stated as fact, never as
+   option. No markups, no locked project formats. Stated as fact, never as
    a pitch.
 
 Provider lists, node counts, tool counts, and architecture belong under those
