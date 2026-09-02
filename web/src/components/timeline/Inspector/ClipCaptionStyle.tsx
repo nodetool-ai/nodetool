@@ -30,6 +30,7 @@ import {
   InspectorRow,
   InspectorSectionTitle
 } from "./InspectorPrimitives";
+import { FontPicker } from "./FontPicker";
 
 const sectionContentStyles = (theme: Theme) =>
   css({
@@ -158,14 +159,10 @@ export const ClipCaptionStyle: React.FC<ClipCaptionStyleProps> = memo(
         >
           <FlexColumn css={sectionContentStyles(theme)}>
             <InspectorRow label="Font">
-              <TextInput
-                value={style?.fontFamily ?? ""}
-                placeholder="Inter"
-                fullWidth
-                onChange={(event) =>
-                  setField("fontFamily", event.target.value || undefined)
-                }
-                inputProps={{ "aria-label": "Caption font family" }}
+              <FontPicker
+                label="Caption font family"
+                value={style?.fontFamily}
+                onChange={(fontFamily) => setField("fontFamily", fontFamily)}
               />
             </InspectorRow>
             <InspectorRow label="Size">

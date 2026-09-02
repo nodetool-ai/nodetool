@@ -9,11 +9,14 @@
  *
  * The drawing rules come from `@nodetool-ai/timeline/scene` — the same ones the
  * editor's preview and the video export use — so a title previewed here is the
- * title that renders.
+ * title that renders. The bundled faces are registered with the same library
+ * the server rasterizer registers them with, so the two hosts draw the same
+ * glyphs and not merely the same layout (D8).
  */
 
 import { createCanvas, type Canvas } from "@napi-rs/canvas";
 import type { ClipShapeStyle, ClipTextStyle } from "@nodetool-ai/timeline";
+import { registerBundledFonts } from "@nodetool-ai/timeline/fonts/node";
 import type {
   RasterContext2D,
   ResolvedCaption,
@@ -44,7 +47,12 @@ export class PreviewRasterizer {
   constructor(
     private readonly width: number,
     private readonly height: number
-  ) {}
+  ) {
+    // Before any glyph is drawn, and once per process. A preview whose fonts
+    // are registered later shows the fallback face for the frames already
+    // rasterized — and caches them.
+    registerBundledFonts();
+  }
 
   caption(caption: ResolvedCaption): Canvas | null {
     if (caption.words.length === 0) return null;

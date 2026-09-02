@@ -9,6 +9,7 @@ import {
 import { ShapeRasterizer } from "./shapeRender";
 import { textMeasurer } from "./textMeasure";
 import { TextRasterizer } from "./textRender";
+import { ensureBundledFontsLoaded } from "./fontLoading";
 
 interface RasterClipFrame {
   width: number;
@@ -31,6 +32,10 @@ export async function renderRasterClipFrames(
     1,
     Math.round((outputWidth * sequenceHeight) / sequenceWidth)
   );
+  // These stills are handed to an agent as evidence, so they must show the
+  // face the render will use rather than whatever loaded first.
+  await ensureBundledFontsLoaded();
+
   const canvas = document.createElement("canvas");
   canvas.width = outputWidth;
   canvas.height = outputHeight;

@@ -181,6 +181,15 @@ export interface HttpApiOptions {
    * these roots before falling back to Python package metadata.
    */
   packageAssetsRoots?: string[];
+  /**
+   * Directory holding the bundled typefaces (`packages/timeline/fonts/` in a
+   * checkout, `fonts/` beside `server.mjs` in the packaged backend). Served
+   * read-only and public at `/api/assets/packages/timeline/fonts/<file>`, which
+   * is where the timeline editor's `@font-face` rules point (D8). Unset means
+   * the directory was not found, and the route answers 404 rather than
+   * guessing at a path.
+   */
+  bundledFontsDir?: string;
 }
 
 // Lazily created storage handler — recreated if options change

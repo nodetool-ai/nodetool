@@ -68,6 +68,7 @@ function writeValidBundle(dir: string): void {
   );
   writeShippedSandboxPacks(dir);
   writeShippedSystemSkills(dir);
+  writeShippedFonts(dir);
   fs.mkdirSync(path.join(dir, "js-sandbox-worker"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "js-sandbox-worker", "worker-entry.js"),
@@ -96,6 +97,16 @@ const SANDBOX_PACKS_DIR = path.join(
   "..",
   "packages",
   "sandbox-packs"
+);
+
+const FONTS_DIR = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "packages",
+  "timeline",
+  "fonts"
 );
 
 const SYSTEM_SKILLS_DIR = path.join(
@@ -153,6 +164,23 @@ function writeShippedSystemSkills(dir: string): void {
     const skillDir = path.join(dir, "_skills", entry);
     fs.mkdirSync(skillDir, { recursive: true });
     fs.writeFileSync(path.join(skillDir, "SKILL.md"), "---\nname: x\n---\n");
+  }
+}
+
+/**
+ * Stage every bundled font file the repo ships.
+ *
+ * Same reason as the packs and skills above: the script cross-checks the
+ * staged set against `packages/timeline/fonts/` inside a checkout, so a
+ * fixture staging none of them is an incomplete bundle. The bytes are a stub —
+ * what the check reads is presence, and no face is parsed here.
+ */
+function writeShippedFonts(dir: string): void {
+  const fontDir = path.join(dir, "fonts");
+  fs.mkdirSync(fontDir, { recursive: true });
+  for (const entry of fs.readdirSync(FONTS_DIR)) {
+    if (!/\.(ttf|otf|txt)$/i.test(entry)) continue;
+    fs.writeFileSync(path.join(fontDir, entry), "x");
   }
 }
 
@@ -381,6 +409,37 @@ describe("verify-backend-bundle", () => {
     // Asserting a count, so the check cannot pass by having matched nothing.
     const staged = fs.readdirSync(path.join(tempDir, "_skills")).length;
     expect(output).toContain(`system skills staged: ${staged}`);
+  });
+
+  // C6, and the check T17 was required to observe failing: the packaged
+  // backend registers these faces before it draws a title, so an unstaged one
+  // silently renders every clip in that family in a host font.
+  it("fails when a bundled font file is not staged", () => {
+    const fonts = fs.readdirSync(path.join(tempDir, "fonts")).sort();
+    expect(fonts).toContain("BebasNeue-Regular.ttf");
+    fs.rmSync(path.join(tempDir, "fonts", "BebasNeue-Regular.ttf"));
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(1);
+    expect(output).toContain("Bundled font file(s) not staged under fonts/");
+    expect(output).toContain("BebasNeue-Regular.ttf");
+  });
+
+  // A face without its licence is a licensing failure, not a cosmetic one
+  // (C7), so the OFL files are checked with the faces rather than beside them.
+  it("fails when a font licence is not staged", () => {
+    fs.rmSync(path.join(tempDir, "fonts", "OFL-Inter.txt"));
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(1);
+    expect(output).toContain("OFL-Inter.txt");
+  });
+
+  it("reports the bundled font files it found", () => {
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(0);
+    // A count, so the check cannot pass by having matched nothing.
+    const staged = fs.readdirSync(path.join(tempDir, "fonts")).length;
+    expect(staged).toBeGreaterThan(0);
+    expect(output).toContain(`${staged} bundled font file(s) staged`);
   });
 
   it("fails when server.mjs itself is missing", () => {

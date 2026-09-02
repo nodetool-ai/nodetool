@@ -16,6 +16,7 @@
  */
 
 import type { ClipTextStyle } from "../types.js";
+import { resolveFontFamily } from "../fonts/catalog.js";
 import { countStaggerUnits } from "../animation/compile.js";
 import type { StaggerUnit } from "../animation/types.js";
 
@@ -50,8 +51,7 @@ const FONT_SLANTS = new Set(["italic", "oblique"]);
 /**
  * What the `font` shorthand is built from. Narrower than `ClipTextStyle` so a
  * caption, which carries no text of its own, resolves its font through the
- * same builder — and the `Inter, Arial, sans-serif` fallback stays in one
- * place.
+ * same builder — which is also the one place family resolution happens (D8).
  */
 export interface FontSpecStyle {
   fontFamily?: string;
@@ -60,10 +60,17 @@ export interface FontSpecStyle {
   fontStyle?: string;
 }
 
-/** The `ctx.font` shorthand a text style renders with. */
+/**
+ * The `ctx.font` shorthand a text style renders with.
+ *
+ * The family list comes from {@link resolveFontFamily}, so every host — the
+ * editor preview, the browser export, the server render and the agent's frame
+ * preview — sets the same string on its context and a bundled family resolves
+ * to the face NodeTool ships rather than to whatever the machine has.
+ */
 export function textFontSpec(style: FontSpecStyle): string {
   const fontSize = Math.max(1, style.fontSizePx);
-  const family = style.fontFamily ?? "Inter, Arial, sans-serif";
+  const { family } = resolveFontFamily(style.fontFamily);
   const slant = FONT_SLANTS.has(style.fontStyle ?? "")
     ? `${style.fontStyle} `
     : "";
