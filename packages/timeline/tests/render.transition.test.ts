@@ -213,9 +213,9 @@ describe("resolveTransition — defaults and fallbacks", () => {
   });
 
   it("cross-fades a type this build cannot draw instead of throwing (I2)", () => {
-    // SAFETY: the point of the case is a document from a newer build, whose
-    // type the union deliberately does not admit.
-    const flip = { type: "flip", durationMs: CUT_MS } as unknown as ClipTransition;
+    // No cast: the union carries a type from a newer build rather than
+    // refusing it, which is what lets such a document parse at all (T11b).
+    const flip: ClipTransition = { type: "flip", durationMs: CUT_MS };
     const clip = incoming(flip);
     const pair = resolveTransition(clip, [outgoing, clip], at(0.5));
     expect(pair?.incoming.type).toBe("crossfade");

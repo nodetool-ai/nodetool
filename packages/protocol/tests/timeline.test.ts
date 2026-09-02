@@ -83,12 +83,16 @@ describe("timelineClip schema", () => {
     expect(parsed.transitionIn).toEqual(clip.transitionIn);
   });
 
-  it("rejects an unknown effect type", () => {
+  it("carries an effect type this build cannot apply (I2)", () => {
+    // It used to be refused, which failed the whole document rather than the
+    // one effect — the hard failure I2 forbids. The compositors skip it and
+    // `unsupportedEffectTypes` names it; the strictness that used to come from
+    // refusing it is pinned in `timeline-motion-schema.test.ts`.
     const clip = {
       ...baseClip,
-      effects: [{ id: "x", type: "bogus", enabled: true }]
+      effects: [{ id: "x", type: "bogus", enabled: true, amount: 0.5 }]
     };
-    expect(timelineClip.safeParse(clip).success).toBe(false);
+    expect(timelineClip.parse(clip).effects).toEqual(clip.effects);
   });
 
   it("preserves clip animations through a parse round-trip", () => {

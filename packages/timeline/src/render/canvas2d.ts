@@ -28,6 +28,7 @@ import { blendModeToCanvasOp } from "@nodetool-ai/gpu";
 
 import type { AnimationSampleMask, WipeDirection } from "../animation/index.js";
 import type { ClipEffect, ClipTransform, TrackEffect } from "../types.js";
+import { isClipBlurEffect, isClipColorEffect } from "../types.js";
 import {
   IDENTITY_TRANSFORM,
   buildTransformMatrix,
@@ -652,12 +653,12 @@ function computeFilterForEffects(
 
   for (const e of clipEffects ?? []) {
     if (!e.enabled) continue;
-    if (e.type === "color") {
+    if (isClipColorEffect(e)) {
       brightness += e.brightness ?? 0;
       contrast *= e.contrast ?? 1;
       saturation *= e.saturation ?? 1;
       hue += e.hue ?? 0;
-    } else if (e.type === "blur") {
+    } else if (isClipBlurEffect(e)) {
       blur += e.radius;
     }
   }

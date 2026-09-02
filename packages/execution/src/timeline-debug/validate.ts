@@ -83,53 +83,46 @@ const TRANSITION_GRAMMAR = TRANSITION_TYPES.join(", ");
 const DIRECTION_GRAMMAR = TRANSITION_DIRECTIONS.join(", ");
 
 /**
- * A transition this build cannot read, on the **raw** document.
+ * A transition type this build cannot draw.
  *
- * The schema's discriminated union refuses an unknown `type` outright, so by
- * the time a document is parsed every type is one of ours. That refusal is
- * reported as `schema_invalid`, which says a shape is wrong and not which cut
- * a newer build asked for — this names it, and says what the renderer does
- * instead (I2: it cross-fades, it never throws).
+ * `type` is a plain string on the wire (I2), so a cut a newer build authored
+ * parses, reaches the renderer, and cross-fades. This names the type the
+ * document asked for and says what happens instead. It reads the parsed clip:
+ * the schema no longer refuses an unknown type, so there is nothing left for a
+ * pre-parse scan of the raw document to see.
  */
-function checkRawTransitions(raw: unknown): TimelineDebugIssue[] {
-  if (!isRecord(raw) || !Array.isArray(raw.clips)) return [];
-  const issues: TimelineDebugIssue[] = [];
-  for (const clip of raw.clips) {
-    if (!isRecord(clip)) continue;
-    const transition = clip.transitionIn;
-    if (!isRecord(transition) || typeof transition.type !== "string") continue;
-    if (parseTransitionType(transition.type) !== null) continue;
-    const label =
-      typeof clip.name === "string" && clip.name
-        ? clip.name
-        : String(clip.id ?? "");
-    const issue: TimelineDebugIssue = {
-      severity: "warning",
-      code: "unknown_transition",
-      message: `Clip "${label}" opens with a "${transition.type}" transition, which this build cannot draw — it cross-fades instead. Expected one of ${TRANSITION_GRAMMAR}.`,
-      path: "transitionIn.type"
-    };
-    if (typeof clip.id === "string") issue.clipId = clip.id;
-    if (typeof clip.trackId === "string") issue.trackId = clip.trackId;
-    issues.push(issue);
-  }
-  return issues;
+function unknownTransitionTypeIssue(
+  clip: TimelineClip
+): TimelineDebugIssue | null {
+  const transition = clip.transitionIn;
+  if (!transition || parseTransitionType(transition.type) !== null) return null;
+  return {
+    severity: "warning",
+    code: "unknown_transition",
+    message: `Clip "${clipLabel(clip)}" opens with a "${transition.type}" transition, which this build cannot draw — it cross-fades instead. Expected one of ${TRANSITION_GRAMMAR}.`,
+    path: "transitionIn.type",
+    clipId: clip.id,
+    trackId: clip.trackId
+  };
 }
 
 /**
  * A `direction` the renderer cannot read on a transition whose type it can.
- * Unlike the type, `direction` is a plain string in the schema, so this one
- * survives the parse and reaches a real render — where the cut runs `left`
- * rather than the edge the document asked for.
+ * Falls back to `left` at render time, the way an unknown type falls back to a
+ * cross-fade.
  */
 function unknownDirectionIssue(clip: TimelineClip): TimelineDebugIssue | null {
   const transition = clip.transitionIn;
   if (!transition || !("direction" in transition)) return null;
-  if (parseTransitionDirection(transition.direction) !== null) return null;
+  const { direction } = transition;
+  // An unknown type can carry any value under a key our own types use as a
+  // string, so the read is guarded rather than trusted.
+  if (typeof direction !== "string") return null;
+  if (parseTransitionDirection(direction) !== null) return null;
   return {
     severity: "warning",
     code: "unknown_transition",
-    message: `Clip "${clipLabel(clip)}" runs its ${transition.type} toward "${transition.direction}", which this build cannot read — it runs left. Expected one of ${DIRECTION_GRAMMAR}.`,
+    message: `Clip "${clipLabel(clip)}" runs its ${transition.type} toward "${direction}", which this build cannot read — it runs left. Expected one of ${DIRECTION_GRAMMAR}.`,
     path: "transitionIn.direction",
     clipId: clip.id,
     trackId: clip.trackId
@@ -346,6 +339,9 @@ function checkClip(
     "transitionIn.easing"
   );
   if (transitionEasing) issues.push(transitionEasing);
+
+  const transitionType = unknownTransitionTypeIssue(clip);
+  if (transitionType) issues.push(transitionType);
 
   const transitionDirection = unknownDirectionIssue(clip);
   if (transitionDirection) issues.push(transitionDirection);
@@ -685,6 +681,44 @@ function checkDocumentLevel(doc: TimelineDocument): TimelineDebugIssue[] {
   return issues;
 }
 
+/** The shape of a Zod issue this module reads, including a union's branches. */
+interface SchemaIssue {
+  readonly path: readonly PropertyKey[];
+  readonly message: string;
+  readonly errors?: readonly (readonly SchemaIssue[])[];
+}
+
+/**
+ * Zod issues as the paths and messages a reader can act on.
+ *
+ * `transitionIn` and every `effects[]` entry are unions (I2: a type from a
+ * newer build parses through a permissive branch). A union reports one
+ * `invalid_union` against the object with the reason each branch failed buried
+ * in `errors`, so reporting it verbatim would say "Invalid input" about the
+ * clip rather than naming the field that is wrong. Flattening puts each
+ * branch's issues back on the union's own path.
+ */
+function flattenSchemaIssues(
+  issues: readonly SchemaIssue[],
+  prefix: readonly PropertyKey[] = []
+): { path: string; message: string }[] {
+  const out: { path: string; message: string }[] = [];
+  for (const issue of issues) {
+    const path = [...prefix, ...issue.path];
+    if (issue.errors === undefined) {
+      out.push({
+        path: path.map((p) => String(p)).join("."),
+        message: issue.message
+      });
+      continue;
+    }
+    for (const branch of issue.errors) {
+      out.push(...flattenSchemaIssues(branch, path));
+    }
+  }
+  return out;
+}
+
 /**
  * Validate a parsed-JSON timeline document. `raw` is untrusted: anything that
  * fails the schema is reported as `schema_invalid` and the structural checks
@@ -694,17 +728,17 @@ export function validateTimelineSequence(
   raw: unknown,
   meta?: TimelineValidationMeta
 ): TimelineValidation {
-  const rawTransitions = checkRawTransitions(raw);
   const parsed = timelineDocument.safeParse(raw);
   if (!parsed.success) {
-    const errors: TimelineDebugIssue[] = parsed.error.issues
+    const errors: TimelineDebugIssue[] = flattenSchemaIssues(
+      parsed.error.issues
+    )
       .slice(0, 25)
-      .map((issue) => {
-        const path = issue.path.map((p) => String(p)).join(".");
+      .map(({ path, message }) => {
         const schemaIssue: TimelineDebugIssue = {
           severity: "error",
           code: "schema_invalid",
-          message: `${path || "(root)"}: ${issue.message}`
+          message: `${path || "(root)"}: ${message}`
         };
         if (path) {
           schemaIssue.path = path;
@@ -718,7 +752,7 @@ export function validateTimelineSequence(
         message: "Document does not match the timeline schema."
       });
     }
-    return { ok: false, errors, warnings: rawTransitions };
+    return { ok: false, errors, warnings: [] };
   }
 
   const doc = parsed.data;
@@ -726,7 +760,6 @@ export function validateTimelineSequence(
   const trackIds = new Set(doc.tracks.map((track) => track.id));
 
   const issues: TimelineDebugIssue[] = [
-    ...rawTransitions,
     ...checkFieldStripping(raw, doc),
     ...checkDuplicateIds(doc),
     ...doc.clips.flatMap((clip) => checkClip(clip, trackIds, fps)),

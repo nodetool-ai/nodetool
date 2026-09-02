@@ -5,6 +5,7 @@ import type {
   TrackVignetteEffect,
   TrackChromaKeyEffect
 } from "../types.js";
+import { isClipBlurEffect, isClipColorEffect } from "../types.js";
 import {
   createGPUContextFromDevice,
   createExecutor,
@@ -295,7 +296,7 @@ function aggregateColor(
 ): AggregatedColor {
   const out: AggregatedColor = { ...NEUTRAL_COLOR };
   for (const e of clipEffects) {
-    if (e.type !== "color") continue;
+    if (!isClipColorEffect(e)) continue;
     const c = e;
     out.brightness += c.brightness ?? 0;
     out.contrast *= c.contrast ?? 1;
@@ -335,7 +336,7 @@ function aggregateBlurRadius(
 ): number {
   let radius = 0;
   for (const e of clipEffects) {
-    if (e.type === "blur") radius += e.radius;
+    if (isClipBlurEffect(e)) radius += e.radius;
   }
   for (const e of trackEffects) {
     if (e.type === "videoBlur") radius += e.radius;

@@ -21,7 +21,11 @@ import {
   type TimelineClip,
   type ClipEffect,
   type ClipTransition,
-  type ShapeFill
+  type KnownClipEffect,
+  type KnownClipTransition,
+  type ShapeFill,
+  type UnknownClipEffect,
+  type UnknownClipTransition
 } from "../src/api-schemas/timeline.js";
 
 const baseClip = {
@@ -88,15 +92,19 @@ type MotionShapeFill =
 
 const shapeFillMirror: MutuallyAssignable<ShapeFill, MotionShapeFill> = true;
 
-/** Every transition type the design names, and no other. */
+/**
+ * Every transition type the design names, and no other — asserted against the
+ * *known* half. The union itself is open by I2, so asserting on
+ * `ClipTransition["type"]` would only say `string` and pin nothing.
+ */
 const transitionTypeMirror: MutuallyAssignable<
-  ClipTransition["type"],
+  KnownClipTransition["type"],
   "crossfade" | "dipToColor" | "wipe" | "push" | "slide" | "zoom"
 > = true;
 
 /** Every clip effect type the design names, and no other. */
 const effectTypeMirror: MutuallyAssignable<
-  ClipEffect["type"],
+  KnownClipEffect["type"],
   | "color"
   | "blur"
   | "glow"
@@ -109,6 +117,41 @@ const effectTypeMirror: MutuallyAssignable<
   | "liftGammaGain"
 > = true;
 
+/**
+ * And the door I2 requires: each union is its named members plus one catch-all
+ * carrying the shared shape and whatever else the authoring build wrote.
+ */
+const openTransitionMirror: MutuallyAssignable<
+  ClipTransition,
+  KnownClipTransition | UnknownClipTransition
+> = true;
+const openEffectMirror: MutuallyAssignable<
+  ClipEffect,
+  KnownClipEffect | UnknownClipEffect
+> = true;
+
+/** The catch-alls as `packages/timeline/src/types.ts` declares them. */
+interface MotionUnknownTransition {
+  type: string;
+  durationMs: number;
+  easing?: string;
+  [key: string]: unknown;
+}
+interface MotionUnknownEffect {
+  id: string;
+  type: string;
+  enabled: boolean;
+  [key: string]: unknown;
+}
+const unknownTransitionMirror: MutuallyAssignable<
+  UnknownClipTransition,
+  MotionUnknownTransition
+> = true;
+const unknownEffectMirror: MutuallyAssignable<
+  UnknownClipEffect,
+  MotionUnknownEffect
+> = true;
+
 describe("timelineClip — motion-graphics field types", () => {
   it("mirrors the TypeScript declaration in both directions", () => {
     // Each constant is typed `true & true` only while both directions hold, so
@@ -118,8 +161,75 @@ describe("timelineClip — motion-graphics field types", () => {
       motionFieldMirror,
       shapeFillMirror,
       transitionTypeMirror,
-      effectTypeMirror
-    ]).toEqual([true, true, true, true]);
+      effectTypeMirror,
+      openTransitionMirror,
+      openEffectMirror,
+      unknownTransitionMirror,
+      unknownEffectMirror
+    ]).toEqual([true, true, true, true, true, true, true, true]);
+  });
+});
+
+/**
+ * I2, forward compatibility by string: a `type` this build does not declare
+ * parses and carries its own parameters, and the permissive branch that lets
+ * it through is unreachable for a type this build *does* declare — so the
+ * strict half stays exactly as strict.
+ */
+describe("timelineClip — a type from a newer build", () => {
+  it("parses a transition type this build cannot draw, parameters intact", () => {
+    const transitionIn = {
+      type: "futureWipe3D",
+      durationMs: 500,
+      easing: "easeOut",
+      axis: "z",
+      bend: { degrees: 45 }
+    };
+    const parsed = timelineClip.parse({ ...baseClip, transitionIn });
+    expect(parsed.transitionIn).toEqual(transitionIn);
+  });
+
+  it("parses an effect type this build cannot apply, parameters intact", () => {
+    const effects = [
+      { id: "e1", type: "filmGrain", enabled: true, size: 2, strength: 0.4 }
+    ];
+    const parsed = timelineClip.parse({ ...baseClip, effects });
+    expect(parsed.effects).toEqual(effects);
+  });
+
+  it("still validates a known transition type field by field", () => {
+    const parsed = timelineClip.safeParse({
+      ...baseClip,
+      transitionIn: { type: "crossfade", durationMs: "300" }
+    });
+    expect(parsed.success).toBe(false);
+    // The permissive branch refuses every type the strict members claim, so a
+    // bad `crossfade` cannot slide into it and be accepted.
+    expect(JSON.stringify(parsed.error?.issues)).toContain("durationMs");
+  });
+
+  it("still validates a known effect type field by field", () => {
+    const parsed = timelineClip.safeParse({
+      ...baseClip,
+      effects: [{ id: "e1", type: "blur", enabled: true, radius: "8" }]
+    });
+    expect(parsed.success).toBe(false);
+    expect(JSON.stringify(parsed.error?.issues)).toContain("radius");
+  });
+
+  it("still requires the shape every transition and effect shares", () => {
+    expect(
+      timelineClip.safeParse({
+        ...baseClip,
+        transitionIn: { type: "futureWipe3D" }
+      }).success
+    ).toBe(false);
+    expect(
+      timelineClip.safeParse({
+        ...baseClip,
+        effects: [{ type: "filmGrain", enabled: true }]
+      }).success
+    ).toBe(false);
   });
 });
 

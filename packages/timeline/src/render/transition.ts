@@ -81,6 +81,9 @@ const DIRECTION_VECTOR: Record<WipeDirection, { x: number; y: number }> = {
 /** Direction a transition falls back to when the document names none we read. */
 const DEFAULT_DIRECTION: WipeDirection = "left";
 
+/** Colour a `dipToColor` falls back to when the document names none we read. */
+const DEFAULT_DIP_COLOR = "#000000";
+
 /** How far past its resting size a `zoom` pushes the outgoing clip. */
 const ZOOM_OUT_END_SCALE = 1.25;
 /** The size a `zoom` brings the incoming clip in from. */
@@ -211,10 +214,33 @@ export function resolveTransition(
 /** The solid's alpha at `p`: 0 at both ends, opaque at the midpoint. */
 const dipAlpha = (p: number): number => clamp01(1 - Math.abs(2 * p - 1));
 
-/** The direction a transition names, narrowed, or the fallback. */
+/**
+ * The direction a transition names, narrowed, or the fallback.
+ *
+ * The `typeof` guard is not belt-and-braces: `type` is a plain string on the
+ * wire (I2), so a document from a newer build can hand any value to a key one
+ * of our types happens to share the name of. Same for {@link solidColorOf} and
+ * {@link softnessOf} below.
+ */
 function directionOf(transition: TimelineClip["transitionIn"]): WipeDirection {
   if (!transition || !("direction" in transition)) return DEFAULT_DIRECTION;
-  return parseTransitionDirection(transition.direction) ?? DEFAULT_DIRECTION;
+  const { direction } = transition;
+  if (typeof direction !== "string") return DEFAULT_DIRECTION;
+  return parseTransitionDirection(direction) ?? DEFAULT_DIRECTION;
+}
+
+/** The colour a `dipToColor` dips through, or black. */
+function solidColorOf(transition: TimelineClip["transitionIn"]): string {
+  if (!transition || !("color" in transition)) return DEFAULT_DIP_COLOR;
+  const { color } = transition;
+  return typeof color === "string" ? color : DEFAULT_DIP_COLOR;
+}
+
+/** The feather width a `wipe` names, or a hard edge. */
+function softnessOf(transition: TimelineClip["transitionIn"]): number {
+  if (!transition || !("softness" in transition)) return 0;
+  const { softness } = transition;
+  return typeof softness === "number" ? softness : 0;
 }
 
 function scaled(
@@ -239,8 +265,7 @@ function incomingRecord(
         // the midpoint frame is the colour and nothing else.
         opacity: clamp01(2 * progress - 1),
         solid: {
-          color:
-            transition && "color" in transition ? transition.color : "#000000",
+          color: solidColorOf(transition),
           opacity: dipAlpha(progress)
         }
       };
@@ -253,10 +278,7 @@ function incomingRecord(
         mask: {
           direction: directionOf(transition),
           progress: clamp01(progress),
-          softness:
-            transition && "softness" in transition
-              ? (transition.softness ?? 0)
-              : 0
+          softness: softnessOf(transition)
         }
       };
     case "push":
