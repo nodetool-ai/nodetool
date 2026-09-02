@@ -12,6 +12,7 @@ const isNumber = (value: unknown): value is number =>
   typeof value === 'number';
 import type {
   TimelineAgentHandler,
+  TimelineClipNode,
   TimelineDocument,
 } from '../../documents/timelineTypes';
 
@@ -29,6 +30,14 @@ jest.mock('@react-navigation/native', () => ({
 
 const mockRead = jest.fn();
 const mockUpdate = jest.fn();
+const mockAssetGet = jest.fn();
+
+// `useUtils()` returns one stable object per app in tRPC; the screen keeps it in
+// a callback dependency list, so a fresh object per render would re-register the
+// agent handler on every render.
+const mockTrpcUtils = {
+  assets: { get: { fetch: (input: unknown) => mockAssetGet(input) } },
+};
 
 jest.mock('../../trpc/client', () => ({
   createMobileTRPCClient: () => ({
@@ -37,6 +46,7 @@ jest.mock('../../trpc/client', () => ({
       update: { mutate: (input: unknown) => mockUpdate(input) },
     },
   }),
+  trpc: { useUtils: () => mockTrpcUtils },
 }));
 
 const SEQ_ID = 'seq-1';
@@ -403,6 +413,41 @@ describe('TimelineViewerScreen', () => {
       [0, 2500],
       [2500, 1500],
     ]);
+  });
+
+  it('places a media clip from an asset:// URI, resolved through assets.get', async () => {
+    mockAssetGet.mockResolvedValue({
+      id: 'asset-9',
+      name: 'Drone pass',
+      content_type: 'video/mp4',
+      duration: 6.4,
+    });
+    renderScreen();
+    await screen.findByLabelText(/^Clip Opening shot/);
+
+    const handler = getDocumentHandler<TimelineAgentHandler>('timeline', SEQ_ID);
+    let clip: TimelineClipNode | undefined;
+    await act(async () => {
+      clip = await handler.addMediaClip({ asset: 'asset://asset-9.mp4', trackId: 't1' });
+    });
+
+    expect(mockAssetGet).toHaveBeenCalledWith({ id: 'asset-9' });
+    expect(clip).toMatchObject({ name: 'Drone pass', durationMs: 6400 });
+    expect(screen.getByLabelText(/^Clip Drone pass, video/)).toBeTruthy();
+  });
+
+  it('says which asset was not found when assets.get resolves to nothing', async () => {
+    mockAssetGet.mockResolvedValue(null);
+    renderScreen();
+    await screen.findByLabelText(/^Clip Opening shot/);
+
+    const handler = getDocumentHandler<TimelineAgentHandler>('timeline', SEQ_ID);
+    await act(async () => {
+      await expect(handler.addMediaClip({ asset: 'asset-missing' })).rejects.toThrow(
+        /No asset found for "asset-missing"/
+      );
+    });
+    expect(handler.getSnapshot().dirty).toBe(false);
   });
 
   it('renames the document', async () => {
