@@ -14,5 +14,8 @@
 
 export * from "./render/sceneModel.js";
 export * from "./render/transform.js";
+export * from "./render/transition.js";
 export * from "./render/draw.js";
+export * from "./render/svgPath.js";
+export * from "./render/textLayout.js";
 export * from "./render/canvas2d.js";

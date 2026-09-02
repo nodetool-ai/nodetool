@@ -124,8 +124,10 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         '{"op": "animate_clip", "target": "Title", "animations": [{"role": "in", "preset": "fade"}]}. ' +
         "Ops: get_state, add_track, add_media_clip, add_text_clip, add_shape_clip, " +
         "split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
-        "set_clip_params, set_clip_binding, animate_clip, clear_animations, " +
-        "list_animation_presets, select_clip, seek. Start with get_state to " +
+        "set_clip_params, set_clip_binding, set_transition, set_mask, " +
+        "set_matte, set_effects, animate_clip, " +
+        "clear_animations, list_animation_presets, select_clip, seek. " +
+        "Start with get_state to " +
         "read track and clip ids. To lay existing videos end to end, call " +
         'add_media_clip once per asset ({"op": "add_media_clip", "asset": ' +
         '"asset://<id>.mp4"}) — each appends after the last. animate_clip ' +
@@ -134,7 +136,20 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         '([{property, keyframes: [{t, value, easing?}]}], `t` running 0..1 ' +
         "over the animation's window) or `code` (a JS body baked into curves " +
         "once, host-side); add `mask` when a curve drives wipeProgress. " +
-        "list_animation_presets reports the animatable properties.",
+        "list_animation_presets reports the animatable properties. " +
+        'set_transition takes {"target", "transition": {type, durationMs, ' +
+        "easing?, color?, direction?, softness?} | null} — the cut plays over " +
+        "the target's head against the clip beneath it, so overlap the two. " +
+        'set_mask takes {"target", "mask": {kind: "rect"|"ellipse"|"path", ' +
+        "x?, y?, width?, height?, d?, featherPx?, invert?} | null} in the " +
+        "clip's own 0..1 space. " +
+        'set_matte takes {"target", "matte": {source, mode: "alpha"|"luma", ' +
+        "invert?} | null}; the source clip stops drawing itself and its alpha " +
+        "or brightness becomes the target's transparency. " +
+        'set_effects takes {"target", "effects": [{type, ...}]} and replaces ' +
+        "the whole chain — types color, blur, glow, dropShadow, vignette, " +
+        "sharpen, chromaKey, curves, levels, liftGammaGain, applied in the " +
+        "order given. An empty list clears it.",
       items: { type: "object" }
     }
   },

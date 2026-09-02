@@ -172,38 +172,56 @@ Type sizes are authored against the sequence resolution: `fontSizePx` on a
 
 ## Transitions
 
-A transition is between clips, not on one clip. NodeTool's compositor has one
-built-in — `crossfade` — and **the only way to reach it from a tool is to
-overlap the clips**: two clips on the same track whose times overlap dissolve
-across that overlap. Move the incoming clip 500ms earlier with `move_clip` and
-you get a 500ms dissolve.
+A transition is between clips, not on one clip. It is authored on the
+**incoming** clip and resolved for both: the compositor finds the clip beneath
+it on the same track and gives that one the complementary half of the cut.
 
-The clip field behind it, `transitionIn`, is written by the editor, not by
-`edit_timeline` — `set_clip_params` does not accept it. So overlap is your
-lever, and the corollary matters: **an accidental overlap is an accidental
-dissolve.** When two clips on one track look soft where you wanted a hard cut,
-check their `startMs` and `durationMs` for an overlap before looking anywhere
-else. To keep a hard cut, keep the times adjacent.
+Two clips on the same track whose times overlap dissolve across the overlap
+with no tool call at all. The corollary: **an accidental overlap is an
+accidental dissolve.** When two clips look soft where you wanted a hard cut,
+check their `startMs` and `durationMs` before looking anywhere else.
+
+`set_transition` picks a cut instead of taking the default:
+`{"op": "set_transition", "target": "Shot 2", "transition": {"type": "wipe",
+"durationMs": 500, "direction": "left", "softness": 0.1}}`. Pass
+`"transition": null` to clear it. The cut plays over the target's head, so
+**overlap the two clips by at least `durationMs`** or there is nothing beneath
+for it to play against — a transition with nothing under it reads as a fade
+from black.
+
+| Type | What moves | Reach for it when |
+|---|---|---|
+| `crossfade` | Incoming fades up | Two shots of the same scene; the safe default |
+| `dipToColor` | Both fade through a solid | A scene change, a chapter break. `color` is yours to pick |
+| `wipe` | Feathered edge reveals the incoming | A graphic or split-screen feel. `softness` 0 is a hard edge |
+| `push` | Both clips travel one frame width | Lateral energy; the two read as one moving picture |
+| `slide` | Only the incoming travels | The new shot arrives over a shot that holds |
+| `zoom` | Outgoing grows, incoming comes in from 0.8 | A push into the next beat |
+
+`direction` on `wipe`, `push` and `slide` names the **edge the incoming clip
+arrives from**, the same vocabulary the `wipe` animation uses. `easing` takes
+the full grammar — a named id, `cubic-bezier(...)` or `spring(...)`.
 
 `fadeInMs` and `fadeOutMs` on `set_clip_params` are audio fades. The compositor
 does not read them, so they will not fade a picture — for that, animate the
 clip with a `fade` `in` or `out`.
 
-Crossfade opacity multiplies with animation opacity rather than replacing it,
-so a clip that both overlaps its predecessor and carries a `fade` in ramps
-twice and reads slower and softer than either alone. Pick one.
+A transition's opacity multiplies with animation opacity rather than replacing
+it, so a clip that both dissolves in and carries a `fade` in ramps twice and
+reads slower and softer than either alone. Pick one.
 
-For a transition the crossfade cannot express — a wipe between two shots — put
-a `wipe` `in` on the incoming clip and overlap it over the outgoing one. The
-wipe lives in the incoming layer's own space and rotates with the layer.
+`validate_timeline` reports `transition_exceeds_duration` when the cut is
+longer than the clip carrying it, and `unknown_transition` for a type or
+direction this build cannot draw — which falls back to a cross-fade running
+left rather than failing the render.
 
 ## Validate the output
 
 Two checks, and they answer different questions.
 
 **`validate_timeline`** answers "is this document sound": unknown animation
-presets, fades and crossfades longer than the clip carrying them, clips on
-tracks the document lacks, overlapping clips, clips shorter than a frame,
+presets and transitions, fades and cuts longer than the clip carrying them,
+clips on tracks the document lacks, overlapping clips, clips shorter than a frame,
 in/out points that cannot render, duplicate ids. Run it after every batch of
 edits.
 

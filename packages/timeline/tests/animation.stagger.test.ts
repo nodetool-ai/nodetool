@@ -43,11 +43,13 @@ describe("stagger compile", () => {
     expect(c.windowStartMs).toBe(0);
     expect(c.windowEndMs).toBe(400 + 3 * 100);
     expect(c.stagger).toEqual({
+      unit: "word",
       count: 4,
       offsetMs: 100,
       from: "start",
       unitDurationMs: 400,
-      maxDelayMs: 300
+      maxDelayMs: 300,
+      compressed: false
     } satisfies CompiledStagger);
   });
 
@@ -239,5 +241,71 @@ describe("staggered sampling", () => {
         compileClipAnimations([anim({ stagger: undefined })], 5000, CANVAS)
       )
     ).toBe(false);
+  });
+});
+
+describe("stagger units on the compiled animation", () => {
+  it("reports compression only when the span had to be squeezed", () => {
+    const [roomy] = compileClipAnimations([anim()], 5000, CANVAS, {
+      staggerCount: 4
+    });
+    expect(roomy.stagger?.compressed).toBe(false);
+
+    // 4 units × 400ms each, 100ms apart needs 700ms; the clip has 550.
+    const [squeezed] = compileClipAnimations([anim()], 550, CANVAS, {
+      staggerCount: 4
+    });
+    expect(squeezed.stagger?.compressed).toBe(true);
+    expect(squeezed.stagger?.offsetMs).toBeLessThan(100);
+  });
+
+  it("carries the unit the count was taken in", () => {
+    const [c] = compileClipAnimations(
+      [anim({ stagger: { unit: "character", offsetMs: 100 } })],
+      5000,
+      CANVAS,
+      { staggerCount: 5, staggerUnit: "character" }
+    );
+    expect(c.stagger?.unit).toBe("character");
+    expect(c.stagger?.count).toBe(5);
+  });
+
+  it("compiles un-staggered when the animation's unit is not the clip's", () => {
+    // A clip lays out in one unit, so a second animation asking for another
+    // one animates the whole block instead of mis-indexing the first's units.
+    const [perLine, perWord] = compileClipAnimations(
+      [
+        anim({ id: "a", stagger: { unit: "line", offsetMs: 100 } }),
+        anim({ id: "b", stagger: { unit: "word", offsetMs: 100 } })
+      ],
+      5000,
+      CANVAS,
+      { staggerCount: 2, staggerUnit: "line" }
+    );
+    expect(perLine.stagger?.unit).toBe("line");
+    expect(perWord.stagger).toBeUndefined();
+  });
+
+  it("gives a five-character word five windows 100ms apart", () => {
+    const [c] = compileClipAnimations(
+      [anim({ stagger: { unit: "character", offsetMs: 100 } })],
+      5000,
+      CANVAS,
+      { staggerCount: 5, staggerUnit: "character" }
+    );
+    const stagger = c.stagger;
+    if (!stagger) throw new Error("expected a compiled stagger");
+    const starts = [0, 1, 2, 3, 4].map((i) => staggerUnitDelayMs(stagger, i));
+    expect(starts).toEqual([0, 100, 200, 300, 400]);
+    expect(c.windowStartMs).toBe(0);
+    expect(c.windowEndMs).toBe(400 + 400);
+
+    // Each character's own window opens at its delay and runs the authored
+    // duration, so the last one is still mid-flight when the span ends.
+    const opacityAt = (localMs: number, index: number) =>
+      sampleStaggeredAnimations([c], localMs, index).opacity;
+    expect(opacityAt(200, 0)).toBeCloseTo(0.5, 6);
+    expect(opacityAt(200, 2)).toBe(0);
+    expect(opacityAt(600, 4)).toBeCloseTo(0.5, 6);
   });
 });

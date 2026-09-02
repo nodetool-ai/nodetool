@@ -14,12 +14,20 @@ import { describe, expect, it } from "vitest";
 
 import {
   timelineDocument,
-  type TimelineClip as WireClip
+  type TimelineClip as WireClip,
+  type KnownClipEffect as WireKnownEffect,
+  type KnownClipTransition as WireKnownTransition,
+  type UnknownClipEffect as WireUnknownEffect,
+  type UnknownClipTransition as WireUnknownTransition
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import type {
   TimelineClip as ModelClip,
   ClipEffect as ModelClipEffect,
-  ClipTransition as ModelClipTransition
+  ClipTransition as ModelClipTransition,
+  KnownClipEffect as ModelKnownEffect,
+  KnownClipTransition as ModelKnownTransition,
+  UnknownClipEffect as ModelUnknownEffect,
+  UnknownClipTransition as ModelUnknownTransition
 } from "@nodetool-ai/timeline";
 
 import { validateTimelineSequence } from "../src/timeline-debug/index.js";
@@ -59,10 +67,27 @@ const transitionMirror: MutuallyAssignable<
   NonNullable<WireClip["transitionIn"]>,
   ModelClipTransition
 > = true;
-// The whole clip only holds in one direction today: the wire types
-// `ClipAnimation.easing` as a plain string and the model still narrows it to
-// `EasingId`. T6 (easing grammar) is what widens the model side.
-const wholeClipMirror: Extends<ModelClip, WireClip> = true;
+// Both unions are open by I2, so the two above would still hold with a known
+// member deleted — the catch-all absorbs it. These pin the halves separately:
+// the named members field by field, and the catch-all's own shared shape.
+const knownEffectMirror: MutuallyAssignable<WireKnownEffect, ModelKnownEffect> =
+  true;
+const knownTransitionMirror: MutuallyAssignable<
+  WireKnownTransition,
+  ModelKnownTransition
+> = true;
+const unknownEffectMirror: MutuallyAssignable<
+  WireUnknownEffect,
+  ModelUnknownEffect
+> = true;
+const unknownTransitionMirror: MutuallyAssignable<
+  WireUnknownTransition,
+  ModelUnknownTransition
+> = true;
+// The whole clip, both ways. `ClipAnimation.easing` was the last field the
+// model narrowed further than the wire; T6 widened it to a string so the
+// easing grammar (`cubic-bezier(...)`, `spring(...)`) fits.
+const wholeClipMirror: MutuallyAssignable<ModelClip, WireClip> = true;
 
 const clip = (overrides: Record<string, unknown>): Record<string, unknown> => ({
   trackId: "track-1",
@@ -485,7 +510,160 @@ describe("timeline schema round trip — motion-graphics fields", () => {
       motionFieldMirror,
       effectMirror,
       transitionMirror,
+      knownEffectMirror,
+      knownTransitionMirror,
+      unknownEffectMirror,
+      unknownTransitionMirror,
       wholeClipMirror
-    ]).toEqual([true, true, true, true]);
+    ]).toEqual([true, true, true, true, true, true, true, true]);
+  });
+});
+
+/**
+ * I2, forward compatibility by string. A `transitionIn.type` or an
+ * `effects[].type` this build does not know reaches the document as a plain
+ * string: the parse carries it, the round trip keeps whatever parameters came
+ * with it, and the validator warns instead of failing the whole document.
+ *
+ * Before this, both were closed discriminated unions, so one unknown type
+ * failed the parse and every check below it was skipped — reported as
+ * `schema_invalid`, which says a shape is wrong and not which cut the newer
+ * build asked for.
+ */
+function newerBuildDocument(): Record<string, unknown> {
+  return {
+    tracks: [
+      {
+        id: "track-1",
+        name: "Video 1",
+        type: "video",
+        index: 0,
+        visible: true,
+        locked: false
+      }
+    ],
+    markers: [],
+    clips: [
+      clip({ id: "under", startMs: 0, durationMs: 2000 }),
+      clip({
+        id: "over",
+        startMs: 1000,
+        durationMs: 2000,
+        transitionIn: {
+          type: "futureWipe3D",
+          durationMs: 500,
+          easing: "easeOut",
+          axis: "z",
+          bend: { degrees: 45 }
+        },
+        effects: [
+          {
+            id: "fx-grain",
+            type: "filmGrain",
+            enabled: true,
+            size: 2,
+            strength: 0.4,
+            channels: ["r", "g", "b"]
+          }
+        ]
+      })
+    ]
+  };
+}
+
+describe("timeline schema round trip — a document from a newer build (I2)", () => {
+  it("parses instead of failing the whole document", () => {
+    const parsed = timelineDocument.safeParse(newerBuildDocument());
+    expect(parsed.success ? [] : parsed.error.issues).toEqual([]);
+  });
+
+  it("carries the unknown type's own parameters through the round trip", () => {
+    const raw = newerBuildDocument();
+    expect(timelineDocument.parse(raw)).toEqual(raw);
+  });
+
+  it("strips nothing", () => {
+    const result = validateTimelineSequence(newerBuildDocument());
+    expect(
+      result.warnings.filter((issue) => issue.code === "field_stripped")
+    ).toEqual([]);
+  });
+
+  it("validates, and names the cut it cannot draw", () => {
+    const result = validateTimelineSequence(newerBuildDocument());
+    expect(result.errors).toEqual([]);
+    expect(result.ok).toBe(true);
+    const issue = result.warnings.find(
+      (w) => w.code === "unknown_transition" && w.path === "transitionIn.type"
+    );
+    expect(issue?.message).toContain('"futureWipe3D"');
+    expect(issue?.message).toContain("cross-fades instead");
+    expect(issue?.clipId).toBe("over");
+  });
+
+  // The permissive branch is the risk this pair exists to bound: a known type
+  // must not reach it. Both fail, and the message names the field rather than
+  // the type — an effect chain that stopped checking `blur.radius` would be a
+  // far worse regression than the one this task fixed.
+  it("still fails a known transition type with a bad field", () => {
+    const doc = newerBuildDocument();
+    const clips = doc.clips as Record<string, unknown>[];
+    clips[1].transitionIn = { type: "crossfade", durationMs: "300" };
+    const result = validateTimelineSequence(doc);
+    expect(result.ok).toBe(false);
+    expect(
+      result.errors.some(
+        (issue) =>
+          issue.code === "schema_invalid" &&
+          issue.path === "clips.1.transitionIn.durationMs"
+      )
+    ).toBe(true);
+  });
+
+  // The field the catch-all does not declare is where a hole would open: the
+  // catch-all requires `durationMs`, so a bad one fails either way, but a bad
+  // `direction` is only caught because the catch-all refuses `wipe` outright.
+  it("still fails a known transition type on a field only that type has", () => {
+    const doc = newerBuildDocument();
+    const clips = doc.clips as Record<string, unknown>[];
+    clips[1].transitionIn = { type: "wipe", durationMs: 300, direction: 42 };
+    const result = validateTimelineSequence(doc);
+    expect(result.ok).toBe(false);
+    expect(
+      result.errors.some(
+        (issue) =>
+          issue.code === "schema_invalid" &&
+          issue.path === "clips.1.transitionIn.direction"
+      )
+    ).toBe(true);
+  });
+
+  it("still fails a known effect type with a bad field", () => {
+    const doc = newerBuildDocument();
+    const clips = doc.clips as Record<string, unknown>[];
+    clips[1].effects = [{ id: "e1", type: "blur", enabled: true, radius: "8" }];
+    const result = validateTimelineSequence(doc);
+    expect(result.ok).toBe(false);
+    expect(
+      result.errors.some(
+        (issue) =>
+          issue.code === "schema_invalid" &&
+          issue.path === "clips.1.effects.0.radius"
+      )
+    ).toBe(true);
+  });
+
+  it("still requires the shape every transition and effect shares", () => {
+    const noDuration = newerBuildDocument();
+    (noDuration.clips as Record<string, unknown>[])[1].transitionIn = {
+      type: "futureWipe3D"
+    };
+    expect(validateTimelineSequence(noDuration).ok).toBe(false);
+
+    const noId = newerBuildDocument();
+    (noId.clips as Record<string, unknown>[])[1].effects = [
+      { type: "filmGrain", enabled: true }
+    ];
+    expect(validateTimelineSequence(noId).ok).toBe(false);
   });
 });

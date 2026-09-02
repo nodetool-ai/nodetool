@@ -28,6 +28,7 @@ import {
   type AnimationRole,
   type WipeDirection
 } from "./types.js";
+import { parseEasing } from "./easing.js";
 
 /**
  * Reserved `preset` id marking an animation whose curves come from
@@ -281,7 +282,17 @@ export function buildCustomAnimationInputs(
 }
 
 export type CustomCurvesResult =
-  | { ok: true; curves: PropertyCurve[] }
+  | {
+      ok: true;
+      curves: PropertyCurve[];
+      /**
+       * Easing strings the grammar does not cover, in document order and
+       * de-duplicated. Not a rejection: an easing from a newer build eases
+       * linearly rather than dropping the whole animation (I2). The validator
+       * turns these into `unknown_easing` warnings.
+       */
+      unknownEasings?: string[];
+    }
   | { ok: false; error: string };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -320,7 +331,11 @@ function normalizeKeyframes(raw: readonly Keyframe[]): Keyframe[] {
   return sorted;
 }
 
-function parseCurve(raw: unknown, index: number): CustomCurvesResult {
+function parseCurve(
+  raw: unknown,
+  index: number,
+  unknownEasings: Set<string>
+): CustomCurvesResult {
   if (!isRecord(raw)) {
     return { ok: false, error: `curves[${index}] is not an object` };
   }
@@ -362,9 +377,13 @@ function parseCurve(raw: unknown, index: number): CustomCurvesResult {
     }
     const keyframe: Keyframe = { t: kf.t, value: kf.value };
     if (typeof kf.easing === "string") {
-      // Unknown easing ids fall through to linear in `ease`, matching how an
-      // unknown preset id is tolerated rather than rejected.
-      keyframe.easing = kf.easing as Keyframe["easing"];
+      // Unknown easing strings fall through to linear in `ease`, matching how
+      // an unknown preset id is tolerated rather than rejected — but they are
+      // reported, because an easing nothing parses is almost always a typo.
+      if (parseEasing(kf.easing) === null) {
+        unknownEasings.add(kf.easing);
+      }
+      keyframe.easing = kf.easing;
     }
     parsed.push(keyframe);
   }
@@ -395,8 +414,9 @@ export function normalizeCustomCurves(raw: unknown): CustomCurvesResult {
 
   const curves: PropertyCurve[] = [];
   const seen = new Set<string>();
+  const unknownEasings = new Set<string>();
   for (let i = 0; i < raw.length; i++) {
-    const parsed = parseCurve(raw[i], i);
+    const parsed = parseCurve(raw[i], i, unknownEasings);
     if (!parsed.ok) return parsed;
     const curve = parsed.curves[0];
     if (seen.has(curve.property)) {
@@ -408,7 +428,9 @@ export function normalizeCustomCurves(raw: unknown): CustomCurvesResult {
     seen.add(curve.property);
     curves.push(curve);
   }
-  return { ok: true, curves };
+  return unknownEasings.size > 0
+    ? { ok: true, curves, unknownEasings: [...unknownEasings] }
+    : { ok: true, curves };
 }
 
 /**
@@ -460,7 +482,7 @@ export function curvesFromSamples(raw: unknown): CustomCurvesResult {
       }
       const keyframe: Keyframe = { t: sample.t, value };
       if (easing !== undefined) {
-        keyframe.easing = easing as Keyframe["easing"];
+        keyframe.easing = easing;
       }
       const list = byProperty.get(key) ?? [];
       list.push(keyframe);

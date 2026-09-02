@@ -24,16 +24,20 @@ import { createCanvas, loadImage, type Canvas } from "@napi-rs/canvas";
 import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
 import type {
   ActiveLayer,
+  AnimatedLayerProps,
   Canvas2DLayer,
+  Canvas2DPrecomposite,
   CompositeContext2D,
+  CompositeSurface,
   DroppedLayerReason,
-  MaskScratch
+  RasterContext2D
 } from "@nodetool-ai/timeline/scene";
 import {
   clipSourceTimeSec,
   computeActiveLayersWithHorizon,
   createAnimationCompileCache,
   drawTimelineFrame,
+  measureTextWith,
   resolveAnimatedLayerProps,
   resolveTextStaggerContext,
   trackZ,
@@ -71,8 +75,22 @@ export interface PreviewLayerReport {
   /** Final opacity — clip opacity × transition ramp × animation. */
   opacity: number;
   blend_mode: string;
-  /** Present when an animation is masking the layer mid-wipe. */
+  /** Present when an animation or a wipe transition is masking the layer. */
   wipe?: { direction: string; progress: number };
+  /**
+   * Present while a cut is in flight over this layer. Which side of it the
+   * layer is on is what an agent otherwise cannot see in the pixels: a frame
+   * mid-push is two half-frames, and the report says which is arriving.
+   */
+  transition?: { type: string; role: string; progress: number };
+  /** Present when a shape mask is cutting the layer. */
+  mask?: { kind: string };
+  /**
+   * Present when a track matte is driving the layer's alpha. The source clip
+   * draws nothing of its own, so naming it here is the only way to see in the
+   * report that it is on the timeline at all.
+   */
+  matte?: { source_clip_id: string; mode: string; invert: boolean };
   /** The text a text or caption layer drew. */
   text?: string;
   /** Why the layer contributed no pixels, when it didn't. */
@@ -174,7 +192,14 @@ export async function renderTimelineFrames(
   // smaller and the transform math is told the reference size.
   const animationCanvas = {
     width: Math.max(1, sequence.width || 1920),
-    height: Math.max(1, sequence.height || 1080)
+    height: Math.max(1, sequence.height || 1080),
+    // A `"line"` stagger is counted against the wrapped line count, so the
+    // count measures through the same kind of context the rasterizer draws on.
+    measureText: measureTextWith(
+      // SAFETY: `RasterContext2D` is the subset of the 2D canvas API the
+      // measurement uses, and a skia context provides all of it.
+      createCanvas(1, 1).getContext("2d") as unknown as RasterContext2D
+    )
   };
   const geometry = {
     canvasWidth: width,
@@ -190,23 +215,57 @@ export async function renderTimelineFrames(
     PreviewSource
   >;
 
+  const asSurface = (canvasFor: Canvas): CompositeSurface<PreviewSource> => ({
+    // SAFETY: `CompositeContext2D` is the subset of the 2D canvas API the
+    // compositing rules use, and a skia context provides all of it.
+    ctx: canvasFor.getContext("2d") as unknown as CompositeContext2D<
+      PreviewSource
+    >,
+    surface: canvasFor
+  });
+
   let scratch: Canvas | null = null;
   const scratchFor = (
     w: number,
     h: number
-  ): MaskScratch<PreviewSource> | null => {
+  ): CompositeSurface<PreviewSource> | null => {
     const surface =
       scratch && scratch.width === w && scratch.height === h
         ? scratch
         : createCanvas(w, h);
     scratch = surface;
-    return {
-      ctx: surface.getContext("2d") as unknown as CompositeContext2D<
-        PreviewSource
-      >,
-      surface
-    };
+    return asSurface(surface);
   };
+
+  /**
+   * Precomposite surfaces, pooled across frames and handed out one at a time
+   * within a frame: a nested group holds its surface until the group above has
+   * drawn it, so they cannot share the way the wipe scratch does.
+   */
+  const precompositePool: Canvas[] = [];
+  let precompositesTaken = 0;
+  const precompositeSurfaceFor = (
+    w: number,
+    h: number
+  ): CompositeSurface<PreviewSource> | null => {
+    const index = precompositesTaken++;
+    let surface = precompositePool[index];
+    if (!surface || surface.width !== w || surface.height !== h) {
+      surface = createCanvas(w, h);
+      precompositePool[index] = surface;
+    }
+    return asSurface(surface);
+  };
+
+  /**
+   * Coverage scratch for a feathered shape mask, and the pair a matted layer
+   * composes on. Both come from the precomposite pool because it is the one
+   * that hands out a *distinct* surface per call within a frame — a feathered
+   * mask and the layer it cuts are live at the same moment, so they cannot
+   * share the single reused wipe scratch.
+   */
+  const maskSurfaceFor = precompositeSurfaceFor;
+  const matteSurfaceFor = precompositeSurfaceFor;
 
   const assetBytes = new Map<string, Promise<Uint8Array | null>>();
   const bytesFor = (assetId: string): Promise<Uint8Array | null> => {
@@ -223,19 +282,181 @@ export async function renderTimelineFrames(
   const effectsNotApplied = new Set<string>();
 
   for (const timeMs of options.timesMs) {
-    const { layers: active, droppedLayers } = computeActiveLayersWithHorizon(
+    const {
+      layers: active,
+      precomposites,
+      droppedLayers
+    } = computeActiveLayersWithHorizon(
       sequence.tracks,
       sequence.clips,
-      timeMs
+      timeMs,
+      // Group transforms are authored against the sequence resolution, the
+      // same space the animations are sampled in.
+      { canvas: animationCanvas, animationCache: animCache }
     );
-    for (const type of unsupportedEffectTypes(active)) {
+    const drawPrecomposites: Canvas2DPrecomposite[] = precomposites.map(
+      (group) => ({
+        id: group.clipId,
+        zIndex: trackZ(group.trackIndex),
+        opacity: group.opacity,
+        blendMode: group.blendMode,
+        effects: group.effects,
+        precomposeGroupId: group.precomposeGroupId
+      })
+    );
+    // A group's effects run on its composed surface, so they are named here
+    // beside the layers' own — otherwise a group effect this path cannot draw
+    // would go unreported (I7).
+    for (const type of unsupportedEffectTypes([
+      ...active,
+      ...drawPrecomposites
+    ])) {
       effectsNotApplied.add(type);
     }
+    precompositesTaken = 0;
 
     const drawLayers: Canvas2DLayer<PreviewSource>[] = [];
     const reports: PreviewLayerReport[] = [];
     /** Which report each drawn layer belongs to, matched by identity. */
     const reportFor = new Map<Canvas2DLayer<PreviewSource>, PreviewLayerReport>();
+
+    /**
+     * The pixels a layer draws, and whether it composites frame-sized and
+     * untransformed (a caption does). A string is the reason it draws nothing.
+     */
+    type LayerSource =
+      | {
+          source: PreviewSource;
+          width: number;
+          height: number;
+          untransformed?: boolean;
+        }
+      | { skipped: string };
+
+    const sourceForLayer = async (
+      layer: ActiveLayer
+    ): Promise<LayerSource> => {
+      if (layer.kind === "caption" && layer.caption) {
+        const raster = rasterizer.caption(layer.caption);
+        if (!raster) return { skipped: "nothing to draw" };
+        return {
+          source: raster,
+          width: raster.width,
+          height: raster.height,
+          untransformed: true
+        };
+      }
+      if (layer.kind === "text" && layer.textStyle) {
+        const stagger = resolveTextStaggerContext(
+          layer.clip,
+          timeMs,
+          animationCanvas,
+          animCache
+        );
+        const raster = rasterizer.text(layer.textStyle, stagger);
+        if (!raster) return { skipped: "nothing to draw" };
+        return { source: raster, width: raster.width, height: raster.height };
+      }
+      if (layer.kind === "shape" && layer.shapeStyle) {
+        const raster = rasterizer.shape(layer.shapeStyle);
+        if (!raster) return { skipped: "nothing to draw" };
+        return { source: raster, width: raster.width, height: raster.height };
+      }
+
+      if (!layer.assetId) {
+        return {
+          skipped:
+            layer.clip.status === "draft"
+              ? "clip has no rendered media yet (status: draft)"
+              : `clip has no asset to draw (status: ${layer.clip.status})`
+        };
+      }
+
+      const bytes = await bytesFor(layer.assetId);
+      if (!bytes || bytes.byteLength === 0) {
+        return { skipped: `asset ${layer.assetId} could not be read` };
+      }
+
+      if (layer.kind === "video") {
+        const frame = await decodeVideoFrameAt(bytes, layer.clip, timeMs);
+        if (!frame) {
+          return {
+            skipped: `no decodable frame at ${Math.round(
+              clipSourceTimeSec(layer.clip, timeMs) * 1000
+            )}ms into the source`
+          };
+        }
+        return {
+          source: frame.canvas,
+          width: frame.width,
+          height: frame.height
+        };
+      }
+
+      let image = decodedImages.get(layer.assetId);
+      if (image === undefined) {
+        image = await loadImage(Buffer.from(bytes)).catch(() => null);
+        decodedImages.set(layer.assetId, image);
+      }
+      if (!image) {
+        return { skipped: `asset ${layer.assetId} is not a decodable image` };
+      }
+      return { source: image, width: image.width, height: image.height };
+    };
+
+    /**
+     * An active layer as something the Canvas 2D rules can draw, or the reason
+     * it draws nothing. `resolved` is the caller's own animation sample, since
+     * the report already needed it; a matte source has none and takes its own.
+     */
+    const toDrawLayer = async (
+      layer: ActiveLayer,
+      sampled?: AnimatedLayerProps
+    ): Promise<Canvas2DLayer<PreviewSource> | string> => {
+      const resolved = await sourceForLayer(layer);
+      if ("skipped" in resolved) return resolved.skipped;
+      const anim =
+        sampled ??
+        resolveAnimatedLayerProps(layer, timeMs, animationCanvas, animCache);
+      const drawn: Canvas2DLayer<PreviewSource> = {
+        source: resolved.source,
+        sourceWidth: resolved.width,
+        sourceHeight: resolved.height,
+        opacity: anim.opacity,
+        blendMode: layer.blendMode,
+        zIndex: trackZ(layer.trackIndex),
+        precomposeGroupId: layer.precomposeGroupId,
+        mask: anim.mask
+      };
+      if (resolved.untransformed) {
+        // Captions are drawn at frame resolution and composite untransformed —
+        // by the clip's transform, by its group's, and by its effects. The
+        // cut's opacity is already in `opacity`; leaving the record off keeps
+        // its geometry — and a dip's one solid — off a layer that composites
+        // untransformed anyway.
+        return drawn;
+      }
+      drawn.transform = anim.transform;
+      drawn.parentMatrix = layer.parentMatrix;
+      drawn.borderRadius = layer.borderRadius;
+      drawn.shapeMask = layer.shapeMask;
+      drawn.effects = anim.effects ?? layer.effects;
+      drawn.trackEffects = layer.trackEffects;
+      drawn.transition = layer.transition;
+      if (layer.matte) {
+        // A matte source is not in `active` — the scene model held it back —
+        // so it is decoded and placed here and nowhere else.
+        const matteLayer = await toDrawLayer(layer.matte.layer);
+        if (typeof matteLayer !== "string") {
+          drawn.matte = {
+            mode: layer.matte.mode,
+            invert: layer.matte.invert,
+            layer: matteLayer
+          };
+        }
+      }
+      return drawn;
+    };
 
     for (const layer of active) {
       const anim = resolveAnimatedLayerProps(
@@ -255,126 +476,47 @@ export async function renderTimelineFrames(
         blend_mode: String(layer.blendMode),
         text: layerText(layer)
       };
-      if (anim.mask) {
+      const wipeMask = anim.mask ?? layer.transition?.mask;
+      if (wipeMask) {
         report.wipe = {
-          direction: anim.mask.direction,
-          progress: Number(anim.mask.progress.toFixed(3))
+          direction: wipeMask.direction,
+          progress: Number(wipeMask.progress.toFixed(3))
+        };
+      }
+      if (layer.transition) {
+        report.transition = {
+          type: layer.transition.type,
+          role: layer.transition.role,
+          progress: Number(layer.transition.progress.toFixed(3))
+        };
+      }
+      if (layer.shapeMask) report.mask = { kind: layer.shapeMask.kind };
+      if (layer.matte) {
+        report.matte = {
+          source_clip_id: layer.matte.layer.clipId,
+          mode: layer.matte.mode,
+          invert: layer.matte.invert
         };
       }
       reports.push(report);
 
-      const common = {
-        opacity: anim.opacity,
-        blendMode: layer.blendMode,
-        zIndex,
-        transform: anim.transform,
-        mask: anim.mask,
-        borderRadius: layer.borderRadius,
-        effects: anim.effects ?? layer.effects,
-        trackEffects: layer.trackEffects
-      };
-
-      const addLayer = (
-        source: PreviewSource,
-        sourceWidth: number,
-        sourceHeight: number,
-        overrides?: Partial<Canvas2DLayer<PreviewSource>>
-      ) => {
-        const drawn: Canvas2DLayer<PreviewSource> = {
-          ...common,
-          ...overrides,
-          source,
-          sourceWidth,
-          sourceHeight
-        };
-        drawLayers.push(drawn);
-        reportFor.set(drawn, report);
-      };
-
-      const addRaster = (source: Canvas | null, untransformed = false) => {
-        if (!source) {
-          report.skipped = "nothing to draw";
-          return;
-        }
-        addLayer(
-          source,
-          source.width,
-          source.height,
-          // Captions are drawn at frame resolution and composite untransformed.
-          untransformed
-            ? {
-                transform: undefined,
-                borderRadius: undefined,
-                effects: undefined,
-                trackEffects: undefined
-              }
-            : undefined
-        );
-      };
-
-      if (layer.kind === "caption" && layer.caption) {
-        addRaster(rasterizer.caption(layer.caption), true);
+      const drawn = await toDrawLayer(layer, anim);
+      if (typeof drawn === "string") {
+        report.skipped = drawn;
         continue;
       }
-      if (layer.kind === "text" && layer.textStyle) {
-        const stagger = resolveTextStaggerContext(
-          layer.clip,
-          timeMs,
-          animationCanvas,
-          animCache
-        );
-        addRaster(rasterizer.text(layer.textStyle, stagger));
-        continue;
-      }
-      if (layer.kind === "shape" && layer.shapeStyle) {
-        addRaster(rasterizer.shape(layer.shapeStyle));
-        continue;
-      }
-
-      if (!layer.assetId) {
-        report.skipped =
-          layer.clip.status === "draft"
-            ? "clip has no rendered media yet (status: draft)"
-            : `clip has no asset to draw (status: ${layer.clip.status})`;
-        continue;
-      }
-
-      const bytes = await bytesFor(layer.assetId);
-      if (!bytes || bytes.byteLength === 0) {
-        report.skipped = `asset ${layer.assetId} could not be read`;
-        continue;
-      }
-
-      if (layer.kind === "video") {
-        const frame = await decodeVideoFrameAt(bytes, layer.clip, timeMs);
-        if (!frame) {
-          report.skipped = `no decodable frame at ${Math.round(
-            clipSourceTimeSec(layer.clip, timeMs) * 1000
-          )}ms into the source`;
-          continue;
-        }
-        addLayer(frame.canvas, frame.width, frame.height);
-        continue;
-      }
-
-      let image = decodedImages.get(layer.assetId);
-      if (image === undefined) {
-        image = await loadImage(Buffer.from(bytes)).catch(() => null);
-        decodedImages.set(layer.assetId, image);
-      }
-      if (!image) {
-        report.skipped = `asset ${layer.assetId} is not a decodable image`;
-        continue;
-      }
-      addLayer(image, image.width, image.height);
+      drawLayers.push(drawn);
+      reportFor.set(drawn, report);
     }
 
-    for (const layer of drawTimelineFrame(
-      ctx,
-      drawLayers,
-      geometry,
-      scratchFor
-    )) {
+
+    for (const layer of drawTimelineFrame(ctx, drawLayers, geometry, {
+      maskScratch: scratchFor,
+      precomposites: drawPrecomposites,
+      precompositeSurface: precompositeSurfaceFor,
+      maskSurface: maskSurfaceFor,
+      matteSurface: matteSurfaceFor
+    })) {
       const report = reportFor.get(layer);
       if (report) report.skipped = "source could not be drawn";
     }

@@ -327,3 +327,324 @@ describe("animate_clip custom curves", () => {
     ).toMatchObject({ fold: "multiply", range: "0..1" });
   });
 });
+
+describe("set_transition", () => {
+  async function bridgeWithTwoClips() {
+    const bridge = createTimelineToolBridge({
+      tracks: [{ type: "video" }],
+      clips: [
+        {
+          name: "shot a",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 0,
+          durationMs: 2000
+        },
+        {
+          name: "shot b",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 1600,
+          durationMs: 2000
+        }
+      ]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    return { bridge, byName };
+  }
+
+  const clipNamed = (
+    bridge: { finalState: () => TimelineBridgeFinalState },
+    name: string
+  ) => bridge.finalState().documentClips.find((c) => c.name === name);
+
+  it("writes the cut onto the incoming clip", async () => {
+    const { bridge, byName } = await bridgeWithTwoClips();
+    await byName["ui_timeline_set_transition"].execute({
+      target: "shot b",
+      transition: {
+        type: "wipe",
+        durationMs: 400,
+        direction: "up",
+        softness: 0.1,
+        easing: "easeOut"
+      }
+    });
+
+    expect(clipNamed(bridge, "shot b")?.transitionIn).toEqual({
+      type: "wipe",
+      durationMs: 400,
+      direction: "up",
+      softness: 0.1,
+      easing: "easeOut"
+    });
+    // Authored on the incoming clip only: the outgoing partner is found at
+    // render time, not written to (D5).
+    expect(clipNamed(bridge, "shot a")?.transitionIn).toBeUndefined();
+  });
+
+  it("clears the cut with a null transition", async () => {
+    const { bridge, byName } = await bridgeWithTwoClips();
+    const set = byName["ui_timeline_set_transition"];
+    await set.execute({
+      target: "shot b",
+      transition: { type: "zoom", durationMs: 300 }
+    });
+    await set.execute({ target: "shot b", transition: null });
+    expect(clipNamed(bridge, "shot b")?.transitionIn).toBeUndefined();
+  });
+
+  it("refuses a target no clip matches", async () => {
+    const { byName } = await bridgeWithTwoClips();
+    await expect(
+      byName["ui_timeline_set_transition"].execute({
+        target: "shot z",
+        transition: { type: "crossfade", durationMs: 300 }
+      })
+    ).rejects.toThrow(/shot z/);
+  });
+
+  it("refuses a type this build cannot draw", async () => {
+    const { byName } = await bridgeWithTwoClips();
+    // The schema rejects before the impl runs, so this throws rather than
+    // rejecting — an agent gets the list of types back in the error.
+    expect(() =>
+      byName["ui_timeline_set_transition"].execute({
+        target: "shot b",
+        transition: { type: "flip", durationMs: 300 }
+      })
+    ).toThrow(/crossfade/);
+  });
+});
+
+describe("set_mask and set_matte", () => {
+  async function bridgeWithTwoClips() {
+    const bridge = createTimelineToolBridge({
+      tracks: [{ type: "video" }, { type: "video" }],
+      clips: [
+        {
+          name: "shot a",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 0,
+          durationMs: 2000
+        },
+        {
+          name: "key",
+          trackIndex: 1,
+          mediaType: "video",
+          startMs: 0,
+          durationMs: 2000
+        }
+      ]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    return { bridge, byName };
+  }
+
+  const clipNamed = (
+    bridge: { finalState: () => TimelineBridgeFinalState },
+    name: string
+  ) => bridge.finalState().documentClips.find((c) => c.name === name);
+
+  it("writes a shape mask onto the clip", async () => {
+    const { bridge, byName } = await bridgeWithTwoClips();
+    await byName["ui_timeline_set_mask"].execute({
+      target: "shot a",
+      mask: { kind: "ellipse", x: 0.2, y: 0.1, width: 0.6, height: 0.8, featherPx: 12 }
+    });
+
+    expect(clipNamed(bridge, "shot a")?.mask).toEqual({
+      kind: "ellipse",
+      x: 0.2,
+      y: 0.1,
+      width: 0.6,
+      height: 0.8,
+      featherPx: 12
+    });
+  });
+
+  it("keeps a rect's bounds off a path mask", async () => {
+    // A `d` on a rect — or bounds on a path — would be stored and stripped on
+    // the next save, which reads as a `field_stripped` warning about a field
+    // that never meant anything.
+    const { bridge, byName } = await bridgeWithTwoClips();
+    await byName["ui_timeline_set_mask"].execute({
+      target: "shot a",
+      mask: { kind: "path", d: "M 0 0 L 1 1 Z", x: 0.5, width: 0.2 }
+    });
+    const mask = clipNamed(bridge, "shot a")?.mask;
+    expect(mask?.d).toBe("M 0 0 L 1 1 Z");
+    expect(mask?.x).toBeUndefined();
+    expect(mask?.width).toBeUndefined();
+  });
+
+  it("clears the mask with a null", async () => {
+    const { bridge, byName } = await bridgeWithTwoClips();
+    const set = byName["ui_timeline_set_mask"];
+    await set.execute({ target: "shot a", mask: { kind: "rect" } });
+    await set.execute({ target: "shot a", mask: null });
+    expect(clipNamed(bridge, "shot a")?.mask).toBeUndefined();
+  });
+
+  it("refuses path data the renderer could not draw", async () => {
+    const { byName } = await bridgeWithTwoClips();
+    await expect(
+      byName["ui_timeline_set_mask"].execute({
+        target: "shot a",
+        mask: { kind: "path", d: "M 0 0 A 1 1 0 0 1 1 1" }
+      })
+    ).rejects.toThrow(/path data/);
+  });
+
+  it("refuses a kind this build cannot rasterize", async () => {
+    const { byName } = await bridgeWithTwoClips();
+    expect(() =>
+      byName["ui_timeline_set_mask"].execute({
+        target: "shot a",
+        mask: { kind: "star" }
+      })
+    ).toThrow(/ellipse/);
+  });
+
+  it("resolves a matte source by name and stores its id", async () => {
+    const { bridge, byName } = await bridgeWithTwoClips();
+    await byName["ui_timeline_set_matte"].execute({
+      target: "shot a",
+      matte: { source: "key", mode: "luma", invert: true }
+    });
+    const key = clipNamed(bridge, "key");
+    expect(clipNamed(bridge, "shot a")?.matte).toEqual({
+      sourceClipId: key?.id,
+      mode: "luma",
+      invert: true
+    });
+  });
+
+  it("refuses a clip as its own matte source", async () => {
+    const { byName } = await bridgeWithTwoClips();
+    await expect(
+      byName["ui_timeline_set_matte"].execute({
+        target: "shot a",
+        matte: { source: "shot a", mode: "alpha" }
+      })
+    ).rejects.toThrow(/own matte source/);
+  });
+
+  it("refuses a matte source no clip matches", async () => {
+    const { byName } = await bridgeWithTwoClips();
+    await expect(
+      byName["ui_timeline_set_matte"].execute({
+        target: "shot a",
+        matte: { source: "nothing", mode: "alpha" }
+      })
+    ).rejects.toThrow(/nothing/);
+  });
+
+  it("clears the matte with a null", async () => {
+    const { bridge, byName } = await bridgeWithTwoClips();
+    const set = byName["ui_timeline_set_matte"];
+    await set.execute({ target: "shot a", matte: { source: "key", mode: "alpha" } });
+    await set.execute({ target: "shot a", matte: null });
+    expect(clipNamed(bridge, "shot a")?.matte).toBeUndefined();
+  });
+});
+
+describe("set_effects", () => {
+  async function bridgeWithOneClip() {
+    const bridge = createTimelineToolBridge({
+      tracks: [{ type: "video" }],
+      clips: [
+        {
+          name: "shot a",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 0,
+          durationMs: 2000
+        }
+      ]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    return { bridge, byName };
+  }
+
+  const effectsOf = (bridge: { finalState: () => TimelineBridgeFinalState }) =>
+    bridge.finalState().documentClips.find((c) => c.name === "shot a")?.effects;
+
+  it("writes the chain in the order it was given", async () => {
+    const { bridge, byName } = await bridgeWithOneClip();
+    await byName["ui_timeline_set_effects"].execute({
+      target: "shot a",
+      effects: [
+        { type: "chromaKey", color: "#00ff00", tolerance: 0.25 },
+        { type: "glow", radius: 12, intensity: 0.8 }
+      ]
+    });
+
+    expect(effectsOf(bridge)).toEqual([
+      {
+        id: "fx-1",
+        type: "chromaKey",
+        enabled: true,
+        color: "#00ff00",
+        tolerance: 0.25,
+        softness: 0.05,
+        spill: undefined
+      },
+      {
+        id: "fx-2",
+        type: "glow",
+        enabled: true,
+        radius: 12,
+        intensity: 0.8,
+        color: undefined
+      }
+    ]);
+  });
+
+  it("replaces the chain rather than appending to it", async () => {
+    const { bridge, byName } = await bridgeWithOneClip();
+    const set = byName["ui_timeline_set_effects"];
+    await set.execute({ target: "shot a", effects: [{ type: "blur", radius: 6 }] });
+    await set.execute({
+      target: "shot a",
+      effects: [{ type: "vignette", amount: 0.4, softness: 0.3 }]
+    });
+
+    expect(effectsOf(bridge)?.map((e) => e.type)).toEqual(["vignette"]);
+  });
+
+  it("clears the chain with an empty list", async () => {
+    const { bridge, byName } = await bridgeWithOneClip();
+    const set = byName["ui_timeline_set_effects"];
+    await set.execute({ target: "shot a", effects: [{ type: "blur", radius: 6 }] });
+    await set.execute({ target: "shot a", effects: [] });
+
+    expect(effectsOf(bridge)).toBeUndefined();
+  });
+
+  it("keeps a levels' knobs off a glow — the type decides the fields", async () => {
+    // A flat input object is all a tool call can express, so an `inBlack` sent
+    // with a glow would be stored and stripped on the next save, which reads as
+    // a `field_stripped` warning about a field that never meant anything.
+    const { bridge, byName } = await bridgeWithOneClip();
+    await byName["ui_timeline_set_effects"].execute({
+      target: "shot a",
+      effects: [{ type: "glow", radius: 9, intensity: 1, inBlack: 0.5 }]
+    });
+
+    expect(effectsOf(bridge)?.[0]).not.toHaveProperty("inBlack");
+  });
+
+  it("refuses a type this build cannot apply", async () => {
+    const { byName } = await bridgeWithOneClip();
+    // The schema rejects before the impl runs, so an agent gets the list of
+    // types back in the error rather than a clip carrying a dead effect.
+    expect(() =>
+      byName["ui_timeline_set_effects"].execute({
+        target: "shot a",
+        effects: [{ type: "halation", radius: 12 }]
+      })
+    ).toThrow(/liftGammaGain/);
+  });
+});

@@ -605,13 +605,33 @@ export interface ClipTimeRemap {
  * outgoing clip it overlaps on the same track. `easing` takes the same string
  * grammar animations take; an unparseable one falls back to linear.
  */
-export type ClipTransition =
+export type ClipTransition = KnownClipTransition | UnknownClipTransition;
+
+/** The cuts this build draws, each spelled out field by field. */
+export type KnownClipTransition =
   | ClipCrossfadeTransition
   | ClipDipToColorTransition
   | ClipWipeTransition
   | ClipPushTransition
   | ClipSlideTransition
   | ClipZoomTransition;
+
+/**
+ * A cut whose `type` this build does not draw, carried rather than refused
+ * (I2). `resolveTransition` cross-fades it and the validator reports
+ * `unknown_transition`; the fields the authoring build wrote survive the round
+ * trip under the index signature, so saving the document does not strip them.
+ *
+ * Its `type` is a plain `string`, so a `type === "wipe"` test narrows this
+ * member in too. Readers that want a field only some types carry check the
+ * value with `typeof` rather than trusting the narrowing.
+ */
+export interface UnknownClipTransition {
+  type: string;
+  durationMs: number;
+  easing?: string;
+  [key: string]: unknown;
+}
 
 export interface ClipCrossfadeTransition {
   type: "crossfade";
@@ -681,7 +701,10 @@ export interface ClipTransform {
  * the compositor filters the chain on `enabled` and pools intermediates per
  * effect, so both are part of the union's shared shape.
  */
-export type ClipEffect =
+export type ClipEffect = KnownClipEffect | UnknownClipEffect;
+
+/** The effects this build applies, each spelled out field by field. */
+export type KnownClipEffect =
   | ClipColorEffect
   | ClipBlurEffect
   | ClipGlowEffect
@@ -692,6 +715,90 @@ export type ClipEffect =
   | ClipCurvesEffect
   | ClipLevelsEffect
   | ClipLiftGammaGainEffect;
+
+/**
+ * An effect whose `type` this build does not apply, carried rather than
+ * refused (I2). `id` and `enabled` are the shared shape every compositor
+ * addresses the chain by; the parameters the authoring build wrote survive the
+ * round trip under the index signature. Canvas 2D already names an
+ * unapplied type in `unsupportedEffectTypes`, so it is reported, not dropped.
+ *
+ * As with {@link UnknownClipTransition}, its `type` is a plain `string`: a
+ * `type === "blur"` test does not exclude this member, so the narrowing
+ * predicates below are what readers use to reach a known effect's fields.
+ */
+export interface UnknownClipEffect {
+  id: string;
+  type: string;
+  enabled: boolean;
+  [key: string]: unknown;
+}
+
+/**
+ * Narrow the chain to one known effect type. A plain `e.type === "color"` no
+ * longer does it: {@link UnknownClipEffect} carries a `string` type, so it
+ * survives that test and its index signature turns every field read into
+ * `unknown`. These predicates keep the reads typed.
+ */
+export const isClipColorEffect = (e: ClipEffect): e is ClipColorEffect =>
+  e.type === "color";
+
+export const isClipBlurEffect = (e: ClipEffect): e is ClipBlurEffect =>
+  e.type === "blur";
+
+export const isClipGlowEffect = (e: ClipEffect): e is ClipGlowEffect =>
+  e.type === "glow";
+
+export const isClipDropShadowEffect = (
+  e: ClipEffect
+): e is ClipDropShadowEffect => e.type === "dropShadow";
+
+export const isClipVignetteEffect = (e: ClipEffect): e is ClipVignetteEffect =>
+  e.type === "vignette";
+
+export const isClipSharpenEffect = (e: ClipEffect): e is ClipSharpenEffect =>
+  e.type === "sharpen";
+
+export const isClipChromaKeyEffect = (
+  e: ClipEffect
+): e is ClipChromaKeyEffect => e.type === "chromaKey";
+
+export const isClipCurvesEffect = (e: ClipEffect): e is ClipCurvesEffect =>
+  e.type === "curves";
+
+export const isClipLevelsEffect = (e: ClipEffect): e is ClipLevelsEffect =>
+  e.type === "levels";
+
+export const isClipLiftGammaGainEffect = (
+  e: ClipEffect
+): e is ClipLiftGammaGainEffect => e.type === "liftGammaGain";
+
+/**
+ * Effect types this build applies. Anything else parses and rides through as an
+ * {@link UnknownClipEffect} (I2); the validator reports it as `unknown_effect`
+ * and Canvas 2D names it in `unsupportedEffectTypes`.
+ */
+export const CLIP_EFFECT_TYPES = [
+  "color",
+  "blur",
+  "glow",
+  "dropShadow",
+  "vignette",
+  "sharpen",
+  "chromaKey",
+  "curves",
+  "levels",
+  "liftGammaGain"
+] as const;
+
+export type ClipEffectType = (typeof CLIP_EFFECT_TYPES)[number];
+
+/** Narrow a document's effect `type` to one this build applies, or `null`. */
+export function parseClipEffectType(type: string): ClipEffectType | null {
+  return (CLIP_EFFECT_TYPES as readonly string[]).includes(type)
+    ? (type as ClipEffectType)
+    : null;
+}
 
 /** One control point of a tone curve. Both axes are normalized 0..1. */
 export interface CurvePoint {

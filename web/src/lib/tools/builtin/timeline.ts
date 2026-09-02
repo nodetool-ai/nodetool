@@ -2,7 +2,8 @@ import { z } from "zod";
 import {
   ANIMATED_PROPERTIES,
   ANIMATION_PRESETS,
-  CUSTOM_ANIMATION_CONTRACT
+  CUSTOM_ANIMATION_CONTRACT,
+  STAGGER_UNITS
 } from "@nodetool-ai/timeline";
 import { FrontendToolRegistry } from "../frontendTools";
 import { getTimelineAgentHandler } from "../../../components/timeline/timelineAgentBridge";
@@ -421,7 +422,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_animate_clip",
   description:
-    'Attach motion-design animations to a clip — no keyframing, just named presets. Roles: `in` (entrance: fade, slide, pop, spin, wipe, blur, colorFade), `out` (exit: fade, slide, pop, spin, wipe, blur, colorFade), `emphasis` (mid-clip: pulse, flash, shake, bounce), `loop` (continuous: kenBurns, float, breathe, rotate). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. On text clips, add `stagger` for per-word motion typography: each word runs the animation for `durationMs`, offset `stagger.offsetMs` from the previous word (`from`: start|end|center picks the leading word) — e.g. a pop-in title whose words land one after another. For motion no preset covers, use `preset: "custom"` with exactly one of `curves` (keyframes you write: [{property, keyframes:[{t, value, easing?}]}], `t` running 0..1 over the window) or `code` (a JS body baked into curves once); add `mask` when a curve drives wipeProgress. `mode` "replace" (default) swaps the clip\'s animations; "add" appends. Call ui_timeline_list_animation_presets for the full param list and the animatable properties. Recommended loop: ui_timeline_get_state -> animate -> ui_timeline_get_clip_frames at the window boundaries -> adjust.',
+    'Attach motion-design animations to a clip — no keyframing, just named presets. Roles: `in` (entrance: fade, slide, pop, spin, wipe, blur, colorFade), `out` (exit: fade, slide, pop, spin, wipe, blur, colorFade), `emphasis` (mid-clip: pulse, flash, shake, bounce, squash), `loop` (continuous: kenBurns, float, breathe, rotate, hueShift). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. On text clips, add `stagger` for motion typography: each unit — `unit: "word"`, `"character"` (grapheme clusters; the space between words is timed and draws nothing) or `"line"` (wrapped lines) — runs the animation for `durationMs`, offset `stagger.offsetMs` from the previous one (`from`: start|end|center picks the leading unit) — e.g. a pop-in title whose words land one after another. For motion no preset covers, use `preset: "custom"` with exactly one of `curves` (keyframes you write: [{property, keyframes:[{t, value, easing?}]}], `t` running 0..1 over the window) or `code` (a JS body baked into curves once); add `mask` when a curve drives wipeProgress. `mode` "replace" (default) swaps the clip\'s animations; "add" appends. Call ui_timeline_list_animation_presets for the full param list and the animatable properties. Recommended loop: ui_timeline_get_state -> animate -> ui_timeline_get_clip_frames at the window boundaries -> adjust.',
   parameters: z.object({
     timeline_id: timelineIdParam,
     target: targetParam,
@@ -446,16 +447,16 @@ FrontendToolRegistry.register({
           mask: customMaskParam,
           stagger: z
             .object({
-              unit: z.literal("word"),
+              unit: z.enum(STAGGER_UNITS),
               offsetMs: z
                 .number()
                 .positive()
-                .describe("Delay between successive words in ms."),
+                .describe("Delay between successive units in ms."),
               from: z.enum(["start", "end", "center"]).optional()
             })
             .optional()
             .describe(
-              "Per-word stagger — text clips only. The animation runs once per word, each word offset from the previous."
+              "Per-unit stagger — text clips only. The animation runs once per word, grapheme cluster or wrapped line, each unit offset from the previous."
             )
         })
       )

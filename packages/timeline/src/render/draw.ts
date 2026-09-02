@@ -8,9 +8,24 @@
  * host's bitmap type stay with the caller — everything here just draws.
  */
 
-import type { ClipShapeStyle, ClipTextStyle } from "../types.js";
-import type { AnimationSample, CompiledAnimation } from "../animation/index.js";
-import { sampleStaggeredAnimations } from "../animation/index.js";
+import type { ClipMask, ClipShapeStyle, ClipTextStyle } from "../types.js";
+import type {
+  AnimationSample,
+  CompiledAnimation,
+  StaggerUnit
+} from "../animation/index.js";
+import {
+  createAnimationSample,
+  sampleStaggeredAnimations
+} from "../animation/index.js";
+import type { MeasureTextWidth } from "./textLayout.js";
+import { parseSvgPath, tracePath } from "./svgPath.js";
+import {
+  layoutStaggerUnits,
+  textFontSpec,
+  textMaxWidthPx,
+  wrapTextLines
+} from "./textLayout.js";
 
 /**
  * A fill or stroke paint. Canvas also accepts gradients and patterns, which
@@ -19,20 +34,43 @@ import { sampleStaggeredAnimations } from "../animation/index.js";
  */
 export type CanvasPaint = string | object;
 
-/** The Canvas 2D surface the rasterizers draw through. */
-export interface RasterContext2D {
-  font: string;
+/** The gradient object `createLinearGradient` / `createRadialGradient` vend. */
+export interface CanvasGradient2D {
+  addColorStop(offset: number, color: string): void;
+}
+
+/**
+ * The Canvas 2D surface a mask rasterizes through: paths, gradients, composite
+ * ops and a filter.
+ *
+ * Its own interface rather than more members on {@link RasterContext2D},
+ * because both the rasterizers and the Canvas 2D compositor draw masks and
+ * their contexts have otherwise disjoint needs — `CompositeContext2D` extends
+ * this too, so `drawMask` runs on a compositing scratch surface without a cast
+ * (I6). Every member is satisfied by `OffscreenCanvasRenderingContext2D`, a DOM
+ * canvas context and `@napi-rs/canvas`.
+ */
+export interface MaskContext2D {
   fillStyle: CanvasPaint;
-  strokeStyle: CanvasPaint;
-  lineWidth: number;
-  lineJoin: string;
-  textAlign: string;
-  textBaseline: string;
-  globalAlpha: number;
-  measureText(text: string): { width: number };
-  fillText(text: string, x: number, y: number): void;
-  strokeText(text: string, x: number, y: number): void;
+  filter: string;
+  globalCompositeOperation: string;
+  save(): void;
+  restore(): void;
+  translate(x: number, y: number): void;
+  scale(x: number, y: number): void;
   beginPath(): void;
+  closePath(): void;
+  moveTo(x: number, y: number): void;
+  lineTo(x: number, y: number): void;
+  bezierCurveTo(
+    cp1x: number,
+    cp1y: number,
+    cp2x: number,
+    cp2y: number,
+    x: number,
+    y: number
+  ): void;
+  quadraticCurveTo(cpx: number, cpy: number, x: number, y: number): void;
   rect(x: number, y: number, w: number, h: number): void;
   ellipse(
     x: number,
@@ -43,15 +81,40 @@ export interface RasterContext2D {
     startAngle: number,
     endAngle: number
   ): void;
-  moveTo(x: number, y: number): void;
-  lineTo(x: number, y: number): void;
-  fill(): void;
+  fill(fillRule?: string): void;
+  clip(fillRule?: string): void;
+  clearRect(x: number, y: number, w: number, h: number): void;
+  fillRect(x: number, y: number, w: number, h: number): void;
+  createLinearGradient(
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number
+  ): CanvasGradient2D;
+  createRadialGradient(
+    x0: number,
+    y0: number,
+    r0: number,
+    x1: number,
+    y1: number,
+    r1: number
+  ): CanvasGradient2D;
+}
+
+/** The Canvas 2D surface the rasterizers draw through. */
+export interface RasterContext2D extends MaskContext2D {
+  font: string;
+  strokeStyle: CanvasPaint;
+  lineWidth: number;
+  lineJoin: string;
+  textAlign: string;
+  textBaseline: string;
+  globalAlpha: number;
+  measureText(text: string): { width: number };
+  fillText(text: string, x: number, y: number): void;
+  strokeText(text: string, x: number, y: number): void;
   stroke(): void;
-  save(): void;
-  restore(): void;
-  translate(x: number, y: number): void;
   rotate(angle: number): void;
-  scale(x: number, y: number): void;
 }
 
 // ── Captions ─────────────────────────────────────────────────────────────────
@@ -164,6 +227,19 @@ export function drawCaption(
   }
 }
 
+/**
+ * A {@link MeasureTextWidth} backed by a 2D context. A host hands one to the
+ * scene model so a `"line"` stagger is counted against the same wrap the
+ * rasterizer draws through; the context is measured, never drawn to, so a
+ * 1×1 scratch canvas is enough.
+ */
+export function measureTextWith(ctx: RasterContext2D): MeasureTextWidth {
+  return (text, font) => {
+    ctx.font = font;
+    return ctx.measureText(text).width;
+  };
+}
+
 // ── Text clips ───────────────────────────────────────────────────────────────
 
 /** Content signature of a text raster, for host-side caching. */
@@ -175,88 +251,7 @@ export function textStyleSignature(
   return `${width}x${height}|${style.text}|${style.fontFamily ?? "Inter"}|${style.fontSizePx}|${style.fontWeight ?? 400}|${style.color}|${style.align ?? "center"}|${style.maxWidthFrac ?? 0.8}`;
 }
 
-interface TextLayoutWord {
-  text: string;
-  /** Left edge in canvas px. */
-  x: number;
-  width: number;
-  /** Vertical center of the word's line (textBaseline "middle"). */
-  y: number;
-}
-
-interface WrappedLine {
-  text: string;
-  words: string[];
-}
-
-/**
- * Greedy word-wrap by measured candidate width — the one wrap rule for both
- * draw paths, so a staggered title breaks lines exactly like its
- * un-staggered self.
- */
-function wrapLines(
-  ctx: RasterContext2D,
-  text: string,
-  maxWidth: number
-): WrappedLine[] {
-  const lines: WrappedLine[] = [];
-  for (const paragraph of text.split(/\r?\n/)) {
-    const words = paragraph.split(/\s+/).filter(Boolean);
-    let line = "";
-    let lineWords: string[] = [];
-    for (const word of words) {
-      const candidate = line ? `${line} ${word}` : word;
-      if (line && ctx.measureText(candidate).width > maxWidth) {
-        lines.push({ text: line, words: lineWords });
-        line = word;
-        lineWords = [word];
-      } else {
-        line = candidate;
-        lineWords.push(word);
-      }
-    }
-    lines.push({ text: line, words: lineWords });
-  }
-  return lines;
-}
-
-/** Word-wrap `style.text` into positioned word boxes. */
-function layoutWords(
-  ctx: RasterContext2D,
-  style: ClipTextStyle,
-  width: number,
-  height: number
-): TextLayoutWord[] {
-  const fontSize = Math.max(1, style.fontSizePx);
-  const align = style.align ?? "center";
-  const maxWidth =
-    width * Math.min(1, Math.max(0.05, style.maxWidthFrac ?? 0.8));
-  const lines = wrapLines(ctx, style.text, maxWidth);
-  const spaceWidth = ctx.measureText(" ").width;
-  const lineHeight = fontSize * 1.2;
-  const firstY = height / 2 - ((lines.length - 1) * lineHeight) / 2;
-  const out: TextLayoutWord[] = [];
-
-  lines.forEach((line, lineIndex) => {
-    const widths = line.words.map((w) => ctx.measureText(w).width);
-    const lineWidth =
-      widths.reduce((sum, w) => sum + w, 0) +
-      spaceWidth * Math.max(0, line.words.length - 1);
-    let x =
-      align === "left"
-        ? (width - maxWidth) / 2
-        : align === "right"
-          ? (width + maxWidth) / 2 - lineWidth
-          : (width - lineWidth) / 2;
-    const y = firstY + lineIndex * lineHeight;
-    line.words.forEach((word, i) => {
-      out.push({ text: word, x, width: widths[i], y });
-      x += widths[i] + spaceWidth;
-    });
-  });
-  return out;
-}
-
+/** Draw a text style as one block: wrapped lines, centered on the raster. */
 export function drawText(
   ctx: RasterContext2D,
   style: ClipTextStyle,
@@ -265,11 +260,12 @@ export function drawText(
 ): void {
   const fontSize = Math.max(1, style.fontSizePx);
   const align = style.align ?? "center";
-  const maxWidth =
-    width * Math.min(1, Math.max(0.05, style.maxWidthFrac ?? 0.8));
+  const maxWidth = textMaxWidthPx(style, width);
 
-  ctx.font = `${style.fontWeight ?? 400} ${fontSize}px ${style.fontFamily ?? "Inter, Arial, sans-serif"}`;
-  const lines = wrapLines(ctx, style.text, maxWidth);
+  ctx.font = textFontSpec(style);
+  const lines = wrapTextLines(style.text, maxWidth, (text) =>
+    ctx.measureText(text).width
+  );
 
   const lineHeight = fontSize * 1.2;
   const firstBaseline = height / 2 - ((lines.length - 1) * lineHeight) / 2;
@@ -297,9 +293,36 @@ export interface TextRenderStagger {
 }
 
 /**
- * Draw each word with its own animation sample: translate to the word's
- * center (plus the sample's offset), rotate/scale about it, multiply alpha.
- * Effect/mask properties are not applied per word (block-level, v1).
+ * The unit every staggered animation on this clip was compiled against, and
+ * how many of them the compiler timed. A clip lays out in one unit — the
+ * compiler drops a stagger declaring a different one — so the first staggered
+ * animation answers for all of them.
+ */
+function staggerLayout(
+  compiled: CompiledAnimation[]
+): { unit: StaggerUnit; count: number } | null {
+  for (const anim of compiled) {
+    if (anim.stagger) {
+      return { unit: anim.stagger.unit, count: anim.stagger.count };
+    }
+  }
+  return null;
+}
+
+/**
+ * Draw each unit — word, grapheme cluster or wrapped line — with its own
+ * animation sample: place it at its own pivot (plus the sample's offset),
+ * rotate and scale about that pivot, multiply alpha.
+ *
+ * The channels a per-unit draw can honor are the transform ones:
+ * `offsetX/Y` shift the unit, `positionX/Y` move its pivot to an absolute
+ * point on the raster (canvas px from the center, like a layer's
+ * `transform.position`), `anchorX/Y` move the pivot inside the unit's own box,
+ * `scale`/`scaleX`/`scaleY` scale about it, `rotation` turns it, `opacity`
+ * multiplies. Effect, mask and shape channels are not per-unit: the compositor
+ * applies those to the whole layer, which is why the sampler classifies them
+ * as block-level (`ANIMATED_PROPERTY_PASS`) and folds them over the full span
+ * instead of dropping them.
  */
 export function drawStaggeredText(
   ctx: RasterContext2D,
@@ -309,26 +332,61 @@ export function drawStaggeredText(
   stagger: TextRenderStagger,
   scratch: AnimationSample
 ): void {
-  ctx.font = `${style.fontWeight ?? 400} ${Math.max(1, style.fontSizePx)}px ${style.fontFamily ?? "Inter, Arial, sans-serif"}`;
-  const words = layoutWords(ctx, style, width, height);
+  const layout = staggerLayout(stagger.compiled);
+  if (!layout) {
+    drawText(ctx, style, width, height);
+    return;
+  }
+  ctx.font = textFontSpec(style);
+  const units = layoutStaggerUnits(
+    (text) => ctx.measureText(text).width,
+    style,
+    width,
+    height,
+    layout.unit
+  );
   ctx.fillStyle = style.color;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
 
-  words.forEach((word, index) => {
+  units.forEach((unit, index) => {
+    // A whitespace unit takes its index — the units after it are timed as if
+    // it were drawn — and draws nothing.
+    if (unit.text === "") return;
+    // A host that counted units without a text measurer can lay out more lines
+    // than the compiler timed; clamping lets the extra ones ride the last
+    // unit's window instead of sitting outside the span, invisible.
     const s = sampleStaggeredAnimations(
       stagger.compiled,
       stagger.localMs,
-      index,
+      Math.min(index, layout.count - 1),
       scratch
     );
-    if (s.opacity <= 0 || s.scale <= 0) return;
+    const scaleX = s.scale * s.scaleX;
+    const scaleY = s.scale * s.scaleY;
+    if (s.opacity <= 0 || scaleX <= 0 || scaleY <= 0) return;
+    const anchorX = s.anchorX ?? 0.5;
+    const anchorY = s.anchorY ?? 0.5;
+    // The pivot is the point the unit rotates and scales about, and the point
+    // `positionX/Y` replaces when driven.
+    const pivotX =
+      (s.positionX === undefined
+        ? unit.x + unit.width * anchorX
+        : width / 2 + s.positionX) + s.offsetX;
+    const pivotY =
+      (s.positionY === undefined
+        ? unit.y + (anchorY - 0.5) * unit.height
+        : height / 2 + s.positionY) + s.offsetY;
     ctx.save();
-    ctx.translate(word.x + word.width / 2 + s.offsetX, word.y + s.offsetY);
+    ctx.translate(pivotX, pivotY);
     if (s.rotation !== 0) ctx.rotate(s.rotation);
-    if (s.scale !== 1) ctx.scale(s.scale, s.scale);
+    if (scaleX !== 1 || scaleY !== 1) ctx.scale(scaleX, scaleY);
     ctx.globalAlpha = s.opacity;
-    ctx.fillText(word.text, -word.width / 2, 0);
+    ctx.fillText(
+      unit.text,
+      -unit.width * anchorX,
+      -(anchorY - 0.5) * unit.height
+    );
     ctx.restore();
   });
 }
@@ -362,16 +420,7 @@ export function staggerPhase(stagger: TextRenderStagger): "active" | string {
 
 /** A fresh scratch sample for {@link drawStaggeredText}. */
 export function createStaggerScratch(): AnimationSample {
-  return {
-    offsetX: 0,
-    offsetY: 0,
-    scale: 1,
-    rotation: 0,
-    opacity: 1,
-    blur: 0,
-    brightness: 0,
-    saturation: 1
-  };
+  return createAnimationSample();
 }
 
 // ── Shapes ───────────────────────────────────────────────────────────────────
@@ -421,4 +470,257 @@ export function drawShape(
   }
   if (style.fill) ctx.fill();
   if (style.stroke && ctx.lineWidth > 0) ctx.stroke();
+}
+
+// ── Masks ────────────────────────────────────────────────────────────────────
+
+/**
+ * Coverage colours. A mask raster carries its coverage in **alpha**, which is
+ * what `mask.apply@1` reads and what a Canvas 2D `destination-in` multiplies
+ * with; the RGB is white so the same raster reads correctly if anything ever
+ * samples luminance from it.
+ */
+const MASK_ON = "#ffffff";
+const MASK_OFF = "rgba(255, 255, 255, 0)";
+
+/** Mask kinds this build rasterizes. Anything else is `mask_path_invalid`. */
+export const MASK_KINDS = ["rect", "ellipse", "path"] as const;
+
+/** Content signature of a mask raster, for host-side caching. */
+export function maskSignature(
+  mask: ClipMask,
+  width: number,
+  height: number
+): string {
+  return `${width}x${height}|${JSON.stringify(mask)}`;
+}
+
+/** Whether a mask has a hard edge, which a 2D path clip draws with no scratch. */
+export function maskIsHard(mask: ClipMask): boolean {
+  return !((mask.featherPx ?? 0) > 0);
+}
+
+/** The mask's region in surface pixels. Absent bounds mean the whole layer. */
+function maskRegion(
+  mask: ClipMask,
+  width: number,
+  height: number
+): { x: number; y: number; w: number; h: number } {
+  return {
+    x: (mask.x ?? 0) * width,
+    y: (mask.y ?? 0) * height,
+    w: (mask.width ?? 1) * width,
+    h: (mask.height ?? 1) * height
+  };
+}
+
+/**
+ * Issue the mask's outline onto `ctx` as a path, without filling it. False when
+ * the mask names a kind this build does not rasterize, or path data that does
+ * not parse — the caller then leaves the layer unmasked and the validator
+ * reports `mask_path_invalid`.
+ */
+function buildMaskPath(
+  ctx: MaskContext2D,
+  mask: ClipMask,
+  width: number,
+  height: number
+): boolean {
+  const { x, y, w, h } = maskRegion(mask, width, height);
+  if (mask.kind === "rect") {
+    ctx.rect(x, y, w, h);
+    return true;
+  }
+  if (mask.kind === "ellipse") {
+    ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+    return true;
+  }
+  if (mask.kind === "path") {
+    const parsed = parseSvgPath(mask.d ?? "");
+    if (!parsed.ok) return false;
+    // Path data is authored in the layer's own normalized 0..1 space, the same
+    // space the rect and ellipse bounds live in.
+    tracePath(ctx, parsed.segments, { scaleX: width, scaleY: height });
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Clip `ctx` to a hard-edged mask, in the surface's own pixel space. False when
+ * the mask is unreadable, in which case nothing was clipped.
+ *
+ * An inverted mask is the outer rectangle plus the shape under the even-odd
+ * rule: what survives is everything the shape does not cover. That is why this
+ * takes the whole surface size rather than just the shape — the rectangle is
+ * the mask's other half.
+ */
+export function clipMask(
+  ctx: MaskContext2D,
+  mask: ClipMask,
+  width: number,
+  height: number
+): boolean {
+  ctx.beginPath();
+  if (mask.invert) ctx.rect(0, 0, width, height);
+  if (!buildMaskPath(ctx, mask, width, height)) return false;
+  ctx.clip(mask.invert ? "evenodd" : "nonzero");
+  return true;
+}
+
+/**
+ * Rasterize a mask's coverage onto `ctx` as white-on-transparent: opaque where
+ * the layer shows through, transparent where it is cut away. The surface is
+ * cleared first and the context is left as it was found.
+ *
+ * `featherPx` softens the edge, in the surface's own pixels. A rect feathers
+ * through a ring — an inset solid, four edge gradients and four corner
+ * gradients, none overlapping — and an ellipse through one radial gradient in
+ * its own scaled space, so both are exact rather than blurred. A path has no
+ * such construction, so it feathers with `ctx.filter`; a context that ignores
+ * the property draws the hard edge instead, which is a visible difference and
+ * not a wrong picture.
+ *
+ * Inversion is a full-surface fill the shape then erases with
+ * `destination-out`, which keeps the feather: the coverage of an inverted mask
+ * is `1 - coverage`, band included.
+ *
+ * False when the mask is unreadable; the surface is then left cleared and the
+ * caller draws the layer unmasked.
+ */
+export function drawMask(
+  ctx: MaskContext2D,
+  mask: ClipMask,
+  width: number,
+  height: number
+): boolean {
+  ctx.save();
+  ctx.filter = "none";
+  ctx.globalCompositeOperation = "source-over";
+  ctx.clearRect(0, 0, width, height);
+  if (mask.invert) {
+    ctx.fillStyle = MASK_ON;
+    ctx.fillRect(0, 0, width, height);
+    ctx.globalCompositeOperation = "destination-out";
+  }
+  const painted = paintCoverage(ctx, mask, width, height);
+  ctx.restore();
+  return painted;
+}
+
+/** Fill the mask's own shape, feathered, in whatever composite op is set. */
+function paintCoverage(
+  ctx: MaskContext2D,
+  mask: ClipMask,
+  width: number,
+  height: number
+): boolean {
+  const feather = Math.max(0, mask.featherPx ?? 0);
+  if (feather <= 0 || mask.kind === "path") {
+    if (feather > 0) ctx.filter = `blur(${(feather / 2).toFixed(2)}px)`;
+    ctx.fillStyle = MASK_ON;
+    ctx.beginPath();
+    if (!buildMaskPath(ctx, mask, width, height)) return false;
+    ctx.fill();
+    return true;
+  }
+  const { x, y, w, h } = maskRegion(mask, width, height);
+  if (w <= 0 || h <= 0) return mask.kind === "rect" || mask.kind === "ellipse";
+  if (mask.kind === "rect") {
+    featherRect(ctx, x, y, w, h, Math.min(feather, w / 2, h / 2));
+    return true;
+  }
+  if (mask.kind === "ellipse") {
+    featherEllipse(ctx, x, y, w, h, feather);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * A rect with a soft edge: one solid inset rectangle, four edge gradients and
+ * four corner gradients. The nine regions are disjoint, which is what lets the
+ * whole ring be drawn under `destination-out` for an inverted mask without any
+ * pixel being erased twice.
+ */
+function featherRect(
+  ctx: MaskContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  f: number
+): void {
+  ctx.fillStyle = MASK_ON;
+  ctx.fillRect(x + f, y + f, w - 2 * f, h - 2 * f);
+  if (f <= 0) return;
+
+  const edge = (
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    rx: number,
+    ry: number,
+    rw: number,
+    rh: number
+  ): void => {
+    const gradient = ctx.createLinearGradient(x0, y0, x1, y1);
+    gradient.addColorStop(0, MASK_OFF);
+    gradient.addColorStop(1, MASK_ON);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(rx, ry, rw, rh);
+  };
+  edge(x, y, x + f, y, x, y + f, f, h - 2 * f);
+  edge(x + w, y, x + w - f, y, x + w - f, y + f, f, h - 2 * f);
+  edge(x, y, x, y + f, x + f, y, w - 2 * f, f);
+  edge(x, y + h, x, y + h - f, x + f, y + h - f, w - 2 * f, f);
+
+  const corner = (cx: number, cy: number, sx: number, sy: number): void => {
+    const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, f);
+    gradient.addColorStop(0, MASK_ON);
+    gradient.addColorStop(1, MASK_OFF);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(Math.min(cx, sx), Math.min(cy, sy), f, f);
+    ctx.clip();
+    ctx.fillStyle = gradient;
+    ctx.fillRect(Math.min(cx, sx), Math.min(cy, sy), f, f);
+    ctx.restore();
+  };
+  corner(x + f, y + f, x, y);
+  corner(x + w - f, y + f, x + w, y);
+  corner(x + f, y + h - f, x, y + h);
+  corner(x + w - f, y + h - f, x + w, y + h);
+}
+
+/**
+ * An ellipse with a soft edge: one radial gradient painted in the ellipse's own
+ * unit space, so the band follows the curve instead of a circle inscribed in
+ * it. The feather is measured against the shorter radius, which is the one that
+ * runs out first.
+ */
+function featherEllipse(
+  ctx: MaskContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  feather: number
+): void {
+  const rx = w / 2;
+  const ry = h / 2;
+  const inner = Math.max(0, 1 - feather / Math.max(1e-3, Math.min(rx, ry)));
+  ctx.save();
+  ctx.translate(x + rx, y + ry);
+  ctx.scale(rx, ry);
+  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+  gradient.addColorStop(0, MASK_ON);
+  gradient.addColorStop(Math.min(0.999, inner), MASK_ON);
+  gradient.addColorStop(1, MASK_OFF);
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 1, 1, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }

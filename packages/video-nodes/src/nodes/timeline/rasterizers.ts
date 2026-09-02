@@ -10,6 +10,7 @@
 
 import { createCanvas } from "@napi-rs/canvas";
 import type {
+  ClipMask,
   ClipShapeStyle,
   ClipTextStyle
 } from "@nodetool-ai/timeline";
@@ -22,9 +23,11 @@ import {
   captionSignature,
   createStaggerScratch,
   drawCaption,
+  drawMask,
   drawShape,
   drawStaggeredText,
   drawText,
+  maskSignature,
   shapeStyleSignature,
   staggerPhase,
   textStyleSignature
@@ -58,6 +61,29 @@ export class NodeRasterizer {
       `caption|${captionSignature(caption, this.width, this.height)}`,
       (ctx) => drawCaption(ctx, caption, this.width, this.height)
     );
+  }
+
+  /**
+   * A clip mask's coverage, at the size of the layer it cuts rather than the
+   * frame — the mask is authored in the layer's own normalized space, and the
+   * GPU compositor applies it to the source texture before placing it.
+   *
+   * Null when the mask names a kind this build cannot rasterize or path data
+   * that does not parse; the layer then draws unmasked and the validator
+   * reports `mask_path_invalid`.
+   */
+  mask(mask: ClipMask, width: number, height: number): RasterResult | null {
+    let painted = true;
+    const result = this.render(
+      `mask|${maskSignature(mask, width, height)}`,
+      (ctx) => {
+        painted = drawMask(ctx, mask, width, height);
+      },
+      true,
+      width,
+      height
+    );
+    return painted ? result : null;
   }
 
   shape(style: ClipShapeStyle): RasterResult | null {
@@ -103,24 +129,24 @@ export class NodeRasterizer {
   private render(
     key: string,
     draw: (ctx: RasterContext2D) => void,
-    cacheable = true
+    cacheable = true,
+    atWidth = this.width,
+    atHeight = this.height
   ): RasterResult | null {
-    if (this.width <= 0 || this.height <= 0) return null;
+    if (atWidth <= 0 || atHeight <= 0) return null;
     if (cacheable) {
       const hit = this.cache.get(key);
       if (hit) return hit;
     }
-    const canvas = createCanvas(this.width, this.height);
+    const canvas = createCanvas(atWidth, atHeight);
     const ctx = canvas.getContext("2d");
     // SAFETY: `RasterContext2D` is the subset of the 2D canvas API the
     // drawing helpers use, and a skia canvas context provides all of it.
-    draw(ctx as RasterContext2D);
+    draw(ctx as unknown as RasterContext2D);
     const result: RasterResult = {
-      rgba: new Uint8Array(
-        ctx.getImageData(0, 0, this.width, this.height).data
-      ),
-      width: this.width,
-      height: this.height,
+      rgba: new Uint8Array(ctx.getImageData(0, 0, atWidth, atHeight).data),
+      width: atWidth,
+      height: atHeight,
       version: key
     };
     if (!cacheable) return result;

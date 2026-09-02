@@ -44,13 +44,17 @@ import {
   DEFAULT_MEDIA_CLIP_DURATION_MS,
   mediaTypeForContentType,
   trackTypeForMediaType,
+  STAGGER_UNITS,
   type AnimationRole,
   type CustomClipAnimation,
   type PropertyCurve,
+  type ClipEffect,
+  type ClipMask,
   type TimelineClip,
   type TimelineTrack,
   type ClipAnimation
 } from "@nodetool-ai/timeline";
+import { parseSvgPath } from "@nodetool-ai/timeline/scene";
 import type { HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
@@ -132,6 +136,316 @@ const shapeStyleParams = z.object({
   x2: z.number().optional(),
   y2: z.number().optional()
 });
+
+/**
+ * A cut, authored on the incoming clip (D5). The type is an enum so a model
+ * inventing one is refused with the list, rather than saving a document the
+ * renderer then quietly cross-fades.
+ */
+const transitionParams = z.object({
+  type: z.enum(["crossfade", "dipToColor", "wipe", "push", "slide", "zoom"]),
+  durationMs: z
+    .number()
+    .describe(
+      "Length of the cut from the clip's start. 0 or less is a hard cut."
+    ),
+  easing: z
+    .string()
+    .optional()
+    .describe(
+      "Easing id, cubic-bezier(x1,y1,x2,y2) or spring(stiffness,damping,mass)."
+    ),
+  color: z.string().optional().describe("dipToColor only, e.g. #000000."),
+  direction: z
+    .enum(["left", "right", "up", "down"])
+    .optional()
+    .describe(
+      "wipe, push and slide only: the edge the incoming clip arrives from."
+    ),
+  softness: z
+    .number()
+    .optional()
+    .describe("wipe only: feathered edge width, 0..1 of the wipe axis.")
+});
+
+/**
+ * The union member the named type actually takes. The input schema is one flat
+ * object because that is what a tool call can express, so a `color` sent with a
+ * `push` would otherwise be stored and then silently stripped on the next save
+ * — a `field_stripped` warning for a field that never meant anything.
+ */
+function buildTransition(
+  input: z.infer<typeof transitionParams>
+): NonNullable<TimelineClip["transitionIn"]> {
+  const { type, durationMs, easing } = input;
+  const direction = input.direction ?? "left";
+  switch (type) {
+    case "dipToColor":
+      return { type, durationMs, easing, color: input.color ?? "#000000" };
+    case "wipe":
+      return { type, durationMs, easing, direction, softness: input.softness };
+    case "push":
+    case "slide":
+      return { type, durationMs, easing, direction };
+    case "crossfade":
+    case "zoom":
+      return { type, durationMs, easing };
+  }
+}
+
+/**
+ * A shape mask on one clip, in the layer's own normalized 0..1 space (D6).
+ * `kind` is an enum here even though the document carries a plain string: a
+ * kind the renderer cannot rasterize is a mask that silently does nothing, and
+ * refusing it at the call is cheaper than finding it in the pixels.
+ */
+const maskParams = z.object({
+  kind: z.enum(["rect", "ellipse", "path"]),
+  x: z
+    .number()
+    .optional()
+    .describe("Left edge, 0..1 of the layer's width. Default 0."),
+  y: z
+    .number()
+    .optional()
+    .describe("Top edge, 0..1 of the layer's height. Default 0."),
+  width: z
+    .number()
+    .optional()
+    .describe("Width, 0..1 of the layer's width. Default 1."),
+  height: z
+    .number()
+    .optional()
+    .describe("Height, 0..1 of the layer's height. Default 1."),
+  d: z
+    .string()
+    .optional()
+    .describe(
+      "kind \"path\" only: SVG path data in the same 0..1 space. M, L, C, Q and Z, absolute or relative."
+    ),
+  featherPx: z
+    .number()
+    .optional()
+    .describe("Soft edge width in the layer's own pixels. 0 is a hard edge."),
+  invert: z
+    .boolean()
+    .optional()
+    .describe("Keep what the mask excludes instead of what it covers.")
+});
+
+/** A track matte: another clip's alpha or luminance drives this layer's alpha. */
+const matteParams = z.object({
+  source: z
+    .string()
+    .describe("The clip whose pixels drive the alpha, by id or name."),
+  mode: z
+    .enum(["alpha", "luma"])
+    .describe(
+      "alpha reads the source's transparency; luma reads its brightness."
+    ),
+  invert: z.boolean().optional()
+});
+
+/**
+ * The stored mask, with the fields the named kind does not use left off — the
+ * same reason {@link buildTransition} narrows a flat input: a `d` sent with a
+ * rect would be stored and then stripped on the next save, which reads as a
+ * `field_stripped` warning about a field that never meant anything.
+ *
+ * Path data is parsed here rather than at render time so a path the renderer
+ * cannot read is refused while the caller can still fix it.
+ */
+function buildMask(input: z.infer<typeof maskParams>): ClipMask {
+  const { kind, x, y, width, height, featherPx, invert } = input;
+  const bounds = { x, y, width, height, featherPx, invert };
+  if (kind !== "path") return { kind, ...bounds };
+  const parsed = parseSvgPath(input.d ?? "");
+  if (!parsed.ok) {
+    throw new Error(
+      `mask.d is not path data this build can draw: ${parsed.error}`
+    );
+  }
+  return { kind, d: input.d, featherPx, invert };
+}
+
+/** A tone-curve control point list, normalized on both axes. */
+const curvePoints = z.array(z.object({ x: z.number(), y: z.number() }));
+
+/** Three numbers, one per channel, for the three-way grade. */
+const rgbTriple = z.tuple([z.number(), z.number(), z.number()]);
+
+/**
+ * One effect in a clip's chain (D7). `type` decides which of the other fields
+ * mean anything, the way {@link transitionParams} does: a tool call sends one
+ * flat object, so {@link buildEffect} keeps only the fields the named type
+ * uses rather than storing a `radius` on a `levels` that the next save strips.
+ *
+ * `enabled` and `id` are not asked for — the chain is replaced whole, so an
+ * effect the caller sent is an effect it wants on, and an id it never sees is
+ * one it cannot get wrong.
+ */
+const effectParams = z.object({
+  type: z.enum([
+    "color",
+    "blur",
+    "glow",
+    "dropShadow",
+    "vignette",
+    "sharpen",
+    "chromaKey",
+    "curves",
+    "levels",
+    "liftGammaGain"
+  ]),
+  brightness: z.number().optional().describe("color: -1..1, 0 is unchanged."),
+  contrast: z.number().optional().describe("color: 0..4, 1 is unchanged."),
+  saturation: z.number().optional().describe("color: 0..4, 1 is unchanged."),
+  hue: z.number().optional().describe("color: degrees, -180..180."),
+  temperature: z.number().optional().describe("color: -1..1, cool to warm."),
+  tint: z.number().optional().describe("color: -1..1, green to magenta."),
+  shadows: z.number().optional().describe("color: -1..1."),
+  highlights: z.number().optional().describe("color: -1..1."),
+  radius: z
+    .number()
+    .optional()
+    .describe("blur, glow and sharpen: radius in the clip's own pixels."),
+  intensity: z.number().optional().describe("glow: bloom strength, 0..2."),
+  offsetX: z
+    .number()
+    .optional()
+    .describe("dropShadow: offset in the clip's own pixels, positive is right."),
+  offsetY: z
+    .number()
+    .optional()
+    .describe("dropShadow: offset in the clip's own pixels, positive is down."),
+  blur: z.number().optional().describe("dropShadow: blur radius in pixels."),
+  color: z
+    .string()
+    .optional()
+    .describe("dropShadow shadow colour, chromaKey key colour, e.g. #00ff00."),
+  opacity: z.number().optional().describe("dropShadow: 0..1."),
+  amount: z.number().optional().describe("vignette and sharpen: strength."),
+  softness: z
+    .number()
+    .optional()
+    .describe("vignette falloff and chromaKey edge, 0..1."),
+  tolerance: z.number().optional().describe("chromaKey: match width, 0..1."),
+  spill: z.number().optional().describe("chromaKey: spill suppression, 0..1."),
+  master: curvePoints.optional().describe("curves: the luminance curve."),
+  r: curvePoints.optional().describe("curves: red channel."),
+  g: curvePoints.optional().describe("curves: green channel."),
+  b: curvePoints.optional().describe("curves: blue channel."),
+  inBlack: z.number().optional().describe("levels: input black point, 0..1."),
+  inWhite: z.number().optional().describe("levels: input white point, 0..1."),
+  gamma: z.number().optional().describe("levels: midtone gamma, 1 is neutral."),
+  outBlack: z.number().optional().describe("levels: output black point, 0..1."),
+  outWhite: z.number().optional().describe("levels: output white point, 0..1."),
+  lift: rgbTriple.optional().describe("liftGammaGain: shadow offset per channel."),
+  gain: rgbTriple.optional().describe("liftGammaGain: highlight scale per channel."),
+  gammaRgb: rgbTriple
+    .optional()
+    .describe("liftGammaGain: midtone gamma per channel.")
+});
+
+/**
+ * The stored effect, narrowed to the fields its type reads. Defaults are the
+ * neutral value of each knob, so an effect named with nothing else set is
+ * harmless rather than refused.
+ */
+function buildEffect(
+  input: z.infer<typeof effectParams>,
+  index: number
+): ClipEffect {
+  const base = { id: `fx-${index + 1}`, enabled: true };
+  switch (input.type) {
+    case "color":
+      return {
+        ...base,
+        type: "color",
+        brightness: input.brightness,
+        contrast: input.contrast,
+        saturation: input.saturation,
+        hue: input.hue,
+        temperature: input.temperature,
+        tint: input.tint,
+        shadows: input.shadows,
+        highlights: input.highlights
+      };
+    case "blur":
+      return { ...base, type: "blur", radius: input.radius ?? 0 };
+    case "glow":
+      return {
+        ...base,
+        type: "glow",
+        radius: input.radius ?? 8,
+        intensity: input.intensity ?? 1,
+        color: input.color
+      };
+    case "dropShadow":
+      return {
+        ...base,
+        type: "dropShadow",
+        offsetX: input.offsetX ?? 0,
+        offsetY: input.offsetY ?? 0,
+        blur: input.blur ?? input.radius ?? 8,
+        color: input.color ?? "#000000",
+        opacity: input.opacity
+      };
+    case "vignette":
+      return {
+        ...base,
+        type: "vignette",
+        amount: input.amount ?? 0.5,
+        softness: input.softness ?? 0.5
+      };
+    case "sharpen":
+      return {
+        ...base,
+        type: "sharpen",
+        amount: input.amount ?? 1,
+        radius: input.radius
+      };
+    case "chromaKey":
+      return {
+        ...base,
+        type: "chromaKey",
+        color: input.color ?? "#00ff00",
+        tolerance: input.tolerance ?? 0.1,
+        softness: input.softness ?? 0.05,
+        spill: input.spill
+      };
+    case "curves":
+      return {
+        ...base,
+        type: "curves",
+        master: input.master ?? [
+          { x: 0, y: 0 },
+          { x: 1, y: 1 }
+        ],
+        r: input.r,
+        g: input.g,
+        b: input.b
+      };
+    case "levels":
+      return {
+        ...base,
+        type: "levels",
+        inBlack: input.inBlack ?? 0,
+        inWhite: input.inWhite ?? 1,
+        gamma: input.gamma ?? 1,
+        outBlack: input.outBlack ?? 0,
+        outWhite: input.outWhite ?? 1
+      };
+    case "liftGammaGain":
+      return {
+        ...base,
+        type: "liftGammaGain",
+        lift: input.lift ?? [0, 0, 0],
+        gamma: input.gammaRgb ?? [1, 1, 1],
+        gain: input.gain ?? [1, 1, 1]
+      };
+  }
+}
 
 const fullTextStyleParams = z.object({
   text: z.string(),
@@ -529,7 +843,11 @@ export function createTimelineToolBridge(
       muted: c.muted ?? false,
       locked: c.locked,
       textStyle: c.textStyle,
-      shapeStyle: c.shapeStyle
+      shapeStyle: c.shapeStyle,
+      transitionIn: c.transitionIn,
+      mask: c.mask,
+      matte: c.matte,
+      effects: c.effects
     };
   }
 
@@ -976,6 +1294,97 @@ export function createTimelineToolBridge(
     ),
 
     tool(
+      "ui_timeline_set_transition",
+      "Set the transition a clip opens with, or clear it with `transition: null`. A transition is between two clips: it plays over the head of `target` against whatever sits beneath it on the same track, so overlap the two clips by at least `durationMs` for both to be seen. Types: crossfade (dissolve), dipToColor (through a solid), wipe (feathered reveal), push (both clips travel), slide (only the incoming moves), zoom. With no transition set, overlapping clips still auto-dissolve across the overlap.",
+      z.object({
+        target: targetParam,
+        transition: transitionParams.nullable()
+      }),
+      async ({ target, transition }) => {
+        const clip = resolveClip(target as string);
+        if (transition === null) {
+          delete clip.transitionIn;
+        } else {
+          clip.transitionIn = buildTransition(
+            transition as z.infer<typeof transitionParams>
+          );
+        }
+        return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    tool(
+      "ui_timeline_set_mask",
+      "Mask a clip to a rectangle, an ellipse or an SVG path, or clear it with `mask: null`. Coordinates are 0..1 in the clip's own space, so the mask turns and scales with the clip. `featherPx` softens the edge; `invert` keeps what the shape excludes instead.",
+      z.object({
+        target: targetParam,
+        mask: maskParams.nullable()
+      }),
+      async ({ target, mask }) => {
+        const clip = resolveClip(target as string);
+        if (mask === null) {
+          delete clip.mask;
+        } else {
+          clip.mask = buildMask(mask as z.infer<typeof maskParams>);
+        }
+        return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    tool(
+      "ui_timeline_set_matte",
+      "Drive a clip's transparency from another clip — a track matte — or clear it with `matte: null`. The source clip stops drawing itself: its alpha (`mode: \"alpha\"`) or its brightness (`mode: \"luma\"`) becomes the target's transparency, so a white shape over black shows the target only where the shape is. Both clips are placed by their own transforms, so where the source sits on the frame is where the target shows through.",
+      z.object({
+        target: targetParam,
+        matte: matteParams.nullable()
+      }),
+      async ({ target, matte }) => {
+        const clip = resolveClip(target as string);
+        if (matte === null) {
+          delete clip.matte;
+          return { ok: true, clip: serializeClip(clip) };
+        }
+        const input = matte as z.infer<typeof matteParams>;
+        const source = resolveClip(input.source);
+        if (source.id === clip.id) {
+          throw new Error(
+            `"${clip.name}" cannot be its own matte source — name another clip.`
+          );
+        }
+        const matteOut: NonNullable<TimelineClip["matte"]> = {
+          sourceClipId: source.id,
+          mode: input.mode
+        };
+        if (input.invert !== undefined) matteOut.invert = input.invert;
+        clip.matte = matteOut;
+        return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    tool(
+      "ui_timeline_set_effects",
+      "Replace a clip's effect chain, or clear it with `effects: []`. The list runs in order on the clip's own pixels, before it is placed on the frame. Types: color (brightness/contrast/saturation/hue/temperature/tint/shadows/highlights), blur, glow, dropShadow, vignette, sharpen, chromaKey, curves (control points, 0..1 on both axes), levels (in/out black and white plus gamma), liftGammaGain (a three-way grade, one number per channel). This replaces the whole chain — send every effect the clip should keep.",
+      z.object({
+        target: targetParam,
+        effects: z
+          .array(effectParams)
+          .describe("The chain, in order. An empty list clears it.")
+      }),
+      async ({ target, effects }) => {
+        const clip = resolveClip(target as string);
+        const list = (effects as z.infer<typeof effectParams>[]).map(
+          buildEffect
+        );
+        if (list.length === 0) {
+          delete clip.effects;
+        } else {
+          clip.effects = list;
+        }
+        return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    tool(
       "ui_timeline_set_clip_binding",
       "Edit a generated clip's generation binding — its `prompt`, `negativePrompt`, `provider`/`model`, TTS `voice`, dimensions, `aspectRatio`/`resolution`, `strength`, or `numInferenceSteps`. Set `regenerate` true to immediately re-run generation with the new settings. Only applies to generated clips.",
       z.object({
@@ -1022,7 +1431,7 @@ export function createTimelineToolBridge(
 
     tool(
       "ui_timeline_animate_clip",
-      'Attach motion-design animations to a clip. Roles: `in` (entrance: fade, slide, pop, spin, wipe, blur, colorFade), `out` (exit: fade, slide, pop, spin, wipe, blur, colorFade), `emphasis` (mid-clip: pulse, flash, shake, bounce), `loop` (continuous: kenBurns, float, breathe, rotate). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. For motion no preset covers, use `preset: "custom"` with exactly one of `curves` (keyframes you write: [{property, keyframes:[{t, value, easing?}]}], `t` running 0..1 over the window) or `code` (a JS body baked into curves once, host-side); add `mask` when a curve drives wipeProgress. On text clips, add `stagger` for per-word motion typography: each word runs the animation for `durationMs`, offset `stagger.offsetMs` from the previous word (`from`: start|end|center picks the leading word) — e.g. a pop-in title whose words land one after another. `mode` "replace" (default) swaps the clip\'s animations; "add" appends. Call ui_timeline_list_animation_presets for the full param list and the animatable properties.',
+      'Attach motion-design animations to a clip. Roles: `in` (entrance: fade, slide, pop, spin, wipe, blur, colorFade), `out` (exit: fade, slide, pop, spin, wipe, blur, colorFade), `emphasis` (mid-clip: pulse, flash, shake, bounce, squash), `loop` (continuous: kenBurns, float, breathe, rotate, hueShift). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. For motion no preset covers, use `preset: "custom"` with exactly one of `curves` (keyframes you write: [{property, keyframes:[{t, value, easing?}]}], `t` running 0..1 over the window) or `code` (a JS body baked into curves once, host-side); add `mask` when a curve drives wipeProgress. On text clips, add `stagger` for per-word motion typography: each word runs the animation for `durationMs`, offset `stagger.offsetMs` from the previous word (`from`: start|end|center picks the leading word) — e.g. a pop-in title whose words land one after another. `mode` "replace" (default) swaps the clip\'s animations; "add" appends. Call ui_timeline_list_animation_presets for the full param list and the animatable properties.',
       z.object({
         target: targetParam,
         mode: z.enum(["add", "replace"]).optional(),
@@ -1046,16 +1455,16 @@ export function createTimelineToolBridge(
               mask: customMaskParam,
               stagger: z
                 .object({
-                  unit: z.literal("word"),
+                  unit: z.enum(STAGGER_UNITS),
                   offsetMs: z
                     .number()
                     .positive()
-                    .describe("Delay between successive words in ms."),
+                    .describe("Delay between successive units in ms."),
                   from: z.enum(["start", "end", "center"]).optional()
                 })
                 .optional()
                 .describe(
-                  "Per-word stagger — text clips only. The animation runs once per word, each word offset from the previous."
+                  "Per-unit stagger — text clips only. The animation runs once per word, grapheme or wrapped line, each unit offset from the previous."
                 )
             })
           )
@@ -1218,7 +1627,7 @@ const TIMELINE_SYSTEM_PROMPT = `You are an assistant driving a timeline / video 
 Use the ui_timeline_* tools to inspect and modify the sequence:
 - Call ui_timeline_get_state first to see what's already there and get track/clip ids and names.
 - Add content with ui_timeline_add_text_clip, ui_timeline_add_shape_clip, or ui_timeline_generate_clip; add tracks with ui_timeline_add_track when needed.
-- Address existing clips by id, name, or "selected" with ui_timeline_split_clip, ui_timeline_trim_clip, ui_timeline_move_clip, ui_timeline_delete_clip, ui_timeline_duplicate_clip, ui_timeline_set_clip_params, ui_timeline_set_clip_binding, ui_timeline_animate_clip, ui_timeline_clear_animations, ui_timeline_select_clip.
+- Address existing clips by id, name, or "selected" with ui_timeline_split_clip, ui_timeline_trim_clip, ui_timeline_move_clip, ui_timeline_delete_clip, ui_timeline_duplicate_clip, ui_timeline_set_clip_params, ui_timeline_set_clip_binding, ui_timeline_set_transition, ui_timeline_animate_clip, ui_timeline_clear_animations, ui_timeline_select_clip.
 - Before animating a clip, call ui_timeline_list_animation_presets to discover the exact preset ids, allowed roles, and params.
 - For motion no preset covers, animate with preset "custom" and pass curves — [{property, keyframes: [{t, value}]}], where t runs 0..1 over the animation window. list_animation_presets reports which properties a curve may drive.
 - ui_timeline_seek moves the playhead (useful before a playhead-relative split).

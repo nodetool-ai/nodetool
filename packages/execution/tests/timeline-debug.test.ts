@@ -292,6 +292,74 @@ describe("validateTimelineSequence — structural checks", () => {
     expect(codes(result.warnings)).toContain("transition_exceeds_duration");
   });
 
+  it("flags a transition longer than the clip on a new type", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            durationMs: 500,
+            transitionIn: {
+              type: "wipe",
+              durationMs: 900,
+              direction: "left"
+            }
+          })
+        ]
+      })
+    );
+    expect(codes(result.warnings)).toContain("transition_exceeds_duration");
+  });
+
+  it("accepts a transition that fits", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            durationMs: 900,
+            transitionIn: { type: "push", durationMs: 400, direction: "up" }
+          })
+        ]
+      })
+    );
+    expect(codes(result.warnings)).not.toContain("transition_exceeds_duration");
+    expect(codes(result.warnings)).not.toContain("unknown_transition");
+  });
+
+  it("names a transition type this build cannot draw", () => {
+    const result = validateTimelineSequence(
+      doc({ clips: [clip({ transitionIn: { type: "flip", durationMs: 300 } })] })
+    );
+    const issue = result.warnings.find(
+      (w) => w.code === "unknown_transition" && w.path === "transitionIn.type"
+    );
+    expect(issue?.message).toContain('"flip"');
+    expect(issue?.message).toContain("cross-fades instead");
+  });
+
+  it("names a transition direction this build cannot read", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            transitionIn: {
+              type: "slide",
+              durationMs: 300,
+              direction: "diagonal"
+            }
+          })
+        ]
+      })
+    );
+    // The direction is a plain string in the schema, so unlike an unknown type
+    // this one parses, renders, and only the warning says it did not run the
+    // way the document asked (I2).
+    expect(result.ok).toBe(true);
+    const issue = result.warnings.find(
+      (w) => w.code === "unknown_transition" && w.path === "transitionIn.direction"
+    );
+    expect(issue?.message).toContain('"diagonal"');
+  });
+
   it("flags an animation preset this build does not ship", () => {
     const result = validateTimelineSequence(
       doc({
@@ -431,6 +499,130 @@ describe("validateTimelineSequence — structural checks", () => {
     );
     expect(result.ok).toBe(true);
     expect(result.warnings).toEqual([]);
+  });
+
+  it("flags an easing string this build cannot parse, once per site", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            animations: [
+              {
+                id: "anim-1",
+                role: "in",
+                preset: "fade",
+                durationMs: 300,
+                easing: "ease-out"
+              }
+            ]
+          })
+        ]
+      })
+    );
+    expect(
+      result.warnings.filter((issue) => issue.code === "unknown_easing")
+    ).toHaveLength(1);
+    expect(result.errors).toEqual([]);
+    const [issue] = result.warnings.filter(
+      (item) => item.code === "unknown_easing"
+    );
+    expect(issue.message).toContain("ease-out");
+    expect(issue.path).toBe("animations[*].easing");
+    // A warning, not an error: the sampler falls back to linear (I2).
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts the parametric easing grammar everywhere it appears", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            transitionIn: {
+              type: "crossfade",
+              durationMs: 200,
+              easing: "spring(180,12,1)"
+            },
+            timeRemap: {
+              keyframes: [
+                { t: 0, sourceMs: 0, easing: "cubic-bezier(0.42,0,0.58,1)" },
+                { t: 1, sourceMs: 2000, easing: "easeOutBack" }
+              ]
+            },
+            animations: [
+              {
+                id: "anim-1",
+                role: "in",
+                preset: "custom",
+                durationMs: 300,
+                easing: "cubic-bezier( 0.2 , 0 , 0.4 , 1 )",
+                custom: {
+                  curves: [
+                    {
+                      property: "opacity",
+                      keyframes: [
+                        { t: 0, value: 0 },
+                        { t: 1, value: 1, easing: "spring(120, 14, 1)" }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          })
+        ]
+      })
+    );
+    expect(codes(result.warnings)).not.toContain("unknown_easing");
+  });
+
+  it("names every site an unparseable easing sits at", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            transitionIn: {
+              type: "crossfade",
+              durationMs: 200,
+              easing: "spring()"
+            },
+            timeRemap: {
+              keyframes: [
+                { t: 0, sourceMs: 0, easing: "wobble" },
+                { t: 1, sourceMs: 2000 }
+              ]
+            },
+            animations: [
+              {
+                id: "anim-1",
+                role: "in",
+                preset: "custom",
+                durationMs: 300,
+                custom: {
+                  curves: [
+                    {
+                      property: "opacity",
+                      keyframes: [
+                        { t: 0, value: 0 },
+                        { t: 1, value: 1, easing: "cubic-bezier(a,b,c,d)" }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          })
+        ]
+      })
+    );
+    expect(
+      result.warnings
+        .filter((issue) => issue.code === "unknown_easing")
+        .map((issue) => issue.path)
+    ).toEqual([
+      "transitionIn.easing",
+      "timeRemap.keyframes[0].easing",
+      "animations[*].custom.curves[*].keyframes[*].easing"
+    ]);
   });
 
   it("accepts a shipped animation preset", () => {

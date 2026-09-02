@@ -236,7 +236,7 @@ export type ClipTransform = z.infer<typeof clipTransform>;
  * Zod strips the whole `transitionIn` of any non-crossfade transition on every
  * PATCH, so the cut silently reverts to a hard one.
  */
-export const clipTransition = z.discriminatedUnion("type", [
+const knownClipTransition = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("crossfade"),
     durationMs: z.number(),
@@ -273,7 +273,47 @@ export const clipTransition = z.discriminatedUnion("type", [
     easing: z.string().optional()
   })
 ]);
+
+/** Every transition `type` the members above spell out field by field. */
+const KNOWN_TRANSITION_TYPES: ReadonlySet<string> = new Set([
+  "crossfade",
+  "dipToColor",
+  "wipe",
+  "push",
+  "slide",
+  "zoom"
+]);
+
+/**
+ * A cut authored by a newer build (I2). The `refine` is what keeps the two
+ * halves disjoint: a type one of the members above claims can never reach this
+ * one, so `crossfade` with a string `durationMs` still fails rather than
+ * sliding into the permissive branch. Everything past the shared shape rides
+ * through untyped — dropping it here would lose the newer build's parameters
+ * on the first save, which is the data loss `field_stripped` reports.
+ */
+const forwardClipTransition = z.looseObject({
+  // `abort` is what keeps the failure legible: without it a bad field on a
+  // known type leaves this the only branch Zod reports, so the error reads
+  // "unknown type" about a type we ship.
+  type: z.string().refine((type) => !KNOWN_TRANSITION_TYPES.has(type), {
+    abort: true,
+    error: (issue) =>
+      `"${String(issue.input)}" is a transition type this build declares; it must match that type's own fields.`
+  }),
+  durationMs: z.number(),
+  easing: z.string().optional()
+});
+
+export const clipTransition = z.union([
+  knownClipTransition,
+  forwardClipTransition
+]);
 export type ClipTransition = z.infer<typeof clipTransition>;
+/** The cuts this build spells out field by field. */
+export type KnownClipTransition = z.infer<typeof knownClipTransition>;
+/** The catch-all a cut from a newer build lands in. */
+export type UnknownClipTransition = z.infer<typeof forwardClipTransition>;
 
 export const clipColorEffect = z.object({
   id: z.string(),
@@ -384,7 +424,7 @@ export const clipLiftGammaGainEffect = z.object({
  * type it does not carry on every PATCH, so a graded clip loses that step of
  * its chain on the next save.
  */
-export const clipEffect = z.discriminatedUnion("type", [
+const knownClipEffect = z.discriminatedUnion("type", [
   clipColorEffect,
   clipBlurEffect,
   clipGlowEffect,
@@ -396,7 +436,45 @@ export const clipEffect = z.discriminatedUnion("type", [
   clipLevelsEffect,
   clipLiftGammaGainEffect
 ]);
+
+/** Every effect `type` the members above spell out field by field. */
+const KNOWN_CLIP_EFFECT_TYPES: ReadonlySet<string> = new Set([
+  "color",
+  "blur",
+  "glow",
+  "dropShadow",
+  "vignette",
+  "sharpen",
+  "chromaKey",
+  "curves",
+  "levels",
+  "liftGammaGain"
+]);
+
+/**
+ * An effect authored by a newer build (I2), same construction as
+ * `forwardClipTransition`: the `refine` keeps this branch unreachable for a
+ * type the members above claim, so their field validation is untouched, and
+ * the parameters the newer build wrote ride through instead of being dropped
+ * on the next save. `id` and `enabled` are required because the whole chain is
+ * addressed and filtered by them.
+ */
+const forwardClipEffect = z.looseObject({
+  id: z.string(),
+  type: z.string().refine((type) => !KNOWN_CLIP_EFFECT_TYPES.has(type), {
+    abort: true,
+    error: (issue) =>
+      `"${String(issue.input)}" is an effect type this build declares; it must match that type's own fields.`
+  }),
+  enabled: z.boolean()
+});
+
+export const clipEffect = z.union([knownClipEffect, forwardClipEffect]);
 export type ClipEffect = z.infer<typeof clipEffect>;
+/** The effects this build spells out field by field. */
+export type KnownClipEffect = z.infer<typeof knownClipEffect>;
+/** The catch-all an effect from a newer build lands in. */
+export type UnknownClipEffect = z.infer<typeof forwardClipEffect>;
 
 export const clipBindingKind = z.enum([
   "workflow",

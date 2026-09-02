@@ -58,6 +58,14 @@ function splitCaptionWords(
 }
 
 export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, TimelineClip] {
+  // A group is a transform parent, not media: cutting it in two would leave
+  // its children naming a parent that no longer covers them (D4).
+  if (clip.mediaType === "group") {
+    throw new Error(
+      "splitClip cannot split a group — split the clips inside it instead"
+    );
+  }
+
   const clipEndMs = clip.startMs + clip.durationMs;
   if (atMs <= clip.startMs || atMs >= clipEndMs) {
     throw new Error("splitClip requires startMs < atMs < startMs + durationMs");

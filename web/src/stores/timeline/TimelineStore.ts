@@ -28,8 +28,13 @@ import { create } from "zustand";
 import { temporal } from "../temporal";
 import type { TemporalState } from "../temporal";
 import {
+  groupDescendantIds,
+  isGroupClip,
+  moveGroup,
   splitClip,
   trimClip,
+  trimGroup,
+  ungroup,
   snap,
   makeTrack,
   makeClip,
@@ -601,8 +606,10 @@ function splitClipsLinkAware(
   atMs: number,
   targetIds: string[]
 ): TimelineClip[] {
+  // A group is a transform parent, not media: `splitClip` refuses it, so it is
+  // never a target and its children are split individually.
   const contains = (c: TimelineClip) =>
-    atMs > c.startMs && atMs < c.startMs + c.durationMs;
+    !isGroupClip(c) && atMs > c.startMs && atMs < c.startMs + c.durationMs;
 
   // Expand targets to include linked siblings that also contain atMs, deduped.
   const toSplit = new Map<string, TimelineClip>();
@@ -1165,6 +1172,20 @@ export const createTimelineStore = (
 
             newStartMs = Math.max(0, newStartMs);
             const appliedDelta = newStartMs - clip.startMs;
+
+            // A group carries what it holds (D4): the children follow the same
+            // delta and keep their own tracks, so their z-order is untouched.
+            if (isGroupClip(clip)) {
+              const moved = moveGroup(state.clips, clipId, appliedDelta);
+              return {
+                clips: toTrackId
+                  ? moved.map((c) =>
+                      c.id === clipId ? { ...c, trackId: toTrackId } : c
+                    )
+                  : moved
+              };
+            }
+
             const linkedIds =
               clip.linkId !== undefined
                 ? new Set(
@@ -1239,9 +1260,16 @@ export const createTimelineStore = (
             // selected must follow by the same delta (keeping their own track),
             // so a multi-select drag or arrow-key nudge can't desync a link.
             const selectedLinkIds = new Set<string>();
+            // A selected group's descendants shift with it for the same reason
+            // (D4), whether or not they are themselves selected.
+            const carried = new Set<string>();
             for (const c of state.clips) {
-              if (selectedIds.has(c.id) && c.linkId !== undefined) {
-                selectedLinkIds.add(c.linkId);
+              if (!selectedIds.has(c.id)) continue;
+              if (c.linkId !== undefined) selectedLinkIds.add(c.linkId);
+              if (isGroupClip(c)) {
+                for (const id of groupDescendantIds(state.clips, c.id)) {
+                  carried.add(id);
+                }
               }
             }
 
@@ -1260,8 +1288,12 @@ export const createTimelineStore = (
                     startMs: c.startMs + effectiveDelta
                   };
                 }
-                // Unselected linked sibling — shift it too, but keep its track.
-                if (c.linkId !== undefined && selectedLinkIds.has(c.linkId)) {
+                // Unselected linked sibling or group child — shift it too,
+                // but keep its track.
+                if (
+                  carried.has(c.id) ||
+                  (c.linkId !== undefined && selectedLinkIds.has(c.linkId))
+                ) {
                   return {
                     ...c,
                     startMs: Math.max(0, c.startMs + effectiveDelta)
@@ -1280,6 +1312,15 @@ export const createTimelineStore = (
             const clip = state.clips.find((c) => c.id === clipId);
             if (!clip) {
               return state;
+            }
+            // Trimming a group pulls its children inside the new window; an
+            // invalid trim throws and leaves the document alone (D4).
+            if (isGroupClip(clip)) {
+              try {
+                return { clips: trimGroup(state.clips, clipId, "start", deltaMs) };
+              } catch {
+                return state;
+              }
             }
             const linkId = clip.linkId;
             // All-or-nothing: compute the primary AND every linked sibling
@@ -1316,6 +1357,15 @@ export const createTimelineStore = (
                 clip.outPointMs ?? (clip.inPointMs ?? 0) + clip.durationMs;
               const maxGrow = maxSourceDurationMs - currentOutPointMs;
               clampedDelta = Math.min(deltaMs, Math.max(0, maxGrow));
+            }
+            if (isGroupClip(clip)) {
+              try {
+                return {
+                  clips: trimGroup(state.clips, clipId, "end", clampedDelta)
+                };
+              } catch {
+                return state;
+              }
             }
             const linkId = clip.linkId;
             // All-or-nothing: compute the primary AND every linked sibling
@@ -1411,12 +1461,15 @@ export const createTimelineStore = (
             // Link ids touched by the removal — survivors that drop below two
             // members are unlinked so they don't keep a dangling linkId.
             const affectedLinkIds = new Set<string>();
+            let remaining = state.clips;
             for (const c of state.clips) {
-              if (selectedIds.has(c.id) && c.linkId !== undefined) {
-                affectedLinkIds.add(c.linkId);
-              }
+              if (!selectedIds.has(c.id)) continue;
+              if (c.linkId !== undefined) affectedLinkIds.add(c.linkId);
+              // Same rule as `deleteClip`: a deleted group releases its
+              // children rather than taking them with it (D4).
+              if (isGroupClip(c)) remaining = ungroup(remaining, c.id);
             }
-            let clips = state.clips.filter((c) => !selectedIds.has(c.id));
+            let clips = remaining.filter((c) => !selectedIds.has(c.id));
 
             if (affectedLinkIds.size > 0) {
               const linkCounts = new Map<string, number>();
@@ -1445,8 +1498,15 @@ export const createTimelineStore = (
 
         deleteClip: (clipId) =>
           set((state) => {
-            const linkId = state.clips.find((c) => c.id === clipId)?.linkId;
-            const clips = state.clips.filter((c) => c.id !== clipId);
+            const target = state.clips.find((c) => c.id === clipId);
+            const linkId = target?.linkId;
+            // Deleting a group deletes the parent, not the picture: its
+            // children stay where they are and stop inheriting (D4).
+            const remaining =
+              target && isGroupClip(target)
+                ? ungroup(state.clips, clipId)
+                : state.clips;
+            const clips = remaining.filter((c) => c.id !== clipId);
             if (linkId !== undefined) {
               let linkedClipCount = 0;
               let lastLinkedClipIndex = -1;
@@ -1707,10 +1767,9 @@ export const createTimelineStore = (
             mediaTypeOverride: opts?.mediaTypeOverride
           });
 
-          // The wire schema types animation `easing`/`preset` as plain strings
-          // (forward compat); the store's TimelineClip narrows `easing` to
-          // EasingId. The compiler tolerates unknown ids at sample time, so the
-          // wire→store cast is safe here.
+          // The wire schema and the store's TimelineClip type the loose
+          // forward-compat strings the same way, and the compiler tolerates a
+          // value it cannot read at sample time, so the cast is safe here.
           set((state) => ({
             clips: [...state.clips, newClip as TimelineClip]
           }));

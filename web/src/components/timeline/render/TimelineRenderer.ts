@@ -2,9 +2,10 @@
  * renderTimeline — offline, frame-by-frame export of a timeline to an MP4.
  *
  * The renderer drives the *same* compositor (WebGPU, or the Canvas2D fallback
- * via {@link createCompositor}) and the *same* {@link computeActiveLayers}
- * scene description as the live preview, so the exported video is 1:1 with what
- * playback showed. Instead of a real-time rAF loop it:
+ * via {@link createCompositor}) and the *same* scene description as the live
+ * preview — resolved once by `@nodetool-ai/timeline` and mapped to layers by
+ * `buildCompositeLayer` — so the exported video is 1:1 with what playback
+ * showed. Instead of a real-time rAF loop it:
  *
  *   1. steps the playhead in exact `1 / fps` increments,
  *   2. seeks each video element to the precise source frame (waiting for
@@ -25,14 +26,19 @@ import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 import type { CompositeLayer } from "../preview/gpu/types";
 import {
   clipSourceTimeSec,
-  computeActiveLayers,
+  computeActiveLayersWithHorizon,
   createAnimationCompileCache,
-  resolveAnimatedLayerProps,
-  resolveTextStaggerContext,
-  trackZ
+  resolveTextStaggerContext
 } from "@nodetool-ai/timeline/render";
+import type { ActiveLayer } from "@nodetool-ai/timeline/render";
+import {
+  buildCompositeLayer,
+  buildCompositePrecomposites,
+  type ResolvedCompositeSource
+} from "../preview/compositeLayers";
 import { CaptionRasterizer } from "../preview/captionRender";
 import { TextRasterizer } from "../preview/textRender";
+import { textMeasurer } from "../preview/textMeasure";
 import { ShapeRasterizer } from "../preview/shapeRender";
 import { OffscreenVideoPool } from "./OffscreenVideoPool";
 import { renderTimelineAudio } from "./renderAudio";
@@ -230,7 +236,11 @@ export async function renderTimeline(
 
     // Motion-design animations resolve against the sequence resolution (px),
     // matching the live preview. The compile cache lives for the whole render.
-    const animCanvas = { width: opts.width, height: opts.height };
+    const animCanvas = {
+      width: opts.width,
+      height: opts.height,
+      measureText: textMeasurer()
+    };
     const animCache = createAnimationCompileCache();
 
     const frameDurationSec = 1 / fps;
@@ -248,139 +258,104 @@ export async function renderTimeline(
         releasePastIndex++;
       }
 
-      const layers = computeActiveLayers(tracks, clips, timeMs);
+      const { layers, precomposites } = computeActiveLayersWithHorizon(
+        tracks,
+        clips,
+        timeMs,
+        {
+          // Group transforms live in the same space the animations sample in.
+          canvas: animCanvas,
+          animationCache: animCache
+        }
+      );
 
-      // Resolve every layer's source concurrently — with several overlapping
-      // videos this turns N sequential seek round-trips into one. Promise.all
-      // preserves input order in its result array regardless of resolution
-      // order, so the composite below still assembles in the original
-      // (bottom-to-top) layer order.
-      const resolved = await Promise.all(
-        layers.map(async (layer): Promise<CompositeLayer | null> => {
-          // Same per-frame animation resolution as the live compositor, so the
-          // exported motion is 1:1 with the preview.
-          const anim = resolveAnimatedLayerProps(
-            layer,
+      /**
+       * The pixels one layer draws. A video's are the slow part — the pool has
+       * to seek and wait for the decode — so every layer of a frame is resolved
+       * concurrently and the mapping runs after, in scene order.
+       */
+      const sourceFor = async (
+        layer: ActiveLayer
+      ): Promise<ResolvedCompositeSource | null> => {
+        if (layer.kind === "caption" && layer.caption) {
+          const bitmap = captionRasterizer.rasterize(
+            layer.caption,
+            width,
+            height
+          );
+          return bitmap ? { source: bitmap, untransformed: true } : null;
+        }
+        if (layer.kind === "text" && layer.textStyle) {
+          // Staggered per-word motion is drawn into the raster itself,
+          // through the same rasterizer the live preview uses.
+          const stagger = resolveTextStaggerContext(
+            layer.clip,
             timeMs,
             animCanvas,
             animCache
           );
-          if (layer.kind === "caption" && layer.caption) {
-            const bitmap = captionRasterizer.rasterize(
-              layer.caption,
-              width,
-              height
-            );
-            if (!bitmap) return null;
-            return {
-              id: `c:${layer.clipId}`,
-              source: bitmap,
-              opacity: anim.opacity,
-              blendMode: layer.blendMode,
-              zIndex: trackZ(layer.trackIndex),
-              transform: anim.transform,
-              mask: anim.mask
-            };
-          }
+          const bitmap = textRasterizer.rasterize(
+            layer.textStyle,
+            width,
+            height,
+            stagger
+          );
+          return bitmap ? { source: bitmap } : null;
+        }
+        if (layer.kind === "shape" && layer.shapeStyle) {
+          const bitmap = shapeRasterizer.rasterize(
+            layer.shapeStyle,
+            width,
+            height
+          );
+          return bitmap ? { source: bitmap } : null;
+        }
 
-          if (layer.kind === "text" && layer.textStyle) {
-            // Staggered per-word motion is drawn into the raster itself,
-            // through the same rasterizer the live preview uses.
-            const stagger = resolveTextStaggerContext(
-              layer.clip,
-              timeMs,
-              animCanvas,
-              animCache
-            );
-            const bitmap = textRasterizer.rasterize(
-              layer.textStyle,
-              width,
-              height,
-              stagger
-            );
-            if (!bitmap) return null;
-            return {
-              id: `t:${layer.clipId}`,
-              source: bitmap,
-              opacity: anim.opacity,
-              blendMode: layer.blendMode,
-              zIndex: trackZ(layer.trackIndex),
-              transform: anim.transform,
-              mask: anim.mask,
-              borderRadius: layer.borderRadius,
-              effects: anim.effects ?? layer.effects,
-              trackEffects: layer.trackEffects
-            };
-          }
+        if (!layer.assetId) return null;
+        const url = await resolveCached(layer.assetId);
+        if (!url) return null;
 
-          if (layer.kind === "shape" && layer.shapeStyle) {
-            const bitmap = shapeRasterizer.rasterize(
-              layer.shapeStyle,
-              width,
-              height
-            );
-            if (!bitmap) return null;
-            return {
-              id: `s:${layer.clipId}`,
-              source: bitmap,
-              opacity: anim.opacity,
-              blendMode: layer.blendMode,
-              zIndex: trackZ(layer.trackIndex),
-              transform: anim.transform,
-              mask: anim.mask,
-              borderRadius: layer.borderRadius,
-              effects: anim.effects ?? layer.effects,
-              trackEffects: layer.trackEffects
-            };
-          }
+        if (layer.kind === "video") {
+          const el = await videoPool.seek(
+            layer.clipId,
+            url,
+            clipSourceTimeSec(layer.clip, timeMs),
+            signal
+          );
+          return el.videoWidth === 0 ? null : { source: el };
+        }
+        const img = await loadImage(url);
+        return img ? { source: img } : null;
+      };
 
-          if (!layer.assetId) return null;
-          const url = await resolveCached(layer.assetId);
-          if (!url) return null;
-
-          if (layer.kind === "video") {
-            const el = await videoPool.seek(
-              layer.clipId,
-              url,
-              clipSourceTimeSec(layer.clip, timeMs),
-              signal
-            );
-            if (el.videoWidth === 0) return null;
-            return {
-              id: `v:${layer.clipId}`,
-              source: el,
-              opacity: anim.opacity,
-              blendMode: layer.blendMode,
-              zIndex: trackZ(layer.trackIndex),
-              transform: anim.transform,
-              mask: anim.mask,
-              borderRadius: layer.borderRadius,
-              effects: anim.effects ?? layer.effects,
-              trackEffects: layer.trackEffects
-            };
-          }
-
-          const img = await loadImage(url);
-          if (!img) return null;
-          return {
-            id: `i:${layer.clipId}`,
-            source: img,
-            opacity: anim.opacity,
-            blendMode: layer.blendMode,
-            zIndex: trackZ(layer.trackIndex),
-            transform: anim.transform,
-            mask: anim.mask,
-            borderRadius: layer.borderRadius,
-            effects: anim.effects ?? layer.effects,
-            trackEffects: layer.trackEffects
-          };
+      // A matte source is held out of `layers` by the scene model, so it is
+      // reached through the layer it mattes and decoded with it.
+      const withMatteSources = (layer: ActiveLayer): ActiveLayer[] =>
+        layer.matte ? [layer, ...withMatteSources(layer.matte.layer)] : [layer];
+      const needed = layers.flatMap(withMatteSources);
+      const sources = new Map<ActiveLayer, ResolvedCompositeSource>();
+      await Promise.all(
+        needed.map(async (layer) => {
+          const source = await sourceFor(layer);
+          if (source) sources.set(layer, source);
         })
       );
-      const composite: CompositeLayer[] = resolved.filter(
-        (layer): layer is CompositeLayer => layer !== null
-      );
 
-      compositor.setLayers(composite);
+      const composite: CompositeLayer[] = [];
+      for (const layer of layers) {
+        const built = buildCompositeLayer(layer, {
+          atMs: timeMs,
+          canvas: animCanvas,
+          animationCache: animCache,
+          resolveSource: (target) => sources.get(target) ?? null
+        });
+        if (built) composite.push(built);
+      }
+
+      compositor.setLayers(
+        composite,
+        buildCompositePrecomposites(precomposites)
+      );
       compositor.render();
       await compositor.flush();
 

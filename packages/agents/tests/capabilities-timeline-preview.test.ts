@@ -19,6 +19,8 @@ import type {
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
+import { resolveAnimatedLayerProps } from "@nodetool-ai/timeline/scene";
+
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { renderTimelineFrames } from "../src/timeline-preview/frames.js";
 
@@ -88,6 +90,54 @@ async function pixelAt(
   ctx.drawImage(image, 0, 0);
   const d = ctx.getImageData(x, y, 1, 1).data;
   return [d[0], d[1], d[2], d[3]];
+}
+
+/** How many pixels of a row or column of a PNG frame are red. */
+async function redSpan(
+  png: Uint8Array,
+  axis: "row" | "column"
+): Promise<{ length: number; total: number }> {
+  const image = await loadImage(Buffer.from(png));
+  const canvas = createCanvas(image.width, image.height);
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(image, 0, 0);
+  const data =
+    axis === "row"
+      ? ctx.getImageData(0, Math.floor(image.height / 2), image.width, 1).data
+      : ctx.getImageData(Math.floor(image.width / 2), 0, 1, image.height).data;
+  let length = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i] > 200 && data[i + 1] < 60 && data[i + 2] < 60) length += 1;
+  }
+  return {
+    length,
+    total: axis === "row" ? image.width : image.height
+  };
+}
+
+/** First and last column of a PNG's middle row that carries a bright pixel. */
+async function brightColumns(
+  png: Uint8Array,
+  threshold = 60
+): Promise<{ first: number; last: number; count: number }> {
+  const image = await loadImage(Buffer.from(png));
+  const canvas = createCanvas(image.width, image.height);
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(image, 0, 0);
+  const row = ctx.getImageData(0, Math.floor(image.height / 2), image.width, 1)
+    .data;
+  let first = -1;
+  let last = -1;
+  let count = 0;
+  for (let i = 0; i < row.length; i += 4) {
+    if (row[i] > threshold) {
+      const column = i / 4;
+      if (first < 0) first = column;
+      last = column;
+      count += 1;
+    }
+  }
+  return { first, last, count };
 }
 
 describe("renderTimelineFrames", () => {
@@ -225,6 +275,46 @@ describe("renderTimelineFrames", () => {
     expect(brightest).toBeGreaterThan(150);
   });
 
+  it("draws a character stagger one glyph at a time", async () => {
+    // Each glyph fades in over 200ms, 300ms after the one before it, so at
+    // 650ms only the first three have opened. A raster that ignored the
+    // stagger would light the whole word at once.
+    const staggered = {
+      ...shapeClip("stagger", "track-0", "#000000"),
+      mediaType: "text" as const,
+      shapeStyle: undefined,
+      textStyle: {
+        text: "HHHHHHHHHH",
+        fontSizePx: 30,
+        color: "#ffffff"
+      },
+      animations: [
+        {
+          id: "a1",
+          role: "in" as const,
+          preset: "fade",
+          durationMs: 200,
+          easing: "linear",
+          stagger: { unit: "character", offsetMs: 300 }
+        }
+      ]
+    };
+    const { frames } = await renderTimelineFrames({
+      sequence: sequence([track(0)], [staggered]),
+      timesMs: [650, 3500],
+      width: 320,
+      loadAsset: noAssets
+    });
+
+    const mid = await brightColumns(frames[0].png);
+    const settled = await brightColumns(frames[1].png);
+    expect(mid.count).toBeGreaterThan(0);
+    // The word is centered, so the un-opened glyphs are the right-hand ones.
+    expect(mid.first).toBeCloseTo(settled.first, -1);
+    expect(mid.last).toBeLessThan(settled.last - 20);
+    expect(mid.count).toBeLessThan(settled.count);
+  });
+
   it("says why a layer contributed nothing instead of dropping it", async () => {
     const { frames } = await renderTimelineFrames({
       sequence: sequence(
@@ -282,6 +372,145 @@ describe("renderTimelineFrames", () => {
     expect(frames[0].dropped).toEqual([]);
   });
 
+  /**
+   * The channels T7 added have to reach the picture, not just the sample. A
+   * `scaleX` curve widens the layer and leaves its height alone, and the span
+   * the frame actually shows is the one the scene model resolved — the harness
+   * and the renderer read the same sample or this diverges silently.
+   */
+  it("widens a shape with scaleX and leaves its height alone", async () => {
+    const middleSquare = {
+      kind: "rect" as const,
+      fill: "#ff0000",
+      x: 0.25,
+      y: 0.25,
+      width: 0.5,
+      height: 0.5
+    };
+    const plain = shapeClip("plain", "track-0", "#ff0000", {
+      shapeStyle: middleSquare
+    });
+    const widened: TimelineClip = {
+      ...plain,
+      id: "widened",
+      name: "widened",
+      animations: [
+        {
+          id: "wide",
+          role: "loop",
+          preset: "custom",
+          durationMs: 1000,
+          easing: "linear",
+          custom: {
+            curves: [
+              {
+                property: "scaleX",
+                keyframes: [
+                  { t: 0, value: 2 },
+                  { t: 1, value: 2 }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    };
+
+    const render = (clip: TimelineClip) =>
+      renderTimelineFrames({
+        sequence: sequence([track(0)], [clip]),
+        timesMs: [1000],
+        width: 160,
+        loadAsset: noAssets
+      });
+
+    const before = await render(plain);
+    const after = await render(widened);
+
+    const baseRow = await redSpan(before.frames[0].png, "row");
+    const wideRow = await redSpan(after.frames[0].png, "row");
+    const baseColumn = await redSpan(before.frames[0].png, "column");
+    const wideColumn = await redSpan(after.frames[0].png, "column");
+
+    // The scene model is the authority on the factor; the pixels must match it.
+    const props = resolveAnimatedLayerProps(
+      { clip: widened, opacity: 1 },
+      1000,
+      { width: 640, height: 360 }
+    );
+    expect(props.transform?.scale.x).toBe(2);
+    expect(props.transform?.scale.y).toBe(1);
+
+    // Antialiased edges cost a pixel either side, so the widths are compared
+    // with a small tolerance; the height is untouched and must match exactly.
+    const expectedWide = baseRow.length * (props.transform?.scale.x ?? 1);
+    expect(Math.abs(wideRow.length - expectedWide)).toBeLessThanOrEqual(4);
+    expect(wideRow.length).toBeGreaterThan(wideRow.total - 5);
+    expect(wideColumn.length).toBe(baseColumn.length);
+  });
+
+  /**
+   * A group is a transform parent (D4), and the picture is where that has to
+   * show up. A half-turn about a point a quarter of the way across the frame
+   * takes a bar in the leftmost quarter into the second quarter; the same
+   * rotation about the layer's own centre would take it to the rightmost one,
+   * so the two cannot be confused in the pixels.
+   */
+  it("rotates a child about the group's anchor, not its own", async () => {
+    const leftBar = {
+      kind: "rect" as const,
+      fill: "#ff0000",
+      x: 0,
+      y: 0,
+      width: 0.25,
+      height: 1
+    };
+    const halfTurnAtQuarterWidth = {
+      position: { x: 0, y: 0 },
+      scale: { x: 1, y: 1 },
+      rotation: Math.PI,
+      anchor: { x: 0.25, y: 0.5 }
+    };
+    const bar = shapeClip("bar", "track-0", "#ff0000", {
+      shapeStyle: leftBar
+    });
+    const group: TimelineClip = {
+      id: "group",
+      trackId: "track-0",
+      name: "Group",
+      startMs: 0,
+      durationMs: 4000,
+      mediaType: "group",
+      sourceType: "generated",
+      status: "generated",
+      transform: halfTurnAtQuarterWidth
+    };
+
+    const render = (clips: TimelineClip[]) =>
+      renderTimelineFrames({
+        sequence: sequence([track(0)], clips),
+        timesMs: [1000],
+        width: 160,
+        loadAsset: noAssets
+      });
+
+    const unparented = await render([bar]);
+    const parented = await render([group, { ...bar, parentId: "group" }]);
+
+    const before = await brightColumns(unparented.frames[0].png, 60);
+    const after = await brightColumns(parented.frames[0].png, 60);
+
+    // 160px wide: the bar starts in columns 0–39 and lands in 40–79.
+    expect(before.first).toBeLessThanOrEqual(1);
+    expect(before.last).toBeGreaterThanOrEqual(38);
+    expect(before.last).toBeLessThan(42);
+    expect(after.first).toBeGreaterThan(38);
+    expect(after.first).toBeLessThan(42);
+    expect(after.last).toBeGreaterThan(76);
+    expect(after.last).toBeLessThan(82);
+    expect(after.count).toBeCloseTo(before.count, -1);
+  });
+
   it("names the effects Canvas 2D cannot draw", async () => {
     const { effectsNotApplied } = await renderTimelineFrames({
       sequence: sequence(
@@ -294,6 +523,92 @@ describe("renderTimelineFrames", () => {
     });
 
     expect(effectsNotApplied).toContain("vignette");
+  });
+
+  it("names every clip effect from the shader catalog it cannot draw", async () => {
+    // The whole catalog on one clip (D7). Canvas 2D draws `dropShadow` through
+    // `ctx.shadow*` and approximates `color`/`blur` with `ctx.filter`; the
+    // other seven have no equivalent, and a caller learns that here rather
+    // than by comparing this frame against a GPU render (I7).
+    const { effectsNotApplied } = await renderTimelineFrames({
+      sequence: sequence(
+        [track(0)],
+        [
+          shapeClip("shot", "track-0", "#ff0000", {
+            effects: [
+              { id: "1", type: "color", enabled: true, brightness: 0.2 },
+              { id: "2", type: "blur", enabled: true, radius: 3 },
+              { id: "3", type: "glow", enabled: true, radius: 8, intensity: 1 },
+              {
+                id: "4",
+                type: "dropShadow",
+                enabled: true,
+                offsetX: 4,
+                offsetY: 4,
+                blur: 6,
+                color: "#000000"
+              },
+              {
+                id: "5",
+                type: "vignette",
+                enabled: true,
+                amount: 0.5,
+                softness: 0.4
+              },
+              { id: "6", type: "sharpen", enabled: true, amount: 1 },
+              {
+                id: "7",
+                type: "chromaKey",
+                enabled: true,
+                color: "#00ff00",
+                tolerance: 0.2,
+                softness: 0.05
+              },
+              {
+                id: "8",
+                type: "curves",
+                enabled: true,
+                master: [
+                  { x: 0, y: 0 },
+                  { x: 1, y: 1 }
+                ]
+              },
+              {
+                id: "9",
+                type: "levels",
+                enabled: true,
+                inBlack: 0,
+                inWhite: 1,
+                gamma: 1,
+                outBlack: 0,
+                outWhite: 1
+              },
+              {
+                id: "10",
+                type: "liftGammaGain",
+                enabled: true,
+                lift: [0, 0, 0],
+                gamma: [1, 1, 1],
+                gain: [1, 1, 1]
+              }
+            ]
+          })
+        ]
+      ),
+      timesMs: [1000],
+      width: 160,
+      loadAsset: noAssets
+    });
+
+    expect(effectsNotApplied).toEqual([
+      "chromaKey",
+      "curves",
+      "glow",
+      "levels",
+      "liftGammaGain",
+      "sharpen",
+      "vignette"
+    ]);
   });
 });
 

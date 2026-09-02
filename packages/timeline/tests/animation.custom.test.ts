@@ -374,11 +374,67 @@ describe("compileClipAnimations with a custom preset", () => {
     expect(compiled.loop).toBe(true);
     expect(compiled.periodMs).toBe(800);
     expect(compiled.stagger).toEqual({
+      unit: "word",
       count: 3,
       offsetMs: 100,
       from: "start",
       unitDurationMs: 800,
-      maxDelayMs: 200
+      maxDelayMs: 200,
+      compressed: false
     });
+  });
+});
+
+describe("normalizeCustomCurves — easing strings", () => {
+  const withEasing = (easing: string): unknown => [
+    {
+      property: "opacity",
+      keyframes: [
+        { t: 0, value: 0 },
+        { t: 1, value: 1, easing }
+      ]
+    }
+  ];
+
+  it("accepts the parametric grammar without reporting anything", () => {
+    for (const easing of ["easeOutBack", "cubic-bezier(0.42,0,0.58,1)", "spring(180,12,1)"]) {
+      const result = normalizeCustomCurves(withEasing(easing));
+      expect(result.ok, easing).toBe(true);
+      if (!result.ok) return;
+      expect(result.unknownEasings, easing).toBeUndefined();
+      expect(result.curves[0].keyframes[1].easing).toBe(easing);
+    }
+  });
+
+  it("reports an easing outside the grammar without dropping the curve", () => {
+    const result = normalizeCustomCurves(withEasing("cubic-bezier(1,2)"));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.unknownEasings).toEqual(["cubic-bezier(1,2)"]);
+    // The keyframe keeps the string it was written with: the sampler eases it
+    // linearly rather than the document losing the animation (I2).
+    expect(result.curves[0].keyframes[1].easing).toBe("cubic-bezier(1,2)");
+  });
+
+  it("de-duplicates a repeated bad easing across curves", () => {
+    const result = normalizeCustomCurves([
+      {
+        property: "opacity",
+        keyframes: [
+          { t: 0, value: 0 },
+          { t: 1, value: 1, easing: "wobble" }
+        ]
+      },
+      {
+        property: "scale",
+        keyframes: [
+          { t: 0, value: 0, easing: "wobble" },
+          { t: 1, value: 1, easing: "boing" }
+        ]
+      }
+    ]);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.unknownEasings).toEqual(["wobble", "boing"]);
   });
 });

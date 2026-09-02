@@ -16,12 +16,24 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import {
   ANIMATION_PRESETS,
+  CLIP_EFFECT_TYPES,
   CUSTOM_ANIMATION_PRESET_ID,
+  EASING_IDS,
   normalizeCustomCurves,
+  parseClipEffectType,
+  parseEasing,
   resolveCustomMask,
   sourceRate
 } from "@nodetool-ai/timeline";
-import { MAX_VIDEO_LAYERS } from "@nodetool-ai/timeline/scene";
+import {
+  MASK_KINDS,
+  MAX_VIDEO_LAYERS,
+  TRANSITION_DIRECTIONS,
+  TRANSITION_TYPES,
+  parseSvgPath,
+  parseTransitionDirection,
+  parseTransitionType
+} from "@nodetool-ai/timeline/scene";
 
 import type { TimelineDebugIssue, TimelineValidation } from "./types.js";
 
@@ -42,6 +54,84 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 const clipLabel = (clip: TimelineClip): string => `${clip.name || clip.id}`;
+
+/** What an `easing` field accepts, for the `unknown_easing` message. */
+const EASING_GRAMMAR = `${EASING_IDS.join(", ")}, cubic-bezier(x1,y1,x2,y2), spring(stiffness,damping,mass)`;
+
+/**
+ * An easing string nothing in the grammar parses. A warning, not an error: the
+ * sampler eases linearly rather than dropping the motion, so a document from a
+ * newer build still plays (I2). The offending string is named because it is
+ * almost always a typo — `ease-out` for `easeOut`, a spring with two arguments.
+ */
+function unknownEasingIssue(
+  clip: TimelineClip,
+  easing: string | undefined,
+  path: string
+): TimelineDebugIssue | null {
+  if (easing === undefined || parseEasing(easing) !== null) return null;
+  return {
+    severity: "warning",
+    code: "unknown_easing",
+    message: `Clip "${clipLabel(clip)}" eases with "${easing}", which this build cannot parse — it will ease linearly. Expected one of ${EASING_GRAMMAR}.`,
+    path,
+    clipId: clip.id,
+    trackId: clip.trackId
+  };
+}
+
+/** What a transition's `type` accepts, for the `unknown_transition` message. */
+const TRANSITION_GRAMMAR = TRANSITION_TYPES.join(", ");
+
+/** What a `wipe`/`push`/`slide` `direction` accepts. */
+const DIRECTION_GRAMMAR = TRANSITION_DIRECTIONS.join(", ");
+
+/**
+ * A transition type this build cannot draw.
+ *
+ * `type` is a plain string on the wire (I2), so a cut a newer build authored
+ * parses, reaches the renderer, and cross-fades. This names the type the
+ * document asked for and says what happens instead. It reads the parsed clip:
+ * the schema no longer refuses an unknown type, so there is nothing left for a
+ * pre-parse scan of the raw document to see.
+ */
+function unknownTransitionTypeIssue(
+  clip: TimelineClip
+): TimelineDebugIssue | null {
+  const transition = clip.transitionIn;
+  if (!transition || parseTransitionType(transition.type) !== null) return null;
+  return {
+    severity: "warning",
+    code: "unknown_transition",
+    message: `Clip "${clipLabel(clip)}" opens with a "${transition.type}" transition, which this build cannot draw — it cross-fades instead. Expected one of ${TRANSITION_GRAMMAR}.`,
+    path: "transitionIn.type",
+    clipId: clip.id,
+    trackId: clip.trackId
+  };
+}
+
+/**
+ * A `direction` the renderer cannot read on a transition whose type it can.
+ * Falls back to `left` at render time, the way an unknown type falls back to a
+ * cross-fade.
+ */
+function unknownDirectionIssue(clip: TimelineClip): TimelineDebugIssue | null {
+  const transition = clip.transitionIn;
+  if (!transition || !("direction" in transition)) return null;
+  const { direction } = transition;
+  // An unknown type can carry any value under a key our own types use as a
+  // string, so the read is guarded rather than trusted.
+  if (typeof direction !== "string") return null;
+  if (parseTransitionDirection(direction) !== null) return null;
+  return {
+    severity: "warning",
+    code: "unknown_transition",
+    message: `Clip "${clipLabel(clip)}" runs its ${transition.type} toward "${direction}", which this build cannot read — it runs left. Expected one of ${DIRECTION_GRAMMAR}.`,
+    path: "transitionIn.direction",
+    clipId: clip.id,
+    trackId: clip.trackId
+  };
+}
 
 /** Collect every leaf/branch path the parse output dropped from the input. */
 function collectStrippedPaths(
@@ -247,7 +337,36 @@ function checkClip(
     });
   }
 
+  const transitionEasing = unknownEasingIssue(
+    clip,
+    clip.transitionIn?.easing,
+    "transitionIn.easing"
+  );
+  if (transitionEasing) issues.push(transitionEasing);
+
+  const transitionType = unknownTransitionTypeIssue(clip);
+  if (transitionType) issues.push(transitionType);
+
+  const transitionDirection = unknownDirectionIssue(clip);
+  if (transitionDirection) issues.push(transitionDirection);
+
+  for (const [index, keyframe] of (clip.timeRemap?.keyframes ?? []).entries()) {
+    const issue = unknownEasingIssue(
+      clip,
+      keyframe.easing,
+      `timeRemap.keyframes[${index}].easing`
+    );
+    if (issue) issues.push(issue);
+  }
+
   for (const animation of clip.animations ?? []) {
+    const animationEasing = unknownEasingIssue(
+      clip,
+      animation.easing,
+      "animations[*].easing"
+    );
+    if (animationEasing) issues.push(animationEasing);
+
     if (!PRESET_IDS.has(animation.preset)) {
       issues.push({
         severity: "error",
@@ -274,6 +393,15 @@ function checkClip(
       });
       continue;
     }
+    for (const easing of baked.unknownEasings ?? []) {
+      const issue = unknownEasingIssue(
+        clip,
+        easing,
+        "animations[*].custom.curves[*].keyframes[*].easing"
+      );
+      if (issue) issues.push(issue);
+    }
+
     const mask = resolveCustomMask(baked.curves, animation.custom?.mask);
     if (!mask.ok) {
       issues.push({
@@ -312,6 +440,9 @@ function checkClip(
     }
   }
 
+  issues.push(...maskIssues(clip));
+  issues.push(...unknownEffectIssues(clip));
+
   const frameMs = 1000 / fps;
   if (clip.durationMs > 0 && clip.durationMs < frameMs) {
     issues.push({
@@ -320,6 +451,188 @@ function checkClip(
       message: `Clip "${label}" lasts ${clip.durationMs}ms, less than one frame at ${fps}fps (${frameMs.toFixed(2)}ms) — it may never be sampled.`,
       ...at
     });
+  }
+
+  return issues;
+}
+
+/** What an effect's `type` accepts, for the `unknown_effect` message. */
+const EFFECT_GRAMMAR = CLIP_EFFECT_TYPES.join(", ");
+
+/**
+ * An effect type this build does not apply (D7).
+ *
+ * `type` is a plain string on the wire (I2), so an effect a newer build
+ * authored parses and reaches the renderer, which steps over it. A warning
+ * rather than an error: the layer draws ungraded, which is a different picture
+ * and not a broken one. Canvas 2D reports the same set at render time through
+ * `unsupportedEffectTypes`; this is the half that answers before anything runs.
+ */
+function unknownEffectIssues(clip: TimelineClip): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  for (const [index, effect] of (clip.effects ?? []).entries()) {
+    if (parseClipEffectType(effect.type) !== null) continue;
+    issues.push({
+      severity: "warning",
+      code: "unknown_effect",
+      message: `Clip "${clipLabel(clip)}" carries a "${effect.type}" effect, which this build cannot apply — the layer draws without it. Expected one of ${EFFECT_GRAMMAR}.`,
+      path: `effects[${index}].type`,
+      clipId: clip.id,
+      trackId: clip.trackId
+    });
+  }
+  return issues;
+}
+
+/** What a mask's `kind` accepts, for the `mask_path_invalid` message. */
+const MASK_KIND_GRAMMAR = MASK_KINDS.join(", ");
+
+/**
+ * A mask this build cannot rasterize (D6) — a warning, because the layer draws
+ * unmasked rather than not at all.
+ *
+ * Two ways to get there, and the message names which. `kind` is a plain string
+ * on the wire (I2), so a mask shape a newer build authored parses and reaches
+ * the renderer, which skips it. And a `path` mask's `d` is only ever read at
+ * render time, where a typo in the path data is a mask that quietly does
+ * nothing.
+ */
+function maskIssues(clip: TimelineClip): TimelineDebugIssue[] {
+  const mask = clip.mask;
+  if (!mask) return [];
+  const at = { clipId: clip.id, trackId: clip.trackId };
+  if (!(MASK_KINDS as readonly string[]).includes(mask.kind)) {
+    return [
+      {
+        severity: "warning",
+        code: "mask_path_invalid",
+        message: `Clip "${clipLabel(clip)}" is masked with kind "${mask.kind}", which this build cannot rasterize — it draws unmasked. Expected one of ${MASK_KIND_GRAMMAR}.`,
+        path: "mask.kind",
+        ...at
+      }
+    ];
+  }
+  if (mask.kind !== "path") return [];
+  const parsed = parseSvgPath(mask.d ?? "");
+  if (parsed.ok) return [];
+  return [
+    {
+      severity: "warning",
+      code: "mask_path_invalid",
+      message: `Clip "${clipLabel(clip)}" has a path mask this build cannot draw — it draws unmasked. ${parsed.error}.`,
+      path: "mask.d",
+      ...at
+    }
+  ];
+}
+
+/**
+ * Track mattes (D6). A `matte` must name a clip the document contains, and not
+ * itself — a matte source never draws, so a clip matted by itself resolves to
+ * nothing at all.
+ *
+ * Both are errors rather than warnings because they cost the whole point of
+ * the field without failing anything: a missing source draws the layer
+ * unmatted, so a keyhole meant to reveal one shape shows the entire picture.
+ */
+function checkMattes(doc: TimelineDocument): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  const ids = new Set(doc.clips.map((clip) => clip.id));
+  for (const clip of doc.clips) {
+    const matte = clip.matte;
+    if (!matte) continue;
+    const at = { clipId: clip.id, trackId: clip.trackId };
+    if (!ids.has(matte.sourceClipId)) {
+      issues.push({
+        severity: "error",
+        code: "matte_source_missing",
+        message: `Clip "${clipLabel(clip)}" is matted by "${matte.sourceClipId}", which the document does not contain — it draws unmatted.`,
+        path: "matte.sourceClipId",
+        ...at
+      });
+      continue;
+    }
+    if (matte.sourceClipId === clip.id) {
+      issues.push({
+        severity: "error",
+        code: "matte_source_missing",
+        message: `Clip "${clipLabel(clip)}" names itself as its matte source — a matte source never draws itself, so the clip resolves to nothing and disappears.`,
+        path: "matte.sourceClipId",
+        ...at
+      });
+    }
+  }
+  return issues;
+}
+
+/**
+ * Parent links (D4). A `parentId` must name a clip the document contains, that
+ * clip must be a group, and the chain must reach a root. All three are errors:
+ * the scene model renders such a child unparented rather than refusing to draw
+ * it, so a broken link costs the group's transform, opacity and window without
+ * anything failing at render time.
+ */
+function checkParents(doc: TimelineDocument): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  const byId = new Map(doc.clips.map((clip) => [clip.id, clip]));
+  /** Chains already walked, so a shared ancestor is not re-walked per child. */
+  const settled = new Map<string, "rooted" | "cyclic">();
+
+  for (const clip of doc.clips) {
+    const parentId = clip.parentId;
+    if (parentId === undefined) continue;
+    const at = { clipId: clip.id, trackId: clip.trackId, path: "parentId" };
+
+    const parent = byId.get(parentId);
+    if (!parent) {
+      issues.push({
+        severity: "error",
+        code: "parent_missing",
+        message: `Clip "${clipLabel(clip)}" names parent "${parentId}", which the document does not contain — it renders unparented.`,
+        ...at
+      });
+      continue;
+    }
+    if (parent.mediaType !== "group") {
+      issues.push({
+        severity: "error",
+        code: "parent_not_group",
+        message: `Clip "${clipLabel(clip)}" names parent "${clipLabel(parent)}", whose mediaType is "${parent.mediaType}" — only a clip with mediaType "group" can be a transform parent.`,
+        ...at
+      });
+      continue;
+    }
+
+    const walked: string[] = [];
+    const seen = new Set<string>();
+    let cursor: TimelineClip | undefined = clip;
+    let loopedAt: string | undefined;
+    while (cursor) {
+      if (seen.has(cursor.id)) {
+        loopedAt = cursor.id;
+        break;
+      }
+      const known = settled.get(cursor.id);
+      if (known === "rooted") break;
+      if (known === "cyclic") {
+        loopedAt = cursor.id;
+        break;
+      }
+      seen.add(cursor.id);
+      walked.push(cursor.id);
+      cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
+    }
+    for (const id of walked) {
+      settled.set(id, loopedAt === undefined ? "rooted" : "cyclic");
+    }
+    if (loopedAt !== undefined) {
+      issues.push({
+        severity: "error",
+        code: "parent_cycle",
+        message: `Clip "${clipLabel(clip)}" has a parent chain that loops back to "${loopedAt}" — the chain is refused, so it renders unparented.`,
+        ...at
+      });
+    }
   }
 
   return issues;
@@ -484,6 +797,44 @@ function checkDocumentLevel(doc: TimelineDocument): TimelineDebugIssue[] {
   return issues;
 }
 
+/** The shape of a Zod issue this module reads, including a union's branches. */
+interface SchemaIssue {
+  readonly path: readonly PropertyKey[];
+  readonly message: string;
+  readonly errors?: readonly (readonly SchemaIssue[])[];
+}
+
+/**
+ * Zod issues as the paths and messages a reader can act on.
+ *
+ * `transitionIn` and every `effects[]` entry are unions (I2: a type from a
+ * newer build parses through a permissive branch). A union reports one
+ * `invalid_union` against the object with the reason each branch failed buried
+ * in `errors`, so reporting it verbatim would say "Invalid input" about the
+ * clip rather than naming the field that is wrong. Flattening puts each
+ * branch's issues back on the union's own path.
+ */
+function flattenSchemaIssues(
+  issues: readonly SchemaIssue[],
+  prefix: readonly PropertyKey[] = []
+): { path: string; message: string }[] {
+  const out: { path: string; message: string }[] = [];
+  for (const issue of issues) {
+    const path = [...prefix, ...issue.path];
+    if (issue.errors === undefined) {
+      out.push({
+        path: path.map((p) => String(p)).join("."),
+        message: issue.message
+      });
+      continue;
+    }
+    for (const branch of issue.errors) {
+      out.push(...flattenSchemaIssues(branch, path));
+    }
+  }
+  return out;
+}
+
 /**
  * Validate a parsed-JSON timeline document. `raw` is untrusted: anything that
  * fails the schema is reported as `schema_invalid` and the structural checks
@@ -495,14 +846,15 @@ export function validateTimelineSequence(
 ): TimelineValidation {
   const parsed = timelineDocument.safeParse(raw);
   if (!parsed.success) {
-    const errors: TimelineDebugIssue[] = parsed.error.issues
+    const errors: TimelineDebugIssue[] = flattenSchemaIssues(
+      parsed.error.issues
+    )
       .slice(0, 25)
-      .map((issue) => {
-        const path = issue.path.map((p) => String(p)).join(".");
+      .map(({ path, message }) => {
         const schemaIssue: TimelineDebugIssue = {
           severity: "error",
           code: "schema_invalid",
-          message: `${path || "(root)"}: ${issue.message}`
+          message: `${path || "(root)"}: ${message}`
         };
         if (path) {
           schemaIssue.path = path;
@@ -527,6 +879,8 @@ export function validateTimelineSequence(
     ...checkFieldStripping(raw, doc),
     ...checkDuplicateIds(doc),
     ...doc.clips.flatMap((clip) => checkClip(clip, trackIds, fps)),
+    ...checkParents(doc),
+    ...checkMattes(doc),
     ...checkOverlaps(doc),
     ...checkVideoLayerCap(doc),
     ...checkDocumentLevel(doc)

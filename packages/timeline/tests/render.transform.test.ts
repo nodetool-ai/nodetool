@@ -114,6 +114,59 @@ describe("buildTransformMatrix", () => {
     }
   });
 
+  describe("non-uniform scale", () => {
+    /** Map a quad corner through the matrix and convert NDC → pixels. */
+    const cornerPx = (
+      m: Float32Array,
+      qx: number,
+      qy: number,
+      w: number,
+      h: number
+    ) => ({
+      x: (m[0] * qx + m[4] * qy + m[12]) * (w / 2),
+      y: (m[1] * qx + m[5] * qy + m[13]) * (h / 2),
+    });
+
+    it("scales the axes independently on a 16:9 canvas without shearing", () => {
+      const W = 1920;
+      const H = 1080;
+      const base = containBaseScale(1920, 1080, W, H);
+      const wide = buildTransformMatrix(
+        { ...IDENTITY_TRANSFORM, scale: { x: 2, y: 1 } },
+        base,
+        W,
+        H
+      );
+      const unit = buildTransformMatrix(IDENTITY_TRANSFORM, base, W, H);
+      const a = cornerPx(wide, 1, 1, W, H);
+      const b = cornerPx(unit, 1, 1, W, H);
+      // Twice as wide, exactly as tall, and square to the frame: an axis-only
+      // scale must not leak into the other axis.
+      expect(a.x).toBeCloseTo(b.x * 2, 4);
+      expect(a.y).toBeCloseTo(b.y, 4);
+      expect(wide[1]).toBeCloseTo(0, 6);
+      expect(wide[4]).toBeCloseTo(0, 6);
+    });
+
+    it("keys the matrix cache on both axes", () => {
+      const base = { x: 1, y: 1 };
+      const first = buildTransformMatrix(
+        { ...IDENTITY_TRANSFORM, scale: { x: 2, y: 1 } },
+        base,
+        640,
+        480
+      );
+      const second = buildTransformMatrix(
+        { ...IDENTITY_TRANSFORM, scale: { x: 2, y: 3 } },
+        base,
+        640,
+        480
+      );
+      expect(first[5]).toBeCloseTo(1);
+      expect(second[5]).toBeCloseTo(3);
+    });
+  });
+
   describe("aspect-corrected rotation", () => {
     /** Map a quad corner through the matrix and convert NDC → pixels. */
     const cornerPx = (
@@ -254,5 +307,90 @@ describe("clipMatrixToCanvasAffine", () => {
     for (const v of [t.a, t.b, t.c, t.d, t.e, t.f]) {
       expect(Number.isFinite(v)).toBe(true);
     }
+  });
+});
+
+describe("buildTransformMatrix — parent composition", () => {
+  const W = 1000;
+  const H = 1000;
+  const identity = () => ({
+    position: { x: 0, y: 0 },
+    scale: { x: 1, y: 1 },
+    rotation: 0,
+    anchor: { x: 0.5, y: 0.5 }
+  });
+  /** A group's matrix: the identity base, so it is a pure clip-space move. */
+  const parentOf = (t: ClipTransform) =>
+    buildTransformMatrix(t, { x: 1, y: 1 }, W, H);
+
+  it("adds the parent's translation to the child's", () => {
+    const parent = parentOf({ ...identity(), position: { x: 100, y: 0 } });
+    const child = buildTransformMatrix(
+      { ...identity(), position: { x: 200, y: 0 } },
+      { x: 1, y: 1 },
+      W,
+      H,
+      parent
+    );
+    // 100 px and 200 px are 0.2 and 0.4 of clip space on a 1000 px frame.
+    expect(child[12]).toBeCloseTo(0.6);
+  });
+
+  it("scales the child's translation by the parent's scale", () => {
+    const parent = parentOf({ ...identity(), scale: { x: 2, y: 2 } });
+    const child = buildTransformMatrix(
+      { ...identity(), position: { x: 100, y: 0 } },
+      { x: 1, y: 1 },
+      W,
+      H,
+      parent
+    );
+    expect(child[12]).toBeCloseTo(0.4);
+    expect(child[0]).toBeCloseTo(2);
+  });
+
+  it("rotates the child about the parent's anchor, not the child's", () => {
+    // A quarter turn about the frame's left edge at mid-height takes the
+    // frame centre — where the unparented child sits — to the top-left corner.
+    const parent = parentOf({
+      ...identity(),
+      rotation: Math.PI / 2,
+      anchor: { x: 0, y: 0.5 }
+    });
+    const child = buildTransformMatrix(
+      identity(),
+      { x: 1, y: 1 },
+      W,
+      H,
+      parent
+    );
+    expect(child[12]).toBeCloseTo(-1);
+    expect(child[13]).toBeCloseTo(1);
+  });
+
+  it("leaves the child alone under an identity parent", () => {
+    const t = { ...identity(), position: { x: 40, y: -20 }, rotation: 0.3 };
+    const alone = buildTransformMatrix(t, { x: 0.5, y: 1 }, W, H);
+    const parented = buildTransformMatrix(
+      t,
+      { x: 0.5, y: 1 },
+      W,
+      H,
+      parentOf(identity())
+    );
+    expect([...parented]).toEqual([...alone]);
+  });
+
+  it("caches per parent, not per transform alone", () => {
+    const t = { ...identity(), position: { x: 10, y: 10 } };
+    const a = buildTransformMatrix(t, { x: 1, y: 1 }, W, H);
+    const b = buildTransformMatrix(
+      t,
+      { x: 1, y: 1 },
+      W,
+      H,
+      parentOf({ ...identity(), position: { x: 500, y: 0 } })
+    );
+    expect(b[12]).toBeCloseTo(a[12] + 1);
   });
 });

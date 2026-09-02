@@ -23,22 +23,45 @@ export type EasingId =
 export type StaggerFrom = "start" | "end" | "center";
 
 /**
- * Per-unit stagger config: the animation's window applies once per unit
- * (word), each unit's window delayed from the previous by `offsetMs`.
- * Only meaningful on text clips — the text rasterizer draws each word with
- * its own sample. On other clips (and for unknown `unit`s) the animation
- * falls back to the whole-block behavior.
+ * What a staggered animation splits a text clip into. `"word"` is the
+ * whitespace-separated word, `"character"` the grapheme cluster (an emoji or a
+ * base letter plus its combining marks counts once, and the whitespace between
+ * words is a unit that is timed but draws nothing), `"line"` the wrapped line.
+ */
+export const STAGGER_UNITS = ["word", "character", "line"] as const;
+
+export type StaggerUnit = (typeof STAGGER_UNITS)[number];
+
+/**
+ * Narrow a document's `stagger.unit` string to a unit this build implements,
+ * or `null` for one it does not — which compiles un-staggered rather than
+ * failing the document (I2).
+ */
+export function parseStaggerUnit(unit: string): StaggerUnit | null {
+  return (STAGGER_UNITS as readonly string[]).includes(unit)
+    ? (unit as StaggerUnit)
+    : null;
+}
+
+/**
+ * Per-unit stagger config: the animation's window applies once per unit, each
+ * unit's window delayed from the previous by `offsetMs`. Only meaningful on
+ * text clips — the text rasterizer draws each unit with its own sample. On
+ * other clips (and for unknown `unit`s) the animation falls back to the
+ * whole-block behavior.
  */
 export interface AnimationStagger {
   /**
-   * Unit the animation splits into. Only `"word"` is implemented; unknown
-   * units (a future `"character"`) compile as un-staggered block animations
-   * for forward compat, mirroring how unknown presets are handled.
+   * Unit the animation splits into — a {@link StaggerUnit}. Typed `string`
+   * for the same forward compat `preset` has: a unit a newer client wrote
+   * compiles as an un-staggered block animation rather than failing the
+   * document. A clip draws in one unit, so when its animations disagree the
+   * first enabled one wins and the rest compile un-staggered.
    */
   unit: string;
   /** Delay between successive units in ms. Must be > 0 to take effect. */
   offsetMs: number;
-  /** Which unit animates first. Default `"start"` (first word first). */
+  /** Which unit animates first. Default `"start"` (first unit first). */
   from?: StaggerFrom;
 }
 
@@ -80,8 +103,14 @@ export interface ClipAnimation {
    * end). Default 0.
    */
   delayMs?: number;
-  /** Overrides the preset default and every per-segment easing when set. */
-  easing?: EasingId;
+  /**
+   * Overrides the preset default and every per-segment easing when set.
+   * Typed `string` for the same reason `preset` is: it carries the easing
+   * grammar (`cubic-bezier(...)`, `spring(...)`) as well as an
+   * {@link EasingId}, and an id this build cannot parse eases linearly rather
+   * than failing the document. `parseEasing` is the gate.
+   */
+  easing?: string;
   /** Default true. Disabled animations are kept but not evaluated. */
   enabled?: boolean;
   /** Preset-specific knobs; unknown keys ignored. See the preset catalog. */
@@ -92,10 +121,11 @@ export interface ClipAnimation {
    */
   custom?: CustomClipAnimation;
   /**
-   * Per-word stagger. When set on a text clip, this animation's
-   * transform/opacity curves run once per word with a per-word time offset
-   * (see `sampleStaggeredAnimations`); effect/mask curves stay block-level.
-   * Ignored (block animation) on non-text clips and full-clip presets.
+   * Per-unit stagger. When set on a text clip, this animation's
+   * transform/opacity curves run once per word, character or line with a
+   * per-unit time offset (see `sampleStaggeredAnimations`); effect/mask
+   * curves stay block-level. Ignored (block animation) on non-text clips and
+   * full-clip presets.
    */
   stagger?: AnimationStagger;
 }
@@ -126,7 +156,9 @@ export type AnimationPresetId =
   | "kenBurns"
   | "float"
   | "breathe"
-  | "rotate";
+  | "rotate"
+  | "squash"
+  | "hueShift";
 
 /**
  * Every property a curve can drive, as a runtime list so a custom animation's
@@ -219,4 +251,39 @@ export const ANIMATED_PROPERTY_FOLD: Record<
   anchorY: "replace",
   trimStart: "replace",
   trimEnd: "replace"
+};
+
+/**
+ * Which fold pass a channel belongs to when its animation is staggered. A
+ * staggered animation's transform and opacity channels run once per unit at
+ * that unit's own time; the effect, mask and shape channels stay
+ * block-level over the full stagger span, because the compositor applies them
+ * to the whole layer. The sampler classifies by this table rather than by a
+ * list of its own, so a new channel picks its pass here.
+ */
+export const ANIMATED_PROPERTY_PASS: Record<
+  AnimatedProperty,
+  "motion" | "effects"
+> = {
+  offsetX: "motion",
+  offsetY: "motion",
+  scale: "motion",
+  scaleX: "motion",
+  scaleY: "motion",
+  rotation: "motion",
+  opacity: "motion",
+  wipeProgress: "effects",
+  blur: "effects",
+  brightness: "effects",
+  saturation: "effects",
+  contrast: "effects",
+  hue: "effects",
+  temperature: "effects",
+  tint: "effects",
+  positionX: "motion",
+  positionY: "motion",
+  anchorX: "motion",
+  anchorY: "motion",
+  trimStart: "effects",
+  trimEnd: "effects"
 };

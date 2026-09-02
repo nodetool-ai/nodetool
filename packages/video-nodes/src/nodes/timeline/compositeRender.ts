@@ -2,8 +2,8 @@
  * Frame-by-frame render of a timeline sequence, server-side.
  *
  * This is the editor's export path with the browser taken out: the same
- * {@link computeActiveLayers} scene description, the same animation sampling,
- * the same placement math, and the same GPU compositor
+ * {@link computeActiveLayersWithHorizon} scene description, the same animation
+ * sampling, the same placement math, and the same GPU compositor
  * ({@link HeadlessFrameCompositor}) — so a workflow render and the preview the
  * user watched are the same picture. Only the boundaries differ: ffmpeg decodes
  * clip media into RGBA and encodes the composited frames, in place of
@@ -11,16 +11,22 @@
  */
 
 import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
-import type { FrameLayer } from "@nodetool-ai/timeline/render";
+import type {
+  FrameLayer,
+  FramePrecomposite,
+  RasterContext2D
+} from "@nodetool-ai/timeline/render";
 import {
   HeadlessFrameCompositor,
   clipSourceTimeSec,
-  computeActiveLayers,
+  computeActiveLayersWithHorizon,
   createAnimationCompileCache,
+  measureTextWith,
   resolveAnimatedLayerProps,
   resolveTextStaggerContext,
   trackZ
 } from "@nodetool-ai/timeline/render";
+import { createCanvas } from "@napi-rs/canvas";
 
 import {
   decodeImageRgba,
@@ -100,7 +106,17 @@ export async function renderTimelineComposited(
   const width = Math.max(2, Math.floor(opts.width / 2) * 2);
   const height = Math.max(2, Math.floor(opts.height / 2) * 2);
   const totalFrames = Math.max(1, Math.round((durationMs / 1000) * fps));
-  const canvas = { width, height };
+  const canvas = {
+    width,
+    height,
+    // A `"line"` stagger is counted against the wrapped line count, so the
+    // count measures through the same kind of context the rasterizer draws on.
+    // SAFETY: `RasterContext2D` is the subset of the 2D canvas API the
+    // measurement uses, and a skia context provides all of it.
+    measureText: measureTextWith(
+      createCanvas(1, 1).getContext("2d") as unknown as RasterContext2D
+    )
+  };
 
   if (signal?.aborted) throw abortError();
   const device = await acquireDevice();
@@ -175,38 +191,74 @@ export async function renderTimelineComposited(
       }
 
       const layers: FrameLayer[] = [];
-      for (const layer of computeActiveLayers(
+      const { layers: active, precomposites } = computeActiveLayersWithHorizon(
         sequence.tracks,
         sequence.clips,
-        timeMs
-      )) {
+        timeMs,
+        { canvas, animationCache: animCache }
+      );
+      /**
+       * A resolved layer as something the compositor can upload: its pixels,
+       * its own shape mask rasterized at that size, and — for a matted layer —
+       * the matte source resolved the same way.
+       *
+       * A matte source is not in `active`; the scene model held it back so it
+       * never draws itself, which is why it is decoded here and nowhere else.
+       */
+      const frameLayerFor = async (
+        layer: (typeof active)[number],
+        idPrefix = ""
+      ): Promise<FrameLayer | null> => {
         const anim = resolveAnimatedLayerProps(layer, timeMs, canvas, animCache);
         const common = {
           opacity: anim.opacity,
           blendMode: layer.blendMode,
           zIndex: trackZ(layer.trackIndex),
           transform: anim.transform,
+          parentMatrix: layer.parentMatrix,
+          precomposeGroupId: layer.precomposeGroupId,
           mask: anim.mask,
           borderRadius: layer.borderRadius,
           effects: anim.effects ?? layer.effects,
-          trackEffects: layer.trackEffects
+          trackEffects: layer.trackEffects,
+          transition: layer.transition
         };
+
+        /** Attach the layer's own shape mask, rasterized at its source size. */
+        const finish = (built: FrameLayer): FrameLayer => {
+          const shape = layer.shapeMask;
+          if (!shape) return built;
+          const raster = rasterizer.mask(
+            shape,
+            built.source.width,
+            built.source.height
+          );
+          if (raster) built.shapeMask = raster;
+          return built;
+        };
+
+        const id = (kind: string): string =>
+          `${idPrefix}${kind}:${layer.clipId}`;
 
         if (layer.kind === "caption" && layer.caption) {
           const raster = rasterizer.caption(layer.caption);
-          if (raster) {
-            layers.push({
-              ...common,
-              id: `c:${layer.clipId}`,
-              source: raster,
-              // Captions are drawn at frame resolution and composite untransformed.
-              transform: undefined,
-              borderRadius: undefined,
-              effects: undefined,
-              trackEffects: undefined
-            });
-          }
-          continue;
+          if (!raster) return null;
+          return finish({
+            ...common,
+            id: id("c"),
+            source: raster,
+            // Captions are drawn at frame resolution and composite
+            // untransformed — by the clip's transform and by its group's.
+            transform: undefined,
+            parentMatrix: undefined,
+            borderRadius: undefined,
+            effects: undefined,
+            trackEffects: undefined,
+            // The cut's opacity is already in `opacity`; dropping the record
+            // here keeps its geometry — and a dip's one solid — off a layer
+            // that composites untransformed anyway.
+            transition: undefined
+          });
         }
 
         if (layer.kind === "text" && layer.textStyle) {
@@ -217,37 +269,33 @@ export async function renderTimelineComposited(
             animCache
           );
           const raster = rasterizer.text(layer.textStyle, stagger);
-          if (raster) {
-            layers.push({ ...common, id: `t:${layer.clipId}`, source: raster });
-          }
-          continue;
+          if (!raster) return null;
+          return finish({ ...common, id: id("t"), source: raster });
         }
 
         if (layer.kind === "shape" && layer.shapeStyle) {
           const raster = rasterizer.shape(layer.shapeStyle);
-          if (raster) {
-            layers.push({ ...common, id: `s:${layer.clipId}`, source: raster });
-          }
-          continue;
+          if (!raster) return null;
+          return finish({ ...common, id: id("s"), source: raster });
         }
 
-        if (!layer.assetId) continue;
+        if (!layer.assetId) return null;
 
         if (layer.kind === "video") {
           const stream = await videoFor(layer.clip, layer.assetId);
           if (!stream) {
             skippedClips.add(layer.clip.name);
-            continue;
+            return null;
           }
           const index = Math.max(
             0,
             Math.round(((timeMs - layer.clip.startMs) * fps) / 1000)
           );
           const rgba = await stream.frameAt(index);
-          if (!rgba) continue;
-          layers.push({
+          if (!rgba) return null;
+          return finish({
             ...common,
-            id: `v:${layer.clipId}`,
+            id: id("v"),
             source: {
               rgba,
               width: stream.width,
@@ -255,22 +303,51 @@ export async function renderTimelineComposited(
               version: `${layer.clipId}:${index}`
             }
           });
-          continue;
         }
 
         const image = await imageFor(layer.assetId);
         if (!image) {
           skippedClips.add(layer.clip.name);
-          continue;
+          return null;
         }
-        layers.push({
+        return finish({
           ...common,
-          id: `i:${layer.clipId}`,
+          id: id("i"),
           source: { ...image, version: layer.assetId }
         });
+      };
+
+      for (const layer of active) {
+        const built = await frameLayerFor(layer);
+        if (!built) continue;
+        if (layer.matte) {
+          const source = await frameLayerFor(layer.matte.layer, "m:");
+          if (source) {
+            built.matte = {
+              mode: layer.matte.mode,
+              invert: layer.matte.invert,
+              layer: source
+            };
+          }
+        }
+        layers.push(built);
       }
 
-      await encoder.write(await compositor.renderFrame(layers));
+      await encoder.write(
+        await compositor.renderFrame(
+          layers,
+          precomposites.map(
+            (group): FramePrecomposite => ({
+              id: group.clipId,
+              zIndex: trackZ(group.trackIndex),
+              opacity: group.opacity,
+              blendMode: group.blendMode,
+              effects: group.effects,
+              precomposeGroupId: group.precomposeGroupId
+            })
+          )
+        )
+      );
       opts.onProgress?.(frame + 1, totalFrames);
     }
 

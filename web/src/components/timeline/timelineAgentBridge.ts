@@ -15,6 +15,8 @@
  * Zustand store handles directly.
  */
 
+import type { StaggerUnit } from "@nodetool-ai/timeline";
+
 /** Serializable view of a single timeline track. */
 export interface TimelineTrackNode {
   id: string;
@@ -276,13 +278,13 @@ export interface ClipAnimationInput {
   enabled?: boolean;
   params?: Record<string, number | string | boolean>;
   /**
-   * Per-word stagger — text clips only. Each word runs the animation for
-   * `durationMs`, delayed `offsetMs` from the previous word (`from` picks
-   * which word leads; default "start"). The handler throws when the target
-   * clip is not a text clip.
+   * Per-unit stagger — text clips only. Each word, grapheme cluster or
+   * wrapped line runs the animation for `durationMs`, delayed `offsetMs` from
+   * the previous unit (`from` picks which unit leads; default "start"). The
+   * handler throws when the target clip is not a text clip.
    */
   stagger?: {
-    unit: "word";
+    unit: StaggerUnit;
     offsetMs: number;
     from?: "start" | "end" | "center";
   };

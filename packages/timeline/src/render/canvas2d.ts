@@ -16,12 +16,31 @@
  * equivalent. {@link unsupportedEffectTypes} names the ones a given layer set
  * drops, so a caller can say so rather than silently showing a different
  * picture.
+ *
+ * A group carrying effects or a blend mode composites its children onto an
+ * intermediate surface first, so the effect chain runs on the composed picture
+ * and the blend meets the frame once. The host vends that surface through
+ * {@link CompositeSurfaceFactory}, because there is no way to make one that
+ * exists in both a browser and Node.
  */
 
 import { blendModeToCanvasOp } from "@nodetool-ai/gpu";
 
 import type { AnimationSampleMask, WipeDirection } from "../animation/index.js";
-import type { ClipEffect, ClipTransform, TrackEffect } from "../types.js";
+import type {
+  ClipDropShadowEffect,
+  ClipEffect,
+  ClipMask,
+  ClipTransform,
+  TrackEffect
+} from "../types.js";
+import {
+  isClipBlurEffect,
+  isClipColorEffect,
+  isClipDropShadowEffect
+} from "../types.js";
+import { clipMask, drawMask, maskIsHard, type MaskContext2D } from "./draw.js";
+import type { MatteMode } from "./sceneModel.js";
 import {
   IDENTITY_TRANSFORM,
   buildTransformMatrix,
@@ -29,19 +48,27 @@ import {
   containBaseScale,
   type CanvasAffine
 } from "./transform.js";
+import {
+  transitionTransform,
+  type ResolvedTransition
+} from "./transition.js";
 
 /**
  * The Canvas 2D surface a composite draws through. `drawImage` is generic in
  * its source so a host can pass whatever bitmap its canvas accepts — an
  * `HTMLVideoElement`, an `ImageBitmap`, a `@napi-rs/canvas` `Image`.
  */
-export interface CompositeContext2D<TSource> {
+export interface CompositeContext2D<TSource> extends MaskContext2D {
   globalAlpha: number;
-  globalCompositeOperation: string;
-  filter: string;
-  fillStyle: string | object;
-  save(): void;
-  restore(): void;
+  /**
+   * The one clip effect this path draws rather than approximates. Canvas 2D
+   * casts a shadow from whatever is drawn next, which is the same silhouette
+   * `mixer.dropShadow@1` blurs on the GPU path.
+   */
+  shadowColor: string;
+  shadowBlur: number;
+  shadowOffsetX: number;
+  shadowOffsetY: number;
   setTransform(
     a: number,
     b: number,
@@ -50,27 +77,24 @@ export interface CompositeContext2D<TSource> {
     e: number,
     f: number
   ): void;
-  clearRect(x: number, y: number, w: number, h: number): void;
-  fillRect(x: number, y: number, w: number, h: number): void;
-  beginPath(): void;
-  closePath(): void;
-  rect(x: number, y: number, w: number, h: number): void;
-  moveTo(x: number, y: number): void;
   arcTo(x1: number, y1: number, x2: number, y2: number, radius: number): void;
-  clip(): void;
   drawImage(source: TSource, x: number, y: number, w: number, h: number): void;
-  createLinearGradient(
-    x0: number,
-    y0: number,
-    x1: number,
-    y1: number
-  ): CompositeGradient;
+  /**
+   * Read back the surface's pixels. A luma matte is the one rule here that no
+   * composite operation expresses: `destination-in` multiplies alpha by alpha,
+   * and moving a matte's luminance into its alpha needs the bytes.
+   */
+  getImageData(x: number, y: number, w: number, h: number): ImagePixels;
+  putImageData(pixels: ImagePixels, x: number, y: number): void;
 }
 
-/** The gradient object `createLinearGradient` vends. */
-export interface CompositeGradient {
-  addColorStop(offset: number, color: string): void;
+/** The pixels `getImageData` vends, as both canvas implementations shape them. */
+export interface ImagePixels {
+  data: Uint8ClampedArray;
+  width: number;
+  height: number;
 }
+
 
 /** One layer to composite, with its source already decoded or rasterized. */
 export interface Canvas2DLayer<TSource> {
@@ -83,11 +107,64 @@ export interface Canvas2DLayer<TSource> {
   /** Composite order, ascending. */
   zIndex: number;
   transform?: ClipTransform;
+  /** The layer's group matrix, from the scene model. Composes as `parent × own`. */
+  parentMatrix?: Float32Array;
+  /**
+   * The precomposite this layer draws into instead of the main stack, from the
+   * scene model. Absent on every layer of a document with no precompositing
+   * group, which is the path that allocates no surface.
+   */
+  precomposeGroupId?: string;
   /** Rounded-corner radius in source pixels. */
   borderRadius?: number;
   mask?: AnimationSampleMask;
+  /**
+   * The clip's shape mask, in this layer's own source-pixel space so it turns
+   * with the layer. A hard edge is a path clip and costs nothing; a feathered
+   * one rasterizes its coverage on `maskSurface` and multiplies it in.
+   */
+  shapeMask?: ClipMask;
+  /**
+   * The track matte driving this layer's alpha. `layer` is the matte source
+   * resolved as an ordinary layer — it is composited to its own surface and
+   * read, never drawn onto the frame.
+   */
+  matte?: Canvas2DMatte<TSource>;
   effects?: ClipEffect[];
   trackEffects?: TrackEffect[];
+  /**
+   * The cut this layer is part of, from the scene model. Its opacity is
+   * already in `opacity`; the offset, scale, reveal mask and dip solid it
+   * names are drawn here.
+   */
+  transition?: ResolvedTransition;
+}
+
+/** A track matte with its source layer's pixels already in hand. */
+export interface Canvas2DMatte<TSource> {
+  mode: MatteMode;
+  invert: boolean;
+  layer: Canvas2DLayer<TSource>;
+}
+
+/**
+ * A group that composites its children onto an intermediate surface, runs its
+ * effect chain on the composed picture, and blends the result once.
+ *
+ * Mirrors `PrecompositeLayer` from the scene model with `trackIndex` already
+ * resolved to a `zIndex`, the way {@link Canvas2DLayer} mirrors `ActiveLayer`.
+ */
+export interface Canvas2DPrecomposite {
+  /** The group clip's id — what a layer names in `precomposeGroupId`. */
+  id: string;
+  /** Composite order of the blended result, ascending. */
+  zIndex: number;
+  opacity: number;
+  blendMode: unknown;
+  /** Run once on the composed surface, not once per child. */
+  effects?: ClipEffect[];
+  /** Set when a precompositing group holds this one: the surface it draws into. */
+  precomposeGroupId?: string;
 }
 
 /** Canvas geometry a composite draws into. */
@@ -105,26 +182,84 @@ export interface Canvas2DFrameGeometry {
 }
 
 /**
- * An offscreen surface for feathered wipes, supplied by the host because the
- * way to make one differs per environment (`document.createElement`,
- * `OffscreenCanvas`, `createCanvas`). Returning null falls the layer back to a
- * hard-edged wipe.
+ * An offscreen surface this module draws on and then draws back: the scratch a
+ * feathered wipe pre-masks its source on, and the intermediate a precompositing
+ * group composes its children into.
+ *
+ * A surface is a context plus whatever the host's `drawImage` accepts as a
+ * source, never a canvas class (I6): the browser hands over an `OffscreenCanvas`
+ * and the server an `@napi-rs/canvas` one, and only their 2D contexts have a
+ * shape both satisfy.
  */
-export type MaskScratchFactory<TSource> = (
-  width: number,
-  height: number
-) => MaskScratch<TSource> | null;
-
-export interface MaskScratch<TSource> {
+export interface CompositeSurface<TSource> {
   ctx: CompositeContext2D<TSource>;
   /** The surface itself, to draw back onto the main context. */
   surface: TSource;
 }
 
-/** Effect types this path draws exactly; everything else is dropped. */
+/**
+ * How a host makes a {@link CompositeSurface} — `document.createElement`,
+ * `new OffscreenCanvas`, `createCanvas` — since none of those exists
+ * everywhere. Returning null means the host could not, and the caller says what
+ * it does instead.
+ */
+export type CompositeSurfaceFactory<TSource> = (
+  width: number,
+  height: number
+) => CompositeSurface<TSource> | null;
+
+/** @deprecated Use {@link CompositeSurface}. */
+export type MaskScratch<TSource> = CompositeSurface<TSource>;
+/** @deprecated Use {@link CompositeSurfaceFactory}. */
+export type MaskScratchFactory<TSource> = CompositeSurfaceFactory<TSource>;
+
+/** The optional halves of a frame draw: the surfaces, and the group stack. */
+export interface DrawTimelineFrameOptions<TSource> {
+  /**
+   * Scratch for feathered wipes. One reused surface is enough — a wipe draws it
+   * back before the next layer asks for it.
+   */
+  maskScratch?: CompositeSurfaceFactory<TSource>;
+  /** The groups to composite separately, innermost first (scene-model order). */
+  precomposites?: readonly Canvas2DPrecomposite[];
+  /**
+   * Frame-sized intermediates for those groups. Each call must answer with a
+   * surface no other precomposite in this frame is still using — nested groups
+   * hold theirs until the group above has drawn it — so this cannot be the same
+   * pooled surface `maskScratch` vends. Returning null draws the group's
+   * children onto the stack beneath instead, without its effects or blend mode.
+   */
+  precompositeSurface?: CompositeSurfaceFactory<TSource>;
+  /**
+   * Coverage scratch for a feathered shape mask, distinct from `maskScratch`:
+   * the mask is rasterized here and then multiplied into the copy of the layer
+   * that `maskScratch` holds, so both are live at once. One reused surface is
+   * enough — it is consumed within a single layer's draw. Without it a
+   * feathered mask falls back to its hard edge.
+   */
+  maskSurface?: CompositeSurfaceFactory<TSource>;
+  /**
+   * Frame-sized surfaces for a matted layer: one holds the layer, one holds its
+   * matte source, and both are live at once, so each call must answer with a
+   * surface the other is not using. Without it a matted layer draws unmatted.
+   */
+  matteSurface?: CompositeSurfaceFactory<TSource>;
+}
+
+/**
+ * Effect types this path draws; everything else is dropped and reported.
+ *
+ * `dropShadow` is here because `ctx.shadow*` casts from the layer's own
+ * silhouette, which is what the GPU recipe blurs too. The other clip effects
+ * from the shader catalog (D7) have no Canvas 2D equivalent at all: there is no
+ * filter for a key, a tone curve, an output range or a three-way grade, and
+ * `drop-shadow()` on `ctx.filter` is not one of them either — it would apply to
+ * the shadow as well.
+ */
 const CANVAS_EFFECT_TYPES = new Set([
   "color",
   "blur",
+  "dropShadow",
   "colorCorrection",
   "videoBlur"
 ]);
@@ -132,7 +267,12 @@ const CANVAS_EFFECT_TYPES = new Set([
 /**
  * The effect types present on these layers that Canvas 2D cannot draw. A
  * caller reports these rather than letting the frame quietly differ from the
- * GPU render.
+ * GPU render (I7).
+ *
+ * A group's effects run on its composed surface, not on any one layer, so a
+ * caller with precomposites passes them in too — `Canvas2DPrecomposite` carries
+ * `effects` for exactly that. Leaving them out is how a group blur that this
+ * path never applied would go unreported.
  */
 export function unsupportedEffectTypes(
   layers: readonly {
@@ -160,7 +300,8 @@ export function layerCanvasAffine(
   transform: ClipTransform | undefined,
   sourceWidth: number,
   sourceHeight: number,
-  geometry: Canvas2DFrameGeometry
+  geometry: Canvas2DFrameGeometry,
+  parentMatrix?: Float32Array
 ): CanvasAffine {
   const { canvasWidth, canvasHeight } = geometry;
   const base = containBaseScale(
@@ -173,7 +314,8 @@ export function layerCanvasAffine(
     transform ?? IDENTITY_TRANSFORM,
     base,
     geometry.refWidth || canvasWidth,
-    geometry.refHeight || canvasHeight
+    geometry.refHeight || canvasHeight,
+    parentMatrix
   );
   return clipMatrixToCanvasAffine(
     matrix,
@@ -190,32 +332,126 @@ function resetContext<TSource>(ctx: CompositeContext2D<TSource>): void {
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = "source-over";
   ctx.filter = "none";
+  clearShadow(ctx);
+}
+
+/** Turn the shadow off. A left-on shadow follows every later draw. */
+function clearShadow<TSource>(ctx: CompositeContext2D<TSource>): void {
+  ctx.shadowColor = "rgba(0, 0, 0, 0)";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
 }
 
 /**
  * Composite `layers` onto `ctx`, bottom-up by `zIndex`, over an opaque black
  * ground — the same clear the GPU compositor starts from. The context is left
  * in the reset state. Returns the layers that drew nothing, in composite order.
+ *
+ * A layer naming a precomposite in `options.precomposites` draws onto that
+ * group's own surface first, and the surface blends once at the group's z. With
+ * no precomposites the layers go straight onto `ctx` and no surface is asked
+ * for at all.
  */
 export function drawTimelineFrame<TSource>(
   ctx: CompositeContext2D<TSource>,
   layers: readonly Canvas2DLayer<TSource>[],
   geometry: Canvas2DFrameGeometry,
-  maskScratch?: MaskScratchFactory<TSource>
+  options: DrawTimelineFrameOptions<TSource> = {}
 ): Canvas2DLayer<TSource>[] {
   resetContext(ctx);
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
 
   const skipped: Canvas2DLayer<TSource>[] = [];
-  const ordered = [...layers].sort((a, b) => a.zIndex - b.zIndex);
+  const stack = composePrecomposites(layers, geometry, options, skipped);
+  const ordered = [...stack].sort((a, b) => a.zIndex - b.zIndex);
   for (const layer of ordered) {
-    if (!drawTimelineLayer(ctx, layer, geometry, maskScratch)) {
+    if (!drawTimelineLayer(ctx, layer, geometry, options)) {
       skipped.push(layer);
     }
   }
   resetContext(ctx);
   return skipped;
+}
+
+/**
+ * Draw each precompositing group onto its own surface and return the main
+ * stack: the layers that belong to no group, plus one layer per group whose
+ * surface blends onto the frame.
+ *
+ * `options.precomposites` arrives innermost first, so a nested group has
+ * already handed its composed surface to the group above by the time that one
+ * draws. With no groups this hands the layers straight back and never calls the
+ * surface factory — the whole point of gating the intermediate on a group
+ * actually carrying effects or a blend mode.
+ */
+function composePrecomposites<TSource>(
+  layers: readonly Canvas2DLayer<TSource>[],
+  geometry: Canvas2DFrameGeometry,
+  options: DrawTimelineFrameOptions<TSource>,
+  skipped: Canvas2DLayer<TSource>[]
+): Canvas2DLayer<TSource>[] {
+  const groups = options.precomposites ?? [];
+  if (groups.length === 0) return [...layers];
+
+  const stack: Canvas2DLayer<TSource>[] = [];
+  const byGroup = new Map<string, Canvas2DLayer<TSource>[]>();
+  const assign = (
+    groupId: string | undefined,
+    layer: Canvas2DLayer<TSource>
+  ): void => {
+    if (!groupId) {
+      stack.push(layer);
+      return;
+    }
+    const bucket = byGroup.get(groupId);
+    if (bucket) bucket.push(layer);
+    else byGroup.set(groupId, [layer]);
+  };
+
+  for (const layer of layers) assign(layer.precomposeGroupId, layer);
+
+  for (const group of groups) {
+    const children = byGroup.get(group.id) ?? [];
+    const surface =
+      children.length > 0
+        ? (options.precompositeSurface?.(
+            geometry.canvasWidth,
+            geometry.canvasHeight
+          ) ?? null)
+        : null;
+    if (!surface) {
+      // Nothing to compose, or no surface to compose it on. Either way the
+      // children draw where they would have without the group: the picture
+      // survives, the group's effects and blend mode do not, and
+      // `unsupportedEffectTypes` is what tells the caller so.
+      for (const child of children) assign(group.precomposeGroupId, child);
+      continue;
+    }
+
+    const sctx = surface.ctx;
+    resetContext(sctx);
+    sctx.clearRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
+    for (const child of [...children].sort((a, b) => a.zIndex - b.zIndex)) {
+      if (!drawTimelineLayer(sctx, child, geometry, options)) {
+        skipped.push(child);
+      }
+    }
+
+    // The surface is frame-sized, so it composites untransformed: the group's
+    // own matrix already rode into each child through `parentMatrix`.
+    assign(group.precomposeGroupId, {
+      source: surface.surface,
+      sourceWidth: geometry.canvasWidth,
+      sourceHeight: geometry.canvasHeight,
+      opacity: group.opacity,
+      blendMode: group.blendMode,
+      zIndex: group.zIndex,
+      effects: group.effects
+    });
+  }
+  return stack;
 }
 
 /**
@@ -233,12 +469,46 @@ export function drawTimelineLayer<TSource>(
   ctx: CompositeContext2D<TSource>,
   layer: Canvas2DLayer<TSource>,
   geometry: Canvas2DFrameGeometry,
-  maskScratch?: MaskScratchFactory<TSource>
+  surfaces: DrawTimelineFrameOptions<TSource> = {}
 ): boolean {
   const { sourceWidth: width, sourceHeight: height } = layer;
   if (width <= 0 || height <= 0) return false;
 
-  const t = layerCanvasAffine(layer.transform, width, height, geometry);
+  if (layer.matte) {
+    const matted = drawMattedLayer(ctx, layer, layer.matte, geometry, surfaces);
+    // Null means the host vended no surfaces to compose the matte on; the
+    // layer then draws unmatted rather than not at all.
+    if (matted !== null) return matted;
+  }
+
+  const transition = layer.transition;
+  const t = layerCanvasAffine(
+    transitionTransform(
+      layer.transform,
+      transition,
+      geometry.refWidth || geometry.canvasWidth,
+      geometry.refHeight || geometry.canvasHeight
+    ),
+    width,
+    height,
+    geometry,
+    layer.parentMatrix
+  );
+
+  // A dip goes through the colour, so the solid covers the whole frame rather
+  // than the layer — drawn here, immediately under the incoming clip, so the
+  // outgoing clip beneath is what it hides.
+  const solid = transition?.solid;
+  if (solid && solid.opacity > 0) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = Math.min(1, solid.opacity);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.filter = "none";
+    ctx.fillStyle = solid.color;
+    ctx.fillRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
+    ctx.restore();
+  }
 
   ctx.save();
   ctx.globalAlpha = Math.max(0, Math.min(1, layer.opacity));
@@ -258,25 +528,37 @@ export function drawTimelineLayer<TSource>(
     );
   }
 
-  // The wipe lives in the layer's own source-pixel space, so it rotates with
-  // the layer exactly as the GPU shader's quad-space mask does. A hard edge is
-  // a rect clip; a feathered one pre-masks the source on a scratch surface
-  // with a destination-in gradient approximating the shader's smoothstep.
+  // Both masks live in the layer's own source-pixel space, so they rotate with
+  // the layer exactly as the GPU shader's quad-space mask does. Hard edges are
+  // path clips and cost nothing; soft ones pre-mask the source on a scratch
+  // surface with `destination-in`, which is also what lets a shape mask and a
+  // wipe compose without a second copy.
   let source = layer.source;
-  const mask = layer.mask;
-  if (mask) {
-    const scratch =
-      mask.softness > 0 && maskScratch
-        ? featherWipe(layer.source, width, height, mask, maskScratch)
-        : null;
-    if (scratch !== null) {
-      source = scratch;
-    } else {
-      // No feather, or no scratch surface to build one on: a hard edge at the
-      // same progress is the honest fallback.
-      clipWipeRect(ctx, width, height, mask);
+  // An animated wipe on the clip and a wipe transition both reduce to one
+  // reveal; the clip's own wins, because it is the motion the author put there.
+  const wipe = layer.mask ?? transition?.mask;
+  const shape = layer.shapeMask;
+  let applied = { shape: false, wipe: false };
+  if ((wipe && wipe.softness > 0) || (shape && !maskIsHard(shape))) {
+    const softened = softMaskedSource(
+      layer.source,
+      width,
+      height,
+      wipe,
+      shape,
+      surfaces
+    );
+    if (softened) {
+      source = softened.surface;
+      applied = softened;
     }
   }
+  // Whatever the scratch pass did not take is drawn as a hard edge at the same
+  // geometry, which is the honest fallback when the host vends no surface.
+  if (shape && !applied.shape) clipMask(ctx, shape, width, height);
+  if (wipe && !applied.wipe) clipWipeRect(ctx, width, height, wipe);
+
+  applyDropShadow(ctx, layer.effects, t);
 
   let drawn = true;
   try {
@@ -290,20 +572,25 @@ export function drawTimelineLayer<TSource>(
 }
 
 /**
- * Copy `source` onto a scratch surface and knock out the hidden side of the
- * wipe with a `destination-in` linear gradient. The stops sample the same
- * `1 - smoothstep(e - s, e, c)` profile the WebGPU shader evaluates
- * per-fragment, at the same front position `e = progress * (1 + s)`, so both
- * backends show the same visible fraction at the same progress.
+ * Copy `source` onto a scratch surface and multiply the soft masks into its
+ * alpha, in the layer's own source-pixel space. Null when the host vended no
+ * scratch; the two flags say which mask actually landed, so the caller can
+ * clip the other one hard.
+ *
+ * Both masks reduce to a `destination-in` on one copy, which is why they share
+ * a surface: a shape mask needs its coverage rasterized separately (it is a
+ * ring of disjoint fills, and `destination-in` would intersect them), but the
+ * wipe is a single gradient and multiplies straight in.
  */
-function featherWipe<TSource>(
+function softMaskedSource<TSource>(
   source: TSource,
   width: number,
   height: number,
-  mask: AnimationSampleMask,
-  makeScratch: MaskScratchFactory<TSource>
-): TSource | null {
-  const scratch = makeScratch(width, height);
+  wipe: AnimationSampleMask | undefined,
+  shape: ClipMask | undefined,
+  surfaces: DrawTimelineFrameOptions<TSource>
+): { surface: TSource; shape: boolean; wipe: boolean } | null {
+  const scratch = surfaces.maskScratch?.(width, height);
   if (!scratch) return null;
   const sctx = scratch.ctx;
 
@@ -314,6 +601,41 @@ function featherWipe<TSource>(
   sctx.clearRect(0, 0, width, height);
   sctx.drawImage(source, 0, 0, width, height);
 
+  let shapeApplied = false;
+  if (shape && !maskIsHard(shape)) {
+    const coverage = surfaces.maskSurface?.(width, height);
+    if (coverage && coverage.surface !== scratch.surface) {
+      shapeApplied = drawMask(coverage.ctx, shape, width, height);
+      if (shapeApplied) {
+        sctx.globalCompositeOperation = "destination-in";
+        sctx.drawImage(coverage.surface, 0, 0, width, height);
+        sctx.globalCompositeOperation = "source-over";
+      }
+    }
+  }
+
+  let wipeApplied = false;
+  if (wipe && wipe.softness > 0) {
+    applyWipeGradient(sctx, width, height, wipe);
+    wipeApplied = true;
+  }
+  if (!shapeApplied && !wipeApplied) return null;
+  return { surface: scratch.surface, shape: shapeApplied, wipe: wipeApplied };
+}
+
+/**
+ * Knock out the hidden side of a wipe with a `destination-in` linear gradient.
+ * The stops sample the same `1 - smoothstep(e - s, e, c)` profile the WebGPU
+ * shader evaluates per-fragment, at the same front position
+ * `e = progress * (1 + s)`, so both backends show the same visible fraction at
+ * the same progress.
+ */
+function applyWipeGradient<TSource>(
+  sctx: CompositeContext2D<TSource>,
+  width: number,
+  height: number,
+  mask: AnimationSampleMask
+): void {
   const s = mask.softness;
   const e = mask.progress * (1 + s);
   // The gradient runs along the wipe axis from c = e - s (fully visible) to
@@ -329,7 +651,119 @@ function featherWipe<TSource>(
   sctx.fillStyle = gradient;
   sctx.fillRect(0, 0, width, height);
   sctx.globalCompositeOperation = "source-over";
-  return scratch.surface;
+}
+
+/**
+ * Draw a matted layer: compose it on one frame-sized surface, compose its matte
+ * source on another, multiply the matte into the first surface's alpha, and
+ * blend that once (D6).
+ *
+ * Frame-sized rather than source-sized because a matte is positioned by its own
+ * clip: the source's transform decides where its keyhole falls on the frame,
+ * which is only expressible once both layers are placed.
+ *
+ * Null when the host vended no usable pair of surfaces — the caller then draws
+ * the layer unmatted, which is a visible difference and not a lost layer.
+ */
+function drawMattedLayer<TSource>(
+  ctx: CompositeContext2D<TSource>,
+  layer: Canvas2DLayer<TSource>,
+  matte: Canvas2DMatte<TSource>,
+  geometry: Canvas2DFrameGeometry,
+  surfaces: DrawTimelineFrameOptions<TSource>
+): boolean | null {
+  const make = surfaces.matteSurface;
+  if (!make) return null;
+  const { canvasWidth: w, canvasHeight: h } = geometry;
+  const composed = make(w, h);
+  const keyhole = make(w, h);
+  if (!composed || !keyhole || composed.surface === keyhole.surface) return null;
+
+  // The layer's own blend mode meets the frame once, when the composed surface
+  // is drawn back — on the surface it is an ordinary source-over draw over
+  // transparency. Its opacity rides along in the surface's alpha.
+  resetContext(composed.ctx);
+  composed.ctx.clearRect(0, 0, w, h);
+  const drawn = drawTimelineLayer(
+    composed.ctx,
+    { ...layer, matte: undefined, blendMode: "normal" },
+    geometry,
+    surfaces
+  );
+
+  resetContext(keyhole.ctx);
+  keyhole.ctx.clearRect(0, 0, w, h);
+  drawTimelineLayer(
+    keyhole.ctx,
+    { ...matte.layer, matte: undefined, blendMode: "normal" },
+    geometry,
+    surfaces
+  );
+  if (matte.mode === "luma") lumaToAlpha(keyhole.ctx, w, h);
+  if (matte.invert) invertAlpha(keyhole.ctx, w, h);
+
+  composed.ctx.globalCompositeOperation = "destination-in";
+  composed.ctx.drawImage(keyhole.surface, 0, 0, w, h);
+  resetContext(composed.ctx);
+
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = blendModeToCanvasOp(layer.blendMode);
+  ctx.filter = "none";
+  let ok = drawn;
+  try {
+    ctx.drawImage(composed.surface, 0, 0, w, h);
+  } catch {
+    ok = false;
+  }
+  ctx.restore();
+  resetContext(ctx);
+  return ok;
+}
+
+/**
+ * Move a surface's luminance into its alpha, which is what a luma matte means
+ * and what no composite operation expresses.
+ *
+ * Canvas stores straight alpha, so a transparent pixel's colour says nothing
+ * about the picture — the luminance is weighted by the coverage it was drawn
+ * with, which is what makes a luma matte over an empty frame read as empty
+ * rather than as whatever the surface happened to be cleared to.
+ */
+function lumaToAlpha<TSource>(
+  ctx: CompositeContext2D<TSource>,
+  width: number,
+  height: number
+): void {
+  const pixels = ctx.getImageData(0, 0, width, height);
+  const data = pixels.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const luma =
+      0.2126 * data[i]! + 0.7152 * data[i + 1]! + 0.0722 * data[i + 2]!;
+    data[i] = 255;
+    data[i + 1] = 255;
+    data[i + 2] = 255;
+    data[i + 3] = Math.round((luma * data[i + 3]!) / 255);
+  }
+  ctx.putImageData(pixels, 0, 0);
+}
+
+/** `alpha = 1 - alpha`, for a matte that keeps what its source hides. */
+function invertAlpha<TSource>(
+  ctx: CompositeContext2D<TSource>,
+  width: number,
+  height: number
+): void {
+  const pixels = ctx.getImageData(0, 0, width, height);
+  const data = pixels.data;
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = 255;
+    data[i + 1] = 255;
+    data[i + 2] = 255;
+    data[i + 3] = 255 - data[i + 3]!;
+  }
+  ctx.putImageData(pixels, 0, 0);
 }
 
 /** Five stops approximate the shader's smoothstep feather. */
@@ -407,6 +841,57 @@ export function clipRoundedRect<TSource>(
 }
 
 /**
+ * Arm `ctx.shadow*` from the first enabled `dropShadow` in the chain, so the
+ * next `drawImage` casts it (D7).
+ *
+ * Canvas 2D holds shadow offsets and blur in canvas units and leaves them out
+ * of the current transform, while the document authors them in the layer's own
+ * source pixels — the space the GPU recipe runs in, before placement. So the
+ * offset goes through the affine's linear part and the blur through its scale,
+ * which is what makes a shadow on a scaled-down layer the same size on both
+ * paths. The blur itself is two thirds of the radius because `shadowBlur` is
+ * twice the Gaussian sigma and `filters.blur.gaussian@1` derives sigma as a
+ * third of its radius.
+ */
+function applyDropShadow<TSource>(
+  ctx: CompositeContext2D<TSource>,
+  effects: ClipEffect[] | undefined,
+  t: CanvasAffine
+): void {
+  const shadow = (effects ?? []).find(
+    (e): e is ClipDropShadowEffect => e.enabled && isClipDropShadowEffect(e)
+  );
+  if (!shadow) return;
+  const scale = Math.sqrt(Math.abs(t.a * t.d - t.b * t.c)) || 1;
+  ctx.shadowColor = shadowPaint(shadow.color, shadow.opacity ?? 1);
+  ctx.shadowBlur = Math.max(0, shadow.blur) * (2 / 3) * scale;
+  ctx.shadowOffsetX = t.a * shadow.offsetX + t.c * shadow.offsetY;
+  ctx.shadowOffsetY = t.b * shadow.offsetX + t.d * shadow.offsetY;
+}
+
+/**
+ * A shadow colour with its opacity folded in — Canvas 2D has no separate
+ * shadow alpha. A colour that is not `#rgb`/`#rrggbb` is passed through, so a
+ * named colour still casts at full strength rather than not at all.
+ */
+function shadowPaint(color: string, opacity: number): string {
+  const alpha = Math.max(0, Math.min(1, opacity));
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
+  if (!hex) return color;
+  const digits = hex[1] ?? "";
+  const wide =
+    digits.length === 3
+      ? digits
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : digits;
+  const v = parseInt(wide, 16);
+  const rgb = `${(v >> 16) & 0xff}, ${(v >> 8) & 0xff}, ${v & 0xff}`;
+  return `rgba(${rgb}, ${alpha})`;
+}
+
+/**
  * Memoize the built filter string per `(clipEffects, trackEffects)` array
  * identity. Both arrays are stable references on the clip/track until edited,
  * so a clip sitting still reuses its string across every frame instead of
@@ -453,12 +938,12 @@ function computeFilterForEffects(
 
   for (const e of clipEffects ?? []) {
     if (!e.enabled) continue;
-    if (e.type === "color") {
+    if (isClipColorEffect(e)) {
       brightness += e.brightness ?? 0;
       contrast *= e.contrast ?? 1;
       saturation *= e.saturation ?? 1;
       hue += e.hue ?? 0;
-    } else if (e.type === "blur") {
+    } else if (isClipBlurEffect(e)) {
       blur += e.radius;
     }
   }

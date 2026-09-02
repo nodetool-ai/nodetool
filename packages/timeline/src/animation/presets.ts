@@ -16,7 +16,6 @@ import type {
   AnimatedProperty,
   AnimationPresetId,
   AnimationRole,
-  EasingId,
   WipeDirection
 } from "./types.js";
 import type {
@@ -48,8 +47,12 @@ export interface AnimationPreset {
   id: AnimationPresetId;
   roles: AnimationRole[];
   defaultDurationMs: number;
-  /** When set, overrides the per-role default segment easing. */
-  defaultEasing?: EasingId;
+  /**
+   * When set, overrides the per-role default segment easing. A string so a
+   * preset can pin a parametric easing (`spring(...)`, `cubic-bezier(...)`)
+   * as well as a named id; `parseEasing` reads both.
+   */
+  defaultEasing?: string;
   params: PresetParamSpec[];
   describe: string;
   /**
@@ -319,6 +322,35 @@ const PRESETS: AnimationPreset[] = [
     }
   },
   {
+    id: "squash",
+    roles: ["emphasis"],
+    defaultDurationMs: 500,
+    defaultEasing: "easeOutBack",
+    params: [{ name: "amount", default: 0.12, min: 0, max: 0.5 }],
+    describe: "Squash wider and shorter, then spring back to shape.",
+    curves: (params) => {
+      const amount = Math.max(0, Math.min(0.5, num(params, "amount", 0.12)));
+      return [
+        {
+          property: "scaleX",
+          keyframes: [
+            { t: 0, value: 1 },
+            { t: 0.5, value: 1 + amount },
+            { t: 1, value: 1 }
+          ]
+        },
+        {
+          property: "scaleY",
+          keyframes: [
+            { t: 0, value: 1 },
+            { t: 0.5, value: 1 - amount },
+            { t: 1, value: 1 }
+          ]
+        }
+      ];
+    }
+  },
+  {
     id: "kenBurns",
     roles: ["loop"],
     defaultDurationMs: 3000,
@@ -381,6 +413,20 @@ const PRESETS: AnimationPreset[] = [
     curves: (params) => {
       const sign = str(params, "direction", "cw") === "ccw" ? -1 : 1;
       return [{ property: "rotation", keyframes: [{ t: 0, value: 0 }, { t: 1, value: sign * TWO_PI }] }];
+    }
+  },
+  {
+    id: "hueShift",
+    roles: ["loop"],
+    defaultDurationMs: 3000,
+    defaultEasing: "linear",
+    params: [{ name: "direction", default: "forward", options: ["forward", "reverse"] }],
+    describe: "Cycle the hue through the whole color wheel, one turn per cycle.",
+    curves: (params) => {
+      const sign = str(params, "direction", "forward") === "reverse" ? -1 : 1;
+      return [
+        { property: "hue", keyframes: [{ t: 0, value: 0 }, { t: 1, value: sign * 360 }] }
+      ];
     }
   }
 ];
