@@ -14,12 +14,14 @@ creator directs and keeps the project file.
 
 ## Positioning line
 
-**You direct the vision. The agent builds the film.**
+**You are the director. The agent is your crew.**
 
 The hero claim is not the feature list and not the category label. It names who
 does what: the agent handles the tedious stretch between a blank page and a
 rough cut — script, board, footage, sound, cut — and the creator stays the
-director throughout. The earlier lines — *"From prompt to final cut on one
+director throughout. "You direct the vision. The agent builds the film." is the
+same claim in prose form and stays in the meta descriptions and OG images; the
+hero uses the shorter line. The earlier lines — *"From prompt to final cut on one
 canvas"* and *"Describe the piece. Keep the workflow."* — survive as claims 1
 and 2 below: a closed tool generates behind glass and hands you a file;
 NodeTool's agent generates *and* hands you the multi-track project that made
