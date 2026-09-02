@@ -1,6 +1,6 @@
 /**
- * The `motion-graphics` skill names tools by hand, and a name it gets wrong is
- * a model calling something that does not exist.
+ * The shipped motion skills name tools by hand, and a name one gets wrong is a
+ * model calling something that does not exist.
  *
  * Prose drifts in a direction code cannot: a capability gets renamed, an op is
  * folded into another, and the skill keeps teaching the old spelling. This
@@ -19,9 +19,29 @@ import { describe, expect, it } from "vitest";
 import { listCapabilitySpecs } from "../src/capabilities/index.js";
 import { EDIT_TIMELINE_SCHEMA } from "../src/capabilities/timelines.specs.js";
 
-const SKILL_PATH = fileURLToPath(
-  new URL("../../system-skills/motion-graphics/SKILL.md", import.meta.url)
-);
+/**
+ * The shipped skills that name tools. `motion-graphics` carries the tool
+ * contract; the craft skills beside it quote the same calls, and a rename
+ * breaks them the same way. A skill added here without an entry is a skill
+ * nothing checks.
+ */
+const SKILL_NAMES = [
+  "motion-graphics",
+  "motion-principles",
+  "motion-direction",
+  "frame-composition",
+  "beat-sync-editing",
+  "color-motion",
+  "logo-reveal",
+  "motion-background",
+  "motion-curves"
+] as const;
+
+function skillPath(name: string): string {
+  return fileURLToPath(
+    new URL(`../../system-skills/${name}/SKILL.md`, import.meta.url)
+  );
+}
 
 /**
  * Verb prefixes that make a snake_case token read as a call rather than a
@@ -96,18 +116,29 @@ function skillCallNames(markdown: string): string[] {
   return [...found].sort();
 }
 
-describe("motion-graphics skill", () => {
-  const markdown = readFileSync(SKILL_PATH, "utf8");
+describe("shipped motion skills", () => {
   const known = new Set<string>([
     ...listCapabilitySpecs().map((spec) => spec.name),
     ...editTimelineOps()
   ]);
 
-  it("names only capabilities and edit_timeline ops that exist", () => {
-    const named = skillCallNames(markdown);
-    // A filter that matched nothing would pass this file silently.
-    expect(named.length).toBeGreaterThan(10);
-    const missing = named.filter((name) => !known.has(name));
-    expect(missing, `named in the skill but registered nowhere`).toEqual([]);
+  for (const skill of SKILL_NAMES) {
+    it(`${skill} names only capabilities and edit_timeline ops that exist`, () => {
+      const named = skillCallNames(readFileSync(skillPath(skill), "utf8"));
+      // A filter that matched nothing would pass a file silently. A craft
+      // skill names few calls; the union below is what pins the filter.
+      expect(named.length).toBeGreaterThan(0);
+      const missing = named.filter((name) => !known.has(name));
+      expect(missing, "named in the skill but registered nowhere").toEqual([]);
+    });
+  }
+
+  it("reads calls out of the skills at all", () => {
+    const union = new Set(
+      SKILL_NAMES.flatMap((skill) =>
+        skillCallNames(readFileSync(skillPath(skill), "utf8"))
+      )
+    );
+    expect(union.size).toBeGreaterThan(20);
   });
 });

@@ -9,8 +9,27 @@ Motion is timed, layered and checked. Author animations with `edit_timeline`,
 then look at the frames with `preview_timeline_frame`. A change you have not
 looked at is not done.
 
-`caption-titles` decides what text says and when it appears. This skill decides
-how it moves.
+## Load the craft skill for the job
+
+This file is the tool contract: what a call takes and what it refuses. Eight
+skills sit on top of it and decide what to put in those calls. Load the one the
+job is about, and come back here for argument shapes.
+
+| The question | Skill |
+|---|---|
+| How long, which easing, how much stagger, why does this feel stiff | `motion-principles` |
+| What rules does the whole piece obey; it feels busy or inconsistent | `motion-direction` |
+| Where does it sit, does it survive 9:16, how do I get depth | `frame-composition` |
+| Where do the cuts land, how do I pace it, how do I ramp a hit | `beat-sync-editing` |
+| Which colours, in what order do I grade, what can actually move | `color-motion` |
+| No preset does this shape: overshoot, bounce, wiggle, draw-on | `motion-curves` |
+| A logo sting, an end card, a splash | `logo-reveal` |
+| An ambient bed behind the content | `motion-background` |
+
+Two are neighbours rather than layers: `caption-titles` decides what text says
+and when it appears, and the board skills (`explainer-storyboard`,
+`commercial-beat-sheet`, `launch-commercial`, `music-video-treatment`) decide
+the shots before there is a timeline to animate.
 
 ## Read before you animate
 
