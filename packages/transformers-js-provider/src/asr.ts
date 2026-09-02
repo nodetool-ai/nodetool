@@ -19,10 +19,26 @@ interface AsrPipelineResult {
   chunks?: Array<{ timestamp?: [number, number]; text?: string }>;
 }
 
+/** The `automatic-speech-recognition` call options this provider sets. */
+interface AsrPipelineOptions {
+  language?: string;
+  temperature?: number;
+  return_timestamps?: "word";
+}
+
 type AsrPipelineFn = (
   audio: Float32Array,
-  opts?: Record<string, unknown>
+  opts?: AsrPipelineOptions
 ) => Promise<AsrPipelineResult>;
+
+type AsrPipelineChunk = NonNullable<AsrPipelineResult["chunks"]>[number];
+
+/** A chunk carrying both halves of a word timestamp, the only kind `ASRResult` can hold. */
+type TimedAsrChunk = AsrPipelineChunk & { timestamp: [number, number]; text: string };
+
+function isTimedChunk(chunk: AsrPipelineChunk | null): chunk is TimedAsrChunk {
+  return Array.isArray(chunk?.timestamp) && typeof chunk?.text === "string";
+}
 
 export async function automaticSpeechRecognition(
   args: AsrArgs
@@ -32,12 +48,12 @@ export async function automaticSpeechRecognition(
   // so mp3/m4a/flac/etc. work instead of failing with "not a WAV file".
   const samples = await decodeAudioBytesToSamples(args.audio, TARGET_SAMPLE_RATE);
 
-  const pipeline = (await getPipeline({
+  const pipeline = await getPipeline<AsrPipelineFn>({
     task: "automatic-speech-recognition",
     model: args.model
-  })) as AsrPipelineFn;
+  });
 
-  const opts: Record<string, unknown> = {};
+  const opts: AsrPipelineOptions = {};
   if (args.language) opts.language = args.language;
   if (args.temperature != null) opts.temperature = args.temperature;
   if (args.word_timestamps) opts.return_timestamps = "word";
@@ -47,11 +63,8 @@ export async function automaticSpeechRecognition(
   const text = result?.text ?? "";
   const chunks = Array.isArray(result?.chunks)
     ? result.chunks
-        .filter((c) => Array.isArray(c?.timestamp) && typeof c?.text === "string")
-        .map((c) => ({
-          timestamp: c.timestamp as [number, number],
-          text: c.text as string
-        }))
+        .filter(isTimedChunk)
+        .map((c) => ({ timestamp: c.timestamp, text: c.text }))
     : undefined;
 
   return chunks ? { text, chunks } : { text };

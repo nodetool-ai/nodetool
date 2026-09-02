@@ -14,6 +14,19 @@ interface ChatMessage {
   content: string;
 }
 
+function messageText(content: Message["content"]): string {
+  if (content == null) {
+    return "";
+  }
+  if (Array.isArray(content)) {
+    return content
+      .filter((c) => c?.type === "text")
+      .map((c) => c.text)
+      .join("");
+  }
+  return content;
+}
+
 /**
  * Convert NodeTool `Message[]` → transformers.js chat format. Drops `tool`
  * roles and any non-text content (transformers.js text-gen pipelines do not
@@ -25,18 +38,7 @@ export function normalizeMessages(messages: Message[]): ChatMessage[] {
     if (m.role !== "system" && m.role !== "user" && m.role !== "assistant") {
       continue;
     }
-    let text: string;
-    if (typeof m.content === "string") {
-      text = m.content;
-    } else if (Array.isArray(m.content)) {
-      text = m.content
-        .filter((c) => c?.type === "text")
-        .map((c) => c.text)
-        .join("");
-    } else {
-      text = "";
-    }
-    out.push({ role: m.role, content: text });
+    out.push({ role: m.role, content: messageText(m.content) });
   }
   return out;
 }
@@ -55,9 +57,24 @@ interface PipelineOutput {
   generated_text?: Array<{ role: string; content: string }> | string;
 }
 
+type TransformersModule = Awaited<ReturnType<typeof loadTransformers>>;
+
+/** Opaque to us: constructed here, read only by the pipeline. */
+type TextStreamer = InstanceType<NonNullable<TransformersModule["TextStreamer"]>>;
+
+/** The `text-generation` call options this provider sets. */
+interface ChatPipelineOptions {
+  max_new_tokens: number;
+  do_sample: boolean;
+  temperature?: number;
+  top_p?: number;
+  stopping_criteria?: Stopper["criteria"];
+  streamer?: TextStreamer;
+}
+
 type ChatPipelineFn = (
   input: ChatMessage[],
-  options?: Record<string, unknown>
+  options?: ChatPipelineOptions
 ) => Promise<PipelineOutput[]>;
 
 function warnIfTools(args: ChatArgs): void {
@@ -76,8 +93,8 @@ async function getChatPipeline(model: string): Promise<ChatPipelineFn> {
   }));
 }
 
-function buildPipelineOpts(args: ChatArgs) {
-  const opts: Record<string, unknown> = {
+function buildPipelineOpts(args: ChatArgs): ChatPipelineOptions {
+  const opts: ChatPipelineOptions = {
     max_new_tokens: args.maxTokens ?? 512,
     do_sample: (args.temperature ?? 0) > 0
   };
@@ -92,7 +109,7 @@ function extractAssistantText(out: PipelineOutput[]): string {
     const last = generated[generated.length - 1];
     return last?.content ?? "";
   }
-  return typeof generated === "string" ? generated : "";
+  return generated ?? "";
 }
 
 /** The tokenizer a transformers.js pipeline instance carries. */
@@ -100,7 +117,7 @@ interface TokenizerHolder {
   tokenizer?: unknown;
 }
 
-export async function generateMessage(args: ChatArgs): Promise<Message> {
+async function generateAssistantText(args: ChatArgs): Promise<string> {
   warnIfTools(args);
   if (args.signal?.aborted) throw makeAbortError();
 
@@ -115,10 +132,14 @@ export async function generateMessage(args: ChatArgs): Promise<Message> {
   try {
     const out = await pipeline(messages, opts);
     if (args.signal?.aborted) throw makeAbortError();
-    return { role: "assistant", content: extractAssistantText(out) };
+    return extractAssistantText(out);
   } finally {
     stopper.cleanup();
   }
+}
+
+export async function generateMessage(args: ChatArgs): Promise<Message> {
+  return { role: "assistant", content: await generateAssistantText(args) };
 }
 
 export async function* generateMessages(
@@ -131,12 +152,10 @@ export async function* generateMessages(
   const TextStreamerCtor = transformers.TextStreamer;
   if (!TextStreamerCtor) {
     // Fall back to non-streaming and yield as a single chunk.
-    const message = await generateMessage(args);
     const chunk: Chunk = {
       type: "chunk",
       content_type: "text",
-      content:
-        typeof message.content === "string" ? message.content : "",
+      content: await generateAssistantText(args),
       done: true
     };
     yield chunk;
@@ -165,12 +184,10 @@ export async function* generateMessages(
   const tokenizer: unknown = (pipeline as TokenizerHolder).tokenizer;
   if (!tokenizer) {
     // Pipeline missing tokenizer — fall back to non-streaming.
-    const message = await generateMessage(args);
     const chunk: Chunk = {
       type: "chunk",
       content_type: "text",
-      content:
-        typeof message.content === "string" ? message.content : "",
+      content: await generateAssistantText(args),
       done: true
     };
     yield chunk;
@@ -186,7 +203,7 @@ export async function* generateMessages(
   // Cooperative cancellation: interrupt the model loop when the signal aborts
   // so an aborted stream stops generating instead of running to completion.
   const stopper = makeStopper(transformers, args.signal);
-  const genOpts: Record<string, unknown> = { ...opts, streamer };
+  const genOpts: ChatPipelineOptions = { ...opts, streamer };
   if (stopper.criteria) genOpts.stopping_criteria = stopper.criteria;
 
   // Kick off generation; resolve the iterator when complete.
@@ -199,14 +216,14 @@ export async function* generateMessages(
 
   try {
     for (;;) {
-      let next: string | null;
-      if (pending.length > 0) {
-        next = pending.shift() as string | null;
-      } else {
-        next = await new Promise<string | null>((resolve) => {
-          resolveToken = resolve;
-        });
-      }
+      // `pending` only ever holds tokens, so `undefined` means it is empty.
+      const buffered = pending.shift();
+      const next =
+        buffered === undefined
+          ? await new Promise<string | null>((resolve) => {
+              resolveToken = resolve;
+            })
+          : buffered;
       if (args.signal?.aborted) throw makeAbortError();
       if (next === null) break;
       const chunk: Chunk = {
@@ -239,8 +256,6 @@ export async function* generateMessages(
   };
   yield final;
 }
-
-type TransformersModule = Awaited<ReturnType<typeof loadTransformers>>;
 
 interface Stopper {
   criteria?: { interrupt(): void };
