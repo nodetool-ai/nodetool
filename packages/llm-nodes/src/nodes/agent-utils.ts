@@ -22,8 +22,10 @@ import {
   expandAssetReferences,
   extractJson,
   generateStructured,
-  isProviderStop
+  isProviderStop,
+  isToolCall
 } from "@nodetool-ai/runtime";
+import { isChunk } from "@nodetool-ai/protocol";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
 import {
@@ -418,25 +420,6 @@ export function buildUserMessage(
   return { role: "user", content };
 }
 
-export function isChunkItem(item: ProviderStreamItem): item is Chunk {
-  return (
-    !!item &&
-    typeof item === "object" &&
-    "type" in item &&
-    (item as Chunk).type === "chunk"
-  );
-}
-
-export function isToolCallItem(item: ProviderStreamItem): item is ToolCall {
-  return (
-    !!item &&
-    typeof item === "object" &&
-    "id" in item &&
-    "name" in item &&
-    !("type" in item)
-  );
-}
-
 /**
  * A single classified item from a provider's {@link BaseProvider.generateLoop}
  * stream. Both {@link runAgentLoop} and the AgentNode's genProcess drive the
@@ -478,11 +461,11 @@ export async function* classifyProviderStream(
       yield { kind: "stop", stop: item };
       continue;
     }
-    if (isToolCallItem(item)) {
+    if (isToolCall(item)) {
       yield { kind: "tool_call", toolCall: item };
       continue;
     }
-    if (isChunkItem(item)) {
+    if (isChunk(item)) {
       if (item.thinking) {
         yield { kind: "thinking", chunk: item };
         continue;

@@ -6,6 +6,18 @@
 export const MAX_TOOL_RESULT_CHARS = 25_000;
 
 /**
+ * Action rounds one step gets when the caller names none. Both DAG executors
+ * (`task-executor.ts`, `parallel-task-executor.ts`) fall back to it.
+ */
+export const DEFAULT_MAX_STEP_ITERATIONS = 10;
+
+/**
+ * Concurrent sub-agents one merge admits when the caller names none. It bounds
+ * a single merge, not the run: tasks, steps and sub-agents each apply it.
+ */
+export const DEFAULT_MAX_CONCURRENT_AGENTS = 8;
+
+/**
  * Cap a serialized tool result so a single oversized result can never blow past
  * a provider's message-content limit (e.g. Anthropic rejects content strings
  * over ~10 MB with "string too long") or balloon the context window. A broad

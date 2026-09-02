@@ -62,7 +62,7 @@ Every executor writes results into `context.memory`. Every step has the three me
 
 | Namespace | Helper | Written By | Used For |
 |---|---|---|---|
-| `step:<id>` | `memoryKeys.step(id)` | `CodeActExecutor`, `TaskExecutor` (process mode) | Per-step results |
+| `step:<id>` | `memoryKeys.step(id)` | `CodeActExecutor`, `TaskExecutor` (terminal step failure) | Per-step results |
 | `task:<id>` | `memoryKeys.task(id)` | `CodeActExecutor` (finish-task steps), `ParallelTaskExecutor` | Per-task results |
 | `input:<key>` | `memoryKeys.input(key)` | `TaskExecutor`, `ParallelTaskExecutor` | Caller-supplied inputs |
 | `shared:<key>` | `memoryKeys.shared(key)` | `share_result` tool | Cross-agent communication, scratch space |
@@ -290,7 +290,7 @@ for (const [key, value] of Object.entries(this.inputs)) {
 }
 ```
 
-In **process mode** (fan-out over a discover step's list), it reads the discover result via `memoryKeys.step(discoverStepId)` and writes the aggregated array back under `memoryKeys.step(processStepId)` after collecting per-item results.
+The only `step:` key it writes itself is a terminal failure: `failStepEvents` records `{ error }` under `memoryKeys.step(step.id)` so the parent can read the reason. Every successful step result is written by the `CodeActExecutor` running it.
 
 `TaskExecutor` accepts an optional `upstreamMemoryKeys` array (e.g. `task:<id>` keys from the parent plan). It forwards this verbatim to every step executor it creates.
 

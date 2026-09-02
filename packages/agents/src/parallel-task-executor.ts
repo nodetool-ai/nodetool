@@ -40,13 +40,14 @@ import {
   type DagOutcome,
   type DagRunResult
 } from "./utils/dag-scheduler.js";
-import { DEFAULT_AGENT_POLICY } from "./agent-policy.js";
+import {
+  DEFAULT_MAX_CONCURRENT_AGENTS,
+  DEFAULT_MAX_STEP_ITERATIONS
+} from "./constants.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Task, TaskPlan } from "./types.js";
 
 const log = createLogger("nodetool.agents.parallel-task-executor");
-
-const DEFAULT_MAX_STEP_ITERATIONS = 10;
 
 /** One task, as the scheduler sees it. */
 interface TaskNode extends DagNode {
@@ -121,7 +122,7 @@ export class ParallelTaskExecutor {
     this.maxStepIterations =
       opts.maxStepIterations ?? DEFAULT_MAX_STEP_ITERATIONS;
     this.maxConcurrentAgents =
-      opts.maxConcurrentAgents ?? DEFAULT_AGENT_POLICY.maxConcurrentAgents;
+      opts.maxConcurrentAgents ?? DEFAULT_MAX_CONCURRENT_AGENTS;
     this.maxTokens = opts.maxTokens;
     this.budget = opts.budget ?? budgetFromContext(opts.context);
     this.signal = opts.signal;
@@ -443,22 +444,6 @@ export class ParallelTaskExecutor {
       const settled = settleResultValue(value);
       if (settled && !settled.ok) {
         return `step ${step.id}: ${settled.error}`;
-      }
-      // A fan-out step stores an array of per-item results and is always marked
-      // completed, even when every item failed (each item is an `{ error }`
-      // object). An array is never itself a failure payload, so an all-failed
-      // fan-out would otherwise be recorded as a success and never retried.
-      // Ask the items instead.
-      if (Array.isArray(value) && value.length > 0) {
-        const errors: string[] = [];
-        for (const item of value) {
-          const settledItem = settleResultValue(item);
-          if (settledItem === null || settledItem.ok) break;
-          errors.push(settledItem.error);
-        }
-        if (errors.length === value.length) {
-          return `step ${step.id}: all ${value.length} fan-out item(s) failed (${errors[0]})`;
-        }
       }
     }
     const settledTask = settleResultValue(taskResult);
