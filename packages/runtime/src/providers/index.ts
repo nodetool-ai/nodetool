@@ -334,6 +334,8 @@ export {
   injectEntityDescriptors
 } from "./entity-references.js";
 export {
+  isChunk,
+  isToolCall,
   isProviderSessionUpdate,
   isProviderMessageEvent,
   isProviderStop,

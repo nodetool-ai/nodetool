@@ -1,17 +1,17 @@
 /**
  * The default bounds the two DAG executors fall back to.
  *
- * `DEFAULT_AGENT_POLICY` is what `parallel-task-executor.ts` and
- * `task-executor.ts` read when a caller names no bound of its own, which keeps
- * one number in one place instead of a literal per executor. It carried a
- * `maxSteps` — dispatch rounds per task — until the executors became
- * event-driven (`utils/dag-scheduler.ts`); nothing counts rounds now.
+ * `maxConcurrentAgents` is the one field the executors read from here.
+ * `maxStepIterations` reaches neither: `parallel-task-executor.ts` and
+ * `task-executor.ts` each declare their own `DEFAULT_MAX_STEP_ITERATIONS` and
+ * fall back to that, so the value below is not the per-step default any caller
+ * gets. `DEFAULT_AGENT_POLICY` also carried a `maxSteps` — dispatch rounds per
+ * task — until the executors became event-driven (`utils/dag-scheduler.ts`);
+ * nothing counts rounds now.
  *
  * `resolveAgentPolicy` and `AgentPolicyOptions` have no caller left: the loop
  * that resolved a per-run policy object is gone, and `execute_plan` passes the
- * run's budget and the parent's per-step iteration cap directly. The per-step
- * iteration cap stays here rather than on `RunBudget`, which carries a
- * concurrency semaphore and no iteration bound.
+ * run's budget and the parent's per-step iteration cap directly.
  */
 
 export interface AgentPolicyOptions {

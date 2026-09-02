@@ -72,8 +72,6 @@ interface Step {
   dependsOn: string[];          // IDs of prerequisite steps (forms a DAG)
   tools?: string[];             // restrict available tools for this step
   outputSchema?: string;        // JSON schema for step output validation
-  mode?: "discover" | "process" | "aggregate";
-  perItemInstructions?: string; // template for fan-out processing
   completed: boolean;
 }
 ```
@@ -102,7 +100,7 @@ loop:
 2. Stream the LLM response
 3. Run the action's JavaScript in the QuickJS sandbox, where the toolbelt is imported from `@nodetool-ai/sandbox-nodetool/<namespace>`
 4. Feed the observation (return value, logs, error) back as the tool result
-5. Repeat until the program calls `finish(result)`, the run's budget stops it, or max iterations are reached
+5. Repeat until the program calls `finish(result)`, the run's budget stops it, or the step's action rounds run out (`maxStepIterations`, defaulting to `DEFAULT_MAX_STEP_ITERATIONS` in `task-executor.ts`)
 6. Validate the result against the step's output schema — host-side, in `finish`
 
 Each task's result lands in `context.memory` under `task:<id>` and comes back
@@ -122,16 +120,6 @@ the sandbox limits that apply per action, and [javascript-sandbox.md](javascript
 for the engine itself — capabilities, limits, imports, security model.
 Results a later action or turn needs go through memory
 (`nodetool.memory.*`); there is no cross-action variable bag.
-
-### Fan-Out Execution
-
-Steps can use three modes for batch processing:
-
-| Mode | Purpose | Example |
-|------|---------|---------|
-| **discover** | Produce a list of items | "Find all CSV files in the workspace" |
-| **process** | Create sub-step per item (runs in parallel) | "Analyze each CSV file" |
-| **aggregate** | Collect per-item results into final output | "Summarize all analyses" |
 
 ---
 
@@ -602,6 +590,10 @@ that reach it through the context.
 | `directToolNames` | — | Belt tools also offered as provider tools, documented as direct calls |
 | `clock` | — | `SandboxClock` that stops the action budget while a permission prompt is open |
 | `sandboxPackages` | none | Package specifiers this session consents to import |
+
+A plan's own per-step bound is not a session option: `execute_plan` passes
+`maxStepIterations` to the executors, which fall back to
+`DEFAULT_MAX_STEP_ITERATIONS` (`task-executor.ts`) when a caller names none.
 
 Provider, model and permission mode belong to the host's turn, not to the
 session. The run's bounds are one `RunBudget` on the context

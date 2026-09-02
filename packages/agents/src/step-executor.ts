@@ -8,20 +8,18 @@
  * assistant's text response (for unstructured steps).
  */
 
-import * as fs from "node:fs/promises";
-import * as path from "node:path";
-import { createHash } from "node:crypto";
 import type {
   BaseProvider,
   ProcessingContext,
   Message,
   MessageContent,
-  ToolCall,
-  ProviderStreamItem
+  ToolCall
 } from "@nodetool-ai/runtime";
 import type { TurnBudget } from "@nodetool-ai/runtime";
 import {
   ACTIVE_MODEL_CONTEXT_KEY,
+  isChunk,
+  isToolCall,
   memoryKeys,
   withAgentSpanGen,
   type ActiveModelSelection
@@ -42,7 +40,6 @@ import {
   extractInjectableImages,
   stripImagePayload
 } from "./tools/image-injection.js";
-import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { getSharedTools } from "./tools/shared-tools.js";
 import { truncateToolResult } from "./constants.js";
@@ -51,6 +48,7 @@ import {
   validateAgainstSchema
 } from "./utils/json-schema-validate.js";
 import { lastProseHint } from "./utils/step-failure.js";
+import { createUiEventBuffer } from "./utils/ui-event-buffer.js";
 import { removeThinkTags } from "./utils/think-tags.js";
 import {
   isBoolean,
@@ -392,12 +390,6 @@ export class StepExecutor {
   private declaredSchema: Record<string, unknown> | null = null;
   private iterations = 0;
   private generationFailures = 0;
-  private sources: string[] = [];
-  private sourcesSet = new Set<string>();
-  private _controlEvents: Array<{
-    targetNodeId: string;
-    event: import("@nodetool-ai/protocol").ControlEvent;
-  }> = [];
   private threadId?: string;
   private upstreamMemoryKeys: string[];
   private acceptResult?: (result: unknown) => Promise<StepResultAcceptance>;
@@ -628,156 +620,6 @@ export class StepExecutor {
   }
 
   /**
-   * Save base64 encoded binary data (images, audio) from tool results to workspace files.
-   * Mirrors Python's StepExecutor._handle_binary_artifact().
-   */
-  private async handleBinaryArtifact(toolResult: unknown): Promise<unknown> {
-    if (!isRecord(toolResult)) {
-      return toolResult;
-    }
-
-    const result = { ...toolResult };
-    const workspace = this.context.workspace;
-    if (!workspace) return result;
-
-    for (const field of ["image", "audio"]) {
-      const value = result[field];
-      if (!isString(value)) continue;
-
-      const dataUriMatch = value.match(/^data:([^;]+);base64,(.+)$/s);
-      if (!dataUriMatch) continue;
-
-      const [, mimeType, base64Data] = dataUriMatch;
-      const ext = mimeType!.split("/")[1] ?? "bin";
-      const hash = createHash("sha256")
-        .update(base64Data!)
-        .digest("hex")
-        .slice(0, 16);
-      const filename = `artifact_${hash}.${ext}`;
-
-      // Written through the workspace, so a cloud run keeps its artifacts too.
-      // The recorded handle is the workspace path — what every other tool in
-      // the loop takes — rather than a host path only this machine has.
-      const filepath = `artifacts/${filename}`;
-      await workspace.write(
-        filepath,
-        new Uint8Array(Buffer.from(base64Data!, "base64")),
-        mimeType
-      );
-      result[field] = filepath;
-      if (!this.sourcesSet.has(filepath)) {
-        this.sources.push(filepath);
-        this.sourcesSet.add(filepath);
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Persist important sandbox outputs (downloads, screenshots, generated artifacts)
-   * as assets so they survive ephemeral workspace/container cleanup.
-   */
-  private async capturePersistentSandboxOutputs(
-    toolName: string,
-    toolArgs: Record<string, unknown> | undefined,
-    toolResult: unknown
-  ): Promise<unknown> {
-    if (!isRecord(toolResult)) {
-      return toolResult;
-    }
-
-    const result = { ...toolResult };
-    if (result.success === false) {
-      return result;
-    }
-
-    const candidates: Array<{ label: string; path: string }> = [];
-    const candidateKeys = new Set<string>();
-    const isExternalUri = (value: string): boolean => {
-      const lower = value.toLowerCase();
-      return (
-        lower.startsWith("http://") ||
-        lower.startsWith("https://") ||
-        lower.startsWith("asset://") ||
-        lower.startsWith("memory://") ||
-        lower.startsWith("s3://") ||
-        lower.startsWith("file://")
-      );
-    };
-    const maybeAdd = (label: string, value: unknown): void => {
-      if (
-        isString(value) &&
-        value.trim().length > 0 &&
-        !value.startsWith("data:") &&
-        !isExternalUri(value)
-      ) {
-        const key = `${label}:${value}`;
-        if (!candidateKeys.has(key)) {
-          candidates.push({ label, path: value });
-          candidateKeys.add(key);
-        }
-      }
-    };
-
-    maybeAdd("output_file", result.output_file);
-    if (result.success === true) {
-      maybeAdd("output_file", toolArgs?.["output_file"]);
-    }
-    maybeAdd("image", result.image);
-    maybeAdd("audio", result.audio);
-
-    if (candidates.length === 0) {
-      return result;
-    }
-
-    const refs: Record<string, unknown> = {};
-    for (const candidate of candidates) {
-      try {
-        const ref = await this.context.sandboxToAsset(candidate.path);
-        refs[candidate.label] = ref;
-        const uri = ref.uri;
-        if (isNonEmptyString(uri) && !this.sourcesSet.has(uri)) {
-          this.sources.push(uri);
-          this.sourcesSet.add(uri);
-        }
-      } catch (error) {
-        log.warn("Failed to persist sandbox output as asset", {
-          stepId: this.step.id,
-          toolName,
-          path: candidate.path,
-          error: error instanceof Error ? error.message : String(error)
-        });
-      }
-    }
-
-    if (Object.keys(refs).length > 0) {
-      const existing = result.asset_refs;
-      if (isRecord(existing)) {
-        result.asset_refs = { ...existing, ...refs };
-      } else {
-        result.asset_refs = refs;
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Track URLs from browser tool navigation results.
-   * Mirrors Python's _process_special_tool_side_effects().
-   */
-  private trackToolSideEffects(toolName: string, result: unknown): void {
-    if (toolName === "browser" && isObjectLike(result)) {
-      const url = result.url;
-      if (isNonEmptyString(url) && !this.sourcesSet.has(url)) {
-        this.sources.push(url);
-        this.sourcesSet.add(url);
-      }
-    }
-  }
-
-  /**
    * Generate a user-facing message for a tool call. Prefers the LLM-authored
    * `_message` arg; falls back to the tool's parameter-aware template.
    */
@@ -901,7 +743,7 @@ export class StepExecutor {
     const abort = new AbortController();
     // External cancellation (user pressed Stop) fires the same controller.
     const unlinkAbort = linkAbort(abort, this.signal);
-    const uiEvents: ProcessingMessage[] = [];
+    const ui = createUiEventBuffer();
     let lastAssistant: Message | null = null;
     // Captures a real exception thrown by the provider loop (401, rate limit,
     // network, tool-schema error) so the failure path reports the actual cause
@@ -910,14 +752,14 @@ export class StepExecutor {
 
     const emitCompletion = (normalizedResult: unknown): void => {
       this.storeCompletionResult(normalizedResult);
-      uiEvents.push({
+      ui.push({
         type: "task_update",
         node_id: this.step.id,
         task: { id: this.task.id, title: this.task.title },
         step: { id: this.step.id, instructions: this.step.instructions },
         event: TaskUpdateEvent.StepCompleted
       } satisfies TaskUpdate);
-      uiEvents.push({
+      ui.push({
         type: "step_result",
         step: { id: this.step.id, instructions: this.step.instructions },
         result: normalizedResult,
@@ -992,14 +834,6 @@ export class StepExecutor {
       args: Record<string, unknown>,
       toolCallId?: string
     ): Promise<string | MessageContent[]> => {
-      const cleanArgs = Tool.stripMessage(args ?? {});
-      // ControlNodeTool: emit a control event instead of calling process().
-      if (tool instanceof ControlNodeTool) {
-        const event = tool.createControlEvent(cleanArgs);
-        this._controlEvents.push({ targetNodeId: tool.targetNodeId, event });
-        return Tool.resolveMessage(tool, args);
-      }
-
       let toolResult: unknown;
       try {
         toolResult = await Tool.executeTool(tool, this.context, args, {
@@ -1016,23 +850,6 @@ export class StepExecutor {
       if (injected) {
         toolResult = stripImagePayload(toolResult);
       }
-
-      toolResult = await this.handleBinaryArtifact(toolResult);
-      toolResult = await this.capturePersistentSandboxOutputs(
-        tool.name,
-        args,
-        toolResult
-      );
-
-      // Track browser URLs for source lineage.
-      if (tool.name === "browser" && args?.["url"]) {
-        const url = String(args["url"]);
-        if (!this.sourcesSet.has(url)) {
-          this.sources.push(url);
-          this.sourcesSet.add(url);
-        }
-      }
-      this.trackToolSideEffects(tool.name, toolResult);
 
       const resultStr = this.serializeToolResultForHistory(
         toolResult,
@@ -1054,10 +871,6 @@ export class StepExecutor {
           runTool(tool, args, toolCallId)
       };
     });
-
-    const drainUi = function* (): Generator<ProcessingMessage> {
-      while (uiEvents.length > 0) yield uiEvents.shift() as ProcessingMessage;
-    };
 
     try {
       const stream = this.provider.generateLoop({
@@ -1082,7 +895,7 @@ export class StepExecutor {
             args: item.args,
             message: this.generateToolCallMessage(item)
           } satisfies ToolCallUpdate;
-          yield* drainUi();
+          yield* ui.drain();
           continue;
         }
         if (isChunk(item)) {
@@ -1094,7 +907,7 @@ export class StepExecutor {
               done: false
             } satisfies Chunk;
           }
-          yield* drainUi();
+          yield* ui.drain();
           continue;
         }
         if ("type" in item && item.type === "message") {
@@ -1108,7 +921,7 @@ export class StepExecutor {
               : m;
           }
         }
-        yield* drainUi();
+        yield* ui.drain();
       }
     } catch (e) {
       generationError = e instanceof Error ? e : new Error(String(e));
@@ -1120,7 +933,7 @@ export class StepExecutor {
       unlinkAbort();
     }
 
-    yield* drainUi();
+    yield* ui.drain();
 
     // Unstructured steps finalize from the final assistant text (no finish_step).
     if (!this.step.completed) {
@@ -1128,7 +941,7 @@ export class StepExecutor {
         this.maybeFinalizeFromMessage(lastAssistant);
       if (done && normalizedResult !== null && normalizedResult !== undefined) {
         emitCompletion(normalizedResult);
-        yield* drainUi();
+        yield* ui.drain();
       }
     }
 
@@ -1194,43 +1007,4 @@ export class StepExecutor {
   getResult(): unknown {
     return this.result;
   }
-
-  /**
-   * Get tracked sources (e.g. browser URLs).
-   */
-  getSources(): string[] {
-    return [...this.sources];
-  }
-
-  /**
-   * Get control events emitted during execution (from ControlNodeTool calls).
-   * The caller (workflow actor/runner) is responsible for dispatching these.
-   */
-  getControlEvents(): Array<{
-    targetNodeId: string;
-    event: import("@nodetool-ai/protocol").ControlEvent;
-  }> {
-    return [...this._controlEvents];
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Helpers to discriminate ProviderStreamItem union members
-// ---------------------------------------------------------------------------
-
-function isChunk(item: ProviderStreamItem): item is Chunk {
-  return (
-    "type" in item &&
-    item.type === "chunk" &&
-    "content" in item &&
-    typeof item.content === "string"
-  );
-}
-
-function isToolCall(item: ProviderStreamItem): item is ToolCall {
-  return (
-    "name" in item &&
-    typeof item.name === "string" &&
-    "id" in item
-  );
 }

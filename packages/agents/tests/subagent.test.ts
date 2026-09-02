@@ -4,6 +4,7 @@ import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 import {
   enterSubAgentDepth,
   forwardSubAgentStream,
+  settleResultValue,
   settleStepResult,
   tagSubAgentMessage
 } from "../src/subagent.js";
@@ -73,6 +74,40 @@ describe("settleStepResult", () => {
     expect(settleStepResult(stepResult({ result: "a report" }))).toEqual({
       ok: true,
       result: "a report"
+    });
+  });
+});
+
+describe("settleResultValue", () => {
+  it("returns null for a step that produced nothing", () => {
+    expect(settleResultValue(null)).toBeNull();
+    expect(settleResultValue(undefined)).toBeNull();
+  });
+
+  it("treats a non-empty string `error` as the failure payload", () => {
+    expect(settleResultValue({ error: "Step failed: boom" })).toEqual({
+      ok: false,
+      error: "Step failed: boom"
+    });
+  });
+
+  it("does not treat an empty `error` string as a failure", () => {
+    const result = { error: "" };
+    expect(settleResultValue(result)).toEqual({ ok: true, result });
+  });
+
+  // An array is a fan-out step's per-item results. Whether it failed is a
+  // question about its items, so the array itself never settles as a failure.
+  it("never settles an array as a failure", () => {
+    const result = [{ error: "a" }, { error: "b" }];
+    expect(settleResultValue(result)).toEqual({ ok: true, result });
+  });
+
+  it("passes an object with `error` through when a schema declared it", () => {
+    const result = { error: "a business field", data: 1 };
+    expect(settleResultValue(result, { hasOutputSchema: true })).toEqual({
+      ok: true,
+      result
     });
   });
 });

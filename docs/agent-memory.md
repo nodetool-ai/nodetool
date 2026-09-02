@@ -529,7 +529,7 @@ Replacing it stripped the memory-tool documentation and the `finish_step` discip
 - Check the conclusion stage: if the step is at >90% token budget, only `finish_step` is allowed and `read_shared` is filtered out.
 
 **Symptom:** Task result key is missing after the step yielded `step_result` with `is_task_result: true`.
-- A step executor only writes `task:<id>` for steps where `useFinishTask === true`. That flag is set by `TaskExecutor.isFinishStep()` for the last step in the task (or the explicit `finalStepId` option). Steps in the middle of a task only write `step:<id>`.
+- A step executor only writes `task:<id>` for steps where `useFinishTask === true`. That flag is set by `TaskExecutor.isFinishStep()` for the last step in the task. Steps in the middle of a task only write `step:<id>`.
 - For belt-and-suspenders, `ParallelTaskExecutor` performs an idempotent task-result write after each task, falling back to the last step's value.
 
 **Symptom:** Tests pass but memory entries seem stale across test runs.
