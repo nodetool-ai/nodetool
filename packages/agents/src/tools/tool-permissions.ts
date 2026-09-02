@@ -105,6 +105,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   get_message: "read",
   validate_timeline: "read",
   preview_timeline_frame: "read",
+  compare_timeline_frames: "read",
   validate_sketch: "read",
   validate_model3d: "read",
   list_model3ds: "read",

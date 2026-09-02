@@ -45,6 +45,7 @@ const TIMELINE_TOOLS = [
   "list_timelines",
   "validate_timeline",
   "preview_timeline_frame",
+  "compare_timeline_frames",
   "set_timeline_document",
   "list_compositions",
   "get_composition",
@@ -156,6 +157,8 @@ function createFakeRouter() {
         return JSON.stringify({ ok: true, target: args });
       case "preview_timeline_frame":
         return JSON.stringify({ frames: [{ time_ms: 0 }], target: args });
+      case "compare_timeline_frames":
+        return JSON.stringify({ frames: [{ time_ms: 0, difference: 0 }], target: args });
       case "set_timeline_document":
         return JSON.stringify({ ok: true, written: true, target: args });
       case "list_compositions":
@@ -466,6 +469,27 @@ describe("nodetool object model", () => {
     expect(calls[1].args).toEqual({ document: { tracks: [] }, count: 2 });
     const r = obs.result as { saved: { frames: unknown[] } };
     expect(r.saved.frames).toHaveLength(1);
+  });
+
+  it("routes timelines.compare to compare_timeline_frames with both sides", async () => {
+    const { executeTool, calls } = createFakeRouter();
+    const session = makeSession(TIMELINE_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `await nodetool.timelines.compare(
+         { timeline_id: "tl1" },
+         { timeline_id: "tl1", version: 3 },
+         { range: { from_ms: 0, to_ms: 2000, count: 4 } }
+       );
+       return "done";`
+    );
+    expect(obs.ok).toBe(true);
+    expect(calls.map((c) => c.name)).toEqual(["compare_timeline_frames"]);
+    expect(calls[0].args).toEqual({
+      a: { timeline_id: "tl1" },
+      b: { timeline_id: "tl1", version: 3 },
+      range: { from_ms: 0, to_ms: 2000, count: 4 }
+    });
   });
 
   it("routes timelines.setDocument with its options alongside the document", async () => {

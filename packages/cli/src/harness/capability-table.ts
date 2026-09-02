@@ -1842,11 +1842,22 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "preview_timeline_frame",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "d06d661c70ed",
+    contract: "b28a18fe7574",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
       "packages/agents/tests/capabilities-timeline-preview.test.ts",
+    ],
+  },
+  {
+    name: "compare_timeline_frames",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "6f1e9b2a38fc",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+      "packages/agents/tests/capabilities-timeline-compare.test.ts",
     ],
   },
   {

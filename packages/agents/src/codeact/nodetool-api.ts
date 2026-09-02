@@ -124,6 +124,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "delete_timeline_version",
     "validate_timeline",
     "preview_timeline_frame",
+    "compare_timeline_frames",
     "edit_timeline",
     "set_timeline_document",
     "render_timeline",
@@ -1164,6 +1165,13 @@ const nodetool = (() => {
           : __need("preview_timeline_frame")(
               __merge(opts, { document: target })
             ),
+      /**
+       * Per-frame pixel difference between two timelines, plus a side-by-side
+       * sheet. Each side is an id, {timeline_id, version} or a document.
+       * Options: {times_ms, range, width}.
+       */
+      compare: (a, b, opts) =>
+        __need("compare_timeline_frames")(__merge(opts, { a: a, b: b })),
       /** Apply document edits to a saved sequence, server-side. */
       edit: (id, ops) => __need("edit_timeline")({ timeline_id: id, ops: ops }),
       /**
@@ -1644,8 +1652,13 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`create(name, {fps, width, height})\` (→ \`{timeline_id}\`; make your own
   rather than editing one the user has open — vertical is 1080×1920),
   \`validate(idOrDocument)\`,
-  \`preview(idOrDocument, {times_ms, count, width})\` (composited frames at
-  chosen timecodes — read the picture back instead of guessing at it),
+  \`preview(idOrDocument, {times_ms, count, range, sheet, width})\` (composited
+  frames at chosen timecodes — read the picture back instead of guessing at it;
+  \`range\` sweeps a window and \`sheet: true\` returns it as one labelled
+  contact sheet),
+  \`compare(a, b, {times_ms, range})\` (what actually changed between two
+  timelines or two versions — per-frame pixel difference and a side-by-side
+  sheet),
   \`versions(id)\`,
   \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`,
   \`deleteVersion(id, n)\`,

@@ -32,6 +32,7 @@ import type {
   TimelineBridgeFinalState
 } from "../evals/surfaces/timeline.js";
 import type { BakeCustomAnimationParams } from "../custom-animation-bake.js";
+import type { SavedOutput } from "../tools/asset-persist.js";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -50,11 +51,14 @@ import {
   validateTimelineSpec,
   setTimelineDocumentSpec,
   previewTimelineFrameSpec,
+  compareTimelineFramesSpec,
   renderTimelineSpec,
   DEFAULT_RENDER_TIMEOUT_MS,
   MAX_RENDER_TIMEOUT_MS,
   DEFAULT_PREVIEW_COUNT,
+  DEFAULT_COMPARE_WIDTH,
   MAX_PREVIEW_TIMES,
+  MAX_PREVIEW_RANGE_COUNT,
   DEFAULT_VERSION_LIMIT,
   MAX_VERSION_LIMIT,
   SAVE_TYPE_PROPERTY,
@@ -87,7 +91,8 @@ export {
   DELETE_TIMELINE_VERSION_SCHEMA,
   EDIT_TIMELINE_SCHEMA,
   VALIDATE_TIMELINE_SCHEMA,
-  SET_TIMELINE_DOCUMENT_SCHEMA
+  SET_TIMELINE_DOCUMENT_SCHEMA,
+  COMPARE_TIMELINE_FRAMES_SCHEMA
 } from "./timelines.specs.js";
 import { resolveProjectId } from "./project-scope.js";
 
@@ -1138,12 +1143,73 @@ function evenlySpacedTimes(durationMs: number, count: number): number[] {
   );
 }
 
-/** The timecodes a `preview_timeline_frame` call asks for. */
+/** A persisted PNG as the image reference `view_image` reads. */
+function imageHandle(saved: SavedOutput): Record<string, unknown> {
+  return {
+    type: "image",
+    asset_id: saved.asset_id,
+    asset_uri: saved.asset_uri,
+    uri: saved.asset_uri ?? saved.path,
+    path: saved.path,
+    mime_type: saved.mime_type,
+    bytes: saved.bytes
+  };
+}
+
+/**
+ * The timecodes a `range` names: `count` of them from `from_ms` to `to_ms`,
+ * both ends included. Inclusive because a range is how a caller watches a move
+ * play out, and a move's start and end are the two instants it is defined by —
+ * the opposite of the default sweep, which avoids the ends of the whole cut.
+ */
+function rangeTimes(raw: unknown): number[] | ToolError {
+  if (!isRecord(raw)) {
+    return { error: "range must be an object ({from_ms, to_ms, count})." };
+  }
+  const from = Number(raw["from_ms"]);
+  const to = Number(raw["to_ms"]);
+  if (!isFiniteNumber(from) || !isFiniteNumber(to) || from < 0 || to < 0) {
+    return { error: "range needs a non-negative from_ms and to_ms." };
+  }
+  if (to < from) {
+    return {
+      error: `range runs backwards: from_ms ${from} is after to_ms ${to}.`
+    };
+  }
+  const count =
+    raw["count"] === undefined || raw["count"] === null
+      ? DEFAULT_PREVIEW_COUNT
+      : Math.round(Number(raw["count"]));
+  if (!isFiniteNumber(count) || count < 1) {
+    return { error: "range.count must be a whole number of 1 or more." };
+  }
+  if (count > MAX_PREVIEW_RANGE_COUNT) {
+    return {
+      error: `range.count is ${count}; at most ${MAX_PREVIEW_RANGE_COUNT} frames render per call.`
+    };
+  }
+  if (count === 1) return [from];
+  return Array.from({ length: count }, (_, i) =>
+    Math.round(from + ((to - from) * i) / (count - 1))
+  );
+}
+
+/** The timecodes a preview or compare call asks for. */
 function requestedTimes(
   params: Record<string, unknown>,
-  durationMs: number
+  durationMs: number,
+  maxTimes = MAX_PREVIEW_TIMES
 ): number[] | ToolError {
   const raw = params["times_ms"];
+  const range = params["range"];
+  const hasRange = range !== undefined && range !== null;
+  if (hasRange && raw !== undefined && raw !== null) {
+    return {
+      error:
+        "Pass times_ms or range, not both — they name the timecodes two different ways."
+    };
+  }
+  if (hasRange) return rangeTimes(range);
   if (raw === undefined || raw === null) {
     const count = Math.max(
       1,
@@ -1160,9 +1226,9 @@ function requestedTimes(
   if (raw.length === 0) {
     return { error: "times_ms was empty — omit it to sample evenly instead." };
   }
-  if (raw.length > MAX_PREVIEW_TIMES) {
+  if (raw.length > maxTimes) {
     return {
-      error: `times_ms holds ${raw.length} timecodes; at most ${MAX_PREVIEW_TIMES} render per call.`
+      error: `times_ms holds ${raw.length} timecodes; at most ${maxTimes} render per call.`
     };
   }
   const times: number[] = [];
@@ -1278,28 +1344,53 @@ const previewTimelineFrame: CapabilityExport = {
       };
     }
 
-    const frames = [];
-    for (const frame of result.frames) {
-      const saved = await persistOutput(run.context, frame.png, {
-        namePrefix: "timeline-frame",
+    // With a sheet the pixels leave as one image, so no frame persists its
+    // own: N handles the caller will never open cost N asset writes.
+    const wantSheet = params["sheet"] === true;
+    let sheet: Record<string, unknown> | undefined;
+    if (wantSheet) {
+      const { composeContactSheet } = await import(
+        "../timeline-preview/sheet.js"
+      );
+      const tiled = await composeContactSheet(
+        result.frames.map((frame) => ({
+          label: `${frame.time_ms}ms`,
+          png: frame.png
+        }))
+      );
+      const saved = await persistOutput(run.context, tiled.png, {
+        namePrefix: "timeline-sheet",
         mime: "image/png"
       });
-      frames.push({
+      sheet = {
+        columns: tiled.columns,
+        rows: tiled.rows,
+        cells: tiled.cells,
+        cell_width: tiled.cell_width,
+        cell_height: tiled.cell_height,
+        width: tiled.width,
+        height: tiled.height,
+        image: imageHandle(saved)
+      };
+    }
+
+    const frames = [];
+    for (const frame of result.frames) {
+      const entry: Record<string, unknown> = {
         time_ms: frame.time_ms,
         width: frame.width,
         height: frame.height,
-        image: {
-          type: "image",
-          asset_id: saved.asset_id,
-          asset_uri: saved.asset_uri,
-          uri: saved.asset_uri ?? saved.path,
-          path: saved.path,
-          mime_type: saved.mime_type,
-          bytes: saved.bytes
-        },
         layers: frame.layers,
         dropped: frame.dropped
-      });
+      };
+      if (!wantSheet) {
+        const saved = await persistOutput(run.context, frame.png, {
+          namePrefix: "timeline-frame",
+          mime: "image/png"
+        });
+        entry.image = imageHandle(saved);
+      }
+      frames.push(entry);
     }
 
     return {
@@ -1310,10 +1401,228 @@ const previewTimelineFrame: CapabilityExport = {
       sequence_height: meta.height,
       duration_ms: durationMs,
       frames,
+      sheet,
       effects_not_applied: result.effectsNotApplied,
+      hint: wantSheet
+        ? "Call view_image with the sheet's asset_id to see every frame at " +
+          "once; the cells run left to right, labelled with their timecode. " +
+          "Each frame's layers are listed top of the stack first."
+        : "Call view_image with a frame's asset_id to see it. The layers are " +
+          "listed top of the stack first — the first one covers the rest."
+    };
+  }
+};
+
+/** One side of a comparison, resolved to something renderable. */
+interface CompareSide {
+  document: Record<string, unknown>;
+  fps: number;
+  width: number;
+  height: number;
+  durationMs: number;
+  /** What the caller named, echoed back so the two sides are tellable apart. */
+  source: Record<string, unknown>;
+}
+
+/**
+ * Resolve `a` or `b` — a timeline id, `{timeline_id}`, `{timeline_id,
+ * version}`, `{document}`, or a bare document — to a renderable sequence.
+ *
+ * A version is read the way `get_timeline_version` reads one: the snapshot's
+ * own document and its own frame geometry, since a sequence resized after the
+ * snapshot would otherwise render the old cut at the new size and report every
+ * frame as changed.
+ */
+async function resolveCompareSide(
+  run: CapabilityRun,
+  raw: unknown,
+  which: string
+): Promise<CompareSide | ToolError> {
+  const side = isString(raw) ? { timeline_id: raw } : raw;
+  if (!isRecord(side)) {
+    return {
+      error: `${which} must be a timeline id, {timeline_id}, {timeline_id, version} or {document}.`
+    };
+  }
+
+  if (side["timeline_id"] !== undefined && side["timeline_id"] !== null) {
+    const seq = await loadTimeline(run, side["timeline_id"]);
+    if (isError(seq)) return seq;
+
+    if (side["version"] === undefined || side["version"] === null) {
+      const resolved = seq.toTimelineSequence();
+      return {
+        document: resolved as unknown as Record<string, unknown>,
+        fps: resolved.fps,
+        width: resolved.width,
+        height: resolved.height,
+        durationMs: resolved.durationMs,
+        source: { timeline_id: seq.id, name: resolved.name }
+      };
+    }
+
+    const number = versionNumber(side["version"]);
+    if (isError(number)) return number;
+    const { TimelineSequenceVersion } = await import("@nodetool-ai/models");
+    const version = await TimelineSequenceVersion.findByVersion(seq.id, number);
+    if (!version) {
+      return {
+        error: `Timeline ${seq.id} has no version ${number}. Call list_timeline_versions to see the available ones.`
+      };
+    }
+    const document = parseVersionDocument(version.document);
+    if (isError(document)) return document;
+    if (!isRecord(document)) {
+      return { error: `Version ${number} of timeline ${seq.id} is not a document.` };
+    }
+    return {
+      document,
+      fps: version.fps,
+      width: version.width,
+      height: version.height,
+      durationMs: version.duration_ms || documentDurationMs(document),
+      source: { timeline_id: seq.id, version: number, name: version.name }
+    };
+  }
+
+  const inline = isRecord(side["document"]) ? side["document"] : side;
+  if (!Array.isArray(inline["tracks"]) && !Array.isArray(inline["clips"])) {
+    return {
+      error: `${which} carries no timeline — pass a timeline id, {timeline_id, version} or {document: {tracks, clips}}.`
+    };
+  }
+  return {
+    document: inline,
+    fps: numberParam(inline["fps"]) ?? 30,
+    width: numberParam(inline["width"]) ?? 1920,
+    height: numberParam(inline["height"]) ?? 1080,
+    durationMs: documentDurationMs(inline),
+    source: { document: true }
+  };
+}
+
+/**
+ * Difference two timelines frame by frame.
+ *
+ * The pixels are the measurement an agent has no other way to take: a
+ * structural diff of two documents says a clip moved, not whether the picture
+ * moved with it, and a clip nudged 2ms reads there exactly like one moved 2s.
+ * Every frame gets a score, and the sheet is what makes a score readable —
+ * 0.04 at 1500ms means nothing until the pair is next to each other.
+ */
+const compareTimelineFrames: CapabilityExport = {
+  spec: compareTimelineFramesSpec,
+  impl: async (run, params) => {
+    const a = await resolveCompareSide(run, params["a"], "a");
+    if (isError(a)) return a;
+    const b = await resolveCompareSide(run, params["b"], "b");
+    if (isError(b)) return b;
+
+    const times = requestedTimes(
+      params,
+      Math.max(a.durationMs, b.durationMs),
+      MAX_PREVIEW_RANGE_COUNT
+    );
+    if (isError(times)) return times;
+
+    const { renderTimelineFrames } = await import(
+      "../timeline-preview/frames.js"
+    );
+    const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
+    const { frameDifference, sideBySide } = await import(
+      "../timeline-preview/compare.js"
+    );
+    const { composeContactSheet } = await import(
+      "../timeline-preview/sheet.js"
+    );
+    const { persistOutput } = await import("../tools/asset-persist.js");
+
+    const width = numberParam(params["width"]) ?? DEFAULT_COMPARE_WIDTH;
+    const renderSide = (side: CompareSide) =>
+      renderTimelineFrames({
+        sequence: {
+          ...side.document,
+          tracks: Array.isArray(side.document["tracks"])
+            ? side.document["tracks"]
+            : [],
+          clips: Array.isArray(side.document["clips"])
+            ? side.document["clips"]
+            : [],
+          fps: side.fps,
+          width: side.width,
+          height: side.height,
+          durationMs: side.durationMs
+        } as Parameters<typeof renderTimelineFrames>[0]["sequence"],
+        timesMs: times,
+        width,
+        loadAsset: (assetId) =>
+          loadMediaRefBytes(
+            { uri: `asset://${assetId}`, asset_id: assetId },
+            run.context
+          )
+      });
+
+    let rendered;
+    try {
+      rendered = await Promise.all([renderSide(a), renderSide(b)]);
+    } catch (error) {
+      return {
+        error: `Could not render the timelines: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      };
+    }
+    const [left, right] = rendered;
+
+    const frames = [];
+    const cells = [];
+    for (let i = 0; i < times.length; i++) {
+      const difference = Number(
+        (await frameDifference(left.frames[i].png, right.frames[i].png)).toFixed(
+          4
+        )
+      );
+      frames.push({ time_ms: times[i], difference });
+      cells.push({
+        label: `${times[i]}ms  ${difference.toFixed(3)}`,
+        png: await sideBySide(left.frames[i].png, right.frames[i].png)
+      });
+    }
+
+    const tiled = await composeContactSheet(cells);
+    const saved = await persistOutput(run.context, tiled.png, {
+      namePrefix: "timeline-compare",
+      mime: "image/png"
+    });
+
+    const differences = frames.map((frame) => frame.difference);
+    const changed = frames.filter((frame) => frame.difference > 0);
+    return {
+      a: a.source,
+      b: b.source,
+      frames,
+      changed_times_ms: changed.map((frame) => frame.time_ms),
+      max_difference: Math.max(...differences),
+      mean_difference: Number(
+        (differences.reduce((sum, d) => sum + d, 0) / differences.length).toFixed(
+          4
+        )
+      ),
+      sheet: {
+        columns: tiled.columns,
+        rows: tiled.rows,
+        cells: tiled.cells,
+        width: tiled.width,
+        height: tiled.height,
+        image: imageHandle(saved)
+      },
+      effects_not_applied: [
+        ...new Set([...left.effectsNotApplied, ...right.effectsNotApplied])
+      ].sort(),
       hint:
-        "Call view_image with a frame's asset_id to see it. The layers are " +
-        "listed top of the stack first — the first one covers the rest."
+        "difference is the mean absolute RGB difference, 0 (identical) to 1. " +
+        "Each cell of the sheet is a pair: `a` on the left, `b` on the right, " +
+        "labelled with its timecode and score."
     };
   }
 };
@@ -1554,6 +1863,7 @@ export const TIMELINE_CAPABILITIES: readonly CapabilityExport[] = [
   validateTimeline,
   setTimelineDocument,
   previewTimelineFrame,
+  compareTimelineFrames,
   renderTimeline,
   deleteTimeline
 ];
@@ -1576,6 +1886,7 @@ export {
   validateTimeline,
   setTimelineDocument,
   previewTimelineFrame,
+  compareTimelineFrames,
   renderTimeline,
   deleteTimeline
 };
