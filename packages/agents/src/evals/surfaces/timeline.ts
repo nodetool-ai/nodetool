@@ -48,6 +48,7 @@ import {
   type AnimationRole,
   type CustomClipAnimation,
   type PropertyCurve,
+  type ClipEffect,
   type ClipMask,
   type TimelineClip,
   type TimelineTrack,
@@ -265,6 +266,185 @@ function buildMask(input: z.infer<typeof maskParams>): ClipMask {
     );
   }
   return { kind, d: input.d, featherPx, invert };
+}
+
+/** A tone-curve control point list, normalized on both axes. */
+const curvePoints = z.array(z.object({ x: z.number(), y: z.number() }));
+
+/** Three numbers, one per channel, for the three-way grade. */
+const rgbTriple = z.tuple([z.number(), z.number(), z.number()]);
+
+/**
+ * One effect in a clip's chain (D7). `type` decides which of the other fields
+ * mean anything, the way {@link transitionParams} does: a tool call sends one
+ * flat object, so {@link buildEffect} keeps only the fields the named type
+ * uses rather than storing a `radius` on a `levels` that the next save strips.
+ *
+ * `enabled` and `id` are not asked for — the chain is replaced whole, so an
+ * effect the caller sent is an effect it wants on, and an id it never sees is
+ * one it cannot get wrong.
+ */
+const effectParams = z.object({
+  type: z.enum([
+    "color",
+    "blur",
+    "glow",
+    "dropShadow",
+    "vignette",
+    "sharpen",
+    "chromaKey",
+    "curves",
+    "levels",
+    "liftGammaGain"
+  ]),
+  brightness: z.number().optional().describe("color: -1..1, 0 is unchanged."),
+  contrast: z.number().optional().describe("color: 0..4, 1 is unchanged."),
+  saturation: z.number().optional().describe("color: 0..4, 1 is unchanged."),
+  hue: z.number().optional().describe("color: degrees, -180..180."),
+  temperature: z.number().optional().describe("color: -1..1, cool to warm."),
+  tint: z.number().optional().describe("color: -1..1, green to magenta."),
+  shadows: z.number().optional().describe("color: -1..1."),
+  highlights: z.number().optional().describe("color: -1..1."),
+  radius: z
+    .number()
+    .optional()
+    .describe("blur, glow and sharpen: radius in the clip's own pixels."),
+  intensity: z.number().optional().describe("glow: bloom strength, 0..2."),
+  offsetX: z
+    .number()
+    .optional()
+    .describe("dropShadow: offset in the clip's own pixels, positive is right."),
+  offsetY: z
+    .number()
+    .optional()
+    .describe("dropShadow: offset in the clip's own pixels, positive is down."),
+  blur: z.number().optional().describe("dropShadow: blur radius in pixels."),
+  color: z
+    .string()
+    .optional()
+    .describe("dropShadow shadow colour, chromaKey key colour, e.g. #00ff00."),
+  opacity: z.number().optional().describe("dropShadow: 0..1."),
+  amount: z.number().optional().describe("vignette and sharpen: strength."),
+  softness: z
+    .number()
+    .optional()
+    .describe("vignette falloff and chromaKey edge, 0..1."),
+  tolerance: z.number().optional().describe("chromaKey: match width, 0..1."),
+  spill: z.number().optional().describe("chromaKey: spill suppression, 0..1."),
+  master: curvePoints.optional().describe("curves: the luminance curve."),
+  r: curvePoints.optional().describe("curves: red channel."),
+  g: curvePoints.optional().describe("curves: green channel."),
+  b: curvePoints.optional().describe("curves: blue channel."),
+  inBlack: z.number().optional().describe("levels: input black point, 0..1."),
+  inWhite: z.number().optional().describe("levels: input white point, 0..1."),
+  gamma: z.number().optional().describe("levels: midtone gamma, 1 is neutral."),
+  outBlack: z.number().optional().describe("levels: output black point, 0..1."),
+  outWhite: z.number().optional().describe("levels: output white point, 0..1."),
+  lift: rgbTriple.optional().describe("liftGammaGain: shadow offset per channel."),
+  gain: rgbTriple.optional().describe("liftGammaGain: highlight scale per channel."),
+  gammaRgb: rgbTriple
+    .optional()
+    .describe("liftGammaGain: midtone gamma per channel.")
+});
+
+/**
+ * The stored effect, narrowed to the fields its type reads. Defaults are the
+ * neutral value of each knob, so an effect named with nothing else set is
+ * harmless rather than refused.
+ */
+function buildEffect(
+  input: z.infer<typeof effectParams>,
+  index: number
+): ClipEffect {
+  const base = { id: `fx-${index + 1}`, enabled: true };
+  switch (input.type) {
+    case "color":
+      return {
+        ...base,
+        type: "color",
+        brightness: input.brightness,
+        contrast: input.contrast,
+        saturation: input.saturation,
+        hue: input.hue,
+        temperature: input.temperature,
+        tint: input.tint,
+        shadows: input.shadows,
+        highlights: input.highlights
+      };
+    case "blur":
+      return { ...base, type: "blur", radius: input.radius ?? 0 };
+    case "glow":
+      return {
+        ...base,
+        type: "glow",
+        radius: input.radius ?? 8,
+        intensity: input.intensity ?? 1,
+        color: input.color
+      };
+    case "dropShadow":
+      return {
+        ...base,
+        type: "dropShadow",
+        offsetX: input.offsetX ?? 0,
+        offsetY: input.offsetY ?? 0,
+        blur: input.blur ?? input.radius ?? 8,
+        color: input.color ?? "#000000",
+        opacity: input.opacity
+      };
+    case "vignette":
+      return {
+        ...base,
+        type: "vignette",
+        amount: input.amount ?? 0.5,
+        softness: input.softness ?? 0.5
+      };
+    case "sharpen":
+      return {
+        ...base,
+        type: "sharpen",
+        amount: input.amount ?? 1,
+        radius: input.radius
+      };
+    case "chromaKey":
+      return {
+        ...base,
+        type: "chromaKey",
+        color: input.color ?? "#00ff00",
+        tolerance: input.tolerance ?? 0.1,
+        softness: input.softness ?? 0.05,
+        spill: input.spill
+      };
+    case "curves":
+      return {
+        ...base,
+        type: "curves",
+        master: input.master ?? [
+          { x: 0, y: 0 },
+          { x: 1, y: 1 }
+        ],
+        r: input.r,
+        g: input.g,
+        b: input.b
+      };
+    case "levels":
+      return {
+        ...base,
+        type: "levels",
+        inBlack: input.inBlack ?? 0,
+        inWhite: input.inWhite ?? 1,
+        gamma: input.gamma ?? 1,
+        outBlack: input.outBlack ?? 0,
+        outWhite: input.outWhite ?? 1
+      };
+    case "liftGammaGain":
+      return {
+        ...base,
+        type: "liftGammaGain",
+        lift: input.lift ?? [0, 0, 0],
+        gamma: input.gammaRgb ?? [1, 1, 1],
+        gain: input.gain ?? [1, 1, 1]
+      };
+  }
 }
 
 const fullTextStyleParams = z.object({
@@ -666,7 +846,8 @@ export function createTimelineToolBridge(
       shapeStyle: c.shapeStyle,
       transitionIn: c.transitionIn,
       mask: c.mask,
-      matte: c.matte
+      matte: c.matte,
+      effects: c.effects
     };
   }
 
@@ -1176,6 +1357,29 @@ export function createTimelineToolBridge(
         };
         if (input.invert !== undefined) matteOut.invert = input.invert;
         clip.matte = matteOut;
+        return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    tool(
+      "ui_timeline_set_effects",
+      "Replace a clip's effect chain, or clear it with `effects: []`. The list runs in order on the clip's own pixels, before it is placed on the frame. Types: color (brightness/contrast/saturation/hue/temperature/tint/shadows/highlights), blur, glow, dropShadow, vignette, sharpen, chromaKey, curves (control points, 0..1 on both axes), levels (in/out black and white plus gamma), liftGammaGain (a three-way grade, one number per channel). This replaces the whole chain — send every effect the clip should keep.",
+      z.object({
+        target: targetParam,
+        effects: z
+          .array(effectParams)
+          .describe("The chain, in order. An empty list clears it.")
+      }),
+      async ({ target, effects }) => {
+        const clip = resolveClip(target as string);
+        const list = (effects as z.infer<typeof effectParams>[]).map(
+          buildEffect
+        );
+        if (list.length === 0) {
+          delete clip.effects;
+        } else {
+          clip.effects = list;
+        }
         return { ok: true, clip: serializeClip(clip) };
       }
     ),

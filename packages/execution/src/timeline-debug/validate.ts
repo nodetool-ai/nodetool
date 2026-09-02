@@ -16,9 +16,11 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import {
   ANIMATION_PRESETS,
+  CLIP_EFFECT_TYPES,
   CUSTOM_ANIMATION_PRESET_ID,
   EASING_IDS,
   normalizeCustomCurves,
+  parseClipEffectType,
   parseEasing,
   resolveCustomMask,
   sourceRate
@@ -439,6 +441,7 @@ function checkClip(
   }
 
   issues.push(...maskIssues(clip));
+  issues.push(...unknownEffectIssues(clip));
 
   const frameMs = 1000 / fps;
   if (clip.durationMs > 0 && clip.durationMs < frameMs) {
@@ -450,6 +453,34 @@ function checkClip(
     });
   }
 
+  return issues;
+}
+
+/** What an effect's `type` accepts, for the `unknown_effect` message. */
+const EFFECT_GRAMMAR = CLIP_EFFECT_TYPES.join(", ");
+
+/**
+ * An effect type this build does not apply (D7).
+ *
+ * `type` is a plain string on the wire (I2), so an effect a newer build
+ * authored parses and reaches the renderer, which steps over it. A warning
+ * rather than an error: the layer draws ungraded, which is a different picture
+ * and not a broken one. Canvas 2D reports the same set at render time through
+ * `unsupportedEffectTypes`; this is the half that answers before anything runs.
+ */
+function unknownEffectIssues(clip: TimelineClip): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  for (const [index, effect] of (clip.effects ?? []).entries()) {
+    if (parseClipEffectType(effect.type) !== null) continue;
+    issues.push({
+      severity: "warning",
+      code: "unknown_effect",
+      message: `Clip "${clipLabel(clip)}" carries a "${effect.type}" effect, which this build cannot apply — the layer draws without it. Expected one of ${EFFECT_GRAMMAR}.`,
+      path: `effects[${index}].type`,
+      clipId: clip.id,
+      trackId: clip.trackId
+    });
+  }
   return issues;
 }
 

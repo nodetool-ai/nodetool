@@ -746,6 +746,60 @@ export const isClipColorEffect = (e: ClipEffect): e is ClipColorEffect =>
 export const isClipBlurEffect = (e: ClipEffect): e is ClipBlurEffect =>
   e.type === "blur";
 
+export const isClipGlowEffect = (e: ClipEffect): e is ClipGlowEffect =>
+  e.type === "glow";
+
+export const isClipDropShadowEffect = (
+  e: ClipEffect
+): e is ClipDropShadowEffect => e.type === "dropShadow";
+
+export const isClipVignetteEffect = (e: ClipEffect): e is ClipVignetteEffect =>
+  e.type === "vignette";
+
+export const isClipSharpenEffect = (e: ClipEffect): e is ClipSharpenEffect =>
+  e.type === "sharpen";
+
+export const isClipChromaKeyEffect = (
+  e: ClipEffect
+): e is ClipChromaKeyEffect => e.type === "chromaKey";
+
+export const isClipCurvesEffect = (e: ClipEffect): e is ClipCurvesEffect =>
+  e.type === "curves";
+
+export const isClipLevelsEffect = (e: ClipEffect): e is ClipLevelsEffect =>
+  e.type === "levels";
+
+export const isClipLiftGammaGainEffect = (
+  e: ClipEffect
+): e is ClipLiftGammaGainEffect => e.type === "liftGammaGain";
+
+/**
+ * Effect types this build applies. Anything else parses and rides through as an
+ * {@link UnknownClipEffect} (I2); the validator reports it as `unknown_effect`
+ * and Canvas 2D names it in `unsupportedEffectTypes`.
+ */
+export const CLIP_EFFECT_TYPES = [
+  "color",
+  "blur",
+  "glow",
+  "dropShadow",
+  "vignette",
+  "sharpen",
+  "chromaKey",
+  "curves",
+  "levels",
+  "liftGammaGain"
+] as const;
+
+export type ClipEffectType = (typeof CLIP_EFFECT_TYPES)[number];
+
+/** Narrow a document's effect `type` to one this build applies, or `null`. */
+export function parseClipEffectType(type: string): ClipEffectType | null {
+  return (CLIP_EFFECT_TYPES as readonly string[]).includes(type)
+    ? (type as ClipEffectType)
+    : null;
+}
+
 /** One control point of a tone curve. Both axes are normalized 0..1. */
 export interface CurvePoint {
   x: number;

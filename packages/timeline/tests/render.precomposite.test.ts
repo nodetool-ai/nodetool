@@ -90,6 +90,10 @@ class RecordingContext implements CompositeContext2D<string> {
   globalAlpha = 1;
   globalCompositeOperation = "source-over";
   filter = "none";
+  shadowColor = "rgba(0, 0, 0, 0)";
+  shadowBlur = 0;
+  shadowOffsetX = 0;
+  shadowOffsetY = 0;
   fillStyle: string | object = "#000";
   readonly draws: RecordedDraw[] = [];
   cleared = 0;

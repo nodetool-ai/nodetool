@@ -125,7 +125,7 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "Ops: get_state, add_track, add_media_clip, add_text_clip, add_shape_clip, " +
         "split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
         "set_clip_params, set_clip_binding, set_transition, set_mask, " +
-        "set_matte, animate_clip, " +
+        "set_matte, set_effects, animate_clip, " +
         "clear_animations, list_animation_presets, select_clip, seek. " +
         "Start with get_state to " +
         "read track and clip ids. To lay existing videos end to end, call " +
@@ -145,7 +145,11 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "clip's own 0..1 space. " +
         'set_matte takes {"target", "matte": {source, mode: "alpha"|"luma", ' +
         "invert?} | null}; the source clip stops drawing itself and its alpha " +
-        "or brightness becomes the target's transparency.",
+        "or brightness becomes the target's transparency. " +
+        'set_effects takes {"target", "effects": [{type, ...}]} and replaces ' +
+        "the whole chain — types color, blur, glow, dropShadow, vignette, " +
+        "sharpen, chromaKey, curves, levels, liftGammaGain, applied in the " +
+        "order given. An empty list clears it.",
       items: { type: "object" }
     }
   },

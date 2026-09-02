@@ -28,12 +28,17 @@ import { blendModeToCanvasOp } from "@nodetool-ai/gpu";
 
 import type { AnimationSampleMask, WipeDirection } from "../animation/index.js";
 import type {
+  ClipDropShadowEffect,
   ClipEffect,
   ClipMask,
   ClipTransform,
   TrackEffect
 } from "../types.js";
-import { isClipBlurEffect, isClipColorEffect } from "../types.js";
+import {
+  isClipBlurEffect,
+  isClipColorEffect,
+  isClipDropShadowEffect
+} from "../types.js";
 import { clipMask, drawMask, maskIsHard, type MaskContext2D } from "./draw.js";
 import type { MatteMode } from "./sceneModel.js";
 import {
@@ -55,6 +60,15 @@ import {
  */
 export interface CompositeContext2D<TSource> extends MaskContext2D {
   globalAlpha: number;
+  /**
+   * The one clip effect this path draws rather than approximates. Canvas 2D
+   * casts a shadow from whatever is drawn next, which is the same silhouette
+   * `mixer.dropShadow@1` blurs on the GPU path.
+   */
+  shadowColor: string;
+  shadowBlur: number;
+  shadowOffsetX: number;
+  shadowOffsetY: number;
   setTransform(
     a: number,
     b: number,
@@ -232,10 +246,20 @@ export interface DrawTimelineFrameOptions<TSource> {
   matteSurface?: CompositeSurfaceFactory<TSource>;
 }
 
-/** Effect types this path draws exactly; everything else is dropped. */
+/**
+ * Effect types this path draws; everything else is dropped and reported.
+ *
+ * `dropShadow` is here because `ctx.shadow*` casts from the layer's own
+ * silhouette, which is what the GPU recipe blurs too. The other clip effects
+ * from the shader catalog (D7) have no Canvas 2D equivalent at all: there is no
+ * filter for a key, a tone curve, an output range or a three-way grade, and
+ * `drop-shadow()` on `ctx.filter` is not one of them either — it would apply to
+ * the shadow as well.
+ */
 const CANVAS_EFFECT_TYPES = new Set([
   "color",
   "blur",
+  "dropShadow",
   "colorCorrection",
   "videoBlur"
 ]);
@@ -308,6 +332,15 @@ function resetContext<TSource>(ctx: CompositeContext2D<TSource>): void {
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = "source-over";
   ctx.filter = "none";
+  clearShadow(ctx);
+}
+
+/** Turn the shadow off. A left-on shadow follows every later draw. */
+function clearShadow<TSource>(ctx: CompositeContext2D<TSource>): void {
+  ctx.shadowColor = "rgba(0, 0, 0, 0)";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
 }
 
 /**
@@ -524,6 +557,8 @@ export function drawTimelineLayer<TSource>(
   // geometry, which is the honest fallback when the host vends no surface.
   if (shape && !applied.shape) clipMask(ctx, shape, width, height);
   if (wipe && !applied.wipe) clipWipeRect(ctx, width, height, wipe);
+
+  applyDropShadow(ctx, layer.effects, t);
 
   let drawn = true;
   try {
@@ -803,6 +838,57 @@ export function clipRoundedRect<TSource>(
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
   ctx.clip();
+}
+
+/**
+ * Arm `ctx.shadow*` from the first enabled `dropShadow` in the chain, so the
+ * next `drawImage` casts it (D7).
+ *
+ * Canvas 2D holds shadow offsets and blur in canvas units and leaves them out
+ * of the current transform, while the document authors them in the layer's own
+ * source pixels — the space the GPU recipe runs in, before placement. So the
+ * offset goes through the affine's linear part and the blur through its scale,
+ * which is what makes a shadow on a scaled-down layer the same size on both
+ * paths. The blur itself is two thirds of the radius because `shadowBlur` is
+ * twice the Gaussian sigma and `filters.blur.gaussian@1` derives sigma as a
+ * third of its radius.
+ */
+function applyDropShadow<TSource>(
+  ctx: CompositeContext2D<TSource>,
+  effects: ClipEffect[] | undefined,
+  t: CanvasAffine
+): void {
+  const shadow = (effects ?? []).find(
+    (e): e is ClipDropShadowEffect => e.enabled && isClipDropShadowEffect(e)
+  );
+  if (!shadow) return;
+  const scale = Math.sqrt(Math.abs(t.a * t.d - t.b * t.c)) || 1;
+  ctx.shadowColor = shadowPaint(shadow.color, shadow.opacity ?? 1);
+  ctx.shadowBlur = Math.max(0, shadow.blur) * (2 / 3) * scale;
+  ctx.shadowOffsetX = t.a * shadow.offsetX + t.c * shadow.offsetY;
+  ctx.shadowOffsetY = t.b * shadow.offsetX + t.d * shadow.offsetY;
+}
+
+/**
+ * A shadow colour with its opacity folded in — Canvas 2D has no separate
+ * shadow alpha. A colour that is not `#rgb`/`#rrggbb` is passed through, so a
+ * named colour still casts at full strength rather than not at all.
+ */
+function shadowPaint(color: string, opacity: number): string {
+  const alpha = Math.max(0, Math.min(1, opacity));
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
+  if (!hex) return color;
+  const digits = hex[1] ?? "";
+  const wide =
+    digits.length === 3
+      ? digits
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : digits;
+  const v = parseInt(wide, 16);
+  const rgb = `${(v >> 16) & 0xff}, ${(v >> 8) & 0xff}, ${v & 0xff}`;
+  return `rgba(${rgb}, ${alpha})`;
 }
 
 /**

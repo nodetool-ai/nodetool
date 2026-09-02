@@ -524,6 +524,92 @@ describe("renderTimelineFrames", () => {
 
     expect(effectsNotApplied).toContain("vignette");
   });
+
+  it("names every clip effect from the shader catalog it cannot draw", async () => {
+    // The whole catalog on one clip (D7). Canvas 2D draws `dropShadow` through
+    // `ctx.shadow*` and approximates `color`/`blur` with `ctx.filter`; the
+    // other seven have no equivalent, and a caller learns that here rather
+    // than by comparing this frame against a GPU render (I7).
+    const { effectsNotApplied } = await renderTimelineFrames({
+      sequence: sequence(
+        [track(0)],
+        [
+          shapeClip("shot", "track-0", "#ff0000", {
+            effects: [
+              { id: "1", type: "color", enabled: true, brightness: 0.2 },
+              { id: "2", type: "blur", enabled: true, radius: 3 },
+              { id: "3", type: "glow", enabled: true, radius: 8, intensity: 1 },
+              {
+                id: "4",
+                type: "dropShadow",
+                enabled: true,
+                offsetX: 4,
+                offsetY: 4,
+                blur: 6,
+                color: "#000000"
+              },
+              {
+                id: "5",
+                type: "vignette",
+                enabled: true,
+                amount: 0.5,
+                softness: 0.4
+              },
+              { id: "6", type: "sharpen", enabled: true, amount: 1 },
+              {
+                id: "7",
+                type: "chromaKey",
+                enabled: true,
+                color: "#00ff00",
+                tolerance: 0.2,
+                softness: 0.05
+              },
+              {
+                id: "8",
+                type: "curves",
+                enabled: true,
+                master: [
+                  { x: 0, y: 0 },
+                  { x: 1, y: 1 }
+                ]
+              },
+              {
+                id: "9",
+                type: "levels",
+                enabled: true,
+                inBlack: 0,
+                inWhite: 1,
+                gamma: 1,
+                outBlack: 0,
+                outWhite: 1
+              },
+              {
+                id: "10",
+                type: "liftGammaGain",
+                enabled: true,
+                lift: [0, 0, 0],
+                gamma: [1, 1, 1],
+                gain: [1, 1, 1]
+              }
+            ]
+          })
+        ]
+      ),
+      timesMs: [1000],
+      width: 160,
+      loadAsset: noAssets
+    });
+
+    expect(effectsNotApplied).toEqual([
+      "chromaKey",
+      "curves",
+      "glow",
+      "levels",
+      "liftGammaGain",
+      "sharpen",
+      "vignette"
+    ]);
+  });
 });
 
 /**

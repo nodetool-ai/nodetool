@@ -549,3 +549,102 @@ describe("set_mask and set_matte", () => {
     expect(clipNamed(bridge, "shot a")?.matte).toBeUndefined();
   });
 });
+
+describe("set_effects", () => {
+  async function bridgeWithOneClip() {
+    const bridge = createTimelineToolBridge({
+      tracks: [{ type: "video" }],
+      clips: [
+        {
+          name: "shot a",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 0,
+          durationMs: 2000
+        }
+      ]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    return { bridge, byName };
+  }
+
+  const effectsOf = (bridge: { finalState: () => TimelineBridgeFinalState }) =>
+    bridge.finalState().documentClips.find((c) => c.name === "shot a")?.effects;
+
+  it("writes the chain in the order it was given", async () => {
+    const { bridge, byName } = await bridgeWithOneClip();
+    await byName["ui_timeline_set_effects"].execute({
+      target: "shot a",
+      effects: [
+        { type: "chromaKey", color: "#00ff00", tolerance: 0.25 },
+        { type: "glow", radius: 12, intensity: 0.8 }
+      ]
+    });
+
+    expect(effectsOf(bridge)).toEqual([
+      {
+        id: "fx-1",
+        type: "chromaKey",
+        enabled: true,
+        color: "#00ff00",
+        tolerance: 0.25,
+        softness: 0.05,
+        spill: undefined
+      },
+      {
+        id: "fx-2",
+        type: "glow",
+        enabled: true,
+        radius: 12,
+        intensity: 0.8,
+        color: undefined
+      }
+    ]);
+  });
+
+  it("replaces the chain rather than appending to it", async () => {
+    const { bridge, byName } = await bridgeWithOneClip();
+    const set = byName["ui_timeline_set_effects"];
+    await set.execute({ target: "shot a", effects: [{ type: "blur", radius: 6 }] });
+    await set.execute({
+      target: "shot a",
+      effects: [{ type: "vignette", amount: 0.4, softness: 0.3 }]
+    });
+
+    expect(effectsOf(bridge)?.map((e) => e.type)).toEqual(["vignette"]);
+  });
+
+  it("clears the chain with an empty list", async () => {
+    const { bridge, byName } = await bridgeWithOneClip();
+    const set = byName["ui_timeline_set_effects"];
+    await set.execute({ target: "shot a", effects: [{ type: "blur", radius: 6 }] });
+    await set.execute({ target: "shot a", effects: [] });
+
+    expect(effectsOf(bridge)).toBeUndefined();
+  });
+
+  it("keeps a levels' knobs off a glow — the type decides the fields", async () => {
+    // A flat input object is all a tool call can express, so an `inBlack` sent
+    // with a glow would be stored and stripped on the next save, which reads as
+    // a `field_stripped` warning about a field that never meant anything.
+    const { bridge, byName } = await bridgeWithOneClip();
+    await byName["ui_timeline_set_effects"].execute({
+      target: "shot a",
+      effects: [{ type: "glow", radius: 9, intensity: 1, inBlack: 0.5 }]
+    });
+
+    expect(effectsOf(bridge)?.[0]).not.toHaveProperty("inBlack");
+  });
+
+  it("refuses a type this build cannot apply", async () => {
+    const { byName } = await bridgeWithOneClip();
+    // The schema rejects before the impl runs, so an agent gets the list of
+    // types back in the error rather than a clip carrying a dead effect.
+    expect(() =>
+      byName["ui_timeline_set_effects"].execute({
+        target: "shot a",
+        effects: [{ type: "halation", radius: 12 }]
+      })
+    ).toThrow(/liftGammaGain/);
+  });
+});

@@ -413,10 +413,10 @@ export class HeadlessFrameCompositor {
           )
         : src.texture;
 
-    // The effects chain leaves premultiplied pixels behind; an unprocessed
-    // source is straight. Saying which keeps `applyMask` from bridging alpha
-    // the wrong way — and it always hands back straight, which is what the
-    // blend shader reads a source as.
+    // Both the upload and the effects chain hand back straight alpha, which is
+    // what `applyMask` bridges from and what the blend shader reads a source
+    // as — so a layer with effects, a mask, both or neither reaches the blend
+    // in one convention.
     const coverage = layer.shapeMask
       ? this.uploadPixels(`${layer.id}#mask`, layer.shapeMask)
       : null;
@@ -428,8 +428,7 @@ export class HeadlessFrameCompositor {
           src.height,
           coverage.texture,
           coverage.width,
-          coverage.height,
-          graded === src.texture ? "straight" : "premultiplied"
+          coverage.height
         )
       : graded;
 
