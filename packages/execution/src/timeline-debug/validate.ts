@@ -24,9 +24,11 @@ import {
   sourceRate
 } from "@nodetool-ai/timeline";
 import {
+  MASK_KINDS,
   MAX_VIDEO_LAYERS,
   TRANSITION_DIRECTIONS,
   TRANSITION_TYPES,
+  parseSvgPath,
   parseTransitionDirection,
   parseTransitionType
 } from "@nodetool-ai/timeline/scene";
@@ -436,6 +438,8 @@ function checkClip(
     }
   }
 
+  issues.push(...maskIssues(clip));
+
   const frameMs = 1000 / fps;
   if (clip.durationMs > 0 && clip.durationMs < frameMs) {
     issues.push({
@@ -446,6 +450,87 @@ function checkClip(
     });
   }
 
+  return issues;
+}
+
+/** What a mask's `kind` accepts, for the `mask_path_invalid` message. */
+const MASK_KIND_GRAMMAR = MASK_KINDS.join(", ");
+
+/**
+ * A mask this build cannot rasterize (D6) — a warning, because the layer draws
+ * unmasked rather than not at all.
+ *
+ * Two ways to get there, and the message names which. `kind` is a plain string
+ * on the wire (I2), so a mask shape a newer build authored parses and reaches
+ * the renderer, which skips it. And a `path` mask's `d` is only ever read at
+ * render time, where a typo in the path data is a mask that quietly does
+ * nothing.
+ */
+function maskIssues(clip: TimelineClip): TimelineDebugIssue[] {
+  const mask = clip.mask;
+  if (!mask) return [];
+  const at = { clipId: clip.id, trackId: clip.trackId };
+  if (!(MASK_KINDS as readonly string[]).includes(mask.kind)) {
+    return [
+      {
+        severity: "warning",
+        code: "mask_path_invalid",
+        message: `Clip "${clipLabel(clip)}" is masked with kind "${mask.kind}", which this build cannot rasterize — it draws unmasked. Expected one of ${MASK_KIND_GRAMMAR}.`,
+        path: "mask.kind",
+        ...at
+      }
+    ];
+  }
+  if (mask.kind !== "path") return [];
+  const parsed = parseSvgPath(mask.d ?? "");
+  if (parsed.ok) return [];
+  return [
+    {
+      severity: "warning",
+      code: "mask_path_invalid",
+      message: `Clip "${clipLabel(clip)}" has a path mask this build cannot draw — it draws unmasked. ${parsed.error}.`,
+      path: "mask.d",
+      ...at
+    }
+  ];
+}
+
+/**
+ * Track mattes (D6). A `matte` must name a clip the document contains, and not
+ * itself — a matte source never draws, so a clip matted by itself resolves to
+ * nothing at all.
+ *
+ * Both are errors rather than warnings because they cost the whole point of
+ * the field without failing anything: a missing source draws the layer
+ * unmatted, so a keyhole meant to reveal one shape shows the entire picture.
+ */
+function checkMattes(doc: TimelineDocument): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  const ids = new Set(doc.clips.map((clip) => clip.id));
+  for (const clip of doc.clips) {
+    const matte = clip.matte;
+    if (!matte) continue;
+    const at = { clipId: clip.id, trackId: clip.trackId };
+    if (!ids.has(matte.sourceClipId)) {
+      issues.push({
+        severity: "error",
+        code: "matte_source_missing",
+        message: `Clip "${clipLabel(clip)}" is matted by "${matte.sourceClipId}", which the document does not contain — it draws unmatted.`,
+        path: "matte.sourceClipId",
+        ...at
+      });
+      continue;
+    }
+    if (matte.sourceClipId === clip.id) {
+      issues.push({
+        severity: "error",
+        code: "matte_source_missing",
+        message: `Clip "${clipLabel(clip)}" names itself as its matte source — a matte source never draws itself, so the clip resolves to nothing and disappears.`,
+        path: "matte.sourceClipId",
+        ...at
+      });
+    }
+  }
   return issues;
 }
 
@@ -764,6 +849,7 @@ export function validateTimelineSequence(
     ...checkDuplicateIds(doc),
     ...doc.clips.flatMap((clip) => checkClip(clip, trackIds, fps)),
     ...checkParents(doc),
+    ...checkMattes(doc),
     ...checkOverlaps(doc),
     ...checkVideoLayerCap(doc),
     ...checkDocumentLevel(doc)

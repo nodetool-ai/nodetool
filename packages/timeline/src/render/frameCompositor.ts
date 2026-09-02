@@ -28,7 +28,7 @@ import {
 import type { AnimationSampleMask, WipeDirection } from "../animation/index.js";
 import type { ClipEffect, ClipTransform, TrackEffect } from "../types.js";
 import { WebGPUEffectsProcessor } from "./effects.js";
-import type { CompositorBlendMode } from "./sceneModel.js";
+import type { CompositorBlendMode, MatteMode } from "./sceneModel.js";
 import {
   IDENTITY_TRANSFORM,
   buildTransformMatrix,
@@ -92,6 +92,20 @@ export interface FrameLayer {
   /** Rounded-corner radius in source pixels. */
   borderRadius?: number;
   mask?: AnimationSampleMask;
+  /**
+   * The clip's shape mask, already rasterized as coverage in alpha — the host
+   * owns a canvas and this does not, so `drawMask` runs there (the same split
+   * that makes a text layer arrive as pixels). Any size: the mask is sampled in
+   * normalized space, so the source's own resolution and a smaller raster land
+   * on the same pixels. `invert` is baked into the raster.
+   */
+  shapeMask?: FrameLayerPixels;
+  /**
+   * The track matte driving this layer's alpha. `layer` is the matte source as
+   * an ordinary layer — it is rendered to its own texture and read, never
+   * blended onto the frame.
+   */
+  matte?: FrameMatte;
   effects?: ClipEffect[];
   trackEffects?: TrackEffect[];
   /**
@@ -100,6 +114,13 @@ export interface FrameLayer {
    * names are rendered here.
    */
   transition?: ResolvedTransition;
+}
+
+/** A track matte with its source layer's pixels already in hand. */
+export interface FrameMatte {
+  mode: MatteMode;
+  invert: boolean;
+  layer: FrameLayer;
 }
 
 /**
@@ -302,17 +323,85 @@ export class HeadlessFrameCompositor {
     return readTex;
   }
 
+
   /**
-   * Upload a layer's pixels, run its own effect chain, and work out where it
-   * sits. Null when the layer has no drawable source.
+   * Upload a layer's pixels, run its effects and mask, place it, and — when it
+   * is matted — replace all of that with the matted composite (D6). Null when
+   * the layer has no drawable source.
    */
   private resolveLayer(layer: FrameLayer): ResolvedLayer | null {
-    const src = this.uploadSource(layer);
+    const item = this.resolvePlacedLayer(layer);
+    if (!item || !layer.matte) return item;
+    return this.applyMatte(layer, item, layer.matte);
+  }
+
+  /**
+   * Compose a matted layer and its matte source into their own frame-sized
+   * textures, read the named channel out of the source, and multiply it into
+   * the layer's alpha.
+   *
+   * Frame-sized rather than source-sized because a matte is positioned by its
+   * own clip: where its keyhole falls is only expressible once both layers are
+   * placed. The matte source is resolved through {@link resolvePlacedLayer}
+   * rather than {@link resolveLayer}, so a matte can never drive a matte.
+   */
+  private applyMatte(
+    layer: FrameLayer,
+    item: ResolvedLayer,
+    matte: FrameMatte
+  ): ResolvedLayer | null {
+    const source = this.resolvePlacedLayer(matte.layer);
+    // No matte source pixels means an empty keyhole. Drawing the layer unmatted
+    // would show everything the matte was there to hide, so it draws nothing.
+    if (!source) return null;
+
+    const composed = this.composeToTexture(`matte:${layer.id}`, [
+      // The layer's own opacity and blend mode meet the frame once, when this
+      // texture blends; on its own surface it is an opaque source-over draw.
+      { ...item, opacity: 1, blendMode: "normal", zIndex: 0 }
+    ]);
+    const keyhole = this.composeToTexture(`mattesrc:${layer.id}`, [
+      { ...source, blendMode: "normal", zIndex: 0 }
+    ]);
+    const coverage = this.effects.deriveMask(
+      `matte-mask:${layer.id}`,
+      keyhole,
+      this.width,
+      this.height,
+      matte.mode,
+      matte.invert
+    );
+    return {
+      texture: this.effects.applyMask(
+        `matte-apply:${layer.id}`,
+        composed,
+        this.width,
+        this.height,
+        coverage,
+        this.width,
+        this.height
+      ),
+      opacity: layer.opacity,
+      blendMode: layer.blendMode,
+      zIndex: layer.zIndex,
+      // The composite is frame-sized, so it blends 1:1: the layer's placement
+      // already ran when it was drawn onto its own texture.
+      invAffine: this.placementOf({}, this.width, this.height),
+      borderRadius: 0
+    };
+  }
+
+  /**
+   * Upload a layer's pixels, run its own effect chain and shape mask, and work
+   * out where it sits. Null when the layer has no drawable source.
+   */
+  private resolvePlacedLayer(layer: FrameLayer): ResolvedLayer | null {
+    const src = this.uploadPixels(layer.id, layer.source);
     if (!src) return null;
 
     const clipEffects = layer.effects ?? [];
     const trackEffects = layer.trackEffects ?? [];
-    const texture =
+    const graded =
       clipEffects.length > 0 || trackEffects.length > 0
         ? this.effects.process(
             layer.id,
@@ -323,6 +412,26 @@ export class HeadlessFrameCompositor {
             trackEffects
           )
         : src.texture;
+
+    // The effects chain leaves premultiplied pixels behind; an unprocessed
+    // source is straight. Saying which keeps `applyMask` from bridging alpha
+    // the wrong way — and it always hands back straight, which is what the
+    // blend shader reads a source as.
+    const coverage = layer.shapeMask
+      ? this.uploadPixels(`${layer.id}#mask`, layer.shapeMask)
+      : null;
+    const texture = coverage
+      ? this.effects.applyMask(
+          `mask:${layer.id}`,
+          graded,
+          src.width,
+          src.height,
+          coverage.texture,
+          coverage.width,
+          coverage.height,
+          graded === src.texture ? "straight" : "premultiplied"
+        )
+      : graded;
 
     const radiusPx = layer.borderRadius ?? 0;
     return {
@@ -509,6 +618,19 @@ export class HeadlessFrameCompositor {
     group: FramePrecomposite,
     children: readonly ResolvedLayer[]
   ): GPUTexture {
+    return this.composeToTexture(group.id, children, group.effects ?? []);
+  }
+
+  /**
+   * Composite `children` over transparency into the texture `key` names, run
+   * `effects` on the result, and leave it there as straight alpha — which is
+   * how the blend shader reads a source.
+   */
+  private composeToTexture(
+    key: string,
+    children: readonly ResolvedLayer[],
+    effects: ClipEffect[] = []
+  ): GPUTexture {
     const core = this.precompositeCore();
     const read = core.textureA;
     const write = core.textureB;
@@ -517,7 +639,7 @@ export class HeadlessFrameCompositor {
     }
 
     const composeEncoder = this.device.createCommandEncoder({
-      label: `timeline-headless-precomp-${group.id}`
+      label: `timeline-headless-precomp-${key}`
     });
     // Transparent, not black: the group's own pixels have to blend over what is
     // already on the frame, and a black seed would knock it out.
@@ -549,18 +671,18 @@ export class HeadlessFrameCompositor {
     // on it directly, and one resolve at the end is then the only alpha
     // conversion in the whole precomposite.
     const graded = this.effects.process(
-      `precomp:${group.id}`,
+      `precomp:${key}`,
       composed,
       this.width,
       this.height,
-      group.effects ?? [],
+      effects,
       [],
       "premultiplied"
     );
 
-    const target = this.precompositeTarget(group.id);
+    const target = this.precompositeTarget(key);
     const resolveEncoder = this.device.createCommandEncoder({
-      label: `timeline-headless-precomp-resolve-${group.id}`
+      label: `timeline-headless-precomp-resolve-${key}`
     });
     const pass = resolveEncoder.beginRenderPass({
       colorAttachments: [
@@ -644,37 +766,59 @@ export class HeadlessFrameCompositor {
     layers: FrameLayer[],
     precomposites: readonly FramePrecomposite[]
   ): void {
-    const live = new Set(layers.map((l) => l.id));
+    // A matte source never appears in `layers`, and its textures are keyed off
+    // the layer it mattes, so the sweep walks both.
+    const live = new Set<string>();
+    const liveTargets = new Set(precomposites.map((p) => p.id));
+    const effectKeys = new Set<string>();
+    const visit = (layer: FrameLayer): void => {
+      live.add(layer.id);
+      effectKeys.add(layer.id);
+      if (layer.shapeMask) {
+        live.add(`${layer.id}#mask`);
+        effectKeys.add(`mask:${layer.id}`);
+      }
+      if (!layer.matte) return;
+      liveTargets.add(`matte:${layer.id}`);
+      liveTargets.add(`mattesrc:${layer.id}`);
+      effectKeys.add(`matte-mask:${layer.id}`);
+      effectKeys.add(`matte-apply:${layer.id}`);
+      visit(layer.matte.layer);
+    };
+    for (const layer of layers) visit(layer);
+
     for (const [id, entry] of this.sources) {
       if (!live.has(id)) {
         entry.texture.destroy();
         this.sources.delete(id);
       }
     }
-    const liveGroups = new Set(precomposites.map((p) => p.id));
     for (const [id, texture] of this.precompTargets) {
-      if (!liveGroups.has(id)) {
+      if (!liveTargets.has(id)) {
         texture.destroy();
         this.precompTargets.delete(id);
       }
     }
     // The effects processor is keyed by layer id for a clip's own chain and by
-    // `precomp:<id>` for a group's, so both sets have to survive the sweep.
-    for (const id of liveGroups) live.add(`precomp:${id}`);
-    this.effects.retainOnly(live);
+    // `precomp:<id>` for every composed texture, so both sets have to survive.
+    for (const id of liveTargets) effectKeys.add(`precomp:${id}`);
+    this.effects.retainOnly(effectKeys);
   }
 
-  private uploadSource(layer: FrameLayer): SourceTexture | null {
-    const { rgba, width, height } = layer.source;
+  private uploadPixels(
+    id: string,
+    pixels: FrameLayerPixels
+  ): SourceTexture | null {
+    const { rgba, width, height } = pixels;
     if (width <= 0 || height <= 0) return null;
     if (rgba.length < width * height * 4) return null;
 
-    let entry = this.sources.get(layer.id);
+    let entry = this.sources.get(id);
     if (!entry || entry.width !== width || entry.height !== height) {
       entry?.texture.destroy();
       entry = {
         texture: this.device.createTexture({
-          label: `timeline-headless-source-${layer.id}`,
+          label: `timeline-headless-source-${id}`,
           size: { width, height },
           format: TEXTURE_FORMAT,
           usage:
@@ -687,10 +831,10 @@ export class HeadlessFrameCompositor {
         height,
         version: ""
       };
-      this.sources.set(layer.id, entry);
+      this.sources.set(id, entry);
     }
 
-    const version = layer.source.version;
+    const version = pixels.version;
     if (version === undefined || entry.version !== version) {
       // Re-wrap as an ArrayBuffer-backed view: `writeTexture` rejects
       // SharedArrayBuffer-backed sources under the DOM WebGPU typings.

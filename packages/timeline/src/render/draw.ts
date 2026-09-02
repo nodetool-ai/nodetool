@@ -8,7 +8,7 @@
  * host's bitmap type stay with the caller — everything here just draws.
  */
 
-import type { ClipShapeStyle, ClipTextStyle } from "../types.js";
+import type { ClipMask, ClipShapeStyle, ClipTextStyle } from "../types.js";
 import type {
   AnimationSample,
   CompiledAnimation,
@@ -19,6 +19,7 @@ import {
   sampleStaggeredAnimations
 } from "../animation/index.js";
 import type { MeasureTextWidth } from "./textLayout.js";
+import { parseSvgPath, tracePath } from "./svgPath.js";
 import {
   layoutStaggerUnits,
   textFontSpec,
@@ -33,20 +34,43 @@ import {
  */
 export type CanvasPaint = string | object;
 
-/** The Canvas 2D surface the rasterizers draw through. */
-export interface RasterContext2D {
-  font: string;
+/** The gradient object `createLinearGradient` / `createRadialGradient` vend. */
+export interface CanvasGradient2D {
+  addColorStop(offset: number, color: string): void;
+}
+
+/**
+ * The Canvas 2D surface a mask rasterizes through: paths, gradients, composite
+ * ops and a filter.
+ *
+ * Its own interface rather than more members on {@link RasterContext2D},
+ * because both the rasterizers and the Canvas 2D compositor draw masks and
+ * their contexts have otherwise disjoint needs — `CompositeContext2D` extends
+ * this too, so `drawMask` runs on a compositing scratch surface without a cast
+ * (I6). Every member is satisfied by `OffscreenCanvasRenderingContext2D`, a DOM
+ * canvas context and `@napi-rs/canvas`.
+ */
+export interface MaskContext2D {
   fillStyle: CanvasPaint;
-  strokeStyle: CanvasPaint;
-  lineWidth: number;
-  lineJoin: string;
-  textAlign: string;
-  textBaseline: string;
-  globalAlpha: number;
-  measureText(text: string): { width: number };
-  fillText(text: string, x: number, y: number): void;
-  strokeText(text: string, x: number, y: number): void;
+  filter: string;
+  globalCompositeOperation: string;
+  save(): void;
+  restore(): void;
+  translate(x: number, y: number): void;
+  scale(x: number, y: number): void;
   beginPath(): void;
+  closePath(): void;
+  moveTo(x: number, y: number): void;
+  lineTo(x: number, y: number): void;
+  bezierCurveTo(
+    cp1x: number,
+    cp1y: number,
+    cp2x: number,
+    cp2y: number,
+    x: number,
+    y: number
+  ): void;
+  quadraticCurveTo(cpx: number, cpy: number, x: number, y: number): void;
   rect(x: number, y: number, w: number, h: number): void;
   ellipse(
     x: number,
@@ -57,15 +81,40 @@ export interface RasterContext2D {
     startAngle: number,
     endAngle: number
   ): void;
-  moveTo(x: number, y: number): void;
-  lineTo(x: number, y: number): void;
-  fill(): void;
+  fill(fillRule?: string): void;
+  clip(fillRule?: string): void;
+  clearRect(x: number, y: number, w: number, h: number): void;
+  fillRect(x: number, y: number, w: number, h: number): void;
+  createLinearGradient(
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number
+  ): CanvasGradient2D;
+  createRadialGradient(
+    x0: number,
+    y0: number,
+    r0: number,
+    x1: number,
+    y1: number,
+    r1: number
+  ): CanvasGradient2D;
+}
+
+/** The Canvas 2D surface the rasterizers draw through. */
+export interface RasterContext2D extends MaskContext2D {
+  font: string;
+  strokeStyle: CanvasPaint;
+  lineWidth: number;
+  lineJoin: string;
+  textAlign: string;
+  textBaseline: string;
+  globalAlpha: number;
+  measureText(text: string): { width: number };
+  fillText(text: string, x: number, y: number): void;
+  strokeText(text: string, x: number, y: number): void;
   stroke(): void;
-  save(): void;
-  restore(): void;
-  translate(x: number, y: number): void;
   rotate(angle: number): void;
-  scale(x: number, y: number): void;
 }
 
 // ── Captions ─────────────────────────────────────────────────────────────────
@@ -421,4 +470,257 @@ export function drawShape(
   }
   if (style.fill) ctx.fill();
   if (style.stroke && ctx.lineWidth > 0) ctx.stroke();
+}
+
+// ── Masks ────────────────────────────────────────────────────────────────────
+
+/**
+ * Coverage colours. A mask raster carries its coverage in **alpha**, which is
+ * what `mask.apply@1` reads and what a Canvas 2D `destination-in` multiplies
+ * with; the RGB is white so the same raster reads correctly if anything ever
+ * samples luminance from it.
+ */
+const MASK_ON = "#ffffff";
+const MASK_OFF = "rgba(255, 255, 255, 0)";
+
+/** Mask kinds this build rasterizes. Anything else is `mask_path_invalid`. */
+export const MASK_KINDS = ["rect", "ellipse", "path"] as const;
+
+/** Content signature of a mask raster, for host-side caching. */
+export function maskSignature(
+  mask: ClipMask,
+  width: number,
+  height: number
+): string {
+  return `${width}x${height}|${JSON.stringify(mask)}`;
+}
+
+/** Whether a mask has a hard edge, which a 2D path clip draws with no scratch. */
+export function maskIsHard(mask: ClipMask): boolean {
+  return !((mask.featherPx ?? 0) > 0);
+}
+
+/** The mask's region in surface pixels. Absent bounds mean the whole layer. */
+function maskRegion(
+  mask: ClipMask,
+  width: number,
+  height: number
+): { x: number; y: number; w: number; h: number } {
+  return {
+    x: (mask.x ?? 0) * width,
+    y: (mask.y ?? 0) * height,
+    w: (mask.width ?? 1) * width,
+    h: (mask.height ?? 1) * height
+  };
+}
+
+/**
+ * Issue the mask's outline onto `ctx` as a path, without filling it. False when
+ * the mask names a kind this build does not rasterize, or path data that does
+ * not parse — the caller then leaves the layer unmasked and the validator
+ * reports `mask_path_invalid`.
+ */
+function buildMaskPath(
+  ctx: MaskContext2D,
+  mask: ClipMask,
+  width: number,
+  height: number
+): boolean {
+  const { x, y, w, h } = maskRegion(mask, width, height);
+  if (mask.kind === "rect") {
+    ctx.rect(x, y, w, h);
+    return true;
+  }
+  if (mask.kind === "ellipse") {
+    ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+    return true;
+  }
+  if (mask.kind === "path") {
+    const parsed = parseSvgPath(mask.d ?? "");
+    if (!parsed.ok) return false;
+    // Path data is authored in the layer's own normalized 0..1 space, the same
+    // space the rect and ellipse bounds live in.
+    tracePath(ctx, parsed.segments, { scaleX: width, scaleY: height });
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Clip `ctx` to a hard-edged mask, in the surface's own pixel space. False when
+ * the mask is unreadable, in which case nothing was clipped.
+ *
+ * An inverted mask is the outer rectangle plus the shape under the even-odd
+ * rule: what survives is everything the shape does not cover. That is why this
+ * takes the whole surface size rather than just the shape — the rectangle is
+ * the mask's other half.
+ */
+export function clipMask(
+  ctx: MaskContext2D,
+  mask: ClipMask,
+  width: number,
+  height: number
+): boolean {
+  ctx.beginPath();
+  if (mask.invert) ctx.rect(0, 0, width, height);
+  if (!buildMaskPath(ctx, mask, width, height)) return false;
+  ctx.clip(mask.invert ? "evenodd" : "nonzero");
+  return true;
+}
+
+/**
+ * Rasterize a mask's coverage onto `ctx` as white-on-transparent: opaque where
+ * the layer shows through, transparent where it is cut away. The surface is
+ * cleared first and the context is left as it was found.
+ *
+ * `featherPx` softens the edge, in the surface's own pixels. A rect feathers
+ * through a ring — an inset solid, four edge gradients and four corner
+ * gradients, none overlapping — and an ellipse through one radial gradient in
+ * its own scaled space, so both are exact rather than blurred. A path has no
+ * such construction, so it feathers with `ctx.filter`; a context that ignores
+ * the property draws the hard edge instead, which is a visible difference and
+ * not a wrong picture.
+ *
+ * Inversion is a full-surface fill the shape then erases with
+ * `destination-out`, which keeps the feather: the coverage of an inverted mask
+ * is `1 - coverage`, band included.
+ *
+ * False when the mask is unreadable; the surface is then left cleared and the
+ * caller draws the layer unmasked.
+ */
+export function drawMask(
+  ctx: MaskContext2D,
+  mask: ClipMask,
+  width: number,
+  height: number
+): boolean {
+  ctx.save();
+  ctx.filter = "none";
+  ctx.globalCompositeOperation = "source-over";
+  ctx.clearRect(0, 0, width, height);
+  if (mask.invert) {
+    ctx.fillStyle = MASK_ON;
+    ctx.fillRect(0, 0, width, height);
+    ctx.globalCompositeOperation = "destination-out";
+  }
+  const painted = paintCoverage(ctx, mask, width, height);
+  ctx.restore();
+  return painted;
+}
+
+/** Fill the mask's own shape, feathered, in whatever composite op is set. */
+function paintCoverage(
+  ctx: MaskContext2D,
+  mask: ClipMask,
+  width: number,
+  height: number
+): boolean {
+  const feather = Math.max(0, mask.featherPx ?? 0);
+  if (feather <= 0 || mask.kind === "path") {
+    if (feather > 0) ctx.filter = `blur(${(feather / 2).toFixed(2)}px)`;
+    ctx.fillStyle = MASK_ON;
+    ctx.beginPath();
+    if (!buildMaskPath(ctx, mask, width, height)) return false;
+    ctx.fill();
+    return true;
+  }
+  const { x, y, w, h } = maskRegion(mask, width, height);
+  if (w <= 0 || h <= 0) return mask.kind === "rect" || mask.kind === "ellipse";
+  if (mask.kind === "rect") {
+    featherRect(ctx, x, y, w, h, Math.min(feather, w / 2, h / 2));
+    return true;
+  }
+  if (mask.kind === "ellipse") {
+    featherEllipse(ctx, x, y, w, h, feather);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * A rect with a soft edge: one solid inset rectangle, four edge gradients and
+ * four corner gradients. The nine regions are disjoint, which is what lets the
+ * whole ring be drawn under `destination-out` for an inverted mask without any
+ * pixel being erased twice.
+ */
+function featherRect(
+  ctx: MaskContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  f: number
+): void {
+  ctx.fillStyle = MASK_ON;
+  ctx.fillRect(x + f, y + f, w - 2 * f, h - 2 * f);
+  if (f <= 0) return;
+
+  const edge = (
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    rx: number,
+    ry: number,
+    rw: number,
+    rh: number
+  ): void => {
+    const gradient = ctx.createLinearGradient(x0, y0, x1, y1);
+    gradient.addColorStop(0, MASK_OFF);
+    gradient.addColorStop(1, MASK_ON);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(rx, ry, rw, rh);
+  };
+  edge(x, y, x + f, y, x, y + f, f, h - 2 * f);
+  edge(x + w, y, x + w - f, y, x + w - f, y + f, f, h - 2 * f);
+  edge(x, y, x, y + f, x + f, y, w - 2 * f, f);
+  edge(x, y + h, x, y + h - f, x + f, y + h - f, w - 2 * f, f);
+
+  const corner = (cx: number, cy: number, sx: number, sy: number): void => {
+    const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, f);
+    gradient.addColorStop(0, MASK_ON);
+    gradient.addColorStop(1, MASK_OFF);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(Math.min(cx, sx), Math.min(cy, sy), f, f);
+    ctx.clip();
+    ctx.fillStyle = gradient;
+    ctx.fillRect(Math.min(cx, sx), Math.min(cy, sy), f, f);
+    ctx.restore();
+  };
+  corner(x + f, y + f, x, y);
+  corner(x + w - f, y + f, x + w, y);
+  corner(x + f, y + h - f, x, y + h);
+  corner(x + w - f, y + h - f, x + w, y + h);
+}
+
+/**
+ * An ellipse with a soft edge: one radial gradient painted in the ellipse's own
+ * unit space, so the band follows the curve instead of a circle inscribed in
+ * it. The feather is measured against the shorter radius, which is the one that
+ * runs out first.
+ */
+function featherEllipse(
+  ctx: MaskContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  feather: number
+): void {
+  const rx = w / 2;
+  const ry = h / 2;
+  const inner = Math.max(0, 1 - feather / Math.max(1e-3, Math.min(rx, ry)));
+  ctx.save();
+  ctx.translate(x + rx, y + ry);
+  ctx.scale(rx, ry);
+  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+  gradient.addColorStop(0, MASK_ON);
+  gradient.addColorStop(Math.min(0.999, inner), MASK_ON);
+  gradient.addColorStop(1, MASK_OFF);
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 1, 1, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }

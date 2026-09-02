@@ -416,3 +416,136 @@ describe("set_transition", () => {
     ).toThrow(/crossfade/);
   });
 });
+
+describe("set_mask and set_matte", () => {
+  async function bridgeWithTwoClips() {
+    const bridge = createTimelineToolBridge({
+      tracks: [{ type: "video" }, { type: "video" }],
+      clips: [
+        {
+          name: "shot a",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 0,
+          durationMs: 2000
+        },
+        {
+          name: "key",
+          trackIndex: 1,
+          mediaType: "video",
+          startMs: 0,
+          durationMs: 2000
+        }
+      ]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    return { bridge, byName };
+  }
+
+  const clipNamed = (
+    bridge: { finalState: () => TimelineBridgeFinalState },
+    name: string
+  ) => bridge.finalState().documentClips.find((c) => c.name === name);
+
+  it("writes a shape mask onto the clip", async () => {
+    const { bridge, byName } = await bridgeWithTwoClips();
+    await byName["ui_timeline_set_mask"].execute({
+      target: "shot a",
+      mask: { kind: "ellipse", x: 0.2, y: 0.1, width: 0.6, height: 0.8, featherPx: 12 }
+    });
+
+    expect(clipNamed(bridge, "shot a")?.mask).toEqual({
+      kind: "ellipse",
+      x: 0.2,
+      y: 0.1,
+      width: 0.6,
+      height: 0.8,
+      featherPx: 12
+    });
+  });
+
+  it("keeps a rect's bounds off a path mask", async () => {
+    // A `d` on a rect — or bounds on a path — would be stored and stripped on
+    // the next save, which reads as a `field_stripped` warning about a field
+    // that never meant anything.
+    const { bridge, byName } = await bridgeWithTwoClips();
+    await byName["ui_timeline_set_mask"].execute({
+      target: "shot a",
+      mask: { kind: "path", d: "M 0 0 L 1 1 Z", x: 0.5, width: 0.2 }
+    });
+    const mask = clipNamed(bridge, "shot a")?.mask;
+    expect(mask?.d).toBe("M 0 0 L 1 1 Z");
+    expect(mask?.x).toBeUndefined();
+    expect(mask?.width).toBeUndefined();
+  });
+
+  it("clears the mask with a null", async () => {
+    const { bridge, byName } = await bridgeWithTwoClips();
+    const set = byName["ui_timeline_set_mask"];
+    await set.execute({ target: "shot a", mask: { kind: "rect" } });
+    await set.execute({ target: "shot a", mask: null });
+    expect(clipNamed(bridge, "shot a")?.mask).toBeUndefined();
+  });
+
+  it("refuses path data the renderer could not draw", async () => {
+    const { byName } = await bridgeWithTwoClips();
+    await expect(
+      byName["ui_timeline_set_mask"].execute({
+        target: "shot a",
+        mask: { kind: "path", d: "M 0 0 A 1 1 0 0 1 1 1" }
+      })
+    ).rejects.toThrow(/path data/);
+  });
+
+  it("refuses a kind this build cannot rasterize", async () => {
+    const { byName } = await bridgeWithTwoClips();
+    expect(() =>
+      byName["ui_timeline_set_mask"].execute({
+        target: "shot a",
+        mask: { kind: "star" }
+      })
+    ).toThrow(/ellipse/);
+  });
+
+  it("resolves a matte source by name and stores its id", async () => {
+    const { bridge, byName } = await bridgeWithTwoClips();
+    await byName["ui_timeline_set_matte"].execute({
+      target: "shot a",
+      matte: { source: "key", mode: "luma", invert: true }
+    });
+    const key = clipNamed(bridge, "key");
+    expect(clipNamed(bridge, "shot a")?.matte).toEqual({
+      sourceClipId: key?.id,
+      mode: "luma",
+      invert: true
+    });
+  });
+
+  it("refuses a clip as its own matte source", async () => {
+    const { byName } = await bridgeWithTwoClips();
+    await expect(
+      byName["ui_timeline_set_matte"].execute({
+        target: "shot a",
+        matte: { source: "shot a", mode: "alpha" }
+      })
+    ).rejects.toThrow(/own matte source/);
+  });
+
+  it("refuses a matte source no clip matches", async () => {
+    const { byName } = await bridgeWithTwoClips();
+    await expect(
+      byName["ui_timeline_set_matte"].execute({
+        target: "shot a",
+        matte: { source: "nothing", mode: "alpha" }
+      })
+    ).rejects.toThrow(/nothing/);
+  });
+
+  it("clears the matte with a null", async () => {
+    const { bridge, byName } = await bridgeWithTwoClips();
+    const set = byName["ui_timeline_set_matte"];
+    await set.execute({ target: "shot a", matte: { source: "key", mode: "alpha" } });
+    await set.execute({ target: "shot a", matte: null });
+    expect(clipNamed(bridge, "shot a")?.matte).toBeUndefined();
+  });
+});

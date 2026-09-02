@@ -16,6 +16,9 @@ import {
   sharpenUnsharpMaskV1,
   vignetteV1,
   chromaKeyV1,
+  maskApplyV1,
+  maskFromImageV1,
+  alphaPremulToStraightV1,
   type GPUContext,
   type Executor,
   type ShaderModule
@@ -64,9 +67,15 @@ function intermediateUsage(): number {
     GPUTextureUsage.TEXTURE_BINDING |
     GPUTextureUsage.STORAGE_BINDING |
     GPUTextureUsage.COPY_SRC |
-    GPUTextureUsage.COPY_DST
+    GPUTextureUsage.COPY_DST |
+    // The mask modules are fragment passes, so an intermediate they write into
+    // is a render attachment as well as a storage texture.
+    GPUTextureUsage.RENDER_ATTACHMENT
   );
 }
+
+/** `mask.fromImage@1`'s channel selector: 0 alpha, 1 luminance. */
+const MASK_FROM_IMAGE_MODE = { alpha: 0, luma: 1 } as const;
 
 /**
  * GPU pre-pass for per-clip color grading and Gaussian blur. Caller passes
@@ -234,6 +243,125 @@ export class WebGPUEffectsProcessor {
 
     this.device.queue.submit([encoder.finish()]);
     return pool.textures[pool.currentIndex].texture;
+  }
+
+  /**
+   * Multiply a coverage texture's alpha into `source`'s and answer the masked
+   * pixels, straight-alpha — which is how the blend shader reads a source.
+   *
+   * `mask.apply@1` works in premultiplied space (it scales RGB by coverage too,
+   * so the result stays valid premultiplied), so a straight source is bridged
+   * in by the Executor and converted back here. Skipping that second convert is
+   * what darkened a half-covered pixel: the blend shader would scale RGB by
+   * alpha a second time.
+   *
+   * `coverage` may be any size — it is sampled in normalized space, so a mask
+   * rasterized at the source's own resolution and one rasterized smaller both
+   * land on the same pixels.
+   */
+  applyMask(
+    poolKey: string,
+    source: GPUTexture,
+    width: number,
+    height: number,
+    coverage: GPUTexture,
+    coverageWidth: number,
+    coverageHeight: number,
+    sourceAlpha: "straight" | "premultiplied" = "straight"
+  ): GPUTexture {
+    const pool = this.getPool(poolKey, width, height);
+    const encoder = this.device.createCommandEncoder({
+      label: `preview-mask-${poolKey}`
+    });
+    this.executor.encode({
+      ctx: this.ctx,
+      module: maskApplyV1,
+      encoder,
+      inputs: {
+        source: this.label(source, `${poolKey}-src`, width, height, sourceAlpha),
+        // The raster carries its coverage in alpha with white RGB, which is
+        // already valid premultiplied — labelling it so skips a bridge pass
+        // that would change nothing.
+        mask: this.label(
+          coverage,
+          `${poolKey}-cov`,
+          coverageWidth,
+          coverageHeight,
+          "premultiplied"
+        )
+      },
+      output: pool.textures[0],
+      params: { invert: 0 },
+      dispatch: { kind: "fragment" }
+    });
+    const [wgX, wgY] = alphaPremulToStraightV1.workgroupSize;
+    this.executor.encode({
+      ctx: this.ctx,
+      module: alphaPremulToStraightV1,
+      encoder,
+      inputs: { source: pool.textures[0] },
+      output: pool.textures[1],
+      params: alphaPremulToStraightV1.paramDefaults,
+      dispatch: {
+        kind: "compute",
+        x: Math.ceil(width / wgX),
+        y: Math.ceil(height / wgY),
+        z: 1
+      }
+    });
+    pool.currentIndex = 1;
+    this.device.queue.submit([encoder.finish()]);
+    return pool.textures[1].texture;
+  }
+
+  /**
+   * Read a matte source's alpha or luminance out as coverage — RGB zeroed,
+   * value in alpha — which is the shape {@link applyMask} consumes.
+   */
+  deriveMask(
+    poolKey: string,
+    source: GPUTexture,
+    width: number,
+    height: number,
+    mode: "alpha" | "luma",
+    invert: boolean,
+    sourceAlpha: "straight" | "premultiplied" = "straight"
+  ): GPUTexture {
+    const pool = this.getPool(poolKey, width, height);
+    const encoder = this.device.createCommandEncoder({
+      label: `preview-matte-${poolKey}`
+    });
+    this.executor.encode({
+      ctx: this.ctx,
+      module: maskFromImageV1,
+      encoder,
+      inputs: {
+        source: this.label(source, `${poolKey}-src`, width, height, sourceAlpha)
+      },
+      output: pool.textures[0],
+      params: { mode: MASK_FROM_IMAGE_MODE[mode], invert: invert ? 1 : 0 },
+      dispatch: { kind: "fragment" }
+    });
+    pool.currentIndex = 0;
+    this.device.queue.submit([encoder.finish()]);
+    return pool.textures[0].texture;
+  }
+
+  /** Wrap a raw texture with the metadata the Executor validates against. */
+  private label(
+    texture: GPUTexture,
+    label: string,
+    width: number,
+    height: number,
+    alpha: "straight" | "premultiplied"
+  ): LabeledTexture {
+    return new LabeledTexture(texture, {
+      label: `preview-effects-${label}`,
+      format: "rgba8unorm",
+      width,
+      height,
+      meta: { colorSpace: "srgb", alpha, bindingKind: "texture_2d" }
+    });
   }
 
   private getPool(key: string, width: number, height: number): IntermediatePool {

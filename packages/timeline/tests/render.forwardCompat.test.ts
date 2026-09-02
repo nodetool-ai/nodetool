@@ -90,6 +90,27 @@ class RecordingContext implements CompositeContext2D<string> {
   } {
     return { addColorStop: () => {} };
   }
+  lineTo(): void {}
+  bezierCurveTo(): void {}
+  quadraticCurveTo(): void {}
+  ellipse(): void {}
+  fill(): void {}
+  translate(): void {}
+  scale(): void {}
+  createRadialGradient(): {
+    addColorStop(offset: number, color: string): void;
+  } {
+    return { addColorStop: () => {} };
+  }
+  getImageData(
+    _x: number,
+    _y: number,
+    w: number,
+    h: number
+  ): { data: Uint8ClampedArray; width: number; height: number } {
+    return { data: new Uint8ClampedArray(w * h * 4), width: w, height: h };
+  }
+  putImageData(): void {}
 }
 
 const layer = (

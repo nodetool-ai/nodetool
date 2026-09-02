@@ -197,7 +197,18 @@ export async function renderTimelineComposited(
         timeMs,
         { canvas, animationCache: animCache }
       );
-      for (const layer of active) {
+      /**
+       * A resolved layer as something the compositor can upload: its pixels,
+       * its own shape mask rasterized at that size, and — for a matted layer —
+       * the matte source resolved the same way.
+       *
+       * A matte source is not in `active`; the scene model held it back so it
+       * never draws itself, which is why it is decoded here and nowhere else.
+       */
+      const frameLayerFor = async (
+        layer: (typeof active)[number],
+        idPrefix = ""
+      ): Promise<FrameLayer | null> => {
         const anim = resolveAnimatedLayerProps(layer, timeMs, canvas, animCache);
         const common = {
           opacity: anim.opacity,
@@ -213,27 +224,41 @@ export async function renderTimelineComposited(
           transition: layer.transition
         };
 
+        /** Attach the layer's own shape mask, rasterized at its source size. */
+        const finish = (built: FrameLayer): FrameLayer => {
+          const shape = layer.shapeMask;
+          if (!shape) return built;
+          const raster = rasterizer.mask(
+            shape,
+            built.source.width,
+            built.source.height
+          );
+          if (raster) built.shapeMask = raster;
+          return built;
+        };
+
+        const id = (kind: string): string =>
+          `${idPrefix}${kind}:${layer.clipId}`;
+
         if (layer.kind === "caption" && layer.caption) {
           const raster = rasterizer.caption(layer.caption);
-          if (raster) {
-            layers.push({
-              ...common,
-              id: `c:${layer.clipId}`,
-              source: raster,
-              // Captions are drawn at frame resolution and composite
-              // untransformed — by the clip's transform and by its group's.
-              transform: undefined,
-              parentMatrix: undefined,
-              borderRadius: undefined,
-              effects: undefined,
-              trackEffects: undefined,
-              // The cut's opacity is already in `opacity`; dropping the record
-              // here keeps its geometry — and a dip's one solid — off a layer
-              // that composites untransformed anyway.
-              transition: undefined
-            });
-          }
-          continue;
+          if (!raster) return null;
+          return finish({
+            ...common,
+            id: id("c"),
+            source: raster,
+            // Captions are drawn at frame resolution and composite
+            // untransformed — by the clip's transform and by its group's.
+            transform: undefined,
+            parentMatrix: undefined,
+            borderRadius: undefined,
+            effects: undefined,
+            trackEffects: undefined,
+            // The cut's opacity is already in `opacity`; dropping the record
+            // here keeps its geometry — and a dip's one solid — off a layer
+            // that composites untransformed anyway.
+            transition: undefined
+          });
         }
 
         if (layer.kind === "text" && layer.textStyle) {
@@ -244,37 +269,33 @@ export async function renderTimelineComposited(
             animCache
           );
           const raster = rasterizer.text(layer.textStyle, stagger);
-          if (raster) {
-            layers.push({ ...common, id: `t:${layer.clipId}`, source: raster });
-          }
-          continue;
+          if (!raster) return null;
+          return finish({ ...common, id: id("t"), source: raster });
         }
 
         if (layer.kind === "shape" && layer.shapeStyle) {
           const raster = rasterizer.shape(layer.shapeStyle);
-          if (raster) {
-            layers.push({ ...common, id: `s:${layer.clipId}`, source: raster });
-          }
-          continue;
+          if (!raster) return null;
+          return finish({ ...common, id: id("s"), source: raster });
         }
 
-        if (!layer.assetId) continue;
+        if (!layer.assetId) return null;
 
         if (layer.kind === "video") {
           const stream = await videoFor(layer.clip, layer.assetId);
           if (!stream) {
             skippedClips.add(layer.clip.name);
-            continue;
+            return null;
           }
           const index = Math.max(
             0,
             Math.round(((timeMs - layer.clip.startMs) * fps) / 1000)
           );
           const rgba = await stream.frameAt(index);
-          if (!rgba) continue;
-          layers.push({
+          if (!rgba) return null;
+          return finish({
             ...common,
-            id: `v:${layer.clipId}`,
+            id: id("v"),
             source: {
               rgba,
               width: stream.width,
@@ -282,19 +303,34 @@ export async function renderTimelineComposited(
               version: `${layer.clipId}:${index}`
             }
           });
-          continue;
         }
 
         const image = await imageFor(layer.assetId);
         if (!image) {
           skippedClips.add(layer.clip.name);
-          continue;
+          return null;
         }
-        layers.push({
+        return finish({
           ...common,
-          id: `i:${layer.clipId}`,
+          id: id("i"),
           source: { ...image, version: layer.assetId }
         });
+      };
+
+      for (const layer of active) {
+        const built = await frameLayerFor(layer);
+        if (!built) continue;
+        if (layer.matte) {
+          const source = await frameLayerFor(layer.matte.layer, "m:");
+          if (source) {
+            built.matte = {
+              mode: layer.matte.mode,
+              invert: layer.matte.invert,
+              layer: source
+            };
+          }
+        }
+        layers.push(built);
       }
 
       await encoder.write(

@@ -48,10 +48,12 @@ import {
   type AnimationRole,
   type CustomClipAnimation,
   type PropertyCurve,
+  type ClipMask,
   type TimelineClip,
   type TimelineTrack,
   type ClipAnimation
 } from "@nodetool-ai/timeline";
+import { parseSvgPath } from "@nodetool-ai/timeline/scene";
 import type { HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
@@ -188,6 +190,81 @@ function buildTransition(
     case "zoom":
       return { type, durationMs, easing };
   }
+}
+
+/**
+ * A shape mask on one clip, in the layer's own normalized 0..1 space (D6).
+ * `kind` is an enum here even though the document carries a plain string: a
+ * kind the renderer cannot rasterize is a mask that silently does nothing, and
+ * refusing it at the call is cheaper than finding it in the pixels.
+ */
+const maskParams = z.object({
+  kind: z.enum(["rect", "ellipse", "path"]),
+  x: z
+    .number()
+    .optional()
+    .describe("Left edge, 0..1 of the layer's width. Default 0."),
+  y: z
+    .number()
+    .optional()
+    .describe("Top edge, 0..1 of the layer's height. Default 0."),
+  width: z
+    .number()
+    .optional()
+    .describe("Width, 0..1 of the layer's width. Default 1."),
+  height: z
+    .number()
+    .optional()
+    .describe("Height, 0..1 of the layer's height. Default 1."),
+  d: z
+    .string()
+    .optional()
+    .describe(
+      "kind \"path\" only: SVG path data in the same 0..1 space. M, L, C, Q and Z, absolute or relative."
+    ),
+  featherPx: z
+    .number()
+    .optional()
+    .describe("Soft edge width in the layer's own pixels. 0 is a hard edge."),
+  invert: z
+    .boolean()
+    .optional()
+    .describe("Keep what the mask excludes instead of what it covers.")
+});
+
+/** A track matte: another clip's alpha or luminance drives this layer's alpha. */
+const matteParams = z.object({
+  source: z
+    .string()
+    .describe("The clip whose pixels drive the alpha, by id or name."),
+  mode: z
+    .enum(["alpha", "luma"])
+    .describe(
+      "alpha reads the source's transparency; luma reads its brightness."
+    ),
+  invert: z.boolean().optional()
+});
+
+/**
+ * The stored mask, with the fields the named kind does not use left off — the
+ * same reason {@link buildTransition} narrows a flat input: a `d` sent with a
+ * rect would be stored and then stripped on the next save, which reads as a
+ * `field_stripped` warning about a field that never meant anything.
+ *
+ * Path data is parsed here rather than at render time so a path the renderer
+ * cannot read is refused while the caller can still fix it.
+ */
+function buildMask(input: z.infer<typeof maskParams>): ClipMask {
+  const { kind, x, y, width, height, featherPx, invert } = input;
+  const bounds = { x, y, width, height, featherPx, invert };
+  if (kind !== "path") return { kind, ...bounds };
+  const parsed = parseSvgPath(input.d ?? "");
+  if (!parsed.ok) {
+    throw new Error(
+      `mask.d is not path data this build can draw: ${parsed.error}`
+    );
+  }
+  return { kind, d: input.d, featherPx, invert };
 }
 
 const fullTextStyleParams = z.object({
@@ -587,7 +664,9 @@ export function createTimelineToolBridge(
       locked: c.locked,
       textStyle: c.textStyle,
       shapeStyle: c.shapeStyle,
-      transitionIn: c.transitionIn
+      transitionIn: c.transitionIn,
+      mask: c.mask,
+      matte: c.matte
     };
   }
 
@@ -1049,6 +1128,54 @@ export function createTimelineToolBridge(
             transition as z.infer<typeof transitionParams>
           );
         }
+        return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    tool(
+      "ui_timeline_set_mask",
+      "Mask a clip to a rectangle, an ellipse or an SVG path, or clear it with `mask: null`. Coordinates are 0..1 in the clip's own space, so the mask turns and scales with the clip. `featherPx` softens the edge; `invert` keeps what the shape excludes instead.",
+      z.object({
+        target: targetParam,
+        mask: maskParams.nullable()
+      }),
+      async ({ target, mask }) => {
+        const clip = resolveClip(target as string);
+        if (mask === null) {
+          delete clip.mask;
+        } else {
+          clip.mask = buildMask(mask as z.infer<typeof maskParams>);
+        }
+        return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    tool(
+      "ui_timeline_set_matte",
+      "Drive a clip's transparency from another clip — a track matte — or clear it with `matte: null`. The source clip stops drawing itself: its alpha (`mode: \"alpha\"`) or its brightness (`mode: \"luma\"`) becomes the target's transparency, so a white shape over black shows the target only where the shape is. Both clips are placed by their own transforms, so where the source sits on the frame is where the target shows through.",
+      z.object({
+        target: targetParam,
+        matte: matteParams.nullable()
+      }),
+      async ({ target, matte }) => {
+        const clip = resolveClip(target as string);
+        if (matte === null) {
+          delete clip.matte;
+          return { ok: true, clip: serializeClip(clip) };
+        }
+        const input = matte as z.infer<typeof matteParams>;
+        const source = resolveClip(input.source);
+        if (source.id === clip.id) {
+          throw new Error(
+            `"${clip.name}" cannot be its own matte source — name another clip.`
+          );
+        }
+        const matteOut: NonNullable<TimelineClip["matte"]> = {
+          sourceClipId: source.id,
+          mode: input.mode
+        };
+        if (input.invert !== undefined) matteOut.invert = input.invert;
+        clip.matte = matteOut;
         return { ok: true, clip: serializeClip(clip) };
       }
     ),

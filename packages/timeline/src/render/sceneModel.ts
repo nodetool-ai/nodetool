@@ -13,6 +13,7 @@
 
 import type {
   ClipEffect,
+  ClipMask,
   ClipTransform,
   TimelineClip,
   TimelineTrack,
@@ -406,6 +407,34 @@ export function resolveGroups(
   return resolved;
 }
 
+/** Channels of a matte source that can drive a layer's alpha (D6). */
+export const MATTE_MODES = ["alpha", "luma"] as const;
+
+export type MatteMode = (typeof MATTE_MODES)[number];
+
+/**
+ * Narrow a document's matte `mode` to one this build applies, or `null` for one
+ * it does not — which the scene model leaves unmatted, the way an unknown
+ * transition type falls back to a cross-fade (I2).
+ */
+export function parseMatteMode(mode: string): MatteMode | null {
+  return (MATTE_MODES as readonly string[]).includes(mode)
+    ? (mode as MatteMode)
+    : null;
+}
+
+/** A track matte resolved at one point in time: the source layer and how to read it. */
+export interface ResolvedMatte {
+  mode: MatteMode;
+  invert: boolean;
+  /**
+   * The matte source, resolved exactly as if it were drawing itself. A
+   * compositor renders it to its own surface and reads the named channel out
+   * of it; it never reaches the frame.
+   */
+  layer: ActiveLayer;
+}
+
 /** A visual layer active at a point in time, in bottom-to-top composite order. */
 export interface ActiveLayer {
   kind: "video" | "image" | "text" | "shape" | "caption";
@@ -442,6 +471,18 @@ export interface ActiveLayer {
   /** Present only when `kind === "shape"`: authored geometry to rasterize. */
   shapeStyle?: TimelineClip["shapeStyle"];
   /**
+   * The clip's shape mask, in this layer's own normalized space, applied
+   * before it blends (D6). Never set on a caption layer, which composites
+   * frame-sized and untransformed and so has no layer space to mask in.
+   */
+  shapeMask?: ClipMask;
+  /**
+   * The track matte driving this layer's alpha, with the source clip already
+   * resolved to its own layer. The source is not in {@link
+   * ActiveLayersResult.layers}: a matte source never draws itself.
+   */
+  matte?: ResolvedMatte;
+  /**
    * The cut this layer is part of, and which side of it the layer is on. The
    * opacity it names is already folded into {@link ActiveLayer.opacity}; the
    * rest — a scale, a frame-relative offset, a reveal mask, the solid a
@@ -467,7 +508,15 @@ export interface ComputeActiveLayersOptions {
 }
 
 /** Why a clip that was active at the query time contributed no layer. */
-export type DroppedLayerReason = "video_layer_cap";
+export type DroppedLayerReason =
+  | "video_layer_cap"
+  /**
+   * The clip is matted by a source that draws nothing at this time, so the
+   * matte is empty and so is the layer. Reported rather than silently omitted:
+   * a matted layer that vanishes for part of a cut is otherwise indistinguishable
+   * from one that was never wired up.
+   */
+  | "matte_source_inactive";
 
 /** A clip the scene model resolved and then left out of the composite. */
 export interface DroppedLayer {
@@ -586,6 +635,23 @@ export function computeActiveLayersWithHorizon(
   const captionLayers: ActiveLayer[] = [];
   const droppedLayers: DroppedLayer[] = [];
   let videoCount = 0;
+
+  // Matte sources are diverted, not drawn: the clips named by a readable
+  // `matte` are held aside as the walk reaches them and handed to the layers
+  // that name them once the walk is over — the source may sit on a track below
+  // the one that reads it (D6).
+  const clipById = new Map(clips.map((clip) => [clip.id, clip]));
+  const matteSourceIds = new Set<string>();
+  for (const clip of clips) {
+    const matte = clip.matte;
+    if (!matte || parseMatteMode(matte.mode) === null) continue;
+    if (clipById.has(matte.sourceClipId)) matteSourceIds.add(matte.sourceClipId);
+  }
+  const matteLayers = new Map<string, ActiveLayer>();
+  const emitMedia = (layer: ActiveLayer): void => {
+    if (matteSourceIds.has(layer.clipId)) matteLayers.set(layer.clipId, layer);
+    else mediaLayers.push(layer);
+  };
   /**
    * Surfaces an emitted layer actually draws into. A precompositing group with
    * nothing under it at this time is not reported, so no host allocates a
@@ -658,7 +724,7 @@ export function computeActiveLayersWithHorizon(
 
       // Captions ride on their media clip and always render on top.
       const caption = resolveCaptionAtTime(clip, currentTimeMs);
-      if (caption) {
+      if (caption && !matteSourceIds.has(clip.id)) {
         if (clip.caption) {
           // Mirrors `resolveCaptionAtTime`'s word boundaries: the active
           // word's end and the next word's start each flip which word index
@@ -696,7 +762,7 @@ export function computeActiveLayersWithHorizon(
 
       if (clip.mediaType === "text") {
         if (!clip.textStyle) continue;
-        mediaLayers.push({
+        emitMedia({
           kind: "text",
           clip,
           clipId: clip.id,
@@ -711,6 +777,7 @@ export function computeActiveLayersWithHorizon(
           effects: clip.effects,
           trackEffects: track.effects,
           textStyle: clip.textStyle,
+          shapeMask: clip.mask,
           transition
         });
         continue;
@@ -718,7 +785,7 @@ export function computeActiveLayersWithHorizon(
 
       if (clip.mediaType === "shape") {
         if (!clip.shapeStyle) continue;
-        mediaLayers.push({
+        emitMedia({
           kind: "shape",
           clip,
           clipId: clip.id,
@@ -733,6 +800,7 @@ export function computeActiveLayersWithHorizon(
           effects: clip.effects,
           trackEffects: track.effects,
           shapeStyle: clip.shapeStyle,
+          shapeMask: clip.mask,
           transition
         });
         continue;
@@ -755,11 +823,12 @@ export function computeActiveLayersWithHorizon(
         borderRadius: clip.borderRadius,
         effects: clip.effects,
         trackEffects: track.effects,
+        shapeMask: clip.mask,
         transition
       } satisfies Omit<ActiveLayer, "kind">;
 
       if (clip.mediaType === "image") {
-        mediaLayers.push({ kind: "image", ...common });
+        emitMedia({ kind: "image", ...common });
       } else {
         // video | overlay
         if (common.assetId) {
@@ -772,17 +841,69 @@ export function computeActiveLayersWithHorizon(
           }
           videoCount += 1;
         }
-        mediaLayers.push({ kind: "video", ...common });
+        emitMedia({ kind: "video", ...common });
       }
     }
   }
 
+  const drawn = attachMattes(
+    mediaLayers,
+    matteLayers,
+    clipById,
+    droppedLayers
+  );
+
   return {
-    layers: [...mediaLayers, ...captionLayers],
+    layers: [...drawn, ...captionLayers],
     precomposites: collectPrecomposites(clips, tracks, groups, usedSurfaces),
     droppedLayers,
     nextChangeMs
   };
+}
+
+/**
+ * Hand each matted layer the source layer that drives its alpha, and drop the
+ * ones whose source drew nothing at this time.
+ *
+ * Three outcomes, and the difference between the last two is what the caller
+ * can act on. The source resolved to a layer: the matte is attached. The source
+ * clip is in the document but produced no layer here — outside its own window,
+ * on a hidden track — so its matte is empty and the layer it drives shows
+ * nothing; the layer is dropped and named. The source clip is not in the
+ * document at all: the matte is ignored and the layer draws unmatted, which is
+ * what `matte_source_missing` reports, the way a missing parent renders
+ * unparented.
+ */
+function attachMattes(
+  layers: readonly ActiveLayer[],
+  matteLayers: ReadonlyMap<string, ActiveLayer>,
+  clipById: ReadonlyMap<string, TimelineClip>,
+  droppedLayers: DroppedLayer[]
+): ActiveLayer[] {
+  const out: ActiveLayer[] = [];
+  for (const layer of layers) {
+    const matte = layer.clip.matte;
+    const mode = matte ? parseMatteMode(matte.mode) : null;
+    if (!matte || mode === null) {
+      out.push(layer);
+      continue;
+    }
+    const source = matteLayers.get(matte.sourceClipId);
+    if (source) {
+      layer.matte = { mode, invert: matte.invert ?? false, layer: source };
+      out.push(layer);
+      continue;
+    }
+    if (!clipById.has(matte.sourceClipId)) {
+      out.push(layer);
+      continue;
+    }
+    droppedLayers.push({
+      clipId: layer.clipId,
+      reason: "matte_source_inactive"
+    });
+  }
+  return out;
 }
 
 /**
