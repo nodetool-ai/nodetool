@@ -211,6 +211,38 @@ describe("RenderTimelineNode", () => {
     expect(context.resolveAssetBytes).toHaveBeenCalledTimes(3);
   });
 
+  it("mixes a time-remapped audio clip one constant-rate stretch at a time", async () => {
+    // Two source seconds in the first timeline second, then a hold: the first
+    // stretch sounds at 2×, the hold is silent (nothing to advance through).
+    const seq = baseSequence();
+    const audio = seq.clips[2] as Record<string, unknown>;
+    audio.startMs = 0;
+    audio.durationMs = 2000;
+    audio.timeRemap = {
+      keyframes: [
+        { t: 0, sourceMs: 0 },
+        { t: 0.5, sourceMs: 2000 },
+        { t: 1, sourceMs: 2000 }
+      ]
+    };
+    const context = stubContext(seq);
+    const node = new RenderTimelineNode();
+    node.assign({ timeline: { type: "timeline", id: "seq-1" } });
+    await node.process(context as never);
+
+    const args = ffmpegArgString();
+    // The curve names the source span, and atempo carries it into the
+    // stretch's own timeline length.
+    expect(args).toContain("atrim=start=0:end=2,asetpts=PTS-STARTPTS,atempo=2");
+    expect(args).toContain("volume=-3dB");
+    expect(args).toContain("adelay=0|0");
+    // One stretch mixed, not two: the hold is silent.
+    expect(args).toContain("[a0_0]");
+    expect(args).not.toContain("[a0_1]");
+    // The un-remapped chain is not used for this clip.
+    expect(args).not.toContain("[a0]");
+  });
+
   it("suppresses a linked video clip's embedded audio so only the extracted audio clip plays", async () => {
     // A video clip and its extracted audio share a linkId. The audio comes
     // from the audio-track clip (amix'd); the video's own muxed audio must NOT

@@ -14,7 +14,8 @@ import {
   assertNotTimeRemapped,
   clipRemapSourceMs,
   evaluateTimeRemapMs,
-  hasTimeRemap
+  hasTimeRemap,
+  timeRemapAudioSegments
 } from "../src/timeRemap.js";
 import { clipSourceTimeSec } from "../src/render/sceneModel.js";
 import { splitClip } from "../src/splitClip.js";
@@ -182,5 +183,158 @@ describe("split and trim refuse a remapped clip (D13)", () => {
     expect(() => assertNotTimeRemapped(frozen, "splitClip")).toThrow(
       /bake_time_remap/
     );
+  });
+});
+
+describe("timeRemapAudioSegments", () => {
+  it("gives an un-remapped clip one segment at the clip's own rate", () => {
+    const clip = makeClip({
+      startMs: 1000,
+      durationMs: 1000,
+      mediaType: "audio",
+      speedMultiplier: 2,
+      inPointMs: 500
+    });
+    expect(timeRemapAudioSegments(clip)).toEqual([
+      {
+        timelineStartMs: 1000,
+        timelineEndMs: 2000,
+        sourceStartMs: 500,
+        sourceEndMs: 2500,
+        rate: 2,
+        reverse: false
+      }
+    ]);
+  });
+
+  it("reads a baked speed as 1:1, the rate the picture uses", () => {
+    const clip = makeClip({
+      startMs: 0,
+      durationMs: 1000,
+      mediaType: "audio",
+      speedMultiplier: 4,
+      speedBaked: true
+    });
+    const [seg] = timeRemapAudioSegments(clip);
+    expect(seg!.rate).toBe(1);
+    expect(seg!.sourceEndMs).toBe(1000);
+  });
+
+  it("turns a linear 0→2× ramp into one segment of rate 2", () => {
+    const clip = remapped([
+      { t: 0, sourceMs: 0 },
+      { t: 1, sourceMs: 2000 }
+    ]);
+    const segs = timeRemapAudioSegments(clip);
+    expect(segs).toHaveLength(1);
+    expect(segs[0]).toEqual({
+      timelineStartMs: 1000,
+      timelineEndMs: 2000,
+      sourceStartMs: 0,
+      sourceEndMs: 2000,
+      rate: 2,
+      reverse: false
+    });
+  });
+
+  it("ignores the rate and in-point a remap replaces", () => {
+    const clip = remapped(
+      [
+        { t: 0, sourceMs: 0 },
+        { t: 1, sourceMs: 1000 }
+      ],
+      { speedMultiplier: 4, inPointMs: 5000 }
+    );
+    const [seg] = timeRemapAudioSegments(clip);
+    expect(seg!.rate).toBe(1);
+    expect(seg!.sourceStartMs).toBe(0);
+  });
+
+  it("cuts an eased pair into pieces that follow the curve", () => {
+    const clip = remapped([
+      { t: 0, sourceMs: 0 },
+      { t: 1, sourceMs: 2000, easing: "easeInOut" }
+    ]);
+    const segs = timeRemapAudioSegments(clip, 4);
+    expect(segs).toHaveLength(4);
+    // Each piece's rate is the curve's own average slope across it — computed
+    // from `ease`, not read off the implementation.
+    segs.forEach((seg, i) => {
+      const t0 = i / 4;
+      const t1 = (i + 1) / 4;
+      const expected =
+        (2000 * (ease("easeInOut", t1) - ease("easeInOut", t0))) / (1000 / 4);
+      expect(seg.rate).toBeCloseTo(expected, 6);
+      expect(seg.reverse).toBe(false);
+    });
+    // An easeInOut starts slow and peaks in the middle.
+    expect(segs[0]!.rate).toBeLessThan(segs[1]!.rate);
+    expect(segs[3]!.rate).toBeLessThan(segs[1]!.rate);
+  });
+
+  it("leaves a linear pair whole however many samples are asked for", () => {
+    const clip = remapped([
+      { t: 0, sourceMs: 0 },
+      { t: 1, sourceMs: 500, easing: "linear" }
+    ]);
+    expect(timeRemapAudioSegments(clip, 16)).toHaveLength(1);
+  });
+
+  it("marks a descending curve reverse", () => {
+    const clip = remapped([
+      { t: 0, sourceMs: 2000 },
+      { t: 1, sourceMs: 0 }
+    ]);
+    const [seg] = timeRemapAudioSegments(clip);
+    expect(seg!.rate).toBe(-2);
+    expect(seg!.reverse).toBe(true);
+  });
+
+  it("covers the whole window, holding past the outer keyframes", () => {
+    const clip = remapped([
+      { t: 0.25, sourceMs: 400 },
+      { t: 0.75, sourceMs: 900 }
+    ]);
+    const segs = timeRemapAudioSegments(clip);
+    expect(segs.map((s) => [s.timelineStartMs, s.timelineEndMs])).toEqual([
+      [1000, 1250],
+      [1250, 1750],
+      [1750, 2000]
+    ]);
+    expect(segs[0]!.reverse).toBe(true);
+    expect(segs[0]!.rate).toBe(0);
+    expect(segs[1]!.rate).toBe(1);
+    expect(segs[2]!.reverse).toBe(true);
+    expect(segs[2]!.sourceStartMs).toBe(900);
+  });
+
+  it("reads a one-keyframe freeze as a silent hold over the clip", () => {
+    const clip = remapped([{ t: 0, sourceMs: 400 }]);
+    const segs = timeRemapAudioSegments(clip);
+    expect(segs).toHaveLength(1);
+    expect(segs[0]).toMatchObject({
+      timelineStartMs: 1000,
+      timelineEndMs: 2000,
+      sourceStartMs: 400,
+      sourceEndMs: 400,
+      rate: 0,
+      reverse: true
+    });
+  });
+
+  it("segments run in order and meet end to end", () => {
+    const clip = remapped([
+      { t: 0.1, sourceMs: 0 },
+      { t: 0.5, sourceMs: 800, easing: "easeOut" },
+      { t: 0.9, sourceMs: 400 }
+    ]);
+    const segs = timeRemapAudioSegments(clip, 3);
+    expect(segs[0]!.timelineStartMs).toBe(1000);
+    expect(segs[segs.length - 1]!.timelineEndMs).toBe(2000);
+    for (let i = 1; i < segs.length; i++) {
+      expect(segs[i]!.timelineStartMs).toBeCloseTo(segs[i - 1]!.timelineEndMs, 6);
+      expect(segs[i]!.sourceStartMs).toBeCloseTo(segs[i - 1]!.sourceEndMs, 6);
+    }
+    expect(segs.some((s) => s.reverse)).toBe(true);
   });
 });

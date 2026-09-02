@@ -1,3 +1,4 @@
+import { timeRemapAudioSegments } from "@nodetool-ai/timeline";
 import type {
   TimelineClip,
   TimelineTrack,
@@ -47,7 +48,12 @@ export class AudioGraph {
   private masterGain: GainNode | null = null;
   private trackChains = new Map<string, TrackChainState>();
   private clipGains = new Map<string, GainNode>();
-  private clipSources = new Map<string, AudioBufferSourceNode>();
+  /**
+   * Sources per clip. A clip with a `timeRemap` plays as one source per
+   * constant-rate segment of its curve, so this is a list rather than a single
+   * node; an ordinary clip has exactly one entry.
+   */
+  private clipSources = new Map<string, AudioBufferSourceNode[]>();
   private bufferCache = new Map<string, AudioBuffer>();
   private loadingPromises = new Map<string, Promise<AudioBuffer | null>>();
 
@@ -383,12 +389,14 @@ export class AudioGraph {
   ): Promise<void> {
     const activeIds = new Set(clips.map((c) => c.clip.id));
 
-    for (const [id, src] of this.clipSources) {
+    for (const [id, sources] of this.clipSources) {
       if (!activeIds.has(id)) {
-        try {
-          src.stop();
-        } catch {
-          // source may already have stopped at its natural end
+        for (const src of sources) {
+          try {
+            src.stop();
+          } catch {
+            // source may already have stopped at its natural end
+          }
         }
         const gain = this.clipGains.get(id);
         try {
@@ -456,15 +464,11 @@ export class AudioGraph {
         continue;
       }
 
-      // If the speed change has been baked into the asset, the asset already
-      // plays at the right speed → do not re-apply the rate, and treat the
-      // clip's timeline duration as 1:1 with the buffer.
-      const rate =
-        clip.speedBaked ? 1 : Math.max(0.0001, clip.speedMultiplier ?? 1);
-
-      const src = ctx.createBufferSource();
-      src.buffer = buffer;
-      src.playbackRate.value = rate * g;
+      // The clip's source position as constant-rate stretches. Without a
+      // `timeRemap` that is one stretch carrying the clip's own rate (a baked
+      // speed reads as 1:1, the asset already playing at the right speed) and
+      // its in-point, so an ordinary clip is scheduled exactly as before.
+      const segments = timeRemapAudioSegments(clip);
 
       const volumeLinear = clip.volumeDb
         ? Math.pow(10, clip.volumeDb / 20)
@@ -473,23 +477,18 @@ export class AudioGraph {
       clipGain.gain.value = volumeLinear;
 
       const now = ctx.currentTime;
-      // Schedule the clip's start on the audio clock. If the clip begins in
-      // the future (relative to the playhead), defer src.start; otherwise
-      // start immediately with a buffer offset for mid-clip seeks.
+      // Schedule each stretch's start on the audio clock. If it begins in the
+      // future (relative to the playhead), defer src.start; otherwise start
+      // immediately with a buffer offset for mid-clip seeks.
       //
       // `src.start(when, offset, duration)` takes offset/duration in
-      // *buffer* seconds, while clip.startMs / durationMs / inPointMs are
-      // *timeline* milliseconds. With playbackRate = r, 1 timeline second
-      // consumes r buffer seconds, so we multiply by `rate`.
+      // *buffer* seconds, while a segment's bounds are *timeline*
+      // milliseconds. With playbackRate = r, 1 timeline second consumes r
+      // buffer seconds, so we multiply by the segment's own rate.
       const clipLeadSec = Math.max(0, (clip.startMs - currentTimeMs) / 1000) / g;
-      const intoClipTimelineSec =
-        Math.max(0, currentTimeMs - clip.startMs) / 1000;
-      const bufferOffsetSec =
-        intoClipTimelineSec * rate + (clip.inPointMs ?? 0) / 1000;
       const remainingTimelineMs =
         clip.startMs + clip.durationMs - Math.max(currentTimeMs, clip.startMs);
       const remainingTimelineSec = Math.max(0, remainingTimelineMs / 1000);
-      const bufferDurationSec = remainingTimelineSec * rate;
       const startAt = now + clipLeadSec;
       // Wall-clock time at which playback ends — used to schedule fade-out.
       // The clip spans `remainingTimelineSec` timeline seconds, played back in
@@ -520,28 +519,55 @@ export class AudioGraph {
         }
       }
 
-      src.connect(clipGain);
       const trackGain = this.getTrackGain(clip.trackId);
       clipGain.connect(trackGain);
 
-      src.start(startAt, bufferOffsetSec, bufferDurationSec);
+      const sources: AudioBufferSourceNode[] = [];
+      for (const segment of segments) {
+        // WebAudio cannot play a buffer backwards: `playbackRate` takes no
+        // useful negative value and there is no reverse source node, so a
+        // stretch whose source runs backwards — or holds still — is silent.
+        // Sounding it would mean decoding a mirrored copy of the buffer.
+        if (segment.reverse) continue;
+        const segRemainingMs =
+          segment.timelineEndMs -
+          Math.max(currentTimeMs, segment.timelineStartMs);
+        if (segRemainingMs <= 0) continue;
+        const intoSegmentSec =
+          Math.max(0, currentTimeMs - segment.timelineStartMs) / 1000;
+        const segLeadSec =
+          Math.max(0, (segment.timelineStartMs - currentTimeMs) / 1000) / g;
 
-      this.clipSources.set(clip.id, src);
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.playbackRate.value = segment.rate * g;
+        src.connect(clipGain);
+        src.start(
+          now + segLeadSec,
+          segment.sourceStartMs / 1000 + intoSegmentSec * segment.rate,
+          (segRemainingMs / 1000) * segment.rate
+        );
+        sources.push(src);
+      }
+
+      this.clipSources.set(clip.id, sources);
       this.clipGains.set(clip.id, clipGain);
     }
   }
 
   stopAll(): void {
-    for (const [, src] of this.clipSources) {
-      try {
-        src.stop();
-      } catch {
-        // already stopped
-      }
-      try {
-        src.disconnect();
-      } catch {
-        /* not connected */
+    for (const [, sources] of this.clipSources) {
+      for (const src of sources) {
+        try {
+          src.stop();
+        } catch {
+          // already stopped
+        }
+        try {
+          src.disconnect();
+        } catch {
+          /* not connected */
+        }
       }
     }
     for (const [, gain] of this.clipGains) {
