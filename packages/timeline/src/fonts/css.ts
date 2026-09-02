@@ -27,7 +27,16 @@ export const BUNDLED_FONTS_URL_BASE = "/api/assets/packages/timeline/fonts";
 export function bundledFontFaceCss(
   baseUrl: string = BUNDLED_FONTS_URL_BASE
 ): string {
-  const base = baseUrl.replace(/\/+$/, "");
+  // Trailing slashes are trimmed by walking back from the end rather than with
+  // `/\/+$/`: that pattern shares its first character across the quantifier and
+  // the anchor, so a base URL of many slashes walks the engine back through
+  // what it already read at every start position. CodeQL reads that shape as
+  // polynomial backtracking, and there is nothing a regex buys here.
+  let end = baseUrl.length;
+  while (end > 0 && baseUrl[end - 1] === "/") {
+    end--;
+  }
+  const base = baseUrl.slice(0, end);
   const blocks = BUNDLED_FONTS.map((face) => {
     const [min, max] = face.weights;
     const weight = min === max ? `${min}` : `${min} ${max}`;

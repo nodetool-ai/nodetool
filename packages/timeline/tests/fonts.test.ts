@@ -174,6 +174,29 @@ describe("bundledFontFaceCss", () => {
     expect(css).toContain("font-weight: 400;");
   });
 
+  // The trailing-slash trim was rewritten off `/\/+$/`, which CodeQL reads as
+  // polynomial backtracking. Both forms strip the same characters, so these
+  // are what catch a rewrite that strips too few or too many.
+  it("strips trailing slashes from the base it is handed", () => {
+    for (const base of ["/fonts", "/fonts/", "/fonts///"]) {
+      expect(bundledFontFaceCss(base)).toContain(
+        `url("/fonts/${BUNDLED_FONTS[0].file}")`
+      );
+    }
+  });
+
+  it("keeps a slash that is not at the end", () => {
+    expect(bundledFontFaceCss("/a//b")).toContain(
+      `url("/a//b/${BUNDLED_FONTS[0].file}")`
+    );
+  });
+
+  it("takes a base that is nothing but slashes", () => {
+    expect(bundledFontFaceCss("///")).toContain(
+      `url("/${BUNDLED_FONTS[0].file}")`
+    );
+  });
+
   it("takes a base url without doubling the separator", () => {
     expect(bundledFontFaceCss("/fonts/")).toContain(
       'url("/fonts/Inter-Variable.ttf")'
