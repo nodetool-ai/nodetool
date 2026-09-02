@@ -48,6 +48,7 @@ import {
   deleteTimelineVersionSpec,
   editTimelineSpec,
   validateTimelineSpec,
+  setTimelineDocumentSpec,
   previewTimelineFrameSpec,
   DEFAULT_PREVIEW_COUNT,
   MAX_PREVIEW_TIMES,
@@ -64,6 +65,7 @@ import {
   DELETE_TIMELINE_VERSION_SCHEMA,
   EDIT_TIMELINE_SCHEMA,
   VALIDATE_TIMELINE_SCHEMA,
+  SET_TIMELINE_DOCUMENT_SCHEMA,
   deleteTimelineSpec
 } from "./timelines.specs.js";
 import { isFiniteNumber, isRecord, isString } from "../utils/type-guards.js";
@@ -81,7 +83,8 @@ export {
   RESTORE_TIMELINE_VERSION_SCHEMA,
   DELETE_TIMELINE_VERSION_SCHEMA,
   EDIT_TIMELINE_SCHEMA,
-  VALIDATE_TIMELINE_SCHEMA
+  VALIDATE_TIMELINE_SCHEMA,
+  SET_TIMELINE_DOCUMENT_SCHEMA
 } from "./timelines.specs.js";
 import { resolveProjectId } from "./project-scope.js";
 
@@ -905,6 +908,192 @@ const validateTimeline: CapabilityExport = {
   }
 };
 
+
+// ---------------------------------------------------------------------------
+// set_timeline_document
+// ---------------------------------------------------------------------------
+
+/**
+ * A document the caller sent, ready to validate.
+ *
+ * `markers` is the one field an agent authoring a cut has no reason to think
+ * about, and the Zod schema requires it — so an omitted one becomes an empty
+ * list rather than a `schema_invalid` refusal about a field nobody meant to
+ * leave out. Everything else is stored as given: the whole point of this
+ * capability is that what the caller sends is what the sequence becomes.
+ */
+function documentToStore(raw: Record<string, unknown>): Record<string, unknown> {
+  return raw["markers"] === undefined ? { ...raw, markers: [] } : raw;
+}
+
+/** The end of the last clip — what the sequence's stored duration means. */
+function documentDurationMs(document: Record<string, unknown>): number {
+  const clips = document["clips"];
+  if (!Array.isArray(clips)) return 0;
+  return clips.reduce((end: number, clip: unknown) => {
+    if (!isRecord(clip)) return end;
+    const start = Number(clip["startMs"]) || 0;
+    const length = Number(clip["durationMs"]) || 0;
+    return Math.max(end, start + length);
+  }, 0);
+}
+
+/**
+ * Replace a sequence's whole document in one call.
+ *
+ * `edit_timeline` is a script of ops against what is already stored, which is
+ * the wrong shape for authoring a cut from nothing: every clip costs an op,
+ * and the ops only reach the fields the bridge exposes. This takes the
+ * document itself.
+ *
+ * The order is validate → snapshot → CAS → validate again, and each step
+ * exists for a failure the one before it cannot catch:
+ *
+ * 1. **Validate first.** A document that would not render must not reach the
+ *    database — a refusal that still wrote is worse than no capability at all.
+ *    Errors return the issues and nothing else happens, snapshot included: a
+ *    refused call that left a version row behind is still a write.
+ * 2. **Snapshot.** The state being replaced becomes a manual version, so the
+ *    write is undoable with `restore_timeline_version` the way a restore is.
+ * 3. **CAS.** The write lands only while the row still reads as it did, so a
+ *    concurrent edit is reported instead of overwritten. There is no retry
+ *    loop here, unlike `edit_timeline`: ops re-apply against a newer document
+ *    and compose, a whole-document replace does not — retrying it would clobber
+ *    exactly the change CAS caught.
+ * 4. **Validate again.** The caller sees what it created rather than what it
+ *    intended. The two validations differ: the second runs against the stored
+ *    fps/width/height and the document as the row now holds it.
+ */
+const setTimelineDocument: CapabilityExport = {
+  spec: setTimelineDocumentSpec,
+  impl: async (run, params) => {
+    const sequence = await loadTimeline(run, params["timeline_id"]);
+    if (isError(sequence)) return sequence;
+
+    const raw = params["document"];
+    if (!isRecord(raw)) {
+      return {
+        error:
+          "document is required and must be an object ({tracks, clips, markers}). Read the current one with get_timeline."
+      };
+    }
+
+    const expected = params["expected_updated_at"];
+    if (expected !== undefined && expected !== null) {
+      if (!isString(expected)) {
+        return { error: "expected_updated_at must be a string timestamp." };
+      }
+      if (expected !== sequence.updated_at) {
+        return {
+          error: `Timeline ${sequence.id} was modified since it was read at ${expected} (it now reads ${sequence.updated_at}); nothing was written. Read it again with get_timeline and re-apply your changes.`,
+          written: false,
+          conflict: true,
+          timeline_id: sequence.id
+        };
+      }
+    }
+
+    const fps = sequenceSetting(params["fps"], sequence.fps, "fps");
+    if (isError(fps)) return fps;
+    const width = sequenceSetting(params["width"], sequence.width, "width");
+    if (isError(width)) return width;
+    const height = sequenceSetting(params["height"], sequence.height, "height");
+    if (isError(height)) return height;
+
+    const document = documentToStore(raw);
+    const { validateTimelineSequence } =
+      await import("@nodetool-ai/execution/timeline-debug");
+    const before: TimelineValidation = validateTimelineSequence(document, {
+      fps,
+      width,
+      height
+    });
+    if (!before.ok) {
+      return {
+        error: `The document has ${before.errors.length} error${
+          before.errors.length === 1 ? "" : "s"
+        } and was not written to timeline ${sequence.id}. Fix them and call again.`,
+        written: false,
+        timeline_id: sequence.id,
+        validation: before,
+        summary: validationSummary(before)
+      };
+    }
+
+    const { TimelineSequence, TimelineSequenceVersion } =
+      await import("@nodetool-ai/models");
+    const snapshotName =
+      isString(params["snapshot_name"]) && params["snapshot_name"]
+        ? params["snapshot_name"]
+        : "Before set_timeline_document";
+    const undo = await TimelineSequenceVersion.snapshot(sequence, {
+      saveType: "manual",
+      name: snapshotName
+    });
+
+    const durationMs = documentDurationMs(document);
+    let saved: TimelineSequence | null;
+    try {
+      saved = await TimelineSequence.updateFieldsIfUnchanged(
+        sequence.id,
+        sequence.updated_at,
+        {
+          document: JSON.stringify(document),
+          fps,
+          width,
+          height,
+          duration_ms: durationMs
+        }
+      );
+    } catch (error) {
+      // The model rejects a document without tracks/clips/markers arrays. The
+      // validation above already covers that, so reaching here means the two
+      // disagree — report it rather than throwing out of the capability.
+      return {
+        error: `The document was refused by the store: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        written: false,
+        timeline_id: sequence.id,
+        undo_version: undo.version
+      };
+    }
+    if (!saved) {
+      return {
+        error: `Timeline ${sequence.id} was modified concurrently; nothing was written. Read it again with get_timeline and re-apply your changes.`,
+        written: false,
+        conflict: true,
+        timeline_id: sequence.id,
+        undo_version: undo.version
+      };
+    }
+
+    const after: TimelineValidation = validateTimelineSequence(
+      saved.toDocument(),
+      { fps: saved.fps, width: saved.width, height: saved.height }
+    );
+    return {
+      ok: true,
+      written: true,
+      timeline_id: saved.id,
+      updated_at: saved.updated_at,
+      undo_version: undo.version,
+      fps: saved.fps,
+      width: saved.width,
+      height: saved.height,
+      duration_ms: saved.duration_ms,
+      track_count: Array.isArray(document["tracks"])
+        ? document["tracks"].length
+        : 0,
+      clip_count: Array.isArray(document["clips"])
+        ? document["clips"].length
+        : 0,
+      validation: after,
+      summary: validationSummary(after)
+    };
+  }
+};
+
 /**
  * The timecodes to render when the caller names none: evenly spaced across the
  * sequence, avoiding both ends — the first and last frame of a cut are the two
@@ -1126,6 +1315,7 @@ export const TIMELINE_CAPABILITIES: readonly CapabilityExport[] = [
   deleteTimelineVersion,
   editTimeline,
   validateTimeline,
+  setTimelineDocument,
   previewTimelineFrame,
   deleteTimeline
 ];
@@ -1146,6 +1336,7 @@ export {
   deleteTimelineVersion,
   editTimeline,
   validateTimeline,
+  setTimelineDocument,
   previewTimelineFrame,
   deleteTimeline
 };

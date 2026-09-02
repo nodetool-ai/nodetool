@@ -353,6 +353,72 @@ export const editTimelineSpec: CapabilitySpec = {
   }
 };
 
+export const SET_TIMELINE_DOCUMENT_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: {
+      type: "string",
+      description: "Timeline sequence id (from list_timelines)."
+    },
+    document: {
+      type: "object",
+      description:
+        "The whole document to store: {tracks, clips, markers, transcript?, " +
+        "scriptEnabled?}. It replaces the stored one field for field, so " +
+        "anything you leave out is dropped — read the current document with " +
+        "get_timeline and send it back changed, rather than sending only the " +
+        "part you edited. `markers` may be omitted and defaults to an empty " +
+        "list."
+    },
+    fps: {
+      type: "number",
+      description:
+        "Frame rate to store with the sequence. Omit to keep the current one."
+    },
+    width: {
+      type: "number",
+      description: "Render width. Omit to keep the current one."
+    },
+    height: {
+      type: "number",
+      description: "Render height. Omit to keep the current one."
+    },
+    expected_updated_at: {
+      type: "string",
+      description:
+        "The `updated_at` the document was read at. When it no longer " +
+        "matches the stored row the write is refused as a conflict instead " +
+        "of overwriting whoever changed it in between."
+    },
+    snapshot_name: {
+      type: "string",
+      description:
+        "Label for the snapshot taken before the write, e.g. 'before the " +
+        "title pass'."
+    }
+  },
+  required: ["timeline_id", "document"]
+};
+
+export const setTimelineDocumentSpec: CapabilitySpec = {
+  name: "set_timeline_document",
+  description:
+    "Write a whole timeline document at once — every track, clip, marker and " +
+    "animation in one call, instead of a script of edit_timeline ops. Reach " +
+    "for it when you are authoring a cut from scratch or restructuring one " +
+    "wholesale; edit_timeline stays the better tool for a few targeted " +
+    "changes to a cut that already exists. The document is validated before " +
+    "anything is written: errors refuse the write and come back as issues, " +
+    "so a document that would not render never reaches the sequence. The " +
+    "state it replaces is snapshotted as a manual version first, so the " +
+    "write is undoable with restore_timeline_version, and the validation of " +
+    "what actually landed is returned with the result.",
+  inputSchema: SET_TIMELINE_DOCUMENT_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Writing the document of timeline ${String(params["timeline_id"])}`
+};
+
 export const validateTimelineSpec: CapabilitySpec = {
   name: "validate_timeline",
   description:
@@ -473,6 +539,7 @@ export const timelinesSpecs: readonly CapabilitySpec[] = [
   deleteTimelineVersionSpec,
   editTimelineSpec,
   validateTimelineSpec,
+  setTimelineDocumentSpec,
   previewTimelineFrameSpec,
   deleteTimelineSpec
 ];

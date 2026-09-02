@@ -26,6 +26,7 @@ vi.mock("node:os", async (orig) => {
 import { existsSync, readdirSync } from "node:fs";
 import { platform } from "node:os";
 import { join } from "node:path";
+import { BUNDLED_FONT_FAMILIES } from "@nodetool-ai/timeline";
 
 // The router builds the user font dir with path.join (backslashes on
 // Windows); mock and match it the same way.
@@ -57,10 +58,53 @@ describe("fonts router", () => {
   });
 
   describe("list", () => {
-    it("returns an empty sorted list on a bare system", async () => {
+    // The system scan is mocked; what a bare system still has is the bundled
+    // corpus, which ships with the product rather than with the machine (D8).
+    const systemNames = (
+      fonts: { name: string; source: string }[]
+    ): string[] =>
+      fonts.filter((f) => f.source === "system").map((f) => f.name);
+
+    it("lists only the bundled corpus on a bare system", async () => {
       const caller = createCaller(makeCtx());
       const result = await caller.fonts.list();
-      expect(result).toEqual({ fonts: [] });
+      expect(result.fonts.map((f) => f.name)).toEqual([
+        ...BUNDLED_FONT_FAMILIES
+      ]);
+      expect(result.fonts.every((f) => f.source === "bundled")).toBe(true);
+      expect(result.fonts.every((f) => f.portable)).toBe(true);
+    });
+
+    it("puts the bundled families before the system ones", async () => {
+      (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(true);
+      (readdirSync as ReturnType<typeof vi.fn>).mockReturnValue([
+        "Arial.ttf"
+      ]);
+
+      const caller = createCaller(makeCtx());
+      const { fonts } = await caller.fonts.list();
+      const firstSystem = fonts.findIndex((f) => f.source === "system");
+      expect(firstSystem).toBe(BUNDLED_FONT_FAMILIES.length);
+      expect(fonts[firstSystem]).toEqual({
+        name: "Arial",
+        source: "system",
+        portable: false
+      });
+    });
+
+    // A machine that also has Inter installed must not offer it twice, and the
+    // bundled copy is the one every host actually draws with.
+    it("drops a system font a bundled family already covers", async () => {
+      (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(true);
+      (readdirSync as ReturnType<typeof vi.fn>).mockReturnValue([
+        "Inter.ttf",
+        "Arial.ttf"
+      ]);
+
+      const caller = createCaller(makeCtx());
+      const { fonts } = await caller.fonts.list();
+      expect(fonts.filter((f) => f.name === "Inter")).toHaveLength(1);
+      expect(systemNames(fonts)).toEqual(["Arial"]);
     });
 
     it("lists fonts from macOS font directories", async () => {
@@ -83,13 +127,14 @@ describe("fonts router", () => {
 
       const caller = createCaller(makeCtx());
       const result = await caller.fonts.list();
-      expect(result.fonts).toContain("Arial");
-      expect(result.fonts).toContain("Helvetica");
-      expect(result.fonts).toContain("CustomFont");
+      const system = systemNames(result.fonts);
+      expect(system).toContain("Arial");
+      expect(system).toContain("Helvetica");
+      expect(system).toContain("CustomFont");
       // Non-font file excluded
-      expect(result.fonts.some((f) => f.includes("Readme"))).toBe(false);
+      expect(system.some((name) => name.includes("Readme"))).toBe(false);
       // Sorted
-      expect(result.fonts).toEqual([...result.fonts].sort());
+      expect(system).toEqual([...system].sort());
     });
 
     it("deduplicates fonts appearing in multiple directories", async () => {
@@ -101,7 +146,7 @@ describe("fonts router", () => {
 
       const caller = createCaller(makeCtx());
       const result = await caller.fonts.list();
-      expect(result.fonts.filter((f) => f === "Arial")).toHaveLength(1);
+      expect(result.fonts.filter((f) => f.name === "Arial")).toHaveLength(1);
     });
 
     it("rejects unauthenticated callers", async () => {

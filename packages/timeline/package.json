@@ -19,6 +19,7 @@
     "@nodetool-ai/protocol": "*"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^0.1.65",
     "@types/node": "^22.0.0",
     "@webgpu/types": "^0.1.70",
     "typescript": "^5.7.2",
@@ -48,6 +49,12 @@
       "types": "./dist/dependencyHash.d.ts",
       "import": "./dist/dependencyHash.js",
       "default": "./dist/dependencyHash.js"
+    },
+    "./fonts/node": {
+      "nodetool-dev": "./src/fonts/register-node.ts",
+      "types": "./dist/fonts/register-node.d.ts",
+      "import": "./dist/fonts/register-node.js",
+      "default": "./dist/fonts/register-node.js"
     }
   },
   "license": "MIT",
@@ -65,6 +72,7 @@
   },
   "files": [
     "dist",
+    "fonts",
     "README.md"
   ],
   "keywords": [
@@ -76,5 +84,13 @@
     "timeline",
     "video-editing",
     "types"
-  ]
+  ],
+  "peerDependencies": {
+    "@napi-rs/canvas": ">=0.1.65"
+  },
+  "peerDependenciesMeta": {
+    "@napi-rs/canvas": {
+      "optional": true
+    }
+  }
 }

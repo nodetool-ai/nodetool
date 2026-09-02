@@ -124,6 +124,7 @@ import websocketPlugin from "./plugins/websocket.js";
 import healthRoute, { getVersion } from "./routes/health.js";
 import configRoute, { describeMissingAnonKey } from "./routes/config.js";
 import assetsRoutes from "./routes/assets.js";
+import timelineFontRoutes from "./routes/timeline-fonts.js";
 import sdkV1Routes from "./routes/sdk-v1.js";
 import workflowsRoutes from "./routes/workflows.js";
 import nodesRoutes from "./routes/nodes.js";
@@ -1385,6 +1386,19 @@ const _monoPackageAssetsRoot = resolve(
   "nodetool",
   "assets"
 );
+// The bundled typefaces (D8). Two layouts, checked rather than assumed: the
+// packaged backend stages them beside `server.mjs`, a checkout keeps them in
+// the timeline package's own `fonts/` directory. `registerBundledFonts` in
+// `@nodetool-ai/timeline/fonts/node` resolves the same two for the Node
+// rasterizers; this is the copy the HTTP route serves to the browser from.
+const _bundledFontsDir = [
+  resolve(_serverDir, "fonts"),
+  resolve(_serverDir, "..", "..", "..", "packages", "timeline", "fonts")
+].find((dir) => existsSync(dir));
+if (_bundledFontsDir) {
+  apiOptions.bundledFontsDir = _bundledFontsDir;
+}
+
 const _packageAssetsRoots = [
   existsSync(_bundledPackageAssetsRoot) ? _bundledPackageAssetsRoot : null,
   existsSync(_monoPackageAssetsRoot) ? _monoPackageAssetsRoot : null
@@ -1513,6 +1527,7 @@ const routeOpts = { apiOptions };
 
 await app.register(sdkV1Routes, routeOpts);
 await app.register(assetsRoutes, routeOpts);
+await app.register(timelineFontRoutes, routeOpts);
 await app.register(workflowsRoutes, routeOpts);
 await app.register(nodesRoutes, routeOpts);
 await app.register(storageRoutes, routeOpts);

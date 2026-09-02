@@ -268,6 +268,8 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   // Document edits: each rewrites a stored document under a CAS.
   edit_timeline: "write",
   edit_sketch: "write",
+  // Replaces a timeline's whole document, after snapshotting what it replaces.
+  set_timeline_document: "write",
   // Writes the glTF back over the asset it came from.
   edit_model3d: "write",
   create_model3d: "write",

@@ -8,6 +8,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { makeTrack, makeClip } from "@nodetool-ai/timeline";
 import type { ClipColorEffect } from "@nodetool-ai/timeline";
 
@@ -82,14 +83,24 @@ function seedAnimatedClip() {
   return clip;
 }
 
+// The text and caption sections carry a FontPicker, which reads the fonts
+// endpoint (T17); the mocked tRPC client answers with an empty list.
 const renderInspector = () =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <MemoryRouter>
-        <TimelineProvider>
-          <TimelineInspector />
-        </TimelineProvider>
-      </MemoryRouter>
+      <QueryClientProvider
+        client={
+          new QueryClient({
+            defaultOptions: { queries: { retry: false } }
+          })
+        }
+      >
+        <MemoryRouter>
+          <TimelineProvider>
+            <TimelineInspector />
+          </TimelineProvider>
+        </MemoryRouter>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 

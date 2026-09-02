@@ -305,7 +305,7 @@ function resolveCaptionStyle(
   return {
     // A caption is one weight and one size, so the font shorthand is the only
     // thing it shares with a text clip — through the same builder, which is
-    // where the `Inter, Arial, sans-serif` fallback lives.
+    // where family resolution and the bundled default live (D8).
     font: textFontSpec({
       fontSizePx,
       fontWeight: CAPTION_FONT_WEIGHT,

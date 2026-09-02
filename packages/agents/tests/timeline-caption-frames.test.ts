@@ -10,8 +10,9 @@
  * `packages/timeline/tests/render.captionStyle.test.ts` pins the cache key.
  */
 
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { createCanvas } from "@napi-rs/canvas";
+import { registerBundledFonts } from "@nodetool-ai/timeline/fonts/node";
 import type { CaptionStyle } from "@nodetool-ai/timeline";
 import {
   drawCaption,
@@ -72,7 +73,11 @@ function drawCaptionBeforeT15(
   height: number
 ): void {
   const fontSize = Math.max(24, Math.round(height * 0.05));
-  ctx.font = `700 ${fontSize}px Inter, Arial, sans-serif`;
+  // T17 replaced this stack with `resolveFontFamily`'s answer for the same
+  // family, and the corpus is registered below — so both sides of the pixel
+  // comparison are set in the real Inter, and what is compared stays the
+  // arithmetic this function exists to pin.
+  ctx.font = `700 ${fontSize}px Inter, sans-serif`;
   ctx.textBaseline = "alphabetic";
   ctx.lineJoin = "round";
 
@@ -173,6 +178,13 @@ const isActiveInk = ([r, g, b, a]: Rgba): boolean =>
 const isGreenInk = ([r, g, b, a]: Rgba): boolean => a > 8 && g > r && g > b;
 
 describe("drawCaption — the default look", () => {
+  // Registration is process-wide and other suites in this worker may have
+  // done it already; doing it here makes this file's pixels the same either
+  // way.
+  beforeAll(() => {
+    registerBundledFonts();
+  });
+
   it("draws the frame it drew before the style existed", () => {
     const before = rasterBefore(CAPTION);
     const after = raster(CAPTION).bytes;
@@ -280,10 +292,12 @@ describe("drawCaption — style", () => {
       return ctx.font;
     };
     // 5% of 360 is 18, under the 24px floor.
-    expect(fontFor()).toBe("700 24px Inter, Arial, sans-serif");
-    expect(fontFor({ fontFamily: "Georgia" })).toBe("700 24px Georgia");
-    expect(fontFor({ fontSizeFrac: 0.2 })).toBe(
-      "700 72px Inter, Arial, sans-serif"
+    // The family list is `resolveFontFamily`'s (T17): the bundled default for
+    // an unset family, and a system name kept in front of it.
+    expect(fontFor()).toBe("700 24px Inter, sans-serif");
+    expect(fontFor({ fontFamily: "Georgia" })).toBe(
+      "700 24px Georgia, Inter, sans-serif"
     );
+    expect(fontFor({ fontSizeFrac: 0.2 })).toBe("700 72px Inter, sans-serif");
   });
 });

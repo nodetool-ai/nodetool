@@ -16,6 +16,7 @@ import {
   Asset,
   ModelObserver,
   TimelineSequence,
+  TimelineSequenceVersion,
   initTestDb
 } from "@nodetool-ai/models";
 import { module as timelines } from "../src/capabilities/timelines.js";
@@ -98,7 +99,11 @@ const PAIRS: Array<[string, () => Tool]> = [
     () => toolForCapabilityName("delete_timeline_version")
   ],
   ["edit_timeline", () => toolForCapabilityName("edit_timeline")],
-  ["validate_timeline", () => toolForCapabilityName("validate_timeline")]
+  ["validate_timeline", () => toolForCapabilityName("validate_timeline")],
+  [
+    "set_timeline_document",
+    () => toolForCapabilityName("set_timeline_document")
+  ]
 ];
 
 describe("timelines capability module", () => {
@@ -115,6 +120,7 @@ describe("timelines capability module", () => {
       "delete_timeline_version",
       "edit_timeline",
       "validate_timeline",
+      "set_timeline_document",
       "preview_timeline_frame",
       "delete_timeline"
     ]);
@@ -395,5 +401,212 @@ describe("timelines capability behaviour", () => {
       name: "Trailer cut",
       summary: "No issues found."
     });
+  });
+});
+
+describe("set_timeline_document", () => {
+  beforeEach(() => initTestDb());
+  afterEach(() => ModelObserver.clear());
+
+  /** A two-clip cut on one track — a document worth writing, not the seed. */
+  const replacement = () => ({
+    tracks: [
+      {
+        id: "track-1",
+        name: "Video 1",
+        type: "video",
+        index: 0,
+        visible: true,
+        locked: false
+      }
+    ],
+    clips: [
+      {
+        id: "clip-a",
+        trackId: "track-1",
+        name: "Opening",
+        startMs: 0,
+        durationMs: 4000,
+        mediaType: "video",
+        sourceType: "imported",
+        status: "generated",
+        locked: false,
+        versions: []
+      },
+      {
+        id: "clip-b",
+        trackId: "track-1",
+        name: "Closing",
+        startMs: 4000,
+        durationMs: 2500,
+        mediaType: "video",
+        sourceType: "imported",
+        status: "generated",
+        locked: false,
+        versions: []
+      }
+    ],
+    markers: []
+  });
+
+  it("writes the document, restamps the duration, and re-validates it", async () => {
+    const row = await makeTimeline();
+    const result = (await run().invoke("set_timeline_document", {
+      timeline_id: row.id,
+      document: replacement()
+    })) as {
+      ok: boolean;
+      written: boolean;
+      duration_ms: number;
+      clip_count: number;
+      updated_at: string;
+      summary: string;
+      validation: { ok: boolean };
+    };
+
+    expect(result).toMatchObject({
+      ok: true,
+      written: true,
+      clip_count: 2,
+      // The stored duration is the end of the last clip, not the 2000ms the
+      // sequence was created with — a stale one truncates every later preview.
+      duration_ms: 6500,
+      summary: "No issues found."
+    });
+    expect(result.validation.ok).toBe(true);
+    expect(result.updated_at).not.toBe(row.updated_at);
+
+    const stored = await TimelineSequence.findById(row.id);
+    expect(stored?.toDocument().clips.map((c) => c.id)).toEqual([
+      "clip-a",
+      "clip-b"
+    ]);
+  });
+
+  it("defaults absent markers and keeps the caller's render settings", async () => {
+    const row = await makeTimeline();
+    const { markers: _markers, ...withoutMarkers } = replacement();
+    const result = (await run().invoke("set_timeline_document", {
+      timeline_id: row.id,
+      document: withoutMarkers,
+      fps: 24,
+      width: 1080,
+      height: 1920
+    })) as { ok: boolean; fps: number; width: number; height: number };
+
+    expect(result).toMatchObject({ ok: true, fps: 24, width: 1080, height: 1920 });
+    const stored = await TimelineSequence.findById(row.id);
+    expect(stored?.toDocument().markers).toEqual([]);
+    expect(stored?.fps).toBe(24);
+  });
+
+  it("refuses an invalid document and writes nothing at all", async () => {
+    const row = await makeTimeline();
+    const before = await TimelineSequence.findById(row.id);
+    const broken = replacement();
+    // A clip on a track the document does not have: an error the validator
+    // raises, and a cut that cannot render.
+    broken.clips[0].trackId = "track-does-not-exist";
+
+    const result = (await run().invoke("set_timeline_document", {
+      timeline_id: row.id,
+      document: broken
+    })) as {
+      error: string;
+      written: boolean;
+      validation: { ok: boolean; errors: Array<{ code: string }> };
+    };
+
+    expect(result.written).toBe(false);
+    expect(result.validation.ok).toBe(false);
+    expect(result.validation.errors.map((e) => e.code)).toContain(
+      "clip_track_missing"
+    );
+    expect(result.error).toContain("was not written");
+
+    // The failure mode that matters: a refusal that still wrote. Neither the
+    // document, the row's revision, nor the version history may have moved.
+    const after = await TimelineSequence.findById(row.id);
+    expect(after?.document).toBe(before?.document);
+    expect(after?.updated_at).toBe(before?.updated_at);
+    expect(after?.revision).toBe(before?.revision);
+    const versions = await TimelineSequenceVersion.listForTimeline(row.id, {
+      limit: 10
+    });
+    expect(versions).toEqual([]);
+  });
+
+  it("refuses a stale expected_updated_at without writing or snapshotting", async () => {
+    const row = await makeTimeline();
+    const result = (await run().invoke("set_timeline_document", {
+      timeline_id: row.id,
+      document: replacement(),
+      expected_updated_at: "1999-01-01T00:00:00.000Z"
+    })) as { error: string; written: boolean; conflict: boolean };
+
+    expect(result).toMatchObject({ written: false, conflict: true });
+    expect(result.error).toContain("modified since it was read");
+
+    const after = await TimelineSequence.findById(row.id);
+    expect(after?.document).toBe(row.document);
+    const versions = await TimelineSequenceVersion.listForTimeline(row.id, {
+      limit: 10
+    });
+    expect(versions).toEqual([]);
+  });
+
+  it("accepts the expected_updated_at it was read at", async () => {
+    const row = await makeTimeline();
+    const result = (await run().invoke("set_timeline_document", {
+      timeline_id: row.id,
+      document: replacement(),
+      expected_updated_at: row.updated_at
+    })) as { ok: boolean };
+    expect(result.ok).toBe(true);
+  });
+
+  it("leaves the replaced state as a manual version the caller can restore", async () => {
+    const row = await makeTimeline();
+    const written = (await run().invoke("set_timeline_document", {
+      timeline_id: row.id,
+      document: replacement(),
+      snapshot_name: "before the recut"
+    })) as { ok: boolean; undo_version: number };
+    expect(written.ok).toBe(true);
+
+    const versions = await TimelineSequenceVersion.listForTimeline(row.id, {
+      limit: 10
+    });
+    expect(versions).toHaveLength(1);
+    expect(versions[0]).toMatchObject({
+      version: written.undo_version,
+      save_type: "manual",
+      name: "before the recut"
+    });
+
+    // The snapshot holds what the write replaced, so restoring it undoes the
+    // write — which is the only reason the snapshot is taken.
+    const restored = (await run().invoke("restore_timeline_version", {
+      timeline_id: row.id,
+      version: written.undo_version
+    })) as { ok: boolean };
+    expect(restored.ok).toBe(true);
+    const stored = await TimelineSequence.findById(row.id);
+    expect(stored?.toDocument().clips.map((c) => c.id)).toEqual(["clip-1"]);
+  });
+
+  it("refuses a document that is not an object, and another user's timeline", async () => {
+    const row = await makeTimeline();
+    const notAnObject = (await run().invoke("set_timeline_document", {
+      timeline_id: row.id,
+      document: "tracks and clips"
+    })) as { error: string };
+    expect(notAnObject.error).toContain("document is required");
+
+    const theirs = (await run("other").invoke("set_timeline_document", {
+      timeline_id: row.id,
+      document: replacement()
+    })) as { error: string };
+    expect(theirs.error).toContain("was not found");
   });
 });

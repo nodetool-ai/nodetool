@@ -148,8 +148,10 @@ describe("textFontSpec", () => {
   const base: ClipTextStyle = { text: "x", fontSizePx: 40, color: "#fff" };
 
   it("puts the slant before the weight, where the shorthand wants it", () => {
+    // The family list is `resolveFontFamily`'s answer for an unset family
+    // (T17); `tests/fonts.test.ts` pins that half.
     expect(textFontSpec({ ...base, fontStyle: "italic", fontWeight: 700 })).toBe(
-      "italic 700 40px Inter, Arial, sans-serif"
+      "italic 700 40px Inter, sans-serif"
     );
   });
 

@@ -37,6 +37,7 @@ import {
   parseSeconds,
   parseTimecode
 } from "./InspectorPrimitives.helpers";
+import { FontPicker } from "./FontPicker";
 import { ClipAdjustments } from "./ClipAdjustments";
 import { ClipCaptionStyle } from "./ClipCaptionStyle";
 import { ClipStoryboardLink } from "./ClipStoryboardLink";
@@ -289,6 +290,17 @@ export const TimelineInspector: React.FC = memo(() => {
                 }
                 inputProps={{ "aria-label": "Text content" }}
               />
+              <InspectorRow label="Font">
+                <FontPicker
+                  label="Text font family"
+                  value={textStyle.fontFamily}
+                  onChange={(fontFamily) =>
+                    patchClip(clip.id, {
+                      textStyle: { ...textStyle, fontFamily }
+                    })
+                  }
+                />
+              </InspectorRow>
               <InspectorRow label="Font size">
                 <InspectorPillInput
                   value={String(textStyle.fontSizePx)}
