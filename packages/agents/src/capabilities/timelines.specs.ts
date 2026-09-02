@@ -507,6 +507,101 @@ export const previewTimelineFrameSpec: CapabilitySpec = {
       : "Rendering timeline frames"
 };
 
+/** Longest a `wait: true` render blocks before handing back the job id. */
+export const MAX_RENDER_TIMEOUT_MS = 30 * 60_000;
+/** How long `wait: true` waits when the caller names no timeout. */
+export const DEFAULT_RENDER_TIMEOUT_MS = 10 * 60_000;
+
+export const RENDER_TIMELINE_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: {
+      type: "string",
+      description: "Timeline sequence to render (from list_timelines)."
+    },
+    format: {
+      type: "string",
+      description:
+        "Container to write: 'mp4' (default), 'webm', 'mov', or " +
+        "'png_sequence' (frames zipped with a manifest). Only webm, mov and " +
+        "png_sequence carry alpha."
+    },
+    alpha: {
+      type: "boolean",
+      description:
+        "Keep transparency instead of compositing onto black. Refused with " +
+        "an mp4."
+    },
+    video_codec: {
+      type: "string",
+      description:
+        "Video codec, when the container allows more than one. Omit for the " +
+        "format's default."
+    },
+    bitrate: {
+      type: "string",
+      description:
+        "Target video bitrate, e.g. '8M'. Omit for the encoder's default."
+    },
+    motion_blur_samples: {
+      type: "number",
+      description:
+        "Sub-frame samples averaged per frame. 1 (default) is no blur; 8 is " +
+        "a smooth smear and costs 8x the render time."
+    },
+    shutter_angle: {
+      type: "number",
+      description:
+        "Fraction of the frame the shutter is open, in degrees (180 = half " +
+        "the frame). Only read when motion_blur_samples is above 1."
+    },
+    preview_scale: {
+      type: "number",
+      description:
+        "Render at this fraction of the sequence size. 0.5 is roughly a " +
+        "quarter of the time — use it for the drafts you look at, then " +
+        "render at 1 once the cut is right."
+    },
+    include_audio: {
+      type: "boolean",
+      description: "Mix audio-track clips into the render. Default true."
+    },
+    wait: {
+      type: "boolean",
+      description:
+        "Block until the render settles and return the finished asset. " +
+        "Default false: the call returns a job_id immediately and get_job " +
+        "reports it."
+    },
+    timeout_ms: {
+      type: "number",
+      description:
+        `How long to wait when wait is true. Default ` +
+        `${DEFAULT_RENDER_TIMEOUT_MS}, max ${MAX_RENDER_TIMEOUT_MS}. On a ` +
+        `timeout the render keeps going and the job_id comes back anyway.`
+    }
+  },
+  required: ["timeline_id"]
+};
+
+export const renderTimelineSpec: CapabilitySpec = {
+  name: "render_timeline",
+  description:
+    "Render a timeline sequence to a video file — the finished cut, " +
+    "composited exactly as the editor previews it, with audio mixed in. " +
+    "Runs as a job, so `get_job` and `get_job_logs` report on it and " +
+    "`cancel_job` stops it. With `wait` it blocks and hands back the " +
+    "rendered asset. Render before you say a cut is done, then look at what " +
+    "came out: `preview_timeline_frame` answers what one timecode looks " +
+    "like, `analyze_video` measures the file, and `understand_video` " +
+    "describes it. `preview_scale` renders a draft at a fraction of the " +
+    "size while you are still iterating.",
+  inputSchema: RENDER_TIMELINE_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Rendering timeline ${String(params["timeline_id"])}`
+};
+
 export const deleteTimelineSpec: CapabilitySpec = {
   name: "delete_timeline",
   description:
@@ -541,5 +636,6 @@ export const timelinesSpecs: readonly CapabilitySpec[] = [
   validateTimelineSpec,
   setTimelineDocumentSpec,
   previewTimelineFrameSpec,
+  renderTimelineSpec,
   deleteTimelineSpec
 ];

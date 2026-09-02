@@ -435,6 +435,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-timeline-render.test.ts",
     ],
   },
   {
@@ -649,7 +650,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-jobs.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
+      "packages/agents/tests/capabilities-timeline-render.test.ts",
     ],
     evals: [
       {
@@ -1846,6 +1847,17 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
       "packages/agents/tests/capabilities-timeline-preview.test.ts",
+    ],
+  },
+  {
+    name: "render_timeline",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "01c53032ed38",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+      "packages/agents/tests/capabilities-timeline-render.test.ts",
     ],
   },
   {
