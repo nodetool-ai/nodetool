@@ -34,6 +34,7 @@ import {
   parseStaggerUnit,
   sampleAnimations
 } from "../animation/index.js";
+import { clipRemapSourceMs } from "../timeRemap.js";
 import type { ResolvedCaption, TextRenderStagger } from "./draw.js";
 import { countTextStaggerUnits, type RenderCanvas } from "./textLayout.js";
 import { buildTransformMatrix } from "./transform.js";
@@ -185,11 +186,17 @@ function resolveBlendMode(b: TimelineClip["blendMode"]): CompositorBlendMode {
  * (unless the speed change is already baked into the asset). Shared by the
  * live preview's seek scheduling and the renderer's deterministic seeking so
  * the same frame is shown in both.
+ *
+ * A clip carrying a `timeRemap` reads its source position off that curve
+ * instead (D13): the keyframes name absolute source milliseconds, so neither
+ * the rate nor the in-point applies on top of them.
  */
 export function clipSourceTimeSec(
   clip: TimelineClip,
   currentTimeMs: number
 ): number {
+  const remapped = clipRemapSourceMs(clip, currentTimeMs);
+  if (remapped !== null) return Math.max(0, remapped / 1000);
   const rate = clip.speedBaked
     ? 1
     : Math.max(0.0001, clip.speedMultiplier ?? 1);

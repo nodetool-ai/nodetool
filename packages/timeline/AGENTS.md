@@ -16,6 +16,19 @@
 - **An inverse op must use the same rate-aware quantity the forward op wrote.**
   Merge undoing split compares `outPointMs ?? (inPointMs + durationMs)` for
   contiguity — the `+ durationMs` reconstruction is only correct at 1× speed.
+- **A `timeRemap` replaces the rate, it does not scale it** (`timeRemap.ts`,
+  D13). Its keyframes name absolute source milliseconds against a `t`
+  normalized over the clip's own window, so neither `speedMultiplier` nor
+  `inPointMs` applies on top; `clipSourceTimeSec` asks `clipRemapSourceMs`
+  first and falls back to `sourceRate` only when there is no curve. The
+  interpolation is `evalCurve`'s — the segment is eased by its *ending*
+  keyframe and held flat past both ends — so one keyframe is a freeze frame
+  and the easing grammar is the one the rest of the document speaks.
+- **Split and trim refuse a remapped clip** (`assertNotTimeRemapped`). The
+  curve is normalized over the window, so changing the window retimes every
+  frame the clip shows, including the ones the edit did not touch. The refusal
+  is the contract: there is no `bakeTimeRemap` in this build, and the message
+  names `bake_time_remap` for the caller.
 
 ## Splitting / cloning entities
 

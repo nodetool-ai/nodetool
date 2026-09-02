@@ -1,4 +1,5 @@
 import { sourceRate } from "./sourceRate.js";
+import { assertNotTimeRemapped } from "./timeRemap.js";
 import type { TimelineClip } from "./types.js";
 
 export function trimClip(
@@ -7,6 +8,10 @@ export function trimClip(
   deltaMs: number,
   maxDurationMs?: number
 ): TimelineClip {
+  // A remap is a curve over this clip's window; moving an edge renormalizes it
+  // and retimes every frame, including the ones the trim did not touch (D13).
+  assertNotTimeRemapped(clip, "trimClip");
+
   const rate = sourceRate(clip);
   const inPointMs = clip.inPointMs ?? 0;
   const outPointMs = clip.outPointMs ?? inPointMs + clip.durationMs * rate;

@@ -17,6 +17,7 @@ import type {
   FrameSample,
   RasterContext2D
 } from "@nodetool-ai/timeline/render";
+import { hasTimeRemap } from "@nodetool-ai/timeline";
 import {
   HeadlessFrameCompositor,
   clipSourceTimeSec,
@@ -34,11 +35,11 @@ import {
   decodeImageRgba,
   fitWithin,
   openFrameEncoder,
+  openSourceFrameStream,
   openVideoFrameStream,
   probeVideoSize,
   type FrameEncoder,
-  type RawImage,
-  type VideoFrameStream
+  type RawImage
 } from "./rawFrames.js";
 import { openPngSequenceEncoder } from "./pngSequence.js";
 import {
@@ -104,10 +105,25 @@ async function acquireDevice(): Promise<GPUDevice> {
   }
 }
 
-/** Per-clip decode state, opened on first use and closed when the clip ends. */
+/** One clip's decoded frame at a timeline instant, with a cache key for it. */
+interface ClipFrame {
+  rgba: Uint8Array;
+  /** Identifies these pixels to the compositor's texture cache. */
+  version: string;
+}
+
+/**
+ * Per-clip decode state, opened on first use and closed when the clip ends.
+ *
+ * `frameAt` takes a timeline time rather than a frame index because a clip's
+ * source position is not always linear in it: a `timeRemap` makes it a curve,
+ * which the source-addressed stream serves and the index-addressed one cannot.
+ */
 interface ClipVideoSource {
-  stream: VideoFrameStream;
-  /** Frames already consumed — a stream only moves forward. */
+  width: number;
+  height: number;
+  frameAt(timeMs: number): Promise<ClipFrame | null>;
+  close(): void;
   endMs: number;
 }
 
@@ -188,28 +204,70 @@ export async function renderTimelineComposited(
   const videoFor = async (
     clip: TimelineClip,
     assetId: string
-  ): Promise<VideoFrameStream | null> => {
+  ): Promise<ClipVideoSource | null> => {
     const existing = videoSources.get(clip.id);
-    if (existing) return existing.stream;
+    if (existing) return existing;
     const file = await pathFor(assetId);
     if (!file) return null;
     const size = await probeVideoSize(file);
     if (!size) return null;
-    const stream = openVideoFrameStream({
-      filePath: file,
-      size: fitWithin(size, canvas),
-      fps,
-      // `clipSourceTimeSec` at the clip's own start is its in point, expressed
-      // the same way the preview seeks — so the first decoded frame is the
-      // frame the preview shows at the cut.
-      startSec: clipSourceTimeSec(clip, clip.startMs),
-      speed: clip.speedBaked ? 1 : Math.max(0.0001, clip.speedMultiplier ?? 1)
-    });
-    videoSources.set(clip.id, {
-      stream,
-      endMs: clip.startMs + clip.durationMs
-    });
-    return stream;
+    const decodeSize = fitWithin(size, canvas);
+    // `clipSourceTimeSec` at the clip's own start is its in point — or, for a
+    // remapped clip, its curve's first source position — expressed the same way
+    // the preview seeks, so the first decoded frame is the frame the preview
+    // shows at the cut.
+    const startSec = clipSourceTimeSec(clip, clip.startMs);
+    const endMs = clip.startMs + clip.durationMs;
+    let source: ClipVideoSource;
+    if (hasTimeRemap(clip)) {
+      // A curve can hold, revisit or reverse through the source, which a
+      // forward-only stream cannot serve; this one reopens ffmpeg to seek back.
+      const stream = openSourceFrameStream({
+        filePath: file,
+        size: decodeSize,
+        fps,
+        startSec
+      });
+      source = {
+        width: stream.width,
+        height: stream.height,
+        endMs,
+        async frameAt(timeMs: number): Promise<ClipFrame | null> {
+          const sourceSec = clipSourceTimeSec(clip, timeMs);
+          const rgba = await stream.frameAtSourceSec(sourceSec);
+          if (!rgba) return null;
+          // Keyed on the source instant, not the timeline one: a hold shows the
+          // same pixels at many timeline frames and should upload once.
+          return { rgba, version: `${clip.id}@${Math.round(sourceSec * fps)}` };
+        },
+        close: () => stream.close()
+      };
+    } else {
+      const stream = openVideoFrameStream({
+        filePath: file,
+        size: decodeSize,
+        fps,
+        startSec,
+        speed: clip.speedBaked ? 1 : Math.max(0.0001, clip.speedMultiplier ?? 1)
+      });
+      source = {
+        width: stream.width,
+        height: stream.height,
+        endMs,
+        async frameAt(timeMs: number): Promise<ClipFrame | null> {
+          const index = Math.max(
+            0,
+            Math.round(((timeMs - clip.startMs) * fps) / 1000)
+          );
+          const rgba = await stream.frameAt(index);
+          if (!rgba) return null;
+          return { rgba, version: `${clip.id}:${index}` };
+        },
+        close: () => stream.close()
+      };
+    }
+    videoSources.set(clip.id, source);
+    return source;
   };
 
   try {
@@ -322,20 +380,16 @@ export async function renderTimelineComposited(
             skippedClips.add(layer.clip.name);
             return null;
           }
-          const index = Math.max(
-            0,
-            Math.round(((timeMs - layer.clip.startMs) * fps) / 1000)
-          );
-          const rgba = await stream.frameAt(index);
-          if (!rgba) return null;
+          const decoded = await stream.frameAt(timeMs);
+          if (!decoded) return null;
           return finish({
             ...common,
             id: id("v"),
             source: {
-              rgba,
+              rgba: decoded.rgba,
               width: stream.width,
               height: stream.height,
-              version: `${layer.clipId}:${index}`
+              version: decoded.version
             }
           });
         }
@@ -389,7 +443,7 @@ export async function renderTimelineComposited(
 
       for (const [clipId, source] of videoSources) {
         if (source.endMs < timeMs) {
-          source.stream.close();
+          source.close();
           videoSources.delete(clipId);
         }
       }
@@ -414,7 +468,7 @@ export async function renderTimelineComposited(
     encoder.abort();
     throw error;
   } finally {
-    for (const source of videoSources.values()) source.stream.close();
+    for (const source of videoSources.values()) source.close();
     compositor.dispose();
   }
 }

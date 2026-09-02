@@ -232,6 +232,82 @@ export function openVideoFrameStream(
 }
 
 /**
+ * A clip's frames addressed by absolute source time rather than by frame index.
+ *
+ * The forward-only stream above is enough while a clip consumes its source at a
+ * constant rate: decoded frame *k* is the frame the timeline wants at clip
+ * frame *k*. A time remap breaks that — the source position is a curve, and a
+ * reverse curve walks it backwards — so this holds one forward-only decode and
+ * reopens it whenever the asked-for source time is behind where the decode has
+ * reached. Correct, and slow in exactly the case that earns it: a descending
+ * curve reopens ffmpeg once per frame.
+ */
+export interface SourceFrameStream extends RawSize {
+  /** The frame at absolute source time `sec`, or `null` past the media's end. */
+  frameAtSourceSec(sec: number): Promise<Uint8Array | null>;
+  /** Backwards seeks served so far, i.e. how many decodes were reopened. */
+  readonly reopens: number;
+  close(): void;
+}
+
+/**
+ * Open a source-time-addressed decode of `filePath`, sampling the source on a
+ * `1/fps` grid starting at `startSec`.
+ *
+ * The underlying decode always runs at the source's own rate (`speed: 1`): the
+ * remap curve, not `setpts`, decides which source instant a timeline frame
+ * shows.
+ */
+export function openSourceFrameStream(opts: {
+  filePath: string;
+  size: RawSize;
+  fps: number;
+  startSec: number;
+}): SourceFrameStream {
+  const { filePath, size, fps } = opts;
+  let originSec = Math.max(0, opts.startSec);
+  let reopens = 0;
+  let stream = openVideoFrameStream({
+    filePath,
+    size,
+    fps,
+    startSec: originSec,
+    speed: 1
+  });
+
+  return {
+    width: size.width,
+    height: size.height,
+    get reopens(): number {
+      return reopens;
+    },
+    async frameAtSourceSec(sec: number): Promise<Uint8Array | null> {
+      const target = Math.max(0, sec);
+      let index = Math.round((target - originSec) * fps);
+      if (index < 0) {
+        // Behind the decode. ffmpeg streams forward only, so the only way back
+        // is a new process seeked to the frame we now want.
+        stream.close();
+        originSec = target;
+        stream = openVideoFrameStream({
+          filePath,
+          size,
+          fps,
+          startSec: originSec,
+          speed: 1
+        });
+        reopens += 1;
+        index = 0;
+      }
+      return stream.frameAt(index);
+    },
+    close(): void {
+      stream.close();
+    }
+  };
+}
+
+/**
  * Pull exact-size frames out of a byte stream, with the read-ahead bounded by
  * pausing the stream — a 1080p frame is 8 MB, so an unbounded buffer would let
  * a fast decoder outrun the compositor into gigabytes of RAM.

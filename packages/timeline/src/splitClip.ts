@@ -1,5 +1,6 @@
 import { createTimeOrderedUuid } from "./defaults.js";
 import { sourceRate } from "./sourceRate.js";
+import { assertNotTimeRemapped } from "./timeRemap.js";
 import type { ClipAnimation } from "./animation/types.js";
 import type { CaptionWord, TimelineClip } from "./types.js";
 
@@ -65,6 +66,10 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
       "splitClip cannot split a group — split the clips inside it instead"
     );
   }
+
+  // A remap is a curve over this clip's window; two windows would resample it
+  // and move every frame both halves show (D13).
+  assertNotTimeRemapped(clip, "splitClip");
 
   const clipEndMs = clip.startMs + clip.durationMs;
   if (atMs <= clip.startMs || atMs >= clipEndMs) {

@@ -16,6 +16,7 @@ export * from "./group.js";
 export * from "./splitClip.js";
 export * from "./trimClip.js";
 export * from "./sourceRate.js";
+export * from "./timeRemap.js";
 export * from "./snap.js";
 export * from "./staleSet.js";
 export * from "./subtitles.js";
