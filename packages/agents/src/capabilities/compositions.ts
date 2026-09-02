@@ -361,6 +361,12 @@ const saveComposition: CapabilityExport = {
 
     const { extractComposition } = await import("@nodetool-ai/timeline");
     let composition: TimelineComposition;
+    const extractOptions: { name: string; description?: string } = {
+      name: name.trim()
+    };
+    if (isString(params["description"])) {
+      extractOptions.description = params["description"];
+    }
     try {
       composition = extractComposition(
         // SAFETY: the clips came out of the stored document, which the
@@ -371,12 +377,7 @@ const saveComposition: CapabilityExport = {
         // SAFETY: the parameter bag is the caller's, and extractComposition
         // checks every declared type and pointer before it returns.
         rawParams as never,
-        {
-          name: name.trim(),
-          ...(isString(params["description"])
-            ? { description: params["description"] }
-            : {})
-        }
+        extractOptions
       );
     } catch (error) {
       return { error: error instanceof Error ? error.message : String(error) };
@@ -408,15 +409,16 @@ const saveComposition: CapabilityExport = {
     if (!asset) {
       return { error: `Composition asset ${assetId} was not readable.` };
     }
+    const marker: { name: string; description?: string; param_names: string[] } = {
+      name: composition.name,
+      param_names: Object.keys(composition.params ?? {})
+    };
+    if (composition.description !== undefined) {
+      marker.description = composition.description;
+    }
     asset.metadata = {
       ...(asset.metadata ?? {}),
-      [COMPOSITION_METADATA_KEY]: {
-        name: composition.name,
-        ...(composition.description !== undefined
-          ? { description: composition.description }
-          : {}),
-        param_names: Object.keys(composition.params ?? {})
-      }
+      [COMPOSITION_METADATA_KEY]: marker
     };
     await asset.save();
 

@@ -78,31 +78,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 /**
- * Read a pointer's target, or `undefined` when any segment on the way is
- * absent. `undefined` is also what a present-but-unset field reads as, which is
- * why {@link resolveCompositionPointer} is what refusal is decided on.
- */
-export function readCompositionPointer(
-  children: readonly TimelineClip[],
-  pointer: string
-): unknown {
-  let cursor: unknown = children;
-  for (const segment of pointerSegments(pointer)) {
-    if (Array.isArray(cursor)) {
-      const index = Number(segment);
-      if (!Number.isInteger(index) || index < 0 || index >= cursor.length) {
-        return undefined;
-      }
-      cursor = cursor[index];
-      continue;
-    }
-    if (!isRecord(cursor)) return undefined;
-    cursor = cursor[segment];
-  }
-  return cursor;
-}
-
-/**
  * Walk a pointer to its parent container and report the leaf key, or null when
  * the container does not exist. A pointer whose container is missing addresses
  * nothing at all, which is the failure a caller has to be told about — a
