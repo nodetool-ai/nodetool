@@ -1,6 +1,6 @@
 # Motion Graphics — Technical Design
 
-Status: proposed.
+Status: implemented.
 Companion doc: [motion-graphics-tasks.md](motion-graphics-tasks.md) (the
 agent-consumable task list, sequencing, and acceptance criteria).
 Predecessors: [motion-design.md](motion-design.md) (preset animation engine,

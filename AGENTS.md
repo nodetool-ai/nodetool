@@ -1575,6 +1575,22 @@ every still and clip it names is on disk, and
 `scripts/verify-backend-bundle.mjs` checks the same files were staged into the
 packaged bundle.
 
+### Shipped compositions
+
+A composition is a group clip with parameters, stored as a JSON asset carrying
+`metadata.nodetool_composition` the way entities carry their marker. Six ship
+with the product in `packages/base-nodes/nodetool/examples/compositions/`
+(title card, lower third, caption bar, callout, end card, logo sting), built
+from the spec in `scripts/example-compositions/compositions.mjs` by
+`node scripts/build-example-compositions.mjs` (`--check` fails when a bundle
+drifts from its spec). The directory is registered in
+`PACKAGE_RUNTIME_ASSETS`, so the backend bundle stages it and the verifier
+checks it. Agents reach them through `list_compositions`, `get_composition`,
+`save_composition` (extract a group from a saved timeline), `delete_composition`
+and the `edit_timeline` op `insert_composition`; the pure
+`instantiateComposition`/`extractComposition` live in
+`packages/timeline/src/composition.ts`.
+
 ### 3D scene tools (no editor, no browser)
 
 An agent builds and fixes a 3D model without an editor open:
