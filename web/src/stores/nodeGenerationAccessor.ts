@@ -2,6 +2,7 @@ import useResultsStore from "./ResultsStore";
 import { useWorkflowAssetStore } from "./WorkflowAssetStore";
 import {
   assetToGeneration,
+  assetsForNode,
   mergeGenerations,
   selectedOutputValues,
   type Generation
@@ -16,10 +17,10 @@ export const getNodeGenerations = (
   workflowId: string,
   nodeId: string
 ): Generation[] => {
-  const assets = useWorkflowAssetStore
-    .getState()
-    .getWorkflowAssets(workflowId)
-    .filter((a) => a.node_id === nodeId);
+  const assets = assetsForNode(
+    useWorkflowAssetStore.getState().getWorkflowAssets(workflowId),
+    nodeId
+  );
   const persisted = assets.map(assetToGeneration);
   const live = useResultsStore
     .getState()

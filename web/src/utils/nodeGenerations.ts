@@ -150,6 +150,41 @@ export const assetToGeneration = (asset: Asset): Generation => ({
   assetId: asset.id
 });
 
+const EMPTY_NODE_ASSETS: Asset[] = [];
+const assetsByNodeCache = new WeakMap<readonly Asset[], Map<string, Asset[]>>();
+
+/**
+ * The assets `nodeId` produced, in list order. The returned array is shared —
+ * treat it as read-only.
+ *
+ * Every node on the canvas resolves its own generation timeline from the
+ * workflow's single asset array, and `useNodeInputValues` resolves one per
+ * upstream edge, so a scan per lookup cost O(nodes × edges × assets) whenever
+ * that array was replaced. The index is built once per array and cached on its
+ * identity, which is exactly how often the store swaps it.
+ */
+export const assetsForNode = (
+  assets: readonly Asset[],
+  nodeId: string
+): Asset[] => {
+  let index = assetsByNodeCache.get(assets);
+  if (!index) {
+    index = new Map<string, Asset[]>();
+    for (const asset of assets) {
+      const owner = asset.node_id;
+      if (!owner) continue;
+      const existing = index.get(owner);
+      if (existing) {
+        existing.push(asset);
+      } else {
+        index.set(owner, [asset]);
+      }
+    }
+    assetsByNodeCache.set(assets, index);
+  }
+  return index.get(nodeId) ?? EMPTY_NODE_ASSETS;
+};
+
 /**
  * Recover a live generation's per-job variant index from its id. ResultsStore
  * mints live ids as `index === 0 ? jobId : `${jobId}#${index}`` — so id === jobId
