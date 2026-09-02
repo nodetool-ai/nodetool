@@ -422,17 +422,28 @@ describe("timelines capability behaviour", () => {
     expect(result.ops[0].error).toContain("No timeline operation named");
   });
 
-  it("validates an inline document and says so without a loader", async () => {
+  it("validates an inline document, and a saved one without a loader", async () => {
     const inline = (await run().invoke("validate_timeline", {
       document: JSON.parse(document())
     })) as { summary: string; errors: unknown[] };
     expect(inline.summary).toBe("No issues found.");
 
-    const noLoader = (await run().invoke("validate_timeline", {
+    // Without an injected loader the row is read the way every other
+    // capability in the module reads it, so the chat belt — which injects
+    // none — can check the sequence it just edited.
+    const row = await makeTimeline();
+    const saved = (await run().invoke("validate_timeline", {
+      timeline_id: row.id
+    })) as { summary: string; timeline_id: string; error?: string };
+    expect(saved.error).toBeUndefined();
+    expect(saved.timeline_id).toBe(row.id);
+    expect(saved.summary).toBe("No issues found.");
+
+    const missing = (await run().invoke("validate_timeline", {
       timeline_id: "t1"
     })) as { error: string; validated: boolean };
-    expect(noLoader.validated).toBe(false);
-    expect(noLoader.error).toContain("no timeline loader is available");
+    expect(missing.validated).toBe(false);
+    expect(missing.error).toContain("was not found");
   });
 
   it("reads a saved sequence through the run's loader", async () => {

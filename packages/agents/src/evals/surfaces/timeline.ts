@@ -260,6 +260,14 @@ export interface TimelineBridgeInitialState {
    * catalogue as a verb nothing can call.
    */
   preview?: boolean;
+  /**
+   * The id `ui_timeline_get_state` reports. `edit_timeline` builds this bridge
+   * against a real row and passes that row's id, because an agent reads the id
+   * out of the state it just fetched and uses it in the next call — the eval
+   * placeholder went out to real callers as the id of a sequence that does not
+   * exist.
+   */
+  sequenceId?: string;
   tracks?: { name?: string; type: "video" | "audio" | "overlay" | "subtitle" }[];
   clips?: {
     name: string;
@@ -447,6 +455,7 @@ export function createTimelineToolBridge(
   const resolveAsset = initial.resolveAsset;
   const bakeAnimation = initial.bakeAnimation;
   const loadComposition = initial.loadComposition;
+  const sequenceId = initial.sequenceId ?? "seq_eval";
   const fps = seed?.fps ?? initial.fps ?? 30;
   const width = seed?.width ?? initial.width ?? 1920;
   const height = seed?.height ?? initial.height ?? 1080;
@@ -804,7 +813,7 @@ export function createTimelineToolBridge(
         );
         return {
           ok: true,
-          sequenceId: "seq_eval",
+          sequenceId,
           fps,
           width,
           height,

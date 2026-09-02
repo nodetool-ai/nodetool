@@ -83,6 +83,32 @@ describe("timeline version tools", () => {
     expect(permissionCategoryFor("delete_timeline_version")).toBe("write");
   });
 
+  /**
+   * `validate_timeline` used to refuse the `timeline_id` path unless the host
+   * put a loader on the run, so a belt that could edit a sequence could not
+   * check the edit. Every other capability in the module reads the row
+   * directly; this one does too when no loader is injected.
+   */
+  it("validates a saved timeline without an injected loader", async () => {
+    const row = await makeTimeline();
+    const report = (await toolForCapabilityName("validate_timeline").process(
+      ctx(),
+      { timeline_id: row.id }
+    )) as { timeline_id?: string; errors?: unknown[]; error?: string };
+    expect(report.error).toBeUndefined();
+    expect(report.timeline_id).toBe(row.id);
+    expect(report.errors).toEqual([]);
+  });
+
+  it("hides another user's timeline from validate_timeline", async () => {
+    const row = await makeTimeline();
+    const report = (await toolForCapabilityName("validate_timeline").process(
+      ctx("other"),
+      { timeline_id: row.id }
+    )) as { error?: string };
+    expect(report.error).toContain("was not found");
+  });
+
   it("lists the caller's timelines and filters by name", async () => {
     const trailer = await makeTimeline();
     await makeTimeline({ name: "Behind the scenes" });

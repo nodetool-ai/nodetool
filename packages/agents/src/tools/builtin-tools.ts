@@ -112,6 +112,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "restore_sketch_version",
   "delete_sketch_version",
   "edit_sketch",
+  "validate_sketch",
 
   // Timeline snapshot history (find a cut, pin a state, roll one back)
   "list_timelines",
@@ -123,6 +124,17 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "restore_timeline_version",
   "delete_timeline_version",
   "edit_timeline",
+  "set_timeline_document",
+  "validate_timeline",
+
+  // Look at the cut without an editor, a browser or a GPU: the composited
+  // frame at a timecode, and the pixel difference between two versions of a
+  // sequence. Both composite in-process off `@nodetool-ai/timeline`, so a
+  // ProcessingContext is the whole dependency. `render_timeline` is the one
+  // that is not here — it runs a workflow and so needs the node registry, and
+  // is assembled beside the other run tools in `getAllMcpTools`.
+  "preview_timeline_frame",
+  "compare_timeline_frames",
 
   // Code-node authoring harness (validate → run → test a Code body)
   "validate_code",

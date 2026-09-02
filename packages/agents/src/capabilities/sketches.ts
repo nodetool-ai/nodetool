@@ -1112,9 +1112,11 @@ function parseStoredDocument(document: unknown): unknown {
 
 const validateSketch: CapabilityExport = {
   spec: validateSketchSpec,
-  // The sketch API is tRPC-only, so there is no REST route to fall back on: a
-  // host that wants the `image_document_id` path puts a loader on the run.
-  // Without one this still validates inline documents.
+  // The sketch API is tRPC-only, so there is no REST route to fall back on. A
+  // host may put a loader on the run — the MCP server does, to apply its own
+  // ownership rule — and without one the row is read the way every other
+  // capability in this module reads it. The "no loader" refusal this replaced
+  // meant a chat belt could edit a sketch it could not then validate.
   impl: async (run, params) => {
     const inline = params["document"];
     const sketchId = params["image_document_id"] as string | undefined;
@@ -1138,14 +1140,19 @@ const validateSketch: CapabilityExport = {
 
     if (document === undefined && sketchId) {
       const loadRow = run.loaders?.sketch;
-      if (!loadRow) {
-        return {
-          error:
-            "Cannot load a saved sketch in this process: no sketch loader is available. Pass the document inline as `document`, or call this tool from a server-side context.",
-          validated: false
-        };
-      }
-      const record = await loadRow(run.context, sketchId);
+      const record = loadRow
+        ? await loadRow(run.context, sketchId)
+        : await (async () => {
+            const doc = await loadSketch(run, sketchId);
+            if (isError(doc)) return null;
+            return {
+              document: doc.document,
+              width: doc.width,
+              height: doc.height,
+              backgroundColor: doc.background_color,
+              name: doc.name
+            };
+          })();
       if (!record) {
         return {
           error: `Sketch ${sketchId} was not found.`,

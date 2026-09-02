@@ -1221,14 +1221,20 @@ describe("validate_timeline", () => {
     expect(result.name).toBe("My sequence");
   });
 
-  it("reports an error when given an id but wired with no loader", async () => {
+  /**
+   * With no loader the row is read directly, so a host that injects none — the
+   * chat belt — still validates a saved sequence. This suite has no database,
+   * so the read finds nothing and the answer is the not-found one, never the
+   * "this process cannot load a timeline" refusal it used to be.
+   */
+  it("falls back to reading the row when wired with no loader", async () => {
     const tool = capTool("validate_timeline");
     const result = (await tool.process(ctx, { timeline_id: "seq-1" })) as {
       error: string;
       validated: boolean;
     };
 
-    expect(result.error).toContain("no timeline loader");
+    expect(result.error).toContain("was not found");
     expect(result.validated).toBe(false);
   });
 });
@@ -1336,7 +1342,8 @@ describe("validate_sketch", () => {
     expect(result.validated).toBe(false);
   });
 
-  it("reports an error when given an id but wired with no loader", async () => {
+  /** The sketch twin of the timeline fallback above. */
+  it("falls back to reading the row when wired with no loader", async () => {
     const tool = capTool("validate_sketch");
     const result = (await tool.process(ctx, {
       image_document_id: "img-1"
@@ -1345,7 +1352,7 @@ describe("validate_sketch", () => {
       validated: boolean;
     };
 
-    expect(result.error).toContain("no sketch loader");
+    expect(result.error).toContain("was not found");
     expect(result.validated).toBe(false);
   });
 

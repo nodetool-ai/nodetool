@@ -374,7 +374,7 @@ describe("sketches capability behaviour", () => {
     expect(result.ops[0].error).toContain("is not one the compositor ships");
   });
 
-  it("validates an inline document and says so without a loader", async () => {
+  it("validates an inline document, and a saved one without a loader", async () => {
     const inline = (await run().invoke("validate_sketch", {
       document: documentData(),
       width: 1024,
@@ -382,11 +382,21 @@ describe("sketches capability behaviour", () => {
     })) as { summary: string };
     expect(inline.summary).toBe("No issues found.");
 
-    const noLoader = (await run().invoke("validate_sketch", {
+    // Without an injected loader the row is read the way every other
+    // capability in the module reads it, so the chat belt — which injects
+    // none — can check the sketch it just edited.
+    const row = await makeSketch();
+    const saved = (await run().invoke("validate_sketch", {
+      image_document_id: row.id
+    })) as { summary: string; error?: string };
+    expect(saved.error).toBeUndefined();
+    expect(saved.summary).toBe("No issues found.");
+
+    const missing = (await run().invoke("validate_sketch", {
       image_document_id: "s1"
     })) as { error: string; validated: boolean };
-    expect(noLoader.validated).toBe(false);
-    expect(noLoader.error).toContain("no sketch loader is available");
+    expect(missing.validated).toBe(false);
+    expect(missing.error).toContain("was not found");
   });
 
   it("reads a saved sketch through the run's loader", async () => {

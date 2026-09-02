@@ -632,6 +632,7 @@ async function applyOps(
   const { createTimelineToolBridge } =
     await import("../evals/surfaces/timeline.js");
   const bridge = createTimelineToolBridge({
+    sequenceId: sequence.id,
     sequence: {
       fps: sequence.fps,
       width: sequence.width,
@@ -886,9 +887,11 @@ function parseStoredDocument(document: unknown): unknown {
 
 const validateTimeline: CapabilityExport = {
   spec: validateTimelineSpec,
-  // The timeline API is tRPC-only, so there is no REST route to fall back on:
-  // a host that wants the `timeline_id` path puts a loader on the run. Without
-  // one this still validates inline documents.
+  // The timeline API is tRPC-only, so there is no REST route to fall back on.
+  // A host may put a loader on the run — the MCP server does, to apply its own
+  // ownership rule — and without one the row is read the way every other
+  // capability in this module reads it. The "no loader" refusal this replaced
+  // meant a chat belt could edit a sequence it could not then validate.
   impl: async (run, params) => {
     const inline = params["document"];
     const timelineId = params["timeline_id"] as string | undefined;
@@ -905,14 +908,12 @@ const validateTimeline: CapabilityExport = {
 
     if (document === undefined && timelineId) {
       const loadRow = run.loaders?.timeline;
-      if (!loadRow) {
-        return {
-          error:
-            "Cannot load a saved timeline in this process: no timeline loader is available. Pass the document inline as `document`, or call this tool from a server-side context.",
-          validated: false
-        };
-      }
-      const record = await loadRow(run.context, timelineId);
+      const record = loadRow
+        ? await loadRow(run.context, timelineId)
+        : await (async () => {
+            const seq = await loadTimeline(run, timelineId);
+            return isError(seq) ? null : seq;
+          })();
       if (!record) {
         return {
           error: `Timeline ${timelineId} was not found.`,

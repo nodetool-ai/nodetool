@@ -234,6 +234,11 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     "get_example_workflow",
     "export_workflow_digraph",
     "start_background_job",
+    // The render runs as a workflow, so it needs the same environment the run
+    // tools do. Every other timeline capability is a built-in; this one cannot
+    // be, and a belt without it leaves the model authoring cuts it can never
+    // export.
+    "render_timeline",
     // apps — unlike the `ui_app_*` tools, these also work when the App
     // Builder is not already open in the browser. Keep the whole headless
     // app lifecycle on the chat belt so `nodetool.apps.*` never advertises a

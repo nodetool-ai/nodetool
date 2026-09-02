@@ -75,6 +75,31 @@ describe("sketch version tools", () => {
     expect(permissionCategoryFor("create_sketch")).toBe("write");
   });
 
+  /**
+   * `validate_sketch` used to refuse the `image_document_id` path unless the
+   * host put a loader on the run, so a belt that could edit a sketch could not
+   * check the edit. Every other capability in the module reads the row
+   * directly; this one does too when no loader is injected.
+   */
+  it("validates a saved sketch without an injected loader", async () => {
+    const row = await makeSketch();
+    const report = (await toolForCapabilityName("validate_sketch").process(
+      ctx(),
+      { image_document_id: row.id }
+    )) as { image_document_id?: string; errors?: unknown[]; error?: string };
+    expect(report.error).toBeUndefined();
+    expect(report.errors).toEqual([]);
+  });
+
+  it("hides another user's sketch from validate_sketch", async () => {
+    const row = await makeSketch();
+    const report = (await toolForCapabilityName("validate_sketch").process(
+      ctx("other"),
+      { image_document_id: row.id }
+    )) as { error?: string };
+    expect(report.error).toContain("was not found");
+  });
+
   it("lists the caller's sketches and filters by name", async () => {
     const poster = await makeSketch();
     await makeSketch({ name: "Storyboard frame" });
