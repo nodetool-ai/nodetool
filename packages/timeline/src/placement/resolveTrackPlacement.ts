@@ -42,8 +42,10 @@ function isMediaCompatible(
  * target.
  *
  * Performs hit-testing against `trackLayouts`, checks media-type
- * compatibility, detects overlaps with existing clips on the resolved
- * track, and clamps `startMs` to >= 0.
+ * compatibility, clamps `startMs` to >= 0, and detects overlaps with existing
+ * clips on the resolved track. Overlap is measured from the clamped `startMs`,
+ * because that is where the clip lands — a drag past the left edge would
+ * otherwise report the collisions of a footprint nothing occupies.
  *
  * Returns `null` when the pointer does not intersect any track layout.
  */
@@ -84,20 +86,21 @@ export function resolveTrackPlacement(
       : isMediaCompatible(mediaType, targetTrack.type);
 
   const overlappingClipIds: string[] = [];
-  const endMs = desiredStartMs + durationMs;
+  const startMs = Math.max(0, desiredStartMs);
+  const endMs = startMs + durationMs;
 
   for (const clip of clips) {
     if (clip.trackId !== targetTrack.id) continue;
     if (excludeClipIds?.has(clip.id)) continue;
     const clipEnd = clip.startMs + clip.durationMs;
-    if (desiredStartMs < clipEnd && endMs > clip.startMs) {
+    if (startMs < clipEnd && endMs > clip.startMs) {
       overlappingClipIds.push(clip.id);
     }
   }
 
   return {
     trackId: targetTrack.id,
-    startMs: Math.max(0, desiredStartMs),
+    startMs,
     wouldOverlap: overlappingClipIds.length > 0,
     overlappingClipIds,
     isCompatible,
