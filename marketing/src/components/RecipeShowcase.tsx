@@ -3,7 +3,6 @@ import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { recipeEntries, type RecipeEntry } from "../data/recipes";
 import { PROVIDER_DISPLAY } from "../data/providerDisplay";
-import RecipeDownloadButton from "./RecipeDownloadButton";
 
 /**
  * The jobs on the homepage: the four recipes, because each is a job with a
@@ -116,11 +115,6 @@ export default function RecipeShowcase() {
                   </div>
 
                   <div className="mt-6 flex flex-wrap items-center gap-4">
-                    <RecipeDownloadButton
-                      href={recipe.bundle}
-                      slug={recipe.slug}
-                      workflowCount={recipe.workflowCount}
-                    />
                     <a
                       href={recipe.route}
                       className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-300 transition-colors hover:text-amber-200 focus-ring"
