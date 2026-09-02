@@ -14,6 +14,7 @@ jest.mock("../../preview/gpu/createCompositor", () => ({
     compositor: {
       resize: jest.fn(),
       setReferenceSize: jest.fn(),
+      setAlpha: jest.fn(),
       setLayers: mockSetLayers,
       render: mockRender,
       flush: mockFlush,
@@ -166,5 +167,68 @@ describe("renderTimeline motion", () => {
     expect(mockFlush).toHaveBeenCalledTimes(3);
     expect(mockCloseVideo).toHaveBeenCalled();
     expect(mockDispose).toHaveBeenCalled();
+  });
+
+  it("composites one instant per sample when motion blur is on", async () => {
+    const track = makeTrack({ id: "titles", type: "overlay", index: 0 });
+    const clip = makeClip({
+      id: "title",
+      trackId: track.id,
+      name: "Motion title",
+      mediaType: "text",
+      sourceType: "imported",
+      status: "generated",
+      startMs: 0,
+      durationMs: 1500,
+      textStyle: { text: "Move", fontSizePx: 96, color: "#ffffff" },
+      animations: [
+        {
+          id: "slide-in",
+          role: "in",
+          preset: "slide",
+          durationMs: 1000,
+          easing: "linear",
+          params: { direction: "left", distance: 0.25 }
+        }
+      ]
+    });
+
+    const samplesPerFrame = 4;
+    await renderTimeline({
+      tracks: [track],
+      clips: [clip],
+      width: 1920,
+      height: 1080,
+      fps: 2,
+      durationMs: 1500,
+      resolveUrl: jest.fn().mockResolvedValue(undefined),
+      motionBlur: { samplesPerFrame, shutterAngle: 180 }
+    });
+
+    // Three frames, four instants each — and still three encoded frames, since
+    // the samples are averaged rather than emitted.
+    expect(mockSetLayers).toHaveBeenCalledTimes(3 * samplesPerFrame);
+    expect(mockAddFrame).toHaveBeenCalledTimes(3);
+
+    // At 2fps a frame is 500ms and a 180-degree shutter is open for 250 of
+    // them, so the four instants sit at the midpoints of that window's
+    // quarters: 31.25ms, 93.75ms, 156.25ms and 218.75ms into the frame.
+    const cache = createAnimationCompileCache();
+    const baseLayer = {
+      clip,
+      transform: clip.transform,
+      opacity: clip.opacity ?? 1
+    };
+    [31.25, 93.75, 156.25, 218.75].forEach((timeMs, index) => {
+      const expected = resolveAnimatedLayerProps(
+        baseLayer,
+        timeMs,
+        { width: 1920, height: 1080 },
+        cache
+      );
+      expect(mockSetLayers.mock.calls[index][0][0]).toEqual(
+        expect.objectContaining({ transform: expected.transform })
+      );
+    });
   });
 });

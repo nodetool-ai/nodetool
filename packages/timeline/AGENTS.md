@@ -63,6 +63,16 @@
   and draws (`packages/agents`) imports `./scene`; a caller that wants the GPU
   compositor imports `./render`. Both re-export the same modules, so the paths
   cannot drift.
+- **A frame's shutter window is decided in one place.** Motion blur is N
+  sub-frame instants averaged (D10), and every surface asks
+  `motionBlurSampleTimes` for those instants — the browser export, the server
+  render and the agent frame preview. A host that computed its own offsets
+  would blur a cut differently from the preview the user approved. One sample
+  returns the frame's own time, so a render with blur off is byte-identical to
+  the render it was before blur existed. The Canvas 2D accumulation is
+  `accumulateBlurSample` (`lighter` at 1/N — a sum, not a fade); the GPU one is
+  `HeadlessFrameCompositor.renderFrameSamples`, which folds premultiplied
+  samples into an `rgba16float` texture and un-premultiplies once at the end.
 - **Never read a WebGPU flag namespace (`GPUTextureUsage`, `GPUShaderStage`) at
   module scope.** Under Node those globals only exist after the Dawn adapter
   installs them with the device, so a module-scope read throws on import.

@@ -62,6 +62,10 @@ import {
 } from "./timeline/outputFormats.js";
 import { ffmpegHasEncoder } from "./timeline/rawFrames.js";
 import {
+  DEFAULT_SHUTTER_ANGLE,
+  MAX_MOTION_BLUR_SAMPLES
+} from "@nodetool-ai/timeline/render";
+import {
   isNonEmptyString,
   isNumber,
   isPositiveNumber,
@@ -671,6 +675,32 @@ export class RenderTimelineNode extends BaseNode {
 
   @prop({
     type: "int",
+    default: 1,
+    title: "Motion blur samples",
+    description:
+      "Average this many sub-frame instants into every frame, so fast motion " +
+      "smears instead of strobing. 1 is off. Each extra sample costs another " +
+      "full render pass.",
+    min: 1,
+    max: MAX_MOTION_BLUR_SAMPLES
+  })
+  declare motion_blur_samples: number;
+
+  @prop({
+    type: "float",
+    default: DEFAULT_SHUTTER_ANGLE,
+    title: "Shutter angle",
+    description:
+      "How far the shutter opens, in degrees of one frame. 180 is the film " +
+      "convention (open for half the frame); 360 smears across the whole " +
+      "frame. Ignored unless motion blur samples is above 1.",
+    min: 0,
+    max: 360
+  })
+  declare shutter_angle: number;
+
+  @prop({
+    type: "int",
     default: 0,
     title: "Bitrate",
     description:
@@ -707,7 +737,9 @@ export class RenderTimelineNode extends BaseNode {
       format: this.format,
       alpha: this.alpha === true,
       videoCodec: this.video_codec,
-      bitrate: this.bitrate
+      bitrate: this.bitrate,
+      motionBlurSamples: this.motion_blur_samples,
+      shutterAngle: this.shutter_angle
     });
     await this.assertEncoderAvailable(output);
 

@@ -9,6 +9,11 @@
  * handed back as if it had worked.
  */
 
+import {
+  resolveMotionBlur,
+  type ResolvedMotionBlur
+} from "@nodetool-ai/timeline/render";
+
 /** Containers `RenderTimeline` can write. */
 export const TIMELINE_OUTPUT_FORMATS = [
   "mp4",
@@ -57,6 +62,11 @@ export class MissingEncoderError extends Error {
 
 /** Everything downstream of the format choice, resolved once. */
 export interface ResolvedTimelineOutput {
+  /**
+   * Motion blur for this render, already clamped (D10). One sample is blur off,
+   * which is what a request that names neither field resolves to.
+   */
+  motionBlur: ResolvedMotionBlur;
   format: TimelineOutputFormat;
   /** Whether the frames are composited over a transparent ground. */
   alpha: boolean;
@@ -77,6 +87,13 @@ export interface ResolvedTimelineOutput {
 
 export interface TimelineOutputRequest {
   format?: string | null;
+  /**
+   * Sub-frame instants to average into each frame, and how far the shutter
+   * opens in degrees of the frame. Out-of-range values clamp rather than
+   * refusing the render; absent is blur off.
+   */
+  motionBlurSamples?: number | null;
+  shutterAngle?: number | null;
   alpha?: boolean;
   /** Override the container's default video encoder. */
   videoCodec?: string | null;
@@ -111,6 +128,10 @@ export function resolveTimelineOutput(
 ): ResolvedTimelineOutput {
   const format = parseOutputFormat(request.format);
   const alpha = request.alpha === true;
+  const motionBlur = resolveMotionBlur({
+    samplesPerFrame: request.motionBlurSamples ?? undefined,
+    shutterAngle: request.shutterAngle ?? undefined
+  });
   if (alpha && !ALPHA_OUTPUT_FORMATS.includes(format)) {
     throw new AlphaFormatError(format);
   }
@@ -125,6 +146,7 @@ export function resolveTimelineOutput(
     return {
       format,
       alpha,
+      motionBlur,
       extension: "zip",
       mimeType: "application/zip",
       encoderArgs: [],
@@ -137,6 +159,7 @@ export function resolveTimelineOutput(
     return {
       format,
       alpha,
+      motionBlur,
       extension: "webm",
       mimeType: "video/webm",
       encoderArgs: [
@@ -156,6 +179,7 @@ export function resolveTimelineOutput(
     return {
       format,
       alpha,
+      motionBlur,
       extension: "mov",
       mimeType: "video/quicktime",
       encoderArgs: [
@@ -176,6 +200,7 @@ export function resolveTimelineOutput(
   return {
     format,
     alpha: false,
+    motionBlur,
     extension: "mp4",
     mimeType: "video/mp4",
     encoderArgs: [

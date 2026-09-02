@@ -14,6 +14,7 @@ import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
 import type {
   FrameLayer,
   FramePrecomposite,
+  FrameSample,
   RasterContext2D
 } from "@nodetool-ai/timeline/render";
 import {
@@ -22,6 +23,7 @@ import {
   computeActiveLayersWithHorizon,
   createAnimationCompileCache,
   measureTextWith,
+  motionBlurSampleTimes,
   resolveAnimatedLayerProps,
   resolveTextStaggerContext,
   trackZ
@@ -118,6 +120,11 @@ export async function renderTimelineComposited(
   const width = Math.max(2, Math.floor(opts.width / 2) * 2);
   const height = Math.max(2, Math.floor(opts.height / 2) * 2);
   const totalFrames = Math.max(1, Math.round((durationMs / 1000) * fps));
+  const frameMs = 1000 / fps;
+  // Resolved with the format rather than passed separately, so one object
+  // carries every render choice. N samples cost N× this render — every layer
+  // is decoded, rasterized and composited once per sample.
+  const motionBlur = output.motionBlur;
   const canvas = {
     width,
     height,
@@ -206,17 +213,14 @@ export async function renderTimelineComposited(
   };
 
   try {
-    for (let frame = 0; frame < totalFrames; frame++) {
-      if (signal?.aborted) throw abortError();
-      const timeMs = (frame * 1000) / fps;
-
-      for (const [clipId, source] of videoSources) {
-        if (source.endMs < timeMs) {
-          source.stream.close();
-          videoSources.delete(clipId);
-        }
-      }
-
+    /**
+     * The scene at one instant, as something the compositor can composite.
+     *
+     * One call is a whole frame with motion blur off, and one sample of the
+     * shutter window with it on — the layers are resolved the same way either
+     * way, so a blurred render is N of the render it would otherwise have been.
+     */
+    const sampleAt = async (timeMs: number): Promise<FrameSample> => {
       const layers: FrameLayer[] = [];
       const { layers: active, precomposites } = computeActiveLayersWithHorizon(
         sequence.tracks,
@@ -364,21 +368,42 @@ export async function renderTimelineComposited(
         layers.push(built);
       }
 
-      await encoder.write(
-        await compositor.renderFrame(
-          layers,
-          precomposites.map(
-            (group): FramePrecomposite => ({
-              id: group.clipId,
-              zIndex: trackZ(group.trackIndex),
-              opacity: group.opacity,
-              blendMode: group.blendMode,
-              effects: group.effects,
-              precomposeGroupId: group.precomposeGroupId
-            })
-          ),
-          { alpha: output.alpha }
+      return {
+        layers,
+        precomposites: precomposites.map(
+          (group): FramePrecomposite => ({
+            id: group.clipId,
+            zIndex: trackZ(group.trackIndex),
+            opacity: group.opacity,
+            blendMode: group.blendMode,
+            effects: group.effects,
+            precomposeGroupId: group.precomposeGroupId
+          })
         )
+      };
+    };
+
+    for (let frame = 0; frame < totalFrames; frame++) {
+      if (signal?.aborted) throw abortError();
+      const timeMs = (frame * 1000) / fps;
+
+      for (const [clipId, source] of videoSources) {
+        if (source.endMs < timeMs) {
+          source.stream.close();
+          videoSources.delete(clipId);
+        }
+      }
+
+      const samples: FrameSample[] = [];
+      // Sequential, not concurrent: a clip's frames come off one forward-only
+      // ffmpeg stream, so two samples decoding at once would race for it.
+      const sampleTimes = motionBlurSampleTimes(timeMs, frameMs, motionBlur);
+      for (const sampleMs of sampleTimes) {
+        samples.push(await sampleAt(sampleMs));
+      }
+
+      await encoder.write(
+        await compositor.renderFrameSamples(samples, { alpha: output.alpha })
       );
       opts.onProgress?.(frame + 1, totalFrames);
     }

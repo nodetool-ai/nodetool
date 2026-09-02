@@ -18,6 +18,8 @@ const outputFormats: string[] = [];
 const videoConfigs: Array<Record<string, unknown>> = [];
 const audioConfigs: Array<Record<string, unknown>> = [];
 
+const mockSetAlpha = jest.fn();
+
 jest.mock("../../preview/gpu/createCompositor", () => ({
   createCompositor: jest.fn().mockResolvedValue({
     backend: "canvas2d",
@@ -25,6 +27,7 @@ jest.mock("../../preview/gpu/createCompositor", () => ({
     compositor: {
       resize: jest.fn(),
       setReferenceSize: jest.fn(),
+      setAlpha: mockSetAlpha,
       setLayers: jest.fn(),
       render: jest.fn(),
       flush: jest.fn().mockResolvedValue(undefined),
@@ -141,7 +144,10 @@ const clip = makeClip({
   textStyle: { text: "Hi", fontSizePx: 96, color: "#ffffff" }
 });
 
-const render = (format?: "mp4" | "webm" | "png_sequence") =>
+const render = (
+  format?: "mp4" | "webm" | "png_sequence",
+  alpha?: boolean
+) =>
   renderTimeline({
     tracks: [track],
     clips: [clip],
@@ -150,6 +156,7 @@ const render = (format?: "mp4" | "webm" | "png_sequence") =>
     fps: 2,
     durationMs: 1500,
     format,
+    alpha,
     resolveUrl: jest.fn().mockResolvedValue(undefined)
   });
 
@@ -176,6 +183,25 @@ describe("renderTimeline — containers", () => {
     expect(videoConfigs[0]).toMatchObject({ codec: "vp9" });
     expect(audioConfigs[0]).toMatchObject({ codec: "opus" });
     expect(result).toMatchObject({ mimeType: "video/webm", extension: "webm" });
+  });
+});
+
+describe("renderTimeline — alpha", () => {
+  it("refuses mp4 with alpha and names the formats that carry it", async () => {
+    // Encoding it opaque and handing it back would look like it worked, which
+    // is the failure this refusal exists to prevent.
+    await expect(render("mp4", true)).rejects.toThrow(
+      /no alpha channel.*webm or png_sequence/s
+    );
+    expect(outputFormats).toEqual([]);
+  });
+
+  it("seeds the compositor transparent only when alpha is asked for", async () => {
+    await render("webm", true);
+    expect(mockSetAlpha).toHaveBeenCalledWith(true);
+    mockSetAlpha.mockClear();
+    await render("webm");
+    expect(mockSetAlpha).toHaveBeenCalledWith(false);
   });
 });
 

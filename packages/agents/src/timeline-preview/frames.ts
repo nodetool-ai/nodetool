@@ -30,16 +30,21 @@ import type {
   CompositeContext2D,
   CompositeSurface,
   DroppedLayerReason,
+  MotionBlurOptions,
   RasterContext2D
 } from "@nodetool-ai/timeline/scene";
 import {
+  accumulateBlurSample,
   clipSourceTimeSec,
   computeActiveLayersWithHorizon,
   createAnimationCompileCache,
   drawTimelineFrame,
   measureTextWith,
+  motionBlurSampleTimes,
   resolveAnimatedLayerProps,
+  resolveMotionBlur,
   resolveTextStaggerContext,
+  seedBlurAccumulation,
   trackZ,
   unsupportedEffectTypes
 } from "@nodetool-ai/timeline/scene";
@@ -62,6 +67,13 @@ export interface RenderTimelineFramesOptions {
   width?: number;
   /** Resolve a clip's asset id to its encoded bytes, or null when unavailable. */
   loadAsset: (assetId: string) => Promise<Uint8Array | null>;
+  /**
+   * Average N sub-frame instants into every frame instead of sampling one (D10).
+   * Absent or one sample is blur off, which is what every caller that does not
+   * ask about it gets. The frame interval the shutter opens inside comes from
+   * the sequence's own fps.
+   */
+  motionBlur?: MotionBlurOptions;
 }
 
 /** What one layer contributed to a frame, for the report beside the pixels. */
@@ -281,7 +293,35 @@ export async function renderTimelineFrames(
   const frames: PreviewFrame[] = [];
   const effectsNotApplied = new Set<string>();
 
-  for (const timeMs of options.timesMs) {
+  const blur = resolveMotionBlur(options.motionBlur);
+  const frameMs = 1000 / Math.max(1, sequence.fps || 30);
+  /**
+   * Where the shutter window is summed. Allocated only for a blurred render:
+   * with blur off the main canvas is the frame, exactly as it was before.
+   */
+  const blurAccumulator =
+    blur.samplesPerFrame > 1 ? createCanvas(width, height) : null;
+  const blurCtx = blurAccumulator
+    ? // SAFETY: `CompositeContext2D` is the subset of the 2D canvas API the
+      // accumulation uses, and a skia context provides all of it.
+      (blurAccumulator.getContext("2d") as unknown as CompositeContext2D<
+        PreviewSource
+      >)
+    : null;
+
+  /**
+   * Draw one instant onto the main canvas and say what each layer contributed.
+   *
+   * One call is a whole frame with blur off, and one sample of the shutter
+   * window with it on — the picture is the same work either way, which is what
+   * keeps a blurred preview from drifting from an unblurred one.
+   */
+  const composeAt = async (
+    timeMs: number
+  ): Promise<{
+    reports: PreviewLayerReport[];
+    dropped: PreviewDroppedLayer[];
+  }> => {
     const {
       layers: active,
       precomposites,
@@ -526,18 +566,45 @@ export async function renderTimelineFrames(
       if (report) report.skipped = "source could not be drawn";
     }
 
-    frames.push({
-      time_ms: timeMs,
-      png: new Uint8Array(canvas.toBuffer("image/png")),
-      width,
-      height,
+    return {
       // Top of the stack first: the reader's question is what is on top.
-      layers: reports.sort((a, b) => b.z_index - a.z_index),
+      reports: reports.sort((a, b) => b.z_index - a.z_index),
       dropped: droppedLayers.map((dropped) => ({
         clip_id: dropped.clipId,
         clip_name: clipName(sequence, dropped.clipId),
         reason: dropped.reason
       }))
+    };
+  };
+
+  for (const timeMs of options.timesMs) {
+    const sampleTimes = motionBlurSampleTimes(
+      timeMs,
+      frameMs,
+      options.motionBlur
+    );
+    let composed: Awaited<ReturnType<typeof composeAt>>;
+    if (!blurCtx || !blurAccumulator || sampleTimes.length === 1) {
+      composed = await composeAt(timeMs);
+    } else {
+      seedBlurAccumulation(blurCtx, geometry);
+      // The report describes the first instant of the shutter window, since no
+      // single set of numbers describes a picture that is N instants averaged.
+      composed = await composeAt(sampleTimes[0]);
+      accumulateBlurSample(blurCtx, canvas, blur.weight, geometry);
+      for (const sampleMs of sampleTimes.slice(1)) {
+        await composeAt(sampleMs);
+        accumulateBlurSample(blurCtx, canvas, blur.weight, geometry);
+      }
+    }
+
+    frames.push({
+      time_ms: timeMs,
+      png: new Uint8Array((blurAccumulator ?? canvas).toBuffer("image/png")),
+      width,
+      height,
+      layers: composed.reports,
+      dropped: composed.dropped
     });
   }
 

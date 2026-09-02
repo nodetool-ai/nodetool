@@ -20,3 +20,4 @@ export * from "./render/svgPath.js";
 export * from "./render/shapeGeometry.js";
 export * from "./render/textLayout.js";
 export * from "./render/canvas2d.js";
+export * from "./render/motionBlur.js";

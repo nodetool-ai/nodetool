@@ -10,8 +10,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DEFAULT_SHUTTER_ANGLE,
+  MAX_MOTION_BLUR_SAMPLES
+} from "@nodetool-ai/timeline/render";
+
+import {
   ALPHA_OUTPUT_FORMATS,
   AlphaFormatError,
+  TIMELINE_OUTPUT_FORMATS,
   parseOutputFormat,
   resolveTimelineOutput
 } from "../src/nodes/timeline/outputFormats.js";
@@ -113,6 +119,26 @@ describe("resolveTimelineOutput — encoder arguments", () => {
     expect(
       resolveTimelineOutput({ format: "mp4", bitrate: 0 }).encoderArgs
     ).not.toContain("-b:v");
+  });
+
+  it("resolves motion blur once, clamped, on every format", () => {
+    // The render reads `output.motionBlur` rather than re-parsing the node's
+    // props, so a format that forgot to carry it would silently render sharp.
+    for (const format of TIMELINE_OUTPUT_FORMATS) {
+      const out = resolveTimelineOutput({
+        format,
+        motionBlurSamples: 200,
+        shutterAngle: 900
+      });
+      expect(out.motionBlur.samplesPerFrame).toBe(MAX_MOTION_BLUR_SAMPLES);
+      expect(out.motionBlur.shutterAngle).toBe(360);
+    }
+  });
+
+  it("is blur off when nothing asks for it", () => {
+    const out = resolveTimelineOutput({ format: "mp4" });
+    expect(out.motionBlur.samplesPerFrame).toBe(1);
+    expect(out.motionBlur.shutterAngle).toBe(DEFAULT_SHUTTER_ANGLE);
   });
 
   it("takes a codec override on mp4 and never on the alpha containers", () => {

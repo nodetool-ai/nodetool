@@ -30,15 +30,20 @@ import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 
 import type { CompositeLayer } from "../preview/gpu/types";
 import {
+  accumulateBlurSample,
   clipSourceTimeSec,
   computeActiveLayersWithHorizon,
   createAnimationCompileCache,
+  motionBlurSampleTimes,
   resolveAnimatedLayerProps,
-  resolveTextStaggerContext
+  resolveMotionBlur,
+  resolveTextStaggerContext,
+  seedBlurAccumulation
 } from "@nodetool-ai/timeline/render";
 import type {
   ActiveLayer,
-  AnimatedLayerProps
+  AnimatedLayerProps,
+  MotionBlurOptions
 } from "@nodetool-ai/timeline/render";
 import {
   buildCompositeLayer,
@@ -97,6 +102,17 @@ interface RenderTimelineOptions {
   videoBitrate?: number | Quality;
   /** Target audio bitrate (bits/s) or a {@link Quality}. Default medium. */
   audioBitrate?: number | Quality;
+  /**
+   * Composite over a transparent ground and keep the alpha channel. Only
+   * `webm` (VP9) and `png_sequence` carry it in the browser; `mp4` does not.
+   */
+  alpha?: boolean;
+  /**
+   * Average N sub-frame instants into every frame instead of sampling one
+   * (D10). Absent or one sample is blur off. N samples cost N× the render:
+   * every layer is seeked, rasterized and composited once per sample.
+   */
+  motionBlur?: MotionBlurOptions;
   signal?: AbortSignal;
   onProgress?: (progress: RenderProgress) => void;
 }
@@ -218,6 +234,14 @@ export async function renderTimeline(
 
   if (fps <= 0) throw new Error("fps must be positive");
   if (durationMs <= 0) throw new Error("durationMs must be positive");
+  if (opts.alpha === true && format === "mp4") {
+    // The same refusal the server makes: H.264 in MP4 has no alpha plane any
+    // player reads, and encoding it opaque would answer a different question.
+    throw new Error(
+      'The "mp4" format has no alpha channel. Export with transparency as ' +
+        "webm or png_sequence."
+    );
+  }
 
   // H.264/HEVC require even dimensions; clamp to keep the encoder happy.
   const width = Math.max(2, Math.floor(opts.width / 2) * 2);
@@ -263,6 +287,25 @@ export async function renderTimeline(
   canvas.width = width;
   canvas.height = height;
 
+  const blur = resolveMotionBlur(opts.motionBlur);
+  /**
+   * Where the shutter window is summed, and what the encoder then reads.
+   *
+   * The compositor owns `canvas` — a WebGPU swap chain on the GPU backend —
+   * so a blurred frame cannot accumulate on it. With blur off there is no
+   * second canvas at all and the encoder reads the compositor's own, exactly
+   * as it did before.
+   */
+  const blurCanvas =
+    blur.samplesPerFrame > 1 ? document.createElement("canvas") : null;
+  if (blurCanvas) {
+    blurCanvas.width = width;
+    blurCanvas.height = height;
+  }
+  const blurCtx = blurCanvas?.getContext("2d") ?? null;
+  const frameCanvas = blurCanvas ?? canvas;
+  const blurGeometry = { canvasWidth: width, canvasHeight: height };
+
   const { compositor, init } = await createCompositor(canvas);
   const videoPool = new OffscreenVideoPool();
   const captionRasterizer = new CaptionRasterizer();
@@ -275,6 +318,7 @@ export async function renderTimeline(
       throw new Error(init.reason ?? "Timeline compositor unavailable");
     }
     compositor.resize(width, height);
+    compositor.setAlpha(opts.alpha === true);
 
     const isSequence = format === "png_sequence";
     // A PNG sequence has no muxer and no soundtrack: the frames are stills.
@@ -287,7 +331,7 @@ export async function renderTimeline(
         });
 
     const videoSource = muxer
-      ? new CanvasSource(canvas, {
+      ? new CanvasSource(frameCanvas, {
           codec: opts.videoCodec ?? (format === "webm" ? "vp9" : "avc"),
           bitrate: opts.videoBitrate ?? QUALITY_HIGH
         })
@@ -349,20 +393,16 @@ export async function renderTimeline(
     const animCache = createAnimationCompileCache();
 
     const frameDurationSec = 1 / fps;
-    for (let frame = 0; frame < totalFrames; frame++) {
-      throwIfAborted(signal);
-      const timeMs = (frame * 1000) / fps;
+    const frameMs = 1000 / fps;
 
-      while (
-        releasePastIndex < videoClipsByEnd.length &&
-        videoClipsByEnd[releasePastIndex].startMs +
-          videoClipsByEnd[releasePastIndex].durationMs <
-          timeMs
-      ) {
-        videoPool.release(videoClipsByEnd[releasePastIndex].id);
-        releasePastIndex++;
-      }
-
+    /**
+     * Composite one instant onto the compositor's canvas.
+     *
+     * One call is a whole frame with motion blur off, and one sample of the
+     * shutter window with it on — the same resolve, seek and composite either
+     * way, so a blurred export is N of the export it would otherwise have been.
+     */
+    const composeAt = async (timeMs: number): Promise<void> => {
       const { layers, precomposites } = computeActiveLayersWithHorizon(
         tracks,
         clips,
@@ -471,11 +511,42 @@ export async function renderTimeline(
       );
       compositor.render();
       await compositor.flush();
+    };
+
+    for (let frame = 0; frame < totalFrames; frame++) {
+      throwIfAborted(signal);
+      const timeMs = (frame * 1000) / fps;
+
+      while (
+        releasePastIndex < videoClipsByEnd.length &&
+        videoClipsByEnd[releasePastIndex].startMs +
+          videoClipsByEnd[releasePastIndex].durationMs <
+          timeMs
+      ) {
+        videoPool.release(videoClipsByEnd[releasePastIndex].id);
+        releasePastIndex++;
+      }
+
+      const sampleTimes = motionBlurSampleTimes(
+        timeMs,
+        frameMs,
+        opts.motionBlur
+      );
+      if (!blurCtx || sampleTimes.length === 1) {
+        await composeAt(timeMs);
+      } else {
+        seedBlurAccumulation(blurCtx, blurGeometry);
+        for (const sampleMs of sampleTimes) {
+          throwIfAborted(signal);
+          await composeAt(sampleMs);
+          accumulateBlurSample(blurCtx, canvas, blur.weight, blurGeometry);
+        }
+      }
 
       if (videoSource) {
         await videoSource.add(frame * frameDurationSec, frameDurationSec);
       } else {
-        pngFrames.push(await canvasPng(canvas));
+        pngFrames.push(await canvasPng(frameCanvas));
       }
 
       onProgress?.({
