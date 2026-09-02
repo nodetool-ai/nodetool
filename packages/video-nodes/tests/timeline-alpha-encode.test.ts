@@ -73,10 +73,17 @@ async function roundTrip(
     await encoder.finish();
 
     const rawPath = path.join(dir, "frame.raw");
+    // WebM keeps VP9's alpha plane in BlockAdditions, and ffmpeg's native vp9
+    // decoder discards it — decoding with the default decoder reads every
+    // pixel opaque however much alpha the file holds. Only the libvpx wrapper
+    // reads it back, so name that decoder rather than measuring the encode
+    // with an instrument that cannot see what it is asserting.
+    const decoderArgs = format === "webm" ? ["-c:v", "libvpx-vp9"] : [];
     await execFfmpeg([
       "-y",
       "-v",
       "error",
+      ...decoderArgs,
       "-i",
       outPath,
       "-frames:v",
