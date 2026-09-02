@@ -403,7 +403,8 @@ export const HARNESSES: HarnessEntry[] = [
     command:
       "npm run test --workspace=packages/agents -- capabilities capability " +
       "mcp-tools memory-tools workflow-version-tools nodetool-api-workflows " +
-      "sandbox-package-docs sandbox-package-listing browser-tools",
+      "sandbox-package-docs sandbox-package-listing browser-tools " +
+      "timelines-op-input",
     kind: "static",
     capabilities: ["no-db", "gated"],
     docs: "packages/agents/AGENTS.md § Capability coverage",
@@ -414,7 +415,8 @@ export const HARNESSES: HarnessEntry[] = [
         "npm run capabilities:check && " +
         "npm run test --workspace=packages/agents -- capabilities capability " +
         "mcp-tools memory-tools workflow-version-tools nodetool-api-workflows " +
-        "sandbox-package-docs sandbox-package-listing browser-tools",
+        "sandbox-package-docs sandbox-package-listing browser-tools " +
+        "timelines-op-input",
       cost: "cheap"
     }
   },
