@@ -15,7 +15,30 @@
  * Zustand store handles directly.
  */
 
-import type { StaggerUnit } from "@nodetool-ai/timeline";
+import type {
+  ClipShapeStyle,
+  ClipTextStyle,
+  StaggerUnit
+} from "@nodetool-ai/timeline";
+import type { timeline } from "@nodetool-ai/protocol/api-schemas";
+import type {
+  AddGroupParams,
+  EffectParams,
+  MaskParams,
+  MatteParams,
+  TransitionParams
+} from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
+
+/**
+ * The style bags are the document's own types, not a copy. Three were
+ * hand-written here and each fell behind the renderer — this file's
+ * `TimelineShapeStyle` listed `path | polygon | star` while the tool schema
+ * did not, so the two disagreed on what a shape could be and an agent could
+ * build a document the tools could not express.
+ */
+type TimelineTextStyle = ClipTextStyle;
+type TimelineShapeStyle = ClipShapeStyle;
+type TimelineCaptionStyle = timeline.CaptionStyle;
 
 /** Serializable view of a single timeline track. */
 export interface TimelineTrackNode {
@@ -79,43 +102,8 @@ export interface TimelineClipNode {
   animations?: TimelineAnimationNode[];
   textStyle?: TimelineTextStyle;
   shapeStyle?: TimelineShapeStyle;
-}
-
-interface TimelineTextStyle {
-  text: string;
-  fontFamily?: string;
-  fontSizePx: number;
-  fontWeight?: number;
-  color: string;
-  align?: "left" | "center" | "right";
-  maxWidthFrac?: number;
-}
-
-/**
- * A caption's look. Every field is optional; an absent one keeps the built-in
- * value, so a patch restyles one thing rather than resetting the rest.
- */
-interface TimelineCaptionStyle {
-  fontFamily?: string;
-  fontSizeFrac?: number;
-  color?: string;
-  activeColor?: string;
-  outline?: { color: string; widthPx: number };
-  bottomMarginFrac?: number;
-  background?: { color: string; paddingPx: number; radiusPx?: number };
-}
-
-interface TimelineShapeStyle {
-  kind: "rect" | "ellipse" | "line" | "path" | "polygon" | "star";
-  fill?: string;
-  stroke?: string;
-  strokeWidthPx?: number;
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  x2?: number;
-  y2?: number;
+  /** The group clip this one inherits from, when it is in one. */
+  parentId?: string;
 }
 
 /** Serializable view of one motion-design animation on a clip. */
@@ -377,6 +365,21 @@ export interface TimelineAgentHandler {
     target: string,
     opts: TimelineClipFramesOptions
   ) => Promise<TimelineClipFramesResult>;
+  /** Create a group clip and optionally parent clips to it. */
+  addGroup: (opts: AddGroupParams) => {
+    clip: TimelineClipNode;
+    children: string[];
+  };
+  /** Parent a clip to a group, or release it with `parentId: null`. */
+  setParent: (target: string, parentId: string | null) => TimelineClipNode;
+  setTransition: (
+    target: string,
+    transition: TransitionParams | null
+  ) => TimelineClipNode;
+  setMask: (target: string, mask: MaskParams | null) => TimelineClipNode;
+  setMatte: (target: string, matte: MatteParams | null) => TimelineClipNode;
+  /** Replace the whole chain; an empty list clears it. */
+  setEffects: (target: string, effects: EffectParams[]) => TimelineClipNode;
   selectClip: (target: string | null) => TimelineClipNode | null;
   /** Move the playhead and return the resulting position (ms). */
   seek: (timeMs: number) => number;

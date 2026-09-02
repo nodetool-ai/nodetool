@@ -5,6 +5,19 @@ import {
   CUSTOM_ANIMATION_CONTRACT,
   STAGGER_UNITS
 } from "@nodetool-ai/timeline";
+import {
+  addGroupParams,
+  captionStyleParams,
+  effectParams,
+  maskParams,
+  matteParams,
+  partialTextStyleParams,
+  setParentParams,
+  shapeStyleParams,
+  targetParam,
+  textStyleParams,
+  transitionParams
+} from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import { FrontendToolRegistry } from "../frontendTools";
 import { getTimelineAgentHandler } from "../../../components/timeline/timelineAgentBridge";
 import { docUrl } from "./resourceLinks";
@@ -34,12 +47,6 @@ const timelineIdParam = z
   .string()
   .describe(
     "Id of the target timeline sequence. The ids of the sequences currently open are listed in the ui_context block of the system prompt."
-  );
-
-const targetParam = z
-  .string()
-  .describe(
-    'Clip id, clip name (case-insensitive), or the literal "selected" for the currently-selected clip.'
   );
 
 /**
@@ -144,16 +151,7 @@ FrontendToolRegistry.register({
     trackId: z.string().optional(),
     startMs: z.number().optional(),
     durationMs: z.number().optional(),
-    style: z
-      .object({
-        fontFamily: z.string().optional(),
-        fontSizePx: z.number().optional(),
-        fontWeight: z.number().optional(),
-        color: z.string().optional(),
-        align: z.enum(["left", "center", "right"]).optional(),
-        maxWidthFrac: z.number().optional()
-      })
-      .optional()
+    style: partialTextStyleParams.optional()
   }),
   async execute({ timeline_id, ...args }) {
     const clip = getTimelineAgentHandler(timeline_id).addTextClip(args);
@@ -171,18 +169,7 @@ FrontendToolRegistry.register({
     "Add a rectangle, ellipse, or line on an overlay track of the specified timeline sequence. Omitted colors use a visible white fill for rectangles/ellipses or a visible white stroke for lines. Shapes are rasterized for preview/export and can use the standard motion presets.",
   parameters: z.object({
     timeline_id: timelineIdParam,
-    shape: z.object({
-      kind: z.enum(["rect", "ellipse", "line"]),
-      fill: z.string().optional(),
-      stroke: z.string().optional(),
-      strokeWidthPx: z.number().optional(),
-      x: z.number().optional(),
-      y: z.number().optional(),
-      width: z.number().optional(),
-      height: z.number().optional(),
-      x2: z.number().optional(),
-      y2: z.number().optional()
-    }),
+    shape: shapeStyleParams,
     trackId: z.string().optional(),
     startMs: z.number().optional(),
     durationMs: z.number().optional()
@@ -347,55 +334,134 @@ FrontendToolRegistry.register({
     hidden: z.boolean().optional(),
     muted: z.boolean().optional(),
     locked: z.boolean().optional(),
-    textStyle: z
-      .object({
-        text: z.string(),
-        fontFamily: z.string().optional(),
-        fontSizePx: z.number(),
-        fontWeight: z.number().optional(),
-        color: z.string(),
-        align: z.enum(["left", "center", "right"]).optional(),
-        maxWidthFrac: z.number().optional()
-      })
-      .optional(),
-    shapeStyle: z
-      .object({
-        kind: z.enum(["rect", "ellipse", "line"]),
-        fill: z.string().optional(),
-        stroke: z.string().optional(),
-        strokeWidthPx: z.number().optional(),
-        x: z.number().optional(),
-        y: z.number().optional(),
-        width: z.number().optional(),
-        height: z.number().optional(),
-        x2: z.number().optional(),
-        y2: z.number().optional()
-      })
-      .optional(),
-    captionStyle: z
-      .object({
-        fontFamily: z.string().optional(),
-        fontSizeFrac: z.number().optional(),
-        color: z.string().optional(),
-        activeColor: z.string().optional(),
-        outline: z
-          .object({ color: z.string(), widthPx: z.number() })
-          .optional(),
-        bottomMarginFrac: z.number().optional(),
-        background: z
-          .object({
-            color: z.string(),
-            paddingPx: z.number(),
-            radiusPx: z.number().optional()
-          })
-          .optional()
-      })
-      .optional()
+    textStyle: textStyleParams.optional(),
+    shapeStyle: shapeStyleParams.optional(),
+    captionStyle: captionStyleParams.optional()
   }),
   async execute({ timeline_id, target, ...patch }) {
     const clip = getTimelineAgentHandler(timeline_id).setClipParams(
       target,
       patch
+    );
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_add_group",
+  description:
+    "Create a group clip: a clip with no media of its own whose transform, opacity and window every clip naming it inherits. Move the group and its children move with it; fade the group and they fade together; a child outside the group's window is not drawn. Children keep their own tracks, so what covers what is unchanged. Pass `children` to parent clips as the group is created, or use ui_timeline_set_parent afterwards.",
+  parameters: addGroupParams.extend({ timeline_id: timelineIdParam }),
+  async execute({ timeline_id, ...args }) {
+    const result = getTimelineAgentHandler(timeline_id).addGroup(args);
+    return {
+      ok: true,
+      ...result,
+      url: docUrl("timeline", timeline_id, {
+        key: "clip",
+        value: result.clip.id
+      })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_set_parent",
+  description:
+    "Parent a clip to a group so it inherits the group's transform, opacity and window, or release it with `parentId: null`. The parent must be a clip created with ui_timeline_add_group; a clip cannot parent itself or any group beneath it.",
+  parameters: setParentParams.extend({ timeline_id: timelineIdParam }),
+  async execute({ timeline_id, target, parentId }) {
+    const clip = getTimelineAgentHandler(timeline_id).setParent(
+      target,
+      parentId
+    );
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_set_transition",
+  description:
+    "Set the transition a clip opens with, or clear it with `transition: null`. A transition is between two clips: it plays over the head of `target` against whatever sits beneath it on the same track, so overlap the two clips by at least `durationMs` for both to be seen. Types: crossfade (dissolve), dipToColor (through a solid), wipe (feathered reveal), push (both clips travel), slide (only the incoming moves), zoom. With no transition set, overlapping clips still auto-dissolve across the overlap.",
+  parameters: z.object({
+    timeline_id: timelineIdParam,
+    target: targetParam,
+    transition: transitionParams.nullable()
+  }),
+  async execute({ timeline_id, target, transition }) {
+    const clip = getTimelineAgentHandler(timeline_id).setTransition(
+      target,
+      transition
+    );
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_set_mask",
+  description:
+    "Mask a clip to a rectangle, an ellipse or an SVG path, or clear it with `mask: null`. Coordinates are 0..1 in the clip's own space, so the mask turns and scales with the clip. `featherPx` softens the edge; `invert` keeps what the shape excludes instead.",
+  parameters: z.object({
+    timeline_id: timelineIdParam,
+    target: targetParam,
+    mask: maskParams.nullable()
+  }),
+  async execute({ timeline_id, target, mask }) {
+    const clip = getTimelineAgentHandler(timeline_id).setMask(target, mask);
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_set_matte",
+  description:
+    'Drive a clip\'s transparency from another clip — a track matte — or clear it with `matte: null`. The source clip stops drawing itself: its alpha (`mode: "alpha"`) or its brightness (`mode: "luma"`) becomes the target\'s transparency, so a white shape over black shows the target only where the shape is. Both clips are placed by their own transforms, so where the source sits on the frame is where the target shows through.',
+  parameters: z.object({
+    timeline_id: timelineIdParam,
+    target: targetParam,
+    matte: matteParams.nullable()
+  }),
+  async execute({ timeline_id, target, matte }) {
+    const clip = getTimelineAgentHandler(timeline_id).setMatte(target, matte);
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_set_effects",
+  description:
+    "Replace a clip's effect chain, or clear it with `effects: []`. The list runs in order on the clip's own pixels, before it is placed on the frame. Types: color (brightness/contrast/saturation/hue/temperature/tint/shadows/highlights), blur, glow, dropShadow, vignette, sharpen, chromaKey, curves (control points, 0..1 on both axes), levels (in/out black and white plus gamma), liftGammaGain (a three-way grade, one number per channel). This replaces the whole chain — send every effect the clip should keep.",
+  parameters: z.object({
+    timeline_id: timelineIdParam,
+    target: targetParam,
+    effects: z
+      .array(effectParams)
+      .describe("The chain, in order. An empty list clears it.")
+  }),
+  async execute({ timeline_id, target, effects }) {
+    const clip = getTimelineAgentHandler(timeline_id).setEffects(
+      target,
+      effects
     );
     return {
       ok: true,

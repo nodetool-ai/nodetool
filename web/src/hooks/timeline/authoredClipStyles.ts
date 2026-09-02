@@ -15,14 +15,14 @@ import type {
 export function textStyleWithDefaults(
   opts: TimelineAddTextClipOptions
 ): ClipTextStyle {
+  // Spread rather than list the fields: the style bag is the document schema,
+  // so a stroke, a shadow or a gradient the caller asked for is authored here
+  // the day the schema gains it, instead of being silently dropped.
   return {
+    ...opts.style,
     text: opts.text,
     fontSizePx: opts.style?.fontSizePx ?? 96,
-    color: opts.style?.color ?? DEFAULT_TEXT_CLIP_COLOR,
-    fontFamily: opts.style?.fontFamily,
-    fontWeight: opts.style?.fontWeight,
-    align: opts.style?.align,
-    maxWidthFrac: opts.style?.maxWidthFrac
+    color: opts.style?.color ?? DEFAULT_TEXT_CLIP_COLOR
   };
 }
 

@@ -123,8 +123,8 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         '{"op": "add_track", "type": "audio", "name": "Music"} or ' +
         '{"op": "animate_clip", "target": "Title", "animations": [{"role": "in", "preset": "fade"}]}. ' +
         "Ops: get_state, add_track, add_media_clip, add_text_clip, add_shape_clip, " +
-        "split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
-        "set_clip_params, set_clip_binding, set_transition, set_mask, " +
+        "add_group, split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
+        "set_clip_params, set_parent, set_clip_binding, set_transition, set_mask, " +
         "set_matte, set_effects, animate_clip, " +
         "clear_animations, list_animation_presets, select_clip, seek. " +
         "Start with get_state to " +
@@ -146,6 +146,13 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         'set_matte takes {"target", "matte": {source, mode: "alpha"|"luma", ' +
         "invert?} | null}; the source clip stops drawing itself and its alpha " +
         "or brightness becomes the target's transparency. " +
+        'add_group takes {"name", "startMs", "durationMs", trackId?, ' +
+        'children?: [clip, ...]} and creates a clip with no media whose ' +
+        "transform, opacity and window every clip naming it inherits — move " +
+        "the group and its children move with it. Children keep their own " +
+        "tracks, so what covers what is unchanged. " +
+        'set_parent takes {"target", "parentId": <group> | null}; the parent ' +
+        "must be a clip made with add_group, and a cycle is refused. " +
         'set_clip_params takes {"target", ...fields}; a caption clip\'s look ' +
         'is "captionStyle": {fontFamily?, fontSizeFrac?, color?, activeColor?, ' +
         "outline?, bottomMarginFrac?, background?}, each field optional and " +
@@ -338,8 +345,9 @@ export const editTimelineSpec: CapabilitySpec = {
   description:
     "Edit a saved timeline sequence headlessly: add tracks, add text and " +
     "shape clips, split, trim, move, duplicate and delete clips, set clip " +
-    "params and workflow bindings, and animate clips with presets or " +
-    "keyframed custom curves. Pass a " +
+    "params and workflow bindings, group clips under a shared transform, " +
+    "set transitions, masks, mattes and effect chains, and animate clips " +
+    "with presets or keyframed custom curves. Pass a " +
     "list of operations; they run in order against the stored document and " +
     "the result is saved. An open editor picks the change up live. Call " +
     "list_timelines to find a sequence and validate_timeline afterwards. " +
