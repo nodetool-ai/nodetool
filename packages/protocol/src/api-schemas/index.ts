@@ -33,5 +33,6 @@ export * as storyboards from "./storyboards.js";
 export * as applications from "./applications.js";
 export * as resources from "./resources.js";
 export * as timeline from "./timeline.js";
+export * as timelineToolParams from "./timeline-tool-params.js";
 export * as workflows from "./workflows.js";
 export * as workspace from "./workspace.js";

@@ -48,6 +48,10 @@ const SUITE_EXTRAS = [
   "browser-tools.test.ts",
   "sandbox-package-docs.test.ts",
   "sandbox-package-listing.test.ts",
+  // Drives `edit_timeline` by wire name and pins every structural op it
+  // dispatches to the bridge, plus the rule that a failing op is recorded and
+  // the script continues. Outside the `capabilit*-` naming convention.
+  "timelines-op-input.test.ts",
   "code-capabilities.test.ts",
   "js-scripts-capabilities.test.ts",
   "apify-capabilities.test.ts",
