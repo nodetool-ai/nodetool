@@ -82,7 +82,7 @@
     "build:web": "turbo run build --filter=web",
     "build:mcpb": "node scripts/build-mcpb.mjs --smoke",
     "build": "turbo run build",
-    "test:packages": "turbo run test --filter=\"./packages/*\" --filter=\"./reliability/*\" && npm run test:oxlint-rules && npm run test:scripts",
+    "test:packages": "npm run test:oxlint-rules && npm run test:scripts && turbo run test --filter=\"./packages/*\" --filter=\"./reliability/*\"",
     "test:oxlint-rules": "vitest run --config vitest.config.ts tools/oxlint",
     "test:scripts": "vitest run --config vitest.config.ts scripts/__tests__",
     "turbo": "turbo",

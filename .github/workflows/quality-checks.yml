@@ -157,9 +157,9 @@ jobs:
   # Build the ~55 backend packages ONCE and publish their dist as an artifact.
   # The `built` legs below consume it instead of each rebuilding from scratch,
   # which on a fresh commit (cold per-SHA Turbo cache) means one build instead
-  # of five racing in parallel. setup-build also persists the per-SHA Turbo
-  # cache here, so the test-packages leg's `turbo run test` restores `build`
-  # as a cache hit rather than rebuilding its `^build` dependencies.
+  # of eight racing in parallel. setup-build also persists the per-SHA Turbo
+  # cache here, so each test-packages shard's `turbo run test` restores
+  # `build` as a cache hit rather than rebuilding its `^build` dependencies.
   build:
     name: build
     # `built` needs this job, so skipping it skips every leg that consumes the
@@ -208,15 +208,23 @@ jobs:
   # against the prebuilt dist; test-packages runs Turbo and rides the warm
   # per-SHA Turbo cache the `build` job populated.
   #
-  # Five legs, not eight. Every leg pays ~1-2 min of checkout, install and
-  # artifact download before its real work, and the account-wide runner cap
-  # (~20 concurrent jobs) makes each extra leg queue time for the whole PR. The
-  # cheap checks are therefore chained inside one leg — `typecheck` runs
-  # typecheck + parity + examples, `bundle` runs the packaged-backend smoke +
-  # Ring 0 reliability — while the three long legs (test-packages, test-app,
-  # app-build) keep their own runner so the critical path stays short. Chained
-  # with `&&`, mirroring the `deps` leg: the first failure stops the chain, so
-  # a red leg names one problem at a time.
+  # Every leg pays ~1-2 min of checkout, install and artifact download before
+  # its real work, and the account-wide runner cap (~20 concurrent jobs) makes
+  # each extra leg queue time for the whole PR. The cheap checks are therefore
+  # chained inside one leg — `typecheck` runs typecheck + parity + examples,
+  # `bundle` runs the packaged-backend smoke + Ring 0 reliability. Chained with
+  # `&&`, mirroring the `deps` leg: the first failure stops the chain, so a red
+  # leg names one problem at a time.
+  #
+  # The backend suite goes the other way: it is split across four runners
+  # (`test-packages-*`). As one leg it was the gate's critical path by about
+  # ten minutes — every other leg finished within six minutes of `build`, that
+  # one took fourteen — because ~58 vitest processes, each spawning a worker
+  # per core, shared four cores. `websocket` (251 files) and `agents` (245
+  # files) each get a runner of their own: their cost is one process
+  # re-importing the whole backend per test file, so they are bounded by
+  # cores, not by the rest of the graph. The node packages and everything
+  # else split the remaining two.
   built:
     name: ${{ matrix.check }}
     needs: build
@@ -268,19 +276,54 @@ jobs:
             extra-apt: ""
             is-test: "false"
             fetch-depth: "1"
+          # The four backend test shards. Each runs `turbo run test` over a
+          # disjoint slice of the workspace graph: the two heaviest packages
+          # alone, the node packages (`./packages/*-nodes` plus the packages
+          # only they use), and everything else. The `core` shard also carries
+          # the two root-level suites (`test:oxlint-rules`, `test:scripts`),
+          # which take a second. The `nodes` and `core` filter lists are the
+          # same list with the sign flipped — a package added to one must be
+          # removed from the other, or it runs twice or not at all.
+          #
+          # `$TURBO_AFFECTED` (set on the Run step below) is `--affected` on
+          # PRs: turbo intersects it with the shard's `--filter`, so a shard
+          # whose packages the diff cannot reach prunes to zero tasks and
+          # reports green in setup time. On push to main it is empty and the
+          # full slice runs. Needs fetch-depth: 0 for the SCM diff. The flag
+          # is passed to turbo directly rather than through
+          # `npm run test:packages -- --affected`: npm appends `--` arguments
+          # to the END of the script string, so on the old `turbo && npm run
+          # a && npm run b` script the flag landed on the last command and
+          # turbo ran every package on every PR.
+          #
           # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so Dawn can
           # acquire a WebGPU adapter on GPU-less runners — without it the
           # shader-backed base-nodes tests fail with "No WebGPU adapter
           # available (Node/Dawn)". ffmpeg decodes the clip the runtime's
           # video-frame fallback samples for providers with no video content
-          # part; without it those tests have nothing to decode.
-          - check: test-packages
-            # On PRs, `--affected` prunes the Turbo graph to packages changed
-            # since the base commit plus their dependents, so unaffected backend
-            # tests are skipped entirely (not just cache-restored). On push to
-            # main (no base sha) the full suite runs. Needs fetch-depth: 0 for
-            # the SCM diff and TURBO_SCM_BASE (set on the Run step below).
-            command: npm run test:packages${{ github.event_name == 'pull_request' && ' -- --affected' || '' }}
+          # part; without it those tests have nothing to decode. Every shard
+          # installs both: the apt step costs seconds, and a package that
+          # moves between shards must not lose its driver on the way.
+          - check: test-packages-websocket
+            command: npx turbo run test --filter=@nodetool-ai/websocket $TURBO_AFFECTED
+            mobile-deps: "false"
+            extra-apt: "mesa-vulkan-drivers ffmpeg"
+            is-test: "true"
+            fetch-depth: "0"
+          - check: test-packages-agents
+            command: npx turbo run test --filter=@nodetool-ai/agents $TURBO_AFFECTED
+            mobile-deps: "false"
+            extra-apt: "mesa-vulkan-drivers ffmpeg"
+            is-test: "true"
+            fetch-depth: "0"
+          - check: test-packages-nodes
+            command: npx turbo run test --filter='./packages/*-nodes' --filter=@nodetool-ai/gpu --filter=@nodetool-ai/workflow-runner --filter=@nodetool-ai/nodes-utils $TURBO_AFFECTED
+            mobile-deps: "false"
+            extra-apt: "mesa-vulkan-drivers ffmpeg"
+            is-test: "true"
+            fetch-depth: "0"
+          - check: test-packages-core
+            command: npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' $TURBO_AFFECTED
             mobile-deps: "false"
             extra-apt: "mesa-vulkan-drivers ffmpeg"
             is-test: "true"
@@ -334,8 +377,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          # Most legs only need the tip; the test-packages leg needs full history
-          # so Turbo's `--affected` can diff against the PR base commit.
+          # Most legs only need the tip; the test-packages shards need full
+          # history so Turbo's `--affected` can diff against the PR base commit.
           fetch-depth: ${{ matrix.fetch-depth }}
 
       - name: Set up Node, install deps
@@ -376,19 +419,52 @@ jobs:
         if: matrix.mobile-deps == 'true' && steps.mobile-node-modules.outputs.cache-hit != 'true'
         run: cd mobile && npm ci
 
+      # Turbo test results from earlier runs of this shard. setup-build restores
+      # the per-SHA `build` cache the `build` job saved, which never holds a
+      # test task — restore-only legs do not save, so a test task was a cache
+      # miss on every run of every commit. This second restore layers the
+      # newest test-results archive for the shard (from main, or from this
+      # branch) on top; turbo keys each task on its inputs and its
+      # dependencies' build hashes, so a package the commit did not reach
+      # replays its last pass instead of running. On PRs `--affected` prunes
+      # first, so this mostly pays on push to main, where nothing else prunes.
+      #
+      # A separate key namespace (`test-results-`, not `turbo-`) so the build
+      # job's prefix fallback never picks up a test archive in place of a
+      # build one.
+      - name: Restore backend test results
+        if: startsWith(matrix.check, 'test-packages-')
+        uses: actions/cache/restore@v5
+        with:
+          path: .turbo/cache
+          key: ${{ runner.os }}-test-results-${{ matrix.check }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-test-results-${{ matrix.check }}-
+
       - name: Run ${{ matrix.check }}
         # skip-tests drops the package + app test legs without touching the
         # static checks. The leg still spins up but does no work, so it stays
         # green (a skipped leg must not block the gate).
         if: ${{ !(inputs.skip-tests && matrix.is-test == 'true') }}
         env:
-          # Base commit for Turbo's `--affected` diff (test-packages leg on PRs).
-          # Empty on push, where the test-packages command omits `--affected`.
+          # Base commit for Turbo's `--affected` diff (test-packages shards on
+          # PRs). Empty on push, where TURBO_AFFECTED is empty too.
           TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
+          TURBO_AFFECTED: ${{ github.event_name == 'pull_request' && '--affected' || '' }}
         run: |
           echo "::group::${{ matrix.check }}"
           ${{ matrix.command }}
           echo "::endgroup::"
+
+      # Save even when a test failed: turbo only writes an entry for a task
+      # that passed, so the archive carries the green packages forward and the
+      # red one runs again next time. Skipped on cancel, where nothing ran.
+      - name: Save backend test results
+        if: startsWith(matrix.check, 'test-packages-') && !cancelled()
+        uses: actions/cache/save@v5
+        with:
+          path: .turbo/cache
+          key: ${{ runner.os }}-test-results-${{ matrix.check }}-${{ github.sha }}
 
   # The deploy artifact. docker.yml only builds after a merge to main, so until
   # this leg existed nothing verified the image before it landed: a Dockerfile

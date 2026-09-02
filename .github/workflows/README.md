@@ -34,7 +34,7 @@ see below.
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|
 | `test.yml` | Full quality gate (typecheck, lint, tests) via `quality-checks.yml`; skipped for prose-only and marketing-only diffs | 0 | Required |
-| `quality-checks.yml` | Reusable gate: deps/lint static legs, one shared build, five `built` legs (typecheck+parity+examples, test-packages, test-app, bundle+ring0, app-build), and a path-gated `docker` leg that builds the image, boots it, and loads the app in a browser | 0 | Required (infra called by `test.yml`) |
+| `quality-checks.yml` | Reusable gate: deps/lint static legs, one shared build, eight `built` legs (typecheck+parity+examples, four `test-packages-*` shards of the backend suite, test-app, bundle+ring0, app-build), and a path-gated `docker` leg that builds the image, boots it, and loads the app in a browser | 0 | Required (infra called by `test.yml`) |
 | `page-load-smoke.yml` | Playwright: every route loads against a seeded backend | 0 | Required |
 | `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack | 1 | Required (also gates PRs today, ahead of the ring split) |
 | `docker.yml` | Build and push the GHCR image (main, `preview/**`, tags) | 1 | Required |
@@ -197,9 +197,23 @@ enough to fail the typecheck with exactly the errors above. A cache miss on
 `mobile/package-lock.json` would therefore turn the `typecheck` leg red on
 main.
 
-Within the root workspace the backend suite still prunes itself: on PRs the
-`test-packages` leg runs `turbo run test --affected`, so only packages the diff
-changed and their dependents are tested.
+Within the root workspace the backend suite still prunes itself: on PRs each
+`test-packages-*` shard runs `turbo run test --filter=<its slice> --affected`,
+so only packages the diff changed and their dependents are tested, and a shard
+the diff cannot reach finishes in setup time. The shards call `turbo` directly.
+`npm run test:packages -- --affected` would append the flag to the end of the
+script string, and when that script ended in `&& npm run test:scripts` the flag
+went to that command and turbo ran the whole suite on every PR. The script now
+runs turbo last so the appended flag reaches it, and the workflow does not rely
+on that.
+
+Across runs, each shard also restores and saves a `test-results-<shard>-*`
+cache of `.turbo/cache`. The per-SHA `turbo-*` cache the `build` job saves holds
+build tasks only (restore-only legs never save), so before this a test task was
+a cache miss on every commit. With the test archive layered on top, a package
+whose inputs and dependency builds are unchanged replays its last pass. On PRs
+`--affected` prunes first, so this mostly pays on push to `main`, where nothing
+else prunes.
 
 ## Manual Trigger
 
