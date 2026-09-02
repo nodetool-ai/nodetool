@@ -43,6 +43,16 @@ const noAdapterReason = await (async (): Promise<string | null> => {
 
 const SIZE = 64;
 
+/**
+ * White through a luma matte whose source is white at half alpha: the matte
+ * reads 0.5, so the layer lands halfway to the black ground. The Canvas 2D twin
+ * asserts the same number — the two hosts have to agree on it, not just each be
+ * self-consistent.
+ */
+const HALF_COVERED_WHITE = 128;
+/** Two 8-bit quantizations of the same coverage, plus each host's rounding. */
+const HOST_TOLERANCE = 14;
+
 /** A frame-sized opaque source in one colour. */
 function solid(r: number, g: number, b: number): FrameLayerPixels {
   return pixels(`solid-${r}-${g}-${b}`, () => [r, g, b, 255]);
@@ -175,6 +185,36 @@ describe.runIf(noAdapterReason === null)(
       expect(right).toBeGreaterThan(230);
       expect(left).toBeLessThan(middle);
       expect(middle).toBeLessThan(right);
+    });
+
+    it("a luma matte weights the luminance by the source's own alpha", async () => {
+      // `mask.fromImage@1` divides the association back out to read straight
+      // colour, so a half-transparent white matte read as fully white and the
+      // layer came through opaque — while the Canvas 2D path, which multiplies
+      // luma by alpha, cut it to half. The twin is the same claim in
+      // `packages/agents/tests/timeline-mask-frames.test.ts`; both expect
+      // HALF_COVERED_WHITE, so a fix on one host that misses the other fails.
+      const halfWhite = pixels("half-white", () => [255, 255, 255, 128]);
+      const frame = await renderFrame([
+        baseLayer({
+          source: solid(255, 255, 255),
+          matte: {
+            mode: "luma",
+            invert: false,
+            layer: {
+              id: "key",
+              source: halfWhite,
+              opacity: 1,
+              blendMode: "normal",
+              zIndex: 0
+            }
+          }
+        })
+      ]);
+
+      const centre = pixelAt(frame, SIZE / 2, SIZE / 2)[0];
+      expect(centre).toBeGreaterThan(HALF_COVERED_WHITE - HOST_TOLERANCE);
+      expect(centre).toBeLessThan(HALF_COVERED_WHITE + HOST_TOLERANCE);
     });
 
     it("a matte source never draws itself", async () => {

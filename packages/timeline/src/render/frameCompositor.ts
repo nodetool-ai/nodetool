@@ -34,6 +34,7 @@ import {
 
 import type { AnimationSampleMask, WipeDirection } from "../animation/index.js";
 import type { ClipEffect, ClipTransform, TrackEffect } from "../types.js";
+import { parseCssColorOrBlack } from "./color.js";
 import { WebGPUEffectsProcessor } from "./effects.js";
 import type { CompositorBlendMode, MatteMode } from "./sceneModel.js";
 import {
@@ -592,8 +593,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   private solidTexture(color: string): GPUTexture | null {
     const cached = this.solids.get(color);
     if (cached) return cached;
-    const rgb = parseHexColor(color);
-    if (!rgb) return null;
+    const rgb = dipColorBytes(color);
     const texture = this.device.createTexture({
       label: `${this.label}-solid-${color}`,
       size: { width: 1, height: 1 },
@@ -1338,20 +1338,15 @@ export class HeadlessFrameCompositor {
 }
 
 /**
- * `#rgb` / `#rrggbb` to bytes. The GPU path needs the channels a Canvas 2D
- * `fillStyle` would parse for it; anything else (a named colour, `rgb(...)`)
- * is refused, and the dip then draws nothing rather than a wrong colour.
+ * A dip colour to bytes. The GPU path needs the channels a Canvas 2D
+ * `fillStyle` would parse for it, so it reads the same CSS grammar the 2D path
+ * gets for free; an unparseable string dips to black rather than not at all.
  */
-function parseHexColor(
-  color: string
-): { r: number; g: number; b: number } | null {
-  const match = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
-  if (!match) return null;
-  const hex = match[1];
-  const size = hex.length / 3;
-  const channel = (index: number): number => {
-    const digits = hex.slice(index * size, index * size + size);
-    return Number.parseInt(size === 1 ? digits + digits : digits, 16);
+function dipColorBytes(color: string): { r: number; g: number; b: number } {
+  const { r, g, b } = parseCssColorOrBlack(color);
+  return {
+    r: Math.round(r * 255),
+    g: Math.round(g * 255),
+    b: Math.round(b * 255)
   };
-  return { r: channel(0), g: channel(1), b: channel(2) };
 }

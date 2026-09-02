@@ -39,6 +39,7 @@ import {
   maskApplyV1,
   maskFromImageV1,
   alphaPremulToStraightV1,
+  alphaStraightToPremulV1,
   type AlphaMode,
   type GPUContext,
   type Executor,
@@ -49,6 +50,7 @@ import {
 } from "@nodetool-ai/gpu/pool";
 import * as d from "typegpu/data";
 import type { AnyWgslStruct, Infer } from "typegpu/data";
+import { parseCssColorOrBlack } from "./color.js";
 
 interface AggregatedColor {
   brightness: number;
@@ -277,7 +279,7 @@ export class WebGPUEffectsProcessor {
     };
 
     if (chromaKeyActive && chromaKey) {
-      const [r, g, b] = hexToRgb(chromaKey.keyColor);
+      const [r, g, b] = colorChannels(chromaKey.keyColor);
       step(chromaKeyV1, {
         keyColor: d.vec3f(r, g, b),
         tolerance: chromaKey.tolerance,
@@ -362,7 +364,7 @@ export class WebGPUEffectsProcessor {
       return;
     }
     if (isClipDropShadowEffect(effect)) {
-      const [r, g, b] = hexToRgb(effect.color);
+      const [r, g, b] = colorChannels(effect.color);
       // The document offsets in source pixels the way a layer's transform
       // does; `mixer.shadowCompose@1` samples the shadow at `uv - offset`, so
       // a positive offset already casts right and down.
@@ -395,7 +397,7 @@ export class WebGPUEffectsProcessor {
       return;
     }
     if (isClipChromaKeyEffect(effect)) {
-      const [r, g, b] = hexToRgb(effect.color);
+      const [r, g, b] = colorChannels(effect.color);
       step(chromaKeyV1, {
         keyColor: d.vec3f(r, g, b),
         tolerance: effect.tolerance,
@@ -544,6 +546,15 @@ export class WebGPUEffectsProcessor {
   /**
    * Read a matte source's alpha or luminance out as coverage — RGB zeroed,
    * value in alpha — which is the shape {@link applyMask} consumes.
+   *
+   * A luma matte weights the luminance by the coverage the matte source was
+   * drawn with, the way the Canvas 2D path does: outside the matte clip's own
+   * pixels there is no picture, and an unweighted read would key on whatever
+   * colour the transparent region happens to carry. `mask.fromImage@1` divides
+   * its premultiplied input back out to read straight colour, so the weight is
+   * put back by premultiplying once more before the pass — the texture handed
+   * to the Executor is premultiplied and labelled straight, and the bridge it
+   * inserts is the second multiply.
    */
   deriveMask(
     poolKey: string,
@@ -558,12 +569,24 @@ export class WebGPUEffectsProcessor {
     const encoder = this.device.createCommandEncoder({
       label: `preview-matte-${poolKey}`
     });
+    const weighted =
+      mode === "luma"
+        ? this.premultiplyForLuma(
+            encoder,
+            pool,
+            source,
+            poolKey,
+            width,
+            height,
+            sourceAlpha
+          )
+        : this.label(source, `${poolKey}-src`, width, height, sourceAlpha);
     this.executor.encode({
       ctx: this.ctx,
       module: maskFromImageV1,
       encoder,
       inputs: {
-        source: this.label(source, `${poolKey}-src`, width, height, sourceAlpha)
+        source: weighted
       },
       output: pool.textures[0],
       params: { mode: MASK_FROM_IMAGE_MODE[mode], invert: invert ? 1 : 0 },
@@ -573,6 +596,50 @@ export class WebGPUEffectsProcessor {
     pool.currentIndex = 0;
     this.device.queue.submit([encoder.finish()]);
     return pool.textures[0].texture;
+  }
+
+  /**
+   * The matte source with its coverage folded into RGB, labelled straight so
+   * the Executor's bridge multiplies it in a second time — which is what
+   * survives `mask.fromImage@1` dividing the association back out.
+   */
+  private premultiplyForLuma(
+    encoder: GPUCommandEncoder,
+    pool: IntermediatePool,
+    source: GPUTexture,
+    poolKey: string,
+    width: number,
+    height: number,
+    sourceAlpha: "straight" | "premultiplied"
+  ): LabeledTexture {
+    if (sourceAlpha === "premultiplied") {
+      return this.label(source, `${poolKey}-src`, width, height, "straight");
+    }
+    const [wgX, wgY] = alphaStraightToPremulV1.workgroupSize;
+    this.executor.encode({
+      ctx: this.ctx,
+      module: alphaStraightToPremulV1,
+      encoder,
+      inputs: {
+        source: this.label(source, `${poolKey}-src`, width, height, "straight")
+      },
+      output: pool.textures[1],
+      params: alphaStraightToPremulV1.paramDefaults,
+      dispatch: {
+        kind: "compute",
+        x: Math.ceil(width / wgX),
+        y: Math.ceil(height / wgY),
+        z: 1
+      }
+    });
+    pool.textures[1].meta.alpha = alphaStraightToPremulV1.io.output.alpha;
+    return this.label(
+      pool.textures[1].texture,
+      `${poolKey}-weighted`,
+      width,
+      height,
+      "straight"
+    );
   }
 
   /** Wrap a raw texture with the metadata the Executor validates against. */
@@ -703,11 +770,15 @@ function aggregateBlurRadius(
   return Math.min(40, radius);
 }
 
-function hexToRgb(hex: string): [number, number, number] {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!m) return [0, 1, 0];
-  const v = parseInt(m[1], 16);
-  return [((v >> 16) & 0xff) / 255, ((v >> 8) & 0xff) / 255, (v & 0xff) / 255];
+/**
+ * A document colour to shader channels. The Canvas 2D path hands the same
+ * string to `fillStyle`, so anything CSS accepts has to arrive here as the
+ * same colour; an unparseable one falls back to opaque black rather than to a
+ * colour that is in the frame on one host and not the other.
+ */
+function colorChannels(color: string): [number, number, number] {
+  const { r, g, b } = parseCssColorOrBlack(color);
+  return [r, g, b];
 }
 
 function isColorActive(c: AggregatedColor): boolean {

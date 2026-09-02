@@ -92,6 +92,25 @@ function gradientPng(): Uint8Array {
   return new Uint8Array(canvas.toBuffer("image/png"));
 }
 
+/** White at half alpha, as PNG bytes an asset load can return. */
+function halfAlphaWhitePng(): Uint8Array {
+  const canvas = createCanvas(640, 360);
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+  ctx.fillRect(0, 0, 640, 360);
+  return new Uint8Array(canvas.toBuffer("image/png"));
+}
+
+/**
+ * White through a luma matte whose source is white at half alpha: the matte
+ * reads 0.5, so the layer lands halfway to the black ground. The GPU twin in
+ * `packages/timeline/tests/render.mask.gpu.test.ts` asserts the same number —
+ * the two hosts have to agree on it, not just each be self-consistent.
+ */
+const HALF_COVERED_WHITE = 128;
+/** Two 8-bit quantizations of the same coverage, plus each host's rounding. */
+const HOST_TOLERANCE = 14;
+
 /** The RGBA of one pixel of a rendered PNG frame. */
 async function pixelAt(
   png: Uint8Array,
@@ -222,6 +241,27 @@ describe("renderTimelineFrames — track mattes", () => {
     expect(right).toBeGreaterThan(225);
     expect(left).toBeLessThan(middle);
     expect(middle).toBeLessThan(right);
+  });
+
+  it("a luma matte weights the luminance by the source's own alpha", async () => {
+    // Outside the matte clip's own pixels there is no picture, so the
+    // luminance only means anything weighted by the coverage it was drawn
+    // with. The GPU path read straight colour and let a half-transparent white
+    // matte pass the layer through opaque; both hosts land on
+    // HALF_COVERED_WHITE now.
+    const png = await frameOf(
+      [
+        fullFrameShape("white", "#ffffff", {
+          matte: { sourceClipId: "key", mode: "luma" }
+        }),
+        gradientClip()
+      ],
+      async () => halfAlphaWhitePng()
+    );
+
+    const centre = (await pixelAt(png, WIDTH / 2, HEIGHT / 2))[0];
+    expect(centre).toBeGreaterThan(HALF_COVERED_WHITE - HOST_TOLERANCE);
+    expect(centre).toBeLessThan(HALF_COVERED_WHITE + HOST_TOLERANCE);
   });
 
   it("a matte source never draws itself", async () => {

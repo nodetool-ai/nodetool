@@ -10,7 +10,9 @@
  * one records the context state each draw ran under.
  */
 import { describe, expect, it } from "vitest";
+import { makeClip } from "../src/index.js";
 import type { ClipEffect, TrackEffect } from "../src/index.js";
+import { resolveAnimatedLayerProps } from "../src/render/sceneModel.js";
 import {
   drawTimelineFrame,
   unsupportedEffectTypes,
@@ -22,7 +24,14 @@ const GEOMETRY = { canvasWidth: 100, canvasHeight: 100 };
 
 /** One of every type the document can carry, so the split is asserted whole. */
 const everyEffect: ClipEffect[] = [
-  { id: "1", type: "color", enabled: true, brightness: 0.2 },
+  {
+    id: "1",
+    type: "color",
+    enabled: true,
+    brightness: 0.2,
+    temperature: 0.3,
+    tint: -0.2
+  },
   { id: "2", type: "blur", enabled: true, radius: 4 },
   { id: "3", type: "glow", enabled: true, radius: 8, intensity: 1 },
   {
@@ -155,12 +164,113 @@ describe("Canvas 2D — the clip effect catalog", () => {
   it("reports exactly the types it cannot draw", () => {
     expect(unsupportedEffectTypes([{ effects: everyEffect }])).toEqual([
       "chromaKey",
+      "color.temperature",
+      "color.tint",
       "curves",
       "glow",
       "levels",
       "liftGammaGain",
       "sharpen",
       "vignette"
+    ]);
+  });
+
+  it("reports the white balance a `ctx.filter` grade has no knob for", () => {
+    // `color` is a type this path draws, so a whole-type report would never
+    // name it — and temperature and tint would go to the GPU and not to 2D
+    // with nothing to read about the difference (I7).
+    const warm: ClipEffect[] = [
+      { id: "c", type: "color", enabled: true, temperature: 0.4 }
+    ];
+    expect(unsupportedEffectTypes([{ effects: warm }])).toEqual([
+      "color.temperature"
+    ]);
+
+    const green: ClipEffect[] = [
+      { id: "c", type: "color", enabled: true, tint: -0.4 }
+    ];
+    expect(unsupportedEffectTypes([{ effects: green }])).toEqual(["color.tint"]);
+  });
+
+  it("keeps a grade at the white-balance identity off the list", () => {
+    const neutral: ClipEffect[] = [
+      {
+        id: "c",
+        type: "color",
+        enabled: true,
+        brightness: 0.5,
+        contrast: 1.4,
+        saturation: 0.6,
+        hue: 30,
+        temperature: 0,
+        tint: 0
+      }
+    ];
+    expect(unsupportedEffectTypes([{ effects: neutral }])).toEqual([]);
+  });
+
+  it("reports the animated grade the scene model synthesizes", () => {
+    // An animated temperature curve reaches the compositor as an ordinary
+    // enabled `color` effect (`composeAnimatedEffects`), so the report has to
+    // read the channel rather than the document's static effect list.
+    const props = resolveAnimatedLayerProps(
+      {
+        clip: makeClip({
+          status: "generated",
+          mediaType: "shape",
+          startMs: 0,
+          durationMs: 2000,
+          animations: [
+            {
+              id: "warm",
+              role: "in",
+              preset: "custom",
+              durationMs: 1000,
+              easing: "linear",
+              custom: {
+                curves: [
+                  {
+                    property: "temperature",
+                    keyframes: [
+                      { t: 0, value: 0.4 },
+                      { t: 1, value: 0.4 }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }),
+        opacity: 1
+      },
+      500,
+      { width: 100, height: 100 }
+    );
+
+    expect(props.effects).toHaveLength(1);
+    expect(unsupportedEffectTypes([{ effects: props.effects }])).toEqual([
+      "color.temperature"
+    ]);
+  });
+
+  it("still reports the white balance a track grade carries", () => {
+    const track: TrackEffect[] = [
+      {
+        id: "t",
+        type: "colorCorrection",
+        enabled: true,
+        brightness: 0,
+        contrast: 1,
+        saturation: 1,
+        hue: 0,
+        temperature: 0.5,
+        tint: 0,
+        shadows: 0,
+        highlights: 0
+      }
+    ];
+    expect(unsupportedEffectTypes([{ trackEffects: track }])).toEqual([
+      "color.temperature"
     ]);
   });
 
