@@ -431,6 +431,34 @@ export function collectAssetRefs(value: unknown, found: AssetAttachment[] = []):
 // Final message text
 // ---------------------------------------------------------------------------
 
+/**
+ * Whether this `message` frame is the turn's answer, and so ends the render.
+ *
+ * The wire carries several `message` frames per turn that are not the answer,
+ * and folding any of them as final hands the user the wrong text and drops
+ * everything after it (the fold ignores frames once `ended`):
+ *
+ * - the compaction echo, `role: "user"` with `execution_event_type:
+ *   "compaction"`, sent *before* the turn streams — its content is a summary
+ *   of the earlier conversation;
+ * - the mid-turn assistant echo and the synthetic tool-call card, both
+ *   `role: "assistant"` carrying `tool_calls` and often no text at all;
+ * - tool results, `role: "tool"`.
+ *
+ * So: an assistant message, with no execution event on it, that is not calling
+ * a tool. The text of the answer also arrives as chunks, so a frame this
+ * refuses costs the render nothing.
+ */
+function isFinalMessage(frame: FinalMessageFrame): boolean {
+  if (frame.role !== "assistant") {
+    return false;
+  }
+  if (typeof frame.execution_event_type === "string" && frame.execution_event_type.length > 0) {
+    return false;
+  }
+  return !Array.isArray(frame.tool_calls) || frame.tool_calls.length === 0;
+}
+
 function textOfMessage(frame: FinalMessageFrame): string {
   const content = frame.content;
   if (typeof content === "string") {
@@ -516,6 +544,9 @@ export function foldFrame(
     }
 
     case "message": {
+      if (!isFinalMessage(frame as FinalMessageFrame)) {
+        return { state: seen, ops: [] };
+      }
       const finalText = textOfMessage(frame as FinalMessageFrame);
       const withText =
         seen.carry.length === 0 && finalText.length > 0

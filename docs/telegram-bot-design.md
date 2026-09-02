@@ -161,7 +161,7 @@ Outbound, per frame (all folding in FrameRenderer, all I/O in TelegramAdapter):
 | later `chunk` | append to buffer; `editMessageText` at most every 1500 ms; past 3800 chars, finalize the current message and start a new one (headroom under the 4096 limit for formatting entities — the same constant claude-pipe converged on) |
 | `tool_call_update` / `tool_call` | one **status line** message (`🔧 web_search — "quickjs sandbox"`), edited in place per tool; replaced by the stream message when text starts; `✅`/`❌` on completion |
 | `task_update`, `planning_update`, `node_update` | folded into the status line (latest wins), never separate messages |
-| `message` (final assistant) | finalize: edit the stream message to the final content's tail chunk, send remaining chunks |
+| `message` (final assistant) | finalize: edit the stream message to the final content's tail chunk, send remaining chunks. Only an assistant message with no `execution_event_type` and no `tool_calls` counts: the compaction echo (`role: "user"`), the mid-turn tool-call echoes and tool results are ignored, or their text would be delivered as the answer and the real reply dropped |
 | `output_update` / saved assets | fetch via the delegated token, send as `sendPhoto`/`sendDocument` (≤ 50 MB; larger files become a link to the server's asset URL: `📎 too large for Telegram: <url>`) |
 | `error` | replace status/stream with `⚠️ <message>`; the turn ends |
 | `job_update` (workflow-target runs) | status line only |
