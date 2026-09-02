@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 const ttsPipelineFn = vi.fn();
 
 vi.mock("@nodetool-ai/transformers-js-nodes", () => ({
+  KOKORO_VOICES: ["af_heart", "af_bella"],
   encodeWav: (samples: Float32Array, rate: number) => {
     const buf = Buffer.alloc(44 + samples.length * 2);
     buf.write("RIFF", 0);
@@ -21,6 +22,7 @@ vi.mock("@nodetool-ai/transformers-js-nodes", () => ({
   isSpeechT5Repo: (id: string) => /speecht5/i.test(id)
 }));
 
+import { getKokoro } from "@nodetool-ai/transformers-js-nodes";
 import { textToSpeechEncoded } from "../src/tts.js";
 
 describe("textToSpeechEncoded", () => {
@@ -32,6 +34,30 @@ describe("textToSpeechEncoded", () => {
     });
     expect(result.mimeType).toBe("audio/wav");
     expect(result.data.slice(0, 4)).toEqual(new Uint8Array([0x52, 0x49, 0x46, 0x46]));
+  });
+
+  it("Kokoro path rejects a voice the model does not ship", async () => {
+    await expect(
+      textToSpeechEncoded({
+        text: "hello",
+        model: "onnx-community/Kokoro-82M-v1.0-ONNX",
+        voice: "af_nonexistent"
+      })
+    ).rejects.toThrow(/Unknown Kokoro voice "af_nonexistent"/);
+  });
+
+  it("Kokoro path falls back to the default voice when none is given", async () => {
+    const generate = vi.fn(async () => ({
+      audio: new Float32Array([0.1]),
+      sampling_rate: 24000
+    }));
+    vi.mocked(getKokoro).mockResolvedValueOnce({ generate });
+
+    await textToSpeechEncoded({
+      text: "hello",
+      model: "onnx-community/Kokoro-82M-v1.0-ONNX"
+    });
+    expect(generate).toHaveBeenCalledWith("hello", { voice: "af_heart" });
   });
 
   it("non-SpeechT5 pipeline path does not pass speaker_embeddings", async () => {

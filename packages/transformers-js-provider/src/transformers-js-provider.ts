@@ -7,7 +7,6 @@ import type {
   LanguageModel,
   Message,
   ProviderStreamItem,
-  ProviderTool,
   TTSModel
 } from "@nodetool-ai/runtime";
 import { generateMessage, generateMessages } from "./chat.js";
@@ -54,44 +53,15 @@ export class TransformersJsProvider extends BaseProvider {
 
   // ── Chat ──────────────────────────────────────────────────────────
 
-  override async generateMessage(args: {
-    messages: Message[];
-    model: string;
-    tools?: ProviderTool[];
-    toolChoice?: string | "any";
-    maxTokens?: number;
-    temperature?: number;
-    topP?: number;
-    presencePenalty?: number;
-    frequencyPenalty?: number;
-    threadId?: string | null;
-    onToolCall?: (
-      name: string,
-      args: Record<string, unknown>
-    ) => Promise<string>;
-    signal?: AbortSignal;
-  }): Promise<Message> {
+  override async generateMessage(
+    args: Parameters<BaseProvider["generateMessage"]>[0]
+  ): Promise<Message> {
     return generateMessage(args);
   }
 
-  override async *generateMessages(args: {
-    messages: Message[];
-    model: string;
-    tools?: ProviderTool[];
-    toolChoice?: string | "any";
-    maxTokens?: number;
-    temperature?: number;
-    topP?: number;
-    presencePenalty?: number;
-    frequencyPenalty?: number;
-    audio?: Record<string, unknown>;
-    threadId?: string | null;
-    onToolCall?: (
-      name: string,
-      args: Record<string, unknown>
-    ) => Promise<string>;
-    signal?: AbortSignal;
-  }): AsyncGenerator<ProviderStreamItem> {
+  override async *generateMessages(
+    args: Parameters<BaseProvider["generateMessages"]>[0]
+  ): AsyncGenerator<ProviderStreamItem> {
     yield* generateMessages(args);
   }
 

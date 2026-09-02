@@ -12,10 +12,22 @@ interface EmbeddingTensor {
   tolist?: () => number[][] | number[];
 }
 
+/** The `feature-extraction` call options this provider sets. */
+interface FeatureExtractionOptions {
+  pooling: "none" | "mean" | "cls" | "first_token" | "eos" | "last_token";
+  /** Unit-length vectors; `truncateDimensions` re-normalizes on that basis. */
+  normalize: boolean;
+}
+
 type FeatureExtractionPipelineFn = (
   input: string | string[],
-  opts?: Record<string, unknown>
+  opts?: FeatureExtractionOptions
 ) => Promise<EmbeddingTensor>;
+
+/** `tolist()` returns `number[][]` for a batch and a flat `number[]` for one input. */
+function isVectorBatch(list: number[][] | number[]): list is number[][] {
+  return list.length > 0 && Array.isArray(list[0]);
+}
 
 /**
  * Coerce transformers.js feature-extraction tensor output to `number[][]`.
@@ -25,13 +37,10 @@ type FeatureExtractionPipelineFn = (
  * `tolist()` is available we use it; otherwise we reshape `data` by `dims`.
  */
 function tensorToVectors(t: EmbeddingTensor): number[][] {
-  if (typeof t.tolist === "function") {
+  if (t.tolist) {
     const list = t.tolist();
-    if (Array.isArray(list) && list.length > 0 && Array.isArray(list[0])) {
-      return list as number[][];
-    }
     if (Array.isArray(list)) {
-      return [list as number[]];
+      return isVectorBatch(list) ? list : [list];
     }
   }
 
@@ -77,10 +86,10 @@ function truncateDimensions(
 export async function generateEmbedding(
   args: EmbedArgs
 ): Promise<number[][]> {
-  const pipeline = (await getPipeline({
+  const pipeline = await getPipeline<FeatureExtractionPipelineFn>({
     task: "feature-extraction",
     model: args.model
-  })) as FeatureExtractionPipelineFn;
+  });
 
   const result = await pipeline(args.text, {
     pooling: "mean",
