@@ -26,12 +26,18 @@ import {
 const BASE_URL = "https://nodetool.ai";
 
 const TAG_CHIP: Record<BlogTag, string> = {
+  Guide: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
+  Cost: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+  Roundup: "border-rose-500/30 bg-rose-500/10 text-rose-300",
   Tutorial: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
   Comparison: "border-blue-500/30 bg-blue-500/10 text-blue-300",
   "Deep dive": "border-violet-500/30 bg-violet-500/10 text-violet-300",
 };
 
 const GLOW: Record<BlogTag, string> = {
+  Guide: "bg-cyan-500/15",
+  Cost: "bg-amber-500/15",
+  Roundup: "bg-rose-500/15",
   Tutorial: "bg-emerald-500/15",
   Comparison: "bg-blue-500/15",
   "Deep dive": "bg-violet-500/15",

@@ -9,6 +9,7 @@ Copy and positioning decisions live next to the site code:
 - [PRODUCT.md](PRODUCT.md) — brand, users, and design principles
 - [POSITIONING_PLAN.md](POSITIONING_PLAN.md) — competitive positioning, landing-page blueprint, asset checklist, and launch plan
 - [VIDEO_SCRIPT.md](VIDEO_SCRIPT.md) — the product video script
+- [seo/BLOG_STRATEGY.md](seo/BLOG_STRATEGY.md) — the blog: post families, title formulas, authoring format (`content/blog/*.md` → `npm run gen:blog`), cadence, and backlog
 
 When homepage copy and these docs disagree, fix both in the same change. `BRAND.md` is the wider standard; where it and `NARRATIVE.md` differ on the homepage hero, `NARRATIVE.md` wins for nodetool.ai.
 

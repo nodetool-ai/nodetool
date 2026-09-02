@@ -20,14 +20,17 @@ import { absoluteUrl, breadcrumbSchema, itemListSchema } from "@/lib/jsonld";
 
 const BASE_URL = "https://nodetool.ai";
 
-const TITLE = "Blog — tutorials, comparisons, and deep dives";
+const TITLE = "Blog — guides, costs, model roundups, and tutorials";
 const DESCRIPTION =
-  "Tutorials, comparisons, and deep dives on building AI workflows in NodeTool: agents that build graphs, local RAG, video pipelines, and running every model on your own keys.";
+  "Guides, cost breakdowns, model roundups, tutorials, and comparisons on building AI workflows in NodeTool: what a run costs at provider rates, which model fits the job, and how to build it on your own keys.";
 
 export const metadata: Metadata = {
   title: `${TITLE} — NodeTool`,
   description: DESCRIPTION,
-  alternates: { canonical: BLOG_BASE },
+  alternates: {
+    canonical: BLOG_BASE,
+    types: { "application/rss+xml": `${BASE_URL}${BLOG_BASE}/feed.xml` },
+  },
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,
@@ -37,6 +40,9 @@ export const metadata: Metadata = {
 };
 
 const TAG_CHIP: Record<BlogTag, string> = {
+  Guide: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
+  Cost: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+  Roundup: "border-rose-500/30 bg-rose-500/10 text-rose-300",
   Tutorial: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
   Comparison: "border-blue-500/30 bg-blue-500/10 text-blue-300",
   "Deep dive": "border-violet-500/30 bg-violet-500/10 text-violet-300",
@@ -137,9 +143,14 @@ export default function BlogHub() {
             Building with NodeTool
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            Step-by-step workflow builds, honest comparisons with the other node
-            canvases, and the thinking behind an agent-first workspace you run
-            on your own keys.
+            What a run costs at provider rates, which model fits the job,
+            step-by-step workflow builds, and straight comparisons with the
+            other node canvases. Everything runs on your own keys.
+          </p>
+          <p className="mt-3 text-sm text-slate-400">
+            <a href={`${BLOG_BASE}/feed.xml`} className="hover:text-slate-200 focus-ring rounded">
+              RSS feed
+            </a>
           </p>
         </section>
 
