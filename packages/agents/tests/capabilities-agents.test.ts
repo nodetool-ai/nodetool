@@ -14,7 +14,12 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  AgentMemory,
+  BaseProvider,
+  memoryKeys,
+  ProcessingContext
+} from "@nodetool-ai/runtime";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import {
   AGENT_CAPABILITIES,
@@ -585,6 +590,7 @@ describe("execute_plan", () => {
     opts: {
       failing?: string[];
       parentTools?: () => unknown[];
+      memory?: AgentMemory;
     } = {}
   ) {
     const { provider, seenSteps, offeredTools, promptText } = stepProvider(
@@ -593,7 +599,9 @@ describe("execute_plan", () => {
     const forwarded: ProcessingMessage[] = [];
     const result = (await executePlan.impl(
       createCapabilityRun({
-        context: createMockContext() as never,
+        context: createMockContext(
+          opts.memory ? { memory: opts.memory } : {}
+        ) as never,
         gate: UNGATED,
         subAgent: stubRuntime({
           provider,
@@ -655,6 +663,42 @@ describe("execute_plan", () => {
         (m) => m.type === "task_update" && m.event === "task_failed"
       )
     ).toBe(true);
+  });
+
+  it("says so when a completed task left no result under its `task:<id>` key", async () => {
+    // A task can finish every step and still write nothing under its task
+    // key. The capability's description tells the model to read the result
+    // back from `task:<task id>`, so a task reported as `completed` with no
+    // entry in `results` sends it to a key that is not there. Drop exactly
+    // that one write and the task must say the result is missing.
+    const memory = new AgentMemory();
+    const write = memory.set.bind(memory);
+    memory.set = ((entry: Parameters<AgentMemory["set"]>[0]) => {
+      if (entry.key === memoryKeys.task("draft")) {
+        return { ...entry, createdAt: entry.createdAt ?? Date.now() };
+      }
+      return write(entry);
+    }) as AgentMemory["set"];
+
+    const { result } = await runPlan(twoTaskPlan(), { memory });
+
+    expect(result["completed_count"]).toBe(2);
+    expect(result["failed_count"]).toBe(0);
+    const tasks = result["tasks"] as Array<Record<string, unknown>>;
+    // The task that did leave a result is reported unchanged.
+    expect(tasks[0]).toEqual({
+      id: "gather",
+      title: "Gather the inputs",
+      status: "completed"
+    });
+    // The one that did not is flagged next to the status the model reads.
+    expect(tasks[1]).toEqual({
+      id: "draft",
+      title: "Draft the output",
+      status: "completed",
+      result_missing: true
+    });
+    expect(Object.keys(result["results"] as object)).toEqual(["gather"]);
   });
 
   it("never hands the plan capabilities to the child loops", async () => {

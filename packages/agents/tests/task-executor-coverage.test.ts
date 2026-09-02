@@ -404,6 +404,12 @@ describe("TaskExecutor coverage", () => {
       perItemSchema: JSON.stringify({
         type: "object",
         properties: { done: { type: "boolean" } }
+      }),
+      // With a perItemSchema, the step's own outputSchema describes the
+      // aggregate the fan-out produces — a list, not one item's object.
+      outputSchema: JSON.stringify({
+        type: "array",
+        items: { type: "object", properties: { done: { type: "boolean" } } }
       })
     };
     const task: Task = { id: "t1", title: "T", steps: [discover, proc] };

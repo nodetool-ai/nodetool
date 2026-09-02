@@ -36,6 +36,10 @@ import { mergeAsyncGenerators } from "./utils/merge-generators.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Step, Task } from "./types.js";
 import { DEFAULT_AGENT_POLICY } from "./agent-policy.js";
+import {
+  formatViolations,
+  validateAgainstSchema
+} from "./utils/json-schema-validate.js";
 import { isObjectLike, isRecord } from "./utils/type-guards.js";
 
 const DEFAULT_MAX_STEPS = 50;
@@ -522,6 +526,9 @@ export class TaskExecutor {
       ephemeralSteps.map((ephStep, index) => [ephStep.id, index])
     );
     const results: unknown[] = new Array(ephemeralSteps.length);
+    // Which slots a result actually landed in. `results[i] === undefined` is
+    // not the test: an item may legitimately finish with `undefined`.
+    const filled = new Set<number>();
 
     const collect = (msg: unknown): void => {
       const stepResult = msg as StepResult;
@@ -529,9 +536,12 @@ export class TaskExecutor {
       const stepId = stepResult.step?.id;
       if (stepId === undefined) return;
       const index = indexByStepId.get(stepId);
-      if (index !== undefined) {
-        results[index] = stepResult.result;
-      }
+      if (index === undefined) return;
+      // A failed item answers with `{error}`, not with a result. Leaving its
+      // slot empty is what makes the aggregate check below see the hole.
+      if (stepResult.error !== undefined) return;
+      results[index] = stepResult.result;
+      filled.add(index);
     };
 
     if (this.parallelExecution && generators.length > 1) {
@@ -551,6 +561,39 @@ export class TaskExecutor {
       }
     }
 
+    // A fan-out is one deliverable: an item that produced no result makes the
+    // step a failure, never a completion with a hole in it (I-5).
+    const missing = ephemeralSteps
+      .map((_ephStep, index) => index)
+      .filter((index) => !filled.has(index));
+    if (missing.length > 0) {
+      yield* this.failStep(
+        step,
+        `Step failed: fan-out produced no result for ` +
+          `${missing.length} of ${ephemeralSteps.length} item(s) — ` +
+          `index ${missing.join(", ")}`
+      );
+      return;
+    }
+
+    // With a `perItemSchema` the per-item executor validated each item against
+    // that schema, so the step's own `outputSchema` describes the aggregate and
+    // nothing has checked it yet.
+    const aggregateSchema = perItemSchema
+      ? this.parseSchema(step.outputSchema, step.id)
+      : null;
+    if (aggregateSchema) {
+      const violations = validateAgainstSchema(results, aggregateSchema);
+      if (violations.length > 0) {
+        yield* this.failStep(
+          step,
+          `Step failed: fan-out result rejected by outputSchema — ` +
+            formatViolations(violations)
+        );
+        return;
+      }
+    }
+
     this.context.memory.set({
       key: memoryKeys.step(step.id),
       kind: "step_result",
@@ -565,6 +608,21 @@ export class TaskExecutor {
       stepId: step.id,
       resultCount: results.length
     });
+  }
+
+  /** A step's declared schema as an object, or null when absent/unparseable. */
+  private parseSchema(
+    schema: string | undefined,
+    stepId: string
+  ): Record<string, unknown> | null {
+    if (!schema) return null;
+    try {
+      const parsed: unknown = JSON.parse(schema);
+      return isRecord(parsed) ? parsed : null;
+    } catch {
+      log.warn("Ignoring unparseable outputSchema", { stepId });
+      return null;
+    }
   }
 
   /**
