@@ -92,10 +92,11 @@ altogether.
 
 ## Execution Phase
 
-`execute_plan` hands the plan to **ParallelTaskExecutor**, which dispatches the
-tasks whose dependencies are satisfied. Each task's **TaskExecutor** walks its
-step DAG in dependency order, and each step gets a **CodeActExecutor** running
-the code-action loop:
+`execute_plan` hands the plan to **ParallelTaskExecutor**, which starts each
+task the moment its last dependency settles rather than in barrier rounds
+(`utils/dag-scheduler.ts`). Each task's **TaskExecutor** schedules its step DAG
+the same way, and each step gets a **CodeActExecutor** running the code-action
+loop:
 
 1. Build messages — the CodeAct contract, the tool catalog, the step instructions
 2. Stream the LLM response

@@ -49,8 +49,14 @@ export interface DagScheduleOptions<N extends DagNode, E> {
   run: (node: N) => AsyncGenerator<E, DagRunResult | void>;
   /** Terminal events for a node that ran, or that could never run. */
   settle: (node: N, outcome: DagOutcome, error?: string) => E[];
-  /** Permit pool bounding how many nodes run at once. */
+  /** Permit pool bounding how many nodes run at once across the whole run. */
   concurrency: Semaphore;
+  /**
+   * Bound on the nodes *this* schedule runs at once, on top of the pool. A
+   * pool shared by several schedules bounds them together; this bounds one of
+   * them. Unset, only the pool bounds it.
+   */
+  maxConcurrent?: number;
   signal?: AbortSignal;
   /**
    * Events for a node that will never run because `by` failed. Called once per
@@ -86,7 +92,8 @@ export interface DagScheduleOptions<N extends DagNode, E> {
 export async function* scheduleDag<N extends DagNode, E>(
   opts: DagScheduleOptions<N, E>
 ): AsyncGenerator<E> {
-  const { nodes, run, settle, concurrency, signal, onBlocked } = opts;
+  const { nodes, run, settle, concurrency, maxConcurrent, signal, onBlocked } =
+    opts;
 
   /** Nodes depending on the keyed id, in the order the caller listed them. */
   const dependents = new Map<string, N[]>();
@@ -110,7 +117,11 @@ export async function* scheduleDag<N extends DagNode, E>(
   let readyCursor = 0;
   let inFlight = 0;
 
-  const merge = createDynamicMerge<E>({ semaphore: concurrency, signal });
+  const merge = createDynamicMerge<E>({
+    semaphore: concurrency,
+    concurrency: maxConcurrent,
+    signal
+  });
 
   /**
    * Mark every unsettled node downstream of a failure and collect their
