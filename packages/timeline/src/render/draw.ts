@@ -28,15 +28,20 @@ import { parseSvgPath, tracePath, type PathSegment } from "./svgPath.js";
 import {
   buildShapeSegments,
   flattenSegments,
+  roundedRectSegments,
   shapeBox,
   shapeUnitScale,
   trimFlatPath
 } from "./shapeGeometry.js";
 import {
   layoutStaggerUnits,
+  layoutTextBlock,
+  segmentGraphemes,
   textFontSpec,
-  textMaxWidthPx,
-  wrapTextLines
+  textLetterSpacingPx,
+  type TextBlockBox,
+  type TextBlockLayout,
+  type TextStaggerUnit
 } from "./textLayout.js";
 
 /**
@@ -132,6 +137,17 @@ export interface RasterContext2D extends MaskContext2D {
   textAlign: string;
   textBaseline: string;
   globalAlpha: number;
+  shadowColor: string;
+  shadowBlur: number;
+  shadowOffsetX: number;
+  shadowOffsetY: number;
+  /**
+   * Advance added after each glyph, as a CSS length. Optional because it is
+   * the one member here that is not universal: Chromium's canvas and
+   * `@napi-rs/canvas` both have it, an older or minimal context may not, and
+   * a text draw places the glyphs itself when it is missing.
+   */
+  letterSpacing?: string;
   measureText(text: string): { width: number };
   fillText(text: string, x: number, y: number): void;
   strokeText(text: string, x: number, y: number): void;
@@ -264,45 +280,252 @@ export function measureTextWith(ctx: RasterContext2D): MeasureTextWidth {
 
 // ── Text clips ───────────────────────────────────────────────────────────────
 
-/** Content signature of a text raster, for host-side caching. */
+/**
+ * Content signature of a text raster, for host-side caching.
+ *
+ * Every field of {@link ClipTextStyle} is in it. A key over a subset is worse
+ * than no cache at all: change a stroke width, a shadow offset or a background
+ * colour and the host hands back the bitmap drawn before the change. Nested
+ * objects are written field by field in a fixed order, so two equal styles key
+ * the same however they were built.
+ */
 export function textStyleSignature(
   style: ClipTextStyle,
   width: number,
   height: number
 ): string {
-  return `${width}x${height}|${style.text}|${style.fontFamily ?? "Inter"}|${style.fontSizePx}|${style.fontWeight ?? 400}|${style.color}|${style.align ?? "center"}|${style.maxWidthFrac ?? 0.8}`;
+  return [
+    `${width}x${height}`,
+    style.text,
+    style.fontFamily ?? "Inter",
+    style.fontSizePx,
+    style.fontWeight ?? 400,
+    style.color,
+    style.align ?? "center",
+    style.maxWidthFrac ?? 0.8,
+    style.fontStyle ?? "normal",
+    style.letterSpacingPx ?? 0,
+    style.lineHeight ?? 1.2,
+    style.verticalAlign ?? "middle",
+    style.stroke ? `${style.stroke.color}@${style.stroke.widthPx}` : "-",
+    style.shadow
+      ? `${style.shadow.color}@${style.shadow.blurPx}/${style.shadow.offsetX}/${style.shadow.offsetY}`
+      : "-",
+    style.background
+      ? `${style.background.color}@${style.background.paddingPx}/${style.background.radiusPx ?? 0}`
+      : "-",
+    fillSignature(style.fill)
+  ].join("|");
 }
 
-/** Draw a text style as one block: wrapped lines, centered on the raster. */
+/** A fill's own signature, stops included. */
+function fillSignature(fill: ShapeFill | undefined): string {
+  if (!fill) return "-";
+  if (fill.type === "solid") return `solid:${fill.color}`;
+  const stops = fill.stops
+    .map((stop) => `${stop.offset}:${stop.color}`)
+    .join(",");
+  return fill.type === "linear"
+    ? `linear:${fill.angle}:${stops}`
+    : `radial:${stops}`;
+}
+
+/**
+ * How one run of text is painted: the resolved fill, the outline drawn under
+ * it, the shadow both cast, and how the glyphs are advanced.
+ *
+ * Resolved once per draw and reused for every line or unit, so a gradient
+ * spans the whole block rather than restarting on each line, and a staggered
+ * title is painted exactly like its un-staggered self.
+ */
+interface TextPaint {
+  fill: CanvasPaint;
+  stroke: { color: string; widthPx: number } | null;
+  shadow: { color: string; blurPx: number; offsetX: number; offsetY: number } | null;
+  letterSpacingPx: number;
+  /** True when the context advances the glyphs itself. */
+  nativeSpacing: boolean;
+  /** Unspaced advance, for placing the glyphs by hand. */
+  measure: (text: string) => number;
+}
+
+/**
+ * Set the context's own letter spacing where it has one, and report whether it
+ * took. Both shipping contexts have it and both charge the advance after every
+ * glyph, trailing one included — which is what the layout charges too, so the
+ * hand-placed fallback lands the glyphs in the same places.
+ */
+function setLetterSpacing(ctx: RasterContext2D, px: number): boolean {
+  if (typeof ctx.letterSpacing !== "string") return false;
+  ctx.letterSpacing = `${px}px`;
+  return true;
+}
+
+/** Leave no shadow in force — the state a fresh context starts in. */
+function clearShadow(ctx: RasterContext2D): void {
+  ctx.shadowColor = "rgba(0, 0, 0, 0)";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+}
+
+/**
+ * Measure and place `style`, leaving the context ready to paint text: the font
+ * set, the glyphs positioned from their left edge and their vertical center.
+ *
+ * Measurement runs with native letter spacing off so a context that has the
+ * property reports the same advances as one that does not; the spacing is
+ * charged by the layout and switched on afterwards, for the draw.
+ */
+function prepareText(
+  ctx: RasterContext2D,
+  style: ClipTextStyle,
+  width: number,
+  height: number,
+  staggerUnit?: StaggerUnit
+): { layout: TextBlockLayout; units: TextStaggerUnit[]; paint: TextPaint } {
+  ctx.font = textFontSpec(style);
+  clearShadow(ctx);
+  setLetterSpacing(ctx, 0);
+  const measure = (text: string): number => ctx.measureText(text).width;
+  const layout = layoutTextBlock(measure, style, width, height);
+  const units = staggerUnit
+    ? layoutStaggerUnits(measure, style, width, height, staggerUnit)
+    : [];
+
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  drawTextBackground(ctx, style, layout.box);
+
+  const letterSpacingPx = textLetterSpacingPx(style);
+  const nativeSpacing = setLetterSpacing(ctx, letterSpacingPx);
+  return {
+    layout,
+    units,
+    paint: {
+      fill: style.fill
+        ? resolveShapeFill(ctx, style.fill, layout.box)
+        : style.color,
+      stroke:
+        style.stroke && style.stroke.widthPx > 0 ? { ...style.stroke } : null,
+      shadow: style.shadow ? { ...style.shadow } : null,
+      letterSpacingPx,
+      nativeSpacing,
+      measure
+    }
+  };
+}
+
+/** The scrim behind the wrapped block: a rounded rect grown by the padding. */
+function drawTextBackground(
+  ctx: RasterContext2D,
+  style: ClipTextStyle,
+  box: TextBlockBox
+): void {
+  const background = style.background;
+  if (!background) return;
+  // A scrim backs text. With nothing to back — an empty title, whose block
+  // collapses to a point — the padding alone would draw a bare pill.
+  if (box.width <= 0) return;
+  const pad = Math.max(0, background.paddingPx);
+  const width = box.width + pad * 2;
+  const height = box.height + pad * 2;
+  if (height <= 0) return;
+  ctx.fillStyle = background.color;
+  ctx.beginPath();
+  tracePath(
+    ctx,
+    roundedRectSegments(
+      box.x - pad,
+      box.y - pad,
+      width,
+      height,
+      Math.max(0, background.radiusPx ?? 0)
+    ),
+    UNSCALED
+  );
+  ctx.fill();
+}
+
+/**
+ * Paint one run at its left edge: shadow, then outline, then fill.
+ *
+ * The outline is drawn first so the fill sits inside it rather than being eaten
+ * by it, and it is the outline that casts the shadow — a second cast from the
+ * fill would darken the whole silhouette twice.
+ */
+function paintTextRun(
+  ctx: RasterContext2D,
+  paint: TextPaint,
+  text: string,
+  x: number,
+  y: number
+): void {
+  if (text === "") return;
+  if (paint.shadow) {
+    ctx.shadowColor = paint.shadow.color;
+    ctx.shadowBlur = Math.max(0, paint.shadow.blurPx);
+    ctx.shadowOffsetX = paint.shadow.offsetX;
+    ctx.shadowOffsetY = paint.shadow.offsetY;
+  }
+  if (paint.stroke) {
+    ctx.strokeStyle = paint.stroke.color;
+    ctx.lineWidth = paint.stroke.widthPx;
+    ctx.lineJoin = "round";
+    advanceRun(ctx, paint, text, x, y, "stroke");
+    if (paint.shadow) clearShadow(ctx);
+  }
+  ctx.fillStyle = paint.fill;
+  advanceRun(ctx, paint, text, x, y, "fill");
+  if (paint.shadow) clearShadow(ctx);
+}
+
+/**
+ * Issue a run as one call, or — when the context has no letter spacing of its
+ * own — as one call per grapheme placed at its unspaced prefix width plus the
+ * spacing accumulated before it, so the glyphs sit where the shaped word would
+ * have put them and only the pair kerning is lost.
+ */
+function advanceRun(
+  ctx: RasterContext2D,
+  paint: TextPaint,
+  text: string,
+  x: number,
+  y: number,
+  mode: "fill" | "stroke"
+): void {
+  if (paint.letterSpacingPx === 0 || paint.nativeSpacing) {
+    if (mode === "stroke") ctx.strokeText(text, x, y);
+    else ctx.fillText(text, x, y);
+    return;
+  }
+  let prefix = "";
+  let index = 0;
+  for (const grapheme of segmentGraphemes(text)) {
+    const at = x + paint.measure(prefix) + paint.letterSpacingPx * index;
+    if (mode === "stroke") ctx.strokeText(grapheme, at, y);
+    else ctx.fillText(grapheme, at, y);
+    prefix += grapheme;
+    index += 1;
+  }
+}
+
+/**
+ * Draw a text style as one block: a scrim, then the wrapped lines, placed on
+ * the raster by `align` and `verticalAlign`.
+ */
 export function drawText(
   ctx: RasterContext2D,
   style: ClipTextStyle,
   width: number,
   height: number
 ): void {
-  const fontSize = Math.max(1, style.fontSizePx);
-  const align = style.align ?? "center";
-  const maxWidth = textMaxWidthPx(style, width);
-
-  ctx.font = textFontSpec(style);
-  const lines = wrapTextLines(style.text, maxWidth, (text) =>
-    ctx.measureText(text).width
-  );
-
-  const lineHeight = fontSize * 1.2;
-  const firstBaseline = height / 2 - ((lines.length - 1) * lineHeight) / 2;
-  ctx.fillStyle = style.color;
-  ctx.textAlign = align;
-  ctx.textBaseline = "middle";
-  const x =
-    align === "left"
-      ? (width - maxWidth) / 2
-      : align === "right"
-        ? (width + maxWidth) / 2
-        : width / 2;
-  lines.forEach((entry, index) =>
-    ctx.fillText(entry.text, x, firstBaseline + index * lineHeight)
-  );
+  ctx.save();
+  const { layout, paint } = prepareText(ctx, style, width, height);
+  for (const line of layout.lines) {
+    paintTextRun(ctx, paint, line.text, line.x, line.y);
+  }
+  ctx.restore();
 }
 
 /**
@@ -345,6 +568,12 @@ function staggerLayout(
  * applies those to the whole layer, which is why the sampler classifies them
  * as block-level (`ANIMATED_PROPERTY_PASS`) and folds them over the full span
  * instead of dropping them.
+ *
+ * Styling is the whole style, resolved once and reused for every unit: the
+ * scrim sits behind the block rather than behind each glyph, and a gradient
+ * fill spans the block rather than restarting on every unit — so a staggered
+ * title and its un-staggered self are the same picture once the animation has
+ * played out.
  */
 export function drawStaggeredText(
   ctx: RasterContext2D,
@@ -359,17 +588,19 @@ export function drawStaggeredText(
     drawText(ctx, style, width, height);
     return;
   }
-  ctx.font = textFontSpec(style);
-  const units = layoutStaggerUnits(
-    (text) => ctx.measureText(text).width,
+  ctx.save();
+  const { layout: block, units, paint } = prepareText(
+    ctx,
     style,
     width,
     height,
     layout.unit
   );
-  ctx.fillStyle = style.color;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
+  // A gradient is issued in whatever coordinate system is in force when it is
+  // painted, so one resolved against the raster would ride along with each
+  // unit's transform and every glyph would show the same slice of the ramp.
+  const movingFill =
+    style.fill && style.fill.type !== "solid" ? style.fill : null;
 
   units.forEach((unit, index) => {
     // A whitespace unit takes its index — the units after it are timed as if
@@ -404,13 +635,27 @@ export function drawStaggeredText(
     if (s.rotation !== 0) ctx.rotate(s.rotation);
     if (scaleX !== 1 || scaleY !== 1) ctx.scale(scaleX, scaleY);
     ctx.globalAlpha = s.opacity;
-    ctx.fillText(
+    if (movingFill) {
+      // The block box in this unit's own space. Rotation is deliberately not
+      // undone: the ramp turns with the glyph, which is what a rotated letter
+      // carrying a gradient should look like.
+      paint.fill = resolveShapeFill(ctx, movingFill, {
+        x: (block.box.x - pivotX) / scaleX,
+        y: (block.box.y - pivotY) / scaleY,
+        width: block.box.width / scaleX,
+        height: block.box.height / scaleY
+      });
+    }
+    paintTextRun(
+      ctx,
+      paint,
       unit.text,
       -unit.width * anchorX,
       -(anchorY - 0.5) * unit.height
     );
     ctx.restore();
   });
+  ctx.restore();
 }
 
 /**

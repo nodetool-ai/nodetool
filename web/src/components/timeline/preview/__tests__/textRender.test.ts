@@ -8,11 +8,20 @@ describe("TextRasterizer", () => {
   const originalOffscreenCanvas = globalThis.OffscreenCanvas;
   const close = jest.fn();
   const bitmap = stub<ImageBitmap>({ close });
+  // The subset of `RasterContext2D` a plain unstyled title touches. It has no
+  // `letterSpacing`, which is the hand-placed advance path — with no spacing
+  // set, that is still one `fillText` per line.
   const context = {
     fillStyle: "",
     font: "",
     textAlign: "start",
     textBaseline: "alphabetic",
+    shadowColor: "",
+    shadowBlur: 0,
+    shadowOffsetX: 0,
+    shadowOffsetY: 0,
+    save: jest.fn(),
+    restore: jest.fn(),
     measureText: jest.fn((text: string) => ({ width: text.length * 10 })),
     fillText: jest.fn()
   };
@@ -58,12 +67,11 @@ describe("TextRasterizer", () => {
     expect(transferToImageBitmap).toHaveBeenCalledTimes(1);
     expect(context.font).toBe("600 72px Inter");
     expect(context.fillStyle).toBe("#123456");
-    expect(context.textAlign).toBe("right");
-    expect(context.fillText).toHaveBeenCalledWith(
-      "Motion title",
-      expect.any(Number),
-      540
-    );
+    // Every glyph is placed from its own left edge, so alignment is arithmetic
+    // on the line's measured width rather than a context mode: the right edge
+    // of a 120px line sits on the right edge of the 1440px wrap column.
+    expect(context.textAlign).toBe("left");
+    expect(context.fillText).toHaveBeenCalledWith("Motion title", 1560, 540);
 
     rasterizer.dispose();
     expect(close).toHaveBeenCalledTimes(1);

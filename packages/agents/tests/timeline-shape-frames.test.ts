@@ -364,10 +364,25 @@ describe("RasterContext2D on @napi-rs/canvas (I6)", () => {
       "lineJoin",
       "lineCap",
       "textAlign",
-      "textBaseline"
+      "textBaseline",
+      "shadowColor",
+      "shadowBlur",
+      "shadowOffsetX",
+      "shadowOffsetY"
     ]) {
       expect(ctx[name], name).toBeDefined();
     }
+  });
+
+  it("has the letter spacing a text draw uses when it is there", () => {
+    // Optional on `RasterContext2D`, because a context without it is served by
+    // the hand-placed fallback. Skia has it, so the server takes the fast path
+    // and this records which one it is on.
+    const ctx = createCanvas(4, 4).getContext("2d") as unknown as Record<
+      string,
+      unknown
+    >;
+    expect(typeof ctx.letterSpacing).toBe("string");
   });
 });
 

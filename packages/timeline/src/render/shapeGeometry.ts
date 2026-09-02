@@ -255,6 +255,29 @@ function starPoints(
 }
 
 /**
+ * A rounded rectangle's outline in surface pixels — the scrim behind a title,
+ * and the same corner construction a rect shape clip draws with, so the two
+ * round identically. The radius is clamped to half the shorter side.
+ */
+export function roundedRectSegments(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+): PathSegment[] {
+  return polygonSegments(
+    [
+      { x, y },
+      { x: x + width, y },
+      { x: x + width, y: y + height },
+      { x, y: y + height }
+    ],
+    Math.max(0, Math.min(radius, width / 2, height / 2))
+  );
+}
+
+/**
  * A closed polygon through `points`, with each corner rounded to `radius`.
  *
  * A corner is the circular arc tangent to both edges, emitted as one cubic. The
