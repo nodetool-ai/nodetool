@@ -45,15 +45,29 @@ function uploadKey(source: CompositeSource): string {
  * `copyExternalImageToTexture`, and the finished frame is blitted to a swap
  * chain instead of read back to a buffer.
  */
+/** The format `GpuFrameCompositor` composites in and blits from. */
+const PRESENT_FORMAT: GPUTextureFormat = "rgba8unorm";
+
 export class WebGPUCompositor implements TimelineCompositor {
   private device: GPUDevice | null = null;
   private context: GPUCanvasContext | null = null;
-  private canvasFormat: GPUTextureFormat = "rgba8unorm";
+  private canvasFormat: GPUTextureFormat = PRESENT_FORMAT;
 
   private core: GpuFrameCompositor<CompositeSource> | null = null;
 
   private canvasWidth = 0;
   private canvasHeight = 0;
+  /**
+   * Whether `context` is configured with `device`. The context is claimed on
+   * the first present rather than in {@link init}: React StrictMode mounts the
+   * preview twice, so two instances race `init` on one canvas, and whichever
+   * configured the context last won even when it was the one about to be
+   * disposed. The survivor then blitted into a texture owned by a destroyed
+   * device and every frame failed validation, leaving the preview black.
+   * Only an instance that renders ever configures, and the disposed one never
+   * renders.
+   */
+  private configured = false;
 
   private sourceTextures = new Map<string, SourceTexture>();
   private layers: CompositeLayer[] = [];
@@ -80,15 +94,14 @@ export class WebGPUCompositor implements TimelineCompositor {
 
     this.device = device;
     this.context = context;
-    this.canvasFormat = navigator.gpu.getPreferredCanvasFormat();
+    // Not `getPreferredCanvasFormat()`: the shared core builds its blit
+    // pipeline for its own accumulation format, and a render pass whose colour
+    // attachment has another format (bgra8unorm on macOS and Windows) fails
+    // validation on every present. Every WebGPU implementation accepts
+    // rgba8unorm as a canvas format.
+    this.canvasFormat = PRESENT_FORMAT;
     this.canvasWidth = canvas.width;
     this.canvasHeight = canvas.height;
-
-    context.configure({
-      device,
-      format: this.canvasFormat,
-      alphaMode: "premultiplied"
-    });
 
     this.core = new GpuFrameCompositor<CompositeSource>(
       device,
@@ -122,15 +135,19 @@ export class WebGPUCompositor implements TimelineCompositor {
     this.canvasWidth = width;
     this.canvasHeight = height;
     // Setting canvas.width/height drops the configured swapchain. Reconfigure
-    // so the next getCurrentTexture() matches the new backing store.
-    if (this.context && this.device) {
-      this.context.configure({
-        device: this.device,
-        format: this.canvasFormat,
-        alphaMode: "premultiplied"
-      });
-    }
+    // on the next present so getCurrentTexture() matches the new backing store.
+    this.configured = false;
     this.core?.resize(width, height);
+  }
+
+  private ensureConfigured(context: GPUCanvasContext, device: GPUDevice): void {
+    if (this.configured) return;
+    context.configure({
+      device,
+      format: this.canvasFormat,
+      alphaMode: "premultiplied"
+    });
+    this.configured = true;
   }
 
   setLayers(
@@ -270,6 +287,7 @@ export class WebGPUCompositor implements TimelineCompositor {
       return;
     }
 
+    this.ensureConfigured(this.context, device);
     const encoder = device.createCommandEncoder({ label: "preview-present" });
     core.blit(encoder, texture, this.context.getCurrentTexture().createView());
     device.queue.submit([encoder.finish()]);
@@ -293,6 +311,7 @@ export class WebGPUCompositor implements TimelineCompositor {
     this.core?.dispose();
     this.core = null;
     this.context = null;
+    this.configured = false;
     this.device?.destroy();
     this.device = null;
   }
