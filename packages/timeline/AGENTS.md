@@ -97,10 +97,48 @@
   against — the text, not the raster. A draw that computes its own wrap puts a
   staggered title somewhere its un-staggered self is not.
 - **A raster cache key names every field of the style it caches.** A host hands
-  back the bitmap a key hits, so a field `textStyleSignature` does not read
-  renders as the frame drawn before that field changed. The check is the
-  `Object.keys` enumeration in `tests/render.textStyle.test.ts`, which walks the
-  document schema, so a field added under I1 fails there until the key reads it.
+  back the bitmap a key hits, so a field `textStyleSignature` or
+  `captionSignature` does not read renders as the frame drawn before that field
+  changed. The checks are the `Object.keys` enumerations in
+  `tests/render.textStyle.test.ts` and `tests/render.captionStyle.test.ts`,
+  which walk the document schema, so a field added under I1 fails there until
+  the key reads it.
+- **A caption keeps its own layout, and its built-in look is a default rather
+  than a constant.** `drawCaption` anchors an alphabetic baseline to the frame
+  bottom and colours the block word by word, neither of which `layoutTextBlock`
+  expresses; the two share the font shorthand and the scrim, which is where
+  they agree. Every value `caption.style` leaves out is the one the drawing
+  hard-coded before it was authorable, and
+  `packages/agents/tests/timeline-caption-frames.test.ts` compares an unstyled
+  caption against that prior drawing pixel for pixel — so a default nudged
+  while "cleaning up" fails rather than quietly restyling every shipped
+  caption.
+- **A font family is resolved once, in `resolveFontFamily`, and nowhere else.**
+  `textFontSpec` is the only builder of a `ctx.font` shorthand, and it takes
+  its family list from there — so the editor preview, the browser export, the
+  server render and the agent's frame preview all set the same string. The
+  faces are `packages/timeline/fonts/` with their OFL licences beside them,
+  listed in `src/fonts/catalog.ts` and registered in
+  `@nodetool-ai/config`'s `PACKAGE_RUNTIME_ASSET_DIRS`, so
+  `bundle-backend.mjs` stages the directory and `verify-backend-bundle.mjs`
+  fails a build that ships without it. A family the catalog does not carry
+  still draws, in front of the bundled default, and the validator reports it
+  as `font_not_portable`.
+- **`src/fonts/register-node.ts` is not reachable from the root export, or
+  from `./fonts`.** It imports `@napi-rs/canvas`, and the root export has no
+  runtime dependencies (AS2); Node hosts reach it as
+  `@nodetool-ai/timeline/fonts/node` and call `registerBundledFonts()` before
+  they draw. The catalog and the `@font-face` generator carry no imports at
+  all, which is what lets the browser, the validator and the fonts endpoint
+  read the same table.
+- **A browser draws with a bundled face only after `document.fonts.load`
+  resolves.** `fillText` never waits, so a title rasterized before its file
+  arrives is set in the fallback — and `TextRasterizer` caches by style, not by
+  face, so those glyphs stay until the entry is evicted. The editor awaits
+  `ensureBundledFontsLoaded()` on mount, the export and the clip-frame stills
+  await it before their first frame, and the rasterizer refuses to cache until
+  `bundledFontsReady()`. Adding a face means regenerating
+  `web/src/components/timeline/fonts.css` (`npm run timeline-fonts` in `web/`).
 - **A rasterized layer's pixels can depend on its animation sample.** A shape's
   `trimStart`/`trimEnd` change the outline, so every host rasterizes
   `AnimatedLayerProps.shapeStyle`, not the clip's own; a host that reaches for

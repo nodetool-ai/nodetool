@@ -9,9 +9,33 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { makeClip, makeTrack } from "@nodetool-ai/timeline";
 import type { TimelineClip } from "@nodetool-ai/timeline";
+
+// Only the fonts endpoint the picker reads is stubbed; the rest of the client
+// stays real, because the inspector's other sections call through it.
+jest.mock("../../../../trpc/client", () => {
+  const actual = jest.requireActual("../../../../trpc/client");
+  return {
+    ...actual,
+    trpcClient: {
+      ...actual.trpcClient,
+      fonts: {
+        list: {
+          query: jest.fn().mockResolvedValue({
+            fonts: [
+              { name: "Inter", portable: true },
+              { name: "Bebas Neue", portable: true },
+              { name: "Helvetica", portable: false }
+            ]
+          })
+        }
+      }
+    }
+  };
+});
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { TimelineInspector } from "../TimelineInspector";
@@ -19,15 +43,24 @@ import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
 
+// The font picker reads the fonts endpoint through TanStack Query, so the
+// inspector needs a client even in cases that never open the Text section.
+// Retries off: an unmocked query should surface, not stall the test.
 const renderInspector = () =>
   render(
-    <ThemeProvider theme={mockTheme}>
-      <MemoryRouter>
-        <TimelineProvider>
-          <TimelineInspector />
-        </TimelineProvider>
-      </MemoryRouter>
-    </ThemeProvider>
+    <QueryClientProvider
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
+    >
+      <ThemeProvider theme={mockTheme}>
+        <MemoryRouter>
+          <TimelineProvider>
+            <TimelineInspector />
+          </TimelineProvider>
+        </MemoryRouter>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 
 function seed(clips: TimelineClip[], selected: string[]) {
@@ -264,6 +297,27 @@ describe("Text section", () => {
     expect(clipById(clip.id)?.textStyle?.fill).toEqual(
       expect.objectContaining({ type: "linear", angle: 0 })
     );
+  });
+
+  // The family used to be a free-text field; T17 ships a catalog, so this
+  // asserts the picker reaches the store rather than merely rendering.
+  it("sets the font family from the shipped catalog", async () => {
+    const user = userEvent.setup();
+    renderInspector();
+    const clip = seedVideoClip({
+      mediaType: "text",
+      textStyle: {
+        text: "Title",
+        fontSizePx: 72,
+        color: "#ffffff",
+        align: "center"
+      }
+    });
+
+    await openSection(user, "Text");
+    await pickOption(user, /text font family/i, /^Bebas Neue · portable$/);
+
+    expect(clipById(clip.id)?.textStyle?.fontFamily).toBe("Bebas Neue");
   });
 });
 

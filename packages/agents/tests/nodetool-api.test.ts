@@ -44,7 +44,8 @@ const MEDIA_TOOLS = [
 const TIMELINE_TOOLS = [
   "list_timelines",
   "validate_timeline",
-  "preview_timeline_frame"
+  "preview_timeline_frame",
+  "set_timeline_document"
 ].map(toolDef);
 
 /** In-memory router: records calls, plays a tiny workflow store. */
@@ -151,6 +152,8 @@ function createFakeRouter() {
         return JSON.stringify({ ok: true, target: args });
       case "preview_timeline_frame":
         return JSON.stringify({ frames: [{ time_ms: 0 }], target: args });
+      case "set_timeline_document":
+        return JSON.stringify({ ok: true, written: true, target: args });
       default:
         return JSON.stringify({ error: `Unknown tool ${call.name}` });
     }
@@ -421,6 +424,27 @@ describe("nodetool object model", () => {
     expect(calls[1].args).toEqual({ document: { tracks: [] }, count: 2 });
     const r = obs.result as { saved: { frames: unknown[] } };
     expect(r.saved.frames).toHaveLength(1);
+  });
+
+  it("routes timelines.setDocument with its options alongside the document", async () => {
+    const { executeTool, calls } = createFakeRouter();
+    const session = makeSession(TIMELINE_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `await nodetool.timelines.setDocument("tl1", { tracks: [], clips: [] }, {
+         expected_updated_at: "2026-01-01T00:00:00.000Z",
+         snapshot_name: "before the recut"
+       });
+       return "done";`
+    );
+    expect(obs.ok).toBe(true);
+    expect(calls.map((c) => c.name)).toEqual(["set_timeline_document"]);
+    expect(calls[0].args).toEqual({
+      timeline_id: "tl1",
+      document: { tracks: [], clips: [] },
+      expected_updated_at: "2026-01-01T00:00:00.000Z",
+      snapshot_name: "before the recut"
+    });
   });
 
   it("names preview_timeline_frame when the belt lacks it", async () => {

@@ -43,7 +43,9 @@ import {
   parseSeconds,
   parseTimecode
 } from "./InspectorPrimitives.helpers";
+import { FontPicker } from "./FontPicker";
 import { ClipAdjustments } from "./ClipAdjustments";
+import { ClipCaptionStyle } from "./ClipCaptionStyle";
 import { ClipStoryboardLink } from "./ClipStoryboardLink";
 import { ClipAnimations } from "./ClipAnimations";
 import { ClipShapeSection } from "./ClipShapeSection";
@@ -401,6 +403,8 @@ export const TimelineInspector: React.FC = memo(() => {
           />
         </FlexColumn>
       </CollapsibleSection>
+
+      <ClipCaptionStyle clip={clip} />
 
       <ClipAdjustments clip={clip} />
 

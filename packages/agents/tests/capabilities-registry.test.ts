@@ -239,6 +239,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   segment_image: "write",
   serpapi_search: "read",
   set_setting: "write",
+  set_timeline_document: "write",
   set_workflow_access: "external",
   share_result: "read",
   start_background_job: "execute",

@@ -91,6 +91,12 @@ import { useTimelineExternalSync } from "../../hooks/timeline/useTimelineExterna
 import { useTimelineSave } from "../../hooks/timeline/useTimelineSave";
 import { useTimelineExport } from "../../hooks/timeline/useTimelineExport";
 import { useTimelineIsMobile } from "../../hooks/timeline/useTimelineIsMobile";
+import { ensureBundledFontsLoaded } from "./preview/fontLoading";
+
+// The `@font-face` rules for the bundled corpus, pointing at the same files
+// the server rasterizer registers (D8). Imported by the editor rather than
+// globally so a session that never opens a timeline never fetches them.
+import "./fonts.css";
 
 const HANDLE_HEIGHT_PX = 6;
 /** Phone drag handle — 6px is under any reasonable touch target. */
@@ -598,6 +604,14 @@ const TimelineEditorBody: React.FC<
    * `setTracksHeight` per animation frame — otherwise every move tick
    * re-rendered the whole shell.
    */
+  // Start the font fetch when the editor mounts, so the first title is drawn
+  // with its real face instead of the fallback. `TextRasterizer` also refuses
+  // to cache a bitmap until this resolves, which is what makes a slow fetch a
+  // brief flicker rather than a wrong frame that sticks.
+  useEffect(() => {
+    void ensureBundledFontsLoaded();
+  }, []);
+
   useEffect(() => {
     if (!isDragging) {
       return;

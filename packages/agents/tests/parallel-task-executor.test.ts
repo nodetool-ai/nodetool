@@ -633,4 +633,180 @@ describe("ParallelTaskExecutor", () => {
     expect(events).toContain("task_failed");
     expect(events).not.toContain("task_completed");
   });
+  it("starts a short task's dependent before a long sibling finishes", async () => {
+    // The round loop made a plan as slow as its slowest sibling: the dependent
+    // of the short task waited for the long one because both sat in the same
+    // barrier. Here the long step is held open until the dependent has started,
+    // so a barrier cannot pass this — it would deadlock until the escape timer
+    // fires, which the assertion reads.
+    let openLongStep = (): void => {};
+    const longStepGate = new Promise<void>((resolve) => {
+      openLongStep = resolve;
+    });
+    let escapeTimerFired = false;
+    const escape = setTimeout(() => {
+      escapeTimerFired = true;
+      openLongStep();
+    }, 2000);
+
+    const provider = {
+      ...createMockProvider(),
+      generateMessages: async function* (args: { messages?: unknown[] }) {
+        const text = JSON.stringify(args?.messages ?? "");
+        if (text.includes("Do long")) {
+          await longStepGate;
+        } else {
+          // The short branch is genuinely quicker, not merely unordered.
+          await new Promise((r) => setTimeout(r, 5));
+        }
+        yield finishAction({ done: true });
+      }
+    } as never;
+
+    const step = (id: string, instructions: string) => ({
+      id,
+      instructions,
+      completed: false,
+      dependsOn: [] as string[],
+      outputSchema: JSON.stringify({
+        type: "object",
+        properties: { done: { type: "boolean" } }
+      }),
+      logs: []
+    });
+
+    const plan: TaskPlan = {
+      title: "Unequal Plan",
+      tasks: [
+        {
+          id: "task_long",
+          title: "Long",
+          dependsOn: [],
+          completed: false,
+          steps: [step("s_long", "Do long")]
+        },
+        {
+          id: "task_short",
+          title: "Short",
+          dependsOn: [],
+          completed: false,
+          steps: [step("s_short", "Do short")]
+        },
+        {
+          id: "task_after",
+          title: "After",
+          dependsOn: ["task_short"],
+          completed: false,
+          steps: [step("s_after", "Do after")]
+        }
+      ]
+    };
+
+    const executor = new ParallelTaskExecutor({
+      provider,
+      model: "test-model",
+      context: createMockContext() as never,
+      tools: [],
+      taskPlan: plan
+    });
+
+    const order: string[] = [];
+    for await (const msg of executor.execute()) {
+      if (msg.type !== "task_update") continue;
+      const update = msg as { event: string; task?: { id?: string } };
+      if (update.event === "task_created" && update.task?.id === "task_after") {
+        order.push("after_started");
+        // The dependent is running; the long sibling may finish now.
+        openLongStep();
+      }
+      if (update.event === "task_completed" && update.task?.id === "task_long") {
+        order.push("long_completed");
+      }
+    }
+    clearTimeout(escape);
+
+    expect(escapeTimerFired).toBe(false);
+    expect(order).toEqual(["after_started", "long_completed"]);
+    expect(plan.tasks.every((t) => t.completed)).toBe(true);
+  });
+
+  it("emits the lifecycle stream the round-based executor emitted", async () => {
+    // R9: consumers order on this stream — a task's `task_update` before the
+    // first `step_update` of that task, and its terminal update before any
+    // event of a task that depended on it. Recorded from the round loop for
+    // this fixture; the only events it emitted that are gone are the per-round
+    // "Running N task(s) in parallel" logs, which no longer have rounds.
+    const step = (id: string, dependsOn: string[] = []) => ({
+      id,
+      instructions: `Do ${id}`,
+      completed: false,
+      dependsOn,
+      outputSchema: JSON.stringify({
+        type: "object",
+        properties: { done: { type: "boolean" } }
+      }),
+      logs: []
+    });
+
+    const plan: TaskPlan = {
+      title: "Parity Plan",
+      tasks: [
+        {
+          id: "t_a",
+          title: "A",
+          dependsOn: [],
+          completed: false,
+          steps: [step("s_a1"), step("s_a2", ["s_a1"])]
+        },
+        {
+          id: "t_b",
+          title: "B",
+          dependsOn: ["t_a"],
+          completed: false,
+          steps: [step("s_b1")]
+        }
+      ]
+    };
+
+    const executor = new ParallelTaskExecutor({
+      provider: createMockProvider() as never,
+      model: "test-model",
+      context: createMockContext() as never,
+      tools: [],
+      taskPlan: plan
+    });
+
+    const stream: string[] = [];
+    for await (const msg of executor.execute()) {
+      if (msg.type === "chunk" || msg.type === "log_update") continue;
+      const m = msg as {
+        type: string;
+        event?: string;
+        step?: { id?: string };
+        task?: { id?: string };
+        node_id?: string;
+      };
+      const id = m.step?.id ?? m.task?.id ?? m.node_id ?? "";
+      stream.push(`${m.type}${m.event ? ":" + m.event : ""}/${id}`);
+    }
+
+    expect(stream).toEqual([
+      "task_update:task_created/t_a",
+      "task_update:step_started/s_a1",
+      "tool_call_update/s_a1",
+      "task_update:step_completed/s_a1",
+      "step_result/s_a1",
+      "task_update:step_started/s_a2",
+      "tool_call_update/s_a2",
+      "task_update:step_completed/s_a2",
+      "step_result/s_a2",
+      "task_update:task_completed/t_a",
+      "task_update:task_created/t_b",
+      "task_update:step_started/s_b1",
+      "tool_call_update/s_b1",
+      "task_update:step_completed/s_b1",
+      "step_result/s_b1",
+      "task_update:task_completed/t_b"
+    ]);
+  });
 });

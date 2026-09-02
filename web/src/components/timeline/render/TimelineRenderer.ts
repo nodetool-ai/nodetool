@@ -52,6 +52,7 @@ import {
 } from "../preview/compositeLayers";
 import { CaptionRasterizer } from "../preview/captionRender";
 import { TextRasterizer } from "../preview/textRender";
+import { ensureBundledFontsLoaded } from "../preview/fontLoading";
 import { textMeasurer } from "../preview/textMeasure";
 import { ShapeRasterizer } from "../preview/shapeRender";
 import { OffscreenVideoPool } from "./OffscreenVideoPool";
@@ -282,6 +283,12 @@ export async function renderTimeline(
     import("mediabunny"),
     import("../preview/gpu/createCompositor")
   ]);
+
+  // An export bakes its frames into a file, so a title drawn before its face
+  // arrives is wrong for good — the preview's "cache nothing yet" answer is
+  // not enough here. Waiting costs one fetch of files the editor has usually
+  // loaded already.
+  await ensureBundledFontsLoaded();
 
   const canvas = document.createElement("canvas");
   canvas.width = width;

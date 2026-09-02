@@ -65,7 +65,9 @@ describe("TextRasterizer", () => {
 
     expect(second).toBe(first);
     expect(transferToImageBitmap).toHaveBeenCalledTimes(1);
-    expect(context.font).toBe("600 72px Inter");
+    // The family list comes from `resolveFontFamily` (T17), so a bundled name
+    // resolves to the shipped face with a generic behind it.
+    expect(context.font).toBe("600 72px Inter, sans-serif");
     expect(context.fillStyle).toBe("#123456");
     // Every glyph is placed from its own left edge, so alignment is arithmetic
     // on the line's measured width rather than a context mode: the right edge

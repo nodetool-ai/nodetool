@@ -1793,7 +1793,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "39c173d1f83e",
+    contract: "5dde045840c1",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
@@ -1825,6 +1825,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
         file: "packages/agents/src/evals/surfaces/creative-pipeline.ts",
         cases: ["script-to-linked-cut"],
       },
+    ],
+  },
+  {
+    name: "set_timeline_document",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "85a01ca510b3",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
     ],
   },
   {

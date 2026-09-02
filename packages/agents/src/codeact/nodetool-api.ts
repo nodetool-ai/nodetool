@@ -124,7 +124,8 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "delete_timeline_version",
     "validate_timeline",
     "preview_timeline_frame",
-    "edit_timeline"
+    "edit_timeline",
+    "set_timeline_document"
   ],
   sketches: [
     "list_sketches",
@@ -1159,7 +1160,18 @@ const nodetool = (() => {
               __merge(opts, { document: target })
             ),
       /** Apply document edits to a saved sequence, server-side. */
-      edit: (id, ops) => __need("edit_timeline")({ timeline_id: id, ops: ops })
+      edit: (id, ops) => __need("edit_timeline")({ timeline_id: id, ops: ops }),
+      /**
+       * Write a whole document at once. The document replaces the stored one,
+       * so send back what get() returned, changed. Validated before anything
+       * is written and snapshotted first, so a bad document is refused and a
+       * good one is undoable. Options: {fps, width, height,
+       * expected_updated_at, snapshot_name}.
+       */
+      setDocument: (id, document, opts) =>
+        __need("set_timeline_document")(
+          __merge(opts, { timeline_id: id, document: document })
+        )
     },
 
     sketches: {
@@ -1598,7 +1610,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   chosen timecodes — read the picture back instead of guessing at it),
   \`versions(id)\`,
   \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`,
-  \`deleteVersion(id, n)\`, and
+  \`deleteVersion(id, n)\`,
+  \`setDocument(id, document, {fps, width, height, expected_updated_at,
+  snapshot_name})\` — the whole document in one call, validated before it is
+  written and snapshotted first, for authoring a cut from scratch — and
   \`edit(id, ops)\` — the cut itself, server-side: \`[{op: "add_track", type:
   "audio"}, {op: "add_text_clip", text: "Hi"}, {op: "split_clip", target:
   "shot", atMs: 3000}, {op: "animate_clip", target: "Hi", animations:

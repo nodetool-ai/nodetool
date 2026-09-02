@@ -20,8 +20,10 @@ import {
   CUSTOM_ANIMATION_PRESET_ID,
   EASING_IDS,
   normalizeCustomCurves,
+  BUNDLED_FONT_FAMILIES,
   parseClipEffectType,
   parseEasing,
+  resolveFontFamily,
   resolveCustomMask,
   sourceRate
 } from "@nodetool-ai/timeline";
@@ -447,6 +449,7 @@ function checkClip(
 
   issues.push(...maskIssues(clip));
   issues.push(...unknownEffectIssues(clip));
+  issues.push(...fontPortabilityIssues(clip));
 
   const frameMs = 1000 / fps;
   if (clip.durationMs > 0 && clip.durationMs < frameMs) {
@@ -458,6 +461,41 @@ function checkClip(
     });
   }
 
+  return issues;
+}
+
+/** The families NodeTool ships, for the `font_not_portable` message. */
+const BUNDLED_FONT_GRAMMAR = BUNDLED_FONT_FAMILIES.join(", ");
+
+/**
+ * A text or caption style naming a family this build does not ship (D8).
+ *
+ * A warning, because the picture is drawn either way — the family list ends in
+ * a generic, so text appears. What is lost is that it is the *same* picture:
+ * a system font resolves against whatever the machine drawing the frame has,
+ * so the editor preview, a server render and the agent's frame preview each
+ * pick their own face, and the difference only shows when two of them are
+ * compared. That is F15, and naming the family here is the cheap half of the
+ * fix.
+ */
+function fontPortabilityIssues(clip: TimelineClip): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  const at = { clipId: clip.id, trackId: clip.trackId };
+  const declared: [string, string | undefined][] = [
+    ["textStyle.fontFamily", clip.textStyle?.fontFamily],
+    ["caption.style.fontFamily", clip.caption?.style?.fontFamily]
+  ];
+  for (const [path, family] of declared) {
+    if (family === undefined || family.trim() === "") continue;
+    if (resolveFontFamily(family).portable) continue;
+    issues.push({
+      severity: "warning",
+      code: "font_not_portable",
+      message: `Clip "${clipLabel(clip)}" is set in "${family}", which NodeTool does not ship — every host resolves it against its own installed fonts, so the editor preview and the render can differ. Bundled families: ${BUNDLED_FONT_GRAMMAR}.`,
+      path,
+      ...at
+    });
+  }
   return issues;
 }
 

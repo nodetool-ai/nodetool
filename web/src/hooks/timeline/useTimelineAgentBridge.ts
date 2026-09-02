@@ -567,6 +567,14 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         if (patch.shapeStyle !== undefined) {
           next.shapeStyle = shapeStyleWithDefaults(patch.shapeStyle);
         }
+        if (patch.captionStyle !== undefined) {
+          // The style rides on the clip's caption, so a clip with no words to
+          // draw has nowhere to put it.
+          if (!clip.caption) {
+            throw new Error(`Clip "${clip.name}" carries no caption to style.`);
+          }
+          next.caption = { ...clip.caption, style: patch.captionStyle };
+        }
         doc.getState().patchClip(clip.id, next);
         return clipNode(reReadClip(clip.id));
       },

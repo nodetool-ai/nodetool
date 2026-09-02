@@ -1,9 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { listOutput } from "../src/api-schemas/fonts.js";
 
+const bundled = { name: "Inter", source: "bundled", portable: true };
+const system = { name: "Arial", source: "system", portable: false };
+
 describe("fonts.listOutput", () => {
-  it("parses a list of font names", () => {
-    expect(listOutput.safeParse({ fonts: ["Arial", "Helvetica"] }).success).toBe(
+  it("parses bundled and system entries", () => {
+    expect(listOutput.safeParse({ fonts: [bundled, system] }).success).toBe(
       true
     );
   });
@@ -16,7 +19,18 @@ describe("fonts.listOutput", () => {
     expect(listOutput.safeParse({}).success).toBe(false);
   });
 
-  it("rejects non-string font entries", () => {
-    expect(listOutput.safeParse({ fonts: [1, 2] }).success).toBe(false);
+  // The endpoint used to return bare names. A client reading `font.name` off a
+  // string gets `undefined` and renders an empty picker, so the shape change
+  // has to be a parse failure rather than a silent pass.
+  it("rejects bare font names", () => {
+    expect(listOutput.safeParse({ fonts: ["Arial"] }).success).toBe(false);
+  });
+
+  it("rejects an unknown source", () => {
+    expect(
+      listOutput.safeParse({
+        fonts: [{ ...bundled, source: "downloaded" }]
+      }).success
+    ).toBe(false);
   });
 });

@@ -332,7 +332,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_set_clip_params",
   description:
-    "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, or a shape clip's `shapeStyle`. Omit a field to leave it unchanged.",
+    "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. Omit a field to leave it unchanged.",
   parameters: z.object({
     timeline_id: timelineIdParam,
     target: targetParam,
@@ -370,6 +370,25 @@ FrontendToolRegistry.register({
         height: z.number().optional(),
         x2: z.number().optional(),
         y2: z.number().optional()
+      })
+      .optional(),
+    captionStyle: z
+      .object({
+        fontFamily: z.string().optional(),
+        fontSizeFrac: z.number().optional(),
+        color: z.string().optional(),
+        activeColor: z.string().optional(),
+        outline: z
+          .object({ color: z.string(), widthPx: z.number() })
+          .optional(),
+        bottomMarginFrac: z.number().optional(),
+        background: z
+          .object({
+            color: z.string(),
+            paddingPx: z.number(),
+            radiusPx: z.number().optional()
+          })
+          .optional()
       })
       .optional()
   }),

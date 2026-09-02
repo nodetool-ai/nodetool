@@ -9,6 +9,7 @@
  */
 
 import type {
+  CaptionStyle,
   ClipMask,
   ClipShapeStyle,
   ClipTextStyle,
@@ -155,11 +156,35 @@ export interface RasterContext2D extends MaskContext2D {
   rotate(angle: number): void;
 }
 
+/**
+ * The scrim a block of text sits on. `ClipTextStyle` and {@link CaptionStyle}
+ * declare the same shape, and {@link drawScrim} draws it for both.
+ */
+type BlockScrim = NonNullable<CaptionStyle["background"]>;
+
 // ── Captions ─────────────────────────────────────────────────────────────────
 
+/** The look a caption with no `style` of its own is drawn with. */
 const CAPTION_INACTIVE_COLOR = "#FFFFFF";
 const CAPTION_ACTIVE_COLOR = "#FFD60A";
 const CAPTION_OUTLINE_COLOR = "rgba(0, 0, 0, 0.85)";
+const CAPTION_FONT_WEIGHT = 700;
+/** Font size as a fraction of frame height, and the floor it never goes under. */
+const CAPTION_FONT_SIZE_FRAC = 0.05;
+const CAPTION_MIN_FONT_SIZE_PX = 24;
+/** Outline width as a fraction of the font size, and its own floor. */
+const CAPTION_OUTLINE_WIDTH_FRAC = 0.12;
+const CAPTION_MIN_OUTLINE_WIDTH_PX = 2;
+/** Gap between the last line and the frame bottom, as a fraction of height. */
+const CAPTION_BOTTOM_MARGIN_FRAC = 0.12;
+/**
+ * Line advance as a multiple of the font size, and the share of the frame the
+ * words wrap within. Not on {@link CaptionStyle}: a caption is one or two
+ * lines read at speaking pace, and both numbers are that shape rather than a
+ * look somebody would want to author.
+ */
+const CAPTION_LINE_HEIGHT = 1.25;
+const CAPTION_MAX_WIDTH_FRAC = 0.9;
 
 /** One word of a caption resolved at a point in time. */
 export interface ResolvedCaptionWord {
@@ -169,14 +194,23 @@ export interface ResolvedCaptionWord {
 }
 
 /**
- * A caption's full per-frame state: every word of the line plus which one is
- * currently spoken. Rasterized identically by every render surface.
+ * A caption's full per-frame state: every word of the line, which one is
+ * currently spoken, and the look the clip authored. Rasterized identically by
+ * every render surface.
  */
 export interface ResolvedCaption {
   words: ResolvedCaptionWord[];
+  /** The clip's `caption.style`. Absent means the built-in look. */
+  style?: CaptionStyle;
 }
 
-/** Content signature of a caption raster, for host-side caching. */
+/**
+ * Content signature of a caption raster, for host-side caching.
+ *
+ * The style is in it for the reason {@link textStyleSignature} names every
+ * field of its own: a host hands back the bitmap a key hits, so a field the
+ * key does not read renders as the frame drawn before that field changed.
+ */
 export function captionSignature(
   caption: ResolvedCaption,
   width: number,
@@ -185,7 +219,28 @@ export function captionSignature(
   const words = caption.words
     .map((w) => (w.active ? `*${w.text}` : w.text))
     .join(" ");
-  return `${width}x${height}|${words}`;
+  return `${width}x${height}|${captionStyleSignature(caption.style)}|${words}`;
+}
+
+/** Every field of {@link CaptionStyle}, in a fixed order. */
+function captionStyleSignature(style: CaptionStyle | undefined): string {
+  if (!style) return "-";
+  return [
+    style.fontFamily ?? "-",
+    style.fontSizeFrac ?? "-",
+    style.color ?? "-",
+    style.activeColor ?? "-",
+    style.outline ? `${style.outline.color}@${style.outline.widthPx}` : "-",
+    style.bottomMarginFrac ?? "-",
+    scrimSignature(style.background)
+  ].join(",");
+}
+
+/** A block scrim's own signature, shared by both styles that carry one. */
+function scrimSignature(scrim: BlockScrim | undefined): string {
+  return scrim
+    ? `${scrim.color}@${scrim.paddingPx}/${scrim.radiusPx ?? 0}`
+    : "-";
 }
 
 interface MeasuredWord {
@@ -194,10 +249,110 @@ interface MeasuredWord {
   width: number;
 }
 
+/** A caption's look with every default filled in, in surface pixels. */
+interface ResolvedCaptionStyle {
+  font: string;
+  fontSizePx: number;
+  lineHeightPx: number;
+  color: string;
+  activeColor: string;
+  /** Null when the author asked for no outline. */
+  outline: { color: string; widthPx: number } | null;
+  bottomMarginPx: number;
+  background: BlockScrim | null;
+}
+
+/**
+ * `value` when it is a finite number at or above `min`, `fallback` otherwise.
+ * A hand-written document can carry a NaN or a negative fraction, and a
+ * caption laid out from one is not a look anybody asked for.
+ */
+function fractionOr(
+  value: number | undefined,
+  min: number,
+  fallback: number
+): number {
+  return typeof value === "number" && Number.isFinite(value) && value >= min
+    ? value
+    : fallback;
+}
+
+/**
+ * Fill in what the author left out. Every default is the value this drawing
+ * hard-coded before it was authorable, so a caption carrying no style — which
+ * is every caption written before now — renders the frame it always did.
+ */
+function resolveCaptionStyle(
+  style: CaptionStyle | undefined,
+  height: number
+): ResolvedCaptionStyle {
+  // The size fraction must be positive to mean anything; the bottom margin may
+  // legitimately be zero, which sits the block flush against the frame edge.
+  const sizeFrac = fractionOr(
+    style?.fontSizeFrac,
+    Number.EPSILON,
+    CAPTION_FONT_SIZE_FRAC
+  );
+  const marginFrac = fractionOr(
+    style?.bottomMarginFrac,
+    0,
+    CAPTION_BOTTOM_MARGIN_FRAC
+  );
+  const fontSizePx = Math.max(
+    CAPTION_MIN_FONT_SIZE_PX,
+    Math.round(height * sizeFrac)
+  );
+  return {
+    // A caption is one weight and one size, so the font shorthand is the only
+    // thing it shares with a text clip — through the same builder, which is
+    // where family resolution and the bundled default live (D8).
+    font: textFontSpec({
+      fontSizePx,
+      fontWeight: CAPTION_FONT_WEIGHT,
+      fontFamily: style?.fontFamily
+    }),
+    fontSizePx,
+    lineHeightPx: fontSizePx * CAPTION_LINE_HEIGHT,
+    color: style?.color ?? CAPTION_INACTIVE_COLOR,
+    activeColor: style?.activeColor ?? CAPTION_ACTIVE_COLOR,
+    outline: resolveCaptionOutline(style?.outline, fontSizePx),
+    bottomMarginPx: height * marginFrac,
+    background: style?.background ?? null
+  };
+}
+
+/**
+ * The outline, or null for none. A width of zero is how an author asks for no
+ * outline, and it has to be read here rather than passed on: `lineWidth = 0`
+ * is ignored by a canvas, which would stroke at whatever width was last set.
+ */
+function resolveCaptionOutline(
+  outline: CaptionStyle["outline"],
+  fontSizePx: number
+): { color: string; widthPx: number } | null {
+  if (!outline) {
+    return {
+      color: CAPTION_OUTLINE_COLOR,
+      widthPx: Math.max(
+        CAPTION_MIN_OUTLINE_WIDTH_PX,
+        fontSizePx * CAPTION_OUTLINE_WIDTH_FRAC
+      )
+    };
+  }
+  if (!Number.isFinite(outline.widthPx) || outline.widthPx <= 0) return null;
+  return { color: outline.color, widthPx: outline.widthPx };
+}
+
 /**
  * Draw a caption as bold, outlined, lower-third text with the currently-spoken
  * word highlighted, at full frame resolution — so it composites with an
- * identity transform.
+ * identity transform. `caption.style` moves any of that; what it leaves out
+ * keeps the built-in look.
+ *
+ * The layout is the caption's own rather than `layoutTextBlock`: a caption is
+ * anchored to the frame bottom on an alphabetic baseline and coloured word by
+ * word, none of which a text block expresses. The two share the font shorthand
+ * and the scrim, which is where they genuinely agree.
  */
 export function drawCaption(
   ctx: RasterContext2D,
@@ -205,13 +360,13 @@ export function drawCaption(
   width: number,
   height: number
 ): void {
-  const fontSize = Math.max(24, Math.round(height * 0.05));
-  ctx.font = `700 ${fontSize}px Inter, Arial, sans-serif`;
+  const style = resolveCaptionStyle(caption.style, height);
+  ctx.font = style.font;
   ctx.textBaseline = "alphabetic";
   ctx.lineJoin = "round";
 
   const spaceWidth = ctx.measureText(" ").width;
-  const maxWidth = width * 0.9;
+  const maxWidth = width * CAPTION_MAX_WIDTH_FRAC;
 
   const measured: MeasuredWord[] = caption.words.map((w) => ({
     text: w.text,
@@ -236,33 +391,41 @@ export function drawCaption(
   }
   if (current.length > 0) lines.push(current);
 
-  const lineHeight = fontSize * 1.25;
-  const totalHeight = lines.length * lineHeight;
-  const bottomMargin = height * 0.12;
+  const lineWidths = lines.map((line) =>
+    line.reduce((sum, w, i) => sum + w.width + (i > 0 ? spaceWidth : 0), 0)
+  );
+  const totalHeight = lines.length * style.lineHeightPx;
+  const blockTop = height - style.bottomMarginPx - totalHeight;
   // Baseline of the first line.
-  let y = height - bottomMargin - totalHeight + fontSize;
+  let y = blockTop + style.fontSizePx;
 
-  ctx.lineWidth = Math.max(2, fontSize * 0.12);
-  ctx.strokeStyle = CAPTION_OUTLINE_COLOR;
+  if (style.background) {
+    const blockWidth = lineWidths.reduce((widest, w) => Math.max(widest, w), 0);
+    drawScrim(ctx, style.background, {
+      x: (width - blockWidth) / 2,
+      y: blockTop,
+      width: blockWidth,
+      height: totalHeight
+    });
+  }
 
-  for (const line of lines) {
-    const lineWidth = line.reduce(
-      (sum, w, i) => sum + w.width + (i > 0 ? spaceWidth : 0),
-      0
-    );
-    let x = (width - lineWidth) / 2;
+  if (style.outline) {
+    ctx.lineWidth = style.outline.widthPx;
+    ctx.strokeStyle = style.outline.color;
+  }
+
+  lines.forEach((line, lineIndex) => {
+    let x = (width - lineWidths[lineIndex]!) / 2;
     for (let i = 0; i < line.length; i++) {
       const word = line[i];
       if (i > 0) x += spaceWidth;
-      ctx.fillStyle = word.active
-        ? CAPTION_ACTIVE_COLOR
-        : CAPTION_INACTIVE_COLOR;
-      ctx.strokeText(word.text, x, y);
+      ctx.fillStyle = word.active ? style.activeColor : style.color;
+      if (style.outline) ctx.strokeText(word.text, x, y);
       ctx.fillText(word.text, x, y);
       x += word.width;
     }
-    y += lineHeight;
-  }
+    y += style.lineHeightPx;
+  });
 }
 
 /**
@@ -311,9 +474,7 @@ export function textStyleSignature(
     style.shadow
       ? `${style.shadow.color}@${style.shadow.blurPx}/${style.shadow.offsetX}/${style.shadow.offsetY}`
       : "-",
-    style.background
-      ? `${style.background.color}@${style.background.paddingPx}/${style.background.radiusPx ?? 0}`
-      : "-",
+    scrimSignature(style.background),
     fillSignature(style.fill)
   ].join("|");
 }
@@ -395,7 +556,7 @@ function prepareText(
 
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  drawTextBackground(ctx, style, layout.box);
+  if (style.background) drawScrim(ctx, style.background, layout.box);
 
   const letterSpacingPx = textLetterSpacingPx(style);
   const nativeSpacing = setLetterSpacing(ctx, letterSpacingPx);
@@ -416,22 +577,24 @@ function prepareText(
   };
 }
 
-/** The scrim behind the wrapped block: a rounded rect grown by the padding. */
-function drawTextBackground(
+/**
+ * The scrim behind a block of text: a rounded rect grown by the padding.
+ * Shared by the text draw and {@link drawCaption}, which measure their own
+ * blocks but sit them on the same thing.
+ */
+function drawScrim(
   ctx: RasterContext2D,
-  style: ClipTextStyle,
+  scrim: BlockScrim,
   box: TextBlockBox
 ): void {
-  const background = style.background;
-  if (!background) return;
   // A scrim backs text. With nothing to back — an empty title, whose block
   // collapses to a point — the padding alone would draw a bare pill.
   if (box.width <= 0) return;
-  const pad = Math.max(0, background.paddingPx);
+  const pad = Math.max(0, scrim.paddingPx);
   const width = box.width + pad * 2;
   const height = box.height + pad * 2;
   if (height <= 0) return;
-  ctx.fillStyle = background.color;
+  ctx.fillStyle = scrim.color;
   ctx.beginPath();
   tracePath(
     ctx,
@@ -440,7 +603,7 @@ function drawTextBackground(
       box.y - pad,
       width,
       height,
-      Math.max(0, background.radiusPx ?? 0)
+      Math.max(0, scrim.radiusPx ?? 0)
     ),
     UNSCALED
   );

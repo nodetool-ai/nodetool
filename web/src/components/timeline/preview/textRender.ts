@@ -5,6 +5,11 @@
  * `@nodetool-ai/timeline/render`, shared with the server-side renderer, so a
  * title reads the same in the preview, the browser export and a workflow
  * render. What stays here is the browser's bitmap cache.
+ *
+ * The cache is what makes font loading load-bearing: a bitmap drawn before a
+ * bundled face arrives shows the fallback, and caching it keeps the wrong
+ * glyphs on screen long after the file landed. So nothing is cached until
+ * `bundledFontsReady()` says the corpus is drawable (D8).
  */
 
 import type {
@@ -20,6 +25,10 @@ import {
   staggerPhase,
   textStyleSignature
 } from "@nodetool-ai/timeline/render";
+import {
+  bundledFontsReady,
+  ensureBundledFontsLoaded
+} from "./fontLoading";
 
 const MAX_CACHE_ENTRIES = 64;
 
@@ -75,8 +84,12 @@ export class TextRasterizer {
     ) {
       return null;
     }
+    // Kick the load on the first raster rather than at import: a page that
+    // never opens the timeline should not fetch three megabytes of fonts.
+    const fontsReady = bundledFontsReady();
+    if (!fontsReady) void ensureBundledFontsLoaded();
     const phase = stagger ? staggerPhase(stagger) : undefined;
-    const cacheable = phase !== "active";
+    const cacheable = phase !== "active" && fontsReady;
     const baseKey = textStyleSignature(style, width, height);
     let key = baseKey;
     if (stagger && cacheable) {

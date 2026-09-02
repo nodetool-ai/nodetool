@@ -1071,6 +1071,7 @@ async function main() {
   );
   const {
     PACKAGE_RUNTIME_ASSETS,
+    PACKAGE_RUNTIME_ASSET_DIRS,
     SHIPPED_SANDBOX_PACKS_SOURCE_DIR,
     SHIPPED_SYSTEM_SKILLS_SOURCE_DIR
   } = await import(
@@ -1106,6 +1107,46 @@ async function main() {
     console.log(`  Staged ${basename} (from ${asset.pkg}/dist/${asset.path})`);
   }
   console.log(`  Total: ${stagedAssets.size} registered asset(s) staged`);
+
+  // --- Stage registered runtime asset directories ---
+  // A directory of files a package ships next to its sources rather than in
+  // dist/ (the bundled fonts). Copied whole, then checked file by file against
+  // the registry: the packaged backend registers the faces from this directory
+  // and the server streams them to the web, so a partial copy renders one
+  // family as a fallback in a picture nobody re-renders.
+  for (const dir of PACKAGE_RUNTIME_ASSET_DIRS) {
+    const pkgRoot = resolvePackageRoot(dir.pkg);
+    if (!pkgRoot) {
+      throw new Error(
+        `Registered asset directory package not found: ${dir.pkg}. ` +
+        `Run 'npm install' first.`
+      );
+    }
+    const src = path.join(pkgRoot, dir.path);
+    const dest = path.join(BUNDLE_DIR, dir.bundleDir);
+    if (!fs.existsSync(src)) {
+      throw new Error(
+        `Registered asset directory missing: ${src} (${dir.pkg}/${dir.path}).`
+      );
+    }
+    await fsp.mkdir(path.dirname(dest), { recursive: true });
+    await copyDir(src, dest);
+    const absent = dir.files.filter(
+      (file) => !fs.existsSync(path.join(dest, file))
+    );
+    if (absent.length > 0) {
+      throw new Error(
+        `Registered asset directory ${dir.pkg}/${dir.path} is missing ` +
+        `file(s) after staging: ${absent.join(", ")}. ` +
+        `Add them to ${dir.path}/ or drop them from PACKAGE_RUNTIME_ASSET_DIRS ` +
+        `in packages/config/src/package-asset-registry.ts.`
+      );
+    }
+    console.log(
+      `  Staged ${dir.bundleDir}/ with ${dir.files.length} file(s) ` +
+      `(from ${dir.pkg}/${dir.path})`
+    );
+  }
 
   // --- Stage the sandbox packs NodeTool ships ---
   // A pack that ships inside the app carries manifest and guest sources the

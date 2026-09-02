@@ -5,9 +5,15 @@ import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import Select from "../inputs/Select";
 import { trpcClient } from "../../trpc/client";
+import type { FontEntry } from "@nodetool-ai/protocol/api-schemas/fonts.js";
 import { isObjectLike } from "../../utils/typePredicates";
 
-const fetchFonts = async (): Promise<string[]> => {
+/**
+ * The fonts endpoint returns the bundled families first, then the system ones
+ * (D8). That order is kept rather than re-sorted: a bundled family renders the
+ * same on every host, so it is the one to reach for first.
+ */
+const fetchFonts = async (): Promise<FontEntry[]> => {
   const { fonts } = await trpcClient.fonts.list.query();
   return fonts;
 };
@@ -53,12 +59,10 @@ const FontProperty: React.FC<PropertyProps<FontValue | null>> = ({
 
     return [
       { value: "", label: "Select a font" },
-      ...fonts
-        .map((fontName) => ({
-          value: fontName || "",
-          label: fontName || "Unnamed Font"
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label))
+      ...fonts.map((font) => ({
+        value: font.name,
+        label: font.portable ? `${font.name} · portable` : font.name
+      }))
     ];
   }, [fonts, isLoading, isError]);
 

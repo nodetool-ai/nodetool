@@ -42,6 +42,67 @@ export const PACKAGE_RUNTIME_ASSETS: readonly PackageAssetRef[] = [
 ];
 
 /**
+ * A directory of runtime files a package ships next to its sources rather than
+ * inside `dist/`, staged into the bundle as a directory instead of flattened
+ * by basename.
+ *
+ * Separate from {@link PACKAGE_RUNTIME_ASSETS} because the resolution rule is
+ * different in both halves: the source is the package root, not its build
+ * output (font binaries are inputs, and copying three megabytes through `tsc`
+ * would only duplicate them), and the staged copy keeps its directory, because
+ * the web serves the files by name over HTTP. The purpose is the same one C6
+ * names — the bundler stages it, the verifier checks it, so an unstaged file
+ * fails the build instead of the product.
+ */
+export interface PackageAssetDirRef {
+  /** npm package that ships the directory, e.g. "@nodetool-ai/timeline". */
+  pkg: string;
+  /** Directory relative to the package ROOT, e.g. "fonts". */
+  path: string;
+  /** Directory name under the bundle root the files are staged into. */
+  bundleDir: string;
+  /**
+   * Every file that must be present, in the source directory and in the
+   * artifact. Named rather than globbed: a build that silently ships nine of
+   * ten faces renders one family as a fallback, which looks like a design
+   * choice rather than a packaging bug.
+   */
+  files: readonly string[];
+}
+
+/**
+ * The bundled font corpus (D8). The file list mirrors `BUNDLED_FONT_FILES` in
+ * `@nodetool-ai/timeline`; this module imports nothing, so
+ * `packages/execution/tests/timeline-font-registry.test.ts` is what holds the
+ * two lists together.
+ */
+export const PACKAGE_RUNTIME_ASSET_DIRS: readonly PackageAssetDirRef[] = [
+  {
+    pkg: "@nodetool-ai/timeline",
+    path: "fonts",
+    bundleDir: "fonts",
+    files: [
+      "BebasNeue-Regular.ttf",
+      "Inter-Italic-Variable.ttf",
+      "Inter-Variable.ttf",
+      "JetBrainsMono-Italic-Variable.ttf",
+      "JetBrainsMono-Variable.ttf",
+      "Lora-Italic-Variable.ttf",
+      "Lora-Variable.ttf",
+      "OFL-BebasNeue.txt",
+      "OFL-Inter.txt",
+      "OFL-JetBrainsMono.txt",
+      "OFL-Lora.txt",
+      "OFL-PlayfairDisplay.txt",
+      "OFL-SpaceGrotesk.txt",
+      "PlayfairDisplay-Italic-Variable.ttf",
+      "PlayfairDisplay-Variable.ttf",
+      "SpaceGrotesk-Variable.ttf"
+    ]
+  }
+];
+
+/**
  * Where the sandbox packs that ship with NodeTool live, in the repo and in the
  * packaged artifact. Every host reads one of these two locations, so both names
  * live here rather than in each script.

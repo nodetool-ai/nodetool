@@ -29,6 +29,7 @@ import {
   InspectorToggleRow
 } from "./InspectorPrimitives";
 import { FillFields } from "./InspectorMotionFields";
+import { FontPicker } from "./FontPicker";
 
 const TEXT_ALIGNMENTS = [
   { value: "left", label: "Left" },
@@ -140,14 +141,10 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
               inputProps={{ "aria-label": "Text content" }}
             />
             <InspectorRow label="Font">
-              <TextInput
-                value={textStyle.fontFamily ?? ""}
-                fullWidth
-                placeholder="Inter"
-                onChange={(event) =>
-                  patchStyle({ fontFamily: event.target.value || undefined })
-                }
-                inputProps={{ "aria-label": "Text font family" }}
+              <FontPicker
+                label="Text font family"
+                value={textStyle.fontFamily}
+                onChange={(fontFamily) => patchStyle({ fontFamily })}
               />
             </InspectorRow>
             <InspectorRow label="Font size">

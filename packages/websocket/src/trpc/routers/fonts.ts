@@ -3,6 +3,11 @@
  *
  * A GET-only, filesystem-backed listing with no streaming or long-running
  * semantics, so it moves to tRPC cleanly.
+ *
+ * The bundled corpus comes first, tagged `portable` (D8): naming one of those
+ * families is a decision that survives the machine, and naming a system font
+ * is not. The system scan below is unchanged — a system font stays choosable,
+ * and the inspector marks the difference rather than hiding it.
  */
 
 import { readdirSync, existsSync } from "node:fs";
@@ -10,7 +15,11 @@ import { join, extname, basename } from "node:path";
 import { homedir, platform } from "node:os";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
-import { listOutput as fontsListOutput } from "@nodetool-ai/protocol/api-schemas/fonts.js";
+import {
+  listOutput as fontsListOutput,
+  type FontEntry
+} from "@nodetool-ai/protocol/api-schemas/fonts.js";
+import { BUNDLED_FONT_FAMILIES } from "@nodetool-ai/timeline";
 import { isString } from "../../lib/wire-values.js";
 
 // ── Font listing helpers ──────────────────────────────────────────
@@ -81,8 +90,27 @@ function collectFonts(): string[] {
 
 // ── Router ────────────────────────────────────────────────────────
 
+/**
+ * The bundled faces, then the system ones with the bundled names removed — a
+ * machine that also has Inter installed must not offer it twice, and the
+ * bundled copy is the one every host actually draws with.
+ */
+function listFonts(): FontEntry[] {
+  const bundled = new Set(BUNDLED_FONT_FAMILIES);
+  return [
+    ...BUNDLED_FONT_FAMILIES.map((name) => ({
+      name,
+      source: "bundled" as const,
+      portable: true
+    })),
+    ...collectFonts()
+      .filter((name) => !bundled.has(name))
+      .map((name) => ({ name, source: "system" as const, portable: false }))
+  ];
+}
+
 export const fontsRouter = router({
   list: protectedProcedure.output(fontsListOutput).query(async () => {
-    return { fonts: collectFonts() };
+    return { fonts: listFonts() };
   })
 });

@@ -115,7 +115,9 @@
     "lint:motion-rule": "node scripts/test-motion-rule.mjs",
     "lint:media-src-rule": "node scripts/test-media-src-rule.mjs",
     "storybook": "storybook dev -p 6006 --no-open",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "timeline-fonts": "node scripts/generate-timeline-fonts-css.mjs",
+    "timeline-fonts:check": "node scripts/generate-timeline-fonts-css.mjs --check"
   },
   "browserslist": {
     "production": [

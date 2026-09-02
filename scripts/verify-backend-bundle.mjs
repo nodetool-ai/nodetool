@@ -109,6 +109,26 @@ function listShippedSystemSkillNames() {
 }
 
 /**
+ * The bundled font files this repo ships, or null when the source directory is
+ * absent — the artifact can be verified outside a checkout.
+ *
+ * The path repeats the `PACKAGE_RUNTIME_ASSET_DIRS` entry in
+ * `packages/config/src/package-asset-registry.ts` for the same reason the two
+ * lists below do: no build tree is required beside the bundle.
+ */
+function listShippedFontFiles() {
+  const sourceDir = path.join(
+    path.dirname(path.dirname(fileURLToPath(import.meta.url))),
+    "packages",
+    "timeline",
+    "fonts"
+  );
+  const entries = listFiles(sourceDir);
+  if (entries === null) return null;
+  return entries.filter((name) => /\.(ttf|otf|txt)$/i.test(name));
+}
+
+/**
  * Package names of the sandbox packs this repo ships, or null when the source
  * directory is absent — the artifact can be verified outside a checkout.
  *
@@ -363,6 +383,38 @@ export function verifyBackendBundle(bundleDir) {
     } else {
       summary.push(`system skills staged: ${shippedSkills.length}`);
     }
+  }
+
+  // 3d. The bundled fonts (D8). The packaged backend registers these faces with
+  //     `@napi-rs/canvas` before it draws a title, and serves the same files to
+  //     the web at /api/assets/packages/timeline/fonts/. Unstaged, every text
+  //     clip falls back to whatever the host machine happens to have, which is
+  //     the divergence the corpus exists to remove (F15) — and it is invisible
+  //     until someone compares two renders. The OFL files are checked with the
+  //     faces: shipping a face without its licence is a licensing failure, not
+  //     a cosmetic one (C7).
+  const fontDir = path.join(bundleDir, "fonts");
+  const stagedFonts = listFiles(fontDir) ?? [];
+  const shippedFonts = listShippedFontFiles();
+  if (shippedFonts !== null && shippedFonts.length > 0) {
+    const missingFonts = shippedFonts.filter(
+      (name) => !existsSync(path.join(fontDir, name))
+    );
+    if (missingFonts.length > 0) {
+      errors.push(
+        `Bundled font file(s) not staged under fonts/: ${missingFonts.join(", ")}. ` +
+          "Every text clip using that family would render in a host font " +
+          "instead. Check PACKAGE_RUNTIME_ASSET_DIRS staging in " +
+          "bundle-backend.mjs."
+      );
+    } else {
+      summary.push(`${shippedFonts.length} bundled font file(s) staged`);
+    }
+  } else if (stagedFonts.length === 0) {
+    errors.push(
+      "fonts/ is missing or empty, so the packaged backend ships no bundled " +
+        "typeface and every text clip renders in whatever the host has."
+    );
   }
 
   // 4. sharp and its native prebuilds must be the same release. _modules/ is

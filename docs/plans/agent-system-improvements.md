@@ -1,8 +1,9 @@
 # Agent System Improvements
 
-Status: plan v1. Scope: seven work packages (A1, A2, A3, A4, A5, A7, A8) from
-the agent-system review, each cut into tasks an autonomous agent can take end
-to end. A6 (eval gating in CI) is out of scope by decision.
+Status: plan v1. Scope: eight work packages (A1 through A8) from the
+agent-system review, each cut into tasks an autonomous agent can take end to
+end. A6 (eval runs in CI) was cut from the first draft and is back in, as an
+on-request workflow rather than a gate — see D8.
 
 Every task names its files, its acceptance criteria, and the test that must
 fail before the change and pass after it. Read §1 and §2 before any task:
@@ -185,6 +186,18 @@ D1 and D2 are recorded with their evidence in [ADR 0002](../adr/0002-codeact-is-
   only if A3's deletion task cannot land in the same milestone as A1.
   Resolved: T-A3.3 landed first, so A5 ships against the seams that inherited
   the defect instead of the compiler (see A5).
+- **D8. A6 is in scope, and it runs on request only.** The first draft cut
+  eval gating on cost. Cost is real — every case in every suite that matters
+  here drives a live model — and it comes with model-run variance, so a red
+  check would as often mean "the model had an average night" as "someone broke
+  the planner". Both together rule out a gate: no schedule, no PR trigger, no
+  required check. What A6 ships is a `workflow_dispatch` workflow a maintainer
+  starts after changing the planner, the CodeAct loop, the sub-agent path or a
+  `ui_*` contract, with a floor per suite and a report to read. The floors are
+  defaults a dispatch overrides, not merge conditions. Whether the eval runs
+  that already fire on their own (`app-build-eval.yml`'s nightly, and the
+  Quality Gate leg that runs `app-build`'s keyless cases) should also become
+  on-request is a separate call, not made here.
 
 ## 3. Work packages
 
@@ -734,6 +747,102 @@ silent at three seams, each reported as success:
 
 ---
 
+### A6. Eval runs in CI, on request
+
+**Rationale.** `packages/agents/src/evals/` scores exactly what the packages
+here change — the graphs the planner authors, the CodeAct action loop,
+delegation to sub-agents, the `ui_*` tool contracts — and reaching any of it
+means remembering a command, a provider, a model and a threshold. Running the
+suites from CI writes all four down and turns the result into an artifact
+anyone can open.
+
+They are run *on request*. A case that drives a model costs real inference and
+varies run to run, so an automatic trigger buys a check that is expensive when
+it passes and ambiguous when it fails (D8). One dispatch, rich enough inputs to
+narrow it, and a report.
+
+**Context.** `.github/workflows/agent-eval.yml` (this package's deliverable),
+`.github/workflows/app-build-eval.yml` (the report-only shape it borrows from),
+`.github/actions/setup-build`, `packages/cli/src/commands/eval.ts`
+(`EVAL_SUITES`, `evalGateFailures`, the `--min-success`/`--min-score` gates),
+`packages/cli/src/commands/jtbd.ts` (`--min-achieved`),
+`packages/agents/src/evals/`, `packages/cli/tests/eval-command.test.ts`.
+
+Which cases can run for free is a property of the suite, and it decides what a
+maintainer can dispatch without spending anything: `nodetool eval <suite>
+--list` marks them, and `--keyless` runs exactly those. Today the whole keyless
+set is `app-build`'s deterministic cases, which author from a script rather
+than a model (`scriptedAuthorProvider`, `evals/app-build-eval.ts`) and run on
+the real kernel. Every other case in every other suite calls
+`provider.generateMessages`/`generateLoop` and fails with `Could not reach
+<provider>` when there is none — including the `graph-e2e` cases whose answers
+are pinned, which are deterministic in their *checks*, not in their planning.
+
+**Tasks.**
+
+- **T-A6.1 The on-request workflow.** Size S. `.github/workflows/agent-eval.yml`:
+  `workflow_dispatch` only, the suites that need a provider plus `jtbd`, one
+  floor per suite recorded next to the reason for the number, per-suite JSON
+  uploaded, and one table across all of them in a summary job. Inputs pick the
+  suites, the provider, the model, the cases, and a floor that overrides every
+  suite's default for one run. `--min-cases 1` everywhere, so a run whose cases
+  were all skipped reads as a run that examined nothing rather than as a
+  quality failure. Acceptance: no `schedule` and no `pull_request` trigger; a
+  suite below its floor reds its own leg and no other; an unselected suite
+  writes nothing and stays green; the summary renders a row for a suite that
+  produced no report. Inversion: run the workflow's own step script with a
+  floor the run cannot meet and observe the non-zero exit, and again with a
+  selection whose every case skips, to see `--min-cases` name it. Depends:
+  T-A6.2.
+- **T-A6.2 Selection and guards in `nodetool eval`.** Size S. Two flags the
+  workflow needs and a maintainer wants. `--keyless` runs the cases a suite
+  declares free of key and network, asking the suite (`keylessCaseIds`) instead
+  of naming ids at the call site, and is refused by name on a suite that has
+  none. `--min-cases <n>` fails a run that examined fewer cases than that —
+  the one failure a rate cannot express, since every suite reports 0 over an
+  empty set and 100% over the survivors of a set that shrank. `--list` marks
+  the keyless cases. Acceptance: `evalGateFailures` reports the shortfall in
+  its own words before any rate line; the suite registry is the only place case
+  ids live. Inversion: a unit case for a run whose every rate reads green and
+  whose case count fell, observed failing first. Depends: none.
+- **T-A6.3 Docs.** Size S. This section, plus `AGENTS.md` § "nodetool eval" and
+  `packages/agents/AGENTS.md` § "Eval suite" saying the model-driven suites run
+  on request from `agent-eval.yml` and gate nothing. No counts, no thresholds
+  copied into prose — the workflow holds the numbers and `--list` holds the
+  case sets. Depends: T-A6.1, T-A6.2.
+
+**Out of scope.**
+
+- A PR gate over the model-driven suites, and a schedule for them (D8).
+- The eval runs that already fire on their own: `app-build-eval.yml`'s nightly
+  and the Quality Gate leg that runs `app-build`'s keyless cases. Both are left
+  exactly as they are; whether they should also become on-request is the
+  owner's call to make, not this package's.
+- Raising a floor on the strength of one run. A default moves when the artifact
+  history says the suite has held above it, and the comment carrying the number
+  moves with it.
+- A floor on `nodetool jtbd`. It rides the same dispatch, because it asks the
+  same kind of question one rung up, but a job's finding is its transcript and
+  the friction pass over it — which names an owner per signal and wants a
+  person reading it. `--min-achieved` is there for when a baseline says what
+  the number should be.
+
+**Risks.**
+
+- **On request means it can go unrun.** Nothing here prevents that, and no
+  automation is allowed to. What the workflow can do is make the run cheap to
+  start and the report worth opening; the task's acceptance is about the report,
+  not about coverage.
+- **A floor set too tight becomes noise** — and on a dispatch-only workflow,
+  noise is worse than elsewhere, because a red run that nobody had to start is
+  a red run nobody will start again. Loose defaults, raised against recorded
+  history.
+- **A keyless case that stops being keyless** does not fail loudly: it is
+  skipped, and the survivors still pass. `--min-cases` is the whole answer to
+  that, which is why T-A6.2's inversion covers it and not just a broken case.
+
+---
+
 ### A7. Event-driven scheduling over one semaphore
 
 **Rationale.** Barrier rounds make a plan as slow as its slowest sibling in
@@ -895,10 +1004,12 @@ T-A3.1 ──► T-A3.2 ──► T-A3.3 ──► T-A3.4
                         │  T-A1.6, T-A2.3 (CLI flags, after the rewrite)
 T-A1.1 ──► T-A7.1 ──► T-A7.2 (after T-A8.2) ──► T-A7.3 (after T-A3.3)
 T-A5.1 after T-A3.3 (retargeted; see A5)
+T-A6.2 ──► T-A6.1 ──► T-A6.3          (CI + one CLI flag pair; no runtime code)
 ```
 
 Parallel lanes for four agents: (1) A8 then A7; (2) A1; (3) A2 then the CLI
-tasks; (4) A4. A3 sits on lane 3 after A2 or on its own lane; T-A3.3 is the
+tasks; (4) A4. A6 shares nothing with them — workflow files and one CLI flag —
+so it rides whichever lane is free. A3 sits on lane 3 after A2 or on its own lane; T-A3.3 is the
 merge point everything else must not race, so schedule it when lanes 1 and 2
 have merged their runtime changes.
 

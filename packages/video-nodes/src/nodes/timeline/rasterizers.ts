@@ -6,9 +6,14 @@
  * the editor's preview and its in-browser export use — applied to a
  * `@napi-rs/canvas` surface instead of an `OffscreenCanvas`. Output is
  * straight-alpha RGBA at frame resolution, ready to hand to the compositor.
+ *
+ * The bundled faces are registered here, with the same library and the same
+ * files the agent's frame preview registers, so a title renders identically on
+ * both Node hosts (D8).
  */
 
 import { createCanvas } from "@napi-rs/canvas";
+import { registerBundledFonts } from "@nodetool-ai/timeline/fonts/node";
 import type {
   ClipMask,
   ClipShapeStyle,
@@ -53,7 +58,12 @@ export class NodeRasterizer {
   constructor(
     private readonly width: number,
     private readonly height: number
-  ) {}
+  ) {
+    // Before any glyph is drawn, and once per process. A render whose fonts
+    // are registered later bakes the fallback face into the frames already
+    // encoded, which no re-render of the tail can undo.
+    registerBundledFonts();
+  }
 
   caption(caption: ResolvedCaption): RasterResult | null {
     if (caption.words.length === 0) return null;
