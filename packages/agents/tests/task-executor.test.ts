@@ -301,51 +301,31 @@ describe("TaskExecutor", () => {
     expect(context.memory.getValue(memoryKeys.input("myKey"))).toBe("myValue");
   });
 
-  it("respects maxSteps limit", async () => {
-    // Create a step that never completes (provider returns no finish_step)
-    const s1: Step = {
-      id: "s1",
-      instructions: "Do something",
-      completed: false,
-      dependsOn: [],
-      outputSchema: JSON.stringify({
-        type: "object",
-        properties: { answer: { type: "string" } },
-        required: ["answer"]
-      }),
-      logs: []
-    };
-    const task: Task = { id: "t1", title: "Test", steps: [s1] };
-
-    // Provider that never returns finish_step and never returns extractable JSON
-    const provider = {
-      ...createMockProvider(),
-      generateMessages: async function* () {
-        yield {
-          type: "chunk" as const,
-          content: "Still thinking...",
-          done: false
-        };
-      }
-    } as any;
+  it("completes a step chain deeper than any dispatch-round cap", async () => {
+    // A chain of 15 steps needs 15 dispatch rounds. The round loop capped
+    // those (`maxSteps`, 10 under the agent policy), so depth alone failed a
+    // plan that nothing was wrong with. Nothing counts rounds now: a step
+    // starts when its dependency settles, and the run budget bounds the work.
+    const steps = Array.from({ length: 15 }, (_, i) =>
+      makeStep(`s${i + 1}`, i === 0 ? [] : [`s${i}`])
+    );
+    const task: Task = { id: "t1", title: "Deep chain", steps };
 
     const executor = new TaskExecutor({
-      provider,
+      provider: createMockProvider(),
       model: "test-model",
       context: createMockContext(),
       tools: [],
       task,
-      maxSteps: 2,
       maxStepIterations: 1
     });
 
-    const messages: ProcessingMessage[] = [];
-    for await (const msg of executor.executeTasks()) {
-      messages.push(msg);
+    for await (const _msg of executor.executeTasks()) {
+      // consume
     }
 
-    // Should terminate after maxSteps iterations
-    expect(messages.length).toBeGreaterThan(0);
+    expect(steps.filter((s) => s.completed)).toHaveLength(15);
+    expect(steps.some((s) => s.failed)).toBe(false);
   });
 
   it("uses finalStepId to override finish step detection", async () => {

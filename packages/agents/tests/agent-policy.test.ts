@@ -18,8 +18,7 @@ describe("resolveAgentPolicy", () => {
   });
 
   it("overrides only what the caller supplied", () => {
-    const policy = resolveAgentPolicy({ maxSteps: 3, maxTokens: 512 });
-    expect(policy.maxSteps).toBe(3);
+    const policy = resolveAgentPolicy({ maxTokens: 512 });
     expect(policy.maxTokens).toBe(512);
     expect(policy.maxStepIterations).toBe(
       DEFAULT_AGENT_POLICY.maxStepIterations

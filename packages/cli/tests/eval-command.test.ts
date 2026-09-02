@@ -53,6 +53,8 @@ describe("registerEvalCommand", () => {
           "--judge-model",
           "--min-success",
           "--min-score",
+          "--min-cases",
+          "--keyless",
           "--system-prompt",
           "--no-find-model"
         ])
@@ -61,8 +63,19 @@ describe("registerEvalCommand", () => {
   });
 });
 
+describe("keyless case selection", () => {
+  it("declares a keyless set only where the suite has one", () => {
+    // app-build's two scripted cases are the only eval cases that reach no
+    // provider; every other suite drives a real model on every case. The ids
+    // behind the hook are pinned where they live, in
+    // packages/agents/tests/app-build-eval.test.ts.
+    const withKeyless = EVAL_SUITES.filter((s) => s.keylessCaseIds);
+    expect(withKeyless.map((s) => s.id)).toEqual(["app-build"]);
+  });
+});
+
 describe("evalGateFailures", () => {
-  const green = { successRate: 1, meanScore: 1 };
+  const green = { successRate: 1, meanScore: 1, casesRan: 2 };
 
   it("passes a run that clears both thresholds", () => {
     expect(
@@ -76,7 +89,7 @@ describe("evalGateFailures", () => {
   it("fails a degraded plan that --min-success alone would pass", () => {
     // The shape the planner suite actually produces on a regression: the plan
     // committed (success 1.0) but lost half its parallelism (score 0.92).
-    const degraded = { successRate: 1, meanScore: 0.92 };
+    const degraded = { successRate: 1, meanScore: 0.92, casesRan: 2 };
     expect(evalGateFailures(degraded, "task-planner", { minSuccess: "1" })).toEqual(
       []
     );
@@ -89,24 +102,52 @@ describe("evalGateFailures", () => {
   });
 
   it("fails loudly when the suite reports no score", () => {
-    const failures = evalGateFailures(
-      { successRate: 1 },
-      "code-gen",
-      { minScore: "0.5" }
-    );
+    const failures = evalGateFailures({ successRate: 1, casesRan: 8 }, "code-gen", {
+      minScore: "0.5"
+    });
     expect(failures).toEqual(['--min-score: suite "code-gen" reports no score']);
   });
 
   it("reports both gates when both are missed", () => {
     expect(
-      evalGateFailures({ successRate: 0.4, meanScore: 0.4 }, "task-planner", {
-        minScore: "0.8",
-        minSuccess: "0.8"
-      })
+      evalGateFailures(
+        { successRate: 0.4, meanScore: 0.4, casesRan: 7 },
+        "task-planner",
+        { minScore: "0.8", minSuccess: "0.8" }
+      )
     ).toHaveLength(2);
   });
 
   it("is silent when neither threshold is given", () => {
-    expect(evalGateFailures({ successRate: 0 }, "task-planner", {})).toEqual([]);
+    expect(
+      evalGateFailures({ successRate: 0, casesRan: 0 }, "task-planner", {})
+    ).toEqual([]);
+  });
+
+  it("fails a run that examined nothing", () => {
+    // The shape a keyless gate degrades into: the ids still resolve, but every
+    // case was skipped for want of a provider. The success rate is 0 over an
+    // empty set, so --min-success alone would blame the cases.
+    const failures = evalGateFailures(
+      { successRate: 0, casesRan: 0 },
+      "app-build",
+      { minCases: "2", minSuccess: "1" }
+    );
+    expect(failures).toHaveLength(2);
+    expect(failures[0]).toContain("ran 0 case(s)");
+  });
+
+  it("fails a gate whose case set shrank under it", () => {
+    // Every case that ran passed, so every rate reads green. Only the count
+    // says the gate stopped covering half of what it claims.
+    const failures = evalGateFailures(
+      { successRate: 1, meanScore: 1, casesRan: 1 },
+      "app-build",
+      { minCases: "2", minSuccess: "1" }
+    );
+    expect(failures).toEqual([
+      'Suite "app-build" ran 1 case(s), below --min-cases 2 — a rate over ' +
+        "that many cases says nothing"
+    ]);
   });
 });

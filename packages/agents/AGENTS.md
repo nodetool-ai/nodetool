@@ -1139,9 +1139,27 @@ independent tasks run concurrently.
 ### How It Works
 
 1. **Planning**: LLM generates a `TaskPlan` with multiple `Task` objects, each with `dependsOn` arrays
-2. **Scheduling**: `ParallelTaskExecutor` finds tasks with satisfied dependencies and runs them concurrently
-3. **Merging**: `mergeAsyncGenerators()` interleaves message streams from concurrent tasks
-4. **Completion**: Results propagate to dependent tasks; cycle repeats until all tasks finish
+2. **Scheduling**: `ParallelTaskExecutor` hands the tasks to `scheduleDag`
+   (`utils/dag-scheduler.ts`), which starts a task the moment its last
+   dependency settles. `TaskExecutor` schedules its steps the same way.
+3. **Merging**: `createDynamicMerge()` interleaves the streams and admits a
+   newly-started node into the running merge (`utils/merge-generators.ts`)
+4. **Completion**: A task's result reaches shared memory and its terminal
+   `task_update` is emitted before its dependents are released; the stream ends
+   when every task has settled
+
+Scheduling is event-driven, not round-based. The executors used to dispatch in
+barrier rounds — start every ready node, wait for the slowest, recompute — so a
+plan ran as slow as its slowest sibling in every round, and the cap on rounds
+per plan and per task turned depth into failure. Both caps are gone: what
+bounds the work is the run budget, `maxStepIterations` per step, and the permit
+pool. A cycle never reaches the scheduler (`PlanBuilder` rejects it), and a node
+nothing could ever run settles failed with `unsatisfiable dependency` rather
+than hanging.
+
+The aggregation step is the finish step's dependency on every other step in the
+task, not a deferral rule: it runs last because it waits for its siblings, and a
+sibling that fails blocks it (I-5) instead of aggregating over a hole.
 
 ### Task Plan Structure
 
@@ -1176,27 +1194,30 @@ shape is the `TaskPlan` above with snake_case keys (`depends_on`), validated by
 
 ### Concurrency Defaults
 
-| Constant | Default | Location |
-|----------|---------|----------|
-| `DEFAULT_MAX_TASK_ITERATIONS` | 100 | `parallel-task-executor.ts` |
-| `DEFAULT_MAX_STEP_ITERATIONS` | 10 | `parallel-task-executor.ts` |
-| `DEFAULT_MAX_STEPS` | 50 | `task-executor.ts` |
+One bound is left in the executors: `DEFAULT_MAX_STEP_ITERATIONS`
+(`parallel-task-executor.ts`), the action rounds a step gets when the caller
+names none. The round caps that sat beside it are gone — see the scheduling
+note above — and the rest of what bounds a run is `RunBudget` below.
 
 ### Executor defaults (`agent-policy.ts`)
 
 `agent-policy.ts` is a constants file. `DEFAULT_AGENT_POLICY` supplies the
-fallback `maxSteps`, `maxStepIterations` and `maxConcurrentAgents` that
+fallback `maxStepIterations` and `maxConcurrentAgents` that
 `parallel-task-executor.ts` and `task-executor.ts` read when a caller names
-none, so one number lives in one place instead of a literal per executor.
+none, so one number lives in one place instead of a literal per executor. It
+carried a `maxSteps` — dispatch rounds per task — until the executors became
+event-driven; nothing counts rounds now.
 
 Nothing resolves a per-run policy object: `execute_plan` passes the run's
 budget and the parent's per-step iteration cap directly, and
-`resolveAgentPolicy` has no caller. A7 folds the per-step iteration bound into
-`RunBudget`, which carries a concurrency semaphore but no iteration cap.
+`resolveAgentPolicy` has no caller. The per-step iteration cap stays here
+rather than on `RunBudget`, which carries a concurrency semaphore and no
+iteration bound.
 
-`maxConcurrentAgents` alone bounds one `mergeAsyncGenerators` call, not the
-run — tasks, steps and sub-agents each apply it separately, so the three
-multiply. The run-level bound is the budget's semaphore below.
+`maxConcurrentAgents` alone bounds one merge, not the run — tasks, steps and
+sub-agents each apply it separately, so the three multiply. The run-level bound
+is the budget's semaphore below, which each DAG executor passes to
+`scheduleDag` as its permit pool while bounding its own schedule numerically.
 
 ### One budget per run (`@nodetool-ai/runtime` → `RunBudget`)
 
@@ -1258,9 +1279,13 @@ budget behaves exactly as it did before.
 
 A step that fails sets `step.failed` + `step.error` and leaves `completed`
 false, and its `step_result` carries the protocol-level `error` field. Nothing
-downstream may treat a failure as a satisfied dependency: `TaskExecutor` blocks
-dependents and marks them failed with the blocking step named, and a plan whose
-every task failed throws instead of compiling a deliverable out of nothing.
+downstream may treat a failure as a satisfied dependency: the scheduler walks
+the failed node's transitive dependents and settles each as failed, naming the
+dependency directly above it, and a plan whose every task failed throws instead
+of compiling a deliverable out of nothing. The same holds one level up — a
+failed task blocks its dependent tasks — and a step or task the run's signal cut
+short settles as failed too, rather than being left looking like it is still
+running.
 
 ## CodeAct Execution (`src/codeact/`)
 
@@ -1686,8 +1711,18 @@ npm run dev:nodetool -- eval graph-planner --list
 npm run dev:nodetool -- eval graph-planner -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval graph-planner -p ollama -m qwen-3.5:4b --cases summarize
 npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --out report.json
-npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8  # CI gate
+npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8  # floor
 ```
+
+**Where the suites run.** On request. `.github/workflows/agent-eval.yml`
+(`workflow_dispatch` only) runs the suites that need a provider, plus `jtbd`,
+against inputs for suites/provider/model/cases and a floor override, uploads
+each suite's JSON, and renders one table. Nothing here gates a merge: a model
+run costs money and carries run-to-run variance, so it is a tool a maintainer
+starts after changing the planner, the CodeAct loop, the sub-agent path or a
+`ui_*` contract. The free half is a local command — `nodetool eval <suite>
+--keyless` runs the cases that need no key and no network, and `--list` marks
+them.
 
 Harness tests (scripted provider, no network): `tests/graph-planner-eval.test.ts`.
 
@@ -2446,8 +2481,8 @@ Tests: `tests/capabilities-skills.test.ts`.
    it is prepended to the TaskArchitect contract, not swapped for it
 3. **Speed up execution**: decompose into more independent tasks, since
    dependency edges are what serialize the DAG
-4. **Control scope**: `maxStepIterations` bounds one step's action rounds;
-   `maxSteps` bounds a task's dispatch rounds
+4. **Control scope**: `maxStepIterations` bounds one step's action rounds; the
+   run's `RunBudget` bounds everything else — nothing counts dispatch rounds
 5. **Validate output**: use `outputSchema` to enforce structured step results
 6. **Restrict tools**: per-step `tools` arrays limit which tools a step can call
 7. **Observe**: enable tracing (`OTEL_TRACES_EXPORTER=console`) to see every

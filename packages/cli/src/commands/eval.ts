@@ -34,6 +34,10 @@ interface EvalCliOptions {
   minScore?: string;
   /** `provider/model` for the suites that judge their own output. */
   judgeModel?: string;
+  /** Exit non-zero when fewer cases than this actually ran. */
+  minCases?: string;
+  /** Run only the cases the suite declares keyless (no API key, no network). */
+  keyless?: boolean;
   /** commander negated flag: `--no-find-model` sets this to false. */
   findModel?: boolean;
   /** Caller preamble for the planner suites; `--bare-prompt` clears it. */
@@ -48,6 +52,8 @@ interface EvalCaseMeta {
   description: string;
   /** Case needs configured model providers (`find_model`) to be solvable. */
   needsModelProviders?: boolean;
+  /** Case runs with no API key and no network — the set `--keyless` runs. */
+  keyless?: boolean;
 }
 
 /** Runtime deps handed to a suite's `run`, built once by the shared runner. */
@@ -93,11 +99,28 @@ interface EvalRunDeps {
  * paths, which otherwise only a paid model run reaches — are unit-testable.
  */
 export function evalGateFailures(
-  result: Pick<EvalRunResult, "successRate" | "meanScore">,
+  result: Pick<EvalRunResult, "successRate" | "meanScore" | "casesRan">,
   suiteId: string,
-  opts: Pick<EvalCliOptions, "minScore" | "minSuccess">
+  opts: Pick<EvalCliOptions, "minScore" | "minSuccess" | "minCases">
 ): string[] {
   const failures: string[] = [];
+
+  // Checked first, and reported in its own words: every suite reports a rate of
+  // 0 over an empty set, so a run whose cases were all skipped otherwise fails
+  // as if the cases had run and lost. It is also the one failure a rate cannot
+  // express — a suite that ran half its cases and passed them reports 1.0.
+  if (opts.minCases !== undefined) {
+    const floor = parseNumericOption(opts.minCases, "--min-cases", {
+      integer: true,
+      min: 0
+    });
+    if (result.casesRan < floor) {
+      failures.push(
+        `Suite "${suiteId}" ran ${result.casesRan} case(s), below --min-cases ` +
+          `${floor} — a rate over that many cases says nothing`
+      );
+    }
+  }
 
   if (opts.minScore !== undefined) {
     const threshold = parseNumericOption(opts.minScore, "--min-score", {
@@ -143,6 +166,12 @@ interface EvalRunResult {
    * parallelism still reports pass. Both gates apply when both are given.
    */
   meanScore?: number;
+  /**
+   * Cases that actually ran, skipped ones excluded. `--min-cases` reads it, so
+   * a gate can assert what it examined instead of trusting a rate computed
+   * over whatever survived.
+   */
+  casesRan: number;
 }
 
 /**
@@ -157,6 +186,12 @@ interface EvalSuite {
   listCases(): Promise<EvalCaseMeta[]>;
   /** Run the suite against the built deps. */
   run(deps: EvalRunDeps): Promise<EvalRunResult>;
+  /**
+   * The case ids that need neither credentials nor network — what `--keyless`
+   * runs. A suite with none omits the hook, and the flag is refused by name
+   * rather than running the whole suite against a provider nobody configured.
+   */
+  keylessCaseIds?(): Promise<readonly string[]>;
 }
 
 /**
@@ -221,7 +256,8 @@ const graphPlannerSuite: EvalSuite = {
       report,
       formatted: formatEvalReport(report),
       successRate: report.summary.successRate,
-      meanScore: report.summary.meanScore
+      meanScore: report.summary.meanScore,
+      casesRan: report.summary.total - report.summary.skipped
     };
   }
 };
@@ -284,7 +320,8 @@ const graphE2eSuite: EvalSuite = {
     return {
       report,
       formatted: formatGraphE2eReport(report),
-      successRate: report.summary.successRate
+      successRate: report.summary.successRate,
+      casesRan: report.summary.total - report.summary.skipped
     };
   }
 };
@@ -326,7 +363,9 @@ const codeGenSuite: EvalSuite = {
     return {
       report,
       formatted: formatCodeGenReport(report),
-      successRate: report.summary.postRepairRate
+      successRate: report.summary.postRepairRate,
+      // The suite skips nothing: every case is a Code body the planner writes.
+      casesRan: report.summary.total
     };
   }
 };
@@ -369,7 +408,8 @@ const subtaskSuite: EvalSuite = {
     return {
       report,
       formatted: formatSubtaskReport(report),
-      successRate: report.summary.successRate
+      successRate: report.summary.successRate,
+      casesRan: report.summary.total - report.summary.skipped
     };
   }
 };
@@ -427,7 +467,9 @@ const codeActSuite: EvalSuite = {
       report,
       formatted: formatCodeActReport(report),
       successRate: report.summary.successRate,
-      meanScore: report.summary.meanScore
+      meanScore: report.summary.meanScore,
+      // The suite skips nothing: its toolbelt is instrumented, not configured.
+      casesRan: report.summary.total
     };
   }
 };
@@ -470,7 +512,8 @@ const taskPlannerSuite: EvalSuite = {
       report,
       formatted: formatTaskPlanReport(report),
       successRate: report.summary.successRate,
-      meanScore: report.summary.meanScore
+      meanScore: report.summary.meanScore,
+      casesRan: report.summary.total - report.summary.skipped
     };
   }
 };
@@ -480,11 +523,11 @@ const taskPlannerSuite: EvalSuite = {
  *
  * The only suite that both plans workflows and runs them, so it needs the
  * kernel runner (`runOnServer`, the same one `nodetool app debug` uses) and a
- * real `ProcessingContext`. Its two deterministic cases author from a script
- * and never touch the provider, so `--cases greeting-card,draft-then-publish`
- * runs with no API keys at all — that is the Quality Gate's leg. The gate reads
- * green-within-budget; the report also carries the one-shot rate the PRD calls
- * the north star.
+ * real `ProcessingContext`. Its deterministic cases author from a script and
+ * never touch the provider, which is why it is the one suite that declares a
+ * keyless set: `--keyless` runs exactly those, with no API key at all. The gate
+ * reads green-within-budget; the report also carries the one-shot rate the PRD
+ * calls the north star.
  */
 const appBuildSuite: EvalSuite = {
   id: "app-build",
@@ -497,6 +540,14 @@ const appBuildSuite: EvalSuite = {
       description: c.description,
       needsModelProviders: c.needsModelProviders
     }));
+  },
+  async keylessCaseIds() {
+    // The suite's own marker, not a list a caller copies: a case that gains or
+    // loses `deterministic` moves `--keyless` with it.
+    const { APP_BUILD_DETERMINISTIC_CASE_IDS } = await import(
+      "@nodetool-ai/agents"
+    );
+    return APP_BUILD_DETERMINISTIC_CASE_IDS;
   },
   async run(deps) {
     const [
@@ -556,7 +607,8 @@ const appBuildSuite: EvalSuite = {
       report,
       formatted: formatAppBuildReport(report),
       successRate: report.summary.greenWithinBudgetRate,
-      meanScore: report.summary.meanScore
+      meanScore: report.summary.meanScore,
+      casesRan: report.summary.ran
     };
   }
 };
@@ -622,7 +674,8 @@ function makeToolLoopSuite<TFinal>(
         report,
         formatted: formatToolLoopReport(report),
         successRate: report.summary.successRate,
-        meanScore: report.summary.meanScore
+        meanScore: report.summary.meanScore,
+        casesRan: report.summary.total - report.summary.skipped
       };
     }
   };
@@ -695,13 +748,53 @@ export const EVAL_SUITES: readonly EvalSuite[] = [
 ];
 
 /**
+ * The case ids one invocation should run: `--cases` verbatim, `--keyless` from
+ * the suite's own declaration, or undefined for the whole suite.
+ */
+async function resolveCaseIds(
+  suite: EvalSuite,
+  opts: EvalCliOptions
+): Promise<string[] | undefined> {
+  if (opts.keyless) {
+    if (opts.cases) {
+      throw new Error("--keyless and --cases select cases two ways; pass one");
+    }
+    const ids = suite.keylessCaseIds ? await suite.keylessCaseIds() : [];
+    if (ids.length === 0) {
+      const offered = EVAL_SUITES.filter(
+        (s) => s.id !== suite.id && s.keylessCaseIds
+      ).map((s) => s.id);
+      throw new Error(
+        `Suite "${suite.id}" has no keyless cases: every case it runs needs a ` +
+          `live provider.` +
+          (offered.length > 0 ? ` Suites that do: ${offered.join(", ")}.` : "")
+      );
+    }
+    return [...ids];
+  }
+  if (!opts.cases) return undefined;
+  return opts.cases
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/**
  * Shared runner for every suite: handles `--list`, builds the provider/
  * registry/find-model deps, runs the suite, and applies the common
  * `--out`/`--json`/`--min-success` handling.
  */
 async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
   if (opts.list) {
-    const cases = await suite.listCases();
+    const keyless = new Set(
+      suite.keylessCaseIds ? await suite.keylessCaseIds() : []
+    );
+    // Marked here rather than described in a doc: which cases run without a key
+    // is a property of the suite, and this is the command that reports it.
+    const cases = (await suite.listCases()).map((c) => ({
+      ...c,
+      keyless: keyless.has(c.id)
+    }));
     if (opts.json) {
       console.log(JSON.stringify(cases, null, 2));
       return;
@@ -709,6 +802,7 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
     for (const c of cases) {
       console.log(
         `${c.id.padEnd(24)} ${c.description}` +
+          (c.keyless ? " (keyless)" : "") +
           (c.needsModelProviders ? " (needs model providers)" : "")
       );
     }
@@ -735,12 +829,7 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
     const providers =
       opts.findModel === false ? undefined : await buildConfiguredProviders();
 
-    const caseIds = opts.cases
-      ? opts.cases
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : undefined;
+    const caseIds = await resolveCaseIds(suite, opts);
 
     const judge = opts.judgeModel
       ? await resolveJudge(opts.judgeModel, createProviderStrict)
@@ -873,6 +962,14 @@ export function registerEvalCommand(program: Command): void {
       .option(
         "--min-success <rate>",
         "Exit non-zero when the success rate is below this threshold (0..1)"
+      )
+      .option(
+        "--min-cases <n>",
+        "Exit non-zero when fewer than n cases actually ran (skipped cases do not count)"
+      )
+      .option(
+        "--keyless",
+        "Run only the cases that need no API key and no network (see --list)"
       )
       .option(
         "--no-find-model",

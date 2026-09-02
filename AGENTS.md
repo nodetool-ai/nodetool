@@ -1745,6 +1745,23 @@ npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --ou
 npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8   # non-zero exit below threshold
 ```
 
+**Running a suite from CI.** The suites that drive a model run **on request**:
+`.github/workflows/agent-eval.yml` is `workflow_dispatch` only, with inputs for
+the suites, the provider, the model, the cases, and a floor that overrides every
+suite's default for that run. Each suite carries a default floor recorded in the
+workflow next to the reason for the number; the run uploads each suite's JSON
+and renders one table across all of them. It reports — it opens no PR, is not a
+required check, and starts on nobody's schedule, because a model run costs money
+and varies enough that an automatic red would as often mean an average night as
+a regression.
+
+Two flags exist for the free half. `nodetool eval <suite> --list` marks the
+cases that need no API key and no network, and `--keyless` runs exactly those,
+asking the suite rather than naming ids (a suite with none refuses the flag).
+`--min-cases <n>` fails a run that examined fewer cases than that — the failure
+a success rate cannot express, since a suite reports 0 over an empty set and
+100% over the survivors of a set that shrank.
+
 **No API key? Use the Claude Agent provider.** In keyless environments —
 Claude Code on the web, CI sandboxes — the `claude_agent_sdk` provider runs
 every eval suite on the session's own Claude credentials, no secret store

@@ -3,9 +3,10 @@
  *
  * Port of src/nodetool/agents/task_executor.py
  *
- * Iteratively finds steps whose dependencies are satisfied, runs
- * CodeActExecutor for each, and collects results until all steps complete
- * or the safety limit is reached.
+ * The task's steps are a DAG, handed to {@link scheduleDag}: a step starts the
+ * moment its last dependency settles and runs as a `CodeActExecutor`. Nothing
+ * counts dispatch rounds, so a chain is as deep as the plan says; what bounds
+ * the work is the run budget, the per-step iteration cap, and the permit pool.
  *
  * Process-mode steps automatically fan out over list inputs produced by
  * a preceding discover step. Each item is rendered into the step's
@@ -20,7 +21,11 @@ import type {
   RunBudget,
   Semaphore
 } from "@nodetool-ai/runtime";
-import { budgetFromContext, memoryKeys } from "@nodetool-ai/runtime";
+import {
+  budgetFromContext,
+  createSemaphore,
+  memoryKeys
+} from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import {
   TaskUpdateEvent,
@@ -33,6 +38,14 @@ const log = createLogger("nodetool.agents.task-executor");
 import { CodeActExecutor } from "./codeact/codeact-executor.js";
 import { holdsRunSlot, markRunSlotHeld } from "./subagent.js";
 import { mergeAsyncGenerators } from "./utils/merge-generators.js";
+import {
+  ABORTED,
+  UNSATISFIABLE_DEPENDENCY,
+  scheduleDag,
+  type DagNode,
+  type DagOutcome,
+  type DagRunResult
+} from "./utils/dag-scheduler.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Step, Task } from "./types.js";
 import { DEFAULT_AGENT_POLICY } from "./agent-policy.js";
@@ -42,8 +55,12 @@ import {
 } from "./utils/json-schema-validate.js";
 import { isObjectLike, isRecord } from "./utils/type-guards.js";
 
-const DEFAULT_MAX_STEPS = 50;
 const DEFAULT_MAX_STEP_ITERATIONS = 10;
+
+/** One step, as the scheduler sees it. */
+interface StepNode extends DagNode {
+  step: Step;
+}
 
 export interface TaskExecutorOptions {
   provider: BaseProvider;
@@ -53,7 +70,6 @@ export interface TaskExecutorOptions {
   task: Task;
   systemPrompt?: string;
   inputs?: Record<string, unknown>;
-  maxSteps?: number;
   maxStepIterations?: number;
   /** Cap on output tokens per step turn. Forwarded to each step executor. */
   maxTokens?: number;
@@ -97,7 +113,6 @@ export class TaskExecutor {
   private context: ProcessingContext;
   private inputs: Record<string, unknown>;
   private systemPrompt: string | undefined;
-  private maxSteps: number;
   private maxStepIterations: number;
   private maxTokens?: number;
   private finalStepId: string | undefined;
@@ -126,7 +141,6 @@ export class TaskExecutor {
     this.inputs = opts.inputs ?? {};
     this.sandboxPackages = opts.sandboxPackages ?? [];
     this.systemPrompt = opts.systemPrompt;
-    this.maxSteps = opts.maxSteps ?? DEFAULT_MAX_STEPS;
     this.maxStepIterations =
       opts.maxStepIterations ?? DEFAULT_MAX_STEP_ITERATIONS;
     this.maxTokens = opts.maxTokens;
@@ -192,76 +206,156 @@ export class TaskExecutor {
       steps: this.task.steps.length
     });
 
-    let stepsTaken = 0;
+    // Steps this task may run at once. `parallelExecution: false` means one at
+    // a time — a bound on this task rather than on the run.
+    const perTask = this.parallelExecution ? this.maxConcurrentAgents : 1;
 
-    while (!this.allStepsSettled() && stepsTaken < this.maxSteps) {
-      stepsTaken++;
+    yield* scheduleDag<StepNode, ProcessingMessage>({
+      nodes: this.stepNodes(),
+      // The branch's pool when this executor is the layer drawing from it,
+      // else a pool of its own so an unbudgeted task is still bounded.
+      concurrency: this.mergeSemaphore ?? createSemaphore(perTask),
+      maxConcurrent: perTask,
+      signal: this.signal,
+      run: (node) => this.runStep(node.step),
+      settle: (node, outcome, error) =>
+        this.settleStep(node.step, outcome, error),
+      onBlocked: (node, by) =>
+        this.failStepEvents(
+          node.step,
+          `Step blocked: dependency ${by.id} failed`
+        )
+    });
+  }
 
-      let executableSteps = this.getExecutableSteps();
-      executableSteps = this.maybeDeferFinishStep(executableSteps);
+  /**
+   * The steps the scheduler runs, with the dependencies each waits on.
+   *
+   * A step already settled when the task starts is not a node: its dependents
+   * treat it as satisfied (completed) or as never satisfiable (failed), which
+   * is what the round loop's `completedIds` set did. Input keys count as
+   * satisfied the same way. A dependency naming nothing at all is left in
+   * place, so the step never becomes ready and the scheduler settles it with
+   * `unsatisfiable dependency`.
+   */
+  private stepNodes(): StepNode[] {
+    const pending = this.task.steps.filter(
+      (step) => !step.completed && !step.failed
+    );
+    const satisfied = new Set<string>(Object.keys(this.inputs));
+    for (const step of this.task.steps) {
+      if (step.completed) satisfied.add(step.id);
+    }
 
-      if (executableSteps.length === 0) {
-        // Nothing runnable and something still pending: every remaining step
-        // is waiting on a dependency that failed or on a cycle. Fail them
-        // explicitly instead of leaving them in limbo — a step that never
-        // reaches a terminal state reads downstream as "still running".
-        yield* this.failBlockedSteps("unsatisfiable dependency");
-        break;
+    const deferredBehind = this.stepsFinishWaitsFor(pending);
+    return pending.map((step) => {
+      const dependsOn = step.dependsOn.filter((dep) => !satisfied.has(dep));
+      if (step.id === this._finishStepId) {
+        // A Set, not `includes`: the list it is checked against grows with
+        // every id added, which would make a wide task quadratic.
+        const declared = new Set(dependsOn);
+        for (const id of deferredBehind) {
+          if (!declared.has(id)) dependsOn.push(id);
+        }
       }
+      return { id: step.id, dependsOn, step };
+    });
+  }
 
-      log.debug("Dispatching steps", {
-        stepIds: executableSteps.map((s) => s.id)
-      });
-
-      const processSteps = executableSteps.filter((s) => s.mode === "process");
-      const normalSteps = executableSteps.filter((s) => s.mode !== "process");
-
-      for (const pStep of processSteps) {
-        yield* this.handleProcessStep(pStep);
-      }
-
-      const stepGenerators = normalSteps.map((step) => {
-        const executor = new CodeActExecutor({
-          task: this.task,
-          step,
-          context: this.context,
-          provider: this.provider,
-          model: this.model,
-          tools: this.toolsForStep(step),
-          systemPrompt: this.systemPrompt,
-          maxIterations: this.maxStepIterations,
-          maxTokens: this.maxTokens,
-          turnBudget: this.budget,
-          useFinishTask: this.isFinishStep(step),
-          upstreamMemoryKeys: this.upstreamMemoryKeys,
-          signal: this.signal,
-          sandboxPackages: this.sandboxPackages
-        });
-        return this.withStepLog(step, executor.execute());
-      });
-
-      if (this.parallelExecution && stepGenerators.length > 1) {
-        yield* mergeAsyncGenerators(stepGenerators, {
-          concurrency: this.maxConcurrentAgents,
-          semaphore: this.mergeSemaphore
-        });
-      } else {
-        for (const generator of stepGenerators) {
-          for await (const message of generator) {
-            yield message;
-          }
+  /**
+   * The steps the finish step must wait for: every other pending step that
+   * does not itself depend on the finish step.
+   *
+   * The aggregation step runs last, which the round loop arranged by holding
+   * it back each round. Here it is a real dependency, so a sibling that fails
+   * blocks it (I-5) instead of aggregating over a hole. Steps downstream of
+   * the finish step are excluded — a plan may declare one, and depending on
+   * them both ways is a cycle nothing could run.
+   */
+  private stepsFinishWaitsFor(pending: Step[]): string[] {
+    const finishId = this._finishStepId;
+    if (!finishId) return [];
+    const dependents = new Map<string, Step[]>();
+    for (const step of pending) {
+      for (const dep of step.dependsOn) {
+        const list = dependents.get(dep);
+        if (list) {
+          list.push(step);
+        } else {
+          dependents.set(dep, [step]);
         }
       }
     }
-
-    // The step budget ran out with work still pending: same contract as a
-    // dependency deadlock — the leftovers are terminal failures, not steps
-    // that merely never started.
-    if (!this.allStepsSettled()) {
-      yield* this.failBlockedSteps(
-        `step budget exhausted after ${stepsTaken} round(s)`
-      );
+    const downstream = new Set<string>([finishId]);
+    const frontier = [finishId];
+    for (let i = 0; i < frontier.length; i++) {
+      for (const dependent of dependents.get(frontier[i]) ?? []) {
+        if (downstream.has(dependent.id)) continue;
+        downstream.add(dependent.id);
+        frontier.push(dependent.id);
+      }
     }
+    return pending
+      .filter((step) => !downstream.has(step.id))
+      .map((step) => step.id);
+  }
+
+  /** Run one step and report how it settled. */
+  private async *runStep(
+    step: Step
+  ): AsyncGenerator<ProcessingMessage, DagRunResult> {
+    if (step.mode === "process") {
+      yield* this.withStepLog(step, this.handleProcessStep(step));
+    } else {
+      const executor = new CodeActExecutor({
+        task: this.task,
+        step,
+        context: this.context,
+        provider: this.provider,
+        model: this.model,
+        tools: this.toolsForStep(step),
+        systemPrompt: this.systemPrompt,
+        maxIterations: this.maxStepIterations,
+        maxTokens: this.maxTokens,
+        turnBudget: this.budget,
+        useFinishTask: this.isFinishStep(step),
+        upstreamMemoryKeys: this.upstreamMemoryKeys,
+        signal: this.signal,
+        sandboxPackages: this.sandboxPackages
+      });
+      yield* this.withStepLog(step, executor.execute());
+    }
+    // A step failure does not throw: the executor records it on the step and
+    // emits its own terminal events.
+    return step.failed
+      ? { outcome: "failed", error: step.error }
+      : { outcome: "ok" };
+  }
+
+  /**
+   * Terminal events for a settled step. A step that ran emitted its own, so
+   * this speaks only for one that never did — blocked by a dependency that can
+   * never be satisfied, or cut short by the run's signal.
+   */
+  private settleStep(
+    step: Step,
+    outcome: DagOutcome,
+    reason?: string
+  ): ProcessingMessage[] {
+    if (outcome === "ok" || step.completed || step.failed) return [];
+    if (reason === ABORTED) {
+      return this.failStepEvents(step, "Step aborted");
+    }
+    const blocking = step.dependsOn.filter((dep) => {
+      const dependency = this.task.steps.find((s) => s.id === dep);
+      return dependency?.failed === true;
+    });
+    return this.failStepEvents(
+      step,
+      blocking.length > 0
+        ? `Step blocked: dependency ${blocking.join(", ")} failed`
+        : `Step blocked: ${reason ?? UNSATISFIABLE_DEPENDENCY}`
+    );
   }
 
   /**
@@ -316,31 +410,8 @@ export class TaskExecutor {
     return selected;
   }
 
-  /**
-   * Mark every still-pending step as failed and emit its terminal events.
-   */
-  private async *failBlockedSteps(
-    reason: string
-  ): AsyncGenerator<ProcessingMessage> {
-    for (const step of this.task.steps) {
-      if (step.completed || step.failed) continue;
-      const blocking = step.dependsOn.filter((dep) => {
-        const dependency = this.task.steps.find((s) => s.id === dep);
-        return dependency?.failed === true;
-      });
-      const message =
-        blocking.length > 0
-          ? `Step blocked: dependency ${blocking.join(", ")} failed`
-          : `Step blocked: ${reason}`;
-      yield* this.failStep(step, message);
-    }
-  }
-
-  /** Record one step as a terminal failure and emit its lifecycle events. */
-  private async *failStep(
-    step: Step,
-    message: string
-  ): AsyncGenerator<ProcessingMessage> {
+  /** Record one step as a terminal failure and build its lifecycle events. */
+  private failStepEvents(step: Step, message: string): ProcessingMessage[] {
     step.failed = true;
     step.error = message;
     step.endTime = Date.now();
@@ -352,21 +423,22 @@ export class TaskExecutor {
       title: `Failed: ${step.instructions.slice(0, 60)}`
     });
 
-    yield {
-      type: "task_update",
-      node_id: step.id,
-      task: { id: this.task.id, title: this.task.title },
-      step: { id: step.id, instructions: step.instructions },
-      event: TaskUpdateEvent.StepFailed
-    } satisfies TaskUpdate;
-
-    yield {
-      type: "step_result",
-      step: { id: step.id, instructions: step.instructions },
-      result: { error: message },
-      error: message,
-      is_task_result: this.isFinishStep(step)
-    } satisfies StepResult;
+    return [
+      {
+        type: "task_update",
+        node_id: step.id,
+        task: { id: this.task.id, title: this.task.title },
+        step: { id: step.id, instructions: step.instructions },
+        event: TaskUpdateEvent.StepFailed
+      } satisfies TaskUpdate,
+      {
+        type: "step_result",
+        step: { id: step.id, instructions: step.instructions },
+        result: { error: message },
+        error: message,
+        is_task_result: this.isFinishStep(step)
+      } satisfies StepResult
+    ];
   }
 
   /**
@@ -399,10 +471,11 @@ export class TaskExecutor {
       ? this.task.steps.find((s) => s.id === discoverStepId)
       : undefined;
     if (discoverStep?.failed) {
-      // The scheduler blocks dependents of failed steps, so this is only
-      // reachable when the discover step failed mid-round. Fan-out over a
-      // failure marker would run the whole item template against `{error}`.
-      yield* this.failStep(
+      // The scheduler blocks dependents of a step that fails during the run,
+      // so this is only reachable for a discover step that was already failed
+      // when the task started. Fanning out over a failure marker would run the
+      // whole item template against `{error}`.
+      yield* this.failStepEvents(
         step,
         `Step blocked: discover step ${discoverStepId} failed`
       );
@@ -545,9 +618,11 @@ export class TaskExecutor {
     };
 
     if (this.parallelExecution && generators.length > 1) {
+      // Numeric bound only: the scheduler is already holding this step's
+      // permit from the branch's pool, and a holder that queues for a second
+      // one deadlocks the run.
       for await (const msg of mergeAsyncGenerators(generators, {
-        concurrency: this.maxConcurrentAgents,
-        semaphore: this.mergeSemaphore
+        concurrency: this.maxConcurrentAgents
       })) {
         collect(msg);
         yield msg;
@@ -567,7 +642,7 @@ export class TaskExecutor {
       .map((_ephStep, index) => index)
       .filter((index) => !filled.has(index));
     if (missing.length > 0) {
-      yield* this.failStep(
+      yield* this.failStepEvents(
         step,
         `Step failed: fan-out produced no result for ` +
           `${missing.length} of ${ephemeralSteps.length} item(s) — ` +
@@ -585,7 +660,7 @@ export class TaskExecutor {
     if (aggregateSchema) {
       const violations = validateAgainstSchema(results, aggregateSchema);
       if (violations.length > 0) {
-        yield* this.failStep(
+        yield* this.failStepEvents(
           step,
           `Step failed: fan-out result rejected by outputSchema — ` +
             formatViolations(violations)
@@ -626,44 +701,6 @@ export class TaskExecutor {
   }
 
   /**
-   * Whether every step reached a terminal state — completed or failed. A
-   * failed step ends the scheduler loop without counting as success.
-   */
-  private allStepsSettled(): boolean {
-    return this.task.steps.every((step) => step.completed || step.failed);
-  }
-
-  /**
-   * Find steps whose dependencies are all satisfied (completed). A failed
-   * dependency is never satisfied, so its dependents stay unscheduled.
-   */
-  private getExecutableSteps(): Step[] {
-    const completedIds = new Set(
-      this.task.steps.filter((s) => s.completed).map((s) => s.id)
-    );
-    // Also count inputs as satisfied dependencies
-    for (const key of Object.keys(this.inputs)) {
-      completedIds.add(key);
-    }
-
-    return this.task.steps.filter(
-      (step) =>
-        !step.completed &&
-        !step.failed &&
-        !this.isStepRunning(step) &&
-        step.dependsOn.every((dep) => completedIds.has(dep))
-    );
-  }
-
-  /**
-   * Check if a step is currently running (started but not finished).
-   * Mirrors Python's Step.is_running().
-   */
-  private isStepRunning(step: Step): boolean {
-    return step.startTime != null && step.endTime == null;
-  }
-
-  /**
    * Check if a step is the designated finish/aggregation step.
    */
   private isFinishStep(step: Step): boolean {
@@ -674,46 +711,5 @@ export class TaskExecutor {
       this.task.steps.length > 0 &&
       step === this.task.steps[this.task.steps.length - 1]
     );
-  }
-
-  /**
-   * Defer the finish step until all other steps are complete.
-   * This ensures the final aggregation step runs last.
-   */
-  private maybeDeferFinishStep(executableSteps: Step[]): Step[] {
-    if (!this._finishStepId) return executableSteps;
-
-    const finishReady = executableSteps.some(
-      (s) => s.id === this._finishStepId
-    );
-    if (!finishReady) return executableSteps;
-
-    const otherPending = this.task.steps.some(
-      (s) => !s.completed && !s.failed && s.id !== this._finishStepId
-    );
-    if (!otherPending) return executableSteps;
-
-    const withoutFinish = executableSteps.filter(
-      (s) => s.id !== this._finishStepId
-    );
-    if (withoutFinish.length === 0) return executableSteps;
-
-    const dependsOnFinish = (step: Step, seen = new Set<string>()): boolean => {
-      if (seen.has(step.id)) return false;
-      seen.add(step.id);
-      return step.dependsOn.some((dependencyId) => {
-        if (dependencyId === this._finishStepId) return true;
-        const dependency = this.task.steps.find((s) => s.id === dependencyId);
-        return dependency ? dependsOnFinish(dependency, new Set(seen)) : false;
-      });
-    };
-    if (
-      this.task.steps.some(
-        (step) => !step.completed && !step.failed && dependsOnFinish(step)
-      )
-    ) {
-      return executableSteps;
-    }
-    return withoutFinish;
   }
 }
