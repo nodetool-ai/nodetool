@@ -246,6 +246,7 @@ lazy implementation table disagree.
 | `models` | `find_model`, `list_models`, `list_provider_models` |
 | `files` | `read_file`, `write_file`, `list_directory`, `edit_file`, `glob`, `grep`, `todo_write` |
 | `web` | `web_search`, `image_search`, `browser`, `take_screenshot`, `download_file`, `http_request` |
+| `browser` | `browser_status`, `browser_view`, `browser_navigate`, `browser_restart`, `browser_click`, `browser_input_text`, `browser_move_mouse`, `browser_press_key`, `browser_select_option`, `browser_scroll`, `browser_console_exec`, `browser_console_view`, `browser_capture_media`, `browser_upload_asset` |
 | `serpapi` | `list_serpapi_engines`, `get_serpapi_engine_schema`, `serpapi_search`, `get_serpapi_account`, `get_serpapi_locations` |
 | `apify` | `search_apify_actors`, `get_apify_actor`, `get_apify_actor_schema`, `run_apify_actor`, `get_apify_run`, `abort_apify_run`, `get_apify_dataset_items`, `get_apify_key_value_record` |
 | `collections` | `list_collections`, `query_collection`, `vector_text_search`, `vector_index`, `vector_hybrid_search`, `vector_recursive_split_and_index`, `vector_markdown_split_and_index`, `vector_batch_index`, `create_collection`, `delete_collection` |
@@ -259,6 +260,7 @@ lazy implementation table disagree.
 | `flow` | `invoke_node`, `open_node_stream`, `take_node_stream`, `close_node_stream` |
 | `js-scripts` | `list_js_scripts`, `get_js_script`, `save_js_script`, `validate_js_script`, `run_js_script`, `test_js_script`, `list_js_script_versions`, `get_js_script_version`, `create_js_script_version`, `restore_js_script_version`, `delete_js_script_version`, `delete_js_script` |
 | `media` | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `generate_music`, `transcribe_audio`, `embed_text`, `read_media_bytes`, `critique_image`, `compare_images`, `score_image_adherence`, `understand_video`, `ffmpeg`, `ffprobe`, `yt_dlp` |
+| `analysis` | `analyze_audio`, `analyze_audio_spectrum`, `detect_audio_events`, `analyze_video`, `detect_video_scenes` |
 | `timelines` | `list_timelines`, `create_timeline`, `get_timeline`, `list_timeline_versions`, `get_timeline_version`, `create_timeline_version`, `restore_timeline_version`, `delete_timeline_version`, `edit_timeline`, `validate_timeline`, `delete_timeline` |
 | `sketches` | `list_sketches`, `create_sketch`, `get_sketch`, `list_sketch_versions`, `get_sketch_version`, `create_sketch_version`, `restore_sketch_version`, `delete_sketch_version`, `edit_sketch`, `validate_sketch`, `delete_sketch` |
 | `model3d` | `list_model3ds`, `create_model3d`, `get_model3d`, `edit_model3d`, `validate_model3d` |

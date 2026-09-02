@@ -215,7 +215,8 @@ packages/           # npm workspace packages (TypeScript backend)
   kernel/           # Workflow graph, Actor runtime, WorkflowRunner
   agents/           # Planning agent system (TaskPlanner → TaskExecutor → CodeActExecutor)
   chat/             # Chat message processing, token counting
-  base-nodes/       # Core workflow nodes (text, image, LLM, agents)
+  base-nodes/       # Shell re-exporting the domain node packages (core-nodes,
+                    # text-nodes, llm-nodes, image-nodes, …) as ALL_BASE_NODES
   browser/          # One real Chrome page over CDP: the action loop, media
                     # capture, upload, and the Chrome-extension relay that
                     # reaches the user's own signed-in browser

@@ -576,10 +576,15 @@ echo "Summarize this codebase" | nodetool-chat --provider anthropic
 ### Interactive Commands
 
 ```
-/agent    — Toggle agent mode on/off
-/model    — Set model: /model claude-opus-4-6
-/provider — Set provider: /provider openai
+/help     — Show available commands
+/new      — Start a new chat session
+/clear    — Clear conversation history
+/compact  — Summarize conversation into retained context: /compact [instructions]
+/model    — Set model: /model <model-id>
+/provider — Set provider: /provider <name>
 /tools    — List enabled tools
+/exit     — Exit the chat
+/quit     — Exit the chat
 ```
 
 ### `nodetool agent run`
