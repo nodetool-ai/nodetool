@@ -1598,9 +1598,11 @@ as a success when all three hold:
 
 1. **plan** — `authorGraph()` produces a graph, scored structurally by the
    same `checkExpectations` the graph-planner suite uses.
-2. **execute** — `applyRunPolicy` stamps the run's provider/model onto the
-   planner's Agent nodes (the planner leaves them model-less on purpose — the
-   run owns that choice — so an unstamped graph dies on "Select a model"),
+2. **execute** — `applyRunPolicy` (`src/run-policy.ts`) stamps the run's
+   provider/model onto the planner's Agent nodes (the planner leaves them
+   model-less on purpose — the run owns that choice — so an unstamped graph
+   dies on "Select a model"). This suite is its only importer, and the reason
+   the function outlived the retired `Agent` graph branch,
    then the graph runs for real with the case's inputs as run params, through a
    caller-supplied `GraphRunner`. The runner is injected so this package needs
    no execution dependency and the harness tests can drive scripted runs with

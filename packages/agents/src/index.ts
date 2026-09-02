@@ -816,16 +816,8 @@ export { normalizeModelProperties } from "./normalize-model-properties.js";
 export type { ModelPropertyRegistry } from "./normalize-model-properties.js";
 export { authorGraph, AUTHOR_GRAPH_MAX_ITERATIONS } from "./author-graph.js";
 export type { AuthorGraphOptions } from "./author-graph.js";
-export { executeAgentGraph, applyRunPolicy } from "./execute-agent-graph.js";
-export type {
-  ExecuteAgentGraphOptions,
-  RunPolicy
-} from "./execute-agent-graph.js";
-export { resolveAgentGraph, runWorkflowAsAgent } from "./workflow-agent.js";
-export type {
-  AgentGraphSource,
-  WorkflowAgentRunOptions
-} from "./workflow-agent.js";
+export { applyRunPolicy } from "./run-policy.js";
+export type { RunPolicy } from "./run-policy.js";
 export {
   SupervisorAgent,
   DEFAULT_MAX_SUPERVISOR_COST_USD,
