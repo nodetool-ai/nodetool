@@ -215,7 +215,11 @@ export interface ResolvedGroup {
    * against the sequence resolution, so there is no matrix without one.
    */
   matrix?: Float32Array;
-  /** The group's opacity, its ancestors' already multiplied in. */
+  /**
+   * The opacity a child of this group inherits, its ancestors' already
+   * multiplied in. A precompositing group hands its children 1 and applies its
+   * own opacity once, when the composed surface blends.
+   */
   opacity: number;
   /** Absolute timeline window children are clipped to (`[startMs, endMs)`). */
   window: { startMs: number; endMs: number };
@@ -226,6 +230,45 @@ export interface ResolvedGroup {
    * reports it as `parent_cycle`.
    */
   cycle?: boolean;
+  /**
+   * The intermediate surface a child of this group draws into: this group's own
+   * id when it precomposites, otherwise whatever its parent named. Absent when
+   * no group on the chain precomposites — the ordinary path, where children go
+   * straight onto the main stack.
+   */
+  surfaceId?: string;
+  /** Set when this group composites its children before blending them. */
+  precomposite?: GroupPrecomposite;
+}
+
+/** How a precompositing group's composed surface blends into what is beneath. */
+export interface GroupPrecomposite {
+  /** The group's own opacity, its ancestors' already multiplied in. */
+  opacity: number;
+  blendMode: CompositorBlendMode;
+  /** The group's effect chain, run once on the composed surface. */
+  effects?: ClipEffect[];
+  /**
+   * The surface this one blends into, when a precompositing group holds this
+   * group. Absent when it blends onto the frame.
+   */
+  parentSurfaceId?: string;
+}
+
+/**
+ * Whether a group has to composite its children into an intermediate surface
+ * before they blend.
+ *
+ * Only two things make that necessary: an effect, which has to run on the
+ * composed picture rather than on each child, and a blend mode, which has to
+ * meet the frame once rather than once per child. Opacity is deliberately not
+ * one of them — multiplying it into each child is what the group already does,
+ * and a surface per group would cost a frame-sized allocation on every
+ * document that uses grouping at all.
+ */
+export function groupNeedsPrecomposite(group: TimelineClip): boolean {
+  if (resolveBlendMode(group.blendMode) !== "normal") return true;
+  return (group.effects ?? []).some((effect) => effect.enabled);
 }
 
 /** Every group clip in a document, resolved. Keyed by clip id. */
@@ -299,8 +342,13 @@ export function resolveGroups(
       // so none of them inherit anything.
       const parent = cycle ? undefined : inherited;
       const own = groupProps(current, currentTimeMs, canvas, cache);
+      const precompose = groupNeedsPrecomposite(current);
+      const folded = (parent?.opacity ?? 1) * own.opacity;
       const entry: ResolvedGroup = {
-        opacity: (parent?.opacity ?? 1) * own.opacity,
+        // A precompositing group hands its children full opacity: its own is
+        // applied once, to the composed surface, which is the whole point of
+        // the intermediate — two overlapping children must not each be dimmed.
+        opacity: precompose ? 1 : folded,
         window: {
           startMs: Math.max(
             current.startMs,
@@ -325,6 +373,17 @@ export function resolveGroups(
         );
       }
       if (cycle) entry.cycle = true;
+      if (precompose) {
+        entry.surfaceId = current.id;
+        entry.precomposite = {
+          opacity: folded,
+          blendMode: resolveBlendMode(current.blendMode),
+          effects: current.effects,
+          parentSurfaceId: parent?.surfaceId
+        };
+      } else {
+        entry.surfaceId = parent?.surfaceId;
+      }
       resolved.set(current.id, entry);
       inherited = entry;
     }
@@ -351,6 +410,13 @@ export interface ActiveLayer {
    * layer's `opacity` already has the group's folded in.
    */
   parentMatrix?: Float32Array;
+  /**
+   * The intermediate surface this layer draws into instead of the main stack,
+   * named by the precompositing group that owns it. Absent on every layer of a
+   * document whose groups carry no effects and no blend mode, which is the
+   * path that allocates nothing.
+   */
+  precomposeGroupId?: string;
   borderRadius?: number;
   effects?: ClipEffect[];
   trackEffects?: TrackEffect[];
@@ -390,8 +456,35 @@ export interface DroppedLayer {
  * Result of {@link computeActiveLayersWithHorizon}: the resolved layers plus
  * the change horizon (see that function for what the horizon means).
  */
+/**
+ * One precompositing group's composed surface, as a layer of the frame.
+ *
+ * Every layer naming this group's `clipId` in `precomposeGroupId` draws into
+ * the surface instead of onto the main stack; the surface then blends once,
+ * here, with the group's own opacity, blend mode and effect chain.
+ */
+export interface PrecompositeLayer {
+  /** The group clip's id. Keys the intermediate surface. */
+  clipId: string;
+  /** The group clip's own track — the z the surface blends at (I9). */
+  trackIndex: number;
+  /** The group's opacity, its ancestors' already folded in. */
+  opacity: number;
+  blendMode: CompositorBlendMode;
+  /** Run once on the composed surface, not once per child. */
+  effects?: ClipEffect[];
+  /** Set when a precompositing group holds this one: the surface it draws into. */
+  precomposeGroupId?: string;
+}
+
 export interface ActiveLayersResult {
   layers: ActiveLayer[];
+  /**
+   * The groups that composite their children before blending, innermost first
+   * — so a host can build each surface in array order and always find a nested
+   * one already finished. Empty unless a group carries effects or a blend mode.
+   */
+  precomposites: PrecompositeLayer[];
   /**
    * Clips active at the query time that the scene model refused to draw. The
    * layer cap used to discard them with a bare `continue`, so a frame quietly
@@ -430,7 +523,9 @@ export interface ActiveLayersResult {
  * A group clip contributes no layer of its own. Every clip naming one with
  * `parentId` carries the group's matrix as `parentMatrix`, has the group's
  * opacity multiplied into its own, and is left out entirely while the query
- * time sits outside the group's window.
+ * time sits outside the group's window. A group carrying effects or a blend
+ * mode instead contributes a {@link PrecompositeLayer}: its children name it in
+ * `precomposeGroupId` and draw into its surface, and the surface blends once.
  *
  * Video layers are capped to keep parity with the live preview's video pool;
  * the cap is applied in composite order (top tracks win, matching the preview
@@ -468,6 +563,12 @@ export function computeActiveLayersWithHorizon(
   const captionLayers: ActiveLayer[] = [];
   const droppedLayers: DroppedLayer[] = [];
   let videoCount = 0;
+  /**
+   * Surfaces an emitted layer actually draws into. A precompositing group with
+   * nothing under it at this time is not reported, so no host allocates a
+   * frame-sized surface to composite nothing onto.
+   */
+  const usedSurfaces = new Set<string>();
 
   // Change horizon: the smallest upcoming time at which `isClipActive`,
   // `resolveCaptionAtTime`'s active-word index, or the active-layer set could
@@ -520,6 +621,8 @@ export function computeActiveLayersWithHorizon(
         continue;
       }
       const parentMatrix = parent?.matrix;
+      const precomposeGroupId = parent?.surfaceId;
+      if (precomposeGroupId) usedSurfaces.add(precomposeGroupId);
 
       const baseOpacity = (clip.opacity ?? 1) * (parent?.opacity ?? 1);
       // During an overlap both clips are active, so `activeClips` already holds
@@ -554,6 +657,7 @@ export function computeActiveLayersWithHorizon(
           assetId: undefined,
           transform: clip.transform,
           parentMatrix,
+          precomposeGroupId,
           caption
         });
       }
@@ -574,6 +678,7 @@ export function computeActiveLayersWithHorizon(
           assetId: undefined,
           transform: clip.transform,
           parentMatrix,
+          precomposeGroupId,
           borderRadius: clip.borderRadius,
           effects: clip.effects,
           trackEffects: track.effects,
@@ -594,6 +699,7 @@ export function computeActiveLayersWithHorizon(
           assetId: undefined,
           transform: clip.transform,
           parentMatrix,
+          precomposeGroupId,
           borderRadius: clip.borderRadius,
           effects: clip.effects,
           trackEffects: track.effects,
@@ -615,6 +721,7 @@ export function computeActiveLayersWithHorizon(
         assetId,
         transform: clip.transform,
         parentMatrix,
+        precomposeGroupId,
         borderRadius: clip.borderRadius,
         effects: clip.effects,
         trackEffects: track.effects
@@ -641,9 +748,74 @@ export function computeActiveLayersWithHorizon(
 
   return {
     layers: [...mediaLayers, ...captionLayers],
+    precomposites: collectPrecomposites(clips, tracks, groups, usedSurfaces),
     droppedLayers,
     nextChangeMs
   };
+}
+
+/**
+ * The precomposite layers for the surfaces `usedSurfaces` names, innermost
+ * first.
+ *
+ * A surface only reaches the frame through the one holding it, so a nested
+ * group is pulled in even when no layer drew straight into its parent. Ordering
+ * by how deep a surface sits means a host building them in array order always
+ * finds a nested surface already composed — the tree has no other constraint,
+ * so depth is a sufficient topological order.
+ */
+function collectPrecomposites(
+  clips: readonly TimelineClip[],
+  tracks: readonly TimelineTrack[],
+  groups: ResolvedGroups,
+  usedSurfaces: ReadonlySet<string>
+): PrecompositeLayer[] {
+  if (usedSurfaces.size === 0) return [];
+
+  const needed = new Set<string>();
+  for (const id of usedSurfaces) {
+    let cursor: string | undefined = id;
+    while (cursor && !needed.has(cursor)) {
+      needed.add(cursor);
+      cursor = groups.get(cursor)?.precomposite?.parentSurfaceId;
+    }
+  }
+
+  const trackIndexById = new Map<string, number>();
+  for (const track of tracks) trackIndexById.set(track.id, track.index);
+  const groupClipById = new Map<string, TimelineClip>();
+  for (const clip of clips) {
+    if (needed.has(clip.id)) groupClipById.set(clip.id, clip);
+  }
+
+  const depthOf = (id: string): number => {
+    let depth = 0;
+    let cursor = groups.get(id)?.precomposite?.parentSurfaceId;
+    while (cursor) {
+      depth += 1;
+      cursor = groups.get(cursor)?.precomposite?.parentSurfaceId;
+    }
+    return depth;
+  };
+
+  const out: PrecompositeLayer[] = [];
+  for (const id of needed) {
+    const precomposite = groups.get(id)?.precomposite;
+    const clip = groupClipById.get(id);
+    if (!precomposite || !clip) continue;
+    out.push({
+      clipId: id,
+      // A group always sits on a track; falling back to the caption index
+      // rather than 0 keeps a surface whose track went missing on top of the
+      // picture instead of buried under it.
+      trackIndex: trackIndexById.get(clip.trackId) ?? CAPTION_TRACK_INDEX,
+      opacity: precomposite.opacity,
+      blendMode: precomposite.blendMode,
+      effects: precomposite.effects,
+      precomposeGroupId: precomposite.parentSurfaceId
+    });
+  }
+  return out.sort((a, b) => depthOf(b.clipId) - depthOf(a.clipId));
 }
 
 /**

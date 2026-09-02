@@ -25,9 +25,10 @@ import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
 import type {
   ActiveLayer,
   Canvas2DLayer,
+  Canvas2DPrecomposite,
   CompositeContext2D,
+  CompositeSurface,
   DroppedLayerReason,
-  MaskScratch,
   RasterContext2D
 } from "@nodetool-ai/timeline/scene";
 import {
@@ -199,22 +200,46 @@ export async function renderTimelineFrames(
     PreviewSource
   >;
 
+  const asSurface = (canvasFor: Canvas): CompositeSurface<PreviewSource> => ({
+    // SAFETY: `CompositeContext2D` is the subset of the 2D canvas API the
+    // compositing rules use, and a skia context provides all of it.
+    ctx: canvasFor.getContext("2d") as unknown as CompositeContext2D<
+      PreviewSource
+    >,
+    surface: canvasFor
+  });
+
   let scratch: Canvas | null = null;
   const scratchFor = (
     w: number,
     h: number
-  ): MaskScratch<PreviewSource> | null => {
+  ): CompositeSurface<PreviewSource> | null => {
     const surface =
       scratch && scratch.width === w && scratch.height === h
         ? scratch
         : createCanvas(w, h);
     scratch = surface;
-    return {
-      ctx: surface.getContext("2d") as unknown as CompositeContext2D<
-        PreviewSource
-      >,
-      surface
-    };
+    return asSurface(surface);
+  };
+
+  /**
+   * Precomposite surfaces, pooled across frames and handed out one at a time
+   * within a frame: a nested group holds its surface until the group above has
+   * drawn it, so they cannot share the way the wipe scratch does.
+   */
+  const precompositePool: Canvas[] = [];
+  let precompositesTaken = 0;
+  const precompositeSurfaceFor = (
+    w: number,
+    h: number
+  ): CompositeSurface<PreviewSource> | null => {
+    const index = precompositesTaken++;
+    let surface = precompositePool[index];
+    if (!surface || surface.width !== w || surface.height !== h) {
+      surface = createCanvas(w, h);
+      precompositePool[index] = surface;
+    }
+    return asSurface(surface);
   };
 
   const assetBytes = new Map<string, Promise<Uint8Array | null>>();
@@ -232,7 +257,11 @@ export async function renderTimelineFrames(
   const effectsNotApplied = new Set<string>();
 
   for (const timeMs of options.timesMs) {
-    const { layers: active, droppedLayers } = computeActiveLayersWithHorizon(
+    const {
+      layers: active,
+      precomposites,
+      droppedLayers
+    } = computeActiveLayersWithHorizon(
       sequence.tracks,
       sequence.clips,
       timeMs,
@@ -240,9 +269,26 @@ export async function renderTimelineFrames(
       // same space the animations are sampled in.
       { canvas: animationCanvas, animationCache: animCache }
     );
-    for (const type of unsupportedEffectTypes(active)) {
+    const drawPrecomposites: Canvas2DPrecomposite[] = precomposites.map(
+      (group) => ({
+        id: group.clipId,
+        zIndex: trackZ(group.trackIndex),
+        opacity: group.opacity,
+        blendMode: group.blendMode,
+        effects: group.effects,
+        precomposeGroupId: group.precomposeGroupId
+      })
+    );
+    // A group's effects run on its composed surface, so they are named here
+    // beside the layers' own — otherwise a group effect this path cannot draw
+    // would go unreported (I7).
+    for (const type of unsupportedEffectTypes([
+      ...active,
+      ...drawPrecomposites
+    ])) {
       effectsNotApplied.add(type);
     }
+    precompositesTaken = 0;
 
     const drawLayers: Canvas2DLayer<PreviewSource>[] = [];
     const reports: PreviewLayerReport[] = [];
@@ -281,6 +327,7 @@ export async function renderTimelineFrames(
         zIndex,
         transform: anim.transform,
         parentMatrix: layer.parentMatrix,
+        precomposeGroupId: layer.precomposeGroupId,
         mask: anim.mask,
         borderRadius: layer.borderRadius,
         effects: anim.effects ?? layer.effects,
@@ -384,12 +431,11 @@ export async function renderTimelineFrames(
       addLayer(image, image.width, image.height);
     }
 
-    for (const layer of drawTimelineFrame(
-      ctx,
-      drawLayers,
-      geometry,
-      scratchFor
-    )) {
+    for (const layer of drawTimelineFrame(ctx, drawLayers, geometry, {
+      maskScratch: scratchFor,
+      precomposites: drawPrecomposites,
+      precompositeSurface: precompositeSurfaceFor
+    })) {
       const report = reportFor.get(layer);
       if (report) report.skipped = "source could not be drawn";
     }

@@ -2,8 +2,8 @@
  * Frame-by-frame render of a timeline sequence, server-side.
  *
  * This is the editor's export path with the browser taken out: the same
- * {@link computeActiveLayers} scene description, the same animation sampling,
- * the same placement math, and the same GPU compositor
+ * {@link computeActiveLayersWithHorizon} scene description, the same animation
+ * sampling, the same placement math, and the same GPU compositor
  * ({@link HeadlessFrameCompositor}) — so a workflow render and the preview the
  * user watched are the same picture. Only the boundaries differ: ffmpeg decodes
  * clip media into RGBA and encodes the composited frames, in place of
@@ -13,12 +13,13 @@
 import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
 import type {
   FrameLayer,
+  FramePrecomposite,
   RasterContext2D
 } from "@nodetool-ai/timeline/render";
 import {
   HeadlessFrameCompositor,
   clipSourceTimeSec,
-  computeActiveLayers,
+  computeActiveLayersWithHorizon,
   createAnimationCompileCache,
   measureTextWith,
   resolveAnimatedLayerProps,
@@ -190,12 +191,13 @@ export async function renderTimelineComposited(
       }
 
       const layers: FrameLayer[] = [];
-      for (const layer of computeActiveLayers(
+      const { layers: active, precomposites } = computeActiveLayersWithHorizon(
         sequence.tracks,
         sequence.clips,
         timeMs,
         { canvas, animationCache: animCache }
-      )) {
+      );
+      for (const layer of active) {
         const anim = resolveAnimatedLayerProps(layer, timeMs, canvas, animCache);
         const common = {
           opacity: anim.opacity,
@@ -203,6 +205,7 @@ export async function renderTimelineComposited(
           zIndex: trackZ(layer.trackIndex),
           transform: anim.transform,
           parentMatrix: layer.parentMatrix,
+          precomposeGroupId: layer.precomposeGroupId,
           mask: anim.mask,
           borderRadius: layer.borderRadius,
           effects: anim.effects ?? layer.effects,
@@ -289,7 +292,21 @@ export async function renderTimelineComposited(
         });
       }
 
-      await encoder.write(await compositor.renderFrame(layers));
+      await encoder.write(
+        await compositor.renderFrame(
+          layers,
+          precomposites.map(
+            (group): FramePrecomposite => ({
+              id: group.clipId,
+              zIndex: trackZ(group.trackIndex),
+              opacity: group.opacity,
+              blendMode: group.blendMode,
+              effects: group.effects,
+              precomposeGroupId: group.precomposeGroupId
+            })
+          )
+        )
+      );
       opts.onProgress?.(frame + 1, totalFrames);
     }
 

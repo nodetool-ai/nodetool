@@ -16,6 +16,12 @@
  * equivalent. {@link unsupportedEffectTypes} names the ones a given layer set
  * drops, so a caller can say so rather than silently showing a different
  * picture.
+ *
+ * A group carrying effects or a blend mode composites its children onto an
+ * intermediate surface first, so the effect chain runs on the composed picture
+ * and the blend meets the frame once. The host vends that surface through
+ * {@link CompositeSurfaceFactory}, because there is no way to make one that
+ * exists in both a browser and Node.
  */
 
 import { blendModeToCanvasOp } from "@nodetool-ai/gpu";
@@ -85,11 +91,37 @@ export interface Canvas2DLayer<TSource> {
   transform?: ClipTransform;
   /** The layer's group matrix, from the scene model. Composes as `parent × own`. */
   parentMatrix?: Float32Array;
+  /**
+   * The precomposite this layer draws into instead of the main stack, from the
+   * scene model. Absent on every layer of a document with no precompositing
+   * group, which is the path that allocates no surface.
+   */
+  precomposeGroupId?: string;
   /** Rounded-corner radius in source pixels. */
   borderRadius?: number;
   mask?: AnimationSampleMask;
   effects?: ClipEffect[];
   trackEffects?: TrackEffect[];
+}
+
+/**
+ * A group that composites its children onto an intermediate surface, runs its
+ * effect chain on the composed picture, and blends the result once.
+ *
+ * Mirrors `PrecompositeLayer` from the scene model with `trackIndex` already
+ * resolved to a `zIndex`, the way {@link Canvas2DLayer} mirrors `ActiveLayer`.
+ */
+export interface Canvas2DPrecomposite {
+  /** The group clip's id — what a layer names in `precomposeGroupId`. */
+  id: string;
+  /** Composite order of the blended result, ascending. */
+  zIndex: number;
+  opacity: number;
+  blendMode: unknown;
+  /** Run once on the composed surface, not once per child. */
+  effects?: ClipEffect[];
+  /** Set when a precompositing group holds this one: the surface it draws into. */
+  precomposeGroupId?: string;
 }
 
 /** Canvas geometry a composite draws into. */
@@ -107,20 +139,54 @@ export interface Canvas2DFrameGeometry {
 }
 
 /**
- * An offscreen surface for feathered wipes, supplied by the host because the
- * way to make one differs per environment (`document.createElement`,
- * `OffscreenCanvas`, `createCanvas`). Returning null falls the layer back to a
- * hard-edged wipe.
+ * An offscreen surface this module draws on and then draws back: the scratch a
+ * feathered wipe pre-masks its source on, and the intermediate a precompositing
+ * group composes its children into.
+ *
+ * A surface is a context plus whatever the host's `drawImage` accepts as a
+ * source, never a canvas class (I6): the browser hands over an `OffscreenCanvas`
+ * and the server an `@napi-rs/canvas` one, and only their 2D contexts have a
+ * shape both satisfy.
  */
-export type MaskScratchFactory<TSource> = (
-  width: number,
-  height: number
-) => MaskScratch<TSource> | null;
-
-export interface MaskScratch<TSource> {
+export interface CompositeSurface<TSource> {
   ctx: CompositeContext2D<TSource>;
   /** The surface itself, to draw back onto the main context. */
   surface: TSource;
+}
+
+/**
+ * How a host makes a {@link CompositeSurface} — `document.createElement`,
+ * `new OffscreenCanvas`, `createCanvas` — since none of those exists
+ * everywhere. Returning null means the host could not, and the caller says what
+ * it does instead.
+ */
+export type CompositeSurfaceFactory<TSource> = (
+  width: number,
+  height: number
+) => CompositeSurface<TSource> | null;
+
+/** @deprecated Use {@link CompositeSurface}. */
+export type MaskScratch<TSource> = CompositeSurface<TSource>;
+/** @deprecated Use {@link CompositeSurfaceFactory}. */
+export type MaskScratchFactory<TSource> = CompositeSurfaceFactory<TSource>;
+
+/** The optional halves of a frame draw: the surfaces, and the group stack. */
+export interface DrawTimelineFrameOptions<TSource> {
+  /**
+   * Scratch for feathered wipes. One reused surface is enough — a wipe draws it
+   * back before the next layer asks for it.
+   */
+  maskScratch?: CompositeSurfaceFactory<TSource>;
+  /** The groups to composite separately, innermost first (scene-model order). */
+  precomposites?: readonly Canvas2DPrecomposite[];
+  /**
+   * Frame-sized intermediates for those groups. Each call must answer with a
+   * surface no other precomposite in this frame is still using — nested groups
+   * hold theirs until the group above has drawn it — so this cannot be the same
+   * pooled surface `maskScratch` vends. Returning null draws the group's
+   * children onto the stack beneath instead, without its effects or blend mode.
+   */
+  precompositeSurface?: CompositeSurfaceFactory<TSource>;
 }
 
 /** Effect types this path draws exactly; everything else is dropped. */
@@ -134,7 +200,12 @@ const CANVAS_EFFECT_TYPES = new Set([
 /**
  * The effect types present on these layers that Canvas 2D cannot draw. A
  * caller reports these rather than letting the frame quietly differ from the
- * GPU render.
+ * GPU render (I7).
+ *
+ * A group's effects run on its composed surface, not on any one layer, so a
+ * caller with precomposites passes them in too — `Canvas2DPrecomposite` carries
+ * `effects` for exactly that. Leaving them out is how a group blur that this
+ * path never applied would go unreported.
  */
 export function unsupportedEffectTypes(
   layers: readonly {
@@ -200,26 +271,111 @@ function resetContext<TSource>(ctx: CompositeContext2D<TSource>): void {
  * Composite `layers` onto `ctx`, bottom-up by `zIndex`, over an opaque black
  * ground — the same clear the GPU compositor starts from. The context is left
  * in the reset state. Returns the layers that drew nothing, in composite order.
+ *
+ * A layer naming a precomposite in `options.precomposites` draws onto that
+ * group's own surface first, and the surface blends once at the group's z. With
+ * no precomposites the layers go straight onto `ctx` and no surface is asked
+ * for at all.
  */
 export function drawTimelineFrame<TSource>(
   ctx: CompositeContext2D<TSource>,
   layers: readonly Canvas2DLayer<TSource>[],
   geometry: Canvas2DFrameGeometry,
-  maskScratch?: MaskScratchFactory<TSource>
+  options: DrawTimelineFrameOptions<TSource> = {}
 ): Canvas2DLayer<TSource>[] {
   resetContext(ctx);
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
 
   const skipped: Canvas2DLayer<TSource>[] = [];
-  const ordered = [...layers].sort((a, b) => a.zIndex - b.zIndex);
+  const stack = composePrecomposites(layers, geometry, options, skipped);
+  const ordered = [...stack].sort((a, b) => a.zIndex - b.zIndex);
   for (const layer of ordered) {
-    if (!drawTimelineLayer(ctx, layer, geometry, maskScratch)) {
+    if (!drawTimelineLayer(ctx, layer, geometry, options.maskScratch)) {
       skipped.push(layer);
     }
   }
   resetContext(ctx);
   return skipped;
+}
+
+/**
+ * Draw each precompositing group onto its own surface and return the main
+ * stack: the layers that belong to no group, plus one layer per group whose
+ * surface blends onto the frame.
+ *
+ * `options.precomposites` arrives innermost first, so a nested group has
+ * already handed its composed surface to the group above by the time that one
+ * draws. With no groups this hands the layers straight back and never calls the
+ * surface factory — the whole point of gating the intermediate on a group
+ * actually carrying effects or a blend mode.
+ */
+function composePrecomposites<TSource>(
+  layers: readonly Canvas2DLayer<TSource>[],
+  geometry: Canvas2DFrameGeometry,
+  options: DrawTimelineFrameOptions<TSource>,
+  skipped: Canvas2DLayer<TSource>[]
+): Canvas2DLayer<TSource>[] {
+  const groups = options.precomposites ?? [];
+  if (groups.length === 0) return [...layers];
+
+  const stack: Canvas2DLayer<TSource>[] = [];
+  const byGroup = new Map<string, Canvas2DLayer<TSource>[]>();
+  const assign = (
+    groupId: string | undefined,
+    layer: Canvas2DLayer<TSource>
+  ): void => {
+    if (!groupId) {
+      stack.push(layer);
+      return;
+    }
+    const bucket = byGroup.get(groupId);
+    if (bucket) bucket.push(layer);
+    else byGroup.set(groupId, [layer]);
+  };
+
+  for (const layer of layers) assign(layer.precomposeGroupId, layer);
+
+  for (const group of groups) {
+    const children = byGroup.get(group.id) ?? [];
+    const surface =
+      children.length > 0
+        ? (options.precompositeSurface?.(
+            geometry.canvasWidth,
+            geometry.canvasHeight
+          ) ?? null)
+        : null;
+    if (!surface) {
+      // Nothing to compose, or no surface to compose it on. Either way the
+      // children draw where they would have without the group: the picture
+      // survives, the group's effects and blend mode do not, and
+      // `unsupportedEffectTypes` is what tells the caller so.
+      for (const child of children) assign(group.precomposeGroupId, child);
+      continue;
+    }
+
+    const sctx = surface.ctx;
+    resetContext(sctx);
+    sctx.clearRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
+    for (const child of [...children].sort((a, b) => a.zIndex - b.zIndex)) {
+      if (!drawTimelineLayer(sctx, child, geometry, options.maskScratch)) {
+        skipped.push(child);
+      }
+    }
+
+    // The surface is frame-sized, so it composites untransformed: the group's
+    // own matrix already rode into each child through `parentMatrix`.
+    assign(group.precomposeGroupId, {
+      source: surface.surface,
+      sourceWidth: geometry.canvasWidth,
+      sourceHeight: geometry.canvasHeight,
+      opacity: group.opacity,
+      blendMode: group.blendMode,
+      zIndex: group.zIndex,
+      effects: group.effects
+    });
+  }
+  return stack;
 }
 
 /**
@@ -237,7 +393,7 @@ export function drawTimelineLayer<TSource>(
   ctx: CompositeContext2D<TSource>,
   layer: Canvas2DLayer<TSource>,
   geometry: Canvas2DFrameGeometry,
-  maskScratch?: MaskScratchFactory<TSource>
+  maskScratch?: CompositeSurfaceFactory<TSource>
 ): boolean {
   const { sourceWidth: width, sourceHeight: height } = layer;
   if (width <= 0 || height <= 0) return false;
@@ -311,7 +467,7 @@ function featherWipe<TSource>(
   width: number,
   height: number,
   mask: AnimationSampleMask,
-  makeScratch: MaskScratchFactory<TSource>
+  makeScratch: CompositeSurfaceFactory<TSource>
 ): TSource | null {
   const scratch = makeScratch(width, height);
   if (!scratch) return null;

@@ -95,6 +95,11 @@ export class WebGPUEffectsProcessor {
    * Run the effects chain on `source` and return a GPU texture with the
    * processed pixels. If no effects are enabled, returns `source` itself
    * (caller should not destroy it on the assumption it's owned).
+   *
+   * `sourceAlpha` is how `source` stores its color. Decoded media arrives
+   * straight, which is the default; a precomposite's own accumulation is
+   * already premultiplied, and saying so is what keeps the Executor from
+   * bridging pixels that need no bridging.
    */
   process(
     poolKey: string,
@@ -102,7 +107,8 @@ export class WebGPUEffectsProcessor {
     width: number,
     height: number,
     clipEffects: ClipEffect[],
-    trackEffects: TrackEffect[] = []
+    trackEffects: TrackEffect[] = [],
+    sourceAlpha: "straight" | "premultiplied" = "straight"
   ): GPUTexture {
     const enabledClip = clipEffects.filter((e) => e.enabled);
     const enabledTrack = trackEffects.filter((e) => e.enabled);
@@ -141,8 +147,9 @@ export class WebGPUEffectsProcessor {
       label: `preview-effects-${poolKey}`
     });
 
-    // Source arrives straight-alpha (uploaded with `premultipliedAlpha: false`).
-    // Wrap as a straight-labeled `LabeledTexture` and feed it to the first
+    // Decoded media arrives straight-alpha (uploaded with
+    // `premultipliedAlpha: false`), which is what `sourceAlpha` defaults to.
+    // Wrap it with that label and feed it to the first
     // effect: the Executor's auto-bridge inserts `alphaStraightToPremulV1`
     // ahead of effects that need premul input (everything except chromaKey),
     // and chromaKey itself takes straight directly — so there's no redundant
@@ -152,7 +159,7 @@ export class WebGPUEffectsProcessor {
       format: "rgba8unorm",
       width,
       height,
-      meta: { colorSpace: "srgb", alpha: "straight", bindingKind: "texture_2d" }
+      meta: { colorSpace: "srgb", alpha: sourceAlpha, bindingKind: "texture_2d" }
     });
     let pendingFirst = true;
 

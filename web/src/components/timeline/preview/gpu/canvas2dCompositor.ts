@@ -90,7 +90,7 @@ export class Canvas2DCompositor implements TimelineCompositor {
         refWidth: this.refWidth,
         refHeight: this.refHeight
       },
-      (width, height) => this.scratchFor(width, height)
+      { maskScratch: (width, height) => this.scratchFor(width, height) }
     );
   }
 
