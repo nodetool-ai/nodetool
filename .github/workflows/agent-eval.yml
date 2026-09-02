@@ -1,0 +1,299 @@
+name: Agent Eval
+
+# The agent eval suites, on request. Every case here drives a live model, so a
+# run costs real inference money and its result carries model-run variance —
+# which is why nothing starts it but a person. There is no schedule and no PR
+# trigger: this is a tool a maintainer reaches for after changing the planner,
+# the CodeAct loop, the sub-agent path or a `ui_*` tool contract, not a check
+# that fires on its own. It gates nothing, opens no PR, and is not a required
+# check.
+#
+# What it produces is a report: the JSON per suite in the artifact, and one
+# table across all of them in the `report` job's summary.
+#
+# Each suite carries a default floor, and the floor is the level below which the
+# suite is broken, not the level we want it at. They are deliberately loose: a
+# number tight enough to trip on a model's off night teaches people to ignore
+# the run. Each entry says what its number is based on. The `min-success` input
+# overrides all of them for one run — raise it to check a claim, lower it to
+# collect a report without a red leg. Raise a default when the artifact history
+# shows the suite holding above a higher number, and rewrite the reason with it.
+#
+# `--min-cases 1` on every suite, because a rate is computed over the cases that
+# actually ran: a suite whose cases were all skipped (no configured providers
+# for `find_model`, say) reports 0 over an empty set, which would read as a
+# quality failure rather than as a run that examined nothing.
+#
+# The cases that need no key at all are not here — they cost nothing and need no
+# provider, so they are a local command, and `nodetool eval <suite> --keyless`
+# runs exactly those (`--list` marks them). Today only `app-build` has any, and
+# the Quality Gate already runs them on every PR.
+
+on:
+  workflow_dispatch:
+    inputs:
+      suites:
+        description: "Comma-separated suite ids (default: every suite in the matrix, plus jtbd)"
+        required: false
+        default: ""
+        type: string
+      provider:
+        description: "Provider id (registry id, e.g. anthropic, openai)"
+        required: false
+        default: "anthropic"
+        type: string
+      model:
+        description: "Model id"
+        required: false
+        default: "claude-sonnet-5"
+        type: string
+      cases:
+        description: "Comma-separated case ids (jtbd: job ids). Only sensible with one suite selected"
+        required: false
+        default: ""
+        type: string
+      min-success:
+        description: "Floor for every selected suite (0..1). Empty keeps each suite's own default"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-eval
+  cancel-in-progress: false
+
+jobs:
+  eval:
+    name: ${{ matrix.suite }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      # Every selected suite reports, whatever the others did. One suite below
+      # its floor is the signal; it must not cost the run the other reports.
+      fail-fast: false
+      matrix:
+        include:
+          # Graph authoring: `authorGraph` over the typed DSL pack. A case
+          # counts only when the graph is accepted, so the rate is a structural
+          # check, not a judgement. 0.8 leaves room for the cases whose
+          # objectives admit more than one correct shape
+          # (deterministic-over-llm, agent-over-code, code-feeds-agent) to be
+          # scored differently by a model having an average night.
+          - suite: graph-planner
+            min-success: "0.8"
+            timeout: 60
+          # Plan, run on the kernel, judge the outputs. Three ways to lose per
+          # case and inference paid twice, so this floor is the loosest here:
+          # 0.5 says half the objectives still make it end to end. It is the
+          # suite most worth watching and the one least worth being strict with.
+          - suite: graph-e2e
+            min-success: "0.5"
+            timeout: 90
+          # Code node authoring. The gated rate is post-repair acceptance — the
+          # planner gets the tool's feedback and a second try — so a model that
+          # cannot reach 0.8 here is not writing usable Code bodies at all.
+          - suite: code-gen
+            min-success: "0.8"
+            timeout: 60
+          # Multi-task DAG quality. Acceptance means a plan was committed, which
+          # is a low bar the score (not gated) refines; 0.7 catches a planner
+          # that has stopped producing plans, which is the regression a change
+          # to the planning path causes.
+          - suite: task-planner
+            min-success: "0.7"
+            timeout: 60
+          # Delegation: the check is that the *child* ran the inherited tools.
+          # A parent that quietly does the work itself scores zero, so this rate
+          # moves in whole cases out of seven — 0.7 is five of them.
+          - suite: subtask
+            min-success: "0.7"
+            timeout: 60
+          # CodeAct over the instrumented offline toolbelt. The largest case set
+          # here, and the action space the product committed to
+          # (docs/codeact-design.md), so a broad floor: 0.7 trips on a prompt or
+          # toolbelt change that breaks a class of cases, not on one case.
+          - suite: codeact
+            min-success: "0.7"
+            timeout: 90
+          # The frontend graph-editor tool loop. Two cases, so the rate can only
+          # be 0, 0.5 or 1 — 0.5 is the only floor between "both broken" and
+          # "no tolerance at all".
+          - suite: tool-loop
+            min-success: "0.5"
+            timeout: 45
+          # Asking the user when the objective withholds something only they can
+          # decide. Five cases scored on both the question and the graph built
+          # from the answer, so a model that asks well but builds badly still
+          # loses the case; 0.6 is three of five.
+          - suite: workflow-escalation
+            min-success: "0.6"
+            timeout: 45
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node, install deps, build packages
+        # The suites author and run real graphs, so they need the node registry.
+        uses: ./.github/actions/setup-build
+
+      - name: Run ${{ matrix.suite }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PROVIDER: ${{ inputs.provider }}
+          MODEL: ${{ inputs.model }}
+          SUITES: ${{ inputs.suites }}
+          CASES: ${{ inputs.cases }}
+          SUITE: ${{ matrix.suite }}
+          MIN_SUCCESS: ${{ inputs.min-success || matrix.min-success }}
+        run: |
+          set -euo pipefail
+          # Suite selection happens here rather than in an `if:` expression so a
+          # list with spaces in it behaves the way whoever typed it expects.
+          if [ -n "$SUITES" ] &&
+             ! printf ',%s,' "$SUITES" | tr -d ' ' | grep -q ",$SUITE,"; then
+            echo "$SUITE not selected by inputs.suites=$SUITES — nothing to run."
+            exit 0
+          fi
+          mkdir -p reports
+          # The floor travels with the report so the `report` job can mark the
+          # table without re-deriving it from a job outcome.
+          printf '{"suite":"%s","minSuccess":%s}\n' "$SUITE" "$MIN_SUCCESS" \
+            > "reports/$SUITE.floor.json"
+          # pipefail, so `tee` cannot turn a threshold miss into a green step.
+          npm run dev:nodetool -- eval "$SUITE" \
+            -p "$PROVIDER" -m "$MODEL" \
+            ${CASES:+--cases "$CASES"} \
+            --min-cases 1 \
+            --min-success "$MIN_SUCCESS" \
+            --out "reports/$SUITE.json" | tee "reports/$SUITE.txt"
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: agent-eval-${{ matrix.suite }}
+          path: reports
+          # An unselected suite writes nothing, and that is not a warning.
+          if-no-files-found: ignore
+
+  # The same treatment one rung up: a job asks whether the product let the agent
+  # finish a real piece of work, across whatever surfaces it needed. It carries
+  # no floor. A job's finding is its transcript and the friction pass over it
+  # (packages/agents/src/jtbd/friction.ts), which names an owner for each
+  # signal — that is what the bundle is uploaded for, and it wants a person
+  # reading it, not a number deciding for them. `nodetool jtbd run
+  # --min-achieved` is there for when a recorded baseline says what the number
+  # should be.
+  jtbd:
+    name: jtbd
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node, install deps, build packages
+        uses: ./.github/actions/setup-build
+
+      - name: Run the job suite
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PROVIDER: ${{ inputs.provider }}
+          MODEL: ${{ inputs.model }}
+          SUITES: ${{ inputs.suites }}
+          # A job id, in the input the suites share.
+          JOBS: ${{ inputs.cases }}
+        run: |
+          set -euo pipefail
+          if [ -n "$SUITES" ] &&
+             ! printf ',%s,' "$SUITES" | tr -d ' ' | grep -q ",jtbd,"; then
+            echo "jtbd not selected by inputs.suites=$SUITES — nothing to run."
+            exit 0
+          fi
+          mkdir -p reports
+          printf '{"suite":"jtbd","minSuccess":null}\n' > reports/jtbd.floor.json
+          npm run dev:nodetool -- jtbd run \
+            -p "$PROVIDER" -m "$MODEL" \
+            ${JOBS:+--jobs "$JOBS"} \
+            --out jtbd-runs | tee reports/jtbd.txt
+          cp jtbd-runs/suite.json reports/jtbd.json
+
+      - name: Upload the runs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: agent-eval-jtbd
+          path: |
+            reports
+            jtbd-runs
+          if-no-files-found: ignore
+
+  # One table across every suite that ran. Separate from the legs so it renders
+  # whatever they did — a suite that timed out or died before writing a report
+  # is a row that says so, not a missing row.
+  report:
+    name: Report
+    needs: [eval, jtbd]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download the reports
+        uses: actions/download-artifact@v8
+        with:
+          pattern: agent-eval-*
+          path: reports
+          merge-multiple: true
+
+      - name: Summarize
+        run: |
+          set -euo pipefail
+          node -e "
+            const fs = require('node:fs');
+            const dir = 'reports';
+            const out = ['## Agent eval', ''];
+            const files = fs.existsSync(dir)
+              ? fs.readdirSync(dir).filter((f) => f.endsWith('.floor.json'))
+              : [];
+            if (files.length === 0) {
+              out.push('No suite produced a report — see the run logs.');
+            } else {
+              out.push('| Suite | Success | Floor | Ran | Cost |');
+              out.push('| --- | --- | --- | --- | --- |');
+              for (const file of files.sort()) {
+                const floor = JSON.parse(fs.readFileSync(dir + '/' + file, 'utf-8'));
+                const hasFloor = floor.minSuccess !== null;
+                const path = dir + '/' + floor.suite + '.json';
+                if (!fs.existsSync(path)) {
+                  const shown = hasFloor ? floor.minSuccess : '—';
+                  out.push('| ' + floor.suite + ' | no report | ' + shown + ' | — | — |');
+                  continue;
+                }
+                const s = JSON.parse(fs.readFileSync(path, 'utf-8')).summary;
+                // Suite summaries differ: code-gen gates post-repair acceptance,
+                // jtbd reports an achievement rate, and only the suites that
+                // skip cases carry a skipped count.
+                const rate = [s.successRate, s.postRepairRate, s.achievementRate].find(
+                  (v) => v !== undefined
+                );
+                const ran = s.ran !== undefined ? s.ran : s.total - (s.skipped || 0);
+                const cost = s.totalCostUsd || 0;
+                const mark = hasFloor && rate < floor.minSuccess ? ' — below floor' : '';
+                out.push(
+                  '| ' + floor.suite +
+                  ' | ' + (rate * 100).toFixed(0) + '%' + mark +
+                  ' | ' + (hasFloor ? floor.minSuccess : '—') +
+                  ' | ' + ran +
+                  ' | \$' + cost.toFixed(2) + ' |'
+                );
+              }
+            }
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, out.join('\n') + '\n');
+          "
