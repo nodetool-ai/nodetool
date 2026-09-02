@@ -180,7 +180,11 @@ describe("RenderTimeline — composited path", () => {
 
   it("reports which path produced the bytes", async () => {
     const out = await render(sequence({ clips: [videoClip()] }));
-    expect(out.output.metadata).toEqual({ render_mode: "composited" });
+    expect(out.output.metadata).toEqual({
+      render_mode: "composited",
+      format: "mp4",
+      alpha: false
+    });
   });
 
   it("passes the run's abort signal down to the frame loop", async () => {
@@ -286,7 +290,11 @@ describe("RenderTimeline — fallback when no GPU is available", () => {
     expect(ffmpegArgs().some((a) => a.includes("-f concat"))).toBe(true);
     expect(logs("warning")).toMatch(/rough cut/);
     expect(logs("warning")).toMatch(/no adapter/);
-    expect(out.output.metadata).toEqual({ render_mode: "rough_cut" });
+    expect(out.output.metadata).toEqual({
+      render_mode: "rough_cut",
+      format: "mp4",
+      alpha: false
+    });
   });
 
   it("keeps the rough cut's own soundtrack in the mix", async () => {

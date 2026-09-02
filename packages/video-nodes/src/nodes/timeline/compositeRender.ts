@@ -34,9 +34,15 @@ import {
   openFrameEncoder,
   openVideoFrameStream,
   probeVideoSize,
+  type FrameEncoder,
   type RawImage,
   type VideoFrameStream
 } from "./rawFrames.js";
+import { openPngSequenceEncoder } from "./pngSequence.js";
+import {
+  resolveTimelineOutput,
+  type ResolvedTimelineOutput
+} from "./outputFormats.js";
 import { NodeRasterizer } from "./rasterizers.js";
 
 interface CompositeRenderOptions {
@@ -49,8 +55,13 @@ interface CompositeRenderOptions {
   durationMs: number;
   /** Resolve a clip's asset to a readable local file, or null if unavailable. */
   resolveAssetPath: (assetId: string) => Promise<string | null>;
-  /** Destination video file. */
+  /** Destination file — a video container, or the PNG sequence's zip. */
   outPath: string;
+  /**
+   * Container, encoder and alpha, resolved by `resolveTimelineOutput`. Absent
+   * means today's default: H.264 in MP4 over an opaque ground.
+   */
+  output?: ResolvedTimelineOutput;
   onProgress?: (frame: number, totalFrames: number) => void;
   /**
    * Run cancellation. Checked once per frame, so a cancelled render stops
@@ -102,7 +113,8 @@ export async function renderTimelineComposited(
   opts: CompositeRenderOptions
 ): Promise<CompositeRenderResult> {
   const { sequence, fps, durationMs, resolveAssetPath, outPath, signal } = opts;
-  // H.264 requires even dimensions.
+  const output = opts.output ?? resolveTimelineOutput({ format: "mp4" });
+  // H.264 and the yuv420p family require even dimensions.
   const width = Math.max(2, Math.floor(opts.width / 2) * 2);
   const height = Math.max(2, Math.floor(opts.height / 2) * 2);
   const totalFrames = Math.max(1, Math.round((durationMs / 1000) * fps));
@@ -122,7 +134,22 @@ export async function renderTimelineComposited(
   const device = await acquireDevice();
   const compositor = new HeadlessFrameCompositor(device, width, height);
   const rasterizer = new NodeRasterizer(width, height);
-  const encoder = openFrameEncoder({ outPath, width, height, fps });
+  const encoder: FrameEncoder =
+    output.format === "png_sequence"
+      ? openPngSequenceEncoder({
+          outPath,
+          width,
+          height,
+          fps,
+          alpha: output.alpha
+        })
+      : openFrameEncoder({
+          outPath,
+          width,
+          height,
+          fps,
+          encoderArgs: output.encoderArgs
+        });
   const animCache = createAnimationCompileCache();
 
   const videoSources = new Map<string, ClipVideoSource>();
@@ -349,7 +376,8 @@ export async function renderTimelineComposited(
               effects: group.effects,
               precomposeGroupId: group.precomposeGroupId
             })
-          )
+          ),
+          { alpha: output.alpha }
         )
       );
       opts.onProgress?.(frame + 1, totalFrames);

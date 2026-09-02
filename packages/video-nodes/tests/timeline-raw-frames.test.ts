@@ -16,6 +16,7 @@ interface FakeChild extends EventEmitter {
 }
 
 let spawned: FakeChild[] = [];
+let spawnArgs: string[][] = [];
 
 function makeChild(): FakeChild {
   const child = new EventEmitter() as FakeChild;
@@ -38,9 +39,10 @@ vi.mock("node:child_process", async (importOriginal) => {
   const original = (await importOriginal()) as Record<string, unknown>;
   return {
     ...original,
-    spawn: () => {
+    spawn: (_cmd: string, args: string[]) => {
       const child = makeChild();
       spawned.push(child);
+      spawnArgs.push([...args]);
       return child;
     }
   };
@@ -57,6 +59,7 @@ function frame(value: number): Buffer {
 
 beforeEach(() => {
   spawned = [];
+  spawnArgs = [];
 });
 
 describe("fitWithin", () => {
@@ -153,6 +156,33 @@ describe("openFrameEncoder", () => {
     expect(Buffer.concat(child.stdin.written)).toEqual(
       Buffer.concat([frame(1), frame(2)])
     );
+  });
+
+  it("defaults to H.264 at yuv420p, which drops the alpha channel", () => {
+    openFrameEncoder({ outPath: "/tmp/out.mp4", width: 2, height: 2, fps: 30 });
+    expect(spawnArgs[0]).toEqual(
+      expect.arrayContaining(["-c:v", "libx264", "-pix_fmt", "yuv420p"])
+    );
+  });
+
+  it("passes the alpha-carrying encoder arguments through verbatim", () => {
+    openFrameEncoder({
+      outPath: "/tmp/out.webm",
+      width: 2,
+      height: 2,
+      fps: 30,
+      encoderArgs: ["-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p"]
+    });
+    const args = spawnArgs[0];
+    expect(args).toEqual(
+      expect.arrayContaining(["-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p"])
+    );
+    // The RGBA the compositor writes is still what goes in; only the output
+    // pixel format changed.
+    expect(args.slice(0, args.indexOf("-i"))).toEqual(
+      expect.arrayContaining(["-f", "rawvideo", "-pix_fmt", "rgba"])
+    );
+    expect(args).not.toContain("libx264");
   });
 
   it("fails with ffmpeg's message when the encode exits non-zero", async () => {

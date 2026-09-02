@@ -57,6 +57,8 @@ import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
 import { useTimelineCostEstimate } from "../../hooks/timeline/useTimelineCostEstimate";
 import { ProjectSettingsDialog } from "./ProjectSettingsDialog";
+import { ExportVideoDialog } from "./ExportVideoDialog";
+import type { BrowserExportFormat } from "./render/TimelineRenderer";
 import SaveToFolderMenu from "../assets/SaveToFolderMenu";
 import {
   useCreateTimeline,
@@ -531,9 +533,19 @@ const TimelineEditorBody: React.FC<
     progress: exportProgress,
     error: exportError
   } = useTimelineExport();
-  const handleExportVideo = useCallback(() => {
-    void exportVideo(sequence?.name);
-  }, [exportVideo, sequence?.name]);
+  // The export dialog picks a container first: MP4, WebM, or a zip of PNGs.
+  const [exportChoiceOpen, setExportChoiceOpen] = useState(false);
+  const handleExportVideo = useCallback(() => setExportChoiceOpen(true), []);
+  const handleCloseExportChoice = useCallback(
+    () => setExportChoiceOpen(false),
+    []
+  );
+  const handleStartExport = useCallback(
+    (format: BrowserExportFormat) => {
+      void exportVideo(sequence?.name, format);
+    },
+    [exportVideo, sequence?.name]
+  );
 
   // "Save as Asset" — anchor the folder chooser to the TopBar button, then
   // render the timeline into a new asset in the chosen folder.
@@ -836,6 +848,13 @@ const TimelineEditorBody: React.FC<
       <ProjectSettingsDialog
         open={settingsOpen}
         onClose={handleCloseSettings}
+      />
+
+      {/* ── Export format choice ──────────────────────────────────── */}
+      <ExportVideoDialog
+        open={exportChoiceOpen}
+        onClose={handleCloseExportChoice}
+        onExport={handleStartExport}
       />
 
       {/* ── Export progress / error dialog ────────────────────────── */}

@@ -891,6 +891,34 @@ interface SourceTexture {
   version: string;
 }
 
+/** Per-frame choices for {@link HeadlessFrameCompositor.renderFrame}. */
+export interface HeadlessRenderFrameOptions {
+  /**
+   * Seed the frame fully transparent instead of opaque black, and return
+   * straight (un-premultiplied) alpha. What an alpha export writes to a
+   * container that carries it; off by default, so every existing caller keeps
+   * the opaque ground it already had.
+   */
+  alpha?: boolean;
+}
+
+/**
+ * Divide the premultiplied colour back out of every pixel, in place.
+ *
+ * A fully transparent pixel keeps its zero colour: there is no colour to
+ * recover from `0 × 0`, and inventing one would print noise into the parts of
+ * an alpha export nothing drew.
+ */
+export function unpremultiplyInPlace(rgba: Uint8Array): void {
+  for (let i = 0; i < rgba.length; i += 4) {
+    const a = rgba[i + 3];
+    if (a === 0 || a === 255) continue;
+    rgba[i] = Math.min(255, Math.round((rgba[i] * 255) / a));
+    rgba[i + 1] = Math.min(255, Math.round((rgba[i + 1] * 255) / a));
+    rgba[i + 2] = Math.min(255, Math.round((rgba[i + 2] * 255) / a));
+  }
+}
+
 /**
  * Composite one timeline frame without a canvas: CPU pixels in, straight-alpha
  * RGBA8 out.
@@ -939,14 +967,25 @@ export class HeadlessFrameCompositor {
   }
 
   /**
-   * Composite `layers` over opaque black and return the frame as straight-alpha
-   * RGBA8 at the compositor's resolution.
+   * Composite `layers` and return the frame as straight-alpha RGBA8 at the
+   * compositor's resolution.
+   *
+   * The ground is opaque black unless `options.alpha` is set, which seeds the
+   * frame fully transparent instead — what an alpha export needs, and the same
+   * seed `drawTimelineFrame` takes on the Canvas 2D side.
    */
   async renderFrame(
     layers: FrameLayer[],
-    precomposites: readonly FramePrecomposite[] = []
+    precomposites: readonly FramePrecomposite[] = [],
+    options: HeadlessRenderFrameOptions = {}
   ): Promise<Uint8Array> {
-    const { texture } = this.compositor.composite(layers, precomposites);
+    const alpha = options.alpha === true;
+    const { texture } = this.compositor.composite(layers, precomposites, {
+      r: 0,
+      g: 0,
+      b: 0,
+      a: alpha ? 0 : 1
+    });
 
     const encoder = this.device.createCommandEncoder({
       label: "timeline-headless-readback"
@@ -964,9 +1003,11 @@ export class HeadlessFrameCompositor {
 
     await this.readback.mapAsync(GPUMapMode.READ);
     const mapped = new Uint8Array(this.readback.getMappedRange());
-    // The accumulation is premultiplied, but the opaque-black seed leaves every
-    // pixel at alpha 1, where premultiplied and straight alpha coincide — so
-    // dropping the 256-byte row padding is all that is left to do.
+    // The accumulation is premultiplied. Over an opaque-black seed every pixel
+    // ends at alpha 1, where premultiplied and straight alpha coincide, so
+    // dropping the 256-byte row padding is all that is left to do. Over a
+    // transparent seed they do not coincide: the colour has to be divided back
+    // out, or every partly-transparent pixel exports darkened.
     const rgba = new Uint8Array(this.width * this.height * 4);
     const rowBytes = this.width * 4;
     for (let row = 0; row < this.height; row++) {
@@ -976,6 +1017,7 @@ export class HeadlessFrameCompositor {
       );
     }
     this.readback.unmap();
+    if (alpha) unpremultiplyInPlace(rgba);
     return rgba;
   }
 

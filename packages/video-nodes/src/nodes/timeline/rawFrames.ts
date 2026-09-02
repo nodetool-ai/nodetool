@@ -17,7 +17,11 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import type { Readable } from "node:stream";
 
-import { MissingBinaryError, execFfprobe } from "../ffmpeg-helpers.js";
+import {
+  MissingBinaryError,
+  execFfmpeg,
+  execFfprobe
+} from "../ffmpeg-helpers.js";
 
 /** Pixel dimensions of a decoded source. */
 interface RawSize {
@@ -327,8 +331,8 @@ class FrameReader {
   }
 }
 
-/** A running encoder that turns written RGBA frames into a video file. */
-interface FrameEncoder {
+/** A running encoder that turns written RGBA frames into an output file. */
+export interface FrameEncoder {
   write(rgba: Uint8Array): Promise<void>;
   /** Close the input and wait for the file to be finalized. */
   finish(): Promise<void>;
@@ -336,17 +340,56 @@ interface FrameEncoder {
 }
 
 /**
- * Start encoding RGBA frames written at `fps` into `outPath` (H.264/MP4). The
- * alpha channel is dropped by the `yuv420p` conversion — every frame arrives
- * composited over opaque black, so there is nothing to keep.
+ * Report whether this ffmpeg build ships `encoder`.
+ *
+ * ProRes 4444 and VP9 are both optional at build time — a distro ffmpeg may
+ * carry neither — and a render that discovers this after compositing every
+ * frame has burned the whole render. Probed once before the frame loop starts.
+ *
+ * A build that cannot be asked (no ffmpeg, an unparsable listing) answers
+ * `false`, so the caller refuses with a message naming the encoder rather than
+ * failing on ffmpeg's own output an hour later.
+ */
+export async function ffmpegHasEncoder(encoder: string): Promise<boolean> {
+  try {
+    const { stdout } = await execFfmpeg(["-hide_banner", "-encoders"], {
+      maxBuffer: 8 * 1024 * 1024
+    });
+    // The listing is `<flags> <name> <description>`; match the name column so
+    // an encoder merely mentioned in a description does not count.
+    return stdout
+      .split("\n")
+      .some((line) => line.trim().split(/\s+/)[1] === encoder);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Start encoding RGBA frames written at `fps` into `outPath`.
+ *
+ * `encoderArgs` decides the codec, profile and pixel format — the alpha-capable
+ * combinations are the table in `outputFormats.ts`. Frames arrive as
+ * straight-alpha RGBA either way; a `yuv*` pixel format drops the channel, a
+ * `yuva*` one keeps it.
  */
 export function openFrameEncoder(opts: {
   outPath: string;
   width: number;
   height: number;
   fps: number;
+  /** Output codec arguments. Defaults to H.264 at `yuv420p`. */
+  encoderArgs?: readonly string[];
 }): FrameEncoder {
   const { outPath, width, height, fps } = opts;
+  const encoderArgs = opts.encoderArgs ?? [
+    "-c:v",
+    "libx264",
+    "-preset",
+    "veryfast",
+    "-pix_fmt",
+    "yuv420p"
+  ];
   const child = spawnFfmpeg([
     "-y",
     "-v",
@@ -361,12 +404,7 @@ export function openFrameEncoder(opts: {
     String(fps),
     "-i",
     "pipe:0",
-    "-c:v",
-    "libx264",
-    "-preset",
-    "veryfast",
-    "-pix_fmt",
-    "yuv420p",
+    ...encoderArgs,
     outPath
   ]);
   const stderr = captureStderr(child.stderr);

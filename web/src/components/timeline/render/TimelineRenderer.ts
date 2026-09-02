@@ -1,5 +1,5 @@
 /**
- * renderTimeline — offline, frame-by-frame export of a timeline to an MP4.
+ * renderTimeline — offline, frame-by-frame export of a timeline.
  *
  * The renderer drives the *same* compositor (WebGPU, or the Canvas2D fallback
  * via {@link createCompositor}) and the *same* scene description as the live
@@ -11,8 +11,13 @@
  *   2. seeks each video element to the precise source frame (waiting for
  *      `seeked`) so decoding is deterministic, not best-effort,
  *   3. composites at full sequence resolution into an offscreen canvas,
- *   4. encodes each frame with WebCodecs (via mediabunny) and muxes to MP4,
+ *   4. encodes each frame with WebCodecs (via mediabunny) and muxes to the
+ *      container `format` names,
  *   5. mixes the audio tracks down offline (see {@link renderTimelineAudio}).
+ *
+ * `png_sequence` leaves the muxer out: each composited frame is read off the
+ * canvas as a PNG and stored in one zip with a `manifest.json`, which is what
+ * the server's own `png_sequence` render writes.
  */
 
 import type {
@@ -52,6 +57,11 @@ import { renderTimelineAudio } from "./renderAudio";
 // are only loaded in the browser when an export actually runs — never at
 // module-eval time, which keeps the editor importable under jsdom.
 
+/** Containers the browser exporter can write. */
+export const BROWSER_EXPORT_FORMATS = ["mp4", "webm", "png_sequence"] as const;
+
+export type BrowserExportFormat = (typeof BROWSER_EXPORT_FORMATS)[number];
+
 export type RenderPhase = "preparing" | "audio" | "video" | "finalizing";
 
 export interface RenderProgress {
@@ -74,7 +84,12 @@ interface RenderTimelineOptions {
   durationMs: number;
   /** Resolve an asset id to a playable URL (or undefined when unavailable). */
   resolveUrl: (assetId: string) => Promise<string | undefined>;
-  /** Video codec. Default `"avc"` (H.264). */
+  /**
+   * Container to write. Default `"mp4"`. `"webm"` muxes VP9 + Opus;
+   * `"png_sequence"` skips the muxer and zips one PNG per frame.
+   */
+  format?: BrowserExportFormat;
+  /** Video codec. Default: the container's own (`"avc"` for mp4, `"vp9"` for webm). */
   videoCodec?: VideoCodec;
   /** Audio codec. Default `"aac"`. */
   audioCodec?: AudioCodec;
@@ -89,6 +104,73 @@ interface RenderTimelineOptions {
 export interface RenderResult {
   bytes: Uint8Array;
   mimeType: string;
+  /** File extension the bytes should be saved under, without the dot. */
+  extension: string;
+}
+
+/** What a `png_sequence` zip carries next to its frames. */
+interface PngSequenceManifest {
+  format: "png_sequence";
+  fps: number;
+  width: number;
+  height: number;
+  count: number;
+  pattern: string;
+}
+
+/** Read the canvas as PNG bytes — the frame, with whatever it holds. */
+async function canvasPng(canvas: HTMLCanvasElement): Promise<Uint8Array> {
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/png")
+  );
+  if (!blob) throw new Error("The canvas could not be read as a PNG");
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
+/**
+ * Pack the frames into one stored (uncompressed) zip with a manifest.
+ *
+ * Stored, because a PNG is already deflate-compressed and a second pass costs
+ * seconds per frame for nothing. fflate's streaming writer is used so the PNG
+ * buffers can be released as they go in rather than being held alongside a
+ * second copy inside the archive.
+ */
+async function zipPngSequence(
+  frames: Uint8Array[],
+  manifest: PngSequenceManifest
+): Promise<Uint8Array> {
+  const { Zip, ZipPassThrough } = await import("fflate");
+  const chunks: Uint8Array[] = [];
+  let failure: Error | null = null;
+  const zip = new Zip((error, data) => {
+    if (error) failure = error;
+    else if (data.length > 0) chunks.push(data);
+  });
+
+  const push = (name: string, bytes: Uint8Array): void => {
+    const entry = new ZipPassThrough(name);
+    zip.add(entry);
+    entry.push(bytes, true);
+  };
+
+  frames.forEach((bytes, i) => {
+    push(`frame_${String(i + 1).padStart(6, "0")}.png`, bytes);
+  });
+  push(
+    "manifest.json",
+    new TextEncoder().encode(`${JSON.stringify(manifest, null, 2)}\n`)
+  );
+  zip.end();
+  if (failure) throw failure;
+
+  const total = chunks.reduce((n, c) => n + c.length, 0);
+  const out = new Uint8Array(total);
+  let at = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, at);
+    at += chunk.length;
+  }
+  return out;
 }
 
 function throwIfAborted(signal: AbortSignal | undefined): void {
@@ -121,15 +203,18 @@ function makeImageLoader(): (url: string) => Promise<HTMLImageElement | null> {
 }
 
 /**
- * Render the timeline and return the encoded MP4 bytes. Throws an
- * `AbortError` if `signal` is aborted, or an `Error` if no compositor backend
- * (WebGPU or the Canvas2D fallback) can be initialised.
+ * Render the timeline and return the encoded bytes, the MIME type, and the
+ * extension they should be saved under. Throws an `AbortError` if `signal` is
+ * aborted, or an `Error` if no compositor backend (WebGPU or the Canvas2D
+ * fallback) can be initialised.
  */
 export async function renderTimeline(
   opts: RenderTimelineOptions
 ): Promise<RenderResult> {
   const { tracks, clips, fps, durationMs, resolveUrl, signal, onProgress } =
     opts;
+
+  const format: BrowserExportFormat = opts.format ?? "mp4";
 
   if (fps <= 0) throw new Error("fps must be positive");
   if (durationMs <= 0) throw new Error("durationMs must be positive");
@@ -162,6 +247,7 @@ export async function renderTimeline(
       BufferTarget,
       CanvasSource,
       Mp4OutputFormat,
+      WebMOutputFormat,
       Output,
       QUALITY_HIGH,
       QUALITY_MEDIUM,
@@ -190,43 +276,58 @@ export async function renderTimeline(
     }
     compositor.resize(width, height);
 
-    const output = new Output({
-      format: new Mp4OutputFormat(),
-      target: new BufferTarget()
-    });
+    const isSequence = format === "png_sequence";
+    // A PNG sequence has no muxer and no soundtrack: the frames are stills.
+    const muxer = isSequence
+      ? null
+      : new Output({
+          format:
+            format === "webm" ? new WebMOutputFormat() : new Mp4OutputFormat(),
+          target: new BufferTarget()
+        });
 
-    const videoSource = new CanvasSource(canvas, {
-      codec: opts.videoCodec ?? "avc",
-      bitrate: opts.videoBitrate ?? QUALITY_HIGH
-    });
-    output.addVideoTrack(videoSource, { frameRate: fps });
+    const videoSource = muxer
+      ? new CanvasSource(canvas, {
+          codec: opts.videoCodec ?? (format === "webm" ? "vp9" : "avc"),
+          bitrate: opts.videoBitrate ?? QUALITY_HIGH
+        })
+      : null;
+    if (muxer && videoSource) {
+      muxer.addVideoTrack(videoSource, { frameRate: fps });
+    }
 
     // Mix the audio down before encoding video so the soundtrack is ready to
     // hand to the muxer in one shot.
     onProgress?.({ phase: "audio", frame: 0, totalFrames, ratio: 0 });
-    const audioBuffer = await renderTimelineAudio({
-      clips,
-      tracks,
-      durationMs,
-      resolveUrl: resolveCached
-    });
+    const audioBuffer = muxer
+      ? await renderTimelineAudio({
+          clips,
+          tracks,
+          durationMs,
+          resolveUrl: resolveCached
+        })
+      : null;
     throwIfAborted(signal);
 
     let audioSource: AudioBufferSource | null = null;
-    if (audioBuffer) {
+    if (muxer && audioBuffer) {
       audioSource = new AudioBufferSourceCtor({
-        codec: opts.audioCodec ?? "aac",
+        // AAC is not a legal WebM track; Opus is what the container carries.
+        codec: opts.audioCodec ?? (format === "webm" ? "opus" : "aac"),
         bitrate: opts.audioBitrate ?? QUALITY_MEDIUM
       });
-      output.addAudioTrack(audioSource);
+      muxer.addAudioTrack(audioSource);
     }
 
-    await output.start();
+    await muxer?.start();
 
     if (audioSource && audioBuffer) {
       await audioSource.add(audioBuffer);
       audioSource.close();
     }
+
+    /** PNG bytes per frame, filled only on the `png_sequence` path. */
+    const pngFrames: Uint8Array[] = [];
 
     // Video/overlay clips release their pooled `<video>` element as soon as
     // their fixed time range has fully passed. Each clip is a single
@@ -371,7 +472,11 @@ export async function renderTimeline(
       compositor.render();
       await compositor.flush();
 
-      await videoSource.add(frame * frameDurationSec, frameDurationSec);
+      if (videoSource) {
+        await videoSource.add(frame * frameDurationSec, frameDurationSec);
+      } else {
+        pngFrames.push(await canvasPng(canvas));
+      }
 
       onProgress?.({
         phase: "video",
@@ -381,7 +486,7 @@ export async function renderTimeline(
       });
     }
 
-    videoSource.close();
+    videoSource?.close();
 
     onProgress?.({
       phase: "finalizing",
@@ -389,13 +494,30 @@ export async function renderTimeline(
       totalFrames,
       ratio: 1
     });
-    await output.finalize();
 
-    const buffer = output.target.buffer;
+    if (!muxer) {
+      const bytes = await zipPngSequence(pngFrames, {
+        format: "png_sequence",
+        fps,
+        width,
+        height,
+        count: pngFrames.length,
+        pattern: "frame_%06d.png"
+      });
+      return { bytes, mimeType: "application/zip", extension: "zip" };
+    }
+
+    await muxer.finalize();
+
+    const buffer = muxer.target.buffer;
     if (!buffer) {
       throw new Error("Encoding produced no output");
     }
-    return { bytes: new Uint8Array(buffer), mimeType: "video/mp4" };
+    return {
+      bytes: new Uint8Array(buffer),
+      mimeType: format === "webm" ? "video/webm" : "video/mp4",
+      extension: format
+    };
   } finally {
     compositor.dispose();
     videoPool.dispose();
