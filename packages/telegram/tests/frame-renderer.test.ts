@@ -208,6 +208,59 @@ describe("foldFrame — terminal frames", () => {
     expect(ops[0]).toMatchObject({ text: "the whole answer", create: true });
   });
 
+  it("ignores the compaction echo and answers with the real reply", () => {
+    // The server sends the compaction summary as a `message` frame before the
+    // turn streams a word: `role: "user"`, `execution_event_type:
+    // "compaction"`. Folded as final it handed the user the summary and
+    // swallowed everything after it.
+    const compaction = {
+      type: "message",
+      role: "user",
+      execution_event_type: "compaction",
+      content: "Summary of the earlier conversation.",
+      thread_id: "t1"
+    } as RenderFrame;
+    const { ops, state } = run([
+      [compaction, 0],
+      [chunk("the real "), 100],
+      [chunk("reply"), 2000],
+      [finalMessage("the real reply"), 2100]
+    ]);
+    expect(kinds(ops)).toEqual(["typing", "send:stream", "edit:stream", "finalize:stream"]);
+    const texts = ops.filter((op) => "text" in op).map((op) => (op as { text: string }).text);
+    expect(texts.every((text) => !text.includes("Summary of the earlier"))).toBe(true);
+    expect(ops[ops.length - 1]).toMatchObject({ text: "the real reply" });
+    expect(state.ended).toBe(true);
+  });
+
+  it("does not end on the mid-turn tool-call echo", () => {
+    // The chat turn echoes each assistant message carrying `tool_calls`, and
+    // sends a synthetic card for a subtask's calls. Both are `role:
+    // "assistant"` `message` frames with no answer in them.
+    const toolCallEcho = {
+      type: "message",
+      role: "assistant",
+      content: null,
+      tool_calls: [{ id: "c1", name: "web_search", args: {}, result: null }]
+    } as RenderFrame;
+    const toolResult = {
+      type: "message",
+      role: "tool",
+      tool_call_id: "c1",
+      name: "web_search",
+      content: "three results"
+    } as RenderFrame;
+    const { ops, state } = run([
+      [toolCallEcho, 0],
+      [toolResult, 10],
+      [chunk("found it"), 100],
+      [finalMessage("found it"), 200]
+    ]);
+    expect(state.ended).toBe(true);
+    expect(kinds(ops)).toEqual(["typing", "send:stream", "finalize:stream"]);
+    expect(ops[ops.length - 1]).toMatchObject({ text: "found it" });
+  });
+
   it("splits an oversized final message across messages", () => {
     const { ops } = run([[finalMessage("word ".repeat(2000)), 0]]);
     expect(ops.length).toBeGreaterThan(2);

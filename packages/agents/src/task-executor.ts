@@ -41,9 +41,10 @@ import {
 } from "./utils/dag-scheduler.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Step, Task } from "./types.js";
-import { DEFAULT_AGENT_POLICY } from "./agent-policy.js";
-
-const DEFAULT_MAX_STEP_ITERATIONS = 10;
+import {
+  DEFAULT_MAX_CONCURRENT_AGENTS,
+  DEFAULT_MAX_STEP_ITERATIONS
+} from "./constants.js";
 
 /** One step, as the scheduler sees it. */
 interface StepNode extends DagNode {
@@ -126,7 +127,7 @@ export class TaskExecutor {
       opts.maxStepIterations ?? DEFAULT_MAX_STEP_ITERATIONS;
     this.maxTokens = opts.maxTokens;
     this.maxConcurrentAgents =
-      opts.maxConcurrentAgents ?? DEFAULT_AGENT_POLICY.maxConcurrentAgents;
+      opts.maxConcurrentAgents ?? DEFAULT_MAX_CONCURRENT_AGENTS;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
     this.budget = opts.budget ?? budgetFromContext(opts.context);
     this.signal = opts.signal;
@@ -364,9 +365,8 @@ export class TaskExecutor {
 
   /**
    * Tools a step may call. A plan's per-step `tools` allow-list is a privilege
-   * boundary, not a hint: the same plan must grant the same privileges whether
-   * it runs in task mode or script mode. An empty or fully-unresolvable list
-   * yields no tools rather than silently falling back to the full collection.
+   * boundary, not a hint: an empty or fully-unresolvable list yields no tools
+   * rather than silently falling back to the full collection.
    */
   private toolsForStep(step: Step): Tool[] {
     if (!Array.isArray(step.tools)) return [...this.tools];

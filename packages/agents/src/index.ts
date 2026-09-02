@@ -322,7 +322,12 @@ export { CodePlanner } from "./code-planner.js";
 export type { CodePlannerOptions } from "./code-planner.js";
 
 // Constants
-export { MAX_TOOL_RESULT_CHARS, truncateToolResult } from "./constants.js";
+export {
+  DEFAULT_MAX_CONCURRENT_AGENTS,
+  DEFAULT_MAX_STEP_ITERATIONS,
+  MAX_TOOL_RESULT_CHARS,
+  truncateToolResult
+} from "./constants.js";
 
 // Utilities
 export { extractJSON } from "./utils/json-parser.js";
@@ -461,10 +466,6 @@ export { SCRIPT_VOICE_TOOL_NAMES } from "./tools/script-voice-tools.js";
 export { STORYBOARD_RENDER_TOOL_NAMES } from "./tools/storyboard-render-tools.js";
 export { SKETCH_VERSION_TOOL_NAMES } from "./tools/sketch-version-tools.js";
 export { TIMELINE_VERSION_TOOL_NAMES } from "./tools/timeline-version-tools.js";
-
-// Executor defaults (the bounds the two DAG executors fall back to)
-export { DEFAULT_AGENT_POLICY, resolveAgentPolicy } from "./agent-policy.js";
-export type { AgentPolicy, AgentPolicyOptions } from "./agent-policy.js";
 
 // Planning & orchestration
 export { TaskPlanner } from "./task-planner.js";

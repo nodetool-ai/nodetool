@@ -20,7 +20,8 @@
  */
 
 import readline from "node:readline";
-import type { BaseProvider, Message } from "@nodetool-ai/runtime";
+import type { BaseProvider, Message, RunBudget } from "@nodetool-ai/runtime";
+import { RUN_BUDGET_CONTEXT_KEY } from "@nodetool-ai/runtime";
 import { processChat } from "@nodetool-ai/chat";
 import {
   applySystemPrompt,
@@ -28,6 +29,7 @@ import {
   createCliCodeActTurn
 } from "./chat-codeact.js";
 import { createChatContext } from "./chat-context.js";
+import { budgetStopReason, createCliRunBudget } from "./run-budget.js";
 import { isString } from "./predicates.js";
 import {
   getBuiltinTools,
@@ -63,6 +65,10 @@ interface StdinModeOptions {
   enableReadOnlySearch?: boolean;
   /** `--permission-mode`. Unset runs `auto`: stdin is the input, not a user. */
   permissionMode?: PermissionMode;
+  /** `--cost-cap <usd>`; `0` lifts the cap. Bounds each turn, as chat's does. */
+  costCap?: string;
+  /** `--timeout <s>`; `0` leaves the turn no time at all. */
+  timeout?: string;
 }
 
 interface SlashCommand {
@@ -239,7 +245,10 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
   // Build the unified-loop toolset for direct mode. `run_subtask` lets the
   // agent decompose work recursively without any flag — the same primitive
   // the websocket server exposes.
-  const buildDirectTools = (prov: BaseProvider | null): Tool[] => {
+  const buildDirectTools = (
+    prov: BaseProvider | null,
+    budget: RunBudget
+  ): Tool[] => {
     if (!prov || !gate) return [];
     // The builtin belt. This used to be an `extras` parameter that only the
     // (now removed) `--sandbox` flag ever filled, so a normal CLI run reached
@@ -260,7 +269,8 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
         }
       },
       gate,
-      readOnlySearch: opts.enableReadOnlySearch !== false
+      readOnlySearch: opts.enableReadOnlySearch !== false,
+      budget
     });
   };
 
@@ -272,7 +282,8 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
   const runCodeActTurn = async (
     userInput: string,
     prov: BaseProvider,
-    tools: Tool[]
+    tools: Tool[],
+    budget: RunBudget
   ): Promise<void> => {
     const context = await createChatContext({
       workspaceDir: opts.workspaceDir ?? null
@@ -281,6 +292,10 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
     // through `run_node` — read the gate here instead of building an ungated
     // run of their own (`gateFromContext`).
     if (gate) context.set(PERMISSION_GATE_CONTEXT_KEY, gate);
+    // The same channel the gate takes: a loop this file never constructs reads
+    // the turn's bounds off the context rather than opening its own
+    // (invariant I-2).
+    context.set(RUN_BUDGET_CONTEXT_KEY, budget);
     const turn = createCliCodeActTurn({
       tools,
       context,
@@ -296,6 +311,7 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
       provider: prov,
       context,
       tools: turn.tools,
+      turnBudget: budget,
       callbacks: {
         onChunk: (text) => {
           process.stdout.write(text);
@@ -314,6 +330,10 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
         }
       }
     });
+    // A ceiling ended the turn, not the model finishing its answer. Stdout
+    // carries the reply, so the reason goes to stderr beside the tool trace.
+    const stopReason = budgetStopReason(budget);
+    if (stopReason) process.stderr.write(`[stopped] ${stopReason}\n`);
   };
 
   let threadId = crypto.randomUUID();
@@ -400,10 +420,18 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
       }
     } else {
       // --- Regular chat via direct provider ---
+      // One budget per turn, as a server chat turn does: a piped session runs
+      // for as long as its input lasts, and one deadline over all of it would
+      // stop a later line for time an earlier one spent.
+      const budget = await createCliRunBudget({
+        ...(opts.costCap !== undefined && { costCap: opts.costCap }),
+        ...(opts.timeout !== undefined && { timeout: opts.timeout })
+      });
       await runCodeActTurn(
         trimmed,
         directProvider!,
-        buildDirectTools(directProvider)
+        buildDirectTools(directProvider, budget),
+        budget
       );
     }
 

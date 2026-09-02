@@ -74,7 +74,11 @@ import {
   isObjectLike,
   isString
 } from "../type-predicates.js";
-import type { RunBudget, TurnBudget } from "../turn-budget.js";
+import type {
+  RunBudget,
+  TurnBudget,
+  TurnReservationHandle
+} from "../turn-budget.js";
 
 const log = createLogger("nodetool.runtime.providers.claude-agent");
 
@@ -325,9 +329,17 @@ export class ClaudeAgentProvider extends BaseProvider {
       yield budgetStopItem(runBudget);
       return;
     }
-    if (turnBudget && !this._admitTurn(turnBudget, args.model, args.messages)) {
-      yield budgetStopItem(runBudget);
-      return;
+    // Every turn this session makes holds its own reservation, and the whole
+    // set is settled in the `finally` below — the SDK reports one number for
+    // the session, not one per turn.
+    const reservations: TurnReservationHandle[] = [];
+    if (turnBudget) {
+      const first = this._admitTurn(turnBudget, args.model, args.messages);
+      if (first === null) {
+        yield budgetStopItem(runBudget);
+        return;
+      }
+      reservations.push(first);
     }
     // Drop every NodeTool tool the SDK ships a built-in for. Those built-ins
     // are live under bypassPermissions, so keeping the MCP copy would give one
@@ -442,13 +454,14 @@ export class ClaudeAgentProvider extends BaseProvider {
         const isToolCallingTurn =
           item.message.role === "assistant" &&
           (item.message.toolCalls?.length ?? 0) > 0;
-        if (
-          isToolCallingTurn &&
-          !this._admitTurn(turnBudget, args.model, transcript)
-        ) {
+        if (!isToolCallingTurn) continue;
+        const next = this._admitTurn(turnBudget, args.model, transcript);
+        if (next === null) {
           budgetStop = budgetStopItem(runBudget);
           abortController.abort();
+          continue;
         }
+        reservations.push(next);
       }
     } finally {
       // The SDK reports usage once, on the terminal `result` message, so a
@@ -464,7 +477,14 @@ export class ClaudeAgentProvider extends BaseProvider {
       // as "unknown", and the reserved worst case is charged instead.
       if (turnBudget) {
         const observed = this.getTotalCost() - costBefore;
-        turnBudget.commit(observed > 0 ? observed : null);
+        // One number covers the whole session, so it is booked against the
+        // first reservation and the rest settle at zero; with no number at
+        // all, each reservation is charged its own worst case.
+        let remaining = observed > 0 ? observed : null;
+        for (const reservation of reservations) {
+          turnBudget.commit(reservation, remaining);
+          if (remaining !== null) remaining = 0;
+        }
       }
       if (args.signal)
         args.signal.removeEventListener("abort", onExternalAbort);

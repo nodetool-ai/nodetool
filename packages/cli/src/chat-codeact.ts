@@ -21,7 +21,8 @@ import type {
   BaseProvider,
   JsonSchema,
   Message,
-  ProcessingContext
+  ProcessingContext,
+  RunBudget
 } from "@nodetool-ai/runtime";
 import { DIRECT_TOOL_NAMES } from "@nodetool-ai/runtime";
 import {
@@ -148,6 +149,12 @@ export interface CliAgentBeltOptions {
   readOnlySearch?: boolean;
   /** `create_plan` and `execute_plan`. Off unless set true. */
   planning?: boolean;
+  /**
+   * The run's budget. Every loop this belt spawns reserves against it rather
+   * than opening one of its own (invariant I-2). Omitted, a delegated loop
+   * falls back to the budget on the calling context.
+   */
+  budget?: RunBudget;
 }
 
 /**
@@ -172,14 +179,16 @@ export function buildCliAgentBelt(options: CliAgentBeltOptions): Tool[] {
     model,
     parentTools: () => gatedBase,
     forwardMessage,
-    background: new BackgroundSubtaskRegistry()
+    background: new BackgroundSubtaskRegistry(),
+    ...(options.budget !== undefined && { budget: options.budget })
   };
   const delegationRun = (context: ProcessingContext) =>
     createCapabilityRun({
       context,
       gate,
       availableSecrets: contextSecretAvailability(context),
-      subAgent
+      subAgent,
+      ...(options.budget !== undefined && { budget: options.budget })
     });
 
   // The delegation capabilities stay ungated, as they are in chat: spawning a

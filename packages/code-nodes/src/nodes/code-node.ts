@@ -252,9 +252,29 @@ function assembleToolbelt(mod: AgentsModule): AgentTool[] {
 }
 
 /**
+ * The permission gate this run answers to: the one the host put on the
+ * context, or the headless gate when no host set one (invariant I-1).
+ *
+ * A kernel workflow run sets no key, so a shipped example with a Code node
+ * keeps running under `auto`. A body reached through a chat's `run_node`
+ * inherits that turn's live mode, so approving `run_node` is approval to run
+ * the node, not to run whatever its body calls.
+ */
+function codeNodeGate(
+  mod: AgentsModule,
+  context: ProcessingContext
+): ReturnType<AgentsModule["gateFromContext"]> {
+  return mod.gateFromContext(context, "Code node");
+}
+
+/**
  * Globals wiring the `tools`/`nodetool` preludes to a real tool bridge, or
  * the inert stub when no belt is constructible. Tool execution needs a
  * ProcessingContext; without one the stub keeps the prelude harmless.
+ *
+ * The belt is wrapped in the run's gate before the bridge sees it: the bridge
+ * calls `process()` directly, so an unwrapped belt would let a body call a
+ * write capability the host's mode blocks.
  */
 async function toolBridgeGlobals(
   context: ProcessingContext | undefined
@@ -262,7 +282,10 @@ async function toolBridgeGlobals(
   if (!context) return NO_TOOLS_GLOBALS;
   const mod = await loadAgentsModule();
   if (!mod) return NO_TOOLS_GLOBALS;
-  const tools = toolOverride ?? assembleToolbelt(mod);
+  const tools = mod.gateTools(
+    toolOverride ?? assembleToolbelt(mod),
+    codeNodeGate(mod, context)
+  );
   return mod.buildToolBridge({ tools, context }).globals;
 }
 
@@ -810,13 +833,13 @@ export class CodeNode extends BaseNode {
    * NodeTool's own guest modules (`@nodetool-ai/sandbox-nodetool/*`) for the
    * namespaces this body imports, or nothing when it imports none.
    *
-   * They are not packs, so they never reach the catalog: the host
-   * decides what a run can reach, and for this node the host already made that
-   * decision when it gave the body the imported / `nodetool.*` belt. The run
-   * is therefore ungated, exactly as the belt is — a second, stricter door on
-   * the import path would mean one call is gated and the same call through
-   * the belt bridge is not. It is the wiring `mountJsScriptSandbox` builds for a JS
-   * script, over the Code node's own module resolution.
+   * They are not packs, so they never reach the catalog: the host decides what
+   * a run can reach, and it says so with the gate it put on the context. The
+   * run carries that gate, exactly as the belt does — the import path and the
+   * belt bridge are two doors onto the same capabilities, so one gated and the
+   * other not would be no gate at all. It is the wiring
+   * `mountJsScriptSandbox` builds for a JS script, over the Code node's own
+   * module resolution.
    */
   private async resolveCapabilities(
     code: string,
@@ -827,7 +850,11 @@ export class CodeNode extends BaseNode {
     if (!mod) return undefined;
     const mounted = await mod.mountCapabilityModules(
       code,
-      mod.ungatedCapabilityRun(context)
+      mod.createCapabilityRun({
+        context,
+        gate: codeNodeGate(mod, context),
+        availableSecrets: mod.contextSecretAvailability(context)
+      })
     );
     if (!mounted.ok) {
       throw new Error(mounted.error.replace("The action imports", "The code imports"));

@@ -100,7 +100,7 @@ loop:
 2. Stream the LLM response
 3. Run the action's JavaScript in the QuickJS sandbox, where the toolbelt is imported from `@nodetool-ai/sandbox-nodetool/<namespace>`
 4. Feed the observation (return value, logs, error) back as the tool result
-5. Repeat until the program calls `finish(result)`, the run's budget stops it, or the step's action rounds run out (`maxStepIterations`, defaulting to `DEFAULT_MAX_STEP_ITERATIONS` in `task-executor.ts`)
+5. Repeat until the program calls `finish(result)`, the run's budget stops it, or the step's action rounds run out (`maxStepIterations`, defaulting to `DEFAULT_MAX_STEP_ITERATIONS` in `packages/agents/src/constants.ts`)
 6. Validate the result against the step's output schema — host-side, in `finish`
 
 Each task's result lands in `context.memory` under `task:<id>` and comes back
@@ -111,7 +111,9 @@ carry.
 A run's bounds — a USD cap, a wall clock, a limit on open provider
 conversations, and a cumulative turn count — are one `RunBudget` the host
 creates and every loop below it shares, so a sub-agent reserves against its
-parent instead of opening a fresh allowance. A step that a cap or deadline
+parent instead of opening a fresh allowance. Each admitted turn holds its own
+reservation handle and commits that handle, so concurrent loops under one
+budget cannot release each other's headroom. A step that a cap or deadline
 stops fails naming that reason. See
 [packages/agents/AGENTS.md § One budget per run](../packages/agents/AGENTS.md).
 
@@ -595,7 +597,8 @@ that reach it through the context.
 
 A plan's own per-step bound is not a session option: `execute_plan` passes
 `maxStepIterations` to the executors, which fall back to
-`DEFAULT_MAX_STEP_ITERATIONS` (`task-executor.ts`) when a caller names none.
+`DEFAULT_MAX_STEP_ITERATIONS` (`packages/agents/src/constants.ts`) when a
+caller names none.
 
 Provider, model and permission mode belong to the host's turn, not to the
 session. The run's bounds are one `RunBudget` on the context

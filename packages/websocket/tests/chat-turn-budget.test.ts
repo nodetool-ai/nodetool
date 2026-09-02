@@ -172,6 +172,43 @@ describe("the chat turn's run budget", () => {
     expect(notice).toContain("turn limit of 2 reached");
   });
 
+  it("reports what the run spent in a log the user can see", async () => {
+    // The number lived only in `log.debug`, so the person paying for the run
+    // never saw it.
+    const provider = new ScriptedProvider("ollama", false);
+    const harness = harnessFor(provider);
+
+    await harness.handler.handleChatMessage(
+      chatTurn("t-budget-spend", "ollama", LOCAL_MODEL)
+    );
+
+    const spendLog = harness.session
+      .messagesOfType("log_update")
+      .find((m) => m.node_name === "budget");
+    expect(spendLog).toBeDefined();
+    expect(String(spendLog?.content)).toMatch(/^Run spent \$\d+\.\d{4}$/);
+    expect(spendLog?.thread_id).toBe("t-budget-spend");
+  });
+
+  it("says the spend is a lower bound when a turn had no catalog price", async () => {
+    process.env.NODETOOL_AGENT_UNPRICED_TOKEN_CEILING = "1000000";
+    process.env.NODETOOL_AGENT_TURN_COST_CAP_USD = "1";
+    const provider = new ScriptedProvider("openai", false);
+    const harness = harnessFor(provider);
+
+    await harness.handler.handleChatMessage(
+      chatTurn("t-budget-unpriced", "openai", "a-model-nobody-prices")
+    );
+
+    const spendLog = harness.session
+      .messagesOfType("log_update")
+      .find((m) => m.node_name === "budget");
+    expect(String(spendLog?.content)).toContain("at least $");
+    expect(String(spendLog?.content)).toContain(
+      "1 turn(s) on a model with no catalog price"
+    );
+  });
+
   it("shares one budget object with the capability run, the sub-agent runtime and the context", async () => {
     process.env.NODETOOL_AGENT_MAX_TURNS = "5";
     const provider = new ScriptedProvider("ollama", false);

@@ -12,16 +12,12 @@ import {
   OllamaProvider,
   OpenAIProvider,
   AnthropicProvider,
-  OLLAMA_DEFAULT_URL
+  OLLAMA_DEFAULT_URL,
+  isChunk,
+  isToolCall
 } from "@nodetool-ai/runtime";
 import { getSecret } from "@nodetool-ai/models";
-import type {
-  Message,
-  ProviderTool,
-  ProviderStreamItem,
-  ToolCall
-} from "@nodetool-ai/runtime";
-import type { Chunk } from "@nodetool-ai/protocol";
+import type { Message, ProviderTool } from "@nodetool-ai/runtime";
 import { isRecord } from "./lib/wire-values.js";
 
 // ---------------------------------------------------------------------------
@@ -157,14 +153,6 @@ export function convertTools(
     description: t.function.description,
     inputSchema: t.function.parameters
   }));
-}
-
-function isChunk(item: ProviderStreamItem): item is Chunk {
-  return "type" in item && (item as Chunk).type === "chunk";
-}
-
-function isToolCall(item: ProviderStreamItem): item is ToolCall {
-  return "name" in item && "id" in item && !("type" in item);
 }
 
 /** Resolve a secret for the authenticated user, then fall back to env vars. */

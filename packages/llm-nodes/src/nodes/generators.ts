@@ -1,10 +1,10 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import { isChunk } from "@nodetool-ai/protocol";
 import type { Message, ProcessingContext, ToolCall } from "@nodetool-ai/runtime";
+import { isToolCall } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
-  isChunkItem,
-  isToolCallItem,
   serializeToolResult,
   streamProviderMessages,
   toProviderTools,
@@ -269,7 +269,7 @@ async function* streamListItemsViaToolCalls(
       tools: providerTools,
       maxTokens
     })) {
-      if (isToolCallItem(item)) {
+      if (isToolCall(item)) {
         assistantToolCalls.push(item);
         if (item.name === "add_item") {
           const text = asText(
@@ -279,7 +279,7 @@ async function* streamListItemsViaToolCalls(
             yield text;
           }
         }
-      } else if (isChunkItem(item) && !item.thinking) {
+      } else if (isChunk(item) && !item.thinking) {
         // Narrative text is ignored for output, but kept in the conversation
         // history so providers can continue after tool calls correctly.
         assistantText += item.content ?? "";

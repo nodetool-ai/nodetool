@@ -116,6 +116,47 @@ describe("run budget propagation", () => {
     );
   });
 
+  it("holds the cap when the loops overlap", async () => {
+    // The sequential case above never has two reservations outstanding at
+    // once. Concurrency is where a shared reservation counter fails: one
+    // loop's commit must not hand back the headroom another loop is holding.
+    const budget = makeBudget();
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const child = (gateMs: number) =>
+      createLoopingMockProvider(
+        [[{ type: "chunk", content: "child answer", done: true }]],
+        {
+          provider: "openai",
+          costPerTurn: TURN_COST_USD,
+          repeatLast: true,
+          gate: () => sleep(gateMs)
+        }
+      );
+
+    const ctx = makeCtx();
+    const run = (provider: ReturnType<typeof child>) =>
+      new RunSubtaskTool({
+        provider,
+        model: PRICED_MODEL,
+        parentTools: () => [],
+        forwardMessage: () => {},
+        budget
+      }).process(ctx, { description: "d", prompt: "do a thing" });
+
+    // A finishes early; B stays in flight; C asks for a turn in between.
+    const a = child(20);
+    const b = child(1500);
+    const c = child(20);
+    const pending = [run(a), run(b)];
+    await sleep(400);
+    pending.push(run(c));
+    await Promise.all(pending);
+
+    const billed = [a, b, c].reduce((sum, p) => sum + p.getTotalCost(), 0);
+    expect(billed).toBeLessThanOrEqual(CAP_USD);
+    expect(budget.exhausted?.kind).toBe("cost");
+  }, 20_000);
+
   it("reaches every step of a plan the DAG executors run", async () => {
     // `execute_plan` hands the plan to `ParallelTaskExecutor`, which builds a
     // `TaskExecutor` per task and a `CodeActExecutor` per step. A budget that

@@ -6,7 +6,11 @@
  * chat run performs.
  */
 import type { HydratedGraphData, ProviderId } from "@nodetool-ai/protocol";
-import type { BaseProvider, TurnBudget } from "@nodetool-ai/runtime";
+import type {
+  BaseProvider,
+  TurnBudget,
+  TurnReservationHandle
+} from "@nodetool-ai/runtime";
 import {
   ChatTurnHandler,
   type ChatJobAccess,
@@ -206,7 +210,7 @@ export const borrowedLoopBudgetMembers = {
     budget: TurnBudget,
     model: string,
     messages: readonly unknown[]
-  ): boolean {
+  ): TurnReservationHandle | null {
     return budget.reserve({
       model,
       // SAFETY: the doubles name themselves "mock". The budget reads the pair

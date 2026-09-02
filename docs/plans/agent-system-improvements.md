@@ -1,9 +1,13 @@
 # Agent System Improvements
 
-Status: plan v1. Scope: eight work packages (A1 through A8) from the
-agent-system review, each cut into tasks an autonomous agent can take end to
-end. A6 (eval runs in CI) was cut from the first draft and is back in, as an
-on-request workflow rather than a gate — see D8.
+Status: shipped. Every work package here (A1 through A8) has landed, so this
+document is the record of what shipped rather than work to pick up. The loop
+it converged on is stated in
+[docs/adr/0002-codeact-is-the-one-agent-loop.md](../adr/0002-codeact-is-the-one-agent-loop.md);
+§6 lists where the result diverged from what was planned. Scope: eight work
+packages from the agent-system review, each cut into tasks an autonomous agent
+could take end to end. A6 (eval runs in CI) was cut from the first draft and is
+back in, as an on-request workflow rather than a gate — see D8.
 
 Every task names its files, its acceptance criteria, and the test that must
 fail before the change and pass after it. Read §1 and §2 before any task:
@@ -1033,3 +1037,27 @@ into the PR's Verification section per `.github/pull_request_template.md`.
 A task is done when its acceptance criteria are covered by a test that was
 observed failing before the change, the docs named in its Context are
 updated, and the PR's verification section shows the four commands green.
+
+## 6. Divergences from the plan
+
+Where the landed code differs from what §3 specified. Each is the code's
+behaviour, not a task left open.
+
+- `mergeAsyncGenerators` was deleted rather than made a thin wrapper over the
+  scheduler; `packages/agents/src/utils/dag-scheduler.ts` is the one merge.
+- The finish step's dependency on its siblings is added where the executor
+  builds its scheduler nodes (`stepsFinishWaitsFor`,
+  `packages/agents/src/task-executor.ts`), not where the plan is built
+  (`packages/agents/src/tools/plan-builder-tools.ts`).
+- The kernel job runner sets no permission-gate key on the context, so a
+  workflow-run agent takes the headless fallback in
+  `packages/agents/src/capabilities/gate-from-context.ts`.
+- `context_exceeded` is a `ProviderFailureDetail` code
+  (`packages/runtime/src/providers/provider-error.ts`), not an error class of
+  its own.
+- The run's semaphore bounds task permits only; each task's steps and its
+  sub-agents fall back to the executors' own bound
+  (`packages/agents/src/constants.ts`, `packages/agents/AGENTS.md`
+  § Executor defaults).
+- The scheduler that replaced `mergeAsyncGenerators` keeps admitting queued
+  generators after a sibling throws, as `mergeAsyncGenerators` did.

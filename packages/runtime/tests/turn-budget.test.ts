@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { CostCappedTurnBudget } from "../src/turn-budget.js";
+import { CostCalculator } from "../src/providers/cost-calculator.js";
 import { BaseProvider } from "../src/providers/base-provider.js";
 import { OpenAIProvider } from "../src/providers/openai-provider.js";
 import { isProviderStop } from "../src/providers/types.js";
@@ -17,7 +18,7 @@ describe("CostCappedTurnBudget", () => {
       capUsd: 1,
       maxOutputTokens: 2048
     });
-    expect(budget.reserve(turn())).toBe(true);
+    expect(budget.reserve(turn())).not.toBeNull();
   });
 
   it("refuses a turn whose worst case would cross the cap", () => {
@@ -27,7 +28,7 @@ describe("CostCappedTurnBudget", () => {
       capUsd: 0.0001,
       maxOutputTokens: 2048
     });
-    expect(budget.reserve(turn())).toBe(false);
+    expect(budget.reserve(turn())).toBeNull();
   });
 
   it("holds the ceiling against a turn that costs more than the headroom", () => {
@@ -35,12 +36,13 @@ describe("CostCappedTurnBudget", () => {
       capUsd: 0.5,
       maxOutputTokens: 2048
     });
-    expect(budget.reserve(turn())).toBe(true);
-    budget.commit(0.49);
+    const held = budget.reserve(turn());
+    expect(held).not.toBeNull();
+    budget.commit(held!, 0.49);
     expect(budget.spentUsd).toBeCloseTo(0.49);
     // $0.49 spent, and the next turn's worst case is ~$0.30. Checking spent
     // cost alone would admit it and land at $0.79.
-    expect(budget.reserve({ ...turn(), inputTokens: 1_000_000 })).toBe(false);
+    expect(budget.reserve({ ...turn(), inputTokens: 1_000_000 })).toBeNull();
   });
 
   it("refuses every turn on a model with no price", () => {
@@ -54,7 +56,7 @@ describe("CostCappedTurnBudget", () => {
         provider: "openai",
         inputTokens: 10
       })
-    ).toBe(false);
+    ).toBeNull();
   });
 
   it("treats a local provider as free rather than unpriced", () => {
@@ -68,7 +70,7 @@ describe("CostCappedTurnBudget", () => {
         provider: "ollama",
         inputTokens: 100000
       })
-    ).toBe(true);
+    ).not.toBeNull();
   });
 
   it("accumulates reservations until a turn commits", () => {
@@ -76,9 +78,9 @@ describe("CostCappedTurnBudget", () => {
       capUsd: 0.002,
       maxOutputTokens: 2048
     });
-    expect(budget.reserve(turn())).toBe(true);
+    expect(budget.reserve(turn())).not.toBeNull();
     // Nothing committed yet, so the outstanding worst case still counts.
-    expect(budget.reserve(turn())).toBe(false);
+    expect(budget.reserve(turn())).toBeNull();
   });
 });
 
@@ -237,7 +239,7 @@ describe("reservation release on a failed turn", () => {
     expect(budget.spentUsd).toBe(0);
     // Headroom is intact: the next turn is admitted, as it would have been
     // had the failed one never happened.
-    expect(budget.reserve(turn())).toBe(true);
+    expect(budget.reserve(turn())).not.toBeNull();
   });
 });
 
@@ -251,17 +253,74 @@ describe("unreported spend", () => {
       capUsd: 1,
       maxOutputTokens: 2048
     });
-    expect(budget.reserve(turn())).toBe(true);
-    budget.commit(null);
+    const held = budget.reserve(turn());
+    expect(held).not.toBeNull();
+    budget.commit(held!, null);
     expect(budget.spentUsd).toBeGreaterThan(0);
   });
 
-  it("charges nothing for an unreported turn that was never admitted", () => {
+  it("charges nothing for a reservation this budget never handed out", () => {
     const budget = new CostCappedTurnBudget({
       capUsd: 1,
       maxOutputTokens: 2048
     });
-    budget.commit(null);
+    // A handle from somewhere else, or one already settled: neither is spend.
+    budget.commit({ worstCaseUsd: 0.25, unpriced: false }, null);
     expect(budget.spentUsd).toBe(0);
+  });
+});
+
+describe("concurrent reservations", () => {
+  /** Worst case of `turn()` at 2048 output tokens, read from the same catalog. */
+  function worstCase(): number {
+    const usd = CostCalculator.estimateTokenCostUsd(
+      PRICED_MODEL,
+      { inputTokens: 1000, outputTokens: 2048 },
+      "openai"
+    );
+    if (usd === null) throw new Error("test model must be priced");
+    return usd;
+  }
+
+  it("releases only the reservation being committed", () => {
+    // One budget, several loops in flight at once (a chat turn plus its
+    // sub-agents). Committing one loop's turn must not hand back the headroom
+    // another loop is still holding.
+    const budget = new CostCappedTurnBudget({
+      capUsd: worstCase() * 2.5,
+      maxOutputTokens: 2048
+    });
+    const a = budget.reserve(turn());
+    const b = budget.reserve(turn());
+    expect(a).not.toBeNull();
+    expect(b).not.toBeNull();
+    // Two worst cases outstanding: a third does not fit.
+    expect(budget.reserve(turn())).toBeNull();
+
+    // A cost nothing, so exactly one worst case of headroom comes back — B's
+    // reservation is still held.
+    budget.commit(a!, 0);
+    expect(budget.reserve(turn())).not.toBeNull();
+    expect(budget.reserve(turn())).toBeNull();
+  });
+
+  it("charges the handed-in reservation, not whichever one is outstanding", () => {
+    const budget = new CostCappedTurnBudget({
+      capUsd: worstCase() * 4,
+      maxOutputTokens: 2048
+    });
+    const small = budget.reserve(turn(10));
+    const large = budget.reserve(turn(1000));
+    expect(small).not.toBeNull();
+    expect(large).not.toBeNull();
+    // Unknown is charged as *this* reservation's worst case, not as the sum
+    // of every one in flight.
+    budget.commit(small!, null);
+    expect(budget.spentUsd).toBeCloseTo(small!.worstCaseUsd, 10);
+    budget.commit(large!, null);
+    expect(budget.spentUsd).toBeCloseTo(
+      small!.worstCaseUsd + large!.worstCaseUsd,
+      10
+    );
   });
 });
