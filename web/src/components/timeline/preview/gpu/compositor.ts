@@ -1,48 +1,19 @@
-import { blendModeGpuId } from "@nodetool-ai/gpu";
 import {
-  WebGPULayerCompositor,
-  forwardClipMatrixToInverseAffine
-} from "@nodetool-ai/gpu/webgpu";
-import {
-  IDENTITY_TRANSFORM,
-  WebGPUEffectsProcessor,
-  buildTransformMatrix,
-  containBaseScale
+  GpuFrameCompositor,
+  type FrameLayer,
+  type GpuSourceTexture
 } from "@nodetool-ai/timeline/render";
 import type {
   CompositeLayer,
+  CompositePrecomposite,
   CompositeSource,
   CompositorInitResult,
   TimelineCompositor
 } from "./types";
-import type { AnimationSampleMask, WipeDirection } from "@nodetool-ai/timeline";
-
-/** Shader edge codes (see `BLEND_COMPOSITE_FRAGMENT` params2). */
-const WIPE_EDGE = {
-  left: 1,
-  right: 2,
-  up: 3, // reveal from the layer's top edge
-  down: 4 // reveal from the layer's bottom edge
-} satisfies Record<WipeDirection, 1 | 2 | 3 | 4>;
-
-function wipeParams(
-  mask: AnimationSampleMask | undefined
-):
-  | { edge: 1 | 2 | 3 | 4; progress: number; softness: number }
-  | undefined {
-  if (!mask) return undefined;
-  return {
-    edge: WIPE_EDGE[mask.direction],
-    progress: mask.progress,
-    softness: mask.softness
-  };
-}
 import { isSourceReady, shouldPresentFrame, sourceDimensions } from "./source";
+import { MaskRasterizer } from "../maskRender";
 
-interface SourceTexture {
-  texture: GPUTexture;
-  width: number;
-  height: number;
+interface SourceTexture extends GpuSourceTexture {
   source: CompositeSource;
   lastUploadKey: string;
 }
@@ -65,31 +36,30 @@ function uploadKey(source: CompositeSource): string {
 /**
  * Timeline preview compositor.
  *
- * Owns the canvas/device, uploads clip sources (video / image / bitmap) to
- * GPU textures, runs the per-clip + track effects pre-pass, then hands the
- * resulting textures to the shared {@link WebGPULayerCompositor} for the
- * actual layer blending. Linear sampling keeps scaled video crisp; the
- * affine placement comes from {@link buildTransformMatrix}, converted to the
- * compositor's inverse-affine form.
+ * Owns the canvas, the device and the source textures; everything about what a
+ * frame *looks like* — placement, effects, masks, mattes, transitions, the
+ * precomposite pass — is {@link GpuFrameCompositor} from
+ * `@nodetool-ai/timeline/render`, the same object the server render drives. The
+ * two hosts differ only where they must: pixels arrive here as `<video>`,
+ * `<img>` and `ImageBitmap` and are uploaded with
+ * `copyExternalImageToTexture`, and the finished frame is blitted to a swap
+ * chain instead of read back to a buffer.
  */
 export class WebGPUCompositor implements TimelineCompositor {
   private device: GPUDevice | null = null;
   private context: GPUCanvasContext | null = null;
   private canvasFormat: GPUTextureFormat = "rgba8unorm";
 
-  private core: WebGPULayerCompositor | null = null;
+  private core: GpuFrameCompositor<CompositeSource> | null = null;
 
   private canvasWidth = 0;
   private canvasHeight = 0;
-  /** Reference (sequence) resolution that `transform.position` is stored in.
-   *  Falls back to the canvas size when unset — the offline renderer's canvas
-   *  is the sequence resolution, so it never needs to set this explicitly. */
-  private refWidth = 0;
-  private refHeight = 0;
 
   private sourceTextures = new Map<string, SourceTexture>();
   private layers: CompositeLayer[] = [];
-  private effects: WebGPUEffectsProcessor | null = null;
+  private precomposites: CompositePrecomposite[] = [];
+  /** Shape masks rasterized to coverage bitmaps for the GPU mask pass. */
+  private readonly masks = new MaskRasterizer();
 
   async init(canvas: HTMLCanvasElement): Promise<CompositorInitResult> {
     if (typeof navigator === "undefined" || !navigator.gpu) {
@@ -119,14 +89,16 @@ export class WebGPUCompositor implements TimelineCompositor {
       alphaMode: "premultiplied"
     });
 
-    this.core = new WebGPULayerCompositor(
+    this.core = new GpuFrameCompositor<CompositeSource>(
       device,
-      this.canvasFormat,
-      "linear",
-      "timeline-preview"
+      this.canvasWidth,
+      this.canvasHeight,
+      {
+        label: "timeline-preview",
+        upload: (id, source) => this.uploadSource(id, source),
+        retainSources: (live) => this.pruneStale(live)
+      }
     );
-    this.core.ensureSize(this.canvasWidth, this.canvasHeight);
-    this.effects = new WebGPUEffectsProcessor(device);
 
     return { ok: true };
   }
@@ -137,8 +109,7 @@ export class WebGPUCompositor implements TimelineCompositor {
    * size tracks the viewport/DPR, not the sequence.
    */
   setReferenceSize(width: number, height: number): void {
-    this.refWidth = width;
-    this.refHeight = height;
+    this.core?.setReferenceSize(width, height);
   }
 
   resize(width: number, height: number): void {
@@ -154,44 +125,54 @@ export class WebGPUCompositor implements TimelineCompositor {
         alphaMode: "premultiplied"
       });
     }
-    this.core?.ensureSize(width, height);
+    this.core?.resize(width, height);
   }
 
-  setLayers(layers: CompositeLayer[]): void {
-    this.layers = [...layers].sort((a, b) => a.zIndex - b.zIndex);
-    this.pruneStale();
+  setLayers(
+    layers: CompositeLayer[],
+    precomposites: CompositePrecomposite[] = []
+  ): void {
+    this.layers = layers;
+    this.precomposites = precomposites;
   }
 
-  private pruneStale(): void {
-    const liveIds = new Set(this.layers.map((l) => l.id));
+  private pruneStale(live: ReadonlySet<string>): void {
     for (const [id, entry] of this.sourceTextures) {
-      if (!liveIds.has(id)) {
-        entry.texture.destroy();
-        this.sourceTextures.delete(id);
-      }
+      if (live.has(id)) continue;
+      entry.texture.destroy();
+      this.sourceTextures.delete(id);
     }
-    this.effects?.retainOnly(liveIds);
   }
 
-  private uploadSource(layer: CompositeLayer): SourceTexture | null {
+  /**
+   * Upload one source's current pixels, reusing its texture across frames.
+   *
+   * Null means nothing is drawable for this layer yet — a video mid-seek, an
+   * image still decoding — and the shared compositor leaves it out of the
+   * frame, which is what {@link shouldPresentFrame} then reads.
+   */
+  private uploadSource(
+    id: string,
+    source: CompositeSource
+  ): SourceTexture | null {
     if (!this.device) return null;
-    const { width, height } = sourceDimensions(layer.source);
+    const { width, height } = sourceDimensions(source);
     if (width === 0 || height === 0) {
-      return this.sourceTextures.get(layer.id) ?? null;
+      return this.sourceTextures.get(id) ?? null;
     }
 
-    const key = uploadKey(layer.source);
-    let entry = this.sourceTextures.get(layer.id);
+    const key = uploadKey(source);
+    let entry = this.sourceTextures.get(id);
 
     if (
       !entry ||
       entry.width !== width ||
       entry.height !== height ||
-      entry.source !== layer.source
+      entry.source !== source
     ) {
       entry?.texture.destroy();
       const texture = this.device.createTexture({
-        label: `preview-source-${layer.id}`,
+        label: `preview-source-${id}`,
         size: { width, height },
         format: "rgba8unorm",
         usage:
@@ -200,14 +181,20 @@ export class WebGPUCompositor implements TimelineCompositor {
           GPUTextureUsage.COPY_SRC |
           GPUTextureUsage.RENDER_ATTACHMENT
       });
-      entry = { texture, width, height, source: layer.source, lastUploadKey: "" };
-      this.sourceTextures.set(layer.id, entry);
+      entry = {
+        texture,
+        width,
+        height,
+        source,
+        lastUploadKey: ""
+      };
+      this.sourceTextures.set(id, entry);
     }
 
-    if (entry.lastUploadKey !== key && isSourceReady(layer.source)) {
+    if (entry.lastUploadKey !== key && isSourceReady(source)) {
       try {
         this.device.queue.copyExternalImageToTexture(
-          { source: layer.source, flipY: false },
+          { source, flipY: false },
           { texture: entry.texture, premultipliedAlpha: false },
           { width, height }
         );
@@ -221,116 +208,60 @@ export class WebGPUCompositor implements TimelineCompositor {
     return entry;
   }
 
-  render(): void {
-    if (!this.device || !this.context || !this.core) {
-      return;
-    }
-    const readStart = this.core.textureA;
-    const writeStart = this.core.textureB;
-    if (!readStart || !writeStart) {
-      return;
-    }
-
-    const device = this.device;
-    const encoder = device.createCommandEncoder({ label: "preview-frame" });
-
-    // Seed the accumulation with opaque black.
-    let readTex = readStart;
-    let writeTex = writeStart;
-    {
-      const pass = encoder.beginRenderPass({
-        colorAttachments: [
-          {
-            view: readTex.createView(),
-            clearValue: { r: 0, g: 0, b: 0, a: 1 },
-            loadOp: "clear",
-            storeOp: "store"
+  /**
+   * A layer in the shape the shared compositor consumes. The only translation
+   * is the shape mask: it is authored geometry here and coverage pixels there,
+   * and this browser owns a canvas to rasterize it on.
+   */
+  private toFrameLayer(layer: CompositeLayer): FrameLayer<CompositeSource> {
+    const shapeMask = layer.shapeMask
+      ? this.masks.rasterize(layer.shapeMask, layer.source)
+      : null;
+    return {
+      id: layer.id,
+      source: layer.source,
+      opacity: layer.opacity,
+      blendMode: layer.blendMode,
+      zIndex: layer.zIndex,
+      transform: layer.transform,
+      parentMatrix: layer.parentMatrix,
+      precomposeGroupId: layer.precomposeGroupId,
+      borderRadius: layer.borderRadius,
+      mask: layer.mask,
+      shapeMask: shapeMask ?? undefined,
+      matte: layer.matte
+        ? {
+            mode: layer.matte.mode,
+            invert: layer.matte.invert,
+            layer: this.toFrameLayer(layer.matte.layer)
           }
-        ]
-      });
-      pass.end();
+        : undefined,
+      effects: layer.effects,
+      trackEffects: layer.trackEffects,
+      transition: layer.transition
+    };
+  }
+
+  render(): void {
+    const device = this.device;
+    const core = this.core;
+    if (!device || !this.context || !core) {
+      return;
     }
 
-    this.core.beginFrame();
-    let drawnCount = 0;
-    for (const layer of this.layers) {
-      const src = this.uploadSource(layer);
-      if (!src) continue;
-      drawnCount++;
-
-      const clipEffectsList = layer.effects ?? [];
-      const trackEffectsList = layer.trackEffects ?? [];
-      const hasAnyEffects =
-        clipEffectsList.length > 0 || trackEffectsList.length > 0;
-      const processedTexture =
-        hasAnyEffects && this.effects
-          ? this.effects.process(
-              layer.id,
-              src.texture,
-              src.width,
-              src.height,
-              clipEffectsList,
-              trackEffectsList
-            )
-          : src.texture;
-
-      const transform = layer.transform ?? IDENTITY_TRANSFORM;
-      const base = containBaseScale(
-        src.width,
-        src.height,
-        this.canvasWidth,
-        this.canvasHeight
-      );
-      const matrix = buildTransformMatrix(
-        transform,
-        base,
-        this.refWidth || this.canvasWidth,
-        this.refHeight || this.canvasHeight,
-        layer.parentMatrix
-      );
-      const invAffine = forwardClipMatrixToInverseAffine(
-        matrix,
-        src.width,
-        src.height,
-        this.canvasWidth,
-        this.canvasHeight
-      );
-
-      const radiusPx = layer.borderRadius ?? 0;
-      const radiusNormalized =
-        radiusPx > 0 && src.width > 0 && src.height > 0
-          ? Math.min(0.5, radiusPx / Math.min(src.width, src.height))
-          : 0;
-
-      this.core.renderBlendPass(encoder, readTex, writeTex, {
-        source: processedTexture,
-        opacity: layer.opacity,
-        blendModeId: blendModeGpuId(layer.blendMode),
-        canvasW: this.canvasWidth,
-        canvasH: this.canvasHeight,
-        invAffine,
-        borderRadius: radiusNormalized,
-        wipe: wipeParams(layer.mask)
-      });
-
-      const tmp = readTex;
-      readTex = writeTex;
-      writeTex = tmp;
-    }
+    const frameLayers = this.layers.map((layer) => this.toFrameLayer(layer));
+    const { texture, drawn } = core.composite(frameLayers, this.precomposites);
 
     // Every active clip was mid-decode (e.g. the incoming clip at a cut is
     // still seeking). Skip the present so the swap chain keeps showing the last
     // frame instead of flashing the opaque-black seed. `getCurrentTexture()` is
     // never called, so nothing replaces what's on screen.
-    if (!shouldPresentFrame(this.layers.length, drawnCount)) {
+    if (!shouldPresentFrame(this.layers.length, drawn)) {
       return;
     }
 
-    this.core.blit(
-      encoder,
-      readTex,
-      this.context.getCurrentTexture().createView()
-    );
+    const encoder = device.createCommandEncoder({ label: "preview-present" });
+    core.blit(encoder, texture, this.context.getCurrentTexture().createView());
     device.queue.submit([encoder.finish()]);
   }
 
@@ -348,10 +279,9 @@ export class WebGPUCompositor implements TimelineCompositor {
       entry.texture.destroy();
     }
     this.sourceTextures.clear();
+    this.masks.dispose();
     this.core?.dispose();
     this.core = null;
-    this.effects?.dispose();
-    this.effects = null;
     this.context = null;
     this.device?.destroy();
     this.device = null;

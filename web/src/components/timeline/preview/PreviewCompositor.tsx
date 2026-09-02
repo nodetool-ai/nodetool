@@ -14,12 +14,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 
-import type {
-  ClipShapeStyle,
-  ClipTextStyle,
-  TimelineClip,
-  TrackEffect
-} from "@nodetool-ai/timeline";
+import type { TimelineClip } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -35,11 +30,7 @@ import {
 } from "../../ui_primitives";
 
 import { createCompositor } from "./gpu/createCompositor";
-import type {
-  CompositeLayer,
-  CompositorBlendMode,
-  TimelineCompositor
-} from "./gpu/types";
+import type { CompositeLayer, TimelineCompositor } from "./gpu/types";
 import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
 import {
   clipSourceTimeSec,
@@ -49,13 +40,17 @@ import {
   effectiveAssetId,
   hasActiveAnimation,
   isClipActive,
-  resolveAnimatedLayerProps,
   resolveTextStaggerContext,
   trackZ,
   PREVIEW_OVERLAY_Z,
   MAX_VIDEO_LAYERS
 } from "@nodetool-ai/timeline/render";
-import type { ActiveLayer, ResolvedCaption } from "@nodetool-ai/timeline/render";
+import type { ActiveLayer } from "@nodetool-ai/timeline/render";
+import {
+  buildCompositeLayers,
+  buildCompositePrecomposites,
+  type ResolvedCompositeSource
+} from "./compositeLayers";
 import { CaptionRasterizer } from "./captionRender";
 import { TextRasterizer } from "./textRender";
 import { ShapeRasterizer } from "./shapeRender";
@@ -148,64 +143,20 @@ const previewMagicOverlayStyles = css({
   pointerEvents: "none"
 });
 
+/**
+ * A video layer the element pool has to hold open this frame. The pixels are
+ * all the pool owns; everything else about the layer stays in the scene model,
+ * where every host reads it.
+ */
 interface ActiveVideoSlot {
   clipId: string;
-  trackIndex: number;
-  blendMode: CompositorBlendMode;
-  opacity: number;
   assetUrl: string;
-  transform?: TimelineClip["transform"];
-  /** The group's resolved matrix, composed under the clip's own transform. */
-  parentMatrix?: Float32Array;
-  borderRadius?: number;
-  effects?: TimelineClip["effects"];
-  trackEffects?: TrackEffect[];
-}
-
-interface ActiveImageLayer {
-  clipId: string;
-  trackIndex: number;
-  blendMode: CompositorBlendMode;
-  opacity: number;
-  assetUrl: string;
-  status: TimelineClip["status"];
-  transform?: TimelineClip["transform"];
-  parentMatrix?: Float32Array;
-  borderRadius?: number;
-  effects?: TimelineClip["effects"];
-  trackEffects?: TrackEffect[];
 }
 
 type AssetUrlEntry =
   | { status: "pending" }
   | { status: "resolved"; url: string }
   | { status: "failed" };
-
-interface ActiveCaptionLayer {
-  clipId: string;
-  trackIndex: number;
-  blendMode: CompositorBlendMode;
-  opacity: number;
-  transform?: TimelineClip["transform"];
-  caption: ResolvedCaption;
-}
-
-interface ActiveTextLayer {
-  clipId: string;
-  trackIndex: number;
-  blendMode: CompositorBlendMode;
-  opacity: number;
-  transform?: TimelineClip["transform"];
-  parentMatrix?: Float32Array;
-  borderRadius?: number;
-  effects?: TimelineClip["effects"];
-  trackEffects?: TrackEffect[];
-  textStyle: ClipTextStyle;
-}
-
-interface ActiveShapeLayer extends Omit<ActiveTextLayer, "textStyle"> {
-  shapeStyle: ClipShapeStyle;
-}
 
 function isClipUpcoming(clip: TimelineClip, currentTimeMs: number): boolean {
   return (
@@ -433,7 +384,8 @@ export const PreviewCompositor: React.FC = memo(() => {
         canvas.height = h;
         compositorRef.current?.resize(w, h);
         compositorRef.current?.setLayers(
-          buildLayersRef.current(currentTimeMsRef.current)
+          buildLayersRef.current(currentTimeMsRef.current),
+          precompositesRef.current
         );
         compositorRef.current?.render();
       }
@@ -521,124 +473,60 @@ export const PreviewCompositor: React.FC = memo(() => {
     [tracks, clips, sceneCanvas]
   );
 
-  const {
-    activeVideoSlots,
-    activeImageLayers,
-    activeCaptionLayers,
-    activeTextLayers,
-    activeShapeLayers,
-    placeholderLayers
-  } = useMemo(() => {
-    const videoSlots: ActiveVideoSlot[] = [];
-    const imageLayers: ActiveImageLayer[] = [];
-    const captionLayers: ActiveCaptionLayer[] = [];
-    const textLayers: ActiveTextLayer[] = [];
-    const shapeLayers: ActiveShapeLayer[] = [];
-    const placeholders: PlaceholderLayer[] = [];
+  const { sceneLayers, precomposites, activeVideoSlots, placeholderLayers } =
+    useMemo(() => {
+      // The same scene description the offline exporter and the server render
+      // consume, kept whole: what a layer draws with — its group's matrix and
+      // precomposite, its cut, its shape mask, its track matte — is resolved
+      // here once and read by `buildLayers` below.
+      const { layers, precomposites: groups } = computeActiveLayersWithHorizon(
+        tracks,
+        clips,
+        currentTimeMs,
+        {
+          maxVideoLayers: HOT_POOL_SIZE,
+          canvas: sceneCanvas,
+          animationCache: animCacheRef.current
+        }
+      );
 
-    // Same scene description the offline renderer consumes — so the preview
-    // and the exported video composite identical frames.
-    const layers = computeActiveLayers(tracks, clips, currentTimeMs, {
-      maxVideoLayers: HOT_POOL_SIZE,
-      canvas: sceneCanvas,
-      animationCache: animCacheRef.current
-    });
-
-    for (const layer of layers) {
-      if (layer.kind === "caption" && layer.caption) {
-        captionLayers.push({
-          clipId: layer.clipId,
-          trackIndex: layer.trackIndex,
-          blendMode: layer.blendMode,
-          opacity: layer.opacity,
-          transform: layer.transform,
-          caption: layer.caption
-        });
-        continue;
-      }
-
-      if (layer.kind === "text" && layer.textStyle) {
-        textLayers.push({
-          clipId: layer.clipId,
-          trackIndex: layer.trackIndex,
-          blendMode: layer.blendMode,
-          opacity: layer.opacity,
-          transform: layer.transform,
-          parentMatrix: layer.parentMatrix,
-          borderRadius: layer.borderRadius,
-          effects: layer.effects,
-          trackEffects: layer.trackEffects,
-          textStyle: layer.textStyle
-        });
-        continue;
-      }
-
-      if (layer.kind === "shape" && layer.shapeStyle) {
-        shapeLayers.push({
-          clipId: layer.clipId,
-          trackIndex: layer.trackIndex,
-          blendMode: layer.blendMode,
-          opacity: layer.opacity,
-          transform: layer.transform,
-          parentMatrix: layer.parentMatrix,
-          borderRadius: layer.borderRadius,
-          effects: layer.effects,
-          trackEffects: layer.trackEffects,
-          shapeStyle: layer.shapeStyle
-        });
-        continue;
-      }
-
-      const url = resolveUrl(layer.assetId);
-      const placeholder: PlaceholderLayer = {
-        clipId: layer.clipId,
-        trackIndex: layer.trackIndex,
-        status: layer.clip.status,
-        name: layer.clip.name
+      const videoSlots: ActiveVideoSlot[] = [];
+      const placeholders: PlaceholderLayer[] = [];
+      // A matte source is held out of `layers` so it never draws itself, but
+      // its pixels still have to be decoded — including into a pool slot when
+      // it is a video.
+      const visit = (layer: ActiveLayer): void => {
+        if (layer.matte) visit(layer.matte.layer);
+        if (
+          layer.kind === "caption" ||
+          layer.kind === "text" ||
+          layer.kind === "shape"
+        ) {
+          return;
+        }
+        const url = resolveUrl(layer.assetId);
+        if (!url) {
+          placeholders.push({
+            clipId: layer.clipId,
+            trackIndex: layer.trackIndex,
+            status: layer.clip.status,
+            name: layer.clip.name
+          });
+          return;
+        }
+        if (layer.kind === "video") {
+          videoSlots.push({ clipId: layer.clipId, assetUrl: url });
+        }
       };
+      for (const layer of layers) visit(layer);
 
-      if (layer.kind === "image") {
-        imageLayers.push({
-          clipId: layer.clipId,
-          trackIndex: layer.trackIndex,
-          blendMode: layer.blendMode,
-          opacity: layer.opacity,
-          assetUrl: url ?? "",
-          status: layer.clip.status,
-          transform: layer.transform,
-          parentMatrix: layer.parentMatrix,
-          borderRadius: layer.borderRadius,
-          effects: layer.effects,
-          trackEffects: layer.trackEffects
-        });
-        if (!url) placeholders.push(placeholder);
-      } else if (url) {
-        videoSlots.push({
-          clipId: layer.clipId,
-          trackIndex: layer.trackIndex,
-          blendMode: layer.blendMode,
-          opacity: layer.opacity,
-          assetUrl: url,
-          transform: layer.transform,
-          parentMatrix: layer.parentMatrix,
-          borderRadius: layer.borderRadius,
-          effects: layer.effects,
-          trackEffects: layer.trackEffects
-        });
-      } else {
-        placeholders.push(placeholder);
-      }
-    }
-
-    return {
-      activeVideoSlots: videoSlots,
-      activeImageLayers: imageLayers,
-      activeCaptionLayers: captionLayers,
-      activeTextLayers: textLayers,
-      activeShapeLayers: shapeLayers,
-      placeholderLayers: placeholders
-    };
-  }, [tracks, clips, currentTimeMs, resolveUrl, urlCacheVersion, sceneCanvas]);
+      return {
+        sceneLayers: layers,
+        precomposites: buildCompositePrecomposites(groups),
+        activeVideoSlots: videoSlots,
+        placeholderLayers: placeholders
+      };
+    }, [tracks, clips, currentTimeMs, resolveUrl, urlCacheVersion, sceneCanvas]);
 
   // Source dims + transform for the single selected clip, but only while it is
   // actually rendered (active at the playhead) so the gizmo traces a visible
@@ -651,14 +539,17 @@ export const PreviewCompositor: React.FC = memo(() => {
     let w = 0;
     let h = 0;
     const vSlot = activeVideoSlots.find((s) => s.clipId === selectedClipId);
-    const iLayer = activeImageLayers.find((l) => l.clipId === selectedClipId);
+    const imageLayer = sceneLayers.find(
+      (l) => l.clipId === selectedClipId && l.kind === "image"
+    );
+    const imageUrl = imageLayer ? resolveUrl(imageLayer.assetId) : undefined;
     if (vSlot) {
       const idx = clipSlotMap.current.get(selectedClipId);
       const el = idx !== undefined ? videoRefs.current[idx] : undefined;
       w = el?.videoWidth ?? 0;
       h = el?.videoHeight ?? 0;
-    } else if (iLayer?.assetUrl) {
-      const img = imageElementCache.current.get(iLayer.assetUrl);
+    } else if (imageUrl) {
+      const img = imageElementCache.current.get(imageUrl);
       w = img?.naturalWidth ?? 0;
       h = img?.naturalHeight ?? 0;
     } else {
@@ -675,7 +566,8 @@ export const PreviewCompositor: React.FC = memo(() => {
     selectedClipId,
     clipById,
     activeVideoSlots,
-    activeImageLayers,
+    sceneLayers,
+    resolveUrl,
     urlCacheVersion
   ]);
 
@@ -880,180 +772,96 @@ export const PreviewCompositor: React.FC = memo(() => {
     []
   );
 
-  // Build the GPU layer list from active slots and image layers, resolving
-  // each layer's motion-design animation at `atMs` (the frame being drawn).
+  /**
+   * The frame's layer list, resolved at `atMs` through the shared mapping every
+   * host uses. What this owns is only where a layer's pixels come from — a
+   * pooled `<video>`, a decoded `<img>`, a rasterized bitmap.
+   */
   const buildLayers = useCallback(
     (atMs: number): CompositeLayer[] => {
-      const out: CompositeLayer[] = [];
       const pool = videoRefs.current;
-      const canvas = sceneCanvas;
       const cache = animCacheRef.current;
+      // A cut is the one thing whose picture changes every tick while the
+      // active clip set stands still, and its record is resolved by the scene
+      // model rather than sampled here — so while one is running the scene is
+      // re-derived at the drawn time instead of reused from the last boundary.
+      const layers = sceneLayers.some((layer) => layer.transition)
+        ? computeActiveLayers(tracks, clips, atMs, {
+            maxVideoLayers: HOT_POOL_SIZE,
+            canvas: sceneCanvas,
+            animationCache: cache
+          })
+        : sceneLayers;
 
-      activeVideoSlots.forEach((slot) => {
-        const slotIndex = clipSlotMap.current.get(slot.clipId);
-        if (slotIndex === undefined) return;
+      const resolveSource = (
+        layer: ActiveLayer
+      ): ResolvedCompositeSource | null => {
+        if (layer.kind === "caption") {
+          if (!layer.caption) return null;
+          const bitmap = captionRasterizerRef.current.rasterize(
+            layer.caption,
+            sequenceWidth,
+            sequenceHeight
+          );
+          return bitmap ? { source: bitmap, untransformed: true } : null;
+        }
+        if (layer.kind === "text") {
+          if (!layer.textStyle) return null;
+          // Staggered per-word motion is drawn into the raster itself; block
+          // animations still resolve at the layer.
+          const stagger = resolveTextStaggerContext(
+            layer.clip,
+            atMs,
+            sceneCanvas,
+            cache
+          );
+          const bitmap = textRasterizerRef.current.rasterize(
+            layer.textStyle,
+            sequenceWidth,
+            sequenceHeight,
+            stagger
+          );
+          return bitmap ? { source: bitmap } : null;
+        }
+        if (layer.kind === "shape") {
+          if (!layer.shapeStyle) return null;
+          const bitmap = shapeRasterizerRef.current.rasterize(
+            layer.shapeStyle,
+            sequenceWidth,
+            sequenceHeight
+          );
+          return bitmap ? { source: bitmap } : null;
+        }
+
+        const url = resolveUrl(layer.assetId);
+        if (!url) return null;
+        if (layer.kind === "image") {
+          const img = ensureImageElement(url);
+          return img ? { source: img } : null;
+        }
+        const slotIndex = clipSlotMap.current.get(layer.clipId);
+        if (slotIndex === undefined) return null;
         const el = pool[slotIndex];
         // Keep the layer in the list even if the video momentarily drops below
         // HAVE_CURRENT_DATA (e.g. during a scrub seek). The compositor reuses
         // the previously uploaded texture so we don't flash to black.
-        if (!el || el.videoWidth === 0) return;
-        const clip = clipById.get(slot.clipId);
-        const anim = clip
-          ? resolveAnimatedLayerProps(
-              { clip, transform: slot.transform, opacity: slot.opacity },
-              atMs,
-              canvas,
-              cache
-            )
-          : { transform: slot.transform, opacity: slot.opacity, mask: undefined };
-        out.push({
-          id: `v:${slot.clipId}`,
-          source: el,
-          opacity: anim.opacity,
-          blendMode: slot.blendMode,
-          zIndex: trackZ(slot.trackIndex),
-          transform: anim.transform,
-          parentMatrix: slot.parentMatrix,
-          mask: anim.mask,
-          borderRadius: slot.borderRadius,
-          effects: anim.effects ?? slot.effects,
-          trackEffects: slot.trackEffects
-        });
+        if (!el || el.videoWidth === 0) return null;
+        return { source: el };
+      };
+
+      return buildCompositeLayers(layers, {
+        atMs,
+        canvas: sceneCanvas,
+        animationCache: cache,
+        resolveSource
       });
-
-      for (const layer of activeImageLayers) {
-        if (!layer.assetUrl) continue;
-        const img = ensureImageElement(layer.assetUrl);
-        if (!img) continue;
-        const clip = clipById.get(layer.clipId);
-        const anim = clip
-          ? resolveAnimatedLayerProps(
-              { clip, transform: layer.transform, opacity: layer.opacity },
-              atMs,
-              canvas,
-              cache
-            )
-          : { transform: layer.transform, opacity: layer.opacity, mask: undefined };
-        out.push({
-          id: `i:${layer.clipId}`,
-          source: img,
-          opacity: anim.opacity,
-          blendMode: layer.blendMode,
-          zIndex: trackZ(layer.trackIndex),
-          transform: anim.transform,
-          parentMatrix: layer.parentMatrix,
-          mask: anim.mask,
-          borderRadius: layer.borderRadius,
-          effects: anim.effects ?? layer.effects,
-          trackEffects: layer.trackEffects
-        });
-      }
-
-      for (const layer of activeCaptionLayers) {
-        const bitmap = captionRasterizerRef.current.rasterize(
-          layer.caption,
-          sequenceWidth,
-          sequenceHeight
-        );
-        if (!bitmap) continue;
-        const clip = clipById.get(layer.clipId);
-        const anim = clip
-          ? resolveAnimatedLayerProps(
-              { clip, transform: layer.transform, opacity: layer.opacity },
-              atMs,
-              canvas,
-              cache
-            )
-          : { transform: layer.transform, opacity: layer.opacity, mask: undefined };
-        out.push({
-          id: `c:${layer.clipId}`,
-          source: bitmap,
-          opacity: anim.opacity,
-          blendMode: layer.blendMode,
-          zIndex: trackZ(layer.trackIndex),
-          transform: anim.transform,
-          mask: anim.mask
-        });
-      }
-
-      for (const layer of activeTextLayers) {
-        const clip = clipById.get(layer.clipId);
-        // Staggered per-word motion is drawn into the raster itself; block
-        // animations still resolve at the layer below.
-        const stagger = clip
-          ? resolveTextStaggerContext(clip, atMs, canvas, cache)
-          : null;
-        const bitmap = textRasterizerRef.current.rasterize(
-          layer.textStyle,
-          sequenceWidth,
-          sequenceHeight,
-          stagger
-        );
-        if (!bitmap) continue;
-        const anim = clip
-          ? resolveAnimatedLayerProps(
-              { clip, transform: layer.transform, opacity: layer.opacity },
-              atMs,
-              canvas,
-              cache
-            )
-          : { transform: layer.transform, opacity: layer.opacity, mask: undefined };
-        out.push({
-          id: `t:${layer.clipId}`,
-          source: bitmap,
-          opacity: anim.opacity,
-          blendMode: layer.blendMode,
-          zIndex: trackZ(layer.trackIndex),
-          transform: anim.transform,
-          parentMatrix: layer.parentMatrix,
-          mask: anim.mask,
-          borderRadius: layer.borderRadius,
-          effects: anim.effects ?? layer.effects,
-          trackEffects: layer.trackEffects
-        });
-      }
-
-      for (const layer of activeShapeLayers) {
-        const bitmap = shapeRasterizerRef.current.rasterize(
-          layer.shapeStyle,
-          sequenceWidth,
-          sequenceHeight
-        );
-        if (!bitmap) continue;
-        const clip = clipById.get(layer.clipId);
-        const anim = clip
-          ? resolveAnimatedLayerProps(
-              { clip, transform: layer.transform, opacity: layer.opacity },
-              atMs,
-              canvas,
-              cache
-            )
-          : { transform: layer.transform, opacity: layer.opacity, mask: undefined };
-        out.push({
-          id: `s:${layer.clipId}`,
-          source: bitmap,
-          opacity: anim.opacity,
-          blendMode: layer.blendMode,
-          zIndex: trackZ(layer.trackIndex),
-          transform: anim.transform,
-          parentMatrix: layer.parentMatrix,
-          mask: anim.mask,
-          borderRadius: layer.borderRadius,
-          effects: anim.effects ?? layer.effects,
-          trackEffects: layer.trackEffects
-        });
-      }
-
-      return out;
     },
     [
-      activeVideoSlots,
-      activeImageLayers,
-      activeCaptionLayers,
-      activeTextLayers,
-      activeShapeLayers,
-      clipById,
+      sceneLayers,
+      tracks,
+      clips,
       ensureImageElement,
+      resolveUrl,
       sceneCanvas,
       sequenceWidth,
       sequenceHeight
@@ -1064,15 +872,21 @@ export const PreviewCompositor: React.FC = memo(() => {
     if (!gpuReady) return;
     const compositor = compositorRef.current;
     if (!compositor) return;
-    compositor.setLayers(buildLayersRef.current(currentTimeMsRef.current));
+    compositor.setLayers(
+      buildLayersRef.current(currentTimeMsRef.current),
+      precompositesRef.current
+    );
     compositor.render();
   }, [gpuReady]);
 
   // Latest-frame builder ref so renderFrame and the rAF loop can always call
   // the current buildLayers without listing it as a dep (it changes identity
-  // every clock tick, which would tear down effects every frame).
+  // every clock tick, which would tear down effects every frame). The groups
+  // that composite their children ride along for the same reason.
   const buildLayersRef = useRef(buildLayers);
   buildLayersRef.current = buildLayers;
+  const precompositesRef = useRef(precomposites);
+  precompositesRef.current = precomposites;
 
   // One-shot render whenever scene state changes (paused mode + scrubbing +
   // inspector edits). `buildLayers` is the dep that matters: its identity
@@ -1202,20 +1016,27 @@ export const PreviewCompositor: React.FC = memo(() => {
           }
         }
       }
+      // A cut in flight moves, scales or fades its two clips every tick, the
+      // way an animation does — and neither shows up as a decoding video, so a
+      // scene of stills would otherwise hold one frame through the whole cut.
       if (
         !dirty &&
-        hasActiveAnimation(
-          lastLayersRef.current,
-          liveMs,
-          canvasSizeRef.current,
-          animCacheRef.current
-        )
+        (lastLayersRef.current.some((layer) => layer.transition) ||
+          hasActiveAnimation(
+            lastLayersRef.current,
+            liveMs,
+            canvasSizeRef.current,
+            animCacheRef.current
+          ))
       ) {
         dirty = true;
       }
 
       if (dirty) {
-        compositor.setLayers(buildLayersRef.current(liveMs));
+        compositor.setLayers(
+          buildLayersRef.current(liveMs),
+          precompositesRef.current
+        );
         compositor.render();
       }
       raf = requestAnimationFrame(tick);
@@ -1224,13 +1045,7 @@ export const PreviewCompositor: React.FC = memo(() => {
     return () => cancelAnimationFrame(raf);
   }, [gpuReady, isPlaying]);
 
-  const hasAnything =
-    activeVideoSlots.length > 0 ||
-    activeImageLayers.length > 0 ||
-    activeCaptionLayers.length > 0 ||
-    activeTextLayers.length > 0 ||
-    activeShapeLayers.length > 0 ||
-    placeholderLayers.length > 0;
+  const hasAnything = sceneLayers.length > 0 || placeholderLayers.length > 0;
 
   const generatingClips = useMemo(
     () =>

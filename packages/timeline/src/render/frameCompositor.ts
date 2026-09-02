@@ -1,19 +1,25 @@
 /**
- * HeadlessFrameCompositor — composite one timeline frame without a canvas.
+ * The WebGPU compositing rules every timeline render surface draws through.
  *
- * Drives the same {@link WebGPULayerCompositor} and the same effects pre-pass
- * the editor's preview uses, with the same placement math
- * ({@link buildTransformMatrix} → inverse affine), so a frame rendered on a
- * server is the frame the user previewed. The only difference from the browser
- * compositor is the boundary: sources arrive as CPU RGBA buffers instead of
- * `<video>`/`<img>` elements, and the result is read back to a CPU buffer
- * instead of presented to a swap chain.
+ * {@link GpuFrameCompositor} is the whole of it: placement, the effects
+ * pre-pass, shape masks, track mattes, transition geometry, the dip solid, and
+ * the precomposite pass that lets a group's effects and blend mode act on its
+ * children together. It is generic in what a layer's pixels arrive as, because
+ * that is the only thing its two hosts disagree about — the server hands it CPU
+ * RGBA buffers, the editor hands it `<video>` elements and `ImageBitmap`s — and
+ * a rule that lived in both would drift, which is exactly what happened while
+ * the browser kept a compositor of its own.
  *
- * The instance is reused across every frame of a render: source textures are
+ * {@link HeadlessFrameCompositor} is the server host: CPU pixels in, one
+ * frame's RGBA read back out. The editor's host lives in `web/` and differs
+ * only in uploading through `copyExternalImageToTexture` and presenting to a
+ * swap chain instead of a buffer.
+ *
+ * An instance is reused across every frame of a render: source textures are
  * kept per layer id (re-uploaded only when their pixels change), the
  * precomposite textures per group id, and the readback buffer is allocated
  * once. Everything the GPU holds is owned by the instance and released in
- * {@link HeadlessFrameCompositor.dispose}, so a throw mid-frame leaks nothing.
+ * `dispose`, so a throw mid-frame leaks nothing.
  */
 
 import { blendModeGpuId } from "@nodetool-ai/gpu";
@@ -72,11 +78,16 @@ export interface FrameLayerPixels {
   version?: string;
 }
 
-/** One layer of a frame, in the same shape the browser compositor consumes. */
-export interface FrameLayer {
+/**
+ * One layer of a frame.
+ *
+ * `TSource` is whatever the host's uploader turns into a texture: decoded CPU
+ * pixels on the server, a `<video>`/`ImageBitmap` in the editor.
+ */
+export interface FrameLayer<TSource = FrameLayerPixels> {
   /** Stable across frames for the same clip — keys the source texture. */
   id: string;
-  source: FrameLayerPixels;
+  source: TSource;
   opacity: number;
   blendMode: CompositorBlendMode;
   zIndex: number;
@@ -99,13 +110,13 @@ export interface FrameLayer {
    * normalized space, so the source's own resolution and a smaller raster land
    * on the same pixels. `invert` is baked into the raster.
    */
-  shapeMask?: FrameLayerPixels;
+  shapeMask?: TSource;
   /**
    * The track matte driving this layer's alpha. `layer` is the matte source as
    * an ordinary layer — it is rendered to its own texture and read, never
    * blended onto the frame.
    */
-  matte?: FrameMatte;
+  matte?: FrameMatte<TSource>;
   effects?: ClipEffect[];
   trackEffects?: TrackEffect[];
   /**
@@ -117,10 +128,10 @@ export interface FrameLayer {
 }
 
 /** A track matte with its source layer's pixels already in hand. */
-export interface FrameMatte {
+export interface FrameMatte<TSource = FrameLayerPixels> {
   mode: MatteMode;
   invert: boolean;
-  layer: FrameLayer;
+  layer: FrameLayer<TSource>;
 }
 
 /**
@@ -156,27 +167,64 @@ interface ResolvedLayer {
   mask?: AnimationSampleMask;
 }
 
-/** `copyTextureToBuffer` requires a 256-byte-aligned `bytesPerRow`. */
-const ROW_ALIGNMENT = 256;
-
 const TEXTURE_FORMAT: GPUTextureFormat = "rgba8unorm";
 
-interface SourceTexture {
+/** A layer's pixels, once the host has them in a texture. */
+export interface GpuSourceTexture {
   texture: GPUTexture;
   width: number;
   height: number;
-  version: string;
 }
 
-export class HeadlessFrameCompositor {
+/**
+ * How a host gets a layer's pixels onto the GPU. `id` is stable across frames
+ * for the same layer, so a host caches its texture under it and re-uploads only
+ * when the pixels change. Null means the source is not drawable yet — a video
+ * mid-seek, an image still decoding — and the layer contributes nothing to this
+ * frame.
+ */
+export type GpuSourceUploader<TSource> = (
+  id: string,
+  source: TSource
+) => GpuSourceTexture | null;
+
+/** What a host needs to tell the compositor about its own texture cache. */
+export interface GpuFrameCompositorOptions<TSource> {
+  /** Distinguishes this instance's GPU labels from another's. */
+  label?: string;
+  upload: GpuSourceUploader<TSource>;
+  /**
+   * The source ids still in use after this frame. A host drops whatever its
+   * cache holds beyond them, the way the compositor drops its own intermediates.
+   */
+  retainSources?: (live: ReadonlySet<string>) => void;
+}
+
+/** The result of compositing one frame: where it landed, and how much drew. */
+export interface GpuCompositeResult {
+  /** The accumulation texture holding the finished frame. */
+  texture: GPUTexture;
+  /** How many of the given layers resolved to pixels. */
+  drawn: number;
+}
+
+export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   private readonly device: GPUDevice;
   private readonly core: WebGPULayerCompositor;
   private readonly effects: WebGPUEffectsProcessor;
-  private readonly width: number;
-  private readonly height: number;
-  private readonly bytesPerRow: number;
-  private readonly readback: GPUBuffer;
-  private readonly sources = new Map<string, SourceTexture>();
+  private readonly label: string;
+  private readonly upload: GpuSourceUploader<TSource>;
+  private readonly retainSources: (live: ReadonlySet<string>) => void;
+  private width: number;
+  private height: number;
+  /**
+   * The sequence's own resolution — the space `transform.position` and a
+   * transition's frame-relative offset are expressed in. Equal to the frame
+   * size unless a host says otherwise, which the editor does because its canvas
+   * tracks the viewport and the device pixel ratio.
+   */
+  private refWidth = 0;
+  private refHeight = 0;
   /**
    * The second compositor pass, built on the first frame that carries a
    * precompositing group and never at all for a document without one. Its own
@@ -191,40 +239,86 @@ export class HeadlessFrameCompositor {
    *  shader reads a source as. Built with the second pass. */
   private unpremultiply: GPURenderPipeline | null = null;
 
-  constructor(device: GPUDevice, width: number, height: number) {
+  constructor(
+    device: GPUDevice,
+    width: number,
+    height: number,
+    options: GpuFrameCompositorOptions<TSource>
+  ) {
     this.device = device;
     this.width = Math.max(1, Math.floor(width));
     this.height = Math.max(1, Math.floor(height));
+    this.label = options.label ?? "timeline";
+    this.upload = options.upload;
+    this.retainSources = options.retainSources ?? (() => {});
     this.core = new WebGPULayerCompositor(
       device,
       TEXTURE_FORMAT,
       "linear",
-      "timeline-headless"
+      this.label
     );
     this.core.ensureSize(this.width, this.height);
     this.effects = new WebGPUEffectsProcessor(device);
-    this.bytesPerRow =
-      Math.ceil((this.width * 4) / ROW_ALIGNMENT) * ROW_ALIGNMENT;
-    this.readback = device.createBuffer({
-      label: "timeline-headless-readback",
-      size: this.bytesPerRow * this.height,
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-    });
   }
 
   /**
-   * Composite `layers` over opaque black and return the frame as straight-alpha
-   * RGBA8 at the compositor's resolution.
+   * Change the frame size. The intermediates are frame-sized, so they are
+   * dropped and rebuilt at the new one; the host's own source textures are
+   * source-sized and unaffected.
+   */
+  resize(width: number, height: number): void {
+    const w = Math.max(1, Math.floor(width));
+    const h = Math.max(1, Math.floor(height));
+    if (w === this.width && h === this.height) return;
+    this.width = w;
+    this.height = h;
+    this.core.ensureSize(w, h);
+    this.precompCore?.ensureSize(w, h);
+    for (const texture of this.precompTargets.values()) texture.destroy();
+    this.precompTargets.clear();
+  }
+
+  /** Set the sequence resolution a stored transform is expressed against. */
+  setReferenceSize(width: number, height: number): void {
+    this.refWidth = width;
+    this.refHeight = height;
+  }
+
+  /** The reference width in force: the host's, or the frame's. */
+  private get referenceWidth(): number {
+    return this.refWidth || this.width;
+  }
+
+  private get referenceHeight(): number {
+    return this.refHeight || this.height;
+  }
+
+  /**
+   * Copy `from` onto `view` — how a host presents the composited frame to a
+   * swap chain it owns and this does not.
+   */
+  blit(encoder: GPUCommandEncoder, from: GPUTexture, view: GPUTextureView): void {
+    this.core.blit(encoder, from, view);
+  }
+
+  /**
+   * Composite `layers` over `clearValue` and return the accumulation texture
+   * holding the frame, plus how many layers actually drew.
    *
    * A layer naming a group in `precomposites` renders into that group's own
    * texture first, and the texture blends once at the group's z with the
    * group's opacity, blend mode and effect chain. With no precomposites this is
-   * the single-pass path unchanged: the second compositor is never built.
+   * the single-pass path: the second compositor is never built.
+   *
+   * The work is submitted before this returns, so a host records whatever it
+   * does with the frame — a readback, a blit to a swap chain — in an encoder of
+   * its own and submits that after.
    */
-  async renderFrame(
-    layers: FrameLayer[],
-    precomposites: readonly FramePrecomposite[] = []
-  ): Promise<Uint8Array> {
+  composite(
+    layers: readonly FrameLayer<TSource>[],
+    precomposites: readonly FramePrecomposite[] = [],
+    clearValue: GPUColor = { r: 0, g: 0, b: 0, a: 1 }
+  ): GpuCompositeResult {
     const ordered = [...layers].sort((a, b) => a.zIndex - b.zIndex);
     this.retainOnly(ordered, precomposites);
 
@@ -234,19 +328,17 @@ export class HeadlessFrameCompositor {
       throw new Error("Compositor failed to allocate accumulation textures");
     }
 
-    const stack = this.composePrecomposites(ordered, precomposites);
+    const { stack, drawn } = this.composePrecomposites(ordered, precomposites);
 
     const encoder = this.device.createCommandEncoder({
-      label: "timeline-headless-frame"
+      label: `${this.label}-frame`
     });
 
-    // Seed the accumulation with opaque black — the same background the
-    // preview composites over.
     const seed = encoder.beginRenderPass({
       colorAttachments: [
         {
           view: readStart.createView(),
-          clearValue: { r: 0, g: 0, b: 0, a: 1 },
+          clearValue,
           loadOp: "clear",
           storeOp: "store"
         }
@@ -255,40 +347,15 @@ export class HeadlessFrameCompositor {
     seed.end();
 
     this.core.beginFrame();
-    const readTex = this.blendStack(
+    const texture = this.blendStack(
       encoder,
       this.core,
       stack,
       readStart,
       writeStart
     );
-
-    encoder.copyTextureToBuffer(
-      { texture: readTex },
-      {
-        buffer: this.readback,
-        bytesPerRow: this.bytesPerRow,
-        rowsPerImage: this.height
-      },
-      { width: this.width, height: this.height }
-    );
     this.device.queue.submit([encoder.finish()]);
-
-    await this.readback.mapAsync(GPUMapMode.READ);
-    const mapped = new Uint8Array(this.readback.getMappedRange());
-    // The accumulation is premultiplied, but the opaque-black seed leaves every
-    // pixel at alpha 1, where premultiplied and straight alpha coincide — so
-    // dropping the 256-byte row padding is all that is left to do.
-    const rgba = new Uint8Array(this.width * this.height * 4);
-    const rowBytes = this.width * 4;
-    for (let row = 0; row < this.height; row++) {
-      rgba.set(
-        mapped.subarray(row * this.bytesPerRow, row * this.bytesPerRow + rowBytes),
-        row * rowBytes
-      );
-    }
-    this.readback.unmap();
-    return rgba;
+    return { texture, drawn };
   }
 
   /**
@@ -329,7 +396,7 @@ export class HeadlessFrameCompositor {
    * is matted — replace all of that with the matted composite (D6). Null when
    * the layer has no drawable source.
    */
-  private resolveLayer(layer: FrameLayer): ResolvedLayer | null {
+  private resolveLayer(layer: FrameLayer<TSource>): ResolvedLayer | null {
     const item = this.resolvePlacedLayer(layer);
     if (!item || !layer.matte) return item;
     return this.applyMatte(layer, item, layer.matte);
@@ -346,9 +413,9 @@ export class HeadlessFrameCompositor {
    * rather than {@link resolveLayer}, so a matte can never drive a matte.
    */
   private applyMatte(
-    layer: FrameLayer,
+    layer: FrameLayer<TSource>,
     item: ResolvedLayer,
-    matte: FrameMatte
+    matte: FrameMatte<TSource>
   ): ResolvedLayer | null {
     const source = this.resolvePlacedLayer(matte.layer);
     // No matte source pixels means an empty keyhole. Drawing the layer unmatted
@@ -395,8 +462,8 @@ export class HeadlessFrameCompositor {
    * Upload a layer's pixels, run its own effect chain and shape mask, and work
    * out where it sits. Null when the layer has no drawable source.
    */
-  private resolvePlacedLayer(layer: FrameLayer): ResolvedLayer | null {
-    const src = this.uploadPixels(layer.id, layer.source);
+  private resolvePlacedLayer(layer: FrameLayer<TSource>): ResolvedLayer | null {
+    const src = this.upload(layer.id, layer.source);
     if (!src) return null;
 
     const clipEffects = layer.effects ?? [];
@@ -418,7 +485,7 @@ export class HeadlessFrameCompositor {
     // as — so a layer with effects, a mask, both or neither reaches the blend
     // in one convention.
     const coverage = layer.shapeMask
-      ? this.uploadPixels(`${layer.id}#mask`, layer.shapeMask)
+      ? this.upload(`${layer.id}#mask`, layer.shapeMask)
       : null;
     const texture = coverage
       ? this.effects.applyMask(
@@ -443,8 +510,8 @@ export class HeadlessFrameCompositor {
           transform: transitionTransform(
             layer.transform,
             layer.transition,
-            this.width,
-            this.height
+            this.referenceWidth,
+            this.referenceHeight
           ),
           parentMatrix: layer.parentMatrix
         },
@@ -464,15 +531,15 @@ export class HeadlessFrameCompositor {
 
   /** Where a source of this size lands on the frame, as the shader's affine. */
   private placementOf(
-    layer: Pick<FrameLayer, "transform" | "parentMatrix">,
+    layer: Pick<FrameLayer<TSource>, "transform" | "parentMatrix">,
     sourceWidth: number,
     sourceHeight: number
   ): InverseAffine {
     const matrix = buildTransformMatrix(
       layer.transform ?? IDENTITY_TRANSFORM,
       containBaseScale(sourceWidth, sourceHeight, this.width, this.height),
-      this.width,
-      this.height,
+      this.referenceWidth,
+      this.referenceHeight,
       layer.parentMatrix
     );
     return forwardClipMatrixToInverseAffine(
@@ -493,7 +560,7 @@ export class HeadlessFrameCompositor {
    * inverse affine maps screen pixels to texels, and every pixel of a solid
    * samples the same one.
    */
-  private dipSolidFor(layer: FrameLayer): ResolvedLayer | null {
+  private dipSolidFor(layer: FrameLayer<TSource>): ResolvedLayer | null {
     const solid = layer.transition?.solid;
     if (!solid || solid.opacity <= 0) return null;
     const texture = this.solidTexture(solid.color);
@@ -508,8 +575,8 @@ export class HeadlessFrameCompositor {
         buildTransformMatrix(
           IDENTITY_TRANSFORM,
           { x: 1, y: 1 },
-          this.width,
-          this.height
+          this.referenceWidth,
+          this.referenceHeight
         ),
         1,
         1,
@@ -527,7 +594,7 @@ export class HeadlessFrameCompositor {
     const rgb = parseHexColor(color);
     if (!rgb) return null;
     const texture = this.device.createTexture({
-      label: `timeline-headless-solid-${color}`,
+      label: `${this.label}-solid-${color}`,
       size: { width: 1, height: 1 },
       format: TEXTURE_FORMAT,
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
@@ -553,19 +620,21 @@ export class HeadlessFrameCompositor {
    * texture ahead of the read that consumes it.
    */
   private composePrecomposites(
-    layers: readonly FrameLayer[],
+    layers: readonly FrameLayer<TSource>[],
     precomposites: readonly FramePrecomposite[]
-  ): ResolvedLayer[] {
+  ): { stack: ResolvedLayer[]; drawn: number } {
+    let drawn = 0;
     if (precomposites.length === 0) {
       const stack: ResolvedLayer[] = [];
       for (const layer of layers) {
         const item = this.resolveLayer(layer);
         if (!item) continue;
+        drawn += 1;
         const solid = this.dipSolidFor(layer);
         if (solid) stack.push(solid);
         stack.push(item);
       }
-      return stack;
+      return { stack, drawn };
     }
 
     const stack: ResolvedLayer[] = [];
@@ -583,6 +652,7 @@ export class HeadlessFrameCompositor {
     for (const layer of layers) {
       const item = this.resolveLayer(layer);
       if (!item) continue;
+      drawn += 1;
       // The solid shares the layer's z and is pushed first, so the stable sort
       // that orders the stack keeps it beneath the clip it dips into.
       const solid = this.dipSolidFor(layer);
@@ -605,7 +675,7 @@ export class HeadlessFrameCompositor {
         borderRadius: 0
       });
     }
-    return stack;
+    return { stack, drawn };
   }
 
   /**
@@ -638,7 +708,7 @@ export class HeadlessFrameCompositor {
     }
 
     const composeEncoder = this.device.createCommandEncoder({
-      label: `timeline-headless-precomp-${key}`
+      label: `${this.label}-precomp-${key}`
     });
     // Transparent, not black: the group's own pixels have to blend over what is
     // already on the frame, and a black seed would knock it out.
@@ -681,7 +751,7 @@ export class HeadlessFrameCompositor {
 
     const target = this.precompositeTarget(key);
     const resolveEncoder = this.device.createCommandEncoder({
-      label: `timeline-headless-precomp-resolve-${key}`
+      label: `${this.label}-precomp-resolve-${key}`
     });
     const pass = resolveEncoder.beginRenderPass({
       colorAttachments: [
@@ -715,7 +785,7 @@ export class HeadlessFrameCompositor {
         this.device,
         TEXTURE_FORMAT,
         "linear",
-        "timeline-headless-precomp"
+        `${this.label}-precomp`
       );
       core.ensureSize(this.width, this.height);
       this.precompCore = core;
@@ -727,7 +797,7 @@ export class HeadlessFrameCompositor {
     let target = this.precompTargets.get(id);
     if (!target) {
       target = this.device.createTexture({
-        label: `timeline-headless-precomp-target-${id}`,
+        label: `${this.label}-precomp-target-${id}`,
         size: { width: this.width, height: this.height },
         format: TEXTURE_FORMAT,
         usage:
@@ -742,11 +812,11 @@ export class HeadlessFrameCompositor {
     let pipeline = this.unpremultiply;
     if (!pipeline) {
       const module = this.device.createShaderModule({
-        label: "timeline-headless-unpremultiply",
+        label: `${this.label}-unpremultiply`,
         code: `${FULLSCREEN_QUAD_VERTEX}\n${UNPREMULTIPLY_FRAGMENT}`
       });
       pipeline = this.device.createRenderPipeline({
-        label: "timeline-headless-unpremultiply",
+        label: `${this.label}-unpremultiply`,
         layout: "auto",
         vertex: { module, entryPoint: "vs_main" },
         fragment: {
@@ -762,7 +832,7 @@ export class HeadlessFrameCompositor {
   }
 
   private retainOnly(
-    layers: FrameLayer[],
+    layers: readonly FrameLayer<TSource>[],
     precomposites: readonly FramePrecomposite[]
   ): void {
     // A matte source never appears in `layers`, and its textures are keyed off
@@ -770,7 +840,7 @@ export class HeadlessFrameCompositor {
     const live = new Set<string>();
     const liveTargets = new Set(precomposites.map((p) => p.id));
     const effectKeys = new Set<string>();
-    const visit = (layer: FrameLayer): void => {
+    const visit = (layer: FrameLayer<TSource>): void => {
       live.add(layer.id);
       effectKeys.add(layer.id);
       if (layer.shapeMask) {
@@ -786,12 +856,7 @@ export class HeadlessFrameCompositor {
     };
     for (const layer of layers) visit(layer);
 
-    for (const [id, entry] of this.sources) {
-      if (!live.has(id)) {
-        entry.texture.destroy();
-        this.sources.delete(id);
-      }
-    }
+    this.retainSources(live);
     for (const [id, texture] of this.precompTargets) {
       if (!liveTargets.has(id)) {
         texture.destroy();
@@ -802,6 +867,116 @@ export class HeadlessFrameCompositor {
     // `precomp:<id>` for every composed texture, so both sets have to survive.
     for (const id of liveTargets) effectKeys.add(`precomp:${id}`);
     this.effects.retainOnly(effectKeys);
+  }
+
+  dispose(): void {
+    for (const texture of this.precompTargets.values()) texture.destroy();
+    this.precompTargets.clear();
+    for (const texture of this.solids.values()) texture.destroy();
+    this.solids.clear();
+    this.effects.dispose();
+    this.core.dispose();
+    this.precompCore?.dispose();
+    this.precompCore = null;
+  }
+}
+
+/** `copyTextureToBuffer` requires a 256-byte-aligned `bytesPerRow`. */
+const ROW_ALIGNMENT = 256;
+
+interface SourceTexture {
+  texture: GPUTexture;
+  width: number;
+  height: number;
+  version: string;
+}
+
+/**
+ * Composite one timeline frame without a canvas: CPU pixels in, straight-alpha
+ * RGBA8 out.
+ *
+ * The server-side host of {@link GpuFrameCompositor}. Everything about what a
+ * frame looks like is the compositor's; what is here is the boundary — a
+ * texture cache keyed by layer id and versioned by the pixels, and the readback
+ * buffer the finished frame is copied through.
+ */
+export class HeadlessFrameCompositor {
+  private readonly device: GPUDevice;
+  private readonly compositor: GpuFrameCompositor<FrameLayerPixels>;
+  private readonly width: number;
+  private readonly height: number;
+  private readonly bytesPerRow: number;
+  private readonly readback: GPUBuffer;
+  private readonly sources = new Map<string, SourceTexture>();
+
+  constructor(device: GPUDevice, width: number, height: number) {
+    this.device = device;
+    this.width = Math.max(1, Math.floor(width));
+    this.height = Math.max(1, Math.floor(height));
+    this.compositor = new GpuFrameCompositor<FrameLayerPixels>(
+      device,
+      this.width,
+      this.height,
+      {
+        label: "timeline-headless",
+        upload: (id, pixels) => this.uploadPixels(id, pixels),
+        retainSources: (live) => {
+          for (const [id, entry] of this.sources) {
+            if (live.has(id)) continue;
+            entry.texture.destroy();
+            this.sources.delete(id);
+          }
+        }
+      }
+    );
+    this.bytesPerRow =
+      Math.ceil((this.width * 4) / ROW_ALIGNMENT) * ROW_ALIGNMENT;
+    this.readback = device.createBuffer({
+      label: "timeline-headless-readback",
+      size: this.bytesPerRow * this.height,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+    });
+  }
+
+  /**
+   * Composite `layers` over opaque black and return the frame as straight-alpha
+   * RGBA8 at the compositor's resolution.
+   */
+  async renderFrame(
+    layers: FrameLayer[],
+    precomposites: readonly FramePrecomposite[] = []
+  ): Promise<Uint8Array> {
+    const { texture } = this.compositor.composite(layers, precomposites);
+
+    const encoder = this.device.createCommandEncoder({
+      label: "timeline-headless-readback"
+    });
+    encoder.copyTextureToBuffer(
+      { texture },
+      {
+        buffer: this.readback,
+        bytesPerRow: this.bytesPerRow,
+        rowsPerImage: this.height
+      },
+      { width: this.width, height: this.height }
+    );
+    this.device.queue.submit([encoder.finish()]);
+
+    await this.readback.mapAsync(GPUMapMode.READ);
+    const mapped = new Uint8Array(this.readback.getMappedRange());
+    // The accumulation is premultiplied, but the opaque-black seed leaves every
+    // pixel at alpha 1, where premultiplied and straight alpha coincide — so
+    // dropping the 256-byte row padding is all that is left to do.
+    const rgba = new Uint8Array(this.width * this.height * 4);
+    const rowBytes = this.width * 4;
+    for (let row = 0; row < this.height; row++) {
+      rgba.set(
+        mapped.subarray(row * this.bytesPerRow, row * this.bytesPerRow + rowBytes),
+        row * rowBytes
+      );
+    }
+    this.readback.unmap();
+    return rgba;
   }
 
   private uploadPixels(
@@ -856,14 +1031,7 @@ export class HeadlessFrameCompositor {
   dispose(): void {
     for (const entry of this.sources.values()) entry.texture.destroy();
     this.sources.clear();
-    for (const texture of this.precompTargets.values()) texture.destroy();
-    this.precompTargets.clear();
-    for (const texture of this.solids.values()) texture.destroy();
-    this.solids.clear();
-    this.effects.dispose();
-    this.core.dispose();
-    this.precompCore?.dispose();
-    this.precompCore = null;
+    this.compositor.dispose();
     this.readback.destroy();
   }
 }
