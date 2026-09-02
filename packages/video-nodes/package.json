@@ -37,7 +37,7 @@
     "@types/node": "^22.0.0",
     "@types/three": "^0.185.0",
     "@webgpu/types": "^0.1.70",
-    "esbuild": "^0.28.1",
+    "esbuild": "^0.28.2",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },

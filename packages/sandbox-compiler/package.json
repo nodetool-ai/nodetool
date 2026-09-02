@@ -22,7 +22,7 @@
     "@nodetool-ai/protocol": "*",
     "@sebastianwessel/quickjs": "^3.0.1",
     "acorn": "^8.16.0",
-    "esbuild": "^0.28.1"
+    "esbuild": "^0.28.2"
   },
   "devDependencies": {
     "@nodetool-ai/agents": "*",
