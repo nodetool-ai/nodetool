@@ -153,20 +153,32 @@ export type ShapeFill =
   | { type: "radial"; stops: { offset: number; color: string }[] };
 
 /**
- * Every geometry a shape clip can draw. `rect`, `ellipse` and `line` are
- * rasterized today; the rest are drawn by the path renderer.
+ * Every geometry this build draws. `rect`, `ellipse` and `line` are rasterized
+ * directly; the rest are drawn by the path renderer. Anything else parses and
+ * rides through as an unknown kind (I2); the geometry builder returns no
+ * outline for it, so the clip draws nothing, and the validator reports it as
+ * `unknown_shape_kind`.
  */
-export type ClipShapeKind =
-  | "rect"
-  | "ellipse"
-  | "line"
-  | "path"
-  | "polygon"
-  | "star";
+export const CLIP_SHAPE_KINDS = [
+  "rect",
+  "ellipse",
+  "line",
+  "path",
+  "polygon",
+  "star"
+] as const;
+
+export type ClipShapeKind = (typeof CLIP_SHAPE_KINDS)[number];
+
+/** Whether a document's shape `kind` names a geometry this build draws. */
+export function isKnownShapeKind(kind: string): kind is ClipShapeKind {
+  return (CLIP_SHAPE_KINDS as readonly string[]).includes(kind);
+}
 
 /** Authored vector-like geometry drawn by a rasterized shape clip. */
 export interface ClipShapeStyle {
-  kind: ClipShapeKind;
+  /** Plain string for forward compat (I2) — see {@link CLIP_SHAPE_KINDS}. */
+  kind: string;
   fill?: string;
   stroke?: string;
   strokeWidthPx?: number;

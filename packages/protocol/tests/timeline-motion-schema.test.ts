@@ -197,6 +197,24 @@ describe("timelineClip — a type from a newer build", () => {
     expect(parsed.effects).toEqual(effects);
   });
 
+  it("parses a shape kind this build cannot draw, geometry intact", () => {
+    const shapeStyle = {
+      kind: "arrow",
+      x: 0.1,
+      y: 0.2,
+      width: 0.4,
+      height: 0.3,
+      fill: "#ff0000",
+      strokeWidthPx: 2
+    };
+    const parsed = timelineClip.parse({
+      ...baseClip,
+      mediaType: "shape" as const,
+      shapeStyle
+    });
+    expect(parsed.shapeStyle).toEqual(shapeStyle);
+  });
+
   it("still validates a known transition type field by field", () => {
     const parsed = timelineClip.safeParse({
       ...baseClip,
