@@ -16,7 +16,8 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     },
     Message: {
       ...actual.Message,
-      paginate: vi.fn()
+      paginate: vi.fn(),
+      deleteByThread: vi.fn()
     },
     Memory: {
       ...actual.Memory,
@@ -216,40 +217,17 @@ describe("threads router", () => {
 
   // ── delete ──────────────────────────────────────────────────────
   describe("delete", () => {
-    it("deletes thread and its messages in batches", async () => {
+    it("deletes thread and its messages", async () => {
       const t = makeThread({ id: "t1" });
       (Thread.find as ReturnType<typeof vi.fn>).mockResolvedValue(t);
-      const msg1 = { delete: vi.fn().mockResolvedValue(undefined) };
-      const msg2 = { delete: vi.fn().mockResolvedValue(undefined) };
-      // First batch returns messages, second returns empty → loop exits.
-      (Message.paginate as ReturnType<typeof vi.fn>)
-        .mockResolvedValueOnce([[msg1, msg2], ""])
-        .mockResolvedValueOnce([[], ""]);
 
       const caller = createCaller(makeCtx());
       const result = await caller.threads.delete({ id: "t1" });
-      expect(msg1.delete).toHaveBeenCalled();
-      expect(msg2.delete).toHaveBeenCalled();
+      expect(Message.deleteByThread).toHaveBeenCalledWith("t1");
       // Thread deletion cascades to its durable memories.
       expect(Memory.deleteByThread).toHaveBeenCalledWith("user-1", "t1");
       expect(t.delete).toHaveBeenCalled();
       expect(result).toEqual({ ok: true });
-    });
-
-    it("exits the delete loop when paginate returns fewer than limit", async () => {
-      const t = makeThread({ id: "t1" });
-      (Thread.find as ReturnType<typeof vi.fn>).mockResolvedValue(t);
-      // Single batch with < 100 messages — loop should not re-enter.
-      const msg = { delete: vi.fn().mockResolvedValue(undefined) };
-      (Message.paginate as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
-        [msg],
-        ""
-      ]);
-
-      const caller = createCaller(makeCtx());
-      await caller.threads.delete({ id: "t1" });
-      expect(Message.paginate).toHaveBeenCalledTimes(1);
-      expect(t.delete).toHaveBeenCalled();
     });
 
     it("throws NOT_FOUND when thread does not exist", async () => {

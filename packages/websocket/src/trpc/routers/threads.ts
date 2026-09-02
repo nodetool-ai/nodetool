@@ -139,15 +139,8 @@ export const threadsRouter = router({
       if (!thread) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Thread not found");
       }
-      // Delete all messages in the thread, batched.
-      while (true) {
-        const [msgs] = await Message.paginate(input.id, { limit: 100 });
-        if (!msgs.length) break;
-        for (const msg of msgs) {
-          await msg.delete();
-        }
-        if (msgs.length < 100) break;
-      }
+      // Delete all messages in the thread
+      await Message.deleteByThread(input.id);
       // Drop the thread's durable memories along with it so per-conversation
       // memory doesn't outlive the conversation.
       await Memory.deleteByThread(ctx.userId, input.id);
