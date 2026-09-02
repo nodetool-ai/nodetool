@@ -208,12 +208,17 @@ runs turbo last so the appended flag reaches it, and the workflow does not rely
 on that.
 
 Across runs, each shard also restores and saves a `test-results-<shard>-*`
-cache of `.turbo/cache`. The per-SHA `turbo-*` cache the `build` job saves holds
-build tasks only (restore-only legs never save), so before this a test task was
-a cache miss on every commit. With the test archive layered on top, a package
-whose inputs and dependency builds are unchanged replays its last pass. On PRs
-`--affected` prunes first, so this mostly pays on push to `main`, where nothing
-else prunes.
+cache: the turbo cache entries written during the run (test tasks, tens of KB
+each), layered onto `.turbo/cache` before the run and collected from it after,
+with entries older than two weeks dropped. The per-SHA `turbo-*` cache the
+`build` job saves holds build tasks only (restore-only legs never save), so
+before this a test task was a cache miss on every commit. With the test archive
+layered on top, a package whose inputs and dependency builds are unchanged
+replays its last pass. On PRs `--affected` prunes first, so this mostly pays on
+push to `main`, where nothing else prunes. The archive is kept apart from
+`.turbo/cache` itself because that directory also holds the ~650 MB of restored
+build outputs, and four shards saving it per commit would evict the
+node_modules and build caches from the repository's 10 GB.
 
 ## Manual Trigger
 

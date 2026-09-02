@@ -422,24 +422,42 @@ jobs:
       # Turbo test results from earlier runs of this shard. setup-build restores
       # the per-SHA `build` cache the `build` job saved, which never holds a
       # test task — restore-only legs do not save, so a test task was a cache
-      # miss on every run of every commit. This second restore layers the
-      # newest test-results archive for the shard (from main, or from this
-      # branch) on top; turbo keys each task on its inputs and its
-      # dependencies' build hashes, so a package the commit did not reach
-      # replays its last pass instead of running. On PRs `--affected` prunes
-      # first, so this mostly pays on push to main, where nothing else prunes.
+      # miss on every run of every commit. This restore brings in the newest
+      # test-results archive for the shard (from main, or from this branch)
+      # and the next step layers it onto the turbo cache; turbo keys each
+      # task on its inputs and its dependencies' build hashes, so a package
+      # the commit did not reach replays its last pass instead of running. On
+      # PRs `--affected` prunes first, so this mostly pays on push to main,
+      # where nothing else prunes.
       #
-      # A separate key namespace (`test-results-`, not `turbo-`) so the build
-      # job's prefix fallback never picks up a test archive in place of a
-      # build one.
+      # The archive is `.turbo/test-results`, not `.turbo/cache`: the cache
+      # dir also holds the restored build outputs, ~650 MB, and four shards
+      # saving that per commit would evict the node_modules and build caches
+      # from the repo's 10 GB. Only the entries turbo writes during the run
+      # (test tasks: logs, no outputs, tens of KB each) are collected after
+      # it, on top of what was restored, and entries older than two weeks are
+      # dropped so the archive stays bounded. A separate key namespace
+      # (`test-results-`, not `turbo-`) so the build job's prefix fallback
+      # never picks one of these up in place of a build cache.
       - name: Restore backend test results
         if: startsWith(matrix.check, 'test-packages-')
         uses: actions/cache/restore@v5
         with:
-          path: .turbo/cache
+          path: .turbo/test-results
           key: ${{ runner.os }}-test-results-${{ matrix.check }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-test-results-${{ matrix.check }}-
+
+      # `--update=none`: a hash already in the cache dir (a build entry) is never
+      # overwritten. The marker's mtime is what "written during the run"
+      # means below; tar restores the archive's own mtimes, so restored
+      # entries sit before it.
+      - name: Layer saved test results onto the turbo cache
+        if: startsWith(matrix.check, 'test-packages-')
+        run: |
+          mkdir -p .turbo/cache .turbo/test-results
+          cp -a --update=none .turbo/test-results/. .turbo/cache/
+          touch .turbo/run-start
 
       - name: Run ${{ matrix.check }}
         # skip-tests drops the package + app test legs without touching the
@@ -456,14 +474,23 @@ jobs:
           ${{ matrix.command }}
           echo "::endgroup::"
 
-      # Save even when a test failed: turbo only writes an entry for a task
-      # that passed, so the archive carries the green packages forward and the
-      # red one runs again next time. Skipped on cancel, where nothing ran.
+      # Collect and save even when a test failed: turbo only writes an entry
+      # for a task that passed, so the archive carries the green packages
+      # forward and the red one runs again next time. Skipped on cancel,
+      # where nothing ran.
+      - name: Collect this run's test results
+        if: startsWith(matrix.check, 'test-packages-') && !cancelled()
+        run: |
+          find .turbo/cache -maxdepth 1 -type f -newer .turbo/run-start \
+            -exec cp -p -t .turbo/test-results/ {} +
+          find .turbo/test-results -type f -mtime +14 -delete
+          echo "$(find .turbo/test-results -type f | wc -l) entries, $(du -sh .turbo/test-results | cut -f1)"
+
       - name: Save backend test results
         if: startsWith(matrix.check, 'test-packages-') && !cancelled()
         uses: actions/cache/save@v5
         with:
-          path: .turbo/cache
+          path: .turbo/test-results
           key: ${{ runner.os }}-test-results-${{ matrix.check }}-${{ github.sha }}
 
   # The deploy artifact. docker.yml only builds after a merge to main, so until
