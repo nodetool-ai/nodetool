@@ -2146,7 +2146,7 @@ export class ChatTurnHandler {
         compaction.keepUserTurns
       );
       if (!cut) return false;
-      let summary: string | null = null;
+      let summary: string | null;
       try {
         const summarizer = await summarizerModel();
         summary = await summarizeForCompaction({

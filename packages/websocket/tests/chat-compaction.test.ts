@@ -15,7 +15,10 @@ import {
   Message
 } from "@nodetool-ai/models";
 import { markContextExceeded } from "@nodetool-ai/runtime";
-import { chooseCompactionCut } from "../src/session/chat-compaction.js";
+import {
+  chooseCompactionCut,
+  renderTranscriptForSummary
+} from "../src/session/chat-compaction.js";
 import {
   fakeProvider,
   makeChatTurnHarness,
@@ -139,6 +142,30 @@ describe("chooseCompactionCut", () => {
     expect(chooseCompactionCut(rows, 3)).toBeNull();
     expect(chooseCompactionCut(rows, 9)).toBeNull();
     expect(chooseCompactionCut([{ role: "assistant" }], 1)).toBeNull();
+  });
+});
+
+describe("renderTranscriptForSummary", () => {
+  it("redacts a credential a tool call carried", () => {
+    const rendered = renderTranscriptForSummary([
+      { role: "user", content: "index the bucket" },
+      {
+        role: "assistant",
+        content: "on it",
+        toolCalls: [
+          {
+            id: "call-1",
+            name: "http_request",
+            args: { url: "https://example.com", api_key: "sk-live-secret" }
+          }
+        ]
+      }
+    ]);
+
+    expect(rendered).toContain("index the bucket");
+    expect(rendered).toContain("https://example.com");
+    expect(rendered).not.toContain("sk-live-secret");
+    expect(rendered).toContain("[redacted]");
   });
 });
 

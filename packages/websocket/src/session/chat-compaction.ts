@@ -42,9 +42,9 @@ export const COMPACTION_DEFAULTS = {
 export const COMPACTION_SUMMARY_MAX_TOKENS = 4_000;
 
 /**
- * Per-field cut in the redacted transcript the summarizer reads. Stored tool
- * results are already cut at `MAX_TOOL_RESULT_CHARS`, so a message reaching
- * this bound was oversized when it was written.
+ * Per-field cut in the transcript the summarizer reads. The same bound the
+ * chat turn's own observations are cut at (`MAX_TOOL_RESULT_CHARS`), so a
+ * message the model saw in full is summarized in full.
  */
 const SUMMARY_FIELD_CHARS = 25_000;
 
@@ -161,23 +161,19 @@ Write nothing else: no preamble, no closing line, no detail the conversation doe
 export function renderTranscriptForSummary(
   messages: readonly ProviderMessage[]
 ): string {
+  const bounds = { maxStringLength: SUMMARY_FIELD_CHARS };
   const lines: string[] = [];
   for (const m of messages) {
-    const safe = sanitizeForLog(
-      {
-        role: m.role,
-        text: extractTextContent(m.content, "[media]"),
-        toolCalls: m.toolCalls ?? null
-      },
-      { maxStringLength: SUMMARY_FIELD_CHARS }
+    const text = sanitizeForLog(
+      extractTextContent(m.content, "[media]"),
+      bounds
     );
-    if (typeof safe !== "object" || safe === null || Array.isArray(safe)) {
-      continue;
-    }
-    const text = typeof safe.text === "string" ? safe.text : "";
-    let line = `${m.role}: ${text}`;
-    if (safe.toolCalls) {
-      line += `\ncalled: ${JSON.stringify(safe.toolCalls)}`;
+    let line = `${m.role}: ${String(text)}`;
+    if (m.toolCalls?.length) {
+      // The redaction earns its place here: a tool call's arguments are the
+      // one part of a transcript that carries a credential under a name
+      // `sanitizeForLog` recognizes.
+      line += `\ncalled: ${JSON.stringify(sanitizeForLog(m.toolCalls, bounds))}`;
     }
     lines.push(line);
   }
