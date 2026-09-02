@@ -68,26 +68,67 @@ export function containBaseScale(
 const matrixCache = new Map<string, Float32Array>();
 const MATRIX_CACHE_MAX = 64;
 
+/**
+ * The six entries that vary across the matrices built here — the 2D affine.
+ * Columns 2 and 3 of the third row and the homogeneous row are constant, so a
+ * cache key and a composition only ever have to carry these.
+ */
+function affineKey(m: Float32Array): string {
+  return `${m[0]},${m[1]},${m[4]},${m[5]},${m[12]},${m[13]}`;
+}
+
 function matrixCacheKey(
   t: ClipTransform,
   base: { x: number; y: number },
   width: number,
-  height: number
+  height: number,
+  parent: Float32Array | undefined
 ): string {
   return (
     `${t.position.x},${t.position.y},${t.scale.x},${t.scale.y},` +
     `${t.rotation},${t.anchor.x},${t.anchor.y},` +
-    `${base.x},${base.y},${width},${height}`
+    `${base.x},${base.y},${width},${height}` +
+    (parent ? `|${affineKey(parent)}` : "")
   );
 }
 
+/**
+ * `parent × own`, in clip space. Both operands are the 2D affines this module
+ * builds, so only the six varying entries are multiplied; the rest are already
+ * in place from `own`. The parent applies second, which is what makes a group's
+ * rotation turn its children about the *group's* anchor: the child's own matrix
+ * places it in clip space, and the parent then rotates that whole space around
+ * the point the parent's own anchor pinned.
+ */
+function composeWithParent(own: Float32Array, parent: Float32Array): void {
+  const a0 = own[0];
+  const a1 = own[1];
+  const a4 = own[4];
+  const a5 = own[5];
+  const a12 = own[12];
+  const a13 = own[13];
+  own[0] = parent[0] * a0 + parent[4] * a1;
+  own[1] = parent[1] * a0 + parent[5] * a1;
+  own[4] = parent[0] * a4 + parent[4] * a5;
+  own[5] = parent[1] * a4 + parent[5] * a5;
+  own[12] = parent[0] * a12 + parent[4] * a13 + parent[12];
+  own[13] = parent[1] * a12 + parent[5] * a13 + parent[13];
+}
+
+/**
+ * `parentMatrix` is the resolved matrix of the group this layer is parented to
+ * (see `sceneModel`'s `resolveGroups`), already carrying its own ancestors. A
+ * group's matrix is built against the identity base, so it is a pure clip-space
+ * transform and composes with any child regardless of the child's source size.
+ */
 export function buildTransformMatrix(
   transform: ClipTransform,
   base: { x: number; y: number },
   width: number,
-  height: number
+  height: number,
+  parentMatrix?: Float32Array
 ): Float32Array {
-  const cacheKey = matrixCacheKey(transform, base, width, height);
+  const cacheKey = matrixCacheKey(transform, base, width, height, parentMatrix);
   const cached = matrixCache.get(cacheKey);
   if (cached) return cached;
 
@@ -135,6 +176,8 @@ export function buildTransformMatrix(
   m[13] = ty + ay - (m[1] * ax + m[5] * ay);
   m[14] = 0;
   m[15] = 1;
+
+  if (parentMatrix) composeWithParent(m, parentMatrix);
 
   // Bound the cache: evict the oldest entry (insertion order) when full. The
   // returned matrix is treated as read-only by all callers, so sharing it is

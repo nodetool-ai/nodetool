@@ -117,7 +117,8 @@ async function redSpan(
 
 /** First and last column of a PNG's middle row that carries a bright pixel. */
 async function brightColumns(
-  png: Uint8Array
+  png: Uint8Array,
+  threshold = 60
 ): Promise<{ first: number; last: number; count: number }> {
   const image = await loadImage(Buffer.from(png));
   const canvas = createCanvas(image.width, image.height);
@@ -129,7 +130,7 @@ async function brightColumns(
   let last = -1;
   let count = 0;
   for (let i = 0; i < row.length; i += 4) {
-    if (row[i] > 60) {
+    if (row[i] > threshold) {
       const column = i / 4;
       if (first < 0) first = column;
       last = column;
@@ -446,6 +447,68 @@ describe("renderTimelineFrames", () => {
     expect(Math.abs(wideRow.length - expectedWide)).toBeLessThanOrEqual(4);
     expect(wideRow.length).toBeGreaterThan(wideRow.total - 5);
     expect(wideColumn.length).toBe(baseColumn.length);
+  });
+
+  /**
+   * A group is a transform parent (D4), and the picture is where that has to
+   * show up. A half-turn about a point a quarter of the way across the frame
+   * takes a bar in the leftmost quarter into the second quarter; the same
+   * rotation about the layer's own centre would take it to the rightmost one,
+   * so the two cannot be confused in the pixels.
+   */
+  it("rotates a child about the group's anchor, not its own", async () => {
+    const leftBar = {
+      kind: "rect" as const,
+      fill: "#ff0000",
+      x: 0,
+      y: 0,
+      width: 0.25,
+      height: 1
+    };
+    const halfTurnAtQuarterWidth = {
+      position: { x: 0, y: 0 },
+      scale: { x: 1, y: 1 },
+      rotation: Math.PI,
+      anchor: { x: 0.25, y: 0.5 }
+    };
+    const bar = shapeClip("bar", "track-0", "#ff0000", {
+      shapeStyle: leftBar
+    });
+    const group: TimelineClip = {
+      id: "group",
+      trackId: "track-0",
+      name: "Group",
+      startMs: 0,
+      durationMs: 4000,
+      mediaType: "group",
+      sourceType: "generated",
+      status: "generated",
+      transform: halfTurnAtQuarterWidth
+    };
+
+    const render = (clips: TimelineClip[]) =>
+      renderTimelineFrames({
+        sequence: sequence([track(0)], clips),
+        timesMs: [1000],
+        width: 160,
+        loadAsset: noAssets
+      });
+
+    const unparented = await render([bar]);
+    const parented = await render([group, { ...bar, parentId: "group" }]);
+
+    const before = await brightColumns(unparented.frames[0].png, 60);
+    const after = await brightColumns(parented.frames[0].png, 60);
+
+    // 160px wide: the bar starts in columns 0–39 and lands in 40–79.
+    expect(before.first).toBeLessThanOrEqual(1);
+    expect(before.last).toBeGreaterThanOrEqual(38);
+    expect(before.last).toBeLessThan(42);
+    expect(after.first).toBeGreaterThan(38);
+    expect(after.first).toBeLessThan(42);
+    expect(after.last).toBeGreaterThan(76);
+    expect(after.last).toBeLessThan(82);
+    expect(after.count).toBeCloseTo(before.count, -1);
   });
 
   it("names the effects Canvas 2D cannot draw", async () => {

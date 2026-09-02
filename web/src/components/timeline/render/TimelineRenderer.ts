@@ -253,7 +253,11 @@ export async function renderTimeline(
         releasePastIndex++;
       }
 
-      const layers = computeActiveLayers(tracks, clips, timeMs);
+      const layers = computeActiveLayers(tracks, clips, timeMs, {
+        // Group transforms live in the same space the animations sample in.
+        canvas: animCanvas,
+        animationCache: animCache
+      });
 
       // Resolve every layer's source concurrently — with several overlapping
       // videos this turns N sequential seek round-trips into one. Promise.all
@@ -311,6 +315,7 @@ export async function renderTimeline(
               blendMode: layer.blendMode,
               zIndex: trackZ(layer.trackIndex),
               transform: anim.transform,
+              parentMatrix: layer.parentMatrix,
               mask: anim.mask,
               borderRadius: layer.borderRadius,
               effects: anim.effects ?? layer.effects,
@@ -332,6 +337,7 @@ export async function renderTimeline(
               blendMode: layer.blendMode,
               zIndex: trackZ(layer.trackIndex),
               transform: anim.transform,
+              parentMatrix: layer.parentMatrix,
               mask: anim.mask,
               borderRadius: layer.borderRadius,
               effects: anim.effects ?? layer.effects,
@@ -358,6 +364,7 @@ export async function renderTimeline(
               blendMode: layer.blendMode,
               zIndex: trackZ(layer.trackIndex),
               transform: anim.transform,
+              parentMatrix: layer.parentMatrix,
               mask: anim.mask,
               borderRadius: layer.borderRadius,
               effects: anim.effects ?? layer.effects,
@@ -374,6 +381,7 @@ export async function renderTimeline(
             blendMode: layer.blendMode,
             zIndex: trackZ(layer.trackIndex),
             transform: anim.transform,
+            parentMatrix: layer.parentMatrix,
             mask: anim.mask,
             borderRadius: layer.borderRadius,
             effects: anim.effects ?? layer.effects,

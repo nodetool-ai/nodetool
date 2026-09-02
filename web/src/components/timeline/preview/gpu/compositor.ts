@@ -285,7 +285,8 @@ export class WebGPUCompositor implements TimelineCompositor {
         transform,
         base,
         this.refWidth || this.canvasWidth,
-        this.refHeight || this.canvasHeight
+        this.refHeight || this.canvasHeight,
+        layer.parentMatrix
       );
       const invAffine = forwardClipMatrixToInverseAffine(
         matrix,

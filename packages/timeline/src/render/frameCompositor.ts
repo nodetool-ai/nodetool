@@ -72,6 +72,8 @@ export interface FrameLayer {
   blendMode: CompositorBlendMode;
   zIndex: number;
   transform?: ClipTransform;
+  /** The layer's group matrix, from the scene model. Composes as `parent × own`. */
+  parentMatrix?: Float32Array;
   /** Rounded-corner radius in source pixels. */
   borderRadius?: number;
   mask?: AnimationSampleMask;
@@ -179,7 +181,8 @@ export class HeadlessFrameCompositor {
         layer.transform ?? IDENTITY_TRANSFORM,
         containBaseScale(src.width, src.height, this.width, this.height),
         this.width,
-        this.height
+        this.height,
+        layer.parentMatrix
       );
       const invAffine = forwardClipMatrixToInverseAffine(
         matrix,

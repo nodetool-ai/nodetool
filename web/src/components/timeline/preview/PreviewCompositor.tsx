@@ -155,6 +155,8 @@ interface ActiveVideoSlot {
   opacity: number;
   assetUrl: string;
   transform?: TimelineClip["transform"];
+  /** The group's resolved matrix, composed under the clip's own transform. */
+  parentMatrix?: Float32Array;
   borderRadius?: number;
   effects?: TimelineClip["effects"];
   trackEffects?: TrackEffect[];
@@ -168,6 +170,7 @@ interface ActiveImageLayer {
   assetUrl: string;
   status: TimelineClip["status"];
   transform?: TimelineClip["transform"];
+  parentMatrix?: Float32Array;
   borderRadius?: number;
   effects?: TimelineClip["effects"];
   trackEffects?: TrackEffect[];
@@ -193,6 +196,7 @@ interface ActiveTextLayer {
   blendMode: CompositorBlendMode;
   opacity: number;
   transform?: TimelineClip["transform"];
+  parentMatrix?: Float32Array;
   borderRadius?: number;
   effects?: TimelineClip["effects"];
   trackEffects?: TrackEffect[];
@@ -460,6 +464,16 @@ export const PreviewCompositor: React.FC = memo(() => {
   // rAF loop only samples (never compiles). Invalidated internally when a
   // clip's animations / duration / canvas size change.
   const animCacheRef = useRef(createAnimationCompileCache());
+  // The space a group transform and an animation offset are authored in: the
+  // sequence's own resolution, never the viewport's.
+  const sceneCanvas = useMemo(
+    () => ({
+      width: sequenceWidth,
+      height: sequenceHeight,
+      measureText: textMeasurer()
+    }),
+    [sequenceWidth, sequenceHeight]
+  );
   // Latest sequence resolution, read by the rAF loop (whose closure only
   // rebinds on [gpuReady, isPlaying]) to resolve animation offsets in px.
   const canvasSizeRef = useRef({
@@ -488,7 +502,11 @@ export const PreviewCompositor: React.FC = memo(() => {
         tracks,
         clips,
         timeMs,
-        { maxVideoLayers: HOT_POOL_SIZE }
+        {
+          maxVideoLayers: HOT_POOL_SIZE,
+          canvas: sceneCanvas,
+          animationCache: animCacheRef.current
+        }
       );
       let sig = "";
       for (const l of layers) {
@@ -500,7 +518,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       }
       return { signature: sig, nextChangeMs, layers };
     },
-    [tracks, clips]
+    [tracks, clips, sceneCanvas]
   );
 
   const {
@@ -521,7 +539,9 @@ export const PreviewCompositor: React.FC = memo(() => {
     // Same scene description the offline renderer consumes — so the preview
     // and the exported video composite identical frames.
     const layers = computeActiveLayers(tracks, clips, currentTimeMs, {
-      maxVideoLayers: HOT_POOL_SIZE
+      maxVideoLayers: HOT_POOL_SIZE,
+      canvas: sceneCanvas,
+      animationCache: animCacheRef.current
     });
 
     for (const layer of layers) {
@@ -544,6 +564,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           blendMode: layer.blendMode,
           opacity: layer.opacity,
           transform: layer.transform,
+          parentMatrix: layer.parentMatrix,
           borderRadius: layer.borderRadius,
           effects: layer.effects,
           trackEffects: layer.trackEffects,
@@ -559,6 +580,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           blendMode: layer.blendMode,
           opacity: layer.opacity,
           transform: layer.transform,
+          parentMatrix: layer.parentMatrix,
           borderRadius: layer.borderRadius,
           effects: layer.effects,
           trackEffects: layer.trackEffects,
@@ -584,6 +606,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           assetUrl: url ?? "",
           status: layer.clip.status,
           transform: layer.transform,
+          parentMatrix: layer.parentMatrix,
           borderRadius: layer.borderRadius,
           effects: layer.effects,
           trackEffects: layer.trackEffects
@@ -597,6 +620,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           opacity: layer.opacity,
           assetUrl: url,
           transform: layer.transform,
+          parentMatrix: layer.parentMatrix,
           borderRadius: layer.borderRadius,
           effects: layer.effects,
           trackEffects: layer.trackEffects
@@ -614,7 +638,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       activeShapeLayers: shapeLayers,
       placeholderLayers: placeholders
     };
-  }, [tracks, clips, currentTimeMs, resolveUrl, urlCacheVersion]);
+  }, [tracks, clips, currentTimeMs, resolveUrl, urlCacheVersion, sceneCanvas]);
 
   // Source dims + transform for the single selected clip, but only while it is
   // actually rendered (active at the playhead) so the gizmo traces a visible
@@ -862,11 +886,7 @@ export const PreviewCompositor: React.FC = memo(() => {
     (atMs: number): CompositeLayer[] => {
       const out: CompositeLayer[] = [];
       const pool = videoRefs.current;
-      const canvas = {
-        width: sequenceWidth,
-        height: sequenceHeight,
-        measureText: textMeasurer()
-      };
+      const canvas = sceneCanvas;
       const cache = animCacheRef.current;
 
       activeVideoSlots.forEach((slot) => {
@@ -893,6 +913,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           blendMode: slot.blendMode,
           zIndex: trackZ(slot.trackIndex),
           transform: anim.transform,
+          parentMatrix: slot.parentMatrix,
           mask: anim.mask,
           borderRadius: slot.borderRadius,
           effects: anim.effects ?? slot.effects,
@@ -920,6 +941,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           blendMode: layer.blendMode,
           zIndex: trackZ(layer.trackIndex),
           transform: anim.transform,
+          parentMatrix: layer.parentMatrix,
           mask: anim.mask,
           borderRadius: layer.borderRadius,
           effects: anim.effects ?? layer.effects,
@@ -983,6 +1005,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           blendMode: layer.blendMode,
           zIndex: trackZ(layer.trackIndex),
           transform: anim.transform,
+          parentMatrix: layer.parentMatrix,
           mask: anim.mask,
           borderRadius: layer.borderRadius,
           effects: anim.effects ?? layer.effects,
@@ -1013,6 +1036,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           blendMode: layer.blendMode,
           zIndex: trackZ(layer.trackIndex),
           transform: anim.transform,
+          parentMatrix: layer.parentMatrix,
           mask: anim.mask,
           borderRadius: layer.borderRadius,
           effects: anim.effects ?? layer.effects,
@@ -1030,6 +1054,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       activeShapeLayers,
       clipById,
       ensureImageElement,
+      sceneCanvas,
       sequenceWidth,
       sequenceHeight
     ]

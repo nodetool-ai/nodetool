@@ -71,6 +71,7 @@ import { samplePeaksWindow } from "./audioPeaks";
 import { isCompatibleWithTrack } from "../dnd/assetToClipAdapter";
 import { clipSurfaceTint, clipBorderTint } from "./trackVisuals";
 import { ClipContextMenu } from "./ClipContextMenu";
+import { GroupBracket } from "./GroupBracket";
 import { ReplaceOutputDialog } from "./ReplaceOutputDialog";
 import { deriveClipAnimationMarkers } from "./clipAnimationMarkers";
 import { openPersistedFold } from "../Inspector/usePersistedFold";
@@ -1144,6 +1145,7 @@ const ClipBody: React.FC<ClipBodyProps> = memo(
         case "overlay":
         case "text":
         case "shape":
+        case "group":
           return theme.vars.palette.secondary.main;
         case "image":
         case "video":
@@ -1243,6 +1245,15 @@ const ClipBody: React.FC<ClipBodyProps> = memo(
         )}
 
         {imageUrl && <div css={filmstripStyles} style={imageStyle} />}
+
+        {clip.mediaType === "group" && (
+          <GroupBracket
+            clipId={clipId}
+            startMs={clip.startMs}
+            durationMs={clip.durationMs}
+            widthPx={widthPx}
+          />
+        )}
 
         {clip.mediaType === "audio" && (
           <WaveformCanvas

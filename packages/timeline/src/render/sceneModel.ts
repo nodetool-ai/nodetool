@@ -35,6 +35,7 @@ import {
 } from "../animation/index.js";
 import type { ResolvedCaption, TextRenderStagger } from "./draw.js";
 import { countTextStaggerUnits, type RenderCanvas } from "./textLayout.js";
+import { buildTransformMatrix } from "./transform.js";
 
 /** Blend mode a layer composites with. */
 export type CompositorBlendMode = NonNullable<TimelineClip["blendMode"]>;
@@ -200,6 +201,137 @@ export function resolveCaptionAtTime(
   };
 }
 
+// ── Groups (transform parents) ───────────────────────────────────────────────
+
+/**
+ * A group clip resolved at one point in time (D4). A group carries no media:
+ * it exists so the clips naming it with `parentId` inherit one transform, one
+ * opacity and one window.
+ */
+export interface ResolvedGroup {
+  /**
+   * The group's clip-space matrix, with its own ancestors already composed in.
+   * Absent when the caller supplied no canvas — a transform is expressed
+   * against the sequence resolution, so there is no matrix without one.
+   */
+  matrix?: Float32Array;
+  /** The group's opacity, its ancestors' already multiplied in. */
+  opacity: number;
+  /** Absolute timeline window children are clipped to (`[startMs, endMs)`). */
+  window: { startMs: number; endMs: number };
+  /**
+   * Set when the group's parent chain loops back on itself. The chain is
+   * refused rather than followed: every group on it resolves as if it had no
+   * parent, so a cyclic document renders instead of hanging. The validator
+   * reports it as `parent_cycle`.
+   */
+  cycle?: boolean;
+}
+
+/** Every group clip in a document, resolved. Keyed by clip id. */
+export type ResolvedGroups = Map<string, ResolvedGroup>;
+
+/** A group's own transform and opacity at `currentTimeMs`, animations folded in. */
+function groupProps(
+  group: TimelineClip,
+  currentTimeMs: number,
+  canvas: RenderCanvas | undefined,
+  cache: AnimationCompileCache | undefined
+): { transform?: ClipTransform; opacity: number } {
+  const layer = {
+    clip: group,
+    transform: group.transform,
+    opacity: group.opacity ?? 1
+  };
+  if (!canvas) return layer;
+  const animated = resolveAnimatedLayerProps(layer, currentTimeMs, canvas, cache);
+  return { transform: animated.transform, opacity: animated.opacity };
+}
+
+/**
+ * Resolve every group clip at `currentTimeMs`, parents before children.
+ *
+ * A group may itself name a parent, so each one is resolved by walking its
+ * parent chain up to the first ancestor already resolved (or to a clip that is
+ * not a group), then folding back down: matrices compose `parent × own`,
+ * opacities multiply, windows intersect. Resolution is independent of tracks —
+ * a group parents by id, and I9 keeps z-order the child's own track's.
+ *
+ * A chain that revisits a group it already walked is a cycle. It is refused,
+ * not followed: every group on that chain resolves unparented and carries
+ * `cycle`, which is what stops this from recursing forever on a document that
+ * names a parent in a loop.
+ */
+export function resolveGroups(
+  clips: readonly TimelineClip[],
+  currentTimeMs: number,
+  canvas?: RenderCanvas,
+  cache?: AnimationCompileCache
+): ResolvedGroups {
+  const groupById = new Map<string, TimelineClip>();
+  for (const clip of clips) {
+    if (clip.mediaType === "group") groupById.set(clip.id, clip);
+  }
+
+  const resolved: ResolvedGroups = new Map();
+  for (const group of groupById.values()) {
+    if (resolved.has(group.id)) continue;
+
+    const chain: TimelineClip[] = [];
+    const walked = new Set<string>();
+    let cursor: TimelineClip | undefined = group;
+    let cycle = false;
+    while (cursor && !resolved.has(cursor.id)) {
+      if (walked.has(cursor.id)) {
+        cycle = true;
+        break;
+      }
+      walked.add(cursor.id);
+      chain.push(cursor);
+      cursor = cursor.parentId ? groupById.get(cursor.parentId) : undefined;
+    }
+
+    // Fold from the ancestor end of the chain back down to `group`.
+    let inherited = cursor ? resolved.get(cursor.id) : undefined;
+    for (let i = chain.length - 1; i >= 0; i -= 1) {
+      const current = chain[i]!;
+      // A chain that reaches a cycle cannot say what any of its links inherit,
+      // so none of them inherit anything.
+      const parent = cycle ? undefined : inherited;
+      const own = groupProps(current, currentTimeMs, canvas, cache);
+      const entry: ResolvedGroup = {
+        opacity: (parent?.opacity ?? 1) * own.opacity,
+        window: {
+          startMs: Math.max(
+            current.startMs,
+            parent?.window.startMs ?? Number.NEGATIVE_INFINITY
+          ),
+          endMs: Math.min(
+            current.startMs + current.durationMs,
+            parent?.window.endMs ?? Number.POSITIVE_INFINITY
+          )
+        }
+      };
+      if (canvas) {
+        entry.matrix = buildTransformMatrix(
+          own.transform ?? IDENTITY_TRANSFORM,
+          // A group has no source to fit, so its matrix is a pure clip-space
+          // transform: the identity base makes its anchor and position mean
+          // the frame, not a bitmap.
+          { x: 1, y: 1 },
+          canvas.width,
+          canvas.height,
+          parent?.matrix
+        );
+      }
+      if (cycle) entry.cycle = true;
+      resolved.set(current.id, entry);
+      inherited = entry;
+    }
+  }
+  return resolved;
+}
+
 /** A visual layer active at a point in time, in bottom-to-top composite order. */
 export interface ActiveLayer {
   kind: "video" | "image" | "text" | "shape" | "caption";
@@ -212,6 +344,13 @@ export interface ActiveLayer {
   /** Asset to draw, or undefined when the clip has no usable render yet. */
   assetId: string | undefined;
   transform?: ClipTransform;
+  /**
+   * The resolved matrix of the group this clip names with `parentId`, or
+   * absent when it names none. A compositor passes it to
+   * `buildTransformMatrix` as the parent of this layer's own transform; the
+   * layer's `opacity` already has the group's folded in.
+   */
+  parentMatrix?: Float32Array;
   borderRadius?: number;
   effects?: ClipEffect[];
   trackEffects?: TrackEffect[];
@@ -226,6 +365,16 @@ export interface ActiveLayer {
 export interface ComputeActiveLayersOptions {
   /** Cap on simultaneous video layers. Defaults to {@link MAX_VIDEO_LAYERS}. */
   maxVideoLayers?: number;
+  /**
+   * The sequence's own resolution (and its text metrics), the space a group's
+   * transform and animations are authored in. Every render host passes the
+   * canvas it already samples animations against. Without it a group's
+   * transform cannot become a matrix, so children compose unparented — their
+   * window still clips them and the group's opacity still multiplies.
+   */
+  canvas?: RenderCanvas;
+  /** Compile cache for the group clips' own animations. */
+  animationCache?: AnimationCompileCache;
 }
 
 /** Why a clip that was active at the query time contributed no layer. */
@@ -278,6 +427,11 @@ export interface ActiveLayersResult {
  * a captioned video contributes both its picture and its caption. Audio clips
  * never contribute a media layer.
  *
+ * A group clip contributes no layer of its own. Every clip naming one with
+ * `parentId` carries the group's matrix as `parentMatrix`, has the group's
+ * opacity multiplied into its own, and is left out entirely while the query
+ * time sits outside the group's window.
+ *
  * Video layers are capped to keep parity with the live preview's video pool;
  * the cap is applied in composite order (top tracks win, matching the preview
  * which fills slots while iterating top-to-bottom). Each clip the cap turns
@@ -291,6 +445,16 @@ export function computeActiveLayersWithHorizon(
   options: ComputeActiveLayersOptions = {}
 ): ActiveLayersResult {
   const maxVideoLayers = options.maxVideoLayers ?? MAX_VIDEO_LAYERS;
+
+  // Parents before children: a child's opacity, matrix and window all come
+  // from a group that may sit on any track, so every group is resolved before
+  // the track walk starts.
+  const groups = resolveGroups(
+    clips,
+    currentTimeMs,
+    options.canvas,
+    options.animationCache
+  );
 
   const sortedTracks = [...tracks].sort((a, b) => a.index - b.index);
   const clipsByTrackId = new Map<string, TimelineClip[]>();
@@ -314,6 +478,13 @@ export function computeActiveLayersWithHorizon(
     if (ms > currentTimeMs && ms < nextChangeMs) nextChangeMs = ms;
   };
 
+  // A group window clips children on every track, so its edges move the layer
+  // set even when the group itself sits on a track this walk never reaches.
+  for (const group of groups.values()) {
+    considerBoundary(group.window.startMs);
+    considerBoundary(group.window.endMs);
+  }
+
   for (const track of sortedTracks) {
     if (!track.visible) continue;
     const isVisual = track.type === "video" || track.type === "overlay";
@@ -325,8 +496,12 @@ export function computeActiveLayersWithHorizon(
       considerBoundary(c.startMs);
     }
 
+    // A group draws nothing itself: it is a transform parent, and its children
+    // carry its contribution to the frame. Leaving it out here also keeps it
+    // out of the auto-crossfade's partner list, where an earlier-starting group
+    // would otherwise read as the clip beneath its own child.
     const activeClips = trackClips
-      .filter((c) => isClipActive(c, currentTimeMs))
+      .filter((c) => c.mediaType !== "group" && isClipActive(c, currentTimeMs))
       .sort((a, b) => a.startMs - b.startMs);
 
     for (const clip of activeClips) {
@@ -334,7 +509,19 @@ export function computeActiveLayersWithHorizon(
       // (and its layer disappears) exactly at its end.
       considerBoundary(clip.startMs + clip.durationMs);
 
-      const baseOpacity = clip.opacity ?? 1;
+      // A clip whose parent is missing or cyclic renders unparented (D4); the
+      // validator is where that is reported.
+      const parent = clip.parentId ? groups.get(clip.parentId) : undefined;
+      if (
+        parent &&
+        (currentTimeMs < parent.window.startMs ||
+          currentTimeMs >= parent.window.endMs)
+      ) {
+        continue;
+      }
+      const parentMatrix = parent?.matrix;
+
+      const baseOpacity = (clip.opacity ?? 1) * (parent?.opacity ?? 1);
       // During an overlap both clips are active, so `activeClips` already holds
       // the preceding clip the auto-crossfade ramps against.
       const opacity =
@@ -366,6 +553,7 @@ export function computeActiveLayersWithHorizon(
           opacity,
           assetId: undefined,
           transform: clip.transform,
+          parentMatrix,
           caption
         });
       }
@@ -385,6 +573,7 @@ export function computeActiveLayersWithHorizon(
           opacity,
           assetId: undefined,
           transform: clip.transform,
+          parentMatrix,
           borderRadius: clip.borderRadius,
           effects: clip.effects,
           trackEffects: track.effects,
@@ -404,6 +593,7 @@ export function computeActiveLayersWithHorizon(
           opacity,
           assetId: undefined,
           transform: clip.transform,
+          parentMatrix,
           borderRadius: clip.borderRadius,
           effects: clip.effects,
           trackEffects: track.effects,
@@ -424,6 +614,7 @@ export function computeActiveLayersWithHorizon(
         opacity,
         assetId,
         transform: clip.transform,
+        parentMatrix,
         borderRadius: clip.borderRadius,
         effects: clip.effects,
         trackEffects: track.effects

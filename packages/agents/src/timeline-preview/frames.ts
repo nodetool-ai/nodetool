@@ -235,7 +235,10 @@ export async function renderTimelineFrames(
     const { layers: active, droppedLayers } = computeActiveLayersWithHorizon(
       sequence.tracks,
       sequence.clips,
-      timeMs
+      timeMs,
+      // Group transforms are authored against the sequence resolution, the
+      // same space the animations are sampled in.
+      { canvas: animationCanvas, animationCache: animCache }
     );
     for (const type of unsupportedEffectTypes(active)) {
       effectsNotApplied.add(type);
@@ -277,6 +280,7 @@ export async function renderTimelineFrames(
         blendMode: layer.blendMode,
         zIndex,
         transform: anim.transform,
+        parentMatrix: layer.parentMatrix,
         mask: anim.mask,
         borderRadius: layer.borderRadius,
         effects: anim.effects ?? layer.effects,
@@ -309,10 +313,12 @@ export async function renderTimelineFrames(
           source,
           source.width,
           source.height,
-          // Captions are drawn at frame resolution and composite untransformed.
+          // Captions are drawn at frame resolution and composite untransformed
+          // — by the clip's transform and by its group's.
           untransformed
             ? {
                 transform: undefined,
+                parentMatrix: undefined,
                 borderRadius: undefined,
                 effects: undefined,
                 trackEffects: undefined

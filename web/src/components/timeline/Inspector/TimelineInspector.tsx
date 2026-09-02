@@ -105,6 +105,13 @@ export const TimelineInspector: React.FC = memo(() => {
   const track = useTimelineStore((s) =>
     clip ? s.tracks.find((t) => t.id === clip.trackId) : null
   );
+  // The group this clip inherits its transform, opacity and window from (D4).
+  // Read-only here: parenting is set from the lane and by the agent ops.
+  const parentName = useTimelineStore((s) =>
+    clip?.parentId
+      ? (findClipById(s.clips, clip.parentId)?.name ?? clip.parentId)
+      : null
+  );
   const fps = useTimelineStore((s) => s.fps);
   const deleteSelected = useTimelineStore((s) => s.deleteSelected);
   const patchClip = useTimelineStore((s) => s.patchClip);
@@ -359,6 +366,11 @@ export const TimelineInspector: React.FC = memo(() => {
           <InspectorRow label="Asset">
             <InspectorStaticValue value={clip.currentAssetId ?? "—"} />
           </InspectorRow>
+          {parentName !== null && (
+            <InspectorRow label="Parent">
+              <InspectorStaticValue value={parentName} />
+            </InspectorRow>
+          )}
         </FlexColumn>
       </CollapsibleSection>
 

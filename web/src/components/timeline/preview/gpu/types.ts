@@ -21,6 +21,11 @@ export interface CompositeLayer {
   zIndex: number;
   /** Optional 2D placement. Default: identity (centered, contain-fit). */
   transform?: ClipTransform;
+  /**
+   * The resolved matrix of the group the clip is parented to, from the scene
+   * model. Composes as `parent × own`; absent when the clip names no group.
+   */
+  parentMatrix?: Float32Array;
   /** Rounded-corner radius in source pixels. Default 0. */
   borderRadius?: number;
   /**

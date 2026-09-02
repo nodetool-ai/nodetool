@@ -83,6 +83,8 @@ export interface Canvas2DLayer<TSource> {
   /** Composite order, ascending. */
   zIndex: number;
   transform?: ClipTransform;
+  /** The layer's group matrix, from the scene model. Composes as `parent × own`. */
+  parentMatrix?: Float32Array;
   /** Rounded-corner radius in source pixels. */
   borderRadius?: number;
   mask?: AnimationSampleMask;
@@ -160,7 +162,8 @@ export function layerCanvasAffine(
   transform: ClipTransform | undefined,
   sourceWidth: number,
   sourceHeight: number,
-  geometry: Canvas2DFrameGeometry
+  geometry: Canvas2DFrameGeometry,
+  parentMatrix?: Float32Array
 ): CanvasAffine {
   const { canvasWidth, canvasHeight } = geometry;
   const base = containBaseScale(
@@ -173,7 +176,8 @@ export function layerCanvasAffine(
     transform ?? IDENTITY_TRANSFORM,
     base,
     geometry.refWidth || canvasWidth,
-    geometry.refHeight || canvasHeight
+    geometry.refHeight || canvasHeight,
+    parentMatrix
   );
   return clipMatrixToCanvasAffine(
     matrix,
@@ -238,7 +242,13 @@ export function drawTimelineLayer<TSource>(
   const { sourceWidth: width, sourceHeight: height } = layer;
   if (width <= 0 || height <= 0) return false;
 
-  const t = layerCanvasAffine(layer.transform, width, height, geometry);
+  const t = layerCanvasAffine(
+    layer.transform,
+    width,
+    height,
+    geometry,
+    layer.parentMatrix
+  );
 
   ctx.save();
   ctx.globalAlpha = Math.max(0, Math.min(1, layer.opacity));

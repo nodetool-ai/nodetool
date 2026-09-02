@@ -384,6 +384,79 @@ function checkClip(
   return issues;
 }
 
+/**
+ * Parent links (D4). A `parentId` must name a clip the document contains, that
+ * clip must be a group, and the chain must reach a root. All three are errors:
+ * the scene model renders such a child unparented rather than refusing to draw
+ * it, so a broken link costs the group's transform, opacity and window without
+ * anything failing at render time.
+ */
+function checkParents(doc: TimelineDocument): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  const byId = new Map(doc.clips.map((clip) => [clip.id, clip]));
+  /** Chains already walked, so a shared ancestor is not re-walked per child. */
+  const settled = new Map<string, "rooted" | "cyclic">();
+
+  for (const clip of doc.clips) {
+    const parentId = clip.parentId;
+    if (parentId === undefined) continue;
+    const at = { clipId: clip.id, trackId: clip.trackId, path: "parentId" };
+
+    const parent = byId.get(parentId);
+    if (!parent) {
+      issues.push({
+        severity: "error",
+        code: "parent_missing",
+        message: `Clip "${clipLabel(clip)}" names parent "${parentId}", which the document does not contain — it renders unparented.`,
+        ...at
+      });
+      continue;
+    }
+    if (parent.mediaType !== "group") {
+      issues.push({
+        severity: "error",
+        code: "parent_not_group",
+        message: `Clip "${clipLabel(clip)}" names parent "${clipLabel(parent)}", whose mediaType is "${parent.mediaType}" — only a clip with mediaType "group" can be a transform parent.`,
+        ...at
+      });
+      continue;
+    }
+
+    const walked: string[] = [];
+    const seen = new Set<string>();
+    let cursor: TimelineClip | undefined = clip;
+    let loopedAt: string | undefined;
+    while (cursor) {
+      if (seen.has(cursor.id)) {
+        loopedAt = cursor.id;
+        break;
+      }
+      const known = settled.get(cursor.id);
+      if (known === "rooted") break;
+      if (known === "cyclic") {
+        loopedAt = cursor.id;
+        break;
+      }
+      seen.add(cursor.id);
+      walked.push(cursor.id);
+      cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
+    }
+    for (const id of walked) {
+      settled.set(id, loopedAt === undefined ? "rooted" : "cyclic");
+    }
+    if (loopedAt !== undefined) {
+      issues.push({
+        severity: "error",
+        code: "parent_cycle",
+        message: `Clip "${clipLabel(clip)}" has a parent chain that loops back to "${loopedAt}" — the chain is refused, so it renders unparented.`,
+        ...at
+      });
+    }
+  }
+
+  return issues;
+}
+
 function checkOverlaps(doc: TimelineDocument): TimelineDebugIssue[] {
   const issues: TimelineDebugIssue[] = [];
   const byTrack = new Map<string, TimelineClip[]>();
@@ -586,6 +659,7 @@ export function validateTimelineSequence(
     ...checkFieldStripping(raw, doc),
     ...checkDuplicateIds(doc),
     ...doc.clips.flatMap((clip) => checkClip(clip, trackIds, fps)),
+    ...checkParents(doc),
     ...checkOverlaps(doc),
     ...checkVideoLayerCap(doc),
     ...checkDocumentLevel(doc)

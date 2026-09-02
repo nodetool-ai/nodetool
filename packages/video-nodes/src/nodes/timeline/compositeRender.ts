@@ -193,7 +193,8 @@ export async function renderTimelineComposited(
       for (const layer of computeActiveLayers(
         sequence.tracks,
         sequence.clips,
-        timeMs
+        timeMs,
+        { canvas, animationCache: animCache }
       )) {
         const anim = resolveAnimatedLayerProps(layer, timeMs, canvas, animCache);
         const common = {
@@ -201,6 +202,7 @@ export async function renderTimelineComposited(
           blendMode: layer.blendMode,
           zIndex: trackZ(layer.trackIndex),
           transform: anim.transform,
+          parentMatrix: layer.parentMatrix,
           mask: anim.mask,
           borderRadius: layer.borderRadius,
           effects: anim.effects ?? layer.effects,
@@ -214,8 +216,10 @@ export async function renderTimelineComposited(
               ...common,
               id: `c:${layer.clipId}`,
               source: raster,
-              // Captions are drawn at frame resolution and composite untransformed.
+              // Captions are drawn at frame resolution and composite
+              // untransformed — by the clip's transform and by its group's.
               transform: undefined,
+              parentMatrix: undefined,
               borderRadius: undefined,
               effects: undefined,
               trackEffects: undefined
