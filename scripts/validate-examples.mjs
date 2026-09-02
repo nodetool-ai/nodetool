@@ -180,6 +180,76 @@ function expandBundle(file) {
 }
 
 /**
+ * Check one shipped composition: it parses, its group is a group clip with
+ * children, every parameter names a type the runtime knows and a pointer that
+ * lands on a child field, and instantiating it with its defaults yields a
+ * document the timeline validator accepts. Returns a problem description, or
+ * null when the composition is sound.
+ */
+async function checkComposition(file) {
+  let composition;
+  try {
+    composition = JSON.parse(readFileSync(file, "utf8"));
+  } catch (err) {
+    return `not parsable JSON: ${err.message}`;
+  }
+  const paramTypes = new Set(["string", "number", "color", "boolean"]);
+  const problems = [];
+  if (typeof composition?.id !== "string" || typeof composition?.name !== "string") {
+    problems.push("bundle has no id or name");
+  }
+  if (composition?.group?.mediaType !== "group") {
+    problems.push('group is not a clip with mediaType "group"');
+  }
+  const children = Array.isArray(composition?.children) ? composition.children : [];
+  if (children.length === 0) problems.push("composition declares no children");
+  for (const [name, param] of Object.entries(composition?.params ?? {})) {
+    if (!paramTypes.has(param?.type)) {
+      problems.push(`param "${name}" has unknown type "${param?.type}"`);
+    }
+    const segments = typeof param?.path === "string" && param.path.startsWith("/")
+      ? param.path.slice(1).split("/")
+      : null;
+    let cursor = children;
+    for (const segment of segments ?? []) {
+      cursor = cursor == null ? undefined : cursor[segment];
+    }
+    if (segments === null || cursor === undefined) {
+      problems.push(`param "${name}" path "${param?.path}" resolves to nothing`);
+    }
+  }
+  if (problems.length > 0) return problems.join("; ");
+
+  const { instantiateComposition } = await import("@nodetool-ai/timeline");
+  const { validateTimelineSequence } = await import(
+    "@nodetool-ai/execution/timeline-debug"
+  );
+  let clips;
+  try {
+    clips = instantiateComposition(composition, { startMs: 0 });
+  } catch (err) {
+    return `does not instantiate: ${err.message}`;
+  }
+  const trackIds = [...new Set(clips.map((clip) => clip.trackId))];
+  const tracks = trackIds.map((id, index) => ({
+    id,
+    name: id,
+    type: "overlay",
+    index,
+    visible: true,
+    locked: false
+  }));
+  const report = validateTimelineSequence(
+    { tracks, clips, markers: [] },
+    { fps: 30, width: 1920, height: 1080 }
+  );
+  if (report.errors.length > 0) {
+    return report.errors.map((issue) => `${issue.code}: ${issue.message}`).join("; ");
+  }
+  return null;
+}
+
+/**
  * Check one shipped storyboard: it parses, every shot carries the text a
  * director writes, and every `package://` still and clip it names is a file
  * that exists. Returns a problem description, or null when the board is sound.
@@ -294,8 +364,12 @@ async function main() {
   const examples = [...packageExamples, ...rootExamples];
   const bundles = examples.filter((f) => f.endsWith(".app.json"));
   const storyboards = examples.filter((f) => f.endsWith(".storyboard.json"));
+  const compositions = examples.filter((f) => f.endsWith(".composition.json"));
   const workflowExamples = examples.filter(
-    (f) => !f.endsWith(".app.json") && !f.endsWith(".storyboard.json")
+    (f) =>
+      !f.endsWith(".app.json") &&
+      !f.endsWith(".storyboard.json") &&
+      !f.endsWith(".composition.json")
   );
 
   if (packageExamples.length === 0) {
@@ -319,10 +393,18 @@ async function main() {
     process.exit(1);
   }
 
+  if (compositions.length === 0) {
+    console.error(
+      "No *.composition.json bundles found under packages/**/examples/ — check the search path."
+    );
+    process.exit(1);
+  }
+
   console.log(
     `Validating ${workflowExamples.length} example workflow(s), ` +
-      `${bundles.length} app bundle(s), and ` +
-      `${storyboards.length} storyboard(s)...\n`
+      `${bundles.length} app bundle(s), ` +
+      `${storyboards.length} storyboard(s), and ` +
+      `${compositions.length} composition(s)...\n`
   );
 
   // Each job is one graph to validate; `failure` short-circuits a job the
@@ -380,6 +462,15 @@ async function main() {
   // text and the files here, where the rest of the shipped examples are checked.
   for (const file of storyboards) {
     jobs.push({ label: file.slice(repoRoot.length + 1), failure: checkStoryboard(file) });
+  }
+  // A composition is a document fragment, not a graph: what rots is a
+  // parameter pointer that no longer lands on a child field, or a clip the
+  // timeline validator has stopped accepting.
+  for (const file of compositions) {
+    jobs.push({
+      label: file.slice(repoRoot.length + 1),
+      failure: await checkComposition(file)
+    });
   }
 
   const pending = jobs.filter((job) => job.path !== undefined);
