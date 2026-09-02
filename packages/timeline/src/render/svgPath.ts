@@ -51,8 +51,14 @@ const ARITY: Record<string, number> = { m: 2, l: 2, c: 6, q: 4, z: 0 };
  *
  * Numbers are matched rather than split on separators because SVG allows both
  * `10-5` and `.5.5` — two numbers each, with no separator between them.
+ *
+ * The two number branches are disjoint on their first character — a digit or a
+ * dot — so a run of digits with no dot in it cannot send the engine back
+ * through what it already read. Writing the fractional case as `\d*\.\d+`
+ * instead shares that first character with the integer case, which is the
+ * shape CodeQL reports as polynomial backtracking.
  */
-const TOKEN = /([MmLlCcQqZz])|([+-]?(?:\d*\.\d+|\d+\.?)(?:[eE][+-]?\d+)?)|([,\s]+)/y;
+const TOKEN = /([MmLlCcQqZz])|([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)|([,\s]+)/y;
 
 /** Parse SVG path data into absolute segments, or say what stopped it. */
 export function parseSvgPath(d: string): SvgPathResult {

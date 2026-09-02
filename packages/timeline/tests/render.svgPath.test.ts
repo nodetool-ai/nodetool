@@ -119,6 +119,26 @@ describe("parseSvgPath", () => {
     ]);
   });
 
+  // The number pattern was rewritten so its two branches split on the first
+  // character (a digit or a dot) rather than sharing it, which is what CodeQL
+  // reads as polynomial backtracking. Both forms accept the same language, so
+  // only these cases catch a rewrite that quietly narrowed it.
+  it("reads every number form SVG allows", () => {
+    expect(segmentsOf("M0 0L10. .5 5.25 -3 1e2 -1.5E-2")).toEqual([
+      { kind: "move", x: 0, y: 0 },
+      { kind: "line", x: 10, y: 0.5 },
+      { kind: "line", x: 5.25, y: -3 },
+      { kind: "line", x: 100, y: -0.015 }
+    ]);
+  });
+
+  it("reads a negative sign as the separator it is", () => {
+    expect(segmentsOf("M0 0L10-5")).toEqual([
+      { kind: "move", x: 0, y: 0 },
+      { kind: "line", x: 10, y: -5 }
+    ]);
+  });
+
   it("repeats a command for every extra group of numbers", () => {
     expect(segmentsOf("M 0 0 L 1 0 1 1 0 1")).toHaveLength(4);
   });
