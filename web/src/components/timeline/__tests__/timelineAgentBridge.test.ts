@@ -24,7 +24,9 @@ const makeMockHandler = (): TimelineAgentHandler => ({
   clearClipAnimations: jest.fn(),
   getClipFrames: jest.fn(),
   selectClip: jest.fn(),
-  seek: jest.fn()
+  seek: jest.fn(),
+  addMarker: jest.fn(),
+  deleteMarker: jest.fn()
 });
 
 describe("timelineAgentBridge", () => {

@@ -28,7 +28,7 @@ describe("TimeRuler markers", () => {
   it("renders a flag and seeks the playhead on click", () => {
     renderRuler();
     act(() => {
-      useTimelineStore.getState().addMarker(2000, "Scene 1");
+      useTimelineStore.getState().addMarker({ timeMs: 2000, label: "Scene 1" });
     });
 
     const flag = screen.getByTestId("timeline-marker");
@@ -43,7 +43,7 @@ describe("TimeRuler markers", () => {
   it("deletes a marker via its × button", () => {
     renderRuler();
     act(() => {
-      useTimelineStore.getState().addMarker(2000, "Scene 1");
+      useTimelineStore.getState().addMarker({ timeMs: 2000, label: "Scene 1" });
     });
     expect(screen.getByTestId("timeline-marker")).toBeInTheDocument();
 

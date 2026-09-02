@@ -16,6 +16,7 @@ import { makeClip, trackTypeForMediaType } from "@nodetool-ai/timeline";
 import type {
   ClipAnimation,
   TimelineClip,
+  TimelineMarker,
   TimelineTrack
 } from "@nodetool-ai/timeline";
 import { buildClipAnimation } from "./buildClipAnimation";
@@ -47,6 +48,7 @@ import {
   type TimelineAnimationNode,
   type TimelineClipNode,
   type TimelineClipFrameNode,
+  type TimelineMarkerNode,
   type TimelineAddMediaClipOptions,
   type TimelineAddTextClipOptions,
   type TimelineAddShapeClipOptions,
@@ -160,6 +162,17 @@ function toAnimationNode(anim: ClipAnimation): TimelineAnimationNode {
   };
 }
 
+function toMarkerNode(marker: TimelineMarker): TimelineMarkerNode {
+  const node: TimelineMarkerNode = {
+    id: marker.id,
+    timeMs: marker.timeMs,
+    label: marker.label
+  };
+  if (marker.color !== undefined) node.color = marker.color;
+  if (marker.note !== undefined) node.note = marker.note;
+  return node;
+}
+
 function toTrackNode(
   track: TimelineTrack,
   clipCount: number
@@ -207,6 +220,25 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       const byName = clips.find((c) => c.name.toLowerCase() === lower);
       if (byName) return byName;
       throw new Error(`Clip not found on the timeline: ${target}`);
+    };
+
+    /** Resolve a marker by id, or by case-insensitive label. */
+    const requireMarker = (target: string): TimelineMarker => {
+      const { markers } = doc.getState();
+      const byId = markers.find((m) => m.id === target);
+      if (byId) return byId;
+      const lower = target.toLowerCase();
+      const byLabel = markers.find((m) => m.label.toLowerCase() === lower);
+      if (byLabel) return byLabel;
+      const known = markers
+        .map((m) => `${m.id} ("${m.label}") at ${m.timeMs}ms`)
+        .join(", ");
+      throw new Error(
+        `No marker matches "${target}". Use a marker id or its label. ` +
+          (known.length > 0
+            ? `Markers: ${known}.`
+            : "This sequence has no markers yet.")
+      );
     };
 
     const requireTrack = (target: string): TimelineTrack => {
@@ -258,7 +290,8 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           tracks: tracks.map((t) =>
             toTrackNode(t, clipCountByTrack.get(t.id) ?? 0)
           ),
-          clips: state.clips.map((c) => toClipNode(c, map))
+          clips: state.clips.map((c) => toClipNode(c, map)),
+          markers: state.markers.map(toMarkerNode)
         };
       },
 
@@ -742,6 +775,21 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       seek(timeMs) {
         playback.getState().seek(Math.max(0, timeMs));
         return Math.round(playback.getState().getTimeMs());
+      },
+
+      addMarker(opts) {
+        if (opts.timeMs < 0) {
+          throw new Error(
+            `A marker cannot sit before zero; got ${opts.timeMs}ms.`
+          );
+        }
+        return toMarkerNode(doc.getState().addMarker(opts));
+      },
+
+      deleteMarker(target) {
+        const marker = requireMarker(target);
+        doc.getState().deleteMarker(marker.id);
+        return toMarkerNode(marker);
       }
     };
   }, [doc, ui, playback, startDirectGen]);

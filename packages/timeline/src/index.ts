@@ -17,6 +17,7 @@ export * from "./splitClip.js";
 export * from "./trimClip.js";
 export * from "./sourceRate.js";
 export * from "./snap.js";
+export * from "./beats.js";
 export * from "./staleSet.js";
 export * from "./subtitles.js";
 export * from "./placement/index.js";

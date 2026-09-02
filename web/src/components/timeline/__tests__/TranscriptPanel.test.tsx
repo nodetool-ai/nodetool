@@ -173,7 +173,7 @@ describe("TranscriptPanel", () => {
     seed([voicedBeat([{ word: "hi", startMs: 0, endMs: 300 }])], 300);
 
     act(() => {
-      useTimelineStore.getState().addMarker(0, "Scene 1");
+      useTimelineStore.getState().addMarker({ timeMs: 0, label: "Scene 1" });
     });
     const br = await screen.findByTestId("scene-break");
     expect(br).toHaveTextContent("Scene 1");

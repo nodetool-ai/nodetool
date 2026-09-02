@@ -68,6 +68,14 @@ const SNAP_THRESHOLD_PX = 8;
 
 // ── State interface ────────────────────────────────────────────────────────
 
+/** What {@link TimelineStoreState.addMarker} places. */
+export interface TimelineMarkerInput {
+  timeMs: number;
+  label?: string;
+  color?: string;
+  note?: string;
+}
+
 export interface TimelineStoreState {
   // ── Document ─────────────────────────────────────────────────────────────
   sequenceId: string | null;
@@ -446,8 +454,14 @@ export interface TimelineStoreState {
     durationMs?: number;
   }) => void;
 
-  /** Append a timeline marker (e.g. a scene boundary) at the given time. */
-  addMarker: (timeMs: number, label?: string) => void;
+  /**
+   * Append a timeline marker (e.g. a scene boundary) and return it, so a
+   * caller that has to report what it placed does not have to go looking.
+   */
+  addMarker: (input: TimelineMarkerInput) => TimelineMarker;
+
+  /** Remove one marker by id. Unknown ids are a no-op. */
+  deleteMarker: (markerId: string) => void;
 
   /**
    * Merge clip halves that were split at `timeMs` back into single clips — the
@@ -1931,16 +1945,22 @@ export const createTimelineStore = (
             return { transcript, clips, durationMs };
           }),
 
-        addMarker: (timeMs, label) =>
-          set((state) => ({
-            markers: [
-              ...state.markers,
-              makeMarker({
-                timeMs: Math.max(0, Math.round(timeMs)),
-                label: label ?? ""
-              })
-            ]
-          })),
+        addMarker: (input) => {
+          const marker = makeMarker({
+            timeMs: Math.max(0, Math.round(input.timeMs)),
+            label: input.label ?? ""
+          });
+          if (input.color !== undefined) marker.color = input.color;
+          if (input.note !== undefined) marker.note = input.note;
+          set((state) => ({ markers: [...state.markers, marker] }));
+          return marker;
+        },
+
+        deleteMarker: (markerId) =>
+          set((state) => {
+            const markers = state.markers.filter((m) => m.id !== markerId);
+            return markers.length === state.markers.length ? {} : { markers };
+          }),
 
         mergeClipsAt: (timeMs) =>
           set((state) => {

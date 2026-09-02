@@ -648,3 +648,311 @@ describe("set_effects", () => {
     ).toThrow(/liftGammaGain/);
   });
 });
+
+describe("marker ops", () => {
+  function bridgeWithNoMarkers() {
+    const bridge = createTimelineToolBridge({ tracks: [{ type: "video" }] });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    return { bridge, byName };
+  }
+
+  it("adds a marker and reports it in the final state", async () => {
+    const { bridge, byName } = bridgeWithNoMarkers();
+    const added = await byName["ui_timeline_add_marker"].execute({
+      timeMs: 4500,
+      label: "Chorus",
+      color: "#ff0055"
+    });
+
+    expect(added).toEqual({
+      ok: true,
+      marker: {
+        id: "marker_1",
+        timeMs: 4500,
+        label: "Chorus",
+        color: "#ff0055"
+      }
+    });
+    expect(bridge.finalState().markers).toEqual([
+      { id: "marker_1", timeMs: 4500, label: "Chorus", color: "#ff0055" }
+    ]);
+  });
+
+  it("refuses a marker before zero", async () => {
+    const { byName } = bridgeWithNoMarkers();
+    await expect(
+      byName["ui_timeline_add_marker"].execute({ timeMs: -1 })
+    ).rejects.toThrow(/before zero/);
+  });
+
+  it("deletes a marker by label, case-insensitively", async () => {
+    const { bridge, byName } = bridgeWithNoMarkers();
+    await byName["ui_timeline_add_marker"].execute({
+      timeMs: 1000,
+      label: "Cut"
+    });
+    const deleted = await byName["ui_timeline_delete_marker"].execute({
+      target: "cut"
+    });
+
+    expect(deleted).toEqual({
+      ok: true,
+      deleted: { id: "marker_1", timeMs: 1000, label: "Cut" }
+    });
+    expect(bridge.finalState().markers).toEqual([]);
+  });
+
+  it("lists the markers it knows when the target matches none", async () => {
+    const { byName } = bridgeWithNoMarkers();
+    await byName["ui_timeline_add_marker"].execute({
+      timeMs: 1000,
+      label: "Cut"
+    });
+    await expect(
+      byName["ui_timeline_delete_marker"].execute({ target: "nope" })
+    ).rejects.toThrow(/marker_1 \("Cut"\) at 1000ms/);
+  });
+
+  it("reports the markers on get_state, so delete_marker has a target", async () => {
+    const { byName } = bridgeWithNoMarkers();
+    await byName["ui_timeline_add_marker"].execute({ timeMs: 500, label: "A" });
+    const state = (await byName["ui_timeline_get_state"].execute({})) as {
+      markers: { id: string; timeMs: number }[];
+    };
+
+    expect(state.markers).toEqual([
+      { id: "marker_1", timeMs: 500, label: "A" }
+    ]);
+  });
+
+  it("seeds the markers a document already carries", () => {
+    const bridge = createTimelineToolBridge({
+      sequence: {
+        tracks: [],
+        clips: [],
+        markers: [{ id: "m_seeded", timeMs: 250, label: "Intro" }]
+      }
+    });
+
+    expect(bridge.finalState().markers).toEqual([
+      { id: "m_seeded", timeMs: 250, label: "Intro" }
+    ]);
+  });
+});
+
+describe("set_markers_from_beats", () => {
+  function bareBridge() {
+    const bridge = createTimelineToolBridge();
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    return { bridge, byName };
+  }
+
+  it("lays one numbered marker per beat of a tempo grid", async () => {
+    const { bridge, byName } = bareBridge();
+    await byName["ui_timeline_set_markers_from_beats"].execute({
+      bpm: 120,
+      count: 3
+    });
+
+    expect(
+      bridge.finalState().markers.map((m) => [m.timeMs, m.label])
+    ).toEqual([
+      [0, "Beat 1"],
+      [500, "Beat 2"],
+      [1000, "Beat 3"]
+    ]);
+  });
+
+  it("takes onset times and a label stem", async () => {
+    const { bridge, byName } = bareBridge();
+    await byName["ui_timeline_set_markers_from_beats"].execute({
+      onsets_ms: [1200, 400],
+      label: "Hit"
+    });
+
+    expect(
+      bridge.finalState().markers.map((m) => [m.timeMs, m.label])
+    ).toEqual([
+      [400, "Hit 1"],
+      [1200, "Hit 2"]
+    ]);
+  });
+
+  it("keeps existing markers and skips a beat one already sits on", async () => {
+    const { bridge, byName } = bareBridge();
+    await byName["ui_timeline_add_marker"].execute({
+      timeMs: 500,
+      label: "Hand-placed"
+    });
+    const result = (await byName[
+      "ui_timeline_set_markers_from_beats"
+    ].execute({ bpm: 120, count: 3 })) as { skipped_times_ms: number[] };
+
+    expect(result.skipped_times_ms).toEqual([500]);
+    expect(bridge.finalState().markers.map((m) => m.label)).toEqual([
+      "Hand-placed",
+      "Beat 1",
+      "Beat 3"
+    ]);
+  });
+
+  it("is a no-op on a re-run of the same grid", async () => {
+    const { bridge, byName } = bareBridge();
+    const set = byName["ui_timeline_set_markers_from_beats"];
+    await set.execute({ bpm: 120, count: 4 });
+    await set.execute({ bpm: 120, count: 4 });
+
+    expect(bridge.finalState().markers).toHaveLength(4);
+  });
+
+  it("refuses a grid with no source, and one with both", async () => {
+    const { byName } = bareBridge();
+    await expect(
+      byName["ui_timeline_set_markers_from_beats"].execute({})
+    ).rejects.toThrow(/onsets_ms/);
+    await expect(
+      byName["ui_timeline_set_markers_from_beats"].execute({
+        bpm: 120,
+        count: 2,
+        onsets_ms: [0]
+      })
+    ).rejects.toThrow(/exactly one/);
+  });
+});
+
+describe("snap_to_beats", () => {
+  /** Two clips: one 30 ms off a 120 BPM beat, one 90 ms off. */
+  function bridgeWithTwoClips() {
+    const bridge = createTimelineToolBridge({
+      tracks: [{ type: "video" }],
+      clips: [
+        {
+          name: "near",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 530,
+          durationMs: 1000
+        },
+        {
+          name: "far",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 2090,
+          durationMs: 1000
+        }
+      ]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    return { bridge, byName };
+  }
+
+  const clipNamed = (
+    bridge: { finalState: () => TimelineBridgeFinalState },
+    name: string
+  ) => bridge.finalState().documentClips.find((c) => c.name === name);
+
+  it("moves the clip inside tolerance and leaves the one outside it", async () => {
+    const { bridge, byName } = bridgeWithTwoClips();
+    const result = (await byName["ui_timeline_snap_to_beats"].execute({
+      bpm: 120
+    })) as {
+      snapped: number;
+      skipped: number;
+      clips: { clipId: string; clipName: string | null; snapped: boolean; reason?: string }[];
+    };
+
+    expect([result.snapped, result.skipped]).toEqual([1, 1]);
+    expect(clipNamed(bridge, "near")?.startMs).toBe(500);
+    expect(clipNamed(bridge, "far")?.startMs).toBe(2090);
+
+    const far = result.clips.find((entry) => entry.clipName === "far");
+    expect(far?.snapped).toBe(false);
+    expect(far?.reason).toContain("90ms from the nearest beat (2000ms)");
+  });
+
+  it("reports before, after and delta per clip", async () => {
+    const { byName } = bridgeWithTwoClips();
+    const result = (await byName["ui_timeline_snap_to_beats"].execute({
+      targets: ["near"],
+      bpm: 120
+    })) as {
+      clips: {
+        clipId: string;
+        before: { startMs: number };
+        after: { startMs: number };
+        delta: { startMs: number; endMs: number };
+      }[];
+    };
+
+    expect(result.clips[0].before.startMs).toBe(530);
+    expect(result.clips[0].after.startMs).toBe(500);
+    expect(result.clips[0].delta).toEqual({ startMs: -30, endMs: -30 });
+  });
+
+  it("widens the tolerance on request", async () => {
+    const { bridge, byName } = bridgeWithTwoClips();
+    await byName["ui_timeline_snap_to_beats"].execute({
+      bpm: 120,
+      tolerance_ms: 100
+    });
+
+    expect(clipNamed(bridge, "far")?.startMs).toBe(2000);
+  });
+
+  it("trims the end onto the beat without moving the start", async () => {
+    const { bridge, byName } = bridgeWithTwoClips();
+    await byName["ui_timeline_snap_to_beats"].execute({
+      targets: ["near"],
+      onsets_ms: [530, 1500],
+      mode: "end",
+      action: "trim"
+    });
+
+    expect(clipNamed(bridge, "near")).toMatchObject({
+      startMs: 530,
+      durationMs: 970
+    });
+  });
+
+  it("resolves targets by name and by id, and reports a name it cannot", async () => {
+    const { bridge, byName } = bridgeWithTwoClips();
+    const nearId = bridge.finalState().documentClips[0].id;
+    const result = (await byName["ui_timeline_snap_to_beats"].execute({
+      targets: [nearId, "ghost"],
+      bpm: 120
+    })) as { clips: { clipId: string; reason?: string }[] };
+
+    expect(result.clips.map((entry) => entry.clipId)).toEqual([
+      nearId,
+      "ghost"
+    ]);
+    expect(result.clips[1].reason).toBe('no clip matches "ghost"');
+  });
+
+  it('takes "all" as the whole sequence', async () => {
+    const { byName } = bridgeWithTwoClips();
+    const result = (await byName["ui_timeline_snap_to_beats"].execute({
+      targets: "all",
+      bpm: 120
+    })) as { clips: unknown[] };
+
+    expect(result.clips).toHaveLength(2);
+  });
+
+  it("generates a tempo grid long enough to reach the last clip", async () => {
+    const { byName } = bridgeWithTwoClips();
+    const result = (await byName["ui_timeline_snap_to_beats"].execute({
+      bpm: 120
+    })) as { grid: { lastMs: number } };
+
+    // The far clip ends at 3090 ms, so the grid has to run past it.
+    expect(result.grid.lastMs).toBeGreaterThanOrEqual(3090);
+  });
+
+  it("refuses a mode this build does not implement", () => {
+    const { byName } = bridgeWithTwoClips();
+    expect(() =>
+      byName["ui_timeline_snap_to_beats"].execute({ bpm: 120, mode: "middle" })
+    ).toThrow(/start/);
+  });
+});
