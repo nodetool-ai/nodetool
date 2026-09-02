@@ -26,6 +26,7 @@ import type {
   EffectParams,
   MaskParams,
   MatteParams,
+  TimeRemapParams,
   TransitionParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 
@@ -396,6 +397,15 @@ export interface TimelineAgentHandler {
   ) => TimelineClipNode;
   setMask: (target: string, mask: MaskParams | null) => TimelineClipNode;
   setMatte: (target: string, matte: MatteParams | null) => TimelineClipNode;
+  /**
+   * Retime a clip from a curve, or clear it with null so it plays at its own
+   * rate. The curve is checked by `buildTimeRemap`, so both hosts refuse the
+   * same shapes.
+   */
+  setTimeRemap: (
+    target: string,
+    timeRemap: TimeRemapParams | null
+  ) => TimelineClipNode;
   /** Replace the whole chain; an empty list clears it. */
   setEffects: (target: string, effects: EffectParams[]) => TimelineClipNode;
   selectClip: (target: string | null) => TimelineClipNode | null;

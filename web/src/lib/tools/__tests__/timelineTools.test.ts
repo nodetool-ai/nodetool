@@ -86,6 +86,7 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   setTransition: jest.fn(),
   setMask: jest.fn(),
   setMatte: jest.fn(),
+  setTimeRemap: jest.fn(),
   setEffects: jest.fn(),
   selectClip: jest.fn(),
   seek: jest.fn(),
@@ -592,5 +593,271 @@ describe("marker tools", () => {
     expect(schema.required).toEqual(
       expect.arrayContaining(["timeline_id", "timeMs"])
     );
+  });
+});
+
+describe("ui_timeline_edit (batch)", () => {
+  it("applies every op in order through the single-tool handlers", async () => {
+    const handler = createMockHandler();
+    handler.addTrack.mockReturnValue(trackNode({ id: "track-2" }));
+    handler.seek.mockReturnValue(1200);
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_edit",
+      {
+        timeline_id: SEQ_ID,
+        ops: [
+          // Both spellings reach the same tool.
+          { tool: "add_track", input: { type: "audio", name: "Music" } },
+          { tool: "ui_timeline_seek", input: { timeMs: 1200 } }
+        ]
+      },
+      "tc-edit-1",
+      ctx
+    )) as {
+      ok: boolean;
+      applied: number;
+      failed: number;
+      results: { tool: string; ok: boolean }[];
+    };
+
+    expect(handler.addTrack).toHaveBeenCalledWith("audio", "Music");
+    expect(handler.seek).toHaveBeenCalledWith(1200);
+    expect(result).toMatchObject({ ok: true, applied: 2, failed: 0 });
+    expect(result.results.map((r) => r.tool)).toEqual([
+      "ui_timeline_add_track",
+      "ui_timeline_seek"
+    ]);
+  });
+
+  it("continues past a failing op and reports it", async () => {
+    const handler = createMockHandler();
+    handler.trimClip.mockImplementation(() => {
+      throw new Error("Clip not found on the timeline: ghost");
+    });
+    handler.seek.mockReturnValue(80);
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_edit",
+      {
+        timeline_id: SEQ_ID,
+        ops: [
+          { tool: "trim_clip", input: { target: "ghost", durationMs: 100 } },
+          { tool: "seek", input: { timeMs: 80 } }
+        ]
+      },
+      "tc-edit-2",
+      ctx
+    )) as {
+      ok: boolean;
+      applied: number;
+      failed: number;
+      results: { tool: string; ok: boolean; error?: string }[];
+    };
+
+    // The second op still ran: a bad edit must not abandon the rest.
+    expect(handler.seek).toHaveBeenCalledWith(80);
+    expect(result).toMatchObject({ ok: false, applied: 1, failed: 1 });
+    expect(result.results[0]).toMatchObject({ ok: false });
+    expect(result.results[0].error).toContain("ghost");
+    expect(result.results[1].ok).toBe(true);
+  });
+
+  it("refuses an unknown op name without aborting the batch", async () => {
+    const handler = createMockHandler();
+    handler.seek.mockReturnValue(10);
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_edit",
+      {
+        timeline_id: SEQ_ID,
+        ops: [
+          { tool: "frobnicate", input: {} },
+          // A batch inside a batch is refused the same way.
+          { tool: "edit", input: { ops: [] } },
+          { tool: "seek", input: { timeMs: 10 } }
+        ]
+      },
+      "tc-edit-3",
+      ctx
+    )) as {
+      applied: number;
+      failed: number;
+      results: { ok: boolean; error?: string }[];
+    };
+
+    expect(result).toMatchObject({ applied: 1, failed: 2 });
+    expect(result.results[0].error).toContain('No timeline operation named "frobnicate"');
+    // The refusal names what it could have called instead.
+    expect(result.results[0].error).toContain("seek");
+    expect(result.results[1].error).toContain('named "edit"');
+    expect(handler.seek).toHaveBeenCalledWith(10);
+  });
+});
+
+describe("beat tools", () => {
+  it("lays a marker on every beat of a tempo grid", async () => {
+    const handler = createMockHandler();
+    handler.getSnapshot.mockReturnValue(snapshot());
+    handler.addMarker.mockImplementation((opts) => ({
+      id: `m-${opts.timeMs}`,
+      timeMs: opts.timeMs,
+      label: opts.label ?? ""
+    }));
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_set_markers_from_beats",
+      { timeline_id: SEQ_ID, bpm: 120, count: 3 },
+      "tc-beats-1",
+      ctx
+    )) as { ok: boolean; grid: { count: number }; added: { timeMs: number }[] };
+
+    // 120bpm is one beat every 500ms.
+    expect(handler.addMarker).toHaveBeenCalledTimes(3);
+    expect(result.grid.count).toBe(3);
+    expect(result.added.map((m) => m.timeMs)).toEqual([0, 500, 1000]);
+    expect(handler.addMarker).toHaveBeenLastCalledWith({
+      timeMs: 1000,
+      label: "Beat 3"
+    });
+  });
+
+  it("skips a beat that already carries a marker", async () => {
+    const handler = createMockHandler();
+    handler.getSnapshot.mockReturnValue({
+      ...snapshot(),
+      markers: [{ id: "m-0", timeMs: 0, label: "Beat 1" }]
+    });
+    handler.addMarker.mockImplementation((opts) => ({
+      id: `m-${opts.timeMs}`,
+      timeMs: opts.timeMs,
+      label: opts.label ?? ""
+    }));
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_set_markers_from_beats",
+      { timeline_id: SEQ_ID, onsets_ms: [0, 500], label: "Hit" },
+      "tc-beats-2",
+      ctx
+    )) as { added: { timeMs: number }[]; skipped_times_ms: number[] };
+
+    expect(result.skipped_times_ms).toEqual([0]);
+    expect(result.added.map((m) => m.timeMs)).toEqual([500]);
+  });
+
+  it("snaps a clip start onto the nearest beat through the handler", async () => {
+    const handler = createMockHandler();
+    handler.getSnapshot.mockReturnValue(snapshot());
+    handler.moveClip.mockReturnValue(clipNode({ startMs: 50 }));
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_snap_to_beats",
+      { timeline_id: SEQ_ID, onsets_ms: [50, 4000], targets: "all" },
+      "tc-snap-1",
+      ctx
+    )) as {
+      snapped: number;
+      skipped: number;
+      clips: { clipId: string; snapped: boolean; after: { startMs: number } }[];
+    };
+
+    expect(handler.moveClip).toHaveBeenCalledWith("clip-1", { startMs: 50 });
+    // `move` keeps the length, so nothing is trimmed.
+    expect(handler.trimClip).not.toHaveBeenCalled();
+    expect(result.snapped).toBe(1);
+    expect(result.clips[0]).toMatchObject({ clipId: "clip-1", snapped: true });
+    expect(result.clips[0].after.startMs).toBe(50);
+  });
+
+  it("reports a boundary out of tolerance and a name nothing matches", async () => {
+    const handler = createMockHandler();
+    handler.getSnapshot.mockReturnValue(snapshot());
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_snap_to_beats",
+      {
+        timeline_id: SEQ_ID,
+        onsets_ms: [900],
+        tolerance_ms: 60,
+        targets: ["clip-1", "ghost"]
+      },
+      "tc-snap-2",
+      ctx
+    )) as {
+      snapped: number;
+      skipped: number;
+      clips: { clipId: string; snapped: boolean; reason?: string }[];
+    };
+
+    expect(handler.moveClip).not.toHaveBeenCalled();
+    expect(result.snapped).toBe(0);
+    expect(result.skipped).toBe(2);
+    expect(result.clips[1]).toMatchObject({
+      clipId: "ghost",
+      reason: 'no clip matches "ghost"'
+    });
+  });
+});
+
+describe("ui_timeline_set_time_remap", () => {
+  it("passes the curve to the handler", async () => {
+    const handler = createMockHandler();
+    handler.setTimeRemap.mockReturnValue(clipNode());
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const keyframes = [
+      { t: 0, sourceMs: 0 },
+      { t: 1, sourceMs: 2000 }
+    ];
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_set_time_remap",
+      { timeline_id: SEQ_ID, target: "clip-1", timeRemap: { keyframes } },
+      "tc-remap-1",
+      ctx
+    )) as { ok: boolean };
+
+    expect(handler.setTimeRemap).toHaveBeenCalledWith("clip-1", { keyframes });
+    expect(result.ok).toBe(true);
+  });
+
+  it("clears the curve with null", async () => {
+    const handler = createMockHandler();
+    handler.setTimeRemap.mockReturnValue(clipNode());
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_set_time_remap",
+      { timeline_id: SEQ_ID, target: "clip-1", timeRemap: null },
+      "tc-remap-2",
+      ctx
+    );
+
+    expect(handler.setTimeRemap).toHaveBeenCalledWith("clip-1", null);
+  });
+
+  it("refuses a single keyframe — one point is a freeze, not a curve", async () => {
+    const handler = createMockHandler();
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    await expect(
+      FrontendToolRegistry.call(
+        "ui_timeline_set_time_remap",
+        {
+          timeline_id: SEQ_ID,
+          target: "clip-1",
+          timeRemap: { keyframes: [{ t: 0, sourceMs: 0 }] }
+        },
+        "tc-remap-3",
+        ctx
+      )
+    ).rejects.toThrow();
+    expect(handler.setTimeRemap).not.toHaveBeenCalled();
   });
 });
