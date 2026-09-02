@@ -52,3 +52,87 @@ export function parseSeconds(input: string): number | null {
   if (!Number.isFinite(n) || n < 0) return null;
   return Math.round(n * 1000);
 }
+
+// ── List-valued fields ──────────────────────────────────────────────────────
+// Dash patterns, gradient stops and tone-curve points are arrays in the
+// document and a single line of text in the inspector, so each one gets a
+// parse/format pair here rather than an ad-hoc regex at the control.
+
+/** "4, 2, 1" → [4, 2, 1]. Empty is an empty list; a non-number is `null`. */
+export function parseNumberList(input: string): number[] | null {
+  const trimmed = input.trim();
+  if (trimmed === "") return [];
+  const parts = trimmed.split(/[,\s]+/);
+  const out: number[] = [];
+  for (const part of parts) {
+    const n = Number(part);
+    if (!Number.isFinite(n)) return null;
+    out.push(n);
+  }
+  return out;
+}
+
+export function formatNumberList(values: readonly number[] | undefined): string {
+  return (values ?? []).join(", ");
+}
+
+export interface ParsedGradientStop {
+  offset: number;
+  color: string;
+}
+
+/**
+ * "0:#000000, 1:#ffffff" → two stops. Offsets are clamped to 0..1 and the
+ * list is sorted, so a user typing them out of order still gets a legal
+ * gradient. A stop missing its colour, or carrying a non-numeric offset, is
+ * `null` — the caller leaves the document alone.
+ */
+export function parseGradientStops(input: string): ParsedGradientStop[] | null {
+  const trimmed = input.trim();
+  if (trimmed === "") return [];
+  const out: ParsedGradientStop[] = [];
+  for (const part of trimmed.split(",")) {
+    const [rawOffset, ...rest] = part.split(":");
+    const color = rest.join(":").trim();
+    const offset = Number(rawOffset);
+    if (!Number.isFinite(offset) || color === "") return null;
+    out.push({ offset: Math.min(1, Math.max(0, offset)), color });
+  }
+  return out.sort((a, b) => a.offset - b.offset);
+}
+
+export function formatGradientStops(
+  stops: readonly ParsedGradientStop[] | undefined
+): string {
+  return (stops ?? []).map((s) => `${s.offset}:${s.color}`).join(", ");
+}
+
+export interface ParsedCurvePoint {
+  x: number;
+  y: number;
+}
+
+/**
+ * "0,0 0.5,0.6 1,1" → three tone-curve control points, clamped to the unit
+ * square and sorted by x. A pair that is not `x,y` is `null`.
+ */
+export function parseCurvePoints(input: string): ParsedCurvePoint[] | null {
+  const trimmed = input.trim();
+  if (trimmed === "") return [];
+  const out: ParsedCurvePoint[] = [];
+  for (const pair of trimmed.split(/\s+/)) {
+    const parts = pair.split(",");
+    if (parts.length !== 2) return null;
+    const x = Number(parts[0]);
+    const y = Number(parts[1]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    out.push({ x: Math.min(1, Math.max(0, x)), y: Math.min(1, Math.max(0, y)) });
+  }
+  return out.sort((a, b) => a.x - b.x);
+}
+
+export function formatCurvePoints(
+  points: readonly ParsedCurvePoint[] | undefined
+): string {
+  return (points ?? []).map((p) => `${p.x},${p.y}`).join(" ");
+}

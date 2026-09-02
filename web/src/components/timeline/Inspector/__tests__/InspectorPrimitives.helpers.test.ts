@@ -2,7 +2,13 @@
  * @jest-environment node
  */
 import {
+  formatCurvePoints,
+  formatGradientStops,
+  formatNumberList,
   formatTimecode,
+  parseCurvePoints,
+  parseGradientStops,
+  parseNumberList,
   parseTimecode,
   parseSeconds
 } from "../InspectorPrimitives.helpers";
@@ -139,5 +145,75 @@ describe("parseSeconds", () => {
 
   it("rounds to nearest millisecond", () => {
     expect(parseSeconds("1.5005")).toBe(1501);
+  });
+});
+
+describe("parseNumberList", () => {
+  it("reads a comma- or space-separated list", () => {
+    expect(parseNumberList("4, 2 1")).toEqual([4, 2, 1]);
+  });
+
+  it("reads empty as an empty list", () => {
+    expect(parseNumberList("  ")).toEqual([]);
+  });
+
+  it("refuses a non-number", () => {
+    expect(parseNumberList("4, wide")).toBeNull();
+  });
+
+  it("round-trips through formatNumberList", () => {
+    expect(parseNumberList(formatNumberList([0.02, 0.01]))).toEqual([
+      0.02, 0.01
+    ]);
+  });
+});
+
+describe("parseGradientStops", () => {
+  it("reads offset:color pairs", () => {
+    expect(parseGradientStops("0:#000000, 1:#ffffff")).toEqual([
+      { offset: 0, color: "#000000" },
+      { offset: 1, color: "#ffffff" }
+    ]);
+  });
+
+  it("sorts by offset and clamps to 0..1", () => {
+    expect(parseGradientStops("2:#fff, 0.5:#888")).toEqual([
+      { offset: 0.5, color: "#888" },
+      { offset: 1, color: "#fff" }
+    ]);
+  });
+
+  it("refuses a stop with no colour", () => {
+    expect(parseGradientStops("0:")).toBeNull();
+  });
+
+  it("round-trips through formatGradientStops", () => {
+    const stops = [
+      { offset: 0, color: "#000000" },
+      { offset: 1, color: "#ffffff" }
+    ];
+    expect(parseGradientStops(formatGradientStops(stops))).toEqual(stops);
+  });
+});
+
+describe("parseCurvePoints", () => {
+  it("reads x,y pairs", () => {
+    expect(parseCurvePoints("0,0 0.5,0.6 1,1")).toEqual([
+      { x: 0, y: 0 },
+      { x: 0.5, y: 0.6 },
+      { x: 1, y: 1 }
+    ]);
+  });
+
+  it("refuses a pair that is not x,y", () => {
+    expect(parseCurvePoints("0,0 0.5")).toBeNull();
+  });
+
+  it("round-trips through formatCurvePoints", () => {
+    const points = [
+      { x: 0, y: 0 },
+      { x: 1, y: 1 }
+    ];
+    expect(parseCurvePoints(formatCurvePoints(points))).toEqual(points);
   });
 });

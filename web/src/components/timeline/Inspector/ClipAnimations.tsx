@@ -6,6 +6,7 @@ import {
   type AnimationPreset,
   type AnimationRole,
   type ClipAnimation,
+  type CustomClipAnimation,
   type EasingId,
   type PresetParamSpec,
   type TimelineClip
@@ -32,6 +33,8 @@ import {
   InspectorToggleRow
 } from "./InspectorPrimitives";
 import { usePersistedFold } from "./usePersistedFold";
+import { ClipCustomCurves, makeCustomAnimation } from "./ClipCustomCurves";
+import { EasingField } from "./InspectorMotionFields";
 import { isNumber } from "../../../utils/typePredicates";
 
 const ROLES: AnimationRole[] = ["in", "out", "emphasis", "loop"];
@@ -45,6 +48,16 @@ const EASINGS: EasingId[] = [
   "easeOutBounce"
 ];
 const EMPTY_ANIMATIONS: ClipAnimation[] = [];
+
+/**
+ * Keyframes written directly rather than picked from the catalog (D2). It is
+ * not a preset — the catalog never lists it — so the add row and the preset
+ * select carry it as an extra option and the editor swaps the preset knobs for
+ * a curve list.
+ */
+const CUSTOM_PRESET = "custom";
+const CUSTOM_OPTION = { value: CUSTOM_PRESET, label: "custom (keyframes)" };
+const CUSTOM_DEFAULT_DURATION_MS = 800;
 
 const ROLE_LABELS: Record<AnimationRole, string> = {
   in: "In",
@@ -73,6 +86,17 @@ function defaultParams(
   return Object.fromEntries(
     preset.params.map((param) => [param.name, param.default])
   );
+}
+
+function makeCustom(role: AnimationRole): ClipAnimation {
+  return {
+    id: crypto.randomUUID(),
+    role,
+    preset: CUSTOM_PRESET,
+    durationMs: CUSTOM_DEFAULT_DURATION_MS,
+    enabled: true,
+    custom: makeCustomAnimation()
+  };
 }
 
 function makeAnimation(
@@ -165,8 +189,17 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
   const preset = ANIMATION_PRESETS.find(
     (candidate) => candidate.id === animation.preset
   );
+  const isCustom = animation.preset === CUSTOM_PRESET;
   const handlePresetChange = useCallback(
     (value: string) => {
+      if (value === CUSTOM_PRESET) {
+        onPatch({
+          preset: CUSTOM_PRESET,
+          params: undefined,
+          custom: makeCustomAnimation()
+        });
+        return;
+      }
       const next = presetsForRole(animation.role).find(
         (candidate) => candidate.id === value
       );
@@ -175,10 +208,16 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
         preset: next.id,
         durationMs: next.defaultDurationMs,
         easing: next.defaultEasing,
-        params: defaultParams(next)
+        params: defaultParams(next),
+        custom: undefined
       });
     },
     [animation.role, onPatch]
+  );
+
+  const handleCustomChange = useCallback(
+    (custom: CustomClipAnimation) => onPatch({ custom }),
+    [onPatch]
   );
 
   const patchParam = (name: string, value: number | string | boolean) => {
@@ -216,10 +255,13 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
         <InspectorSelect
           label={`${animation.role} animation preset`}
           value={animation.preset}
-          options={rolePresets.map((candidate) => ({
-            value: candidate.id,
-            label: candidate.id
-          }))}
+          options={[
+            ...rolePresets.map((candidate) => ({
+              value: candidate.id,
+              label: candidate.id
+            })),
+            CUSTOM_OPTION
+          ]}
           onChange={handlePresetChange}
         />
       </InspectorRow>
@@ -257,14 +299,24 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
         </>
       )}
 
-      <InspectorRow label="Easing">
-        <InspectorSelect
-          label={`${animation.role} animation easing`}
-          value={animation.easing ?? preset?.defaultEasing ?? "linear"}
-          options={EASING_OPTIONS}
-          onChange={(value) => onPatch({ easing: value as EasingId })}
+      {isCustom ? (
+        // A custom animation's easing carries the whole grammar (D3), which no
+        // select can enumerate, so it is typed rather than picked.
+        <EasingField
+          value={animation.easing}
+          ariaLabel={`${animation.role} animation easing`}
+          onChange={(easing) => onPatch({ easing })}
         />
-      </InspectorRow>
+      ) : (
+        <InspectorRow label="Easing">
+          <InspectorSelect
+            label={`${animation.role} animation easing`}
+            value={animation.easing ?? preset?.defaultEasing ?? "linear"}
+            options={EASING_OPTIONS}
+            onChange={(value) => onPatch({ easing: value as EasingId })}
+          />
+        </InspectorRow>
+      )}
 
       {staggerAvailable && !preset?.fullClip && (
         <>
@@ -299,6 +351,14 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
         </>
       )}
 
+      {isCustom && (
+        <ClipCustomCurves
+          custom={animation.custom}
+          labelPrefix={animation.role}
+          onChange={handleCustomChange}
+        />
+      )}
+
       {preset?.params.map((spec) => (
         <AnimationParamControl
           key={spec.name}
@@ -323,9 +383,8 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
   );
   const [newRole, setNewRole] = useState<AnimationRole>("in");
   const rolePresets = presetsForRole(newRole);
-  const [newPreset, setNewPreset] = useState<AnimationPreset["id"]>(
-    rolePresets[0].id
-  );
+  // A preset id or CUSTOM_PRESET, which the catalog does not carry.
+  const [newPreset, setNewPreset] = useState<string>(rolePresets[0].id);
   const animations = clip.animations ?? EMPTY_ANIMATIONS;
   const groupedAnimations = ROLES.flatMap((role) =>
     animations.filter((animation) => animation.role === role)
@@ -360,6 +419,10 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
   }, []);
 
   const handleAdd = useCallback(() => {
+    if (newPreset === CUSTOM_PRESET) {
+      setClipAnimations(clip.id, [...animations, makeCustom(newRole)]);
+      return;
+    }
     const preset = ANIMATION_PRESETS.find(
       (candidate) =>
         candidate.id === newPreset && candidate.roles.includes(newRole)
@@ -394,13 +457,14 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
             <InspectorSelect
               label="New animation preset"
               value={newPreset}
-              options={rolePresets.map((preset) => ({
-                value: preset.id,
-                label: preset.id
-              }))}
-              onChange={(value) =>
-                setNewPreset(value as AnimationPreset["id"])
-              }
+              options={[
+                ...rolePresets.map((preset) => ({
+                  value: preset.id,
+                  label: preset.id
+                })),
+                CUSTOM_OPTION
+              ]}
+              onChange={setNewPreset}
               grow
             />
             <Button

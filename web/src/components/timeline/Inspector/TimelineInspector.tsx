@@ -5,20 +5,27 @@ import { useTheme, type Theme } from "@mui/material/styles";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
+import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
+
+import { makeClip } from "@nodetool-ai/timeline";
 
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../../stores/timeline/TimelineStore";
+import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import { findClipById } from "../../../stores/timeline/clipLookup";
 import { usePersistedFold } from "./usePersistedFold";
 import {
+  Button,
   CollapsibleSection,
   EmptyState,
   FlexColumn,
   Panel,
   Text,
   SPACING,
-  getSpacingPx,
-  TextInput
+  getSpacingPx
 } from "../../ui_primitives";
 import { trackTypeAccent } from "../Tracks/trackVisuals";
 import {
@@ -28,7 +35,6 @@ import {
   InspectorPillInput,
   InspectorRow,
   InspectorSectionTitle,
-  InspectorSelect,
   InspectorStaticValue,
   InspectorToggleRow
 } from "./InspectorPrimitives";
@@ -40,6 +46,8 @@ import {
 import { ClipAdjustments } from "./ClipAdjustments";
 import { ClipStoryboardLink } from "./ClipStoryboardLink";
 import { ClipAnimations } from "./ClipAnimations";
+import { ClipShapeSection } from "./ClipShapeSection";
+import { ClipTextStyleSection } from "./ClipTextStyleSection";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
 import { DirectGenClipPanel } from "./DirectGenClipPanel";
 
@@ -74,12 +82,6 @@ const inspectorPanelSx = {
 const SCRUB_DURATION = { step: 0.02, min: 0.01 };
 const SCRUB_SPEED = { step: 0.01, min: 0.1, max: 8 };
 
-const TEXT_ALIGNMENTS = [
-  { value: "left", label: "Left" },
-  { value: "center", label: "Center" },
-  { value: "right", label: "Right" }
-] as const;
-
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
@@ -95,13 +97,13 @@ export const TimelineInspector: React.FC = memo(() => {
   // Persisted fold state — closed by default, remembered across selections
   // and reloads via localStorage.
   const [mediaOpen, setMediaOpen] = usePersistedFold("media");
-  const [textOpen, setTextOpen] = usePersistedFold("text");
   const [timingOpen, setTimingOpen] = usePersistedFold("timing");
 
   const clip = useTimelineStore((s) =>
     clipId ? (findClipById(s.clips, clipId) ?? null) : null
   );
   const textStyle = clip?.mediaType === "text" ? clip.textStyle : undefined;
+  const shapeStyle = clip?.mediaType === "shape" ? clip.shapeStyle : undefined;
   const track = useTimelineStore((s) =>
     clip ? s.tracks.find((t) => t.id === clip.trackId) : null
   );
@@ -115,6 +117,54 @@ export const TimelineInspector: React.FC = memo(() => {
   const fps = useTimelineStore((s) => s.fps);
   const deleteSelected = useTimelineStore((s) => s.deleteSelected);
   const patchClip = useTimelineStore((s) => s.patchClip);
+  const addClip = useTimelineStore((s) => s.addClip);
+  const storeApi = useTimelineStoreApi();
+  const history = useTimelineHistoryBatch();
+
+  /**
+   * Wrap the selection in a group clip (D4): one clip with
+   * `mediaType: "group"` spanning the selection, and a `parentId` on each
+   * member. Children keep their own tracks, so layer order is untouched (I9);
+   * the group takes the track of the topmost selected clip so its bracket
+   * renders above what it holds. The whole thing is one undo entry.
+   */
+  const groupSelection = useCallback(() => {
+    const state = storeApi.getState();
+    const members = state.clips.filter((candidate) =>
+      selectedClipIds.has(candidate.id)
+    );
+    if (members.length < 2) return;
+    const startMs = Math.min(...members.map((member) => member.startMs));
+    const endMs = Math.max(
+      ...members.map((member) => member.startMs + member.durationMs)
+    );
+    const trackIndexOf = (trackId: string) => {
+      const index = state.tracks.findIndex((track) => track.id === trackId);
+      return index < 0 ? Number.MAX_SAFE_INTEGER : index;
+    };
+    const topTrackId = members.reduce((top, member) =>
+      trackIndexOf(member.trackId) < trackIndexOf(top.trackId) ? member : top
+    ).trackId;
+
+    const group = makeClip({
+      trackId: topTrackId,
+      name: "Group",
+      mediaType: "group",
+      sourceType: "imported",
+      status: "generated",
+      startMs,
+      durationMs: Math.max(1, endMs - startMs)
+    });
+
+    history.begin();
+    addClip(group);
+    history.mark();
+    for (const member of members) {
+      patchClip(member.id, { parentId: group.id });
+      history.mark();
+    }
+    history.end();
+  }, [addClip, history, patchClip, selectedClipIds, storeApi]);
 
   const onPatchNumber = useCallback(
     (field: string, raw: string, min?: number, max?: number) => {
@@ -221,9 +271,21 @@ export const TimelineInspector: React.FC = memo(() => {
             }
           ]}
         />
-        <Text size="small" sx={{ px: 0.5, color: "text.secondary" }}>
-          Multi-clip editing is not yet supported.
-        </Text>
+        <FlexColumn gap={SPACING.md} sx={{ px: SPACING.micro }}>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<FolderOutlinedIcon />}
+            onClick={groupSelection}
+          >
+            Group selected clips
+          </Button>
+          <Text size="small" sx={{ color: "text.secondary" }}>
+            Grouping parents these clips to one group clip: it moves, trims and
+            fades them together. Per-field editing of several clips at once is
+            not yet supported.
+          </Text>
+        </FlexColumn>
       </Panel>
     );
   }
@@ -262,91 +324,9 @@ export const TimelineInspector: React.FC = memo(() => {
           only one a board link can reach. */}
       <ClipStoryboardLink clip={clip} />
 
-      {textStyle && (
-        <>
-          <CollapsibleSection
-            title={
-              <InspectorSectionTitle
-                title="Text"
-                icon={<PermMediaOutlinedIcon />}
-              />
-            }
-            open={textOpen}
-            onToggle={setTextOpen}
-            unmountOnExit
-          >
-            <FlexColumn css={sectionContentStyles(theme)}>
-              <TextInput
-                value={textStyle.text}
-                multiline
-                minRows={3}
-                fullWidth
-                onChange={(event) =>
-                  patchClip(clip.id, {
-                    textStyle: { ...textStyle, text: event.target.value }
-                  })
-                }
-                inputProps={{ "aria-label": "Text content" }}
-              />
-              <InspectorRow label="Font size">
-                <InspectorPillInput
-                  value={String(textStyle.fontSizePx)}
-                  unit="px"
-                  onCommit={(raw) => {
-                    const fontSizePx = Number(raw);
-                    if (!Number.isFinite(fontSizePx) || fontSizePx < 1) return;
-                    patchClip(clip.id, {
-                      textStyle: { ...textStyle, fontSizePx }
-                    });
-                  }}
-                  ariaLabel="Text font size"
-                />
-              </InspectorRow>
-              <InspectorRow label="Weight">
-                <InspectorPillInput
-                  value={String(textStyle.fontWeight ?? 400)}
-                  onCommit={(raw) => {
-                    const fontWeight = Number(raw);
-                    if (!Number.isFinite(fontWeight) || fontWeight < 1) return;
-                    patchClip(clip.id, {
-                      textStyle: { ...textStyle, fontWeight }
-                    });
-                  }}
-                  ariaLabel="Text font weight"
-                />
-              </InspectorRow>
-              <InspectorRow label="Color">
-                <TextInput
-                  type="color"
-                  value={textStyle.color}
-                  onChange={(event) =>
-                    patchClip(clip.id, {
-                      textStyle: { ...textStyle, color: event.target.value }
-                    })
-                  }
-                  inputProps={{ "aria-label": "Text color" }}
-                />
-              </InspectorRow>
-              <InspectorRow label="Align">
-                <InspectorSelect
-                  label="Text alignment"
-                  value={textStyle.align ?? "center"}
-                  options={TEXT_ALIGNMENTS}
-                  onChange={(value) =>
-                    patchClip(clip.id, {
-                      textStyle: {
-                        ...textStyle,
-                        align: value as "left" | "center" | "right"
-                      }
-                    })
-                  }
-                />
-              </InspectorRow>
-            </FlexColumn>
-          </CollapsibleSection>
-          <InspectorDivider />
-        </>
-      )}
+      {textStyle && <ClipTextStyleSection clip={clip} textStyle={textStyle} />}
+
+      {shapeStyle && <ClipShapeSection clip={clip} shapeStyle={shapeStyle} />}
 
       <CollapsibleSection
         title={

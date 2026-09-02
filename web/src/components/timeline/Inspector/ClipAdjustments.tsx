@@ -4,8 +4,9 @@
  *
  * The visual / playback adjustment sections shared by every clip inspector,
  * imported and generated alike: Render (opacity / blend, or audio volume +
- * fades), Transform, Color, Blur, and Transition. These all operate on plain
- * `TimelineClip` fields (`opacity`, `transform`, `effects`, `transitionIn`)
+ * fades), Transform, Color, Blur, Effects, Mask, Matte, and Transition. These
+ * all operate on plain `TimelineClip` fields (`opacity`, `transform`,
+ * `effects`, `mask`, `matte`, `transitionIn`)
  * that the compositor applies regardless of how the clip was produced, so a
  * generated clip can be colour-graded and transformed exactly like an imported
  * one.
@@ -22,7 +23,6 @@ import WbSunnyOutlinedIcon from "@mui/icons-material/WbSunnyOutlined";
 import BlurOnOutlinedIcon from "@mui/icons-material/BlurOnOutlined";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import OpenWithOutlinedIcon from "@mui/icons-material/OpenWithOutlined";
-import CompareArrowsOutlinedIcon from "@mui/icons-material/CompareArrowsOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 
 import type {
@@ -36,11 +36,7 @@ import type {
 import { BLEND_MODES } from "@nodetool-ai/gpu";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import {
-  CollapsibleSection,
-  FlexColumn,
-  Text
-} from "../../ui_primitives";
+import { CollapsibleSection, FlexColumn } from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
 import {
   InspectorDivider,
@@ -51,6 +47,9 @@ import {
   InspectorSliderRow
 } from "./InspectorPrimitives";
 import { parseSeconds } from "./InspectorPrimitives.helpers";
+import { ClipEffectsList } from "./ClipEffectsList";
+import { ClipMaskMatte } from "./ClipMaskMatte";
+import { ClipTransitionSection } from "./ClipTransitionSection";
 
 // ── Effect IDs ─────────────────────────────────────────────────────────────
 
@@ -102,12 +101,6 @@ const sectionContentStyles = (theme: Theme) =>
     padding: theme.spacing(0.5, 0, 2)
   });
 
-const TRANSITION_MODES = [
-  { value: "auto", label: "Auto" },
-  { value: "crossfade", label: "Crossfade" },
-  { value: "none", label: "None" }
-] as const;
-
 // Hoisted so InspectorPillInput's memo holds: an inline literal would be a
 // fresh reference every render, re-rendering every pill whenever one changed.
 const SCRUB_SECONDS = { step: 0.02, min: 0 };
@@ -122,7 +115,8 @@ interface ClipAdjustmentsProps {
 }
 
 /**
- * Render / Transform / Color / Blur / Transition sections for a single clip.
+ * Render / Transform / Color / Blur sections for a single clip, followed by the
+ * Effects, Mask, Matte and Transition sections those fields feed into.
  * Leads with an {@link InspectorDivider}; the caller supplies the trailing one.
  */
 export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
@@ -134,7 +128,6 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
     const [transformOpen, setTransformOpen] = usePersistedFold("transform");
     const [colorOpen, setColorOpen] = usePersistedFold("color");
     const [blurOpen, setBlurOpen] = usePersistedFold("blur");
-    const [transitionOpen, setTransitionOpen] = usePersistedFold("transition");
 
     const isAudio = clip.mediaType === "audio";
     const isOverlay = clip.mediaType === "overlay";
@@ -383,42 +376,6 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
       [patchClip]
     );
 
-    // ── Transition section ─────────────────────────────────────────────────
-
-    const setTransitionMode = useCallback(
-      (next: "auto" | "crossfade" | "none") => {
-        if (next === "auto") {
-          patchClip(clipRef.current.id, { transitionIn: undefined });
-        } else if (next === "none") {
-          patchClip(clipRef.current.id, {
-            transitionIn: { type: "crossfade", durationMs: 0 }
-          });
-        } else {
-          const t = clipRef.current.transitionIn;
-          const duration = t && t.durationMs > 0 ? t.durationMs : 500;
-          patchClip(clipRef.current.id, {
-            transitionIn: { type: "crossfade", durationMs: duration }
-          });
-        }
-      },
-      [patchClip]
-    );
-    const handleTransitionModeChange = useCallback(
-      (value: string) =>
-        setTransitionMode(value as "auto" | "crossfade" | "none"),
-      [setTransitionMode]
-    );
-    const handleTransitionDurationCommit = useCallback(
-      (raw: string) => {
-        const ms = parseSeconds(raw);
-        if (ms == null) return;
-        patchClip(clipRef.current.id, {
-          transitionIn: { type: "crossfade", durationMs: Math.max(0, ms) }
-        });
-      },
-      [patchClip]
-    );
-
     // ── Derived display values ──────────────────────────────────────────────
 
     const transform = clip.transform ?? IDENTITY_TRANSFORM;
@@ -427,16 +384,6 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
     const blur = findBlurEffect(clip);
     const blurEnabled = blur?.enabled ?? false;
     const blurRadius = blur?.radius ?? 0;
-    const transitionMode: "auto" | "crossfade" | "none" =
-      clip.transitionIn == null
-        ? "auto"
-        : clip.transitionIn.durationMs <= 0
-          ? "none"
-          : "crossfade";
-    const transitionDuration =
-      clip.transitionIn && clip.transitionIn.durationMs > 0
-        ? clip.transitionIn.durationMs
-        : 500;
 
     return (
       <>
@@ -764,50 +711,9 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
 
         {!isAudio && (
           <>
-            <InspectorDivider />
-            <CollapsibleSection
-              title={
-                <InspectorSectionTitle
-                  title="Transition"
-                  icon={<CompareArrowsOutlinedIcon />}
-                />
-              }
-              open={transitionOpen}
-              onToggle={setTransitionOpen}
-              unmountOnExit
-            >
-              <FlexColumn css={sectionContentStyles(theme)}>
-                <InspectorRow label="Type">
-                  <InspectorSelect
-                    label="Transition type"
-                    value={transitionMode}
-                    options={TRANSITION_MODES}
-                    onChange={handleTransitionModeChange}
-                  />
-                </InspectorRow>
-                {transitionMode === "crossfade" && (
-                  <InspectorRow label="Duration">
-                    <InspectorPillInput
-                      value={(transitionDuration / 1000).toFixed(2)}
-                      unit="s"
-                      scrub={SCRUB_SECONDS}
-                      onCommit={handleTransitionDurationCommit}
-                      ariaLabel="Transition duration"
-                    />
-                  </InspectorRow>
-                )}
-                <Text
-                  size="small"
-                  sx={{ px: 0.5, color: "text.secondary" }}
-                >
-                  {transitionMode === "auto"
-                    ? "Overlap this clip with the previous one on the same track to cross-fade."
-                    : transitionMode === "crossfade"
-                      ? "Fixed cross-fade length, measured from this clip's start."
-                      : "Always a hard cut, even when clips overlap."}
-                </Text>
-              </FlexColumn>
-            </CollapsibleSection>
+            <ClipEffectsList clip={clip} />
+            <ClipMaskMatte clip={clip} />
+            <ClipTransitionSection clip={clip} />
           </>
         )}
       </>
