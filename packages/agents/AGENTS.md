@@ -1775,7 +1775,8 @@ construction; what it cannot judge is quality, and that is the suite:
 parallel width, decomposition proportional to the objective, real dependencies
 modelled as dependencies, tool routing (`run_python` for arithmetic, not a
 reasoning step), the step-id prefix convention, and the prompt's hard rule that
-final synthesis belongs to the Compiler, not to an "assemble" task. Metrics per
+final synthesis belongs to the loop that ran the plan, not to an "assemble"
+task. Metrics per
 case: tasks, steps, parallel width, critical-path depth, planner tool calls,
 rejected `add_task`/`finish_plan` calls; aggregate adds a **clean rate** — the
 fraction of plans built without a single rejected call.

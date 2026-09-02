@@ -183,6 +183,8 @@ D1 and D2 are recorded with their evidence in [ADR 0002](../adr/0002-codeact-is-
   run budget bound the work.
 - **D7. A5 is a conditional patch.** D1 deletes the code A5 fixes. Ship A5
   only if A3's deletion task cannot land in the same milestone as A1.
+  Resolved: T-A3.3 landed first, so A5 ships against the seams that inherited
+  the defect instead of the compiler (see A5).
 
 ## 3. Work packages
 
@@ -689,31 +691,46 @@ still scroll the full thread.
 
 ---
 
-### A5. Validate the compiler's deliverable (conditional, see D7)
+### A5. Validate the deliverable
 
-**Rationale.** `Agent.getResults()` is the one output a CLI caller reads, and
-it is the only place in the pipeline where a schema is declared and not
-checked.
+**Rationale.** `Agent.getResults()` was the one output a CLI caller read, and
+the only place in the pipeline where a schema was declared and not checked.
 
-**Context.** `compiler-agent.ts:268-312`, `agent.ts:760-771`, the host-side
-validator the step executors use (`codeact-executor.ts:681-707`,
-`step-executor.ts:954-988`; find the shared helper and reuse it, do not write
-a third), `tests/compiler-agent.test.ts`, `tests/agent.test.ts`.
+**Outcome.** T-A3.3 landed first, so D7's condition resolved against the
+original patch: `compiler-agent.ts` and `agent.ts` are deleted and there is no
+compiler `finish_step` closure to validate. The first acceptance criterion is
+met by the code that survived — every deliverable now completes through
+`validateAgainstSchema` (`utils/json-schema-validate.ts`), reached from
+`StepExecutor.validateResultPayload` and the CodeAct `finish()` bridge, and a
+violation round-trips to the model as an error result bounded by
+`maxIterations`, `MAX_FINISH_NUDGES`, and `MAX_REPAIR_ROUNDS`.
 
-**Target design.** In the `finish_step` closure, run the same schema
-validation the step executors run; on failure return the validation errors as
-the tool result so the compiler repairs within its 6 rounds; after the rounds,
-fail. In `Agent`, a null compiler result under an `outputSchema` throws
-`AgentResultError("compiler produced no result")`; without a schema the
-memory fallback stays and is logged as a warning.
+The second criterion did not survive the deletion. A null deliverable stayed
+silent at three seams, each reported as success:
+
+- **The fan-out aggregate.** `task-executor.ts` process mode fills
+  `new Array(n)` from `step_result` messages, so a failed item leaves a hole,
+  and the array is stored and the step marked complete regardless. A step
+  declaring both `perItemSchema` and `outputSchema` has its own `outputSchema`
+  checked by nobody: the per-item executor applied the other one.
+- **`execute_plan`'s results map.** `capabilities/agents.ts` reads each task's
+  deliverable with `if (value !== undefined) results[task.id] = value` and
+  still reports `status: "completed"`. This is the seam that replaced the
+  compiler, and its description tells the model to write the answer from
+  results that may not be there.
+- **`nodetool agent run`'s exit code.** The command's one output is a
+  transcript scrape; when it finds no final assistant text it writes nothing
+  to stdout and exits 0.
 
 **Task.**
 
-- **T-A5.1** Size S. Ship only if T-A3.3 has not merged by the time A1 ships
-  (D7). Acceptance: a compiler `finish_step` with a wrong-typed field is
-  rejected and the second attempt is accepted; a null result under a schema
-  throws. Inversion: bypass the validator and watch the wrong-typed payload
-  pass. Depends: none. Superseded by T-A3.3.
+- **T-A5.1** Size S. Carried to the seams above, since D7's original target is
+  deleted. Acceptance: a fan-out with a failed item fails the step naming the
+  missing indexes, and an aggregate violating a declared `outputSchema` fails
+  with the violations; `execute_plan` marks a task whose `task:<id>` key was
+  never written with `result_missing`; `agent run` exits non-zero and names
+  the reason when it produces no answer. Inversion: each check written and
+  observed failing before the fix. Depends: T-A3.3.
 
 ---
 
@@ -877,7 +894,7 @@ T-A4.2 ┴─► T-A4.3 ──► T-A4.5        T-A4.4 (independent; coordinate 
 T-A3.1 ──► T-A3.2 ──► T-A3.3 ──► T-A3.4
                         │  T-A1.6, T-A2.3 (CLI flags, after the rewrite)
 T-A1.1 ──► T-A7.1 ──► T-A7.2 (after T-A8.2) ──► T-A7.3 (after T-A3.3)
-T-A5.1 only if T-A3.3 slips past A1's milestone
+T-A5.1 after T-A3.3 (retargeted; see A5)
 ```
 
 Parallel lanes for four agents: (1) A8 then A7; (2) A1; (3) A2 then the CLI

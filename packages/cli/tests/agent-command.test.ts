@@ -272,6 +272,26 @@ describe("nodetool agent run", () => {
     );
   });
 
+  it("fails the run when the turn produced no final assistant text", async () => {
+    // A turn that ends on a contentless assistant message: `processChat` drops
+    // it, so the transcript carries no answer at all.
+    const provider = new ScriptedProvider([() => []]);
+
+    const { code, stdout, events } = await runWithCapture(provider, {
+      objective: "list my workflows"
+    });
+
+    expect(code).toBe(1);
+    expect(stdout).toBe("");
+    expect(
+      events.some(
+        (e) =>
+          (e as { type?: string }).type === "error" &&
+          String((e as { message?: string }).message).includes("no answer")
+      )
+    ).toBe(true);
+  });
+
   it("reports a provider failure as an error event and exit code 1", async () => {
     const provider = new ScriptedProvider([
       () => {
