@@ -5,7 +5,7 @@ import {
   zodToJsonSchema,
   type JsonSchema,
   type ZodOrJsonSchema
-} from "@nodetool-ai/runtime/zod-schema";
+} from "@nodetool-ai/protocol/zod-schema";
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { NodeStore } from "../../stores/NodeStore";
 
