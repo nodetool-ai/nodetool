@@ -6,7 +6,6 @@ import { ArrowLeft, ArrowRight, Download, KeyRound, AlertTriangle } from "lucide
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
-import RecipeDownloadButton from "@/components/RecipeDownloadButton";
 import RecipeSampleFigure from "@/components/RecipeSampleFigure";
 import { SmartDownloadButton } from "@/app/SmartDownloadButton";
 import { recipeEntries, type RecipeEntry } from "@/data/recipes";
@@ -104,14 +103,9 @@ export default async function RecipePage({
               For: {entry.audience}
             </p>
             <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-              <RecipeDownloadButton
-                href={entry.bundle}
-                slug={entry.slug}
-                workflowCount={entry.workflowCount}
-              />
               <SmartDownloadButton
                 icon={<Download className="h-5 w-5" />}
-                classNameOverride="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white transition-all hover:border-white/25 hover:bg-white/5"
+                classNameOverride="inline-flex items-center justify-center gap-2 rounded-full bg-amber-500 px-8 py-3.5 text-sm font-semibold text-slate-950 shadow-[0_10px_30px_-10px_rgba(245,158,11,0.6)] transition-all hover:bg-amber-400"
               />
             </div>
           </div>
