@@ -45,7 +45,10 @@ import {
   PREVIEW_OVERLAY_Z,
   MAX_VIDEO_LAYERS
 } from "@nodetool-ai/timeline/render";
-import type { ActiveLayer } from "@nodetool-ai/timeline/render";
+import type {
+  ActiveLayer,
+  AnimatedLayerProps
+} from "@nodetool-ai/timeline/render";
 import {
   buildCompositeLayers,
   buildCompositePrecomposites,
@@ -794,7 +797,8 @@ export const PreviewCompositor: React.FC = memo(() => {
         : sceneLayers;
 
       const resolveSource = (
-        layer: ActiveLayer
+        layer: ActiveLayer,
+        anim: AnimatedLayerProps
       ): ResolvedCompositeSource | null => {
         if (layer.kind === "caption") {
           if (!layer.caption) return null;
@@ -824,9 +828,12 @@ export const PreviewCompositor: React.FC = memo(() => {
           return bitmap ? { source: bitmap } : null;
         }
         if (layer.kind === "shape") {
-          if (!layer.shapeStyle) return null;
+          // The animated style carries a driven trim range; without it a trim
+          // animation would rasterize its first frame and hold.
+          const shapeStyle = anim.shapeStyle ?? layer.shapeStyle;
+          if (!shapeStyle) return null;
           const bitmap = shapeRasterizerRef.current.rasterize(
-            layer.shapeStyle,
+            shapeStyle,
             sequenceWidth,
             sequenceHeight
           );

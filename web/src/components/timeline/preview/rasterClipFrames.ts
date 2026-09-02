@@ -86,6 +86,16 @@ export async function renderRasterClipFrames(
       // A staggered text clip re-rasterizes per requested time so the agent
       // sees the per-word motion mid-window, same draw path as preview/export.
       let frameSource = source;
+      // A shape with a driven trim range redraws per requested time for the
+      // same reason: its outline is different at every timecode.
+      if (clip.mediaType === "shape" && animated.shapeStyle) {
+        frameSource =
+          shapeRasterizer.rasterize(
+            animated.shapeStyle,
+            sequenceWidth,
+            sequenceHeight
+          ) ?? source;
+      }
       if (clip.mediaType === "text" && clip.textStyle) {
         const stagger = resolveTextStaggerContext(
           clip,

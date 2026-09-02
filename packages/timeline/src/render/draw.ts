@@ -8,7 +8,12 @@
  * host's bitmap type stay with the caller — everything here just draws.
  */
 
-import type { ClipMask, ClipShapeStyle, ClipTextStyle } from "../types.js";
+import type {
+  ClipMask,
+  ClipShapeStyle,
+  ClipTextStyle,
+  ShapeFill
+} from "../types.js";
 import type {
   AnimationSample,
   CompiledAnimation,
@@ -19,7 +24,14 @@ import {
   sampleStaggeredAnimations
 } from "../animation/index.js";
 import type { MeasureTextWidth } from "./textLayout.js";
-import { parseSvgPath, tracePath } from "./svgPath.js";
+import { parseSvgPath, tracePath, type PathSegment } from "./svgPath.js";
+import {
+  buildShapeSegments,
+  flattenSegments,
+  shapeBox,
+  shapeUnitScale,
+  trimFlatPath
+} from "./shapeGeometry.js";
 import {
   layoutStaggerUnits,
   textFontSpec,
@@ -40,6 +52,28 @@ export interface CanvasGradient2D {
 }
 
 /**
+ * The gradient factories a fill resolves through. Its own interface, and the
+ * narrowest one in this file, so {@link resolveShapeFill} can be handed a mask
+ * surface, a raster surface or a compositing scratch surface alike.
+ */
+export interface GradientContext2D {
+  createLinearGradient(
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number
+  ): CanvasGradient2D;
+  createRadialGradient(
+    x0: number,
+    y0: number,
+    r0: number,
+    x1: number,
+    y1: number,
+    r1: number
+  ): CanvasGradient2D;
+}
+
+/**
  * The Canvas 2D surface a mask rasterizes through: paths, gradients, composite
  * ops and a filter.
  *
@@ -50,7 +84,7 @@ export interface CanvasGradient2D {
  * (I6). Every member is satisfied by `OffscreenCanvasRenderingContext2D`, a DOM
  * canvas context and `@napi-rs/canvas`.
  */
-export interface MaskContext2D {
+export interface MaskContext2D extends GradientContext2D {
   fillStyle: CanvasPaint;
   filter: string;
   globalCompositeOperation: string;
@@ -85,20 +119,6 @@ export interface MaskContext2D {
   clip(fillRule?: string): void;
   clearRect(x: number, y: number, w: number, h: number): void;
   fillRect(x: number, y: number, w: number, h: number): void;
-  createLinearGradient(
-    x0: number,
-    y0: number,
-    x1: number,
-    y1: number
-  ): CanvasGradient2D;
-  createRadialGradient(
-    x0: number,
-    y0: number,
-    r0: number,
-    x1: number,
-    y1: number,
-    r1: number
-  ): CanvasGradient2D;
 }
 
 /** The Canvas 2D surface the rasterizers draw through. */
@@ -107,6 +127,8 @@ export interface RasterContext2D extends MaskContext2D {
   strokeStyle: CanvasPaint;
   lineWidth: number;
   lineJoin: string;
+  lineCap: string;
+  setLineDash(pattern: number[]): void;
   textAlign: string;
   textBaseline: string;
   globalAlpha: number;
@@ -423,6 +445,69 @@ export function createStaggerScratch(): AnimationSample {
   return createAnimationSample();
 }
 
+// ── Fills ───────────────────────────────────────────────────────────────────
+
+/** The box a gradient fill is measured against, in surface pixels. */
+export interface FillBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * A {@link ShapeFill} as something assignable to `fillStyle`: the colour itself
+ * for a solid, a canvas gradient placed against `box` for the other two.
+ *
+ * Stops are normalized 0..1 offsets, so the same fill reads the same on a
+ * title, a rounded rect and a traced path — which is why text takes this too
+ * rather than growing a gradient of its own.
+ *
+ * A linear fill's `angle` is degrees clockwise from left→right, and its axis is
+ * scaled so the gradient spans the box's projection onto that angle exactly: at
+ * 0° it runs the full width, at 90° the full height, and in between it still
+ * reaches both ends. A radial fill runs from the box's centre to its corners,
+ * matching CSS `radial-gradient`'s farthest-corner default.
+ */
+export function resolveShapeFill(
+  ctx: GradientContext2D,
+  fill: ShapeFill,
+  box: FillBox
+): CanvasPaint {
+  if (fill.type === "solid") return fill.color;
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  if (fill.type === "linear") {
+    const radians = (fill.angle * Math.PI) / 180;
+    const half =
+      (Math.abs(Math.cos(radians)) * box.width +
+        Math.abs(Math.sin(radians)) * box.height) /
+      2;
+    const dx = Math.cos(radians) * half;
+    const dy = Math.sin(radians) * half;
+    return withStops(
+      ctx.createLinearGradient(cx - dx, cy - dy, cx + dx, cy + dy),
+      fill.stops
+    );
+  }
+  const radius = Math.hypot(box.width, box.height) / 2;
+  return withStops(
+    ctx.createRadialGradient(cx, cy, 0, cx, cy, radius),
+    fill.stops
+  );
+}
+
+/** Apply stops in authored order, clamped — a canvas throws outside 0..1. */
+function withStops(
+  gradient: CanvasGradient2D,
+  stops: readonly { offset: number; color: string }[]
+): CanvasGradient2D {
+  for (const stop of stops) {
+    gradient.addColorStop(Math.max(0, Math.min(1, stop.offset)), stop.color);
+  }
+  return gradient;
+}
+
 // ── Shapes ───────────────────────────────────────────────────────────────────
 
 /** Content signature of a shape raster, for host-side caching. */
@@ -434,42 +519,86 @@ export function shapeStyleSignature(
   return `${width}x${height}|${JSON.stringify(style)}`;
 }
 
-function number(value: number | undefined, fallback: number): number {
-  return value ?? fallback;
+/** The segments are already in surface pixels, so tracing them is a replay. */
+const UNSCALED = { scaleX: 1, scaleY: 1 };
+
+/** The whole outline, when neither trim channel is driven away from its end. */
+function trimIsWhole(style: ClipShapeStyle): boolean {
+  return (style.trimStart ?? 0) <= 0 && (style.trimEnd ?? 1) >= 1;
 }
 
+/** The dash pattern in surface pixels, or an empty list for a solid stroke. */
+function dashPattern(style: ClipShapeStyle, width: number): number[] {
+  const scale = shapeUnitScale(width);
+  const pattern = (style.dash ?? [])
+    .filter((n) => Number.isFinite(n) && n >= 0)
+    .map((n) => n * scale);
+  return pattern.some((n) => n > 0) ? pattern : [];
+}
+
+/**
+ * Draw a shape clip's geometry: fill, then stroke.
+ *
+ * The fill always covers the whole outline. `trimStart`/`trimEnd` cut the
+ * **stroke** to a sub-range of the outline's arc length — the channel exists so
+ * a line can draw itself on, and a partly-filled shape is not that.
+ */
 export function drawShape(
   ctx: RasterContext2D,
   style: ClipShapeStyle,
   width: number,
   height: number
 ): void {
-  const x = number(style.x, 0.25) * width;
-  const y = number(style.y, 0.25) * height;
-  const shapeWidth = number(style.width, 0.5) * width;
-  const shapeHeight = number(style.height, 0.5) * height;
-  ctx.fillStyle = style.fill ?? "transparent";
-  ctx.strokeStyle = style.stroke ?? "transparent";
-  ctx.lineWidth = number(style.strokeWidthPx, 0);
-  ctx.beginPath();
-  if (style.kind === "rect") ctx.rect(x, y, shapeWidth, shapeHeight);
-  if (style.kind === "ellipse") {
-    ctx.ellipse(
-      x + shapeWidth / 2,
-      y + shapeHeight / 2,
-      shapeWidth / 2,
-      shapeHeight / 2,
-      0,
-      0,
-      Math.PI * 2
-    );
+  const segments = buildShapeSegments(style, width, height);
+  if (!segments || segments.length === 0) return;
+  const box = shapeBox(style, width, height);
+  const lineWidth = style.strokeWidthPx ?? 0;
+
+  ctx.save();
+  if (style.fill || style.fillStyle) {
+    ctx.fillStyle = style.fillStyle
+      ? resolveShapeFill(ctx, style.fillStyle, box)
+      : (style.fill ?? "transparent");
+    ctx.beginPath();
+    tracePath(ctx, segments, UNSCALED);
+    ctx.fill();
   }
-  if (style.kind === "line") {
-    ctx.moveTo(x, y);
-    ctx.lineTo(number(style.x2, 0.75) * width, number(style.y2, 0.75) * height);
+  if (style.stroke && lineWidth > 0) {
+    ctx.strokeStyle = style.stroke;
+    ctx.lineWidth = lineWidth;
+    ctx.lineJoin = style.lineJoin ?? "miter";
+    ctx.lineCap = style.lineCap ?? "butt";
+    ctx.setLineDash(dashPattern(style, width));
+    ctx.beginPath();
+    if (trimIsWhole(style)) {
+      tracePath(ctx, segments, UNSCALED);
+    } else {
+      traceTrimmed(ctx, segments, style);
+    }
+    ctx.stroke();
   }
-  if (style.fill) ctx.fill();
-  if (style.stroke && ctx.lineWidth > 0) ctx.stroke();
+  ctx.restore();
+}
+
+
+/** Issue only the trimmed sub-range of the outline, as open polylines. */
+function traceTrimmed(
+  ctx: RasterContext2D,
+  segments: readonly PathSegment[],
+  style: ClipShapeStyle
+): void {
+  const runs = trimFlatPath(
+    flattenSegments(segments),
+    style.trimStart ?? 0,
+    style.trimEnd ?? 1
+  );
+  for (const run of runs) {
+    if (run.length < 2) continue;
+    ctx.moveTo(run[0]!.x, run[0]!.y);
+    for (let i = 1; i < run.length; i++) {
+      ctx.lineTo(run[i]!.x, run[i]!.y);
+    }
+  }
 }
 
 // ── Masks ────────────────────────────────────────────────────────────────────
