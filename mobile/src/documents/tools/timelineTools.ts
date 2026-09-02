@@ -18,18 +18,56 @@
  * mounted.
  */
 
+import type { AnimationRole, SnapAction, SnapBoundaryMode } from '@nodetool-ai/timeline';
+
 import { getDocumentHandler } from '../agentBridge';
+import { animationPresetCatalog } from '../timelineEdits';
 import { MobileToolRegistry } from './registry';
 import type {
+  TimelineAddGroupInput,
   TimelineAddMarkerInput,
+  TimelineAddMediaClipInput,
   TimelineAddShapeClipInput,
   TimelineAddTextClipInput,
   TimelineAgentHandler,
+  TimelineAnimationInput,
+  TimelineClipBindingPatch,
   TimelineClipParamsPatch,
+  TimelineEffectInput,
+  TimelineMaskInput,
+  TimelineMatteInput,
   TimelineMovePatch,
+  TimelineTimeRemapInput,
   TimelineTrackType,
+  TimelineTransitionInput,
   TimelineTrimPatch,
 } from '../timelineTypes';
+
+const ANIMATION_ROLES = ['in', 'out', 'emphasis', 'loop'] as const;
+
+/** Mirrors `KNOWN_TRANSITION_TYPE_LIST`; the builder refuses anything else. */
+const TRANSITION_TYPE_ENUM = [
+  'crossfade',
+  'dipToColor',
+  'wipe',
+  'push',
+  'slide',
+  'zoom',
+] as const;
+
+/** Mirrors `KNOWN_CLIP_EFFECT_TYPE_LIST`. */
+const EFFECT_TYPE_ENUM = [
+  'color',
+  'blur',
+  'glow',
+  'dropShadow',
+  'vignette',
+  'sharpen',
+  'chromaKey',
+  'curves',
+  'levels',
+  'liftGammaGain',
+] as const;
 
 const handlerFor = (timelineId: string): TimelineAgentHandler =>
   getDocumentHandler<TimelineAgentHandler>('timeline', timelineId);
@@ -445,6 +483,556 @@ MobileToolRegistry.register<
   }),
 });
 
+// ── Media, binding, motion ──────────────────────────────────────────────────
+
+MobileToolRegistry.register<
+  { timeline_id: string } & TimelineAddMediaClipInput
+>({
+  name: 'ui_timeline_add_media_clip',
+  description:
+    'Place an asset already in the library — a video, image, or audio file — on an open timeline sequence. `asset` is an asset id or an `asset://<id>.<ext>` URI. Without a track the clip lands on a track matching its media kind, creating one when needed; without `startMs` it is appended after that track\'s existing content, so calling this once per asset lays them end to end. Duration comes from the asset when the library knows it. ' +
+    SAVE_NOTE,
+  parameters: {
+    type: 'object',
+    properties: {
+      timeline_id: timelineIdParam,
+      asset: {
+        type: 'string',
+        description: 'Asset id or `asset://<id>.<ext>` URI, as list_assets reports them.',
+      },
+      trackId: {
+        type: 'string',
+        description: 'Target track id or name. Omit to use (or create) a track for the media kind.',
+      },
+      startMs: numberParam(
+        "Absolute start on the timeline in ms. Omit to append after the track's existing content."
+      ),
+      durationMs: numberParam(
+        "On-timeline length in ms. Omit to use the asset's own duration."
+      ),
+      name: { type: 'string', description: "Clip name. Defaults to the asset's name." },
+    },
+    required: ['timeline_id', 'asset'],
+  },
+  execute: async ({ timeline_id, ...input }) => ({
+    ok: true,
+    clip: await handlerFor(timeline_id).addMediaClip(input),
+  }),
+});
+
+MobileToolRegistry.register<
+  { timeline_id: string; target: string } & TimelineClipBindingPatch
+>({
+  name: 'ui_timeline_set_clip_binding',
+  description:
+    "Edit a generated clip's generation binding on its own — `prompt`, `negativePrompt`, `provider`/`model`, TTS `voice`, `width`/`height`, `strength`, `numInferenceSteps`, `seed`. Only applies to generated clips; an imported one is refused. A clip that already has a render is marked `stale`, because its asset no longer matches its settings — re-generating it is desktop-only. `aspectRatio` and `resolution` are not accepted here: they are not in the timeline document schema, so a save would drop them. " +
+    SAVE_NOTE,
+  parameters: {
+    type: 'object',
+    properties: {
+      timeline_id: timelineIdParam,
+      target: targetParam,
+      prompt: { type: 'string' },
+      negativePrompt: { type: 'string' },
+      provider: { type: 'string' },
+      model: { type: 'string' },
+      voice: { type: 'string', description: 'TTS voice id for text-to-audio clips.' },
+      width: numberParam('Generation width in pixels.'),
+      height: numberParam('Generation height in pixels.'),
+      strength: numberParam('Image-to-image strength, 0..1.'),
+      numInferenceSteps: numberParam('Sampler steps.'),
+      seed: numberParam('Generation seed.'),
+    },
+    required: ['timeline_id', 'target'],
+  },
+  execute: async ({ timeline_id, target, ...patch }) => ({
+    ok: true,
+    clip: handlerFor(timeline_id).setClipBinding(target, patch),
+  }),
+});
+
+MobileToolRegistry.register<{
+  timeline_id: string;
+  target: string;
+  animations: TimelineAnimationInput[];
+  mode?: 'add' | 'replace';
+}>({
+  name: 'ui_timeline_animate_clip',
+  description:
+    'Attach motion-design animations to a clip. Roles: `in` (entrance: fade, slide, pop, spin, wipe, blur, colorFade), `out` (exit), `emphasis` (mid-clip: pulse, flash, shake, bounce, squash), `loop` (continuous: kenBurns, float, breathe, rotate, hueShift). Each animation takes `role`, `preset`, optional `durationMs`, `delayMs`, `easing`, and preset `params`. For motion no preset covers, use `preset: "custom"` with `curves` — keyframes you write, `t` running 0..1 over the window — and add `mask` when a curve drives wipeProgress. Baking a `code` body into curves is not available on this surface: use the headless `edit_timeline` tool for that. On text clips, `stagger` runs the animation once per word. `mode` "replace" (default) swaps the clip\'s animations; "add" appends. Call ui_timeline_list_animation_presets first for the exact preset ids and params. ' +
+    SAVE_NOTE,
+  parameters: {
+    type: 'object',
+    properties: {
+      timeline_id: timelineIdParam,
+      target: targetParam,
+      mode: {
+        type: 'string',
+        enum: ['add', 'replace'],
+        description: 'Default "replace".',
+      },
+      animations: {
+        type: 'array',
+        description: 'At least one animation.',
+        items: {
+          type: 'object',
+          properties: {
+            role: { type: 'string', enum: ANIMATION_ROLES },
+            preset: {
+              type: 'string',
+              description: 'Preset id, or "custom" with `curves`.',
+            },
+            durationMs: { type: 'number' },
+            delayMs: { type: 'number' },
+            easing: {
+              type: 'string',
+              description: 'Easing id, cubic-bezier(x1,y1,x2,y2) or spring(stiffness,damping,mass).',
+            },
+            params: { type: 'object', description: 'Preset-specific knobs.' },
+            curves: {
+              type: 'array',
+              description:
+                '`custom` only: [{property, keyframes:[{t, value, easing?}]}], t running 0..1.',
+            },
+            mask: {
+              type: 'object',
+              description: '`custom` only: {direction, softness}, required by a wipeProgress curve.',
+            },
+            stagger: {
+              type: 'object',
+              properties: {
+                unit: { type: 'string', enum: ['word', 'character', 'line'] },
+                offsetMs: { type: 'number' },
+                from: { type: 'string', enum: ['start', 'end', 'center'] },
+              },
+              required: ['unit', 'offsetMs'],
+              description: 'Per-unit stagger — text clips only.',
+            },
+          },
+          required: ['role', 'preset'],
+        },
+      },
+    },
+    required: ['timeline_id', 'target', 'animations'],
+  },
+  execute: async ({ timeline_id, target, animations, mode }) => ({
+    ok: true,
+    clip: handlerFor(timeline_id).animateClip(target, animations, mode),
+  }),
+});
+
+MobileToolRegistry.register<{
+  timeline_id: string;
+  target: string;
+  role?: AnimationRole;
+}>({
+  name: 'ui_timeline_clear_animations',
+  description:
+    'Remove motion-design animations from a clip. Pass `role` to clear only that role (in/out/emphasis/loop); omit it to clear all. ' +
+    SAVE_NOTE,
+  parameters: {
+    type: 'object',
+    properties: {
+      timeline_id: timelineIdParam,
+      target: targetParam,
+      role: { type: 'string', enum: ANIMATION_ROLES },
+    },
+    required: ['timeline_id', 'target'],
+  },
+  execute: async ({ timeline_id, target, role }) => ({
+    ok: true,
+    clip: handlerFor(timeline_id).clearAnimations(target, role),
+  }),
+});
+
+MobileToolRegistry.register<Record<string, never>>({
+  name: 'ui_timeline_list_animation_presets',
+  description:
+    "List the motion-design animation presets: id, allowed roles, params (with defaults and ranges), default duration/easing, and a one-line description. Also returns the `custom` preset's contract and every animatable property with its fold, identity and range, for keyframed motion no preset covers. Use this to discover the exact preset names and params for ui_timeline_animate_clip. It reads the catalog, not a sequence, so it needs no timeline_id.",
+  parameters: { type: 'object', properties: {} },
+  execute: async () => ({ ok: true, ...animationPresetCatalog() }),
+});
+
+// ── Groups ──────────────────────────────────────────────────────────────────
+
+MobileToolRegistry.register<{ timeline_id: string } & TimelineAddGroupInput>({
+  name: 'ui_timeline_add_group',
+  description:
+    'Create a group clip: a clip with no media of its own whose transform, opacity and window every clip naming it inherits. Move the group and its children move with it; a child outside the group’s window is not drawn. Children keep their own tracks, so what covers what is unchanged. Pass `children` to parent clips as the group is created, or use ui_timeline_set_parent afterwards. ' +
+    SAVE_NOTE,
+  parameters: {
+    type: 'object',
+    properties: {
+      timeline_id: timelineIdParam,
+      name: { type: 'string', description: 'Label for the group clip.' },
+      startMs: numberParam("Where the group's window opens, in ms."),
+      durationMs: numberParam(
+        'How long the window stays open. A child is clipped to it, so cover the children.'
+      ),
+      trackId: {
+        type: 'string',
+        description: 'Track for the group clip, by id or name. Defaults to an overlay track.',
+      },
+      children: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Clips to parent to the new group, by id or name. Each keeps its own track.',
+      },
+    },
+    required: ['timeline_id', 'name', 'startMs', 'durationMs'],
+  },
+  execute: async ({ timeline_id, ...input }) => ({
+    ok: true,
+    ...handlerFor(timeline_id).addGroup(input),
+  }),
+});
+
+MobileToolRegistry.register<{
+  timeline_id: string;
+  target: string;
+  parentId: string | null;
+}>({
+  name: 'ui_timeline_set_parent',
+  description:
+    "Parent a clip to a group so it inherits the group's transform, opacity and window, or release it with `parentId: null`. The parent must be a clip created with ui_timeline_add_group; a clip cannot parent itself or any group beneath it. " +
+    SAVE_NOTE,
+  parameters: {
+    type: 'object',
+    properties: {
+      timeline_id: timelineIdParam,
+      target: targetParam,
+      parentId: {
+        type: 'string',
+        description: 'The group clip to inherit from, by id or name. null releases the clip.',
+      },
+    },
+    required: ['timeline_id', 'target', 'parentId'],
+  },
+  execute: async ({ timeline_id, target, parentId }) => ({
+    ok: true,
+    clip: handlerFor(timeline_id).setParent(target, parentId ?? null),
+  }),
+});
+
+// ── Compositing ─────────────────────────────────────────────────────────────
+
+MobileToolRegistry.register<{
+  timeline_id: string;
+  target: string;
+  transition: TimelineTransitionInput | null;
+}>({
+  name: 'ui_timeline_set_transition',
+  description:
+    'Set the transition a clip opens with, or clear it with `transition: null`. A transition is between two clips: it plays over the head of `target` against whatever sits beneath it on the same track, so overlap the two clips by at least `durationMs` for both to be seen. Types: crossfade, dipToColor, wipe, push, slide, zoom. Rendering is desktop-only; this writes the document. ' +
+    SAVE_NOTE,
+  parameters: {
+    type: 'object',
+    properties: {
+      timeline_id: timelineIdParam,
+      target: targetParam,
+      transition: {
+        type: 'object',
+        properties: {
+          type: { type: 'string', enum: TRANSITION_TYPE_ENUM },
+          durationMs: numberParam(
+            "Length of the cut from the clip's start. 0 or less is a hard cut."
+          ),
+          easing: { type: 'string' },
+          color: { type: 'string', description: 'dipToColor only, e.g. #000000.' },
+          direction: {
+            type: 'string',
+            enum: ['left', 'right', 'up', 'down'],
+            description: 'wipe, push and slide only.',
+          },
+          softness: numberParam('wipe only: feathered edge width, 0..1.'),
+        },
+        required: ['type', 'durationMs'],
+        description: 'The transition, or null to clear it.',
+      },
+    },
+    required: ['timeline_id', 'target', 'transition'],
+  },
+  execute: async ({ timeline_id, target, transition }) => ({
+    ok: true,
+    clip: handlerFor(timeline_id).setTransition(target, transition ?? null),
+  }),
+});
+
+MobileToolRegistry.register<{
+  timeline_id: string;
+  target: string;
+  mask: TimelineMaskInput | null;
+}>({
+  name: 'ui_timeline_set_mask',
+  description:
+    "Mask a clip to a rectangle, an ellipse or an SVG path, or clear it with `mask: null`. Coordinates are 0..1 in the clip's own space, so the mask turns and scales with the clip. `featherPx` softens the edge; `invert` keeps what the shape excludes instead. " +
+    SAVE_NOTE,
+  parameters: {
+    type: 'object',
+    properties: {
+      timeline_id: timelineIdParam,
+      target: targetParam,
+      mask: {
+        type: 'object',
+        properties: {
+          kind: { type: 'string', enum: ['rect', 'ellipse', 'path'] },
+          x: numberParam("Left edge, 0..1 of the layer's width. Default 0."),
+          y: numberParam("Top edge, 0..1 of the layer's height. Default 0."),
+          width: numberParam('Width, 0..1. Default 1.'),
+          height: numberParam('Height, 0..1. Default 1.'),
+          d: {
+            type: 'string',
+            description: 'kind "path" only: SVG path data in the same 0..1 space.',
+          },
+          featherPx: numberParam("Soft edge width in the layer's own pixels."),
+          invert: { type: 'boolean' },
+        },
+        required: ['kind'],
+        description: 'The mask, or null to clear it.',
+      },
+    },
+    required: ['timeline_id', 'target', 'mask'],
+  },
+  execute: async ({ timeline_id, target, mask }) => ({
+    ok: true,
+    clip: handlerFor(timeline_id).setMask(target, mask ?? null),
+  }),
+});
+
+MobileToolRegistry.register<{
+  timeline_id: string;
+  target: string;
+  matte: TimelineMatteInput | null;
+}>({
+  name: 'ui_timeline_set_matte',
+  description:
+    "Drive a clip's transparency from another clip — a track matte — or clear it with `matte: null`. The source clip stops drawing itself: its alpha (`mode: \"alpha\"`) or its brightness (`mode: \"luma\"`) becomes the target's transparency, so a white shape over black shows the target only where the shape is. " +
+    SAVE_NOTE,
+  parameters: {
+    type: 'object',
+    properties: {
+      timeline_id: timelineIdParam,
+      target: targetParam,
+      matte: {
+        type: 'object',
+        properties: {
+          source: {
+            type: 'string',
+            description: 'The clip whose pixels drive the alpha, by id or name.',
+          },
+          mode: {
+            type: 'string',
+            enum: ['alpha', 'luma'],
+            description: "alpha reads the source's transparency; luma its brightness.",
+          },
+          invert: { type: 'boolean' },
+        },
+        required: ['source', 'mode'],
+        description: 'The matte, or null to clear it.',
+      },
+    },
+    required: ['timeline_id', 'target', 'matte'],
+  },
+  execute: async ({ timeline_id, target, matte }) => ({
+    ok: true,
+    clip: handlerFor(timeline_id).setMatte(target, matte ?? null),
+  }),
+});
+
+MobileToolRegistry.register<{
+  timeline_id: string;
+  target: string;
+  effects: TimelineEffectInput[];
+}>({
+  name: 'ui_timeline_set_effects',
+  description:
+    "Replace a clip's effect chain, or clear it with `effects: []`. The list runs in order on the clip's own pixels, before it is placed on the frame. Types: color (brightness/contrast/saturation/hue/temperature/tint/shadows/highlights), blur, glow, dropShadow, vignette, sharpen, chromaKey, curves (control points, 0..1 on both axes), levels (in/out black and white plus gamma), liftGammaGain (a three-way grade, one number per channel). This replaces the whole chain — send every effect the clip should keep. " +
+    SAVE_NOTE,
+  parameters: {
+    type: 'object',
+    properties: {
+      timeline_id: timelineIdParam,
+      target: targetParam,
+      effects: {
+        type: 'array',
+        description: 'The chain, in order. An empty list clears it.',
+        items: {
+          type: 'object',
+          properties: { type: { type: 'string', enum: EFFECT_TYPE_ENUM } },
+          required: ['type'],
+        },
+      },
+    },
+    required: ['timeline_id', 'target', 'effects'],
+  },
+  execute: async ({ timeline_id, target, effects }) => ({
+    ok: true,
+    clip: handlerFor(timeline_id).setEffects(target, effects),
+  }),
+});
+
+MobileToolRegistry.register<{
+  timeline_id: string;
+  target: string;
+  timeRemap: TimelineTimeRemapInput | null;
+}>({
+  name: 'ui_timeline_set_time_remap',
+  description:
+    "Retime a clip: `keyframes` say where in the source each instant of the clip sits. `t` is 0..1 over the clip's own window and must ascend, starting at 0 and ending at 1; `sourceMs` may descend, which is reverse playback. Clear it with `timeRemap: null` to play at the clip's own rate. A remapped clip cannot be split or trimmed until it is baked, which is desktop-only. " +
+    SAVE_NOTE,
+  parameters: {
+    type: 'object',
+    properties: {
+      timeline_id: timelineIdParam,
+      target: targetParam,
+      timeRemap: {
+        type: 'object',
+        properties: {
+          keyframes: {
+            type: 'array',
+            description: 'At least two, ascending in `t`, starting at 0 and ending at 1.',
+            items: {
+              type: 'object',
+              properties: {
+                t: numberParam("Position in the clip's window, 0..1."),
+                sourceMs: numberParam(
+                  'Milliseconds into the source media shown at this position.'
+                ),
+                easing: {
+                  type: 'string',
+                  description: 'Easing for the segment ending here. Default linear.',
+                },
+              },
+              required: ['t', 'sourceMs'],
+            },
+          },
+        },
+        required: ['keyframes'],
+        description: 'The curve, or null to clear it.',
+      },
+    },
+    required: ['timeline_id', 'target', 'timeRemap'],
+  },
+  execute: async ({ timeline_id, target, timeRemap }) => ({
+    ok: true,
+    clip: handlerFor(timeline_id).setTimeRemap(target, timeRemap ?? null),
+  }),
+});
+
+// ── Beats ───────────────────────────────────────────────────────────────────
+
+const BEAT_GRID_PROPERTIES = {
+  onsets_ms: {
+    type: 'array',
+    items: { type: 'number' },
+    description:
+      'Absolute beat times in ms. Exactly one of this and `bpm`. detect_audio_events reports onsets in SECONDS, so multiply by 1000.',
+  },
+  bpm: { type: 'number', description: 'Tempo.' },
+  offset_ms: { type: 'number', description: 'Where beat one sits, in ms. Default 0.' },
+} as const;
+
+MobileToolRegistry.register<{
+  timeline_id: string;
+  onsets_ms?: number[];
+  bpm?: number;
+  offset_ms?: number;
+  count?: number;
+  label?: string;
+}>({
+  name: 'ui_timeline_set_markers_from_beats',
+  description:
+    'Lay a marker on every beat of a grid, so the cut has something to work against. The grid is either `onsets_ms` or `bpm` with `count` and an optional `offset_ms`. Markers already on the sequence are kept, and a beat that already carries one is skipped, so re-running the same grid changes nothing. ' +
+    SAVE_NOTE,
+  parameters: {
+    type: 'object',
+    properties: {
+      timeline_id: timelineIdParam,
+      ...BEAT_GRID_PROPERTIES,
+      count: { type: 'number', description: 'Beats to lay down, with `bpm`.' },
+      label: {
+        type: 'string',
+        description: 'Label stem; each marker is numbered from 1. Default "Beat".',
+      },
+    },
+    required: ['timeline_id'],
+  },
+  execute: async ({ timeline_id, onsets_ms, bpm, offset_ms, count, label }) => ({
+    ok: true,
+    ...handlerFor(timeline_id).setMarkersFromBeats({
+      onsetsMs: onsets_ms,
+      bpm,
+      offsetMs: offset_ms,
+      count,
+      label,
+    }),
+  }),
+});
+
+MobileToolRegistry.register<{
+  timeline_id: string;
+  targets?: string[] | 'all';
+  onsets_ms?: number[];
+  bpm?: number;
+  offset_ms?: number;
+  tolerance_ms?: number;
+  mode?: SnapBoundaryMode;
+  action?: SnapAction;
+}>({
+  name: 'ui_timeline_snap_to_beats',
+  description:
+    'Put clip boundaries on a beat grid. The grid is either `onsets_ms` or `bpm` with an optional `offset_ms`. `mode` picks the boundary, `action` picks how it gets there: `move` slides the whole clip and keeps its length, `trim` holds the opposite boundary and changes the length. A boundary further than `tolerance_ms` from every beat is left where it is and reported with the reason, so read the per-clip result rather than assuming everything moved. ' +
+    SAVE_NOTE,
+  parameters: {
+    type: 'object',
+    properties: {
+      timeline_id: timelineIdParam,
+      targets: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Clip ids or names. Omit for every clip on the sequence.',
+      },
+      ...BEAT_GRID_PROPERTIES,
+      tolerance_ms: {
+        type: 'number',
+        description: 'How far a boundary may travel to reach a beat. Default 60ms.',
+      },
+      mode: {
+        type: 'string',
+        enum: ['start', 'end', 'both'],
+        description: 'Which boundary lands on a beat. Default "start".',
+      },
+      action: {
+        type: 'string',
+        enum: ['move', 'trim'],
+        description: '"move" slides the clip, "trim" changes its length. Default "move".',
+      },
+    },
+    required: ['timeline_id'],
+  },
+  execute: async ({
+    timeline_id,
+    targets,
+    onsets_ms,
+    bpm,
+    offset_ms,
+    tolerance_ms,
+    mode,
+    action,
+  }) => ({
+    ok: true,
+    ...handlerFor(timeline_id).snapToBeats({
+      targets,
+      onsetsMs: onsets_ms,
+      bpm,
+      offsetMs: offset_ms,
+      toleranceMs: tolerance_ms,
+      mode,
+      action,
+    }),
+  }),
+});
+
 // ── Markers ─────────────────────────────────────────────────────────────────
 
 MobileToolRegistry.register<{ timeline_id: string } & TimelineAddMarkerInput>({
@@ -518,4 +1106,105 @@ MobileToolRegistry.register<{ timeline_id: string }>({
     required: ['timeline_id'],
   },
   execute: async ({ timeline_id }) => handlerFor(timeline_id).save(),
+});
+
+// ── Batch ───────────────────────────────────────────────────────────────────
+
+/** Tools `ui_timeline_edit` refuses to nest, so a batch cannot batch itself. */
+const BATCH_TOOL_NAME = 'ui_timeline_edit';
+
+interface TimelineEditOp {
+  tool: string;
+  input?: Record<string, unknown>;
+}
+
+interface TimelineEditOpResult {
+  index: number;
+  tool: string;
+  ok: boolean;
+  result?: unknown;
+  error?: string;
+}
+
+MobileToolRegistry.register<{
+  timeline_id: string;
+  ops: TimelineEditOp[];
+}>({
+  name: BATCH_TOOL_NAME,
+  description:
+    'Apply several timeline edits in one call. Each op names a `ui_timeline_*` tool (with or without the prefix) and its `input`; `timeline_id` is filled in from this call, so an op need not repeat it. Ops run in order and a failure does not stop the ones after it — the reply reports `applied`, `failed`, and a per-op result carrying either the tool\'s answer or its error, so a partial batch says exactly which half landed. Use it for a planned sequence of edits; use the single tools when the next edit depends on what the last one returned. ' +
+    SAVE_NOTE,
+  parameters: {
+    type: 'object',
+    properties: {
+      timeline_id: timelineIdParam,
+      ops: {
+        type: 'array',
+        description: 'The edits, in order. At least one.',
+        items: {
+          type: 'object',
+          properties: {
+            tool: {
+              type: 'string',
+              description:
+                'A ui_timeline_* tool name, e.g. "ui_timeline_add_text_clip" or "add_text_clip".',
+            },
+            input: {
+              type: 'object',
+              description: "The tool's arguments, minus timeline_id.",
+            },
+          },
+          required: ['tool'],
+        },
+      },
+    },
+    required: ['timeline_id', 'ops'],
+  },
+  execute: async ({ timeline_id, ops }, ctx) => {
+    if (!Array.isArray(ops) || ops.length === 0) {
+      throw new Error('Pass at least one op.');
+    }
+    const results: TimelineEditOpResult[] = [];
+    for (const [index, op] of ops.entries()) {
+      const name = op.tool.startsWith('ui_timeline_')
+        ? op.tool
+        : `ui_timeline_${op.tool}`;
+      try {
+        if (name === BATCH_TOOL_NAME) {
+          throw new Error(
+            `${BATCH_TOOL_NAME} cannot nest — list the edits themselves in ops.`
+          );
+        }
+        if (!MobileToolRegistry.has(name)) {
+          throw new Error(
+            `Unknown tool "${op.tool}". Ops name a ui_timeline_* tool.`
+          );
+        }
+        const result = await MobileToolRegistry.call(
+          name,
+          { timeline_id, ...(op.input ?? {}) },
+          `${BATCH_TOOL_NAME}:${index}`
+        );
+        results.push({ index, tool: name, ok: true, result });
+      } catch (error) {
+        // A failed op is reported and the batch continues: stopping would hide
+        // every edit after it behind one bad target.
+        results.push({
+          index,
+          tool: name,
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      if (ctx.abortSignal.aborted) {
+        break;
+      }
+    }
+    return {
+      ok: true,
+      applied: results.filter((entry) => entry.ok).length,
+      failed: results.filter((entry) => !entry.ok).length,
+      results,
+    };
+  },
 });

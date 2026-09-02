@@ -18,8 +18,12 @@
  */
 
 import type {
+  AnimationRole,
   ClipShapeStyle,
+  ClipSnapResult,
   ClipTextStyle,
+  SnapAction,
+  SnapBoundaryMode,
   TimelineClip,
   TimelineMarker,
   TimelineTrack,
@@ -167,6 +171,153 @@ export interface TimelineClipParamsPatch {
   seed?: number;
 }
 
+// ── Motion-design inputs ────────────────────────────────────────────────────
+//
+// These mirror the zod params the web and headless surfaces share from
+// `@nodetool-ai/protocol/api-schemas/timeline-tool-params`. They are re-declared
+// as plain TypeScript here for the same reason `TimelineDocument` is: that
+// module is zod, mobile has no zod, and `@nodetool-ai/protocol` is not resolved
+// on this side at all (metro/tsconfig/jest map only two dependency-free
+// modules of it). The *semantics* are not re-implemented — the narrowing each
+// builder does is mirrored once in `timelineEdits.ts`, against the same
+// `@nodetool-ai/timeline` document types both sides store.
+
+/** One animation for `animateClip`. `curves` is the only custom form mobile takes. */
+export interface TimelineAnimationInput {
+  role: AnimationRole;
+  preset: string;
+  durationMs?: number;
+  delayMs?: number;
+  easing?: string;
+  params?: Record<string, number | string | boolean>;
+  /** `preset: "custom"` only: keyframes, `t` running 0..1 over the window. */
+  curves?: unknown;
+  /** `preset: "custom"` only: refused here — mobile has no animation baker. */
+  code?: string;
+  /** Required when a curve drives `wipeProgress`. */
+  mask?: unknown;
+  stagger?: { unit: string; offsetMs: number; from?: 'start' | 'end' | 'center' };
+}
+
+/** An asset already resolved by the screen, so the pure edit stays synchronous. */
+export interface ResolvedTimelineAsset {
+  id: string;
+  name: string;
+  contentType: string;
+  durationMs?: number;
+  thumbnailAssetId?: string;
+}
+
+export interface TimelineAddMediaClipInput {
+  /** Asset id or `asset://<id>.<ext>` URI. */
+  asset: string;
+  trackId?: string;
+  startMs?: number;
+  durationMs?: number;
+  name?: string;
+}
+
+/**
+ * Generation-binding patch — the binding half of the params patch, on its own.
+ *
+ * `aspectRatio` and `resolution`, which the headless `set_clip_binding` also
+ * takes, are absent: neither is in `timelineDocument`, so a mobile save would
+ * strip them. Nothing here writes a field the PATCH would drop.
+ */
+export interface TimelineClipBindingPatch {
+  prompt?: string;
+  negativePrompt?: string;
+  provider?: string;
+  model?: string;
+  voice?: string;
+  width?: number;
+  height?: number;
+  strength?: number;
+  numInferenceSteps?: number;
+  seed?: number;
+}
+
+export interface TimelineAddGroupInput {
+  name: string;
+  startMs: number;
+  durationMs: number;
+  trackId?: string;
+  children?: string[];
+}
+
+export interface TimelineTransitionInput {
+  type: string;
+  durationMs: number;
+  easing?: string;
+  color?: string;
+  direction?: 'left' | 'right' | 'up' | 'down';
+  softness?: number;
+}
+
+export interface TimelineMaskInput {
+  kind: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  d?: string;
+  featherPx?: number;
+  invert?: boolean;
+}
+
+export interface TimelineMatteInput {
+  /** The clip whose pixels drive the alpha, by id or name. */
+  source: string;
+  mode: 'alpha' | 'luma';
+  invert?: boolean;
+}
+
+/** One effect in a chain. `type` decides which other fields mean anything. */
+export interface TimelineEffectInput {
+  type: string;
+  [field: string]: unknown;
+}
+
+export interface TimelineTimeRemapInput {
+  keyframes: { t: number; sourceMs: number; easing?: string }[];
+}
+
+export interface TimelineBeatGridInput {
+  onsetsMs?: number[];
+  bpm?: number;
+  offsetMs?: number;
+  count?: number;
+  label?: string;
+}
+
+export interface TimelineSnapToBeatsInput {
+  targets?: string[] | 'all';
+  onsetsMs?: number[];
+  bpm?: number;
+  offsetMs?: number;
+  toleranceMs?: number;
+  mode?: SnapBoundaryMode;
+  action?: SnapAction;
+}
+
+/** What `snapToBeats` reports per clip, plus the names the agent addressed. */
+export interface TimelineSnapReport {
+  grid: { count: number; firstMs?: number; lastMs?: number };
+  toleranceMs: number;
+  mode: SnapBoundaryMode;
+  action: SnapAction;
+  snapped: number;
+  skipped: number;
+  clips: (ClipSnapResult & { clipName: string | null })[];
+}
+
+export interface TimelineBeatMarkerReport {
+  grid: { count: number; firstMs?: number; lastMs?: number };
+  added: TimelineMarkerData[];
+  skippedTimesMs: number[];
+  markers: number;
+}
+
 export interface TimelineAddMarkerInput {
   timeMs: number;
   label?: string;
@@ -203,6 +354,49 @@ export interface TimelineAgentHandler {
     target: string,
     patch: TimelineClipParamsPatch
   ) => TimelineClipNode;
+  /** Places an asset the screen resolves through `assets.get` first. */
+  addMediaClip: (input: TimelineAddMediaClipInput) => Promise<TimelineClipNode>;
+  setClipBinding: (
+    target: string,
+    patch: TimelineClipBindingPatch
+  ) => TimelineClipNode;
+
+  animateClip: (
+    target: string,
+    animations: TimelineAnimationInput[],
+    mode?: 'add' | 'replace'
+  ) => TimelineClipNode;
+  clearAnimations: (target: string, role?: AnimationRole) => TimelineClipNode;
+
+  /** Creates the group clip and parents the named children to it. */
+  addGroup: (
+    input: TimelineAddGroupInput
+  ) => { clip: TimelineClipNode; children: string[] };
+  setParent: (target: string, parentId: string | null) => TimelineClipNode;
+
+  setTransition: (
+    target: string,
+    transition: TimelineTransitionInput | null
+  ) => TimelineClipNode;
+  setMask: (target: string, mask: TimelineMaskInput | null) => TimelineClipNode;
+  setMatte: (
+    target: string,
+    matte: TimelineMatteInput | null
+  ) => TimelineClipNode;
+  setEffects: (
+    target: string,
+    effects: TimelineEffectInput[]
+  ) => TimelineClipNode;
+  setTimeRemap: (
+    target: string,
+    timeRemap: TimelineTimeRemapInput | null
+  ) => TimelineClipNode;
+
+  setMarkersFromBeats: (
+    input: TimelineBeatGridInput
+  ) => TimelineBeatMarkerReport;
+  snapToBeats: (input: TimelineSnapToBeatsInput) => TimelineSnapReport;
+
   addMarker: (input: TimelineAddMarkerInput) => TimelineMarkerData;
   deleteMarker: (target: string) => TimelineMarkerData;
   rename: (name: string) => { title: string };
