@@ -19,6 +19,7 @@ import { ActionButtons } from "./ActionButtons";
 import { VoiceInputControl } from "./voice/VoiceInputControl";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
+import { useComposerAssetUpload } from "../hooks/useComposerAssetUpload";
 import { usePromptHistory } from "../hooks/usePromptHistory";
 import { useMessageQueue } from "../../../hooks/useMessageQueue";
 import { createStyles } from "./ChatComposer.styles";
@@ -52,11 +53,16 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
   const composeCardRef = useRef<HTMLDivElement>(null);
   const [prompt, setPrompt] = useState("");
 
-  const { droppedFiles, addFiles, removeFile, clearFiles, getFileContents, addDroppedFiles } =
+  const { droppedFiles, removeFile, clearFiles, getFileContents, addDroppedFiles } =
     useFileHandling();
 
+  // A dropped local file goes to the asset library first and attaches as an
+  // `asset://` reference; inlining it would base64-encode the bytes into the
+  // thread and resend them on every following turn.
+  const { uploadFiles } = useComposerAssetUpload(addDroppedFiles);
+
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
-    useDragAndDrop(addFiles, addDroppedFiles);
+    useDragAndDrop(uploadFiles, addDroppedFiles);
 
   const { queuedMessage, sendMessage, cancelQueued, sendQueuedNow } = useMessageQueue({
     isLoading,

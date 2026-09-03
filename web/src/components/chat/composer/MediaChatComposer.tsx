@@ -274,16 +274,18 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const ttsModelAnchorRef = useRef<HTMLButtonElement | null>(null);
 
   // File handling (input images for image-to-image / motion-control later)
-  const { droppedFiles, addFiles, removeFile, clearFiles, getFileContents, addDroppedFiles } =
+  const { droppedFiles, removeFile, clearFiles, getFileContents, addDroppedFiles } =
     useFileHandling();
-  const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
-    useDragAndDrop(addFiles, addDroppedFiles);
 
-  // The + button uploads what it picks to the asset library and attaches the
-  // resulting `asset://` reference, so the file survives the turn instead of
-  // riding along as inline bytes.
+  // Every local file — picked, dropped, or pasted — goes to the asset library
+  // first and rides as an `asset://` reference, so the bytes never enter the
+  // message. Inlining them base64-encodes the file into the thread, which the
+  // client then resends with every following turn.
   const attachInputRef = useRef<HTMLInputElement>(null);
   const { uploadFiles, isUploading } = useComposerAssetUpload(addDroppedFiles);
+
+  const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
+    useDragAndDrop(uploadFiles, addDroppedFiles);
 
   const openAttachPicker = useCallback(() => {
     attachInputRef.current?.click();
@@ -703,10 +705,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       }
       if (imageFiles.length > 0) {
         e.preventDefault();
-        addFiles(imageFiles);
+        uploadFiles(imageFiles);
       }
     },
-    [addFiles]
+    [uploadFiles]
   );
 
   const handleKeyDown = useCallback(
