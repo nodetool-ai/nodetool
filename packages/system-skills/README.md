@@ -28,6 +28,23 @@ directory ships with no other change.
 | `motion-background` | Ambient beds that loop and stay behind |
 | `caption-titles` | What on-screen text says and when it appears |
 | `explainer-storyboard`, `commercial-beat-sheet`, `launch-commercial`, `music-video-treatment` | Board shapes for four brief types |
+| `nano-banana-pro-prompting` | Nano Banana Pro: the art-director brief, and lock/change/amount/constraints for edits |
+| `gpt-image-2-prompting` | GPT Image 2: five slots, change-versus-preserve edits, labelled multi-image compositing |
+| `flux-2-klein-prompting` | FLUX.2 [klein]: the subject-first hierarchy, guidance and step choices, the seed-locked loop |
+| `seedance-2-prompting` | Seedance 2: subject and motion first, quoted dialogue, the sound brief, cuts in one take |
+| `veo-3-prompting` | Veo 3: the five-element structure, cinematography vocabulary, duration and audio economics |
+| `minimax-h3-prompting` | MiniMax H3: which endpoint, a job per reference, timed shot lists, native audio direction |
+| `wan-2-6-prompting` | Wan 2.6: the three modes and the prompt shape each one wants |
+
+The seven `*-prompting` skills are the model-line guides. Each one is triggered
+twice: its description names the model ids across every provider that serves the
+line, and `find_model` attaches `prompting_skill` to a matching route so the
+guide surfaces at the step before the prompt is written. The table behind the
+second path is `MODEL_PROMPTING_SKILLS` in
+`packages/agents/src/model-prompting-skills.ts`, and
+`packages/agents/tests/model-prompting-skills.test.ts` checks it against the
+skills on disk, the model ids the shipped provider manifests actually name, and
+the capability registry. A new line means a directory here plus a row there.
 
 `motion-graphics` carries the mechanics and the other motion skills carry the
 craft. A craft skill quotes calls rather than teaching them, so

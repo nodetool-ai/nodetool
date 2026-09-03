@@ -504,6 +504,27 @@ Nothing imports these files, so `packages/system-skills` is not a workspace and
 npm links nothing. A file whose frontmatter is missing or malformed, or whose
 `name` disagrees with its directory, is skipped rather than failing the catalog.
 
+#### Model-line prompting guides
+
+Seven system skills carry the prompting rules for a generation model line —
+`nano-banana-pro-prompting`, `gpt-image-2-prompting`, `flux-2-klein-prompting`,
+`seedance-2-prompting`, `veo-3-prompting`, `minimax-h3-prompting`,
+`wan-2-6-prompting`. Each line wants a differently shaped prompt, and the same
+prompt written for all of them gets the blandest reading every one has.
+
+They reach the model two ways, and neither is auto-selection. The description
+names the model ids every provider serves the line under, so an agent that
+already picked its model can call `load_skill` off the catalog. And
+`find_model` attaches `prompting_skill` to a matching route (lifted to the top
+level alongside `ref`), which puts the guide's name in front of the model at
+the step before the prompt is written rather than after the render comes back
+wrong. The table is `MODEL_PROMPTING_SKILLS` in
+`packages/agents/src/model-prompting-skills.ts`; matching is on the model id
+alone, so a new provider serving a covered line needs no change.
+`packages/agents/tests/model-prompting-skills.test.ts` pins each pattern
+against the ids the shipped provider manifests name, both directions — the line
+it must claim and the neighbouring version it must not.
+
 ### Skill Resolution
 
 A turn's system prompt carries the **catalog** — one line per skill, name and
@@ -513,7 +534,9 @@ arrives in the same block.
 
 Nothing selects a skill on the model's behalf. Word overlap between an
 objective and a description used to do it, and it picked the wrong document
-often enough that the catalog replaced it. The `skillDirs` option, the
+often enough that the catalog replaced it. `find_model`'s `prompting_skill` is
+not an exception: it names a skill in a tool result and the model still decides
+whether to load it. The `skillDirs` option, the
 `NODETOOL_AGENT_SKILL_DIRS`, `NODETOOL_AGENT_SKILLS` and
 `NODETOOL_AGENT_AUTO_SKILLS` environment variables, and filesystem `SKILL.md`
 discovery are all gone.

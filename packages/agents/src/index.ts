@@ -452,6 +452,13 @@ export type {
   SkillCatalogEntry,
   SkillInstructions
 } from "./skill-prompt.js";
+// Which shipped prompting skill covers a model line — `find_model` attaches
+// the answer to every matching route.
+export {
+  MODEL_PROMPTING_SKILLS,
+  promptingSkillFor,
+  type ModelPromptingSkill
+} from "./model-prompting-skills.js";
 
 export {
   getMemoryTools,
