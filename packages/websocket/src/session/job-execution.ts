@@ -1061,73 +1061,51 @@ export class JobExecutionManager {
     // silently replaced with one the client would never recognize.
     const requested = req.job_id ?? "";
     const jobId = requested === "" ? randomUUID() : requested;
-    if (requested !== "" && !UUID_PATTERN.test(requested)) {
-      this.refuseRun(
-        req,
-        jobId,
-        ApiErrorCode.INVALID_INPUT,
-        "This app run named an invalid run id"
-      );
+    const deny = (code: ApiErrorCode, error: string) => {
+      this.refuseRun(req, jobId, code, error);
       return null;
+    };
+
+    if (requested !== "") {
+      if (!UUID_PATTERN.test(requested)) {
+        return deny(
+          ApiErrorCode.INVALID_INPUT,
+          "This app run named an invalid run id"
+        );
+      }
+      if (
+        (await Job.get(requested)) !== null ||
+        (await invocationIdInUse(requested))
+      ) {
+        return deny(
+          ApiErrorCode.INVALID_INPUT,
+          "This app run named a run id that is already in use"
+        );
+      }
     }
-    if (
-      requested !== "" &&
-      ((await Job.get(requested)) !== null ||
-        (await invocationIdInUse(requested)))
-    ) {
-      this.refuseRun(
-        req,
-        jobId,
-        ApiErrorCode.INVALID_INPUT,
-        "This app run named a run id that is already in use"
-      );
-      return null;
-    }
+
     const release = await releasedApplicationRelease(
       scope.applicationId,
       this.session.userId ?? ""
     );
     if (!release) {
-      this.refuseRun(
-        req,
-        jobId,
-        ApiErrorCode.NOT_FOUND,
-        "This app is not available"
-      );
-      return null;
+      return deny(ApiErrorCode.NOT_FOUND, "This app is not available");
     }
+    // A document that no longer parses and one a public link may not serve get
+    // the same answer, so the visitor learns nothing about which it hit.
     const parsedRelease = applicationReleaseResponse.safeParse(release);
-    if (!parsedRelease.success) {
-      this.refuseRun(
-        req,
-        jobId,
-        ApiErrorCode.NOT_FOUND,
-        "This app is not available"
-      );
-      return null;
-    }
-    if (releaseBlockedReason(parsedRelease.data)) {
-      this.refuseRun(
-        req,
-        jobId,
-        ApiErrorCode.NOT_FOUND,
-        "This app is not available"
-      );
-      return null;
+    if (!parsedRelease.success || releaseBlockedReason(parsedRelease.data)) {
+      return deny(ApiErrorCode.NOT_FOUND, "This app is not available");
     }
     if (release.version !== scope.version) {
-      this.refuseRun(
-        req,
-        jobId,
+      return deny(
         ApiErrorCode.INVALID_INPUT,
         "This app has been updated. Reload the page before running it."
       );
-      return null;
     }
     const confined = confineRunRequest(req, scope, release);
     if (isRunRefusal(confined)) {
-      this.refuseRun(req, jobId, ApiErrorCode.INVALID_INPUT, confined.refused);
-      return null;
+      return deny(ApiErrorCode.INVALID_INPUT, confined.refused);
     }
     confined.job_id = jobId;
     return confined;
