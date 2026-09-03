@@ -153,6 +153,45 @@ function coerceStringValueForExpectedType(
   return Number.isFinite(parsed) ? parsed : value;
 }
 
+/**
+ * The keys a schema accepts at its top level, when it has a shape to read.
+ *
+ * A strict object refuses an unrecognized key by name and says nothing about
+ * what it would have taken, so a caller that guessed `{trackId, index}` for
+ * `{target, toIndex}` learns only that both guesses were wrong. Each wrong
+ * guess is a round trip, which is what made strict schemas expensive to author
+ * against.
+ */
+function topLevelKeys(schema: ZodType): string[] {
+  const shape = (schema as { shape?: unknown }).shape;
+  if (!isObjectLike(shape)) return [];
+  return Object.keys(shape);
+}
+
+/**
+ * Rewrite a top-level `unrecognized_keys` issue to name the keys the schema
+ * does accept.
+ *
+ * The error stays a `ZodError` so every caller that formats issues keeps
+ * working; only the sentence the model reads gets longer.
+ */
+function withAcceptedKeys(error: z.ZodError, schema: ZodType): z.ZodError {
+  const accepted = topLevelKeys(schema);
+  if (accepted.length === 0) return error;
+  let changed = false;
+  const issues = error.issues.map((issue) => {
+    if (issue.code !== "unrecognized_keys" || issue.path.length > 0) {
+      return issue;
+    }
+    changed = true;
+    return {
+      ...issue,
+      message: `${issue.message}. This op accepts: ${accepted.join(", ")}.`
+    };
+  });
+  return changed ? new z.ZodError(issues) : error;
+}
+
 export function parseWithTypeCoercion<TSchema extends ZodType>(
   schema: TSchema,
   args: unknown
@@ -176,7 +215,7 @@ export function parseWithTypeCoercion<TSchema extends ZodType>(
     }
   }
   if (coercibleIssues.length === 0) {
-    throw parsed.error;
+    throw withAcceptedKeys(parsed.error, schema);
   }
 
   // SAFETY: `args` are a tool call's arguments — decoded JSON — which is the
@@ -208,7 +247,7 @@ export function parseWithTypeCoercion<TSchema extends ZodType>(
   }
 
   if (!changed) {
-    throw parsed.error;
+    throw withAcceptedKeys(parsed.error, schema);
   }
 
   return schema.parse(coercedArgs);

@@ -176,3 +176,47 @@ describe("parseWithTypeCoercion", () => {
     ).toThrow(z.ZodError);
   });
 });
+
+describe("parseWithTypeCoercion — unrecognized keys name what the schema takes", () => {
+  const schema = z
+    .object({
+      target: z.string(),
+      toIndex: z.number().int().optional(),
+      before: z.string().optional()
+    })
+    .strict();
+
+  it("lists the accepted keys next to the refused ones", () => {
+    try {
+      parseWithTypeCoercion(schema, { trackId: "Video 1", index: 0 });
+      throw new Error("expected a refusal");
+    } catch (error) {
+      const message = (error as z.ZodError).issues
+        .map((issue) => issue.message)
+        .join(" ");
+      expect(message).toContain('Unrecognized keys: "trackId", "index"');
+      expect(message).toContain("This op accepts: target, toIndex, before.");
+    }
+  });
+
+  it("leaves an issue that is not about unknown keys alone", () => {
+    try {
+      parseWithTypeCoercion(schema, { target: 5 });
+      throw new Error("expected a refusal");
+    } catch (error) {
+      const message = (error as z.ZodError).issues
+        .map((issue) => issue.message)
+        .join(" ");
+      expect(message).not.toContain("This op accepts");
+    }
+  });
+
+  it("says nothing extra for a schema with no shape to read", () => {
+    try {
+      parseWithTypeCoercion(z.string(), 5);
+      throw new Error("expected a refusal");
+    } catch (error) {
+      expect(error).toBeInstanceOf(z.ZodError);
+    }
+  });
+});
