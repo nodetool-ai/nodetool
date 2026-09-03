@@ -81,7 +81,29 @@ interface ModelRankOptions {
   recentKeys?: readonly string[];
   /** Keys (`${provider}:${id}`) of favorited models. */
   favoriteKeys?: Iterable<string>;
+  /**
+   * Keys (`${provider}:${id}`) of curated and recommended models, best first.
+   *
+   * Applied only when the query is empty, and only as a tie-break: favorites
+   * and recents score above zero and keep their places, so this orders the
+   * remainder. Without it an account with no history sees whatever sorts
+   * first alphabetically, which is how a new user lands on the weakest model
+   * in the catalog.
+   */
+  recommendedKeys?: readonly string[];
 }
+
+/** Tie-break that puts recommended models first, then display name. */
+const compareByRecommendation = (
+  order: ReadonlyMap<string, number>
+): ((a: ModelSelectorModel, b: ModelSelectorModel) => number) => {
+  return (a, b) => {
+    const rankA = order.get(modelKey(a)) ?? Number.POSITIVE_INFINITY;
+    const rankB = order.get(modelKey(b)) ?? Number.POSITIVE_INFINITY;
+    if (rankA !== rankB) return rankA - rankB;
+    return compareByDisplayName(a, b);
+  };
+};
 
 export function rankModels<T extends ModelSelectorModel>(
   models: readonly T[] | undefined,
@@ -91,8 +113,20 @@ export function rankModels<T extends ModelSelectorModel>(
   if (!models || models.length === 0) return [];
 
   const terms = searchTermsFromQuery(searchTerm);
-  const { selectedProvider, enabledProviders, recentKeys, favoriteKeys } =
-    options;
+  const {
+    selectedProvider,
+    enabledProviders,
+    recentKeys,
+    favoriteKeys,
+    recommendedKeys
+  } = options;
+
+  const recommendedOrder = new Map<string, number>();
+  if (terms.length === 0) {
+    recommendedKeys?.forEach((key, index) => {
+      if (!recommendedOrder.has(key)) recommendedOrder.set(key, index);
+    });
+  }
 
   const prefilter = (m: T): boolean => {
     // When a provider is explicitly selected, ignore enable/disable flags so
@@ -109,7 +143,10 @@ export function rankModels<T extends ModelSelectorModel>(
     prefilter,
     recentKeys,
     boostedKeys: favoriteKeys,
-    tieBreak: compareByDisplayName
+    tieBreak:
+      recommendedOrder.size > 0
+        ? compareByRecommendation(recommendedOrder)
+        : compareByDisplayName
   };
 
   const scored = rank<T>(models, terms, config);

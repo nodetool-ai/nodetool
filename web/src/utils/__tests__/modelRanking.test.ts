@@ -120,4 +120,40 @@ describe("rankModels", () => {
     expect(result[0].id).toBe("sdxl");
     expect(result[1].id).toBe("gpt-4");
   });
+
+  it("puts a recommended model before an alphabetically earlier one when the query is empty", () => {
+    // With no history and no prior, "Claude 3 Opus" leads on display name.
+    const plain = rankModels(models, "");
+    expect(plain[0].id).toBe("claude-3-opus");
+
+    const result = rankModels(models, "", {
+      recommendedKeys: [keyOf(models[0])] // openai:gpt-4
+    });
+    expect(result[0].id).toBe("gpt-4");
+    // Everything else keeps the alphabetical order it had.
+    expect(result.slice(1).map(keyOf)).toEqual(
+      plain.filter((m) => m.id !== "gpt-4").map(keyOf)
+    );
+  });
+
+  it("keeps favorites and recents ahead of a recommended model", () => {
+    const result = rankModels(models, "", {
+      favoriteKeys: new Set([keyOf(models[2])]), // anthropic:claude-3-opus
+      recentKeys: [keyOf(models[5])], // huggingface:sdxl
+      recommendedKeys: [keyOf(models[0])] // openai:gpt-4
+    });
+    expect(result.slice(0, 3).map((m) => m.id)).toEqual([
+      "sdxl",
+      "claude-3-opus",
+      "gpt-4"
+    ]);
+  });
+
+  it("leaves a non-empty query unchanged by the recommended prior", () => {
+    const withPrior = rankModels(models, "claude", {
+      recommendedKeys: [keyOf(models[3])] // anthropic:claude-3-sonnet
+    });
+    const withoutPrior = rankModels(models, "claude");
+    expect(withPrior.map(keyOf)).toEqual(withoutPrior.map(keyOf));
+  });
 });
