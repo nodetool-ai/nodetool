@@ -416,7 +416,7 @@ export function withoutSpeaker(
 const newId = (prefix: string): string =>
   `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
-export const newLineId = (): string => newId('line');
+const newLineId = (): string => newId('line');
 export const newSectionId = (): string => newId('section');
 export const newSpeakerId = (): string => newId('speaker');
 

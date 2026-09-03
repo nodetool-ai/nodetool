@@ -20,7 +20,7 @@ import {
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 
 /** Share of the middle row the inspector takes, matching the editor's split. */
-export const INSPECTOR_WIDTH_PCT = 30;
+const INSPECTOR_WIDTH_PCT = 30;
 
 /** The editor's zoom baseline: `zoom = DEFAULT_MS_PER_PX / msPerPx`. */
 const DEFAULT_MS_PER_PX = 10;

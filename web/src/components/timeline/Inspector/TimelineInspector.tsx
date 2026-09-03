@@ -43,7 +43,6 @@ import {
   parseSeconds,
   parseTimecode
 } from "./InspectorPrimitives.helpers";
-import { FontPicker } from "./FontPicker";
 import { ClipAdjustments } from "./ClipAdjustments";
 import { ClipCaptionStyle } from "./ClipCaptionStyle";
 import { ClipStoryboardLink } from "./ClipStoryboardLink";

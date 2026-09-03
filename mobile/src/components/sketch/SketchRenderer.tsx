@@ -224,7 +224,7 @@ interface ResolvedLayer {
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 
 /** Statuses that mean "these pixels do not exist", whatever else is set. */
-export function statusHasNoPixels(status: SketchLayerStatus | null): boolean {
+function statusHasNoPixels(status: SketchLayerStatus | null): boolean {
   return status === 'failed' || status === 'missing';
 }
 

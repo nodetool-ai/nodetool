@@ -54,7 +54,7 @@ const MIME_BY_EXTENSION: Record<string, string> = {
  * container came out — the preset differs per platform (`.m4a`, `.3gp` on an
  * Android low-quality take), so reading the URI beats assuming.
  */
-export const describeRecording = (uri: string): CapturedFile => {
+const describeRecording = (uri: string): CapturedFile => {
   const path = uri.split("?")[0];
   const dot = path.lastIndexOf(".");
   const extension =
