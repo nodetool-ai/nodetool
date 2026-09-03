@@ -18,75 +18,15 @@ import { stub } from "../../../test-utils/doubles";
 import type { ToolContext, ToolPointerEvent } from "../tools";
 import { TransformTool } from "../tools/TransformTool";
 import {
-  createDefaultDocument,
   isSingleQuadTransform,
   type LayerTransform
 } from "../types";
 import { useSketchStore } from "../state/useSketchStore";
+import { makeToolContext as makeBaseToolContext } from "./_toolContextFixture";
 
-function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
-  const doc = createDefaultDocument(64, 64);
-  return {
-    doc,
-    activeTool: "transform",
-    zoom: 1,
-    pan: { x: 0, y: 0 },
-    mirrorX: false,
-    mirrorY: false,
-    symmetryMode: "off",
-    symmetryRays: 6,
-    selection: null,
-    displayCanvasRef: { current: null },
-    overlayCanvasRef: { current: null },
-    gizmoCanvasRef: { current: null },
-    cursorCanvasRef: { current: null },
-    containerRef: { current: null },
-    layerCanvasesRef: { current: new Map() },
-    mousePositionRef: { current: { x: 0, y: 0 } },
-    activeStrokeRef: { current: null },
-    getOrCreateLayerCanvas: jest.fn(() => {
-      const canvas = window.document.createElement("canvas");
-      canvas.width = 64;
-      canvas.height = 64;
-      return canvas;
-    }),
-    redraw: jest.fn(),
-    redrawDirty: jest.fn(),
-    requestRedraw: jest.fn(),
-    requestDirtyRedraw: jest.fn(),
-    clearOverlay: jest.fn(),
-    drawSelectionOverlay: jest.fn(),
-    drawOverlayShape: jest.fn(),
-    drawOverlayGradient: jest.fn(),
-    drawOverlayCrop: jest.fn(),
-    drawOverlayLassoPreview: jest.fn(),
-    drawOverlaySelection: jest.fn(),
-    drawCursor: jest.fn(),
-    clearGizmo: jest.fn(),
-    drawGizmo: jest.fn(),
-    onZoomChange: jest.fn(),
-    onPanChange: jest.fn(),
-    onStrokeStart: jest.fn(),
-    onStrokeEnd: jest.fn(),
-    onLayerTransformChange: jest.fn(),
-    setLayerTransformPreview: jest.fn(),
-    clearLayerTransformPreview: jest.fn(),
-    onLayerContentBoundsChange: jest.fn(),
-    onBrushSizeChange: jest.fn(),
-    onContextMenu: jest.fn(),
-    onCropComplete: jest.fn(),
-    onEyedropperPick: jest.fn(),
-    onSelectionChange: jest.fn(),
-    onAutoPickLayer: jest.fn(),
-    screenToCanvas: jest.fn((x: number, y: number) => ({ x, y })),
-    shiftHeldRef: { current: false },
-    altHeldRef: { current: false },
-    withMirror: jest.fn((ctx, drawFn, from, to) => {
-      drawFn(from, to, ctx, 0);
-    }),
-    ...overrides
-  } as ToolContext;
-}
+/** These suites drive TransformTool, so the transform tool is active. */
+const makeToolContext = (overrides?: Partial<ToolContext>): ToolContext =>
+  makeBaseToolContext({ activeTool: "transform", ...overrides });
 
 function makePointerEvent(
   overrides?: Partial<ToolPointerEvent>

@@ -33,104 +33,12 @@ import { aff } from "./_transformFixtures";
 import { rectSelectionMask } from "../selection";
 import { useSketchStore } from "../state/useSketchStore";
 import * as magicWandAsync from "../selection/magicWandAsync";
+import { makeToolContext } from "./_toolContextFixture";
 
 const isNumber = (value: unknown): value is number =>
   typeof value === "number";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
-
-function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
-  const doc = createDefaultDocument(64, 64);
-  const testContainer = window.document.createElement("div");
-  testContainer.getBoundingClientRect = (): DOMRect =>
-    new DOMRect(0, 0, 800, 600);
-
-  return {
-    doc,
-    activeTool: "brush",
-    zoom: 1,
-    pan: { x: 0, y: 0 },
-    mirrorX: false,
-    mirrorY: false,
-    symmetryMode: "off",
-    symmetryRays: 6,
-    selection: null,
-    displayCanvasRef: { current: null },
-    overlayCanvasRef: { current: null },
-    gizmoCanvasRef: { current: null },
-    cursorCanvasRef: { current: null },
-    containerRef: { current: testContainer },
-    layerCanvasesRef: { current: new Map() },
-    mousePositionRef: { current: { x: 0, y: 0 } },
-    activeStrokeRef: { current: null },
-    getOrCreateLayerCanvas: jest.fn(() => {
-      const canvas = window.document.createElement("canvas");
-      canvas.width = 64;
-      canvas.height = 64;
-      return canvas;
-    }),
-    redraw: jest.fn(),
-    redrawDirty: jest.fn(),
-    requestRedraw: jest.fn(),
-    requestDirtyRedraw: jest.fn(),
-    clearOverlay: jest.fn(),
-    drawSelectionOverlay: jest.fn(),
-    drawOverlayShape: jest.fn(),
-    drawOverlayGradient: jest.fn(),
-    drawOverlayCrop: jest.fn(),
-    drawOverlayLassoPreview: jest.fn(),
-    drawOverlaySelection: jest.fn(),
-    drawCursor: jest.fn(),
-    clearGizmo: jest.fn(),
-    drawGizmo: jest.fn((cb) => {
-      // Provide a mock 2D context to the callback
-      const mockGc = stub<CanvasRenderingContext2D>({
-        save: jest.fn(),
-        restore: jest.fn(),
-        translate: jest.fn(),
-        rotate: jest.fn(),
-        scale: jest.fn(),
-        setTransform: jest.fn(),
-        clearRect: jest.fn(),
-        strokeRect: jest.fn(),
-        fillRect: jest.fn(),
-        beginPath: jest.fn(),
-        moveTo: jest.fn(),
-        lineTo: jest.fn(),
-        arc: jest.fn(),
-        stroke: jest.fn(),
-        fill: jest.fn(),
-        setLineDash: jest.fn(),
-        set strokeStyle(_: string) { /* noop */ },
-        set fillStyle(_: string) { /* noop */ },
-        set lineWidth(_: number) { /* noop */ },
-        set lineDashOffset(_: number) { /* noop */ },
-      });
-      cb(mockGc, 1, 800, 600);
-    }),
-    onZoomChange: jest.fn(),
-    onPanChange: jest.fn(),
-    onStrokeStart: jest.fn(),
-    onStrokeEnd: jest.fn(),
-    onLayerTransformChange: jest.fn(),
-    setLayerTransformPreview: jest.fn(),
-    clearLayerTransformPreview: jest.fn(),
-    onLayerContentBoundsChange: jest.fn(),
-    onBrushSizeChange: jest.fn(),
-    onContextMenu: jest.fn(),
-    onCropComplete: jest.fn(),
-    onEyedropperPick: jest.fn(),
-    onSelectionChange: jest.fn(),
-    onAutoPickLayer: jest.fn(),
-    screenToCanvas: jest.fn((x: number, y: number) => ({ x, y })),
-    shiftHeldRef: { current: false },
-    altHeldRef: { current: false },
-    withMirror: jest.fn((ctx, drawFn, from, to) => {
-      drawFn(from, to, ctx, 0);
-    }),
-    ...overrides
-  };
-}
 
 function makePointerEvent(
   overrides?: Partial<ToolPointerEvent>
@@ -1324,7 +1232,9 @@ describe("BrushTool", () => {
       stroke.pendingCommit();
       stroke.pendingCommit = null;
     }
-    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null, undefined);
+    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
+      ctx.doc.activeLayerId, null, { x: 0, y: 0, width: 64, height: 64 }
+    );
     expect(ctx.activeStrokeRef.current).toBeNull();
   });
 });
