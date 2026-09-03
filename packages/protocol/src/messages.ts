@@ -278,6 +278,14 @@ export const providerCostSchema = z.object({
   /** ISO 4217 currency of `amount`/`unit_price` (e.g. "USD"). */
   currency: z.string().nullable().optional(),
   /**
+   * Token counts behind a token-billed charge. A model call reports these so
+   * the ledger row is auditable the same way a chat turn's row is; a
+   * per-output generation (FAL, kie) leaves them unset.
+   */
+  input_tokens: z.number().nullable().optional(),
+  output_tokens: z.number().nullable().optional(),
+  cached_tokens: z.number().nullable().optional(),
+  /**
    * Provider-side request identifier (e.g. a FAL queue request id). Lets the
    * runner reconcile the initial estimate against the provider's actual billed
    * cost after the fact. `amount` is an estimate until reconciled.

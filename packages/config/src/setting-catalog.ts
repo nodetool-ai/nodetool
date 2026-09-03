@@ -165,7 +165,7 @@ s(
 s(
   "NODETOOL_CHAT_COMPACTION_TOKENS",
   "Agents",
-  "Estimated prompt size, in tokens, at which a chat turn summarizes the earlier part of its thread before calling the model (default: 120000). The estimate tokenizes the messages and their tool calls alone — it misses the tool definitions the same turn sends and reads an image as the length of its base64 — so leave room under the model's context window rather than setting it close. A provider that holds the conversation itself (a resumed session, the Claude Agent SDK) is not measured this way; it compacts when it reports that the transcript no longer fits."
+  "Estimated prompt size, in tokens, at which a chat turn summarizes the earlier part of its thread before calling the model (default: 120000). The estimate tokenizes the message text and tool calls and scores each attached image, audio, video or document at a fixed per-modality figure. It misses the tool definitions the same turn sends, so leave room under the model's context window rather than setting it close. A provider that holds the conversation itself (a resumed session, the Claude Agent SDK) is not measured this way; it compacts when it reports that the transcript no longer fits."
 );
 s(
   "NODETOOL_CHAT_COMPACTION_KEEP_TURNS",

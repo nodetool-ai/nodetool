@@ -2130,6 +2130,9 @@ export class ProcessingContext {
       | "unit_price"
       | "currency"
       | "provider_request_id"
+      | "input_tokens"
+      | "output_tokens"
+      | "cached_tokens"
     >
   ): void {
     this._providerCost = { provider, amount, unit, ...details };

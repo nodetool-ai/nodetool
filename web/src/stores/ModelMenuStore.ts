@@ -13,6 +13,7 @@ import type {
 import useModelPreferencesStore from "./ModelPreferencesStore";
 import React from "react";
 import { rankModels } from "../utils/modelRanking";
+import { useRecommendedModelKeys } from "../hooks/useRecommendedModelKeys";
 
 type SidebarTab = "favorites" | "recent";
 
@@ -151,6 +152,7 @@ export const computeProvidersList = <TModel extends ModelSelectorModel>(
 interface FilterModelsOptions {
   recentKeys?: readonly string[];
   favoriteKeys?: Iterable<string>;
+  recommendedKeys?: readonly string[];
 }
 
 export const filterModelsList = <TModel extends ModelSelectorModel>(
@@ -164,7 +166,8 @@ export const filterModelsList = <TModel extends ModelSelectorModel>(
     selectedProvider,
     enabledProviders,
     recentKeys: options.recentKeys,
-    favoriteKeys: options.favoriteKeys
+    favoriteKeys: options.favoriteKeys,
+    recommendedKeys: options.recommendedKeys
   });
 };
 
@@ -192,6 +195,7 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
   const recentsList = useModelPreferencesStore((s) => s.recents);
   const search = storeHook((s) => s.search);
   const selectedProvider = storeHook((s) => s.selectedProvider);
+  const recommendedKeys = useRecommendedModelKeys();
 
   const providers = React.useMemo(() => computeProvidersList(models), [models]);
 
@@ -204,7 +208,8 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
     () =>
       filterModelsList(models, selectedProvider, search, enabledProviders, {
         recentKeys,
-        favoriteKeys: favoritesSet
+        favoriteKeys: favoritesSet,
+        recommendedKeys
       }),
     [
       models,
@@ -212,7 +217,8 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
       search,
       enabledProviders,
       recentKeys,
-      favoritesSet
+      favoritesSet,
+      recommendedKeys
     ]
   );
 

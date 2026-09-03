@@ -1197,6 +1197,16 @@
                         }
                       ]
                     },
+                    "cached_tokens": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "currency": {
                       "anyOf": [
                         {
@@ -1207,10 +1217,30 @@
                         }
                       ]
                     },
+                    "input_tokens": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "model": {
                       "anyOf": [
                         {
                           "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "output_tokens": {
+                      "anyOf": [
+                        {
+                          "type": "number"
                         },
                         {
                           "type": "null"
@@ -1927,6 +1957,16 @@
                     }
                   ]
                 },
+                "cached_tokens": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "currency": {
                   "anyOf": [
                     {
@@ -1937,10 +1977,30 @@
                     }
                   ]
                 },
+                "input_tokens": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "model": {
                   "anyOf": [
                     {
                       "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "output_tokens": {
+                  "anyOf": [
+                    {
+                      "type": "number"
                     },
                     {
                       "type": "null"
