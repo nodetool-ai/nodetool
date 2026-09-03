@@ -8,6 +8,7 @@
  * where their APIs are wire-compatible.
  */
 
+import { recordGenerationReceipt } from "../generation-receipt.js";
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { BaseProvider } from "./base-provider.js";
@@ -558,7 +559,11 @@ async function submitTask(
   if (!res.ok) {
     throw new Error(`Kie submit failed: ${res.status} ${JSON.stringify(data)}`);
   }
-  return decodeKieTaskSubmission(data);
+  const taskId = decodeKieTaskSubmission(data);
+  // KIE bills at submit, so the task id is the receipt even when the poll
+  // later fails or times out: the reconciler looks the charge up by it.
+  recordGenerationReceipt({ provider_request_id: taskId });
+  return taskId;
 }
 
 /**
@@ -690,7 +695,9 @@ async function submitSuno(
   if (!res.ok) {
     throw new Error(`Kie submit failed: ${res.status} ${JSON.stringify(data)}`);
   }
-  return decodeKieTaskSubmission(data);
+  const taskId = decodeKieTaskSubmission(data);
+  recordGenerationReceipt({ provider_request_id: taskId });
+  return taskId;
 }
 
 /** Poll the Suno record-info endpoint until the task reaches a terminal state. */

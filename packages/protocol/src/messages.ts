@@ -208,6 +208,61 @@ export const jobUpdateSchema = z.object({
 });
 export type JobUpdate = z.infer<typeof jobUpdateSchema>;
 
+/**
+ * Media generation tracking (docs/media-generation-tracking-design.md).
+ *
+ * A generation is one provider call that produces media, tracked as a row
+ * from before the call to its terminal state. These schemas travel on the
+ * `prediction` message and into the ledger row.
+ */
+export const generationSurfaceSchema = z.enum([
+  "workflow",
+  "capability",
+  "chat",
+  "rpc",
+  "cli"
+]);
+export type GenerationSurface = z.infer<typeof generationSurfaceSchema>;
+
+/** `interrupted` is written only by the startup sweep, never emitted. */
+export const generationStatusSchema = z.enum([
+  "running",
+  "completed",
+  "failed",
+  "cancelled",
+  "interrupted"
+]);
+export type GenerationStatus = z.infer<typeof generationStatusSchema>;
+
+/** Who asked for the generation; every field the row carries back. */
+export const generationOriginSchema = z.object({
+  surface: generationSurfaceSchema,
+  thread_id: z.string().nullable().optional(),
+  tool_call_id: z.string().nullable().optional(),
+  job_id: z.string().nullable().optional(),
+  node_id: z.string().nullable().optional()
+});
+export type GenerationOrigin = z.infer<typeof generationOriginSchema>;
+
+/**
+ * What the provider said about the call: its own request id, and its own
+ * charge when it states one. A stated charge wins over the catalog estimate.
+ */
+export const generationReceiptSchema = z.object({
+  provider_request_id: z.string().nullable().optional(),
+  cost: z
+    .object({
+      amount: z.number(),
+      currency: z.string().nullable().optional(),
+      billing_unit: z.string().nullable().optional(),
+      quantity: z.number().nullable().optional(),
+      unit_price: z.number().nullable().optional()
+    })
+    .nullable()
+    .optional()
+});
+export type GenerationReceipt = z.infer<typeof generationReceiptSchema>;
+
 export const providerCostSchema = z.object({
   provider: z.string(),
   amount: z.number(),
@@ -588,7 +643,13 @@ export const predictionSchema = z
     duration: z.number().nullable().optional(),
     created_at: z.string().nullable().optional(),
     started_at: z.string().nullable().optional(),
-    completed_at: z.string().nullable().optional()
+    completed_at: z.string().nullable().optional(),
+    /** Who asked. Present on every message the generation seam emits. */
+    origin: generationOriginSchema.optional(),
+    /** Assets the seam persisted; on `completed` only. */
+    asset_ids: z.array(z.string()).optional(),
+    /** The provider's own request id and charge, when it stated them. */
+    receipt: generationReceiptSchema.nullable().optional()
   })
   .catchall(z.unknown());
 export type Prediction = z.infer<typeof predictionSchema>;

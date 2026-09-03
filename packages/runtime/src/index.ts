@@ -19,6 +19,8 @@ export {
   type AssetInfoEntry,
   type FolderAssetEntry,
   type ProcessingContextModelInterfaces,
+  type GenerationRequest,
+  type GenerationResult,
   type InjectedTool,
   type S3Client,
   type StorageAdapter,
@@ -100,6 +102,17 @@ export {
   currentInvocationAccount,
   type InvocationAccount
 } from "./invocation-account.js";
+export {
+  recordGenerationReceipt,
+  runWithGenerationReceipt,
+  currentGenerationReceipt,
+  GenerationScopeError
+} from "./generation-receipt.js";
+export {
+  generationRegistry,
+  type GenerationOutcome
+} from "./generation-registry.js";
+export { redactGenerationParams } from "./redact-params.js";
 export {
   CostCappedTurnBudget,
   CompositeTurnBudget,

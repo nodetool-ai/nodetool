@@ -12,6 +12,8 @@
 
 import type {
   AssetRef,
+  GenerationOrigin,
+  GenerationReceipt,
   ProcessingMessage,
   ProviderCost
 } from "@nodetool-ai/protocol";
@@ -28,6 +30,12 @@ import { VariableChannel } from "./variable-channel.js";
 import { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
 import { encodeRawImageRef } from "./image-codec.js";
 import { extForImageMime, sniffImageMime } from "./providers/image-mime.js";
+import {
+  GenerationScopeError,
+  runWithGenerationReceipt
+} from "./generation-receipt.js";
+import { generationRegistry } from "./generation-registry.js";
+import { redactGenerationParams } from "./redact-params.js";
 import {
   isCallable,
   isNonEmptyString,
@@ -334,9 +342,16 @@ export type ProviderCapability =
   | "text_to_speech"
   | "text_to_music"
   | "automatic_speech_recognition"
-  | "generate_embedding";
+  | "generate_embedding"
+  | "text_to_3d"
+  | "image_to_3d";
 
-type PredictionStatus = "pending" | "running" | "completed" | "failed";
+type PredictionStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled";
 
 export type ProviderPredictionRequest = {
   provider: string;
@@ -346,6 +361,37 @@ export type ProviderPredictionRequest = {
   workflowId?: string | null;
   params?: Record<string, unknown>;
 };
+
+/**
+ * A generation: one provider call that produces media, tracked from before
+ * the call to its terminal state (docs/media-generation-tracking-design.md).
+ */
+export interface GenerationRequest extends ProviderPredictionRequest {
+  /** Who asked. Fields left unset default from the context (§5.1). */
+  origin?: Partial<GenerationOrigin>;
+  /**
+   * Save the result as an asset before `completed` is emitted, so the row and
+   * the asset name each other. Needs the `createAsset` model interface; a host
+   * without one gets the bytes back and `assets: []`.
+   */
+  persist?: {
+    name?: string;
+    mime?: string;
+    parentId?: string | null;
+  };
+  /** Caller-side cancellation, chained with `cancel_generation`'s. */
+  signal?: AbortSignal;
+}
+
+export interface GenerationResult<T = ProviderPredictionResult> {
+  /** The row id and the message id: one identity end to end. */
+  id: string;
+  output: T;
+  /** Assets the seam persisted; empty when `persist` was unset or unavailable. */
+  assets: AssetRef[];
+  receipt: GenerationReceipt | null;
+  duration_ms: number;
+}
 
 /**
  * What a provider prediction answers with: the result of whichever capability
@@ -370,7 +416,9 @@ export type ProviderPredictionResult = Awaited<
       | "lipSync"
       | "textToMusic"
       | "automaticSpeechRecognition"
-      | "generateEmbedding"]
+      | "generateEmbedding"
+      | "textTo3D"
+      | "imageTo3D"]
   >
 >;
 
@@ -414,6 +462,8 @@ export interface AssetCreateParamsLike {
   content: Uint8Array;
   parentId?: string | null;
   nodeId?: string | null;
+  /** Stored on the asset row; the generation seam stamps `generation_id`. */
+  metadata?: Record<string, unknown> | null;
 }
 
 /** A non-folder asset surfaced when listing a folder's contents. */
@@ -2401,6 +2451,7 @@ export class ProcessingContext {
     parentId?: string | null;
     instructions?: Uint8Array | null;
     nodeId?: string | null;
+    metadata?: Record<string, unknown> | null;
   }): Promise<unknown> {
     const fn = this.requireModelInterface("createAsset");
     const content = args.content ?? args.instructions;
@@ -2416,7 +2467,8 @@ export class ProcessingContext {
       contentType: args.contentType,
       content,
       parentId: args.parentId ?? null,
-      nodeId: args.nodeId ?? null
+      nodeId: args.nodeId ?? null,
+      metadata: args.metadata ?? null
     });
   }
 
@@ -3032,7 +3084,12 @@ export class ProcessingContext {
     id: string,
     data?: unknown,
     error?: string,
-    startedAt?: number
+    startedAt?: number,
+    extra?: {
+      origin?: GenerationOrigin;
+      asset_ids?: string[];
+      receipt?: GenerationReceipt | null;
+    }
   ): void {
     this.emit({
       type: "prediction",
@@ -3044,11 +3101,48 @@ export class ProcessingContext {
       model: req.model,
       capability: req.capability,
       status,
-      params: req.params ?? {},
+      // Redacted: bytes and data URLs become their length. The row stores
+      // this bag and every listener receives it.
+      params: redactGenerationParams(req.params),
       data: data ?? null,
       error: error ?? null,
-      duration: startedAt ? Date.now() - startedAt : null
+      duration: startedAt ? Date.now() - startedAt : null,
+      origin: extra?.origin ?? this.generationOrigin(req),
+      ...(extra?.asset_ids ? { asset_ids: extra.asset_ids } : {}),
+      receipt: extra?.receipt ?? null
     });
+  }
+
+  /**
+   * Who asked, defaulted from the context: a chat turn names its thread, a
+   * run names its job and node. A capability passes `surface` and its
+   * `tool_call_id` explicitly, the one id the context does not hold.
+   */
+  private generationOrigin(
+    req: ProviderPredictionRequest,
+    override?: Partial<GenerationOrigin>
+  ): GenerationOrigin {
+    const base: GenerationOrigin = this.threadId
+      ? {
+          surface: "chat",
+          thread_id: this.threadId,
+          job_id: this.jobId || null,
+          node_id: req.nodeId ?? null
+        }
+      : {
+          surface: "workflow",
+          job_id: this.jobId || null,
+          node_id: req.nodeId ?? null
+        };
+    if (!override) return base;
+    const merged: GenerationOrigin = { ...base };
+    if (override.surface !== undefined) merged.surface = override.surface;
+    if (override.thread_id !== undefined) merged.thread_id = override.thread_id;
+    if (override.tool_call_id !== undefined)
+      merged.tool_call_id = override.tool_call_id;
+    if (override.job_id !== undefined) merged.job_id = override.job_id;
+    if (override.node_id !== undefined) merged.node_id = override.node_id;
+    return merged;
   }
 
   /**
@@ -3271,6 +3365,7 @@ export class ProcessingContext {
         });
       case "text_to_image":
         return provider.textToImage({
+          signal: params.signal as AbortSignal | undefined,
           prompt: String(params.prompt ?? ""),
           entities: await coerceEntityList(params, this),
           model: { id: req.model, name: req.model, provider: req.provider },
@@ -3283,6 +3378,7 @@ export class ProcessingContext {
         });
       case "image_to_image":
         return provider.imageToImage(coerceImageList(params), {
+          signal: params.signal as AbortSignal | undefined,
           prompt: String(params.prompt ?? ""),
           entities: await coerceEntityList(params, this),
           model: { id: req.model, name: req.model, provider: req.provider },
@@ -3310,6 +3406,7 @@ export class ProcessingContext {
         });
       case "text_to_video":
         return provider.textToVideo({
+          signal: params.signal as AbortSignal | undefined,
           prompt: String(params.prompt ?? ""),
           entities: await coerceEntityList(params, this),
           model: { id: req.model, name: req.model, provider: req.provider },
@@ -3322,6 +3419,7 @@ export class ProcessingContext {
         });
       case "image_to_video":
         return provider.imageToVideo(coerceImageList(params), {
+          signal: params.signal as AbortSignal | undefined,
           prompt: params.prompt as string | undefined,
           entities: await coerceEntityList(params, this),
           model: { id: req.model, name: req.model, provider: req.provider },
@@ -3353,6 +3451,7 @@ export class ProcessingContext {
         });
       case "segment_image":
         return provider.segmentImage(params.image as Uint8Array, {
+          signal: params.signal as AbortSignal | undefined,
           model: { id: req.model, name: req.model, provider: req.provider },
           prompt: params.prompt as string | undefined,
           points: params.points as SegmentPoint[] | undefined,
@@ -3405,6 +3504,25 @@ export class ProcessingContext {
           model: req.model,
           dimensions: params.dimensions as number | undefined
         });
+      case "text_to_3d":
+        return provider.textTo3D({
+          model: { id: req.model, name: req.model, provider: req.provider },
+          prompt: String(params.prompt ?? ""),
+          negativePrompt: (params.negative_prompt as string | undefined) ?? null,
+          artStyle: (params.art_style as string | undefined) ?? null,
+          outputFormat: params.output_format as string | undefined,
+          seed: (params.seed as number | undefined) ?? null,
+          timeoutSeconds: (params.timeout_seconds as number | undefined) ?? null,
+          enableTextures: params.enable_textures as boolean | undefined
+        });
+      case "image_to_3d":
+        return provider.imageTo3D(coerceImageList(params)[0] ?? new Uint8Array(), {
+          model: { id: req.model, name: req.model, provider: req.provider },
+          prompt: (params.prompt as string | undefined) ?? null,
+          outputFormat: params.output_format as string | undefined,
+          seed: (params.seed as number | undefined) ?? null,
+          timeoutSeconds: (params.timeout_seconds as number | undefined) ?? null
+        });
       default:
         throw new Error(
           `Capability '${req.capability}' requires streaming API`
@@ -3423,21 +3541,150 @@ export class ProcessingContext {
   async runProviderPrediction(
     req: ProviderPredictionRequest
   ): Promise<unknown> {
+    return (await this.runGeneration(req)).output;
+  }
+
+  /**
+   * Run one generation: open the record, call the provider inside a receipt
+   * scope, persist what came back, close the record. Every terminal state is
+   * a message — `completed`, `failed`, `cancelled` — and the tracker turns
+   * those into the row. Design: docs/media-generation-tracking-design.md § 5.
+   */
+  async runGeneration(req: GenerationRequest): Promise<GenerationResult> {
     const id = randomUUID();
     const startedAt = Date.now();
-    this.emitPrediction("running", req, id, null, undefined, startedAt);
+    const origin = this.generationOrigin(req, req.origin);
+    const controller = new AbortController();
+    const signals: AbortSignal[] = [controller.signal, this.signal];
+    if (req.signal) signals.push(req.signal);
+    const signal = AbortSignal.any(signals);
+    const dispatchReq: ProviderPredictionRequest = {
+      ...req,
+      params: { ...(req.params ?? {}), signal }
+    };
+    generationRegistry.register(id, {
+      userId: this.userId,
+      abort: () => controller.abort(new Error("Generation cancelled"))
+    });
+    this.emitPrediction("running", req, id, null, undefined, startedAt, {
+      origin
+    });
     try {
       const provider = await this.getProvider(req.provider);
-      const output = await this.retryContentFilterRefusal(req, () =>
-        this.dispatchCapability(provider, req)
+      const { value: output, receipt } = await runWithGenerationReceipt(() =>
+        this.retryContentFilterRefusal(req, () =>
+          this.dispatchCapability(provider, dispatchReq)
+        )
       );
-      this.emitPrediction("completed", req, id, output, undefined, startedAt);
-      return output;
+      const assets = req.persist
+        ? await this.persistGenerationOutput(id, req, output)
+        : [];
+      const assetIds = assets
+        .map((asset) => asset.asset_id)
+        .filter((assetId): assetId is string => typeof assetId === "string");
+      this.emitPrediction(
+        "completed",
+        req,
+        id,
+        generationResultData(req.capability, output),
+        undefined,
+        startedAt,
+        { origin, asset_ids: assetIds, receipt }
+      );
+      generationRegistry.settle(id, {
+        status: "completed",
+        asset_ids: assetIds,
+        receipt
+      });
+      return {
+        id,
+        output,
+        assets,
+        receipt,
+        duration_ms: Date.now() - startedAt
+      };
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.emitPrediction("failed", req, id, null, message, startedAt);
-      throw error;
+      const cause =
+        error instanceof GenerationScopeError ? error.cause : error;
+      const receipt =
+        error instanceof GenerationScopeError ? error.receipt : null;
+      const message = cause instanceof Error ? cause.message : String(cause);
+      const status: PredictionStatus = signal.aborted ? "cancelled" : "failed";
+      this.emitPrediction(status, req, id, null, message, startedAt, {
+        origin,
+        receipt
+      });
+      generationRegistry.settle(id, {
+        status,
+        error: message,
+        asset_ids: [],
+        receipt
+      });
+      throw cause;
     }
+  }
+
+  /**
+   * Save a generation's media output as assets, stamping the generation id
+   * on each. Bytes only: a segmentation result, a transcript or an embedding
+   * is a result and stays on the message.
+   */
+  private async persistGenerationOutput(
+    id: string,
+    req: GenerationRequest,
+    output: ProviderPredictionResult
+  ): Promise<AssetRef[]> {
+    if (!this.hasModelInterface("createAsset")) return [];
+    const buffers: Uint8Array[] = output instanceof Uint8Array
+      ? [output]
+      : Array.isArray(output) &&
+          output.every((item) => item instanceof Uint8Array)
+        ? (output as Uint8Array[])
+        : [];
+    const assets: AssetRef[] = [];
+    for (const [index, bytes] of buffers.entries()) {
+      const mime = req.persist?.mime ?? generationMime(req.capability, bytes);
+      const ext = extForGenerationMime(mime);
+      const name =
+        buffers.length === 1 || !req.persist?.name
+          ? (req.persist?.name ?? `${req.capability}-${startedName(id)}.${ext}`)
+          : req.persist.name.replace(/(\.[a-z0-9]+)?$/i, `-${index + 1}$1`);
+      try {
+        const created = await this.createAsset({
+          name,
+          contentType: mime,
+          content: bytes,
+          parentId: req.persist?.parentId ?? null,
+          nodeId: req.nodeId ?? null,
+          metadata: { generation_id: id }
+        });
+        const assetId =
+          isRecord(created) && typeof created.id === "string"
+            ? created.id
+            : null;
+        if (!assetId) continue;
+        assets.push({
+          type: assetRefType(mime),
+          uri: `asset://${assetId}.${ext}`,
+          asset_id: assetId,
+          metadata: { generation_id: id }
+        });
+      } catch (error) {
+        // The generation happened and was billed; a failed save must not turn
+        // it into a failed generation. The caller still gets the bytes.
+        this.emit({
+          type: "log_update",
+          node_id: req.nodeId ?? "",
+          node_name: req.nodeId ?? "",
+          workflow_id: req.workflowId ?? this.workflowId ?? null,
+          severity: "warning",
+          content: `Generated ${mime} could not be saved as an asset: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        });
+      }
+    }
+    return assets;
   }
 
   /**
@@ -3505,15 +3752,11 @@ export class ProcessingContext {
    * ElevenLabs) that return audio files instead of streaming PCM.
    */
   async textToSpeechEncoded(
-    req: ProviderPredictionRequest
+    req: GenerationRequest
   ): Promise<EncodedAudioResult | null> {
-    const id = randomUUID();
-    const startedAt = Date.now();
-    this.emitPrediction("running", req, id, null, undefined, startedAt);
-    try {
-      const provider = await this.getProvider(req.provider);
+    return this.runEncodedGeneration(req, async (provider) => {
       const params = req.params ?? {};
-      const result = await provider.textToSpeechEncoded({
+      return provider.textToSpeechEncoded({
         text: String(params.text ?? ""),
         model: req.model,
         voice: params.voice as string | undefined,
@@ -3524,12 +3767,67 @@ export class ProcessingContext {
         instructions: params.instructions as string | undefined,
         audioFormat: params.audioFormat as string | undefined
       });
-      this.emitPrediction("completed", req, id, null, undefined, startedAt);
-      return result;
+    });
+  }
+
+  /**
+   * The generation lifecycle for the encoded-audio paths: same id on every
+   * message, origin on `running`, the receipt on the terminal message,
+   * `cancelled` on abort. These return an encoded result rather than bytes,
+   * so the caller persists.
+   */
+  private async runEncodedGeneration<T>(
+    req: GenerationRequest,
+    call: (provider: BaseProvider) => Promise<T>
+  ): Promise<T> {
+    const id = randomUUID();
+    const startedAt = Date.now();
+    const origin = this.generationOrigin(req, req.origin);
+    const controller = new AbortController();
+    const signals: AbortSignal[] = [controller.signal, this.signal];
+    if (req.signal) signals.push(req.signal);
+    const signal = AbortSignal.any(signals);
+    generationRegistry.register(id, {
+      userId: this.userId,
+      abort: () => controller.abort(new Error("Generation cancelled"))
+    });
+    this.emitPrediction("running", req, id, null, undefined, startedAt, {
+      origin
+    });
+    try {
+      const provider = await this.getProvider(req.provider);
+      const { value, receipt } = await runWithGenerationReceipt(() =>
+        call(provider)
+      );
+      this.emitPrediction("completed", req, id, null, undefined, startedAt, {
+        origin,
+        asset_ids: [],
+        receipt
+      });
+      generationRegistry.settle(id, {
+        status: "completed",
+        asset_ids: [],
+        receipt
+      });
+      return value;
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.emitPrediction("failed", req, id, null, message, startedAt);
-      throw error;
+      const cause =
+        error instanceof GenerationScopeError ? error.cause : error;
+      const receipt =
+        error instanceof GenerationScopeError ? error.receipt : null;
+      const message = cause instanceof Error ? cause.message : String(cause);
+      const status: PredictionStatus = signal.aborted ? "cancelled" : "failed";
+      this.emitPrediction(status, req, id, null, message, startedAt, {
+        origin,
+        receipt
+      });
+      generationRegistry.settle(id, {
+        status,
+        error: message,
+        asset_ids: [],
+        receipt
+      });
+      throw cause;
     }
   }
 
@@ -3538,16 +3836,10 @@ export class ProcessingContext {
    * {@link textToSpeechEncoded} for the `text_to_music` capability — the
    * provider returns a fully-encoded audio file rather than streaming PCM.
    */
-  async textToMusic(
-    req: ProviderPredictionRequest
-  ): Promise<EncodedAudioResult> {
-    const id = randomUUID();
-    const startedAt = Date.now();
-    this.emitPrediction("running", req, id, null, undefined, startedAt);
-    try {
-      const provider = await this.getProvider(req.provider);
+  async textToMusic(req: GenerationRequest): Promise<EncodedAudioResult> {
+    return this.runEncodedGeneration(req, async (provider) => {
       const params = req.params ?? {};
-      const result = await provider.textToMusic({
+      return provider.textToMusic({
         prompt: String(params.prompt ?? ""),
         model: { id: req.model, name: req.model, provider: req.provider },
         lyrics: params.lyrics as string | undefined,
@@ -3556,21 +3848,18 @@ export class ProcessingContext {
         audioFormat: params.audioFormat as string | undefined,
         timeoutSeconds: params.timeout_seconds as number | undefined
       });
-      this.emitPrediction("completed", req, id, null, undefined, startedAt);
-      return result;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.emitPrediction("failed", req, id, null, message, startedAt);
-      throw error;
-    }
+    });
   }
 
   async *streamProviderPrediction(
-    req: ProviderPredictionRequest
+    req: GenerationRequest
   ): AsyncGenerator<ProviderStreamItem | unknown> {
     const id = randomUUID();
     const startedAt = Date.now();
-    this.emitPrediction("running", req, id, null, undefined, startedAt);
+    const origin = this.generationOrigin(req, req.origin);
+    this.emitPrediction("running", req, id, null, undefined, startedAt, {
+      origin
+    });
     let terminalStatusEmitted = false;
     try {
       const provider = await this.getProvider(req.provider);
@@ -3612,16 +3901,26 @@ export class ProcessingContext {
         throw new Error(`Capability '${req.capability}' is not streamable`);
       }
 
-      this.emitPrediction("completed", req, id, null, undefined, startedAt);
+      this.emitPrediction("completed", req, id, null, undefined, startedAt, {
+        origin,
+        asset_ids: []
+      });
       terminalStatusEmitted = true;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.emitPrediction("failed", req, id, null, message, startedAt);
+      const status: PredictionStatus =
+        this.signal.aborted || req.signal?.aborted ? "cancelled" : "failed";
+      this.emitPrediction(status, req, id, null, message, startedAt, {
+        origin
+      });
       terminalStatusEmitted = true;
       throw error;
     } finally {
       if (!terminalStatusEmitted) {
-        this.emitPrediction("completed", req, id, null, undefined, startedAt);
+        this.emitPrediction("completed", req, id, null, undefined, startedAt, {
+          origin,
+          asset_ids: []
+        });
       }
     }
   }
@@ -3973,4 +4272,99 @@ export function mediaResolverFor(
 ): ((messages: Message[]) => Promise<Message[]>) | undefined {
   if (!context || !isCallable(context.resolveMessageMediaUris)) return undefined;
   return (messages) => context.resolveMessageMediaUris(messages);
+}
+
+
+// ---------------------------------------------------------------------------
+// Generation seam helpers
+// ---------------------------------------------------------------------------
+
+/** What a `completed` prediction message carries as `data`: never bytes. */
+function generationResultData(
+  capability: ProviderCapability,
+  output: ProviderPredictionResult
+): unknown {
+  if (output instanceof Uint8Array) return null;
+  if (Array.isArray(output)) {
+    if (output.every((item) => item instanceof Uint8Array)) {
+      return { count: output.length };
+    }
+    if (capability === "segment_image") {
+      return output.map((item) => {
+        if (!isRecord(item)) return item;
+        const { mask: _mask, ...rest } = item;
+        return rest;
+      });
+    }
+    if (capability === "generate_embedding") {
+      const first = output[0];
+      return {
+        count: output.length,
+        dimensions: Array.isArray(first) ? first.length : null
+      };
+    }
+    return { count: output.length };
+  }
+  return output ?? null;
+}
+
+const VIDEO_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([
+  "text_to_video",
+  "image_to_video",
+  "video_to_video",
+  "lip_sync"
+]);
+const AUDIO_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([
+  "text_to_speech",
+  "text_to_music"
+]);
+const MODEL3D_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([
+  "text_to_3d",
+  "image_to_3d"
+]);
+
+/** The MIME a generation's bytes carry when the caller stated none. */
+function generationMime(
+  capability: ProviderCapability,
+  bytes: Uint8Array
+): string {
+  if (VIDEO_CAPABILITIES.has(capability)) return "video/mp4";
+  if (AUDIO_CAPABILITIES.has(capability)) return "audio/mpeg";
+  if (MODEL3D_CAPABILITIES.has(capability)) return "model/gltf-binary";
+  if (capability === "vectorize_image") return "image/svg+xml";
+  return sniffImageMime(bytes) ?? "image/png";
+}
+
+const GENERATION_MIME_EXT: Record<string, string> = {
+  "video/mp4": "mp4",
+  "video/webm": "webm",
+  "audio/mpeg": "mp3",
+  "audio/mp3": "mp3",
+  "audio/wav": "wav",
+  "audio/x-wav": "wav",
+  "audio/flac": "flac",
+  "audio/ogg": "ogg",
+  "model/gltf-binary": "glb",
+  "model/gltf+json": "gltf",
+  "image/svg+xml": "svg"
+};
+
+function extForGenerationMime(mime: string): string {
+  if (mime.startsWith("image/") && mime !== "image/svg+xml") {
+    return extForImageMime(mime) ?? "bin";
+  }
+  return GENERATION_MIME_EXT[mime] ?? "bin";
+}
+
+function assetRefType(mime: string): AssetRef["type"] {
+  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("audio/")) return "audio";
+  return "asset";
+}
+
+/** A short, sortable name fragment for an unnamed generation asset. */
+function startedName(id: string): string {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  return `${stamp}-${id.slice(0, 8)}`;
 }

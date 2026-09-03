@@ -36,6 +36,21 @@ export const predictions = pgTable(
     // Provider-side request id (e.g. FAL queue request id) used to reconcile
     // the estimated cost against the provider's actual billed amount.
     provider_request_id: text("provider_request_id"),
+    /** The `ProviderCapability` the generation ran (`text_to_image`, …). */
+    capability: text("capability"),
+    /** Which surface asked: workflow, capability, chat, rpc, cli. */
+    surface: text("surface"),
+    /** The chat turn that asked, when one did. */
+    thread_id: text("thread_id"),
+    /** The capability call that asked, when one did. */
+    tool_call_id: text("tool_call_id"),
+    /** The run that asked, when one did. */
+    job_id: text("job_id"),
+    /** Assets the generation produced — the outcome next to the charge. */
+    asset_ids: jsonText<string[]>()("asset_ids"),
+    /** When the estimate was replaced by the billed amount, or given up on. */
+    reconciled_at: text("reconciled_at"),
+    reconcile_attempts: integer("reconcile_attempts").notNull().default(0),
     created_at: text("created_at"),
     started_at: text("started_at"),
     completed_at: text("completed_at"),
@@ -51,6 +66,9 @@ export const predictions = pgTable(
     index("idx_predictions_user_provider").on(table.user_id, table.provider),
     index("idx_prediction_created_at").on(table.created_at),
     index("idx_prediction_user_model").on(table.user_id, table.model),
-    index("idx_prediction_user_project").on(table.user_id, table.project_id)
+    index("idx_prediction_user_project").on(table.user_id, table.project_id),
+    index("idx_prediction_user_status").on(table.user_id, table.status),
+    index("idx_prediction_user_thread").on(table.user_id, table.thread_id),
+    index("idx_prediction_job").on(table.job_id)
   ]
 );

@@ -6,6 +6,7 @@
  * against fal's OpenAI-compatible LLM route.
  */
 
+import { recordGenerationReceipt } from "../generation-receipt.js";
 import { BaseProvider } from "./base-provider.js";
 import { createLogger } from "@nodetool-ai/config";
 import { OpenAICompatProvider } from "./openai-compat-provider.js";
@@ -609,9 +610,23 @@ export class FalProvider extends BaseProvider {
   private async getClient(): Promise<FalClient> {
     if (this._client) return this._client;
     const { createFalClient } = await import("@fal-ai/client");
-    this._client = createFalClient({
+    const client = createFalClient({
       credentials: this.apiKey
     });
+    // Every queue call passes through here, so this is the one place the
+    // request id is known: the receipt the reconciler looks the charge up by.
+    this._client = {
+      subscribe: async (endpoint, opts) => {
+        const result = await client.subscribe(endpoint, opts);
+        const requestId = (result as { requestId?: unknown } | undefined)
+          ?.requestId;
+        if (typeof requestId === "string" && requestId) {
+          recordGenerationReceipt({ provider_request_id: requestId });
+        }
+        return result;
+      },
+      storage: client.storage
+    };
     return this._client;
   }
 
