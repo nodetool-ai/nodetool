@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  CLAUDE_CODE_CALLBACK_PORT,
   CLAUDE_CODE_OAUTH_CLIENT_ID,
   CLAUDE_CODE_OAUTH_MANUAL_REDIRECT_URL,
   CLAUDE_CODE_OAUTH_TOKEN_URL
@@ -24,6 +25,7 @@ import {
   StateMismatchError,
   TokenExchangeError
 } from "../../../src/providers/oauth/errors.js";
+import { LocalCallbackServer } from "../../../src/providers/oauth/local-callback-server.js";
 
 interface RecordedRequest {
   url: string;
@@ -365,17 +367,66 @@ describe("ClaudeCodeLogin", () => {
   });
 
   function login(
-    responses: Array<{ ok: boolean; status: number; body: unknown }>
+    responses: Array<{ ok: boolean; status: number; body: unknown }>,
+    options: { callbackServerFactory?: () => LocalCallbackServer } = {}
   ): { login: ClaudeCodeLogin; fetchFn: ReturnType<typeof fakeFetch> } {
     const fetchFn = fakeFetch(responses);
     return {
       fetchFn,
       login: new ClaudeCodeLogin({
         client: new ClaudeCodeOAuthClient({ fetchFn }),
-        credentials: new ClaudeCodeCredentialsStore({ configDir: dir })
+        credentials: new ClaudeCodeCredentialsStore({ configDir: dir }),
+        // Tests share a machine; an ephemeral port keeps them from colliding
+        // on the fixed one the default factory binds.
+        callbackServerFactory:
+          options.callbackServerFactory ??
+          (() =>
+            new LocalCallbackServer({ host: "127.0.0.1", path: "/callback" }))
       })
     };
   }
+
+  it("binds the claude CLI's own callback port by default", async () => {
+    const flow = new ClaudeCodeLogin({
+      client: new ClaudeCodeOAuthClient({ fetchFn: fakeFetch([]) }),
+      credentials: new ClaudeCodeCredentialsStore({ configDir: dir })
+    });
+    const pending = await flow.begin();
+    try {
+      expect(pending.redirectUri).toBe(
+        `http://localhost:${CLAUDE_CODE_CALLBACK_PORT}/callback`
+      );
+      expect(new URL(pending.authUrl!).searchParams.get("redirect_uri")).toBe(
+        pending.redirectUri
+      );
+    } finally {
+      await pending.cancel();
+    }
+  });
+
+  it("names the port when the listener cannot bind", async () => {
+    const { login: flow } = login([], {
+      callbackServerFactory: () =>
+        new LocalCallbackServer({
+          host: "127.0.0.1",
+          port: CLAUDE_CODE_CALLBACK_PORT,
+          path: "/callback"
+        })
+    });
+    const holder = new LocalCallbackServer({
+      host: "127.0.0.1",
+      port: CLAUDE_CODE_CALLBACK_PORT,
+      path: "/callback"
+    });
+    await holder.listen();
+    try {
+      await expect(flow.begin()).rejects.toThrow(
+        `port ${CLAUDE_CODE_CALLBACK_PORT}`
+      );
+    } finally {
+      await holder.close();
+    }
+  });
 
   it("reports a disconnected status when nothing is stored", async () => {
     const { login: flow } = login([]);
@@ -417,7 +468,7 @@ describe("ClaudeCodeLogin", () => {
     expect(status.subscriptionType).toBe("pro");
   });
 
-  it("completes a loopback login against the bound ephemeral port", async () => {
+  it("completes a loopback login against the bound port", async () => {
     const { login: flow, fetchFn } = login([
       { ok: true, status: 200, body: tokenResponse },
       { ok: false, status: 404, body: {} }

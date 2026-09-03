@@ -7,6 +7,10 @@
  * localhost with nothing listening and the authorization code sitting in the
  * address bar. This dialog takes that address and hands it back to the server,
  * which does the code exchange.
+ *
+ * Claude's console has a page for exactly this case: it displays a
+ * `code#state` string instead of redirecting, so the dialog asks for that
+ * string rather than an address.
  */
 
 import { useCallback, useState } from "react";
@@ -68,16 +72,28 @@ export const OAuthManualCompletionDialog = ({
       minWidth="520px"
     >
       <FlexColumn gap={2}>
-        <Text size="small">
-          {label} sends the browser to{" "}
-          <code>{prompt.redirectUri ?? "a local address"}</code>, which only
-          exists on your own machine — so this server never sees it. Approve the
-          sign-in, then copy the whole address the browser ends up on (an error
-          page is expected) and paste it below.
-        </Text>
+        {prompt.input === "code" ? (
+          <Text size="small">
+            This server cannot receive the sign-in callback, so {label} shows
+            you a code instead. Approve the sign-in, then copy the code the page
+            displays and paste it below.
+          </Text>
+        ) : (
+          <Text size="small">
+            {label} sends the browser to{" "}
+            <code>{prompt.redirectUri ?? "a local address"}</code>, which only
+            exists on your own machine — so this server never sees it. Approve
+            the sign-in, then copy the whole address the browser ends up on (an
+            error page is expected) and paste it below.
+          </Text>
+        )}
         <TextInput
-          label="Redirect address"
-          placeholder="http://localhost:1455/auth/callback?code=…&state=…"
+          label={prompt.input === "code" ? "Authorization code" : "Redirect address"}
+          placeholder={
+            prompt.input === "code"
+              ? "code#state"
+              : "http://localhost:1455/auth/callback?code=…&state=…"
+          }
           value={value}
           onChange={(event) => setValue(event.target.value)}
           multiline

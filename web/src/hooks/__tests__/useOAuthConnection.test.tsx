@@ -158,7 +158,36 @@ describe("useOAuthConnection", () => {
 
     expect(result.current.manualPrompt).toEqual({
       authUrl: "https://example.com/auth",
-      redirectUri: "http://localhost:1455/auth/callback"
+      redirectUri: "http://localhost:1455/auth/callback",
+      input: "address"
+    });
+  });
+
+  it("asks Claude users for the displayed code when /start answers manual", async () => {
+    mockRestFetch.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith("/tokens")) return jsonResponse({ tokens: [] });
+      if (url.endsWith("/start"))
+        return jsonResponse({
+          auth_url: "https://claude.com/cai/oauth/authorize",
+          manual: true,
+          redirect_uri: null
+        });
+      return jsonResponse({});
+    });
+
+    const { result } = renderHook(() => useOAuthConnection("claude"), {
+      wrapper: createWrapper()
+    });
+
+    await act(async () => {
+      await result.current.connect();
+    });
+
+    expect(result.current.manualPrompt).toEqual({
+      authUrl: "https://claude.com/cai/oauth/authorize",
+      redirectUri: null,
+      input: "code"
     });
   });
 

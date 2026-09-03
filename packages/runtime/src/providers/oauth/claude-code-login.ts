@@ -20,6 +20,7 @@
 import { createLogger, type Logger } from "@nodetool-ai/config";
 import {
   CLAUDE_CODE_CALLBACK_PATH,
+  CLAUDE_CODE_CALLBACK_PORT,
   CLAUDE_CODE_OAUTH_MANUAL_REDIRECT_URL
 } from "@nodetool-ai/protocol";
 import {
@@ -72,6 +73,8 @@ export interface ClaudeCodeAuthStatus {
 export interface PendingClaudeCodeLogin {
   /** Authorization URL for the loopback flow. Null when `manualOnly`. */
   readonly authUrl: string | null;
+  /** Where the loopback flow sends the browser. Null when `manualOnly`. */
+  readonly redirectUri: string | null;
   /** Authorization URL whose redirect shows a paste-able `code#state`. */
   readonly manualAuthUrl: string;
   /** CSRF state; the caller may key the pending login on it. */
@@ -122,6 +125,7 @@ export class ClaudeCodeLogin {
       (() =>
         new LocalCallbackServer({
           host: "127.0.0.1",
+          port: CLAUDE_CODE_CALLBACK_PORT,
           path: CLAUDE_CODE_CALLBACK_PATH,
           logger: this.logger
         }));
@@ -149,7 +153,16 @@ export class ClaudeCodeLogin {
     let loopbackRedirectUri: string | null = null;
     if (!options.manualOnly) {
       server = this.callbackServerFactory();
-      const { port } = await server.listen();
+      let port: number;
+      try {
+        ({ port } = await server.listen());
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new OAuthError(
+          "token_exchange_failed",
+          `Could not bind the loopback listener on port ${CLAUDE_CODE_CALLBACK_PORT} (is a \`claude login\` already waiting?): ${message}`
+        );
+      }
       // The listener binds 127.0.0.1, but the registered redirect uses the
       // `localhost` spelling the authorization server expects from the CLI.
       loopbackRedirectUri = `http://localhost:${port}${CLAUDE_CODE_CALLBACK_PATH}`;
@@ -178,6 +191,7 @@ export class ClaudeCodeLogin {
 
     return {
       authUrl,
+      redirectUri: loopbackRedirectUri,
       manualAuthUrl,
       state,
       waitForRedirect: async (signal?: AbortSignal) => {

@@ -1149,7 +1149,13 @@ export const CLAUDE_CODE_OAUTH_TOKEN_URL =
  */
 export const CLAUDE_CODE_OAUTH_MANUAL_REDIRECT_URL =
   "https://platform.claude.com/oauth/code/callback";
-/** Path the loopback listener serves; the port is ephemeral. */
+/**
+ * The loopback redirect the `claude` CLI registers: a fixed port, like the
+ * Codex client's 1455, so the browser lands on the same address whichever
+ * tool started the login. A `claude login` already holding the port is the
+ * one expected collision.
+ */
+export const CLAUDE_CODE_CALLBACK_PORT = 54545;
 export const CLAUDE_CODE_CALLBACK_PATH = "/callback";
 /** Scopes requested at login. */
 export const CLAUDE_CODE_OAUTH_SCOPES = [
