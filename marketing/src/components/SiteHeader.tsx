@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
@@ -52,50 +52,65 @@ function Wordmark() {
   );
 }
 
+/**
+ * The menu runs on a `data-nav-open` attribute rather than React state, driven
+ * by this script, which the browser executes as it parses the header — seconds
+ * before React hydrates. The landing page is one big `"use client"` tree, so
+ * hydration lands ~2.7s in on a 6x-throttled phone while the hamburger has been
+ * on screen since ~0.3s; every tap in that window used to be swallowed.
+ * Visibility is CSS (`html[data-nav-open]`, see globals.css), so nothing here
+ * waits on a bundle.
+ *
+ * The listener is delegated on `document`, which outlives a soft navigation —
+ * a `next/link` route change re-renders the header but does not re-run an
+ * inline script.
+ *
+ * Opening pins the page rather than only setting `overflow: hidden`, which iOS
+ * Safari ignores — without the pin a flick inside the panel scrolls the
+ * document behind it.
+ */
+const NAV_MENU_SCRIPT = `(function(){
+if(window.__ntNavMenu)return;
+var html=document.documentElement,saved=null;
+function expanded(v){var b=document.querySelector('[data-nav="open"]');if(b)b.setAttribute("aria-expanded",v?"true":"false");}
+function open(){
+  if(html.hasAttribute("data-nav-open"))return;
+  var b=document.body,y=window.scrollY;
+  saved={y:y,position:b.style.position,top:b.style.top,left:b.style.left,right:b.style.right,overflow:b.style.overflow};
+  b.style.position="fixed";b.style.top=-y+"px";b.style.left="0";b.style.right="0";b.style.overflow="hidden";
+  html.setAttribute("data-nav-open","");expanded(true);
+}
+function close(){
+  if(!html.hasAttribute("data-nav-open"))return;
+  html.removeAttribute("data-nav-open");expanded(false);
+  if(!saved)return;
+  var b=document.body,s=saved;saved=null;
+  b.style.position=s.position;b.style.top=s.top;b.style.left=s.left;b.style.right=s.right;b.style.overflow=s.overflow;
+  var behavior=html.style.scrollBehavior;html.style.scrollBehavior="auto";window.scrollTo(0,s.y);html.style.scrollBehavior=behavior;
+}
+document.addEventListener("click",function(e){
+  var t=e.target;
+  if(!t||typeof t.closest!=="function")return;
+  var hit=t.closest("[data-nav]");
+  if(!hit)return;
+  if(hit.getAttribute("data-nav")==="open"){open();}else{close();}
+});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")close();});
+var wide=window.matchMedia("(min-width: 768px)");
+(wide.addEventListener?wide.addEventListener.bind(wide,"change"):wide.addListener.bind(wide))(function(e){if(e.matches)close();});
+window.__ntNavMenu={open:open,close:close};
+})();`;
+
 export default function SiteHeader() {
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
   const stars = useGithubStars();
-
-  // Opening the panel pins the page rather than only setting `overflow:
-  // hidden`, which iOS Safari ignores — without the pin a flick inside the menu
-  // scrolls the document behind it.
-  useEffect(() => {
-    if (!mobileOpen) return;
-    const { body, documentElement: html } = document;
-    const scrollY = window.scrollY;
-    const restore = {
-      position: body.style.position,
-      top: body.style.top,
-      left: body.style.left,
-      right: body.style.right,
-      overflow: body.style.overflow,
-    };
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.overflow = "hidden";
-
-    return () => {
-      body.style.position = restore.position;
-      body.style.top = restore.top;
-      body.style.left = restore.left;
-      body.style.right = restore.right;
-      body.style.overflow = restore.overflow;
-      // `html { scroll-behavior: smooth }` would animate this restore.
-      const behavior = html.style.scrollBehavior;
-      html.style.scrollBehavior = "auto";
-      window.scrollTo(0, scrollY);
-      html.style.scrollBehavior = behavior;
-    };
-  }, [mobileOpen]);
 
   const isActive = (item: NavItem) =>
     !item.external && (pathname === item.href);
 
   return (
     <header>
+      <script dangerouslySetInnerHTML={{ __html: NAV_MENU_SCRIPT }} />
       <AnnouncementBar />
       <nav
         className="fixed top-[var(--announce-h)] left-0 right-0 z-50 border-b border-slate-800/60 bg-glass supports-[backdrop-filter]:bg-glass shadow-[0_1px_0_0_rgba(59,130,246,0.08)]"
@@ -140,7 +155,8 @@ export default function SiteHeader() {
               <button
                 type="button"
                 className="md:hidden rounded-md p-1.5 text-slate-300 hover:bg-slate-800/60 transition-colors focus-ring"
-                onClick={() => setMobileOpen(true)}
+                data-nav="open"
+                aria-expanded={false}
                 aria-label="Open menu"
               >
                 <Bars3Icon className="h-5 w-5" aria-hidden="true" />
@@ -172,60 +188,57 @@ export default function SiteHeader() {
         </div>
       </nav>
 
-      {mobileOpen && (
-        <div
-          className="md:hidden fixed inset-0 z-[70]"
-          role="dialog"
-          aria-modal="true"
-        >
-          <button
-            type="button"
-            className="absolute inset-0 bg-slate-950/90"
-            onClick={() => setMobileOpen(false)}
-            aria-label="Close menu"
-          />
-          <div className="mobile-menu-panel absolute inset-y-0 right-0 w-full overflow-y-auto bg-gradient-to-b from-slate-900 to-slate-950 px-6 py-6 sm:max-w-sm border-l border-slate-800/60">
-            <div className="flex items-center justify-between">
-              <Wordmark />
-              <button
-                type="button"
-                className="rounded-md p-2 text-slate-300 hover:bg-slate-800/60 transition-colors focus-ring"
-                onClick={() => setMobileOpen(false)}
-                aria-label="Close menu"
-              >
-                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-              </button>
-            </div>
-            <div className="mt-6 space-y-2">
-              {NAV.map((item) => (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  {...(item.external
-                    ? { target: "_blank", rel: "noopener noreferrer" }
-                    : {})}
-                  className="block px-3 py-3 text-base font-medium text-slate-200 hover:bg-slate-800/60 hover:text-white rounded-lg transition-colors focus-ring"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {item.name}
-                </a>
-              ))}
+      <div
+        className="site-nav-overlay fixed inset-0 z-[70]"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Site menu"
+      >
+        <button
+          type="button"
+          className="absolute inset-0 bg-slate-950/90"
+          data-nav="close"
+          aria-label="Close menu"
+        />
+        <div className="mobile-menu-panel absolute inset-y-0 right-0 w-full overflow-y-auto bg-gradient-to-b from-slate-900 to-slate-950 px-6 py-6 sm:max-w-sm border-l border-slate-800/60">
+          <div className="flex items-center justify-between">
+            <Wordmark />
+            <button
+              type="button"
+              className="rounded-md p-2 text-slate-300 hover:bg-slate-800/60 transition-colors focus-ring"
+              data-nav="close"
+              aria-label="Close menu"
+            >
+              <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="mt-6 space-y-2">
+            {NAV.map((item) => (
               <a
-                href={GITHUB_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => {
-                  track("Star GitHub");
-                  setMobileOpen(false);
-                }}
+                key={item.name}
+                href={item.href}
+                {...(item.external
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
                 className="block px-3 py-3 text-base font-medium text-slate-200 hover:bg-slate-800/60 hover:text-white rounded-lg transition-colors focus-ring"
+                data-nav="close"
               >
-                Star on GitHub
+                {item.name}
               </a>
-            </div>
+            ))}
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-nav="close"
+              onClick={() => track("Star GitHub")}
+              className="block px-3 py-3 text-base font-medium text-slate-200 hover:bg-slate-800/60 hover:text-white rounded-lg transition-colors focus-ring"
+            >
+              Star on GitHub
+            </a>
           </div>
         </div>
-      )}
+      </div>
     </header>
   );
 }

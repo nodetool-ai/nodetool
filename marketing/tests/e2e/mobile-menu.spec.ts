@@ -13,6 +13,12 @@ import { test, expect } from "@playwright/test";
  * over ~50 moving cards — 1.2s of the main thread per 3s on a 4x-throttled
  * phone, measured with the section nowhere near the viewport. That is what
  * made every interaction on the page, the menu included, feel stuck.
+ *
+ * And the menu opens without the React bundle at all. The landing page is one
+ * `"use client"` tree, so hydration landed ~2.7s in on a 6x-throttled phone
+ * while the hamburger had been on screen since ~0.3s; every tap in between was
+ * swallowed. Asserted by serving the page with its chunks blocked rather than
+ * by racing a clock.
  */
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
@@ -71,5 +77,27 @@ test.describe("landing page on a phone", () => {
         track.evaluate((el) => getComputedStyle(el).animationPlayState)
       )
       .toBe("running");
+  });
+
+  test("the menu opens with the page's JavaScript blocked", async ({ page }) => {
+    await page.route("**/_next/static/**/*.js", (route) => route.abort());
+
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    const panel = page.getByRole("dialog");
+    await expect(panel).toBeHidden();
+
+    const open = page.getByRole("button", { name: "Open menu" });
+    await open.click();
+    await expect(panel).toBeVisible();
+    await expect(open).toHaveAttribute("aria-expanded", "true");
+    expect(await page.evaluate(() => document.body.style.position)).toBe(
+      "fixed"
+    );
+
+    await page.keyboard.press("Escape");
+    await expect(panel).toBeHidden();
+    await expect(open).toHaveAttribute("aria-expanded", "false");
+    expect(await page.evaluate(() => document.body.style.position)).toBe("");
   });
 });
