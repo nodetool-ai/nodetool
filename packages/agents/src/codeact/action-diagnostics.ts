@@ -15,6 +15,10 @@
 
 import { parseCodeBody } from "@nodetool-ai/node-sdk";
 import { entryBodyLineOffset } from "../js-sandbox-worker/interpreter.js";
+import {
+  RESERVED_ACTION_BINDINGS,
+  RESERVED_BINDINGS_SENTENCE
+} from "./tool-api.js";
 
 /**
  * A stack frame pointing into the guest's `user-code` module. Both shapes
@@ -99,6 +103,8 @@ export function annotateFailure(
   prelude: string,
   code: string
 ): { readonly error?: string; readonly stack?: string } {
+  const collision = reservedRedeclaration(error);
+  if (collision !== undefined) return { error: collision };
   const reparsed = reparseSyntaxError(error, code);
   if (reparsed !== undefined) return reparsed;
   if (!stack) return { error };
@@ -136,4 +142,31 @@ function reparseSyntaxError(
       ? `    at action:${line}`
       : `    at action:${line}\n    >> your code, line ${line}: ${excerpt}`;
   return { error: message, stack };
+}
+
+/**
+ * QuickJS names a redeclared binding but not where it came from, so
+ * "SyntaxError: lexical redefinition of 'tools'" points a model at a
+ * declaration that looks fine — the clashing one is in the prelude it never
+ * sees. Say which prelude binding it hit and what to do about it.
+ *
+ * Only a name the prelude actually reserves is rewritten; a redeclaration
+ * inside the action's own code is the model's to find, and the position it
+ * already carries is enough.
+ */
+function reservedRedeclaration(error: string | undefined): string | undefined {
+  if (error === undefined || !error.includes("SyntaxError")) return undefined;
+  const match = /(?:redefinition|redeclaration) of (?:lexical identifier )?['"`]?([A-Za-z_$][\w$]*)/.exec(
+    error
+  );
+  const name = match?.[1];
+  if (name === undefined || !RESERVED_ACTION_BINDINGS.includes(name)) {
+    return undefined;
+  }
+  return (
+    `${error.trim()} — \`${name}\` is a binding the action prelude declares ` +
+    `before your code runs, not one of yours. Rename your variable (e.g. ` +
+    `\`my${name.charAt(0).toUpperCase()}${name.slice(1)}\`). ` +
+    RESERVED_BINDINGS_SENTENCE
+  );
 }

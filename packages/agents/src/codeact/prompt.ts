@@ -11,7 +11,11 @@ import {
 } from "../code-gen/sandbox-manifest.js";
 import { extractApiReferences } from "../code-gen/sandbox-prompt.js";
 import { NODETOOL_API_SECTION_HEADER } from "./nodetool-api.js";
-import { renderToolCatalog, type ToolSignatureSource } from "./tool-api.js";
+import {
+  renderToolCatalog,
+  RESERVED_BINDINGS_SENTENCE,
+  type ToolSignatureSource
+} from "./tool-api.js";
 
 /**
  * The bounded fan-out primitive the concurrency bullet advertises. One per
@@ -71,6 +75,7 @@ Rules:
   sits behind a fold — so a description that restates the title, or describes
   the code instead of its effect, is a user clicking Allow on something they
   could not read. Write \`""\` for a \`"low"\` risk call; nobody is asked.
+- ${RESERVED_BINDINGS_SENTENCE}
 - Chain the WHOLE pipeline into one action: call several tools, loop over
   items, branch on intermediate results, retry inside try/catch, and
   post-process in the same program. Hold intermediates in local variables.

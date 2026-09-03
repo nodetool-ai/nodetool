@@ -12,6 +12,7 @@ import {
   type SandboxManifest
 } from "../code-gen/sandbox-manifest.js";
 import { chatUnavailableBridges } from "./prompt.js";
+import { RESERVED_BINDINGS_SENTENCE } from "./tool-api.js";
 
 /** Structured guest surface for MCP clients that read resources. */
 export const MCP_SANDBOX_RESOURCE_URI = "nodetool://sandbox";
@@ -61,6 +62,7 @@ Rules:
 - Static \`import\` only for allowed packs. This session lists them below; anything else fails.
 - \`return\` a small summary. Nothing carries over between actions except what a tool saved — generation results are already assets (\`asset://\`). Record anything a later action needs with \`nodetool.memory.save\`; the next action must reuse it, not generate again.
 - A failed tool throws. Use \`try/catch\`.
+- ${RESERVED_BINDINGS_SENTENCE}
 - This is a chat turn: there is no \`finish()\`. A plain assistant message ends the turn.
 - \`fetch\`, \`workspace\`, \`media\`, and \`getSecret\` are not available here. Files and assets go through \`nodetool.*\`: feed a generation result into \`image.*\`, save with \`nodetool.media.toImage(handle)\`. The guest holds handles, never encoded bytes. \`nodetool.assets.read/save\` the library, \`nodetool.web.fetch\` the network.
 - Full guest surface: resource \`${MCP_SANDBOX_RESOURCE_URI}\`. Tool catalog: \`nodetool://capabilities\`.`;
