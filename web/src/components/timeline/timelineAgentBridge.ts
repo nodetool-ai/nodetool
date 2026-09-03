@@ -339,6 +339,15 @@ export interface TimelineAgentHandler {
     type: TimelineTrackNode["type"],
     name?: string
   ) => TimelineTrackNode;
+  /**
+   * Reorder one track. Track order is z-order, so this is how a picture track
+   * added after its overlays stops covering them. Returns the whole stack in
+   * its new order.
+   */
+  moveTrack: (
+    target: string,
+    destination: { toIndex?: number; before?: string; after?: string }
+  ) => TimelineTrackNode[];
   generateClip: (
     opts: TimelineGenerateOptions
   ) => Promise<TimelineGenerateResult>;

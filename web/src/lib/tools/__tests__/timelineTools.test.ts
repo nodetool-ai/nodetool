@@ -67,6 +67,7 @@ const snapshot = (): TimelineSnapshot => ({
 const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   getSnapshot: jest.fn(),
   addTrack: jest.fn(),
+  moveTrack: jest.fn(),
   addMediaClip: jest.fn(),
   addTextClip: jest.fn(),
   addShapeClip: jest.fn(),

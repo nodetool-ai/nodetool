@@ -186,6 +186,32 @@ function backdropShapeColor(
 }
 
 /**
+ * Whether a picture clip is drawn under this text for any of its window.
+ *
+ * "Under" is the same z rule the backdrop check uses — a higher track index
+ * composites below — and any video or image clip counts, since a frame of it
+ * can be any colour. What it is *not* is a judgement about contrast: nothing
+ * in the document says what the picture looks like at that instant.
+ */
+function pictureUnder(doc: TimelineDocument, text: TimelineClip): boolean {
+  const trackIndex = new Map(
+    doc.tracks
+      .filter((track) => track.type !== "audio" && track.visible)
+      .map((track) => [track.id, track.index])
+  );
+  const textIndex = trackIndex.get(text.trackId);
+  if (textIndex === undefined) return false;
+  const textEndMs = text.startMs + text.durationMs;
+  return doc.clips.some((clip) => {
+    if (clip.mediaType !== "video" && clip.mediaType !== "image") return false;
+    if (clip.hidden === true) return false;
+    const index = trackIndex.get(clip.trackId);
+    if (index === undefined || index <= textIndex) return false;
+    return clip.startMs < textEndMs && clip.startMs + clip.durationMs > text.startMs;
+  });
+}
+
+/**
  * Legibility findings for every text clip in the document. `frameHeight` is the
  * sequence's pixel height — a font size is authored in sequence pixels, so the
  * floor is a fraction of that and not of anything on the author's screen.
@@ -208,6 +234,25 @@ export function checkLegibility(
         code: "text_illegible",
         message: `Clip "${label}" sets ${Math.round(style.fontSizePx)}px type in a ${frameHeight}px frame — under ${(MIN_TEXT_HEIGHT_FRAC * 100).toFixed(1)}% of frame height (${Math.round(minPx)}px), which is unreadable on a phone.`,
         path: "textStyle.fontSizePx",
+        ...at
+      });
+    }
+
+    // Type drawn straight onto moving picture with nothing behind it is the
+    // case the contrast check gives up on — the frame decides it, not the
+    // document. Saying nothing made a clean validation read as approval, so
+    // the check reports that it could not judge and names the two fixes and
+    // the tool that answers it.
+    const backed =
+      style.background !== undefined ||
+      style.stroke !== undefined ||
+      backdropShapeColor(doc, clip) !== undefined;
+    if (!backed && pictureUnder(doc, clip)) {
+      issues.push({
+        severity: "warning",
+        code: "text_backing_unproven",
+        message: `Clip "${label}" draws over picture with no scrim, plate or outline, so nothing here decides whether it is readable — render the frame with preview_timeline_frame and look, or give it textStyle.background or textStyle.stroke.`,
+        path: "textStyle",
         ...at
       });
     }

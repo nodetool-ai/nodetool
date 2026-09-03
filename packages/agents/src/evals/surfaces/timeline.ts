@@ -36,12 +36,10 @@ import {
   makeClip,
   makeTrack,
   DEFAULT_TEXT_CLIP_DURATION_MS,
-  DEFAULT_TEXT_CLIP_COLOR,
-  DEFAULT_TEXT_CLIP_FONT_SIZE_PX,
-  DEFAULT_SHAPE_FILL_COLOR,
-  DEFAULT_SHAPE_STROKE_COLOR,
-  DEFAULT_SHAPE_STROKE_WIDTH_PX,
   DEFAULT_MEDIA_CLIP_DURATION_MS,
+  shapeStyleWithDefaults,
+  textStyleWithDefaults,
+  moveTrackOrder,
   mediaTypeForContentType,
   trackTypeForMediaType,
   STAGGER_UNITS,
@@ -54,6 +52,7 @@ import {
   moveGroup,
   ungroup,
   trimGroup,
+  type TrackDestination,
   type AnimationRole,
   type CustomClipAnimation,
   type PropertyCurve,
@@ -88,6 +87,12 @@ import {
   setTimeRemapParams,
   timeRemapParams,
   shapeStyleParams,
+  ADD_SHAPE_CLIP_DESCRIPTION,
+  ADD_TEXT_CLIP_DESCRIPTION,
+  ADD_TRACK_DESCRIPTION,
+  MOVE_TRACK_DESCRIPTION,
+  trackTargetParam,
+  resolveShapeArg,
   targetParam,
   textStyleParams,
   transitionParams
@@ -422,43 +427,6 @@ function tool<TResult>(
       return impl(parsed);
     }
   };
-}
-
-/**
- * The shape geometry for `add_shape_clip`, from whichever of the three forms
- * the caller used: `shape`, `shapeStyle` (the name `set_clip_params` takes),
- * or the geometry keys spread at the top level. With none of them the shape is
- * a full-frame rect — a caller that asked for a shape and named no box wants
- * something it can see, not a schema error about a field it did not know
- * existed.
- */
-function resolveShapeArg(
-  shape: unknown,
-  shapeStyle: unknown,
-  loose: Record<string, unknown>
-): z.infer<typeof shapeStyleParams> {
-  const given = (shape ?? shapeStyle) as
-    | z.infer<typeof shapeStyleParams>
-    | undefined;
-  if (given) return given;
-  const bare = Object.fromEntries(
-    Object.entries(loose).filter(([, value]) => value !== undefined)
-  );
-  const parsed = shapeStyleParams.safeParse({
-    kind: "rect",
-    x: 0,
-    y: 0,
-    width: 1,
-    height: 1,
-    ...bare
-  });
-  if (!parsed.success) {
-    throw new Error(
-      'add_shape_clip takes the geometry in `shape` (or `shapeStyle`): {kind: "rect"|"ellipse"|"line"|"polygon"|"star"|"path", x, y, width, height, fill?, stroke?, strokeWidthPx?}, with x/y/width/height as 0..1 fractions of the frame. ' +
-        parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")
-    );
-  }
-  return parsed.data;
 }
 
 /**
@@ -988,7 +956,7 @@ export function createTimelineToolBridge(
 
     tool(
       "ui_timeline_add_track",
-      "Add a new track to the specified timeline sequence. `type` is one of video, audio, overlay, subtitle. Optionally provide a name.",
+      ADD_TRACK_DESCRIPTION,
       z.object({
         type: z.enum(["video", "audio", "overlay", "subtitle"]),
         name: z.string().optional()
@@ -1003,21 +971,68 @@ export function createTimelineToolBridge(
     ),
 
     tool(
+      "ui_timeline_move_track",
+      MOVE_TRACK_DESCRIPTION,
+      z
+        .object({
+          target: trackTargetParam,
+          toIndex: z.number().int().optional(),
+          before: z.string().optional(),
+          after: z.string().optional()
+        })
+        .strict(),
+      async ({ target, toIndex, before, after }) => {
+        const track = resolveTrack(target as string);
+        const destination: TrackDestination = {};
+        if (toIndex !== undefined) destination.toIndex = toIndex as number;
+        if (before !== undefined) {
+          destination.beforeId = resolveTrack(before as string).id;
+        }
+        if (after !== undefined) {
+          destination.afterId = resolveTrack(after as string).id;
+        }
+        const orderedIds = moveTrackOrder(tracks, track.id, destination);
+        const byId = new Map(tracks.map((t) => [t.id, t]));
+        // The array order is what `get_state` prints, so keep it and the
+        // indices saying the same thing.
+        tracks.length = 0;
+        orderedIds.forEach((id, i) => {
+          const moved = byId.get(id)!;
+          moved.index = i;
+          tracks.push(moved);
+        });
+        return {
+          ok: true,
+          track: serializeTrack(track),
+          tracks: tracks.map(serializeTrack)
+        };
+      }
+    ),
+
+    tool(
       "ui_timeline_add_text_clip",
-      "Add authored text to the specified timeline sequence. It goes on an overlay track, creating one when needed, lasts 3000ms by default, and accepts the same motion presets as media clips.",
-      z.object({
-        text: z.string().trim().min(1),
-        trackId: z.string().optional(),
-        startMs: z.number().optional(),
-        durationMs: z.number().optional(),
-        style: partialTextStyleParams.optional()
-      }),
-      async ({ text, trackId, startMs, durationMs, style }) => {
+      ADD_TEXT_CLIP_DESCRIPTION,
+      z
+        .object({
+          text: z.string().trim().min(1),
+          trackId: z.string().optional(),
+          startMs: z.number().optional(),
+          durationMs: z.number().optional(),
+          style: partialTextStyleParams.optional()
+        })
+        .merge(partialTextStyleParams)
+        .strict(),
+      async ({ text, trackId, startMs, durationMs, style, ...loose }) => {
         const track = trackId
           ? resolveTrack(trackId as string)
           : findOrCreateTrack("overlay");
-        const s =
-          (style as z.infer<typeof partialTextStyleParams> | undefined) ?? {};
+        // `style` wins over a top-level twin: a caller that sent both meant the
+        // bag it named.
+        const s = {
+          ...(loose as z.infer<typeof partialTextStyleParams>),
+          ...((style as z.infer<typeof partialTextStyleParams> | undefined) ??
+            {})
+        };
         const clip = makeClip({
           id: nextClipId(),
           trackId: track.id,
@@ -1028,14 +1043,7 @@ export function createTimelineToolBridge(
           mediaType: "text",
           sourceType: "imported",
           status: "generated",
-          // Spread rather than list the fields: the style bag is the document
-          // schema, so a field added there is authored here the same day.
-          textStyle: {
-            ...s,
-            text: text as string,
-            fontSizePx: s.fontSizePx ?? DEFAULT_TEXT_CLIP_FONT_SIZE_PX,
-            color: s.color ?? DEFAULT_TEXT_CLIP_COLOR
-          }
+          textStyle: textStyleWithDefaults(text as string, s)
         });
         clips.push(clip);
         selectedClipIds = [clip.id];
@@ -1101,28 +1109,22 @@ export function createTimelineToolBridge(
 
     tool(
       "ui_timeline_add_shape_clip",
-      'Add a rectangle, ellipse, or line on an overlay track of the specified timeline sequence. The geometry goes in `shape` (or `shapeStyle`, the name `set_clip_params` uses): {kind: "rect"|"ellipse"|"line"|"polygon"|"star"|"path", x, y, width, height, fill, stroke, ...}, with x/y/width/height as 0..1 fractions of the frame. Those keys are also accepted at the top level. With no geometry at all the shape is a full-frame rect. Omitted colors use a visible white fill for rectangles/ellipses or a visible white stroke for lines. Shapes are rasterized for preview/export and can use the standard motion presets.',
-      z.object({
-        shape: shapeStyleParams.optional(),
-        shapeStyle: shapeStyleParams.optional(),
-        kind: shapeStyleParams.shape.kind.optional(),
-        x: z.number().optional(),
-        y: z.number().optional(),
-        width: z.number().optional(),
-        height: z.number().optional(),
-        fill: z.string().optional(),
-        stroke: z.string().optional(),
-        strokeWidthPx: z.number().optional(),
-        trackId: z.string().optional(),
-        startMs: z.number().optional(),
-        durationMs: z.number().optional()
-      }),
+      ADD_SHAPE_CLIP_DESCRIPTION,
+      z
+        .object({
+          shape: shapeStyleParams.optional(),
+          shapeStyle: shapeStyleParams.optional(),
+          trackId: z.string().optional(),
+          startMs: z.number().optional(),
+          durationMs: z.number().optional()
+        })
+        .merge(shapeStyleParams.partial())
+        .strict(),
       async ({ shape, shapeStyle, trackId, startMs, durationMs, ...loose }) => {
         const track = trackId
           ? resolveTrack(trackId as string)
           : findOrCreateTrack("overlay");
         const shapeArg = resolveShapeArg(shape, shapeStyle, loose);
-        const isLine = shapeArg.kind === "line";
         const clip = makeClip({
           id: nextClipId(),
           trackId: track.id,
@@ -1133,18 +1135,7 @@ export function createTimelineToolBridge(
           mediaType: "shape",
           sourceType: "imported",
           status: "generated",
-          // Spread for the same reason add_text_clip does: a path's `d`, a
-          // gradient or a dash is geometry the caller asked for, and listing
-          // the fields dropped every one the schema gained after this was
-          // written.
-          shapeStyle: {
-            ...shapeArg,
-            fill: isLine
-              ? shapeArg.fill
-              : (shapeArg.fill ?? DEFAULT_SHAPE_FILL_COLOR),
-            stroke: shapeArg.stroke ?? DEFAULT_SHAPE_STROKE_COLOR,
-            strokeWidthPx: shapeArg.strokeWidthPx ?? DEFAULT_SHAPE_STROKE_WIDTH_PX
-          }
+          shapeStyle: shapeStyleWithDefaults(shapeArg)
         });
         clips.push(clip);
         selectedClipIds = [clip.id];

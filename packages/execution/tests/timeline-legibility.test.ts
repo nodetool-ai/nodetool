@@ -191,6 +191,84 @@ describe("validateTimelineSequence — text contrast", () => {
   });
 });
 
+describe("validateTimelineSequence — text over picture", () => {
+  /** A video clip on the lower (higher-index) track, i.e. drawn beneath. */
+  const picture = (over: Json = {}): Json =>
+    base({
+      id: "picture",
+      trackId: "scrim",
+      name: "Shot",
+      mediaType: "video",
+      startMs: 0,
+      durationMs: 4000,
+      ...over
+    });
+
+  const unproven = (result: { warnings: { code: string; message: string }[] }) =>
+    result.warnings.filter((issue) => issue.code === "text_backing_unproven");
+
+  /**
+   * The contrast check gives up here — no document says what a video frame
+   * looks like — and a silent pass read as approval. It now says it could not
+   * judge instead of saying nothing.
+   */
+  it("reports that it cannot judge bare type over a shot", () => {
+    const result = validateTimelineSequence(
+      doc([title({}), picture()]),
+      HD
+    );
+    const found = unproven(result);
+    expect(found).toHaveLength(1);
+    expect(found[0]?.message).toContain("preview_timeline_frame");
+    expect(result.ok).toBe(true);
+  });
+
+  it("stays quiet once the type carries a scrim or an outline", () => {
+    expect(
+      unproven(
+        validateTimelineSequence(
+          doc([
+            title({ background: { color: "#000000", paddingPx: 12 } }),
+            picture()
+          ]),
+          HD
+        )
+      )
+    ).toEqual([]);
+    expect(
+      unproven(
+        validateTimelineSequence(
+          doc([title({ stroke: { color: "#000000", widthPx: 3 } }), picture()]),
+          HD
+        )
+      )
+    ).toEqual([]);
+    expect(
+      unproven(
+        validateTimelineSequence(
+          doc([title({}), plate({ fill: "#111111" })]),
+          HD
+        )
+      )
+    ).toEqual([]);
+  });
+
+  it("stays quiet when no picture is under the type at all", () => {
+    expect(unproven(validateTimelineSequence(doc([title({})]), HD))).toEqual([]);
+  });
+
+  it("stays quiet when the shot has finished before the title starts", () => {
+    expect(
+      unproven(
+        validateTimelineSequence(
+          doc([title({}), picture({ startMs: 0, durationMs: 500 })]),
+          HD
+        )
+      )
+    ).toEqual([]);
+  });
+});
+
 describe("validateTimelineSequence — text contrast refuses to guess", () => {
   it("says nothing about a translucent plate", () => {
     const result = validateTimelineSequence(

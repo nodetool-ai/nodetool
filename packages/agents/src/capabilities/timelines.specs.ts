@@ -122,7 +122,7 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         'Operations in order. Each is {"op": <name>, ...arguments}, e.g. ' +
         '{"op": "add_track", "type": "audio", "name": "Music"} or ' +
         '{"op": "animate_clip", "target": "Title", "animations": [{"role": "in", "preset": "fade"}]}. ' +
-        "Ops: get_state, add_track, add_media_clip, add_text_clip, add_shape_clip, " +
+        "Ops: get_state, add_track, move_track, add_media_clip, add_text_clip, add_shape_clip, " +
         "add_group, split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
         "set_clip_params, set_parent, set_clip_binding, set_transition, set_mask, " +
         "set_matte, set_time_remap, set_effects, animate_clip, " +
@@ -162,6 +162,11 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "tracks, so what covers what is unchanged. " +
         'set_parent takes {"target", "parentId": <group> | null}; the parent ' +
         "must be a clip made with add_group, and a cycle is refused. " +
+        "Track order is z-order — index 0 draws on top — and add_track " +
+        "appends to the bottom, so a picture track added after the overlays " +
+        "covers them. Add the overlays last, or fix it with move_track " +
+        '{"target", and one of "toIndex" (0 is the top), "before" or ' +
+        '"after"}. ' +
         'add_shape_clip takes the geometry in "shape" (or "shapeStyle"): ' +
         '{kind: "rect"|"ellipse"|"line"|"polygon"|"star"|"path", x, y, ' +
         "width, height, fill?, stroke?, strokeWidthPx?}, where x/y/width/" +

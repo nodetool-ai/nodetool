@@ -52,6 +52,20 @@
 - **Exclude the moving entity's own footprint from overlap/collision checks**
   (`excludeClipIds`) — otherwise a dragged clip reports overlapping itself.
 
+## Authored clips and track order
+
+- **A track's index is its z-order, and `add_track` appends to the bottom.**
+  Index 0 draws on top (`render/sceneModel.ts`), so a picture track added after
+  its overlays covers all of them. `moveTrackOrder` (`src/trackOrder.ts`) is the
+  one place the destination arithmetic lives — both `ui_timeline_move_track`
+  surfaces call it and hand the ids it returns to `reorderTracks` — and it
+  throws on a destination it cannot make rather than returning the same order.
+- **`authoredStyles.ts` holds the defaults an under-specified text or shape clip
+  gets**, for the same reason: the browser bridge and the headless one each had
+  a copy, and the headless one stroked every shape white 8px — so a translucent
+  scrim came back with a hard outline the same call in the editor did not draw.
+  A shape the caller filled gets no stroke it did not ask for.
+
 ## Rendering (`src/render`, `@nodetool-ai/timeline/render`)
 
 - **One scene model, one compositor, four hosts.** The live preview, the

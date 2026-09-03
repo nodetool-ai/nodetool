@@ -321,6 +321,27 @@ describe("the nodetool object model's own errors", () => {
     expect(result.result).not.toContain("not a function");
   }, 60_000);
 
+  /**
+   * `nodetool.video` reads as "this build has no video support", and one chat
+   * took it that way and abandoned the operation. The ops are there — they are
+   * the `video.*` global, one prefix away.
+   */
+  it("sends a caller who prefixed a guest global to the global", async () => {
+    const result = await run(
+      `try {
+         await nodetool.video.probe("asset://x.mp4");
+         return "no throw";
+       } catch (e) {
+         return String(e.message);
+       }`,
+      ["list_scripts"]
+    );
+    expect(result.result).toContain("nodetool.video does not exist");
+    expect(result.result).toContain("`video` is a global in this sandbox");
+    expect(result.result).toContain("nodetool.media.ffprobe");
+    expect(result.result).not.toContain("not a function");
+  }, 60_000);
+
   it("leaves what is really there, awaiting, and logging a namespace alone", async () => {
     const result = await run(
       `const ns = await nodetool.scripts;

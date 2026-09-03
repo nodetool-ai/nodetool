@@ -12,8 +12,15 @@
  */
 
 import { useEffect, useMemo } from "react";
-import { makeClip, trackTypeForMediaType } from "@nodetool-ai/timeline";
+import {
+  makeClip,
+  moveTrackOrder,
+  shapeStyleWithDefaults,
+  textStyleWithDefaults,
+  trackTypeForMediaType
+} from "@nodetool-ai/timeline";
 import type {
+  TrackDestination,
   ClipAnimation,
   ClipMatte,
   TimelineClip,
@@ -28,10 +35,6 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import { parseSvgPath } from "@nodetool-ai/timeline/scene";
 import { buildClipAnimation } from "./buildClipAnimation";
-import {
-  shapeStyleWithDefaults,
-  textStyleWithDefaults
-} from "./authoredClipStyles";
 
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { useTimelineUIStoreApi } from "../../stores/timeline/TimelineUIStore";
@@ -311,6 +314,29 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         return toTrackNode(tracks[tracks.length - 1], 0);
       },
 
+      moveTrack(target, destination) {
+        const track = requireTrack(target);
+        const to: TrackDestination = {};
+        if (destination.toIndex !== undefined) to.toIndex = destination.toIndex;
+        if (destination.before !== undefined) {
+          to.beforeId = requireTrack(destination.before).id;
+        }
+        if (destination.after !== undefined) {
+          to.afterId = requireTrack(destination.after).id;
+        }
+        const orderedIds = moveTrackOrder(doc.getState().tracks, track.id, to);
+        doc.getState().reorderTracks(orderedIds);
+        const clipCount = new Map<string, number>();
+        for (const clip of doc.getState().clips) {
+          clipCount.set(clip.trackId, (clipCount.get(clip.trackId) ?? 0) + 1);
+        }
+        return doc
+          .getState()
+          .tracks.slice()
+          .sort((a, b) => a.index - b.index)
+          .map((t) => toTrackNode(t, clipCount.get(t.id) ?? 0));
+      },
+
       async generateClip(opts) {
         const kind = opts.kind;
         const store = doc.getState();
@@ -478,7 +504,7 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
             trackId = created.id;
           }
         }
-        const textStyle = textStyleWithDefaults(opts);
+        const textStyle = textStyleWithDefaults(opts.text, opts.style);
         const clip = makeClip({
           trackId,
           name: opts.text.trim().slice(0, 40) || "Text",

@@ -61,6 +61,20 @@ describe("mountCapabilityModules — imported export names", () => {
     expect(result.error).toContain("do_a_thing, find_a_thing");
   });
 
+  /**
+   * `preview_timeline` for `preview_timeline_frame`: a dropped tail is not a
+   * casing slip, and the caller read the export list as proof the capability
+   * was gone.
+   */
+  it("names the one export that extends a truncated name", async () => {
+    const result = await mount(
+      `import { find_a } from "${SESSION_SPECIFIER}";`
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toContain('Did you mean "find_a_thing" for "find_a"?');
+  });
+
   it("lists the module's exports when nothing is close", async () => {
     const result = await mount(`import { pick } from "${SESSION_SPECIFIER}";`);
     expect(result.ok).toBe(false);

@@ -165,3 +165,134 @@ describe("ui_timeline_animate_clip", () => {
     ).rejects.toThrow(/keyframes: \[\{t: 0, value: 160\}/);
   });
 });
+
+describe("authored-clip defaults", () => {
+  /**
+   * A scrim authored as a translucent rect came back with a hard white 8px
+   * border around it: the headless surface defaulted a stroke onto every
+   * shape, and the browser one did not.
+   */
+  it("does not outline a shape the caller filled", async () => {
+    const { byName } = bridge();
+    const result = await byName["ui_timeline_add_shape_clip"].execute({
+      kind: "rect",
+      x: 0,
+      y: 0.6,
+      width: 1,
+      height: 0.4,
+      fill: "#05070CCC"
+    });
+    expect(clipOf(result).shapeStyle).toEqual({
+      kind: "rect",
+      x: 0,
+      y: 0.6,
+      width: 1,
+      height: 0.4,
+      fill: "#05070CCC"
+    });
+  });
+
+  it("still makes an uncoloured shape visible", async () => {
+    const { byName } = bridge();
+    const result = await byName["ui_timeline_add_shape_clip"].execute({
+      kind: "rect"
+    });
+    expect(clipOf(result).shapeStyle).toMatchObject({ fill: "#FFFFFF" });
+  });
+
+  /**
+   * `fontSizePx: 120` sent at the top level used to be stripped by the schema,
+   * so a title silently reverted to the 96px default.
+   */
+  it("reads text style keys off the op itself", async () => {
+    const { byName } = bridge();
+    const result = await byName["ui_timeline_add_text_clip"].execute({
+      text: "TITLE",
+      fontSizePx: 120,
+      color: "#FFD60A"
+    });
+    expect(clipOf(result).textStyle).toMatchObject({
+      text: "TITLE",
+      fontSizePx: 120,
+      color: "#FFD60A"
+    });
+  });
+
+  it("lets `style` win over a top-level twin", async () => {
+    const { byName } = bridge();
+    const result = await byName["ui_timeline_add_text_clip"].execute({
+      text: "TITLE",
+      fontSizePx: 120,
+      style: { fontSizePx: 64 }
+    });
+    expect(clipOf(result).textStyle).toMatchObject({ fontSizePx: 64 });
+  });
+
+  it("refuses a style key it does not know rather than dropping it", async () => {
+    const { byName } = bridge();
+    expect(() =>
+      byName["ui_timeline_add_text_clip"].execute({
+        text: "TITLE",
+        fontSizePixels: 120
+      })
+    ).toThrow(/fontSizePixels/);
+  });
+});
+
+describe("ui_timeline_move_track", () => {
+  const trackNames = (result: unknown): string[] =>
+    (result as { tracks: { name: string }[] }).tracks.map((t) => t.name);
+
+  /**
+   * A picture track added after the overlays covered all of them, and there
+   * was no op that could fix it — the only remedy was to author the tracks in
+   * reverse.
+   */
+  it("sends the picture track under the overlays", async () => {
+    const { byName } = bridge();
+    await byName["ui_timeline_add_track"].execute({
+      type: "overlay",
+      name: "Titles"
+    });
+    await byName["ui_timeline_add_track"].execute({
+      type: "overlay",
+      name: "Scrim"
+    });
+    const moved = await byName["ui_timeline_move_track"].execute({
+      target: "Video 1",
+      toIndex: 2
+    });
+    expect(trackNames(moved)).toEqual(["Titles", "Scrim", "Video 1"]);
+
+    const state = await byName["ui_timeline_get_state"].execute({});
+    expect(
+      (state as { tracks: { name: string; index: number }[] }).tracks.map(
+        (t) => [t.name, t.index]
+      )
+    ).toEqual([
+      ["Titles", 0],
+      ["Scrim", 1],
+      ["Video 1", 2]
+    ]);
+  });
+
+  it("places a track relative to another by name", async () => {
+    const { byName } = bridge();
+    await byName["ui_timeline_add_track"].execute({
+      type: "overlay",
+      name: "Titles"
+    });
+    const moved = await byName["ui_timeline_move_track"].execute({
+      target: "Titles",
+      before: "Video 1"
+    });
+    expect(trackNames(moved)).toEqual(["Titles", "Video 1"]);
+  });
+
+  it("says what it needs when no destination is given", async () => {
+    const { byName } = bridge();
+    await expect(
+      byName["ui_timeline_move_track"].execute({ target: "Video 1" })
+    ).rejects.toThrow(/toIndex/);
+  });
+});

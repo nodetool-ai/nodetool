@@ -41,6 +41,35 @@ export const targetParam = z
     'Clip id, clip name (case-insensitive), or the literal "selected" for the currently-selected clip.'
   );
 
+/** How the track-addressing tools name their target. */
+export const trackTargetParam = z
+  .string()
+  .describe("Track id or track name (case-insensitive).");
+
+/**
+ * `add_track` and `move_track`. Track order *is* z-order — the first track
+ * (index 0) draws on top — and a track is created at the bottom of the stack,
+ * so a picture track added last covers every overlay added before it. Before
+ * `move_track` existed the only remedy was to author the tracks in reverse and
+ * hope; the description says so on both tools, because the trap is sprung at
+ * `add_track` and only visible at render.
+ */
+export const ADD_TRACK_DESCRIPTION =
+  "Add a new track to the specified timeline sequence. `type` is one of " +
+  "video, audio, overlay, subtitle. Optionally provide a name. The new track " +
+  "goes to the BOTTOM of the stack, and track order is z-order: index 0 " +
+  "draws on top, so a track added later renders *under* the ones already " +
+  "there. Add overlays and titles after the picture track they sit on, or " +
+  "reorder afterwards with move_track.";
+
+export const MOVE_TRACK_DESCRIPTION =
+  "Reorder one track in the stack, which is what decides z-order: index 0 " +
+  "draws on top of every track below it. Name the track in `target` and its " +
+  "destination with exactly one of `toIndex` (0 is the top), `before` (a " +
+  "track it should draw in front of) or `after`. Clips do not move — only " +
+  "which track covers which. Use it when a picture track added last is " +
+  "hiding the overlays beneath it.";
+
 // ── Style bags ──────────────────────────────────────────────────────────────
 
 /**
@@ -81,10 +110,16 @@ export const textStyleParams = withFieldNotes(clipTextStyle, {
   lineHeight: "Line advance as a multiple of the font size. Default 1.2.",
   verticalAlign: '"top", "middle" (default) or "bottom".',
   maxWidthFrac: "Wrap width as a fraction of frame width.",
-  stroke: "Outline drawn under the fill.",
-  shadow: "Drop shadow behind the glyphs.",
-  background: "Scrim drawn behind the wrapped block.",
-  fill: "Gradient fill. Wins over `color` when set."
+  stroke: "Outline drawn under the fill: {color, widthPx}.",
+  shadow:
+    "Drop shadow behind the glyphs: {color, blurPx, offsetX, offsetY}. The " +
+    "blur field is `blurPx`, not `blur`.",
+  background:
+    "Scrim drawn behind the wrapped block: {color, paddingPx, radiusPx?}. " +
+    "An 8-digit hex or rgba() colour keeps the picture visible through it.",
+  fill:
+    "Gradient or solid fill, {type: \"solid\"|\"linear\"|\"radial\", ...}. " +
+    "Wins over `color` when set."
 });
 
 /**
@@ -107,13 +142,102 @@ export const shapeStyleParams = withFieldNotes(clipShapeStyle, {
   sides: 'Point count for kind "polygon" and "star".',
   innerRadius: 'kind "star" only: inner radius as a fraction of the outer.',
   cornerRadius: "Corner rounding, in the same normalized units.",
-  fillStyle: "Gradient or solid fill. Wins over `fill` when set.",
+  fill:
+    "Solid fill colour. Opaque unless the colour carries alpha — use " +
+    "8-digit hex (#05070CCC) or rgba() for a scrim over picture.",
+  stroke:
+    "Outline colour. Omit it and the shape is drawn with no outline; " +
+    "`strokeWidthPx` defaults to 8 once a stroke colour is set.",
+  fillStyle:
+    "Gradient or solid fill, wins over `fill` when set. A soft scrim is " +
+    '{type: "linear", angle: 90, stops: [{offset: 0, color: "#05070C00"}, ' +
+    '{offset: 1, color: "#05070CDD"}]} — the alpha lives in the stop colours.',
+  strokeWidthPx: "Outline width in sequence pixels. Default 8.",
   dash: "Dash pattern in normalized units, as ctx.setLineDash takes it.",
   lineCap: '"butt", "round" or "square".',
   lineJoin: '"miter", "round" or "bevel".',
   trimStart: "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1.",
   trimEnd: "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1."
 });
+
+/**
+ * What `add_text_clip` and `add_shape_clip` tell the model, shared so the
+ * browser registry and the headless bridge describe one tool.
+ *
+ * Both spell out the traps a build actually hit: a style field sent at the top
+ * level used to be stripped in silence (a 120px title reverted to the 96px
+ * default), and a rectangle's fill is opaque unless the caller says otherwise,
+ * so a scrim authored as a plain fill covers the picture instead of darkening
+ * it.
+ */
+export const ADD_TEXT_CLIP_DESCRIPTION =
+  "Add authored text to the specified timeline sequence. It goes on an " +
+  "overlay track, creating one when needed, lasts 3000ms by default, and " +
+  "accepts the same motion presets as media clips. The look goes in `style` " +
+  "— {fontSizePx, fontFamily, fontWeight, color, align, maxWidthFrac, " +
+  "stroke, shadow, background, fill, ...} — and every one of those keys is " +
+  "also read from the top level. `fontSizePx` is in sequence pixels, so 120 " +
+  "in a 1080p frame is 120px tall. A key neither this tool nor the style bag " +
+  "knows is refused by name rather than ignored.";
+
+export const ADD_SHAPE_CLIP_DESCRIPTION =
+  "Add a rectangle, ellipse, line, polygon, star or path on an overlay track " +
+  "of the specified timeline sequence. The geometry goes in `shape` (or " +
+  '`shapeStyle`, the name `set_clip_params` uses): {kind: "rect"|"ellipse"|' +
+  '"line"|"polygon"|"star"|"path", x, y, width, height, fill, fillStyle, ' +
+  "stroke, strokeWidthPx, ...}, with x/y/width/height as 0..1 fractions of " +
+  "the frame; every one of those keys is also read from the top level. With " +
+  "no geometry at all the shape is a full-frame rect. A shape with no colour " +
+  "at all gets a white fill (a line, a white stroke); a shape you fill gets " +
+  "no stroke unless you ask for one. `fill` is opaque unless its colour " +
+  "carries alpha, so a scrim over picture needs 8-digit hex (#05070CCC) or " +
+  'rgba(); for a gradient scrim use fillStyle: {type: "linear", angle, ' +
+  'stops: [{offset, color}]} with a transparent stop (#05070C00) at one end. ' +
+  "A key this tool does not know is refused by name rather than ignored. " +
+  "Shapes are rasterized for preview/export and take the standard motion " +
+  "presets.";
+
+/**
+ * The shape geometry for `add_shape_clip`, from whichever of the three forms
+ * the caller used: `shape`, `shapeStyle` (the name `set_clip_params` takes),
+ * or the geometry keys spread at the top level. With none of them the shape is
+ * a full-frame rect — a caller that asked for a shape and named no box wants
+ * something it can see, not a schema error about a field it did not know
+ * existed.
+ */
+export function resolveShapeArg(
+  shape: unknown,
+  shapeStyle: unknown,
+  loose: Record<string, unknown>
+): z.infer<typeof shapeStyleParams> {
+  const given = (shape ?? shapeStyle) as
+    | z.infer<typeof shapeStyleParams>
+    | undefined;
+  if (given) return given;
+  const bare = Object.fromEntries(
+    Object.entries(loose).filter(([, value]) => value !== undefined)
+  );
+  const parsed = shapeStyleParams.safeParse({
+    kind: "rect",
+    x: 0,
+    y: 0,
+    width: 1,
+    height: 1,
+    ...bare
+  });
+  if (!parsed.success) {
+    throw new Error(
+      'add_shape_clip takes the geometry in `shape` (or `shapeStyle`): ' +
+        '{kind: "rect"|"ellipse"|"line"|"polygon"|"star"|"path", x, y, ' +
+        "width, height, fill?, fillStyle?, stroke?, strokeWidthPx?}, with " +
+        "x/y/width/height as 0..1 fractions of the frame. " +
+        parsed.error.issues
+          .map((i) => `${i.path.join(".")}: ${i.message}`)
+          .join("; ")
+    );
+  }
+  return parsed.data;
+}
 
 /**
  * A caption's look. Every field is optional and an absent one keeps the
@@ -594,6 +718,7 @@ export type SetParentParams = z.infer<typeof setParentParams>;
 export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_get_state",
   "ui_timeline_add_track",
+  "ui_timeline_move_track",
   "ui_timeline_add_media_clip",
   "ui_timeline_add_text_clip",
   "ui_timeline_add_shape_clip",

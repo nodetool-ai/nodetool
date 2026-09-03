@@ -1651,6 +1651,11 @@ const FFMPEG_REMEDY =
   'Pass the ref in `inputs` instead — {"clip.mp4": "asset://<id>.mp4"} ' +
   "copies it into the workspace, then name `clip.mp4` in args.";
 
+/** The same remedy for `ffprobe`, whose one path argument replaces argv. */
+const FFPROBE_REMEDY =
+  'Pass the ref in `inputs` instead — {"clip.mp4": "asset://<id>.mp4"} ' +
+  'copies it into the workspace, then set path to "clip.mp4".';
+
 /** Largest single file `ffmpeg`'s `inputs` stages into the workspace. */
 const MAX_STAGED_INPUT_BYTES = 100 * 1024 * 1024;
 /** Files one `inputs` bag may stage. */
@@ -1896,7 +1901,11 @@ const ffprobe: CapabilityExport = {
       params["inputs"]
     );
     if ("error" in stagedResult) return stagedResult;
-    const refusal = await confineArgvToWorkspace([target.trim()], cwd);
+    const refusal = await confineArgvToWorkspace(
+      [target.trim()],
+      cwd,
+      FFPROBE_REMEDY
+    );
     if (refusal) return refusal;
     await stageHostBinaryInputs(workspace, [target.trim()]);
 

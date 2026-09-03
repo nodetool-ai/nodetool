@@ -13,6 +13,10 @@ import {
   type SnapAction
 } from "@nodetool-ai/timeline";
 import {
+  ADD_SHAPE_CLIP_DESCRIPTION,
+  ADD_TEXT_CLIP_DESCRIPTION,
+  ADD_TRACK_DESCRIPTION,
+  MOVE_TRACK_DESCRIPTION,
   addGroupParams,
   captionStyleParams,
   effectParams,
@@ -20,9 +24,11 @@ import {
   matteParams,
   partialTextStyleParams,
   setParentParams,
+  resolveShapeArg,
   setTimeRemapParams,
   shapeStyleParams,
   targetParam,
+  trackTargetParam,
   textStyleParams,
   transitionParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
@@ -118,8 +124,7 @@ FrontendToolRegistry.register({
 
 FrontendToolRegistry.register({
   name: "ui_timeline_add_track",
-  description:
-    "Add a new track to the specified timeline sequence. `type` is one of video, audio, overlay, subtitle. Optionally provide a name.",
+  description: ADD_TRACK_DESCRIPTION,
   parameters: z.object({
     timeline_id: timelineIdParam,
     type: z.enum(["video", "audio", "overlay", "subtitle"]),
@@ -128,6 +133,28 @@ FrontendToolRegistry.register({
   async execute({ timeline_id, type, name }) {
     const track = getTimelineAgentHandler(timeline_id).addTrack(type, name);
     return { ok: true, track, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_move_track",
+  description: MOVE_TRACK_DESCRIPTION,
+  parameters: z
+    .object({
+      timeline_id: timelineIdParam,
+      target: trackTargetParam,
+      toIndex: z.number().int().optional(),
+      before: z.string().optional(),
+      after: z.string().optional()
+    })
+    .strict(),
+  async execute({ timeline_id, target, toIndex, before, after }) {
+    const tracks = getTimelineAgentHandler(timeline_id).moveTrack(target, {
+      toIndex,
+      before,
+      after
+    });
+    return { ok: true, tracks, url: docUrl("timeline", timeline_id) };
   }
 });
 
@@ -155,18 +182,28 @@ FrontendToolRegistry.register({
 
 FrontendToolRegistry.register({
   name: "ui_timeline_add_text_clip",
-  description:
-    "Add authored text to the specified timeline sequence. It goes on an overlay track, creating one when needed, lasts 3000ms by default, and accepts the same motion presets as media clips.",
-  parameters: z.object({
-    timeline_id: timelineIdParam,
-    text: z.string().trim().min(1),
-    trackId: z.string().optional(),
-    startMs: z.number().optional(),
-    durationMs: z.number().optional(),
-    style: partialTextStyleParams.optional()
-  }),
-  async execute({ timeline_id, ...args }) {
-    const clip = getTimelineAgentHandler(timeline_id).addTextClip(args);
+  description: ADD_TEXT_CLIP_DESCRIPTION,
+  parameters: z
+    .object({
+      timeline_id: timelineIdParam,
+      text: z.string().trim().min(1),
+      trackId: z.string().optional(),
+      startMs: z.number().optional(),
+      durationMs: z.number().optional(),
+      style: partialTextStyleParams.optional()
+    })
+    .merge(partialTextStyleParams)
+    .strict(),
+  async execute({ timeline_id, text, trackId, startMs, durationMs, style, ...loose }) {
+    const clip = getTimelineAgentHandler(timeline_id).addTextClip({
+      text,
+      trackId,
+      startMs,
+      durationMs,
+      // `style` wins over a top-level twin: a caller that sent both meant the
+      // bag it named.
+      style: { ...loose, ...(style ?? {}) }
+    });
     return {
       ok: true,
       clip,
@@ -177,17 +214,25 @@ FrontendToolRegistry.register({
 
 FrontendToolRegistry.register({
   name: "ui_timeline_add_shape_clip",
-  description:
-    "Add a rectangle, ellipse, or line on an overlay track of the specified timeline sequence. Omitted colors use a visible white fill for rectangles/ellipses or a visible white stroke for lines. Shapes are rasterized for preview/export and can use the standard motion presets.",
-  parameters: z.object({
-    timeline_id: timelineIdParam,
-    shape: shapeStyleParams,
-    trackId: z.string().optional(),
-    startMs: z.number().optional(),
-    durationMs: z.number().optional()
-  }),
-  async execute({ timeline_id, ...args }) {
-    const clip = getTimelineAgentHandler(timeline_id).addShapeClip(args);
+  description: ADD_SHAPE_CLIP_DESCRIPTION,
+  parameters: z
+    .object({
+      timeline_id: timelineIdParam,
+      shape: shapeStyleParams.optional(),
+      shapeStyle: shapeStyleParams.optional(),
+      trackId: z.string().optional(),
+      startMs: z.number().optional(),
+      durationMs: z.number().optional()
+    })
+    .merge(shapeStyleParams.partial())
+    .strict(),
+  async execute({ timeline_id, shape, shapeStyle, trackId, startMs, durationMs, ...loose }) {
+    const clip = getTimelineAgentHandler(timeline_id).addShapeClip({
+      shape: resolveShapeArg(shape, shapeStyle, loose),
+      trackId,
+      startMs,
+      durationMs
+    });
     return {
       ok: true,
       clip,
@@ -621,7 +666,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_get_clip_frames",
   description:
-    "Inspect visual frames from a rendered video clip. Provide `target` and optional absolute timeline `timesMs`; otherwise the tool samples evenly across the clip. Returns JPEG data URLs plus timeline/source timestamps so you can see the clip content before splitting, trimming, or editing it.",
+    "Inspect visual frames from ONE rendered video clip. `target` is required and names that clip — this tool never composites the timeline, so to see the finished frame (every track layered, titles and scrims drawn) call preview_timeline_frame instead. Give optional absolute timeline `timesMs`; otherwise the tool samples evenly across the clip. Returns JPEG data URLs plus timeline/source timestamps so you can see the clip content before splitting, trimming, or editing it.",
   parameters: z.object({
     timeline_id: timelineIdParam,
     target: targetParam,

@@ -336,7 +336,16 @@ function unknownImportedExports(
   return undefined;
 }
 
-/** "Did you mean …" for the one name that differs only in casing or `_`. */
+/**
+ * "Did you mean …" for the one name that differs only in casing, `_`, or a
+ * missing tail.
+ *
+ * The tail is the half that was missing: `preview_timeline` is not a casing
+ * slip of `preview_timeline_frame`, and a model that dropped the last word
+ * read a message listing every export and concluded the capability was gone.
+ * A prefix hint only fires when exactly one export extends the name, so it
+ * never picks between two plausible ones.
+ */
 function nearMatchSentence(
   wanted: string,
   available: readonly string[]
@@ -344,6 +353,16 @@ function nearMatchSentence(
   const flatten = (name: string): string =>
     name.replace(/_/g, "").toLowerCase();
   const target = flatten(wanted);
-  const match = available.find((name) => flatten(name) === target);
-  return match === undefined ? "" : `Did you mean "${match}" for "${wanted}"? `;
+  const exact = available.find((name) => flatten(name) === target);
+  if (exact !== undefined) {
+    return `Did you mean "${exact}" for "${wanted}"? `;
+  }
+  if (target.length < 4) return "";
+  const extending = available.filter(
+    (name) =>
+      flatten(name).startsWith(target) || target.startsWith(flatten(name))
+  );
+  return extending.length === 1
+    ? `Did you mean "${extending[0]}" for "${wanted}"? `
+    : "";
 }

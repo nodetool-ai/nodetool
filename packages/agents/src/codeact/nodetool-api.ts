@@ -1314,6 +1314,22 @@ const nodetool = (() => {
   };
 
   /**
+   * Guest globals a caller reaches for under \`nodetool.\` — the namespaces that
+   * live at the top level of the sandbox rather than on the object model. Each
+   * value is the one sentence that sends the caller to the right place.
+   */
+  const __GUEST_GLOBALS = {
+    image: "Probing and editing pixels is \`image.*\`; generating a picture is \`nodetool.media.generateImage\`.",
+    audio: "Sample-level work is \`audio.*\`; generating speech or music is \`nodetool.media.generateSpeech\`/\`generateMusic\`.",
+    video: "Frame and container work is \`video.*\`; generating a clip is \`nodetool.media.generateVideo\`, and probing or encoding a file with a host binary is \`nodetool.media.ffprobe\`/\`ffmpeg\`.",
+    canvas: "Drawing is \`canvas.*\`.",
+    media: "The bare \`media.*\` global holds byte helpers; the tools are \`nodetool.media.*\`.",
+    format: "Text and table formatting is \`format.*\`.",
+    workspace: "Run files are \`workspace.*\`; the library is \`nodetool.assets.*\`.",
+    fetch: "The network is the \`fetch\` global, or \`nodetool.web.fetch\`."
+  };
+
+  /**
    * What a member that does not exist answers with: callable, and a namespace
    * all the way down, so \`nodetool.script.list()\` reports the typo in
    * \`script\` rather than bottoming out one hop later as
@@ -1385,9 +1401,19 @@ const nodetool = (() => {
         }
         const names = Object.keys(target).sort();
         const nearest = __nearest(prop, names);
+        // A name that is a *global* here reads as a missing namespace: the
+        // pixel and sample ops are \`image.*\`/\`audio.*\`/\`video.*\`, not
+        // \`nodetool.video.*\`, and a chat that took the miss at face value
+        // gave up on the operation instead of dropping the prefix.
+        const global = path === "nodetool" ? __GUEST_GLOBALS[prop] : undefined;
         return __missing(
           path + "." + prop + " does not exist" +
-            (nearest ? ". Did you mean " + path + "." + nearest + "?" : ".") +
+            (global
+              ? ". \`" + prop + "\` is a global in this sandbox — call \`" +
+                prop + ".*\` with no \`nodetool.\` prefix. " + global
+              : nearest
+                ? ". Did you mean " + path + "." + nearest + "?"
+                : ".") +
             " " + path + " has: " + names.join(", ") + "." +
             (path === "nodetool"
               ? ""
