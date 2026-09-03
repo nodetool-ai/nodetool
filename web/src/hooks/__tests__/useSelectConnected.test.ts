@@ -89,7 +89,7 @@ describe("useSelectConnected", () => {
 
       const { result } = renderHook(() => useSelectConnected({ direction: "both" }));
 
-      expect(result.current.connectedNodeCount).toBe(3);
+      expect(result.current.getConnectedNodeIds().length).toBe(3);
       expect(result.current.getConnectedNodeIds()).toEqual([
         "input-node",
         "process-node-2",
@@ -109,7 +109,7 @@ describe("useSelectConnected", () => {
 
       const { result } = renderHook(() => useSelectConnected({ direction: "both" }));
 
-      expect(result.current.connectedNodeCount).toBe(2);
+      expect(result.current.getConnectedNodeIds().length).toBe(2);
       const connectedIds = result.current.getConnectedNodeIds();
       expect(connectedIds).toContain("input-node");
       expect(connectedIds).toContain("output-node");
@@ -155,7 +155,7 @@ describe("useSelectConnected", () => {
 
       const { result } = renderHook(() => useSelectConnected({ direction: "upstream" }));
 
-      expect(result.current.connectedNodeCount).toBe(2);
+      expect(result.current.getConnectedNodeIds().length).toBe(2);
       const connectedIds = result.current.getConnectedNodeIds();
       expect(connectedIds).toContain("input-node");
       expect(connectedIds).toContain("process-node-1");
@@ -173,7 +173,7 @@ describe("useSelectConnected", () => {
 
       const { result } = renderHook(() => useSelectConnected({ direction: "upstream" }));
 
-      expect(result.current.connectedNodeCount).toBe(0);
+      expect(result.current.getConnectedNodeIds().length).toBe(0);
       expect(result.current.getConnectedNodeIds()).toEqual([]);
     });
   });
@@ -191,7 +191,7 @@ describe("useSelectConnected", () => {
 
       const { result } = renderHook(() => useSelectConnected({ direction: "downstream" }));
 
-      expect(result.current.connectedNodeCount).toBe(2);
+      expect(result.current.getConnectedNodeIds().length).toBe(2);
       expect(result.current.getConnectedNodeIds()).toEqual([
         "process-node-2",
         "output-node"
@@ -210,7 +210,7 @@ describe("useSelectConnected", () => {
 
       const { result } = renderHook(() => useSelectConnected({ direction: "downstream" }));
 
-      expect(result.current.connectedNodeCount).toBe(0);
+      expect(result.current.getConnectedNodeIds().length).toBe(0);
       expect(result.current.getConnectedNodeIds()).toEqual([]);
     });
   });
@@ -228,7 +228,7 @@ describe("useSelectConnected", () => {
 
       const { result } = renderHook(() => useSelectConnected({ direction: "both" }));
 
-      expect(result.current.connectedNodeCount).toBe(0);
+      expect(result.current.getConnectedNodeIds().length).toBe(0);
       expect(result.current.getConnectedNodeIds()).toEqual([]);
     });
 
@@ -265,7 +265,7 @@ describe("useSelectConnected", () => {
 
       const { result } = renderHook(() => useSelectConnected());
 
-      expect(result.current.connectedNodeCount).toBe(3);
+      expect(result.current.getConnectedNodeIds().length).toBe(3);
     });
   });
 
@@ -298,7 +298,7 @@ describe("useSelectConnected", () => {
 
       const { result } = renderHook(() => useSelectConnected({ direction: "downstream" }));
 
-      expect(result.current.connectedNodeCount).toBe(4);
+      expect(result.current.getConnectedNodeIds().length).toBe(4);
       const connectedIds = result.current.getConnectedNodeIds();
       expect(connectedIds).toContain("branch-a");
       expect(connectedIds).toContain("branch-b");

@@ -1,11 +1,13 @@
 import { useCallback } from "react";
 import { Edge, IsValidConnection } from "@xyflow/react";
 import { wouldCreateCycle } from "../../utils/graphCycle";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodeStoreRef } from "../../contexts/NodeContext";
 
 /** Validates node connections, rejecting any that would create a cycle. */
 export function useConnectionEvents() {
-  const edges = useNodes((state) => state.edges);
+  // Read at validation time, not subscribed to: this hook lives in the canvas
+  // root and only runs while the user drags a connection.
+  const store = useNodeStoreRef();
 
   const isConnectionValid = useCallback<IsValidConnection<Edge>>(
     (connection) => {
@@ -14,9 +16,9 @@ export function useConnectionEvents() {
       if (!sourceId || !targetId) {
         return true;
       }
-      return !wouldCreateCycle(edges, sourceId, targetId);
+      return !wouldCreateCycle(store.getState().edges, sourceId, targetId);
     },
-    [edges]
+    [store]
   );
 
   return {

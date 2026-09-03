@@ -2,14 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { asMock } from "../../../test-utils/doubles";
 import { Edge } from "@xyflow/react";
 import { useConnectionEvents } from "../useConnectionEvents";
-import { useNodes } from "../../../contexts/NodeContext";
-
-// jest hoists `jest.mock` above the imports, so a factory may only reach
-// out-of-scope names that begin with `mock`.
-const mockIsFunction = <T,>(
-  value: T
-): value is Extract<T, (...args: never[]) => unknown> =>
-  typeof value === 'function';
+import { useNodeStoreRef } from "../../../contexts/NodeContext";
 
 jest.mock("../../../contexts/NodeContext");
 
@@ -19,17 +12,12 @@ describe("useConnectionEvents", () => {
     { id: "edge-2", source: "node-2", target: "node-3" }
   ] as Edge[];
 
-  const mockedUseNodes = asMock(useNodes);
+  const mockedUseNodeStoreRef = asMock(useNodeStoreRef);
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedUseNodes.mockImplementation((selector) => {
-      if (mockIsFunction(selector)) {
-        return selector({
-          edges: mockEdges
-        });
-      }
-      return { edges: mockEdges };
+    mockedUseNodeStoreRef.mockReturnValue({
+      getState: () => ({ edges: mockEdges })
     });
   });
 
