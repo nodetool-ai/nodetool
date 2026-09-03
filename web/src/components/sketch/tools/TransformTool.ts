@@ -275,11 +275,17 @@ export class TransformTool implements ToolHandler {
     }
     const targets = this.state.targets;
 
-    for (const id of targets.layerIds) {
-      const lyr = doc.layers.find((l) => l.id === id);
-      if (!lyr || (lyr.locked && !layerAllowsTransformWhilePixelLocked(lyr))) {
-        return false;
+    const targetSet = new Set(targets.layerIds);
+    for (const lyr of doc.layers) {
+      if (targetSet.has(lyr.id)) {
+        if (lyr.locked && !layerAllowsTransformWhilePixelLocked(lyr)) {
+          return false;
+        }
+        targetSet.delete(lyr.id);
       }
+    }
+    if (targetSet.size > 0) {
+      return false;
     }
 
     const primaryLayer = doc.layers.find((l) => l.id === targets.layerIds[0])!;
@@ -719,11 +725,10 @@ export class TransformTool implements ToolHandler {
 
     const entries: TransformTargetEntry[] = [];
     const extentRects: Array<ReturnType<typeof computeTransformedExtents>> = [];
-    for (const id of ids) {
-      const layer = ctx.doc.layers.find((l) => l.id === id);
-      if (!layer) {
-        continue;
-      }
+    const idSet = new Set(ids);
+    for (const layer of ctx.doc.layers) {
+      if (!idSet.has(layer.id)) continue;
+      const id = layer.id;
       const canvas = ctx.layerCanvasesRef.current.get(id);
       const rb = getVisualBounds(layer, canvas, ctx.doc.canvas);
       entries.push({ layerId: id, bounds: rb });
@@ -781,11 +786,10 @@ export class TransformTool implements ToolHandler {
       string,
       NonNullable<ReturnType<typeof rasterSpaceToDocAffine>>
     >();
-    for (const id of layerIds) {
-      const layer = ctx.doc.layers.find((l) => l.id === id);
-      if (!layer) {
-        continue;
-      }
+    const idSet = new Set(layerIds);
+    for (const layer of ctx.doc.layers) {
+      if (!idSet.has(layer.id)) continue;
+      const id = layer.id;
       const rb = getVisualBounds(
         layer,
         ctx.layerCanvasesRef.current.get(id),

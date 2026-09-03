@@ -93,16 +93,19 @@ export function resolveTransformTargetLayerIds(
     : isMultiTransformEligibleLayer;
 
   const expanded = new Set<string>();
-  for (const id of seeds) {
-    const layer = doc.layers.find((l) => l.id === id);
-    if (!layer) {
-      continue;
-    }
+  const seedSet = new Set(seeds);
+  const seedLayers: Layer[] = [];
+  for (const layer of doc.layers) {
+    if (seedSet.has(layer.id)) seedLayers.push(layer);
+  }
+
+  for (const layer of seedLayers) {
+    const id = layer.id;
     if (layer.type === "group") {
-      for (const descId of getDescendantIds(doc.layers, id)) {
-        const child = doc.layers.find((l) => l.id === descId);
-        if (child && isMultiTransformEligibleLayer(child)) {
-          expanded.add(descId);
+      const descendants = new Set(getDescendantIds(doc.layers, id));
+      for (const child of doc.layers) {
+        if (descendants.has(child.id) && isMultiTransformEligibleLayer(child)) {
+          expanded.add(child.id);
         }
       }
     } else if (eligibility(layer)) {
@@ -276,11 +279,12 @@ export function countTransformTargetsHitAtDocPoint(
   ensureLayerCanvas?: (layerId: string) => HTMLCanvasElement | null | undefined
 ): number {
   let count = 0;
-  for (const id of targetIds) {
-    const layer = layers.find((l) => l.id === id);
-    if (!layer || layer.type === "group") {
+  const targetSet = new Set(targetIds);
+  for (const layer of layers) {
+    if (!targetSet.has(layer.id) || layer.type === "group") {
       continue;
     }
+    const id = layer.id;
     let layerCanvas = layerCanvases.get(id);
     if (!layerCanvas && ensureLayerCanvas) {
       layerCanvas = ensureLayerCanvas(id) ?? undefined;

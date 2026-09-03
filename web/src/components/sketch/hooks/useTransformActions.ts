@@ -176,10 +176,10 @@ export function useTransformActions({
 
     if (targetIds.length > 1) {
       const map: Record<string, LayerTransform> = {};
-      for (const id of targetIds) {
-        const layer = document.layers.find((l) => l.id === id);
-        if (layer) {
-          map[id] = cloneTransform(layer.transform);
+      const targetSet = new Set(targetIds);
+      for (const layer of document.layers) {
+        if (targetSet.has(layer.id)) {
+          map[layer.id] = cloneTransform(layer.transform);
         }
       }
       multiTransformOriginalRef.current = map;
@@ -432,11 +432,12 @@ export function useTransformActions({
         width: document.canvas.width,
         height: document.canvas.height
       };
-      for (const layerId of ids) {
-        const lyr = document.layers.find((l) => l.id === layerId);
-        if (!lyr) {
+      const idSet = new Set(ids);
+      for (const lyr of document.layers) {
+        if (!idSet.has(lyr.id)) {
           continue;
         }
+        const layerId = lyr.id;
         const newData = canvas.reconcileLayerToDocumentSpace(layerId);
         if (newData !== null) {
           updateLayerData(layerId, newData);
