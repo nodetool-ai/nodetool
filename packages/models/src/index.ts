@@ -47,7 +47,8 @@ export {
   triggerInputs,
   runInboxMessages,
   triggerRegistrations,
-  externalIdentities
+  externalIdentities,
+  userEvents
 } from "./schema/index.js";
 
 // ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────
@@ -323,6 +324,27 @@ export { AccessToken, isAccessToken, parseAccessToken, ACCESS_TOKEN_PREFIX } fro
 export type { MintedAccessToken, CreateAccessTokenParams } from "./access-token.js";
 export { ExternalIdentity } from "./external-identity.js";
 export type { LinkExternalIdentityParams } from "./external-identity.js";
+export {
+  DEFAULT_USER_EVENT_RETENTION_DAYS,
+  MAX_USER_EVENT_STRING_LENGTH,
+  NEVER_PRUNED_USER_EVENT_TYPES,
+  USER_EVENT_METADATA_ALLOWLIST,
+  UserEventType,
+  deleteUserEventsForUser,
+  isNeverPrunedUserEventType,
+  isUserEventType,
+  listUserEvents,
+  pruneUserEvents,
+  recordUserEvent,
+  sanitizeUserEventMetadata
+} from "./user-event.js";
+export type {
+  ListUserEventsOptions,
+  RecordUserEventInput,
+  UserEventMetadata,
+  UserEventMetadataValue,
+  UserEventRow
+} from "./user-event.js";
 export {
   McpOauthClient,
   McpOauthGrant,
