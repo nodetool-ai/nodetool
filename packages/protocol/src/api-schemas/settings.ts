@@ -110,6 +110,13 @@ export const storageRetentionPolicy = z.object({
   autosaveRetentionDays: z.number().int().min(1).max(3650),
   manualVersionRetentionDays: z.number().int().min(1).max(3650),
   terminalJobRetentionDays: z.number().int().min(1).max(3650),
+  /**
+   * Optional to mirror `StorageRetentionPolicy` in `@nodetool-ai/models`: a
+   * policy stored before these sweeps existed resolves to the server default
+   * rather than to zero days.
+   */
+  runEventRetentionDays: z.number().int().min(1).max(3650).optional(),
+  predictionRetentionDays: z.number().int().min(1).max(3650).optional(),
   automaticCleanup: z.boolean()
 });
 export type StorageRetentionPolicy = z.infer<typeof storageRetentionPolicy>;
@@ -118,6 +125,10 @@ export const storageCleanupPreview = z.object({
   autosaves: z.number().int().nonnegative(),
   manualVersions: z.number().int().nonnegative(),
   terminalJobs: z.number().int().nonnegative(),
+  runEvents: z.number().int().nonnegative(),
+  /** Prediction rows whose payload columns are cleared. Rows are kept. */
+  redactedPredictions: z.number().int().nonnegative(),
+  /** Records deleted. Redactions are not deletions, so they are not in it. */
   total: z.number().int().nonnegative()
 });
 
@@ -130,6 +141,8 @@ export const storageStatus = z.object({
   manualVersions: z.number().int().nonnegative(),
   jobs: z.number().int().nonnegative(),
   terminalJobs: z.number().int().nonnegative(),
+  runEvents: z.number().int().nonnegative(),
+  predictionsWithPayload: z.number().int().nonnegative(),
   cleanup: storageCleanupPreview
 });
 
