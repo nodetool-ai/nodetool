@@ -31,13 +31,13 @@ export interface ProviderCatalog {
 export const providerCatalog: Record<string, ProviderCatalog> = {
   "fal_ai": {
     "id": "fal_ai",
-    "total": 1560,
+    "total": 1562,
     "counts": {
       "3d": 60,
       "image": 736,
       "audio": 127,
       "text": 18,
-      "video": 619
+      "video": 621
     },
     "topTags": [
       "generation",
