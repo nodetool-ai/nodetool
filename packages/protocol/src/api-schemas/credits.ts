@@ -27,6 +27,13 @@ export const creditStatusOutput = z.object({
   meteredProvider: z.string(),
   /** True only on dev servers that opt into the no-payment test top-up. */
   testTopupEnabled: z.boolean(),
+  /**
+   * The managed model ids this server sells — the operator's
+   * `NODETOOL_CREDIT_MODELS` whitelist, or the whole curated catalog when the
+   * operator restricted none. Clients show these and hide the rest; the
+   * server refuses the rest regardless.
+   */
+  spendableModels: z.array(z.string()),
   plans: z.array(creditPlan)
 });
 export type CreditStatusOutput = z.infer<typeof creditStatusOutput>;

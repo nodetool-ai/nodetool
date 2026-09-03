@@ -4,7 +4,8 @@ import {
   creditStatus,
   grantCredits,
   planById,
-  setSubscriptionPlan
+  setSubscriptionPlan,
+  spendableModelIds
 } from "@nodetool-ai/models";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -31,6 +32,7 @@ const statusFor = async (userId: string) => {
     ...status,
     meteredProvider: NODETOOL_PROVIDER_ID,
     testTopupEnabled: testTopupEnabled(),
+    spendableModels: spendableModelIds(),
     plans: [...CREDIT_PLANS]
   };
 };

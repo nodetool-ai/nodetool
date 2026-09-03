@@ -64,6 +64,12 @@ export const STUDIO_DIRECTOR_MODEL: LanguageModelValue = {
 export interface CuratedOption<T> {
   /** What the dropdown selects on. The model id, or the voice id for voices. */
   id: string;
+  /**
+   * The curated model behind the option — the same as {@link id} except for a
+   * voice, where several options share one model. The server whitelist
+   * (`spendableModels`) is expressed in these ids.
+   */
+  modelId: string;
   value: T;
   /** User-facing name, e.g. "Balanced". */
   label: string;
@@ -79,6 +85,7 @@ const options = <T>(
 ): CuratedOption<T>[] =>
   nodetoolModelsOfKind(kind).map((def) => ({
     id: def.id,
+    modelId: def.id,
     value: map(def),
     label: def.name,
     blurb: def.blurb ?? "",
@@ -116,6 +123,7 @@ export const STUDIO_VOICES: CuratedOption<TTSModelValue>[] =
   nodetoolModelsOfKind("tts").flatMap((def) =>
     (def.voices ?? []).map((voice) => ({
       id: voice.id,
+      modelId: def.id,
       value: toTTSModel(def, voice.id),
       label: voice.name,
       blurb: "",

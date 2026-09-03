@@ -12,12 +12,20 @@
  * Cost is accounted at the delegate's price: each call absorbs the inner
  * provider's cost delta into this instance, so the host's prediction logging
  * records real USD under provider "nodetool".
+ *
+ * A model is served only when it is both **funded** (the delegate's platform
+ * key is set) and **allowed** (`NODETOOL_CREDIT_MODELS` names it, or names
+ * nothing at all). The listers hide what fails either test and `delegateFor`
+ * refuses it, so a whitelist an operator narrows can never be spent past by a
+ * client holding a stale menu.
  */
 import {
   NODETOOL_MODELS,
   nodetoolModelById,
+  type NodetoolModelDef,
   type NodetoolModelKind
 } from "@nodetool-ai/protocol";
+import { isCreditModelAllowed } from "@nodetool-ai/config";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import type {
   EncodedAudioResult,
@@ -64,6 +72,11 @@ export class NodetoolProvider extends BaseProvider {
     return this.platformKey(delegateProvider) != null;
   }
 
+  /** Funded by a platform key and whitelisted for spend on this server. */
+  private isServable(def: NodetoolModelDef): boolean {
+    return this.isFunded(def.delegate.provider) && isCreditModelAllowed(def.id);
+  }
+
   /**
    * The delegate serving a nodetool model id, constructed on platform keys.
    * A fresh instance per call on purpose: cost is read off the delegate's
@@ -79,6 +92,11 @@ export class NodetoolProvider extends BaseProvider {
     const def = nodetoolModelById(modelId);
     if (!def) {
       throw new Error(`Unknown NodeTool model "${modelId}".`);
+    }
+    if (!isCreditModelAllowed(def.id)) {
+      throw new Error(
+        `NodeTool model "${modelId}" is not available on this server.`
+      );
     }
     const delegate =
       (task === "image_to_image" ? def.editDelegate : undefined) ??
@@ -126,7 +144,7 @@ export class NodetoolProvider extends BaseProvider {
   protected override declaredCapabilities(): ProviderCapability[] {
     const capabilities: ProviderCapability[] = [];
     for (const def of NODETOOL_MODELS) {
-      if (!this.isFunded(def.delegate.provider)) continue;
+      if (!this.isServable(def)) continue;
       if (def.kind === "language") capabilities.push("generate_message");
       if (def.kind === "image") {
         capabilities.push("text_to_image");
@@ -141,14 +159,14 @@ export class NodetoolProvider extends BaseProvider {
     return [...new Set(capabilities)];
   }
 
-  private fundedModels(kind: NodetoolModelKind) {
+  private servableModels(kind: NodetoolModelKind) {
     return NODETOOL_MODELS.filter(
-      (def) => def.kind === kind && this.isFunded(def.delegate.provider)
+      (def) => def.kind === kind && this.isServable(def)
     );
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    return this.fundedModels("language").map((def) => ({
+    return this.servableModels("language").map((def) => ({
       type: "language_model",
       id: def.id,
       name: def.name,
@@ -157,7 +175,7 @@ export class NodetoolProvider extends BaseProvider {
   }
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    return this.fundedModels("image").map((def) => ({
+    return this.servableModels("image").map((def) => ({
       type: "image_model",
       id: def.id,
       name: def.name,
@@ -167,7 +185,7 @@ export class NodetoolProvider extends BaseProvider {
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
-    return this.fundedModels("video").map((def) => ({
+    return this.servableModels("video").map((def) => ({
       type: "video_model",
       id: def.id,
       name: def.name,
@@ -177,7 +195,7 @@ export class NodetoolProvider extends BaseProvider {
   }
 
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
-    return this.fundedModels("tts").map((def) => ({
+    return this.servableModels("tts").map((def) => ({
       id: def.id,
       name: def.name,
       provider: "nodetool",

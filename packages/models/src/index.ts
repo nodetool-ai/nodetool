@@ -423,15 +423,18 @@ export {
   checkCredits,
   creditStatus,
   ensureMonthlyGrant,
+  ensureSignupGrant,
   getSubscription,
   grantCredits,
   periodKeyFor,
   planById,
-  setSubscriptionPlan
+  setSubscriptionPlan,
+  spendableModelIds
 } from "./credits.js";
 export type {
   CreditDecision,
   CreditPlan,
+  CreditRefusal,
   CreditStatus,
   UserSubscription
 } from "./credits.js";
