@@ -696,10 +696,20 @@ export const compareTimelineFramesSpec: CapabilitySpec = {
   userMessage: () => "Comparing timeline frames"
 };
 
-/** Longest a `wait: true` render blocks before handing back the job id. */
-export const MAX_RENDER_TIMEOUT_MS = 30 * 60_000;
+/**
+ * Longest a `wait: true` render blocks before handing back the job id.
+ *
+ * Half of the CodeAct action budget (`DEFAULT_CODEACT_ACTION_TIMEOUT_MS`,
+ * 600_000 in `codeact/codeact-executor.ts`), which is the clock a
+ * `render_timeline` call inside `execute_code` actually runs against. A wait
+ * at or near that budget loses the race: the sandbox aborts the action first
+ * and the caller gets the sandbox's `Execution cancelled` instead of the
+ * render's own message. Staying well below it means this capability always
+ * reports its own timeout, with the job id to come back to.
+ */
+export const MAX_RENDER_TIMEOUT_MS = 5 * 60_000;
 /** How long `wait: true` waits when the caller names no timeout. */
-export const DEFAULT_RENDER_TIMEOUT_MS = 10 * 60_000;
+export const DEFAULT_RENDER_TIMEOUT_MS = 3 * 60_000;
 
 export const RENDER_TIMELINE_SCHEMA: JsonSchema = {
   type: "object",
@@ -766,8 +776,11 @@ export const RENDER_TIMELINE_SCHEMA: JsonSchema = {
       type: "number",
       description:
         `How long to wait when wait is true. Default ` +
-        `${DEFAULT_RENDER_TIMEOUT_MS}, max ${MAX_RENDER_TIMEOUT_MS}. On a ` +
-        `timeout the render keeps going and the job_id comes back anyway.`
+        `${DEFAULT_RENDER_TIMEOUT_MS}, and anything higher is clamped to ` +
+        `${MAX_RENDER_TIMEOUT_MS} — a longer block is killed by the ` +
+        `surrounding action budget before this call can report anything. ` +
+        `On a timeout the render keeps going and the job_id comes back ` +
+        `anyway: poll get_job, or render a draft with preview_scale below 1.`
     }
   },
   required: ["timeline_id"]

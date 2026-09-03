@@ -1775,6 +1775,38 @@ export function renderResult(job: SettledRenderJob): Record<string, unknown> {
 }
 
 /**
+ * How long a `wait: true` render blocks, and what to say when the caller asked
+ * for longer.
+ *
+ * A blocking call inside `execute_code` runs against the CodeAct action budget
+ * (`DEFAULT_CODEACT_ACTION_TIMEOUT_MS`, 600_000 in
+ * `codeact/codeact-executor.ts`). A wait at or near that number loses the race:
+ * the sandbox aborts the whole action first and the caller reads the sandbox's
+ * `Execution cancelled`, which names neither the render nor the job to come
+ * back to. `MAX_RENDER_TIMEOUT_MS` sits well below it so this capability always
+ * reports its own timeout — and says the wait was shortened, rather than
+ * silently waiting for a different number than the one that was asked for.
+ */
+export function renderWaitBudget(param: unknown): {
+  timeoutMs: number;
+  clampNote: string | null;
+} {
+  const requestedMs = numberParam(param) ?? DEFAULT_RENDER_TIMEOUT_MS;
+  const timeoutMs = Math.min(
+    MAX_RENDER_TIMEOUT_MS,
+    Math.max(RENDER_POLL_INTERVAL_MS, requestedMs)
+  );
+  const clampNote =
+    requestedMs > MAX_RENDER_TIMEOUT_MS
+      ? `timeout_ms ${requestedMs} was clamped to ${MAX_RENDER_TIMEOUT_MS}, ` +
+        "the longest a blocking render can wait before the surrounding " +
+        "action budget kills the call. For a longer render, pass wait: false " +
+        "and poll get_job, or draft it with preview_scale below 1."
+      : null;
+  return { timeoutMs, clampNote };
+}
+
+/**
  * Render a timeline sequence as a job (D12, docs/plans/motion-graphics.md).
  *
  * The run goes through the same execution service `run_workflow` uses, so the
@@ -1827,13 +1859,7 @@ const renderTimeline: CapabilityExport = {
     };
     if (params["wait"] !== true) return stillRunning;
 
-    const timeoutMs = Math.min(
-      MAX_RENDER_TIMEOUT_MS,
-      Math.max(
-        RENDER_POLL_INTERVAL_MS,
-        numberParam(params["timeout_ms"]) ?? DEFAULT_RENDER_TIMEOUT_MS
-      )
-    );
+    const { timeoutMs, clampNote } = renderWaitBudget(params["timeout_ms"]);
     const { Job } = await import("@nodetool-ai/models");
     const deadline = Date.now() + timeoutMs;
     for (;;) {
@@ -1845,9 +1871,12 @@ const renderTimeline: CapabilityExport = {
         return {
           ...stillRunning,
           timed_out: true,
+          timeout_ms: timeoutMs,
+          timeout_clamped: clampNote,
           note:
             `The render did not finish within ${timeoutMs}ms. It is still ` +
-            "running — read it back with get_job."
+            "running — read it back with get_job." +
+            (clampNote ? ` ${clampNote}` : "")
         };
       }
       await new Promise((resolve) =>
