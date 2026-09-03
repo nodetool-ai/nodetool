@@ -269,3 +269,36 @@ describe("the time-remap curve", () => {
     expect(built.keyframes[1]).toEqual({ t: 1, sourceMs: 500, easing: "easeIn" });
   });
 });
+
+describe("textStyleParams — verticalAlign", () => {
+  it("takes the three the rasterizer draws", () => {
+    for (const verticalAlign of ["top", "middle", "bottom"]) {
+      expect(
+        partialTextStyleParams.parse({ verticalAlign }).verticalAlign
+      ).toBe(verticalAlign);
+    }
+  });
+
+  it('refuses "center", the horizontal spelling', () => {
+    // The trap: `align` beside it does take "center", so a caller reaches for
+    // it vertically and the document schema's lenient string used to accept it
+    // — the rasterizer then read it as "middle" and the title never moved.
+    const parsed = partialTextStyleParams.safeParse({
+      verticalAlign: "center"
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("stays lenient in the document, so a stored sequence still saves", () => {
+    // Only the tool surface is strict. Widening this would make an existing
+    // sequence carrying "center" fail every later write.
+    expect(
+      clipTextStyle.parse({
+        text: "T",
+        fontSizePx: 60,
+        color: "#fff",
+        verticalAlign: "center"
+      }).verticalAlign
+    ).toBe("center");
+  });
+});

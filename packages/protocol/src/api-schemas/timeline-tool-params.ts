@@ -187,7 +187,6 @@ export const textStyleParams = withFieldNotes(clipTextStyle, {
   fontStyle: '"normal" (default) or "italic".',
   letterSpacingPx: "Extra advance between glyphs, in sequence px. Default 0.",
   lineHeight: "Line advance as a multiple of the font size. Default 1.2.",
-  verticalAlign: '"top", "middle" (default) or "bottom".',
   maxWidthFrac: "Wrap width as a fraction of frame width.",
   stroke: "Outline drawn under the fill: {color, widthPx}.",
   shadow:
@@ -199,6 +198,29 @@ export const textStyleParams = withFieldNotes(clipTextStyle, {
   fill:
     "Gradient or solid fill, {type: \"solid\"|\"linear\"|\"radial\", ...}. " +
     "Wins over `color` when set."
+}).extend({
+  /**
+   * Refused by name here, lenient in the document.
+   *
+   * `clipTextStyle.verticalAlign` is a free string and the rasterizer reads
+   * anything it does not know as `"middle"` — deliberate, so a stored document
+   * always draws. But the horizontal `align` right beside it *does* take
+   * `"center"`, so `"center"` is the value a caller reaches for vertically,
+   * and the lenient read then made it a silent no-op: the title stayed exactly
+   * where it was and nothing said why. Two text clips both left at the default
+   * stack on top of each other, which is the failure this refusal exists to
+   * name.
+   *
+   * Only the authoring surface is strict. Widening the document schema would
+   * make an already-saved sequence carrying `"center"` fail to save.
+   */
+  verticalAlign: z
+    .enum(["top", "middle", "bottom"])
+    .optional()
+    .describe(
+      '"top", "middle" (default) or "bottom". Not "center" — that is the ' +
+        "horizontal `align` spelling."
+    )
 });
 
 /**
