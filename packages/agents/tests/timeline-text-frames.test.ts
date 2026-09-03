@@ -19,6 +19,15 @@ import {
   createStaggerScratch,
   type RasterContext2D
 } from "@nodetool-ai/timeline/scene";
+import { registerBundledFonts } from "@nodetool-ai/timeline/fonts/node";
+
+// Draw in the face NodeTool ships, the way every production rasterizer does
+// (`timeline-preview/rasterize.ts`, `video-nodes/.../rasterizers.ts`). Without
+// this the styles below are set in `Inter` and drawn in whatever the machine
+// falls back to, so every pixel assertion here measures a font the product
+// never uses — and the metrics differ per platform. Skia caches the first
+// resolution of a family, so this has to run before the first draw.
+registerBundledFonts();
 
 const W = 400;
 const H = 300;
