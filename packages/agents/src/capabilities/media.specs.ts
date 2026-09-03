@@ -177,6 +177,11 @@ export const GENERATE_VIDEO_SCHEMA: JsonSchema = {
     },
     negative_prompt: { type: "string" as const },
     num_frames: { type: "number" as const },
+    duration_seconds: {
+      type: "number" as const,
+      description:
+        "Requested clip length. Models honour this loosely, clamp it to the lengths they support, and some ignore it — measure the result with analyze_video before cutting to it."
+    },
     aspect_ratio: { type: "string" as const },
     resolution: { type: "string" as const }
   },
@@ -205,6 +210,11 @@ export const ANIMATE_IMAGE_SCHEMA: JsonSchema = {
     },
     prompt: { type: "string" as const },
     num_frames: { type: "number" as const },
+    duration_seconds: {
+      type: "number" as const,
+      description:
+        "Requested clip length. Models honour this loosely, clamp it to the lengths they support, and some ignore it — measure the result with analyze_video before cutting to it."
+    },
     aspect_ratio: { type: "string" as const },
     resolution: { type: "string" as const }
   },

@@ -662,3 +662,59 @@ describe("generate_music through the adapter", () => {
     expect(String(result["error"])).toContain("text_to_music");
   });
 });
+
+describe("clip length on the video capabilities", () => {
+  function videoContext(): ProcessingContext {
+    return withGenerationSeam({
+      userId: "user-1",
+      runProviderPrediction: vi.fn(async () => new Uint8Array([1, 2, 3])),
+      workspace: {
+        localDir: null,
+        write: async () => {},
+        read: async () => new Uint8Array([9, 9]),
+        key: (p: string) => p
+      }
+    }) as unknown as ProcessingContext;
+  }
+
+  function paramsOf(context: ProcessingContext): Record<string, unknown> {
+    const call = (
+      context.runProviderPrediction as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls[0][0] as Record<string, unknown>;
+    return call["params"] as Record<string, unknown>;
+  }
+
+  it("both schemas declare duration_seconds", () => {
+    for (const entry of [generateVideo, animateImage]) {
+      const props = entry.spec.inputSchema.properties as Record<
+        string,
+        { type: string }
+      >;
+      expect(props["duration_seconds"]?.type).toBe("number");
+    }
+  });
+
+  it("generate_video forwards duration_seconds to text_to_video", async () => {
+    const context = videoContext();
+    await asTool(generateVideo).process(context, {
+      provider: "fal_ai",
+      model: "minimax/h3-max-turbo/text-to-video",
+      prompt: "a red fox in snow",
+      duration_seconds: 6
+    });
+    const params = paramsOf(context);
+    expect(params["duration_seconds"]).toBe(6);
+  });
+
+  it("animate_image forwards duration_seconds to image_to_video", async () => {
+    const context = videoContext();
+    await asTool(animateImage).process(context, {
+      provider: "fal_ai",
+      model: "minimax/h3-max-turbo/image-to-video",
+      input_file: "still.png",
+      duration_seconds: 6
+    });
+    const params = paramsOf(context);
+    expect(params["duration_seconds"]).toBe(6);
+  });
+});

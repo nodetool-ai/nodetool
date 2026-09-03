@@ -654,6 +654,7 @@ const generateVideo: CapabilityExport = {
         prompt,
         negative_prompt: params["negative_prompt"],
         num_frames: params["num_frames"],
+        duration_seconds: params["duration_seconds"],
         aspect_ratio: params["aspect_ratio"],
         resolution: params["resolution"]
       }
@@ -686,6 +687,7 @@ const animateImage: CapabilityExport = {
         image,
         prompt: params["prompt"],
         num_frames: params["num_frames"],
+        duration_seconds: params["duration_seconds"],
         aspect_ratio: params["aspect_ratio"],
         resolution: params["resolution"]
       }
