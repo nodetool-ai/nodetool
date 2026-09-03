@@ -22,8 +22,6 @@ interface SecretsStore {
   error: string | null;
   fetchSecrets: (limit?: number) => Promise<SecretResponse[]>;
   getSecretValue: (key: string) => Promise<string | null>;
-  /** Alias for getSecretValue – returns the decrypted secret value or null. */
-  fetchDecryptedSecret: (key: string) => Promise<string | null>;
   updateSecret: (
     key: string,
     value: string,
@@ -88,10 +86,6 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
     } catch {
       return null;
     }
-  },
-
-  fetchDecryptedSecret: async (key: string) => {
-    return get().getSecretValue(key);
   },
 
   updateSecret: async (key: string, value: string, description?: string) => {

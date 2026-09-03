@@ -80,7 +80,7 @@ const LAYER_ID_PREFIX: Record<ActiveLayer["kind"], string> = {
 };
 
 /** A layer's id, matte sources included — they never collide with the layer. */
-export function compositeLayerId(layer: ActiveLayer, prefix = ""): string {
+function compositeLayerId(layer: ActiveLayer, prefix = ""): string {
   return `${prefix}${LAYER_ID_PREFIX[layer.kind]}:${layer.clipId}`;
 }
 

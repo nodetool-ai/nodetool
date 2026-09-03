@@ -368,7 +368,7 @@ const heapBytes = (): number | null => {
   return mem ? mem.usedJSHeapSize : null;
 };
 
-export async function startPerfRun(
+async function startPerfRun(
   options: PerfRunOptions = {}
 ): Promise<PerfRunSummary> {
   const voices = Math.max(1, Math.floor(options.voices ?? 8));
