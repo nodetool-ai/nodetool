@@ -142,7 +142,7 @@ These need a WebGPU adapter. The image nodes go through Dawn, which has no
 software fallback, so a machine with no Vulkan driver fails them all with "No
 WebGPU adapter available". CI installs `mesa-vulkan-drivers` (lavapipe) for
 this; locally, `apt-get install -y mesa-vulkan-drivers` or see
-[AGENTS.md § WebGPU on a headless machine](../../AGENTS.md#webgpu-on-a-headless-machine)
+[docs/dev-environment.md § WebGPU on a headless machine](../../docs/dev-environment.md#webgpu-on-a-headless-machine)
 for the no-root route.
 
 These used to hang the CLI after printing their results: Dawn keeps a handle on

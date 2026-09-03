@@ -103,6 +103,79 @@ oxlint resolves the nearest config per file: a rule added at the root would
 silently skip those trees. Running with `--config` disables that resolution and
 covers everything.
 
+## Working the backlog
+
+The unit of enforcement is a **(rule, tree) pair**, not a rule: a rule still
+thousands of findings deep across the repo is nonetheless finished in most
+packages, and those are ratcheted now rather than after the last one lands.
+
+`.github/workflows/anti-slop-ratchet.yaml` runs this loop daily: measure, fix
+one tree, regenerate the overrides, and induce a failure to prove the new ones
+bite. It opens a PR; it merges nothing.
+
+Those override blocks are generated, never hand-edited:
+`npm run lint:anti-slop:count` prints the current counts, `:targets` adds the
+trees closest to zero, the cheapest remaining pairs, and the largest ones,
+`:write` regenerates the overrides from a fresh measurement, and `:check` fails
+when the config and the measurement disagree. Read the counts off `:targets`
+rather than off a raw `oxlint` run — oxlint's own default rules report through
+the same channel, so counting diagnostics instead of `anti-slop(...)` codes
+overstates a tree by several times. Never record a count in a doc: the numbers
+drift the day after they are written, which is how hand-maintained ones went
+wrong before. The generator lints one tree per oxlint invocation and rejects
+any tree whose scan touched zero files: oxlint does not expand `packages/*/src`
+itself, and a glob that reaches it unexpanded lints nothing while reporting
+nothing — which is indistinguishable from a clean tree, and would ratchet every
+pair on a broken run.
+
+A rule that does not fit NodeTool is deleted from the plugin instead — upstream
+ships it to be vendored and edited. That is why `no-shape-in-symbol-names` is
+gone: it banned the substring "shape" in every identifier, and here that is the
+sketch editor's drawing tools, tensor shapes, and third-party contracts.
+
+- **`no-runtime-typeof`** runs with `allowInTypeGuards: true`. A `typeof`
+  directly inside a function returning `v is T` is the sanctioned form, so the
+  work is consolidating repeated inline checks into named predicates (each tree
+  has a predicate module: `packages/protocol/src/predicates.ts`,
+  `web/src/utils/typePredicates.ts`, mobile's twin, per-package siblings),
+  never deleting guards. `packages/protocol/src/typecheck.ts` is exempt: in the
+  package that owns the schemas, an inline `typeof` means someone bypassed the
+  parse. Predicates take `value: unknown`, so consolidation moves findings into
+  `no-unknown-parameters`. Two shapes the rule does not flag, because no
+  predicate can replace them: a `typeof` whose operand resolves to no variable
+  in scope (a global-existence probe — reading the bare name throws
+  `ReferenceError`), and one interpolated into a template literal or returned
+  (a value, not a narrowing). An operand that *does* resolve still reports, and
+  `const kind = typeof value` still reports — narrowing laundered through a
+  local is still narrowing.
+- **`require-safety-comment-for-type-assertion`** is present nearly everywhere
+  and moves only when the values crossing a boundary get named.
+- **`no-module-mocking`** is concentrated in the frontend test suites and is a
+  test-seam problem, not a typing one — worth its own change rather than a slot
+  in the typing work.
+- **`no-hand-written-any`** and **`no-implicit-return-type`** are NodeTool's
+  own rules, both enforced everywhere. The first reports `any` in annotation
+  positions (parameters, returns, variables, properties, type arguments) and
+  deliberately skips `declare` class properties — the ambient field `@prop`
+  requires — plus `as any` and anything `no-unsafe-dictionary-type` already
+  classifies. The second reports an inferred return type on a module's public
+  surface: an exported function, an exported `const` bound to one, and the
+  non-`private` members of an exported class. Inference inside a module is
+  fine; across the boundary it means the contract is whatever today's
+  implementation happens to produce. Annotating `unknown` to silence it just
+  moves the finding to `no-unknown-returns`. Typing test doubles is what
+  `web/src/test-utils/doubles.ts` is for.
+- **`no-unknown-returns`** has stalled short of zero on one thing said many
+  ways — a node output, an app-state slot, a stream item — for which NodeTool
+  has no named type, plus the `Tool.process` contract that erases every tool's
+  result to share one registry. Those sites carry a
+  `HOLDOUT (anti-slop/no-unknown-returns)` comment saying so. Naming that value
+  domain is a modelling change, not an annotation.
+
+A large pair does not finish in one PR and only ratchets when it reaches zero.
+Bound such a change to one directory and report the before/after count in the
+PR rather than implying the win is already held.
+
 ## Updating
 
 Re-run upstream's installer against a fresh clone and diff:
