@@ -17,6 +17,9 @@ import {
   ADD_TEXT_CLIP_DESCRIPTION,
   ADD_TRACK_DESCRIPTION,
   MOVE_TRACK_DESCRIPTION,
+  clipOpacityParam,
+  moveTrackShape,
+  resolveMoveTrackArgs,
   addGroupParams,
   captionStyleParams,
   effectParams,
@@ -140,15 +143,10 @@ FrontendToolRegistry.register({
   name: "ui_timeline_move_track",
   description: MOVE_TRACK_DESCRIPTION,
   parameters: z
-    .object({
-      timeline_id: timelineIdParam,
-      target: trackTargetParam,
-      toIndex: z.number().int().optional(),
-      before: z.string().optional(),
-      after: z.string().optional()
-    })
+    .object({ timeline_id: timelineIdParam, ...moveTrackShape })
     .strict(),
-  async execute({ timeline_id, target, toIndex, before, after }) {
+  async execute({ timeline_id, ...rest }) {
+    const { target, toIndex, before, after } = resolveMoveTrackArgs(rest);
     const tracks = getTimelineAgentHandler(timeline_id).moveTrack(target, {
       toIndex,
       before,
@@ -190,16 +188,27 @@ FrontendToolRegistry.register({
       trackId: z.string().optional(),
       startMs: z.number().optional(),
       durationMs: z.number().optional(),
+      opacity: clipOpacityParam,
       style: partialTextStyleParams.optional()
     })
     .merge(partialTextStyleParams)
     .strict(),
-  async execute({ timeline_id, text, trackId, startMs, durationMs, style, ...loose }) {
+  async execute({
+    timeline_id,
+    text,
+    trackId,
+    startMs,
+    durationMs,
+    opacity,
+    style,
+    ...loose
+  }) {
     const clip = getTimelineAgentHandler(timeline_id).addTextClip({
       text,
       trackId,
       startMs,
       durationMs,
+      opacity,
       // `style` wins over a top-level twin: a caller that sent both meant the
       // bag it named.
       style: { ...loose, ...(style ?? {}) }
@@ -222,16 +231,27 @@ FrontendToolRegistry.register({
       shapeStyle: shapeStyleParams.optional(),
       trackId: z.string().optional(),
       startMs: z.number().optional(),
-      durationMs: z.number().optional()
+      durationMs: z.number().optional(),
+      opacity: clipOpacityParam
     })
     .merge(shapeStyleParams.partial())
     .strict(),
-  async execute({ timeline_id, shape, shapeStyle, trackId, startMs, durationMs, ...loose }) {
+  async execute({
+    timeline_id,
+    shape,
+    shapeStyle,
+    trackId,
+    startMs,
+    durationMs,
+    opacity,
+    ...loose
+  }) {
     const clip = getTimelineAgentHandler(timeline_id).addShapeClip({
       shape: resolveShapeArg(shape, shapeStyle, loose),
       trackId,
       startMs,
-      durationMs
+      durationMs,
+      opacity
     });
     return {
       ok: true,

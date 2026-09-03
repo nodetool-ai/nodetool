@@ -1254,7 +1254,10 @@ function requestedTimes(
   }
   if (raw.length > maxTimes) {
     return {
-      error: `times_ms holds ${raw.length} timecodes; at most ${maxTimes} render per call.`
+      error:
+        `times_ms holds ${raw.length} timecodes; at most ${maxTimes} render per call. ` +
+        `Split them across ${Math.ceil(raw.length / maxTimes)} calls of ${maxTimes} or fewer, ` +
+        "or pass `range` with `count` to sample a span evenly in one call."
     };
   }
   const times: number[] = [];

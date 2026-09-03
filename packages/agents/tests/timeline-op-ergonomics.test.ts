@@ -295,4 +295,67 @@ describe("ui_timeline_move_track", () => {
       byName["ui_timeline_move_track"].execute({ target: "Video 1" })
     ).rejects.toThrow(/toIndex/);
   });
+
+  /**
+   * `add_media_clip` takes `trackId`, so a caller reaching for `move_track`
+   * right after it sends `{trackId, index}` — refused by name, one round trip
+   * per guess.
+   */
+  it("takes the trackId/index spelling as target/toIndex", async () => {
+    const { byName } = bridge();
+    await byName["ui_timeline_add_track"].execute({
+      type: "overlay",
+      name: "Titles"
+    });
+    const moved = await byName["ui_timeline_move_track"].execute({
+      trackId: "Video 1",
+      index: 1
+    });
+    expect(trackNames(moved)).toEqual(["Titles", "Video 1"]);
+  });
+
+  it("names the track it cannot find a destination for", async () => {
+    const { byName } = bridge();
+    await expect(
+      byName["ui_timeline_move_track"].execute({ trackId: "Video 1" })
+    ).rejects.toThrow(/destination for "Video 1"/);
+  });
 });
+
+describe("clip opacity at creation", () => {
+  it("takes opacity on add_shape_clip", async () => {
+    const { b, byName } = bridge();
+    await byName["ui_timeline_add_shape_clip"].execute({
+      kind: "rect",
+      fill: "#05070C",
+      opacity: 0.6
+    });
+    expect(b.finalState().documentClips.at(-1)?.opacity).toBe(0.6);
+  });
+
+  it("takes opacity on add_text_clip", async () => {
+    const { b, byName } = bridge();
+    await byName["ui_timeline_add_text_clip"].execute({
+      text: "TITLE",
+      opacity: 0.25
+    });
+    expect(b.finalState().documentClips.at(-1)?.opacity).toBe(0.25);
+  });
+
+  it("reports it back on the clip, so the value can be read", async () => {
+    const { byName } = bridge();
+    const result = await byName["ui_timeline_add_shape_clip"].execute({
+      kind: "rect",
+      opacity: 0.4
+    });
+    expect(clipOf(result).opacity).toBe(0.4);
+  });
+
+  it("refuses an opacity outside 0..1 rather than storing it", () => {
+    const { byName } = bridge();
+    expect(() =>
+      byName["ui_timeline_add_shape_clip"].execute({ kind: "rect", opacity: 4 })
+    ).toThrow(/opacity/);
+  });
+});
+

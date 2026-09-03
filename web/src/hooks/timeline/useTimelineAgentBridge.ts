@@ -515,6 +515,7 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           status: "generated",
           textStyle
         });
+        if (opts.opacity !== undefined) clip.opacity = opts.opacity;
         store.addClip(clip);
         ui.getState().selectClip(clip.id);
         return clipNode(reReadClip(clip.id));
@@ -548,6 +549,7 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           status: "generated",
           shapeStyle
         });
+        if (opts.opacity !== undefined) clip.opacity = opts.opacity;
         store.addClip(clip);
         ui.getState().selectClip(clip.id);
         return clipNode(reReadClip(clip.id));

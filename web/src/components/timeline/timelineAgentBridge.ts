@@ -194,6 +194,8 @@ export interface TimelineAddTextClipOptions {
   durationMs?: number;
   /** Every field is optional — `textStyleWithDefaults` fills in the required ones. */
   style?: Partial<Omit<TimelineTextStyle, "text">>;
+  /** Clip opacity, 0..1. */
+  opacity?: number;
 }
 
 export interface TimelineAddShapeClipOptions {
@@ -201,6 +203,8 @@ export interface TimelineAddShapeClipOptions {
   trackId?: string;
   startMs?: number;
   durationMs?: number;
+  /** Clip opacity, 0..1. A scrim can be authored with this or with an alpha fill. */
+  opacity?: number;
 }
 
 /** Render/audio params the agent can patch on any clip. */

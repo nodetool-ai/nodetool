@@ -90,7 +90,10 @@ import {
   ADD_SHAPE_CLIP_DESCRIPTION,
   ADD_TEXT_CLIP_DESCRIPTION,
   ADD_TRACK_DESCRIPTION,
+  clipOpacityParam,
   MOVE_TRACK_DESCRIPTION,
+  moveTrackShape,
+  resolveMoveTrackArgs,
   trackTargetParam,
   resolveShapeArg,
   targetParam,
@@ -870,6 +873,7 @@ export function createTimelineToolBridge(
       hidden: c.hidden ?? false,
       muted: c.muted ?? false,
       locked: c.locked,
+      opacity: c.opacity,
       textStyle: c.textStyle,
       shapeStyle: c.shapeStyle,
       captionStyle: c.caption?.style,
@@ -973,23 +977,17 @@ export function createTimelineToolBridge(
     tool(
       "ui_timeline_move_track",
       MOVE_TRACK_DESCRIPTION,
-      z
-        .object({
-          target: trackTargetParam,
-          toIndex: z.number().int().optional(),
-          before: z.string().optional(),
-          after: z.string().optional()
-        })
-        .strict(),
-      async ({ target, toIndex, before, after }) => {
-        const track = resolveTrack(target as string);
+      z.object(moveTrackShape).strict(),
+      async (args) => {
+        const { target, toIndex, before, after } = resolveMoveTrackArgs(args);
+        const track = resolveTrack(target);
         const destination: TrackDestination = {};
-        if (toIndex !== undefined) destination.toIndex = toIndex as number;
+        if (toIndex !== undefined) destination.toIndex = toIndex;
         if (before !== undefined) {
-          destination.beforeId = resolveTrack(before as string).id;
+          destination.beforeId = resolveTrack(before).id;
         }
         if (after !== undefined) {
-          destination.afterId = resolveTrack(after as string).id;
+          destination.afterId = resolveTrack(after).id;
         }
         const orderedIds = moveTrackOrder(tracks, track.id, destination);
         const byId = new Map(tracks.map((t) => [t.id, t]));
@@ -1018,11 +1016,20 @@ export function createTimelineToolBridge(
           trackId: z.string().optional(),
           startMs: z.number().optional(),
           durationMs: z.number().optional(),
+          opacity: clipOpacityParam,
           style: partialTextStyleParams.optional()
         })
         .merge(partialTextStyleParams)
         .strict(),
-      async ({ text, trackId, startMs, durationMs, style, ...loose }) => {
+      async ({
+        text,
+        trackId,
+        startMs,
+        durationMs,
+        opacity,
+        style,
+        ...loose
+      }) => {
         const track = trackId
           ? resolveTrack(trackId as string)
           : findOrCreateTrack("overlay");
@@ -1045,6 +1052,7 @@ export function createTimelineToolBridge(
           status: "generated",
           textStyle: textStyleWithDefaults(text as string, s)
         });
+        if (opacity !== undefined) clip.opacity = opacity as number;
         clips.push(clip);
         selectedClipIds = [clip.id];
         return { ok: true, clip: serializeClip(clip) };
@@ -1116,11 +1124,20 @@ export function createTimelineToolBridge(
           shapeStyle: shapeStyleParams.optional(),
           trackId: z.string().optional(),
           startMs: z.number().optional(),
-          durationMs: z.number().optional()
+          durationMs: z.number().optional(),
+          opacity: clipOpacityParam
         })
         .merge(shapeStyleParams.partial())
         .strict(),
-      async ({ shape, shapeStyle, trackId, startMs, durationMs, ...loose }) => {
+      async ({
+        shape,
+        shapeStyle,
+        trackId,
+        startMs,
+        durationMs,
+        opacity,
+        ...loose
+      }) => {
         const track = trackId
           ? resolveTrack(trackId as string)
           : findOrCreateTrack("overlay");
@@ -1137,6 +1154,7 @@ export function createTimelineToolBridge(
           status: "generated",
           shapeStyle: shapeStyleWithDefaults(shapeArg)
         });
+        if (opacity !== undefined) clip.opacity = opacity as number;
         clips.push(clip);
         selectedClipIds = [clip.id];
         return { ok: true, clip: serializeClip(clip) };

@@ -22,6 +22,7 @@
  */
 
 import { z } from "zod";
+import { isString } from "../predicates.js";
 import {
   captionStyle,
   clipShapeStyle,
@@ -61,6 +62,84 @@ export const ADD_TRACK_DESCRIPTION =
   "draws on top, so a track added later renders *under* the ones already " +
   "there. Add overlays and titles after the picture track they sit on, or " +
   "reorder afterwards with move_track.";
+
+/**
+ * Clip opacity on the ops that author a clip.
+ *
+ * A scrim can be authored two ways — an alpha fill (`#05070CCC`) or a
+ * translucent clip — and only the second is what `opacity` means everywhere
+ * else, so an `opacity` sent to `add_shape_clip` used to be refused as an
+ * unknown key and cost a `set_clip_params` round trip to apply.
+ */
+export const clipOpacityParam = z
+  .number()
+  .min(0)
+  .max(1)
+  .optional()
+  .describe("Clip opacity, 0..1. Defaults to 1.");
+
+/**
+ * `move_track`'s arguments, in either spelling.
+ *
+ * The op names the track in `target` and its destination in `toIndex`, but a
+ * caller reaching for it after `add_media_clip` (which takes `trackId`) sends
+ * `{trackId, index}` — refused by name, one round trip spent on each. Both are
+ * the same call, so both are accepted.
+ */
+export const moveTrackShape = {
+  target: trackTargetParam.optional(),
+  trackId: trackTargetParam.optional().describe("Alias for `target`."),
+  toIndex: z
+    .number()
+    .int()
+    .optional()
+    .describe("Destination index; 0 is the top of the stack."),
+  index: z.number().int().optional().describe("Alias for `toIndex`."),
+  before: z.string().optional(),
+  after: z.string().optional()
+} as const;
+
+export interface MoveTrackArgs {
+  target: string;
+  toIndex?: number;
+  before?: string;
+  after?: string;
+}
+
+/**
+ * Normalize either spelling, or say what the call is missing. A destination is
+ * required: a `move_track` with none named nothing to do and used to reorder
+ * to index 0 by accident.
+ */
+export function resolveMoveTrackArgs(input: {
+  target?: unknown;
+  trackId?: unknown;
+  toIndex?: unknown;
+  index?: unknown;
+  before?: unknown;
+  after?: unknown;
+}): MoveTrackArgs {
+  const target = (input.target ?? input.trackId) as string | undefined;
+  if (!isString(target) || target.trim() === "") {
+    throw new Error(
+      "move_track needs the track to move in `target` (a track id or name)."
+    );
+  }
+  const toIndex = (input.toIndex ?? input.index) as number | undefined;
+  const before = input.before as string | undefined;
+  const after = input.after as string | undefined;
+  if (toIndex === undefined && before === undefined && after === undefined) {
+    throw new Error(
+      `move_track needs a destination for "${target}": one of \`toIndex\` ` +
+        "(0 is the top of the stack), `before` or `after` (a track name or id)."
+    );
+  }
+  const args: MoveTrackArgs = { target };
+  if (toIndex !== undefined) args.toIndex = toIndex;
+  if (before !== undefined) args.before = before;
+  if (after !== undefined) args.after = after;
+  return args;
+}
 
 export const MOVE_TRACK_DESCRIPTION =
   "Reorder one track in the stack, which is what decides z-order: index 0 " +
@@ -177,8 +256,9 @@ export const ADD_TEXT_CLIP_DESCRIPTION =
   "— {fontSizePx, fontFamily, fontWeight, color, align, maxWidthFrac, " +
   "stroke, shadow, background, fill, ...} — and every one of those keys is " +
   "also read from the top level. `fontSizePx` is in sequence pixels, so 120 " +
-  "in a 1080p frame is 120px tall. A key neither this tool nor the style bag " +
-  "knows is refused by name rather than ignored.";
+  "in a 1080p frame is 120px tall. `opacity` (0..1) sets the clip's own " +
+  "opacity. A key neither this tool nor the style bag knows is refused by " +
+  "name rather than ignored.";
 
 export const ADD_SHAPE_CLIP_DESCRIPTION =
   "Add a rectangle, ellipse, line, polygon, star or path on an overlay track " +
@@ -194,6 +274,8 @@ export const ADD_SHAPE_CLIP_DESCRIPTION =
   'rgba(); for a gradient scrim use fillStyle: {type: "linear", angle, ' +
   'stops: [{offset, color}]} with a transparent stop (#05070C00) at one end. ' +
   "A key this tool does not know is refused by name rather than ignored. " +
+  "`opacity` (0..1) sets the clip's own opacity, which is the other way to " +
+  "author a scrim. " +
   "Shapes are rasterized for preview/export and take the standard motion " +
   "presets.";
 
