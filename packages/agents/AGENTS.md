@@ -2203,7 +2203,7 @@ checklist holds — operations, workflows, widget count, a widget nested in a
 container, a `persist: true` variable, a streaming output shown by a display
 widget, an operation reading a variable another wrote, and a widget carrying a
 condition. Without the checklist a build that shipped one operation and three
-widgets would score as a success. Each of the eight prompt cases declares which
+widgets would score as a success. Each prompt case declares which
 of the six medium-complexity traits (PRD §4) it exercises;
 `uncoveredAppBuildTraits()` names any trait that lost its last case, and the
 harness test fails on a non-empty answer.
