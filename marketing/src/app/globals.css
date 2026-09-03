@@ -534,6 +534,22 @@
 }
 
 /* A flick past the end of the mobile menu must not chain to the page behind. */
+/*
+ * The mobile menu is CSS state, not React state: the header ships an inline
+ * script that toggles `data-nav-open` on <html> while the page is still
+ * parsing, so a tap works long before hydration. Below `md` only — the panel
+ * duplicates the desktop nav.
+ */
+.site-nav-overlay {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  html[data-nav-open] .site-nav-overlay {
+    display: block;
+  }
+}
+
 .mobile-menu-panel {
   overscroll-behavior: contain;
 }
