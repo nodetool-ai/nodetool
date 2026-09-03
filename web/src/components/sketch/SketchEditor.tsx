@@ -73,7 +73,7 @@ import {
   ConnectedContextMenu,
   SketchCanvasPane
 } from "./editor-shell";
-import { ConnectedGeneratedLayerSection } from "./Inspector";
+import { ConnectedGeneratedLayerSection } from "./Inspector/ConnectedGeneratedLayerSection";
 import SketchAgentPanel from "./SketchAgentPanel";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import { useSketchAgentBridge } from "../../hooks/sketch/useSketchAgentBridge";
