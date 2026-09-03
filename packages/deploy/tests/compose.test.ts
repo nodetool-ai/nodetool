@@ -307,14 +307,16 @@ describe("ComposeGenerator", () => {
       expect(services["c-worker"]).toBeDefined();
     });
 
-    it("should handle underscores in names", () => {
+    it("keeps underscores while sanitizing around them", () => {
       const dep = makeDeployment({
-        container: { name: "my_worker", port: 9000 }
+        container: { name: "My_Worker@1", port: 9000 }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
       const services = parsed["services"] as Record<string, unknown>;
-      expect(services["my_worker"]).toBeDefined();
+      // An underscore is legal in a compose service name, so it survives while
+      // the case is folded and `@` becomes a hyphen.
+      expect(Object.keys(services)).toEqual(["my_worker-1"]);
     });
   });
 

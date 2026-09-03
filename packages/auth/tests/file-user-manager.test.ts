@@ -145,12 +145,16 @@ describe("FileUserManager.listUsers", () => {
   });
 
   it("returns all added users", async () => {
-    await manager.addUser("alice");
-    await manager.addUser("bob");
+    const alice = await manager.addUser("alice");
+    await manager.addUser("bob", "admin");
     const users = await manager.listUsers();
-    expect(Object.keys(users)).toHaveLength(2);
-    expect(users["alice"]).toBeDefined();
-    expect(users["bob"]).toBeDefined();
+    expect(Object.keys(users).sort()).toEqual(["alice", "bob"]);
+    expect(users["alice"]).toMatchObject({
+      id: alice.userId,
+      username: "alice",
+      role: "user"
+    });
+    expect(users["bob"]).toMatchObject({ username: "bob", role: "admin" });
   });
 
   it("does not include removed users", async () => {

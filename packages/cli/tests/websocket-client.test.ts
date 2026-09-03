@@ -122,13 +122,18 @@ describe("WebSocketChatClient connect/disconnect", () => {
 // ─── ping auto-response ───────────────────────────────────────────────────────
 
 describe("WebSocketChatClient ping handling", () => {
-  it("replies to server pings with a pong", async () => {
-    const client = await makeConnectedClient();
+  it("replies to server pings with a pong stamped in seconds", async () => {
+    await makeConnectedClient();
+    const before = Date.now() / 1000;
     currentFakeWs.push({ type: "ping" });
     const pong = currentFakeWs.sent
       .map((s) => JSON.parse(s) as Record<string, unknown>)
       .find((m) => m["type"] === "pong");
     expect(pong).toBeDefined();
+    // `ts` is seconds on the wire, not milliseconds.
+    const ts = pong!["ts"] as number;
+    expect(ts).toBeGreaterThanOrEqual(before - 1);
+    expect(ts).toBeLessThanOrEqual(Date.now() / 1000 + 1);
   });
 });
 
