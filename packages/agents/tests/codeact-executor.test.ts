@@ -20,7 +20,8 @@ import {
   BaseProvider,
   createCounter,
   createRunBudget,
-  createSemaphore
+  createSemaphore,
+  generationRegistry
 } from "@nodetool-ai/runtime";
 import { createMockContext } from "./_helpers/mock-context.js";
 
@@ -869,6 +870,113 @@ describe("CodeActExecutor run budget", () => {
     expect(budget.exhausted?.kind).toBe("deadline");
     expect(step.error).toContain("run deadline");
     expect(step.error).not.toContain("without calling finish()");
+  });
+
+  /**
+   * Six paid clips came back and the action died on the deadline before it
+   * wrote their URIs down. The assets were saved; nothing said so, and the next
+   * turn generated them again.
+   */
+  it("names the generations it already paid for when the deadline stops it", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    generationRegistry.reset();
+    let outOfTime = false;
+    const budget: RunBudget = {
+      turns: { reserve: () => true, commit: () => {}, spentUsd: 0 },
+      deadline: {
+        at: Number.POSITIVE_INFINITY,
+        remainingMs: () => (outOfTime ? 0 : 1000),
+        expired: () => outOfTime
+      },
+      concurrency: createSemaphore(1),
+      turnCount: createCounter(10),
+      get exhausted() {
+        return outOfTime
+          ? {
+              kind: "deadline" as const,
+              detail: "run deadline of 1000ms reached"
+            }
+          : null;
+      }
+    };
+    // The generation completes inside the step, as a paid call does, and the
+    // deadline trips on the same call — the shape that lost the six clips.
+    const tick = new TickTool(() => {
+      generationRegistry.register("gen-1", {
+        userId: "test-user",
+        abort: () => {}
+      });
+      generationRegistry.settle("gen-1", {
+        status: "completed",
+        asset_ids: ["asset-9"],
+        receipt: null
+      });
+      outOfTime = true;
+    });
+
+    const provider = {
+      provider: "fake",
+      hasToolSupport: async () => true,
+      async *generateLoop(args: {
+        tools?: Array<{
+          name: string;
+          execute?: (a: Record<string, unknown>) => Promise<string | unknown>;
+        }>;
+      }) {
+        const tool = (args.tools ?? []).find((t) => t.name === "execute_code");
+        await tool?.execute?.({
+          code: `import { tick } from "@nodetool-ai/sandbox-nodetool/session";
+                 await tick({});
+                 await tick({});
+                 await finish({answer: 1});`
+        });
+        yield {
+          type: "message",
+          message: { role: "assistant", content: "ran out of time" }
+        };
+        yield { type: "chunk", content: "", done: true };
+      }
+    } as unknown as BaseProvider;
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: [tick],
+      turnBudget: budget
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    expect(tick.calls).toBe(1);
+    expect(step.error).toContain("run deadline of 1000ms reached");
+    expect(step.error).toContain("gen-1");
+    expect(step.error).toContain("asset-9");
+    expect(step.error).toContain("reuse them instead of generating again");
+    generationRegistry.reset();
+  });
+
+  it("says nothing about paid work when the step generated none", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    const provider = new ScriptedTurnProvider(1);
+    generationRegistry.reset();
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "gpt-4o-mini",
+      tools: [],
+      turnBudget: runBudget({ deadlineMs: 0 })
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    expect(step.error).toContain("run deadline");
+    expect(step.error).not.toContain("reuse them");
   });
 
   it("aborts the action through the sandbox signal when the deadline passes mid-action", async () => {

@@ -51,4 +51,45 @@ describe("generationRegistry", () => {
     generationRegistry.register("b", { userId: "u2", abort: () => {} });
     expect(generationRegistry.runningFor("u1")).toEqual(["a"]);
   });
+
+  describe("completedSince", () => {
+    const settle = (
+      id: string,
+      userId: string,
+      outcome: Partial<{ status: string; asset_ids: string[] }> = {}
+    ): void => {
+      generationRegistry.register(id, { userId, abort: () => {} });
+      generationRegistry.settle(id, {
+        // Safety: the test names one of the statuses the union carries.
+        status: (outcome.status ?? "completed") as "completed",
+        asset_ids: outcome.asset_ids ?? [`asset-${id}`],
+        receipt: null
+      });
+    };
+
+    it("reports the user's completed generations with their assets", () => {
+      const before = Date.now();
+      settle("g-a", "u1");
+      settle("g-b", "u1");
+      expect(generationRegistry.completedSince("u1", before)).toEqual([
+        { id: "g-a", asset_ids: ["asset-g-a"] },
+        { id: "g-b", asset_ids: ["asset-g-b"] }
+      ]);
+    });
+
+    it("leaves out another user's, a failure, and one with no assets", () => {
+      const before = Date.now();
+      settle("g-other", "u2");
+      settle("g-failed", "u1", { status: "failed" });
+      settle("g-empty", "u1", { asset_ids: [] });
+      expect(generationRegistry.completedSince("u1", before)).toEqual([]);
+    });
+
+    it("leaves out one that settled before the window", () => {
+      settle("g-old", "u1");
+      expect(generationRegistry.completedSince("u1", Date.now() + 1)).toEqual(
+        []
+      );
+    });
+  });
 });

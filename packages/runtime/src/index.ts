@@ -110,7 +110,8 @@ export {
 } from "./generation-receipt.js";
 export {
   generationRegistry,
-  type GenerationOutcome
+  type GenerationOutcome,
+  type CompletedGeneration
 } from "./generation-registry.js";
 export { redactGenerationParams } from "./redact-params.js";
 export {

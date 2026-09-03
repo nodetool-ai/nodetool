@@ -27,12 +27,25 @@ interface RunningEntry {
   waiters: Array<(outcome: GenerationOutcome) => void>;
 }
 
+/** A settled outcome plus what {@link GenerationRegistry.completedSince} needs. */
+interface SettledEntry {
+  outcome: GenerationOutcome;
+  userId: string | null;
+  settledAt: number;
+}
+
+/** One generation that finished and left assets behind. */
+export interface CompletedGeneration {
+  id: string;
+  asset_ids: string[];
+}
+
 /** How many settled outcomes to keep for late waiters. */
 const SETTLED_CAPACITY = 1000;
 
 class GenerationRegistry {
   private readonly running = new Map<string, RunningEntry>();
-  private readonly settled = new Map<string, GenerationOutcome>();
+  private readonly settled = new Map<string, SettledEntry>();
 
   register(id: string, entry: { userId: string; abort: () => void }): void {
     this.running.set(id, { ...entry, waiters: [] });
@@ -41,7 +54,11 @@ class GenerationRegistry {
   settle(id: string, outcome: GenerationOutcome): void {
     const entry = this.running.get(id);
     this.running.delete(id);
-    this.settled.set(id, outcome);
+    this.settled.set(id, {
+      outcome,
+      userId: entry?.userId ?? null,
+      settledAt: Date.now()
+    });
     if (this.settled.size > SETTLED_CAPACITY) {
       const oldest = this.settled.keys().next().value;
       if (oldest !== undefined) this.settled.delete(oldest);
@@ -70,7 +87,7 @@ class GenerationRegistry {
    */
   wait(id: string, timeoutMs: number): Promise<GenerationOutcome | null> {
     const done = this.settled.get(id);
-    if (done) return Promise.resolve(done);
+    if (done) return Promise.resolve(done.outcome);
     const entry = this.running.get(id);
     if (!entry) return Promise.resolve(null);
     return new Promise((resolve) => {
@@ -93,7 +110,28 @@ class GenerationRegistry {
 
   /** The settled outcome, when the registry still holds it. */
   outcome(id: string): GenerationOutcome | null {
-    return this.settled.get(id) ?? null;
+    return this.settled.get(id)?.outcome ?? null;
+  }
+
+  /**
+   * Generations that completed for a user since `sinceMs` and left assets.
+   *
+   * A step killed by its deadline loses whatever the guest had not written
+   * down yet, and generations are the expensive half of that: the provider was
+   * paid, the assets were saved, and the only record the next turn had was
+   * gone. This is how a caller names them so the work is reused rather than
+   * bought twice.
+   */
+  completedSince(userId: string, sinceMs: number): CompletedGeneration[] {
+    const found: CompletedGeneration[] = [];
+    for (const [id, entry] of this.settled) {
+      if (entry.userId !== userId) continue;
+      if (entry.settledAt < sinceMs) continue;
+      if (entry.outcome.status !== "completed") continue;
+      if (entry.outcome.asset_ids.length === 0) continue;
+      found.push({ id, asset_ids: entry.outcome.asset_ids });
+    }
+    return found;
   }
 
   /** Ids currently running for a user. */

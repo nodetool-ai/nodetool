@@ -32,6 +32,7 @@ import {
   memoryKeys,
   withAgentSpanGen,
   mediaResolverFor,
+  generationRegistry,
   type ActiveModelSelection
 } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
@@ -1109,7 +1110,7 @@ export class CodeActExecutor {
       const message = generationError
         ? `Step failed: ${generationError.message}`
         : budgetStop
-          ? `Step failed: ${this.stopDetail(budgetStop)}`
+          ? `Step failed: ${this.stopDetail(budgetStop)}${this.paidWorkToRecover()}`
           : exhaustedIterations
             ? `Step failed: exceeded ${this.maxIterations} iterations without completion`
             : this.resultSchema !== null
@@ -1137,6 +1138,36 @@ export class CodeActExecutor {
         is_task_result: this.useFinishTask
       } satisfies StepResult;
     }
+  }
+
+  /**
+   * The generations this step paid for, when it is failing before the code that
+   * would have written their asset ids down.
+   *
+   * A step killed by its deadline or budget loses everything the guest held in
+   * variables. Generations are the half of that which costs money: six clips
+   * came back, the action died before persisting the URIs, and the next turn
+   * had no way to know they existed — so it generated them again. The assets
+   * and their `predictions` rows are already saved; naming the ids here is what
+   * lets the next turn reuse them.
+   */
+  private paidWorkToRecover(): string {
+    const startedAt = this.step.startTime;
+    if (startedAt === undefined) return "";
+    const done = generationRegistry.completedSince(
+      this.context.userId,
+      startedAt
+    );
+    if (done.length === 0) return "";
+    const named = done
+      .map((entry) => `${entry.id} (${entry.asset_ids.join(", ")})`)
+      .join("; ")
+      .slice(0, 2000);
+    return (
+      `. ${done.length} generation(s) completed and were saved before the stop — ` +
+      "reuse them instead of generating again: " +
+      `${named}. Read them with list_generations or get_generation.`
+    );
   }
 
   /**
