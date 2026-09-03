@@ -415,6 +415,59 @@ describe("TimelineSequence model", () => {
       expect(updated!.updated_at).not.toBe(before);
     });
 
+    it("keeps duration_ms in step with the document it writes", async () => {
+      const seq = await createSeq();
+      expect(seq.duration_ms).toBe(0);
+      const updated = await TimelineSequence.updateDocumentIfUnchanged(
+        seq.id,
+        seq.updated_at,
+        makeDocument({
+          clips: [
+            { id: "c1", startMs: 0, durationMs: 1000 } as TimelineClip,
+            { id: "c2", startMs: 4000, durationMs: 2500 } as TimelineClip
+          ]
+        })
+      );
+      expect(updated!.duration_ms).toBe(6500);
+      const loaded = await TimelineSequence.findById(seq.id);
+      expect(loaded!.duration_ms).toBe(6500);
+    });
+
+    it("derives duration_ms on a field write that carries a document", async () => {
+      const seq = await createSeq();
+      const updated = await TimelineSequence.updateFieldsIfUnchanged(
+        seq.id,
+        seq.updated_at,
+        {
+          document: JSON.stringify(
+            makeDocument({
+              clips: [
+                { id: "c1", startMs: 250, durationMs: 750 } as TimelineClip
+              ]
+            })
+          )
+        }
+      );
+      expect(updated!.duration_ms).toBe(1000);
+    });
+
+    it("keeps a duration_ms the caller states with the document", async () => {
+      const seq = await createSeq();
+      const updated = await TimelineSequence.updateFieldsIfUnchanged(
+        seq.id,
+        seq.updated_at,
+        {
+          document: JSON.stringify(
+            makeDocument({
+              clips: [{ id: "c1", startMs: 0, durationMs: 750 } as TimelineClip]
+            })
+          ),
+          duration_ms: 4242
+        }
+      );
+      expect(updated!.duration_ms).toBe(4242);
+    });
+
     it("returns null (no write) when updated_at no longer matches", async () => {
       const seq = await createSeq();
       const stale = seq.updated_at;

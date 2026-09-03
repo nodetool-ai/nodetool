@@ -163,7 +163,8 @@ export type {
 
 export {
   TimelineSequence,
-  TimelineSequenceConflictError
+  TimelineSequenceConflictError,
+  timelineDocumentDurationMs
 } from "./timeline-sequence.js";
 export type {
   TimelineDocument,

@@ -39,6 +39,23 @@ function validateTimelineDocument(doc: TimelineDocument): void {
   }
 }
 
+/**
+ * The end of the last clip — what the sequence's stored `duration_ms` means.
+ *
+ * This lives in the model rather than at a call site because `duration_ms` is a
+ * cache of the document: every write of one must refresh the other, and a
+ * capability that forgot to (`edit_timeline` did) leaves a sequence reporting
+ * 0 ms forever while its own document says otherwise.
+ */
+export function timelineDocumentDurationMs(doc: TimelineDocument): number {
+  if (!Array.isArray(doc.clips)) return 0;
+  return doc.clips.reduce((end, clip) => {
+    const start = Number(clip?.startMs) || 0;
+    const length = Number(clip?.durationMs) || 0;
+    return Math.max(end, start + length);
+  }, 0);
+}
+
 // Guarantees a strictly increasing updated_at so a mutation is never a no-op
 // against the CAS predicate even when two writes land within the same ms.
 function nextUpdatedAtAfter(previous: string): string {
@@ -267,6 +284,7 @@ export class TimelineSequence extends DBModel {
       .update(timelineSequences)
       .set({
         document: JSON.stringify(doc),
+        duration_ms: timelineDocumentDurationMs(doc),
         revision: sql`${timelineSequences.revision} + 1`,
         updated_at: now
       })
@@ -306,14 +324,20 @@ export class TimelineSequence extends DBModel {
     }>,
     meta?: ModelChangeMeta
   ): Promise<TimelineSequence | null> {
+    const write: typeof fields = { ...fields };
     if (fields.document !== undefined) {
-      validateTimelineDocument(JSON.parse(fields.document) as TimelineDocument);
+      const doc = JSON.parse(fields.document) as TimelineDocument;
+      validateTimelineDocument(doc);
+      // A document write without a duration is a stale duration. A caller that
+      // states one (a version restore, which carries the duration recorded with
+      // the snapshot) keeps it.
+      write.duration_ms ??= timelineDocumentDurationMs(doc);
     }
     const db = getDb();
     const now = nextUpdatedAtAfter(expectedUpdatedAt);
     const rows = await db
       .update(timelineSequences)
-      .set({ ...fields, revision: sql`${timelineSequences.revision} + 1`, updated_at: now })
+      .set({ ...write, revision: sql`${timelineSequences.revision} + 1`, updated_at: now })
       .where(
         and(
           eq(timelineSequences.id, id),
