@@ -43,8 +43,11 @@ const log = createLogger("nodetool.execution.cost-ledger");
 
 /**
  * Capabilities a provider bills per output rather than per token. Chat,
- * streaming chat and embeddings are absent on purpose: those are token-billed
- * and already accounted for by `BaseProvider.trackUsage`.
+ * streaming chat and embeddings are absent on purpose: a token-billed call
+ * reaches this ledger by a different road, so admitting it here would book it
+ * twice. A chat turn writes the provider instance's running total through
+ * `ChatTurn._logProviderCall`; a workflow node reports its own delta through
+ * `meterProviderSpend` -> `setProviderCost` -> `recordNodeProviderCost`.
  */
 const UNIT_BILLED_CAPABILITIES = new Set([
   "text_to_image",
