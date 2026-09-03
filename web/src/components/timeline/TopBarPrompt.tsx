@@ -249,7 +249,14 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
       sx={{
         flex: 1,
         minWidth: compact ? 0 : 160,
-        "& .MuiOutlinedInput-root": { height: 34 }
+        "& .MuiOutlinedInput-root": { height: 34 },
+        // Bar text at the label token (13px) so the prompt reads at the same
+        // size as the setting chips beside it. The doubled parent selector
+        // outranks TextInput's own body-token rule for this bar only — the
+        // primitive's 15px standard is untouched everywhere else.
+        "&& .MuiInputBase-input": {
+          fontSize: "var(--fontSizeSmall)"
+        }
       }}
     />
   );
@@ -289,6 +296,10 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
       // Icon-only on phones: the label costs ~70px the prompt needs, and the
       // sparkle plus the field's placeholder already say what it does.
       aria-label="Generate video"
+      // Native tooltip still fires on a disabled button: say why it is off.
+      title={
+        canSubmit ? undefined : "Type a prompt and pick a model to generate"
+      }
       sx={{
         flexShrink: 0,
         height: 34,
@@ -426,7 +437,7 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
         </FlexColumn>
       ) : (
         <FlexRow
-          gap={1}
+          gap={SPACING.xs}
           align="center"
           data-testid="topbar-prompt"
           sx={{ flex: 1, minWidth: 0 }}

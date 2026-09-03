@@ -62,11 +62,14 @@ import {
   Caption,
   CollapsibleSection,
   EditorButton,
+  EmptyState,
   FlexColumn,
   FlexRow,
   Panel,
   SelectField,
-  TextInput
+  TextInput,
+  ToggleGroup,
+  ToggleOption
 } from "../../ui_primitives";
 import { GeneratedClipTopBar } from "./GeneratedClipTopBar";
 import { InspectorSectionTitle } from "./InspectorPrimitives";
@@ -317,9 +320,11 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
     [clipId, patchClipBinding]
   );
 
+  // Exclusive toggle group deselects to null when the active option is
+  // clicked again — ignore it so the clip always keeps a binding kind.
   const handleKindToggle = useCallback(
-    (target: "text-to-image" | "image-to-image") => {
-      if (!clip || clip.bindingKind === target) return;
+    (target: "text-to-image" | "image-to-image" | null) => {
+      if (!clip || !target || clip.bindingKind === target) return;
       patchClipBinding(clipId, { bindingKind: target });
     },
     [clip, clipId, patchClipBinding]
@@ -369,28 +374,29 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
         >
           <FlexColumn gap={1} css={sectionStyles(theme)}>
             {kind === "image" && (
-              <FlexRow gap={0.5}>
-                <EditorButton
-                  size="small"
-                  variant={
-                    clip.bindingKind === "text-to-image"
-                      ? "contained"
-                      : "outlined"
-                  }
-                  onClick={() => handleKindToggle("text-to-image")}
+              <ToggleGroup
+                exclusive
+                size="small"
+                value={clip.bindingKind ?? null}
+                onChange={(_, v) =>
+                  handleKindToggle(
+                    v as "text-to-image" | "image-to-image" | null
+                  )
+                }
+              >
+                <ToggleOption
+                  value="text-to-image"
                   data-testid="direct-gen-mode-t2i"
                 >
                   Text → Image
-                </EditorButton>
-                <EditorButton
-                  size="small"
-                  variant={isImageToImage ? "contained" : "outlined"}
-                  onClick={() => handleKindToggle("image-to-image")}
+                </ToggleOption>
+                <ToggleOption
+                  value="image-to-image"
                   data-testid="direct-gen-mode-i2i"
                 >
                   Image → Image
-                </EditorButton>
-              </FlexRow>
+                </ToggleOption>
+              </ToggleGroup>
             )}
 
             {kind === "video" ? (
@@ -442,9 +448,11 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
 
             {isImageToImage && (
               sourceOptions.length === 0 ? (
-                <Caption color="secondary">
-                  No source clips with a rendered asset are available.
-                </Caption>
+                <EmptyState
+                  variant="empty"
+                  size="small"
+                  description="No source clips with a rendered asset are available."
+                />
               ) : (
                 <SelectField
                   label="Source clip"
@@ -551,7 +559,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
               {isActive ? "Cancel" : generateLabel}
             </EditorButton>
             {isFailed && (
-              <Caption sx={{ color: "error.main", textAlign: "center" }}>
+              <Caption color="error" sx={{ textAlign: "center" }}>
                 Generation failed.
               </Caption>
             )}

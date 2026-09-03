@@ -251,7 +251,7 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
                 {isActive ? "Cancel" : generateLabel}
               </EditorButton>
               {isFailed && (
-                <Caption sx={{ color: "error.main", textAlign: "center" }}>
+                <Caption color="error" sx={{ textAlign: "center" }}>
                   Generation failed.
                 </Caption>
               )}

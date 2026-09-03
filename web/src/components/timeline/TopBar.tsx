@@ -20,6 +20,7 @@ import {
   EditorButton,
   EditorMenu,
   MenuItemPrimitive,
+  SettingsButton,
   ToolbarIconButton,
   SPACING,
   getSpacingPx
@@ -42,7 +43,7 @@ const styles = (theme: Theme, compact: boolean) =>
     backgroundColor: theme.vars.palette.background.paper,
     padding: compact
       ? `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`
-      : `0 ${theme.spacing(1.5)}`,
+      : `0 ${getSpacingPx(SPACING.sm)}`,
     flexShrink: 0
   });
 
@@ -161,7 +162,12 @@ export const TopBar: React.FC<TopBarProps> = memo(
     }
 
     return (
-      <FlexRow align="center" gap={1} fullWidth css={styles(theme, false)}>
+      <FlexRow
+        align="center"
+        gap={SPACING.xs}
+        fullWidth
+        css={styles(theme, false)}
+      >
         {/* Quick-prompt generation bar — grows to fill */}
         <TopBarPrompt />
 
@@ -169,15 +175,11 @@ export const TopBar: React.FC<TopBarProps> = memo(
         {activitySlot}
 
         {onOpenSettings && (
-          <EditorButton
-            variant="outlined"
+          <SettingsButton
             onClick={onOpenSettings}
-            startIcon={<TuneIcon />}
-            size="small"
-            aria-label="Project settings"
-          >
-            Settings
-          </EditorButton>
+            tooltip="Project settings"
+            iconVariant="tune"
+          />
         )}
 
         {onSave && (
