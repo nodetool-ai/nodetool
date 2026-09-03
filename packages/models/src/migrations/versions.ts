@@ -3251,6 +3251,48 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_prediction_job");
       // Columns stay: dropping them is unsafe across dialects and versions.
     }
+  },
+
+  // ── Create nodetool_user_events ─────────────────────────────────────
+  // A narrow, privacy-scoped audit log keyed by user id: auth and credential
+  // changes, irreversible or outward-facing actions, and consent/policy/DSR
+  // events. Behavioral analytics is deliberately out of scope and stays
+  // aggregate in Plausible. No ip_address, no user_agent, no free-text
+  // column — see schema/user-events.ts for why each is absent.
+  {
+    version: "20260903_000001",
+    name: "create_user_events",
+    createsTables: ["nodetool_user_events"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS nodetool_user_events (
+          id TEXT PRIMARY KEY NOT NULL,
+          user_id TEXT NOT NULL,
+          event_type TEXT NOT NULL,
+          subject_type TEXT,
+          subject_id TEXT,
+          metadata TEXT,
+          created_at TEXT NOT NULL
+        )
+      `);
+      // Serves the erasure and export range scans.
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_user_event_user_created
+        ON nodetool_user_events (user_id, created_at)
+      `);
+      // Serves the retention sweep, which walks by type because the
+      // consent/policy/DSR types are never pruned.
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_user_event_type_created
+        ON nodetool_user_events (event_type, created_at)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_user_event_user_created");
+      await db.execute("DROP INDEX IF EXISTS idx_user_event_type_created");
+      await db.execute("DROP TABLE IF EXISTS nodetool_user_events");
+    }
   }
 ];
 

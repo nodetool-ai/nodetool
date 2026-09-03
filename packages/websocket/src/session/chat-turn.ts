@@ -2224,12 +2224,13 @@ export class ChatTurnHandler {
     };
 
     // Trigger 1, proactive: the estimated prompt is over the configured
-    // ceiling. `estimatePromptTokens` tokenizes the serialized messages and
-    // their tool calls and nothing else, so the number is not the prompt: the
-    // tool definitions this turn also sends are missing from it, while a
-    // resolved image is counted as the length of its base64. It is a size
-    // signal, which is why the default ceiling sits well under any shipping
-    // context window rather than close to one.
+    // ceiling. `estimatePromptTokens` tokenizes the message text and tool
+    // calls and scores each attached image, audio, video or document at a
+    // fixed per-modality figure, so a resolved `data:` uri never reaches the
+    // tokenizer. The number is still not the prompt — the tool definitions
+    // this turn also sends are missing from it. It is a size signal, which is
+    // why the default ceiling sits well under any shipping context window
+    // rather than close to one.
     //
     // A provider holding the conversation upstream is sent only the turns since
     // its session token, so this number would describe a fraction of what it

@@ -678,6 +678,17 @@ const TABLE_COLUMNS = {
     content: "text",
     created_at: "text",
     updated_at: "text"
+  },
+  // Privacy-scoped audit log. No ip_address, no user_agent and no free-text
+  // column, on purpose — see schema/user-events.ts.
+  nodetool_user_events: {
+    id: "text",
+    user_id: "text",
+    event_type: "text",
+    subject_type: "text",
+    subject_id: "text",
+    metadata: "text",
+    created_at: "text"
   }
 } satisfies Record<string, Record<string, string>>;
 
@@ -1469,6 +1480,18 @@ function getCreateSchemaSql(): string {
     );
     CREATE INDEX IF NOT EXISTS "idx_mcp_oauth_token_grant" ON "mcp_oauth_tokens" ("grant_id");
     CREATE UNIQUE INDEX IF NOT EXISTS "idx_mcp_oauth_token_rotated_from" ON "mcp_oauth_tokens" ("rotated_from");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_user_events" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "event_type" text NOT NULL,
+      "subject_type" text,
+      "subject_id" text,
+      "metadata" text,
+      "created_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_user_event_user_created" ON "nodetool_user_events" ("user_id", "created_at");
+    CREATE INDEX IF NOT EXISTS "idx_user_event_type_created" ON "nodetool_user_events" ("event_type", "created_at");
   `;
 }
 

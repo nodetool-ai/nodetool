@@ -15,6 +15,7 @@ import {
   toProviderTools,
   toolCallChunk
 } from "./agent-utils.js";
+import { meterProviderSpend } from "./provider-spend.js";
 import { isCallable } from "./type-predicates.js";
 
 const log = createLogger("nodetool.base-nodes.agents");
@@ -212,32 +213,39 @@ export async function runAgentLoop(
     // loop (and its tool calls) running.
     signal: context.signal
   });
-  for await (const event of classifyProviderStream(stream)) {
-    if (event.kind === "tool_call") {
-      options.onToolCall?.(toolCallChunk(event.toolCall));
-      continue;
-    }
-    if (event.kind === "text") {
-      // Only genuine text feeds the returned text / onText stream. Tool-call
-      // chunks (and audio, agent_status, etc.) carry content_type !== "text"
-      // and must not leak into the text output.
-      if (event.chunk.content_type === "text" && event.delta) {
-        currentTurnText += event.delta;
-        options.onText?.(event.delta);
+  // Book this loop's token spend against the calling node, so the run leaves a
+  // prediction row. See `meterProviderSpend`.
+  const spend = meterProviderSpend(context, provider, modelId);
+  try {
+    for await (const event of classifyProviderStream(stream)) {
+      if (event.kind === "tool_call") {
+        options.onToolCall?.(toolCallChunk(event.toolCall));
+        continue;
       }
-      continue;
-    }
-    // thinking / audio events carry no returned text — ignore them here.
-    if (event.kind === "assistant_message" || event.kind === "tool_message") {
-      // A finalized message event. Append it to the returned trail; an assistant
-      // turn also closes the current text run so `text` reflects the model's
-      // last assistant message, not a concatenation.
-      outMessages.push(event.message);
-      if (event.kind === "assistant_message") {
-        if (currentTurnText) lastAssistantText = currentTurnText;
-        currentTurnText = "";
+      if (event.kind === "text") {
+        // Only genuine text feeds the returned text / onText stream. Tool-call
+        // chunks (and audio, agent_status, etc.) carry content_type !== "text"
+        // and must not leak into the text output.
+        if (event.chunk.content_type === "text" && event.delta) {
+          currentTurnText += event.delta;
+          options.onText?.(event.delta);
+        }
+        continue;
+      }
+      // thinking / audio events carry no returned text — ignore them here.
+      if (event.kind === "assistant_message" || event.kind === "tool_message") {
+        // A finalized message event. Append it to the returned trail; an
+        // assistant turn also closes the current text run so `text` reflects
+        // the model's last assistant message, not a concatenation.
+        outMessages.push(event.message);
+        if (event.kind === "assistant_message") {
+          if (currentTurnText) lastAssistantText = currentTurnText;
+          currentTurnText = "";
+        }
       }
     }
+  } finally {
+    spend.report();
   }
 
   // A provider that runs its own loop may stream final text without a trailing

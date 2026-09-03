@@ -75,6 +75,12 @@ export const EDIT_IMAGE_SCHEMA: JsonSchema = {
       description:
         "Workspace-relative path of the source image (or asset:// URI)."
     },
+    reference_files: {
+      type: "array" as const,
+      items: { type: "string" as const },
+      description:
+        "Extra images the model should match — style, subject, or an earlier approved result. Each is a workspace-relative path or asset:// URI, and they are sent after input_file."
+    },
     prompt: {
       type: "string" as const,
       description: "Text prompt describing the desired transformation."
@@ -469,7 +475,7 @@ export const generateImageSpec: CapabilitySpec = {
 export const editImageSpec: CapabilitySpec = {
   name: "edit_image",
   description:
-    "Transform a source image with a text prompt using a provider+model selected via find_model (capability=image_to_image). Source can be an asset URI (asset://...) or a workspace path. Result is saved as an asset.",
+    "Transform a source image with a text prompt using a provider+model selected via find_model (capability=image_to_image). Source can be an asset URI (asset://...) or a workspace path. Pass `reference_files` to hand the model more images to match — the user's attachment, or an earlier result whose style a new image must keep. Result is saved as an asset.",
   inputSchema: EDIT_IMAGE_SCHEMA,
   category: "write",
   userMessage: (params) =>

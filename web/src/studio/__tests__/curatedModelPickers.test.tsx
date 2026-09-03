@@ -28,6 +28,20 @@ jest.mock("@tanstack/react-query", () => ({
   useQuery: () => ({ data: [] })
 }));
 
+// What the server says it sells. `null` is "balance unknown" — the pickers
+// then show the whole catalog and let the run refuse.
+let spendableModels: string[] | null = null;
+jest.mock("../useStudioCredits", () => ({
+  __esModule: true,
+  useStudioCredits: () => ({
+    status: spendableModels ? { spendableModels } : null,
+    remaining: 0,
+    loading: false,
+    unavailable: false,
+    refetch: jest.fn()
+  })
+}));
+
 const inStudio = (ui: React.ReactElement) =>
   render(
     <ThemeProvider theme={mockTheme}>
@@ -39,6 +53,10 @@ const inWorkspace = (ui: React.ReactElement) =>
   render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
 
 describe("Studio curated model pickers", () => {
+  beforeEach(() => {
+    spendableModels = null;
+  });
+
   it("offers only the curated stills, and the full browser outside Studio", async () => {
     const user = userEvent.setup();
     const onChange = jest.fn();
@@ -87,5 +105,31 @@ describe("Studio curated model pickers", () => {
 
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     expect(screen.getByTestId("image-model-dialog")).toBeInTheDocument();
+  });
+
+  it("offers only the stills this server sells", async () => {
+    const user = userEvent.setup();
+    spendableModels = [STUDIO_STILL_MODELS[0].modelId];
+    inStudio(
+      <ImageModelSelect
+        value={STUDIO_STILL_MODELS[0].id}
+        onChange={jest.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("combobox"));
+    const options = screen.getAllByRole("option");
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent(STUDIO_STILL_MODELS[0].label);
+  });
+
+  it("moves a selection this server stopped selling onto one it sells", async () => {
+    const onChange = jest.fn();
+    spendableModels = [STUDIO_STILL_MODELS[1].modelId];
+    inStudio(
+      <ImageModelSelect value={STUDIO_STILL_MODELS[0].id} onChange={onChange} />
+    );
+
+    expect(onChange).toHaveBeenCalledWith(STUDIO_STILL_MODELS[1].value);
   });
 });

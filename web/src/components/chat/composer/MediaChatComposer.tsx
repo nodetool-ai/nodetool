@@ -98,6 +98,7 @@ import { StopGenerationButton } from "./StopGenerationButton";
 import MediaCostEstimate from "./MediaCostEstimate";
 import PermissionSelector from "./PermissionSelector";
 import { useAutoFocusEnabled } from "../../../hooks/useAutoFocusEnabled";
+import { useFirstRunLanguageModel } from "../../../hooks/useFirstRunLanguageModel";
 
 /** Textarea growth caps. The mobile one matches the composer stylesheet — on a
  *  phone the keyboard already owns most of the screen. */
@@ -236,6 +237,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   // Language-model selection from chat store (used in chat mode & forwarded
   // as provider/model for media calls when a media model is not picked).
   const languageModel = useGlobalChatStore((s) => s.selectedModel);
+  // A new account has an unsendable placeholder here. Fill it once from the
+  // recommended models rather than let the menu's first row decide.
+  useFirstRunLanguageModel();
   const permissionMode = useGlobalChatStore((s) =>
     s.getPermissionMode(threadId ?? s.currentThreadId)
   );

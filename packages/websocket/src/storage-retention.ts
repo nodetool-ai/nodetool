@@ -11,6 +11,8 @@ const KEYS = {
   autosaveRetentionDays: "storage.retention.autosaveRetentionDays",
   manualVersionRetentionDays: "storage.retention.manualVersionRetentionDays",
   terminalJobRetentionDays: "storage.retention.terminalJobRetentionDays",
+  runEventRetentionDays: "storage.retention.runEventRetentionDays",
+  predictionRetentionDays: "storage.retention.predictionRetentionDays",
   automaticCleanup: "storage.retention.automaticCleanup",
   lastCleanupAt: "storage.retention.lastCleanupAt"
 } as const;
@@ -62,6 +64,18 @@ export async function getStorageRetentionSettings(userId: string): Promise<{
         1,
         3650
       ),
+      runEventRetentionDays: boundedInteger(
+        values.get(KEYS.runEventRetentionDays),
+        DEFAULT_STORAGE_RETENTION_POLICY.runEventRetentionDays ?? 30,
+        1,
+        3650
+      ),
+      predictionRetentionDays: boundedInteger(
+        values.get(KEYS.predictionRetentionDays),
+        DEFAULT_STORAGE_RETENTION_POLICY.predictionRetentionDays ?? 400,
+        1,
+        3650
+      ),
       automaticCleanup:
         values.get(KEYS.automaticCleanup) === undefined
           ? DEFAULT_STORAGE_RETENTION_POLICY.automaticCleanup
@@ -76,14 +90,18 @@ export async function saveStorageRetentionPolicy(
   policy: StorageRetentionPolicy
 ): Promise<void> {
   await Promise.all(
-    (Object.keys(policy) as Array<keyof StorageRetentionPolicy>).map((key) =>
-      Setting.upsert({
-        userId,
-        key: KEYS[key],
-        value: String(policy[key]),
-        description: "Database history retention policy"
-      })
-    )
+    (Object.keys(policy) as Array<keyof StorageRetentionPolicy>)
+      // The two retention windows are optional on the policy type; a key
+      // present with an undefined value would persist the string "undefined".
+      .filter((key) => policy[key] !== undefined)
+      .map((key) =>
+        Setting.upsert({
+          userId,
+          key: KEYS[key],
+          value: String(policy[key]),
+          description: "Database history retention policy"
+        })
+      )
   );
 }
 

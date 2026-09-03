@@ -181,6 +181,37 @@ describe("recordNodeProviderCost", () => {
     expect(row.unit_price).toBe(0.03);
   });
 
+  it("records provider, model and tokens for a text model's charge", async () => {
+    // An LLM node's `generateLoop` delta arrives here. Without provider and
+    // model on the row, `nodetool costs` cannot say which model spent the money.
+    await recordNodeProviderCost({
+      userId: USER,
+      cost: {
+        provider: "openai",
+        amount: 0.0042,
+        unit: "USD",
+        model: "gpt-4o-mini",
+        currency: "USD",
+        billing_unit: "tokens",
+        quantity: 300,
+        input_tokens: 200,
+        output_tokens: 100,
+        cached_tokens: null
+      },
+      nodeId: "agent-1",
+      nodeType: "nodetool.agents.Agent",
+      workflowId: "wf-4"
+    });
+
+    const [row] = await rows();
+    expect(row.provider).toBe("openai");
+    expect(row.model).toBe("gpt-4o-mini");
+    expect(row.cost).toBe(0.0042);
+    expect(row.input_tokens).toBe(200);
+    expect(row.output_tokens).toBe(100);
+    expect(row.node_id).toBe("agent-1");
+  });
+
   it("records nothing for a non-finite amount", async () => {
     await recordNodeProviderCost({
       userId: USER,

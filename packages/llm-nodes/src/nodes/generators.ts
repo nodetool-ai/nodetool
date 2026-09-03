@@ -11,6 +11,7 @@ import {
   type ToolLike
 } from "./agents.js";
 import { hasProviderAccess } from "./agent-utils.js";
+import { meterProviderSpend } from "./provider-spend.js";
 import {
   isBoolean,
   isCallable,
@@ -200,6 +201,41 @@ function hasProviderSupport(
   );
 }
 
+/**
+ * Run one chat completion for a generator node and book what it cost.
+ *
+ * `runProviderPrediction` emits `prediction` messages, but both consumers drop
+ * a token-billed capability, so a workflow made only of generator nodes left no
+ * ledger row. The provider instance `runGenerationWith` calls is the one
+ * `context.getProvider` memoizes, so the same before/after delta the other LLM
+ * nodes report covers this call too. See `meterProviderSpend`.
+ *
+ * A context without `getProvider` (a partial harness or test double) has no
+ * provider to read a running total from, so the call runs unmetered.
+ */
+async function runMeteredMessage(
+  context: ProcessingContext,
+  providerId: string,
+  modelId: string,
+  params: Record<string, unknown>
+): Promise<unknown> {
+  const run = () =>
+    context.runProviderPrediction({
+      provider: providerId,
+      capability: "generate_message",
+      model: modelId,
+      params
+    });
+  if (!isCallable(context.getProvider)) return run();
+  const provider = await context.getProvider(providerId);
+  const spend = meterProviderSpend(context, provider, modelId);
+  try {
+    return await run();
+  } finally {
+    spend.report();
+  }
+}
+
 const LIST_GENERATOR_SYSTEM_PROMPT =
   "You generate a list by calling the `add_item` tool once per item. " +
   "Each call submits one item, which may be a single line or span multiple " +
@@ -371,18 +407,13 @@ async function generateDataframeFromCsv(
       ? `Use exactly these columns: ${specs.map((s) => s.name).join(", ")}.`
       : "Choose appropriate columns for the data.";
   const systemPrompt = `You are a data generator. Return ONLY a CSV with a header row and exactly ${count} data rows. No explanation, no markdown fences, no extra text. ${columnHint}`;
-  const result = await context.runProviderPrediction({
-    provider: providerId,
-    capability: "generate_message",
+  const result = await runMeteredMessage(context, providerId, modelId, {
     model: modelId,
-    params: {
-      model: modelId,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: prompt }
-      ],
-      max_tokens: maxTokens
-    }
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: prompt }
+    ],
+    max_tokens: maxTokens
   });
   const content = asText((result as { content?: unknown }).content ?? result);
   return parseCsv(content, specs);
@@ -488,19 +519,14 @@ export class StructuredOutputGeneratorNode extends BaseNode {
         role: "user",
         content: buildMessageContent(userText, this.image, this.audio)
       });
-      const result = await context.runProviderPrediction({
-        provider: providerId,
-        capability: "generate_message",
+      const result = await runMeteredMessage(context, providerId, modelId, {
         model: modelId,
-        params: {
-          model: modelId,
-          messages,
-          response_format: {
-            type: "json_schema",
-            json_schema: {
-              name: "structured_output",
-              schema
-            }
+        messages,
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "structured_output",
+            schema
           }
         }
       });
@@ -923,23 +949,18 @@ Set a descriptive title, axis labels, and legend settings.`;
         }
       };
 
-      const result = await context.runProviderPrediction({
-        provider: providerId,
-        capability: "generate_message",
+      const result = await runMeteredMessage(context, providerId, modelId, {
         model: modelId,
-        params: {
-          model: modelId,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userMessage }
-          ],
-          max_tokens: Number(this.max_tokens ?? 4096),
-          response_format: {
-            type: "json_schema",
-            json_schema: {
-              name: "chart_config",
-              schema: chartSchema
-            }
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage }
+        ],
+        max_tokens: Number(this.max_tokens ?? 4096),
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "chart_config",
+            schema: chartSchema
           }
         }
       });
@@ -1131,15 +1152,10 @@ Output only SVG markup, no explanations or markdown fences.`;
         }
       ];
 
-      const result = await context.runProviderPrediction({
-        provider: providerId,
-        capability: "generate_message",
+      const result = await runMeteredMessage(context, providerId, modelId, {
         model: modelId,
-        params: {
-          model: modelId,
-          messages,
-          max_tokens: Number(this.max_tokens ?? 8192)
-        }
+        messages,
+        max_tokens: Number(this.max_tokens ?? 8192)
       });
 
       const content = asText(

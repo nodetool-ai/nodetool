@@ -98,7 +98,10 @@ export type {
   ProbeStatus,
   RunProbesOptions
 } from "./contract/index.js";
-export type { ProviderCapability } from "./base-provider.js";
+export type {
+  ProviderCapability,
+  ProviderUsageTotals
+} from "./base-provider.js";
 export {
   CORE_TOOL_NAMES,
   DISCOVERY_TOOL_NAMES,
@@ -272,7 +275,8 @@ import {
   CLOUD_PROFILE_ENV,
   NODE_ENV_VAR,
   isCloudProfileActive,
-  isCloudProvider
+  isCloudProvider,
+  isSelfServeProvider
 } from "@nodetool-ai/protocol";
 export type {
   ProviderId,
@@ -546,5 +550,15 @@ if (
 if (_cloudProfile) {
   for (const id of listBuiltinProviderIds()) {
     if (!isCloudProvider(id)) unregisterBuiltinProvider(id);
+  }
+} else {
+  // Off the cloud profile — a desktop install, a dev checkout, or a
+  // self-hosted server (NODETOOL_NODE_PROFILE=full) — drop the mirror image:
+  // the providers only the commercial cloud can reach. `nodetool` spends
+  // NodeTool's own platform keys against a user's credit balance, so outside
+  // the cloud product it is a provider card with no wallet behind it. Users
+  // here bring their own keys, and every BYOK provider above still works.
+  for (const id of listBuiltinProviderIds()) {
+    if (!isSelfServeProvider(id)) unregisterBuiltinProvider(id);
   }
 }

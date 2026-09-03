@@ -529,9 +529,17 @@ const editImage: CapabilityExport = {
       return { error: "input_file is required" };
     if (!isNonEmptyString(prompt))
       return { error: "prompt is required" };
-    let image: Uint8Array;
+    const referenceFiles = params["reference_files"];
+    if (referenceFiles !== undefined && !Array.isArray(referenceFiles))
+      return { error: "reference_files must be an array of strings" };
+    const references = (referenceFiles ?? []).filter(isNonEmptyString);
+    let images: Uint8Array[];
     try {
-      image = await readWorkspaceOrAssetFile(context, inputFile);
+      images = await Promise.all(
+        [inputFile, ...references].map((file) =>
+          readWorkspaceOrAssetFile(context, file)
+        )
+      );
     } catch (e) {
       return predictionError("image_to_image", m, e);
     }
@@ -541,7 +549,10 @@ const editImage: CapabilityExport = {
       type: "image",
       namePrefix: "edited-image",
       params: {
-        image,
+        // `coerceImageList` reads the list; the source image stays first so a
+        // provider that treats one input as the canvas and the rest as style
+        // references gets them in that order.
+        images,
         prompt,
         negative_prompt: params["negative_prompt"],
         target_width: params["target_width"],

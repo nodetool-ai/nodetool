@@ -184,6 +184,22 @@ markdown images: \`![label](asset://<id>.<ext>)\`. The chat UI resolves
 rewrite it to an HTTP URL, wrap it in a code block, or use a plain markdown
 link (\`[label](asset://…)\`) for media.
 
+# Attached images
+An image the user attaches arrives with its \`asset://<id>.<ext>\` uri as text
+beside it. That uri is the handle: pass it to \`view_image\` to look again, or
+to a generation call as an image input.
+When the user says "like this", "same style", "match the one you made
+earlier", or "edit this", call
+\`nodetool.media.editImage(uri, prompt, await nodetool.models.pick("image_to_image"),
+{reference_files})\` with the attachment as the input or as a reference. Never
+answer such a request with a fresh \`generateImage\` — text alone cannot match a
+picture the model has not been given.
+To keep a set consistent, pass the approved image in \`reference_files\` on
+every later generation.
+To put text on an image, draw it: \`createCanvas\` with \`fillText\`, or the flow
+call \`import { renderText } from "@nodetool-ai/sandbox-flow/lib.image.draw"\`.
+Never tell the user to use another tool for it.
+
 # Linking resources
 Resources are addressable as \`<kind>://<id>\`, optionally with a sub-target
 fragment (\`timeline://tl_7#clip=cl_2\`). Kinds: asset, workflow, timeline,

@@ -47,7 +47,8 @@ export {
   triggerInputs,
   runInboxMessages,
   triggerRegistrations,
-  externalIdentities
+  externalIdentities,
+  userEvents
 } from "./schema/index.js";
 
 // ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────
@@ -84,6 +85,36 @@ export type {
   StorageStatus,
   StorageCleanupResult
 } from "./storage-maintenance.js";
+
+// ── Personal data: Art. 17 erasure and Art. 20 portability ───────────
+export {
+  PERSONAL_DATA_REGISTRY,
+  PERSONAL_DATA_BY_TABLE,
+  WITHHELD_VALUE,
+  isActionable
+} from "./personal-data-registry.js";
+export type {
+  PersonalDataDisposition,
+  PersonalDataEntry,
+  PersonalDataReach
+} from "./personal-data-registry.js";
+export {
+  ERASURE_HANDLED_TABLES,
+  ERASURE_STEPS,
+  EXPORT_HANDLERS,
+  actionableEntries,
+  erasePersonalData,
+  exportPersonalData
+} from "./personal-data.js";
+export type {
+  ErasureObjectStore,
+  ErasureOptions,
+  ErasureReport,
+  PersonalDataExport,
+  PersonalDataExportOptions,
+  PersonalDataExportTable,
+  TableErasureReport
+} from "./personal-data.js";
 
 export { Workflow } from "./workflow.js";
 export type {
@@ -324,6 +355,27 @@ export type { MintedAccessToken, CreateAccessTokenParams } from "./access-token.
 export { ExternalIdentity } from "./external-identity.js";
 export type { LinkExternalIdentityParams } from "./external-identity.js";
 export {
+  DEFAULT_USER_EVENT_RETENTION_DAYS,
+  MAX_USER_EVENT_STRING_LENGTH,
+  NEVER_PRUNED_USER_EVENT_TYPES,
+  USER_EVENT_METADATA_ALLOWLIST,
+  UserEventType,
+  deleteUserEventsForUser,
+  isNeverPrunedUserEventType,
+  isUserEventType,
+  listUserEvents,
+  pruneUserEvents,
+  recordUserEvent,
+  sanitizeUserEventMetadata
+} from "./user-event.js";
+export type {
+  ListUserEventsOptions,
+  RecordUserEventInput,
+  UserEventMetadata,
+  UserEventMetadataValue,
+  UserEventRow
+} from "./user-event.js";
+export {
   McpOauthClient,
   McpOauthGrant,
   McpOauthToken,
@@ -423,15 +475,18 @@ export {
   checkCredits,
   creditStatus,
   ensureMonthlyGrant,
+  ensureSignupGrant,
   getSubscription,
   grantCredits,
   periodKeyFor,
   planById,
-  setSubscriptionPlan
+  setSubscriptionPlan,
+  spendableModelIds
 } from "./credits.js";
 export type {
   CreditDecision,
   CreditPlan,
+  CreditRefusal,
   CreditStatus,
   UserSubscription
 } from "./credits.js";

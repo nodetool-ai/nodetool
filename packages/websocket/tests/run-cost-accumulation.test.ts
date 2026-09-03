@@ -81,6 +81,33 @@ describe("run cost accumulation", () => {
     expect(settle([nodeCost("n1", 0.42)])).toBeCloseTo(0.42);
   });
 
+  it("counts an LLM node's token charge", () => {
+    // An `Agent` node reports its `generateLoop` delta the same way FAL does,
+    // so a job whose only node is an LLM node settles at what it spent instead
+    // of at null.
+    expect(
+      settle([
+        {
+          type: "node_update",
+          status: "completed",
+          node_id: "agent-1",
+          node_type: "nodetool.agents.Agent",
+          provider_cost: {
+            provider: "openai",
+            amount: 0.0042,
+            unit: "USD",
+            model: "gpt-4o-mini",
+            currency: "USD",
+            billing_unit: "tokens",
+            quantity: 300,
+            input_tokens: 200,
+            output_tokens: 100
+          }
+        }
+      ])
+    ).toBeCloseTo(0.0042);
+  });
+
   it("counts ledger-priced generation the node reports no charge for", () => {
     expect(settle([prediction()])).toBeCloseTo(unitPrice());
   });

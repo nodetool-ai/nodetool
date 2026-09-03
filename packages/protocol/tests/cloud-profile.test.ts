@@ -8,6 +8,8 @@ import {
   CLOUD_BUILTIN_PACK_IDS,
   isCloudNodeType,
   isCloudProvider,
+  isSelfServeProvider,
+  CLOUD_ONLY_PROVIDER_IDS,
   isCloudProfileActive
 } from "../src/cloud-profile.js";
 import { BUILTIN_NODE_PACKS } from "../src/builtin-packs.js";
@@ -246,5 +248,29 @@ describe("cloud provider + pack allowlists", () => {
     expect(new Set(NON_CLOUD_PROVIDER_IDS).size).toBe(
       NON_CLOUD_PROVIDER_IDS.length
     );
+  });
+
+  it("keeps the managed provider out of every self-serve install", () => {
+    expect(isSelfServeProvider("nodetool")).toBe(false);
+    // It is still a cloud provider — the two lists are opposite ends, not a
+    // single spectrum, and `nodetool` is the one id that is cloud-only.
+    expect(isCloudProvider("nodetool")).toBe(true);
+  });
+
+  it("treats an unknown provider id as self-serve", () => {
+    expect(isSelfServeProvider("some-future-byok-api")).toBe(true);
+    for (const id of ["ollama", "openai", "fal_ai", "anthropic"]) {
+      expect(isSelfServeProvider(id)).toBe(true);
+    }
+  });
+
+  it("cloud-only and non-cloud lists are unique and disjoint", () => {
+    expect(CLOUD_ONLY_PROVIDER_IDS.length).toBeGreaterThan(0);
+    expect(new Set(CLOUD_ONLY_PROVIDER_IDS).size).toBe(
+      CLOUD_ONLY_PROVIDER_IDS.length
+    );
+    for (const id of CLOUD_ONLY_PROVIDER_IDS) {
+      expect(NON_CLOUD_PROVIDER_IDS).not.toContain(id);
+    }
   });
 });

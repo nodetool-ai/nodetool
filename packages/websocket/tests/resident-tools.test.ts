@@ -73,6 +73,17 @@ describe("resident toolbelt", () => {
     ).toBeLessThan(CHAT_AGENT_SYSTEM_PROMPT.indexOf("# Building workflows"));
   });
 
+  it("routes an attached image to editImage, not to a fresh generation", () => {
+    // A turn given a reference image and "same exact style as the one you made
+    // earlier" only ever called text-to-image, then told the user to burn the
+    // caption on in Canva.
+    const section = CHAT_AGENT_SYSTEM_PROMPT.split("# Attached images")[1];
+    expect(section).toBeDefined();
+    expect(section).toContain("nodetool.media.editImage");
+    expect(section).toContain("reference_files");
+    expect(section).toContain("renderText");
+  });
+
   it("describes every resource kind, not just workflows", () => {
     const section = CHAT_AGENT_SYSTEM_PROMPT.split("# NodeTool resources")[1];
     expect(section).toBeDefined();

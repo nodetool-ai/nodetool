@@ -43,8 +43,11 @@ const log = createLogger("nodetool.execution.cost-ledger");
 
 /**
  * Capabilities a provider bills per output rather than per token. Chat,
- * streaming chat and embeddings are absent on purpose: those are token-billed
- * and already accounted for by `BaseProvider.trackUsage`.
+ * streaming chat and embeddings are absent on purpose: a token-billed call
+ * reaches this ledger by a different road, so admitting it here would book it
+ * twice. A chat turn writes the provider instance's running total through
+ * `ChatTurn._logProviderCall`; a workflow node reports its own delta through
+ * `meterProviderSpend` -> `setProviderCost` -> `recordNodeProviderCost`.
  */
 const UNIT_BILLED_CAPABILITIES = new Set([
   "text_to_image",
@@ -237,7 +240,12 @@ export async function recordNodeProviderCost(
       billing_unit: cost.billing_unit ?? null,
       quantity: cost.quantity ?? null,
       unit_price: cost.unit_price ?? null,
-      provider_request_id: cost.provider_request_id ?? null
+      provider_request_id: cost.provider_request_id ?? null,
+      // Set by a token-billed call (an LLM node reporting a `generateLoop`
+      // delta), left null by a per-output generation that counts no tokens.
+      input_tokens: cost.input_tokens ?? null,
+      output_tokens: cost.output_tokens ?? null,
+      cached_tokens: cost.cached_tokens ?? null
     });
     if (cost.provider_request_id) {
       void reconcileProviderCost(prediction, spend);

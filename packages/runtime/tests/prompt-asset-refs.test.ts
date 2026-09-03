@@ -194,6 +194,7 @@ describe("expandAssetReferences", () => {
         type: "image_url",
         image: { uri: "asset://abc.png", mimeType: "image/png" }
       },
+      { type: "text", text: "asset://abc.png" },
       { type: "text", text: " please" }
     ]);
   });
@@ -203,7 +204,8 @@ describe("expandAssetReferences", () => {
       {
         type: "audio",
         audio: { uri: "asset://clip.mp3", mimeType: "audio/mpeg" }
-      }
+      },
+      { type: "text", text: "asset://clip.mp3" }
     ]);
   });
 
@@ -710,7 +712,8 @@ describe("assetRefToPromptToken", () => {
     const parts = expandAssetReferences(`look at ${token}`);
     expect(parts).toEqual([
       { type: "text", text: "look at " },
-      { type: "image_url", image: { uri: "asset://xyz.png", mimeType: "image/png" } }
+      { type: "image_url", image: { uri: "asset://xyz.png", mimeType: "image/png" } },
+      { type: "text", text: "asset://xyz.png" }
     ]);
   });
 });

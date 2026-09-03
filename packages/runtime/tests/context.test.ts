@@ -1608,6 +1608,12 @@ describe("ProcessingContext – asset helper methods", () => {
       expect(parts[1].image.uri).toBe(
         `data:image/png;base64,${Buffer.from(pngBytes).toString("base64")}`
       );
+      // The asset handle must survive next to the pixels: without it the model
+      // sees an image it cannot name in a later `edit_image` call.
+      expect(parts[2]).toEqual({
+        type: "text",
+        text: "[attached image asset://abc.png]"
+      });
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -1757,13 +1763,15 @@ describe("ProcessingContext – asset helper methods", () => {
     ]);
 
     const parts = resolved[0].content as Array<Record<string, any>>;
-    expect(parts).toHaveLength(3);
+    expect(parts).toHaveLength(4);
     expect(parts[0]).toEqual({ type: "text", text: "describe " });
     expect(parts[1].type).toBe("image_url");
     expect(parts[1].image.uri).toBe(
       `data:image/png;base64,${Buffer.from(pngBytes).toString("base64")}`
     );
-    expect(parts[2]).toEqual({ type: "text", text: " in detail" });
+    // The mention survives as text so the model keeps a handle on the image.
+    expect(parts[2]).toEqual({ type: "text", text: "asset://img.png" });
+    expect(parts[3]).toEqual({ type: "text", text: " in detail" });
   });
 
   it("resolveMessageMediaUris inlines asset:// text documents into text parts", async () => {

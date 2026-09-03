@@ -137,6 +137,72 @@ describe("wire identity: a Tool built from the spec", () => {
   });
 });
 
+describe("edit_image through the adapter", () => {
+  it("passes the primary image plus every reference_files entry as `images`", async () => {
+    // The bug this pins: a chat attachment could only be the single
+    // `input_file`, so "match the one you made earlier" had no way to reach
+    // the provider. `coerceImageList` already reads an `images` array.
+    const primary = new Uint8Array([1, 1, 1]);
+    const refA = new Uint8Array([2, 2, 2]);
+    const refB = new Uint8Array([3, 3, 3]);
+    const files: Record<string, Uint8Array> = {
+      "in.png": primary,
+      "ref-a.png": refA,
+      "ref-b.png": refB
+    };
+    const context = withGenerationSeam({
+      userId: "user-1",
+      runProviderPrediction: vi.fn(async () => new Uint8Array([9, 9, 9])),
+      workspace: {
+        localDir: null,
+        write: async () => {},
+        read: async (p: string) => files[p] ?? null,
+        key: (p: string) => p
+      }
+    }) as unknown as ProcessingContext;
+
+    const result = (await asTool(editImage).process(context, {
+      provider: "openai",
+      model: "gpt-image-1",
+      input_file: "in.png",
+      reference_files: ["ref-a.png", "ref-b.png"],
+      prompt: "same style as these"
+    })) as Record<string, unknown>;
+
+    expect(result["type"]).toBe("image");
+    const call = (
+      context.runProviderPrediction as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls[0][0] as Record<string, unknown>;
+    expect(call["capability"]).toBe("image_to_image");
+    const sent = (call["params"] as Record<string, unknown>)["images"];
+    expect(sent).toEqual([primary, refA, refB]);
+  });
+
+  it("reports a reference file it cannot read", async () => {
+    const context = withGenerationSeam({
+      userId: "user-1",
+      runProviderPrediction: vi.fn(),
+      workspace: {
+        localDir: null,
+        write: async () => {},
+        read: async (p: string) => (p === "in.png" ? new Uint8Array([1]) : null),
+        key: (p: string) => p
+      }
+    }) as unknown as ProcessingContext;
+
+    const result = (await asTool(editImage).process(context, {
+      provider: "openai",
+      model: "gpt-image-1",
+      input_file: "in.png",
+      reference_files: ["missing.png"],
+      prompt: "same style"
+    })) as Record<string, unknown>;
+
+    expect(result["error"]).toMatch(/missing\.png/);
+    expect(context.runProviderPrediction).not.toHaveBeenCalled();
+  });
+});
+
 describe("generate_image through the adapter", () => {
   it("dispatches text_to_image and writes the workspace copy", async () => {
     const write = vi.fn(async () => {});

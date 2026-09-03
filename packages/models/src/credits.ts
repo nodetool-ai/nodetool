@@ -6,14 +6,17 @@
  *
  *   balance = sum(ledger.delta) - ceil(prediction spend / USD_PER_CREDIT)
  *
- * Plans accrue lazily: the first balance read in a month inserts that month's
- * grant, keyed `plan:<userId>:<periodKey>` so the primary key makes double
- * accrual impossible. No cron, no payment state — a payment provider webhook
- * would write `topup` rows and flip `plan_id`; until then plan switches are
- * instant and top-ups are stubbed.
+ * Grants accrue lazily on read, never on a schedule. A user seen for the
+ * first time gets the welcome grant (`signup:<userId>`); every balance read
+ * also inserts the current month's plan grant (`plan:<userId>:<planId>:
+ * <periodKey>`). Both are keyed so the primary key makes a double grant
+ * impossible — no cron, no payment state. A payment provider webhook would
+ * write `topup` rows and flip `plan_id`; until then plan switches are instant
+ * and top-ups are stubbed.
  */
 import { and, eq, sql } from "drizzle-orm";
-import { NODETOOL_PROVIDER_ID } from "@nodetool-ai/protocol";
+import { NODETOOL_MODELS, NODETOOL_PROVIDER_ID } from "@nodetool-ai/protocol";
+import { isCreditModelAllowed, signupGrantCredits } from "@nodetool-ai/config";
 
 import { getDb } from "./db.js";
 import { creditLedger, userSubscriptions } from "./schema/credits.js";
@@ -86,9 +89,28 @@ export interface CreditStatus {
   spentUsd: number;
 }
 
+/** Why a spend was refused — the caller maps it onto its own error code. */
+export type CreditRefusal = "model_not_allowed" | "insufficient_credits";
+
 export type CreditDecision =
   | { allowed: true; status: CreditStatus }
-  | { allowed: false; reason: string; status: CreditStatus };
+  | {
+      allowed: false;
+      refusal: CreditRefusal;
+      reason: string;
+      status: CreditStatus;
+    };
+
+/**
+ * The managed models this server sells: the operator's whitelist, or the whole
+ * catalog when they restricted none. Callers that render a menu use it to hide
+ * what they could not run anyway. Empty in practice off the cloud profile,
+ * where the `nodetool` provider is not registered at all.
+ */
+export const spendableModelIds = (): string[] =>
+  NODETOOL_MODELS.filter((def) => isCreditModelAllowed(def.id)).map(
+    (def) => def.id
+  );
 
 const toSubscription = (row: Record<string, unknown>): UserSubscription => ({
   userId: String(row.user_id),
@@ -185,6 +207,43 @@ export async function ensureMonthlyGrant(
   }
 }
 
+/**
+ * Insert the one-time welcome grant for a user seen for the first time.
+ * Idempotent via the primary key `signup:<userId>`, so it survives every
+ * later balance read; a server configured with no welcome grant
+ * (`NODETOOL_SIGNUP_CREDITS=0`) writes nothing.
+ *
+ * The amount is read per call rather than captured at module load, so raising
+ * the grant reaches users who have not signed up yet without a restart — and
+ * never re-grants the ones who already have their row.
+ */
+export async function ensureSignupGrant(userId: string): Promise<void> {
+  const credits = signupGrantCredits();
+  if (credits <= 0) return;
+
+  const id = `signup:${userId}`;
+  const db = getDb();
+  const existing = await db
+    .select({ id: creditLedger.id })
+    .from(creditLedger)
+    .where(eq(creditLedger.id, id))
+    .limit(1);
+  if (existing[0]) return;
+  try {
+    await db.insert(creditLedger).values({
+      id,
+      user_id: userId,
+      delta: credits,
+      kind: "signup_grant",
+      description: "Welcome credits",
+      period_key: null,
+      created_at: new Date().toISOString()
+    });
+  } catch {
+    // Lost a race with a concurrent first read — already granted.
+  }
+}
+
 /** Record a top-up or manual adjustment. */
 export async function grantCredits(
   userId: string,
@@ -207,9 +266,10 @@ export async function grantCredits(
   });
 }
 
-/** Balance, plan, and totals — accrues the current month's grant first. */
+/** Balance, plan, and totals — accrues the welcome and month grants first. */
 export async function creditStatus(userId: string): Promise<CreditStatus> {
   const now = new Date();
+  await ensureSignupGrant(userId);
   await ensureMonthlyGrant(userId, now);
   const subscription = await getSubscription(userId);
   const plan = planById(subscription.planId) ?? planById(DEFAULT_PLAN_ID)!;
@@ -250,22 +310,41 @@ export async function creditStatus(userId: string): Promise<CreditStatus> {
 }
 
 /**
- * The pre-spend gate. `estimatedUsd` is a floor (unpriceable nodes estimate
- * 0), so the check is: the balance must cover the estimate, and must be
- * positive at all. Callers decide whether the gate is on at all
- * (NODETOOL_CREDITS_ENFORCED).
+ * The pre-spend gate: two refusals, in the order the user can act on them.
+ *
+ * First, `models` — the managed model ids the work names — must all be open
+ * for business on this server (`NODETOOL_CREDIT_MODELS`). A model the operator
+ * did not whitelist is refused however full the balance is, because the spend
+ * would land on a platform key the operator did not offer. Callers that do not
+ * know the models pass none, and only the balance is checked; the provider
+ * refuses a disallowed model again before it uses a key.
+ *
+ * Then the balance. `estimatedUsd` is a floor (unpriceable nodes estimate 0),
+ * so the check is: the balance must cover the estimate, and must be positive
+ * at all.
  */
 export async function checkCredits(
   userId: string,
-  estimatedUsd: number
+  estimatedUsd: number,
+  models: readonly string[] = []
 ): Promise<CreditDecision> {
   const status = await creditStatus(userId);
+  const refused = models.find((model) => !isCreditModelAllowed(model));
+  if (refused !== undefined) {
+    return {
+      allowed: false,
+      refusal: "model_not_allowed",
+      reason: `Model "${refused}" is not available on this server.`,
+      status
+    };
+  }
   const estimatedCredits = Math.ceil(
     Math.max(0, estimatedUsd) / USD_PER_CREDIT
   );
   if (status.balanceCredits <= 0) {
     return {
       allowed: false,
+      refusal: "insufficient_credits",
       reason: `Out of credits on the ${status.plan.name} plan. Upgrade or top up to continue.`,
       status
     };
@@ -273,6 +352,7 @@ export async function checkCredits(
   if (estimatedCredits > status.balanceCredits) {
     return {
       allowed: false,
+      refusal: "insufficient_credits",
       reason: `This run needs about ${estimatedCredits} credits but ${status.balanceCredits} remain.`,
       status
     };

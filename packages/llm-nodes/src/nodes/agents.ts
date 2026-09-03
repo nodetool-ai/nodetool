@@ -55,6 +55,7 @@ import {
   extractThinkTags,
   yieldSplitThinkChunks
 } from "./agent-thinking.js";
+import { meterProviderSpend } from "./provider-spend.js";
 import { buildControlTools } from "./agent-control-tools.js";
 import { gateFromContext } from "@nodetool-ai/agents";
 import {
@@ -269,29 +270,34 @@ export class SummarizerNode extends BaseNode {
           }
         : null;
     let full = "";
-    for await (const item of streamProviderMessages(provider, {
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: `Summarize the following text in about ${maxSentences} sentence(s):\n\n${text}`
-        }
-      ],
-      model: modelId,
-      maxTokens: Math.max(64, maxSentences * 128)
-    })) {
-      if (isChunk(item) && !item.thinking) {
-        const piece = isString(item.content) ? item.content : "";
-        if (piece) {
-          full += piece;
-          for (const part of splitter.feed(piece)) {
-            if (part.kind === "text") {
-              const out = emitText(part.content);
-              if (out) yield out;
+    const spend = meterProviderSpend(context, provider, modelId);
+    try {
+      for await (const item of streamProviderMessages(provider, {
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: `Summarize the following text in about ${maxSentences} sentence(s):\n\n${text}`
+          }
+        ],
+        model: modelId,
+        maxTokens: Math.max(64, maxSentences * 128)
+      })) {
+        if (isChunk(item) && !item.thinking) {
+          const piece = isString(item.content) ? item.content : "";
+          if (piece) {
+            full += piece;
+            for (const part of splitter.feed(piece)) {
+              if (part.kind === "text") {
+                const out = emitText(part.content);
+                if (out) yield out;
+              }
             }
           }
         }
       }
+    } finally {
+      spend.report();
     }
     for (const part of splitter.flush()) {
       if (part.kind === "text") {
@@ -428,29 +434,34 @@ export class EnhancePromptNode extends BaseNode {
           }
         : null;
     let full = "";
-    for await (const item of streamProviderMessages(provider, {
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: `${guidance}\n\nImprove this prompt and return only the improved version:\n\n${prompt}`
-        }
-      ],
-      model: modelId,
-      maxTokens: ENHANCE_PROMPT_MAX_TOKENS
-    })) {
-      if (isChunk(item) && !item.thinking) {
-        const piece = isString(item.content) ? item.content : "";
-        if (piece) {
-          full += piece;
-          for (const part of splitter.feed(piece)) {
-            if (part.kind === "text") {
-              const out = emitText(part.content);
-              if (out) yield out;
+    const spend = meterProviderSpend(context, provider, modelId);
+    try {
+      for await (const item of streamProviderMessages(provider, {
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: `${guidance}\n\nImprove this prompt and return only the improved version:\n\n${prompt}`
+          }
+        ],
+        model: modelId,
+        maxTokens: ENHANCE_PROMPT_MAX_TOKENS
+      })) {
+        if (isChunk(item) && !item.thinking) {
+          const piece = isString(item.content) ? item.content : "";
+          if (piece) {
+            full += piece;
+            for (const part of splitter.feed(piece)) {
+              if (part.kind === "text") {
+                const out = emitText(part.content);
+                if (out) yield out;
+              }
             }
           }
         }
       }
+    } finally {
+      spend.report();
     }
     for (const part of splitter.flush()) {
       if (part.kind === "text") {
@@ -619,21 +630,27 @@ export class ExtractorNode extends BaseNode {
       required: ["output"],
       additionalProperties: true
     };
-    const result = await generateStructured(provider, {
-      model: modelId,
-      maxTokens: Number(this.max_tokens ?? 1024),
-      messages: [
-        {
-          role: "system",
-          content:
-            asText(this.system_prompt ?? "").trim() || EXTRACTOR_SYSTEM_PROMPT
-        },
-        { role: "user", content: text }
-      ],
-      toolName: "extraction_result",
-      toolDescription: "Submit the extracted data.",
-      schema
-    });
+    const spend = meterProviderSpend(context, provider, modelId);
+    let result: Record<string, unknown> | null;
+    try {
+      result = await generateStructured(provider, {
+        model: modelId,
+        maxTokens: Number(this.max_tokens ?? 1024),
+        messages: [
+          {
+            role: "system",
+            content:
+              asText(this.system_prompt ?? "").trim() || EXTRACTOR_SYSTEM_PROMPT
+          },
+          { role: "user", content: text }
+        ],
+        toolName: "extraction_result",
+        toolDescription: "Submit the extracted data.",
+        schema
+      });
+    } finally {
+      spend.report();
+    }
     if (result) return result;
     throw new Error(
       "Extractor: the model did not return structured data for the extraction tool."
@@ -758,30 +775,36 @@ export class ClassifierNode extends BaseNode {
     }
 
     const provider = await context.getProvider(providerId);
-    const result = await generateStructured(provider, {
-      model: modelId,
-      maxTokens: Number(this.max_tokens ?? 256),
-      messages: [
-        {
-          role: "system",
-          content:
-            asText(this.system_prompt ?? "").trim() || CLASSIFIER_SYSTEM_PROMPT
-        },
-        {
-          role: "user",
-          content: `Allowed categories: ${categories.join(", ")}\n\nText: ${text}`
+    const spend = meterProviderSpend(context, provider, modelId);
+    let result: Record<string, unknown> | null;
+    try {
+      result = await generateStructured(provider, {
+        model: modelId,
+        maxTokens: Number(this.max_tokens ?? 256),
+        messages: [
+          {
+            role: "system",
+            content:
+              asText(this.system_prompt ?? "").trim() || CLASSIFIER_SYSTEM_PROMPT
+          },
+          {
+            role: "user",
+            content: `Allowed categories: ${categories.join(", ")}\n\nText: ${text}`
+          }
+        ],
+        toolName: "classification_result",
+        toolDescription: "Submit the classification result.",
+        schema: {
+          type: "object",
+          properties: {
+            category: { type: "string", enum: categories }
+          },
+          required: ["category"]
         }
-      ],
-      toolName: "classification_result",
-      toolDescription: "Submit the classification result.",
-      schema: {
-        type: "object",
-        properties: {
-          category: { type: "string", enum: categories }
-        },
-        required: ["category"]
-      }
-    });
+      });
+    } finally {
+      spend.report();
+    }
     const category = parseCategory(
       result ? String(result.category ?? "") : "",
       categories
@@ -1178,8 +1201,11 @@ export class AgentNode extends BaseNode {
           })
         : undefined;
     const provider = await context.getProvider(providerId);
+    // Book what this node spends against the run. See `meterProviderSpend` for
+    // why a per-run provider instance makes this delta safe to add.
+    const spend = meterProviderSpend(context, provider, modelId);
 
-    {
+    try {
       // The provider drives the tool-calling loop via generateLoop. This is the
       // headline fix: on the Claude Agent SDK provider, generateLoop registers
       // `providerTools` (including submit_result) with the SDK agent and calls
@@ -1395,6 +1421,10 @@ export class AgentNode extends BaseNode {
         });
         throw new Error(`Agent stopped: ${stop.detail}`);
       }
+    } finally {
+      // A budget stop, a provider error or a cancelled run still spent what it
+      // spent before the throw. Report that rather than losing it.
+      spend.report();
     }
 
     if (structuredSchema && structuredResult) {
