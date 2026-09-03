@@ -240,9 +240,12 @@ describe("StateManager", () => {
     });
 
     it("updates timestamp by default", async () => {
+      const before = new Date();
       await manager.updateDeploymentStatus("prod", "deploying");
       const state = await manager.readState("prod");
-      expect(state!.last_deployed).not.toBeNull();
+      const ts = new Date(state!.last_deployed as string);
+      expect(ts.getTime()).toBeGreaterThanOrEqual(before.getTime() - 1000);
+      expect(ts.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
     });
 
     it("skips timestamp when requested", async () => {
