@@ -50,9 +50,13 @@ export default function StorageHistorySettings() {
       void history
         .cleanup()
         .then((result) => {
+          const { total, redactedPredictions } = result.deleted;
           addNotification({
             type: "success",
-            content: `Removed ${result.deleted.total} old history records.`
+            content:
+              redactedPredictions > 0
+                ? `Removed ${total} old history records and cleared prompt data from ${redactedPredictions} generation records.`
+                : `Removed ${total} old history records.`
           });
         })
         .catch((error) => {
@@ -93,6 +97,7 @@ export default function StorageHistorySettings() {
   const disabled =
     history.isUpdating || history.isCleaning || history.isCompacting;
   const cleanupCount = status.cleanup.total;
+  const redactionCount = status.cleanup.redactedPredictions;
   const isSqlite = status.dialect === "sqlite";
 
   return (
@@ -150,6 +155,30 @@ export default function StorageHistorySettings() {
         />
       </div>
       <div className="settings-item">
+        <NumberSetting
+          label="Keep run event logs (days)"
+          description="Per-node event logs from a run are removed after this many days. The run record itself follows the limit above."
+          value={policy.runEventRetentionDays ?? 30}
+          onCommit={(value) => updatePolicy({ runEventRetentionDays: value })}
+          min={1}
+          max={3650}
+          fallback={30}
+          disabled={disabled}
+        />
+      </div>
+      <div className="settings-item">
+        <NumberSetting
+          label="Keep generation details (days)"
+          description="After this many days, prompts, parameters, and logs are cleared from generation records. The billing record — model, provider, tokens, cost, and date — is kept."
+          value={policy.predictionRetentionDays ?? 400}
+          onCommit={(value) => updatePolicy({ predictionRetentionDays: value })}
+          min={1}
+          max={3650}
+          fallback={400}
+          disabled={disabled}
+        />
+      </div>
+      <div className="settings-item">
         <LabeledSwitch
           label="Automatic history cleanup"
           checked={policy.automaticCleanup}
@@ -161,18 +190,24 @@ export default function StorageHistorySettings() {
       <div className="settings-item">
         <Text>
           Database: {formatBytes(status.databaseBytes)} ·{" "}
-          {status.workflowVersions} workflow versions · {status.jobs} runs
+          {status.workflowVersions} workflow versions · {status.jobs} runs ·{" "}
+          {status.runEvents} run events
         </Text>
         <Text className="description">
           {cleanupCount} records exceed the current limits. Deleted SQLite pages
           currently use {formatBytes(status.unusedBytes)} and are returned to
           disk only after compaction.
         </Text>
+        <Text className="description">
+          {redactionCount} of {status.predictionsWithPayload} generation records
+          still holding prompts and parameters are past the limit. Cleaning
+          clears that text and keeps the billing record.
+        </Text>
         <FlexRow gap={2} wrap sx={{ marginTop: 2 }}>
           <EditorButton
             variant="outlined"
             onClick={() => setConfirmation("cleanup")}
-            disabled={disabled || cleanupCount === 0}
+            disabled={disabled || (cleanupCount === 0 && redactionCount === 0)}
           >
             {history.isCleaning ? "Cleaning…" : `Clean now (${cleanupCount})`}
           </EditorButton>
@@ -199,7 +234,7 @@ export default function StorageHistorySettings() {
         content={
           confirmation === "compact"
             ? "Compaction returns unused SQLite pages to disk. It can pause database writes while it rebuilds a large local database."
-            : `Remove ${cleanupCount} old workflow-history and completed-run records? Current workflows, assets, checkpoints, and active runs are not changed.`
+            : `Remove ${cleanupCount} old workflow-history, completed-run, and run-event records, and clear prompts and parameters from ${redactionCount} generation records? The billing record for each generation is kept. Current workflows, assets, checkpoints, and active runs are not changed.`
         }
         confirmText={confirmation === "compact" ? "Compact" : "Clean"}
         cancelText="Cancel"
