@@ -166,6 +166,49 @@ describe("generate_image through the adapter", () => {
     expect(call["model"]).toBe("gpt-image-1");
   });
 
+  it("errors when the bytes reach no asset and no workspace", async () => {
+    // The failure this pins: createAsset throws and there is no workspace to
+    // fall back to, so the result used to be success-shaped with asset_uri
+    // undefined — the agent printed "OK undefined" and carried on.
+    const context = {
+      userId: "user-1",
+      runProviderPrediction: vi.fn(async () => new Uint8Array([1, 2, 3])),
+      hasModelInterface: () => true,
+      createAsset: vi.fn(async () => {
+        throw new Error("asset store unavailable");
+      })
+    } as unknown as ProcessingContext;
+
+    const result = (await asTool(generateImage).process(context, {
+      provider: "atlascloud",
+      model: "black-forest-labs/flux-schnell",
+      prompt: "a red fox"
+    })) as Record<string, unknown>;
+
+    expect(result["asset_uri"]).toBeUndefined();
+    expect(result["error"]).toMatch(
+      /text_to_image for atlascloud:black-forest-labs\/flux-schnell.*could not be stored/
+    );
+  });
+
+  it("errors when the provider returns no image data", async () => {
+    const context = {
+      userId: "user-1",
+      runProviderPrediction: vi.fn(async () => new Uint8Array()),
+      hasModelInterface: () => false
+    } as unknown as ProcessingContext;
+
+    const result = (await asTool(generateImage).process(context, {
+      provider: "atlascloud",
+      model: "black-forest-labs/flux-schnell",
+      prompt: "a red fox"
+    })) as Record<string, unknown>;
+
+    expect(result["error"]).toMatch(
+      /text_to_image for atlascloud:black-forest-labs\/flux-schnell.*no image data/
+    );
+  });
+
   it("rejects a missing model before calling the provider", async () => {
     const predict = vi.fn();
     const result = await asTool(generateImage).process(makeContext(predict), {

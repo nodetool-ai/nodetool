@@ -274,6 +274,44 @@ describe("AtlasCloudProvider — textToImage", () => {
     expect(capture.submitBody!.size).toBe("1280*720");
   });
 
+  it("snaps a free-string `size` to a legal 16-pixel multiple", async () => {
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    // FLUX Schnell takes a free-string `size`, but 1080 is not a multiple of
+    // 16 and AtlasCloud rejects the submit with a bare "Invalid request
+    // parameters". 1088 is the nearest size the model can actually render.
+    await p.textToImage({
+      model: imageModel("black-forest-labs/flux-schnell"),
+      prompt: "a cat",
+      width: 1920,
+      height: 1080
+    });
+    expect(capture.submitBody!.size).toBe("1920*1088");
+  });
+
+  it("names the rejected parameters when a submit 400s", async () => {
+    global.fetch = vi.fn(async (url: string | URL) => {
+      if (String(url).endsWith("/generateImage")) {
+        return {
+          ok: false,
+          status: 400,
+          text: async () => JSON.stringify({ message: "Invalid request parameters" })
+        } as Response;
+      }
+      throw new Error(`unexpected fetch: ${String(url)}`);
+    }) as unknown as typeof fetch;
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    await expect(
+      p.textToImage({
+        model: imageModel("black-forest-labs/flux-schnell"),
+        prompt: "a cat",
+        width: 1920,
+        height: 1080
+      })
+    ).rejects.toThrow(/black-forest-labs\/flux-schnell.*Invalid request parameters.*size=1920\*1088/s);
+  });
+
   it("snaps `size` to the nearest declared option on enum models", async () => {
     const capture: { submitBody?: Record<string, unknown> } = {};
     mockAtlasFetch({ capture });

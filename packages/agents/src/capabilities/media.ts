@@ -59,6 +59,7 @@ import {
   mimeForRef
 } from "../sandbox-media-ref.js";
 import { inferImageMime, persistOutput } from "../tools/asset-persist.js";
+import type { SavedOutput } from "../tools/asset-persist.js";
 import { persistBinaryOutput } from "../tools/binary-output.js";
 import { extractJSON } from "../utils/json-parser.js";
 import { isYtDlpEnabled } from "../yt-dlp-gate.js";
@@ -243,6 +244,37 @@ async function readWorkspaceOrAssetFile(
   return bytes;
 }
 
+/**
+ * A generation that produced no handle is a failure, not a success.
+ *
+ * A run whose bytes never became an asset (no asset interface, `createAsset`
+ * threw, no workspace to fall back to) used to return `{type, provider, model,
+ * bytes, mime_type}` — success-shaped, with `asset_uri` undefined, which an
+ * agent printed as "OK undefined" and carried on from. Report what was missing
+ * instead.
+ */
+function outputError(
+  capability: string,
+  m: MediaModelArgs,
+  missing: string
+): { error: string } {
+  return {
+    error: `${capability} for ${m.provider}:${m.model} returned no usable output — ${missing}.`
+  };
+}
+
+/** The provider's bytes, or null when it produced none. */
+function generatedBytes(result: unknown): Uint8Array | null {
+  return result instanceof Uint8Array && result.length > 0 ? result : null;
+}
+
+/** Whether a persisted output carries a handle the caller can read back. */
+function hasOutputHandle(persisted: SavedOutput): boolean {
+  return (
+    isNonEmptyString(persisted.asset_uri) || isNonEmptyString(persisted.path)
+  );
+}
+
 const generateImage: CapabilityExport = {
   spec: generateImageSpec,
   impl: async (run, params) => {
@@ -265,14 +297,29 @@ const generateImage: CapabilityExport = {
           height: params["height"],
           quality: params["quality"]
         }
-      })) as Uint8Array;
-      const persisted = await persistOutput(context, result, {
+      })) as unknown;
+      const bytes = generatedBytes(result);
+      if (!bytes) {
+        return outputError(
+          "text_to_image",
+          m,
+          "the provider returned no image data"
+        );
+      }
+      const persisted = await persistOutput(context, bytes, {
         namePrefix: "generated-image",
-        mime: inferImageMime(result),
+        mime: inferImageMime(bytes),
         outputFile: isString(params["output_file"])
           ? params["output_file"]
           : undefined
       });
+      if (!hasOutputHandle(persisted)) {
+        return outputError(
+          "text_to_image",
+          m,
+          `the ${persisted.bytes}-byte result could not be stored (no asset was created and no workspace file was written)`
+        );
+      }
       return {
         type: "image",
         provider: m.provider,
@@ -312,14 +359,29 @@ const editImage: CapabilityExport = {
           target_height: params["target_height"],
           strength: params["strength"]
         }
-      })) as Uint8Array;
-      const persisted = await persistOutput(context, result, {
+      })) as unknown;
+      const bytes = generatedBytes(result);
+      if (!bytes) {
+        return outputError(
+          "image_to_image",
+          m,
+          "the provider returned no image data"
+        );
+      }
+      const persisted = await persistOutput(context, bytes, {
         namePrefix: "edited-image",
-        mime: inferImageMime(result),
+        mime: inferImageMime(bytes),
         outputFile: isString(params["output_file"])
           ? params["output_file"]
           : undefined
       });
+      if (!hasOutputHandle(persisted)) {
+        return outputError(
+          "image_to_image",
+          m,
+          `the ${persisted.bytes}-byte result could not be stored (no asset was created and no workspace file was written)`
+        );
+      }
       return {
         type: "image",
         provider: m.provider,
@@ -438,14 +500,29 @@ const generateVideo: CapabilityExport = {
           aspect_ratio: params["aspect_ratio"],
           resolution: params["resolution"]
         }
-      })) as Uint8Array;
-      const persisted = await persistOutput(context, result, {
+      })) as unknown;
+      const bytes = generatedBytes(result);
+      if (!bytes) {
+        return outputError(
+          "text_to_video",
+          m,
+          "the provider returned no video data"
+        );
+      }
+      const persisted = await persistOutput(context, bytes, {
         namePrefix: "generated-video",
         mime: "video/mp4",
         outputFile: isString(params["output_file"])
           ? params["output_file"]
           : undefined
       });
+      if (!hasOutputHandle(persisted)) {
+        return outputError(
+          "text_to_video",
+          m,
+          `the ${persisted.bytes}-byte result could not be stored (no asset was created and no workspace file was written)`
+        );
+      }
       return {
         type: "video",
         provider: m.provider,
@@ -481,14 +558,29 @@ const animateImage: CapabilityExport = {
           aspect_ratio: params["aspect_ratio"],
           resolution: params["resolution"]
         }
-      })) as Uint8Array;
-      const persisted = await persistOutput(context, result, {
+      })) as unknown;
+      const bytes = generatedBytes(result);
+      if (!bytes) {
+        return outputError(
+          "image_to_video",
+          m,
+          "the provider returned no video data"
+        );
+      }
+      const persisted = await persistOutput(context, bytes, {
         namePrefix: "animated-video",
         mime: "video/mp4",
         outputFile: isString(params["output_file"])
           ? params["output_file"]
           : undefined
       });
+      if (!hasOutputHandle(persisted)) {
+        return outputError(
+          "image_to_video",
+          m,
+          `the ${persisted.bytes}-byte result could not be stored (no asset was created and no workspace file was written)`
+        );
+      }
       return {
         type: "video",
         provider: m.provider,
