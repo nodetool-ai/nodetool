@@ -23,6 +23,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { IconButton } from "@mui/material";
 import { MOTION } from "./tokens";
 import {
@@ -73,7 +75,7 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall
     },
-    ".play-button": {
+    ".play-button, .fullscreen-button": {
       width: 28,
       height: 28,
       flexShrink: 0,
@@ -184,6 +186,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
 }) => {
   const theme = useTheme();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(autoplay);
@@ -191,6 +194,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const scheduleHide = useCallback(() => {
     if (hideTimerRef.current) {clearTimeout(hideTimerRef.current);}
@@ -243,6 +247,25 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
     setCurrentTime(newTime);
   }, []);
 
+  const handleToggleFullscreen = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) {return;}
+    if (document.fullscreenElement === el) {
+      void document.exitFullscreen();
+    } else {
+      void el.requestFullscreen?.();
+    }
+  }, []);
+
+  // Fullscreen can also be left with Escape or the browser's own chrome, so the
+  // icon follows the document rather than the click.
+  useEffect(() => {
+    const onChange = () =>
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
   const handleSpeedChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const newSpeed = Number(e.target.value);
@@ -259,6 +282,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
 
   return (
     <div
+      ref={containerRef}
       css={cssStyles}
       className={`video-player ${className ?? ""}`}
       onMouseMove={showControls}
@@ -318,6 +342,14 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
             </option>
           ))}
         </select>
+        <IconButton
+          className="fullscreen-button"
+          size="small"
+          onClick={handleToggleFullscreen}
+          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        >
+          {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+        </IconButton>
       </div>
     </div>
   );

@@ -160,6 +160,20 @@ const styles = (theme: Theme) =>
       cursor: "grabbing"
     },
 
+    // A video keeps the shape it was generated in: fixed height, width from
+    // the aspect ratio. That needs a track wider than one thumbnail column, so
+    // the tile spans the row and sits at its start.
+    ".media-grid > .video-tile": {
+      gridColumn: "1 / -1",
+      justifySelf: "start",
+      width: "auto",
+      height: THUMBNAIL_SIZE
+    },
+
+    ".media-grid > .video-tile video": {
+      objectFit: "contain"
+    },
+
     // Audio has no meaningful thumbnail — let its player span the full row.
     ".media-grid > .audio-tile": {
       gridColumn: "1 / -1",
@@ -172,6 +186,21 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "block",
       objectFit: "cover"
+    },
+
+    // A thumbnail tile is too narrow for the player's full control bar — keep
+    // play, seek and fullscreen, drop the readouts.
+    ".media-grid .video-player .timestamp, .media-grid .video-player .speed-select": {
+      display: "none"
+    },
+
+    // The tile crops to a square; the fullscreen view shows the whole frame.
+    ".media-grid .video-player:fullscreen video": {
+      objectFit: "contain"
+    },
+
+    ".media-grid .video-player:fullscreen .timestamp, .media-grid .video-player:fullscreen .speed-select": {
+      display: "revert"
     },
 
     // Same shell every generating surface uses to host `MagicGenerationFill`
@@ -300,6 +329,10 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
 
   const pending = useMemo(() => pendingTiles(gen), [gen]);
 
+  // The generation request is the only place the shape of a video is stated;
+  // without one the tile stays square.
+  const videoAspectRatio = cssAspectRatio(gen?.aspect_ratio);
+
   return (
     <div css={cssStyles} className="media-output-group">
       <div className="media-output-header">
@@ -393,7 +426,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                 key={`pending-${i}`}
                 className={`media-tile-shimmer${
                   pending.kind === "audio" ? " audio-shimmer audio-tile" : ""
-                }`}
+                }${pending.kind === "video" ? " video-tile" : ""}`}
                 style={
                   pending.kind !== "audio" && pending.aspectRatio
                     ? { aspectRatio: pending.aspectRatio }
@@ -436,6 +469,8 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             return (
               <div
                 key={key}
+                className="video-tile"
+                style={videoAspectRatio ? { aspectRatio: videoAspectRatio } : undefined}
                 draggable
                 onDragStart={(e) => handleDragStart(e, c)}
               >
