@@ -114,10 +114,8 @@ export function useTransformPreviewBridge(
         ...current,
         [layerId]: transform
       };
-      // Trace and route through coordinator if available.
       const coord = coordRef?.current;
       if (coord) {
-        coord.tracer.trace("preview-set", { layerId });
         coord.requestFrame("transform-preview", "raf");
       } else {
         requestPreviewRedrawRef.current();
@@ -137,7 +135,6 @@ export function useTransformPreviewBridge(
         transformPreviewByLayerIdRef.current = {};
         const coord = coordRef?.current;
         if (coord) {
-          coord.tracer.trace("preview-cleared", { all: true });
           coord.requestFrame("transform-preview", "raf");
         } else {
           requestPreviewRedrawRef.current();
@@ -152,7 +149,6 @@ export function useTransformPreviewBridge(
       transformPreviewByLayerIdRef.current = next;
       const coord = coordRef?.current;
       if (coord) {
-        coord.tracer.trace("preview-cleared", { layerId });
         coord.requestFrame("transform-preview", "raf");
       } else {
         requestPreviewRedrawRef.current();

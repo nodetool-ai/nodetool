@@ -19,8 +19,6 @@
  *    (WebGPU or Canvas2D final). Target switching must not drop the first
  *    interactive frame.
  *
- * 5. **Dev-only tracing** — lightweight event log for temporal startup bugs.
- *
  * ## Display invariants (MUST hold)
  *
  * - **Preview transforms are visual-only.** They create a temporary document
@@ -51,7 +49,6 @@
  * 3. Before compositing, pending stroke commits are drained.
  * 4. The active display target is resolved (bootstrap vs real).
  * 5. The composite runs with the latest document state + previews.
- * 6. Dev tracing records the event for debugging.
  *
  * Goal: one understandable answer to "what changed, and why should it be
  * visible now?"
@@ -61,7 +58,7 @@
 
 /**
  * Reason for requesting a frame redraw.
- * Used for debugging and tracing — every redraw has a declared cause.
+ * Used for debugging — every redraw has a declared cause.
  */
 export type RedrawReason =
   | "transform-preview"
@@ -156,82 +153,6 @@ function createInitialReadiness(): InteractionReadiness {
   };
 }
 
-// ─── Dev-only tracing ────────────────────────────────────────────────────────
-
-/**
- * Trace event types for the display seam.
- */
-export type TraceEventType =
-  | "preview-set"
-  | "preview-cleared"
-  | "frame-requested"
-  | "pending-stroke-drained"
-  | "frame-composited"
-  | "hydration-complete"
-  | "runtime-ready"
-  | "bootstrap-switch"
-  | "interaction-ready"
-  | "target-changed"
-  | "readiness-updated";
-
-export interface TraceEvent {
-  type: TraceEventType;
-  timestamp: number;
-  detail?: Record<string, unknown>;
-}
-
-const DEV = process.env.NODE_ENV === "development";
-const MAX_TRACE_EVENTS = 200;
-
-/**
- * Lightweight dev-only tracing ring buffer for the display seam.
- *
- * Stores the last N events so temporal startup bugs can be debugged
- * without scattering temporary logs across tools and runtimes.
- */
-class DisplayTracer {
-  private events: TraceEvent[] = [];
-  private enabled: boolean;
-
-  constructor(enabled = DEV) {
-    this.enabled = enabled;
-  }
-
-  trace(type: TraceEventType, detail?: Record<string, unknown>): void {
-    if (!this.enabled) {
-      return;
-    }
-    const event: TraceEvent = {
-      type,
-      timestamp: performance.now(),
-      detail
-    };
-    this.events.push(event);
-    if (this.events.length > MAX_TRACE_EVENTS) {
-      this.events.shift();
-    }
-  }
-
-  /**
-   * Return a copy of the trace log (most recent last).
-   * Useful for dev-tools inspection.
-   */
-  getLog(): ReadonlyArray<TraceEvent> {
-    return [...this.events];
-  }
-
-  /**
-   * Clear all recorded events.
-   */
-  clear(): void {
-    this.events.length = 0;
-  }
-
-  setEnabled(enabled: boolean): void {
-    this.enabled = enabled;
-  }
-}
-
 // ─── Frame coordinator ───────────────────────────────────────────────────────
 
 interface FrameCoordinatorCallbacks {
@@ -246,9 +167,9 @@ interface FrameCoordinatorCallbacks {
 /**
  * DisplayFrameCoordinator
  *
- * Stateful coordinator that manages typed redraw requests, interaction
- * readiness, and dev tracing. This is a plain class (not a React hook) so it
- * can be tested in isolation and shared via ref between hooks.
+ * Stateful coordinator that manages typed redraw requests and interaction
+ * readiness. This is a plain class (not a React hook) so it can be tested in
+ * isolation and shared via ref between hooks.
  *
  * ## Usage
  *
@@ -257,7 +178,7 @@ interface FrameCoordinatorCallbacks {
  *    compositing hooks mount.
  * 3. Call `requestFrame(reason, urgency)` instead of ad hoc `redraw()` /
  *    `requestRedraw()` / `requestDirtyRedraw()`.
- * 4. The coordinator routes to the correct path and records tracing.
+ * 4. The coordinator routes to the correct path.
  */
 export class DisplayFrameCoordinator {
   // ── State ──────────────────────────────────────────────────────────
@@ -272,12 +193,8 @@ export class DisplayFrameCoordinator {
   // ── Callbacks (wired after mount) ──────────────────────────────────
   private callbacks: FrameCoordinatorCallbacks | null = null;
 
-  // ── Tracing ────────────────────────────────────────────────────────
-  readonly tracer: DisplayTracer;
-
-  constructor(tracingEnabled = DEV) {
+  constructor() {
     this.readiness = createInitialReadiness();
-    this.tracer = new DisplayTracer(tracingEnabled);
   }
 
   // ─── Callback wiring ─────────────────────────────────────────────
@@ -299,8 +216,6 @@ export class DisplayFrameCoordinator {
       return;
     }
     this.readiness.runtimeReady = true;
-    this.tracer.trace("runtime-ready", { backend: this.backend });
-    this.checkInteractionReady();
   }
 
   markHydrationComplete(): void {
@@ -311,8 +226,6 @@ export class DisplayFrameCoordinator {
       return;
     }
     this.readiness.hydrationComplete = true;
-    this.tracer.trace("hydration-complete");
-    this.checkInteractionReady();
   }
 
   markHydrationScheduled(): void {
@@ -327,12 +240,6 @@ export class DisplayFrameCoordinator {
     this.readiness.hydrationPending = true;
     this.readiness.hydrationComplete = false;
     this.readiness.firstFrameComposited = false;
-    this.tracer.trace("readiness-updated", {
-      hydrationScheduled: true,
-      hadPending,
-      hadComplete,
-      hadFirstFrame
-    });
   }
 
   markFirstFrameComposited(): void {
@@ -340,17 +247,6 @@ export class DisplayFrameCoordinator {
       return;
     }
     this.readiness.firstFrameComposited = true;
-    this.tracer.trace("frame-composited", { first: true });
-    this.checkInteractionReady();
-  }
-
-  private checkInteractionReady(): void {
-    if (isInteractionReady(this.readiness)) {
-      this.tracer.trace("interaction-ready", {
-        backend: this.backend,
-        target: this.displayTarget
-      });
-    }
   }
 
   /**
@@ -358,7 +254,6 @@ export class DisplayFrameCoordinator {
    */
   resetReadiness(): void {
     this.readiness = createInitialReadiness();
-    this.tracer.trace("readiness-updated", { reset: true });
   }
 
   // ─── Display target / backend ─────────────────────────────────────
@@ -374,14 +269,11 @@ export class DisplayFrameCoordinator {
     if (this.displayTarget === target) {
       return;
     }
-    const prev = this.displayTarget;
     this.displayTarget = target;
-    this.tracer.trace("target-changed", { from: prev, to: target });
   }
 
   setBackend(backend: DisplayBackend): void {
     this.backend = backend;
-    this.tracer.trace("bootstrap-switch", { backend });
   }
 
   // ─── Stroke tracking ─────────────────────────────────────────────
@@ -409,13 +301,6 @@ export class DisplayFrameCoordinator {
       dirtyRect: dirtyRect ?? null,
       timestamp: performance.now()
     };
-
-    this.tracer.trace("frame-requested", {
-      reason,
-      urgency,
-      hasDirty: dirtyRect != null,
-      ready: isInteractionReady(this.readiness)
-    });
 
     if (urgency === "immediate") {
       this.executeImmediate(request);
@@ -470,7 +355,6 @@ export class DisplayFrameCoordinator {
       }
 
       this.callbacks.drainPendingStroke();
-      this.tracer.trace("pending-stroke-drained");
 
       const useFull = isFull || !dirty || this.hasLiveBufferedStroke;
       const didComposite = this.callbacks.compositeImmediate(
@@ -517,8 +401,6 @@ export class DisplayFrameCoordinator {
       return;
     }
     this.readiness.firstFrameComposited = true;
-    this.tracer.trace("frame-composited", { initial: true });
-    this.checkInteractionReady();
   }
 
   // ─── Cleanup ──────────────────────────────────────────────────────
@@ -534,7 +416,6 @@ export class DisplayFrameCoordinator {
   dispose(): void {
     this.cancelPending();
     this.callbacks = null;
-    this.tracer.clear();
   }
 
   // ─── Testing helpers ──────────────────────────────────────────────

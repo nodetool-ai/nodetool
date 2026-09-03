@@ -36,11 +36,7 @@ export { useTransformPreviewBridge } from "./useTransformPreviewBridge";
 export { useCanvasOrchestration } from "./useCanvasOrchestration";
 
 export { DisplayFrameCoordinator } from "./DisplayFrameCoordinator";
-export type {
-  RedrawReason,
-  TraceEventType,
-  TraceEvent
-} from "./DisplayFrameCoordinator";
+export type { RedrawReason } from "./DisplayFrameCoordinator";
 
 // Re-export ActiveStrokeInfo from its canonical home in the rendering module.
 export type { ActiveStrokeInfo } from "../rendering";
