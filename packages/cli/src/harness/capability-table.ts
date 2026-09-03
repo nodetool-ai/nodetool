@@ -237,7 +237,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "find_model",
     module: "models",
     impl: "packages/agents/src/capabilities/models.ts",
-    contract: "8340013dc752",
+    contract: "fdb5f2e60161",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-models.test.ts",
@@ -302,7 +302,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_image",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "28454b7ca470",
+    contract: "1b88ce3a0385",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
@@ -324,7 +324,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "generate_video",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "2be31c6fbeba",
+    contract: "8dac8cdc0840",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
@@ -335,7 +335,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "animate_image",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "5c1dd08113e6",
+    contract: "e1b1dc701776",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
@@ -1930,7 +1930,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "render_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "01c53032ed38",
+    contract: "817face10f28",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
