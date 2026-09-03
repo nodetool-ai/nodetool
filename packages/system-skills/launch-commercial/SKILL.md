@@ -209,7 +209,7 @@ Every line must come back `voiced`. A `stale` or `no_voice` line is a defect, no
 
 ```js
 import { assemble_storyboard_timeline } from "@nodetool-ai/sandbox-nodetool/storyboards";
-import { edit_timeline, validate_timeline } from "@nodetool-ai/sandbox-nodetool/timelines";
+import { edit_timeline, preview_timeline_frame, validate_timeline } from "@nodetool-ai/sandbox-nodetool/timelines";
 import { generate_music } from "@nodetool-ai/sandbox-nodetool/media";
 ```
 
@@ -217,8 +217,10 @@ import { generate_music } from "@nodetool-ai/sandbox-nodetool/media";
 2. **Standardize aspect here** — this is where mixed plate ratios get resolved. Pad the black-heavy minimal frames, crop the full-bleed ones. Say which you did to which.
 3. Voice track, aligned to beats.
 4. Music bed at the spot's exact runtime, ducked under VO, with the beat sheet's deliberate pre-CTA silence kept silent.
-5. **Overrun check.** Video models overshoot requested durations. If the cut runs long, trim the **last** clip — trimming an earlier one opens a gap and leaves the runtime unchanged.
-6. `validate_timeline` must come back ok. Fix and re-validate.
+5. **Motion and text.** Supers, the CTA card and the end mark are a text layer over the cut, never a render prompt — no model is asked to letter them. `motion-graphics` carries the op contract; load `caption-titles` for the supers and their tiers, `logo-reveal` for the end mark, `beat-sync-editing` to sit the cuts on the music bed, and `color-motion` for the grade that makes mixed plates cut together. `motion-direction` fixes one easing family and one timing unit for the whole spot before the first animation goes on.
+6. **Overrun check.** Video models overshoot requested durations. If the cut runs long, trim the **last** clip — trimming an earlier one opens a gap and leaves the runtime unchanged.
+7. `validate_timeline` must come back ok. Fix and re-validate.
+8. Look at frames, not at the document: `preview_timeline_frame` at each cut and each text entry. A change nobody looked at is not done.
 
 ---
 

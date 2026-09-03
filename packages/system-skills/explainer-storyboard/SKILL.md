@@ -49,3 +49,7 @@ Create the storyboard with `create_storyboard({ name, brief, style, aspect_ratio
 Attach roster ids with `edit_storyboard({ storyboard_id, ops: [{ op: "set_board", entity_ids }] })`. `set_board` is the entity operation; `set_entities` does not exist. Add one shot per beat with `edit_storyboard` and an `add_shot` op. The dense `action` field names the teaching job, visible entity names in brackets, on-screen text, and UI demonstration. Every named entity must exist, and every external generation prompt must apply the ids for every entity visible in that shot.
 
 Stop after the planned board unless the user explicitly requests rendering or a cut. Report the directions, chosen board, and entity roster.
+
+## When the board becomes motion
+
+When a cut is asked for, `motion-graphics` carries the timeline tool contract and routes to the craft skill for the job: `caption-titles` for the on-screen text and callouts this beat sheet already specifies, `frame-composition` for where a UI mock sits and whether it survives 9:16, `motion-direction` to hold one motion language across the mechanism beats, and `beat-sync-editing` when the cut has to sit on a music bed. The half-beat of silence after the aha is a hold, not a gap — keep it in the cut.

@@ -9,6 +9,10 @@ Two separate jobs: the colours you author into shapes and type, and the grade yo
 apply over picture. They meet in the animated grade channels, which are the only
 colour values on a timeline that move.
 
+`motion-graphics` carries the op contract for the calls named here.
+`motion-direction` decides whether colour is one of the channels this piece
+moves at all.
+
 ## Build a restrained palette
 
 One primary, one accent, two or three neutrals. Get depth from lightness and
