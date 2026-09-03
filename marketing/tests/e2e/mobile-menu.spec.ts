@@ -87,17 +87,46 @@ test.describe("landing page on a phone", () => {
     const panel = page.getByRole("dialog");
     await expect(panel).toBeHidden();
 
-    const open = page.getByRole("button", { name: "Open menu" });
-    await open.click();
+    await page.getByRole("button", { name: "Open menu" }).click();
     await expect(panel).toBeVisible();
-    await expect(open).toHaveAttribute("aria-expanded", "true");
+    // The trigger is inside <main>, which the open panel hides — so read the
+    // attribute off the DOM rather than through a role query, which correctly
+    // no longer resolves it.
+    const expanded = () =>
+      page.evaluate(() =>
+        document.querySelector('[data-nav="open"]')!.getAttribute("aria-expanded")
+      );
+    expect(await expanded()).toBe("true");
     expect(await page.evaluate(() => document.body.style.position)).toBe(
       "fixed"
     );
 
     await page.keyboard.press("Escape");
     await expect(panel).toBeHidden();
-    await expect(open).toHaveAttribute("aria-expanded", "false");
+    expect(await expanded()).toBe("false");
     expect(await page.evaluate(() => document.body.style.position)).toBe("");
+  });
+
+  test("the page under the open panel is not composited", async ({ page }) => {
+    await page.goto("/", { waitUntil: "load" });
+    await page.getByRole("button", { name: "Open menu" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+
+    // Safari re-rasterized the landing page's thirteen blurred glow layers on
+    // the frame the menu opened (~650ms against ~110ms) while the page under
+    // the full-screen panel stayed visible. The panel itself must still render.
+    expect(
+      await page.evaluate(
+        () => getComputedStyle(document.querySelector("main")!).visibility
+      )
+    ).toBe("hidden");
+    expect(
+      await page.evaluate(
+        () =>
+          getComputedStyle(document.querySelector(".mobile-menu-panel")!)
+            .visibility
+      )
+    ).toBe("visible");
+    await expect(page.getByRole("link", { name: "Pricing" })).toBeVisible();
   });
 });

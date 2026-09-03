@@ -1,7 +1,6 @@
 "use client";
-import { useGridParallax, usePrefersReducedMotion } from "../../lib/useGridParallax";
+import { useGridParallax } from "../../lib/useGridParallax";
 import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
@@ -53,7 +52,6 @@ const sectionContainer = "mx-auto max-w-7xl px-6 lg:px-8";
 // Prefer reduced motion hook
 export default function DevelopersPage() {
   const [stars, setStars] = useState<number | null>(null);
-  const reducedMotion = usePrefersReducedMotion();
   const parallaxRef = useGridParallax();
 
   // Fetch GitHub stars
@@ -69,7 +67,17 @@ export default function DevelopersPage() {
       {/* Background */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
         {/* Soft radial glows */}
-        <motion.div
+        {/*
+          Static, not animated. These are 448px and 416px circles under
+          `blur(64px)`; drifting them 10px on an infinite framer-motion loop
+          made Safari re-rasterize both blurred layers every frame and held the
+          whole page at ~4fps for as long as it stayed open, so a tap on the
+          menu waited up to a frame and the panel took over a second to paint.
+          Chrome composited the same animation and stayed at 60fps, which is
+          why it went unnoticed. Measured with
+          `marketing/tests/e2e/idle-animation.spec.ts`.
+        */}
+        <div
           className="pointer-events-none absolute -top-40 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-violet-500/20 blur-3xl"
           style={{
             WebkitMaskImage:
@@ -77,14 +85,8 @@ export default function DevelopersPage() {
             maskImage:
               "radial-gradient(circle at center, black 0%, transparent 65%)",
           }}
-          animate={reducedMotion ? undefined : { y: [0, 10, 0] }}
-          transition={
-            reducedMotion
-              ? undefined
-              : { duration: 18, repeat: Infinity, ease: "easeInOut" }
-          }
         />
-        <motion.div
+        <div
           className="pointer-events-none absolute -bottom-48 right-8 h-[26rem] w-[26rem] rounded-full bg-teal-500/20 blur-3xl"
           style={{
             WebkitMaskImage:
@@ -92,12 +94,6 @@ export default function DevelopersPage() {
             maskImage:
               "radial-gradient(circle at center, black 0%, transparent 65%)",
           }}
-          animate={reducedMotion ? undefined : { x: [0, -12, 0], y: [0, 4, 0] }}
-          transition={
-            reducedMotion
-              ? undefined
-              : { duration: 22, repeat: Infinity, ease: "easeInOut" }
-          }
         />
         <div
           aria-hidden="true"

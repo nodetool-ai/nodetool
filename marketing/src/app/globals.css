@@ -548,6 +548,21 @@
   html[data-nav-open] .site-nav-overlay {
     display: block;
   }
+
+  /*
+   * The open panel covers the screen, so the page under it does not need to be
+   * composited. Leaving it visible made Safari re-rasterize the landing page's
+   * thirteen blurred glow layers on the frame the menu opened — ~650ms against
+   * ~110ms with this rule, for a pixel-identical result. The header (and the
+   * overlay inside it) is a child of <main>, so the overlay is put back.
+   */
+  html[data-nav-open] main {
+    visibility: hidden;
+  }
+
+  html[data-nav-open] .site-nav-overlay {
+    visibility: visible;
+  }
 }
 
 .mobile-menu-panel {
