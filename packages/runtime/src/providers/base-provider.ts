@@ -301,18 +301,76 @@ export function providerCapabilities(
 }
 
 /**
+ * What one attached medium costs a vision/audio model, per block. These are
+ * modality constants, not measurements of the bytes: by the time a turn is
+ * estimated, `resolveMessageMediaUris` has inlined every `asset://` as a
+ * `data:` uri, and BPE-tokenizing that base64 scores a 50 KB image at ~49,000
+ * tokens against a real bill of ~1,600. A fixed figure per block is the right
+ * order of magnitude; the base64 length is off by two of them.
+ *
+ * - Image: 1,600 — the common vision-model charge for a full-size image
+ *   (Gemini bills a large image in the 1,000-1,600 band, GPT-4o high-detail
+ *   lands near 1,100). Take the top of the band, since a reservation is a
+ *   worst case.
+ * - Audio: 2,000 — roughly a minute at the ~32 tokens/second Gemini charges
+ *   for audio. Longer clips under-count, but audio in a chat turn is short.
+ * - Video: 4,000 — video is billed per sampled frame (~250-300 tokens/second
+ *   at 1 fps), so this covers a short clip of ~15 seconds.
+ * - Document: 3,000 — a few pages of extracted PDF text.
+ */
+const IMAGE_CONTENT_TOKENS = 1_600;
+const AUDIO_CONTENT_TOKENS = 2_000;
+const VIDEO_CONTENT_TOKENS = 4_000;
+const DOCUMENT_CONTENT_TOKENS = 3_000;
+
+/** Any content block that is neither text nor a modality named above. */
+const UNKNOWN_CONTENT_TOKENS = 1_600;
+
+function estimateContentPartTokens(part: MessageContent): number {
+  switch (part.type) {
+    case "text":
+      return countTokens(part.text);
+    case "image_url":
+      return IMAGE_CONTENT_TOKENS;
+    case "audio":
+      return AUDIO_CONTENT_TOKENS;
+    case "video":
+      return VIDEO_CONTENT_TOKENS;
+    case "document":
+      return DOCUMENT_CONTENT_TOKENS;
+    default: {
+      // A block of some shape this build does not narrow — a `thought` block
+      // from the protocol union, or a newer type. Count it when it carries
+      // text; otherwise charge the unknown-block figure rather than tokenize
+      // it, since it may hold a `data:` uri.
+      const text = (part as { text?: unknown }).text;
+      return isString(text) ? countTokens(text) : UNKNOWN_CONTENT_TOKENS;
+    }
+  }
+}
+
+/**
  * Prompt tokens a turn will send, for reservation purposes. Deliberately a
- * rough count over the serialized conversation: a reservation is a worst case,
- * and a per-provider exact count would cost a tokenizer round-trip per turn to
- * refine a number that only has to be an upper-ish bound.
+ * rough count: a reservation is a worst case, and a per-provider exact count
+ * would cost a tokenizer round-trip per turn to refine a number that only has
+ * to be an upper-ish bound.
+ *
+ * Text is tokenized. Media blocks get a fixed per-modality figure, so an
+ * inlined `data:` uri is never fed to the tokenizer.
  */
 export function estimatePromptTokens(messages: readonly Message[]): number {
   let total = 0;
   for (const message of messages) {
     const content = message.content;
-    total += countTokens(
-      isString(content) ? content : JSON.stringify(content ?? "")
-    );
+    if (isString(content)) {
+      total += countTokens(content);
+    } else if (Array.isArray(content)) {
+      for (const part of content) {
+        total += estimateContentPartTokens(part);
+      }
+    } else if (content != null) {
+      total += countTokens(JSON.stringify(content));
+    }
     if (message.toolCalls?.length) {
       total += countTokens(JSON.stringify(message.toolCalls));
     }
