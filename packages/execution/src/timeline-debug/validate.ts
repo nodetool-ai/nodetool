@@ -712,8 +712,34 @@ function checkParents(doc: TimelineDocument): TimelineDebugIssue[] {
   return issues;
 }
 
+/**
+ * What an overlap does at render, which is the half the warning used to leave
+ * out.
+ *
+ * Two clips overlapping on one track cross-fade: with no `transitionIn` on the
+ * later clip the renderer auto-cross-fades over exactly the overlap
+ * (`resolveTransition`). That is what a picture track wants and what an overlay
+ * track almost never does — two titles meant to be on screen together dissolve
+ * into each other instead, and nobody asked for that transition. Concurrently
+ * visible overlays belong on separate tracks.
+ */
+function overlapConsequence(
+  later: TimelineClip,
+  trackType: string | undefined
+): string {
+  if (later.transitionIn) {
+    return `That window is the ${later.transitionIn.type} transition authored on "${clipLabel(later)}".`;
+  }
+  const auto =
+    "With no transition authored on the later clip the renderer auto-cross-fades over the overlap.";
+  return trackType === "overlay" || trackType === "subtitle"
+    ? `${auto} Two overlays meant to be visible at once belong on separate tracks — put one on its own track (add_track) instead of overlapping them here.`
+    : auto;
+}
+
 function checkOverlaps(doc: TimelineDocument): TimelineDebugIssue[] {
   const issues: TimelineDebugIssue[] = [];
+  const trackTypes = new Map(doc.tracks.map((t) => [t.id, t.type]));
   const byTrack = new Map<string, TimelineClip[]>();
   for (const clip of doc.clips) {
     const list = byTrack.get(clip.trackId);
@@ -731,7 +757,7 @@ function checkOverlaps(doc: TimelineDocument): TimelineDebugIssue[] {
         issues.push({
           severity: "warning",
           code: "clips_overlap",
-          message: `Clips "${clipLabel(current)}" (${current.startMs}–${end}ms) and "${clipLabel(next)}" (${next.startMs}–${next.startMs + next.durationMs}ms) overlap on track "${trackId}".`,
+          message: `Clips "${clipLabel(current)}" (${current.startMs}–${end}ms) and "${clipLabel(next)}" (${next.startMs}–${next.startMs + next.durationMs}ms) overlap on track "${trackId}". ${overlapConsequence(next, trackTypes.get(trackId))}`,
           trackId,
           clipId: current.id
         });

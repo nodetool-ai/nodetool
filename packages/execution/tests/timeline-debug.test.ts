@@ -188,6 +188,52 @@ describe("validateTimelineSequence — structural checks", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("says an overlay overlap cross-fades and belongs on its own track", () => {
+    const result = validateTimelineSequence(
+      doc({
+        tracks: [track({ id: "ov", type: "overlay", index: 0 })],
+        clips: [
+          clip({
+            id: "a",
+            name: "IRON LOTUS",
+            trackId: "ov",
+            startMs: 0,
+            durationMs: 2000
+          }),
+          clip({
+            id: "b",
+            name: "WINTER 2026",
+            trackId: "ov",
+            startMs: 1500,
+            durationMs: 1000
+          })
+        ]
+      })
+    );
+    const overlap = result.warnings.find((w) => w.code === "clips_overlap");
+    expect(overlap?.message).toContain("auto-cross-fades");
+    expect(overlap?.message).toContain("separate tracks");
+  });
+
+  it("calls an authored transition's window what it is, not an accident", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({ id: "a", startMs: 0, durationMs: 2000 }),
+          clip({
+            id: "b",
+            startMs: 1500,
+            durationMs: 1000,
+            transitionIn: { type: "crossfade", durationMs: 500 }
+          })
+        ]
+      })
+    );
+    const overlap = result.warnings.find((w) => w.code === "clips_overlap");
+    expect(overlap?.message).toContain("crossfade transition authored");
+    expect(overlap?.message).not.toContain("auto-cross-fades");
+  });
+
   it("does not flag clips that merely touch", () => {
     const result = validateTimelineSequence(
       doc({
