@@ -693,6 +693,12 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     suites: [
       "packages/agents/tests/capabilities-generations.test.ts",
     ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-generation-cost"],
+      },
+    ],
   },
   {
     name: "get_generation",

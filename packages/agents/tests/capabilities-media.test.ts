@@ -8,6 +8,7 @@
  * provider, network, or database.
  */
 
+import { withGenerationSeam } from "./_helpers/generation-seam.js";
 import { describe, expect, it, vi } from "vitest";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -46,13 +47,13 @@ import { Tool } from "../src/tools/base-tool.js";
 function makeContext(
   runProviderPrediction?: ReturnType<typeof vi.fn>
 ): ProcessingContext {
-  return {
+  return withGenerationSeam({
     userId: "user-1",
     runProviderPrediction,
     // What the real providers answer: Gemini reads a clip, an
     // OpenAI-compatible endpoint has nowhere to put one.
     providerSupportsVideoInput: async (id: string) => id === "gemini"
-  } as unknown as ProcessingContext;
+  }) as unknown as ProcessingContext;
 }
 
 /** A context with a real workspace directory on disk. */
@@ -139,7 +140,7 @@ describe("wire identity: a Tool built from the spec", () => {
 describe("generate_image through the adapter", () => {
   it("dispatches text_to_image and writes the workspace copy", async () => {
     const write = vi.fn(async () => {});
-    const context = {
+    const context = withGenerationSeam({
       userId: "user-1",
       runProviderPrediction: vi.fn(async () => new Uint8Array([1, 2, 3])),
       workspace: {
@@ -148,7 +149,7 @@ describe("generate_image through the adapter", () => {
         read: async () => null,
         key: (p: string) => p
       }
-    } as unknown as ProcessingContext;
+    }) as unknown as ProcessingContext;
 
     const result = (await asTool(generateImage).process(context, {
       provider: "openai",
@@ -170,14 +171,14 @@ describe("generate_image through the adapter", () => {
     // The failure this pins: createAsset throws and there is no workspace to
     // fall back to, so the result used to be success-shaped with asset_uri
     // undefined — the agent printed "OK undefined" and carried on.
-    const context = {
+    const context = withGenerationSeam({
       userId: "user-1",
       runProviderPrediction: vi.fn(async () => new Uint8Array([1, 2, 3])),
       hasModelInterface: () => true,
       createAsset: vi.fn(async () => {
         throw new Error("asset store unavailable");
       })
-    } as unknown as ProcessingContext;
+    }) as unknown as ProcessingContext;
 
     const result = (await asTool(generateImage).process(context, {
       provider: "atlascloud",
@@ -192,11 +193,11 @@ describe("generate_image through the adapter", () => {
   });
 
   it("errors when the provider returns no image data", async () => {
-    const context = {
+    const context = withGenerationSeam({
       userId: "user-1",
       runProviderPrediction: vi.fn(async () => new Uint8Array()),
       hasModelInterface: () => false
-    } as unknown as ProcessingContext;
+    }) as unknown as ProcessingContext;
 
     const result = (await asTool(generateImage).process(context, {
       provider: "atlascloud",
