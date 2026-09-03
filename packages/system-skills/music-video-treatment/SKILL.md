@@ -26,3 +26,7 @@ For each section, provide timecode and bar range, musical and visual jobs, frami
 Create a storyboard with `create_storyboard({ name, brief, style, aspect_ratio })`, using `storyboard_id` from its result. Put the full brief, lyrics, section map, bar grid, and roster in `brief`. Attach entity ids with `edit_storyboard({ storyboard_id, ops: [{ op: "set_board", entity_ids }] })`; `set_entities` does not exist. Add one `add_shot` op per section. Each action names visible entities in brackets, includes its sync point, and uses the section duration rounded to 0.5 seconds.
 
 Stop at the planned board unless asked to render. Report the directions, selected treatment, and entity roster.
+
+## When the treatment becomes a cut
+
+The bar grid computed above is the plan; `beat-sync-editing` derives the real one from the track with `detect_audio_events` and snaps the cuts to it, so the two must agree before anything is trimmed. `motion-graphics` carries the timeline op contract, `color-motion` the per-section grade and any colour that moves on the drop, `frame-composition` the repeated hook framing across choruses, and `caption-titles` any lyric or artist card on screen.

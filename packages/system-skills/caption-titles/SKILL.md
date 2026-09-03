@@ -7,6 +7,8 @@ description: Add a consistent, timed text layer to an existing picture-locked No
 
 Work directly with timeline capabilities and open-timeline tools. Do not build a workflow, fabricate a cut, or render video.
 
+`motion-graphics` carries the op contract for every call named here. `motion-principles` gives the entry and exit durations and easing behind each tier's presets, `frame-composition` fixes the safe inset and where a tier sits, and `logo-reveal` owns the brand mark at the head or tail.
+
 ## Hard gate
 
 List and read the selected timeline first. It must contain picture clips. If it is missing or empty, stop and ask for a real cut; route users to storyboard or script-to-timeline work instead. Snapshot the timeline before editing with `create_timeline_version`.

@@ -32,9 +32,17 @@ directory ships with no other change.
 `motion-graphics` carries the mechanics and the other motion skills carry the
 craft. A craft skill quotes calls rather than teaching them, so
 `packages/agents/tests/motion-graphics-skill-names.test.ts` checks every
-snake_case call in all nine against the capability registry and
+snake_case call in all ten against the capability registry and
 `edit_timeline`'s op list — a renamed tool fails there rather than in a model's
-hands. Add a skill to `SKILL_NAMES` in that test in the same change.
+hands. Add a skill to `SKILL_NAMES` in that test in the same change. The four
+board skills stay out of it: each names `set_entities` in order to say the op
+does not exist, and that check cannot tell such a warning from a typo.
+
+Every skill states where the rest of the set picks up. A craft skill opens by
+pointing back at `motion-graphics` for the op contract and sideways at the
+neighbours that decide its numbers; a board skill points forward at the motion
+skills at the step where a board becomes a cut, so an agent asked to animate a
+finished board loads the craft file instead of improvising against the op list.
 
 ## Credit
 

@@ -9,6 +9,10 @@ description: Write custom timeline animations — keyframe curves by hand, or a 
 `code` (a JS body baked into curves once, host-side). Add `mask` when a curve
 drives `wipeProgress`.
 
+`motion-graphics` carries the op contract and the preset catalog this file is
+the escape hatch from. `motion-principles` gives the duration and the shape a
+curve should hit before you write its keyframes.
+
 ## When to write one
 
 Write curves as soon as a preset is close but not right. The catalog is seven
