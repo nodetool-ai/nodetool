@@ -567,6 +567,65 @@ describe("set_timeline_document", () => {
     expect(stored?.fps).toBe(24);
   });
 
+  it("fills the bookkeeping a hand-authored document leaves out", async () => {
+    const row = await makeTimeline();
+    const result = (await run().invoke("set_timeline_document", {
+      timeline_id: row.id,
+      document: {
+        tracks: [{ id: "track-1", name: "Video 1", type: "video" }],
+        clips: [
+          {
+            id: "clip-a",
+            trackId: "track-1",
+            name: "Title",
+            startMs: 0,
+            durationMs: 2000,
+            mediaType: "text",
+            textStyle: { text: "Hello", fontSizePx: 96, color: "#FFFFFF" },
+            animations: [{ role: "in", preset: "fade", durationMs: 400 }]
+          }
+        ]
+      }
+    })) as { ok: boolean; written: boolean; validation: { ok: boolean } };
+
+    expect(result).toMatchObject({ ok: true, written: true });
+    const stored = (await TimelineSequence.findById(row.id))!.toDocument();
+    expect(stored.tracks[0]).toMatchObject({
+      index: 0,
+      visible: true,
+      locked: false
+    });
+    expect(stored.clips[0]).toMatchObject({
+      sourceType: "imported",
+      status: "generated",
+      locked: false,
+      versions: []
+    });
+    expect(stored.clips[0].animations?.[0].id).toBe("anim_1");
+    expect(stored.markers).toEqual([]);
+  });
+
+  it("reads fps/width/height off the document when the options omit them", async () => {
+    const row = await makeTimeline();
+    const result = (await run().invoke("set_timeline_document", {
+      timeline_id: row.id,
+      document: { ...replacement(), fps: 24, width: 1080, height: 1920 }
+    })) as {
+      ok: boolean;
+      fps: number;
+      width: number;
+      height: number;
+      validation: { ok: boolean; warnings: Array<{ code: string }> };
+    };
+
+    expect(result).toMatchObject({ ok: true, fps: 24, width: 1080, height: 1920 });
+    expect(
+      result.validation.warnings.map((w) => w.code)
+    ).not.toContain("field_stripped");
+    const stored = await TimelineSequence.findById(row.id);
+    expect([stored?.fps, stored?.width, stored?.height]).toEqual([24, 1080, 1920]);
+  });
+
   it("refuses an invalid document and writes nothing at all", async () => {
     const row = await makeTimeline();
     const before = await TimelineSequence.findById(row.id);

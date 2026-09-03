@@ -47,6 +47,7 @@ const TIMELINE_TOOLS = [
   "preview_timeline_frame",
   "compare_timeline_frames",
   "set_timeline_document",
+  "create_timeline_version",
   "list_compositions",
   "get_composition",
   "save_composition",
@@ -153,6 +154,8 @@ function createFakeRouter() {
         });
       case "list_timelines":
         return JSON.stringify({ timelines: [] });
+      case "create_timeline_version":
+        return JSON.stringify({ version: 1 });
       case "validate_timeline":
         return JSON.stringify({ ok: true, target: args });
       case "preview_timeline_frame":
@@ -511,6 +514,23 @@ describe("nodetool object model", () => {
       expected_updated_at: "2026-01-01T00:00:00.000Z",
       snapshot_name: "before the recut"
     });
+  });
+
+  it("routes timelines.createVersion to create_timeline_version, like snapshot", async () => {
+    const { executeTool, calls } = createFakeRouter();
+    const session = makeSession(TIMELINE_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `await nodetool.timelines.snapshot("tl1", { name: "one" });
+       await nodetool.timelines.createVersion("tl1", { name: "two" });
+       return "done";`
+    );
+    expect(obs.ok).toBe(true);
+    expect(calls.map((c) => c.name)).toEqual([
+      "create_timeline_version",
+      "create_timeline_version"
+    ]);
+    expect(calls[1].args).toEqual({ timeline_id: "tl1", name: "two" });
   });
 
   it("names preview_timeline_frame when the belt lacks it", async () => {

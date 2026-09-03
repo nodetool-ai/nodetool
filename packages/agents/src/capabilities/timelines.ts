@@ -75,6 +75,10 @@ import {
   SET_TIMELINE_DOCUMENT_SCHEMA,
   deleteTimelineSpec
 } from "./timelines.specs.js";
+import {
+  normalizeAuthoredDocument,
+  type AuthoredRenderSettings
+} from "@nodetool-ai/timeline";
 import { isFiniteNumber, isRecord, isString } from "../utils/type-guards.js";
 
 export {
@@ -954,14 +958,19 @@ const validateTimeline: CapabilityExport = {
 /**
  * A document the caller sent, ready to validate.
  *
- * `markers` is the one field an agent authoring a cut has no reason to think
- * about, and the Zod schema requires it — so an omitted one becomes an empty
- * list rather than a `schema_invalid` refusal about a field nobody meant to
- * leave out. Everything else is stored as given: the whole point of this
- * capability is that what the caller sends is what the sequence becomes.
+ * A hand-authored cut leaves out the bookkeeping the schema requires — track
+ * `index`/`visible`/`locked`, clip `sourceType`/`status`/`locked`/`versions`,
+ * animation ids, `markers` — and refusing it with two dozen schema errors
+ * teaches the caller nothing. `normalizeAuthoredDocument` fills exactly what is
+ * missing and lifts document-level `fps`/`width`/`height` out as sequence
+ * settings; a value the caller sent is never replaced, because the point of a
+ * whole-document write is that what was sent is what the sequence becomes.
  */
-function documentToStore(raw: Record<string, unknown>): Record<string, unknown> {
-  return raw["markers"] === undefined ? { ...raw, markers: [] } : raw;
+function documentToStore(raw: Record<string, unknown>): {
+  document: Record<string, unknown>;
+  settings: AuthoredRenderSettings;
+} {
+  return normalizeAuthoredDocument(raw);
 }
 
 /** The end of the last clip — what the sequence's stored duration means. */
@@ -1031,14 +1040,30 @@ const setTimelineDocument: CapabilityExport = {
       }
     }
 
-    const fps = sequenceSetting(params["fps"], sequence.fps, "fps");
+    const { document, settings } = documentToStore(raw);
+
+    // Document-level fps/width/height are sequence settings, so opts win and a
+    // document that carries them configures the sequence instead of having
+    // them stripped with a `field_stripped` warning.
+    const fps = sequenceSetting(
+      params["fps"] ?? settings.fps,
+      sequence.fps,
+      "fps"
+    );
     if (isError(fps)) return fps;
-    const width = sequenceSetting(params["width"], sequence.width, "width");
+    const width = sequenceSetting(
+      params["width"] ?? settings.width,
+      sequence.width,
+      "width"
+    );
     if (isError(width)) return width;
-    const height = sequenceSetting(params["height"], sequence.height, "height");
+    const height = sequenceSetting(
+      params["height"] ?? settings.height,
+      sequence.height,
+      "height"
+    );
     if (isError(height)) return height;
 
-    const document = documentToStore(raw);
     const { validateTimelineSequence } =
       await import("@nodetool-ai/execution/timeline-debug");
     const before: TimelineValidation = validateTimelineSequence(document, {

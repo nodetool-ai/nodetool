@@ -1135,7 +1135,11 @@ const nodetool = (() => {
         __need("list_timeline_versions")(__merge(opts, { timeline_id: id })),
       getVersion: (id, version) =>
         __need("get_timeline_version")({ timeline_id: id, version: version }),
+      /** Save the current state as a version. Options: {name}. */
       snapshot: (id, opts) =>
+        __need("create_timeline_version")(__merge(opts, { timeline_id: id })),
+      /** Alias of snapshot(), named after the create_timeline_version tool. */
+      createVersion: (id, opts) =>
         __need("create_timeline_version")(__merge(opts, { timeline_id: id })),
       restore: (id, version) =>
         __need("restore_timeline_version")({
@@ -1180,6 +1184,14 @@ const nodetool = (() => {
        * is written and snapshotted first, so a bad document is refused and a
        * good one is undoable. Options: {fps, width, height,
        * expected_updated_at, snapshot_name}.
+       *
+       * Bookkeeping you leave out is filled in rather than refused: a track's
+       * index (its position in the array), visible: true and locked: false; a
+       * clip's sourceType (generated when it names a prompt, workflow or
+       * binding, else imported), status "generated", locked: false and
+       * versions: []; an animation's id (anim_1, anim_2, …); and markers: [].
+       * Anything you do send is kept as sent. fps/width/height on the document
+       * itself are read as the sequence's settings when the options omit them.
        */
       setDocument: (id, document, opts) =>
         __need("set_timeline_document")(
@@ -1660,11 +1672,16 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   timelines or two versions — per-frame pixel difference and a side-by-side
   sheet),
   \`versions(id)\`,
-  \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`,
+  \`getVersion(id, n)\`, \`snapshot(id, {name})\` (also \`createVersion\`,
+  the same call under the tool's own name), \`restore(id, n)\`,
   \`deleteVersion(id, n)\`,
   \`setDocument(id, document, {fps, width, height, expected_updated_at,
   snapshot_name})\` — the whole document in one call, validated before it is
-  written and snapshotted first, for authoring a cut from scratch —
+  written and snapshotted first, for authoring a cut from scratch. Missing
+  bookkeeping is filled in: track \`index\`/\`visible\`/\`locked\`, clip
+  \`sourceType\`/\`status\`/\`locked\`/\`versions\`, animation ids and
+  \`markers\`; document-level \`fps\`/\`width\`/\`height\` are read as
+  the sequence's settings —
   \`render(id, {wait, preview_scale, format, alpha, timeout_ms})\` — the cut
   as a video, run as a job; render and look before you call a cut done, and
   draft at a \`preview_scale\` below 1 while you are still iterating — and
