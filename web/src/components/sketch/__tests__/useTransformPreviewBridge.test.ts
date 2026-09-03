@@ -200,7 +200,7 @@ describe("useTransformPreviewBridge", () => {
   });
 
   it("routes preview redraws through the shared coordinator when provided", () => {
-    const coordinator = new DisplayFrameCoordinator(false);
+    const coordinator = new DisplayFrameCoordinator();
     const requestFrameSpy = jest.spyOn(coordinator, "requestFrame");
     const coordinatorRef = { current: coordinator };
     const { result } = renderHook(() =>
