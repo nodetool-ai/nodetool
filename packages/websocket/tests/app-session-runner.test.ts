@@ -9,6 +9,7 @@ import { unpack } from "msgpackr";
 import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import {
   Application,
+  Job,
   Workflow,
   initTestDb,
   invocationBelongsToApplication,
@@ -255,6 +256,65 @@ describe("a runner connected by a deployed app's visitor", () => {
           m.status === "failed" &&
           m.job_id === taken &&
           m.error === "This app run named a run id that is already in use"
+      )
+    ).toBe(true);
+  });
+
+  it("refuses a run id an existing job already took", async () => {
+    const { application, version } = await seedPublishedApp();
+    const taken = "6f9619ff-8b86-4d11-b42d-00c04fc96401";
+    await Job.create({
+      id: taken,
+      workflow_id: "wf-published",
+      user_id: USER,
+      status: "queued",
+      params: {},
+      graph: { nodes: [], edges: [] }
+    });
+    const runner = appRunner(application.id, version);
+    const ws = new MockWS();
+    await runner.connect(ws);
+
+    await runner.jobs.runJob({
+      job_id: taken,
+      workflow_id: "wf-published",
+      operation_id: "main"
+    });
+
+    expect(
+      sentMsgs(ws).some(
+        (m) =>
+          m.type === "job_update" &&
+          m.status === "failed" &&
+          m.job_id === taken &&
+          m.error === "This app run named a run id that is already in use"
+      )
+    ).toBe(true);
+  });
+
+  it("refuses a session for an app that has never been released", async () => {
+    const document = createEmptyDocument("Unpublished");
+    const application = await Application.create<Application>({
+      user_id: USER,
+      project_id: "default",
+      name: "Unpublished app",
+      document: JSON.stringify(document)
+    });
+    const runner = appRunner(application.id, 1);
+    const ws = new MockWS();
+    await runner.connect(ws);
+
+    await runner.jobs.runJob({
+      workflow_id: "wf-published",
+      operation_id: "main"
+    });
+
+    expect(
+      sentMsgs(ws).some(
+        (m) =>
+          m.type === "job_update" &&
+          m.status === "failed" &&
+          m.error === "This app is not available"
       )
     ).toBe(true);
   });
