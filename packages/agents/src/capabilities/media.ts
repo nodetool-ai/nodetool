@@ -20,11 +20,12 @@
  */
 
 import { Buffer } from "node:buffer";
-import { randomInt } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import type {
+  GenerationRequest,
   ImageBox,
   ImageSegmentationMask,
   JsonSchema,
@@ -58,7 +59,11 @@ import {
   filesystemPathForUri,
   mimeForRef
 } from "../sandbox-media-ref.js";
-import { inferImageMime, persistOutput } from "../tools/asset-persist.js";
+import {
+  MIME_TO_EXT,
+  inferImageMime,
+  persistOutput
+} from "../tools/asset-persist.js";
 import type { SavedOutput } from "../tools/asset-persist.js";
 import { persistBinaryOutput } from "../tools/binary-output.js";
 import { extractJSON } from "../utils/json-parser.js";
@@ -71,7 +76,11 @@ import {
   isRecord,
   isString
 } from "../utils/type-guards.js";
-import type { CapabilityExport, CapabilityModule } from "./types.js";
+import type {
+  CapabilityExport,
+  CapabilityModule,
+  CapabilityRun
+} from "./types.js";
 import {
   generateImageSpec,
   editImageSpec,
@@ -275,60 +284,236 @@ function hasOutputHandle(persisted: SavedOutput): boolean {
   );
 }
 
+// ---------------------------------------------------------------------------
+// The generation seam, as the capabilities use it
+// ---------------------------------------------------------------------------
+
+/** Background generations a run may have open at once (design § 10.1). */
+const MAX_BACKGROUND_GENERATIONS = 16;
+const openBackground = new WeakMap<ProcessingContext, number>();
+
+function toolCallIdOf(params: Record<string, unknown>): string | null {
+  const id = params["_tool_call_id"];
+  return isNonEmptyString(id) ? id : null;
+}
+
+function outputFileOf(params: Record<string, unknown>): string | undefined {
+  return isString(params["output_file"]) ? params["output_file"] : undefined;
+}
+
+/** What a capability asks the seam for, beyond the provider parameters. */
+interface MediaGeneration {
+  capability: GenerationRequest["capability"];
+  m: MediaModelArgs;
+  params: Record<string, unknown>;
+  namePrefix: string;
+  type: "image" | "video" | "audio";
+  /** A fixed MIME (video/mp4); unset means sniff the bytes. */
+  mime?: string;
+}
+
+/** The request every media capability hands `runGeneration`. */
+function generationRequest(
+  id: string,
+  params: Record<string, unknown>,
+  spec: MediaGeneration
+): GenerationRequest {
+  const outputFile = outputFileOf(params);
+  const persist: GenerationRequest["persist"] = {};
+  if (outputFile) persist.name = path.basename(outputFile);
+  if (spec.mime) persist.mime = spec.mime;
+  return {
+    id,
+    provider: spec.m.provider,
+    capability: spec.capability,
+    model: spec.m.model,
+    params: spec.params,
+    origin: { surface: "capability", tool_call_id: toolCallIdOf(params) },
+    persist
+  };
+}
+
+/**
+ * Write the bytes where the caller can read them back: the asset the seam
+ * saved when it could, plus a workspace copy when `output_file` was named or
+ * no asset exists. `persistOutput` handles the no-asset case as before.
+ */
+async function finishOutput(
+  context: ProcessingContext,
+  bytes: Uint8Array,
+  assets: ReadonlyArray<{ asset_id?: string | null; uri: string }>,
+  opts: { namePrefix: string; mime: string; outputFile?: string }
+): Promise<SavedOutput> {
+  const first = assets[0];
+  if (!first || !isNonEmptyString(first.asset_id)) {
+    return persistOutput(context, bytes, opts);
+  }
+  const result: SavedOutput = {
+    bytes: bytes.length,
+    mime_type: opts.mime,
+    asset_id: first.asset_id,
+    asset_uri: first.uri,
+    url: first.uri
+  };
+  if (opts.outputFile && context.workspace) {
+    try {
+      await context.workspace.write(opts.outputFile, bytes, opts.mime);
+      result.path = opts.outputFile;
+    } catch {
+      // Non-fatal — the asset is the handle.
+    }
+  }
+  return result;
+}
+
+/**
+ * The asset the seam saved for a generation, read off the registry's settled
+ * outcome. The encoded-audio paths return the provider's result rather than
+ * the seam's, so this is how a capability learns what was persisted.
+ */
+async function seamAssetFor(id: string): Promise<string | null> {
+  const { generationRegistry } = await import("@nodetool-ai/runtime");
+  const outcome = generationRegistry.outcome(id);
+  return outcome?.asset_ids[0] ?? null;
+}
+
+/** What a `background: true` call answers with. */
+function backgroundReceipt(
+  id: string,
+  spec: MediaGeneration
+): Record<string, unknown> {
+  return {
+    type: spec.type,
+    generation_id: id,
+    status: "running",
+    background: true,
+    provider: spec.m.provider,
+    model: spec.m.model,
+    capability: spec.capability,
+    next: "Call await_generation with this generation_id to collect the asset, or get_generation to check on it."
+  };
+}
+
+/**
+ * Start a generation without waiting for it. The seam records the row and
+ * saves the asset whether or not anyone awaits; the count is bounded so a
+ * loop cannot open an unbounded number of paid calls.
+ */
+function startBackgroundGeneration(
+  context: ProcessingContext,
+  req: GenerationRequest,
+  spec: MediaGeneration,
+  params: Record<string, unknown>
+): Record<string, unknown> {
+  const open = openBackground.get(context) ?? 0;
+  if (open >= MAX_BACKGROUND_GENERATIONS) {
+    return {
+      error: `${MAX_BACKGROUND_GENERATIONS} background generations are already open on this run. Collect one with await_generation before starting another.`
+    };
+  }
+  openBackground.set(context, open + 1);
+  const outputFile = outputFileOf(params);
+  void context
+    .runGeneration(req)
+    .then(async (result) => {
+      const bytes = generatedBytes(result.output);
+      if (bytes && outputFile && context.workspace) {
+        await context.workspace.write(
+          outputFile,
+          bytes,
+          spec.mime ?? inferImageMime(bytes)
+        );
+      }
+    })
+    .catch(() => {
+      // Recorded on the row by the tracker; nothing to report here.
+    })
+    .finally(() => {
+      openBackground.set(
+        context,
+        Math.max(0, (openBackground.get(context) ?? 1) - 1)
+      );
+    });
+  return backgroundReceipt(req.id ?? "", spec);
+}
+
+/**
+ * Run one media generation through the seam and answer with the handle:
+ * the asset (and workspace path) plus the `generation_id` the `generations`
+ * capabilities take.
+ */
+async function runMediaGeneration(
+  run: CapabilityRun,
+  params: Record<string, unknown>,
+  spec: MediaGeneration
+): Promise<unknown> {
+  const context = run.context;
+  const id = randomUUID();
+  const req = generationRequest(id, params, spec);
+  if (params["background"] === true) {
+    return startBackgroundGeneration(context, req, spec, params);
+  }
+  try {
+    const result = await context.runGeneration(req);
+    const bytes = generatedBytes(result.output);
+    if (!bytes) {
+      return {
+        ...outputError(
+          spec.capability,
+          spec.m,
+          `the provider returned no ${spec.type} data`
+        ),
+        generation_id: id
+      };
+    }
+    const persisted = await finishOutput(context, bytes, result.assets, {
+      namePrefix: spec.namePrefix,
+      mime: spec.mime ?? inferImageMime(bytes),
+      outputFile: outputFileOf(params)
+    });
+    if (!hasOutputHandle(persisted)) {
+      return {
+        ...outputError(
+          spec.capability,
+          spec.m,
+          `the ${persisted.bytes}-byte result could not be stored (no asset was created and no workspace file was written)`
+        ),
+        generation_id: id
+      };
+    }
+    return {
+      type: spec.type,
+      provider: spec.m.provider,
+      model: spec.m.model,
+      generation_id: id,
+      ...persisted
+    };
+  } catch (e) {
+    return { ...predictionError(spec.capability, spec.m, e), generation_id: id };
+  }
+}
+
 const generateImage: CapabilityExport = {
   spec: generateImageSpec,
   impl: async (run, params) => {
-    const context = run.context;
     const m = parseModelArgs(params);
     if ("error" in m) return m;
     const prompt = params["prompt"];
     if (!isNonEmptyString(prompt))
       return { error: "prompt is required" };
-
-    try {
-      const result = (await context.runProviderPrediction({
-        provider: m.provider,
-        capability: "text_to_image",
-        model: m.model,
-        params: {
-          prompt,
-          negative_prompt: params["negative_prompt"],
-          width: params["width"],
-          height: params["height"],
-          quality: params["quality"]
-        }
-      })) as unknown;
-      const bytes = generatedBytes(result);
-      if (!bytes) {
-        return outputError(
-          "text_to_image",
-          m,
-          "the provider returned no image data"
-        );
+    return runMediaGeneration(run, params, {
+      capability: "text_to_image",
+      m,
+      type: "image",
+      namePrefix: "generated-image",
+      params: {
+        prompt,
+        negative_prompt: params["negative_prompt"],
+        width: params["width"],
+        height: params["height"],
+        quality: params["quality"]
       }
-      const persisted = await persistOutput(context, bytes, {
-        namePrefix: "generated-image",
-        mime: inferImageMime(bytes),
-        outputFile: isString(params["output_file"])
-          ? params["output_file"]
-          : undefined
-      });
-      if (!hasOutputHandle(persisted)) {
-        return outputError(
-          "text_to_image",
-          m,
-          `the ${persisted.bytes}-byte result could not be stored (no asset was created and no workspace file was written)`
-        );
-      }
-      return {
-        type: "image",
-        provider: m.provider,
-        model: m.model,
-        ...persisted
-      };
-    } catch (e) {
-      return predictionError("text_to_image", m, e);
-    }
+    });
   }
 };
 
@@ -344,53 +529,26 @@ const editImage: CapabilityExport = {
       return { error: "input_file is required" };
     if (!isNonEmptyString(prompt))
       return { error: "prompt is required" };
-
+    let image: Uint8Array;
     try {
-      const image = await readWorkspaceOrAssetFile(context, inputFile);
-      const result = (await context.runProviderPrediction({
-        provider: m.provider,
-        capability: "image_to_image",
-        model: m.model,
-        params: {
-          image,
-          prompt,
-          negative_prompt: params["negative_prompt"],
-          target_width: params["target_width"],
-          target_height: params["target_height"],
-          strength: params["strength"]
-        }
-      })) as unknown;
-      const bytes = generatedBytes(result);
-      if (!bytes) {
-        return outputError(
-          "image_to_image",
-          m,
-          "the provider returned no image data"
-        );
-      }
-      const persisted = await persistOutput(context, bytes, {
-        namePrefix: "edited-image",
-        mime: inferImageMime(bytes),
-        outputFile: isString(params["output_file"])
-          ? params["output_file"]
-          : undefined
-      });
-      if (!hasOutputHandle(persisted)) {
-        return outputError(
-          "image_to_image",
-          m,
-          `the ${persisted.bytes}-byte result could not be stored (no asset was created and no workspace file was written)`
-        );
-      }
-      return {
-        type: "image",
-        provider: m.provider,
-        model: m.model,
-        ...persisted
-      };
+      image = await readWorkspaceOrAssetFile(context, inputFile);
     } catch (e) {
       return predictionError("image_to_image", m, e);
     }
+    return runMediaGeneration(run, params, {
+      capability: "image_to_image",
+      m,
+      type: "image",
+      namePrefix: "edited-image",
+      params: {
+        image,
+        prompt,
+        negative_prompt: params["negative_prompt"],
+        target_width: params["target_width"],
+        target_height: params["target_height"],
+        strength: params["strength"]
+      }
+    });
   }
 };
 
@@ -481,57 +639,25 @@ const segmentImage: CapabilityExport = {
 const generateVideo: CapabilityExport = {
   spec: generateVideoSpec,
   impl: async (run, params) => {
-    const context = run.context;
     const m = parseModelArgs(params);
     if ("error" in m) return m;
     const prompt = params["prompt"];
     if (!isNonEmptyString(prompt))
       return { error: "prompt is required" };
-
-    try {
-      const result = (await context.runProviderPrediction({
-        provider: m.provider,
-        capability: "text_to_video",
-        model: m.model,
-        params: {
-          prompt,
-          negative_prompt: params["negative_prompt"],
-          num_frames: params["num_frames"],
-          aspect_ratio: params["aspect_ratio"],
-          resolution: params["resolution"]
-        }
-      })) as unknown;
-      const bytes = generatedBytes(result);
-      if (!bytes) {
-        return outputError(
-          "text_to_video",
-          m,
-          "the provider returned no video data"
-        );
+    return runMediaGeneration(run, params, {
+      capability: "text_to_video",
+      m,
+      type: "video",
+      namePrefix: "generated-video",
+      mime: "video/mp4",
+      params: {
+        prompt,
+        negative_prompt: params["negative_prompt"],
+        num_frames: params["num_frames"],
+        aspect_ratio: params["aspect_ratio"],
+        resolution: params["resolution"]
       }
-      const persisted = await persistOutput(context, bytes, {
-        namePrefix: "generated-video",
-        mime: "video/mp4",
-        outputFile: isString(params["output_file"])
-          ? params["output_file"]
-          : undefined
-      });
-      if (!hasOutputHandle(persisted)) {
-        return outputError(
-          "text_to_video",
-          m,
-          `the ${persisted.bytes}-byte result could not be stored (no asset was created and no workspace file was written)`
-        );
-      }
-      return {
-        type: "video",
-        provider: m.provider,
-        model: m.model,
-        ...persisted
-      };
-    } catch (e) {
-      return predictionError("text_to_video", m, e);
-    }
+    });
   }
 };
 
@@ -544,52 +670,26 @@ const animateImage: CapabilityExport = {
     const inputFile = params["input_file"];
     if (!isNonEmptyString(inputFile))
       return { error: "input_file is required" };
-
+    let image: Uint8Array;
     try {
-      const image = await readWorkspaceOrAssetFile(context, inputFile);
-      const result = (await context.runProviderPrediction({
-        provider: m.provider,
-        capability: "image_to_video",
-        model: m.model,
-        params: {
-          image,
-          prompt: params["prompt"],
-          num_frames: params["num_frames"],
-          aspect_ratio: params["aspect_ratio"],
-          resolution: params["resolution"]
-        }
-      })) as unknown;
-      const bytes = generatedBytes(result);
-      if (!bytes) {
-        return outputError(
-          "image_to_video",
-          m,
-          "the provider returned no video data"
-        );
-      }
-      const persisted = await persistOutput(context, bytes, {
-        namePrefix: "animated-video",
-        mime: "video/mp4",
-        outputFile: isString(params["output_file"])
-          ? params["output_file"]
-          : undefined
-      });
-      if (!hasOutputHandle(persisted)) {
-        return outputError(
-          "image_to_video",
-          m,
-          `the ${persisted.bytes}-byte result could not be stored (no asset was created and no workspace file was written)`
-        );
-      }
-      return {
-        type: "video",
-        provider: m.provider,
-        model: m.model,
-        ...persisted
-      };
+      image = await readWorkspaceOrAssetFile(context, inputFile);
     } catch (e) {
       return predictionError("image_to_video", m, e);
     }
+    return runMediaGeneration(run, params, {
+      capability: "image_to_video",
+      m,
+      type: "video",
+      namePrefix: "animated-video",
+      mime: "video/mp4",
+      params: {
+        image,
+        prompt: params["prompt"],
+        num_frames: params["num_frames"],
+        aspect_ratio: params["aspect_ratio"],
+        resolution: params["resolution"]
+      }
+    });
   }
 };
 
@@ -701,10 +801,12 @@ interface EncodedSpeechParams {
 async function encodedSpeech(
   context: ProcessingContext,
   m: MediaModelArgs,
-  params: EncodedSpeechParams
+  params: EncodedSpeechParams,
+  generation?: Pick<GenerationRequest, "id" | "origin" | "persist">
 ): Promise<{ data?: Uint8Array; mimeType?: string } | null> {
   if (isFunction(context.textToSpeechEncoded)) {
     return await context.textToSpeechEncoded({
+      ...generation,
       provider: m.provider,
       capability: "text_to_speech",
       model: m.model,
@@ -742,6 +844,44 @@ const generateSpeech: CapabilityExport = {
       ? params["output_file"]
       : undefined;
     const desiredFormat = audioFormatFromOutputFile(outputFile) ?? "mp3";
+    const generationId = randomUUID();
+    const generation: Pick<GenerationRequest, "id" | "origin" | "persist"> = {
+      id: generationId,
+      origin: { surface: "capability", tool_call_id: toolCallIdOf(params) },
+      persist: outputFile ? { name: path.basename(outputFile) } : {}
+    };
+    const speechParams = {
+      text,
+      voice: params["voice"],
+      speed: params["speed"],
+      audioFormat: desiredFormat
+    };
+
+    if (params["background"] === true) {
+      const spec: MediaGeneration = {
+        capability: "text_to_speech",
+        m,
+        type: "audio",
+        namePrefix: "generated-speech",
+        params: speechParams
+      };
+      const open = openBackground.get(context) ?? 0;
+      if (open >= MAX_BACKGROUND_GENERATIONS) {
+        return {
+          error: `${MAX_BACKGROUND_GENERATIONS} background generations are already open on this run. Collect one with await_generation before starting another.`
+        };
+      }
+      openBackground.set(context, open + 1);
+      void encodedSpeech(context, m, speechParams, generation)
+        .catch(() => null)
+        .finally(() => {
+          openBackground.set(
+            context,
+            Math.max(0, (openBackground.get(context) ?? 1) - 1)
+          );
+        });
+      return backgroundReceipt(generationId, spec);
+    }
 
     try {
       // Preferred path: ask the provider for fully-encoded audio in the
@@ -750,6 +890,8 @@ const generateSpeech: CapabilityExport = {
       let audio: Uint8Array | null = null;
       let mimeType: string | undefined;
       let outputFileFinal = outputFile;
+      // The asset the seam saved on the encoded path, when it could.
+      let seamAssetId: string | null = null;
       // Why the encoded path gave up, kept for the failure message. A provider
       // that only does encoded TTS (FAL, KIE) leaves the streaming method as
       // the base class's, which throws "<provider> does not support
@@ -759,15 +901,16 @@ const generateSpeech: CapabilityExport = {
       let encodedError: string | undefined;
 
       try {
-        const encoded = await encodedSpeech(context, m, {
-          text,
-          voice: params["voice"],
-          speed: params["speed"],
-          audioFormat: desiredFormat
-        });
+        const encoded = await encodedSpeech(
+          context,
+          m,
+          speechParams,
+          generation
+        );
         if (encoded && encoded.data) {
           audio = encoded.data;
           mimeType = encoded.mimeType;
+          seamAssetId = await seamAssetFor(generationId);
         }
       } catch (e) {
         encodedError = e instanceof Error ? e.message : String(e);
@@ -785,6 +928,8 @@ const generateSpeech: CapabilityExport = {
         let pcmSampleRate: number | undefined;
         try {
           for await (const item of context.streamProviderPrediction({
+            id: generationId,
+            origin: generation.origin,
             provider: m.provider,
             capability: "text_to_speech",
             model: m.model,
@@ -849,19 +994,33 @@ const generateSpeech: CapabilityExport = {
         }
       }
 
-      const persisted = await persistOutput(context, audio, {
-        namePrefix: "generated-speech",
-        mime: mimeType ?? "audio/mpeg",
-        outputFile: outputFileFinal
-      });
+      const mime = mimeType ?? "audio/mpeg";
+      const persisted = await finishOutput(
+        context,
+        audio,
+        seamAssetId
+          ? [
+              {
+                asset_id: seamAssetId,
+                uri: `asset://${seamAssetId}.${MIME_TO_EXT[mime] ?? "bin"}`
+              }
+            ]
+          : [],
+        {
+          namePrefix: "generated-speech",
+          mime,
+          outputFile: outputFileFinal
+        }
+      );
       return {
         type: "audio",
         provider: m.provider,
         model: m.model,
+        generation_id: generationId,
         ...persisted
       };
     } catch (e) {
-      return predictionError("text_to_speech", m, e);
+      return { ...predictionError("text_to_speech", m, e), generation_id: generationId };
     }
   }
 };
@@ -894,35 +1053,79 @@ const generateMusic: CapabilityExport = {
       ? params["output_file"]
       : undefined;
     const desiredFormat = audioFormatFromOutputFile(outputFile) ?? "mp3";
+    const generationId = randomUUID();
+    const musicParams = {
+      prompt,
+      lyrics: params["lyrics"],
+      duration_seconds: params["duration_seconds"],
+      audioFormat: desiredFormat
+    };
+    const req: GenerationRequest = {
+      id: generationId,
+      provider: m.provider,
+      capability: "text_to_music",
+      model: m.model,
+      params: musicParams,
+      origin: { surface: "capability", tool_call_id: toolCallIdOf(params) },
+      persist: outputFile ? { name: path.basename(outputFile) } : {}
+    };
+    const spec: MediaGeneration = {
+      capability: "text_to_music",
+      m,
+      type: "audio",
+      namePrefix: "generated-music",
+      params: musicParams
+    };
+
+    if (params["background"] === true) {
+      const open = openBackground.get(context) ?? 0;
+      if (open >= MAX_BACKGROUND_GENERATIONS) {
+        return {
+          error: `${MAX_BACKGROUND_GENERATIONS} background generations are already open on this run. Collect one with await_generation before starting another.`
+        };
+      }
+      openBackground.set(context, open + 1);
+      void context
+        .textToMusic(req)
+        .catch(() => null)
+        .finally(() => {
+          openBackground.set(
+            context,
+            Math.max(0, (openBackground.get(context) ?? 1) - 1)
+          );
+        });
+      return backgroundReceipt(generationId, spec);
+    }
 
     try {
-      const encoded = await context.textToMusic({
-        provider: m.provider,
-        capability: "text_to_music",
-        model: m.model,
-        params: {
-          prompt,
-          lyrics: params["lyrics"],
-          duration_seconds: params["duration_seconds"],
-          audioFormat: desiredFormat
-        }
-      });
+      const encoded = await context.textToMusic(req);
       if (!encoded?.data || encoded.data.length === 0) {
-        return { error: "Provider returned no audio data" };
+        return { error: "Provider returned no audio data", generation_id: generationId };
       }
-      const persisted = await persistOutput(context, encoded.data, {
-        namePrefix: "generated-music",
-        mime: encoded.mimeType ?? "audio/mpeg",
-        outputFile
-      });
+      const mime = encoded.mimeType ?? "audio/mpeg";
+      const seamAssetId = await seamAssetFor(generationId);
+      const persisted = await finishOutput(
+        context,
+        encoded.data,
+        seamAssetId
+          ? [
+              {
+                asset_id: seamAssetId,
+                uri: `asset://${seamAssetId}.${MIME_TO_EXT[mime] ?? "bin"}`
+              }
+            ]
+          : [],
+        { namePrefix: "generated-music", mime, outputFile }
+      );
       return {
         type: "audio",
         provider: m.provider,
         model: m.model,
+        generation_id: generationId,
         ...persisted
       };
     } catch (e) {
-      return predictionError("text_to_music", m, e);
+      return { ...predictionError("text_to_music", m, e), generation_id: generationId };
     }
   }
 };

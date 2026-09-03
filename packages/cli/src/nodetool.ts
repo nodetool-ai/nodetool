@@ -103,6 +103,7 @@ import { registerAffectedCommand } from "./commands/affected.js";
 import { registerHarnessCommands } from "./commands/harness.js";
 import { registerCollectionCommands } from "./commands/collections.js";
 import { registerCostsCommands } from "./commands/costs.js";
+import { registerGenerationsCommands } from "./commands/generations.js";
 import { registerAuthCommands } from "./commands/auth.js";
 import { registerTelegramCommands } from "./commands/telegram.js";
 import {
@@ -2446,6 +2447,7 @@ registerAffectedCommand(program);
 registerHarnessCommands(program);
 registerCollectionCommands(program);
 registerCostsCommands(program);
+registerGenerationsCommands(program);
 registerAuthCommands(program);
 registerTelegramCommands(program);
 

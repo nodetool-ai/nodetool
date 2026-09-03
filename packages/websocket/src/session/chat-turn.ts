@@ -15,8 +15,10 @@ import {
   isString
 } from "../lib/wire-values.js";
 import { storeAssetWithThumbnail } from "../lib/thumbnail.js";
+import { createAssetModelInterface } from "../lib/asset-model-interface.js";
 import {
   attachRunCostLedger,
+  linkGenerationAssets,
   ExecutionSession,
   isExecutionPreflightError,
   toRawGraphInput
@@ -48,15 +50,17 @@ import type {
   ImageModel as ProviderImageModel,
   VideoModel as ProviderVideoModel,
   TextToImageParams,
-  TextToVideoParams,
   ImageToImageParams,
   ImageToVideoParams,
+  GenerationRequest,
+  GenerationResult,
   PromptAssetRef
 } from "@nodetool-ai/runtime";
 import {
   ACTIVE_MODEL_CONTEXT_KEY,
   DIRECT_TOOL_NAMES,
   RUN_BUDGET_CONTEXT_KEY,
+  ProcessingContext as GenerationContext,
   createRunBudget,
   detectImageMime,
   IMAGE_MIME_TO_EXT,
@@ -2763,6 +2767,52 @@ export class ChatTurnHandler {
       this.session.sendDetached(msg as Record<string, unknown>);
     });
 
+    // Every provider call below runs inside the generation seam, so each
+    // render is a ledger row opened before the call and closed with its cost
+    // and asset ids (docs/media-generation-tracking-design.md § 8, S5). The
+    // seam saves the asset; `storeMediaAsset` is the fallback when it could
+    // not.
+    const generationContext = new GenerationContext({
+      jobId: randomUUID(),
+      userId,
+      threadId: threadId || null
+    });
+    generationContext.registerProvider(providerId, provider);
+    generationContext.setModelInterfaces({
+      createAsset: createAssetModelInterface
+    });
+    const ledger = attachRunCostLedger(generationContext, {
+      userId,
+      workflowId: workflowId ?? null
+    });
+    const generate = async <T>(
+      capability: GenerationRequest["capability"],
+      params: Record<string, unknown>,
+      persist: GenerationRequest["persist"] | null,
+      call: (abort: AbortSignal) => Promise<T>,
+      id?: string
+    ): Promise<GenerationResult<T>> => {
+      const result = await generationContext.runGenerationWith(
+        {
+          id,
+          provider: providerId,
+          capability,
+          model: modelId,
+          params,
+          origin: { surface: "chat", thread_id: threadId || null },
+          persist: persist ? { ...persist, parentId: userId } : undefined,
+          signal
+        },
+        (_provider, abort) => call(abort)
+      );
+      await ledger.settled();
+      return result;
+    };
+    const seamAssetId = (
+      result: { assets: ReadonlyArray<{ asset_id?: string | null }> },
+      index = 0
+    ): string | null => result.assets[index]?.asset_id ?? null;
+
     // Store generated media as a proper Asset record and return the
     // asset ID.  The DB message stores only `asset_id` — URLs are
     // resolved at serve time by resolveContentUrls / sendMessage.
@@ -2832,31 +2882,51 @@ export class ChatTurnHandler {
           return;
         // A mentioned entity carries a reference image: the generation becomes
         // an edit against those images, mirroring the generate_media RPC.
-        const imageBytesList =
+        const generated =
           entityImageBytes.length > 0
-            ? await provider.imageToImages(
-                entityImageBytes,
+            ? await generate(
+                "image_to_image",
                 {
-                  model: imageModel,
                   prompt: expandedPrompt,
-                  targetWidth: width ?? null,
-                  targetHeight: height ?? null,
-                  signal
+                  target_width: width ?? null,
+                  target_height: height ?? null,
+                  num_images: variations,
+                  images: entityImageBytes
                 },
-                variations
+                {},
+                (abort) =>
+                  provider.imageToImages(
+                    entityImageBytes,
+                    {
+                      model: imageModel,
+                      prompt: expandedPrompt,
+                      targetWidth: width ?? null,
+                      targetHeight: height ?? null,
+                      signal: abort
+                    },
+                    variations
+                  )
               )
-            : await provider.textToImages(params, variations);
+            : await generate(
+                "text_to_image",
+                { prompt: expandedPrompt, width, height, num_images: variations },
+                {},
+                (abort) =>
+                  provider.textToImages({ ...params, signal: abort }, variations)
+              );
         if (cancelled()) return;
         const imageContents: Array<Record<string, unknown>> = [];
-        for (const bytes of imageBytesList) {
+        for (const [index, bytes] of generated.output.entries()) {
           // Per-variation: a cancel partway through must not keep persisting.
           if (cancelled()) return;
           const mimeType = detectImageMime(bytes);
-          const assetId = await storeMediaAsset(
-            bytes,
-            mimeType,
-            IMAGE_MIME_TO_EXT[mimeType] ?? "png"
-          );
+          const assetId =
+            seamAssetId(generated, index) ??
+            (await storeMediaAsset(
+              bytes,
+              mimeType,
+              IMAGE_MIME_TO_EXT[mimeType] ?? "png"
+            ));
           imageContents.push({
             type: "image_url",
             image: { type: "image", asset_id: assetId, mimeType }
@@ -2921,31 +2991,47 @@ export class ChatTurnHandler {
           mediaGeneration,
           userId
         );
-        let bytes: Uint8Array;
-        if (sourceBytes && sourceBytes.length > 0) {
-          const i2vParams: ImageToVideoParams = {
-            model: videoModel,
-            prompt: expandedPrompt,
-            aspectRatio,
-            resolution,
-            durationSeconds: duration,
-            numInferenceSteps: null,
-            signal
-          };
-          bytes = await provider.imageToVideo([sourceBytes], i2vParams);
-        } else {
-          const params: TextToVideoParams = {
-            model: videoModel,
-            prompt: expandedPrompt,
-            aspectRatio,
-            resolution,
-            durationSeconds: duration,
-            signal
-          };
-          bytes = await provider.textToVideo(params);
-        }
+        const videoParams = {
+          prompt: expandedPrompt,
+          aspect_ratio: aspectRatio,
+          resolution,
+          duration_seconds: duration
+        };
+        const generated =
+          sourceBytes && sourceBytes.length > 0
+            ? await generate(
+                "image_to_video",
+                { ...videoParams, images: [sourceBytes] },
+                { mime: "video/mp4" },
+                (abort) =>
+                  provider.imageToVideo([sourceBytes], {
+                    model: videoModel,
+                    prompt: expandedPrompt,
+                    aspectRatio,
+                    resolution,
+                    durationSeconds: duration,
+                    numInferenceSteps: null,
+                    signal: abort
+                  })
+              )
+            : await generate(
+                "text_to_video",
+                videoParams,
+                { mime: "video/mp4" },
+                (abort) =>
+                  provider.textToVideo({
+                    model: videoModel,
+                    prompt: expandedPrompt,
+                    aspectRatio,
+                    resolution,
+                    durationSeconds: duration,
+                    signal: abort
+                  })
+              );
         if (cancelled()) return;
-        const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
+        const assetId =
+          seamAssetId(generated) ??
+          (await storeMediaAsset(generated.output, "video/mp4", "mp4"));
 
         await this.session.send({
           type: "chunk",
@@ -3012,8 +3098,19 @@ export class ChatTurnHandler {
           done: false
         });
 
-        let assetId: string;
-        let audioMimeType: string;
+        const audioGenerationId = randomUUID();
+        let assetId: string | undefined;
+        let audioMimeType: string | undefined;
+        await generate(
+          "text_to_speech",
+          {
+            text: expandedPrompt,
+            voice,
+            speed,
+            audio_format: requestedFormat
+          },
+          null,
+          async () => {
 
         // Some providers (e.g. HuggingFace, OpenAI) can return fully-encoded
         // audio. Prefer that path when available and honor the requested
@@ -3136,6 +3233,15 @@ export class ChatTurnHandler {
             audioMimeType = "audio/wav";
           }
         }
+            return assetId ?? null;
+          },
+          audioGenerationId
+        );
+        if (cancelled()) return;
+        if (!assetId || !audioMimeType) {
+          throw new Error("Provider returned no audio data");
+        }
+        await linkGenerationAssets([audioGenerationId], [assetId]);
 
         await this.session.send({
           type: "chunk",
@@ -3238,22 +3344,38 @@ export class ChatTurnHandler {
           };
           if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
             return;
-          const imageBytesList = await provider.imageToImages(
-            [sourceBytes, ...entityImageBytes],
-            params,
-            variations
+          const generated = await generate(
+            "image_to_image",
+            {
+              prompt: expandedPrompt,
+              target_width: targetWidth ?? null,
+              target_height: targetHeight ?? null,
+              strength: strength ?? null,
+              num_inference_steps: numInferenceSteps ?? null,
+              num_images: variations,
+              images: [sourceBytes, ...entityImageBytes]
+            },
+            {},
+            (abort) =>
+              provider.imageToImages(
+                [sourceBytes, ...entityImageBytes],
+                { ...params, signal: abort },
+                variations
+              )
           );
           if (cancelled()) return;
           const imageContents: Array<Record<string, unknown>> = [];
-          for (const bytes of imageBytesList) {
+          for (const [index, bytes] of generated.output.entries()) {
             // Per-variation: a cancel partway through must not keep persisting.
             if (cancelled()) return;
             const mimeType = detectImageMime(bytes);
-            const assetId = await storeMediaAsset(
-              bytes,
-              mimeType,
-              IMAGE_MIME_TO_EXT[mimeType] ?? "png"
-            );
+            const assetId =
+              seamAssetId(generated, index) ??
+              (await storeMediaAsset(
+                bytes,
+                mimeType,
+                IMAGE_MIME_TO_EXT[mimeType] ?? "png"
+              ));
             imageContents.push({
               type: "image_url",
               image: {
@@ -3313,9 +3435,24 @@ export class ChatTurnHandler {
           numInferenceSteps,
           signal
         };
-        const bytes = await provider.imageToVideo([sourceBytes], params);
+        const generated = await generate(
+          "image_to_video",
+          {
+            prompt: expandedPrompt,
+            aspect_ratio: aspectRatio,
+            resolution,
+            duration_seconds: duration,
+            num_inference_steps: numInferenceSteps,
+            images: [sourceBytes]
+          },
+          { mime: "video/mp4" },
+          (abort) =>
+            provider.imageToVideo([sourceBytes], { ...params, signal: abort })
+        );
         if (cancelled()) return;
-        const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
+        const assetId =
+          seamAssetId(generated) ??
+          (await storeMediaAsset(generated.output, "video/mp4", "mp4"));
         await this.session.send({
           type: "chunk",
           thread_id: threadId,

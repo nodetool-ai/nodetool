@@ -285,45 +285,78 @@ async function run(
     );
   }
 
-  const startedAt = Date.now();
-  let images: Uint8Array[];
-  if (opts.image && opts.image.length > 0) {
-    const { readFile } = await import("node:fs/promises");
-    const inputs = await Promise.all(
-      opts.image.map(async (p) => new Uint8Array(await readFile(p)))
-    );
-    const i2iParams: ImageToImageParams = { ...params };
-    if (opts.strength) {
-      i2iParams.strength = parseFloat(opts.strength);
-    }
-    images =
-      numImages > 1
-        ? await provider.imageToImages(inputs, i2iParams, numImages)
-        : [await provider.imageToImage(inputs, i2iParams)];
-  } else {
-    images =
-      numImages > 1
-        ? await provider.textToImages(params, numImages)
-        : [await provider.textToImage(params)];
+  // The call runs inside the generation seam (docs/media-generation-tracking-
+  // design.md § 8, S6): the row `nodetool costs` and `nodetool generations`
+  // read is opened before the call and closed with its outcome, and the
+  // images become assets when a database is open. The file on disk is still
+  // written either way.
+  const { ProcessingContext } = await import("@nodetool-ai/runtime");
+  const { attachRunCostLedger } = await import("@nodetool-ai/execution");
+  const { LOCAL_USER_ID } = await import("./local-db.js");
+  const { randomUUID } = await import("node:crypto");
+  const context = new ProcessingContext({
+    jobId: randomUUID(),
+    userId: LOCAL_USER_ID
+  });
+  context.registerProvider(providerId, provider);
+  try {
+    const { localModelInterfaces } = await import("../local-model-interfaces.js");
+    context.setModelInterfaces(await localModelInterfaces());
+  } catch {
+    // No database: the row cannot be written and the asset cannot be saved;
+    // the file on disk is the handle.
   }
+  const ledger = attachRunCostLedger(context, {
+    userId: LOCAL_USER_ID,
+    workflowId: null
+  });
+
+  const capability = opts.image?.length ? "image_to_image" : "text_to_image";
+  const generation = await context.runGenerationWith(
+    {
+      provider: providerId,
+      capability,
+      model: model.id,
+      params: {
+        prompt,
+        negative_prompt: params.negativePrompt,
+        aspect_ratio: params.aspectRatio,
+        width: params.width,
+        height: params.height,
+        seed: params.seed,
+        num_images: numImages,
+        input_images: opts.image ?? []
+      },
+      origin: { surface: "cli" },
+      persist: {}
+    },
+    async (_provider, signal) => {
+      if (opts.image && opts.image.length > 0) {
+        const { readFile } = await import("node:fs/promises");
+        const inputs = await Promise.all(
+          opts.image.map(async (p) => new Uint8Array(await readFile(p)))
+        );
+        const i2iParams: ImageToImageParams = { ...params, signal };
+        if (opts.strength) {
+          i2iParams.strength = parseFloat(opts.strength);
+        }
+        return numImages > 1
+          ? provider.imageToImages(inputs, i2iParams, numImages)
+          : [await provider.imageToImage(inputs, i2iParams)];
+      }
+      return numImages > 1
+        ? provider.textToImages({ ...params, signal }, numImages)
+        : [await provider.textToImage({ ...params, signal })];
+    }
+  );
+  // The process exits right after printing; let the row land first.
+  await ledger.settled();
+  const images = generation.output;
+  const assetIds = generation.assets
+    .map((asset) => asset.asset_id)
+    .filter((id): id is string => typeof id === "string");
 
   const paths = await writeImages(images, model, opts.output);
-
-  // This bypasses the workflow runner, so nothing else would record the
-  // charge — a generation here has to reach the ledger `nodetool costs` reads
-  // on its own.
-  const { recordGenerationSpend } = await import("@nodetool-ai/execution");
-  const { LOCAL_USER_ID } = await import("./local-db.js");
-  await recordGenerationSpend({
-    userId: LOCAL_USER_ID,
-    provider: providerId,
-    model: model.id,
-    capability: opts.image?.length ? "image_to_image" : "text_to_image",
-    quantity: images.length,
-    params: { width: params.width, height: params.height },
-    nodeType: "nodetool.cli.Generate",
-    durationMs: Date.now() - startedAt
-  });
 
   if (opts.json) {
     console.log(
@@ -333,6 +366,8 @@ async function run(
           provider: providerId,
           model: model.id,
           prompt,
+          generation_id: generation.id,
+          asset_ids: assetIds,
           images: paths.map((path, i) => ({ path, bytes: images[i].length }))
         },
         null,

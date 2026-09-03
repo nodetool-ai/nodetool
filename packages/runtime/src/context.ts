@@ -162,6 +162,7 @@ const pathToFileURL = (p: string): URL =>
   nodeUrl ? nodeUrl.pathToFileURL(p) : notOnNode("node:url.pathToFileURL");
 import type { BaseProvider } from "./providers/base-provider.js";
 import type {
+  Model3D,
   EncodedAudioResult,
   EntityReference,
   ImageBox,
@@ -367,6 +368,11 @@ export type ProviderPredictionRequest = {
  * the call to its terminal state (docs/media-generation-tracking-design.md).
  */
 export interface GenerationRequest extends ProviderPredictionRequest {
+  /**
+   * The generation id, when the caller minted it. A background caller needs
+   * the id before the call settles; everyone else lets the seam mint one.
+   */
+  id?: string;
   /** Who asked. Fields left unset default from the context (§5.1). */
   origin?: Partial<GenerationOrigin>;
   /**
@@ -3091,7 +3097,7 @@ export class ProcessingContext {
       receipt?: GenerationReceipt | null;
     }
   ): void {
-    this.emit({
+    const message: Extract<ProcessingMessage, { type: "prediction" }> = {
       type: "prediction",
       id,
       user_id: this.userId,
@@ -3108,9 +3114,11 @@ export class ProcessingContext {
       error: error ?? null,
       duration: startedAt ? Date.now() - startedAt : null,
       origin: extra?.origin ?? this.generationOrigin(req),
-      ...(extra?.asset_ids ? { asset_ids: extra.asset_ids } : {}),
       receipt: extra?.receipt ?? null
-    });
+    };
+    // Only a terminal message names assets; `running` has none to name.
+    if (extra?.asset_ids) message.asset_ids = extra.asset_ids;
+    this.emit(message);
   }
 
   /**
@@ -3506,7 +3514,7 @@ export class ProcessingContext {
         });
       case "text_to_3d":
         return provider.textTo3D({
-          model: { id: req.model, name: req.model, provider: req.provider },
+          model: model3dOf(params, req),
           prompt: String(params.prompt ?? ""),
           negativePrompt: (params.negative_prompt as string | undefined) ?? null,
           artStyle: (params.art_style as string | undefined) ?? null,
@@ -3517,7 +3525,7 @@ export class ProcessingContext {
         });
       case "image_to_3d":
         return provider.imageTo3D(coerceImageList(params)[0] ?? new Uint8Array(), {
-          model: { id: req.model, name: req.model, provider: req.provider },
+          model: model3dOf(params, req),
           prompt: (params.prompt as string | undefined) ?? null,
           outputFormat: params.output_format as string | undefined,
           seed: (params.seed as number | undefined) ?? null,
@@ -3551,17 +3559,45 @@ export class ProcessingContext {
    * those into the row. Design: docs/media-generation-tracking-design.md § 5.
    */
   async runGeneration(req: GenerationRequest): Promise<GenerationResult> {
-    const id = randomUUID();
+    return this.runGenerationWith(req, (provider, signal) => {
+      const dispatchReq: ProviderPredictionRequest = {
+        ...req,
+        params: { ...(req.params ?? {}), signal }
+      };
+      return this.retryContentFilterRefusal(req, () =>
+        this.dispatchCapability(provider, dispatchReq)
+      );
+    });
+  }
+
+  /**
+   * The generation envelope around an arbitrary provider call: the same
+   * record, receipt scope, persistence and terminal messages as
+   * {@link runGeneration}, for a caller whose call shape the capability
+   * switch has no case for — N images in one request, streamed PCM wrapped
+   * into a WAV. `call` receives the provider and the generation's abort
+   * signal; what it returns is the output, and its media buffers are what
+   * `persist` saves.
+   */
+  async runGenerationWith<T>(
+    req: GenerationRequest,
+    call: (provider: BaseProvider, signal: AbortSignal) => Promise<T>,
+    opts?: {
+      /**
+       * A receipt the caller can only state once the output is persisted —
+       * a managed provider's running total, read after the assets landed.
+       * Merged over what the provider recorded during the call.
+       */
+      receiptAfterPersist?: () => Partial<GenerationReceipt> | null;
+    }
+  ): Promise<GenerationResult<T>> {
+    const id = req.id ?? randomUUID();
     const startedAt = Date.now();
     const origin = this.generationOrigin(req, req.origin);
     const controller = new AbortController();
     const signals: AbortSignal[] = [controller.signal, this.signal];
     if (req.signal) signals.push(req.signal);
     const signal = AbortSignal.any(signals);
-    const dispatchReq: ProviderPredictionRequest = {
-      ...req,
-      params: { ...(req.params ?? {}), signal }
-    };
     generationRegistry.register(id, {
       userId: this.userId,
       abort: () => controller.abort(new Error("Generation cancelled"))
@@ -3571,14 +3607,14 @@ export class ProcessingContext {
     });
     try {
       const provider = await this.getProvider(req.provider);
-      const { value: output, receipt } = await runWithGenerationReceipt(() =>
-        this.retryContentFilterRefusal(req, () =>
-          this.dispatchCapability(provider, dispatchReq)
-        )
-      );
+      const { value: output, receipt: recorded } =
+        await runWithGenerationReceipt(() => call(provider, signal));
       const assets = req.persist
-        ? await this.persistGenerationOutput(id, req, output)
+        ? await this.persistGenerationBytes(id, req, mediaBuffers(output))
         : [];
+      const late = opts?.receiptAfterPersist?.() ?? null;
+      const receipt: GenerationReceipt | null =
+        late || recorded ? { ...(recorded ?? {}), ...(late ?? {}) } : null;
       const assetIds = assets
         .map((asset) => asset.asset_id)
         .filter((assetId): assetId is string => typeof assetId === "string");
@@ -3629,21 +3665,17 @@ export class ProcessingContext {
    * on each. Bytes only: a segmentation result, a transcript or an embedding
    * is a result and stays on the message.
    */
-  private async persistGenerationOutput(
+  private async persistGenerationBytes(
     id: string,
     req: GenerationRequest,
-    output: ProviderPredictionResult
+    buffers: Uint8Array[],
+    mimeOverride?: string
   ): Promise<AssetRef[]> {
     if (!this.hasModelInterface("createAsset")) return [];
-    const buffers: Uint8Array[] = output instanceof Uint8Array
-      ? [output]
-      : Array.isArray(output) &&
-          output.every((item) => item instanceof Uint8Array)
-        ? (output as Uint8Array[])
-        : [];
     const assets: AssetRef[] = [];
     for (const [index, bytes] of buffers.entries()) {
-      const mime = req.persist?.mime ?? generationMime(req.capability, bytes);
+      const mime =
+        req.persist?.mime ?? mimeOverride ?? generationMime(req.capability, bytes);
       const ext = extForGenerationMime(mime);
       const name =
         buffers.length === 1 || !req.persist?.name
@@ -3780,7 +3812,7 @@ export class ProcessingContext {
     req: GenerationRequest,
     call: (provider: BaseProvider) => Promise<T>
   ): Promise<T> {
-    const id = randomUUID();
+    const id = req.id ?? randomUUID();
     const startedAt = Date.now();
     const origin = this.generationOrigin(req, req.origin);
     const controller = new AbortController();
@@ -3799,14 +3831,27 @@ export class ProcessingContext {
       const { value, receipt } = await runWithGenerationReceipt(() =>
         call(provider)
       );
+      const encoded = encodedAudioOf(value);
+      const assets =
+        req.persist && encoded
+          ? await this.persistGenerationBytes(
+              id,
+              req,
+              [encoded.data],
+              encoded.mimeType
+            )
+          : [];
+      const assetIds = assets
+        .map((asset) => asset.asset_id)
+        .filter((assetId): assetId is string => typeof assetId === "string");
       this.emitPrediction("completed", req, id, null, undefined, startedAt, {
         origin,
-        asset_ids: [],
+        asset_ids: assetIds,
         receipt
       });
       generationRegistry.settle(id, {
         status: "completed",
-        asset_ids: [],
+        asset_ids: assetIds,
         receipt
       });
       return value;
@@ -3854,7 +3899,7 @@ export class ProcessingContext {
   async *streamProviderPrediction(
     req: GenerationRequest
   ): AsyncGenerator<ProviderStreamItem | unknown> {
-    const id = randomUUID();
+    const id = req.id ?? randomUUID();
     const startedAt = Date.now();
     const origin = this.generationOrigin(req, req.origin);
     this.emitPrediction("running", req, id, null, undefined, startedAt, {
@@ -4279,10 +4324,49 @@ export function mediaResolverFor(
 // Generation seam helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * The 3D model a request names: the full `Model3D` the node resolved (with
+ * its supported tasks and formats) when it passed one, else the minimal ref.
+ */
+function model3dOf(
+  params: Record<string, unknown>,
+  req: ProviderPredictionRequest
+): Model3D {
+  const given = params.model;
+  if (isRecord(given) && typeof given.id === "string" && typeof given.provider === "string") {
+    return given as unknown as Model3D;
+  }
+  return { id: req.model, name: req.model, provider: req.provider as Model3D["provider"] };
+}
+
+/** The media buffers a capability result carries, if any. */
+function mediaBuffers(output: unknown): Uint8Array[] {
+  if (output instanceof Uint8Array) return [output];
+  if (
+    Array.isArray(output) &&
+    output.length > 0 &&
+    output.every((item) => item instanceof Uint8Array)
+  ) {
+    return output as Uint8Array[];
+  }
+  return [];
+}
+
+/** An encoded-audio result (`{data, mimeType}`), or null for anything else. */
+function encodedAudioOf(
+  value: unknown
+): { data: Uint8Array; mimeType?: string } | null {
+  if (!isRecord(value)) return null;
+  const data = value.data;
+  if (!(data instanceof Uint8Array) || data.length === 0) return null;
+  const mimeType = value.mimeType;
+  return { data, mimeType: typeof mimeType === "string" ? mimeType : undefined };
+}
+
 /** What a `completed` prediction message carries as `data`: never bytes. */
 function generationResultData(
   capability: ProviderCapability,
-  output: ProviderPredictionResult
+  output: unknown
 ): unknown {
   if (output instanceof Uint8Array) return null;
   if (Array.isArray(output)) {

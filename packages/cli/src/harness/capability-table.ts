@@ -281,11 +281,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "generate_image",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "76c74760b1a5",
+    contract: "036370ef51e7",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
+      "packages/agents/tests/capabilities-generations.test.ts",
     ],
     evals: [
       {
@@ -302,10 +302,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_image",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "b672040eb8cc",
+    contract: "28454b7ca470",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-generations.test.ts",
     ],
   },
   {
@@ -323,41 +324,44 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "generate_video",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "d9a615c3b294",
+    contract: "2be31c6fbeba",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-generations.test.ts",
     ],
   },
   {
     name: "animate_image",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "238dee9f0bd0",
+    contract: "5c1dd08113e6",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-generations.test.ts",
     ],
   },
   {
     name: "generate_speech",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "70c9eaa92c86",
+    contract: "cc28002fa1f0",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
-      "packages/agents/tests/capabilities-scripts.test.ts",
+      "packages/agents/tests/capabilities-generations.test.ts",
     ],
   },
   {
     name: "generate_music",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "b5e4b823fb81",
+    contract: "b9917297fc35",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-generations.test.ts",
     ],
   },
   {
@@ -678,6 +682,56 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-jobs.test.ts",
+    ],
+  },
+  {
+    name: "list_generations",
+    module: "generations",
+    impl: "packages/agents/src/capabilities/generations.ts",
+    contract: "f26a53330b66",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "get_generation",
+    module: "generations",
+    impl: "packages/agents/src/capabilities/generations.ts",
+    contract: "68a3753cbb3d",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "await_generation",
+    module: "generations",
+    impl: "packages/agents/src/capabilities/generations.ts",
+    contract: "224af9d18121",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "cancel_generation",
+    module: "generations",
+    impl: "packages/agents/src/capabilities/generations.ts",
+    contract: "f86e81f8ff78",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "reconcile_generation",
+    module: "generations",
+    impl: "packages/agents/src/capabilities/generations.ts",
+    contract: "d7aea544279b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generations.test.ts",
     ],
   },
   {

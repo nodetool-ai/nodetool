@@ -6,6 +6,7 @@ import { Asset, Prediction } from "@nodetool-ai/models";
 import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
 import { resolveNodetoolDelegate } from "@nodetool-ai/protocol";
 import {
+  ProcessingContext as GenerationContext,
   calculateChatCost,
   detectImageMime,
   expandEntitiesForGeneration,
@@ -13,8 +14,13 @@ import {
   IMAGE_MIME_TO_EXT,
   messageText
 } from "@nodetool-ai/runtime";
+import type { GenerationReceipt } from "@nodetool-ai/protocol";
+import { attachRunCostLedger, linkGenerationAssets } from "@nodetool-ai/execution";
+import { createAssetModelInterface } from "../lib/asset-model-interface.js";
 import type {
   BaseProvider,
+  GenerationRequest,
+  GenerationResult,
   ImageModel as ProviderImageModel,
   ImageToImageParams,
   ImageToVideoParams,
@@ -497,31 +503,39 @@ export class DirectInferenceHandler {
     const reservationKey = `media:${randomUUID()}`;
     reserveSpend(userId, reservationKey, estimatedUsd);
     try {
-      const result = await this.runDirectMediaGenerationInner(req, provider);
-      const cost = Math.max(provider.getTotalCost(), estimatedUsd);
-      if (cost > 0) {
+      // The generation seam writes the row (docs/media-generation-tracking-
+      // design.md § 8, S5). The managed provider's charge is the larger of the
+      // delegate's own tracked cost and the unit-price estimate — fal-style
+      // delegates bill per unit and track nothing themselves — and reaches the
+      // row as the receipt, which wins over the catalog.
+      const generationIds: string[] = [];
+      const result = await this.runDirectMediaGenerationInner(req, provider, {
+        generationIds,
+        statedCost: (tracked) => {
+          const cost = Math.max(tracked, estimatedUsd);
+          return cost > 0
+            ? {
+                amount: cost,
+                currency: "USD",
+                billing_unit: unit?.billing_unit ?? null,
+                quantity: variations,
+                unit_price: cost / variations
+              }
+            : null;
+        }
+      });
+      // The tracker writes best-effort and says so in its own log; the
+      // managed path is the one that decrements a balance, so a row that did
+      // not land is reported on the session as well.
+      for (const id of generationIds) {
         try {
-          await Prediction.create<Prediction>({
-            user_id: userId,
-            provider: "nodetool",
-            model: req.model,
-            node_type: `direct.${req.mode}`,
-            cost,
-            currency: "USD",
-            billing_unit: unit?.billing_unit ?? null,
-            // The row's own invariant is cost = unit_price × quantity, so the
-            // per-unit figure is derived from what was actually charged. It
-            // differs from the catalog price whenever the delegate tracked
-            // more than the estimate, and recording the catalog price then
-            // would make the row fail to reproduce its own total.
-            unit_price: cost / variations,
-            quantity: variations,
-            workflow_id: null,
-            node_id: "",
-            status: "completed"
-          });
+          const row = await Prediction.findForUser(userId, id);
+          if (!row || row.status !== "completed") {
+            throw new Error(`generation ${id} has no completed row`);
+          }
         } catch (err) {
           this.session.logError("direct media cost persistence failed", err);
+          break;
         }
       }
       return result;
@@ -532,10 +546,79 @@ export class DirectInferenceHandler {
 
   private async runDirectMediaGenerationInner(
     req: DirectMediaGenerationRequest,
-    provider: BaseProvider
+    provider: BaseProvider,
+    metering?: {
+      /** The charge to state on the row, given what the delegate tracked. */
+      statedCost: (
+        trackedUsd: number
+      ) => NonNullable<GenerationReceipt["cost"]> | null;
+      /** Every generation id this call opened, for the caller to verify. */
+      generationIds: string[];
+    }
   ): Promise<{ asset_ids: string[] }> {
     const userId = this.session.userId ?? "1";
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
+
+    // Every provider call below runs inside the generation seam: one ledger
+    // row per call, opened before the call and closed with its cost and asset
+    // ids. The seam saves the assets; `storeAsset` is the fallback.
+    const generationContext = new GenerationContext({
+      jobId: randomUUID(),
+      userId
+    });
+    generationContext.registerProvider(req.provider, provider);
+    generationContext.setModelInterfaces({
+      createAsset: createAssetModelInterface
+    });
+    const ledger = attachRunCostLedger(generationContext, {
+      userId,
+      workflowId: null,
+      // The row names the RPC mode the way it always did.
+      nodeType: () => `direct.${req.mode}`
+    });
+    const generate = async <T>(
+      capability: GenerationRequest["capability"],
+      params: Record<string, unknown>,
+      persist: GenerationRequest["persist"] | null,
+      call: (abort: AbortSignal) => Promise<T>,
+      id?: string
+    ): Promise<GenerationResult<T>> => {
+      const result = await generationContext.runGenerationWith(
+        {
+          id,
+          provider: req.provider,
+          capability,
+          model: req.model,
+          params,
+          origin: { surface: "rpc" },
+          persist: persist ? { ...persist, parentId: userId } : undefined
+        },
+        (_provider, abort) => call(abort),
+        {
+          // The delegate's running total, read once the assets are stored,
+          // as the row always recorded it: a fal-style delegate tracks
+          // nothing and the estimate wins. A test double may be a bare
+          // object; only a real provider tracks.
+          receiptAfterPersist: () => {
+            if (!metering) return null;
+            const tracked =
+              typeof provider.getTotalCost === "function"
+                ? provider.getTotalCost()
+                : 0;
+            const stated = metering.statedCost(tracked);
+            return stated ? { cost: stated } : null;
+          }
+        }
+      );
+      metering?.generationIds.push(result.id);
+      // The client reads the ledger right after this answers.
+      await ledger.settled();
+      return result;
+    };
+    const seamAssetId = (
+      result: { assets: ReadonlyArray<{ asset_id?: string | null }> },
+      index = 0
+    ): string | null => result.assets[index]?.asset_id ?? null;
 
     // Entity mentions in the prompt (`entity://<id>`, written by @-mention
     // pickers) expand against the library here: name inline, descriptor into
@@ -597,7 +680,13 @@ export class DirectInferenceHandler {
         name: req.model,
         provider: req.provider
       };
-      let bytes: Uint8Array;
+      const videoParams = {
+        prompt,
+        aspect_ratio: req.aspectRatio ?? null,
+        resolution: req.resolution ?? null,
+        duration_seconds: req.durationSeconds ?? null
+      };
+      let generated: GenerationResult<Uint8Array>;
       if (req.sourceAssetId) {
         // A source image turns the request into image-to-video: the image is
         // the frame the animation starts from.
@@ -612,16 +701,29 @@ export class DirectInferenceHandler {
           resolution: req.resolution ?? null,
           durationSeconds: req.durationSeconds ?? null
         };
-        bytes = await provider.imageToVideo([sourceBytes], i2vParams);
+        generated = await generate(
+          "image_to_video",
+          { ...videoParams, images: [sourceBytes] },
+          { mime: "video/mp4" },
+          (abort) =>
+            provider.imageToVideo([sourceBytes], { ...i2vParams, signal: abort })
+        );
       } else {
         const params: TextToVideoParams = {
           model: videoModel,
           prompt,
           durationSeconds: req.durationSeconds ?? null
         };
-        bytes = await provider.textToVideo(params);
+        generated = await generate(
+          "text_to_video",
+          videoParams,
+          { mime: "video/mp4" },
+          (abort) => provider.textToVideo({ ...params, signal: abort })
+        );
       }
-      const assetId = await storeAsset(bytes, "video/mp4", "mp4");
+      const assetId =
+        seamAssetId(generated) ??
+        (await storeAsset(generated.output, "video/mp4", "mp4"));
       return { asset_ids: [assetId] };
     }
 
@@ -638,14 +740,28 @@ export class DirectInferenceHandler {
         name: req.model,
         provider: req.provider
       };
-      const bytes = await provider.videoToVideo(sourceBytes, {
-        model: videoModel,
-        prompt,
-        strength: req.strength ?? null,
-        durationSeconds: req.durationSeconds ?? null,
-        resolution: req.resolution ?? null
-      });
-      const assetId = await storeAsset(bytes, "video/mp4", "mp4");
+      const generated = await generate(
+        "video_to_video",
+        {
+          prompt,
+          strength: req.strength ?? null,
+          duration_seconds: req.durationSeconds ?? null,
+          resolution: req.resolution ?? null,
+          video: sourceBytes
+        },
+        { mime: "video/mp4" },
+        () =>
+          provider.videoToVideo(sourceBytes, {
+            model: videoModel,
+            prompt,
+            strength: req.strength ?? null,
+            durationSeconds: req.durationSeconds ?? null,
+            resolution: req.resolution ?? null
+          })
+      );
+      const assetId =
+        seamAssetId(generated) ??
+        (await storeAsset(generated.output, "video/mp4", "mp4"));
       return { asset_ids: [assetId] };
     }
 
@@ -663,6 +779,17 @@ export class DirectInferenceHandler {
           ? req.audioFormat
           : null;
 
+      const audioGenerationId = randomUUID();
+      const generated = await generate(
+        "text_to_speech",
+        {
+          text: prompt,
+          voice: req.voice,
+          speed: req.speed,
+          audio_format: requestedFormat
+        },
+        null,
+        async () => {
       // Prefer providers that return fully-encoded audio (OpenAI, HuggingFace).
       const encoded = await provider.textToSpeechEncoded({
         text: prompt,
@@ -682,7 +809,7 @@ export class DirectInferenceHandler {
         };
         const ext = mimeToExt[encoded.mimeType] ?? "flac";
         const assetId = await storeAsset(encoded.data, encoded.mimeType, ext);
-        return { asset_ids: [assetId] };
+        return assetId;
       }
 
       // Streaming-PCM fallback (OpenAI / Gemini), wrap in WAV unless caller
@@ -718,7 +845,7 @@ export class DirectInferenceHandler {
 
       if (requestedFormat === "pcm") {
         const assetId = await storeAsset(merged, "audio/pcm", "pcm");
-        return { asset_ids: [assetId] };
+        return assetId;
       }
 
       // Wrap raw 16-bit PCM in a WAV container so browsers can play it back.
@@ -752,7 +879,12 @@ export class DirectInferenceHandler {
       wav.set(merged, 44);
 
       const assetId = await storeAsset(wav, "audio/wav", "wav");
-      return { asset_ids: [assetId] };
+      return assetId;
+        },
+        audioGenerationId
+      );
+      await linkGenerationAssets([audioGenerationId], [generated.output]);
+      return { asset_ids: [generated.output] };
     }
 
     const imageModel: ProviderImageModel = {
@@ -761,7 +893,7 @@ export class DirectInferenceHandler {
       provider: req.provider
     };
 
-    let images: Uint8Array[];
+    let generated: GenerationResult<Uint8Array[]>;
     if (req.mode === "image" && entityImageBytes.length > 0) {
       // A mentioned entity carries a reference image: the generation becomes
       // an edit against those images, mirroring how node prompts with
@@ -777,7 +909,26 @@ export class DirectInferenceHandler {
         strength: req.strength ?? null,
         numInferenceSteps: req.numInferenceSteps ?? null
       };
-      images = await provider.imageToImages(entityImageBytes, params, variations);
+      generated = await generate(
+        "image_to_image",
+        {
+          prompt,
+          target_width: width ?? null,
+          target_height: height ?? null,
+          aspect_ratio: req.aspectRatio ?? null,
+          resolution: req.resolution ?? null,
+          strength: req.strength ?? null,
+          num_images: variations,
+          images: entityImageBytes
+        },
+        {},
+        (abort) =>
+          provider.imageToImages(
+            entityImageBytes,
+            { ...params, signal: abort },
+            variations
+          )
+      );
     } else if (req.mode === "image") {
       const params: TextToImageParams = {
         model: imageModel,
@@ -787,7 +938,20 @@ export class DirectInferenceHandler {
         aspectRatio: req.aspectRatio ?? null,
         resolution: req.resolution ?? null
       };
-      images = await provider.textToImages(params, variations);
+      generated = await generate(
+        "text_to_image",
+        {
+          prompt,
+          width,
+          height,
+          aspect_ratio: req.aspectRatio ?? null,
+          resolution: req.resolution ?? null,
+          num_images: variations
+        },
+        {},
+        (abort) =>
+          provider.textToImages({ ...params, signal: abort }, variations)
+      );
     } else if (req.mode === "inpaint") {
       if (!req.sourceAssetId) {
         throw new Error("source_asset_id is required for inpaint");
@@ -833,7 +997,25 @@ export class DirectInferenceHandler {
         numInferenceSteps: req.numInferenceSteps ?? null,
         mask: maskBytes
       };
-      images = await provider.inpaintImages([sourceBytes], params, variations);
+      generated = await generate(
+        "inpainting",
+        {
+          prompt,
+          target_width: req.width ?? null,
+          target_height: req.height ?? null,
+          strength: req.strength ?? null,
+          num_images: variations,
+          images: [sourceBytes],
+          mask: maskBytes
+        },
+        {},
+        (abort) =>
+          provider.inpaintImages(
+            [sourceBytes],
+            { ...params, signal: abort },
+            variations
+          )
+      );
     } else {
       if (!req.sourceAssetId) {
         throw new Error("source_asset_id is required for image_edit");
@@ -861,18 +1043,39 @@ export class DirectInferenceHandler {
         strength: req.strength ?? null,
         numInferenceSteps: req.numInferenceSteps ?? null
       };
-      images = await provider.imageToImages(
-        [sourceBytes, ...entityImageBytes],
-        params,
-        variations
+      generated = await generate(
+        "image_to_image",
+        {
+          prompt,
+          target_width: width ?? null,
+          target_height: height ?? null,
+          aspect_ratio: req.aspectRatio ?? null,
+          resolution: req.resolution ?? null,
+          strength: req.strength ?? null,
+          num_inference_steps: req.numInferenceSteps ?? null,
+          num_images: variations,
+          images: [sourceBytes, ...entityImageBytes]
+        },
+        {},
+        (abort) =>
+          provider.imageToImages(
+            [sourceBytes, ...entityImageBytes],
+            { ...params, signal: abort },
+            variations
+          )
       );
     }
 
     const assetIds: string[] = [];
-    for (const bytes of images) {
+    for (const [index, bytes] of generated.output.entries()) {
       const mimeType = detectImageMime(bytes);
       assetIds.push(
-        await storeAsset(bytes, mimeType, IMAGE_MIME_TO_EXT[mimeType] ?? "png")
+        seamAssetId(generated, index) ??
+          (await storeAsset(
+            bytes,
+            mimeType,
+            IMAGE_MIME_TO_EXT[mimeType] ?? "png"
+          ))
       );
     }
     return { asset_ids: assetIds };

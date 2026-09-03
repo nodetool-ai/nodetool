@@ -34,11 +34,29 @@ export {
 } from "./cost-ledger.js";
 export type {
   CostLedgerSource,
+  RunCostLedgerHandle,
   GenerationSpend,
   NodeCostSpend,
   PricedGeneration,
   RunCostLedgerOptions
 } from "./cost-ledger.js";
+export {
+  createTrackerState,
+  drainReconcileQueue,
+  generationsForNode,
+  linkGenerationAssets,
+  reconcileGeneration,
+  reconcileRow,
+  resetGenerationTrackerState,
+  startGenerationReconcileWorker,
+  sweepInterruptedGenerations,
+  trackPredictionMessage
+} from "./generation-tracker.js";
+export type {
+  GenerationTrackerState,
+  ReconcileOutcome,
+  ReconcileSecretResolver
+} from "./generation-tracker.js";
 export {
   INTERVENTION_MARK,
   formatInterventionLine,

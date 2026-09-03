@@ -41,6 +41,7 @@ import { emailSpecs } from "./email.specs.js";
 import { entitiesSpecs } from "./entities.specs.js";
 import { filesSpecs } from "./files.specs.js";
 import { flowSpecs } from "./flow.specs.js";
+import { generationsSpecs } from "./generations.specs.js";
 import { googleSpecs } from "./google.specs.js";
 import { jobsSpecs } from "./jobs.specs.js";
 import { jsScriptsSpecs } from "./js-scripts.specs.js";
@@ -75,6 +76,7 @@ const MODULES: Readonly<Record<string, Loader>> = {
   costs: () => import("./costs.js").then((m) => m.module),
   nodes: () => import("./nodes.js").then((m) => m.module),
   jobs: () => import("./jobs.js").then((m) => m.module),
+  generations: () => import("./generations.js").then((m) => m.module),
   assets: () => import("./assets.js").then((m) => m.module),
   browser: () => import("./browser.js").then((m) => m.module),
   apps: () => import("./apps.js").then((m) => m.module),
@@ -121,6 +123,7 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "costs",
   "nodes",
   "jobs",
+  "generations",
   "assets",
   "browser",
   "apps",
@@ -172,6 +175,7 @@ const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
   costs: costsSpecs,
   nodes: nodesSpecs,
   jobs: jobsSpecs,
+  generations: generationsSpecs,
   assets: assetsSpecs,
   browser: browserSpecs,
   apps: appsSpecs,

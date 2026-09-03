@@ -16,7 +16,11 @@
  * Design: docs/tool-class-retirement-design.md § "Migration".
  */
 
-import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  GenerationRequest,
+  JsonSchema,
+  ProcessingContext
+} from "@nodetool-ai/runtime";
 import type {
   Script,
   Storyboard,
@@ -410,22 +414,35 @@ function resolveModel(
   return { provider, model };
 }
 
-/** Save rendered bytes as an asset; the board can only reference persisted media. */
-async function saveMedia(
+/**
+ * Render through the generation seam and answer with the asset it saved; the
+ * board can only reference persisted media. The seam records the row and
+ * links the asset (docs/media-generation-tracking-design.md § 8, S2).
+ */
+async function renderMedia(
   context: ProcessingContext,
-  bytes: Uint8Array,
+  req: Omit<GenerationRequest, "origin" | "persist">,
   namePrefix: string,
-  mime: string
-): Promise<{ assetId: string; uri: string } | ToolError> {
-  const { persistOutput } = await import("../tools/asset-persist.js");
-  const saved = await persistOutput(context, bytes, { namePrefix, mime });
-  if (!saved.asset_id || !saved.asset_uri) {
+  mime?: string
+): Promise<{ assetId: string; uri: string; generationId: string } | ToolError> {
+  const { randomUUID } = await import("node:crypto");
+  const id = randomUUID();
+  const persist: GenerationRequest["persist"] = { name: namePrefix };
+  if (mime) persist.mime = mime;
+  const result = await context.runGeneration({
+    ...req,
+    id,
+    origin: { surface: "capability" },
+    persist
+  });
+  const asset = result.assets[0];
+  if (!asset?.asset_id) {
     return {
       error:
         "The render succeeded but could not be saved as an asset, so it cannot be attached to the shot. This host has no asset storage wired."
     };
   }
-  return { assetId: saved.asset_id, uri: saved.asset_uri };
+  return { assetId: asset.asset_id, uri: asset.uri, generationId: id };
 }
 
 const errorMessage = (e: unknown): string =>
@@ -441,6 +458,8 @@ interface ShotOutcome {
   ok: boolean;
   asset_id?: string;
   asset_uri?: string;
+  /** The ledger row for this render; `get_generation` reads its cost. */
+  generation_id?: string;
   status?: string;
   error?: string;
 }
@@ -642,21 +661,19 @@ const renderStoryboardStills: CapabilityExport = {
           ok: false
         };
         try {
-          const bytes = (await context.runProviderPrediction({
-            provider: model.provider,
-            capability: "text_to_image",
-            model: model.model,
-            params: {
-              prompt: keyframePrompt(shot, style),
-              entities: entitiesForShot(shot, entities).map(wireEntity),
-              aspect_ratio: aspectRatio
-            }
-          })) as Uint8Array;
-          const saved = await saveMedia(
+          const saved = await renderMedia(
             context,
-            bytes,
-            `shot-${shot.index + 1}-still`,
-            inferImageMime(bytes)
+            {
+              provider: model.provider,
+              capability: "text_to_image",
+              model: model.model,
+              params: {
+                prompt: keyframePrompt(shot, style),
+                entities: entitiesForShot(shot, entities).map(wireEntity),
+                aspect_ratio: aspectRatio
+              }
+            },
+            `shot-${shot.index + 1}-still`
           );
           if (isError(saved)) return { ...base, error: saved.error };
 
@@ -682,6 +699,7 @@ const renderStoryboardStills: CapabilityExport = {
             ok: true,
             asset_id: saved.assetId,
             asset_uri: saved.uri,
+            generation_id: saved.generationId,
             status: updated.status
           };
         } catch (e) {
@@ -821,15 +839,15 @@ const renderStoryboardClips: CapabilityExport = {
           if (seed) {
             predictionParams["images"] = [seed];
           }
-          const bytes = (await context.runProviderPrediction({
-            provider: model.provider,
-            capability: mode === "direct" ? "text_to_video" : "image_to_video",
-            model: model.model,
-            params: predictionParams
-          })) as Uint8Array;
-          const saved = await saveMedia(
+          const saved = await renderMedia(
             context,
-            bytes,
+            {
+              provider: model.provider,
+              capability:
+                mode === "direct" ? "text_to_video" : "image_to_video",
+              model: model.model,
+              params: predictionParams
+            },
             `shot-${shot.index + 1}-clip`,
             "video/mp4"
           );
@@ -856,6 +874,7 @@ const renderStoryboardClips: CapabilityExport = {
             ok: true,
             asset_id: saved.assetId,
             asset_uri: saved.uri,
+            generation_id: saved.generationId,
             status: updated.status
           };
         } catch (e) {
@@ -916,15 +935,14 @@ const reviseStoryboardClip: CapabilityExport = {
           error: "The shot's clip could not be read back from storage."
         };
       }
-      const bytes = (await context.runProviderPrediction({
-        provider: model.provider,
-        capability: "video_to_video",
-        model: model.model,
-        params: { video: source, prompt: instruction }
-      })) as Uint8Array;
-      const saved = await saveMedia(
+      const saved = await renderMedia(
         context,
-        bytes,
+        {
+          provider: model.provider,
+          capability: "video_to_video",
+          model: model.model,
+          params: { video: source, prompt: instruction }
+        },
         `shot-${shot.index + 1}-revision`,
         "video/mp4"
       );
@@ -952,6 +970,7 @@ const reviseStoryboardClip: CapabilityExport = {
         index: shot.index,
         asset_id: saved.assetId,
         asset_uri: saved.uri,
+        generation_id: saved.generationId,
         status: updated.status
       };
     } catch (e) {

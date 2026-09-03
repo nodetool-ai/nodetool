@@ -224,7 +224,8 @@ describe("createKieNodeClass omni chaining", () => {
       billing_unit: "credits",
       quantity: 9,
       unit_price: 0.005,
-      currency: "USD"
+      currency: "USD",
+      provider_request_id: "task_cost"
     });
   });
 });

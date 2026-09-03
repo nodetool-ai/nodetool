@@ -480,7 +480,7 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
       context?: Parameters<BaseNode["process"]>[0]
     ): Promise<Record<string, unknown>> {
       const result = await executeTask(this, context);
-      reportKieProviderCost(context, result.creditsConsumed);
+      reportKieProviderCost(context, result.creditsConsumed, result.taskId);
       return wrapOutput(result.items[0]);
     }
   };

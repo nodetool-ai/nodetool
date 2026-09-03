@@ -23,6 +23,8 @@ export interface CreateAssetArgs {
   contentType: string;
   content?: Uint8Array | null;
   parentId?: string | null;
+  /** Stored on the row; the generation seam stamps `generation_id`. */
+  metadata?: Record<string, unknown> | null;
 }
 
 export async function createAssetModelInterface(
@@ -40,6 +42,9 @@ export async function createAssetModelInterface(
     // folder-scoped listing while global search still found them.
     parent_id: args.parentId ?? args.userId
   });
+  if (args.metadata && Object.keys(args.metadata).length > 0) {
+    asset.metadata = { ...args.metadata };
+  }
   if (args.content) {
     const key = getAssetFileName(asset.id, asset.content_type);
     await storeAssetWithThumbnail(

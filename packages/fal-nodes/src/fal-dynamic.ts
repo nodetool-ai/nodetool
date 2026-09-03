@@ -19,14 +19,16 @@
  *                      URL, or a llms.txt URL.
  */
 
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeValue } from "@nodetool-ai/node-sdk";
 import {
+  falSubmitWithMeta,
   getFalApiKey,
-  falSubmit,
   falUpload,
   imageToDataUrl
 } from "./fal-base.js";
+import { reportFalCost } from "./fal-cost.js";
 
 // ---------------------------------------------------------------------------
 // Helpers: URL / endpoint resolution (ported from dynamic_schema.py)
@@ -513,7 +515,7 @@ export class FalRawNode extends BaseNode {
   })
   declare arguments: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const apiKey = getFalApiKey(this._secrets);
     const endpointId = String(this.endpoint_id ?? "").trim();
     const argsStr = String(this.arguments ?? "{}");
@@ -527,7 +529,12 @@ export class FalRawNode extends BaseNode {
       throw new Error(`arguments must be valid JSON: ${argsStr}`);
     }
 
-    const result = await falSubmit(apiKey, endpointId, args);
+    const { data: result, requestId } = await falSubmitWithMeta(
+      apiKey,
+      endpointId,
+      args
+    );
+    reportFalCost(context, FalRawNode.nodeType, result, args, requestId);
     return { result };
   }
 }
@@ -575,7 +582,7 @@ export class FalDynamicNode extends BaseNode {
   })
   declare model_info: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const apiKey = getFalApiKey(this._secrets);
     const modelInfo = String(this.model_info ?? "").trim();
 
@@ -628,7 +635,12 @@ export class FalDynamicNode extends BaseNode {
       if (value !== undefined && value !== null) args[key] = value;
     }
 
-    const result = await falSubmit(apiKey, endpointId, args);
+    const { data: result, requestId } = await falSubmitWithMeta(
+      apiKey,
+      endpointId,
+      args
+    );
+    reportFalCost(context, FalDynamicNode.nodeType, result, args, requestId);
 
     // Map output values
     const mapped = mapOutputValues(openapi, outputSchema, result);

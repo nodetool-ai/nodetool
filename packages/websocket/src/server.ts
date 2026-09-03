@@ -7,6 +7,10 @@
  * Connect the CLI with: npm run chat -- --url ws://localhost:7777/ws
  */
 
+import {
+  startGenerationReconcileWorker,
+  sweepInterruptedGenerations
+} from "@nodetool-ai/execution";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
@@ -59,6 +63,7 @@ import {
   type WorkerConnection
 } from "@nodetool-ai/compute";
 import {
+  getSecret,
   AccessToken,
   getWorkerProfile,
   initDb,
@@ -216,6 +221,13 @@ configureLogging();
 
 await initTelemetry();
 const startupT0 = performance.now();
+/**
+ * When this process started. A generation row still `running` from before
+ * this moment belongs to a process that is gone, and the sweep closes it
+ * (docs/media-generation-tracking-design.md § 6.3).
+ */
+const PROCESS_STARTED_AT = new Date().toISOString();
+let stopGenerationReconcileWorker: (() => void) | null = null;
 function startupMs(): string {
   return `${(performance.now() - startupT0).toFixed(0)}ms`;
 }
@@ -327,6 +339,17 @@ try {
   // userId)` closure when invoking provider APIs — there is no shared
   // global resolver.
   await initMasterKey();
+
+  // Bookkeeping for media generations: close the rows a restart orphaned, and
+  // keep refining estimates into billed amounts while the server runs.
+  void sweepInterruptedGenerations(PROCESS_STARTED_AT).catch((err: unknown) => {
+    log.warn("Interrupted-generation sweep failed", {
+      error: err instanceof Error ? err.message : String(err)
+    });
+  });
+  stopGenerationReconcileWorker = startGenerationReconcileWorker({
+    resolveSecret: (key, userId) => getSecret(key, userId)
+  });
 
   const runHistoryCleanup = (): void => {
     void runAutomaticStorageCleanup(LOCAL_USER_ID)
@@ -1810,6 +1833,7 @@ async function shutdown(signal: string): Promise<void> {
   log.info("Closing Python bridge");
   stopReaper();
   stopJobCancelPoller();
+  stopGenerationReconcileWorker?.();
   try {
     await triggerServices.stop();
   } catch (err) {

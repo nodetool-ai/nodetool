@@ -104,6 +104,13 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "list_images"
   ],
   jobs: ["list_jobs", "get_job", "get_job_logs"],
+  generations: [
+    "list_generations",
+    "get_generation",
+    "await_generation",
+    "cancel_generation",
+    "reconcile_generation"
+  ],
   collections: [
     "list_collections",
     "query_collection",
