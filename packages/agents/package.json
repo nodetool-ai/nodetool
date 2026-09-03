@@ -59,7 +59,7 @@
     "ics": "^3.12.0",
     "imapflow": "^1.7.1",
     "js-tiktoken": "^1.0.18",
-    "js-yaml": "^4.3.2",
+    "js-yaml": "^5.2.2",
     "mailparser": "^3.9.15",
     "mammoth": "^1.11.0",
     "mediabunny": "^1.54.0",

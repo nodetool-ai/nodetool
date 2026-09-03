@@ -20,7 +20,7 @@
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "js-yaml": "^4.3.2"
+    "js-yaml": "^5.2.2"
   },
   "devDependencies": {
     "@nodetool-ai/core-nodes": "*",
