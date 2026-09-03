@@ -56,6 +56,18 @@ import {
 } from "../capabilities/timelines.specs.js";
 import { PreviewRasterizer } from "./rasterize.js";
 
+/**
+ * Reads of one asset allowed per render pass. See `bytesFor` for why a failed
+ * read is retried at all, and why the retries are bounded.
+ */
+const MAX_ASSET_READ_ATTEMPTS = 3;
+
+/** The message behind a thrown value, for a layer's `skipped` reason. */
+function describeError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.trim() || "it failed with no message";
+}
+
 /** Anything `drawImage` accepts here: a rasterized surface or a decoded image. */
 type PreviewSource = Canvas | Awaited<ReturnType<typeof loadImage>>;
 
@@ -279,16 +291,55 @@ export async function renderTimelineFrames(
   const maskSurfaceFor = precompositeSurfaceFor;
   const matteSurfaceFor = precompositeSurfaceFor;
 
+  /**
+   * Encoded asset bytes, shared by every frame in the pass — but only a
+   * *successful* read is kept. A failed one is dropped so a later frame reads
+   * the asset again: one transient failure used to decide the whole pass, and
+   * every frame after it came out missing that layer while the asset itself
+   * was healthy.
+   *
+   * Retries are bounded rather than unbounded because a pass draws
+   * `timesMs.length` frames (times the motion-blur samples), and every frame
+   * reads every media layer. Three attempts gives a blip two more chances
+   * while costing an asset that is really gone a handful of reads instead of
+   * one per sampled instant.
+   */
   const assetBytes = new Map<string, Promise<Uint8Array | null>>();
+  const assetReadAttempts = new Map<string, number>();
+  /** Why the last read of an asset failed, for the layer's `skipped` reason. */
+  const assetReadErrors = new Map<string, string>();
   const bytesFor = (assetId: string): Promise<Uint8Array | null> => {
-    let pending = assetBytes.get(assetId);
-    if (!pending) {
-      pending = loadAsset(assetId).catch(() => null);
-      assetBytes.set(assetId, pending);
+    const cached = assetBytes.get(assetId);
+    if (cached) return cached;
+    if ((assetReadAttempts.get(assetId) ?? 0) >= MAX_ASSET_READ_ATTEMPTS) {
+      return Promise.resolve(null);
     }
+    assetReadAttempts.set(assetId, (assetReadAttempts.get(assetId) ?? 0) + 1);
+    const pending = loadAsset(assetId).then(
+      (bytes) => {
+        if (bytes && bytes.byteLength > 0) {
+          assetReadErrors.delete(assetId);
+          return bytes;
+        }
+        assetBytes.delete(assetId);
+        assetReadErrors.set(
+          assetId,
+          bytes ? "the read returned no bytes" : "no bytes were available"
+        );
+        return null;
+      },
+      (error: unknown) => {
+        assetBytes.delete(assetId);
+        assetReadErrors.set(assetId, describeError(error));
+        return null;
+      }
+    );
+    assetBytes.set(assetId, pending);
     return pending;
   };
   const decodedImages = new Map<string, PreviewSource | null>();
+  /** Why an asset's bytes would not decode, for the layer's `skipped` reason. */
+  const decodeErrors = new Map<string, string>();
 
   const frames: PreviewFrame[] = [];
   const effectsNotApplied = new Set<string>();
@@ -417,9 +468,14 @@ export async function renderTimelineFrames(
         };
       }
 
-      const bytes = await bytesFor(layer.assetId);
+      // Bound once: the decode's failure callback closes over it, which would
+      // otherwise lose the narrowing the guard above established.
+      const assetId = layer.assetId;
+      const bytes = await bytesFor(assetId);
       if (!bytes || bytes.byteLength === 0) {
-        return { skipped: `asset ${layer.assetId} could not be read` };
+        const reason =
+          assetReadErrors.get(assetId) ?? "no bytes were available";
+        return { skipped: `asset ${assetId} could not be read: ${reason}` };
       }
 
       if (layer.kind === "video") {
@@ -438,13 +494,24 @@ export async function renderTimelineFrames(
         };
       }
 
-      let image = decodedImages.get(layer.assetId);
+      // Unlike a read, a decode is a pure function of bytes this pass already
+      // holds, so a failure here is cached: retrying it would fail the same
+      // way on every frame. Its reason is kept for the same report.
+      let image = decodedImages.get(assetId);
       if (image === undefined) {
-        image = await loadImage(Buffer.from(bytes)).catch(() => null);
-        decodedImages.set(layer.assetId, image);
+        image = await loadImage(Buffer.from(bytes)).catch((error: unknown) => {
+          decodeErrors.set(assetId, describeError(error));
+          return null;
+        });
+        decodedImages.set(assetId, image);
       }
       if (!image) {
-        return { skipped: `asset ${layer.assetId} is not a decodable image` };
+        const reason = decodeErrors.get(assetId);
+        return {
+          skipped: reason
+            ? `asset ${assetId} is not a decodable image: ${reason}`
+            : `asset ${assetId} is not a decodable image`
+        };
       }
       return { source: image, width: image.width, height: image.height };
     };
