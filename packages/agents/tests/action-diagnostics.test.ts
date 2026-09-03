@@ -150,3 +150,26 @@ describe("annotateFailure re-diagnoses a syntax error", () => {
     expect(result.error).toBe("Error: boom");
   });
 });
+
+describe("annotateFailure — redeclaring a prelude binding", () => {
+  it("names the reserved binding and suggests a rename", () => {
+    const result = annotateFailure(
+      "SyntaxError: lexical redefinition of 'tools'",
+      undefined,
+      "const tools = {};",
+      "const tools = [1, 2];\nreturn tools.length;"
+    );
+    expect(result.error).toContain("lexical redefinition of 'tools'");
+    expect(result.error).toContain("the action prelude declares");
+    expect(result.error).toContain("myTools");
+    expect(result.error).toContain("`nodetool`");
+  });
+
+  it("leaves a collision between two of the action's own names alone", () => {
+    const error = "SyntaxError: lexical redefinition of 'shots'";
+    expect(
+      annotateFailure(error, undefined, "const tools = {};", "const shots = 1;")
+        .error
+    ).toBe(error);
+  });
+});

@@ -424,6 +424,119 @@ function tool<TResult>(
   };
 }
 
+/**
+ * The shape geometry for `add_shape_clip`, from whichever of the three forms
+ * the caller used: `shape`, `shapeStyle` (the name `set_clip_params` takes),
+ * or the geometry keys spread at the top level. With none of them the shape is
+ * a full-frame rect — a caller that asked for a shape and named no box wants
+ * something it can see, not a schema error about a field it did not know
+ * existed.
+ */
+function resolveShapeArg(
+  shape: unknown,
+  shapeStyle: unknown,
+  loose: Record<string, unknown>
+): z.infer<typeof shapeStyleParams> {
+  const given = (shape ?? shapeStyle) as
+    | z.infer<typeof shapeStyleParams>
+    | undefined;
+  if (given) return given;
+  const bare = Object.fromEntries(
+    Object.entries(loose).filter(([, value]) => value !== undefined)
+  );
+  const parsed = shapeStyleParams.safeParse({
+    kind: "rect",
+    x: 0,
+    y: 0,
+    width: 1,
+    height: 1,
+    ...bare
+  });
+  if (!parsed.success) {
+    throw new Error(
+      'add_shape_clip takes the geometry in `shape` (or `shapeStyle`): {kind: "rect"|"ellipse"|"line"|"polygon"|"star"|"path", x, y, width, height, fill?, stroke?, strokeWidthPx?}, with x/y/width/height as 0..1 fractions of the frame. ' +
+        parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")
+    );
+  }
+  return parsed.data;
+}
+
+/**
+ * Timing and geometry are their own ops, and a key this tool does not read
+ * used to be stripped by the schema — a call that reported success and changed
+ * nothing. Name the op that does the job instead.
+ */
+const CLIP_PARAM_ELSEWHERE: Record<string, string> = {
+  animations: "animate_clip",
+  transition: "set_transition",
+  parentId: "set_parent",
+  mask: "set_mask",
+  effects: "set_effects",
+  timeRemap: "set_time_remap"
+};
+
+const CLIP_PARAM_KEYS = [
+  "name",
+  "startMs",
+  "trackId",
+  "durationMs",
+  "inPointMs",
+  "outPointMs",
+  "opacity",
+  "speedMultiplier",
+  "volumeDb",
+  "fadeInMs",
+  "fadeOutMs",
+  "blendMode",
+  "borderRadius",
+  "hidden",
+  "muted",
+  "locked",
+  "fontSizePx",
+  "textStyle",
+  "shapeStyle",
+  "captionStyle"
+];
+
+function rejectUnknownClipParams(patch: Record<string, unknown>): void {
+  for (const key of Object.keys(patch)) {
+    if (CLIP_PARAM_KEYS.includes(key)) continue;
+    const elsewhere = CLIP_PARAM_ELSEWHERE[key];
+    if (elsewhere) {
+      throw new Error(
+        `set_clip_params does not change \`${key}\`; use ${elsewhere}.`
+      );
+    }
+    throw new Error(
+      `set_clip_params has no \`${key}\` param. It takes: ${CLIP_PARAM_KEYS.join(", ")}.`
+    );
+  }
+}
+
+/**
+ * Lift a nested `custom: {curves|code|mask}` onto the animation itself. The
+ * flat form is the contract, but the nested one is the obvious guess from
+ * `preset: "custom"`, and it used to be stripped by the schema and then
+ * rejected as an animation with neither curves nor code.
+ */
+function liftCustom<
+  T extends {
+    curves?: unknown;
+    code?: string;
+    mask?: unknown;
+    custom?: { curves?: unknown; code?: string; mask?: unknown };
+  }
+>(input: T): T {
+  if (!input.custom) return input;
+  const { custom, ...rest } = input;
+  return {
+    ...rest,
+    curves: input.curves ?? custom.curves,
+    code: input.code ?? custom.code,
+    mask: input.mask ?? custom.mask
+  } as T;
+}
+
 function capitalize(s: string): string {
   return s.length > 0 ? s[0].toUpperCase() + s.slice(1) : s;
 }
@@ -564,6 +677,50 @@ export function createTimelineToolBridge(
     );
   }
 
+  /**
+   * The body of `trim_clip`, shared with `set_clip_params`: a caller that sends
+   * `durationMs` alongside a style change means the same edit either way, and
+   * two copies of the group-trim rule would drift.
+   */
+  function applyTrim(
+    clip: TimelineClip,
+    patch: { durationMs?: number; inPointMs?: number; outPointMs?: number }
+  ): TimelineClip {
+    // A group carries what it holds (D4): shortening one pulls its children
+    // inside the window that leaves, rather than leaving them hanging past an
+    // edge nothing draws.
+    if (isGroupClip(clip) && patch.durationMs !== undefined) {
+      clips = trimGroup(clips, clip.id, "end", patch.durationMs - clip.durationMs);
+      return clips.find((c) => c.id === clip.id)!;
+    }
+    if (patch.durationMs !== undefined) clip.durationMs = patch.durationMs;
+    if (patch.inPointMs !== undefined) clip.inPointMs = patch.inPointMs;
+    if (patch.outPointMs !== undefined) clip.outPointMs = patch.outPointMs;
+    return clip;
+  }
+
+  /** The body of `move_clip`, shared with `set_clip_params`. */
+  function applyMove(
+    clip: TimelineClip,
+    patch: { startMs?: number; trackId?: string }
+  ): TimelineClip {
+    // Moving a group moves what it holds by the same delta (D4). Children keep
+    // their own tracks, so their z-order is untouched (I9) — only the group
+    // itself takes a new `trackId`.
+    let moved = clip;
+    if (isGroupClip(clip) && patch.startMs !== undefined) {
+      const nextStartMs = Math.max(0, patch.startMs);
+      clips = moveGroup(clips, clip.id, nextStartMs - clip.startMs);
+      moved = clips.find((c) => c.id === clip.id)!;
+    } else if (patch.startMs !== undefined) {
+      clip.startMs = Math.max(0, patch.startMs);
+    }
+    if (patch.trackId !== undefined) {
+      moved.trackId = resolveTrack(patch.trackId).id;
+    }
+    return moved;
+  }
+
   /** Resolve a marker by id, or by case-insensitive label. */
   function resolveMarker(target: string): TimelineMarker {
     const byId = markers.find((m) => m.id === target);
@@ -653,7 +810,9 @@ export function createTimelineToolBridge(
     }
     if (!hasCurves && !hasCode) {
       throw new Error(
-        'A "custom" animation needs `curves` (keyframes: [{property, keyframes:[{t, value}]}]) or `code` (a JS body baked into curves).'
+        'A "custom" animation needs `curves` or `code`. Accepted shape: ' +
+          '{role: "in", preset: "custom", curves: [{property: "offsetY", keyframes: [{t: 0, value: 160}, {t: 1, value: 0}]}]}' +
+          ' — `t` runs 0..1 over the window. `code` is a JS body baked into curves instead. Either may also be nested under `custom`.'
       );
     }
 
@@ -942,18 +1101,27 @@ export function createTimelineToolBridge(
 
     tool(
       "ui_timeline_add_shape_clip",
-      "Add a rectangle, ellipse, or line on an overlay track of the specified timeline sequence. Omitted colors use a visible white fill for rectangles/ellipses or a visible white stroke for lines. Shapes are rasterized for preview/export and can use the standard motion presets.",
+      'Add a rectangle, ellipse, or line on an overlay track of the specified timeline sequence. The geometry goes in `shape` (or `shapeStyle`, the name `set_clip_params` uses): {kind: "rect"|"ellipse"|"line"|"polygon"|"star"|"path", x, y, width, height, fill, stroke, ...}, with x/y/width/height as 0..1 fractions of the frame. Those keys are also accepted at the top level. With no geometry at all the shape is a full-frame rect. Omitted colors use a visible white fill for rectangles/ellipses or a visible white stroke for lines. Shapes are rasterized for preview/export and can use the standard motion presets.',
       z.object({
-        shape: shapeStyleParams,
+        shape: shapeStyleParams.optional(),
+        shapeStyle: shapeStyleParams.optional(),
+        kind: shapeStyleParams.shape.kind.optional(),
+        x: z.number().optional(),
+        y: z.number().optional(),
+        width: z.number().optional(),
+        height: z.number().optional(),
+        fill: z.string().optional(),
+        stroke: z.string().optional(),
+        strokeWidthPx: z.number().optional(),
         trackId: z.string().optional(),
         startMs: z.number().optional(),
         durationMs: z.number().optional()
       }),
-      async ({ shape, trackId, startMs, durationMs }) => {
+      async ({ shape, shapeStyle, trackId, startMs, durationMs, ...loose }) => {
         const track = trackId
           ? resolveTrack(trackId as string)
           : findOrCreateTrack("overlay");
-        const shapeArg = shape as z.infer<typeof shapeStyleParams>;
+        const shapeArg = resolveShapeArg(shape, shapeStyle, loose);
         const isLine = shapeArg.kind === "line";
         const clip = makeClip({
           id: nextClipId(),
@@ -1100,25 +1268,12 @@ export function createTimelineToolBridge(
         outPointMs: z.number().optional()
       }),
       async ({ target, durationMs, inPointMs, outPointMs }) => {
-        const clip = resolveClip(target as string);
-        // A group carries what it holds (D4): shortening one pulls its
-        // children inside the window that leaves, rather than leaving them
-        // hanging past an edge nothing draws.
-        if (isGroupClip(clip) && durationMs !== undefined) {
-          const next = trimGroup(
-            clips,
-            clip.id,
-            "end",
-            (durationMs as number) - clip.durationMs
-          );
-          clips = next;
-          const trimmed = clips.find((c) => c.id === clip.id)!;
-          return { ok: true, clip: serializeClip(trimmed) };
-        }
-        if (durationMs !== undefined) clip.durationMs = durationMs as number;
-        if (inPointMs !== undefined) clip.inPointMs = inPointMs as number;
-        if (outPointMs !== undefined) clip.outPointMs = outPointMs as number;
-        return { ok: true, clip: serializeClip(clip) };
+        const trimmed = applyTrim(resolveClip(target as string), {
+          durationMs: durationMs as number | undefined,
+          inPointMs: inPointMs as number | undefined,
+          outPointMs: outPointMs as number | undefined
+        });
+        return { ok: true, clip: serializeClip(trimmed) };
       }
     ),
 
@@ -1131,24 +1286,11 @@ export function createTimelineToolBridge(
         trackId: z.string().optional()
       }),
       async ({ target, startMs, trackId }) => {
-        const clip = resolveClip(target as string);
-        // Moving a group moves what it holds by the same delta (D4). Children
-        // keep their own tracks, so their z-order is untouched (I9) — only the
-        // group itself takes a new `trackId`.
-        if (isGroupClip(clip) && startMs !== undefined) {
-          const nextStartMs = Math.max(0, startMs as number);
-          clips = moveGroup(clips, clip.id, nextStartMs - clip.startMs);
-          const moved = clips.find((c) => c.id === clip.id)!;
-          if (trackId !== undefined) {
-            moved.trackId = resolveTrack(trackId as string).id;
-          }
-          return { ok: true, clip: serializeClip(moved) };
-        }
-        if (startMs !== undefined) clip.startMs = Math.max(0, startMs as number);
-        if (trackId !== undefined) {
-          clip.trackId = resolveTrack(trackId as string).id;
-        }
-        return { ok: true, clip: serializeClip(clip) };
+        const moved = applyMove(resolveClip(target as string), {
+          startMs: startMs as number | undefined,
+          trackId: trackId as string | undefined
+        });
+        return { ok: true, clip: serializeClip(moved) };
       }
     ),
 
@@ -1193,9 +1335,15 @@ export function createTimelineToolBridge(
 
     tool(
       "ui_timeline_set_clip_params",
-      "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. Omit a field to leave it unchanged.",
+      "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. `fontSizePx` is shorthand for `textStyle.fontSizePx`. Timing is accepted too and applied as trim_clip/move_clip would: `durationMs`, `inPointMs`, `outPointMs`, `startMs`, `trackId`. A key this tool does not know is refused by name rather than ignored. Omit a field to leave it unchanged.",
       z.object({
         target: targetParam,
+        startMs: z.number().optional(),
+        trackId: z.string().optional(),
+        durationMs: z.number().optional(),
+        inPointMs: z.number().optional(),
+        outPointMs: z.number().optional(),
+        fontSizePx: z.number().optional(),
         name: z.string().optional(),
         opacity: z.number().optional(),
         speedMultiplier: z.number().optional(),
@@ -1210,9 +1358,38 @@ export function createTimelineToolBridge(
         textStyle: textStyleParams.optional(),
         shapeStyle: shapeStyleParams.optional(),
         captionStyle: captionStyleParams.optional()
-      }),
+        // A key the schema does not list is kept rather than stripped, so it
+        // can be refused by name below: silently dropping `startMs` looked
+        // like a successful call that changed nothing.
+      }).catchall(z.unknown()),
       async ({ target, ...patch }) => {
-        const clip = resolveClip(target as string);
+        let clip = resolveClip(target as string);
+        rejectUnknownClipParams(patch);
+        // Timing belongs to move_clip and trim_clip, but a caller sending it
+        // here means one edit either way — so apply it through the same code
+        // rather than dropping it or making them call twice.
+        clip = applyTrim(clip, {
+          durationMs: patch.durationMs as number | undefined,
+          inPointMs: patch.inPointMs as number | undefined,
+          outPointMs: patch.outPointMs as number | undefined
+        });
+        clip = applyMove(clip, {
+          startMs: patch.startMs as number | undefined,
+          trackId: patch.trackId as string | undefined
+        });
+        if (patch.fontSizePx !== undefined) {
+          // Shorthand for the one text field callers reach for by name.
+          const size = patch.fontSizePx as number;
+          const style = (patch.textStyle ?? clip.textStyle) as
+            | TimelineClip["textStyle"]
+            | undefined;
+          if (!style) {
+            throw new Error(
+              `Clip "${clip.name}" carries no text to size; fontSizePx applies to a text clip's textStyle.`
+            );
+          }
+          patch.textStyle = { ...style, fontSizePx: size };
+        }
         if (patch.name !== undefined) clip.name = patch.name as string;
         if (patch.opacity !== undefined) clip.opacity = patch.opacity as number;
         if (patch.speedMultiplier !== undefined)
@@ -1499,6 +1676,16 @@ export function createTimelineToolBridge(
               curves: customCurvesParam,
               code: customCodeParam,
               mask: customMaskParam,
+              custom: z
+                .object({
+                  curves: customCurvesParam,
+                  code: customCodeParam,
+                  mask: customMaskParam
+                })
+                .optional()
+                .describe(
+                  'Same as `curves`/`code`/`mask` one level down: {preset: "custom", custom: {curves: [...]}} is accepted and lifted.'
+                ),
               stagger: z
                 .object({
                   unit: z.enum(STAGGER_UNITS),
@@ -1528,12 +1715,15 @@ export function createTimelineToolBridge(
           curves?: unknown;
           code?: string;
           mask?: unknown;
+          custom?: { curves?: unknown; code?: string; mask?: unknown };
           stagger?: ClipAnimation["stagger"];
         }>;
         const built: ClipAnimation[] = [];
         for (const input of inputs) {
           if (input.preset === CUSTOM_ANIMATION_PRESET_ID) {
-            built.push(await buildCustomAnimation(clip, input));
+            // `{preset: "custom", custom: {curves}}` reads as naturally as the
+            // flat form, so lift it rather than refusing it.
+            built.push(await buildCustomAnimation(clip, liftCustom(input)));
             continue;
           }
           const preset = ANIMATION_PRESETS.find((p) => p.id === input.preset);

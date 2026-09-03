@@ -207,6 +207,24 @@ function runJobOptions(params: {
   return opts;
 }
 
+/**
+ * A one-line summary of a submit body for an error message: scalar values
+ * verbatim, long strings and data URIs reduced to a length, so a rejection can
+ * name the parameter that was sent without echoing a prompt or an image.
+ */
+function describeInput(input: Record<string, unknown>): string {
+  const parts = Object.entries(input).map(([key, value]) => {
+    if (isString(value)) {
+      return value.length > 40 || value.startsWith("data:")
+        ? `${key}=<${value.length} chars>`
+        : `${key}=${value}`;
+    }
+    if (isNumber(value) || isBoolean(value)) return `${key}=${value}`;
+    return `${key}=<${Array.isArray(value) ? "array" : typeof value}>`;
+  });
+  return parts.length > 0 ? parts.join(", ") : "no fields";
+}
+
 async function atlasSubmit(
   apiKey: string,
   modality: "image" | "video",
@@ -233,7 +251,13 @@ async function atlasSubmit(
     data = null;
   }
   if (!res.ok) {
-    throw new Error(`AtlasCloud submit ${res.status}: ${text.slice(0, 500)}`);
+    // AtlasCloud answers a bad field with a bare "Invalid request parameters",
+    // which names nothing. Append the request shape so the caller can see which
+    // parameter it sent — prompts and data URIs are summarized, not echoed.
+    throw new Error(
+      `AtlasCloud submit ${res.status} for ${modelId}: ${text.slice(0, 500)} ` +
+        `(sent ${describeInput(input)})`
+    );
   }
   const id = data?.data?.id;
   if (!id) {
@@ -401,6 +425,14 @@ function setIfDeclared(
   });
 }
 
+/** Pixel granularity every AtlasCloud diffusion model accepts. */
+const SIZE_MULTIPLE = 16;
+
+/** Round a dimension to the nearest multiple of `step`, never below `step`. */
+function snapToMultiple(value: number, step: number): number {
+  return Math.max(step, Math.round(value / step) * step);
+}
+
 /** Parse a `1024x768` / `1024*768` size string into pixel dimensions. */
 function parseSize(value: string): { w: number; h: number } | null {
   const m = /^(\d+)\s*[x*]\s*(\d+)$/i.exec(value);
@@ -426,7 +458,19 @@ function renderSize(field: FieldInfo, w: number, h: number): string | null {
   const allowed = field.values;
   if (!allowed || allowed.length === 0) {
     const sep = String(field.default ?? "").includes("x") ? "x" : "*";
-    return `${w}${sep}${h}`;
+    // Latent-diffusion models on AtlasCloud take dimensions in multiples of 16
+    // (8× VAE downsample, 2× patch). A caller-supplied 1920×1080 is rejected at
+    // submit with a bare "Invalid request parameters", so snap each side to the
+    // nearest legal multiple rather than sending a size that cannot render.
+    const sw = snapToMultiple(w, SIZE_MULTIPLE);
+    const sh = snapToMultiple(h, SIZE_MULTIPLE);
+    if (sw !== w || sh !== h) {
+      log.debug("AtlasCloud: snapped size to a legal multiple", {
+        requested: `${w}${sep}${h}`,
+        sent: `${sw}${sep}${sh}`
+      });
+    }
+    return `${sw}${sep}${sh}`;
   }
   const exact = allowed.find(
     (v) => String(v) === `${w}x${h}` || String(v) === `${w}*${h}`

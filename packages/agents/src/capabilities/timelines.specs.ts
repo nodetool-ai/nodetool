@@ -138,6 +138,7 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         '([{property, keyframes: [{t, value, easing?}]}], `t` running 0..1 ' +
         "over the animation's window) or `code` (a JS body baked into curves " +
         "once, host-side); add `mask` when a curve drives wipeProgress. " +
+        "Either may sit under a nested `custom: {curves|code|mask}` instead. " +
         "list_animation_presets reports the animatable properties. " +
         'set_transition takes {"target", "transition": {type, durationMs, ' +
         "easing?, color?, direction?, softness?} | null} — the cut plays over " +
@@ -161,10 +162,20 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "tracks, so what covers what is unchanged. " +
         'set_parent takes {"target", "parentId": <group> | null}; the parent ' +
         "must be a clip made with add_group, and a cycle is refused. " +
+        'add_shape_clip takes the geometry in "shape" (or "shapeStyle"): ' +
+        '{kind: "rect"|"ellipse"|"line"|"polygon"|"star"|"path", x, y, ' +
+        "width, height, fill?, stroke?, strokeWidthPx?}, where x/y/width/" +
+        "height are 0..1 fractions of the frame; those keys are also read " +
+        "from the op itself, and with no geometry at all the shape is a " +
+        "full-frame rect. " +
         'set_clip_params takes {"target", ...fields}; a caption clip\'s look ' +
         'is "captionStyle": {fontFamily?, fontSizeFrac?, color?, activeColor?, ' +
         "outline?, bottomMarginFrac?, background?}, each field optional and " +
-        "each absent one keeping the built-in value. " +
+        "each absent one keeping the built-in value. It also takes " +
+        '"fontSizePx" (merged into textStyle) and the timing move_clip and ' +
+        'trim_clip apply — "startMs", "trackId", "durationMs", "inPointMs", ' +
+        '"outPointMs" — and refuses a key it does not know by name rather ' +
+        "than ignoring it. " +
         'set_effects takes {"target", "effects": [{type, ...}]} and replaces ' +
         "the whole chain — types color, blur, glow, dropShadow, vignette, " +
         "sharpen, chromaKey, curves, levels, liftGammaGain, applied in the " +

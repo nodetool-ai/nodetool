@@ -317,6 +317,25 @@ export const CODEACT_INJECTED_GLOBALS = [
   ...NODETOOL_API_GLOBALS
 ] as const;
 
+/**
+ * The injected names a model's own code can collide with: the bindings above
+ * minus the `__`-prefixed host bridges, which nobody writes by accident.
+ *
+ * The prelude declares them with `const`, so `const tools = [...]` in an action
+ * is a SyntaxError before a line runs ("lexical redefinition of 'tools'") — a
+ * failure whose cause is invisible from the action's own source. They are named
+ * in the `execute_code` contract, and {@link annotateFailure} names the one
+ * that collided.
+ */
+export const RESERVED_ACTION_BINDINGS: readonly string[] =
+  CODEACT_INJECTED_GLOBALS.filter((name) => !name.startsWith("__"));
+
+/** One sentence naming the reserved bindings, for the action contract. */
+export const RESERVED_BINDINGS_SENTENCE =
+  `The prelude already declares ${RESERVED_ACTION_BINDINGS.map((n) => `\`${n}\``).join(", ")}. ` +
+  "Declaring one of them again is a SyntaxError before your code runs, so " +
+  "name your own variables something else.";
+
 // ---------------------------------------------------------------------------
 // Signature rendering (JSON schema → compact TS-ish signature)
 // ---------------------------------------------------------------------------

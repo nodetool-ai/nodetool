@@ -31,6 +31,9 @@ vi.mock("@nodetool-ai/runtime", async () => {
   return {
     ...stub,
     ACTIVE_MODEL_CONTEXT_KEY: "active_agent_model",
+    // The stub context resolves no media; the real one returns undefined
+    // for a context without resolveMessageMediaUris, same as here.
+    mediaResolverFor: () => undefined,
     isProviderSessionUpdate: types.isProviderSessionUpdate,
     isProviderMessageEvent: types.isProviderMessageEvent,
     isProviderStop: types.isProviderStop,

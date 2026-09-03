@@ -33,7 +33,48 @@ import {
 } from "../capabilities/dispatcher.js";
 import { listCapabilityModules } from "../capabilities/registry.js";
 import type { CapabilityRun } from "../capabilities/types.js";
+import {
+  extractInjectableImages,
+  IMAGE_CONTENT_FIELD,
+  IMAGE_CONTENTS_FIELD
+} from "../tools/image-injection.js";
+import { isRecord, isString } from "../utils/type-guards.js";
 import type { SandboxCapabilityMount } from "../js-sandbox.js";
+
+/**
+ * What a capability answering with pixels is told inside an action.
+ *
+ * `view_image` answers with an `image_content` payload the tool loop injects
+ * into the model's next turn as a real image block. A capability imported into
+ * a code action has no such channel: its result is a JavaScript value that
+ * reaches the model only as the action's JSON observation, so the pixels went
+ * nowhere and the model read back its own question. Say where the pixels are
+ * instead of pretending they arrived.
+ */
+export const SANDBOX_IMAGE_NOTE =
+  "No pixels were delivered: an image cannot cross into a code action, only " +
+  "its reference. To look at it, call view_image as a direct tool call " +
+  "(outside execute_code) with this image_id, or ask a vision model about it " +
+  "with critique_image / score_image_adherence, which answer in text.";
+
+/**
+ * Replace an injectable-image payload with the note above. Every other result
+ * passes through untouched.
+ */
+function withoutPixels(result: unknown): unknown {
+  if (extractInjectableImages(result) === null || !isRecord(result)) {
+    return result;
+  }
+  const stripped: Record<string, unknown> = { ...result };
+  delete stripped[IMAGE_CONTENT_FIELD];
+  delete stripped[IMAGE_CONTENTS_FIELD];
+  const note = stripped["note"];
+  stripped["note"] =
+    isString(note) && note.length > 0
+      ? `${note} ${SANDBOX_IMAGE_NOTE}`
+      : SANDBOX_IMAGE_NOTE;
+  return stripped;
+}
 
 export type CapabilityModuleMount =
   | { ok: true; mount?: SandboxCapabilityMount }
@@ -179,14 +220,16 @@ export async function mountCapabilityModules(
       if (graft === undefined) {
         throw new Error(`no session module serves "${moduleKey}"`);
       }
-      return graft.call(exportName, args[0] === undefined ? {} : args[0]);
+      return withoutPixels(
+        await graft.call(exportName, args[0] === undefined ? {} : args[0])
+      );
     }
     if (dispatcher === undefined) {
       throw new Error(
         `"${exportName}" is not available in this run — it needs a capability run.`
       );
     }
-    return dispatcher.call(moduleKey, exportName, args);
+    return withoutPixels(await dispatcher.call(moduleKey, exportName, args));
   };
   return { ok: true, mount: { facades, call } };
 }
