@@ -158,6 +158,28 @@ export const config: ModuleConfig = {
       ]
     },
 
+    "minimax/h3-max-turbo/image-to-video": {
+      className: "MinimaxH3MaxTurboImageToVideo",
+      docstring:
+        "H3 Max Turbo is a post-trained MiniMax H3 variant that animates a still into video with stronger prompt adherence at higher throughput.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "minimax",
+        "h3",
+        "turbo"
+      ],
+      useCases: [
+        "Animate key art faster than H3 Max",
+        "Add motion to product photography",
+        "Turn generated stills into clips",
+        "Iterate on motion prompts quickly",
+        "Produce batches of social videos"
+      ]
+    },
+
     "minimax/h3/reference-to-video": {
       className: "MinimaxH3ReferenceToVideo",
       docstring:

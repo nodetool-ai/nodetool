@@ -7086,6 +7086,16 @@
       "unit_price": 0.0042,
       "billing_unit": "input seconds",
       "currency": "USD"
+    },
+    "minimax/h3-max-turbo/text-to-video": {
+      "unit_price": 0.00017,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "minimax/h3-max-turbo/image-to-video": {
+      "unit_price": 0.00017,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
     }
   }
 }

@@ -72,6 +72,28 @@ export const config: ModuleConfig = {
       ]
     },
 
+    "minimax/h3-max-turbo/text-to-video": {
+      className: "MinimaxH3MaxTurboTextToVideo",
+      docstring:
+        "H3 Max Turbo is a post-trained MiniMax H3 variant that generates video from text with stronger prompt adherence at higher throughput.",
+      tags: [
+        "video",
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "minimax",
+        "h3",
+        "turbo"
+      ],
+      useCases: [
+        "Render a written shot faster than H3 Max",
+        "Iterate on prompts without a long wait",
+        "Generate ads and promos from a script",
+        "Expand a terse prompt before generating",
+        "Produce batches of clips for review"
+      ]
+    },
+
     "xai/grok-imagine-video/v1.5/text-to-video": {
       className: "GrokImagineVideoV15TextToVideo",
       docstring: "Grok Imagine Video 1.5 generates videos from text prompts.",
