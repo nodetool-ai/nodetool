@@ -26,7 +26,7 @@ import { BrushTool } from "../tools/BrushTool";
 import { PencilTool } from "../tools/PencilTool";
 import { EraserTool } from "../tools/EraserTool";
 import { ShapeTool } from "../tools/ShapeTool";
-import type { ToolContext, ToolPointerEvent } from "../tools/types";
+import type { ToolPointerEvent } from "../tools/types";
 import {
   createDefaultDocument,
   DEFAULT_BRUSH_SETTINGS,
@@ -34,70 +34,9 @@ import {
   DEFAULT_ERASER_SETTINGS,
   makeAffineTransform
 } from "../types";
+import { makeToolContext } from "./_toolContextFixture";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
-
-function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
-  const doc = createDefaultDocument(64, 64);
-  return {
-    doc,
-    activeTool: "brush",
-    zoom: 1,
-    pan: { x: 0, y: 0 },
-    mirrorX: false,
-    mirrorY: false,
-    symmetryMode: "off",
-    symmetryRays: 6,
-    selection: null,
-    displayCanvasRef: { current: null },
-    overlayCanvasRef: { current: null },
-    gizmoCanvasRef: { current: null },
-    cursorCanvasRef: { current: null },
-    containerRef: { current: null },
-    layerCanvasesRef: { current: new Map() },
-    mousePositionRef: { current: { x: 0, y: 0 } },
-    activeStrokeRef: { current: null },
-    getOrCreateLayerCanvas: jest.fn(() => {
-      const canvas = window.document.createElement("canvas");
-      canvas.width = 64;
-      canvas.height = 64;
-      return canvas;
-    }),
-    redraw: jest.fn(),
-    redrawDirty: jest.fn(),
-    requestRedraw: jest.fn(),
-    requestDirtyRedraw: jest.fn(),
-    clearOverlay: jest.fn(),
-    drawSelectionOverlay: jest.fn(),
-    drawOverlayShape: jest.fn(),
-    drawOverlayGradient: jest.fn(),
-    drawOverlayCrop: jest.fn(),
-    drawOverlayLassoPreview: jest.fn(),
-    drawOverlaySelection: jest.fn(),
-    drawCursor: jest.fn(),
-    clearGizmo: jest.fn(),
-    drawGizmo: jest.fn(),
-    onZoomChange: jest.fn(),
-    onPanChange: jest.fn(),
-    onStrokeStart: jest.fn(),
-    onStrokeEnd: jest.fn(),
-    onLayerTransformChange: jest.fn(),
-    onLayerContentBoundsChange: jest.fn(),
-    onBrushSizeChange: jest.fn(),
-    onContextMenu: jest.fn(),
-    onCropComplete: jest.fn(),
-    onEyedropperPick: jest.fn(),
-    onSelectionChange: jest.fn(),
-    onAutoPickLayer: jest.fn(),
-    screenToCanvas: jest.fn((x: number, y: number) => ({ x, y })),
-    shiftHeldRef: { current: false },
-    altHeldRef: { current: false },
-    withMirror: jest.fn((ctx, drawFn, from, to) => {
-      drawFn(from, to, ctx, 0);
-    }),
-    ...overrides
-  };
-}
 
 function makePointerEvent(
   overrides?: Partial<ToolPointerEvent>
@@ -510,8 +449,10 @@ describe("PaintSession", () => {
       stroke.pendingCommit();
     }
 
+    // The stroke's raster bounds are tagged on the layer canvas mid-stroke and
+    // read back at commit, so they round-trip through `layerCanvasesRef`.
     expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
-      ctx.doc.activeLayerId, null, undefined
+      ctx.doc.activeLayerId, null, { x: 0, y: 0, width: 64, height: 64 }
     );
     expect(ctx.activeStrokeRef.current).toBeNull();
     expect(session.isActive).toBe(false);
@@ -733,7 +674,7 @@ describe("BrushTool (PaintSession)", () => {
       stroke.pendingCommit();
     }
     expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
-      ctx.doc.activeLayerId, null, undefined
+      ctx.doc.activeLayerId, null, { x: 0, y: 0, width: 64, height: 64 }
     );
     expect(ctx.activeStrokeRef.current).toBeNull();
   });
@@ -778,7 +719,7 @@ describe("PencilTool (PaintSession)", () => {
       stroke.pendingCommit();
     }
     expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
-      ctx.doc.activeLayerId, null, undefined
+      ctx.doc.activeLayerId, null, { x: 0, y: 0, width: 64, height: 64 }
     );
   });
 });
@@ -803,7 +744,7 @@ describe("EraserTool (PaintSession)", () => {
       stroke.pendingCommit();
     }
     expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
-      ctx.doc.activeLayerId, null, undefined
+      ctx.doc.activeLayerId, null, { x: 0, y: 0, width: 64, height: 64 }
     );
   });
 });
@@ -869,7 +810,9 @@ describe("ShapeTool (transform-aware commit)", () => {
       ctx.overlayCanvasRef.current = overlayCanvas;
       tool.onDown(ctx, makePointerEvent());
       tool.onUp!(ctx, makePointerEvent());
-      expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null, undefined);
+      expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
+        ctx.doc.activeLayerId, null, { x: 0, y: 0, width: 64, height: 64 }
+      );
     } finally {
       getContextSpy.mockRestore();
     }

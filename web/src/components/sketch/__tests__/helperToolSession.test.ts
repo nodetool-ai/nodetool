@@ -16,9 +16,10 @@ import { stub } from "../../../test-utils/doubles";
 import { HelperToolSession } from "../painting/HelperToolSession";
 import { BlurTool } from "../tools/BlurTool";
 import { CloneStampTool } from "../tools/CloneStampTool";
-import type { ToolContext, ToolPointerEvent } from "../tools/types";
-import { createDefaultDocument, makeAffineTransform } from "../types";
+import type { ToolPointerEvent } from "../tools/types";
+import { makeAffineTransform } from "../types";
 import { captureAlphaSnapshot, restoreAlphaFromSnapshot } from "../painting/alphaLock";
+import { makeToolContext } from "./_toolContextFixture";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
 
@@ -27,69 +28,6 @@ function makeCanvas(w: number, h: number): HTMLCanvasElement {
   c.width = w;
   c.height = h;
   return c;
-}
-
-function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
-  const doc = createDefaultDocument(64, 64);
-  const layerCanvas = makeCanvas(64, 64);
-  const layerMap = new Map<string, HTMLCanvasElement>();
-  const layerId = doc.layers[0].id;
-  layerMap.set(layerId, layerCanvas);
-
-  return {
-    doc,
-    activeTool: "brush",
-    zoom: 1,
-    pan: { x: 0, y: 0 },
-    mirrorX: false,
-    mirrorY: false,
-    symmetryMode: "off",
-    symmetryRays: 6,
-    selection: null,
-    displayCanvasRef: { current: null },
-    overlayCanvasRef: { current: null },
-    gizmoCanvasRef: { current: null },
-    cursorCanvasRef: { current: null },
-    containerRef: { current: null },
-    layerCanvasesRef: { current: layerMap },
-    mousePositionRef: { current: { x: 0, y: 0 } },
-    activeStrokeRef: { current: null },
-    getOrCreateLayerCanvas: jest.fn(() => layerCanvas),
-    redraw: jest.fn(),
-    redrawDirty: jest.fn(),
-    requestRedraw: jest.fn(),
-    requestDirtyRedraw: jest.fn(),
-    clearOverlay: jest.fn(),
-    drawSelectionOverlay: jest.fn(),
-    drawOverlayShape: jest.fn(),
-    drawOverlayGradient: jest.fn(),
-    drawOverlayCrop: jest.fn(),
-    drawOverlayLassoPreview: jest.fn(),
-    drawOverlaySelection: jest.fn(),
-    drawCursor: jest.fn(),
-    clearGizmo: jest.fn(),
-    drawGizmo: jest.fn(),
-    onZoomChange: jest.fn(),
-    onPanChange: jest.fn(),
-    onStrokeStart: jest.fn(),
-    onStrokeEnd: jest.fn(),
-    onLayerTransformChange: jest.fn(),
-    setLayerTransformPreview: jest.fn(),
-    onLayerContentBoundsChange: jest.fn(),
-    onBrushSizeChange: jest.fn(),
-    onContextMenu: jest.fn(),
-    onCropComplete: jest.fn(),
-    onEyedropperPick: jest.fn(),
-    onSelectionChange: jest.fn(),
-    onAutoPickLayer: jest.fn(),
-    screenToCanvas: jest.fn((x: number, y: number) => ({ x, y })),
-    shiftHeldRef: { current: false },
-    altHeldRef: { current: false },
-    withMirror: jest.fn((ctx, drawFn, from, to) => {
-      drawFn(from, to, ctx, 0);
-    }),
-    ...overrides
-  };
 }
 
 function makePointerEvent(
