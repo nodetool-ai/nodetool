@@ -1589,7 +1589,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     doc: `- \`nodetool.media\` — direct generation, no workflow needed. Each call takes a
   model from \`nodetool.models.pick/find\` (or \`{provider, model_id}\`):
   \`generateImage(prompt, model, {width, height, output_file})\`,
-  \`editImage(inputFile, prompt, model)\`, \`generateVideo(prompt, model)\`,
+  \`editImage(inputFile, prompt, model, {reference_files})\`,
+  \`generateVideo(prompt, model)\`,
   \`animateImage(inputFile, model)\`, \`speak(text, model, {voice})\`,
   \`generateMusic(prompt, model, {lyrics, duration_seconds})\`,
   \`transcribe(inputFile, model)\`, \`embed(text, model)\`. Results are saved as
@@ -1604,6 +1605,14 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   the action ends; keep the returned \`asset://\` ref (in memory if a
   later turn needs it). Do not pull bytes into the guest, and do not use a
   handle in a later action — it is dead there.
+  \`editImage\` is the call for "make it like this": pass the image the user
+  attached (or an earlier approved result) as \`inputFile\`, and any further
+  images to match in \`reference_files\` — both take an \`asset://\` uri or a
+  workspace path.
+  To put words on a picture, draw them yourself: \`createCanvas\` with
+  \`fillText\` in the guest, or the flow call
+  \`import { renderText } from "@nodetool-ai/sandbox-flow/lib.image.draw"\`.
+  Never send the user to another tool for text on an image.
   Judging lives here too, so generate → critique → regenerate is one namespace:
   \`critique(image, brief, visionModel, {taste_profile})\`,
   \`compare([imageA, imageB, ...], brief, visionModel)\` (pairwise knockout),

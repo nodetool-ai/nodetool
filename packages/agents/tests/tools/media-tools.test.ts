@@ -222,8 +222,8 @@ describe("EditImageTool", () => {
     })) as Record<string, unknown>;
 
     expect(captured!.capability).toBe("image_to_image");
-    const passedImage = captured!.params.image as Uint8Array;
-    expect(Array.from(passedImage)).toEqual([10, 20, 30]);
+    const passedImages = captured!.params.images as Uint8Array[];
+    expect(passedImages.map((b) => Array.from(b))).toEqual([[10, 20, 30]]);
     expect(result.type).toBe("image");
     const written = fs.readFileSync(path.join(workspaceDir, result.path as string));
     expect(Array.from(written)).toEqual(Array.from(out));

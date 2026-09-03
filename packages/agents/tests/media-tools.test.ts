@@ -290,7 +290,7 @@ describe("EditImageTool", () => {
     expect(r.asset_id).toBe("e1");
     const call = runProviderPrediction.mock.calls[0][0];
     expect(call.capability).toBe("image_to_image");
-    expect(call.params.image).toBe(src);
+    expect(call.params.images).toEqual([src]);
     expect(call.params.strength).toBe(0.6);
   });
 

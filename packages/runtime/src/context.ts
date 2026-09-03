@@ -3239,8 +3239,21 @@ export class ProcessingContext {
       text: `[attached ${kind} could not be loaded: ${uri}]`
     });
 
+    // A resolved block reaches the provider as a `data:` URI, which the model
+    // cannot pass to a tool. Emit the stored handle beside it so "make it like
+    // this" can become `edit_image({input_file: "asset://…"})` — only for the
+    // two schemes `isResolvableUri` admits, never for a `data:` URI the caller
+    // already inlined.
+    const attachedNote = (kind: string, uri: string): MessageContent => ({
+      type: "text",
+      text: `[attached ${kind} ${uri}]`
+    });
+
     const resolvePart = async (
-      part: MessageContent
+      part: MessageContent,
+      // Parts split out of a text block already carry the literal token next
+      // to them (see `expandAssetReferences`), so a note there would repeat it.
+      fromText = false
     ): Promise<MessageContent[]> => {
       if (
         part.type === "image_url" &&
@@ -3253,12 +3266,13 @@ export class ProcessingContext {
           const mimeType =
             IMAGE_MIME[ext] ?? part.image.mimeType ?? "image/png";
           const b64 = Buffer.from(bytes).toString("base64");
-          return [
-            {
-              type: "image_url",
-              image: { uri: `data:${mimeType};base64,${b64}`, mimeType }
-            }
-          ];
+          const block: MessageContent = {
+            type: "image_url",
+            image: { uri: `data:${mimeType};base64,${b64}`, mimeType }
+          };
+          return fromText
+            ? [block]
+            : [block, attachedNote("image", part.image.uri)];
         }
         return [unresolvedNote("image", part.image.uri)];
       }
@@ -3273,12 +3287,13 @@ export class ProcessingContext {
           const mimeType =
             AUDIO_MIME[ext] ?? part.audio.mimeType ?? "audio/mpeg";
           const b64 = Buffer.from(bytes).toString("base64");
-          return [
-            {
-              type: "audio",
-              audio: { uri: `data:${mimeType};base64,${b64}`, mimeType }
-            }
-          ];
+          const block: MessageContent = {
+            type: "audio",
+            audio: { uri: `data:${mimeType};base64,${b64}`, mimeType }
+          };
+          return fromText
+            ? [block]
+            : [block, attachedNote("audio", part.audio.uri)];
         }
         return [unresolvedNote("audio", part.audio.uri)];
       }
@@ -3293,12 +3308,13 @@ export class ProcessingContext {
           const mimeType =
             VIDEO_MIME[ext] ?? part.video.mimeType ?? "video/mp4";
           const b64 = Buffer.from(bytes).toString("base64");
-          return [
-            {
-              type: "video",
-              video: { uri: `data:${mimeType};base64,${b64}`, mimeType }
-            }
-          ];
+          const block: MessageContent = {
+            type: "video",
+            video: { uri: `data:${mimeType};base64,${b64}`, mimeType }
+          };
+          return fromText
+            ? [block]
+            : [block, attachedNote("video", part.video.uri)];
         }
         return [unresolvedNote("video", part.video.uri)];
       }
@@ -3325,7 +3341,7 @@ export class ProcessingContext {
             const inlined = await inlineTextAssetRefs(sub.text, this);
             if (inlined) out.push({ type: "text", text: inlined });
           } else {
-            const resolved = await resolvePart(sub);
+            const resolved = await resolvePart(sub, true);
             out.push(...resolved);
           }
         }

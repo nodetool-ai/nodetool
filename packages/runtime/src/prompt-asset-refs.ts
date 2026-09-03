@@ -431,11 +431,17 @@ export function expandAssetReferences(prompt: string): MessageContent[] {
         type: "image_url",
         image: { uri: ref.uri, mimeType: ref.mime }
       });
+      // Keep the literal token next to the block, the way the video branch
+      // below does. The block itself resolves to a data URI before the
+      // provider call, so without the token the model sees pixels it has no
+      // handle for and cannot name the image in a later `edit_image` call.
+      pushText(ref.uri);
     } else if (ref.kind === "audio") {
       parts.push({
         type: "audio",
         audio: { uri: ref.uri, mimeType: ref.mime }
       });
+      pushText(ref.uri);
     } else {
       // Video (and any other non-chat media): keep the mention as literal text
       // so the model still sees the reference rather than a mislabeled block.

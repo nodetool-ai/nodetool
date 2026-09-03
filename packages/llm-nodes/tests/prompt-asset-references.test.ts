@@ -13,13 +13,15 @@ describe("expandAssetReferences", () => {
     expect(parts).toEqual([
       { type: "text", text: "Describe " },
       { type: "image_url", image: { uri: "asset://abc.png", mimeType: "image/png" } },
+      { type: "text", text: "asset://abc.png" },
       { type: "text", text: " please" }
     ]);
   });
 
   it("encodes audio references as audio blocks carrying the asset URI", () => {
     expect(expandAssetReferences("asset://clip.mp3")).toEqual([
-      { type: "audio", audio: { uri: "asset://clip.mp3", mimeType: "audio/mpeg" } }
+      { type: "audio", audio: { uri: "asset://clip.mp3", mimeType: "audio/mpeg" } },
+      { type: "text", text: "asset://clip.mp3" }
     ]);
   });
 
@@ -42,6 +44,7 @@ describe("expandAssetReferences", () => {
     expect(parts).toEqual([
       { type: "text", text: "Here: " },
       { type: "image_url", image: { uri: "asset://abc.png", mimeType: "image/png" } },
+      { type: "text", text: "asset://abc.png" },
       { type: "text", text: "." }
     ]);
   });
@@ -53,8 +56,10 @@ describe("expandAssetReferences", () => {
     expect(parts).toEqual([
       { type: "text", text: "compare " },
       { type: "image_url", image: { uri: "asset://a.jpg", mimeType: "image/jpeg" } },
+      { type: "text", text: "asset://a.jpg" },
       { type: "text", text: " and " },
-      { type: "image_url", image: { uri: "asset://b.webp", mimeType: "image/webp" } }
+      { type: "image_url", image: { uri: "asset://b.webp", mimeType: "image/webp" } },
+      { type: "text", text: "asset://b.webp" }
     ]);
   });
 });
