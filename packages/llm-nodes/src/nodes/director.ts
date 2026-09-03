@@ -44,6 +44,7 @@ export {
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 import { asText, generateStructured, getModelConfig } from "./agent-utils.js";
+import { meterProviderSpend } from "./provider-spend.js";
 import { isCallable, isObjectLike, isString } from "./type-predicates.js";
 
 const EMPTY_MODEL = {
@@ -250,20 +251,26 @@ export class DirectorNode extends BaseNode {
     }
 
     const provider = await context.getProvider(providerId);
-    const raw = await generateStructured(provider, {
-      model: modelId,
-      maxTokens: Number(this.max_tokens ?? 8192),
-      messages: [
-        { role: "system", content: DIRECTOR_SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: buildDirectorPrompt(brief, style, shotCount, aspectRatio)
-        }
-      ],
-      toolName: SCREENPLAY_TOOL_NAME,
-      toolDescription: SCREENPLAY_TOOL_DESCRIPTION,
-      schema: buildScreenplaySchema(shotCount)
-    });
+    const spend = meterProviderSpend(context, provider, modelId);
+    let raw: Record<string, unknown> | null;
+    try {
+      raw = await generateStructured(provider, {
+        model: modelId,
+        maxTokens: Number(this.max_tokens ?? 8192),
+        messages: [
+          { role: "system", content: DIRECTOR_SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: buildDirectorPrompt(brief, style, shotCount, aspectRatio)
+          }
+        ],
+        toolName: SCREENPLAY_TOOL_NAME,
+        toolDescription: SCREENPLAY_TOOL_DESCRIPTION,
+        schema: buildScreenplaySchema(shotCount)
+      });
+    } finally {
+      spend.report();
+    }
     // No tool call, or a tool call with no usable shots → deterministic
     // placeholder screenplay so downstream shot generation still runs
     // (fake/tool-less providers). Provider errors above still throw.

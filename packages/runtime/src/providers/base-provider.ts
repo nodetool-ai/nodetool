@@ -320,9 +320,26 @@ export function estimatePromptTokens(messages: readonly Message[]): number {
   return total;
 }
 
+/**
+ * Running token counts for one provider instance, alongside its running
+ * `cost`. A caller that owns a stretch of work — a workflow node driving
+ * `generateLoop` — takes a before/after snapshot and reports the difference as
+ * that node's spend. Monotonic until {@link BaseProvider.resetCost}.
+ */
+export interface ProviderUsageTotals {
+  inputTokens: number;
+  outputTokens: number;
+  cachedTokens: number;
+}
+
 export abstract class BaseProvider {
   readonly provider: ProviderId;
   private _cost = 0;
+  private _usageTotals: ProviderUsageTotals = {
+    inputTokens: 0,
+    outputTokens: 0,
+    cachedTokens: 0
+  };
   private _unpricedReason: string | null = null;
   private _emitMessage: ((msg: unknown) => void) | null = null;
 
@@ -636,6 +653,9 @@ export abstract class BaseProvider {
       });
     }
     this._cost += cost ?? 0;
+    this._usageTotals.inputTokens += usage.inputTokens ?? 0;
+    this._usageTotals.outputTokens += usage.outputTokens ?? 0;
+    this._usageTotals.cachedTokens += usage.cachedTokens ?? 0;
     const tracked: LlmUsage = {
       inputTokens: usage.inputTokens ?? 0,
       outputTokens: usage.outputTokens ?? 0,
@@ -671,6 +691,11 @@ export abstract class BaseProvider {
     return this._cost;
   }
 
+  /** Running token counts across every call tracked on this instance. */
+  get usageTotals(): ProviderUsageTotals {
+    return { ...this._usageTotals };
+  }
+
   /**
    * Log a provider call for cost tracking.
    * Base implementation logs to debug; subclasses or callers may persist to a Prediction model.
@@ -694,6 +719,7 @@ export abstract class BaseProvider {
   resetCost(): void {
     this._cost = 0;
     this._unpricedReason = null;
+    this._usageTotals = { inputTokens: 0, outputTokens: 0, cachedTokens: 0 };
   }
 
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {

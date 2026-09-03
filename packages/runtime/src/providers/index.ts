@@ -98,7 +98,10 @@ export type {
   ProbeStatus,
   RunProbesOptions
 } from "./contract/index.js";
-export type { ProviderCapability } from "./base-provider.js";
+export type {
+  ProviderCapability,
+  ProviderUsageTotals
+} from "./base-provider.js";
 export {
   CORE_TOOL_NAMES,
   DISCOVERY_TOOL_NAMES,

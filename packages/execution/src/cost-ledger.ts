@@ -237,7 +237,12 @@ export async function recordNodeProviderCost(
       billing_unit: cost.billing_unit ?? null,
       quantity: cost.quantity ?? null,
       unit_price: cost.unit_price ?? null,
-      provider_request_id: cost.provider_request_id ?? null
+      provider_request_id: cost.provider_request_id ?? null,
+      // Set by a token-billed call (an LLM node reporting a `generateLoop`
+      // delta), left null by a per-output generation that counts no tokens.
+      input_tokens: cost.input_tokens ?? null,
+      output_tokens: cost.output_tokens ?? null,
+      cached_tokens: cost.cached_tokens ?? null
     });
     if (cost.provider_request_id) {
       void reconcileProviderCost(prediction, spend);
