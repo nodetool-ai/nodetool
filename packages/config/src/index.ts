@@ -21,6 +21,8 @@ export { isAuthEnforced } from "./deployment.js";
 
 export { isGoogleWorkspaceEnabled } from "./google-workspace.js";
 
+export { isAutomaticStorageCleanupEnabled } from "./retention.js";
+
 export {
   registerSetting,
   getSettings,
