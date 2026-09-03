@@ -33,6 +33,11 @@ import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
 import { extractPricingParams } from "@nodetool-ai/node-sdk";
 import { getCostReconciler } from "@nodetool-ai/runtime";
 import type { ProcessingMessage, ProviderCost } from "@nodetool-ai/protocol";
+import {
+  createTrackerState,
+  trackPredictionMessage,
+  type GenerationTrackerState
+} from "./generation-tracker.js";
 
 const log = createLogger("nodetool.execution.cost-ledger");
 
@@ -56,7 +61,9 @@ const UNIT_BILLED_CAPABILITIES = new Set([
   "lip_sync",
   "text_to_speech",
   "text_to_music",
-  "automatic_speech_recognition"
+  "automatic_speech_recognition",
+  "text_to_3d",
+  "image_to_3d"
 ]);
 
 /** Whether a capability is billed per unit of output (and so belongs here). */
@@ -320,12 +327,33 @@ export interface CostLedgerSource {
  * surface — CLI, ws server, app runtime, debug harness — records once, from the
  * same seam, and cannot drift.
  */
+export interface RunCostLedgerHandle {
+  /** Detach the listener. */
+  (): void;
+  /**
+   * Resolve once every write the listener has started so far has landed.
+   * The listener fires and forgets; a caller that reads the row right after
+   * the generation returned (a direct RPC answering its client) waits here.
+   */
+  settled(): Promise<void>;
+}
+
 export function attachRunCostLedger(
   context: CostLedgerSource,
   options: RunCostLedgerOptions
-): () => void {
-  return context.addMessageListener((msg) => {
-    void recordFromMessage(msg, options);
+): RunCostLedgerHandle {
+  const state = createTrackerState();
+  const pending = new Set<Promise<void>>();
+  const detach = context.addMessageListener((msg) => {
+    const write = recordFromMessage(msg, options, state)
+      .catch(() => undefined)
+      .finally(() => pending.delete(write));
+    pending.add(write);
+  });
+  return Object.assign(detach, {
+    settled: async (): Promise<void> => {
+      await Promise.all([...pending]);
+    }
   });
 }
 
@@ -335,10 +363,18 @@ export function attachRunCostLedger(
  */
 export async function recordFromMessage(
   msg: ProcessingMessage,
-  options: RunCostLedgerOptions
+  options: RunCostLedgerOptions,
+  state: GenerationTrackerState = createTrackerState()
 ): Promise<void> {
   if (msg.type === "node_update" && msg.status === "completed") {
     if (!msg.provider_cost) return;
+    // A node that went through the generation seam and whose provider stated
+    // its charge already has a row with that charge (design § 6.5). Its own
+    // `provider_cost` is the same money a second time.
+    if (state.receiptCostNodes.has(msg.node_id)) {
+      state.receiptCostNodes.delete(msg.node_id);
+      return;
+    }
     await recordNodeProviderCost({
       userId: options.userId,
       cost: msg.provider_cost,
@@ -352,22 +388,8 @@ export async function recordFromMessage(
     return;
   }
 
-  if (msg.type !== "prediction" || msg.status !== "completed") return;
-  if (!isUnitBilledCapability(msg.capability)) return;
-  if (!msg.provider || !msg.model) return;
-
-  await recordGenerationSpend({
-    userId: options.userId,
-    provider: msg.provider,
-    model: msg.model,
-    capability: msg.capability,
-    quantity: 1,
-    params: msg.params ?? {},
-    nodeId: msg.node_id,
-    nodeType: options.nodeType?.(msg.node_id) ?? "",
-    workflowId: options.workflowId,
-    projectId: options.projectId,
-    documentId: options.documentId,
-    durationMs: msg.duration ?? null
-  });
+  if (msg.type !== "prediction") return;
+  // The tracker opens the row on `running` and closes it on the terminal
+  // message, so every state of a generation is a row state.
+  await trackPredictionMessage(msg, options, state);
 }

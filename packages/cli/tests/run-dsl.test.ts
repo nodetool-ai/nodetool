@@ -23,24 +23,36 @@ describe("isWorkflow", () => {
   });
 });
 
-describe("runDslFile", () => {
-  test("runs a single exported workflow and returns results keyed by export name", async () => {
-    const results = await runDslFile(fixture("simple-workflow.ts"));
-    expect(Object.keys(results)).toEqual(["simpleWorkflow"]);
-    const outputs = Object.values(results.simpleWorkflow);
-    expect(outputs).toHaveLength(1);
-    expect(outputs[0]).toBe(42);
-  });
+// The first run loads the whole node catalog through tsx, which a shared CI
+// runner has taken over the package's 30 s default.
+const COLD_CATALOG_TIMEOUT_MS = 120_000;
 
-  test("runs all exported workflows in a multi-workflow file", async () => {
-    const results = await runDslFile(fixture("multi-workflow.ts"));
-    const names = Object.keys(results).sort();
-    expect(names).toEqual(["workflowA", "workflowB"]);
-    const aOutputs = Object.values(results.workflowA);
-    const bOutputs = Object.values(results.workflowB);
-    expect(aOutputs[0]).toBe(1);
-    expect(bOutputs[0]).toBe(2);
-  });
+describe("runDslFile", () => {
+  test(
+    "runs a single exported workflow and returns results keyed by export name",
+    async () => {
+      const results = await runDslFile(fixture("simple-workflow.ts"));
+      expect(Object.keys(results)).toEqual(["simpleWorkflow"]);
+      const outputs = Object.values(results.simpleWorkflow);
+      expect(outputs).toHaveLength(1);
+      expect(outputs[0]).toBe(42);
+    },
+    COLD_CATALOG_TIMEOUT_MS
+  );
+
+  test(
+    "runs all exported workflows in a multi-workflow file",
+    async () => {
+      const results = await runDslFile(fixture("multi-workflow.ts"));
+      const names = Object.keys(results).sort();
+      expect(names).toEqual(["workflowA", "workflowB"]);
+      const aOutputs = Object.values(results.workflowA);
+      const bOutputs = Object.values(results.workflowB);
+      expect(aOutputs[0]).toBe(1);
+      expect(bOutputs[0]).toBe(2);
+    },
+    COLD_CATALOG_TIMEOUT_MS
+  );
 
   test("throws when the file exports no Workflow objects", async () => {
     await expect(runDslFile(fixture("no-workflow.ts"))).rejects.toThrow(

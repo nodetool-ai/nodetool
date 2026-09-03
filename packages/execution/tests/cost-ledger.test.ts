@@ -228,7 +228,7 @@ describe("recordFromMessage", () => {
     expect(row.cost).toBeGreaterThan(0);
   });
 
-  it("ignores a running prediction and a chat completion", async () => {
+  it("opens a running generation as an unpriced open row and ignores a chat completion", async () => {
     const base = {
       type: "prediction" as const,
       id: "p2",
@@ -242,11 +242,19 @@ describe("recordFromMessage", () => {
       options
     );
     await recordFromMessage(
-      { ...base, capability: "generate_message", status: "completed" },
+      { ...base, id: "p3", capability: "generate_message", status: "completed" },
       options
     );
 
-    expect(await rows()).toHaveLength(0);
+    const open = await rows();
+    expect(open).toHaveLength(1);
+    expect(open[0].id).toBe("p2");
+    expect(open[0].status).toBe("running");
+    expect(open[0].cost).toBeNull();
+    // An open row is not spend and not unpriced: the aggregate leaves it out.
+    const agg = await Prediction.aggregateByUser(USER);
+    expect(agg.call_count).toBe(0);
+    expect(agg.running_count).toBe(1);
   });
 
   it("ledgers a node's self-reported charge off node_update", async () => {

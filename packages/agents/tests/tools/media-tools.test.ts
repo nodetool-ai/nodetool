@@ -9,6 +9,7 @@
  * required arguments are missing.
  */
 
+import { withGenerationSeam } from "../_helpers/generation-seam.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -82,7 +83,7 @@ function makeContext(stub: {
       return { id: `asset-${n}` };
     });
   }
-  return ctx as unknown as ProcessingContext;
+  return withGenerationSeam(ctx) as unknown as ProcessingContext;
 }
 
 beforeEach(() => {

@@ -152,6 +152,18 @@ const SOLUTIONS: Record<string, string[]> = {
        shout: settled.outputs.shout
      });`
   ],
+  "api-generation-cost": [
+    `const listed = await nodetool.generations.list({ status: "completed" });
+     const image = listed.generations.filter(
+       (g) => g.capability === "text_to_image"
+     )[0];
+     const record = await nodetool.generations.get(image.generation_id);
+     await finish({
+       generation_id: record.generation_id,
+       cost: record.cost,
+       asset_id: record.asset_ids[0]
+     });`
+  ],
   "api-batch-existing-workflow": [
     `const listed = await nodetool.workflows.list({});
      const wf = listed.workflows.filter((w) => w.name === "Shout Line")[0];

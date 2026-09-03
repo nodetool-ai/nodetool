@@ -297,8 +297,13 @@ export {
   deleteGoogleCredentials
 } from "./google-token.js";
 
-export { Prediction } from "./prediction.js";
+export {
+  Prediction,
+  MAX_RECONCILE_ATTEMPTS,
+  TERMINAL_GENERATION_STATUSES
+} from "./prediction.js";
 export type {
+  GenerationListFilter,
   AggregateResult,
   ProviderAggregateResult,
   ModelAggregateResult

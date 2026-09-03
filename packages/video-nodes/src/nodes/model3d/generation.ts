@@ -129,8 +129,6 @@ export class TextTo3DNode extends BaseNode {
       throw new Error("Prompt is required");
     }
     const model = nodeModelToProviderModel(this.model);
-    const provider = await context.getProvider(model.provider);
-
     const params: TextTo3DParams = {
       model,
       prompt: this.prompt,
@@ -142,7 +140,24 @@ export class TextTo3DNode extends BaseNode {
       enableTextures: this.enable_textures === true
     };
 
-    const bytes = await provider.textTo3D(params);
+    // Through the generation seam, so the render is a ledger row with a cost
+    // (docs/media-generation-tracking-design.md F6).
+    const bytes = (await context.runProviderPrediction({
+      provider: model.provider,
+      capability: "text_to_3d",
+      model: model.id,
+      nodeId: this.__node_id || undefined,
+      params: {
+        model,
+        prompt: params.prompt,
+        negative_prompt: params.negativePrompt,
+        art_style: params.artStyle,
+        output_format: params.outputFormat,
+        seed: params.seed,
+        timeout_seconds: params.timeoutSeconds,
+        enable_textures: params.enableTextures
+      }
+    })) as Uint8Array;
     return glbOutput(bytes);
   }
 }
@@ -189,7 +204,6 @@ export class ImageTo3DNode extends BaseNode {
       );
     }
     const model = nodeModelToProviderModel(this.model);
-    const provider = await context.getProvider(model.provider);
     const imageBytes = await imageRefToBytes(this.image, context);
     if (imageBytes.length === 0) {
       throw new Error("Image input is empty");
@@ -203,7 +217,20 @@ export class ImageTo3DNode extends BaseNode {
       timeoutSeconds: normalizeTimeoutSeconds(this.timeout_seconds)
     };
 
-    const bytes = await provider.imageTo3D(imageBytes, params);
+    const bytes = (await context.runProviderPrediction({
+      provider: model.provider,
+      capability: "image_to_3d",
+      model: model.id,
+      nodeId: this.__node_id || undefined,
+      params: {
+        model,
+        images: [imageBytes],
+        prompt: params.prompt,
+        output_format: params.outputFormat,
+        seed: params.seed,
+        timeout_seconds: params.timeoutSeconds
+      }
+    })) as Uint8Array;
     return glbOutput(bytes);
   }
 }

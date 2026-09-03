@@ -499,6 +499,14 @@ const TABLE_COLUMNS = {
     unit_price: "real",
     currency: "text",
     provider_request_id: "text",
+    capability: "text",
+    surface: "text",
+    thread_id: "text",
+    tool_call_id: "text",
+    job_id: "text",
+    asset_ids: "text",
+    reconciled_at: "text",
+    reconcile_attempts: "integer",
     created_at: "text",
     started_at: "text",
     completed_at: "text",
@@ -962,6 +970,14 @@ function getCreateSchemaSql(): string {
       "unit_price" real,
       "currency" text,
       "provider_request_id" text,
+      "capability" text,
+      "surface" text,
+      "thread_id" text,
+      "tool_call_id" text,
+      "job_id" text,
+      "asset_ids" text,
+      "reconciled_at" text,
+      "reconcile_attempts" integer NOT NULL DEFAULT 0,
       "created_at" text,
       "started_at" text,
       "completed_at" text,
@@ -972,6 +988,9 @@ function getCreateSchemaSql(): string {
       "parameters" text,
       "metadata" text
     );
+    CREATE INDEX IF NOT EXISTS "idx_prediction_user_status" ON "nodetool_predictions" ("user_id", "status");
+    CREATE INDEX IF NOT EXISTS "idx_prediction_user_thread" ON "nodetool_predictions" ("user_id", "thread_id");
+    CREATE INDEX IF NOT EXISTS "idx_prediction_job" ON "nodetool_predictions" ("job_id");
     CREATE INDEX IF NOT EXISTS "idx_predictions_user_id" ON "nodetool_predictions" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_predictions_user_provider" ON "nodetool_predictions" ("user_id", "provider");
     CREATE INDEX IF NOT EXISTS "idx_prediction_created_at" ON "nodetool_predictions" ("created_at");

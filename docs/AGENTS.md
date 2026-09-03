@@ -245,6 +245,7 @@ lazy implementation table disagree.
 | `assets` | `list_assets`, `get_asset`, `save_asset`, `read_asset`, `asset_search`, `asset_list`, `list_images`, `view_image`, `update_asset` |
 | `jobs` | `list_jobs`, `get_job`, `get_job_logs`, `cancel_job` |
 | `costs` | `get_cost_summary` |
+| `generations` | `list_generations`, `get_generation`, `await_generation`, `cancel_generation`, `reconcile_generation` — the record of every media generation (one row per provider call, opened before the call, closed with cost and asset ids). `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `generate_music` and the storyboard renders return the `generation_id` these take, and accept `background: true` to return it before the provider answers. Design: [media-generation-tracking-design.md](media-generation-tracking-design.md) |
 | `apps` | `list_apps`, `get_app`, `create_app`, `edit_app`, `debug_app`, `delete_app` |
 | `code` | `validate_code`, `run_code`, `test_code` |
 | `flow` | `invoke_node`, `open_node_stream`, `take_node_stream`, `close_node_stream` |

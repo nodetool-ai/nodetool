@@ -686,6 +686,7 @@ reference is the [CLI](#cli) section below, plus [docs/cli.md](docs/cli.md).
 | Measure a clip instead of watching it — duration, loudness, frequency content, motion, cuts | no command of its own — the `capability-suites` selfcheck the `agent-capabilities` harness entry names | `analyze_audio`, `analyze_audio_spectrum`, `detect_audio_events`, `analyze_video`, `detect_video_scenes` | seconds, no ffmpeg |
 | See what a timeline looks like at a timecode — tracks layered, animations mid-flight, transitions part way, text drawn | no command of its own — the `capability-suites` selfcheck the `agent-capabilities` harness entry names | `preview_timeline_frame` (composited frames + per-layer opacity/z-order/wipe), then `view_image` | seconds, no GPU or browser |
 | Jobs & assets | `nodetool jobs …` / `nodetool assets …` | `list_jobs`, `get_job`, `get_job_logs`, `list_assets`, `get_asset` | — |
+| What a media generation cost, where its asset is, whether it is still running | `nodetool generations list\|get\|await\|cancel\|reconcile\|sweep` | `list_generations`, `get_generation`, `await_generation`, `cancel_generation`, `reconcile_generation`; `background: true` on the generation capabilities | instant |
 | Agent/chat REPL (one unified agent loop, no mode to select) | `nodetool-chat` (`npm run dev:chat`) | — | — |
 | Deploy + remote ops (Docker/SSH/RunPod/GCP/Supabase) | `nodetool deploy <init\|plan\|apply\|status\|logs\|destroy>`; `deploy workflows <sync\|run>`, `deploy database`, `deploy collections` | — | — |
 | Trace tokens/cost/timing (OTel span tree) | `--trace-file <f.jsonl>` / `--trace-stdout pretty\|json` on any CLI run | — | — |
@@ -2416,6 +2417,42 @@ the provider directly and no runner would see it.
 `list` as `unpriced` and is counted as `unpriced` in every aggregate, so the
 totals read as a lower bound rather than as free — an empty report is worse
 than no report.
+
+### nodetool generations
+
+The record of every media generation — image, video, audio, 3D — read from
+the local database. A generation is one provider call, tracked as a
+`predictions` row opened *before* the call (`running`) and closed with its
+outcome (`completed`, `failed`, `cancelled`, or `interrupted` when a restart
+orphaned it), its cost, the provider's request id, and the assets it produced.
+Every surface that asks a provider for media goes through
+`ProcessingContext.runGeneration` (or `runGenerationWith` around a call the
+capability switch has no case for), and
+`packages/execution/tests/generation-seam-audit.test.ts` fails on a provider
+media call outside it. Design:
+[docs/media-generation-tracking-design.md](docs/media-generation-tracking-design.md).
+
+```bash
+npm run dev:nodetool -- generations list [--status running] [--provider fal] [--capability text_to_video] [--thread-id <id>] [--job-id <id>] [--since <iso>] [--json]
+npm run dev:nodetool -- generations get <generation_id> --json
+npm run dev:nodetool -- generations await <generation_id> [--timeout 300]   # exit 1 while still running
+npm run dev:nodetool -- generations cancel <generation_id>
+npm run dev:nodetool -- generations reconcile <generation_id>              # ask the provider what it billed
+npm run dev:nodetool -- generations sweep                                  # close orphaned rows, drain the reconcile queue once
+```
+
+Reconciliation is a queue on the table: a row with a provider request id and
+no billed amount yet is retried with backoff (1, 5, 30, 120, 720 minutes) by a
+worker the server starts, and a provider with no billing API leaves the queue
+as `unavailable`. FAL and kie reconcile; the sweep runs at every server start.
+
+Agents reach the same record through the `generations` capability module
+(`list_generations`, `get_generation`, `await_generation`,
+`cancel_generation`, `reconcile_generation`), and every generation capability
+(`generate_image`, `generate_video`, `generate_speech`, the storyboard
+renders, …) returns the `generation_id` next to the asset. `background: true`
+returns the id at once and leaves the follower to finish the job; at most 16
+may be open per run, and `await_generation` collects them.
 
 ### nodetool storage
 

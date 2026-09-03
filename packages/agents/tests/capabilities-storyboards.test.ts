@@ -8,6 +8,7 @@
  * remain the deep behavioural net.
  */
 
+import { withGenerationSeam } from "./_helpers/generation-seam.js";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
@@ -59,7 +60,7 @@ function ctx(userId = "u1") {
       return { bytes: created.find((c) => c.id === id)?.bytes };
     })
   };
-  return context as unknown as ProcessingContext & {
+  return withGenerationSeam(context) as unknown as ProcessingContext & {
     runProviderPrediction: ReturnType<typeof vi.fn>;
   };
 }

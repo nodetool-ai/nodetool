@@ -45,7 +45,24 @@ export const predictionResponse = z.object({
   unit_price: z.number().nullable(),
   currency: z.string().nullable(),
   created_at: z.string().nullable(),
-  metadata: z.record(z.string(), z.unknown()).nullable()
+  metadata: z.record(z.string(), z.unknown()).nullable(),
+  // Generation lifecycle (docs/media-generation-tracking-design.md § 7).
+  // Optional: rows written before the columns existed carry nulls, and a
+  // handler that predates them still validates.
+  status: z.string().optional(),
+  capability: z.string().nullable().optional(),
+  surface: z.string().nullable().optional(),
+  thread_id: z.string().nullable().optional(),
+  tool_call_id: z.string().nullable().optional(),
+  job_id: z.string().nullable().optional(),
+  asset_ids: z.array(z.string()).nullable().optional(),
+  provider_request_id: z.string().nullable().optional(),
+  reconciled_at: z.string().nullable().optional(),
+  reconcile_attempts: z.number().nullable().optional(),
+  started_at: z.string().nullable().optional(),
+  completed_at: z.string().nullable().optional(),
+  duration: z.number().nullable().optional(),
+  error: z.string().nullable().optional()
 });
 
 export const listPredictionsOutput = z.object({

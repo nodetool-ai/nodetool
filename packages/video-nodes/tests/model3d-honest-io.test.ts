@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { ProcessingContext } from "@nodetool-ai/runtime";
 import { getDeclaredPropertiesForClass } from "@nodetool-ai/node-sdk";
 import {
   Boolean3DNode,
@@ -834,9 +834,8 @@ describe("model3d honest I/O", () => {
   it("TextTo3DNode delegates to the resolved provider's textTo3D", async () => {
     const meshBytes = new Uint8Array([0x67, 0x6c, 0x54, 0x46]);
     const textTo3D = vi.fn().mockResolvedValue(meshBytes);
-    const ctx = {
-      getProvider: vi.fn().mockResolvedValue({ textTo3D })
-    } as unknown as ProcessingContext;
+    const ctx = new ProcessingContext({ jobId: "test-job" });
+    Object.assign(ctx, { getProvider: vi.fn().mockResolvedValue({ textTo3D }) });
     const node = new TextTo3DNode();
     node.assign({
       model: { type: "model_3d_model", provider: "meshy", id: "meshy-4" },

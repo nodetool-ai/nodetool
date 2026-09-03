@@ -4,7 +4,18 @@
  * Port of Python's `nodetool.models.prediction`.
  */
 
-import { eq, and, desc, gte, lt, lte, inArray } from "drizzle-orm";
+import {
+  eq,
+  and,
+  desc,
+  gte,
+  lt,
+  lte,
+  ne,
+  inArray,
+  isNull,
+  isNotNull
+} from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { predictions } from "./schema/predictions.js";
@@ -21,7 +32,35 @@ export interface AggregateResult {
   call_count: number;
   /** Calls recorded with no price — the totals above are a lower bound. */
   unpriced_count: number;
+  /** Generations still open; excluded from every total above. */
+  running_count: number;
+  /** Generations a restart orphaned; their cost is whatever reconciled. */
+  interrupted_count: number;
 }
+
+/** The filters `Prediction.listGenerations` accepts. */
+export interface GenerationListFilter {
+  status?: string | null;
+  provider?: string | null;
+  capability?: string | null;
+  threadId?: string | null;
+  jobId?: string | null;
+  /** ISO timestamp; rows created before it are left out. */
+  since?: string | null;
+  limit?: number;
+  startKey?: string;
+}
+
+/** Statuses a generation row can settle in. `running` is the only open one. */
+export const TERMINAL_GENERATION_STATUSES: readonly string[] = [
+  "completed",
+  "failed",
+  "cancelled",
+  "interrupted"
+];
+
+/** How many reconcile attempts a row gets before it leaves the queue. */
+export const MAX_RECONCILE_ATTEMPTS = 5;
 
 /**
  * The columns a project spend rollup reads off a ledger row — the projection
@@ -92,6 +131,8 @@ interface DashboardExecutionResult {
   duration: number | null;
   status: string;
   created_at: string | null;
+  capability: string | null;
+  asset_ids: string[];
 }
 
 interface DashboardResult {
@@ -107,6 +148,8 @@ interface DashboardResult {
     top_model: DashboardModelResult | null;
     prior_total_cost: number;
     delta_fraction: number | null;
+    running_count: number;
+    interrupted_count: number;
   };
   executions: DashboardExecutionResult[];
 }
@@ -146,6 +189,14 @@ export class Prediction extends DBModel {
   declare unit_price: number | null;
   declare currency: string | null;
   declare provider_request_id: string | null;
+  declare capability: string | null;
+  declare surface: string | null;
+  declare thread_id: string | null;
+  declare tool_call_id: string | null;
+  declare job_id: string | null;
+  declare asset_ids: string[] | null;
+  declare reconciled_at: string | null;
+  declare reconcile_attempts: number;
   declare created_at: string | null;
   declare started_at: string | null;
   declare completed_at: string | null;
@@ -182,6 +233,14 @@ export class Prediction extends DBModel {
     this.unit_price ??= null;
     this.currency ??= null;
     this.provider_request_id ??= null;
+    this.capability ??= null;
+    this.surface ??= null;
+    this.thread_id ??= null;
+    this.tool_call_id ??= null;
+    this.job_id ??= null;
+    this.asset_ids ??= null;
+    this.reconciled_at ??= null;
+    this.reconcile_attempts ??= 0;
     this.started_at ??= null;
     this.completed_at ??= null;
     this.duration ??= null;
@@ -195,6 +254,134 @@ export class Prediction extends DBModel {
   /** Find a prediction by ID. */
   static async find(predictionId: string): Promise<Prediction | null> {
     return Prediction.get<Prediction>(predictionId);
+  }
+
+  /**
+   * Find one of the caller's own rows. The user id is in the WHERE, so an id
+   * that belongs to someone else reads as absent rather than as theirs.
+   */
+  static async findForUser(
+    userId: string,
+    predictionId: string
+  ): Promise<Prediction | null> {
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(predictions)
+      .where(
+        and(eq(predictions.id, predictionId), eq(predictions.user_id, userId))
+      )
+      .limit(1);
+    const row = rows[0];
+    return row ? new Prediction(row) : null;
+  }
+
+  /**
+   * The caller's generations, newest first, filtered and cursor-paged the way
+   * {@link paginate} is. `user_id` is always in the WHERE.
+   */
+  static async listGenerations(
+    userId: string,
+    filter: GenerationListFilter = {}
+  ): Promise<[Prediction[], string]> {
+    const limit = Math.max(1, Math.min(filter.limit ?? 50, 500));
+    const db = getDb();
+    const conditions = [eq(predictions.user_id, userId)];
+    if (filter.status) conditions.push(eq(predictions.status, filter.status));
+    if (filter.provider)
+      conditions.push(eq(predictions.provider, filter.provider));
+    if (filter.capability)
+      conditions.push(eq(predictions.capability, filter.capability));
+    if (filter.threadId)
+      conditions.push(eq(predictions.thread_id, filter.threadId));
+    if (filter.jobId) conditions.push(eq(predictions.job_id, filter.jobId));
+    if (filter.since) conditions.push(gte(predictions.created_at, filter.since));
+    if (filter.startKey) {
+      const cursorRow = await Prediction.findForUser(userId, filter.startKey);
+      if (cursorRow?.created_at) {
+        conditions.push(lt(predictions.created_at, cursorRow.created_at));
+      }
+    }
+    const rows = await db
+      .select()
+      .from(predictions)
+      .where(and(...conditions))
+      .orderBy(desc(predictions.created_at))
+      .limit(limit + 1);
+    const items = rows.map((r: Record<string, unknown>) => new Prediction(r));
+    if (items.length <= limit) return [items, ""];
+    items.pop();
+    return [items, items[items.length - 1]?.id ?? ""];
+  }
+
+  /**
+   * Close a running generation as cancelled. One UPDATE with the id, the user
+   * id and `status = 'running'` in the WHERE — the same shape as
+   * `Job.markCancelledIfActive` — so someone else's row and an already-settled
+   * row both come back `false` without this code ever holding the row.
+   */
+  static async markCancelledIfRunning(
+    predictionId: string,
+    userId: string
+  ): Promise<boolean> {
+    const db = getDb();
+    const now = new Date().toISOString();
+    const rows = await db
+      .update(predictions)
+      .set({ status: "cancelled", completed_at: now })
+      .where(
+        and(
+          eq(predictions.id, predictionId),
+          eq(predictions.user_id, userId),
+          eq(predictions.status, "running")
+        )
+      )
+      .returning({ id: predictions.id });
+    return rows.length > 0;
+  }
+
+  /**
+   * Rows whose provider charge can still be looked up: a request id, not yet
+   * reconciled, under the attempt cap, and settled. The queue is this query,
+   * so it survives a restart. Oldest first, so a row is not starved.
+   */
+  static async reconcileQueue(limit = 100): Promise<Prediction[]> {
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(predictions)
+      .where(
+        and(
+          isNotNull(predictions.provider_request_id),
+          isNull(predictions.reconciled_at),
+          lt(predictions.reconcile_attempts, MAX_RECONCILE_ATTEMPTS),
+          inArray(predictions.status, [...TERMINAL_GENERATION_STATUSES])
+        )
+      )
+      .orderBy(predictions.created_at)
+      .limit(Math.max(1, limit));
+    return rows.map((r: Record<string, unknown>) => new Prediction(r));
+  }
+
+  /**
+   * Close the running rows a dead process left behind. A row a live process
+   * is driving started after that process did, so `startedBeforeIso` — the
+   * process start — cannot catch a real run. Returns the rows it closed.
+   */
+  static async sweepInterrupted(startedBeforeIso: string): Promise<Prediction[]> {
+    const db = getDb();
+    const now = new Date().toISOString();
+    const rows = await db
+      .update(predictions)
+      .set({ status: "interrupted", completed_at: now })
+      .where(
+        and(
+          eq(predictions.status, "running"),
+          lt(predictions.started_at, startedBeforeIso)
+        )
+      )
+      .returning();
+    return rows.map((r: Record<string, unknown>) => new Prediction(r));
   }
 
   /**
@@ -249,7 +436,8 @@ export class Prediction extends DBModel {
       .where(
         and(
           eq(predictions.user_id, userId),
-          eq(predictions.project_id, projectId)
+          eq(predictions.project_id, projectId),
+          ne(predictions.status, "running")
         )
       )
       .orderBy(desc(predictions.created_at))
@@ -315,8 +503,18 @@ export class Prediction extends DBModel {
     let total_output_tokens = 0;
     let total_tokens = 0;
     let unpriced_count = 0;
+    let running_count = 0;
+    let interrupted_count = 0;
+    let call_count = 0;
 
     for (const p of rows) {
+      // An open generation is neither spend nor unpriced yet.
+      if (p.status === "running") {
+        running_count += 1;
+        continue;
+      }
+      if (p.status === "interrupted") interrupted_count += 1;
+      call_count += 1;
       total_cost += (p.cost as number) ?? 0;
       total_input_tokens += (p.input_tokens as number) ?? 0;
       total_output_tokens += (p.output_tokens as number) ?? 0;
@@ -332,8 +530,10 @@ export class Prediction extends DBModel {
       total_input_tokens,
       total_output_tokens,
       total_tokens,
-      call_count: rows.length,
-      unpriced_count
+      call_count,
+      unpriced_count,
+      running_count,
+      interrupted_count
     };
   }
 
@@ -344,7 +544,9 @@ export class Prediction extends DBModel {
     const rows = await db
       .select()
       .from(predictions)
-      .where(eq(predictions.user_id, userId))
+      .where(
+        and(eq(predictions.user_id, userId), ne(predictions.status, "running"))
+      )
       .limit(10000)
 
     const groups = new Map<string, ProviderAggregateResult>();
@@ -379,7 +581,10 @@ export class Prediction extends DBModel {
     opts?: { provider?: string | null }
   ): Promise<ModelAggregateResult[]> {
     const db = getDb();
-    const conditions = [eq(predictions.user_id, userId)];
+    const conditions = [
+      eq(predictions.user_id, userId),
+      ne(predictions.status, "running")
+    ];
     if (opts?.provider)
       conditions.push(eq(predictions.provider, opts.provider));
 
@@ -473,6 +678,7 @@ export class Prediction extends DBModel {
         .where(
           and(
             eq(predictions.user_id, userId),
+            ne(predictions.status, "running"),
             gte(predictions.created_at, priorStartIso),
             lt(predictions.created_at, startIso)
           )
@@ -492,14 +698,24 @@ export class Prediction extends DBModel {
     const modelMap = new Map<string, DashboardModelResult>();
     let total_cost = 0;
     let failed_count = 0;
+    let running_count = 0;
+    let interrupted_count = 0;
+    let call_count = 0;
 
     for (const p of rows) {
+      const status = p.status ?? "";
+      // An open generation has no cost yet and is not a call that settled.
+      if (status === "running") {
+        running_count += 1;
+        continue;
+      }
       const cost = (p.cost as number) ?? 0;
       const provider = p.provider || "unknown";
       const model = p.model || "unknown";
-      const status = p.status ?? "";
+      call_count += 1;
       total_cost += cost;
       if (status === "failed" || status === "error") failed_count += 1;
+      if (status === "interrupted") interrupted_count += 1;
 
       let pe = providerMap.get(provider);
       if (!pe) {
@@ -537,7 +753,6 @@ export class Prediction extends DBModel {
       (a, b) => b.total_cost - a.total_cost
     );
 
-    const call_count = rows.length;
     const delta_fraction =
       prior_total_cost > 0
         ? (total_cost - prior_total_cost) / prior_total_cost
@@ -576,7 +791,9 @@ export class Prediction extends DBModel {
         total_tokens: p.total_tokens ?? null,
         duration: p.duration ?? null,
         status: p.status ?? "",
-        created_at: p.created_at ?? null
+        created_at: p.created_at ?? null,
+        capability: p.capability ?? null,
+        asset_ids: Array.isArray(p.asset_ids) ? p.asset_ids : []
       });
     }
 
@@ -592,7 +809,9 @@ export class Prediction extends DBModel {
         avg_per_call: call_count > 0 ? total_cost / call_count : 0,
         top_model: models[0] ?? null,
         prior_total_cost,
-        delta_fraction
+        delta_fraction,
+        running_count,
+        interrupted_count
       },
       executions
     };

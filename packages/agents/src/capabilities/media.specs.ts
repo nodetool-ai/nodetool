@@ -21,6 +21,12 @@ export const MAX_UNDERSTAND_VIDEO_TOKENS = 8192;
 export const GENERATE_IMAGE_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
+    background: {
+      type: "boolean" as const,
+      description:
+        "Return at once with a generation_id while the provider works; collect the result with await_generation. At most 16 open per run.",
+      default: false
+    },
     provider: {
       type: "string" as const,
       description:
@@ -48,6 +54,12 @@ export const GENERATE_IMAGE_SCHEMA: JsonSchema = {
 export const EDIT_IMAGE_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
+    background: {
+      type: "boolean" as const,
+      description:
+        "Return at once with a generation_id while the provider works; collect the result with await_generation. At most 16 open per run.",
+      default: false
+    },
     provider: {
       type: "string" as const,
       description:
@@ -142,6 +154,12 @@ export const SEGMENT_IMAGE_SCHEMA: JsonSchema = {
 export const GENERATE_VIDEO_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
+    background: {
+      type: "boolean" as const,
+      description:
+        "Return at once with a generation_id while the provider works; collect the result with await_generation. At most 16 open per run.",
+      default: false
+    },
     provider: {
       type: "string" as const,
       description:
@@ -168,6 +186,12 @@ export const GENERATE_VIDEO_SCHEMA: JsonSchema = {
 export const ANIMATE_IMAGE_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
+    background: {
+      type: "boolean" as const,
+      description:
+        "Return at once with a generation_id while the provider works; collect the result with await_generation. At most 16 open per run.",
+      default: false
+    },
     provider: { type: "string" as const },
     model: { type: "string" as const },
     input_file: {
@@ -190,6 +214,12 @@ export const ANIMATE_IMAGE_SCHEMA: JsonSchema = {
 export const GENERATE_SPEECH_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
+    background: {
+      type: "boolean" as const,
+      description:
+        "Return at once with a generation_id while the provider works; collect the result with await_generation. At most 16 open per run.",
+      default: false
+    },
     provider: { type: "string" as const },
     model: { type: "string" as const },
     text: { type: "string" as const, description: "Text to speak." },
@@ -210,6 +240,12 @@ export const GENERATE_SPEECH_SCHEMA: JsonSchema = {
 export const GENERATE_MUSIC_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
+    background: {
+      type: "boolean" as const,
+      description:
+        "Return at once with a generation_id while the provider works; collect the result with await_generation. At most 16 open per run.",
+      default: false
+    },
     provider: { type: "string" as const },
     model: { type: "string" as const },
     prompt: {

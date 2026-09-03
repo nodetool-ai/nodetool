@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { ProcessingContext } from "@nodetool-ai/runtime";
 
 import {
   ImageTo3DNode,
@@ -10,13 +10,19 @@ import {
   DEFAULT_TEXT_TO_3D_MODEL
 } from "@nodetool-ai/video-nodes";
 
+/**
+ * A real context whose provider lookup is a mock: the nodes now call the
+ * generation seam (`runProviderPrediction`), which resolves the provider
+ * through `getProvider` and dispatches to its `textTo3D` / `imageTo3D`.
+ */
 function makeContextWithProvider(provider: {
   textTo3D?: ReturnType<typeof vi.fn>;
   imageTo3D?: ReturnType<typeof vi.fn>;
-}): ProcessingContext {
-  return {
-    getProvider: vi.fn().mockResolvedValue(provider)
-  } as unknown as ProcessingContext;
+}): ProcessingContext & { getProvider: ReturnType<typeof vi.fn> } {
+  const ctx = new ProcessingContext({ jobId: "test-job" });
+  const getProvider = vi.fn().mockResolvedValue(provider);
+  Object.assign(ctx, { getProvider });
+  return ctx as ProcessingContext & { getProvider: ReturnType<typeof vi.fn> };
 }
 
 describe("TextTo3DNode", () => {
@@ -329,12 +335,12 @@ describe("ImageTo3DNode", () => {
     const meshBytes = new Uint8Array([7, 7, 7]);
     const imageTo3D = vi.fn().mockResolvedValue(meshBytes);
     const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
-    const ctx = {
-      getProvider: vi.fn().mockResolvedValue({ imageTo3D }),
+    const ctx = makeContextWithProvider({ imageTo3D });
+    Object.assign(ctx, {
       storage: {
         retrieve: vi.fn().mockResolvedValue(png)
       }
-    } as unknown as ProcessingContext;
+    });
 
     const node = new ImageTo3DNode();
     node.assign({

@@ -1,3 +1,7 @@
+import {
+  generationsForNode,
+  linkGenerationAssets
+} from "@nodetool-ai/execution";
 import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
 import { Asset } from "@nodetool-ai/models";
 import { isRawRgbaImage } from "@nodetool-ai/protocol";
@@ -297,6 +301,11 @@ export async function autoSaveAssets(
   // Generation params lifted into each media asset's metadata. Just the prompt
   // today — the field the asset viewer surfaces as "what produced this".
   const promptMeta = promptMetadata(opts.properties);
+  // Generations the seam opened for this node that no asset names yet: the
+  // node returned an inline ref, so the link is made here, on save
+  // (docs/media-generation-tracking-design.md § 8, S3).
+  const generationIds = generationsForNode(opts.jobId, opts.nodeId);
+  const savedAssetIds: string[] = [];
   const queue: Record<string, unknown>[] = [];
 
   // Collect all asset-like values from the result (may be nested)
@@ -371,6 +380,9 @@ export async function autoSaveAssets(
     if (opts.generationIndex != null) {
       mediaMeta.generation_index = opts.generationIndex;
     }
+    if (generationIds.length > 0) {
+      mediaMeta.generation_ids = generationIds;
+    }
     if (Object.keys(mediaMeta).length > 0) {
       asset.metadata = mediaMeta;
     }
@@ -386,6 +398,7 @@ export async function autoSaveAssets(
       );
       asset.size = bytes.length;
       await asset.save();
+      savedAssetIds.push(asset.id);
 
       // Mutate the result value in-place. For raw assets, also drop the raw
       // pixels and fix the mime so later normalization treats it as the saved
@@ -408,6 +421,10 @@ export async function autoSaveAssets(
   // Persist the primary text output as a generation (a text/plain asset), so
   // text content-card nodes get the same reload-surviving, browsable generation
   // history as media nodes. The text is stored both as the asset bytes and
+  if (generationIds.length > 0 && savedAssetIds.length > 0) {
+    await linkGenerationAssets(generationIds, savedAssetIds);
+  }
+
   // (capped) inline in metadata so the UI can preview it without a fetch.
   let savedText = false;
   const textKey = opts.textOutputName;

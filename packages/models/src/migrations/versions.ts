@@ -3203,6 +3203,54 @@ export const migrations: MigrationDef[] = [
       // else reads, so leaving it is the safe direction.
       void db;
     }
+  },
+
+  // ── Generation lifecycle on predictions ─────────────────────────────
+  // A ledger row is opened before the provider is called and closed with
+  // its outcome (docs/media-generation-tracking-design.md § 7).
+  {
+    version: "20260903_000000",
+    name: "add_prediction_generation_lifecycle",
+    createsTables: [],
+    modifiesTables: ["nodetool_predictions"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_predictions"))) return;
+      const columns = {
+        capability: "TEXT",
+        surface: "TEXT",
+        thread_id: "TEXT",
+        tool_call_id: "TEXT",
+        job_id: "TEXT",
+        asset_ids: "TEXT",
+        reconciled_at: "TEXT",
+        reconcile_attempts: "INTEGER NOT NULL DEFAULT 0"
+      } satisfies Record<string, string>;
+      for (const [columnName, columnType] of Object.entries(columns)) {
+        if (!(await db.columnExists("nodetool_predictions", columnName))) {
+          await db.execute(
+            `ALTER TABLE nodetool_predictions ADD COLUMN ${columnName} ${columnType}`
+          );
+        }
+      }
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_prediction_user_status
+        ON nodetool_predictions(user_id, status)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_prediction_user_thread
+        ON nodetool_predictions(user_id, thread_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_prediction_job
+        ON nodetool_predictions(job_id)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_prediction_user_status");
+      await db.execute("DROP INDEX IF EXISTS idx_prediction_user_thread");
+      await db.execute("DROP INDEX IF EXISTS idx_prediction_job");
+      // Columns stay: dropping them is unsafe across dialects and versions.
+    }
   }
 ];
 

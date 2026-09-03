@@ -45,3 +45,6 @@ export function registerKieNodes(registry: {
     registry.register(nodeClass);
   }
 }
+
+import { registerKieCostReconciler } from "./kie-base.js";
+registerKieCostReconciler();

@@ -3,7 +3,11 @@
  * Uses native fetch (Node 18+).
  */
 
-import { loadMediaRefBytes, registerWebhookWait } from "@nodetool-ai/runtime";
+import {
+  loadMediaRefBytes,
+  registerCostReconciler,
+  registerWebhookWait
+} from "@nodetool-ai/runtime";
 import { safeFetch } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
@@ -431,7 +435,8 @@ const KIE_USD_PER_CREDIT = 0.005;
 
 export function reportKieProviderCost(
   context: unknown,
-  creditsConsumed: number | undefined
+  creditsConsumed: number | undefined,
+  taskId?: string | null
 ): void {
   if (creditsConsumed == null || !Number.isFinite(creditsConsumed)) return;
   const setter = (context as { setProviderCost?: unknown } | null | undefined)
@@ -448,15 +453,47 @@ export function reportKieProviderCost(
           quantity?: number;
           unit_price?: number;
           currency?: string;
+          provider_request_id?: string | null;
         }
       ) => void
     ).call(context, "kie", usd, "USD", {
       billing_unit: "credits",
       quantity: creditsConsumed,
       unit_price: KIE_USD_PER_CREDIT,
-      currency: "USD"
+      currency: "USD",
+      // The task id is what the reconciler looks the charge up by; without it
+      // a kie row was never reconciled (design F4).
+      provider_request_id: taskId ?? null
     });
   }
+}
+
+/**
+ * Reconcile a kie charge by task id: `recordInfo` reports `creditsConsumed`
+ * once the task settled, which is the billed amount in credits.
+ */
+export async function fetchKieBillingCost(
+  apiKey: string,
+  taskId: string
+): Promise<{ cost: number; currency: string; quantity: number; unit_price: number } | null> {
+  const data = await fetchRecordInfo(apiKey, taskId);
+  const credits = parseCreditsConsumed(data);
+  if (credits == null || !Number.isFinite(credits)) return null;
+  return {
+    cost: credits * KIE_USD_PER_CREDIT,
+    currency: "USD",
+    quantity: credits,
+    unit_price: KIE_USD_PER_CREDIT
+  };
+}
+
+/** Register the kie reconciler so the tracker can refine kie estimates. */
+export function registerKieCostReconciler(): void {
+  registerCostReconciler("kie", async ({ requestId, secrets }) => {
+    const apiKey = secrets?.KIE_API_KEY || process.env.KIE_API_KEY || "";
+    if (!apiKey) return null;
+    return fetchKieBillingCost(apiKey, requestId);
+  });
 }
 
 export async function kieExecuteOmniDirect(

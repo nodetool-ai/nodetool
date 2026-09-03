@@ -9,6 +9,7 @@
  * surfaces are mocked here — no real providers, network, or filesystem.
  */
 
+import { withGenerationSeam } from "./_helpers/generation-seam.js";
 import { describe, it, expect, vi } from "vitest";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { StorageWorkspace } from "@nodetool-ai/runtime";
@@ -34,7 +35,7 @@ interface MockCtxOptions {
 function makeContext(opts: MockCtxOptions = {}): any {
   const createAsset =
     opts.createAsset ?? vi.fn().mockResolvedValue({ id: "asset-1" });
-  return {
+  return withGenerationSeam({
     runProviderPrediction: opts.runProviderPrediction,
     streamProviderPrediction: opts.streamProviderPrediction,
     getProvider: opts.getProvider,
@@ -47,7 +48,7 @@ function makeContext(opts: MockCtxOptions = {}): any {
     workspace: opts.workspaceStorage
       ? new StorageWorkspace(opts.workspaceStorage as never)
       : null
-  };
+  });
 }
 
 function makeStorage(files: Record<string, Uint8Array> = {}): any {

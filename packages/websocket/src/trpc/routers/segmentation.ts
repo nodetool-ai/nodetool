@@ -10,6 +10,9 @@
  *   segment (mutation) — SegmentImageResponse
  */
 
+import { randomUUID } from "node:crypto";
+import { attachRunCostLedger } from "@nodetool-ai/execution";
+import { ProcessingContext } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import { TRPCError } from "@trpc/server";
 import {
@@ -80,22 +83,51 @@ export const segmentationRouter = router({
         }
 
         const provider = await getProvider(input.provider, getSecret);
-        const masks = await provider.segmentImage(
-          Buffer.from(input.image, "base64"),
+        // Through the generation seam: a segmentation is a billed call, so
+        // it is a ledger row like any other generation
+        // (docs/media-generation-tracking-design.md § 8).
+        const generationContext = new ProcessingContext({
+          jobId: randomUUID(),
+          userId: ctx.userId
+        });
+        generationContext.registerProvider(input.provider, provider);
+        const ledger = attachRunCostLedger(generationContext, {
+          userId: ctx.userId,
+          workflowId: null
+        });
+        const image = Buffer.from(input.image, "base64");
+        const { output: masks } = await generationContext.runGenerationWith(
           {
-            model: {
-              id: input.model,
-              name: input.model,
-              provider: input.provider as ProviderId
+            provider: input.provider,
+            capability: "segment_image",
+            model: input.model,
+            params: {
+              image,
+              prompt: input.prompt ?? null,
+              points: input.points ?? null,
+              box: input.box ?? null,
+              max_masks: input.maxMasks ?? null,
+              min_confidence: input.minConfidence ?? null
             },
-            prompt: input.prompt ?? null,
-            points: input.points ?? null,
-            box: input.box ?? null,
-            maxMasks: input.maxMasks ?? null,
-            minConfidence: input.minConfidence ?? null,
-            signal
-          }
+            origin: { surface: "rpc" },
+            signal: signal ?? undefined
+          },
+          (_provider, abort) =>
+            provider.segmentImage(image, {
+              model: {
+                id: input.model,
+                name: input.model,
+                provider: input.provider as ProviderId
+              },
+              prompt: input.prompt ?? null,
+              points: input.points ?? null,
+              box: input.box ?? null,
+              maxMasks: input.maxMasks ?? null,
+              minConfidence: input.minConfidence ?? null,
+              signal: abort
+            })
         );
+        await ledger.settled();
 
         log.info("segmentation finished", {
           provider: input.provider,

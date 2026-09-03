@@ -514,6 +514,25 @@ export const SURFACES: SurfaceEntry[] = [
     ]
   },
   {
+    id: "generation-tracking",
+    title: "Media generation tracking (the seam, the tracker, the generations capabilities)",
+    harnesses: ["capability-suites"],
+    // `capability-suites` runs the tracker, seam and capability suites named
+    // in the capability table, plus the seam audit that fails on a provider
+    // media call outside `runGeneration` (packages/execution/tests/
+    // generation-seam-audit.test.ts). Design:
+    // docs/media-generation-tracking-design.md.
+    paths: [
+      "packages/execution/src/generation-tracker.ts",
+      "packages/runtime/src/generation-receipt.ts",
+      "packages/runtime/src/generation-registry.ts",
+      "packages/runtime/src/redact-params.ts",
+      "packages/agents/src/capabilities/generations.ts",
+      "packages/agents/src/capabilities/generations.specs.ts",
+      "packages/cli/src/commands/generations.ts"
+    ]
+  },
+  {
     id: "live-browser",
     title: "Live browser (browser_* capabilities, CDP, the Chrome extension relay)",
     harnesses: ["capability-suites"],

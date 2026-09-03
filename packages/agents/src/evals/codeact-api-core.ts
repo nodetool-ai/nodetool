@@ -558,6 +558,36 @@ const EXAMPLE_WORKFLOWS: readonly WorldWorkflow[] = [
  * The core-namespace toolbelt. Every call builds a fresh world, so cases never
  * see each other's workflows, assets, or jobs.
  */
+/** Two ledger rows: one settled render with a price, one still at the provider. */
+const FAKE_GENERATIONS = [
+  {
+    generation_id: "gen-1",
+    status: "completed",
+    provider: "fal",
+    model: "fal-ai/flux/schnell",
+    capability: "text_to_image",
+    cost: 0.04,
+    currency: "USD",
+    price_source: "model-catalog",
+    asset_ids: ["asset-gen-1"],
+    asset_uris: ["asset://asset-gen-1"],
+    parameters: { prompt: "a fox in snow" }
+  },
+  {
+    generation_id: "gen-2",
+    status: "running",
+    provider: "fal",
+    model: "fal-ai/veo",
+    capability: "text_to_video",
+    cost: null,
+    currency: null,
+    price_source: null,
+    asset_ids: [],
+    asset_uris: [],
+    parameters: { prompt: "a fox running" }
+  }
+];
+
 export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
   const world = new CoreWorld();
   const pendingBg = new Map<string, { description: string; result: unknown }>();
@@ -1372,6 +1402,31 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       }
     ),
     tool(
+      "list_generations",
+      "List this account's media generations, newest first, with status, cost and assets.",
+      { status: s, limit: { type: "number" } },
+      (params) => {
+        const status = str(params["status"]);
+        return {
+          generations: FAKE_GENERATIONS.filter(
+            (g) => status === "" || g.status === status
+          ).map(({ parameters: _p, ...summary }) => summary),
+          next: null
+        };
+      }
+    ),
+    tool(
+      "get_generation",
+      "Read one generation in full: cost, how it was priced, assets, parameters.",
+      { generation_id: s },
+      (params) => {
+        const id = str(params["generation_id"]);
+        const found = FAKE_GENERATIONS.find((g) => g.generation_id === id);
+        if (!found) return { error: `Generation ${id} was not found.` };
+        return found;
+      }
+    ),
+    tool(
       "list_jobs",
       "List background jobs.",
       { workflow_id: s, limit: { type: "number" } },
@@ -1734,6 +1789,39 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
         );
       },
       resultCheckLabel: 'status=completed, shout="SHIP IT"'
+    }
+  },
+  {
+    id: "api-generation-cost",
+    description: "Read what a finished media generation cost and where its asset is",
+    objective:
+      "Find the most recent completed image generation in this account's " +
+      "generation record and report what it cost. Finish with " +
+      "{generation_id: <its id>, cost: <its cost in USD as a number>, " +
+      "asset_id: <the id of the asset it produced>}.",
+    outputSchema: {
+      type: "object",
+      properties: {
+        generation_id: { type: "string" },
+        cost: { type: "number" },
+        asset_id: { type: "string" }
+      },
+      required: ["generation_id", "cost", "asset_id"]
+    },
+    createTools: createCoreApiTools,
+    namespaces: ["generations"],
+    expect: {
+      requiredTools: ["list_generations"],
+      maxActions: 3,
+      resultCheck: (r) => {
+        const result = asObject(r);
+        return (
+          result["generation_id"] === "gen-1" &&
+          result["cost"] === 0.04 &&
+          result["asset_id"] === "asset-gen-1"
+        );
+      },
+      resultCheckLabel: "generation_id=gen-1, cost=0.04, asset_id=asset-gen-1"
     }
   },
   {

@@ -104,6 +104,13 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "list_images"
   ],
   jobs: ["list_jobs", "get_job", "get_job_logs"],
+  generations: [
+    "list_generations",
+    "get_generation",
+    "await_generation",
+    "cancel_generation",
+    "reconcile_generation"
+  ],
   collections: [
     "list_collections",
     "query_collection",
@@ -256,6 +263,19 @@ const nodetool = (() => {
     throw new Error(
       "nodetool.jobs." + method + ": no job id. Pass the id string, or the " +
       "record nodetool.workflows.start() returned (its id is job_id)."
+    );
+  };
+
+  /** A generation id, or the record a generation capability answered with. */
+  const __generationId = (idOrRecord, method) => {
+    if (typeof idOrRecord === "string" && idOrRecord) return idOrRecord;
+    if (idOrRecord && typeof idOrRecord === "object") {
+      const id = idOrRecord.generation_id;
+      if (typeof id === "string" && id) return id;
+    }
+    throw new Error(
+      "nodetool.generations." + method + ": no generation id. Pass the id " +
+      "string, or the record a generate* call returned (its id is generation_id)."
     );
   };
 
@@ -1088,6 +1108,30 @@ const nodetool = (() => {
       }
     },
 
+    generations: {
+      /** The record of every media generation: status, cost, assets. */
+      list: (opts) => __need("list_generations")(__merge(opts)),
+      get: (id) =>
+        __need("get_generation")({ generation_id: __generationId(id, "get") }),
+      /**
+       * Wait for a generation started with background: true to settle and
+       * return its record — cost and asset ids included.
+       */
+      wait: (id, opts) =>
+        __need("await_generation")(
+          __merge(opts, { generation_id: __generationId(id, "wait") })
+        ),
+      cancel: (id) =>
+        __need("cancel_generation")({
+          generation_id: __generationId(id, "cancel")
+        }),
+      /** Ask the provider what it billed, by request id, and update the row. */
+      reconcile: (id) =>
+        __need("reconcile_generation")({
+          generation_id: __generationId(id, "reconcile")
+        })
+    },
+
     collections: {
       list: () => __need("list_collections")({}),
       query: (collection, query, opts) =>
@@ -1664,6 +1708,17 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`receipt.job_id\` instead of blocking on \`run()\`. \`wait\` replaces a
   \`get()\` polling loop — start, wait, and read \`settled.outputs\` in one
   action, never one \`get()\` per action.`
+  },
+  {
+    namespace: "generations",
+    doc: `- \`nodetool.generations\` — the record of every media generation:
+  \`list({status, provider, capability, thread_id, job_id, since, limit})\`,
+  \`get(generationId)\` (status, cost and how it was priced, the assets it
+  produced, the provider's request id), \`await wait(generationId,
+  {timeout_seconds})\` for one started with \`background: true\`,
+  \`cancel(generationId)\`, \`reconcile(generationId)\` to ask the provider
+  what it billed. Every \`generateImage\`/\`generateVideo\`/… result carries
+  \`generation_id\`; read its cost with \`get\` instead of guessing.`
   },
   {
     namespace: "collections",

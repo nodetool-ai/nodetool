@@ -253,8 +253,20 @@ describe("reportKieProviderCost", () => {
       billing_unit: "credits",
       quantity: 7,
       unit_price: 0.005,
-      currency: "USD"
+      currency: "USD",
+      provider_request_id: null
     });
+  });
+
+  it("carries the task id so the charge can be reconciled", () => {
+    const setProviderCost = vi.fn();
+    reportKieProviderCost({ setProviderCost }, 2, "task_9");
+    expect(setProviderCost).toHaveBeenCalledWith(
+      "kie",
+      0.01,
+      "USD",
+      expect.objectContaining({ provider_request_id: "task_9" })
+    );
   });
 
   it("skips when credits are undefined", () => {
