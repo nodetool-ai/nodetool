@@ -14,15 +14,38 @@ interface OAuthProviderConfig {
   /**
    * Whether `/start` may answer `manual: true`, meaning the provider redirects
    * somewhere this server cannot receive and the user finishes the login by
-   * pasting the address back to `/complete`.
+   * pasting something back to `/complete`.
    */
   canCompleteManually: boolean;
+  /**
+   * What the user pastes back: the whole redirect address the browser lands
+   * on (Codex), or the `code#state` the provider's own page displays (Claude).
+   */
+  manualInput: OAuthManualInput;
 }
 
+/** What a manual completion asks the user to paste. */
+export type OAuthManualInput = "address" | "code";
+
 const PROVIDER_CONFIG = {
-  openai: { label: "OpenAI", canDisconnect: true, canCompleteManually: true },
-  hf: { label: "HuggingFace", canDisconnect: false, canCompleteManually: false },
-  claude: { label: "Claude", canDisconnect: true, canCompleteManually: false }
+  openai: {
+    label: "OpenAI",
+    canDisconnect: true,
+    canCompleteManually: true,
+    manualInput: "address"
+  },
+  hf: {
+    label: "HuggingFace",
+    canDisconnect: false,
+    canCompleteManually: false,
+    manualInput: "address"
+  },
+  claude: {
+    label: "Claude",
+    canDisconnect: true,
+    canCompleteManually: true,
+    manualInput: "code"
+  }
 } satisfies Record<OAuthProvider, OAuthProviderConfig>;
 
 interface TokensResponse {
@@ -44,6 +67,8 @@ export interface OAuthManualPrompt {
   authUrl: string;
   /** The redirect address to look for in the browser's address bar. */
   redirectUri: string | null;
+  /** Whether to paste that address, or a code the provider's page shows. */
+  input: OAuthManualInput;
 }
 
 /**
@@ -190,7 +215,11 @@ export const useOAuthConnection = (
       // the address the browser lands on instead of waiting for a callback
       // that cannot arrive.
       if (body.manual && config.canCompleteManually) {
-        setManualPrompt({ authUrl, redirectUri: body.redirect_uri ?? null });
+        setManualPrompt({
+          authUrl,
+          redirectUri: body.redirect_uri ?? null,
+          input: config.manualInput
+        });
       }
       if (useNativeBrowser) {
         await window.api?.shell?.openExternal(authUrl);

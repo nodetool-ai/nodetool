@@ -777,6 +777,8 @@ describe("OAuth API: Claude subscription endpoints", () => {
     const body = (await jsonBody(response!)) as {
       auth_url: string;
       manual_auth_url: string;
+      manual: boolean;
+      redirect_uri: string | null;
       state: string;
     };
     const authUrl = new URL(body.auth_url);
@@ -785,13 +787,42 @@ describe("OAuth API: Claude subscription endpoints", () => {
     );
     expect(authUrl.searchParams.get("code_challenge_method")).toBe("S256");
     expect(authUrl.searchParams.get("state")).toBe(body.state);
-    // The loopback listener is bound, so the redirect points back at this process.
-    expect(authUrl.searchParams.get("redirect_uri")).toMatch(
-      /^http:\/\/localhost:\d+\/callback$/
+    // The loopback listener is bound on the `claude` CLI's own port, so the
+    // redirect points back at this process.
+    expect(authUrl.searchParams.get("redirect_uri")).toBe(
+      "http://localhost:54545/callback"
     );
+    expect(body.manual).toBe(false);
+    expect(body.redirect_uri).toBe("http://localhost:54545/callback");
     expect(body.manual_auth_url).toContain(
       encodeURIComponent("https://platform.claude.com/oauth/code/callback")
     );
+  });
+
+  it("offers only the paste flow on a shared server", async () => {
+    // A shared server's users browse from elsewhere, so localhost:54545 is
+    // theirs, not ours — binding it here would only swallow the port.
+    vi.stubEnv("SUPABASE_URL", "https://project.supabase.co");
+    vi.stubEnv("SUPABASE_KEY", "service-key");
+
+    const response = await claudeRequest("/api/oauth/claude/start");
+    const body = (await jsonBody(response!)) as {
+      auth_url: string;
+      manual_auth_url: string;
+      manual: boolean;
+      redirect_uri: string | null;
+    };
+    expect(body.manual).toBe(true);
+    expect(body.redirect_uri).toBeNull();
+    expect(body.auth_url).toBe(body.manual_auth_url);
+
+    // Nothing is listening, so the port is free to bind.
+    const probe = createServer();
+    await new Promise<void>((resolve, reject) => {
+      probe.once("error", reject);
+      probe.listen(54545, "127.0.0.1", resolve);
+    });
+    await new Promise<void>((resolve) => probe.close(() => resolve()));
   });
 
   it("offers only the paste flow when the browser can't reach this process", async () => {

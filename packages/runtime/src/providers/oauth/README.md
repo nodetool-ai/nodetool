@@ -293,11 +293,15 @@ Refresh also narrows the scope set: `org:create_api_key` is requested at login
 
 `begin()` mints one PKCE pair and state, then hands back both URLs:
 
-- **Loopback** (`authUrl`) — the browser is redirected to an ephemeral
-  `127.0.0.1` listener; the registered redirect uses the `localhost` spelling,
-  matching the CLI. Only works when the browser runs on this machine.
+- **Loopback** (`authUrl`) — the browser is redirected to a `127.0.0.1`
+  listener on the CLI's own port, `CLAUDE_CODE_CALLBACK_PORT` (54545); the
+  registered redirect uses the `localhost` spelling, matching the CLI. Only
+  works when the browser runs on this machine, and fails naming the port when
+  a `claude login` already holds it.
 - **Manual** (`manualAuthUrl`) — the console shows `<code>#<state>` to paste
-  back. The only option on a headless or remote host.
+  back. The only option on a headless or remote host, and what the server's
+  `start` offers on a shared deployment (`isAuthEnforced()`, or `?manual=true`),
+  the same way the Codex route does.
 
 They differ only in `redirect_uri`, which must match between the authorization
 request and the exchange — hence `waitForRedirect()` and

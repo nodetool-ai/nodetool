@@ -1200,10 +1200,17 @@ async function handleOpenAIDisconnect(
 // store, because the SDK spawns the `claude` binary as this process's user and
 // reads it directly; a per-user DB row would be invisible to it.
 //
-// Two ways to finish, both from the one authorization request `start` creates:
-// the browser redirects to a loopback listener this process binds (same-machine
-// hosts), or the user pastes the `code#state` the console displays (headless and
-// remote hosts). The UI reflects success by polling `/api/oauth/claude/tokens`.
+// Two ways to finish, both from the one authorization request `start` creates,
+// mirroring the Codex flow above:
+//
+//  - **Loopback** — `start` binds the `claude` CLI's own callback port (54545)
+//    and finishes the exchange in the background. Only works when the browser
+//    runs on this machine (desktop, local dev).
+//  - **Manual** — the browser is sent to the console, which displays a
+//    `code#state` the user pastes back to `/complete`. What `start` offers on a
+//    shared server (`isAuthEnforced()`) or when asked with `?manual=true`.
+//
+// The UI reflects success by polling `/api/oauth/claude/tokens`.
 
 /** The single in-flight login, so a re-click supersedes a stale listener. */
 let activeClaudeLogin: {
@@ -1226,16 +1233,17 @@ async function handleClaudeStart(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const loginMethod =
     url.searchParams.get("login_method") === "console" ? "console" : "claude-ai";
-  // A remote browser can't reach this process's loopback listener; the caller
-  // says so and only the paste flow is offered.
-  const manualOnly = url.searchParams.get("manual") === "true";
+  // A shared server's users browse from their own machines, where the loopback
+  // redirect lands — so binding it here would receive nothing. The caller can
+  // also ask for the paste flow outright.
+  const manual = url.searchParams.get("manual") === "true" || isAuthEnforced();
 
   await closeActiveClaudeLogin();
 
   const login = new ClaudeCodeLogin();
   let pending: PendingClaudeCodeLogin;
   try {
-    pending = await login.begin({ loginMethod, manualOnly });
+    pending = await login.begin({ loginMethod, manualOnly: manual });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return errorResponse(500, `Could not start the Claude login: ${message}`);
@@ -1262,6 +1270,8 @@ async function handleClaudeStart(request: Request): Promise<Response> {
   return jsonResponse({
     auth_url: pending.authUrl ?? pending.manualAuthUrl,
     manual_auth_url: pending.manualAuthUrl,
+    manual,
+    redirect_uri: pending.redirectUri,
     state: pending.state
   });
 }

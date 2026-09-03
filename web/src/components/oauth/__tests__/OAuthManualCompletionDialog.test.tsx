@@ -8,7 +8,8 @@ import { OAuthManualCompletionDialog } from "../OAuthManualCompletionDialog";
 
 const prompt = {
   authUrl: "https://auth.openai.com/oauth/authorize?x=1",
-  redirectUri: "http://localhost:1455/auth/callback"
+  redirectUri: "http://localhost:1455/auth/callback",
+  input: "address" as const
 };
 
 const renderDialog = (
@@ -65,5 +66,23 @@ describe("OAuthManualCompletionDialog", () => {
 
     await user.type(screen.getByLabelText("Redirect address"), "x");
     expect(connect).toBeEnabled();
+  });
+
+  it("asks for the displayed code instead of an address for Claude", async () => {
+    const user = userEvent.setup();
+    const { onSubmit } = renderDialog({
+      label: "Claude",
+      prompt: {
+        authUrl: "https://claude.com/cai/oauth/authorize?x=1",
+        redirectUri: null,
+        input: "code"
+      }
+    });
+
+    expect(screen.queryByLabelText("Redirect address")).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("Authorization code"), "ac_abc#st");
+    await user.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(onSubmit).toHaveBeenCalledWith("ac_abc#st");
   });
 });
