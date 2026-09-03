@@ -34,7 +34,14 @@ import {
 import { corsOriginDelegate } from "./cors.js";
 import { zipExtensionDist } from "./lib/extension-dist.js";
 import { isPublicAuthExemptRoute } from "./lib/public-routes.js";
-import { isWebSocketUpgrade, denyUnauthorized } from "./lib/ws-upgrade.js";
+import {
+  isWebSocketUpgrade,
+  denyUnauthorized,
+  denyDraining
+} from "./lib/ws-upgrade.js";
+import { isDraining, startDrain } from "./drain.js";
+import { chatTurnRegistry } from "./chat-turn-registry.js";
+import { jobRunRegistry } from "./job-run-registry.js";
 import { replayUpgradeToOwner } from "./lib/fly-replay.js";
 import { startJobCancelPoller } from "./job-control.js";
 import {
@@ -46,6 +53,7 @@ import {
 } from "./lib/localhost-trust.js";
 import {
   initTelemetry,
+  shutdownTelemetry,
   createPythonBridge,
   WebsocketPythonBridge,
   SwappableBridge,
@@ -1186,6 +1194,18 @@ app.addHook("onRequest", async (req, reply) => {
   await replayUpgradeToOwner(req, reply);
 });
 
+// A machine that is draining takes no new sockets: the handshake is answered
+// with 503 rather than accepted, so the client's reconnect backoff carries it
+// to a machine that is staying. Its /health is already failing, so the proxy
+// normally routes elsewhere before this is reached; this covers the window
+// between the drain starting and the next health check.
+app.addHook("onRequest", async (req, reply) => {
+  if (!isDraining() || !isWebSocketUpgrade(req)) return;
+  const path = req.url.split("?")[0] ?? "";
+  if (path !== "/ws" && !path.startsWith("/ws/")) return;
+  denyDraining(req, reply);
+});
+
 // WebSocket support
 await app.register(fastifyWebSocket);
 
@@ -1828,8 +1848,57 @@ const stopReaper = startReaper(
 // Graceful shutdown — ensure child processes (Python worker, etc.) are killed
 // ---------------------------------------------------------------------------
 
+/**
+ * How long SIGTERM waits for aborted turns and runs to settle. Under Fly's
+ * 300 s cap between the signal and the kill; the drain the deploy script runs
+ * first is what actually waits for a long turn, so this is the fallback for a
+ * restart nobody drained.
+ */
+function shutdownGraceMs(): number {
+  const raw = process.env["NODETOOL_SHUTDOWN_GRACE_MS"];
+  if (!raw) return 240_000;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 240_000;
+}
+
+let shuttingDown = false;
+
 async function shutdown(signal: string): Promise<void> {
+  // The wait below can last minutes; a second signal in that window must not
+  // run the teardown a second time on top of the first.
+  if (shuttingDown) {
+    log.info(`${signal} received again — shutdown already in progress`);
+    return;
+  }
+  shuttingDown = true;
   log.info(`${signal} received — shutting down`);
+  // Take no new work first, so nothing starts during the wait below.
+  startDrain();
+  const abortedTurns = chatTurnRegistry.abortAll("shutdown");
+  const cancelledJobs = jobRunRegistry.cancelAll();
+  if (abortedTurns > 0 || cancelledJobs > 0) {
+    log.info("Aborting in-flight work", {
+      turns: abortedTurns,
+      jobs: cancelledJobs
+    });
+  }
+  const grace = shutdownGraceMs();
+  const [turnsDrained, jobsDrained] = await Promise.all([
+    chatTurnRegistry.drained(grace),
+    jobRunRegistry.drained(grace)
+  ]);
+  if (!turnsDrained || !jobsDrained) {
+    // The turn's own `finally` writes the stand-in tool-result rows, so a
+    // turn still running here is one whose transcript stays incomplete.
+    log.warn("Shutdown grace expired with work still running", {
+      graceMs: grace,
+      turns: chatTurnRegistry.runningCount(),
+      jobs: jobRunRegistry.runningCount()
+    });
+  }
+  // Spans are batched, so without this every span the last turns produced dies
+  // with the process.
+  await shutdownTelemetry();
   log.info("Closing Python bridge");
   stopReaper();
   stopJobCancelPoller();
@@ -1854,6 +1923,15 @@ async function shutdown(signal: string): Promise<void> {
 
 process.on("SIGINT", () => void shutdown("SIGINT"));
 process.on("SIGTERM", () => void shutdown("SIGTERM"));
+
+// The deploy's drain signal: stop taking work and let the turns in flight
+// finish, without a deadline. `scripts/fly-rolling-deploy.sh` sends it, waits
+// for /health to report no turns and no jobs, and only then replaces the
+// machine — which is what keeps a 30-minute turn off Fly's 300 s SIGTERM cap.
+process.on("SIGUSR2", () => {
+  log.info("SIGUSR2 received — draining");
+  startDrain();
+});
 
 // On Windows, Ctrl+C in some terminals fires SIGBREAK instead of SIGINT
 if (process.platform === "win32") {

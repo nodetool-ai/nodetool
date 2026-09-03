@@ -8,6 +8,7 @@ import {
   type ChatTurnExecutionHooks,
   type ChatTurnSession
 } from "../chat-turn-registry.js";
+import { isDraining } from "../drain.js";
 import { isAppSessionCommandAllowed } from "../lib/app-session-scope.js";
 import {
   isFiniteNumber,
@@ -71,6 +72,8 @@ export interface CommandRouterHost {
   /** Turns executing elsewhere that this connection reattached to, by thread id. */
   adoptSession(threadId: string, session: ChatTurnSession): void;
   forgetAdoptedSession(threadId: string): void;
+  /** Close this socket with 1012 as soon as its own work has settled (drain). */
+  closeForDrain(): void;
 }
 
 /**
@@ -257,6 +260,28 @@ export class CommandRouter {
   }
 
   /**
+   * Refuse work that would start on a machine that is going away, then close
+   * the socket so the client's retry connects to one that is staying — as soon
+   * as the turn or run this connection is already driving has settled, since
+   * closing on top of that one would only strand its output. The error frame
+   * is sent here, so the caller returns `null` and the receive loop adds
+   * nothing after it.
+   */
+  private async refuseWhileDraining(scope: {
+    threadId?: string;
+    workflowId?: string;
+  }): Promise<null> {
+    await this.deps.session.send({
+      type: "error",
+      message: "This server is restarting. Reconnect and try again.",
+      thread_id: scope.threadId ?? null,
+      workflow_id: scope.workflowId ?? null
+    });
+    this.deps.host.closeForDrain();
+    return null;
+  }
+
+  /**
    * Build a tRPC caller bound to this connection's `userId`. Used to dispatch
    * the read-only RPC commands (list_workflows, get_workflow, list_assets,
    * get_asset, list_nodes, get_node) onto the existing tRPC routers — single
@@ -283,6 +308,7 @@ export class CommandRouter {
     clear_models: () => this.deps.host.clearModels(),
 
     run_job: async ({ data, workflowId }) => {
+      if (isDraining()) return this.refuseWhileDraining({ workflowId });
       // SAFETY: the wire command's `data` is the run request. Every read
       // is `req.workflow_id ?? …`, so the field the interface declares
       // required is in practice optional — making it so in `@nodetool-ai/
@@ -425,6 +451,9 @@ export class CommandRouter {
       if (!isNonEmptyString(threadId)) {
         return { error: "thread_id is required for chat_message command" };
       }
+      // Before the user message is persisted: a row written here would be
+      // answered by nothing, and the client's retry would send it twice.
+      if (isDraining()) return this.refuseWhileDraining({ threadId });
       const { seq, signal, controller } = chat.beginTurn();
       // A resilient session decouples the turn from this socket: frames are
       // seq-stamped and buffered so a client that disconnects mid-turn can
@@ -579,7 +608,7 @@ export class CommandRouter {
           threadId
         );
         if (registered && registered.status === "running") {
-          registered.abort();
+          registered.abort("stop");
         }
       }
       await session.send({

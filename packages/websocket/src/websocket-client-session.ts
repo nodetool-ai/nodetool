@@ -8,6 +8,7 @@ import {
   isObjectLike,
   isString
 } from "./lib/wire-values.js";
+import { onDrain } from "./drain.js";
 import {
   resourceEvents,
   type ResourceChangePayload
@@ -122,6 +123,11 @@ import { ChatTurnHandler } from "./session/chat-turn.js";
 import { CommandRouter } from "./session/commands.js";
 
 const log = createLogger("nodetool.websocket.runner");
+
+/** RFC 6455 "service restart" — what a drained connection is closed with. */
+const DRAIN_CLOSE_CODE = 1012;
+/** How often a draining connection re-checks whether its work has settled. */
+const DRAIN_POLL_MS = 250;
 
 /**
  * Largest binary (MsgPack) frame accepted from a client before deserialization.
@@ -448,6 +454,10 @@ export class WebSocketClientSession implements ClientSession {
   /** The client's command surface: one dispatch table over the wire commands. */
   readonly commands: CommandRouter;
   private observerRegistered = false;
+  /** Unsubscribe from the process drain, held for the life of the socket. */
+  private drainUnsubscribe: (() => void) | null = null;
+  /** Set while waiting for this connection's own work to settle mid-drain. */
+  private drainTimer: NodeJS.Timeout | null = null;
   /**
    * The detachable session for the chat turn THIS connection is executing.
    * While set (and running), every outbound frame carrying its thread_id is
@@ -617,7 +627,8 @@ export class WebSocketClientSession implements ClientSession {
         },
         forgetAdoptedSession: (threadId) => {
           this.adoptedSessions.delete(threadId);
-        }
+        },
+        closeForDrain: () => this.onDraining()
       },
       defaults: {
         provider: this.defaultProvider,
@@ -727,10 +738,16 @@ export class WebSocketClientSession implements ClientSession {
     this.startHeartbeat();
     this.startStatsBroadcast();
     this.registerObserver();
+    // A connection accepted just before the drain took effect gets the
+    // callback immediately, so it closes like any older one.
+    this.drainUnsubscribe = onDrain(() => this.onDraining());
   }
 
   async disconnect(): Promise<void> {
     log.info("Client disconnected");
+    this.drainUnsubscribe?.();
+    this.drainUnsubscribe = null;
+    this.stopDrainTimer();
     this.stopHeartbeat();
     this.stopStatsBroadcast();
     this.unregisterObserver();
@@ -777,6 +794,56 @@ export class WebSocketClientSession implements ClientSession {
       }
     }
     this.websocket = null;
+  }
+
+  /** A chat turn or a workflow run this connection is still driving. */
+  private hasRunningWork(): boolean {
+    if (this.chatTurnSession?.status === "running") return true;
+    for (const session of this.adoptedSessions.values()) {
+      if (session.status === "running") return true;
+    }
+    return this.jobs.activeJobIds().length > 0;
+  }
+
+  /**
+   * The process is draining. A connection with nothing in flight is closed at
+   * once so the client's own reconnect lands on a machine that is staying; one
+   * driving a turn or a run keeps it and closes when that settles, because
+   * closing here would only move the work's output nowhere.
+   */
+  private onDraining(): void {
+    if (!this.hasRunningWork()) {
+      void this.closeForDrain();
+      return;
+    }
+    if (this.drainTimer) return;
+    this.drainTimer = setInterval(() => {
+      if (this.hasRunningWork()) return;
+      void this.closeForDrain();
+    }, DRAIN_POLL_MS);
+    this.drainTimer.unref?.();
+  }
+
+  /**
+   * Close this socket with 1012. The client reconnects on its own and the
+   * proxy sends it to a machine whose health check still passes.
+   */
+  async closeForDrain(): Promise<void> {
+    this.stopDrainTimer();
+    const websocket = this.websocket;
+    if (!websocket) return;
+    try {
+      await websocket.close(DRAIN_CLOSE_CODE, "Server draining");
+    } catch (error) {
+      this.logError("drain close failed", error);
+    }
+  }
+
+  private stopDrainTimer(): void {
+    if (this.drainTimer) {
+      clearInterval(this.drainTimer);
+      this.drainTimer = null;
+    }
   }
 
   private serializeForJson(value: unknown): JsonSafeValue {
