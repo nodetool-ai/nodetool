@@ -102,10 +102,10 @@ export type CreditDecision =
     };
 
 /**
- * The managed models this server sells, or `null` when the operator
- * restricted none — `null` is the whole catalog, which is what a local
- * install wants. Callers that render a menu use it to hide what they could
- * not run anyway.
+ * The managed models this server sells: the operator's whitelist, or the whole
+ * catalog when they restricted none. Callers that render a menu use it to hide
+ * what they could not run anyway. Empty in practice off the cloud profile,
+ * where the `nodetool` provider is not registered at all.
  */
 export const spendableModelIds = (): string[] =>
   NODETOOL_MODELS.filter((def) => isCreditModelAllowed(def.id)).map(

@@ -26,6 +26,7 @@ import {
 // hand-lists providers — `listRegisteredProviderIds()` below is the single
 // source of truth this suite enumerates.
 import "../src/providers/index.js";
+import { CLOUD_ONLY_PROVIDER_IDS } from "@nodetool-ai/protocol";
 import {
   CassetteProvider,
   CassetteStore
@@ -101,12 +102,32 @@ describe("provider registry enumeration", () => {
     expect(registeredIds.length).toBeGreaterThan(0);
   });
 
-  it("every MEDIA_ONLY_EXEMPTIONS entry names a currently registered provider", () => {
+  it("every MEDIA_ONLY_EXEMPTIONS entry names a live provider", () => {
     // Catches stale exemptions (a provider renamed/removed but the
     // exemption comment left behind) — the exemption list is only honest if
     // every entry is live.
+    //
+    // "Live" is not the same as "registered here": a cloud-only provider
+    // (`nodetool`) is deliberately unregistered off the cloud profile, which
+    // is the profile this suite runs under. Naming it in
+    // CLOUD_ONLY_PROVIDER_IDS is what keeps it live — delete the provider
+    // without deleting that entry and the protocol suite fails instead, so
+    // an exemption still cannot rot in either direction.
     for (const id of Object.keys(MEDIA_ONLY_EXEMPTIONS)) {
+      if (CLOUD_ONLY_PROVIDER_IDS.includes(id)) {
+        expect(registeredIds).not.toContain(id);
+        continue;
+      }
       expect(registeredIds).toContain(id);
+    }
+  });
+
+  it("the cloud-only providers really are absent under this profile", () => {
+    // Pins the premise the exemption check leans on: if a future edit
+    // registers `nodetool` everywhere again, this fails rather than the
+    // branch above quietly skipping a provider it should have covered.
+    for (const id of CLOUD_ONLY_PROVIDER_IDS) {
+      expect(registeredIds).not.toContain(id);
     }
   });
 });

@@ -91,10 +91,17 @@ Server-owned, in `packages/models/src/credits.ts` (`@nodetool-ai/models`):
   `@nodetool-ai/model-pricing` translates `nodetool/...` ids to the delegate
   before lookup so estimates are real numbers. Models appear in the pickers
   only when their platform key is set.
+- **The managed provider is cloud-only.** `nodetool` is in
+  `CLOUD_ONLY_PROVIDER_IDS` (`packages/protocol/src/cloud-profile.ts`) and the
+  provider index unregisters it whenever the cloud profile is off — a desktop
+  install and a self-hosted server (`NODETOOL_NODE_PROFILE=full`) both have
+  platform keys they do not own and no account to bill, so the provider would
+  only ever produce an error. Those users bring their own keys, unmetered.
 - **The operator picks which models the platform sells.**
   `NODETOOL_CREDIT_MODELS` is a comma/whitespace-separated list of curated
   model ids (`nodetool/flux-schnell nodetool/kokoro`); unset means the whole
-  catalog, which is what a local install wants. A model outside the list is
+  catalog, the right default for a staging server holding platform keys. A
+  model outside the list is
   hidden by the provider's listers, refused by `delegateFor` before a platform
   key is used, and refused by the gate before a run starts
   (`MODEL_NOT_AVAILABLE`, not `BUDGET_EXCEEDED` — a full balance does not

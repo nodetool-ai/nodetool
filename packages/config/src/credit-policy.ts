@@ -3,11 +3,15 @@
  * with — the two knobs a production operator turns.
  *
  * NodeTool's `nodetool` provider runs curated delegates on platform-owned
- * keys, so every call through it spends the operator's money. On a shared
- * deployment the operator therefore decides which of the catalog's entries are
- * open for business: `NODETOOL_CREDIT_MODELS` names them, and anything else is
- * refused before a key is used. Unset means the whole catalog, which is what a
- * local install wants — there the platform keys are the user's own.
+ * keys, so every call through it spends the operator's money. The operator
+ * therefore decides which of the catalog's entries are open for business:
+ * `NODETOOL_CREDIT_MODELS` names them, and anything else is refused before a
+ * key is used. Unset means the whole catalog — the right default for a
+ * staging or dev server that holds platform keys.
+ *
+ * None of this reaches a local install: `nodetool` is a cloud-only provider
+ * (`CLOUD_ONLY_PROVIDER_IDS`), unregistered off the cloud profile, so a
+ * desktop or self-hosted server has no managed provider to whitelist.
  *
  * Parsing lives here rather than next to the catalog because the catalog
  * (`@nodetool-ai/protocol`) is browser-safe pure data with no environment to

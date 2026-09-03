@@ -13,11 +13,14 @@
  * provider's cost delta into this instance, so the host's prediction logging
  * records real USD under provider "nodetool".
  *
- * A model is served only when it is both **funded** (the delegate's platform
- * key is set) and **allowed** (`NODETOOL_CREDIT_MODELS` names it, or names
- * nothing at all). The listers hide what fails either test and `delegateFor`
- * refuses it, so a whitelist an operator narrows can never be spent past by a
- * client holding a stale menu.
+ * The provider itself is cloud-only (`CLOUD_ONLY_PROVIDER_IDS`): off the cloud
+ * profile it is never registered, because a desktop or self-hosted server has
+ * no platform keys and no account to bill. Where it does run, a model is
+ * served only when it is both **funded** (the delegate's platform key is set)
+ * and **allowed** (`NODETOOL_CREDIT_MODELS` names it, or names nothing at
+ * all). The listers hide what fails either test and `delegateFor` refuses it,
+ * so a whitelist an operator narrows can never be spent past by a client
+ * holding a stale menu.
  */
 import {
   NODETOOL_MODELS,
