@@ -1884,7 +1884,7 @@ npm run dev:nodetool -- eval sketch-tools -p ollama -m qwen-3.5:4b --min-success
 npm run dev:nodetool -- eval workflow-escalation -p anthropic -m claude-sonnet-5
 ```
 
-An **`app-build`** suite scores `nodetool app build` end to end: eight
+An **`app-build`** suite scores `nodetool app build` end to end:
 medium-complexity prompts (two operations, a persisted setting, a streaming
 output, a gated second step, a condition that hides something) go through
 spec → plan → author → check → run → judge, and a case counts as green only
