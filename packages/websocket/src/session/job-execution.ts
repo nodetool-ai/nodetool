@@ -784,7 +784,7 @@ export class JobExecutionManager {
     try {
       const estimate = this.estimateGraphCost(req);
       if (!estimate) {
-        return { usesNodetool: false, estimatedUsd: 0 };
+        return { usesNodetool: false, estimatedUsd: 0, models: [] };
       }
       const items = estimate.items.filter(
         (item) => item.provider === "nodetool"
@@ -795,10 +795,17 @@ export class JobExecutionManager {
           (Number.isFinite(item.estimated_cost) ? item.estimated_cost : 0),
         0
       );
-      return { usesNodetool: items.length > 0, estimatedUsd: total };
+      const models = [
+        ...new Set(
+          items
+            .map((item) => item.model)
+            .filter((model): model is string => Boolean(model))
+        )
+      ];
+      return { usesNodetool: items.length > 0, estimatedUsd: total, models };
     } catch (err) {
       this.session.logError("nodetool spend estimate failed", err);
-      return { usesNodetool: false, estimatedUsd: 0 };
+      return { usesNodetool: false, estimatedUsd: 0, models: [] };
     }
   }
 
@@ -1010,23 +1017,26 @@ export class JobExecutionManager {
    * Gate a run on the user's credit balance — but only the part of the run
    * that spends through NodeTool's managed provider. A graph with no
    * `nodetool` models passes untouched (BYOK stays unmetered); one with them
-   * is refused when the balance is empty or can't cover the estimate.
-   * Estimates are floors, so an empty balance refuses even a 0-estimate
-   * nodetool call. Fails open on gate errors, like the application-budget
-   * gate above.
+   * is refused when it names a model this server does not sell, or when the
+   * balance is empty or can't cover the estimate. Estimates are floors, so an
+   * empty balance refuses even a 0-estimate nodetool call. Fails open on gate
+   * errors, like the application-budget gate above.
    */
   private async admitCreditRun(req: RunJobRequest): Promise<boolean> {
-    const { usesNodetool, estimatedUsd } = this.estimateNodetoolSpend(req);
+    const { usesNodetool, estimatedUsd, models } =
+      this.estimateNodetoolSpend(req);
     if (!usesNodetool) return true;
     // Pin the job id now so the reservation taken here can be released at the
     // run's terminal state (and on cancel-while-queued) under the same key.
     req.job_id ??= randomUUID();
-    const decision = await admitSpend(this.session.userId, estimatedUsd);
+    const decision = await admitSpend(this.session.userId, estimatedUsd, models);
     if (!decision.allowed) {
       return this.refuseRun(
         req,
         req.job_id,
-        ApiErrorCode.BUDGET_EXCEEDED,
+        decision.refusal === "model_not_allowed"
+          ? ApiErrorCode.MODEL_NOT_AVAILABLE
+          : ApiErrorCode.BUDGET_EXCEEDED,
         decision.reason
       );
     }

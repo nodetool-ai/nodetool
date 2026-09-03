@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 
 import { initTestDb } from "../src/db.js";
 import { Prediction } from "../src/prediction.js";
@@ -8,10 +8,12 @@ import {
   checkCredits,
   creditStatus,
   ensureMonthlyGrant,
+  ensureSignupGrant,
   getSubscription,
   grantCredits,
   periodKeyFor,
-  setSubscriptionPlan
+  setSubscriptionPlan,
+  spendableModelIds
 } from "../src/credits.js";
 
 const USER = "u1";
@@ -28,9 +30,27 @@ const spend = (cost: number, provider = "nodetool") =>
     cost
   });
 
+/**
+ * The plan-grant and balance tests are about that arithmetic, so the welcome
+ * grant is switched off for them; it has its own block below.
+ */
 describe("credits", () => {
+  let savedSignup: string | undefined;
+  let savedModels: string | undefined;
+
   beforeEach(() => {
+    savedSignup = process.env.NODETOOL_SIGNUP_CREDITS;
+    savedModels = process.env.NODETOOL_CREDIT_MODELS;
+    process.env.NODETOOL_SIGNUP_CREDITS = "0";
+    delete process.env.NODETOOL_CREDIT_MODELS;
     initTestDb();
+  });
+
+  afterEach(() => {
+    if (savedSignup === undefined) delete process.env.NODETOOL_SIGNUP_CREDITS;
+    else process.env.NODETOOL_SIGNUP_CREDITS = savedSignup;
+    if (savedModels === undefined) delete process.env.NODETOOL_CREDIT_MODELS;
+    else process.env.NODETOOL_CREDIT_MODELS = savedModels;
   });
 
   it("defaults a new user to the free plan and accrues its monthly grant once", async () => {
@@ -119,5 +139,71 @@ describe("credits", () => {
     const other = await creditStatus("u2");
     expect(other.spentCredits).toBe(0);
     expect(other.balanceCredits).toBe(FREE.monthlyCredits);
+  });
+
+  it("grants welcome credits once, and only when configured", async () => {
+    const none = await creditStatus(USER);
+    expect(none.grantedCredits).toBe(FREE.monthlyCredits);
+
+    process.env.NODETOOL_SIGNUP_CREDITS = "500";
+    await ensureSignupGrant(USER);
+    await ensureSignupGrant(USER);
+    const welcomed = await creditStatus(USER);
+    expect(welcomed.grantedCredits).toBe(FREE.monthlyCredits + 500);
+
+    // Raising the amount later must not re-grant a user who already has it.
+    process.env.NODETOOL_SIGNUP_CREDITS = "5000";
+    await ensureSignupGrant(USER);
+    const unchanged = await creditStatus(USER);
+    expect(unchanged.grantedCredits).toBe(FREE.monthlyCredits + 500);
+  });
+
+  it("the welcome grant reaches a new user on the first balance read", async () => {
+    process.env.NODETOOL_SIGNUP_CREDITS = "250";
+    const status = await creditStatus("fresh-user");
+    expect(status.grantedCredits).toBe(FREE.monthlyCredits + 250);
+  });
+
+  it("refuses a model the operator did not whitelist, however full the balance", async () => {
+    process.env.NODETOOL_CREDIT_MODELS = "nodetool/flux-schnell";
+    await grantCredits(USER, 100_000, "adjustment", "plenty");
+
+    const allowed = await checkCredits(USER, 0, ["nodetool/flux-schnell"]);
+    expect(allowed.allowed).toBe(true);
+
+    const refused = await checkCredits(USER, 0, ["nodetool/seedream"]);
+    expect(refused.allowed).toBe(false);
+    if (!refused.allowed) {
+      expect(refused.refusal).toBe("model_not_allowed");
+      expect(refused.reason).toContain("nodetool/seedream");
+    }
+
+    // One bad model in a mixed run refuses the run.
+    const mixed = await checkCredits(USER, 0, [
+      "nodetool/flux-schnell",
+      "nodetool/seedream"
+    ]);
+    expect(mixed.allowed).toBe(false);
+  });
+
+  it("names the whitelist as the spendable catalog, and the whole catalog without one", async () => {
+    expect(spendableModelIds()).toContain("nodetool/seedream");
+
+    process.env.NODETOOL_CREDIT_MODELS =
+      "nodetool/flux-schnell, nodetool/kokoro";
+    expect(spendableModelIds()).toEqual([
+      "nodetool/flux-schnell",
+      "nodetool/kokoro"
+    ]);
+  });
+
+  it("an empty balance refuses on credits, not on the model", async () => {
+    await creditStatus(USER);
+    await spend(FREE.monthlyCredits * USD_PER_CREDIT);
+    const decision = await checkCredits(USER, 0, ["nodetool/flux-schnell"]);
+    expect(decision.allowed).toBe(false);
+    if (!decision.allowed) {
+      expect(decision.refusal).toBe("insufficient_credits");
+    }
   });
 });

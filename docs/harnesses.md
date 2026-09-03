@@ -3,7 +3,7 @@
 The full reference for every headless harness, CLI command, and agent tool
 surface: what it checks, what it does not simulate, and why it is shaped the
 way it is. The index — which harness answers which need — is
-[AGENTS.md § Agent Harnesses & Tooling](../AGENTS.md#agent-harnesses--tooling).
+[AGENTS.md § Agent Harnesses & Tooling](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#agent-harnesses--tooling).
 Flag-level reference for the CLI: [cli.md](cli.md).
 
 ## CLI
@@ -1106,7 +1106,7 @@ IS_SANDBOX=1 npm run dev:nodetool -- eval graph-planner -p claude_agent_sdk -m c
 ```
 
 Details on env stripping and the uid=0 blocker:
-[docs/AGENTS.md § Claude Agent SDK](AGENTS.md#claude-agent-sdk).
+[docs/AGENTS.md § Claude Agent SDK](https://github.com/nodetool-ai/nodetool/blob/main/docs/AGENTS.md#claude-agent-sdk).
 
 A **`graph-e2e`** suite takes the same planner all the way through: it plans a
 workflow, executes it on the kernel with the case's inputs, and has an LLM judge
@@ -1168,7 +1168,7 @@ structurally: `tool-loop` (graph editor), `workflow-escalation`, `script-tools`,
 `jsscript-tools`, `sketch-tools`, `timeline-tools`, `storyboard-tools`,
 `model3d-tools`, `app-tools`, `memory-tools`, and `creative-pipeline`.
 Same flags, metrics, and `--min-success` CI gate as `graph-planner`. Details:
-[packages/agents/AGENTS.md](../packages/agents/AGENTS.md).
+[packages/agents/AGENTS.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md).
 
 `workflow-escalation` runs the graph tools over objectives that are missing
 something only the user can decide — a name, permission to delete, a choice
@@ -1302,7 +1302,7 @@ global — the `data.*` namespace is gone. The packs live in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md, and
 every one of them is available out of the box. The current list — which library
 each wraps and whether it runs guest-side or host-side — is the table in
-[packages/sandbox-packs/README.md](../packages/sandbox-packs/README.md); read it
+[packages/sandbox-packs/README.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/sandbox-packs/README.md); read it
 there rather than from a copy that drifts.
 
 **guest** means the compiler bundles the library into QuickJS. **host** means it
@@ -1444,7 +1444,7 @@ build that misses one. `shippedPackSearchPaths()`
 root last: a pack of the same name installed through the Package Manager
 shadows the copy in the app. Declaring a specifier from a pack this host does
 not carry still fails validation with "Install `<pack>`". See
-[packages/sandbox-packs/README.md](../packages/sandbox-packs/README.md).
+[packages/sandbox-packs/README.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/sandbox-packs/README.md).
 
 ### nodetool affected (Changed-File → Workspace Mapping)
 
@@ -1533,7 +1533,7 @@ is stale or when a new capability arrives with no check and no gap note. It
 also carries a fingerprint of what each capability *declares*, so
 `harness gate --base <ref>` can refuse a contract change that left its coverage
 mapping untouched while saying nothing about an ordinary refactor. See
-[packages/agents/AGENTS.md § Capability coverage](../packages/agents/AGENTS.md).
+[packages/agents/AGENTS.md § Capability coverage](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md).
 
 ### nodetool reliability (Cross-Surface Journey Diffs)
 
@@ -1788,7 +1788,7 @@ npm run dev:nodetool -- auth claude logout
 The same flow is exposed over HTTP at
 `/api/oauth/claude/{start,complete,tokens,disconnect}` and as a sign-in card on
 the **Models & Providers** settings page. Details:
-[packages/runtime/src/providers/oauth/README.md](../packages/runtime/src/providers/oauth/README.md).
+[packages/runtime/src/providers/oauth/README.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/src/providers/oauth/README.md).
 
 ### nodetool secrets
 
@@ -1925,4 +1925,4 @@ Each line in the file is one span:
 }
 ```
 
-See [packages/agents/AGENTS.md](../packages/agents/AGENTS.md) for agent architecture, parallel execution, skills, and tuning.
+See [packages/agents/AGENTS.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md) for agent architecture, parallel execution, skills, and tuning.

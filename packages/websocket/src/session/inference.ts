@@ -359,7 +359,7 @@ export class DirectInferenceHandler {
     // so concurrent requests admit against each other, and record the real
     // token cost as a prediction row so the balance decrements.
     const estimatedUsd = estimateDirectTextSpend(req);
-    const decision = await admitSpend(userId, estimatedUsd);
+    const decision = await admitSpend(userId, estimatedUsd, [req.model]);
     if (!decision.allowed) {
       throw new Error(decision.reason);
     }
@@ -496,7 +496,7 @@ export class DirectInferenceHandler {
         ? unit.unit_price
         : 0;
     const estimatedUsd = unitPrice * variations;
-    const decision = await admitSpend(userId, estimatedUsd);
+    const decision = await admitSpend(userId, estimatedUsd, [req.model]);
     if (!decision.allowed) {
       throw new Error(decision.reason);
     }
@@ -1109,7 +1109,7 @@ export class DirectInferenceHandler {
 
     const userId = this.session.userId ?? "1";
     if (req.provider === "nodetool") {
-      const creditDecision = await admitSpend(userId, 0);
+      const creditDecision = await admitSpend(userId, 0, [req.model]);
       if (!creditDecision.allowed) {
         throw new Error(creditDecision.reason);
       }

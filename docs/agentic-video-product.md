@@ -65,10 +65,15 @@ Server-owned, in `packages/models/src/credits.ts` (`@nodetool-ai/models`):
 - **1 credit = $0.01 of provider spend.** Spend is never double-booked: the
   balance is `sum(grant ledger) - ceil(prediction spend / 1¢)`, read straight
   from the `nodetool_predictions` rows every provider call already writes.
-- **Ledger** (`nodetool_credit_ledger`) holds grants only: monthly plan
-  accruals, top-ups, adjustments. Plan grants use the row id
-  `plan:<userId>:<planId>:<YYYY-MM>`, so the lazy accrual (run on every
-  status read) is idempotent by primary key — no cron.
+- **Ledger** (`nodetool_credit_ledger`) holds grants only: the welcome grant,
+  monthly plan accruals, top-ups, adjustments. Grants are keyed so the lazy
+  accrual (run on every status read) is idempotent by primary key — no cron:
+  `signup:<userId>` once ever, `plan:<userId>:<planId>:<YYYY-MM>` per month.
+- **New users get free credits.** The first balance read for a user inserts
+  `NODETOOL_SIGNUP_CREDITS` (default 500) as a welcome grant, on top of the
+  free plan's monthly accrual. Raising the amount later reaches users who have
+  not signed up yet; it never re-grants one who already has the row. `0`
+  switches the welcome grant off.
 - **Plans** (`nodetool_user_subscriptions`, catalog `CREDIT_PLANS`): Free
   300/mo, Creator 3,000/mo ($12), Pro 10,000/mo ($40). Switching is instant
   and unbilled; a payment provider integration replaces the `topup` mutation
@@ -86,6 +91,25 @@ Server-owned, in `packages/models/src/credits.ts` (`@nodetool-ai/models`):
   `@nodetool-ai/model-pricing` translates `nodetool/...` ids to the delegate
   before lookup so estimates are real numbers. Models appear in the pickers
   only when their platform key is set.
+- **The managed provider is cloud-only.** `nodetool` is in
+  `CLOUD_ONLY_PROVIDER_IDS` (`packages/protocol/src/cloud-profile.ts`) and the
+  provider index unregisters it whenever the cloud profile is off — a desktop
+  install and a self-hosted server (`NODETOOL_NODE_PROFILE=full`) both have
+  platform keys they do not own and no account to bill, so the provider would
+  only ever produce an error. Those users bring their own keys, unmetered.
+- **The operator picks which models the platform sells.**
+  `NODETOOL_CREDIT_MODELS` is a comma/whitespace-separated list of curated
+  model ids (`nodetool/flux-schnell nodetool/kokoro`); unset means the whole
+  catalog, the right default for a staging server holding platform keys. A
+  model outside the list is
+  hidden by the provider's listers, refused by `delegateFor` before a platform
+  key is used, and refused by the gate before a run starts
+  (`MODEL_NOT_AVAILABLE`, not `BUDGET_EXCEEDED` — a full balance does not
+  change the answer). Parsing is `packages/config/src/credit-policy.ts`; the
+  surviving ids reach clients as `spendableModels` on `credits.status`, and
+  Studio's dropdowns show only those. `nodetool/director` drives the in-editor
+  assistants and is not user-selectable, so a whitelist that leaves it out
+  turns them off — name it alongside the models you sell.
 - **Enforcement follows the provider, not the deployment**
   (`packages/websocket/src/credit-gate.ts`): a workflow run is gated only on
   the slice of its estimate whose provider is `nodetool`
@@ -105,7 +129,8 @@ Still open, in order of value:
    (`getModelUnitPrice`) prices the curated models per unit, so shot cards
    and the voice-all button can show "≈ 3 credits" before the click.
 2. **Payments.** Stripe (or similar) in front of `setPlan`/`topup`; the
-   ledger and gate don't change.
+   ledger and gate don't change — a webhook writes `topup` rows and flips
+   `plan_id`, and the balance is read the same way.
 3. **Direct-RPC metering.** Done: `generate_media`, `generate_text` and
    `transcribe_audio` each write a prediction row on the managed provider
    (`direct.<mode>`, `direct.text`/`direct.structured`, `direct.transcription`),

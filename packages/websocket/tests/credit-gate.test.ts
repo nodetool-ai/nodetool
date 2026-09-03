@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 
 import { initTestDb, grantCredits, Prediction } from "@nodetool-ai/models";
 import {
@@ -11,8 +11,24 @@ import {
 const USER = "u1";
 
 describe("credit gate", () => {
+  let savedSignup: string | undefined;
+  let savedModels: string | undefined;
+
   beforeEach(() => {
+    // The balance arithmetic below is stated in the free plan's grant, so the
+    // welcome grant is off and the whitelist unset unless a test sets them.
+    savedSignup = process.env.NODETOOL_SIGNUP_CREDITS;
+    savedModels = process.env.NODETOOL_CREDIT_MODELS;
+    process.env.NODETOOL_SIGNUP_CREDITS = "0";
+    delete process.env.NODETOOL_CREDIT_MODELS;
     initTestDb();
+  });
+
+  afterEach(() => {
+    if (savedSignup === undefined) delete process.env.NODETOOL_SIGNUP_CREDITS;
+    else process.env.NODETOOL_SIGNUP_CREDITS = savedSignup;
+    if (savedModels === undefined) delete process.env.NODETOOL_CREDIT_MODELS;
+    else process.env.NODETOOL_CREDIT_MODELS = savedModels;
   });
 
   it("admits a funded user", async () => {
@@ -62,5 +78,27 @@ describe("credit gate", () => {
   it("releasing an unknown reservation is a no-op", () => {
     releaseSpend(USER, "never-reserved");
     expect(reservedSpendUsd(USER)).toBe(0);
+  });
+
+  it("refuses a model outside the operator's whitelist", async () => {
+    process.env.NODETOOL_CREDIT_MODELS = "nodetool/flux-schnell";
+
+    const allowed = await admitSpend(USER, 0.01, ["nodetool/flux-schnell"]);
+    expect(allowed.allowed).toBe(true);
+
+    const refused = await admitSpend(USER, 0.01, ["nodetool/seedream"]);
+    expect(refused.allowed).toBe(false);
+    if (!refused.allowed) {
+      expect(refused.refusal).toBe("model_not_allowed");
+      expect(refused.reason).toContain("nodetool/seedream");
+    }
+  });
+
+  it("names the balance, not the model, when no whitelist is configured", async () => {
+    const decision = await admitSpend(USER, 100, ["nodetool/seedream"]);
+    expect(decision.allowed).toBe(false);
+    if (!decision.allowed) {
+      expect(decision.refusal).toBe("insufficient_credits");
+    }
   });
 });

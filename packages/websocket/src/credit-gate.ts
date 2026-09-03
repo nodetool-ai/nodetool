@@ -6,14 +6,19 @@
  * providers are never gated: their spend rides the user's own keys, and both
  * models coexist on one server.
  *
+ * Two things can refuse a call: a model the operator did not whitelist
+ * (`NODETOOL_CREDIT_MODELS`), and a balance that cannot cover the estimate.
+ * Callers pass the managed model ids the work names so the first refusal
+ * arrives before the run starts, with the model in the message.
+ *
  * Like the application-budget gate, it fails open: metering must never take
  * the runner down.
  */
-import { checkCredits } from "@nodetool-ai/models";
+import { checkCredits, type CreditRefusal } from "@nodetool-ai/models";
 
 export type CreditGateResult =
   | { allowed: true }
-  | { allowed: false; reason: string };
+  | { allowed: false; refusal: CreditRefusal; reason: string };
 
 /**
  * In-flight reservations: spend admitted but not yet in the prediction
@@ -71,22 +76,28 @@ export function reservedSpendUsd(userId: string): number {
 
 /**
  * Decide whether `userId` may spend an estimated `estimatedUsd` through the
- * managed provider, counting spend already admitted but not yet settled.
- * Estimates are floors (unpriceable work estimates 0), so an empty balance
- * blocks even a 0-estimate call.
+ * managed provider on `models`, counting spend already admitted but not yet
+ * settled. Estimates are floors (unpriceable work estimates 0), so an empty
+ * balance blocks even a 0-estimate call.
  */
 export async function admitSpend(
   userId: string | null | undefined,
-  estimatedUsd: number
+  estimatedUsd: number,
+  models: readonly string[] = []
 ): Promise<CreditGateResult> {
   try {
     const decision = await checkCredits(
       userId ?? "1",
-      estimatedUsd + reservedSpendUsd(userId ?? "1")
+      estimatedUsd + reservedSpendUsd(userId ?? "1"),
+      models
     );
     return decision.allowed
       ? { allowed: true }
-      : { allowed: false, reason: decision.reason };
+      : {
+          allowed: false,
+          refusal: decision.refusal,
+          reason: decision.reason
+        };
   } catch (error) {
     console.error("Credit gate check failed (failing open):", error);
     return { allowed: true };
