@@ -2097,8 +2097,7 @@ the point is that the kernel runner and the WebSocket server must produce the
 same stream for it. Reach for it when a change touches execution and you need to
 know whether the surfaces still agree.
 
-Journeys live in `reliability/journeys/`. The architecture behind them is
-[RELIABILITY_ARCHITECTURE.md](RELIABILITY_ARCHITECTURE.md).
+Journeys live in `reliability/journeys/`.
 
 Working in the monorepo, run this one from the built CLI (`npm run nodetool --`)
 rather than from source: the journey fixtures use decorators, and the
@@ -2118,7 +2117,7 @@ nodetool reliability list --json
 
 ```
 linear-text-pipeline
-  Journey #1 (docs/RELIABILITY_ARCHITECTURE.md §5): input -> transform -> output.
+  Journey #1: input -> transform -> output.
   The baseline — if this diverges across surfaces, everything is suspect.
   surfaces: kernel, ws-server
   invariants: lifecycle-pairing, terminal-uniqueness

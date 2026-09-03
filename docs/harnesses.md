@@ -1563,7 +1563,6 @@ faults are implemented (`provider-429`, `provider-500`, `provider-timeout`,
 `ws`/`bridge`/`host`/`client` names are recognized but report as unimplemented.
 `update-goldens` rewrites `expected/` from a fresh unfaulted kernel run — it
 cannot tell a fixed bug from a new one, so read the diff before committing it.
-Architecture: [docs/RELIABILITY_ARCHITECTURE.md](RELIABILITY_ARCHITECTURE.md).
 
 ### nodetool package (Node-Pack Authoring)
 
