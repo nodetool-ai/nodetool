@@ -98,6 +98,9 @@ export default function StorageHistorySettings() {
     history.isUpdating || history.isCleaning || history.isCompacting;
   const cleanupCount = status.cleanup.total;
   const redactionCount = status.cleanup.redactedPredictions;
+  // Records this sweep will change: the ones it removes plus the ones it
+  // clears. `cleanup.total` counts removals only, so it cannot stand in here.
+  const pendingCount = cleanupCount + redactionCount;
   const isSqlite = status.dialect === "sqlite";
 
   return (
@@ -207,9 +210,9 @@ export default function StorageHistorySettings() {
           <EditorButton
             variant="outlined"
             onClick={() => setConfirmation("cleanup")}
-            disabled={disabled || (cleanupCount === 0 && redactionCount === 0)}
+            disabled={disabled || pendingCount === 0}
           >
-            {history.isCleaning ? "Cleaning…" : `Clean now (${cleanupCount})`}
+            {history.isCleaning ? "Cleaning…" : `Clean now (${pendingCount})`}
           </EditorButton>
           {isSqlite && (
             <EditorButton
