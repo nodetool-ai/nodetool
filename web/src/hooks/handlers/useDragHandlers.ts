@@ -18,6 +18,10 @@ import { shallow } from "zustand/shallow";
 // Throttle interval for intersection checks (ms)
 const INTERSECTION_THROTTLE_MS = 50;
 
+// Constant, so `panOnDrag` keeps its identity across canvas renders.
+const PAN_ON_DRAG_LMB = [0];
+const PAN_ON_DRAG_RMB = [1, 2];
+
 type NodeDragEvent = MouseEvent | TouchEvent;
 
 const getNodeDragClientPosition = (event: NodeDragEvent) => {
@@ -40,14 +44,14 @@ export default function useDragHandlers() {
   );
   const metaKeyPressed = useKeyPressed((state) => state.isKeyPressed("meta"));
   const reactFlow = useReactFlow();
-  const [_startPos, setStartPos] = useState({ x: 0, y: 0 });
+  // Drag bookkeeping, never read during render: state here re-renders the
+  // whole canvas on every drag start/stop.
+  const startPosRef = useRef({ x: 0, y: 0 });
+  const draggedNodesRef = useRef<Set<Node<NodeData>>>(new Set());
   const [lastParentNode, setLastParentNode] = useState<
     Node<NodeData> | undefined
   >();
-  const settings = useSettingsStore((state) => state.settings);
-  const [_draggedNodes, setDraggedNodes] = useState<Set<Node<NodeData>>>(
-    new Set()
-  );
+  const panControls = useSettingsStore((state) => state.settings.panControls);
   const { pause, resume } = useTemporalNodes((state) => ({
     pause: state.pause,
     resume: state.resume
@@ -68,11 +72,11 @@ export default function useDragHandlers() {
     (_event: NodeDragEvent, node: Node<NodeData>) => {
       setLastParentNode(undefined);
       resetWiggleDetection();
-      setDraggedNodes(new Set([node]));
+      draggedNodesRef.current = new Set([node]);
       lastIntersectionCheckRef.current = 0;
       lastHoveredIdsRef.current = "";
     },
-    [setDraggedNodes]
+    []
   );
 
   /* NODE DRAG */
@@ -152,13 +156,13 @@ export default function useDragHandlers() {
         addToGroup([node], lastParentNode);
       }
       resume(); // Resume history
-      setDraggedNodes(new Set());
+      draggedNodesRef.current = new Set();
       setHoveredNodes([]);
       setLastParentNode(undefined);
       resetWiggleDetection();
       lastHoveredIdsRef.current = "";
     },
-    [addToGroup, lastParentNode, resume, setDraggedNodes, setHoveredNodes]
+    [addToGroup, lastParentNode, resume, setHoveredNodes]
   );
 
   /* SELECTION DRAG START */
@@ -174,12 +178,12 @@ export default function useDragHandlers() {
       // Clear potential parent from previous drag
       setLastParentNode(undefined);
       pause(); // pause history
-      setDraggedNodes(new Set(nodes));
+      draggedNodesRef.current = new Set(nodes);
       resetWiggleDetection();
       lastIntersectionCheckRef.current = 0;
       lastHoveredIdsRef.current = "";
     },
-    [pause, setDraggedNodes]
+    [pause]
   );
 
   /* SELECTION DRAG */
@@ -271,13 +275,13 @@ export default function useDragHandlers() {
       }
 
       resume(); // Resume history
-      setDraggedNodes(new Set());
+      draggedNodesRef.current = new Set();
       setHoveredNodes([]);
       setLastParentNode(undefined);
       resetWiggleDetection();
       lastHoveredIdsRef.current = "";
     },
-    [addToGroup, lastParentNode, resume, setDraggedNodes, setHoveredNodes]
+    [addToGroup, lastParentNode, resume, setHoveredNodes]
   );
 
   /* SELECTION START */
@@ -287,8 +291,8 @@ export default function useDragHandlers() {
       x: currentMousePos.x,
       y: currentMousePos.y
     });
-    setStartPos(projectedStartPos);
-  }, [reactFlow, setStartPos]);
+    startPosRef.current = projectedStartPos;
+  }, [reactFlow]);
 
   const onSelectionEnd = useCallback(
     (_event: ReactMouseEvent | TouchEvent | null) => {
@@ -298,10 +302,7 @@ export default function useDragHandlers() {
   );
 
   // enables pan on drag. accepts boolean or array of mouse buttons
-  let panOnDrag: number[] = [0];
-  if (settings.panControls === "RMB") {
-    panOnDrag = [1, 2];
-  }
+  const panOnDrag = panControls === "RMB" ? PAN_ON_DRAG_RMB : PAN_ON_DRAG_LMB;
 
   return {
     onNodeDragStart,

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import type { Edge } from "@xyflow/react";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 
@@ -11,7 +11,6 @@ interface UseSelectConnectedOptions {
 interface SelectConnectedResult {
   selectConnected: () => void;
   getConnectedNodeIds: () => string[];
-  connectedNodeCount: number;
 }
 
 /**
@@ -22,40 +21,35 @@ export const useSelectConnected = (
   options: UseSelectConnectedOptions = {}
 ): SelectConnectedResult => {
   const { direction = "both" } = options;
-  // `edges` stays subscribed because the traversal derives from it. `nodes` is
-  // only needed inside `selectConnected`, so it is read lazily instead.
-  const edges = useNodes((state) => state.edges);
   const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
   const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
   const nodeStore = useNodeStoreRef();
-
-  // Index the edges once per edge-list identity. Walking with `edges.filter`
-  // per visited node made each traversal O(V*E), and `connectedNodeCount`
-  // re-runs it on every edge change.
-  const { incomingByTarget, outgoingBySource } = useMemo(() => {
-    const incoming = new Map<string, Edge[]>();
-    const outgoing = new Map<string, Edge[]>();
-    for (const edge of edges) {
-      const into = incoming.get(edge.target);
-      if (into) {
-        into.push(edge);
-      } else {
-        incoming.set(edge.target, [edge]);
-      }
-      const out = outgoing.get(edge.source);
-      if (out) {
-        out.push(edge);
-      } else {
-        outgoing.set(edge.source, [edge]);
-      }
-    }
-    return { incomingByTarget: incoming, outgoingBySource: outgoing };
-  }, [edges]);
 
   const getConnectedNodeIds = useCallback((): string[] => {
     const selectedNodes = getSelectedNodes();
     if (selectedNodes.length === 0) {
       return [];
+    }
+
+    // Indexed here rather than in a `useMemo` on the edge list: the editor
+    // shortcuts hold three of these hooks, and the traversal only runs on a
+    // shortcut or a menu click. Walking with `edges.filter` per visited node
+    // would make it O(V*E).
+    const incomingByTarget = new Map<string, Edge[]>();
+    const outgoingBySource = new Map<string, Edge[]>();
+    for (const edge of nodeStore.getState().edges) {
+      const into = incomingByTarget.get(edge.target);
+      if (into) {
+        into.push(edge);
+      } else {
+        incomingByTarget.set(edge.target, [edge]);
+      }
+      const out = outgoingBySource.get(edge.source);
+      if (out) {
+        out.push(edge);
+      } else {
+        outgoingBySource.set(edge.source, [edge]);
+      }
     }
 
     const selectedNodeIds = new Set(selectedNodes.map((n) => n.id));
@@ -95,11 +89,7 @@ export const useSelectConnected = (
     }
 
     return Array.from(connectedNodeIds);
-  }, [incomingByTarget, outgoingBySource, getSelectedNodes, direction]);
-
-  const connectedNodeCount = useMemo(() => {
-    return getConnectedNodeIds().length;
-  }, [getConnectedNodeIds]);
+  }, [nodeStore, getSelectedNodes, direction]);
 
   const selectConnected = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -121,8 +111,7 @@ export const useSelectConnected = (
 
   return {
     selectConnected,
-    getConnectedNodeIds,
-    connectedNodeCount
+    getConnectedNodeIds
   };
 };
 
