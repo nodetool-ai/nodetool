@@ -82,4 +82,33 @@ describe("cloud profile provider pruning", () => {
     for (const id of CLOUD) expect(ids).toContain(id);
     for (const id of OUT_OF_SCOPE) expect(ids).not.toContain(id);
   });
+
+  it("drops the managed provider when the profile is off", async () => {
+    delete process.env["NODETOOL_NODE_PROFILE"];
+    delete process.env["NODETOOL_ENV"];
+    vi.resetModules();
+    const mod = await import("../../src/providers/index.js");
+    // A desktop install, a dev checkout: no platform keys, no account to
+    // bill. Every BYOK provider is still there.
+    expect(mod.listRegisteredProviderIds()).not.toContain("nodetool");
+    expect(mod.listRegisteredProviderIds()).toContain("fal_ai");
+  });
+
+  it("drops the managed provider for a self-hosted server", async () => {
+    // docker-compose sets both: production, but the full catalog. A
+    // self-hoster has no claim on NodeTool's platform keys.
+    process.env["NODETOOL_ENV"] = "production";
+    process.env["NODETOOL_NODE_PROFILE"] = "full";
+    vi.resetModules();
+    const mod = await import("../../src/providers/index.js");
+    expect(mod.listRegisteredProviderIds()).not.toContain("nodetool");
+  });
+
+  it("keeps the managed provider under the cloud profile", async () => {
+    delete process.env["NODETOOL_ENV"];
+    process.env["NODETOOL_NODE_PROFILE"] = "cloud";
+    vi.resetModules();
+    const mod = await import("../../src/providers/index.js");
+    expect(mod.listRegisteredProviderIds()).toContain("nodetool");
+  });
 });

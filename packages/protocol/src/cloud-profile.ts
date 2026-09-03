@@ -240,6 +240,30 @@ export const NON_CLOUD_PROVIDER_IDS: readonly string[] = [
 ];
 
 /**
+ * Providers offered *only* by the cloud product — the mirror image of
+ * {@link NON_CLOUD_PROVIDER_IDS}.
+ *
+ * Same rule, reversed: a provider belongs here when only the commercial cloud
+ * can reach it. `nodetool` runs curated delegates on NodeTool's own platform
+ * keys and meters the spend against a credit balance, so it is the platform's
+ * wallet, not a key the user pastes into settings. A local install has neither
+ * the keys nor an account to bill, and a self-hosted server has no claim on
+ * NodeTool's; offering it there is a provider card that can only ever produce
+ * an error.
+ */
+export const CLOUD_ONLY_PROVIDER_IDS: readonly string[] = ["nodetool"];
+
+/**
+ * Whether `providerId` is reachable outside the cloud product. False only for
+ * {@link CLOUD_ONLY_PROVIDER_IDS}; an unknown id is treated as reachable, so a
+ * provider added to the registry keeps working on a laptop without a second
+ * edit here.
+ */
+export function isSelfServeProvider(providerId: string): boolean {
+  return !CLOUD_ONLY_PROVIDER_IDS.includes(providerId);
+}
+
+/**
  * Built-in node packs loaded under the cloud profile. `base` is required and
  * always loads; `fal` and `kie` are the only provider packs kept. Every other
  * provider pack (Replicate, Hugging Face, Together, MiniMax, Topaz, Reve,

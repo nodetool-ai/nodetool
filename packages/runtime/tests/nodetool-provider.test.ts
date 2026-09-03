@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 
 import { NODETOOL_MODELS, resolveNodetoolDelegate } from "@nodetool-ai/protocol";
 
@@ -105,5 +105,40 @@ describe("NodetoolProvider", () => {
         prompt: "a fox"
       })
     ).rejects.toThrow(/Unknown NodeTool model/);
+  });
+
+  describe("the operator's model whitelist", () => {
+    afterEach(() => {
+      delete process.env.NODETOOL_CREDIT_MODELS;
+    });
+
+    const funded = () =>
+      new NodetoolProvider({ NODETOOL_PLATFORM_FAL_KEY: "platform-key" });
+
+    it("hides a funded model the whitelist leaves out", async () => {
+      const before = await funded().getAvailableImageModels();
+      expect(before.map((m) => m.id)).toContain("nodetool/seedream");
+
+      process.env.NODETOOL_CREDIT_MODELS = "nodetool/flux-schnell";
+      const after = await funded().getAvailableImageModels();
+      expect(after.map((m) => m.id)).toEqual(["nodetool/flux-schnell"]);
+      expect(await funded().getAvailableVideoModels()).toEqual([]);
+      expect(await funded().getAvailableTTSModels()).toEqual([]);
+      expect(funded().getCapabilities()).not.toContain("image_to_video");
+    });
+
+    it("refuses to serve a model the whitelist leaves out", async () => {
+      process.env.NODETOOL_CREDIT_MODELS = "nodetool/flux-schnell";
+      await expect(
+        funded().textToImage({
+          model: {
+            type: "image_model",
+            id: "nodetool/seedream",
+            provider: "nodetool"
+          },
+          prompt: "a cat"
+        } as Parameters<NodetoolProvider["textToImage"]>[0])
+      ).rejects.toThrow(/not available on this server/);
+    });
   });
 });

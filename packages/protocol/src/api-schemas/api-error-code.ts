@@ -15,7 +15,13 @@ export enum ApiErrorCode {
   TIMELINE_NO_MEDIA_OUTPUT = "TIMELINE_NO_MEDIA_OUTPUT",
   SKETCH_NO_IMAGE_OUTPUT = "SKETCH_NO_IMAGE_OUTPUT",
   /** A published app's run would exceed its app-scoped spend budget. */
-  BUDGET_EXCEEDED = "BUDGET_EXCEEDED"
+  BUDGET_EXCEEDED = "BUDGET_EXCEEDED",
+  /**
+   * The run names a managed model this server does not sell — the operator's
+   * `NODETOOL_CREDIT_MODELS` whitelist leaves it out. A full balance does not
+   * change the answer.
+   */
+  MODEL_NOT_AVAILABLE = "MODEL_NOT_AVAILABLE"
 }
 
 export interface ApiErrorResponse {

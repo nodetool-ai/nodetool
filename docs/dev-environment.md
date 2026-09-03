@@ -2,7 +2,7 @@
 
 Two setups where a plain `npm install` or a plain test run does not work:
 locked-down containers, and machines without a Vulkan driver. The everyday
-setup is [AGENTS.md § Prerequisites](../AGENTS.md#prerequisites).
+setup is [AGENTS.md § Prerequisites](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#prerequisites).
 
 ### Install in sandboxed / proxied environments
 

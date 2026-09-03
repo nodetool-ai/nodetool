@@ -19,6 +19,15 @@ export { getByteLimitEnv } from "./byte-limits.js";
 
 export { isAuthEnforced } from "./deployment.js";
 
+export {
+  CREDIT_MODELS_ENV,
+  SIGNUP_CREDITS_ENV,
+  DEFAULT_SIGNUP_CREDITS,
+  creditModelAllowlist,
+  isCreditModelAllowed,
+  signupGrantCredits
+} from "./credit-policy.js";
+
 export { isGoogleWorkspaceEnabled } from "./google-workspace.js";
 
 export { isAutomaticStorageCleanupEnabled } from "./retention.js";

@@ -72,7 +72,10 @@ const TRPC_CODE_BY_API_CODE = {
   [ApiErrorCode.SKETCH_NO_IMAGE_OUTPUT]: "BAD_REQUEST",
   // A budget refusal is the caller asking for more than the app is allowed to
   // spend, not a server fault.
-  [ApiErrorCode.BUDGET_EXCEEDED]: "FORBIDDEN"
+  [ApiErrorCode.BUDGET_EXCEEDED]: "FORBIDDEN",
+  // The operator does not sell this managed model here — a refusal, not a
+  // malformed request.
+  [ApiErrorCode.MODEL_NOT_AVAILABLE]: "FORBIDDEN"
 } satisfies Record<ApiErrorCode, TRPCError["code"]>;
 
 export function throwApiError(
