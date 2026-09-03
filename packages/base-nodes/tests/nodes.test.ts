@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { BaseProvider } from "@nodetool-ai/runtime";
+import { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import {
   registerBaseNodes,
   IfNode,
@@ -422,9 +421,10 @@ describe("input/output nodes", () => {
   it("model3d nodes generate and inspect metadata", async () => {
     const meshBytes = new Uint8Array([0x67, 0x6c, 0x54, 0x46, 1, 2, 3, 4]);
     const textTo3D = vi.fn().mockResolvedValue(meshBytes);
-    const ctx = {
-      getProvider: vi.fn().mockResolvedValue({ textTo3D })
-    } as unknown as ProcessingContext;
+    // The node goes through the generation seam, which resolves the
+    // provider with `getProvider` and dispatches to its `textTo3D`.
+    const ctx = new ProcessingContext({ jobId: "test-job" });
+    Object.assign(ctx, { getProvider: vi.fn().mockResolvedValue({ textTo3D }) });
 
     const _t3d = new TextTo3DNode();
     _t3d.assign({
