@@ -12,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { runInSandbox } from "../src/js-sandbox.js";
 import {
+  isMediaLocatorString,
   looksLikeMediaRef,
   MAX_DATA_URI_BYTES,
   MAX_MEDIA_REF_BYTES,
@@ -43,6 +44,74 @@ describe("generation-result locators", () => {
     expect(looksLikeMediaRef(generated)).toBe(true);
     expect(looksLikeMediaRef("png")).toBe(false);
     expect(looksLikeMediaRef("asset://img1.png")).toBe(true);
+  });
+});
+
+describe("isMediaLocatorString", () => {
+  // Every form the module header lists as a ref uri, plus the `/api/` server
+  // path `mediaLocatorFrom`'s error message names.
+  it.each([
+    "asset://img1",
+    "package://nodetool-base/sample.png",
+    "file:///tmp/a.png",
+    "http://example.com/y.png",
+    "https://v3.fal.media/files/rabbit/xyz.png",
+    "s3://bucket/key.mp4",
+    "sandbox://media/7",
+    "/api/storage/sandbox/abc.png",
+    "/api/assets/packages/nodetool-base/sample.png"
+  ])("names media: %s", (locator) => {
+    expect(isMediaLocatorString(locator)).toBe(true);
+    expect(looksLikeMediaRef(locator)).toBe(true);
+  });
+
+  it.each([
+    "data:image/png;base64,iVBORw0KGgo=",
+    "data:image/jpeg;base64,/9j/4AAQ",
+    "data:audio/mpeg;base64,SUQzAw==",
+    "data:video/mp4;base64,AAAAIGZ0eXA=",
+    "data:text/plain;charset=utf-8,hello",
+    "data:,hello"
+  ])("names media: %s", (locator) => {
+    expect(isMediaLocatorString(locator)).toBe(true);
+    expect(looksLikeMediaRef(locator)).toBe(true);
+  });
+
+  // `DATA:` is refused because every resolver downstream matches `data:`
+  // case-sensitively; `data:` alone dereferences to nothing.
+  it.each(["DATA:image/png;base64,iVBORw0KGgo=", "data:", "Data:x"])(
+    "does not name media: %s",
+    (value) => {
+      expect(isMediaLocatorString(value)).toBe(false);
+    }
+  );
+
+  it.each([
+    "png",
+    "jpeg",
+    "cover",
+    "contain",
+    "fill",
+    "0.5",
+    "",
+    "   ",
+    "abc123",
+    "550e8400-e29b-41d4-a716-446655440000",
+    "output.png",
+    "/tmp/x.png",
+    "./rel.png",
+    "~/home.png",
+    "assets/img.png",
+    "/api",
+    "asset:abc"
+  ])("does not name media: %s", (value) => {
+    expect(isMediaLocatorString(value)).toBe(false);
+  });
+
+  it("trims before deciding", () => {
+    expect(isMediaLocatorString("  asset://img1  ")).toBe(true);
+    expect(isMediaLocatorString("\tdata:image/png;base64,AAA\n")).toBe(true);
+    expect(isMediaLocatorString("  png  ")).toBe(false);
   });
 });
 
@@ -271,6 +340,26 @@ describe("media.info", () => {
       limits: { filesystemAccess: "host" }
     });
     expect(result.result).toEqual({ mimeType: "application/pdf", size: 8 });
+  });
+});
+
+describe("data: uri round trip", () => {
+  it("feeds the locator a storage-less run produced back in as a bare string", async () => {
+    const result = await runInSandbox({
+      code: `
+        const ref = await media.toImage(new Uint8Array([104, 105]), {
+          mimeType: "image/png"
+        });
+        const bytes = await image.bytes(ref.uri);
+        return { uri: ref.uri, bytes: Array.from(bytes) };
+      `,
+      context: contextWith(),
+      timeoutMs: 60_000
+    });
+    expect(result.result).toEqual({
+      uri: "data:image/png;base64,aGk=",
+      bytes: [104, 105]
+    });
   });
 });
 
