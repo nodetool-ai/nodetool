@@ -96,7 +96,18 @@ function strokeAndFill(
   }
 }
 
-export function drawShape(ctx: RasterContext2D, opts: DrawShapeOptions) {
+/** Axis-aligned bounding box of a drawn shape, in document pixels. */
+export interface RasterShapeBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export function drawShape(
+  ctx: RasterContext2D,
+  opts: DrawShapeOptions
+): RasterShapeBounds {
   const strokeWidth = opts.strokeWidth ?? 1;
   const w = opts.width ?? 0;
   const h = opts.height ?? 0;

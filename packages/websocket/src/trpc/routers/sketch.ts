@@ -726,7 +726,7 @@ export const sketchRouter = router({
           );
         }
 
-        const paramOverrides: Record<string, unknown> = {};
+        const paramOverrides: Record<string, JsonValue> = {};
         for (const node of sourceNodes) {
           if (!isInputNode(node.type as string)) continue;
           const name = inputNodeName(node);

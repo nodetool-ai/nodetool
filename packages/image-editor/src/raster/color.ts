@@ -6,7 +6,15 @@ export function rgbaToHex({ r, g, b }: Rgba): string {
   return `#${clamp(r).toString(16).padStart(2, "0")}${clamp(g).toString(16).padStart(2, "0")}${clamp(b).toString(16).padStart(2, "0")}`;
 }
 
-export function rgbaBytes(color: string) {
+/** RGBA with every channel, alpha included, as a 0–255 byte. */
+export interface RgbaBytes {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
+
+export function rgbaBytes(color: string): RgbaBytes {
   const parsed = parseColorToRgba(color);
   return {
     r: parsed.r,
@@ -20,7 +28,7 @@ export interface SampledPixel {
   x: number;
   y: number;
   color: string;
-  rgba: { r: number; g: number; b: number; a: number };
+  rgba: RgbaBytes;
 }
 
 /** Sample one pixel. Out-of-bounds returns transparent black. */

@@ -14,6 +14,7 @@ import type {
   BrushSettings,
   BrushType,
   PencilSettings,
+  EraserMode,
   EraserSettings,
   DirtyRectBox,
   DirtyRectTracker
@@ -68,6 +69,13 @@ export function paintPressureForEngine(
 /** Tool opacity at or above this is treated as fully opaque (no pressure fade, crisp eraser stamp, etc.). */
 export const SKETCH_FULL_OPACITY_THRESHOLD = 0.999;
 
+/** Integer square a pixel-perfect dab covers: `n`×`n` with its top-left at `(ix, iy)`. */
+export interface PencilDabFootprint {
+  ix: number;
+  iy: number;
+  n: number;
+}
+
 /**
  * Pixel-perfect pencil dab footprint: integer N×N square centered on the
  * pixel under the cursor. Centering rule: offset = floor((N − 1) / 2), so
@@ -78,7 +86,7 @@ export function pixelPerfectPencilDabFootprint(
   x: number,
   y: number,
   effectiveSize: number
-) {
+): PencilDabFootprint {
   const n = Math.max(1, Math.round(effectiveSize));
   const offset = Math.floor((n - 1) / 2);
   return {
@@ -501,9 +509,15 @@ export function pencilSettingsForEraserStroke(
   };
 }
 
-function eraserModeFromSettings(settings: EraserSettings): "brush" | "pencil" {
-  const raw = settings as EraserSettings & { tip?: "brush" | "pencil" };
-  return settings.mode ?? raw.tip ?? "brush";
+/** Documents written before `mode` existed spell it `tip`. */
+interface LegacyEraserSettings {
+  tip?: EraserMode;
+}
+
+function eraserModeFromSettings(
+  settings: EraserSettings & LegacyEraserSettings
+): EraserMode {
+  return settings.mode ?? settings.tip ?? "brush";
 }
 
 /**

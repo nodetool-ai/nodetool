@@ -213,10 +213,10 @@ export function createStrokeAssistPreset(
 const STROKE_ASSIST_ANGLE_INCREMENTS = [15, 30, 45, 90] as const;
 
 function normalizedStrokeAssistAngleIncrement(
-  value: unknown,
+  value: StrokeAssistSettings["angleIncrement"] | undefined,
   fallback: number
 ): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (value === undefined || !Number.isFinite(value)) {
     return fallback;
   }
   const nearest = STROKE_ASSIST_ANGLE_INCREMENTS.reduce((best, candidate) =>
@@ -225,8 +225,11 @@ function normalizedStrokeAssistAngleIncrement(
   return nearest;
 }
 
-function normalizedUnitScalar(value: unknown, fallback: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+function normalizedUnitScalar(
+  value: number | undefined,
+  fallback: number
+): number {
+  if (value === undefined || !Number.isFinite(value)) {
     return fallback;
   }
   return Math.min(1, Math.max(0, value));
@@ -254,7 +257,7 @@ export function resolveStrokeAssistSettings(
     merged.preset = "custom";
   }
   const shouldPreferLegacyStabilizer =
-    typeof legacyStabilizer === "number" &&
+    legacyStabilizer !== undefined &&
     legacyStabilizer > 0 &&
     merged.preset === "custom" &&
     merged.mode === "stabilizer" &&
