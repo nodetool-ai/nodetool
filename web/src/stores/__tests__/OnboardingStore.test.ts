@@ -5,7 +5,11 @@ import useOnboardingStore, {
 
 describe("OnboardingStore", () => {
   beforeEach(() => {
-    useOnboardingStore.setState({ completedSteps: [], dismissed: false });
+    useOnboardingStore.setState({
+      completedSteps: [],
+      dismissed: false,
+      providerSignInOffered: false
+    });
   });
 
   it("marks a step as completed once", () => {
@@ -30,6 +34,12 @@ describe("OnboardingStore", () => {
   it("dismisses the checklist", () => {
     useOnboardingStore.getState().dismiss();
     expect(useOnboardingStore.getState().dismissed).toBe(true);
+  });
+
+  it("records that the first-run provider sign-in was offered", () => {
+    expect(useOnboardingStore.getState().providerSignInOffered).toBe(false);
+    useOnboardingStore.getState().markProviderSignInOffered();
+    expect(useOnboardingStore.getState().providerSignInOffered).toBe(true);
   });
 
   describe("isOnboardingFinished", () => {

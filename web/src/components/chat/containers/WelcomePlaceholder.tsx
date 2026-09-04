@@ -17,6 +17,7 @@ import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
 import { memo, useCallback, useMemo } from "react";
 import { useLanguageModelProviders } from "../../../hooks/useProviders";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
+import { isElectron, isLocalhost } from "../../../lib/env";
 
 import openaiIcon from "../../../icons/providers/openai.svg";
 import anthropicIcon from "../../../icons/providers/anthropic.svg";
@@ -94,13 +95,23 @@ const SETUP_PROVIDERS = [
   { name: "Gemini", icon: geminiColorIcon, mono: false }
 ] as const;
 
+/**
+ * A desktop install can finish a Claude or OpenAI login on this machine, so it
+ * gets offered the sign-in first. A hosted deployment cannot, and is pointed
+ * at an API key instead.
+ */
+const SETUP_SUBTITLE =
+  isElectron || isLocalhost
+    ? "Sign in with Claude or OpenAI to use a subscription you already pay for, or add an API key. Your credentials are encrypted and stored securely."
+    : "Add an API key for OpenAI, Anthropic, or Gemini to start chatting. Your keys are encrypted and stored securely.";
+
 interface WelcomePlaceholderProps {
   onSuggestionClick?: (suggestion: string) => void;
 }
 
 /**
  * Shown when a chat thread has no messages yet. When no language-model
- * provider is configured we guide the user to add an API key first (otherwise
+ * provider is configured we guide the user to connect one first (otherwise
  * sending a message just fails); once a provider is available we show the
  * regular prompt suggestions.
  */
@@ -121,7 +132,10 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
   const handleConnectProvider = useCallback(() => {
     openProviderOnboarding({
       capability: "generate_message",
-      reason: "Chat needs a language model. Connect a provider to start."
+      reason:
+        isElectron || isLocalhost
+          ? "Chat needs a language model. Sign in with Claude or OpenAI, or connect any provider with an API key."
+          : "Chat needs a language model. Connect a provider to start."
     });
   }, []);
 
@@ -140,8 +154,7 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
               Connect an AI provider to get started
             </Text>
             <Text className="welcome-subtitle" sx={{ maxWidth: 520 }}>
-              Add an API key for OpenAI, Anthropic, or Gemini to start chatting.
-              Your keys are encrypted and stored securely.
+              {SETUP_SUBTITLE}
             </Text>
             <FlexRow gap={1} justify="center" wrap sx={{ mt: 0.5 }}>
               {SETUP_PROVIDERS.map((provider) => (

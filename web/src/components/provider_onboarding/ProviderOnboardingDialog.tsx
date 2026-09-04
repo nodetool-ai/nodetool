@@ -95,6 +95,12 @@ const ProviderOnboardingDialog: React.FC = () => {
     () => providers.filter((p) => p.oauth),
     [providers]
   );
+  // Name the sign-ins actually on offer rather than a fixed list: a hosted
+  // deployment drops the ones that can only finish on the server's machine.
+  const oauthNames = useMemo(
+    () => oauthProviders.map((p) => p.name).join(", "),
+    [oauthProviders]
+  );
   const keyProviders = useMemo(
     () => providers.filter((p) => !p.oauth),
     [providers]
@@ -141,8 +147,8 @@ const ProviderOnboardingDialog: React.FC = () => {
           <FlexColumn gap={SPACING.sm}>
             <SectionHeading
               icon={<BoltRoundedIcon sx={{ fontSize: 18 }} />}
-              title="Fastest way to start"
-              subtitle="Sign in with one click — no key to copy."
+              title="Sign in — fastest way to start"
+              subtitle={`One click with ${oauthNames}. No API key to create.`}
             />
             {oauthProviders.map((provider) => (
               <ProviderOnboardingCard

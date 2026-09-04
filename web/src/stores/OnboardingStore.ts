@@ -5,7 +5,8 @@
  * workflow, build your own) for the checklist on the new-project surface.
  * Persists to localStorage so progress survives reloads. The "connect a
  * provider" step is derived live from configured secrets and is not stored
- * here.
+ * here — only the fact that the first-run sign-in offer was already made, so
+ * a user who declined it is not asked again on every launch.
  */
 
 import { create } from "zustand";
@@ -38,8 +39,11 @@ export const isOnboardingFinished = ({
 interface OnboardingStore {
   completedSteps: OnboardingStepId[];
   dismissed: boolean;
+  /** The first-run provider sign-in offer has been shown once already. */
+  providerSignInOffered: boolean;
   markStep: (step: OnboardingStepId) => void;
   dismiss: () => void;
+  markProviderSignInOffered: () => void;
 }
 
 export const useOnboardingStore = create<OnboardingStore>()(
@@ -47,6 +51,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
     (set) => ({
       completedSteps: [],
       dismissed: false,
+      providerSignInOffered: false,
 
       markStep: (step: OnboardingStepId) => {
         set((state) =>
@@ -58,6 +63,10 @@ export const useOnboardingStore = create<OnboardingStore>()(
 
       dismiss: () => {
         set({ dismissed: true });
+      },
+
+      markProviderSignInOffered: () => {
+        set({ providerSignInOffered: true });
       }
     }),
     {
