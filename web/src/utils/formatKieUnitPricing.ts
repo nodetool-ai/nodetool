@@ -8,12 +8,21 @@ export function isKieVagueBillingSummary(p: Pick<KieUnitPricing, "billing_unit" 
   return /\bvaries\b/i.test(p.billing_unit.trim());
 }
 
+// Constructed once rather than once per KIE node render.
+const WHOLE_CREDITS = new Intl.NumberFormat(undefined, {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+const FRACTIONAL_CREDITS = new Intl.NumberFormat(undefined, {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 1,
+});
+
 function formatCreditAmount(amount: number): string {
-  const digits = Number.isInteger(amount) ? 0 : 1;
-  return `${new Intl.NumberFormat(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: digits,
-  }).format(amount)} credits`;
+  const formatter = Number.isInteger(amount)
+    ? WHOLE_CREDITS
+    : FRACTIONAL_CREDITS;
+  return `${formatter.format(amount)} credits`;
 }
 
 /** A concrete per-unit suffix, or "" when the unit conveys nothing useful. */

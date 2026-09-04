@@ -8,15 +8,12 @@ import { EmptyThreadList } from "./EmptyThreadList";
 import type { ThreadListProps } from "../types/thread.types";
 import { sortThreadsByDate } from "../utils/threadUtils";
 import { groupByDate } from "../../../utils/groupByDate";
+import { formatDayMonth } from "../../../utils/formatUtils";
 
 export type { ThreadInfo } from "../types/thread.types";
 
 function formatGroupDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return "";
-  return date
-    .toLocaleDateString([], { day: "2-digit", month: "short" })
-    .toUpperCase();
+  return formatDayMonth(dateStr).toUpperCase();
 }
 
 const ThreadList: React.FC<ThreadListProps> = ({

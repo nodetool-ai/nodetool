@@ -3,16 +3,7 @@ import { Text, FlexRow } from "../../ui_primitives";
 import { ThreadItemProps } from "../types/thread.types";
 import { DeleteButton } from "../../ui_primitives";
 import ConfirmDialog from "../../dialogs/ConfirmDialog";
-
-function formatClockTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false
-  });
-}
+import { formatClockTime24 } from "../../../utils/formatUtils";
 
 const ThreadItemBase: React.FC<ThreadItemProps> = ({
   threadId,
@@ -66,7 +57,7 @@ const ThreadItemBase: React.FC<ThreadItemProps> = ({
           {thread.title || previewText}
         </Text>
         <Text className="thread-time">
-          {formatClockTime(thread.updatedAt)}
+          {formatClockTime24(thread.updatedAt)}
         </Text>
       </FlexRow>
       <DeleteButton
