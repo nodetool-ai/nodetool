@@ -79,10 +79,10 @@ export class ExportModelNode extends BaseNode {
     description: "Export format: fbx, obj, or usd (OBJ is geometry-only, no .mtl; GLB stays a Model3DRef — see Prepare For Engine)",
     values: ["fbx", "obj", "usd"]
   })
-  declare format: any;
+  declare format: ExportFormat;
 
   @prop({ type: "int", default: 600, title: "Timeout", description: "Maximum export time in seconds", min: 1, max: 3600 })
-  declare timeout: any;
+  declare timeout: number;
 
   async process(context?: ProcessingContext): Promise<ExportModelNodeOutputs> {
     const bytes = await resolveModelBytes(

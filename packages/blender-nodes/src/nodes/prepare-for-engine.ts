@@ -74,10 +74,10 @@ export class PrepareForEngineNode extends BaseNode {
   declare model: ModelBytesRefLike;
 
   @prop({ type: "int", default: 5000, title: "Target Faces", description: "Face budget every mesh is decimated toward; meshes already under it are left alone", min: 1, max: 1000000 })
-  declare target_faces: any;
+  declare target_faces: number;
 
   @prop({ type: "bool", default: true, title: "Unwrap", description: "UV-unwrap every mesh (smart project) before baking; baking projects missing UVs anyway" })
-  declare unwrap: any;
+  declare unwrap: boolean;
 
   @prop({
     type: "enum",
@@ -86,16 +86,16 @@ export class PrepareForEngineNode extends BaseNode {
     description: "Maps to bake into the materials at Bake Resolution: none, ao (occlusion multiplied into base color), normal (tangent-space normal map), or both",
     values: ["none", "ao", "normal", "both"]
   })
-  declare bake: any;
+  declare bake: BakeMode;
 
   @prop({ type: "int", default: 1024, title: "Bake Resolution", description: "Width and height in pixels of each baked map", min: 16, max: 4096 })
-  declare bake_resolution: any;
+  declare bake_resolution: number;
 
   @prop({ type: "int", default: 0, title: "LOD Count", description: "How many LODs to emit alongside the model, at halving face targets (LOD 1 is half the prepared faces, LOD 2 a quarter, and so on)", min: 0, max: 8 })
-  declare lod_count: any;
+  declare lod_count: number;
 
   @prop({ type: "int", default: 600, title: "Timeout", description: "Maximum preparation time in seconds", min: 1, max: 3600 })
-  declare timeout: any;
+  declare timeout: number;
 
   async process(context?: ProcessingContext): Promise<PrepareForEngineNodeOutputs> {
     const bytes = await resolveModelBytes(

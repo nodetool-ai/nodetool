@@ -238,6 +238,32 @@ describe.skipIf(!blenderAvailable())("render_passes integration", () => {
     expect(samples[60 * 160 + 80]).toBeLessThanOrEqual(2);
   }, 300_000);
 
+  it("masks from the object index pass on Cycles", async () => {
+    // The index socket exists only on Cycles (measured 5.2.1: EEVEE lists
+    // Image/Alpha/Depth with the flag on), so the mask stages a third
+    // pass there instead of sharing the depth resolve. The contract is the
+    // same binary image: background corners 0, foreground present.
+    const passes = ["mask"];
+    const result = await runBlenderJob(
+      helper!.context,
+      createDepthGlb(),
+      passesOp(passes, { engine: "cycles" }),
+      outputsFor(passes),
+      { timeoutMs: 300_000 }
+    );
+    const mask = decodePng(result.outputs["mask"]!);
+    expect(mask.channels).toBe(1);
+    expect(mask.width).toBe(160);
+    expect(mask.height).toBe(120);
+    expect([...new Set(mask.pixels)].sort((a, b) => a - b)).toEqual([0, 255]);
+    for (const [x, y] of [[0, 0], [159, 0], [0, 119], [159, 119]]) {
+      expect(mask.pixels[y! * 160 + x!]).toBe(0);
+    }
+    const foreground = mask.pixels.filter((v) => v === 255).length;
+    expect(foreground).toBeGreaterThan(0);
+    expect(foreground).toBeLessThan(mask.pixels.length);
+  }, 300_000);
+
   it("maps a tilted triangle's normals to its camera-space direction", async () => {
     // The depth fixture faces the camera, so its foreground normals equal
     // the background constant by construction. The triangle at an oblique

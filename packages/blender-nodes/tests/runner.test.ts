@@ -1,4 +1,4 @@
-import { chmodSync, copyFileSync } from "node:fs";
+import { chmodSync, copyFileSync, utimesSync, writeFileSync } from "node:fs";
 import { mkdtemp, readdir, rm, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -236,6 +236,69 @@ describe("LocalBlenderRunner against a fake blender", () => {
       expect((err as BlenderJobError).code).toBe("bad_result");
       expect((err as Error).message).toContain("Crash log:");
       expect((err as Error).message).toContain("segfault in render pipeline");
+      await expectScratchGone();
+    } finally {
+      if (savedTmpdir === undefined) delete process.env["TMPDIR"];
+      else process.env["TMPDIR"] = savedTmpdir;
+      await rm(crashDir, { recursive: true, force: true });
+    }
+  });
+
+  it("ignores a pre-existing crash log from an earlier run", async () => {
+    // A `blender.crash.txt` left by the user's own interactive Blender, or
+    // by an earlier run on a shared server, predates this run and belongs
+    // to somebody else's failure. The run below writes no crash log of its
+    // own (exit64-empty), so the stale file must not reach the message.
+    const crashDir = await mkdtemp(path.join(os.tmpdir(), "blender-test-crash-"));
+    const savedTmpdir = process.env["TMPDIR"];
+    process.env["TMPDIR"] = crashDir;
+    try {
+      const stale = path.join(crashDir, "blender.crash.txt");
+      writeFileSync(stale, "yesterday's segfault (stale)\n");
+      const hourAgo = (Date.now() - 3_600_000) / 1000;
+      utimesSync(stale, hourAgo, hourAgo);
+      const runner = useFake("exit64-empty");
+      const err = await runner
+        .run(imageJob(), { model: new Uint8Array([1]) }, { timeoutMs: 10000 })
+        .then(
+          () => null,
+          (e: unknown) => e
+        );
+      expect(err).toBeInstanceOf(BlenderJobError);
+      expect((err as BlenderJobError).code).toBe("bad_result");
+      expect((err as Error).message).not.toContain("Crash log:");
+      expect((err as Error).message).not.toContain("stale");
+      await expectScratchGone();
+    } finally {
+      if (savedTmpdir === undefined) delete process.env["TMPDIR"];
+      else process.env["TMPDIR"] = savedTmpdir;
+      await rm(crashDir, { recursive: true, force: true });
+    }
+  });
+
+  it("prefers the run's own crash log over an alphabetically-first stale one", async () => {
+    // The stale file sorts first (`a-old` < `blender`), so a reader that
+    // takes the alphabetically first `*.crash.txt` attaches the wrong
+    // failure. The mtime bound must skip it and surface this run's log.
+    const crashDir = await mkdtemp(path.join(os.tmpdir(), "blender-test-crash-"));
+    const savedTmpdir = process.env["TMPDIR"];
+    process.env["TMPDIR"] = crashDir;
+    try {
+      const stale = path.join(crashDir, "a-old.crash.txt");
+      writeFileSync(stale, "yesterday's segfault (stale)\n");
+      const hourAgo = (Date.now() - 3_600_000) / 1000;
+      utimesSync(stale, hourAgo, hourAgo);
+      const runner = useFake("crash");
+      const err = await runner
+        .run(imageJob(), { model: new Uint8Array([1]) }, { timeoutMs: 10000 })
+        .then(
+          () => null,
+          (e: unknown) => e
+        );
+      expect(err).toBeInstanceOf(BlenderJobError);
+      expect((err as BlenderJobError).code).toBe("bad_result");
+      expect((err as Error).message).toContain("segfault in render pipeline");
+      expect((err as Error).message).not.toContain("stale");
       await expectScratchGone();
     } finally {
       if (savedTmpdir === undefined) delete process.env["TMPDIR"];

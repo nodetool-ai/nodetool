@@ -21,8 +21,44 @@ import {
   countGlbFaces,
   createGridGlb,
   createTwoMaterialGlb,
+  extractGlbImages,
   parseGlbJson
 } from "./fixtures.js";
+import { decodePng, hasPngSignature, type DecodedPng } from "./png.js";
+
+/** Mean 8-bit sample over every channel: 0 for a black bake, ~255 for white. */
+function meanBrightness(image: DecodedPng): number {
+  let total = 0;
+  for (let i = 0; i < image.pixels.length; i++) total += image.pixels[i]!;
+  return total / image.pixels.length;
+}
+
+/** Fraction of pixels brighter than mid-gray on the first channel. */
+function litFraction(image: DecodedPng): number {
+  const count = image.pixels.length / image.channels;
+  let lit = 0;
+  for (let i = 0; i < count; i++) {
+    if (image.pixels[i * image.channels]! > 128) lit++;
+  }
+  return lit / count;
+}
+
+/**
+ * Mean absolute distance from the flat tangent-space normal color: a real
+ * normal bake of a flat grid lands within a few levels of (128, 128, 255).
+ */
+function meanNormalDistance(image: DecodedPng): number {
+  const target = [128, 128, 255];
+  const channels = image.channels;
+  const count = image.pixels.length / channels;
+  let total = 0;
+  for (let i = 0; i < count; i++) {
+    for (let c = 0; c < 3; c++) {
+      total += Math.abs(image.pixels[i * channels + c]! - target[c]!);
+    }
+  }
+  return total / count / 3;
+}
 
 const GRID_SIZE = 10;
 const GRID_FACES = 2 * GRID_SIZE * GRID_SIZE;
@@ -88,11 +124,10 @@ describe.skipIf(!blenderAvailable())("prepare_for_engine integration", () => {
     expect(validation.ok).toBe(true);
   }, 300_000);
 
-  it("bakes a two-material mesh: every slot gets an image node", async () => {
-    // One mesh, two material slots. Wiring only the active material bakes
-    // half the mesh: measured on 5.2.1, the run succeeds but the model
-    // carries one baked image instead of two, and the second material
-    // exports without its AO.
+  it("bakes a two-material mesh: every slot gets a lit AO map", async () => {
+    // One mesh, two material slots. An image count alone proves nothing: a
+    // cancelled bake still packs the black default image per material, so
+    // this asserts pixel values. A flat quad's AO bakes near white.
     const input = createTwoMaterialGlb();
     expect(countGlbFaces(input)).toBe(4);
     const result = await runBlenderJob(
@@ -108,8 +143,19 @@ describe.skipIf(!blenderAvailable())("prepare_for_engine integration", () => {
     );
     expect(validation.ok).toBe(true);
     expect(countGlbFaces(model)).toBe(4);
-    // One baked AO image per material, embedded in the GLB.
-    expect((parseGlbJson(model)["images"] as unknown[]).length).toBe(2);
+    // One baked AO image per material, embedded in the GLB. Each face
+    // bakes into its own material's image over a shared unwrapped island,
+    // so neither map is full-white: the means below are half the measured
+    // 100 with a black bake at exactly 0.
+    const images = extractGlbImages(model);
+    expect(images.length).toBe(2);
+    for (const image of images) {
+      expect(image.mimeType).toBe("image/png");
+      expect(hasPngSignature(image.bytes)).toBe(true);
+      const decoded = decodePng(image.bytes);
+      expect(meanBrightness(decoded)).toBeGreaterThan(50);
+      expect(litFraction(decoded)).toBeGreaterThan(0.2);
+    }
   }, 300_000);
 
   it("bakes both maps and stays a valid GLB", async () => {
@@ -127,8 +173,18 @@ describe.skipIf(!blenderAvailable())("prepare_for_engine integration", () => {
       json as Parameters<typeof validateModel3D>[0]
     );
     expect(validation.ok).toBe(true);
-    // Both baked maps ride along as embedded images.
-    expect((json["images"] as unknown[]).length).toBeGreaterThanOrEqual(2);
+    // Both baked maps ride along as embedded images, and both carry light:
+    // the AO map bakes near white, the normal map near (128, 128, 255).
+    // A cancelled bake packs black defaults, which the old count-only
+    // assertion could not see.
+    const images = extractGlbImages(model);
+    expect(images.length).toBeGreaterThanOrEqual(2);
+    const decoded = images.map((image) => {
+      expect(image.mimeType).toBe("image/png");
+      return decodePng(image.bytes);
+    });
+    expect(Math.max(...decoded.map(meanBrightness))).toBeGreaterThan(200);
+    expect(Math.min(...decoded.map(meanNormalDistance))).toBeLessThan(8);
     expect(countGlbFaces(model)).toBeLessThan(GRID_FACES);
   }, 300_000);
 });

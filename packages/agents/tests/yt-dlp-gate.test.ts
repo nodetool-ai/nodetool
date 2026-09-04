@@ -66,11 +66,13 @@ describe("the belt", () => {
     expect(names).not.toContain("yt_dlp");
     expect(names).toContain("ffmpeg");
     expect(getBuiltinTools().map((tool) => tool.name)).not.toContain("yt_dlp");
-    // The profile drops the `browser_*` capabilities too (browser-gate.test.ts),
-    // so what leaves the belt is this one plus those — and nothing else.
+    // The profile drops the `browser_*` capabilities too (browser-gate.test.ts)
+    // and `render_model3d` (blender-gate.test.ts), so what leaves the belt
+    // is this one plus those — and nothing else.
     const dropped = BUILTIN_TOOL_NAMES.filter((name) => !names.includes(name));
     expect(dropped.filter((name) => !name.startsWith("browser_"))).toEqual([
-      "yt_dlp"
+      "yt_dlp",
+      "render_model3d"
     ]);
   });
 });

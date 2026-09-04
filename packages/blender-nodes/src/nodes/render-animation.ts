@@ -64,31 +64,31 @@ export class RenderAnimationNode extends BlenderRenderBase {
       "Whose camera renders: auto (the scene's first camera when the model has one, else an orbit camera), scene (the scene's first camera; an error when the model has none), or orbit (always an orbit camera from the props below; with no glTF animation it sweeps orbit_degrees across the range)",
     values: ["auto", "scene", "orbit"]
   })
-  declare camera_mode: any;
+  declare camera_mode: CameraMode;
 
   @prop({ type: "int", default: 1024, title: "Width", description: "Output video width in pixels", min: 16, max: 4096 })
-  declare width: any;
+  declare width: number;
 
   @prop({ type: "int", default: 1024, title: "Height", description: "Output video height in pixels", min: 16, max: 4096 })
-  declare height: any;
+  declare height: number;
 
   @prop({ type: "bool", default: false, title: "Transparent", description: "Render on a transparent background (video alpha; container support varies)" })
-  declare transparent: any;
+  declare transparent: boolean;
 
   @prop({ type: "int", default: 1, title: "Frame Start", description: "First frame in the glTF timeline (timestamp t seconds lands on round(t * fps))", min: 0, max: 100000 })
-  declare frame_start: any;
+  declare frame_start: number;
 
   @prop({ type: "int", default: 24, title: "Frame End", description: "Last frame rendered, inclusive", min: 0, max: 100000 })
-  declare frame_end: any;
+  declare frame_end: number;
 
   @prop({ type: "int", default: 24, title: "FPS", description: "Scene frames per second; glTF animation timestamps map onto this timeline", min: 1, max: 120 })
-  declare fps: any;
+  declare fps: number;
 
   @prop({ type: "float", default: 360, title: "Orbit Degrees", description: "Camera sweep in degrees across the range when the model has no animation and Camera Mode is orbit", min: -1080, max: 1080 })
-  declare orbit_degrees: any;
+  declare orbit_degrees: number;
 
   @prop({ type: "int", default: 600, title: "Timeout", description: "Maximum render time in seconds", min: 1, max: 3600 })
-  declare timeout: any;
+  declare timeout: number;
 
   async process(context?: ProcessingContext): Promise<RenderAnimationNodeOutputs> {
     const bytes = await resolveModelBytes(

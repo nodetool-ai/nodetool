@@ -22,11 +22,13 @@ import { RenderAnimationNode } from "../src/nodes/render-animation.js";
 import { blenderAvailable, failWhenBlenderRequired } from "./blender-available.js";
 
 failWhenBlenderRequired();
+failWhenFfmpegRequired();
 import { blenderTestContext, type BlenderTestContext } from "./context.js";
 import { createAnimatedGlb, triangleModelProp } from "./fixtures.js";
 import {
   brightCentroidX,
   extractFrame,
+  failWhenFfmpegRequired,
   ffmpegAvailable,
   meanAbsDiff,
   probeVideo

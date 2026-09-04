@@ -16,7 +16,7 @@ import time
 
 import bpy
 
-from errors import BadJob, ExportFailed, RenderFailed
+from errors import BadJob, BakeFailed, ExportFailed, RenderFailed
 from ops.common import import_model
 
 
@@ -89,8 +89,7 @@ def _bake_image(meshes, bake, bake_resolution):
     """One bake image per material per kind. Materials go single-user first
     so two meshes never share one image node. Every material gets its own
     selected image node: wiring only the active material leaves the other
-    slots without a bake target, and the mesh exports half-baked (measured
-    on 5.2.1: the bake succeeds but only the wired material carries a map).
+    slots without a bake target, and the mesh exports half-baked.
     Returns `images[kind][obj.name]`, a list of `(material, image)` pairs."""
     images = {}
     for obj in meshes:
@@ -99,13 +98,13 @@ def _bake_image(meshes, bake, bake_resolution):
                 slot.material = slot.material.copy()
         materials = _unique_materials(obj)
         if not materials:
-            raise RenderFailed(
+            raise BakeFailed(
                 "cannot bake: %r has no material" % (obj.name,)
             )
         kinds = ("ao", "normal") if bake == "both" else (bake,)
         for material in materials:
             if not material.use_nodes:
-                raise RenderFailed(
+                raise BakeFailed(
                     "cannot bake: material %r on %r has no nodes"
                     % (material.name, obj.name)
                 )
@@ -118,9 +117,14 @@ def _bake_image(meshes, bake, bake_resolution):
                 nodes = material.node_tree.nodes
                 tex = nodes.new("ShaderNodeTexImage")
                 tex.image = image
-                # The bake operator writes the selected image nodes.
+                # The bake operator writes the selected image nodes. Compare
+                # with `==`, never `is`: every collection access hands back a
+                # new Python proxy, so `is` never matches and the loop
+                # deselects everything — the bake then cancels with "No
+                # active and selected image texture node found" and packs a
+                # black default (measured 5.2.1).
                 for node in nodes:
-                    node.select = node is tex
+                    node.select = node == tex
                 nodes.active = tex
                 images.setdefault(kind, {}).setdefault(obj.name, []).append(
                     (material, image)
@@ -190,6 +194,35 @@ def _wire_baked(meshes, images):
                         links.new(mix.outputs["Color"], base)
 
 
+def _select_kind_nodes(meshes, images, kind):
+    """Select only `kind`'s bake nodes, in every mesh material, and make each
+    one the active node of its tree. `_bake_image` builds one node per kind
+    and leaves the last kind's nodes selected, so without this an `ao` bake
+    lands in the `normal` image (and the AO map exports black) while the
+    normal bake overwrites it. Image and material data blocks compare by
+    identity; nodes do not (see `_bake_image`)."""
+    for obj in meshes:
+        for material in _unique_materials(obj):
+            target = _image_for(images[kind].get(obj.name, []), material)
+            nodes = material.node_tree.nodes
+            for node in nodes:
+                if node.type == "TEX_IMAGE" and node.image is not None:
+                    node.select = target is not None and node.image == target
+            if target is not None:
+                tex = next(
+                    (
+                        node
+                        for node in nodes
+                        if node.type == "TEX_IMAGE"
+                        and node.image is not None
+                        and node.image == target
+                    ),
+                    None,
+                )
+                if tex is not None:
+                    nodes.active = tex
+
+
 def _bake(meshes, bake, bake_resolution):
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
@@ -200,14 +233,24 @@ def _bake(meshes, bake, bake_resolution):
     for obj in meshes:
         obj.select_set(True)
     for kind in kinds:
+        _select_kind_nodes(meshes, images, kind)
         bpy.context.view_layer.objects.active = meshes[0]
         try:
             if kind == "ao":
-                bpy.ops.object.bake(type="AO", margin=16)
+                result = bpy.ops.object.bake(type="AO", margin=16)
             else:
-                bpy.ops.object.bake(type="NORMAL", margin=16)
+                result = bpy.ops.object.bake(type="NORMAL", margin=16)
         except Exception as exc:
-            raise RenderFailed("bake %r failed: %s" % (kind, exc))
+            raise BakeFailed("bake %r failed: %s" % (kind, exc))
+        # A cancelled bake writes nothing and leaves the black default in
+        # place, which `pack()` would then freeze into the export — the same
+        # way `_export_glb` treats a rejected export, a non-FINISHED bake is
+        # a failure, not a silent no-op.
+        if "FINISHED" not in result:
+            raise BakeFailed(
+                "bake %r was cancelled: no selected image node held a bake "
+                "target (operator returned %r)" % (kind, result)
+            )
     for kind_images in images.values():
         for pairs in kind_images.values():
             for _material, image in pairs:

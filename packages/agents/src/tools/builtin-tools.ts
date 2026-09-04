@@ -32,6 +32,7 @@ import { registerTool } from "./tool-registry.js";
 import { toolForCapabilityName } from "../capabilities/lazy-tool.js";
 import { isYtDlpEnabled } from "../yt-dlp-gate.js";
 import { isBrowserEnabled } from "../browser-gate.js";
+import { isBlenderEnabled } from "../blender-gate.js";
 
 export const BUILTIN_TOOL_NAMES: readonly string[] = [
   // Filesystem (workspace-relative)
@@ -230,6 +231,12 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   // Dropped under the cloud profile — see `availableBuiltinToolNames`.
   "yt_dlp",
 
+  // Headless 3D render. Runs Blender through `runBlenderJob` and stores the
+  // PNG through `context.createAsset`, so a context is the whole
+  // dependency — the same one the media tools above run on.
+  // Dropped under the cloud profile — see `availableBuiltinToolNames`.
+  "render_model3d",
+
   // Email
   "search_email",
   "archive_email",
@@ -260,8 +267,9 @@ const BROWSER_TOOL_NAMES: readonly string[] = BUILTIN_TOOL_NAMES.filter((name) =
  * {@link BUILTIN_TOOL_NAMES} minus the ones this deployment does not offer.
  *
  * Both conditions are the cloud profile: it drops `yt_dlp` (see
- * {@link isYtDlpEnabled}) and the `browser_*` capabilities (see
- * {@link isBrowserEnabled}), so an agent, a Code node and a JS script all see
+ * {@link isYtDlpEnabled}), the `browser_*` capabilities (see
+ * {@link isBrowserEnabled}) and `render_model3d` (see
+ * {@link isBlenderEnabled}), so an agent, a Code node and a JS script all see
  * the same belt as the node catalog — one gate rather than a per-host filter.
  *
  * Dropping a name here is what a model sees; it is not the enforcement. A
@@ -272,6 +280,7 @@ export function availableBuiltinToolNames(): readonly string[] {
   const dropped = new Set<string>();
   if (!isYtDlpEnabled()) dropped.add("yt_dlp");
   if (!isBrowserEnabled()) for (const name of BROWSER_TOOL_NAMES) dropped.add(name);
+  if (!isBlenderEnabled()) dropped.add("render_model3d");
   if (dropped.size === 0) return BUILTIN_TOOL_NAMES;
   return BUILTIN_TOOL_NAMES.filter((name) => !dropped.has(name));
 }

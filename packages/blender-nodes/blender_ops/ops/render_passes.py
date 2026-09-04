@@ -11,15 +11,13 @@ node tree staging the raw float passes:
   `exr` keeps the raw float with background `+inf`, as Blender writes it.
 - `normal`: camera-space normals from the Normal pass, `[-1, 1]` mapped to
   8-bit RGB, background `(128, 128, 255)`.
-- `mask`: 8-bit image, foreground `255`, keyed on finite Z. D4 specifies
-  the object index pass, but Blender 5.2 exposes no index socket on the
-  `CompositorNodeRLayers` node the op must stage through (measured 5.2.1:
-  `use_pass_object_index = True` is accepted yet the node lists only
-  Image/Alpha/Depth/Mist/Normal, and the Render Result offers no
-  Python-side pass access either), so both engines share the
-  depth-finiteness gate instead. It agrees with the index pass on opaque
-  geometry and disagrees for alpha-blended, holdout, and volume materials —
-  a recorded deviation from D4, not an implementation of it.
+- `mask`: 8-bit image, foreground `255`, from the object index pass — on
+  Cycles, where the pass exists. EEVEE's `CompositorNodeRLayers` exposes no
+  index socket (measured 5.2.1: `use_pass_object_index = True` is accepted
+  yet the node lists only Image/Alpha/Depth), so EEVEE keys the mask on
+  finite Z instead. The gate agrees with the index pass on opaque geometry
+  and disagrees for alpha-blended, holdout, and volume materials — a
+  recorded EEVEE-only deviation from D4, not an implementation of it.
 
 `params["passes"]` selects the subset to produce; the op writes and reports
 only those.
@@ -65,6 +63,11 @@ _STAGE_SUBDIR = "nodetool-passes-stage"
 #: Raw float passes the compositor stages.
 _DEPTH_RAW_SLOT = "depth_raw"
 _NORMAL_RAW_SLOT = "normal_raw"
+_INDEX_RAW_SLOT = "index_raw"
+
+#: Object index every mesh carries when the mask stages the index pass:
+#: background reads 0, so any positive index is foreground.
+_MASK_PASS_INDEX = 1
 
 #: Background constant for the normal map: exactly (128, 128, 255) in 8-bit.
 NORMAL_BACKGROUND = (128, 128, 255)
@@ -95,7 +98,7 @@ def _selected_passes(params):
     return passes
 
 
-def _build_compositor():
+def _build_compositor(stage_index):
     # Passes are enabled before the Render Layers node is created so its
     # sockets exist when linked. Both raw passes always stage: the mask and
     # the depth stats share the depth resolve, so depth is needed even when
@@ -106,12 +109,24 @@ def _build_compositor():
     view_layer = scene.view_layers[0]
     view_layer.use_pass_z = True
     view_layer.use_pass_normal = True
+    # The index socket only exists on Cycles (measured 5.2.1: EEVEE lists
+    # Image/Alpha/Depth with the flag on), so it is enabled only when the
+    # mask will actually stage it — and before the node is created.
+    if stage_index:
+        view_layer.use_pass_object_index = True
 
     group = bpy.data.node_groups.new("NodeTool_Passes", "CompositorNodeTree")
     scene.compositing_node_group = group
     layers = group.nodes.new("CompositorNodeRLayers")
 
-    for slot, socket in ((_DEPTH_RAW_SLOT, "Depth"), (_NORMAL_RAW_SLOT, "Normal")):
+    staged = [(_DEPTH_RAW_SLOT, "Depth"), (_NORMAL_RAW_SLOT, "Normal")]
+    if stage_index:
+        if "Object Index" not in [output.name for output in layers.outputs]:
+            raise RenderFailed(
+                "object index pass has no socket on %s" % (scene.render.engine,)
+            )
+        staged.append((_INDEX_RAW_SLOT, "Object Index"))
+    for slot, socket in staged:
         node = group.nodes.new("CompositorNodeOutputFile")
         node.file_output_items.clear()
         node.file_output_items.new("RGBA", "Image")
@@ -148,7 +163,7 @@ def _map_normal(rgb, basis):
     return out
 
 
-def _collect_staged(workdir):
+def _collect_staged(workdir, stage_index):
     """Move the staged EXRs into the workdir; fail loudly when one is missing."""
     stage_dir = os.path.join(workdir, _STAGE_SUBDIR)
     try:
@@ -156,7 +171,10 @@ def _collect_staged(workdir):
     except OSError:
         seen = []
     staged = {}
-    for slot in (_DEPTH_RAW_SLOT, _NORMAL_RAW_SLOT):
+    slots = [_DEPTH_RAW_SLOT, _NORMAL_RAW_SLOT]
+    if stage_index:
+        slots.append(_INDEX_RAW_SLOT)
+    for slot in slots:
         src = os.path.join(stage_dir, slot + ".exr")
         if not os.path.exists(src):
             # Name the directory: a missing stage file means the File Output
@@ -209,7 +227,13 @@ def _run_passes(job, workdir, params, outputs, passes, depth_format,
     scene.render.image_settings.color_mode = "RGBA"
     scene.render.image_settings.color_depth = "8"
     scene.render.filepath = workdir + os.sep
-    _build_compositor()
+    # The mask stages the object index pass where it exists (Cycles) and
+    # shares the depth resolve where it does not (EEVEE).
+    stage_index = "mask" in passes and scene.render.engine == "CYCLES"
+    if stage_index:
+        for obj in meshes:
+            obj.pass_index = _MASK_PASS_INDEX
+    _build_compositor(stage_index)
 
     started = time.monotonic()
     try:
@@ -240,7 +264,7 @@ def _run_passes(job, workdir, params, outputs, passes, depth_format,
     need_depth = bool({"depth", "mask", "normal"} & set(passes))
     need_normal = "normal" in passes
     staged = (
-        _collect_staged(workdir)
+        _collect_staged(workdir, stage_index)
         if (need_depth or need_normal)
         else {}
     )
@@ -251,11 +275,26 @@ def _run_passes(job, workdir, params, outputs, passes, depth_format,
             staged[_DEPTH_RAW_SLOT]
         )
         # Foreground is finite Z below the no-hit sentinel: EEVEE writes
-        # 1e10 off-geometry, Cycles +inf. The mask shares this resolve, so
-        # no separate mask pass is needed on either engine.
+        # 1e10 off-geometry, Cycles +inf. The EEVEE mask shares this
+        # resolve; the Cycles mask keys on its own index pass below.
         foreground = [_is_foreground(value) for value in depths]
     if "mask" in passes:
-        assert depths is not None and foreground is not None
+        if stage_index:
+            index_width, index_height, index_r, _g, _b = read_exr_rgba(
+                staged[_INDEX_RAW_SLOT]
+            )
+            if need_depth and (index_width, index_height) != (width, height):
+                raise RenderFailed(
+                    "depth (%dx%d) and index (%dx%d) sizes disagree"
+                    % (width, height, index_width, index_height)
+                )
+            width, height = index_width, index_height
+            # Background reads exactly 0; every mesh carries
+            # `_MASK_PASS_INDEX`, so any positive index is foreground.
+            foreground = [value > 0.5 for value in index_r]
+        else:
+            assert depths is not None and foreground is not None
+        assert foreground is not None
         write_gray8_png(
             os.path.join(workdir, outputs["mask"]),
             width,
@@ -308,8 +347,9 @@ def _run_passes(job, workdir, params, outputs, passes, depth_format,
             os.remove(staged[_DEPTH_RAW_SLOT])
         produced.append("depth")
 
-    # Drop whichever staged EXR survived (unselected depth keeps its raw).
-    for slot in (_DEPTH_RAW_SLOT, _NORMAL_RAW_SLOT):
+    # Drop whichever staged EXR survived (unselected depth keeps its raw,
+    # and the index raw is consumed only into the mask).
+    for slot in (_DEPTH_RAW_SLOT, _NORMAL_RAW_SLOT, _INDEX_RAW_SLOT):
         leftover = os.path.join(workdir, slot + ".exr")
         if os.path.exists(leftover):
             os.remove(leftover)

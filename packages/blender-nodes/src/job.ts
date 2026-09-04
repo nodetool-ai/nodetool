@@ -108,6 +108,7 @@ const blenderErrorCodes = [
   "unsupported_format",
   "render_failed",
   "export_failed",
+  "bake_failed",
   "bad_job"
 ] as const;
 

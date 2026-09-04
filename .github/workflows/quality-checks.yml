@@ -319,14 +319,16 @@ jobs:
           # This shard also runs the Blender integration suites
           # (`packages/blender-nodes/tests/*`), which skip without a Blender
           # binary. The X11/GL libraries below are what the Blender tarball
-          # links against for a headless (`-b`) run; the Install Blender
+          # links against for a headless (`-b`) run — EEVEE in `-b` on a
+          # display-less runner needs a GL/EGL context (`libegl1`), and older
+          # tarballs also dlopen `libsm6`; the Install Blender
           # step further down puts 5.2 on PATH and sets
           # NODETOOL_REQUIRE_BLENDER=1, so a missing Blender fails the
           # suite instead of skipping it.
           - check: test-packages-nodes
             command: npx turbo run test --filter='./packages/*-nodes' --filter=@nodetool-ai/gpu --filter=@nodetool-ai/workflow-runner --filter=@nodetool-ai/nodes-utils $TURBO_AFFECTED
             mobile-deps: "false"
-            extra-apt: "mesa-vulkan-drivers ffmpeg libgl1 libxi6 libxrender1 libxfixes3 libxkbcommon0 libxxf86vm1"
+            extra-apt: "mesa-vulkan-drivers ffmpeg libgl1 libegl1 libsm6 libxi6 libxrender1 libxfixes3 libxkbcommon0 libxxf86vm1"
             is-test: "true"
             fetch-depth: "0"
           - check: test-packages-core

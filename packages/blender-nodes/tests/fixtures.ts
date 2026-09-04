@@ -339,6 +339,49 @@ export function parseGlbJson(glb: Uint8Array): Record<string, unknown> {
   return JSON.parse(new TextDecoder().decode(jsonBytes)) as Record<string, unknown>;
 }
 
+export interface GlbImage {
+  bytes: Uint8Array;
+  mimeType: string;
+}
+
+/**
+ * Embedded images of a GLB in `images` order: the byte range each image's
+ * buffer view names, sliced out of the BIN chunk. What the prepare tests
+ * decode to prove a bake wrote light instead of packing a black default.
+ */
+export function extractGlbImages(glb: Uint8Array): GlbImage[] {
+  const json = parseGlbJson(glb);
+  const view = new DataView(glb.buffer, glb.byteOffset, glb.byteLength);
+  const jsonLength = view.getUint32(12, true);
+  const jsonPadded = jsonLength + ((4 - (jsonLength % 4)) % 4);
+  // BIN chunk header (8 bytes) follows the JSON chunk; its bytes follow that.
+  const bin = new Uint8Array(
+    glb.buffer,
+    glb.byteOffset + 20 + jsonPadded + 8,
+    glb.byteLength - 20 - jsonPadded - 8
+  );
+  const bufferViews = (json["bufferViews"] ?? []) as Array<{
+    byteOffset?: number;
+    byteLength: number;
+  }>;
+  const images = (json["images"] ?? []) as Array<{
+    bufferView?: number;
+    mimeType?: string;
+  }>;
+  return images.map((image) => {
+    if (image.bufferView === undefined) {
+      throw new Error("GLB image has no bufferView.");
+    }
+    const bufferView = bufferViews[image.bufferView];
+    if (!bufferView) throw new Error(`GLB image names missing bufferView ${image.bufferView}.`);
+    const offset = bufferView.byteOffset ?? 0;
+    return {
+      bytes: bin.slice(offset, offset + bufferView.byteLength),
+      mimeType: image.mimeType ?? ""
+    };
+  });
+}
+
 /**
  * Face count of a GLB: indices/3 per primitive, else POSITION/3. What the
  * prepare tests compare before and after decimation.

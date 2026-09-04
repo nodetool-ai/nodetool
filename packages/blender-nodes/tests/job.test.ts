@@ -54,6 +54,7 @@ describe("blenderResultSchema", () => {
       "unsupported_format",
       "render_failed",
       "export_failed",
+      "bake_failed",
       "bad_job"
     ]) {
       const parsed = blenderResultSchema.safeParse({

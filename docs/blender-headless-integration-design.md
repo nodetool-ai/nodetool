@@ -307,12 +307,14 @@ Output contracts the ops must honor:
 - `normal`: camera-space normals from the Normal pass, mapped from `[-1, 1]`
   to 8-bit RGB. Background is `(128, 128, 255)`.
 - `mask`: 8-bit alpha of the object index pass, foreground `255`.
-  Deviation (recorded, not silent): the implementation keys the mask on
-  finite Z instead. Blender 5.2 accepts `use_pass_object_index` but exposes
-  no index socket on the `CompositorNodeRLayers` node the op stages through
-  (measured 5.2.1: only Image/Alpha/Depth/Mist/Normal appear, and the Render
-  Result offers no Python-side pass access either), so the specified pass is
-  unreachable on the headless path. The gate agrees with the index pass on
+  The pass is enabled before the Render Layers node is created (measured
+  5.2.1: Cycles then lists Image/Alpha/Depth/Object Index/Noisy Image) and
+  every mesh renders with object index 1, so the mask keys on a positive
+  index with background 0.
+  Deviation (recorded, not silent, EEVEE only): EEVEE's
+  `CompositorNodeRLayers` exposes no index socket (measured 5.2.1: only
+  Image/Alpha/Depth appear with `use_pass_object_index` on), so EEVEE keys
+  the mask on finite Z instead. The gate agrees with the index pass on
   opaque geometry and disagrees for alpha-blended, holdout, and volume
   materials. EEVEE's no-hit Z value `1e10` is a measured EEVEE behavior on
   5.2.1, not a documented API value: re-measure it if the version floor
@@ -479,13 +481,15 @@ It reuses `runBlenderJob` and stores the PNG through `context.createAsset`.
 Permission category `write` (it creates an asset). Extending the existing
 module keeps the 3D capabilities in one place for the eval surface.
 
-Gap (recorded): unlike the `nodetool.blender` namespace, which D8 keeps out
-of the cloud profile, this capability has no availability gate — the
-capability layer carries no availability mechanism (a spec is only a name, a
-description, a schema, and a category, and the registry has no filtering
-hook), so an agent on a Blender-less server still sees `render_model3d`.
-The failure names the cause instead ("this server has no Blender
-installed...") until such a mechanism exists.
+Availability follows the `yt_dlp` / `browser_*` pattern exactly: the
+cloud profile drops `render_model3d` from the offered belt
+(`availableBuiltinToolNames`, via `isBlenderEnabled` in
+`packages/agents/src/blender-gate.ts` — the same `NODETOOL_NODE_PROFILE`
+switch D8 uses for the `nodetool.blender` namespace), and the
+implementation refuses on its own when reached by name, so a guest that
+imports the module still gets a deployment answer instead of a run failure.
+A non-cloud server without the binary still serves the capability and fails
+with the cause named ("this server has no Blender installed...").
 
 ### D10. Configuration
 

@@ -40,3 +40,7 @@ class RenderFailed(BlenderOpError):
 
 class ExportFailed(BlenderOpError):
     code = "export_failed"
+
+
+class BakeFailed(BlenderOpError):
+    code = "bake_failed"

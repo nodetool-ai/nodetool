@@ -39,6 +39,25 @@ export function ffmpegAvailable(): boolean {
   return onPath(`ffprobe${exe}`) && onPath(`ffmpeg${exe}`);
 }
 
+/**
+ * Fail the suite when Blender runs are required but ffmpeg is missing. Call
+ * at module scope of every suite that decodes video, next to
+ * `failWhenBlenderRequired`: CI sets `NODETOOL_REQUIRE_BLENDER=1` and
+ * installs ffmpeg, so a skipped animation suite there is a broken install
+ * rather than a pass.
+ */
+export function failWhenFfmpegRequired(): void {
+  if (
+    process.env["NODETOOL_REQUIRE_BLENDER"] === "1" &&
+    !ffmpegAvailable()
+  ) {
+    throw new Error(
+      "NODETOOL_REQUIRE_BLENDER=1 is set but ffprobe/ffmpeg were not found " +
+        "on PATH. Install ffmpeg, or unset the variable to allow skips."
+    );
+  }
+}
+
 function ffprobeName(): string {
   return process.platform === "win32" ? "ffprobe.exe" : "ffprobe";
 }

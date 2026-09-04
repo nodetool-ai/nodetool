@@ -33,6 +33,7 @@ import type {
   CapabilityModule,
   CapabilityRun
 } from "./types.js";
+import { BLENDER_DISABLED_ERROR, isBlenderEnabled } from "../blender-gate.js";
 import {
   createModel3dSpec,
   editModel3dSpec,
@@ -445,6 +446,9 @@ function numParam(params: Record<string, unknown>, key: string, fallback: number
 const renderModel3d: CapabilityExport = {
   spec: renderModel3dSpec,
   impl: async (run, params) => {
+    // The cloud profile leaves this off every belt, so a model never sees
+    // it. A guest that imports this module by name still lands here.
+    if (!isBlenderEnabled()) return { error: BLENDER_DISABLED_ERROR };
     const model = await loadModelBytes(run, params["model_id"]);
     if (isError(model)) return model;
 
@@ -484,11 +488,11 @@ const renderModel3d: CapabilityExport = {
       png = result.outputs["image"] ?? new Uint8Array();
       stats = result.stats as Record<string, unknown>;
     } catch (error) {
-      // No availability gate exists at the capability layer (specs carry
-      // only name, description, schema, and category), so this capability
-      // stays visible on servers where Blender can never exist. The
-      // failure then names the cause instead of leaking "blender was not
-      // found" as if the caller did something wrong.
+      // Blender is a host binary, so a server without one still serves the
+      // capability and only fails here. The failure then names the cause
+      // instead of leaking "blender was not found" as if the caller did
+      // something wrong. (A cloud-profile server never reaches this: the
+      // `isBlenderEnabled` refusal above fires first.)
       if (error instanceof HostBinaryMissingError && error.binary === "blender") {
         return {
           error:

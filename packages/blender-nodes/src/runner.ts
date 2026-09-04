@@ -44,6 +44,7 @@ export type BlenderJobErrorCode =
   | "unsupported_format"
   | "render_failed"
   | "export_failed"
+  | "bake_failed"
   | "bad_job"
   | "bad_result"
   | "missing_output"
@@ -186,6 +187,10 @@ export class LocalBlenderRunner implements BlenderRunner {
     inputs: Record<string, Uint8Array>,
     options: BlenderRunOptions
   ): Promise<BlenderRunResult> {
+    // The wall clock this run started on: a `.crash.txt` older than this
+    // belongs to an earlier run (or the user's own interactive Blender on
+    // a shared `$TMPDIR`) and must not be attached to this run's failure.
+    const runStartMs = Date.now();
     // Refuse before resolving a binary: without a scratch parent there is
     // no seam to stage through, and no tmpdir fallback exists.
     const parent = options.scratchParent ?? this.scratchParent;
@@ -285,7 +290,7 @@ export class LocalBlenderRunner implements BlenderRunner {
       // Step 3: read `result.json`. A missing or unparsable file is
       // `bad_result` carrying the last 4 KiB of stderr (plus the `.crash.txt`
       // Blender leaves on a segfault, when present).
-      const parsed = await readResult(cwd, result.stderr);
+      const parsed = await readResult(cwd, result.stderr, runStartMs);
 
       // Step 4: the op's own failure.
       if (!parsed.ok) {
@@ -365,7 +370,8 @@ function messageOf(err: unknown): string {
 
 async function readResult(
   cwd: string,
-  stderr: string
+  stderr: string,
+  runStartMs: number
 ): Promise<
   | { ok: true; produced: string[]; stats: BlenderResultStats }
   | { ok: false; error: { code: BlenderJobErrorCode; message: string } }
@@ -376,7 +382,7 @@ async function readResult(
   } catch {
     throw new BlenderJobError(
       "bad_result",
-      await badResultMessage(cwd, stderr)
+      await badResultMessage(cwd, stderr, runStartMs)
     );
   }
   let json: unknown;
@@ -385,14 +391,14 @@ async function readResult(
   } catch {
     throw new BlenderJobError(
       "bad_result",
-      await badResultMessage(cwd, stderr)
+      await badResultMessage(cwd, stderr, runStartMs)
     );
   }
   const parsed = blenderResultSchema.safeParse(json);
   if (!parsed.success) {
     throw new BlenderJobError(
       "bad_result",
-      await badResultMessage(cwd, stderr)
+      await badResultMessage(cwd, stderr, runStartMs)
     );
   }
   const result = parsed.data;
@@ -402,11 +408,15 @@ async function readResult(
   return { ok: true, produced: result.produced, stats: result.stats };
 }
 
-async function badResultMessage(cwd: string, stderr: string): Promise<string> {
+async function badResultMessage(
+  cwd: string,
+  stderr: string,
+  runStartMs: number
+): Promise<string> {
   let message =
     `Blender finished without a parsable result.json. ` +
     `Stderr tail: ${stderrTail(stderr)}`;
-  const crash = await readCrashLog(cwd);
+  const crash = await readCrashLog(cwd, runStartMs);
   if (crash) message += ` Crash log: ${crash}`;
   return message;
 }
@@ -419,8 +429,17 @@ async function badResultMessage(cwd: string, stderr: string): Promise<string> {
  * cwd — a run with no `.blend` file open leaves `blender.crash.txt` there.
  * Both places are checked, the temp directory first, since that is where
  * Blender really writes.
+ *
+ * Only a log written at or after `runStartMs` counts: the temp directory
+ * is shared, so a `blender.crash.txt` from the user's own interactive
+ * Blender — or from an earlier run on a shared server — would otherwise be
+ * attached to every later `bad_result` for as long as it exists. The first
+ * fresh log in sorted order wins.
  */
-async function readCrashLog(cwd: string): Promise<string | null> {
+async function readCrashLog(
+  cwd: string,
+  runStartMs: number
+): Promise<string | null> {
   const tmpdir =
     process.env["TMPDIR"] ?? process.env["TEMP"] ?? process.env["TMP"] ??
     os.tmpdir();
@@ -432,15 +451,24 @@ async function readCrashLog(cwd: string): Promise<string | null> {
     } catch {
       continue;
     }
-    const crashFile = entries
+    const crashFiles = entries
       .filter((name) => name.endsWith(".crash.txt"))
-      .sort()[0];
-    if (!crashFile) continue;
-    try {
-      const text = await readFile(path.join(dir, crashFile), "utf8");
-      return Buffer.from(text, "utf8").subarray(0, STDERR_TAIL_BYTES).toString("utf8");
-    } catch {
-      return null;
+      .sort();
+    for (const crashFile of crashFiles) {
+      const file = path.join(dir, crashFile);
+      let mtimeMs: number;
+      try {
+        mtimeMs = (await stat(file)).mtimeMs;
+      } catch {
+        continue;
+      }
+      if (mtimeMs < runStartMs) continue;
+      try {
+        const text = await readFile(file, "utf8");
+        return Buffer.from(text, "utf8").subarray(0, STDERR_TAIL_BYTES).toString("utf8");
+      } catch {
+        continue;
+      }
     }
   }
   return null;

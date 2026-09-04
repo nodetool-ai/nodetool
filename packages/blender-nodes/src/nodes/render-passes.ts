@@ -83,7 +83,7 @@ export class RenderPassesNode extends BlenderRenderBase {
     description:
       "Passes to produce: color (beauty), depth (view-axis distance), normal (camera-space), mask (binary foreground)"
   })
-  declare passes: any;
+  declare passes: RenderPass[];
 
   @prop({
     type: "enum",
@@ -93,10 +93,10 @@ export class RenderPassesNode extends BlenderRenderBase {
       "Depth encoding: png16 (normalized between depth_near and depth_far, background 65535) or exr (raw float, background +inf)",
     values: ["png16", "exr"]
   })
-  declare depth_format: any;
+  declare depth_format: DepthFormat;
 
   @prop({ type: "int", default: 600, title: "Timeout", description: "Maximum render time in seconds", min: 1, max: 3600 })
-  declare timeout: any;
+  declare timeout: number;
 
   async process(context?: ProcessingContext): Promise<RenderPassesNodeOutputs> {
     const bytes = await resolveModelBytes(

@@ -52,7 +52,7 @@ export class RenderImageNode extends BlenderRenderBase {
   static readonly inputFields = ["model"];
 
   @prop({ type: "int", default: 600, title: "Timeout", description: "Maximum render time in seconds", min: 1, max: 3600 })
-  declare timeout: any;
+  declare timeout: number;
 
   async process(context?: ProcessingContext): Promise<RenderImageNodeOutputs> {
     const bytes = await resolveModelBytes(
