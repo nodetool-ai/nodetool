@@ -1,10 +1,12 @@
 /**
  * "What do you want to make?" — the surface a project is started from.
  *
- * The prompt goes to the project's own agent, which builds the documents. A
- * starter is one of the user's skills — their own or one NodeTool ships — and
- * picking one prefixes the opening turn with `/<name>`, the same slash command
- * the composer sends, so the agent reads that skill's instructions before it
+ * The prompt goes to the project's own agent, which builds the documents. The
+ * box takes the chat composer's triggers: `/` completes a skill and `@` picks
+ * an asset or a library entity, so the opening turn is written the same way
+ * every other turn is. A starter is one of the user's skills — their own or one
+ * NodeTool ships — picked from a chip or from `/`, and it prefixes the opening
+ * turn with `/<name>` so the agent reads that skill's instructions before it
  * plans anything. The picked skill is stored as the project's kind, which is
  * what its spend history is read back by. Blank documents keep their place at
  * the foot of the view, opening loose tabs the way the `+ New` menu always
@@ -33,8 +35,11 @@ import {
   TextInput,
   TYPOGRAPHY
 } from "../ui_primitives";
-import type { MessageContent } from "../../stores/ApiTypes";
+import type { Asset, MessageContent } from "../../stores/ApiTypes";
 import { useFileHandling } from "../chat/hooks/useFileHandling";
+import { useTextareaAssetMention } from "../chat/composer/useTextareaAssetMention";
+import { useTextareaSkillMention } from "../chat/composer/useTextareaSkillMention";
+import { assetToUri } from "../node_types/editing/promptComposer/promptTokens";
 import { useEntities } from "../../serverState/useEntities";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
@@ -94,15 +99,16 @@ const NewProjectSurface = () => {
   const [entityAnchor, setEntityAnchor] = useState<HTMLElement | null>(null);
   const [submenu, setSubmenu] = useState<SubmenuAnchor | null>(null);
   const [starting, setStarting] = useState(false);
-  // The model the project agent will run on, picked here — this surface has no
-  // composer, so its menu is the only place to pick one before Start.
+  // The model the project agent will run on, picked here — the prompt box has
+  // no model chip, so this menu is the only place to pick one before Start.
   const [modelAnchor, setModelAnchor] = useState<HTMLElement | null>(null);
   // A start requested before a provider was configured, resumed once one is.
   const [pendingStart, setPendingStart] = useState(false);
   const refInputRef = useRef<HTMLInputElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
+  const promptRef = useRef<HTMLTextAreaElement>(null);
 
-  const { droppedFiles, addFiles, removeFile, getFileContents } =
+  const { droppedFiles, addFiles, addDroppedFiles, removeFile, getFileContents } =
     useFileHandling();
   const { data: entities } = useEntities();
   // Both the user's own skills and the ones NodeTool ships: either is a
@@ -172,6 +178,61 @@ const NewProjectSurface = () => {
         : [...ids, entity.id]
     );
   }, []);
+
+  // The prompt box carries the composer's own triggers: `@` picks an asset or
+  // a library entity, `/` picks the skill to start from. A picked asset is
+  // attached as an `asset://` reference the way a dropped file is; a picked
+  // entity is written inline as its `entity://<id>` token, which the server
+  // resolves per turn.
+  const handleSelectAsset = useCallback(
+    (asset: Asset) => {
+      addDroppedFiles([
+        {
+          id: "",
+          dataUri: asset.thumb_url || asset.get_url || "",
+          type: asset.content_type || "application/octet-stream",
+          name: asset.name || asset.id,
+          assetUri: assetToUri(asset)
+        }
+      ]);
+    },
+    [addDroppedFiles]
+  );
+
+  const { mentionMenu, handleKeyDown: handleMentionKeyDown } =
+    useTextareaAssetMention({
+      textareaRef: promptRef,
+      value: prompt,
+      setValue: setPrompt,
+      onSelectAsset: handleSelectAsset,
+      includeEntities: true
+    });
+
+  // A skill picked from `/` is the project's starter too — it is what the
+  // project's kind is stored as, and what its spend estimate reads back. The
+  // `/name` stays in the prompt where the user typed it; `composeFirstTurn`
+  // knows not to write a second one.
+  const { skillMenu, handleKeyDown: handleSkillKeyDown } =
+    useTextareaSkillMention({
+      textareaRef: promptRef,
+      value: prompt,
+      setValue: setPrompt,
+      onSelect: (skill) => setStarterName(skill.name)
+    });
+
+  // The handler rides the field wrapper, where MUI puts unknown props, and the
+  // keydown reaches it by bubbling from the textarea. Both pickers only read
+  // `key` and call `preventDefault`, so the retype is safe.
+  const handlePromptKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      const keyEvent = event as unknown as React.KeyboardEvent<HTMLTextAreaElement>;
+      if (handleSkillKeyDown(keyEvent)) {
+        return;
+      }
+      handleMentionKeyDown(keyEvent);
+    },
+    [handleMentionKeyDown, handleSkillKeyDown]
+  );
 
   const handleRefImages = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -329,9 +390,13 @@ const NewProjectSurface = () => {
               rows={3}
               label="Project prompt"
               hideLabel
-              placeholder="A 30-second launch spot for our desk lamp — warm, minimal, night-time mood"
+              inputRef={promptRef}
+              placeholder="A 30-second launch spot for our desk lamp — warm, minimal, night-time mood. Type / for a skill, @ for an asset or entity."
               onChange={(event) => setPrompt(event.target.value)}
+              onKeyDown={handlePromptKeyDown}
             />
+            {mentionMenu}
+            {skillMenu}
 
             {droppedFiles.length > 0 && (
               <FlexRow gap={SPACING.md} wrap>
