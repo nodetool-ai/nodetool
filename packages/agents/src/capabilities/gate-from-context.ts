@@ -12,11 +12,32 @@
  * bundled backend).
  */
 
+import { createLogger } from "@nodetool-ai/config";
 import {
   headlessGate,
   type PermissionGateOptions
 } from "../tools/tool-permissions.js";
 import { PERMISSION_GATE_CONTEXT_KEY } from "../types.js";
+
+const log = createLogger("nodetool.agents.gate-from-context");
+
+/**
+ * Hosts already reported for running with no gate on their context. The
+ * headless gate is `auto`, so a host that forgot to set one gets every
+ * category allowed with nobody to ask — worth one error line per host per
+ * process, not one per call.
+ */
+const reportedGateless = new Set<string>();
+
+function reportGateless(hostName: string, reason: string): void {
+  if (reportedGateless.has(hostName)) return;
+  reportedGateless.add(hostName);
+  log.error(
+    `${hostName}: ${reason}; falling back to the headless gate (mode auto, ` +
+      "every escalation denied). A host with a user to ask must set " +
+      "PERMISSION_GATE_CONTEXT_KEY on the run's context."
+  );
+}
 
 /**
  * Minimal reader for the context bag, so this stays free of a context import.
@@ -57,7 +78,17 @@ export function gateFromContext(
   context: PermissionGateContext | undefined | null,
   hostName: string
 ): PermissionGateOptions {
-  if (typeof context?.get !== "function") return headlessGate(hostName);
+  if (typeof context?.get !== "function") {
+    reportGateless(hostName, "no context to read a permission gate from");
+    return headlessGate(hostName);
+  }
   const value = context.get<unknown>(PERMISSION_GATE_CONTEXT_KEY);
-  return isPermissionGate(value) ? value : headlessGate(hostName);
+  if (isPermissionGate(value)) return value;
+  reportGateless(
+    hostName,
+    value === undefined
+      ? "no permission gate on the context"
+      : "the value under PERMISSION_GATE_CONTEXT_KEY is not a permission gate"
+  );
+  return headlessGate(hostName);
 }

@@ -36,6 +36,13 @@ export type ApprovalDecision = "allow" | "allow_for_chat" | "deny";
  * Tool name → category. Anything not listed defaults to `external`, the most
  * conservative class, so a newly-added tool is gated until classified.
  *
+ * A capability's spec is the authority on its category: `capabilityFromTool`
+ * reads the spec first and falls back to this map only for a `Tool` that is
+ * not a capability (`run_node`, the plan-builder tools, `finish_step`). An
+ * entry here for a capability name must agree with its spec — a test walks
+ * every registered spec against this table — and every entry must name a
+ * spec or a surviving `Tool` class.
+ *
  * `read` = no side effects (search, inspect, query, pure compute, internal
  * agent bookkeeping). `write` = mutates local state or produces artifacts /
  * costly media. `execute` = runs arbitrary compute. `external` = third-party
@@ -179,7 +186,6 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   search_email: "read",
   // --- read: knowledge / collections ---
   list_collections: "read",
-  search_collections: "read",
   query_collection: "read",
   vector_text_search: "read",
   vector_hybrid_search: "read",
@@ -195,14 +201,9 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   asset_list: "read",
   create_plan: "read",
   finish_plan: "read",
-  create_task: "read",
   add_task: "read",
   remove_task: "read",
-  finish_task: "read",
   finish_step: "read",
-  finish_graph: "read",
-  add_node: "read",
-  add_edge: "read",
   // run_subtask spawns a child loop whose own tools are gated; the call
   // itself has no side effects, so it always runs.
   run_subtask: "read",
