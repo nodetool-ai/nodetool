@@ -11,7 +11,7 @@
  * `nodetool.*` object model, found with `nodetool.searchTools()` and catalogued
  * on `nodetool://capabilities` and `nodetool://sandbox`.
  *
- * The bridged set is *derived*, not hand-listed: `getAgentToolbelt()` plus
+ * The bridged set is *derived*, not hand-listed: `getBuiltinTools()` plus
  * `getAllMcpTools()` plus the Google Workspace tools are exactly what
  * `websocket-client-session` assembles for a chat turn, so a tool added to
  * either catalog reaches the sandbox belt with no edit here. Only tools whose
@@ -34,7 +34,7 @@ import {
   CODEACT_RESIDENT_TOOL_NAMES,
   createChatCodeActSession,
   type ChatCodeActToolCall,
-  getAgentToolbelt,
+  getBuiltinTools,
   getAllMcpTools,
   getGoogleWorkspaceTools,
   getApifyTools,
@@ -317,11 +317,8 @@ function collectBridgedTools(
 ): Tool[] {
   return [
     // The chat agent's built-ins: files, search, browser, PDF, vision,
-    // critique, memory, asset library, todo. `getAgentToolbelt()`, not
-    // `getBuiltinTools()`: the provider-specific media and search duplicates
-    // are dropped because `nodetool.media` / `web_search` route across
-    // backends, and this surface now has the object model that does it.
-    ...getAgentToolbelt(),
+    // critique, memory, asset library, todo.
+    ...getBuiltinTools(),
     // Workflow / node / job / asset / app tools. The read tools among them
     // (list_workflows, get_asset, …)
     // collide with the native registrations and are skipped by the caller.

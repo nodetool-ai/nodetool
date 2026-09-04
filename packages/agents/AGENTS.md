@@ -1473,10 +1473,10 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   guess against the "web" module's export list is exactly what
   `synonymHintSentence` in `codeact/capability-modules.ts` corrects. News
   stayed a `search_type`, since nothing observed a model reaching for a
-  `news_search` import the same way. `getAgentToolbelt()`
-  (`src/tools/builtin-tools.ts`) therefore returns what `getBuiltinTools()`
-  returns; a saved AgentNode naming a retired tool resolves to its replacement
-  through `RETIRED_TOOL_NAMES` in `@nodetool-ai/llm-nodes`.
+  `news_search` import the same way. Every host therefore assembles the one
+  belt `getBuiltinTools()` (`src/tools/builtin-tools.ts`) returns; a saved
+  AgentNode naming a retired tool resolves to its replacement through
+  `RETIRED_TOOL_NAMES` in `@nodetool-ai/llm-nodes`.
 - Authoring a graph is a **package**, not a builder. `nodetool.graph()` — a
   builder taking every node type as a free-form string — is gone; a session
   authors with `@nodetool-ai/sandbox-dsl`, which ships one generated function

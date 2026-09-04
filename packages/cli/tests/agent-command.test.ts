@@ -123,7 +123,7 @@ vi.mock("@nodetool-ai/agents", async () => {
     extractInjectableImages: () => null,
     stripImagePayload: (value: unknown) => value,
     truncateToolResult: (value: string) => value,
-    getAgentToolbelt: () => [new NamedTool("read_file")],
+    getBuiltinTools: () => [new NamedTool("read_file")],
     getAllMcpTools: () => [new NamedTool("list_workflows")],
     BackgroundSubtaskRegistry: class {},
     // The real classification map, headless gate and context key: the CLI's

@@ -15,7 +15,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { initTestDb } from "@nodetool-ai/models";
-import { getAgentToolbelt, getAllMcpTools } from "@nodetool-ai/agents";
+import { getBuiltinTools, getAllMcpTools } from "@nodetool-ai/agents";
 import {
   createMcpServer,
   getLocalMcpServerUrl,
@@ -95,7 +95,7 @@ describe("the CodeAct surface", () => {
   it("keeps every catalog tool reachable inside an action", async () => {
     const server = createMcpServer({ agentToolsScope: scope });
     const expected = new Set(
-      [...getAgentToolbelt(), ...getAllMcpTools({})]
+      [...getBuiltinTools(), ...getAllMcpTools({})]
         .map((t) => t.name)
         .filter((n) => n !== "view_image")
     );

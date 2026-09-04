@@ -19,7 +19,6 @@ describe("agents index exports", () => {
     // `toolForCapabilityName` builds any one of them on its own.
     expect(mod.BUILTIN_TOOL_NAMES).toBeDefined();
     expect(mod.getBuiltinTools).toBeDefined();
-    expect(mod.getAgentToolbelt).toBeDefined();
     expect(mod.toolForCapabilityName).toBeDefined();
   });
 
