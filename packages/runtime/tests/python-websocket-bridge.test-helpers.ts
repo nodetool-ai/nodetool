@@ -85,7 +85,14 @@ interface FakeWorkerOptions {
    *  - "hang": emit one progress frame then go silent (for abort tests)
    *  - "malformed": an ok result with no produced/stats (for boundary tests)
    */
-  blenderExecuteMode?: "events" | "error" | "opfail" | "hang" | "malformed";
+  blenderExecuteMode?:
+    | "events"
+    | "error"
+    | "opfail"
+    | "opfail_nomessage"
+    | "opfail_string"
+    | "hang"
+    | "malformed";
   /**
    * Extra produced names (with bytes) beyond the job's declared outputs, to
    * prove the executor ignores undeclared names.
@@ -578,6 +585,22 @@ export function startFakeWorker(
                   message: "Eevee complained: no light in scene"
                 }
               }
+            });
+            break;
+          }
+          if (opts.blenderExecuteMode === "opfail_nomessage") {
+            send({
+              type: "result",
+              request_id: requestId,
+              data: { ok: false, error: { code: "gpu_lost" } }
+            });
+            break;
+          }
+          if (opts.blenderExecuteMode === "opfail_string") {
+            send({
+              type: "result",
+              request_id: requestId,
+              data: { ok: false, error: "scratch disk full" }
             });
             break;
           }

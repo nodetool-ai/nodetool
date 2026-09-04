@@ -8,8 +8,14 @@
  */
 
 import { describe, expect, it, beforeEach, vi } from "vitest";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  generationRegistry,
+  ProcessingContext,
+  type ProcessingContext as ProcessingContextType
+} from "@nodetool-ai/runtime";
 import { Asset, initTestDb } from "@nodetool-ai/models";
+import { attachRunCostLedger } from "@nodetool-ai/execution";
+import { withGenerationSeam } from "./_helpers/generation-seam.js";
 import {
   __setBlenderRunnerForTesting,
   type BlenderJob,
@@ -22,6 +28,8 @@ import {
   module as model3dModule
 } from "../src/capabilities/model3d.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/index.js";
+import { module as generations } from "../src/capabilities/generations.js";
+import type { CapabilityExport } from "../src/capabilities/types.js";
 import {
   capabilityModuleIssues,
   loadCapabilityModule
@@ -37,12 +45,13 @@ const USER = "user-model3d";
  * `updateAssetBytes` overwrites them, `resolveAssetBytes` reads them back.
  */
 function makeContext(): {
-  context: ProcessingContext;
+  context: ProcessingContextType;
   bytesOf: (assetId: string) => Uint8Array | undefined;
 } {
   const store = new Map<string, Uint8Array>();
-  const context = {
+  const context = withGenerationSeam({
     userId: USER,
+    getSetting: async () => null,
     createAsset: async (args: {
       name: string;
       contentType: string;
@@ -74,12 +83,48 @@ function makeContext(): {
       const id = uri.replace(/^asset:\/\//, "").replace(/\.(glb|gltf)$/i, "");
       return { bytes: store.get(id) ?? null, attempts: [] };
     }
-  } as unknown as ProcessingContext;
+  }) as unknown as ProcessingContextType;
   return { context, bytesOf: (assetId) => store.get(assetId) };
 }
 
-const runWith = (context: ProcessingContext) =>
+const runWith = (context: ProcessingContextType) =>
   createCapabilityRun({ context, gate: UNGATED });
+
+function capability(
+  mod: { exports: readonly CapabilityExport[] },
+  name: string
+): CapabilityExport {
+  const found = mod.exports.find((entry) => entry.spec.name === name);
+  if (!found) throw new Error(`no capability ${name}`);
+  return found;
+}
+
+function makeTrackedContext(): {
+  context: ProcessingContext;
+  bytesOf: (assetId: string) => Uint8Array | undefined;
+} {
+  const store = new Map<string, Uint8Array>();
+  const context = new ProcessingContext({ jobId: "render-job", userId: USER });
+  context.setModelInterfaces({
+    createAsset: async (args) => {
+      const asset = (await Asset.create({
+        user_id: USER,
+        name: args.name,
+        content_type: args.contentType
+      })) as Asset;
+      store.set(asset.id, args.content);
+      return { id: asset.id, content_type: args.contentType };
+    }
+  });
+  Object.assign(context, {
+    resolveAssetBytes: async (uri: string) => {
+      const id = uri.replace(/^asset:\/\//, "").replace(/\.(glb|gltf)$/i, "");
+      return { bytes: store.get(id) ?? null, attempts: [] };
+    }
+  });
+  attachRunCostLedger(context, { userId: USER, workflowId: null });
+  return { context, bytesOf: (assetId) => store.get(assetId) };
+}
 
 interface SceneObject {
   uuid: string;
@@ -93,6 +138,7 @@ interface SceneObject {
 
 beforeEach(() => {
   initTestDb();
+  generationRegistry.reset();
 });
 
 describe("model3d capability module", () => {
@@ -375,10 +421,16 @@ describe("model3d capabilities against the database", () => {
         width: 64,
         height: 64,
         engine: "eevee"
-      })) as { image_id: string; url: string; stats: Record<string, unknown> };
+      })) as {
+        image_id: string;
+        url: string;
+        stats: Record<string, unknown>;
+        generation_id: string;
+      };
 
       expect(typeof rendered.image_id).toBe("string");
       expect(rendered.url).toBe(`asset://${rendered.image_id}.png`);
+      expect(rendered.generation_id).toEqual(expect.any(String));
       expect(rendered.stats).toMatchObject({
         blender_version: "5.2.1-test",
         render_seconds: 1.25
@@ -399,6 +451,97 @@ describe("model3d capabilities against the database", () => {
       });
       expect(calls[0].inputs["model"]!.length).toBeGreaterThan(0);
       expect(calls[0].options.timeoutMs).toBe(600_000);
+    } finally {
+      __setBlenderRunnerForTesting(null);
+    }
+  });
+
+  it("returns a background receipt that await_generation collects", async () => {
+    const PNG = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1
+    ]);
+    let complete: (() => void) | null = null;
+    __setBlenderRunnerForTesting({
+      kind: "local",
+      run: async () =>
+        new Promise<BlenderRunResult>((resolve) => {
+          complete = () =>
+            resolve({
+              outputs: { image: PNG },
+              stats: {
+                blender_version: "5.2.1-test",
+                render_seconds: 1,
+                objects: 1,
+                camera: "NodeTool_Orbit"
+              }
+            });
+        })
+    });
+    try {
+      const { context, bytesOf } = makeTrackedContext();
+      const run = runWith(context);
+      const created = (await run.invoke("create_model3d", {
+        name: "background-render"
+      })) as { model_id: string };
+
+      const started = (await run.invoke("render_model3d", {
+        model_id: created.model_id,
+        background: true
+      })) as {
+        generation_id: string;
+        status: string;
+        background: boolean;
+      };
+      expect(started).toMatchObject({ status: "running", background: true });
+      expect(generationRegistry.isRunning(started.generation_id)).toBe(true);
+
+      await vi.waitFor(() => expect(complete).not.toBeNull());
+      complete?.();
+      const awaited = (await capability(generations, "await_generation").impl(
+        run,
+        { generation_id: started.generation_id, timeout_seconds: 5 }
+      )) as { status: string; asset_ids: string[] };
+      expect(awaited.status).toBe("completed");
+      expect(awaited.asset_ids).toHaveLength(1);
+      expect(bytesOf(awaited.asset_ids[0]!)).toEqual(PNG);
+    } finally {
+      __setBlenderRunnerForTesting(null);
+    }
+  });
+
+  it("shares the background-generation limit with media capabilities", async () => {
+    __setBlenderRunnerForTesting({
+      kind: "local",
+      run: async (_job, _inputs, options) =>
+        new Promise<BlenderRunResult>((_resolve, reject) => {
+          options.signal.addEventListener("abort", () =>
+            reject(options.signal.reason)
+          );
+        })
+    });
+    try {
+      const { context } = makeTrackedContext();
+      const run = runWith(context);
+      const created = (await run.invoke("create_model3d", {
+        name: "limited-render"
+      })) as { model_id: string };
+      for (let i = 0; i < 16; i++) {
+        await run.invoke("render_model3d", {
+          model_id: created.model_id,
+          background: true
+        });
+      }
+
+      expect(
+        await run.invoke("render_model3d", {
+          model_id: created.model_id,
+          background: true
+        })
+      ).toMatchObject({ error: expect.stringMatching(/16 background generations/) });
+
+      for (const id of generationRegistry.runningFor(USER)) {
+        generationRegistry.cancel(id, USER);
+      }
     } finally {
       __setBlenderRunnerForTesting(null);
     }

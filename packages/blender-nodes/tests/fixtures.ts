@@ -324,6 +324,80 @@ export function createGridGlb(size: number): Uint8Array {
   return buildGlb(quads);
 }
 
+/** Two separate mesh objects, each carrying a disjoint grid of faces. */
+export function createTwoMeshGridGlb(width = 10, height = 5): Uint8Array {
+  const positions: number[] = [];
+  const accessors: Record<string, unknown>[] = [];
+  const meshes: Record<string, unknown>[] = [];
+  const nodes: Record<string, unknown>[] = [];
+  const sceneNodes: number[] = [];
+  for (const meshIndex of [0, 1]) {
+    const meshPositions: number[] = [];
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const ox = x + meshIndex * (width + 1);
+        meshPositions.push(
+          ox, y, 0,
+          ox + 1, y, 0,
+          ox + 1, y + 1, 0,
+          ox, y + 1, 0,
+          ox, y, 0,
+          ox + 1, y + 1, 0
+        );
+        // Two triangles per quad, with no indices to keep the fixture compact.
+      }
+    }
+    positions.push(...meshPositions);
+    const xs = meshPositions.filter((_, i) => i % 3 === 0);
+    const ys = meshPositions.filter((_, i) => i % 3 === 1);
+    accessors.push({
+      bufferView: meshIndex,
+      componentType: 5126,
+      count: meshPositions.length / 3,
+      type: "VEC3",
+      min: [Math.min(...xs), Math.min(...ys), 0],
+      max: [Math.max(...xs), Math.max(...ys), 0]
+    });
+    meshes.push({
+      primitives: [{ attributes: { POSITION: meshIndex } }]
+    });
+    nodes.push({ mesh: meshIndex });
+    sceneNodes.push(meshIndex);
+  }
+  const posBytes = new Float32Array(positions);
+  const gltf: Record<string, unknown> = {
+    asset: { version: "2.0" },
+    scene: 0,
+    scenes: [{ nodes: sceneNodes }],
+    nodes,
+    meshes,
+    accessors,
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: posBytes.byteLength / 2 },
+      { buffer: 0, byteOffset: posBytes.byteLength / 2, byteLength: posBytes.byteLength / 2 }
+    ],
+    buffers: [{ byteLength: posBytes.byteLength }]
+  };
+  const jsonBytes = new TextEncoder().encode(JSON.stringify(gltf));
+  const jsonPad = pad4(jsonBytes.byteLength);
+  const binPad = pad4(posBytes.byteLength);
+  const total = 12 + 8 + jsonBytes.byteLength + jsonPad + 8 + posBytes.byteLength + binPad;
+  const glb = new Uint8Array(total);
+  const view = new DataView(glb.buffer);
+  view.setUint32(0, 0x46546c67, true);
+  view.setUint32(4, 2, true);
+  view.setUint32(8, total, true);
+  view.setUint32(12, jsonBytes.byteLength + jsonPad, true);
+  view.setUint32(16, 0x4e4f534a, true);
+  glb.set(jsonBytes, 20);
+  glb.fill(0x20, 20 + jsonBytes.byteLength, 20 + jsonBytes.byteLength + jsonPad);
+  const binOffset = 20 + jsonBytes.byteLength + jsonPad;
+  view.setUint32(binOffset, posBytes.byteLength + binPad, true);
+  view.setUint32(binOffset + 4, 0x004e4942, true);
+  glb.set(new Uint8Array(posBytes.buffer), binOffset + 8);
+  return glb;
+}
+
 /** Parse the JSON chunk of a GLB into a plain object. */
 export function parseGlbJson(glb: Uint8Array): Record<string, unknown> {
   const view = new DataView(glb.buffer, glb.byteOffset, glb.byteLength);

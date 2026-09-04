@@ -56,6 +56,14 @@ describe("Blender version floor", () => {
     expect(binary.version).toEqual([5, 2, 1]);
   });
 
+  it("resolves a configured path without changing the process environment", async () => {
+    delete process.env["BLENDER_PATH"];
+    const configuredPath = fakeBlender("5.2.1");
+    const binary = await resolveBlenderBinary({ configuredPath });
+    expect(binary.path).toBe(configuredPath);
+    expect(process.env["BLENDER_PATH"]).toBeUndefined();
+  });
+
   it("refuses a 4.2 binary, naming the found version and the floor", async () => {
     process.env["BLENDER_PATH"] = fakeBlender("4.2.3");
     const err = await resolveBlenderBinary().then(

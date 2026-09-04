@@ -13,7 +13,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createLogger } from "@nodetool-ai/config";
-import { runHostBinary } from "@nodetool-ai/runtime";
+import {
+  BlenderExecutorError,
+  createPythonBridge,
+  executeBlender,
+  runHostBinary,
+  withSpan
+} from "@nodetool-ai/runtime";
+import type { PythonBridge } from "@nodetool-ai/runtime";
 
 import { resolveBlenderBinary } from "./blender-binary.js";
 import {
@@ -49,7 +56,9 @@ export type BlenderJobErrorCode =
   | "bad_result"
   | "missing_output"
   | "output_too_large"
-  | "timeout";
+  | "timeout"
+  /** `NODETOOL_WORKER_URL` names a worker that does not run Blender. */
+  | "worker_unavailable";
 
 export class BlenderJobError extends Error {
   readonly code: BlenderJobErrorCode;
@@ -107,6 +116,26 @@ export interface LocalBlenderRunnerOptions {
    * which `runBlenderJob` derives from `context.workspace.scratchDir()`.
    */
   scratchParent?: string;
+  /** Already resolved executable for this user-scoped run. */
+  binaryPath?: string;
+}
+
+export interface WorkerBlenderRunnerOptions {
+  /**
+   * An already-managed worker bridge. The caller retains ownership and must
+   * close it. When omitted, each run creates and closes a bridge configured
+   * from `NODETOOL_WORKER_URL` and `NODETOOL_WORKER_TOKEN`.
+   */
+  bridge?: PythonBridge;
+}
+
+let workerBridgeFactoryForTesting: (() => PythonBridge) | null = null;
+
+/** Test seam for D7 selection without opening a real worker socket. */
+export function __setWorkerBlenderBridgeFactoryForTesting(
+  factory: (() => PythonBridge) | null
+): void {
+  workerBridgeFactoryForTesting = factory;
 }
 
 /**
@@ -160,7 +189,7 @@ function parseProgressFrame(line: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
-function progressTotal(job: BlenderJob, frame: number): number {
+function progressCounts(job: BlenderJob, frame: number, total = frame): [number, number] {
   if (job.job.op === "render_animation") {
     const { frame_start, frame_end } = job.job.params;
     if (
@@ -168,18 +197,20 @@ function progressTotal(job: BlenderJob, frame: number): number {
       Number.isInteger(frame_end) &&
       frame_end >= frame_start
     ) {
-      return frame_end - frame_start + 1;
+      return [frame - frame_start + 1, frame_end - frame_start + 1];
     }
   }
-  return frame;
+  return [frame, total];
 }
 
 export class LocalBlenderRunner implements BlenderRunner {
   readonly kind = "local" as const;
   private readonly scratchParent: string | undefined;
+  private readonly binaryPath: string | undefined;
 
   constructor(options: LocalBlenderRunnerOptions = {}) {
     this.scratchParent = options.scratchParent;
+    this.binaryPath = options.binaryPath;
   }
 
   async run(
@@ -202,7 +233,9 @@ export class LocalBlenderRunner implements BlenderRunner {
           `context.workspace.scratchDir()).`
       );
     }
-    const binary = await resolveBlenderBinary();
+    const binary = await resolveBlenderBinary({
+      configuredPath: this.binaryPath
+    });
     const maxOutputBytes = options.maxOutputBytes ?? MAX_OUTPUT_BYTES;
     const maxTotalOutputBytes =
       options.maxTotalOutputBytes ?? MAX_TOTAL_OUTPUT_BYTES;
@@ -266,7 +299,7 @@ export class LocalBlenderRunner implements BlenderRunner {
               ? undefined
               : (line: string) => {
                   const frame = parseProgressFrame(line);
-                  if (frame !== null) onProgress(frame, progressTotal(job, frame));
+                  if (frame !== null) onProgress(...progressCounts(job, frame));
                 }
         });
       } catch (err) {
@@ -357,6 +390,215 @@ export class LocalBlenderRunner implements BlenderRunner {
       // timeout, and the cap errors included.
       await rm(cwd, { recursive: true, force: true });
     }
+  }
+}
+
+/**
+ * Worker implementation of the runner contract (Stage 4b, D6).
+ *
+ * The worker image carries Blender but not the NodeTool ops. Every run sends
+ * the complete ops tree as extra blobs, keyed by paths relative to
+ * `blender_ops/`, so its scripts match the NodeTool release that issued the
+ * job. Workflow inputs remain the only entries in `job.inputs`.
+ */
+export class WorkerBlenderRunner implements BlenderRunner {
+  readonly kind = "worker" as const;
+  private readonly bridge: PythonBridge | undefined;
+
+  constructor(options: WorkerBlenderRunnerOptions = {}) {
+    this.bridge = options.bridge;
+  }
+
+  /** Connect and check the worker status without retaining an owned socket. */
+  async assertAvailable(
+    options: { signal?: AbortSignal; timeoutMs?: number } = {}
+  ): Promise<void> {
+    await withSpan(
+      "blender.worker.status",
+      { "rpc.system": "websocket", "rpc.method": "worker.status" },
+      () =>
+        this.withBridge(async (bridge) => {
+          if (!bridge.supportsBlender()) {
+            throw workerUnavailable();
+          }
+        }, options.signal, options.timeoutMs)
+    );
+  }
+
+  async run(
+    job: BlenderJob,
+    inputs: Record<string, Uint8Array>,
+    options: BlenderRunOptions
+  ): Promise<BlenderRunResult> {
+    const runStartedAt = Date.now();
+    const extraBlobs = await readBlenderOpBlobs();
+    try {
+      return await this.withBridge(async (bridge) => {
+        if (!bridge.supportsBlender()) {
+          throw workerUnavailable();
+        }
+        const remainingTimeoutMs = Math.max(
+          1,
+          options.timeoutMs - (Date.now() - runStartedAt)
+        );
+        const result = await executeBlender(bridge, job, inputs, {
+          timeoutMs: remainingTimeoutMs,
+          signal: options.signal,
+          onProgress: options.onProgress
+            ? (frame, total) => options.onProgress?.(...progressCounts(job, frame, total))
+            : undefined,
+          maxOutputBytes: options.maxOutputBytes ?? MAX_OUTPUT_BYTES,
+          maxTotalOutputBytes:
+            options.maxTotalOutputBytes ?? MAX_TOTAL_OUTPUT_BYTES,
+          extraBlobs
+        });
+        return { outputs: result.outputs, stats: result.stats };
+      }, options.signal, Math.max(1, options.timeoutMs - (Date.now() - runStartedAt)));
+    } catch (err) {
+      if (err instanceof BlenderExecutorError) {
+        throw workerErrorToJobError(err);
+      }
+      throw err;
+    }
+  }
+
+  private async withBridge<T>(
+    operation: (bridge: PythonBridge) => Promise<T>,
+    signal?: AbortSignal,
+    timeoutMs?: number
+  ): Promise<T> {
+    const bridge =
+      this.bridge ??
+      workerBridgeFactoryForTesting?.() ??
+      createConfiguredWorkerBridge();
+    const ownsBridge = this.bridge === undefined;
+    try {
+      if (signal?.aborted) {
+        throw signal.reason ?? new Error("Operation aborted.");
+      }
+      await waitForAbort(bridge.ensureConnected(), signal, timeoutMs);
+      return await operation(bridge);
+    } finally {
+      if (ownsBridge) bridge.close();
+    }
+  }
+}
+
+/** Wait for a bridge connection without leaving a cancelled run pending. */
+async function waitForAbort<T>(
+  promise: Promise<T>,
+  signal?: AbortSignal,
+  timeoutMs?: number
+): Promise<T> {
+  if (signal === undefined && timeoutMs === undefined) return promise;
+  if (signal?.aborted) throw signal.reason ?? new Error("Operation aborted.");
+
+  let abortHandler: (() => void) | undefined;
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  const aborted =
+    signal === undefined
+      ? null
+      : new Promise<never>((_, reject) => {
+          abortHandler = () =>
+            reject(signal.reason ?? new Error("Operation aborted."));
+          signal.addEventListener("abort", abortHandler, { once: true });
+        });
+  const timedOut =
+    timeoutMs === undefined
+      ? null
+      : new Promise<never>((_, reject) => {
+          timeoutHandle = setTimeout(() => {
+            reject(
+              new BlenderJobError(
+                "timeout",
+                `Blender worker connection timed out after ${timeoutMs}ms.`
+              )
+            );
+          }, Math.max(1, timeoutMs));
+  });
+  try {
+    const racers = [promise];
+    if (aborted !== null) racers.push(aborted);
+    if (timedOut !== null) racers.push(timedOut);
+    return await Promise.race(racers);
+  } finally {
+    if (abortHandler && signal) signal.removeEventListener("abort", abortHandler);
+    if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
+  }
+}
+
+function createConfiguredWorkerBridge(): PythonBridge {
+  if (!process.env["NODETOOL_WORKER_URL"]?.trim()) {
+    throw new BlenderJobError(
+      "bad_job",
+      "WorkerBlenderRunner requires NODETOOL_WORKER_URL."
+    );
+  }
+  return createPythonBridge();
+}
+
+function workerUnavailable(): BlenderJobError {
+  return new BlenderJobError(
+    "worker_unavailable",
+    "The NodeTool worker at NODETOOL_WORKER_URL does not report Blender as " +
+      "enabled. Install Blender on the worker, or unset NODETOOL_WORKER_URL " +
+      "to run Blender locally."
+  );
+}
+
+function isBlenderJobErrorCode(code: string): code is BlenderJobErrorCode {
+  switch (code) {
+    case "import_failed":
+    case "no_geometry":
+    case "no_camera":
+    case "unsupported_format":
+    case "render_failed":
+    case "export_failed":
+    case "bake_failed":
+    case "bad_job":
+    case "bad_result":
+    case "missing_output":
+    case "output_too_large":
+    case "timeout":
+    case "worker_unavailable":
+      return true;
+    default:
+      return false;
+  }
+}
+
+function workerErrorToJobError(error: BlenderExecutorError): BlenderJobError {
+  if (isBlenderJobErrorCode(error.code)) {
+    return new BlenderJobError(error.code, error.message);
+  }
+  return new BlenderJobError(
+    "bad_result",
+    `Blender worker returned unknown error code "${error.code}": ${error.message}`
+  );
+}
+
+async function readBlenderOpBlobs(): Promise<Record<string, Uint8Array>> {
+  const root = resolveOpScriptDir();
+  const blobs: Record<string, Uint8Array> = {};
+  await collectOpBlobs(root, root, blobs);
+  return blobs;
+}
+
+async function collectOpBlobs(
+  root: string,
+  dir: string,
+  blobs: Record<string, Uint8Array>
+): Promise<void> {
+  const entries = await readdir(dir, { withFileTypes: true });
+  for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+    const file = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      await collectOpBlobs(root, file, blobs);
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    const relativePath = path.relative(root, file).split(path.sep).join("/");
+    blobs[relativePath] = new Uint8Array(await readFile(file));
   }
 }
 

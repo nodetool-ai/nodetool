@@ -20,6 +20,7 @@ import { blenderTestContext, type BlenderTestContext } from "./context.js";
 import {
   countGlbFaces,
   createGridGlb,
+  createTwoMeshGridGlb,
   createTwoMaterialGlb,
   extractGlbImages,
   parseGlbJson
@@ -122,6 +123,24 @@ describe.skipIf(!blenderAvailable())("prepare_for_engine integration", () => {
       parseGlbJson(model) as Parameters<typeof validateModel3D>[0]
     );
     expect(validation.ok).toBe(true);
+  }, 300_000);
+
+  it("halves the total face count across multiple mesh objects per LOD", async () => {
+    const input = createTwoMeshGridGlb();
+    expect(countGlbFaces(input)).toBe(200);
+    const result = await runBlenderJob(
+      helper!.context,
+      input,
+      prepareOp({ target_faces: 100, unwrap: false, bake: "none" }),
+      { model: "model.glb", lod_1: "lod_1.glb", lod_2: "lod_2.glb" },
+      { timeoutMs: 300_000 }
+    );
+    const modelFaces = countGlbFaces(result.outputs["model"]!);
+    const lod1Faces = countGlbFaces(result.outputs["lod_1"]!);
+    const lod2Faces = countGlbFaces(result.outputs["lod_2"]!);
+    expect(modelFaces).toBe(200);
+    expect(lod1Faces).toBe(100);
+    expect(lod2Faces).toBe(50);
   }, 300_000);
 
   it("bakes a two-material mesh: every slot gets a lit AO map", async () => {

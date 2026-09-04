@@ -43,6 +43,7 @@
   "license": "MIT",
   "files": [
     "dist",
+    "blender_ops/**/*.py",
     "README.md"
   ],
   "repository": {

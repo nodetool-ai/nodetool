@@ -180,6 +180,7 @@ export type {
   ComfyModelDownloadRequest,
   ComfyModelDownloadUpdate,
   ComfyModelInfo,
+  BlenderExecuteJob,
   BlenderStatusInfo,
   BlenderEvent,
   BlenderExecuteOptions,

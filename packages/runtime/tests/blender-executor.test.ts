@@ -240,6 +240,38 @@ describe("blender worker executor", () => {
     expect((err as Error).message).toContain("blender exploded");
   });
 
+  it("an op failure with a code but no message names the code", async () => {
+    const b = await connect({ blenderExecuteMode: "opfail_nomessage" });
+    const err = await executeBlender(
+      b,
+      imageJob(),
+      { model: new Uint8Array([1]) },
+      { timeoutMs: 6000, ...CAPS }
+    ).then(
+      () => null,
+      (e: unknown) => e
+    );
+    expect(err).toBeInstanceOf(BlenderExecutorError);
+    expect((err as BlenderExecutorError).code).toBe("gpu_lost");
+    expect((err as Error).message).toContain("gpu_lost");
+  });
+
+  it("an op failure whose error is a bare string keeps the string", async () => {
+    const b = await connect({ blenderExecuteMode: "opfail_string" });
+    const err = await executeBlender(
+      b,
+      imageJob(),
+      { model: new Uint8Array([1]) },
+      { timeoutMs: 6000, ...CAPS }
+    ).then(
+      () => null,
+      (e: unknown) => e
+    );
+    expect(err).toBeInstanceOf(BlenderExecutorError);
+    expect((err as BlenderExecutorError).code).toBe("bad_result");
+    expect((err as Error).message).toContain("scratch disk full");
+  });
+
   it("a malformed terminal result surfaces as bad_result", async () => {
     const b = await connect({ blenderExecuteMode: "malformed" });
     const err = await executeBlender(
@@ -253,6 +285,7 @@ describe("blender worker executor", () => {
     );
     expect(err).toBeInstanceOf(BlenderExecutorError);
     expect((err as BlenderExecutorError).code).toBe("bad_result");
+    expect((err as Error).message).toContain("fields: ok");
   });
 
   it("an input the job did not declare is bad_job before anything is sent", async () => {
@@ -320,6 +353,31 @@ describe("blender worker executor", () => {
     expect(pendingSizes()).toEqual({ stream: 0, events: 0 });
   });
 
+  it("times out locally when the worker never sends a terminal result", async () => {
+    const b = await connect({ blenderExecuteMode: "hang" });
+    const err = await executeBlender(
+      b,
+      imageJob(),
+      { model: new Uint8Array([1]) },
+      { timeoutMs: 30, ...CAPS }
+    ).then(
+      () => null,
+      (e: unknown) => e
+    );
+
+    expect(err).toBeInstanceOf(BlenderExecutorError);
+    expect((err as BlenderExecutorError).code).toBe("timeout");
+    const cancelStart = Date.now();
+    while (
+      worker!.received("cancel").length === 0 &&
+      Date.now() - cancelStart < 2000
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(worker!.received("cancel")).toHaveLength(1);
+    expect(pendingSizes()).toEqual({ stream: 0, events: 0 });
+  });
+
   it("an already-aborted signal rejects without sending", async () => {
     const b = await connect();
     const controller = new AbortController();
@@ -335,6 +393,21 @@ describe("blender worker executor", () => {
       (e: unknown) => e
     );
     expect(err).toBe(reason);
+    expect(worker!.received("blender.execute")).toHaveLength(0);
+  });
+
+  it("does not dispatch after an abort before bridge dispatch", async () => {
+    const b = await connect();
+    const controller = new AbortController();
+    const reason = new Error("stopped before dispatch");
+    const pending = executeBlender(
+      b,
+      imageJob(),
+      { model: new Uint8Array([1]) },
+      { timeoutMs: 6000, signal: controller.signal, ...CAPS }
+    );
+    controller.abort(reason);
+    await expect(pending).rejects.toBe(reason);
     expect(worker!.received("blender.execute")).toHaveLength(0);
   });
 });

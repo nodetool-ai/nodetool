@@ -40,6 +40,7 @@ import { createLogger } from "@nodetool-ai/config";
 
 import { isNumber, isString } from "./type-predicates.js";
 import type {
+  BlenderExecuteJob,
   BlenderExecuteResult,
   PythonBridge
 } from "./python-bridge-types.js";
@@ -52,14 +53,7 @@ const log = createLogger("runtime:blender-executor");
  * real `BlenderJob` carries satisfies these shapes, and the worker's
  * `run_job.py` owns the op schema.
  */
-export interface BlenderWorkerJob {
-  version: number;
-  /** Logical input name -> bare file name the worker must stage. */
-  inputs: Record<string, string>;
-  /** Logical output name -> bare file name the op must write. */
-  outputs: Record<string, string>;
-  job: Record<string, unknown>;
-}
+export type BlenderWorkerJob = BlenderExecuteJob;
 
 export interface BlenderExecutorOptions {
   /** Wall clock for the run. Sent to the worker as whole seconds. */
@@ -71,6 +65,13 @@ export interface BlenderExecutorOptions {
   maxOutputBytes: number;
   /** Cap on the sum of all outputs — the local tier's `MAX_TOTAL_OUTPUT_BYTES`. */
   maxTotalOutputBytes: number;
+  /**
+   * Additional worker-owned files sent as blobs, keyed by their relative
+   * paths. `WorkerBlenderRunner` uses this for the Blender op tree; these are
+   * deliberately outside `job.inputs`, which remains the complete manifest
+   * of workflow-provided inputs.
+   */
+  extraBlobs?: Record<string, Uint8Array>;
 }
 
 export interface BlenderExecutorStats {
@@ -116,8 +117,14 @@ export async function executeBlender(
   inputs: Record<string, Uint8Array>,
   options: BlenderExecutorOptions
 ): Promise<BlenderExecutorResult> {
-  const { timeoutMs, signal, onProgress, maxOutputBytes, maxTotalOutputBytes } =
-    options;
+  const {
+    timeoutMs,
+    signal,
+    onProgress,
+    maxOutputBytes,
+    maxTotalOutputBytes,
+    extraBlobs
+  } = options;
   // Mirror the local tier: an input the job did not declare is `bad_job`
   // before anything is sent.
   for (const name of Object.keys(inputs)) {
@@ -136,14 +143,35 @@ export async function executeBlender(
     manifest[name] = name;
     blobs[name] = bytes;
   }
+  for (const [key, bytes] of Object.entries(extraBlobs ?? {})) {
+    if (key in blobs) {
+      throw new BlenderExecutorError(
+        "bad_job",
+        `Additional Blender blob "${key}" conflicts with a declared input.`
+      );
+    }
+    blobs[key] = bytes;
+  }
   const requestId = randomUUID();
   const timeout = Math.max(1, Math.ceil(timeoutMs / 1000));
 
   return new Promise<BlenderExecutorResult>((resolve, reject) => {
     let settled = false;
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
     const cleanup = (): void => {
       if (signal && abortHandler) {
         signal.removeEventListener("abort", abortHandler);
+      }
+      if (timeoutHandle !== undefined) {
+        clearTimeout(timeoutHandle);
+        timeoutHandle = undefined;
+      }
+    };
+    const cancel = (): void => {
+      try {
+        bridge.cancelBlenderExecute(requestId);
+      } catch {
+        // Worker may already be gone; cancel is best-effort.
       }
     };
     const abortHandler = (): void => {
@@ -152,15 +180,26 @@ export async function executeBlender(
       cleanup();
       // The abort reaches the worker: without the cancel frame the Blender
       // process would keep rendering a run nobody reads.
-      try {
-        bridge.cancelBlenderExecute(requestId);
-      } catch {
-        // Worker may already be gone; cancel is best-effort.
-      }
+      cancel();
       // Unwrapped, the way the local tier rejects with the abort reason.
       reject(
         signal?.reason ??
           new Error(`Blender execution "${requestId}" was aborted.`)
+      );
+    };
+    const timeoutHandler = (): void => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      // The worker receives its own timeout, but the transport promise must
+      // also have a local deadline in case the worker stops responding.
+      cancel();
+      reject(
+        new BlenderExecutorError(
+          "timeout",
+          `Blender render timed out after ${timeoutMs}ms. ` +
+            "The worker did not complete the request in time."
+        )
       );
     };
     if (signal?.aborted) {
@@ -170,23 +209,31 @@ export async function executeBlender(
     if (signal) {
       signal.addEventListener("abort", abortHandler, { once: true });
     }
-    bridge
-      .blenderExecute(
-        job as unknown as Record<string, unknown>,
-        manifest,
-        { blobs, timeout },
-        (event) => {
-          if (
-            event.event === "progress" &&
-            onProgress &&
-            isNumber(event.frame) &&
-            isNumber(event.total)
-          ) {
-            onProgress(event.frame, event.total);
-          }
-        },
-        requestId
-      )
+    timeoutHandle = setTimeout(timeoutHandler, Math.max(1, timeoutMs));
+    Promise.resolve()
+      .then(() => {
+        // An abort can fire after executeBlender returns but before this
+        // microtask dispatches the bridge request.
+        if (settled) {
+          throw signal?.reason ?? new Error("Blender execution was aborted.");
+        }
+        return bridge.blenderExecute(
+          job,
+          manifest,
+          { blobs, timeout },
+          (event) => {
+            if (
+              event.event === "progress" &&
+              onProgress &&
+              isNumber(event.frame) &&
+              isNumber(event.total)
+            ) {
+              onProgress(event.frame, event.total);
+            }
+          },
+          requestId
+        )
+      })
       .then(
         (result) => {
           if (settled) return;
@@ -215,6 +262,39 @@ export async function executeBlender(
   });
 }
 
+/**
+ * An `ok: false` result. The op's `{code, message}` passes through verbatim;
+ * whatever the worker did send survives into the message, so a frame with
+ * only a code, or an `error` that is a bare string, is not flattened to a
+ * generic "no payload" text.
+ */
+function failureError(result: BlenderExecuteResult): BlenderExecutorError {
+  const raw: unknown = result.error;
+  if (isString(raw)) {
+    return new BlenderExecutorError("bad_result", raw);
+  }
+  const error = raw != null && typeof raw === "object" ? raw : {};
+  const code = (error as { code?: unknown }).code;
+  const message = (error as { message?: unknown }).message;
+  if (isString(message) && message !== "") {
+    return new BlenderExecutorError(
+      isString(code) && code !== "" ? code : "bad_result",
+      message
+    );
+  }
+  if (isString(code) && code !== "") {
+    return new BlenderExecutorError(
+      code,
+      `Blender worker failed with code "${code}" and no message.`
+    );
+  }
+  return new BlenderExecutorError(
+    "bad_result",
+    "Blender worker reported failure without an error payload " +
+      `(fields: ${Object.keys(result).join(", ") || "none"}).`
+  );
+}
+
 function messageOf(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
@@ -235,16 +315,13 @@ function collectBlenderOutputs(
   // transfer" means before any blob entry is consumed: the declared-size
   // pass below throws before a single output byte is read.
   if (!result.ok) {
-    throw new BlenderExecutorError(
-      result.error?.code ?? "bad_result",
-      result.error?.message ??
-        "Blender worker reported failure without an error payload."
-    );
+    throw failureError(result);
   }
   if (!Array.isArray(result.produced)) {
     throw new BlenderExecutorError(
       "bad_result",
-      "Blender worker returned ok without a produced list."
+      "Blender worker returned ok without a produced list " +
+        `(fields: ${Object.keys(result).join(", ") || "none"}).`
     );
   }
   const stats = readStats(result.stats);

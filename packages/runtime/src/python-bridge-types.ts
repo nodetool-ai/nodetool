@@ -279,7 +279,15 @@ export interface ComfyExecuteResult {
 // request / `blender.event` frames in `@nodetool-ai/protocol/bridge-frames`
 // and the `BlenderJob` contract in `@nodetool-ai/blender-nodes` (which this
 // package must not import — the dependency runs the other way — so the job
-// travels here as an opaque record).
+// travels here as the structural wire shape below).
+
+export interface BlenderExecuteJob {
+  version: number;
+  inputs: Record<string, string>;
+  outputs: Record<string, string>;
+  /** Operation payload validated by the worker's versioned job parser. */
+  job: unknown;
+}
 
 /**
  * The `blender` block on `worker.status`. Present only when the worker can
@@ -647,7 +655,7 @@ export interface PythonBridge extends EventEmitter {
    * returned/passed `requestId`.
    */
   blenderExecute(
-    job: Record<string, unknown>,
+    job: BlenderExecuteJob,
     inputs: Record<string, string>,
     options?: BlenderExecuteOptions,
     onEvent?: (event: BlenderEvent) => void,

@@ -34,6 +34,7 @@ import type {
   ComfyModelDownloadRequest,
   ComfyModelDownloadUpdate,
   ComfyModelInfo,
+  BlenderExecuteJob,
   BlenderStatusInfo,
   BlenderEvent,
   BlenderExecuteOptions,
@@ -326,7 +327,7 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
   }
 
   blenderExecute(
-    job: Record<string, unknown>,
+    job: BlenderExecuteJob,
     inputs: Record<string, string>,
     options?: BlenderExecuteOptions,
     onEvent?: (event: BlenderEvent) => void,

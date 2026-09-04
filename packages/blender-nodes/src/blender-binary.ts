@@ -149,11 +149,11 @@ async function candidates(): Promise<string[]> {
 let cached: { blenderPathEnv: string | undefined; binary: BlenderBinary } | null =
   null;
 
-function missingError(failures: ProbeFailure[]): HostBinaryMissingError {
+function missingError(failures: ProbeFailure[], configuredPath?: string | null): HostBinaryMissingError {
   const err = new HostBinaryMissingError("blender");
   const envPath = process.env["BLENDER_PATH"];
   const probeNote = failures
-    .filter((f) => f.candidate === envPath)
+    .filter((f) => f.candidate === envPath || f.candidate === configuredPath)
     .map((f) => ` BLENDER_PATH=${JSON.stringify(f.candidate)} failed: ${f.detail}`)
     .join("");
   err.message =
@@ -166,12 +166,17 @@ function missingError(failures: ProbeFailure[]): HostBinaryMissingError {
  * Resolve the Blender executable per D3. Cached per process; the cache is
  * invalidated when `BLENDER_PATH` changes.
  */
-export async function resolveBlenderBinary(): Promise<BlenderBinary> {
-  const blenderPathEnv = process.env["BLENDER_PATH"];
+export async function resolveBlenderBinary(options: {
+  configuredPath?: string | null;
+} = {}): Promise<BlenderBinary> {
+  const blenderPathEnv = options.configuredPath ?? process.env["BLENDER_PATH"];
   if (cached && cached.blenderPathEnv === blenderPathEnv) return cached.binary;
 
   const failures: ProbeFailure[] = [];
-  for (const candidate of await candidates()) {
+  const candidateList = options.configuredPath
+    ? [options.configuredPath, ...(await candidates())]
+    : await candidates();
+  for (const candidate of candidateList) {
     const { binary, failure } = await probe(candidate);
     if (binary) {
       if (!isAtLeast(binary.version, BLENDER_MIN_VERSION)) {
@@ -182,7 +187,7 @@ export async function resolveBlenderBinary(): Promise<BlenderBinary> {
     }
     if (failure) failures.push(failure);
   }
-  throw missingError(failures);
+  throw missingError(failures, options.configuredPath);
 }
 
 /** Forget the cached resolution. Tests use this after mutating the environment. */
