@@ -412,13 +412,15 @@ jobs:
           # --base origin/main`) has the commits to diff.
           fetch-depth: ${{ matrix.fetch-depth }}
 
-      # `harness-gate` diffs against the named ref `origin/main`, not a SHA,
-      # so it needs the branch itself fetched under that name — fetch-depth: 0
-      # above brings in the commits but not necessarily the remote-tracking
-      # ref. A no-op on every other leg.
+      # `harness-gate` diffs against the named ref `origin/main`, not a SHA.
+      # fetch-depth: 0 above already fetches every head into refs/remotes/
+      # origin/*; this refreshes `main` in case the checkout ran against a
+      # stale mirror. Never add `--prune` here: with a single refspec it
+      # deleted `origin/main` instead of updating it. A no-op on every other
+      # leg.
       - name: Fetch origin/main for the harness gate
         if: matrix.check == 'harness-gate'
-        run: git fetch --no-tags --prune origin main:refs/remotes/origin/main
+        run: git fetch --no-tags origin main:refs/remotes/origin/main
 
       - name: Set up Node, install deps
         uses: ./.github/actions/setup-build
