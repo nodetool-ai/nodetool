@@ -35,6 +35,10 @@ import type {
 } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import {
+  backgroundGenerationLimitError,
+  startBackgroundGeneration
+} from "./background-generation.js";
+import {
   HostBinaryMissingError,
   clampTimeoutSeconds,
   mimeFromFilename,
@@ -292,10 +296,6 @@ function hasOutputHandle(persisted: SavedOutput): boolean {
 // The generation seam, as the capabilities use it
 // ---------------------------------------------------------------------------
 
-/** Background generations a run may have open at once (design § 10.1). */
-const MAX_BACKGROUND_GENERATIONS = 16;
-const openBackground = new WeakMap<ProcessingContext, number>();
-
 function toolCallIdOf(params: Record<string, unknown>): string | null {
   const id = params["_tool_call_id"];
   return isNonEmptyString(id) ? id : null;
@@ -403,41 +403,27 @@ function backgroundReceipt(
  * saves the asset whether or not anyone awaits; the count is bounded so a
  * loop cannot open an unbounded number of paid calls.
  */
-function startBackgroundGeneration(
+function startMediaBackgroundGeneration(
   context: ProcessingContext,
   req: GenerationRequest,
   spec: MediaGeneration,
   params: Record<string, unknown>
 ): Record<string, unknown> {
-  const open = openBackground.get(context) ?? 0;
-  if (open >= MAX_BACKGROUND_GENERATIONS) {
-    return {
-      error: `${MAX_BACKGROUND_GENERATIONS} background generations are already open on this run. Collect one with await_generation before starting another.`
-    };
-  }
-  openBackground.set(context, open + 1);
   const outputFile = outputFileOf(params);
-  void context
-    .runGeneration(req)
-    .then(async (result) => {
-      const bytes = generatedBytes(result.output);
-      if (bytes && outputFile && context.workspace) {
-        await context.workspace.write(
-          outputFile,
-          bytes,
-          spec.mime ?? inferImageMime(bytes)
-        );
-      }
-    })
-    .catch(() => {
-      // Recorded on the row by the tracker; nothing to report here.
-    })
-    .finally(() => {
-      openBackground.set(
-        context,
-        Math.max(0, (openBackground.get(context) ?? 1) - 1)
+  const started = startBackgroundGeneration(context, async () => {
+    const result = await context.runGeneration(req);
+    const bytes = generatedBytes(result.output);
+    if (bytes && outputFile && context.workspace) {
+      await context.workspace.write(
+        outputFile,
+        bytes,
+        spec.mime ?? inferImageMime(bytes)
       );
-    });
+    }
+  });
+  if (!started) {
+    return backgroundGenerationLimitError();
+  }
   return backgroundReceipt(req.id ?? "", spec);
 }
 
@@ -455,7 +441,7 @@ async function runMediaGeneration(
   const id = randomUUID();
   const req = generationRequest(id, params, spec);
   if (params["background"] === true) {
-    return startBackgroundGeneration(context, req, spec, params);
+    return startMediaBackgroundGeneration(context, req, spec, params);
   }
   try {
     const result = await context.runGeneration(req);
@@ -954,21 +940,12 @@ const generateSpeech: CapabilityExport = {
         namePrefix: "generated-speech",
         params: speechParams
       };
-      const open = openBackground.get(context) ?? 0;
-      if (open >= MAX_BACKGROUND_GENERATIONS) {
-        return {
-          error: `${MAX_BACKGROUND_GENERATIONS} background generations are already open on this run. Collect one with await_generation before starting another.`
-        };
+      const started = startBackgroundGeneration(context, () =>
+        encodedSpeech(context, m, speechParams, generation)
+      );
+      if (!started) {
+        return backgroundGenerationLimitError();
       }
-      openBackground.set(context, open + 1);
-      void encodedSpeech(context, m, speechParams, generation)
-        .catch(() => null)
-        .finally(() => {
-          openBackground.set(
-            context,
-            Math.max(0, (openBackground.get(context) ?? 1) - 1)
-          );
-        });
       return backgroundReceipt(generationId, spec);
     }
 
@@ -1172,22 +1149,12 @@ const generateMusic: CapabilityExport = {
     };
 
     if (params["background"] === true) {
-      const open = openBackground.get(context) ?? 0;
-      if (open >= MAX_BACKGROUND_GENERATIONS) {
-        return {
-          error: `${MAX_BACKGROUND_GENERATIONS} background generations are already open on this run. Collect one with await_generation before starting another.`
-        };
+      const started = startBackgroundGeneration(context, () =>
+        context.textToMusic(req)
+      );
+      if (!started) {
+        return backgroundGenerationLimitError();
       }
-      openBackground.set(context, open + 1);
-      void context
-        .textToMusic(req)
-        .catch(() => null)
-        .finally(() => {
-          openBackground.set(
-            context,
-            Math.max(0, (openBackground.get(context) ?? 1) - 1)
-          );
-        });
       return backgroundReceipt(generationId, spec);
     }
 

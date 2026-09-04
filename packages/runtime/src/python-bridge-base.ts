@@ -105,6 +105,11 @@ import type {
   ComfyModelDownloadRequest,
   ComfyModelDownloadUpdate,
   ComfyModelInfo,
+  BlenderExecuteJob,
+  BlenderStatusInfo,
+  BlenderEvent,
+  BlenderExecuteOptions,
+  BlenderExecuteResult,
   PythonBridge
 } from "./python-bridge-types.js";
 import {
@@ -159,6 +164,16 @@ export abstract class PythonBridgeBase
     string,
     (event: ComfyEvent) => void
   >();
+  /**
+   * `blender.execute` event callbacks, keyed by request id. Same shape as
+   * {@link _pendingComfyEvents}: `blender.event` frames stream progress while
+   * the same request's terminal `result`/`error` settles via
+   * {@link _pendingStream}.
+   */
+  protected _pendingBlenderEvents = new Map<
+    string,
+    (event: BlenderEvent) => void
+  >();
   protected _options: PythonBridgeOptions;
   protected _connected = false;
   private _connectPromise: Promise<void> | null = null;
@@ -177,7 +192,8 @@ export abstract class PythonBridgeBase
     return (
       this._pending.size +
       this._pendingStream.size +
-      this._pendingComfyEvents.size
+      this._pendingComfyEvents.size +
+      this._pendingBlenderEvents.size
     );
   }
 
@@ -340,6 +356,15 @@ export abstract class PythonBridgeBase
       if (onEvent) {
         onEvent(msg.data as ComfyEvent);
       }
+    } else if (type === "blender.event" && requestId) {
+      // Dedicated `blender.execute` progress frame, mirroring `comfy.event`:
+      // frame progress does not fit `{progress,total,message}` either, and
+      // without this case the frames fall through and vanish silently — which
+      // is also what an older build without this case does with them.
+      const onEvent = this._pendingBlenderEvents.get(requestId);
+      if (onEvent) {
+        onEvent(msg.data as BlenderEvent);
+      }
     }
   }
 
@@ -379,6 +404,7 @@ export abstract class PythonBridgeBase
     if (streamReq) {
       this._pendingStream.delete(requestId);
       this._pendingComfyEvents.delete(requestId);
+      this._pendingBlenderEvents.delete(requestId);
       streamReq.reject(err);
       return;
     }
@@ -400,6 +426,7 @@ export abstract class PythonBridgeBase
     }
     this._pendingStream.clear();
     this._pendingComfyEvents.clear();
+    this._pendingBlenderEvents.clear();
   }
 
   // ── Discover ───────────────────────────────────────────────────────
@@ -1392,6 +1419,103 @@ export abstract class PythonBridgeBase
     if (streamReq) {
       streamReq.reject(
         new Error(`ComfyUI execution "${requestId}" was cancelled.`)
+      );
+    }
+  }
+
+  // ── Blender worker ────────────────────────────────────────────────────
+
+  /**
+   * Whether the attached worker can run Blender and speaks `blender.*`.
+   * Requires a `worker.status.blender` block reporting `enabled: true` — a
+   * worker that says nothing about Blender (every worker that predates the
+   * family) is treated as having none. Per-capability soft gate, like
+   * {@link supportsComfy}. Deliberately no protocol-version floor: the
+   * version bump rides with the worker image, which ships outside this
+   * repository, so the flag alone decides.
+   */
+  supportsBlender(): boolean {
+    return this._workerStatus?.blender?.enabled === true;
+  }
+
+  /** The last-known `blender` block from `worker.status`, or null. */
+  getBlenderStatus(): BlenderStatusInfo | null {
+    return this._workerStatus?.blender ?? null;
+  }
+
+  /**
+   * Run a Blender job and drain its `blender.event` progress stream.
+   *
+   * `blender.execute` streams `progress` events as dedicated `blender.event`
+   * frames (routed to {@link onEvent}), then settles with a terminal
+   * `result` (resolve) or `error` (reject) — `result` is always last. The
+   * event callback is registered in {@link _pendingBlenderEvents} and the
+   * terminal frame in {@link _pendingStream}; both are cleared on settle.
+   *
+   * Cancellable via {@link cancelBlenderExecute}(requestId): pass a stable
+   * `requestId` (or reuse the returned default) to reach this exact run.
+   * Prefer that over the bare {@link cancel} — a plain cancel frame does not
+   * settle the local promise, so if the worker never emits a terminal frame
+   * the promise would hang and the pending maps would leak.
+   */
+  blenderExecute(
+    job: BlenderExecuteJob,
+    inputs: Record<string, string>,
+    options: BlenderExecuteOptions = {},
+    onEvent?: (event: BlenderEvent) => void,
+    requestId: string = randomUUID()
+  ): Promise<BlenderExecuteResult> {
+    const data: Record<string, unknown> = { job, inputs };
+    if (options.blobs) data.blobs = options.blobs;
+    if (options.timeout != null) data.timeout = options.timeout;
+
+    return new Promise<BlenderExecuteResult>((resolve, reject) => {
+      let settled = false;
+      const settle = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        this._pendingStream.delete(requestId);
+        this._pendingBlenderEvents.delete(requestId);
+        fn();
+      };
+      if (onEvent) this._pendingBlenderEvents.set(requestId, onEvent);
+      this._pendingStream.set(requestId, {
+        resolve: (result) =>
+          settle(() => resolve(result as BlenderExecuteResult)),
+        reject: (err) => settle(() => reject(err)),
+        onChunk: () => {}
+      });
+      try {
+        this._send({ type: "blender.execute", request_id: requestId, data });
+      } catch (err) {
+        settle(() =>
+          reject(err instanceof Error ? err : new Error(String(err)))
+        );
+      }
+    });
+  }
+
+  /**
+   * Cancel an in-flight {@link blenderExecute} by request id. Sends the
+   * cancel frame AND settles the local promise by rejecting it — the worker
+   * may never emit a terminal `result`/`error` after a cancel (or may be
+   * hung), so we cannot rely on one to clean up. Rejecting through the
+   * pending-stream entry runs blenderExecute's settle(), clearing BOTH
+   * `_pendingStream` and `_pendingBlenderEvents`. A no-op if the id is
+   * unknown. Mirrors {@link cancelComfyExecute}.
+   */
+  cancelBlenderExecute(requestId: string): void {
+    // Best-effort (see cancelModelDownload): swallow a 'Not connected' from
+    // _send so a disconnected cancel stays the documented no-op.
+    try {
+      this.cancel(requestId);
+    } catch {
+      // Worker may already be gone; cancel is best-effort.
+    }
+    const streamReq = this._pendingStream.get(requestId);
+    if (streamReq) {
+      streamReq.reject(
+        new Error(`Blender execution "${requestId}" was cancelled.`)
       );
     }
   }

@@ -138,6 +138,29 @@ describe("runGeneration", () => {
     expect(predictions(ctx)[1].asset_ids).toEqual(["asset-1"]);
   });
 
+  it("tracks a local generation without resolving a provider", async () => {
+    const ctx = new ProcessingContext({ jobId: "job-1" });
+    const result = await ctx.runGenerationWith(
+      {
+        provider: "blender",
+        capability: "render_model3d",
+        model: "render_image",
+        params: { model_id: "model-1" }
+      },
+      async (provider) => {
+        expect(provider).toBeNull();
+        return PNG;
+      },
+      { withoutProvider: true }
+    );
+
+    expect(result.output).toBe(PNG);
+    expect(predictions(ctx).map((message) => message.status)).toEqual([
+      "running",
+      "completed"
+    ]);
+  });
+
   it("carries the provider's receipt on the completed message", async () => {
     const ctx = new ProcessingContext({ jobId: "job-1" });
     ctx.registerProvider(

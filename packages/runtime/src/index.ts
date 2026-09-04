@@ -179,7 +179,12 @@ export type {
   ComfyExecuteResult,
   ComfyModelDownloadRequest,
   ComfyModelDownloadUpdate,
-  ComfyModelInfo
+  ComfyModelInfo,
+  BlenderExecuteJob,
+  BlenderStatusInfo,
+  BlenderEvent,
+  BlenderExecuteOptions,
+  BlenderExecuteResult
 } from "./python-bridge-types.js";
 export {
   WebsocketPythonBridge,
@@ -267,6 +272,13 @@ export {
   type FakeContextOptions
 } from "./testing.js";
 export { executeComfy, uploadComfyFile } from "./comfy-executor.js";
+export { executeBlender, BlenderExecutorError } from "./blender-executor.js";
+export type {
+  BlenderWorkerJob,
+  BlenderExecutorOptions,
+  BlenderExecutorStats,
+  BlenderExecutorResult
+} from "./blender-executor.js";
 export type {
   ComfyExecutorResult,
   ComfyImage,

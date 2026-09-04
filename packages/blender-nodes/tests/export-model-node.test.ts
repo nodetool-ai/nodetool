@@ -40,6 +40,7 @@ function stubContext(captured: {
   args?: { name: string; contentType: string; content: Uint8Array };
 }): ProcessingContext {
   return {
+    getSetting: async () => null,
     createAsset: async (args: {
       name: string;
       contentType: string;

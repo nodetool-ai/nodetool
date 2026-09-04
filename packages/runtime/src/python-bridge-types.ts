@@ -272,6 +272,79 @@ export interface ComfyExecuteResult {
   [key: string]: unknown;
 }
 
+// ── Blender worker ────────────────────────────────────────────────────────
+//
+// The worker can run headless Blender and serve it over the bridge as
+// `blender.*` messages. All shapes below mirror the `blender.execute`
+// request / `blender.event` frames in `@nodetool-ai/protocol/bridge-frames`
+// and the `BlenderJob` contract in `@nodetool-ai/blender-nodes` (which this
+// package must not import — the dependency runs the other way — so the job
+// travels here as the structural wire shape below).
+
+export interface BlenderExecuteJob {
+  version: number;
+  inputs: Record<string, string>;
+  outputs: Record<string, string>;
+  /** Operation payload validated by the worker's versioned job parser. */
+  job: unknown;
+}
+
+/**
+ * The `blender` block on `worker.status`. Present only when the worker can
+ * run Blender; `enabled` is the routing signal — only send `blender.execute`
+ * to a worker whose last status reported `enabled: true`. A worker that says
+ * nothing about Blender is treated as having none.
+ */
+export interface BlenderStatusInfo {
+  enabled: boolean;
+  /** Blender version string the worker last ran, when it reports one. */
+  version?: string;
+  /** Why the worker cannot run Blender, when it says so. */
+  error?: string;
+}
+
+/**
+ * A `blender.event` frame's `data`. `blender.execute` streams frame progress
+ * as these dedicated frames — NOT as `progress` — then settles with a
+ * terminal `result` (resolve) or `error` (reject). `event` is the
+ * discriminator; today only `progress` exists.
+ */
+export interface BlenderEvent {
+  event: "progress";
+  /** Current frame number, from Blender's `Fra:` stderr lines. */
+  frame: number;
+  /** Total frames in the run. */
+  total: number;
+  [key: string]: unknown;
+}
+
+/** Options for a {@link PythonBridge.blenderExecute} call. */
+export interface BlenderExecuteOptions {
+  /**
+   * Input files keyed by blob key. The request's `inputs` manifest maps each
+   * logical input name to its key, so the worker can stage the bytes under
+   * the bare file name the job declares.
+   */
+  blobs?: Record<string, Uint8Array>;
+  /** Max seconds to wait for the Blender run before the worker gives up. */
+  timeout?: number;
+}
+
+/** Terminal `result.data` of a {@link PythonBridge.blenderExecute} call. */
+export interface BlenderExecuteResult {
+  ok: boolean;
+  /** Logical output names the op wrote. A subset of the job's outputs. */
+  produced?: string[];
+  stats?: Record<string, unknown>;
+  /** Declared byte size per output, when the worker reports them. */
+  sizes?: Record<string, number>;
+  /** Output bytes keyed by logical output name. */
+  blobs?: Record<string, Uint8Array>;
+  /** Present when `ok` is false: the op's error code and message. */
+  error?: { code: string; message: string };
+  [key: string]: unknown;
+}
+
 /**
  * Where {@link PythonBridge.comfyModelsDownload} pulls the file from. The
  * worker discriminates on `type`; a HuggingFace source resolves the token
@@ -394,6 +467,12 @@ export interface PythonWorkerStatus {
    * ComfyUI server; used to route `comfy.*` requests (see {@link ComfyStatusInfo}).
    */
   comfy?: ComfyStatusInfo;
+  /**
+   * Blender status. Present only when the worker can run Blender; used to
+   * route `blender.execute` requests (see {@link BlenderStatusInfo}). A
+   * worker that says nothing here is treated as having no Blender.
+   */
+  blender?: BlenderStatusInfo;
 }
 
 /**
@@ -559,6 +638,35 @@ export interface PythonBridge extends EventEmitter {
   /** Remove a model file from the worker's volume. */
   comfyModelsDelete(folder: string, filename: string): Promise<boolean>;
 
+  // ── Blender worker (gated by supportsBlender) ─────────────────────────
+  /**
+   * Whether the attached worker can run Blender and speaks the `blender.*`
+   * family (`worker.status.blender.enabled`). Route Blender jobs only to
+   * workers where this is true. A worker that says nothing about Blender —
+   * every worker that predates the family — is treated as having none.
+   */
+  supportsBlender(): boolean;
+  /** The last-known `blender` block from `worker.status`, or null. */
+  getBlenderStatus(): BlenderStatusInfo | null;
+  /**
+   * Run a Blender job and drain its `blender.event` progress stream via
+   * `onEvent`. Resolves on the terminal `result`, rejects on `error`.
+   * Cancellable through {@link cancelBlenderExecute} with the
+   * returned/passed `requestId`.
+   */
+  blenderExecute(
+    job: BlenderExecuteJob,
+    inputs: Record<string, string>,
+    options?: BlenderExecuteOptions,
+    onEvent?: (event: BlenderEvent) => void,
+    requestId?: string
+  ): Promise<BlenderExecuteResult>;
+  /**
+   * Cancel an in-flight {@link blenderExecute} by request id, settling its
+   * promise locally (does not rely on a terminal frame from the worker).
+   */
+  cancelBlenderExecute(requestId: string): void;
+
   getRecentStderrSummary(limit?: number): string | null;
   close(): void;
 }
@@ -585,6 +693,14 @@ export const comfyStatusInfoSchema = z
   })
   .loose();
 
+export const blenderStatusInfoSchema = z
+  .object({
+    enabled: z.boolean().catch(false),
+    version: z.string().optional().catch(undefined),
+    error: z.string().optional().catch(undefined)
+  })
+  .loose();
+
 /**
  * Load errors are forwarded verbatim: the entry shape varies by worker version
  * (older workers key them by `node_type`), and every consumer only displays
@@ -601,6 +717,7 @@ export const workerStatusSchema = z
     load_errors: z.array(workerLoadErrorSchema).catch([]),
     transport: z.string().catch(""),
     max_frame_size: z.number().catch(0),
-    comfy: comfyStatusInfoSchema.optional().catch(undefined)
+    comfy: comfyStatusInfoSchema.optional().catch(undefined),
+    blender: blenderStatusInfoSchema.optional().catch(undefined)
   })
   .loose();

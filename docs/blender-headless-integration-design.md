@@ -806,10 +806,11 @@ implementation can keep.
   (U1) in the same release? If yes, `packages/model3d` grows a `camera` and
   `text` primitive first, and `RenderAnimation` under `camera_mode: auto`
   picks them up with no further change.
-- Q2. Should Stage 4 route long renders through the generation ledger with
-  `background: true` so agents `await_generation`? It changes the node from
-  synchronous to a job handle and is the point where the timeout stops
-  being the only bound.
+- Q2. Resolved. `render_model3d` supports `background: true` through the
+  existing generation ledger and `MAX_BACKGROUND_GENERATIONS` cap; agents use
+  `await_generation` for completion. The five `nodetool.blender.*` nodes stay
+  synchronous because their downstream outputs remain media values and the
+  kernel already runs independent nodes concurrently.
 
 ## Risks
 

@@ -20,6 +20,7 @@ import { describe, it, expect } from "vitest";
 import {
   bridgeFrameSchema,
   bridgeFrameSchemas,
+  blenderExecuteRequestSchema,
   assertValidBridgeFrame,
   validateBridgeFrame,
   getBridgeFrameSchema
@@ -68,6 +69,11 @@ const validFrames: Record<string, Record<string, unknown>> = {
     type: "comfy.event",
     request_id: "r1",
     data: { event: "queued", prompt_id: "p1" }
+  },
+  "blender.event": {
+    type: "blender.event",
+    request_id: "r1",
+    data: { event: "progress", frame: 2, total: 3 }
   }
 };
 
@@ -135,6 +141,159 @@ describe("bridgeFrameSchemas", () => {
       data: {}
     });
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe("blender.execute request schema (outbound-only, beside comfy.*)", () => {
+  const request = {
+    job: {
+      version: 1,
+      inputs: { model: "model.glb" },
+      outputs: { image: "render.png" },
+      job: { op: "render_image", params: {} }
+    },
+    inputs: { model: "model" },
+    timeout: 600
+  };
+
+  it("accepts a well-formed request carrying job, blob keys, and timeout", () => {
+    expect(blenderExecuteRequestSchema.safeParse(request).success).toBe(true);
+  });
+
+  it("rejects a request missing the job", () => {
+    expect(
+      blenderExecuteRequestSchema.safeParse({
+        inputs: { model: "model" },
+        timeout: 600
+      }).success
+    ).toBe(false);
+  });
+
+  it("rejects a request whose inputs are not blob keys", () => {
+    expect(
+      blenderExecuteRequestSchema.safeParse({
+        ...request,
+        inputs: { model: 42 }
+      }).success
+    ).toBe(false);
+  });
+
+  it("rejects a request with a non-numeric timeout", () => {
+    expect(
+      blenderExecuteRequestSchema.safeParse({ ...request, timeout: "600" })
+        .success
+    ).toBe(false);
+  });
+
+  it("has no dispatcher entry: an outbound request is not an inbound frame", () => {
+    expect(getBridgeFrameSchema("blender.execute")).toBeUndefined();
+    // …so the dispatcher gate treats it as not-its-concern, the way an
+    // older worker treats the unknown request type: ignored, never run.
+    expect(
+      validateBridgeFrame({
+        type: "blender.execute",
+        request_id: "r1",
+        data: request
+      }).success
+    ).toBe(true);
+  });
+});
+
+describe("blender worker.status flag", () => {
+  const status = {
+    type: "result",
+    request_id: "r1",
+    data: {
+      protocol_version: 4,
+      node_count: 1,
+      provider_count: 0,
+      namespaces: ["fake"],
+      load_errors: [],
+      transport: "websocket",
+      max_frame_size: 1024
+    }
+  };
+
+  it("a worker that says nothing about Blender parses as having none", () => {
+    const parsed = bridgeFrameSchemas.result.safeParse(status);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      const data = parsed.data.data as { blender?: { enabled: boolean } };
+      expect(data.blender).toBeUndefined();
+    }
+  });
+
+  it("a worker reporting blender.enabled parses with the flag", () => {
+    const parsed = bridgeFrameSchemas.result.safeParse({
+      ...status,
+      data: {
+        ...(status.data as Record<string, unknown>),
+        blender: { enabled: true, version: "5.2.1" }
+      }
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      const data = parsed.data.data as { blender?: { enabled: boolean } };
+      expect(data.blender?.enabled).toBe(true);
+    }
+  });
+
+  it("a blender terminal result parses through the result schema", () => {
+    expect(
+      bridgeFrameSchemas.result.safeParse({
+        type: "result",
+        request_id: "r1",
+        data: {
+          ok: true,
+          produced: ["image"],
+          stats: { blender_version: "5.2.1", render_seconds: 1.5 },
+          sizes: { image: 4 },
+          blobs: {}
+        }
+      }).success
+    ).toBe(true);
+  });
+});
+
+describe("blender.event malformed frames", () => {
+  it("rejects an event whose frame is not a number", () => {
+    expect(
+      bridgeFrameSchemas["blender.event"].safeParse({
+        type: "blender.event",
+        request_id: "r1",
+        data: { event: "progress", frame: "2", total: 3 }
+      }).success
+    ).toBe(false);
+  });
+
+  it("rejects an event with an unknown discriminator", () => {
+    expect(
+      bridgeFrameSchemas["blender.event"].safeParse({
+        type: "blender.event",
+        request_id: "r1",
+        data: { event: "completed", frame: 3, total: 3 }
+      }).success
+    ).toBe(false);
+  });
+
+  it("the dispatcher gate reports the failure without throwing", () => {
+    const result = validateBridgeFrame({
+      type: "blender.event",
+      request_id: "r1",
+      data: { event: "progress", frame: "2", total: 3 }
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toBeTruthy();
+  });
+
+  it("assertValidBridgeFrame throws for a malformed blender.event", () => {
+    expect(() =>
+      assertValidBridgeFrame({
+        type: "blender.event",
+        request_id: "r1",
+        data: { event: "progress", frame: "2", total: 3 }
+      })
+    ).toThrow(/fails its own envelope contract/);
   });
 });
 
