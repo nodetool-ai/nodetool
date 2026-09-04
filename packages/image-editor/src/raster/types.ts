@@ -44,13 +44,19 @@ export interface RasterContext2D extends PaintContext2D {
   quadraticCurveTo?(cpx: number, cpy: number, x: number, y: number): void;
 }
 
+function isRasterContext(
+  ctx: PaintContext2D | RasterContext2D
+): ctx is RasterContext2D {
+  return "getImageData" in ctx && typeof ctx.getImageData === "function";
+}
+
 export function requireRasterContext(
   ctx: PaintContext2D | RasterContext2D | null
 ): RasterContext2D {
-  if (!ctx || typeof (ctx as RasterContext2D).getImageData !== "function") {
+  if (!ctx || !isRasterContext(ctx)) {
     throw new Error("A 2D context with getImageData is required.");
   }
-  return ctx as RasterContext2D;
+  return ctx;
 }
 
 export function readFullImage(ctx: RasterContext2D): RasterImageData {

@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { computeDependencyHash } from "../src/dependencyHash.js";
+import {
+  computeDependencyHash,
+  type HashableValue
+} from "../src/dependencyHash.js";
 
 describe("computeDependencyHash", () => {
   const baseInput = {
@@ -93,7 +96,7 @@ describe("computeDependencyHash", () => {
       workflowUpdatedAt: "t",
       inputAssetHashes: [] as string[]
     };
-    const h = (cfg: unknown) =>
+    const h = (cfg: HashableValue) =>
       computeDependencyHash({ ...base, paramOverrides: { cfg } });
 
     expect(

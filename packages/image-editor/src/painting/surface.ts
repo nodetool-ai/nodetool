@@ -63,8 +63,12 @@ export interface PaintContext2D {
     r1: number
   ): PaintGradient;
   /**
-   * `image` is `unknown` because the host decides what it accepts — a DOM
-   * `CanvasImageSource`, a skia `Canvas`. The engine only ever passes back a
+   * HOLDOUT (anti-slop/no-unknown-parameters): `image` is whatever the host's
+   * canvas accepts, and a DOM `CanvasRenderingContext2D` has to stay assignable
+   * to this interface. Its `CanvasImageSource` union has no supertype writable
+   * here — an `SVGImageElement`'s `width` is an `SVGAnimatedLength`, not a
+   * number — so neither direction of the bivariant method check succeeds
+   * against a named shape. The engine only ever passes back a
    * {@link PaintSurface} the same host produced.
    */
   drawImage(image: unknown, dx: number, dy: number): void;

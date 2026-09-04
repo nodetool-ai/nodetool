@@ -2,11 +2,28 @@ import { createHash } from "node:crypto";
 
 const HASH_INPUT_VERSION_PREFIX = "v1:";
 
+/**
+ * A value the digest can canonicalize: decoded JSON, plus `undefined`, which a
+ * param override may hold and which the digest keeps distinct from `null` and
+ * from an absent key.
+ */
+export type HashableValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | HashableValue[]
+  | { [key: string]: HashableValue };
+
+/** Workflow param overrides as the digest reads them. */
+export type ParamOverrides = Record<string, HashableValue>;
+
 export interface DependencyHashInput {
   workflowId: string;
   /** Timestamp from the bound workflow `updated_at` field. */
   workflowUpdatedAt: string;
-  paramOverrides: Record<string, unknown>;
+  paramOverrides: ParamOverrides;
   inputAssetHashes: string[];
   /**
    * Output node the binding reads from. Folded into the hash so re-pointing a
@@ -25,7 +42,11 @@ function byCodeUnit(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
-function stableSerialize(value: unknown): string {
+function isHashableRecord(value: HashableValue): value is ParamOverrides {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function stableSerialize(value: HashableValue): string {
   if (value === undefined) {
     return "undefined";
   }
@@ -34,9 +55,9 @@ function stableSerialize(value: unknown): string {
     return `[${value.map((item) => stableSerialize(item)).join(",")}]`;
   }
 
-  if (value !== null && typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>).sort(
-      ([leftKey], [rightKey]) => byCodeUnit(leftKey, rightKey)
+  if (isHashableRecord(value)) {
+    const entries = Object.entries(value).sort(([leftKey], [rightKey]) =>
+      byCodeUnit(leftKey, rightKey)
     );
 
     return `{${entries
@@ -44,9 +65,15 @@ function stableSerialize(value: unknown): string {
       .join(",")}}`;
   }
 
-  if (typeof value === "number" && !Number.isFinite(value)) {
-    // JSON.stringify collapses NaN / ±Infinity to "null"; keep them distinct.
-    return Number.isNaN(value) ? "NaN" : value > 0 ? "Infinity" : "-Infinity";
+  // JSON.stringify collapses NaN / ±Infinity to "null"; keep them distinct.
+  if (Number.isNaN(value)) {
+    return "NaN";
+  }
+  if (value === Number.POSITIVE_INFINITY) {
+    return "Infinity";
+  }
+  if (value === Number.NEGATIVE_INFINITY) {
+    return "-Infinity";
   }
 
   return JSON.stringify(value);
@@ -55,16 +82,18 @@ function stableSerialize(value: unknown): string {
 export function computeDependencyHash(input: DependencyHashInput): string {
   // Object keys are sorted canonically by `stableSerialize`, so paramOverrides
   // needs no pre-sort. Array order *is* significant, so asset hashes are sorted.
-  const normalizedInput: Record<string, unknown> = {
+  const base = {
     workflowId: input.workflowId,
     workflowUpdatedAt: input.workflowUpdatedAt,
     paramOverrides: input.paramOverrides,
     inputAssetHashes: [...input.inputAssetHashes].sort(byCodeUnit)
   };
-
-  if (input.selectedOutputNodeId !== undefined) {
-    normalizedInput.selectedOutputNodeId = input.selectedOutputNodeId;
-  }
+  // Absent, not undefined: a caller that tracks no output selection must hash
+  // the same as one that never had the field.
+  const normalizedInput =
+    input.selectedOutputNodeId === undefined
+      ? base
+      : { ...base, selectedOutputNodeId: input.selectedOutputNodeId };
 
   const payload = `${HASH_INPUT_VERSION_PREFIX}${stableSerialize(normalizedInput)}`;
   return createHash("sha256").update(payload, "utf8").digest("hex");
