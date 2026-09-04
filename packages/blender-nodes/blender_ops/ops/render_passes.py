@@ -8,7 +8,8 @@ node tree staging the raw float passes:
   the Z pass. `png16` (default) normalizes to `[0, 65535]` between
   `depth_near` and `depth_far` — the min and max finite depth over the
   foreground pixels, both returned in stats — with background `65535`.
-  `exr` keeps the raw float with background `+inf`, as Blender writes it.
+  `exr` keeps the raw float with background `+inf`, rewritten from the
+  `1e10` sentinel the staged file carries (see `BACKGROUND_DEPTH`).
 - `normal`: camera-space normals from the Normal pass, `[-1, 1]` mapped to
   8-bit RGB, background `(128, 128, 255)`.
 - `mask`: 8-bit image, foreground `255`, from the object index pass — on
@@ -49,7 +50,7 @@ from mathutils import Vector
 from depth import depth_range, normalize_to_u16, write_gray8_png, write_gray16_png
 from depth import write_rgb8_png
 from errors import BadJob, RenderFailed
-from exr import read_exr_rgba
+from exr import read_exr_rgba, rewrite_background_to_inf
 from ops.common import setup_render_scene
 
 #: Staging directory for the raw float passes, inside the job's own
@@ -72,13 +73,13 @@ _MASK_PASS_INDEX = 1
 #: Background constant for the normal map: exactly (128, 128, 255) in 8-bit.
 NORMAL_BACKGROUND = (128, 128, 255)
 
-#: EEVEE's no-hit Z sentinel, measured on Blender 5.2.1: the Z pass is
-#: finite everywhere and off-geometry pixels read exactly this value.
-#: Cycles writes +inf there instead, which the finiteness check below
-#: already excludes. A real surface never reaches it (the far clip sits at
-#: distance + radius * 10, single digits), so foreground is finite depth
-#: below this value on both engines. This constant is an EEVEE behavior,
-#: not a documented Blender API value: re-measure it if the version floor
+#: No-hit Z value in the staged EXRs, measured on Blender 5.2.1: the
+#: staged Z pass is finite everywhere and off-geometry pixels read
+#: exactly this value on both EEVEE and Cycles. A real surface never
+#: reaches it (the far clip sits at distance + radius * 10, single
+#: digits), so foreground is finite depth below this value on both
+#: engines. This constant is a measured staging behavior, not a
+#: documented Blender API value: re-measure it if the version floor
 #: moves.
 BACKGROUND_DEPTH = 1e10
 
@@ -274,9 +275,10 @@ def _run_passes(job, workdir, params, outputs, passes, depth_format,
         width, height, depths, _depth_g, _depth_b = read_exr_rgba(
             staged[_DEPTH_RAW_SLOT]
         )
-        # Foreground is finite Z below the no-hit sentinel: EEVEE writes
-        # 1e10 off-geometry, Cycles +inf. The EEVEE mask shares this
-        # resolve; the Cycles mask keys on its own index pass below.
+        # Foreground is finite Z below the no-hit sentinel: the staged
+        # EXR carries 1e10 off-geometry on both engines (measured
+        # 5.2.1). The EEVEE mask shares this resolve; the Cycles mask
+        # keys on its own index pass below.
         foreground = [_is_foreground(value) for value in depths]
     if "mask" in passes:
         if stage_index:
@@ -336,6 +338,11 @@ def _run_passes(job, workdir, params, outputs, passes, depth_format,
         stats["depth_near"] = near
         stats["depth_far"] = far
         if depth_format == "exr":
+            # The staged EXR carries the 1e10 no-hit sentinel where the
+            # contract promises +inf: rewrite the background samples
+            # first, keyed on the same foreground resolve the png16 path
+            # uses. Foreground samples are untouched.
+            rewrite_background_to_inf(staged[_DEPTH_RAW_SLOT], foreground)
             os.replace(
                 staged[_DEPTH_RAW_SLOT], os.path.join(workdir, outputs["depth"])
             )

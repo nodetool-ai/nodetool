@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-// Test-only cross-package import: pins the blender-nodes copy against the
-// original it was copied from. See `src/argv-guard.ts`.
-import { refuseFlagLikeValue as originalRefuseFlagLikeValue } from "../../agents/src/host-binary-guard.js";
-import { refuseFlagLikeValue } from "../src/argv-guard.js";
 import {
   blenderResultSchema,
   jobFileNameSchema,
@@ -115,23 +111,6 @@ describe("runBlenderJob validation", () => {
     }
   });
 
-  it("refuses a flag-like string prop", async () => {
-    const { context, cleanup } = blenderTestContext();
-    try {
-      await expect(
-        runBlenderJob(
-          context,
-          new Uint8Array([1]),
-          renderImageOp({ background_color: "--python" }),
-          { image: "render.png" },
-          { timeoutMs: 1000 }
-        )
-      ).rejects.toMatchObject({ name: "BlenderJobError", code: "bad_job" });
-    } finally {
-      cleanup();
-    }
-  });
-
   it("refuses empty model bytes before touching Blender", async () => {
     const { context, cleanup } = blenderTestContext();
     try {
@@ -154,32 +133,3 @@ describe("runBlenderJob validation", () => {
   });
 });
 
-describe("refuseFlagLikeValue", () => {
-  it("rejects a value starting with a dash", () => {
-    expect(refuseFlagLikeValue("--python", "background_color")).toBeDefined();
-  });
-
-  it("accepts an ordinary value", () => {
-    expect(refuseFlagLikeValue("#ffffff", "background_color")).toBeUndefined();
-  });
-
-  it("behaves exactly like the agents original", () => {
-    const values = [
-      "--python",
-      "-x",
-      "-",
-      "#ffffff",
-      "eevee",
-      "",
-      " --leading-space",
-      "--",
-      "a-b"
-    ];
-    for (const value of values) {
-      expect(
-        refuseFlagLikeValue(value, "background_color"),
-        `copy disagrees on ${JSON.stringify(value)}`
-      ).toEqual(originalRefuseFlagLikeValue(value, "background_color"));
-    }
-  });
-});

@@ -9,7 +9,8 @@ Contracts:
   the Z pass. `png16` (default) normalizes to `[0, 65535]` between
   `depth_near` and `depth_far` — the min and max finite depth over the
   foreground (masked) pixels — with background `65535`. `exr` keeps the raw
-  float with background `+inf`, as Blender writes it.
+  float with background `+inf`, rewritten from the `1e10` sentinel the
+  staged file carries.
 """
 
 import struct

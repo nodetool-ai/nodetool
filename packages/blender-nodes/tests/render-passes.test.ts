@@ -21,6 +21,7 @@ import { blenderAvailable, failWhenBlenderRequired } from "./blender-available.j
 failWhenBlenderRequired();
 import { blenderTestContext, type BlenderTestContext } from "./context.js";
 import { createDepthGlb, createTriangleGlb } from "./fixtures.js";
+import { decodeExrFloat } from "./exr.js";
 import { decodePng, hasPngSignature, topColorFraction } from "./png.js";
 
 function passesOp(
@@ -338,13 +339,17 @@ describe.skipIf(!blenderAvailable())("render_passes integration", () => {
     }
   }, 120_000);
 
-  it("writes raw float EXR depth with the same range", async () => {
-    const passes = ["depth"];
+  it("writes raw float EXR depth with infinite background", async () => {
+    // The staged EXR must honor the D4 contract: background is +inf, so a
+    // consumer filtering on infinity reads no background pixel as
+    // foreground. The mask is the oracle: mask 0 and depth +inf must agree
+    // in both directions.
+    const passes = ["depth", "mask"];
     const result = await runBlenderJob(
       helper!.context,
       createDepthGlb(),
       passesOp(passes, { depth_format: "exr" }),
-      { depth: "depth.exr" },
+      { depth: "depth.exr", mask: "mask.png" },
       { timeoutMs: 300_000 }
     );
     const exr = result.outputs["depth"]!;
@@ -355,5 +360,27 @@ describe.skipIf(!blenderAvailable())("render_passes integration", () => {
     const expected = expectedDepthRange();
     expect(Math.abs(result.stats.depth_near! - expected.near)).toBeLessThan(0.05);
     expect(Math.abs(result.stats.depth_far! - expected.far)).toBeLessThan(0.05);
+    const depth = decodeExrFloat(exr);
+    expect(depth.width).toBe(160);
+    expect(depth.height).toBe(120);
+    const mask = decodePng(result.outputs["mask"]!);
+    expect(mask.width).toBe(160);
+    expect(mask.height).toBe(120);
+    let infinite = 0;
+    let finite = 0;
+    for (let i = 0; i < 160 * 120; i++) {
+      const value = depth.r[i]!;
+      if (mask.pixels[i] === 0) {
+        expect(value).toBe(Infinity);
+        infinite++;
+      } else {
+        expect(Number.isFinite(value)).toBe(true);
+        expect(value).toBeGreaterThanOrEqual(result.stats.depth_near! - 1e-3);
+        expect(value).toBeLessThanOrEqual(result.stats.depth_far! + 1e-3);
+        finite++;
+      }
+    }
+    expect(infinite).toBeGreaterThan(0);
+    expect(finite).toBeGreaterThan(0);
   }, 300_000);
 });

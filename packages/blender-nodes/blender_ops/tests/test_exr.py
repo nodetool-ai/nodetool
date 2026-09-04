@@ -15,13 +15,39 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-from exr import ExrError, read_exr_rgba
+from exr import ExrError, read_exr_rgba, rewrite_background_to_inf
 
 
 def check(label, actual, expected):
     if actual != expected:
         print("MISMATCH %s: got %r want %r" % (label, actual, expected))
         sys.exit(1)
+
+
+def read_channel(path, wanted):
+    """Float samples of one named channel, in row-major order."""
+    from exr import _parse_header, _parse_header_channels
+
+    with open(path, "rb") as handle:
+        blob = handle.read()
+    attrs, pos = _parse_header(blob)
+    (x0, y0, x1, y1) = struct.unpack("<iiii", attrs["dataWindow"])
+    width, height = x1 - x0 + 1, y1 - y0 + 1
+    channels = _parse_header_channels(attrs)
+    offsets = struct.unpack("<%dq" % (height,), blob[pos : pos + 8 * height])
+    values = []
+    for row, offset in enumerate(offsets):
+        cursor = offset + 8
+        for name, pixel_type, _ in channels:
+            count = width * 4
+            if name == wanted:
+                values.extend(
+                    struct.unpack(
+                        "<%df" % (width,), blob[cursor : cursor + count]
+                    )
+                )
+            cursor += count
+    return values
 
 
 def write_exr(path, width, height, channels, compression=0):
@@ -137,6 +163,53 @@ try:
     print("MISMATCH magic: expected ExrError")
     sys.exit(1)
 except ExrError:
+    pass
+finally:
+    if os.path.exists(GOOD):
+        os.remove(GOOD)
+
+# background samples become +inf, foreground is bit-exact, alpha is kept.
+try:
+    write_exr(
+        GOOD,
+        3,
+        2,
+        [
+            (b"Image.A", [1.0] * 6),
+            (b"Image.B", [1e10, 2.0, 1e10, 4.0, 5.0, 1e10]),
+            (b"Image.G", [1e10, 2.0, 1e10, 4.0, 5.0, 1e10]),
+            (b"Image.R", [1e10, 2.0, 1e10, 4.0, 5.0, 1e10]),
+        ],
+    )
+    rewrite_background_to_inf(
+        GOOD, [False, True, False, True, True, False]
+    )
+    _w, _h, r, g, b = read_exr_rgba(GOOD)
+    check("bg", [r[0], r[2], r[5]], [float("inf")] * 3)
+    check("fg", [r[1], r[3], r[4]], [2.0, 4.0, 5.0])
+    check("g-matches", g, r)
+    check("b-matches", b, r)
+    check("alpha-kept", read_channel(GOOD, "Image.A"), [1.0] * 6)
+finally:
+    if os.path.exists(GOOD):
+        os.remove(GOOD)
+
+# a mask that does not fill the frame is refused, never half-applied.
+try:
+    write_exr(
+        GOOD,
+        2,
+        1,
+        [
+            (b"L.R", [1.0, 2.0]),
+            (b"L.G", [1.0, 2.0]),
+            (b"L.B", [1.0, 2.0]),
+        ],
+    )
+    rewrite_background_to_inf(GOOD, [True])
+    print("MISMATCH mask-size: expected ValueError")
+    sys.exit(1)
+except ValueError:
     pass
 finally:
     if os.path.exists(GOOD):

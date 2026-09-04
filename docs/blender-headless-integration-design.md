@@ -302,7 +302,9 @@ Output contracts the ops must honor:
   value is normalized to `[0, 65535]` between `depth_near` and `depth_far`,
   the min and max finite depth in the frame, both returned as floats, and
   background pixels are `65535`. In `exr` the value is the raw float, and
-  background is `+inf`, as Blender writes it. Control-pass consumers get
+  background is `+inf`: the staged EXR carries the `1e10` no-hit sentinel
+  (measured 5.2.1 on both engines), which the op rewrites to `+inf`
+  before the output is written. Control-pass consumers get
   `png16`. Anything that needs precision gets `exr`.
 - `normal`: camera-space normals from the Normal pass, mapped from `[-1, 1]`
   to 8-bit RGB. Background is `(128, 128, 255)`.
@@ -683,11 +685,11 @@ implementation can keep.
 - The env allowlist keeps the secrets in `process.env` out of the child. It
   does not stop outbound connections. The op script opens no socket, and the
   job carries no URL, but Blender itself is not network-isolated here.
-- Argv is built from typed props with `refuseFlagLikeValue` from
-  `host-binary-guard.ts` applied to every top-level string param, so a value
-  starting with `-` cannot become a Blender flag. Nested values (the
-  `passes` list) are filtered against known constants by the node instead.
-  File names in the job pass
+- Blender's argv is fixed in `LocalBlenderRunner`: every param travels
+  inside `job.json`, which the op script reads with `json.load`, so no
+  param value can become a Blender flag and no flag-injection check
+  exists here. The `passes` list is filtered against known constants by
+  the node. File names in the job pass
   `jobFileNameSchema`, so `..` and separators never reach `job.json`.
 - Untrusted Blender execution, meaning a `RunScript` node or a `.blend` from
   someone else, needs the worker tier. The worker is a container NodeTool
@@ -731,8 +733,7 @@ implementation can keep.
   allowlist excludes an injected `SECRET` variable. Invert each once.
 - T2 unit (`packages/blender-nodes/tests/job.test.ts`): every node builds
   the expected `BlenderJob` from its props, `blenderResultSchema` rejects a
-  result with an unknown error code, `refuseFlagLikeValue` rejects a
-  `background_color` of `--python`, `jobFileNameSchema` rejects
+  result with an unknown error code, `jobFileNameSchema` rejects
   `../x.png` and `/tmp/x.png`. Against the fake Blender: a `result.json`
   whose `produced` names an undeclared output, or that carries a path, is
   ignored and the path is never opened (asserted with a sentinel file that

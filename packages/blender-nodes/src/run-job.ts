@@ -10,7 +10,6 @@
 import { withSpan } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
-import { refuseFlagLikeValue } from "./argv-guard.js";
 import { resolveBlenderBinary } from "./blender-binary.js";
 import {
   jobFileNameSchema,
@@ -46,22 +45,6 @@ export function __setBlenderRunnerForTesting(
   runner: BlenderRunner | null
 ): void {
   testRunner = runner;
-}
-
-/**
- * Every top-level string param must not be flag-like. Nested values (the
- * `passes` list) are filtered against known constants by the node before
- * the job is built, so only top-level strings are inspected here.
- */
-function refuseFlagLikeParams(op: BlenderOp): void {
-  const params = op.params as unknown as Record<string, unknown>;
-  for (const [key, value] of Object.entries(params)) {
-    if (typeof value !== "string") continue;
-    const refusal = refuseFlagLikeValue(value, key);
-    if (refusal) {
-      throw new BlenderJobError("bad_job", refusal.error);
-    }
-  }
 }
 
 function engineOf(op: BlenderOp): string | undefined {
@@ -105,8 +88,6 @@ export async function runBlenderJob(
       );
     }
   }
-  refuseFlagLikeParams(op);
-
   const job: BlenderJob = {
     version: BLENDER_JOB_VERSION,
     inputs: { model: BLENDER_MODEL_INPUT_FILE },

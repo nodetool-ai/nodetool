@@ -15,10 +15,10 @@ implementation, `runBlenderJob`, and the `RenderImage`, `RenderPasses`,
   as a path. `tests/runner.test.ts` pins this with a fake blender.
 - **Binary discovery order**: `BLENDER_PATH`, then `blender` on PATH, then
   well-known OS locations. Floor is Blender 5.2 (`BlenderVersionError`).
-- **Argv guard is a copy**: `src/argv-guard.ts` duplicates
-  `refuseFlagLikeValue` from `packages/agents/src/host-binary-guard.ts`
-  (no agents dependency); `tests/job.test.ts` pins both to the same
-  behavior.
+- **No flag-injection check here**: Blender's argv is fixed in
+  `LocalBlenderRunner` and every param travels inside `job.json`, so no
+  value can become a flag. `host-binary-guard.ts` stays in agents, where
+  it confines model-authored argv for ffmpeg and yt-dlp.
 - **Fake blender mode travels in the filename** (`fake-<mode>.mjs`), not env:
   the runner scrubs the child environment by design.
 - **The runner stages through the workspace seam**: `runBlenderJob` passes
@@ -32,5 +32,7 @@ implementation, `runBlenderJob`, and the `RenderImage`, `RenderPasses`,
   through a pid-unique subdir and reads it back with the pure-Python
   `exr.py`; video output needs `media_type = "VIDEO"` before `FFMPEG`;
   `Fra:` progress lines are gone, so `render_animation` prints its own from
-  a `render_write` handler. EEVEE writes 1e10 (not +inf) off-geometry and a
-  world-space Normal pass — the op gates and rotates in Python.
+  a `render_write` handler. The staged Z pass carries 1e10 (not +inf)
+  off-geometry on both engines, and the Normal pass is world-space —
+  the op rewrites the EXR background to +inf, gates, and rotates in
+  Python.
