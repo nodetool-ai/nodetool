@@ -71,6 +71,31 @@ interface FakeWorkerOptions {
    *  - "hang": emit `queued` then go silent (for cancel tests)
    */
   comfyExecuteMode?: "events" | "error" | "hang";
+  /**
+   * The `blender` block echoed in the worker.status response. Defaults to
+   * null (omitted entirely, simulating a worker with no Blender); pass an
+   * enabled block so blender tests route correctly.
+   */
+  blender?: { enabled: boolean; version?: string } | null;
+  /**
+   * blender.execute behavior:
+   *  - "events": stream frame progress then an ok result with blobs (default)
+   *  - "error": a terminal error frame (worker crash / unknown type)
+   *  - "opfail": an ok:false result carrying the op's error code
+   *  - "hang": emit one progress frame then go silent (for abort tests)
+   *  - "malformed": an ok result with no produced/stats (for boundary tests)
+   */
+  blenderExecuteMode?: "events" | "error" | "opfail" | "hang" | "malformed";
+  /**
+   * Extra produced names (with bytes) beyond the job's declared outputs, to
+   * prove the executor ignores undeclared names.
+   */
+  blenderExtraProduced?: string[];
+  /**
+   * Declared sizes overriding the actual byte lengths, to prove caps enforce
+   * from declared sizes before blob bytes are consumed.
+   */
+  blenderSizesOverride?: Record<string, number>;
 }
 
 export interface FakeWorkerHandle {
@@ -167,6 +192,43 @@ function checkWorkerContract(
       return data.folder && data.filename
         ? null
         : "comfy.models.delete requires 'folder' and 'filename'";
+    case "blender.execute": {
+      const job = data.job as Record<string, unknown> | null | undefined;
+      if (typeof job !== "object" || job === null || Array.isArray(job)) {
+        return "blender.execute requires a 'job' object (BlenderJob)";
+      }
+      if (typeof job["version"] !== "number") {
+        return "blender.execute requires a numeric job.version";
+      }
+      if (
+        typeof job["inputs"] !== "object" ||
+        job["inputs"] === null ||
+        typeof job["outputs"] !== "object" ||
+        job["outputs"] === null
+      ) {
+        return "blender.execute requires job.inputs and job.outputs maps";
+      }
+      const inputs = data.inputs as Record<string, unknown> | null | undefined;
+      if (typeof inputs !== "object" || inputs === null || Array.isArray(inputs)) {
+        return "blender.execute requires an 'inputs' blob-key manifest";
+      }
+      const blobs = (data.blobs ?? {}) as Record<string, unknown>;
+      if (typeof blobs !== "object" || blobs === null) {
+        return "blender.execute requires 'blobs' input bytes";
+      }
+      for (const [name, key] of Object.entries(inputs)) {
+        if (typeof key !== "string") {
+          return `blender.execute input "${name}" must name a blob key`;
+        }
+        if (!(blobs[key] instanceof Uint8Array)) {
+          return `blender.execute input "${name}" names missing blob "${key}"`;
+        }
+      }
+      if (typeof data.timeout !== "number") {
+        return "blender.execute requires a numeric 'timeout'";
+      }
+      return null;
+    }
     default:
       return null;
   }
@@ -226,7 +288,11 @@ export function startFakeWorker(
       initialOptions.comfy === undefined
         ? { enabled: true, url: "http://127.0.0.1:8188" }
         : initialOptions.comfy,
-    comfyExecuteMode: initialOptions.comfyExecuteMode ?? "events"
+    comfyExecuteMode: initialOptions.comfyExecuteMode ?? "events",
+    blender: initialOptions.blender ?? null,
+    blenderExecuteMode: initialOptions.blenderExecuteMode ?? "events",
+    blenderExtraProduced: initialOptions.blenderExtraProduced ?? [],
+    blenderSizesOverride: initialOptions.blenderSizesOverride ?? {}
   };
 
   wss.on("connection", (ws, request) => {
@@ -292,7 +358,8 @@ export function startFakeWorker(
               namespaces: ["fake"],
               load_errors: [],
               max_frame_size: 256 * 1024 * 1024,
-              ...(opts.comfy ? { comfy: opts.comfy } : {})
+              ...(opts.comfy ? { comfy: opts.comfy } : {}),
+              ...(opts.blender ? { blender: opts.blender } : {})
             }
           });
           break;
@@ -481,6 +548,86 @@ export function startFakeWorker(
               prompt_id: "p1",
               outputs: { "9": { images: ["out.png"] } },
               blobs: {}
+            }
+          });
+          break;
+        }
+        case "blender.execute": {
+          const emitBlenderEvent = (data: Record<string, unknown>) =>
+            send({ type: "blender.event", request_id: requestId, data });
+          if (opts.blenderExecuteMode === "hang") {
+            emitBlenderEvent({ event: "progress", frame: 1, total: 3 });
+            break;
+          }
+          if (opts.blenderExecuteMode === "error") {
+            send({
+              type: "error",
+              request_id: requestId,
+              data: { error: "blender exploded", traceback: "Traceback ..." }
+            });
+            break;
+          }
+          if (opts.blenderExecuteMode === "opfail") {
+            send({
+              type: "result",
+              request_id: requestId,
+              data: {
+                ok: false,
+                error: {
+                  code: "render_failed",
+                  message: "Eevee complained: no light in scene"
+                }
+              }
+            });
+            break;
+          }
+          if (opts.blenderExecuteMode === "malformed") {
+            send({
+              type: "result",
+              request_id: requestId,
+              data: { ok: true }
+            });
+            break;
+          }
+          // "events": stream frame progress, then the terminal result. Every
+          // declared output comes back with small real bytes; declared sizes
+          // default to the actual lengths unless overridden.
+          const total = 3;
+          for (let frame = 1; frame <= total; frame++) {
+            emitBlenderEvent({ event: "progress", frame, total });
+          }
+          const reqData = (msg.data ?? {}) as Record<string, unknown>;
+          const reqJob = (reqData.job ?? {}) as {
+            outputs?: Record<string, string>;
+          };
+          const declaredOutputs =
+            typeof reqJob.outputs === "object" && reqJob.outputs !== null
+              ? Object.keys(reqJob.outputs)
+              : [];
+          const produced = [
+            ...declaredOutputs,
+            ...opts.blenderExtraProduced
+          ];
+          const outBlobs: Record<string, Uint8Array> = {};
+          const outSizes: Record<string, number> = {};
+          for (const name of produced) {
+            outBlobs[name] = new Uint8Array([name.length, 0x50, 0x4e, 0x47]);
+            outSizes[name] =
+              opts.blenderSizesOverride[name] ?? outBlobs[name].byteLength;
+          }
+          send({
+            type: "result",
+            request_id: requestId,
+            data: {
+              ok: true,
+              produced,
+              stats: {
+                blender_version: "5.2.1",
+                render_seconds: 1.5,
+                frames: total
+              },
+              sizes: outSizes,
+              blobs: outBlobs
             }
           });
           break;

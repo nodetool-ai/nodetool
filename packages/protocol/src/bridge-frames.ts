@@ -21,11 +21,14 @@
  *    Python worker repo's test suite validates against, so the two sides of
  *    the bridge can never silently drift apart.
  *
- * The dispatcher only ever switches on six frame `type`s — `discover`,
- * `result`, `error`, `chunk`, `progress`, and `comfy.event` — everything
- * else is either a request the JS side sends (`execute`, `worker.status`,
- * `provider.*`, `models.*`, `comfy.execute`, …) or silently ignored. Only the
- * six response types need a schema here.
+ * The dispatcher only ever switches on seven frame `type`s — `discover`,
+ * `result`, `error`, `chunk`, `progress`, `comfy.event`, and `blender.event`
+ * — everything else is either a request the JS side sends (`execute`,
+ * `worker.status`, `provider.*`, `models.*`, `comfy.execute`,
+ * `blender.execute`, …) or silently ignored. Only the seven response types
+ * need a schema here: `blender.execute` requests are validated, when needed,
+ * against the standalone {@link blenderExecuteRequestSchema} below (the same
+ * reason `comfy.execute` has no dispatcher entry — requests are outbound).
  *
  * `result`/`chunk` payloads are polymorphic — their shape depends on which
  * request they answer (`execute` vs `worker.status` vs `provider.generate`
@@ -142,6 +145,19 @@ const executeResultDataSchema = z
   })
   .passthrough();
 
+/**
+ * The `blender` block on a `worker.status` result. Present only when the
+ * worker can run Blender; `enabled` is the routing signal — only send
+ * `blender.execute` to a worker whose last status reported `enabled: true`.
+ * Optional on the status schema so a worker that says nothing about Blender
+ * (every worker that predates it) parses as having none.
+ */
+const blenderStatusDataSchema = z
+  .object({
+    enabled: z.boolean()
+  })
+  .passthrough();
+
 /** `result.data` for `worker.status`. */
 const workerStatusDataSchema = z
   .object({
@@ -151,7 +167,8 @@ const workerStatusDataSchema = z
     namespaces: z.array(z.string()),
     load_errors: z.array(pythonWorkerLoadErrorSchema),
     transport: z.string(),
-    max_frame_size: z.number()
+    max_frame_size: z.number(),
+    blender: blenderStatusDataSchema.optional()
   })
   .passthrough();
 
@@ -165,11 +182,38 @@ const comfyExecuteResultDataSchema = z
   })
   .passthrough();
 
+/**
+ * Terminal `result.data` for `blender.execute` — mirrors `BlenderResult`
+ * (`packages/blender-nodes/src/job.ts`): `ok: true` names the declared
+ * outputs that were produced, `ok: false` carries the op's error code, and
+ * `blobs`/`sizes` carry the output bytes and their declared sizes keyed by
+ * the job's logical output names. The executor enforces its output caps from
+ * `sizes` before touching `blobs`, so an oversize result is refused without
+ * being pulled into memory.
+ */
+const blenderExecuteResultDataSchema = z
+  .object({
+    ok: z.boolean(),
+    produced: z.array(z.string()).optional(),
+    stats: z.record(z.string(), z.unknown()).optional(),
+    sizes: z.record(z.string(), z.number()).optional(),
+    blobs: z.record(z.string(), z.unknown()).optional(),
+    error: z
+      .object({
+        code: z.string(),
+        message: z.string()
+      })
+      .passthrough()
+      .optional()
+  })
+  .passthrough();
+
 /** `data` shared by `result`/`chunk`: one of the known shapes, or any record. */
 const resultOrChunkDataSchema = z.union([
   executeResultDataSchema,
   workerStatusDataSchema,
   comfyExecuteResultDataSchema,
+  blenderExecuteResultDataSchema,
   genericDataSchema
 ]);
 
@@ -257,6 +301,67 @@ export const comfyEventFrameSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// blender.execute (request) / blender.event (progress)
+// ---------------------------------------------------------------------------
+
+/**
+ * The wire shape of a `BlenderJob` as carried inside a `blender.execute`
+ * request. Structural (not imported from `@nodetool-ai/blender-nodes`) so
+ * this package stays a base dependency: `version` is pinned so a worker can
+ * reject a job it cannot run with `bad_job`, and `inputs`/`outputs` are the
+ * logical-name maps from the job contract (D4). The op itself (`job.job`)
+ * passes through unvalidated — the worker's `run_job.py` owns that schema.
+ */
+const blenderWireJobSchema = z
+  .object({
+    version: z.number(),
+    inputs: z.record(z.string(), z.string()),
+    outputs: z.record(z.string(), z.string()),
+    job: z.record(z.string(), z.unknown())
+  })
+  .passthrough();
+
+/**
+ * `blender.execute` request data, sent JS → worker. `job` is the verbatim
+ * `BlenderJob`, `inputs` maps each logical input name to its bridge blob
+ * key, `blobs` carries the input bytes under those keys, and `timeout` is
+ * the worker-side wall clock in seconds. Outbound-only, so it has no entry
+ * in {@link bridgeFrameSchemas} — the dispatcher never receives it, and an
+ * older worker that does not know the type answers `Unknown message type`
+ * rather than running anything.
+ */
+export const blenderExecuteRequestSchema = z
+  .object({
+    job: blenderWireJobSchema,
+    inputs: z.record(z.string(), z.string()),
+    timeout: z.number()
+  })
+  .passthrough();
+
+export type BlenderExecuteRequest = z.infer<typeof blenderExecuteRequestSchema>;
+
+/**
+ * `blender.event.data` — frame progress during a `blender.execute` run.
+ * Blender prints `Fra:<n>` lines on stderr during animation renders; the
+ * worker turns them into these frames and the executor turns them into
+ * `onProgress(frame, total)` calls. The terminal `result`/`error` settles
+ * the run, the way `comfy.execute` settles after its `comfy.event` stream.
+ */
+const blenderEventDataSchema = z
+  .object({
+    event: z.enum(["progress"]),
+    frame: z.number(),
+    total: z.number()
+  })
+  .passthrough();
+
+export const blenderEventFrameSchema = z.object({
+  type: z.literal("blender.event"),
+  request_id: requestIdSchema,
+  data: blenderEventDataSchema
+});
+
+// ---------------------------------------------------------------------------
 // Aggregate lookup + discriminated union
 // ---------------------------------------------------------------------------
 
@@ -271,7 +376,8 @@ export const bridgeFrameSchemas = {
   error: errorFrameSchema,
   chunk: chunkFrameSchema,
   progress: progressFrameSchema,
-  "comfy.event": comfyEventFrameSchema
+  "comfy.event": comfyEventFrameSchema,
+  "blender.event": blenderEventFrameSchema
 } as const;
 
 export type BridgeFrameType = keyof typeof bridgeFrameSchemas;
@@ -283,7 +389,8 @@ export const bridgeFrameSchema = z.discriminatedUnion("type", [
   errorFrameSchema,
   chunkFrameSchema,
   progressFrameSchema,
-  comfyEventFrameSchema
+  comfyEventFrameSchema,
+  blenderEventFrameSchema
 ]);
 
 export type BridgeFrame = z.infer<typeof bridgeFrameSchema>;
