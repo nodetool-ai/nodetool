@@ -27,6 +27,7 @@ directory ships with no other change.
 | `logo-reveal` | Stings: draw-on, wipe, build, wordmark, sound-logo sync |
 | `motion-background` | Ambient beds that loop and stay behind |
 | `caption-titles` | What on-screen text says and when it appears |
+| `video-audio-continuity` | Sound across a multi-scene cut — one clip carrying every scene, or a track of your own |
 | `explainer-storyboard`, `commercial-beat-sheet`, `launch-commercial`, `music-video-treatment` | Board shapes for four brief types |
 | `nano-banana-pro-prompting` | Nano Banana Pro: the art-director brief, and lock/change/amount/constraints for edits |
 | `gpt-image-2-prompting` | GPT Image 2: five slots, change-versus-preserve edits, labelled multi-image compositing |

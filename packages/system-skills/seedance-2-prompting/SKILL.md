@@ -12,6 +12,12 @@ it together. It follows plain natural language, so the prompts that work read
 like a short shot brief: who, doing what, where, shot how, and what it sounds
 like.
 
+That also decides how a multi-scene piece is built: the sound belongs to the
+clip that generated it, so several Seedance clips cut together restart their
+mix at every join. `video-audio-continuity` covers when the whole piece has to
+be one generation, and the sound-design vocabulary that gets past the
+copyright filter.
+
 Reach it with `find_model` for `text_to_video` or `image_to_video`, then
 `generate_video` / `animate_image`. Duration set to auto lets the model pick a
 length to fit the content; pin it anywhere from 4 to 15 seconds instead when

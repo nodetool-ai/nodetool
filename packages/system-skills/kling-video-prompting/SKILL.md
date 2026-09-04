@@ -20,6 +20,10 @@ Which of those you get depends on the version, so check before you write:
 | v3 | yes | yes | yes, on by default | yes |
 | O3 | yes | yes | yes, **off** by default | — |
 
+Native audio belongs to the call that made it. Several separately generated
+clips cut together drop their sound at each join — `video-audio-continuity`
+covers the two builds that avoid it.
+
 Reach it with `find_model` for `text_to_video` or `image_to_video`, then
 `generate_video` / `animate_image`. Clips run 3–15 seconds, 720p to 4K,
 in 16:9, 9:16 or 1:1. The prompt caps at 3072 characters.

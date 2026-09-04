@@ -14,6 +14,10 @@ as a spec rather than a narration.
 Reach it with `find_model` for `text_to_video` or `image_to_video`, then
 `generate_video` / `animate_image`.
 
+The audio is per clip, so a piece cut from several Veo clips restarts its sound
+at every join. `video-audio-continuity` decides whether the scenes belong in one
+generation or under a track you add yourself.
+
 ## Five elements, in order
 
 1. **Shot** — the camera work that frames everything else: medium shot,
