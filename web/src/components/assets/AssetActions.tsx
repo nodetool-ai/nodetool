@@ -250,7 +250,7 @@ const AssetActions = ({
     setViewMode(viewMode === "grid" ? "list" : "grid");
   }, [viewMode, setViewMode]);
 
-  const handleChange = useCallback((event: Event, value: number | number[]) => {
+  const handleChange = useCallback((_event: Event, value: number | number[]) => {
     if (Array.isArray(value)) {
       setAssetItemSize(value[0]);
     } else {

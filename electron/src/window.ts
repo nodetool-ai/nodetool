@@ -183,7 +183,7 @@ function initializePermissionHandlers(): void {
 
   session.defaultSession.setPermissionRequestHandler(
     (
-      webContents: WebContents,
+      _webContents: WebContents,
       permission: string,
       callback: (permissionGranted: boolean) => void,
       details: { requestingUrl: string }
@@ -222,7 +222,7 @@ function initializePermissionHandlers(): void {
 
   session.defaultSession.setPermissionCheckHandler(
     (
-      webContents: WebContents | null,
+      _webContents: WebContents | null,
       permission: string,
       requestingOrigin: string
     ): boolean => {

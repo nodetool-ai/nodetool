@@ -591,7 +591,7 @@ function FileBrowserDialog({
   }, []);
 
   const handleItemExpansionToggle = async (
-    event: React.SyntheticEvent,
+    _event: React.SyntheticEvent,
     itemId: string,
     isExpanded: boolean
   ) => {
@@ -649,7 +649,7 @@ function FileBrowserDialog({
     );
   };
 
-  const handleTreeItemClick = useCallback((event: React.MouseEvent, itemId: string) => {
+  const handleTreeItemClick = useCallback((_event: React.MouseEvent, itemId: string) => {
     if (itemId.endsWith("_loading")) {return;}
     handleNavigate(itemId);
   }, [handleNavigate]);

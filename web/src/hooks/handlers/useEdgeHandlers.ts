@@ -44,7 +44,7 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
   );
 
   const onEdgeMouseEnter = useCallback(
-    (event: React.MouseEvent, edge: Edge) => {
+    (_event: React.MouseEvent, edge: Edge) => {
       const hovered_edge = findEdge(edge.id);
       if (hovered_edge) {
         hovered_edge.label = edge.className
@@ -67,7 +67,7 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
   );
 
   const onEdgeMouseLeave = useCallback(
-    (event: React.MouseEvent, edge: Edge) => {
+    (_event: React.MouseEvent, edge: Edge) => {
       const hovered_edge = findEdge(edge.id);
       if (hovered_edge) {
         hovered_edge.animated = false;

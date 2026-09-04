@@ -170,7 +170,7 @@ const DictTable: React.FC<DictTableProps> = ({
     });
 
     tabulatorInstance.on("cellEdited", onCellEdited);
-    tabulatorInstance.on("rowSelectionChanged", (data, rows) => {
+    tabulatorInstance.on("rowSelectionChanged", (_data, rows) => {
       setSelectedRows(rows);
     });
     setTabulator(tabulatorInstance);

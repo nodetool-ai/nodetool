@@ -8,7 +8,7 @@ export function useReactFlowEvents() {
   const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
 
   const handleMoveEnd: OnMoveEnd = useCallback(
-    (event, viewport) => {
+    (_event, viewport) => {
       setViewport(viewport);
     },
     [setViewport]

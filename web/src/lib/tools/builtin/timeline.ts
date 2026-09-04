@@ -31,7 +31,6 @@ import {
   setTimeRemapParams,
   shapeStyleParams,
   targetParam,
-  trackTargetParam,
   textStyleParams,
   transitionParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
