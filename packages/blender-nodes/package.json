@@ -1,7 +1,7 @@
 {
-  "name": "@nodetool-ai/nodes-utils",
+  "name": "@nodetool-ai/blender-nodes",
   "version": "0.7.0-rc.39",
-  "description": "Shared helpers for node packages: platform tags and lazy Node-only module loaders",
+  "description": "NodeTool Blender headless nodes: render and mesh preparation over glTF",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
@@ -17,8 +17,10 @@
   "dependencies": {
     "@nodetool-ai/config": "*",
     "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/runtime": "*"
+    "@nodetool-ai/runtime": "*",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -27,28 +29,32 @@
   },
   "exports": {
     ".": {
-      "nodetool-dev": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./nodes/*": {
+      "types": "./dist/nodes/*.d.ts",
+      "import": "./dist/nodes/*.js",
+      "default": "./dist/nodes/*.js"
     }
   },
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/nodes-utils"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
   "files": [
     "dist",
     "README.md"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/blender-nodes"
+  },
   "homepage": "https://nodetool.ai",
   "bugs": {
     "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "keywords": [
     "nodetool",
@@ -56,8 +62,9 @@
     "workflow",
     "workflow-automation",
     "typescript",
-    "utilities",
-    "helpers",
-    "platform"
+    "3d",
+    "3d-models",
+    "blender",
+    "render"
   ]
 }

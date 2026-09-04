@@ -7,71 +7,21 @@
  * (`render3d-headless.ts`). Both paths share `render3d-core.ts`, so a
  * workflow produces the same pixels wherever it executes.
  *
- * The model bytes are resolved locally (not via `./utils.js`) because this
- * module must bundle for the browser and `utils.ts` imports `node:path` at
- * module scope.
+ * Model bytes come from `resolveModelBytes` in `@nodetool-ai/nodes-utils`,
+ * which stays browser-safe (no `node:path` at module scope).
  */
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { NODE_AND_BROWSER_PLATFORMS } from "@nodetool-ai/protocol";
 import { IS_NODE } from "@nodetool-ai/config";
-import { base64ToBytes, bytesToBase64 } from "@nodetool-ai/nodes-utils";
+import { bytesToBase64, resolveModelBytes } from "@nodetool-ai/nodes-utils";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { fetchExternalMedia } from "@nodetool-ai/runtime";
 
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import type { LightingPreset, Render3DOptions } from "./render3d-core.js";
 import type { Model3DRefLike } from "./types.js";
-import { isNonEmptyString, isObjectLike } from "../../type-predicates.js";
 
 const RENDERABLE_FORMATS = new Set(["", "glb", "gltf"]);
-
-/** Browser-safe model-bytes resolution (inline data → storage → uri fetch). */
-async function resolveModelBytes(
-  model: unknown,
-  context?: ProcessingContext
-): Promise<Uint8Array> {
-  if (!isObjectLike(model)) return new Uint8Array();
-  const ref = model as Model3DRefLike;
-
-  if (ref.data instanceof Uint8Array && ref.data.length > 0) {
-    return ref.data;
-  }
-  if (isNonEmptyString(ref.data)) {
-    return base64ToBytes(ref.data);
-  }
-
-  const uri = ref.uri ?? "";
-  if (!uri) return new Uint8Array();
-
-  if (uri.startsWith("data:")) {
-    const comma = uri.indexOf(",");
-    if (comma === -1) throw new Error(`Malformed data URI: ${uri.slice(0, 32)}…`);
-    return base64ToBytes(uri.slice(comma + 1));
-  }
-
-  if (context?.storage) {
-    const stored = await context.storage.retrieve(uri);
-    if (stored && stored.length > 0) return new Uint8Array(stored);
-  }
-
-  if (uri.startsWith("file://") && IS_NODE) {
-    const { readFile } = await import("node:fs/promises");
-    const { fileURLToPath } = await import("node:url");
-    return new Uint8Array(await readFile(fileURLToPath(uri)));
-  }
-
-  if (uri.startsWith("http://") || uri.startsWith("https://")) {
-    // Caller-supplied media uri — the media-ref egress policy decides.
-    const res = await fetchExternalMedia(uri);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch model (${res.status}): ${uri}`);
-    }
-    return new Uint8Array(await res.arrayBuffer());
-  }
-
-  return new Uint8Array();
-}
 
 /** Output handles RenderToImageNode.process() emits. */
 type RenderToImageNodeOutputs = {
