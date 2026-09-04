@@ -8,7 +8,11 @@
  * and the documented gaps (`--strict` exits non-zero while any gap remains);
  * `gate` maps a diff onto surfaces and runs the selfcheck of every harness
  * covering a touched surface — the checks are selected by the diff, not by
- * the author.
+ * the author. `gate`'s changed-file collection (rename handling, deleted
+ * files, base-ref + working-tree merge) lives in ../harness/changed-files.ts;
+ * `--timeout <seconds>` bounds each selfcheck (default 900s, fails closed on
+ * timeout); `--strict` also fails when the diff leaves a real code file
+ * mapped to no surface at all.
  */
 import type { Command } from "commander";
 import {
@@ -24,6 +28,13 @@ import {
 } from "../harness/capability-coverage.js";
 import { CAPABILITY_COVERAGE } from "../harness/capability-table.js";
 import { declaredCapabilities } from "../harness/declared-capabilities.js";
+import {
+  collectChangedFiles,
+  isGateRelevantCodeFile
+} from "../harness/changed-files.js";
+
+/** Sentinel exit code for a selfcheck the gate had to kill on timeout. */
+const TIMEOUT_EXIT_CODE = 124;
 
 /** Where the coverage table lives, as git sees it. */
 const CAPABILITY_TABLE_PATH =
@@ -184,7 +195,12 @@ export function registerHarnessCommands(program: Command): void {
     .option("--json", "Print the plan (and results, unless --dry-run) as JSON")
     .option(
       "--strict",
-      "Exit non-zero when the diff touches a surface no harness covers"
+      "Exit non-zero when the diff touches a surface no harness covers, or leaves a code file mapped to none"
+    )
+    .option(
+      "--timeout <seconds>",
+      "Kill a selfcheck that runs longer than this many seconds (default 900)",
+      "900"
     )
     .action(
       async (
@@ -196,6 +212,7 @@ export function registerHarnessCommands(program: Command): void {
           dryRun?: boolean;
           json?: boolean;
           strict?: boolean;
+          timeout?: string;
         }
       ) => {
         const { execSync, spawnSync } = await import("node:child_process");
@@ -206,18 +223,29 @@ export function registerHarnessCommands(program: Command): void {
         // dist layout: packages/cli/dist/commands → repo root is four up.
         const repoRoot = resolve(here, "..", "..", "..", "..");
 
+        const timeoutSeconds = Number(opts.timeout ?? "900");
+        const timeoutMs =
+          Number.isFinite(timeoutSeconds) && timeoutSeconds > 0
+            ? timeoutSeconds * 1000
+            : 900_000;
+
         let changedFiles = files;
         if (changedFiles.length === 0 && !opts.all) {
-          const cmd = opts.base
-            ? `git diff --name-only ${opts.base}...HEAD`
-            : "git status --porcelain";
-          const out = execSync(cmd, { cwd: repoRoot, encoding: "utf8" });
-          changedFiles = opts.base
-            ? out.split("\n").map((l) => l.trim()).filter(Boolean)
-            : out
-                .split("\n")
-                .map((l) => l.slice(3).trim())
-                .filter(Boolean);
+          const statusOutput = execSync("git status --porcelain", {
+            cwd: repoRoot,
+            encoding: "utf8"
+          });
+          const diffOutput = opts.base
+            ? execSync(`git diff --name-only ${opts.base}...HEAD`, {
+                cwd: repoRoot,
+                encoding: "utf8"
+              })
+            : undefined;
+          changedFiles = collectChangedFiles({
+            base: opts.base,
+            statusOutput,
+            diffOutput
+          });
         }
 
         const mappingViolations = opts.all
@@ -256,18 +284,35 @@ export function registerHarnessCommands(program: Command): void {
         const skippedExpensive = plan.checks.filter(
           (c) => !opts.expensive && c.cost === "expensive"
         );
+        const unmappedCodeFiles = plan.unmappedFiles.filter(
+          isGateRelevantCodeFile
+        );
 
         if (!opts.json) {
           printGatePlan(plan, toRun.length, skippedExpensive.length, opts.all);
+          if (unmappedCodeFiles.length > 0) {
+            console.log(
+              "\nCode files no surface claims (--strict fails on these):"
+            );
+            for (const f of unmappedCodeFiles) console.log(`  ${f}`);
+          }
         }
 
         if (opts.dryRun) {
           if (opts.json) {
-            console.log(JSON.stringify({ plan, mappingViolations }, null, 2));
+            console.log(
+              JSON.stringify(
+                { plan, mappingViolations, unmappedCodeFiles },
+                null,
+                2
+              )
+            );
           }
           if (
             mappingViolations.length > 0 ||
-            (opts.strict && plan.uncoveredSurfaces.length > 0)
+            (opts.strict &&
+              (plan.uncoveredSurfaces.length > 0 ||
+                unmappedCodeFiles.length > 0))
           ) {
             process.exit(1);
           }
@@ -279,6 +324,7 @@ export function registerHarnessCommands(program: Command): void {
           command: string;
           ok: boolean;
           exitCode: number;
+          timedOut: boolean;
         }> = [];
         for (const check of toRun) {
           if (!opts.json) {
@@ -296,6 +342,8 @@ export function registerHarnessCommands(program: Command): void {
             shell: true,
             stdio: opts.json ? "pipe" : "inherit",
             encoding: "utf8",
+            timeout: timeoutMs,
+            killSignal: "SIGKILL",
             env: {
               ...process.env,
               ...(nodeOptions
@@ -303,26 +351,47 @@ export function registerHarnessCommands(program: Command): void {
                 : { NODE_OPTIONS: "" })
             }
           });
-          const exitCode = r.status ?? 1;
+          // spawnSync fails closed on a kill: a timeout or any other signal
+          // leaves `status` null, which must count as a failure, never as
+          // the "no exit code, assume ok" case.
+          const timedOut =
+            (r.error as NodeJS.ErrnoException | undefined)?.code ===
+              "ETIMEDOUT" || r.signal != null;
+          const exitCode = timedOut
+            ? TIMEOUT_EXIT_CODE
+            : (r.status ?? 1);
+          if (!opts.json && timedOut) {
+            console.log(
+              `\nTIMEOUT ${check.harnessId} exceeded ${timeoutSeconds}s: ${check.command}`
+            );
+          }
           results.push({
             harnessId: check.harnessId,
             command: check.command,
-            ok: exitCode === 0,
-            exitCode
+            ok: !timedOut && exitCode === 0,
+            exitCode,
+            timedOut
           });
         }
 
         const failed = results.filter((r) => !r.ok);
         if (opts.json) {
           console.log(
-            JSON.stringify({ plan, results, mappingViolations }, null, 2)
+            JSON.stringify(
+              { plan, results, mappingViolations, unmappedCodeFiles },
+              null,
+              2
+            )
           );
         } else if (toRun.length > 0) {
           console.log(
             `\nGate: ${results.length - failed.length}/${results.length} selfchecks passed`
           );
           for (const r of failed) {
-            console.log(`  FAIL ${r.harnessId} (exit ${r.exitCode}): ${r.command}`);
+            const label = r.timedOut ? "TIMEOUT" : "FAIL";
+            console.log(
+              `  ${label} ${r.harnessId} (exit ${r.exitCode}): ${r.command}`
+            );
           }
           console.log("");
         }
@@ -330,7 +399,9 @@ export function registerHarnessCommands(program: Command): void {
         if (
           failed.length > 0 ||
           mappingViolations.length > 0 ||
-          (opts.strict && plan.uncoveredSurfaces.length > 0)
+          (opts.strict &&
+            (plan.uncoveredSurfaces.length > 0 ||
+              unmappedCodeFiles.length > 0))
         ) {
           process.exit(1);
         }
