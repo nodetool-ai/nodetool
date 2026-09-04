@@ -26,7 +26,22 @@
  * should not have to read JavaScript to know what they are agreeing to.
  */
 
+import {
+  parseCodeBody,
+  staticImportBindings,
+  type CodeBodyStatement
+} from "@nodetool-ai/node-sdk";
+import {
+  sandboxCapabilityModuleName,
+  SANDBOX_CAPABILITY_PACK
+} from "@nodetool-ai/protocol";
+
+import { capabilityModuleSpecTable } from "../capabilities/registry.js";
 import type { CapabilityGate } from "../capabilities/types.js";
+import {
+  permissionCategoryFor,
+  TOOL_PERMISSION_CATEGORIES
+} from "../tools/tool-permissions.js";
 import { isString } from "../utils/type-guards.js";
 
 export const EXECUTE_CODE_TOOL_NAME = "execute_code";
@@ -109,6 +124,69 @@ export function declaredActionRisk(
   return args?.["risk"] === "low" ? "low" : "high";
 }
 
+/**
+ * The risk floor the program's own imports set, read off the code rather than
+ * off what the model declared about it.
+ *
+ * `risk: "low"` used to be admitted unread, so a program that imported
+ * `delete_workflow` and called itself low ran unattended in auto mode. Every
+ * capability import is a static binding the mount already parses, and each
+ * imported name has a permission category: a name in the `write`, `execute`
+ * or `external` class makes the action high risk whatever the call declared.
+ * A default or namespace import of a capability module reaches everything the
+ * module exports, so it takes the module's highest category.
+ *
+ * Only names the permission table knows raise the floor. A session tool
+ * (`.../session`, a client `ui_*` schema) has no entry — `permissionCategoryFor`
+ * answers its fail-closed `external` for any unknown string — and it is gated
+ * per call inside the action, so its import keeps the declared risk. The
+ * object model (`nodetool.*`) reaches tools without an import and is not
+ * read here; the per-call ladder is what governs it.
+ */
+export function importedActionRisk(code: string): ActionRisk {
+  const parsed = parseCodeBody(code);
+  if ("error" in parsed) return "low";
+  return actionable(parsed.statements) ? "high" : "low";
+}
+
+function actionable(statements: readonly CodeBodyStatement[]): boolean {
+  for (const binding of staticImportBindings(statements)) {
+    if (!binding.specifier.startsWith(SANDBOX_CAPABILITY_PACK)) continue;
+    for (const name of binding.named) {
+      if (
+        Object.hasOwn(TOOL_PERMISSION_CATEGORIES, name) &&
+        permissionCategoryFor(name) !== "read"
+      ) {
+        return true;
+      }
+    }
+  }
+  for (const statement of statements) {
+    if (statement.type !== "ImportDeclaration") continue;
+    if (!isString(statement.source.value)) continue;
+    if (!statement.source.value.startsWith(SANDBOX_CAPABILITY_PACK)) continue;
+    const whole = statement.specifiers.some(
+      (specifier) => specifier.type !== "ImportSpecifier"
+    );
+    if (!whole) continue;
+    const module = sandboxCapabilityModuleName(statement.source.value);
+    if (module === undefined) continue;
+    if (capabilityModuleSpecTable(module).some((spec) => spec.category !== "read")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** The risk an action runs at: the declared value, raised by its imports. */
+export function effectiveActionRisk(
+  args: Record<string, unknown> | null | undefined
+): ActionRisk {
+  if (declaredActionRisk(args) === "high") return "high";
+  const code = args?.["code"];
+  return isString(code) ? importedActionRisk(code) : "high";
+}
+
 /** Refusal carries the observation text the model sees instead of a result. */
 export type ActionAdmission =
   | { allowed: true }
@@ -130,7 +208,7 @@ export async function admitCodeAction(
   args: Record<string, unknown>
 ): Promise<ActionAdmission> {
   if (!gate || gate.mode !== "auto") return ALLOWED;
-  if (declaredActionRisk(args) === "low") return ALLOWED;
+  if (effectiveActionRisk(args) === "low") return ALLOWED;
   if (gate.sessionAllow.has(EXECUTE_CODE_TOOL_NAME)) return ALLOWED;
 
   const answer = await gate.requestApproval({
@@ -138,7 +216,7 @@ export async function admitCodeAction(
     category: "execute",
     args: {
       title: isString(args["title"]) ? args["title"] : "",
-      risk: declaredActionRisk(args),
+      risk: effectiveActionRisk(args),
       code: isString(args["code"]) ? args["code"] : ""
     },
     message: executeCodeMessage(args),

@@ -20,6 +20,7 @@ import type {
 import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
 
 import { capabilityModuleOf } from "../capabilities/registry.js";
+import { MAX_ACTION_IMAGES } from "../constants.js";
 import { Tool } from "../tools/base-tool.js";
 import {
   extractInjectableImages,
@@ -80,10 +81,11 @@ export interface ToolBridge {
   resetActionBudget: () => void;
   /**
    * Pixels a tool returned during this action, removed from the observation
-   * and waiting to ride the tool result as a provider image message. Draining
-   * clears them.
+   * and waiting to ride the tool result as a provider image message. At most
+   * {@link MAX_ACTION_IMAGES} are kept; `dropped` counts the rest. Draining
+   * clears both.
    */
-  drainImages: () => MessageImageContent[];
+  drainImages: () => { images: MessageImageContent[]; dropped: number };
 }
 
 /** Force a value through JSON so it marshals cleanly across the WASM boundary. */
@@ -144,6 +146,7 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
   // Lifetime count across actions — the id a tool sees must stay unique.
   let totalCalls = 0;
   let pendingImages: MessageImageContent[] = [];
+  let droppedImages = 0;
 
   const callTool = async (
     name: unknown,
@@ -195,7 +198,10 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
       // provider image message alongside the observation.
       const injected = extractInjectableImages(result);
       if (injected) {
-        pendingImages.push(...injected.images);
+        for (const image of injected.images) {
+          if (pendingImages.length < MAX_ACTION_IMAGES) pendingImages.push(image);
+          else droppedImages++;
+        }
         result = stripImagePayload(result);
       }
       const errorPayload = extractErrorPayload(result);
@@ -236,8 +242,10 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
     },
     drainImages: () => {
       const images = pendingImages;
+      const dropped = droppedImages;
       pendingImages = [];
-      return images;
+      droppedImages = 0;
+      return { images, dropped };
     }
   };
 }
