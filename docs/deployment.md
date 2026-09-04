@@ -31,6 +31,7 @@ see the [End-to-End Deployment Guide](deployment-e2e-guide.md).
 | I want to... | Go to |
 |--------------|-------|
 | **Run the NodeTool server on my own machine/host** | [Self-Hosted Deployment](self-hosted-deployment.md) |
+| **Understand how nodetool.fly.dev itself is deployed** | [Production Deploy (Fly)](fly-production-deploy.md) |
 | **Rent a GPU to run Python nodes (RunPod / Vast)** | [Worker Deployment](worker-deployment.md) |
 | **Tune GPU/memory/volumes for the server container** | [Docker Resource Management](docker-resource-management.md) |
 | **Use Supabase for auth/storage** | [Supabase Deployment Integration](supabase-deployment.md) |
