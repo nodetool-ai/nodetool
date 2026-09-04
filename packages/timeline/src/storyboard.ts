@@ -154,8 +154,6 @@ export interface ShotLayout {
   outPointMs?: number;
   /** Footage the cut leaves unused, in ms. Zero when nothing was discarded. */
   unusedSourceMs: number;
-  /** The direction asked for more than the render produced. */
-  short: boolean;
 }
 
 /**
@@ -173,15 +171,14 @@ export function layoutShot(shot: Shot): ShotLayout {
   const intended = shotDurationMs(shot);
   const source = shotSourceDurationMs(shot);
   if (source === null) {
-    return { durationMs: intended, unusedSourceMs: 0, short: false };
+    return { durationMs: intended, unusedSourceMs: 0 };
   }
   const durationMs = Math.min(intended, source);
   return {
     durationMs,
     inPointMs: 0,
     outPointMs: durationMs,
-    unusedSourceMs: source - durationMs,
-    short: intended > source
+    unusedSourceMs: source - durationMs
   };
 }
 
@@ -353,7 +350,7 @@ export function buildStoryboardPreviewTimeline(
     // real clip gets fitted to its footage.
     const layout: ShotLayout = clipAssetId
       ? layoutShot(shot)
-      : { durationMs: shotDurationMs(shot), unusedSourceMs: 0, short: false };
+      : { durationMs: shotDurationMs(shot), unusedSourceMs: 0 };
     const durationMs = layout.durationMs;
     const shotClip = makeClip({
       trackId: shotTrack.id,
