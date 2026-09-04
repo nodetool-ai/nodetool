@@ -2437,6 +2437,16 @@ sandbox packs, and for the same reason: nothing imports them, so they are not
 workspaces and npm links nothing. `bundle-backend.mjs` stages them and
 `verify-backend-bundle.mjs` fails a build that ships none.
 
+Seven shipped skills carry a generation model line's prompting rules
+(`nano-banana-pro-prompting`, `gpt-image-2-prompting`,
+`flux-2-klein-prompting`, `seedance-2-prompting`, `veo-3-prompting`,
+`minimax-h3-prompting`, `wan-2-6-prompting`). `MODEL_PROMPTING_SKILLS` in
+`model-prompting-skills.ts` maps a model id onto one, and `find_model` attaches
+the answer as `prompting_skill` on every matching route — the catalog line is
+the other path in, for an agent that never called `find_model`.
+`tests/model-prompting-skills.test.ts` checks the table against the skills on
+disk, the ids the shipped provider manifests name, and the capability registry.
+
 Both tiers share one catalog. `list_skills` and `load_skill` serve either, each
 answer carrying `system: true|false`; `create_skill`, `update_skill` and
 `delete_skill` refuse a shipped name, including a rename onto one. A user row

@@ -56,6 +56,7 @@ import {
   isNumber,
   isString
 } from "../utils/type-guards.js";
+import { promptingSkillFor } from "../model-prompting-skills.js";
 
 export {
   SUPPORTED_CAPABILITIES,
@@ -132,6 +133,13 @@ interface FindModelResult extends CandidateRankingFields {
   score: number;
   /** Ready to assign to a node's model property — see {@link modelRef}. */
   ref: ModelRef;
+  /**
+   * The system skill covering this model line's prompting, when one ships.
+   * Read it with `load_skill` before writing the prompt: the lines that have
+   * one each want a differently shaped prompt, and the default shape gets the
+   * blandest reading every one of them has.
+   */
+  prompting_skill?: string;
 }
 
 interface ModelRef {
@@ -708,7 +716,7 @@ const findModel: CapabilityExport = {
         rankedCapability: RANKED_CAPABILITIES.has(capability)
       });
 
-      return {
+      const result: FindModelResult = {
         provider: providerId,
         model_id: model.id,
         id: model.id,
@@ -719,6 +727,12 @@ const findModel: CapabilityExport = {
         ref: modelRef(capability, providerId, model.id, model.name),
         ...fields
       };
+      // Absent, not null, when no shipped guide covers the line: a row that
+      // carries the key at all reads as "there is a guide" to a model
+      // skimming the answer.
+      const promptingSkill = promptingSkillFor(model.id);
+      if (promptingSkill) result.prompting_skill = promptingSkill;
+      return result;
     });
 
     collected.sort((a, b) => {
@@ -735,7 +749,13 @@ const findModel: CapabilityExport = {
       results
     };
     const best = results[0];
-    if (best !== undefined) answer.ref = best.ref;
+    if (best !== undefined) {
+      answer.ref = best.ref;
+      // Lifted for the same reason `ref` is: callers read the top level and
+      // never dig into `results[0]`, and a prompting guide nobody notices is
+      // a guide nobody reads.
+      if (best.prompting_skill) answer.prompting_skill = best.prompting_skill;
+    }
     if (queryMatched !== undefined) answer.query_matched = queryMatched;
     if (notes.length > 0) answer.note = notes.join(" ");
     return answer;
@@ -773,6 +793,8 @@ interface RankedModel extends CandidateRankingFields {
   recommended: boolean;
   score: number;
   ref: ReturnType<typeof modelRef>;
+  /** See {@link FindModelResult.prompting_skill}. */
+  prompting_skill?: string;
 }
 
 /** `find_model`'s answer; each note appears only when there is one. */
@@ -793,6 +815,8 @@ interface FindModelAnswer {
    * Absent only when nothing matched.
    */
   ref?: ReturnType<typeof modelRef>;
+  /** The top result's `prompting_skill`, lifted the same way `ref` is. */
+  prompting_skill?: string;
   results: RankedModel[];
   query_matched?: boolean;
   note?: string;
