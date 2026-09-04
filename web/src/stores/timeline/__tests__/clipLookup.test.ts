@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { clipsById, findClipById } from "../clipLookup";
+import { clipIdsByTrack, clipsById, findClipById } from "../clipLookup";
 import { stub } from "../../../test-utils/doubles";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 
@@ -79,5 +79,32 @@ describe("clipLookup", () => {
       // Verify caching: same array reference produces same Map
       expect(clipsById(clips)).toBe(clipsById(clips));
     });
+  });
+});
+
+describe("clipIdsByTrack", () => {
+  const onTrack = (id: string, trackId: string): TimelineClip => ({
+    ...makeClip(id),
+    trackId
+  });
+
+  it("groups ids by track in clips order", () => {
+    const clips = [onTrack("a", "t1"), onTrack("b", "t2"), onTrack("c", "t1")];
+    const index = clipIdsByTrack(clips);
+    expect(index.get("t1")).toEqual(["a", "c"]);
+    expect(index.get("t2")).toEqual(["b"]);
+    expect(index.get("t3")).toBeUndefined();
+  });
+
+  it("returns the same Map (and arrays) for the same clips reference", () => {
+    const clips = [onTrack("a", "t1")];
+    expect(clipIdsByTrack(clips)).toBe(clipIdsByTrack(clips));
+    expect(clipIdsByTrack(clips).get("t1")).toBe(clipIdsByTrack(clips).get("t1"));
+  });
+
+  it("rebuilds for a new clips reference", () => {
+    const first = [onTrack("a", "t1")];
+    const second = [...first];
+    expect(clipIdsByTrack(first)).not.toBe(clipIdsByTrack(second));
   });
 });

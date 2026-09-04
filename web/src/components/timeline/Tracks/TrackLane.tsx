@@ -41,6 +41,7 @@ import {
   useTimelineStore,
   useTimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
+import { clipIdsByTrack } from "../../../stores/timeline/clipLookup";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -58,6 +59,7 @@ import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 
 const DEFAULT_TRACK_HEIGHT_PX = 64;
+const NO_CLIP_IDS: string[] = [];
 /** Duration (ms) the mismatch warning banner remains visible. */
 const WARNING_DISMISS_MS = 3000;
 
@@ -101,14 +103,12 @@ interface TrackLaneProps {
 export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const theme = useTheme();
 
-  // Get only the clip IDs for this track (stable list of ids)
+  // Only this track's clip ids. clipIdsByTrack is cached per `clips` array
+  // identity, so one store publish builds the index once for every lane.
   const timelineStore = useTimelineStoreApi();
   const clipIds = useStoreWithEqualityFn(
     timelineStore,
-    (s) =>
-      s.clips
-        .filter((c) => c.trackId === track.id)
-        .map((c) => c.id),
+    (s) => clipIdsByTrack(s.clips).get(track.id) ?? NO_CLIP_IDS,
     // Shallow-compare the resulting string array
     (a: string[], b: string[]) =>
       a.length === b.length && a.every((id, i) => id === b[i])
