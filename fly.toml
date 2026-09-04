@@ -16,6 +16,14 @@
 app = "nodetool"
 primary_region = "fra"   # next to the Supabase DB (aws eu-central-1 / Frankfurt)
 
+# Fallback grace between SIGTERM and the kill, at Fly's maximum. The real wait
+# is scripts/fly-rolling-deploy.sh, which drains a machine (SIGUSR2) and polls
+# /health until its turns and jobs reach zero before replacing it — a turn can
+# run far longer than any signal deadline. This bounds a restart nobody
+# drained; NODETOOL_SHUTDOWN_GRACE_MS (default 240 s) keeps the server's own
+# wait under it.
+kill_timeout = 300
+
 [build]
   image = "ghcr.io/nodetool-ai/nodetool:latest"
 

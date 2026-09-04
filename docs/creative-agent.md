@@ -157,4 +157,3 @@ sequentially, extracting each clip's last frame to seed the next shot.
 generate media; `nodetool mcp install` writes the config for Claude Code,
 Codex, or OpenCode. Inside NodeTool, the chat agent reaches every surface
 through the same frontend tools the buttons use.
-

@@ -2326,6 +2326,16 @@ export class ChatTurnHandler {
               { role: "assistant", content: `Stopped: ${detail}` },
               true
             );
+          } else if (signal?.reason === "shutdown") {
+            // …except a shutdown, which nobody asked for either. The reply
+            // stops mid-sentence and, said nowhere, reads as the model
+            // finishing; the note says the server went away, and is what the
+            // next turn reads when the client retries on the machine that
+            // stayed.
+            await persistTurnMessage(
+              { role: "assistant", content: "Stopped: server restarting" },
+              true
+            );
           }
           continue;
         }

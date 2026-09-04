@@ -2117,7 +2117,7 @@ nodetool reliability list --json
 
 ```
 linear-text-pipeline
-  Journey #1: input -> transform -> output.
+  Journey #1 (docs/RELIABILITY_ARCHITECTURE.md §5): input -> transform -> output.
   The baseline — if this diverges across surfaces, everything is suspect.
   surfaces: kernel, ws-server
   invariants: lifecycle-pairing, terminal-uniqueness

@@ -3,6 +3,9 @@ import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pingDb } from "@nodetool-ai/models";
+import { chatTurnRegistry } from "../chat-turn-registry.js";
+import { isDraining } from "../drain.js";
+import { jobRunRegistry } from "../job-run-registry.js";
 
 const serverStartTime = Date.now();
 
@@ -22,8 +25,14 @@ export function getVersion(): string {
 const healthRoute: FastifyPluginAsync = async (app) => {
   /**
    * GET /health — detailed health check.
-   * Returns 200 when all services are healthy, 503 when degraded.
+   * Returns 200 when all services are healthy, 503 when degraded or draining.
    * No authentication required.
+   *
+   * `turns` and `jobs` are always reported: a rolling deploy drains one machine
+   * and then polls this endpoint until both reach 0 before replacing it, and a
+   * count that only appeared while draining could not be told from a payload
+   * this build does not produce. The 503 is what makes Fly's health check fail
+   * and stops new clients being routed here.
    */
   app.get("/health", async (_req, reply) => {
     let dbStatus: "ok" | "error" = "ok";
@@ -34,12 +43,15 @@ const healthRoute: FastifyPluginAsync = async (app) => {
       dbStatus = "error";
     }
 
-    const allOk = dbStatus === "ok";
+    const draining = isDraining();
+    const allOk = dbStatus === "ok" && !draining;
 
     const payload = {
-      status: allOk ? "ok" : "degraded",
+      status: draining ? "draining" : dbStatus === "ok" ? "ok" : "degraded",
       timestamp: new Date().toISOString(),
       uptime: Math.floor((Date.now() - serverStartTime) / 1000),
+      turns: chatTurnRegistry.runningCount(),
+      jobs: jobRunRegistry.runningCount(),
       services: {
         database: dbStatus,
         server: "ok" as const

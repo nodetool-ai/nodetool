@@ -46,6 +46,13 @@ const DETACH_GRACE_MS = () =>
 const RETENTION_MS = () =>
   envInt("NODETOOL_CHAT_REPLAY_RETENTION_MS", 5 * 60 * 1000);
 
+/**
+ * Why a turn was aborted. Rides `controller.abort(reason)`, so the handler
+ * reading `signal.reason` can tell a shutdown from the user's own Stop — the
+ * one case that leaves a note in the transcript.
+ */
+export type ChatTurnAbortReason = "stop" | "superseded" | "shutdown";
+
 /** A connection that can deliver frames to its client. */
 interface ChatTurnDeliveryTarget {
   deliver(message: Record<string, unknown>): Promise<void>;
@@ -98,7 +105,9 @@ export class ChatTurnSession {
     private readonly controller: AbortController,
     readonly hooks: ChatTurnExecutionHooks,
     private readonly onDrop: (session: ChatTurnSession) => void,
-    startSeq: number
+    startSeq: number,
+    /** Told when the turn settles, so the registry can answer `drained`. */
+    private readonly onFinish: () => void = () => {}
   ) {
     this.userId = userId;
     this.threadId = threadId;
@@ -189,14 +198,18 @@ export class ChatTurnSession {
       log.info("Detached chat turn expired, aborting", {
         threadId: this.threadId
       });
-      this.abort();
+      this.abort("stop");
     }, DETACH_GRACE_MS());
     this.detachTimer.unref?.();
   }
 
-  /** Abort the turn (superseded, stopped, or detach grace elapsed). */
-  abort(): void {
-    this.controller.abort();
+  /**
+   * Abort the turn. The reason reaches the handler as `signal.reason`: only
+   * `"shutdown"` is something the user did not do and does not already know
+   * about, so only that one is written into the transcript.
+   */
+  abort(reason: ChatTurnAbortReason): void {
+    this.controller.abort(reason);
     this.hooks.cancelPendingCalls(this.threadId);
   }
 
@@ -210,6 +223,7 @@ export class ChatTurnSession {
     this.clearDetachTimer();
     this.retentionTimer = setTimeout(() => this.onDrop(this), RETENTION_MS());
     this.retentionTimer.unref?.();
+    this.onFinish();
   }
 
   /** Release timers when the registry drops the session. */
@@ -248,6 +262,8 @@ export class ChatTurnRegistry {
    */
   private lastSeqByThread = new Map<string, number>();
   private static readonly MAX_SEQ_ENTRIES = 10_000;
+  /** Resolvers waiting for {@link runningCount} to reach zero. */
+  private drainWaiters = new Set<() => void>();
 
   private key(userId: string, threadId: string): string {
     return `${userId}\u0000${threadId}`;
@@ -267,7 +283,7 @@ export class ChatTurnRegistry {
     const key = this.key(userId, threadId);
     const existing = this.sessions.get(key);
     if (existing) {
-      if (existing.status === "running") existing.abort();
+      if (existing.status === "running") existing.abort("superseded");
       this.drop(existing);
     }
     const session = new ChatTurnSession(
@@ -276,7 +292,8 @@ export class ChatTurnRegistry {
       controller,
       hooks,
       (s) => this.drop(s),
-      this.lastSeqByThread.get(key) ?? 0
+      this.lastSeqByThread.get(key) ?? 0,
+      () => this.notifyDrainWaiters()
     );
     this.sessions.set(key, session);
     return session;
@@ -291,6 +308,54 @@ export class ChatTurnRegistry {
     return [...this.sessions.values()].filter(
       (s) => s.userId === userId && s.status === "running"
     );
+  }
+
+  /** Turns this process is still executing. What a drain waits on. */
+  runningCount(): number {
+    let count = 0;
+    for (const session of this.sessions.values()) {
+      if (session.status === "running") count += 1;
+    }
+    return count;
+  }
+
+  /** Abort every running turn with one reason. Returns how many were aborted. */
+  abortAll(reason: ChatTurnAbortReason): number {
+    let count = 0;
+    for (const session of this.sessions.values()) {
+      if (session.status !== "running") continue;
+      session.abort(reason);
+      count += 1;
+    }
+    return count;
+  }
+
+  /**
+   * Resolve true once no turn is running, false when `timeoutMs` elapses
+   * first. A turn is running until its handler has settled, which is what
+   * writes the stand-in tool-result rows — so a shutdown that waits on this
+   * leaves a well-formed transcript behind.
+   */
+  drained(timeoutMs: number): Promise<boolean> {
+    if (this.runningCount() === 0) return Promise.resolve(true);
+    return new Promise<boolean>((resolve) => {
+      const waiter = () => {
+        if (this.runningCount() > 0) return;
+        clearTimeout(timer);
+        this.drainWaiters.delete(waiter);
+        resolve(true);
+      };
+      const timer = setTimeout(() => {
+        this.drainWaiters.delete(waiter);
+        resolve(false);
+      }, timeoutMs);
+      timer.unref?.();
+      this.drainWaiters.add(waiter);
+    });
+  }
+
+  private notifyDrainWaiters(): void {
+    for (const waiter of [...this.drainWaiters]) waiter();
   }
 
   drop(session: ChatTurnSession): void {
@@ -310,6 +375,9 @@ export class ChatTurnRegistry {
       this.lastSeqByThread.delete(oldest);
     }
     session.dispose();
+    // A superseded turn leaves the map while still marked running, so the
+    // count can reach zero here as well as in `finish`.
+    this.notifyDrainWaiters();
   }
 }
 

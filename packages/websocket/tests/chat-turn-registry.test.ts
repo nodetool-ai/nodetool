@@ -133,10 +133,68 @@ describe("ChatTurnSession", () => {
     expect(stamped.chat_seq).toBe(3);
   });
 
+  it("carries the abort reason into signal.reason", () => {
+    const controller = new AbortController();
+    const session = registry.open("u1", "t1", controller, makeHooks());
+    session.abort("shutdown");
+    expect(controller.signal.aborted).toBe(true);
+    expect(controller.signal.reason).toBe("shutdown");
+  });
+
+  it("supersede aborts with the superseded reason", () => {
+    const controller = new AbortController();
+    registry.open("u1", "t1", controller, makeHooks());
+    registry.open("u1", "t1", new AbortController(), makeHooks());
+    expect(controller.signal.reason).toBe("superseded");
+  });
+
   it("sessions are scoped per user", () => {
     const a = registry.open("u1", "t1", new AbortController(), makeHooks());
     expect(registry.get("u2", "t1")).toBeNull();
     expect(registry.get("u1", "t1")).toBe(a);
+  });
+
+  describe("drain", () => {
+    it("counts only the turns still running", () => {
+      const a = registry.open("u1", "t1", new AbortController(), makeHooks());
+      registry.open("u1", "t2", new AbortController(), makeHooks());
+      expect(registry.runningCount()).toBe(2);
+      a.finish();
+      expect(registry.runningCount()).toBe(1);
+    });
+
+    it("abortAll aborts every running turn with one reason", () => {
+      const first = new AbortController();
+      const second = new AbortController();
+      registry.open("u1", "t1", first, makeHooks());
+      const finished = registry.open("u2", "t2", second, makeHooks());
+      finished.finish();
+
+      expect(registry.abortAll("shutdown")).toBe(1);
+      expect(first.signal.reason).toBe("shutdown");
+      expect(second.signal.aborted).toBe(false);
+    });
+
+    it("drained resolves at once when nothing is running", async () => {
+      await expect(registry.drained(0)).resolves.toBe(true);
+    });
+
+    it("drained resolves true once the last turn finishes", async () => {
+      const session = registry.open(
+        "u1",
+        "t1",
+        new AbortController(),
+        makeHooks()
+      );
+      const drained = registry.drained(5000);
+      session.finish();
+      await expect(drained).resolves.toBe(true);
+    });
+
+    it("drained resolves false when the grace elapses first", async () => {
+      registry.open("u1", "t1", new AbortController(), makeHooks());
+      await expect(registry.drained(10)).resolves.toBe(false);
+    });
   });
 
   describe("timers", () => {
