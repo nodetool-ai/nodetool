@@ -20,17 +20,14 @@ describe("getToolSettingsLabel", () => {
     ["transform", "Transform"]
   ];
 
-  it.each(expectedLabels)(
-    'returns "%s" → "%s"',
-    (tool, expected) => {
-      expect(getToolSettingsLabel(tool)).toBe(expected);
-    }
-  );
+  it.each(expectedLabels)('returns "%s" → "%s"', (tool, expected) => {
+    expect(getToolSettingsLabel(tool)).toBe(expected);
+  });
 
-  it('returns "Settings" for tools without a specific label', () => {
-    expect(getToolSettingsLabel("move")).toBe("Settings");
-    expect(getToolSettingsLabel("eyedropper")).toBe("Settings");
-    expect(getToolSettingsLabel("clone_stamp")).toBe("Settings");
+  it("names the tools that have no settings of their own", () => {
+    expect(getToolSettingsLabel("move")).toBe("Move");
+    expect(getToolSettingsLabel("eyedropper")).toBe("Color Picker");
+    expect(getToolSettingsLabel("clone_stamp")).toBe("Clone Stamp");
   });
 
   it('returns "Settings" for unknown tool values', () => {

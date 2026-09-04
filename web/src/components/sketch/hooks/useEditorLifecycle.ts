@@ -24,7 +24,11 @@ import { hydrateSketchStore } from "../state";
 import { useSketchInstance } from "../../../stores/sketch/SketchInstance";
 import type { useCanvasActions } from "./useCanvasActions";
 import type { useSegmentation } from "./useSegmentation";
-import type { SketchPersistenceSnapshot } from "../../../stores/sketch/persistence";
+import {
+  DEFAULT_SKETCH_PAN,
+  DEFAULT_SKETCH_ZOOM,
+  type SketchPersistenceSnapshot
+} from "../../../stores/sketch/persistence";
 
 const SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY =
   "nodetool-sketch-canvas-resize-handles";
@@ -98,6 +102,16 @@ export function useEditorLifecycle({
 
   // Snapshot of the document as it was when the editor first loaded
   const initialDocumentRef = useRef(initialDocument);
+
+  // Set by the hydrate below when the document arrives with the default
+  // viewport (100%, no pan) — a new document, or one whose view was never
+  // changed. That view shows a 1024px artboard cropped on every side in a
+  // typical window, so the first paint fits it to the viewport instead. A
+  // saved non-default view is restored as is. Consumed by the effect after
+  // the canvas mounts, when the viewport has a size to fit into.
+  const pendingInitialFitRef = useRef(false);
+  const canvasActionsRef = useRef(canvasActions);
+  canvasActionsRef.current = canvasActions;
 
   // ─── Canvas-resize-handles preference ─────────────────────────────
   const [canvasResizeHandlesEnabled, setCanvasResizeHandlesEnabled] = useState(
@@ -174,6 +188,11 @@ export function useEditorLifecycle({
     const isSameDocRevisit =
       documentId !== undefined && session.hydratedDocumentId === documentId;
     if (!isSameDocRevisit) {
+      pendingInitialFitRef.current =
+        !initialEditorState ||
+        (initialEditorState.zoom === DEFAULT_SKETCH_ZOOM &&
+          initialEditorState.pan.x === DEFAULT_SKETCH_PAN.x &&
+          initialEditorState.pan.y === DEFAULT_SKETCH_PAN.y);
       if (initialEditorState) {
         hydrateSketchStore(instance.editor, {
           document: initialEditorState.document,
@@ -192,6 +211,22 @@ export function useEditorLifecycle({
     }
     setCanvasReady(true);
   }, [documentId, initialDocument, initialEditorState, setDocument, instance]);
+
+  // The canvas mounts in the commit that flips `canvasReady`; one frame later
+  // its container has been laid out and `handleZoomFit` can measure it.
+  useEffect(() => {
+    if (!canvasReady || !pendingInitialFitRef.current) {
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      if (!pendingInitialFitRef.current) {
+        return;
+      }
+      pendingInitialFitRef.current = false;
+      canvasActionsRef.current.handleZoomFit();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [canvasReady, documentId]);
 
   // ─── Autosave on document changes ─────────────────────────────────
   // ## Autosave boundary contract

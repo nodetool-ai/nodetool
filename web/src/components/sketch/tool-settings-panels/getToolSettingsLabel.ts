@@ -26,6 +26,12 @@ export function getToolSettingsLabel(tool: SketchTool): string {
       return "Shape";
     case "transform":
       return "Transform";
+    case "move":
+      return "Move";
+    case "eyedropper":
+      return "Color Picker";
+    case "clone_stamp":
+      return "Clone Stamp";
     default:
       return "Settings";
   }

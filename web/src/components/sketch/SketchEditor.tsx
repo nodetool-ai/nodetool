@@ -246,6 +246,17 @@ function SketchEditor({
     }
   }, [isMobile, assistantPanelOpen, mobilePanelsOpen, setMobilePanelsOpen]);
 
+  // The assistant remembers being open across sessions, which on desktop is
+  // a docked column beside the canvas. On a phone it is a sheet over the
+  // whole canvas, so a remembered "open" meant the editor came up with no
+  // canvas in sight. Close it on entering the mobile layout without touching
+  // the remembered preference; the tool bar toggle reopens it.
+  useEffect(() => {
+    if (isMobile) {
+      setAssistantPanelOpen(false, { persist: false });
+    }
+  }, [isMobile, setAssistantPanelOpen]);
+
   // Register the agent bridge under this document's id so the `ui_sketch_*`
   // tools can address it whether or not this surface is focused. The session
   // store is the authority: a never-saved document has no id yet, and gains
@@ -642,7 +653,8 @@ function SketchEditor({
               flexShrink: 0,
               backgroundColor: theme.vars.palette.background.paper,
               borderLeft: `1px solid ${theme.vars.palette.divider}`,
-              overflow: "hidden"
+              overflow: "hidden",
+              userSelect: "none"
             }}
             gap={0}
           >

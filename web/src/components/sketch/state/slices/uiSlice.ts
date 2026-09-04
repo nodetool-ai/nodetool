@@ -53,7 +53,11 @@ export interface UiSlice {
   /** Whether the AI assistant chat panel is open (right side of the editor). */
   assistantPanelOpen: boolean;
   toggleAssistantPanel: () => void;
-  setAssistantPanelOpen: (open: boolean) => void;
+  /** `persist: false` changes the panel without updating the remembered preference. */
+  setAssistantPanelOpen: (
+    open: boolean,
+    options?: { persist?: boolean }
+  ) => void;
 
   /**
    * Whether the mobile panels sheet (color / layers / canvas) is open. On
@@ -126,8 +130,10 @@ export const createUiSlice: StateCreator<SketchStore, [], [], UiSlice> = (
       writeAssistantPanelOpen(assistantPanelOpen);
       return { assistantPanelOpen };
     }),
-  setAssistantPanelOpen: (open: boolean) => {
-    writeAssistantPanelOpen(open);
+  setAssistantPanelOpen: (open, options) => {
+    if (options?.persist !== false) {
+      writeAssistantPanelOpen(open);
+    }
     set({ assistantPanelOpen: open });
   },
 
