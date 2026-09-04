@@ -76,6 +76,46 @@ export const MODEL_PROMPTING_SKILLS: readonly ModelPromptingSkill[] = [
     skill: "wan-2-6-prompting",
     line: "Wan 2.6",
     pattern: /wan-?2[.-]6/
+  },
+  {
+    // Kling from 2.5-turbo on: the versions with a shot list, tagged elements
+    // and native audio. The alternation is what keeps 1.x, 2.0 and 2.1 out,
+    // and requiring a version right after the family name is what keeps
+    // `kling-image` — a different model with different rules — out too.
+    skill: "kling-video-prompting",
+    line: "Kling video 2.5-turbo and later",
+    pattern: /kling(?:-video)?[-/]v?(?:2[.-][56]|3(?:\.0)?|o[13])(?![.\d])/
+  },
+  {
+    // MiniMax's earlier video line. H3 is a separate guide, and no Hailuo id
+    // carries `minimax/h3`, so the two never contend for the same model.
+    skill: "hailuo-prompting",
+    line: "MiniMax Hailuo",
+    pattern: /hailuo|minimax\/video-01/
+  },
+  {
+    skill: "seedream-prompting",
+    line: "Seedream 4 and 5",
+    pattern: /seedream[/-]v?[45](?![\d])/
+  },
+  {
+    // The whole Qwen-Image family — text-to-image, the edit checkpoints and
+    // the layered variants share one set of house rules for typography.
+    skill: "qwen-image-prompting",
+    line: "Qwen-Image",
+    pattern: /qwen-image/
+  },
+  {
+    // Only the endpoints that take a prompt. Scribe, dubbing, isolation and
+    // voice-changer are ElevenLabs too and have nothing to prompt.
+    skill: "elevenlabs-audio-prompting",
+    line: "ElevenLabs speech, dialogue, sound effects and music",
+    pattern: /elevenlabs\/(?:tts|music|sound-effects|text-to-speech|text-to-dialogue|v3|v2-multilingual|turbo|flash)/
+  },
+  {
+    skill: "stable-audio-prompting",
+    line: "Stable Audio",
+    pattern: /stable-audio/
   }
 ];
 

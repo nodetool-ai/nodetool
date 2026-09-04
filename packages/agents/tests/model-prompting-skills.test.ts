@@ -59,7 +59,12 @@ function manifestModelIds(): string[] {
       : Object.values(parsed as Record<string, unknown>).flat();
     for (const row of rows) {
       if (typeof row !== "object" || row === null) continue;
-      const id = (row as Record<string, unknown>)["endpointId"];
+      // FAL and Replicate name the route `endpointId`; kie and AtlasCloud name
+      // it `modelId`. Reading only the first spelling left two providers'
+      // catalogs out of every check below, so a pattern could match nothing
+      // they serve and still pass.
+      const record = row as Record<string, unknown>;
+      const id = record["endpointId"] ?? record["modelId"];
       if (typeof id === "string") ids.add(id.toLowerCase());
     }
   }
@@ -143,7 +148,31 @@ describe("the model-line prompting table", () => {
     ["minimax/h3/text-to-video", "minimax-h3-prompting"],
     ["minimax/h3-max-turbo/image-to-video", "minimax-h3-prompting"],
     ["alibaba/wan-2.6/text-to-video", "wan-2-6-prompting"],
-    ["wan-video/wan2.6-i2v-flash", "wan-2-6-prompting"]
+    ["wan-video/wan2.6-i2v-flash", "wan-2-6-prompting"],
+    ["fal-ai/kling-video/v3/pro/text-to-video", "kling-video-prompting"],
+    ["fal-ai/kling-video/o3/pro/reference-to-video", "kling-video-prompting"],
+    ["fal-ai/kling-video/v2.5-turbo/pro/text-to-video", "kling-video-prompting"],
+    ["kling-3.0-omni/text-to-video", "kling-video-prompting"],
+    ["kling/v2-5-turbo-text-to-video-pro", "kling-video-prompting"],
+    ["kwaivgi/kling-video-o3-pro/text-to-video", "kling-video-prompting"],
+    ["kwaivgi/kling-o1", "kling-video-prompting"],
+    ["fal-ai/minimax/hailuo-2.3/pro/text-to-video", "hailuo-prompting"],
+    ["minimax/hailuo-2.3/t2v-pro", "hailuo-prompting"],
+    ["fal-ai/minimax/hailuo-02-fast/image-to-video", "hailuo-prompting"],
+    ["fal-ai/minimax/video-01-director", "hailuo-prompting"],
+    ["bytedance/seedream/v5/pro/text-to-image", "seedream-prompting"],
+    ["fal-ai/bytedance/seedream/v4.5/edit", "seedream-prompting"],
+    ["seedream/5-pro-image-to-image", "seedream-prompting"],
+    ["bytedance/seedream-v4.5", "seedream-prompting"],
+    ["alibaba/qwen-image-3/text-to-image", "qwen-image-prompting"],
+    ["qwen-image-3.0-pro/edit", "qwen-image-prompting"],
+    ["qwen/qwen-image-edit-plus", "qwen-image-prompting"],
+    ["fal-ai/elevenlabs/tts/eleven-v3", "elevenlabs-audio-prompting"],
+    ["fal-ai/elevenlabs/sound-effects/v2", "elevenlabs-audio-prompting"],
+    ["elevenlabs/text-to-dialogue-v3", "elevenlabs-audio-prompting"],
+    ["elevenlabs/music", "elevenlabs-audio-prompting"],
+    ["fal-ai/stable-audio-25/text-to-audio", "stable-audio-prompting"],
+    ["stability-ai/stable-audio-2.5", "stable-audio-prompting"]
   ])("routes %s to %s", (id, skill) => {
     expect(promptingSkillFor(id)).toBe(skill);
   });
@@ -157,10 +186,23 @@ describe("the model-line prompting table", () => {
     "black-forest-labs/flux-2-dev",
     "bytedance/seedance-1.5-pro",
     "fal-ai/bytedance/seedance/v1/pro/text-to-video",
-    "fal-ai/minimax/hailuo-2.3/pro/text-to-video",
-    "minimax/hailuo-2.3/t2v-pro",
     "wan-video/wan-2.5-t2v",
-    "alibaba/wan-2.7/text-to-video"
+    "alibaba/wan-2.7/text-to-video",
+    // Kling before the shot list, and Kling Image, which is not the video line
+    // at all.
+    "fal-ai/kling-video/v1/standard/text-to-video",
+    "fal-ai/kling-video/v2.1/pro/image-to-video",
+    "kwaivgi/kling-v1.6-pro",
+    "fal-ai/kling-image/v3/text-to-image",
+    "fal-ai/kling-image/o3/image-to-image",
+    "fal-ai/kling-video/lipsync/text-to-video",
+    "bytedance/seedream-3",
+    "fal-ai/bytedance/seedream/v3/text-to-image",
+    // ElevenLabs endpoints that take no prompt.
+    "fal-ai/elevenlabs/speech-to-text/scribe-v2",
+    "fal-ai/elevenlabs/audio-isolation",
+    "fal-ai/elevenlabs/dubbing",
+    "elevenlabs/scribe-v2"
   ])("claims nothing for %s", (id) => {
     expect(promptingSkillFor(id)).toBeNull();
   });
@@ -196,6 +238,13 @@ describe("the shipped prompting skills", () => {
    * the skill keeps teaching the old spelling. Same protection the motion
    * skills get from motion-graphics-skill-names.test.ts.
    */
+  /**
+   * Provider request fields a guide has to name that collide with a capability
+   * prefix. `generate_audio` is Kling's own boolean, not a capability, and the
+   * skill would be wrong to spell it any other way.
+   */
+  const PROVIDER_PARAMETER_NAMES = new Set(["generate_audio"]);
+
   it("names only capabilities that exist", () => {
     const known = new Set(listCapabilitySpecs().map((spec) => spec.name));
     const prefixes = [
@@ -215,7 +264,10 @@ describe("the shipped prompting skills", () => {
     for (const name of names) {
       for (const match of skillBody(name).matchAll(/\b([a-z][a-z0-9_]*)\b/g)) {
         const token = match[1] as string;
-        if (prefixes.some((prefix) => token.startsWith(prefix))) {
+        if (
+          prefixes.some((prefix) => token.startsWith(prefix)) &&
+          !PROVIDER_PARAMETER_NAMES.has(token)
+        ) {
           named.add(token);
         }
       }
