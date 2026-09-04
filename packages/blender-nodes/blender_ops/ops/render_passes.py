@@ -11,9 +11,15 @@ node tree staging the raw float passes:
   `exr` keeps the raw float with background `+inf`, as Blender writes it.
 - `normal`: camera-space normals from the Normal pass, `[-1, 1]` mapped to
   8-bit RGB, background `(128, 128, 255)`.
-- `mask`: 8-bit image, foreground `255`, keyed on finite Z: EEVEE has no
-  object index pass, so both engines share the depth-finiteness gate, which
-  agrees with the index pass on opaque geometry.
+- `mask`: 8-bit image, foreground `255`, keyed on finite Z. D4 specifies
+  the object index pass, but Blender 5.2 exposes no index socket on the
+  `CompositorNodeRLayers` node the op must stage through (measured 5.2.1:
+  `use_pass_object_index = True` is accepted yet the node lists only
+  Image/Alpha/Depth/Mist/Normal, and the Render Result offers no
+  Python-side pass access either), so both engines share the
+  depth-finiteness gate instead. It agrees with the index pass on opaque
+  geometry and disagrees for alpha-blended, holdout, and volume materials —
+  a recorded deviation from D4, not an implementation of it.
 
 `params["passes"]` selects the subset to produce; the op writes and reports
 only those.
@@ -24,10 +30,13 @@ Blender 5.x notes (measured, not assumed):
   `use_nodes`/`node_tree` pair is deprecated and `Scene.node_tree` is gone.
   The legacy Math/Mix/MapRange nodes are gone too, so the tree stages RAW
   passes only and every contract mapping runs in Python (`depth.py`).
-- A File Output node writes `<render-base>/<file_name>.<ext>` where the
-  base is the factory render output (`/tmp/`) and absolute `file_name`
-  values are mangled, so each run stages through a pid-unique subdir under
-  the base and moves the files into the workdir right after the render.
+- A File Output node writes `<render-filepath>/<file_name>.<ext>`: the
+  base is the current render filepath, and an absolute `file_name` is
+  mangled (measured: `/tmp/wd/stage/x` lands at `/tmp/tmp/wd/stage/x.exr`
+  under the factory `/tmp/` base). The op therefore points the render
+  filepath at the workdir itself and stages through a relative subdir of
+  it, so a killed run leaves nothing outside the workdir — which the
+  runner deletes on every exit path.
 - A File Output node ignores its item-level format and always writes
   multilayer EXR, so both staged passes are float EXR by construction.
 """
@@ -45,10 +54,12 @@ from errors import BadJob, RenderFailed
 from exr import read_exr_rgba
 from ops.common import setup_render_scene
 
-#: Staging directory under Blender's render base, unique per process: one
-#: Blender runs per op invocation, so the pid cannot collide with a sibling.
-def _stage_subdir():
-    return "nodetool-passes-%d" % (os.getpid(),)
+#: Staging directory for the raw float passes, inside the job's own
+#: working directory: one Blender runs per op invocation, and the runner
+#: deletes the workdir on every exit path, so no run can leak staged EXRs.
+#: A relative name, so the File Output node resolves it under the workdir
+#: the op points the render filepath at (see `run`).
+_STAGE_SUBDIR = "nodetool-passes-stage"
 
 
 #: Raw float passes the compositor stages.
@@ -58,11 +69,14 @@ _NORMAL_RAW_SLOT = "normal_raw"
 #: Background constant for the normal map: exactly (128, 128, 255) in 8-bit.
 NORMAL_BACKGROUND = (128, 128, 255)
 
-#: EEVEE's no-hit Z sentinel, measured: the Z pass is finite everywhere and
-#: off-geometry pixels read exactly this. Cycles writes +inf there instead,
-#: which the finiteness check below already excludes. A real surface never
-#: reaches it (the far clip sits at distance + radius * 10, single digits),
-#: so foreground is finite depth below this value on both engines.
+#: EEVEE's no-hit Z sentinel, measured on Blender 5.2.1: the Z pass is
+#: finite everywhere and off-geometry pixels read exactly this value.
+#: Cycles writes +inf there instead, which the finiteness check below
+#: already excludes. A real surface never reaches it (the far clip sits at
+#: distance + radius * 10, single digits), so foreground is finite depth
+#: below this value on both engines. This constant is an EEVEE behavior,
+#: not a documented Blender API value: re-measure it if the version floor
+#: moves.
 BACKGROUND_DEPTH = 1e10
 
 
@@ -81,18 +95,14 @@ def _selected_passes(params):
     return passes
 
 
-def _render_base():
-    # The factory render output: every relative File Output lands here.
-    # Absolute `file_name` values come back mangled, so staging stays here
-    # and the op moves the files into the workdir after the render.
-    return "/tmp"
-
-
-def _build_compositor(scene, stage_dir):
+def _build_compositor():
     # Passes are enabled before the Render Layers node is created so its
     # sockets exist when linked. Both raw passes always stage: the mask and
     # the depth stats share the depth resolve, so depth is needed even when
-    # only the mask is selected.
+    # only the mask is selected. `file_name` stays relative so it resolves
+    # under the workdir the render filepath points at; an absolute value
+    # would be mangled under the factory `/tmp/` base instead.
+    scene = bpy.context.scene
     view_layer = scene.view_layers[0]
     view_layer.use_pass_z = True
     view_layer.use_pass_normal = True
@@ -105,7 +115,7 @@ def _build_compositor(scene, stage_dir):
         node = group.nodes.new("CompositorNodeOutputFile")
         node.file_output_items.clear()
         node.file_output_items.new("RGBA", "Image")
-        node.file_name = os.path.join(stage_dir, slot)
+        node.file_name = os.path.join(_STAGE_SUBDIR, slot)
         group.links.new(layers.outputs[socket], node.inputs[0])
 
 
@@ -138,15 +148,16 @@ def _map_normal(rgb, basis):
     return out
 
 
-def _collect_staged(workdir, stage):
+def _collect_staged(workdir):
     """Move the staged EXRs into the workdir; fail loudly when one is missing."""
+    stage_dir = os.path.join(workdir, _STAGE_SUBDIR)
     try:
-        seen = sorted(os.listdir(os.path.join(_render_base(), stage)))
+        seen = sorted(os.listdir(stage_dir))
     except OSError:
         seen = []
     staged = {}
     for slot in (_DEPTH_RAW_SLOT, _NORMAL_RAW_SLOT):
-        src = os.path.join(_render_base(), stage, slot + ".exr")
+        src = os.path.join(stage_dir, slot + ".exr")
         if not os.path.exists(src):
             # Name the directory: a missing stage file means the File Output
             # resolved elsewhere, and the guess list is what debugs it.
@@ -157,7 +168,7 @@ def _collect_staged(workdir, stage):
         dst = os.path.join(workdir, slot + ".exr")
         os.replace(src, dst)
         staged[slot] = dst
-    shutil.rmtree(os.path.join(_render_base(), stage), ignore_errors=True)
+    shutil.rmtree(stage_dir, ignore_errors=True)
     return staged
 
 
@@ -174,41 +185,45 @@ def run(job, workdir):
         raise BadJob("unknown depth_format %r" % (depth_format,))
 
     scene, meshes, center, radius, camera_obj = setup_render_scene(job, workdir)
-    stage = _stage_subdir()
-    stage_dir = os.path.join(_render_base(), stage)
+    stage_dir = os.path.join(workdir, _STAGE_SUBDIR)
     os.makedirs(stage_dir, exist_ok=True)
     try:
         return _run_passes(job, workdir, params, outputs, passes, depth_format,
-                           scene, meshes, camera_obj, stage, stage_dir)
+                           scene, meshes, camera_obj)
     finally:
-        # The /tmp detour never lingers: collected files moved to the
-        # workdir, the rest goes here on every path, including failures.
+        # The stage subdir never lingers outside the workdir, and the runner
+        # deletes the workdir itself on every exit path — including the
+        # SIGKILL path where this `finally` never runs.
         shutil.rmtree(stage_dir, ignore_errors=True)
 
 
 def _run_passes(job, workdir, params, outputs, passes, depth_format,
-                scene, meshes, camera_obj, stage, stage_dir):
-    _build_compositor(scene, stage)
-
-    # Color goes through the plain still path, so its location is exact.
+                scene, meshes, camera_obj):
+    # The File Output base is the render filepath, snapshotted when the
+    # node is created — so the filepath points at the workdir itself
+    # (trailing separator: a directory, not a file) before the compositor
+    # is built, and the relative stage names resolve inside it. Color is
+    # saved from the Render Result afterwards, so its location stays exact
+    # either way.
     scene.render.image_settings.file_format = "PNG"
     scene.render.image_settings.color_mode = "RGBA"
     scene.render.image_settings.color_depth = "8"
-    if "color" in passes:
-        scene.render.filepath = os.path.join(workdir, outputs["color"])
-        color_temp = None
-    else:
-        color_temp = os.path.join(workdir, "color_unused.png")
-        scene.render.filepath = color_temp
+    scene.render.filepath = workdir + os.sep
+    _build_compositor()
 
     started = time.monotonic()
     try:
-        bpy.ops.render.render(write_still=True)
+        bpy.ops.render.render()
     except Exception as exc:
         raise RenderFailed("render failed: %s" % (exc,))
     render_seconds = time.monotonic() - started
-    if color_temp is not None and os.path.exists(color_temp):
-        os.remove(color_temp)
+    if "color" in passes:
+        try:
+            bpy.data.images["Render Result"].save_render(
+                os.path.join(workdir, outputs["color"])
+            )
+        except Exception as exc:
+            raise RenderFailed("color save failed: %s" % (exc,))
 
     produced = []
     stats = {
@@ -225,7 +240,7 @@ def _run_passes(job, workdir, params, outputs, passes, depth_format,
     need_depth = bool({"depth", "mask", "normal"} & set(passes))
     need_normal = "normal" in passes
     staged = (
-        _collect_staged(workdir, stage)
+        _collect_staged(workdir)
         if (need_depth or need_normal)
         else {}
     )

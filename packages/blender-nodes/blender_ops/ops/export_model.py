@@ -10,6 +10,11 @@ The operators are the ones Blender 5.x ships: the FBX IO add-on (enabled
 under `--factory-startup`) and the core `wm.obj_export` / `wm.usd_export`
 operators, which need no add-on. A call that raises (a failing poll, a
 rejected scene) surfaces as `export_failed` with the operator's message.
+
+OBJ export is geometry-only (`export_materials=False`): the operator would
+otherwise write a `model.mtl` the job never declares, and the `.obj` would
+keep a dangling `mtllib` line pointing at a file that dies with the scratch
+directory.
 """
 
 import os
@@ -39,6 +44,17 @@ def _exporter(format):
     return getattr(getattr(bpy.ops, group), name)
 
 
+def _export_kwargs(format, out_path):
+    # OBJ export is geometry-only by decision: `wm.obj_export` writes
+    # `model.mtl` next to `model.obj`, but the job declares (and the node
+    # returns) only `file`, so the material file would vanish with the
+    # scratch directory while the `.obj` kept a dangling `mtllib` line.
+    # Disabling materials keeps the contract to one file.
+    if format == "obj":
+        return {"filepath": out_path, "export_materials": False}
+    return {"filepath": out_path}
+
+
 def run(job, workdir):
     """Run `export_model`. Returns `(produced, stats)`."""
     params = job["job"]["params"]
@@ -60,7 +76,7 @@ def run(job, workdir):
 
     started = time.monotonic()
     try:
-        result = export(filepath=out_path)
+        result = export(**_export_kwargs(format, out_path))
     except Exception as exc:
         raise ExportFailed("%s export failed: %s" % (format, exc))
     render_seconds = time.monotonic() - started

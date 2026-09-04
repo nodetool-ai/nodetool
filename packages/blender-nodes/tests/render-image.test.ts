@@ -54,6 +54,43 @@ describe.skipIf(!blenderAvailable())("render_image integration", () => {
     helper = null;
   });
 
+  it("renders the background hex as a linear-correct pixel value", async () => {
+    // `#808080` is sRGB 0.502, scene-linear 0.216. The Background node
+    // takes linear values under the Standard view transform, so the
+    // rendered background must read back near (128, 128, 128). Writing the
+    // sRGB channels straight in rendered (188, 188, 188) instead.
+    // Tolerance ±5: 8-bit rounding is ±1 and EEVEE's pipeline quantizes a
+    // little more; the bug sat 60 off, so the two cases do not touch.
+    // Corners are pure background: the orbit camera frames the small
+    // triangle at the center.
+    const result = await runBlenderJob(
+      helper!.context,
+      createTriangleGlb(),
+      renderImageOp({
+        width: 64,
+        height: 64,
+        background_color: "#808080",
+        lighting: "flat"
+      }),
+      { image: "render.png" },
+      { timeoutMs: 300_000 }
+    );
+    const image = decodePng(result.outputs["image"]!);
+    const at = (x: number, y: number): number[] => {
+      const base = (y * image.width + x) * image.channels;
+      return [
+        image.pixels[base]!,
+        image.pixels[base + 1]!,
+        image.pixels[base + 2]!
+      ];
+    };
+    for (const [x, y] of [[0, 0], [63, 0], [0, 63], [63, 63]]) {
+      for (const channel of at(x!, y!)) {
+        expect(Math.abs(channel! - 128)).toBeLessThanOrEqual(5);
+      }
+    }
+  }, 300_000);
+
   it("renders a GLB to a PNG of the requested size that is not uniform", async () => {
     const result = await runBlenderJob(
       helper!.context,

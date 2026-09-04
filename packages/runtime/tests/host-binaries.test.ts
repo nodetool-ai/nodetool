@@ -200,6 +200,47 @@ describe("runHostBinary abort signal", () => {
     }
   }, 30_000);
 
+  it("does not settle until a SIGTERM-ignoring child is actually gone", async () => {
+    // A Cycles render that never handles SIGTERM keeps burning its core
+    // until SIGKILL. The caller frees the concurrency slot and deletes the
+    // scratch directory when this promise settles, so settling at the
+    // signal would hand both to the next run while the child still lives.
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    try {
+      const controller = new AbortController();
+      const started = Date.now();
+      let settledAt = 0;
+      const pending = runHostBinary(
+        process.execPath,
+        [
+          "-e",
+          "process.on('SIGTERM',()=>{});" +
+            "require('fs').writeFileSync('pid.txt',String(process.pid));" +
+            "setInterval(()=>{},1000);"
+        ],
+        { cwd, timeoutMs: 30_000, signal: controller.signal }
+      ).then(
+        () => {
+          settledAt = Date.now();
+          throw new Error("aborted run should reject");
+        },
+        (err: unknown) => {
+          settledAt = Date.now();
+          throw err;
+        }
+      );
+      setTimeout(() => controller.abort(), 300);
+      await expect(pending).rejects.toThrow();
+      // SIGKILL lands five seconds after SIGTERM: settling any earlier
+      // means the promise gave up while the child still ran.
+      expect(settledAt - started).toBeGreaterThanOrEqual(4500);
+      const pid = Number(await readFile(path.join(cwd, "pid.txt"), "utf8"));
+      expect(() => process.kill(pid, 0)).toThrow();
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  }, 30_000);
+
   it("never spawns when the signal is already aborted", async () => {
     const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
     try {
@@ -351,6 +392,62 @@ describe("runHostBinary concurrency classes", () => {
       const firstResult = await first;
       expect(firstResult.queuedMs).toBe(0);
       expect(second.queuedMs).toBeGreaterThan(0);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it("a queued run aborts while waiting and never spawns", async () => {
+    // A cancelled ExportModel queued behind a ten-minute render must not
+    // wait for the render: the abort releases the queue position and the
+    // child never spawns.
+    vi.stubEnv("NODETOOL_BLENDER_CONCURRENCY", "1");
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    try {
+      const first = runHostBinary(
+        process.execPath,
+        ["-e", "setTimeout(()=>{},3000)"],
+        { cwd, timeoutMs: 30_000, concurrencyClass: "render" }
+      );
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const controller = new AbortController();
+      const started = Date.now();
+      const queued = runHostBinary(
+        process.execPath,
+        ["-e", "require('fs').writeFileSync('spawned-B.txt','x');"],
+        { cwd, timeoutMs: 30_000, concurrencyClass: "render", signal: controller.signal }
+      );
+      setTimeout(() => controller.abort(), 300);
+      await expect(queued).rejects.toThrow();
+      expect(Date.now() - started).toBeLessThan(2000);
+      expect(existsSync(path.join(cwd, "spawned-B.txt"))).toBe(false);
+      await first;
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it("timeoutMs covers the spawned run only, not the queue wait", async () => {
+    // Deliberate semantics, pinned: the timer starts at spawn, so a run
+    // queued behind a long render does not time out while waiting. The
+    // queue wait is reported separately as queuedMs.
+    vi.stubEnv("NODETOOL_BLENDER_CONCURRENCY", "1");
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    try {
+      const first = runHostBinary(
+        process.execPath,
+        ["-e", "setTimeout(()=>{},1200)"],
+        { cwd, timeoutMs: 30_000, concurrencyClass: "render" }
+      );
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const second = await runHostBinary(process.execPath, ["-e", ""], {
+        cwd,
+        timeoutMs: 800,
+        concurrencyClass: "render"
+      });
+      expect(second.exitCode).toBe(0);
+      expect(second.queuedMs).toBeGreaterThan(0);
+      await first;
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }

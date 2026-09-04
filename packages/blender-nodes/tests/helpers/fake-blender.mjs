@@ -9,8 +9,8 @@
  * await instead of hanging). `--version` always reports 5.2.0 so binary
  * discovery accepts the fake under the 5.2 floor.
  *
- * Modes: ok, fra, exit64-empty, import-failed, hang, evil, big-output,
- * big-total.
+ * Modes: ok, fra, exit64-empty, import-failed, hang, ignore-term, evil,
+ * big-output, big-total, crash.
  */
 
 import path from "node:path";
@@ -77,6 +77,27 @@ switch (mode) {
     // a live timer holds it until the runner kills the child.
     setInterval(() => {}, 1000);
     await new Promise(() => {});
+    break;
+  }
+  case "ignore-term": {
+    // A Cycles render that never handles SIGTERM: the runner's abort kills
+    // escalate to SIGKILL five seconds later, and the run must keep its
+    // slot and its scratch directory until then.
+    process.on("SIGTERM", () => {});
+    setInterval(() => {}, 1000);
+    await new Promise(() => {});
+    break;
+  }
+  case "crash": {
+    // A segfaulting Blender: no result.json, and the crash log where
+    // Blender really writes it — its temp directory, not the run's cwd.
+    const tmp = process.env["TMPDIR"] || process.env["TEMP"] || "/tmp";
+    writeFileSync(
+      path.join(tmp, "blender.crash.txt"),
+      "Blender 5.2.0, segfault in render pipeline (fake)\n"
+    );
+    process.stderr.write("Writing: blender.crash.txt\nSegmentation fault\n");
+    process.exit(139);
     break;
   }
   case "evil": {

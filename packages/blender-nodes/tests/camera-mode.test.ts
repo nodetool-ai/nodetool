@@ -94,6 +94,18 @@ describe.skipIf(!blenderAvailable())("camera_mode selection", () => {
     expect(result.stats.camera).toBe(ORBIT_CAMERA_NAME);
   }, 300_000);
 
+  it("scene renders the document-first camera, not the alphabetical first", async () => {
+    // glTF order Shot02, Shot01: alphabetical order would pick Shot01.
+    // D4 means the first camera in the document.
+    const result = await render({ cameraNames: ["Shot02", "Shot01"] }, "scene");
+    expect(result.stats.camera).toBe("Shot02");
+  }, 300_000);
+
+  it("auto renders the document-first camera, not the alphabetical first", async () => {
+    const result = await render({ cameraNames: ["Shot02", "Shot01"] }, "auto");
+    expect(result.stats.camera).toBe("Shot02");
+  }, 300_000);
+
   it("a meshless model is no_geometry", async () => {
     const err = await render(
       { withMesh: false, withCamera: true },

@@ -74,7 +74,7 @@ export class ExportModelNode extends BaseNode {
     type: "enum",
     default: "fbx",
     title: "Format",
-    description: "Export format: fbx, obj, or usd (GLB stays a Model3DRef — see Prepare For Engine)",
+    description: "Export format: fbx, obj, or usd (OBJ is geometry-only, no .mtl; GLB stays a Model3DRef — see Prepare For Engine)",
     values: ["fbx", "obj", "usd"]
   })
   declare format: any;

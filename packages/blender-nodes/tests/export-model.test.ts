@@ -75,6 +75,30 @@ describe.skipIf(!blenderAvailable())("export_model integration", () => {
     expect(result.stats.objects).toBe(1);
   }, 300_000);
 
+  it("exports OBJ geometry-only: no mtllib line, no dangling material", async () => {
+    // `wm.obj_export` writes `model.mtl` next to `model.obj`, but the job
+    // declares only `file` — so the export disables materials and the OBJ
+    // must not reference a material file that dies with the scratch dir.
+    const result = await runBlenderJob(
+      helper!.context,
+      createTriangleGlb(),
+      exportOp("obj"),
+      { file: OUTPUT_FILE.obj },
+      { timeoutMs: 300_000 }
+    );
+    const obj = result.outputs["file"]!;
+    const text = new TextDecoder().decode(obj);
+    expect(text.startsWith("# Blender")).toBe(true);
+    expect(
+      text.split("\n").filter((line) => line.startsWith("mtllib"))
+    ).toEqual([]);
+    expect(
+      text.split("\n").filter((line) => line.startsWith("usemtl"))
+    ).toEqual([]);
+    const vertices = text.split("\n").filter((line) => line.startsWith("v "));
+    expect(vertices).toHaveLength(3);
+  }, 300_000);
+
   it("exports a USD file that is what it claims to be", async () => {
     const result = await runBlenderJob(
       helper!.context,

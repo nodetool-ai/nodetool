@@ -25,14 +25,25 @@ ORBIT_CAMERA_NAME = "NodeTool_Orbit"
 CYCLES_SEED = 0
 
 
+def _srgb_to_linear(channel):
+    """One sRGB channel in `[0, 1]` to scene-linear (the sRGB EOTF)."""
+    if channel <= 0.04045:
+        return channel / 12.92
+    return ((channel + 0.055) / 1.055) ** 2.4
+
+
 def _hex_to_rgb(value):
+    # A hex color is sRGB; the Background node takes scene-linear values
+    # under the Standard view transform, so each channel goes through the
+    # sRGB EOTF. Writing sRGB straight in renders bright: measured,
+    # `#808080` came out as (188, 188, 188) instead of (128, 128, 128).
     text = value.strip().lstrip("#")
     if len(text) == 3:
         text = "".join(ch * 2 for ch in text)
     if len(text) != 6:
         raise BadJob("background_color %r is not a hex color" % (value,))
     try:
-        channels = [int(text[i : i + 2], 16) / 255 for i in (0, 2, 4)]
+        channels = [_srgb_to_linear(int(text[i : i + 2], 16) / 255) for i in (0, 2, 4)]
     except ValueError:
         raise BadJob("background_color %r is not a hex color" % (value,))
     return tuple(channels) + (1.0,)
@@ -100,10 +111,11 @@ def scene_bounds(meshes):
 
 
 def scene_cameras(scene):
-    return sorted(
-        (obj for obj in scene.objects if obj.type == "CAMERA"),
-        key=lambda obj: obj.name,
-    )
+    # Importer order, not alphabetical: D4 means the first camera in the
+    # document, and `scene.objects` lists cameras in creation order (the
+    # glTF importer creates one object per node in document order). Sorting
+    # by name rendered `Shot01` for a document that opens on `Shot02`.
+    return [obj for obj in scene.objects if obj.type == "CAMERA"]
 
 
 def orbit_location(center, radius, params, aspect):
@@ -222,8 +234,11 @@ def apply_world(background_color, transparent):
         background.inputs["Strength"].default_value = 1.0
     bpy.context.scene.world = world
     bpy.context.scene.render.film_transparent = bool(transparent)
-    # `Standard` keeps the background color literal: the default filmic-style
-    # transform would render #ffffff as mid gray.
+    # `Standard` avoids the default filmic-style desaturation (which renders
+    # #ffffff as mid gray), but it is still a display transform over
+    # scene-linear values — not a passthrough. The hex therefore reaches the
+    # Background node linearized (see `_hex_to_rgb`); without that step the
+    # rendered background reads bright.
     bpy.context.scene.view_settings.view_transform = "Standard"
 
 

@@ -10,6 +10,12 @@
 
 export interface TriangleFixtureOptions {
   withCamera?: boolean;
+  /**
+   * Named scene cameras, in document order. When set, one camera and one
+   * named node are appended per entry instead of the single `withCamera`
+   * camera, so glTF order and alphabetical order can disagree.
+   */
+  cameraNames?: string[];
   /** KHR_lights_punctual sun intensity; omitted means no scene light. */
   lightIntensity?: number;
   withMesh?: boolean;
@@ -22,7 +28,7 @@ function pad4(length: number): number {
 export function createTriangleGlb(
   options: TriangleFixtureOptions = {}
 ): Uint8Array {
-  const { withCamera = false, lightIntensity, withMesh = true } = options;
+  const { withCamera = false, cameraNames, lightIntensity, withMesh = true } = options;
   const positions = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
   const bin = new Uint8Array(positions.buffer);
   const gltf: Record<string, unknown> = {
@@ -60,15 +66,16 @@ export function createTriangleGlb(
     delete gltf["bufferViews"];
     delete gltf["buffers"];
   }
-  if (withCamera) {
-    gltf["cameras"] = [
-      {
-        type: "perspective",
-        perspective: { yfov: 0.6, znear: 0.01, zfar: 100.0 }
-      }
-    ];
-    nodes.push({ camera: 0 });
-    sceneNodes.push(nodes.length - 1);
+  const namedCameras = cameraNames ?? (withCamera ? ["Camera"] : []);
+  if (namedCameras.length > 0) {
+    gltf["cameras"] = namedCameras.map(() => ({
+      type: "perspective",
+      perspective: { yfov: 0.6, znear: 0.01, zfar: 100.0 }
+    }));
+    namedCameras.forEach((name, index) => {
+      nodes.push({ name, camera: index });
+      sceneNodes.push(nodes.length - 1);
+    });
   }
   if (lightIntensity !== undefined) {
     (gltf["extensions"] as Record<string, unknown>) ??= {};
@@ -163,11 +170,12 @@ export interface QuadSpec {
 
 function buildGlb(
   quads: QuadSpec[],
-  animations?: Record<string, unknown>[]
+  animations?: Record<string, unknown>[],
+  materialCount = 1
 ): Uint8Array {
   const positions: number[] = [];
-  const indices: number[] = [];
-  for (const quad of quads) {
+  const perMaterial: number[][] = Array.from({ length: materialCount }, () => []);
+  for (const [qi, quad] of quads.entries()) {
     const [ox, oy] = quad.origin;
     const s = quad.size;
     const base = positions.length / 3;
@@ -179,24 +187,24 @@ function buildGlb(
     );
     // Counter-clockwise from +Z: the face normal is +glTF-Z, which the
     // importer maps onto Blender -Y — toward an azimuth-0 orbit camera.
-    indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    // Quads spread across materials round-robin, so two quads with two
+    // materials land on two slots of one mesh.
+    perMaterial[qi % materialCount]!.push(base, base + 1, base + 2, base, base + 2, base + 3);
   }
   const xs = positions.filter((_, i) => i % 3 === 0);
   const ys = positions.filter((_, i) => i % 3 === 1);
   const zs = positions.filter((_, i) => i % 3 === 2);
   const posBytes = new Float32Array(positions);
-  const indexBytes = new Uint16Array(indices);
-  const animOffset = posBytes.byteLength + indexBytes.byteLength;
+  // One index range per material, each with its own view and accessor, so
+  // the mesh carries one primitive (and later one material slot) per
+  // material. Empty ranges (more materials than quads) are dropped.
+  const ranges = perMaterial.map((range) => new Uint16Array(range));
+  const indexBytesLength = ranges.reduce((sum, range) => sum + range.byteLength, 0);
+  const animOffset = posBytes.byteLength + indexBytesLength;
   const bin = new Uint8Array(animOffset + (animations ? 32 : 0));
   bin.set(new Uint8Array(posBytes.buffer), 0);
-  bin.set(new Uint8Array(indexBytes.buffer), posBytes.byteLength);
   const bufferViews: Record<string, unknown>[] = [
-    { buffer: 0, byteOffset: 0, byteLength: posBytes.byteLength },
-    {
-      buffer: 0,
-      byteOffset: posBytes.byteLength,
-      byteLength: indexBytes.byteLength
-    }
+    { buffer: 0, byteOffset: 0, byteLength: posBytes.byteLength }
   ];
   const accessors: Record<string, unknown>[] = [
     {
@@ -206,24 +214,47 @@ function buildGlb(
       type: "VEC3",
       min: [Math.min(...xs), Math.min(...ys), Math.min(...zs)],
       max: [Math.max(...xs), Math.max(...ys), Math.max(...zs)]
-    },
-    {
-      bufferView: 1,
-      componentType: 5123,
-      count: indices.length,
-      type: "SCALAR"
     }
   ];
+  const primitives: Record<string, unknown>[] = [];
+  let indexOffset = posBytes.byteLength;
+  for (const [mi, range] of ranges.entries()) {
+    if (range.length === 0) continue;
+    bin.set(new Uint8Array(range.buffer), indexOffset);
+    bufferViews.push({
+      buffer: 0,
+      byteOffset: indexOffset,
+      byteLength: range.byteLength
+    });
+    accessors.push({
+      bufferView: bufferViews.length - 1,
+      componentType: 5123,
+      count: range.length,
+      type: "SCALAR"
+    });
+    const primitive: Record<string, unknown> = {
+      attributes: { POSITION: 0 },
+      indices: accessors.length - 1
+    };
+    if (materialCount > 1) primitive["material"] = mi;
+    primitives.push(primitive);
+    indexOffset += range.byteLength;
+  }
   const gltf: Record<string, unknown> = {
     asset: { version: "2.0" },
     scene: 0,
     scenes: [{ nodes: [0] }],
     nodes: [{ mesh: 0 }],
-    meshes: [{ primitives: [{ attributes: { POSITION: 0 }, indices: 1 }] }],
+    meshes: [{ primitives }],
     accessors,
     bufferViews,
     buffers: [{ byteLength: bin.byteLength }]
   };
+  if (materialCount > 1) {
+    gltf["materials"] = Array.from({ length: materialCount }, (_, mi) => ({
+      name: `Material${mi}`
+    }));
+  }
   if (animations) {
     const times = new Float32Array([0, 1]);
     const moved = new Float32Array([0, 0, 0, 2, 0, 0]);
@@ -344,6 +375,22 @@ export function createDepthGlb(): Uint8Array {
     { size: 1, origin: [0, 0], z: 1 },
     { size: 2, origin: [-0.5, -0.5], z: 0 }
   ]);
+}
+
+/**
+ * Two-material fixture: two side-by-side quads on z=0 (4 faces), one mesh,
+ * one material slot per quad. A bake that wires only the active material
+ * bakes half of this: one embedded image instead of two.
+ */
+export function createTwoMaterialGlb(): Uint8Array {
+  return buildGlb(
+    [
+      { size: 1, origin: [0, 0], z: 0 },
+      { size: 1, origin: [1.1, 0], z: 0 }
+    ],
+    undefined,
+    2
+  );
 }
 
 /**

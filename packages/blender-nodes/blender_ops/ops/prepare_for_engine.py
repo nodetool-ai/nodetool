@@ -76,90 +76,118 @@ def _principled(material):
     return None
 
 
+def _unique_materials(obj):
+    """Every material on the object's slots, once each, in slot order."""
+    materials = []
+    for slot in obj.material_slots:
+        if slot.material is not None and slot.material not in materials:
+            materials.append(slot.material)
+    return materials
+
+
 def _bake_image(meshes, bake, bake_resolution):
-    """One bake image per mesh per kind. Materials go single-user first so
-    two meshes never share one image node."""
+    """One bake image per material per kind. Materials go single-user first
+    so two meshes never share one image node. Every material gets its own
+    selected image node: wiring only the active material leaves the other
+    slots without a bake target, and the mesh exports half-baked (measured
+    on 5.2.1: the bake succeeds but only the wired material carries a map).
+    Returns `images[kind][obj.name]`, a list of `(material, image)` pairs."""
     images = {}
     for obj in meshes:
-        for index, slot in enumerate(obj.material_slots):
+        for slot in obj.material_slots:
             if slot.material is not None:
                 slot.material = slot.material.copy()
-        kinds = ("ao", "normal") if bake == "both" else (bake,)
-        for kind in kinds:
-            image = bpy.data.images.new(
-                "NodeTool_Bake_%s_%s" % (kind, obj.name),
-                width=bake_resolution,
-                height=bake_resolution,
+        materials = _unique_materials(obj)
+        if not materials:
+            raise RenderFailed(
+                "cannot bake: %r has no material" % (obj.name,)
             )
-            material = obj.active_material
-            if material is None or not material.use_nodes:
+        kinds = ("ao", "normal") if bake == "both" else (bake,)
+        for material in materials:
+            if not material.use_nodes:
                 raise RenderFailed(
-                    "cannot bake %r: %r has no node material" % (kind, obj.name)
+                    "cannot bake: material %r on %r has no nodes"
+                    % (material.name, obj.name)
                 )
-            nodes = material.node_tree.nodes
-            tex = nodes.new("ShaderNodeTexImage")
-            tex.image = image
-            # The bake operator writes the selected image nodes.
-            for node in nodes:
-                node.select = node is tex
-            nodes.active = tex
-            images.setdefault(kind, {})[obj.name] = image
+            for kind in kinds:
+                image = bpy.data.images.new(
+                    "NodeTool_Bake_%s_%s_%s" % (kind, obj.name, material.name),
+                    width=bake_resolution,
+                    height=bake_resolution,
+                )
+                nodes = material.node_tree.nodes
+                tex = nodes.new("ShaderNodeTexImage")
+                tex.image = image
+                # The bake operator writes the selected image nodes.
+                for node in nodes:
+                    node.select = node is tex
+                nodes.active = tex
+                images.setdefault(kind, {}).setdefault(obj.name, []).append(
+                    (material, image)
+                )
     return images
+
+
+def _image_for(pairs, material):
+    for candidate, image in pairs:
+        if candidate is material:
+            return image
+    return None
 
 
 def _wire_baked(meshes, images):
     """Normal maps ride a Normal Map node into Principled; AO multiplies
-    into Base Color. Both shapes are ones the glTF exporter reads."""
+    into Base Color. Both shapes are ones the glTF exporter reads. Every
+    material is wired, not just the active one: `_bake_image` bakes one
+    image per material, and an unwired one would export without its bake."""
     for obj in meshes:
-        material = obj.active_material
-        if material is None:
-            continue
-        nodes = material.node_tree.nodes
-        links = material.node_tree.links
-        principled = _principled(material)
-        if principled is None:
-            continue
-        if "normal" in images:
-            tex = next(
-                (
-                    node
-                    for node in nodes
-                    if node.type == "TEX_IMAGE"
-                    and node.image is images["normal"].get(obj.name)
-                ),
-                None,
-            )
-            if tex is not None:
-                normal_map = nodes.new("ShaderNodeNormalMap")
-                normal_map.space = "TANGENT"
-                links.new(tex.outputs["Color"], normal_map.inputs["Color"])
-                normal_socket = principled.inputs.get("Normal")
-                if normal_socket is not None:
-                    links.new(normal_map.outputs["Normal"], normal_socket)
-        if "ao" in images:
-            tex = next(
-                (
-                    node
-                    for node in nodes
-                    if node.type == "TEX_IMAGE"
-                    and node.image is images["ao"].get(obj.name)
-                ),
-                None,
-            )
-            if tex is not None:
-                base = principled.inputs.get("Base Color")
-                if base is not None:
-                    mix = nodes.new("ShaderNodeMixRGB")
-                    mix.blend_type = "MULTIPLY"
-                    mix.inputs["Fac"].default_value = 1.0
-                    links.new(tex.outputs["Color"], mix.inputs["Color2"])
-                    if base.is_linked:
-                        link = base.links[0]
-                        links.new(link.from_socket, mix.inputs["Color1"])
-                        links.remove(link)
-                    else:
-                        mix.inputs["Color1"].default_value = tuple(base.default_value)
-                    links.new(mix.outputs["Color"], base)
+        for material in _unique_materials(obj):
+            nodes = material.node_tree.nodes
+            links = material.node_tree.links
+            principled = _principled(material)
+            if principled is None:
+                continue
+            if "normal" in images:
+                baked = _image_for(images["normal"].get(obj.name, []), material)
+                tex = next(
+                    (
+                        node
+                        for node in nodes
+                        if node.type == "TEX_IMAGE" and node.image is baked
+                    ),
+                    None,
+                )
+                if tex is not None:
+                    normal_map = nodes.new("ShaderNodeNormalMap")
+                    normal_map.space = "TANGENT"
+                    links.new(tex.outputs["Color"], normal_map.inputs["Color"])
+                    normal_socket = principled.inputs.get("Normal")
+                    if normal_socket is not None:
+                        links.new(normal_map.outputs["Normal"], normal_socket)
+            if "ao" in images:
+                baked = _image_for(images["ao"].get(obj.name, []), material)
+                tex = next(
+                    (
+                        node
+                        for node in nodes
+                        if node.type == "TEX_IMAGE" and node.image is baked
+                    ),
+                    None,
+                )
+                if tex is not None:
+                    base = principled.inputs.get("Base Color")
+                    if base is not None:
+                        mix = nodes.new("ShaderNodeMixRGB")
+                        mix.blend_type = "MULTIPLY"
+                        mix.inputs["Fac"].default_value = 1.0
+                        links.new(tex.outputs["Color"], mix.inputs["Color2"])
+                        if base.is_linked:
+                            link = base.links[0]
+                            links.new(link.from_socket, mix.inputs["Color1"])
+                            links.remove(link)
+                        else:
+                            mix.inputs["Color1"].default_value = tuple(base.default_value)
+                        links.new(mix.outputs["Color"], base)
 
 
 def _bake(meshes, bake, bake_resolution):
@@ -181,8 +209,9 @@ def _bake(meshes, bake, bake_resolution):
         except Exception as exc:
             raise RenderFailed("bake %r failed: %s" % (kind, exc))
     for kind_images in images.values():
-        for image in kind_images.values():
-            image.pack()
+        for pairs in kind_images.values():
+            for _material, image in pairs:
+                image.pack()
     _wire_baked(meshes, images)
 
 

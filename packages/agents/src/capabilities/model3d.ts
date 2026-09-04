@@ -23,7 +23,11 @@ import {
   type CameraMode,
   type LightingPreset
 } from "@nodetool-ai/blender-nodes";
-import { loadMediaRefBytes, type ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  HostBinaryMissingError,
+  loadMediaRefBytes,
+  type ProcessingContext
+} from "@nodetool-ai/runtime";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -480,6 +484,19 @@ const renderModel3d: CapabilityExport = {
       png = result.outputs["image"] ?? new Uint8Array();
       stats = result.stats as Record<string, unknown>;
     } catch (error) {
+      // No availability gate exists at the capability layer (specs carry
+      // only name, description, schema, and category), so this capability
+      // stays visible on servers where Blender can never exist. The
+      // failure then names the cause instead of leaking "blender was not
+      // found" as if the caller did something wrong.
+      if (error instanceof HostBinaryMissingError && error.binary === "blender") {
+        return {
+          error:
+            `Could not render 3D model ${model.assetId}: this server has ` +
+            `no Blender installed. Rendering needs a desktop install with ` +
+            `Blender 5.2 or newer (set BLENDER_PATH to its executable).`
+        };
+      }
       return {
         error: `Could not render 3D model ${model.assetId}: ${error instanceof Error ? error.message : String(error)}`
       };

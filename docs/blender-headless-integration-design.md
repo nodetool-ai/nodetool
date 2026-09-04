@@ -304,6 +304,16 @@ Output contracts the ops must honor:
 - `normal`: camera-space normals from the Normal pass, mapped from `[-1, 1]`
   to 8-bit RGB. Background is `(128, 128, 255)`.
 - `mask`: 8-bit alpha of the object index pass, foreground `255`.
+  Deviation (recorded, not silent): the implementation keys the mask on
+  finite Z instead. Blender 5.2 accepts `use_pass_object_index` but exposes
+  no index socket on the `CompositorNodeRLayers` node the op stages through
+  (measured 5.2.1: only Image/Alpha/Depth/Mist/Normal appear, and the Render
+  Result offers no Python-side pass access either), so the specified pass is
+  unreachable on the headless path. The gate agrees with the index pass on
+  opaque geometry and disagrees for alpha-blended, holdout, and volume
+  materials. EEVEE's no-hit Z value `1e10` is a measured EEVEE behavior on
+  5.2.1, not a documented API value: re-measure it if the version floor
+  moves.
 - `render_animation`: the scene fps is set to `fps`. A glTF animation
   channel's timestamp `t` seconds lands on frame `round(t * fps)`.
   `frame_start` and `frame_end` are frames in that timeline. When the glTF has
@@ -466,6 +476,14 @@ It reuses `runBlenderJob` and stores the PNG through `context.createAsset`.
 Permission category `write` (it creates an asset). Extending the existing
 module keeps the 3D capabilities in one place for the eval surface.
 
+Gap (recorded): unlike the `nodetool.blender` namespace, which D8 keeps out
+of the cloud profile, this capability has no availability gate — the
+capability layer carries no availability mechanism (a spec is only a name, a
+description, a schema, and a category, and the registry has no filtering
+hook), so an agent on a Blender-less server still sees `render_model3d`.
+The failure names the cause instead ("this server has no Blender
+installed...") until such a mechanism exists.
+
 ### D10. Configuration
 
 | Setting | Where | Default |
@@ -609,8 +627,9 @@ cloud profile, and runs only on a local workspace.
   the run is logged at warn.
 - `BLENDER_PATH` points at a file that is not Blender: `--version` fails,
   the error quotes the path and the first stderr line.
-- Blender writes a `.crash.txt` next to the scratch files on a segfault. It
-  is included in the `bad_result` message when present.
+- Blender writes a `.crash.txt` into its temp directory (`$TMPDIR`) on a
+  segfault, never next to the scratch files. It is included in the
+  `bad_result` message when present.
 - Process crash of the NodeTool server mid-render: the child is orphaned.
   Stage 1 accepts this. Stage 4's worker owns its process tree.
 - Cloud workspace: `scratchDir()` returns a real temp directory on the

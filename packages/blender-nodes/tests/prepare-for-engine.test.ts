@@ -15,7 +15,12 @@ import type { BlenderOp, PrepareForEngineParams } from "../src/job.js";
 import { runBlenderJob } from "../src/run-job.js";
 import { blenderAvailable } from "./blender-available.js";
 import { blenderTestContext, type BlenderTestContext } from "./context.js";
-import { countGlbFaces, createGridGlb, parseGlbJson } from "./fixtures.js";
+import {
+  countGlbFaces,
+  createGridGlb,
+  createTwoMaterialGlb,
+  parseGlbJson
+} from "./fixtures.js";
 
 const GRID_SIZE = 10;
 const GRID_FACES = 2 * GRID_SIZE * GRID_SIZE;
@@ -79,6 +84,30 @@ describe.skipIf(!blenderAvailable())("prepare_for_engine integration", () => {
       parseGlbJson(model) as Parameters<typeof validateModel3D>[0]
     );
     expect(validation.ok).toBe(true);
+  }, 300_000);
+
+  it("bakes a two-material mesh: every slot gets an image node", async () => {
+    // One mesh, two material slots. Wiring only the active material bakes
+    // half the mesh: measured on 5.2.1, the run succeeds but the model
+    // carries one baked image instead of two, and the second material
+    // exports without its AO.
+    const input = createTwoMaterialGlb();
+    expect(countGlbFaces(input)).toBe(4);
+    const result = await runBlenderJob(
+      helper!.context,
+      input,
+      prepareOp({ bake: "ao", lod_count: 0, target_faces: 5000 }),
+      { model: "model.glb" },
+      { timeoutMs: 300_000 }
+    );
+    const model = result.outputs["model"]!;
+    const validation = validateModel3D(
+      parseGlbJson(model) as Parameters<typeof validateModel3D>[0]
+    );
+    expect(validation.ok).toBe(true);
+    expect(countGlbFaces(model)).toBe(4);
+    // One baked AO image per material, embedded in the GLB.
+    expect((parseGlbJson(model)["images"] as unknown[]).length).toBe(2);
   }, 300_000);
 
   it("bakes both maps and stays a valid GLB", async () => {

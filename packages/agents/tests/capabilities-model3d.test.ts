@@ -423,6 +423,32 @@ describe("model3d capabilities against the database", () => {
     }
   });
 
+  it("names the server, not the caller, when Blender is missing", async () => {
+    // No availability gate exists at the capability layer, so this stays
+    // visible where Blender can never exist (e.g. the cloud server). The
+    // failure must then name the cause: "this server has no Blender", not
+    // a bare "blender was not found".
+    const { HostBinaryMissingError } = await import("@nodetool-ai/runtime");
+    __setBlenderRunnerForTesting({
+      kind: "local",
+      run: async () => {
+        throw new HostBinaryMissingError("blender");
+      }
+    } as unknown as BlenderRunner);
+    try {
+      const { context } = makeContext();
+      const run = runWith(context);
+      const created = (await run.invoke("create_model3d", {
+        name: "no-blender-here"
+      })) as { model_id: string };
+      expect(
+        await run.invoke("render_model3d", { model_id: created.model_id })
+      ).toMatchObject({ error: expect.stringMatching(/this server has no Blender/) });
+    } finally {
+      __setBlenderRunnerForTesting(null);
+    }
+  });
+
   it("reports a save that cannot land instead of claiming success", async () => {
     const { context } = makeContext();
     const run = runWith(context);

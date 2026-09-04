@@ -149,6 +149,56 @@ describe("LocalBlenderRunner against a fake blender", () => {
     await expectScratchGone();
   });
 
+  it("abort keeps the scratch directory until the SIGTERM-ignoring child dies", async () => {
+    // The runner frees nothing when the signal fires: the promise settles
+    // on the child's close, so the scratch directory still exists while a
+    // child that ignores SIGTERM runs on toward SIGKILL.
+    const runner = useFake("ignore-term");
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 200);
+    const pending = runner
+      .run(
+        imageJob(),
+        { model: new Uint8Array([1]) },
+        { timeoutMs: 30000, signal: controller.signal }
+      )
+      .then(
+        () => null,
+        (e: unknown) => e
+      );
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    expect(await readdir(scratchParent)).toHaveLength(1);
+    const err = await pending;
+    expect(err).not.toBeNull();
+    expect(err).not.toBeInstanceOf(BlenderJobError);
+    await expectScratchGone();
+  }, 30_000);
+
+  it("a segfault surfaces the crash log Blender wrote to its temp directory", async () => {
+    // Blender writes <name>.crash.txt into its temp directory ($TMPDIR),
+    // never into the run's cwd: the "Crash log:" suffix needs that path.
+    const runner = useFake("crash");
+    const crashFile = path.join(
+      process.env["TMPDIR"] ?? process.env["TEMP"] ?? os.tmpdir(),
+      "blender.crash.txt"
+    );
+    try {
+      const err = await runner
+        .run(imageJob(), { model: new Uint8Array([1]) }, { timeoutMs: 10000 })
+        .then(
+          () => null,
+          (e: unknown) => e
+        );
+      expect(err).toBeInstanceOf(BlenderJobError);
+      expect((err as BlenderJobError).code).toBe("bad_result");
+      expect((err as Error).message).toContain("Crash log:");
+      expect((err as Error).message).toContain("segfault in render pipeline");
+      await expectScratchGone();
+    } finally {
+      await rm(crashFile, { force: true });
+    }
+  });
+
   it("ignores an undeclared produced name and never opens a result path", async () => {
     const runner = useFake("evil");
     const result = await runner.run(

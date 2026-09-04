@@ -112,13 +112,39 @@ function capFor(concurrencyClass: string): number {
  * waiter is also about to take. No test here reproduces that interleaving; the
  * hand-off removes the window rather than relying on it staying unreachable.
  */
-async function acquireSlot(concurrencyClass: string): Promise<void> {
+async function acquireSlot(
+  concurrencyClass: string,
+  signal?: AbortSignal
+): Promise<void> {
   const slot = slotFor(concurrencyClass);
   if (slot.running < capFor(concurrencyClass)) {
     slot.running++;
     return;
   }
-  await new Promise<void>((resolve) => slot.waiting.push(resolve));
+  signal?.throwIfAborted();
+  await new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const waiter = (): void => {
+      if (settled) return;
+      settled = true;
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    };
+    const onAbort = (): void => {
+      if (settled) return;
+      settled = true;
+      const index = slot.waiting.indexOf(waiter);
+      if (index >= 0) slot.waiting.splice(index, 1);
+      const reason = signal?.reason as unknown;
+      reject(
+        reason instanceof Error
+          ? reason
+          : new Error(`Host binary run aborted: ${String(reason)}`)
+      );
+    };
+    slot.waiting.push(waiter);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 function releaseSlot(concurrencyClass: string): void {
@@ -158,6 +184,12 @@ export class HostBinaryMissingError extends Error {
 
 export interface RunHostBinaryOptions {
   cwd: string;
+  /**
+   * Wall clock for the spawned run only, from spawn to `close`. Time spent
+   * waiting for a concurrency slot is excluded and reported separately as
+   * `queuedMs`, so a run queued behind a long render does not time out
+   * while waiting. SIGTERM at the deadline, SIGKILL five seconds later.
+   */
   timeoutMs: number;
   /**
    * Workspace-relative file the run is writing. When set, the watchdog kills
@@ -168,8 +200,12 @@ export interface RunHostBinaryOptions {
   maxArtifactBytes?: number;
   /**
    * Aborts the run: SIGTERM now, SIGKILL five seconds later through the same
-   * escalation path as the timeout, and the promise rejects with the abort
-   * reason. An already-aborted signal rejects without spawning.
+   * escalation path as the timeout. The promise rejects with the abort
+   * reason once the child has actually exited, not when the signal fires —
+   * a child that ignores SIGTERM keeps its concurrency slot and its working
+   * directory until SIGKILL reaps it. An already-aborted signal rejects
+   * without spawning, and an abort while queued releases the queue position
+   * and rejects without spawning.
    */
   signal?: AbortSignal;
   /**
@@ -202,7 +238,7 @@ export async function runHostBinary(
       ? DEFAULT_CONCURRENCY_CLASS
       : opts.concurrencyClass;
   const queuedStart = Date.now();
-  await acquireSlot(concurrencyClass);
+  await acquireSlot(concurrencyClass, opts.signal);
   const queuedMs = Date.now() - queuedStart;
   try {
     const result = await spawnBounded(cmd, args, opts);
@@ -230,6 +266,7 @@ function spawnBounded(
     let truncated = false;
     let timedOut = false;
     let overran = false;
+    let aborted = false;
     let killTimer: ReturnType<typeof setTimeout> | undefined;
 
     const kill = (): void => {
@@ -237,14 +274,20 @@ function spawnBounded(
       killTimer = setTimeout(() => child.kill("SIGKILL"), 5000);
     };
 
+    // Record the abort and kill, but settle only on `close` below: the
+    // caller frees its concurrency slot and deletes its scratch directory
+    // when this promise settles, and both must wait until the child is
+    // actually gone — a child that ignores SIGTERM lives on until SIGKILL.
     const onAbort = (): void => {
+      aborted = true;
       kill();
+    };
+
+    const abortReason = (): unknown => {
       const reason = signal?.reason as unknown;
-      reject(
-        reason instanceof Error
-          ? reason
-          : new Error(`Host binary run aborted: ${String(reason)}`)
-      );
+      return reason instanceof Error
+        ? reason
+        : new Error(`Host binary run aborted: ${String(reason)}`);
     };
 
     const timer = setTimeout(() => {
@@ -324,6 +367,10 @@ function spawnBounded(
     });
     child.on("error", (err) => {
       done();
+      if (aborted) {
+        reject(abortReason());
+        return;
+      }
       const code =
         isObjectLike(err) && "code" in err ? String(err.code) : "";
       if (code === "ENOENT") {
@@ -334,6 +381,10 @@ function spawnBounded(
     });
     child.on("close", (code) => {
       done();
+      if (aborted) {
+        reject(abortReason());
+        return;
+      }
       if (timedOut) {
         resolve({
           stdout,

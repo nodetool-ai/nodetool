@@ -9,9 +9,12 @@
  * one depth and the range is `(distance - 0.5, distance + 0.5)`.
  */
 
+import { readdirSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { BlenderOp, RenderPassesParams } from "../src/job.js";
+import { BlenderJobError } from "../src/runner.js";
 import { runBlenderJob } from "../src/run-job.js";
 import { blenderAvailable } from "./blender-available.js";
 import { blenderTestContext, type BlenderTestContext } from "./context.js";
@@ -195,6 +198,47 @@ describe.skipIf(!blenderAvailable())("render_passes integration", () => {
     const mask = decodePng(result.outputs["mask"]!);
     expect(new Set(mask.pixels)).toEqual(new Set([0, 255]));
   }, 300_000);
+
+  it("a killed passes run leaves nothing outside the workdir", async () => {
+    // Cycles at full resolution under a 6 s timeout: SIGTERM, then SIGKILL
+    // through a Python `finally` that never runs. The old `/tmp` staging
+    // left `nodetool-passes-<pid>` behind with two full-resolution float
+    // EXRs; staging inside the workdir dies with it instead.
+    const stageNames = (dir: string): string[] => {
+      try {
+        return readdirSync(dir).filter((name) =>
+          name.startsWith("nodetool-passes-")
+        );
+      } catch {
+        return [];
+      }
+    };
+    // The old code hardcoded `/tmp`, which is not `os.tmpdir()` on every
+    // platform: watch both.
+    const dirs = [tmpdir(), "/tmp"];
+    const before = dirs.map(stageNames);
+    const passes = ["color", "depth", "normal", "mask"];
+    const err = await runBlenderJob(
+      helper!.context,
+      createDepthGlb(),
+      passesOp(passes, {
+        engine: "cycles",
+        samples: 128,
+        width: 2048,
+        height: 2048
+      }),
+      outputsFor(passes),
+      { timeoutMs: 6000 }
+    ).then(
+      () => null,
+      (e: unknown) => e
+    );
+    expect(err).toBeInstanceOf(BlenderJobError);
+    expect((err as BlenderJobError).code).toBe("timeout");
+    for (const [index, dir] of dirs.entries()) {
+      expect(stageNames(dir)).toEqual(before[index]);
+    }
+  }, 120_000);
 
   it("writes raw float EXR depth with the same range", async () => {
     const passes = ["depth"];

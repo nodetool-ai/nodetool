@@ -8,6 +8,7 @@
 
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -412,20 +413,37 @@ async function badResultMessage(cwd: string, stderr: string): Promise<string> {
   return message;
 }
 
-/** Contents of the `.crash.txt` Blender leaves on a segfault, when present. */
+/**
+ * Contents of the `.crash.txt` Blender leaves on a segfault, when present.
+ *
+ * Blender writes `<name>.crash.txt` into its temp directory (`$TMPDIR`,
+ * which the env allowlist forwards to the child), never into the run's
+ * cwd — a run with no `.blend` file open leaves `blender.crash.txt` there.
+ * Both places are checked, the temp directory first, since that is where
+ * Blender really writes.
+ */
 async function readCrashLog(cwd: string): Promise<string | null> {
-  let entries: string[];
-  try {
-    entries = await readdir(cwd);
-  } catch {
-    return null;
+  const tmpdir =
+    process.env["TMPDIR"] ?? process.env["TEMP"] ?? process.env["TMP"] ??
+    os.tmpdir();
+  for (const dir of [tmpdir, cwd]) {
+    if (dir === undefined || dir === "") continue;
+    let entries: string[];
+    try {
+      entries = await readdir(dir);
+    } catch {
+      continue;
+    }
+    const crashFile = entries
+      .filter((name) => name.endsWith(".crash.txt"))
+      .sort()[0];
+    if (!crashFile) continue;
+    try {
+      const text = await readFile(path.join(dir, crashFile), "utf8");
+      return Buffer.from(text, "utf8").subarray(0, STDERR_TAIL_BYTES).toString("utf8");
+    } catch {
+      return null;
+    }
   }
-  const crashFile = entries.find((name) => name.endsWith(".crash.txt"));
-  if (!crashFile) return null;
-  try {
-    const text = await readFile(path.join(cwd, crashFile), "utf8");
-    return Buffer.from(text, "utf8").subarray(0, STDERR_TAIL_BYTES).toString("utf8");
-  } catch {
-    return null;
-  }
+  return null;
 }
