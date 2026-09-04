@@ -161,7 +161,16 @@ jobs:
 
       - uses: superfly/flyctl-actions/setup-flyctl@v1.4
 
-      - name: fly deploy (server)
-        run: flyctl deploy --config fly.toml --image "${{ steps.img.outputs.ref }}" --ha=false
+      # Rolls the machines one at a time, draining each before it is replaced,
+      # instead of `flyctl deploy` — which restarts a machine with SIGTERM and
+      # gives it 300 s, while a chat turn can run for half an hour. The script
+      # also runs the migration fly.toml's release_command runs, since
+      # `machine update` has no release phase.
+      #
+      # It hands over between machines, so the app wants two of them:
+      # `fly scale count 2` once, by hand. With one machine the drain is an
+      # outage window rather than a handover.
+      - name: fly rolling deploy (server)
+        run: bash scripts/fly-rolling-deploy.sh "${{ steps.img.outputs.ref }}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

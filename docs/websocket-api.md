@@ -130,6 +130,38 @@ A row with no `runner_instance` (an HTTP, trigger, or MCP run — nothing holds 
 session for those anywhere) is left alone and still answers "Job not found or
 already completed".
 
+### Draining
+
+A restart is what a detachable turn does not survive: the process goes away
+with the turn's unwritten transcript rows and its unflushed spans. So a machine
+is drained before it is restarted.
+
+**SIGUSR2 starts the drain**, with no deadline of its own. From then on:
+
+- `/health` answers 503 with `status: "draining"`, so the proxy stops routing
+  new clients here. The payload always carries `turns` and `jobs` — the counts
+  of chat turns and workflow runs this process is still executing — whether it
+  is draining or not, so a poller can read them either way. `/ready` is
+  unchanged.
+- A new `/ws` handshake is refused with 503; the client's reconnect backoff
+  carries it to a machine that is staying.
+- A connection with nothing in flight is closed with **1012** (service
+  restart). One driving a turn or a run is closed when that settles.
+- `chat_message` and `run_job` answer an `error` frame, and the socket closes
+  under the rule above. The refusal comes before the user message is
+  persisted, so the client's retry on the other machine is the only copy.
+
+`scripts/fly-rolling-deploy.sh` is the caller: it signals one machine, polls its
+`/health` until `turns` and `jobs` are both 0, replaces it, waits for it to
+answer 200, and only then moves to the next.
+
+**SIGTERM is the fallback**, for a restart nobody drained. It starts the same
+drain, aborts every running turn with the reason `shutdown` and cancels every
+running run, then waits up to `NODETOOL_SHUTDOWN_GRACE_MS` (default 240000, under
+Fly's 300 s cap) for them to settle before flushing telemetry and exiting. A
+turn aborted this way writes `Stopped: server restarting` into its thread — the
+one abort the user did not ask for, and so the one that says so.
+
 ## Client → Server Commands
 
 All client messages contain `command` and `data` fields.

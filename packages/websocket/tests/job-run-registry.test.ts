@@ -163,6 +163,31 @@ describe("JobRunSession", () => {
     expect(registry.get("u1", "j1")).toBe(a);
   });
 
+  describe("drain", () => {
+    it("counts and cancels only the runs still executing", () => {
+      const first = makeHooks();
+      registry.open("u1", "j1", "wf1", first);
+      const finished = registry.open("u1", "j2", "wf1", makeHooks());
+      finished.finish("completed");
+
+      expect(registry.runningCount()).toBe(1);
+      expect(registry.cancelAll()).toBe(1);
+      expect(first.cancels).toBe(1);
+    });
+
+    it("drained resolves true once the last run finishes", async () => {
+      const session = registry.open("u1", "j1", "wf1", makeHooks());
+      const drained = registry.drained(5000);
+      session.finish("completed");
+      await expect(drained).resolves.toBe(true);
+    });
+
+    it("drained resolves false when the grace elapses first", async () => {
+      registry.open("u1", "j1", "wf1", makeHooks());
+      await expect(registry.drained(10)).resolves.toBe(false);
+    });
+  });
+
   describe("timers", () => {
     beforeEach(() => {
       vi.useFakeTimers();

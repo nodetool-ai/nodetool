@@ -122,7 +122,9 @@ export class JobRunSession {
     jobId: string,
     workflowId: string | null,
     readonly hooks: JobRunExecutionHooks,
-    private readonly onDrop: (session: JobRunSession) => void
+    private readonly onDrop: (session: JobRunSession) => void,
+    /** Told when the run settles, so the registry can answer `drained`. */
+    private readonly onFinish: () => void = () => {}
   ) {
     this.userId = userId;
     this.jobId = jobId;
@@ -212,6 +214,7 @@ export class JobRunSession {
     this.clearDetachTimer();
     this.retentionTimer = setTimeout(() => this.onDrop(this), RETENTION_MS());
     this.retentionTimer.unref?.();
+    this.onFinish();
   }
 
   /** Release timers when the registry drops the session. */
@@ -242,6 +245,8 @@ export class JobRunSession {
 
 export class JobRunRegistry {
   private sessions = new Map<string, JobRunSession>();
+  /** Resolvers waiting for {@link runningCount} to reach zero. */
+  private drainWaiters = new Set<() => void>();
 
   private key(userId: string, jobId: string): string {
     return `${userId} ${jobId}`;
@@ -267,8 +272,13 @@ export class JobRunRegistry {
       if (existing.status === "running") existing.cancel();
       this.drop(existing);
     }
-    const session = new JobRunSession(userId, jobId, workflowId, hooks, (s) =>
-      this.drop(s)
+    const session = new JobRunSession(
+      userId,
+      jobId,
+      workflowId,
+      hooks,
+      (s) => this.drop(s),
+      () => this.notifyDrainWaiters()
     );
     this.sessions.set(key, session);
     return session;
@@ -312,12 +322,55 @@ export class JobRunRegistry {
     return count;
   }
 
+  /** Runs this process is still executing. What a drain waits on. */
+  runningCount(): number {
+    return this.runningSessions().length;
+  }
+
+  /**
+   * Cancel every run still executing, through the same hooks a client's
+   * `cancel_job` reaches. Returns how many were cancelled.
+   */
+  cancelAll(): number {
+    const running = this.runningSessions();
+    for (const session of running) session.cancel();
+    return running.length;
+  }
+
+  /**
+   * Resolve true once no run is executing, false when `timeoutMs` elapses
+   * first. A run is executing until its terminal `job_update` has been
+   * persisted, which is what `finish` marks.
+   */
+  drained(timeoutMs: number): Promise<boolean> {
+    if (this.runningCount() === 0) return Promise.resolve(true);
+    return new Promise<boolean>((resolve) => {
+      const waiter = () => {
+        if (this.runningCount() > 0) return;
+        clearTimeout(timer);
+        this.drainWaiters.delete(waiter);
+        resolve(true);
+      };
+      const timer = setTimeout(() => {
+        this.drainWaiters.delete(waiter);
+        resolve(false);
+      }, timeoutMs);
+      timer.unref?.();
+      this.drainWaiters.add(waiter);
+    });
+  }
+
+  private notifyDrainWaiters(): void {
+    for (const waiter of [...this.drainWaiters]) waiter();
+  }
+
   drop(session: JobRunSession): void {
     const key = this.key(session.userId, session.jobId);
     if (this.sessions.get(key) === session) {
       this.sessions.delete(key);
     }
     session.dispose();
+    this.notifyDrainWaiters();
   }
 }
 

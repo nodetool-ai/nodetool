@@ -54,3 +54,26 @@ export function denyUnauthorized(
   );
   socket.destroy();
 }
+
+/**
+ * Refuse a WebSocket handshake with 503 while the process is draining, using
+ * the same socket-level answer {@link denyUnauthorized} documents — an upgrade
+ * cannot be refused through `reply.send()`, and a response written to the
+ * hijacked socket without destroying it leaks the descriptor.
+ *
+ * The client's own reconnect backoff then lands on a machine whose health
+ * check still passes.
+ */
+export function denyDraining(req: FastifyRequest, reply: FastifyReply): void {
+  reply.hijack();
+
+  const socket = req.raw.socket;
+  if (!socket || socket.destroyed) return;
+  socket.write(
+    "HTTP/1.1 503 Service Unavailable\r\n" +
+      "Connection: close\r\n" +
+      "Content-Length: 0\r\n" +
+      "\r\n"
+  );
+  socket.destroy();
+}
