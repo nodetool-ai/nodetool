@@ -29,6 +29,8 @@ describe("harness registry", () => {
   });
 
   it("every harness has a command and a docs pointer", () => {
+    // Emptying the registry would satisfy the loop below by iterating nothing.
+    expect(HARNESSES.length).toBeGreaterThan(0);
     for (const h of HARNESSES) {
       expect(h.command, h.id).toBeTruthy();
       expect(h.docs, h.id).toBeTruthy();
