@@ -44,6 +44,10 @@ DRAIN_START_TIMEOUT_SECONDS="${DRAIN_START_TIMEOUT_SECONDS:-30}"
 # node registry before /health answers 200.
 READY_TIMEOUT_SECONDS="${READY_TIMEOUT_SECONDS:-300}"
 READY_POLL_SECONDS=5
+# How long a machine may spend not-yet-started after an update before a
+# non-running state counts as a failure rather than as a boot in progress.
+READY_STATE_GRACE_SECONDS="${READY_STATE_GRACE_SECONDS:-60}"
+
 # The migration machine boots the image and runs every pending migration.
 MIGRATE_TIMEOUT_SECONDS="${MIGRATE_TIMEOUT_SECONDS:-600}"
 
@@ -173,15 +177,17 @@ for id in $MACHINES; do
   fi
   exit_before_signal="$MACHINE_EXIT"
   bootstrap_update=false
+  was_stopped=false
   case "$MACHINE_STATE" in
     stopped)
-      if [ "$MACHINE_EXIT" = "140" ]; then
-        echo "::warning::[$id] is stopped after a legacy SIGUSR2 exit; updating without a drain"
-        bootstrap_update=true
-      else
-        echo "::error::[$id] is already stopped with exit code $MACHINE_EXIT; aborting the rollout" >&2
-        exit 1
-      fi
+      # fly.toml sets auto_stop_machines = "off", so nothing stops an app
+      # machine on purpose: a stopped one is always a machine to repair, and
+      # its exit code does not change that. Demanding exactly 140 here blocked
+      # every later deploy once an aborted rollout left a machine down with no
+      # exit event at all, which reads back as "unknown".
+      echo "::warning::[$id] is stopped (exit=$MACHINE_EXIT); updating and starting it without a drain"
+      bootstrap_update=true
+      was_stopped=true
       ;;
     destroyed|failed)
       echo "::error::[$id] is already in terminal state $MACHINE_STATE (exit=$MACHINE_EXIT); aborting the rollout" >&2
@@ -193,9 +199,10 @@ for id in $MACHINES; do
     if ! load_machine_status "$id"; then
       exit 1
     fi
-    if [ "$MACHINE_STATE" = "stopped" ] && [ "$MACHINE_EXIT" = "140" ]; then
-      echo "::warning::[$id] SIGUSR2 stopped a legacy server; updating without a drain"
+    if [ "$MACHINE_STATE" = "stopped" ]; then
+      echo "::warning::[$id] SIGUSR2 stopped a legacy server (exit=$MACHINE_EXIT); updating without a drain"
       bootstrap_update=true
+      was_stopped=true
     else
       echo "::error::[$id] could not send SIGUSR2 (state=$MACHINE_STATE exit=$MACHINE_EXIT); aborting the rollout" >&2
       exit 1
@@ -219,13 +226,10 @@ for id in $MACHINES; do
 
     case "$MACHINE_STATE" in
       stopped)
-        if [ "$MACHINE_EXIT" = "140" ]; then
-          echo "::warning::[$id] SIGUSR2 stopped a legacy server; updating without a drain"
-          bootstrap_update=true
-          break
-        fi
-        echo "::error::[$id] stopped during drain with exit code $MACHINE_EXIT; aborting the rollout" >&2
-        exit 1
+        echo "::warning::[$id] stopped during the drain (exit=$MACHINE_EXIT); updating and starting it"
+        bootstrap_update=true
+        was_stopped=true
+        break
         ;;
       destroyed|failed)
         echo "::error::[$id] entered terminal state $MACHINE_STATE during drain (exit=$MACHINE_EXIT); aborting the rollout" >&2
@@ -277,8 +281,24 @@ for id in $MACHINES; do
   # versions, and the health poll below is the real gate anyway.
   flyctl machine update "$id" --image "$IMAGE" --yes
 
+  # `machine update` preserves a stopped machine's state: it rewrites the
+  # config and returns without booting anything. A machine bootstrapped out of
+  # `stopped` therefore sat on the new image with no start event at all, and
+  # the health wait below read that as a machine that had died after the
+  # update. Start it explicitly; on an already-started machine the update has
+  # restarted it and there is nothing to do.
+  if [ "$was_stopped" = true ]; then
+    echo "==> [$id] starting"
+    flyctl machine start "$id" -a "$APP"
+  fi
+
   echo "==> [$id] waiting for health"
   deadline=$((SECONDS + READY_TIMEOUT_SECONDS))
+  # A machine that is booting passes through states that are not `started`,
+  # and `machine update` returns before the new one is up. Reading one of
+  # those as a verdict ended a rollout 1.6 s after the update returned, so the
+  # check only counts once the machine has had time to come back.
+  state_grace_deadline=$((SECONDS + READY_STATE_GRACE_SECONDS))
   ready=false
   while [ "$SECONDS" -lt "$deadline" ]; do
     body="$(health_of "$id")"
@@ -291,12 +311,14 @@ for id in $MACHINES; do
     if ! load_machine_status "$id"; then
       exit 1
     fi
-    case "$MACHINE_STATE" in
-      stopped|destroyed|failed)
-        echo "::error::[$id] entered terminal state $MACHINE_STATE after the update (exit=$MACHINE_EXIT)" >&2
-        exit 1
-        ;;
-    esac
+    if [ "$SECONDS" -ge "$state_grace_deadline" ]; then
+      case "$MACHINE_STATE" in
+        stopped|destroyed|failed)
+          echo "::error::[$id] entered terminal state $MACHINE_STATE after the update (exit=$MACHINE_EXIT)" >&2
+          exit 1
+          ;;
+      esac
+    fi
     sleep "$READY_POLL_SECONDS"
   done
 

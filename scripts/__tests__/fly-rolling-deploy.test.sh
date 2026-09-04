@@ -33,11 +33,10 @@ case "$*" in
   machine\ wait\ aaaa\ *)
     ;;
   machines\ list\ *)
-    if [ "$TEST_SCENARIO" = "previously_stopped_legacy" ]; then
-      state=stopped
-    else
-      state=started
-    fi
+    case "$TEST_SCENARIO" in
+      previously_stopped_legacy|stopped_without_exit_event) state=stopped ;;
+      *) state=started ;;
+    esac
     printf '[{"id":"bbbb","state":"%s","config":{"metadata":{"fly_process_group":"app"}}}]\n' "$state"
     ;;
   ssh\ console\ *)
@@ -49,6 +48,15 @@ case "$*" in
 
     health_count=$(cat "$TEST_STATE/health_requests" 2>/dev/null || printf 0)
     printf '%s\n' "$((health_count + 1))" > "$TEST_STATE/health_requests"
+    case "$TEST_SCENARIO" in
+      previously_stopped_legacy|stopped_without_exit_event)
+        # A stopped machine answers nothing until something starts it.
+        if [ -f "$TEST_STATE/started" ]; then
+          printf '%s\n' '{"status":"ok","turns":0,"jobs":0}'
+        fi
+        exit 0
+        ;;
+    esac
     if [ -f "$TEST_STATE/updated" ]; then
       printf '%s\n' '{"status":"ok","turns":0,"jobs":0}'
     elif [ "$TEST_SCENARIO" = "legacy_sigusr2_exit" ] || [ "$TEST_SCENARIO" = "no_drain_handler" ]; then
@@ -57,6 +65,9 @@ case "$*" in
     ;;
   machine\ update\ bbbb\ *)
     touch "$TEST_STATE/updated"
+    ;;
+  machine\ start\ bbbb\ *)
+    touch "$TEST_STATE/started"
     ;;
   "auth token")
     echo "test-token"
@@ -90,9 +101,21 @@ case "$url" in
     elif [ "$TEST_SCENARIO" = "no_drain_handler" ]; then
       printf '%s\n' '{"state":"started","events":[{"type":"exit","request":{"exit_event":{"exit_code":1}}}]}'
     elif [ "$TEST_SCENARIO" = "previously_stopped_legacy" ]; then
-      printf '%s\n' '{"state":"stopped","events":[{"type":"exit","request":{"exit_event":{"exit_code":140}}}]}'
+      if [ -f "$TEST_STATE/started" ]; then
+        printf '%s\n' '{"state":"started","events":[{"type":"exit","request":{"exit_event":{"exit_code":140}}}]}'
+      else
+        printf '%s\n' '{"state":"stopped","events":[{"type":"exit","request":{"exit_event":{"exit_code":140}}}]}'
+      fi
+    elif [ "$TEST_SCENARIO" = "stopped_without_exit_event" ]; then
+      # An aborted rollout leaves a machine stopped with no exit event at all,
+      # so the exit code reads back as "unknown".
+      if [ -f "$TEST_STATE/started" ]; then
+        printf '%s\n' '{"state":"started","events":[]}'
+      else
+        printf '%s\n' '{"state":"stopped","events":[]}'
+      fi
     else
-      printf '%s\n' '{"state":"stopped","events":[{"type":"exit","request":{"exit_event":{"exit_code":1}}}]}'
+      printf '%s\n' '{"state":"failed","events":[{"type":"exit","request":{"exit_event":{"exit_code":1}}}]}'
     fi
     ;;
   *)
@@ -151,12 +174,20 @@ assert_equal 0 "$scenario_status" "a legacy machine left stopped by an earlier a
 assert_equal 0 "$(cat "$TEST_ROOT/previously_stopped_legacy/signals" 2>/dev/null || printf 0)" "a previously stopped machine is not signalled"
 assert_equal yes "$([ -f "$TEST_ROOT/previously_stopped_legacy/updated" ] && printf yes || printf no)" "a previously stopped legacy machine is updated"
 
-run_scenario unrelated_stopped
-assert_equal 1 "$scenario_status" "an unrelated stopped machine aborts the rollout"
-assert_equal 1 "$(cat "$TEST_ROOT/unrelated_stopped/state_requests" 2>/dev/null || printf 0)" "terminal state is detected by the preflight check"
-assert_equal 0 "$(cat "$TEST_ROOT/unrelated_stopped/health_requests" 2>/dev/null || printf 0)" "a stopped machine is not health-polled until timeout"
-assert_equal 0 "$(cat "$TEST_ROOT/unrelated_stopped/signals" 2>/dev/null || printf 0)" "a stopped machine is not signalled"
-assert_equal no "$([ -f "$TEST_ROOT/unrelated_stopped/updated" ] && printf yes || printf no)" "an unrelated stopped machine is not updated"
+assert_equal yes "$([ -f "$TEST_ROOT/previously_stopped_legacy/started" ] && printf yes || printf no)" "a bootstrapped machine is started, because machine update leaves it stopped"
+
+run_scenario stopped_without_exit_event
+assert_equal 0 "$scenario_status" "a machine stopped with no exit event is repaired, not treated as terminal"
+assert_equal yes "$([ -f "$TEST_ROOT/stopped_without_exit_event/updated" ] && printf yes || printf no)" "a machine stopped with an unknown exit code is updated"
+assert_equal yes "$([ -f "$TEST_ROOT/stopped_without_exit_event/started" ] && printf yes || printf no)" "a machine stopped with an unknown exit code is started"
+assert_equal 0 "$(cat "$TEST_ROOT/stopped_without_exit_event/signals" 2>/dev/null || printf 0)" "a stopped machine is never signalled"
+
+run_scenario terminal_failed
+assert_equal 1 "$scenario_status" "a machine in a terminal state aborts the rollout"
+assert_equal 1 "$(cat "$TEST_ROOT/terminal_failed/state_requests" 2>/dev/null || printf 0)" "terminal state is detected by the preflight check"
+assert_equal 0 "$(cat "$TEST_ROOT/terminal_failed/health_requests" 2>/dev/null || printf 0)" "a terminal machine is not health-polled until timeout"
+assert_equal 0 "$(cat "$TEST_ROOT/terminal_failed/signals" 2>/dev/null || printf 0)" "a terminal machine is not signalled"
+assert_equal no "$([ -f "$TEST_ROOT/terminal_failed/updated" ] && printf yes || printf no)" "a terminal machine is not updated"
 
 if [ "$failures" -ne 0 ]; then
   echo "$failures assertion(s) failed" >&2
