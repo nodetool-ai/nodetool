@@ -217,9 +217,6 @@ export function buildStoryboardTimeline(
       name: shot.slug ?? `Shot ${shot.index + 1}`,
       startMs: cursorMs,
       durationMs,
-      ...(layout.inPointMs !== undefined
-        ? { inPointMs: layout.inPointMs, outPointMs: layout.outPointMs }
-        : {}),
       mediaType: "video",
       sourceType: "imported",
       status: "generated",
@@ -229,6 +226,12 @@ export function buildStoryboardTimeline(
       storyboardShotId: shot.id,
       versions: []
     });
+    // The window is written only when the source length is known: an unknown
+    // length leaves the clip exactly as it was before assembly could read one.
+    if (layout.inPointMs !== undefined) {
+      videoClip.inPointMs = layout.inPointMs;
+      videoClip.outPointMs = layout.outPointMs;
+    }
     clips.push(videoClip, shotAudioClip(videoClip, shotAudioTrack.id));
     cursorMs += durationMs;
   }
@@ -357,9 +360,6 @@ export function buildStoryboardPreviewTimeline(
       name: shot.slug ?? `Shot ${shot.index + 1}`,
       startMs: cursorMs,
       durationMs,
-      ...(layout.inPointMs !== undefined
-        ? { inPointMs: layout.inPointMs, outPointMs: layout.outPointMs }
-        : {}),
       mediaType: clipAssetId ? "video" : "image",
       sourceType: "imported",
       status: "generated",
@@ -369,6 +369,10 @@ export function buildStoryboardPreviewTimeline(
       storyboardShotId: shot.id,
       versions: []
     });
+    if (layout.inPointMs !== undefined) {
+      shotClip.inPointMs = layout.inPointMs;
+      shotClip.outPointMs = layout.outPointMs;
+    }
     clips.push(shotClip);
     // A held keyframe is a still: there is no rendered clip to take sound from.
     if (clipAssetId) {
