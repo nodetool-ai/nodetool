@@ -1,6 +1,7 @@
 /**
  * ConnectedStatusBar — full-width status strip at the bottom of the standalone
- * image editor. Shows canvas dimensions, color space / bit depth, zoom, the
+ * image editor. Shows canvas dimensions, color space / bit depth, zoom (with
+ * step buttons and a fit-to-screen readout), the
  * active foreground color, live cursor position, selection size, what
  * regenerating the document's generated layers costs, and layer count — all
  * from real store state. It replaces the floating info pill in the
@@ -13,10 +14,17 @@
  * shown as never-changing labels.
  */
 
-import React, { memo, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 
-import { ColorSwatch, FlexRow, Tooltip } from "../../ui_primitives";
+import {
+  ColorSwatch,
+  FlexRow,
+  ToolbarIconButton,
+  Tooltip
+} from "../../ui_primitives";
 import CostEstimateLine from "../../costs/CostEstimateLine";
 import { useSketchCostEstimate } from "../../../hooks/sketch/useSketchCostEstimate";
 import { useSketchStore } from "../state/useSketchStore";
@@ -29,6 +37,18 @@ import { SKETCH_FONT } from "../sketchStyles";
 
 /** OS-aware combo for the fit-to-screen action ("⌘0" on Mac, "Ctrl+0" elsewhere). */
 const FIT_LABEL = `Fit to screen (${displayCombo("zoom-fit")})`;
+const ZOOM_IN_LABEL = `Zoom in (${displayCombo("zoom-in")})`;
+const ZOOM_OUT_LABEL = `Zoom out (${displayCombo("zoom-out")})`;
+/** Same step as the keyboard shortcuts and the wheel. */
+const ZOOM_STEP = 1.3;
+
+const zoomButtonSx = {
+  width: 18,
+  height: 18,
+  padding: 0,
+  color: "inherit",
+  "& svg": { fontSize: 14 }
+} as const;
 
 const ConnectedStatusBarInner: React.FC = () => {
   const theme = useTheme();
@@ -43,7 +63,11 @@ const ConnectedStatusBarInner: React.FC = () => {
   const selection = useSketchStore((s) => s.selection);
   const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
   const fitViewToScreen = useSketchCanvasRefStore((s) => s.fitViewToScreen);
+  const setZoom = useSketchStore((s) => s.setZoom);
   const costEstimate = useSketchCostEstimate();
+
+  const zoomIn = useCallback(() => setZoom(zoom * ZOOM_STEP), [setZoom, zoom]);
+  const zoomOut = useCallback(() => setZoom(zoom / ZOOM_STEP), [setZoom, zoom]);
 
   const selBounds = useMemo(
     () =>
@@ -82,6 +106,15 @@ const ConnectedStatusBarInner: React.FC = () => {
         <span>
           {docW} × {docH} · sRGB · 8-bit ·
         </span>
+        <ToolbarIconButton
+          aria-label={ZOOM_OUT_LABEL}
+          tooltip={ZOOM_OUT_LABEL}
+          onClick={zoomOut}
+          sx={zoomButtonSx}
+          data-testid="sketch-status-zoom-out"
+        >
+          <RemoveIcon />
+        </ToolbarIconButton>
         <Tooltip title={FIT_LABEL} disabled={!fitViewToScreen}>
           <button
             type="button"
@@ -101,6 +134,15 @@ const ConnectedStatusBarInner: React.FC = () => {
             {Math.round(zoom * 100)}%
           </button>
         </Tooltip>
+        <ToolbarIconButton
+          aria-label={ZOOM_IN_LABEL}
+          tooltip={ZOOM_IN_LABEL}
+          onClick={zoomIn}
+          sx={zoomButtonSx}
+          data-testid="sketch-status-zoom-in"
+        >
+          <AddIcon />
+        </ToolbarIconButton>
       </FlexRow>
 
       <FlexRow align="center" gap={0.5}>

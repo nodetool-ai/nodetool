@@ -46,6 +46,7 @@ const styles = (theme: Theme) =>
     width: `${BTN + 8 + 2}px`, // single column + padding + border
     overflowY: "auto",
     flexShrink: 0,
+    userSelect: "none",
     // Larger gap between tool groups; tighter even spacing within a group.
     "& .tool-sections": {
       display: "flex",

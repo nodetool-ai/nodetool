@@ -32,7 +32,7 @@ import {
   getLayerGeometry
 } from "../transform/geometry/layerGeometry";
 import { getSelectionBounds, selectionHasAnyPixels } from "../selection";
-import { computeFitZoom } from "../sketchCanvasPresentation.helpers";
+import { computeFitView } from "../sketchCanvasPresentation.helpers";
 import {
   buildSketchInternalClipboardCanvas,
   drawSketchPasteOnLayerContext,
@@ -513,23 +513,33 @@ export function useCanvasGeometryActions({
     [setZoom]
   );
   /**
-   * Fit the whole artboard into the viewport and re-center it. Falls back to
-   * 100% when the viewport size is not yet known. `setZoom` clamps the result
-   * to the sketch zoom range.
+   * Fit the whole artboard into the viewport, below the floating tool bar,
+   * and centre it there. Falls back to 100% when the viewport size is not yet
+   * known. `setZoom` clamps the result to the sketch zoom range.
    */
   const handleZoomFit = useCallback(() => {
-    const viewport = canvasRef.current?.getViewportSize() ?? null;
+    const canvas = canvasRef.current;
+    const viewport = canvas?.getViewportSize() ?? null;
+    if (!canvas || !viewport) {
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+      return;
+    }
     const { document: doc } = useSketchStore.getState();
-    const fit = viewport
-      ? computeFitZoom(
-          viewport.width,
-          viewport.height,
-          doc.canvas.width,
-          doc.canvas.height
-        )
-      : 1;
-    setZoom(fit);
-    setPan({ x: 0, y: 0 });
+    const topBar = canvas
+      .getViewportElement()
+      ?.closest(".sketch-editor")
+      ?.querySelector(".sketch-tool-top-bar");
+    const topInset = topBar?.getBoundingClientRect().height ?? 0;
+    const fit = computeFitView(
+      viewport.width,
+      viewport.height,
+      doc.canvas.width,
+      doc.canvas.height,
+      topInset
+    );
+    setZoom(fit.zoom);
+    setPan(fit.pan);
   }, [canvasRef, setZoom, setPan]);
 
   // ─── Crop completion ───────────────────────────────────────────

@@ -46,11 +46,8 @@ const styles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "row",
-    alignItems: "center",
-    // Between groups, not between controls: the group's own gap is tighter,
-    // so a wrapped bar still reads as clusters rather than one long queue.
+    alignItems: "flex-start",
     columnGap: getSpacingPx(SPACING.xxl),
-    rowGap: getSpacingPx(SPACING.md),
     padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
     // Sit on the same chrome tier as the editor's other bars (mode/prompt,
     // tool rail, status): grey[900] surface with a grey[800] hairline. The
@@ -59,15 +56,33 @@ const styles = (theme: Theme) =>
     backgroundColor: theme.vars.palette.grey[900],
     borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
     minHeight: "40px",
-    overflowX: "auto",
-    flexWrap: "wrap",
-    // Wrapped rows anchor to the top of the bar instead of being
-    // re-centered when the row count changes. Without this, toggling
-    // the Advanced disclosure (which adds a wrapped row below) made
-    // the first row shift by 1px because `alignContent: center` had
-    // free space inside `minHeight` only when there was one row.
-    alignContent: "flex-start",
     flexShrink: 0,
+    // The bar is chrome: a drag that starts on a label must not start a
+    // text selection that then sweeps across the whole page.
+    userSelect: "none",
+    // Two columns: the settings wrap inside the first, the editor actions
+    // stay pinned to the top-right corner. With one wrapping row the actions
+    // fell to a row of their own whenever the settings wrapped, adding a
+    // fourth strip of chrome over the canvas for a three-row tool.
+    "& .tool-top-bar__settings": {
+      flex: "1 1 auto",
+      minWidth: 0,
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      flexWrap: "wrap",
+      // Between groups, not between controls: the group's own gap is
+      // tighter, so a wrapped bar still reads as clusters rather than one
+      // long queue.
+      columnGap: getSpacingPx(SPACING.xxl),
+      rowGap: getSpacingPx(SPACING.md),
+      // Wrapped rows anchor to the top of the bar instead of being
+      // re-centered when the row count changes. Without this, toggling
+      // the Advanced disclosure (which adds a wrapped row below) made
+      // the first row shift by 1px because `alignContent: center` had
+      // free space inside `minHeight` only when there was one row.
+      alignContent: "flex-start"
+    },
     "& .MuiIconButton-root": {
       padding: theme.spacing(1)
     },
@@ -210,113 +225,117 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
 
   return (
     <FlexRow className="sketch-tool-top-bar" css={styles(theme)}>
-      <FlexRow
-        align="center"
-        gap={0.5}
-        className="tool-top-bar__tool-label"
-        sx={{ flexShrink: 0 }}
-      >
-        <Text
-          sx={{
-            ...TYPOGRAPHY.sans.caption,
-            color: theme.vars.palette.text.secondary,
-            textTransform: "uppercase",
-            letterSpacing: "0.06em"
-          }}
+      <div className="tool-top-bar__settings">
+        <FlexRow
+          align="center"
+          gap={0.5}
+          className="tool-top-bar__tool-label"
+          sx={{ flexShrink: 0 }}
         >
-          Tool
-        </Text>
-        <Text sx={{ ...TYPOGRAPHY.sans.label, fontWeight: 600 }}>
-          {getToolSettingsLabel(activeTool)}
-        </Text>
-        {onToggleSettingsCollapsed && (
-          <Tooltip
-            title={
-              settingsCollapsed ? "Show tool settings" : "Hide tool settings"
-            }
+          <Text
+            sx={{
+              ...TYPOGRAPHY.sans.caption,
+              color: theme.vars.palette.text.secondary,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em"
+            }}
           >
-            <IconButton
-              size="small"
-              onClick={onToggleSettingsCollapsed}
-              aria-expanded={!settingsCollapsed}
-              aria-label={
+            Tool
+          </Text>
+          <Text sx={{ ...TYPOGRAPHY.sans.label, fontWeight: 600 }}>
+            {getToolSettingsLabel(activeTool)}
+          </Text>
+          {onToggleSettingsCollapsed && (
+            <Tooltip
+              title={
                 settingsCollapsed ? "Show tool settings" : "Hide tool settings"
               }
-              data-testid="sketch-toggle-tool-settings"
             >
-              {settingsCollapsed ? (
-                <ExpandMoreIcon fontSize="small" />
-              ) : (
-                <ExpandLessIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
-        )}
-      </FlexRow>
+              <IconButton
+                size="small"
+                onClick={onToggleSettingsCollapsed}
+                aria-expanded={!settingsCollapsed}
+                aria-label={
+                  settingsCollapsed
+                    ? "Show tool settings"
+                    : "Hide tool settings"
+                }
+                data-testid="sketch-toggle-tool-settings"
+              >
+                {settingsCollapsed ? (
+                  <ExpandMoreIcon fontSize="small" />
+                ) : (
+                  <ExpandLessIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
+          )}
+        </FlexRow>
 
-      {!settingsCollapsed && (
-        <ToolSettingsPanel
-          activeTool={activeTool}
-          brushSettings={brushSettings}
-          pencilSettings={pencilSettings}
-          eraserSettings={eraserSettings}
-          shapeSettings={shapeSettings}
-          fillSettings={fillSettings}
-          blurSettings={blurSettings}
-          gradientSettings={gradientSettings}
-          cloneStampSettings={cloneStampSettings}
-          selectSettings={selectSettings}
-          hasActiveSelection={hasActiveSelection}
-          adjustBrightness={adjustBrightness}
-          adjustContrast={adjustContrast}
-          adjustSaturation={adjustSaturation}
-          onBrushSettingsChange={onBrushSettingsChange}
-          onPencilSettingsChange={onPencilSettingsChange}
-          onEraserSettingsChange={onEraserSettingsChange}
-          onShapeSettingsChange={onShapeSettingsChange}
-          onFillSettingsChange={onFillSettingsChange}
-          onBlurSettingsChange={onBlurSettingsChange}
-          onGradientSettingsChange={onGradientSettingsChange}
-          onCloneStampSettingsChange={onCloneStampSettingsChange}
-          onSelectSettingsChange={onSelectSettingsChange}
-          onInvertSelection={onInvertSelection}
-          onCropCanvasToSelection={onCropCanvasToSelection}
-          onFeatherSelection={onFeatherSelection}
-          onSmoothSelectionBorders={onSmoothSelectionBorders}
-          onConvertSelectionToBorder={onConvertSelectionToBorder}
-          onAdjustBrightnessChange={onAdjustBrightnessChange}
-          onAdjustContrastChange={onAdjustContrastChange}
-          onAdjustSaturationChange={onAdjustSaturationChange}
-          onAdjustApply={onAdjustApply}
-          onAdjustCancel={onAdjustCancel}
-          transformScaleX={transformScaleX}
-          transformScaleY={transformScaleY}
-          transformRotation={transformRotation}
-          onTransformCommit={onTransformCommit}
-          onTransformCancel={onTransformCancel}
-          onTransformReset={onTransformReset}
-          transformAutoSelect={transformAutoSelect}
-          transformMode={transformMode}
-          onTransformAutoSelectChange={onTransformAutoSelectChange}
-          onTransformModeChange={onTransformModeChange}
-          moveAutoSelect={moveAutoSelect}
-          onMoveAutoSelectChange={onMoveAutoSelectChange}
-          cropHasPendingRect={cropHasPendingRect}
-          onCropApply={onCropApply}
-          onCropCancelPreview={onCropCancelPreview}
-          segmentSettings={segmentSettings}
-          onSegmentSettingsChange={onSegmentSettingsChange}
-          segmentationStatus={segmentationStatus}
-          segmentationError={segmentationError}
-          segmentModelInfo={segmentModelInfo}
-          onRunSegmentation={onRunSegmentation}
-          onApplySegmentResult={onApplySegmentResult}
-          onDiscardSegmentResult={onDiscardSegmentResult}
-          onCancelSegmentation={onCancelSegmentation}
-          onClearSegmentPrompts={onClearSegmentPrompts}
-          onCheckSegmentModel={onCheckSegmentModel}
-        />
-      )}
+        {!settingsCollapsed && (
+          <ToolSettingsPanel
+            activeTool={activeTool}
+            brushSettings={brushSettings}
+            pencilSettings={pencilSettings}
+            eraserSettings={eraserSettings}
+            shapeSettings={shapeSettings}
+            fillSettings={fillSettings}
+            blurSettings={blurSettings}
+            gradientSettings={gradientSettings}
+            cloneStampSettings={cloneStampSettings}
+            selectSettings={selectSettings}
+            hasActiveSelection={hasActiveSelection}
+            adjustBrightness={adjustBrightness}
+            adjustContrast={adjustContrast}
+            adjustSaturation={adjustSaturation}
+            onBrushSettingsChange={onBrushSettingsChange}
+            onPencilSettingsChange={onPencilSettingsChange}
+            onEraserSettingsChange={onEraserSettingsChange}
+            onShapeSettingsChange={onShapeSettingsChange}
+            onFillSettingsChange={onFillSettingsChange}
+            onBlurSettingsChange={onBlurSettingsChange}
+            onGradientSettingsChange={onGradientSettingsChange}
+            onCloneStampSettingsChange={onCloneStampSettingsChange}
+            onSelectSettingsChange={onSelectSettingsChange}
+            onInvertSelection={onInvertSelection}
+            onCropCanvasToSelection={onCropCanvasToSelection}
+            onFeatherSelection={onFeatherSelection}
+            onSmoothSelectionBorders={onSmoothSelectionBorders}
+            onConvertSelectionToBorder={onConvertSelectionToBorder}
+            onAdjustBrightnessChange={onAdjustBrightnessChange}
+            onAdjustContrastChange={onAdjustContrastChange}
+            onAdjustSaturationChange={onAdjustSaturationChange}
+            onAdjustApply={onAdjustApply}
+            onAdjustCancel={onAdjustCancel}
+            transformScaleX={transformScaleX}
+            transformScaleY={transformScaleY}
+            transformRotation={transformRotation}
+            onTransformCommit={onTransformCommit}
+            onTransformCancel={onTransformCancel}
+            onTransformReset={onTransformReset}
+            transformAutoSelect={transformAutoSelect}
+            transformMode={transformMode}
+            onTransformAutoSelectChange={onTransformAutoSelectChange}
+            onTransformModeChange={onTransformModeChange}
+            moveAutoSelect={moveAutoSelect}
+            onMoveAutoSelectChange={onMoveAutoSelectChange}
+            cropHasPendingRect={cropHasPendingRect}
+            onCropApply={onCropApply}
+            onCropCancelPreview={onCropCancelPreview}
+            segmentSettings={segmentSettings}
+            onSegmentSettingsChange={onSegmentSettingsChange}
+            segmentationStatus={segmentationStatus}
+            segmentationError={segmentationError}
+            segmentModelInfo={segmentModelInfo}
+            onRunSegmentation={onRunSegmentation}
+            onApplySegmentResult={onApplySegmentResult}
+            onDiscardSegmentResult={onDiscardSegmentResult}
+            onCancelSegmentation={onCancelSegmentation}
+            onClearSegmentPrompts={onClearSegmentPrompts}
+            onCheckSegmentModel={onCheckSegmentModel}
+          />
+        )}
+      </div>
 
       {trailingActions}
     </FlexRow>

@@ -347,7 +347,8 @@ export function useCanvasImperativeHandle({
           width: container.clientWidth,
           height: container.clientHeight
         };
-      }
+      },
+      getViewportElement: (): HTMLElement | null => containerRef.current
     }),
     [
       doc,

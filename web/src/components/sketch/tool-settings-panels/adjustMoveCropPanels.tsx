@@ -52,7 +52,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
   return (
     <>
       <Box className="setting-row">
-        <Text className="setting-label">Bright</Text>
+        <Text className="setting-label">Brightness</Text>
         <Slider
           sx={sketchSliderSx}
           size="small"
@@ -76,7 +76,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
         <Text className="setting-value">{contrast}</Text>
       </Box>
       <Box className="setting-row">
-        <Text className="setting-label">Satur.</Text>
+        <Text className="setting-label">Saturation</Text>
         <Slider
           sx={sketchSliderSx}
           size="small"

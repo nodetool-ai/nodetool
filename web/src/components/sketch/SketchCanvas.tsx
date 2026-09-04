@@ -158,6 +158,8 @@ export interface SketchCanvasRef {
   getLayerCanvas: (layerId: string) => HTMLCanvasElement | null;
   /** Current CSS size of the scrolling viewport that clips the artboard, or null before mount. */
   getViewportSize: () => { width: number; height: number } | null;
+  /** The viewport element itself, for callers that need its position in the page. */
+  getViewportElement: () => HTMLElement | null;
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────

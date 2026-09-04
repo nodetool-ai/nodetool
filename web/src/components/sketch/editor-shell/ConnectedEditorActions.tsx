@@ -31,6 +31,7 @@ import {
 } from "../../ui_primitives";
 import { useSketchStore, SKETCH_ZOOM_MIN, SKETCH_ZOOM_MAX } from "../state";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
+import { useSketchCanvasRefStore } from "../../../stores/sketch/SketchCanvasRefStore";
 import { ConnectedGeneratePopover } from "./ConnectedGeneratePopover";
 
 export interface ConnectedEditorActionsProps {
@@ -45,7 +46,11 @@ export interface ConnectedEditorActionsProps {
   menuItems?: (close: () => void) => React.ReactNode[];
 }
 
-/** Zoom the document to fit the canvas region, with a small margin. */
+/**
+ * Fallback fit when the canvas has not registered its own `fitViewToScreen`
+ * (which measures the real viewport and clears the floating tool bar): zoom
+ * the document to fit the canvas region, with a small margin.
+ */
 function fitToViewport(): void {
   const root = globalThis.document;
   const region = root?.querySelector(".sketch-editor__canvas-region");
@@ -74,6 +79,7 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
 
   const documentId = useSketchSessionStore((s) => s.documentId);
+  const fitViewToScreen = useSketchCanvasRefStore((s) => s.fitViewToScreen);
 
   const generateAnchorRef = useRef<HTMLButtonElement>(null);
   const [generateOpen, setGenerateOpen] = useState(false);
@@ -92,8 +98,12 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
 
   const handleFit = useCallback(() => {
     closeMenu();
-    fitToViewport();
-  }, [closeMenu]);
+    if (fitViewToScreen) {
+      fitViewToScreen();
+    } else {
+      fitToViewport();
+    }
+  }, [closeMenu, fitViewToScreen]);
 
   const handleHidePanels = useCallback(() => {
     closeMenu();
@@ -138,15 +148,11 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
         </>
       )}
 
-      <Tooltip
-        title={assistantPanelOpen ? "Hide Assistant" : "Show Assistant"}
-      >
+      <Tooltip title={assistantPanelOpen ? "Hide Assistant" : "Show Assistant"}>
         <IconButton
           size="small"
           onClick={handleAssistant}
-          aria-label={
-            assistantPanelOpen ? "Hide Assistant" : "Show Assistant"
-          }
+          aria-label={assistantPanelOpen ? "Hide Assistant" : "Show Assistant"}
           aria-pressed={assistantPanelOpen}
           data-testid="sketch-assistant-toggle"
         >

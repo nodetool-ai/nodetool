@@ -13,6 +13,7 @@ import { useSketchStore } from "../state";
 import { cursorStyleForTool } from "../sketchCursorStyle";
 import {
   canvasTransformStyle,
+  computeFitView,
   computeFitZoom
 } from "../sketchCanvasPresentation.helpers";
 import { TransformTool } from "../tools/TransformTool";
@@ -167,13 +168,35 @@ describe("computeFitZoom", () => {
   });
 });
 
+// ─── computeFitView ──────────────────────────────────────────────────────────
+
+describe("computeFitView", () => {
+  it("is a plain centred fit when nothing covers the viewport", () => {
+    expect(computeFitView(2000, 400, 1000, 1000)).toEqual({
+      zoom: computeFitZoom(2000, 400, 1000, 1000),
+      pan: { x: 0, y: 0 }
+    });
+  });
+
+  it("fits below the floating tool bar and centres in the uncovered band", () => {
+    const fit = computeFitView(800, 900, 1024, 1024, 150);
+    // Height is limiting: (900 - 150) / 1024 * 0.9.
+    expect(fit.zoom).toBeCloseTo(0.659, 3);
+    expect(fit.pan).toEqual({ x: 0, y: 75 });
+  });
+
+  it("ignores an inset that would leave no room", () => {
+    expect(computeFitView(800, 300, 1024, 1024, 200)).toEqual(
+      computeFitView(800, 300, 1024, 1024)
+    );
+  });
+});
+
 // ─── SketchCanvasPresentation ────────────────────────────────────────────────
 
 describe("SketchCanvasPresentation", () => {
   it("renders canvas elements", () => {
-    const { container } = render(
-      <SketchCanvasPresentation {...makeProps()} />
-    );
+    const { container } = render(<SketchCanvasPresentation {...makeProps()} />);
     // Should have at least the bootstrap, display, overlay, GPU selection, selection, cursor, gizmo canvases.
     const canvases = container.querySelectorAll("canvas");
     expect(canvases.length).toBeGreaterThanOrEqual(7);
@@ -219,9 +242,7 @@ describe("SketchCanvasPresentation", () => {
 
   it("renders resize handles when onCanvasResize is provided", () => {
     const { queryByTestId } = render(
-      <SketchCanvasPresentation
-        {...makeProps({ onCanvasResize: jest.fn() })}
-      />
+      <SketchCanvasPresentation {...makeProps({ onCanvasResize: jest.fn() })} />
     );
     expect(queryByTestId("resize-handles")).toBeTruthy();
   });
@@ -236,5 +257,4 @@ describe("SketchCanvasPresentation", () => {
     expect(root!.className).toContain("sketch-canvas");
     expect(root!.className).toContain("my-test-class");
   });
-
 });
