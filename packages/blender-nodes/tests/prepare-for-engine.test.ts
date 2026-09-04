@@ -13,7 +13,9 @@ import { validateModel3D } from "@nodetool-ai/model3d";
 
 import type { BlenderOp, PrepareForEngineParams } from "../src/job.js";
 import { runBlenderJob } from "../src/run-job.js";
-import { blenderAvailable } from "./blender-available.js";
+import { blenderAvailable, failWhenBlenderRequired } from "./blender-available.js";
+
+failWhenBlenderRequired();
 import { blenderTestContext, type BlenderTestContext } from "./context.js";
 import {
   countGlbFaces,

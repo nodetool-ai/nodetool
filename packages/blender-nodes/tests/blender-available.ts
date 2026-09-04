@@ -35,3 +35,28 @@ export function blenderAvailable(): boolean {
   if (onPath("blender")) return true;
   return WELL_KNOWN.some((candidate) => existsSync(candidate));
 }
+
+/**
+ * Whether a missing Blender must fail the suite instead of skipping it.
+ * CI sets `NODETOOL_REQUIRE_BLENDER=1`, so a skipped suite there is a
+ * broken install rather than a pass: without this, `describe.skipIf`
+ * reports green on a runner where Blender was never installed.
+ */
+export function blenderRequired(): boolean {
+  return process.env["NODETOOL_REQUIRE_BLENDER"] === "1";
+}
+
+/**
+ * Fail the suite when Blender is required but missing. Call at module
+ * scope of every Blender integration suite, next to `describe.skipIf`:
+ * vitest reports the file as failed, which CI cannot mistake for a pass.
+ */
+export function failWhenBlenderRequired(): void {
+  if (blenderRequired() && !blenderAvailable()) {
+    throw new Error(
+      "NODETOOL_REQUIRE_BLENDER=1 is set but no Blender binary was found " +
+        "(BLENDER_PATH, blender on PATH, or a well-known install location). " +
+        "Install Blender 5.2 or newer, or unset the variable to allow skips."
+    );
+  }
+}

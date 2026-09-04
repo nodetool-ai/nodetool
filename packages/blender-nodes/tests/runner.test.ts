@@ -1,5 +1,5 @@
 import { chmodSync, copyFileSync } from "node:fs";
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -87,6 +87,37 @@ describe("LocalBlenderRunner against a fake blender", () => {
     expect(await readdir(scratchParent)).toEqual([]);
   }
 
+  /**
+   * Wait until the run owns its scratch directory and the fake inside it
+   * reports its spawn with a `started` marker. Polls instead of sleeping a
+   * guessed interval, so the wait holds under load. Fails loudly when the
+   * run settles first (an abort or timeout before the spawn).
+   */
+  async function waitForSpawnMarker(
+    parent: string,
+    isSettled: () => boolean
+  ): Promise<void> {
+    const deadline = Date.now() + 20_000;
+    for (;;) {
+      const entries = await readdir(parent);
+      if (entries.length === 1) {
+        try {
+          await stat(path.join(parent, entries[0]!, "started"));
+          return;
+        } catch {
+          // The run owns its directory but the child is not up yet.
+        }
+      }
+      if (isSettled()) {
+        throw new Error("the blender run settled before the fake reported its spawn");
+      }
+      if (Date.now() > deadline) {
+        throw new Error("timed out waiting for the fake blender to spawn");
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+  }
+
   it("exit 64 with no result.json -> bad_result carrying the stderr tail", async () => {
     const runner = useFake("exit64-empty");
     const err = await runner
@@ -153,9 +184,15 @@ describe("LocalBlenderRunner against a fake blender", () => {
     // The runner frees nothing when the signal fires: the promise settles
     // on the child's close, so the scratch directory still exists while a
     // child that ignores SIGTERM runs on toward SIGKILL.
+    //
+    // The abort fires only after the fake reports its spawn (a `started`
+    // marker in the run directory). A fixed delay races the `--version`
+    // probe and the spawn: under load the run has not started when the
+    // timer fires, the run rejects without spawning, and the scratch
+    // directory is already gone.
     const runner = useFake("ignore-term");
     const controller = new AbortController();
-    setTimeout(() => controller.abort(), 200);
+    let settled = false;
     const pending = runner
       .run(
         imageJob(),
@@ -165,8 +202,12 @@ describe("LocalBlenderRunner against a fake blender", () => {
       .then(
         () => null,
         (e: unknown) => e
-      );
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+      )
+      .finally(() => {
+        settled = true;
+      });
+    await waitForSpawnMarker(scratchParent, () => settled);
+    controller.abort();
     expect(await readdir(scratchParent)).toHaveLength(1);
     const err = await pending;
     expect(err).not.toBeNull();
@@ -177,12 +218,14 @@ describe("LocalBlenderRunner against a fake blender", () => {
   it("a segfault surfaces the crash log Blender wrote to its temp directory", async () => {
     // Blender writes <name>.crash.txt into its temp directory ($TMPDIR),
     // never into the run's cwd: the "Crash log:" suffix needs that path.
-    const runner = useFake("crash");
-    const crashFile = path.join(
-      process.env["TMPDIR"] ?? process.env["TEMP"] ?? os.tmpdir(),
-      "blender.crash.txt"
-    );
+    // The temp directory is unique per test: a fixed file name under the
+    // shared $TMPDIR collides when suites run concurrently, and one run
+    // deletes the other's file.
+    const crashDir = await mkdtemp(path.join(os.tmpdir(), "blender-test-crash-"));
+    const savedTmpdir = process.env["TMPDIR"];
+    process.env["TMPDIR"] = crashDir;
     try {
+      const runner = useFake("crash");
       const err = await runner
         .run(imageJob(), { model: new Uint8Array([1]) }, { timeoutMs: 10000 })
         .then(
@@ -195,7 +238,9 @@ describe("LocalBlenderRunner against a fake blender", () => {
       expect((err as Error).message).toContain("segfault in render pipeline");
       await expectScratchGone();
     } finally {
-      await rm(crashFile, { force: true });
+      if (savedTmpdir === undefined) delete process.env["TMPDIR"];
+      else process.env["TMPDIR"] = savedTmpdir;
+      await rm(crashDir, { recursive: true, force: true });
     }
   });
 
@@ -208,7 +253,10 @@ describe("LocalBlenderRunner against a fake blender", () => {
     );
     // The declared output still succeeds; "evil" was never read (no such
     // file exists, so reading `produced` as file names would fail), and the
-    // smuggled absolute path — a directory — would fail loudly if opened.
+    // smuggled absolute path — a FIFO with no writer — was never opened:
+    // opening it blocks forever, so an implementation that reads it inside
+    // a `try/catch` hangs into a timeout instead of passing. This test
+    // succeeding proves the runner never touches the smuggled path.
     expect(Object.keys(result.outputs)).toEqual(["image"]);
     expect(result.outputs["image"]).toEqual(new Uint8Array(32).fill(0x50));
     await expectScratchGone();

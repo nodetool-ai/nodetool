@@ -22,6 +22,9 @@ import {
   orbitOffset
 } from "../../video-nodes/src/nodes/model3d/render3d-core.js";
 import { resolveBlenderBinary } from "../src/blender-binary.js";
+import { failWhenBlenderRequired } from "./blender-available.js";
+
+failWhenBlenderRequired();
 
 const execFileAsync = promisify(execFile);
 
@@ -68,12 +71,17 @@ async function findBlender(): Promise<string | null> {
 }
 
 describe("framing math under Blender's interpreter", () => {
-  it("python port reports the same goldens", async () => {
+  it("python port reports the same goldens", async (ctx) => {
     // No existsSync: `resolveBlenderBinary` already ran `--version`
-    // against the winner, so a returned path runs. An early return here
-    // would pass vacuously and hide a broken port.
+    // against the winner, so a returned path runs. Without Blender the
+    // test genuinely skips (`ctx.skip()` reports skipped, never passed);
+    // with NODETOOL_REQUIRE_BLENDER=1 the module-scope gate above already
+    // failed the file, so the skip below is unreachable there.
     const blender = await findBlender();
-    if (!blender) return;
+    if (!blender) {
+      await ctx.skip();
+      return;
+    }
     const script = path.join(
       testsDir,
       "..",

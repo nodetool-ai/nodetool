@@ -15,7 +15,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { BLENDER_MIN_VERSION } from "../src/blender-binary.js";
 import type { BlenderOp, RenderImageParams } from "../src/job.js";
 import { runBlenderJob } from "../src/run-job.js";
-import { blenderAvailable } from "./blender-available.js";
+import { blenderAvailable, failWhenBlenderRequired } from "./blender-available.js";
+
+failWhenBlenderRequired();
 import { blenderTestContext, type BlenderTestContext } from "./context.js";
 import { baseRenderImageParams, createTriangleGlb } from "./fixtures.js";
 import { decodePng, hasPngSignature, topColorFraction } from "./png.js";

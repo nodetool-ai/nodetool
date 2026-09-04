@@ -14,7 +14,8 @@
  */
 
 import path from "node:path";
-import { chmodSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 
 const argv = process.argv.slice(2);
 if (argv.includes("--version")) {
@@ -33,10 +34,23 @@ function writeResult(result) {
   writeFileSync("result.json", JSON.stringify(result));
 }
 
-function writeDeclared(size, unreadable) {
+function writeDeclared(size) {
   for (const file of Object.values(outputs)) {
     writeFileSync(file, Buffer.alloc(size, 0x50));
-    if (unreadable) chmodSync(file, 0o000);
+  }
+}
+
+/**
+ * Declared outputs as directories. Opening a directory for reading throws
+ * `EISDIR` for every user — including root, which a `chmod 000` file does
+ * not stop — so a runner that reads before it stats fails here instead of
+ * with `output_too_large`. An empty directory already stats above either
+ * test's cap on every filesystem the suite runs on (64 bytes on APFS,
+ * 4096 on ext4/overlayfs).
+ */
+function writeDeclaredDirs() {
+  for (const file of Object.values(outputs)) {
+    mkdirSync(file, { recursive: true });
   }
 }
 
@@ -46,7 +60,7 @@ function okStats() {
 
 switch (mode) {
   case "ok": {
-    writeDeclared(32, false);
+    writeDeclared(32);
     writeResult({ ok: true, produced: Object.keys(outputs), stats: okStats() });
     break;
   }
@@ -54,7 +68,7 @@ switch (mode) {
     process.stderr.write("Fra:1 Mem:10.00M | Time:00:00.10\n");
     process.stderr.write("Fra:2 Mem:10.00M | Time:00:00.10\n");
     process.stderr.write("Fra:3 Mem:10.00M | Time:00:00.10\n");
-    writeDeclared(32, false);
+    writeDeclared(32);
     writeResult({ ok: true, produced: Object.keys(outputs), stats: okStats() });
     break;
   }
@@ -82,7 +96,10 @@ switch (mode) {
   case "ignore-term": {
     // A Cycles render that never handles SIGTERM: the runner's abort kills
     // escalate to SIGKILL five seconds later, and the run must keep its
-    // slot and its scratch directory until then.
+    // slot and its scratch directory until then. The `started` marker
+    // proves the spawn happened: tests abort only after it appears, so no
+    // timer races the `--version` probe and the spawn under load.
+    writeFileSync("started", "1");
     process.on("SIGTERM", () => {});
     setInterval(() => {}, 1000);
     await new Promise(() => {});
@@ -102,28 +119,35 @@ switch (mode) {
   }
   case "evil": {
     // `produced` names an output the job never declared (no such file is
-    // written), and the result smuggles an absolute path: a directory, so
-    // any implementation that opens it fails loudly with EISDIR.
-    writeDeclared(32, false);
+    // written), and the result smuggles an absolute path: a FIFO with no
+    // writer, so opening it for reading blocks forever. The runner must
+    // never open anything from `result.json`, so this blocks only an
+    // implementation that reads the smuggled path — turning a silent
+    // `try/catch` swallow into a timeout failure. A directory sentinel
+    // cannot do that: opening it throws EISDIR, which a `try/catch`
+    // swallows.
+    writeDeclared(32);
     mkdirSync("sneak", { recursive: true });
+    execFileSync("mkfifo", [path.join("sneak", "fifo")]);
     writeResult({
       ok: true,
       produced: [...Object.keys(outputs), "evil"],
       stats: okStats(),
-      log_file: path.resolve("sneak")
+      log_file: path.resolve("sneak", "fifo")
     });
     break;
   }
   case "big-output": {
-    // 64 bytes; the test caps one output at 16. Mode 000 proves the
-    // stat-before-read order: opening this file throws for a non-root user.
-    writeDeclared(64, true);
+    // Directories, not files: the test caps one output at 16 bytes and an
+    // empty directory already stats above that (see `writeDeclaredDirs`),
+    // while opening it throws EISDIR even for root.
+    writeDeclaredDirs();
     writeResult({ ok: true, produced: Object.keys(outputs), stats: okStats() });
     break;
   }
   case "big-total": {
-    // 40 bytes each; the test caps the sum at 100 with four outputs.
-    writeDeclared(40, true);
+    // Four directories; the test caps the sum at 100 bytes.
+    writeDeclaredDirs();
     writeResult({ ok: true, produced: Object.keys(outputs), stats: okStats() });
     break;
   }

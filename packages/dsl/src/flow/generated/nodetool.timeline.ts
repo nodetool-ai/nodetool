@@ -12,7 +12,10 @@ export type RenderTimelineInputs = {
   format?: "mp4" | "webm" | "mov" | "png_sequence";
   alpha?: boolean;
   video_codec?: string;
+  motion_blur_samples?: number;
+  shutter_angle?: number;
   bitrate?: number;
+  preview_scale?: number;
 };
 
 export interface RenderTimelineOutputs {

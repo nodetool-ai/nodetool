@@ -16,7 +16,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { BlenderOp, RenderPassesParams } from "../src/job.js";
 import { BlenderJobError } from "../src/runner.js";
 import { runBlenderJob } from "../src/run-job.js";
-import { blenderAvailable } from "./blender-available.js";
+import { blenderAvailable, failWhenBlenderRequired } from "./blender-available.js";
+
+failWhenBlenderRequired();
 import { blenderTestContext, type BlenderTestContext } from "./context.js";
 import { createDepthGlb, createTriangleGlb } from "./fixtures.js";
 import { decodePng, hasPngSignature, topColorFraction } from "./png.js";
@@ -104,6 +106,61 @@ function cornerSamples(
   ];
 }
 
+/**
+ * Expected 8-bit camera-space normal for the triangle fixture at the given
+ * orbit angles, derived from the fixture geometry — not copied from a
+ * render. The triangle lies in the glTF z=0 plane, so its world normal is
+ * +glTF-Z, which the importer maps onto Blender -Y (see `buildGlb`). The
+ * camera-space components are the dot products of that world normal with
+ * the orbit camera's basis vectors in world space — `-sin(az)` on X,
+ * `-sin(el) * cos(az)` on Y, `cos(el) * cos(az)` on Z — mapped from
+ * `[-1, 1]` to `[0, 255]` exactly like `_map_normal` in `render_passes.py`.
+ */
+function expectedTiltedNormal(
+  azimuthDeg: number,
+  elevationDeg: number
+): [number, number, number] {
+  const az = (azimuthDeg * Math.PI) / 180;
+  const el = (elevationDeg * Math.PI) / 180;
+  const components = [
+    -Math.sin(az),
+    -Math.sin(el) * Math.cos(az),
+    Math.cos(el) * Math.cos(az)
+  ];
+  return components.map((component) =>
+    Math.round(Math.min(1, Math.max(0, component * 0.5 + 0.5)) * 255)
+  ) as [number, number, number];
+}
+
+/** Base offsets of foreground pixels whose 4-neighbors are also foreground. */
+function interiorForeground(
+  mask: ArrayLike<number>,
+  width: number,
+  height: number
+): number[] {
+  const at = (x: number, y: number): number => mask[y * width + x]!;
+  const bases: number[] = [];
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      if (
+        at(x, y) === 255 &&
+        at(x - 1, y) === 255 &&
+        at(x + 1, y) === 255 &&
+        at(x, y - 1) === 255 &&
+        at(x, y + 1) === 255
+      ) {
+        bases.push((y * width + x) * 3);
+      }
+    }
+  }
+  return bases;
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)]!;
+}
+
 describe.skipIf(!blenderAvailable())("render_passes integration", () => {
   let helper: BlenderTestContext | null = null;
 
@@ -181,22 +238,37 @@ describe.skipIf(!blenderAvailable())("render_passes integration", () => {
     expect(samples[60 * 160 + 80]).toBeLessThanOrEqual(2);
   }, 300_000);
 
-  it("maps a tilted triangle's normals away from the background value", async () => {
+  it("maps a tilted triangle's normals to its camera-space direction", async () => {
     // The depth fixture faces the camera, so its foreground normals equal
     // the background constant by construction. The triangle at an oblique
-    // angle proves mapped foreground differs from (128, 128, 255).
+    // angle proves the map emits the actual camera-space direction: the
+    // interior foreground median must land near the value derived from the
+    // fixture geometry below, which no constant fill can satisfy.
+    const azimuth = 45;
+    const elevation = 25;
     const passes = ["normal", "mask"];
     const result = await runBlenderJob(
       helper!.context,
       createTriangleGlb(),
-      passesOp(passes, { azimuth: 45, elevation: 25 }),
+      passesOp(passes, { azimuth, elevation }),
       outputsFor(passes),
       { timeoutMs: 300_000 }
     );
     const normal = decodePng(result.outputs["normal"]!);
-    expect(topColorFraction(normal)).toBeLessThan(0.99);
+    for (const corner of cornerSamples(normal.pixels, 160, 120, 3)) {
+      expect(corner).toEqual([128, 128, 255]);
+    }
     const mask = decodePng(result.outputs["mask"]!);
     expect(new Set(mask.pixels)).toEqual(new Set([0, 255]));
+    const interior = interiorForeground(mask.pixels, 160, 120);
+    expect(interior.length).toBeGreaterThan(0);
+    const expected = expectedTiltedNormal(azimuth, elevation);
+    for (let channel = 0; channel < 3; channel++) {
+      const values = interior.map(
+        (base) => normal.pixels[base + channel]!
+      );
+      expect(Math.abs(median(values) - expected[channel]!)).toBeLessThanOrEqual(3);
+    }
   }, 300_000);
 
   it("a killed passes run leaves nothing outside the workdir", async () => {

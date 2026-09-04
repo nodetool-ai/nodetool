@@ -40,7 +40,7 @@ class FraReplayingRunner implements BlenderRunner {
     for (const name of Object.keys(job.outputs)) outputs[name] = MP4_BYTES;
     return {
       outputs,
-      stats: { blender_version: "4.5.0-test", render_seconds: 0.3, frames: 3 }
+      stats: { blender_version: "5.2.0-test", render_seconds: 0.3, frames: 3 }
     };
   }
 }

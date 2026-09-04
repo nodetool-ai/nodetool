@@ -26,7 +26,7 @@ function cannedRunner(): FakeBlenderRunner {
   return new FakeBlenderRunner({
     outputs: { color: COLOR, depth: DEPTH, normal: NORMAL, mask: MASK },
     stats: {
-      blender_version: "4.5.0-test",
+      blender_version: "5.2.0-test",
       render_seconds: 1.25,
       depth_near: 2.25,
       depth_far: 3.75
@@ -109,7 +109,7 @@ describe("RenderPasses against FakeBlenderRunner", () => {
     const fake = new FakeBlenderRunner({
       outputs: { depth: DEPTH },
       stats: {
-        blender_version: "4.5.0-test",
+        blender_version: "5.2.0-test",
         render_seconds: 0.5,
         depth_near: 1,
         depth_far: 2
@@ -172,7 +172,7 @@ describe("RenderPasses against FakeBlenderRunner", () => {
   it("fails when the depth range is missing from stats", async () => {
     const fake = new FakeBlenderRunner({
       outputs: { depth: DEPTH },
-      stats: { blender_version: "4.5.0-test", render_seconds: 0.5 }
+      stats: { blender_version: "5.2.0-test", render_seconds: 0.5 }
     });
     __setBlenderRunnerForTesting(fake);
     const node = passesNode();

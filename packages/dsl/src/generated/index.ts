@@ -35,6 +35,7 @@ export * as agents from "./nodetool.agents.js";
 export * as audio from "./nodetool.audio.js";
 export * as audioRealtime from "./nodetool.audio.realtime.js";
 export * as audioSynth from "./nodetool.audio.synth.js";
+export * as blender from "./nodetool.blender.js";
 export * as code from "./nodetool.code.js";
 export * as compare from "./nodetool.compare.js";
 export * as constant from "./nodetool.constant.js";

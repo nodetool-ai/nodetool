@@ -21,7 +21,7 @@ const MP4_BYTES = new Uint8Array([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70
 function cannedRunner(): FakeBlenderRunner {
   return new FakeBlenderRunner({
     outputs: { video: MP4_BYTES },
-    stats: { blender_version: "4.5.0-test", render_seconds: 2.5, frames: 5 }
+    stats: { blender_version: "5.2.0-test", render_seconds: 2.5, frames: 5 }
   });
 }
 

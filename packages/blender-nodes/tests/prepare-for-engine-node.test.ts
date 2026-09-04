@@ -26,7 +26,7 @@ function cannedRunner(): FakeBlenderRunner {
       lod_1: LOD_BYTES,
       lod_2: LOD_BYTES
     },
-    stats: { blender_version: "5.2.1-test", render_seconds: 2.5, objects: 1 }
+    stats: { blender_version: "5.2.0-test", render_seconds: 2.5, objects: 1 }
   });
 }
 
@@ -79,7 +79,7 @@ describe("PrepareForEngine against FakeBlenderRunner", () => {
   it("declares no LOD outputs when lod_count is 0", async () => {
     const fake = new FakeBlenderRunner({
       outputs: { model: TRIANGLE_GLB },
-      stats: { blender_version: "5.2.1-test", render_seconds: 1 }
+      stats: { blender_version: "5.2.0-test", render_seconds: 1 }
     });
     __setBlenderRunnerForTesting(fake);
     const node = prepareNode();

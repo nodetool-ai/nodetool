@@ -27,7 +27,7 @@ const FBX_BYTES = new Uint8Array([
 function cannedRunner(bytes: Uint8Array = FBX_BYTES): FakeBlenderRunner {
   return new FakeBlenderRunner({
     outputs: { file: bytes },
-    stats: { blender_version: "5.2.1-test", render_seconds: 0.5, objects: 1 }
+    stats: { blender_version: "5.2.0-test", render_seconds: 0.5, objects: 1 }
   });
 }
 

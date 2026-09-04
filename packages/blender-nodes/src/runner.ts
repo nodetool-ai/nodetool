@@ -304,7 +304,6 @@ export class LocalBlenderRunner implements BlenderRunner {
       }
       // Stat every declared output before reading any byte, so both caps
       // throw before a file is read into memory.
-      const sizes = new Map<string, number>();
       let total = 0;
       for (const [name, file] of declared) {
         if (!produced.has(name)) {
@@ -335,7 +334,6 @@ export class LocalBlenderRunner implements BlenderRunner {
             `Outputs total ${total} bytes, above the ${maxTotalOutputBytes}-byte total cap (reached at "${name}").`
           );
         }
-        sizes.set(name, size);
       }
       const outputs: Record<string, Uint8Array> = {};
       for (const [name, file] of declared) {

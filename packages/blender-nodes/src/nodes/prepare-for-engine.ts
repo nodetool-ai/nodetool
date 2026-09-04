@@ -15,11 +15,13 @@
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { bytesToBase64, resolveModelBytes } from "@nodetool-ai/nodes-utils";
+import type { ModelBytesRefLike } from "@nodetool-ai/nodes-utils";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import type { BakeMode } from "../job.js";
 import { BlenderJobError } from "../runner.js";
 import { runBlenderJob } from "../run-job.js";
+import { rethrowBlenderError } from "./blender-error.js";
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import { blenderProgressHandler } from "./progress.js";
 
@@ -69,7 +71,7 @@ export class PrepareForEngineNode extends BaseNode {
     title: "Model",
     description: "The 3D model to prepare (GLB or glTF with embedded buffers)"
   })
-  declare model: any;
+  declare model: ModelBytesRefLike;
 
   @prop({ type: "int", default: 5000, title: "Target Faces", description: "Face budget every mesh is decimated toward; meshes already under it are left alone", min: 1, max: 1000000 })
   declare target_faces: any;
@@ -162,19 +164,12 @@ export class PrepareForEngineNode extends BaseNode {
       }
       return { model: modelRef(model), lods };
     } catch (err) {
-      // Cancellation rejects with the abort reason: pass it through
-      // unwrapped so the node rejects with the abort reason.
-      if (context?.signal?.aborted) throw err;
-      if (err instanceof BlenderJobError && err.code === "timeout") {
-        throw new BlenderJobError("timeout", timeoutMessage(timeoutMs));
-      }
-      if (err instanceof BlenderJobError) {
-        throw new BlenderJobError(err.code, `${NODE_NAME}: ${err.message}`);
-      }
-      if (err instanceof Error) {
-        throw new Error(`${NODE_NAME}: ${err.message}`);
-      }
-      throw new Error(`${NODE_NAME}: ${String(err)}`);
+      rethrowBlenderError(
+        err,
+        NODE_NAME,
+        timeoutMessage(timeoutMs),
+        context?.signal
+      );
     }
   }
 }

@@ -48,7 +48,7 @@ describe("FakeBlenderRunner", () => {
       timeoutMs: 1000
     });
     expect(Object.keys(result.outputs)).toEqual(["image"]);
-    expect(result.stats.blender_version).toBe("4.5.0-test");
+    expect(result.stats.blender_version).toBe("5.2.0-test");
   });
 
   it("honors a canned result", async () => {

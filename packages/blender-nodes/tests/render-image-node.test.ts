@@ -21,7 +21,7 @@ const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
 function cannedRunner(): FakeBlenderRunner {
   return new FakeBlenderRunner({
     outputs: { image: PNG_BYTES },
-    stats: { blender_version: "4.5.0-test", render_seconds: 1.25 }
+    stats: { blender_version: "5.2.0-test", render_seconds: 1.25 }
   });
 }
 

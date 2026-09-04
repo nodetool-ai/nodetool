@@ -35,7 +35,7 @@ export class FakeBlenderRunner implements BlenderRunner {
       return {
         outputs: this.canned.outputs ?? defaultOutputs(job),
         stats: this.canned.stats ?? {
-          blender_version: "4.5.0-test",
+          blender_version: "5.2.0-test",
           render_seconds: 0
         },
         exitCode: this.canned.exitCode ?? 0
@@ -43,7 +43,7 @@ export class FakeBlenderRunner implements BlenderRunner {
     }
     return {
       outputs: defaultOutputs(job),
-      stats: { blender_version: "4.5.0-test", render_seconds: 0 },
+      stats: { blender_version: "5.2.0-test", render_seconds: 0 },
       exitCode: 0
     };
   }

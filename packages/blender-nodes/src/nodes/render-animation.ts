@@ -16,15 +16,16 @@
  * abort reason and no partial output.
  */
 
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { prop } from "@nodetool-ai/node-sdk";
 import { bytesToBase64, resolveModelBytes } from "@nodetool-ai/nodes-utils";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import type { BlenderEngine, CameraMode, LightingPreset } from "../job.js";
 import { BlenderJobError } from "../runner.js";
 import { runBlenderJob } from "../run-job.js";
-import { DEFAULT_MODEL_3D } from "./defaults.js";
+import { rethrowBlenderError } from "./blender-error.js";
 import { blenderProgressHandler } from "./progress.js";
+import { BlenderRenderBase } from "./render-base.js";
 
 const NODE_NAME = "nodetool.blender.RenderAnimation";
 
@@ -41,7 +42,7 @@ function timeoutMessage(timeoutMs: number): string {
   );
 }
 
-export class RenderAnimationNode extends BaseNode {
+export class RenderAnimationNode extends BlenderRenderBase {
   static readonly nodeType = "nodetool.blender.RenderAnimation";
   static readonly title = "Render 3D Animation With Blender";
   static readonly description =
@@ -52,14 +53,9 @@ export class RenderAnimationNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["model"];
 
-  @prop({
-    type: "model_3d",
-    default: DEFAULT_MODEL_3D,
-    title: "Model",
-    description: "The 3D model to render (GLB or glTF with embedded buffers)"
-  })
-  declare model: any;
-
+  // Per-node wording overrides of the shared render props: the orbit
+  // sweep, video-sized frames, and video alpha need their own
+  // descriptions. The override keeps its base position in prop order.
   @prop({
     type: "enum",
     default: "auto",
@@ -76,53 +72,8 @@ export class RenderAnimationNode extends BaseNode {
   @prop({ type: "int", default: 1024, title: "Height", description: "Output video height in pixels", min: 16, max: 4096 })
   declare height: any;
 
-  @prop({ type: "float", default: 45, title: "Azimuth", description: "Horizontal camera orbit angle in degrees (0 looks along -Z)", min: -360, max: 360 })
-  declare azimuth: any;
-
-  @prop({ type: "float", default: 25, title: "Elevation", description: "Camera angle above the horizon in degrees", min: -89, max: 89 })
-  declare elevation: any;
-
-  @prop({ type: "float", default: 35, title: "Field of View", description: "Vertical field of view in degrees", min: 5, max: 120 })
-  declare fov: any;
-
-  @prop({ type: "float", default: 1, title: "Zoom", description: "Distance multiplier on the auto-framed camera: above 1 moves closer, below 1 farther", min: 0.1, max: 10 })
-  declare zoom: any;
-
-  @prop({
-    type: "enum",
-    default: "studio",
-    title: "Lighting",
-    description: "Lighting preset used when the scene carries no lights of its own: studio (key/fill/rim), soft (hemisphere), or flat (ambient only)",
-    values: ["studio", "soft", "flat"]
-  })
-  declare lighting: any;
-
-  @prop({ type: "float", default: 1, title: "Light Intensity", description: "Multiplier applied to all lights in the preset; ignored when the scene carries its own lights", min: 0, max: 10 })
-  declare light_intensity: any;
-
-  @prop({ type: "str", default: "#808080", title: "Background Color", description: "Background color (hex); ignored when Transparent is on" })
-  declare background_color: any;
-
   @prop({ type: "bool", default: false, title: "Transparent", description: "Render on a transparent background (video alpha; container support varies)" })
   declare transparent: any;
-
-  @prop({
-    type: "enum",
-    default: "eevee",
-    title: "Engine",
-    description: "Render engine: EEVEE (fast preview quality) or Cycles (slower, higher quality)",
-    values: ["eevee", "cycles"]
-  })
-  declare engine: any;
-
-  @prop({ type: "int", default: 16, title: "Samples", description: "Render samples per pixel; higher is cleaner and slower", min: 1, max: 4096 })
-  declare samples: any;
-
-  @prop({ type: "bool", default: true, title: "Denoise", description: "Denoise the render (Cycles; EEVEE ignores it)" })
-  declare denoise: any;
-
-  @prop({ type: "int", default: 100, title: "Resolution Percentage", description: "Render scale in percent of Width × Height", min: 1, max: 100 })
-  declare resolution_percentage: any;
 
   @prop({ type: "int", default: 1, title: "Frame Start", description: "First frame in the glTF timeline (timestamp t seconds lands on round(t * fps))", min: 0, max: 100000 })
   declare frame_start: any;
@@ -210,19 +161,12 @@ export class RenderAnimationNode extends BaseNode {
         }
       };
     } catch (err) {
-      // Cancellation rejects with the abort reason: pass it through
-      // unwrapped so the node rejects with the abort reason.
-      if (context?.signal?.aborted) throw err;
-      if (err instanceof BlenderJobError && err.code === "timeout") {
-        throw new BlenderJobError("timeout", timeoutMessage(timeoutMs));
-      }
-      if (err instanceof BlenderJobError) {
-        throw new BlenderJobError(err.code, `${NODE_NAME}: ${err.message}`);
-      }
-      if (err instanceof Error) {
-        throw new Error(`${NODE_NAME}: ${err.message}`);
-      }
-      throw new Error(`${NODE_NAME}: ${String(err)}`);
+      rethrowBlenderError(
+        err,
+        NODE_NAME,
+        timeoutMessage(timeoutMs),
+        context?.signal
+      );
     }
   }
 }

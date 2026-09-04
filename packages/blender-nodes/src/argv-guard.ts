@@ -4,10 +4,11 @@
  * Copy of `refuseFlagLikeValue` from
  * `packages/agents/src/host-binary-guard.ts` (the original; this package
  * must not depend on `@nodetool-ai/agents`). Blender argv is built by the
- * node from typed props, and every string prop that reaches argv or the job
- * passes through this, so a value starting with `-` cannot become a Blender
- * flag. `packages/blender-nodes/tests/job.test.ts` pins both
- * implementations to the same behavior.
+ * node from typed props, and every top-level string param that reaches the
+ * job passes through this, so a value starting with `-` cannot become a
+ * Blender flag. Nested values (the `passes` list) are filtered against
+ * known constants by the node instead. `packages/blender-nodes/tests/job.test.ts`
+ * pins both implementations to the same behavior.
  */
 
 export interface ArgvRefusal {

@@ -15,7 +15,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { BlenderOp, RenderImageParams } from "../src/job.js";
 import { BlenderJobError } from "../src/runner.js";
 import { runBlenderJob } from "../src/run-job.js";
-import { blenderAvailable } from "./blender-available.js";
+import { blenderAvailable, failWhenBlenderRequired } from "./blender-available.js";
+
+failWhenBlenderRequired();
 import { blenderTestContext, type BlenderTestContext } from "./context.js";
 import {
   baseRenderImageParams,

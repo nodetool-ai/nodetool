@@ -1,7 +1,10 @@
 # Blender Headless Integration — Design
 
-Status: proposed, revised after review. Nothing in this document is
-implemented.
+Status: Stages 0–3 implemented, revised after review. Stage 4 (worker
+tier) is not started. The implementation lives in `packages/blender-nodes`
+(TypeScript: binary discovery, job contract, `LocalBlenderRunner`,
+`runBlenderJob`, the five nodes) and `packages/blender-nodes/blender_ops`
+(the Python op scripts each node runs headless).
 
 ## Summary
 
@@ -677,8 +680,10 @@ implementation can keep.
   does not stop outbound connections. The op script opens no socket, and the
   job carries no URL, but Blender itself is not network-isolated here.
 - Argv is built from typed props with `refuseFlagLikeValue` from
-  `host-binary-guard.ts` applied to every string prop, so a value starting
-  with `-` cannot become a Blender flag. File names in the job pass
+  `host-binary-guard.ts` applied to every top-level string param, so a value
+  starting with `-` cannot become a Blender flag. Nested values (the
+  `passes` list) are filtered against known constants by the node instead.
+  File names in the job pass
   `jobFileNameSchema`, so `..` and separators never reach `job.json`.
 - Untrusted Blender execution, meaning a `RunScript` node or a `.blend` from
   someone else, needs the worker tier. The worker is a container NodeTool
