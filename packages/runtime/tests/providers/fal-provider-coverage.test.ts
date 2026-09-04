@@ -763,3 +763,61 @@ describe("FalProvider — Topaz model variants", () => {
     expect(ctx.input.video_url).toBe("https://fal.media/u.bin");
   });
 });
+
+describe("FalProvider numeric field coercion", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /** Run imageToVideo against a real manifest endpoint and return the input. */
+  async function captureImageToVideo(
+    modelId: string,
+    params: Partial<ImageToVideoParams>
+  ): Promise<any> {
+    const uploadMock = vi.fn().mockResolvedValue("https://fal.media/img.png");
+    let captured: any;
+    const subscribeMock = vi.fn(async (_id: string, opts: any) => {
+      captured = opts.input;
+      return { data: { video: { url: "https://fal.ai/v.mp4" } } };
+    });
+    vi.stubGlobal("fetch", okFetch());
+    const p = createProvider();
+    (p as any)._client = {
+      subscribe: subscribeMock,
+      storage: { upload: uploadMock }
+    };
+    await p.imageToVideo([new Uint8Array([1, 2, 3])], {
+      prompt: "animate",
+      model: { id: modelId, name: "M", provider: "fal_ai" },
+      ...params
+    } as ImageToVideoParams);
+    return captured;
+  }
+
+  // minimax/h3-max-turbo/image-to-video declares duration as int, min 5 max 15.
+  // A 1.5 s storyboard shot used to go out verbatim and fal answered 422.
+  const H3 = "minimax/h3-max-turbo/image-to-video";
+
+  it("clamps a duration below the declared minimum", async () => {
+    const input = await captureImageToVideo(H3, { durationSeconds: 1.5 });
+    expect(input.duration).toBe(5);
+  });
+
+  it("clamps a duration above the declared maximum", async () => {
+    const input = await captureImageToVideo(H3, { durationSeconds: 30 });
+    expect(input.duration).toBe(15);
+  });
+
+  it("rounds a fractional duration on an int field", async () => {
+    const input = await captureImageToVideo(H3, { durationSeconds: 7.4 });
+    expect(input.duration).toBe(7);
+  });
+
+  it("keeps an in-range duration unchanged", async () => {
+    const input = await captureImageToVideo(H3, { durationSeconds: 10 });
+    expect(input.duration).toBe(10);
+  });
+});

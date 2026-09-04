@@ -106,6 +106,9 @@ interface FalManifestField {
   apiParamName?: string;
   propType: string;
   enumValues?: string[];
+  /** Declared bounds. Numeric for int/float fields, a length for str/list. */
+  min?: number;
+  max?: number;
 }
 interface FalManifestEntry {
   endpointId?: string;
@@ -279,8 +282,38 @@ class FalArgsBuilder {
       this.args[apiName] = String(value);
       return this;
     }
+    if (t === "int" || t === "float") {
+      const n = this.numericValue(apiName, value, t === "int");
+      if (n !== undefined) this.args[apiName] = n;
+      return this;
+    }
     this.args[apiName] = value;
     return this;
+  }
+
+  /**
+   * Coerce a numeric field to what the endpoint declares: integers are
+   * rounded, and both kinds are clamped to the field's `min`/`max`. fal
+   * returns 422 for a value outside the declared range or a float sent to an
+   * `int` field — a 1.5 s storyboard shot sent as `duration` to an endpoint
+   * declaring `int` 5..15 fails the whole render. Clamping produces the
+   * nearest clip the model can make instead. Non-numeric values are dropped.
+   */
+  private numericValue(
+    apiName: string,
+    value: unknown,
+    isInt: boolean
+  ): number | undefined {
+    const raw = isString(value) ? Number(value) : value;
+    if (typeof raw !== "number" || !Number.isFinite(raw)) return undefined;
+    const field = this.accepted.get(apiName);
+    let n = isInt ? Math.round(raw) : raw;
+    if (field) {
+      if (typeof field.min === "number" && n < field.min) n = field.min;
+      if (typeof field.max === "number" && n > field.max) n = field.max;
+      if (isInt) n = Math.round(n);
+    }
+    return n;
   }
 
   /** Same as set() but always writes (used for required canonical keys like prompt). */
