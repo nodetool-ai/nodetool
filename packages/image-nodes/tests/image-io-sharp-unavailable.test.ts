@@ -29,15 +29,21 @@ describe("image-io loadSharp graceful degradation", () => {
   beforeEach(() => {
     vi.resetModules();
     importHiddenImpl = async () => null;
-    vi.doMock("@nodetool-ai/config", () => ({
-      importHidden: (name: string) => importHiddenImpl(name),
-      // Force the Node branch of encodeRgbaToPng. Other config exports that the
-      // module graph may touch are stubbed minimally.
-      IS_NODE: true,
-      importNodeBuiltin: async (name: string) => import(name),
-      getNodeBuiltinSync: (name: string) => process.getBuiltinModule(name),
-      importNodeBuiltinSync: (name: string) => process.getBuiltinModule(name)
-    }));
+    // Partial mock: only importHidden is driven per-test and IS_NODE is forced
+    // true. Everything else comes from the real module, because the import
+    // graph under test reaches further than image-io.ts itself (e.g.
+    // runtime/generation-receipt.ts imports createLogger from this package,
+    // which a hand-listed factory omits and vitest rejects).
+    vi.doMock("@nodetool-ai/config", async (importOriginal) => {
+      const actual =
+        await importOriginal<typeof import("@nodetool-ai/config")>();
+      return {
+        ...actual,
+        importHidden: (name: string) => importHiddenImpl(name),
+        // Force the Node branch of encodeRgbaToPng.
+        IS_NODE: true
+      };
+    });
   });
 
   async function freshImageIo() {

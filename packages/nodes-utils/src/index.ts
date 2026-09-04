@@ -40,6 +40,9 @@ export type { TemplateValue, TemplateVars } from "./template.js";
 
 export { base64ToBytes, bytesToBase64 } from "./base64.js";
 
+export { resolveModelBytes } from "./model-bytes.js";
+export type { ModelBytesRefLike } from "./model-bytes.js";
+
 export {
   SAVE_TO_WORKSPACE_TITLE,
   SAVE_TO_WORKSPACE_DESCRIPTION,

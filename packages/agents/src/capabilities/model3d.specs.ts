@@ -214,6 +214,104 @@ export const VALIDATE_MODEL3D_SCHEMA: JsonSchema = {
   }
 };
 
+export const RENDER_MODEL3D_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    model_id: MODEL_ID_PROPERTY,
+    camera_mode: {
+      type: "string",
+      enum: ["auto", "scene", "orbit"],
+      description:
+        "Whose camera renders: auto (the scene's first camera when the " +
+        "model has one, else an orbit camera), scene (the scene's first " +
+        "camera; an error when the model has none), or orbit (always an " +
+        "orbit camera from the props below)."
+    },
+    width: {
+      type: "number",
+      description: "Output image width in pixels (default 1024)."
+    },
+    height: {
+      type: "number",
+      description: "Output image height in pixels (default 1024)."
+    },
+    azimuth: {
+      type: "number",
+      description:
+        "Horizontal camera orbit angle in degrees (default 45; orbit cameras only)."
+    },
+    elevation: {
+      type: "number",
+      description:
+        "Camera angle above the horizon in degrees (default 25; orbit cameras only)."
+    },
+    fov: {
+      type: "number",
+      description:
+        "Vertical field of view in degrees (default 35; orbit cameras only)."
+    },
+    zoom: {
+      type: "number",
+      description:
+        "Distance multiplier on the auto-framed camera (default 1; orbit cameras only)."
+    },
+    lighting: {
+      type: "string",
+      enum: ["studio", "soft", "flat"],
+      description:
+        "Lighting preset used when the scene carries no lights of its own (default studio)."
+    },
+    light_intensity: {
+      type: "number",
+      description:
+        "Multiplier applied to all lights in the preset (default 1)."
+    },
+    background_color: {
+      type: "string",
+      description: "Background hex color, ignored when transparent (default #808080)."
+    },
+    transparent: {
+      type: "boolean",
+      description: "Render on a transparent background (default false)."
+    },
+    engine: {
+      type: "string",
+      enum: ["eevee", "cycles"],
+      description:
+        "Render engine: eevee (fast) or cycles (slower, higher quality; default eevee)."
+    },
+    samples: {
+      type: "number",
+      description: "Render samples per pixel (default 16)."
+    },
+    denoise: {
+      type: "boolean",
+      description: "Denoise the render (default true; Cycles only)."
+    },
+    resolution_percentage: {
+      type: "number",
+      description: "Render scale in percent of width x height (default 100)."
+    },
+    timeout: {
+      type: "number",
+      description: "Maximum render time in seconds (default 600)."
+    }
+  },
+  required: ["model_id"]
+};
+
+export const renderModel3dSpec: CapabilitySpec = {
+  name: "render_model3d",
+  description:
+    "Render a 3D model to a PNG image with headless Blender (EEVEE or " +
+    "Cycles) — higher quality than the preview renderer, with scene cameras " +
+    "and lights honored. Takes the render_image node params and stores the " +
+    "PNG as an image asset. Needs Blender on the server.",
+  inputSchema: RENDER_MODEL3D_SCHEMA,
+  category: "write",
+  userMessage: (params) => `Rendering 3D model ${String(params["model_id"])}`
+};
+
 export const validateModel3dSpec: CapabilitySpec = {
   name: "validate_model3d",
   description:
@@ -239,5 +337,6 @@ export const model3dSpecs: readonly CapabilitySpec[] = [
   createModel3dSpec,
   getModel3dSpec,
   editModel3dSpec,
-  validateModel3dSpec
+  validateModel3dSpec,
+  renderModel3dSpec
 ];

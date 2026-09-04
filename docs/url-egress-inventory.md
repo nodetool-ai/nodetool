@@ -82,7 +82,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | media ref → bytes (Python bridge + TS nodes) | `packages/runtime/src/media-ref-bytes.ts` | workflow |
 | AudioRef → bytes | `packages/audio-nodes/src/lib/audio-wav.ts` | workflow |
 | Model3DRef / ImageRef → bytes | `packages/video-nodes/src/nodes/model3d/utils.ts` | workflow |
-| `nodetool.model3d.RenderToImage` | `packages/video-nodes/src/nodes/model3d/render.ts` | workflow |
+| Model bytes → bytes (shared resolution) | `packages/nodes-utils/src/model-bytes.ts` | workflow |
 | chat source images | `packages/websocket/src/websocket-client-session.ts` | chat client |
 | workflow output auto-save | `packages/websocket/src/session/asset-autosave.ts` | workflow |
 | asset ref → bytes on export | `packages/websocket/src/lib/asset-export.ts` | chat client |

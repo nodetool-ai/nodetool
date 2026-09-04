@@ -900,7 +900,9 @@ call), **`get_model3d`** lists every object with its transform, visibility and
 material color plus the scene's world-space bounds, **`edit_model3d`** runs the
 `ui_3d_*` verbs — add and delete primitives and lights, set transforms, rename,
 show and hide, recolor, select — against the stored document and saves it back
-over the same asset, and **`validate_model3d`** checks a document statically.
+over the same asset, **`validate_model3d`** checks a document statically,
+and **`render_model3d`** renders one through headless Blender and stores the
+PNG.
 
 The operations, the units (Euler degrees, CSS hex) and the "uuid or name"
 addressing live in `@nodetool-ai/model3d`, shared with the browser editor, so a

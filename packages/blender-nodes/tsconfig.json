@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../config" },
+    { "path": "../protocol" },
+    { "path": "../runtime" },
+    { "path": "../node-sdk" },
+    { "path": "../nodes-utils" }
+  ]
+}

@@ -255,7 +255,7 @@ lazy implementation table disagree.
 | `timelines` | `list_timelines`, `create_timeline`, `get_timeline`, `set_timeline_document`, `list_timeline_versions`, `get_timeline_version`, `create_timeline_version`, `restore_timeline_version`, `delete_timeline_version`, `edit_timeline`, `validate_timeline`, `preview_timeline_frame`, `compare_timeline_frames`, `render_timeline`, `delete_timeline` |
 | `compositions` | `list_compositions`, `get_composition`, `save_composition`, `delete_composition` — group clips with parameters stored as JSON assets; `edit_timeline`'s `insert_composition` op instantiates one |
 | `sketches` | `list_sketches`, `create_sketch`, `get_sketch`, `list_sketch_versions`, `get_sketch_version`, `create_sketch_version`, `restore_sketch_version`, `delete_sketch_version`, `edit_sketch`, `validate_sketch`, `delete_sketch` |
-| `model3d` | `list_model3ds`, `create_model3d`, `get_model3d`, `edit_model3d`, `validate_model3d` |
+| `model3d` | `list_model3ds`, `create_model3d`, `get_model3d`, `edit_model3d`, `validate_model3d`, `render_model3d` |
 | `storyboards` | `list_storyboards`, `create_storyboard`, `get_storyboard`, `render_storyboard_stills`, `render_storyboard_clips`, `revise_storyboard_clip`, `assemble_storyboard_timeline`, `edit_storyboard`, `extract_script_from_storyboard`, `delete_storyboard` |
 | `scripts` | `list_scripts`, `create_script`, `get_script`, `voice_script_lines`, `assemble_script_timeline`, `edit_script`, `derive_storyboard_from_script`, `delete_script` |
 | `entities` | `list_entities`, `get_entity`, `apply_entities`, `create_entity`, `update_entity`, `delete_entity` |

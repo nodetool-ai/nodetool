@@ -110,9 +110,12 @@ describe("the belt", () => {
     expect(names).toContain("browser");
     expect(names).toContain("take_screenshot");
 
-    // The profile drops yt_dlp too (yt-dlp-gate.test.ts); nothing else goes.
+    // The profile drops yt_dlp and render_model3d too
+    // (yt-dlp-gate.test.ts, blender-gate.test.ts); nothing else goes.
     const dropped = BUILTIN_TOOL_NAMES.filter((name) => !names.includes(name));
-    expect([...dropped].sort()).toEqual([...BROWSER_NAMES, "yt_dlp"].sort());
+    expect([...dropped].sort()).toEqual(
+      [...BROWSER_NAMES, "yt_dlp", "render_model3d"].sort()
+    );
   });
 
   it("keeps them for a self-hosted production install", () => {

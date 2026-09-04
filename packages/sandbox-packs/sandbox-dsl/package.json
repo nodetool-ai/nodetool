@@ -188,6 +188,11 @@
         "file": "sandbox/generated/nodetool.audio.synth.js"
       },
       {
+        "name": "nodetool.blender",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.blender.js"
+      },
+      {
         "name": "nodetool.code",
         "kind": "js",
         "file": "sandbox/generated/nodetool.code.js"

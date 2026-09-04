@@ -22,6 +22,7 @@
     "@mediabunny/server": "^1.54.0",
     "@napi-rs/canvas": "^0.1.65",
     "@nodetool-ai/app-runtime": "*",
+    "@nodetool-ai/blender-nodes": "*",
     "@nodetool-ai/browser": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/execution": "*",

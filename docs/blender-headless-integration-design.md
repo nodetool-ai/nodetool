@@ -1,7 +1,10 @@
 # Blender Headless Integration — Design
 
-Status: proposed, revised after review. Nothing in this document is
-implemented.
+Status: Stages 0–3 implemented, revised after review. Stage 4 (worker
+tier) is not started. The implementation lives in `packages/blender-nodes`
+(TypeScript: binary discovery, job contract, `LocalBlenderRunner`,
+`runBlenderJob`, the five nodes) and `packages/blender-nodes/blender_ops`
+(the Python op scripts each node runs headless).
 
 ## Summary
 
@@ -128,9 +131,19 @@ isolation boundary exists.
 
 ## Assumptions
 
-- A1. Blender 4.2 LTS is the floor. The glTF importer and exporter are core
+- A1. Blender 5.2 LTS is the floor. The glTF importer and exporter are core
   add-ons enabled under `--factory-startup`. EEVEE Next and Cycles both
   render headless on CPU with no display.
+- Revision (Stage 3): the floor moved from 4.2 LTS to 5.2 LTS. Nothing ever
+  ran on 4.2: `render_passes.py` reads `scene.compositing_node_group` (the
+  5.x compositor entry point; 4.2 has only the legacy `use_nodes`/`node_tree`
+  pair) and `render_animation.py` sets `image_settings.media_type` (the 5.x
+  image/video split; 4.2 exposes `file_format` directly). On a 4.2 binary
+  both ops raise `AttributeError`, so the old floor promised what the code
+  could not do. A 4.2 backport would need the compositor tree rebuilt on the
+  legacy `Scene.node_tree` API and the animation output set through
+  `file_format = "FFMPEG"` with no `media_type` flip — untested here, since
+  the only binary available is 5.2 LTS.
 - A2. Desktop users who want Blender nodes install Blender themselves. The
   node discovers it. This holds until a first-use download exists.
 - A3. The Python worker image is built outside this repository. Stage 4 here
@@ -201,7 +214,7 @@ export async function resolveBlenderBinary(): Promise<BlenderBinary>;
 Order: `BLENDER_PATH`, then `blender` on PATH, then well-known locations
 (`/Applications/Blender.app/Contents/MacOS/Blender`, `/usr/bin/blender`,
 `/snap/bin/blender`, `%ProgramFiles%\Blender Foundation\Blender *\blender.exe`).
-The first candidate that runs `--version` wins. Below 4.2 throws
+The first candidate that runs `--version` wins. Below 5.2 throws
 `BlenderVersionError` naming the found version and the floor. No candidate
 throws `HostBinaryMissingError("blender")`. The result is cached per process
 and invalidated when `BLENDER_PATH` changes.
@@ -289,11 +302,25 @@ Output contracts the ops must honor:
   value is normalized to `[0, 65535]` between `depth_near` and `depth_far`,
   the min and max finite depth in the frame, both returned as floats, and
   background pixels are `65535`. In `exr` the value is the raw float, and
-  background is `+inf`, as Blender writes it. Control-pass consumers get
+  background is `+inf`: the staged EXR carries the `1e10` no-hit sentinel
+  (measured 5.2.1 on both engines), which the op rewrites to `+inf`
+  before the output is written. Control-pass consumers get
   `png16`. Anything that needs precision gets `exr`.
 - `normal`: camera-space normals from the Normal pass, mapped from `[-1, 1]`
   to 8-bit RGB. Background is `(128, 128, 255)`.
 - `mask`: 8-bit alpha of the object index pass, foreground `255`.
+  The pass is enabled before the Render Layers node is created (measured
+  5.2.1: Cycles then lists Image/Alpha/Depth/Object Index/Noisy Image) and
+  every mesh renders with object index 1, so the mask keys on a positive
+  index with background 0.
+  Deviation (recorded, not silent, EEVEE only): EEVEE's
+  `CompositorNodeRLayers` exposes no index socket (measured 5.2.1: only
+  Image/Alpha/Depth appear with `use_pass_object_index` on), so EEVEE keys
+  the mask on finite Z instead. The gate agrees with the index pass on
+  opaque geometry and disagrees for alpha-blended, holdout, and volume
+  materials. EEVEE's no-hit Z value `1e10` is a measured EEVEE behavior on
+  5.2.1, not a documented API value: re-measure it if the version floor
+  moves.
 - `render_animation`: the scene fps is set to `fps`. A glTF animation
   channel's timestamp `t` seconds lands on frame `round(t * fps)`.
   `frame_start` and `frame_end` are frames in that timeline. When the glTF has
@@ -456,6 +483,16 @@ It reuses `runBlenderJob` and stores the PNG through `context.createAsset`.
 Permission category `write` (it creates an asset). Extending the existing
 module keeps the 3D capabilities in one place for the eval surface.
 
+Availability follows the `yt_dlp` / `browser_*` pattern exactly: the
+cloud profile drops `render_model3d` from the offered belt
+(`availableBuiltinToolNames`, via `isBlenderEnabled` in
+`packages/agents/src/blender-gate.ts` — the same `NODETOOL_NODE_PROFILE`
+switch D8 uses for the `nodetool.blender` namespace), and the
+implementation refuses on its own when reached by name, so a guest that
+imports the module still gets a deployment answer instead of a run failure.
+A non-cloud server without the binary still serves the capability and fails
+with the cause named ("this server has no Blender installed...").
+
 ### D10. Configuration
 
 | Setting | Where | Default |
@@ -599,8 +636,9 @@ cloud profile, and runs only on a local workspace.
   the run is logged at warn.
 - `BLENDER_PATH` points at a file that is not Blender: `--version` fails,
   the error quotes the path and the first stderr line.
-- Blender writes a `.crash.txt` next to the scratch files on a segfault. It
-  is included in the `bad_result` message when present.
+- Blender writes a `.crash.txt` into its temp directory (`$TMPDIR`) on a
+  segfault, never next to the scratch files. It is included in the
+  `bad_result` message when present.
 - Process crash of the NodeTool server mid-render: the child is orphaned.
   Stage 1 accepts this. Stage 4's worker owns its process tree.
 - Cloud workspace: `scratchDir()` returns a real temp directory on the
@@ -647,9 +685,11 @@ implementation can keep.
 - The env allowlist keeps the secrets in `process.env` out of the child. It
   does not stop outbound connections. The op script opens no socket, and the
   job carries no URL, but Blender itself is not network-isolated here.
-- Argv is built from typed props with `refuseFlagLikeValue` from
-  `host-binary-guard.ts` applied to every string prop, so a value starting
-  with `-` cannot become a Blender flag. File names in the job pass
+- Blender's argv is fixed in `LocalBlenderRunner`: every param travels
+  inside `job.json`, which the op script reads with `json.load`, so no
+  param value can become a Blender flag and no flag-injection check
+  exists here. The `passes` list is filtered against known constants by
+  the node. File names in the job pass
   `jobFileNameSchema`, so `..` and separators never reach `job.json`.
 - Untrusted Blender execution, meaning a `RunScript` node or a `.blend` from
   someone else, needs the worker tier. The worker is a container NodeTool
@@ -693,8 +733,7 @@ implementation can keep.
   allowlist excludes an injected `SECRET` variable. Invert each once.
 - T2 unit (`packages/blender-nodes/tests/job.test.ts`): every node builds
   the expected `BlenderJob` from its props, `blenderResultSchema` rejects a
-  result with an unknown error code, `refuseFlagLikeValue` rejects a
-  `background_color` of `--python`, `jobFileNameSchema` rejects
+  result with an unknown error code, `jobFileNameSchema` rejects
   `../x.png` and `/tmp/x.png`. Against the fake Blender: a `result.json`
   whose `produced` names an undeclared output, or that carries a path, is
   ignored and the path is never opened (asserted with a sentinel file that

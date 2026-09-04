@@ -128,6 +128,22 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "blender",
+    title: "Blender headless render (nodetool.blender.* nodes)",
+    command: "nodetool node run nodetool.blender.RenderImage --props '<fixture>'",
+    kind: "execution",
+    capabilities: ["json", "no-db"],
+    docs: "docs/blender-headless-integration-design.md",
+    selfcheck: {
+      // Renders the checked-in triangle fixture through the real Blender.
+      // Expensive on purpose: Blender startup plus a render, and it needs
+      // the Blender binary, so the default gate skips it without --expensive.
+      command:
+        "npm run dev:nodetool -- node run nodetool.blender.RenderImage --props \"$(cat packages/blender-nodes/tests/fixtures/render-image-props.json)\" --no-secrets",
+      cost: "expensive"
+    }
+  },
+  {
     id: "dsl-native-flow",
     title: "Native flow (call a node as a function, host backend + guest surface)",
     // No CLI command owns it: the public surface is the sandbox pack
@@ -716,6 +732,12 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/components/workspace/Model3DSurface.tsx",
       "web/src/lib/tools/builtin/model3d.ts"
     ]
+  },
+  {
+    id: "blender",
+    title: "Blender headless render (op scripts, runner, blender nodes)",
+    harnesses: ["blender"],
+    paths: ["packages/blender-nodes/"]
   },
   {
     id: "entities",

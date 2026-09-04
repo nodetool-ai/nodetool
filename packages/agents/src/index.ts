@@ -152,6 +152,7 @@ export {
   resetBuiltinToolsRegistration
 } from "./tools/builtin-tools.js";
 export { isYtDlpEnabled } from "./yt-dlp-gate.js";
+export { BLENDER_DISABLED_ERROR, isBlenderEnabled } from "./blender-gate.js";
 export {
   GOOGLE_WORKSPACE_TOOL_NAMES,
   getGoogleWorkspaceTools,

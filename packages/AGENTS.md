@@ -45,6 +45,7 @@ first, then the overlay for the package you are touching.
 - [`audio-nodes`](audio-nodes/AGENTS.md) — audio editing & DSP
 - [`automation-nodes`](automation-nodes/AGENTS.md) — triggers, Apple/OS automation, browser, SQLite path
 - [`base-nodes`](base-nodes/AGENTS.md) — core workflow nodes
+- [`blender-nodes`](blender-nodes/AGENTS.md) — headless Blender render and mesh preparation
 - [`data-nodes`](data-nodes/AGENTS.md) — dataframes, filtering, feeds & charts
 - [`fal-codegen`](fal-codegen/AGENTS.md) — FAL manifest generator
 - [`fal-nodes`](fal-nodes/AGENTS.md) — FAL node factory

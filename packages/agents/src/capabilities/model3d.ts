@@ -4,8 +4,9 @@
  *
  * Those tools drive a live three.js scene and fail when no editor is open,
  * which left an agent with no way to build or fix a 3D model on its own. These
- * five run the same verbs against the glTF asset itself: list the library, make
- * a scene, read what is in one, edit it in place, and check it. The scene
+ * six run the same verbs against the glTF asset itself: list the library, make
+ * a scene, read what is in one, edit it in place, check it, and render it
+ * through headless Blender. The scene
  * operations, the units (degrees, CSS hex) and the "uuid or name" addressing
  * are `@nodetool-ai/model3d`, shared with the editor, so a model built here
  * opens there unchanged.
@@ -16,17 +17,29 @@
  */
 
 import type { GltfJson, Model3DFile } from "@nodetool-ai/model3d";
-import { loadMediaRefBytes, type ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  runBlenderJob,
+  type BlenderEngine,
+  type CameraMode,
+  type LightingPreset
+} from "@nodetool-ai/blender-nodes";
+import {
+  HostBinaryMissingError,
+  loadMediaRefBytes,
+  type ProcessingContext
+} from "@nodetool-ai/runtime";
 import type {
   CapabilityExport,
   CapabilityModule,
   CapabilityRun
 } from "./types.js";
+import { BLENDER_DISABLED_ERROR, isBlenderEnabled } from "../blender-gate.js";
 import {
   createModel3dSpec,
   editModel3dSpec,
   getModel3dSpec,
   listModel3dsSpec,
+  renderModel3dSpec,
   validateModel3dSpec,
   DEFAULT_LIMIT,
   MAX_LIMIT,
@@ -43,7 +56,8 @@ export {
   CREATE_MODEL3D_SCHEMA,
   GET_MODEL3D_SCHEMA,
   EDIT_MODEL3D_SCHEMA,
-  VALIDATE_MODEL3D_SCHEMA
+  VALIDATE_MODEL3D_SCHEMA,
+  RENDER_MODEL3D_SCHEMA
 } from "./model3d.specs.js";
 
 type ToolError = { error: string };
@@ -76,18 +90,26 @@ function assetIdOf(raw: unknown): string | ToolError {
   return id || { error: `"${trimmed}" does not name a 3D model asset.` };
 }
 
-interface LoadedModel {
+interface LoadedModelBytes {
   assetId: string;
   name: string;
   contentType: string;
+  bytes: Uint8Array;
+}
+
+interface LoadedModel extends LoadedModelBytes {
   file: Model3DFile;
 }
 
-/** Read a stored model and parse it. Missing, not-yours and unreadable all report. */
-async function loadModel(
+/**
+ * Read a stored model's bytes. Missing, not-yours and unreadable all
+ * report. `loadModel` parses on top; `render_model3d` hands the bytes to
+ * Blender unparsed.
+ */
+async function loadModelBytes(
   run: CapabilityRun,
   rawId: unknown
-): Promise<LoadedModel | ToolError> {
+): Promise<LoadedModelBytes | ToolError> {
   const assetId = assetIdOf(rawId);
   if (isError(assetId)) return assetId;
 
@@ -119,18 +141,23 @@ async function loadModel(
   if (!bytes || bytes.length === 0) {
     return { error: `3D model ${assetId} has no stored bytes.` };
   }
+  return { assetId, name: asset.name, contentType: asset.content_type, bytes };
+}
+
+/** Read a stored model and parse it. Missing, not-yours and unreadable all report. */
+async function loadModel(
+  run: CapabilityRun,
+  rawId: unknown
+): Promise<LoadedModel | ToolError> {
+  const loaded = await loadModelBytes(run, rawId);
+  if (isError(loaded)) return loaded;
 
   const { parseModel3D } = await import("@nodetool-ai/model3d");
   try {
-    return {
-      assetId,
-      name: asset.name,
-      contentType: asset.content_type,
-      file: parseModel3D(bytes)
-    };
+    return { ...loaded, file: parseModel3D(loaded.bytes) };
   } catch (error) {
     return {
-      error: `3D model ${assetId} could not be parsed: ${error instanceof Error ? error.message : String(error)}`
+      error: `3D model ${loaded.assetId} could not be parsed: ${error instanceof Error ? error.message : String(error)}`
     };
   }
 }
@@ -406,13 +433,110 @@ const validateModel3d: CapabilityExport = {
   }
 };
 
+// ---------------------------------------------------------------------------
+// render_model3d
+// ---------------------------------------------------------------------------
+
+/** A number param, or its default when missing or not finite. */
+function numParam(params: Record<string, unknown>, key: string, fallback: number): number {
+  const value = Number(params[key]);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+const renderModel3d: CapabilityExport = {
+  spec: renderModel3dSpec,
+  impl: async (run, params) => {
+    // The cloud profile leaves this off every belt, so a model never sees
+    // it. A guest that imports this module by name still lands here.
+    if (!isBlenderEnabled()) return { error: BLENDER_DISABLED_ERROR };
+    const model = await loadModelBytes(run, params["model_id"]);
+    if (isError(model)) return model;
+
+    const timeoutMs = Math.max(1, numParam(params, "timeout", 600)) * 1000;
+    let png: Uint8Array;
+    let stats: Record<string, unknown>;
+    try {
+      const result = await runBlenderJob(
+        run.context,
+        model.bytes,
+        {
+          op: "render_image",
+          params: {
+            camera_mode: String(params["camera_mode"] ?? "auto") as CameraMode,
+            azimuth: numParam(params, "azimuth", 45),
+            elevation: numParam(params, "elevation", 25),
+            fov: numParam(params, "fov", 35),
+            zoom: numParam(params, "zoom", 1),
+            lighting: String(params["lighting"] ?? "studio") as LightingPreset,
+            light_intensity: numParam(params, "light_intensity", 1),
+            background_color: String(params["background_color"] ?? "#808080"),
+            transparent: params["transparent"] === true,
+            engine: String(params["engine"] ?? "eevee") as BlenderEngine,
+            samples: Math.max(1, Math.round(numParam(params, "samples", 16))),
+            denoise: params["denoise"] !== false,
+            resolution_percentage: Math.max(
+              1,
+              Math.round(numParam(params, "resolution_percentage", 100))
+            ),
+            width: Math.max(1, Math.round(numParam(params, "width", 1024))),
+            height: Math.max(1, Math.round(numParam(params, "height", 1024)))
+          }
+        },
+        { image: "render.png" },
+        { timeoutMs, signal: run.context.signal }
+      );
+      png = result.outputs["image"] ?? new Uint8Array();
+      stats = result.stats as Record<string, unknown>;
+    } catch (error) {
+      // Blender is a host binary, so a server without one still serves the
+      // capability and only fails here. The failure then names the cause
+      // instead of leaking "blender was not found" as if the caller did
+      // something wrong. (A cloud-profile server never reaches this: the
+      // `isBlenderEnabled` refusal above fires first.)
+      if (error instanceof HostBinaryMissingError && error.binary === "blender") {
+        return {
+          error:
+            `Could not render 3D model ${model.assetId}: this server has ` +
+            `no Blender installed. Rendering needs a desktop install with ` +
+            `Blender 5.2 or newer (set BLENDER_PATH to its executable).`
+        };
+      }
+      return {
+        error: `Could not render 3D model ${model.assetId}: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+    if (png.length === 0) {
+      return { error: `Blender produced no image for 3D model ${model.assetId}.` };
+    }
+
+    let created: unknown;
+    try {
+      created = await run.context.createAsset({
+        name: `${model.name.replace(/\.(glb|gltf)$/i, "") || "model"}.png`,
+        contentType: "image/png",
+        content: png
+      });
+    } catch (error) {
+      return {
+        error: `Could not store the render of 3D model ${model.assetId}: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+    const imageId = isRecord(created) && isString(created["id"]) ? created["id"] : null;
+    if (!imageId) {
+      return { error: "The render asset was created without an id." };
+    }
+    return { image_id: imageId, url: `asset://${imageId}.png`, stats };
+  }
+};
+
 /** Every 3D-model capability, in declaration order. */
 export const MODEL3D_CAPABILITIES: readonly CapabilityExport[] = [
   listModel3ds,
   createModel3d,
   getModel3d,
   editModel3d,
-  validateModel3d
+  validateModel3d,
+  renderModel3d
 ];
 
 export const module: CapabilityModule = {
@@ -420,4 +544,4 @@ export const module: CapabilityModule = {
   exports: MODEL3D_CAPABILITIES
 };
 
-export { listModel3ds, createModel3d, getModel3d, editModel3d, validateModel3d };
+export { listModel3ds, createModel3d, getModel3d, editModel3d, validateModel3d, renderModel3d };

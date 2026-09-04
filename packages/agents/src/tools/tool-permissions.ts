@@ -285,6 +285,8 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   // Writes the glTF back over the asset it came from.
   edit_model3d: "write",
   create_model3d: "write",
+  // Renders the model through Blender and stores the PNG as an asset.
+  render_model3d: "write",
   save_js_script: "write",
   edit_script: "write",
   edit_storyboard: "write",

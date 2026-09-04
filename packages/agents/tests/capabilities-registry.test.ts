@@ -225,6 +225,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   compare_timeline_frames: "read",
   read_media_bytes: "read",
   read_shared: "read",
+  render_model3d: "write",
   render_storyboard_clips: "write",
   render_timeline: "write",
   render_storyboard_stills: "write",

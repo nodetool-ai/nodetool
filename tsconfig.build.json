@@ -51,6 +51,7 @@
     { "path": "packages/image-nodes" },
     { "path": "packages/audio-nodes" },
     { "path": "packages/video-nodes" },
+    { "path": "packages/blender-nodes" },
     { "path": "packages/integration-nodes" },
     { "path": "packages/code-nodes" },
     { "path": "packages/automation-nodes" }

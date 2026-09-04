@@ -10,7 +10,10 @@ export type RenderTimelineInputs = {
   format?: Connectable<"mp4" | "webm" | "mov" | "png_sequence">;
   alpha?: Connectable<boolean>;
   video_codec?: Connectable<string>;
+  motion_blur_samples?: Connectable<number>;
+  shutter_angle?: Connectable<number>;
   bitrate?: Connectable<number>;
+  preview_scale?: Connectable<number>;
 };
 
 export interface RenderTimelineOutputs {

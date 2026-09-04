@@ -2123,6 +2123,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "render_model3d",
+    module: "model3d",
+    impl: "packages/agents/src/capabilities/model3d.ts",
+    contract: "3d837c0a7471",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-model3d.test.ts",
+    ],
+  },
+  {
     name: "list_scripts",
     module: "scripts",
     impl: "packages/agents/src/capabilities/scripts.ts",
