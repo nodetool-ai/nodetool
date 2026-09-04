@@ -2437,10 +2437,13 @@ sandbox packs, and for the same reason: nothing imports them, so they are not
 workspaces and npm links nothing. `bundle-backend.mjs` stages them and
 `verify-backend-bundle.mjs` fails a build that ships none.
 
-Seven shipped skills carry a generation model line's prompting rules
-(`nano-banana-pro-prompting`, `gpt-image-2-prompting`,
-`flux-2-klein-prompting`, `seedance-2-prompting`, `veo-3-prompting`,
-`minimax-h3-prompting`, `wan-2-6-prompting`). `MODEL_PROMPTING_SKILLS` in
+The `*-prompting` skills carry a generation model line's prompting rules —
+image (`nano-banana-pro-prompting`, `gpt-image-2-prompting`,
+`flux-2-klein-prompting`, `seedream-prompting`, `qwen-image-prompting`), video
+(`seedance-2-prompting`, `veo-3-prompting`, `minimax-h3-prompting`,
+`wan-2-6-prompting`, `kling-video-prompting`, `hailuo-prompting`) and audio
+(`elevenlabs-audio-prompting`, `stable-audio-prompting`).
+`MODEL_PROMPTING_SKILLS` in
 `model-prompting-skills.ts` maps a model id onto one, and `find_model` attaches
 the answer as `prompting_skill` on every matching route — the catalog line is
 the other path in, for an agent that never called `find_model`.

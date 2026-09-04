@@ -35,8 +35,14 @@ directory ships with no other change.
 | `veo-3-prompting` | Veo 3: the five-element structure, cinematography vocabulary, duration and audio economics |
 | `minimax-h3-prompting` | MiniMax H3: which endpoint, a job per reference, timed shot lists, native audio direction |
 | `wan-2-6-prompting` | Wan 2.6: the three modes and the prompt shape each one wants |
+| `kling-video-prompting` | Kling 2.5-turbo and later: the shot list, tagged elements, the labelled dialogue format |
+| `hailuo-prompting` | MiniMax Hailuo: beats in order, the Director bracket commands, no negative prompt |
+| `seedream-prompting` | Seedream 4 and 5: the six-layer brief, quoted copy, pinning what an edit must not change |
+| `qwen-image-prompting` | Qwen-Image: typography — exact copy, relative layout, twelve scripts, expansion off |
+| `elevenlabs-audio-prompting` | ElevenLabs: audio tags and stability, the dialogue list, sound-effect briefs, composition plans |
+| `stable-audio-prompting` | Stable Audio: genre/instruments/mood/BPM, the TrackType tags, which dials the distilled checkpoints ignore |
 
-The seven `*-prompting` skills are the model-line guides. Each one is triggered
+The `*-prompting` skills are the model-line guides. Each one is triggered
 twice: its description names the model ids across every provider that serves the
 line, and `find_model` attaches `prompting_skill` to a matching route so the
 guide surfaces at the step before the prompt is written. The table behind the
