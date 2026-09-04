@@ -216,6 +216,37 @@ describe("streaming-input emit — routing hints", () => {
     expect(sent[0].hints?.perSlotLineage).toBeUndefined();
   });
 
+  it("uses a caller-supplied lineage verbatim and inherits no invocation lineage", async () => {
+    // Arrange: an iteration slot, so minting would fire if the caller's
+    // lineage did not take precedence.
+    const node = makeNode({
+      is_streaming_input: true,
+      output_correlation: {
+        item: { kind: "iteration", source: "items", group: "g" }
+      }
+    });
+    const inbox = new NodeInbox();
+    const { actor, sent } = createActor(
+      node,
+      inbox,
+      streamThen("items", async (outputs) => {
+        await outputs.emit("item", "a", { lineage: { own: { index: 7 } } });
+      })
+    );
+    await feedOne(inbox, "items", "in", { r1: { index: 2 } });
+
+    // Act
+    await actor.run();
+
+    // Assert: the caller owns the lineage shape — nothing minted, nothing
+    // inherited.
+    expect(sent).toHaveLength(1);
+    expect(sent[0].hints?.perSlotLineage).toEqual({
+      item: { own: { index: 7 } }
+    });
+    expect(sent[0].hints?.invocationLineage).toBeUndefined();
+  });
+
   it("mints an ascending iteration token per emit, keeping the inherited parent roots", async () => {
     // Arrange
     const node = makeNode({
