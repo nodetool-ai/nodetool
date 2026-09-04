@@ -48,9 +48,19 @@ const normalizeDataframe = (dataframe: DataframeRef): DataframeRef => {
   if (!Array.isArray(rows) || rows.length === 0) return dataframe;
 
   const hasColumns = !!dataframe.columns && dataframe.columns.length > 0;
-  const names = hasColumns
-    ? dataframe.columns!.map((column) => column.name)
-    : Array.from(new Set(rows.flatMap((row) => Object.keys(row ?? {}))));
+  let names: string[];
+  if (hasColumns) {
+    names = dataframe.columns!.map((column) => column.name);
+  } else {
+    const keysSet = new Set<string>();
+    for (const row of rows) {
+      if (!row) continue;
+      for (const key of Object.keys(row)) {
+        keysSet.add(key);
+      }
+    }
+    names = Array.from(keysSet);
+  }
   const columns: ColumnDef[] = hasColumns
     ? dataframe.columns!
     : names.map((name) => ({ name, data_type: inferColumnType(rows, name) }));
