@@ -40,75 +40,75 @@ const lowAction = (code: string) => ({
 });
 
 describe("importedActionRisk", () => {
-  it("is low for reads and local compute", () => {
+  it("is low for reads and local compute", async () => {
     expect(
-      importedActionRisk(
+      await importedActionRisk(
         `import { list_workflows, get_workflow } from "@nodetool-ai/sandbox-nodetool/workflows";\n` +
           `return (await list_workflows({})).workflows.length;`
       )
     ).toBe("low");
-    expect(importedActionRisk("return 1 + 1;")).toBe("low");
+    expect(await importedActionRisk("return 1 + 1;")).toBe("low");
   });
 
-  it("is high for a write import", () => {
+  it("is high for a write import", async () => {
     expect(
-      importedActionRisk(
+      await importedActionRisk(
         `import { delete_workflow } from "@nodetool-ai/sandbox-nodetool/workflows";\n` +
           `await delete_workflow({ workflow_id: "w1" });`
       )
     ).toBe("high");
   });
 
-  it("is high for an execute import", () => {
+  it("is high for an execute import", async () => {
     expect(
-      importedActionRisk(
+      await importedActionRisk(
         `import { run_workflow } from "@nodetool-ai/sandbox-nodetool/workflows";`
       )
     ).toBe("high");
   });
 
-  it("is high for a namespace or default import of a module with actionable exports", () => {
+  it("is high for a namespace or default import of a module with actionable exports", async () => {
     expect(
-      importedActionRisk(
+      await importedActionRisk(
         `import * as workflows from "@nodetool-ai/sandbox-nodetool/workflows";`
       )
     ).toBe("high");
     expect(
-      importedActionRisk(
+      await importedActionRisk(
         `import workflows from "@nodetool-ai/sandbox-nodetool/workflows";`
       )
     ).toBe("high");
   });
 
-  it("leaves a session tool the permission table does not know at the declared risk", () => {
+  it("leaves a session tool the permission table does not know at the declared risk", async () => {
     expect(
-      importedActionRisk(
+      await importedActionRisk(
         `import { ui_add } from "@nodetool-ai/sandbox-nodetool/ui";\nreturn (await ui_add({})).sum;`
       )
     ).toBe("low");
   });
 
-  it("ignores a pack import outside the capability namespace", () => {
+  it("ignores a pack import outside the capability namespace", async () => {
     expect(
-      importedActionRisk(`import { parse } from "@nodetool-ai/sandbox-yaml";`)
+      await importedActionRisk(`import { parse } from "@nodetool-ai/sandbox-yaml";`)
     ).toBe("low");
   });
 
-  it("is low for a body that does not parse — the sandbox reports the syntax error", () => {
-    expect(importedActionRisk("import { from")).toBe("low");
+  it("is low for a body that does not parse — the sandbox reports the syntax error", async () => {
+    expect(await importedActionRisk("import { from")).toBe("low");
   });
 });
 
 describe("effectiveActionRisk", () => {
-  it("keeps a declared high", () => {
-    expect(effectiveActionRisk({ risk: "high", code: "return 1;" })).toBe(
+  it("keeps a declared high", async () => {
+    expect(await effectiveActionRisk({ risk: "high", code: "return 1;" })).toBe(
       "high"
     );
   });
 
-  it("raises a declared low to the import floor", () => {
+  it("raises a declared low to the import floor", async () => {
     expect(
-      effectiveActionRisk(
+      await effectiveActionRisk(
         lowAction(
           `import { delete_workflow } from "@nodetool-ai/sandbox-nodetool/workflows";`
         )
@@ -116,8 +116,8 @@ describe("effectiveActionRisk", () => {
     ).toBe("high");
   });
 
-  it("fails closed without code", () => {
-    expect(effectiveActionRisk({ risk: "low" })).toBe("high");
+  it("fails closed without code", async () => {
+    expect(await effectiveActionRisk({ risk: "low" })).toBe("high");
   });
 });
 

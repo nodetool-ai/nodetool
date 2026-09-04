@@ -36,7 +36,6 @@ import {
   SANDBOX_CAPABILITY_PACK
 } from "@nodetool-ai/protocol";
 
-import { capabilityModuleSpecTable } from "../capabilities/registry.js";
 import type { CapabilityGate } from "../capabilities/types.js";
 import {
   permissionCategoryFor,
@@ -143,13 +142,31 @@ export function declaredActionRisk(
  * object model (`nodetool.*`) reaches tools without an import and is not
  * read here; the per-call ladder is what governs it.
  */
-export function importedActionRisk(code: string): ActionRisk {
+export async function importedActionRisk(code: string): Promise<ActionRisk> {
   const parsed = parseCodeBody(code);
   if ("error" in parsed) return "low";
-  return actionable(parsed.statements) ? "high" : "low";
+  return (await actionable(parsed.statements)) ? "high" : "low";
 }
 
-function actionable(statements: readonly CodeBodyStatement[]): boolean {
+/**
+ * Whether a capability module carries anything past read class. The registry
+ * is reached lazily: importing it here statically would make this contract
+ * module load every capability spec, and a host that mocks the registry (the
+ * CLI's permission-gate suite) only ever needs the tool name and the
+ * declared-risk path.
+ */
+async function moduleIsActionable(module: string): Promise<boolean> {
+  const { capabilityModuleSpecTable } = await import(
+    "../capabilities/registry.js"
+  );
+  return capabilityModuleSpecTable(module).some(
+    (spec) => spec.category !== "read"
+  );
+}
+
+async function actionable(
+  statements: readonly CodeBodyStatement[]
+): Promise<boolean> {
   for (const binding of staticImportBindings(statements)) {
     if (!binding.specifier.startsWith(SANDBOX_CAPABILITY_PACK)) continue;
     for (const name of binding.named) {
@@ -171,7 +188,7 @@ function actionable(statements: readonly CodeBodyStatement[]): boolean {
     if (!whole) continue;
     const module = sandboxCapabilityModuleName(statement.source.value);
     if (module === undefined) continue;
-    if (capabilityModuleSpecTable(module).some((spec) => spec.category !== "read")) {
+    if (await moduleIsActionable(module)) {
       return true;
     }
   }
@@ -179,9 +196,9 @@ function actionable(statements: readonly CodeBodyStatement[]): boolean {
 }
 
 /** The risk an action runs at: the declared value, raised by its imports. */
-export function effectiveActionRisk(
+export async function effectiveActionRisk(
   args: Record<string, unknown> | null | undefined
-): ActionRisk {
+): Promise<ActionRisk> {
   if (declaredActionRisk(args) === "high") return "high";
   const code = args?.["code"];
   return isString(code) ? importedActionRisk(code) : "high";
@@ -208,7 +225,8 @@ export async function admitCodeAction(
   args: Record<string, unknown>
 ): Promise<ActionAdmission> {
   if (!gate || gate.mode !== "auto") return ALLOWED;
-  if (effectiveActionRisk(args) === "low") return ALLOWED;
+  const risk = await effectiveActionRisk(args);
+  if (risk === "low") return ALLOWED;
   if (gate.sessionAllow.has(EXECUTE_CODE_TOOL_NAME)) return ALLOWED;
 
   const answer = await gate.requestApproval({
@@ -216,7 +234,7 @@ export async function admitCodeAction(
     category: "execute",
     args: {
       title: isString(args["title"]) ? args["title"] : "",
-      risk: effectiveActionRisk(args),
+      risk,
       code: isString(args["code"]) ? args["code"] : ""
     },
     message: executeCodeMessage(args),
