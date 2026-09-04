@@ -108,6 +108,14 @@ export const createMediaComposerStyles = (theme: Theme) =>
       flexWrap: "nowrap"
     },
 
+    // The canvas dock (host actions after the chips) keeps the cluster on one
+    // line at every width: a wrapping cluster drops the workspace chip under
+    // the model chip while the model chip still sits at its max width, since
+    // flex wraps before it shrinks. Single-line, the model chip truncates.
+    ".media-chip-row.has-trailing .media-chip-main": {
+      flexWrap: "nowrap"
+    },
+
     ".media-chip-row .divider-dot": {
       width: 4,
       height: 4,
