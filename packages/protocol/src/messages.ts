@@ -907,7 +907,7 @@ export interface RpcErrorPayload {
   message: string;
   retryable: boolean;
   apiCode?: string | null;
-  trpcCode?: string;
+  trpcCode?: string | null;
 }
 
 /**

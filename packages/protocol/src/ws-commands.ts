@@ -472,7 +472,8 @@ export const rpcErrorPayloadOutSchema = z
     message: z.string(),
     retryable: z.boolean(),
     apiCode: z.string().nullable().optional(),
-    trpcCode: z.string().optional()
+    // MsgPack encodes an absent trpcCode as null, so accept both.
+    trpcCode: z.string().nullable().optional()
   })
   .passthrough();
 
