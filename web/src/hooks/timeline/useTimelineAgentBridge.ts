@@ -101,6 +101,31 @@ function sampleClipTimelineTimes(clip: TimelineClip, count: number): number[] {
   );
 }
 
+/**
+ * Resolve a caller's frame time to a timeline time.
+ *
+ * `timesMs` is documented as timeline time, but a caller inspecting one clip
+ * thinks in that clip's own time — "show me 200ms in" — and a clip that starts
+ * at 15552ms then rejected every number a reasonable caller passed. Both
+ * readings are accepted: a time inside the clip's timeline span is timeline
+ * time, and otherwise a time inside `0…durationMs` is clip-relative. The two
+ * only overlap on a clip that starts at 0, where they mean the same frame.
+ */
+function timelineTimeForFrameRequest(
+  clip: TimelineClip,
+  requestedMs: number
+): number {
+  const clipStart = clip.startMs;
+  const clipEnd = clip.startMs + clip.durationMs;
+  if (requestedMs >= clipStart && requestedMs <= clipEnd) return requestedMs;
+  if (requestedMs >= 0 && requestedMs <= clip.durationMs) {
+    return clipStart + requestedMs;
+  }
+  throw new Error(
+    `Frame time ${requestedMs}ms is outside clip "${clip.name}": pass a timeline time in ${clipStart}–${clipEnd}ms, or a clip-relative time in 0–${clip.durationMs}ms.`
+  );
+}
+
 function sourceTimeForTimelineTime(
   clip: TimelineClip,
   timelineTimeMs: number
@@ -743,9 +768,10 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           opts.timesMs && opts.timesMs.length > 0
             ? opts.timesMs
                 .slice(0, MAX_FRAME_COUNT)
-                .map((time) => Math.round(time))
+                .map((time) =>
+                  timelineTimeForFrameRequest(clip, Math.round(time))
+                )
             : sampleClipTimelineTimes(clip, opts.count ?? DEFAULT_FRAME_COUNT);
-        timelineTimes.forEach((time) => sourceTimeForTimelineTime(clip, time));
         const width = clampNumber(
           Math.round(opts.width ?? DEFAULT_FRAME_WIDTH),
           1,

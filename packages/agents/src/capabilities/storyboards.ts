@@ -87,6 +87,7 @@ export {
   EXTRACT_SCRIPT_SCHEMA
 } from "./storyboards.specs.js";
 import { resolveProjectId } from "./project-scope.js";
+import { mp4DurationSeconds } from "../utils/video-duration.js";
 /** Shots one call may render, so a stray `targets: "all"` cannot bankrupt a run. */
 const MAX_SHOTS_PER_CALL = 24;
 /** Attempts to land a document write: the first try plus one re-read-and-reapply (ADR 0001). */
@@ -424,7 +425,10 @@ async function renderMedia(
   req: Omit<GenerationRequest, "origin" | "persist">,
   namePrefix: string,
   mime?: string
-): Promise<{ assetId: string; uri: string; generationId: string } | ToolError> {
+): Promise<
+  | { assetId: string; uri: string; generationId: string; output: unknown }
+  | ToolError
+> {
   const { randomUUID } = await import("node:crypto");
   const id = randomUUID();
   const persist: GenerationRequest["persist"] = { name: namePrefix };
@@ -442,7 +446,40 @@ async function renderMedia(
         "The render succeeded but could not be saved as an asset, so it cannot be attached to the shot. This host has no asset storage wired."
     };
   }
-  return { assetId: asset.asset_id, uri: asset.uri, generationId: id };
+  return {
+    assetId: asset.asset_id,
+    uri: asset.uri,
+    generationId: id,
+    output: result.output
+  };
+}
+
+/**
+ * The clip a render actually produced, with its real length when readable.
+ *
+ * A video model quantizes the duration it is asked for — a shot directed at
+ * 1.5s came back as 5.184s — and the ref carried only the asset id, so
+ * assembly laid down the *intended* 1.5s over five seconds of footage and
+ * threw the rest away without saying so. The bytes are already in hand here,
+ * so the length is free to read; a container we cannot parse leaves `duration`
+ * unset, which every reader treats as unknown rather than zero.
+ */
+export function renderedVideoRef(saved: {
+  assetId: string;
+  uri: string;
+  output: unknown;
+}): VideoRef {
+  const clip: VideoRef = {
+    type: "video",
+    asset_id: saved.assetId,
+    uri: saved.uri
+  };
+  const bytes = saved.output;
+  if (bytes instanceof Uint8Array) {
+    const seconds = mp4DurationSeconds(bytes);
+    if (seconds !== null) clip.duration = seconds;
+  }
+  return clip;
 }
 
 const errorMessage = (e: unknown): string =>
@@ -853,11 +890,7 @@ const renderStoryboardClips: CapabilityExport = {
           );
           if (isError(saved)) return { ...base, error: saved.error };
 
-          const clip: VideoRef = {
-            type: "video",
-            asset_id: saved.assetId,
-            uri: saved.uri
-          };
+          const clip = renderedVideoRef(saved);
           const updated = await patchShot(row.id, shot.id, (current) => {
             const versions =
               current.clip_versions ?? (current.clip ? [current.clip] : []);
@@ -948,11 +981,7 @@ const reviseStoryboardClip: CapabilityExport = {
       );
       if (isError(saved)) return saved;
 
-      const clip: VideoRef = {
-        type: "video",
-        asset_id: saved.assetId,
-        uri: saved.uri
-      };
+      const clip = renderedVideoRef(saved);
       const updated = await patchShot(row.id, shot.id, (current) => {
         const versions =
           current.clip_versions ?? (current.clip ? [current.clip] : []);
@@ -1030,6 +1059,23 @@ const assembleStoryboardTimeline: CapabilityExport = {
         });
     const skippedLineIds =
       "skippedLineIds" in assembled ? assembled.skippedLineIds : [];
+    // A model returns the length it returns: shots directed at 1.5s come back
+    // at 5.2s, and the cut then shows each shot's head. Saying which shots
+    // that happened to, and by how much, is what turns a silent mismatch into
+    // a decision the caller can make.
+    if (assembled.trimmedShots.length > 0) {
+      const worst = assembled.trimmedShots.reduce((a, b) =>
+        Math.abs(b.sourceMs - b.usedMs) > Math.abs(a.sourceMs - a.usedMs)
+          ? b
+          : a
+      );
+      warnings.push(
+        `${assembled.trimmedShots.length} shot(s) do not match their rendered footage — ` +
+          `the longest gap is ${Math.round(Math.abs(worst.sourceMs - worst.usedMs))}ms on shot ${worst.shotId} ` +
+          `(${worst.usedMs}ms in the cut, ${worst.sourceMs}ms rendered). ` +
+          `Re-time the clips, or set each shot's duration_seconds to the length its model produces.`
+      );
+    }
     if (assembled.clips.length === 0) {
       return {
         error:
@@ -1094,7 +1140,8 @@ const assembleStoryboardTimeline: CapabilityExport = {
         track_count: assembled.tracks.length,
         script_id: script ? scriptId : null,
         skipped_shot_ids: assembled.skippedShotIds,
-        skipped_line_ids: skippedLineIds
+        skipped_line_ids: skippedLineIds,
+        trimmed_shots: assembled.trimmedShots
       };
       if (warnings.length) {
         created.warnings = warnings;
@@ -1177,7 +1224,8 @@ const assembleStoryboardTimeline: CapabilityExport = {
         track_count: tracks.length,
         script_id: script ? scriptId : null,
         skipped_shot_ids: assembled.skippedShotIds,
-        skipped_line_ids: skippedLineIds
+        skipped_line_ids: skippedLineIds,
+        trimmed_shots: assembled.trimmedShots
       };
       if (warnings.length) {
         result.warnings = warnings;
@@ -1213,8 +1261,33 @@ const BOARD_OPS = [
 
 type BoardOpName = (typeof BOARD_OPS)[number];
 
+/**
+ * Op names an agent reaches for that mean one of {@link BOARD_OPS}.
+ *
+ * The browser tool that casts entities is `ui_storyboard_set_entities`, so a
+ * script written against it calls `{op: "set_entities", entity_ids: [...]}`
+ * here and was refused — the rejection listed the five real ops without
+ * saying which one takes `entity_ids`, and the caller had to go read the tool
+ * catalogue mid-task. The alias resolves to the op that already does the work.
+ */
+const BOARD_OP_ALIASES: Readonly<Record<string, BoardOpName>> = {
+  set_entities: "set_board",
+  set_storyboard: "set_board",
+  add_shots: "add_shot",
+  edit_shot: "update_shot",
+  delete_shot: "remove_shot",
+  move_shot: "reorder_shot"
+};
+
 const isBoardOpName = (value: string): value is BoardOpName =>
   (BOARD_OPS as readonly string[]).includes(value);
+
+/** The op a name selects, following {@link BOARD_OP_ALIASES}. */
+export const resolveBoardOpName = (value: string): BoardOpName | null => {
+  const name = value.trim();
+  if (isBoardOpName(name)) return name;
+  return BOARD_OP_ALIASES[name] ?? null;
+};
 
 interface ParsedBoardOp {
   op: BoardOpName;
@@ -1239,12 +1312,13 @@ function parseBoardOps(raw: unknown): ParsedBoardOp[] | ToolError {
       return { error: `ops[${index}] must be an object.` };
     }
     const { op, ...args } = entry as Record<string, unknown>;
-    if (!isString(op) || !isBoardOpName(op.trim())) {
+    const resolved = isString(op) ? resolveBoardOpName(op) : null;
+    if (!resolved) {
       return {
         error: `ops[${index}] names "${String(op)}"; expected one of ${BOARD_OPS.join(", ")}.`
       };
     }
-    parsed.push({ op: op.trim() as BoardOpName, args });
+    parsed.push({ op: resolved, args });
   }
   return parsed;
 }

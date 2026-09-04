@@ -39,7 +39,9 @@ import {
   isAssemblableShot,
   shotAudioClip,
   shotDurationMs,
-  type AssembledTimeline
+  shotSourceDurationMs,
+  type AssembledTimeline,
+  type TrimmedShot
 } from "./storyboard.js";
 import type { TimelineClip, TimelineTrack } from "./types.js";
 
@@ -82,6 +84,7 @@ export function buildLinkedTimeline(
       : undefined;
 
   let cursorMs = 0;
+  const trimmedShots: TrimmedShot[] = [];
   for (const shot of ordered) {
     const lineIds = shot.script_line_ids ?? [];
     if (!isAssemblableShot(shot)) {
@@ -91,8 +94,17 @@ export function buildLinkedTimeline(
     }
 
     const shotStartMs = cursorMs;
+    // A linked shot runs as long as the lines it covers — the words drive the
+    // cut here, not the footage — so the source length is reported, never
+    // imposed. A shot whose render is shorter than its lines still shows up in
+    // `trimmedShots` with a negative headroom of its own kind: `sourceMs`
+    // under `usedMs` is the caller's cue that the picture runs out first.
     const durationMs =
       linkedShotDurationMs(shot, linesById) ?? shotDurationMs(shot);
+    const sourceMs = shotSourceDurationMs(shot);
+    if (sourceMs !== null && sourceMs !== durationMs) {
+      trimmedShots.push({ shotId: shot.id, usedMs: durationMs, sourceMs });
+    }
     const videoClip = makeClip({
       trackId: shotTrack.id,
       name: shot.slug ?? `Shot ${shot.index + 1}`,
@@ -176,6 +188,7 @@ export function buildLinkedTimeline(
     clips,
     durationMs: cursorMs,
     skippedShotIds,
-    skippedLineIds
+    skippedLineIds,
+    trimmedShots
   };
 }

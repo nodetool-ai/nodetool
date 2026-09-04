@@ -285,6 +285,40 @@ describe("storyboards capability behaviour", () => {
     });
   });
 
+  it("casts entities through the op name the browser tool goes by", async () => {
+    const context = ctx();
+    const created = (await run(context).invoke("create_storyboard", {
+      name: "Cast"
+    })) as { storyboard_id: string };
+
+    // The browser tool is `ui_storyboard_set_entities`, so a script written
+    // against it reaches for `set_entities` here. That used to be refused with
+    // a list of five op names, none of which said which one takes entity_ids.
+    const edited = (await run(context).invoke("edit_storyboard", {
+      storyboard_id: created.storyboard_id,
+      ops: [{ op: "set_entities", entity_ids: ["style-1", "char-1"] }]
+    })) as { applied: number; failed: number };
+    expect(edited.failed).toBe(0);
+    expect(edited.applied).toBe(1);
+
+    const read = (await run(context).invoke("get_storyboard", {
+      storyboard_id: created.storyboard_id
+    })) as { entity_ids: string[] };
+    expect(read.entity_ids).toEqual(["style-1", "char-1"]);
+  });
+
+  it("still refuses an op name that means nothing", async () => {
+    const context = ctx();
+    const created = (await run(context).invoke("create_storyboard", {
+      name: "Bogus"
+    })) as { storyboard_id: string };
+    const refused = (await run(context).invoke("edit_storyboard", {
+      storyboard_id: created.storyboard_id,
+      ops: [{ op: "set_everything", entity_ids: ["a"] }]
+    })) as { error?: string };
+    expect(refused.error).toMatch(/expected one of/);
+  });
+
   it("set_board clears a model when passed null", async () => {
     const context = ctx();
     const created = (await run(context).invoke("create_storyboard", {

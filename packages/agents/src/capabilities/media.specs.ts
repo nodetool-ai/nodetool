@@ -454,7 +454,10 @@ export const understandVideoSpec: CapabilitySpec = {
     "A provider that reads video natively (Gemini) gets the whole clip with " +
     "its audio; every other vision model is sent stills sampled from it, " +
     "which carry no audio and no motion between frames. For a single still " +
-    "use critique_image instead.",
+    "use critique_image instead. The reply carries `truncated`: a reasoning " +
+    "model can spend the whole token budget thinking and return a fragment, " +
+    "so a `truncated` answer is half an answer — raise max_tokens or read it " +
+    "again with a non-reasoning model rather than acting on it.",
   inputSchema: UNDERSTAND_VIDEO_SCHEMA,
   // Unlisted in `TOOL_PERMISSION_CATEGORIES`, so the gate classes it
   // `external` — the same category the vision judges carry.

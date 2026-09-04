@@ -100,6 +100,22 @@ export interface AssembledTimeline {
   durationMs: number;
   /** Shots skipped because they have no persisted clip asset. */
   skippedShotIds: string[];
+  /**
+   * Shots whose render is longer than the direction asked for, and by how
+   * much. The cut takes the head of each and leaves the rest; saying so is
+   * what lets a caller re-time on purpose instead of discovering it in
+   * playback.
+   */
+  trimmedShots: TrimmedShot[];
+}
+
+/** A shot whose source footage outruns its place in the cut. */
+export interface TrimmedShot {
+  shotId: string;
+  /** Length used on the timeline. */
+  usedMs: number;
+  /** Length of the rendered source. */
+  sourceMs: number;
 }
 
 /** A shot is assemblable when its clip landed as a persisted asset. */
@@ -115,11 +131,56 @@ const assetIdOf = (ref: { asset_id?: string | null } | null | undefined) =>
     ? ref.asset_id
     : undefined;
 
-/** Clip length for a shot: its target duration, or the default. */
+/** Clip length a shot was directed at: its target duration, or the default. */
 export const shotDurationMs = (shot: Shot): number =>
   typeof shot.duration_seconds === "number" && shot.duration_seconds > 0
     ? Math.round(shot.duration_seconds * 1000)
     : DEFAULT_SHOT_MS;
+
+/** Length of the footage a shot's selected clip actually holds, when known. */
+export const shotSourceDurationMs = (shot: Shot): number | null => {
+  const seconds = shot.clip?.duration;
+  return typeof seconds === "number" && seconds > 0
+    ? Math.round(seconds * 1000)
+    : null;
+};
+
+/** How a shot's laid-down length was decided, and what it cost. */
+export interface ShotLayout {
+  /** Length on the timeline. */
+  durationMs: number;
+  /** Explicit source window, set whenever the source length is known. */
+  inPointMs?: number;
+  outPointMs?: number;
+  /** Footage the cut leaves unused, in ms. Zero when nothing was discarded. */
+  unusedSourceMs: number;
+}
+
+/**
+ * Fit a shot's directed length to the footage that came back.
+ *
+ * A video model returns what it returns: eight shots directed at 1.0–3.5s all
+ * rendered as 5.184s. Assembly used to write the directed length and nothing
+ * else, so each clip played its source's head and dropped the remainder with
+ * no in/out point to show for it — the cut said 1.5s, the media was 5.2s, and
+ * the two never met. Now the window is explicit: a shot keeps its directed
+ * length, capped at the footage that exists, and reports what it left on the
+ * floor so a caller can re-time deliberately.
+ */
+export function layoutShot(shot: Shot): ShotLayout {
+  const intended = shotDurationMs(shot);
+  const source = shotSourceDurationMs(shot);
+  if (source === null) {
+    return { durationMs: intended, unusedSourceMs: 0 };
+  }
+  const durationMs = Math.min(intended, source);
+  return {
+    durationMs,
+    inPointMs: 0,
+    outPointMs: durationMs,
+    unusedSourceMs: source - durationMs
+  };
+}
 
 export function buildStoryboardTimeline(
   input: StoryboardAssemblyInput
@@ -140,8 +201,17 @@ export function buildStoryboardTimeline(
   const clips: TimelineClip[] = [];
 
   let cursorMs = 0;
+  const trimmedShots: TrimmedShot[] = [];
   for (const shot of assemblable) {
-    const durationMs = shotDurationMs(shot);
+    const layout = layoutShot(shot);
+    const durationMs = layout.durationMs;
+    if (layout.unusedSourceMs > 0) {
+      trimmedShots.push({
+        shotId: shot.id,
+        usedMs: durationMs,
+        sourceMs: durationMs + layout.unusedSourceMs
+      });
+    }
     const videoClip = makeClip({
       trackId: shotTrack.id,
       name: shot.slug ?? `Shot ${shot.index + 1}`,
@@ -156,6 +226,12 @@ export function buildStoryboardTimeline(
       storyboardShotId: shot.id,
       versions: []
     });
+    // The window is written only when the source length is known: an unknown
+    // length leaves the clip exactly as it was before assembly could read one.
+    if (layout.inPointMs !== undefined) {
+      videoClip.inPointMs = layout.inPointMs;
+      videoClip.outPointMs = layout.outPointMs;
+    }
     clips.push(videoClip, shotAudioClip(videoClip, shotAudioTrack.id));
     cursorMs += durationMs;
   }
@@ -211,7 +287,7 @@ export function buildStoryboardTimeline(
     );
   }
 
-  return { tracks, clips, durationMs: cursorMs, skippedShotIds };
+  return { tracks, clips, durationMs: cursorMs, skippedShotIds, trimmedShots };
 }
 
 export interface StoryboardPreviewInput {
@@ -273,7 +349,12 @@ export function buildStoryboardPreviewTimeline(
       stillShotIds.push(shot.id);
     }
 
-    const durationMs = shotDurationMs(shot);
+    // A held keyframe is a still with no source length of its own; only a
+    // real clip gets fitted to its footage.
+    const layout: ShotLayout = clipAssetId
+      ? layoutShot(shot)
+      : { durationMs: shotDurationMs(shot), unusedSourceMs: 0 };
+    const durationMs = layout.durationMs;
     const shotClip = makeClip({
       trackId: shotTrack.id,
       name: shot.slug ?? `Shot ${shot.index + 1}`,
@@ -288,6 +369,10 @@ export function buildStoryboardPreviewTimeline(
       storyboardShotId: shot.id,
       versions: []
     });
+    if (layout.inPointMs !== undefined) {
+      shotClip.inPointMs = layout.inPointMs;
+      shotClip.outPointMs = layout.outPointMs;
+    }
     clips.push(shotClip);
     // A held keyframe is a still: there is no rendered clip to take sound from.
     if (clipAssetId) {

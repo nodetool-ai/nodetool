@@ -106,3 +106,120 @@ export function extractJSON(text: string): JsonValue | null {
 
   return null;
 }
+
+/**
+ * The largest reply {@link salvageTruncatedJSON} will try to repair.
+ *
+ * Repair walks candidate cut points and re-parses at each, so an unbounded
+ * input is quadratic. A judge reply that runs past this is not a truncated
+ * object; it is something else.
+ */
+const MAX_SALVAGE_CHARS = 200_000;
+
+/** How many cut points a single salvage may try before giving up. */
+const MAX_SALVAGE_ATTEMPTS = 300;
+
+/** Characters that can legally end a complete JSON value. */
+const VALUE_END = new Set([
+  "}",
+  "]",
+  '"',
+  "e", // true / false
+  "l", // null
+  "0",
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9"
+]);
+
+/**
+ * Recover the complete prefix of a JSON object that was cut off mid-write.
+ *
+ * A vision judge asked for `{"verdict": …, "defects": […]}` and stopped at its
+ * token ceiling three defects in. {@link extractJSON} returns null for that —
+ * every strategy needs a balanced document — so the caller reported "did not
+ * return parseable JSON" and threw away a verdict and two usable defects that
+ * were fully written.
+ *
+ * This drops the incomplete tail: it walks back from the end to the last point
+ * where a value had just closed, closes the brackets that were still open
+ * there, and parses that. Returns null when nothing parses — a reply that is
+ * not JSON at all stays an error, and a *complete* document is
+ * {@link extractJSON}'s job, so try that first.
+ */
+export function salvageTruncatedJSON(text: string): JsonValue | null {
+  if (text.length > MAX_SALVAGE_CHARS) return null;
+  const fence = text.match(/```(?:json)?\s*\n?([\s\S]*)$/);
+  const body = fence?.[1] ?? text;
+  const start = (() => {
+    const brace = body.indexOf("{");
+    const bracket = body.indexOf("[");
+    if (brace === -1) return bracket;
+    if (bracket === -1) return brace;
+    return Math.min(brace, bracket);
+  })();
+  if (start === -1) return null;
+
+  // Forward pass: for every index, the bracket stack in force and whether the
+  // scanner is inside a string literal there.
+  const stacks: string[][] = [];
+  const inString: boolean[] = [];
+  const stack: string[] = [];
+  let open = false;
+  let escape = false;
+  for (let i = start; i < body.length; i++) {
+    stacks.push([...stack]);
+    inString.push(open);
+    const ch = body[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (open) {
+      if (ch === "\\") escape = true;
+      else if (ch === '"') open = false;
+      continue;
+    }
+    if (ch === '"') open = true;
+    else if (ch === "{") stack.push("}");
+    else if (ch === "[") stack.push("]");
+    else if (ch === "}" || ch === "]") stack.pop();
+  }
+  stacks.push([...stack]);
+  inString.push(open);
+
+  let attempts = 0;
+  for (let cut = body.length; cut > start; cut--) {
+    const rel = cut - start;
+    if (inString[rel]) continue;
+    const prev = body[cut - 1];
+    if (!VALUE_END.has(prev)) continue;
+    const closers = stacks[rel];
+    if (closers.length === 0) continue; // a balanced document is extractJSON's
+    if (++attempts > MAX_SALVAGE_ATTEMPTS) break;
+    const candidate = body.slice(start, cut) + closers.slice().reverse().join("");
+    try {
+      return JSON.parse(candidate) as JsonValue;
+    } catch {
+      // keep walking back
+    }
+  }
+  return null;
+}
+
+/**
+ * {@link extractJSON}, falling back to {@link salvageTruncatedJSON}.
+ *
+ * For callers where a partial answer beats no answer — a critique whose
+ * defects list was cut short is still a critique. Never use it where a
+ * truncated document would be mistaken for a complete instruction.
+ */
+export function extractJSONAllowingTruncation(text: string): JsonValue | null {
+  return extractJSON(text) ?? salvageTruncatedJSON(text);
+}

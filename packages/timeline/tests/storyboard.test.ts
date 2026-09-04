@@ -341,3 +341,115 @@ describe("buildStoryboardPreviewTimeline", () => {
     expect(picture.map((c) => c.name)).toEqual(["Shot 1", "Shot 2"]);
   });
 });
+
+// ── rendered length vs directed length ────────────────────────────────
+//
+// Reproduction of the shipped failure: eight shots directed at 1.0–3.5s all
+// came back from the model at 5.184s, and assembly laid down the directed
+// length with no in/out point — so every clip played its source's head and
+// discarded the rest without saying so.
+
+describe("assembly against the footage that came back", () => {
+  const renderedShot = (
+    id: string,
+    index: number,
+    directedSeconds: number,
+    sourceSeconds?: number
+  ): Shot =>
+    makeShot({
+      id,
+      index,
+      status: "rendered",
+      duration_seconds: directedSeconds,
+      clip:
+        sourceSeconds === undefined
+          ? { type: "video", asset_id: `asset-${id}` }
+          : { type: "video", asset_id: `asset-${id}`, duration: sourceSeconds }
+    });
+
+  it("writes an explicit source window and reports the unused footage", () => {
+    const result = buildStoryboardTimeline({
+      boardId: "board-1",
+      shots: [renderedShot("a", 0, 1.5, 5.184)]
+    });
+    const [picture] = pictureClips(result.clips);
+    expect(picture.durationMs).toBe(1500);
+    expect(picture.inPointMs).toBe(0);
+    expect(picture.outPointMs).toBe(1500);
+    expect(result.trimmedShots).toEqual([
+      { shotId: "a", usedMs: 1500, sourceMs: 5184 }
+    ]);
+  });
+
+  it("never lays down more timeline than the render holds", () => {
+    const result = buildStoryboardTimeline({
+      boardId: "board-1",
+      shots: [renderedShot("a", 0, 8, 5.184)]
+    });
+    const [picture] = pictureClips(result.clips);
+    expect(picture.durationMs).toBe(5184);
+    expect(result.durationMs).toBe(5184);
+    expect(result.trimmedShots).toEqual([]);
+  });
+
+  it("leaves a shot whose source length is unknown exactly as before", () => {
+    const result = buildStoryboardTimeline({
+      boardId: "board-1",
+      shots: [renderedShot("a", 0, 1.5)]
+    });
+    const [picture] = pictureClips(result.clips);
+    expect(picture.durationMs).toBe(1500);
+    expect(picture.inPointMs).toBeUndefined();
+    expect(result.trimmedShots).toEqual([]);
+  });
+
+  it("keeps the audio twin on the same window as its picture", () => {
+    const result = buildStoryboardTimeline({
+      boardId: "board-1",
+      shots: [renderedShot("a", 0, 1.5, 5.184)]
+    });
+    const audio = result.clips.filter((c) => c.mediaType === "audio");
+    expect(audio).toHaveLength(1);
+    expect(audio[0].durationMs).toBe(1500);
+  });
+
+  it("lays the whole board end to end without gaps or overlaps", () => {
+    const result = buildStoryboardTimeline({
+      boardId: "board-1",
+      shots: [
+        renderedShot("a", 0, 1.5, 5.184),
+        renderedShot("b", 1, 1.0, 5.184),
+        renderedShot("c", 2, 2.0, 5.184)
+      ]
+    });
+    expect(pictureClips(result.clips).map((c) => [c.startMs, c.durationMs])).toEqual(
+      [
+        [0, 1500],
+        [1500, 1000],
+        [2500, 2000]
+      ]
+    );
+    expect(result.durationMs).toBe(4500);
+    expect(result.trimmedShots).toHaveLength(3);
+  });
+
+  it("fits a preview clip to its footage too, and leaves stills alone", () => {
+    const result = buildStoryboardPreviewTimeline({
+      boardId: "board-1",
+      shots: [
+        renderedShot("a", 0, 8, 5.184),
+        makeShot({
+          id: "b",
+          index: 1,
+          status: "keyframe_ready",
+          duration_seconds: 3,
+          keyframe: keyframeRef("still-b")
+        })
+      ]
+    });
+    const [clip, still] = pictureClips(result.clips);
+    expect(clip.durationMs).toBe(5184);
+    expect(still.durationMs).toBe(3000);
+    expect(still.inPointMs).toBeUndefined();
+  });
+});
