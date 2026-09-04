@@ -71,3 +71,39 @@ export function buildPastedClips(
   }
   return pasted;
 }
+
+/**
+ * Copies of `clips` re-homed onto `trackId`, each under a fresh id and at its
+ * original time. A link group whose members are all in `clips` keeps a link
+ * under a fresh shared id, so the copies form their own group; a lone half of
+ * a link (its partner lives on another track) is copied unlinked.
+ */
+export function cloneClipsToTrack(
+  clips: readonly TimelineClip[],
+  trackId: string
+): TimelineClip[] {
+  const groupCount = new Map<string, number>();
+  for (const c of clips) {
+    if (c.linkId !== undefined) {
+      groupCount.set(c.linkId, (groupCount.get(c.linkId) ?? 0) + 1);
+    }
+  }
+  const freshLinkByGroup = new Map<string, string>();
+  return clips.map((c) => {
+    let linkId: string | undefined;
+    if (c.linkId !== undefined && (groupCount.get(c.linkId) ?? 0) >= 2) {
+      let fresh = freshLinkByGroup.get(c.linkId);
+      if (fresh === undefined) {
+        fresh = createTimeOrderedUuid();
+        freshLinkByGroup.set(c.linkId, fresh);
+      }
+      linkId = fresh;
+    }
+    return makeClip({
+      ...structuredClone(c),
+      id: createTimeOrderedUuid(),
+      trackId,
+      linkId
+    });
+  });
+}
