@@ -195,10 +195,21 @@ export function mediaLocatorFrom(value: unknown): string {
   );
 }
 
-/** A string that names media, not an option like `"png"` or `"cover"`. */
+/**
+ * A string that names media, not an option like `"png"` or `"cover"`.
+ *
+ * A `data:` URI carries no `//`, and is what {@link storeOrInline} returns
+ * when the run has no storage, so it needs a branch of its own. The prefix is
+ * matched case-sensitively because every resolver downstream is, so a `DATA:`
+ * accepted here would be a locator none of them can dereference.
+ */
 export function isMediaLocatorString(value: string): boolean {
   const locator = value.trim();
-  return locator.includes("://") || locator.startsWith("/api/");
+  return (
+    locator.includes("://") ||
+    locator.startsWith("/api/") ||
+    (locator.startsWith("data:") && locator.length > "data:".length)
+  );
 }
 
 /** Whether `image.*` should treat the value as a media ref, not as nested data. */
