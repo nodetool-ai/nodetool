@@ -200,7 +200,7 @@ const Help = ({
 }) => {
   const helpIndex = useAppHeaderStore((state) => state.helpIndex);
   const setHelpIndex = useAppHeaderStore((state) => state.setHelpIndex);
-  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setHelpIndex(newValue);
   };
   const [expandedNodetool, setExpandedNodetool] = useState(true);
@@ -210,7 +210,7 @@ const Help = ({
   const nodetoolTypes = DATA_TYPES;
 
   const handleAccordionChange =
-    (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    (panel: string) => (_event: React.SyntheticEvent, isExpanded: boolean) => {
       if (panel === "nodetool") {
         setExpandedNodetool(isExpanded);
       }

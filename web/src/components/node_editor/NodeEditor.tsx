@@ -228,7 +228,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <WorkflowShareDialogHost />
               <Modal
                 open={showShortcuts}
-                onClose={(event, reason) => {
+                onClose={(_event, reason) => {
                   if (reason === "backdropClick") {
                     setShowShortcuts(false);
                   }

@@ -78,7 +78,7 @@ export default function useConnectionHandlers() {
   const { openContextMenu } = useContextMenu();
 
   const onConnectStart: OnConnectStart = useCallback(
-    (event, { nodeId, handleId, handleType }) => {
+    (_event, { nodeId, handleId, handleType }) => {
       if (!nodeId || !handleId || !handleType) {
         console.warn("Missing required data for connection start");
         return;

@@ -15,7 +15,7 @@ import { useMemo } from "react";
 import { useStudioCredits } from "./useStudioCredits";
 import type { CuratedOption } from "./curatedModels";
 
-export function useSpendableModelIds(): ReadonlySet<string> | null {
+function useSpendableModelIds(): ReadonlySet<string> | null {
   const { status } = useStudioCredits();
   return useMemo(
     () => (status ? new Set(status.spendableModels) : null),

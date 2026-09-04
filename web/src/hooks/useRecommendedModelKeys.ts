@@ -31,7 +31,7 @@ const RECOMMENDED_STALE_TIME = 5 * 60 * 1000;
 
 const EMPTY_MODELS: UnifiedModel[] = [];
 
-export const useRecommendedModels = (): UnifiedModel[] => {
+const useRecommendedModels = (): UnifiedModel[] => {
   const { data } = useQuery<UnifiedModel[]>({
     queryKey: ["recommended-models"],
     queryFn: () => trpc.models.recommended.query({ check_servers: false }),

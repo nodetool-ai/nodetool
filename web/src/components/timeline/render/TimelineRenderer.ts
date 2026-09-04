@@ -64,7 +64,7 @@ import { renderTimelineAudio } from "./renderAudio";
 // module-eval time, which keeps the editor importable under jsdom.
 
 /** Containers the browser exporter can write. */
-export const BROWSER_EXPORT_FORMATS = ["mp4", "webm", "png_sequence"] as const;
+const BROWSER_EXPORT_FORMATS = ["mp4", "webm", "png_sequence"] as const;
 
 export type BrowserExportFormat = (typeof BROWSER_EXPORT_FORMATS)[number];
 
