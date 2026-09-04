@@ -1,32 +1,16 @@
-import { performance } from 'node:perf_hooks';
-import assert from 'node:assert';
+const rows = Array.from({ length: 100000 }, (_, i) => ({ a: 1, b: 2, c: 3, d: 4, e: 5 }));
 
-console.log("Mock benchmark simulation running");
+console.time('flatMap');
+const names1 = Array.from(new Set(rows.flatMap((row) => Object.keys(row ?? {}))));
+console.timeEnd('flatMap');
 
-function simulateOld(n) {
-  const start = performance.now();
-  let count = 0;
-  for (let i = 0; i < n; i++) {
-    // simulated N+1 query
-    for(let j = 0; j < 10000; j++) { count++ }
+console.time('manual');
+const keysSet = new Set();
+for (const row of rows) {
+  if (!row) continue;
+  for (const key of Object.keys(row)) {
+    keysSet.add(key);
   }
-  const end = performance.now();
-  return end - start;
 }
-
-function simulateNew(n) {
-  const start = performance.now();
-  let count = 0;
-  // simulated batch query
-  for(let j = 0; j < 10000 * n / 10; j++) { count++ }
-  const end = performance.now();
-  return end - start;
-}
-
-const n = 100;
-const t1 = simulateOld(n);
-const t2 = simulateNew(n);
-
-console.log(`Baseline (N+1 queries): ${t1.toFixed(2)} ms`);
-console.log(`Optimized (Batched queries): ${t2.toFixed(2)} ms`);
-console.log(`Improvement: ${(t1/t2).toFixed(2)}x faster`);
+const names2 = Array.from(keysSet);
+console.timeEnd('manual');
