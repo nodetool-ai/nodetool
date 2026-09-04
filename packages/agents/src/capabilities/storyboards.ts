@@ -983,19 +983,6 @@ const reviseStoryboardClip: CapabilityExport = {
 // assemble_storyboard_timeline
 // ---------------------------------------------------------------------------
 
-/** Render size for an aspect ratio, at a 1080px short edge. */
-function frameSize(aspectRatio: string) {
-  const [w, h] = aspectRatio.split(":").map((part) => Number(part));
-  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) {
-    return { width: 1920, height: 1080 };
-  }
-  const short = 1080;
-  const even = (n: number) => Math.round(n / 2) * 2;
-  return w >= h
-    ? { width: even((short * w) / h), height: short }
-    : { width: short, height: even((short * h) / w) };
-}
-
 const assembleStoryboardTimeline: CapabilityExport = {
   spec: assembleStoryboardTimelineSpec,
   impl: async (run, params) => {
@@ -1009,7 +996,8 @@ const assembleStoryboardTimeline: CapabilityExport = {
     const {
       buildLinkedTimeline,
       buildStoryboardTimeline,
-      foreignTimelineParts
+      foreignTimelineParts,
+      frameSizeForAspect
     } = await import("@nodetool-ai/timeline");
 
     // A board that links a script is cut against the words: shot lengths come
@@ -1051,7 +1039,7 @@ const assembleStoryboardTimeline: CapabilityExport = {
       };
     }
 
-    const { width, height } = frameSize(doc.aspectRatio || "16:9");
+    const { width, height } = frameSizeForAspect(doc.aspectRatio);
     const fps = Math.max(1, Math.min(Number(params["fps"]) || 30, 120));
     const name =
       isString(params["name"]) && params["name"]

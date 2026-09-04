@@ -14,7 +14,11 @@
  */
 
 import { useCallback, useState } from "react";
-import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
+import {
+  frameSizeForAspect,
+  type TimelineClip,
+  type TimelineTrack
+} from "@nodetool-ai/timeline";
 import { trpcClient } from "../../trpc/client";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import {
@@ -78,6 +82,9 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
       setAssembling(true);
       try {
         const name = board.title.trim() || "Storyboard cut";
+        // The cut's frame follows the board's aspect ratio, so a 9:16 board
+        // does not land in a 16:9 sequence.
+        const { width, height } = frameSizeForAspect(board.aspectRatio);
         const clips = stampBoardProvenance(doc.clips, boardId);
         const existingId = board.timelineId;
 
@@ -96,6 +103,8 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
           await trpcClient.timeline.update.mutate({
             id: existingId,
             baseUpdatedAt: sequence.updatedAt,
+            width,
+            height,
             document: { ...merged, markers: sequence.markers ?? [] }
           });
           invalidateTimelineGetQuery(existingId);
@@ -117,6 +126,8 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
         const sequence = await trpcClient.timeline.create.mutate({
           id: newDocumentId(),
           name,
+          width,
+          height,
           projectId: creationProjectId()
         });
         await trpcClient.timeline.update.mutate({

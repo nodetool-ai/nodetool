@@ -25,6 +25,31 @@ import type { TimelineClip, TimelineTrack } from "./types.js";
 /** Clip length used for a shot that carries no duration. */
 export const DEFAULT_SHOT_MS = 4000;
 
+/**
+ * Frame size for an aspect ratio, at a 1080px short edge.
+ *
+ * The one mapping from a board's `aspectRatio` to a sequence's width/height,
+ * so the assemble button and the `assemble_storyboard_timeline` capability
+ * create a timeline with the same frame. An unparseable ratio falls back to
+ * 1920x1080.
+ */
+export function frameSizeForAspect(aspectRatio: string | null | undefined): {
+  width: number;
+  height: number;
+} {
+  const [w, h] = String(aspectRatio ?? "")
+    .split(":")
+    .map((part) => Number(part));
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) {
+    return { width: 1920, height: 1080 };
+  }
+  const short = 1080;
+  const even = (n: number) => Math.round(n / 2) * 2;
+  return w >= h
+    ? { width: even((short * w) / h), height: short }
+    : { width: short, height: even((short * h) / w) };
+}
+
 /** Track holding the sound that came with the shots' own rendered clips. */
 export const SHOT_AUDIO_TRACK_NAME = "Shot Audio";
 

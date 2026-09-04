@@ -7,7 +7,8 @@ import type { Shot } from "@nodetool-ai/protocol";
 import {
   DEFAULT_SHOT_MS,
   buildStoryboardPreviewTimeline,
-  buildStoryboardTimeline
+  buildStoryboardTimeline,
+  frameSizeForAspect
 } from "../src/storyboard.js";
 import type { TimelineClip } from "../src/types.js";
 
@@ -30,6 +31,22 @@ const pictureClips = (clips: TimelineClip[]) =>
   clips.filter((c) => c.mediaType !== "audio");
 
 // ── buildStoryboardTimeline ───────────────────────────────────────────
+
+describe("frameSizeForAspect", () => {
+  it("keeps the short edge at 1080 for landscape, portrait and square", () => {
+    expect(frameSizeForAspect("16:9")).toEqual({ width: 1920, height: 1080 });
+    expect(frameSizeForAspect("9:16")).toEqual({ width: 1080, height: 1920 });
+    expect(frameSizeForAspect("1:1")).toEqual({ width: 1080, height: 1080 });
+    expect(frameSizeForAspect("4:5")).toEqual({ width: 1080, height: 1350 });
+  });
+
+  it("falls back to 1920x1080 for a ratio it cannot parse", () => {
+    expect(frameSizeForAspect("wide")).toEqual({ width: 1920, height: 1080 });
+    expect(frameSizeForAspect("0:9")).toEqual({ width: 1920, height: 1080 });
+    expect(frameSizeForAspect(null)).toEqual({ width: 1920, height: 1080 });
+    expect(frameSizeForAspect(undefined)).toEqual({ width: 1920, height: 1080 });
+  });
+});
 
 describe("buildStoryboardTimeline", () => {
   it("keeps only rendered shots with a clip asset", () => {

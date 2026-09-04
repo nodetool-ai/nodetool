@@ -230,6 +230,42 @@ describe("useAssembleTimeline", () => {
     expect(doc.clips.some((c: TimelineClip) => c.scriptLineId)).toBe(false);
   });
 
+  it("sizes a new sequence from the board's aspect ratio", async () => {
+    seedBoard("board-1", { aspectRatio: "9:16" });
+    createMutate.mockResolvedValue({ id: "tl-new" });
+    updateMutate.mockResolvedValue({});
+
+    const { result } = renderHook(() => useAssembleTimeline());
+    await act(async () => {
+      await result.current.assemble("board-1");
+    });
+
+    expect(createMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ width: 1080, height: 1920 })
+    );
+  });
+
+  it("re-sizes an existing sequence when the board's aspect ratio changed", async () => {
+    seedBoard("board-1", { timelineId: "tl-1", aspectRatio: "1:1" });
+    getQuery.mockResolvedValue({
+      id: "tl-1",
+      updatedAt: "rev-1",
+      tracks: [],
+      clips: [],
+      markers: []
+    });
+    updateMutate.mockResolvedValue({});
+
+    const { result } = renderHook(() => useAssembleTimeline());
+    await act(async () => {
+      await result.current.assemble("board-1");
+    });
+
+    expect(updateMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "tl-1", width: 1080, height: 1080 })
+    );
+  });
+
   it("re-assembles in place, dropping its own clips but keeping foreign tracks", async () => {
     seedBoard("board-1", { timelineId: "tl-1" });
     const oldShotTrack = makeTrack({ type: "video", name: "Shots", index: 0 });
