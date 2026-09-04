@@ -2,11 +2,11 @@
   "schemaVersion": 3,
   "source": "https://genspend.io/api/v1/export",
   "attribution": "Prices via genspend.io",
-  "updatedAt": "2026-08-31T18:03:18.084Z",
-  "catalogGeneratedAt": "2026-08-31T18:02:47.610Z",
+  "updatedAt": "2026-09-04T08:12:26.572Z",
+  "catalogGeneratedAt": "2026-09-04T08:12:25.636Z",
   "etag": "\"363cbe11286573b29e5168540f6d2da959d39eab\"",
   "catalogModels": 142,
-  "catalogOfferings": 478,
+  "catalogOfferings": 479,
   "providers": [
     "atlascloud",
     "elevenlabs",
@@ -5074,6 +5074,35 @@
       "live": false,
       "source_url": "https://ai.google.dev/gemini-api/docs/pricing"
     },
+    "gemini:imagen-4.0-generate-001": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "imagen-4",
+      "match": "provider-id",
+      "live": false,
+      "source_url": "https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing",
+      "variants": [
+        {
+          "price_usd": 0.02,
+          "unit_class": "per-image",
+          "tier": "fast",
+          "is_base": false
+        },
+        {
+          "price_usd": 0.04,
+          "unit_class": "per-image",
+          "tier": "standard",
+          "is_base": true
+        },
+        {
+          "price_usd": 0.06,
+          "unit_class": "per-image",
+          "tier": "ultra",
+          "is_base": false
+        }
+      ]
+    },
     "gemini:veo-3.1-fast-generate-preview": {
       "unit_price": 0.1,
       "billing_unit": "seconds",
@@ -5424,117 +5453,6 @@
           "is_base": false
         }
       ]
-    },
-    "kie:gemini-omni-video": {
-      "unit_price": 0.315,
-      "billing_unit": "generations",
-      "unit_class": "per-generation",
-      "model_slug": "gemini-omni-video",
-      "match": "provider-id",
-      "live": true,
-      "source_url": "https://kie.ai/gemini-omni",
-      "variants": [
-        {
-          "price_usd": 0.84,
-          "unit_class": "per-generation",
-          "resolution": "4K",
-          "duration_seconds": 6,
-          "video_input": false,
-          "is_base": false
-        },
-        {
-          "price_usd": 1.05,
-          "unit_class": "per-generation",
-          "resolution": "4K",
-          "duration_seconds": 10,
-          "video_input": false,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.945,
-          "unit_class": "per-generation",
-          "resolution": "4K",
-          "duration_seconds": 8,
-          "video_input": false,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.735,
-          "unit_class": "per-generation",
-          "resolution": "4K",
-          "duration_seconds": 4,
-          "video_input": false,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.63,
-          "unit_class": "per-generation",
-          "resolution": "1080p",
-          "duration_seconds": 10,
-          "video_input": false,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.525,
-          "unit_class": "per-generation",
-          "resolution": "1080p",
-          "duration_seconds": 8,
-          "video_input": false,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.42,
-          "unit_class": "per-generation",
-          "resolution": "1080p",
-          "duration_seconds": 6,
-          "video_input": false,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.315,
-          "unit_class": "per-generation",
-          "resolution": "1080p",
-          "duration_seconds": 4,
-          "video_input": false,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.63,
-          "unit_class": "per-generation",
-          "resolution": "720p",
-          "duration_seconds": 10,
-          "video_input": false,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.525,
-          "unit_class": "per-generation",
-          "resolution": "720p",
-          "duration_seconds": 8,
-          "video_input": false,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.42,
-          "unit_class": "per-generation",
-          "resolution": "720p",
-          "duration_seconds": 6,
-          "video_input": false,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.315,
-          "unit_class": "per-generation",
-          "resolution": "720p",
-          "duration_seconds": 4,
-          "video_input": false,
-          "is_base": true
-        }
-      ],
-      "clip_seconds": {
-        "min": 3,
-        "max": 10
-      }
     },
     "kie:google/nano-banana": {
       "unit_price": 0.02,
@@ -7182,7 +7100,7 @@
       "source_url": "https://www.together.ai/pricing"
     },
     "together:ByteDance/Seedance-1.0-pro": {
-      "unit_price": 0.11299999999999999,
+      "unit_price": 0.113,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-1-pro",
@@ -7192,7 +7110,7 @@
       "tier": "pro",
       "variants": [
         {
-          "price_usd": 0.11299999999999999,
+          "price_usd": 0.113,
           "unit_class": "per-video-second",
           "tier": "pro",
           "is_base": true
@@ -7340,7 +7258,7 @@
       "source_url": "https://www.together.ai/pricing"
     },
     "together:minimax/hailuo-02": {
-      "unit_price": 0.05600000000000001,
+      "unit_price": 0.056,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "hailuo-02",
