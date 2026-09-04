@@ -1,3 +1,0 @@
-1. Modify `packages/gpu/src/shaders/filters/threshold/v1/module.ts` to un-premultiply `src.rgb` before calculating `luma`. This correctly computes luma for alpha-independent comparisons.
-2. Change the `linearity` tag of `filters.threshold@1` from `nonlinear-in-rgb` to `linear-in-rgb` since the operation `vec4f(src.rgb * t, src.a * t)` preserves linear-in-rgb assumptions (scalar multiplication).
-3. Remove the suppression comments `// premul: ok TODO(invariant-fixes): see review §BUGS — luma read on premul rgb` and `// premul: ok — scalar '* t' preserves rgb <= a; mis-tagged as nonlinear (TODO retag linear)`.
