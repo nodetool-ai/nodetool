@@ -85,6 +85,13 @@ describe("isCloudNodeType", () => {
     }
   });
 
+  it("keeps the blender namespace out until the worker tier ships (D8)", () => {
+    // `nodetool.blender` is absent from CLOUD_NODE_NAMESPACES on purpose:
+    // with no Blender and no worker on the cloud server, `validate_workflow`
+    // reports these nodes as unavailable instead of failing at run time.
+    expect(isCloudNodeType("nodetool.blender.RenderImage")).toBe(false);
+  });
+
   it("keeps the standard agents in the allowed namespace", () => {
     expect(isCloudNodeType("nodetool.agents.Agent")).toBe(true);
     expect(isCloudNodeType("nodetool.agents.Summarizer")).toBe(true);

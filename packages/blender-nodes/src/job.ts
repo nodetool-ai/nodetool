@@ -122,7 +122,13 @@ export const blenderResultSchema = z.discriminatedUnion("ok", [
       blender_version: z.string(),
       render_seconds: z.number(),
       frames: z.number().int().optional(),
-      objects: z.number().int().optional()
+      objects: z.number().int().optional(),
+      /**
+       * Name of the camera that rendered (`render_image` only): the scene
+       * camera's name, or the orbit camera the op created. Lets the
+       * camera-mode test assert the selection without reading pixels.
+       */
+      camera: z.string().optional()
     })
   }),
   z.object({

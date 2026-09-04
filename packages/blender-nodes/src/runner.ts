@@ -6,6 +6,7 @@
  * implementations differ only in where the bytes go.
  */
 
+import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -74,6 +75,12 @@ export interface BlenderRunResult {
   stats: BlenderResultStats;
   /** Blender's exit code. Present on local runs. */
   exitCode?: number;
+  /**
+   * How long the run waited for the `render` concurrency slot, in
+   * milliseconds. The local runner copies it from `runHostBinary`; fakes
+   * leave it unset.
+   */
+  queuedMs?: number;
 }
 
 export interface BlenderRunner {
@@ -94,12 +101,34 @@ export interface LocalBlenderRunnerOptions {
 }
 
 /**
- * Directory holding the vendored `run_job.py` op script (`blender_ops/`
- * next to this package). The script itself ships in a later run; the path
- * resolution lives here so argv construction is already final.
+ * Directory holding the vendored `run_job.py` op script, which differs by
+ * deployment and is checked rather than assumed (same shape as
+ * `bundledFontsDir` in `@nodetool-ai/timeline`):
+ *
+ * - a checkout or an npm install resolves `packages/blender-nodes/blender_ops/`,
+ *   one level above this module's `dist/` output;
+ * - the packaged backend is one flat `server.mjs`, so `import.meta.url` is the
+ *   bundle root and `bundle-backend.mjs` stages the directory beside it as
+ *   `_blender_ops/`.
+ *
+ * Throws naming the expected entry point when neither exists, so a missing
+ * stage fails here with the fix instead of inside Blender's stderr tail.
  */
 export function resolveOpScriptDir(): string {
-  return path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "blender_ops");
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.join(here, "..", "blender_ops"),
+    path.join(here, "_blender_ops")
+  ];
+  for (const dir of candidates) {
+    if (existsSync(path.join(dir, "run_job.py"))) return dir;
+  }
+  throw new BlenderJobError(
+    "bad_result",
+    `Blender op scripts not found. Tried ${candidates.join(" and ")}. ` +
+      `In dev, check packages/blender-nodes/blender_ops/ exists; in the ` +
+      `packaged app, check bundle-backend.mjs staged _blender_ops/.`
+  );
 }
 
 /** Env keys the Blender child inherits. Everything else stays out. */
@@ -295,7 +324,12 @@ export class LocalBlenderRunner implements BlenderRunner {
           await readFile(path.join(cwd, file))
         );
       }
-      return { outputs, stats: parsed.stats, exitCode: result.exitCode };
+      return {
+        outputs,
+        stats: parsed.stats,
+        exitCode: result.exitCode,
+        queuedMs: result.queuedMs
+      };
     } finally {
       // Step 6: the scratch directory goes away on every path — abort,
       // timeout, and the cap errors included.

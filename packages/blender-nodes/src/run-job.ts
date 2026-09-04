@@ -32,7 +32,20 @@ export const BLENDER_MODEL_INPUT_FILE = "model.glb";
 
 /** Stage 1 ships `LocalBlenderRunner` only (D7). */
 export async function resolveBlenderRunner(): Promise<BlenderRunner> {
-  return new LocalBlenderRunner();
+  return testRunner ?? new LocalBlenderRunner();
+}
+
+let testRunner: BlenderRunner | null = null;
+
+/**
+ * Override `resolveBlenderRunner` for node tests (T6b), so every node test
+ * runs against a fake and proves the node never reaches past the
+ * `BlenderRunner` interface. Pass null to restore the local runner.
+ */
+export function __setBlenderRunnerForTesting(
+  runner: BlenderRunner | null
+): void {
+  testRunner = runner;
 }
 
 /** Every string prop that reaches argv or the job must not be flag-like. */
@@ -112,6 +125,9 @@ export async function runBlenderJob(
       span?.setAttribute("blender.render_seconds", result.stats.render_seconds);
       if (result.exitCode !== undefined) {
         span?.setAttribute("blender.exit_code", result.exitCode);
+      }
+      if (result.queuedMs !== undefined) {
+        span?.setAttribute("blender.queued_ms", result.queuedMs);
       }
       return result;
     }

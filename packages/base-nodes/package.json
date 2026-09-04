@@ -20,6 +20,7 @@
   "dependencies": {
     "@nodetool-ai/audio-nodes": "*",
     "@nodetool-ai/automation-nodes": "*",
+    "@nodetool-ai/blender-nodes": "*",
     "@nodetool-ai/code-nodes": "*",
     "@nodetool-ai/core-nodes": "*",
     "@nodetool-ai/data-nodes": "*",

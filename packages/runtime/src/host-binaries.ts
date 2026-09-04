@@ -35,6 +35,13 @@ export type HostBinaryResult = {
   exitCode: number;
   /** True when output was cut at the capture cap; the child still ran on. */
   truncated?: boolean;
+  /**
+   * How long the run waited for a concurrency slot before spawning, in
+   * milliseconds. Zero when a slot was free. Callers that report queueing
+   * (e.g. `blender.queued_ms`) read it from here: the host runner is the
+   * only place that sees the wait.
+   */
+  queuedMs?: number;
 };
 
 /** Captured bytes kept per stream. Beyond this the tail is dropped. */
@@ -194,9 +201,12 @@ export async function runHostBinary(
     opts.concurrencyClass === undefined || opts.concurrencyClass === ""
       ? DEFAULT_CONCURRENCY_CLASS
       : opts.concurrencyClass;
+  const queuedStart = Date.now();
   await acquireSlot(concurrencyClass);
+  const queuedMs = Date.now() - queuedStart;
   try {
-    return await spawnBounded(cmd, args, opts);
+    const result = await spawnBounded(cmd, args, opts);
+    return { ...result, queuedMs };
   } finally {
     releaseSlot(concurrencyClass);
   }

@@ -77,6 +77,11 @@ s(
   "Location of font folder used by image processing nodes like RenderText. If not specified, the system will use default fonts."
 );
 s(
+  "BLENDER_PATH",
+  "Folders",
+  "Path to the Blender executable used by the nodetool.blender nodes. If not specified, the nodes look for blender on PATH and in the well-known install locations."
+);
+s(
   "VECTORSTORE_DB_PATH",
   "Folders",
   "Location of the sqlite-vec vector database file. Used to store and retrieve embeddings for semantic search and RAG applications."

@@ -56,6 +56,18 @@ if [ "$MODE" = "doctor" ]; then
   echo "  node_modules    $([ -d node_modules ] && echo present || echo 'missing — installed on next run')"
   echo "  packages built  $([ -d packages/base-nodes/dist ] && echo yes || echo 'no — built on next run')"
   echo "  better-sqlite3  $([ -d node_modules/better-sqlite3/build ] && echo built || echo 'not built')"
+  BLENDER_BIN="${BLENDER_PATH:-}"
+  if [ -z "$BLENDER_BIN" ]; then
+    BLENDER_BIN="$(command -v blender 2>/dev/null || true)"
+  fi
+  if [ -z "$BLENDER_BIN" ] && [ -x "/Applications/Blender.app/Contents/MacOS/Blender" ]; then
+    BLENDER_BIN="/Applications/Blender.app/Contents/MacOS/Blender"
+  fi
+  if [ -n "$BLENDER_BIN" ]; then
+    echo "  blender       $("$BLENDER_BIN" --version 2>/dev/null | head -1 || echo 'present (version unknown)')"
+  else
+    echo "  blender       not found — nodetool.blender nodes need Blender 4.2+ (set BLENDER_PATH)"
+  fi
   if node -e "process.exit(0)" 2>/dev/null; then
     PORT_STATE=$(node -e "
       const net = require('net');

@@ -118,6 +118,22 @@ export const PACKAGE_RUNTIME_ASSET_DIRS: readonly PackageAssetDirRef[] = [
       "lower-third.composition.json",
       "title-card.composition.json"
     ]
+  },
+  {
+    // The Blender op scripts (D5). Staged whole next to the bundled server;
+    // every file is named so an unstaged module fails the build instead of
+    // the product.
+    pkg: "@nodetool-ai/blender-nodes",
+    path: "blender_ops",
+    bundleDir: "_blender_ops",
+    files: [
+      "run_job.py",
+      "framing.py",
+      "errors.py",
+      "ops/__init__.py",
+      "ops/render_image.py",
+      "tests/test_framing.py"
+    ]
   }
 ];
 

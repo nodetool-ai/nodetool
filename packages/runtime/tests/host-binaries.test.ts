@@ -332,6 +332,30 @@ describe("runHostBinary concurrency classes", () => {
     }
   }, 30_000);
 
+  it("reports queue wait on queuedMs: zero uncontended, positive when queued", async () => {
+    vi.stubEnv("NODETOOL_BLENDER_CONCURRENCY", "1");
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    try {
+      const first = runHostBinary(
+        process.execPath,
+        ["-e", "setTimeout(()=>{},800)"],
+        { cwd, timeoutMs: 30_000, concurrencyClass: "render" }
+      );
+      // Wait until the first run holds the only slot, so the second queues.
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const second = await runHostBinary(
+        process.execPath,
+        ["-e", ""],
+        { cwd, timeoutMs: 30_000, concurrencyClass: "render" }
+      );
+      const firstResult = await first;
+      expect(firstResult.queuedMs).toBe(0);
+      expect(second.queuedMs).toBeGreaterThan(0);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  }, 30_000);
+
   it("starts a default-class run while a render run holds its slot", async () => {
     vi.stubEnv("NODETOOL_BLENDER_CONCURRENCY", "1");
     const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
