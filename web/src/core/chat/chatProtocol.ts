@@ -10,6 +10,12 @@
  */
 
 import { visibleToolArgs } from "./toolCallFields";
+import {
+  appendSubAgentChunk,
+  appendSubAgentMessage,
+  appendSubAgentToolResult,
+  subAgentCallId
+} from "./subAgentMessages";
 
 // NOTE: There is deliberately no content-based chunk deduplication here.
 // The old cache keyed a chunk by (content, message-length-before-append) with a
@@ -41,7 +47,8 @@ import {
   StepResult,
   TaskUpdate,
   TodoUpdate,
-  ToolCallUpdate
+  ToolCallUpdate,
+  ToolResultUpdate
 } from "../../stores/ApiTypes";
 import { FrontendToolRegistry } from "../../lib/tools/frontendTools";
 import { getFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
@@ -173,6 +180,7 @@ type MsgpackData =
   | EdgeUpdate
   | Message
   | ToolCallUpdate
+  | ToolResultUpdate
   | TaskUpdate
   | TodoUpdate
   | PlanningUpdate
@@ -423,6 +431,23 @@ const applyChunk = (
   if (!thread) {
     console.warn(`applyChunk: Thread ${threadId} not found, dropping chunk`);
     return noopUpdate;
+  }
+
+  // A sub-agent's text belongs to its own transcript, not to the parent's
+  // reply — and its `done` marks the child settling, not the turn.
+  const subAgentCall = subAgentCallId(chunk);
+  if (subAgentCall) {
+    const text = isString(chunk.content) ? chunk.content : "";
+    return {
+      update: {
+        subAgentMessages: appendSubAgentChunk(
+          state.subAgentMessages,
+          threadId,
+          subAgentCall,
+          text
+        )
+      }
+    };
   }
 
   const messages = state.messageCache[threadId] || [];
@@ -707,6 +732,34 @@ const applyToolCallUpdate = (
     patch.agentExecutionToolCalls = agentExecutionToolCalls;
   }
   return { update: patch };
+};
+
+/**
+ * Tool results from inside a sub-agent. The main thread gets its results as
+ * persisted `tool` messages, so only the child's transient
+ * `tool_result_update` events are recorded here — without them a nested tool
+ * row in a sub-agent card would never show what the call returned.
+ */
+const applyToolResultUpdate = (
+  state: GlobalChatState,
+  update: ToolResultUpdate,
+  routedThreadId: string | null
+): ReducerResult => {
+  const threadId = update.thread_id ?? routedThreadId ?? state.currentThreadId;
+  const subAgentCall = subAgentCallId(update);
+  if (!threadId || !subAgentCall) {
+    return noopUpdate;
+  }
+  return {
+    update: {
+      subAgentMessages: appendSubAgentToolResult(
+        state.subAgentMessages,
+        threadId,
+        subAgentCall,
+        update
+      )
+    }
+  };
 };
 
 interface AgentExecutionMessage extends Message {
@@ -1057,6 +1110,20 @@ const applyMessage = (
   if (!threadId) {
     return noopUpdate;
   }
+  const subAgentCall = subAgentCallId(msg);
+  if (subAgentCall) {
+    return {
+      update: {
+        subAgentMessages: appendSubAgentMessage(
+          state.subAgentMessages,
+          threadId,
+          subAgentCall,
+          msg
+        )
+      }
+    };
+  }
+
   const messages = state.messageCache[threadId] || [];
 
   if (isAgentExecutionMessage(msg)) {
@@ -1504,6 +1571,8 @@ export async function handleChatWebSocketMessage(
     applyReducer(applyOutputUpdate, data);
   } else if (data.type === "tool_call_update") {
     applyReducer(applyToolCallUpdate, data);
+  } else if (data.type === "tool_result_update") {
+    applyReducer(applyToolResultUpdate, data);
   } else if (data.type === "planning_update") {
     // Planners forward their progress as bare planning_update events rather
     // than agent_execution messages, so drive the thread runtime directly.

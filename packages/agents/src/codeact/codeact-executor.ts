@@ -42,7 +42,8 @@ import {
   type ProcessingMessage,
   type StepResult,
   type TaskUpdate,
-  type ToolCallUpdate
+  type ToolCallUpdate,
+  type ToolResultUpdate
 } from "@nodetool-ai/protocol";
 import type { Step, Task } from "../types.js";
 import { Tool } from "../tools/base-tool.js";
@@ -73,6 +74,7 @@ import {
   toolSearchHit,
   CODEACT_PRELUDE,
   type ToolCallRecord,
+  type ToolResultRecord,
   type ToolSearchHit
 } from "./tool-api.js";
 import {
@@ -661,10 +663,27 @@ export class CodeActExecutor {
       } satisfies ToolCallUpdate);
     };
 
+    // What the call returned, so a rendered tool row can show its result the
+    // way the chat's own tool messages do. `tool_result_update.result` is a
+    // record, so a scalar return travels wrapped.
+    const onToolResult = (record: ToolResultRecord): void => {
+      ui.push({
+        type: "tool_result_update",
+        node_id: this.step.id,
+        tool_call_id: record.toolCallId,
+        name: record.name,
+        is_error: record.isError,
+        result: isRecord(record.result)
+          ? record.result
+          : { result: record.result }
+      } satisfies ToolResultUpdate);
+    };
+
     const bridge = buildToolBridge({
       tools: this.tools,
       context: this.context,
       onToolCall,
+      onToolResult,
       maxToolCallsPerAction: this.maxToolCallsPerAction
     });
 

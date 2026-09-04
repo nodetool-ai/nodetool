@@ -495,10 +495,33 @@ export const createStyles = (theme: Theme) => ({
       paddingBottom: theme.spacing(SPACING.xs)
     },
 
+    // The objective stays compact: enough to recognize the job, not a wall of
+    // prompt. The transcript below it is what the user unfolds the card for.
     ".subtask-instructions": {
       whiteSpace: "pre-wrap",
       color: theme.vars.palette.text.secondary,
-      lineHeight: 1.45
+      lineHeight: 1.45,
+      display: "-webkit-box",
+      WebkitBoxOrient: "vertical",
+      WebkitLineClamp: 3,
+      overflow: "hidden"
+    },
+
+    // A delegated child's own thread, one level in. The rule on the left is
+    // what marks its messages as the sub-agent's rather than the main reply's.
+    ".subagent-transcript": {
+      minWidth: 0,
+      paddingLeft: theme.spacing(SPACING.md),
+      borderLeft: `1px solid ${theme.vars.palette.divider}`,
+      ".chat-message": {
+        padding: 0,
+        margin: 0,
+        background: "transparent",
+        maxWidth: "100%"
+      },
+      ".message-actions": {
+        display: "none"
+      }
     },
 
     ".tool-timeline-footer": {

@@ -171,6 +171,50 @@ describe("CodeActExecutor", () => {
     ]);
   });
 
+  it("reports what each bridged call returned", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    const add = new AddTool();
+    const provider = createLoopProvider([
+      {
+        toolCalls: [
+          codeAction(
+            "tc_1",
+            `import { add } from "@nodetool-ai/sandbox-nodetool/session";
+             const first = await add({a: 1, b: 2});
+             await finish({answer: first.sum});`
+          )
+        ]
+      }
+    ]);
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: [add]
+    });
+
+    const results: Array<Record<string, unknown>> = [];
+    for await (const msg of executor.execute()) {
+      if (msg.type === "tool_result_update") {
+        results.push(msg as unknown as Record<string, unknown>);
+      }
+    }
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({
+      name: "add",
+      is_error: false,
+      result: { sum: 3 }
+    });
+    expect(results[0].tool_call_id).toBe(
+      "codeact_1"
+    );
+  });
+
   it("injects no state global — cross-action carry is thread memory", async () => {
     const { step, task } = makeStep(ANSWER_SCHEMA);
     const context = createMockContext();

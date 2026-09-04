@@ -962,6 +962,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                     <MessageView
                       key={messageKey}
                       message={msg}
+                      threadId={visibleThreadId}
                       isThoughtExpanded={isThoughtExpanded}
                       onToggleThought={handleToggleThought}
                       onInsertCode={onInsertCode}

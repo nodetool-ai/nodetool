@@ -51,6 +51,7 @@ import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { FrontendToolRegistry } from "../lib/tools/frontendTools";
 import { handleChatWebSocketMessage } from "../core/chat/chatProtocol";
+import type { SubAgentMessages } from "../core/chat/subAgentMessages";
 import type { ChatOutgoingMessage } from "./MediaGenerationStore";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -257,6 +258,13 @@ export interface GlobalChatState {
 
   // Agent execution trace
   agentExecutionToolCalls: AgentExecutionToolCalls;
+
+  /**
+   * Sub-agent transcripts, keyed threadId → spawning tool_call_id. A
+   * `run_subtask` child's events never enter `messageCache`; the chat renders
+   * them inside the spawning call's card instead.
+   */
+  subAgentMessages: SubAgentMessages;
 
   // Selections
   selectedModel: LanguageModel;
@@ -553,6 +561,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       // Agent execution trace
       agentExecutionToolCalls: {},
+      subAgentMessages: {},
 
       // Selections
       selectedModel: buildDefaultLanguageModel(),
@@ -1421,6 +1430,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
             threadUnsubscribe?.();
             const { [threadId]: _deletedTodos, ...remainingTodos } =
               state.todosByThread;
+            const { [threadId]: _deletedSubAgents, ...remainingSubAgents } =
+              state.subAgentMessages;
             const {
               [threadId]: _deletedReplayCursor,
               ...remainingReplayCursors
@@ -1437,6 +1448,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
               messageCursors: remainingCursors,
               wsThreadSubscriptions: remainingSubscriptions,
               todosByThread: remainingTodos,
+              subAgentMessages: remainingSubAgents,
               threadRuntime: remainingRuntime,
               chatReplayCursors: remainingReplayCursors
             };
