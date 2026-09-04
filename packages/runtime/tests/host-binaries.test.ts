@@ -390,8 +390,14 @@ describe("runHostBinary concurrency classes", () => {
         { cwd, timeoutMs: 30_000, concurrencyClass: "render" }
       );
       const firstResult = await first;
-      expect(firstResult.queuedMs).toBe(0);
+      // Uncontended acquire is synchronous work plus one microtask hop, so
+      // this is ~0ms. The bound (not an exact 0) survives a loaded runner
+      // crossing a millisecond boundary; a real queue wait in this test is
+      // ~600ms, an order of magnitude above it.
+      expect(firstResult.queuedMs).toBeLessThanOrEqual(50);
       expect(second.queuedMs).toBeGreaterThan(0);
+      // The queued run waits for the run ahead of it.
+      expect(second.queuedMs).toBeGreaterThan(firstResult.queuedMs ?? 0);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }

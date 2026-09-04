@@ -34,6 +34,7 @@ import * as agents from "./nodetool.agents.js";
 import * as audio from "./nodetool.audio.js";
 import * as audioRealtime from "./nodetool.audio.realtime.js";
 import * as audioSynth from "./nodetool.audio.synth.js";
+import * as blender from "./nodetool.blender.js";
 import * as code from "./nodetool.code.js";
 import * as compare from "./nodetool.compare.js";
 import * as constant from "./nodetool.constant.js";
@@ -70,6 +71,7 @@ export {
   audio,
   audioRealtime,
   audioSynth,
+  blender,
   code,
   compare,
   constant,
