@@ -213,7 +213,8 @@ const RESPONSE_HOSTED_TOOL_CHOICES: Readonly<Record<string, string>> = {
 
 const SORA_VIDEO_DURATIONS = [4, 8, 12, 16, 20] as const;
 
-const OPENAI_FALLBACK_MODELS: LanguageModel[] = [
+export const OPENAI_FALLBACK_MODELS: LanguageModel[] = [
+  "gpt-6-astra",
   "gpt-5.6",
   "gpt-5.6-sol",
   "gpt-5.6-terra",

@@ -25,7 +25,7 @@ import {
   PROVIDER_IDS,
   type Chunk
 } from "@nodetool-ai/protocol";
-import { OpenAIProvider } from "./openai-provider.js";
+import { OpenAIProvider, OPENAI_FALLBACK_MODELS } from "./openai-provider.js";
 import { isString } from "../type-predicates.js";
 import { extractChatGptAccountId } from "./oauth/jwt-claims.js";
 import type {
@@ -46,15 +46,12 @@ import {
 
 const log = createLogger("nodetool.runtime.codex");
 
-/** Fallback model when the live `/models` listing can't be fetched. */
-const CODEX_FALLBACK_MODEL = "gpt-5.5";
-
 /**
  * Chat model that orchestrates the `image_generation` tool call. The Codex
  * backend has no images endpoint — images are produced by invoking the
  * Responses built-in `image_generation` tool from a normal chat model.
  */
-const CODEX_IMAGE_ORCHESTRATOR_MODEL = CODEX_FALLBACK_MODEL;
+const CODEX_IMAGE_ORCHESTRATOR_MODEL = "gpt-5.5";
 
 function codexClientVersion(): string {
   return (
@@ -126,18 +123,14 @@ export class CodexProvider extends OpenAIProvider {
   }
 
   /**
-   * The Codex backend serves an account- and version-specific model allowlist
-   * at `GET /models?client_version=…`. Fetch it; fall back to the default model
-   * if the listing is unavailable.
+   * Include the shared OpenAI catalog alongside the account- and version-specific
+   * models returned by Codex, retaining live display names for matching ids.
    */
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const fallback: LanguageModel[] = [
-      {
-        id: CODEX_FALLBACK_MODEL,
-        name: CODEX_FALLBACK_MODEL,
-        provider: PROVIDER_IDS.CODEX
-      }
-    ];
+    const fallback: LanguageModel[] = OPENAI_FALLBACK_MODELS.map((model) => ({
+      ...model,
+      provider: PROVIDER_IDS.CODEX
+    }));
     try {
       const url = `${CODEX_BACKEND_BASE_URL}/models?client_version=${encodeURIComponent(codexClientVersion())}`;
       const res = await fetch(url, {
@@ -157,7 +150,9 @@ export class CodexProvider extends OpenAIProvider {
           name: m.display_name ?? m.slug,
           provider: PROVIDER_IDS.CODEX
         }));
-      return models.length ? models : fallback;
+      return [
+        ...new Map([...fallback, ...models].map((m) => [m.id, m])).values()
+      ];
     } catch {
       return fallback;
     }

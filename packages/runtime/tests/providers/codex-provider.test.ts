@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { CodexProvider } from "../../src/providers/codex-provider.js";
 import { CODEX_BACKEND_BASE_URL } from "@nodetool-ai/protocol";
+import { OPENAI_FALLBACK_MODELS } from "../../src/providers/openai-provider.js";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -37,7 +38,10 @@ describe("CodexProvider", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
-          models: [{ slug: "gpt-5.5", display_name: "GPT-5.5" }]
+          models: [
+            { slug: "gpt-5.5", display_name: "GPT-5.5" },
+            { slug: "codex-account-model", display_name: "Account model" }
+          ]
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       )
@@ -45,19 +49,47 @@ describe("CodexProvider", () => {
     const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
     const models = await provider.getAvailableLanguageModels();
     expect(fetchSpy).toHaveBeenCalledWith(
-      `${CODEX_BACKEND_BASE_URL}/models?client_version=0.147.0`,
+      `${CODEX_BACKEND_BASE_URL}/models?client_version=0.153.3`,
       expect.any(Object)
     );
-    expect(models.map((m) => m.id)).toEqual(["gpt-5.5"]);
+    expect(models.map((m) => m.id)).toEqual(
+      expect.arrayContaining([
+        ...OPENAI_FALLBACK_MODELS.map((m) => m.id),
+        "codex-account-model"
+      ])
+    );
+    expect(models.filter((m) => m.id === "gpt-5.5")).toEqual([
+      { id: "gpt-5.5", name: "GPT-5.5", provider: "codex" }
+    ]);
     expect(models.every((m) => m.provider === "codex")).toBe(true);
   });
 
-  it("falls back to a default model when /models is unreachable", async () => {
-    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"));
-    const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
-    const models = await provider.getAvailableLanguageModels();
-    expect(models.map((m) => m.id)).toEqual(["gpt-5.5"]);
-  });
+  it.each(["offline", "http-error", "empty", "invalid-json"])(
+    "lists the OpenAI catalog when /models returns %s",
+    async (scenario) => {
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
+      if (scenario === "offline") {
+        fetchSpy.mockRejectedValue(new Error("offline"));
+      } else {
+        fetchSpy.mockResolvedValue(
+          new Response(
+            scenario === "invalid-json"
+              ? "invalid"
+              : JSON.stringify({ models: [] }),
+            { status: scenario === "http-error" ? 503 : 200 }
+          )
+        );
+      }
+      const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
+      const models = await provider.getAvailableLanguageModels();
+      expect(models).toEqual(
+        OPENAI_FALLBACK_MODELS.map((m) => ({
+          ...m,
+          provider: "codex"
+        }))
+      );
+    }
+  );
 
   it("advertises the gpt-image models for text_to_image", async () => {
     const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });

@@ -1161,6 +1161,7 @@ describe("OpenAIProvider – getAvailableLanguageModels", () => {
 
     const models = await provider.getAvailableLanguageModels();
     expect(models.map((m) => m.id)).toEqual([
+      "gpt-6-astra",
       "gpt-5.6",
       "gpt-5.6-sol",
       "gpt-5.6-terra",
