@@ -1071,32 +1071,48 @@ export class CodeActExecutor {
             ? { truncated: false }
             : boundActionPayload(outcome.result, outcome.logs);
 
+          // Field order is the truncation order: the small leading fields
+          // must survive a cut that lands in `result` or `logs`.
           const observation: ActionObservation = {
             ok: outcome.success,
-            ...(finished !== undefined ? { finished } : {}),
-            ...(note !== undefined ? { note } : {}),
-            ...(repeated
-              ? {
-                  error:
-                    `This exact program was already run ${this.repeatedFailures} ` +
-                    `times in a row and failed the same way each time: ` +
-                    `${failure?.error ?? ""}. Do not resubmit it unchanged. ` +
-                    `Change the code or the approach, or finish with what ` +
-                    `you have and explain what could not be done.`,
-                  repeated: true
-                }
-              : (failure ?? {})),
-            ...(dropped > 0
-              ? {
-                  imagesDropped:
-                    `${dropped} image(s) beyond the ${MAX_ACTION_IMAGES}-per-action ` +
-                    `cap were not forwarded. View fewer images per action.`
-                }
-              : {}),
-            toolCalls: bridge.callCount(),
-            ...(payload.result !== undefined ? { result: payload.result } : {}),
-            ...(payload.logs !== undefined ? { logs: payload.logs } : {})
+            toolCalls: 0
           };
+          if (finished !== undefined) {
+            observation.finished = finished;
+          }
+          if (note !== undefined) {
+            observation.note = note;
+          }
+          if (repeated) {
+            observation.error =
+              `This exact program was already run ${this.repeatedFailures} ` +
+              `times in a row and failed the same way each time: ` +
+              `${failure?.error ?? ""}. Do not resubmit it unchanged. ` +
+              `Change the code or the approach, or finish with what ` +
+              `you have and explain what could not be done.`;
+            observation.repeated = true;
+          } else if (failure) {
+            if (failure.error !== undefined) {
+              observation.error = failure.error;
+            }
+            if (failure.stack !== undefined) {
+              observation.stack = failure.stack;
+            }
+          }
+          if (dropped > 0) {
+            observation.imagesDropped =
+              `${dropped} image(s) beyond the ${MAX_ACTION_IMAGES}-per-action ` +
+              `cap were not forwarded. View fewer images per action.`;
+          }
+          // `toolCalls` was created first to hold the key slot ahead of
+          // `result` and `logs`; the count is known only now.
+          observation.toolCalls = bridge.callCount();
+          if (payload.result !== undefined) {
+            observation.result = payload.result;
+          }
+          if (payload.logs !== undefined) {
+            observation.logs = payload.logs;
+          }
 
           // The leading fields are first and the two big ones are already
           // bounded, so this only ever trims an oversized error text.
@@ -1110,11 +1126,13 @@ export class CodeActExecutor {
             "agent.action.tool_calls": observation.toolCalls,
             "agent.action.ok": outcome.success,
             "agent.action.truncated":
-              payload.truncated || text.length > MAX_TOOL_RESULT_CHARS,
-            ...(observation.error !== undefined
-              ? { "agent.action.error": observation.error.slice(0, 500) }
-              : {})
+              payload.truncated || text.length > MAX_TOOL_RESULT_CHARS
           });
+          if (observation.error !== undefined) {
+            span?.setAttributes({
+              "agent.action.error": observation.error.slice(0, 500)
+            });
+          }
           return images.length > 0
             ? [{ type: "text", text }, ...images]
             : text;
