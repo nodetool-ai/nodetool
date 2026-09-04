@@ -6,10 +6,15 @@
  * build, not just a CLI run someone has to remember to make.
  */
 import { describe, it, expect } from "vitest";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   HARNESSES,
   SURFACES,
+  UNCLAIMED_PATHS,
   auditHarnessCoverage,
+  auditPathClaims,
   planGate
 } from "../src/harness/registry.js";
 import {
@@ -69,6 +74,179 @@ describe("harness registry", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Path claims: every packages/* dir (plus web/, electron/, mobile/) is
+// referenced by a surface's paths or documented in UNCLAIMED_PATHS. Without
+// this, a diff under an unreferenced package selects nothing in
+// `nodetool harness gate` and nobody is told.
+// ---------------------------------------------------------------------------
+
+const repoRoot = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../.."
+);
+
+/** Repo-relative top-level directories under `packages/`, plus the apps. */
+function realRootDirs(): string[] {
+  const packagesDir = join(repoRoot, "packages");
+  const pkgDirs = readdirSync(packagesDir)
+    .filter((d) => statSync(join(packagesDir, d)).isDirectory())
+    .map((d) => `packages/${d}`);
+  return [...pkgDirs, "web", "electron", "mobile"];
+}
+
+describe("path claims", () => {
+  it("claims every real packages/* directory (plus web/, electron/, mobile/)", () => {
+    const unclaimed = auditPathClaims(realRootDirs(), SURFACES, UNCLAIMED_PATHS);
+    expect(unclaimed).toEqual([]);
+  });
+
+  it("every UNCLAIMED_PATHS entry is a real, still-unclaimed directory", () => {
+    // A stale entry — the directory was deleted, or a surface grew a path
+    // that now claims it too — should fail so the map does not silently
+    // paper over drift.
+    for (const key of Object.keys(UNCLAIMED_PATHS)) {
+      const dirPath = join(repoRoot, key.replace(/\/$/, ""));
+      const exists = statSync(dirPath, { throwIfNoEntry: false })?.isDirectory();
+      expect(exists, `${key} no longer exists`).toBe(true);
+
+      const claimedBySurface = SURFACES.some((s) =>
+        s.paths.some((p) => p.startsWith(key) || key.startsWith(p))
+      );
+      expect(
+        claimedBySurface,
+        `${key} is in UNCLAIMED_PATHS but a surface already claims it`
+      ).toBe(false);
+
+      expect(UNCLAIMED_PATHS[key], key).toBeTruthy();
+    }
+  });
+
+  it("audit catches a directory no surface or UNCLAIMED_PATHS entry claims", () => {
+    const unclaimed = auditPathClaims(
+      ["packages/models", "packages/totally-not-a-real-package"],
+      SURFACES,
+      UNCLAIMED_PATHS
+    );
+    expect(unclaimed).toEqual(["packages/totally-not-a-real-package"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// gated:pr / gated:nightly: every harness tagged with either must be findable
+// in the workflow that is claimed to gate it, by a substring of its own
+// selfcheck (or command, when it has no selfcheck).
+// ---------------------------------------------------------------------------
+
+describe("gated capability matches a real CI trigger", () => {
+  const workflowsDir = join(repoRoot, ".github", "workflows");
+  const workflowFiles = readdirSync(workflowsDir).filter(
+    (f) => f.endsWith(".yml") || f.endsWith(".yaml")
+  );
+  const workflowText = workflowFiles
+    .map((f) => readFileSync(join(workflowsDir, f), "utf-8"))
+    .join("\n");
+
+  /**
+   * One hand-verified, distinctive substring per gated harness — chosen by
+   * reading .github/workflows/*.yml, not derived from the command string, so
+   * a harness that changes its selfcheck wording does not silently pass on a
+   * coincidental match. `reliability-ring0` and `app-build` no longer appear
+   * as literal, hand-written commands: quality-checks.yml's `harness-gate`
+   * leg (docs/HARNESS_FIRST.md § The gate) runs `nodetool harness gate` on
+   * every pull request and picks up any harness with a cheap selfcheck whose
+   * surface the diff touches, so their evidence is that invocation plus the
+   * harness's own selfcheck being cheap enough for the gate to run it.
+   */
+  const GATED_EVIDENCE: Record<string, string> = {
+    validate: "npm run validate:examples",
+    debug: "npm run examples:smoke",
+    "reliability-ring0": "dev:nodetool -- harness gate",
+    "app-build": "dev:nodetool -- harness gate",
+    "backend-smoke": "npm run backend:smoke",
+    "docker-smoke": "docker-smoke.mjs http://localhost:7777",
+    "provider-contract": "provider-contract-probes",
+    "provider-codegen": "npm run generate:fal:check -- --strict",
+    "node-pack-parity": "parity example-workflows"
+  };
+
+  const gated = HARNESSES.filter((h) =>
+    h.capabilities.some((c) => c === "gated:pr" || c === "gated:nightly")
+  );
+
+  it("found at least one gated harness", () => {
+    expect(gated.length).toBeGreaterThan(0);
+  });
+
+  it("every gated harness has a hand-verified evidence entry", () => {
+    // Catches a harness that picked up `gated:*` without anyone checking —
+    // and a stale evidence entry left behind for a harness that dropped it.
+    const gatedIds = gated.map((h) => h.id).sort();
+    expect(Object.keys(GATED_EVIDENCE).sort()).toEqual(gatedIds);
+  });
+
+  for (const h of gated) {
+    it(`${h.id} (${h.capabilities.find((c) => c.startsWith("gated"))}) appears in a workflow`, () => {
+      const needle = GATED_EVIDENCE[h.id];
+      expect(needle, `${h.id} has no GATED_EVIDENCE entry`).toBeTruthy();
+      expect(
+        workflowText,
+        `expected to find "${needle}" for ${h.id}`
+      ).toContain(needle);
+      if (needle === "dev:nodetool -- harness gate") {
+        // The generic gate only reaches a harness through its selfcheck.
+        expect(h.selfcheck?.cost, h.id).toBe("cheap");
+      }
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Docs pointers: `docs: "<file>"` or `docs: "<file> § <heading prefix>"`.
+// Every one must resolve — the file must exist, and a heading fragment must
+// be a case-insensitive prefix of some markdown heading line in that file.
+// ---------------------------------------------------------------------------
+
+describe("docs pointers resolve", () => {
+  function resolveDocsPointer(pointer: string): { file: string; heading?: string } {
+    const [file, heading] = pointer.split(" § ").map((s) => s.trim());
+    return { file: file!, heading };
+  }
+
+  const headingCache = new Map<string, string[]>();
+  function headingsOf(file: string): string[] {
+    const cached = headingCache.get(file);
+    if (cached) return cached;
+    const text = readFileSync(join(repoRoot, file), "utf-8");
+    const headings = text
+      .split("\n")
+      .filter((line) => /^#{1,6}\s/.test(line))
+      .map((line) => line.replace(/^#{1,6}\s+/, "").trim());
+    headingCache.set(file, headings);
+    return headings;
+  }
+
+  for (const h of HARNESSES) {
+    it(`${h.id}: docs pointer "${h.docs}" resolves`, () => {
+      const { file, heading } = resolveDocsPointer(h.docs);
+      const filePath = join(repoRoot, file);
+      expect(
+        statSync(filePath, { throwIfNoEntry: false })?.isFile(),
+        `${h.id}: ${file} does not exist`
+      ).toBe(true);
+      if (heading) {
+        const headings = headingsOf(file);
+        const needle = heading.toLowerCase();
+        const hit = headings.some((line) => line.toLowerCase().startsWith(needle));
+        expect(
+          hit,
+          `${h.id}: no heading in ${file} starts with "${heading}"`
+        ).toBe(true);
+      }
+    });
+  }
+});
+
 describe("harness gate", () => {
   it("maps a kernel change to workflow-execution selfchecks", () => {
     const plan = planGate(["packages/kernel/src/runner.ts"]);
@@ -77,8 +255,12 @@ describe("harness gate", () => {
     expect(ids).toContain("validate");
     expect(ids).toContain("reliability-ring0");
     expect(ids).toContain("node-run");
-    // debug has no selfcheck — it needs a target, so it lands in manual.
-    expect(plan.manual.map((m) => m.harnessId)).toContain("debug");
+    // debug's selfcheck (`examples:smoke`) is expensive, so it lands in
+    // checks (as an expensive one) rather than manual — it still runs, just
+    // not in the default `harness gate` without `--expensive`.
+    expect(ids).toContain("debug");
+    const debugCheck = plan.checks.find((c) => c.harnessId === "debug");
+    expect(debugCheck?.cost).toBe("expensive");
   });
 
   it("dedupes a selfcheck shared by several touched surfaces", () => {
@@ -400,7 +582,10 @@ describe("capability mapping gate", () => {
     // A deploy-image change touches a surface with its own harness and no
     // capability at all: the table is untouched, so the gate is silent.
     const plan = planGate(["Dockerfile", "scripts/docker-smoke.mjs"]);
-    expect(plan.surfaces.map((s) => s.id)).toEqual(["deploy-image"]);
+    // scripts/ is also claimed by repo-scripts; the point is that no
+    // agent surface is.
+    expect(plan.surfaces.map((s) => s.id)).toContain("deploy-image");
+    expect(plan.surfaces.map((s) => s.id)).not.toContain("agent-capabilities");
     const same = table([block("a", "1111")]);
     expect(planCapabilityMappingGate(same, same).violations).toEqual([]);
   });

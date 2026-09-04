@@ -35,7 +35,8 @@ export type HarnessCapability =
   | "interact" // scripted interaction sequences
   | "browser" // real-browser surface (Playwright)
   | "no-db" // can run hermetically, no database
-  | "gated"; // wired into CI as a pass/fail gate
+  | "gated:pr" // wired into CI as a pass/fail gate on every pull request
+  | "gated:nightly"; // wired into CI as a pass/fail gate on a nightly schedule only
 
 interface HarnessSelfcheck {
   /** Keyless, deterministic, target-free invocation from the repo root. */
@@ -91,9 +92,9 @@ export const HARNESSES: HarnessEntry[] = [
     title: "Static workflow check",
     command: "nodetool validate <id|file.json|file.ts>",
     kind: "static",
-    capabilities: ["json", "no-db", "gated"],
+    capabilities: ["json", "no-db", "gated:pr"],
     agentTool: "validate_workflow",
-    docs: "AGENTS.md § nodetool validate",
+    docs: "docs/harnesses.md § nodetool validate",
     selfcheck: { command: "npm run validate:examples", cost: "cheap" }
   },
   {
@@ -101,17 +102,18 @@ export const HARNESSES: HarnessEntry[] = [
     title: "Workflow debug harness (server + browser surfaces)",
     command: "nodetool debug <id|file> [--browser --trace --watch --supervise]",
     kind: "execution",
-    capabilities: ["json", "watch", "supervise", "browser", "gated"],
+    capabilities: ["json", "watch", "supervise", "browser", "gated:nightly"],
     agentTool: "debug_workflow",
-    docs: "AGENTS.md § nodetool debug"
+    docs: "docs/harnesses.md § nodetool debug",
+    selfcheck: { command: "npm run examples:smoke", cost: "expensive" }
   },
   {
     id: "reliability-ring0",
     title: "Reliability Ring 0 (golden journeys on the kernel, strict lifecycle)",
     command: "npm run reliability:ring0",
     kind: "execution",
-    capabilities: ["gated"],
-    docs: "docs/RELIABILITY_ARCHITECTURE.md",
+    capabilities: ["gated:pr"],
+    docs: "docs/harnesses.md § nodetool reliability",
     selfcheck: { command: "npm run reliability:ring0", cost: "cheap" }
   },
   {
@@ -120,7 +122,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: "nodetool node run <type> --props '{...}' [--no-secrets]",
     kind: "execution",
     capabilities: ["json", "no-db"],
-    docs: "AGENTS.md § nodetool node run",
+    docs: "docs/harnesses.md § nodetool node run",
     selfcheck: {
       command:
         "npm run dev:nodetool -- node run nodetool.text.Concat --props '{\"a\":\"harness-\",\"b\":\"gate\"}' --no-secrets",
@@ -168,7 +170,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: "nodetool app debug <id|bundle.json> [--interact ... --no-run]",
     kind: "execution",
     capabilities: ["json", "interact", "no-db"],
-    docs: "AGENTS.md § nodetool app debug",
+    docs: "docs/harnesses.md § nodetool app debug",
     selfcheck: {
       command:
         "npm run dev:nodetool -- app debug packages/base-nodes/nodetool/examples/apps/ask-your-documents.app.json --no-run",
@@ -180,8 +182,8 @@ export const HARNESSES: HarnessEntry[] = [
     title: "Mini-app build harness (spec→plan→author→check→run→judge)",
     command: "nodetool app build <prompt|spec.json> -p <provider> -m <model>",
     kind: "execution",
-    capabilities: ["json", "watch", "supervise", "gated"],
-    docs: "AGENTS.md § nodetool app build",
+    capabilities: ["json", "watch", "supervise", "gated:pr"],
+    docs: "docs/harnesses.md § nodetool app build",
     selfcheck: {
       // The suite's two deterministic cases: scripted author, real kernel,
       // provider constructed but never called — the same invocation the
@@ -198,7 +200,7 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "static",
     capabilities: ["json", "no-db"],
     agentTool: "validate_timeline",
-    docs: "AGENTS.md § nodetool timeline validate / debug"
+    docs: "docs/harnesses.md § nodetool timeline validate / debug"
   },
   {
     id: "timeline-debug",
@@ -206,7 +208,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: "nodetool timeline debug <id|file.json> --interact '[...]'",
     kind: "execution",
     capabilities: ["json", "interact", "no-db"],
-    docs: "AGENTS.md § nodetool timeline validate / debug"
+    docs: "docs/harnesses.md § nodetool timeline validate / debug"
   },
   {
     id: "timeline-versions",
@@ -216,7 +218,7 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "execution",
     capabilities: ["json"],
     agentTool: "restore_timeline_version",
-    docs: "AGENTS.md § nodetool timeline versions"
+    docs: "docs/harnesses.md § nodetool timeline versions"
   },
   {
     id: "sketch-validate",
@@ -225,7 +227,7 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "static",
     capabilities: ["json", "no-db"],
     agentTool: "validate_sketch",
-    docs: "AGENTS.md § nodetool sketch validate / debug"
+    docs: "docs/harnesses.md § nodetool sketch validate / debug"
   },
   {
     id: "sketch-debug",
@@ -233,7 +235,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: "nodetool sketch debug <id|file.json> --interact '[...]'",
     kind: "execution",
     capabilities: ["json", "interact", "no-db"],
-    docs: "AGENTS.md § nodetool sketch validate / debug"
+    docs: "docs/harnesses.md § nodetool sketch validate / debug"
   },
   {
     id: "sketch-versions",
@@ -243,7 +245,7 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "execution",
     capabilities: ["json"],
     agentTool: "restore_sketch_version",
-    docs: "AGENTS.md § nodetool sketch versions"
+    docs: "docs/harnesses.md § nodetool sketch versions"
   },
   {
     id: "jsscript-validate",
@@ -252,7 +254,7 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "static",
     capabilities: ["json", "no-db"],
     agentTool: "validate_js_script",
-    docs: "AGENTS.md § nodetool jsscript"
+    docs: "docs/harnesses.md § nodetool jsscript"
   },
   {
     id: "jsscript-run",
@@ -261,7 +263,7 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "execution",
     capabilities: ["json", "no-db"],
     agentTool: "run_js_script",
-    docs: "AGENTS.md § nodetool jsscript"
+    docs: "docs/harnesses.md § nodetool jsscript"
   },
   {
     id: "jsscript-test",
@@ -270,7 +272,7 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "execution",
     capabilities: ["json", "no-db"],
     agentTool: "test_js_script",
-    docs: "AGENTS.md § nodetool jsscript",
+    docs: "docs/harnesses.md § nodetool jsscript",
     selfcheck: {
       // Two checked-in fixtures with deterministic cases: no network, no
       // secrets, no database. One sums a buffered list input; the other reads
@@ -287,7 +289,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: "nodetool jsscript debug <id|file.json> --interact '[...]'",
     kind: "execution",
     capabilities: ["json", "interact", "no-db"],
-    docs: "AGENTS.md § nodetool jsscript"
+    docs: "docs/harnesses.md § nodetool jsscript"
   },
   {
     id: "jsscript-versions",
@@ -297,15 +299,17 @@ export const HARNESSES: HarnessEntry[] = [
       "nodetool jsscript versions list|show|create|restore|delete <id> [<version>]",
     kind: "execution",
     capabilities: ["json"],
-    docs: "AGENTS.md § nodetool jsscript"
+    docs: "docs/harnesses.md § nodetool jsscript"
   },
   {
     id: "eval",
     title:
-      "Agent evaluation suites (graph-planner, graph-e2e, code-gen, task-planner, subtask, codeact, tool-loop×8, app-build)",
+      "Agent evaluation suites (graph-planner, graph-e2e, code-gen, task-planner, subtask, codeact, tool-loop variants, app-build)",
     command: "nodetool eval <suite> -p <provider> -m <model> [--min-success N]",
     kind: "eval",
-    capabilities: ["json", "gated"],
+    // workflow_dispatch only (.github/workflows/agent-eval.yml) — no PR or
+    // schedule trigger, so this is not a `gated:*` harness.
+    capabilities: ["json"],
     docs: "packages/agents/AGENTS.md"
   },
   {
@@ -314,7 +318,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: 'echo "<prompt>" | nodetool-chat -p <provider> -m <model>',
     kind: "execution",
     capabilities: [],
-    docs: "AGENTS.md § nodetool chat"
+    docs: "docs/harnesses.md § nodetool chat"
   },
   {
     id: "telegram-bridge",
@@ -337,8 +341,8 @@ export const HARNESSES: HarnessEntry[] = [
     title: "Packaged-backend smoke (bundle staging + /health boot)",
     command: "npm run backend:smoke",
     kind: "meta",
-    capabilities: ["gated"],
-    docs: "AGENTS.md § Common Pitfalls (bundle-backend)",
+    capabilities: ["gated:pr"],
+    docs: "AGENTS.md § Common Pitfalls",
     selfcheck: { command: "npm run backend:smoke", cost: "expensive" }
   },
   {
@@ -346,8 +350,8 @@ export const HARNESSES: HarnessEntry[] = [
     title: "Deploy-image smoke (build, boot, load app in a browser)",
     command: "node scripts/docker-smoke.mjs http://localhost:7777",
     kind: "meta",
-    capabilities: ["browser", "gated"],
-    docs: "AGENTS.md § Common Pitfalls (deploy)"
+    capabilities: ["browser", "gated:pr"],
+    docs: "AGENTS.md § Common Pitfalls"
   },
   {
     id: "provider-contract",
@@ -355,7 +359,10 @@ export const HARNESSES: HarnessEntry[] = [
       "Provider contract probes (raw response fixtures + one live request per provider)",
     command: "npm run probe:providers [--json] [--out report.json]",
     kind: "meta",
-    capabilities: ["json", "gated"],
+    // Nightly-only (.github/workflows/provider-contract-probe.yml: schedule +
+    // workflow_dispatch, no pull_request) — the offline selfcheck below is
+    // exercised there, not on every PR.
+    capabilities: ["json", "gated:nightly"],
     docs: "docs/provider-contract-probes.md",
     selfcheck: {
       // The offline half: every manifest entry decodes its checked-in raw
@@ -372,7 +379,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: "nodetool affected [--base main]",
     kind: "meta",
     capabilities: ["json", "no-db"],
-    docs: "AGENTS.md § nodetool affected"
+    docs: "docs/harnesses.md § nodetool affected"
   },
   {
     id: "packs-compile",
@@ -422,7 +429,10 @@ export const HARNESSES: HarnessEntry[] = [
       "sandbox-package-docs sandbox-package-listing browser-tools " +
       "timelines-op-input",
     kind: "static",
-    capabilities: ["no-db", "gated"],
+    // Runs in CI as part of the whole-package `--filter=@nodetool-ai/agents`
+    // leg, but no workflow names this filtered command specifically, so it
+    // is not a `gated:*` harness by the substring-in-a-workflow rule.
+    capabilities: ["no-db"],
     docs: "packages/agents/AGENTS.md § Capability coverage",
     selfcheck: {
       // `capabilities:check` re-derives the table from the live registry, so
@@ -443,7 +453,7 @@ export const HARNESSES: HarnessEntry[] = [
       "nodetool jtbd <list|run|optimize> [-p <provider> -m <model>]",
     kind: "eval",
     capabilities: ["json"],
-    docs: "AGENTS.md § nodetool jtbd",
+    docs: "docs/harnesses.md § nodetool jtbd",
     selfcheck: {
       // Keyless: the catalogue's own invariants (every job states a purpose,
       // grades an outcome, and fails its checks on an untouched world) plus
@@ -459,8 +469,8 @@ export const HARNESSES: HarnessEntry[] = [
     command:
       "npm run generate:fal:check && npm run generate:kie:check",
     kind: "static",
-    capabilities: ["json", "no-db", "gated"],
-    docs: "AGENTS.md § Generated provider metadata has a drift gate",
+    capabilities: ["json", "no-db", "gated:pr"],
+    docs: "AGENTS.md § Common Pitfalls",
     selfcheck: {
       command:
         "npm run generate:fal:check -- --strict && " +
@@ -469,14 +479,128 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "repo-scripts",
+    title: "Repo tooling scripts (test selection, validators, generators)",
+    // The scripts a contributor and CI run from the repo root. Their pure
+    // logic (test-affected's plan builder, the validators' rules) is pinned
+    // by the suites under scripts/__tests__; a script with no suite is
+    // covered only by the CI leg that runs it.
+    command: "npm run test:scripts",
+    kind: "meta",
+    capabilities: ["json", "no-db"],
+    docs: "AGENTS.md § Build, Lint & Test Commands",
+    selfcheck: { command: "npm run test:scripts", cost: "cheap" }
+  },
+  {
     id: "harness-audit",
     title: "Harness coverage audit (this registry)",
     command: "nodetool harness audit [--strict]",
     kind: "meta",
-    capabilities: ["json", "no-db", "gated"],
+    // Not run by name in any workflow today (the invariant it checks is
+    // enforced by the registry test below, in the normal test:packages leg),
+    // so it carries no `gated:*` tag under the substring-in-a-workflow rule.
+    capabilities: ["json", "no-db"],
     docs: "docs/HARNESS_FIRST.md",
     selfcheck: {
-      command: "npm run dev:nodetool -- harness audit",
+      command:
+        "npm run dev:nodetool -- harness audit && " +
+        "npx vitest run tests/harness-registry.test.ts --root packages/cli",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "api-routes",
+    title: "API server routes (Fastify HTTP + WebSocket)",
+    command: "nodetool serve",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "docs/harnesses.md § nodetool serve",
+    selfcheck: {
+      // The websocket package's own suite: routes, the /ws runner, MCP tool
+      // resolution, drain/shutdown. Multi-minute (255 files), so this stays
+      // an --expensive selfcheck rather than the default gate.
+      command: "npm run test --workspace=packages/websocket",
+      cost: "expensive"
+    }
+  },
+  {
+    id: "data-models",
+    title: "Data models (Drizzle ORM persistence layer)",
+    command: "npm run test --workspace=packages/models",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "packages/models/AGENTS.md",
+    selfcheck: {
+      command: "npm run test --workspace=packages/models",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "storage-and-security",
+    title: "Storage, security, auth, and config packages",
+    command:
+      "npm run test --workspace=packages/storage && " +
+      "npm run test --workspace=packages/security && " +
+      "npm run test --workspace=packages/auth && " +
+      "npm run test --workspace=packages/config",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "packages/AGENTS.md",
+    selfcheck: {
+      command:
+        "npm run test --workspace=packages/storage && " +
+        "npm run test --workspace=packages/security && " +
+        "npm run test --workspace=packages/auth && " +
+        "npm run test --workspace=packages/config",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "node-pack-parity",
+    title:
+      "Node-pack example-workflow parity (every shipped node covered by an example)",
+    command: "npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows",
+    kind: "static",
+    // Runs in the quality-checks.yml typecheck leg (pull_request-triggered),
+    // by this exact command.
+    capabilities: ["no-db", "gated:pr"],
+    docs: "packages/base-nodes/AGENTS.md",
+    selfcheck: {
+      command:
+        "npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "shared-services",
+    title: "Shared service libraries (vector store, model pricing)",
+    command:
+      "npm run test --workspace=packages/vectorstore && " +
+      "npm run test --workspace=packages/model-pricing",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "packages/AGENTS.md",
+    selfcheck: {
+      command:
+        "npm run test --workspace=packages/vectorstore && " +
+        "npm run test --workspace=packages/model-pricing",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "execution-session-audit",
+    title:
+      "Execution session hydration audit (registry handed without a resolver)",
+    command:
+      "npm run test --workspace=packages/execution -- execution-session-hydration-audit",
+    kind: "static",
+    // No workflow names this test file by substring today (it runs inside
+    // the whole-package `packages/execution` leg), so no `gated:*` tag.
+    capabilities: ["no-db"],
+    docs: "docs/HARNESS_FIRST.md",
+    selfcheck: {
+      command:
+        "npm run test --workspace=packages/execution -- execution-session-hydration-audit",
       cost: "cheap"
     }
   }
@@ -499,7 +623,13 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "workflow-execution",
     title: "Workflow execution (kernel runner)",
-    harnesses: ["validate", "debug", "node-run", "reliability-ring0"],
+    harnesses: [
+      "validate",
+      "debug",
+      "node-run",
+      "reliability-ring0",
+      "execution-session-audit"
+    ],
     paths: [
       "packages/protocol/",
       "packages/kernel/",
@@ -571,7 +701,13 @@ export const SURFACES: SurfaceEntry[] = [
     id: "provider-clients",
     title: "LLM and media provider clients (request shaping + response decoding)",
     harnesses: ["provider-contract", "eval"],
-    paths: ["packages/runtime/src/providers/"]
+    paths: [
+      "packages/runtime/src/providers/",
+      // Local-models BaseProvider (transformers.js/kokoro-js) — same request/
+      // response contract as the hosted providers, packaged separately
+      // because its weights and native deps are optional.
+      "packages/transformers-js-provider/"
+    ]
   },
   {
     id: "workflow-authoring",
@@ -625,6 +761,9 @@ export const SURFACES: SurfaceEntry[] = [
     title: "Sketches (image documents, ui_sketch_* tools, version history)",
     harnesses: ["sketch-validate", "sketch-debug", "sketch-versions", "eval"],
     paths: [
+      // The paint core behind sketches: types, dependency hashing, seeded
+      // layer templates, host-neutral raster ops.
+      "packages/image-editor/",
       "packages/execution/src/sketch-debug/",
       "packages/cli/src/sketch-debug/",
       "packages/cli/src/commands/sketch-versions.ts",
@@ -794,11 +933,15 @@ export const SURFACES: SurfaceEntry[] = [
   },
   {
     id: "provider-codegen",
-    title: "Generated FAL and KIE provider metadata (node manifests, node source)",
+    title: "Generated FAL, KIE, and Replicate provider metadata (node manifests, node source)",
     harnesses: ["provider-codegen"],
     paths: [
       "packages/fal-codegen/",
       "packages/kie-codegen/",
+      // Replicate's generator has no fixture-mode drift check of its own yet
+      // (unlike fal/kie) — a diff here still runs the fal/kie selfcheck,
+      // which is the closest real coverage until one is written.
+      "packages/replicate-codegen/",
       "packages/fal-nodes/src/fal-manifest.json",
       "packages/kie-nodes/src/kie-manifest.json",
       "scripts/provider-codegen-check.mjs"
@@ -858,8 +1001,129 @@ export const SURFACES: SurfaceEntry[] = [
       "Covered by Jest unit tests only. A harness would boot the packaged " +
       "shell headlessly (Playwright's Electron driver), assert the " +
       "IPC surface, and reuse backend-smoke for the server half."
+  },
+  {
+    id: "api-server",
+    title: "API server (Fastify HTTP + WebSocket routes)",
+    harnesses: ["api-routes"],
+    paths: ["packages/websocket/"]
+  },
+  {
+    id: "data-models",
+    title: "Data models (SQLite/Postgres persistence, Drizzle ORM)",
+    harnesses: ["data-models"],
+    paths: ["packages/models/"]
+  },
+  {
+    id: "storage-and-security",
+    title: "Storage, secrets, auth middleware, and config loading",
+    harnesses: ["storage-and-security"],
+    paths: [
+      "packages/storage/",
+      "packages/security/",
+      "packages/auth/",
+      "packages/config/"
+    ]
+  },
+  {
+    id: "domain-nodes",
+    title: "Domain node packages (provider and media node factories)",
+    harnesses: ["node-run", "validate", "node-pack-parity"],
+    paths: [
+      "packages/atlascloud-nodes/",
+      "packages/audio-nodes/",
+      "packages/automation-nodes/",
+      "packages/code-nodes/",
+      "packages/core-nodes/",
+      "packages/data-nodes/",
+      "packages/document-nodes/",
+      "packages/elevenlabs-nodes/",
+      "packages/fal-nodes/",
+      // Shared by the node packages, not a node package itself: the blend-mode
+      // catalog/WGSL functions (gpu) and HuggingFace cache/discovery
+      // (huggingface, paired with huggingface-nodes). CI groups both with the
+      // `*-nodes` filter in quality-checks.yml's test-packages-nodes leg.
+      "packages/gpu/",
+      "packages/huggingface/",
+      "packages/huggingface-nodes/",
+      "packages/image-nodes/",
+      "packages/integration-nodes/",
+      "packages/kie-nodes/",
+      "packages/llm-nodes/",
+      "packages/minimax-nodes/",
+      "packages/nodes-utils/",
+      "packages/replicate-nodes/",
+      "packages/reve-nodes/",
+      "packages/text-nodes/",
+      "packages/together-nodes/",
+      "packages/topaz-nodes/",
+      "packages/transformers-js-nodes/",
+      "packages/video-nodes/",
+      // Portable runner (graph + registry → a Request/Response handler); CI
+      // groups it with the node packages for the same reason.
+      "packages/workflow-runner/"
+    ]
+  },
+  {
+    id: "shared-services",
+    title: "Shared service libraries (vector store, model pricing)",
+    harnesses: ["shared-services"],
+    paths: ["packages/vectorstore/", "packages/model-pricing/"]
+  },
+  {
+    id: "repo-scripts",
+    title: "Repo tooling scripts (scripts/)",
+    harnesses: ["repo-scripts"],
+    // Overlaps with the surfaces that claim individual scripts (bundle
+    // staging, codegen drift, docker smoke); a diff there runs both.
+    paths: ["scripts/"]
+  },
+  {
+    id: "harness-registry",
+    title: "Harness registry (this file, its tests, capability sync)",
+    harnesses: ["harness-audit"],
+    paths: [
+      "packages/cli/src/harness/",
+      "packages/cli/tests/harness-registry.test.ts",
+      "packages/cli/tests/capability-coverage.test.ts",
+      "scripts/sync-capability-coverage.mjs"
+    ]
   }
 ];
+
+/**
+ * Package/app directories with no `SurfaceEntry.paths` prefix pointing into
+ * them, and why: what a diff there cannot verify headlessly today, and what
+ * closing the gap would need. This is the layer below `SurfaceEntry.gap` — a
+ * surface can be uncovered by a *harness* and still claim its paths (mobile,
+ * electron-shell do exactly that); an entry here has no *surface* touching it
+ * at all, so a diff under it selects nothing in `nodetool harness gate` and
+ * `auditPathClaims` would report it silently otherwise.
+ *
+ * Every directory under `packages/`, plus `web/`, `electron/`, `mobile/`,
+ * must appear in some `SurfaceEntry.paths` or here —
+ * `tests/harness-registry.test.ts` walks the real repo and fails the build on
+ * one that is in neither.
+ */
+export const UNCLAIMED_PATHS: Record<string, string> = {
+  "packages/compute/":
+    "Provisions and reaps real RunPod/Vast.ai GPU workers; only its hermetic " +
+    "unit tests run headlessly today. A harness needs a recorded-fixture " +
+    "mode against a fake provider API, the way `blender` and " +
+    "`provider-contract` fake their externals.",
+  "packages/deploy/":
+    "The `nodetool deploy` toolkit (Docker/SSH/RunPod/GCP/Supabase " +
+    "self-hosting) needs a real target to prove a rollout; only its " +
+    "planning-logic unit tests run headlessly today.",
+  "packages/sdk/":
+    "Generated TypeScript client re-exporting the tRPC/WebSocket surface; " +
+    "has no test script of its own (build + lint only) — exercised " +
+    "indirectly through the `api-routes` suite it wraps.",
+  "packages/system-skills/":
+    "Not an npm workspace, just SKILL.md files staged into the packaged " +
+    "backend by scripts/bundle-backend.mjs; verify-backend-bundle.mjs " +
+    "checks every directory ships, not the skill content."
+};
 
 interface HarnessAuditResult {
   surfaces: Array<{
@@ -912,10 +1176,32 @@ export function auditHarnessCoverage(
     unknownHarnessRefs,
     orphanHarnesses: harnesses
       .map((h) => h.id)
-      .filter(
-        (id) => !referenced.has(id) && id !== "harness-audit" && id !== "affected"
-      )
+      .filter((id) => !referenced.has(id) && id !== "affected")
   };
+}
+
+/**
+ * Directories under `packages/` (plus `web/`, `electron/`, `mobile/`) that no
+ * `SurfaceEntry.paths` prefix and no `UNCLAIMED_PATHS` entry references. A
+ * non-empty result means a diff under one of them selects nothing in
+ * `nodetool harness gate` — silently, since no surface even names the path.
+ *
+ * `rootDirs` are repo-relative directory paths (e.g. `"packages/models"`, a
+ * trailing slash is added if missing). A directory is claimed when some
+ * surface path or `UNCLAIMED_PATHS` key falls inside it, equals it, or is one
+ * of its ancestors — the same "prefix either way" relationship `planGate`
+ * uses to route a changed file to a surface.
+ */
+export function auditPathClaims(
+  rootDirs: string[],
+  surfaces: SurfaceEntry[] = SURFACES,
+  unclaimed: Record<string, string> = UNCLAIMED_PATHS
+): string[] {
+  const claims = [...surfaces.flatMap((s) => s.paths), ...Object.keys(unclaimed)];
+  return rootDirs.filter((dir) => {
+    const prefix = dir.endsWith("/") ? dir : `${dir}/`;
+    return !claims.some((p) => p.startsWith(prefix) || prefix.startsWith(p));
+  });
 }
 
 // ---------------------------------------------------------------------------

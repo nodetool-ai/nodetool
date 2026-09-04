@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 
 import { computeAffected } from "../../packages/cli/src/affected/affected.ts";
-import { buildPlan, DOC_ONLY, MOBILE_DEPS } from "../test-affected.mjs";
+import { buildGateArgv, buildPlan, DOC_ONLY, MOBILE_DEPS } from "../test-affected.mjs";
 
 /** web and electron are named after the product, not their directories. */
 const PACKAGES = [
@@ -89,6 +89,21 @@ describe("buildPlan", () => {
     const { steps, globalFiles } = plan(["docs/DESIGN.md", "AGENTS.md", ".github/x.yml"]);
     expect(globalFiles).toEqual([]);
     expect(steps).toEqual([]);
+  });
+});
+
+describe("buildGateArgv", () => {
+  it("asks the harness registry for a dry-run plan over the same files", () => {
+    expect(buildGateArgv(["packages/kernel/src/runner.ts", "web/src/index.tsx"])).toEqual([
+      "run",
+      "dev:nodetool",
+      "--",
+      "harness",
+      "gate",
+      "--dry-run",
+      "packages/kernel/src/runner.ts",
+      "web/src/index.tsx"
+    ]);
   });
 });
 

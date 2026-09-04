@@ -104,6 +104,18 @@ every harness (id, canonical command, capabilities, agent tool, selfcheck,
 docs pointer) and every surface (the harnesses covering it, the code paths it
 owns, or its gap note).
 
+A surface with a harness is only useful if the gate can find it. `paths`
+routes a diff to the surfaces it touches, so a package with no entry
+anywhere is invisible to `nodetool harness gate` even when the harness that
+would have covered it exists — a diff there selects nothing, silently.
+`UNCLAIMED_PATHS` closes that hole from the other side: every directory under
+`packages/`, plus `web/`, `electron/`, `mobile/`, must appear in some
+surface's `paths` or in `UNCLAIMED_PATHS`, which names the reason nothing
+claims it yet and what closing that gap would need.
+`packages/cli/tests/harness-registry.test.ts` walks the real repo tree and
+fails the build on one that is in neither — the same shape as the
+harness-coverage invariant above, one layer below it.
+
 ```bash
 npm run dev:nodetool -- harness list            # every harness + capabilities
 npm run dev:nodetool -- harness audit           # surface coverage + gaps
@@ -190,7 +202,12 @@ second, driftable copy of the selection logic.
 
 ## Current gaps
 
-Run `nodetool harness audit` for the live list. As of this writing: the
-mobile app (the tool contract exists — drive it headlessly like the tool-loop
-evals do) and the Electron shell (unit tests only; a harness would boot the
-packaged shell under Playwright's Electron driver).
+Run `nodetool harness audit` for the live surface gaps: the mobile app (the
+tool contract exists — drive it headlessly like the tool-loop evals do) and
+the Electron shell (unit tests only; a harness would boot the packaged shell
+under Playwright's Electron driver).
+
+For the path-claim layer below that — a package with no harness *and* no
+surface even naming it — read `UNCLAIMED_PATHS` in the registry directly: each
+entry says what a diff there cannot verify headlessly today and what closing
+it would need.
