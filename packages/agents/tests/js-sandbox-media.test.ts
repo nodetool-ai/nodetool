@@ -12,6 +12,7 @@ import {
 import {
   MAX_CANVAS_OPS,
   asImageBytes,
+  imagePixelSize,
   renderCanvas,
   sniffImageFormat
 } from "../src/sandbox-media.js";
@@ -412,6 +413,40 @@ describe("byte coercion and format sniffing", () => {
       sniffImageFormat(new TextEncoder().encode("RIFF????WEBPVP8 "))
     ).toBe("webp");
     expect(sniffImageFormat(new Uint8Array([1, 2, 3, 4]))).toBe("unknown");
+  });
+
+  /**
+   * Asking a picture how big it is used to mean decoding it. The one caller
+   * that needs the answer — `animate_image`, deciding what aspect to ask the
+   * provider for — wants a number, not a rasterization it throws away.
+   */
+  it("reads pixel size out of the header", () => {
+    const png = new Uint8Array(33);
+    png.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
+    png.set([0x49, 0x48, 0x44, 0x52], 12);
+    const view = new DataView(png.buffer);
+    view.setUint32(16, 720, false);
+    view.setUint32(20, 1280, false);
+    expect(imagePixelSize(png)).toEqual({ width: 720, height: 1280 });
+
+    // JPEG: SOI, an APP0 to skip, then the SOF0 that carries the size.
+    const jpeg = new Uint8Array([
+      0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0x00, 0x00, 0xff, 0xc0, 0x00, 0x11,
+      0x08, 0x02, 0x80, 0x01, 0xe0, 0x03, 0x00, 0x00
+    ]);
+    expect(imagePixelSize(jpeg)).toEqual({ width: 480, height: 640 });
+
+    const gif = new TextEncoder().encode("GIF89a\u0000\u0000\u0000\u0000");
+    gif[6] = 0x20;
+    gif[7] = 0x03;
+    gif[8] = 0x00;
+    gif[9] = 0x02;
+    expect(imagePixelSize(gif)).toEqual({ width: 800, height: 512 });
+  });
+
+  it("says nothing for bytes it cannot read a size out of", () => {
+    expect(imagePixelSize(new Uint8Array([1, 2, 3, 4]))).toBeNull();
+    expect(imagePixelSize(new Uint8Array([0xff, 0xd8, 0xff]))).toBeNull();
   });
 });
 

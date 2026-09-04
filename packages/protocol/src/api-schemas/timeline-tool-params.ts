@@ -22,7 +22,8 @@
  */
 
 import { z } from "zod";
-import { isString } from "../predicates.js";
+import { isRecord, isString } from "../predicates.js";
+import { withKeyRemedies } from "../zod-schema.js";
 import {
   captionStyle,
   clipShapeStyle,
@@ -141,6 +142,57 @@ export function resolveMoveTrackArgs(input: {
   return args;
 }
 
+/**
+ * `delete_track`'s arguments.
+ *
+ * Tracks were add-only: a build that reached for `add_track` one time too many
+ * — or created a picture track and then decided the piece was typographic —
+ * had no way back, and the op list said so only by omission. The editor's own
+ * track menu has removed a track and its clips all along, so the gap was the
+ * agent surface's alone.
+ *
+ * Deleting a track deletes the clips on it, which is the one thing about this
+ * op that can lose work, so an occupied track is refused unless the caller
+ * says `deleteClips: true`.
+ */
+export const deleteTrackShape = {
+  target: trackTargetParam.optional(),
+  trackId: trackTargetParam.optional().describe("Alias for `target`."),
+  deleteClips: z
+    .boolean()
+    .optional()
+    .describe(
+      "Required to delete a track that still holds clips; they go with it."
+    )
+} as const;
+
+export interface DeleteTrackArgs {
+  target: string;
+  deleteClips: boolean;
+}
+
+export function resolveDeleteTrackArgs(input: {
+  target?: unknown;
+  trackId?: unknown;
+  deleteClips?: unknown;
+}): DeleteTrackArgs {
+  const target = (input.target ?? input.trackId) as string | undefined;
+  if (!isString(target) || target.trim() === "") {
+    throw new Error(
+      "delete_track needs the track to delete in `target` (a track id or name)."
+    );
+  }
+  return { target, deleteClips: input.deleteClips === true };
+}
+
+export const DELETE_TRACK_DESCRIPTION =
+  "Remove one track from the specified timeline sequence, named in `target` " +
+  "(a track id or name). Every track below it moves up one index, which is " +
+  "z-order, so the stack closes over the gap. A track that still holds clips " +
+  "is refused unless you pass `deleteClips: true` — then the clips go with " +
+  "it. An empty track draws nothing, so delete one to tidy the stack, not to " +
+  "fix a render.";
+
 export const MOVE_TRACK_DESCRIPTION =
   "Reorder one track in the stack, which is what decides z-order: index 0 " +
   "draws on top of every track below it. Name the track in `target` and its " +
@@ -181,6 +233,42 @@ export function withFieldNotes<T extends z.ZodRawShape>(
   return z.object(next) as unknown as z.ZodObject<T>;
 }
 
+/**
+ * The nested bags of a text clip's look, refusing a key by name.
+ *
+ * The document schema strips what it does not know, which is right for a
+ * stored document and wrong for a tool call: `background: {color, paddingPx,
+ * cornerRadius: 40}` saved a square plate and reported success, because the
+ * field is spelled `radiusPx`. The top level has refused unknown keys since
+ * strict schemas went in; these are the same refusal one level down, where
+ * three of the four fields are named after a CSS property that is spelled
+ * differently here.
+ *
+ * The offsets default rather than being required: `{color, blurPx}` is a
+ * complete description of a centred drop shadow, and demanding `offsetX: 0`
+ * cost a round trip on a call that was already right.
+ */
+const textShadowParams = z
+  .object({
+    color: z.string().default("#000000"),
+    blurPx: z.number().default(0),
+    offsetX: z.number().default(0).describe("Default 0."),
+    offsetY: z.number().default(0).describe("Default 0.")
+  })
+  .strict();
+
+const textStrokeParams = z
+  .object({ color: z.string(), widthPx: z.number() })
+  .strict();
+
+const textBackgroundParams = z
+  .object({
+    color: z.string(),
+    paddingPx: z.number(),
+    radiusPx: z.number().optional().describe("Corner rounding, in sequence px.")
+  })
+  .strict();
+
 /** A text clip's whole authored look, as `set_clip_params` replaces it. */
 export const textStyleParams = withFieldNotes(clipTextStyle, {
   fontSizePx: "Font size in sequence pixels, not CSS pixels.",
@@ -188,13 +276,6 @@ export const textStyleParams = withFieldNotes(clipTextStyle, {
   letterSpacingPx: "Extra advance between glyphs, in sequence px. Default 0.",
   lineHeight: "Line advance as a multiple of the font size. Default 1.2.",
   maxWidthFrac: "Wrap width as a fraction of frame width.",
-  stroke: "Outline drawn under the fill: {color, widthPx}.",
-  shadow:
-    "Drop shadow behind the glyphs: {color, blurPx, offsetX, offsetY}. The " +
-    "blur field is `blurPx`, not `blur`.",
-  background:
-    "Scrim drawn behind the wrapped block: {color, paddingPx, radiusPx?}. " +
-    "An 8-digit hex or rgba() colour keeps the picture visible through it.",
   fill:
     "Gradient or solid fill, {type: \"solid\"|\"linear\"|\"radial\", ...}. " +
     "Wins over `color` when set."
@@ -220,8 +301,52 @@ export const textStyleParams = withFieldNotes(clipTextStyle, {
     .describe(
       '"top", "middle" (default) or "bottom". Not "center" — that is the ' +
         "horizontal `align` spelling."
+    ),
+  shadow: textShadowParams
+    .optional()
+    .describe(
+      "Drop shadow behind the glyphs: {color, blurPx, offsetX?, offsetY?}. " +
+        "The blur field is `blurPx`, not `blur`; the offsets default to 0."
+    ),
+  stroke: textStrokeParams
+    .optional()
+    .describe("Outline drawn under the fill: {color, widthPx}."),
+  background: textBackgroundParams
+    .optional()
+    .describe(
+      "Scrim drawn behind the wrapped block: {color, paddingPx, radiusPx?}. " +
+        "The rounding field is `radiusPx`, not `cornerRadius`. An 8-digit " +
+        "hex or rgba() colour keeps the picture visible through it."
     )
 });
+
+/**
+ * Where a text clip is placed, for a caller that reached for x/y.
+ *
+ * Text has no coordinates: it is anchored to one of nine positions and wrapped
+ * to `maxWidthFrac`. The refusal listed thirteen style fields and no
+ * coordinates, which reads as "text cannot be positioned" rather than "text is
+ * positioned differently".
+ */
+export const TEXT_CLIP_KEY_REMEDIES: Record<string, string> = {
+  x: "Text has no x/y: place it with `align` (left/center/right) and `verticalAlign` (top/middle/bottom), and set its wrap with `maxWidthFrac`. For a nudge off that anchor, animate `offsetX`/`offsetY` with the `custom` preset.",
+  y: "Text has no x/y: place it with `align` (left/center/right) and `verticalAlign` (top/middle/bottom), and set its wrap with `maxWidthFrac`. For a nudge off that anchor, animate `offsetX`/`offsetY` with the `custom` preset.",
+  width:
+    "A text clip has no box: its wrap width is `maxWidthFrac`, a fraction of the frame.",
+  height:
+    "A text clip has no box: its height follows the wrapped lines. Set `fontSizePx` and `lineHeight`.",
+  fontSize: "Font size is `fontSizePx`, in sequence pixels.",
+  blur: "Blur belongs to the shadow bag: {shadow: {color, blurPx}}.",
+  cornerRadius:
+    "The plate behind the words is `background: {color, paddingPx, radiusPx}`."
+};
+
+/** Attach {@link TEXT_CLIP_KEY_REMEDIES} to a host's `add_text_clip` schema. */
+export function withTextClipRemedies<TSchema extends z.ZodType>(
+  schema: TSchema
+): TSchema {
+  return withKeyRemedies(schema, TEXT_CLIP_KEY_REMEDIES);
+}
 
 /**
  * The same look on `add_text_clip`, where the words come from `text` and every
@@ -259,7 +384,10 @@ export const shapeStyleParams = withFieldNotes(clipShapeStyle, {
   lineJoin: '"miter", "round" or "bevel".',
   trimStart: "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1.",
   trimEnd: "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1."
-});
+  // Strict for the same reason the text bags are: a geometry key spelled
+  // wrong inside `shape` was stripped, and the shape drew at its default
+  // somewhere else on the frame with nothing said about it.
+}).strict();
 
 /**
  * What `add_text_clip` and `add_shape_clip` tell the model, shared so the
@@ -301,34 +429,57 @@ export const ADD_SHAPE_CLIP_DESCRIPTION =
   "Shapes are rasterized for preview/export and take the standard motion " +
   "presets.";
 
+/** Every key that says where a shape is or what outline it follows. */
+const SHAPE_GEOMETRY_KEYS = [
+  "x",
+  "y",
+  "width",
+  "height",
+  "x2",
+  "y2",
+  "d",
+  "sides",
+  "innerRadius"
+] as const;
+
 /**
- * The shape geometry for `add_shape_clip`, from whichever of the three forms
- * the caller used: `shape`, `shapeStyle` (the name `set_clip_params` takes),
- * or the geometry keys spread at the top level. With none of them the shape is
- * a full-frame rect — a caller that asked for a shape and named no box wants
- * something it can see, not a schema error about a field it did not know
- * existed.
+ * The shape geometry for `add_shape_clip`, merged from all three forms the
+ * caller may have used: `shape`, `shapeStyle` (the name `set_clip_params`
+ * takes), and the keys spread at the top level.
+ *
+ * They are one description of one shape, so they merge — `shape` wins a
+ * contested key, then `shapeStyle`, then the top level. Taking the first bag
+ * whole and dropping the rest is what put a white full-frame rectangle over a
+ * finished ad: the kind and fill went in `shape`, the box at the top level,
+ * and the call reported success having read half of it.
+ *
+ * With no geometry at all the shape is a full-frame rect — a caller that asked
+ * for a shape and named no box wants something it can see, not a schema error
+ * about a field it did not know existed. Geometry that *is* named is left
+ * alone, so a line keeps its two points and gains no width.
  */
 export function resolveShapeArg(
   shape: unknown,
   shapeStyle: unknown,
   loose: Record<string, unknown>
 ): z.infer<typeof shapeStyleParams> {
-  const given = (shape ?? shapeStyle) as
-    | z.infer<typeof shapeStyleParams>
-    | undefined;
-  if (given) return given;
-  const bare = Object.fromEntries(
-    Object.entries(loose).filter(([, value]) => value !== undefined)
-  );
-  const parsed = shapeStyleParams.safeParse({
+  const defined = (bag: unknown): Record<string, unknown> =>
+    isRecord(bag)
+      ? Object.fromEntries(
+          Object.entries(bag).filter(([, value]) => value !== undefined)
+        )
+      : {};
+  const bare = defined(loose);
+  const merged: Record<string, unknown> = {
     kind: "rect",
-    x: 0,
-    y: 0,
-    width: 1,
-    height: 1,
-    ...bare
-  });
+    ...bare,
+    ...defined(shapeStyle),
+    ...defined(shape)
+  };
+  const placed = SHAPE_GEOMETRY_KEYS.some((key) => key in merged);
+  const parsed = shapeStyleParams.safeParse(
+    placed ? merged : { ...merged, x: 0, y: 0, width: 1, height: 1 }
+  );
   if (!parsed.success) {
     throw new Error(
       'add_shape_clip takes the geometry in `shape` (or `shapeStyle`): ' +
@@ -823,6 +974,7 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_get_state",
   "ui_timeline_add_track",
   "ui_timeline_move_track",
+  "ui_timeline_delete_track",
   "ui_timeline_add_media_clip",
   "ui_timeline_add_text_clip",
   "ui_timeline_add_shape_clip",

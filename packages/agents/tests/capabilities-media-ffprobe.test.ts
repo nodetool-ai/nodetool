@@ -52,6 +52,27 @@ describe("ffprobe staging", () => {
     }
   });
 
+  it("stages a ref named in `path` itself", async () => {
+    // The refusal told the caller to stage it and pass a workspace name — for
+    // a capability whose whole argv *is* that one path, with no flag surface
+    // to guard. The guest's own `video.info(asset://…)` never asked for that,
+    // so a build probing three generated clips spent a round trip per clip
+    // learning the rule and another staging around it.
+    const dir = await mkdtemp(join(tmpdir(), "ffprobe-path-"));
+    try {
+      // The binary may not be here; staging happens before the spawn, so the
+      // file on disk is what this pins.
+      await asTool(ffprobe).process(workspaceContext(dir), {
+        path: "data:text/plain;base64,aGk="
+      });
+      expect(await readFile(join(dir, "ffprobe-input/input"), "utf8")).toBe(
+        "hi"
+      );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("ffprobe refuses an inputs name that escapes the workspace", async () => {
     const dir = await mkdtemp(join(tmpdir(), "ffprobe-inputs-"));
     try {

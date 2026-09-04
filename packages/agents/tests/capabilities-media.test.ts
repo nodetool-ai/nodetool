@@ -34,6 +34,7 @@ import {
   generateMusic,
   generateSpeech,
   generateVideo,
+  nearestAspectRatio,
   scoreImageAdherence,
   transcribeAudio,
   understandVideo,
@@ -788,5 +789,116 @@ describe("clip length on the video capabilities", () => {
     });
     const params = paramsOf(context);
     expect(params["duration_seconds"]).toBe(6);
+  });
+
+  /**
+   * `{duration: 15}` bought a 5-second clip: the schemas are snake_case, the
+   * guest API takes an options bag, and the `TextToVideo` node's own property
+   * is `duration`, so the spelling a caller reaches for is the one that was
+   * dropped without a word.
+   */
+  it("reads the length under the spellings a caller reaches for", async () => {
+    for (const [key, value] of [
+      ["duration", 15],
+      ["durationSeconds", 12]
+    ] as const) {
+      const context = videoContext();
+      await asTool(generateVideo).process(context, {
+        provider: "fal_ai",
+        model: "bytedance/seedance-2.0/text-to-video",
+        prompt: "a glowing node graph",
+        [key]: value
+      });
+      expect(paramsOf(context)["duration_seconds"]).toBe(value);
+    }
+  });
+
+  it("reads aspect_ratio and negative_prompt under their camel spellings", async () => {
+    const context = videoContext();
+    await asTool(generateVideo).process(context, {
+      provider: "fal_ai",
+      model: "bytedance/seedance-2.0/text-to-video",
+      prompt: "a glowing node graph",
+      aspectRatio: "9:16",
+      negativePrompt: "no text"
+    });
+    const params = paramsOf(context);
+    expect(params["aspect_ratio"]).toBe("9:16");
+    expect(params["negative_prompt"]).toBe("no text");
+  });
+});
+
+/**
+ * A vertical still animated at the provider's default came back 1280x720, and
+ * the mismatch surfaced only when the beds were already under the type.
+ */
+describe("animate_image takes its shape from the still", () => {
+  /** A PNG header is enough: nothing decodes these bytes. */
+  function pngOf(width: number, height: number): Uint8Array {
+    const bytes = new Uint8Array(33);
+    bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
+    bytes.set([0x49, 0x48, 0x44, 0x52], 12);
+    new DataView(bytes.buffer).setUint32(16, width, false);
+    new DataView(bytes.buffer).setUint32(20, height, false);
+    return bytes;
+  }
+
+  function contextFor(image: Uint8Array): ProcessingContext {
+    return withGenerationSeam({
+      userId: "user-1",
+      runProviderPrediction: vi.fn(async () => new Uint8Array([1, 2, 3])),
+      workspace: {
+        localDir: null,
+        write: async () => {},
+        read: async () => image,
+        key: (p: string) => p
+      }
+    }) as unknown as ProcessingContext;
+  }
+
+  const sentParams = (context: ProcessingContext): Record<string, unknown> =>
+    (
+      (
+        context.runProviderPrediction as unknown as ReturnType<typeof vi.fn>
+      ).mock.calls[0][0] as Record<string, unknown>
+    )["params"] as Record<string, unknown>;
+
+  it("picks the closest named ratio, not an invented one", () => {
+    expect(nearestAspectRatio(1080, 1920)).toBe("9:16");
+    expect(nearestAspectRatio(1280, 720)).toBe("16:9");
+    expect(nearestAspectRatio(1024, 1024)).toBe("1:1");
+    expect(nearestAspectRatio(1536, 1152)).toBe("4:3");
+    expect(nearestAspectRatio(0, 100)).toBeNull();
+  });
+
+  it("derives 9:16 from a vertical still", async () => {
+    const context = contextFor(pngOf(720, 1280));
+    await asTool(animateImage).process(context, {
+      provider: "fal_ai",
+      model: "minimax/h3-max-turbo/image-to-video",
+      input_file: "still.png"
+    });
+    expect(sentParams(context)["aspect_ratio"]).toBe("9:16");
+  });
+
+  it("leaves an aspect the caller named alone", async () => {
+    const context = contextFor(pngOf(720, 1280));
+    await asTool(animateImage).process(context, {
+      provider: "fal_ai",
+      model: "minimax/h3-max-turbo/image-to-video",
+      input_file: "still.png",
+      aspect_ratio: "1:1"
+    });
+    expect(sentParams(context)["aspect_ratio"]).toBe("1:1");
+  });
+
+  it("says nothing when the bytes are not an image it can read", async () => {
+    const context = contextFor(new Uint8Array([9, 9, 9]));
+    await asTool(animateImage).process(context, {
+      provider: "fal_ai",
+      model: "minimax/h3-max-turbo/image-to-video",
+      input_file: "still.bin"
+    });
+    expect(sentParams(context)["aspect_ratio"]).toBeUndefined();
   });
 });

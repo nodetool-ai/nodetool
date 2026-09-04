@@ -694,18 +694,18 @@ export const FFPROBE_SCHEMA: JsonSchema = {
     path: {
       type: "string" as const,
       description:
-        "Workspace-relative media file to inspect. Cannot escape the " +
-        "workspace. To inspect an asset, name it in `inputs` under this path."
+        "Media to inspect: a workspace-relative path, or an `asset://` URI " +
+        "or `/api/storage/` key, which is staged into the workspace for you. " +
+        "Any other URL is refused — nothing here fetches the network."
     },
     inputs: {
       type: "object" as const,
       description:
         "Files to copy into the workspace before the run, as " +
         "{\"<workspace-relative name>\": \"<asset:// URI, /api/storage/ key, " +
-        "or data: URI>\"} — the same staging `ffmpeg` takes. This is how an " +
-        "asset reaches ffprobe: stage it, then name it in `path`. At most 8 " +
-        "files, 100 MB each. " +
-        "Example: {\"clip.mp4\": \"asset://<id>.mp4\"} with path \"clip.mp4\".",
+        "or data: URI>\"} — the same staging `ffmpeg` takes. `path` stages an " +
+        "asset by itself, so this is for the extra files a probe needs. At " +
+        "most 8 files, 100 MB each.",
       additionalProperties: { type: "string" as const }
     },
     timeout_seconds: {
@@ -721,8 +721,9 @@ export const ffprobeSpec: CapabilitySpec = {
   description:
     "Read a media file's format and streams with ffprobe: duration, size, " +
     "bit rate, and per-stream codec/resolution/frame rate/channels. Takes a " +
-    "workspace path, not argv; put asset:// URIs in `inputs` to stage them " +
-    "first. ffprobe reports every number as a string, so the answer also " +
+    "workspace path, not argv — or an `asset://` URI / `/api/storage/` key " +
+    "in `path` directly, which it stages for itself; `inputs` stages the " +
+    "rest. ffprobe reports every number as a string, so the answer also " +
     "carries a `summary` with duration_seconds/width/height/has_audio as " +
     "real numbers and booleans. Use it before ffmpeg to decide what to do.",
   inputSchema: FFPROBE_SCHEMA,

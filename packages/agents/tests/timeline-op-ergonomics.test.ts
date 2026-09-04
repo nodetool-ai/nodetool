@@ -359,3 +359,116 @@ describe("clip opacity at creation", () => {
   });
 });
 
+
+/**
+ * The 10-second social ad that produced these cases: eight clips, three of
+ * them refused for a zero offset, one of them drawn white over the whole frame
+ * because the geometry and the fill arrived in different bags, and a track
+ * added by mistake that could not be taken back.
+ */
+describe("ui_timeline_delete_track", () => {
+  it("removes an empty track and closes the stack over it", async () => {
+    const { b, byName } = bridge();
+    await byName["ui_timeline_add_track"].execute({ type: "overlay" });
+    const before = await byName["ui_timeline_get_state"].execute({});
+    expect((before as { tracks: unknown[] }).tracks).toHaveLength(2);
+
+    const result = (await byName["ui_timeline_delete_track"].execute({
+      target: "Overlay 2"
+    })) as { deleted: { name: string }; tracks: Array<{ index: number }> };
+
+    expect(result.deleted.name).toBe("Overlay 2");
+    expect(result.tracks.map((t) => t.index)).toEqual([0]);
+    expect(b.finalState().tracks).toHaveLength(1);
+  });
+
+  it("refuses to take clips with it unless told to", async () => {
+    const { byName } = bridge();
+    await expect(
+      byName["ui_timeline_delete_track"].execute({ trackId: "Video 1" })
+    ).rejects.toThrow(/still holds 1 clip/);
+  });
+
+  it("deletes the clips when told to, and drops them from the selection", async () => {
+    const { b, byName } = bridge();
+    await byName["ui_timeline_select_clip"].execute({ target: "shot" });
+    const result = (await byName["ui_timeline_delete_track"].execute({
+      trackId: "Video 1",
+      deleteClips: true
+    })) as { deletedClipIds: string[] };
+
+    expect(result.deletedClipIds).toHaveLength(1);
+    expect(b.finalState().clips).toHaveLength(0);
+    const state = (await byName["ui_timeline_get_state"].execute({})) as {
+      selectedClipIds: string[];
+    };
+    expect(state.selectedClipIds).toEqual([]);
+  });
+});
+
+describe("ui_timeline_add_text_clip", () => {
+  it("takes a drop shadow without its zero offsets", async () => {
+    const { byName } = bridge();
+    const result = await byName["ui_timeline_add_text_clip"].execute({
+      text: "Build AI",
+      fontSizePx: 150,
+      color: "#FFFFFF",
+      shadow: { color: "#000000", blurPx: 24 }
+    });
+    expect(
+      (clipOf(result).textStyle as { shadow: unknown }).shadow
+    ).toEqual({ color: "#000000", blurPx: 24, offsetX: 0, offsetY: 0 });
+  });
+
+  it("sends a caller reaching for x/y to the anchors", async () => {
+    const { byName } = bridge();
+    expect(() =>
+      byName["ui_timeline_add_text_clip"].execute({
+        text: "Build AI",
+        x: 0.5,
+        y: 0.42
+      })
+    ).toThrow(/verticalAlign/);
+  });
+
+  it("refuses a misspelled key inside a style bag instead of dropping it", async () => {
+    const { byName } = bridge();
+    expect(() =>
+      byName["ui_timeline_add_text_clip"].execute({
+        text: "Start building — free",
+        background: { color: "#FFFFFF", paddingPx: 34, cornerRadius: 40 }
+      })
+    ).toThrow(/radiusPx/);
+  });
+});
+
+describe("ui_timeline_add_shape_clip merges the bags", () => {
+  it("refuses a geometry key spelled wrong inside `shape`", () => {
+    const { byName } = bridge();
+    expect(() =>
+      byName["ui_timeline_add_shape_clip"].execute({
+        shape: { kind: "rect", fill: "#6D5EF6", radius: 8 }
+      })
+    ).toThrow(/radius/);
+  });
+
+
+  it("keeps the fill from `shape` and the box from the op", async () => {
+    const { byName } = bridge();
+    const result = await byName["ui_timeline_add_shape_clip"].execute({
+      shape: { kind: "rect", fill: "#0B0E1A" },
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 0.5
+    });
+    expect(clipOf(result).shapeStyle).toEqual({
+      kind: "rect",
+      fill: "#0B0E1A",
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 0.5
+    });
+  });
+});

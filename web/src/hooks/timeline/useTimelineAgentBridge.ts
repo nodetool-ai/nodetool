@@ -362,6 +362,37 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           .map((t) => toTrackNode(t, clipCount.get(t.id) ?? 0));
       },
 
+      deleteTrack(target, deleteClips) {
+        const track = requireTrack(target);
+        const onIt = doc
+          .getState()
+          .clips.filter((clip) => clip.trackId === track.id);
+        if (onIt.length > 0 && !deleteClips) {
+          throw new Error(
+            `Track "${track.name}" still holds ${onIt.length} clip(s): ` +
+              `${onIt.map((clip) => clip.id).join(", ")}. Move them first, ` +
+              "or pass deleteClips: true to delete them with the track."
+          );
+        }
+        const deleted = toTrackNode(track, onIt.length);
+        // The store's own removal — the same one the track menu calls — takes
+        // the clips with it and reindexes what is left.
+        doc.getState().removeTrack(track.id);
+        const clipCount = new Map<string, number>();
+        for (const clip of doc.getState().clips) {
+          clipCount.set(clip.trackId, (clipCount.get(clip.trackId) ?? 0) + 1);
+        }
+        return {
+          deleted,
+          deletedClipIds: onIt.map((clip) => clip.id),
+          tracks: doc
+            .getState()
+            .tracks.slice()
+            .sort((a, b) => a.index - b.index)
+            .map((t) => toTrackNode(t, clipCount.get(t.id) ?? 0))
+        };
+      },
+
       async generateClip(opts) {
         const kind = opts.kind;
         const store = doc.getState();

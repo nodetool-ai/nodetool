@@ -352,6 +352,16 @@ export interface TimelineAgentHandler {
     target: string,
     destination: { toIndex?: number; before?: string; after?: string }
   ) => TimelineTrackNode[];
+  /**
+   * Remove one track, and with it the clips on it when `deleteClips` says so.
+   * The editor's own track menu has done this all along; without it here the
+   * agent could add a track and never take it back. Returns the stack that is
+   * left, reindexed, plus the clips that went with it.
+   */
+  deleteTrack: (
+    target: string,
+    deleteClips: boolean
+  ) => { deleted: TimelineTrackNode; deletedClipIds: string[]; tracks: TimelineTrackNode[] };
   generateClip: (
     opts: TimelineGenerateOptions
   ) => Promise<TimelineGenerateResult>;

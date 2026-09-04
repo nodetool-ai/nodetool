@@ -169,8 +169,91 @@ function topLevelKeys(schema: ZodType): string[] {
 }
 
 /**
+ * The field map of the object a schema is, looking through the wrappers a
+ * field carries — `.optional()`, `.default()`, `.nullable()` — to the object
+ * underneath. Null for anything that is not an object schema.
+ */
+function objectShape(schema: unknown): Record<string, unknown> | null {
+  let current = schema;
+  for (let depth = 0; depth < 8; depth++) {
+    const shape = (current as { shape?: unknown } | undefined)?.shape;
+    if (isObjectLike(shape)) return shape as Record<string, unknown>;
+    const inner = (current as { _def?: { innerType?: unknown } } | undefined)
+      ?._def?.innerType;
+    if (inner === undefined) return null;
+    current = inner;
+  }
+  return null;
+}
+
+/**
+ * The keys accepted at `path`, for a refusal inside a nested bag.
+ *
+ * A strict style bag refuses `background.cornerRadius` by name and, without
+ * this, says nothing about `radiusPx` sitting right beside it — the same dead
+ * end {@link withAcceptedKeys} exists to close, one level down.
+ */
+function keysAtPath(schema: ZodType, path: readonly PropertyKey[]): string[] {
+  let current: unknown = schema;
+  for (const segment of path) {
+    const shape = objectShape(current);
+    if (!shape) return [];
+    current = shape[String(segment)];
+    if (current === undefined) return [];
+  }
+  return Object.keys(objectShape(current) ?? {});
+}
+
+/**
+ * Per-schema advice for a key that is refused but reasonable to have guessed.
+ *
+ * Listing the accepted keys answers "what may I send"; it does not answer
+ * "where did the thing I wanted go". `add_text_clip` refuses `x`/`y` and lists
+ * thirteen style fields, none of which is obviously the position — the caller
+ * reads the list, sees no coordinates, and concludes text cannot be placed.
+ * A key with a remedy says where it went instead.
+ */
+const KEY_REMEDIES = new WeakMap<ZodType, Record<string, string>>();
+
+/**
+ * Attach remedies to a schema, by the key each one is about. Returns the same
+ * schema so it can wrap a definition in place.
+ */
+export function withKeyRemedies<TSchema extends ZodType>(
+  schema: TSchema,
+  remedies: Record<string, string>
+): TSchema {
+  const accepted = new Set(topLevelKeys(schema));
+  for (const key of Object.keys(remedies)) {
+    if (accepted.has(key)) {
+      throw new Error(
+        `withKeyRemedies: "${key}" is a key this schema accepts, so it is ` +
+          "never refused and the remedy would never be read."
+      );
+    }
+  }
+  KEY_REMEDIES.set(schema, { ...(KEY_REMEDIES.get(schema) ?? {}), ...remedies });
+  return schema;
+}
+
+/** The remedies that apply to the keys one refusal actually named. */
+function remediesFor(schema: ZodType, keys: readonly string[]): string[] {
+  const table = KEY_REMEDIES.get(schema);
+  if (!table) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const key of keys) {
+    const remedy = table[key];
+    if (remedy === undefined || seen.has(remedy)) continue;
+    seen.add(remedy);
+    out.push(remedy);
+  }
+  return out;
+}
+
+/**
  * Rewrite a top-level `unrecognized_keys` issue to name the keys the schema
- * does accept.
+ * does accept, plus any remedy registered for the keys it refused.
  *
  * The error stays a `ZodError` so every caller that formats issues keeps
  * working; only the sentence the model reads gets longer.
@@ -180,13 +263,25 @@ function withAcceptedKeys(error: z.ZodError, schema: ZodType): z.ZodError {
   if (accepted.length === 0) return error;
   let changed = false;
   const issues = error.issues.map((issue) => {
-    if (issue.code !== "unrecognized_keys" || issue.path.length > 0) {
-      return issue;
+    if (issue.code !== "unrecognized_keys") return issue;
+    if (issue.path.length > 0) {
+      const nested = keysAtPath(schema, issue.path);
+      if (nested.length === 0) return issue;
+      changed = true;
+      return {
+        ...issue,
+        message:
+          `${issue.message}. \`${issue.path.join(".")}\` accepts: ` +
+          `${nested.join(", ")}.`
+      };
     }
     changed = true;
+    const advice = remediesFor(schema, issue.keys);
     return {
       ...issue,
-      message: `${issue.message}. This op accepts: ${accepted.join(", ")}.`
+      message:
+        `${issue.message}. This op accepts: ${accepted.join(", ")}.` +
+        (advice.length > 0 ? ` ${advice.join(" ")}` : "")
     };
   });
   return changed ? new z.ZodError(issues) : error;
