@@ -53,11 +53,22 @@ export interface ToolCallRecord {
   toolCallId: string;
 }
 
+/** What a bridged tool handed back, as the UI reports it. */
+export interface ToolResultRecord {
+  name: string;
+  toolCallId: string;
+  /** The tool's return value, or the error text when the call failed. */
+  result: unknown;
+  isError: boolean;
+}
+
 interface ToolBridgeOptions {
   tools: Tool[];
   context: ProcessingContext;
   /** Observability hook — fires before each bridged tool executes. */
   onToolCall?: (record: ToolCallRecord) => void;
+  /** Observability hook — fires with what the call returned. */
+  onToolResult?: (record: ToolResultRecord) => void;
   maxToolCallsPerAction?: number;
 }
 
@@ -189,9 +200,22 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
       }
       const errorPayload = extractErrorPayload(result);
       if (errorPayload !== null) {
+        options.onToolResult?.({
+          name,
+          toolCallId,
+          result: errorPayload,
+          isError: true
+        });
         return { ok: false, error: `tools.${name}: ${errorPayload}` };
       }
-      return { ok: true, result: toTransferable(result) };
+      const transferable = toTransferable(result);
+      options.onToolResult?.({
+        name,
+        toolCallId,
+        result: transferable,
+        isError: false
+      });
+      return { ok: true, result: transferable };
     } catch (e) {
       return {
         ok: false,

@@ -1102,3 +1102,121 @@ describe("chatProtocol media predictions", () => {
     expect(state.threadRuntime["thread-1"].activePredictions).toEqual([]);
   });
 });
+
+describe("sub-agent events", () => {
+  const runtime = {
+    status: "streaming",
+    statusMessage: null,
+    progress: { current: 0, total: 0 },
+    error: null,
+    planningUpdate: null,
+    taskUpdate: null,
+    logUpdate: null,
+    runningToolCallId: null,
+    toolMessage: null,
+    sendMessageTimeoutId: null
+  };
+
+  const makeState = (): GlobalChatState =>
+    partialChatState({
+      status: "streaming",
+      currentThreadId: "thread-1",
+      threads: {
+        "thread-1": {
+          id: "thread-1",
+          title: "T",
+          updated_at: new Date().toISOString()
+        }
+      },
+      threadRuntime: { "thread-1": { ...runtime } },
+      messageCache: { "thread-1": [] },
+      subAgentMessages: {},
+      selectedModel: { provider: "", id: "" },
+      summarizeThread: jest.fn(),
+      updateThreadTitle: jest.fn()
+    });
+
+  const run = async (state: GlobalChatState, msg: WebSocketMessage) => {
+    let captured = state;
+    const set = jest.fn((updater) => {
+      captured = {
+        ...captured,
+        ...(isStateUpdater(updater) ? updater(captured) : updater)
+      };
+    });
+    await handleChatWebSocketMessage(msg, set, () => captured);
+    return captured;
+  };
+
+  it("keeps a child's text out of the parent's reply", async () => {
+    let state = makeState();
+    state = await run(state, {
+      type: "chunk",
+      thread_id: "thread-1",
+      content: "parent text"
+    });
+    state = await run(state, {
+      type: "chunk",
+      thread_id: "thread-1",
+      content: "child text",
+      parent_tool_call_id: "call-1"
+    });
+
+    const parentMessages = state.messageCache["thread-1"] as Message[];
+    expect(parentMessages).toHaveLength(1);
+    expect(parentMessages[0].content).toBe("parent text");
+    expect(state.subAgentMessages["thread-1"]["call-1"][0].content).toBe(
+      "child text"
+    );
+  });
+
+  it("a child's done chunk does not end the parent turn", async () => {
+    const state = await run(makeState(), {
+      type: "chunk",
+      thread_id: "thread-1",
+      content: "",
+      done: true,
+      parent_tool_call_id: "call-1"
+    });
+    expect(state.threadRuntime["thread-1"].status).toBe("streaming");
+  });
+
+  it("buckets a child's tool-call card and its result under the spawning call", async () => {
+    let state = makeState();
+    state = await run(state, {
+      type: "message",
+      role: "assistant",
+      thread_id: "thread-1",
+      content: null,
+      parent_tool_call_id: "call-1",
+      tool_calls: [{ id: "child-1", name: "search", args: { query: "x" } }]
+    });
+    state = await run(state, {
+      type: "tool_result_update",
+      node_id: "n1",
+      thread_id: "thread-1",
+      parent_tool_call_id: "call-1",
+      tool_call_id: "child-1",
+      name: "search",
+      result: { hits: 1 }
+    });
+
+    expect(state.messageCache["thread-1"]).toHaveLength(0);
+    const transcript = state.subAgentMessages["thread-1"]["call-1"];
+    expect(transcript).toHaveLength(2);
+    expect(transcript[1]).toEqual(
+      expect.objectContaining({ role: "tool", tool_call_id: "child-1" })
+    );
+  });
+
+  it("leaves a root-level tool result to the persisted tool message", async () => {
+    const state = await run(makeState(), {
+      type: "tool_result_update",
+      node_id: "n1",
+      thread_id: "thread-1",
+      tool_call_id: "root-1",
+      result: { ok: true }
+    });
+    expect(state.subAgentMessages).toEqual({});
+  });
+});

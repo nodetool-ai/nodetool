@@ -667,6 +667,15 @@ export interface Message {
   system_prompt?: string | null;
   agent_execution_id?: string | null;
   execution_event_type?: string | null;
+  /**
+   * The tool_call_id of the enclosing `run_subtask` / `run_search` call when
+   * this message was produced inside a sub-agent. Null at the chat root. The
+   * chat renders such messages inside the spawning call's card rather than in
+   * the main timeline.
+   */
+  parent_tool_call_id?: string | null;
+  /** Sub-agent recursion depth: 0 at the chat root, 1 inside run_subtask. */
+  subtask_depth?: number | null;
   workflow_target?: string | null;
   created_at?: string | null;
   /**

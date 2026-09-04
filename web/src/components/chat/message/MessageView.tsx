@@ -60,6 +60,7 @@ import {
 import { formatJavaScriptForDisplay } from "../../../utils/formatJavaScript";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 import { visibleToolArgs as visibleArgs } from "../../../core/chat/toolCallFields";
+import { subAgentTranscript } from "../../../core/chat/subAgentMessages";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { isObjectLike, isString } from "../../../utils/typePredicates";
 import {
@@ -105,6 +106,18 @@ function formatTime(dateStr?: string | null): string | null {
  */
 const RUN_SUBTASK_TOOL_NAME = "run_subtask";
 
+/** `run_search` is the read-only sibling of `run_subtask` — same child loop. */
+const RUN_SEARCH_TOOL_NAME = "run_search";
+
+/** Stable empty transcript so the store selector keeps its reference. */
+const EMPTY_TRANSCRIPT: Message[] = [];
+
+/** Both delegation calls render as an unfoldable sub-agent card. */
+const SUB_AGENT_TOOL_NAMES = new Set([
+  RUN_SUBTASK_TOOL_NAME,
+  RUN_SEARCH_TOOL_NAME
+]);
+
 /**
  * `execute_code` is the CodeAct action primitive (docs/codeact-design.md):
  * its one argument is a JavaScript program, so the row renders it as a
@@ -117,6 +130,66 @@ const EXECUTE_CODE_TOOL_NAME = "execute_code";
  * row shows it open rather than hiding it behind a JSON dump.
  */
 const CREATE_PLAN_TOOL_NAME = "create_plan";
+
+/**
+ * SubAgentTranscript — a delegated child's own conversation, rendered with the
+ * same MessageView the main thread uses so a sub-agent's tool rows, code
+ * actions and prose read identically one level down.
+ */
+const SubAgentTranscript: React.FC<{
+  messages: Message[];
+  threadId?: string | null;
+}> = React.memo(({ messages, threadId }) => {
+  const [expandedThoughts, setExpandedThoughts] = useState<
+    Record<string, boolean>
+  >({});
+  const isThoughtExpanded = useCallback(
+    (key: string) => expandedThoughts[key] ?? false,
+    [expandedThoughts]
+  );
+  const handleToggleThought = useCallback((key: string) => {
+    setExpandedThoughts((current) => ({ ...current, [key]: !current[key] }));
+  }, []);
+
+  const toolResultsByCallId = useMemo(() => {
+    const results: ToolResultLookup = {};
+    for (const message of messages) {
+      if (message.role === "tool" && message.tool_call_id) {
+        results[String(message.tool_call_id)] = {
+          name: message.name ?? undefined,
+          content: message.content,
+          createdAt: message.created_at ?? null
+        };
+      }
+    }
+    return results;
+  }, [messages]);
+
+  const visible = useMemo(
+    () => messages.filter((message) => message.role !== "tool"),
+    [messages]
+  );
+
+  if (visible.length === 0) {
+    return null;
+  }
+
+  return (
+    <FlexColumn className="subagent-transcript" gap={SPACING.xs}>
+      {visible.map((message, index) => (
+        <MessageView
+          key={message.id ?? `subagent-message-${index}`}
+          message={message}
+          threadId={threadId}
+          isThoughtExpanded={isThoughtExpanded}
+          onToggleThought={handleToggleThought}
+          toolResultsByCallId={toolResultsByCallId}
+        />
+      ))}
+    </FlexColumn>
+  );
+});
+SubAgentTranscript.displayName = "SubAgentTranscript";
 
 /**
  * ToolRowRail — the glyph column and the hairline that ties one row to the
@@ -146,8 +219,17 @@ const ToolCallRow: React.FC<{
   durationMs?: number | null;
   connected?: boolean;
   tight?: boolean;
-}> = React.memo(({ tc, result, durationMs, connected = false, tight = false }) => {
-  const isSubtask = tc.name === RUN_SUBTASK_TOOL_NAME;
+  /** Thread the call belongs to — the key its sub-agent transcript is under. */
+  threadId?: string | null;
+}> = React.memo(({
+  tc,
+  result,
+  durationMs,
+  connected = false,
+  tight = false,
+  threadId
+}) => {
+  const isSubtask = SUB_AGENT_TOOL_NAMES.has(tc.name);
   const isCodeAction = tc.name === EXECUTE_CODE_TOOL_NAME;
   const isPlan = tc.name === CREATE_PLAN_TOOL_NAME;
   const [open, setOpen] = useState(false);
@@ -155,6 +237,16 @@ const ToolCallRow: React.FC<{
     (s) => s.currentRunningToolCallId
   );
   const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
+  // The child's own messages, streamed under this call's id.
+  const transcript = useGlobalChatStore((s) =>
+    isSubtask ? subAgentTranscript(s.subAgentMessages, threadId, tc.id) : EMPTY_TRANSCRIPT
+  );
+  // Tool results ride in the transcript but render inside their call's row,
+  // so the folded count reports what the user would actually see.
+  const transcriptCount = useMemo(
+    () => transcript.filter((message) => message.role !== "tool").length,
+    [transcript]
+  );
   const activePredictions = useGlobalChatStore(
     (s) =>
       getThreadRuntime(s, s.currentThreadId).activePredictions ??
@@ -170,8 +262,10 @@ const ToolCallRow: React.FC<{
     isString(rawArgs?.[key])
       ? rawArgs[key].trim() || null
       : null;
+  // `run_subtask` names the job in `description`; `run_search` in `query`.
+  // Older rows in the DB used `title`.
   const subtaskTitle = isSubtask
-    ? (pickString("description") ?? pickString("title"))
+    ? (pickString("description") ?? pickString("title") ?? pickString("query"))
     : null;
   const subtaskInstructions = isSubtask
     ? (pickString("prompt") ?? pickString("instructions"))
@@ -198,7 +292,13 @@ const ToolCallRow: React.FC<{
     }
     if (!isSubtask) return base;
     const stripped = { ...base } satisfies Record<string, unknown>;
-    for (const k of ["description", "prompt", "title", "instructions"]) {
+    for (const k of [
+      "description",
+      "prompt",
+      "title",
+      "instructions",
+      "query"
+    ]) {
       delete stripped[k];
     }
     return Object.keys(stripped).length > 0 ? stripped : null;
@@ -215,6 +315,7 @@ const ToolCallRow: React.FC<{
     !planDocument &&
     (!!hasArgs ||
       (isSubtask && !!subtaskInstructions) ||
+      transcript.length > 0 ||
       !!actionCode ||
       hasResult);
   const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
@@ -239,7 +340,7 @@ const ToolCallRow: React.FC<{
   const liveMessage = isRunning ? runningToolMessage || tc.message : tc.message;
   const phrase = toolCallPhrase(tc);
   const label = isSubtask
-    ? subtaskTitle || formatToolName(tc.name)
+    ? subtaskTitle || liveMessage || phrase.label
     : isCodeAction
       ? actionTitle || liveMessage || formatToolName(tc.name)
       : isPlan
@@ -283,6 +384,13 @@ const ToolCallRow: React.FC<{
           </Text>
           {detail && <span className="tool-row-detail">{detail}</span>}
           <span className="tool-row-gap" />
+          {isSubtask && transcriptCount > 0 && !open && (
+            <span className="tool-row-detail">
+              {transcriptCount === 1
+                ? "1 message"
+                : `${transcriptCount} messages`}
+            </span>
+          )}
           {durationLabel && (
             <span className="tool-row-duration">{durationLabel}</span>
           )}
@@ -307,11 +415,14 @@ const ToolCallRow: React.FC<{
           <FlexColumn className="tool-row-details" gap={SPACING.xs}>
             {isSubtask && subtaskInstructions && (
               <FlexColumn gap={SPACING.xs}>
-                <Caption className="tool-section-title">Instructions</Caption>
+                <Caption className="tool-section-title">Objective</Caption>
                 <Text size="small" className="subtask-instructions">
                   {subtaskInstructions}
                 </Text>
               </FlexColumn>
+            )}
+            {transcript.length > 0 && (
+              <SubAgentTranscript messages={transcript} threadId={threadId} />
             )}
             {formattedActionCode && (
               <FlexColumn gap={SPACING.xs}>
@@ -375,7 +486,15 @@ const ToolCallCountRow: React.FC<{
   durationFor: (tc: ToolCall) => CallTiming;
   messageCreatedAt?: string | null;
   connected?: boolean;
-}> = React.memo(({ name, calls, durationFor, messageCreatedAt, connected = false }) => {
+  threadId?: string | null;
+}> = React.memo(({
+  name,
+  calls,
+  durationFor,
+  messageCreatedAt,
+  connected = false,
+  threadId
+}) => {
   const [open, setOpen] = useState(false);
   const runningToolCallId = useGlobalChatStore(
     (s) => s.currentRunningToolCallId
@@ -479,6 +598,7 @@ const ToolCallCountRow: React.FC<{
                   result={toolResult}
                   durationMs={callDuration}
                   tight={i > 0}
+                  threadId={threadId}
                 />
               );
             })}
@@ -542,7 +662,13 @@ const ToolCallTimeline: React.FC<{
   toolCalls: ToolCall[];
   toolResultsByCallId?: ToolResultLookup;
   messageCreatedAt?: string | null;
-}> = React.memo(({ toolCalls, toolResultsByCallId, messageCreatedAt }) => {
+  threadId?: string | null;
+}> = React.memo(({
+  toolCalls,
+  toolResultsByCallId,
+  messageCreatedAt,
+  threadId
+}) => {
   const [open, setOpen] = useState(true);
   const runningToolCallId = useGlobalChatStore(
     (s) => s.currentRunningToolCallId
@@ -592,6 +718,7 @@ const ToolCallTimeline: React.FC<{
             durationMs={durationMs}
             connected={connected}
             tight={row.tight}
+            threadId={threadId}
           />
         );
       }
@@ -603,10 +730,11 @@ const ToolCallTimeline: React.FC<{
           durationFor={durationFor}
           messageCreatedAt={messageCreatedAt}
           connected={connected}
+          threadId={threadId}
         />
       );
     },
-    [rows, durationFor, messageCreatedAt]
+    [rows, durationFor, messageCreatedAt, threadId]
   );
 
   const isRunning = toolCalls.some(
@@ -682,6 +810,8 @@ interface MessageViewProps {
     { name?: string | null; content: unknown; createdAt?: string | null }
   >;
   executionMessagesById?: Map<string, Message[]>;
+  /** Thread the message belongs to; keys sub-agent transcripts. */
+  threadId?: string | null;
   /**
    * Render the per-message meta layout: an avatar + a persistent header line
    * (role · time · model), left-aligned for both roles. Enabled only in the
@@ -700,6 +830,7 @@ export const MessageView: React.FC<
     onInsertCode,
     toolResultsByCallId,
     executionMessagesById,
+    threadId,
     showMeta = false
   }) => {
     const insertIntoEditor = useEditorInsertion();
@@ -913,6 +1044,7 @@ export const MessageView: React.FC<
                   toolCalls={message.tool_calls}
                   toolResultsByCallId={toolResultsByCallId}
                   messageCreatedAt={message.created_at}
+                  threadId={threadId ?? message.thread_id}
                 />
               )}
             {(message.role === "assistant" || message.role === "user") && (
