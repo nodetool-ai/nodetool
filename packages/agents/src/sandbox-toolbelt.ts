@@ -1,7 +1,7 @@
 /**
  * The toolbelt a Code node and a JS script share.
  *
- * Same assembly as an agent loop's server half: `getAgentToolbelt()` plus the
+ * Same assembly as an agent loop's server half: `getBuiltinTools()` plus the
  * Apify and SerpAPI capabilities, plus the in-process MCP tools that only need
  * the process node registry. The example catalog, DSL exporter, and provider
  * map live above this package, so those tools stay dark and
@@ -21,7 +21,7 @@
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Tool } from "./tools/base-tool.js";
-import { getAgentToolbelt } from "./tools/builtin-tools.js";
+import { getBuiltinTools } from "./tools/builtin-tools.js";
 import {
   getApifyTools,
   getSerpApiTools
@@ -38,7 +38,7 @@ export const NODETOOL_PRELUDE = `${TOOLS_PRELUDE}\n${NODETOOL_API_PRELUDE_FULL}`
 export function assembleSandboxToolbelt(): Tool[] {
   const byName = new Map<string, Tool>();
   for (const tool of [
-    ...getAgentToolbelt(),
+    ...getBuiltinTools(),
     ...getApifyTools(),
     ...getSerpApiTools(),
     ...getAllMcpTools({ registry: NodeRegistry.global })

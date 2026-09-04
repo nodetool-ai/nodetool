@@ -3,7 +3,7 @@
  *
  * Tools can be referenced by name as bare stubs (`{ name }`) and hydrated into
  * real `Tool` instances on demand. The registry is the default agent toolbelt
- * (`getAgentToolbelt()` — no hand-maintained name list) plus anything other
+ * (`getBuiltinTools()` — no hand-maintained name list) plus anything other
  * modules append via {@link registerBuiltinAgentToolClasses} at load time
  * (e.g. `sandbox.ts` registers the `browser_*` CDP tools).
  *
@@ -15,7 +15,7 @@
  * unhydrated stub has no `process`/`inputSchema` and silently can't be called.
  */
 
-import { getAgentToolbelt, getMediaTools, Tool } from "@nodetool-ai/agents";
+import { getBuiltinTools, getMediaTools, Tool } from "@nodetool-ai/agents";
 import { isCallable } from "./type-predicates.js";
 
 type ToolCtor = new () => Tool;
@@ -86,7 +86,7 @@ export function registerBuiltinAgentToolFactory(factory: () => ToolCtor[]): void
 export function resolveBuiltinAgentTool(name: string): Tool | null {
   if (!builtinAgentTools) {
     builtinAgentTools = new Map<string, Tool>();
-    for (const tool of [...getAgentToolbelt(), ...getMediaTools()]) {
+    for (const tool of [...getBuiltinTools(), ...getMediaTools()]) {
       builtinAgentTools.set(tool.name, tool);
     }
     const dynamicClasses = toolFactories.flatMap((f) => f());

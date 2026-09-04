@@ -190,7 +190,7 @@ on — parameterized by the script document instead of ad-hoc arguments:
   import fails validation before it fails at run time.
 - **The Code-node toolbelt.** A script run prepends the same imported /
   `nodetool.*` prelude a Code node does, wired to
-  `assembleSandboxToolbelt()` (`getAgentToolbelt()` plus
+  `assembleSandboxToolbelt()` (`getBuiltinTools()` plus
   `getAllMcpTools({ registry })`). Chat `ui_*` tools stay off this belt —
   they need a browser. `run_code` / `test_code` stay hermetic so an
   authoring probe cannot spend money. Tool-backed calls (media generation,

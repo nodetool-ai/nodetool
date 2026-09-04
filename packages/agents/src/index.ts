@@ -148,7 +148,6 @@ export {
   BUILTIN_TOOL_NAMES,
   availableBuiltinToolNames,
   getBuiltinTools,
-  getAgentToolbelt,
   registerBuiltinTools,
   resetBuiltinToolsRegistration
 } from "./tools/builtin-tools.js";

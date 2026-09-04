@@ -244,8 +244,9 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
 ];
 
 /**
- * Return one fresh `Tool` per built-in name.
- * Useful when constructing a tool list for an agent.
+ * One fresh `Tool` per built-in name — the belt every host assembles, from a
+ * chat turn to a Code node. The only thing subtracted from it is what the
+ * deployment does not offer ({@link availableBuiltinToolNames}).
  */
 export function getBuiltinTools(): Tool[] {
   return availableBuiltinToolNames().map((name) => toolForCapabilityName(name));
@@ -274,18 +275,6 @@ export function availableBuiltinToolNames(): readonly string[] {
   if (!isBrowserEnabled()) for (const name of BROWSER_TOOL_NAMES) dropped.add(name);
   if (dropped.size === 0) return BUILTIN_TOOL_NAMES;
   return BUILTIN_TOOL_NAMES.filter((name) => !dropped.has(name));
-}
-
-/**
- * The built-ins an agent gets. The nine provider-specific duplicates this set
- * used to subtract are gone: the media four were deleted, and the five search
- * backends became plain functions that the single `web_search` capability
- * routes to host-side. Every host therefore assembles the same belt, and the
- * only thing subtracted from it is what the deployment does not offer
- * ({@link availableBuiltinToolNames}).
- */
-export function getAgentToolbelt(): Tool[] {
-  return getBuiltinTools();
 }
 
 let registeredNames: string[] | null = null;

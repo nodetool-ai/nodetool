@@ -301,7 +301,7 @@ server gets the same shape a chat turn gets, for the same reason: **one action
 tool**, not a flat catalog.
 
 `registerAgentMcpTools` (`packages/websocket/src/mcp-agent-tools.ts`) builds a
-`createChatCodeActSession` over the derived belt — `getAgentToolbelt()` plus
+`createChatCodeActSession` over the derived belt — `getBuiltinTools()` plus
 `getAllMcpTools()` plus Google Workspace — and registers `execute_code`,
 `view_image`, which is direct because pixels cannot ride a sandbox action's JSON
 observation envelope, and the direct set: `DIRECT_TOOL_NAMES` minus every key of
@@ -573,7 +573,7 @@ AgentNode ──control edge──> ImageGeneratorNode
 Build a session, hand it the message, read the stream.
 `createChatCodeActSession` turns a toolbelt into the `execute_code` action plus
 whichever tools you want the provider to see directly; the belt itself is
-whatever the host assembles — `getAgentToolbelt()` plus the host's own
+whatever the host assembles — `getBuiltinTools()` plus the host's own
 additions, which is what `buildCliAgentBelt` does for the CLI.
 
 ```ts

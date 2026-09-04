@@ -98,7 +98,7 @@ import {
   type ChatCodeActToolCall
 } from "@nodetool-ai/agents";
 import {
-  getAgentToolbelt,
+  getBuiltinTools,
   getAllMcpTools,
   registerBuiltinTools,
   getGoogleWorkspaceTools,
@@ -1438,7 +1438,7 @@ export class ChatTurnHandler {
         budget: turnBudget
       });
     const rawToolbelt: Tool[] = [
-      ...getAgentToolbelt(),
+      ...getBuiltinTools(),
       ...(googleWorkspace ? getGoogleWorkspaceTools() : []),
       // Apify and SerpAPI have no `nodetool.*` namespace, so the belt is how
       // a chat discovers them (`nodetool.searchTools("apify")`) at all.

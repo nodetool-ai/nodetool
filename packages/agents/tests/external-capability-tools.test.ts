@@ -6,7 +6,7 @@ import {
   getSerpApiTools
 } from "../src/tools/external-capability-tools.js";
 import { searchTools } from "../src/tools/tool-search.js";
-import { getAgentToolbelt } from "../src/tools/builtin-tools.js";
+import { getBuiltinTools } from "../src/tools/builtin-tools.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 
 describe("Apify and SerpAPI belt tools", () => {
@@ -26,7 +26,7 @@ describe("Apify and SerpAPI belt tools", () => {
     // The regression: a chat asked to "download via apify" searched the belt,
     // found only web_search (its description mentions the Apify backend), and
     // never learned the actor tools existed.
-    const belt = [...getAgentToolbelt(), ...getApifyTools()].map((t) => ({
+    const belt = [...getBuiltinTools(), ...getApifyTools()].map((t) => ({
       name: t.name,
       description: t.description
     }));

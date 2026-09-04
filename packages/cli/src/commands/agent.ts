@@ -22,7 +22,7 @@ import chalk from "chalk";
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
 import { RUN_BUDGET_CONTEXT_KEY } from "@nodetool-ai/runtime";
 import {
-  getAgentToolbelt,
+  getBuiltinTools,
   getAllMcpTools,
   PERMISSION_GATE_CONTEXT_KEY,
   type Tool
@@ -86,7 +86,7 @@ function expandTilde(p: string): string {
 
 /**
  * The default toolbelt, keyed by name. This is the same belt every
- * model-facing surface assembles: `getAgentToolbelt()` plus the platform tools
+ * model-facing surface assembles: `getBuiltinTools()` plus the platform tools
  * (workflows, nodes, jobs, assets, apps, models, media).
  *
  * The platform tools run in-process (no HTTP fallback), so this host injects
@@ -98,7 +98,7 @@ function buildToolMap(
   providers: Record<string, BaseProvider>
 ): Map<string, Tool> {
   const map = new Map<string, Tool>();
-  for (const tool of getAgentToolbelt()) map.set(tool.name, tool);
+  for (const tool of getBuiltinTools()) map.set(tool.name, tool);
   for (const tool of getAllMcpTools({
     providers,
     registry: buildFullRegistry(),
