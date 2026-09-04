@@ -70,6 +70,7 @@ const SearchProviderSetupDialog = React.lazy(
 const ProviderOnboardingDialog = React.lazy(
   () => import("./components/provider_onboarding/ProviderOnboardingDialog")
 );
+import FirstRunProviderSignIn from "./components/provider_onboarding/FirstRunProviderSignIn";
 import BugReportDialogHost from "./components/support/BugReportDialogHost";
 import ReportBugButton from "./components/support/ReportBugButton";
 import { installConsoleCapture } from "./utils/consoleCapture";
@@ -771,6 +772,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                       <RunWarningDialog />
                       <SearchProviderSetupDialog />
                       <ProviderOnboardingDialog />
+                      <FirstRunProviderSignIn />
                     </>
                   )}
                   {/* Outside the router gate: a boot failure is exactly when

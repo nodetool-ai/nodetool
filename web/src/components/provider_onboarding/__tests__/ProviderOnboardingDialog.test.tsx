@@ -90,6 +90,16 @@ describe("ProviderOnboardingDialog", () => {
     expect(screen.getByText("Connect an AI provider")).toBeInTheDocument();
   });
 
+  it("leads with a Claude and OpenAI sign-in", () => {
+    renderDialog();
+    const heading = screen.getByText(/sign in — fastest way to start/i);
+    expect(heading).toBeInTheDocument();
+    expect(screen.getByText(/one click with .*openai.*claude/i)).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: /^sign in$/i }).length
+    ).toBeGreaterThanOrEqual(2);
+  });
+
   it("opens the settings tab via the router singleton, not useNavigate", async () => {
     useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null });
     renderDialog();
