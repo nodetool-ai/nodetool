@@ -34,6 +34,8 @@ DRAIN_POLL_SECONDS=10
 # node registry before /health answers 200.
 READY_TIMEOUT_SECONDS="${READY_TIMEOUT_SECONDS:-300}"
 READY_POLL_SECONDS=5
+# The migration machine boots the image and runs every pending migration.
+MIGRATE_TIMEOUT_SECONDS="${MIGRATE_TIMEOUT_SECONDS:-600}"
 
 # The drain signal, sent by a pure-shell scan of /proc: the server is not PID 1
 # (docker-entrypoint.sh execs it) and the image ships no procps, so there is no
@@ -64,16 +66,43 @@ echo "==> Migrating the database on $IMAGE"
 # no release phase, so the migration is run here, on the new image, before any
 # machine serves it. db-migrate.mjs takes the migration lock, and the machine
 # inherits the app's DATABASE_URL secret.
-flyctl machine run "$IMAGE" \
+#
+# `machine run` returns once the machine has *started*, not once the command
+# has exited, and its own exit code says nothing about the migration's. So the
+# machine id is captured, the script waits for `--rm` to have destroyed it, and
+# the exit code is read back from the Machines API: a failed migration must
+# abort the rollout, not ship code against an un-migrated schema.
+MIGRATE_OUTPUT="$(flyctl machine run "$IMAGE" \
   --app "$APP" \
   --region "$REGION" \
   --rm \
   --restart no \
-  node /app/backend/db-migrate.mjs
+  node /app/backend/db-migrate.mjs | tee /dev/stderr)"
+MIGRATE_ID="$(printf '%s' "$MIGRATE_OUTPUT" | grep -o 'Machine ID: [0-9a-f]*' | head -n1 | awk '{print $3}')"
+if [ -z "$MIGRATE_ID" ]; then
+  echo "::error::could not read the migration machine id from flyctl's output" >&2
+  exit 1
+fi
 
+echo "==> [$MIGRATE_ID] waiting for the migration to exit"
+flyctl machine wait "$MIGRATE_ID" -a "$APP" --state destroyed --wait-timeout "${MIGRATE_TIMEOUT_SECONDS}s"
+
+MIGRATE_EXIT="$(curl -sf -H "Authorization: Bearer ${FLY_API_TOKEN:-$(flyctl auth token)}" \
+  "https://api.machines.dev/v1/apps/$APP/machines/$MIGRATE_ID" |
+  jq -r '[.events[] | select(.type == "exit") | .request.exit_event.exit_code] | first // "unknown"')"
+if [ "$MIGRATE_EXIT" != "0" ]; then
+  echo "::error::[$MIGRATE_ID] migration exited with code $MIGRATE_EXIT; aborting the rollout" >&2
+  exit 1
+fi
+echo "==> [$MIGRATE_ID] migration finished"
+
+# Only the machines `fly deploy`/`scale` created for the app process group.
+# The group is matched exactly, with no default: a machine without the tag is
+# a one-off like the migration machine above, and draining one of those is an
+# SSH timeout against a VM that has already exited.
 MACHINES="$(flyctl machines list -a "$APP" --json |
   jq -r '.[] | select(.state == "started")
-             | select((.config.metadata.fly_process_group // "app") == "app")
+             | select(.config.metadata.fly_process_group == "app")
              | .id')"
 
 if [ -z "$MACHINES" ]; then
