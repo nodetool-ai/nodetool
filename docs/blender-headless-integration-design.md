@@ -128,9 +128,19 @@ isolation boundary exists.
 
 ## Assumptions
 
-- A1. Blender 4.2 LTS is the floor. The glTF importer and exporter are core
+- A1. Blender 5.2 LTS is the floor. The glTF importer and exporter are core
   add-ons enabled under `--factory-startup`. EEVEE Next and Cycles both
   render headless on CPU with no display.
+- Revision (Stage 3): the floor moved from 4.2 LTS to 5.2 LTS. Nothing ever
+  ran on 4.2: `render_passes.py` reads `scene.compositing_node_group` (the
+  5.x compositor entry point; 4.2 has only the legacy `use_nodes`/`node_tree`
+  pair) and `render_animation.py` sets `image_settings.media_type` (the 5.x
+  image/video split; 4.2 exposes `file_format` directly). On a 4.2 binary
+  both ops raise `AttributeError`, so the old floor promised what the code
+  could not do. A 4.2 backport would need the compositor tree rebuilt on the
+  legacy `Scene.node_tree` API and the animation output set through
+  `file_format = "FFMPEG"` with no `media_type` flip — untested here, since
+  the only binary available is 5.2 LTS.
 - A2. Desktop users who want Blender nodes install Blender themselves. The
   node discovers it. This holds until a first-use download exists.
 - A3. The Python worker image is built outside this repository. Stage 4 here
@@ -201,7 +211,7 @@ export async function resolveBlenderBinary(): Promise<BlenderBinary>;
 Order: `BLENDER_PATH`, then `blender` on PATH, then well-known locations
 (`/Applications/Blender.app/Contents/MacOS/Blender`, `/usr/bin/blender`,
 `/snap/bin/blender`, `%ProgramFiles%\Blender Foundation\Blender *\blender.exe`).
-The first candidate that runs `--version` wins. Below 4.2 throws
+The first candidate that runs `--version` wins. Below 5.2 throws
 `BlenderVersionError` naming the found version and the floor. No candidate
 throws `HostBinaryMissingError("blender")`. The result is cached per process
 and invalidated when `BLENDER_PATH` changes.

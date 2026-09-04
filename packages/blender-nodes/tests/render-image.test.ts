@@ -4,9 +4,10 @@
  *
  * Skipped when Blender is absent, the way `model3d-render.test.ts` skips
  * without Chrome — but it must not skip on a machine with Blender
- * installed. Both Blender 5.2 (this machine) and the 4.2 floor report
- * through `stats.blender_version`, which the version assertion pins loosely
- * (major.minor at or above 4.2) rather than to one release.
+ * installed. The Blender under test reports through
+ * `stats.blender_version`, which the version assertion pins loosely
+ * (major.minor at or above the `BLENDER_MIN_VERSION` floor) rather than to
+ * one release.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

@@ -3,7 +3,7 @@
  *
  * Order: `BLENDER_PATH`, then `blender` on PATH, then the well-known
  * locations for macOS, Linux, and Windows. The first candidate whose
- * `--version` runs wins. Below the 4.2 floor throws `BlenderVersionError`
+ * `--version` runs wins. Below the 5.2 floor throws `BlenderVersionError`
  * naming both versions; nothing found throws `HostBinaryMissingError`.
  *
  * The result is cached per process and invalidated when `BLENDER_PATH`
@@ -19,8 +19,14 @@ import { HostBinaryMissingError } from "@nodetool-ai/runtime";
 
 const execFileAsync = promisify(execFile);
 
-/** Minimum supported Blender version: 4.2 LTS. */
-export const BLENDER_MIN_VERSION: readonly [number, number, number] = [4, 2, 0];
+/**
+ * Minimum supported Blender version: 5.2 LTS. The ops use
+ * `scene.compositing_node_group` and `image_settings.media_type`, neither of
+ * which exists on 4.2, so the 4.2 floor the design first named was never
+ * runnable. See the Revision note under A1 in
+ * `docs/blender-headless-integration-design.md`.
+ */
+export const BLENDER_MIN_VERSION: readonly [number, number, number] = [5, 2, 0];
 
 export interface BlenderBinary {
   path: string;
@@ -151,7 +157,7 @@ function missingError(failures: ProbeFailure[]): HostBinaryMissingError {
     .map((f) => ` BLENDER_PATH=${JSON.stringify(f.candidate)} failed: ${f.detail}`)
     .join("");
   err.message =
-    `blender was not found. Install Blender 4.2 or newer and add it to PATH, ` +
+    `blender was not found. Install Blender 5.2 or newer and add it to PATH, ` +
     `or set BLENDER_PATH to the Blender executable.${probeNote}`;
   return err;
 }

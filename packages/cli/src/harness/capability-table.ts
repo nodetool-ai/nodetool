@@ -435,7 +435,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "understand_video",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "a5a78285c120",
+    contract: "f5f8b48f6315",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
@@ -2117,6 +2117,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "model3d",
     impl: "packages/agents/src/capabilities/model3d.ts",
     contract: "e317eef26924",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-model3d.test.ts",
+    ],
+  },
+  {
+    name: "render_model3d",
+    module: "model3d",
+    impl: "packages/agents/src/capabilities/model3d.ts",
+    contract: "3d837c0a7471",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-model3d.test.ts",

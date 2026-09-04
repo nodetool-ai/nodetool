@@ -105,7 +105,7 @@ Build a composition in layers with blend modes and masks, then bind a layer to a
 
 Place primitives and lights in a glTF scene by hand or by tool call. The same operations run headlessly, so a scene is reproducible. Capture a view as a depth or composition reference for an image or video model.
 
-Agents get `create_model3d`, `get_model3d`, `edit_model3d`, and `validate_model3d` with no editor open.
+Agents get `create_model3d`, `get_model3d`, `edit_model3d`, `validate_model3d`, and `render_model3d` with no editor open.
 
 ## Your keys, your project file, your models
 

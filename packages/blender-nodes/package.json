@@ -23,6 +23,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@nodetool-ai/model3d": "*",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"

@@ -66,7 +66,7 @@ if [ "$MODE" = "doctor" ]; then
   if [ -n "$BLENDER_BIN" ]; then
     echo "  blender       $("$BLENDER_BIN" --version 2>/dev/null | head -1 || echo 'present (version unknown)')"
   else
-    echo "  blender       not found — nodetool.blender nodes need Blender 4.2+ (set BLENDER_PATH)"
+    echo "  blender       not found — nodetool.blender nodes need Blender 5.2+ (set BLENDER_PATH)"
   fi
   if node -e "process.exit(0)" 2>/dev/null; then
     PORT_STATE=$(node -e "

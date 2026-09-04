@@ -309,7 +309,7 @@ export {
   RenderToImageNode,
   MODEL3D_NODES
 } from "@nodetool-ai/video-nodes/nodes/model3d";
-export { RenderImageNode, RenderPassesNode, RenderAnimationNode, BLENDER_NODES } from "@nodetool-ai/blender-nodes";
+export { RenderImageNode, RenderPassesNode, RenderAnimationNode, PrepareForEngineNode, ExportModelNode, BLENDER_NODES } from "@nodetool-ai/blender-nodes";
 export {
   YtDlpDownloadLibNode,
   LIB_YTDLP_NODES

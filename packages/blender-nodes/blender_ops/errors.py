@@ -36,3 +36,7 @@ class NoCamera(BlenderOpError):
 
 class RenderFailed(BlenderOpError):
     code = "render_failed"
+
+
+class ExportFailed(BlenderOpError):
+    code = "export_failed"

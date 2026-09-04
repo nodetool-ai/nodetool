@@ -206,9 +206,9 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Same fallback for 3D model and image refs."
   ),
   guardedMedia(
-    "packages/video-nodes/src/nodes/model3d/render.ts",
-    "nodetool.model3d.RenderToImage",
-    "Resolves model bytes locally so it can bundle for the browser; same policy."
+    "packages/nodes-utils/src/model-bytes.ts",
+    "Model bytes → bytes (shared resolution)",
+    "The shared resolveModelBytes both RenderToImage and the Blender nodes call; same policy."
   ),
   guardedMedia(
     "packages/reve-nodes/src/reve-base.ts",

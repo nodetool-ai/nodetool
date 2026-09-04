@@ -137,6 +137,8 @@ export const PACKAGE_RUNTIME_ASSET_DIRS: readonly PackageAssetDirRef[] = [
       "ops/render_image.py",
       "ops/render_passes.py",
       "ops/render_animation.py",
+      "ops/prepare_for_engine.py",
+      "ops/export_model.py",
       "tests/test_framing.py",
       "tests/test_depth.py",
       "tests/test_exr.py"

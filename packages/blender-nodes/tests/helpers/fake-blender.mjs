@@ -6,8 +6,8 @@
  * travel in env: tests copy this file to `fake-<mode>.mjs` and point
  * `BLENDER_PATH` at the copy. The `.mjs` suffix stays so Node keeps the
  * copy an ES module (an extensionless copy exits on unsettled top-level
- * await instead of hanging). `--version` always reports 4.5.0 so binary
- * discovery accepts the fake.
+ * await instead of hanging). `--version` always reports 5.2.0 so binary
+ * discovery accepts the fake under the 5.2 floor.
  *
  * Modes: ok, fra, exit64-empty, import-failed, hang, evil, big-output,
  * big-total.
@@ -18,7 +18,7 @@ import { chmodSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 
 const argv = process.argv.slice(2);
 if (argv.includes("--version")) {
-  console.log("Blender 4.5.0 (hash deadbeef)");
+  console.log("Blender 5.2.0 (hash deadbeef)");
   process.exit(0);
 }
 
@@ -41,7 +41,7 @@ function writeDeclared(size, unreadable) {
 }
 
 function okStats() {
-  return { blender_version: "4.5.0", render_seconds: 0.2 };
+  return { blender_version: "5.2.0", render_seconds: 0.2 };
 }
 
 switch (mode) {

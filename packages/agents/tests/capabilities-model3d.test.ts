@@ -11,6 +11,13 @@ import { describe, expect, it, beforeEach, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Asset, initTestDb } from "@nodetool-ai/models";
 import {
+  __setBlenderRunnerForTesting,
+  type BlenderJob,
+  type BlenderRunner,
+  type BlenderRunOptions,
+  type BlenderRunResult
+} from "@nodetool-ai/blender-nodes";
+import {
   MODEL3D_CAPABILITIES,
   module as model3dModule
 } from "../src/capabilities/model3d.js";
@@ -95,13 +102,14 @@ describe("model3d capability module", () => {
     expect(capabilityModuleIssues("model3d", loaded)).toEqual([]);
   });
 
-  it("carries the five wire names", () => {
+  it("carries the six wire names", () => {
     expect(MODEL3D_CAPABILITIES.map((e) => e.spec.name)).toEqual([
       "list_model3ds",
       "create_model3d",
       "get_model3d",
       "edit_model3d",
-      "validate_model3d"
+      "validate_model3d",
+      "render_model3d"
     ]);
   });
 
@@ -322,6 +330,97 @@ describe("model3d capabilities against the database", () => {
     expect(await run.invoke("validate_model3d", {})).toMatchObject({
       error: expect.stringMatching(/model_id.*document/)
     });
+  });
+
+  it("renders a model through Blender and stores the PNG", async () => {
+    const PNG = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3
+    ]);
+    const calls: Array<{
+      job: BlenderJob;
+      inputs: Record<string, Uint8Array>;
+      options: BlenderRunOptions;
+    }> = [];
+    const fake: BlenderRunner = {
+      kind: "local",
+      run: async (
+        job: BlenderJob,
+        inputs: Record<string, Uint8Array>,
+        options: BlenderRunOptions
+      ): Promise<BlenderRunResult> => {
+        calls.push({ job, inputs, options });
+        return {
+          outputs: { image: PNG },
+          stats: {
+            blender_version: "5.2.1-test",
+            render_seconds: 1.25,
+            objects: 1,
+            camera: "NodeTool_Orbit"
+          }
+        };
+      }
+    };
+    __setBlenderRunnerForTesting(fake);
+    try {
+      const { context, bytesOf } = makeContext();
+      const run = runWith(context);
+      const created = (await run.invoke("create_model3d", {
+        name: "render-me",
+        ops: [{ op: "add_object", kind: "box" }]
+      })) as { model_id: string };
+
+      const rendered = (await run.invoke("render_model3d", {
+        model_id: created.model_id,
+        camera_mode: "orbit",
+        width: 64,
+        height: 64,
+        engine: "eevee"
+      })) as { image_id: string; url: string; stats: Record<string, unknown> };
+
+      expect(typeof rendered.image_id).toBe("string");
+      expect(rendered.url).toBe(`asset://${rendered.image_id}.png`);
+      expect(rendered.stats).toMatchObject({
+        blender_version: "5.2.1-test",
+        render_seconds: 1.25
+      });
+      expect(bytesOf(rendered.image_id)).toEqual(PNG);
+
+      // The capability builds the render_image job from its params and
+      // hands the stored model bytes to the runner.
+      expect(calls).toHaveLength(1);
+      expect(calls[0].job.job.op).toBe("render_image");
+      expect(calls[0].job.job).toMatchObject({
+        params: expect.objectContaining({
+          camera_mode: "orbit",
+          width: 64,
+          height: 64,
+          engine: "eevee"
+        })
+      });
+      expect(calls[0].inputs["model"]!.length).toBeGreaterThan(0);
+      expect(calls[0].options.timeoutMs).toBe(600_000);
+    } finally {
+      __setBlenderRunnerForTesting(null);
+    }
+  });
+
+  it("reports a missing model before touching Blender", async () => {
+    const run = vi.fn(async () => {
+      throw new Error("Blender must not run without a model.");
+    });
+    __setBlenderRunnerForTesting({
+      kind: "local",
+      run
+    } as unknown as BlenderRunner);
+    try {
+      const { context } = makeContext();
+      expect(
+        await runWith(context).invoke("render_model3d", { model_id: "nope" })
+      ).toMatchObject({ error: expect.stringMatching(/was not found/) });
+      expect(run).not.toHaveBeenCalled();
+    } finally {
+      __setBlenderRunnerForTesting(null);
+    }
   });
 
   it("reports a save that cannot land instead of claiming success", async () => {

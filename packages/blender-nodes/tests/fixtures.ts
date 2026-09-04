@@ -279,6 +279,59 @@ function buildGlb(
 }
 
 /**
+ * Grid fixture: `size` x `size` disjoint 1x1 quads on z=0, exactly
+ * `2 * size * size` triangular faces. The prepare tests decimate it toward
+ * a budget and assert the before/after face numbers.
+ */
+export function createGridGlb(size: number): Uint8Array {
+  const quads: QuadSpec[] = [];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      quads.push({ size: 1, origin: [x, y], z: 0 });
+    }
+  }
+  return buildGlb(quads);
+}
+
+/** Parse the JSON chunk of a GLB into a plain object. */
+export function parseGlbJson(glb: Uint8Array): Record<string, unknown> {
+  const view = new DataView(glb.buffer, glb.byteOffset, glb.byteLength);
+  if (view.getUint32(0, true) !== 0x46546c67) {
+    throw new Error("Not a GLB: bad magic.");
+  }
+  const jsonLength = view.getUint32(12, true);
+  const jsonBytes = new Uint8Array(
+    glb.buffer,
+    glb.byteOffset + 20,
+    jsonLength
+  );
+  return JSON.parse(new TextDecoder().decode(jsonBytes)) as Record<string, unknown>;
+}
+
+/**
+ * Face count of a GLB: indices/3 per primitive, else POSITION/3. What the
+ * prepare tests compare before and after decimation.
+ */
+export function countGlbFaces(glb: Uint8Array): number {
+  const json = parseGlbJson(glb);
+  const accessors = json["accessors"] as Array<{ count: number }>;
+  const meshes = (json["meshes"] ?? []) as Array<{
+    primitives: Array<{ indices?: number; attributes: { POSITION: number } }>;
+  }>;
+  let faces = 0;
+  for (const mesh of meshes) {
+    for (const primitive of mesh.primitives) {
+      if (primitive.indices !== undefined) {
+        faces += accessors[primitive.indices]!.count / 3;
+      } else {
+        faces += accessors[primitive.attributes.POSITION]!.count / 3;
+      }
+    }
+  }
+  return faces;
+}
+
+/**
  * Depth fixture: a 1x1 front quad at glTF z=1 and a 2x2 back quad at z=0,
  * both centered on (0.5, 0.5). From an azimuth-0, elevation-0 orbit camera
  * every foreground pixel on one quad shares one view-axis depth, so with
