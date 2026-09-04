@@ -50,11 +50,25 @@ describe("importedActionRisk", () => {
     expect(await importedActionRisk("return 1 + 1;")).toBe("low");
   });
 
-  it("is high for a write import", async () => {
+  it("leaves a write import at the declared risk — only the model can tell a note from a delete", async () => {
+    expect(
+      await importedActionRisk(
+        `import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n` +
+          `await write_file({ file_path: "note.txt", content: "hi" });`
+      )
+    ).toBe("low");
     expect(
       await importedActionRisk(
         `import { delete_workflow } from "@nodetool-ai/sandbox-nodetool/workflows";\n` +
           `await delete_workflow({ workflow_id: "w1" });`
+      )
+    ).toBe("low");
+  });
+
+  it("is high for an external import", async () => {
+    expect(
+      await importedActionRisk(
+        `import { http_request } from "@nodetool-ai/sandbox-nodetool/web";`
       )
     ).toBe("high");
   });
@@ -110,7 +124,7 @@ describe("effectiveActionRisk", () => {
     expect(
       await effectiveActionRisk(
         lowAction(
-          `import { delete_workflow } from "@nodetool-ai/sandbox-nodetool/workflows";`
+          `import { run_workflow } from "@nodetool-ai/sandbox-nodetool/workflows";`
         )
       )
     ).toBe("high");
@@ -122,13 +136,13 @@ describe("effectiveActionRisk", () => {
 });
 
 describe("admitCodeAction in auto mode with the import floor", () => {
-  it("asks for a self-declared low action that imports a write capability", async () => {
+  it("asks for a self-declared low action that imports an execute capability", async () => {
     const { gate, asked } = makeGate("auto", "deny");
     const admission = await admitCodeAction(
       gate,
       lowAction(
-        `import { delete_workflow } from "@nodetool-ai/sandbox-nodetool/workflows";\n` +
-          `await delete_workflow({ workflow_id: "w1" });`
+        `import { run_workflow } from "@nodetool-ai/sandbox-nodetool/workflows";\n` +
+          `await run_workflow({ workflow_id: "w1" });`
       )
     );
     expect(admission.allowed).toBe(false);

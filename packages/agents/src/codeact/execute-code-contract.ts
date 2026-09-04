@@ -128,12 +128,16 @@ export function declaredActionRisk(
  * off what the model declared about it.
  *
  * `risk: "low"` used to be admitted unread, so a program that imported
- * `delete_workflow` and called itself low ran unattended in auto mode. Every
+ * `run_workflow` and called itself low ran unattended in auto mode. Every
  * capability import is a static binding the mount already parses, and each
- * imported name has a permission category: a name in the `write`, `execute`
- * or `external` class makes the action high risk whatever the call declared.
- * A default or namespace import of a capability module reaches everything the
- * module exports, so it takes the module's highest category.
+ * imported name has a permission category: a name in the `execute` or
+ * `external` class — the calls that spend money or leave this account, which
+ * the `risk` option itself defines as high — makes the action high risk
+ * whatever the call declared. A default or namespace import of a capability
+ * module reaches everything the module exports, so it takes the module's
+ * highest category. The `write` class stays at the declared risk: a file the
+ * user asked for is the option's own example of low, and only the model can
+ * tell that write from a delete, so the declaration carries it.
  *
  * Only names the permission table knows raise the floor. A session tool
  * (`.../session`, a client `ui_*` schema) has no entry — `permissionCategoryFor`
@@ -142,6 +146,9 @@ export function declaredActionRisk(
  * object model (`nodetool.*`) reaches tools without an import and is not
  * read here; the per-call ladder is what governs it.
  */
+/** The permission classes whose import alone makes an action high risk. */
+const FLOOR_CATEGORIES: ReadonlySet<string> = new Set(["execute", "external"]);
+
 export async function importedActionRisk(code: string): Promise<ActionRisk> {
   const parsed = parseCodeBody(code);
   if ("error" in parsed) return "low";
@@ -159,8 +166,8 @@ async function moduleIsActionable(module: string): Promise<boolean> {
   const { capabilityModuleSpecTable } = await import(
     "../capabilities/registry.js"
   );
-  return capabilityModuleSpecTable(module).some(
-    (spec) => spec.category !== "read"
+  return capabilityModuleSpecTable(module).some((spec) =>
+    FLOOR_CATEGORIES.has(spec.category)
   );
 }
 
@@ -172,7 +179,7 @@ async function actionable(
     for (const name of binding.named) {
       if (
         Object.hasOwn(TOOL_PERMISSION_CATEGORIES, name) &&
-        permissionCategoryFor(name) !== "read"
+        FLOOR_CATEGORIES.has(permissionCategoryFor(name))
       ) {
         return true;
       }
