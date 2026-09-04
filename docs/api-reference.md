@@ -91,6 +91,8 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Extension WS | `/ws/extension`                | WebSocket         | Follows global auth settings                   | yes                         | Browser extension channel |
 | Download WS | `/ws/download`                  | WebSocket         | Follows global auth settings                   | yes                         | Model/file downloads |
 | Storage   | `/api/storage/*`                  | `HEAD/GET`        | Depends on `AUTH_PROVIDER`                     | streaming for `GET`         | Asset bytes at `<userId>/<assetId>.<ext>`, scoped to the caller. Read-only: writes and deletes go through the asset API (tRPC `assets.delete` removes an asset's stored objects). `storage.signUrl` is the only tRPC storage procedure |
+| Account   | `/api/account/export`             | `GET`             | An authenticated identity, whatever `AUTH_PROVIDER` is | no                  | Everything this server holds about the caller, as one JSON download |
+| Account   | `/api/account`                    | `DELETE`          | An authenticated identity, whatever `AUTH_PROVIDER` is | no                  | Erase the caller's data. The body must be `{"confirm": "DELETE MY ACCOUNT"}` |
 | Config    | `/api/config`                     | `GET`             | none                                           | no                          | How this server is configured, for a client that has not signed in yet: auth mode, Supabase URL and anon key, Google Workspace scopes, version |
 | Admin     | `/admin/secrets/import`           | `POST`            | none                                           | no                          | Stub — always `501`. Bulk secret import is not part of the standalone server |
 | Health    | `/health`                         | `GET`             | none                                           | no                          | JSON: `{status, timestamp, uptime, services}` (`200`/`503`) |
@@ -2216,6 +2218,127 @@ response.
 `NODETOOL_GOOGLE_WORKSPACE` in [Configuration](configuration.md)). When it is,
 `googleScopes` lists the OAuth scopes the connect step must request; when it is
 not, that array is empty.
+
+### Exporting or Erasing Your Account Data
+
+Two routes answer the data-subject rights the privacy policy promises: `GET
+/api/account/export` hands back everything this server holds about the caller,
+and `DELETE /api/account` erases it. Neither takes a subject — the user id comes
+from the identity the auth hook resolved, so a request carrying none is a `401`
+rather than falling back to the local user `1`. There is no admin path and no
+way to name somebody else's account, in the path, the query or the body.
+
+```bash
+curl "http://localhost:7777/api/account/export" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -O -J
+```
+
+The response is `application/json` with `cache-control: no-store` and a
+`content-disposition` of `attachment;
+filename="nodetool-personal-data-export-2026-06-20.json"`, dated the day it was
+generated, so `curl -OJ` writes it under that name. Inside is one entry per
+table:
+
+```json
+{
+  "format": "nodetool.personal-data-export/1",
+  "subjectUserId": "1",
+  "generatedAt": "2026-06-20T09:12:33.921Z",
+  "tables": {
+    "nodetool_workflows": {
+      "disposition": "delete",
+      "reach": { "kind": "direct", "column": "user_id" },
+      "rowCount": 12,
+      "truncated": false,
+      "withheldColumns": [],
+      "rows": [{ "id": "wf_9f3c", "name": "Daily digest", "graph": "…" }]
+    },
+    "nodetool_secrets": {
+      "disposition": "delete",
+      "reach": { "kind": "direct", "column": "user_id" },
+      "rowCount": 3,
+      "truncated": false,
+      "withheldColumns": ["encrypted_value"],
+      "rows": [
+        {
+          "key": "OPENAI_API_KEY",
+          "encrypted_value": "[withheld: credential material]"
+        }
+      ]
+    }
+  },
+  "excluded": [
+    {
+      "table": "mcp_oauth_clients",
+      "reason": "A dynamically registered OAuth client (RFC 7591): name plus redirect URIs, with no owner column. …"
+    }
+  ]
+}
+```
+
+`disposition` is what erasure would do with that table — `delete`, `redact`,
+`retain`, `anonymize`, or `not-personal` — and `reach` is how the rows are found,
+either a `direct` user-id column or an `indirect` join through a parent table.
+`withheldColumns` names the columns replaced with the string `[withheld:
+credential material]`: an API key, an OAuth token or a token hash is listed by
+name and never by value, so the export says which credentials existed without
+minting a fresh readable copy of a live one. Each table is capped at 50 000 rows
+and sets `truncated: true` when it hits the cap. `excluded` lists the tables
+holding nothing portable for this person, each with the reason from the registry.
+Which table gets which treatment is `PERSONAL_DATA_REGISTRY` in
+`packages/models/src/personal-data-registry.ts`.
+
+Erasure is irreversible, so it fires only on the exact phrase:
+
+```bash
+curl -X DELETE "http://localhost:7777/api/account" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"confirm": "DELETE MY ACCOUNT"}'
+```
+
+Anything else — no body, `{}`, a different string, or an extra field such as
+`user_id` — is a `400` and nothing is touched, so a stray or replayed `DELETE`
+cannot erase an account:
+
+```json
+{
+  "detail": "Erasure is irreversible. Send {\"confirm\": \"DELETE MY ACCOUNT\"} to confirm."
+}
+```
+
+A confirmed call answers `200` with the request id that ties the audit rows
+together and a per-table report:
+
+```json
+{
+  "requestId": "8629a9bc-052f-4af9-96fd-56779be0d94e",
+  "report": {
+    "userId": "1",
+    "completedAt": "2026-06-20T09:14:02.550Z",
+    "tables": [
+      { "table": "nodetool_workflows", "disposition": "delete", "deleted": 12, "redacted": 0, "retained": 0 },
+      { "table": "nodetool_predictions", "disposition": "redact", "deleted": 0, "redacted": 340, "retained": 340 }
+    ],
+    "deleted": 812,
+    "redacted": 340,
+    "retained": 353,
+    "objectKeysDeleted": ["1/9f3c1a2b.png", "1/a04ef881.mp4"]
+  }
+}
+```
+
+A `redact` row is kept and stripped: `nodetool_predictions` is the billing
+ledger, so cost, tokens, model, provider and timestamps survive while
+`parameters`, `metadata` and `logs` are nulled. `objectKeysDeleted` names the
+stored objects removed under the caller's `<userId>/` prefix, so the bytes go
+with the rows rather than staying readable to anyone holding a URL.
+
+The call is idempotent — a second one re-runs the same sweep, finds nothing, and
+answers `200` with zeros. The `data_erasure_requested` and
+`data_erasure_completed` events survive the sweep as the record that the request
+arrived and was answered.
 
 ### Health Check
 
