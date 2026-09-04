@@ -2,7 +2,7 @@
  * Starting a project: what Start creates, what the agent is handed, and that
  * the blank-document strip still opens loose tabs.
  */
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -169,6 +169,34 @@ const openPageTab = jest.fn();
 jest.mock("../../workspace/openPageTab", () => ({
   openPageTab: (key: string) => openPageTab(key)
 }));
+
+// The `@` picker's search fans out to the asset store and the entity library;
+// this surface only needs the picked row to reach the prompt.
+jest.mock(
+  "../../node_types/editing/promptComposer/useAssetMentionSearch",
+  () => ({
+    useAssetMentionSearch: (query: string | null) => ({
+      activeTab: "recent",
+      setActiveTab: jest.fn(),
+      entities:
+        query === null
+          ? []
+          : [
+              {
+                id: "e1",
+                kind: "prop",
+                name: "Aurora lamp",
+                descriptor: "a warm desk lamp",
+                reference_images: []
+              }
+            ],
+      displayedAssets: [],
+      hasMoreSaved: false,
+      loadMoreSaved: jest.fn(),
+      handleRename: jest.fn()
+    })
+  })
+);
 
 const handleCreateNewWorkflow = jest.fn(async () => undefined);
 jest.mock("../../../hooks/useWorkflowActions", () => ({
@@ -463,5 +491,44 @@ describe("NewProjectSurface", () => {
     expect(
       screen.getByPlaceholderText(/30-second launch spot/)
     ).toHaveValue("A spot for our desk lamp");
+  });
+  // The prompt box is the project's composer, so it carries the composer's own
+  // triggers rather than making the user reach for the buttons beside it.
+  it("completes a skill from `/` and starts the project on it", async () => {
+    renderSurface();
+    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
+    await userEvent.type(prompt, "/launch");
+
+    await userEvent.click(
+      await screen.findByTestId("skill-option-launch-commercial")
+    );
+    expect(prompt).toHaveValue("/launch-commercial ");
+
+    await userEvent.type(prompt, "A spot for our desk lamp");
+    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+
+    await waitFor(() => expect(createProject).toHaveBeenCalled());
+    // Picked from the prompt, the skill is still the project's kind.
+    expect(createProject).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "launch-commercial" })
+    );
+    const staged = takeProjectFirstTurn("p9");
+    // The `/name` the user typed is the only one — the starter is not written
+    // in a second time.
+    expect(staged?.[0]).toEqual({
+      type: "text",
+      text: "/launch-commercial A spot for our desk lamp"
+    });
+  });
+
+  it("writes an entity picked from `@` into the prompt as its token", async () => {
+    renderSurface();
+    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
+    await userEvent.type(prompt, "A spot lit by @auro");
+
+    const menu = await screen.findByRole("listbox", { name: "Entities" });
+    await userEvent.click(within(menu).getByText("Aurora lamp"));
+
+    expect(prompt).toHaveValue("A spot lit by entity://e1 ");
   });
 });

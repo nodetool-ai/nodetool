@@ -139,6 +139,8 @@ interface UseTextareaSkillMentionOptions {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   value: string;
   setValue: (next: string) => void;
+  /** Called with the picked skill after its `/name` has been written in. */
+  onSelect?: (skill: Skill) => void;
 }
 
 interface UseTextareaSkillMention {
@@ -152,7 +154,8 @@ interface UseTextareaSkillMention {
 export const useTextareaSkillMention = ({
   textareaRef,
   value,
-  setValue
+  setValue,
+  onSelect
 }: UseTextareaSkillMentionOptions): UseTextareaSkillMention => {
   // The shipped skills answer to `/name` in a turn exactly as a user's own row
   // does, so the menu that completes that name offers both.
@@ -276,9 +279,10 @@ export const useTextareaSkillMention = ({
           value.slice(0, trigger.start) + inserted + value.slice(trigger.end)
         );
       }
+      onSelect?.(skill);
       close();
     },
-    [close, setValue, trigger, value]
+    [close, onSelect, setValue, trigger, value]
   );
 
   const selectIndex = useCallback(

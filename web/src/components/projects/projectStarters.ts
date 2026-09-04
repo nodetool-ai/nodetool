@@ -64,21 +64,32 @@ interface FirstTurnInput {
   entityNames: readonly string[];
 }
 
+/** True when the prompt already invokes `/name` as a whitespace-delimited word. */
+const invokesStarter = (prompt: string, name: string): boolean => {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|\\s)/${escaped}(\\s|$)`).test(prompt);
+};
+
 /**
  * The first thing the project's agent reads: the starter it was given, what
  * the user asked for, and which library entities to season the prompts with.
  *
  * The starter leads on its own line as `/<name>`, which is what the host
  * matches to load the skill's instructions into the turn — a name after
- * whitespace, so the prompt below it is left exactly as written. Each part is
- * omitted when it says nothing.
+ * whitespace, so the prompt below it is left exactly as written. A prompt that
+ * already types that slash command (the composer's `/` menu writes it inline)
+ * keeps its own copy rather than getting a second one. Each part is omitted
+ * when it says nothing.
  */
 export const composeFirstTurn = ({
   prompt,
   starter,
   entityNames
 }: FirstTurnInput): string => {
-  const parts = starter ? [`/${starter.name}`] : [];
+  const parts =
+    starter && !invokesStarter(prompt, starter.name)
+      ? [`/${starter.name}`]
+      : [];
   parts.push(prompt.trim());
   if (entityNames.length > 0) {
     parts.push(`Use these entities: ${entityNames.join(", ")}.`);

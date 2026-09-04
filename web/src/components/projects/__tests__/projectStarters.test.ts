@@ -91,6 +91,29 @@ describe("composeFirstTurn", () => {
     );
   });
 
+  // The prompt's own `/` menu writes the command inline; a second copy above
+  // it would load the skill twice and read as a mistake.
+  it("writes no second copy when the prompt already invokes the starter", () => {
+    expect(
+      composeFirstTurn({
+        prompt: "/launch-commercial A spot for our desk lamp",
+        starter: launch,
+        entityNames: []
+      })
+    ).toBe("/launch-commercial A spot for our desk lamp");
+  });
+
+  // A different skill named in the prompt is not this project's starter.
+  it("still leads with the starter when the prompt invokes another skill", () => {
+    expect(
+      composeFirstTurn({
+        prompt: "/house-style A spot for our desk lamp",
+        starter: launch,
+        entityNames: []
+      })
+    ).toBe("/launch-commercial\n\n/house-style A spot for our desk lamp");
+  });
+
   // The host matches `/name` at the start of the text or after whitespace, so
   // the command must lead its own line and the prompt must survive verbatim.
   it("leaves a prompt of its own alone when no starter is picked", () => {
