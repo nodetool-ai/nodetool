@@ -270,8 +270,17 @@ jobs:
           #      that break). Deliberately typecheck only — the full
           #      `next build`s cost minutes each and belong to deploys, not
           #      the PR gate.
+          #   8. `npm run capabilities:check` — the capability coverage table
+          #      (packages/cli/src/harness/capability-table.ts) regenerated
+          #      from the live registry and diffed against the checked-in one.
+          #      Fails on a capability with no suite, no eval case and no gap
+          #      note, and on a table the diff left stale. Imports
+          #      packages/cli/dist and packages/agents/dist, both in the
+          #      `build` job's artifact; nothing else ran it, so the invariant
+          #      packages/agents/AGENTS.md documents held only when someone
+          #      remembered to run it by hand.
           - check: typecheck
-            command: npm run typecheck && npm run lint:design --workspace=web && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples
+            command: npm run typecheck && npm run lint:design --workspace=web && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples && npm run capabilities:check
             mobile-deps: "true"
             extra-apt: ""
             is-test: "false"

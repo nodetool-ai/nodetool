@@ -44,6 +44,10 @@ interface EvalCliOptions {
   systemPrompt?: string;
   /** commander negated flag: `--no-agent-prompt` sets this to false. */
   agentPrompt?: boolean;
+  /** Exit non-zero when the run's total provider spend (USD) exceeds this. */
+  maxCostUsd?: string;
+  /** Exit non-zero when the p95 case duration (ms) exceeds this. */
+  maxP95DurationMs?: string;
 }
 
 /** Metadata for one eval case, shown by `--list`. */
@@ -99,9 +103,15 @@ interface EvalRunDeps {
  * paths, which otherwise only a paid model run reaches — are unit-testable.
  */
 export function evalGateFailures(
-  result: Pick<EvalRunResult, "successRate" | "meanScore" | "casesRan">,
+  result: Pick<
+    EvalRunResult,
+    "successRate" | "meanScore" | "casesRan" | "costUsd" | "durationsMs"
+  >,
   suiteId: string,
-  opts: Pick<EvalCliOptions, "minScore" | "minSuccess" | "minCases">
+  opts: Pick<
+    EvalCliOptions,
+    "minScore" | "minSuccess" | "minCases" | "maxCostUsd" | "maxP95DurationMs"
+  >
 ): string[] {
   const failures: string[] = [];
 
@@ -148,7 +158,67 @@ export function evalGateFailures(
     }
   }
 
+  // Spend is summed over every case, skipped ones included (they cost 0), so
+  // the number gated is what the run billed.
+  if (opts.maxCostUsd !== undefined) {
+    const cap = parseNumericOption(opts.maxCostUsd, "--max-cost-usd", {
+      min: 0
+    });
+    if (result.costUsd > cap) {
+      failures.push(
+        `Total cost $${result.costUsd.toFixed(4)} above --max-cost-usd ${cap}`
+      );
+    }
+  }
+
+  // p95 over the cases that ran: a skipped case records 0 ms and would pull
+  // the percentile down. Nearest-rank, so the number is a duration one case
+  // actually took. A run with no timings fails the gate outright — the same
+  // rule --min-score applies when a suite reports no score.
+  if (opts.maxP95DurationMs !== undefined) {
+    const cap = parseNumericOption(
+      opts.maxP95DurationMs,
+      "--max-p95-duration-ms",
+      { integer: true, min: 0 }
+    );
+    const p95 = percentile95(result.durationsMs);
+    if (p95 === undefined) {
+      failures.push(
+        `--max-p95-duration-ms: suite "${suiteId}" ran no case, nothing to time`
+      );
+    } else if (p95 > cap) {
+      failures.push(
+        `p95 case duration ${p95}ms above --max-p95-duration-ms ${cap}`
+      );
+    }
+  }
+
   return failures;
+}
+
+/** Nearest-rank p95; undefined over an empty sample. */
+function percentile95(samples: readonly number[]): number | undefined {
+  if (samples.length === 0) return undefined;
+  const sorted = [...samples].sort((a, b) => a - b);
+  return sorted[Math.ceil(0.95 * sorted.length) - 1];
+}
+
+/**
+ * What every suite records per case and the cost/duration gates read. A
+ * skipped case (`skipped` set, or a non-empty reason string) cost nothing and
+ * took no time, so it stays in the sum and leaves the timings.
+ */
+function runMetrics(
+  cases: readonly {
+    costUsd: number;
+    durationMs: number;
+    skipped?: boolean | string;
+  }[]
+): Pick<EvalRunResult, "costUsd" | "durationsMs"> {
+  return {
+    costUsd: cases.reduce((sum, c) => sum + c.costUsd, 0),
+    durationsMs: cases.filter((c) => !c.skipped).map((c) => c.durationMs)
+  };
 }
 
 /** Outcome of a suite run, consumed by the shared runner. */
@@ -172,6 +242,10 @@ interface EvalRunResult {
    * over whatever survived.
    */
   casesRan: number;
+  /** Provider spend over the whole run, for `--max-cost-usd`. */
+  costUsd: number;
+  /** Wall clock per case that ran, for `--max-p95-duration-ms`. */
+  durationsMs: readonly number[];
 }
 
 /**
@@ -254,6 +328,7 @@ const graphPlannerSuite: EvalSuite = {
 
     return {
       report,
+      ...runMetrics(report.cases),
       formatted: formatEvalReport(report),
       successRate: report.summary.successRate,
       meanScore: report.summary.meanScore,
@@ -319,6 +394,7 @@ const graphE2eSuite: EvalSuite = {
 
     return {
       report,
+      ...runMetrics(report.cases),
       formatted: formatGraphE2eReport(report),
       successRate: report.summary.successRate,
       casesRan: report.summary.total - report.summary.skipped
@@ -362,6 +438,7 @@ const codeGenSuite: EvalSuite = {
 
     return {
       report,
+      ...runMetrics(report.cases),
       formatted: formatCodeGenReport(report),
       successRate: report.summary.postRepairRate,
       // The suite skips nothing: every case is a Code body the planner writes.
@@ -407,6 +484,7 @@ const subtaskSuite: EvalSuite = {
 
     return {
       report,
+      ...runMetrics(report.cases),
       formatted: formatSubtaskReport(report),
       successRate: report.summary.successRate,
       casesRan: report.summary.total - report.summary.skipped
@@ -465,6 +543,7 @@ const codeActSuite: EvalSuite = {
 
     return {
       report,
+      ...runMetrics(report.cases),
       formatted: formatCodeActReport(report),
       successRate: report.summary.successRate,
       meanScore: report.summary.meanScore,
@@ -510,6 +589,7 @@ const taskPlannerSuite: EvalSuite = {
 
     return {
       report,
+      ...runMetrics(report.cases),
       formatted: formatTaskPlanReport(report),
       successRate: report.summary.successRate,
       meanScore: report.summary.meanScore,
@@ -605,6 +685,7 @@ const appBuildSuite: EvalSuite = {
 
     return {
       report,
+      ...runMetrics(report.cases),
       formatted: formatAppBuildReport(report),
       successRate: report.summary.greenWithinBudgetRate,
       meanScore: report.summary.meanScore,
@@ -672,6 +753,7 @@ function makeToolLoopSuite<TFinal>(
 
       return {
         report,
+        ...runMetrics(report.cases),
         formatted: formatToolLoopReport(report),
         successRate: report.summary.successRate,
         meanScore: report.summary.meanScore,
@@ -986,6 +1068,14 @@ export function registerEvalCommand(program: Command): void {
       .option(
         "--no-agent-prompt",
         "Plan with no caller preamble — scores the bare planner contract"
+      )
+      .option(
+        "--max-cost-usd <usd>",
+        "Exit non-zero when the run's total provider spend exceeds this"
+      )
+      .option(
+        "--max-p95-duration-ms <ms>",
+        "Exit non-zero when the p95 case duration (skipped cases excluded) exceeds this"
       )
       .action((opts: EvalCliOptions) => runSuite(suite, opts));
   }
