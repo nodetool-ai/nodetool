@@ -42,10 +42,18 @@ MIGRATE_TIMEOUT_SECONDS="${MIGRATE_TIMEOUT_SECONDS:-600}"
 # pkill to reach for. The scan skips its own pid — the loop's text contains
 # "server.mjs", so without that it signals itself and dies mid-scan. The `grep`
 # children cannot match: the /proc glob is expanded once, before any of them
-# exists. Single-quoted here on purpose — every $ inside belongs to the remote
-# shell.
+# exists.
+#
+# The count is what makes the exit status mean something. A bare `grep && kill`
+# loop exits with the status of its *last* iteration, so a scan that signalled
+# the server and then walked past one more non-matching pid returned 1 — and
+# `flyctl ssh console` passes that through, which `set -e` read as a failure.
+# Now the status answers the only question worth asking: was anything
+# signalled?
+#
+# Single-quoted here on purpose — every $ inside belongs to the remote shell.
 # shellcheck disable=SC2016
-DRAIN_COMMAND='sh -c "self=$$; for p in /proc/[0-9]*; do pid=${p##*/}; [ $pid = $self ] && continue; grep -qa server.mjs $p/cmdline 2>/dev/null && kill -USR2 $pid && echo signalled $pid; done"'
+DRAIN_COMMAND='sh -c "self=$$; signalled=0; for p in /proc/[0-9]*; do pid=${p##*/}; [ $pid = $self ] && continue; if grep -qa server.mjs $p/cmdline 2>/dev/null; then kill -USR2 $pid && echo signalled $pid && signalled=$((signalled + 1)); fi; done; [ $signalled -gt 0 ] || { echo no server.mjs process found >&2; exit 1; }"'
 
 on_machine() {
   local id="$1" command="$2"
