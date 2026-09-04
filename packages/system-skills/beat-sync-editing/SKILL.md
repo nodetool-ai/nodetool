@@ -10,6 +10,9 @@ brief into millisecond cut points on the timeline.
 
 `motion-direction` sets the energy; this turns it into a grid and an arc.
 `motion-graphics` carries the op contract for the calls named here.
+`video-audio-continuity` decides where the bed comes from before there is a
+grid to read: a track you add yourself, or one generated clip carrying every
+scene.
 
 ## Get the grid from the audio, not from arithmetic
 

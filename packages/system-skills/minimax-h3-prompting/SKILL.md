@@ -16,6 +16,10 @@ fits in one request.
 Reach it with `find_model` for `text_to_video` or `image_to_video`, then
 `generate_video` / `animate_image`.
 
+A timecoded shot list in one request is also what keeps the native audio
+continuous across the cuts — `video-audio-continuity` for when to fit a whole
+multi-scene piece into a single generation.
+
 ## Which endpoint
 
 The rule is mechanical:

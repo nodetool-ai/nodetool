@@ -304,7 +304,7 @@ const timeline = await assemble_storyboard_timeline({
 });
 ```
 
-From here the normal timeline tools take over, and each has a skill: `motion-graphics` for the op contract, `beat-sync-editing` to put the cuts on the music bed and ramp the hit, `caption-titles` for the supers and the CTA card, `logo-reveal` for the end mark, and `color-motion` for the grade that makes the beats cut together. Load `motion-direction` first if the spot needs one motion language across every beat.
+From here the normal timeline tools take over, and each has a skill: `motion-graphics` for the op contract, `video-audio-continuity` before any clip renders if the spot's sound has to run across the beats, `beat-sync-editing` to put the cuts on the music bed and ramp the hit, `caption-titles` for the supers and the CTA card, `logo-reveal` for the end mark, and `color-motion` for the grade that makes the beats cut together. Load `motion-direction` first if the spot needs one motion language across every beat.
 
 ---
 

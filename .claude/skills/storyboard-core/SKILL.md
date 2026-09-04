@@ -113,6 +113,10 @@ message*; it never becomes shot text.
   steady. `direct` skips the still — worth it for heavy motion, where first-frame
   conditioning stiffens the result, and for native-audio video models, which are
   weakest on their image path.
+- A native-audio model writes the sound per clip, so a board of one clip per shot
+  cuts the audio at every join. Load the `video-audio-continuity` system skill
+  before rendering: either the whole piece is one shot carrying the cuts, or the
+  continuity comes from a narration or music track and the shot audio is muted.
 
 ## Gating and spend
 
