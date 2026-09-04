@@ -2672,12 +2672,12 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
     contract: "c758c2ba012f",
-    gap:
-      "Schema-only capability: the implementation is the browser's " +
-      "(web/src/lib/tools/builtin), and the headless graph bridge the " +
-      "tool-loop eval drives seeds its own state instead of reading " +
-      "it back. A case whose objective needs the current graph before " +
-      "editing it would close it.",
+    evals: [
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["rewire-and-relabel"],
+      },
+    ],
   },
   {
     name: "ui_add_node",
@@ -2707,7 +2707,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
       },
       {
         file: "packages/agents/src/evals/tool-loop-cases.ts",
-        cases: ["extend-existing", "summarize"],
+        cases: ["extend-existing", "rewire-and-relabel", "summarize"],
       },
     ],
   },
@@ -2716,11 +2716,12 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
     contract: "53ad5b26a7d1",
-    gap:
-      "Schema-only capability routed to the browser. The graph " +
-      "tool-loop cases add and connect nodes; none sets a property " +
-      "afterwards. A case that builds a graph and then fills a " +
-      "required property would close it.",
+    evals: [
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["rewire-and-relabel"],
+      },
+    ],
   },
   {
     name: "ui_delete_node",
@@ -2739,29 +2740,36 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
     contract: "43bb0e75e132",
-    gap:
-      "Schema-only capability routed to the browser. No tool-loop " +
-      "case rewires a seeded graph. A case that disconnects and " +
-      "reconnects an edge would close it.",
+    evals: [
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["rewire-and-relabel"],
+      },
+    ],
   },
   {
     name: "ui_move_node",
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
     contract: "35780f769033",
-    gap:
-      "Schema-only capability routed to the browser. Layout is not " +
-      "scored by any case. A case whose final-state predicate reads " +
-      "node positions would close it.",
+    evals: [
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["rewire-and-relabel"],
+      },
+    ],
   },
   {
     name: "ui_set_node_title",
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
     contract: "b8500a8d6207",
-    gap:
-      "Schema-only capability routed to the browser. No case renames " +
-      "a node. A case that titles the nodes it adds would close it.",
+    evals: [
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["rewire-and-relabel"],
+      },
+    ],
   },
   {
     name: "search_apify_actors",

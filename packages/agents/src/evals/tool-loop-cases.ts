@@ -173,6 +173,56 @@ const EXTEND_SEED_EDGES: HeadlessEdge[] = [
   }
 ];
 
+/** Seeded positions for the `rewire-and-relabel` case, read back by its layout predicate. */
+const REWIRE_SEED_POSITIONS: Record<"in1" | "agent1" | "out1", { x: number; y: number }> = {
+  in1: { x: 60, y: 60 },
+  agent1: { x: 60, y: 260 },
+  out1: { x: 60, y: 460 }
+};
+
+/**
+ * Pre-seeded input→agent→output graph for `rewire-and-relabel`, with the
+ * output wired straight from the input (bypassing the agent) and the agent's
+ * required `prompt` left empty.
+ */
+const REWIRE_SEED_NODES: HeadlessNode[] = [
+  {
+    id: "in1",
+    type: "nodetool.input.StringInput",
+    position: { ...REWIRE_SEED_POSITIONS.in1 },
+    data: { properties: { name: "text", value: "" } }
+  },
+  {
+    id: "agent1",
+    type: "nodetool.agents.Agent",
+    position: { ...REWIRE_SEED_POSITIONS.agent1 },
+    data: { properties: { prompt: "", input: "" } }
+  },
+  {
+    id: "out1",
+    type: "nodetool.output.StringOutput",
+    position: { ...REWIRE_SEED_POSITIONS.out1 },
+    data: { properties: { name: "summary", value: "" } }
+  }
+];
+
+const REWIRE_SEED_EDGES: HeadlessEdge[] = [
+  {
+    id: "edge_seed_1",
+    source: "in1",
+    target: "agent1",
+    sourceHandle: "output",
+    targetHandle: "input"
+  },
+  {
+    id: "edge_seed_2",
+    source: "in1",
+    target: "out1",
+    sourceHandle: "output",
+    targetHandle: "value"
+  }
+];
+
 export const TOOL_LOOP_EVAL_CASES: readonly ToolLoopEvalCase<ToolLoopFinalState>[] =
   [
     {
@@ -243,6 +293,89 @@ export const TOOL_LOOP_EVAL_CASES: readonly ToolLoopEvalCase<ToolLoopFinalState>
             name: "agentWired",
             detail: "agent1 output not connected onward",
             test: (s) => s.edges.some((e) => e.source === "agent1")
+          }
+        ]
+      }
+    },
+    {
+      id: "rewire-and-relabel",
+      description:
+        "Read a seeded graph, fill an unset required property, delete a bypass edge, rewire through the agent, retitle every node, and reposition them",
+      objective:
+        "This workflow already has a StringInput ('text', id=in1) feeding an Agent step (id=agent1), whose prompt property is empty. The StringOutput (id=out1) is currently wired directly from in1, bypassing the agent entirely. Inspect the current graph first, then fix it: fill in agent1's prompt with a real instruction (e.g. 'Summarize the input text'); delete the edge that connects in1 straight to out1; connect agent1's output to out1 so the summary reaches the output instead; give in1, agent1 and out1 clearer titles describing what each one does; and reposition the three nodes into a clearer left-to-right layout.",
+      createBridge: () =>
+        createToolLoopBridge({
+          nodeMetadata: TOOL_LOOP_NODE_CATALOG,
+          nodes: REWIRE_SEED_NODES,
+          edges: REWIRE_SEED_EDGES
+        }),
+      expect: {
+        requiredTools: [
+          "ui_get_graph",
+          "ui_update_node_data",
+          "ui_delete_edge",
+          "ui_connect_nodes",
+          "ui_move_node",
+          "ui_set_node_title"
+        ],
+        ordering: [
+          ["ui_get_graph", "ui_delete_edge"],
+          ["ui_get_graph", "ui_update_node_data"]
+        ],
+        noErrorResults: true,
+        minToolCalls: 6,
+        maxToolCalls: 30,
+        finalState: [
+          {
+            name: "promptFilled",
+            detail: "agent1's prompt property is still empty",
+            test: (s) => {
+              const agent = s.nodes.find((n) => n.id === "agent1");
+              const value = agent?.data.properties.prompt;
+              return typeof value === "string" && value.trim().length > 0;
+            }
+          },
+          {
+            name: "bypassEdgeRemoved",
+            detail: "the seeded in1 -> out1 bypass edge is still present",
+            test: (s) =>
+              !s.edges.some((e) => e.source === "in1" && e.target === "out1")
+          },
+          {
+            name: "agentWiredToOutput",
+            detail: "agent1's output is not connected to out1's value input",
+            test: (s) =>
+              s.edges.some(
+                (e) =>
+                  e.source === "agent1" &&
+                  e.target === "out1" &&
+                  e.targetHandle === "value"
+              )
+          },
+          {
+            name: "nodesRepositioned",
+            detail: "one or more seeded nodes were not moved from their seeded position",
+            test: (s) =>
+              (["in1", "agent1", "out1"] as const).every((id) => {
+                const node = s.nodes.find((n) => n.id === id);
+                if (!node) return false;
+                const seed = REWIRE_SEED_POSITIONS[id];
+                return (
+                  Math.hypot(
+                    node.position.x - seed.x,
+                    node.position.y - seed.y
+                  ) > 40
+                );
+              })
+          },
+          {
+            name: "titlesSet",
+            detail: "in1, agent1 and out1 were not all given titles",
+            test: (s) =>
+              (["in1", "agent1", "out1"] as const).every((id) => {
+                const node = s.nodes.find((n) => n.id === id);
+                return !!node?.data.title && node.data.title.trim().length > 0;
+              })
           }
         ]
       }
