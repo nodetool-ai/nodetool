@@ -1,7 +1,8 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   HostBinaryMissingError,
   MAX_CAPTURED_BYTES,
@@ -159,6 +160,210 @@ describe("runHostBinary", () => {
       await rm(cwd, { recursive: true, force: true });
     }
   });
+});
+
+describe("runHostBinary abort signal", () => {
+  it("kills a sleep child well before its timeout", async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    try {
+      const controller = new AbortController();
+      const started = Date.now();
+      const pending = runHostBinary(
+        process.execPath,
+        [
+          "-e",
+          "require('fs').writeFileSync('pid.txt',String(process.pid));" +
+            "setTimeout(()=>{},30000);"
+        ],
+        { cwd, timeoutMs: 30_000, signal: controller.signal }
+      );
+      setTimeout(() => controller.abort(), 300);
+      await expect(pending).rejects.toThrow();
+      expect(Date.now() - started).toBeLessThan(15_000);
+      // The child itself is gone, not just the promise: its pid no longer
+      // answers a signal once SIGTERM lands.
+      const pid = Number(await readFile(path.join(cwd, "pid.txt"), "utf8"));
+      const deadline = Date.now() + 5000;
+      for (;;) {
+        try {
+          process.kill(pid, 0);
+        } catch {
+          break;
+        }
+        if (Date.now() > deadline) {
+          throw new Error(`child ${pid} is still alive after abort`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it("never spawns when the signal is already aborted", async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    try {
+      const controller = new AbortController();
+      controller.abort();
+      let name = "";
+      try {
+        await runHostBinary(
+          process.execPath,
+          ["-e", "require('fs').writeFileSync('spawned.txt','x');"],
+          { cwd, timeoutMs: 5000, signal: controller.signal }
+        );
+      } catch (err) {
+        name = err instanceof Error ? err.name : "";
+      }
+      expect(name).toBe("AbortError");
+      expect(existsSync(path.join(cwd, "spawned.txt"))).toBe(false);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("runHostBinary stderr lines and env", () => {
+  it("calls onStderrLine once per complete line", async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    try {
+      const lines: string[] = [];
+      const result = await runHostBinary(
+        process.execPath,
+        [
+          "-e",
+          "process.stderr.write('alpha\\nbeta\\n');" +
+            "process.stderr.write('gam' + 'ma\\npartial');"
+        ],
+        { cwd, timeoutMs: 5000, onStderrLine: (line) => lines.push(line) }
+      );
+      expect(result.exitCode).toBe(0);
+      expect(lines).toEqual(["alpha", "beta", "gamma"]);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps feeding onStderrLine after the capture cap truncates", async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    try {
+      const lines: string[] = [];
+      const result = await runHostBinary(
+        process.execPath,
+        [
+          "-e",
+          "for(let i=0;i<3000;i++) process.stderr.write(" +
+            "'L'+String(i).padStart(5,'0')+'_'+'y'.repeat(90)+'\\n');"
+        ],
+        { cwd, timeoutMs: 30_000, onStderrLine: (line) => lines.push(line) }
+      );
+      expect(result.exitCode).toBe(0);
+      expect(result.truncated).toBe(true);
+      expect(lines).toHaveLength(3000);
+      expect(lines[0]).toBe(`L00000_${"y".repeat(90)}`);
+      expect(lines[2999]).toBe(`L02999_${"y".repeat(90)}`);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it("replaces process.env with env when env is set", async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    const key = "NT_HOST_BIN_TEST_SECRET";
+    process.env[key] = "s3cr3t";
+    try {
+      const probe = [
+        "-e",
+        `process.stdout.write(process.env[${JSON.stringify(key)}] ?? 'absent');`
+      ];
+      const inherited = await runHostBinary(process.execPath, probe, {
+        cwd,
+        timeoutMs: 5000
+      });
+      expect(inherited.stdout).toContain("s3cr3t");
+      const scrubbed = await runHostBinary(process.execPath, probe, {
+        cwd,
+        timeoutMs: 5000,
+        env: { PATH: process.env["PATH"] ?? "" }
+      });
+      expect(scrubbed.stdout).toBe("absent");
+    } finally {
+      delete process.env[key];
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("runHostBinary concurrency classes", () => {
+  const taggedChild = (log: string, tag: string, ms: number): string[] => [
+    "-e",
+    `const fs=require('fs');fs.appendFileSync(${JSON.stringify(log)},` +
+      `${JSON.stringify(`S${tag}\n`)});` +
+      `setTimeout(()=>fs.appendFileSync(${JSON.stringify(log)},` +
+      `${JSON.stringify(`E${tag}\n`)}),${ms});`
+  ];
+
+  async function readEvents(log: string): Promise<string[]> {
+    const text = await readFile(log, "utf8");
+    return text.trim().split("\n");
+  }
+
+  it("serializes two render runs under NODETOOL_BLENDER_CONCURRENCY=1", async () => {
+    vi.stubEnv("NODETOOL_BLENDER_CONCURRENCY", "1");
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    const log = path.join(cwd, "render.log");
+    try {
+      await writeFile(log, "");
+      await Promise.all([
+        runHostBinary(process.execPath, taggedChild(log, "A", 600), {
+          cwd,
+          timeoutMs: 30_000,
+          concurrencyClass: "render"
+        }),
+        runHostBinary(process.execPath, taggedChild(log, "B", 600), {
+          cwd,
+          timeoutMs: 30_000,
+          concurrencyClass: "render"
+        })
+      ]);
+      expect(await readEvents(log)).toEqual(["SA", "EA", "SB", "EB"]);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it("starts a default-class run while a render run holds its slot", async () => {
+    vi.stubEnv("NODETOOL_BLENDER_CONCURRENCY", "1");
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    const log = path.join(cwd, "mixed.log");
+    try {
+      await writeFile(log, "");
+      const render = runHostBinary(process.execPath, taggedChild(log, "R", 1500), {
+        cwd,
+        timeoutMs: 30_000,
+        concurrencyClass: "render"
+      });
+      // Wait until the render child actually started before launching the
+      // default-class run, so the log order below is deterministic.
+      const deadline = Date.now() + 10_000;
+      for (;;) {
+        const text = await readFile(log, "utf8");
+        if (text.includes("SR")) break;
+        if (Date.now() > deadline) {
+          throw new Error("render child never started");
+        }
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      await runHostBinary(process.execPath, taggedChild(log, "D", 50), {
+        cwd,
+        timeoutMs: 30_000
+      });
+      await render;
+      expect(await readEvents(log)).toEqual(["SR", "SD", "ED", "ER"]);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  }, 30_000);
 });
 
 describe("mimeFromFilename / clampTimeoutSeconds", () => {

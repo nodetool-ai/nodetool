@@ -275,6 +275,17 @@ export type {
   ComfyProgressEvent,
   ComfyExecutionHandle
 } from "./comfy-executor.js";
+export {
+  runHostBinary,
+  HostBinaryMissingError,
+  MAX_CAPTURED_BYTES,
+  MAX_ARTIFACT_BYTES,
+  maxConcurrentHostBinaries,
+  mimeFromFilename,
+  clampTimeoutSeconds,
+  type HostBinaryResult,
+  type RunHostBinaryOptions
+} from "./host-binaries.js";
 export { RECOMMENDED_MODELS } from "./recommended-models.js";
 export type { RecommendedUnifiedModel } from "./recommended-models.js";
 export { clearProviderCache, getProviderCacheVersion } from "./provider-cache.js";
