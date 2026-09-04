@@ -65,8 +65,13 @@ health_of() {
 }
 
 # One number out of the health payload, or empty when it did not answer.
+# The `|| true` is what keeps "no match" a value rather than a fatal error:
+# with `pipefail`, an unmatched `grep` fails the pipeline, and an assignment
+# from a command substitution carries that status straight into `set -e`. That
+# killed the script silently on the first poll of a machine whose /health had
+# not come back yet — the very case the `case` block below exists to handle.
 health_field() {
-  printf '%s' "$1" | grep -o "\"$2\":[0-9]*" | head -n1 | cut -d: -f2
+  printf '%s' "$1" | grep -o "\"$2\":[0-9]*" | head -n1 | cut -d: -f2 || true
 }
 
 echo "==> Migrating the database on $IMAGE"
