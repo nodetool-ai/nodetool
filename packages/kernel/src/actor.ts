@@ -29,7 +29,8 @@ const log = createLogger("nodetool.kernel.actor");
 import type {
   ProcessingContext,
   NodeExecutor,
-  InvocationAccount
+  InvocationAccount,
+  TriggerEvent
 } from "@nodetool-ai/runtime";
 import {
   createInvocationAccount,
@@ -371,150 +372,7 @@ export class NodeActor {
         await this._executor.preProcess();
       }
 
-      // Determine execution mode.
-      //
-      // Trigger entry point comes first: when this run was started by a
-      // delivered trigger event targeting this node, the node does not
-      // listen — it emits the event payload on its declared outputs via
-      // emitTriggerEvent() and completes. Runs without a trigger event
-      // (user pressed Run in the editor) fall through to the normal modes
-      // below, preserving the in-editor live-test experience.
-      const triggerEvent = this._executionContext?.triggerEvent;
-      if (
-        this.node.is_trigger &&
-        triggerEvent?.node_id === this.node.id &&
-        this._executor.emitTriggerEvent
-      ) {
-        const nodeOutputs = new NodeOutputs({
-          sendFn: async (slot: string, value: unknown) => {
-            await this._sendOutputs(this.node.id, { [slot]: value });
-          },
-          eosCallback: (slot: string) => {
-            this._signalSlotEos?.(this.node.id, slot || "output");
-          }
-        });
-        await this._executor.emitTriggerEvent(triggerEvent, nodeOutputs);
-        this._latestResult = nodeOutputs.collected();
-        // One committed result per trigger event (RFC §5 site parity with
-        // the streaming-input run() path).
-        this._emitGenerationComplete(this._latestResult);
-      } else if (this.node.is_streaming_input) {
-        if (this._executor.run) {
-          // Streaming input mode with run(): node drains inbox via
-          // NodeInputs and pushes outputs via NodeOutputs. Passing
-          // _lastEnvelopes as the tracker lets unmigrated filters that
-          // call inputs.stream()+outputs.emit() inherit lineage from the
-          // single-edge input automatically — matching the buffered rule.
-          const nodeInputs = new NodeInputs(
-            this.inbox,
-            this._lastEnvelopes,
-            this._correlation,
-            this._cancelSignal
-          );
-          const nodeOutputs = new NodeOutputs({
-            sendFn: async (slot: string, value: unknown, opts) => {
-              const hints: OutputRoutingHints = {};
-              const callerSuppliedLineage = opts?.lineage !== undefined;
-              if (callerSuppliedLineage) {
-                hints.perSlotLineage = { [slot]: opts!.lineage! };
-              } else {
-                const inherited = this._computeInvocationLineage();
-                if (inherited !== undefined) {
-                  hints.invocationLineage = inherited;
-                }
-                // Iteration outputs declared on this node mint a token per
-                // (group, parent_key) so `outputs.emit()` without explicit
-                // lineage still attaches the new root. Skip when the caller
-                // supplied lineage — they own the lineage shape (e.g.
-                // forward(), or a source seeding its own root).
-                const minted = this._maybeMintForSlot(slot, hints);
-                if (minted) {
-                  hints.perSlotLineage = {
-                    ...(hints.perSlotLineage ?? {}),
-                    [slot]: minted
-                  };
-                }
-                // Aggregate outputs collapse a root from the consumed
-                // lineage. The static analyzer drops it from the output
-                // scope; the runtime lineage on each emit must match.
-                const collapsed = this._maybeCollapseForSlot(slot, hints);
-                if (collapsed) {
-                  hints.perSlotLineage = {
-                    ...(hints.perSlotLineage ?? {}),
-                    [slot]: collapsed
-                  };
-                }
-              }
-              await this._route({ [slot]: value }, hints);
-            },
-            emitGroupFn: async (values, opts) => {
-              await this._emitGroup(values, opts?.lineage);
-            },
-            eosCallback: (slot: string) => {
-              this._signalSlotEos?.(this.node.id, slot || "output");
-            },
-            dropFn: async (slot: string, envelope) => {
-              // outputs.drop(slot, envelope) → send `lineage_done` on every
-              // outgoing edge for `slot` at the envelope's projected key.
-              // §5. The drop signal lets downstream joins move past keys
-              // that were intentionally filtered out.
-              await this._propagateLineageDone(
-                slot,
-                envelope.correlation_lineage
-              );
-            }
-          });
-          await this._runStreamingInput(nodeInputs, nodeOutputs);
-          this._latestResult = nodeOutputs.collected();
-          // Site #5 (RFC §5): streaming-input run() — one committed result.
-          this._emitGenerationComplete(this._latestResult);
-        } else {
-          // Legacy fallback: call process() once with the node's own
-          // property values, matching the defaults merge every other
-          // execution path applies. process() reads no inbox data, so any
-          // value queued on a connected data handle is dropped. Surface that
-          // instead of completing silently: the node is misdeclared (registry
-          // says is_streaming_input, implementation has no run()). Downgraded
-          // to a warning rather than a hard error because existing fixtures
-          // rely on the fallback firing with connected inputs.
-          const droppedHandles = this.inbox
-            .handles()
-            .filter((h) => h !== "__control__");
-          if (droppedHandles.length > 0) {
-            const warning =
-              `streaming-input node ${this.node.type} has no run() ` +
-              `implementation but has connected inputs ` +
-              `(${droppedHandles.join(", ")}); data would be silently dropped`;
-            // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
-            log.warn(warning, {
-              nodeId: this.node.id,
-              type: this.node.type
-            });
-            this._emitNodeStatus("warning", undefined, warning);
-          }
-          const outputs = await this._executor.process(
-            this._applyDynamicSlots({
-              ...(this.node.properties ?? {}),
-              ...(this.node.dynamic_properties ?? {})
-            }),
-            this._executionContext
-          );
-          this._latestResult = outputs;
-          await this._sendOutputs(this.node.id, outputs);
-          // Site #3 (RFC §5): legacy single process() — one committed result.
-          this._emitGenerationComplete(outputs);
-        }
-      } else if (this.node.is_controlled) {
-        // Controlled mode: wait for control events from inbox
-        await this._runControlled();
-      } else {
-        if (!this._correlation) {
-          throw new Error(
-            `Missing correlation analysis for node "${this.node.id}"`
-          );
-        }
-        await this._runCorrelated(this._correlation);
-      }
+      await this._runExecutionMode();
     } catch (err) {
       errorMessage = err instanceof Error ? err.message : String(err);
       // A credential failure carries the provider and the key that failed,
@@ -565,6 +423,175 @@ export class NodeActor {
       skipResult ? undefined : (this._latestResult ?? {})
     );
     return { outputs: this._latestResult ?? {} };
+  }
+
+  /**
+   * Run the node in whichever of the four execution modes applies.
+   *
+   * Trigger entry comes first: when this run was started by a delivered
+   * trigger event targeting this node, the node does not listen — it emits the
+   * event payload on its declared outputs via emitTriggerEvent() and
+   * completes. Runs without a trigger event (user pressed Run in the editor)
+   * fall through to the normal modes below, preserving the in-editor
+   * live-test experience.
+   */
+  private async _runExecutionMode(): Promise<void> {
+    const triggerEvent = this._executionContext?.triggerEvent;
+    if (
+      this.node.is_trigger &&
+      triggerEvent?.node_id === this.node.id &&
+      this._executor.emitTriggerEvent
+    ) {
+      return this._runTriggerEntry(triggerEvent);
+    }
+    if (this.node.is_streaming_input) {
+      return this._executor.run
+        ? this._runStreamingInputMode()
+        : this._runStreamingInputWithoutRun();
+    }
+    if (this.node.is_controlled) {
+      // Controlled mode: wait for control events from inbox
+      return this._runControlled();
+    }
+    if (!this._correlation) {
+      throw new Error(
+        `Missing correlation analysis for node "${this.node.id}"`
+      );
+    }
+    return this._runCorrelated(this._correlation);
+  }
+
+  /**
+   * Trigger entry: emit the delivered event's payload on the declared output
+   * slots and complete. One committed result per trigger event (RFC §5 site
+   * parity with the streaming-input run() path).
+   */
+  private async _runTriggerEntry(event: TriggerEvent): Promise<void> {
+    const nodeOutputs = new NodeOutputs({
+      sendFn: async (slot: string, value: unknown) => {
+        await this._sendOutputs(this.node.id, { [slot]: value });
+      },
+      eosCallback: (slot: string) => {
+        this._signalSlotEos?.(this.node.id, slot || "output");
+      }
+    });
+    await this._executor.emitTriggerEvent!(event, nodeOutputs);
+    this._latestResult = nodeOutputs.collected();
+    this._emitGenerationComplete(this._latestResult);
+  }
+
+  /**
+   * Streaming input mode with run(): the node drains the inbox via NodeInputs
+   * and pushes outputs via NodeOutputs. Passing _lastEnvelopes as the tracker
+   * lets unmigrated filters that call inputs.stream()+outputs.emit() inherit
+   * lineage from the single-edge input automatically — matching the buffered
+   * rule.
+   */
+  private async _runStreamingInputMode(): Promise<void> {
+    const nodeInputs = new NodeInputs(
+      this.inbox,
+      this._lastEnvelopes,
+      this._correlation,
+      this._cancelSignal
+    );
+    const nodeOutputs = new NodeOutputs({
+      sendFn: async (slot: string, value: unknown, opts) => {
+        await this._route(
+          { [slot]: value },
+          this._streamingEmitHints(slot, opts?.lineage)
+        );
+      },
+      emitGroupFn: async (values, opts) => {
+        await this._emitGroup(values, opts?.lineage);
+      },
+      eosCallback: (slot: string) => {
+        this._signalSlotEos?.(this.node.id, slot || "output");
+      },
+      dropFn: async (slot: string, envelope) => {
+        // outputs.drop(slot, envelope) → send `lineage_done` on every
+        // outgoing edge for `slot` at the envelope's projected key. §5. The
+        // drop signal lets downstream joins move past keys that were
+        // intentionally filtered out.
+        await this._propagateLineageDone(slot, envelope.correlation_lineage);
+      }
+    });
+    await this._runStreamingInput(nodeInputs, nodeOutputs);
+    this._latestResult = nodeOutputs.collected();
+    // Site #5 (RFC §5): streaming-input run() — one committed result.
+    this._emitGenerationComplete(this._latestResult);
+  }
+
+  /**
+   * Routing hints for one `outputs.emit()` from a streaming-input node.
+   *
+   * An explicit lineage from the caller wins outright — they own the lineage
+   * shape (e.g. forward(), or a source seeding its own root). Otherwise the
+   * emit inherits the invocation lineage, and the slot's own
+   * `output_correlation` may override it for that one slot: an `aggregate`
+   * output collapses a root from the consumed lineage (the static analyzer
+   * drops it from the output scope; the runtime lineage must match), an
+   * `iteration` output mints a token per (group, parent_key) so
+   * `outputs.emit()` still attaches the new root. A slot declares one kind or
+   * the other, so at most one of the two applies.
+   */
+  private _streamingEmitHints(
+    slot: string,
+    callerLineage: CorrelationLineage | undefined
+  ): OutputRoutingHints {
+    if (callerLineage !== undefined) {
+      return { perSlotLineage: { [slot]: callerLineage } };
+    }
+    const hints: OutputRoutingHints = {};
+    const inherited = this._computeInvocationLineage();
+    if (inherited !== undefined) {
+      hints.invocationLineage = inherited;
+    }
+    const perSlot =
+      this._maybeCollapseForSlot(slot, hints) ??
+      this._maybeMintForSlot(slot, hints);
+    if (perSlot !== undefined) {
+      hints.perSlotLineage = { [slot]: perSlot };
+    }
+    return hints;
+  }
+
+  /**
+   * Streaming-input node declared without a run() implementation: call
+   * process() once with the node's own property values, matching the defaults
+   * merge every other execution path applies. process() reads no inbox data,
+   * so any value queued on a connected data handle is dropped. Surface that
+   * instead of completing silently: the node is misdeclared (registry says
+   * is_streaming_input, implementation has no run()). Downgraded to a warning
+   * rather than a hard error because existing fixtures rely on the fallback
+   * firing with connected inputs.
+   */
+  private async _runStreamingInputWithoutRun(): Promise<void> {
+    const droppedHandles = this.inbox
+      .handles()
+      .filter((h) => h !== "__control__");
+    if (droppedHandles.length > 0) {
+      const warning =
+        `streaming-input node ${this.node.type} has no run() ` +
+        `implementation but has connected inputs ` +
+        `(${droppedHandles.join(", ")}); data would be silently dropped`;
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+      log.warn(warning, {
+        nodeId: this.node.id,
+        type: this.node.type
+      });
+      this._emitNodeStatus("warning", undefined, warning);
+    }
+    const outputs = await this._executor.process(
+      this._applyDynamicSlots({
+        ...(this.node.properties ?? {}),
+        ...(this.node.dynamic_properties ?? {})
+      }),
+      this._executionContext
+    );
+    this._latestResult = outputs;
+    await this._sendOutputs(this.node.id, outputs);
+    // Site #3 (RFC §5): legacy single process() — one committed result.
+    this._emitGenerationComplete(outputs);
   }
 
   // -----------------------------------------------------------------------
