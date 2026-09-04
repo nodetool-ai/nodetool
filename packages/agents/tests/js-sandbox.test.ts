@@ -23,7 +23,10 @@ import {
   MAX_FETCH_CALLS,
   GUEST_MEMORY_LIMIT,
   MAX_CONSOLE_LOGS,
-  MAX_CONSOLE_LOG_CHARS
+  MAX_CONSOLE_LOG_CHARS,
+  MAX_COLLECTED_CONSOLE_LOGS,
+  MAX_COLLECTED_CONSOLE_CHARS,
+  CONSOLE_LOGS_CUT_NOTICE
 } from "../src/js-sandbox.js";
 
 // ---------------------------------------------------------------------------
@@ -793,6 +796,76 @@ describe("runInSandbox fetch bridge", () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/Fetch limit exceeded/i);
+  });
+
+  it("refuses a public-looking hostname that resolves to the metadata address", async () => {
+    const hostFetch = vi.fn(async () => new Response("{}", { status: 200 }));
+    (globalThis as { fetch: unknown }).fetch = hostFetch;
+    const result = await runInSandbox({
+      code: `
+        try {
+          await fetch("https://metadata.example.com/latest/meta-data/");
+          return "reached";
+        } catch (e) {
+          return e.message;
+        }
+      `,
+      resolveHost: async (host) =>
+        host === "metadata.example.com" ? ["169.254.169.254"] : ["93.184.216.34"]
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(
+      /"metadata\.example\.com" resolves to the internal address "169\.254\.169\.254"/
+    );
+    expect(hostFetch).not.toHaveBeenCalled();
+  });
+
+  it("re-resolves each redirect hop, so a public host cannot bounce to an internal one", async () => {
+    const hostFetch = vi.fn(async (url: string) =>
+      url.startsWith("https://public.example.com/")
+        ? new Response(null, {
+            status: 302,
+            headers: { location: "https://internal.example.com/admin" }
+          })
+        : new Response("secret", { status: 200 })
+    );
+    (globalThis as { fetch: unknown }).fetch = hostFetch;
+    const resolved: string[] = [];
+    const result = await runInSandbox({
+      code: `
+        try {
+          const r = await fetch("https://public.example.com/start");
+          return "reached " + r.status;
+        } catch (e) {
+          return e.message;
+        }
+      `,
+      resolveHost: async (host) => {
+        resolved.push(host);
+        return host === "internal.example.com" ? ["10.0.0.5"] : ["93.184.216.34"];
+      }
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/"internal\.example\.com" resolves to the internal address "10\.0\.0\.5"/);
+    expect(resolved).toEqual(["public.example.com", "internal.example.com"]);
+    // The first hop went out; the second never did.
+    expect(hostFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("resolves each hostname once per run", async () => {
+    (globalThis as { fetch: unknown }).fetch = vi.fn(
+      async () => new Response("{}", { status: 200 })
+    );
+    const resolveHost = vi.fn(async () => ["93.184.216.34"]);
+    const result = await runInSandbox({
+      code: `
+        await Promise.all([1, 2, 3].map((n) => fetch("https://example.com/" + n)));
+        return "ok";
+      `,
+      resolveHost
+    });
+    expect(result.success).toBe(true);
+    expect(resolveHost).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1993,6 +2066,39 @@ describe("progress bridge", () => {
     expect(seen[0]).toBe(0);
   });
 
+  it("caps the collected logs by line count and notes the cut once", () => {
+    const { sandbox, getLogs } = buildSandbox();
+    const con = sandbox.console as { log: (...a: unknown[]) => void };
+    for (let i = 0; i < MAX_COLLECTED_CONSOLE_LOGS + 50; i++) {
+      con.log(String(i));
+    }
+    const logs = getLogs();
+    expect(logs).toHaveLength(MAX_COLLECTED_CONSOLE_LOGS + 1);
+    expect(logs[MAX_COLLECTED_CONSOLE_LOGS - 1]).toBe(
+      String(MAX_COLLECTED_CONSOLE_LOGS - 1)
+    );
+    expect(logs[MAX_COLLECTED_CONSOLE_LOGS]).toBe(CONSOLE_LOGS_CUT_NOTICE);
+    expect(logs.filter((line) => line === CONSOLE_LOGS_CUT_NOTICE)).toHaveLength(1);
+  });
+
+  it("caps the collected logs by total characters, keeping the head of the line that overflowed", () => {
+    const { sandbox, getLogs } = buildSandbox();
+    const con = sandbox.console as { log: (...a: unknown[]) => void };
+    const line = "z".repeat(100_000);
+    const whole = Math.floor(MAX_COLLECTED_CONSOLE_CHARS / line.length);
+    for (let i = 0; i < whole + 5; i++) con.log(line);
+    const logs = getLogs();
+    // `whole` full lines, the head of the next one, then the notice — and
+    // nothing after it.
+    expect(logs).toHaveLength(whole + 2);
+    expect(logs[whole]).toHaveLength(
+      MAX_COLLECTED_CONSOLE_CHARS - whole * line.length
+    );
+    expect(logs[whole + 1]).toBe(CONSOLE_LOGS_CUT_NOTICE);
+    const total = logs.slice(0, -1).reduce((n, l) => n + l.length, 0);
+    expect(total).toBeLessThanOrEqual(MAX_COLLECTED_CONSOLE_CHARS);
+  });
+
   it("stops forwarding once the run is cancelled", () => {
     const seen: number[] = [];
     const controller = new AbortController();
@@ -2076,6 +2182,39 @@ describe("console log forwarding", () => {
     }
     expect(seen).toHaveLength(MAX_CONSOLE_LOGS);
     expect(getLogs()).toHaveLength(MAX_CONSOLE_LOGS + 25);
+  });
+
+  it("caps the collected logs by line count and notes the cut once", () => {
+    const { sandbox, getLogs } = buildSandbox();
+    const con = sandbox.console as { log: (...a: unknown[]) => void };
+    for (let i = 0; i < MAX_COLLECTED_CONSOLE_LOGS + 50; i++) {
+      con.log(String(i));
+    }
+    const logs = getLogs();
+    expect(logs).toHaveLength(MAX_COLLECTED_CONSOLE_LOGS + 1);
+    expect(logs[MAX_COLLECTED_CONSOLE_LOGS - 1]).toBe(
+      String(MAX_COLLECTED_CONSOLE_LOGS - 1)
+    );
+    expect(logs[MAX_COLLECTED_CONSOLE_LOGS]).toBe(CONSOLE_LOGS_CUT_NOTICE);
+    expect(logs.filter((line) => line === CONSOLE_LOGS_CUT_NOTICE)).toHaveLength(1);
+  });
+
+  it("caps the collected logs by total characters, keeping the head of the line that overflowed", () => {
+    const { sandbox, getLogs } = buildSandbox();
+    const con = sandbox.console as { log: (...a: unknown[]) => void };
+    const line = "z".repeat(100_000);
+    const whole = Math.floor(MAX_COLLECTED_CONSOLE_CHARS / line.length);
+    for (let i = 0; i < whole + 5; i++) con.log(line);
+    const logs = getLogs();
+    // `whole` full lines, the head of the next one, then the notice — and
+    // nothing after it.
+    expect(logs).toHaveLength(whole + 2);
+    expect(logs[whole]).toHaveLength(
+      MAX_COLLECTED_CONSOLE_CHARS - whole * line.length
+    );
+    expect(logs[whole + 1]).toBe(CONSOLE_LOGS_CUT_NOTICE);
+    const total = logs.slice(0, -1).reduce((n, l) => n + l.length, 0);
+    expect(total).toBeLessThanOrEqual(MAX_COLLECTED_CONSOLE_CHARS);
   });
 
   it("stops forwarding once the run is cancelled", () => {

@@ -6,6 +6,32 @@
 export const MAX_TOOL_RESULT_CHARS = 25_000;
 
 /**
+ * Characters of a code action's `result` kept in the observation. Bounded on
+ * its own so a large return value never pushes `finished`/`note`/`error` out
+ * of the envelope the way one cap over the whole JSON did.
+ */
+export const MAX_ACTION_RESULT_CHARS = 16_000;
+
+/** Characters of a code action's console `logs` kept in the observation. */
+export const MAX_ACTION_LOGS_CHARS = 6_000;
+
+/**
+ * Images one code action may hand the model beside its observation. A
+ * tool that returns pixels is bridged up to 50 times per action, so without
+ * a cap one action could forward 50 screenshots.
+ */
+export const MAX_ACTION_IMAGES = 8;
+
+/**
+ * What the cut notice tells a code action, instead of the grep/read advice
+ * `truncateToolResult` gives by default: the value came from the model's own
+ * program, so the fix is to return less of it.
+ */
+export const ACTION_TRUNCATION_ADVICE =
+  "Return a compact summary (counts, ids, the few fields you need) and put " +
+  "large payloads in memory or a workspace file.";
+
+/**
  * Action rounds one step gets when the caller names none. Both DAG executors
  * (`task-executor.ts`, `parallel-task-executor.ts`) fall back to it.
  */
@@ -26,7 +52,8 @@ export const DEFAULT_MAX_CONCURRENT_AGENTS = 8;
  *
  * Returns `text` unchanged when it already fits. Otherwise keeps the first
  * `maxChars` characters and appends a notice telling the model the output was
- * cut and how to fetch a smaller slice.
+ * cut and how to fetch a smaller slice. `advice` replaces the default
+ * retrieval advice when the caller's surface has a different fix.
  *
  * The cut is pulled back by one if it would land between the two halves of a
  * UTF-16 surrogate pair, so the kept prefix never ends in a lone surrogate
@@ -34,7 +61,8 @@ export const DEFAULT_MAX_CONCURRENT_AGENTS = 8;
  */
 export function truncateToolResult(
   text: string,
-  maxChars: number = MAX_TOOL_RESULT_CHARS
+  maxChars: number = MAX_TOOL_RESULT_CHARS,
+  advice: string = "Narrow the query, request a specific range, or use pagination/filters to retrieve a smaller result."
 ): string {
   if (text.length <= maxChars) return text;
   // Avoid splitting a surrogate pair: if the char just before the cut is a
@@ -46,7 +74,7 @@ export function truncateToolResult(
   return (
     text.slice(0, cut) +
     `\n\n... [tool result truncated: kept first ${cut} of ${text.length} characters, ${omitted} omitted. ` +
-    `Narrow the query, request a specific range, or use pagination/filters to retrieve a smaller result.]`
+    `${advice}]`
   );
 }
 

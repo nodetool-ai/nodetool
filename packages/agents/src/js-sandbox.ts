@@ -112,7 +112,11 @@ import {
   type WasmWorkerPool
 } from "./wasm-sandbox/host.js";
 import { runInWorker } from "./js-sandbox-worker/host.js";
-import { assertFetchUrlAllowed } from "./network-guard.js";
+import {
+  assertFetchUrlAllowed,
+  assertResolvedHostAllowed,
+  type HostResolver
+} from "./network-guard.js";
 import {
   GUEST_GLOBALS_JSON_BINDING,
   GUEST_GLOBALS_SIDECAR_BINDING,
@@ -174,8 +178,20 @@ export { MAX_RANDOM_BYTES };
 export const MAX_PROGRESS_CALLS = 1000;
 /** Console lines forwarded to {@link RunSandboxOptions.onLog} per run. */
 export const MAX_CONSOLE_LOGS = 1000;
-/** Longest console line forwarded to the host. The collected `logs` array is not truncated. */
+/** Longest console line forwarded to the host. A collected line is not truncated on its own. */
 export const MAX_CONSOLE_LOG_CHARS = 4000;
+/**
+ * Console lines the run's `logs` array collects. Forwarding was capped and
+ * collection was not: guest strings are not charged to the QuickJS heap, so a
+ * `console.log` in a hot loop grew host memory for the length of the action.
+ */
+export const MAX_COLLECTED_CONSOLE_LOGS = 5000;
+/** Characters the run's `logs` array collects in total, across every line. */
+export const MAX_COLLECTED_CONSOLE_CHARS = 512 * 1024;
+/** The single line that closes a collected log the caps cut. */
+export const CONSOLE_LOGS_CUT_NOTICE =
+  `[console output cut: at most ${MAX_COLLECTED_CONSOLE_LOGS} lines / ` +
+  `${MAX_COLLECTED_CONSOLE_CHARS} characters are kept per run]`;
 /**
  * Emitted values a run may deliver. Unlike progress reports, emits are never
  * dropped or rate-limited — every value reaches the host in call order — so the
@@ -216,8 +232,10 @@ export type SandboxLogLevel = "log" | "info" | "warn" | "error";
  * Host sink for guest `console.*` calls. Synchronous and fire-and-forget:
  * a failing sink does not take the guest down. At most
  * {@link MAX_CONSOLE_LOGS} lines are forwarded, each truncated to
- * {@link MAX_CONSOLE_LOG_CHARS}. The run's `logs` array still collects every
- * line. Without a callback the guest console still writes that array.
+ * {@link MAX_CONSOLE_LOG_CHARS}. The run's `logs` array collects lines up to
+ * {@link MAX_COLLECTED_CONSOLE_LOGS} / {@link MAX_COLLECTED_CONSOLE_CHARS},
+ * then one {@link CONSOLE_LOGS_CUT_NOTICE}. Without a callback the guest
+ * console still writes that array.
  */
 export type SandboxLogCallback = (
   level: SandboxLogLevel,
@@ -969,12 +987,32 @@ export function buildSandbox(
     type: "image" | "audio" | "video",
     bytes: Uint8Array,
     options?: Record<string, unknown>
-  ) => Promise<unknown>
+  ) => Promise<unknown>,
+  resolveHost?: HostResolver
 ): SandboxResult {
   const logs: string[] = [];
   const resolvedLimits = resolveSandboxLimits(limits);
   let fetchCount = 0;
   let forwardedLogs = 0;
+  let collectedChars = 0;
+  let collectionCut = false;
+
+  // Bounded by count and by bytes; the cut is noted once, then nothing more
+  // is kept. A line that does not fit whole keeps the head that does.
+  const collectLog = (entry: string): void => {
+    if (collectionCut) return;
+    const remaining = MAX_COLLECTED_CONSOLE_CHARS - collectedChars;
+    if (logs.length < MAX_COLLECTED_CONSOLE_LOGS && entry.length <= remaining) {
+      logs.push(entry);
+      collectedChars += entry.length;
+      return;
+    }
+    if (logs.length < MAX_COLLECTED_CONSOLE_LOGS && remaining > 0) {
+      logs.push(entry.slice(0, remaining));
+    }
+    collectionCut = true;
+    logs.push(CONSOLE_LOGS_CUT_NOTICE);
+  };
 
   const pushConsole = (
     level: SandboxLogLevel,
@@ -982,7 +1020,7 @@ export function buildSandbox(
     args: unknown[]
   ): void => {
     const line = args.map(formatArg).join(" ");
-    logs.push(prefix + line);
+    collectLog(prefix + line);
     if (!onLog || signal?.aborted) return;
     if (forwardedLogs >= MAX_CONSOLE_LOGS) return;
     forwardedLogs++;
@@ -1012,6 +1050,30 @@ export function buildSandbox(
     }
   };
 
+  // The literal check above answers a hostname with "not an IP"; this one
+  // resolves it, so `metadata.example.com` → 169.254.169.254 is refused
+  // before a socket opens, on the first request and on every redirect hop.
+  // Node only: off Node the default resolver has no `dns` and answers
+  // nothing, and the browser's own network layer is the boundary there. One
+  // lookup per hostname per run — the guard is a layer, not the boundary (the
+  // socket resolves again), so re-resolving every call buys no rebinding
+  // protection and would cost a round trip per parallel fetch.
+  const onNodeHost = isString(globalThis.process?.versions?.node);
+  const resolvedHosts = new Map<string, Promise<void>>();
+  const assertHostResolvesAllowed = async (target: string): Promise<void> => {
+    if (!onNodeHost || resolvedLimits.allowPrivateNetwork) return;
+    const host = new URL(target).hostname;
+    let pending = resolvedHosts.get(host);
+    if (pending === undefined) {
+      pending =
+        resolveHost === undefined
+          ? assertResolvedHostAllowed(target, "fetch")
+          : assertResolvedHostAllowed(target, "fetch", resolveHost);
+      resolvedHosts.set(host, pending);
+    }
+    await pending;
+  };
+
   const sandboxedFetch = async (
     url: string,
     options?: Record<string, unknown>
@@ -1027,10 +1089,12 @@ export function buildSandbox(
     }
     // SSRF guard: untrusted guest code must not reach loopback, link-local
     // (incl. cloud metadata 169.254.169.254), or private ranges, nor non-http
-    // schemes. Blocks the direct-literal attacks; DNS-rebinding is out of scope.
+    // schemes. This is the literal check; the resolved-address check follows.
+    // DNS rebinding between the check and the socket is out of scope.
     // The host can waive the address check for a node that replaces a trusted
     // `lib.http` node; the scheme check is never waived.
     assertFetchUrlAllowed(url, resolvedLimits.allowPrivateNetwork);
+    await assertHostResolvesAllowed(url);
 
     const controller = new AbortController();
     const timer = setTimeout(
@@ -1147,6 +1211,7 @@ export function buildSandbox(
           const nextUrl = new URL(location, currentUrl).toString();
           // Re-run the guard on the resolved target BEFORE the next request.
           assertFetchUrlAllowed(nextUrl, resolvedLimits.allowPrivateNetwork);
+          await assertHostResolvesAllowed(nextUrl);
           // Strip credential headers on a cross-origin hop (origin includes
           // scheme, host and port); keep them on same-origin redirects.
           if (new URL(nextUrl).origin !== new URL(currentUrl).origin) {
@@ -2667,6 +2732,12 @@ export interface RunSandboxOptions {
     bytes: Uint8Array,
     options?: Record<string, unknown>
   ) => Promise<unknown>;
+  /**
+   * How the fetch bridge turns a hostname into addresses for the resolved
+   * SSRF check. Defaults to `node:dns`; a test passes a fixed table so no
+   * lookup leaves the process.
+   */
+  resolveHost?: HostResolver;
 }
 
 export interface RunSandboxResult {
@@ -2815,7 +2886,8 @@ export async function runInSandbox(
     capabilities,
     wasmPool,
     resolveMediaRef,
-    promoteMedia
+    promoteMedia,
+    resolveHost
   } = options;
   const resolvedLimits = resolveSandboxLimits(limits);
   // A streaming run needs a clock whether or not the caller brought one: the
@@ -2874,7 +2946,8 @@ export async function runInSandbox(
     onEmit,
     streams,
     resolveMediaRef,
-    promoteMedia
+    promoteMedia,
+    resolveHost
   );
 
   // User-supplied globals (dynamic inputs from CodeNode etc.) layer on top of

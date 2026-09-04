@@ -12,8 +12,7 @@
 import type {
   BaseProvider,
   ProcessingContext,
-  RunBudget,
-  Semaphore
+  RunBudget
 } from "@nodetool-ai/runtime";
 import {
   budgetFromContext,
@@ -30,7 +29,7 @@ import {
 
 const log = createLogger("nodetool.agents.task-executor");
 import { CodeActExecutor } from "./codeact/codeact-executor.js";
-import { holdsRunSlot, markRunSlotHeld } from "./subagent.js";
+import { branchPool, markRunSlotHeld } from "./subagent.js";
 import {
   ABORTED,
   UNSATISFIABLE_DEPENDENCY,
@@ -102,17 +101,17 @@ export class TaskExecutor {
   private maxConcurrentAgents: number;
   private upstreamMemoryKeys: string[];
   private readonly budget?: RunBudget;
-  /**
-   * The run's permit pool, when this executor is the layer drawing from it.
-   * Set for the length of a run by {@link enterRunSlot}: a nested executor, or
-   * a sub-agent under one of these steps, sees the branch already holding a
-   * permit and takes none, because a holder that queues for a second permit
-   * deadlocks the run.
-   */
-  private mergeSemaphore?: Semaphore;
   private signal?: AbortSignal;
   private readonly sandboxPackages: readonly string[];
   private _finishStepId: string | undefined;
+  /** Steps by id, so settling a node is not a scan of the task per dependency. */
+  private readonly stepsById: Map<string, Step>;
+  /**
+   * Steps whose `step_result` reached the consumer. On abort the merge stops
+   * draining, so a step's own terminal events can land in a queue nobody
+   * reads; {@link settleStep} re-emits them for a step not in this set.
+   */
+  private readonly resultDelivered = new Set<string>();
 
   constructor(opts: TaskExecutorOptions) {
     this.provider = opts.provider;
@@ -131,19 +130,7 @@ export class TaskExecutor {
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
     this.budget = opts.budget ?? budgetFromContext(opts.context);
     this.signal = opts.signal;
-  }
-
-  /**
-   * Claim this branch's run slot for the fan-outs below, and hand back the
-   * undo. A branch already holding one keeps its numeric bound only.
-   */
-  private enterRunSlot(): () => void {
-    if (!this.budget || holdsRunSlot(this.context)) {
-      this.mergeSemaphore = undefined;
-      return () => {};
-    }
-    this.mergeSemaphore = this.budget.concurrency;
-    return markRunSlotHeld(this.context);
+    this.stepsById = new Map(opts.task.steps.map((step) => [step.id, step]));
   }
 
   /**
@@ -151,15 +138,6 @@ export class TaskExecutor {
    * Supports both sequential and parallel execution modes.
    */
   async *executeTasks(): AsyncGenerator<ProcessingMessage> {
-    const leaveRunSlot = this.enterRunSlot();
-    try {
-      yield* this.runSteps();
-    } finally {
-      leaveRunSlot();
-    }
-  }
-
-  private async *runSteps(): AsyncGenerator<ProcessingMessage> {
     // Seed inputs into shared memory so every step sees them. Skip keys that
     // were already seeded by an upstream caller (e.g. ParallelTaskExecutor) to
     // avoid redundant writes and extra subscriber notifications.
@@ -191,9 +169,13 @@ export class TaskExecutor {
 
     yield* scheduleDag<StepNode, ProcessingMessage>({
       nodes: this.stepNodes(),
-      // The branch's pool when this executor is the layer drawing from it,
-      // else a pool of its own so an unbudgeted task is still bounded.
-      concurrency: this.mergeSemaphore ?? createSemaphore(perTask),
+      // A step is a provider conversation, so each running one holds a permit
+      // of the branch's pool: the run's, plus the permit a sub-agent above
+      // this task already holds. Unbudgeted, a pool of the task's own so it is
+      // still bounded.
+      concurrency: this.budget
+        ? branchPool(this.budget, this.context)
+        : createSemaphore(perTask),
       maxConcurrent: perTask,
       signal: this.signal,
       run: (node) => this.runStep(node.step),
@@ -202,7 +184,9 @@ export class TaskExecutor {
       onBlocked: (node, by) =>
         this.failStepEvents(
           node.step,
-          `Step blocked: dependency ${by.id} failed`
+          this.signal?.aborted
+            ? "Step aborted"
+            : `Step blocked: dependency ${by.id} failed`
         )
     });
   }
@@ -279,14 +263,28 @@ export class TaskExecutor {
       .map((step) => step.id);
   }
 
-  /** Run one step and report how it settled. */
+  /**
+   * Run one step and report how it settled.
+   *
+   * The step runs on a context of its own, sharing the task's memory: the
+   * permit the step merge holds for it is recorded there, so a sub-agent the
+   * step spawns finds its parent's permit rather than a sibling's. Messages a
+   * tool posts on that context are forwarded to the task's, where the host
+   * reads them.
+   */
   private async *runStep(
     step: Step
   ): AsyncGenerator<ProcessingMessage, DagRunResult> {
+    const stepContext = this.context.copy({
+      shareMemory: true,
+      inheritMessageListeners: false
+    });
+    stepContext.addMessageListener((msg) => this.context.postMessage(msg));
+    if (this.budget) markRunSlotHeld(stepContext);
     const executor = new CodeActExecutor({
       task: this.task,
       step,
-      context: this.context,
+      context: stepContext,
       provider: this.provider,
       model: this.model,
       tools: this.toolsForStep(step),
@@ -299,7 +297,18 @@ export class TaskExecutor {
       signal: this.signal,
       sandboxPackages: this.sandboxPackages
     });
-    yield* this.withStepLog(step, executor.execute());
+    for await (const msg of this.withStepLog(step, executor.execute())) {
+      yield msg;
+      // Delivered only when the run was still live at the hand-off: once the
+      // signal fires the merge drains nothing more, so a result yielded after
+      // that is in a queue nobody reads.
+      if (msg.type === "step_result" && this.signal?.aborted !== true) {
+        this.resultDelivered.add(step.id);
+      }
+    }
+    // A cancelled run is not a failed step, and must not cascade to its
+    // dependents as one.
+    if (this.signal?.aborted) return { outcome: "failed", error: ABORTED };
     // A step failure does not throw: the executor records it on the step and
     // emits its own terminal events.
     return step.failed
@@ -310,21 +319,24 @@ export class TaskExecutor {
   /**
    * Terminal events for a settled step. A step that ran emitted its own, so
    * this speaks only for one that never did — blocked by a dependency that can
-   * never be satisfied, or cut short by the run's signal.
+   * never be satisfied — or for one the run's signal cut short, whose own
+   * terminal events the abort may have dropped on the way out.
    */
   private settleStep(
     step: Step,
     outcome: DagOutcome,
     reason?: string
   ): ProcessingMessage[] {
-    if (outcome === "ok" || step.completed || step.failed) return [];
+    if (outcome === "ok") return [];
     if (reason === ABORTED) {
-      return this.failStepEvents(step, "Step aborted");
+      return this.resultDelivered.has(step.id)
+        ? []
+        : this.failStepEvents(step, "Step aborted");
     }
-    const blocking = step.dependsOn.filter((dep) => {
-      const dependency = this.task.steps.find((s) => s.id === dep);
-      return dependency?.failed === true;
-    });
+    if (step.completed || step.failed) return [];
+    const blocking = step.dependsOn.filter(
+      (dep) => this.stepsById.get(dep)?.failed === true
+    );
     return this.failStepEvents(
       step,
       blocking.length > 0

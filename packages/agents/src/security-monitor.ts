@@ -12,12 +12,12 @@
  * The clearing logic lives entirely in the judge prompt; this class trusts the
  * returned `block` flag.
  *
- * Fail-OPEN: when the judge errors or returns unparseable output, the verdict
- * defaults to ALLOW (block:false) and a warning is logged. This honors the
- * prompt's "actions are allowed by default" stance and avoids bricking an
- * autonomous run when the judge model hiccups. This is a deliberate security
- * tradeoff; a fail-closed mode for HARD-suspect actions would be a future
- * follow-up, not a silent default.
+ * Fail-CLOSED for what the monitor exists to vet: when the judge errors or
+ * returns unparseable output, a `write`, `execute` or `external` action gets
+ * a SOFT block naming the failure, so a judge outage withholds the action
+ * rather than waving it through. A `read` action is allowed on the same
+ * failure — the gate never consults the monitor for one, so reaching here
+ * with `read` is a caller's choice, and a read has nothing to withhold.
  *
  * This module performs a single non-streaming provider call per review via
  * `provider.generateMessageTraced`. It is fully opt-in and constructed only
@@ -103,13 +103,32 @@ const TIERS: ReadonlySet<string> = new Set<SecurityTier>([
   "none"
 ]);
 
-/** The fail-open verdict used whenever the judge can't produce a usable answer. */
+/** The allow verdict a read-class action gets when the judge cannot answer. */
 const ALLOW_VERDICT: SecurityVerdict = {
   block: false,
   reason: "",
   severity: "low",
   tier: "none"
 };
+
+/**
+ * The verdict when the judge produced no usable answer. Actionable classes
+ * fail closed; `read` fails open. SOFT, because the judge said nothing about
+ * a boundary — the block records that it was not judged, and a retry after
+ * the judge recovers is the right next step.
+ */
+function unjudgedVerdict(
+  category: PermissionCategory,
+  failure: string
+): SecurityVerdict {
+  if (category === "read") return { ...ALLOW_VERDICT };
+  return {
+    block: true,
+    reason: `the security monitor could not judge this action (${failure})`,
+    severity: "high",
+    tier: "soft"
+  };
+}
 
 /** Truncate a string to `max` chars, appending a visible marker when cut. */
 function truncate(text: string, max: number): string {
@@ -286,8 +305,8 @@ export class SecurityMonitor {
 
   /**
    * Judge a single pending action. Returns a {@link SecurityVerdict}. On any
-   * provider error or unparseable output, returns the fail-open ALLOW verdict
-   * and logs a warning (see module header for the rationale).
+   * provider error or unparseable output, returns {@link unjudgedVerdict}: a
+   * block for an actionable category, allow for `read` (see module header).
    */
   async review(action: PendingAction): Promise<SecurityVerdict> {
     let argsJson: string;
@@ -318,21 +337,22 @@ export class SecurityMonitor {
         threadId: this.threadId
       });
     } catch (err) {
-      log.warn("Security monitor judge call failed; allowing by default", {
+      const error = err instanceof Error ? err.message : String(err);
+      log.warn("Security monitor judge call failed", {
         tool: action.name,
         category: action.category,
-        error: err instanceof Error ? err.message : String(err)
+        error
       });
-      return { ...ALLOW_VERDICT };
+      return unjudgedVerdict(action.category, `judge call failed: ${error}`);
     }
 
     const verdict = parseVerdict(extractText(reply.content));
     if (!verdict) {
-      log.warn("Security monitor verdict unparseable; allowing by default", {
+      log.warn("Security monitor verdict unparseable", {
         tool: action.name,
         category: action.category
       });
-      return { ...ALLOW_VERDICT };
+      return unjudgedVerdict(action.category, "verdict unparseable");
     }
 
     if (verdict.block) {

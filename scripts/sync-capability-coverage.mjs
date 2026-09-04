@@ -11,8 +11,11 @@
  *   node scripts/sync-capability-coverage.mjs           # rewrite the table
  *   node scripts/sync-capability-coverage.mjs --check   # fail if it is stale
  *
- * Needs `npm run build:packages` first: it reads @nodetool-ai/agents from dist
- * so the derivation sees the same specs the product does.
+ * Needs `npm run build:packages` first (it builds every `packages/*`
+ * workspace, `cli` included): the specs and eval cases come from
+ * `packages/agents/dist`, the fingerprint and block scanner from
+ * `packages/cli/dist`, so the derivation sees the same specs the product does.
+ * The Quality Gate's `typecheck` leg runs `--check` over the `build` job's dist.
  */
 import { readFileSync, writeFileSync, readdirSync, existsSync } from "node:fs";
 import { join, dirname, basename, relative } from "node:path";
@@ -56,6 +59,10 @@ const SUITE_EXTRAS = [
   "js-scripts-capabilities.test.ts",
   "apify-capabilities.test.ts",
   "serpapi-capabilities.test.ts"
+  // `media-read-bytes.test.ts` drives `read_media_bytes` by guest import but
+  // is not in the `capability-suites` selfcheck's filter list
+  // (packages/cli/src/harness/registry.ts), and a suite the table names must
+  // be one that selfcheck runs. Add it there before adding it here.
 ];
 
 /**
@@ -127,9 +134,78 @@ function suitePool() {
     .map((name) => join(TESTS, name));
 }
 
+/**
+ * The forms a suite drives a capability through. A file is credited only when
+ * the wire name (or a spec constant bound to it) appears in one of them; a
+ * word-boundary match over the whole file credited a suite that used the name
+ * as a schema fixture or in a comment (`get_workflow` was covered by
+ * `capabilities-args.test.ts`, which never calls it), and a name-list snapshot
+ * (`expect(names).toEqual([...])`) credited every capability its module owns.
+ *
+ * Read from the suites themselves:
+ *   - the string argument of an invocation head, after at most one leading
+ *     argument: `run.invoke("x", …)`, `invoke(keyed(), "x", …)`,
+ *     `toolForCapabilityName("x")`, `capability(module, "x")`, `byName("x")`,
+ *     `call(ctx, "x", …)`, `asTool` / `capTool` / `namedTool` / `toolFor` /
+ *     `toolDef`, `describe("x", …)`, `describe.runIf(cond)("x", …)`;
+ *   - the same heads with the spec constant instead: `byName(GET_WORKFLOW)`;
+ *   - a call by name, as guest code or an import does: `apify.x({…})`, `x(…)`,
+ *     `${X_TOOL_NAME}(…)` inside a template;
+ *   - the name as a word in an `it`/`test` title;
+ *   - a lookup by name: `.name === "x"`;
+ *   - a table row the suite iterates: `wire: "x"` or `["x", {…}]`.
+ * Matchers (`toContain`, `toBe`, `toEqual`) and permission-category lookups
+ * are not forms: asserting a name is in a list does not exercise what the
+ * capability does. Comments are stripped first, so a form quoted in prose
+ * (`get_workflow({ id })` in a note about argument shapes) does not count.
+ */
+const INVOCATION_HEADS = [
+  "invoke",
+  "toolForCapabilityName",
+  "capability",
+  "byName",
+  "call",
+  "asTool",
+  "capTool",
+  "namedTool",
+  "toolFor",
+  "toolDef",
+  "describe",
+  "describe\\.runIf\\([^()]*\\)"
+];
+
+const TITLE_HEADS = ["it", "test", "it\\.(?:skipIf|runIf)\\([^()]*\\)"];
+
+function exercisesMatcher(tokens) {
+  const name = `(?:${tokens.join("|")})`;
+  const quoted = `["'\`]${name}["'\`]`;
+  const notIdent = "(?:^|[^\\w$])";
+  // At most one leading argument, itself allowed one level of parentheses.
+  const leading = `(?:(?:[^,()"'\`]|\\([^()]*\\))+,\\s*)?`;
+  const heads = `(?:${INVOCATION_HEADS.join("|")})`;
+  const forms = [
+    `${notIdent}${heads}\\(\\s*${leading}${quoted}`,
+    `${notIdent}${heads}\\(\\s*${leading}${name}\\s*[,)]`,
+    `${notIdent}(?:[\\w$]+\\.)?${name}\\s*\\(`,
+    `\\$\\{${name}\\}\\s*\\(`,
+    `${notIdent}(?:${TITLE_HEADS.join("|")})\\(\\s*["'\`][^"'\`]*\\b${name}\\b`,
+    `\\.name\\s*===\\s*${quoted}`,
+    `\\bwire:\\s*${quoted}`,
+    `\\[\\s*${quoted},\\s*(?:\\{|[A-Za-z_$])`
+  ];
+  return new RegExp(forms.join("|"), "m");
+}
+
+/** Block comments and whole-line `//` / JSDoc lines, so prose cannot credit. */
+function stripComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "");
+}
+
 function suitesFor(name, moduleName, pool, sources, aliases) {
   const tokens = [name, ...(aliases.get(name) ?? [])];
-  const matcher = new RegExp(`\\b(${tokens.join("|")})\\b`);
+  const matcher = exercisesMatcher(tokens);
   const owned = [
     `capabilities-${moduleName}.test.ts`,
     `${moduleName}-capabilities.test.ts`
@@ -290,7 +366,7 @@ async function main() {
   const specs = registry.listCapabilitySpecs();
   const pool = suitePool();
   const sources = Object.fromEntries(
-    pool.map((file) => [file, readFileSync(file, "utf8")])
+    pool.map((file) => [file, stripComments(readFileSync(file, "utf8"))])
   );
   const evalCases = await collectEvalCases();
   const gaps = existingGaps();

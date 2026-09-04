@@ -26,6 +26,12 @@ describe("truncateToolResult", () => {
     expect(out).toContain("truncated");
   });
 
+  it("takes a caller's advice in place of the retrieval advice", () => {
+    const out = truncateToolResult("z".repeat(100), 10, "Return less.");
+    expect(out).toContain("Return less.");
+    expect(out).not.toContain("Narrow the query");
+  });
+
   it("respects a custom cap", () => {
     const out = truncateToolResult("z".repeat(100), 10);
     expect(out.startsWith("z".repeat(10))).toBe(true);

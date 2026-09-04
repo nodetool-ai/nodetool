@@ -31,6 +31,7 @@ import {
   isToolCall,
   memoryKeys,
   withAgentSpanGen,
+  withSpan,
   mediaResolverFor,
   generationRegistry,
   type ActiveModelSelection
@@ -48,7 +49,11 @@ import {
 import type { Step, Task } from "../types.js";
 import { Tool } from "../tools/base-tool.js";
 import { getSharedTools } from "../tools/shared-tools.js";
-import { runInSandbox, type SandboxClock } from "../js-sandbox.js";
+import {
+  runInSandbox,
+  type SandboxClock,
+  type SandboxLimits
+} from "../js-sandbox.js";
 import type { CapabilityRun } from "../capabilities/types.js";
 import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
 
@@ -58,7 +63,14 @@ import {
   SESSION_CAPABILITY_MODULE,
   type MountCapabilityModulesOptions
 } from "./capability-modules.js";
-import { truncateToolResult } from "../constants.js";
+import {
+  ACTION_TRUNCATION_ADVICE,
+  MAX_ACTION_IMAGES,
+  MAX_ACTION_LOGS_CHARS,
+  MAX_ACTION_RESULT_CHARS,
+  MAX_TOOL_RESULT_CHARS,
+  truncateToolResult
+} from "../constants.js";
 import {
   formatViolations,
   validateAgainstSchema
@@ -142,6 +154,26 @@ export const DEFAULT_CODEACT_MAX_ITERATIONS = 20;
  * codeact norm.
  */
 export const DEFAULT_CODEACT_ACTION_TIMEOUT_MS = 600_000;
+
+/**
+ * The sandbox a step action runs in is closed: no bare `fetch` and no secret.
+ * The belt is the network — `nodetool.web.*`, `http_request`, the capability
+ * imports — and every one of those runs behind the permission gate and the
+ * SSRF guard, which a bare `fetch(url)` with a `getSecret(...)` header did
+ * not. Same shape the chat session passes.
+ */
+export const STEP_ACTION_SANDBOX_LIMITS: SandboxLimits = {
+  maxFetchCalls: 0,
+  secretScope: []
+};
+
+/**
+ * Consecutive actions with identical code and an identical error before the
+ * observation stops describing the failure and says the program was already
+ * run. A model resubmitting the same crashing program otherwise spends the
+ * whole iteration budget reading the same error.
+ */
+export const REPEATED_ACTION_LIMIT = 2;
 
 // The `execute_code` contract lives beside the auto-mode admission that reads
 // it (execute-code-contract.ts); re-exported here so every importer keeps its
@@ -232,15 +264,10 @@ export const CODEACT_RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   // Search family — every discovery entry point stays top level.
   "web_search",
   "image_search",
-  "search_nodes",
   "run_search",
   "asset_search",
   "grep",
   "glob",
-  // Web + retrieval.
-  "browser",
-  "http_request",
-  "download_file",
   // Host media binaries.
   "ffmpeg",
   "yt_dlp",
@@ -249,14 +276,19 @@ export const CODEACT_RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   "read_file",
   "write_file",
   "edit_file",
-  "list_directory",
   // Shared agent memory.
   "list_shared",
   "read_shared",
-  "share_result",
-  // Delegation.
-  "run_subtask"
+  "share_result"
 ]);
+// Not listed: `list_directory`, `browser`, `http_request`, `download_file`,
+// `run_subtask`, `search_nodes`. They are in `DIRECT_TOOL_NAMES` and no SDK
+// built-in replaces them, so every host documents them as direct tools and the
+// coverage pass below removed them from the catalog before the split — a
+// resident entry for them never rendered. The names that stay are covered
+// only conditionally: the file set and `web_search` are subtracted from the
+// direct offer on the MCP mount, and the rest depend on the object model
+// being loaded for the belt.
 
 /**
  * Toolbelts at or below this size skip the split entirely — deferring three
@@ -326,17 +358,79 @@ export interface CodeActExecutorOptions {
   capabilityRun?: CapabilityRun;
 }
 
-/** Observation envelope returned to the model after each code action. */
+/**
+ * Observation envelope returned to the model after each code action.
+ *
+ * Field order is the serialization order, and it matters: the verdict fields
+ * come first and `result`/`logs` last, each bounded on its own, so a large
+ * return value can never push `finished: false` and its note out of the
+ * envelope.
+ */
 interface ActionObservation {
   ok: boolean;
-  result?: unknown;
-  error?: string;
-  stack?: string;
-  logs?: string[];
   finished?: boolean;
   /** Why `finished` is false, when the action looked like it finished. */
   note?: string;
+  error?: string;
+  stack?: string;
+  /** Set when this program was already run and failed the same way. */
+  repeated?: boolean;
+  /** How many images past {@link MAX_ACTION_IMAGES} were not forwarded. */
+  imagesDropped?: string;
   toolCalls: number;
+  result?: unknown;
+  logs?: string[];
+}
+
+/**
+ * `result` and `logs` for the envelope, each cut to its own budget. Returns
+ * whether either was cut, for the action span.
+ */
+function boundActionPayload(
+  result: unknown,
+  logs: readonly string[] | undefined
+): { result?: unknown; logs?: string[]; truncated: boolean } {
+  const out: { result?: unknown; logs?: string[]; truncated: boolean } = {
+    truncated: false
+  };
+  if (result !== undefined) {
+    const json = JSON.stringify(result);
+    if (json !== undefined && json.length > MAX_ACTION_RESULT_CHARS) {
+      out.result = truncateToolResult(
+        json,
+        MAX_ACTION_RESULT_CHARS,
+        ACTION_TRUNCATION_ADVICE
+      );
+      out.truncated = true;
+    } else {
+      out.result = result;
+    }
+  }
+  if (logs !== undefined && logs.length > 0) {
+    const kept: string[] = [];
+    let chars = 0;
+    let whole = 0;
+    for (const line of logs) {
+      if (chars + line.length > MAX_ACTION_LOGS_CHARS) {
+        // A first line larger than the whole budget keeps its head, so the
+        // observation shows what was logged rather than nothing.
+        if (kept.length === 0) kept.push(line.slice(0, MAX_ACTION_LOGS_CHARS));
+        break;
+      }
+      kept.push(line);
+      chars += line.length;
+      whole++;
+    }
+    if (whole < logs.length) {
+      kept.push(
+        `... [${logs.length - whole} of ${logs.length} log lines omitted past ` +
+          `${MAX_ACTION_LOGS_CHARS} characters. Log less: ${ACTION_TRUNCATION_ADVICE}]`
+      );
+      out.truncated = true;
+    }
+    out.logs = kept;
+  }
+  return out;
 }
 
 /**
@@ -423,6 +517,9 @@ export class CodeActExecutor {
   private readonly graphQueues: Record<string, unknown> = {};
   private result: unknown = null;
   private actionCount = 0;
+  /** The last failed action, for {@link REPEATED_ACTION_LIMIT}. */
+  private lastFailure: { code: string; error: string } | null = null;
+  private repeatedFailures = 0;
 
   constructor(opts: CodeActExecutorOptions) {
     this.task = opts.task;
@@ -875,70 +972,172 @@ export class CodeActExecutor {
       this.actionCount++;
       bridge.resetActionBudget();
 
-      const outcome = await runInSandbox({
-        code: `${this.prelude}\n${code}`,
-        context: this.context,
-        timeoutMs: this.actionTimeoutMs ?? DEFAULT_CODEACT_ACTION_TIMEOUT_MS,
-        // The linked controller, not the caller's raw signal: it fires for the
-        // caller's cancellation *and* for a deadline that expires mid-action,
-        // which is the only way an in-flight program is stopped.
-        signal: abort.signal,
-        clock: this.clock,
-        modules: mount.modules,
-        capabilities: platform.mount,
-        globals: {
-          ...bridge.globals,
-          __finish: finishBridge,
-          __searchTools: searchToolsBridge,
-          __graphQueues: this.graphQueues
+      // One span per action; bridged calls inside it are not spanned.
+      return withSpan(
+        "agent.action",
+        {
+          "agent.step.id": this.step.id,
+          "agent.action.index": this.actionCount,
+          "agent.action.code_length": code.length
+        },
+        async (span) => {
+          const startedAt = Date.now();
+          const outcome = await runInSandbox({
+            code: `${this.prelude}\n${code}`,
+            context: this.context,
+            timeoutMs:
+              this.actionTimeoutMs ?? DEFAULT_CODEACT_ACTION_TIMEOUT_MS,
+            // The linked controller, not the caller's raw signal: it fires
+            // for the caller's cancellation *and* for a deadline that expires
+            // mid-action, which is the only way an in-flight program is
+            // stopped.
+            signal: abort.signal,
+            clock: this.clock,
+            limits: STEP_ACTION_SANDBOX_LIMITS,
+            modules: mount.modules,
+            capabilities: platform.mount,
+            globals: {
+              ...bridge.globals,
+              __finish: finishBridge,
+              __searchTools: searchToolsBridge,
+              __graphQueues: this.graphQueues
+            }
+          });
+
+          const failure = outcome.success
+            ? null
+            : annotateFailure(
+                outcome.error,
+                outcome.stack,
+                this.prelude,
+                code
+              );
+
+          // A validated finish() completes the step even when the action
+          // crashed after recording it — the model cannot retract a validated
+          // result.
+          let finished: boolean | undefined;
+          let note: string | undefined;
+          if (finishedResult) {
+            finished = true;
+            this.storeCompletionResult(finishedResult.value);
+            ui.push(this.taskUpdate(TaskUpdateEvent.StepCompleted));
+            ui.push(this.stepResult(finishedResult.value));
+            abort.abort();
+          } else if (
+            this.resultSchema !== null &&
+            outcome.success &&
+            outcome.result !== undefined &&
+            outcome.result !== null
+          ) {
+            // The action produced a value and ended the turn without
+            // finishing. Say so in the observation: an absent `finished`
+            // reads as success.
+            finished = false;
+            note =
+              validateAgainstSchema(outcome.result, this.resultSchema)
+                .length === 0
+                ? RETURN_MATCHES_SCHEMA_NOTE
+                : RETURN_IS_NOT_FINISH_NOTE;
+          }
+
+          // The same program failing the same way twice in a row: say so
+          // instead of describing the failure a second time.
+          let repeated = false;
+          if (failure !== null) {
+            const error = failure.error ?? "";
+            const trimmed = code.trim();
+            if (
+              this.lastFailure !== null &&
+              this.lastFailure.code === trimmed &&
+              this.lastFailure.error === error
+            ) {
+              this.repeatedFailures++;
+            } else {
+              this.repeatedFailures = 1;
+            }
+            this.lastFailure = { code: trimmed, error };
+            repeated = this.repeatedFailures >= REPEATED_ACTION_LIMIT;
+          } else {
+            this.lastFailure = null;
+            this.repeatedFailures = 0;
+          }
+
+          // Pixels a tool returned during the action ride beside the
+          // observation as a provider image message; the observation itself
+          // stays light.
+          const { images, dropped } = bridge.drainImages();
+          const payload = repeated
+            ? { truncated: false }
+            : boundActionPayload(outcome.result, outcome.logs);
+
+          // Field order is the truncation order: the small leading fields
+          // must survive a cut that lands in `result` or `logs`.
+          const observation: ActionObservation = {
+            ok: outcome.success,
+            toolCalls: 0
+          };
+          if (finished !== undefined) {
+            observation.finished = finished;
+          }
+          if (note !== undefined) {
+            observation.note = note;
+          }
+          if (repeated) {
+            observation.error =
+              `This exact program was already run ${this.repeatedFailures} ` +
+              `times in a row and failed the same way each time: ` +
+              `${failure?.error ?? ""}. Do not resubmit it unchanged. ` +
+              `Change the code or the approach, or finish with what ` +
+              `you have and explain what could not be done.`;
+            observation.repeated = true;
+          } else if (failure) {
+            if (failure.error !== undefined) {
+              observation.error = failure.error;
+            }
+            if (failure.stack !== undefined) {
+              observation.stack = failure.stack;
+            }
+          }
+          if (dropped > 0) {
+            observation.imagesDropped =
+              `${dropped} image(s) beyond the ${MAX_ACTION_IMAGES}-per-action ` +
+              `cap were not forwarded. View fewer images per action.`;
+          }
+          // `toolCalls` was created first to hold the key slot ahead of
+          // `result` and `logs`; the count is known only now.
+          observation.toolCalls = bridge.callCount();
+          if (payload.result !== undefined) {
+            observation.result = payload.result;
+          }
+          if (payload.logs !== undefined) {
+            observation.logs = payload.logs;
+          }
+
+          // The leading fields are first and the two big ones are already
+          // bounded, so this only ever trims an oversized error text.
+          const text = truncateToolResult(
+            JSON.stringify(observation),
+            MAX_TOOL_RESULT_CHARS,
+            ACTION_TRUNCATION_ADVICE
+          );
+          span?.setAttributes({
+            "agent.action.duration_ms": Date.now() - startedAt,
+            "agent.action.tool_calls": observation.toolCalls,
+            "agent.action.ok": outcome.success,
+            "agent.action.truncated":
+              payload.truncated || text.length > MAX_TOOL_RESULT_CHARS
+          });
+          if (observation.error !== undefined) {
+            span?.setAttributes({
+              "agent.action.error": observation.error.slice(0, 500)
+            });
+          }
+          return images.length > 0
+            ? [{ type: "text", text }, ...images]
+            : text;
         }
-      });
-
-      const observation: ActionObservation = {
-        ok: outcome.success,
-        toolCalls: bridge.callCount()
-      };
-      if (outcome.success) {
-        if (outcome.result !== undefined) observation.result = outcome.result;
-      } else {
-        Object.assign(
-          observation,
-          annotateFailure(outcome.error, outcome.stack, this.prelude, code)
-        );
-      }
-      if (outcome.logs && outcome.logs.length > 0) {
-        observation.logs = outcome.logs;
-      }
-
-      // A validated finish() completes the step even when the action crashed
-      // after recording it — the model cannot retract a validated result.
-      if (finishedResult) {
-        observation.finished = true;
-        this.storeCompletionResult(finishedResult.value);
-        ui.push(this.taskUpdate(TaskUpdateEvent.StepCompleted));
-        ui.push(this.stepResult(finishedResult.value));
-        abort.abort();
-      } else if (
-        this.resultSchema !== null &&
-        outcome.success &&
-        observation.result !== undefined &&
-        observation.result !== null
-      ) {
-        // The action produced a value and ended the turn without finishing.
-        // Say so in the observation: an absent `finished` reads as success.
-        observation.finished = false;
-        observation.note =
-          validateAgainstSchema(observation.result, this.resultSchema).length ===
-          0
-            ? RETURN_MATCHES_SCHEMA_NOTE
-            : RETURN_IS_NOT_FINISH_NOTE;
-      }
-
-      const text = truncateToolResult(JSON.stringify(observation));
-      // Pixels a tool returned during the action ride beside the observation
-      // as a provider image message; the observation itself stays light.
-      const images = bridge.drainImages();
-      return images.length > 0 ? [{ type: "text", text }, ...images] : text;
+      );
     };
 
     const providerTools = [

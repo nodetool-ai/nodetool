@@ -16,6 +16,7 @@ import type {
   ToolCall
 } from "@nodetool-ai/runtime";
 import { createMockContext } from "./_helpers/mock-context.js";
+import { MAX_ACTION_IMAGES } from "../src/constants.js";
 
 const PIXELS = "iVBORw0KGgoAAAANSUhEUg-not-really-a-png";
 
@@ -160,6 +161,47 @@ describe("CodeAct observations", () => {
     const image = content[1] as { type: string; image: { data?: string } };
     expect(image.type).toBe("image_url");
     expect(image.image.data).toBe(PIXELS);
+  });
+
+  it("forwards at most MAX_ACTION_IMAGES per action and says how many were dropped", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    const calls = MAX_ACTION_IMAGES + 3;
+    const { provider, results } = createRecordingProvider([
+      {
+        toolCalls: [
+          codeAction(
+            "tc_1",
+            `import { view_pixels } from "@nodetool-ai/sandbox-nodetool/session";
+             for (let i = 0; i < ${calls}; i++) await view_pixels({});
+             await finish({answer: "done"});`
+          )
+        ]
+      }
+    ]);
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: [new PixelTool()]
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    const content = results[0] as MessageContent[];
+    const images = content.filter((block) => block.type === "image_url");
+    expect(images).toHaveLength(MAX_ACTION_IMAGES);
+    const text = (content[0] as { text: string }).text;
+    const observation = JSON.parse(text) as {
+      ok: boolean;
+      finished: boolean;
+      imagesDropped: string;
+    };
+    expect(observation.ok).toBe(true);
+    expect(observation.finished).toBe(true);
+    expect(observation.imagesDropped).toMatch(/^3 image\(s\) beyond the 8-per-action cap/);
   });
 
   it("returns a plain string observation when no tool produced pixels", async () => {

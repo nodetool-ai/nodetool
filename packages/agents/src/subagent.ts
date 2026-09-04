@@ -40,9 +40,14 @@ import type {
   ProcessingContext,
   Release,
   RunBudget,
+  Semaphore,
   TurnBudget
 } from "@nodetool-ai/runtime";
-import { budgetFromContext, isRunBudget } from "@nodetool-ai/runtime";
+import {
+  budgetFromContext,
+  createSemaphore,
+  isRunBudget
+} from "@nodetool-ai/runtime";
 import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 import type { BackgroundSubtaskRegistry } from "./background-subtasks.js";
 import { CodeActExecutor } from "./codeact/codeact-executor.js";
@@ -55,35 +60,79 @@ import type { Step, Task } from "./types.js";
 import { isString } from "./utils/type-guards.js";
 
 /**
- * Context flag marking that this branch already holds one of the run's
- * concurrency permits.
+ * Context variable holding the permit this branch runs on, as a one-permit
+ * pool its children draw from.
  *
- * The pool is a run total, so a holder that blocks waiting for a *second*
- * permit deadlocks the run: a parent holding the last one while its child
- * queues for another stops both until the deadline. A permit is therefore
- * taken once per branch. `ProcessingContext.copy()` gives every spawn its own
- * variable bag over the same budget object, so siblings each take one and
- * everything below a holder inherits the flag and takes none.
+ * The run's pool is a total, so a holder that blocks waiting for a *second*
+ * permit deadlocks the run: a step holding the last one while its child queues
+ * for another stops both until the deadline. The holder's own permit therefore
+ * counts as one for everything below it — a child takes it while the holder is
+ * idle in the tool call that spawned the child — and only a second concurrent
+ * child borrows from the run pool ({@link branchPool}). `ProcessingContext.copy()`
+ * gives every spawn its own variable bag, so the pool a child finds here is
+ * its parent's, and the one it sets is its own.
  */
-const RUN_SLOT_KEY = "nodetool_run_slot_held";
+const RUN_SLOT_KEY = "nodetool_run_slot";
 
-/** Release for a branch that took no permit because it already holds one. */
-const NO_PERMIT: Release = () => {};
-
-/** Whether this branch already holds one of the run's concurrency permits. */
-export function holdsRunSlot(context: ProcessingContext): boolean {
-  return context.get<boolean>(RUN_SLOT_KEY) === true;
+/**
+ * Take whichever of two pools frees first. The loser's permit, when it
+ * arrives, is handed straight back, so a wait on the pair never holds two.
+ */
+function acquireFirst(pools: readonly Semaphore[]): Promise<Release> {
+  return new Promise<Release>((resolve) => {
+    let won = false;
+    for (const pool of pools) {
+      void pool.acquire().then((release) => {
+        if (won) {
+          release();
+          return;
+        }
+        won = true;
+        resolve(release);
+      });
+    }
+  });
 }
 
 /**
- * Mark this branch as holding a run permit for the fan-outs beneath it, and
- * hand back the undo. Used by a layer that draws permits itself (the DAG
- * executors, which acquire per merged generator) so nothing below it draws a
- * second one.
+ * The pool a nested layer draws from: the permit its branch already holds,
+ * shared by its children one at a time, plus the run's pool beyond it. A
+ * branch holding nothing draws from the run pool alone.
+ */
+export function branchPool(
+  budget: RunBudget,
+  context: ProcessingContext
+): Semaphore {
+  const held = context.get<Semaphore | undefined>(RUN_SLOT_KEY);
+  if (!held) return budget.concurrency;
+  const run = budget.concurrency;
+  return {
+    get permits() {
+      return held.permits + run.permits;
+    },
+    get available() {
+      return held.available + run.available;
+    },
+    get waiting() {
+      return held.waiting + run.waiting;
+    },
+    acquire(): Promise<Release> {
+      if (held.available > 0) return held.acquire();
+      if (run.available > 0) return run.acquire();
+      return acquireFirst([held, run]);
+    }
+  };
+}
+
+/**
+ * Record that this branch now runs on one permit, so the fan-outs beneath it
+ * share that permit and borrow beyond it. Called by a layer that holds a
+ * permit per running node (the step merge) on the node's own context, and by
+ * {@link acquireRunSlot} once a sub-agent has one. Hands back the undo.
  */
 export function markRunSlotHeld(context: ProcessingContext): () => void {
-  const previous = context.get<boolean>(RUN_SLOT_KEY);
-  context.set(RUN_SLOT_KEY, true);
+  const previous = context.get<Semaphore | undefined>(RUN_SLOT_KEY);
+  context.set(RUN_SLOT_KEY, createSemaphore(1));
   let undone = false;
   return () => {
     if (undone) return;
@@ -93,16 +142,16 @@ export function markRunSlotHeld(context: ProcessingContext): () => void {
 }
 
 /**
- * Take one of the run's concurrency permits for this branch, or nothing when
- * the branch already holds one. Returns the release either way, so the caller
- * has one `finally`.
+ * Take a permit for this branch — its parent's when the parent is idle, else
+ * one of the run's — and mark the branch as holding it. Returns the release
+ * either way, so the caller has one `finally`. Unbudgeted runs take nothing.
  */
 export async function acquireRunSlot(
   budget: RunBudget | undefined,
   context: ProcessingContext
 ): Promise<Release> {
-  if (!budget || holdsRunSlot(context)) return NO_PERMIT;
-  const release = await budget.concurrency.acquire();
+  if (!budget) return () => {};
+  const release = await branchPool(budget, context).acquire();
   const undo = markRunSlotHeld(context);
   let released = false;
   return () => {
@@ -254,10 +303,10 @@ export async function* runSubAgent(
   });
 
   let outcome: SubAgentOutcome | null = null;
-  // One of the run's permits for the whole child loop. `start_subtask` detaches
-  // its children, so nothing else bounds a fan-out of twenty of them: the
-  // permit is what keeps the twenty-first from opening a provider conversation
-  // before one of the first two finishes.
+  // A permit for the whole child loop: the parent's own while the parent is
+  // idle in this call, else one of the run's. `start_subtask` detaches its
+  // children, so nothing else bounds a fan-out of them: the permit is what
+  // keeps the next from opening a provider conversation before one finishes.
   const release = await acquireRunSlot(runBudget, opts.context);
   try {
     for await (const msg of executor.execute()) {
