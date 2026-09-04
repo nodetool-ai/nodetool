@@ -130,9 +130,16 @@ export const PACKAGE_RUNTIME_ASSET_DIRS: readonly PackageAssetDirRef[] = [
       "run_job.py",
       "framing.py",
       "errors.py",
+      "depth.py",
+      "exr.py",
       "ops/__init__.py",
+      "ops/common.py",
       "ops/render_image.py",
-      "tests/test_framing.py"
+      "ops/render_passes.py",
+      "ops/render_animation.py",
+      "tests/test_framing.py",
+      "tests/test_depth.py",
+      "tests/test_exr.py"
     ]
   }
 ];

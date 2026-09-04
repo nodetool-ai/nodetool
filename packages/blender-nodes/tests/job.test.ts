@@ -11,6 +11,7 @@ import {
 } from "../src/job.js";
 import { MAX_OUTPUT_COUNT } from "../src/runner.js";
 import { runBlenderJob } from "../src/run-job.js";
+import { blenderTestContext } from "./context.js";
 
 function renderImageOp(overrides: Record<string, unknown> = {}): BlenderOp {
   return {
@@ -82,42 +83,70 @@ describe("jobFileNameSchema", () => {
 
 describe("runBlenderJob validation", () => {
   it(`refuses more than MAX_OUTPUT_COUNT (${MAX_OUTPUT_COUNT}) outputs`, async () => {
-    const outputs: Record<string, string> = {};
-    for (let i = 0; i <= MAX_OUTPUT_COUNT; i++) outputs[`out${i}`] = `out${i}.png`;
-    await expect(
-      runBlenderJob(undefined, new Uint8Array([1]), renderImageOp(), outputs, {
-        timeoutMs: 1000
-      })
-    ).rejects.toMatchObject({ name: "BlenderJobError", code: "bad_job" });
+    const { context, cleanup } = blenderTestContext();
+    try {
+      const outputs: Record<string, string> = {};
+      for (let i = 0; i <= MAX_OUTPUT_COUNT; i++) outputs[`out${i}`] = `out${i}.png`;
+      await expect(
+        runBlenderJob(context, new Uint8Array([1]), renderImageOp(), outputs, {
+          timeoutMs: 1000
+        })
+      ).rejects.toMatchObject({ name: "BlenderJobError", code: "bad_job" });
+    } finally {
+      cleanup();
+    }
   });
 
   it("refuses an output file name that escapes the scratch dir", async () => {
-    await expect(
-      runBlenderJob(
-        undefined,
-        new Uint8Array([1]),
-        renderImageOp(),
-        { image: "../evil.png" },
-        { timeoutMs: 1000 }
-      )
-    ).rejects.toMatchObject({ name: "BlenderJobError", code: "bad_job" });
+    const { context, cleanup } = blenderTestContext();
+    try {
+      await expect(
+        runBlenderJob(
+          context,
+          new Uint8Array([1]),
+          renderImageOp(),
+          { image: "../evil.png" },
+          { timeoutMs: 1000 }
+        )
+      ).rejects.toMatchObject({ name: "BlenderJobError", code: "bad_job" });
+    } finally {
+      cleanup();
+    }
   });
 
   it("refuses a flag-like string prop", async () => {
-    await expect(
-      runBlenderJob(
-        undefined,
-        new Uint8Array([1]),
-        renderImageOp({ background_color: "--python" }),
-        { image: "render.png" },
-        { timeoutMs: 1000 }
-      )
-    ).rejects.toMatchObject({ name: "BlenderJobError", code: "bad_job" });
+    const { context, cleanup } = blenderTestContext();
+    try {
+      await expect(
+        runBlenderJob(
+          context,
+          new Uint8Array([1]),
+          renderImageOp({ background_color: "--python" }),
+          { image: "render.png" },
+          { timeoutMs: 1000 }
+        )
+      ).rejects.toMatchObject({ name: "BlenderJobError", code: "bad_job" });
+    } finally {
+      cleanup();
+    }
   });
 
   it("refuses empty model bytes before touching Blender", async () => {
+    const { context, cleanup } = blenderTestContext();
+    try {
+      await expect(
+        runBlenderJob(context, new Uint8Array(), renderImageOp(), {
+          image: "render.png"
+        }, { timeoutMs: 1000 })
+      ).rejects.toMatchObject({ name: "BlenderJobError", code: "bad_job" });
+    } finally {
+      cleanup();
+    }
+  });
+
+  it("refuses a context-free call on the local runner", async () => {
     await expect(
-      runBlenderJob(undefined, new Uint8Array(), renderImageOp(), {
+      runBlenderJob(undefined, new Uint8Array([1]), renderImageOp(), {
         image: "render.png"
       }, { timeoutMs: 1000 })
     ).rejects.toMatchObject({ name: "BlenderJobError", code: "bad_job" });

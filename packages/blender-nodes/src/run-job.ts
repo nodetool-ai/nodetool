@@ -66,9 +66,10 @@ function engineOf(op: BlenderOp): string | undefined {
 }
 
 export async function runBlenderJob(
-  // Stage 1 resolves a local runner that owns its scratch directory; the
-  // context stays in the signature for the worker tier, which needs it.
-  _context: ProcessingContext | undefined,
+  // The local runner stages through the workspace seam (D6 step 1): the
+  // scratch parent comes from `context.workspace.scratchDir()`. Fakes in
+  // node tests run without a context and never touch the filesystem.
+  context: ProcessingContext | undefined,
   modelBytes: Uint8Array,
   op: BlenderOp,
   outputs: Record<string, string>,
@@ -111,6 +112,20 @@ export async function runBlenderJob(
   const runner = await resolveBlenderRunner();
   const binary = await resolveBlenderBinary().catch(() => null);
   const engine = engineOf(op);
+  // The local runner needs a real directory, which only the workspace can
+  // give it (`scratchDir()` is the seam a cloud workspace implements). A
+  // fake runner needs none, so a missing context only fails the local tier.
+  let runOptions = options;
+  if (runner instanceof LocalBlenderRunner) {
+    const workspace = context?.workspace;
+    if (!workspace) {
+      throw new BlenderJobError(
+        "bad_job",
+        `Blender local render needs a processing context with a workspace.`
+      );
+    }
+    runOptions = { ...options, scratchParent: await workspace.scratchDir() };
+  }
 
   return withSpan(
     "blender.run",
@@ -121,7 +136,7 @@ export async function runBlenderJob(
       "blender.runner": runner.kind
     },
     async (span) => {
-      const result = await runner.run(job, { model: modelBytes }, options);
+      const result = await runner.run(job, { model: modelBytes }, runOptions);
       span?.setAttribute("blender.render_seconds", result.stats.render_seconds);
       if (result.exitCode !== undefined) {
         span?.setAttribute("blender.exit_code", result.exitCode);

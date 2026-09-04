@@ -1,5 +1,5 @@
 /**
- * `@nodetool-ai/blender-nodes` — Blender headless integration (Stage 1b).
+ * `@nodetool-ai/blender-nodes` — Blender headless integration (Stage 2).
  *
  * Binary discovery, the versioned job contract, the runner interface with
  * its local implementation, the thin `runBlenderJob` entry point, and the
@@ -9,6 +9,10 @@
 
 export { BLENDER_RENDER_NODES } from "./nodes/render-image.js";
 export { RenderImageNode } from "./nodes/render-image.js";
+export { BLENDER_PASSES_NODES } from "./nodes/render-passes.js";
+export { RenderPassesNode } from "./nodes/render-passes.js";
+export { BLENDER_ANIMATION_NODES } from "./nodes/render-animation.js";
+export { RenderAnimationNode } from "./nodes/render-animation.js";
 export type { BlenderBinary } from "./blender-binary.js";
 export {
   BlenderVersionError,
@@ -29,8 +33,12 @@ export type {
   BlenderResultStats,
   CameraMode,
   CameraParams,
+  DepthFormat,
   LightingPreset,
-  RenderImageParams
+  RenderAnimationParams,
+  RenderImageParams,
+  RenderPass,
+  RenderPassesParams
 } from "./job.js";
 export {
   BlenderJobError,
@@ -54,5 +62,11 @@ export {
 } from "./run-job.js";
 
 import { BLENDER_RENDER_NODES } from "./nodes/render-image.js";
+import { BLENDER_PASSES_NODES } from "./nodes/render-passes.js";
+import { BLENDER_ANIMATION_NODES } from "./nodes/render-animation.js";
 
-export const BLENDER_NODES = [...BLENDER_RENDER_NODES];
+export const BLENDER_NODES = [
+  ...BLENDER_RENDER_NODES,
+  ...BLENDER_PASSES_NODES,
+  ...BLENDER_ANIMATION_NODES
+];

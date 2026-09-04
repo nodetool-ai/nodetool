@@ -8,7 +8,6 @@
 
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -67,6 +66,13 @@ export interface BlenderRunOptions {
   maxOutputBytes?: number;
   /** Cap on the sum of all outputs. Default MAX_TOTAL_OUTPUT_BYTES (1 GiB). */
   maxTotalOutputBytes?: number;
+  /**
+   * Parent directory for the per-run scratch directory. `runBlenderJob`
+   * derives this from `context.workspace.scratchDir()` (D6 step 1), so the
+   * run stages through the workspace seam instead of a bare temp path. The
+   * constructor option below is only a test override.
+   */
+  scratchParent?: string;
 }
 
 export interface BlenderRunResult {
@@ -94,8 +100,9 @@ export interface BlenderRunner {
 
 export interface LocalBlenderRunnerOptions {
   /**
-   * Parent directory for the per-run scratch directory. Tests point this at
-   * a temp dir to assert cleanup; production leaves it unset (OS temp dir).
+   * Parent directory for the per-run scratch directory. Test-only override:
+   * production always arrives through `BlenderRunOptions.scratchParent`,
+   * which `runBlenderJob` derives from `context.workspace.scratchDir()`.
    */
   scratchParent?: string;
 }
@@ -178,16 +185,27 @@ export class LocalBlenderRunner implements BlenderRunner {
     inputs: Record<string, Uint8Array>,
     options: BlenderRunOptions
   ): Promise<BlenderRunResult> {
+    // Refuse before resolving a binary: without a scratch parent there is
+    // no seam to stage through, and no tmpdir fallback exists.
+    const parent = options.scratchParent ?? this.scratchParent;
+    if (parent === undefined) {
+      throw new BlenderJobError(
+        "bad_job",
+        `LocalBlenderRunner has no scratch directory: pass scratchParent ` +
+          `in BlenderRunOptions (runBlenderJob derives it from ` +
+          `context.workspace.scratchDir()).`
+      );
+    }
     const binary = await resolveBlenderBinary();
     const maxOutputBytes = options.maxOutputBytes ?? MAX_OUTPUT_BYTES;
     const maxTotalOutputBytes =
       options.maxTotalOutputBytes ?? MAX_TOTAL_OUTPUT_BYTES;
 
-    // Step 1: own a scratch directory; write each input under its declared
-    // bare file name, then `job.json`.
-    const cwd = await mkdtemp(
-      path.join(this.scratchParent ?? os.tmpdir(), "nodetool-blender-")
-    );
+    // Step 1: own a scratch directory under the workspace seam; write each
+    // input under its declared bare file name, then `job.json`. Only the
+    // per-run directory the runner creates is deleted in step 6 — never the
+    // parent, which on a local workspace is the workspace itself.
+    const cwd = await mkdtemp(path.join(parent, "nodetool-blender-"));
     try {
       for (const [name, bytes] of Object.entries(inputs)) {
         const file = job.inputs[name as keyof typeof job.inputs];

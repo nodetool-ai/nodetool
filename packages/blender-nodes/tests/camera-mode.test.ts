@@ -10,12 +10,13 @@
  * same preset on a light-less fixture leaves only ambient wash.
  */
 
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { BlenderOp, RenderImageParams } from "../src/job.js";
 import { BlenderJobError } from "../src/runner.js";
 import { runBlenderJob } from "../src/run-job.js";
 import { blenderAvailable } from "./blender-available.js";
+import { blenderTestContext, type BlenderTestContext } from "./context.js";
 import {
   baseRenderImageParams,
   createTriangleGlb,
@@ -38,13 +39,24 @@ function renderImageOp(
   };
 }
 
+let cameraModeHelper: BlenderTestContext | null = null;
+
+beforeEach(() => {
+  cameraModeHelper = blenderTestContext();
+});
+
+afterEach(() => {
+  cameraModeHelper?.cleanup();
+  cameraModeHelper = null;
+});
+
 async function render(
   fixture: TriangleFixtureOptions,
   cameraMode: string,
   overrides: Record<string, unknown> = {}
 ) {
   return runBlenderJob(
-    undefined,
+    cameraModeHelper!.context,
     createTriangleGlb(fixture),
     renderImageOp(cameraMode, overrides),
     { image: "render.png" },

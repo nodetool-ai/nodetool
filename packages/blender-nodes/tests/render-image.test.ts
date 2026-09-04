@@ -9,12 +9,13 @@
  * (major.minor at or above 4.2) rather than to one release.
  */
 
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { BLENDER_MIN_VERSION } from "../src/blender-binary.js";
 import type { BlenderOp, RenderImageParams } from "../src/job.js";
 import { runBlenderJob } from "../src/run-job.js";
 import { blenderAvailable } from "./blender-available.js";
+import { blenderTestContext, type BlenderTestContext } from "./context.js";
 import { baseRenderImageParams, createTriangleGlb } from "./fixtures.js";
 import { decodePng, hasPngSignature, topColorFraction } from "./png.js";
 
@@ -41,9 +42,20 @@ function blenderVersionAtLeastFloor(version: string): boolean {
 }
 
 describe.skipIf(!blenderAvailable())("render_image integration", () => {
+  let helper: BlenderTestContext | null = null;
+
+  beforeEach(() => {
+    helper = blenderTestContext();
+  });
+
+  afterEach(() => {
+    helper?.cleanup();
+    helper = null;
+  });
+
   it("renders a GLB to a PNG of the requested size that is not uniform", async () => {
     const result = await runBlenderJob(
-      undefined,
+      helper!.context,
       createTriangleGlb(),
       renderImageOp({ width: 320, height: 240 }),
       { image: "render.png" },

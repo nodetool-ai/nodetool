@@ -1,13 +1,15 @@
 /**
- * `nodetool.blender.RenderImage` — glTF scene + camera → image via Blender.
+ * `nodetool.blender.RenderAnimation` — glTF scene + camera → video via Blender.
  *
- * Stage 1b: the `render_image` op over `LocalBlenderRunner` (D8). Takes a
- * `Model3DRef`, builds the versioned `BlenderJob`, and returns an inline
- * image ref like `RenderToImage`, so downstream save nodes decide
- * persistence. Camera props reuse the `RenderToImage` vocabulary; the
- * background defaults to studio gray rather than white because a white
- * model on a white background renders invisible under a standard view
- * transform.
+ * Stage 2: the `render_animation` op over `LocalBlenderRunner` (D8). Takes
+ * a `Model3DRef`, builds the versioned `BlenderJob` for the frame range at
+ * `fps`, and returns an inline video ref like the video nodes, so
+ * downstream save nodes decide persistence. The scene fps is set to `fps`
+ * before import, so a glTF animation timestamp `t` seconds lands on frame
+ * `round(t * fps)`; with no glTF animation under `camera_mode: orbit` the
+ * orbit turns `orbit_degrees` across the range. Video comes from Blender's
+ * own FFMPEG writer (MPEG-4, H.264, `yuv420p`), and per-frame `Fra:`
+ * progress reaches the run as `node_progress` messages.
  *
  * Every failure rethrows with the node name prefixed. An abort through
  * `context.signal` passes through unwrapped so the node rejects with the
@@ -24,28 +26,28 @@ import { runBlenderJob } from "../run-job.js";
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import { blenderProgressHandler } from "./progress.js";
 
-const NODE_NAME = "nodetool.blender.RenderImage";
+const NODE_NAME = "nodetool.blender.RenderAnimation";
 
-/** Output handle RenderImageNode.process() emits. */
-type RenderImageNodeOutputs = {
-  image: { type: string; uri: string; asset_id: null; data: string };
+/** Output handle RenderAnimationNode.process() emits. */
+type RenderAnimationNodeOutputs = {
+  video: { type: string; uri: string; asset_id: null; data: string };
 };
 
 /** Blender ran past its wall clock: point at the two knobs that fix it. */
 function timeoutMessage(timeoutMs: number): string {
   return (
-    `${NODE_NAME}: Blender render timed out after ${timeoutMs}ms. ` +
-    `Lower the samples, use EEVEE, or raise the timeout.`
+    `${NODE_NAME}: Blender animation render timed out after ${timeoutMs}ms. ` +
+    `Lower the samples, use EEVEE, shorten the range, or raise the timeout.`
   );
 }
 
-export class RenderImageNode extends BaseNode {
-  static readonly nodeType = "nodetool.blender.RenderImage";
-  static readonly title = "Render 3D With Blender";
+export class RenderAnimationNode extends BaseNode {
+  static readonly nodeType = "nodetool.blender.RenderAnimation";
+  static readonly title = "Render 3D Animation With Blender";
   static readonly description =
-    "Render a 3D model (GLB/glTF) to an image with Blender (EEVEE or Cycles) — higher quality than the preview renderer, with scene cameras and lights honored.\n    3d, render, image, camera, light, blender, eevee, cycles, snapshot, thumbnail\n\n    Use cases:\n    - Turn generated 3D models into high-quality images\n    - Render a scene with its authored cameras and lights\n    - Feed rendered views into image models (img2img, upscaling)";
+    "Render a 3D model (GLB/glTF) to a video with Blender: glTF animations play on their timeline, or the orbit camera sweeps across the frame range.\n    3d, render, animation, video, camera, orbit, blender, eevee, cycles\n\n    Use cases:\n    - Turn an animated 3D model into a video\n    - Sweep the camera around a static scene for a turntable clip\n    - Feed camera-consistent frames into video models";
   static readonly metadataOutputTypes = {
-    image: "image"
+    video: "video"
   };
   static readonly inlineFields = [];
   static readonly inputFields = ["model"];
@@ -63,15 +65,15 @@ export class RenderImageNode extends BaseNode {
     default: "auto",
     title: "Camera Mode",
     description:
-      "Whose camera renders: auto (the scene's first camera when the model has one, else an orbit camera), scene (the scene's first camera; an error when the model has none), or orbit (always an orbit camera from the props below)",
+      "Whose camera renders: auto (the scene's first camera when the model has one, else an orbit camera), scene (the scene's first camera; an error when the model has none), or orbit (always an orbit camera from the props below; with no glTF animation it sweeps orbit_degrees across the range)",
     values: ["auto", "scene", "orbit"]
   })
   declare camera_mode: any;
 
-  @prop({ type: "int", default: 1024, title: "Width", description: "Output image width in pixels", min: 16, max: 4096 })
+  @prop({ type: "int", default: 1024, title: "Width", description: "Output video width in pixels", min: 16, max: 4096 })
   declare width: any;
 
-  @prop({ type: "int", default: 1024, title: "Height", description: "Output image height in pixels", min: 16, max: 4096 })
+  @prop({ type: "int", default: 1024, title: "Height", description: "Output video height in pixels", min: 16, max: 4096 })
   declare height: any;
 
   @prop({ type: "float", default: 45, title: "Azimuth", description: "Horizontal camera orbit angle in degrees (0 looks along -Z)", min: -360, max: 360 })
@@ -101,7 +103,7 @@ export class RenderImageNode extends BaseNode {
   @prop({ type: "str", default: "#808080", title: "Background Color", description: "Background color (hex); ignored when Transparent is on" })
   declare background_color: any;
 
-  @prop({ type: "bool", default: false, title: "Transparent", description: "Render on a transparent background (PNG alpha)" })
+  @prop({ type: "bool", default: false, title: "Transparent", description: "Render on a transparent background (video alpha; container support varies)" })
   declare transparent: any;
 
   @prop({
@@ -122,10 +124,22 @@ export class RenderImageNode extends BaseNode {
   @prop({ type: "int", default: 100, title: "Resolution Percentage", description: "Render scale in percent of Width × Height", min: 1, max: 100 })
   declare resolution_percentage: any;
 
+  @prop({ type: "int", default: 1, title: "Frame Start", description: "First frame in the glTF timeline (timestamp t seconds lands on round(t * fps))", min: 0, max: 100000 })
+  declare frame_start: any;
+
+  @prop({ type: "int", default: 24, title: "Frame End", description: "Last frame rendered, inclusive", min: 0, max: 100000 })
+  declare frame_end: any;
+
+  @prop({ type: "int", default: 24, title: "FPS", description: "Scene frames per second; glTF animation timestamps map onto this timeline", min: 1, max: 120 })
+  declare fps: any;
+
+  @prop({ type: "float", default: 360, title: "Orbit Degrees", description: "Camera sweep in degrees across the range when the model has no animation and Camera Mode is orbit", min: -1080, max: 1080 })
+  declare orbit_degrees: any;
+
   @prop({ type: "int", default: 600, title: "Timeout", description: "Maximum render time in seconds", min: 1, max: 3600 })
   declare timeout: any;
 
-  async process(context?: ProcessingContext): Promise<RenderImageNodeOutputs> {
+  async process(context?: ProcessingContext): Promise<RenderAnimationNodeOutputs> {
     const bytes = await resolveModelBytes(
       (this.model ?? {}) as { data?: Uint8Array | string; uri?: string },
       context
@@ -135,6 +149,11 @@ export class RenderImageNode extends BaseNode {
         `${NODE_NAME}: model input is empty — connect a 3D model (GLB)`
       );
     }
+    const frameStart = Math.max(0, Math.round(Number(this.frame_start ?? 1)));
+    const frameEnd = Math.max(
+      frameStart,
+      Math.round(Number(this.frame_end ?? 24))
+    );
 
     const timeoutMs = Math.max(1, Number(this.timeout ?? 600)) * 1000;
     try {
@@ -142,7 +161,7 @@ export class RenderImageNode extends BaseNode {
         context,
         bytes,
         {
-          op: "render_image",
+          op: "render_animation",
           params: {
             camera_mode: String(this.camera_mode ?? "auto") as CameraMode,
             azimuth: Number(this.azimuth ?? 45),
@@ -161,29 +180,33 @@ export class RenderImageNode extends BaseNode {
               Math.round(Number(this.resolution_percentage ?? 100))
             ),
             width: Math.max(1, Math.round(Number(this.width ?? 1024))),
-            height: Math.max(1, Math.round(Number(this.height ?? 1024)))
+            height: Math.max(1, Math.round(Number(this.height ?? 1024))),
+            frame_start: frameStart,
+            frame_end: frameEnd,
+            fps: Math.max(1, Math.round(Number(this.fps ?? 24))),
+            orbit_degrees: Number(this.orbit_degrees ?? 360)
           }
         },
-        { image: "render.png" },
+        { video: "anim.mp4" },
         {
           timeoutMs,
           signal: context?.signal,
           onProgress: blenderProgressHandler(context, this.__node_id)
         }
       );
-      const png = result.outputs["image"];
-      if (!png || png.length === 0) {
+      const mp4 = result.outputs["video"];
+      if (!mp4 || mp4.length === 0) {
         throw new BlenderJobError(
           "missing_output",
-          "Blender produced no image bytes."
+          "Blender produced no video bytes."
         );
       }
       return {
-        image: {
-          type: "image",
+        video: {
+          type: "video",
           uri: "",
           asset_id: null,
-          data: bytesToBase64(png)
+          data: bytesToBase64(mp4)
         }
       };
     } catch (err) {
@@ -204,4 +227,4 @@ export class RenderImageNode extends BaseNode {
   }
 }
 
-export const BLENDER_RENDER_NODES = [RenderImageNode] as const;
+export const BLENDER_ANIMATION_NODES = [RenderAnimationNode] as const;

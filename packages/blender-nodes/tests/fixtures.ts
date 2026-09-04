@@ -152,3 +152,164 @@ export function triangleModelProp(
     data: Buffer.from(createTriangleGlb(options)).toString("base64")
   };
 }
+
+export interface QuadSpec {
+  /** Corner offsets (x, y) from the quad origin, in glTF units. */
+  size: number;
+  origin: [number, number];
+  /** Constant glTF z of the plane. */
+  z: number;
+}
+
+function buildGlb(
+  quads: QuadSpec[],
+  animations?: Record<string, unknown>[]
+): Uint8Array {
+  const positions: number[] = [];
+  const indices: number[] = [];
+  for (const quad of quads) {
+    const [ox, oy] = quad.origin;
+    const s = quad.size;
+    const base = positions.length / 3;
+    positions.push(
+      ox, oy, quad.z,
+      ox + s, oy, quad.z,
+      ox + s, oy + s, quad.z,
+      ox, oy + s, quad.z
+    );
+    // Counter-clockwise from +Z: the face normal is +glTF-Z, which the
+    // importer maps onto Blender -Y — toward an azimuth-0 orbit camera.
+    indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  }
+  const xs = positions.filter((_, i) => i % 3 === 0);
+  const ys = positions.filter((_, i) => i % 3 === 1);
+  const zs = positions.filter((_, i) => i % 3 === 2);
+  const posBytes = new Float32Array(positions);
+  const indexBytes = new Uint16Array(indices);
+  const animOffset = posBytes.byteLength + indexBytes.byteLength;
+  const bin = new Uint8Array(animOffset + (animations ? 32 : 0));
+  bin.set(new Uint8Array(posBytes.buffer), 0);
+  bin.set(new Uint8Array(indexBytes.buffer), posBytes.byteLength);
+  const bufferViews: Record<string, unknown>[] = [
+    { buffer: 0, byteOffset: 0, byteLength: posBytes.byteLength },
+    {
+      buffer: 0,
+      byteOffset: posBytes.byteLength,
+      byteLength: indexBytes.byteLength
+    }
+  ];
+  const accessors: Record<string, unknown>[] = [
+    {
+      bufferView: 0,
+      componentType: 5126,
+      count: positions.length / 3,
+      type: "VEC3",
+      min: [Math.min(...xs), Math.min(...ys), Math.min(...zs)],
+      max: [Math.max(...xs), Math.max(...ys), Math.max(...zs)]
+    },
+    {
+      bufferView: 1,
+      componentType: 5123,
+      count: indices.length,
+      type: "SCALAR"
+    }
+  ];
+  const gltf: Record<string, unknown> = {
+    asset: { version: "2.0" },
+    scene: 0,
+    scenes: [{ nodes: [0] }],
+    nodes: [{ mesh: 0 }],
+    meshes: [{ primitives: [{ attributes: { POSITION: 0 }, indices: 1 }] }],
+    accessors,
+    bufferViews,
+    buffers: [{ byteLength: bin.byteLength }]
+  };
+  if (animations) {
+    const times = new Float32Array([0, 1]);
+    const moved = new Float32Array([0, 0, 0, 2, 0, 0]);
+    bin.set(new Uint8Array(times.buffer), animOffset);
+    bin.set(new Uint8Array(moved.buffer), animOffset + 8);
+    bufferViews.push(
+      { buffer: 0, byteOffset: animOffset, byteLength: 8 },
+      { buffer: 0, byteOffset: animOffset + 8, byteLength: 24 }
+    );
+    accessors.push(
+      {
+        bufferView: 2,
+        componentType: 5126,
+        count: 2,
+        type: "SCALAR",
+        min: [0],
+        max: [1]
+      },
+      {
+        bufferView: 3,
+        componentType: 5126,
+        count: 2,
+        type: "VEC3",
+        min: [0, 0, 0],
+        max: [2, 0, 0]
+      }
+    );
+    gltf["animations"] = animations;
+  }
+
+  const jsonBytes = new TextEncoder().encode(JSON.stringify(gltf));
+  const jsonPad = pad4(jsonBytes.byteLength);
+  const binPad = pad4(bin.byteLength);
+  const total = 12 + 8 + jsonBytes.byteLength + jsonPad + 8 + bin.byteLength + binPad;
+  const glb = new Uint8Array(total);
+  const view = new DataView(glb.buffer);
+  let offset = 0;
+  view.setUint32(offset, 0x46546c67, true);
+  view.setUint32(offset + 4, 2, true);
+  view.setUint32(offset + 8, total, true);
+  offset += 12;
+  view.setUint32(offset, jsonBytes.byteLength + jsonPad, true);
+  view.setUint32(offset + 4, 0x4e4f534a, true);
+  offset += 8;
+  glb.set(jsonBytes, offset);
+  glb.fill(0x20, offset + jsonBytes.byteLength, offset + jsonBytes.byteLength + jsonPad);
+  offset += jsonBytes.byteLength + jsonPad;
+  view.setUint32(offset, bin.byteLength + binPad, true);
+  view.setUint32(offset + 4, 0x004e4942, true);
+  offset += 8;
+  glb.set(bin, offset);
+  return glb;
+}
+
+/**
+ * Depth fixture: a 1x1 front quad at glTF z=1 and a 2x2 back quad at z=0,
+ * both centered on (0.5, 0.5). From an azimuth-0, elevation-0 orbit camera
+ * every foreground pixel on one quad shares one view-axis depth, so with
+ * `zoom: 1` the expected range is `(distance - 0.5, distance + 0.5)` where
+ * `distance` is the documented framing distance for the bounds radius 1.5.
+ * The back quad is larger so its border stays visible around the front one.
+ */
+export function createDepthGlb(): Uint8Array {
+  return buildGlb([
+    { size: 1, origin: [0, 0], z: 1 },
+    { size: 2, origin: [-0.5, -0.5], z: 0 }
+  ]);
+}
+
+/**
+ * Animation fixture: the depth scene with a linear translation channel
+ * moving the node by +2 in x over t in [0, 1] seconds. At `fps: 2` the end
+ * pose lands exactly on frame 2.
+ */
+export function createAnimatedGlb(): Uint8Array {
+  const glb = buildGlb(
+    [
+      { size: 1, origin: [0, 0], z: 1 },
+      { size: 2, origin: [-0.5, -0.5], z: 0 }
+    ],
+    [
+      {
+        samplers: [{ input: 2, output: 3, interpolation: "LINEAR" }],
+        channels: [{ sampler: 0, target: { node: 0, path: "translation" } }]
+      }
+    ]
+  );
+  return glb;
+}

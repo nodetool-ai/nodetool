@@ -200,6 +200,23 @@ describe("LocalBlenderRunner against a fake blender", () => {
     await expectScratchGone();
   });
 
+  it("no scratch parent anywhere -> bad_job instead of a tmpdir fallback", async () => {
+    // No constructor parent and none in options: the runner must refuse
+    // before resolving a binary or writing anything, and the scratch parent
+    // stays empty afterwards.
+    const bare = new LocalBlenderRunner();
+    const err = await bare
+      .run(imageJob(), { model: new Uint8Array([1]) }, { timeoutMs: 10000 })
+      .then(
+        () => null,
+        (e: unknown) => e
+      );
+    expect(err).toBeInstanceOf(BlenderJobError);
+    expect((err as BlenderJobError).code).toBe("bad_job");
+    expect((err as Error).message).toContain("scratchParent");
+    await expectScratchGone();
+  });
+
   it("Fra: lines become onProgress calls", async () => {
     const runner = useFake("fra");
     const seen: Array<[number, number]> = [];

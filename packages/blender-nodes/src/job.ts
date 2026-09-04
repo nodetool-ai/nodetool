@@ -123,6 +123,9 @@ export const blenderResultSchema = z.discriminatedUnion("ok", [
       render_seconds: z.number(),
       frames: z.number().int().optional(),
       objects: z.number().int().optional(),
+      /** `render_passes` with depth: min/max finite foreground depth (D4). */
+      depth_near: z.number().optional(),
+      depth_far: z.number().optional(),
       /**
        * Name of the camera that rendered (`render_image` only): the scene
        * camera's name, or the orbit camera the op created. Lets the

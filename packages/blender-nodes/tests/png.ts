@@ -1,9 +1,10 @@
 /**
  * Minimal PNG decoder for the Blender render assertions (T4).
  *
- * Handles 8-bit RGB/RGBA non-interlaced output — everything Blender's PNG
- * writer produces — with no dependency. Enough to assert a render decodes,
- * has the requested size, and is not a flat field.
+ * Handles 8-bit RGB/RGBA/gray non-interlaced output — everything Blender's
+ * PNG writer produces — plus 16-bit grayscale for the `png16` depth pass
+ * (written by `blender_ops/depth.py`). No dependency. Enough to assert a
+ * render decodes, has the requested size, and is not a flat field.
  */
 
 import { inflateSync } from "node:zlib";
@@ -12,7 +13,10 @@ export interface DecodedPng {
   width: number;
   height: number;
   channels: number;
+  /** 8-bit samples, row-major. Empty for 16-bit images (see `samples16`). */
   pixels: Uint8Array;
+  /** 16-bit samples, row-major. Present only for 16-bit images. */
+  samples16?: Uint16Array;
 }
 
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -67,16 +71,21 @@ export function decodePng(png: Uint8Array): DecodedPng {
     }
     pos += 12 + length;
   }
-  if (bitDepth !== 8 || interlace !== 0) {
-    throw new Error(`unsupported PNG (depth ${bitDepth}, interlace ${interlace})`);
+  if (interlace !== 0) {
+    throw new Error(`unsupported PNG (interlace ${interlace})`);
   }
   const channelsByType: Record<number, number> = { 0: 1, 2: 3, 4: 2, 6: 4 };
   const channels = channelsByType[colorType];
   if (!channels) throw new Error(`unsupported color type ${colorType}`);
+  if (bitDepth !== 8 && !(bitDepth === 16 && colorType === 0)) {
+    throw new Error(`unsupported PNG (depth ${bitDepth}, type ${colorType})`);
+  }
 
   const raw = inflateSync(new Uint8Array(idat));
-  const stride = width * channels;
-  const pixels = new Uint8Array(width * height * channels);
+  // PNG filtering is byte-oriented: a 16-bit sample is two bytes.
+  const bytesPerSample = bitDepth === 16 ? 2 : 1;
+  const stride = width * channels * bytesPerSample;
+  const bytes = new Uint8Array(width * height * channels * bytesPerSample);
   let prev = new Uint8Array(stride);
   let p = 0;
   for (let y = 0; y < height; y++) {
@@ -85,19 +94,26 @@ export function decodePng(png: Uint8Array): DecodedPng {
     const line = new Uint8Array(raw.subarray(p, p + stride));
     p += stride;
     for (let i = 0; i < stride; i++) {
-      const a = i >= channels ? line[i - channels]! : 0;
+      const a = i >= channels * bytesPerSample ? line[i - channels * bytesPerSample]! : 0;
       const b = prev[i]!;
-      const c = i >= channels ? prev[i - channels]! : 0;
+      const c = i >= channels * bytesPerSample ? prev[i - channels * bytesPerSample]! : 0;
       if (filter === 1) line[i] = (line[i]! + a) & 255;
       else if (filter === 2) line[i] = (line[i]! + b) & 255;
       else if (filter === 3) line[i] = (line[i]! + ((a + b) >> 1)) & 255;
       else if (filter === 4) line[i] = (line[i]! + paeth(a, b, c)) & 255;
       else if (filter !== 0) throw new Error(`bad filter ${filter}`);
     }
-    pixels.set(line, y * stride);
+    bytes.set(line, y * stride);
     prev = line;
   }
-  return { width, height, channels, pixels };
+  if (bitDepth === 16) {
+    const samples16 = new Uint16Array(width * height * channels);
+    for (let i = 0; i < samples16.length; i++) {
+      samples16[i] = (bytes[i * 2]! << 8) | bytes[i * 2 + 1]!;
+    }
+    return { width, height, channels, pixels: new Uint8Array(), samples16 };
+  }
+  return { width, height, channels, pixels: bytes };
 }
 
 /** Fraction of pixels equal to the most common RGB triple, in [0, 1]. */
