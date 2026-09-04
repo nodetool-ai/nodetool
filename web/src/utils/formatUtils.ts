@@ -110,23 +110,57 @@ export const TYPE_FILTERS = [
 
 export type TypeFilterKey = (typeof TYPE_FILTERS)[number]["key"];
 
+// Passing an options object to `toLocaleString` rebuilds an Intl.DateTimeFormat
+// on every call — ~50x the cost of formatting with an existing one. Built on
+// first use so a route that renders no dates pays nothing at boot.
+const lazyFormatter = (
+  options: Intl.DateTimeFormatOptions
+): ((date: Date) => string) => {
+  let formatter: Intl.DateTimeFormat | null = null;
+  return (date) => {
+    formatter ??= new Intl.DateTimeFormat(undefined, options);
+    return formatter.format(date);
+  };
+};
+
+const toDate = (input: string | number | Date): Date =>
+  input instanceof Date ? input : new Date(input);
+
+const dateTimeFormat = lazyFormatter({
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit"
+});
+
+const timeOfDayFormat = lazyFormatter({
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit"
+});
+
+const dayMonthFormat = lazyFormatter({ day: "2-digit", month: "short" });
+
+const clockFormat = lazyFormatter({ hour: "2-digit", minute: "2-digit" });
+
+const clock24Format = lazyFormatter({
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false
+});
+
 /**
  * Format a date into a localized "Mar 1, 2023, 09:00 AM" style string.
  * Accepts ISO strings, epoch milliseconds, or Date objects.
  * @returns Formatted string, or "—" for invalid input
  */
 export function formatDateTime(input: string | number | Date): string {
-  const date = input instanceof Date ? input : new Date(input);
+  const date = toDate(input);
   if (Number.isNaN(date.getTime())) {
     return "—";
   }
-  return date.toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+  return dateTimeFormat(date);
 }
 
 /**
@@ -135,15 +169,38 @@ export function formatDateTime(input: string | number | Date): string {
  * @returns Formatted string, or "—" for invalid input
  */
 export function formatTimeOfDay(input: string | number | Date): string {
-  const date = input instanceof Date ? input : new Date(input);
+  const date = toDate(input);
   if (Number.isNaN(date.getTime())) {
     return "—";
   }
-  return date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
-  });
+  return timeOfDayFormat(date);
+}
+
+/**
+ * Localized day-and-month label ("01 MAR" once upper-cased by the caller).
+ * @returns Formatted string, or "" for invalid input
+ */
+export function formatDayMonth(input: string | number | Date): string {
+  const date = toDate(input);
+  return Number.isNaN(date.getTime()) ? "" : dayMonthFormat(date);
+}
+
+/**
+ * Localized clock label ("11:21 AM").
+ * @returns Formatted string, or "" for invalid input
+ */
+export function formatClockTime(input: string | number | Date): string {
+  const date = toDate(input);
+  return Number.isNaN(date.getTime()) ? "" : clockFormat(date);
+}
+
+/**
+ * Clock label forced to 24-hour ("23:21").
+ * @returns Formatted string, or "" for invalid input
+ */
+export function formatClockTime24(input: string | number | Date): string {
+  const date = toDate(input);
+  return Number.isNaN(date.getTime()) ? "" : clock24Format(date);
 }
 
 const MIME_TYPE_LABELS: Record<string, string> = {

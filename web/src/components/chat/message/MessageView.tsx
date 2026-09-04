@@ -52,7 +52,11 @@ import { isMediaOnlyContent } from "./MediaOutputGroup.helpers";
 import { ToolResult } from "./toolResults";
 import PlanDocument from "./PlanDocument";
 import { parsePlanDocument } from "./parsePlanDocument";
-import { formatDuration, formatToolName } from "../../../utils/formatUtils";
+import {
+  formatClockTime24,
+  formatDuration,
+  formatToolName
+} from "../../../utils/formatUtils";
 import { formatJavaScriptForDisplay } from "../../../utils/formatJavaScript";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 import { visibleToolArgs as visibleArgs } from "../../../core/chat/toolCallFields";
@@ -91,16 +95,7 @@ function formatTime(dateStr?: string | null): string | null {
   if (!dateStr) {
     return null;
   }
-  try {
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false
-    });
-  } catch {
-    return null;
-  }
+  return formatClockTime24(dateStr) || null;
 }
 
 /**

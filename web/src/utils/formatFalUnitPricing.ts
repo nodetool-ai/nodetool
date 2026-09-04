@@ -9,16 +9,31 @@ import { relativeTime } from "./formatDateAndTime";
  * public tier tables are finer-grained than this scalar row.
  */
 
-function formatMoney(amount: number, currency: string): string {
-  try {
-    const digits = amount > 0 && amount < 0.01 ? 4 : 2;
-    return new Intl.NumberFormat(undefined, {
+// Constructing an Intl.NumberFormat costs ~60x formatting with one, and these
+// run per FAL node on the canvas. Keyed by the two inputs that vary; bounded by
+// the currencies fal.ai bills in.
+const MONEY_FORMATTERS = new Map<string, Intl.NumberFormat>();
+
+function moneyFormatter(currency: string, digits: number): Intl.NumberFormat {
+  const key = `${currency}:${digits}`;
+  let formatter = MONEY_FORMATTERS.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(undefined, {
       style: "currency",
-      currency: currency.toUpperCase(),
+      currency,
       currencyDisplay: "narrowSymbol",
       minimumFractionDigits: digits,
       maximumFractionDigits: 4,
-    }).format(amount);
+    });
+    MONEY_FORMATTERS.set(key, formatter);
+  }
+  return formatter;
+}
+
+function formatMoney(amount: number, currency: string): string {
+  try {
+    const digits = amount > 0 && amount < 0.01 ? 4 : 2;
+    return moneyFormatter(currency.toUpperCase(), digits).format(amount);
   } catch {
     return `${amount} ${currency}`;
   }

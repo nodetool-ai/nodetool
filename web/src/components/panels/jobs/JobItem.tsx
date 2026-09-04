@@ -26,6 +26,7 @@ import { trpcClient } from "../../../trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
 import isEqual from "../../../utils/isEqual";
 import { notifyMutationError } from "../../../utils/notifyMutationError";
+import { formatClockTime } from "../../../utils/formatUtils";
 import ReportBugButton from "../../support/ReportBugButton";
 
 const formatDuration = (ms: number): string => {
@@ -77,12 +78,7 @@ const getJobDuration = (
 
 /** Short clock label (e.g. "11:21 AM"), empty when no timestamp. */
 const clockLabel = (iso?: string | null): string =>
-  iso
-    ? new Date(iso).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit"
-      })
-    : "";
+  iso ? formatClockTime(iso) : "";
 
 const TILE_SIZE = 40;
 
