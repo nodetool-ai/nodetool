@@ -17,6 +17,7 @@ import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { createLocalWorkspace } from "@nodetool-ai/runtime";
 import { toolFromCapability } from "../src/capabilities/adapters.js";
+import { DEFAULT_UNDERSTAND_VIDEO_TOKENS } from "../src/capabilities/media.specs.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
 import {
   capabilityModuleDrift,
@@ -359,7 +360,10 @@ describe("understand_video through the adapter", () => {
       text: "A fox crosses a snowfield.",
       provider: "gemini",
       model: "gemini-3-pro",
-      read_as: "video"
+      read_as: "video",
+      // An answer that ends on a full stop is a whole answer.
+      truncated: false,
+      max_tokens: DEFAULT_UNDERSTAND_VIDEO_TOKENS
     });
     expect(partsOf(predict)).toEqual([
       { type: "text", text: "What happens?" },
@@ -461,7 +465,9 @@ describe("understand_video through the adapter", () => {
       text: "A fox crosses a snowfield.",
       provider: "atlascloud",
       model: "google/gemini-2.5-flash",
-      read_as: "sampled_frames"
+      read_as: "sampled_frames",
+      truncated: false,
+      max_tokens: DEFAULT_UNDERSTAND_VIDEO_TOKENS
     });
     expect(predict).toHaveBeenCalledOnce();
   });
