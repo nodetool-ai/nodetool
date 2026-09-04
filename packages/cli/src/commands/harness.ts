@@ -11,8 +11,8 @@
  * the author. `gate`'s changed-file collection (rename handling, deleted
  * files, base-ref + working-tree merge) lives in ../harness/changed-files.ts;
  * `--timeout <seconds>` bounds each selfcheck (default 900s, fails closed on
- * timeout); `--strict` also fails when the diff leaves a real code file
- * mapped to no surface at all.
+ * timeout); a code file no surface claims fails the gate outright, and
+ * `--strict` also fails on a touched surface only a gap note covers.
  */
 import type { Command } from "commander";
 import {
@@ -195,7 +195,7 @@ export function registerHarnessCommands(program: Command): void {
     .option("--json", "Print the plan (and results, unless --dry-run) as JSON")
     .option(
       "--strict",
-      "Exit non-zero when the diff touches a surface no harness covers, or leaves a code file mapped to none"
+      "Exit non-zero when the diff touches a surface only a gap note covers"
     )
     .option(
       "--timeout <seconds>",
@@ -292,7 +292,7 @@ export function registerHarnessCommands(program: Command): void {
           printGatePlan(plan, toRun.length, skippedExpensive.length, opts.all);
           if (unmappedCodeFiles.length > 0) {
             console.log(
-              "\nCode files no surface claims (--strict fails on these):"
+              "\nCode files no surface claims (the gate fails on these):"
             );
             for (const f of unmappedCodeFiles) console.log(`  ${f}`);
           }
@@ -310,9 +310,8 @@ export function registerHarnessCommands(program: Command): void {
           }
           if (
             mappingViolations.length > 0 ||
-            (opts.strict &&
-              (plan.uncoveredSurfaces.length > 0 ||
-                unmappedCodeFiles.length > 0))
+            unmappedCodeFiles.length > 0 ||
+            (opts.strict && plan.uncoveredSurfaces.length > 0)
           ) {
             process.exit(1);
           }
@@ -399,9 +398,8 @@ export function registerHarnessCommands(program: Command): void {
         if (
           failed.length > 0 ||
           mappingViolations.length > 0 ||
-          (opts.strict &&
-            (plan.uncoveredSurfaces.length > 0 ||
-              unmappedCodeFiles.length > 0))
+          unmappedCodeFiles.length > 0 ||
+          (opts.strict && plan.uncoveredSurfaces.length > 0)
         ) {
           process.exit(1);
         }

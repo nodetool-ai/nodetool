@@ -18,8 +18,10 @@
  *     documentation (root configs, `scripts/`, the lockfile).
  *
  * Flags: `--base <ref>` (default: merge-base with origin/main, plus the working
- * tree), `--all` (skip selection), `--dry-run` (print the plan), or explicit
- * file paths to ask what a given change would select.
+ * tree), `--all` (skip selection), `--dry-run` (print the plan), `--gate`
+ * (also print `nodetool harness gate`'s plan for the same changed files —
+ * see AGENTS.md § Mandatory Post-Change Verification), or explicit file paths
+ * to ask what a given change would select.
  */
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -210,6 +212,16 @@ function readPackages(extraWorkspacePaths) {
   return packages;
 }
 
+/**
+ * The argv for `npm run dev:nodetool -- harness gate --dry-run <files...>`,
+ * asking the harness registry what it would run over the same changed files
+ * `test:affected` just selected suites for. Pure so the shape is unit-testable
+ * without shelling out.
+ */
+export function buildGateArgv(files) {
+  return ["run", "dev:nodetool", "--", "harness", "gate", "--dry-run", ...files];
+}
+
 function run(command, args) {
   const bin =
     process.platform === "win32" && (command === "npm" || command === "npx")
@@ -224,11 +236,12 @@ function run(command, args) {
 async function main(argv) {
   if (argv.includes("--help") || argv.includes("-h")) {
     console.log(
-      "Usage: npm run test:affected -- [files...] [--base <ref>] [--all] [--dry-run]"
+      "Usage: npm run test:affected -- [files...] [--base <ref>] [--all] [--dry-run] [--gate]"
     );
     return 0;
   }
   const dryRun = argv.includes("--dry-run");
+  const gate = argv.includes("--gate");
   const baseIndex = argv.indexOf("--base");
   const baseArg = baseIndex >= 0 ? argv[baseIndex + 1] : undefined;
   const explicit = argv.filter(
@@ -243,6 +256,7 @@ async function main(argv) {
 
   let steps;
   let reason;
+  let gateFiles = [];
   if (argv.includes("--all")) {
     steps = fullPlan();
     reason = "--all";
@@ -254,6 +268,7 @@ async function main(argv) {
       console.log("No changed files — nothing to test.");
       return 0;
     }
+    gateFiles = files;
     reason = explicit.length
       ? `${files.length} file(s) given on the command line`
       : base
@@ -272,10 +287,19 @@ async function main(argv) {
   console.log(`\nAffected test plan (${reason}):`);
   if (steps.length === 0) {
     console.log("  nothing — no workspace owns the changed files.");
-    return 0;
+  } else {
+    for (const step of steps) console.log(`  - ${step.label}`);
   }
-  for (const step of steps) console.log(`  - ${step.label}`);
-  if (dryRun) return 0;
+
+  // `--gate` is a separate, opt-in report: what `nodetool harness gate` would
+  // run over the same changed files. It shells out (`--dry-run`, so nothing
+  // actually runs) rather than duplicating the registry's selection logic.
+  if (gate && gateFiles.length > 0) {
+    console.log("\nHarness gate plan for the same diff:");
+    run("npm", buildGateArgv(gateFiles));
+  }
+
+  if (steps.length === 0 || dryRun) return 0;
 
   for (const step of steps) {
     const status = run(step.command, step.args);
