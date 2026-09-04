@@ -22,6 +22,11 @@ import {
   type CanvasGradient2D,
   type MaskContext2D
 } from "../src/render/draw.js";
+import {
+  drawTimelineFrame,
+  type Canvas2DLayer,
+  type CompositeContext2D
+} from "../src/render/canvas2d.js";
 
 const track = makeTrack({
   id: "video",
@@ -324,5 +329,151 @@ describe("maskIsHard", () => {
     expect(maskIsHard({ kind: "rect" })).toBe(true);
     expect(maskIsHard({ kind: "rect", featherPx: 0 })).toBe(true);
     expect(maskIsHard({ kind: "rect", featherPx: 2 })).toBe(false);
+  });
+});
+
+// ── What the 2D path degrades, and says it degraded ──────────────────────────
+
+/** The smallest {@link CompositeContext2D} that records what it drew. */
+class RecordingCompositeContext implements CompositeContext2D<string> {
+  globalAlpha = 1;
+  globalCompositeOperation = "source-over";
+  filter = "none";
+  shadowColor = "rgba(0, 0, 0, 0)";
+  shadowBlur = 0;
+  shadowOffsetX = 0;
+  shadowOffsetY = 0;
+  fillStyle: string | object = "#000";
+  readonly draws: string[] = [];
+
+  save(): void {}
+  restore(): void {}
+  setTransform(): void {}
+  clearRect(): void {}
+  fillRect(): void {}
+  beginPath(): void {}
+  closePath(): void {}
+  rect(): void {}
+  moveTo(): void {}
+  lineTo(): void {}
+  bezierCurveTo(): void {}
+  quadraticCurveTo(): void {}
+  ellipse(): void {}
+  arcTo(): void {}
+  clip(): void {}
+  fill(): void {}
+  translate(): void {}
+  scale(): void {}
+  drawImage(source: string): void {
+    this.draws.push(source);
+  }
+  createLinearGradient(): CanvasGradient2D {
+    return { addColorStop: () => {} };
+  }
+  createRadialGradient(): CanvasGradient2D {
+    return { addColorStop: () => {} };
+  }
+  getImageData(
+    _x: number,
+    _y: number,
+    w: number,
+    h: number
+  ): { data: Uint8ClampedArray; width: number; height: number } {
+    return { data: new Uint8ClampedArray(w * h * 4), width: w, height: h };
+  }
+  putImageData(): void {}
+}
+
+const GEOMETRY = { canvasWidth: 100, canvasHeight: 100 };
+
+const drawLayer = (
+  over: Partial<Canvas2DLayer<string>> = {}
+): Canvas2DLayer<string> => ({
+  source: "shot",
+  sourceWidth: 100,
+  sourceHeight: 100,
+  opacity: 1,
+  blendMode: "normal",
+  zIndex: 0,
+  ...over
+});
+
+describe("drawTimelineFrame — the masks and mattes it degrades", () => {
+  it("draws a feathered mask hard, and reports the hard edge", () => {
+    const ctx = new RecordingCompositeContext();
+    const { degraded } = drawTimelineFrame(
+      ctx,
+      [drawLayer({ clipId: "shot", shapeMask: { kind: "rect", featherPx: 8 } })],
+      GEOMETRY
+    );
+
+    expect(ctx.draws).toEqual(["shot"]);
+    expect(degraded).toEqual([{ clipId: "shot", reason: "mask_hard_edge" }]);
+  });
+
+  it("keeps a hard mask off the list — the path clip is the same edge", () => {
+    const ctx = new RecordingCompositeContext();
+    const { degraded } = drawTimelineFrame(
+      ctx,
+      [drawLayer({ clipId: "shot", shapeMask: { kind: "rect" } })],
+      GEOMETRY
+    );
+
+    expect(degraded).toEqual([]);
+  });
+
+  it("draws a matted layer unmatted, and reports the matte it dropped", () => {
+    const ctx = new RecordingCompositeContext();
+    const { degraded } = drawTimelineFrame(
+      ctx,
+      [
+        drawLayer({
+          clipId: "shot",
+          matte: {
+            mode: "luma",
+            invert: false,
+            layer: drawLayer({ clipId: "key", source: "key" })
+          }
+        })
+      ],
+      GEOMETRY
+    );
+
+    // The picture survives — unmatted, which is a visible difference from the
+    // GPU render and so has to be named (I7).
+    expect(ctx.draws).toEqual(["shot"]);
+    expect(degraded).toEqual([{ clipId: "shot", reason: "matte_skipped" }]);
+  });
+
+  it("reports nothing when the host vends the pair a matte needs", () => {
+    const ctx = new RecordingCompositeContext();
+    const surfaces = [
+      new RecordingCompositeContext(),
+      new RecordingCompositeContext()
+    ];
+    let taken = 0;
+    const { degraded } = drawTimelineFrame(
+      ctx,
+      [
+        drawLayer({
+          clipId: "shot",
+          matte: {
+            mode: "alpha",
+            invert: false,
+            layer: drawLayer({ clipId: "key", source: "key" })
+          }
+        })
+      ],
+      GEOMETRY,
+      {
+        matteSurface: () => {
+          const index = taken++;
+          return { ctx: surfaces[index]!, surface: `surface-${index}` };
+        }
+      }
+    );
+
+    expect(ctx.draws).toEqual(["surface-0"]);
+    expect(degraded).toEqual([]);
   });
 });

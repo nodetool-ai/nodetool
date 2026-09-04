@@ -405,18 +405,33 @@ describe("drawTimelineFrame — precomposites", () => {
 
   it("draws the children onto the frame when the host has no surface", () => {
     const ctx = new RecordingContext();
-    drawTimelineFrame(
+    const { degraded } = drawTimelineFrame(
       ctx,
       [drawLayer("a", { precomposeGroupId: "g" })],
       GEOMETRY,
       {
         precomposites: [
-          { id: "g", zIndex: trackZ(0), opacity: 0.5, blendMode: "normal" }
+          { id: "g", zIndex: trackZ(0), opacity: 0.5, blendMode: "multiply" }
         ],
         precompositeSurface: () => null
       }
     );
     expect(ctx.draws.map((d) => d.source)).toEqual(["a"]);
+    // The picture survives, the group's blend and effects do not — and saying
+    // so is the whole point, since `unsupportedEffectTypes` names the effects
+    // and has nothing to say about a lost blend mode (I7).
+    expect(degraded).toEqual([{ clipId: "g", reason: "group_blend_lost" }]);
+  });
+
+  it("reports nothing for a group with no children on screen", () => {
+    const ctx = new RecordingContext();
+    const { degraded } = drawTimelineFrame(ctx, [drawLayer("a")], GEOMETRY, {
+      precomposites: [
+        { id: "g", zIndex: trackZ(0), opacity: 0.5, blendMode: "multiply" }
+      ],
+      precompositeSurface: () => null
+    });
+    expect(degraded).toEqual([]);
   });
 });
 

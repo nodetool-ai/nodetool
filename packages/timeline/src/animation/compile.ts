@@ -95,6 +95,12 @@ export interface CompiledStagger {
  * Per-unit delay in ms for unit `index` of a compiled stagger. `from`
  * ordering: `"start"` = first unit first, `"end"` = last unit first,
  * `"center"` = middle units first, rippling outward.
+ *
+ * The centre distance is floored so the middle unit — the middle PAIR, on an
+ * even count — starts at 0. An unfloored `|index - last/2|` gives an even
+ * count no unit at delay 0 (four units at 100ms each: 150, 50, 50, 150), which
+ * starts the whole line half an offset late and overstates the span by the
+ * same amount.
  */
 export function staggerUnitDelayMs(
   stagger: CompiledStagger,
@@ -105,15 +111,20 @@ export function staggerUnitDelayMs(
     case "end":
       return (last - index) * stagger.offsetMs;
     case "center":
-      return Math.abs(index - last / 2) * stagger.offsetMs;
+      return Math.floor(Math.abs(index - last / 2)) * stagger.offsetMs;
     default:
       return index * stagger.offsetMs;
   }
 }
 
-/** Largest per-unit delay factor (delay = factor × offsetMs). */
+/**
+ * Largest per-unit delay factor (delay = factor × offsetMs). Floored for
+ * `"center"` for the same reason {@link staggerUnitDelayMs} floors: the two
+ * have to name the same largest delay or the compiled span and the units
+ * inside it disagree.
+ */
 function maxStaggerFactor(from: StaggerFrom, count: number): number {
-  return from === "center" ? (count - 1) / 2 : count - 1;
+  return from === "center" ? Math.floor((count - 1) / 2) : count - 1;
 }
 
 /**

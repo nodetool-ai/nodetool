@@ -43,6 +43,7 @@ import {
   mediaTypeForContentType,
   trackTypeForMediaType,
   STAGGER_UNITS,
+  parseEasing,
   parseStaggerUnit,
   DEFAULT_BEAT_TOLERANCE_MS,
   buildBeatGrid,
@@ -328,6 +329,12 @@ export interface TimelineBridgeFinalState {
    * the runner hands a case.
    */
   toolLog: string[];
+  /**
+   * Every timecode `preview_timeline_frame` was asked for, in call order. The
+   * tool names alone say a look happened; these say where it looked, which is
+   * what {@link previewedMidMotion} grades.
+   */
+  previewTimesMs: number[];
 }
 
 /**
@@ -342,6 +349,16 @@ export const TIMELINE_READ_ONLY_TOOLS: readonly string[] = [
   "preview_timeline_frame"
 ];
 
+/**
+ * The frame a predicate measures against. `staggerUnitsOf` wraps lines to it,
+ * so a check run against the wrong size counts a vertical cut's lines as a
+ * landscape one's. Every predicate takes it from the state it is grading.
+ */
+export interface TimelineFrameSize {
+  width: number;
+  height: number;
+}
+
 /** Whether the last edit in a transcript is followed by a preview call. */
 export function previewedAfterLastEdit(toolLog: readonly string[]): boolean {
   const lastEdit = toolLog.reduce(
@@ -353,6 +370,77 @@ export function previewedAfterLastEdit(toolLog: readonly string[]): boolean {
 }
 
 /**
+ * Whether a preview landed inside a motion rather than beside it.
+ *
+ * {@link previewedAfterLastEdit} reads the transcript's shape: a preview call
+ * came last. That passes on a look at 0ms, where an entrance has not started —
+ * the endpoints tell you nothing, which is what the skill's "sample the middle
+ * of a motion" is about. This reads the timecodes instead: at least one falls
+ * strictly inside the window of an animation the document now carries.
+ *
+ * Every animation in a graded final state is one the run authored, since the
+ * seeded worlds carry none.
+ */
+export function previewedMidMotion(
+  previewTimesMs: readonly number[],
+  clips: readonly TimelineClip[],
+  canvas: TimelineFrameSize
+): boolean {
+  if (previewTimesMs.length === 0) return false;
+  return clips.some((clip) =>
+    (clip.animations ?? []).some((animation) => {
+      const window = animationWindow(clip, animation, canvas);
+      if (!(window.endMs > window.startMs)) return false;
+      return previewTimesMs.some(
+        (timeMs) => timeMs > window.startMs && timeMs < window.endMs
+      );
+    })
+  );
+}
+
+/**
+ * How long an animation is in motion for: its own window, widened by the
+ * stagger's last unit. `durationMs` unset takes the preset's default.
+ */
+function motionSpanMs(
+  clip: TimelineClip,
+  animation: ClipAnimation,
+  canvas: TimelineFrameSize
+): number {
+  const preset = ANIMATION_PRESETS.find((p) => p.id === animation.preset);
+  const durationMs = animation.durationMs ?? preset?.defaultDurationMs ?? 0;
+  const stagger = animation.stagger;
+  if (!stagger || !(stagger.offsetMs > 0)) return durationMs;
+  const units = staggerUnitsOf(clip, stagger.unit, canvas);
+  if (units < 2) return durationMs;
+  return durationMs + stagger.offsetMs * (units - 1);
+}
+
+/**
+ * When an animation runs, in timeline ms. `delayMs` offsets an `in` and an
+ * `emphasis` from the clip's start and an `out` backwards from its end, which
+ * is the role rule the skill states. A `loop` runs for the whole clip.
+ */
+export function animationWindow(
+  clip: TimelineClip,
+  animation: ClipAnimation,
+  canvas: TimelineFrameSize
+): { startMs: number; endMs: number } {
+  const clipEndMs = clip.startMs + clip.durationMs;
+  if (animation.role === "loop") {
+    return { startMs: clip.startMs, endMs: clipEndMs };
+  }
+  const delayMs = animation.delayMs ?? 0;
+  const spanMs = motionSpanMs(clip, animation, canvas);
+  if (animation.role === "out") {
+    const endMs = clipEndMs - delayMs;
+    return { startMs: endMs - spanMs, endMs };
+  }
+  const startMs = clip.startMs + delayMs;
+  return { startMs, endMs: startMs + spanMs };
+}
+
+/**
  * Whether a staggered animation finishes inside its clip: the last unit
  * starts `offsetMs × (units − 1)` in and still runs the full `durationMs`.
  * An animation with no stagger, or one on a clip that splits into fewer than
@@ -360,35 +448,33 @@ export function previewedAfterLastEdit(toolLog: readonly string[]): boolean {
  */
 export function staggerSpanFitsClip(
   clip: TimelineClip,
-  animation: ClipAnimation
+  animation: ClipAnimation,
+  canvas: TimelineFrameSize
 ): boolean {
   const stagger = animation.stagger;
   if (!stagger || !(stagger.offsetMs > 0)) return true;
-  const units = staggerUnitsOf(clip, stagger.unit);
-  if (units < 2) return true;
-  const preset = ANIMATION_PRESETS.find((p) => p.id === animation.preset);
-  const durationMs = animation.durationMs ?? preset?.defaultDurationMs ?? 0;
-  const span =
-    (animation.delayMs ?? 0) + durationMs + stagger.offsetMs * (units - 1);
+  if (staggerUnitsOf(clip, stagger.unit, canvas) < 2) return true;
+  const span = (animation.delayMs ?? 0) + motionSpanMs(clip, animation, canvas);
   return span <= clip.durationMs;
 }
 
 /**
- * How many units a clip's text splits into for a stagger unit. Line counting
- * wraps against the sequence size; with no text measurer every authored
- * paragraph is one line, which is what a headless surface can know.
+ * How many units a clip's text splits into for a stagger unit. `character`
+ * counts grapheme clusters plus one unit per gap between words; `line` wraps
+ * against `canvas`, and with no text measurer every authored paragraph is one
+ * line, which is what a headless surface can know.
  */
-export function staggerUnitsOf(clip: TimelineClip, unit: string): number {
+export function staggerUnitsOf(
+  clip: TimelineClip,
+  unit: string,
+  canvas: TimelineFrameSize
+): number {
   const style = clip.textStyle;
   const parsed = parseStaggerUnit(unit);
   // An unknown unit compiles as a plain block animation, so it splits into
   // nothing — same answer as a clip with no text.
   if (!style || !parsed) return 0;
-  return countTextStaggerUnits(
-    style,
-    { width: 1920, height: 1080 },
-    parsed
-  );
+  return countTextStaggerUnits(style, canvas, parsed);
 }
 
 /**
@@ -411,9 +497,29 @@ export function effectiveEasing(animation: ClipAnimation): string {
   }
 }
 
-/** Whether an easing decelerates into its landing: an ease-out or a spring. */
+/** How far either side of the curve a slope is measured over. */
+const EASING_SLOPE_STEP = 0.02;
+
+/**
+ * Whether an easing decelerates into its landing.
+ *
+ * The `easeOut` family qualifies by name: its endpoints are exact, and
+ * `easeOutBounce` deliberately accelerates into its last bounce, which a slope
+ * reading at t=1 would score as an ease-in. Everything else in the grammar is
+ * measured — the curve's slope entering the landing against its slope leaving
+ * the start — so `cubic-bezier(0.16,1,0.3,1)`, the deceleration the skill
+ * recommends for entrances, passes and `cubic-bezier(0.7,0,0.84,0)`, the exit
+ * curve beside it, does not. An easing outside the grammar eases linearly and
+ * does not decelerate.
+ */
 export function easingDecelerates(easing: string): boolean {
-  return /^easeOut/.test(easing) || /^spring\(/.test(easing.replace(/\s+/g, ""));
+  const text = easing.trim();
+  if (/^easeOut/.test(text)) return true;
+  const curve = parseEasing(text);
+  if (!curve) return false;
+  const entry = (curve(EASING_SLOPE_STEP) - curve(0)) / EASING_SLOPE_STEP;
+  const landing = (curve(1) - curve(1 - EASING_SLOPE_STEP)) / EASING_SLOPE_STEP;
+  return landing < entry;
 }
 
 function tool<TResult>(
@@ -558,6 +664,7 @@ export function createTimelineToolBridge(
   let clips: TimelineClip[] = [];
   let markers: TimelineMarker[] = [];
   const toolLog: string[] = [];
+  const previewTimesMs: number[] = [];
 
   // Ids the sequence already uses. A seeded document brings its own, which the
   // `track_1`/`clip_1` counters would otherwise collide with on the first edit.
@@ -2240,12 +2347,23 @@ export function createTimelineToolBridge(
   }
 
   // Recorded rather than counted: a predicate asks where the last edit sits
-  // relative to a preview, which a tally cannot answer. The push happens
-  // before the call, so a tool that throws is still in the transcript.
+  // relative to a preview, and which timecodes that preview asked for —
+  // neither of which a tally can answer. The push happens before the call, so
+  // a tool that throws is still in the transcript.
   const recorded: HeadlessTool[] = tools.map((entry) => ({
     ...entry,
     execute: (args: Record<string, unknown>) => {
       toolLog.push(entry.name);
+      if (entry.name === "preview_timeline_frame") {
+        const times = args?.["times_ms"];
+        if (Array.isArray(times)) {
+          for (const time of times) {
+            if (typeof time === "number" && Number.isFinite(time)) {
+              previewTimesMs.push(time);
+            }
+          }
+        }
+      }
       return entry.execute(args);
     }
   }));
@@ -2283,7 +2401,8 @@ export function createTimelineToolBridge(
       documentTracks: tracks.map((t) => structuredClone(t)),
       documentClips: clips.map((c) => structuredClone(c)),
       markers: markers.map((m) => structuredClone(m)),
-      toolLog: [...toolLog]
+      toolLog: [...toolLog],
+      previewTimesMs: [...previewTimesMs]
     })
   };
 }
@@ -2490,9 +2609,10 @@ export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeF
                 );
                 const stagger = entrance?.stagger;
                 if (!entrance || !stagger) return false;
+                const canvas = { width: s.width, height: s.height };
                 return (
-                  staggerUnitsOf(clip, stagger.unit) >= 2 &&
-                  staggerSpanFitsClip(clip, entrance)
+                  staggerUnitsOf(clip, stagger.unit, canvas) >= 2 &&
+                  staggerSpanFitsClip(clip, entrance, canvas)
                 );
               })
           }

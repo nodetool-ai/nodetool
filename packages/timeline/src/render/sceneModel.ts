@@ -40,6 +40,9 @@ import { countTextStaggerUnits, type RenderCanvas } from "./textLayout.js";
 import { buildTransformMatrix } from "./transform.js";
 import { resolveTransition, type ResolvedTransition } from "./transition.js";
 
+/** Clamp a resolved opacity into the range both compositors agree on. */
+const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
+
 /** Blend mode a layer composites with. */
 export type CompositorBlendMode = NonNullable<TimelineClip["blendMode"]>;
 
@@ -728,7 +731,11 @@ export function computeActiveLayersWithHorizon(
 
       const transition = transitionFor.get(clip.id);
       const baseOpacity = (clip.opacity ?? 1) * (parent?.opacity ?? 1);
-      const opacity = baseOpacity * (transition?.opacity ?? 1);
+      // Clamped here and nowhere else: the GPU compositor multiplies this into
+      // the shader raw while Canvas 2D clamps it, so an out-of-range clip or
+      // group opacity drew a different picture on each host. Animations still
+      // multiply on top afterwards (I3) — `clampSample` settles those.
+      const opacity = clamp01(baseOpacity * (transition?.opacity ?? 1));
 
       // Captions ride on their media clip and always render on top.
       const caption = resolveCaptionAtTime(clip, currentTimeMs);
@@ -839,7 +846,10 @@ export function computeActiveLayersWithHorizon(
         emitMedia({ kind: "image", ...common });
       } else {
         // video | overlay
-        if (common.assetId) {
+        // Counted after the matte diversion, not before: a matte source never
+        // draws, so charging it a decode slot pushed a visible video layer
+        // over the cap — and dropping the source blanked the layer reading it.
+        if (common.assetId && !matteSourceIds.has(clip.id)) {
           if (videoCount >= maxVideoLayers) {
             droppedLayers.push({
               clipId: clip.id,

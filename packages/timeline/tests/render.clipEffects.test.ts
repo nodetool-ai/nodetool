@@ -148,6 +148,38 @@ class RecordingContext implements CompositeContext2D<string> {
   putImageData(): void {}
 }
 
+/**
+ * A context whose pixels are real, so a per-pixel pass can be read back. The
+ * buffer is one flat value, which is all a numeric grade check needs.
+ */
+class PixelContext extends RecordingContext {
+  pixels: Uint8ClampedArray;
+
+  constructor(value: number, pixelCount = 4) {
+    super();
+    this.pixels = new Uint8ClampedArray(pixelCount * 4);
+    for (let i = 0; i < this.pixels.length; i += 4) {
+      this.pixels[i] = value;
+      this.pixels[i + 1] = value;
+      this.pixels[i + 2] = value;
+      this.pixels[i + 3] = 255;
+    }
+  }
+
+  override getImageData(
+    _x: number,
+    _y: number,
+    w: number,
+    h: number
+  ): { data: Uint8ClampedArray; width: number; height: number } {
+    return { data: this.pixels, width: w, height: h };
+  }
+
+  override putImageData(pixels: { data: Uint8ClampedArray }): void {
+    this.pixels = pixels.data;
+  }
+}
+
 const layer = (
   over: Partial<Canvas2DLayer<string>>
 ): Canvas2DLayer<string> => ({
@@ -190,6 +222,45 @@ describe("Canvas 2D — the clip effect catalog", () => {
       { id: "c", type: "color", enabled: true, tint: -0.4 }
     ];
     expect(unsupportedEffectTypes([{ effects: green }])).toEqual(["color.tint"]);
+  });
+
+  it("reports the shadow and highlight rolloff the filter has no knob for", () => {
+    // Both run on the GPU (`colorGradeV1`) and neither maps onto `ctx.filter`,
+    // so without this the two hosts grade the same clip differently with
+    // nothing to read about it (I7).
+    const lifted: ClipEffect[] = [
+      { id: "c", type: "color", enabled: true, shadows: 0.4 }
+    ];
+    expect(unsupportedEffectTypes([{ effects: lifted }])).toEqual([
+      "color.shadows"
+    ]);
+
+    const rolled: ClipEffect[] = [
+      { id: "c", type: "color", enabled: true, highlights: -0.3 }
+    ];
+    expect(unsupportedEffectTypes([{ effects: rolled }])).toEqual([
+      "color.highlights"
+    ]);
+
+    const track: TrackEffect[] = [
+      {
+        id: "t",
+        type: "colorCorrection",
+        enabled: true,
+        brightness: 0,
+        contrast: 1,
+        saturation: 1,
+        hue: 0,
+        temperature: 0,
+        tint: 0,
+        shadows: 0.5,
+        highlights: 0.5
+      }
+    ];
+    expect(unsupportedEffectTypes([{ trackEffects: track }])).toEqual([
+      "color.highlights",
+      "color.shadows"
+    ]);
   });
 
   it("keeps a grade at the white-balance identity off the list", () => {
@@ -395,5 +466,148 @@ describe("Canvas 2D — the clip effect catalog", () => {
     expect(ctx.draws.map((d) => d.source)).toEqual(["shadowed", "plain"]);
     expect(ctx.draws[1]?.shadowBlur).toBe(0);
     expect(ctx.draws[1]?.shadowOffsetX).toBe(0);
+  });
+
+  it("arms the first drop shadow and reports the rest as degraded", () => {
+    // `mixer.dropShadow@1` runs once per enabled effect in document order;
+    // `ctx.shadow*` is one set of fields, so the second cast is not drawn.
+    const ctx = new RecordingContext();
+    const { degraded } = drawTimelineFrame(
+      ctx,
+      [
+        layer({
+          clipId: "shot",
+          effects: [
+            {
+              id: "s1",
+              type: "dropShadow",
+              enabled: true,
+              offsetX: 4,
+              offsetY: 4,
+              blur: 3,
+              color: "#ff0000"
+            },
+            {
+              id: "s2",
+              type: "dropShadow",
+              enabled: true,
+              offsetX: 20,
+              offsetY: 20,
+              blur: 12,
+              color: "#00ff00"
+            }
+          ]
+        })
+      ],
+      GEOMETRY
+    );
+
+    expect(ctx.draws[0]?.shadowColor).toBe("rgba(255, 0, 0, 1)");
+    expect(degraded).toEqual([
+      { clipId: "shot", reason: "drop_shadow_extra_ignored" }
+    ]);
+  });
+});
+
+describe("Canvas 2D — brightness parity with the GPU grade", () => {
+  const lift: ClipEffect[] = [
+    { id: "b", type: "color", enabled: true, brightness: 0.25 }
+  ];
+
+  it("adds brightness on a scratch copy rather than multiplying it", () => {
+    const ctx = new RecordingContext();
+    const scratch = new PixelContext(128);
+    const { degraded } = drawTimelineFrame(
+      ctx,
+      [layer({ clipId: "shot", effects: lift })],
+      GEOMETRY,
+      { maskScratch: () => ({ ctx: scratch, surface: "scratch" }) }
+    );
+
+    // `colorGradeV1` is `rgb + brightness` on straight colour, so mid-grey at
+    // +0.25 is 128 + 0.25 × 255 = 192. A CSS `brightness(1.25)` multiplies and
+    // lands on 160 — the same document, two pictures.
+    expect(scratch.pixels[0]).toBe(192);
+    expect(scratch.pixels[3]).toBe(255);
+    // The brightened copy is what reaches the frame, and the filter no longer
+    // carries a brightness term that would apply the lift twice.
+    expect(ctx.draws[0]?.source).toBe("scratch");
+    expect(ctx.draws[0]?.filter).toBe("none");
+    expect(degraded).toEqual([]);
+  });
+
+  it("subtracts a negative brightness on the same pass", () => {
+    const ctx = new RecordingContext();
+    const scratch = new PixelContext(128);
+    drawTimelineFrame(ctx, [layer({ effects: [
+      { id: "b", type: "color", enabled: true, brightness: -0.25 }
+    ] })], GEOMETRY, {
+      maskScratch: () => ({ ctx: scratch, surface: "scratch" })
+    });
+
+    expect(scratch.pixels[0]).toBe(64);
+  });
+
+  it("keeps the rest of the grade in the filter, after the lift", () => {
+    const ctx = new RecordingContext();
+    const scratch = new PixelContext(128);
+    drawTimelineFrame(
+      ctx,
+      [
+        layer({
+          effects: [
+            {
+              id: "g",
+              type: "color",
+              enabled: true,
+              brightness: 0.25,
+              contrast: 1.5
+            }
+          ]
+        })
+      ],
+      GEOMETRY,
+      { maskScratch: () => ({ ctx: scratch, surface: "scratch" }) }
+    );
+
+    // The shader runs brightness before contrast; drawing the brightened copy
+    // through the remaining filter is the same order.
+    expect(scratch.pixels[0]).toBe(192);
+    expect(ctx.draws[0]?.filter).toBe("contrast(1.500)");
+  });
+
+  it("falls back to the CSS multiply and says so with no scratch surface", () => {
+    const ctx = new RecordingContext();
+    const { degraded } = drawTimelineFrame(
+      ctx,
+      [layer({ clipId: "shot", effects: lift })],
+      GEOMETRY
+    );
+
+    expect(ctx.draws[0]?.filter).toBe("brightness(1.250)");
+    expect(degraded).toEqual([
+      { clipId: "shot", reason: "brightness_multiplicative" }
+    ]);
+  });
+
+  it("asks for no scratch when the grade moves no brightness", () => {
+    const ctx = new RecordingContext();
+    const scratch = new PixelContext(128);
+    const { degraded } = drawTimelineFrame(
+      ctx,
+      [
+        layer({
+          effects: [
+            { id: "c", type: "color", enabled: true, contrast: 1.5 }
+          ]
+        })
+      ],
+      GEOMETRY,
+      { maskScratch: () => ({ ctx: scratch, surface: "scratch" }) }
+    );
+
+    expect(ctx.draws[0]?.source).toBe("l1");
+    expect(ctx.draws[0]?.filter).toBe("contrast(1.500)");
+    expect(degraded).toEqual([]);
   });
 });

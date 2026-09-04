@@ -568,6 +568,86 @@ describe("motion eval predicates", () => {
     expect(test(stateOf(tracks, [host, overrunning, scrim]))).toBe(false);
   });
 
+  it("lower-third-layered: a scrim that never shares a frame with the text fails", () => {
+    // Both inside the shot, both on the right tracks, and never on screen
+    // together — the words are on bare picture for their whole window.
+    const test = predicateOf(
+      "lower-third-layered",
+      "scrimBehindTextInsideTheShot"
+    );
+    const host = makeClip({
+      id: "c_host",
+      trackId: pictureTrack.id,
+      mediaType: "video",
+      name: "Host",
+      startMs: 0,
+      durationMs: 6000
+    });
+    const name = textClip({
+      id: "c_name",
+      text: "Maya Chen",
+      startMs: 3000,
+      durationMs: 2000
+    });
+    const scrim = makeClip({
+      id: "c_scrim",
+      trackId: scrimTrack.id,
+      mediaType: "shape",
+      startMs: 0,
+      durationMs: 2000
+    });
+    const tracks = [overlay, scrimTrack, pictureTrack];
+    expect(test(stateOf(tracks, [host, name, scrim]))).toBe(false);
+    // The same pair, overlapping: it is only the timing that was wrong.
+    expect(
+      test(
+        stateOf(tracks, [host, name, { ...scrim, startMs: 3000, durationMs: 2000 }])
+      )
+    ).toBe(true);
+  });
+
+  it("lower-third-layered: a scrim under the picture darkens nothing", () => {
+    // A scrim below the shot it is meant to darken is invisible, and the words
+    // sit on bare picture. Track index is z-order, so this is the ordering the
+    // predicate has to require in both directions.
+    const test = predicateOf(
+      "lower-third-layered",
+      "scrimBehindTextInsideTheShot"
+    );
+    const buriedScrimTrack = makeTrack({
+      id: "t_buried",
+      type: "overlay",
+      index: 2
+    });
+    const midPictureTrack = makeTrack({ id: "t_pic2", type: "video", index: 1 });
+    const host = makeClip({
+      id: "c_host",
+      trackId: midPictureTrack.id,
+      mediaType: "video",
+      name: "Host",
+      startMs: 0,
+      durationMs: 6000
+    });
+    const name = textClip({
+      id: "c_name",
+      text: "Maya Chen",
+      startMs: 1000,
+      durationMs: 3000
+    });
+    const scrim = makeClip({
+      id: "c_scrim",
+      trackId: buriedScrimTrack.id,
+      mediaType: "shape",
+      startMs: 1000,
+      durationMs: 3000
+    });
+    expect(
+      test(
+        stateOf([overlay, midPictureTrack, buriedScrimTrack], [host, name, scrim])
+      )
+    ).toBe(false);
+  });
+
   it("entrance-decelerates: ease-out and spring pass, easeIn and linear fail", () => {
     const test = predicateOf("entrance-decelerates", "everyEntranceDecelerates");
     const withEasing = (id: string, easing?: string): TimelineClip =>
@@ -597,6 +677,42 @@ describe("motion eval predicates", () => {
     ).toBe(false);
     expect(
       test(stateOf([overlay], [withEasing("c1", "linear"), withEasing("c2", "easeOut")]))
+    ).toBe(false);
+  });
+
+  it("entrance-decelerates: a decelerating bezier passes, an accelerating one fails", () => {
+    // The skill recommends `cubic-bezier(0.16,1,0.3,1)` for entrances, so a
+    // check that only reads easing names scores the shipped advice as wrong.
+    const test = predicateOf("entrance-decelerates", "everyEntranceDecelerates");
+    const withEasing = (id: string, easing: string): TimelineClip =>
+      textClip({
+        id,
+        text: "Chapter",
+        animations: [{ id: `${id}_a`, role: "in", preset: "fade", easing }]
+      });
+    expect(
+      test(
+        stateOf(
+          [overlay],
+          [
+            withEasing("c1", "cubic-bezier(0.16,1,0.3,1)"),
+            withEasing("c2", "cubic-bezier(0.16, 1, 0.3, 1)")
+          ]
+        )
+      )
+    ).toBe(true);
+    // The exit curve the skill names, used as an entrance: it speeds up into
+    // the landing, which is the shape this check exists to catch.
+    expect(
+      test(
+        stateOf(
+          [overlay],
+          [
+            withEasing("c1", "cubic-bezier(0.16,1,0.3,1)"),
+            withEasing("c2", "cubic-bezier(0.7,0,0.84,0)")
+          ]
+        )
+      )
     ).toBe(false);
   });
 

@@ -98,6 +98,12 @@ export interface ImagePixels {
 
 /** One layer to composite, with its source already decoded or rasterized. */
 export interface Canvas2DLayer<TSource> {
+  /**
+   * The clip this layer draws, when the host knows it. Only a
+   * {@link Canvas2DDegradation} reads it — a report naming no clip is a report
+   * an agent cannot act on.
+   */
+  clipId?: string;
   source: TSource;
   /** Source pixel dimensions — the space the transform and mask act in. */
   sourceWidth: number;
@@ -249,6 +255,45 @@ export interface DrawTimelineFrameOptions<TSource> {
    * Off by default, so a preview keeps the ground it has.
    */
   alpha?: boolean;
+}
+
+/**
+ * A way this path draws a frame the GPU compositor would draw differently,
+ * where the difference is not an effect type {@link unsupportedEffectTypes}
+ * could name (I7).
+ *
+ * Every one of these is a *host* shortfall rather than a missing rule: the
+ * drawing exists, and the surface it needs to run on does not — except
+ * `drop_shadow_extra_ignored`, which is `ctx.shadow*` being one set of fields
+ * where the GPU recipe runs once per effect.
+ */
+export type Canvas2DDegradationReason =
+  /** A feathered shape mask drawn as its hard edge. */
+  | "mask_hard_edge"
+  /** A feathered wipe drawn as a hard edge. */
+  | "wipe_hard_edge"
+  /** A track matte skipped: the layer drew unmatted. */
+  | "matte_skipped"
+  /** A precompositing group's blend mode and effects lost. */
+  | "group_blend_lost"
+  /** Drop shadows past the first in the chain, not cast. */
+  | "drop_shadow_extra_ignored"
+  /** Brightness applied as a CSS multiply instead of the GPU's addition. */
+  | "brightness_multiplicative";
+
+/** One degradation, and the clip it happened to. */
+export interface Canvas2DDegradation {
+  /** The clip, when the host set {@link Canvas2DLayer.clipId}. */
+  clipId?: string;
+  reason: Canvas2DDegradationReason;
+}
+
+/** What a frame draw left behind besides pixels. */
+export interface Canvas2DFrameReport<TSource> {
+  /** Layers that drew nothing, in composite order. */
+  skipped: Canvas2DLayer<TSource>[];
+  /** Every way this frame differs from the GPU render, in draw order. */
+  degraded: Canvas2DDegradation[];
 }
 
 /**

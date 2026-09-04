@@ -792,6 +792,12 @@ export const timelineClip = z.object({
   linkId: z.string().optional(),
   width: z.number().optional(),
   height: z.number().optional(),
+  /** Direct-gen target aspect ratio ("16:9") and resolution tier ("720p"),
+   * both written by the direct-gen clip panel. Without these fields Zod strips
+   * them on every PATCH, so a clip re-generates at the provider default rather
+   * than at the size the user picked. */
+  aspectRatio: z.string().optional(),
+  resolution: z.string().optional(),
   strength: z.number().optional(),
   numInferenceSteps: z.number().optional(),
   seed: z.number().optional(),
