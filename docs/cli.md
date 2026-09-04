@@ -1969,7 +1969,7 @@ need a target or a key are printed as manual work rather than silently skipped.
 
 ```bash
 nodetool harness gate --base main
-nodetool harness gate --dry-run packages/base-nodes/src/text.ts
+nodetool harness gate --dry-run packages/base-nodes/src/index.ts
 nodetool harness gate --all --expensive
 ```
 

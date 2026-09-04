@@ -296,7 +296,7 @@ optional: it re-encodes to H.264 and VP9 at a fraction of that and cuts the
 WebP posters the `<img>` srcSet needs. Pass `--frame <n>` to poster a
 different moment.
 
-Pace is one number: `PACE` in `heroChrome.ts`. Every beat in the reel — stage
+Pace is one number: `PACE` in `heroChrome.tsx`. Every beat in the reel — stage
 boundaries, caption staggers, the word-by-word open, the closing montage —
 goes through `paced()`, so the whole thing speeds up or slows down together
 rather than the captions popping while the surfaces crawl.

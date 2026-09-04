@@ -35,7 +35,7 @@ npm run test:e2e
 ```
 
 The Playwright configuration automatically:
-- Starts a mock API server on port 4444
+- Starts the real backend (`packages/websocket/src/screenshot-server.ts`) on port 7777 via `tests/globalSetup.ts`
 - Starts the frontend dev server on port 3000
 - Runs all e2e tests
 - Cleans up servers after tests complete
@@ -43,10 +43,7 @@ The Playwright configuration automatically:
 ### 4. Test Structure
 
 - **Unit/Integration Tests**: `web/src/**/__tests__/**/*.test.ts(x)`
-- **E2E Tests**: `web/tests/e2e/**/*.spec.ts`
-
-Current E2E tests:
-- `app-loads.spec.ts` - ✅ Basic page loading, navigation, API connectivity
+- **E2E Tests**: `web/tests/**/*.spec.ts` — `npm run test:e2e` ignores `tests/e2e-runner/` and `tests/journeys/`, which have their own configs (`npm run test:e2e-runner`, `npm run test:journeys`)
 
 ### 5. Debugging
 
@@ -95,25 +92,11 @@ cd web && npm start
 ### Issue: Port 7777 already in use
 **Solution**: Kill existing process: `lsof -ti:7777 | xargs kill -9`
 
-## CI/CD
-
-The GitHub Actions workflow `.github/workflows/e2e.yml` runs integration tests automatically on:
-- Push to main (when packages/ files change)
-- Pull requests to main (when packages/ files change)
-
-The workflow:
-1. Sets up Node.js 22
-2. Installs npm dependencies
-3. Rebuilds native modules (better-sqlite3)
-4. Builds backend packages
-5. Runs integration tests
-
 ## Resources
 
 - **Testing Documentation**: `/web/TESTING.md`
 - **Component Guide**: `/web/src/components/AGENTS.md`
 - **Store Patterns**: `/web/src/stores/AGENTS.md`
-- **Web README**: `/web/README.md`
 
 ---
 

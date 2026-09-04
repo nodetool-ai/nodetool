@@ -47,8 +47,7 @@ is the paint order. The editor ships them as the `svg-*` snippets.
 
 The `lib.nlp.*` nodes (tokenize, stem, classify, entities, sentiment, TF-IDF,
 phonetic match) were removed with their 2,766 lines of vendored algorithms. No
-replacement pack ships yet — see
-[docs/CODE_NODE_COVERAGE.md](../../docs/CODE_NODE_COVERAGE.md).
+replacement pack ships yet.
 
 ## Links
 

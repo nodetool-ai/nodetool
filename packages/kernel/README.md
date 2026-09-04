@@ -37,5 +37,4 @@ npm run test  --workspace=packages/kernel
 npm run lint  --workspace=packages/kernel
 ```
 
-Scheduling design and known gaps: [docs/correlation-design.md](../../docs/correlation-design.md)
-and [docs/KERNEL_PARITY_GAPS.md](../../docs/KERNEL_PARITY_GAPS.md).
+Scheduling design: [docs/correlation-design.md](../../docs/correlation-design.md).
