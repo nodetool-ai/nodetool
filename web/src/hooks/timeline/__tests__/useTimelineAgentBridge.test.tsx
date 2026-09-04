@@ -190,3 +190,83 @@ describe("useTimelineAgentBridge setTimeRemap", () => {
     expect(clipById("clip-1").timeRemap).toBeUndefined();
   });
 });
+
+// The frame extractor and the asset lookup are the two things a frame grab
+// touches outside the store; both are stubbed so the test is about which
+// times the bridge asks for.
+jest.mock("../../../components/timeline/Tracks/clipThumbnails", () => ({
+  extractVideoFrames: jest.fn(
+    async (_url: string, timesSec: number[], width: number) =>
+      timesSec.map((time) => ({
+        time,
+        width,
+        height: width,
+        dataUrl: "data:image/jpeg;base64,"
+      }))
+  )
+}));
+jest.mock("../../../stores/AssetStore", () => ({
+  useAssetStore: {
+    getState: () => ({
+      get: async () => ({ id: "asset-1", get_url: "https://example.test/a.mp4" })
+    })
+  }
+}));
+
+describe("useTimelineAgentBridge getClipFrames", () => {
+  /** A clip whose media starts a long way into the cut, as an assembly lays it. */
+  const seedLateClip = (): void => {
+    mockDoc.getState().addTrack("video", "Shots");
+    const trackId = mockDoc.getState().tracks[0].id;
+    mockDoc.getState().addClip(
+      makeClip({
+        id: "shot-4",
+        name: "Shot 4",
+        trackId,
+        mediaType: "video",
+        sourceType: "imported",
+        status: "generated",
+        currentAssetId: "asset-1",
+        startMs: 15552,
+        durationMs: 5184
+      })
+    );
+  };
+
+  it("reads clip-relative times on a clip that does not start at zero", async () => {
+    seedLateClip();
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+
+    // "200ms into this clip" is what a caller inspecting one clip means. It
+    // used to be refused outright: `Frame time 200ms is outside clip "Shot 4"`.
+    const result = await getTimelineAgentHandler(SEQ_ID).getClipFrames(
+      "shot-4",
+      { timesMs: [200, 1800] }
+    );
+    expect(result.frames.map((f) => f.timelineTimeMs)).toEqual([15752, 17352]);
+    expect(result.frames.map((f) => f.sourceTimeMs)).toEqual([200, 1800]);
+  });
+
+  it("still reads a timeline time inside the clip as a timeline time", async () => {
+    seedLateClip();
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+
+    const result = await getTimelineAgentHandler(SEQ_ID).getClipFrames(
+      "shot-4",
+      { timesMs: [15752, 20400] }
+    );
+    expect(result.frames.map((f) => f.timelineTimeMs)).toEqual([15752, 20400]);
+    expect(result.frames.map((f) => f.sourceTimeMs)).toEqual([200, 4848]);
+  });
+
+  it("names both accepted ranges when a time fits neither", async () => {
+    seedLateClip();
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+
+    await expect(
+      getTimelineAgentHandler(SEQ_ID).getClipFrames("shot-4", {
+        timesMs: [90000]
+      })
+    ).rejects.toThrow(/15552–20736ms.*0–5184ms/s);
+  });
+});

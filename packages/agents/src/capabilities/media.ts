@@ -66,7 +66,10 @@ import {
 } from "../tools/asset-persist.js";
 import type { SavedOutput } from "../tools/asset-persist.js";
 import { persistBinaryOutput } from "../tools/binary-output.js";
-import { extractJSON } from "../utils/json-parser.js";
+import {
+  extractJSON,
+  extractJSONAllowingTruncation
+} from "../utils/json-parser.js";
 import { isYtDlpEnabled } from "../yt-dlp-gate.js";
 import {
   isFunction,
@@ -1316,6 +1319,21 @@ async function judgeCall(
   return messageText(result);
 }
 
+/**
+ * Whether a model reply reads as cut off rather than merely wrong.
+ *
+ * A judge on a reasoning model spends its ceiling thinking and returns half a
+ * sentence; the caller then sees "did not return parseable JSON" and re-runs
+ * the same call at the same budget. Naming the cause in the error is the
+ * difference between one retry and three.
+ */
+export function looksTruncated(text: string): boolean {
+  const trimmed = text.trimEnd();
+  if (trimmed.length === 0) return false;
+  if (/[.!?\]}"]$/.test(trimmed)) return false;
+  return true;
+}
+
 function tasteBlock(params: Record<string, unknown>): string {
   const profile = params["taste_profile"];
   if (!isNonBlankString(profile)) return "";
@@ -1338,8 +1356,17 @@ interface CritiqueResult {
   strengths: string[];
 }
 
+/**
+ * A critique out of a judge reply, whole or cut short.
+ *
+ * The reply is a report, not an instruction: a `verdict` plus two lists whose
+ * entries stand alone. A judge that hits its token ceiling mid-list has still
+ * said everything before the cut, so a truncated reply is salvaged rather than
+ * thrown away — before this, a run lost a usable verdict and every defect the
+ * judge had already named.
+ */
 function parseCritique(text: string): CritiqueResult | null {
-  const parsed = extractJSON(text);
+  const parsed = extractJSONAllowingTruncation(text);
   if (!isRecord(parsed)) {
     return null;
   }
@@ -1398,7 +1425,10 @@ const critiqueImage: CapabilityExport = {
       const critique = parseCritique(text);
       if (!critique) {
         return {
-          error: `Judge did not return parseable JSON: ${text.slice(0, 300)}`
+          error:
+            `Judge did not return parseable JSON` +
+            `${looksTruncated(text) ? " (the reply stops mid-sentence — it hit the token ceiling; raise max_tokens or pick a model that does not spend the budget on reasoning)" : ""}` +
+            `: ${text.slice(0, 300)}`
         };
       }
       return {
@@ -1430,7 +1460,7 @@ interface MatchRecord {
 function parsePairVerdict(
   text: string
 ): { winner: 1 | 2; reason: string } | null {
-  const parsed = extractJSON(text);
+  const parsed = extractJSONAllowingTruncation(text);
   if (!isRecord(parsed)) return null;
   const obj = parsed;
   const winner = Number(obj["winner"]);
@@ -1693,7 +1723,13 @@ const understandVideo: CapabilityExport = {
         text,
         provider: m.provider,
         model: m.model,
-        read_as: native ? "video" : "sampled_frames"
+        read_as: native ? "video" : "sampled_frames",
+        // A reasoning model spends `max_tokens` on thinking and returns a
+        // fragment. Without this the caller reads half an answer as the whole
+        // answer — one run acted on "the clip shows a man attempting to" and
+        // never learned the sentence had been cut.
+        truncated: looksTruncated(text),
+        max_tokens: maxTokens
       };
     } catch (e) {
       return {
