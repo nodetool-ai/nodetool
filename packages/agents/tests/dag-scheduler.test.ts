@@ -293,6 +293,41 @@ describe("scheduleDag", () => {
     expect(rec.returned.sort()).toEqual(["boom", "fine"]);
   });
 
+  it("starts a dependent only after every sibling's terminal events", async () => {
+    // a and b settle in the same tick; c depends on both. The scheduler used
+    // to push c to `ready` before b's terminal events had been yielded, and
+    // a's `finally` then started it — so c's first event could land between
+    // b's settle events, and a consumer saw a dependent start before its
+    // dependency had finished settling.
+    const shared = gate();
+    const rec = recorder();
+    const nodes = [node("a"), node("b"), node("c", ["a", "b"])];
+
+    const scheduled = scheduleDag<TestNode, string>({
+      nodes,
+      run: makeRun(rec, { a: { block: shared.wait }, b: { block: shared.wait } }),
+      // b settles with many terminal events and a with one, so a's `finally`
+      // runs while b is still yielding its settle events.
+      settle: (n, outcome) =>
+        n.id === "b"
+          ? Array.from({ length: 8 }, (_, i) => `settle:b:${outcome}:${i + 1}`)
+          : [`settle:${n.id}:${outcome}:1`],
+      onBlocked: blockedEvents,
+      concurrency: createSemaphore(4)
+    });
+
+    const events: string[] = [];
+    for await (const event of scheduled) {
+      events.push(event);
+      if (event === "start:b") shared.open();
+    }
+
+    const startC = events.indexOf("start:c");
+    expect(startC).toBeGreaterThan(-1);
+    expect(events.indexOf("settle:a:ok:1")).toBeLessThan(startC);
+    expect(events.indexOf("settle:b:ok:8")).toBeLessThan(startC);
+  });
+
   it("runs a 20 000-node chain in bounded time", async () => {
     const size = 20_000;
     const nodes: TestNode[] = [node("n0")];

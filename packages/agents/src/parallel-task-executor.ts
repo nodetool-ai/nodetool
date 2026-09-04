@@ -11,8 +11,7 @@
 import type {
   BaseProvider,
   ProcessingContext,
-  RunBudget,
-  Semaphore
+  RunBudget
 } from "@nodetool-ai/runtime";
 import {
   budgetFromContext,
@@ -27,11 +26,7 @@ import type {
 } from "@nodetool-ai/protocol";
 import { TaskUpdateEvent } from "@nodetool-ai/protocol";
 import { TaskExecutor } from "./task-executor.js";
-import {
-  holdsRunSlot,
-  markRunSlotHeld,
-  settleResultValue
-} from "./subagent.js";
+import { settleResultValue } from "./subagent.js";
 import {
   ABORTED,
   UNSATISFIABLE_DEPENDENCY,
@@ -69,9 +64,9 @@ export interface ParallelTaskExecutorOptions {
   /** Cap on output tokens per step turn. Forwarded to each TaskExecutor. */
   maxTokens?: number;
   /**
-   * The run's budget, forwarded to every task (and through it to every step),
-   * and used as the concurrency bound the task fan-out shares with them.
-   * Omitted, the budget on {@link context} is used.
+   * The run's budget, forwarded to every task and through it to every step,
+   * whose provider conversations draw on its permit pool. Omitted, the budget
+   * on {@link context} is used.
    */
   budget?: RunBudget;
   /** External cancellation, forwarded to every task and step executor. */
@@ -92,11 +87,6 @@ export class ParallelTaskExecutor {
   private readonly maxConcurrentAgents: number;
   private readonly maxTokens?: number;
   private readonly budget?: RunBudget;
-  /**
-   * The run's permit pool, when this executor is the layer drawing from it —
-   * see {@link TaskExecutor}'s own field for why only one layer per branch may.
-   */
-  private mergeSemaphore?: Semaphore;
   private readonly signal?: AbortSignal;
   private readonly sandboxPackages: readonly string[];
   /**
@@ -134,30 +124,6 @@ export class ParallelTaskExecutor {
    * Independent tasks run concurrently as separate sub-agents.
    */
   async *execute(): AsyncGenerator<ProcessingMessage> {
-    const leaveRunSlot = this.enterRunSlot();
-    try {
-      yield* this.runPlan();
-    } finally {
-      leaveRunSlot();
-    }
-  }
-
-  /**
-   * Claim this branch's run slot for the task fan-out, and hand back the undo.
-   * The `TaskExecutor`s built below then see the branch holding it and bound
-   * their own step fan-outs numerically, instead of queueing for permits this
-   * executor is already holding on their behalf — which would deadlock.
-   */
-  private enterRunSlot(): () => void {
-    if (!this.budget || holdsRunSlot(this.context)) {
-      this.mergeSemaphore = undefined;
-      return () => {};
-    }
-    this.mergeSemaphore = this.budget.concurrency;
-    return markRunSlotHeld(this.context);
-  }
-
-  private async *runPlan(): AsyncGenerator<ProcessingMessage> {
     // Seed inputs into shared agent memory so every task and step sees them.
     for (const [key, value] of Object.entries(this.inputs)) {
       this.context.memory.set({
@@ -185,10 +151,11 @@ export class ParallelTaskExecutor {
     const nodes = this.taskNodes();
     yield* scheduleDag<TaskNode, ProcessingMessage>({
       nodes,
-      // The branch's pool when this executor is the layer drawing from it,
-      // else a pool of its own so an unbudgeted plan is still bounded.
-      concurrency:
-        this.mergeSemaphore ?? createSemaphore(this.maxConcurrentAgents),
+      // A task opens no provider conversation of its own — its steps do, and
+      // they draw on the run's pool inside `TaskExecutor`. A task holding a
+      // run permit for its whole length while its steps queued for more is
+      // what deadlocked nested layers, so this bound is numeric only.
+      concurrency: createSemaphore(this.maxConcurrentAgents),
       maxConcurrent: this.maxConcurrentAgents,
       signal: this.signal,
       run: (node) => this.runTask(node.task),
@@ -197,7 +164,9 @@ export class ParallelTaskExecutor {
       onBlocked: (node, by) =>
         this.blockTaskEvents(
           node.task,
-          `Task blocked: dependency ${by.id} failed`
+          this.signal?.aborted
+            ? "Task aborted"
+            : `Task blocked: dependency ${by.id} failed`
         )
     });
 
@@ -439,14 +408,22 @@ export class ParallelTaskExecutor {
     if (incomplete.length > 0) {
       return `${incomplete.length} of ${task.steps.length} step(s) did not complete (run budget exhausted or unsatisfiable dependency)`;
     }
+    // A schema'd step asked for its object shape, so a string `error` field in
+    // it is data the plan requested, not the failure payload a dying step
+    // writes — the same distinction `runSubAgent` draws.
     for (const step of task.steps) {
       const value = this.context.memory.getValue(memoryKeys.step(step.id));
-      const settled = settleResultValue(value);
+      const settled = settleResultValue(value, {
+        hasOutputSchema: Boolean(step.outputSchema)
+      });
       if (settled && !settled.ok) {
         return `step ${step.id}: ${settled.error}`;
       }
     }
-    const settledTask = settleResultValue(taskResult);
+    const finishStep = task.steps[task.steps.length - 1];
+    const settledTask = settleResultValue(taskResult, {
+      hasOutputSchema: Boolean(finishStep?.outputSchema)
+    });
     if (settledTask && !settledTask.ok) {
       return settledTask.error;
     }

@@ -734,7 +734,7 @@ Everything mechanical is derived, so the table cannot rot:
 
 ```bash
 npm run capabilities:sync     # rewrite the table from the live registry
-npm run capabilities:check    # fail if it is stale (CI, and the gate)
+npm run capabilities:check    # fail if it is stale (the Quality Gate's typecheck leg)
 npm run dev:nodetool -- harness capabilities [--json] [--strict]
 ```
 
@@ -1041,7 +1041,10 @@ that object with `gateFromContext` instead of building a gate of its own
 same reason: `ProcessingContext.copy()` shallow-copies the variable bag, so a
 child shares the host's gate object rather than a clone, which is what makes a
 mid-turn `set_permission_mode` and an "allow for this chat" answer reach a loop
-that started before them.
+that started before them. A context carrying no gate still resolves to the
+headless `auto` gate, and `gateFromContext` logs that fallback at error level,
+so a host that forgot to set one shows up in the log rather than running
+silently ungated.
 
 | Host | Where its gate comes from | Mode | Approver |
 |---|---|---|---|
@@ -1216,10 +1219,19 @@ below.
 Nothing resolves a per-run policy object: `execute_plan` passes the run's
 budget and the parent's per-step iteration cap directly.
 
-`maxConcurrentAgents` alone bounds one merge, not the run — tasks, steps and
-sub-agents each apply it separately, so the three multiply. The run-level bound
-is the budget's semaphore below, which each DAG executor passes to
-`scheduleDag` as its permit pool while bounding its own schedule numerically.
+`maxConcurrentAgents` bounds one merge numerically (tasks per plan, steps per
+task), not the run. The run-level bound is the budget's permit pool below, and
+a permit stands for one open provider conversation, not one layer: a task takes
+none, each step holds one through `branchPool` (`subagent.ts`), and a child a
+step or sub-agent spawns runs on its parent's permit while the parent is idle
+in the spawning call and borrows from the run pool beyond that. A holder never
+queues for a second permit, so nesting cannot deadlock, and one pool bounds
+tasks, steps and sub-agents together (`run-budget-propagation.test.ts`, "bounds
+every layer"). `start_subtask` refuses past `MAX_BACKGROUND_SUBTASKS_PER_TURN`
+(`tools/start-subtask-tool.ts`) with `background_limit_reached`; a detached
+child still on its parent's permit can overlap the parent's next turn.
+Planning draws on the same budget: `TaskPlanner` takes a `budget` (falling back
+to the context's) and a refused turn stops planning naming the budget's reason.
 
 ### One budget per run (`@nodetool-ai/runtime` → `RunBudget`)
 
@@ -1230,7 +1242,7 @@ re-created by a child. `RunBudget` carries four:
 |---|---|---|
 | `turns` | a turn whose worst case would cross the USD cap | `NODETOOL_AGENT_TURN_COST_CAP_USD` |
 | `deadline` | any turn or tool call after the wall clock runs out | `NODETOOL_AGENT_TURN_DEADLINE_MS` |
-| `concurrency` | a branch beyond the run's open-conversation limit | `NODETOOL_AGENT_MAX_CONCURRENCY` |
+| `concurrency` | a permit past the run's pool — tasks, steps, nested executors and sub-agents all draw from it, a holder's own permit counting as one | `NODETOOL_AGENT_MAX_CONCURRENCY` |
 | `turnCount` | a turn past the run's cumulative total | `NODETOOL_AGENT_MAX_TURNS` |
 
 Spend admission is reserve-then-commit, because the next call's cost is only
@@ -1292,10 +1304,12 @@ A step that fails sets `step.failed` + `step.error` and leaves `completed`
 false, and its `step_result` carries the protocol-level `error` field. Nothing
 downstream may treat a failure as a satisfied dependency: the scheduler walks
 the failed node's transitive dependents and settles each as failed, naming the
-dependency directly above it, and a plan whose every task failed throws instead
-of compiling a deliverable out of nothing. The same holds one level up — a
-failed task blocks its dependent tasks — and a step or task the run's signal cut
-short settles as failed too, rather than being left looking like it is still
+dependency directly above it, and `execute_plan` answers a plan whose every
+task failed with `error: "plan_failed"` and the per-task failures rather than
+compiling a deliverable out of nothing; it does not throw. The same holds one
+level up — a failed task blocks its dependent tasks — and a step or task the
+run's signal cut short settles once as "Step aborted" / "Task aborted", never
+as "dependency failed", rather than being left looking like it is still
 running.
 
 ## CodeAct Execution (`src/codeact/`)
@@ -1307,8 +1321,10 @@ host-validated completion, and memory (`nodetool.memory.*`) for results
 a later action or turn needs — there is no cross-action variable bag. The
 prompt tells the model to record each generate/speak result (an `asset://` uri)
 with `nodetool.memory.save` and reuse it; local variables die with the action,
-and `return` is the observation only. Design and the
-research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
+and `return` is the observation only. A step action runs with no guest
+`fetch` and no secret scope: network and secrets are reached only through the
+gated capabilities, the same rule the chat session's actions run under. Design
+and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
 
 - `CodeActExecutor` keeps the message contract, memory writes, and failure
   semantics the step loop has always had — consumers work unchanged. Bridged
@@ -1558,8 +1574,11 @@ offender and runs nothing.
 Every message the executor yields is forwarded verbatim — the `task_update`
 events are what the thread and the sidebar render, so re-summarizing them would
 leave the user watching nothing until the end. The call returns each task's
-`completed`/`failed` (with the step and error behind a failure) plus a
-`results` map keyed by task id. The step results also stay in the run's shared
+`completed`/`failed` (with the step and error behind a failure), a `results`
+map keyed by task id, and beside it a `steps` map of per-step results, so a
+caller can read what one step produced without unpacking its task. A plan
+whose every task failed comes back as `error: "plan_failed"` with those
+failures, not as a throw. The step results also stay in the run's shared
 memory under `task:<id>`, which the description points at so the model reads
 one back with `read_shared` instead of redoing the work.
 
