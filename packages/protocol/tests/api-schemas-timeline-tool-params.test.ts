@@ -30,9 +30,13 @@ import {
   shapeStyleParams,
   textStyleParams,
   transitionParams,
+  resolveDeleteTrackArgs,
+  resolveShapeArg,
   withFieldNotes,
+  withTextClipRemedies,
   SHARED_TIMELINE_TOOL_NAMES
 } from "../src/api-schemas/timeline-tool-params.js";
+import { parseWithTypeCoercion } from "../src/zod-schema.js";
 
 const fields = (schema: z.ZodObject<z.ZodRawShape>) =>
   Object.keys(schema.shape).sort();
@@ -300,5 +304,102 @@ describe("textStyleParams — verticalAlign", () => {
         verticalAlign: "center"
       }).verticalAlign
     ).toBe("center");
+  });
+});
+
+/**
+ * Four refusals and one silent success, all from one motion-graphics build.
+ * Each cost a round trip or a wrong render, and none of them was the caller
+ * misunderstanding the document — they were the authoring surface being
+ * stricter, or quieter, than the thing it authors.
+ */
+describe("what a real build got wrong", () => {
+  it("takes a drop shadow without the zero offsets", () => {
+    const parsed = textStyleParams.parse({
+      text: "NodeTool",
+      fontSizePx: 176,
+      color: "#FFFFFF",
+      shadow: { color: "#000000", blurPx: 24 }
+    });
+    expect(parsed.shadow).toEqual({
+      color: "#000000",
+      blurPx: 24,
+      offsetX: 0,
+      offsetY: 0
+    });
+  });
+
+  it("refuses a misspelled field inside a style bag rather than dropping it", () => {
+    const parsed = textStyleParams.safeParse({
+      text: "Start building — free",
+      fontSizePx: 58,
+      color: "#0B0E1A",
+      background: { color: "#FFFFFF", paddingPx: 34, cornerRadius: 40 }
+    });
+    expect(parsed.success).toBe(false);
+    expect(JSON.stringify(parsed.error?.issues)).toContain("cornerRadius");
+  });
+
+  it("merges the three ways a shape's look can arrive", () => {
+    const shape = resolveShapeArg(
+      { kind: "rect", fill: "#0B0E1A" },
+      { kind: "rect", cornerRadius: 8 },
+      { x: 0.5, y: 0.5, width: 1, height: 1 }
+    );
+    expect(shape).toEqual({
+      kind: "rect",
+      fill: "#0B0E1A",
+      cornerRadius: 8,
+      x: 0.5,
+      y: 0.5,
+      width: 1,
+      height: 1
+    });
+  });
+
+  it("still fills the whole frame when no geometry is named at all", () => {
+    expect(resolveShapeArg({ kind: "rect", fill: "#0B0E1A" }, undefined, {}))
+      .toEqual({ kind: "rect", fill: "#0B0E1A", x: 0, y: 0, width: 1, height: 1 });
+  });
+
+  it("leaves a line's points alone instead of boxing it", () => {
+    const line = resolveShapeArg(undefined, undefined, {
+      kind: "line",
+      x: 0.1,
+      y: 0.5,
+      x2: 0.9,
+      y2: 0.5
+    });
+    expect(line.width).toBeUndefined();
+    expect(line.height).toBeUndefined();
+  });
+
+  it("names the track to delete in either spelling, and gates the clips", () => {
+    expect(resolveDeleteTrackArgs({ trackId: "track_1" })).toEqual({
+      target: "track_1",
+      deleteClips: false
+    });
+    expect(
+      resolveDeleteTrackArgs({ target: "Video 1", deleteClips: true })
+    ).toEqual({ target: "Video 1", deleteClips: true });
+    expect(() => resolveDeleteTrackArgs({})).toThrow(/track id or name/);
+  });
+
+  it("sends a caller reaching for text x/y to the anchors", () => {
+    const schema = withTextClipRemedies(
+      z
+        .object({ text: z.string() })
+        .merge(partialTextStyleParams)
+        .strict()
+    );
+    let message = "";
+    try {
+      parseWithTypeCoercion(schema, { text: "Build AI", x: 0.5, y: 0.42 });
+    } catch (e) {
+      message = e instanceof z.ZodError ? e.issues[0]!.message : String(e);
+    }
+    expect(message).toContain("This op accepts:");
+    expect(message).toContain("`align`");
+    expect(message).toContain("verticalAlign");
   });
 });

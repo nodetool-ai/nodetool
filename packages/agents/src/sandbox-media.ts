@@ -441,6 +441,80 @@ export function sniffImageFormat(bytes: Uint8Array): string {
 }
 
 /**
+ * An image's pixel size from its header alone.
+ *
+ * Decoding to ask how big something is costs a full rasterization and, for the
+ * formats the backend does not build with, fails outright — so this reads the
+ * four formats whose dimensions sit in a fixed place near the front. An
+ * unrecognized format is null: a caller wanting a shape has to cope with not
+ * knowing it, and a wrong guess is worse than none.
+ */
+export function imagePixelSize(
+  bytes: Uint8Array
+): { width: number; height: number } | null {
+  const at = (i: number): number => bytes[i] ?? 0;
+  const be16 = (i: number): number => (at(i) << 8) | at(i + 1);
+  const be32 = (i: number): number =>
+    at(i) * 0x1000000 + (at(i + 1) << 16) + (at(i + 2) << 8) + at(i + 3);
+  const le16 = (i: number): number => at(i) | (at(i + 1) << 8);
+  const format = sniffImageFormat(bytes);
+
+  if (format === "png" && bytes.length >= 24) {
+    return { width: be32(16), height: be32(20) };
+  }
+  if (format === "gif" && bytes.length >= 10) {
+    return { width: le16(6), height: le16(8) };
+  }
+  if (format === "jpeg") {
+    // Walk the segment chain to the frame header; SOF0..SOF15 carry the size,
+    // minus the four that are not frames (DHT, JPG, DAC, and the restarts).
+    let offset = 2;
+    while (offset + 9 < bytes.length) {
+      if (at(offset) !== 0xff) {
+        offset += 1;
+        continue;
+      }
+      const marker = at(offset + 1);
+      const size = be16(offset + 2);
+      if (size < 2) return null;
+      const isFrame =
+        marker >= 0xc0 &&
+        marker <= 0xcf &&
+        marker !== 0xc4 &&
+        marker !== 0xc8 &&
+        marker !== 0xcc;
+      if (isFrame) {
+        return { height: be16(offset + 5), width: be16(offset + 7) };
+      }
+      offset += 2 + size;
+    }
+    return null;
+  }
+  if (format === "webp" && bytes.length >= 30) {
+    // VP8X carries a 24-bit canvas size; lossy (VP8 ) and lossless (VP8L)
+    // each spell it differently.
+    const chunk = String.fromCharCode(at(12), at(13), at(14), at(15));
+    if (chunk === "VP8X") {
+      const dim = (i: number): number =>
+        (at(i) | (at(i + 1) << 8) | (at(i + 2) << 16)) + 1;
+      return { width: dim(24), height: dim(27) };
+    }
+    if (chunk === "VP8 ") {
+      return { width: le16(26) & 0x3fff, height: le16(28) & 0x3fff };
+    }
+    if (chunk === "VP8L") {
+      const bits = at(21) | (at(22) << 8) | (at(23) << 16) | (at(24) << 24);
+      return {
+        width: (bits & 0x3fff) + 1,
+        height: ((bits >> 14) & 0x3fff) + 1
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Structural check before the native decoder sees the bytes./**
  * Structural check before the native decoder sees the bytes.
  *
  * `@napi-rs/canvas` does not merely fail on a truncated image — on linux-x64 it

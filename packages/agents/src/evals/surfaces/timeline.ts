@@ -83,6 +83,10 @@ import {
   maskParams,
   matteParams,
   partialTextStyleParams,
+  deleteTrackShape,
+  resolveDeleteTrackArgs,
+  withTextClipRemedies,
+  DELETE_TRACK_DESCRIPTION,
   setParentParams,
   setTimeRemapParams,
   timeRemapParams,
@@ -1010,17 +1014,19 @@ export function createTimelineToolBridge(
     tool(
       "ui_timeline_add_text_clip",
       ADD_TEXT_CLIP_DESCRIPTION,
-      z
-        .object({
-          text: z.string().trim().min(1),
-          trackId: z.string().optional(),
-          startMs: z.number().optional(),
-          durationMs: z.number().optional(),
-          opacity: clipOpacityParam,
-          style: partialTextStyleParams.optional()
-        })
-        .merge(partialTextStyleParams)
-        .strict(),
+      withTextClipRemedies(
+        z
+          .object({
+            text: z.string().trim().min(1),
+            trackId: z.string().optional(),
+            startMs: z.number().optional(),
+            durationMs: z.number().optional(),
+            opacity: clipOpacityParam,
+            style: partialTextStyleParams.optional()
+          })
+          .merge(partialTextStyleParams)
+          .strict()
+      ),
       async ({
         text,
         trackId,
@@ -1056,6 +1062,52 @@ export function createTimelineToolBridge(
         clips.push(clip);
         selectedClipIds = [clip.id];
         return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    tool(
+      "ui_timeline_delete_track",
+      DELETE_TRACK_DESCRIPTION,
+      z.object(deleteTrackShape).strict(),
+      async (args) => {
+        const { target, deleteClips } = resolveDeleteTrackArgs(args);
+        const track = resolveTrack(target);
+        const onIt = clips.filter((c) => c.trackId === track.id);
+        if (onIt.length > 0 && !deleteClips) {
+          throw new Error(
+            `Track "${track.name}" still holds ${onIt.length} clip(s): ` +
+              `${onIt.map((c) => c.id).join(", ")}. Move them first, or pass ` +
+              "deleteClips: true to delete them with the track."
+          );
+        }
+        const removedClipIds = onIt.map((c) => c.id);
+        const kept = clips.filter((c) => c.trackId !== track.id);
+        clips.length = 0;
+        clips.push(...kept);
+        // A parent that went with the track would leave its children pointing
+        // at a clip that no longer exists, which the validator reads as a
+        // broken document rather than a deletion.
+        for (const clip of clips) {
+          if (clip.parentId && removedClipIds.includes(clip.parentId)) {
+            delete clip.parentId;
+          }
+        }
+        selectedClipIds = selectedClipIds.filter(
+          (id) => !removedClipIds.includes(id)
+        );
+        const remaining = tracks.filter((t) => t.id !== track.id);
+        tracks.length = 0;
+        // Index is z-order, so the stack has to close over the gap.
+        remaining.forEach((t, i) => {
+          t.index = i;
+          tracks.push(t);
+        });
+        return {
+          ok: true,
+          deleted: { id: track.id, name: track.name, type: track.type },
+          deletedClipIds: removedClipIds,
+          tracks: tracks.map(serializeTrack)
+        };
       }
     ),
 

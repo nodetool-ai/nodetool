@@ -10,6 +10,7 @@ const makeMockHandler = (): TimelineAgentHandler => ({
   getSnapshot: jest.fn(),
   addTrack: jest.fn(),
   moveTrack: jest.fn(),
+  deleteTrack: jest.fn(),
   addMediaClip: jest.fn(),
   addTextClip: jest.fn(),
   addShapeClip: jest.fn(),

@@ -53,6 +53,7 @@ import {
   assertResolvedHostAllowed
 } from "../network-guard.js";
 import { encodeBase64 as encodeMediaBase64 } from "../sandbox-bytes.js";
+import { imagePixelSize } from "../sandbox-media.js";
 import {
   DEFAULT_MIME,
   MAX_MEDIA_REF_BYTES,
@@ -650,6 +651,75 @@ const segmentImage: CapabilityExport = {
   }
 };
 
+/**
+ * Read a generation parameter under any of the spellings a caller reaches for.
+ *
+ * The schemas are snake_case, the JS guest API takes an options bag, and the
+ * `TextToVideo` node's own property is `duration` — so a build asked for a
+ * 15-second clip with `{duration: 15}`, was billed for the model's 5-second
+ * default, and had nothing in the result saying the argument had been dropped.
+ * A silently ignored parameter on a call that spends money is the expensive
+ * kind of typo, and every one of these spellings means one thing.
+ */
+function aliased(
+  params: Record<string, unknown>,
+  canonical: string,
+  ...aliases: string[]
+): unknown {
+  for (const key of [canonical, ...aliases]) {
+    const value = params[key];
+    if (value !== undefined && value !== null) return value;
+  }
+  return undefined;
+}
+
+/** The generation parameters every video capability forwards, de-aliased. */
+function videoShapeParams(params: Record<string, unknown>): {
+  num_frames: unknown;
+  duration_seconds: unknown;
+  aspect_ratio: unknown;
+  resolution: unknown;
+} {
+  return {
+    num_frames: aliased(params, "num_frames", "numFrames", "frames"),
+    duration_seconds: aliased(
+      params,
+      "duration_seconds",
+      "durationSeconds",
+      "duration"
+    ),
+    aspect_ratio: aliased(params, "aspect_ratio", "aspectRatio", "aspect"),
+    resolution: aliased(params, "resolution")
+  };
+}
+
+/** The aspect ratios the video providers name, as width/height. */
+const ASPECT_RATIOS: ReadonlyArray<readonly [string, number]> = [
+  ["21:9", 21 / 9],
+  ["16:9", 16 / 9],
+  ["4:3", 4 / 3],
+  ["1:1", 1],
+  ["3:4", 3 / 4],
+  ["9:16", 9 / 16]
+];
+
+/** The listed ratio closest to `width/height`, or null for a bad size. */
+export function nearestAspectRatio(
+  width: number,
+  height: number
+): string | null {
+  if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+  if (width <= 0 || height <= 0) return null;
+  const target = width / height;
+  let best = ASPECT_RATIOS[0]!;
+  for (const candidate of ASPECT_RATIOS) {
+    if (Math.abs(candidate[1] - target) < Math.abs(best[1] - target)) {
+      best = candidate;
+    }
+  }
+  return best[0];
+}
+
 const generateVideo: CapabilityExport = {
   spec: generateVideoSpec,
   impl: async (run, params) => {
@@ -666,11 +736,8 @@ const generateVideo: CapabilityExport = {
       mime: "video/mp4",
       params: {
         prompt,
-        negative_prompt: params["negative_prompt"],
-        num_frames: params["num_frames"],
-        duration_seconds: params["duration_seconds"],
-        aspect_ratio: params["aspect_ratio"],
-        resolution: params["resolution"]
+        negative_prompt: aliased(params, "negative_prompt", "negativePrompt"),
+        ...videoShapeParams(params)
       }
     });
   }
@@ -691,20 +758,26 @@ const animateImage: CapabilityExport = {
     } catch (e) {
       return predictionError("image_to_video", m, e);
     }
+    const shape = videoShapeParams(params);
+    // A vertical still animated at the provider's default aspect comes back
+    // 16:9, cropped or padded, and the caller finds out when the ad is cut:
+    // three 1280x720 beds under a 1080x1920 sequence. The source image is the
+    // best statement of intent available, so it sets the ratio when the call
+    // does not.
+    if (shape.aspect_ratio === undefined) {
+      const size = imagePixelSize(image);
+      const derived = size
+        ? nearestAspectRatio(size.width, size.height)
+        : null;
+      if (derived) shape.aspect_ratio = derived;
+    }
     return runMediaGeneration(run, params, {
       capability: "image_to_video",
       m,
       type: "video",
       namePrefix: "animated-video",
       mime: "video/mp4",
-      params: {
-        image,
-        prompt: params["prompt"],
-        num_frames: params["num_frames"],
-        duration_seconds: params["duration_seconds"],
-        aspect_ratio: params["aspect_ratio"],
-        resolution: params["resolution"]
-      }
+      params: { image, prompt: params["prompt"], ...shape }
     });
   }
 };
@@ -1073,7 +1146,12 @@ const generateMusic: CapabilityExport = {
     const musicParams = {
       prompt,
       lyrics: params["lyrics"],
-      duration_seconds: params["duration_seconds"],
+      duration_seconds: aliased(
+        params,
+        "duration_seconds",
+        "durationSeconds",
+        "duration"
+      ),
       audioFormat: desiredFormat
     };
     const req: GenerationRequest = {
@@ -2127,6 +2205,30 @@ export function ffprobeSummary(parsed: Record<string, unknown>): Record<
 }
 
 /**
+ * Refs `ffprobe` stages for itself, rather than refusing.
+ *
+ * These are the forms NodeTool's own tools hand back, so a caller probing a
+ * clip it just generated is passing the string it was given. An http(s) URL is
+ * not here: fetching one is egress, and egress belongs to the surfaces that
+ * declare it.
+ */
+function isStageableProbeRef(value: string): boolean {
+  return (
+    value.startsWith("asset://") ||
+    value.startsWith("/api/storage/") ||
+    value.startsWith("data:")
+  );
+}
+
+/** A workspace file name for a staged probe target, from the ref itself. */
+function probeStagingName(ref: string): string {
+  if (ref.startsWith("data:")) return "ffprobe-input/input";
+  const tail = ref.split("/").pop() ?? "input";
+  const safe = tail.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 64);
+  return `ffprobe-input/${safe || "input"}`;
+}
+
+/**
  * ffprobe with an argv NodeTool writes, not the caller.
  *
  * Everything a caller can say is one workspace path, so the whole boundary is
@@ -2146,20 +2248,33 @@ const ffprobe: CapabilityExport = {
     if (!isNonBlankString(target)) {
       return { error: "path is required" };
     }
+    const requested = target.trim();
+    // ffprobe's whole argv is this one path, so an `asset://` here can only
+    // mean "probe that": there is no flag to smuggle and nothing else to
+    // confine. Refusing it made the two halves of one loop disagree — the
+    // guest's own `video.info(asset://…)` reads a ref happily — and a caller
+    // who just wanted a duration had to stage the file by hand first.
+    const autoStaged = isStageableProbeRef(requested);
+    const probePath = autoStaged ? probeStagingName(requested) : requested;
+    let toStage = params["inputs"];
+    if (autoStaged) {
+      const extra = isRecord(toStage) ? toStage : {};
+      toStage = { ...extra, [probePath]: requested };
+    }
     const stagedResult = await stageInputs(
       run.context,
       workspace,
       cwd,
-      params["inputs"]
+      toStage
     );
     if ("error" in stagedResult) return stagedResult;
     const refusal = await confineArgvToWorkspace(
-      [target.trim()],
+      [probePath],
       cwd,
       FFPROBE_REMEDY
     );
     if (refusal) return refusal;
-    await stageHostBinaryInputs(workspace, [target.trim()]);
+    await stageHostBinaryInputs(workspace, [probePath]);
 
     const timeoutMs =
       clampTimeoutSeconds(params["timeout_seconds"], 30, 120) * 1000;
@@ -2173,7 +2288,7 @@ const ffprobe: CapabilityExport = {
           "json",
           "-show_format",
           "-show_streams",
-          target.trim()
+          probePath
         ],
         { cwd, timeoutMs }
       );
@@ -2187,7 +2302,7 @@ const ffprobe: CapabilityExport = {
         return { error: "ffprobe returned no readable JSON" };
       }
       const report: Record<string, unknown> = {
-        path: target.trim(),
+        path: requested,
         ...parsed,
         summary: ffprobeSummary(parsed)
       };

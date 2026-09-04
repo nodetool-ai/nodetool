@@ -68,6 +68,7 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   getSnapshot: jest.fn(),
   addTrack: jest.fn(),
   moveTrack: jest.fn(),
+  deleteTrack: jest.fn(),
   addMediaClip: jest.fn(),
   addTextClip: jest.fn(),
   addShapeClip: jest.fn(),
@@ -151,6 +152,26 @@ describe("ui_timeline_* tools", () => {
         ctx
       )
     ).rejects.toThrow('No timeline sequence "seq-1" is open');
+  });
+
+  it("deletes a track through the handler, in either spelling", async () => {
+    const handler = createMockHandler();
+    handler.deleteTrack.mockReturnValue({
+      deleted: trackNode(),
+      deletedClipIds: [],
+      tracks: []
+    });
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_delete_track",
+      { timeline_id: SEQ_ID, trackId: "Video 1", deleteClips: true },
+      "tc-del-track",
+      ctx
+    )) as { ok: boolean; deletedClipIds: string[] };
+
+    expect(handler.deleteTrack).toHaveBeenCalledWith("Video 1", true);
+    expect(result.ok).toBe(true);
   });
 
   it("returns the timeline snapshot through the handler", async () => {
@@ -287,8 +308,10 @@ describe("ui_timeline_* tools", () => {
       ctx
     );
 
+    // A shape that names no box is the full frame, written out rather than
+    // left to the renderer's default.
     expect(handler.addShapeClip).toHaveBeenCalledWith({
-      shape: { kind: "rect" }
+      shape: { kind: "rect", x: 0, y: 0, width: 1, height: 1 }
     });
   });
 

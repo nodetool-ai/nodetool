@@ -8,7 +8,8 @@ import { z } from "zod";
 import {
   isZodSchema,
   zodToJsonSchema,
-  parseWithTypeCoercion
+  parseWithTypeCoercion,
+  withKeyRemedies
 } from "../src/zod-schema.js";
 
 describe("isZodSchema", () => {
@@ -197,6 +198,34 @@ describe("parseWithTypeCoercion — unrecognized keys name what the schema takes
       expect(message).toContain('Unrecognized keys: "trackId", "index"');
       expect(message).toContain("This op accepts: target, toIndex, before.");
     }
+  });
+
+  it("names the keys a nested bag accepts", () => {
+    const nested = z
+      .object({
+        background: z
+          .object({ color: z.string(), radiusPx: z.number().optional() })
+          .strict()
+          .optional()
+      })
+      .strict();
+    try {
+      parseWithTypeCoercion(nested, {
+        background: { color: "#fff", cornerRadius: 40 }
+      });
+      throw new Error("expected a refusal");
+    } catch (error) {
+      const message = (error as z.ZodError).issues
+        .map((issue) => issue.message)
+        .join(" ");
+      expect(message).toContain("`background` accepts: color, radiusPx.");
+    }
+  });
+
+  it("refuses to register a remedy for a key the schema accepts", () => {
+    expect(() => withKeyRemedies(schema, { target: "no" })).toThrow(
+      /never refused/
+    );
   });
 
   it("leaves an issue that is not about unknown keys alone", () => {

@@ -16,7 +16,11 @@ import {
   ADD_SHAPE_CLIP_DESCRIPTION,
   ADD_TEXT_CLIP_DESCRIPTION,
   ADD_TRACK_DESCRIPTION,
+  DELETE_TRACK_DESCRIPTION,
   MOVE_TRACK_DESCRIPTION,
+  deleteTrackShape,
+  resolveDeleteTrackArgs,
+  withTextClipRemedies,
   clipOpacityParam,
   moveTrackShape,
   resolveMoveTrackArgs,
@@ -156,6 +160,22 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  name: "ui_timeline_delete_track",
+  description: DELETE_TRACK_DESCRIPTION,
+  parameters: z
+    .object({ timeline_id: timelineIdParam, ...deleteTrackShape })
+    .strict(),
+  async execute({ timeline_id, ...rest }) {
+    const { target, deleteClips } = resolveDeleteTrackArgs(rest);
+    const result = getTimelineAgentHandler(timeline_id).deleteTrack(
+      target,
+      deleteClips
+    );
+    return { ok: true, ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
   name: "ui_timeline_add_media_clip",
   description:
     "Place an existing asset — a video, image, or audio file already in the library — on the specified timeline sequence. `asset` is an asset id or `asset://<id>.<ext>` URI. Without a track the clip lands on a track matching its media kind, creating one when needed; without `startMs` it is appended after that track's existing content, so calling this once per asset lays them end to end. Duration comes from the asset unless `durationMs` overrides it.",
@@ -180,18 +200,20 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_add_text_clip",
   description: ADD_TEXT_CLIP_DESCRIPTION,
-  parameters: z
-    .object({
-      timeline_id: timelineIdParam,
-      text: z.string().trim().min(1),
-      trackId: z.string().optional(),
-      startMs: z.number().optional(),
-      durationMs: z.number().optional(),
-      opacity: clipOpacityParam,
-      style: partialTextStyleParams.optional()
-    })
-    .merge(partialTextStyleParams)
-    .strict(),
+  parameters: withTextClipRemedies(
+    z
+      .object({
+        timeline_id: timelineIdParam,
+        text: z.string().trim().min(1),
+        trackId: z.string().optional(),
+        startMs: z.number().optional(),
+        durationMs: z.number().optional(),
+        opacity: clipOpacityParam,
+        style: partialTextStyleParams.optional()
+      })
+      .merge(partialTextStyleParams)
+      .strict()
+  ),
   async execute({
     timeline_id,
     text,
