@@ -26,49 +26,48 @@
 import { z } from "zod";
 import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
 import {
-  splitClip,
   ANIMATION_PRESETS,
   ANIMATED_PROPERTIES,
-  CUSTOM_ANIMATION_CONTRACT,
-  CUSTOM_ANIMATION_PRESET_ID,
-  normalizeCustomCurves,
-  resolveCustomMask,
   makeClip,
   makeTrack,
-  DEFAULT_TEXT_CLIP_DURATION_MS,
-  DEFAULT_MEDIA_CLIP_DURATION_MS,
-  shapeStyleWithDefaults,
-  textStyleWithDefaults,
-  moveTrackOrder,
-  mediaTypeForContentType,
-  trackTypeForMediaType,
   STAGGER_UNITS,
   parseEasing,
   parseStaggerUnit,
   DEFAULT_BEAT_TOLERANCE_MS,
-  buildBeatGrid,
-  beatCountToCover,
-  snapClipsToGrid,
-  isGroupClip,
-  moveGroup,
-  ungroup,
-  trimGroup,
-  trimClip,
-  type TrackDestination,
   type AnimationRole,
   type CustomClipAnimation,
-  type PropertyCurve,
-  type ClipEffect,
-  type ClipMask,
-  type SnapBoundaryMode,
-  type SnapAction,
   type TimelineClip,
   type TimelineMarker,
   type TimelineTrack,
   type ClipAnimation,
-  instantiateComposition,
   type TimelineComposition
 } from "@nodetool-ai/timeline";
+import {
+  applyTimelineOp,
+  type AddMarkerOp,
+  type AddMediaClipOp,
+  type AddGroupOp,
+  type AddTextClipOp,
+  type AnimateClipOp,
+  type GenerateClipOp,
+  type InsertCompositionOp,
+  type MoveClipOp,
+  type SetClipBindingOp,
+  type SetClipParamsOp,
+  type SetEffectsOp,
+  type SetMaskOp,
+  type SetMatteOp,
+  type SetParentOp,
+  type SetMarkersFromBeatsOp,
+  type SetTimeRemapOp,
+  type SetTransitionOp,
+  type SnapToBeatsOp,
+  type TimelineOp,
+  type TimelineOpContext,
+  type TimelineOpIdKind,
+  type TimelineOpState,
+  type TrimClipOp
+} from "@nodetool-ai/timeline/ops";
 import {
   computeActiveLayers,
   countTextStaggerUnits,
@@ -76,17 +75,12 @@ import {
 } from "@nodetool-ai/timeline/scene";
 import {
   addGroupParams,
-  buildEffect,
-  buildMask,
-  buildTimeRemap,
-  buildTransition,
   captionStyleParams,
   effectParams,
   maskParams,
   matteParams,
   partialTextStyleParams,
   deleteTrackShape,
-  resolveDeleteTrackArgs,
   withTextClipRemedies,
   DELETE_TRACK_DESCRIPTION,
   setParentParams,
@@ -99,9 +93,7 @@ import {
   clipOpacityParam,
   MOVE_TRACK_DESCRIPTION,
   moveTrackShape,
-  resolveMoveTrackArgs,
   trackTargetParam,
-  resolveShapeArg,
   targetParam,
   textStyleParams,
   transitionParams
@@ -647,386 +639,56 @@ export function createTimelineToolBridge(
   initial: TimelineBridgeInitialState = {}
 ): HeadlessSurfaceBridge<TimelineBridgeFinalState> {
   const seed = initial.sequence;
-  const resolveAsset = initial.resolveAsset;
-  const bakeAnimation = initial.bakeAnimation;
-  const loadComposition = initial.loadComposition;
   const sequenceId = initial.sequenceId ?? "seq_eval";
-  const fps = seed?.fps ?? initial.fps ?? 30;
-  const width = seed?.width ?? initial.width ?? 1920;
-  const height = seed?.height ?? initial.height ?? 1080;
 
-  let playheadMs = 0;
-  let selectedClipIds: string[] = [];
-  let trackSeq = 0;
-  let clipSeq = 0;
-  let animSeq = 0;
-  let markerSeq = 0;
-  const tracks: TimelineTrack[] = [];
-  let clips: TimelineClip[] = [];
-  let markers: TimelineMarker[] = [];
+  let state: TimelineOpState = {
+    fps: seed?.fps ?? initial.fps ?? 30,
+    width: seed?.width ?? initial.width ?? 1920,
+    height: seed?.height ?? initial.height ?? 1080,
+    tracks: [],
+    clips: [],
+    markers: [],
+    playheadMs: 0,
+    selectedClipIds: []
+  };
+
   const toolLog: string[] = [];
   const previewTimesMs: number[] = [];
 
   // Ids the sequence already uses. A seeded document brings its own, which the
   // `track_1`/`clip_1` counters would otherwise collide with on the first edit.
   const usedIds = new Set<string>();
-  const mint = (prefix: string, next: () => number): string => {
-    let id = `${prefix}_${next()}`;
-    while (usedIds.has(id)) id = `${prefix}_${next()}`;
+  const counters: Record<TimelineOpIdKind, number> = {
+    track: 0,
+    clip: 0,
+    anim: 0,
+    marker: 0
+  };
+  const newId = (kind: TimelineOpIdKind): string => {
+    let id = `${kind}_${++counters[kind]}`;
+    while (usedIds.has(id)) id = `${kind}_${++counters[kind]}`;
     usedIds.add(id);
     return id;
   };
-  const nextTrackId = () => mint("track", () => ++trackSeq);
-  const nextClipId = () => mint("clip", () => ++clipSeq);
-  const nextAnimId = () => mint("anim", () => ++animSeq);
-  const nextMarkerId = () => mint("marker", () => ++markerSeq);
 
-  function addTrackInternal(
-    type: TimelineTrack["type"],
-    name?: string
-  ): TimelineTrack {
-    const index = tracks.length;
-    const track = makeTrack({
-      id: nextTrackId(),
-      type,
-      name: name ?? `${capitalize(type)} ${index + 1}`,
-      index
-    });
-    tracks.push(track);
-    return track;
-  }
-
-  function findOrCreateTrack(type: TimelineTrack["type"]): TimelineTrack {
-    const existing = tracks.find((t) => t.type === type);
-    if (existing) return existing;
-    return addTrackInternal(type);
-  }
+  const ctx: TimelineOpContext = {
+    newId,
+    resolveAsset: initial.resolveAsset,
+    bakeAnimation: initial.bakeAnimation,
+    loadComposition: initial.loadComposition,
+    parseSvgPath
+  };
 
   /**
-   * The ids and names a caller could have used, for the message a failed
-   * lookup throws. Capped, because a long cut has hundreds of clips and an
-   * error listing all of them is one an agent stops reading.
+   * Run one op through the shared implementation and keep the document it
+   * returns. A refusal comes back as `error`; the tool loop reports a throw,
+   * so it is rethrown here rather than returned.
    */
-  function validUnits(
-    units: readonly { id: string; name: string }[],
-    kind: string
-  ): string {
-    if (units.length === 0) return `The timeline has no ${kind}s yet.`;
-    const shown = units
-      .slice(0, MAX_LISTED_UNITS)
-      .map((u) => `${u.id} ("${u.name}")`)
-      .join(", ");
-    const rest = units.length - MAX_LISTED_UNITS;
-    return rest > 0
-      ? `Valid ${kind}s: ${shown}, and ${rest} more — call get_state for the full list.`
-      : `Valid ${kind}s: ${shown}.`;
-  }
-
-  function resolveTrack(idOrName: string): TimelineTrack {
-    const byId = tracks.find((t) => t.id === idOrName);
-    if (byId) return byId;
-    const lower = idOrName.toLowerCase();
-    const byName = tracks.find((t) => t.name.toLowerCase() === lower);
-    if (byName) return byName;
-    throw new Error(
-      `No track found matching "${idOrName}". ${validUnits(tracks, "track")}`
-    );
-  }
-
-  function trackEndMs(trackId: string): number {
-    return clips
-      .filter((c) => c.trackId === trackId)
-      .reduce((m, c) => Math.max(m, c.startMs + c.durationMs), 0);
-  }
-
-  function resolveClip(target: string): TimelineClip {
-    if (target.toLowerCase() === "selected") {
-      if (selectedClipIds.length !== 1) {
-        throw new Error(
-          `"selected" requires exactly one selected clip (currently ${selectedClipIds.length}).`
-        );
-      }
-      const clip = clips.find((c) => c.id === selectedClipIds[0]);
-      if (!clip) throw new Error("Selected clip no longer exists.");
-      return clip;
-    }
-    const byId = clips.find((c) => c.id === target);
-    if (byId) return byId;
-    const lower = target.toLowerCase();
-    const byName = clips.find((c) => c.name.toLowerCase() === lower);
-    if (byName) return byName;
-    throw new Error(
-      `No clip found matching "${target}". ${validUnits(clips, "clip")}`
-    );
-  }
-
-  /**
-   * The body of `trim_clip`, shared with `set_clip_params`: a caller that sends
-   * `durationMs` alongside a style change means the same edit either way, and
-   * two copies of the group-trim rule would drift.
-   */
-  function applyTrim(
-    clip: TimelineClip,
-    patch: { durationMs?: number; inPointMs?: number; outPointMs?: number }
-  ): TimelineClip {
-    // A group carries what it holds (D4): shortening one pulls its children
-    // inside the window that leaves, rather than leaving them hanging past an
-    // edge nothing draws.
-    if (isGroupClip(clip) && patch.durationMs !== undefined) {
-      clips = trimGroup(clips, clip.id, "end", patch.durationMs - clip.durationMs);
-      return clips.find((c) => c.id === clip.id)!;
-    }
-    // Through the engine, not a raw duration write: `trimClip` refuses a
-    // time-remapped clip (D13) and carries the source out-point with the edge,
-    // which is what the web bridge does through the store.
-    let next = clip;
-    if (patch.durationMs !== undefined) {
-      next = replaceClip(
-        clip,
-        trimClip(clip, "end", Math.max(1, patch.durationMs) - clip.durationMs)
-      );
-    }
-    if (patch.inPointMs !== undefined) next.inPointMs = patch.inPointMs;
-    if (patch.outPointMs !== undefined) next.outPointMs = patch.outPointMs;
-    return next;
-  }
-
-  /** Swap an engine-returned clip into `clips`, keeping the array's order. */
-  function replaceClip(clip: TimelineClip, next: TimelineClip): TimelineClip {
-    const index = clips.findIndex((c) => c.id === clip.id);
-    if (index >= 0) clips[index] = next;
-    return next;
-  }
-
-  /**
-   * Trim the start edge: hold the clip's end and move its start to `startMs`.
-   * A group pulls its children with it (D4); anything else goes through the
-   * engine so the source in-point follows the edge.
-   */
-  function applyTrimStart(clip: TimelineClip, startMs: number): TimelineClip {
-    const deltaMs = clip.startMs - Math.max(0, startMs);
-    if (deltaMs === 0) return clip;
-    if (isGroupClip(clip)) {
-      clips = trimGroup(clips, clip.id, "start", deltaMs);
-      return clips.find((c) => c.id === clip.id)!;
-    }
-    return replaceClip(clip, trimClip(clip, "start", deltaMs));
-  }
-
-  /** The body of `move_clip`, shared with `set_clip_params`. */
-  function applyMove(
-    clip: TimelineClip,
-    patch: { startMs?: number; trackId?: string }
-  ): TimelineClip {
-    // Moving a group moves what it holds by the same delta (D4). Children keep
-    // their own tracks, so their z-order is untouched (I9) — only the group
-    // itself takes a new `trackId`.
-    let moved = clip;
-    if (isGroupClip(clip) && patch.startMs !== undefined) {
-      const nextStartMs = Math.max(0, patch.startMs);
-      clips = moveGroup(clips, clip.id, nextStartMs - clip.startMs);
-      moved = clips.find((c) => c.id === clip.id)!;
-    } else if (patch.startMs !== undefined) {
-      clip.startMs = Math.max(0, patch.startMs);
-    }
-    if (patch.trackId !== undefined) {
-      moved.trackId = resolveTrack(patch.trackId).id;
-    }
-    return moved;
-  }
-
-  /** Resolve a marker by id, or by case-insensitive label. */
-  function resolveMarker(target: string): TimelineMarker {
-    const byId = markers.find((m) => m.id === target);
-    if (byId) return byId;
-    const lower = target.toLowerCase();
-    const byLabel = markers.find((m) => m.label.toLowerCase() === lower);
-    if (byLabel) return byLabel;
-    const known = markers
-      .map((m) => `${m.id} ("${m.label}") at ${m.timeMs}ms`)
-      .join(", ");
-    throw new Error(
-      `No marker matches "${target}". Use a marker id or its label. ` +
-        (known.length > 0
-          ? `Markers: ${known}.`
-          : "This sequence has no markers yet.")
-    );
-  }
-
-  /**
-   * Resolve the clips one beat op addresses: the named ones, or every clip.
-   *
-   * A target that matches nothing comes back as a miss rather than throwing —
-   * a batch op that dies on one bad name hides what the other targets did.
-   */
-  function resolveSnapTargets(targets: string[] | undefined): {
-    clips: TimelineClip[];
-    missing: string[];
-  } {
-    if (!targets || targets.length === 0) {
-      return { clips: [...clips], missing: [] };
-    }
-    const resolved: TimelineClip[] = [];
-    const missing: string[] = [];
-    for (const target of targets) {
-      try {
-        const clip = resolveClip(target);
-        if (!resolved.includes(clip)) resolved.push(clip);
-      } catch {
-        // Recorded as a skip in the op's own report, with the reason.
-        missing.push(target);
-      }
-    }
-    return { clips: resolved, missing };
-  }
-
-  function serializeTrack(t: TimelineTrack) {
-    return {
-      id: t.id,
-      name: t.name,
-      type: t.type,
-      index: t.index,
-      visible: t.visible,
-      locked: t.locked,
-      muted: t.muted ?? false,
-      solo: t.solo ?? false,
-      clipCount: clips.filter((c) => c.trackId === t.id).length
-    };
-  }
-
-  /**
-   * Build one `preset: "custom"` animation. `curves` are checked and stored;
-   * `code` is baked into curves first, by the host that supplied a baker. Both
-   * paths end at `normalizeCustomCurves`, the single gate the compiler and the
-   * validator also run, so what is stored is what will render.
-   */
-  async function buildCustomAnimation(
-    clip: TimelineClip,
-    input: {
-      role: ClipAnimation["role"];
-      durationMs?: number;
-      delayMs?: number;
-      easing?: ClipAnimation["easing"];
-      params?: ClipAnimation["params"];
-      curves?: unknown;
-      code?: string;
-      mask?: unknown;
-      stagger?: ClipAnimation["stagger"];
-    }
-  ): Promise<ClipAnimation> {
-    const code = typeof input.code === "string" ? input.code.trim() : "";
-    const hasCurves = input.curves !== undefined;
-    const hasCode = code !== "";
-    if (hasCurves && hasCode) {
-      throw new Error(
-        'A "custom" animation takes exactly one of `curves` and `code`; both were given. Pass the keyframes, or the body that produces them.'
-      );
-    }
-    if (!hasCurves && !hasCode) {
-      throw new Error(
-        'A "custom" animation needs `curves` or `code`. Accepted shape: ' +
-          '{role: "in", preset: "custom", curves: [{property: "offsetY", keyframes: [{t: 0, value: 160}, {t: 1, value: 0}]}]}' +
-          ' — `t` runs 0..1 over the window. `code` is a JS body baked into curves instead. Either may also be nested under `custom`.'
-      );
-    }
-
-    // Curves are normalized to 0..1 over the window, so a custom animation
-    // with no duration of its own spans the clip and nothing is cropped.
-    const durationMs = input.durationMs ?? clip.durationMs;
-
-    let curves: PropertyCurve[];
-    let maskInput: unknown;
-    if (hasCurves) {
-      const normalized = normalizeCustomCurves(input.curves);
-      if (!normalized.ok) throw new Error(normalized.error);
-      curves = normalized.curves;
-      maskInput = input.mask;
-    } else {
-      if (!bakeAnimation) {
-        throw new Error(
-          'This surface cannot run `code`: no animation baker is wired to it. Pass `curves` instead, or bake the body through POST /api/timelines/animations/bake.'
-        );
-      }
-      const baked = await bakeAnimation({
-        code,
-        role: input.role as AnimationRole,
-        durationMs,
-        clipDurationMs: clip.durationMs,
-        canvas: { width, height },
-        params: input.params,
-        staggerCount: staggerUnitCount(clip, input.stagger)
-      });
-      if (!baked.ok || !baked.curves) {
-        throw new Error(
-          baked.error ?? "The animation body returned no curves."
-        );
-      }
-      const normalized = normalizeCustomCurves(baked.curves);
-      if (!normalized.ok) throw new Error(normalized.error);
-      curves = normalized.curves;
-      maskInput = baked.mask ?? input.mask;
-    }
-
-    const mask = resolveCustomMask(curves, maskInput);
-    if (!mask.ok) throw new Error(mask.error);
-
-    const custom: CustomClipAnimation = {
-      curves,
-      bakedAt: new Date().toISOString()
-    };
-    if (hasCode) custom.code = code;
-    if (mask.mask) custom.mask = mask.mask;
-
-    return {
-      id: nextAnimId(),
-      role: input.role,
-      preset: CUSTOM_ANIMATION_PRESET_ID,
-      durationMs,
-      delayMs: input.delayMs,
-      easing: input.easing,
-      params: input.params,
-      stagger: input.stagger,
-      custom
-    };
-  }
-
-  function serializeClip(c: TimelineClip) {
-    const track = tracks.find((t) => t.id === c.trackId);
-    return {
-      id: c.id,
-      name: c.name,
-      trackId: c.trackId,
-      trackName: track?.name ?? null,
-      mediaType: c.mediaType,
-      sourceType: c.sourceType,
-      startMs: c.startMs,
-      durationMs: c.durationMs,
-      endMs: c.startMs + c.durationMs,
-      inPointMs: c.inPointMs,
-      outPointMs: c.outPointMs,
-      status: c.status,
-      prompt: c.prompt,
-      provider: c.provider,
-      model: c.model,
-      voice: c.voice,
-      animations: (c.animations ?? []).map((a) => ({
-        role: a.role,
-        preset: a.preset
-      })),
-      hidden: c.hidden ?? false,
-      muted: c.muted ?? false,
-      locked: c.locked,
-      opacity: c.opacity,
-      textStyle: c.textStyle,
-      shapeStyle: c.shapeStyle,
-      captionStyle: c.caption?.style,
-      transitionIn: c.transitionIn,
-      mask: c.mask,
-      matte: c.matte,
-      timeRemap: c.timeRemap,
-      effects: c.effects,
-      parentId: c.parentId
-    };
+  async function run(op: TimelineOp): Promise<unknown> {
+    const outcome = await applyTimelineOp(state, op, ctx);
+    if (outcome.error !== undefined) throw new Error(outcome.error);
+    state = outcome.state;
+    return outcome.result;
   }
 
   // Seed from a real sequence when one was handed over, otherwise from the
@@ -1035,35 +697,44 @@ export function createTimelineToolBridge(
     for (const track of seed.tracks) {
       const copy = structuredClone(track);
       usedIds.add(copy.id);
-      tracks.push(copy);
+      state.tracks.push(copy);
     }
     for (const clip of seed.clips) {
       const copy = structuredClone(clip);
       usedIds.add(copy.id);
       for (const animation of copy.animations ?? []) usedIds.add(animation.id);
-      clips.push(copy);
+      state.clips.push(copy);
     }
     for (const marker of seed.markers ?? []) {
       const copy = structuredClone(marker);
       usedIds.add(copy.id);
-      markers.push(copy);
+      state.markers.push(copy);
     }
   }
 
   // Seed initial tracks and clips.
   for (const t of seed ? [] : (initial.tracks ?? [])) {
-    addTrackInternal(t.type, t.name);
+    state.tracks.push(
+      makeTrack({
+        id: newId("track"),
+        type: t.type,
+        name:
+          t.name ??
+          `${t.type[0]!.toUpperCase()}${t.type.slice(1)} ${state.tracks.length + 1}`,
+        index: state.tracks.length
+      })
+    );
   }
   for (const c of seed ? [] : (initial.clips ?? [])) {
-    const track = tracks[c.trackIndex];
+    const track = state.tracks[c.trackIndex];
     if (!track) {
       throw new Error(
-        `Initial clip "${c.name}" references trackIndex ${c.trackIndex}, but only ${tracks.length} track(s) exist.`
+        `Initial clip "${c.name}" references trackIndex ${c.trackIndex}, but only ${state.tracks.length} track(s) exist.`
       );
     }
-    clips.push(
+    state.clips.push(
       makeClip({
-        id: nextClipId(),
+        id: newId("clip"),
         trackId: track.id,
         name: c.name,
         startMs: c.startMs,
@@ -1081,23 +752,10 @@ export function createTimelineToolBridge(
       "Read the specified timeline sequence: resolution + fps + duration, the playhead position, the current selection, every track, and every clip with its timing, media type, generation binding (prompt/provider/model/status) and render params. Call this first to discover what's on the timeline and to get the ids/names other timeline tools need.",
       z.object({}),
       async () => {
-        const durationMs = clips.reduce(
-          (m, c) => Math.max(m, c.startMs + c.durationMs),
-          0
-        );
-        return {
-          ok: true,
-          sequenceId,
-          fps,
-          width,
-          height,
-          durationMs,
-          playheadMs,
-          selectedClipIds: [...selectedClipIds],
-          tracks: tracks.map(serializeTrack),
-          clips: clips.map(serializeClip),
-          markers: markers.map((m) => ({ ...m }))
-        };
+        const { ok, ...rest } = (await run({ op: "get_state" })) as {
+          ok: true;
+        } & Record<string, unknown>;
+        return { ok, sequenceId, ...rest };
       }
     ),
 
@@ -1108,46 +766,19 @@ export function createTimelineToolBridge(
         type: z.enum(["video", "audio", "overlay", "subtitle"]),
         name: z.string().optional()
       }),
-      async ({ type, name }) => {
-        const track = addTrackInternal(
-          type as TimelineTrack["type"],
-          name as string | undefined
-        );
-        return { ok: true, track: serializeTrack(track) };
-      }
+      async ({ type, name }) =>
+        run({
+          op: "add_track",
+          type: type as TimelineTrack["type"],
+          name: name as string | undefined
+        })
     ),
 
     tool(
       "ui_timeline_move_track",
       MOVE_TRACK_DESCRIPTION,
       z.object(moveTrackShape).strict(),
-      async (args) => {
-        const { target, toIndex, before, after } = resolveMoveTrackArgs(args);
-        const track = resolveTrack(target);
-        const destination: TrackDestination = {};
-        if (toIndex !== undefined) destination.toIndex = toIndex;
-        if (before !== undefined) {
-          destination.beforeId = resolveTrack(before).id;
-        }
-        if (after !== undefined) {
-          destination.afterId = resolveTrack(after).id;
-        }
-        const orderedIds = moveTrackOrder(tracks, track.id, destination);
-        const byId = new Map(tracks.map((t) => [t.id, t]));
-        // The array order is what `get_state` prints, so keep it and the
-        // indices saying the same thing.
-        tracks.length = 0;
-        orderedIds.forEach((id, i) => {
-          const moved = byId.get(id)!;
-          moved.index = i;
-          tracks.push(moved);
-        });
-        return {
-          ok: true,
-          track: serializeTrack(track),
-          tracks: tracks.map(serializeTrack)
-        };
-      }
+      async (args) => run({ op: "move_track", ...args })
     ),
 
     tool(
@@ -1166,88 +797,24 @@ export function createTimelineToolBridge(
           .merge(partialTextStyleParams)
           .strict()
       ),
-      async ({
-        text,
-        trackId,
-        startMs,
-        durationMs,
-        opacity,
-        style,
-        ...loose
-      }) => {
-        const track = trackId
-          ? resolveTrack(trackId as string)
-          : findOrCreateTrack("overlay");
-        // `style` wins over a top-level twin: a caller that sent both meant the
-        // bag it named.
-        const s = {
-          ...(loose as z.infer<typeof partialTextStyleParams>),
-          ...((style as z.infer<typeof partialTextStyleParams> | undefined) ??
-            {})
-        };
-        const clip = makeClip({
-          id: nextClipId(),
-          trackId: track.id,
-          name: text as string,
-          startMs: (startMs as number | undefined) ?? trackEndMs(track.id),
-          durationMs:
-            (durationMs as number | undefined) ?? DEFAULT_TEXT_CLIP_DURATION_MS,
-          mediaType: "text",
-          sourceType: "imported",
-          status: "generated",
-          textStyle: textStyleWithDefaults(text as string, s)
-        });
-        if (opacity !== undefined) clip.opacity = opacity as number;
-        clips.push(clip);
-        selectedClipIds = [clip.id];
-        return { ok: true, clip: serializeClip(clip) };
-      }
+      async ({ text, trackId, startMs, durationMs, opacity, style, ...loose }) =>
+        run({
+          op: "add_text_clip",
+          text: text as string,
+          trackId: trackId as string | undefined,
+          startMs: startMs as number | undefined,
+          durationMs: durationMs as number | undefined,
+          opacity: opacity as number | undefined,
+          style: style as AddTextClipOp["style"],
+          loose: loose as AddTextClipOp["loose"]
+        })
     ),
 
     tool(
       "ui_timeline_delete_track",
       DELETE_TRACK_DESCRIPTION,
       z.object(deleteTrackShape).strict(),
-      async (args) => {
-        const { target, deleteClips } = resolveDeleteTrackArgs(args);
-        const track = resolveTrack(target);
-        const onIt = clips.filter((c) => c.trackId === track.id);
-        if (onIt.length > 0 && !deleteClips) {
-          throw new Error(
-            `Track "${track.name}" still holds ${onIt.length} clip(s): ` +
-              `${onIt.map((c) => c.id).join(", ")}. Move them first, or pass ` +
-              "deleteClips: true to delete them with the track."
-          );
-        }
-        const removedClipIds = onIt.map((c) => c.id);
-        const kept = clips.filter((c) => c.trackId !== track.id);
-        clips.length = 0;
-        clips.push(...kept);
-        // A parent that went with the track would leave its children pointing
-        // at a clip that no longer exists, which the validator reads as a
-        // broken document rather than a deletion.
-        for (const clip of clips) {
-          if (clip.parentId && removedClipIds.includes(clip.parentId)) {
-            delete clip.parentId;
-          }
-        }
-        selectedClipIds = selectedClipIds.filter(
-          (id) => !removedClipIds.includes(id)
-        );
-        const remaining = tracks.filter((t) => t.id !== track.id);
-        tracks.length = 0;
-        // Index is z-order, so the stack has to close over the gap.
-        remaining.forEach((t, i) => {
-          t.index = i;
-          tracks.push(t);
-        });
-        return {
-          ok: true,
-          deleted: { id: track.id, name: track.name, type: track.type },
-          deletedClipIds: removedClipIds,
-          tracks: tracks.map(serializeTrack)
-        };
-      }
+      async (args) => run({ op: "delete_track", ...args })
     ),
 
     tool(
@@ -1260,50 +827,8 @@ export function createTimelineToolBridge(
         durationMs: z.number().optional(),
         name: z.string().optional()
       }),
-      async ({ asset, trackId, startMs, durationMs, name }) => {
-        if (!resolveAsset) {
-          throw new Error(
-            "This timeline surface cannot look up assets, so an existing asset cannot be placed here."
-          );
-        }
-        const ref = asset as string;
-        const found = await resolveAsset(ref);
-        if (!found) {
-          throw new Error(
-            `No asset found for "${ref}". Pass an asset id or an asset:// URI from list_assets.`
-          );
-        }
-        const mediaType = mediaTypeForContentType(found.contentType);
-        if (!mediaType) {
-          throw new Error(
-            `Asset "${found.name}" is ${found.contentType}, which is not video, image, or audio and cannot go on a timeline.`
-          );
-        }
-        const track = trackId
-          ? resolveTrack(trackId as string)
-          : findOrCreateTrack(trackTypeForMediaType(mediaType));
-        const init: Parameters<typeof makeClip>[0] = {
-          id: nextClipId(),
-          trackId: track.id,
-          name: (name as string | undefined) ?? found.name,
-          startMs: (startMs as number | undefined) ?? trackEndMs(track.id),
-          durationMs:
-            (durationMs as number | undefined) ??
-            found.durationMs ??
-            DEFAULT_MEDIA_CLIP_DURATION_MS,
-          mediaType,
-          sourceType: "imported",
-          status: "generated",
-          currentAssetId: found.id
-        };
-        if (found.thumbnailAssetId) {
-          init.thumbnailAssetId = found.thumbnailAssetId;
-        }
-        const clip = makeClip(init);
-        clips.push(clip);
-        selectedClipIds = [clip.id];
-        return { ok: true, clip: serializeClip(clip) };
-      }
+      async (args) =>
+        run({ op: "add_media_clip", ...(args as Omit<AddMediaClipOp, "op">) })
     ),
 
     tool(
@@ -1328,28 +853,17 @@ export function createTimelineToolBridge(
         durationMs,
         opacity,
         ...loose
-      }) => {
-        const track = trackId
-          ? resolveTrack(trackId as string)
-          : findOrCreateTrack("overlay");
-        const shapeArg = resolveShapeArg(shape, shapeStyle, loose);
-        const clip = makeClip({
-          id: nextClipId(),
-          trackId: track.id,
-          name: capitalize(shapeArg.kind),
-          startMs: (startMs as number | undefined) ?? trackEndMs(track.id),
-          durationMs:
-            (durationMs as number | undefined) ?? DEFAULT_TEXT_CLIP_DURATION_MS,
-          mediaType: "shape",
-          sourceType: "imported",
-          status: "generated",
-          shapeStyle: shapeStyleWithDefaults(shapeArg)
-        });
-        if (opacity !== undefined) clip.opacity = opacity as number;
-        clips.push(clip);
-        selectedClipIds = [clip.id];
-        return { ok: true, clip: serializeClip(clip) };
-      }
+      }) =>
+        run({
+          op: "add_shape_clip",
+          shape,
+          shapeStyle,
+          trackId: trackId as string | undefined,
+          startMs: startMs as number | undefined,
+          durationMs: durationMs as number | undefined,
+          opacity: opacity as number | undefined,
+          loose
+        })
     ),
 
     tool(
@@ -1370,72 +884,8 @@ export function createTimelineToolBridge(
         resolution: z.string().optional(),
         autoGenerate: z.boolean().optional()
       }),
-      async ({
-        kind,
-        prompt,
-        trackId,
-        startMs,
-        durationMs,
-        provider,
-        model,
-        voice,
-        width: clipWidth,
-        height: clipHeight,
-        aspectRatio,
-        resolution,
-        autoGenerate
-      }) => {
-        const mediaType: TimelineClip["mediaType"] =
-          kind === "text-to-video"
-            ? "video"
-            : kind === "text-to-image"
-              ? "image"
-              : "audio";
-
-        const track = trackId
-          ? resolveTrack(trackId as string)
-          : kind === "text-to-audio"
-            ? findOrCreateTrack("audio")
-            : kind === "text-to-video"
-              ? findOrCreateTrack("video")
-              : (tracks.find((t) => t.type === "video" || t.type === "overlay") ??
-                findOrCreateTrack("video"));
-
-        const generationStarted = autoGenerate !== false;
-        const clip = makeClip({
-          id: nextClipId(),
-          trackId: track.id,
-          name: prompt as string,
-          startMs: (startMs as number | undefined) ?? trackEndMs(track.id),
-          durationMs:
-            (durationMs as number | undefined) ??
-            (kind === "text-to-audio" ? 3000 : 5000),
-          mediaType,
-          sourceType: "generated",
-          bindingKind: kind as TimelineClip["bindingKind"],
-          status: generationStarted ? "generating" : "draft",
-          prompt: prompt as string,
-          provider: provider as string | undefined,
-          model: model as string | undefined,
-          voice: voice as string | undefined,
-          width: clipWidth as number | undefined,
-          height: clipHeight as number | undefined,
-          aspectRatio: aspectRatio as string | undefined,
-          resolution: resolution as string | undefined
-        });
-        clips.push(clip);
-        selectedClipIds = [clip.id];
-        const result: {
-          ok: true;
-          clip: ReturnType<typeof serializeClip>;
-          generationStarted: boolean;
-          note?: string;
-        } = { ok: true, clip: serializeClip(clip), generationStarted };
-        if (!generationStarted) {
-          result.note = "Generation not started (autoGenerate=false).";
-        }
-        return result;
-      }
+      async (args) =>
+        run({ op: "generate_clip", ...(args as Omit<GenerateClipOp, "op">) })
     ),
 
     tool(
@@ -1445,17 +895,12 @@ export function createTimelineToolBridge(
         target: targetParam,
         atMs: z.number().optional()
       }),
-      async ({ target, atMs }) => {
-        const clip = resolveClip(target as string);
-        const at = (atMs as number | undefined) ?? playheadMs;
-        const [left, right] = splitClip(clip, at);
-        left.id = nextClipId();
-        right.id = nextClipId();
-        const idx = clips.findIndex((c) => c.id === clip.id);
-        clips.splice(idx, 1, left, right);
-        selectedClipIds = selectedClipIds.filter((id) => id !== clip.id);
-        return { ok: true, clips: [serializeClip(left), serializeClip(right)] };
-      }
+      async ({ target, atMs }) =>
+        run({
+          op: "split_clip",
+          target: target as string,
+          atMs: atMs as number | undefined
+        })
     ),
 
     tool(
@@ -1467,14 +912,8 @@ export function createTimelineToolBridge(
         inPointMs: z.number().optional(),
         outPointMs: z.number().optional()
       }),
-      async ({ target, durationMs, inPointMs, outPointMs }) => {
-        const trimmed = applyTrim(resolveClip(target as string), {
-          durationMs: durationMs as number | undefined,
-          inPointMs: inPointMs as number | undefined,
-          outPointMs: outPointMs as number | undefined
-        });
-        return { ok: true, clip: serializeClip(trimmed) };
-      }
+      async (args) =>
+        run({ op: "trim_clip", ...(args as Omit<TrimClipOp, "op">) })
     ),
 
     tool(
@@ -1485,30 +924,15 @@ export function createTimelineToolBridge(
         startMs: z.number().optional(),
         trackId: z.string().optional()
       }),
-      async ({ target, startMs, trackId }) => {
-        const moved = applyMove(resolveClip(target as string), {
-          startMs: startMs as number | undefined,
-          trackId: trackId as string | undefined
-        });
-        return { ok: true, clip: serializeClip(moved) };
-      }
+      async (args) =>
+        run({ op: "move_clip", ...(args as Omit<MoveClipOp, "op">) })
     ),
 
     tool(
       "ui_timeline_delete_clip",
       "Remove a clip from the specified timeline sequence.",
       z.object({ target: targetParam }),
-      async ({ target }) => {
-        const clip = resolveClip(target as string);
-        // Deleting a group deletes the parent, not the picture: its children
-        // stay where they are and stop inheriting (D4). Leaving them with a
-        // `parentId` nothing answers is what the validator calls a dangling
-        // parent.
-        const remaining = isGroupClip(clip) ? ungroup(clips, clip.id) : clips;
-        clips = remaining.filter((c) => c.id !== clip.id);
-        selectedClipIds = selectedClipIds.filter((id) => id !== clip.id);
-        return { ok: true, deleted: serializeClip(clip) };
-      }
+      async ({ target }) => run({ op: "delete_clip", target: target as string })
     ),
 
     tool(
@@ -1518,185 +942,71 @@ export function createTimelineToolBridge(
         target: targetParam,
         gapMs: z.number().optional()
       }),
-      async ({ target, gapMs }) => {
-        const src = resolveClip(target as string);
-        const copy: TimelineClip = {
-          ...src,
-          id: nextClipId(),
-          startMs: src.startMs + src.durationMs + ((gapMs as number | undefined) ?? 0),
-          versions: [],
-          animations: src.animations?.map((a) => ({ ...a, id: nextAnimId() }))
-        };
-        clips.push(copy);
-        selectedClipIds = [copy.id];
-        return { ok: true, clip: serializeClip(copy) };
-      }
+      async ({ target, gapMs }) =>
+        run({
+          op: "duplicate_clip",
+          target: target as string,
+          gapMs: gapMs as number | undefined
+        })
     ),
 
     tool(
       "ui_timeline_set_clip_params",
       "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. `fontSizePx` is shorthand for `textStyle.fontSizePx`. Timing is accepted too and applied as trim_clip/move_clip would: `durationMs`, `inPointMs`, `outPointMs`, `startMs`, `trackId`. A key this tool does not know is refused by name rather than ignored. Omit a field to leave it unchanged.",
-      z.object({
-        target: targetParam,
-        startMs: z.number().optional(),
-        trackId: z.string().optional(),
-        durationMs: z.number().optional(),
-        inPointMs: z.number().optional(),
-        outPointMs: z.number().optional(),
-        fontSizePx: z.number().optional(),
-        name: z.string().optional(),
-        opacity: z.number().optional(),
-        speedMultiplier: z.number().optional(),
-        volumeDb: z.number().optional(),
-        fadeInMs: z.number().optional(),
-        fadeOutMs: z.number().optional(),
-        blendMode: z.string().optional(),
-        borderRadius: z.number().optional(),
-        hidden: z.boolean().optional(),
-        muted: z.boolean().optional(),
-        locked: z.boolean().optional(),
-        textStyle: textStyleParams.optional(),
-        shapeStyle: shapeStyleParams.optional(),
-        captionStyle: captionStyleParams.optional()
-        // A key the schema does not list is kept rather than stripped, so it
-        // can be refused by name below: silently dropping `startMs` looked
-        // like a successful call that changed nothing.
-      }).catchall(z.unknown()),
-      async ({ target, ...patch }) => {
-        let clip = resolveClip(target as string);
-        rejectUnknownClipParams(patch);
-        // Timing belongs to move_clip and trim_clip, but a caller sending it
-        // here means one edit either way — so apply it through the same code
-        // rather than dropping it or making them call twice.
-        clip = applyTrim(clip, {
-          durationMs: patch.durationMs as number | undefined,
-          inPointMs: patch.inPointMs as number | undefined,
-          outPointMs: patch.outPointMs as number | undefined
-        });
-        clip = applyMove(clip, {
-          startMs: patch.startMs as number | undefined,
-          trackId: patch.trackId as string | undefined
-        });
-        if (patch.fontSizePx !== undefined) {
-          // Shorthand for the one text field callers reach for by name.
-          const size = patch.fontSizePx as number;
-          const style = (patch.textStyle ?? clip.textStyle) as
-            | TimelineClip["textStyle"]
-            | undefined;
-          if (!style) {
-            throw new Error(
-              `Clip "${clip.name}" carries no text to size; fontSizePx applies to a text clip's textStyle.`
-            );
-          }
-          patch.textStyle = { ...style, fontSizePx: size };
-        }
-        if (patch.name !== undefined) clip.name = patch.name as string;
-        if (patch.opacity !== undefined) clip.opacity = patch.opacity as number;
-        if (patch.speedMultiplier !== undefined)
-          clip.speedMultiplier = patch.speedMultiplier as number;
-        if (patch.volumeDb !== undefined) clip.volumeDb = patch.volumeDb as number;
-        if (patch.fadeInMs !== undefined) clip.fadeInMs = patch.fadeInMs as number;
-        if (patch.fadeOutMs !== undefined) clip.fadeOutMs = patch.fadeOutMs as number;
-        if (patch.blendMode !== undefined)
-          clip.blendMode = patch.blendMode as TimelineClip["blendMode"];
-        if (patch.borderRadius !== undefined)
-          clip.borderRadius = patch.borderRadius as number;
-        if (patch.hidden !== undefined) clip.hidden = patch.hidden as boolean;
-        if (patch.muted !== undefined) clip.muted = patch.muted as boolean;
-        if (patch.locked !== undefined) clip.locked = patch.locked as boolean;
-        if (patch.textStyle !== undefined)
-          clip.textStyle = patch.textStyle as TimelineClip["textStyle"];
-        if (patch.shapeStyle !== undefined)
-          clip.shapeStyle = patch.shapeStyle as TimelineClip["shapeStyle"];
-        if (patch.captionStyle !== undefined) {
-          // The style rides on the clip's caption, so a clip with no words to
-          // draw has nowhere to put it. Say so rather than storing a look
-          // nothing renders.
-          if (!clip.caption) {
-            throw new Error(`Clip "${clip.name}" carries no caption to style.`);
-          }
-          clip.caption = {
-            ...clip.caption,
-            style: patch.captionStyle as NonNullable<
-              TimelineClip["caption"]
-            >["style"]
-          };
-        }
-        return { ok: true, clip: serializeClip(clip) };
-      }
+      z
+        .object({
+          target: targetParam,
+          startMs: z.number().optional(),
+          trackId: z.string().optional(),
+          durationMs: z.number().optional(),
+          inPointMs: z.number().optional(),
+          outPointMs: z.number().optional(),
+          fontSizePx: z.number().optional(),
+          name: z.string().optional(),
+          opacity: z.number().optional(),
+          speedMultiplier: z.number().optional(),
+          volumeDb: z.number().optional(),
+          fadeInMs: z.number().optional(),
+          fadeOutMs: z.number().optional(),
+          blendMode: z.string().optional(),
+          borderRadius: z.number().optional(),
+          hidden: z.boolean().optional(),
+          muted: z.boolean().optional(),
+          locked: z.boolean().optional(),
+          textStyle: textStyleParams.optional(),
+          shapeStyle: shapeStyleParams.optional(),
+          captionStyle: captionStyleParams.optional()
+          // A key the schema does not list is kept rather than stripped, so it
+          // can be refused by name in the op: silently dropping `startMs`
+          // looked like a successful call that changed nothing.
+        })
+        .catchall(z.unknown()),
+      async ({ target, ...patch }) =>
+        run({
+          op: "set_clip_params",
+          target: target as string,
+          patch: patch as SetClipParamsOp["patch"]
+        })
     ),
 
     tool(
       "ui_timeline_add_group",
       "Create a group clip: a clip with no media of its own whose transform, opacity and window every clip naming it inherits. Move the group and its children move with it; fade the group and they fade together; a child outside the group's window is not drawn. Children keep their own tracks, so what covers what is unchanged. Pass `children` to parent clips as the group is created, or use set_parent afterwards.",
       addGroupParams,
-      async ({ name, startMs, durationMs, trackId, children }) => {
-        // Resolve every child before anything is written: a half-applied group
-        // leaves the caller with an empty group and no idea which of its clips
-        // moved.
-        const targets = ((children as string[] | undefined) ?? []).map((ref) =>
-          resolveClip(ref)
-        );
-        const track = trackId
-          ? resolveTrack(trackId as string)
-          : findOrCreateTrack("overlay");
-        const group = makeClip({
-          id: nextClipId(),
-          trackId: track.id,
-          name: name as string,
-          startMs: startMs as number,
-          durationMs: durationMs as number,
-          mediaType: "group",
-          sourceType: "imported",
-          status: "generated"
-        });
-        clips.push(group);
-        for (const child of targets) {
-          child.parentId = group.id;
-        }
-        selectedClipIds = [group.id];
-        return {
-          ok: true,
-          clip: serializeClip(group),
-          children: targets.map((c) => c.id)
-        };
-      }
+      async (args) =>
+        run({ op: "add_group", ...(args as Omit<AddGroupOp, "op">) })
     ),
 
     tool(
       "ui_timeline_set_parent",
       "Parent a clip to a group so it inherits the group's transform, opacity and window, or release it with `parentId: null`. The parent must be a clip created with add_group; a clip cannot parent itself or any group beneath it.",
       setParentParams,
-      async ({ target, parentId }) => {
-        const clip = resolveClip(target as string);
-        if (parentId === null) {
-          delete clip.parentId;
-          return { ok: true, clip: serializeClip(clip) };
-        }
-        const parent = resolveClip(parentId as string);
-        if (parent.mediaType !== "group") {
-          throw new Error(
-            `"${parent.name}" is a ${parent.mediaType} clip, not a group — parent to a clip created with add_group. ${validUnits(
-              clips.filter((c) => c.mediaType === "group"),
-              "group"
-            )}`
-          );
-        }
-        // A cycle renders unparented and warns, so refusing it here is the
-        // only place it can still be fixed.
-        let cursor: TimelineClip | undefined = parent;
-        while (cursor) {
-          if (cursor.id === clip.id) {
-            throw new Error(
-              `"${parent.name}" is inside "${clip.name}" — parenting them would make a cycle.`
-            );
-          }
-          const next: string | undefined = cursor.parentId;
-          cursor = next ? clips.find((c) => c.id === next) : undefined;
-        }
-        clip.parentId = parent.id;
-        return { ok: true, clip: serializeClip(clip) };
-      }
+      async ({ target, parentId }) =>
+        run({
+          op: "set_parent",
+          target: target as string,
+          parentId: parentId as SetParentOp["parentId"]
+        })
     ),
 
     tool(
@@ -1706,17 +1016,12 @@ export function createTimelineToolBridge(
         target: targetParam,
         transition: transitionParams.nullable()
       }),
-      async ({ target, transition }) => {
-        const clip = resolveClip(target as string);
-        if (transition === null) {
-          delete clip.transitionIn;
-        } else {
-          clip.transitionIn = buildTransition(
-            transition as z.infer<typeof transitionParams>
-          );
-        }
-        return { ok: true, clip: serializeClip(clip) };
-      }
+      async ({ target, transition }) =>
+        run({
+          op: "set_transition",
+          target: target as string,
+          transition: transition as SetTransitionOp["transition"]
+        })
     ),
 
     tool(
@@ -1726,15 +1031,12 @@ export function createTimelineToolBridge(
         target: targetParam,
         mask: maskParams.nullable()
       }),
-      async ({ target, mask }) => {
-        const clip = resolveClip(target as string);
-        if (mask === null) {
-          delete clip.mask;
-        } else {
-          clip.mask = buildMask(mask as z.infer<typeof maskParams>, parseSvgPath);
-        }
-        return { ok: true, clip: serializeClip(clip) };
-      }
+      async ({ target, mask }) =>
+        run({
+          op: "set_mask",
+          target: target as string,
+          mask: mask as SetMaskOp["mask"]
+        })
     ),
 
     tool(
@@ -1744,44 +1046,24 @@ export function createTimelineToolBridge(
         target: targetParam,
         matte: matteParams.nullable()
       }),
-      async ({ target, matte }) => {
-        const clip = resolveClip(target as string);
-        if (matte === null) {
-          delete clip.matte;
-          return { ok: true, clip: serializeClip(clip) };
-        }
-        const input = matte as z.infer<typeof matteParams>;
-        const source = resolveClip(input.source);
-        if (source.id === clip.id) {
-          throw new Error(
-            `"${clip.name}" cannot be its own matte source — name another clip.`
-          );
-        }
-        const matteOut: NonNullable<TimelineClip["matte"]> = {
-          sourceClipId: source.id,
-          mode: input.mode
-        };
-        if (input.invert !== undefined) matteOut.invert = input.invert;
-        clip.matte = matteOut;
-        return { ok: true, clip: serializeClip(clip) };
-      }
+      async ({ target, matte }) =>
+        run({
+          op: "set_matte",
+          target: target as string,
+          matte: matte as SetMatteOp["matte"]
+        })
     ),
 
     tool(
       "ui_timeline_set_time_remap",
       "Retime a clip's source with a curve, or clear it with `timeRemap: null`. Each keyframe says where in the source media (`sourceMs`) the clip sits at position `t`, normalized 0..1 over the clip's own window — so the list must start at 0, end at 1 and ascend in `t`. A `sourceMs` that descends is reverse playback, a flat pair is a freeze, and a steeper segment plays faster. A remap replaces the clip's rate entirely, and split and trim refuse a remapped clip.",
       setTimeRemapParams,
-      async ({ target, timeRemap }) => {
-        const clip = resolveClip(target as string);
-        if (timeRemap === null) {
-          delete clip.timeRemap;
-        } else {
-          clip.timeRemap = buildTimeRemap(
-            timeRemap as z.infer<typeof timeRemapParams>
-          );
-        }
-        return { ok: true, clip: serializeClip(clip) };
-      }
+      async ({ target, timeRemap }) =>
+        run({
+          op: "set_time_remap",
+          target: target as string,
+          timeRemap: timeRemap as SetTimeRemapOp["timeRemap"]
+        })
     ),
 
     tool(
@@ -1793,18 +1075,12 @@ export function createTimelineToolBridge(
           .array(effectParams)
           .describe("The chain, in order. An empty list clears it.")
       }),
-      async ({ target, effects }) => {
-        const clip = resolveClip(target as string);
-        const list = (effects as z.infer<typeof effectParams>[]).map(
-          buildEffect
-        );
-        if (list.length === 0) {
-          delete clip.effects;
-        } else {
-          clip.effects = list;
-        }
-        return { ok: true, clip: serializeClip(clip) };
-      }
+      async ({ target, effects }) =>
+        run({
+          op: "set_effects",
+          target: target as string,
+          effects: effects as SetEffectsOp["effects"]
+        })
     ),
 
     tool(
@@ -1825,31 +1101,11 @@ export function createTimelineToolBridge(
         numInferenceSteps: z.number().optional(),
         regenerate: z.boolean().optional()
       }),
-      async ({ target, ...patch }) => {
-        const clip = resolveClip(target as string);
-        if (clip.sourceType !== "generated") {
-          throw new Error(
-            `"${clip.name}" is not a generated clip — ui_timeline_set_clip_binding only applies to clips created with ui_timeline_generate_clip.`
-          );
-        }
-        if (patch.prompt !== undefined) clip.prompt = patch.prompt as string;
-        if (patch.negativePrompt !== undefined)
-          clip.negativePrompt = patch.negativePrompt as string;
-        if (patch.provider !== undefined) clip.provider = patch.provider as string;
-        if (patch.model !== undefined) clip.model = patch.model as string;
-        if (patch.voice !== undefined) clip.voice = patch.voice as string;
-        if (patch.width !== undefined) clip.width = patch.width as number;
-        if (patch.height !== undefined) clip.height = patch.height as number;
-        if (patch.aspectRatio !== undefined)
-          clip.aspectRatio = patch.aspectRatio as string;
-        if (patch.resolution !== undefined)
-          clip.resolution = patch.resolution as string;
-        if (patch.strength !== undefined) clip.strength = patch.strength as number;
-        if (patch.numInferenceSteps !== undefined)
-          clip.numInferenceSteps = patch.numInferenceSteps as number;
-        if (patch.regenerate) clip.status = "queued";
-        return { ok: true, clip: serializeClip(clip) };
-      }
+      async (args) =>
+        run({
+          op: "set_clip_binding",
+          ...(args as Omit<SetClipBindingOp, "op">)
+        })
     ),
 
     tool(
@@ -1903,58 +1159,13 @@ export function createTimelineToolBridge(
           )
           .min(1)
       }),
-      async ({ target, mode, animations }) => {
-        const clip = resolveClip(target as string);
-        const inputs = animations as Array<{
-          role: ClipAnimation["role"];
-          preset: string;
-          durationMs?: number;
-          delayMs?: number;
-          easing?: ClipAnimation["easing"];
-          params?: ClipAnimation["params"];
-          curves?: unknown;
-          code?: string;
-          mask?: unknown;
-          custom?: { curves?: unknown; code?: string; mask?: unknown };
-          stagger?: ClipAnimation["stagger"];
-        }>;
-        const built: ClipAnimation[] = [];
-        for (const input of inputs) {
-          if (input.preset === CUSTOM_ANIMATION_PRESET_ID) {
-            // `{preset: "custom", custom: {curves}}` reads as naturally as the
-            // flat form, so lift it rather than refusing it.
-            built.push(await buildCustomAnimation(clip, liftCustom(input)));
-            continue;
-          }
-          const preset = ANIMATION_PRESETS.find((p) => p.id === input.preset);
-          if (!preset) {
-            const ids = ANIMATION_PRESETS.map((p) => p.id).join(", ");
-            throw new Error(
-              `Unknown animation preset "${input.preset}". Valid presets: ${ids}, ${CUSTOM_ANIMATION_PRESET_ID}.`
-            );
-          }
-          if (!preset.roles.includes(input.role)) {
-            throw new Error(
-              `Preset "${input.preset}" does not support role "${input.role}". Valid roles for "${input.preset}": ${preset.roles.join(", ")}.`
-            );
-          }
-          built.push({
-            id: nextAnimId(),
-            role: input.role,
-            preset: input.preset,
-            durationMs: input.durationMs ?? preset.defaultDurationMs,
-            delayMs: input.delayMs,
-            easing: input.easing,
-            params: input.params,
-            stagger: input.stagger
-          });
-        }
-        clip.animations =
-          (mode as string | undefined) === "add"
-            ? [...(clip.animations ?? []), ...built]
-            : built;
-        return { ok: true, clip: serializeClip(clip) };
-      }
+      async ({ target, mode, animations }) =>
+        run({
+          op: "animate_clip",
+          target: target as string,
+          mode: mode as AnimateClipOp["mode"],
+          animations: animations as AnimateClipOp["animations"]
+        })
     ),
 
     tool(
@@ -1964,61 +1175,34 @@ export function createTimelineToolBridge(
         target: targetParam,
         role: animationRole.optional()
       }),
-      async ({ target, role }) => {
-        const clip = resolveClip(target as string);
-        clip.animations = role
-          ? (clip.animations ?? []).filter((a) => a.role !== role)
-          : [];
-        return { ok: true, clip: serializeClip(clip) };
-      }
+      async ({ target, role }) =>
+        run({
+          op: "clear_animations",
+          target: target as string,
+          role: role as ClipAnimation["role"] | undefined
+        })
     ),
 
     tool(
       "ui_timeline_list_animation_presets",
       "List the motion-design animation presets: id, allowed roles, params (with defaults and ranges), default duration/easing, and a one-line description. Also returns the `custom` preset's contract and every animatable property with its fold, identity and range, for keyframed motion no preset covers. Use this to discover the exact preset names and params for ui_timeline_animate_clip.",
       z.object({}),
-      async () => {
-        const presets = ANIMATION_PRESETS.map((p) => ({
-          id: p.id,
-          roles: p.roles,
-          defaultDurationMs: p.defaultDurationMs,
-          defaultEasing: p.defaultEasing,
-          params: p.params,
-          describe: p.describe
-        }));
-        return {
-          ok: true,
-          presets,
-          custom: CUSTOM_ANIMATION_CONTRACT,
-          properties: CUSTOM_ANIMATION_CONTRACT.properties
-        };
-      }
+      async () => run({ op: "list_animation_presets" })
     ),
 
     tool(
       "ui_timeline_select_clip",
       "Select a clip in the specified timeline sequence (driving the inspector). Pass null/empty to clear the selection.",
       z.object({ target: targetParam.nullable().optional() }),
-      async ({ target }) => {
-        const t = target as string | null | undefined;
-        if (!t) {
-          selectedClipIds = [];
-          return { ok: true, selected: null };
-        }
-        const clip = resolveClip(t);
-        selectedClipIds = [clip.id];
-        return { ok: true, selected: serializeClip(clip) };
-      }
+      async ({ target }) =>
+        run({ op: "select_clip", target: target as string | null | undefined })
     ),
 
     tool(
       "ui_timeline_seek",
       "Move the playhead to an absolute time (ms) in the specified timeline sequence. Useful before splitting at the playhead.",
       z.object({ timeMs: z.number() }),
-      async ({ timeMs }) => {
-        playheadMs = Math.max(0, timeMs as number);
-        return { ok: true, playheadMs };
-      }
+      async ({ timeMs }) => run({ op: "seek", timeMs: timeMs as number })
     ),
 
     tool(
@@ -2032,21 +1216,7 @@ export function createTimelineToolBridge(
         color: z.string().optional().describe("CSS colour for the marker dot."),
         note: z.string().optional().describe("Longer note attached to the marker.")
       }),
-      async ({ timeMs, label, color, note }) => {
-        const at = timeMs as number;
-        if (at < 0) {
-          throw new Error(`A marker cannot sit before zero; got ${at}ms.`);
-        }
-        const marker: TimelineMarker = {
-          id: nextMarkerId(),
-          timeMs: Math.round(at),
-          label: (label as string | undefined) ?? ""
-        };
-        if (color !== undefined) marker.color = color as string;
-        if (note !== undefined) marker.note = note as string;
-        markers.push(marker);
-        return { ok: true, marker: { ...marker } };
-      }
+      async (args) => run({ op: "add_marker", ...(args as Omit<AddMarkerOp, "op">) })
     ),
 
     tool(
@@ -2055,11 +1225,8 @@ export function createTimelineToolBridge(
       z.object({
         target: z.string().describe("Marker id or label (case-insensitive).")
       }),
-      async ({ target }) => {
-        const marker = resolveMarker(target as string);
-        markers = markers.filter((m) => m.id !== marker.id);
-        return { ok: true, deleted: { ...marker } };
-      }
+      async ({ target }) =>
+        run({ op: "delete_marker", target: target as string })
     ),
 
     tool(
@@ -2083,39 +1250,11 @@ export function createTimelineToolBridge(
             'Label stem; each marker is numbered from 1 ("Beat 1", "Beat 2", …). Default "Beat".'
           )
       }),
-      async ({ onsets_ms, bpm, offset_ms, count, label }) => {
-        const grid = buildBeatGrid({
-          onsetsMs: onsets_ms as number[] | undefined,
-          bpm: bpm as number | undefined,
-          offsetMs: offset_ms as number | undefined,
-          count: count as number | undefined
-        });
-        const stem = ((label as string | undefined) ?? "Beat").trim() || "Beat";
-        const taken = new Set(markers.map((m) => m.timeMs));
-        const added: TimelineMarker[] = [];
-        const skipped: number[] = [];
-        for (const [index, timeMs] of grid.entries()) {
-          if (taken.has(timeMs)) {
-            skipped.push(timeMs);
-            continue;
-          }
-          const marker: TimelineMarker = {
-            id: nextMarkerId(),
-            timeMs,
-            label: `${stem} ${index + 1}`
-          };
-          markers.push(marker);
-          taken.add(timeMs);
-          added.push(marker);
-        }
-        return {
-          ok: true,
-          grid: { count: grid.length, firstMs: grid[0], lastMs: grid[grid.length - 1] },
-          added: added.map((m) => ({ ...m })),
-          skipped_times_ms: skipped,
-          markers: markers.length
-        };
-      }
+      async (args) =>
+        run({
+          op: "set_markers_from_beats",
+          ...(args as Omit<SetMarkersFromBeatsOp, "op">)
+        })
     ),
 
     tool(
@@ -2132,7 +1271,12 @@ export function createTimelineToolBridge(
           .array(z.number())
           .optional()
           .describe("Absolute beat times in ms. Exactly one of this and `bpm`."),
-        bpm: z.number().optional().describe("Tempo. The grid is generated far enough to reach every target."),
+        bpm: z
+          .number()
+          .optional()
+          .describe(
+            "Tempo. The grid is generated far enough to reach every target."
+          ),
         offset_ms: z
           .number()
           .optional()
@@ -2150,121 +1294,12 @@ export function createTimelineToolBridge(
         action: z
           .enum(["move", "trim"])
           .optional()
-          .describe('"move" slides the clip, "trim" changes its length. Default "move".')
+          .describe(
+            '"move" slides the clip, "trim" changes its length. Default "move".'
+          )
       }),
-      async ({
-        targets,
-        onsets_ms,
-        bpm,
-        offset_ms,
-        tolerance_ms,
-        mode,
-        action
-      }) => {
-        const named =
-          targets === undefined || targets === "all"
-            ? undefined
-            : (targets as string[]);
-        const { clips: targeted, missing } = resolveSnapTargets(named);
-
-        const offsetMs = (offset_ms as number | undefined) ?? 0;
-        // A tempo grid has to reach the last boundary being snapped, so its
-        // length comes from the targets rather than from the caller.
-        const reachMs = targeted.reduce(
-          (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
-          0
-        );
-        const grid = buildBeatGrid({
-          onsetsMs: onsets_ms as number[] | undefined,
-          bpm: bpm as number | undefined,
-          offsetMs: offset_ms as number | undefined,
-          count:
-            bpm === undefined
-              ? undefined
-              : beatCountToCover(bpm as number, offsetMs, reachMs)
-        });
-
-        const options: {
-          toleranceMs?: number;
-          mode?: SnapBoundaryMode;
-          action?: SnapAction;
-        } = {};
-        if (tolerance_ms !== undefined) {
-          options.toleranceMs = tolerance_ms as number;
-        }
-        if (mode !== undefined) options.mode = mode as SnapBoundaryMode;
-        if (action !== undefined) options.action = action as SnapAction;
-
-        const result = snapClipsToGrid(
-          targeted.map((clip) => ({
-            id: clip.id,
-            startMs: clip.startMs,
-            durationMs: clip.durationMs
-          })),
-          grid,
-          options
-        );
-
-        const byId = new Map(targeted.map((clip) => [clip.id, clip]));
-        const reported = result.clips.map((entry) => {
-          const clip = byId.get(entry.clipId);
-          if (entry.snapped && clip) {
-            // Through the same ops the caller would use: a group carries its
-            // children (D4) and a trim carries the source points, neither of
-            // which a raw startMs/durationMs write does.
-            try {
-              if (entry.after.durationMs === entry.before.durationMs) {
-                applyMove(clip, { startMs: entry.after.startMs });
-              } else {
-                let trimmed = clip;
-                if (entry.after.startMs !== entry.before.startMs) {
-                  trimmed = applyTrimStart(clip, entry.after.startMs);
-                }
-                applyTrim(trimmed, { durationMs: entry.after.durationMs });
-              }
-            } catch (error) {
-              return {
-                ...entry,
-                snapped: false,
-                after: entry.before,
-                delta: { startMs: 0, endMs: 0 },
-                reason: error instanceof Error ? error.message : String(error),
-                clipName: clip.name
-              };
-            }
-          }
-          return { ...entry, clipName: clip?.name ?? null };
-        });
-
-        // A name nothing matched is a skip like any other: the caller has to
-        // see it in the same list, not infer it from a shorter one.
-        for (const target of missing) {
-          reported.push({
-            clipId: target,
-            clipName: null,
-            snapped: false,
-            before: { startMs: 0, endMs: 0, durationMs: 0 },
-            after: { startMs: 0, endMs: 0, durationMs: 0 },
-            delta: { startMs: 0, endMs: 0 },
-            reason: `no clip matches "${target}"`
-          });
-        }
-
-        return {
-          ok: true,
-          grid: {
-            count: grid.length,
-            firstMs: grid[0],
-            lastMs: grid[grid.length - 1]
-          },
-          toleranceMs: result.toleranceMs,
-          mode: result.mode,
-          action: result.action,
-          snapped: result.snapped,
-          skipped: result.skipped + missing.length,
-          clips: reported
-        };
-      }
+      async (args) =>
+        run({ op: "snap_to_beats", ...(args as Omit<SnapToBeatsOp, "op">) })
     ),
 
     tool(
@@ -2287,76 +1322,14 @@ export function createTimelineToolBridge(
           .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
           .optional()
           .describe(
-            "Parameter overrides by name, e.g. {name: \"Ada Lovelace\"}. A name the template does not declare, or a value of the wrong type, is refused."
+            'Parameter overrides by name, e.g. {name: "Ada Lovelace"}. A name the template does not declare, or a value of the wrong type, is refused.'
           )
       }),
-      async ({ composition_id, startMs, trackId, params }) => {
-        if (!loadComposition) {
-          throw new Error(
-            "This surface has no composition library, so insert_composition cannot resolve a template."
-          );
-        }
-        const id = composition_id as string;
-        const composition = await loadComposition.get(id);
-        if (!composition) {
-          const available = await loadComposition.listIds();
-          throw new Error(
-            `No composition with id "${id}". ` +
-              (available.length > 0
-                ? `Available: ${available.join(", ")}.`
-                : "This install has none — save one with save_composition.")
-          );
-        }
-
-        const minted = instantiateComposition(composition, {
-          startMs: startMs as number,
-          params: params as Record<string, string | number | boolean> | undefined,
-          newId: nextClipId
-        });
-
-        // Template track ids are names, not document ids. Two clips overlapping
-        // on one track auto-dissolve into each other, so each template track
-        // becomes a track of its own — created front-most first, because the
-        // lowest track index draws on top (I9).
-        const templateTracks: string[] = [];
-        for (const child of composition.children) {
-          if (!templateTracks.includes(child.trackId)) {
-            templateTracks.push(child.trackId);
-          }
-        }
-        const mapped = new Map<string, string>();
-        for (const name of [...templateTracks].reverse()) {
-          const existing = tracks.find(
-            (t) => t.type === "overlay" && t.name === name
-          );
-          mapped.set(name, (existing ?? addTrackInternal("overlay", name)).id);
-        }
-
-        // The group draws nothing, but it still occupies its track's timeline,
-        // and a group sharing a track with one of its children reads as an
-        // overlap. It gets a track named after the composition instead.
-        const groupTrack = trackId
-          ? resolveTrack(trackId as string)
-          : (tracks.find(
-              (t) => t.type === "overlay" && t.name === composition.name
-            ) ?? addTrackInternal("overlay", composition.name));
-        const [group, ...children] = minted;
-        group.trackId = groupTrack.id;
-        for (const [index, child] of children.entries()) {
-          child.trackId =
-            mapped.get(composition.children[index].trackId) ?? groupTrack.id;
-        }
-        clips.push(group, ...children);
-        selectedClipIds = [group.id];
-
-        return {
-          ok: true,
-          compositionId: composition.id,
-          clip: serializeClip(group),
-          children: children.map((child) => serializeClip(child)),
-          params: group.compositionParams ?? {}
-        };
-      }
+      async (args) =>
+        run({
+          op: "insert_composition",
+          ...(args as Omit<InsertCompositionOp, "op">)
+        })
     )
   ];
 
@@ -2379,11 +1352,12 @@ export function createTimelineToolBridge(
         async ({ times_ms }) => {
           const frames = (times_ms as number[]).map((timeMs) => ({
             time_ms: timeMs,
-            layers: computeActiveLayers(tracks, clips, timeMs)
+            layers: computeActiveLayers(state.tracks, state.clips, timeMs)
               .map((layer) => ({
                 clip_id: layer.clipId,
                 clip_name:
-                  clips.find((c) => c.id === layer.clipId)?.name ?? layer.clipId,
+                  state.clips.find((c) => c.id === layer.clipId)?.name ??
+                  layer.clipId,
                 kind: layer.kind,
                 track_index: layer.trackIndex,
                 z_index: 1000 - layer.trackIndex,
@@ -2393,7 +1367,7 @@ export function createTimelineToolBridge(
               // Top of the stack first, the order the skill's report describes.
               .sort((a, b) => b.z_index - a.z_index)
           }));
-          return { ok: true, width, height, frames };
+          return { ok: true, width: state.width, height: state.height, frames };
         }
       )
     );
@@ -2424,21 +1398,21 @@ export function createTimelineToolBridge(
   return {
     tools: recorded,
     finalState: (): TimelineBridgeFinalState => ({
-      fps,
-      width,
-      height,
-      durationMs: clips.reduce(
+      fps: state.fps,
+      width: state.width,
+      height: state.height,
+      durationMs: state.clips.reduce(
         (m, c) => Math.max(m, c.startMs + c.durationMs),
         0
       ),
-      playheadMs,
-      tracks: tracks.map((t) => ({
+      playheadMs: state.playheadMs,
+      tracks: state.tracks.map((t) => ({
         id: t.id,
         name: t.name,
         type: t.type,
         index: t.index
       })),
-      clips: clips.map((c) => ({
+      clips: state.clips.map((c) => ({
         id: c.id,
         name: c.name,
         trackId: c.trackId,
@@ -2451,14 +1425,15 @@ export function createTimelineToolBridge(
           preset: a.preset
         }))
       })),
-      documentTracks: tracks.map((t) => structuredClone(t)),
-      documentClips: clips.map((c) => structuredClone(c)),
-      markers: markers.map((m) => structuredClone(m)),
+      documentTracks: state.tracks.map((t) => structuredClone(t)),
+      documentClips: state.clips.map((c) => structuredClone(c)),
+      markers: state.markers.map((m) => structuredClone(m)),
       toolLog: [...toolLog],
       previewTimesMs: [...previewTimesMs]
     })
   };
 }
+
 
 const TIMELINE_SYSTEM_PROMPT = `You are an assistant driving a timeline / video editor through UI tools.
 
