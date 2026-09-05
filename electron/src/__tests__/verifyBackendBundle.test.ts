@@ -39,6 +39,11 @@ function writeValidBundle(dir: string): void {
     path.join(dir, "examples", "compositions", "hello.composition.json"),
     "{}"
   );
+  fs.mkdirSync(path.join(dir, "examples", "recipes"), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "examples", "recipes", "hello.recipe.json"),
+    JSON.stringify(RECIPE_MANIFEST)
+  );
   fs.mkdirSync(path.join(dir, "assets", "nodetool-base", "storyboards", "hello"), {
     recursive: true,
   });
@@ -80,6 +85,15 @@ function writeValidBundle(dir: string): void {
     "export {};"
   );
 }
+
+/** One shipped recipe, naming the example workflow staged alongside it. */
+const RECIPE_MANIFEST = {
+  schemaVersion: 1,
+  slug: "hello",
+  name: "Hello",
+  hero: "hello",
+  steps: [{ example: "hello", role: "Say hello", handoff: "In: nothing." }],
+};
 
 /** One shipped board, naming the two media files staged alongside it. */
 const STORYBOARD_BUNDLE = {
@@ -262,6 +276,27 @@ describe("verify-backend-bundle", () => {
     const { status, output } = runVerify(tempDir);
     expect(output).toContain("example storyboard media not staged");
     expect(output).toContain("storyboards/hello/shot.mp4");
+    expect(status).toBe(1);
+  });
+
+  it("fails when a recipe names an example that was not staged", () => {
+    fs.writeFileSync(
+      path.join(tempDir, "examples", "recipes", "hello.recipe.json"),
+      JSON.stringify({
+        ...RECIPE_MANIFEST,
+        steps: [{ ...RECIPE_MANIFEST.steps[0], example: "renamed" }],
+      })
+    );
+    const { status, output } = runVerify(tempDir);
+    expect(output).toContain("recipe steps name examples that were not staged");
+    expect(output).toContain("hello.recipe.json: renamed");
+    expect(status).toBe(1);
+  });
+
+  it("fails when no recipe manifest is staged at all", () => {
+    fs.rmSync(path.join(tempDir, "examples", "recipes"), { recursive: true });
+    const { status, output } = runVerify(tempDir);
+    expect(output).toContain("examples/recipes/ is missing");
     expect(status).toBe(1);
   });
 
