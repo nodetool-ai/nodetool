@@ -97,7 +97,7 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   }, [setTabTitle, refId, boardTitle]);
 
   useStoryboardAgentBridge(refId);
-  useStoryboardGenerationSubscriptions();
+  useStoryboardGenerationSubscriptions(refId);
 
   const conflicts = useDocumentConflicts("storyboard", refId);
   const conflictBanner = conflicts.items.length > 0 && (

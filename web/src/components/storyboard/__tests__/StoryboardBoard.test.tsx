@@ -1,10 +1,17 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
-import type { Shot } from "@nodetool-ai/protocol";
+import type { Entity, Scene, Shot } from "@nodetool-ai/protocol";
+import { isVersionStale } from "@nodetool-ai/protocol";
 import mockTheme from "../../../__mocks__/themeMock";
 
+jest.mock("../../../hooks/useResolvedMediaUri");
+
 let mockShots: Shot[] = [];
+/** The board's scene records; empty is a legacy board (PRD § 7.7.7). */
+let mockScenes: Scene[] = [];
+/** The board's stored genre label. */
+let mockGenre = "";
 /** The board's selected shot id, driving the inspector's presence. */
 let activeShot: string | null = null;
 /** The board's render models. Null on both leaves the toolbar unpriced. */
@@ -23,7 +30,10 @@ jest.mock("../../../utils/modelUnitPricing", () => ({
 }));
 const mockSelectShot = jest.fn();
 const mockAddShot = jest.fn();
-const mockReorderShots = jest.fn();
+const mockInsertShot = jest.fn();
+const mockMoveShot = jest.fn();
+const mockSetSetup = jest.fn();
+const mockSetStylePreset = jest.fn();
 jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
   useBoard: () => ({
     title: "My film",
@@ -32,10 +42,14 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
     entityIds: [],
     aspectRatio: "16:9",
     setupStage: "done",
-    genre: "",
+    genre: mockGenre,
     directorModel: { id: "model-1" },
     imageModel: boardModels.imageModel,
     videoModel: boardModels.videoModel,
+    screenplay:
+      mockScenes.length > 0
+        ? { type: "screenplay", shots: mockShots, scenes: mockScenes }
+        : null,
     shots: mockShots,
     activeShotId: activeShot
   }),
@@ -55,7 +69,10 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
       redo: jest.Mock;
       selectShot: jest.Mock;
       addShot: jest.Mock;
-      reorderShots: jest.Mock;
+      insertShot: jest.Mock;
+      moveShot: jest.Mock;
+      setSetup: jest.Mock;
+      setStylePreset: jest.Mock;
     }) => T
   ) =>
     selector({
@@ -71,7 +88,10 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
       redo: jest.fn(),
       selectShot: mockSelectShot,
       addShot: mockAddShot,
-      reorderShots: mockReorderShots
+      insertShot: mockInsertShot,
+      moveShot: mockMoveShot,
+      setSetup: mockSetSetup,
+      setStylePreset: mockSetStylePreset
     }),
   useStoryboardCanUndo: () => false,
   useStoryboardCanRedo: () => false
@@ -96,10 +116,12 @@ jest.mock("../ScriptLinkControl", () => ({
   default: () => null
 }));
 
+const mockGenerateKeyframe = jest.fn(async () => undefined);
+const mockGenerateClip = jest.fn(async () => undefined);
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
-    generateKeyframe: jest.fn(async () => undefined),
-    generateClip: jest.fn(async () => undefined)
+    generateKeyframe: mockGenerateKeyframe,
+    generateClip: mockGenerateClip
   })
 }));
 
@@ -107,10 +129,25 @@ jest.mock("../../../hooks/useModelsByProvider", () => ({
   useImageModelsByProvider: () => ({ models: [] })
 }));
 
-// The toolbar's summary line names the board's entities; the library itself
-// resolves through React Query, which these tests do not mount.
+// The toolbar's summary line names the board's entities, and the style dialog
+// reads their descriptors; the library itself resolves through React Query,
+// which these tests do not mount.
+let mockEntities: Entity[] = [];
 jest.mock("../../../serverState/useEntities", () => ({
-  useEntities: () => ({ data: [] })
+  useEntities: () => ({ data: mockEntities })
+}));
+
+// The shipped style presets are a server query; the dialog only needs the
+// tiles and the entity id each one applies.
+let mockPresets: Array<{
+  entityId: string;
+  presetId: string;
+  name: string;
+  descriptor: string;
+  thumbnail: string;
+}> = [];
+jest.mock("../../../serverState/useStylePresets", () => ({
+  useStylePresets: () => ({ data: mockPresets })
 }));
 
 const stub = (name: string) => ({
@@ -123,19 +160,24 @@ jest.mock("../../properties/VideoModelSelect", () => stub("video-model"));
 // The card's own behaviour has its own suite (ShotCard.test.tsx); this stub
 // keeps the contract the board drives — the shot id hook the keyboard
 // navigation focuses, selection on click, and the drag callbacks.
+const mockIsVersionStale = isVersionStale;
 jest.mock("../ShotCard", () => ({
   __esModule: true,
   default: ({
     shot,
+    caption,
     selected,
     onSelect,
     draggable,
     dropTarget,
     onDragStart,
     onDragEnter,
-    onDrop
+    onDrop,
+    renderContext
   }: {
     shot: Shot;
+    caption?: string;
+    renderContext?: import("@nodetool-ai/protocol").BoardRenderContext | null;
     selected?: boolean;
     onSelect?: (id: string) => void;
     draggable?: boolean;
@@ -147,6 +189,17 @@ jest.mock("../ShotCard", () => ({
     <div
       data-testid="shot-card"
       data-shot-id={shot.id}
+      data-caption={caption}
+      // The board owns deriving this and handing it to every card; without it
+      // a stale still shows no marker and nothing else would notice.
+      data-stale={
+        renderContext &&
+        // `mock`-prefixed so the hoisted factory may close over it; the
+        // factory only runs once the imports have evaluated.
+        mockIsVersionStale(shot.keyframe, shot, renderContext)
+          ? "true"
+          : undefined
+      }
       data-draggable={draggable ? "true" : undefined}
       data-drop-target={dropTarget ? "true" : undefined}
       role="button"
@@ -177,14 +230,31 @@ jest.mock("../../../utils/storyboardZip", () => ({
 
 import StoryboardBoard from "../StoryboardBoard";
 import { StudioProvider } from "../../../studio/StudioContext";
+import { displayNumber } from "../../../lib/storyboard/sceneOrder";
 
-const makeShot = (id: string): Shot => ({
-  type: "shot",
-  id,
-  index: 0,
-  slug: "Shot",
-  action: "",
-  status: "planned"
+let nextIndex = 0;
+const makeShot = (id: string, sceneId?: string): Shot => {
+  const shot: Shot = {
+    type: "shot",
+    id,
+    index: nextIndex++,
+    slug: "Shot",
+    action: "",
+    status: "planned"
+  };
+  // No `scene_id` at all is the legacy shape the implicit header covers.
+  if (sceneId) {
+    shot.scene_id = sceneId;
+  }
+  return shot;
+};
+
+beforeEach(() => {
+  nextIndex = 0;
+  mockScenes = [];
+  mockGenre = "";
+  mockEntities = [];
+  mockPresets = [];
 });
 
 const renderBoard = (onDirect: (n: number) => void) =>
@@ -202,6 +272,33 @@ const renderBoardInStudio = () =>
       </StudioProvider>
     </ThemeProvider>
   );
+
+// The board derives one `BoardRenderContext` and hands it to every card. It is
+// what turns a version's stored render record into a stale marker, and removing
+// the prop is silent everywhere else — the pill just stops appearing.
+describe("stale marker plumbing", () => {
+  it("hands each card a context that marks a version rendered under an old style", () => {
+    const stale = makeShot("s-stale");
+    stale.keyframe = {
+      type: "image",
+      asset_id: "old-still",
+      render_inputs: {
+        kind: "keyframe",
+        prompt_hash: "a-hash-from-another-style",
+        model: "old/model",
+        aspect_ratio: "1:1",
+        style_entity_id: "style-gone",
+        recorded_at: "2026-01-01T00:00:00.000Z"
+      }
+    };
+    mockShots = [stale];
+
+    renderBoard(jest.fn());
+
+    const card = screen.getAllByTestId("shot-card")[0];
+    expect(card).toHaveAttribute("data-stale", "true");
+  });
+});
 
 describe("StoryboardBoard direct guard", () => {
   it("directs immediately when the board has no shots", async () => {
@@ -456,7 +553,7 @@ describe("StoryboardBoard keyboard navigation", () => {
 describe("StoryboardBoard drag to reorder", () => {
   beforeEach(() => {
     mockShots = [makeShot("s1"), makeShot("s2"), makeShot("s3")];
-    mockReorderShots.mockClear();
+    mockMoveShot.mockClear();
   });
 
   it("drops the dragged shot into the target's slot", () => {
@@ -470,11 +567,9 @@ describe("StoryboardBoard drag to reorder", () => {
     expect(third).toHaveAttribute("data-drop-target", "true");
     fireEvent.drop(third);
 
-    expect(mockReorderShots).toHaveBeenCalledWith("board-1", [
-      "s2",
-      "s3",
-      "s1"
-    ]);
+    // A legacy board is one implicit scene, so the move names it as null and
+    // the store reindexes; the board never writes an order itself.
+    expect(mockMoveShot).toHaveBeenCalledWith("board-1", "s1", null, 2);
     expect(third).not.toHaveAttribute("data-drop-target");
   });
 
@@ -485,7 +580,28 @@ describe("StoryboardBoard drag to reorder", () => {
     fireEvent.dragEnter(first);
     expect(first).not.toHaveAttribute("data-drop-target");
     fireEvent.drop(first);
-    expect(mockReorderShots).not.toHaveBeenCalled();
+    expect(mockMoveShot).not.toHaveBeenCalled();
+  });
+
+  it("names the target scene when the drop crosses a header", () => {
+    // Two scenes, two shots each. Dragging the first card of scene A onto the
+    // first card of scene B is a scene change, not a reorder (criterion 9).
+    mockScenes = [
+      { type: "scene", id: "sc-a", slugline: "INT. FLAT — DAY" },
+      { type: "scene", id: "sc-b", slugline: "EXT. STREET — NIGHT" }
+    ];
+    mockShots = [
+      makeShot("a1", "sc-a"),
+      makeShot("a2", "sc-a"),
+      makeShot("b1", "sc-b"),
+      makeShot("b2", "sc-b")
+    ];
+    renderBoard(jest.fn());
+
+    fireEvent.dragStart(screen.getByRole("button", { name: "a1" }));
+    fireEvent.drop(screen.getByRole("button", { name: "b1" }));
+
+    expect(mockMoveShot).toHaveBeenCalledWith("board-1", "a1", "sc-b", 1);
   });
 
   it("does not make cards draggable on a read-only board", () => {
@@ -497,6 +613,176 @@ describe("StoryboardBoard drag to reorder", () => {
     expect(screen.getByRole("button", { name: "s1" })).not.toHaveAttribute(
       "data-draggable"
     );
+  });
+});
+
+describe("StoryboardBoard scene headers", () => {
+  it("gives a legacy board one implicit header and no slugline", () => {
+    mockShots = [makeShot("s1"), makeShot("s2")];
+    renderBoard(jest.fn());
+
+    const headings = screen.getAllByRole("heading", { level: 3 });
+    expect(headings).toHaveLength(1);
+    expect(headings[0]).toHaveTextContent("Scene 1");
+    expect(
+      screen.queryByText(/INT\.|EXT\./)
+    ).not.toBeInTheDocument();
+  });
+
+  it("groups the cards under one header per scene, in derived order", () => {
+    mockScenes = [
+      { type: "scene", id: "sc-a", slugline: "INT. FLAT — DAY" },
+      { type: "scene", id: "sc-b", slugline: "EXT. STREET — NIGHT" }
+    ];
+    mockShots = [
+      makeShot("a1", "sc-a"),
+      makeShot("b1", "sc-b"),
+      makeShot("b2", "sc-b")
+    ];
+    renderBoard(jest.fn());
+
+    expect(
+      screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)
+    ).toEqual(["Scene 1", "Scene 2"]);
+    expect(screen.getByText("INT. FLAT — DAY")).toBeInTheDocument();
+    expect(screen.getByText("EXT. STREET — NIGHT")).toBeInTheDocument();
+  });
+
+  it("captions every card with the derived Scene N | Shot N", () => {
+    mockScenes = [
+      { type: "scene", id: "sc-a", slugline: "INT. FLAT — DAY" },
+      { type: "scene", id: "sc-b", slugline: "EXT. STREET — NIGHT" }
+    ];
+    mockShots = [
+      makeShot("a1", "sc-a"),
+      makeShot("b1", "sc-b"),
+      makeShot("b2", "sc-b")
+    ];
+    renderBoard(jest.fn());
+
+    // The board builds these in one pass; `displayNumber` is the definition.
+    for (const shot of mockShots) {
+      const { scene, shot: n } = displayNumber(shot, mockShots);
+      expect(screen.getByRole("button", { name: shot.id })).toHaveAttribute(
+        "data-caption",
+        `Scene ${scene} | Shot ${n}`
+      );
+    }
+  });
+});
+
+describe("StoryboardBoard insert point", () => {
+  it("inserts after the card it follows", async () => {
+    mockShots = [makeShot("s1"), makeShot("s2")];
+    mockInsertShot.mockClear();
+    const user = userEvent.setup();
+    renderBoard(jest.fn());
+
+    await user.click(
+      screen.getByRole("button", { name: "Insert a shot after Scene 1 | Shot 1" })
+    );
+
+    expect(mockInsertShot).toHaveBeenCalledWith("board-1", "s1");
+  });
+
+  it("is absent on a read-only board", () => {
+    mockShots = [makeShot("s1")];
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StoryboardBoard boardId="board-1" readOnly />
+      </ThemeProvider>
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /^Insert a shot/ })
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("StoryboardBoard genre chip", () => {
+  it("writes the picked genre to the board", async () => {
+    mockShots = [makeShot("s1")];
+    mockSetSetup.mockClear();
+    const user = userEvent.setup();
+    renderBoard(jest.fn());
+
+    await user.click(screen.getByRole("button", { name: "Set genre" }));
+    const grid = await screen.findByRole("group", { name: "Genre" });
+    await user.click(within(grid).getByRole("button", { name: /Thriller/ }));
+
+    expect(mockSetSetup).toHaveBeenCalledWith("board-1", { genre: "Thriller" });
+  });
+
+  it("shows the stored genre on the chip", () => {
+    mockShots = [makeShot("s1")];
+    mockGenre = "Noir";
+    renderBoard(jest.fn());
+
+    expect(screen.getByRole("button", { name: "Noir" })).toBeInTheDocument();
+  });
+});
+
+describe("StoryboardBoard Change Style", () => {
+  it("applies the preset and renders nothing (D12)", async () => {
+    mockShots = [makeShot("s1")];
+    mockEntities = [
+      {
+        type: "entity",
+        id: "ent-noir",
+        kind: "style",
+        name: "Noir",
+        descriptor: "high contrast black and white"
+      }
+    ];
+    mockPresets = [
+      {
+        entityId: "ent-noir",
+        presetId: "noir",
+        name: "Noir",
+        descriptor: "high contrast black and white",
+        thumbnail: "package://nodetool-base/styles/noir.jpg"
+      }
+    ];
+    mockSetStylePreset.mockClear();
+    mockGenerateKeyframe.mockClear();
+    mockGenerateClip.mockClear();
+    const user = userEvent.setup();
+    renderBoard(jest.fn());
+
+    await user.click(screen.getByRole("button", { name: "Change Style" }));
+    const grid = await screen.findByRole("group", { name: "Art style" });
+    await user.click(within(grid).getByRole("button", { name: /Noir/ }));
+
+    expect(mockSetStylePreset).toHaveBeenCalledWith(
+      "board-1",
+      "ent-noir",
+      mockEntities
+    );
+    // D12: a style change marks stale. It never enqueues a render.
+    expect(mockGenerateKeyframe).not.toHaveBeenCalled();
+    expect(mockGenerateClip).not.toHaveBeenCalled();
+  });
+});
+
+describe("StoryboardBoard next steps", () => {
+  it("offers Assemble timeline once a shot has a clip", () => {
+    mockShots = [
+      {
+        ...makeShot("s1"),
+        status: "rendered",
+        clip: { type: "video", asset_id: "clip-1" }
+      }
+    ];
+    const onAssemble = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StoryboardBoard boardId="board-1" onAssemble={onAssemble} />
+      </ThemeProvider>
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Assemble timeline" })
+    ).toBeEnabled();
   });
 });
 

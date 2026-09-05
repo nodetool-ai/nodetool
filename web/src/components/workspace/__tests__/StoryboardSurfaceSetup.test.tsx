@@ -9,6 +9,18 @@ import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
+// The look step reaches the generation store, the entity library and the
+// cost estimate. `LookStep.test.tsx` covers what it does; these suites only
+// need it to exist so the flow can mount.
+jest.mock("../../../components/setup/storyboard/LookStep", () => ({
+  LookStep: () => null,
+  useLookStep: () => ({
+    canAdvance: true,
+    primaryDetail: undefined,
+    generate: jest.fn(async () => {})
+  })
+}));
+
 jest.mock("../../storyboard/StoryboardBoard", () => ({
   __esModule: true,
   default: () => <div data-testid="board" />

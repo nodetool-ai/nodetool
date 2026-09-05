@@ -1,14 +1,22 @@
 /**
  * StoryboardBoard
  *
- * A compact toolbar over a grid of {@link ShotCard}s. The toolbar carries the
- * board's name, a one-line summary, and the three actions that move the board
- * forward (render stills, render clips, assemble the timeline); the
- * Screenplay/Direction form — including *Direct* — folds into a collapsible
- * section behind *Board settings*, open by default while the board has no
- * shots. Selecting a card opens {@link ShotInspector} under the grid and
- * scrolls it into view; the arrow keys walk the selection along the grid, and
- * dragging one card onto another reorders the shots.
+ * A compact toolbar over a grid of {@link ShotCard}s, grouped under scene
+ * headers. The toolbar carries the board's name, its genre, a one-line
+ * summary, and the actions that spend money (render stills, render clips);
+ * the Screenplay/Direction form — including *Direct* — folds into a
+ * collapsible section behind *Board settings*, open by default while the board
+ * has no shots. What comes after the board — *Extract script*, *Assemble
+ * timeline* — sits in a next-steps strip under the grid.
+ *
+ * The grid is a view of one stored order. `shot.index` is the whole order and
+ * a scene is a contiguous run inside it (PRD § 7.7.3), so this file derives
+ * groups and captions with {@link sceneOrder} and never writes an order of its
+ * own: dropping a card is `moveShot(shotId, sceneId, position)` and the `+`
+ * between cards is `insertShot(afterShotId)`. Both reindex in the store.
+ *
+ * Selecting a card opens {@link ShotInspector} under the grid and scrolls it
+ * into view; the arrow keys walk the selection along the grid.
  */
 
 import React, {
@@ -71,16 +79,28 @@ import ImageModelSelect from "../properties/ImageModelSelect";
 import VideoModelSelect from "../properties/VideoModelSelect";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useEntities } from "../../serverState/useEntities";
+import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
 import { exportStoryboardZip } from "../../utils/storyboardZip";
 import {
   useRenderBatchCostEstimate,
   type RenderBatchCostEstimate
 } from "../../hooks/storyboard/useRenderBatchCostEstimate";
+import {
+  sceneOrder,
+  type SceneGroup
+} from "../../lib/storyboard/sceneOrder";
+import BoardGenreChip from "./BoardGenreChip";
+import BoardRetryFailed from "./BoardRetryFailed";
+import BoardStaleBanner from "./BoardStaleBanner";
+import BoardStyleDialog from "./BoardStyleDialog";
+import SceneHeader from "./SceneHeader";
 import ScriptLinkControl from "./ScriptLinkControl";
 import ShotCard from "./ShotCard";
+import ShotInsertPoint, { SHOT_INSERT_POINT_CLASS } from "./ShotInsertPoint";
 import ShotInspector from "./ShotInspector";
 import StoryboardEntitiesField from "./StoryboardEntitiesField";
-import { dropShotOrder, isShotNavigationKey, navigateShots } from "./shotOrder";
+import { sceneDropTarget } from "./sceneDrop";
+import { isShotNavigationKey, navigateShots } from "./shotOrder";
 
 // The preview mounts the timeline compositor; keep it out of the board bundle.
 const LazyStoryboardPreview = React.lazy(() => import("./StoryboardPreview"));
@@ -144,6 +164,34 @@ const shotGridSx = {
     gridTemplateColumns: "minmax(0, 1fr)"
   }
 } as const;
+
+/**
+ * One card's cell. It hosts the trailing insert point, which is revealed by
+ * hover or by a keyboard focus landing anywhere inside the cell.
+ */
+const shotSlotSx = {
+  position: "relative",
+  [`&:hover .${SHOT_INSERT_POINT_CLASS}`]: { opacity: 1 },
+  [`&:focus-within .${SHOT_INSERT_POINT_CLASS}`]: { opacity: 1 }
+} as const;
+
+/**
+ * `Scene N | Shot N` for every card, from the groups the board already has.
+ * `displayNumber` answers for one shot by grouping the whole board, so calling
+ * it per card is quadratic on a long board. The numbering is identical, and
+ * `StoryboardBoard.test.tsx` pins these captions against `displayNumber`.
+ */
+const captionsByShotId = (
+  groups: readonly SceneGroup[]
+): Map<string, string> => {
+  const captions = new Map<string, string>();
+  groups.forEach((group, sceneIndex) => {
+    group.shots.forEach((shot, shotIndex) => {
+      captions.set(shot.id, `Scene ${sceneIndex + 1} | Shot ${shotIndex + 1}`);
+    });
+  });
+  return captions;
+};
 
 /**
  * A batch render button with what the click costs on it.
@@ -224,11 +272,13 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     title,
     brief,
     style,
+    genre,
     entityIds,
     aspectRatio,
     directorModel,
     imageModel,
     videoModel,
+    screenplay,
     shots,
     activeShotId
   } = useBoard(boardId);
@@ -248,7 +298,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const setVideoModel = useStoryboardStore((state) => state.setVideoModel);
   const selectShot = useStoryboardStore((state) => state.selectShot);
   const addShot = useStoryboardStore((state) => state.addShot);
-  const reorderShots = useStoryboardStore((state) => state.reorderShots);
+  const insertShot = useStoryboardStore((state) => state.insertShot);
+  const moveShot = useStoryboardStore((state) => state.moveShot);
   const undo = useStoryboardStore((state) => state.undo);
   const redo = useStoryboardStore((state) => state.redo);
   const canUndo = useStoryboardCanUndo(boardId);
@@ -261,6 +312,15 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   const togglePreview = useCallback(() => setPreviewOpen((open) => !open), []);
   const [downloading, setDownloading] = useState(false);
+  const [styleOpen, setStyleOpen] = useState(false);
+  const openStyle = useCallback(() => setStyleOpen(true), []);
+  const closeStyle = useCallback(() => setStyleOpen(false), []);
+
+  // The one grouping pass the render needs: the headers, the cards under each,
+  // the captions, and the scene a drop resolves against all read it.
+  const scenes = screenplay?.scenes;
+  const sceneGroups = useMemo(() => sceneOrder(shots, scenes), [shots, scenes]);
+  const captions = useMemo(() => captionsByShotId(sceneGroups), [sceneGroups]);
 
   const hasShots = shots.length > 0;
 
@@ -368,22 +428,20 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     setDraggingId(null);
     setDropTargetId(null);
   }, []);
+  // A drop can cross a scene header, so it names a scene and a position in it
+  // rather than rewriting a flat list (PRD § 7.7.3). The store reindexes.
   const handleDrop = useCallback(
     (targetId: string) => {
-      if (draggingId && draggingId !== targetId) {
-        reorderShots(
-          boardId,
-          dropShotOrder(
-            shots.map((s) => s.id),
-            draggingId,
-            targetId
-          )
-        );
+      const drop = draggingId
+        ? sceneDropTarget(sceneGroups, draggingId, targetId)
+        : null;
+      if (draggingId && drop) {
+        moveShot(boardId, draggingId, drop.sceneId, drop.position);
       }
       setDraggingId(null);
       setDropTargetId(null);
     },
-    [draggingId, reorderShots, boardId, shots]
+    [draggingId, moveShot, boardId, sceneGroups]
   );
 
   // A shot added by hand opens in the inspector, blank, ready to describe.
@@ -391,6 +449,16 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     revealInspector.current = true;
     addShot(boardId);
   }, [addShot, boardId]);
+
+  // The `+` between two cards: the new shot joins the scene of the card it
+  // follows, and the store reindexes the board around it.
+  const handleInsertShot = useCallback(
+    (afterShotId: string) => {
+      revealInspector.current = true;
+      insertShot(boardId, afterShotId);
+    },
+    [insertShot, boardId]
+  );
 
   // Entity reference images only reach generation through an editing model;
   // warn when entities are attached but the still model can't take them.
@@ -456,6 +524,18 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   // The toolbar's one-line summary: how big the board is, how it looks, and
   // who is in it — the fields the folded form would otherwise hide.
   const { data: allEntities } = useEntities();
+  // Every card's stale marker compares against the same board values the
+  // enqueue path stamped a version with, so it is derived once here rather
+  // than per card (PRD § 7.7.4). Built from what `useBoard` already returned,
+  // not a second read of the store.
+  const renderContext = useMemo(
+    () =>
+      boardRenderContext(
+        { aspectRatio, style, entityIds, imageModel, videoModel, screenplay },
+        allEntities ?? []
+      ),
+    [aspectRatio, style, entityIds, imageModel, videoModel, screenplay, allEntities]
+  );
   const summary = useMemo(() => {
     const entityNames = (allEntities ?? [])
       .filter((e) => entityIds.includes(e.id))
@@ -525,6 +605,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       >
         <FlexRow align="center" gap={SPACING.lg} wrap>
           <Text size="big">{title || "Untitled film"}</Text>
+          <BoardGenreChip boardId={boardId} genre={genre} readOnly={readOnly} />
           <Caption color="secondary">{summary}</Caption>
           <Box sx={{ flex: 1 }} />
           {!readOnly && (
@@ -537,7 +618,6 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 undoTooltip="Undo (⌘Z)"
                 redoTooltip="Redo (⌘⇧Z)"
               />
-              <ScriptLinkControl boardId={boardId} disabled={directing} />
               <EditorButton
                 variant="outlined"
                 startIcon={<AddIcon fontSize="small" />}
@@ -560,6 +640,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               >
                 {downloading ? "Preparing…" : "Download ZIP"}
               </EditorButton>
+              <EditorButton variant="outlined" onClick={openStyle}>
+                Change Style
+              </EditorButton>
               <EditorButton
                 variant="outlined"
                 startIcon={<TuneIcon fontSize="small" />}
@@ -580,17 +663,19 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 disabled={pendingClips.length === 0 || !!directing}
                 onClick={handleGenerateAllClips}
               />
-              <EditorButton
-                variant="contained"
-                color="primary"
-                onClick={onAssemble}
-                disabled={!onAssemble || assembling || !hasRenderedShot}
-              >
-                {assembling ? "Assembling…" : "Assemble timeline"}
-              </EditorButton>
             </FlexRow>
           )}
         </FlexRow>
+
+        {/* The board's own state, under the toolbar and above the settings
+            form: what is stale and what failed. Both render null when they
+            have nothing to say, so neither reserves space (PRD § 7.4). */}
+        {!readOnly && (
+          <FlexColumn gap={SPACING.md}>
+            <BoardStaleBanner boardId={boardId} disabled={!!directing} />
+            <BoardRetryFailed boardId={boardId} disabled={!!directing} />
+          </FlexColumn>
+        )}
 
         {!readOnly && (
           <Collapse in={settingsOpen} timeout="auto" unmountOnExit>
@@ -785,24 +870,67 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             onKeyDown={handleGridKeyDown}
             sx={shotGridSx}
           >
-            {shots.map((shot) => (
-              <ShotCard
-                key={shot.id}
-                boardId={boardId}
-                shot={shot}
-                selected={shot.id === activeShotId}
-                onSelect={handleSelectShot}
-                readOnly={readOnly}
-                draggable={!readOnly && !directing}
-                dropTarget={shot.id === dropTargetId}
-                onDragStart={handleDragStart}
-                onDragEnter={handleDragEnter}
-                onDragEnd={handleDragEnd}
-                onDrop={handleDrop}
-              />
+            {sceneGroups.map((group, sceneIndex) => (
+              // A legacy board has one group with no scene record; it gets the
+              // implicit header, and no `Scene` is written to get it.
+              <React.Fragment key={group.sceneId ?? "unscened"}>
+                <SceneHeader
+                  number={sceneIndex + 1}
+                  slugline={group.scene?.slugline || undefined}
+                />
+                {group.shots.map((shot) => (
+                  <Box key={shot.id} sx={shotSlotSx}>
+                    <ShotCard
+                      boardId={boardId}
+                      shot={shot}
+                      caption={captions.get(shot.id)}
+                      renderContext={renderContext}
+                      selected={shot.id === activeShotId}
+                      onSelect={handleSelectShot}
+                      readOnly={readOnly}
+                      draggable={!readOnly && !directing}
+                      dropTarget={shot.id === dropTargetId}
+                      onDragStart={handleDragStart}
+                      onDragEnter={handleDragEnter}
+                      onDragEnd={handleDragEnd}
+                      onDrop={handleDrop}
+                    />
+                    {!readOnly && !directing && (
+                      <ShotInsertPoint
+                        afterShotId={shot.id}
+                        label={`after ${captions.get(shot.id) ?? ""}`}
+                        onInsert={handleInsertShot}
+                      />
+                    )}
+                  </Box>
+                ))}
+              </React.Fragment>
             ))}
           </Box>
         )}
+
+        {/* What comes after the board (PRD § 7.4). Both actions already exist
+            — the script link control and the timeline handoff — and are shown
+            here rather than in the spend toolbar, because neither renders. */}
+        {!readOnly && (
+          <FlexRow align="flex-start" gap={SPACING.md} wrap>
+            <ScriptLinkControl boardId={boardId} disabled={directing} />
+            <EditorButton
+              variant="contained"
+              color="primary"
+              onClick={onAssemble}
+              disabled={!onAssemble || assembling || !hasRenderedShot}
+            >
+              {assembling ? "Assembling…" : "Assemble timeline"}
+            </EditorButton>
+          </FlexRow>
+        )}
+
+        <BoardStyleDialog
+          boardId={boardId}
+          open={styleOpen}
+          onClose={closeStyle}
+        />
 
         {activeShot && (
           <Box ref={inspectorRef}>

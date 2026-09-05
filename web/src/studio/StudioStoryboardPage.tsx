@@ -71,7 +71,7 @@ const StudioStoryboardPage = () => {
 
   useStoryboardServerSync(boardId);
   useStoryboardAgentBridge(boardId);
-  useStoryboardGenerationSubscriptions();
+  useStoryboardGenerationSubscriptions(boardId);
   useStudioModelPolicy(boardId);
 
   // The board's undo buttons advertise ⌘Z; the page is the only surface, so

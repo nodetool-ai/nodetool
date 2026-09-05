@@ -1,5 +1,8 @@
 /**
- * @jest-environment node
+ * @jest-environment jsdom
+ *
+ * jsdom, not node: the store persists its pending-job list to localStorage,
+ * and zustand warns on every write when there is none.
  *
  * Regression tests for the storyboard render path. Every render is a direct
  * `generate_media` request, so the store settles on one `rpc_response`:

@@ -42,6 +42,7 @@ import {
   type StoryboardBoard
 } from "../../stores/storyboard/StoryboardStore";
 import { entitiesForShot } from "../../stores/storyboard/shotEntities";
+import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
 import { useEntities } from "../../serverState/useEntities";
 import { useImageModelsByProvider } from "../useModelsByProvider";
 import {
@@ -150,17 +151,9 @@ export const useGenerateShot = (): UseGenerateShotResult => {
    * so the first match is the board's style.
    */
   const renderContext = useCallback(
-    (board: StoryboardBoard | undefined): BoardRenderContext => ({
-      aspect_ratio: board?.aspectRatio ?? "16:9",
-      image_model: board?.imageModel?.id ?? "",
-      video_model: board?.videoModel?.id ?? "",
-      style_entity_id:
-        boardEntities(board?.entityIds).find((e) => e.kind === "style")?.id ??
-        null,
-      style: board?.style ?? "",
-      scenes: board?.screenplay?.scenes ?? null
-    }),
-    [boardEntities]
+    (board: StoryboardBoard | undefined): BoardRenderContext =>
+      boardRenderContext(board, allEntities ?? []),
+    [allEntities]
   );
 
   /** Fire one direct-generation request and track it on the shot. */
