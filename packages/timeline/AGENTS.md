@@ -41,6 +41,23 @@
   straddling word) and **rebase** the moved side's local timings
   (`startMs - splitMs`), not copy the whole `words` array to both.
 
+## Ripple and roll (`src/rippleEdit.ts`)
+
+- **A ripple moves every unlocked track, not just the edited one.** A voiceover
+  or caption sits against a shot; a ripple that only closed the video track
+  would pull them out of sync. `shiftClipsFrom` is the one shift, and every
+  ripple (`rippleTrim`, `rippleDelete`, `closeGap`) is a trim or removal
+  followed by it, so the "what moves" rule lives in one place.
+- **A ripple head-trim keeps the clip parked.** `rippleTrim(..., "start", d)`
+  moves the in-point and the duration and puts `startMs` back; the downstream
+  shift is measured from the clip's *old* end. The web trim gesture
+  (`useClipTrim`) measures a head-trim against the duration at pointerdown for
+  the same reason.
+- **A roll is two trims that sum to zero.** `rollEdit` finds the neighbour
+  across the cut (`findRollNeighbour`, 1 ms tolerance) and applies `trimClip`
+  to both sides so the sequence length never changes; either side running out
+  of source throws and the store leaves the document alone.
+
 ## Snapping & placement
 
 - **Generate snap-point ticks as `i * interval`, never `t += interval`** —
