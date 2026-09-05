@@ -54,9 +54,7 @@ import {
 } from "./files.specs.js";
 
 /**
- * A run over one call's context — all a file capability needs. The deprecated
- * tool classes pass this to `CapabilityTool`, which is gated from the outside
- * by `gateTools` exactly as the classes were before the port.
+ * A run over one call's context — all a file capability needs.
  */
 export function fileCapabilityRun(context: ProcessingContext): CapabilityRun {
   return createCapabilityRun({ context, gate: UNGATED });

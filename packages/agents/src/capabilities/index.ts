@@ -49,7 +49,6 @@ export {
 } from "./dispatcher.js";
 export type { SandboxCapabilityDispatcher } from "./dispatcher.js";
 export {
-  CapabilityTool,
   toolFromCapability,
   capabilityFromTool
 } from "./adapters.js";

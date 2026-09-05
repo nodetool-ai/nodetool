@@ -1,18 +1,21 @@
 /**
- * The two adapters that let capabilities and `Tool` instances coexist during
- * the migration.
+ * The two adapters that let capabilities and `Tool` instances coexist.
  *
  * `toolFromCapability` wraps a spec+impl as a `Tool`, so every belt that
- * consumes `Tool[]` today — the runner, the MCP mount, the CLI, the evals —
- * consumes a ported namespace unchanged. `capabilityFromTool` is the reverse,
- * for the long tail that has not been ported yet. Both die in PR 12.
+ * consumes `Tool[]` — the runner, the MCP mount, the CLI, the evals —
+ * consumes a ported namespace unchanged. It is a thin wrapper over
+ * {@link toolFromLazyCapability}, which already carries the run/validate
+ * logic this used to duplicate as its own `CapabilityTool` class; the two
+ * differed only in where the implementation came from (`this.impl` here,
+ * `loadCapabilityImpl(name)` there), which `toolFromLazyCapability`'s
+ * optional `impl` parameter now covers. `capabilityFromTool` is the reverse,
+ * for the long tail that has not been ported yet.
  */
 
-import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
-import type { ZodType } from "zod";
-import { Tool } from "../tools/base-tool.js";
-import { withSnakeCaseAliases } from "./args.js";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { Tool } from "../tools/base-tool.js";
 import { capabilityCategoryFor } from "./registry.js";
+import { toolFromLazyCapability } from "./lazy-tool.js";
 import type {
   CapabilityExport,
   CapabilityImpl,
@@ -29,70 +32,6 @@ export type CapabilityRunSource =
   | CapabilityRun
   | ((context: ProcessingContext) => CapabilityRun);
 
-function isRunFactory(
-  source: CapabilityRunSource
-): source is (context: ProcessingContext) => CapabilityRun {
-  return typeof source === "function";
-}
-
-/**
- * A `Tool` whose `process()` is one capability implementation.
- *
- * Exported so a ported tool class can survive as a one-line subclass while its
- * callers migrate — the class keeps its constructor and its wire identity, and
- * the behaviour comes from the capability. Both die in PR 12.
- */
-export class CapabilityTool extends Tool {
-  readonly name: string;
-  readonly description: string;
-  /**
-   * A capability that nests what it runs under the caller's card declares the
-   * need in its spec, so the wrapper asks `Tool.execute` for the id the same
-   * way the class it replaces did.
-   */
-  override readonly needsToolCallId: boolean;
-
-  constructor(
-    private readonly spec: CapabilitySpec,
-    private readonly impl: CapabilityImpl,
-    private readonly runSource: CapabilityRunSource
-  ) {
-    super();
-    this.name = spec.name;
-    this.description = spec.description;
-    this.needsToolCallId = spec.needsToolCallId === true;
-  }
-
-  override get inputSchema(): JsonSchema {
-    return this.spec.inputSchema;
-  }
-
-  /**
-   * The Zod schema for the capabilities whose identity is one, exactly as
-   * {@link toolFromLazyCapability} exposes it: `Tool.execute` then validates on
-   * the way in, where the class this replaces validated.
-   */
-  override get schema(): ZodType | undefined {
-    return this.spec.zodSchema;
-  }
-
-  override userMessage(params: Record<string, unknown>): string {
-    const template = this.spec.userMessage?.(params);
-    if (template) return template;
-    return super.userMessage(params);
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const run = isRunFactory(this.runSource)
-      ? this.runSource(context)
-      : this.runSource;
-    return this.impl(run, withSnakeCaseAliases(params));
-  }
-}
-
 /**
  * Expose one capability as a `Tool`. The run is either supplied directly or
  * built per call from the context the caller passes to `process()`.
@@ -102,7 +41,7 @@ export function toolFromCapability(
   impl: CapabilityImpl,
   run: CapabilityRunSource
 ): Tool {
-  return new CapabilityTool(spec, impl, run);
+  return toolFromLazyCapability(spec, run, impl);
 }
 
 /**

@@ -6,8 +6,7 @@
  * `../tools/sketch-version-tools.ts`; the editor was `sketch-edit-tools.ts`;
  * `validate_sketch` lived beside the workflow tools in `../tools/mcp-tools.ts`.
  *
- * Wire names, descriptions and schemas are unchanged: the old classes survive
- * as thin `CapabilityTool` subclasses over these implementations.
+ * Wire names, descriptions and schemas are unchanged from the old classes.
  *
  * The tRPC-only sketch loader `validate_sketch` took as a constructor argument
  * is `run.loaders?.sketch`. Every heavy dependency (`@nodetool-ai/models`, the
