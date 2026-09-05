@@ -1001,6 +1001,10 @@ Query job status and results. Reads the local database by default.
 - `--limit <n>` — max results (default: `100`).
 - `--json` — output as JSON.
 
+`--json` returns the same declared row shape whether the command read the local
+database or a server. The local read used to dump every column, including a
+job's whole `graph` and `logs`.
+
 **Examples:**
 
 ```bash

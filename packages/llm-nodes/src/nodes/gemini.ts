@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ImageRef, AudioRef } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { safeFetch } from "@nodetool-ai/runtime";
 import {
@@ -15,7 +16,9 @@ function getGeminiApiKey(secrets: Record<string, string>): string {
   return key;
 }
 
-function getAudioBytes(audio: Record<string, unknown>): Uint8Array {
+type MediaRefLike = { uri?: string; asset_id?: string | null; data?: unknown };
+
+function getAudioBytes(audio: MediaRefLike): Uint8Array {
   if (isString(audio.data)) {
     return Uint8Array.from(Buffer.from(audio.data, "base64"));
   }
@@ -25,7 +28,7 @@ function getAudioBytes(audio: Record<string, unknown>): Uint8Array {
   throw new Error("Audio data is required");
 }
 
-function getImageBytes(image: Record<string, unknown>): Uint8Array | null {
+function getImageBytes(image: MediaRefLike): Uint8Array | null {
   if (isNonEmptyString(image.data)) {
     return Uint8Array.from(Buffer.from(image.data, "base64"));
   }
@@ -70,7 +73,7 @@ export class GroundedSearchNode extends BaseNode {
     title: "Query",
     description: "The search query to execute"
   })
-  declare query: any;
+  declare query: string;
 
   @prop({
     type: "enum",
@@ -86,12 +89,12 @@ export class GroundedSearchNode extends BaseNode {
       "gemini-2.5-flash-lite"
     ]
   })
-  declare model: any;
+  declare model: string;
 
   async process(): Promise<GroundedSearchNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
-    const query = String(this.query ?? "");
-    const model = String(this.model ?? "gemini-3.5-flash");
+    const query = this.query;
+    const model = this.model;
 
     if (!query) throw new Error("Search query is required");
 
@@ -184,7 +187,7 @@ export class EmbeddingNode extends BaseNode {
     title: "Input",
     description: "The text to embed."
   })
-  declare input: any;
+  declare input: string;
 
   @prop({
     type: "enum",
@@ -193,12 +196,12 @@ export class EmbeddingNode extends BaseNode {
     description: "The embedding model to use",
     values: ["gemini-embedding-2"]
   })
-  declare model: any;
+  declare model: string;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getGeminiApiKey(this._secrets);
-    const input = String(this.input ?? "");
-    const model = String(this.model ?? "gemini-embedding-2");
+    const input = this.input;
+    const model = this.model;
 
     if (!input)
       throw new Error("Input text is required for embedding generation");
@@ -256,7 +259,7 @@ export class ImageGenerationNode extends BaseNode {
     title: "Prompt",
     description: "The text prompt describing the image to generate."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "enum",
@@ -270,7 +273,7 @@ export class ImageGenerationNode extends BaseNode {
       "imagen-4.0-generate-001"
     ]
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "image",
@@ -284,7 +287,7 @@ export class ImageGenerationNode extends BaseNode {
     title: "Image",
     description: "The image to use as a base for the generation."
   })
-  declare image: any;
+  declare image: ImageRef;
 
   @prop({
     type: "enum",
@@ -308,7 +311,7 @@ export class ImageGenerationNode extends BaseNode {
       "21:9"
     ]
   })
-  declare aspect_ratio: any;
+  declare aspect_ratio: string;
 
   @prop({
     type: "enum",
@@ -317,15 +320,15 @@ export class ImageGenerationNode extends BaseNode {
     description: "The output image resolution",
     values: ["512px", "1K", "2K", "4K"]
   })
-  declare resolution: any;
+  declare resolution: string;
 
   async process(): Promise<ImageGenerationNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
-    const prompt = String(this.prompt ?? "");
-    const model = String(this.model ?? "gemini-3.1-flash-image");
-    const image = (this.image ?? {}) as Record<string, unknown>;
-    const aspectRatio = String(this.aspect_ratio ?? "1:1");
-    const resolution = String(this.resolution ?? "1K");
+    const prompt = this.prompt;
+    const model = this.model;
+    const image = this.image;
+    const aspectRatio = this.aspect_ratio;
+    const resolution = this.resolution;
 
     if (!prompt) throw new Error("The input prompt cannot be empty.");
 
@@ -473,7 +476,7 @@ export class TextToVideoGeminiNode extends BaseNode {
     title: "Prompt",
     description: "The text prompt describing the video to generate"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "enum",
@@ -486,7 +489,7 @@ export class TextToVideoGeminiNode extends BaseNode {
       "veo-3.1-lite-generate-preview"
     ]
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "enum",
@@ -495,7 +498,7 @@ export class TextToVideoGeminiNode extends BaseNode {
     description: "The aspect ratio of the generated video",
     values: ["16:9", "9:16"]
   })
-  declare aspect_ratio: any;
+  declare aspect_ratio: string;
 
   @prop({
     type: "str",
@@ -503,7 +506,7 @@ export class TextToVideoGeminiNode extends BaseNode {
     title: "Negative Prompt",
     description: "Negative prompt to guide what to avoid in the video"
   })
-  declare negative_prompt: any;
+  declare negative_prompt: string;
 
   @prop({
     type: "enum",
@@ -512,15 +515,15 @@ export class TextToVideoGeminiNode extends BaseNode {
     description: "The output video resolution",
     values: ["720p", "1080p", "4k"]
   })
-  declare resolution: any;
+  declare resolution: string;
 
   async process(): Promise<TextToVideoGeminiNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
-    const prompt = String(this.prompt ?? "");
-    const model = String(this.model ?? "veo-3.1-generate-preview");
-    const aspectRatio = String(this.aspect_ratio ?? "16:9");
-    const negativePrompt = String(this.negative_prompt ?? "");
-    const resolution = String(this.resolution ?? "720p");
+    const prompt = this.prompt;
+    const model = this.model;
+    const aspectRatio = this.aspect_ratio;
+    const negativePrompt = this.negative_prompt;
+    const resolution = this.resolution;
 
     if (!prompt) throw new Error("Video generation prompt is required");
 
@@ -583,7 +586,7 @@ export class ImageToVideoGeminiNode extends BaseNode {
     title: "Image",
     description: "The image to animate into a video"
   })
-  declare image: any;
+  declare image: ImageRef;
 
   @prop({
     type: "str",
@@ -591,7 +594,7 @@ export class ImageToVideoGeminiNode extends BaseNode {
     title: "Prompt",
     description: "Optional text prompt describing the desired animation"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "enum",
@@ -604,7 +607,7 @@ export class ImageToVideoGeminiNode extends BaseNode {
       "veo-3.1-lite-generate-preview"
     ]
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "enum",
@@ -613,7 +616,7 @@ export class ImageToVideoGeminiNode extends BaseNode {
     description: "The aspect ratio of the generated video",
     values: ["16:9", "9:16"]
   })
-  declare aspect_ratio: any;
+  declare aspect_ratio: string;
 
   @prop({
     type: "str",
@@ -621,7 +624,7 @@ export class ImageToVideoGeminiNode extends BaseNode {
     title: "Negative Prompt",
     description: "Negative prompt to guide what to avoid in the video"
   })
-  declare negative_prompt: any;
+  declare negative_prompt: string;
 
   @prop({
     type: "enum",
@@ -630,16 +633,16 @@ export class ImageToVideoGeminiNode extends BaseNode {
     description: "The output video resolution",
     values: ["720p", "1080p", "4k"]
   })
-  declare resolution: any;
+  declare resolution: string;
 
   async process(): Promise<ImageToVideoGeminiNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
-    const image = (this.image ?? {}) as Record<string, unknown>;
-    const prompt = String(this.prompt ?? "Animate this image");
-    const model = String(this.model ?? "veo-3.1-generate-preview");
-    const aspectRatio = String(this.aspect_ratio ?? "16:9");
-    const negativePrompt = String(this.negative_prompt ?? "");
-    const resolution = String(this.resolution ?? "720p");
+    const image = this.image;
+    const prompt = this.prompt;
+    const model = this.model;
+    const aspectRatio = this.aspect_ratio;
+    const negativePrompt = this.negative_prompt;
+    const resolution = this.resolution;
 
     if (!isRefSet(image)) throw new Error("Input image is required");
 
@@ -795,7 +798,7 @@ export class TextToSpeechGeminiNode extends BaseNode {
     title: "Text",
     description: "The text to convert to speech."
   })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: "enum",
@@ -808,7 +811,7 @@ export class TextToSpeechGeminiNode extends BaseNode {
       "gemini-2.5-pro-preview-tts"
     ]
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "enum",
@@ -848,7 +851,7 @@ export class TextToSpeechGeminiNode extends BaseNode {
       "zubenelgenubi"
     ]
   })
-  declare voice_name: any;
+  declare voice_name: string;
 
   @prop({
     type: "str",
@@ -857,13 +860,13 @@ export class TextToSpeechGeminiNode extends BaseNode {
     description:
       "Optional style prompt to control speech characteristics (e.g., 'Say cheerfully', 'Speak with excitement')"
   })
-  declare style_prompt: any;
+  declare style_prompt: string;
 
   async process(): Promise<TextToSpeechGeminiNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
-    const text = String(this.text ?? "");
-    const model = String(this.model ?? "gemini-3.1-flash-tts-preview");
-    const stylePrompt = String(this.style_prompt ?? "");
+    const text = this.text;
+    const model = this.model;
+    const stylePrompt = this.style_prompt;
 
     const VALID_VOICES = [
       "achernar", "achird", "algenib", "algieba", "alnilam",
@@ -873,7 +876,7 @@ export class TextToSpeechGeminiNode extends BaseNode {
       "pulcherrima", "rasalgethi", "sadachbia", "sadaltager", "schedar",
       "sulafat", "umbriel", "vindemiatrix", "zephyr", "zubenelgenubi"
     ];
-    const rawVoice = String(this.voice_name ?? "kore").toLowerCase();
+    const rawVoice = this.voice_name.toLowerCase();
     const voiceName = VALID_VOICES.includes(rawVoice) ? rawVoice : "kore";
 
     if (!text) throw new Error("The input text cannot be empty.");
@@ -979,7 +982,7 @@ export class TranscribeGeminiNode extends BaseNode {
     title: "Audio",
     description: "The audio file to transcribe."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "enum",
@@ -988,7 +991,7 @@ export class TranscribeGeminiNode extends BaseNode {
     description: "The Gemini model to use for transcription",
     values: ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -998,16 +1001,13 @@ export class TranscribeGeminiNode extends BaseNode {
     description:
       "Instructions for the transcription. You can customize this to request specific formatting or focus."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   async process(): Promise<TranscribeGeminiNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const model = String(this.model ?? "gemini-3.5-flash");
-    const prompt = String(
-      this.prompt ??
-        "Transcribe the following audio accurately. Return only the transcription text without any additional commentary."
-    );
+    const audio = this.audio;
+    const model = this.model;
+    const prompt = this.prompt;
 
     if (!isRefSet(audio))
       throw new Error("Audio file is required for transcription");
