@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/lib/tools/**/*",
+    "src/components/timeline/timelineAgentBridge.ts"
+  ],
+  "references": []
+}

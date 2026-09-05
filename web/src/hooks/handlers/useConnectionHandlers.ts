@@ -18,7 +18,7 @@ import {
   ConnectionMatchOption
 } from "../../components/context_menus/ConnectionMatchMenu";
 import {
-  DYNAMIC_KIE_NODE_TYPE,
+  isDynamicSchemaNodeType,
   PREVIEW_NODE_TYPE,
   REROUTE_NODE_TYPE
 } from "../../constants/nodeTypes";
@@ -397,9 +397,7 @@ export default function useConnectionHandlers() {
           droppedOnAddDynamicInputButton &&
           nodeMetadata.supports_dynamic_inputs &&
           connectDirection === "source" &&
-          node.type !== "fal.DynamicFal" &&
-          node.type !== DYNAMIC_KIE_NODE_TYPE &&
-          node.type !== "kie.DynamicKie"
+          !isDynamicSchemaNodeType(node.type)
         ) {
           createDynamicInputFromConnection();
           endConnecting();
@@ -587,9 +585,7 @@ export default function useConnectionHandlers() {
         if (
           nodeMetadata.supports_dynamic_inputs &&
           connectDirection === "source" &&
-          node.type !== "fal.DynamicFal" &&
-          node.type !== DYNAMIC_KIE_NODE_TYPE &&
-          node.type !== "kie.DynamicKie"
+          !isDynamicSchemaNodeType(node.type)
         ) {
           createDynamicInputFromConnection();
           endConnecting();

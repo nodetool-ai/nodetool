@@ -101,8 +101,12 @@ async function parseKieJson(
  * errors with backoff (`Retry-After` honored). The poll loop does not use this:
  * its own interval is the backoff, and {@link pollKieTask} counts the failures.
  */
-function kieGet(url: string, apiKey: string): Promise<Response> {
-  return fetchWithRetry(url, { headers: headers(apiKey) });
+function kieGet(
+  url: string,
+  apiKey: string,
+  signal?: AbortSignal
+): Promise<Response> {
+  return fetchWithRetry(url, { headers: headers(apiKey), signal });
 }
 
 /**
@@ -111,10 +115,13 @@ function kieGet(url: string, apiKey: string): Promise<Response> {
  * retried: the job is already generated and billed, and a CDN blip must not
  * throw the paid-for result away.
  */
-function fetchBilledResult(url: string): Promise<Response> {
+function fetchBilledResult(
+  url: string,
+  signal?: AbortSignal
+): Promise<Response> {
   return fetchWithRetry(
     url,
-    {},
+    { signal },
     {
       fetchImpl: (input, init) => safeFetch(String(input), init as RequestInit)
     }
@@ -136,19 +143,23 @@ async function pollKieTask(
   taskId: string,
   pollInterval: number,
   maxAttempts: number,
-  isDone: (data: Record<string, unknown>) => boolean
+  isDone: (data: Record<string, unknown>) => boolean,
+  signal?: AbortSignal
 ): Promise<Record<string, unknown>> {
   let consecutiveErrors = 0;
   for (let i = 0; i < maxAttempts; i++) {
+    if (signal?.aborted) {
+      throw signal.reason instanceof Error ? signal.reason : new Error("Aborted");
+    }
     let res: Response;
     try {
-      res = await fetch(url, { headers: headers(apiKey) });
+      res = await fetch(url, { headers: headers(apiKey), signal });
     } catch (err) {
       // A thrown network error is the same transient the loop already tolerates,
       // so it counts toward the same cutoff instead of losing a running job.
       consecutiveErrors += 1;
       if (consecutiveErrors >= MAX_CONSECUTIVE_POLL_ERRORS) throw err;
-      await sleep(pollInterval);
+      await sleep(pollInterval, signal);
       continue;
     }
     if (!res.ok) {
@@ -166,13 +177,13 @@ async function pollKieTask(
           )
         );
       }
-      await sleep(pollInterval);
+      await sleep(pollInterval, signal);
       continue;
     }
     consecutiveErrors = 0;
     const data = await parseKieJson(res, "recordInfo");
     if (isDone(data)) return data;
-    await sleep(pollInterval);
+    await sleep(pollInterval, signal);
   }
   throw pollTimeoutError(taskId, maxAttempts, pollInterval);
 }
