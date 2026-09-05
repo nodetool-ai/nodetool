@@ -126,9 +126,16 @@ function tileSet(slot: FilledSlot, fill: TilesetFill): {
   const textureUid = resourceUid(slot.slot_id, assetId, "sheet");
   const sourceId = subResourceId("TileSetAtlasSource", slot.slot_id, assetId, "atlas");
   const [w, h] = fill.cell;
+  // Every tile is solid: a ground tileset is what a slot of this kind fills,
+  // and a template's TileMapLayer relies on the physics layer for collision.
+  const hw = w / 2;
+  const hh = h / 2;
+  const polygon = `PackedVector2Array(${-hw}, ${-hh}, ${hw}, ${-hh}, ${hw}, ${hh}, ${-hw}, ${hh})`;
   const tiles: string[] = [];
   for (let i = 0; i < fill.count; i++) {
-    tiles.push(`${i % fill.columns}:${Math.floor(i / fill.columns)}/0 = 0`);
+    const cell = `${i % fill.columns}:${Math.floor(i / fill.columns)}/0`;
+    tiles.push(`${cell} = 0`);
+    tiles.push(`${cell}/physics_layer_0/polygon_0/points = ${polygon}`);
   }
   const content = [
     resourceHeader("TileSet", 3, resourceUid(slot.slot_id, assetId, "tileset")),
@@ -142,6 +149,7 @@ function tileSet(slot: FilledSlot, fill: TilesetFill): {
     "",
     "[resource]",
     `tile_size = Vector2i(${w}, ${h})`,
+    "physics_layer_0/collision_layer = 1",
     `sources/0 = SubResource(${quote(sourceId)})`,
     ""
   ].join("\n");

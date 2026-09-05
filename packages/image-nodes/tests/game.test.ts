@@ -17,7 +17,12 @@ import {
   type SpritesheetFill,
   type TilesetFill
 } from "@nodetool-ai/protocol";
-import { GAME_NODES } from "@nodetool-ai/image-nodes";
+import {
+  GAME_NODES,
+  SeamlessImageNode,
+  SpriteSheetNode,
+  TilesetNode
+} from "@nodetool-ai/image-nodes";
 
 const manifestPath = fileURLToPath(
   new URL(
@@ -42,6 +47,7 @@ async function runNode(
   const Cls = GAME_NODES.find((n) =>
     (n as unknown as { nodeType: string }).nodeType.endsWith(suffix)
   );
+  expect([SpriteSheetNode, TilesetNode, SeamlessImageNode]).toContain(Cls);
   if (!Cls) throw new Error(`Node ending with "${suffix}" not found`);
   const node = new (Cls as unknown as {
     new (): {
