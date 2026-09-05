@@ -20,12 +20,7 @@ import {
   loadExampleGraph,
   deriveExampleAssetsDir
 } from "./example-workflows.js";
-import {
-  createLogger,
-  loadAssetStorageConfig,
-  type StorageConfig
-} from "@nodetool-ai/config";
-import { createAssetUrlBuilder } from "@nodetool-ai/storage";
+import { createLogger } from "@nodetool-ai/config";
 import { workflowToDsl } from "@nodetool-ai/dsl";
 import {
   Workflow,
@@ -69,11 +64,7 @@ import {
   type StorageHandlerOptions
 } from "./storage-api.js";
 import { handleFileRequest } from "./file-api.js";
-import {
-  assetHasRasterThumbnail,
-  storeAssetWithThumbnail,
-  thumbnailKey
-} from "./lib/thumbnail.js";
+import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import {
   probeHasAudio,
@@ -121,7 +112,6 @@ import {
   normalizeAssetContentType
 } from "./lib/asset-paths.js";
 import { resolveAssetBytesForExport } from "./lib/asset-export.js";
-import { assetObjectKey } from "@nodetool-ai/storage";
 import { toAssetResponse } from "./lib/asset-response.js";
 
 export { toAssetResponse };
