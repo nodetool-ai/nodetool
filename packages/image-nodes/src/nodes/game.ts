@@ -129,8 +129,8 @@ async function persistStamped(
     content: ref.data as Uint8Array,
     metadata: ref.metadata as Record<string, unknown>
   })) as Record<string, unknown> | null;
-  const id = created && typeof created["id"] === "string" ? created["id"] : null;
-  if (!id) throw new Error(`${nodeName}: the asset was created without an id.`);
+  const id = created ? created["id"] : null;
+  if (!isString(id) || id === "") throw new Error(`${nodeName}: the asset was created without an id.`);
   return { ...ref, uri: `asset://${id}.${ext}`, asset_id: id };
 }
 

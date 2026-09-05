@@ -9,6 +9,7 @@
 import type { AudioRef, MusicFill, SfxFill } from "@nodetool-ai/protocol";
 import { SLOT_METADATA_KEY, musicFill, sfxFill } from "@nodetool-ai/protocol";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { isString } from "../type-predicates.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
@@ -116,8 +117,8 @@ async function persistStamped(
     content: wavBytes,
     metadata: ref.metadata as Record<string, unknown>
   })) as Record<string, unknown> | null;
-  const id = created && typeof created["id"] === "string" ? created["id"] : null;
-  if (!id) throw new Error(`${nodeName}: the asset was created without an id.`);
+  const id = created ? created["id"] : null;
+  if (!isString(id) || id === "") throw new Error(`${nodeName}: the asset was created without an id.`);
   return { ...ref, uri: `asset://${id}.wav`, asset_id: id };
 }
 
