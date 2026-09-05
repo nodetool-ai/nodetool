@@ -5,9 +5,10 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Message, ToolCall } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
-import ImageRefPreview from "./ImageRefPreview";
+import { MessageContentRenderer } from "../chat/message/MessageContentRenderer";
 import isEqual from "../../utils/isEqual";
 import { BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
+import { formatToolName } from "../../utils/formatUtils";
 import { isString } from "../../utils/typePredicates";
 
 const styles = (theme: Theme) =>
@@ -123,15 +124,6 @@ type ChatViewProps = {
   messages: Array<Message>;
 };
 
-const formatToolName = (name?: string) => {
-  if (!name) {return "Agent Task";}
-  return name
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-};
-
 const ToolCallsView: React.FC<{ toolCalls?: ToolCall[] | null }> = memo(({
   toolCalls
 }) => {
@@ -144,7 +136,9 @@ const ToolCallsView: React.FC<{ toolCalls?: ToolCall[] | null }> = memo(({
           <div key={stableKey} className="tool-call">
             <div className="tool-call__header">
               <span className="tool-call__badge">Agent Task</span>
-              <span className="tool-call__name">{formatToolName(tc.name)}</span>
+              <span className="tool-call__name">
+                {tc.name ? formatToolName(tc.name) : "Agent Task"}
+              </span>
             </div>
             {tc.message && (
               <div className="tool-call__message">
@@ -157,6 +151,10 @@ const ToolCallsView: React.FC<{ toolCalls?: ToolCall[] | null }> = memo(({
     </div>
   );
 });
+
+const renderTextContent = (text: string, index: number) => (
+  <MarkdownRenderer key={`text-${index}`} content={text} />
+);
 
 const MessageView: React.FC<{ msg: Message }> = memo(({ msg }) => {
   let messageClass = "chat-message";
@@ -177,22 +175,14 @@ const MessageView: React.FC<{ msg: Message }> = memo(({ msg }) => {
         <MarkdownRenderer content={msg.content} />
       )}
       {Array.isArray(msg.content) &&
-        msg.content.map((c, i) => {
-          if (c.type === "text") {
-            return <MarkdownRenderer key={`text-${i}`} content={c.text || ""} />;
-          } else if (c.type === "image_url") {
-            // Through `ImageRefPreview`, which resolves an `asset://` locator
-            // to the asset's `get_url` — a raw locator is fetchable nowhere.
-            return (
-              <ImageRefPreview
-                key={c.image?.asset_id ?? c.image?.uri ?? `img-${i}`}
-                value={c.image}
-              />
-            );
-          } else {
-            return null;
-          }
-        })}
+        msg.content.map((c, i) => (
+          <MessageContentRenderer
+            key={`content-${i}`}
+            content={c}
+            index={i}
+            renderTextContent={renderTextContent}
+          />
+        ))}
     </li>
   );
 });

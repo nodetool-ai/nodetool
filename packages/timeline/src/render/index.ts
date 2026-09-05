@@ -20,3 +20,4 @@ export * from "./canvas2d.js";
 export * from "./motionBlur.js";
 export * from "./effects.js";
 export * from "./frameCompositor.js";
+export * from "./trackEffects.js";

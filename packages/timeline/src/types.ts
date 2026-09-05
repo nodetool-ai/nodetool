@@ -884,6 +884,14 @@ export interface ClipVignetteEffect {
   amount: number;
   /** Falloff width, 0..1. */
   softness: number;
+  /**
+   * Outer radius relative to the frame half-diagonal, 0.1..1.5. Absent means
+   * `vignette@1`'s own default, which is where a clip vignette has always
+   * started. Written by the track conversion, which carries a midpoint the
+   * legacy spelling made mandatory; `packages/protocol`'s `clipVignetteEffect`
+   * does not mirror it yet, so nothing persists it.
+   */
+  radius?: number;
 }
 
 export interface ClipSharpenEffect {
@@ -894,6 +902,11 @@ export interface ClipSharpenEffect {
   amount: number;
   /** Unsharp-mask radius in source pixels. */
   radius?: number;
+  /**
+   * Edge threshold 0..1. Absent means `filters.sharpen.unsharpMask@1`'s own
+   * default. Same provenance as {@link ClipVignetteEffect.radius}.
+   */
+  threshold?: number;
 }
 
 export interface ClipChromaKeyEffect {

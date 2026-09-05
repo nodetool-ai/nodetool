@@ -1836,67 +1836,36 @@ const useGlobalChatStore = create<GlobalChatState>()(
               : fallback.lastPermissionMode
         };
       },
+      // `merge` above already guarantees every persisted map is an object and
+      // leaves the unpersisted fields at their initial values, so only the two
+      // persisted scalars that can carry a bad value are re-checked here.
       onRehydrateStorage: () => (state) => {
-        // State has been rehydrated from storage
-        if (state) {
-          // Ensure threads is always an object
-          if (!state.threads) {
-            state.threads = {};
-          }
-          // Initialize message cache as empty
-          state.messageCache = {};
-          state.messageCursors = {};
-          state.isLoadingMessages = false;
-          state.isLoadingThreads = false;
-
-          // Guard the per-workflow maps against corrupt persisted values
-          // (they're read with spreads, so a non-object would crash).
-          const asRecord = (value: unknown) =>
-            value && typeof value === "object" && !Array.isArray(value)
-              ? (value as Record<string, never>)
-              : {};
-          state.workflowThreadId = asRecord(state.workflowThreadId);
-          state.threadWorkflowId = asRecord(state.threadWorkflowId);
-
-          // Load threads from API if not loaded yet
-          if (!state.threadsLoaded) {
-            // Use setTimeout to avoid calling during hydration
-            setTimeout(() => {
-              const store = useGlobalChatStore.getState();
-              store.fetchThreads().catch((error) => {
+        if (!state) {
+          return;
+        }
+        if (
+          state.lastPermissionMode !== "plan" &&
+          state.lastPermissionMode !== "auto" &&
+          state.lastPermissionMode !== "default"
+        ) {
+          state.lastPermissionMode = DEFAULT_PERMISSION_MODE;
+        }
+        if (!state.selectedModel) {
+          state.selectedModel = buildDefaultLanguageModel();
+        }
+        if (!state.threadsLoaded) {
+          // setTimeout so the fetch does not run during hydration.
+          setTimeout(() => {
+            useGlobalChatStore
+              .getState()
+              .fetchThreads()
+              .catch((error) => {
                 console.error(
                   "Failed to load threads during initialization:",
                   error
                 );
               });
-            }, 0);
-          }
-          // Ensure selection defaults are present
-          if (!state.permissionMode) {
-            state.permissionMode = {};
-          }
-          if (
-            state.lastPermissionMode !== "plan" &&
-            state.lastPermissionMode !== "auto" &&
-            state.lastPermissionMode !== "default"
-          ) {
-            state.lastPermissionMode = DEFAULT_PERMISSION_MODE;
-          }
-          if (!state.pendingApprovals) {
-            state.pendingApprovals = {};
-          }
-          if (!state.pendingPlanApprovals) {
-            state.pendingPlanApprovals = {};
-          }
-          if (!state.pendingSecretRequests) {
-            state.pendingSecretRequests = {};
-          }
-          if (!state.selectedModel) {
-            state.selectedModel = buildDefaultLanguageModel();
-          }
-          if (typeof state.lastUsedThreadId === "undefined") {
-            state.lastUsedThreadId = null;
-          }
+          }, 0);
         }
       }
     }

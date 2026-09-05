@@ -49,7 +49,7 @@ export function isValid(date: Date): boolean {
 const pad = (n: number): string => String(n).padStart(2, "0");
 
 /** "Apr 5, 2023, 9:07:03 AM" — matches date-fns "PPpp" (en-US). */
-function formatPPpp(date: Date): string {
+export function formatPPpp(date: Date): string {
   const hours24 = date.getHours();
   const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
   const ampm = hours24 < 12 ? "AM" : "PM";
@@ -57,12 +57,4 @@ function formatPPpp(date: Date): string {
     `${MONTHS_SHORT[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}, ` +
     `${hours12}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${ampm}`
   );
-}
-
-/** Format a date with one of the supported patterns. */
-export function format(date: Date, pattern: string): string {
-  if (pattern === "PPpp") {
-    return formatPPpp(date);
-  }
-  throw new Error(`Unsupported date format pattern: ${pattern}`);
 }

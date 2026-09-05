@@ -293,7 +293,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   },
 
   add: (asset: Asset) => {
-    get().queryClient?.setQueryData(["assets", asset.id], asset);
+    get().queryClient?.setQueryData(["asset", asset.id], asset);
   },
 
   get: async (id: string) => {
@@ -471,7 +471,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     const { deleted_asset_ids } = await trpcClient.assets.delete.mutate({ id });
 
     deleted_asset_ids.forEach((assetId) => {
-      get().invalidateQueries(["assets", assetId]);
+      get().invalidateQueries(["asset", assetId]);
       // The deleted asset's own children (if it was a folder).
       get().invalidateQueries(["assets", { parent_id: assetId }]);
     });
@@ -581,9 +581,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     const data = await trpcClient.assets.update.mutate(updateInput);
     const normalized = normalizeAssetUrls(data);
     get().add(normalized);
-    // Refresh the single-asset cache (keyed `["asset", id]` by useAssetById) so
-    // consumers like prompt asset-mention chips reflect renames immediately.
-    get().queryClient?.setQueryData(["asset", req.id], normalized);
     get().invalidateQueries(["assets", { parent_id: prev.parent_id }]);
     if (req.parent_id !== undefined && req.parent_id !== prev.parent_id) {
       get().invalidateQueries(["assets", { parent_id: req.parent_id }]);

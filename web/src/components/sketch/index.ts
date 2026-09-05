@@ -20,7 +20,6 @@ export { useSketchStore } from "./state";
 
 export {
   useResolvedToolSettings,
-  useActiveToolSettings,
   useHistoryActions,
   useLayerActions,
   useCanvasActions,

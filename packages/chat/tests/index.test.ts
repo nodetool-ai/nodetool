@@ -9,9 +9,6 @@ describe("chat index exports", () => {
     const mod = await import("../src/index.js");
     expect(mod).toBeDefined();
 
-    expect(mod.countTextTokens).toBeDefined();
-    expect(mod.countMessageTokens).toBeDefined();
-    expect(mod.countMessagesTokens).toBeDefined();
     expect(mod.runTool).toBeDefined();
     expect(mod.processChat).toBeDefined();
   });

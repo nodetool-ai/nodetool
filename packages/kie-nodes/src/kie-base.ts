@@ -10,6 +10,12 @@ import {
 } from "@nodetool-ai/runtime";
 import { safeFetch } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  TERMINAL_FAILURE_STATES,
+  TERMINAL_SUCCESS_STATES,
+  fetchWithRetry,
+  sleep
+} from "@nodetool-ai/runtime/provider-transport";
 
 const KIE_API_BASE = "https://api.kie.ai";
 const KIE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-stream-upload";
@@ -58,6 +64,103 @@ function checkStatus(data: Record<string, unknown>): void {
   if (map[code]) throw new Error(`${map[code]}: ${JSON.stringify(data)}`);
 }
 
+function tryParseRecord(text: string): Record<string, unknown> | undefined {
+  try {
+    return asRecord(JSON.parse(text));
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Read a KIE response body. A gateway 502 answers with an HTML page, and
+ * `res.json()` on it threw `SyntaxError: Unexpected token '<'` — the status the
+ * caller needed to see never reached them. Parse defensively and report the
+ * status with a body snippet instead. Every parsed body still goes through
+ * {@link checkStatus}, because KIE announces failures inside HTTP 200.
+ */
+async function parseKieJson(
+  res: Response,
+  label: string
+): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  const data = tryParseRecord(text);
+  if (!data) {
+    throw new Error(
+      `Kie ${label} failed: HTTP ${res.status} ${text.slice(0, 200)}`
+    );
+  }
+  if (data.code !== undefined) checkStatus(data);
+  return data;
+}
+
+/** GET a KIE endpoint, retrying 429/5xx and network errors. */
+function kieGet(url: string, apiKey: string): Promise<Response> {
+  return fetchWithRetry(url, { headers: headers(apiKey) });
+}
+
+/**
+ * Fetch a finished result. The URL comes out of the provider's response body,
+ * so it is screened (`safeFetch` re-checks every redirect hop), and a 429/5xx is
+ * retried: the job is already generated and billed, and a CDN blip must not
+ * throw the paid-for result away.
+ */
+function fetchBilledResult(url: string): Promise<Response> {
+  return fetchWithRetry(
+    url,
+    {},
+    {
+      fetchImpl: (input, init) => safeFetch(String(input), init as RequestInit)
+    }
+  );
+}
+
+/**
+ * Poll a KIE task until `isDone` accepts a body (or throws for a failed job).
+ *
+ * A dead job used to look like a slow one two ways: a persistent non-OK poll
+ * after createTask succeeded, and a body that names no state. Both ran the full
+ * attempt budget — ten minutes at the defaults — before reporting a timeout.
+ */
+const MAX_CONSECUTIVE_POLL_ERRORS = 5;
+
+async function pollKieTask(
+  apiKey: string,
+  url: string,
+  taskId: string,
+  pollInterval: number,
+  maxAttempts: number,
+  isDone: (data: Record<string, unknown>) => boolean
+): Promise<Record<string, unknown>> {
+  let consecutiveErrors = 0;
+  for (let i = 0; i < maxAttempts; i++) {
+    const res = await kieGet(url, apiKey);
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      // A non-OK poll can still carry KIE's error envelope, which names the
+      // reason; only an unreadable one gets the retry budget.
+      const envelope = tryParseRecord(body);
+      if (envelope?.code !== undefined) checkStatus(envelope);
+      consecutiveErrors += 1;
+      if (consecutiveErrors >= MAX_CONSECUTIVE_POLL_ERRORS) {
+        throw new Error(
+          withTaskId(
+            `Poll failed ${consecutiveErrors}x (HTTP ${res.status}): ${body.slice(0, 200)}`,
+            taskId
+          )
+        );
+      }
+      await sleep(pollInterval);
+      continue;
+    }
+    consecutiveErrors = 0;
+    const data = await parseKieJson(res, "recordInfo");
+    if (isDone(data)) return data;
+    await sleep(pollInterval);
+  }
+  throw pollTimeoutError(taskId, maxAttempts, pollInterval);
+}
+
 async function submitTask(
   apiKey: string,
   model: string,
@@ -68,8 +171,7 @@ async function submitTask(
     headers: headers(apiKey),
     body: JSON.stringify({ model, input })
   });
-  const data = (await res.json()) as Record<string, unknown>;
-  if (data.code !== undefined) checkStatus(data);
+  const data = await parseKieJson(res, "submit");
   if (!res.ok)
     throw new Error(`Submit failed: ${res.status} ${JSON.stringify(data)}`);
   const taskId = (data.data as Record<string, unknown>)?.taskId as string;
@@ -78,49 +180,65 @@ async function submitTask(
   return taskId;
 }
 
-async function pollStatus(
+function recordInfoUrl(taskId: string): string {
+  return `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
+}
+
+function sunoRecordUrl(taskId: string): string {
+  return `${KIE_API_BASE}/api/v1/generate/record-info?taskId=${taskId}`;
+}
+
+/**
+ * Read the job state out of a `recordInfo` body against the shared terminal
+ * vocabulary, so a synonym this package has not seen before does not degrade
+ * into a timeout that reports a finished job as a slow one.
+ */
+function recordInfoDone(
+  taskId: string
+): (data: Record<string, unknown>) => boolean {
+  return (data) => {
+    const inner = asRecord(data.data);
+    const state = String(inner?.state ?? "").toLowerCase();
+    if (TERMINAL_SUCCESS_STATES.has(state)) return true;
+    if (TERMINAL_FAILURE_STATES.has(state)) {
+      const msg = inner?.failMsg || data.msg || "Unknown error";
+      throw new Error(withTaskId(`Task failed: ${msg}`, taskId));
+    }
+    return false;
+  };
+}
+
+function pollStatus(
   apiKey: string,
   taskId: string,
   pollInterval: number,
   maxAttempts: number
 ): Promise<Record<string, unknown>> {
-  const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(url, { headers: headers(apiKey) });
-    const data = (await res.json()) as Record<string, unknown>;
-    if (data.code !== undefined) checkStatus(data);
-    const state = (data.data as Record<string, unknown>)?.state as string;
-    if (state === "success") return data;
-    if (state === "failed" || state === "fail") {
-      const inner = data.data as Record<string, unknown>;
-      const msg = inner?.failMsg || data.msg || "Unknown error";
-      throw new Error(withTaskId(`Task failed: ${msg}`, taskId));
-    }
-    await new Promise((r) => setTimeout(r, pollInterval));
-  }
-  throw pollTimeoutError(taskId, maxAttempts, pollInterval);
+  return pollKieTask(
+    apiKey,
+    recordInfoUrl(taskId),
+    taskId,
+    pollInterval,
+    maxAttempts,
+    recordInfoDone(taskId)
+  );
 }
 
 async function fetchRecordInfo(
   apiKey: string,
   taskId: string
 ): Promise<Record<string, unknown>> {
-  const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
-  const res = await fetch(url, { headers: headers(apiKey) });
-  const data = (await res.json()) as Record<string, unknown>;
-  if (data.code !== undefined) checkStatus(data);
-  return data;
+  const res = await kieGet(recordInfoUrl(taskId), apiKey);
+  return parseKieJson(res, "recordInfo");
 }
 
 async function downloadResult(
   apiKey: string,
   taskId: string
 ): Promise<{ items: Buffer[]; taskId: string }> {
-  const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
-  const res = await fetch(url, { headers: headers(apiKey) });
+  const res = await kieGet(recordInfoUrl(taskId), apiKey);
   if (!res.ok) throw new Error(withTaskId(`Failed to get result: ${res.status}`, taskId));
-  const data = (await res.json()) as Record<string, unknown>;
-  if (data.code !== undefined) checkStatus(data);
+  const data = await parseKieJson(res, "recordInfo");
   const resultJsonStr = (data.data as Record<string, unknown>)
     ?.resultJson as string;
   if (!resultJsonStr) throw new Error(withTaskId("No resultJson in response", taskId));
@@ -129,8 +247,7 @@ async function downloadResult(
   if (!resultUrls?.length) throw new Error(withTaskId("No resultUrls in resultJson", taskId));
   const items = await Promise.all(
     resultUrls.map(async (resultUrl) => {
-      // Provider-returned download URL — screened like every other one.
-      const dlRes = await safeFetch(resultUrl);
+      const dlRes = await fetchBilledResult(resultUrl);
       if (!dlRes.ok) {
         throw new Error(withTaskId(`Failed to download from ${resultUrl}`, taskId));
       }
@@ -155,8 +272,7 @@ export async function uploadFile(
     headers: { Authorization: `Bearer ${apiKey}` },
     body: form
   });
-  const resData = (await res.json()) as Record<string, unknown>;
-  if (resData.code !== undefined) checkStatus(resData);
+  const resData = await parseKieJson(res, "upload");
   if (!res.ok || !resData.success)
     throw new Error(`Upload failed: ${res.status} ${JSON.stringify(resData)}`);
   const downloadUrl = (resData.data as Record<string, unknown>)
@@ -286,8 +402,7 @@ async function submitCustom(
     headers: headers(apiKey),
     body: JSON.stringify(payload)
   });
-  const data = (await res.json()) as Record<string, unknown>;
-  if (data.code !== undefined) checkStatus(data);
+  const data = await parseKieJson(res, "submit");
   if (!res.ok)
     throw new Error(`Submit failed: ${res.status} ${JSON.stringify(data)}`);
   const taskId = (data.data as Record<string, unknown>)?.taskId as string;
@@ -296,41 +411,36 @@ async function submitCustom(
   return taskId;
 }
 
-async function pollCustom(
+function pollCustom(
   apiKey: string,
   taskId: string,
   pollEndpoint: string,
   pollInterval: number,
   maxAttempts: number
 ): Promise<Record<string, unknown>> {
-  const url = `${KIE_API_BASE}${pollEndpoint}?taskId=${taskId}`;
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(url, { headers: headers(apiKey) });
-    const data = (await res.json()) as Record<string, unknown>;
-    if (data.code !== undefined) checkStatus(data);
-    const inner = data.data as Record<string, unknown>;
-
-    // Veo-style completion: successFlag === 1
-    const successFlag = inner?.successFlag;
-    if (successFlag !== undefined) {
-      const flag = Number(successFlag);
-      if (flag === 1) return data;
-      if (flag === 2 || flag === 3) {
-        throw new Error(withTaskId(`Task failed: ${data.msg || "Unknown error"}`, taskId));
+  const stateDone = recordInfoDone(taskId);
+  return pollKieTask(
+    apiKey,
+    `${KIE_API_BASE}${pollEndpoint}?taskId=${taskId}`,
+    taskId,
+    pollInterval,
+    maxAttempts,
+    (data) => {
+      // Veo-style completion: successFlag 1 = done, 2/3 = failed.
+      const successFlag = asRecord(data.data)?.successFlag;
+      if (successFlag !== undefined) {
+        const flag = Number(successFlag);
+        if (flag === 1) return true;
+        if (flag === 2 || flag === 3) {
+          throw new Error(
+            withTaskId(`Task failed: ${data.msg || "Unknown error"}`, taskId)
+          );
+        }
       }
+      // Runway-style completion: a state word.
+      return stateDone(data);
     }
-
-    // Runway-style completion: state === "success"
-    const state = inner?.state as string;
-    if (state === "success") return data;
-    if (state === "fail" || state === "failed") {
-      const msg = inner?.failMsg || data.msg || "Unknown error";
-      throw new Error(withTaskId(`Task failed: ${msg}`, taskId));
-    }
-
-    await new Promise((r) => setTimeout(r, pollInterval));
-  }
-  throw pollTimeoutError(taskId, maxAttempts, pollInterval);
+  );
 }
 
 async function downloadCustomResult(
@@ -341,8 +451,7 @@ async function downloadCustomResult(
   // Try Runway-style: data.videoInfo.videoUrl
   const videoInfo = data?.videoInfo as Record<string, unknown> | undefined;
   if (videoInfo?.videoUrl) {
-    // Provider-returned download URL — screened like every other one.
-    const res = await safeFetch(videoInfo.videoUrl as string);
+    const res = await fetchBilledResult(videoInfo.videoUrl as string);
     if (!res.ok) throw new Error(`Download failed: ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
   }
@@ -372,8 +481,7 @@ async function downloadCustomResult(
   if (!resultUrls.length)
     throw new Error(`No result URLs in response: ${JSON.stringify(statusData)}`);
 
-  // Provider-returned download URL — screened like every other one.
-  const res = await safeFetch(resultUrls[0]);
+  const res = await fetchBilledResult(resultUrls[0]);
   if (!res.ok) throw new Error(`Download failed: ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
 }
@@ -383,11 +491,9 @@ async function downloadTextResult(
   taskId: string,
   resultObjectKey: string
 ): Promise<string> {
-  const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
-  const res = await fetch(url, { headers: headers(apiKey) });
+  const res = await kieGet(recordInfoUrl(taskId), apiKey);
   if (!res.ok) throw new Error(withTaskId(`Failed to get result: ${res.status}`, taskId));
-  const data = (await res.json()) as Record<string, unknown>;
-  if (data.code !== undefined) checkStatus(data);
+  const data = await parseKieJson(res, "recordInfo");
   const resultJsonStr = (data.data as Record<string, unknown>)?.resultJson as string;
   if (!resultJsonStr) throw new Error(withTaskId("No resultJson in response", taskId));
   const resultData = JSON.parse(resultJsonStr) as Record<string, unknown>;
@@ -507,11 +613,7 @@ export async function kieExecuteOmniDirect(
     headers: headers(apiKey),
     body: JSON.stringify(body)
   });
-  const data = (await res.json()) as Record<string, unknown>;
-  const code = Number(data.code);
-  if (code !== 200 && code !== 0) {
-    if (data.code !== undefined) checkStatus(data);
-  }
+  const data = await parseKieJson(res, "omni submit");
   if (!res.ok) {
     throw new Error(`Omni submit failed: ${res.status} ${JSON.stringify(data)}`);
   }
@@ -547,8 +649,8 @@ export async function kieExecuteTask(
       await registerWebhookWait(taskId, timeoutMs);
       // Fetch the final status after webhook fires
       const url = `${KIE_API_BASE}${pollEndpoint ?? submitEndpoint}?taskId=${taskId}`;
-      const res = await fetch(url, { headers: headers(apiKey) });
-      const statusData = (await res.json()) as Record<string, unknown>;
+      const res = await kieGet(url, apiKey);
+      const statusData = await parseKieJson(res, "recordInfo");
       const creditsConsumed = parseCreditsConsumed(statusData);
       const resultBytes = await downloadCustomResult(statusData);
       const b64 = resultBytes.toString("base64");
@@ -612,8 +714,7 @@ export async function kieSubmitSuno(
     headers: headers(apiKey),
     body: JSON.stringify(body)
   });
-  const data = (await res.json()) as Record<string, unknown>;
-  if (data.code !== undefined) checkStatus(data);
+  const data = await parseKieJson(res, "submit");
   if (!res.ok)
     throw new Error(`Submit failed: ${res.status} ${JSON.stringify(data)}`);
   const taskId = (data.data as Record<string, unknown>)?.taskId as string;
@@ -621,31 +722,35 @@ export async function kieSubmitSuno(
   return taskId;
 }
 
-export async function kiePollSuno(
+/** Suno reports its own status words beside the shared terminal vocabulary. */
+const SUNO_FAILURE_STATES = new Set([
+  "create_task_failed",
+  "generate_audio_failed",
+  "callback_exception",
+  "sensitive_word_error"
+]);
+
+export function kiePollSuno(
   apiKey: string,
   taskId: string,
   pollInterval = 4000,
   maxAttempts = 120
 ): Promise<Record<string, unknown>> {
-  const url = `${KIE_API_BASE}/api/v1/generate/record-info?taskId=${taskId}`;
-  const failed = new Set([
-    "CREATE_TASK_FAILED",
-    "GENERATE_AUDIO_FAILED",
-    "CALLBACK_EXCEPTION",
-    "SENSITIVE_WORD_ERROR"
-  ]);
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(url, { headers: headers(apiKey) });
-    const data = (await res.json()) as Record<string, unknown>;
-    if (data.code !== undefined) checkStatus(data);
-    const status = (data.data as Record<string, unknown>)?.status as string;
-    if (status === "SUCCESS") return data;
-    if (failed.has(status)) {
-      throw new Error(withTaskId(`Suno task failed: ${status}`, taskId));
+  return pollKieTask(
+    apiKey,
+    sunoRecordUrl(taskId),
+    taskId,
+    pollInterval,
+    maxAttempts,
+    (data) => {
+      const status = String(asRecord(data.data)?.status ?? "").toLowerCase();
+      if (TERMINAL_SUCCESS_STATES.has(status)) return true;
+      if (SUNO_FAILURE_STATES.has(status) || TERMINAL_FAILURE_STATES.has(status)) {
+        throw new Error(withTaskId(`Suno task failed: ${status}`, taskId));
+      }
+      return false;
     }
-    await new Promise((r) => setTimeout(r, pollInterval));
-  }
-  throw pollTimeoutError(taskId, maxAttempts, pollInterval);
+  );
 }
 
 export async function kieExecuteSunoTask(
@@ -662,9 +767,8 @@ export async function kieExecuteSunoTask(
   if (webhookBase) {
     const timeoutMs = pollInterval * maxAttempts;
     await registerWebhookWait(taskId, timeoutMs);
-    const url = `${KIE_API_BASE}/api/v1/generate/record-info?taskId=${taskId}`;
-    const res = await fetch(url, { headers: headers(apiKey) });
-    pollResult = (await res.json()) as Record<string, unknown>;
+    const res = await kieGet(sunoRecordUrl(taskId), apiKey);
+    pollResult = await parseKieJson(res, "record-info");
   } else {
     pollResult = await kiePollSuno(apiKey, taskId, pollInterval, maxAttempts);
   }
@@ -676,8 +780,7 @@ export async function kieExecuteSunoTask(
   if (!sunoData?.length) throw new Error("No sunoData in Suno response");
   const audioUrl = sunoData[0].audioUrl as string;
   if (!audioUrl) throw new Error("No audioUrl in Suno response");
-  // Provider-returned download URL — screened like every other one.
-  const dlRes = await safeFetch(audioUrl);
+  const dlRes = await fetchBilledResult(audioUrl);
   if (!dlRes.ok) throw new Error(`Failed to download audio: ${dlRes.status}`);
   const buf = Buffer.from(await dlRes.arrayBuffer());
   const b64 = buf.toString("base64");

@@ -6,7 +6,6 @@ import { Asset, Prediction } from "@nodetool-ai/models";
 import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
 import { resolveNodetoolDelegate } from "@nodetool-ai/protocol";
 import {
-  ProcessingContext as GenerationContext,
   calculateChatCost,
   detectImageMime,
   expandEntitiesForGeneration,
@@ -16,11 +15,9 @@ import {
   messageText
 } from "@nodetool-ai/runtime";
 import type { GenerationReceipt } from "@nodetool-ai/protocol";
-import { attachRunCostLedger, linkGenerationAssets } from "@nodetool-ai/execution";
-import { createAssetModelInterface } from "../lib/asset-model-interface.js";
+import { linkGenerationAssets } from "@nodetool-ai/execution";
 import type {
   BaseProvider,
-  GenerationRequest,
   GenerationResult,
   ImageModel as ProviderImageModel,
   ImageToImageParams,
@@ -39,9 +36,12 @@ import { admitSpend, releaseSpend, reserveSpend } from "../credit-gate.js";
 import { retrieveAssetBytes } from "../lib/asset-paths.js";
 import { resolveImageSize } from "../lib/media-size.js";
 import { getAssetAdapter } from "../lib/storage.js";
-import { storeAssetWithThumbnail } from "../lib/thumbnail.js";
 import { isFiniteNumber, isString } from "../lib/wire-values.js";
 import type { ClientSession } from "./client-session.js";
+import {
+  createGenerationRun,
+  generateSpeechBytes
+} from "./media-generation.js";
 
 const log = createLogger("nodetool.websocket.runner");
 
@@ -555,66 +555,31 @@ export class DirectInferenceHandler {
     const userId = this.session.requireUserId();
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
 
-    // Every provider call below runs inside the generation seam: one ledger
-    // row per call, opened before the call and closed with its cost and asset
-    // ids. The seam saves the assets; `storeAsset` is the fallback.
-    const generationContext = new GenerationContext({
-      jobId: randomUUID(),
-      userId
-    });
-    generationContext.registerProvider(req.provider, provider);
-    generationContext.setModelInterfaces({
-      createAsset: createAssetModelInterface
-    });
-    const ledger = attachRunCostLedger(generationContext, {
+    const { generate, seamAssetId, storeAsset } = createGenerationRun({
       userId,
+      providerId: req.provider,
+      modelId: req.model,
+      provider,
+      origin: { surface: "rpc" },
       workflowId: null,
+      assetNamePrefix: req.mode,
       // The row names the RPC mode the way it always did.
-      nodeType: () => `direct.${req.mode}`
+      nodeType: () => `direct.${req.mode}`,
+      // The delegate's running total, read once the assets are stored, as the
+      // row always recorded it: a fal-style delegate tracks nothing and the
+      // estimate wins. A test double may be a bare object; only a real
+      // provider tracks.
+      receiptAfterPersist: () => {
+        if (!metering) return null;
+        const tracked =
+          typeof provider.getTotalCost === "function"
+            ? provider.getTotalCost()
+            : 0;
+        const stated = metering.statedCost(tracked);
+        return stated ? { cost: stated } : null;
+      },
+      onGenerationId: (id) => metering?.generationIds.push(id)
     });
-    const generate = async <T>(
-      capability: GenerationRequest["capability"],
-      params: Record<string, unknown>,
-      persist: GenerationRequest["persist"] | null,
-      call: (abort: AbortSignal) => Promise<T>,
-      id?: string
-    ): Promise<GenerationResult<T>> => {
-      const result = await generationContext.runGenerationWith(
-        {
-          id,
-          provider: req.provider,
-          capability,
-          model: req.model,
-          params,
-          origin: { surface: "rpc" },
-          persist: persist ? { ...persist, parentId: userId } : undefined
-        },
-        (_provider, abort) => call(abort),
-        {
-          // The delegate's running total, read once the assets are stored,
-          // as the row always recorded it: a fal-style delegate tracks
-          // nothing and the estimate wins. A test double may be a bare
-          // object; only a real provider tracks.
-          receiptAfterPersist: () => {
-            if (!metering) return null;
-            const tracked =
-              typeof provider.getTotalCost === "function"
-                ? provider.getTotalCost()
-                : 0;
-            const stated = metering.statedCost(tracked);
-            return stated ? { cost: stated } : null;
-          }
-        }
-      );
-      metering?.generationIds.push(result.id);
-      // The client reads the ledger right after this answers.
-      await ledger.settled();
-      return result;
-    };
-    const seamAssetId = (
-      result: { assets: ReadonlyArray<{ asset_id?: string | null }> },
-      index = 0
-    ): string | null => result.assets[index]?.asset_id ?? null;
 
     // Entity mentions in the prompt (`entity://<id>`, written by @-mention
     // pickers) expand against the library here: name inline, descriptor into
@@ -629,35 +594,6 @@ export class DirectInferenceHandler {
       userId,
       referenceImages
     );
-
-    const storeAsset = async (
-      bytes: Uint8Array,
-      contentType: string,
-      ext: string
-    ): Promise<string> => {
-      const asset = new Asset({
-        user_id: userId,
-        workflow_id: null,
-        name: `${req.mode}_${Date.now()}`,
-        content_type: contentType,
-        // Home, the same folder an upload lands in — the rule
-        // `handleMediaGenerationMessage` in websocket-client-session.ts
-        // applies. A null parent is unreachable from the folder the
-        // asset browser opens on.
-        parent_id: userId
-      });
-      const fileName = `${asset.id}.${ext}`;
-      await storeAssetWithThumbnail(
-        asset.user_id,
-        asset.id,
-        fileName,
-        bytes,
-        contentType
-      );
-      asset.size = bytes.length;
-      await asset.save();
-      return asset.id;
-    };
 
     // Image modes are pixel-addressed on several providers (GPT Image's
     // `size`): derive explicit dimensions from the resolution tier + aspect
@@ -786,96 +722,15 @@ export class DirectInferenceHandler {
         },
         null,
         async () => {
-      // Prefer providers that return fully-encoded audio (OpenAI, HuggingFace).
-      const encoded = await provider.textToSpeechEncoded({
-        text: prompt,
-        model: req.model,
-        voice: req.voice,
-        speed: req.speed,
-        audioFormat: requestedFormat ?? undefined
-      });
-
-      if (encoded) {
-        const mimeToExt: Record<string, string> = {
-          "audio/mpeg": "mp3",
-          "audio/wav": "wav",
-          "audio/ogg": "ogg",
-          "audio/flac": "flac",
-          "audio/aac": "aac"
-        };
-        const ext = mimeToExt[encoded.mimeType] ?? "flac";
-        const assetId = await storeAsset(encoded.data, encoded.mimeType, ext);
-        return assetId;
-      }
-
-      // Streaming-PCM fallback (OpenAI / Gemini), wrap in WAV unless caller
-      // explicitly asked for raw PCM.
-      const pcmChunks: Uint8Array[] = [];
-      let totalBytes = 0;
-      let chunkSampleRate = 24000;
-      for await (const chunk of provider.textToSpeech({
-        text: prompt,
-        model: req.model,
-        voice: req.voice,
-        speed: req.speed,
-        audioFormat: requestedFormat ?? undefined
-      })) {
-        if (chunk?.samples) {
-          if (chunk.sampleRate) chunkSampleRate = chunk.sampleRate;
-          const view = new Uint8Array(
-            chunk.samples.buffer,
-            chunk.samples.byteOffset,
-            chunk.samples.byteLength
-          );
-          const copy = new Uint8Array(view);
-          pcmChunks.push(copy);
-          totalBytes += copy.byteLength;
-        }
-      }
-      const merged = new Uint8Array(totalBytes);
-      let off = 0;
-      for (const c of pcmChunks) {
-        merged.set(c, off);
-        off += c.byteLength;
-      }
-
-      if (requestedFormat === "pcm") {
-        const assetId = await storeAsset(merged, "audio/pcm", "pcm");
-        return assetId;
-      }
-
-      // Wrap raw 16-bit PCM in a WAV container so browsers can play it back.
-      const sampleRate = chunkSampleRate;
-      const numChannels = 1;
-      const bitsPerSample = 16;
-      const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
-      const blockAlign = numChannels * (bitsPerSample / 8);
-      const wavHeader = new ArrayBuffer(44);
-      const dv = new DataView(wavHeader);
-      const writeStr = (pos: number, str: string) => {
-        for (let i = 0; i < str.length; i++)
-          dv.setUint8(pos + i, str.charCodeAt(i));
-      };
-      writeStr(0, "RIFF");
-      dv.setUint32(4, 36 + merged.byteLength, true);
-      writeStr(8, "WAVE");
-      writeStr(12, "fmt ");
-      dv.setUint32(16, 16, true);
-      dv.setUint16(20, 1, true);
-      dv.setUint16(22, numChannels, true);
-      dv.setUint32(24, sampleRate, true);
-      dv.setUint32(28, byteRate, true);
-      dv.setUint16(32, blockAlign, true);
-      dv.setUint16(34, bitsPerSample, true);
-      writeStr(36, "data");
-      dv.setUint32(40, merged.byteLength, true);
-
-      const wav = new Uint8Array(44 + merged.byteLength);
-      wav.set(new Uint8Array(wavHeader), 0);
-      wav.set(merged, 44);
-
-      const assetId = await storeAsset(wav, "audio/wav", "wav");
-      return assetId;
+          const speech = await generateSpeechBytes(provider, {
+            text: prompt,
+            model: req.model,
+            voice: req.voice,
+            speed: req.speed,
+            audioFormat: requestedFormat
+          });
+          if (!speech) throw new Error("Provider returned no audio data");
+          return storeAsset(speech.bytes, speech.mimeType, speech.ext);
         },
         audioGenerationId
       );

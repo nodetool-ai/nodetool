@@ -344,3 +344,135 @@ describe("kieExecuteTask poll failure", () => {
     expect(result.taskId).toBe("task_ok");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Transport rules: retry, fail-fast, terminal synonyms
+// ---------------------------------------------------------------------------
+describe("kieExecuteTask transport", () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  function jsonRes(body: unknown, status = 200) {
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      json: async () => body,
+      text: async () => JSON.stringify(body)
+    } as unknown as Response;
+  }
+
+  it("gives up on a persistent poll error instead of running the whole budget", async () => {
+    let polls = 0;
+    global.fetch = vi.fn(async (url: string | URL) => {
+      const u = String(url);
+      if (u.includes("createTask")) {
+        return jsonRes({ code: 200, data: { taskId: "task_err" } });
+      }
+      polls++;
+      return {
+        ok: false,
+        status: 502,
+        text: async () => "<html>bad gateway</html>",
+        json: async () => {
+          throw new SyntaxError("Unexpected token '<'");
+        }
+      } as unknown as Response;
+    }) as unknown as typeof fetch;
+
+    await expect(
+      kieExecuteTask("key", "m", { prompt: "x" }, 1, 40)
+    ).rejects.toThrow(/502/);
+    // Bounded run of consecutive errors, not the full 40-attempt budget.
+    expect(polls).toBeLessThanOrEqual(5);
+  });
+
+  it("does not retry the job-creating POST on a 5xx", async () => {
+    let submits = 0;
+    global.fetch = vi.fn(async (url: string | URL) => {
+      if (String(url).includes("createTask")) {
+        submits++;
+        return jsonRes({ msg: "overloaded" }, 503);
+      }
+      throw new Error(`unexpected: ${String(url)}`);
+    }) as unknown as typeof fetch;
+
+    await expect(
+      kieExecuteTask("key", "m", { prompt: "x" }, 1, 2)
+    ).rejects.toThrow(/503/);
+    // A retried POST could create a second billable task.
+    expect(submits).toBe(1);
+  });
+
+  it("treats every terminal success synonym as done", async () => {
+    global.fetch = vi.fn(async (url: string | URL) => {
+      const u = String(url);
+      if (u.includes("createTask")) {
+        return jsonRes({ code: 200, data: { taskId: "task_syn" } });
+      }
+      if (u.includes("recordInfo")) {
+        return jsonRes({
+          code: 200,
+          data: {
+            state: "completed",
+            creditsConsumed: 3,
+            resultJson: JSON.stringify({
+              resultUrls: ["https://example.com/out.png"]
+            })
+          }
+        });
+      }
+      return {
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer
+      } as unknown as Response;
+    }) as unknown as typeof fetch;
+
+    const result = await kieExecuteTask("key", "m", { prompt: "x" }, 1, 3);
+    expect(result.creditsConsumed).toBe(3);
+  });
+
+  it("retries the download of a result that was already billed", async () => {
+    let downloads = 0;
+    global.fetch = vi.fn(async (url: string | URL) => {
+      const u = String(url);
+      if (u.includes("createTask")) {
+        return jsonRes({ code: 200, data: { taskId: "task_dl" } });
+      }
+      if (u.includes("recordInfo")) {
+        return jsonRes({
+          code: 200,
+          data: {
+            state: "success",
+            resultJson: JSON.stringify({
+              resultUrls: ["https://example.com/out.png"]
+            })
+          }
+        });
+      }
+      downloads++;
+      if (downloads === 1) {
+        return {
+          ok: false,
+          status: 503,
+          headers: { get: () => null },
+          arrayBuffer: async () => new ArrayBuffer(0),
+          text: async () => "busy"
+        } as unknown as Response;
+      }
+      return {
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => Uint8Array.from([9]).buffer
+      } as unknown as Response;
+    }) as unknown as typeof fetch;
+
+    const result = await kieExecuteTask("key", "m", { prompt: "x" }, 1, 3);
+    expect(downloads).toBe(2);
+    expect(result.items.length).toBe(1);
+  });
+});

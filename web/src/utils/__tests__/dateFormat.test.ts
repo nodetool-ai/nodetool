@@ -1,4 +1,4 @@
-import { parseISO, isValid, format } from "../dateFormat";
+import { parseISO, isValid, formatPPpp } from "../dateFormat";
 
 // Run with TZ=UTC so local getters match the ISO strings below.
 
@@ -67,31 +67,22 @@ describe("isValid", () => {
   });
 });
 
-describe("format", () => {
+describe("formatPPpp", () => {
   const morning = new Date("2023-04-05T09:07:03Z");
   const afternoon = new Date("2023-12-25T13:05:00Z");
   const midnight = new Date("2023-04-05T00:30:00Z");
   const noon = new Date("2023-04-05T12:00:00Z");
 
-  it("formats PPpp like date-fns en-US", () => {
-    expect(format(morning, "PPpp")).toBe("Apr 5, 2023, 9:07:03 AM");
-    expect(format(afternoon, "PPpp")).toBe("Dec 25, 2023, 1:05:00 PM");
+  it("formats like date-fns en-US", () => {
+    expect(formatPPpp(morning)).toBe("Apr 5, 2023, 9:07:03 AM");
+    expect(formatPPpp(afternoon)).toBe("Dec 25, 2023, 1:05:00 PM");
   });
 
-  it("handles midnight and noon in PPpp", () => {
-    expect(format(midnight, "PPpp")).toBe("Apr 5, 2023, 12:30:00 AM");
-    expect(format(noon, "PPpp")).toBe("Apr 5, 2023, 12:00:00 PM");
-    expect(format(new Date(2023, 3, 5, 0, 0, 0), "PPpp")).toBe(
+  it("handles midnight and noon", () => {
+    expect(formatPPpp(midnight)).toBe("Apr 5, 2023, 12:30:00 AM");
+    expect(formatPPpp(noon)).toBe("Apr 5, 2023, 12:00:00 PM");
+    expect(formatPPpp(new Date(2023, 3, 5, 0, 0, 0))).toBe(
       "Apr 5, 2023, 12:00:00 AM"
-    );
-  });
-
-  it("throws on an unsupported pattern", () => {
-    expect(() => format(morning, "yyyy-MM-dd")).toThrow(
-      "Unsupported date format pattern"
-    );
-    expect(() => format(morning, "MMM d, yyyy · HH:mm")).toThrow(
-      "Unsupported date format pattern"
     );
   });
 });

@@ -135,15 +135,46 @@ function modelConfig(model: ModelSelection): ModelConfig {
   };
 }
 
-type EmbeddingParams = { text: string; dimensions?: number };
+type EmbeddingParams = { text: string[]; dimensions?: number };
 
 /** Embedding params; `dimensions` travels only when the model declares one. */
-function embeddingParams(text: string, dimensions: number): EmbeddingParams {
+function embeddingParams(text: string[], dimensions: number): EmbeddingParams {
   const params: EmbeddingParams = { text };
   if (dimensions > 0) {
     params.dimensions = dimensions;
   }
   return params;
+}
+
+/** Split `text` into `chunk_size`-character pieces; never yields an empty list. */
+function chunkText(text: string, chunkSize: number): string[] {
+  const size = chunkSize > 0 ? Math.trunc(chunkSize) : text.length;
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += size) {
+    chunks.push(text.slice(i, i + size));
+  }
+  return chunks.length > 0 ? chunks : [text];
+}
+
+/** Element-wise mean of one vector per chunk; a single chunk passes through. */
+function averageVectors(vectors: number[][]): number[] {
+  const first = vectors[0] ?? [];
+  if (vectors.length < 2) {
+    return first;
+  }
+  const mean = new Array<number>(first.length).fill(0);
+  for (const vector of vectors) {
+    for (let i = 0; i < mean.length; i++) {
+      mean[i] += (vector[i] ?? 0) / vectors.length;
+    }
+  }
+  return mean;
+}
+
+/** `*` wildcard match, anchored to the whole name. */
+function wildcardToRegExp(pattern: string): RegExp {
+  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`^${escaped.replaceAll("*", ".*")}$`);
 }
 
 /** Output handles AutomaticSpeechRecognitionNode.process() emits. */
@@ -341,12 +372,12 @@ export class EmbeddingTextNode extends BaseNode {
       provider: providerId,
       capability: "generate_embedding",
       model: modelId,
-      params: embeddingParams(text, dimensions)
+      params: embeddingParams(chunkText(text, this.chunk_size), dimensions)
     });
     if (!isEmbeddingVectors(vectors)) {
       throw new Error("Embedding expected vectors from the provider.");
     }
-    return { output: vectors[0] ?? [] };
+    return { output: averageVectors(vectors) };
   }
 }
 
@@ -561,6 +592,7 @@ export class LoadTextFolderNode extends BaseNode {
     const folder = this.folder;
     const includeSubdirs = this.include_subdirectories;
     const extensions = this.extensions.map((ext) => String(ext).toLowerCase());
+    const matches = this.pattern ? wildcardToRegExp(this.pattern) : null;
 
     if (!folder) {
       throw new Error("folder cannot be empty");
@@ -584,6 +616,9 @@ export class LoadTextFolderNode extends BaseNode {
 
     for await (const filePath of walk(folder)) {
       if (!extensions.includes(path.extname(filePath).toLowerCase())) {
+        continue;
+      }
+      if (matches && !matches.test(path.basename(filePath))) {
         continue;
       }
       const text = await fs.readFile(filePath, "utf-8");

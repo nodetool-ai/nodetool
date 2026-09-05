@@ -130,6 +130,32 @@ describe("AssetStore", () => {
       const { add } = useAssetStore.getState();
       expect(() => add(mockAsset)).not.toThrow();
     });
+
+    it("seeds the singular key useAssetById reads", () => {
+      useAssetStore.getState().setQueryClient(queryClient);
+      const mockAsset: Asset = {
+        id: "seeded-asset-id",
+        name: "seeded.jpg",
+        content_type: "image/jpeg",
+        size: 1024,
+        created_at: "2023-01-01T00:00:00Z",
+        parent_id: "",
+        user_id: "test-user",
+        get_url: "/assets/seeded-asset-id",
+        workflow_id: null,
+        thumb_url: "/thumbnail.jpg",
+        metadata: {}
+      };
+
+      useAssetStore.getState().add(mockAsset);
+
+      expect(queryClient.getQueryData(["asset", "seeded-asset-id"])).toEqual(
+        mockAsset
+      );
+      expect(
+        queryClient.getQueryData(["assets", "seeded-asset-id"])
+      ).toBeUndefined();
+    });
   });
 
   describe("invalidateQueries", () => {
