@@ -22,6 +22,7 @@ import {
   module as serpApiModule
 } from "../src/capabilities/serpapi.js";
 import {
+  capabilityCategoryFor,
   capabilityModuleIssues,
   listCapabilityModules,
   loadCapabilityModule
@@ -29,7 +30,6 @@ import {
 import { createChatCodeActSession } from "../src/codeact/chat-codeact.js";
 import { clearSerpApiCatalogCache } from "../src/serpapi/catalog.js";
 import type { CapabilityRun } from "../src/capabilities/types.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 
 const KEY = "serpapi_KEYTHATMUSTNOTLEAK0000000000";
 
@@ -102,7 +102,7 @@ describe("registration", () => {
         entry.spec.name,
         "read"
       ]);
-      expect(permissionCategoryFor(entry.spec.name)).toBe("read");
+      expect(capabilityCategoryFor(entry.spec.name)).toBe("read");
     }
   });
 });

@@ -22,8 +22,10 @@ import { z } from "zod";
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import {
   FileStorageAdapter,
+  PERMISSION_GATE_CONTEXT_KEY,
   parseWithTypeCoercion,
-  ProcessingContext
+  ProcessingContext,
+  headlessGate
 } from "@nodetool-ai/runtime";
 import {
   emptyJsScriptDocument,
@@ -168,6 +170,7 @@ export function createJsScriptToolBridge(
       userId: "1",
       storage: new FileStorageAdapter(getDefaultAssetsPath())
     });
+    context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("JS script eval"));
     const result = await runCodeBody(context, {
       code: document.code,
       inputs,

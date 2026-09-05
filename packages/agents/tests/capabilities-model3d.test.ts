@@ -31,11 +31,11 @@ import { UNGATED, createCapabilityRun } from "../src/capabilities/index.js";
 import { module as generations } from "../src/capabilities/generations.js";
 import type { CapabilityExport } from "../src/capabilities/types.js";
 import {
+  capabilityCategoryFor,
   capabilityModuleIssues,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 
 const USER = "user-model3d";
 
@@ -163,7 +163,7 @@ describe("model3d capability module", () => {
     for (const entry of MODEL3D_CAPABILITIES) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
-        permissionCategoryFor(entry.spec.name)
+        capabilityCategoryFor(entry.spec.name)
       ]);
     }
   });

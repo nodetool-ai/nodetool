@@ -10,7 +10,7 @@ import {
 } from "@nodetool-ai/models";
 import type { Shot } from "@nodetool-ai/protocol";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+import { capabilityCategoryFor } from "../src/capabilities/registry.js";
 import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]);
@@ -110,9 +110,9 @@ describe("storyboard render tools", () => {
         "assemble_storyboard_timeline"
       ])
     );
-    expect(permissionCategoryFor("get_storyboard")).toBe("read");
-    expect(permissionCategoryFor("create_storyboard")).toBe("write");
-    expect(permissionCategoryFor("render_storyboard_clips")).toBe("write");
+    expect(capabilityCategoryFor("get_storyboard")).toBe("read");
+    expect(capabilityCategoryFor("create_storyboard")).toBe("write");
+    expect(capabilityCategoryFor("render_storyboard_clips")).toBe("write");
   });
 
   it("lists and reads a board", async () => {

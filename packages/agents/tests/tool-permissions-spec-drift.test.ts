@@ -4,10 +4,10 @@
  * `run.invoke` gates on the spec's `category`; `gateTools` wraps a `Tool`
  * through `capabilityFromTool`, which used to classify by name from
  * `TOOL_PERMISSION_CATEGORIES` alone — so a capability absent from the map
- * was `read` through one door and `external` through the other. The adapter
- * now reads the spec first; the map is only for a `Tool` that is not a
- * capability. This file pins both halves: the adapter's lookup order, and
- * that the map never contradicts a spec or names something nothing owns.
+ * was `read` through one door and `external` through the other. Both doors
+ * now answer `capabilityCategoryFor`: the spec first, the map only for a
+ * `Tool` that is not a capability. This file pins that lookup order and that
+ * the map holds nothing a spec already owns and nothing nobody owns.
  */
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -22,6 +22,7 @@ import {
 } from "../src/tools/tool-permissions.js";
 import { capabilityFromTool } from "../src/capabilities/adapters.js";
 import {
+  capabilityCategoryFor,
   capabilitySpec,
   listCapabilitySpecs
 } from "../src/capabilities/registry.js";
@@ -88,25 +89,48 @@ describe("TOOL_PERMISSION_CATEGORIES against the capability registry", () => {
     expect(tools.has("finish_step")).toBe(true);
   });
 
-  it("never contradicts a registered spec", () => {
-    const disagreements = specs
-      .filter(
-        (spec) =>
-          spec.name in TOOL_PERMISSION_CATEGORIES &&
-          TOOL_PERMISSION_CATEGORIES[spec.name] !== spec.category
-      )
+  it("duplicates no registered spec, agreeing or not", () => {
+    // A spec is the authority on its category. An entry that agrees with it
+    // is a second copy to keep in step; one that disagrees is a lie one door
+    // used to believe. Both are drift.
+    const duplicates = specs
+      .filter((spec) => spec.name in TOOL_PERMISSION_CATEGORIES)
       .map(
         (spec) =>
           `${spec.name}: spec=${spec.category} map=${TOOL_PERMISSION_CATEGORIES[spec.name]}`
       );
-    expect(disagreements).toEqual([]);
+    expect(duplicates).toEqual([]);
   });
 
-  it("names only a registered spec or a surviving Tool class", () => {
+  it("names only a surviving Tool class", () => {
     const orphans = Object.keys(TOOL_PERMISSION_CATEGORIES).filter(
-      (name) => capabilitySpec(name) === undefined && !tools.has(name)
+      (name) => !tools.has(name)
     );
     expect(orphans).toEqual([]);
+  });
+
+  it("still classifies every surviving Tool class", () => {
+    for (const name of ["finish_step", "run_node"]) {
+      expect(tools.has(name), name).toBe(true);
+      expect(name in TOOL_PERMISSION_CATEGORIES, name).toBe(true);
+    }
+  });
+});
+
+describe("capabilityCategoryFor", () => {
+  it("answers the spec for every registered capability", () => {
+    for (const spec of listCapabilitySpecs()) {
+      expect(capabilityCategoryFor(spec.name), spec.name).toBe(spec.category);
+    }
+  });
+
+  it("answers the map for a Tool that is not a capability", () => {
+    expect(capabilitySpec("run_node")).toBeUndefined();
+    expect(capabilityCategoryFor("run_node")).toBe("execute");
+  });
+
+  it("answers external for a name nobody owns", () => {
+    expect(capabilityCategoryFor("no_such_tool_anywhere")).toBe("external");
   });
 });
 

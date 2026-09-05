@@ -13,9 +13,11 @@ import { ImageDocument, ModelObserver, initTestDb } from "@nodetool-ai/models";
 import { decodeSketchLayerData } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 import { module as sketches } from "../src/capabilities/sketches.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
-import { capabilityModuleIssues } from "../src/capabilities/registry.js";
+import {
+  capabilityCategoryFor,
+  capabilityModuleIssues
+} from "../src/capabilities/registry.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import { Tool } from "../src/tools/base-tool.js";
 
 const ctx = (userId = "u1") => ({ userId }) as unknown as ProcessingContext;
@@ -105,7 +107,7 @@ describe("sketches capability module", () => {
     for (const entry of sketches.exports) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
-        permissionCategoryFor(entry.spec.name)
+        capabilityCategoryFor(entry.spec.name)
       ]);
     }
   });

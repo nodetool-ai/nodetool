@@ -81,6 +81,9 @@ vi.mock("@nodetool-ai/agents", async () => ({
   // it, and a second copy of the classification map is the thing A2 exists to
   // prevent.
   ...(await import("../../agents/src/tools/tool-permissions.js")),
+  // The gate contract now lives in runtime, which this suite stubs; the real
+  // module goes last so the stubbed re-export cannot shadow it.
+  ...(await import("../../runtime/src/permission-gate.js")),
   EXECUTE_CODE_TOOL_NAME: "execute_code",
   PERMISSION_GATE_CONTEXT_KEY: "nodetool_permission_gate",
   gateTools: (tools: unknown[]) => tools,

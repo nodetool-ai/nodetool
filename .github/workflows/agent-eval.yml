@@ -57,6 +57,16 @@ on:
         required: false
         default: ""
         type: string
+      max-cost-usd:
+        description: "Fail a suite whose cases cost more than this in total (USD). Empty sets no cap"
+        required: false
+        default: ""
+        type: string
+      max-p95-duration-ms:
+        description: "Fail a suite whose p95 case duration exceeds this (ms). Empty sets no cap"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -150,6 +160,8 @@ jobs:
           CASES: ${{ inputs.cases }}
           SUITE: ${{ matrix.suite }}
           MIN_SUCCESS: ${{ inputs.min-success || matrix.min-success }}
+          MAX_COST_USD: ${{ inputs.max-cost-usd }}
+          MAX_P95_DURATION_MS: ${{ inputs.max-p95-duration-ms }}
         run: |
           set -euo pipefail
           # Suite selection happens here rather than in an `if:` expression so a
@@ -170,6 +182,8 @@ jobs:
             ${CASES:+--cases "$CASES"} \
             --min-cases 1 \
             --min-success "$MIN_SUCCESS" \
+            ${MAX_COST_USD:+--max-cost-usd "$MAX_COST_USD"} \
+            ${MAX_P95_DURATION_MS:+--max-p95-duration-ms "$MAX_P95_DURATION_MS"} \
             --out "reports/$SUITE.json" | tee "reports/$SUITE.txt"
 
       - name: Upload the report

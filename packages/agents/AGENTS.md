@@ -1041,10 +1041,14 @@ that object with `gateFromContext` instead of building a gate of its own
 same reason: `ProcessingContext.copy()` shallow-copies the variable bag, so a
 child shares the host's gate object rather than a clone, which is what makes a
 mid-turn `set_permission_mode` and an "allow for this chat" answer reach a loop
-that started before them. A context carrying no gate still resolves to the
-headless `auto` gate, and `gateFromContext` logs that fallback at error level,
-so a host that forgot to set one shows up in the log rather than running
-silently ungated.
+that started before them. The contract itself — the key, the types,
+`decidePermission`, `headlessGate` — lives in `@nodetool-ai/runtime`
+(`permission-gate.ts`) so the workflow hosts below this package can set a
+gate; this package re-exports the names. Every host sets one, so a context
+carrying no gate is a bug: `gateFromContext` logs it at error level and
+answers a gate that lets read-class calls through and denies everything else
+(mode `default`, approver `deny`). A host that means "nobody to ask" says so
+with `headlessGate(hostName)`.
 
 | Host | Where its gate comes from | Mode | Approver |
 |---|---|---|---|
@@ -1054,7 +1058,8 @@ silently ungated.
 | `AgentNode` in a workflow | `genProcess` wraps what `buildTools` returned in `gateFromContext(context, "Agent node")` | the host's, or `auto` when no host set one | the host's, or the headless deny |
 | JS script | `js-script-sandbox.ts` passes `gateFromContext(context, "JS script")` to `createCapabilityRun` | same | same |
 | `nodetool.code.Code` node | `code-node.ts` reads `gateFromContext(context, "Code node")` once and uses it for both doors: `createCapabilityRun` for the `@nodetool-ai/sandbox-nodetool/*` imports, `gateTools` around the belt the bridge calls | same | same |
-| Kernel workflow run | nothing is set, deliberately (see below) | `auto` | nobody: the headless deny |
+| Kernel workflow run | `buildWorkspaceExecutionContext` (`packages/execution/src/service/workflow-workspace.ts`) sets `headlessGate("kernel workflow run")` on the context it builds, and `ExecutionSession.create` sets the same on a caller's own context when that caller set none (see below) | `auto` | nobody: the headless deny |
+| Headless job runner (trigger-driven runs) | `packages/websocket/src/headless-job-runner.ts` sets `headlessGate("headless job runner")` on the run context | `auto` | nobody: the headless deny |
 | `nodetool agent run` on a TTY | `createCliPermissionGate` (`packages/cli/src/permission-gate.ts`), host name `nodetool agent run`, set on the run's context | `--permission-mode`, defaulting to `default` | the terminal: `y / n / a` prompted on stderr, because stdout carries the result. `a` answers `allow_for_chat`, and the name lands in the run's shared `sessionAllow` |
 | `nodetool agent run` with the objective piped in | the same builder, not interactive | `--permission-mode`, defaulting to `auto` | nobody: `headlessGate`'s deny, its reason printed once per run |
 | `nodetool-chat` reading piped stdin (`runStdinMode`) | the same builder, host name `nodetool-chat`, set on each line's context | `--permission-mode`, defaulting to `auto` | nobody: the headless deny |
@@ -1086,14 +1091,15 @@ implementation invokes, not the tool itself. The delegation primitives
 stay ungated in both hosts, because spawning a child loop has no effect of its
 own and the child acts through the belt that is already gated.
 
-**The kernel row is a decision, not an omission.** A workflow run is consent:
+**The kernel row is a decision, set explicitly.** A workflow run is consent:
 the user pressed Run on a graph whose nodes list their tools, so an agent loop
-inside it runs `auto` with nobody to ask, which is what `gateFromContext`
-already answers for a context carrying no gate. Building the same object in
-`buildWorkspaceExecutionContext` would also invert the package edge, since
-`@nodetool-ai/agents` depends on `@nodetool-ai/execution` and not the reverse,
-and it would be a second construction of the ladder's default. The doc comment
-in `workflow-workspace.ts` records this, so nobody closes the "gap" later.
+inside it runs `auto` with nobody to ask. `buildWorkspaceExecutionContext`
+says so by setting `headlessGate` from `@nodetool-ai/runtime`, and
+`ExecutionSession.create` does the same for a caller that hands in its own
+context with no gate on it (`nodetool run`, the WebSocket job runner, the app
+simulator), while a caller whose context already carries a gate — a chat
+turn's `run_node` — keeps it by reference. Setting it at the choke point is
+what lets `gateFromContext` treat an absent gate as a bug and fail closed.
 
 **Plan mode already blocks `run_node` one level above the node.** `run_node`
 is classified `execute`, and `decidePermission("plan", "execute")` is `block`,
@@ -2044,6 +2050,19 @@ the plan; grading the artifact needs a human or a vision model.
 FAL_API_KEY=$FAL_KEY IS_SANDBOX=1 npx tsx \
   packages/agents/scripts/dump-creative-run.ts full-pipeline claude_agent_sdk sonnet 220 --live
 ```
+
+#### Permission-gated cases
+
+A case that declares `permission: { mode, approve? }` runs its belt through
+the real `gateTools` ladder with a scripted approver
+(`src/evals/tool-loop-permission.ts`), and every approval request is recorded
+on `permissionRequests` for the case's `expect.permissionRequests` predicates,
+which count as final-state checks. `plan-mode-blocks-mutation` and
+`denied-mutation-stays-out` on the graph world assert that plan mode blocks a
+write without asking and that a denied write leaves the graph untouched; both
+are keyless. A gated case names its node types outright: `ui_search_nodes`
+has no permission class of its own, so it classifies `external` and plan mode
+blocks it.
 
 #### Interactive escalation (`workflow-escalation`)
 

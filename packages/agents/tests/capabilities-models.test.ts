@@ -18,6 +18,7 @@ import type {
 import { toolFromCapability } from "../src/capabilities/adapters.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
 import {
+  capabilityCategoryFor,
   capabilityModuleDrift,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
@@ -28,7 +29,6 @@ import {
   listProviderModels
 } from "../src/capabilities/models.js";
 import type { CapabilityExport } from "../src/capabilities/types.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { Tool } from "../src/tools/base-tool.js";
 
@@ -117,7 +117,7 @@ describe("models capability module", () => {
 
   it("classes every export the way the permission map does", () => {
     for (const entry of MODEL_CAPABILITIES) {
-      expect(entry.spec.category).toBe(permissionCategoryFor(entry.spec.name));
+      expect(entry.spec.category).toBe(capabilityCategoryFor(entry.spec.name));
     }
   });
 });

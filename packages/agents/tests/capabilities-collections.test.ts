@@ -23,12 +23,14 @@ vi.mock("@nodetool-ai/vectorstore", () => ({
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { VectorCollection } from "@nodetool-ai/vectorstore";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import {
   COLLECTION_CAPABILITIES,
   module as collectionsModule
 } from "../src/capabilities/collections.js";
-import { capabilityModuleIssues } from "../src/capabilities/registry.js";
+import {
+  capabilityCategoryFor,
+  capabilityModuleIssues
+} from "../src/capabilities/registry.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import type { CapabilityRun } from "../src/capabilities/types.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
@@ -113,7 +115,7 @@ describe("collections module shape", () => {
     for (const entry of COLLECTION_CAPABILITIES) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
-        permissionCategoryFor(entry.spec.name)
+        capabilityCategoryFor(entry.spec.name)
       ]);
     }
   });

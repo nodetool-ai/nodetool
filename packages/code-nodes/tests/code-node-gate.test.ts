@@ -91,17 +91,16 @@ describe("CodeNode — the host's permission gate", () => {
     expect(tool.calls).toEqual([]);
   }, 60_000);
 
-  it("runs the same call when no host set a gate", async () => {
+  // Every host sets a gate; a context that reaches the Code node without one
+  // is a bug, and the answer is to deny past read rather than run unattended.
+  it("denies the same call when no host set a gate, and never reaches the tool", async () => {
     const tool = new FakeDeleteVersionTool();
     setCodeNodeTools([tool]);
 
     const r = await runNode(CALL_DELETE, contextWith({}));
 
-    expect(JSON.parse(String(r["message"]))).toEqual({
-      workflow_id: "wf_1",
-      deleted: true
-    });
-    expect(tool.calls).toEqual([{ workflow_id: "wf_1", version: 2 }]);
+    expect(String(r["message"])).toContain("declined");
+    expect(tool.calls).toEqual([]);
   }, 60_000);
 
   it("blocks the same capability reached by import under a plan-mode gate", async () => {

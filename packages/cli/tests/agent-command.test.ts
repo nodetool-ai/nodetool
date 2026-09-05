@@ -129,6 +129,9 @@ vi.mock("@nodetool-ai/agents", async () => {
     // The real classification map, headless gate and context key: the CLI's
     // gate is supposed to be the shared one, not a second table.
     ...(await import("../../agents/src/tools/tool-permissions.js")),
+  // The gate contract now lives in runtime, which this suite stubs; the real
+  // module goes last so the stubbed re-export cannot shadow it.
+  ...(await import("../../runtime/src/permission-gate.js")),
     PERMISSION_GATE_CONTEXT_KEY: "nodetool_permission_gate",
     gateTools: (tools: NamedTool[], gate: unknown) => {
       gatedWith.push({ names: tools.map((t) => t.name), gate });
@@ -193,7 +196,7 @@ const { ScriptedProvider, textScript, toolCallScript } = await import(
 );
 const { runAgentCommand } = await import("../src/commands/agent.js");
 const { headlessDenialReason } = await import(
-  "../../agents/src/tools/tool-permissions.js"
+  "../../runtime/src/permission-gate.js"
 );
 
 let currentProvider: InstanceType<typeof ScriptedProvider>;

@@ -8,6 +8,10 @@ import {
 import type { Workflow as WorkflowModel } from "@nodetool-ai/models";
 import { NodeRegistry, BaseNode } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/node-sdk";
+import {
+  PERMISSION_GATE_CONTEXT_KEY,
+  type PermissionGateOptions
+} from "@nodetool-ai/runtime";
 import { startHeadlessJob } from "../src/headless-job-runner.js";
 
 const USER_ID = "user-1";
@@ -16,6 +20,8 @@ const USER_ID = "user-1";
 
 /** Captures the ProcessingContext's triggerEvent when it runs. */
 let capturedTriggerEvent: unknown = "never-ran";
+/** Captures the permission gate the run context carries. */
+let capturedGate: unknown = "never-ran";
 
 class CaptureNode extends BaseNode {
   static readonly nodeType = "test.headless.Capture";
@@ -26,6 +32,7 @@ class CaptureNode extends BaseNode {
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
     capturedTriggerEvent = context?.triggerEvent ?? null;
+    capturedGate = context?.get(PERMISSION_GATE_CONTEXT_KEY) ?? null;
     return { out: "done" };
   }
 }
@@ -91,6 +98,7 @@ describe("startHeadlessJob", () => {
   beforeEach(() => {
     initTestDb();
     capturedTriggerEvent = "never-ran";
+    capturedGate = "never-ran";
     gate = new Promise<void>((resolve) => {
       releaseGate = resolve;
     });
@@ -159,6 +167,29 @@ describe("startHeadlessJob", () => {
 
     expect(result.status).toBe("completed");
     expect(capturedTriggerEvent).toEqual(triggerEvent);
+  });
+
+  it("sets the headless permission gate on the run context", async () => {
+    const wf = await makeWorkflow("test.headless.Capture");
+
+    const result = await startHeadlessJob({
+      workflowId: wf.id,
+      userId: USER_ID,
+      registry: makeRegistry()
+    });
+
+    expect(result.status).toBe("completed");
+    const captured = capturedGate as PermissionGateOptions;
+    expect(captured.mode).toBe("auto");
+    expect(captured.sessionAllow.size).toBe(0);
+    await expect(
+      captured.requestApproval({
+        toolName: "delete_workflow",
+        category: "write",
+        args: {},
+        message: "Delete"
+      })
+    ).resolves.toBe("deny");
   });
 
   it("persists a failed terminal status when a node throws", async () => {

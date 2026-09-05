@@ -1328,7 +1328,7 @@ export class CodeActExecutor {
       const message = generationError
         ? `Step failed: ${generationError.message}`
         : budgetStop
-          ? `Step failed: ${this.stopDetail(budgetStop)}${this.paidWorkToRecover()}`
+          ? `Step failed: ${this.stopDetail(budgetStop)}${this.paidWorkToRecover(bridge.generationIds())}`
           : exhaustedIterations
             ? `Step failed: exceeded ${this.maxIterations} iterations without completion`
             : this.resultSchema !== null
@@ -1368,21 +1368,34 @@ export class CodeActExecutor {
    * had no way to know they existed — so it generated them again. The assets
    * and their `predictions` rows are already saved; naming the ids here is what
    * lets the next turn reuse them.
+   *
+   * The registry is user-scoped, and under a parallel plan every sibling step
+   * fails in the same window, so the list is cut down to the ids this step's
+   * own bridged calls answered with (`ownIds`). When no call returned an id,
+   * the user-scoped list stands and the note says so.
    */
-  private paidWorkToRecover(): string {
+  private paidWorkToRecover(ownIds: ReadonlySet<string>): string {
     const startedAt = this.step.startTime;
     if (startedAt === undefined) return "";
-    const done = generationRegistry.completedSince(
+    const completed = generationRegistry.completedSince(
       this.context.userId,
       startedAt
     );
+    const scoped = ownIds.size > 0;
+    const done = scoped
+      ? completed.filter((entry) => ownIds.has(entry.id))
+      : completed;
     if (done.length === 0) return "";
     const named = done
       .map((entry) => `${entry.id} (${entry.asset_ids.join(", ")})`)
       .join("; ")
       .slice(0, 2000);
+    const scopeNote = scoped
+      ? ""
+      : " (no call in this step returned a generation id, so this is every " +
+        "generation the user completed in the window, other steps and turns included)";
     return (
-      `. ${done.length} generation(s) completed and were saved before the stop — ` +
+      `. ${done.length} generation(s) completed and were saved before the stop${scopeNote} — ` +
       "reuse them instead of generating again: " +
       `${named}. Read them with list_generations or get_generation.`
     );

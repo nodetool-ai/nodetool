@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { getNodeMetadata, hasStreamingOutput } from "@nodetool-ai/node-sdk";
 import { BaseProvider } from "@nodetool-ai/runtime";
+import { PERMISSION_GATE_CONTEXT_KEY, headlessGate } from "@nodetool-ai/agents";
 // Import from source (not the package's stale dist) so these tests exercise the
 // current AgentNode, which now drives its tool loop through provider.generateLoop.
 // AGENT_NODES and CreateThreadNode must come from the same source module so class
@@ -2086,7 +2087,13 @@ describe("AgentNode – injected tools", () => {
       }
     }),
     getInjectedTool: (name: string) =>
-      (tools as Array<{ name: string }>).find((t) => t.name === name) ?? null
+      (tools as Array<{ name: string }>).find((t) => t.name === name) ?? null,
+    // The run's gate, as the kernel host sets it: without one the fallback
+    // denies the injected tool's call before it runs.
+    get: (key: string) =>
+      key === PERMISSION_GATE_CONTEXT_KEY
+        ? headlessGate("coverage test")
+        : undefined
   });
 
   it("forwards the provider's tool-call id to the injected tool", async () => {

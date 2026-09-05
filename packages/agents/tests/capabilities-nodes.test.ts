@@ -10,12 +10,14 @@
 import { describe, expect, it } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import {
   NODE_CAPABILITIES,
   module as nodesModule
 } from "../src/capabilities/nodes.js";
-import { capabilityModuleIssues } from "../src/capabilities/registry.js";
+import {
+  capabilityCategoryFor,
+  capabilityModuleIssues
+} from "../src/capabilities/registry.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import type { CapabilityRun } from "../src/capabilities/types.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
@@ -97,7 +99,7 @@ describe("nodes module shape", () => {
     for (const entry of NODE_CAPABILITIES) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
-        permissionCategoryFor(entry.spec.name)
+        capabilityCategoryFor(entry.spec.name)
       ]);
     }
   });

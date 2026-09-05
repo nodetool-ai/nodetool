@@ -99,6 +99,7 @@ export {
   toolForCapabilityName,
   capabilityFromTool,
   capabilitySpec,
+  capabilityCategoryFor,
   capabilityModuleOf,
   listCapabilitySpecs,
   createCapabilityRun,

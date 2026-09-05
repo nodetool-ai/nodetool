@@ -26,6 +26,7 @@ import {
   type CapabilitySpec,
   type PermissionCategory
 } from "./types.js";
+import { permissionCategoryFor } from "../tools/tool-permissions.js";
 import { agentsSpecs } from "./agents.specs.js";
 import { analysisSpecs } from "./analysis.specs.js";
 import { apifySpecs } from "./apify.specs.js";
@@ -331,6 +332,18 @@ export async function findCapability(
     if (found) return found;
   }
   return undefined;
+}
+
+/**
+ * The permission category for a tool name: the registered spec's, else the
+ * hand-written map for a `Tool` class that is not a capability (`run_node`,
+ * the plan-builder tools, `finish_step`), else the conservative `external`.
+ *
+ * This is the one lookup a host or a test should use. `permissionCategoryFor`
+ * alone answers only the map, and the map holds only what has no spec.
+ */
+export function capabilityCategoryFor(name: string): PermissionCategory {
+  return capabilitySpec(name)?.category ?? permissionCategoryFor(name);
 }
 
 /** Every registered capability's name → category. The snapshot a test pins. */
