@@ -4,6 +4,8 @@ import { GMIProvider } from "../../src/providers/gmi-provider.js";
 import { MetaProvider } from "../../src/providers/meta-provider.js";
 import { AlibabaProvider } from "../../src/providers/alibaba-provider.js";
 import { EvolinkProvider } from "../../src/providers/evolink-provider.js";
+import { AtlasCloudProvider } from "../../src/providers/atlascloud-provider.js";
+import { MiniMaxProvider } from "../../src/providers/minimax-provider.js";
 import type {
   Message,
   ProviderStreamItem,
@@ -563,15 +565,23 @@ describe("OpenAICompatProvider inherits OpenAI's catalog guard", () => {
     expect(await provider.getAvailableEmbeddingModels()).toEqual([]);
   });
 
-  // These four dropped their own `return []` overrides; the guard above is
-  // what keeps `whisper-1` / `gpt-image-2` out of their pickers.
+  // These dropped their own `return []` overrides; the guard above is what
+  // keeps `whisper-1` / `gpt-image-2` out of their pickers.
   it.each([
     ["gmi", new GMIProvider({ GMI_API_KEY: "k" })],
     ["meta", new MetaProvider({ META_API_KEY: "k" })],
     ["alibaba", new AlibabaProvider({ DASHSCOPE_API_KEY: "k" })],
-    ["evolink", new EvolinkProvider({ EVOLINK_API_KEY: "k" })]
+    ["evolink", new EvolinkProvider({ EVOLINK_API_KEY: "k" })],
+    ["atlascloud", new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" })]
   ])("%s serves no OpenAI TTS, ASR or embedding models", async (_id, p) => {
     expect(await p.getAvailableTTSModels()).toEqual([]);
+    expect(await p.getAvailableASRModels()).toEqual([]);
+    expect(await p.getAvailableEmbeddingModels()).toEqual([]);
+  });
+
+  // MiniMax serves its own TTS catalog; only ASR and embeddings are empty.
+  it("minimax serves no OpenAI ASR or embedding models", async () => {
+    const p = new MiniMaxProvider({ MINIMAX_API_KEY: "k" });
     expect(await p.getAvailableASRModels()).toEqual([]);
     expect(await p.getAvailableEmbeddingModels()).toEqual([]);
   });

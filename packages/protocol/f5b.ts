@@ -1,0 +1,10 @@
+import type { z } from "zod";
+import { workflowResponse } from "./src/api-schemas/workflows.js";
+import type { Workflow } from "./src/api-types.js";
+type W = z.infer<typeof workflowResponse>;
+type Keys = Extract<keyof W, keyof Workflow>;
+type BadOne<K extends Keys> = W[K] extends Workflow[K] ? never : K;
+type Bad = { [K in Keys]: BadOne<K> }[Keys] & string;
+declare const b: Bad;
+const x: "SHOW_ME" = b;
+void x;
