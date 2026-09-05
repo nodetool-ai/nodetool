@@ -23,6 +23,7 @@ import { useStoryboardGenerationSubscriptions } from "../stores/storyboard/Story
 import { useStoryboardServerSync } from "../hooks/storyboard/useStoryboardServerSync";
 import { useDocumentUndoShortcuts } from "../hooks/useDocumentUndoShortcuts";
 import { useStoryboardAgentBridge } from "../hooks/storyboard/useStoryboardAgentBridge";
+import { useExtractScriptFromBoard } from "../hooks/storyboard/useExtractScriptFromBoard";
 import { useDirectScreenplay } from "../hooks/storyboard/useDirectScreenplay";
 import { useAssembleTimeline } from "../hooks/storyboard/useAssembleTimeline";
 import { SetupFlow } from "../components/setup/SetupFlow";
@@ -88,7 +89,17 @@ const StudioStoryboardPage = () => {
   // stage the document carries (PRD § 6.4). A board with no stage reads `done`
   // and opens as the board (D3).
   const setupStage = useStoryboardSetupStage(boardId);
-  const setupConfig = useStoryboardSetupFlow({ boardId });
+  // Studio boards carry a linked script, and it is extracted when the creator
+  // leaves the review step — from the screenplay they reviewed, not the
+  // Director's first draft (PRD D9, criterion 6).
+  const { extract } = useExtractScriptFromBoard();
+  const extractReviewed = useCallback(async () => {
+    await extract(boardId, { open: false });
+  }, [boardId, extract]);
+  const setupConfig = useStoryboardSetupFlow({
+    boardId,
+    onReviewed: extractReviewed
+  });
 
   const { direct, directing, error: directError } = useDirectScreenplay();
   const handleDirect = useCallback(

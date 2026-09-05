@@ -38,6 +38,14 @@ jest.mock("../../hooks/storyboard/useStoryboardAgentBridge", () => ({
 jest.mock("../../stores/storyboard/StoryboardGenerationStore", () => ({
   useStoryboardGenerationSubscriptions: jest.fn()
 }));
+// Studio extracts the linked script when the creator leaves review (PRD D9).
+// The real hook reaches the entity library through TanStack Query, which this
+// suite does not stand up; `useStoryboardSetupFlow.test.tsx` pins when it runs.
+const extract = jest.fn(async () => ({ scriptId: "script-1" }));
+jest.mock("../../hooks/storyboard/useExtractScriptFromBoard", () => ({
+  useExtractScriptFromBoard: () => ({ extract })
+}));
+
 // Resume-by-stage is about which step mounts. The look step's body reaches the
 // generation store, the entity library and the cost estimate; `LookStep.test.tsx`
 // covers what it does, so here it only has to exist.

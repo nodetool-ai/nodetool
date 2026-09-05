@@ -84,11 +84,21 @@ export interface StoryboardSetupFlowOptions {
    * board it just built (open its tab, navigate to it).
    */
   onFinish?: () => void;
+  /**
+   * Runs when the creator leaves the review step, before the look step.
+   *
+   * Studio extracts the board's linked script here (PRD D9, criterion 6): the
+   * words come from the screenplay the creator actually reviewed, not from the
+   * Director's first draft, and extracting at the prompt would have used the
+   * draft. Hosts with no linked script pass nothing.
+   */
+  onReviewed?: () => void | Promise<void>;
 }
 
 export const useStoryboardSetupFlow = ({
   boardId,
-  onFinish
+  onFinish,
+  onReviewed
 }: StoryboardSetupFlowOptions): SetupFlowConfig<StoryboardSetupStage> => {
   const stage = useStoryboardSetupStage(boardId);
   const setSetup = useStoryboardStore((state) => state.setSetup);
@@ -168,7 +178,8 @@ export const useStoryboardSetupFlow = ({
         stage: "review",
         label: "Story",
         primaryLabel: "Continue to storyboard",
-        render: () => createElement(ReviewStep, { boardId })
+        render: () => createElement(ReviewStep, { boardId }),
+        onAdvance: onReviewed
       },
       {
         stage: "look",
@@ -194,7 +205,18 @@ export const useStoryboardSetupFlow = ({
         }
       }
     ],
-    [boardId, brief, direct, directing, finish, genre, look, onFinish, openTutorial]
+    [
+      boardId,
+      brief,
+      direct,
+      directing,
+      finish,
+      genre,
+      look,
+      onFinish,
+      onReviewed,
+      openTutorial
+    ]
   );
 
   return { labels: FLOW_LABELS, steps, stage, onStageChange };

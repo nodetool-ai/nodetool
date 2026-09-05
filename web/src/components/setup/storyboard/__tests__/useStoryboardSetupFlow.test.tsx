@@ -56,6 +56,11 @@ const Harness = ({ onFinish }: { onFinish?: () => void }) => {
   return <SetupFlow config={config} />;
 };
 
+const ReviewHarness = ({ onReviewed }: { onReviewed: () => Promise<void> }) => {
+  const config = useStoryboardSetupFlow({ boardId: BOARD_ID, onReviewed });
+  return <SetupFlow config={config} />;
+};
+
 const renderFlow = (onFinish?: () => void) =>
   render(
     <ThemeProvider theme={mockTheme}>
@@ -110,6 +115,39 @@ describe("useStoryboardSetupFlow", () => {
       screen.getByRole("button", { name: "Continue to storyboard" })
     );
     expect(stageOf()).toBe("look");
+  });
+
+  // PRD D9 / criterion 6: Studio's script comes from the screenplay the creator
+  // reviewed. Extracting at the prompt would have used the Director's first
+  // draft, so the call belongs to this step and nowhere earlier.
+  it("extracts once, on leaving review, from the reviewed screenplay", async () => {
+    const user = userEvent.setup();
+    const onReviewed = jest.fn(async () => {});
+    useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "review" });
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ReviewHarness onReviewed={onReviewed} />
+      </ThemeProvider>
+    );
+
+    expect(onReviewed).not.toHaveBeenCalled();
+    await user.click(
+      screen.getByRole("button", { name: "Continue to storyboard" })
+    );
+
+    await waitFor(() => expect(onReviewed).toHaveBeenCalledTimes(1));
+    expect(stageOf()).toBe("look");
+  });
+
+  it("does not extract for a host that has no linked script", async () => {
+    const user = userEvent.setup();
+    useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "review" });
+    renderFlow();
+
+    await user.click(
+      screen.getByRole("button", { name: "Continue to storyboard" })
+    );
+    await waitFor(() => expect(stageOf()).toBe("look"));
   });
 
   it("writes done on the last step and tells the host", async () => {
