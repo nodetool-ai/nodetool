@@ -9,10 +9,8 @@ copy and this file disagree, one of them is wrong — fix both in the same chang
 The page is edited more often than this file, so when in doubt the page is the
 newer of the two: bring the doc up to it, then fix the page.
 
-This file is the homepage's narrower cut of `BRAND.md`, not a second standard.
-The positioning line below wins on nodetool.ai; `BRAND.md`'s elevator pitch
-covers everywhere else (README, docs, listings). Both say the same thing: the
-creator directs and keeps the project file.
+The homepage, README, and docs share the primary tagline and intro in
+`BRAND.md`. Film production is a showcase of the broader workspace.
 
 ## The register
 
@@ -34,29 +32,19 @@ NodeTool can make.
 
 ## Positioning line
 
-**You are the director. The agent is your crew.**
+**Open-source creative AI workspace**
 
-Two beats, declarative, no mechanism. It names who does what: the agent handles
-the tedious stretch between a blank page and a rough cut — script, board,
-footage, sound, cut — and the creator stays the director throughout. "You direct
-the vision. The agent builds the film." is the same claim in prose form and stays
-in the meta descriptions and OG images; the hero uses the shorter line.
+Create and edit images, video, audio, and text with agents that work alongside
+you. Let them build and revise workflows, then inspect and edit the results
+yourself. Your project keeps the brief, assets, and edits together.
 
-The subhead carries the one claim a closed studio cannot make: what the agent
-makes stays open. The board, the script with its takes, and the multi-track cut
-come back as a project you can re-roll, re-voice, and re-cut. Other agents also
-build a film. Nobody else hands the project back. That claim goes in the hero,
-not one and a half screens down.
+Use "agent-first" in supporting copy to explain how agents build and revise
+workflows and documents that creators can inspect and edit. Keep the primary
+headline and metadata category-led. Studio and Cloud use the same headline,
+with edition details in their badges and introductions.
 
-Under the CTA sits the trust line: free, open source, AGPL-3.0, and the three
-platforms it runs on. It is our version of "Used by 60M+ users globally" — the
-facts we actually have, stated once, without adjectives. When a user or install
-count is worth printing, it replaces the platform list rather than joining it.
-
-"The agent-first creative workspace" stays as the category descriptor in
-`<title>`, meta descriptions, and schema. On the page itself the reader needs a
-category they already know, so the hero badge says **open-source AI film
-studio**. Nobody searches for a coined label.
+Keep the trust line under the CTA: free, open source, AGPL-3.0, and the
+supported desktop platforms.
 
 ## Message hierarchy
 

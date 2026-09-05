@@ -1,13 +1,15 @@
 ---
 layout: home
-description: "NodeTool — the open creative AI workspace. Ask an agent to build the workflow, then take the controls. Image, video, audio, and LLM models on one canvas, with your own keys or local models."
+description: "Open-source creative AI workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together."
 ---
 
 <section class="home-hero">
-  <p class="eyebrow">A free and open AI workspace</p>
-  <h1>Tell the AI what to make. Then you take control.</h1>
+  <p class="eyebrow">NodeTool documentation</p>
+  <h1>Open-source creative AI workspace</h1>
   <p class="lead">
-   Tell NodeTool what you need, and its agent will build it for you. It can create workflows, images, videos, or simple apps. Everything it makes appears on a canvas where you can easily view and edit it yourself. You can use your own accounts or your own computer. It is open source and free to use (AGPL-3.0).
+    Create and edit images, video, audio, and text with agents that work alongside
+    you. Let them build and revise workflows, then inspect and edit the results
+    yourself. Your project keeps the brief, assets, and edits together.
   </p>
   <img src="{{ '/assets/home.png' | relative_url }}" alt="NodeTool canvas" class="home-screenshot">
   <div class="cta-row">

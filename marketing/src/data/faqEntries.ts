@@ -85,7 +85,7 @@ const seeds: FaqSeed[] = [
     slug: "what-is-nodetool",
     question: "What is NodeTool?",
     answerMd:
-      "NodeTool is the open AI production studio. You direct the vision and the agent builds the film: it drafts the script, boards every scene, generates the footage, and cuts a multi-track timeline you can still edit. Every major model from every major provider, including FAL, KIE, OpenAI, Anthropic, Gemini, and Replicate, sits on one visual canvas that you run on your own machine or in the browser.",
+      "NodeTool is an open-source creative AI workspace. Create and edit images, video, audio, and text with agents that work alongside you. Let them build and revise workflows, then inspect and edit the results yourself. Your project keeps the brief, assets, and edits together. Use supported local models or connect cloud providers with your own keys.",
     category: "general",
     relatedRoute: "/",
     surfaces: ["landing", "agents", "comparison"],

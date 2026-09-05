@@ -1,9 +1,9 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
 
-const TITLE = "NodeTool Studio — Agent-first creative workspace, offline";
+const TITLE = "NodeTool Studio | Open-source creative AI workspace";
 const DESCRIPTION =
-  "You direct the vision. The agent builds the film — on your own hardware. Describe your idea and NodeTool Studio's agent writes the script, boards every scene, generates the footage, and cuts a multi-track timeline you can still edit. Run open weights locally through Ollama, MLX, and GGUF, or bring your own API keys and pay provider prices. No credits, no markups, no lock-in. Offline, files on disk. macOS, Windows, Linux. AGPL-3.0.";
+  "Open-source creative AI workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together. Studio runs on macOS, Windows, and Linux. Use supported local models or your own provider keys.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -54,7 +54,7 @@ export default function StudioLayout({
           "@type": "SoftwareApplication",
           name: "NodeTool Studio",
           description:
-            "Open-source, agent-first creative workspace for the desktop. Describe an idea and the agent writes the script, boards the scenes, generates the footage, and cuts the timeline — on Ollama, MLX, and GGUF models running locally, or on your own API keys at provider prices. Works offline, files stay on disk.",
+            "Open-source creative AI workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together. Studio runs on macOS, Windows, and Linux. Use supported local models or your own provider keys.",
           applicationCategory: "MultimediaApplication",
           operatingSystem: "macOS, Windows, Linux",
           url: "https://nodetool.ai/studio",

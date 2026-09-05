@@ -60,7 +60,7 @@ export default function FaqHubPage() {
             Frequently asked questions
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            NodeTool is the open-source, agent-first creative workspace: one
+            NodeTool is the open-source creative AI workspace: one
             canvas for image, video, audio, and text, where every editor is a
             tool an agent can drive. You bring your own API keys and pay each
             provider directly. Studio runs on your machine; Cloud runs the same

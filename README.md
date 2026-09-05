@@ -7,7 +7,7 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 [![Powered by Atlas Cloud](https://www.atlascloud.ai/oss-program/powered-by-atlas-cloud.svg)](https://www.atlascloud.ai/?ref=PW9AD2)
 
-**You are the director. The agent is your crew.**
+**Open-source creative AI workspace**
 
 Create and edit AI images, video, audio, and text in NodeTool, an open-source
 creative studio. Describe what you want and the agent builds it. What comes
