@@ -86,6 +86,20 @@ export interface ToolBridge {
    * clears both.
    */
   drainImages: () => { images: MessageImageContent[]; dropped: number };
+  /**
+   * The `generation_id` of every result a bridged call answered with, across
+   * all of the step's actions. A failing step intersects the user's completed
+   * generations with this set so it names its own paid work and not a
+   * sibling step's.
+   */
+  generationIds: () => ReadonlySet<string>;
+}
+
+/** The `generation_id` a generation-producing capability answers with. */
+function generationIdOf(result: unknown): string | null {
+  if (!isRecord(result)) return null;
+  const id = result["generation_id"];
+  return isNonEmptyString(id) ? id : null;
 }
 
 /** Force a value through JSON so it marshals cleanly across the WASM boundary. */
@@ -147,6 +161,7 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
   let totalCalls = 0;
   let pendingImages: MessageImageContent[] = [];
   let droppedImages = 0;
+  const generationIds = new Set<string>();
 
   const callTool = async (
     name: unknown,
@@ -192,6 +207,10 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
       let result = await Tool.executeTool(tool, options.context, args, {
         toolCallId
       });
+      // Read before the error branch: a failed generation still answers with
+      // its id, and the registry decides later whether it completed.
+      const generationId = generationIdOf(result);
+      if (generationId !== null) generationIds.add(generationId);
       // A view-image-style result carries pixels the model asked for. They
       // cannot ride the JSON observation (base64 would burn the context for
       // nothing), so strip them here and let the caller forward them as a
@@ -246,7 +265,8 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
       pendingImages = [];
       droppedImages = 0;
       return { images, dropped };
-    }
+    },
+    generationIds: () => generationIds
   };
 }
 

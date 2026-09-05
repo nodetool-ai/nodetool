@@ -1001,6 +1001,232 @@ describe("CodeActExecutor run budget", () => {
     expect(step.error).toContain("gen-1");
     expect(step.error).toContain("asset-9");
     expect(step.error).toContain("reuse them instead of generating again");
+    // `tick` answered with no generation id, so the list falls back to the
+    // user's window and says so.
+    expect(step.error).toContain("other steps and turns included");
+    generationRegistry.reset();
+  });
+
+  /**
+   * Two steps of a parallel plan, one user, both stopped by the deadline after
+   * paying for one generation each. The registry is user-scoped, so each step
+   * used to claim the other's generation as work it paid for.
+   */
+  it("names only its own generations when sibling steps fail in the same window", async () => {
+    generationRegistry.reset();
+    let settled = 0;
+    let releaseBoth: () => void = () => {};
+    const bothSettled = new Promise<void>((resolve) => {
+      releaseBoth = resolve;
+    });
+
+    /** Settles one paid generation, answers with its id like generate_image. */
+    class GenTool extends Tool {
+      readonly name = "gen";
+      readonly description = "Generates one paid asset.";
+      constructor(
+        private readonly id: string,
+        private readonly onDone: () => void
+      ) {
+        super();
+      }
+      async process(): Promise<unknown> {
+        generationRegistry.register(this.id, {
+          userId: "test-user",
+          abort: () => {}
+        });
+        generationRegistry.settle(this.id, {
+          status: "completed",
+          asset_ids: [`asset-${this.id}`],
+          receipt: null
+        });
+        settled++;
+        if (settled === 2) releaseBoth();
+        // Both generations are in the registry before either step composes
+        // its failure, which is the interleaving that named the sibling's.
+        await bothSettled;
+        this.onDone();
+        return { generation_id: this.id };
+      }
+    }
+
+    const runStep = async (stepId: string, genId: string): Promise<Step> => {
+      const step: Step = {
+        id: stepId,
+        instructions: `Generate ${genId}`,
+        completed: false,
+        dependsOn: [],
+        logs: [],
+        outputSchema: JSON.stringify(ANSWER_SCHEMA)
+      };
+      const task: Task = { id: "task_1", title: "T", steps: [step] };
+      let outOfTime = false;
+      const budget: RunBudget = {
+        turns: { reserve: () => true, commit: () => {}, spentUsd: 0 },
+        deadline: {
+          at: Number.POSITIVE_INFINITY,
+          remainingMs: () => (outOfTime ? 0 : 1000),
+          expired: () => outOfTime
+        },
+        concurrency: createSemaphore(1),
+        turnCount: createCounter(10),
+        get exhausted() {
+          return outOfTime
+            ? {
+                kind: "deadline" as const,
+                detail: "run deadline of 1000ms reached"
+              }
+            : null;
+        }
+      };
+      const gen = new GenTool(genId, () => {
+        outOfTime = true;
+      });
+      const provider = {
+        provider: "fake",
+        hasToolSupport: async () => true,
+        async *generateLoop(args: {
+          tools?: Array<{
+            name: string;
+            execute?: (a: Record<string, unknown>) => Promise<string | unknown>;
+          }>;
+        }) {
+          const tool = (args.tools ?? []).find((t) => t.name === "execute_code");
+          await tool?.execute?.({
+            code: `import { gen } from "@nodetool-ai/sandbox-nodetool/session";
+                   await gen({});
+                   await gen({});
+                   await finish({answer: 1});`
+          });
+          yield {
+            type: "message",
+            message: { role: "assistant", content: "ran out of time" }
+          };
+          yield { type: "chunk", content: "", done: true };
+        }
+      } as unknown as BaseProvider;
+      const executor = new CodeActExecutor({
+        task,
+        step,
+        context: createMockContext() as never,
+        provider,
+        model: "m",
+        tools: [gen],
+        turnBudget: budget
+      });
+      for await (const msg of executor.execute()) void msg;
+      return step;
+    };
+
+    const [a, b] = await Promise.all([
+      runStep("step_a", "gen-a"),
+      runStep("step_b", "gen-b")
+    ]);
+
+    expect(settled).toBe(2);
+    expect(a.error).toContain("run deadline of 1000ms reached");
+    expect(a.error).toContain("1 generation(s) completed");
+    expect(a.error).toContain("gen-a (asset-gen-a)");
+    expect(a.error).not.toContain("gen-b");
+    expect(b.error).toContain("1 generation(s) completed");
+    expect(b.error).toContain("gen-b (asset-gen-b)");
+    expect(b.error).not.toContain("gen-a");
+    expect(a.error).not.toContain("other steps and turns included");
+    generationRegistry.reset();
+  });
+
+  /**
+   * A step whose own generation never completed says nothing, even while a
+   * sibling's completed generation sits in the same user window.
+   */
+  it("reports no paid work when its own generation did not complete", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    generationRegistry.reset();
+    let outOfTime = false;
+    const budget: RunBudget = {
+      turns: { reserve: () => true, commit: () => {}, spentUsd: 0 },
+      deadline: {
+        at: Number.POSITIVE_INFINITY,
+        remainingMs: () => (outOfTime ? 0 : 1000),
+        expired: () => outOfTime
+      },
+      concurrency: createSemaphore(1),
+      turnCount: createCounter(10),
+      get exhausted() {
+        return outOfTime
+          ? {
+              kind: "deadline" as const,
+              detail: "run deadline of 1000ms reached"
+            }
+          : null;
+      }
+    };
+    // The sibling's generation completed; this step's own failed.
+    generationRegistry.register("gen-sibling", {
+      userId: "test-user",
+      abort: () => {}
+    });
+    generationRegistry.settle("gen-sibling", {
+      status: "completed",
+      asset_ids: ["asset-sibling"],
+      receipt: null
+    });
+    class FailedGenTool extends Tool {
+      readonly name = "gen";
+      readonly description = "A generation the provider refused.";
+      async process(): Promise<unknown> {
+        generationRegistry.register("gen-own", {
+          userId: "test-user",
+          abort: () => {}
+        });
+        generationRegistry.settle("gen-own", {
+          status: "failed",
+          error: "refused",
+          asset_ids: [],
+          receipt: null
+        });
+        outOfTime = true;
+        return { error: "refused", generation_id: "gen-own" };
+      }
+    }
+    const provider = {
+      provider: "fake",
+      hasToolSupport: async () => true,
+      async *generateLoop(args: {
+        tools?: Array<{
+          name: string;
+          execute?: (a: Record<string, unknown>) => Promise<string | unknown>;
+        }>;
+      }) {
+        const tool = (args.tools ?? []).find((t) => t.name === "execute_code");
+        await tool?.execute?.({
+          code: `import { gen } from "@nodetool-ai/sandbox-nodetool/session";
+                 await gen({});
+                 await finish({answer: 1});`
+        });
+        yield {
+          type: "message",
+          message: { role: "assistant", content: "ran out of time" }
+        };
+        yield { type: "chunk", content: "", done: true };
+      }
+    } as unknown as BaseProvider;
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: [new FailedGenTool()],
+      turnBudget: budget
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    expect(step.error).toContain("run deadline of 1000ms reached");
+    expect(step.error).not.toContain("reuse them");
+    expect(step.error).not.toContain("gen-sibling");
     generationRegistry.reset();
   });
 
