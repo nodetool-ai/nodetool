@@ -143,6 +143,39 @@ describe("chooseCompactionCut", () => {
     expect(chooseCompactionCut(rows, 9)).toBeNull();
     expect(chooseCompactionCut([{ role: "assistant" }], 1)).toBeNull();
   });
+
+  it("does not compact a previous summary without advancing the cut", () => {
+    expect(
+      chooseCompactionCut(
+        [
+          { role: "user", execution_event_type: COMPACTION_EVENT_TYPE },
+          { role: "user" },
+          { role: "assistant" },
+          { role: "user" }
+        ],
+        2
+      )
+    ).toBeNull();
+  });
+
+  it("selects a budgeted cut in a long thread without splitting a tool round", () => {
+    const history = Array.from({ length: 20000 }, () => [
+      { role: "user" },
+      { role: "assistant" },
+      { role: "tool" }
+    ]).flat();
+    let counted = 0;
+    const cut = chooseCompactionCut(history, 20000, {
+      maxTokens: 9,
+      countTokens: () => {
+        counted++;
+        return 1;
+      }
+    });
+    expect(cut?.keep).toEqual(history.slice(-9));
+    expect(cut?.summarize).toHaveLength(history.length - 9);
+    expect(counted).toBe(12);
+  });
 });
 
 describe("renderTranscriptForSummary", () => {
@@ -196,25 +229,25 @@ describe("chat compaction", () => {
     // summary is not allowed to lose.
     const summarizedText = JSON.stringify(record.summarized[0]);
     const summarizedUris = assetUris(summarizedText);
-    // Four seeded turns plus the one being asked now: keeping two leaves the
-    // first three to summarize.
+    // The tiny budget keeps only the current turn.
     expect(summarizedUris).toEqual([
       "asset://img-1.png",
       "asset://img-2.png",
-      "asset://img-3.png"
+      "asset://img-3.png",
+      "asset://img-4.png"
     ]);
     const recorded = String(rows[0].content);
     for (const uri of summarizedUris) expect(recorded).toContain(uri);
 
-    // ...and the turn ran against the shortened history: the record, the two
-    // kept turns, and this turn's own message.
+    // The turn runs against the summary and the current user message.
     expect(record.attempts).toHaveLength(1);
     const sent = record.attempts[0];
     expect(sent[0].role).toBe("system");
     expect(sent[1].role).toBe("user");
     expect(textOf(sent[1])).toContain("[Conversation so far]");
     const flat = sent.map(textOf).join("\n");
-    expect(flat).toContain("ask 4");
+    expect(flat).toContain("and then?");
+    expect(flat).not.toContain("ask 4");
     expect(flat).not.toContain("ask 1");
     expect(flat).not.toContain("answer 3");
   });
@@ -245,6 +278,40 @@ describe("chat compaction", () => {
       .map((m) => m.tool_call_id as string)
       .filter((id) => !answered.has(id));
     expect(dangling).toEqual([]);
+  });
+
+  it("removes oversized recent turns so the next turn does not compact again", async () => {
+    process.env.NODETOOL_CHAT_COMPACTION_TOKENS = "20000";
+    const threadId = "t-large-recent-turn";
+    await seedThread(threadId);
+    await Message.create({
+      thread_id: threadId,
+      user_id: "1",
+      created_at: at(20),
+      role: "assistant",
+      content: "large observation ".repeat(30000)
+    });
+
+    const first = await runTurn(threadId, () => {});
+    expect(first.record.summarized).toHaveLength(1);
+    expect(first.record.attempts[0].map(textOf).join("\n")).not.toContain(
+      "large observation"
+    );
+    const second = await runTurn(threadId, () => {});
+    expect(second.record.summarized).toHaveLength(0);
+    expect(await compactionRows(threadId)).toHaveLength(1);
+  });
+
+  it("does not summarize the same prefix again after proactive compaction", async () => {
+    process.env.NODETOOL_CHAT_COMPACTION_TOKENS = "20";
+    const threadId = "t-proactive-overflow";
+    await seedThread(threadId);
+    const { record, errors } = await runTurn(threadId, () => {
+      throw markContextExceeded(new Error("prompt is too long"), "mock");
+    });
+    expect(record.summarized).toHaveLength(1);
+    expect(record.attempts).toHaveLength(1);
+    expect(errors).toHaveLength(1);
   });
 
   it("leaves the thread uncompacted when the summarizer fails", async () => {

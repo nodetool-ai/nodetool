@@ -152,6 +152,7 @@ import {
 } from "./chat-history.js";
 import {
   chooseCompactionCut,
+  COMPACTION_SUMMARY_MAX_TOKENS,
   holdsTranscriptServerSide,
   readCompactionSettings,
   summarizeForCompaction
@@ -2153,7 +2154,18 @@ export class ChatTurnHandler {
       const [rows] = await Message.paginate(threadId, { limit: 1000 });
       const cut = chooseCompactionCut(
         historySinceCompaction(rows),
-        compaction.keepUserTurns
+        compaction.keepUserTurns,
+        {
+          // Leave room for the summary, turn context and subsequent replies.
+          maxTokens:
+            compaction.thresholdTokens * 0.75 -
+            COMPACTION_SUMMARY_MAX_TOKENS -
+            estimatePromptTokens([systemChatMessage()]) -
+            estimatePromptTokens([
+              { role: "user", content: volatileContext.join("\n\n") }
+            ]),
+          countTokens: (row) => estimatePromptTokens(convertDbMessages([row]))
+        }
       );
       if (!cut) return false;
       let summary: string | null;
