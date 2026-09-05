@@ -1464,6 +1464,7 @@ export class OpenAIProvider extends BaseProvider {
       maxIterations?: number;
       sequentialTools?: boolean;
       turnBudget?: TurnBudget | RunBudget;
+      resolveMedia?: (messages: Message[]) => Promise<Message[]>;
     }
   ): AsyncGenerator<ProviderStreamItem> {
     if (!this.usesResponsesApi(args.model)) {
@@ -1476,6 +1477,7 @@ export class OpenAIProvider extends BaseProvider {
       maxIterations: _omitMaxIterations,
       sequentialTools,
       turnBudget: budgetArg,
+      resolveMedia,
       ...turnArgs
     } = args;
     const { runBudget, turnBudget } = resolveTurnBudget(budgetArg);
@@ -1494,6 +1496,7 @@ export class OpenAIProvider extends BaseProvider {
       try {
         yield* this.runResponsesLoop({
           args: turnArgs,
+          resolveMedia,
           executeTool,
           sequentialTools: sequentialTools === true,
           maxIterations,
@@ -1520,6 +1523,7 @@ export class OpenAIProvider extends BaseProvider {
       : args.messages;
     yield* this.runResponsesLoop({
       args: turnArgs,
+      resolveMedia,
       executeTool,
       sequentialTools: sequentialTools === true,
       maxIterations,
@@ -1607,6 +1611,7 @@ export class OpenAIProvider extends BaseProvider {
 
   private async *runResponsesLoop(config: {
     args: Parameters<BaseProvider["generateMessages"]>[0];
+    resolveMedia?: (messages: Message[]) => Promise<Message[]>;
     executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
     sequentialTools: boolean;
     maxIterations: number;
@@ -1622,9 +1627,14 @@ export class OpenAIProvider extends BaseProvider {
       (config.args.tools ?? []).map((tool) => [tool.name, tool])
     );
     let previousResponseId = config.firstPreviousResponseId;
-    let input = await messagesToResponsesInput(config.firstMessages, (uri) =>
-      this.resolveUri(uri)
-    );
+    const toInput = async (
+      messages: Message[]
+    ): Promise<Array<Record<string, unknown>>> =>
+      messagesToResponsesInput(
+        config.resolveMedia ? await config.resolveMedia(messages) : messages,
+        (uri) => this.resolveUri(uri)
+      );
+    let input = await toInput(config.firstMessages);
     let state = config.firstTurnState;
 
     // Responses carries prior turns server-side behind `previousResponseId`,
@@ -1779,9 +1789,7 @@ export class OpenAIProvider extends BaseProvider {
         }
       }
 
-      input = await messagesToResponsesInput(toolMessages, (uri) =>
-        this.resolveUri(uri)
-      );
+      input = await toInput(toolMessages);
       if (terminated) return;
       state = this.createResponsesTurnState(previousResponseId);
     }

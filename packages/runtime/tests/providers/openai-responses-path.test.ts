@@ -243,6 +243,59 @@ describe("OpenAIProvider Responses path", () => {
     expect(chatCreate).toHaveBeenCalledTimes(1);
   });
 
+  it.each([false, true])("resolves viewed asset pixels before the next Responses request (resume=%s)", async (resume) => {
+    const create = vi.fn()
+      .mockResolvedValueOnce(makeAsyncIterable([
+        { type: "response.created", response: { id: "resp_1" } },
+        { type: "response.output_item.added", item: {
+          type: "function_call", id: "fc_1", call_id: "call_1", name: "view_image"
+        } },
+        { type: "response.function_call_arguments.done", item_id: "fc_1",
+          name: "view_image", arguments: '{"image_id":"bottle"}' },
+        { type: "response.completed", response: { id: "resp_1" } }
+      ]))
+      .mockResolvedValueOnce(makeAsyncIterable([
+        { type: "response.completed", response: { id: "resp_2" } }
+      ]));
+    const provider = providerWithCreate(create);
+    const image: MessageImageContent = {
+      type: "image_url", image: { uri: "asset://bottle", mimeType: "image/png" }
+    };
+    const resolveMedia = vi.fn(async (messages: Message[]): Promise<Message[]> =>
+      messages.map((message) => ({
+        ...message,
+        content: Array.isArray(message.content)
+          ? message.content.map((block) => block.type === "image_url"
+            ? { type: "image_url" as const, image: { data: "cGl4ZWxz", mimeType: "image/png" } }
+            : block)
+          : message.content
+      }))
+    );
+    const args = {
+      model: "gpt-5",
+      messages: [{ role: "user" as const, content: "What do you see?" }],
+      ...(resume ? {
+        providerSession: {
+          providerId: PROVIDER_IDS.OPENAI,
+          model: "gpt-5",
+          token: "previous_response",
+          checkpoint: 0
+        }
+      } : {}),
+      tools: [{ name: "view_image" }],
+      executeTool: async (): Promise<MessageContent[]> => [image],
+      resolveMedia
+    };
+    await collect(provider.generateLoop(args));
+
+    expect(create.mock.calls[1][0].input).toContainEqual({
+      role: "user",
+      content: [{ type: "input_image", image_url: "data:image/png;base64,cGl4ZWxz" }]
+    });
+    expect(image.image.uri).toBe("asset://bottle");
+    expect(resolveMedia).toHaveBeenCalledTimes(2);
+  });
+
   it("resumes with previous_response_id and chains tool outputs", async () => {
     const requests: Array<Record<string, unknown>> = [];
     const create = vi.fn(async (body: Record<string, unknown>) => {
