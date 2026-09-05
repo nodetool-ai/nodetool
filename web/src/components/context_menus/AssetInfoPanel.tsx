@@ -1,9 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useMemo } from "react";
-import { Text, Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  Text,
+  Box,
+  CopyButton,
+  FlexRow,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { readAssetGenerationMetadata } from "@nodetool-ai/protocol";
 import type { Asset } from "../../stores/ApiTypes";
 import {
   formatContentType,
@@ -13,6 +22,9 @@ import {
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+
+/** Metadata keys rendered by their own section, not by the raw dump. */
+const RENDERED_METADATA_KEYS = new Set(["prompt", "generation"]);
 
 const styles = (theme: Theme) =>
   css({
@@ -50,11 +62,47 @@ const styles = (theme: Theme) =>
       borderTop: `1px solid ${theme.vars.palette.grey[700]}`,
       marginTop: "0.35em",
       paddingTop: "0.35em"
+    },
+    "& .info-section-title": {
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.grey[400]
+    },
+    "& .info-prompt": {
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.grey[100],
+      whiteSpace: "pre-wrap",
+      wordBreak: "break-word",
+      maxHeight: "12em",
+      overflowY: "auto"
     }
   });
 
 interface AssetInfoPanelProps {
   asset: Asset;
+}
+
+/** Render one setting value; arrays join, so no `[object Object]` reaches the UI. */
+function formatSetting(value: string | number | boolean | Array<string | number | boolean>) {
+  return Array.isArray(value) ? value.join(", ") : String(value);
+}
+
+/** A metadata value the sections above do not own; objects stay readable. */
+function formatMetadataValue(value: unknown) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return null;
+    }
+  }
+  return String(value);
+}
+
+/** `negative_prompt` → `Negative prompt`. */
+function settingLabel(key: string) {
+  const words = key.replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({ asset }) => {
@@ -84,6 +132,21 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({ asset }) => {
   const thumbSrc = asset.thumb_url || (isImage ? asset.get_url : null);
   const metadata = asset.metadata;
 
+  // The prompt and settings the asset was generated with — kept on the asset so
+  // the same recipe is at hand when someone wants another variant of it.
+  const { prompt, generation } = useMemo(
+    () => readAssetGenerationMetadata(metadata),
+    [metadata]
+  );
+  const settings = generation?.params;
+  const otherMetadata = useMemo(
+    () =>
+      Object.entries(metadata ?? {}).filter(
+        ([key]) => !RENDERED_METADATA_KEYS.has(key)
+      ),
+    [metadata]
+  );
+
   return (
     <Box css={styles(theme)}>
       {thumbSrc && (
@@ -110,14 +173,45 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({ asset }) => {
         </div>
       )}
 
+      {prompt && (
+        <div className="info-section">
+          <FlexRow align="center" justify="space-between">
+            <Text className="info-section-title" component="span">
+              Prompt
+            </Text>
+            <CopyButton value={prompt} tooltip="Copy prompt" buttonSize="small" />
+          </FlexRow>
+          <Text className="info-prompt" component="p">
+            {prompt}
+          </Text>
+        </div>
+      )}
+
+      {generation && (
+        <div className="info-section">
+          <InfoRow label="Model" value={generation.model_name ?? generation.model} />
+          <InfoRow label="Provider" value={generation.provider} />
+          <InfoRow label="Node" value={generation.node_type} />
+          <InfoRow label="Task" value={generation.capability} />
+          {settings &&
+            Object.entries(settings).map(([key, value]) => (
+              <InfoRow
+                key={key}
+                label={settingLabel(key)}
+                value={formatSetting(value)}
+              />
+            ))}
+        </div>
+      )}
+
       <div className="info-section">
         <InfoRow label="ID" value={asset.id} />
       </div>
 
-      {metadata && Object.keys(metadata).length > 0 && (
+      {otherMetadata.length > 0 && (
         <div className="info-section">
-          {Object.entries(metadata).map(([key, val]) => (
-            <InfoRow key={key} label={key} value={String(val)} />
+          {otherMetadata.map(([key, val]) => (
+            <InfoRow key={key} label={key} value={formatMetadataValue(val)} />
           ))}
         </div>
       )}

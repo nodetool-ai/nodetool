@@ -1945,7 +1945,10 @@ export class JobExecutionManager {
                         (outbound.properties as Record<
                           string,
                           unknown
-                        > | null) ?? undefined
+                        > | null) ?? undefined,
+                      nodeType: isString(outbound.node_type)
+                        ? outbound.node_type
+                        : undefined
                     }
                   );
                 } catch (err) {

@@ -40,6 +40,7 @@ export * from "./skill-document.js";
 export * from "./wasm-binary.js";
 export * from "./resource-id.js";
 export * from "./game-assets.js";
+export * from "./asset-generation.js";
 export {
   type Platform,
   type NodeEffect,
