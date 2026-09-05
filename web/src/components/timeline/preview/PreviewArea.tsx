@@ -47,22 +47,7 @@ import { AudioGraph } from "./AudioGraph";
 import { PreviewCompositor } from "./PreviewCompositor";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import { useCombo } from "../../../stores/KeyPressedStore";
-
-function formatTimecode(timeMs: number, fps: number): string {
-  // Integer frame math: fractional rates (29.97, 23.976) would otherwise
-  // leak fractions into the frame field. Non-drop-frame timecode.
-  const fpsInt = Math.max(1, Math.round(fps));
-  const totalFrames = Math.floor((timeMs / 1000) * fps);
-  const framePart = totalFrames % fpsInt;
-  const totalSeconds = Math.floor(totalFrames / fpsInt);
-  const seconds = totalSeconds % 60;
-  const totalMinutes = Math.floor(totalSeconds / 60);
-  const minutes = totalMinutes % 60;
-  const hours = Math.floor(totalMinutes / 60);
-
-  const pad2 = (n: number) => String(n).padStart(2, "0");
-  return `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}:${pad2(framePart)}`;
-}
+import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
 
 function frameDeltaMs(fps: number): number {
   return 1000 / Math.max(1, fps);
@@ -243,21 +228,21 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     // subscription: it feeds the `graph.updateTracks` effect below so DSP/
     // gain/solo/mute changes are audible immediately.
     const tracks = useTimelineStore((s) => s.tracks);
-    const durationMs = useTimelineStore((s) => s.durationMs);
-
     // `durationMs` is set only on load and is NOT recomputed when clips are
     // added/moved (see TracksRegion, which derives its own content extent).
     // For a new/unsaved sequence it stays 0, which would pin the scrubber's
     // range to [0, 1] (max ≤ step → every drag snaps to the end). Derive the
-    // max from the actual clip extent, matching the ruler. Returning a
+    // max from the actual clip extent, matching the ruler. When a sequence is
+    // empty, retain its stored duration so an intentional blank sequence still
+    // has a usable range. Returning a
     // primitive means the default equality skips re-renders for edits that
     // don't move the content boundary (e.g. an opacity slider drag).
     const contentEndMs = useTimelineStore((s) => {
-      let end = s.durationMs || 0;
+      let end = 0;
       for (const c of s.clips) {
         end = Math.max(end, c.startMs + c.durationMs);
       }
-      return end;
+      return s.clips.length > 0 ? end : s.durationMs || 0;
     });
 
     /** All unique clip boundary timestamps (start + end), sorted ascending.
@@ -273,7 +258,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           pts.add(c.startMs);
           pts.add(c.startMs + c.durationMs);
         }
-        if (s.durationMs) {
+        if (s.clips.length === 0 && s.durationMs) {
           pts.add(s.durationMs);
         }
         return Array.from(pts).sort((a, b) => a - b);
@@ -633,11 +618,11 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         const delta = frameDeltaMs(fps) * direction;
         const next = Math.max(
           0,
-          Math.min(durationMs || Infinity, currentTimeMs + delta)
+          Math.min(contentEndMs || Infinity, currentTimeMs + delta)
         );
         setCurrentTimeMs(next);
       },
-      [isPlaying, fps, durationMs, currentTimeMs, setCurrentTimeMs]
+      [isPlaying, fps, contentEndMs, currentTimeMs, setCurrentTimeMs]
     );
 
     const stepBack = useCallback(() => stepFrame(-1), [stepFrame]);
@@ -773,7 +758,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             if (isPlaying) {
               handleStop();
             }
-            setCurrentTimeMs(durationMs || 0);
+            setCurrentTimeMs(contentEndMs || 0);
             break;
           default:
             break;
@@ -787,12 +772,12 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         isPlaying,
         handleStop,
         setCurrentTimeMs,
-        durationMs
+        contentEndMs
       ]
     );
 
     const timecode = formatTimecode(currentTimeMs, fps);
-    const durationTimecode = formatTimecode(durationMs || 0, fps);
+    const durationTimecode = formatTimecode(contentEndMs, fps);
 
     // Playback no longer re-renders the bar (see above), but a scrub still
     // does, once per discrete `currentTimeMs` write.

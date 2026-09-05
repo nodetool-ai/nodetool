@@ -28,9 +28,15 @@ export function sourceRangeFor(
     asset.duration !== null && asset.duration !== undefined
       ? Math.round(asset.duration * 1000)
       : 0;
-  const inMs = Math.max(0, range?.inMs ?? 0);
+  const inMs = Math.min(
+    fullMs || Number.POSITIVE_INFINITY,
+    Math.max(0, range?.inMs ?? 0)
+  );
   const outMs = range?.outMs ?? (fullMs > 0 ? fullMs : inMs);
-  return { inMs, outMs: Math.max(inMs, outMs) };
+  return {
+    inMs,
+    outMs: Math.min(fullMs || Number.POSITIVE_INFINITY, Math.max(inMs, outMs))
+  };
 }
 
 /** First unlocked track the asset can sit on, else null. */

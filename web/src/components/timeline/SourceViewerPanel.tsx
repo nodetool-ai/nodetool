@@ -13,7 +13,11 @@ import PlaylistAddOutlinedIcon from "@mui/icons-material/PlaylistAddOutlined";
 import KeyboardTabOutlinedIcon from "@mui/icons-material/KeyboardTabOutlined";
 import FlipToFrontOutlinedIcon from "@mui/icons-material/FlipToFrontOutlined";
 
-import { useAssetGridStore } from "../../stores/AssetGridStore";
+import {
+  useAssetsSelectedAsset,
+  useLibrarySelectedAsset
+} from "../../stores/AssetGridStore";
+import { usePanelStore } from "../../stores/PanelStore";
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { useTimelineUIStore, useTimelineUIStoreApi } from "../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStoreApi } from "../../stores/timeline/TimelinePlaybackStore";
@@ -58,7 +62,14 @@ const formatSeconds = (ms: number): string => (ms / 1000).toFixed(2);
 
 export const SourceViewerPanel: React.FC = memo(() => {
   const theme = useTheme();
-  const asset = useAssetGridStore((s) => s.selectedAssets.at(-1));
+  const activeExplorer = usePanelStore((s) =>
+    s.panel.activeView === "library" || s.panel.activeView === "assets"
+      ? s.panel.activeView
+      : null
+  );
+  const assetsAsset = useAssetsSelectedAsset();
+  const libraryAsset = useLibrarySelectedAsset();
+  const asset = activeExplorer === "library" ? libraryAsset : activeExplorer === "assets" ? assetsAsset : null;
   const sourceRange = useTimelineUIStore((s) => s.sourceRange);
   const setSourceRange = useTimelineUIStore((s) => s.setSourceRange);
   const docApi = useTimelineStoreApi();
@@ -69,6 +80,17 @@ export const SourceViewerPanel: React.FC = memo(() => {
   // The player's own time, so "mark in/out here" reads where it is parked.
   const playerTimeRef = useRef(0);
   const [playerTimeMs, setPlayerTimeMs] = useState(0);
+  const [sourceDurationMs, setSourceDurationMs] = useState<number | null>(null);
+  const onDurationChange = useCallback(
+    (seconds: number) => {
+      const durationMs = Math.round(seconds * 1000);
+      setSourceDurationMs(durationMs);
+      if (durationMs > 0 && sourceRange === null) {
+        setSourceRange({ inMs: 0, outMs: durationMs });
+      }
+    },
+    [setSourceRange, sourceRange]
+  );
   const onTimeUpdate = useCallback((sec: number) => {
     playerTimeRef.current = Math.round(sec * 1000);
     setPlayerTimeMs(playerTimeRef.current);
@@ -78,6 +100,7 @@ export const SourceViewerPanel: React.FC = memo(() => {
   const assetId = asset?.id;
   useEffect(() => {
     setSourceRange(null);
+    setSourceDurationMs(null);
     setPlayerTimeMs(0);
     playerTimeRef.current = 0;
   }, [assetId, setSourceRange]);
@@ -88,7 +111,7 @@ export const SourceViewerPanel: React.FC = memo(() => {
         doc: docApi.getState(),
         ui: uiApi.getState(),
         playheadMs: playbackApi.getState().currentTimeMs,
-        asset
+        asset: asset ?? undefined
       });
       if (id) uiApi.getState().selectClip(id);
     },
@@ -120,7 +143,12 @@ export const SourceViewerPanel: React.FC = memo(() => {
         </TruncatedText>
         <div css={mediaBoxStyles(theme)}>
           {mediaType === "video" && (
-            <VideoPlayer locator={locator} label={asset.name} onTimeUpdate={onTimeUpdate} />
+            <VideoPlayer
+              locator={locator}
+              label={asset.name}
+              onTimeUpdate={onTimeUpdate}
+              onDurationChange={onDurationChange}
+            />
           )}
           {mediaType === "audio" && <AudioPlayback locator={locator} label={asset.name} />}
           {mediaType === "image" && (
@@ -136,8 +164,11 @@ export const SourceViewerPanel: React.FC = memo(() => {
               unit="s"
               ariaLabel="Source in point"
               onCommit={(raw) => {
-                const sec = parseSeconds(raw);
-                if (sec !== null) setSourceRange({ inMs: Math.round(sec * 1000), outMs: range.outMs });
+                const inMs = parseSeconds(raw);
+                if (inMs !== null) {
+                  const boundedInMs = Math.min(inMs, sourceDurationMs ?? Number.POSITIVE_INFINITY);
+                  setSourceRange({ inMs: Math.min(boundedInMs, range.outMs), outMs: range.outMs });
+                }
               }}
             />
             {mediaType === "video" && (
@@ -154,8 +185,11 @@ export const SourceViewerPanel: React.FC = memo(() => {
               unit="s"
               ariaLabel="Source out point"
               onCommit={(raw) => {
-                const sec = parseSeconds(raw);
-                if (sec !== null) setSourceRange({ inMs: range.inMs, outMs: Math.round(sec * 1000) });
+                const outMs = parseSeconds(raw);
+                if (outMs !== null) {
+                  const boundedOutMs = Math.min(outMs, sourceDurationMs ?? Number.POSITIVE_INFINITY);
+                  setSourceRange({ inMs: range.inMs, outMs: Math.max(range.inMs, boundedOutMs) });
+                }
               }}
             />
             {mediaType === "video" && (

@@ -252,6 +252,28 @@ export const LIBRARY_ASSET_GRID_STORE_KEY = "asset-grid-storage:library";
 
 const libraryStore = getOrCreateStore(LIBRARY_ASSET_GRID_STORE_KEY);
 
+/** The two sidebar explorers have isolated stores, but timeline source edits
+ * need to follow whichever explorer is visible. Keep that choice explicit so
+ * source monitor UI and its keyboard actions use the same selection. */
+export const ASSETS_ASSET_GRID_STORE_KEY = "asset-grid-storage:assets";
+
+export const useAssetsSelectedAsset = (): Asset | null =>
+  useStore(getOrCreateStore(ASSETS_ASSET_GRID_STORE_KEY), (state) =>
+    state.selectedAssets.at(-1) ?? null
+  );
+
+export const useLibrarySelectedAsset = (): Asset | null =>
+  useStore(libraryStore, (state) => state.selectedAssets.at(-1) ?? null);
+
+export const getSelectedAssetForExplorer = (
+  explorer: "assets" | "library"
+): Asset | null => {
+  const store = getOrCreateStore(
+    explorer === "assets" ? ASSETS_ASSET_GRID_STORE_KEY : LIBRARY_ASSET_GRID_STORE_KEY
+  );
+  return store.getState().selectedAssets.at(-1) ?? null;
+};
+
 /** Reactive access to the Library panel's current folder, for cross-cutting
  * callers (e.g. canvas file-drop/paste) that need it without being inside
  * the panel's provider subtree. */

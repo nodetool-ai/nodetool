@@ -103,7 +103,12 @@ import { buildTypedIndexMap } from "./trackVisuals";
 import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
 import { resolveTimelineAction } from "../timelineKeymap";
 import { performSourceEdit } from "../sourceEdit";
-import { useAssetGridStore } from "../../../stores/AssetGridStore";
+import {
+  getSelectedAssetForExplorer,
+  useAssetsSelectedAsset,
+  useLibrarySelectedAsset
+} from "../../../stores/AssetGridStore";
+import { usePanelStore } from "../../../stores/PanelStore";
 import {
   hasKeyframeAt,
   keyframeTimesMs,
@@ -228,6 +233,18 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
   ({ heightPx }) => {
     const theme = useTheme();
     const isMobile = useTimelineIsMobile();
+    const activeExplorer = usePanelStore((s) =>
+      s.panel.activeView === "library" || s.panel.activeView === "assets"
+        ? s.panel.activeView
+        : null
+    );
+    const assetsAsset = useAssetsSelectedAsset();
+    const libraryAsset = useLibrarySelectedAsset();
+    const activeAssetId = activeExplorer === "library"
+      ? libraryAsset?.id ?? null
+      : activeExplorer === "assets"
+        ? assetsAsset?.id ?? null
+        : null;
     const headerWidthPx = isMobile
       ? MOBILE_TRACK_HEADER_WIDTH_PX
       : TRACK_HEADER_WIDTH_PX;
@@ -285,6 +302,13 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const docStore = useTimelineStoreApi();
     const playbackStore = useTimelinePlaybackStoreApi();
     const uiStoreApi = useTimelineUIStoreApi();
+    const previousSourceAssetId = useRef<string | null>(null);
+    useEffect(() => {
+      if (previousSourceAssetId.current !== activeAssetId) {
+        uiStoreApi.getState().setSourceRange(null);
+        previousSourceAssetId.current = activeAssetId;
+      }
+    }, [activeAssetId, uiStoreApi]);
 
     const addTrack = useTimelineStore((s) => s.addTrack);
     const addImportedClip = useTimelineStore((s) => s.addImportedClip);
@@ -293,6 +317,26 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const scrollableRef = useRef<HTMLDivElement>(null);
     const headerColumnRef = useRef<HTMLDivElement>(null);
+    const toolbarRef = useRef<HTMLDivElement>(null);
+    const [toolbarNarrow, setToolbarNarrow] = useState(false);
+
+    useEffect(() => {
+      const element = toolbarRef.current;
+      if (!element) return;
+      // The labelled tool group is wider than the editor once the inspector
+      // or asset panel is open. Switch to the compact controls before the
+      // right-side actions are forced outside the toolbar.
+      const update = () => {
+        if (element.clientWidth === 0) return;
+        setToolbarNarrow(element.clientWidth < 1100);
+      };
+      update();
+      const observer = new ResizeObserver(update);
+      observer.observe(element);
+      return () => observer.disconnect();
+    }, []);
+
+    const toolbarCompact = isMobile || toolbarNarrow;
 
     // Keyboard-shortcut reference sheet (opened with `?` or the toolbar button).
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -1038,7 +1082,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               doc,
               ui,
               playheadMs: playback.currentTimeMs,
-              asset: useAssetGridStore.getState().selectedAssets.at(-1)
+              asset: activeExplorer
+                ? getSelectedAssetForExplorer(activeExplorer) ?? undefined
+                : undefined
             });
             if (id) {
               e.preventDefault();
@@ -1081,7 +1127,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       // listener doesn't re-attach every render.
       arrowNudgeHistory.begin,
       arrowNudgeHistory.mark,
-      arrowNudgeHistory.end
+      arrowNudgeHistory.end,
+      activeExplorer
     ]);
 
     const expandedFxTrackId = useTimelineUIStore(
@@ -1133,15 +1180,16 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       >
         {/* ── Tool toolbar (above the ruler) ──────────────────────────── */}
         <FlexRow
+          ref={toolbarRef}
           align="center"
-          gap={0.5}
-          css={toolbarStyles(theme, isMobile)}
+          gap={SPACING.micro}
+          css={toolbarStyles(theme, toolbarCompact)}
           data-testid="timeline-toolbar"
         >
-          <ToolToggle compact={isMobile} />
+          <ToolToggle compact={toolbarCompact} />
           <div style={{ flex: "1 1 auto" }} />
-          <ScriptToggleButton compact={isMobile} />
-          <AddTrackButton compact={isMobile} />
+          <ScriptToggleButton compact={toolbarCompact} />
+          <AddTrackButton compact={toolbarCompact} />
           {/* The shortcut sheet documents keyboard bindings — nothing a phone
               can act on, and the row has no width to spare. */}
           {!isMobile && (
