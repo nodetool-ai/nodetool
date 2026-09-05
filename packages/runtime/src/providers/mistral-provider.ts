@@ -9,8 +9,6 @@ export class MistralProvider extends OpenAICompatProvider {
     return ["MISTRAL_API_KEY"];
   }
 
-  private _mistralFetch: typeof fetch;
-
   constructor(
     secrets: { MISTRAL_API_KEY?: string },
     options: OpenAICompatProviderOptions = {}
@@ -20,18 +18,14 @@ export class MistralProvider extends OpenAICompatProvider {
       throw new Error("MISTRAL_API_KEY is required");
     }
 
-    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
-
     super(
       {
         providerId: "mistral",
         apiKey,
         baseURL: "https://api.mistral.ai/v1"
       },
-      { ...options, fetchFn }
+      options
     );
-
-    this._mistralFetch = fetchFn;
   }
 
   override getContainerEnv() {
@@ -43,34 +37,7 @@ export class MistralProvider extends OpenAICompatProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const response = await this._mistralFetch(
-      "https://api.mistral.ai/v1/models",
-      {
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`
-        }
-      }
-    );
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const payload = (await response.json()) as {
-      data?: Array<{ id?: string; name?: string }>;
-    };
-    // Stryker disable next-line ArrayDeclaration: the fallback is filtered downstream (rows need a string id), so [] vs any array is observably identical.
-    const rows = payload.data ?? [];
-    return rows
-      .filter(
-        (row): row is { id: string; name?: string } =>
-          typeof row.id === "string" && row.id.length > 0
-      )
-      .map((row) => ({
-        id: row.id,
-        name: row.name ?? row.id,
-        provider: "mistral"
-      }));
+    return this.listCompatModels();
   }
 
   override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {

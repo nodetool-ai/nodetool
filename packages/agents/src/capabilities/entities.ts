@@ -29,9 +29,6 @@ import {
   MAX_LIMIT
 } from "./entities.specs.js";
 import {
-  CREATE_ENTITY_SCHEMA,
-  DELETE_ENTITY_SCHEMA,
-  UPDATE_ENTITY_SCHEMA,
   createEntitySpec,
   deleteEntitySpec,
   updateEntitySpec
@@ -39,17 +36,6 @@ import {
 import { MIME_TO_EXT } from "../tools/asset-persist.js";
 import { userIdOf } from "../tools/mcp-tool-support.js";
 import { isRecord, isString } from "../utils/type-guards.js";
-
-export {
-  DEFAULT_LIMIT,
-  MAX_LIMIT,
-  LIST_ENTITIES_SCHEMA,
-  GET_ENTITY_SCHEMA,
-  APPLY_ENTITIES_SCHEMA,
-  CREATE_ENTITY_SCHEMA,
-  UPDATE_ENTITY_SCHEMA,
-  DELETE_ENTITY_SCHEMA
-} from "./entities.specs.js";
 
 /** The metadata key an entity's marker lives under, set by the library UI. */
 export const ENTITY_METADATA_KEY = "nodetool_entity";

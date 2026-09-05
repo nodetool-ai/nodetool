@@ -24,7 +24,7 @@
 import type { AssetInfoEntry, ProcessingContext } from "./context.js";
 import type { MessageContent } from "./providers/types.js";
 import { encodeBase64, loadMediaRefBytes } from "./media-ref-bytes.js";
-import { isCallable, isObjectLike, isString } from "./type-predicates.js";
+import { isCallable, isObjectLike, isString } from "@nodetool-ai/protocol";
 
 export type AssetMediaKind = "image" | "audio" | "video";
 

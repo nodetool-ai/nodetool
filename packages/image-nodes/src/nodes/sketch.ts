@@ -26,7 +26,10 @@ import {
   rawRgbaImageRef,
   SHARP_UNAVAILABLE_MESSAGE
 } from "./image-io.js";
-import { isNumber, isObjectLike } from "../type-predicates.js";
+import {
+  isNumber,
+  isObjectLike
+} from "@nodetool-ai/node-sdk";
 
 // ─── Sketch document shapes (minimal, tolerant of legacy payloads) ──────────
 

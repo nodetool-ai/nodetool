@@ -826,52 +826,6 @@ describe("http-api extra: workflow bundle export/import", () => {
 
 // ── Version restore routing via handleApiRequest ────────────────────────
 
-describe("http-api extra: version routing", () => {
-  let app: FastifyInstance;
-  beforeEach(async () => {
-    initTestDb();
-    app = await makeApp();
-  });
-  afterEach(async () => {
-    await app.close();
-  });
-
-  it("creates a version then restores it via the numbered route", async () => {
-    const wf = await makeWorkflow({ user_id: "user-1" });
-    const createRes = await app.inject({
-      method: "POST",
-      url: `/api/workflows/${wf.id}/versions`,
-      headers: JSON_HEADERS(),
-      payload: JSON.stringify({ name: "v1" })
-    });
-    expect(createRes.statusCode).toBe(200);
-
-    const getRes = await app.inject({
-      method: "GET",
-      url: `/api/workflows/${wf.id}/versions/1`,
-      headers: { "x-user-id": "user-1" }
-    });
-    expect(getRes.statusCode).toBe(200);
-
-    const restoreRes = await app.inject({
-      method: "POST",
-      url: `/api/workflows/${wf.id}/versions/1/restore`,
-      headers: JSON_HEADERS()
-    });
-    expect(restoreRes.statusCode).toBe(200);
-  });
-
-  it("routes a non-numeric version segment to delete-by-id (404 for unknown)", async () => {
-    const wf = await makeWorkflow({ user_id: "user-1" });
-    const res = await app.inject({
-      method: "DELETE",
-      url: `/api/workflows/${wf.id}/versions/not-a-real-version-id`,
-      headers: { "x-user-id": "user-1" }
-    });
-    expect(res.statusCode).toBe(404);
-  });
-});
-
 // ── Example workflows via Python package metadata ───────────────────────
 
 describe("http-api extra: examples from python package metadata", () => {
@@ -1127,11 +1081,12 @@ describe("http-api extra: node http bridge", () => {
   });
 
   it("sends a small response uncompressed", async () => {
+    await makeWorkflow({ user_id: "user-1", name: "Named" });
     const { res, done } = makeMockRes();
     const reqMock = {
       method: "GET",
-      url: "/api/nodes/dummy",
-      headers: {}
+      url: "/api/workflows/names",
+      headers: { "x-user-id": "user-1" }
     } as unknown as import("node:http").IncomingMessage;
     await handleNodeHttpRequest(
       reqMock,
@@ -1141,8 +1096,8 @@ describe("http-api extra: node http bridge", () => {
     const captured = await done;
     expect(captured.statusCode).toBe(200);
     expect(captured.headers["content-encoding"]).toBeUndefined();
-    const parsed = JSON.parse(String(captured.body)) as { type: string };
-    expect(parsed.type).toBe("asset");
+    const parsed = JSON.parse(String(captured.body)) as Record<string, string>;
+    expect(Object.values(parsed)).toContain("Named");
   });
 
   it("handles a body-less 204 response", async () => {
@@ -1202,6 +1157,7 @@ describe("http-api extra: createHttpApiServer", () => {
   beforeEach(() => initTestDb());
 
   it("serves a request over a real listening socket", async () => {
+    await makeWorkflow({ user_id: "user-1", name: "Named" });
     const server = createHttpApiServer({});
     await new Promise<void>((resolve) =>
       server.listen(0, "127.0.0.1", resolve)
@@ -1212,11 +1168,12 @@ describe("http-api extra: createHttpApiServer", () => {
     }
     try {
       const res = await fetch(
-        `http://127.0.0.1:${address.port}/api/nodes/dummy`
+        `http://127.0.0.1:${address.port}/api/workflows/names`,
+        { headers: { "x-user-id": "user-1" } }
       );
       expect(res.status).toBe(200);
-      const data = (await res.json()) as { type: string };
-      expect(data.type).toBe("asset");
+      const data = (await res.json()) as Record<string, string>;
+      expect(Object.values(data)).toContain("Named");
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }

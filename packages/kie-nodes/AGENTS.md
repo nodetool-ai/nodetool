@@ -89,6 +89,15 @@ All nodes correctly use `metadataOutputTypes` set from `spec.outputType`.
   per condition type.
 - **Poll loops must accept every spelling of a terminal state.** `pollCustom`
   treated only `state === "fail"` as failure and missed `"failed"`, so a
-  Veo/Runway task reporting `"failed"` polled to timeout. Accept `fail`/`failed`
-  (and `complete`/`completed`/`done`/`succeeded`) — keep all loops
-  (`pollStatus`/`pollUntilDone`/`pollCustom`) consistent.
+  Veo/Runway task reporting `"failed"` polled to timeout. `pollStatus`,
+  `pollCustom` and `kiePollSuno` now share one loop (`pollKieTask` in
+  `kie-base.ts`) reading `TERMINAL_SUCCESS_STATES` / `TERMINAL_FAILURE_STATES`
+  from `@nodetool-ai/runtime/provider-transport`; a vendor-specific word
+  (Veo's `successFlag`, Suno's `*_FAILED`) layers on top of those sets rather
+  than replacing them.
+- **A dead job must not look like a slow one.** `pollKieTask` gives up after
+  five consecutive failed polls, and `parseKieJson` reports a non-JSON body
+  (a gateway HTML page) with its HTTP status instead of a bare `SyntaxError`.
+  Result downloads go through `fetchBilledResult` — screened by `safeFetch`,
+  retried on 429/5xx, because the job is already billed. Submit `POST`s are
+  never retried.

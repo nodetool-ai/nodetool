@@ -4,9 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 import AddIcon from "@mui/icons-material/Add";
 
-import useGlobalChatStore, {
-  useThreadsQuery
-} from "../../stores/GlobalChatStore";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
@@ -95,14 +93,16 @@ const ChatListPanel = () => {
     }
   }, [autoFocusEnabled]);
 
-  const { isLoading, error: threadsError } = useThreadsQuery();
-  const { threads, messageCache, deleteThread } = useGlobalChatStore(
-    useShallow((state) => ({
-      threads: state.threads,
-      messageCache: state.messageCache,
-      deleteThread: state.deleteThread
-    }))
-  );
+  const { isLoading, threadsError, threads, messageCache, deleteThread } =
+    useGlobalChatStore(
+      useShallow((state) => ({
+        isLoading: state.isLoadingThreads,
+        threadsError: state.error,
+        threads: state.threads,
+        messageCache: state.messageCache,
+        deleteThread: state.deleteThread
+      }))
+    );
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -204,7 +204,7 @@ const ChatListPanel = () => {
           <EmptyState
             variant="error"
             title="Could not load conversations"
-            description={threadsError.message}
+            description={threadsError}
           />
         </FlexColumn>
       ) : isEmpty && !filterValue ? (

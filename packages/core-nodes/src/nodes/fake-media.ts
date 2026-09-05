@@ -11,11 +11,13 @@ import { tagAsUniversal, tagAsContentCard } from "@nodetool-ai/nodes-utils";
  * browser-eligible graph.
  */
 
-const clampDim = (value: unknown, fallback: number): number => {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return fallback;
-  return Math.max(16, Math.min(Math.round(n), 2048));
-};
+/** Descriptor default for the placeholder's width and height. */
+const DEFAULT_SIZE = 512;
+
+const clampDim = (value: number): number =>
+  Number.isFinite(value)
+    ? Math.max(16, Math.min(Math.round(value), 2048))
+    : DEFAULT_SIZE;
 
 /** Stable 32-bit hash so the same prompt always yields the same image. */
 const hashString = (input: string): number => {
@@ -141,18 +143,18 @@ export class FakeGenerateImageNode extends BaseNode {
     title: "Prompt",
     description: "Describes the image. Seeds the placeholder; no real model runs."
   })
-  declare prompt: any;
+  declare prompt: string;
 
-  @prop({ type: "int", default: 512, title: "Width", min: 16, max: 2048 })
-  declare width: any;
+  @prop({ type: "int", default: DEFAULT_SIZE, title: "Width", min: 16, max: 2048 })
+  declare width: number;
 
-  @prop({ type: "int", default: 512, title: "Height", min: 16, max: 2048 })
-  declare height: any;
+  @prop({ type: "int", default: DEFAULT_SIZE, title: "Height", min: 16, max: 2048 })
+  declare height: number;
 
   async process(): Promise<FakeGenerateImageNodeOutputs> {
-    const width = clampDim(this.width, 512);
-    const height = clampDim(this.height, 512);
-    const prompt = String(this.prompt ?? "");
+    const width = clampDim(this.width);
+    const height = clampDim(this.height);
+    const prompt = this.prompt;
     // Prefer a raster PNG (decodable downstream); fall back to SVG off-browser.
     const png = await renderGradientPng(prompt, width, height);
     const output: ImageRef = {
@@ -166,11 +168,18 @@ export class FakeGenerateImageNode extends BaseNode {
   }
 }
 
-const clampNum = (value: unknown, fallback: number, lo: number, hi: number): number => {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return fallback;
-  return Math.max(lo, Math.min(n, hi));
-};
+/** Descriptor defaults for the grading knobs, shared with the clamp below. */
+const DEFAULT_HUE = 0;
+const DEFAULT_SATURATION = 100;
+const DEFAULT_BRIGHTNESS = 100;
+
+const clampNum = (
+  value: number,
+  fallback: number,
+  lo: number,
+  hi: number
+): number =>
+  Number.isFinite(value) ? Math.max(lo, Math.min(value, hi)) : fallback;
 
 const imageUri = (image: unknown): string | null => {
   if (typeof image === "string") return image || null;
@@ -202,22 +211,34 @@ export class FakeColorGradeNode extends BaseNode {
   static readonly inputFields = ["image", "hue", "saturation", "brightness"];
 
   @prop({ type: "image", title: "Image", description: "Source image to grade." })
-  declare image: any;
+  declare image: ImageRef | undefined;
 
-  @prop({ type: "float", default: 0, title: "Hue", min: 0, max: 360 })
-  declare hue: any;
+  @prop({ type: "float", default: DEFAULT_HUE, title: "Hue", min: 0, max: 360 })
+  declare hue: number;
 
-  @prop({ type: "float", default: 100, title: "Saturation", min: 0, max: 300 })
-  declare saturation: any;
+  @prop({
+    type: "float",
+    default: DEFAULT_SATURATION,
+    title: "Saturation",
+    min: 0,
+    max: 300
+  })
+  declare saturation: number;
 
-  @prop({ type: "float", default: 100, title: "Brightness", min: 0, max: 300 })
-  declare brightness: any;
+  @prop({
+    type: "float",
+    default: DEFAULT_BRIGHTNESS,
+    title: "Brightness",
+    min: 0,
+    max: 300
+  })
+  declare brightness: number;
 
   async process(): Promise<Record<string, unknown>> {
     const src = imageUri(this.image);
-    const hue = clampNum(this.hue, 0, 0, 360);
-    const saturation = clampNum(this.saturation, 100, 0, 300);
-    const brightness = clampNum(this.brightness, 100, 0, 300);
+    const hue = clampNum(this.hue, DEFAULT_HUE, 0, 360);
+    const saturation = clampNum(this.saturation, DEFAULT_SATURATION, 0, 300);
+    const brightness = clampNum(this.brightness, DEFAULT_BRIGHTNESS, 0, 300);
 
     const OffscreenCanvasCtor = (
       globalThis

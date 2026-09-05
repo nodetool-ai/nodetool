@@ -21,18 +21,14 @@
  *
  * Wire names, descriptions, schemas and categories are unchanged. Each
  * capability's identity is a Zod schema (`uiToolSchemas`), so `inputSchema` is
- * derived with `zodToJsonSchema` and the validation `Tool.execute` used to run
- * before `process()` moves inside the implementation, returning the same
- * `invalid_tool_arguments` envelope. The deprecated `WorkflowDocumentTool`
- * subclass keeps the Zod schema on `schema` and runs the unvalidated core, so
- * the class path validates exactly once, where it always did.
+ * derived with `zodToJsonSchema` from the `zodSchema` its spec carries, and
+ * the argument check runs once per entrance in `validateCapabilityArgs`
+ * (`./args.ts`) — never here.
  *
  * Design: docs/tool-class-retirement-design.md § "`ui_*` capabilities: in the
  * pack surface, outside its implementation".
  */
 
-import { z, type ZodType } from "zod";
-import { parseWithTypeCoercion, zodToJsonSchema } from "@nodetool-ai/runtime";
 import type { Workflow as WorkflowRow } from "@nodetool-ai/models";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import {
@@ -53,13 +49,7 @@ import type {
 } from "./types.js";
 import { isRecord, isString } from "../utils/type-guards.js";
 
-export { workflowDocumentSchema } from "./ui.specs.js";
-
-/**
- * Apply one document op to the stored workflow. The unvalidated core: the
- * class path has already parsed the arguments, and {@link withZodValidation}
- * parses them for everyone else.
- */
+/** Apply one document op to the stored workflow. */
 function documentCore(name: WorkflowDocumentToolName): CapabilityImpl {
   return async (run, params) => {
     const client = run.client;
@@ -142,55 +132,12 @@ function documentCore(name: WorkflowDocumentToolName): CapabilityImpl {
   };
 }
 
-/**
- * Validate the arguments the way `Tool.execute` did, then run the core. Same
- * `invalid_tool_arguments` envelope, so a caller reaching a capability through
- * `invoke` sees what a caller reaching the class saw.
- */
-function withZodValidation(
-  name: string,
-  schema: ZodType,
-  core: CapabilityImpl
-): CapabilityImpl {
-  return async (run, args) => {
-    let parsed: unknown;
-    try {
-      parsed = parseWithTypeCoercion(schema, args);
-    } catch (error) {
-      const issues =
-        error instanceof z.ZodError
-          ? error.issues.map((issue) => {
-              const path = issue.path.join(".");
-              return path ? `${path}: ${issue.message}` : issue.message;
-            })
-          : [String(error)];
-      return {
-        error: "invalid_tool_arguments",
-        message: `Invalid arguments for ${name}: ${issues.join("; ")}`,
-        issues
-      };
-    }
-    if (!isRecord(parsed)) {
-      return {
-        error: "invalid_tool_arguments",
-        message: `Invalid arguments for ${name}: expected an object`,
-        issues: ["expected an object"]
-      };
-    }
-    return core(run, parsed as Record<string, unknown>);
-  };
-}
-
 const SPEC_BY_NAME = new Map<WorkflowDocumentToolName, CapabilityExport>();
-const CORE_BY_NAME = new Map<WorkflowDocumentToolName, CapabilityImpl>();
 
 for (const name of WORKFLOW_DOCUMENT_TOOL_NAMES) {
-  const schema = workflowDocumentSchema(name);
-  const core = documentCore(name);
-  CORE_BY_NAME.set(name, core);
   SPEC_BY_NAME.set(name, {
     spec: workflowDocumentSpec(name),
-    impl: withZodValidation(name, schema, core)
+    impl: documentCore(name)
   });
 }
 
@@ -203,20 +150,6 @@ export function workflowDocumentCapability(
     throw new Error(`no workflow document capability named "${name}"`);
   }
   return entry;
-}
-
-/**
- * One document capability's *unvalidated* implementation, for the deprecated
- * class that validates on the way in through `Tool.execute`.
- */
-export function workflowDocumentCore(
-  name: WorkflowDocumentToolName
-): CapabilityImpl {
-  const core = CORE_BY_NAME.get(name);
-  if (!core) {
-    throw new Error(`no workflow document capability named "${name}"`);
-  }
-  return core;
 }
 
 /** Every document capability, in the order the tool names are declared. */

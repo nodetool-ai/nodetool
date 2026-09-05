@@ -34,6 +34,10 @@ import {
   SUBGRAPH_NODE_TYPE
 } from "../../constants/nodeTypes";
 import { shallow } from "zustand/shallow";
+import {
+  CONSTANT_NODE_OPTIONS,
+  INPUT_NODE_OPTIONS
+} from "./paneNodeOptions";
 
 const PaneContextMenu: React.FC = () => {
   const { handlePaste } = useCopyPaste();
@@ -134,62 +138,9 @@ const PaneContextMenu: React.FC = () => {
     [getMetadata]
   );
 
-  const constantNodeOptions = useMemo(
-    () =>
-      [
-        { label: "Bool", nodeTypes: ["nodetool.constant.Bool"] },
-        { label: "Data Frame", nodeTypes: ["nodetool.constant.DataFrame"] },
-        { label: "Date", nodeTypes: ["nodetool.constant.Date"] },
-        { label: "Date Time", nodeTypes: ["nodetool.constant.DateTime"] },
-        { label: "Dict", nodeTypes: ["nodetool.constant.Dict"] },
-        { label: "Document", nodeTypes: ["nodetool.constant.Document"] },
-        { label: "Float", nodeTypes: ["nodetool.constant.Float"] },
-        { label: "Image", nodeTypes: ["nodetool.constant.Image"] },
-        { label: "Integer", nodeTypes: ["nodetool.constant.Integer"] },
-        { label: "JSON", nodeTypes: ["nodetool.constant.JSON"] },
-        { label: "List", nodeTypes: ["nodetool.constant.List"] },
-        { label: "Audio", nodeTypes: ["nodetool.constant.Audio"] },
-        {
-          label: "Model 3D",
-          nodeTypes: [
-            "nodetool.constant.Model3D",
-            "nodetool.constant.Model3d",
-            "nodetool.constant.Model_3D"
-          ]
-        },
-        { label: "Select", nodeTypes: ["nodetool.constant.Select"] },
-        { label: "String", nodeTypes: ["nodetool.constant.String"] },
-        { label: "Video", nodeTypes: ["nodetool.constant.Video"] }
-      ].sort((a, b) => a.label.localeCompare(b.label)),
-    []
-  );
-
-  const inputNodeOptions = useMemo(
-    () =>
-      [
-        { label: "String", nodeTypes: ["nodetool.input.StringInput"] },
-        { label: "Integer", nodeTypes: ["nodetool.input.IntegerInput"] },
-        { label: "Float", nodeTypes: ["nodetool.input.FloatInput"] },
-        { label: "Boolean", nodeTypes: ["nodetool.input.BooleanInput"] },
-        { label: "Image", nodeTypes: ["nodetool.input.ImageInput"] },
-        { label: "Audio", nodeTypes: ["nodetool.input.AudioInput"] },
-        { label: "Video", nodeTypes: ["nodetool.input.VideoInput"] },
-        { label: "Document", nodeTypes: ["nodetool.input.DocumentInput"] },
-        { label: "Data Frame", nodeTypes: ["nodetool.input.DataFrameInput"] },
-        { label: "Select", nodeTypes: ["nodetool.input.SelectInput"] }
-      ].sort((a, b) => a.label.localeCompare(b.label)),
-    []
-  );
-
-  const resolveNodeType = useCallback(
-    (nodeTypes: string[]) =>
-      nodeTypes.find((nodeType) => Boolean(getMetadata(nodeType))) || null,
-    [getMetadata]
-  );
-
   const handleCreateNode = useCallback(
-    (nodeType: string | null) => (event?: React.MouseEvent) => {
-      if (!event || !nodeType) {
+    (nodeType: string) => (event?: React.MouseEvent) => {
+      if (!event) {
         return;
       }
       const metadata = getMetadata(nodeType);
@@ -435,19 +386,15 @@ const PaneContextMenu: React.FC = () => {
           horizontal: "left"
         }}
       >
-        {constantNodeOptions.map((option) => {
-          const nodeType = resolveNodeType(option.nodeTypes);
-          if (!nodeType) {
-            return null;
-          }
-          return (
+        {CONSTANT_NODE_OPTIONS.map((option) =>
+          getMetadata(option.nodeType) ? (
             <ContextMenuItem
-              key={nodeType}
-              onClick={handleCreateNode(nodeType)}
+              key={option.nodeType}
+              onClick={handleCreateNode(option.nodeType)}
               label={option.label}
             />
-          );
-        })}
+          ) : null
+        )}
       </ContextMenu>
       <ContextMenu
         className="context-menu pane-submenu"
@@ -468,19 +415,15 @@ const PaneContextMenu: React.FC = () => {
           horizontal: "left"
         }}
       >
-        {inputNodeOptions.map((option) => {
-          const nodeType = resolveNodeType(option.nodeTypes);
-          if (!nodeType) {
-            return null;
-          }
-          return (
+        {INPUT_NODE_OPTIONS.map((option) =>
+          getMetadata(option.nodeType) ? (
             <ContextMenuItem
-              key={nodeType}
-              onClick={handleCreateNode(nodeType)}
+              key={option.nodeType}
+              onClick={handleCreateNode(option.nodeType)}
               label={option.label}
             />
-          );
-        })}
+          ) : null
+        )}
       </ContextMenu>
     </>
   );

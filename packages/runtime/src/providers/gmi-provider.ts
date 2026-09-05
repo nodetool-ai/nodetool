@@ -2,14 +2,7 @@ import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
-import type {
-  ASRModel,
-  EmbeddingModel,
-  ImageModel,
-  LanguageModel,
-  TTSModel,
-  VideoModel
-} from "./types.js";
+import type { LanguageModel } from "./types.js";
 
 // GMI Cloud's OpenAI-compatible inference gateway is served from
 // gmi-serving.com. The docs reference api.gmicloud.ai, but that hostname has
@@ -28,8 +21,6 @@ export class GMIProvider extends OpenAICompatProvider {
     return ["GMI_API_KEY"];
   }
 
-  private _gmiFetch: typeof fetch;
-
   constructor(
     secrets: { GMI_API_KEY?: string },
     options: OpenAICompatProviderOptions = {}
@@ -39,14 +30,7 @@ export class GMIProvider extends OpenAICompatProvider {
       throw new Error("GMI_API_KEY is required");
     }
 
-    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
-
-    super(
-      { providerId: "gmi", apiKey, baseURL: GMI_BASE_URL },
-      { ...options, fetchFn }
-    );
-
-    this._gmiFetch = fetchFn;
+    super({ providerId: "gmi", apiKey, baseURL: GMI_BASE_URL }, options);
   }
 
   override getContainerEnv() {
@@ -58,51 +42,6 @@ export class GMIProvider extends OpenAICompatProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const response = await this._gmiFetch(`${GMI_BASE_URL}/models`, {
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`
-      }
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const payload = (await response.json()) as {
-      data?: Array<{ id?: string; name?: string }>;
-    };
-    const rows = payload.data ?? [];
-    return rows
-      .filter(
-        (row): row is { id: string; name?: string } =>
-          typeof row.id === "string" && row.id.length > 0
-      )
-      .map((row) => ({
-        id: row.id,
-        name: row.name ?? row.id,
-        provider: "gmi"
-      }));
-  }
-
-  // GMI's OpenAI-compatible gateway exposes chat models only; suppress the
-  // OpenAI media/embedding defaults so they don't surface under the gmi id.
-  override async getAvailableTTSModels(): Promise<TTSModel[]> {
-    return [];
-  }
-
-  override async getAvailableASRModels(): Promise<ASRModel[]> {
-    return [];
-  }
-
-  override async getAvailableVideoModels(): Promise<VideoModel[]> {
-    return [];
-  }
-
-  override async getAvailableImageModels(): Promise<ImageModel[]> {
-    return [];
-  }
-
-  override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
-    return [];
+    return this.listCompatModels();
   }
 }

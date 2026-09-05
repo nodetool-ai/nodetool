@@ -24,7 +24,7 @@ import type {
   TextToSpeechParams
 } from "./types.js";
 import type { PythonBridgeBase } from "../python-bridge-base.js";
-import { isRecord, isString } from "../type-predicates.js";
+import { isRecord, isString } from "@nodetool-ai/protocol";
 
 type PythonProviderOptions = Record<string, unknown> & {
   _id: string;

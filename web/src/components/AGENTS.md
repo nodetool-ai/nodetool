@@ -32,7 +32,6 @@ Use the corresponding primitive instead:
 | `<Paper>` | `Card`, `Surface`, or `Panel` |
 | `<Skeleton>` | `Skeleton` primitive |
 | `<Tabs>`/`<Tab>` | `TabGroup` / `TabPanel` |
-| `<Drawer>` | `DrawerPanel` |
 | `<Breadcrumbs>` | `Breadcrumbs` primitive |
 | `<TextField>` | `NodeTextField`, `TextInput`, or `SearchInput` |
 | `<Select>` | `NodeSelect`, `SelectField` |

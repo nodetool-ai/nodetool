@@ -23,10 +23,10 @@ import {
   CODEX_DEFAULT_ORIGINATOR,
   CODEX_CLIENT_VERSION,
   PROVIDER_IDS,
+  isString,
   type Chunk
 } from "@nodetool-ai/protocol";
 import { OpenAIProvider, OPENAI_FALLBACK_MODELS } from "./openai-provider.js";
-import { isString } from "../type-predicates.js";
 import { extractChatGptAccountId } from "./oauth/jwt-claims.js";
 import type {
   ImageModel,

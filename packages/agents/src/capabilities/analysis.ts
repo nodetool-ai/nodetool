@@ -68,7 +68,6 @@ import {
 import { filesystemPathForUri } from "../sandbox-media-ref.js";
 import { isNonBlankString } from "../utils/type-guards.js";
 import {
-  analysisSpecs,
   analyzeAudioSpec,
   analyzeAudioSpectrumSpec,
   analyzeVideoSpec,
@@ -89,14 +88,6 @@ import type {
   CapabilityModule,
   CapabilityRun
 } from "./types.js";
-
-export {
-  ANALYZE_AUDIO_SCHEMA,
-  ANALYZE_AUDIO_SPECTRUM_SCHEMA,
-  ANALYZE_VIDEO_SCHEMA,
-  DETECT_AUDIO_EVENTS_SCHEMA,
-  DETECT_VIDEO_SCENES_SCHEMA
-} from "./analysis.specs.js";
 
 type ToolError = { error: string };
 
@@ -980,5 +971,3 @@ export const module: CapabilityModule = {
     detectVideoScenes
   ]
 };
-
-export { analysisSpecs };

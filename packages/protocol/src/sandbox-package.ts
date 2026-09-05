@@ -757,11 +757,6 @@ export function nodePackInstallStatus(
   return status;
 }
 
-/** Parse only the sandbox-owned subset of a pack manifest. */
-export function parseSandboxPackManifest(value: unknown): SandboxPackManifest {
-  return SandboxPackManifestSchema.parse(value);
-}
-
 export function normalizeSandboxSpecifier(
   packName: string,
   moduleName: string

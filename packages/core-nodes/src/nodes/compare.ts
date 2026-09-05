@@ -1,9 +1,11 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
 
+/** The parts of an `ImageRef` identity comparison reads. */
 type ImageLike = {
-  data?: Uint8Array | string | null;
+  data?: unknown;
   uri?: string | null;
   asset_id?: string | number | null;
 };
@@ -12,7 +14,7 @@ type ImageLike = {
 function inlineBytes(image: ImageLike | undefined): Uint8Array {
   if (!image) return new Uint8Array();
   if (image.data instanceof Uint8Array) return image.data;
-  if (image.data != null && image.data.length > 0) {
+  if (typeof image.data === "string" && image.data.length > 0) {
     return Uint8Array.from(Buffer.from(image.data, "base64"));
   }
   if (image.uri != null && image.uri.startsWith("data:")) {
@@ -77,7 +79,7 @@ export class CompareImagesNode extends BaseNode {
     title: "Image A",
     description: "First image (displayed on left/top)"
   })
-  declare image_a: any;
+  declare image_a: ImageRef;
 
   @prop({
     type: "image",
@@ -91,7 +93,7 @@ export class CompareImagesNode extends BaseNode {
     title: "Image B",
     description: "Second image (displayed on right/bottom)"
   })
-  declare image_b: any;
+  declare image_b: ImageRef;
 
   @prop({
     type: "str",
@@ -99,7 +101,7 @@ export class CompareImagesNode extends BaseNode {
     title: "Label A",
     description: "Label for the first image"
   })
-  declare label_a: any;
+  declare label_a: string;
 
   @prop({
     type: "str",
@@ -107,11 +109,11 @@ export class CompareImagesNode extends BaseNode {
     title: "Label B",
     description: "Label for the second image"
   })
-  declare label_b: any;
+  declare label_b: string;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const imageA = this.image_a ?? {};
-    const imageB = this.image_b ?? {};
+    const imageA = this.image_a;
+    const imageB = this.image_b;
 
     // Build the comparison snapshot the UI slider consumes. Images are
     // normalized (asset URIs resolved, in-memory bytes materialized) so
@@ -128,22 +130,22 @@ export class CompareImagesNode extends BaseNode {
       type: "image_comparison",
       image_a: normalizedA,
       image_b: normalizedB,
-      label_a: String(this.label_a ?? "A"),
-      label_b: String(this.label_b ?? "B")
+      label_a: this.label_a,
+      label_b: this.label_b
     };
 
     // Identity comparison. `score`/`equal` are a binary "same image?" signal,
     // not a similarity metric — comparing compressed-encoding bytes positionally
     // would be noise, and two refs that only carry a URI/asset id have no bytes
     // to compare at all.
-    const aBytes = inlineBytes(imageA as ImageLike);
-    const bBytes = inlineBytes(imageB as ImageLike);
+    const aBytes = inlineBytes(imageA);
+    const bBytes = inlineBytes(imageB);
     const aHasBytes = aBytes.length > 0;
     const bHasBytes = bBytes.length > 0;
-    const aUri = refUri(imageA as ImageLike);
-    const bUri = refUri(imageB as ImageLike);
-    const aAsset = refAssetId(imageA as ImageLike);
-    const bAsset = refAssetId(imageB as ImageLike);
+    const aUri = refUri(imageA);
+    const bUri = refUri(imageB);
+    const aAsset = refAssetId(imageA);
+    const bAsset = refAssetId(imageB);
 
     let equal: boolean;
     if (aHasBytes && bHasBytes) {

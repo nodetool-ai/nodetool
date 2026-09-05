@@ -10,7 +10,7 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
-import { isFunction } from "../type-predicates.js";
+import { isCallable as isFunction } from "@nodetool-ai/node-sdk";
 
 export class PreviewNode extends BaseNode {
   static readonly nodeType = "nodetool.workflows.base_node.Preview";
@@ -20,10 +20,11 @@ export class PreviewNode extends BaseNode {
   static readonly inputFields = ["value"];
 
   @prop({ type: "any", default: null })
-  declare value: any;
+  declare value: unknown;
 
+  /** Display label for the preview card; read by the editor, not by process(). */
   @prop({ type: "str", default: "" })
-  declare name: any;
+  declare name: string;
 
   private async normalize(
     value: unknown,

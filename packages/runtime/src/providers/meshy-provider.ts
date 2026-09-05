@@ -15,6 +15,7 @@
 
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
+import { sniffImageMime } from "./image-mime.js";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   ImageTo3DParams,
@@ -23,7 +24,7 @@ import type {
   ProviderStreamItem,
   TextTo3DParams
 } from "./types.js";
-import { isNonEmptyString } from "../type-predicates.js";
+import { isNonEmptyString } from "@nodetool-ai/protocol";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.meshy");
@@ -87,15 +88,9 @@ interface MeshyProviderOptions {
   maxPollAttempts?: number;
 }
 
-/** Detect PNG by magic header; everything else is treated as JPEG. */
-export function detectImageMime(image: Uint8Array): string {
-  const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-  // Stryker disable next-line ConditionalExpression: pure length fast-path; the loop below already returns jpeg for short inputs (undefined bytes never match), so skipping the guard is equivalent.
-  if (image.length < PNG_MAGIC.length) return "image/jpeg";
-  for (let i = 0; i < PNG_MAGIC.length; i++) {
-    if (image[i] !== PNG_MAGIC[i]) return "image/jpeg";
-  }
-  return "image/png";
+/** Container of a reference image; unrecognized bytes are offered as JPEG. */
+export function meshyImageMime(image: Uint8Array): string {
+  return sniffImageMime(image) ?? "image/jpeg";
 }
 
 export function bytesToBase64(bytes: Uint8Array): string {
@@ -260,7 +255,7 @@ export class MeshyProvider extends BaseProvider {
   }
 
   private encodeImageAsDataUri(image: Uint8Array): string {
-    const mime = detectImageMime(image);
+    const mime = meshyImageMime(image);
     return `data:${mime};base64,${bytesToBase64(image)}`;
   }
 

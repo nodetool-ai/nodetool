@@ -34,7 +34,6 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { createLogger, importOptionalModule } from "@nodetool-ai/config";
-import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import type {
   McpSdkServerConfigWithInstance,
   Options,
@@ -70,11 +69,12 @@ import {
 } from "./types.js";
 import { hashSystemPrompt } from "./provider-session.js";
 import {
+  PROVIDER_IDS,
   isFiniteNumber,
   isNonEmptyString,
   isObjectLike,
   isString
-} from "../type-predicates.js";
+} from "@nodetool-ai/protocol";
 import type {
   RunBudget,
   TurnBudget,

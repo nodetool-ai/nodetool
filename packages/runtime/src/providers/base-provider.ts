@@ -72,7 +72,7 @@ import {
   isObjectLike,
   isRecord,
   isString
-} from "../type-predicates.js";
+} from "@nodetool-ai/protocol";
 import { logProviderRequestFailure } from "./provider-request-log.js";
 import {
   annotateProviderError,

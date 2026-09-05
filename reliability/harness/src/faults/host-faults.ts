@@ -26,7 +26,8 @@
  *   not a per-run "configure/teardown around one driver call" fault — see
  *   `tests/journeys/host-sigkill-restart.test.ts`.
  */
-import { InMemoryStorageAdapter, type StorageAdapter } from "@nodetool-ai/runtime";
+import { type StorageAdapter } from "@nodetool-ai/runtime";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { registerFaultModule } from "./registry.js";
 
 // `StorageListResult`/`StorageStat` aren't re-exported from

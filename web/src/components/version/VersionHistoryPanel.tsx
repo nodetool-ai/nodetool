@@ -12,7 +12,8 @@ import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistorySto
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
-import { formatDistanceToNow, format } from "../../utils/dateFormat";
+import { relativeTime } from "../../utils/formatDateAndTime";
+import { formatDateTime } from "../../utils/formatUtils";
 import PanelToolbar from "../panels/PanelToolbar";
 import {
   Caption,
@@ -451,15 +452,9 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 />
                 {selectedVersion.created_at && (
                   <Caption size="smaller" color="secondary">
-                    {format(
-                      new Date(selectedVersion.created_at),
-                      "MMM d, yyyy · HH:mm"
-                    )}
+                    {formatDateTime(new Date(selectedVersion.created_at))}
                     {" · "}
-                    {formatDistanceToNow(
-                      new Date(selectedVersion.created_at),
-                      { addSuffix: true }
-                    )}
+                    {relativeTime(new Date(selectedVersion.created_at))}
                   </Caption>
                 )}
                 <Caption size="smaller" color="muted" sx={{ marginLeft: "auto" }}>

@@ -37,7 +37,7 @@ import {
   Switch,
   type SelectOption
 } from "../../ui_primitives";
-import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
+import { useBatchedGesture } from "../../../hooks/timeline/useBatchedGesture";
 import { isFunction } from "../../../utils/typePredicates";
 
 // ── Header ─────────────────────────────────────────────────────────────────
@@ -442,34 +442,20 @@ export const InspectorPillInput = memo(function InspectorPillInput({
   // ── Scrub gesture ────────────────────────────────────────────────────
   // Drag scrubs; a click without movement focuses the input for typing.
   // pointerdown preventDefault stops the native focus so the drag doesn't
-  // enter edit mode; store writes are rAF-coalesced and wrapped in one
-  // undo batch, same as InspectorSliderRow.
+  // enter edit mode.
 
-  const history = useTimelineHistoryBatch();
-  const onCommitRef = useRef(onCommit);
-  onCommitRef.current = onCommit;
+  const gesture = useBatchedGesture(onCommit);
   const gestureRef = useRef<{
     pointerId: number;
     startX: number;
     startValue: number;
     moved: boolean;
   } | null>(null);
-  const pendingRef = useRef<string | null>(null);
-  const rafIdRef = useRef<number | null>(null);
 
   const scrubDecimals = useMemo(() => {
     if (!scrub) return 0;
     return (String(scrub.step).split(".")[1] ?? "").length;
   }, [scrub]);
-
-  const flushScrub = useCallback(() => {
-    rafIdRef.current = null;
-    if (pendingRef.current === null) return;
-    const next = pendingRef.current;
-    pendingRef.current = null;
-    onCommitRef.current(next);
-    history.mark();
-  }, [history]);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -490,60 +476,39 @@ export const InspectorPillInput = memo(function InspectorPillInput({
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      const gesture = gestureRef.current;
-      if (!gesture || !scrub) return;
-      const dx = e.clientX - gesture.startX;
-      if (!gesture.moved) {
+      const drag = gestureRef.current;
+      if (!drag || !scrub) return;
+      const dx = e.clientX - drag.startX;
+      if (!drag.moved) {
         if (Math.abs(dx) < 3) return;
-        gesture.moved = true;
-        history.begin();
+        drag.moved = true;
+        gesture.begin();
       }
       const multiplier = e.shiftKey ? 10 : e.altKey ? 0.1 : 1;
-      let next = gesture.startValue + dx * scrub.step * multiplier;
+      let next = drag.startValue + dx * scrub.step * multiplier;
       if (scrub.min != null) next = Math.max(scrub.min, next);
       if (scrub.max != null) next = Math.min(scrub.max, next);
       const formatted = next.toFixed(scrubDecimals);
       setDraft(formatted);
-      pendingRef.current = formatted;
-      if (rafIdRef.current === null) {
-        rafIdRef.current = requestAnimationFrame(flushScrub);
-      }
+      gesture.schedule(formatted);
     },
-    [scrub, scrubDecimals, history, flushScrub]
+    [scrub, scrubDecimals, gesture]
   );
 
   const handlePointerUp = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      const gesture = gestureRef.current;
-      if (!gesture || gesture.pointerId !== e.pointerId) return;
+      const drag = gestureRef.current;
+      if (!drag || drag.pointerId !== e.pointerId) return;
       gestureRef.current = null;
-      if (gesture.moved) {
-        if (rafIdRef.current !== null) {
-          cancelAnimationFrame(rafIdRef.current);
-          rafIdRef.current = null;
-        }
-        if (pendingRef.current !== null) {
-          const next = pendingRef.current;
-          pendingRef.current = null;
-          onCommitRef.current(next);
-          history.mark();
-        }
-        history.end();
+      if (drag.moved) {
+        gesture.commit();
       } else {
         inputRef.current?.focus();
         inputRef.current?.select();
       }
     },
-    [history]
+    [gesture]
   );
-
-  useEffect(() => {
-    return () => {
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
-      }
-    };
-  }, []);
 
   // A scrub re-renders this pill per rAF; no style reads the dragged value.
   const hasScrub = !!scrub;
@@ -842,68 +807,21 @@ export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
   ({ label, value, display, min, max, step, disabled, onChange, origin }) => {
     const theme = useTheme();
     const sliderSx = useMemo(() => precisionSliderSx(theme), [theme]);
-    const history = useTimelineHistoryBatch();
-
-    // Gesture state: pointermove/key-repeat onChange ticks are coalesced to
-    // one store write per animation frame; onChangeCommitted flushes the
-    // final value and closes the undo batch. See useTimelineHistoryBatch for
-    // why a single arrow-key press (onChange immediately followed by
-    // onChangeCommitted, both synchronous) still yields exactly one entry:
-    // the pending rAF write never fires because onChangeCommitted cancels it
-    // and applies the value itself before the frame runs.
-    const onChangeRef = useRef(onChange);
-    onChangeRef.current = onChange;
-    const gestureActiveRef = useRef(false);
-    const pendingValueRef = useRef<number | null>(null);
-    const rafIdRef = useRef<number | null>(null);
-
-    const flush = useCallback(() => {
-      rafIdRef.current = null;
-      if (pendingValueRef.current === null) return;
-      const next = pendingValueRef.current;
-      pendingValueRef.current = null;
-      onChangeRef.current(next);
-      history.mark();
-    }, [history]);
+    const gesture = useBatchedGesture(onChange);
 
     const handleChange = useCallback(
       (_e: Event, next: number | number[]) => {
-        const value = Array.isArray(next) ? next[0] : next;
-        if (!gestureActiveRef.current) {
-          gestureActiveRef.current = true;
-          history.begin();
-        }
-        pendingValueRef.current = value;
-        if (rafIdRef.current === null) {
-          rafIdRef.current = requestAnimationFrame(flush);
-        }
+        gesture.schedule(Array.isArray(next) ? next[0] : next);
       },
-      [history, flush]
+      [gesture]
     );
 
     const handleChangeCommitted = useCallback(
       (_e: React.SyntheticEvent | Event, next: number | number[]) => {
-        const value = Array.isArray(next) ? next[0] : next;
-        if (rafIdRef.current !== null) {
-          cancelAnimationFrame(rafIdRef.current);
-          rafIdRef.current = null;
-        }
-        pendingValueRef.current = null;
-        onChangeRef.current(value);
-        history.mark();
-        history.end();
-        gestureActiveRef.current = false;
+        gesture.commit(Array.isArray(next) ? next[0] : next);
       },
-      [history]
+      [gesture]
     );
-
-    useEffect(() => {
-      return () => {
-        if (rafIdRef.current !== null) {
-          cancelAnimationFrame(rafIdRef.current);
-        }
-      };
-    }, []);
 
     const span = max - min || 1;
     const toPct = (v: number) =>

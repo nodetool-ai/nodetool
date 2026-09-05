@@ -14,7 +14,8 @@ export const IMAGE_MIME_TO_EXT: Record<string, string> = {
   "image/jpg": "jpg",
   "image/webp": "webp",
   "image/gif": "gif",
-  "image/bmp": "bmp"
+  "image/bmp": "bmp",
+  "image/tiff": "tiff"
 };
 
 /** Identify a container from its leading bytes; `null` when nothing matches. */
@@ -65,6 +66,21 @@ export function sniffImageMime(bytes: Uint8Array): string | null {
   // BMP: "BM"
   if (bytes.length >= 2 && bytes[0] === 0x42 && bytes[1] === 0x4d) {
     return "image/bmp";
+  }
+  // TIFF: little-endian "II*\0" or big-endian "MM\0*". Topaz returns TIFF from
+  // its upscale endpoints, so a sniffer that misses it mislabels a paid result.
+  if (
+    bytes.length >= 4 &&
+    ((bytes[0] === 0x49 &&
+      bytes[1] === 0x49 &&
+      bytes[2] === 0x2a &&
+      bytes[3] === 0x00) ||
+      (bytes[0] === 0x4d &&
+        bytes[1] === 0x4d &&
+        bytes[2] === 0x00 &&
+        bytes[3] === 0x2a))
+  ) {
+    return "image/tiff";
   }
   return null;
 }

@@ -307,7 +307,6 @@ export type SaveAudioFileInputs = {
   save_to_workspace?: Connectable<boolean>;
   folder?: Connectable<string>;
   filename?: Connectable<string>;
-  FORMAT_MAP?: Connectable<Record<string, string>>;
 };
 
 export interface SaveAudioFileOutputs {

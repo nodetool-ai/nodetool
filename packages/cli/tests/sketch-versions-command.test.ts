@@ -56,7 +56,7 @@ const versionRow = (
   ...overrides
 });
 
-const loadDocument = vi.fn();
+const load = vi.fn();
 const listVersions = vi.fn();
 const findVersion = vi.fn();
 const snapshot = vi.fn();
@@ -66,7 +66,7 @@ const confirmDelete = vi.fn();
 const validate = vi.fn();
 
 const store: SketchVersionStore = {
-  loadDocument,
+  load,
   listVersions,
   findVersion,
   snapshot,
@@ -125,7 +125,7 @@ function run(...argv: string[]) {
 }
 
 beforeEach(() => {
-  loadDocument.mockReset().mockResolvedValue(imageDocument());
+  load.mockReset().mockResolvedValue(imageDocument());
   listVersions.mockReset().mockResolvedValue([versionRow()]);
   findVersion.mockReset().mockResolvedValue(versionRow());
   snapshot
@@ -189,7 +189,7 @@ describe("sketch versions list", () => {
   });
 
   it("exits non-zero for an unknown document id", async () => {
-    loadDocument.mockResolvedValueOnce(null);
+    load.mockResolvedValueOnce(null);
     const { exitCode, stderr } = await run("list", "nope");
     expect(exitCode).toBe(1);
     expect(stderr).toContain("Image document not found: nope");
@@ -388,7 +388,7 @@ describe("sketch versions delete", () => {
   });
 
   it("puts the failure on stdout too under --json", async () => {
-    loadDocument.mockResolvedValueOnce(null);
+    load.mockResolvedValueOnce(null);
     const { stdout } = await run("delete", "gone", "1", "--yes", "--json");
     expect(JSON.parse(stdout.trim())).toEqual({
       error: "Image document not found: gone"

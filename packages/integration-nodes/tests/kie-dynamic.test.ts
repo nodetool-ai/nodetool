@@ -158,6 +158,31 @@ describe("KieAINode process with mocked API", () => {
     expect((result.image as { data: string }).data).toBeTruthy();
   });
 
+  it("passes the run's abort signal to every KIE request", async () => {
+    // The node polls a paid API. Without the signal a cancelled run keeps
+    // polling and keeps being billed, because kieExecuteTask only aborts
+    // through the trailing signal argument it is handed.
+    setupSuccessfulKieApi();
+    const node = new KieAINode();
+    node.assign({ model_info: DOCS_IMAGE_MODEL });
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+
+    const controller = new AbortController();
+    const context = { signal: controller.signal } as Parameters<
+      typeof node.process
+    >[0];
+    await node.process(context);
+
+    const kieCalls = mockFetch.mock.calls.filter(([url]) =>
+      String(url).includes("kie.ai")
+    );
+    expect(kieCalls.length).toBeGreaterThan(0);
+    const missing = kieCalls
+      .filter(([, init]) => (init as RequestInit | undefined)?.signal !== controller.signal)
+      .map(([url]) => String(url));
+    expect(missing).toEqual([]);
+  });
+
   it("processes video model and returns video output", async () => {
     setupSuccessfulKieApi();
     const node = new KieAINode();

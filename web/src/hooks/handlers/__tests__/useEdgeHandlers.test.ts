@@ -127,9 +127,14 @@ describe("useEdgeHandlers", () => {
       );
 
       expect(mockFindEdge).toHaveBeenCalledWith("edge-3");
-      expect(mockHoveredEdge.label).toBe("CUSTOM-EDGE");
-      expect(mockHoveredEdge.className).toBe("custom-edge hovered");
-      expect(mockUpdateEdge).toHaveBeenCalledWith(mockHoveredEdge);
+      expect(mockUpdateEdge).toHaveBeenCalledWith({
+        ...mockHoveredEdge,
+        label: "CUSTOM-EDGE",
+        className: "custom-edge hovered"
+      });
+      // The stored edge is replaced, never mutated in place.
+      expect(mockHoveredEdge.label).toBe("");
+      expect(mockHoveredEdge.className).toBe("custom-edge");
     });
 
     it("sets animated flag for selected edges on hover", () => {
@@ -150,8 +155,10 @@ describe("useEdgeHandlers", () => {
         edge
       );
 
-      expect(mockHoveredEdge.animated).toBe(true);
-      expect(mockUpdateEdge).toHaveBeenCalledWith(mockHoveredEdge);
+      expect(mockUpdateEdge).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "edge-4", animated: true })
+      );
+      expect(mockHoveredEdge.animated).toBe(false);
     });
 
     it("does not duplicate hovered class name", () => {
@@ -172,8 +179,12 @@ describe("useEdgeHandlers", () => {
         edge
       );
 
-      expect(mockHoveredEdge.className).toBe("custom-edge hovered");
-      expect(mockUpdateEdge).toHaveBeenCalledWith(mockHoveredEdge);
+      expect(mockUpdateEdge).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "edge-5",
+          className: "custom-edge hovered"
+        })
+      );
     });
 
     it("handles edge without className", () => {
@@ -193,7 +204,9 @@ describe("useEdgeHandlers", () => {
         edge
       );
 
-      expect(mockUpdateEdge).toHaveBeenCalledWith(mockHoveredEdge);
+      expect(mockUpdateEdge).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "edge-6", className: undefined })
+      );
     });
   });
 
@@ -216,10 +229,13 @@ describe("useEdgeHandlers", () => {
         edge
       );
 
-      expect(mockHoveredEdge.animated).toBe(false);
-      expect(mockHoveredEdge.label).toBe("");
-      expect(mockHoveredEdge.className).toBe("custom-edge");
-      expect(mockUpdateEdge).toHaveBeenCalledWith(mockHoveredEdge);
+      expect(mockUpdateEdge).toHaveBeenCalledWith({
+        ...mockHoveredEdge,
+        animated: false,
+        label: "",
+        className: "custom-edge"
+      });
+      expect(mockHoveredEdge.className).toBe("custom-edge hovered");
     });
 
     it("handles edge without hovered class", () => {
@@ -240,9 +256,12 @@ describe("useEdgeHandlers", () => {
         edge
       );
 
-      expect(mockHoveredEdge.animated).toBe(false);
-      expect(mockHoveredEdge.label).toBe("");
-      expect(mockUpdateEdge).toHaveBeenCalledWith(mockHoveredEdge);
+      expect(mockUpdateEdge).toHaveBeenCalledWith({
+        ...mockHoveredEdge,
+        animated: false,
+        label: "",
+        className: "custom-edge"
+      });
     });
   });
 

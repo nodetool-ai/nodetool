@@ -56,7 +56,7 @@ const versionRow = (
 
 const clean = { ok: true, errors: [], warnings: [] };
 
-const loadSequence = vi.fn();
+const load = vi.fn();
 const listVersions = vi.fn();
 const findVersion = vi.fn();
 const snapshot = vi.fn();
@@ -66,7 +66,7 @@ const validate = vi.fn();
 const confirmDelete = vi.fn();
 
 const store: TimelineVersionStore = {
-  loadSequence,
+  load,
   listVersions,
   findVersion,
   snapshot,
@@ -125,7 +125,7 @@ function run(...argv: string[]) {
 }
 
 beforeEach(() => {
-  loadSequence.mockReset().mockResolvedValue(sequence());
+  load.mockReset().mockResolvedValue(sequence());
   listVersions.mockReset().mockResolvedValue([versionRow()]);
   findVersion.mockReset().mockResolvedValue(versionRow());
   snapshot
@@ -181,7 +181,7 @@ describe("timeline versions list", () => {
   });
 
   it("exits non-zero for an unknown timeline id", async () => {
-    loadSequence.mockResolvedValueOnce(null);
+    load.mockResolvedValueOnce(null);
     const { exitCode, stderr } = await run("list", "nope");
     expect(exitCode).toBe(1);
     expect(stderr).toContain("Timeline sequence not found: nope");
@@ -359,7 +359,7 @@ describe("timeline versions delete", () => {
   });
 
   it("puts the failure on stdout too under --json", async () => {
-    loadSequence.mockResolvedValueOnce(null);
+    load.mockResolvedValueOnce(null);
     const { stdout } = await run("delete", "gone", "1", "--yes", "--json");
     expect(JSON.parse(stdout.trim())).toEqual({
       error: "Timeline sequence not found: gone"

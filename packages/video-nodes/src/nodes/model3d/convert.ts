@@ -1,6 +1,7 @@
 import { prop } from "@nodetool-ai/node-sdk";
 
 import { GlbTransformNode } from "./base.js";
+import type { Model3DRefLike } from "./types.js";
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import { convertGlbToGltf } from "./document-ops.js";
 import { modelBytes, modelFormat, modelRef, replaceExtension } from "./utils.js";
@@ -27,7 +28,7 @@ export class FormatConverterNode extends GlbTransformNode {
     title: "Model",
     description: "The 3D model to convert"
   })
-  declare model: any;
+  declare model: Model3DRefLike;
 
   @prop({
     type: "enum",
@@ -36,7 +37,7 @@ export class FormatConverterNode extends GlbTransformNode {
     description: "Target format for conversion. Currently only glb → gltf is supported.",
     values: ["glb", "gltf"]
   })
-  declare output_format: any;
+  declare output_format: "glb" | "gltf";
 
   protected transform(_bytes: Uint8Array): Uint8Array | null {
     return null;
@@ -46,7 +47,7 @@ export class FormatConverterNode extends GlbTransformNode {
     const model = this.getModel();
     const bytes = modelBytes(model);
     const inputFormat = modelFormat(model);
-    const outputFormat = String(this.output_format ?? "glb").toLowerCase();
+    const outputFormat = this.output_format.toLowerCase();
 
     if (outputFormat === inputFormat) {
       return {

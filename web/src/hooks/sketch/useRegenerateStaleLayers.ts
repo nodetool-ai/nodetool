@@ -2,21 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { trpcClient } from "../../trpc/client";
-import { queryClient } from "../../queryClient";
-import {
-  fetchWorkflowById,
-  workflowQueryKey
-} from "../../serverState/useWorkflow";
-import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
-import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
-import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
-import type { Node as WorkflowGraphNode } from "../../stores/ApiTypes";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import {
-  useSketchGenerationStore,
-  type LayerJobState
-} from "../../stores/sketch/SketchGenerationStore";
+  startLayerGeneration,
+  type LayerGenerationOutcome
+} from "./useGenerateLayer";
 
 interface RegenerateStalePreflight {
   staleLayerIds: string[];
@@ -33,62 +23,12 @@ interface UseRegenerateStaleLayersResult {
   isBusy: boolean;
 }
 
-function waitForJobToFinish(
-  jobId: string,
-  signal: AbortSignal
-): Promise<LayerJobState["status"] | "aborted"> {
-  return new Promise((resolve) => {
-    let unsubscribe: (() => void) | null = null;
-
-    const cleanup = (): void => {
-      if (unsubscribe) {
-        unsubscribe();
-        unsubscribe = null;
-      }
-      signal.removeEventListener("abort", onAbort);
-    };
-
-    const onAbort = (): void => {
-      cleanup();
-      resolve("aborted");
-    };
-
-    const check = (): boolean => {
-      if (signal.aborted) {
-        cleanup();
-        resolve("aborted");
-        return true;
-      }
-      const job = Object.values(
-        useSketchGenerationStore.getState().layerJobs
-      ).find((j) => j.jobId === jobId);
-      if (!job) {
-        // Job entry cleared — completed/cancelled cleared the entry.
-        cleanup();
-        resolve("completed");
-        return true;
-      }
-      if (job.status === "completed" || job.status === "failed") {
-        cleanup();
-        resolve(job.status);
-        return true;
-      }
-      return false;
-    };
-
-    if (check()) return;
-    signal.addEventListener("abort", onAbort);
-    unsubscribe = useSketchGenerationStore.subscribe(() => {
-      check();
-    });
-  });
-}
+type Settled = LayerGenerationOutcome | { status: "aborted" };
 
 export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
   const [isBusy, setIsBusy] = useState(false);
   const busyRef = useRef(false);
-  // Aborted on unmount so any in-flight `waitForJobToFinish` resolves and
-  // its Zustand subscription is unsubscribed.
+  // Aborted on unmount so the drainer stops waiting on the job in flight.
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -130,7 +70,6 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
     let failed = 0;
     try {
       const { staleLayerIds } = preflight();
-      const generationStore = useSketchGenerationStore.getState();
       for (const layerId of staleLayerIds) {
         if (controller.signal.aborted) break;
         const binding =
@@ -139,85 +78,52 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
           skipped++;
           continue;
         }
-        const workflowId = binding.workflowId;
 
+        let settle: (outcome: Settled) => void = () => {};
+        const settled = new Promise<Settled>((resolve) => {
+          settle = resolve;
+        });
+        const onAbort = (): void => settle({ status: "aborted" });
+        controller.signal.addEventListener("abort", onAbort, { once: true });
+
+        let outcome: Settled;
         try {
-          const workflow = await queryClient.fetchQuery({
-            queryKey: workflowQueryKey(workflowId),
-            queryFn: () => fetchWorkflowById(workflowId),
-            staleTime: 0
-          });
-          const graphNodes = workflow.graph?.nodes ?? [];
-          const graphEdges = workflow.graph?.edges ?? [];
-          const nodes = graphNodes.map((node: WorkflowGraphNode) =>
-            graphNodeToReactFlowNode(workflow, node)
+          // The whole flow — run, job subscription, version append, raster
+          // write-back. The subscription is the part this loop used to skip,
+          // which left every job stuck at "queued" forever.
+          const jobId = await startLayerGeneration(
+            {
+              documentId,
+              layerId,
+              workflowId: binding.workflowId,
+              selectedOutputNodeId: binding.selectedOutputNodeId,
+              paramOverrides: binding.paramOverrides,
+              dependencyHash: binding.dependencyHash
+            },
+            { onSettled: settle }
           );
-          const edges = graphEdges.map(graphEdgeToReactFlowEdge);
-
-          const runnerStore = getWorkflowRunnerStore(workflowId);
-          // Use the id run() returns, not runnerStore.job_id: a queued run gets
-          // a fresh id while the store still points at the active run, so
-          // reading it back would track the wrong job.
-          const jobId = await runnerStore
-            .getState()
-            .run(
-              binding.paramOverrides ?? {},
-              workflow,
-              nodes,
-              edges,
-              undefined,
-              undefined,
-              true
-            );
-
           if (!jobId) {
-            failed++;
+            skipped++;
             continue;
           }
-          generationStore.registerJob(layerId, jobId, workflowId);
-
-          const finalStatus = await waitForJobToFinish(
-            jobId,
-            controller.signal
-          );
-          if (finalStatus === "aborted") {
-            break;
-          }
-          if (finalStatus === "failed") {
-            failed++;
-            // Stop on first failure so the user can address it before the
-            // rest of the queue drains.
-            break;
-          }
-          started++;
-
-          if (binding.dependencyHash) {
-            const result = generationStore.resolveOutputAssetId(
-              workflowId,
-              jobId,
-              binding.selectedOutputNodeId ?? ""
-            );
-            if (result) {
-              try {
-                await trpcClient.sketch.versions.append.mutate({
-                  id: documentId,
-                  layerId,
-                  jobId,
-                  assetId: result,
-                  dependencyHash: binding.dependencyHash,
-                  workflowUpdatedAt: workflow.updated_at ?? "",
-                  paramOverridesSnapshot: binding.paramOverrides,
-                  status: "success"
-                });
-              } catch {
-                failed++;
-              }
-            }
-          }
+          outcome = await settled;
         } catch {
           failed++;
           break;
+        } finally {
+          controller.signal.removeEventListener("abort", onAbort);
         }
+
+        if (outcome.status === "aborted") {
+          break;
+        }
+        if (outcome.status === "failed") {
+          failed++;
+          // Stop on first failure so the user can address it before the
+          // rest of the queue drains.
+          break;
+        }
+        started++;
       }
     } finally {
       busyRef.current = false;

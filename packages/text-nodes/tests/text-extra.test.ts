@@ -50,3 +50,118 @@ describe("ConcatTextNode — flattens list inputs", () => {
     expect((await node.process()).output).toBe("<xy>");
   });
 });
+
+describe("empty prop bag materializes the descriptor default", () => {
+  it("SaveTextNode names the file from the descriptor default, not \"output.txt\"", async () => {
+    const { SaveTextNode } = await import("@nodetool-ai/text-nodes");
+    const fs = await import("node:fs/promises");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "savetext-"));
+
+    // The same path `nodetool node run <type> --props '{}'` takes: the
+    // constructor calls assign({}), which materializes every declared default.
+    const node = new SaveTextNode();
+    node.assign({ text: "hello", folder: dir });
+    const { output } = await node.process();
+
+    const written = path.basename(output.uri);
+    expect(written).not.toBe("output.txt");
+    expect(written).toMatch(/^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.txt$/);
+    expect(await fs.readFile(output.uri, "utf-8")).toBe("hello");
+  });
+
+  it("LoadTextFolderNode scans every descriptor extension, not just .txt", async () => {
+    const { LoadTextFolderNode } = await import("@nodetool-ai/text-nodes");
+    const fs = await import("node:fs/promises");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "loadtext-"));
+    await fs.writeFile(path.join(dir, "a.md"), "markdown");
+
+    const node = new LoadTextFolderNode();
+    node.assign({ folder: dir });
+    const { paths, text } = await node.process();
+
+    expect(paths).toHaveLength(1);
+    expect(text).toBe("markdown");
+  });
+});
+
+describe("declared props are wired into process()", () => {
+  it("LoadTextFolderNode.pattern filters the scan", async () => {
+    const { LoadTextFolderNode } = await import("@nodetool-ai/text-nodes");
+    const fs = await import("node:fs/promises");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "loadtext-pattern-"));
+    await fs.writeFile(path.join(dir, "report-2024.txt"), "keep");
+    await fs.writeFile(path.join(dir, "notes.txt"), "drop");
+
+    const node = new LoadTextFolderNode();
+    node.assign({ folder: dir, pattern: "report-*.txt" });
+    const { paths, texts } = await node.process();
+
+    expect(paths.map((p) => path.basename(p))).toEqual(["report-2024.txt"]);
+    expect(texts).toEqual(["keep"]);
+  });
+
+  it("LoadTextFolderNode.pattern defaults to no filter", async () => {
+    const { LoadTextFolderNode } = await import("@nodetool-ai/text-nodes");
+    const fs = await import("node:fs/promises");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "loadtext-nopattern-"));
+    await fs.writeFile(path.join(dir, "a.txt"), "a");
+    await fs.writeFile(path.join(dir, "b.md"), "b");
+
+    const node = new LoadTextFolderNode();
+    node.assign({ folder: dir });
+    const { paths } = await node.process();
+
+    expect(paths).toHaveLength(2);
+  });
+
+  it("EmbeddingTextNode.chunk_size splits the input and averages the vectors", async () => {
+    const { EmbeddingTextNode } = await import("@nodetool-ai/text-nodes");
+    const calls: Array<Record<string, unknown>> = [];
+    const context = {
+      runProviderPrediction: async (req: { params: Record<string, unknown> }) => {
+        calls.push(req.params);
+        return [
+          [1, 3],
+          [3, 1]
+        ];
+      }
+    };
+
+    const node = new EmbeddingTextNode();
+    node.assign({ input: "abcdefgh", chunk_size: 4 });
+    const result = await node.process(
+      context as unknown as Parameters<EmbeddingTextNode["process"]>[0]
+    );
+
+    expect(calls[0]?.text).toEqual(["abcd", "efgh"]);
+    expect(result.output).toEqual([2, 2]);
+  });
+
+  it("EmbeddingTextNode leaves a short input as one chunk", async () => {
+    const { EmbeddingTextNode } = await import("@nodetool-ai/text-nodes");
+    const calls: Array<Record<string, unknown>> = [];
+    const context = {
+      runProviderPrediction: async (req: { params: Record<string, unknown> }) => {
+        calls.push(req.params);
+        return [[7, 8]];
+      }
+    };
+
+    const node = new EmbeddingTextNode();
+    node.assign({ input: "short" });
+    const result = await node.process(
+      context as unknown as Parameters<EmbeddingTextNode["process"]>[0]
+    );
+
+    expect(calls[0]?.text).toEqual(["short"]);
+    expect(result.output).toEqual([7, 8]);
+  });
+});

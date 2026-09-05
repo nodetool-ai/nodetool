@@ -1,10 +1,7 @@
 /**
- * Tests for the worker-scoped HuggingFace model routes in models-api.ts.
- *
- * scope="worker" routes the list/delete/download to the attached worker's
- * Python bridge; scope="local" (default) keeps the existing local-FS behavior.
- * The download relay pipes the bridge's progress frames onto the existing
- * /ws/download socket sink.
+ * The worker-scoped model download relay: it pipes the attached worker's
+ * bridge progress frames onto the /ws/download socket sink, correlates a
+ * cancel by request id, and resolves the HF token server-side.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { tmpdir } from "node:os";
@@ -25,11 +22,7 @@ vi.mock("@nodetool-ai/huggingface", async (orig) => {
 import { clearHfTokenCache } from "@nodetool-ai/huggingface";
 import { clearAllSecretCache } from "@nodetool-ai/models";
 
-import {
-  handleModelsApiRequest,
-  relayWorkerDownload,
-  type ModelsApiDeps
-} from "../src/models-api.js";
+import { relayWorkerDownload } from "../src/models-api.js";
 
 // ── Fakes ──────────────────────────────────────────────────────────────────
 
@@ -58,141 +51,6 @@ function fakeWorkerManager(active: unknown) {
 }
 
 const ATTACHED = { id: "w1", status: "attached" };
-
-function listRequest(scope?: string): Request {
-  const qs = scope ? `?scope=${scope}` : "";
-  return new Request(`http://localhost/api/models/huggingface${qs}`, {
-    method: "GET"
-  });
-}
-
-function deleteRequest(repoId: string, scope?: string): Request {
-  const scopePart = scope ? `&scope=${scope}` : "";
-  return new Request(
-    `http://localhost/api/models/huggingface?repo_id=${encodeURIComponent(
-      repoId
-    )}${scopePart}`,
-    { method: "DELETE" }
-  );
-}
-
-// ── List ─────────────────────────────────────────────────────────────────────
-
-describe("GET /api/models/huggingface scope=worker", () => {
-  it("routes to pythonBridge.listCachedModels when a worker is attached", async () => {
-    const listCachedModels = vi
-      .fn()
-      .mockResolvedValue([
-        { id: "org/m", name: "org/m", repo_id: "org/m", downloaded: true }
-      ]);
-    const deps: ModelsApiDeps = {
-      pythonBridge: fakeBridge({ listCachedModels }),
-      workerManager: fakeWorkerManager(ATTACHED)
-    };
-
-    const res = await handleModelsApiRequest(listRequest("worker"), deps);
-    expect(res).not.toBeNull();
-    expect(res!.status).toBe(200);
-    const body = (await res!.json()) as Array<{ repo_id: string }>;
-    expect(listCachedModels).toHaveBeenCalledOnce();
-    expect(body[0].repo_id).toBe("org/m");
-  });
-
-  it("returns 409 with a clear reason when no worker is attached", async () => {
-    const deps: ModelsApiDeps = {
-      pythonBridge: fakeBridge(),
-      workerManager: fakeWorkerManager(null)
-    };
-
-    const res = await handleModelsApiRequest(listRequest("worker"), deps);
-    expect(res!.status).toBe(409);
-    const body = (await res!.json()) as { detail: string };
-    expect(body.detail).toMatch(/No worker attached/i);
-  });
-
-  it("returns 500 (not 409) when worker support is not configured", async () => {
-    // No workerManager in deps = server wiring problem, distinct from the
-    // runtime "no worker attached" 409.
-    const deps: ModelsApiDeps = { pythonBridge: fakeBridge() };
-
-    const res = await handleModelsApiRequest(listRequest("worker"), deps);
-    expect(res!.status).toBe(500);
-    const body = (await res!.json()) as { detail: string };
-    expect(body.detail).toMatch(/not configured/i);
-  });
-
-  it("returns 409 when the attached worker image is too old", async () => {
-    const deps: ModelsApiDeps = {
-      pythonBridge: fakeBridge({ supportsModelManagement: () => false }),
-      workerManager: fakeWorkerManager(ATTACHED)
-    };
-
-    const res = await handleModelsApiRequest(listRequest("worker"), deps);
-    expect(res!.status).toBe(409);
-    const body = (await res!.json()) as { detail: string };
-    expect(body.detail).toMatch(/too old/i);
-  });
-
-  it("scope=local (default) does not touch the bridge", async () => {
-    const listCachedModels = vi.fn();
-    const deps: ModelsApiDeps = {
-      pythonBridge: fakeBridge({ listCachedModels }),
-      workerManager: fakeWorkerManager(ATTACHED)
-    };
-
-    const res = await handleModelsApiRequest(listRequest(), deps);
-    expect(res!.status).toBe(200);
-    expect(listCachedModels).not.toHaveBeenCalled();
-  });
-});
-
-// ── Delete ───────────────────────────────────────────────────────────────────
-
-describe("DELETE /api/models/huggingface scope=worker", () => {
-  it("deletes via the bridge when scope=worker", async () => {
-    const deleteCachedModel = vi.fn().mockResolvedValue(true);
-    const deps: ModelsApiDeps = {
-      pythonBridge: fakeBridge({ deleteCachedModel }),
-      workerManager: fakeWorkerManager(ATTACHED)
-    };
-
-    const res = await handleModelsApiRequest(
-      deleteRequest("org/m", "worker"),
-      deps
-    );
-    expect(res!.status).toBe(200);
-    expect(await res!.json()).toBe(true);
-    expect(deleteCachedModel).toHaveBeenCalledWith("org/m");
-  });
-
-  it("returns 409 when no worker is attached", async () => {
-    const deleteCachedModel = vi.fn();
-    const deps: ModelsApiDeps = {
-      pythonBridge: fakeBridge({ deleteCachedModel }),
-      workerManager: fakeWorkerManager(null)
-    };
-
-    const res = await handleModelsApiRequest(
-      deleteRequest("org/m", "worker"),
-      deps
-    );
-    expect(res!.status).toBe(409);
-    expect(deleteCachedModel).not.toHaveBeenCalled();
-  });
-
-  it("scope=local does not touch the bridge", async () => {
-    const deleteCachedModel = vi.fn();
-    const deps: ModelsApiDeps = {
-      pythonBridge: fakeBridge({ deleteCachedModel }),
-      workerManager: fakeWorkerManager(ATTACHED)
-    };
-
-    // No worker bridge call regardless of result; local path returns boolean.
-    const res = await handleModelsApiRequest(deleteRequest("org/m"), deps);
-    expect(res!.status).toBe(200);
-    expect(deleteCachedModel).not.toHaveBeenCalled();
-  });
-});
 
 // ── Download relay ───────────────────────────────────────────────────────────
 

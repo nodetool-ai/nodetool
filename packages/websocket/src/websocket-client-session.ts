@@ -420,9 +420,7 @@ export class WebSocketClientSession implements ClientSession {
   readonly pythonBridge?: PythonBridge;
   private frontendRendererRegistry?: FrontendRendererRegistry;
   private frontendRendererId: string | null = null;
-  private configuredProvidersCache = new ConfiguredProviderCache({
-    load: (userId) => this.buildConfiguredProviders(userId)
-  });
+  private configuredProvidersCache = new ConfiguredProviderCache({});
 
   private sendLock: Promise<void> = Promise.resolve();
   /**
@@ -526,6 +524,15 @@ export class WebSocketClientSession implements ClientSession {
     void this.sendMessage(message).catch((err) => {
       this.logError("detached websocket send failed", err);
     });
+  }
+
+  requireUserId(): string {
+    if (this.userId === null) {
+      throw new Error(
+        "WebSocketClientSession has no user id: connect() has not run"
+      );
+    }
+    return this.userId;
   }
 
   constructor(options: WebSocketClientSessionOptions) {
@@ -1174,38 +1181,6 @@ export class WebSocketClientSession implements ClientSession {
       }
     }
     return null;
-  }
-
-  /**
-   * Build the map of configured BaseProvider instances for the given user.
-   * Used by MCP tools (`find_model`, media generation) that need provider
-   * access. Called through {@link configuredProvidersCache}, which decides
-   * when a credential connected mid-session forces a rebuild.
-   */
-  private async buildConfiguredProviders(
-    userId: string
-  ): Promise<Record<string, BaseProvider>> {
-    const providersMod = await import("@nodetool-ai/runtime");
-    const { getSecret: getStoredSecret } = await import("@nodetool-ai/models");
-    const getSecret = (key: string) =>
-      getStoredSecret(key, userId).then((v) => v ?? undefined);
-    const ids: string[] = providersMod.listRegisteredProviderIds();
-    const result: Record<string, BaseProvider> = {};
-    await Promise.all(
-      ids.map(async (id) => {
-        try {
-          if (await providersMod.isProviderConfigured(id, getSecret)) {
-            result[id] = await providersMod.getProvider(id, getSecret);
-          }
-        } catch (err) {
-          log.debug("Skipping provider for find_model", {
-            provider: id,
-            error: err instanceof Error ? err.message : String(err)
-          });
-        }
-      })
-    );
-    return result;
   }
 
   async handleCommand(

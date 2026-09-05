@@ -467,19 +467,6 @@ describe("useEditorCommands", () => {
     });
   });
 
-  it("creates the requested layer type from the context menu", () => {
-    const params = createParams();
-    const { result } = renderHook(() => useEditorCommands(params));
-
-    act(() => {
-      result.current.handleNewLayerFromContextMenu("mask");
-    });
-
-    expect(params.layerActions.handleAddLayer).toHaveBeenCalledWith({
-      type: "mask"
-    });
-  });
-
   it("routes provider auto runs through splitSelectedLayer", () => {
     useSketchStore.setState((state) => ({
       document: {

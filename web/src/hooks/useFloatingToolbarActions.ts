@@ -151,7 +151,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
           .nodes.find((n) => n.id === first.nodeId);
         if (target) {
           nodeStore.getState().setSelectedNodes([target]);
-          nodeStore.getState().setShouldFitToScreen(true, [first.nodeId]);
+          nodeStore.getState().setShouldFitToScreen(true);
           usePropertyHighlightStore
             .getState()
             .highlight(first.nodeId, first.propertyName);
@@ -189,7 +189,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
             .nodes.find((n) => n.id === first.nodeId);
           if (target) {
             nodeStore.getState().setSelectedNodes([target]);
-            nodeStore.getState().setShouldFitToScreen(true, [first.nodeId]);
+            nodeStore.getState().setShouldFitToScreen(true);
           }
           return;
         }

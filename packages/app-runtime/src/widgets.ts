@@ -470,7 +470,7 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
     label: "Data Table Input",
     mode: "write",
     trigger: "change",
-    commits: true,
+    commits: false,
     fields: {
       binding: "custom",
       label: "text",
@@ -479,11 +479,14 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
     }
   },
   // Local filesystem paths, for apps driving a workflow that reads off disk.
+  // Like every fixed-kind input these render through FixedKindInputWidget,
+  // which only ever emits the "change" phase — `pace: "release"` would never
+  // fire, so they do not commit.
   FilePathInput: {
     label: "File Path Input",
     mode: "write",
     trigger: "change",
-    commits: true,
+    commits: false,
     fields: {
       binding: "custom",
       label: "text",
@@ -495,7 +498,7 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
     label: "Folder Path Input",
     mode: "write",
     trigger: "change",
-    commits: true,
+    commits: false,
     fields: {
       binding: "custom",
       label: "text",
@@ -535,18 +538,17 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
   },
   // Resource widgets address a collection through `resourceBindingId`, not the
   // `binding` token the state widgets carry.
+  // Both write through the resource provider rather than app state, so like
+  // StoryboardSceneList they emit no event of their own — no `events` field in
+  // the editor, and nothing in the widget calls `emit`.
   ResourcePicker: {
     label: "Resource Picker",
     mode: "write",
-    trigger: "change",
-    commits: false,
     fields: { resourceBindingId: "custom", label: "text" }
   },
   ResourceGallery: {
     label: "Resource Gallery",
     mode: "write",
-    trigger: "change",
-    commits: false,
     fields: {
       resourceBindingId: "custom",
       label: "text",

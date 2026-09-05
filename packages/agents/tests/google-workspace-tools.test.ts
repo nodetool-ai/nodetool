@@ -2,11 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   GOOGLE_WORKSPACE_TOOL_NAMES,
-  getGoogleWorkspaceTools,
-  registerGoogleWorkspaceTools
+  getGoogleWorkspaceTools
 } from "../src/tools/google-workspace-tools.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { resolveTool } from "../src/tools/tool-registry.js";
 
 const TOKEN = "ya29.test-token";
 
@@ -52,11 +50,10 @@ describe("Google Workspace toolbelt", () => {
     }
   });
 
-  it("resolves by name once registered", () => {
-    registerGoogleWorkspaceTools();
-    expect(resolveTool("google_drive_search")?.name).toBe(
-      "google_drive_search"
-    );
+  it("builds each name as a tool", () => {
+    for (const name of GOOGLE_WORKSPACE_TOOL_NAMES) {
+      expect(toolForCapabilityName(name).name).toBe(name);
+    }
   });
 });
 

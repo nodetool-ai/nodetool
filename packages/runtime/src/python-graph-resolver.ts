@@ -18,7 +18,7 @@ import { createPythonBridge } from "./python-bridge-factory.js";
 import { PythonNodeExecutor } from "./python-node-executor.js";
 import type { PythonBridgeBase } from "./python-bridge-base.js";
 import type { PythonBridgeOptions } from "./python-bridge-types.js";
-import { isNonEmptyString } from "./type-predicates.js";
+import { isNonEmptyString } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.python-graph-resolver");
 

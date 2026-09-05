@@ -11,10 +11,15 @@
  * desktop-only notice instead.
  */
 import { create } from "zustand";
-import type { StoreApi } from "zustand";
 
 import { createErrorMessage } from "../utils/errorHandling";
 import { trpcClient } from "../trpc/client";
+import {
+  createPackageConsoleSlice,
+  runPackageOp,
+  type PackageConsoleSlice,
+  type PackageOpState
+} from "./packageStorePlumbing";
 
 /** Display names for the runtimes the server reports (it sends bare ids). */
 const SERVER_RUNTIME_LABELS: Record<string, string> = {
@@ -36,67 +41,20 @@ interface RuntimePackageStatus {
   installing: boolean;
 }
 
-const MAX_CONSOLE_LINES = 500;
-
-interface RuntimePackagesStore {
+interface RuntimePackagesStore extends PackageOpState, PackageConsoleSlice {
   /** True when the Electron runtime IPC is reachable. */
   available: boolean;
   statuses: RuntimePackageStatus[];
   installLocation: string | null;
-  /** Ids with an install/uninstall in flight (drives per-row spinners). */
-  busyIds: string[];
-  consoleLines: string[];
   isLoading: boolean;
-  error: string | null;
 
-  refresh: () => Promise<void>;
   install: (id: string) => Promise<boolean>;
   uninstall: (id: string) => Promise<boolean>;
   selectInstallLocation: () => Promise<void>;
-  subscribeConsole: () => void;
-  unsubscribeConsole: () => void;
-  clearConsole: () => void;
 }
-
-/** Unsubscribe handle for the server-log stream; module-level so it survives
- * re-renders and never lands in serializable state. */
-let logUnsubscribe: (() => void) | null = null;
 
 const runtimeApi = () =>
   typeof window !== "undefined" ? window.api?.packages : undefined;
-
-type SetState = StoreApi<RuntimePackagesStore>["setState"];
-type GetState = StoreApi<RuntimePackagesStore>["getState"];
-
-/**
- * Run an install/uninstall: flag the row busy, run the op, refresh statuses,
- * then apply the outcome. The outcome is set *after* refresh so a failure
- * message survives (refresh clears `error`).
- */
-async function runRuntimeOp(
-  set: SetState,
-  get: GetState,
-  id: string,
-  op: () => Promise<{ success: boolean; message: string }>,
-  verb: "install" | "uninstall"
-): Promise<boolean> {
-  set((s) => ({ busyIds: [...new Set([...s.busyIds, id])] }));
-  let success = false;
-  let message = "";
-  try {
-    const res = await op();
-    success = res.success;
-    message = res.message;
-  } catch (err: unknown) {
-    message = createErrorMessage(err, `Failed to ${verb} runtime`).message;
-  }
-  await get().refresh();
-  set((s) => ({
-    busyIds: s.busyIds.filter((p) => p !== id),
-    error: success ? s.error : message
-  }));
-  return success;
-}
 
 const useRuntimePackagesStore = create<RuntimePackagesStore>((set, get) => ({
   available:
@@ -104,9 +62,9 @@ const useRuntimePackagesStore = create<RuntimePackagesStore>((set, get) => ({
   statuses: [],
   installLocation: null,
   busyIds: [],
-  consoleLines: [],
   isLoading: false,
   error: null,
+  ...createPackageConsoleSlice<RuntimePackagesStore>(set),
 
   refresh: async () => {
     const api = runtimeApi();
@@ -157,18 +115,26 @@ const useRuntimePackagesStore = create<RuntimePackagesStore>((set, get) => ({
   install: async (id) => {
     const api = runtimeApi();
     if (!api) return false;
-    return runRuntimeOp(set, get, id, () => api.installRuntime(id), "install");
+    return runPackageOp(
+      set,
+      get,
+      [id],
+      (runtimeId) => api.installRuntime(runtimeId),
+      "Failed to install runtime",
+      false
+    );
   },
 
   uninstall: async (id) => {
     const api = runtimeApi();
     if (!api?.uninstallRuntime) return false;
-    return runRuntimeOp(
+    return runPackageOp(
       set,
       get,
-      id,
-      () => api.uninstallRuntime!(id),
-      "uninstall"
+      [id],
+      (runtimeId) => api.uninstallRuntime!(runtimeId),
+      "Failed to uninstall runtime",
+      false
     );
   },
 
@@ -183,25 +149,7 @@ const useRuntimePackagesStore = create<RuntimePackagesStore>((set, get) => ({
         error: createErrorMessage(err, "Failed to set install location").message
       });
     }
-  },
-
-  subscribeConsole: () => {
-    const onLog =
-      typeof window !== "undefined" ? window.api?.server?.onLog : undefined;
-    if (!onLog || logUnsubscribe) return;
-    logUnsubscribe = onLog((message: string) => {
-      set((s) => ({
-        consoleLines: [...s.consoleLines, message].slice(-MAX_CONSOLE_LINES)
-      }));
-    });
-  },
-
-  unsubscribeConsole: () => {
-    logUnsubscribe?.();
-    logUnsubscribe = null;
-  },
-
-  clearConsole: () => set({ consoleLines: [] })
+  }
 }));
 
 export default useRuntimePackagesStore;

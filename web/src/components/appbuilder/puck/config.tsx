@@ -21,6 +21,7 @@ import {
   variableField
 } from "./fields";
 import { withConditions } from "./conditionalWidget";
+import { FORMAT_FILTERS } from "@nodetool-ai/app-runtime";
 import {
   HeadingWidget,
   TextWidget,
@@ -104,17 +105,27 @@ type EventItemDefaults = {
   pace?: string;
 };
 
+// Example argument for each filter that takes one, so the hint shows the syntax
+// rather than just the name. Derived from FORMAT_FILTERS so a new filter appears
+// here the moment it is registered, with or without an example.
+const FILTER_HINTS: Record<string, string> = {
+  number: "number:2",
+  date: "date:short",
+  join: "join:,",
+  truncate: "truncate:80"
+};
+
+const FORMAT_LABEL = `Format ({binding} · ${FORMAT_FILTERS.map(
+  (filter) => FILTER_HINTS[filter] ?? filter
+).join(" · ")})`;
+
 const conditionalFields = ({ format = true }: { format?: boolean } = {}) => {
   const fields: ConditionalFields = {
     visibleWhen: conditionField("Visible when"),
     disabledWhen: conditionField("Disabled when")
   };
   if (format) {
-    fields.format = {
-      type: "text",
-      label:
-        "Format ({binding} · number:2 · date:short · upper · lower · join:, · truncate:80)"
-    };
+    fields.format = { type: "text", label: FORMAT_LABEL };
   }
   return fields;
 };

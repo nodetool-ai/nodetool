@@ -18,19 +18,12 @@ import { GZIP_THRESHOLD } from "./lib/compression.js";
 import { withCacheBuster } from "./lib/example-thumbnail.js";
 import {
   loadExampleGraph,
-  defaultExamplePackageName,
   deriveExampleAssetsDir
 } from "./example-workflows.js";
-import {
-  createLogger,
-  loadAssetStorageConfig,
-  type StorageConfig
-} from "@nodetool-ai/config";
-import { createAssetUrlBuilder } from "@nodetool-ai/storage";
+import { createLogger } from "@nodetool-ai/config";
 import { workflowToDsl } from "@nodetool-ai/dsl";
 import {
   Workflow,
-  WorkflowVersion,
   WorkflowCollaborator,
   Job,
   Asset
@@ -71,11 +64,7 @@ import {
   type StorageHandlerOptions
 } from "./storage-api.js";
 import { handleFileRequest } from "./file-api.js";
-import {
-  assetHasRasterThumbnail,
-  storeAssetWithThumbnail,
-  thumbnailKey
-} from "./lib/thumbnail.js";
+import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import {
   probeHasAudio,
@@ -87,7 +76,12 @@ import {
   importWorkflowBundle,
   type BundledWorkflow
 } from "./lib/workflow-bundle.js";
-import { syncRegistrations } from "./triggers/registration-sync.js";
+import {
+  createWorkflow,
+  deleteWorkflow,
+  updateWorkflow,
+  WorkflowServiceError
+} from "./lib/workflow-service.js";
 import type { SdkV1ImplementationBoundary } from "./sdk/sdk-v1-handler-map.js";
 import { z } from "zod";
 import {
@@ -99,13 +93,10 @@ import {
 import {
   assetCreateBodySchema,
   escalationVerdictBodySchema,
-  workflowAutosaveBodySchema,
   workflowRequestBodySchema,
   workflowRunBodySchema,
-  workflowVersionCreateBodySchema,
   workflowsExportBundleBodySchema,
-  type ParsedAssetCreateBody,
-  type ParsedWorkflowRequestBody
+  type ParsedAssetCreateBody
 } from "./http-body-schemas.js";
 
 const log = createLogger("nodetool.websocket.http");
@@ -121,8 +112,9 @@ import {
   normalizeAssetContentType
 } from "./lib/asset-paths.js";
 import { resolveAssetBytesForExport } from "./lib/asset-export.js";
-import { assetObjectKey } from "@nodetool-ai/storage";
-import { getStorageRetentionSettings } from "./storage-retention.js";
+import { toAssetResponse } from "./lib/asset-response.js";
+
+export { toAssetResponse };
 export { getAssetFileName, getAssetStoragePath };
 
 type JsonObject = Record<string, unknown>;
@@ -438,12 +430,6 @@ export interface WorkflowRequestBody {
   expected_updated_at?: string;
 }
 
-const WORKFLOW_CONFLICT_MESSAGE =
-  "Workflow was modified since last read (optimistic concurrency conflict)";
-
-// Rate-limit tracking for autosave: maps workflow_id -> last autosave timestamp (ms)
-const lastAutosaveTime = new Map<string, number>();
-const AUTOSAVE_RATE_LIMIT_MS = 30_000;
 
 function normalizePath(pathname: string): string {
   if (pathname.length > 1 && pathname.endsWith("/")) {
@@ -627,127 +613,6 @@ export function parseLimit(url: URL, defaultLimit = 100): number {
   return Math.min(parsed, 500);
 }
 
-async function createWorkflow(
-  body: ParsedWorkflowRequestBody,
-  userId: string
-): Promise<Workflow> {
-  if (!body || body.name === undefined) {
-    throw new Error("Invalid workflow");
-  }
-  if (
-    !body.graph ||
-    !Array.isArray(body.graph.nodes) ||
-    !Array.isArray(body.graph.edges)
-  ) {
-    throw new Error("graph is required and must have nodes and edges arrays");
-  }
-  const graph = body.graph;
-
-  return (await Workflow.create({
-    user_id: userId,
-    name: body.name,
-    tool_name: body.tool_name ?? null,
-    package_name: body.package_name ?? null,
-    path: body.path ?? null,
-    tags: body.tags ?? [],
-    description: body.description ?? "",
-    thumbnail: body.thumbnail ?? null,
-    thumbnail_url: body.thumbnail_url ?? null,
-    access: body.access === "public" ? "public" : "private",
-    graph,
-    settings: body.settings ?? null,
-    run_mode: body.run_mode ?? "workflow",
-    workspace_id: body.workspace_id ?? null,
-    html_app: body.html_app ?? null,
-    app_doc: body.app_doc ?? null
-  })) as Workflow;
-}
-
-async function updateWorkflow(
-  id: string,
-  body: ParsedWorkflowRequestBody,
-  userId: string
-): Promise<Workflow> {
-  if (!body || body.name === undefined) {
-    throw new Error("Invalid workflow");
-  }
-  if (
-    !body.graph ||
-    !Array.isArray(body.graph.nodes) ||
-    !Array.isArray(body.graph.edges)
-  ) {
-    throw new Error("graph is required and must have nodes and edges arrays");
-  }
-  const graph = body.graph;
-
-  const existing = (await Workflow.get(id)) as Workflow | null;
-
-  if (existing) {
-    const isOwner = existing.user_id === userId;
-    const collaborator = isOwner
-      ? null
-      : await WorkflowCollaborator.findFor(id, userId);
-    if (!isOwner && collaborator?.role !== "editor") {
-      throw new Error("Workflow not found");
-    }
-    const fields: Parameters<typeof Workflow.updateFieldsIfUnchanged>[2] = {
-      name: body.name,
-      tool_name: body.tool_name ?? null,
-      description: body.description ?? "",
-      tags: body.tags ?? [],
-      package_name: body.package_name ?? null,
-      graph
-    };
-    if (isOwner) {
-      fields.access = body.access === "public" ? "public" : "private";
-    }
-    if (body.thumbnail !== undefined) fields.thumbnail = body.thumbnail;
-    // Only touch optional columns when the caller sends them, so partial saves
-    // (e.g. graph autosave) don't wipe stored values. A deliberate clear still
-    // sends an explicit null.
-    if (body.settings !== undefined) fields.settings = body.settings ?? null;
-    if (body.run_mode !== undefined && body.run_mode !== null)
-      fields.run_mode = body.run_mode;
-    if (body.workspace_id !== undefined)
-      fields.workspace_id = body.workspace_id ?? null;
-    if (body.html_app !== undefined) fields.html_app = body.html_app ?? null;
-    if (body.app_doc !== undefined) fields.app_doc = body.app_doc;
-
-    const updated = await Workflow.updateFieldsIfUnchanged(
-      id,
-      body.expected_updated_at ?? existing.updated_at,
-      fields
-    );
-    if (!updated) throw new Error(WORKFLOW_CONFLICT_MESSAGE);
-    return updated;
-  }
-
-  if (body.expected_updated_at) {
-    throw new Error("Workflow not found");
-  }
-
-  // Upsert: create the workflow if it doesn't exist
-  return (await Workflow.create({
-    id,
-    user_id: userId,
-    name: body.name,
-    tool_name: body.tool_name ?? null,
-    package_name: body.package_name ?? null,
-    path: body.path ?? null,
-    tags: body.tags ?? [],
-    description: body.description ?? "",
-    thumbnail: body.thumbnail ?? null,
-    thumbnail_url: body.thumbnail_url ?? null,
-    access: body.access === "public" ? "public" : "private",
-    graph: body.graph,
-    settings: body.settings ?? null,
-    run_mode: body.run_mode ?? "workflow",
-    workspace_id: body.workspace_id ?? null,
-    html_app: body.html_app ?? null,
-    app_doc: body.app_doc ?? null
-  })) as Workflow;
-}
-
 export async function handleWorkflowRun(
   request: Request,
   workflowId: string,
@@ -860,85 +725,6 @@ export async function handleDebugSessionRequest(
   }
 
   return errorResponse(404, "Not found");
-}
-
-// ── Autosave ──────────────────────────────────────────────────────────
-
-export async function handleWorkflowAutosave(
-  request: Request,
-  workflowId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "POST" && request.method !== "PUT") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-  if (!workflow) return errorResponse(404, "Workflow not found");
-  if (workflow.user_id !== userId)
-    return errorResponse(404, "Workflow not found");
-
-  const body = await parseBody(request, workflowAutosaveBodySchema);
-  if (!body || !body.graph) {
-    return errorResponse(400, "Invalid body: graph is required");
-  }
-  const graph = body.graph;
-  const force = body.force === true;
-  const { policy: retentionPolicy } = await getStorageRetentionSettings(userId);
-  const maxVersions = retentionPolicy.maxAutosavesPerWorkflow;
-
-  // Rate-limit: skip if last autosave < 30s ago and force is false
-  if (!force) {
-    const last = lastAutosaveTime.get(workflowId);
-    if (last !== undefined && Date.now() - last < AUTOSAVE_RATE_LIMIT_MS) {
-      return jsonResponse({
-        version: null,
-        message: "Autosave skipped (rate limited)",
-        skipped: true
-      });
-    }
-  }
-
-  workflow.graph = graph;
-  if (body.name !== undefined) workflow.name = body.name;
-  if (body.description !== undefined) workflow.description = body.description;
-  if (body.access === "public" || body.access === "private")
-    workflow.access = body.access;
-  await workflow.save();
-  lastAutosaveTime.set(workflowId, Date.now());
-
-  // Create a version and prune old ones if WorkflowVersion table is available
-  let version: JsonObject | null = null;
-  try {
-    const nextVer = await WorkflowVersion.nextVersion(workflowId);
-    const wv = new WorkflowVersion({
-      workflow_id: workflowId,
-      user_id: userId,
-      graph,
-      version: nextVer,
-      save_type: "autosave",
-      name: workflow.name,
-      description: workflow.description
-    });
-    await wv.save();
-    version = {
-      id: wv.id,
-      version: wv.version,
-      workflow_id: wv.workflow_id,
-      save_type: wv.save_type,
-      created_at: wv.created_at
-    } as JsonObject;
-    await WorkflowVersion.pruneOldAutosaves(workflowId, maxVersions);
-  } catch {
-    // non-fatal — version table may not exist
-  }
-
-  return jsonResponse({
-    version,
-    message: "Autosaved successfully",
-    skipped: false
-  });
 }
 
 // ── Workflow tools ─────────────────────────────────────────────────────
@@ -1239,81 +1025,6 @@ export async function handleWorkflowExamplesThumbnail(
   });
 }
 
-// ── Workflow app page ──────────────────────────────────────────────────
-
-export async function handleWorkflowApp(
-  request: Request,
-  workflowId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "GET") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const baseUrl = options.baseUrl ?? "http://127.0.0.1:7777";
-  const html = `<!DOCTYPE html><html><head><title>Workflow App</title>
-<script>window.WORKFLOW_ID=${JSON.stringify(workflowId)};window.API_URL=${JSON.stringify(baseUrl)};</script>
-</head><body><div id="app"></div></body></html>`;
-  return new Response(html, {
-    status: 200,
-    headers: { "content-type": "text/html" }
-  });
-}
-
-// ── Workflow generate-name ─────────────────────────────────────────────
-
-/**
- * Generate a descriptive name for a workflow based on its node types.
- * The Python backend uses an LLM for this; the TS standalone mode derives
- * a name from the workflow graph's node types instead.
- *
- * Node types follow the pattern `<root>.<category>[.<subcategory>...]`,
- * e.g. `nodetool.text.Generate`. We collect unique category segments
- * (parts[1]) to form a human-readable label.
- */
-function deriveWorkflowName(workflow: Workflow): string {
-  const graph = workflow.graph as { nodes?: Array<{ type?: unknown }> } | null;
-  const nodes: Array<{ type?: unknown }> = graph?.nodes ?? [];
-  if (nodes.length === 0) {
-    return workflow.name || "Untitled Workflow";
-  }
-  // Collect unique category segments from node types (second dotted segment).
-  const categories = new Set<string>();
-  for (const n of nodes) {
-    if (isString(n.type)) {
-      const parts = n.type.split(".");
-      // Require at least root.category format.
-      if (parts.length >= 2 && parts[1]) {
-        categories.add(parts[1]);
-      }
-    }
-  }
-  const segments = Array.from(categories).slice(0, 3);
-  if (segments.length === 0) {
-    return workflow.name || "Untitled Workflow";
-  }
-  const label = segments
-    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-    .join(" + ");
-  return `${label} Workflow`;
-}
-
-export async function handleWorkflowGenerateName(
-  request: Request,
-  workflowId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "POST") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-  if (!workflow) return errorResponse(404, "Workflow not found");
-  if (workflow.user_id !== userId)
-    return errorResponse(404, "Workflow not found");
-  const name = deriveWorkflowName(workflow);
-  return jsonResponse({ name });
-}
-
 // ── Workflow DSL export (stub) ─────────────────────────────────────────
 
 export async function handleWorkflowDslExport(
@@ -1520,18 +1231,15 @@ export async function handleWorkflowImportBundle(
   const created: JsonObject[] = [];
   try {
     for (const wf of result.workflows) {
-      const workflow = await createWorkflow(
-        {
-          name: wf.name,
-          description: wf.description ?? "",
-          tags: wf.tags ?? [],
-          access: "private",
-          graph: wf.graph,
-          settings: wf.settings ?? null,
-          run_mode: wf.run_mode ?? "workflow"
-        },
-        userId
-      );
+      const workflow = await createWorkflow(userId, {
+        name: wf.name,
+        description: wf.description ?? "",
+        tags: wf.tags ?? [],
+        access: "private",
+        graph: wf.graph,
+        settings: wf.settings ?? null,
+        run_mode: wf.run_mode ?? "workflow"
+      });
       created.push(toWorkflowResponse(workflow));
     }
   } catch (error) {
@@ -1551,129 +1259,6 @@ export async function handleWorkflowImportBundle(
     missing: result.missing,
     checksum_mismatches: result.checksumMismatches
   });
-}
-
-// ── Workflow versions ──────────────────────────────────────────────────
-
-function toVersionResponse(v: WorkflowVersion) {
-  return {
-    id: v.id,
-    workflow_id: v.workflow_id,
-    user_id: v.user_id,
-    name: v.name,
-    description: v.description,
-    graph: v.graph,
-    version: v.version,
-    save_type: v.save_type ?? "manual",
-    autosave_metadata: v.autosave_metadata ?? null,
-    created_at: v.created_at
-  };
-}
-
-export async function handleWorkflowVersions(
-  request: Request,
-  workflowId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  if (request.method === "POST") {
-    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-    if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId)
-      return errorResponse(404, "Workflow not found");
-
-    const body = await parseBody(request, workflowVersionCreateBodySchema);
-    const nextVer = await WorkflowVersion.nextVersion(workflowId);
-    const version = (await WorkflowVersion.create({
-      workflow_id: workflowId,
-      user_id: userId,
-      name: body?.name ?? null,
-      description: body?.description ?? null,
-      graph: workflow.graph,
-      version: nextVer
-    })) as WorkflowVersion;
-    return jsonResponse(toVersionResponse(version));
-  }
-
-  if (request.method === "GET") {
-    // Version history (and its full graphs) is private to the owner. Enforce
-    // ownership before listing, mirroring the POST branch — otherwise any
-    // authenticated user could read another user's workflows by id (IDOR).
-    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-    if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId && workflow.access !== "public")
-      return errorResponse(404, "Workflow not found");
-
-    const url = new URL(request.url);
-    const limit = parseLimit(url, 100);
-    const versions = await WorkflowVersion.listForWorkflow(workflowId, {
-      limit
-    });
-    return jsonResponse({ versions: versions.map(toVersionResponse) });
-  }
-
-  return errorResponse(405, "Method not allowed");
-}
-
-export async function handleWorkflowVersionByNumber(
-  request: Request,
-  workflowId: string,
-  versionNumber: number,
-  options: HttpApiOptions
-): Promise<Response> {
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  if (request.method === "GET") {
-    const version = await WorkflowVersion.findByVersion(
-      workflowId,
-      versionNumber
-    );
-    if (!version) return errorResponse(404, "Version not found");
-    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-    if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId)
-      return errorResponse(404, "Workflow not found");
-    return jsonResponse(toVersionResponse(version));
-  }
-
-  if (request.method === "POST") {
-    // restore: copy version graph back to workflow
-    const version = await WorkflowVersion.findByVersion(
-      workflowId,
-      versionNumber
-    );
-    if (!version) return errorResponse(404, "Version not found");
-    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-    if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId)
-      return errorResponse(404, "Workflow not found");
-    workflow.graph = version.graph;
-    await workflow.save();
-    return jsonResponse(toWorkflowResponse(workflow));
-  }
-
-  return errorResponse(405, "Method not allowed");
-}
-
-export async function handleWorkflowVersionDeleteById(
-  request: Request,
-  _workflowId: string,
-  versionId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "DELETE") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  const version = (await WorkflowVersion.get(
-    versionId
-  )) as WorkflowVersion | null;
-  if (!version) return errorResponse(404, "Version not found");
-  if (version.user_id !== userId)
-    return errorResponse(404, "Version not found");
-  await version.delete();
-  return new Response(null, { status: 204 });
 }
 
 export async function handleWorkflowsRoot(
@@ -1702,22 +1287,27 @@ export async function handleWorkflowsRoot(
   if (request.method === "POST") {
     const body = await parseBody(request, workflowRequestBodySchema);
     if (!body) return errorResponse(400, "Invalid JSON body");
+    const exampleName =
+      url.searchParams.get("from_example_name")?.trim() || undefined;
     try {
-      const fromPkg =
-        url.searchParams.get("from_example_package")?.trim() ?? undefined;
-      const fromName =
-        url.searchParams.get("from_example_name")?.trim() ?? undefined;
-      if (fromName && (!body.graph || body.graph.nodes?.length === 0)) {
-        const packageName =
-          fromPkg ?? defaultExamplePackageName(options) ?? "nodetool-base";
-        const example = loadExampleGraph(packageName, fromName, options);
-        if (example?.graph) {
-          body.graph = example.graph as WorkflowRequestBody["graph"];
-        }
-      }
-      const workflow = await createWorkflow(body, userId);
+      const workflow = await createWorkflow(
+        userId,
+        body,
+        exampleName
+          ? {
+              packageName:
+                url.searchParams.get("from_example_package")?.trim() ||
+                undefined,
+              exampleName,
+              apiOptions: options
+            }
+          : undefined
+      );
       return jsonResponse(toWorkflowResponse(workflow));
     } catch (error) {
+      if (error instanceof WorkflowServiceError) {
+        return errorResponse(error.status, error.message);
+      }
       const message =
         error instanceof Error ? error.message : "Invalid workflow";
       return errorResponse(400, message);
@@ -1784,32 +1374,27 @@ export async function handleWorkflowById(
     const body = await parseBody(request, workflowRequestBodySchema);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
-      const workflow = await updateWorkflow(workflowId, body, userId);
-      try {
-        await syncRegistrations(workflow, {});
-      } catch (error) {
-        log.error("Trigger registration sync failed", {
-          workflowId,
-          error: error instanceof Error ? error.message : String(error)
-        });
-      }
+      const workflow = await updateWorkflow(userId, workflowId, body);
       return jsonResponse(toWorkflowResponse(workflow));
     } catch (error) {
+      if (error instanceof WorkflowServiceError) {
+        return errorResponse(error.status, error.message);
+      }
       const message =
         error instanceof Error ? error.message : "Invalid workflow";
-      if (message === "Workflow not found") return errorResponse(404, message);
-      if (message === WORKFLOW_CONFLICT_MESSAGE)
-        return errorResponse(409, message);
       return errorResponse(400, message);
     }
   }
 
   if (request.method === "DELETE") {
-    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-    if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId)
-      return errorResponse(404, "Workflow not found");
-    await workflow.delete();
+    try {
+      await deleteWorkflow(userId, workflowId);
+    } catch (error) {
+      if (error instanceof WorkflowServiceError) {
+        return errorResponse(error.status, error.message);
+      }
+      throw error;
+    }
     return new Response(null, { status: 204 });
   }
 
@@ -1834,73 +1419,7 @@ export function toJobResponse(job: Job) {
   };
 }
 
-// ── Nodes dummy ───────────────────────────────────────────────────
-
-export async function handleNodesDummy(request: Request): Promise<Response> {
-  if (request.method !== "GET") {
-    return errorResponse(405, "Method not allowed");
-  }
-  return jsonResponse({
-    type: "asset",
-    uri: "",
-    asset_id: null,
-    data: null,
-    metadata: null
-  });
-}
-
 // ── Asset types & helpers ──────────────────────────────────────────
-
-// Lazily initialized URL builder based on the configured storage backend.
-let _httpStorageConfig: StorageConfig | null = null;
-let _httpUrlBuilder: ((key: string) => Promise<string>) | null = null;
-
-function getHttpUrlBuilder(): (key: string) => Promise<string> {
-  const config = loadAssetStorageConfig();
-  if (!_httpUrlBuilder || _httpStorageConfig?.kind !== config.kind) {
-    _httpStorageConfig = config;
-    _httpUrlBuilder = createAssetUrlBuilder(config);
-  }
-  return _httpUrlBuilder;
-}
-
-export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
-  const isFolder = asset.content_type === "folder";
-  const fileName = isFolder
-    ? null
-    : getAssetFileName(asset.id, asset.content_type);
-  const getUrl = fileName
-    ? await getHttpUrlBuilder()(assetObjectKey(asset.user_id, fileName)).catch(
-        () => null
-      )
-    : null;
-
-  const hasThumbnail = assetHasRasterThumbnail(asset.content_type);
-  const thumbUrl = hasThumbnail
-    ? await getHttpUrlBuilder()(
-        assetObjectKey(asset.user_id, thumbnailKey(asset.id))
-      ).catch(() => null)
-    : null;
-
-  return {
-    id: asset.id,
-    user_id: asset.user_id,
-    workflow_id: asset.workflow_id ?? null,
-    parent_id: asset.parent_id ?? null,
-    name: asset.name,
-    content_type: asset.content_type,
-    size: asset.size ?? null,
-    metadata: asset.metadata ?? null,
-    sketch_document_id: asset.sketch_document_id ?? null,
-    created_at: asset.created_at,
-    get_url: getUrl,
-    thumb_url: thumbUrl,
-    duration: asset.duration ?? null,
-    node_id: asset.node_id ?? null,
-    job_id: asset.job_id ?? null,
-    timeline_id: asset.timeline_id ?? null
-  };
-}
 
 /**
  * Handle multipart file upload at POST /api/assets. JSON-only creation has
@@ -2138,20 +1657,25 @@ export async function handleApiRequest(
     if (response) return response;
   }
 
+  // Restored: the REST-to-tRPC migration on this branch dropped this route as a
+  // side effect, with no tRPC replacement, and its suite (ws-phase2, T-WS-8)
+  // still covers it. Whether to retire a public endpoint is a deliberate
+  // decision, not a refactor's leftover. Note it never consulted storage —
+  // `available` has always been unconditionally true.
   if (pathname === "/api/users/validate_username") {
-    if (request.method !== "GET")
+    if (request.method !== "GET") {
       return errorResponse(405, "Method not allowed");
+    }
     const url = new URL(request.url);
     const username = url.searchParams.get("username")?.trim() ?? null;
-    if (username === null)
+    if (username === null) {
       return errorResponse(400, "username parameter is required");
-    if (!username) return errorResponse(400, "username cannot be empty");
+    }
+    if (!username) {
+      return errorResponse(400, "username cannot be empty");
+    }
     const valid = /^[a-zA-Z0-9_-]{3,32}$/.test(username);
     return jsonResponse({ valid, available: true });
-  }
-
-  if (pathname === "/api/nodes/dummy") {
-    return handleNodesDummy(request);
   }
 
   if (pathname === "/api/nodes/metadata" || pathname === "/api/node/metadata") {
@@ -2256,56 +1780,11 @@ export async function handleApiRequest(
       if (subPath === "debug") {
         return handleWorkflowRun(request, workflowId, options, true);
       }
-      if (subPath === "autosave") {
-        return handleWorkflowAutosave(request, workflowId, options);
-      }
-      if (subPath === "app") {
-        return handleWorkflowApp(request, workflowId, options);
-      }
-      if (subPath === "generate-name") {
-        return handleWorkflowGenerateName(request, workflowId, options);
-      }
       if (subPath === "dsl-export") {
         return handleWorkflowDslExport(request, workflowId, options);
       }
       if (subPath === "export-bundle") {
         return handleWorkflowExportBundle(request, workflowId, options);
-      }
-      if (subPath === "versions") {
-        return handleWorkflowVersions(request, workflowId, options);
-      }
-      // /api/workflows/{id}/versions/{version}/restore
-      const versionRestoreMatch = subPath.match(/^versions\/(\d+)\/restore$/);
-      if (versionRestoreMatch) {
-        const versionNum = Number.parseInt(versionRestoreMatch[1], 10);
-        return handleWorkflowVersionByNumber(
-          request,
-          workflowId,
-          versionNum,
-          options
-        );
-      }
-      // /api/workflows/{id}/versions/{version} (GET by version number)
-      const versionNumMatch = subPath.match(/^versions\/(\d+)$/);
-      if (versionNumMatch) {
-        const versionNum = Number.parseInt(versionNumMatch[1], 10);
-        return handleWorkflowVersionByNumber(
-          request,
-          workflowId,
-          versionNum,
-          options
-        );
-      }
-      // /api/workflows/{id}/versions/{version_id} (DELETE by id — version_id is not numeric)
-      const versionIdMatch = subPath.match(/^versions\/([^/]+)$/);
-      if (versionIdMatch) {
-        const versionId = decodeURIComponent(versionIdMatch[1]);
-        return handleWorkflowVersionDeleteById(
-          request,
-          workflowId,
-          versionId,
-          options
-        );
       }
     }
   }

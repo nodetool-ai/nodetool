@@ -12,7 +12,6 @@ export type ChartRendererInputs = {
   height?: number;
   data?: DataframeRef;
   background_color?: string;
-  despine?: boolean;
   trim_margins?: boolean;
 };
 

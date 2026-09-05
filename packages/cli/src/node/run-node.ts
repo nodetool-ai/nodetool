@@ -7,12 +7,8 @@
  * exercised end-to-end rather than unit-tested.
  */
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
-import {
-  FileStorageAdapter,
-  PERMISSION_GATE_CONTEXT_KEY,
-  ProcessingContext,
-  headlessGate
-} from "@nodetool-ai/runtime";
+import { PERMISSION_GATE_CONTEXT_KEY, ProcessingContext, headlessGate } from "@nodetool-ai/runtime";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { buildFullRegistry } from "../node-registry.js";
 
 interface NodeRunResult {

@@ -1,7 +1,7 @@
 import { createLogger } from "@nodetool-ai/config";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ToolLike } from "./agent-utils.js";
-import { isObjectLike } from "./type-predicates.js";
+import { isObjectLike } from "@nodetool-ai/node-sdk";
 
 // ---------------------------------------------------------------------------
 // Control tool support for Agent nodes with outgoing control edges

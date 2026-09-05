@@ -18,7 +18,7 @@ import {
   ConnectionMatchOption
 } from "../../components/context_menus/ConnectionMatchMenu";
 import {
-  DYNAMIC_KIE_NODE_TYPE,
+  isDynamicSchemaNodeType,
   PREVIEW_NODE_TYPE,
   REROUTE_NODE_TYPE
 } from "../../constants/nodeTypes";
@@ -35,6 +35,18 @@ import { isFunction } from "../../utils/typePredicates";
 const PREVIEW_VALUE_HANDLE = "value";
 const REROUTE_INPUT_HANDLE = "input_value";
 const REROUTE_OUTPUT_HANDLE = "output";
+
+/**
+ * The drop target reaches here as `EventTarget`. Everything below needs
+ * `classList` and `closest`, and every real `HTMLElement` carries both — so
+ * check for those rather than `instanceof HTMLElement`, which is also false
+ * for an element from another document (an iframe, or jsdom's second realm).
+ */
+const isElementTarget = (target: EventTarget | null): target is HTMLElement =>
+  target !== null &&
+  "classList" in target &&
+  typeof (target as HTMLElement).classList === "object" &&
+  isFunction((target as HTMLElement).closest);
 
 const findClassNameinElementOrParents = (
   element: HTMLElement,
@@ -288,29 +300,12 @@ export default function useConnectionHandlers() {
         return;
       }
 
-      // Type guard to ensure event.target is an HTMLElement
-      // Note: For production code, we check instanceof HTMLElement
-      // For tests, we check if target has the necessary properties
       const target = event.target;
-      if (!target) {
+      if (!isElementTarget(target)) {
         resetConnectingState();
         return;
       }
-      // Check if target is an HTMLElement OR has the necessary properties for tests
-      const isHTMLElement = target instanceof HTMLElement;
-      const hasTestProperties =
-        "classList" in target &&
-        "closest" in target &&
-        typeof target.classList === "object" &&
-        isFunction(target.closest);
-
-      if (!isHTMLElement && !hasTestProperties) {
-        resetConnectingState();
-        return;
-      }
-
-      // Cast target to HTMLElement for production use or test mocks
-      const htmlTarget = target as HTMLElement;
+      const htmlTarget = target;
       const targetIsGroup = findClassNameinElementOrParents(
         htmlTarget,
         "loop-node"
@@ -402,9 +397,7 @@ export default function useConnectionHandlers() {
           droppedOnAddDynamicInputButton &&
           nodeMetadata.supports_dynamic_inputs &&
           connectDirection === "source" &&
-          node.type !== "fal.DynamicFal" &&
-          node.type !== DYNAMIC_KIE_NODE_TYPE &&
-          node.type !== "kie.DynamicKie"
+          !isDynamicSchemaNodeType(node.type)
         ) {
           createDynamicInputFromConnection();
           endConnecting();
@@ -592,9 +585,7 @@ export default function useConnectionHandlers() {
         if (
           nodeMetadata.supports_dynamic_inputs &&
           connectDirection === "source" &&
-          node.type !== "fal.DynamicFal" &&
-          node.type !== DYNAMIC_KIE_NODE_TYPE &&
-          node.type !== "kie.DynamicKie"
+          !isDynamicSchemaNodeType(node.type)
         ) {
           createDynamicInputFromConnection();
           endConnecting();

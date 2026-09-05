@@ -532,7 +532,6 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                       onToggleThought={handleToggleThought}
                       onInsertCode={onInsertCode}
                       toolResultsByCallId={toolResultsByCallId}
-                      componentStyles={componentStyles}
                       executionMessagesById={executionMessagesById}
                     />
                   </div>

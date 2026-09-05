@@ -8,8 +8,7 @@
  */
 import type { AudioRef, MusicFill, SfxFill } from "@nodetool-ai/protocol";
 import { SLOT_METADATA_KEY, musicFill, sfxFill } from "@nodetool-ai/protocol";
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import { isString } from "../type-predicates.js";
+import { BaseNode, isString, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
@@ -147,7 +146,7 @@ export class SoundEffectNode extends BaseNode {
     title: "Audio",
     description: "The generated sound effect."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "str",
@@ -155,7 +154,7 @@ export class SoundEffectNode extends BaseNode {
     title: "Slot ID",
     description: "The manifest slot this clip fills, e.g. sfx.jump."
   })
-  declare slot_id: any;
+  declare slot_id: string;
 
   @prop({
     type: "float",
@@ -164,7 +163,7 @@ export class SoundEffectNode extends BaseNode {
     description: "Target length from the manifest slot.",
     min: 0.01
   })
-  declare seconds: any;
+  declare seconds: number;
 
   @prop({
     type: "bool",
@@ -172,11 +171,11 @@ export class SoundEffectNode extends BaseNode {
     title: "Trim",
     description: "Cut the clip to the target length with a 10 ms fade-out."
   })
-  declare trim: any;
+  declare trim: boolean;
 
   async process(context?: ProcessingContext): Promise<SoundEffectNodeOutputs> {
-    const target = Number(this.seconds);
-    const bytes = await requireAudioBytes(this.audio ?? {}, context);
+    const target = this.seconds;
+    const bytes = await requireAudioBytes(this.audio, context);
     let wav = await decodeAudioToWav(bytes);
     if (this.trim !== false) {
       const targetFrames = Math.round(target * wav.sampleRate);
@@ -187,7 +186,7 @@ export class SoundEffectNode extends BaseNode {
     const seconds = frameCount(wav) / wav.sampleRate;
     const fill = sfxFill.parse({
       kind: "sfx",
-      slot_id: String(this.slot_id ?? ""),
+      slot_id: this.slot_id,
       seconds
     });
     const wavBytes = encodeWav(wav.samples, wav.sampleRate, wav.numChannels);
@@ -224,7 +223,7 @@ export class MusicLoopNode extends BaseNode {
     title: "Audio",
     description: "The generated music track."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "str",
@@ -232,7 +231,7 @@ export class MusicLoopNode extends BaseNode {
     title: "Slot ID",
     description: "The manifest slot this track fills, e.g. music.level."
   })
-  declare slot_id: any;
+  declare slot_id: string;
 
   @prop({
     type: "float",
@@ -241,7 +240,7 @@ export class MusicLoopNode extends BaseNode {
     description: "Target length from the manifest slot.",
     min: 0.1
   })
-  declare seconds: any;
+  declare seconds: number;
 
   @prop({
     type: "int",
@@ -251,7 +250,7 @@ export class MusicLoopNode extends BaseNode {
     min: 0,
     max: 5000
   })
-  declare crossfade_ms: any;
+  declare crossfade_ms: number;
 
   @prop({
     type: "bool",
@@ -259,12 +258,12 @@ export class MusicLoopNode extends BaseNode {
     title: "Trim",
     description: "Cut the track to the target length before closing the loop."
   })
-  declare trim: any;
+  declare trim: boolean;
 
   async process(context?: ProcessingContext): Promise<MusicLoopNodeOutputs> {
-    const target = Number(this.seconds);
-    const crossfadeMs = Math.max(0, Number(this.crossfade_ms ?? 250));
-    const bytes = await requireAudioBytes(this.audio ?? {}, context);
+    const target = this.seconds;
+    const crossfadeMs = Math.max(0, this.crossfade_ms);
+    const bytes = await requireAudioBytes(this.audio, context);
     let wav = await decodeAudioToWav(bytes);
     if (this.trim !== false) {
       // Trim to target plus the crossfade so the loop lands on the target.
@@ -277,7 +276,7 @@ export class MusicLoopNode extends BaseNode {
     const seconds = frameCount(wav) / wav.sampleRate;
     const fill = musicFill.parse({
       kind: "music",
-      slot_id: String(this.slot_id ?? ""),
+      slot_id: this.slot_id,
       seconds,
       loop: true
     });

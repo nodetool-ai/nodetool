@@ -6,7 +6,7 @@ import { Buffer } from "node:buffer";
 import { describe, it, expect, vi } from "vitest";
 import { toolForCapabilityName } from "../../src/capabilities/lazy-tool.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { InMemoryStorageAdapter } from "@nodetool-ai/runtime";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 
 const saveAssetTool = () => toolForCapabilityName("save_asset");
 const readAssetTool = () => toolForCapabilityName("read_asset");

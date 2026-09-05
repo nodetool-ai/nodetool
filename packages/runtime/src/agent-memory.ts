@@ -27,7 +27,7 @@
  *   - **Reactive**: subscribers can react to writes.
  */
 
-import { isString } from "./type-predicates.js";
+import { isString } from "@nodetool-ai/protocol";
 
 export type MemoryKind = "task_result" | "step_result" | "input" | "shared";
 

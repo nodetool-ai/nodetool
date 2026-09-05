@@ -838,25 +838,31 @@ export class KieAINode extends BaseNode {
     title: "Model Info",
     description: "Paste the full API documentation from the kie.ai model page."
   })
-  declare model_info: any;
+  declare model_info: string;
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<Record<string, unknown>> {
-    const modelInfo = String(this.model_info ?? "").trim();
+    const modelInfo = this.model_info.trim();
     if (!modelInfo)
       throw new Error("model_info is empty. Paste kie.ai API documentation.");
     const apiKey = getApiKey(this._secrets);
     const bundle = parseKieDocs(modelInfo);
 
     const apiInput: Record<string, unknown> = {};
+    // Parameter names come from the pasted kie.ai docs, so which property
+    // matches is only known at runtime. This reads the instance itself, not
+    // `serialize()`: serialize only emits *declared* properties, and the
+    // values assign() puts on a node for an undeclared doc parameter are not
+    // among them — routing through it drops every such parameter.
+    const self = this as Record<string, unknown>;
     for (const p of bundle.params) {
       const fieldName = fieldNameForParam(p);
       const val =
         this.getDynamic(fieldName) ??
-        (this as any)[fieldName] ??
+        self[fieldName] ??
         this.getDynamic(p.name) ??
-        (this as any)[p.name];
+        self[p.name];
       if (val === undefined || val === null) {
         if (p.required) throw new Error(`Missing required input: ${fieldName}`);
         continue;
@@ -918,7 +924,8 @@ export class KieAINode extends BaseNode {
         apiKey,
         bundle.execution.submitEndpoint,
         apiInput,
-        bundle.execution.responseIdKey
+        bundle.execution.responseIdKey,
+        context?.signal
       );
     } else {
       result = await kieExecuteTask(
@@ -926,7 +933,11 @@ export class KieAINode extends BaseNode {
         bundle.modelId,
         apiInput,
         2000,
-        300
+        300,
+        undefined,
+        undefined,
+        undefined,
+        context?.signal
       );
     }
 

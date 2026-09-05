@@ -1,5 +1,8 @@
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { isObjectLike, isString } from "../type-predicates.js";
+import {
+  isObjectLike,
+  isString
+} from "@nodetool-ai/node-sdk";
 
 export type ImageRefLike = {
   data?: string | Uint8Array;

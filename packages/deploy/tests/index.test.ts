@@ -73,30 +73,7 @@ describe("deploy index exports", () => {
     // admin-client
     expect(mod.AdminHTTPClient).toBeDefined();
 
-    // admin-operations
-    expect(mod.streamHFModelDownload).toBeDefined();
-    expect(mod.getHFToken).toBeDefined();
-
-    // admin-routes
-    expect(mod.handleDownloadHuggingfaceModel).toBeDefined();
-    expect(mod.handleDownloadOllamaModel).toBeDefined();
-    expect(mod.handleScanCache).toBeDefined();
-    expect(mod.encodeSSE).toBeDefined();
-    expect(mod.HttpError).toBeDefined();
-
-    // sync
-    expect(mod.extractModels).toBeDefined();
-
     // workflow-syncer
     expect(mod.WorkflowSyncer).toBeDefined();
-
-    // storage-routes
-    expect(mod.validateKey).toBeDefined();
-    expect(mod.getFile).toBeDefined();
-    expect(mod.putFile).toBeDefined();
-    expect(mod.deleteFile).toBeDefined();
-
-    // collection-routes
-    expect(mod.handleCollectionIndex).toBeDefined();
   });
 });

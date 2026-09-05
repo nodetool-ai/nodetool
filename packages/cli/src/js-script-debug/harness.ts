@@ -150,11 +150,11 @@ async function loadCore(): Promise<JsScriptDebugCore> {
 async function loadExecutor(): Promise<JsScriptExecutor> {
   const { runCodeBody } = await import("@nodetool-ai/agents");
   const {
-    FileStorageAdapter,
     PERMISSION_GATE_CONTEXT_KEY,
     ProcessingContext,
     headlessGate
   } = await import("@nodetool-ai/runtime");
+  const { FileStorageAdapter } = await import("@nodetool-ai/storage");
   const { getDefaultAssetsPath } = await import("@nodetool-ai/config");
   const { JS_SCRIPT_MAX_TIMEOUT_SECONDS } =
     await import("@nodetool-ai/protocol/api-schemas/js-scripts.js");

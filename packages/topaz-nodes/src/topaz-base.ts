@@ -24,17 +24,17 @@ import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
-import { fetchExternalMedia } from "@nodetool-ai/runtime";
-import { safeFetch } from "@nodetool-ai/runtime";
+import { loadMediaRefBytes, safeFetch, sniffImageMime } from "@nodetool-ai/runtime";
+import type { MediaRefValue, ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  fetchWithRetry,
+  imageRefFromBytes,
+  pollUntilTerminal
+} from "@nodetool-ai/runtime/provider-transport";
 
 const execFile = promisify(execFileCb);
-
-const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
-const sleep = (ms: number): Promise<void> =>
-  new Promise((r) => setTimeout(r, ms));
 
 export type TopazVideoKind = "upscale" | "interpolate";
 
@@ -95,19 +95,6 @@ export function sourceContainerFromRef(ref: unknown): string {
   return "mp4";
 }
 
-type StorageLike = {
-  retrieve: (uri: string) => Promise<Uint8Array | null> | Uint8Array | null;
-} | null;
-
-type AssetContext =
-  | {
-      storage?: StorageLike;
-      resolveAssetBytes?: (
-        uri: string
-      ) => Promise<{ bytes: Uint8Array | null }>;
-    }
-  | undefined;
-
 export function getApiKey(secrets: Record<string, string>): string {
   const key = secrets?.TOPAZ_API_KEY || process.env.TOPAZ_API_KEY || "";
   if (!key) throw new Error("TOPAZ_API_KEY is not configured");
@@ -121,177 +108,56 @@ function authHeaders(
   return { "X-API-Key": apiKey, ...extra };
 }
 
-/**
- * Resolve a `Retry-After` header to milliseconds. The header may be either a
- * delay in seconds or an HTTP date; an unparseable value falls back to the
- * caller's backoff so we never end up with `sleep(NaN)` (≈ immediate retry).
- */
-export function parseRetryAfterMs(
-  headerValue: string | null,
-  fallbackMs: number
-): number {
-  if (!headerValue) return fallbackMs;
-  const seconds = Number(headerValue);
-  if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
-  const dateMs = Date.parse(headerValue);
-  if (Number.isFinite(dateMs)) return Math.max(0, dateMs - Date.now());
-  return fallbackMs;
-}
-
-const IDEMPOTENT_METHODS = new Set(["GET", "HEAD", "PUT"]);
-
-/**
- * Fetch with backoff on retryable statuses (and transient network errors).
- *
- * Only idempotent requests (GET/HEAD, and PUTs to presigned upload URLs) are
- * retried — retrying a job-creating POST or a state-transitioning PATCH could
- * duplicate work (e.g. submit two billable video jobs) when the server already
- * acted before returning a 5xx, so those get a single attempt.
- */
-async function fetchWithRetry(
-  url: string,
-  init: RequestInit = {},
-  maxAttempts = 6
-): Promise<Response> {
-  const method = (init.method ?? "GET").toUpperCase();
-  const attempts = IDEMPOTENT_METHODS.has(method) ? maxAttempts : 1;
-  let delay = 1000;
-  let last: Response | undefined;
-  for (let attempt = 1; attempt <= attempts; attempt++) {
-    let resp: Response;
-    try {
-      resp = await fetch(url, init);
-    } catch (err) {
-      // Network-level failure (reset/timeout). Retry idempotent requests;
-      // surface immediately otherwise.
-      if (attempt === attempts) throw err;
-      await sleep(delay);
-      delay = Math.min(delay * 2, 30000);
-      continue;
-    }
-    if (!RETRYABLE_STATUS.has(resp.status)) return resp;
-    last = resp;
-    if (attempt === attempts) break;
-    const wait = parseRetryAfterMs(resp.headers.get("Retry-After"), delay);
-    // Drain the discarded body so the connection can be reused.
-    await resp.arrayBuffer().catch(() => undefined);
-    await sleep(wait);
-    delay = Math.min(delay * 2, 30000);
-  }
-  return last as Response;
-}
-
 // Image API status states (per /reference/api-endpoints/image/status):
 //   Pending | Processing | Completed | Cancelled | Failed
 // Video API status states (per /reference/api-endpoints/video/get-request-status):
 //   requested | accepted | initializing | preprocessing | processing |
 //   postprocessing | complete | canceling | canceled | failed
-// We accept both vocabularies in one helper since callers point us at the
-// right endpoint and we lowercase the value before comparing.
-const SUCCESS_STATES = new Set(["completed", "complete"]);
-const FAILURE_STATES = new Set(["failed", "cancelled", "canceled"]);
-
-async function pollUntilTerminal(
+// Both vocabularies are covered by the shared terminal-state sets; callers point
+// us at the right endpoint and the status is lowercased before comparison.
+async function pollTopazStatus(
   url: string,
   headers: Record<string, string>,
   pollInterval: number,
   maxAttempts: number
 ): Promise<Record<string, unknown>> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const resp = await fetchWithRetry(url, { headers });
-    if (!resp.ok) throw new Error(`Topaz status poll failed: ${resp.status}`);
-    const data = (await resp.json()) as Record<string, unknown>;
-    const status = String(data.status ?? "").toLowerCase();
-    if (SUCCESS_STATES.has(status)) return data;
-    if (FAILURE_STATES.has(status)) {
-      throw new Error(`Topaz job failed: ${JSON.stringify(data)}`);
+  return pollUntilTerminal<Record<string, unknown>>(
+    async () => {
+      const resp = await fetchWithRetry(url, { headers });
+      if (!resp.ok) throw new Error(`Topaz status poll failed: ${resp.status}`);
+      return (await resp.json()) as Record<string, unknown>;
+    },
+    {
+      intervalMs: pollInterval,
+      maxAttempts,
+      onFailure: (data) => new Error(`Topaz job failed: ${JSON.stringify(data)}`),
+      onTimeout: () =>
+        new Error(`Topaz job did not complete within ${maxAttempts} poll attempts`)
     }
-    if (attempt < maxAttempts - 1) await sleep(pollInterval);
-  }
-  throw new Error(
-    `Topaz job did not complete within ${maxAttempts} poll attempts`
   );
 }
 
-function localFilePath(uri: string): string {
-  try {
-    return fileURLToPath(new URL(uri));
-  } catch {
-    return uri.slice("file://".length);
-  }
-}
-
+/**
+ * Resolve an asset ref to raw bytes. Delegates to the canonical
+ * {@link loadMediaRefBytes}, which — unlike the copy this replaced — checks
+ * `data.length > 0` rather than bare truthiness (a zero-length `Uint8Array` is
+ * truthy and shadowed a perfectly good `uri`) and resolves an `asset_id`-only
+ * ref. Throws rather than returning null: every caller here needs the bytes.
+ */
 export async function refToBytes(
   ref: unknown,
-  context?: AssetContext
+  context?: ProcessingContext
 ): Promise<Uint8Array> {
   if (!ref || typeof ref !== "object") {
     throw new Error("Asset is required");
   }
-  const r = ref as { uri?: string; data?: Uint8Array | string };
-
-  if (r.data) {
-    if (typeof r.data === "string") {
-      return new Uint8Array(Buffer.from(r.data, "base64"));
-    }
-    return r.data;
-  }
-
-  const uri = r.uri;
-  if (!uri) throw new Error("Asset has no data or URI");
-
-  const dataUriMatch = uri.match(/^data:[^;]*;base64,(.+)$/s);
-  if (dataUriMatch) {
-    return new Uint8Array(Buffer.from(dataUriMatch[1], "base64"));
-  }
-
-  if (
-    (uri.startsWith("asset://") || uri.startsWith("package://")) &&
-    context?.resolveAssetBytes
-  ) {
-    const { bytes } = await context.resolveAssetBytes(uri);
-    if (bytes) return new Uint8Array(bytes);
-  }
-
-  if (context?.storage) {
-    const stored = await context.storage.retrieve(uri);
-    if (stored) return new Uint8Array(stored);
-  }
-
-  if (uri.startsWith("file://")) {
-    return new Uint8Array(await fs.readFile(localFilePath(uri)));
-  }
-
-  if (uri.startsWith("http://") || uri.startsWith("https://")) {
-    // Caller-supplied media uri — the media-ref egress policy decides.
-    const resp = await fetchExternalMedia(uri);
-    if (!resp.ok) throw new Error(`Failed to fetch asset: ${resp.status}`);
-    return new Uint8Array(await resp.arrayBuffer());
-  }
-
-  throw new Error(`Cannot resolve asset URI: ${uri}`);
+  const bytes = await loadMediaRefBytes(ref as MediaRefValue, context);
+  if (!bytes) throw new Error("Asset has no data or URI");
+  return bytes;
 }
 
-// Image result → ImageRef (with sharp metadata when available)
-export async function topazImageRef(
-  bytes: Uint8Array
-): Promise<Record<string, unknown>> {
-  const base64 = Buffer.from(bytes).toString("base64");
-  try {
-    const sharp = (await import("sharp")).default;
-    const meta = await sharp(Buffer.from(bytes)).metadata();
-    return {
-      type: "image",
-      uri: "",
-      data: base64,
-      mimeType: meta.format ? `image/${meta.format}` : "image/png",
-      width: meta.width,
-      height: meta.height
-    };
-  } catch {
-    return { type: "image", uri: "", data: base64 };
-  }
-}
+/** Image result → ImageRef (with sharp metadata when available). */
+export const topazImageRef = imageRefFromBytes;
 
 function parseFrameRate(raw: unknown): number {
   if (typeof raw !== "string" || !raw) return 0;
@@ -374,36 +240,6 @@ export async function probeVideoMetadata(
   });
 }
 
-function detectImageMime(bytes: Uint8Array): string {
-  if (
-    bytes.length >= 4 &&
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47
-  ) {
-    return "image/png";
-  }
-  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8) {
-    return "image/jpeg";
-  }
-  if (
-    bytes.length >= 4 &&
-    // TIFF little-endian (II*\0) or big-endian (MM\0*).
-    ((bytes[0] === 0x49 &&
-      bytes[1] === 0x49 &&
-      bytes[2] === 0x2a &&
-      bytes[3] === 0x00) ||
-      (bytes[0] === 0x4d &&
-        bytes[1] === 0x4d &&
-        bytes[2] === 0x00 &&
-        bytes[3] === 0x2a))
-  ) {
-    return "image/tiff";
-  }
-  return "application/octet-stream";
-}
-
 export async function topazExecuteImageTask(
   apiKey: string,
   spec: TopazImageSpec,
@@ -413,7 +249,7 @@ export async function topazExecuteImageTask(
   const form = new FormData();
   const blob = new Blob(
     [new Uint8Array(imageBytes) as Uint8Array<ArrayBuffer>],
-    { type: detectImageMime(imageBytes) }
+    { type: sniffImageMime(imageBytes) ?? "application/octet-stream" }
   );
   form.set("image", blob, "input");
   for (const [k, v] of Object.entries(fields)) {
@@ -447,7 +283,7 @@ export async function topazExecuteImageTask(
   }
 
   const statusUrl = spec.statusEndpoint.replace("{process_id}", processId);
-  await pollUntilTerminal(
+  await pollTopazStatus(
     statusUrl,
     authHeaders(apiKey),
     spec.pollInterval,
@@ -672,7 +508,7 @@ export async function topazExecuteVideoTask(
   }
 
   // 5. Poll status
-  const final = await pollUntilTerminal(
+  const final = await pollTopazStatus(
     spec.statusEndpoint.replace("{request_id}", requestId),
     authHeaders(apiKey),
     spec.pollInterval,

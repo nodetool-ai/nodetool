@@ -8,20 +8,19 @@
 
 import {
   applyContentCardBody,
+  assetKindOf,
   BaseNode,
   classifyFields,
   classNameToTitle,
+  coerceManifestScalar,
   defaultForPropType,
+  isListAssetPropType,
+  promptAssetOverridesFor,
   propertyOf,
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
-import type {
-  ProcessingContext,
-  PromptAssetTextField,
-  PromptAssetInputField
-} from "@nodetool-ai/runtime";
-import { mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   getFalApiKey,
   falSubmitWithMeta,
@@ -53,38 +52,12 @@ export interface FalManifestEntry {
     description: string;
     fieldType: string;
     required: boolean;
-    enumValues?: string[];
+    enumValues?: Array<string | number>;
     nestedAssetKey?: string;
     parentField?: string;
     min?: number;
     max?: number;
   }>;
-}
-
-function isAssetPropType(propType: string): boolean {
-  const lower = propType.toLowerCase();
-  return [
-    "image",
-    "video",
-    "audio",
-    "list[image]",
-    "list[video]",
-    "list[audio]"
-  ].includes(lower);
-}
-
-function isListAsset(propType: string): boolean {
-  return propType.toLowerCase().startsWith("list[") && isAssetPropType(propType);
-}
-
-function assetKind(
-  propType: string
-): "image" | "video" | "audio" | "none" {
-  const lower = propType.toLowerCase();
-  if (lower === "image" || lower === "list[image]") return "image";
-  if (lower === "video" || lower === "list[video]") return "video";
-  if (lower === "audio" || lower === "list[audio]") return "audio";
-  return "none";
 }
 
 /** A value in a FAL endpoint's JSON response body. */
@@ -95,22 +68,6 @@ type FalResponseValue =
   | null
   | FalResponseValue[]
   | { [key: string]: FalResponseValue };
-
-function castValue(value: NodeValue, propType: string): NodeValue {
-  if (value === null || value === undefined) return value;
-  if (propType.startsWith("list[") || propType.startsWith("dict[")) {
-    return value; // pass through structured types as-is
-  }
-  switch (propType) {
-    case "int":
-    case "float":
-      return Number(value);
-    case "bool":
-      return Boolean(value);
-    default:
-      return String(value);
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Field Classification
@@ -135,46 +92,12 @@ function computeFieldClassification(
   );
 }
 
-/**
- * Route `asset://` media mentioned inline in a node's text inputs onto its
- * empty image/audio/video inputs (and strip the mentions from the text).
- * Shared with KIE / Replicate / image-to-image via `mapPromptAssetsToInputs`.
- */
-async function promptAssetOverrides(
+function promptAssetOverrides(
   instance: BaseNode,
   spec: FalManifestEntry,
   context?: ProcessingContext
 ): Promise<Record<string, NodeValue>> {
-  const textFields: PromptAssetTextField[] = [];
-  const assetFields: PromptAssetInputField[] = [];
-  for (const field of spec.inputFields) {
-    if (field.parentField) continue;
-    const kind = assetKind(field.propType);
-    if (kind === "image" || kind === "audio" || kind === "video") {
-      const list = isListAsset(field.propType);
-      const value = propertyOf(instance, field.name);
-      const hasSource = list
-        ? Array.isArray(value) && value.some(isRefSet)
-        : isRefSet(value);
-      assetFields.push({
-        name: field.name,
-        label: field.apiParamName ?? field.name,
-        kind,
-        list,
-        hasSource
-      });
-    } else if (field.propType.toLowerCase() === "str") {
-      textFields.push({
-        name: field.name,
-        value: String(propertyOf(instance, field.name) ?? "")
-      });
-    }
-  }
-  // SAFETY: the overrides are asset refs this call injected from `asset://`
-  // mentions, so they are node property values like the ones they replace.
-  return mapPromptAssetsToInputs(textFields, assetFields, context) as Promise<
-    Record<string, NodeValue>
-  >;
+  return promptAssetOverridesFor(instance, spec.inputFields, isRefSet, context);
 }
 
 function resolveFieldValue(
@@ -185,13 +108,13 @@ function resolveFieldValue(
 ): NodeValue {
   const primary =
     fieldName in instance ? propertyOf(instance, fieldName) : undefined;
-  const kind = propType ? assetKind(propType) : "none";
+  const kind = propType ? assetKindOf(propType) : null;
 
   if (
     apiParamName &&
     apiParamName in instance &&
     propertyOf(instance, apiParamName) !== undefined &&
-    (primary === undefined || (kind !== "none" && !isRefSet(primary)))
+    (primary === undefined || (kind !== null && !isRefSet(primary)))
   ) {
     return propertyOf(instance, apiParamName);
   }
@@ -201,7 +124,7 @@ function resolveFieldValue(
   if (
     fieldName === "mask" &&
     propertyOf(instance, "mask_url") !== undefined &&
-    (primary === undefined || (kind !== "none" && !isRefSet(primary)))
+    (primary === undefined || (kind !== null && !isRefSet(primary)))
   ) {
     return propertyOf(instance, "mask_url");
   }
@@ -220,8 +143,8 @@ function validateRequiredAssetArgs(
 ): void {
   for (const field of spec.inputFields) {
     if (field.parentField || !field.required) continue;
-    const kind = assetKind(field.propType);
-    if (kind === "none") continue;
+    const kind = assetKindOf(field.propType);
+    if (!kind) continue;
     const value = resolveFieldValue(
       instance,
       field.name,
@@ -238,7 +161,7 @@ function validateRequiredAssetArgs(
       `set the property to ${kind === "video" ? "a" : "an"} ${kind} with a ` +
       `uri, asset_id, or inline data` +
       suffix;
-    if (isListAsset(field.propType)) {
+    if (isListAssetPropType(field.propType)) {
       const list = value as Record<string, unknown>[] | undefined;
       if (!list?.some((ref) => isRefSet(ref))) {
         throw new Error(message);
@@ -281,10 +204,10 @@ async function buildArgs(
             field.propType
           );
     const apiName = field.apiParamName ?? field.name;
-    const kind = assetKind(field.propType);
+    const kind = assetKindOf(field.propType);
 
-    if (kind !== "none") {
-      if (isListAsset(field.propType)) {
+    if (kind) {
+      if (isListAssetPropType(field.propType)) {
         const list = value as Record<string, unknown>[] | undefined;
         if (list?.length) {
           const urls: string[] = [];
@@ -316,7 +239,11 @@ async function buildArgs(
             );
             for (const subField of subFields) {
               const subValue = propertyOf(instance, subField.name);
-              nested[subField.name] = castValue(subValue, subField.propType);
+              nested[subField.name] = coerceManifestScalar(
+                subValue,
+                subField.propType,
+                subField.enumValues
+              );
             }
             args[apiName] = nested;
           }
@@ -333,7 +260,11 @@ async function buildArgs(
         }
       }
     } else {
-      args[apiName] = castValue(value, field.propType);
+      args[apiName] = coerceManifestScalar(
+        value,
+        field.propType,
+        field.enumValues
+      );
     }
   }
 
@@ -347,9 +278,9 @@ function coerceAssetRef(
 ): FalResponseValue {
   if (!value || typeof value !== "object") return value;
   const obj = value as Record<string, FalResponseValue>;
-  const kind = assetKind(propType);
+  const kind = assetKindOf(propType);
   if (obj.url) {
-    return { type: kind !== "none" ? kind : propType, uri: obj.url, width: obj.width, height: obj.height };
+    return { type: kind ?? propType, uri: obj.url, width: obj.width, height: obj.height };
   }
   return value;
 }
@@ -461,7 +392,7 @@ function mapOutput(
         );
         for (const [key, value] of Object.entries(res)) {
           const propType = fieldMap.get(key);
-          if (propType && isAssetPropType(propType)) {
+          if (propType && assetKindOf(propType) !== null) {
             // SAFETY: `res` is the endpoint's JSON response body, so every
             // value in it is a JSON value.
             out[key] = coerceAssetRef(value as FalResponseValue, propType);
@@ -592,8 +523,8 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     const metaEntries: Record<string, string> = {};
     for (const f of spec.outputFields) {
       entries[f.name] = f.propType;
-      const kind = assetKind(f.propType);
-      if (kind !== "none") {
+      const kind = assetKindOf(f.propType);
+      if (kind) {
         metaEntries[f.name] = kind;
       }
     }
@@ -641,7 +572,7 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     // string must not shadow the AssetRef default, so ignore non-object
     // manifest defaults for asset propTypes.
     const manifestDefault =
-      assetKind(field.propType) !== "none" &&
+      assetKindOf(field.propType) !== null &&
       typeof field.default !== "object"
         ? undefined
         : field.default;
@@ -655,7 +586,7 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     // it before the run starts — and before an agent pays for the upstream
     // half of a graph. Only asset fields: the non-asset ones carry manifest
     // defaults that already satisfy the requirement.
-    if (field.required && isAssetPropType(field.propType)) {
+    if (field.required && assetKindOf(field.propType) !== null) {
       propOptions.required = true;
     }
     if (field.description) propOptions.description = field.description;

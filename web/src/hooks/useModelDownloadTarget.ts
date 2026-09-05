@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useWorkers } from "./useWorkers";
+import { useActiveWorker } from "./useWorkers";
 import type { ModelScope } from "../stores/ModelManagerStore";
 
 export interface ModelDownloadTarget {
@@ -15,7 +15,7 @@ export interface ModelDownloadTarget {
  * rule the Model Manager applies to its downloads.
  */
 export const useModelDownloadTarget = (): ModelDownloadTarget => {
-  const { activeWorker } = useWorkers();
+  const activeWorker = useActiveWorker();
 
   return useMemo(
     () => ({

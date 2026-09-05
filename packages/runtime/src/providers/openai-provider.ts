@@ -4,7 +4,6 @@ import OpenAI, { toFile } from "openai";
 // notably the Electron main bundle, where Vite/Rollup can't resolve sharp's
 // dynamic require for `@img/sharp-*.node` and the app crashes at launch.
 import type { Chunk } from "@nodetool-ai/protocol";
-import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { createLogger, importHidden } from "@nodetool-ai/config";
 import {
   BaseProvider,
@@ -39,11 +38,12 @@ import {
   streamResponsesEvents
 } from "./responses-api.js";
 import {
+  PROVIDER_IDS,
   isCallable,
   isNumber,
   isRecord,
   isString
-} from "../type-predicates.js";
+} from "@nodetool-ai/protocol";
 import {
   isProviderMessageEvent,
   isProviderSessionUpdate,
