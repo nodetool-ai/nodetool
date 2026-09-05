@@ -145,6 +145,99 @@ export const shotSourceDurationMs = (shot: Shot): number | null => {
     : null;
 };
 
+/** Shots by id, for resolving {@link Shot.covered_by}. */
+export const shotsById = (shots: readonly Shot[]): Map<string, Shot> =>
+  new Map(shots.map((shot) => [shot.id, shot]));
+
+/**
+ * Where a shot's picture comes from: its own clip, or a window into another's.
+ *
+ * Assembly used to read `shot.clip` directly, so a shot covered by a fused
+ * generation had no picture at all and was skipped — the run that hit this
+ * trimmed the fused clips onto the track by hand and the board never caught up.
+ */
+export interface ShotSource {
+  /** The asset the clip plays. */
+  assetId: string;
+  /** The shot that owns it — this shot, unless it is covered. */
+  sourceShotId: string;
+  /** Where this shot starts inside that asset, in ms. */
+  inPointMs: number;
+  /**
+   * Footage available from `inPointMs` on, or null when the asset's length is
+   * unknown and no coverage window pins it.
+   */
+  availableMs: number | null;
+  /** Length the coverage window fixes, when it names an end. */
+  windowMs: number | null;
+}
+
+export interface ShotSourceOptions {
+  /**
+   * Require the shot's lifecycle status to be `rendered`, as assembly does.
+   * The in-editor preview passes false: it plays a selected take while the
+   * board is still working, and its own tests pin that.
+   */
+  requireRendered?: boolean;
+}
+
+/**
+ * Resolve a shot's picture, following {@link Shot.covered_by} one hop.
+ *
+ * Returns null for a shot that has neither its own clip nor a covering shot
+ * that has one — the same shots assembly skipped before.
+ */
+export function shotSource(
+  shot: Shot,
+  byId?: ReadonlyMap<string, Shot>,
+  options?: ShotSourceOptions
+): ShotSource | null {
+  const playable = (candidate: Shot): boolean =>
+    options?.requireRendered === false
+      ? assetIdOf(candidate.clip) !== undefined
+      : isAssemblableShot(candidate);
+  if (playable(shot)) {
+    return {
+      assetId: shot.clip!.asset_id as string,
+      sourceShotId: shot.id,
+      inPointMs: 0,
+      availableMs: shotSourceDurationMs(shot),
+      windowMs: null
+    };
+  }
+  const coverage = shot.covered_by;
+  if (!coverage || !byId) return null;
+  const cover = byId.get(coverage.shot_id);
+  // One hop: a covering shot that is itself covered has no source length to
+  // measure a window against.
+  if (!cover || !playable(cover)) return null;
+  const inPointMs = Math.max(0, Math.round((coverage.start_seconds ?? 0) * 1000));
+  const windowMs =
+    typeof coverage.end_seconds === "number" && coverage.end_seconds > 0
+      ? Math.max(0, Math.round(coverage.end_seconds * 1000) - inPointMs)
+      : null;
+  const coverSourceMs = shotSourceDurationMs(cover);
+  const remainingMs =
+    coverSourceMs === null ? null : Math.max(0, coverSourceMs - inPointMs);
+  const availableMs =
+    windowMs === null
+      ? remainingMs
+      : remainingMs === null
+        ? windowMs
+        : Math.min(windowMs, remainingMs);
+  return {
+    assetId: cover.clip!.asset_id as string,
+    sourceShotId: cover.id,
+    inPointMs,
+    availableMs,
+    windowMs
+  };
+}
+
+/** Whether a shot's picture is a window into another shot's clip. */
+export const isCoveredShot = (shot: Shot): boolean =>
+  !isAssemblableShot(shot) && !!shot.covered_by?.shot_id;
+
 /** How a shot's laid-down length was decided, and what it cost. */
 export interface ShotLayout {
   /** Length on the timeline. */
@@ -166,19 +259,33 @@ export interface ShotLayout {
  * the two never met. Now the window is explicit: a shot keeps its directed
  * length, capped at the footage that exists, and reports what it left on the
  * floor so a caller can re-time deliberately.
+ *
+ * A covered shot is cut out of the middle of someone else's clip, so its
+ * window — not its `duration_seconds` — is what the cut uses when the coverage
+ * names an end. That is the whole point of fusing: the run was directed as one
+ * generation and split at timecodes the caller chose.
  */
-export function layoutShot(shot: Shot): ShotLayout {
-  const intended = shotDurationMs(shot);
-  const source = shotSourceDurationMs(shot);
-  if (source === null) {
-    return { durationMs: intended, unusedSourceMs: 0 };
+export function layoutShot(shot: Shot, source?: ShotSource | null): ShotLayout {
+  const resolved = source === undefined ? shotSource(shot) : source;
+  const intended = resolved?.windowMs ?? shotDurationMs(shot);
+  const available = resolved?.availableMs ?? null;
+  const inPointMs = resolved?.inPointMs ?? 0;
+  if (available === null) {
+    // No source length to fit to. The window is still written when the shot
+    // starts inside someone else's clip, or it would play that clip's head.
+    const layout: ShotLayout = { durationMs: intended, unusedSourceMs: 0 };
+    if (inPointMs > 0) {
+      layout.inPointMs = inPointMs;
+      layout.outPointMs = inPointMs + intended;
+    }
+    return layout;
   }
-  const durationMs = Math.min(intended, source);
+  const durationMs = Math.min(intended, available);
   return {
     durationMs,
-    inPointMs: 0,
-    outPointMs: durationMs,
-    unusedSourceMs: source - durationMs
+    inPointMs,
+    outPointMs: inPointMs + durationMs,
+    unusedSourceMs: available - durationMs
   };
 }
 
@@ -186,9 +293,13 @@ export function buildStoryboardTimeline(
   input: StoryboardAssemblyInput
 ): AssembledTimeline {
   const ordered = [...input.shots].sort((a, b) => a.index - b.index);
-  const assemblable = ordered.filter(isAssemblableShot);
+  const byId = shotsById(input.shots);
+  const sources = new Map(
+    ordered.map((shot) => [shot.id, shotSource(shot, byId)] as const)
+  );
+  const assemblable = ordered.filter((s) => sources.get(s.id) != null);
   const skippedShotIds = ordered
-    .filter((s) => !isAssemblableShot(s))
+    .filter((s) => sources.get(s.id) == null)
     .map((s) => s.id);
 
   const shotTrack = makeTrack({ type: "video", name: "Shots", index: 0 });
@@ -203,7 +314,8 @@ export function buildStoryboardTimeline(
   let cursorMs = 0;
   const trimmedShots: TrimmedShot[] = [];
   for (const shot of assemblable) {
-    const layout = layoutShot(shot);
+    const source = sources.get(shot.id) ?? null;
+    const layout = layoutShot(shot, source);
     const durationMs = layout.durationMs;
     if (layout.unusedSourceMs > 0) {
       trimmedShots.push({
@@ -220,7 +332,7 @@ export function buildStoryboardTimeline(
       mediaType: "video",
       sourceType: "imported",
       status: "generated",
-      currentAssetId: shot.clip?.asset_id ?? undefined,
+      currentAssetId: source?.assetId,
       linkId: createTimeOrderedUuid(),
       storyboardBoardId: input.boardId,
       storyboardShotId: shot.id,
@@ -336,9 +448,11 @@ export function buildStoryboardPreviewTimeline(
   const stillShotIds: string[] = [];
   let hasShotAudio = false;
 
+  const byId = shotsById(input.shots);
   let cursorMs = 0;
   for (const shot of ordered) {
-    const clipAssetId = assetIdOf(shot.clip);
+    const source = shotSource(shot, byId, { requireRendered: false });
+    const clipAssetId = source?.assetId;
     const stillAssetId = clipAssetId ? undefined : assetIdOf(shot.keyframe);
     const assetId = clipAssetId ?? stillAssetId;
     if (!assetId) {
@@ -352,7 +466,7 @@ export function buildStoryboardPreviewTimeline(
     // A held keyframe is a still with no source length of its own; only a
     // real clip gets fitted to its footage.
     const layout: ShotLayout = clipAssetId
-      ? layoutShot(shot)
+      ? layoutShot(shot, source)
       : { durationMs: shotDurationMs(shot), unusedSourceMs: 0 };
     const durationMs = layout.durationMs;
     const shotClip = makeClip({

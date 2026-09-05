@@ -35,7 +35,7 @@ import {
   setTimeRemapParams,
   shapeStyleParams,
   targetParam,
-  textStyleParams,
+  textStylePatchParams,
   transitionParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import { FrontendToolRegistry } from "../frontendTools";
@@ -417,7 +417,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_set_clip_params",
   description:
-    "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. Omit a field to leave it unchanged.",
+    "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. `textStyle` is merged over the clip's own, so send only the fields you are changing. Omit a field to leave it unchanged.",
   parameters: z.object({
     timeline_id: timelineIdParam,
     target: targetParam,
@@ -432,7 +432,7 @@ FrontendToolRegistry.register({
     hidden: z.boolean().optional(),
     muted: z.boolean().optional(),
     locked: z.boolean().optional(),
-    textStyle: textStyleParams.optional(),
+    textStyle: textStylePatchParams.optional(),
     shapeStyle: shapeStyleParams.optional(),
     captionStyle: captionStyleParams.optional()
   }),

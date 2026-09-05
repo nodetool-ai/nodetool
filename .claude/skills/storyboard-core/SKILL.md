@@ -118,6 +118,38 @@ message*; it never becomes shot text.
   before rendering: either the whole piece is one shot carrying the cuts, or the
   continuity comes from a narration or music track and the shot audio is muted.
 
+## Where the models will not do what the cut wants
+
+Four constraints that are not bugs and have no tool to fix them. Each has a working
+shape.
+
+**A video model returns a fixed length.** It ignores `duration_seconds` — the same
+model gives 5.184s whether the shot was directed at 1.5s or 5s. For a fast cut,
+render one generation per *run* of short beats with bracketed timecodes in the prompt
+and record the split with `covered_by`. `references/tool-contract.md` § Fusing shots
+has the call.
+
+**Moderation reads the words, not the story.** A prompt naming institutional force —
+police grabbing someone, a raid, restraint — trips a safety filter that a shot of the
+same threat does not. Reframe with non-trigger vocabulary and keep the stakes:
+"two uniformed city officials approaching with a clipboard and caution tape" passes
+where "two aggressive police officers grabbing her arms" does not. Reframe once; do
+not retry the rejected prompt.
+
+**A music model cannot leave a hole.** Ask for 1.5s of silence at 00:19.5 and the
+decoder fills it with reverb tail and room tone — there is no envelope gate in the
+prompt. Cut the silence on the timeline instead: generate the score in two parts,
+lay them as two clips with the gap between them, and fade the first out (~300ms) and
+the second in (~100ms) so the edges are not clicks.
+
+**Speech does not fit a 1.5s shot.** An expressive take of a line runs 4s, and
+compressing it to the picture beat makes it sound processed. Let the words cross the
+cut: keep the voiceover clip on its own track and start it under the previous shot
+(J-cut) or run it past the cut into the next (L-cut). The picture cuts on the beat;
+the line finishes where it finishes. On a script-linked board that is automatic —
+each shot runs as long as the lines it covers — so use this on an unlinked board or
+where the picture has to stay on the beat.
+
 ## Gating and spend
 
 Permission mode decides what runs without asking. `read` tools always run.

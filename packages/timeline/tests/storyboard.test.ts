@@ -453,3 +453,106 @@ describe("assembly against the footage that came back", () => {
     expect(still.inPointMs).toBeUndefined();
   });
 });
+
+// ── Fused shots (Shot.covered_by) ─────────────────────────────────────
+//
+// A model that renders a fixed 5.184s window covers several 1.5-2.2s beats in
+// one generation. The clip lands on the first shot of the run; the rest name
+// it in `covered_by` with the slice they use. Before this they assembled as
+// nothing and had to be trimmed onto the track by hand.
+
+describe("covered shots", () => {
+  const fused = (): Shot[] => [
+    makeShot({
+      id: "event",
+      index: 0,
+      status: "rendered",
+      duration_seconds: 2.5,
+      clip: { type: "video", asset_id: "fused", duration: 5.184 }
+    }),
+    makeShot({
+      id: "reception",
+      index: 1,
+      status: "rendered",
+      covered_by: { shot_id: "event", start_seconds: 2.5, end_seconds: 5.184 }
+    })
+  ];
+
+  it("cuts the covered shot out of the covering shot's clip", () => {
+    const result = buildStoryboardTimeline({ boardId: "b", shots: fused() });
+    const picture = pictureClips(result.clips);
+
+    expect(result.skippedShotIds).toEqual([]);
+    expect(picture.map((c) => c.currentAssetId)).toEqual(["fused", "fused"]);
+    expect(picture[0]).toMatchObject({
+      startMs: 0,
+      durationMs: 2500,
+      inPointMs: 0,
+      outPointMs: 2500
+    });
+    expect(picture[1]).toMatchObject({
+      startMs: 2500,
+      durationMs: 2684,
+      inPointMs: 2500,
+      outPointMs: 5184
+    });
+    expect(result.durationMs).toBe(5184);
+  });
+
+  it("runs to the end of the covering clip when no end is named", () => {
+    const shots = fused();
+    shots[1].covered_by = { shot_id: "event", start_seconds: 2.5 };
+    shots[1].duration_seconds = 10;
+    const picture = pictureClips(
+      buildStoryboardTimeline({ boardId: "b", shots }).clips
+    );
+
+    // 10s was asked for and 2.684s of footage is left: the window caps it.
+    expect(picture[1]).toMatchObject({
+      durationMs: 2684,
+      inPointMs: 2500,
+      outPointMs: 5184
+    });
+  });
+
+  it("skips a shot whose covering shot never rendered", () => {
+    const shots = fused();
+    delete shots[0].clip;
+    shots[0].status = "keyframe_ready";
+    const result = buildStoryboardTimeline({ boardId: "b", shots });
+
+    expect(result.skippedShotIds).toEqual(["event", "reception"]);
+    expect(pictureClips(result.clips)).toHaveLength(0);
+  });
+
+  it("refuses to follow a second hop", () => {
+    const shots = fused();
+    shots.push(
+      makeShot({
+        id: "third",
+        index: 2,
+        status: "rendered",
+        covered_by: { shot_id: "reception", start_seconds: 0 }
+      })
+    );
+    const result = buildStoryboardTimeline({ boardId: "b", shots });
+
+    expect(result.skippedShotIds).toEqual(["third"]);
+  });
+
+  it("plays the covered shot in the editor preview too", () => {
+    const result = buildStoryboardPreviewTimeline({
+      boardId: "b",
+      shots: fused()
+    });
+    const picture = pictureClips(result.clips);
+
+    expect(result.skippedShotIds).toEqual([]);
+    expect(picture).toHaveLength(2);
+    expect(picture[1]).toMatchObject({
+      mediaType: "video",
+      currentAssetId: "fused",
+      inPointMs: 2500
+    });
+  });
+});

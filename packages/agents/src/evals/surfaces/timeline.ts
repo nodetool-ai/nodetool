@@ -38,6 +38,7 @@ import {
   DEFAULT_TEXT_CLIP_DURATION_MS,
   DEFAULT_MEDIA_CLIP_DURATION_MS,
   shapeStyleWithDefaults,
+  assertAuthorableFontFamily,
   textStyleWithDefaults,
   moveTrackOrder,
   mediaTypeForContentType,
@@ -101,6 +102,7 @@ import {
   trackTargetParam,
   resolveShapeArg,
   targetParam,
+  textStylePatchParams,
   textStyleParams,
   transitionParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
@@ -472,6 +474,61 @@ const CLIP_PARAM_KEYS = [
   "shapeStyle",
   "captionStyle"
 ];
+
+/**
+ * Keys a caller wraps the whole patch in.
+ *
+ * `set_clip_params` reads its fields off the op itself — `{op, target,
+ * textStyle}` — but a REST-shaped guess sends `{op, target, params: {…}}`, and
+ * that used to be refused as an unknown key with the real fields hidden one
+ * level down inside it. The wrapper says nothing the op does not already know,
+ * so it is unwrapped rather than argued with.
+ */
+const CLIP_PARAM_WRAPPERS = ["params", "patch", "props", "properties"];
+
+/** Lift a patch a caller nested under a wrapper key onto the op itself. */
+export function unwrapClipParams(
+  patch: Record<string, unknown>
+): Record<string, unknown> {
+  const wrapper = CLIP_PARAM_WRAPPERS.find((key) => isRecordValue(patch[key]));
+  if (!wrapper) return patch;
+  const { [wrapper]: nested, ...rest } = patch;
+  // The op's own keys win: a caller that sent both meant the one it spelled
+  // out, and silently preferring the wrapper would drop it.
+  return { ...(nested as Record<string, unknown>), ...rest };
+}
+
+const isRecordValue = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * A text style patch, merged over the clip's own and checked for a family that
+ * names no face.
+ *
+ * A clip that carries no text style yet still needs the three fields that make
+ * one drawable, so the merged result goes through the same schema the whole
+ * bag does rather than being stored half-built.
+ */
+function mergeTextStyle(
+  clip: TimelineClip,
+  patch: unknown
+): TimelineClip["textStyle"] {
+  const merged = { ...(clip.textStyle ?? {}), ...(patch as object) };
+  const parsed = textStyleParams.safeParse(merged);
+  if (!parsed.success) {
+    const missing = parsed.error.issues
+      .filter((issue) => issue.code === "invalid_type")
+      .map((issue) => issue.path.join("."));
+    throw new Error(
+      missing.length > 0
+        ? `Clip "${clip.name}" has no text style yet, so this patch cannot ` +
+          `stand on its own — it still needs ${missing.join(", ")}.`
+        : `textStyle: ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}`
+    );
+  }
+  assertAuthorableFontFamily(parsed.data.fontFamily);
+  return parsed.data as TimelineClip["textStyle"];
+}
 
 function rejectUnknownClipParams(patch: Record<string, unknown>): void {
   for (const key of Object.keys(patch)) {
@@ -1396,7 +1453,7 @@ export function createTimelineToolBridge(
 
     tool(
       "ui_timeline_set_clip_params",
-      "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. `fontSizePx` is shorthand for `textStyle.fontSizePx`. Timing is accepted too and applied as trim_clip/move_clip would: `durationMs`, `inPointMs`, `outPointMs`, `startMs`, `trackId`. A key this tool does not know is refused by name rather than ignored. Omit a field to leave it unchanged.",
+      "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. Fields go on the op itself, not inside a `params` wrapper. `textStyle` is merged over the clip's own, so send only what you are changing, and `fontWeight` takes the CSS keywords as well as the number. `fontSizePx` is shorthand for `textStyle.fontSizePx`. Timing is accepted too and applied as trim_clip/move_clip would: `durationMs`, `inPointMs`, `outPointMs`, `startMs`, `trackId`. A key this tool does not know is refused by name rather than ignored. Omit a field to leave it unchanged.",
       z.object({
         target: targetParam,
         startMs: z.number().optional(),
@@ -1416,14 +1473,15 @@ export function createTimelineToolBridge(
         hidden: z.boolean().optional(),
         muted: z.boolean().optional(),
         locked: z.boolean().optional(),
-        textStyle: textStyleParams.optional(),
+        textStyle: textStylePatchParams.optional(),
         shapeStyle: shapeStyleParams.optional(),
         captionStyle: captionStyleParams.optional()
         // A key the schema does not list is kept rather than stripped, so it
         // can be refused by name below: silently dropping `startMs` looked
         // like a successful call that changed nothing.
       }).catchall(z.unknown()),
-      async ({ target, ...patch }) => {
+      async ({ target, ...wrapped }) => {
+        const patch = unwrapClipParams(wrapped);
         let clip = resolveClip(target as string);
         rejectUnknownClipParams(patch);
         // Timing belongs to move_clip and trim_clip, but a caller sending it
@@ -1438,6 +1496,12 @@ export function createTimelineToolBridge(
           startMs: patch.startMs as number | undefined,
           trackId: patch.trackId as string | undefined
         });
+        // The style is a patch over what the clip already carries: changing one
+        // field used to mean re-sending the whole bag, and re-sending it is how
+        // the four fields the caller did not mean to touch get overwritten.
+        if (patch.textStyle !== undefined) {
+          patch.textStyle = mergeTextStyle(clip, patch.textStyle);
+        }
         if (patch.fontSizePx !== undefined) {
           // Shorthand for the one text field callers reach for by name.
           const size = patch.fontSizePx as number;

@@ -55,6 +55,11 @@ export const shotPill = (
   if (shot.clip) {
     return null;
   }
+  // A shot fused into a sibling's generation has its picture but no clip of
+  // its own, and a card that says "still" reads as a shot nobody has rendered.
+  if (shot.covered_by) {
+    return { tone: "neutral", label: "covered" };
+  }
   if (shot.keyframe) {
     const clipQueued = jobStatus === "queued" || jobStatus === "running";
     return clipQueued
