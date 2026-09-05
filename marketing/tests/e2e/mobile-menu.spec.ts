@@ -63,20 +63,21 @@ test.describe("landing page on a phone", () => {
 
     const track = page.locator(".animate-marquee").first();
     await expect(track).toHaveCount(1);
+    const playState = () =>
+      track.evaluate((el) => getComputedStyle(el).animationPlayState);
 
-    // Top of the page: the model section is far below, so nothing should run.
-    await expect
-      .poll(() =>
-        track.evaluate((el) => getComputedStyle(el).animationPlayState)
-      )
-      .toBe("paused");
+    // Scroll the section away rather than trusting it to start off screen:
+    // the model wall sits directly under the hero (NARRATIVE.md § Order of the
+    // page), and this test guards the IntersectionObserver, not the page order.
+    // It read "paused" for free while the section happened to be tenth, which
+    // is how it passed without ever proving the observer pauses on scroll-away.
+    await page.evaluate(() =>
+      window.scrollTo(0, document.body.scrollHeight)
+    );
+    await expect.poll(playState).toBe("paused");
 
     await track.scrollIntoViewIfNeeded();
-    await expect
-      .poll(() =>
-        track.evaluate((el) => getComputedStyle(el).animationPlayState)
-      )
-      .toBe("running");
+    await expect.poll(playState).toBe("running");
   });
 
   test("the menu opens with the page's JavaScript blocked", async ({ page }) => {
