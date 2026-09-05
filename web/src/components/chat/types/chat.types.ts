@@ -19,3 +19,22 @@ export type DroppedFile = {
 
 export const DOC_TYPES_REGEX =
   /application\/pdf|application\/msword|application\/vnd\.openxmlformats-officedocument\.*|application\/vnd\.ms-.*|application\/vnd\.apple\.*|application\/x-iwork.*/;
+
+/**
+ * Connection and generation state a chat surface renders. The socket states
+ * come from `ConnectionState`; `loading`/`streaming` are the turn in flight
+ * and `error`/`failed` are the two ways it ends badly.
+ */
+export type ChatStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "loading"
+  | "error"
+  | "streaming"
+  | "reconnecting"
+  | "disconnecting"
+  | "failed";
+
+/** Width of the message column and the composer beneath it, in px. */
+export const CHAT_COLUMN_MAX_WIDTH = 800;

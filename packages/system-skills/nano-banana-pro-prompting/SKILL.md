@@ -82,7 +82,10 @@ which one broke the image. Re-state the lock list on every pass.
 - Name the real thing. If the shot needs a boarding pass, the words "boarding
   pass" beat any amount of mood language.
 - Wrap on-image text in quotes and call out the typeface and its position. When
-  the model keeps dropping a letter, spell the word out.
+  the model keeps dropping a letter, spell the word out. That is for a poster or
+  a mockup that ships as an image; a still headed for a timeline, or a
+  storyboard keyframe, keeps its copy off the picture and gets it as a text clip
+  afterwards (`caption-titles`), where it stays editable.
 
 The contrast is the whole lesson. "A gorgeous hyper-detailed photo of a potter,
 masterpiece, cinematic, 8k" gives the model nothing to decide against. "A

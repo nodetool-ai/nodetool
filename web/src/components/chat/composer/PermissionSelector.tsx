@@ -76,7 +76,7 @@ const menuStyles = (theme: Theme) =>
     },
     ".permission-menu-check": {
       marginLeft: "auto",
-      marginTop: 2,
+      marginTop: theme.spacing(SPACING.micro),
       color: theme.vars.palette.primary.main,
       display: "inline-flex"
     }
@@ -181,7 +181,7 @@ const PermissionSelector: React.FC<PermissionSelectorProps> = ({
                   className="permission-menu-dot"
                   css={dotCss(dotColor(theme, m.tone))}
                 />
-                <FlexColumn gap={0.5} sx={{ flex: 1, minWidth: 0 }}>
+                <FlexColumn gap={SPACING.micro} sx={{ flex: 1, minWidth: 0 }}>
                   <Text
                     size="small"
                     weight={500}

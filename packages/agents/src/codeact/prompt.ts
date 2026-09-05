@@ -116,6 +116,9 @@ Rules:
   along in the same observation, costs nothing, and turns a wrong guess into
   something you can fix inside the same program instead of a probe action.
 - A failed tool call throws; use try/catch when partial failure is acceptable.
+- Resource ids (\`id\`, \`workflow_id\`, \`asset://…\`) arrive as 12-character
+  prefixes of the stored id. Pass them back as they are: every capability
+  accepts the prefix or the full id.
 - Top-level \`await\` and \`return\` work.`;
 
 const actionContractStep = (
@@ -124,6 +127,9 @@ const actionContractStep = (
 - For file work use the sandbox's own \`workspace.*\` API (\`read\`, \`write\`,
   \`list\`, \`readBytes\`, \`writeBytes\`, \`stat\`, \`copy\`, \`move\`, \`mkdir\`,
   \`remove\`) — it is in-process, so a read costs nothing a tool call would.
+- Network and secrets are available only through imported capabilities
+  (\`nodetool.web.fetch\` / \`browse\`, tools that take a secret by name): a
+  step action runs with a zero-request fetch limit and no secret scope.
 - Do not ask the user questions. Choose a reasonable assumption and proceed.`;
 
 function actionContractChat(
@@ -184,6 +190,16 @@ const CHAT_UNAVAILABLE_BRIDGES = ["fetch", "getSecret"] as const;
  * The bridges the chat variant hides: the two above plus every bridge whose
  * members all need a `ProcessingContext`, which a chat action runs without.
  */
+/**
+ * The bridges a step action cannot use: a step runs with a zero-request
+ * fetch limit and an empty secret scope (`STEP_ACTION_SANDBOX_LIMITS` in
+ * `codeact-executor.ts`), so network and secrets go through imported
+ * capabilities there too. Everything else stays: a step has a context.
+ */
+export function stepUnavailableBridges(): string[] {
+  return [...CHAT_UNAVAILABLE_BRIDGES].sort();
+}
+
 export function chatUnavailableBridges(
   manifest: SandboxManifest = getSandboxManifest()
 ): string[] {
@@ -230,11 +246,15 @@ function renderSandboxSummary(
   variant: "step" | "chat",
   nodetoolApiLoaded: boolean
 ): string {
-  const unavailableInChat = new Set(chatUnavailableBridges(manifest));
+  const hidden = new Set(
+    variant === "chat"
+      ? chatUnavailableBridges(manifest)
+      : stepUnavailableBridges()
+  );
   const lines: string[] = [];
   for (const bridge of Object.values(manifest.bridges)) {
     if (bridge.internal || bridge.members.length === 0) continue;
-    if (variant === "chat" && unavailableInChat.has(bridge.name)) continue;
+    if (hidden.has(bridge.name)) continue;
     for (const member of bridge.members) {
       lines.push(`- ${member.signature}`);
     }
@@ -252,10 +272,7 @@ function renderSandboxSummary(
     variant === "chat"
       ? "imported capabilities"
       : "imported capabilities, `finish`";
-  const notes = relevantNotes(
-    manifest,
-    variant === "chat" ? unavailableInChat : new Set<string>()
-  );
+  const notes = relevantNotes(manifest, hidden);
   return [
     `# Sandbox API (besides ${besides})`,
     // Before the signatures: the notes point at "the bridges below".

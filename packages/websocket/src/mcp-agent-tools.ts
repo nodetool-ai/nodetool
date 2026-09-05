@@ -21,12 +21,16 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
 import {
   DIRECT_TOOL_NAMES,
   ProcessingContext as ProcessingContextImpl,
   SDK_NATIVE_TOOL_REPLACEMENTS,
+  detectImageMime,
+  isSvgBytes,
+  loadMediaRefBytes,
   zodToJsonSchema
 } from "@nodetool-ai/runtime";
 import {
@@ -39,7 +43,7 @@ import {
   getGoogleWorkspaceTools,
   getApifyTools,
   getSerpApiTools,
-  permissionCategoryFor,
+  capabilityCategoryFor,
   toolForCapabilityName,
   UNGATED,
   createCapabilityRun,
@@ -53,7 +57,9 @@ import {
   MCP_GUEST_CONTRACT,
   MCP_SANDBOX_RESOURCE_URI,
   MCP_SANDBOX_PROMPTS,
-  buildMcpSandboxCatalog
+  buildMcpSandboxCatalog,
+  extractInjectableImages,
+  stripImagePayload
 } from "@nodetool-ai/agents";
 import { FileStorageAdapter } from "@nodetool-ai/runtime";
 import type { BaseProvider } from "@nodetool-ai/runtime";
@@ -72,7 +78,10 @@ import {
   getNodetoolDataDir,
   isGoogleWorkspaceEnabled
 } from "@nodetool-ai/config";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 import { getAssetAdapter } from "./lib/storage.js";
 import {
   createAssetModelInterface,
@@ -287,6 +296,32 @@ function toToolResponse(result: unknown) {
   return isObject && !isError
     ? { ...withError, structuredContent: result as Record<string, unknown> }
     : withError;
+}
+
+async function toImageToolResponse(
+  result: unknown,
+  context: ProcessingContext
+): Promise<CallToolResult> {
+  const extracted = extractInjectableImages(result);
+  if (!extracted || isErrorResult(result)) {
+    return toToolResponse(result);
+  }
+
+  const response = toToolResponse(stripImagePayload(result));
+  const images = await Promise.all(
+    extracted.images.map(async ({ image }) => {
+      const bytes = await loadMediaRefBytes(image, context);
+      if (!bytes?.length) {
+        throw new Error("Could not load image bytes for the MCP response.");
+      }
+      return {
+        type: "image" as const,
+        data: Buffer.from(bytes).toString("base64"),
+        mimeType: detectImageMime(bytes)
+      };
+    })
+  );
+  return { ...response, content: [...response.content, ...images] };
 }
 
 function errorResponse(err: unknown) {
@@ -631,7 +666,7 @@ function buildCapabilityCatalog(
       .map((tool) => ({
         name: tool.name,
         description: oneLine(tool.description),
-        permission_category: permissionCategoryFor(tool.name)
+        permission_category: capabilityCategoryFor(tool.name)
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
   };
@@ -754,15 +789,68 @@ export function registerAgentMcpTools(
   };
 
   const register = (tool: Tool): void => {
+    const isImageTool = tool.name === "view_image";
+    const schema = { ...jsonSchemaToZodShape(tool.inputSchema) };
+    if (isImageTool) {
+      schema["image_id"] = z
+        .string()
+        .describe(
+          "An asset id, asset:// URI, public https:// URL, or data: URI. " +
+            "Local MCP connections also accept an absolute disk image path or file:// URI."
+        );
+    }
     server.tool(
       tool.name,
-      tool.description,
-      jsonSchemaToZodShape(tool.inputSchema),
+      tool.description +
+        (isImageTool
+          ? " Returns MCP image content so you can see the pixels. On local MCP connections, image_id also accepts an absolute disk path or file:// URI."
+          : ""),
+      schema,
       async (args) => {
         try {
-          return toToolResponse(
-            await runBridgedTool(tool, (args ?? {}))
-          );
+          const input = { ...args };
+          const imageId =
+            isImageTool && isString(input["image_id"])
+              ? input["image_id"].trim()
+              : undefined;
+          const isDiskImage =
+            imageId &&
+            !imageId.startsWith("/api/storage/") &&
+            (isAbsolute(imageId) || imageId.startsWith("file://"));
+          if (isDiskImage) {
+            if (scope.source === "http-session") {
+              throw new Error(
+                "Disk image paths require a local MCP connection. Use an asset id on remote sessions."
+              );
+            }
+            const path = imageId.startsWith("file://")
+              ? fileURLToPath(imageId)
+              : imageId;
+            const bytes = await readFile(path);
+            await sharp(bytes).metadata();
+            const mime = isSvgBytes(bytes)
+              ? "image/svg+xml"
+              : detectImageMime(bytes);
+            input["image_id"] =
+              `data:${mime};base64,${bytes.toString("base64")}`;
+            if (!isString(input["question"]) || !input["question"].trim()) {
+              input["question"] = `Image ${imageId}:`;
+            }
+          } else if (imageId?.startsWith("data:")) {
+            if (!isString(input["question"]) || !input["question"].trim()) {
+              input["question"] = "Inline image:";
+            }
+          }
+          const result = await runBridgedTool(tool, input);
+          if (!isImageTool) {
+            return toToolResponse(result);
+          }
+          if (isRecord(result) && imageId && !isErrorResult(result)) {
+            result["image_id"] = imageId.startsWith("data:")
+              ? "inline image"
+              : imageId;
+          }
+          return await toImageToolResponse(result, context);
         } catch (err) {
           return errorResponse(err);
         }

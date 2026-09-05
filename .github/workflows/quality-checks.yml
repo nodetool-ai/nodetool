@@ -212,9 +212,30 @@ jobs:
   # its real work, and the account-wide runner cap (~20 concurrent jobs) makes
   # each extra leg queue time for the whole PR. The cheap checks are therefore
   # chained inside one leg — `typecheck` runs typecheck + parity + examples,
-  # `bundle` runs the packaged-backend smoke + Ring 0 reliability. Chained with
-  # `&&`, mirroring the `deps` leg: the first failure stops the chain, so a red
-  # leg names one problem at a time.
+  # `bundle` runs the packaged-backend smoke. Chained with `&&`, mirroring the
+  # `deps` leg: the first failure stops the chain, so a red leg names one
+  # problem at a time.
+  #
+  # `harness-gate` runs `nodetool harness gate` (docs/HARNESS_FIRST.md § The
+  # gate): it maps the diff against `origin/main` onto the surfaces in
+  # `packages/cli/src/harness/registry.ts` and runs the keyless selfcheck of
+  # every harness covering a touched surface — the diff selects the checks,
+  # not this file. This is what replaced the old `reliability:ring0` half of
+  # the `bundle` leg (still runs on any diff touching `packages/kernel/` —
+  # see the `workflow-execution` surface in the registry) and the standalone
+  # `app-build` leg (its two deterministic cases are the `app-build`
+  # harness's selfcheck, run when a diff touches `packages/agents/src/app-build/`).
+  # A changed code file no surface claims fails the leg (see
+  # docs/harnesses.md § nodetool harness); `--strict` is left off so a diff
+  # touching a documented gap (mobile/, electron/) still passes;
+  # `--timeout` bounds each selfcheck so a hang fails the leg
+  # instead of the job's own timeout cutting it off with no verdict. A PR that
+  # touches nothing the registry maps runs no selfcheck at all — intended, not
+  # a gap: see docs/HARNESS_FIRST.md. On push to main there is no PR diff to
+  # read, so the leg runs every selfcheck instead (`--all`). Either way the
+  # gate skips `cost: "expensive"` selfchecks (Blender render, the packaged
+  # backend, …) unless `--expensive` is passed, so `backend:smoke` stays a
+  # leg of its own rather than folding into this one.
   #
   # The backend suite goes the other way: it is split across four runners
   # (`test-packages-*`). As one leg it was the gate's critical path by about
@@ -270,8 +291,17 @@ jobs:
           #      that break). Deliberately typecheck only — the full
           #      `next build`s cost minutes each and belong to deploys, not
           #      the PR gate.
+          #   8. `npm run capabilities:check` — the capability coverage table
+          #      (packages/cli/src/harness/capability-table.ts) regenerated
+          #      from the live registry and diffed against the checked-in one.
+          #      Fails on a capability with no suite, no eval case and no gap
+          #      note, and on a table the diff left stale. Imports
+          #      packages/cli/dist and packages/agents/dist, both in the
+          #      `build` job's artifact; nothing else ran it, so the invariant
+          #      packages/agents/AGENTS.md documents held only when someone
+          #      remembered to run it by hand.
           - check: typecheck
-            command: npm run typecheck && npm run lint:design --workspace=web && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples
+            command: npm run typecheck && npm run lint:design --workspace=web && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples && npm run capabilities:check
             mobile-deps: "true"
             extra-apt: ""
             is-test: "false"
@@ -343,52 +373,63 @@ jobs:
             extra-apt: ""
             is-test: "true"
             fetch-depth: "1"
-          # Two release gates in one leg:
-          #   1. `npm run backend:smoke` stages the packaged backend and boots
-          #      it. Nothing outside the release workflow used to build the
-          #      bundle, so a packaging regression only surfaced once a release
-          #      was cut — and the release's smoke-launch spawns the Electron
-          #      main process, which survives its backend child dying.
-          #      v0.7.1-nightly.20260728.713 shipped a sharp/@img major skew
-          #      that killed server.mjs on import with every other check green.
-          #   2. `npm run reliability:ring0` (docs/RELIABILITY_TASKS.md Track F,
-          #      task F2; docs/RELIABILITY_ARCHITECTURE.md §11): the five
-          #      fastest golden journeys (linear-text-pipeline,
-          #      fan-out-fan-in-dag, error-in-one-branch, mid-run-cancel-node,
-          #      mid-run-cancel-streaming — journeys 1/3/6a/6b/13) on the kernel
-          #      surface, strict lifecycle mode always on
-          #      (reliability/harness/src/drivers/kernel.ts). No network, no
-          #      cross-surface diff — that's Ring 1.
-          # is-test:false — these are release gates, not unit suites, so they
-          # stay required even when skip-tests drops the bulk test legs
-          # (matching the Ring 0 flake budget of zero).
+          # The packaged-backend release gate: `npm run backend:smoke` stages
+          # the packaged backend and boots it. Nothing outside the release
+          # workflow used to build the bundle, so a packaging regression only
+          # surfaced once a release was cut — and the release's smoke-launch
+          # spawns the Electron main process, which survives its backend child
+          # dying. v0.7.1-nightly.20260728.713 shipped a sharp/@img major skew
+          # that killed server.mjs on import with every other check green.
+          # `nodetool harness gate`'s `backend-smoke` selfcheck runs the same
+          # command but is `cost: "expensive"`, so the default gate (below)
+          # skips it — this leg is what keeps it on every PR. The Ring 0
+          # golden journeys used to run here too
+          # (docs/RELIABILITY_TASKS.md Track F, task F2); they moved to the
+          # `harness-gate` leg's `reliability-ring0` selfcheck, which runs on
+          # any diff touching `packages/kernel/` (or the other
+          # `workflow-execution` surface paths) without hand-listing them here.
+          # is-test:false — a release gate, not a unit suite, so it stays
+          # required even when skip-tests drops the bulk test legs.
           - check: bundle
-            command: npm run backend:smoke && npm run reliability:ring0
+            command: npm run backend:smoke
             mobile-deps: "false"
             extra-apt: ""
             is-test: "false"
             fetch-depth: "1"
-          # The `app-build` suite's two deterministic cases: a pinned spec over
-          # template graphs, authored by a script instead of a model, run on the
-          # real kernel. They call no provider, so no API key is needed — the
-          # `-p ollama -m none` provider is constructed and never used. This is
-          # the mini-app build harness's regression gate (the full suite runs
-          # nightly in app-build-eval.yml, where a model is in the loop).
-          # --min-success 1 because a deterministic case has no variance: if it
-          # is not green, the harness broke.
-          - check: app-build
-            command: npm run dev:nodetool -- eval app-build --cases greeting-card,draft-then-publish -p ollama -m none --no-find-model --min-success 1
+          # `nodetool harness gate` — see the `built` job's header comment
+          # above for what it does and why the old `reliability:ring0` half of
+          # `bundle` and the standalone `app-build` leg both folded into it.
+          # `$GITHUB_EVENT_NAME` is a default runner env var, so no `${{ }}`
+          # templating is needed inside the matrix command. `--json` for a
+          # machine-readable log (rule 6, docs/HARNESS_FIRST.md). is-test:false
+          # for the same reason as
+          # `bundle`: this is a gate, not a unit suite.
+          - check: harness-gate
+            command: if [ "$GITHUB_EVENT_NAME" = "push" ]; then npm run dev:nodetool -- harness gate --all --json --timeout 900; else npm run dev:nodetool -- harness gate --base origin/main --json --timeout 900; fi
             mobile-deps: "false"
             extra-apt: ""
             is-test: "false"
-            fetch-depth: "1"
+            fetch-depth: "0"
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          # Most legs only need the tip; the test-packages shards need full
-          # history so Turbo's `--affected` can diff against the PR base commit.
+          # Most legs only need the tip; the test-packages shards and
+          # harness-gate need full history — the former for Turbo's
+          # `--affected` diff against the PR base commit, the latter so
+          # `git diff --name-only origin/main...HEAD` (inside `harness gate
+          # --base origin/main`) has the commits to diff.
           fetch-depth: ${{ matrix.fetch-depth }}
+
+      # `harness-gate` diffs against the named ref `origin/main`, not a SHA.
+      # fetch-depth: 0 above already fetches every head into refs/remotes/
+      # origin/*; this refreshes `main` in case the checkout ran against a
+      # stale mirror. Never add `--prune` here: with a single refspec it
+      # deleted `origin/main` instead of updating it. A no-op on every other
+      # leg.
+      - name: Fetch origin/main for the harness gate
+        if: matrix.check == 'harness-gate'
+        run: git fetch --no-tags origin main:refs/remotes/origin/main
 
       - name: Set up Node, install deps
         uses: ./.github/actions/setup-build
@@ -403,12 +444,14 @@ jobs:
           name: packages-dist
           path: packages
 
-      # See the matching upload step in the `build` job above — the Ring 0
-      # reliability run (the `bundle` leg's second command) needs
-      # @nodetool-ai/reliability-harness's dist (the CLI dynamic-imports it at
-      # run time) alongside the packages-dist download.
+      # See the matching upload step in the `build` job above — a Ring 0
+      # reliability run needs @nodetool-ai/reliability-harness's dist (the CLI
+      # dynamic-imports it at run time) alongside the packages-dist download.
+      # Only `harness-gate` can trigger one now: its `reliability-ring0`
+      # selfcheck runs on any diff touching `packages/kernel/`, or on every
+      # selfcheck via `--all` on push to main.
       - name: Download reliability harness dist
-        if: matrix.check == 'bundle'
+        if: matrix.check == 'harness-gate'
         uses: actions/download-artifact@v8
         with:
           name: reliability-harness-dist

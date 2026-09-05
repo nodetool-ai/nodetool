@@ -17,6 +17,7 @@ import {
   SANDBOX_CAPABILITY_PACK
 } from "@nodetool-ai/protocol";
 import { createCapabilityDispatcher } from "../src/capabilities/dispatcher.js";
+import { compactResourceIds } from "../src/codeact/compact-ids.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/index.js";
 import type { CapabilityRun } from "../src/capabilities/types.js";
 import { createChatCodeActSession } from "../src/codeact/chat-codeact.js";
@@ -165,7 +166,9 @@ describe("the import path in the sandbox", () => {
     const direct = await run.invoke("list_workflows", {});
 
     expect(imported.ok).toBe(true);
-    expect(imported.result).toEqual(direct);
+    // Both guest paths shorten resource ids on the way in; the host-side
+    // invoke answers full ids. Same value past that one boundary.
+    expect(imported.result).toEqual(compactResourceIds(direct));
     const names = (
       (imported.result as { workflows: { name: string }[] }).workflows ?? []
     ).map((w) => w.name);

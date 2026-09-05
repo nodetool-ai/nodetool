@@ -87,7 +87,7 @@ import type {
   ProcessingMessage
 } from "@nodetool-ai/protocol";
 import type { UiContext } from "@nodetool-ai/protocol";
-import { Tool } from "@nodetool-ai/agents";
+import { Tool, compactAssetUris, compactResourceIds } from "@nodetool-ai/agents";
 import {
   createChatCodeActSession,
   createSandboxClock,
@@ -824,13 +824,16 @@ export class ChatTurnHandler {
       const mine = recent.filter((memory) => memory.thread_id === threadId);
       const elsewhere = recent.length - mine.length;
       if (mine.length === 0 && elsewhere === 0) return "";
+      // Stored with full ids; shown with short ones, which every capability
+      // accepts back. Free text is only rewritten where the scheme types the
+      // id (`asset://…`), so a hash in a note stays intact.
       const rendered = mine.slice(0, MEMORY_BLOCK_LIMIT).map((memory) => ({
         kind: memory.kind,
         title: memory.title,
-        content: memory.content,
-        resources: (Array.isArray(memory.resources)
-          ? memory.resources
-          : []) as MemoryResource[]
+        content: compactAssetUris(memory.content),
+        resources: compactResourceIds(
+          Array.isArray(memory.resources) ? memory.resources : []
+        ) as MemoryResource[]
       }));
       return formatMemoriesForPrompt(rendered, elsewhere);
     } catch (err) {
@@ -1937,7 +1940,9 @@ export class ChatTurnHandler {
       // handle and calls view_image when it wants to look.
       toolResult = await this.materializeToolResultImages(toolResult, ctx);
 
-      const processed = await this.processToolResult(toolResult, ctx);
+      const processed = compactResourceIds(
+        await this.processToolResult(toolResult, ctx)
+      );
       return isString(processed) ? processed : JSON.stringify(processed);
     };
 

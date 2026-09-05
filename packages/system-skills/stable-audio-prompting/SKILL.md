@@ -110,6 +110,15 @@ Check the result with `analyze_audio`, `analyze_audio_spectrum` and
 `detect_audio_events` rather than listening for it — a missing instrument or a
 clipped peak shows up there faster than by ear.
 
+## Where it lands
+
+A bed from here is the "track of your own" build in `video-audio-continuity`:
+one clip on its own audio track for the whole runtime, with the generated shots
+muted under it. Because the prompt states the BPM, `beat-sync-editing` starts
+with a grid it can predict and then confirms with `detect_audio_events` on the
+file. A `TrackType: SFX` hit of 1–3 s is what `logo-reveal` lands a mark on.
+`motion-graphics` carries the timeline ops that lay the clip down.
+
 Adapted from Stability's Stable Audio 2.5 prompt guide and the Stable Audio 3
 prompting guide:
 https://stability.ai/implementations/stable-audio-25-prompt-guide

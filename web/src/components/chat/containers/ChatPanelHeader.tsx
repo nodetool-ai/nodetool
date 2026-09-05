@@ -135,13 +135,13 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
       }}
     >
       {title ? (
-        <Text size="small" color="secondary" sx={{ pl: 0.5 }}>
+        <Text size="small" color="secondary" sx={{ pl: SPACING.micro }}>
           {title}
         </Text>
       ) : (
         <span />
       )}
-      <FlexRow align="center" gap={0.25}>
+      <FlexRow align="center" gap={SPACING.micro}>
         <ToolbarIconButton
           onClick={onNewChat}
           tooltip="New chat"

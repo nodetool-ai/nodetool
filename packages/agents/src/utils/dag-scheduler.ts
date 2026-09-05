@@ -164,13 +164,13 @@ export async function* scheduleDag<N extends DagNode, E>(
 
   function wrap(node: N): AsyncGenerator<E> {
     return (async function* (): AsyncGenerator<E> {
-      let ran = false;
+      let outcome: DagOutcome | null = null;
       try {
         // Nothing past the `yield*` runs when the consumer stops early: an
         // abort leaves this node unsettled on purpose, and the post-run pass
         // settles it with the reason the run actually ended for.
         const result = yield* run(node);
-        const outcome: DagOutcome = result ? result.outcome : "ok";
+        outcome = result ? result.outcome : "ok";
         // Bookkeeping first, and in one uninterrupted stretch: a `yield`
         // hands control to another node's wrapper, which must not see this
         // node half-settled.
@@ -181,8 +181,6 @@ export async function* scheduleDag<N extends DagNode, E>(
           result ? result.error : undefined
         );
         const cascade = outcome === "failed" ? blockDependents(node) : [];
-        if (outcome === "ok") releaseDependents(node);
-        ran = true;
         for (const event of terminal) {
           yield event;
         }
@@ -193,8 +191,15 @@ export async function* scheduleDag<N extends DagNode, E>(
         inFlight--;
         // A node whose generator threw releases nothing: the exception is on
         // its way out of the merge, and this only keeps the stream from
-        // waiting on a node that will never settle.
-        if (ran) startReady();
+        // waiting on a node that will never settle. Dependents are released
+        // here, after the terminal events above, and not before them: a
+        // sibling's `finally` calls `startReady` too, and a dependent pushed
+        // to `ready` before its dependency's settle events were yielded could
+        // start between them.
+        if (outcome !== null) {
+          if (outcome === "ok") releaseDependents(node);
+          startReady();
+        }
         // Every node settled, or nothing left that could start one: either
         // way no further generator will be added, so let the stream end.
         if (inFlight === 0) merge.close();

@@ -1544,7 +1544,9 @@ and runs the selfcheck of every harness covering a touched surface — keyless,
 deterministic invocations like `validate:examples`, the Ring 0 reliability
 journeys, a shipped-bundle wiring check, the app-build deterministic cases.
 The diff selects the checks, not the author. Harnesses that need a target or
-key are printed as manual work, never silently skipped.
+key are printed as manual work, never silently skipped. A selfcheck with
+`cost: "expensive"` (a Blender render, the packaged-backend bundle) is skipped
+by default even when its surface is touched; pass `--expensive` to include it.
 
 ```bash
 npm run dev:nodetool -- harness list             # every harness + capabilities
@@ -1553,8 +1555,23 @@ npm run dev:nodetool -- harness audit --strict   # exit 1 while any gap remains
 npm run dev:nodetool -- harness gate --base main # run the selfchecks this diff demands
 npm run dev:nodetool -- harness gate --dry-run   # plan only
 npm run dev:nodetool -- harness gate --all       # every selfcheck (--expensive to widen)
+npm run dev:nodetool -- harness gate --strict    # also fail on a touched gap surface
+npm run dev:nodetool -- harness gate --timeout 900   # per-selfcheck timeout, in seconds
 npm run dev:nodetool -- harness capabilities     # capability coverage + documented gaps
 ```
+
+A changed file the registry's `paths` cannot place on any surface fails the
+gate outright, as long as it looks like source rather than prose, a test, or
+config: a new file the registry has never heard of is exactly the case a
+coarse-grained `paths` list is meant to catch. `--strict` widens that to a
+touched surface only a gap note covers, the ratchet to pull once a gap is
+closed. `--timeout <seconds>` bounds each selfcheck; one that runs past it is
+killed and counted as a failure, so a hang fails the gate instead of the CI
+job's own timeout cutting it off with no verdict. The Quality Gate's
+`harness-gate` leg (`.github/workflows/quality-checks.yml`) runs `harness
+gate --base origin/main --timeout 900` on every PR and `harness gate --all`
+on push to main, so this is exercised on every diff, not only when an agent
+remembers to run it locally.
 
 `capabilities` is the same invariant one rung down, over
 `packages/cli/src/harness/capability-table.ts`: every exported agent capability

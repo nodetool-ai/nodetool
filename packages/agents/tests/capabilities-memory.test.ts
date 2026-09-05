@@ -12,6 +12,7 @@ import { Asset, ModelObserver, initTestDb } from "@nodetool-ai/models";
 import { toolFromCapability } from "../src/capabilities/adapters.js";
 import { createCapabilityRun } from "../src/capabilities/invoke.js";
 import {
+  capabilityCategoryFor,
   capabilityModuleIssues,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
@@ -24,7 +25,6 @@ import type {
   CapabilityGate
 } from "../src/capabilities/types.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import type { Tool } from "../src/tools/base-tool.js";
 
 const gate: CapabilityGate = {
@@ -60,7 +60,7 @@ describe("memory capability module", () => {
     for (const entry of MEMORY_CAPABILITIES) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
-        permissionCategoryFor(entry.spec.name)
+        capabilityCategoryFor(entry.spec.name)
       ]);
     }
   });

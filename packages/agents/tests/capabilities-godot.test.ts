@@ -25,11 +25,11 @@ import {
 import { GODOT_CAPABILITIES, module as godotModule } from "../src/capabilities/godot.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/index.js";
 import {
+  capabilityCategoryFor,
   capabilityModuleIssues,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 
 const USER = "user-godot";
 
@@ -124,7 +124,7 @@ describe("godot capability module", () => {
       "verify_godot_project"
     ]);
     for (const entry of GODOT_CAPABILITIES) {
-      expect(entry.spec.category).toBe(permissionCategoryFor(entry.spec.name));
+      expect(entry.spec.category).toBe(capabilityCategoryFor(entry.spec.name));
     }
   });
 

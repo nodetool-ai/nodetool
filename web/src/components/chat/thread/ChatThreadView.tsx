@@ -1,27 +1,15 @@
 /** @jsxImportSource @emotion/react */
-import React, {
-  useRef,
-  useEffect,
-  useLayoutEffect,
-  useCallback,
-  useState,
-  useMemo,
-  memo
-} from "react";
+import React, { useRef, useCallback, useMemo, useState, memo } from "react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import {
-  BORDER_RADIUS,
   Caption,
-  FONT_SIZE_SANS,
+  EditorButton,
+  FlexColumn,
   FlexRow,
   SPACING,
   SPACING_PX,
   ShimmerText,
-  Text,
-  getSpacingPx,
-  Z_INDEX
+  Text
 } from "../../ui_primitives";
 import {
   Message,
@@ -48,38 +36,24 @@ import {
   getThreadRuntime
 } from "../../../core/chat/threadRuntime";
 import type { ActiveMediaPrediction } from "../../../core/chat/mediaPrediction";
-import {
-  isFunction,
-  isObjectLike,
-  isString
-} from "../../../utils/typePredicates";
+import { isObjectLike, isString } from "../../../utils/typePredicates";
 import { collapseToolCallOnlyMessages } from "../message/groupToolCalls";
+import type { ChatStatus } from "../types/chat.types";
+import { useChatScrollAnchor } from "./useChatScrollAnchor";
 
 interface ChatThreadViewProps {
   /** Conversation rendered by this ChatView instance. */
   threadId?: string | null;
   messages: Message[];
-  status:
-    | "disconnected"
-    | "connecting"
-    | "connected"
-    | "loading"
-    | "error"
-    | "streaming"
-    | "reconnecting"
-    | "disconnecting"
-    | "failed";
+  status: ChatStatus;
   progress: number;
   total: number;
   progressMessage: string | null;
   runningToolCallId?: string | null;
-  runningToolMessage?: string | null;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
   currentLogUpdate?: LogUpdate | null;
   onInsertCode?: (text: string, language?: string) => void;
-  /** Render per-message avatar + header meta (full-page chat only). */
-  showMessageMeta?: boolean;
   /** Render task updates inline. Full chat surfaces move them to a right rail. */
   showTaskUpdate?: boolean;
 }
@@ -87,18 +61,6 @@ interface ChatThreadViewProps {
 // StatusFooter re-renders once a second while a reply streams; a fresh `[]`
 // would carry MediaOutputGroup along with it.
 const EMPTY_MEDIA_CONTENTS: MessageContent[] = [];
-
-const SCROLL_THRESHOLD = 50;
-const ESTIMATED_MESSAGE_HEIGHT = 200;
-const CHAT_ANCHOR_OFFSET = SPACING_PX.xl;
-const SCROLL_POSITION_EPSILON = 1;
-
-type ChatScrollMode = "following-end" | "anchoring-new-turn" | "free-scrolling";
-
-interface ActiveChatAnchor {
-  messageId: string;
-  messageIndex: number;
-}
 
 interface ToolResultSummary {
   name?: string | null;
@@ -112,25 +74,6 @@ function formatElapsed(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}m ${s}s`;
-}
-
-/** Jump an element to its bottom. Guards `scrollTo` (absent in jsdom). */
-function scrollElementToBottom(el: HTMLElement | null): void {
-  if (!el) return;
-  if (isFunction(el.scrollTo)) {
-    el.scrollTo({ top: el.scrollHeight });
-  } else {
-    el.scrollTop = el.scrollHeight;
-  }
-}
-
-function getElementBottomInScrollContent(
-  scrollHost: HTMLElement,
-  element: HTMLElement
-): number {
-  const hostRect = scrollHost.getBoundingClientRect();
-  const elementRect = element.getBoundingClientRect();
-  return scrollHost.scrollTop + elementRect.bottom - hostRect.top;
 }
 
 function executionGroupsAreEqual(
@@ -170,21 +113,8 @@ function toolResultsAreEqual(
   });
 }
 
-const LOG_WRAPPER_STYLE: React.CSSProperties = {
-  position: "relative",
-  paddingLeft: "1.5rem"
-};
-
-const LOG_DOT_BASE_STYLE: React.CSSProperties = {
-  position: "absolute",
-  left: "-21px",
-  top: "12px",
-  width: "10px",
-  height: "10px"
-};
-
 interface StatusFooterProps {
-  status: ChatThreadViewProps["status"];
+  status: ChatStatus;
   progress: number;
   total: number;
   progressMessage: string | null;
@@ -198,7 +128,6 @@ interface StatusFooterProps {
    *  the eventual output grid instead. */
   pendingMediaMessage: Message | null;
   activePredictions: ActiveMediaPrediction[];
-  theme: Theme;
 }
 
 const StatusFooter = memo<StatusFooterProps>(
@@ -213,8 +142,7 @@ const StatusFooter = memo<StatusFooterProps>(
     currentLogUpdate,
     hasAgentExecutionMessages,
     pendingMediaMessage,
-    activePredictions,
-    theme
+    activePredictions
   }) => {
     const isBusy = status === "loading" || status === "streaming";
     const elapsed = useElapsedTime(isBusy);
@@ -280,43 +208,11 @@ const StatusFooter = memo<StatusFooterProps>(
         )}
         {!hasAgentExecutionMessages && currentLogUpdate && (
           <div className="chat-message-list-item">
-            <div style={LOG_WRAPPER_STYLE}>
-              <div
-                style={{
-                  position: "absolute",
-                  left: "4px",
-                  top: "10px",
-                  bottom: "10px",
-                  width: "2px",
-                  background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main}44)`,
-                  borderRadius: BORDER_RADIUS.xs
-                }}
-              />
-              <div
-                style={{
-                  ...LOG_DOT_BASE_STYLE,
-                  borderRadius: BORDER_RADIUS.circle,
-                  backgroundColor: theme.vars.palette.primary.main,
-                  border: `2px solid ${theme.vars.palette.background.default}`,
-                  boxShadow: `0 0 10px ${theme.vars.palette.primary.main}aa`,
-                  zIndex: Z_INDEX.raised + 1
-                }}
-              />
+            <div className="log-update">
+              <div className="log-update-rail" />
+              <div className="log-update-dot" />
               <div
                 className={`log-entry log-severity-${currentLogUpdate.severity || "info"}`}
-                style={{
-                  fontSize: FONT_SIZE_SANS.label,
-                  padding: "0.5rem 0.75rem",
-                  borderRadius: BORDER_RADIUS.md,
-                  backgroundColor: theme.vars.palette.c_scrim,
-                  border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
-                  color:
-                    currentLogUpdate.severity === "error"
-                      ? theme.vars.palette.error.light
-                      : currentLogUpdate.severity === "warning"
-                        ? theme.vars.palette.warning.light
-                        : "grey.300"
-                }}
               >
                 {currentLogUpdate.content}
               </div>
@@ -337,12 +233,10 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   total,
   progressMessage,
   runningToolCallId,
-  runningToolMessage: _runningToolMessage,
   currentPlanningUpdate,
   currentTaskUpdate,
   currentLogUpdate,
   onInsertCode,
-  showMessageMeta = false,
   showTaskUpdate = true
 }) => {
   const theme = useTheme();
@@ -352,6 +246,24 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const pendingApprovals = useGlobalChatStore((s) => s.pendingApprovals);
   const currentThreadId = useGlobalChatStore((s) => s.currentThreadId);
   const visibleThreadId = threadId ?? currentThreadId;
+  const olderCursor = useGlobalChatStore((s) =>
+    visibleThreadId ? s.messageCursors[visibleThreadId] : null
+  );
+  const loadMessages = useGlobalChatStore((s) => s.loadMessages);
+  const [loadingHistoryThread, setLoadingHistoryThread] =
+    useState<string | null>(null);
+  const loadOlderMessages = useCallback(async () => {
+    if (visibleThreadId && olderCursor) {
+      setLoadingHistoryThread(visibleThreadId);
+      try {
+        await loadMessages(visibleThreadId, olderCursor);
+      } finally {
+        setLoadingHistoryThread((current) =>
+          current === visibleThreadId ? null : current
+        );
+      }
+    }
+  }, [visibleThreadId, olderCursor, loadMessages]);
   const activePredictions = useGlobalChatStore(
     (s) =>
       getThreadRuntime(s, visibleThreadId).activePredictions ??
@@ -415,45 +327,11 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     return null;
   }, [isBusy, messages]);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const realContentRef = useRef<HTMLDivElement>(null);
-  const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
   const expandedThoughtsRef = useRef<Record<string, boolean>>({});
-  const [showScrollToBottomButton, setShowScrollToBottomButton] =
-    useState(false);
-  const [activeAnchor, setActiveAnchor] = useState<ActiveChatAnchor | null>(
-    null
-  );
-  const [anchorTailHeight, setAnchorTailHeight] = useState(0);
-  const scrollModeRef = useRef<ChatScrollMode>("following-end");
-  const positionedAnchorIdRef = useRef<string | null>(null);
-  const anchorSawBusyRef = useRef(false);
-  const previousMessageCountRef = useRef(messages.length);
-  const scrollRafRef = useRef<number | null>(null);
-  const layoutRafRef = useRef<number | null>(null);
   const executionMessagesByIdRef = useRef(new Map<string, Message[]>());
   const toolResultsByCallIdRef = useRef<Record<string, ToolResultSummary>>({});
-  const viewportAnchorRef = useRef<{
-    element: HTMLElement;
-    top: number;
-  } | null>(null);
 
   const componentStyles = useMemo(() => createStyles(theme), [theme]);
-
-  const handleScrollRef = useCallback((node: HTMLDivElement | null) => {
-    scrollRef.current = node;
-    if (node) {
-      node.dataset.scrollMode = scrollModeRef.current;
-    }
-    setScrollHost(node);
-  }, []);
-
-  const setScrollMode = useCallback((mode: ChatScrollMode) => {
-    scrollModeRef.current = mode;
-    if (scrollRef.current) {
-      scrollRef.current.dataset.scrollMode = mode;
-    }
-  }, []);
 
   const executionMessagesById = useMemo(() => {
     const next = new Map<string, Message[]>();
@@ -546,340 +424,24 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     };
   }, [messages, executionMessagesById]);
 
-  const virtualizer = useVirtualizer({
-    count: filteredMessages.length,
-    getScrollElement: () => scrollHost,
-    estimateSize: () => ESTIMATED_MESSAGE_HEIGHT,
-    overscan: theme.virtualScroll.overscan.small,
-    getItemKey: (index) => filteredMessages[index].id ?? `msg-${index}`,
-    initialRect: { width: 0, height: 800 }
-  });
-
-  // Keep the virtualizer from shifting the viewport when the trailing message
-  // grows. The layout effect below owns bottom-pinning while streaming.
-  virtualizer.shouldAdjustScrollPositionOnItemSizeChange = (
-    item,
-    _delta,
-    instance
-  ) => {
-    if (item.index === filteredMessages.length - 1) return false;
-    return item.start < (instance.scrollOffset ?? 0);
-  };
-
-  const totalSize = virtualizer.getTotalSize();
-
-  const getRealContentBottom = useCallback((): number | null => {
-    const el = scrollRef.current;
-    const realContent = realContentRef.current;
-    if (!el || !realContent) return null;
-    return getElementBottomInScrollContent(el, realContent);
-  }, []);
-
-  const captureViewportAnchor = useCallback(() => {
-    const el = scrollRef.current;
-    const realContent = realContentRef.current;
-    if (!el || !realContent) {
-      viewportAnchorRef.current = null;
-      return;
-    }
-
-    const hostTop = el.getBoundingClientRect().top;
-    const rows = realContent.querySelectorAll<HTMLElement>("[data-index]");
-    const anchor = Array.from(rows).find(
-      (row) => row.getBoundingClientRect().bottom > hostTop + CHAT_ANCHOR_OFFSET
-    );
-    viewportAnchorRef.current = anchor
-      ? { element: anchor, top: anchor.getBoundingClientRect().top }
-      : null;
-  }, []);
-
-  const applyScrollPolicy = useCallback(() => {
-    const el = scrollRef.current;
-    const realContentBottom = getRealContentBottom();
-    if (!el || realContentBottom == null) return;
-
-    if (scrollModeRef.current === "free-scrolling") {
-      const viewportAnchor = viewportAnchorRef.current;
-      if (viewportAnchor?.element.isConnected) {
-        const nextTop = viewportAnchor.element.getBoundingClientRect().top;
-        const delta = nextTop - viewportAnchor.top;
-        if (Math.abs(delta) > SCROLL_POSITION_EPSILON) {
-          el.scrollTop += delta;
-        }
-      }
-      captureViewportAnchor();
-      return;
-    }
-
-    if (scrollModeRef.current === "anchoring-new-turn") {
-      const visibleBottom = el.scrollTop + el.clientHeight - CHAT_ANCHOR_OFFSET;
-      const overflow = realContentBottom - visibleBottom;
-      if (overflow > SCROLL_POSITION_EPSILON) {
-        el.scrollTop += overflow;
-      }
-      return;
-    }
-
-    const target = Math.max(0, realContentBottom - el.clientHeight);
-    if (Math.abs(target - el.scrollTop) > SCROLL_POSITION_EPSILON) {
-      el.scrollTop = target;
-    }
-  }, [captureViewportAnchor, getRealContentBottom]);
-
-  const updateScrollState = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const realContentBottom = getRealContentBottom();
-    if (realContentBottom == null) return;
-    const nearBottom =
-      realContentBottom - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
-
-    if (scrollModeRef.current === "free-scrolling" && nearBottom) {
-      setScrollMode("following-end");
-    }
-    setShowScrollToBottomButton(
-      scrollModeRef.current === "free-scrolling" && !nearBottom
-    );
-    captureViewportAnchor();
-  }, [captureViewportAnchor, getRealContentBottom, setScrollMode]);
-
-  useEffect(() => {
-    const el = scrollHost;
-    if (!el) return;
-    // Coalesce scroll events to at most one measurement per frame — each call
-    // reads scrollTop/scrollHeight/clientHeight (a forced reflow) and setStates.
-    const onScroll = () => {
-      if (scrollRafRef.current != null) return;
-      scrollRafRef.current = requestAnimationFrame(() => {
-        scrollRafRef.current = null;
-        updateScrollState();
-      });
-    };
-    const onManualNavigation = () => {
-      if (scrollModeRef.current === "free-scrolling") return;
-      setScrollMode("free-scrolling");
-      positionedAnchorIdRef.current = null;
-      anchorSawBusyRef.current = false;
-      setActiveAnchor(null);
-      setAnchorTailHeight(0);
-      captureViewportAnchor();
-    };
-    el.addEventListener("scroll", onScroll, { passive: true });
-    el.addEventListener("wheel", onManualNavigation, { passive: true });
-    el.addEventListener("touchmove", onManualNavigation, { passive: true });
-    el.addEventListener("pointerdown", onManualNavigation, { passive: true });
-    return () => {
-      el.removeEventListener("scroll", onScroll);
-      el.removeEventListener("wheel", onManualNavigation);
-      el.removeEventListener("touchmove", onManualNavigation);
-      el.removeEventListener("pointerdown", onManualNavigation);
-      if (scrollRafRef.current != null) {
-        cancelAnimationFrame(scrollRafRef.current);
-        scrollRafRef.current = null;
-      }
-    };
-  }, [captureViewportAnchor, scrollHost, setScrollMode, updateScrollState]);
-
-  const scrollToBottom = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setScrollMode("following-end");
-    positionedAnchorIdRef.current = null;
-    anchorSawBusyRef.current = false;
-    setActiveAnchor(null);
-    setAnchorTailHeight(0);
-    const realContentBottom = getRealContentBottom();
-    if (realContentBottom != null) {
-      el.scrollTop = Math.max(0, realContentBottom - el.clientHeight);
-    }
-    setShowScrollToBottomButton(false);
-  }, [getRealContentBottom, setScrollMode]);
-
-  // Reset follow state whenever the visible thread changes, so a previously
-  // "scrolled up" thread doesn't carry that state onto the next one.
-  useEffect(() => {
-    setScrollMode("following-end");
-    positionedAnchorIdRef.current = null;
-    anchorSawBusyRef.current = false;
-    setActiveAnchor(null);
-    setAnchorTailHeight(0);
-    viewportAnchorRef.current = null;
-    setShowScrollToBottomButton(false);
-  }, [visibleThreadId, setScrollMode]);
-
-  // Land on the latest message when a thread first becomes visible — on mount,
-  // thread switch, or once its messages finish loading. Without this the
-  // virtualizer starts at the top, forcing a manual scroll to the end of an
-  // existing conversation. Runs before the incremental new-message effect (and
-  // syncs the count it reads) so the two don't fight over the scroll position.
-  const landedThreadRef = useRef<string | null | undefined>(undefined);
-  useEffect(() => {
-    if (!scrollHost || filteredMessages.length === 0) return;
-    if (landedThreadRef.current === visibleThreadId) return;
-    landedThreadRef.current = visibleThreadId;
-    previousMessageCountRef.current = messages.length;
-    setScrollMode("following-end");
-
-    const land = () => {
-      virtualizer.scrollToIndex(filteredMessages.length - 1, { align: "end" });
-      const el = scrollRef.current;
-      if (el) {
-        scrollElementToBottom(el);
-      }
-      setShowScrollToBottomButton(false);
-    };
-    // Two frames: the first lands on the estimated bottom, the second settles
-    // on the true bottom after the virtualizer measures real item heights.
-    let raf2 = 0;
-    const raf1 = requestAnimationFrame(() => {
-      land();
-      raf2 = requestAnimationFrame(land);
-    });
-    return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-    };
-  }, [
-    scrollHost,
+  const {
+    virtualizer,
+    handleScrollRef,
+    realContentRef,
+    scrollToBottom,
+    showScrollToBottomButton,
+    activeAnchor,
+    anchorTailHeight,
+    preserveViewportAfterToggle
+  } = useChatScrollAnchor({
     visibleThreadId,
-    filteredMessages.length,
-    messages.length,
-    setScrollMode,
-    virtualizer
-  ]);
-
-  // On new user message → scroll that message to top.
-  // On other new messages → follow to bottom if user hasn't scrolled up.
-  useEffect(() => {
-    const prevCount = previousMessageCountRef.current;
-    previousMessageCountRef.current = messages.length;
-    if (messages.length <= prevCount) return;
-
-    const last = messages[messages.length - 1];
-    if (last?.role === "user" && lastUserMessageIndex >= 0) {
-      const el = scrollRef.current;
-      const messageId = last.id ?? `msg-${lastUserMessageIndex}`;
-      setScrollMode("anchoring-new-turn");
-      positionedAnchorIdRef.current = null;
-      anchorSawBusyRef.current = false;
-      setActiveAnchor({ messageId, messageIndex: lastUserMessageIndex });
-      setAnchorTailHeight(el?.clientHeight ?? 0);
-      setShowScrollToBottomButton(false);
-      return;
-    }
-
-    if (
-      scrollModeRef.current === "anchoring-new-turn" &&
-      status !== "loading" &&
-      status !== "streaming"
-    ) {
-      anchorSawBusyRef.current = true;
-    } else if (scrollModeRef.current === "following-end") {
-      applyScrollPolicy();
-    }
-  }, [
-    applyScrollPolicy,
-    lastUserMessageIndex,
     messages,
-    setScrollMode,
-    status
-  ]);
-
-  // Position a newly sent prompt once the reserved tail makes it scrollable.
-  // The active turn then grows into that tail without moving the prompt until
-  // the real response content reaches the usable viewport bottom.
-  useEffect(() => {
-    if (!activeAnchor || !scrollHost) return;
-    if (positionedAnchorIdRef.current === activeAnchor.messageId) return;
-    positionedAnchorIdRef.current = activeAnchor.messageId;
-
-    let secondFrame = 0;
-    const firstFrame = requestAnimationFrame(() => {
-      virtualizer.scrollToIndex(activeAnchor.messageIndex, { align: "start" });
-      secondFrame = requestAnimationFrame(() => {
-        const el = scrollRef.current;
-        const row = realContentRef.current?.querySelector<HTMLElement>(
-          `[data-index="${activeAnchor.messageIndex}"]`
-        );
-        if (!el || !row) return;
-        const hostTop = el.getBoundingClientRect().top;
-        const rowTop = row.getBoundingClientRect().top;
-        el.scrollTop = Math.max(
-          0,
-          el.scrollTop + rowTop - hostTop - CHAT_ANCHOR_OFFSET
-        );
-      });
-    });
-
-    return () => {
-      cancelAnimationFrame(firstFrame);
-      cancelAnimationFrame(secondFrame);
-    };
-  }, [activeAnchor, scrollHost, virtualizer]);
-
-  // Apply the active policy before paint when the virtualizer reports a real
-  // size change. Token updates that do not change layout perform no scroll.
-  useLayoutEffect(() => {
-    applyScrollPolicy();
-  }, [applyScrollPolicy, status, totalSize]);
-
-  // Images, approvals, status rows, and responsive reflow can change height
-  // without changing the virtualizer's total. Coalesce those measurements to
-  // one policy application per animation frame.
-  useEffect(() => {
-    const el = scrollHost;
-    const realContent = realContentRef.current;
-    if (!el || !realContent || typeof ResizeObserver === "undefined") return;
-
-    const schedulePolicy = () => {
-      if (layoutRafRef.current != null) return;
-      layoutRafRef.current = requestAnimationFrame(() => {
-        layoutRafRef.current = null;
-        applyScrollPolicy();
-      });
-    };
-    const observer = new ResizeObserver(schedulePolicy);
-    observer.observe(el);
-    observer.observe(realContent);
-    return () => {
-      observer.disconnect();
-      if (layoutRafRef.current != null) {
-        cancelAnimationFrame(layoutRafRef.current);
-        layoutRafRef.current = null;
-      }
-    };
-  }, [applyScrollPolicy, scrollHost]);
-
-  // Once the turn settles, keep the just-sent prompt anchored where it landed
-  // instead of snapping the view to the conversation bottom (which for a short
-  // response would pull earlier messages down and push the prompt off the top).
-  // Trim the reserved tail to the minimum that holds the current scroll offset
-  // so no large empty gap lingers below the response. A long response that
-  // already followed to the bottom keeps ~zero tail and stays put. The anchor is
-  // released only when the user scrolls (→ free-scrolling) or sends the next
-  // turn. Free-scrolling mode is never overridden by a status change.
-  useEffect(() => {
-    if (status === "loading" || status === "streaming") {
-      if (scrollModeRef.current === "anchoring-new-turn") {
-        anchorSawBusyRef.current = true;
-      }
-      return;
-    }
-    if (scrollModeRef.current !== "anchoring-new-turn") return;
-    if (!anchorSawBusyRef.current) return;
-    anchorSawBusyRef.current = false;
-    const el = scrollRef.current;
-    const realContentBottom = getRealContentBottom();
-    if (!el || realContentBottom == null) {
-      setAnchorTailHeight(0);
-      return;
-    }
-    const requiredTail = Math.max(
-      0,
-      el.scrollTop + el.clientHeight - realContentBottom
-    );
-    setAnchorTailHeight(requiredTail);
-  }, [getRealContentBottom, status]);
+    filteredMessages,
+    lastUserMessageIndex,
+    status,
+    overscan: theme.virtualScroll.overscan.small,
+    loadOlderMessages: olderCursor ? loadOlderMessages : undefined
+  });
 
   const isThoughtExpanded = useCallback(
     (key: string) => expandedThoughtsRef.current[key] ?? false,
@@ -895,26 +457,12 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       };
 
       if (anchorBottomBeforeToggle == null || !anchorElement) return;
-      requestAnimationFrame(() => {
-        if (
-          scrollModeRef.current !== "free-scrolling" ||
-          !anchorElement.isConnected
-        ) {
-          return;
-        }
-        const el = scrollRef.current;
-        if (!el) return;
-        const delta =
-          anchorElement.getBoundingClientRect().bottom -
-          anchorBottomBeforeToggle;
-        if (Math.abs(delta) > SCROLL_POSITION_EPSILON) {
-          el.scrollTop += delta;
-          captureViewportAnchor();
-        }
-      });
+      preserveViewportAfterToggle(anchorElement, anchorBottomBeforeToggle);
     },
-    [captureViewportAnchor]
+    [preserveViewportAfterToggle]
   );
+
+  const totalSize = virtualizer.getTotalSize();
 
   const virtualItems = virtualizer.getVirtualItems();
 
@@ -927,12 +475,29 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
         ref={handleScrollRef}
         css={componentStyles.messageWrapper}
         className="scrollable-message-wrapper"
+        tabIndex={0}
       >
         <div
           css={componentStyles.chatMessagesList}
           className="chat-messages-list"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions text"
+          aria-label="Conversation"
         >
           <div ref={realContentRef} className="chat-messages-real-content">
+            <FlexRow justify="center" sx={{ minHeight: SPACING_PX.xxxl }}>
+              {olderCursor && (
+                <EditorButton
+                  onClick={loadOlderMessages}
+                  disabled={loadingHistoryThread === visibleThreadId}
+                >
+                  {loadingHistoryThread === visibleThreadId
+                    ? "Loading older messages…"
+                    : "Load older messages"}
+                </EditorButton>
+              )}
+            </FlexRow>
             <div
               className="chat-messages-virtual"
               style={{
@@ -969,7 +534,6 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                       toolResultsByCallId={toolResultsByCallId}
                       componentStyles={componentStyles}
                       executionMessagesById={executionMessagesById}
-                      showMeta={showMessageMeta}
                     />
                   </div>
                 );
@@ -978,13 +542,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
 
             {threadApprovals.length > 0 && (
               <div className="chat-message-list-item">
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: getSpacingPx(SPACING.md)
-                  }}
-                >
+                <FlexColumn gap={SPACING.md}>
                   {threadApprovals.map(([approvalId, approval]) => (
                     <ToolApprovalCard
                       key={approvalId}
@@ -997,19 +555,13 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                       onResolve={resolveApproval}
                     />
                   ))}
-                </div>
+                </FlexColumn>
               </div>
             )}
 
             {threadPlanApprovals.length > 0 && (
               <div className="chat-message-list-item">
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: getSpacingPx(SPACING.md)
-                  }}
-                >
+                <FlexColumn gap={SPACING.md}>
                   {threadPlanApprovals.map(([approvalId, approval]) => (
                     <PlanApprovalCard
                       key={approvalId}
@@ -1018,19 +570,13 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                       onResolve={resolvePlanApproval}
                     />
                   ))}
-                </div>
+                </FlexColumn>
               </div>
             )}
 
             {threadSecretRequests.length > 0 && (
               <div className="chat-message-list-item">
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: getSpacingPx(SPACING.md)
-                  }}
-                >
+                <FlexColumn gap={SPACING.md}>
                   {threadSecretRequests.map(([approvalId, request]) => (
                     <SecretRequestCard
                       key={approvalId}
@@ -1039,7 +585,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                       onResolve={resolveSecretRequest}
                     />
                   ))}
-                </div>
+                </FlexColumn>
               </div>
             )}
 
@@ -1055,7 +601,6 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
               hasAgentExecutionMessages={hasAgentExecutionMessages}
               pendingMediaMessage={pendingMediaMessage}
               activePredictions={activePredictions}
-              theme={theme}
             />
           </div>
 

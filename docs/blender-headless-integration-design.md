@@ -1,10 +1,13 @@
 # Blender Headless Integration — Design
 
-Status: Stages 0–3 implemented, revised after review. Stage 4 (worker
-tier) is not started. The implementation lives in `packages/blender-nodes`
-(TypeScript: binary discovery, job contract, `LocalBlenderRunner`,
-`runBlenderJob`, the five nodes) and `packages/blender-nodes/blender_ops`
-(the Python op scripts each node runs headless).
+Status: Stages 0–4 implemented, revised after review. The implementation
+lives in `packages/blender-nodes` (TypeScript: binary discovery, job
+contract, `LocalBlenderRunner`, `WorkerBlenderRunner`, `runBlenderJob`, the
+five nodes), `packages/blender-nodes/blender_ops` (the Python op scripts
+each node runs headless), `packages/protocol/src/bridge-frames.ts`
+(`blender.execute` / `blender.event`), and
+`packages/runtime/src/blender-executor.ts` (`executeBlender`, the bridge
+client). The worker-side `blender_handler.py` lives in nodetool-core.
 
 ## Summary
 
@@ -79,7 +82,7 @@ isolation boundary exists.
   missing binary is `HostBinaryMissingError`. `host-binary-guard.ts` confines
   model-authored argv to the workspace.
 - `@nodetool-ai/agents` depends on `@nodetool-ai/video-nodes`, so a node
-  package cannot import `runHostBinary` today without a dependency cycle.
+  package cannot import `runHostBinary` without a dependency cycle.
 - Files reach a binary through `Workspace` (`packages/runtime/src/workspace.ts`):
   `materialize`, `absorb`, `scratchDir`, and `localDir`, which is null on a
   cloud workspace.
@@ -126,8 +129,8 @@ isolation boundary exists.
 - `packages/cli/src/harness/registry.ts` gains a `blender` surface.
 - `packages/protocol/src/bridge-frames.ts` and `packages/runtime` gain
   `blender.execute` in the worker stage.
-- `electron/` gains a Blender path setting, and `start.sh doctor` a Blender
-  line, in Stage 1.
+- `packages/config/src/setting-catalog.ts` gains `BLENDER_PATH`, and
+  `start.sh doctor` a Blender line, in Stage 1.
 
 ## Assumptions
 
@@ -160,8 +163,8 @@ isolation boundary exists.
   `camera` kind and `set_transform` needs keyframes, which is a change to
   `packages/model3d`, not to this package.
 - U2. Cloud profile. On Fly there is no Blender and no worker by default. The
-  nodes are excluded from the cloud profile until the worker stage ships
-  (D8), so a cloud user never sees a node that cannot run.
+  nodes are excluded from the cloud profile until a Blender-enabled worker
+  image ships (D8), so a cloud user never sees a node that cannot run.
 
 ## Proposed Design
 
@@ -192,7 +195,7 @@ on abort the runner sends SIGTERM and follows the existing SIGKILL path.
 `env?: Record<string, string>`: the child's whole environment when set,
 instead of `process.env`. `onStderrLine?: (line: string) => void`: fed from
 the same stream the capture reads. `concurrencyClass?: string`: selects the
-semaphore. The default class keeps today's `NODETOOL_HOST_BINARY_CONCURRENCY`
+semaphore. The default class keeps the existing `NODETOOL_HOST_BINARY_CONCURRENCY`
 cap for ffmpeg and yt-dlp. A `render` class is capped by
 `NODETOOL_BLENDER_CONCURRENCY`, default 1, so a two-minute Cycles render never
 holds a slot a two-second ffmpeg call is waiting for. Existing callers pass
@@ -441,10 +444,12 @@ export async function resolveBlenderRunner(): Promise<BlenderRunner>;
 ```
 
 Stage 1 ships `LocalBlenderRunner` only. Stage 4 adds `WorkerBlenderRunner`,
-selected when `NODETOOL_WORKER_URL` is set and the worker reports
-`worker.status.blender.enabled`, the same selector `createPythonBridge` uses.
-A local binary wins when both exist, so a desktop with Blender installed never
-pays for a worker.
+selected when no local Blender resolves, `NODETOOL_WORKER_URL` is set, and
+the worker reports `worker.status.blender.enabled`, the same selector
+`createPythonBridge` uses. A local binary wins when both exist, so a desktop
+with Blender installed never pays for a worker. A configured worker that
+fails its status check is an error, never a silent fallback to local: the
+URL is a deployment choice.
 
 ### D8. Nodes
 
@@ -471,9 +476,17 @@ mime } }`. GLB is not an `ExportModel` format because `PrepareForEngine` and
 the existing `FormatConverter` already produce a `Model3DRef` for it. The
 `model_3d` socket keeps meaning glTF everywhere.
 
-Cloud profile: the `nodetool.blender` namespace is not in the cloud allowlist
-until Stage 4. `validate_workflow` then reports the nodes as unavailable on a
-cloud server instead of failing at run time.
+Cloud profile: the `nodetool.blender` namespace stays out of the cloud
+allowlist in `packages/protocol/src/cloud-profile.ts`, Stage 4 included. The
+worker image is built outside this repository (A3), so a cloud server cannot
+assume a Blender-enabled worker is reachable, and a namespace that is listed
+but cannot run is worse than one that is absent. `validate_workflow` reports
+the nodes as unavailable on a cloud server instead of failing at run time.
+The namespace joins the allowlist when a Blender-enabled worker image ships
+with the cloud deployment. A self-hosted install gets the worker tier now:
+`NODETOOL_NODE_PROFILE=full` keeps the namespace, and `NODETOOL_WORKER_URL`
+pointing at a worker whose status reports Blender selects
+`WorkerBlenderRunner` (D7).
 
 ### D9. Agent capability
 
@@ -486,18 +499,22 @@ module keeps the 3D capabilities in one place for the eval surface.
 Availability follows the `yt_dlp` / `browser_*` pattern exactly: the
 cloud profile drops `render_model3d` from the offered belt
 (`availableBuiltinToolNames`, via `isBlenderEnabled` in
-`packages/agents/src/blender-gate.ts` — the same `NODETOOL_NODE_PROFILE`
+`packages/agents/src/blender-gate.ts`, the same `NODETOOL_NODE_PROFILE`
 switch D8 uses for the `nodetool.blender` namespace), and the
 implementation refuses on its own when reached by name, so a guest that
 imports the module still gets a deployment answer instead of a run failure.
-A non-cloud server without the binary still serves the capability and fails
-with the cause named ("this server has no Blender installed...").
+The gate stays closed on the cloud profile until a Blender-enabled worker
+image ships, for the reason D8 gives. A self-hosted install with
+`NODETOOL_NODE_PROFILE=full` serves the capability, and with
+`NODETOOL_WORKER_URL` it renders through the worker tier. A non-cloud server
+with neither binary nor worker still serves the capability and fails with
+the cause named ("this server has no Blender installed...").
 
 ### D10. Configuration
 
 | Setting | Where | Default |
 |---|---|---|
-| `BLENDER_PATH` | env, Electron settings field (Stage 1) | unset |
+| `BLENDER_PATH` | env, settings catalog (Stage 1) | unset |
 | `NODETOOL_BLENDER_CONCURRENCY` | env, the `render` class cap | 1 |
 | `NODETOOL_HOST_BINARY_CONCURRENCY` | env, existing, the default class | 2 |
 | `NODETOOL_WORKER_URL`, `NODETOOL_WORKER_TOKEN` | env, existing | unset |
@@ -597,12 +614,12 @@ already uses for the same question.
 ### Add `format` to `Model3DRef` and return exports as models
 
 Advantages: one 3D socket type, FBX and USD flow through the same edges as
-GLB. Disadvantages: every consumer of `model_3d` today assumes glTF, from the
+GLB. Disadvantages: every consumer of `model_3d` assumes glTF, from the
 editor to `validate_model3d` to `RenderToImage`, so the field would need a
 check at each of them, and a missing `format` on old refs would have to mean
 `glb` forever. Rejected until NodeTool decides `Model3DRef` is a general 3D
 asset. An `AssetRef` with `metadata.format` carries the same information
-today without changing what an existing edge means.
+without changing what an existing edge means.
 
 ### A gated `RunScript` node for user Python
 
@@ -720,7 +737,8 @@ implementation can keep.
 - Stages 1 to 3 add a package that no existing graph references. Absent
   Blender, the nodes throw a named error and nothing else changes.
 - Stage 4 adds bridge frames with a new `type`, ignored by older workers,
-  and a status flag that defaults to false.
+  and a status flag that defaults to false. It changes no profile: the cloud
+  allowlist is untouched, so the cloud product is the same before and after.
 - Rollback at any stage is a revert. No migration, no persisted schema.
 - Hard to reverse: the `BlenderJob` version 1 shape once graphs and worker
   images depend on it. Version it from day one (D4) and reject an unknown
@@ -785,8 +803,8 @@ implementation can keep.
    `job.ts`, `runner.ts` with `BlenderRunner` and `LocalBlenderRunner`,
    `run-job.ts`, `run_job.py` with `render_image` and `framing.py`, asset
    dir registration, `base-nodes` registration, `resolveModelBytes` move,
-   registry surface, CI Blender install, the Electron `BLENDER_PATH` settings
-   field, and a Blender line in `start.sh doctor`. Tests: T2, T2b, T3, T4,
+   registry surface, CI Blender install, the `BLENDER_PATH` settings
+   catalog entry, and a Blender line in `start.sh doctor`. Tests: T2, T2b, T3, T4,
    T5, T6b, T7, T9.
 3. Stage 2, `RenderPasses` and `RenderAnimation`. Compositor node tree for
    passes with the D4 contracts, FFMPEG output, `Fra:` progress. Tests: T2
@@ -796,9 +814,10 @@ implementation can keep.
    Tests: T2 additions, T4 asserting exported FBX magic bytes, the
    `AssetRef` metadata, and GLB validity through `validateModel3D`, T8.
 5. Stage 4, worker tier. Bridge frames, `blender-executor.ts`,
-   `WorkerBlenderRunner`, status flag, cloud allowlist. Tests: T10, plus
-   T6b re-run with the worker runner behind the fake worker. The worker
-   image is a separate deliverable outside this repository.
+   `WorkerBlenderRunner`, status flag. The cloud allowlist stays as it is
+   (D8). Tests: T10, plus T6b re-run with the worker runner behind the
+   fake worker. The worker image is a separate deliverable outside this
+   repository, and the cloud allowlist entry waits for it.
 
 ## Open Questions
 
@@ -806,17 +825,18 @@ implementation can keep.
   (U1) in the same release? If yes, `packages/model3d` grows a `camera` and
   `text` primitive first, and `RenderAnimation` under `camera_mode: auto`
   picks them up with no further change.
-- Q2. Should Stage 4 route long renders through the generation ledger with
-  `background: true` so agents `await_generation`? It changes the node from
-  synchronous to a job handle and is the point where the timeout stops
-  being the only bound.
+- Q2. Resolved. `render_model3d` supports `background: true` through the
+  existing generation ledger and `MAX_BACKGROUND_GENERATIONS` cap; agents use
+  `await_generation` for completion. The five `nodetool.blender.*` nodes stay
+  synchronous because their downstream outputs remain media values and the
+  kernel already runs independent nodes concurrently.
 
 ## Risks
 
-- R1. Blender availability. Highest. Desktop users must install it and the
-  server has none until the worker ships. Mitigation: named errors, the
-  `BLENDER_PATH` setting, and the profile exclusion, so no user meets a node
-  that fails silently.
+- R1. Blender availability. Highest. Desktop users must install it, and the
+  cloud server has none until a Blender-enabled worker image ships.
+  Mitigation: named errors, the `BLENDER_PATH` setting, and the profile
+  exclusion, so no user meets a node that fails silently.
 - R2. Renderer parity drift. The preview node and the Blender node share
   camera params but not a renderer, so the same numbers frame differently.
   Mitigation: T3 pins the framing math on both sides.

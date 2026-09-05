@@ -1,3 +1,8 @@
+import {
+  formatClockTime24,
+  formatDayMonth
+} from "../../../utils/formatUtils";
+
 interface ParsedThought {
   thoughtContent: string;
   hasClosingTag: boolean;
@@ -53,4 +58,35 @@ export const getMessageClass = (role: string): string => {
     messageClass += " assistant";
   }
   return messageClass;
+};
+
+/**
+ * Timestamp for a chat message: the clock alone for messages sent today, the
+ * day in front of it for anything older, so a three-day-old message does not
+ * read as one from this afternoon.
+ *
+ * @param dateStr ISO timestamp; missing or unparseable returns null.
+ * @param now Reference "today" — injectable so tests do not depend on the clock.
+ */
+export const formatMessageTimestamp = (
+  dateStr?: string | null,
+  now: Date = new Date()
+): string | null => {
+  if (!dateStr) {
+    return null;
+  }
+  const date = new Date(dateStr);
+  const time = formatClockTime24(date);
+  if (!time) {
+    return null;
+  }
+  const isToday =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+  if (isToday) {
+    return time;
+  }
+  const day = formatDayMonth(date);
+  return day ? `${day} ${time}` : time;
 };

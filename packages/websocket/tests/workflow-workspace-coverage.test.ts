@@ -26,10 +26,21 @@ class FakeFileStorageAdapter {
 }
 
 vi.mock("@nodetool-ai/runtime", () => ({
+  PERMISSION_GATE_CONTEXT_KEY: "nodetool_permission_gate",
+  headlessGate: (hostName: string) => ({
+    mode: "auto",
+    sessionAllow: new Set<string>(),
+    requestApproval: async () => "deny",
+    hostName
+  }),
   ProcessingContext: class {
     opts: unknown;
+    variables: Record<string, unknown> = {};
     constructor(opts: unknown) {
       this.opts = opts;
+    }
+    set(key: string, value: unknown): void {
+      this.variables[key] = value;
     }
   },
   FileStorageAdapter: class {

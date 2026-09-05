@@ -168,7 +168,11 @@ interface StoryboardStoreState {
   /** Patch fields on a single shot. No-op when the shot is gone. */
   updateShot: (boardId: string, shotId: string, patch: Partial<Shot>) => void;
   setShotStatus: (boardId: string, shotId: string, status: ShotStatus) => void;
-  setShotKeyframe: (boardId: string, shotId: string, keyframe: ImageRef) => void;
+  setShotKeyframe: (
+    boardId: string,
+    shotId: string,
+    keyframe: ImageRef
+  ) => void;
   setShotClip: (boardId: string, shotId: string, clip: VideoRef) => void;
   /** Make one of the shot's preserved stills the selected keyframe. */
   selectKeyframeVersion: (
@@ -206,6 +210,11 @@ interface StoryboardStoreState {
     versionIndex: number
   ) => void;
   removeShot: (boardId: string, shotId: string) => void;
+  /**
+   * Append a blank planned shot and select it, so the inspector opens on it.
+   * Returns the new shot's id, or null when the board is not in the store.
+   */
+  addShot: (boardId: string) => string | null;
   /** Reorder shots to match `orderedIds`; re-stamps each shot's `index`. */
   reorderShots: (boardId: string, orderedIds: string[]) => void;
   /**
@@ -269,7 +278,13 @@ const withBoard = (
     boards: { ...state.boards, [boardId]: { ...next, updatedAt: now } }
   };
   if (track !== false) {
-    patch.history = pushHistory(state.history, boardId, board, track.coalesceKey ?? null, now);
+    patch.history = pushHistory(
+      state.history,
+      boardId,
+      board,
+      track.coalesceKey ?? null,
+      now
+    );
   }
   return patch;
 };
@@ -301,8 +316,7 @@ const withLiveTransient = (
 export const sameMediaRef = (
   a: { asset_id?: string | null; uri?: string },
   b: { asset_id?: string | null; uri?: string }
-): boolean =>
-  b.asset_id ? a.asset_id === b.asset_id : a.uri === b.uri;
+): boolean => (b.asset_id ? a.asset_id === b.asset_id : a.uri === b.uri);
 
 /** Patch the single shot with `shotId`; returns the same board on a no-op. */
 /**
@@ -402,13 +416,7 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         boards: { ...state.boards, [id]: next }
       };
       if (options?.checkpoint && prev) {
-        patch.history = pushHistory(
-          state.history,
-          id,
-          prev,
-          null,
-          Date.now()
-        );
+        patch.history = pushHistory(state.history, id, prev, null, Date.now());
       }
       return patch;
     }),
@@ -489,7 +497,13 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
       // A (re-)direct that replaces an existing board is undoable; the first
       // screenplay on an empty board has nothing to step back to.
       if (prev) {
-        patch.history = pushHistory(state.history, boardId, prev, null, Date.now());
+        patch.history = pushHistory(
+          state.history,
+          boardId,
+          prev,
+          null,
+          Date.now()
+        );
       }
       return patch;
     }),
@@ -693,7 +707,8 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         }
         // Preserve every still; the new render becomes the selected keyframe.
         const versions =
-          target.keyframe_versions ?? (target.keyframe ? [target.keyframe] : []);
+          target.keyframe_versions ??
+          (target.keyframe ? [target.keyframe] : []);
         const exists = versions.some((v) => sameMediaRef(v, keyframe));
         return patchShot(b, shotId, {
           keyframe,
@@ -710,7 +725,8 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
           return b;
         }
         // Preserve every take; the new render becomes the selected clip.
-        const versions = target.clip_versions ?? (target.clip ? [target.clip] : []);
+        const versions =
+          target.clip_versions ?? (target.clip ? [target.clip] : []);
         const exists = versions.some((v) => sameMediaRef(v, clip));
         return patchShot(b, shotId, {
           clip,
@@ -819,9 +835,7 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         }
         const remaining = versions.filter((_, i) => i !== versionIndex);
         const selectedIndex = target.clip
-          ? versions.findIndex((v) =>
-              sameMediaRef(v, target.clip as VideoRef)
-            )
+          ? versions.findIndex((v) => sameMediaRef(v, target.clip as VideoRef))
           : -1;
         const removedSelected = selectedIndex === versionIndex;
         let nextClip: VideoRef | null | undefined;
@@ -863,6 +877,30 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         };
       })
     ),
+
+  addShot: (boardId) => {
+    if (!get().boards[boardId]) {
+      return null;
+    }
+    const id = crypto.randomUUID();
+    set((state) =>
+      withBoard(state, boardId, (b) => ({
+        ...b,
+        shots: [
+          ...b.shots,
+          {
+            type: "shot",
+            id,
+            index: b.shots.length,
+            action: "",
+            status: "planned"
+          }
+        ],
+        activeShotId: id
+      }))
+    );
+    return id;
+  },
 
   reorderShots: (boardId, orderedIds) =>
     set((state) =>
@@ -915,7 +953,8 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         // click-to-deselect toggle lives in the click handler, so
         // programmatic callers (focus jumps, the agent bridge) can
         // re-select safely.
-        (b) => (b.activeShotId === shotId ? null : { ...b, activeShotId: shotId }),
+        (b) =>
+          b.activeShotId === shotId ? null : { ...b, activeShotId: shotId },
         // Selection is transient UI state, not an authoring edit.
         false
       )

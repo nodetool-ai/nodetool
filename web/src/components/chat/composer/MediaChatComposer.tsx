@@ -10,67 +10,26 @@ import React, {
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import AddIcon from "@mui/icons-material/Add";
-import AspectRatioIcon from "@mui/icons-material/CropOriginal";
-import AppsIcon from "@mui/icons-material/Apps";
-import DisplaySettingsIcon from "@mui/icons-material/Tv";
-import ImageIcon from "@mui/icons-material/Image";
-import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import MovieIcon from "@mui/icons-material/Movie";
-import MovieFilterIcon from "@mui/icons-material/MovieFilter";
-import VideocamIcon from "@mui/icons-material/Videocam";
-import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
-import GraphicEqIcon from "@mui/icons-material/GraphicEq";
-import SpeedIcon from "@mui/icons-material/Speed";
-import AudiotrackIcon from "@mui/icons-material/Audiotrack";
-import TuneIcon from "@mui/icons-material/Tune";
-import LayersIcon from "@mui/icons-material/Layers";
 
 import { FlexRow, LoadingSpinner, Text } from "../../ui_primitives";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import useMediaGenerationStore, {
-  IMAGE_VARIATIONS,
-  AUDIO_FORMATS,
-  AUDIO_SPEEDS,
-  DEFAULT_TTS_VOICES,
   resolveImageSize
-} from "../../../stores/MediaGenerationStore";
-import type {
-  MediaMode,
-  AudioFormat
 } from "../../../stores/MediaGenerationStore";
 import MediaControlChip from "./MediaControlChip";
 import WorkspaceChip from "../../workspaces/WorkspaceChip";
-import MediaModeMenu from "./MediaModeMenu";
+import ModeChips from "./ModeChips";
+import ModeSelectChip from "./ModeSelectChip";
+import ModelChip, { type ModelPickerHandle } from "./ModelChip";
 import ModeProviderSetupBanner from "./ModeProviderSetupBanner";
 import SelectModelBanner from "./SelectModelBanner";
 import { useModeProviderSetup } from "./useModeProviderSetup";
-import MediaOptionMenu, { MediaOption } from "./MediaOptionMenu";
-import MediaAspectRatioMenu from "./MediaAspectRatioMenu";
-import {
-  buildVideoModelOptions,
-  clampToAllowed,
-  videoModelConstraints
-} from "./videoModelOptions";
-import {
-  buildImageEditOptions,
-  buildImageModelOptions,
-  imageModelConstraints
-} from "./imageModelOptions";
-import ImageModelMenuDialog from "../../model_menu/ImageModelMenuDialog";
-import VideoModelMenuDialog from "../../model_menu/VideoModelMenuDialog";
-import LanguageModelMenuDialog from "../../model_menu/LanguageModelMenuDialog";
-import TTSModelMenuDialog from "../../model_menu/TTSModelMenuDialog";
 import type {
   Asset,
-  ImageModel,
   LanguageModel,
-  MessageContent,
-  TTSModel,
-  VideoModel
+  MessageContent
 } from "../../../stores/ApiTypes";
 import { isModelSelected, type ModelSelection } from "@nodetool-ai/protocol";
 import type { MediaGenerationRequest } from "../types/media.types";
@@ -86,13 +45,6 @@ import { useComposerAssetUpload } from "../hooks/useComposerAssetUpload";
 import { usePromptHistory } from "../hooks/usePromptHistory";
 import { useMessageQueue } from "../../../hooks/useMessageQueue";
 import { createMediaComposerStyles } from "./MediaChatComposer.styles";
-import {
-  audioModelPatch,
-  imageModelPatch,
-  recentModelEntry,
-  videoModelPatch
-} from "./modelSelection";
-import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { useChatDraftStore } from "../../../stores/ChatDraftStore";
 import { StopGenerationButton } from "./StopGenerationButton";
 import MediaCostEstimate from "./MediaCostEstimate";
@@ -104,10 +56,6 @@ import { useFirstRunLanguageModel } from "../../../hooks/useFirstRunLanguageMode
  *  phone the keyboard already owns most of the screen. */
 const TEXTAREA_MAX_HEIGHT = 220;
 const MOBILE_TEXTAREA_MAX_HEIGHT = 140;
-
-/** The model chip takes the width the other chips in the row leave, up to
- *  this, rather than truncating at a fixed width while the row runs empty. */
-const MODEL_CHIP_MAX_WIDTH = 320;
 
 /** Below this card width the chip row goes icon-first and stops wrapping, so
  *  the chips stay on one line in a narrow column (the project agent) as well
@@ -123,7 +71,6 @@ interface MediaChatComposerProps {
     mediaGeneration?: MediaGenerationRequest
   ) => void;
   onStop?: () => void;
-  onNewChat?: () => void;
   disabled?: boolean;
   selectedModel?: LanguageModel;
   onModelChange?: (model: LanguageModel) => void;
@@ -149,9 +96,9 @@ interface MediaChatComposerProps {
    * to a curated model, so there is nothing to pick.
    */
   hideModelPicker?: boolean;
-  /** Thread this composer writes to. A surface that opened the thread with a
-   *  prompt in mind (the new-project surface's quick starters) seeds it
-   *  through ChatDraftStore; the seed lands in the textarea once, unsent. */
+  /** Thread this composer writes to. A surface that has a prompt in mind — the
+   *  new-project quick starters, an "edit and resend" on a sent message — seeds
+   *  it through ChatDraftStore; the seed lands in the textarea, unsent. */
   threadId?: string | null;
 }
 
@@ -161,11 +108,11 @@ interface MediaChatComposerProps {
  * Renders a slick rounded glass card with:
  *   - A large prompt textarea
  *   - A footer chip row whose content adapts to the selected mode:
- *       • chat  → model (via left slot, handled by parent toolbar) +
- *                 agent mode toggle
+ *       • chat  → language model + permission mode
  *       • image → model, resolution (1K/2K/4K), aspect ratio, # variations
  *       • video → model, duration, resolution (720p/1080p/1440p/4K), aspect ratio
- *   - A Retake refresh icon
+ *     Each mode's cluster lives in {@link ModeChips} and owns the menus it
+ *     opens, so switching mode unmounts them.
  *   - A primary "Generate" button (or plain Send for chat mode)
  *
  * The selected mode + params are attached to the outgoing chat_message via the
@@ -198,6 +145,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const autoFocusEnabled = useAutoFocusEnabled();
   const [prompt, setPrompt] = useState("");
   const [cardWidth, setCardWidth] = useState(0);
+  const isBusy = isLoading || isStreaming;
 
   // The composer is hosted in columns of very different widths, so the chip
   // layout follows the card rather than the viewport.
@@ -216,23 +164,16 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   /** Icon-first chips on one non-wrapping line. */
   const isCompact = isMobile || (cardWidth > 0 && cardWidth < NARROW_CARD_WIDTH);
 
-  // Mode + media params from persistent store
+  // Mode + media params from persistent store. The params are read here for
+  // the outgoing `media_generation` payload; the chips that edit them read
+  // their own slice.
   const storeMode = useMediaGenerationStore((s) => s.mode);
   const setMode = useMediaGenerationStore((s) => s.setMode);
   const imageParams = useMediaGenerationStore((s) => s.image);
-  const setImageParams = useMediaGenerationStore((s) => s.setImageParams);
   const imageEditParams = useMediaGenerationStore((s) => s.imageEdit);
-  const setImageEditParams = useMediaGenerationStore(
-    (s) => s.setImageEditParams
-  );
   const videoParams = useMediaGenerationStore((s) => s.video);
-  const setVideoParams = useMediaGenerationStore((s) => s.setVideoParams);
   const imageToVideoParams = useMediaGenerationStore((s) => s.imageToVideo);
-  const setImageToVideoParams = useMediaGenerationStore(
-    (s) => s.setImageToVideoParams
-  );
   const audioParams = useMediaGenerationStore((s) => s.audio);
-  const setAudioParams = useMediaGenerationStore((s) => s.setAudioParams);
 
   // Language-model selection from chat store (used in chat mode & forwarded
   // as provider/model for media calls when a media model is not picked).
@@ -247,35 +188,17 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   // Pure-chat panels force chat mode and ignore the global media mode.
   const mode = hideModePicker ? "chat" : storeMode;
 
-  const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
-
   // When the selected mode's capability has no configured provider, surface a
   // setup banner and route the send into the provider-onboarding dialog
   // instead of letting the request fail server-side.
   const providerSetup = useModeProviderSetup(mode);
 
-  const [modeAnchor, setModeAnchor] = useState<HTMLButtonElement | null>(null);
-  const [durationAnchor, setDurationAnchor] = useState<HTMLButtonElement | null>(null);
-  const [resolutionAnchor, setResolutionAnchor] = useState<HTMLButtonElement | null>(null);
-  const [aspectAnchor, setAspectAnchor] = useState<HTMLButtonElement | null>(null);
-  const [variationsAnchor, setVariationsAnchor] = useState<HTMLButtonElement | null>(null);
-  const [voiceAnchor, setVoiceAnchor] = useState<HTMLButtonElement | null>(null);
-  const [speedAnchor, setSpeedAnchor] = useState<HTMLButtonElement | null>(null);
-  const [audioFormatAnchor, setAudioFormatAnchor] =
-    useState<HTMLButtonElement | null>(null);
-  const [strengthAnchor, setStrengthAnchor] =
-    useState<HTMLButtonElement | null>(null);
-  const [stepsAnchor, setStepsAnchor] = useState<HTMLButtonElement | null>(
-    null
-  );
-  const [imageModelOpen, setImageModelOpen] = useState(false);
-  const [videoModelOpen, setVideoModelOpen] = useState(false);
-  const [languageModelOpen, setLanguageModelOpen] = useState(false);
-  const [ttsModelOpen, setTtsModelOpen] = useState(false);
-  const imageModelAnchorRef = useRef<HTMLButtonElement | null>(null);
-  const languageModelAnchorRef = useRef<HTMLButtonElement | null>(null);
-  const videoModelAnchorRef = useRef<HTMLButtonElement | null>(null);
-  const ttsModelAnchorRef = useRef<HTMLButtonElement | null>(null);
+  // The mounted model chip for this mode — chat's, or the one `ModeChips`
+  // renders. Exactly one exists at a time, and a refused send opens it.
+  const modelPickerRef = useRef<ModelPickerHandle>(null);
+  const openModelPicker = useCallback(() => {
+    modelPickerRef.current?.open();
+  }, []);
 
   // File handling (input images for image-to-image / motion-control later)
   const { droppedFiles, removeFile, clearFiles, getFileContents, addDroppedFiles } =
@@ -360,8 +283,24 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     el.style.overflowY = el.scrollHeight > max ? "auto" : "hidden";
   }, [isMobile]);
 
+  /** Set when a seed lands, so the caret follows it once React has rendered
+   *  the new text — reading `el.value` any earlier gives the old prompt. */
+  const seedCaretPending = useRef(false);
+
   useLayoutEffect(() => {
     adjustHeight();
+    if (!seedCaretPending.current) {
+      return;
+    }
+    seedCaretPending.current = false;
+    const el = textareaRef.current;
+    if (!el) {
+      return;
+    }
+    // The user just tapped something that means "type this", so focus here
+    // regardless of `autoFocusEnabled`.
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
   }, [prompt, adjustHeight]);
 
   // Skipped on touch, where the virtual keyboard would cover the composer.
@@ -371,41 +310,25 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     }
   }, [autoFocus, autoFocusEnabled]);
 
-  // A seeded prompt is consumed once, and only into an empty box — the user's
-  // own half-written text always wins.
+  // A seed parked for this thread lands in the box, whether it was parked
+  // before the composer mounted or while it sits open. An empty box takes the
+  // seed as-is; a half-written prompt keeps what the user typed and gets the
+  // seed on the next line.
   const takeDraft = useChatDraftStore((s) => s.takeDraft);
+  const pendingDraft = useChatDraftStore((s) =>
+    threadId ? s.drafts[threadId] : undefined
+  );
   useEffect(() => {
-    if (!threadId) {
+    if (!threadId || pendingDraft === undefined) {
       return;
     }
     const draft = takeDraft(threadId);
-    if (draft) {
-      setPrompt((current) => (current ? current : draft));
+    if (draft === undefined) {
+      return;
     }
-  }, [threadId, takeDraft]);
-
-  // Close any open model / option dialogs whenever the mode changes. The
-  // image- and video-model dialogs are intentionally shared between the
-  // `image`/`image_edit` and `video`/`image_to_video` chip clusters
-  // respectively (their JSX is mutually exclusive), but switching modes
-  // programmatically while a dialog is open would otherwise leave it in an
-  // orphaned open state pointing at a now-unmounted anchor button.
-  useEffect(() => {
-    setModeAnchor(null);
-    setDurationAnchor(null);
-    setResolutionAnchor(null);
-    setAspectAnchor(null);
-    setVariationsAnchor(null);
-    setVoiceAnchor(null);
-    setSpeedAnchor(null);
-    setAudioFormatAnchor(null);
-    setStrengthAnchor(null);
-    setStepsAnchor(null);
-    setImageModelOpen(false);
-    setVideoModelOpen(false);
-    setLanguageModelOpen(false);
-    setTtsModelOpen(false);
-  }, [mode]);
+    setPrompt((current) => (current ? `${current}\n${draft}` : draft));
+    seedCaretPending.current = true;
+  }, [pendingDraft, threadId, takeDraft]);
 
   // Build media_generation payload from current state
   const buildMediaGeneration = useCallback((): MediaGenerationRequest => {
@@ -480,29 +403,11 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     return { mode };
   }, [
     mode,
-    imageParams.resolution,
-    imageParams.aspectRatio,
-    imageParams.model,
-    imageParams.variations,
-    imageEditParams.resolution,
-    imageEditParams.aspectRatio,
-    imageEditParams.model,
-    imageEditParams.variations,
-    imageEditParams.strength,
-    imageEditParams.numInferenceSteps,
-    videoParams.aspectRatio,
-    videoParams.resolution,
-    videoParams.duration,
-    videoParams.model,
-    imageToVideoParams.aspectRatio,
-    imageToVideoParams.resolution,
-    imageToVideoParams.duration,
-    imageToVideoParams.numInferenceSteps,
-    imageToVideoParams.model,
-    audioParams.model,
-    audioParams.voice,
-    audioParams.speed,
-    audioParams.format
+    imageParams,
+    imageEditParams,
+    videoParams,
+    imageToVideoParams,
+    audioParams
   ]);
 
   const { queuedMessage, sendMessage, cancelQueued, sendQueuedNow } =
@@ -577,44 +482,25 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const modelGate = useMemo((): {
     model: ModelSelection | null | undefined;
     label: string;
-    open: () => void;
   } | null => {
-    if (mode === "chat")
-      return {
-        model: chatModel,
-        label: "language",
-        open: () => setLanguageModelOpen(true)
-      };
-    if (mode === "image")
-      return {
-        model: imageParams.model,
-        label: "image",
-        open: () => setImageModelOpen(true)
-      };
-    if (mode === "image_edit")
-      return {
-        model: imageEditParams.model,
-        label: "image edit",
-        open: () => setImageModelOpen(true)
-      };
-    if (mode === "video")
-      return {
-        model: videoParams.model,
-        label: "video",
-        open: () => setVideoModelOpen(true)
-      };
-    if (mode === "image_to_video")
-      return {
-        model: imageToVideoParams.model,
-        label: "image to video",
-        open: () => setVideoModelOpen(true)
-      };
-    if (mode === "audio")
-      return {
-        model: audioParams.model,
-        label: "speech",
-        open: () => setTtsModelOpen(true)
-      };
+    if (mode === "chat") {
+      return { model: chatModel, label: "language" };
+    }
+    if (mode === "image") {
+      return { model: imageParams.model, label: "image" };
+    }
+    if (mode === "image_edit") {
+      return { model: imageEditParams.model, label: "image edit" };
+    }
+    if (mode === "video") {
+      return { model: videoParams.model, label: "video" };
+    }
+    if (mode === "image_to_video") {
+      return { model: imageToVideoParams.model, label: "image to video" };
+    }
+    if (mode === "audio") {
+      return { model: audioParams.model, label: "speech" };
+    }
     return null;
   }, [
     mode,
@@ -646,7 +532,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       // Nothing is picked for this mode. The server rejects such a turn, so keep
       // the prompt and open the picker instead of sending.
       if (needsModel) {
-        modelGate?.open();
+        openModelPicker();
         return;
       }
       const content: MessageContent[] = [];
@@ -671,7 +557,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       recordHistory,
       providerSetup,
       needsModel,
-      modelGate
+      openModelPicker
     ]
   );
 
@@ -734,6 +620,13 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       if (handleSkillKeyDown(e)) {
         return;
       }
+      // With no menu open to dismiss, Escape stops the reply in flight — the
+      // keyboard path to the Stop button the composer is already showing.
+      if (e.key === "Escape" && isBusy && onStop) {
+        e.preventDefault();
+        onStop();
+        return;
+      }
       // Then history navigation (ArrowUp/ArrowDown) when the picker is closed.
       if (handleHistoryKeyDown(e)) {
         return;
@@ -754,214 +647,17 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       handleMentionKeyDown,
       handleSkillKeyDown,
       handleHistoryKeyDown,
-      handleSend
+      handleSend,
+      isBusy,
+      onStop
     ]
   );
-
-  const modeIcon = useMemo(() => {
-    if (mode === "image") return <ImageIcon fontSize="small" />;
-    if (mode === "image_edit") return <AutoFixHighIcon fontSize="small" />;
-    if (mode === "video") return <VideocamIcon fontSize="small" />;
-    if (mode === "image_to_video") return <MovieFilterIcon fontSize="small" />;
-    if (mode === "audio") return <RecordVoiceOverIcon fontSize="small" />;
-    if (mode === "chat") return <ChatBubbleOutlineIcon fontSize="small" />;
-    return <AutoAwesomeIcon fontSize="small" />;
-  }, [mode]);
-
-  const modeLabel = useMemo(() => {
-    if (mode === "image") return "Image";
-    if (mode === "image_edit") return "Image Edit";
-    if (mode === "video") return "Video";
-    if (mode === "image_to_video") return "Image→Video";
-    if (mode === "audio") return "Speech";
-    if (mode === "chat") return "Chat";
-    if (mode === "audio_to_video") return "Audio→Video";
-    if (mode === "retake") return "Retake";
-    if (mode === "extend") return "Extend";
-    return "Motion";
-  }, [mode]);
-
-  const handlePickImageModel = useCallback(
-    (model: ImageModel) => {
-      setImageParams(imageModelPatch(model, imageParams));
-      addRecentModel(recentModelEntry(model));
-      setImageModelOpen(false);
-    },
-    [setImageParams, addRecentModel, imageParams]
-  );
-
-  const handlePickVideoModel = useCallback(
-    (model: VideoModel) => {
-      setVideoParams(videoModelPatch(model, videoParams));
-      addRecentModel(recentModelEntry(model));
-      setVideoModelOpen(false);
-    },
-    [setVideoParams, addRecentModel, videoParams]
-  );
-
-  const handlePickImageEditModel = useCallback(
-    (model: ImageModel) => {
-      const constraints = imageModelConstraints(model);
-      setImageEditParams({
-        model: {
-          type: "image_model",
-          id: model.id,
-          provider: model.provider,
-          name: model.name || "",
-          path: model.path || "",
-          ...constraints
-        },
-        resolution: clampToAllowed(
-          imageEditParams.resolution,
-          constraints.resolutions
-        ),
-        aspectRatio: clampToAllowed(
-          imageEditParams.aspectRatio,
-          constraints.aspectRatios
-        )
-      });
-      addRecentModel({
-        provider: model.provider || "",
-        id: model.id || "",
-        name: model.name || ""
-      });
-      setImageModelOpen(false);
-    },
-    [setImageEditParams, addRecentModel, imageEditParams.resolution, imageEditParams.aspectRatio]
-  );
-
-  const handlePickImageToVideoModel = useCallback(
-    (model: VideoModel) => {
-      const constraints = videoModelConstraints(model);
-      setImageToVideoParams({
-        model: {
-          type: "video_model",
-          id: model.id,
-          provider: model.provider,
-          name: model.name || "",
-          ...constraints
-        },
-        duration: clampToAllowed(
-          imageToVideoParams.duration,
-          constraints.durations
-        ),
-        resolution: clampToAllowed(
-          imageToVideoParams.resolution,
-          constraints.resolutions
-        ),
-        aspectRatio: clampToAllowed(
-          imageToVideoParams.aspectRatio,
-          constraints.aspectRatios
-        )
-      });
-      addRecentModel({
-        provider: model.provider || "",
-        id: model.id || "",
-        name: model.name || ""
-      });
-      setVideoModelOpen(false);
-    },
-    [setImageToVideoParams, addRecentModel, imageToVideoParams.duration, imageToVideoParams.resolution, imageToVideoParams.aspectRatio]
-  );
-
-  const handlePickTtsModel = useCallback(
-    (model: TTSModel) => {
-      setAudioParams(audioModelPatch(model, audioParams.voice));
-      addRecentModel(recentModelEntry(model));
-      setTtsModelOpen(false);
-    },
-    [setAudioParams, addRecentModel, audioParams.voice]
-  );
-
-  // The active video model for the current mode drives which duration /
-  // resolution / aspect options are offered (falling back to the full set when
-  // the model declares no constraints).
-  const activeVideoModel =
-    mode === "video"
-      ? videoParams.model
-      : mode === "image_to_video"
-        ? imageToVideoParams.model
-        : null;
-
-  // Option lists — derived from the active model's manifest (shared with the
-  // timeline quick-gen header via buildVideoModelOptions).
-  const {
-    durationOptions,
-    resolutionOptions: videoResolutionOptions,
-    aspectOptions: videoAspectOptions
-  } = useMemo(() => buildVideoModelOptions(activeVideoModel), [activeVideoModel]);
-
-  // Image option lists — derived from the selected model's manifest (shared
-  // with the sketch connected-mode prompt bar via buildImageModelOptions),
-  // falling back to the full sets when the model declares no constraints. The
-  // image-edit chip cluster has its own model, so it gets a parallel set.
-  const {
-    aspectOptions: imageAspectOptions,
-    resolutionOptions: imageResolutionOptions
-  } = useMemo(
-    () => buildImageModelOptions(imageParams.model),
-    [imageParams.model]
-  );
-
-  const {
-    aspectOptions: imageEditAspectOptions,
-    resolutionOptions: imageEditResolutionOptions
-  } = useMemo(
-    () => buildImageModelOptions(imageEditParams.model),
-    [imageEditParams.model]
-  );
-
-  const variationsOptions = useMemo<MediaOption<number>[]>(
-    () =>
-      IMAGE_VARIATIONS.map((n) => ({
-        id: n,
-        label: `${n}`,
-        description: n === 1 ? "variation" : "variations",
-        icon: <AppsIcon fontSize="small" />
-      })),
-    []
-  );
-
-  const voiceOptions = useMemo<MediaOption<string>[]>(() => {
-    const fromModel = audioParams.model?.voices ?? [];
-    const merged = Array.from(
-      new Set([...(fromModel.length > 0 ? fromModel : DEFAULT_TTS_VOICES)])
-    );
-    return merged.map((id) => ({
-      id,
-      label: id.charAt(0).toUpperCase() + id.slice(1),
-      icon: <RecordVoiceOverIcon fontSize="small" />
-    }));
-  }, [audioParams.model]);
-
-  const speedOptions = useMemo<MediaOption<number>[]>(
-    () =>
-      AUDIO_SPEEDS.map((s) => ({
-        id: s,
-        label: `${s}x`,
-        icon: <SpeedIcon fontSize="small" />
-      })),
-    []
-  );
-
-  const audioFormatOptions = useMemo<MediaOption<AudioFormat>[]>(
-    () =>
-      AUDIO_FORMATS.map((f) => ({
-        id: f,
-        label: f.toUpperCase(),
-        icon: <AudiotrackIcon fontSize="small" />
-      })),
-    []
-  );
-
-  const { strengthOptions, stepsOptions } = useMemo(buildImageEditOptions, []);
 
   const chatProviderLabel = useMemo(() => {
     if (!isModelSelected(chatModel)) return "Select model";
     return chatModel.name || chatModel.id;
   }, [chatModel]);
 
-  const isBusy = isLoading || isStreaming;
   const isDisabled = disabled || isBusy;
 
   const removeCallbacks = useMemo(
@@ -1026,7 +722,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             reason={`Pick a ${modelGate.label} model to ${
               isMediaMode ? "generate" : "send"
             }.`}
-            onSelect={modelGate.open}
+            onSelect={openModelPicker}
           />
         )}
 
@@ -1085,513 +781,60 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           {leadingActions}
           {/* Chip cluster: mode/model chips. */}
           <div className="media-chip-main">
-          {/* Attach: uploads to the asset library and attaches the asset. */}
-          <input
-            ref={attachInputRef}
-            type="file"
-            hidden
-            multiple
-            onChange={handleAttachPicked}
-          />
-          <MediaControlChip
-            icon={
-              isUploading ? (
-                <LoadingSpinner inline size={16} color="inherit" />
-              ) : (
-                <AddIcon fontSize="small" />
-              )
-            }
-            title={isUploading ? "Uploading…" : "Attach files"}
-            onClick={openAttachPicker}
-            disabled={disabled}
-            showChevron={false}
-          />
-          {/* Mode selector chip */}
-          {!hideModePicker && (
-            <>
-              <MediaControlChip
-                icon={modeIcon}
-                // Icon plus chevron on a phone: the mode is already legible
-                // from its icon, and the label costs room the model and
-                // workspace chips need on one line.
-                label={isCompact ? undefined : modeLabel}
-                title={modeLabel}
-                active={!!modeAnchor}
-                onClick={(e) => setModeAnchor(e.currentTarget)}
-                showChevron
-              />
-              <MediaModeMenu
-                anchorEl={modeAnchor}
-                open={!!modeAnchor}
-                onClose={() => setModeAnchor(null)}
-                value={mode}
-                onChange={(m: MediaMode) => {
-                  setMode(m);
-                }}
-              />
-            </>
-          )}
+            {/* Attach: uploads to the asset library and attaches the asset. */}
+            <input
+              ref={attachInputRef}
+              type="file"
+              hidden
+              multiple
+              onChange={handleAttachPicked}
+            />
+            <MediaControlChip
+              icon={
+                isUploading ? (
+                  <LoadingSpinner inline size={16} color="inherit" />
+                ) : (
+                  <AddIcon fontSize="small" />
+                )
+              }
+              title={isUploading ? "Uploading…" : "Attach files"}
+              onClick={openAttachPicker}
+              disabled={disabled}
+              showChevron={false}
+            />
 
-          {/* Model chip — changes based on mode */}
-          {mode === "chat" && !hideModelPicker && (
-            <>
-              <MediaControlChip
-                ref={languageModelAnchorRef}
-                icon={<AutoAwesomeIcon fontSize="small" />}
-                label={chatProviderLabel}
-                title={chatProviderLabel}
-                active={languageModelOpen}
-                onClick={() => setLanguageModelOpen(true)}
-                showChevron
-                truncate
-                grow
-                maxWidth={MODEL_CHIP_MAX_WIDTH}
+            {!hideModePicker && (
+              <ModeSelectChip
+                mode={mode}
+                onChange={setMode}
+                compact={isCompact}
               />
-              <PermissionSelector threadId={threadId} compact={isCompact} />
-              <LanguageModelMenuDialog
-                open={languageModelOpen}
-                anchorEl={languageModelAnchorRef.current}
-                onClose={() => setLanguageModelOpen(false)}
-                onModelChange={(model) => {
-                  onModelChange?.(model);
-                  setLanguageModelOpen(false);
-                }}
-                allowedProviders={allowedProviders}
-                requireToolSupport={requireToolSupport}
-              />
-            </>
-          )}
+            )}
 
-          {mode === "image" && (
-            <>
-              <MediaControlChip
-                ref={imageModelAnchorRef}
-                icon={<AutoAwesomeIcon fontSize="small" />}
-                label={imageParams.model?.name || "Select Model"}
-                active={imageModelOpen}
-                onClick={() => setImageModelOpen(true)}
-                showChevron
-                truncate
-                grow
-                maxWidth={MODEL_CHIP_MAX_WIDTH}
-              />
-              <ImageModelMenuDialog
-                open={imageModelOpen}
-                anchorEl={imageModelAnchorRef.current}
-                onClose={() => setImageModelOpen(false)}
-                onModelChange={handlePickImageModel}
-                task="text_to_image"
-              />
+            {mode === "chat" && !hideModelPicker && (
+              <>
+                <ModelChip
+                  openRef={modelPickerRef}
+                  icon={<AutoAwesomeIcon fontSize="small" />}
+                  label={chatProviderLabel}
+                  title={chatProviderLabel}
+                  picker={{
+                    kind: "language",
+                    allowedProviders,
+                    requireToolSupport,
+                    onPick: (model) => onModelChange?.(model)
+                  }}
+                />
+                <PermissionSelector threadId={threadId} compact={isCompact} />
+              </>
+            )}
 
-              <MediaControlChip
-                icon={<DisplaySettingsIcon fontSize="small" />}
-                label={imageParams.resolution}
-                active={!!resolutionAnchor}
-                onClick={(e) => setResolutionAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaOptionMenu
-                anchorEl={resolutionAnchor}
-                open={!!resolutionAnchor}
-                onClose={() => setResolutionAnchor(null)}
-                header="Image Resolution"
-                value={imageParams.resolution}
-                options={imageResolutionOptions}
-                onChange={(r) => setImageParams({ resolution: r })}
-              />
+            <ModeChips mode={mode} openModelPickerRef={modelPickerRef} />
 
-              <MediaControlChip
-                icon={<AspectRatioIcon fontSize="small" />}
-                label={imageParams.aspectRatio}
-                active={!!aspectAnchor}
-                onClick={(e) => setAspectAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaAspectRatioMenu
-                anchorEl={aspectAnchor}
-                open={!!aspectAnchor}
-                onClose={() => setAspectAnchor(null)}
-                value={imageParams.aspectRatio}
-                options={imageAspectOptions}
-                onChange={(v) => setImageParams({ aspectRatio: v })}
-              />
-
-              <MediaControlChip
-                icon={<AppsIcon fontSize="small" />}
-                label={`${imageParams.variations}`}
-                active={!!variationsAnchor}
-                onClick={(e) => setVariationsAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaOptionMenu
-                anchorEl={variationsAnchor}
-                open={!!variationsAnchor}
-                onClose={() => setVariationsAnchor(null)}
-                header="Number of Variations"
-                value={imageParams.variations}
-                options={variationsOptions}
-                onChange={(n) => setImageParams({ variations: n })}
-              />
-            </>
-          )}
-
-          {mode === "video" && (
-            <>
-              <MediaControlChip
-                ref={videoModelAnchorRef}
-                icon={<MovieIcon fontSize="small" />}
-                label={videoParams.model?.name || "Select Video Model"}
-                active={videoModelOpen}
-                onClick={() => setVideoModelOpen(true)}
-                truncate
-                grow
-                maxWidth={MODEL_CHIP_MAX_WIDTH}
-                showChevron
-              />
-              <VideoModelMenuDialog
-                open={videoModelOpen}
-                anchorEl={videoModelAnchorRef.current}
-                onClose={() => setVideoModelOpen(false)}
-                onModelChange={handlePickVideoModel}
-                task="text_to_video"
-              />
-
-              <MediaControlChip
-                icon={<AccessTimeIcon fontSize="small" />}
-                label={`${videoParams.duration} Sec`}
-                active={!!durationAnchor}
-                onClick={(e) => setDurationAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaOptionMenu
-                anchorEl={durationAnchor}
-                open={!!durationAnchor}
-                onClose={() => setDurationAnchor(null)}
-                value={videoParams.duration}
-                options={durationOptions}
-                onChange={(d) => setVideoParams({ duration: d })}
-              />
-
-              <MediaControlChip
-                icon={<DisplaySettingsIcon fontSize="small" />}
-                label={videoParams.resolution}
-                active={!!resolutionAnchor}
-                onClick={(e) => setResolutionAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaOptionMenu
-                anchorEl={resolutionAnchor}
-                open={!!resolutionAnchor}
-                onClose={() => setResolutionAnchor(null)}
-                header="Video Resolution"
-                value={videoParams.resolution}
-                options={videoResolutionOptions}
-                onChange={(r) => setVideoParams({ resolution: r })}
-              />
-
-              <MediaControlChip
-                icon={<AspectRatioIcon fontSize="small" />}
-                label={videoParams.aspectRatio}
-                active={!!aspectAnchor}
-                onClick={(e) => setAspectAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaAspectRatioMenu
-                anchorEl={aspectAnchor}
-                open={!!aspectAnchor}
-                onClose={() => setAspectAnchor(null)}
-                value={videoParams.aspectRatio}
-                options={videoAspectOptions}
-                onChange={(v) => setVideoParams({ aspectRatio: v })}
-              />
-            </>
-          )}
-
-          {mode === "image_edit" && (
-            <>
-              <MediaControlChip
-                ref={imageModelAnchorRef}
-                icon={<AutoFixHighIcon fontSize="small" />}
-                label={imageEditParams.model?.name || "Select Edit Model"}
-                active={imageModelOpen}
-                truncate
-                grow
-                maxWidth={MODEL_CHIP_MAX_WIDTH}
-                onClick={() => setImageModelOpen(true)}
-                showChevron
-              />
-              <ImageModelMenuDialog
-                open={imageModelOpen}
-                anchorEl={imageModelAnchorRef.current}
-                onClose={() => setImageModelOpen(false)}
-                onModelChange={handlePickImageEditModel}
-                task="image_to_image"
-              />
-
-              <MediaControlChip
-                icon={<DisplaySettingsIcon fontSize="small" />}
-                label={imageEditParams.resolution}
-                active={!!resolutionAnchor}
-                onClick={(e) => setResolutionAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaOptionMenu
-                anchorEl={resolutionAnchor}
-                open={!!resolutionAnchor}
-                onClose={() => setResolutionAnchor(null)}
-                header="Image Resolution"
-                value={imageEditParams.resolution}
-                options={imageEditResolutionOptions}
-                onChange={(r) => setImageEditParams({ resolution: r })}
-              />
-
-              <MediaControlChip
-                icon={<AspectRatioIcon fontSize="small" />}
-                label={imageEditParams.aspectRatio}
-                active={!!aspectAnchor}
-                onClick={(e) => setAspectAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaAspectRatioMenu
-                anchorEl={aspectAnchor}
-                open={!!aspectAnchor}
-                onClose={() => setAspectAnchor(null)}
-                value={imageEditParams.aspectRatio}
-                options={imageEditAspectOptions}
-                onChange={(v) => setImageEditParams({ aspectRatio: v })}
-              />
-
-              <MediaControlChip
-                icon={<TuneIcon fontSize="small" />}
-                label={`Strength ${imageEditParams.strength.toFixed(2)}`}
-                active={!!strengthAnchor}
-                onClick={(e) => setStrengthAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaOptionMenu
-                anchorEl={strengthAnchor}
-                open={!!strengthAnchor}
-                onClose={() => setStrengthAnchor(null)}
-                header="Edit Strength"
-                value={imageEditParams.strength}
-                options={strengthOptions}
-                onChange={(s) => setImageEditParams({ strength: s })}
-              />
-
-              <MediaControlChip
-                icon={<LayersIcon fontSize="small" />}
-                label={`${imageEditParams.numInferenceSteps} steps`}
-                active={!!stepsAnchor}
-                onClick={(e) => setStepsAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaOptionMenu
-                anchorEl={stepsAnchor}
-                open={!!stepsAnchor}
-                onClose={() => setStepsAnchor(null)}
-                header="Inference Steps"
-                value={imageEditParams.numInferenceSteps}
-                options={stepsOptions}
-                onChange={(n) =>
-                  setImageEditParams({ numInferenceSteps: n })
-                }
-              />
-
-              <MediaControlChip
-                icon={<AppsIcon fontSize="small" />}
-                label={`${imageEditParams.variations}`}
-                active={!!variationsAnchor}
-                onClick={(e) => setVariationsAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaOptionMenu
-                anchorEl={variationsAnchor}
-                open={!!variationsAnchor}
-                onClose={() => setVariationsAnchor(null)}
-                header="Number of Variations"
-                value={imageEditParams.variations}
-                options={variationsOptions}
-                onChange={(n) => setImageEditParams({ variations: n })}
-              />
-            </>
-          )}
-
-          {mode === "image_to_video" && (
-            <>
-              <MediaControlChip
-                ref={videoModelAnchorRef}
-                icon={<MovieFilterIcon fontSize="small" />}
-                label={
-                  imageToVideoParams.model?.name || "Select I2V Model"
-                }
-                active={videoModelOpen}
-                onClick={() => setVideoModelOpen(true)}
-                showChevron
-                truncate
-                grow
-                maxWidth={MODEL_CHIP_MAX_WIDTH}
-              />
-              <VideoModelMenuDialog
-                open={videoModelOpen}
-                anchorEl={videoModelAnchorRef.current}
-                onClose={() => setVideoModelOpen(false)}
-                onModelChange={handlePickImageToVideoModel}
-                task="image_to_video"
-              />
-
-              <MediaControlChip
-                icon={<AccessTimeIcon fontSize="small" />}
-                label={`${imageToVideoParams.duration} Sec`}
-                active={!!durationAnchor}
-                onClick={(e) => setDurationAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaOptionMenu
-                anchorEl={durationAnchor}
-                open={!!durationAnchor}
-                onClose={() => setDurationAnchor(null)}
-                header="Clip Duration"
-                value={imageToVideoParams.duration}
-                options={durationOptions}
-                onChange={(d) => setImageToVideoParams({ duration: d })}
-              />
-
-              <MediaControlChip
-                icon={<DisplaySettingsIcon fontSize="small" />}
-                label={imageToVideoParams.resolution}
-                active={!!resolutionAnchor}
-                onClick={(e) => setResolutionAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaOptionMenu
-                anchorEl={resolutionAnchor}
-                open={!!resolutionAnchor}
-                onClose={() => setResolutionAnchor(null)}
-                header="Video Resolution"
-                value={imageToVideoParams.resolution}
-                options={videoResolutionOptions}
-                onChange={(r) => setImageToVideoParams({ resolution: r })}
-              />
-
-              <MediaControlChip
-                icon={<AspectRatioIcon fontSize="small" />}
-                label={imageToVideoParams.aspectRatio}
-                active={!!aspectAnchor}
-                onClick={(e) => setAspectAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaAspectRatioMenu
-                anchorEl={aspectAnchor}
-                open={!!aspectAnchor}
-                onClose={() => setAspectAnchor(null)}
-                value={imageToVideoParams.aspectRatio}
-                options={videoAspectOptions}
-                onChange={(v) => setImageToVideoParams({ aspectRatio: v })}
-              />
-
-              <MediaControlChip
-                icon={<LayersIcon fontSize="small" />}
-                label={`${imageToVideoParams.numInferenceSteps} steps`}
-                active={!!stepsAnchor}
-                onClick={(e) => setStepsAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaOptionMenu
-                anchorEl={stepsAnchor}
-                open={!!stepsAnchor}
-                onClose={() => setStepsAnchor(null)}
-                header="Inference Steps"
-                value={imageToVideoParams.numInferenceSteps}
-                options={stepsOptions}
-                onChange={(n) =>
-                  setImageToVideoParams({ numInferenceSteps: n })
-                }
-              />
-            </>
-          )}
-
-          {mode === "audio" && (
-            <>
-              <MediaControlChip
-                ref={ttsModelAnchorRef}
-                icon={<GraphicEqIcon fontSize="small" />}
-                label={audioParams.model?.name || "Select TTS Model"}
-                active={ttsModelOpen}
-                onClick={() => setTtsModelOpen(true)}
-                showChevron
-                truncate
-                grow
-                maxWidth={MODEL_CHIP_MAX_WIDTH}
-              />
-              <TTSModelMenuDialog
-                open={ttsModelOpen}
-                anchorEl={ttsModelAnchorRef.current}
-                onClose={() => setTtsModelOpen(false)}
-                onModelChange={handlePickTtsModel}
-              />
-
-              <MediaControlChip
-                icon={<RecordVoiceOverIcon fontSize="small" />}
-                label={
-                  audioParams.voice
-                    ? audioParams.voice.charAt(0).toUpperCase() +
-                      audioParams.voice.slice(1)
-                    : "Voice"
-                }
-                active={!!voiceAnchor}
-                onClick={(e) => setVoiceAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaOptionMenu
-                anchorEl={voiceAnchor}
-                open={!!voiceAnchor}
-                onClose={() => setVoiceAnchor(null)}
-                header="Voice"
-                value={audioParams.voice}
-                options={voiceOptions}
-                onChange={(v) => setAudioParams({ voice: v })}
-              />
-
-              <MediaControlChip
-                icon={<SpeedIcon fontSize="small" />}
-                label={`${audioParams.speed}x`}
-                active={!!speedAnchor}
-                onClick={(e) => setSpeedAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaOptionMenu
-                anchorEl={speedAnchor}
-                open={!!speedAnchor}
-                onClose={() => setSpeedAnchor(null)}
-                header="Speech Rate"
-                value={audioParams.speed}
-                options={speedOptions}
-                onChange={(s) => setAudioParams({ speed: s })}
-              />
-
-              <MediaControlChip
-                icon={<AudiotrackIcon fontSize="small" />}
-                label={audioParams.format.toUpperCase()}
-                active={!!audioFormatAnchor}
-                onClick={(e) => setAudioFormatAnchor(e.currentTarget)}
-                showChevron={false}
-              />
-              <MediaOptionMenu
-                anchorEl={audioFormatAnchor}
-                open={!!audioFormatAnchor}
-                onClose={() => setAudioFormatAnchor(null)}
-                header="Audio Format"
-                value={audioParams.format}
-                options={audioFormatOptions}
-                onChange={(f) => setAudioParams({ format: f })}
-              />
-            </>
-          )}
-
-          {/* The workspace every turn reads and writes in. Shown for chat as
-              well as the canvas — a chat turn writes files too, and the user
-              needs to know where they land before they send. */}
-          <WorkspaceChip compact={isCompact} />
+            {/* The workspace every turn reads and writes in. Shown for chat as
+                well as the canvas — a chat turn writes files too, and the user
+                needs to know where they land before they send. */}
+            <WorkspaceChip compact={isCompact} />
           </div>
 
           {/* The Generate button for media modes, or Stop while a run is in
@@ -1629,7 +872,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           {trailingActions}
         </div>
       </div>
-
     </div>
   );
 };

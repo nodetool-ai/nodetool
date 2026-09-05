@@ -44,14 +44,14 @@ function imageJob(outputs: Record<string, string> = { image: "render.png" }): Bl
   };
 }
 
-function animationJob(): BlenderJob {
+function animationJob(frameStart = 1): BlenderJob {
   return {
     version: BLENDER_JOB_VERSION,
     inputs: { model: "model.glb" },
     outputs: { video: "anim.mp4" },
     job: {
       op: "render_animation",
-      params: { ...baseParams(), frame_start: 1, frame_end: 3, fps: 24, orbit_degrees: 90 }
+      params: { ...baseParams(), frame_start: frameStart, frame_end: frameStart + 2, fps: 24, orbit_degrees: 90 }
     }
   };
 }
@@ -378,11 +378,11 @@ describe("LocalBlenderRunner against a fake blender", () => {
     await expectScratchGone();
   });
 
-  it("Fra: lines become onProgress calls", async () => {
+  it.each([0, 1, 100])("Fra: lines count completed frames starting at %i", async (frameStart) => {
     const runner = useFake("fra");
     const seen: Array<[number, number]> = [];
     const result = await runner.run(
-      animationJob(),
+      animationJob(frameStart),
       { model: new Uint8Array([1]) },
       {
         timeoutMs: 10000,

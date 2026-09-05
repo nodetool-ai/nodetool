@@ -27,6 +27,8 @@ import {
   type AuthorGraphOptions
 } from "../src/author-graph.js";
 import { GRAPH_DSL_PACKAGE } from "../src/codeact/graph-dsl-package.js";
+import { PERMISSION_GATE_CONTEXT_KEY } from "../src/types.js";
+import type { PermissionGateOptions } from "../src/tools/tool-permissions.js";
 import { shippedPackCatalog } from "../src/evals/codeact-sandbox-pack-cases.js";
 import { createMockContext } from "./_helpers/mock-context.js";
 
@@ -167,6 +169,51 @@ describe("authorGraph belt", () => {
     expect(buildAuthoringBelt(options({ providers: {} })).map((t) => t.name)).not.toContain(
       "find_model"
     );
+  });
+});
+
+describe("authorGraph belt gate", () => {
+  const planGate = (): PermissionGateOptions => ({
+    mode: "plan",
+    sessionAllow: new Set<string>(),
+    requestApproval: async () => "allow"
+  });
+
+  it("blocks run_code under a plan-mode gate handed in explicitly", async () => {
+    const belt = buildAuthoringBelt(options({ gate: planGate() }));
+    const runCode = belt.find((t) => t.name === "run_code");
+    expect(runCode).toBeDefined();
+    const result = await runCode!.process(contextWith(null), {
+      code: "export default () => 1"
+    });
+    expect(result).toMatchObject({ error: "blocked_in_plan_mode" });
+  });
+
+  it("reads the parent run's gate off the context when none is passed", async () => {
+    const context = contextWith(null);
+    context.set(PERMISSION_GATE_CONTEXT_KEY, planGate());
+    const belt = buildAuthoringBelt(options({ context }));
+    const testCode = belt.find((t) => t.name === "test_code");
+    expect(testCode).toBeDefined();
+    const result = await testCode!.process(context, {
+      code: "export default () => 1",
+      cases: []
+    });
+    expect(result).toMatchObject({ error: "blocked_in_plan_mode" });
+  });
+
+  it("does not gate discovery: search_nodes is read-class in plan mode", async () => {
+    const searchable = {
+      ...registry,
+      listMetadata: () => []
+    } as unknown as NodeRegistry;
+    const belt = buildAuthoringBelt(
+      options({ gate: planGate(), registry: searchable })
+    );
+    const search = belt.find((t) => t.name === "search_nodes");
+    expect(search).toBeDefined();
+    const result = await search!.process(contextWith(null), { query: "x" });
+    expect(result).not.toMatchObject({ error: "blocked_in_plan_mode" });
   });
 });
 

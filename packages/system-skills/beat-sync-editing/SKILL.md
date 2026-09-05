@@ -16,6 +16,13 @@ scene.
 
 ## Get the grid from the audio, not from arithmetic
 
+When the bed does not exist yet, generate it with the grid in mind: a Stable
+Audio prompt states its BPM (`stable-audio-prompting`), and an ElevenLabs
+`composition_plan` pins each section's length in milliseconds
+(`elevenlabs-audio-prompting`), so the drop lands where the plan says instead
+of where the model felt like putting it. Then measure it anyway — the
+generated file, not the prompt, is the grid.
+
 `detect_audio_events` on the music clip reports onsets and a tempo.
 
 - `onsets.times` are in **seconds**. Every timeline op takes milliseconds, so

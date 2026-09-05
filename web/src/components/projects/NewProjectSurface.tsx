@@ -5,21 +5,30 @@
  * box takes the chat composer's triggers: `/` completes a skill and `@` picks
  * an asset or a library entity, so the opening turn is written the same way
  * every other turn is. A starter is one of the user's skills — their own or one
- * NodeTool ships — picked from a chip or from `/`, and it prefixes the opening
- * turn with `/<name>` so the agent reads that skill's instructions before it
- * plans anything. The picked skill is stored as the project's kind, which is
- * what its spend history is read back by. Blank documents keep their place at
- * the foot of the view, opening loose tabs the way the `+ New` menu always
- * did.
+ * NodeTool ships — and the prompt is the one record of which was picked: a
+ * pill writes `/<name>` into the prompt, `/` completes it, and a hand-typed one
+ * counts the same, so the pills light up from the text and can never disagree
+ * with what the agent is handed. The picked skill is stored as the project's
+ * kind, which is what its spend history is read back by. Blank documents keep
+ * their place at the foot of the view, opening loose tabs the way the `+ New`
+ * menu always did.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { isModelSelected, type Entity } from "@nodetool-ai/protocol";
 
 import {
   BORDER_RADIUS,
   Box,
   Caption,
+  Chip,
   CloseButton,
   Divider,
   EditorButton,
@@ -33,6 +42,7 @@ import {
   SPACING,
   Text,
   TextInput,
+  Tooltip,
   TYPOGRAPHY
 } from "../ui_primitives";
 import type { Asset, MessageContent } from "../../stores/ApiTypes";
@@ -76,13 +86,32 @@ import {
   composeFirstTurn,
   estimateFromHistory,
   formatEstimate,
+  invokedStarter,
   projectNameFromPrompt,
-  starterLabel
+  rankStarters,
+  starterLabel,
+  toggleStarterInPrompt,
+  VISIBLE_STARTERS
 } from "./projectStarters";
 import { useSkills } from "../../hooks/skills/useSkills";
 
 /** Width of the centered column, per the new-project mockup. */
 const COLUMN_WIDTH = 860;
+
+/** A starter pill at rest: outlined, quiet, the project's colour on hover. */
+const starterPillSx = {
+  borderRadius: BORDER_RADIUS.pill,
+  color: "text.secondary",
+  "&:hover": { borderColor: PROJECT_COLOR, color: "text.primary" }
+} as const;
+
+/** The picked starter: drawn in the project colour on a tint of it. */
+const activeStarterPillSx = {
+  color: PROJECT_COLOR,
+  borderColor: PROJECT_COLOR,
+  backgroundColor: "rgba(var(--palette-info-lightChannel) / 0.12)",
+  "&:hover": { backgroundColor: "rgba(var(--palette-info-lightChannel) / 0.2)" }
+} as const;
 
 interface SubmenuAnchor {
   kind: NewDocumentSubmenu;
@@ -92,9 +121,8 @@ interface SubmenuAnchor {
 
 const NewProjectSurface = () => {
   const [prompt, setPrompt] = useState("");
-  // The skill this project starts from, by name. Null is a bare start, where
-  // the prompt is the whole ask.
-  const [starterName, setStarterName] = useState<string | null>(null);
+  // The starter row folds past `VISIBLE_STARTERS` until asked to show the rest.
+  const [showAllStarters, setShowAllStarters] = useState(false);
   const [entityIds, setEntityIds] = useState<string[]>([]);
   const [entityAnchor, setEntityAnchor] = useState<HTMLElement | null>(null);
   const [submenu, setSubmenu] = useState<SubmenuAnchor | null>(null);
@@ -107,6 +135,9 @@ const NewProjectSurface = () => {
   const refInputRef = useRef<HTMLInputElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
+  // Where the caret goes once a pill has rewritten the prompt: back in the
+  // box, at the end, so the user keeps typing without a click.
+  const pendingCaretRef = useRef<number | null>(null);
 
   const { droppedFiles, addFiles, addDroppedFiles, removeFile, getFileContents } =
     useFileHandling();
@@ -156,15 +187,55 @@ const NewProjectSurface = () => {
     [entities, entityIds]
   );
 
-  const starters = useMemo(() => skills ?? [], [skills]);
-
-  // A starter the list no longer carries (a skill renamed or deleted while
-  // this tab sat open) is no starter at all, rather than a `/name` the agent
-  // would fail to resolve.
-  const starter = useMemo(
-    () => starters.find((entry) => entry.name === starterName) ?? null,
-    [starterName, starters]
+  const starters = useMemo(
+    () => rankStarters(skills ?? [], summaries.data ?? []),
+    [skills, summaries.data]
   );
+
+  // Read off the prompt, so a `/name` typed by hand lights its pill and a
+  // deleted one goes dark. A skill the catalog no longer carries is no
+  // starter at all, rather than a `/name` the agent would fail to resolve.
+  const starter = useMemo(
+    () => invokedStarter(prompt, starters),
+    [prompt, starters]
+  );
+
+  // The folded row still shows the picked starter, wherever it ranks, so the
+  // pill that is lit is never one that is hidden.
+  const visibleStarters = useMemo(() => {
+    if (showAllStarters || starters.length <= VISIBLE_STARTERS) {
+      return starters;
+    }
+    const head = starters.slice(0, VISIBLE_STARTERS);
+    return starter && !head.includes(starter) ? [...head, starter] : head;
+  }, [showAllStarters, starter, starters]);
+  const hiddenStarterCount = starters.length - visibleStarters.length;
+
+  const handleToggleStarter = useCallback(
+    (name: string) => {
+      const next = toggleStarterInPrompt(
+        prompt,
+        starter?.name ?? null,
+        starter?.name === name ? null : name
+      );
+      pendingCaretRef.current = next.length;
+      setPrompt(next);
+    },
+    [prompt, starter]
+  );
+
+  useLayoutEffect(() => {
+    const caret = pendingCaretRef.current;
+    if (caret === null) {
+      return;
+    }
+    pendingCaretRef.current = null;
+    const element = promptRef.current;
+    if (element) {
+      element.focus();
+      element.setSelectionRange(caret, caret);
+    }
+  }, [prompt]);
 
   const estimate = useMemo(
     () => estimateFromHistory(summaries.data ?? [], starter?.name ?? ""),
@@ -208,31 +279,15 @@ const NewProjectSurface = () => {
       includeEntities: true
     });
 
-  // A skill picked from `/` is the project's starter too — it is what the
-  // project's kind is stored as, and what its spend estimate reads back. The
-  // `/name` stays in the prompt where the user typed it; `composeFirstTurn`
-  // knows not to write a second one.
+  // A skill picked from `/` is written into the prompt as `/name`, which is
+  // all it takes to make it the starter: the pills and the project's kind
+  // both read the prompt.
   const { skillMenu, handleKeyDown: handleSkillKeyDown } =
     useTextareaSkillMention({
       textareaRef: promptRef,
       value: prompt,
-      setValue: setPrompt,
-      onSelect: (skill) => setStarterName(skill.name)
+      setValue: setPrompt
     });
-
-  // The handler rides the field wrapper, where MUI puts unknown props, and the
-  // keydown reaches it by bubbling from the textarea. Both pickers only read
-  // `key` and call `preventDefault`, so the retype is safe.
-  const handlePromptKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
-      const keyEvent = event as unknown as React.KeyboardEvent<HTMLTextAreaElement>;
-      if (handleSkillKeyDown(keyEvent)) {
-        return;
-      }
-      handleMentionKeyDown(keyEvent);
-    },
-    [handleMentionKeyDown, handleSkillKeyDown]
-  );
 
   const handleRefImages = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -343,6 +398,28 @@ const NewProjectSurface = () => {
     void resumeProject.current();
   }, [pendingStart, hasConfiguredProvider]);
 
+  // The handler rides the field wrapper, where MUI puts unknown props, and the
+  // keydown reaches it by bubbling from the textarea. Both pickers only read
+  // `key` and call `preventDefault`, so the retype is safe. Enter keeps its
+  // newline — a project brief runs to more than one line — and Ctrl/⌘+Enter
+  // starts, the way a multi-line composer submits everywhere else.
+  const handlePromptKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      const keyEvent = event as unknown as React.KeyboardEvent<HTMLTextAreaElement>;
+      if (handleSkillKeyDown(keyEvent)) {
+        return;
+      }
+      if (handleMentionKeyDown(keyEvent)) {
+        return;
+      }
+      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        void handleStart();
+      }
+    },
+    [handleMentionKeyDown, handleSkillKeyDown, handleStart]
+  );
+
   const handleConnectProvider = useCallback(() => {
     openProviderOnboarding();
   }, []);
@@ -391,7 +468,7 @@ const NewProjectSurface = () => {
               label="Project prompt"
               hideLabel
               inputRef={promptRef}
-              placeholder="A 30-second launch spot for our desk lamp — warm, minimal, night-time mood. Type / for a skill, @ for an asset or entity."
+              placeholder="A 30-second launch spot for our desk lamp — warm, minimal, night-time mood. Type / for a skill, @ for an asset or entity. Ctrl+Enter starts."
               onChange={(event) => setPrompt(event.target.value)}
               onKeyDown={handlePromptKeyDown}
             />
@@ -480,53 +557,60 @@ const NewProjectSurface = () => {
 
           {starters.length > 0 && (
             <FlexColumn gap={SPACING.md} align="center">
-              <FlexRow justify="center" gap={SPACING.md} wrap>
-                {starters.map((entry) => {
+              <FlexRow
+                justify="center"
+                gap={SPACING.sm}
+                wrap
+                role="group"
+                aria-label="Start from a skill"
+              >
+                {visibleStarters.map((entry) => {
                   const active = entry.name === starter?.name;
                   return (
-                    <Box
+                    <Tooltip
                       key={entry.name}
-                      component="button"
-                      type="button"
-                      aria-pressed={active}
-                      // What the skill does, before it is picked; the picked
-                      // one says it in full below the row.
                       title={entry.description}
-                      onClick={() =>
-                        setStarterName(active ? null : entry.name)
-                      }
-                      sx={{
-                        height: "28px",
-                        px: SPACING.lg,
-                        cursor: "pointer",
-                        borderRadius: BORDER_RADIUS.pill,
-                        border: "1px solid",
-                        borderColor: active ? PROJECT_COLOR : "divider",
-                        color: active ? PROJECT_COLOR : "text.secondary",
-                        bgcolor: "transparent",
-                        ...TYPOGRAPHY.sans.body
-                      }}
+                      placement="bottom"
+                      // Described by, not named by: the pill's name stays the
+                      // skill's label.
+                      describeChild
                     >
-                      {starterLabel(entry.name)}
-                    </Box>
+                      <Chip
+                        clickable
+                        variant="outlined"
+                        label={starterLabel(entry.name)}
+                        aria-pressed={active}
+                        onClick={() => handleToggleStarter(entry.name)}
+                        sx={{
+                          ...starterPillSx,
+                          ...(active && activeStarterPillSx)
+                        }}
+                      />
+                    </Tooltip>
                   );
                 })}
+                {(hiddenStarterCount > 0 || showAllStarters) && (
+                  <Chip
+                    clickable
+                    variant="outlined"
+                    aria-expanded={showAllStarters}
+                    label={
+                      showAllStarters
+                        ? "Show fewer"
+                        : `${hiddenStarterCount} more`
+                    }
+                    onClick={() => setShowAllStarters((shown) => !shown)}
+                    sx={{ ...starterPillSx, borderStyle: "dashed" }}
+                  />
+                )}
               </FlexRow>
               {starter ? (
-                <FlexColumn gap={SPACING.xs} align="center">
-                  <Box
-                    component="span"
-                    sx={{ ...TYPOGRAPHY.mono.caption, color: PROJECT_COLOR }}
-                  >
-                    {`/${starter.name}`}
-                  </Box>
-                  <Caption
-                    color="secondary"
-                    sx={{ maxWidth: "620px", textAlign: "center" }}
-                  >
-                    {starter.description}
-                  </Caption>
-                </FlexColumn>
+                <Caption
+                  color="secondary"
+                  sx={{ maxWidth: "620px", textAlign: "center" }}
+                >
+                  {starter.description}
+                </Caption>
               ) : (
                 <Caption color="muted">
                   Pick a skill to start from, or just describe what you want.

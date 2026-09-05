@@ -9,9 +9,15 @@
 import type {
   BaseProvider,
   ProcessingContext,
-  Message
+  Message,
+  ProviderStop,
+  RunBudget
 } from "@nodetool-ai/runtime";
-import { withAgentSpanGen } from "@nodetool-ai/runtime";
+import {
+  budgetFromContext,
+  isProviderStop,
+  withAgentSpanGen
+} from "@nodetool-ai/runtime";
 import { linkAbort } from "./utils/link-abort.js";
 import { createLogger } from "@nodetool-ai/config";
 import {
@@ -55,6 +61,7 @@ const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objec
 ## Structure
 - Task: { id, title, depends_on[], steps[] } — each task runs as an independent sub-agent.
 - Step: { id, instructions, depends_on[], output_schema?, tools? }
+- The LAST step of a task is the task's result: it runs after every sibling step and must consume their results.
 
 ## ID Rules (violations cause retries)
 - Task IDs: descriptive snake_case, e.g. "research_nlp", "write_summary".
@@ -167,6 +174,7 @@ Final result schema (informational — assembled from your tasks' results after 
 
 Remember:
 - Prefix step IDs with their task ID (e.g. "task1_search", "task1_summarize") to avoid collisions.
+- List each task's steps so the last one is the task's result and consumes its siblings.
 - Call add_task for each task in dependency order.
 - Do NOT add an aggregation/synthesis/assemble task — the loop that ran the plan reads each task's result from memory and writes the answer itself.`;
 
@@ -178,6 +186,11 @@ export interface TaskPlannerOptions {
   outputSchema?: Record<string, unknown>;
   inputs?: Record<string, unknown>;
   threadId?: string;
+  /**
+   * The run's budget, consulted before every planning turn. Omitted, the
+   * budget on the context is used; absent there too, planning is unbudgeted.
+   */
+  budget?: RunBudget;
   /** External cancellation. Aborts the planning provider loop mid-flight. */
   signal?: AbortSignal;
 }
@@ -191,6 +204,7 @@ export class TaskPlanner {
   private outputSchema: Record<string, unknown> | undefined;
   private inputs: Record<string, unknown>;
   private threadId?: string;
+  private readonly budget?: RunBudget;
   private signal?: AbortSignal;
 
   constructor(opts: TaskPlannerOptions) {
@@ -210,6 +224,7 @@ export class TaskPlanner {
     this.outputSchema = opts.outputSchema;
     this.inputs = opts.inputs ?? {};
     this.threadId = opts.threadId;
+    this.budget = opts.budget;
     this.signal = opts.signal;
   }
 
@@ -437,7 +452,10 @@ export class TaskPlanner {
       while (uiEvents.length > 0) yield uiEvents.shift() as ProcessingMessage;
     };
 
-    const stream = this.provider.generateLoop({
+    // The run's budget, never a fresh one: planning turns spend the same cap,
+    // deadline and turn count as the steps the plan will run.
+    const budget = this.budget ?? budgetFromContext(context);
+    const loopArgs: Parameters<BaseProvider["generateLoop"]>[0] = {
       messages,
       model: this.model,
       tools: providerTools,
@@ -446,7 +464,11 @@ export class TaskPlanner {
       maxIterations: MAX_CALLS,
       sequentialTools: true,
       signal: abort.signal
-    });
+    };
+    if (budget) loopArgs.turnBudget = budget;
+    const stream = this.provider.generateLoop(loopArgs);
+    // Why the provider loop stopped, when it was not the model ending its turn.
+    let providerStop: ProviderStop | null = null;
 
     try {
       for await (const item of stream) {
@@ -456,6 +478,11 @@ export class TaskPlanner {
         // narrating a retry of the finish_plan call that just succeeded. Drop
         // it instead of showing the user a contradiction.
         if (finished || abortedReason !== null || abort.signal.aborted) break;
+        if (isProviderStop(item)) {
+          providerStop = item;
+          yield* drainUi();
+          continue;
+        }
         // A tool call is announced before it runs — surface it for live display.
         if ("id" in item && "name" in item && "args" in item) {
           const tc = item;
@@ -507,6 +534,28 @@ export class TaskPlanner {
         phase: "complete",
         status: "failed",
         content: abortedReason
+      } satisfies PlanningUpdate;
+      return null;
+    }
+
+    // The loop ran out of something — the run's budget, deadline or turn
+    // count, or the planner's own call cap. Name the limit the budget recorded
+    // rather than reporting a model that "ended without finish_plan".
+    if (providerStop && providerStop.reason !== "aborted") {
+      const detail =
+        providerStop.reason === "budget" || providerStop.reason === "deadline"
+          ? (budget?.exhausted?.detail ?? providerStop.detail)
+          : providerStop.detail;
+      log.warn("Multi-task planning stopped", {
+        reason: providerStop.reason,
+        detail,
+        tasksSoFar: builder.taskCount
+      });
+      yield {
+        type: "planning_update",
+        phase: "complete",
+        status: "failed",
+        content: `Planning stopped after ${builder.taskCount} task(s): ${detail}`
       } satisfies PlanningUpdate;
       return null;
     }

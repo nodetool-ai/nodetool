@@ -17,6 +17,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   AgentMemory,
   BaseProvider,
+  createRunBudget,
   memoryKeys,
   ProcessingContext
 } from "@nodetool-ai/runtime";
@@ -31,11 +32,11 @@ import {
   executePlan
 } from "../src/capabilities/agents.js";
 import {
+  capabilityCategoryFor,
   capabilityModuleDrift,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import type { SubAgentToolRuntime } from "../src/subagent.js";
 import { BackgroundSubtaskRegistry } from "../src/background-subtasks.js";
 import {
@@ -47,6 +48,7 @@ import { createMockContext } from "./_helpers/mock-context.js";
 import { isString } from "../src/utils/type-guards.js";
 import { RunSearchTool } from "../src/tools/run-search-tool.js";
 import { StartSubtaskTool } from "../src/tools/start-subtask-tool.js";
+import { createLoopingMockProvider } from "./_helpers/looping-mock-provider.js";
 
 function makeCtx(): ProcessingContext {
   return new ProcessingContext({ jobId: "test-job", userId: "test" });
@@ -135,7 +137,7 @@ describe("the agents capability module", () => {
     for (const entry of AGENT_CAPABILITIES) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
-        permissionCategoryFor(entry.spec.name)
+        capabilityCategoryFor(entry.spec.name)
       ]);
     }
     // Delegating and planning have no side effect of their own; running a plan
@@ -458,6 +460,53 @@ describe("create_plan", () => {
     ).rejects.toThrow(/create_plan/);
   });
 
+  it("plans against the run's budget, and names it when it refuses", async () => {
+    // Planning turns are turns of the run. A budget with no room admits none,
+    // and the model is told which limit stopped it rather than that the
+    // objective was too vague.
+    const budget = createRunBudget({
+      capUsd: 0,
+      maxOutputTokens: 1_000,
+      unpricedTokenCeiling: 0,
+      deadlineMs: Infinity,
+      maxConcurrency: 4,
+      maxTurns: 50
+    });
+    const provider = createLoopingMockProvider(
+      [[{ id: "c1", name: "finish_plan", args: { title: "A Plan" } }]],
+      { provider: "openai", repeatLast: true }
+    );
+    const forwarded: ProcessingMessage[] = [];
+    const result = (await createPlan.impl(
+      createCapabilityRun({
+        context: makeCtx(),
+        gate: UNGATED,
+        subAgent: stubRuntime({
+          provider,
+          model: "gpt-4o-mini",
+          budget,
+          forwardMessage: (msg) => {
+            forwarded.push(msg);
+          }
+        })
+      }),
+      { objective: "Do the thing" }
+    )) as Record<string, unknown>;
+
+    expect(result["error"]).toBe("plan_failed");
+    expect(String(result["message"])).toContain("turn budget");
+    expect(provider.turnsStarted).toBe(0);
+    expect(budget.exhausted?.kind).toBe("cost");
+    expect(
+      forwarded.some(
+        (m) =>
+          m.type === "planning_update" &&
+          m.status === "failed" &&
+          String(m.content).includes("turn budget")
+      )
+    ).toBe(true);
+  });
+
   it("reports a planner that commits nothing instead of inventing a plan", async () => {
     const silent = {
       provider: "silent",
@@ -637,6 +686,13 @@ describe("execute_plan", () => {
       "draft",
       "gather"
     ]);
+    // And every step's own, keyed by step id, so what a sibling of the
+    // finish step produced is not lost behind the task result.
+    expect(result["steps"]).toEqual({
+      gather_read: "did gather_read",
+      draft_write: "did draft_write"
+    });
+    expect(result["error"]).toBeUndefined();
     // The run streams: the thread sees each task resolve as it happens.
     expect(forwarded.some((m) => m.type === "task_update")).toBe(true);
   });
@@ -649,6 +705,11 @@ describe("execute_plan", () => {
     expect(result["executed"]).toBe(true);
     expect(result["completed_count"]).toBe(0);
     expect(result["failed_count"]).toBe(2);
+    // Nothing succeeded, so the call is an error the model cannot mistake for
+    // a deliverable — one that still carries every task's failure.
+    expect(result["error"]).toBe("plan_failed");
+    expect(String(result["message"])).toContain("gather_read");
+    expect(String(result["message"])).toContain("draft");
     const tasks = result["tasks"] as Array<Record<string, unknown>>;
     expect(tasks[0]["status"]).toBe("failed");
     expect(tasks[0]["error"]).toContain("gather_read");
@@ -663,6 +724,37 @@ describe("execute_plan", () => {
         (m) => m.type === "task_update" && m.event === "task_failed"
       )
     ).toBe(true);
+  });
+
+  it("is not an error while any task succeeded", async () => {
+    // Two independent tasks, one failing: a partial result, not `plan_failed`.
+    const plan = {
+      title: "Half",
+      tasks: [
+        {
+          id: "gather",
+          title: "Gather",
+          depends_on: [],
+          steps: [
+            { id: "gather_read", instructions: "STEP:gather_read", depends_on: [] }
+          ]
+        },
+        {
+          id: "draft",
+          title: "Draft",
+          depends_on: [],
+          steps: [
+            { id: "draft_write", instructions: "STEP:draft_write", depends_on: [] }
+          ]
+        }
+      ]
+    };
+    const { result } = await runPlan(plan, { failing: ["gather_read"] });
+
+    expect(result["error"]).toBeUndefined();
+    expect(result["completed_count"]).toBe(1);
+    expect(result["failed_count"]).toBe(1);
+    expect(Object.keys(result["steps"] as object)).toEqual(["draft_write"]);
   });
 
   it("says so when a completed task left no result under its `task:<id>` key", async () => {

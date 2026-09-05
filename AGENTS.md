@@ -358,17 +358,25 @@ npm run electron:dev        # Electron against Vite server (requires conda env)
 
 ### Mandatory Post-Change Verification
 
-After **any** code change, run these three — and only these three:
+After **any** code change, run these four — and only these four:
 
 ```bash
 npm run test:affected # Only the suites that depend on what changed
 npm run typecheck     # Type check web, electron, and mobile
 npm run lint          # Lint packages/*/src, web/src, electron, mobile/src
+npm run dev:nodetool -- harness gate --base origin/main # Only the harness selfchecks this diff demands
 ```
 
-All three must pass before the task is complete. Do not reach for the full
+All four must pass before the task is complete. Do not reach for the full
 `npm run test` + `npm run test:packages` pass instead: it is minutes of wall
 clock on a two-file change, and CI runs it on the PR anyway.
+
+`harness gate` reads the same diff and maps it onto the harness registry
+(`packages/cli/src/harness/registry.ts`): a change under `packages/kernel/`
+runs the Ring 0 reliability journeys, a change under `packages/agents/src/app-build/`
+runs the app-build harness's deterministic cases, and so on — see
+[docs/HARNESS_FIRST.md](docs/HARNESS_FIRST.md). `--dry-run` prints the plan
+without running anything, so a diff that maps to nothing costs nothing.
 
 `npm run test:affected` maps the diff — committed since the merge-base with
 `origin/main`, plus the working tree — onto workspaces with the same
@@ -485,6 +493,7 @@ reference is [docs/harnesses.md](docs/harnesses.md) plus [docs/cli.md](docs/cli.
 | Run a workflow (id, JSON, or DSL `.ts`) | `nodetool run <file>` / `nodetool workflows run <id> [--params …]` | `run_workflow`, `start_background_job` | varies |
 | Map changed files → minimal workspaces to rebuild/test | `nodetool affected [--base main]` | — | instant |
 | Run only the suites that depend on changed code (the pre-commit test pass) | `npm run test:affected [-- --dry-run]` | — | seconds–minutes |
+| Run the harness selfchecks this diff demands | `nodetool harness gate [--base main] [--strict]` | — | seconds–minutes |
 | Ask whether the product let an agent finish a real job, and keep the transcript | `nodetool jtbd run` / `jtbd optimize` | — | minutes |
 | Check that every agent capability names a check | `nodetool harness capabilities`; `npm run capabilities:check` | — | seconds |
 | Check a provider's live response against the decoder that reads it | `npm run probe:providers` (nightly; offline half runs on every provider diff) | — | seconds |

@@ -217,6 +217,12 @@ export const VALIDATE_MODEL3D_SCHEMA: JsonSchema = {
 export const RENDER_MODEL3D_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
+    background: {
+      type: "boolean",
+      description:
+        "Return at once with a generation_id while Blender renders; collect the result with await_generation. At most 16 open per run.",
+      default: false
+    },
     model_id: MODEL_ID_PROPERTY,
     camera_mode: {
       type: "string",

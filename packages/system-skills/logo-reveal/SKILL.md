@@ -110,9 +110,13 @@ clearspace — a support element sliding through the mark's margin cheapens it.
 
 ## Landing on a sound logo
 
-Decide the audio first. `detect_audio_events` on the sting reports
-`onsets.times` in **seconds**; multiply by 1000. Time the reveal so the mark
-reaches full opacity and scale on that millisecond:
+Decide the audio first. A sound logo that does not exist yet is a 1–3 s
+effects brief — source, action, space — on ElevenLabs sound effects
+(`elevenlabs-audio-prompting`) or a `TrackType: SFX` prompt on Stable Audio
+(`stable-audio-prompting`); a 30-second request for a hit is a hit followed by
+room tone. Then `detect_audio_events` on the sting reports `onsets.times` in
+**seconds**; multiply by 1000. Time the reveal so the mark reaches full opacity
+and scale on that millisecond:
 
 `delayMs` on the `in` animation = onset ms − the clip's `startMs` −
 `durationMs`. Then add the accent on the hit itself, as a separate emphasis:

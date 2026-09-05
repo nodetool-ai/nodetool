@@ -4,9 +4,12 @@
  * A2 makes one permission ladder cover every host. Two things have to hold for
  * that: a loop the host never constructed must find the host's gate on the
  * context, and a loop that finds nothing must fail closed rather than build an
- * ungated run of its own. The second half is what let a chat in plan mode
- * mutate through an `AgentNode`, so the runs allowed to stay ungated are
- * enumerated here and the enumeration is checked against the sources.
+ * ungated run of its own. Every host sets a gate — a headless one sets
+ * `headlessGate` itself — so a context with none is a bug, and the answer is
+ * a gate that reads but denies everything else. The second half is what let a
+ * chat in plan mode mutate through an `AgentNode`, so the runs allowed to stay
+ * ungated are enumerated here and the enumeration is checked against the
+ * sources.
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -14,6 +17,18 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import { gateFromContext } from "../src/capabilities/gate-from-context.js";
+
+const logged = vi.hoisted(() => ({ error: vi.fn() }));
+vi.mock("@nodetool-ai/config", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@nodetool-ai/config")>();
+  return {
+    ...actual,
+    createLogger: (name: string) =>
+      name === "nodetool.agents.gate-from-context"
+        ? { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: logged.error }
+        : actual.createLogger(name)
+  };
+});
 import {
   decidePermission,
   headlessDenialReason,
@@ -63,17 +78,33 @@ describe("gateFromContext", () => {
     expect(gateFromContext(context, "chat turn")).toBe(gate);
   });
 
-  it("falls back to the headless gate when no host set one", () => {
-    const gate = gateFromContext(contextWith({}), "kernel job runner");
+  it("fails closed when no host set one: reads run, everything else is denied", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const gate = gateFromContext(contextWith({}), "kernel job runner");
 
-    expect(gate.mode).toBe("auto");
-    expect(gate.sessionAllow.size).toBe(0);
+      expect(gate.mode).toBe("default");
+      expect(gate.sessionAllow.size).toBe(0);
+      expect(decidePermission(gate.mode, "read")).toBe("allow");
+      for (const category of ["write", "execute", "external"] as const) {
+        expect(decidePermission(gate.mode, category)).toBe("ask");
+      }
+      await expect(gate.requestApproval(approvalRequest)).resolves.toBe("deny");
+    } finally {
+      warn.mockRestore();
+    }
   });
 
-  it("falls back to the headless gate when the context cannot answer", () => {
-    expect(gateFromContext(undefined, "kernel job runner").mode).toBe("auto");
-    expect(gateFromContext(null, "kernel job runner").mode).toBe("auto");
-    expect(gateFromContext({}, "kernel job runner").mode).toBe("auto");
+  it("is not the headless gate: a forgotten gate never runs auto", () => {
+    expect(gateFromContext(contextWith({}), "kernel job runner").mode).not.toBe(
+      headlessGate("kernel job runner").mode
+    );
+  });
+
+  it("fails closed when the context cannot answer", () => {
+    expect(gateFromContext(undefined, "kernel job runner").mode).toBe("default");
+    expect(gateFromContext(null, "kernel job runner").mode).toBe("default");
+    expect(gateFromContext({}, "kernel job runner").mode).toBe("default");
   });
 
   it.each([
@@ -95,13 +126,37 @@ describe("gateFromContext", () => {
         requestApproval: async () => "allow"
       }
     ]
-  ])("falls back to the headless gate on %s", (_label, stored) => {
+  ])("fails closed on %s", (_label, stored) => {
     const context = contextWith({ [PERMISSION_GATE_CONTEXT_KEY]: stored });
     const gate = gateFromContext(context, "kernel job runner");
 
     expect(gate).not.toBe(stored);
-    expect(gate.mode).toBe("auto");
+    expect(gate.mode).toBe("default");
     expect(gate.sessionAllow.size).toBe(0);
+  });
+
+  it("logs an error once per host when no gate is on the context", () => {
+    logged.error.mockClear();
+    const host = "absent-gate canary host";
+
+    gateFromContext(contextWith({}), host);
+    gateFromContext(contextWith({}), host);
+    gateFromContext(undefined, host);
+
+    expect(logged.error).toHaveBeenCalledTimes(1);
+    const message = String(logged.error.mock.calls[0]?.[0]);
+    expect(message).toContain(host);
+    expect(message).toContain("denying every call past read");
+    expect(message).toContain("PERMISSION_GATE_CONTEXT_KEY");
+  });
+
+  it("does not log when the host set a gate", () => {
+    logged.error.mockClear();
+    const context = contextWith({ [PERMISSION_GATE_CONTEXT_KEY]: hostGate() });
+
+    gateFromContext(context, "gated canary host");
+
+    expect(logged.error).not.toHaveBeenCalled();
   });
 
   it("gives each caller its own session allow-list", () => {
@@ -209,6 +264,56 @@ function* packageSourceDirs(root: string): Generator<string> {
     if (existsSync(src) && statSync(src).isDirectory()) yield src;
   }
 }
+
+/**
+ * Files allowed to build a run on `UNGATED` directly, and why each is not a
+ * hole. A construction site qualifies when the `Tool` built over the run is
+ * wrapped by `gateTools` from outside, or when the run only serves a call the
+ * ladder already admitted (a nested run inside a gated capability).
+ */
+const MAY_BUILD_UNGATED: Record<string, string> = {
+  "agents/src/capabilities/invoke.ts": "declares it",
+  "agents/src/capabilities/index.ts": "re-export",
+  "agents/src/index.ts": "re-export",
+  "agents/src/capabilities/files.ts":
+    "fileCapabilityRun backs CapabilityTool instances a host wraps in gateTools",
+  "agents/src/capabilities/google.ts":
+    "googleCapabilityRun backs CapabilityTool instances a host wraps in gateTools",
+  "agents/src/capabilities/scripts.ts":
+    "nested generate_speech run inside voice_script_lines, a write-class " +
+    "call the ladder already admitted",
+  "agents/src/tools/mcp-tools.ts":
+    "builds lazy Tools for the MCP/CLI/chat belts; every host wraps that " +
+    "belt in gateTools",
+  "websocket/src/mcp-agent-tools.ts":
+    "inner runs for loader-carrying Tools; registerAgentMcpTools wraps the " +
+    "whole belt in gateTools",
+  "websocket/src/session/chat-turn.ts":
+    "delegation run for run_subtask/start_subtask/wait_subtasks, read-class " +
+    "spawns whose children act through the gated belt"
+};
+
+describe("UNGATED construction sites", () => {
+  const referencing = [...packageSourceDirs(packagesDir)]
+    .flatMap((dir) => [...sourceFiles(dir)])
+    .filter((file) => /\bUNGATED\b/.test(readFileSync(file, "utf8")))
+    .map((file) => relative(packagesDir, file).split("\\").join("/"))
+    .sort();
+
+  it("finds the declaration", () => {
+    expect(referencing).toContain("agents/src/capabilities/invoke.ts");
+  });
+
+  it("is built in no other file", () => {
+    const unlisted = referencing.filter((file) => !(file in MAY_BUILD_UNGATED));
+
+    expect(unlisted).toEqual([]);
+  });
+
+  it("author-graph builds its belt on the caller's gate, not UNGATED", () => {
+    expect(referencing).not.toContain("agents/src/author-graph.ts");
+  });
+});
 
 describe("ungatedCapabilityRun users", () => {
   const referencing = [...packageSourceDirs(packagesDir)]

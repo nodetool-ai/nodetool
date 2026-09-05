@@ -2,11 +2,13 @@
  * CodeActExecutor harness tests — a scripted provider drives code actions
  * through the real QuickJS sandbox and tool bridge. No network, no model.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   CodeActExecutor,
-  FINISH_CONTRACT_NUDGE
+  FINISH_CONTRACT_NUDGE,
+  REPEATED_ACTION_LIMIT
 } from "../src/codeact/codeact-executor.js";
+import { MAX_ACTION_RESULT_CHARS } from "../src/constants.js";
 import { Tool } from "../src/tools/base-tool.js";
 import type { Step, Task } from "../src/types.js";
 import type {
@@ -999,6 +1001,232 @@ describe("CodeActExecutor run budget", () => {
     expect(step.error).toContain("gen-1");
     expect(step.error).toContain("asset-9");
     expect(step.error).toContain("reuse them instead of generating again");
+    // `tick` answered with no generation id, so the list falls back to the
+    // user's window and says so.
+    expect(step.error).toContain("other steps and turns included");
+    generationRegistry.reset();
+  });
+
+  /**
+   * Two steps of a parallel plan, one user, both stopped by the deadline after
+   * paying for one generation each. The registry is user-scoped, so each step
+   * used to claim the other's generation as work it paid for.
+   */
+  it("names only its own generations when sibling steps fail in the same window", async () => {
+    generationRegistry.reset();
+    let settled = 0;
+    let releaseBoth: () => void = () => {};
+    const bothSettled = new Promise<void>((resolve) => {
+      releaseBoth = resolve;
+    });
+
+    /** Settles one paid generation, answers with its id like generate_image. */
+    class GenTool extends Tool {
+      readonly name = "gen";
+      readonly description = "Generates one paid asset.";
+      constructor(
+        private readonly id: string,
+        private readonly onDone: () => void
+      ) {
+        super();
+      }
+      async process(): Promise<unknown> {
+        generationRegistry.register(this.id, {
+          userId: "test-user",
+          abort: () => {}
+        });
+        generationRegistry.settle(this.id, {
+          status: "completed",
+          asset_ids: [`asset-${this.id}`],
+          receipt: null
+        });
+        settled++;
+        if (settled === 2) releaseBoth();
+        // Both generations are in the registry before either step composes
+        // its failure, which is the interleaving that named the sibling's.
+        await bothSettled;
+        this.onDone();
+        return { generation_id: this.id };
+      }
+    }
+
+    const runStep = async (stepId: string, genId: string): Promise<Step> => {
+      const step: Step = {
+        id: stepId,
+        instructions: `Generate ${genId}`,
+        completed: false,
+        dependsOn: [],
+        logs: [],
+        outputSchema: JSON.stringify(ANSWER_SCHEMA)
+      };
+      const task: Task = { id: "task_1", title: "T", steps: [step] };
+      let outOfTime = false;
+      const budget: RunBudget = {
+        turns: { reserve: () => true, commit: () => {}, spentUsd: 0 },
+        deadline: {
+          at: Number.POSITIVE_INFINITY,
+          remainingMs: () => (outOfTime ? 0 : 1000),
+          expired: () => outOfTime
+        },
+        concurrency: createSemaphore(1),
+        turnCount: createCounter(10),
+        get exhausted() {
+          return outOfTime
+            ? {
+                kind: "deadline" as const,
+                detail: "run deadline of 1000ms reached"
+              }
+            : null;
+        }
+      };
+      const gen = new GenTool(genId, () => {
+        outOfTime = true;
+      });
+      const provider = {
+        provider: "fake",
+        hasToolSupport: async () => true,
+        async *generateLoop(args: {
+          tools?: Array<{
+            name: string;
+            execute?: (a: Record<string, unknown>) => Promise<string | unknown>;
+          }>;
+        }) {
+          const tool = (args.tools ?? []).find((t) => t.name === "execute_code");
+          await tool?.execute?.({
+            code: `import { gen } from "@nodetool-ai/sandbox-nodetool/session";
+                   await gen({});
+                   await gen({});
+                   await finish({answer: 1});`
+          });
+          yield {
+            type: "message",
+            message: { role: "assistant", content: "ran out of time" }
+          };
+          yield { type: "chunk", content: "", done: true };
+        }
+      } as unknown as BaseProvider;
+      const executor = new CodeActExecutor({
+        task,
+        step,
+        context: createMockContext() as never,
+        provider,
+        model: "m",
+        tools: [gen],
+        turnBudget: budget
+      });
+      for await (const msg of executor.execute()) void msg;
+      return step;
+    };
+
+    const [a, b] = await Promise.all([
+      runStep("step_a", "gen-a"),
+      runStep("step_b", "gen-b")
+    ]);
+
+    expect(settled).toBe(2);
+    expect(a.error).toContain("run deadline of 1000ms reached");
+    expect(a.error).toContain("1 generation(s) completed");
+    expect(a.error).toContain("gen-a (asset-gen-a)");
+    expect(a.error).not.toContain("gen-b");
+    expect(b.error).toContain("1 generation(s) completed");
+    expect(b.error).toContain("gen-b (asset-gen-b)");
+    expect(b.error).not.toContain("gen-a");
+    expect(a.error).not.toContain("other steps and turns included");
+    generationRegistry.reset();
+  });
+
+  /**
+   * A step whose own generation never completed says nothing, even while a
+   * sibling's completed generation sits in the same user window.
+   */
+  it("reports no paid work when its own generation did not complete", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    generationRegistry.reset();
+    let outOfTime = false;
+    const budget: RunBudget = {
+      turns: { reserve: () => true, commit: () => {}, spentUsd: 0 },
+      deadline: {
+        at: Number.POSITIVE_INFINITY,
+        remainingMs: () => (outOfTime ? 0 : 1000),
+        expired: () => outOfTime
+      },
+      concurrency: createSemaphore(1),
+      turnCount: createCounter(10),
+      get exhausted() {
+        return outOfTime
+          ? {
+              kind: "deadline" as const,
+              detail: "run deadline of 1000ms reached"
+            }
+          : null;
+      }
+    };
+    // The sibling's generation completed; this step's own failed.
+    generationRegistry.register("gen-sibling", {
+      userId: "test-user",
+      abort: () => {}
+    });
+    generationRegistry.settle("gen-sibling", {
+      status: "completed",
+      asset_ids: ["asset-sibling"],
+      receipt: null
+    });
+    class FailedGenTool extends Tool {
+      readonly name = "gen";
+      readonly description = "A generation the provider refused.";
+      async process(): Promise<unknown> {
+        generationRegistry.register("gen-own", {
+          userId: "test-user",
+          abort: () => {}
+        });
+        generationRegistry.settle("gen-own", {
+          status: "failed",
+          error: "refused",
+          asset_ids: [],
+          receipt: null
+        });
+        outOfTime = true;
+        return { error: "refused", generation_id: "gen-own" };
+      }
+    }
+    const provider = {
+      provider: "fake",
+      hasToolSupport: async () => true,
+      async *generateLoop(args: {
+        tools?: Array<{
+          name: string;
+          execute?: (a: Record<string, unknown>) => Promise<string | unknown>;
+        }>;
+      }) {
+        const tool = (args.tools ?? []).find((t) => t.name === "execute_code");
+        await tool?.execute?.({
+          code: `import { gen } from "@nodetool-ai/sandbox-nodetool/session";
+                 await gen({});
+                 await finish({answer: 1});`
+        });
+        yield {
+          type: "message",
+          message: { role: "assistant", content: "ran out of time" }
+        };
+        yield { type: "chunk", content: "", done: true };
+      }
+    } as unknown as BaseProvider;
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: [new FailedGenTool()],
+      turnBudget: budget
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    expect(step.error).toContain("run deadline of 1000ms reached");
+    expect(step.error).not.toContain("reuse them");
+    expect(step.error).not.toContain("gen-sibling");
     generationRegistry.reset();
   });
 
@@ -1198,5 +1426,304 @@ describe("CodeActExecutor finish nudge", () => {
       role: "user",
       content: FINISH_CONTRACT_NUDGE
     });
+  });
+});
+
+/**
+ * Wraps a loop provider so every `execute_code` observation it hands back is
+ * recorded, and the system prompt of the first request is kept.
+ */
+function recordObservations(provider: BaseProvider): {
+  observations: string[];
+  systemPrompt: () => string;
+} {
+  const observations: string[] = [];
+  let systemPrompt = "";
+  const inner = provider.generateLoop.bind(provider);
+  provider.generateLoop = ((args: {
+    tools?: Array<{
+      name: string;
+      execute?: (a: Record<string, unknown>) => Promise<unknown>;
+    }>;
+    messages: Array<{ role: string; content?: unknown }>;
+  }) => {
+    systemPrompt = String(
+      args.messages.find((m) => m.role === "system")?.content ?? ""
+    );
+    const tools = (args.tools ?? []).map((tool) => {
+      if (tool.name !== "execute_code" || !tool.execute) return tool;
+      const execute = tool.execute;
+      return {
+        ...tool,
+        execute: async (a: Record<string, unknown>) => {
+          const out = await execute(a);
+          observations.push(
+            typeof out === "string"
+              ? out
+              : String((out as Array<{ text?: string }>)[0]?.text ?? "")
+          );
+          return out;
+        }
+      };
+    });
+    return inner({ ...args, tools } as never);
+  }) as typeof provider.generateLoop;
+  return { observations, systemPrompt: () => systemPrompt };
+}
+
+describe("CodeActExecutor closed sandbox", () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    (globalThis as { fetch: typeof originalFetch }).fetch = originalFetch;
+  });
+
+  it("refuses bare fetch and getSecret inside a step action", async () => {
+    const hostFetch = vi.fn(async () => new Response("{}", { status: 200 }));
+    (globalThis as { fetch: unknown }).fetch = hostFetch;
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    context.getSecret = vi.fn(async () => "sk-live-secret");
+    const provider = createLoopProvider([
+      {
+        toolCalls: [
+          codeAction(
+            "tc_1",
+            `const errors = [];
+             try { await getSecret("OPENAI_API_KEY"); } catch (e) { errors.push(e.message); }
+             try { await fetch("https://example.com/exfil"); } catch (e) { errors.push(e.message); }
+             return { errors };`
+          )
+        ]
+      }
+    ]);
+    const { observations } = recordObservations(provider);
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: []
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    const observation = JSON.parse(observations[0]) as {
+      ok: boolean;
+      result: { errors: string[] };
+    };
+    expect(observation.ok).toBe(true);
+    expect(observation.result.errors).toHaveLength(2);
+    expect(observation.result.errors[0]).toMatch(/declares no secrets/);
+    expect(observation.result.errors[1]).toMatch(/Fetch limit exceeded \(max 0/);
+    expect(hostFetch).not.toHaveBeenCalled();
+    expect(context.getSecret).not.toHaveBeenCalled();
+  });
+});
+
+describe("CodeActExecutor observation envelope", () => {
+  it("keeps finished:false and the note ahead of a result that had to be cut", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    const provider = createLoopProvider([
+      {
+        toolCalls: [
+          codeAction(
+            "tc_1",
+            `return { answer: 1, blob: "x".repeat(${MAX_ACTION_RESULT_CHARS * 4}) };`
+          )
+        ]
+      },
+      { toolCalls: [codeAction("tc_2", `await finish({answer: 1});`)] }
+    ]);
+    const { observations } = recordObservations(provider);
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: []
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    const text = observations[0];
+    // The whole envelope parses: the cut landed inside `result`, not across
+    // the JSON.
+    const observation = JSON.parse(text) as {
+      ok: boolean;
+      finished: boolean;
+      note: string;
+      result: unknown;
+    };
+    expect(observation.ok).toBe(true);
+    expect(observation.finished).toBe(false);
+    expect(observation.note).toMatch(/NOT finished/);
+    expect(typeof observation.result).toBe("string");
+    expect(observation.result).toContain("tool result truncated");
+    expect(observation.result).toContain("compact summary");
+    expect(Object.keys(observation).indexOf("finished")).toBeLessThan(
+      Object.keys(observation).indexOf("result")
+    );
+    expect(text.length).toBeLessThan(MAX_ACTION_RESULT_CHARS + 2000);
+  });
+
+  it("bounds chatty logs on their own and says how many lines were cut", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    const provider = createLoopProvider([
+      {
+        toolCalls: [
+          codeAction(
+            "tc_1",
+            `for (let i = 0; i < 400; i++) console.log("line " + i + " " + "y".repeat(100));
+             return { answer: 2 };`
+          )
+        ]
+      },
+      { toolCalls: [codeAction("tc_2", `await finish({answer: 2});`)] }
+    ]);
+    const { observations } = recordObservations(provider);
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: []
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    const observation = JSON.parse(observations[0]) as {
+      finished: boolean;
+      result: { answer: number };
+      logs: string[];
+    };
+    expect(observation.finished).toBe(false);
+    expect(observation.result).toEqual({ answer: 2 });
+    expect(observation.logs.length).toBeLessThan(400);
+    expect(observation.logs[observation.logs.length - 1]).toMatch(
+      /of 400 log lines omitted/
+    );
+  });
+});
+
+describe("CodeActExecutor repeated failure", () => {
+  it("tells the model the same program already failed the same way", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    const crashing = `const x = null; return x.answer;`;
+    const provider = createLoopProvider([
+      { toolCalls: [codeAction("tc_1", crashing)] },
+      { toolCalls: [codeAction("tc_2", crashing)] },
+      { toolCalls: [codeAction("tc_3", `await finish({answer: 5});`)] }
+    ]);
+    const { observations } = recordObservations(provider);
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: []
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    expect(REPEATED_ACTION_LIMIT).toBe(2);
+    const first = JSON.parse(observations[0]) as {
+      ok: boolean;
+      error: string;
+      repeated?: boolean;
+    };
+    const second = JSON.parse(observations[1]) as {
+      ok: boolean;
+      error: string;
+      repeated?: boolean;
+    };
+    expect(first.ok).toBe(false);
+    expect(first.repeated).toBeUndefined();
+    expect(second.ok).toBe(false);
+    expect(second.repeated).toBe(true);
+    expect(second.error).toMatch(/already run 2 times in a row/);
+    expect(second.error).toContain(first.error);
+    // Counted against the budget like any action, and the step goes on.
+    expect(step.completed).toBe(true);
+    expect(executor.getResult()).toEqual({ answer: 5 });
+  });
+
+  it("does not flag a different program that fails the same way", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    const provider = createLoopProvider([
+      { toolCalls: [codeAction("tc_1", `const x = null; return x.answer;`)] },
+      { toolCalls: [codeAction("tc_2", `const y = null; return y.answer;`)] },
+      { toolCalls: [codeAction("tc_3", `await finish({answer: 5});`)] }
+    ]);
+    const { observations } = recordObservations(provider);
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: []
+    });
+    for await (const msg of executor.execute()) void msg;
+    const second = JSON.parse(observations[1]) as { repeated?: boolean };
+    expect(second.repeated).toBeUndefined();
+  });
+});
+
+describe("CodeAct resident tools past the defer threshold", () => {
+  class NamedTool extends Tool {
+    constructor(
+      readonly name: string,
+      readonly description: string
+    ) {
+      super();
+    }
+    protected override readonly jsonSchema = {
+      type: "object",
+      properties: { value: { type: "string" } },
+      required: ["value"]
+    };
+    async process(
+      _context: ProcessingContext,
+      params: Record<string, unknown>
+    ): Promise<unknown> {
+      return { echoed: params["value"], via: this.name };
+    }
+  }
+
+  it("renders the full signature of a resident tool no direct offer or object model covers", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    const provider = createLoopProvider([
+      { toolCalls: [codeAction("tc_1", `await finish({answer: 1});`)] }
+    ]);
+    const { systemPrompt } = recordObservations(provider);
+    // `run_search` is resident, is not in DIRECT_TOOL_NAMES, and the object
+    // model wraps no `run_search`; the fillers push the catalog past the
+    // threshold so the split actually runs.
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: [
+        new NamedTool("run_search", "Delegate a read-only search."),
+        new NamedTool("lookup_customer", "Look up a customer record by id."),
+        ...Array.from(
+          { length: 20 },
+          (_, i) => new NamedTool(`filler_tool_${i}`, `Filler tool ${i}.`)
+        )
+      ]
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    const prompt = systemPrompt();
+    expect(prompt).toContain("await run_search(");
+    expect(prompt).toContain("lookup_customer");
+    expect(prompt).not.toContain("await lookup_customer(");
   });
 });

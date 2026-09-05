@@ -43,6 +43,14 @@ export interface StartSubtaskToolOptions extends SubAgentToolRuntime {
 
 const DEFAULT_MAX_ITERATIONS = 20;
 
+/**
+ * Background children one turn may start. The registry is per turn and every
+ * record on it is a detached child loop, so without a cap a model that keeps
+ * calling `start_subtask` grows the registry — and the queue for the run's
+ * permits — without bound.
+ */
+export const MAX_BACKGROUND_SUBTASKS_PER_TURN = 8;
+
 export class StartSubtaskTool extends SubAgentTool {
   readonly name = "start_subtask";
   readonly description = START_SUBTASK_DESCRIPTION;
@@ -125,6 +133,18 @@ export class StartSubtaskTool extends SubAgentTool {
       };
     }
 
+    if (this.registry.size >= MAX_BACKGROUND_SUBTASKS_PER_TURN) {
+      return {
+        error: "background_limit_reached",
+        limit: MAX_BACKGROUND_SUBTASKS_PER_TURN,
+        message:
+          `This turn has already started ${MAX_BACKGROUND_SUBTASKS_PER_TURN} ` +
+          "background subtasks, the most it may. Call wait_subtasks to " +
+          "collect them, or use `run_subtask`, which blocks and returns the " +
+          "result directly."
+      };
+    }
+
     const gate = enterSubAgentDepth(context, this.maxDepth, this.depthNoun);
     if (!gate.ok) return gate.refusal;
 
@@ -148,8 +168,11 @@ export class StartSubtaskTool extends SubAgentTool {
       outputSchema: run.outputSchema,
       systemPrompt: run.systemPrompt,
       maxIterations: run.maxIterations ?? this.maxIterations,
-      // A detached child still spends the parent's allowance, and still draws
-      // one of the run's concurrency permits before it opens a conversation.
+      // A detached child still spends the parent's allowance, and draws a
+      // permit before it opens a conversation: the parent's own when free,
+      // else one of the run's (`acquireRunSlot`). The parent keeps its turn,
+      // so a child on the parent's permit can overlap the parent's next
+      // turn — the cap above is what bounds that.
       turnBudget: this.budget ?? budgetFromContext(context),
       signal: context.signal
     });

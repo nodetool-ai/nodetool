@@ -1621,7 +1621,6 @@ const TextEditorModal = ({
                       currentTaskUpdate={runtime.taskUpdate}
                       currentLogUpdate={runtime.logUpdate}
                       runningToolCallId={runtime.runningToolCallId}
-                      runningToolMessage={runtime.toolMessage}
                       onNewChat={() => void createNewThread()}
                       onInsertCode={(text) => insertIntoEditor(text)}
                       composerPlaceholder="Ask the assistant to write or edit…"

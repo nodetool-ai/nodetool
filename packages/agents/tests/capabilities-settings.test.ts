@@ -26,11 +26,11 @@ import {
 } from "../src/capabilities/settings.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/index.js";
 import {
+  capabilityCategoryFor,
   capabilityModuleIssues,
   listCapabilityModules,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import type {
   CapabilityRun,
   SecretPrompt,
@@ -88,12 +88,13 @@ describe("settings capability module", () => {
   });
 
   it("classifies reads as read and the two acting calls above it", () => {
-    expect(permissionCategoryFor("list_settings")).toBe("read");
-    expect(permissionCategoryFor("get_setting")).toBe("read");
-    expect(permissionCategoryFor("list_secrets")).toBe("read");
-    // Unlisted in the legacy map on purpose — the gate's conservative default.
-    expect(permissionCategoryFor("set_setting")).toBe("external");
-    expect(permissionCategoryFor("request_secret")).toBe("external");
+    expect(capabilityCategoryFor("list_settings")).toBe("read");
+    expect(capabilityCategoryFor("get_setting")).toBe("read");
+    expect(capabilityCategoryFor("list_secrets")).toBe("read");
+    // The spec is the authority: one changes how this install behaves, the
+    // other interrupts the user with a dialog, both local state, both `write`.
+    expect(capabilityCategoryFor("set_setting")).toBe("write");
+    expect(capabilityCategoryFor("request_secret")).toBe("write");
   });
 });
 

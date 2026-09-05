@@ -11,8 +11,8 @@
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
 import type { ZodType } from "zod";
 import { Tool } from "../tools/base-tool.js";
-import { permissionCategoryFor } from "../tools/tool-permissions.js";
 import { withSnakeCaseAliases } from "./args.js";
+import { capabilityCategoryFor } from "./registry.js";
 import type {
   CapabilityExport,
   CapabilityImpl,
@@ -106,16 +106,18 @@ export function toolFromCapability(
 }
 
 /**
- * Wrap an existing `Tool` as a capability. The category comes from the
- * classification map the gate reads today, so a tool that has not been ported
- * keeps exactly the class it is gated at now.
+ * Wrap an existing `Tool` as a capability. The category is the registered
+ * spec's when the name is a capability, so `gateTools` decides exactly as
+ * `run.invoke` does for the same name; the classification map is consulted
+ * only for a `Tool` that is not a capability, where the map is the one place
+ * its class is declared.
  */
 export function capabilityFromTool(tool: Tool): CapabilityExport {
   const spec: CapabilitySpec = {
     name: tool.name,
     description: tool.description,
     inputSchema: tool.inputSchema,
-    category: permissionCategoryFor(tool.name),
+    category: capabilityCategoryFor(tool.name),
     needsToolCallId: tool.needsToolCallId,
     userMessage: (args) => tool.userMessage(args)
   };

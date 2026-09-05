@@ -15,8 +15,10 @@ import {
   type RunResult
 } from "@nodetool-ai/kernel";
 import {
+  PERMISSION_GATE_CONTEXT_KEY,
   ProcessingContext,
-  connectPythonBridgeForGraph
+  connectPythonBridgeForGraph,
+  headlessGate
 } from "@nodetool-ai/runtime";
 import type { PythonJobLifecycle } from "@nodetool-ai/runtime";
 import type {
@@ -24,7 +26,10 @@ import type {
   ProcessingMessage
 } from "@nodetool-ai/protocol";
 import { createExecutorResolver } from "./executor-resolver.js";
-import { buildWorkspaceExecutionContext } from "./service/workflow-workspace.js";
+import {
+  WORKFLOW_RUN_HOST,
+  buildWorkspaceExecutionContext
+} from "./service/workflow-workspace.js";
 import { normalizeGraph } from "./normalize-graph.js";
 import { assertPreflight } from "./preflight.js";
 import { rewriteOutputNames } from "./output-names.js";
@@ -219,6 +224,15 @@ export class ExecutionSession {
         userId: "1",
         workspace: null
       });
+    // This facade is the workflow host for every caller that builds its own
+    // context (`nodetool run`, the WebSocket job runner, the app simulator):
+    // a run is consent, so a context that arrived with no gate gets the
+    // headless one here. A caller that already has a user to ask — a chat
+    // turn's `run_node` — set its gate before handing the context in, and
+    // keeps it.
+    if (context.get(PERMISSION_GATE_CONTEXT_KEY) === undefined) {
+      context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate(WORKFLOW_RUN_HOST));
+    }
 
     // Refuse a graph this runtime cannot honour before anything is paid for:
     // ahead of the Python bridge (a worker spawn), ahead of

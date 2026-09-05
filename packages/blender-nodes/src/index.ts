@@ -51,6 +51,7 @@ export type {
 export {
   BlenderJobError,
   LocalBlenderRunner,
+  WorkerBlenderRunner,
   resolveOpScriptDir,
   MAX_OUTPUT_BYTES,
   MAX_TOTAL_OUTPUT_BYTES,
@@ -58,6 +59,7 @@ export {
 } from "./runner.js";
 export type {
   BlenderJobErrorCode,
+  WorkerBlenderRunnerOptions,
   BlenderRunner,
   BlenderRunOptions,
   BlenderRunResult

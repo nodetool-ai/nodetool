@@ -37,6 +37,11 @@ Three habits that make it land:
 - **Close with "no other text".** Left to itself, the model fills empty margins
   with invented lettering.
 
+This is the model for copy that is part of the image — a poster, a label, a
+sign in the scene. A title or a super on a still headed for a timeline is not:
+that goes on as a text clip afterwards (`caption-titles`), where it can be
+corrected and re-timed.
+
 ## Turn prompt expansion off for typography
 
 On the hosted tiers — Qwen-Image-2, Max and 3 — `enable_prompt_expansion`

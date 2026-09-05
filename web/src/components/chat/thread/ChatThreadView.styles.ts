@@ -1,10 +1,23 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, TYPOGRAPHY, SPACING } from "../../ui_primitives";
+import {
+  MOTION,
+  BORDER_RADIUS,
+  TYPOGRAPHY,
+  SPACING,
+  SPACING_PX,
+  FONT_SIZE_SANS,
+  Z_INDEX
+} from "../../ui_primitives";
+import { CHAT_COLUMN_MAX_WIDTH } from "../types/chat.types";
 
 /** Glyph column width and single-line row height for the tool-call timeline. */
 const TOOL_RAIL_WIDTH = 20;
 const TOOL_ROW_HEIGHT = 22;
+
+/** Glyph geometry for the log-update rail: hairline width and dot diameter. */
+const LOG_RAIL_WIDTH = 2;
+const LOG_DOT_SIZE = 10;
 
 export const createStyles = (theme: Theme) => ({
   chatThreadViewRoot: css({
@@ -28,22 +41,26 @@ export const createStyles = (theme: Theme) => ({
     marginTop: 0,
     position: "relative",
 
+    // `!important` only on width: the global `::-webkit-scrollbar` rule in
+    // styles/index.css sets `width: 10px !important`, which no amount of
+    // specificity beats without one. The track/thumb rules below carry no
+    // `!important` globally, so specificity alone wins there.
     "&::-webkit-scrollbar": {
       width: "12px !important"
     },
     "&::-webkit-scrollbar-track": {
-      background: "transparent !important"
+      background: "transparent"
     },
     "&::-webkit-scrollbar-thumb": {
-      background: `${theme.vars.palette.action.disabled} !important`,
+      background: theme.vars.palette.action.disabled,
       borderRadius: BORDER_RADIUS.sm
     },
     "&::-webkit-scrollbar-thumb:hover": {
-      background: `${theme.vars.palette.warning.main} !important`
+      background: theme.vars.palette.warning.main
     },
   }),
   chatMessagesList: css({
-    maxWidth: "800px",
+    maxWidth: `${CHAT_COLUMN_MAX_WIDTH}px`,
     width: "100%",
     minWidth: 0,
     padding: "0",
@@ -53,8 +70,8 @@ export const createStyles = (theme: Theme) => ({
       width: "100%",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
-      marginBottom: "0.5em",
-      padding: "0.5em 0",
+      marginBottom: theme.spacing(SPACING.md),
+      padding: theme.spacing(SPACING.md, SPACING.none),
       borderRadius: BORDER_RADIUS.sm,
       position: "relative",
       display: "flex",
@@ -70,8 +87,8 @@ export const createStyles = (theme: Theme) => ({
     ".user": {
       width: "fit-content",
       maxWidth: "75%",
-      minWidth: "2em",
-      margin: "1em 0 0.5em auto",
+      minWidth: theme.spacing(SPACING.xxxl),
+      margin: `${theme.spacing(SPACING.xl)} 0 ${theme.spacing(SPACING.md)} auto`,
       padding: "0",
       border: "none",
       background: "transparent",
@@ -86,12 +103,12 @@ export const createStyles = (theme: Theme) => ({
       background: `rgb(${theme.vars.palette.primary.mainChannel} / 0.14)`,
       color: theme.vars.palette.text.primary,
       borderRadius: BORDER_RADIUS.xl,
-      padding: "0.2em",
+      padding: theme.spacing(SPACING.xs),
       textAlign: "left"
     },
 
     ".chat-message.user .markdown": {
-      padding: ".5em 1em"
+      padding: theme.spacing(SPACING.md, SPACING.xl)
     },
 
     // A user's own referenced/attached image renders as a thumbnail, not a
@@ -109,29 +126,32 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".assistant .message-content": {
-      borderRadius: ".5em"
+      borderRadius: BORDER_RADIUS.lg
     },
 
     // Keep user->assistant transitions compact.
     ".chat-message.user + .chat-message.assistant": {
-      marginTop: "0.05em",
-      paddingTop: "0.15em"
+      marginTop: theme.spacing(SPACING.none),
+      paddingTop: theme.spacing(SPACING.micro)
     },
 
     // Denser stacking for consecutive assistant messages only.
-    // Keep user bubble spacing unchanged.
+    // Keep user bubble spacing unchanged. The negative top margin is what
+    // pulls a follow-up assistant turn up against the one before it — a
+    // positive value would reinstate the gap this rule exists to remove.
     ".chat-message.assistant + .chat-message.assistant": {
-      marginTop: "-0.3em",
-      marginBottom: "0.3em",
-      paddingTop: "0.2em",
-      paddingBottom: "0.2em"
+      marginTop: theme.spacing(-SPACING.xs),
+      marginBottom: theme.spacing(SPACING.xs),
+      paddingTop: theme.spacing(SPACING.xs),
+      paddingBottom: theme.spacing(SPACING.xs)
     },
 
+    // Same reason for the negative margin: a tool-only turn sits tighter still.
     ".chat-message.assistant + .chat-message.assistant.tool-calls-only": {
-      marginTop: "-0.4em",
-      marginBottom: "0.08em",
-      paddingTop: "0.04em",
-      paddingBottom: "0.04em"
+      marginTop: theme.spacing(-SPACING.sm),
+      marginBottom: theme.spacing(SPACING.micro),
+      paddingTop: theme.spacing(SPACING.none),
+      paddingBottom: theme.spacing(SPACING.none)
     },
 
     // Message actions container (copy button, timestamp) - OUTSIDE the bubble
@@ -175,90 +195,11 @@ export const createStyles = (theme: Theme) => ({
       fontFamily: theme.fontFamily2
     },
 
-    // ── Per-message meta layout (full-page chat: avatar + header) ──────────
-    // The body wrapper is layout-neutral by default so the compact (non-meta)
-    // layout is unchanged; it only becomes a column under `--meta`.
-    ".message-body": {
-      display: "contents"
-    },
-
-    ".chat-message--meta": {
-      flexDirection: "column",
-      alignItems: "stretch",
-      gap: 0
-    },
-
-    // Normalize horizontal padding for both roles so the message bodies line up
-    // on a single left edge. The base `.assistant` rule sets
-    // `padding: 0.75em 1em`, which would otherwise indent assistant rows.
-    ".chat-message.assistant.chat-message--meta, .chat-message.user.chat-message--meta": {
-      padding: "0.6em 0"
-    },
-
-    ".chat-message--meta .message-body": {
-      display: "flex",
-      flexDirection: "column",
-      gap: theme.spacing(0.5),
-      width: "100%",
-      minWidth: 0
-    },
-
-    ".message-header": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(0.5),
-      fontSize: theme.fontSizeSmaller,
-      lineHeight: 1
-    },
-
-    ".message-role-icon": {
-      fontSize: 15,
-      flexShrink: 0
-    },
-
-    // Quiet identity for the two voices: the user's own icon recedes, the
-    // assistant gets a soft brand tint so the eye lands on its turns.
-    ".chat-message.user .message-role-icon": {
-      color: theme.vars.palette.grey[500]
-    },
-
-    ".chat-message.assistant .message-role-icon": {
-      color: theme.vars.palette.primary.main,
-      opacity: 0.85
-    },
-
-    ".message-header .message-time, .message-header .message-model": {
-      color: theme.vars.palette.text.disabled,
-      fontVariantNumeric: "tabular-nums"
-    },
-
-    // Under the meta layout, user messages drop the right-aligned bubble and
-    // read left-aligned like the assistant.
-    ".chat-message.user.chat-message--meta": {
-      width: "100%",
-      maxWidth: "100%",
-      margin: "0.5em 0 0",
-      alignItems: "flex-start",
-      fontWeight: 400
-    },
-
-    ".chat-message.user.chat-message--meta .message-content": {
-      background: "transparent",
-      color: theme.vars.palette.text.primary,
-      textAlign: "left",
-      padding: 0,
-      border: "none"
-    },
-
-    ".chat-message.user.chat-message--meta .markdown": {
-      padding: 0
-    },
-
     ".error-message": {
       backgroundColor: theme.vars.palette.error.dark,
       border: `1px solid ${theme.vars.palette.error.main}`,
       borderRadius: BORDER_RADIUS.lg,
-      padding: "1em",
+      padding: theme.spacing(SPACING.xl),
       color: theme.vars.palette.error.contrastText,
       "& .markdown": {
         color: theme.vars.palette.error.contrastText
@@ -270,15 +211,18 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".code-block-container": {
-      marginBottom: "1em"
+      marginBottom: theme.spacing(SPACING.xl)
     },
 
     ".chat-message a": {
       color: theme.vars.palette.primary.main
     },
 
+    // No `!important` needed: the competing rules (`a` in styles/index.css,
+    // `.markdown-body a`/`a:hover` in the github-markdown sheet) are all
+    // plain declarations this selector already outranks.
     ".chat-message a:hover": {
-      color: `${theme.vars.palette.primary.light} !important`,
+      color: theme.vars.palette.primary.light,
       textDecoration: "none"
     },
 
@@ -286,19 +230,19 @@ export const createStyles = (theme: Theme) => ({
       textAlign: "center",
       color: theme.vars.palette.text.secondary,
       fontSize: theme.fontSizeSmall,
-      margin: "0.5em 0"
+      margin: theme.spacing(SPACING.md, SPACING.none)
     },
 
     ".node-progress": {
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      margin: "2em 0"
+      margin: theme.spacing(SPACING.xxxl, SPACING.none)
     },
 
     ".progress-bar": {
       width: "80%",
-      marginBottom: "0.5em"
+      marginBottom: theme.spacing(SPACING.md)
     },
 
     ".message-content": {
@@ -327,6 +271,57 @@ export const createStyles = (theme: Theme) => ({
       ...TYPOGRAPHY.sans.caption,
       marginLeft: "auto",
       fontVariantNumeric: "tabular-nums"
+    },
+
+    // ── Live log update ─────────────────────────────────────────────────────
+    // One log line from the running turn, hung off a gradient rail with a
+    // marker dot so it reads as a moment in the run rather than a message.
+    ".log-update": {
+      position: "relative",
+      paddingLeft: theme.spacing(SPACING.xxl)
+    },
+
+    ".log-update-rail": {
+      position: "absolute",
+      left: SPACING_PX.xs,
+      top: SPACING_PX.lg,
+      bottom: SPACING_PX.lg,
+      width: LOG_RAIL_WIDTH,
+      background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main}44)`,
+      borderRadius: BORDER_RADIUS.xs
+    },
+
+    ".log-update-dot": {
+      position: "absolute",
+      left: -SPACING_PX.xxl,
+      top: SPACING_PX.lg,
+      width: LOG_DOT_SIZE,
+      height: LOG_DOT_SIZE,
+      borderRadius: BORDER_RADIUS.circle,
+      backgroundColor: theme.vars.palette.primary.main,
+      border: `${LOG_RAIL_WIDTH}px solid ${theme.vars.palette.background.default}`,
+      boxShadow: `0 0 ${LOG_DOT_SIZE}px ${theme.vars.palette.primary.main}aa`,
+      zIndex: Z_INDEX.raised
+    },
+
+    ".log-entry": {
+      fontSize: FONT_SIZE_SANS.label,
+      padding: theme.spacing(SPACING.md, SPACING.lg),
+      borderRadius: BORDER_RADIUS.md,
+      backgroundColor: theme.vars.palette.c_scrim,
+      border: `1px solid ${theme.vars.palette.action.disabledBackground}`
+    },
+
+    ".log-severity-info": {
+      color: theme.vars.palette.grey[300]
+    },
+
+    ".log-severity-warning": {
+      color: theme.vars.palette.warning.light
+    },
+
+    ".log-severity-error": {
+      color: theme.vars.palette.error.light
     },
 
     ".thought-section-container": {
@@ -374,7 +369,7 @@ export const createStyles = (theme: Theme) => ({
       justifyContent: "center",
       flexShrink: 0,
       color: theme.vars.palette.text.disabled,
-      "& svg": { fontSize: 16 }
+      "& svg": { fontSize: FONT_SIZE_SANS.body }
     },
 
     ".tool-row-connector": {
@@ -469,7 +464,7 @@ export const createStyles = (theme: Theme) => ({
     ".tool-row-chevron": {
       transition: MOTION.all,
       color: theme.vars.palette.text.disabled,
-      fontSize: 15,
+      fontSize: FONT_SIZE_SANS.body,
       flexShrink: 0,
       opacity: 0
     },
@@ -549,14 +544,14 @@ export const createStyles = (theme: Theme) => ({
     // Keeps the assistant's horizontal padding so a tool-only turn lines up
     // with the prose turns above and below it.
     ".chat-message.tool-calls-only": {
-      marginBottom: "0.15em",
-      padding: theme.spacing(0.5, 4)
+      marginBottom: theme.spacing(SPACING.micro),
+      padding: theme.spacing(SPACING.micro, SPACING.xl)
     },
 
     ".chat-message.has-tool-calls:not(.tool-calls-only)": {
-      marginBottom: "0.35em",
-      paddingTop: "0.2em",
-      paddingBottom: "0.2em"
+      marginBottom: theme.spacing(SPACING.sm),
+      paddingTop: theme.spacing(SPACING.xs),
+      paddingBottom: theme.spacing(SPACING.xs)
     },
 
     // The message column aligns its children to the start, which would size
@@ -564,21 +559,21 @@ export const createStyles = (theme: Theme) => ({
     ".chat-message.has-tool-calls .message-content": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.1em",
+      gap: theme.spacing(SPACING.micro),
       alignSelf: "stretch",
       width: "100%"
     },
 
     ".chat-message.has-tool-calls .markdown": {
-      marginTop: "0.1em"
+      marginTop: theme.spacing(SPACING.micro)
     },
 
     ".chat-message.has-tool-calls .markdown-body p": {
-      margin: "0.2em 0"
+      margin: theme.spacing(SPACING.xs, SPACING.none)
     },
 
     ".chat-message.has-tool-calls .markdown-body p:first-of-type": {
-      marginTop: "0.05em"
+      marginTop: theme.spacing(SPACING.none)
     },
 
     ".chat-message.has-tool-calls .markdown-body p:last-child": {
@@ -587,8 +582,8 @@ export const createStyles = (theme: Theme) => ({
 
     ".chat-message.has-tool-calls .markdown-body ul, .chat-message.has-tool-calls .markdown-body ol":
       {
-        marginTop: "0.2em",
-        marginBottom: "0.2em"
+        marginTop: theme.spacing(SPACING.xs),
+        marginBottom: theme.spacing(SPACING.xs)
       },
 
     ".tool-section-header": {
@@ -621,7 +616,7 @@ export const createStyles = (theme: Theme) => ({
 
     ".error-icon": {
       color: theme.vars.palette.error.main,
-      fontSize: 20,
+      fontSize: FONT_SIZE_SANS.title,
       marginTop: theme.spacing(1),
       flexShrink: 0
     },
@@ -635,15 +630,15 @@ export const createStyles = (theme: Theme) => ({
     // Execution event styles
     ".execution-event": {
       width: "100%",
-      marginBottom: "0.5rem"
+      marginBottom: theme.spacing(SPACING.md)
     },
 
     ".execution-events-group": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.5rem",
-      marginBottom: "1.5rem",
-      padding: "0.75rem",
+      gap: theme.spacing(SPACING.md),
+      marginBottom: theme.spacing(SPACING.xxl),
+      padding: theme.spacing(SPACING.lg),
       borderRadius: BORDER_RADIUS.lg,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`
@@ -652,7 +647,7 @@ export const createStyles = (theme: Theme) => ({
     ".execution-event-separator": {
       height: "1px",
       backgroundColor: theme.vars.palette.divider,
-      margin: "1rem 0",
+      margin: theme.spacing(SPACING.xl, SPACING.none),
       opacity: 0.3
     }
   })

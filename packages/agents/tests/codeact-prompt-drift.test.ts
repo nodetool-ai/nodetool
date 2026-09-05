@@ -7,7 +7,8 @@ import {
   PACKAGE_DOCS_CALL,
   TOOL_CATALOG_GUIDANCE,
   buildCodeActSystemPrompt,
-  chatUnavailableBridges
+  chatUnavailableBridges,
+  stepUnavailableBridges
 } from "../src/codeact/prompt.js";
 import { createChatCodeActSession } from "../src/codeact/chat-codeact.js";
 import { buildNodetoolApiPromptSection } from "../src/codeact/nodetool-api.js";
@@ -378,12 +379,31 @@ describe("chat variant exclusions", () => {
     const manifest = getSandboxManifest();
     const chat = buildCodeActSystemPrompt({ tools: [], variant: "chat" });
     const step = buildCodeActSystemPrompt({ tools: [], variant: "step" });
+    const hiddenFromStep = new Set(stepUnavailableBridges());
     for (const name of chatUnavailableBridges()) {
       const bridge = manifest.bridges[name as keyof typeof manifest.bridges];
       for (const member of bridge.members) {
-        expect(step).toContain(member.signature);
+        if (!hiddenFromStep.has(name)) {
+          expect(step).toContain(member.signature);
+        }
         expect(chat).not.toContain(member.signature);
       }
     }
+  });
+
+  // A step runs with `maxFetchCalls: 0` and an empty secret scope, so the
+  // prompt must not offer the two bridges the executor refuses.
+  it("hides fetch and getSecret from the step prompt", () => {
+    const manifest = getSandboxManifest();
+    const step = buildCodeActSystemPrompt({ tools: [], variant: "step" });
+    expect(stepUnavailableBridges()).toEqual(["fetch", "getSecret"]);
+    for (const name of stepUnavailableBridges()) {
+      const bridge = manifest.bridges[name as keyof typeof manifest.bridges];
+      expect(bridge.members.length).toBeGreaterThan(0);
+      for (const member of bridge.members) {
+        expect(step).not.toContain(member.signature);
+      }
+    }
+    expect(step).toContain("zero-request fetch limit and no secret scope");
   });
 });

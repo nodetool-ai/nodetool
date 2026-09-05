@@ -33,7 +33,12 @@ import type {
   ComfyExecuteResult,
   ComfyModelDownloadRequest,
   ComfyModelDownloadUpdate,
-  ComfyModelInfo
+  ComfyModelInfo,
+  BlenderExecuteJob,
+  BlenderStatusInfo,
+  BlenderEvent,
+  BlenderExecuteOptions,
+  BlenderExecuteResult
 } from "./python-bridge-types.js";
 import type { ASRResult } from "./providers/types.js";
 
@@ -311,6 +316,28 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
 
   cancelComfyExecute(requestId: string): void {
     this._target.cancelComfyExecute(requestId);
+  }
+
+  supportsBlender(): boolean {
+    return this._target.supportsBlender();
+  }
+
+  getBlenderStatus(): BlenderStatusInfo | null {
+    return this._target.getBlenderStatus();
+  }
+
+  blenderExecute(
+    job: BlenderExecuteJob,
+    inputs: Record<string, string>,
+    options?: BlenderExecuteOptions,
+    onEvent?: (event: BlenderEvent) => void,
+    requestId?: string
+  ): Promise<BlenderExecuteResult> {
+    return this._target.blenderExecute(job, inputs, options, onEvent, requestId);
+  }
+
+  cancelBlenderExecute(requestId: string): void {
+    this._target.cancelBlenderExecute(requestId);
   }
 
   comfyQueue(): Promise<Record<string, unknown>> {

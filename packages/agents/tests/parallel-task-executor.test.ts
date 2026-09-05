@@ -101,6 +101,86 @@ describe("ParallelTaskExecutor", () => {
     expect(messages.some((m) => m.type === "step_result")).toBe(true);
   });
 
+  it("does not fail a schema'd step whose requested shape carries an `error` field", async () => {
+    // A schema that declares `error` asked for that key; a non-empty string in
+    // it is the step's data, not the `{ error }` payload a dying step writes.
+    // `detectTaskFailure` used to settle it without the schema flag and mark
+    // the task failed, blocking its dependents.
+    const provider = {
+      ...createMockProvider(),
+      generateMessages: async function* () {
+        yield finishAction({ error: "no errors found", ok: true });
+      }
+    } as unknown as ReturnType<typeof createMockProvider>;
+    const plan: TaskPlan = {
+      title: "Schema Plan",
+      tasks: [
+        {
+          id: "check",
+          title: "Check",
+          dependsOn: [],
+          completed: false,
+          steps: [
+            {
+              id: "check_s1",
+              instructions: "Report",
+              completed: false,
+              dependsOn: [],
+              outputSchema: JSON.stringify({
+                type: "object",
+                properties: {
+                  error: { type: "string" },
+                  ok: { type: "boolean" }
+                }
+              }),
+              logs: []
+            }
+          ]
+        },
+        {
+          id: "after",
+          title: "After",
+          dependsOn: ["check"],
+          completed: false,
+          steps: [
+            {
+              id: "after_s1",
+              instructions: "Use it",
+              completed: false,
+              dependsOn: [],
+              outputSchema: JSON.stringify({
+                type: "object",
+                properties: {
+                  error: { type: "string" },
+                  ok: { type: "boolean" }
+                }
+              }),
+              logs: []
+            }
+          ]
+        }
+      ]
+    };
+
+    const executor = new ParallelTaskExecutor({
+      provider: provider as never,
+      model: "test-model",
+      context: createMockContext() as never,
+      tools: [],
+      taskPlan: plan
+    });
+    for await (const _msg of executor.execute()) {
+      // consume
+    }
+
+    expect(executor.getFailedTaskIds()).toEqual([]);
+    expect(plan.tasks.map((t) => t.completed)).toEqual([true, true]);
+    expect(executor.getTaskResult("check")).toEqual({
+      error: "no errors found",
+      ok: true
+    });
+  });
+
   it("executes independent tasks in parallel", async () => {
     const plan: TaskPlan = {
       title: "Parallel Plan",

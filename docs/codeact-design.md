@@ -223,7 +223,13 @@ being shown. A denied action never runs, and the refusal is the observation.
 for the rest of the thread.
 
 It fails closed: a call with no `risk`, or one carrying anything outside the
-enum, reads as `high`. Plan and default modes are untouched — their per-call
+enum, reads as `high`. The program's own imports set a floor under the
+declaration (`importedActionRisk`): a static import of an `execute` or
+`external` capability — the calls that spend money or leave the account — is
+high whatever the call said, and a namespace import of a capability module
+takes that module's highest class. A `write` import stays at the declared
+risk, because a note the user asked for and a delete share the class and only
+the model can tell them apart. Plan and default modes are untouched — their per-call
 ladder already blocks or asks, and a second question per action would only
 double the prompts. Hosts with no one to ask (the MCP mount, the security
 monitor's pass in `Agent`) carry an always-allow `requestApproval`, so nothing

@@ -72,7 +72,8 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "Move",
     shortcuts: [
       { keys: ["←"], action: "Nudge one frame", alt: ["→"] },
-      { keys: ["Shift", "←"], action: "Nudge one second", alt: ["Shift", "→"] }
+      { keys: ["Shift", "←"], action: "Nudge one second", alt: ["Shift", "→"] },
+      { keys: ["Alt", "drag"], action: "Disable snapping while moving or trimming" }
     ]
   },
   {

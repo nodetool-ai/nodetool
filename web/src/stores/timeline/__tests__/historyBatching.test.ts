@@ -33,7 +33,7 @@ function seed() {
   return clip.id;
 }
 
-/** Drive one trim-start gesture exactly the way Clip.tsx wires the hook. */
+/** Drive one trim-start gesture exactly the way useClipTrim wires the hook. */
 function runTrimStartGesture(
   history: ReturnType<typeof useTimelineHistoryBatch>,
   clipId: string,
@@ -41,7 +41,7 @@ function runTrimStartGesture(
 ) {
   history.begin();
   for (const d of deltasMs) {
-    // Clip.tsx calls trimClipStart(clip.id, -deltaMs) then history.mark().
+    // useClipTrim calls trimClipStart(clip.id, -deltaMs) then history.mark().
     useTimelineStore.getState().trimClipStart(clipId, -d);
     history.mark();
   }

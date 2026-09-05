@@ -10,7 +10,7 @@ import {
 } from "@nodetool-ai/models";
 import type { Shot } from "@nodetool-ai/protocol";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+import { capabilityCategoryFor } from "../src/capabilities/registry.js";
 import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 
 const ctx = (userId = "u1") => ({ userId }) as unknown as ProcessingContext;
@@ -58,7 +58,7 @@ describe("document edit tools", () => {
       ])
     );
     for (const name of ["edit_timeline", "edit_sketch", "edit_script", "edit_storyboard"]) {
-      expect(permissionCategoryFor(name)).toBe("write");
+      expect(capabilityCategoryFor(name)).toBe("write");
     }
   });
 
@@ -78,7 +78,7 @@ describe("document edit tools", () => {
     ];
     expect(BUILTIN_TOOL_NAMES).toEqual(expect.arrayContaining(creates));
     for (const name of creates) {
-      expect(permissionCategoryFor(name)).toBe("write");
+      expect(capabilityCategoryFor(name)).toBe("write");
     }
   });
 

@@ -7,8 +7,9 @@
  * never touches a runner.
  */
 
-import { withSpan } from "@nodetool-ai/runtime";
+import { HostBinaryMissingError, withSpan } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { isCloudProfileActive } from "@nodetool-ai/protocol";
 
 import { resolveBlenderBinary } from "./blender-binary.js";
 import {
@@ -21,6 +22,7 @@ import {
   BlenderJobError,
   LocalBlenderRunner,
   MAX_OUTPUT_COUNT,
+  WorkerBlenderRunner,
   type BlenderRunner,
   type BlenderRunOptions,
   type BlenderRunResult
@@ -29,12 +31,36 @@ import {
 /** File name the model bytes are staged under. The extension selects import. */
 export const BLENDER_MODEL_INPUT_FILE = "model.glb";
 
-/** Stage 1 ships `LocalBlenderRunner` only (D7). */
-export async function resolveBlenderRunner(): Promise<BlenderRunner> {
-  return testRunner ?? new LocalBlenderRunner();
+/**
+ * Select the local tier when Blender resolves. Otherwise, an explicitly
+ * configured worker is used only after its status advertises Blender.
+ *
+ * A configured worker is never silently replaced with local after a worker
+ * connection or capability failure: the URL is an explicit deployment choice.
+ */
+export async function resolveBlenderRunner(
+  blenderPath?: string | null,
+  options: { signal?: AbortSignal; timeoutMs?: number } = {}
+): Promise<BlenderRunner> {
+  if (testRunner) return testRunner;
+  try {
+    await (blenderBinaryResolverForTesting?.() ??
+      resolveBlenderBinary({ configuredPath: blenderPath }));
+    return new LocalBlenderRunner({ binaryPath: blenderPath ?? undefined });
+  } catch (err) {
+    if (!(err instanceof HostBinaryMissingError)) throw err;
+  }
+  const workerUrl = process.env["NODETOOL_WORKER_URL"]?.trim();
+  if (!workerUrl) {
+    return new LocalBlenderRunner({ binaryPath: blenderPath ?? undefined });
+  }
+  const runner = new WorkerBlenderRunner();
+  await runner.assertAvailable(options);
+  return runner;
 }
 
 let testRunner: BlenderRunner | null = null;
+let blenderBinaryResolverForTesting: (() => Promise<void>) | null = null;
 
 /**
  * Override `resolveBlenderRunner` for node tests (T6b), so every node test
@@ -45,6 +71,13 @@ export function __setBlenderRunnerForTesting(
   runner: BlenderRunner | null
 ): void {
   testRunner = runner;
+}
+
+/** Test seam for exercising D7 without depending on the host's Blender install. */
+export function __setBlenderBinaryResolverForTesting(
+  resolver: (() => Promise<void>) | null
+): void {
+  blenderBinaryResolverForTesting = resolver;
 }
 
 function engineOf(op: BlenderOp): string | undefined {
@@ -94,8 +127,23 @@ export async function runBlenderJob(
     outputs: { ...outputs },
     job: op
   };
-  const runner = await resolveBlenderRunner();
-  const binary = await resolveBlenderBinary().catch(() => null);
+  // A stored path is executable configuration. The hosted cloud profile must
+  // never execute a user-supplied host path.
+  const blenderPath =
+    context &&
+    !isCloudProfileActive(
+      process.env["NODETOOL_NODE_PROFILE"],
+      process.env["NODETOOL_ENV"]
+    )
+      ? await context.getSetting("BLENDER_PATH")
+      : null;
+  const runner = await resolveBlenderRunner(blenderPath, {
+    signal: options.signal,
+    timeoutMs: options.timeoutMs
+  });
+  const binary = await resolveBlenderBinary({ configuredPath: blenderPath }).catch(
+    () => null
+  );
   const engine = engineOf(op);
   // The local runner needs a real directory, which only the workspace can
   // give it (`scratchDir()` is the seam a cloud workspace implements). A

@@ -149,8 +149,12 @@ async function loadCore(): Promise<JsScriptDebugCore> {
  */
 async function loadExecutor(): Promise<JsScriptExecutor> {
   const { runCodeBody } = await import("@nodetool-ai/agents");
-  const { FileStorageAdapter, ProcessingContext } =
-    await import("@nodetool-ai/runtime");
+  const {
+    FileStorageAdapter,
+    PERMISSION_GATE_CONTEXT_KEY,
+    ProcessingContext,
+    headlessGate
+  } = await import("@nodetool-ai/runtime");
   const { getDefaultAssetsPath } = await import("@nodetool-ai/config");
   const { JS_SCRIPT_MAX_TIMEOUT_SECONDS } =
     await import("@nodetool-ai/protocol/api-schemas/js-scripts.js");
@@ -173,6 +177,7 @@ async function loadExecutor(): Promise<JsScriptExecutor> {
       contextInit.secretResolver = secretResolver;
     }
     const context = new ProcessingContext(contextInit);
+    context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("JS script debug"));
     const runOptions: Parameters<typeof runCodeBody>[1] = {
       code: document.code,
       inputs,

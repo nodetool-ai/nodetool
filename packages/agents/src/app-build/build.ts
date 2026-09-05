@@ -56,6 +56,7 @@ import {
 } from "@nodetool-ai/execution/app-debug";
 import type { AuthorGraphOptions } from "../author-graph.js";
 import { authorGraph } from "../author-graph.js";
+import type { CapabilityGate } from "../capabilities/types.js";
 import {
   runAuthorStage,
   DEFAULT_AUTHOR_TURNS,
@@ -172,6 +173,11 @@ export interface BuildAppOptions {
   judge?: BuildJudgeOptions;
   /** Spend admission. Defaults to a cap-carrying budget over `costCapUsd`. */
   turnBudget?: TurnBudget;
+  /**
+   * The permission gate the authoring belt runs under. Omitted, `authorGraph`
+   * reads the gate on `context`.
+   */
+  gate?: CapabilityGate;
 
   signal?: AbortSignal;
   onLog?: (line: string) => void;
@@ -561,6 +567,7 @@ async function planGraph(
   };
   if (opts.providers) authorOptions.providers = opts.providers;
   if (opts.turnBudget) authorOptions.turnBudget = opts.turnBudget;
+  if (opts.gate) authorOptions.gate = opts.gate;
   if (opts.signal) authorOptions.signal = opts.signal;
   const generator = authorGraph(objective, authorOptions);
   let next = await generator.next();

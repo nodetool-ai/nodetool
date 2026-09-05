@@ -13,6 +13,7 @@ import {
   type ApprovalRequest,
   type PermissionMode
 } from "../src/tools/tool-permissions.js";
+import { capabilityCategoryFor } from "../src/capabilities/registry.js";
 import { gateTools } from "../src/capabilities/gate-tools.js";
 
 const ctx = {} as ProcessingContext;
@@ -46,20 +47,32 @@ function gateOne(
   return gateTools([inner], { mode, sessionAllow, requestApproval })[0];
 }
 
-describe("permissionCategoryFor", () => {
-  it("classifies known tools", () => {
-    expect(permissionCategoryFor("read_file")).toBe("read");
-    expect(permissionCategoryFor("web_search")).toBe("read");
-    expect(permissionCategoryFor("write_file")).toBe("write");
-    expect(permissionCategoryFor("run_node")).toBe("execute");
-    expect(permissionCategoryFor("run_workflow")).toBe("execute");
+describe("capabilityCategoryFor", () => {
+  it("classifies capabilities from their spec", () => {
+    expect(capabilityCategoryFor("read_file")).toBe("read");
+    expect(capabilityCategoryFor("web_search")).toBe("read");
+    expect(capabilityCategoryFor("write_file")).toBe("write");
+    expect(capabilityCategoryFor("run_workflow")).toBe("execute");
     // debug_app can execute an app's workflows, so it takes the execute
     // class even though `run: false` requests only read.
-    expect(permissionCategoryFor("debug_app")).toBe("execute");
-    expect(permissionCategoryFor("browser")).toBe("external");
+    expect(capabilityCategoryFor("debug_app")).toBe("execute");
+    expect(capabilityCategoryFor("browser")).toBe("external");
+  });
+
+  it("classifies a Tool class that is not a capability from the map", () => {
+    expect(capabilityCategoryFor("run_node")).toBe("execute");
+    expect(capabilityCategoryFor("finish_step")).toBe("read");
   });
 
   it("defaults unknown tools to the conservative external class", () => {
+    expect(capabilityCategoryFor("some_new_unlisted_tool")).toBe("external");
+  });
+});
+
+describe("permissionCategoryFor", () => {
+  it("answers only the map: a capability name is external here", () => {
+    expect(permissionCategoryFor("run_node")).toBe("execute");
+    expect(permissionCategoryFor("read_file")).toBe("external");
     expect(permissionCategoryFor("some_new_unlisted_tool")).toBe("external");
   });
 });

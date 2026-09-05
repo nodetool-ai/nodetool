@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { PERMISSION_GATE_CONTEXT_KEY, Tool } from "@nodetool-ai/agents";
+import { PERMISSION_GATE_CONTEXT_KEY, Tool, headlessGate } from "@nodetool-ai/agents";
 import type { PermissionGateOptions } from "@nodetool-ai/agents";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { AgentNode } from "../src/nodes/agents.js";
@@ -212,7 +212,24 @@ describe("the gate an AgentNode's tools run behind", () => {
     expect(table.has("wf-1")).toBe(true);
   });
 
-  it("runs the same write on a context no host gated (a kernel job run)", async () => {
+  it("runs the same write under the headless gate a kernel job run sets", async () => {
+    const table: WorkflowTable = new Map([["wf-1", { id: "wf-1" }]]);
+    const recorded: RecordedRun = { toolResult: "" };
+    const context = contextWithTool(
+      new FakeDeleteWorkflowTool(table),
+      callToolProvider("delete_workflow", recorded),
+      { [PERMISSION_GATE_CONTEXT_KEY]: headlessGate("kernel workflow run") }
+    );
+
+    await runAgent(deletingAgent(), context);
+
+    // A workflow run is consent: the kernel host sets the headless gate on
+    // the run's context itself, and it answers `auto` (D4).
+    expect(recorded.toolResult).toContain('"deleted":true');
+    expect(table.has("wf-1")).toBe(false);
+  });
+
+  it("denies the same write on a context no host gated", async () => {
     const table: WorkflowTable = new Map([["wf-1", { id: "wf-1" }]]);
     const recorded: RecordedRun = { toolResult: "" };
     const context = contextWithTool(
@@ -223,9 +240,10 @@ describe("the gate an AgentNode's tools run behind", () => {
 
     await runAgent(deletingAgent(), context);
 
-    // A workflow run is consent, so the headless gate runs `auto` (D4).
-    expect(recorded.toolResult).toContain('"deleted":true');
-    expect(table.has("wf-1")).toBe(false);
+    // Every host sets a gate; a context without one is a bug, and the
+    // fallback denies past read rather than running unattended.
+    expect(recorded.toolResult).toContain("declined");
+    expect(table.has("wf-1")).toBe(true);
   });
 
   it("leaves control tools ungated: they are graph wiring, not capabilities", async () => {

@@ -7,7 +7,7 @@ import {
   initTestDb
 } from "@nodetool-ai/models";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+import { capabilityCategoryFor } from "../src/capabilities/registry.js";
 import { getAllMcpTools } from "../src/tools/mcp-tools.js";
 
 const ctx = (userId = "u1") => ({ userId }) as unknown as ProcessingContext;
@@ -49,11 +49,11 @@ describe("workflow version tools", () => {
         "delete_workflow_version"
       ])
     );
-    expect(permissionCategoryFor("list_workflow_versions")).toBe("read");
-    expect(permissionCategoryFor("get_workflow_version")).toBe("read");
-    expect(permissionCategoryFor("create_workflow_version")).toBe("write");
-    expect(permissionCategoryFor("restore_workflow_version")).toBe("write");
-    expect(permissionCategoryFor("delete_workflow_version")).toBe("write");
+    expect(capabilityCategoryFor("list_workflow_versions")).toBe("read");
+    expect(capabilityCategoryFor("get_workflow_version")).toBe("read");
+    expect(capabilityCategoryFor("create_workflow_version")).toBe("write");
+    expect(capabilityCategoryFor("restore_workflow_version")).toBe("write");
+    expect(capabilityCategoryFor("delete_workflow_version")).toBe("write");
   });
 
   it("creates a manual snapshot and lists it", async () => {

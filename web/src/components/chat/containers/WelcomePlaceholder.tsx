@@ -10,7 +10,9 @@ import {
   Box,
   EditorButton,
   BORDER_RADIUS,
-  MOTION
+  MOTION,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
@@ -33,7 +35,7 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    padding: "1.5rem 1rem 2rem",
+    padding: `${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxxl)}`,
 
     ".welcome-inner": {
       width: "100%",
@@ -41,7 +43,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "stretch",
-      gap: "2rem"
+      gap: getSpacingPx(SPACING.xxxl)
     },
 
     ".chat-suggestions-block": {
@@ -49,7 +51,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       textAlign: "center",
-      gap: "0.75rem"
+      gap: getSpacingPx(SPACING.lg)
     },
 
     ".welcome-icon": {
@@ -74,17 +76,25 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexWrap: "wrap",
       justifyContent: "center",
-      gap: "0.5rem",
-      marginTop: "0.25rem"
+      gap: getSpacingPx(SPACING.md),
+      marginTop: getSpacingPx(SPACING.xs)
     }
   });
 
+/**
+ * Openers, not commands: clicking one drops it into the composer for the user
+ * to finish. Each leads with the outcome and names only what the user is about
+ * to supply — never an attachment the thread does not have.
+ */
+// Each chip is the start of a brief the user finishes in the composer, one
+// per job the studio is built for: a product spot, a creator-style cut, a
+// narrated explainer, a whole campaign, and the pipeline that repeats it.
 const SUGGESTIONS = [
-  "Summarize a document",
-  "Analyze an image",
-  "Generate creative text",
-  "Build a workflow",
-  "Help me with code"
+  "Storyboard a 30-second ad for …",
+  "Direct a UGC-style testimonial for …",
+  "Narrate a 60-second explainer about …",
+  "Turn this brief into a launch campaign: …",
+  "Build a workflow that renders an ad for every …"
 ];
 
 // Cloud LLM providers we point first-time users at. Each maps to an API key
@@ -148,7 +158,7 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
     <div css={cssStyles}>
       <div className="welcome-inner">
         {noProvider ? (
-          <FlexColumn align="center" gap={1.5} sx={{ textAlign: "center" }}>
+          <FlexColumn align="center" gap={SPACING.sm} sx={{ textAlign: "center" }}>
             <KeyRoundedIcon className="welcome-icon" />
             <Text className="welcome-title">
               Connect an AI provider to get started
@@ -156,15 +166,15 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
             <Text className="welcome-subtitle" sx={{ maxWidth: 520 }}>
               {SETUP_SUBTITLE}
             </Text>
-            <FlexRow gap={1} justify="center" wrap sx={{ mt: 0.5 }}>
+            <FlexRow gap={SPACING.xs} justify="center" wrap sx={{ mt: SPACING.micro }}>
               {SETUP_PROVIDERS.map((provider) => (
                 <FlexRow
                   key={provider.name}
                   align="center"
-                  gap={0.75}
+                  gap={SPACING.xs}
                   sx={{
-                    px: 1.25,
-                    py: 0.5,
+                    px: SPACING.sm,
+                    py: SPACING.micro,
                     borderRadius: BORDER_RADIUS.pill,
                     border: `1px solid ${theme.vars.palette.divider}`,
                     backgroundColor: theme.vars.palette.background.paper
@@ -193,9 +203,9 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
               variant="contained"
               color="primary"
               size="small"
-              startIcon={<KeyRoundedIcon sx={{ fontSize: 16 }} />}
+              startIcon={<KeyRoundedIcon sx={{ fontSize: "1.2em" }} />}
               onClick={handleConnectProvider}
-              sx={{ mt: 1 }}
+              sx={{ mt: SPACING.xs }}
             >
               Connect a provider
             </EditorButton>
@@ -205,7 +215,7 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
             <AutoAwesomeIcon className="welcome-icon" />
             <Text className="welcome-title">How can I help you today?</Text>
             <Text className="welcome-subtitle">
-              Ask me anything, drop files to analyze, or try one of these:
+              Ask anything, drop in files, or start with one of these:
             </Text>
             <div className="suggestions">
               {SUGGESTIONS.map((suggestion) => (
@@ -218,11 +228,11 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
                     borderColor: theme.vars.palette.divider,
                     color: theme.vars.palette.text.secondary,
                     cursor: "pointer",
-                    transition: `all ${MOTION.fast}`,
+                    transition: MOTION.all,
                     "&:hover": {
                       borderColor: theme.vars.palette.primary.main,
                       color: theme.vars.palette.primary.main,
-                      backgroundColor: `${theme.vars.palette.primary.main}10`
+                      backgroundColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.06)`
                     }
                   }}
                 />

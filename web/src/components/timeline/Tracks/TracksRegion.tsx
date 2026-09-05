@@ -74,6 +74,8 @@ import {
 import { TrackHeader } from "./TrackHeader";
 import { TrackLane } from "./TrackLane";
 import { RubberBandOverlay } from "./RubberBandOverlay";
+import { SnapGuideOverlay } from "./SnapGuideOverlay";
+import { GestureReadout } from "./GestureReadout";
 import { TimeRuler } from "./TimeRuler";
 import { Playhead } from "./Playhead";
 import { AddTrackButton } from "./AddTrackButton";
@@ -1044,6 +1046,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               style={{ minWidth: totalWidthPx, width: "100%", height: totalTracksHeight }}
               data-timeline-lanes="true"
             >
+              {/* Zero-size sticky anchor: must be the first child so its
+                  in-flow position is the container's top-left corner. */}
+              <GestureReadout />
               {tracks.map((track) => (
                 <React.Fragment key={track.id}>
                   {hasScript && track.id === scriptBeforeTrackId && (
@@ -1071,6 +1076,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               {/* Marquee rect — drawn here, above every lane, because a band
                   started on one lane may cover several. */}
               <RubberBandOverlay />
+              <SnapGuideOverlay />
             </div>
           </div>
         </FlexRow>

@@ -59,6 +59,9 @@ portrait for social and mobile, square for profiles and balanced compositions.
 - **Text renders well when specified.** Give the copy, the font class, the
   colour, the placement and the capitalisation: "a white coffee mug with the
   text 'GOOD MORNING' in bold sans-serif black letters, centred on the mug".
+  Copy that belongs to the design, in other words — a title or a super on a
+  still headed for a timeline goes on as a text clip afterwards
+  (`caption-titles`), not into the render.
 - **Multi-reference conditioning is the family's edge.** "The subject from the
   first image wearing the jacket from the second image, photographed in the
   environment from the third image."

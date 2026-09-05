@@ -7,8 +7,11 @@ import {
   composeFirstTurn,
   estimateFromHistory,
   formatEstimate,
+  invokedStarter,
   projectNameFromPrompt,
+  rankStarters,
   starterLabel,
+  toggleStarterInPrompt,
   type ProjectStarter
 } from "../projectStarters";
 import type { ProjectDetail } from "../projectStatus";
@@ -61,6 +64,23 @@ describe("projectNameFromPrompt", () => {
     const name = projectNameFromPrompt("word ".repeat(30), launch);
     expect(name.length).toBeLessThanOrEqual(61);
     expect(name.endsWith("…")).toBe(true);
+  });
+
+  // The command is for the agent; a tab named "/launch-commercial A spot…"
+  // would read as a mistake.
+  it("leaves the starter's slash command out of the name", () => {
+    expect(
+      projectNameFromPrompt("/launch-commercial A spot for our desk lamp", launch)
+    ).toBe("A spot for our desk lamp");
+    expect(
+      projectNameFromPrompt("A spot /launch-commercial for our lamp", launch)
+    ).toBe("A spot for our lamp");
+  });
+
+  it("names a prompt that is only the command after the starter", () => {
+    expect(projectNameFromPrompt("/launch-commercial ", launch)).toBe(
+      "Launch commercial"
+    );
   });
 
   it("falls back to the starter when the prompt says nothing", () => {
@@ -124,6 +144,122 @@ describe("composeFirstTurn", () => {
         entityNames: []
       })
     ).toBe("Whatever I want");
+  });
+});
+
+const houseStyle: ProjectStarter = {
+  name: "house-style",
+  description: "Our house grade and typography.",
+  system: false
+};
+
+describe("invokedStarter", () => {
+  const starters = [launch, houseStyle];
+
+  it("reads the starter off a `/name` anywhere in the prompt", () => {
+    expect(invokedStarter("/launch-commercial A spot", starters)).toBe(launch);
+    expect(invokedStarter("A spot, /house-style please", starters)).toBe(
+      houseStyle
+    );
+  });
+
+  it("is null when no skill is invoked, or only a prefix of one is", () => {
+    expect(invokedStarter("A spot for our lamp", starters)).toBeNull();
+    expect(invokedStarter("/launch A spot", starters)).toBeNull();
+    expect(invokedStarter("/launch-commercial-v2 A spot", starters)).toBeNull();
+    // A slash inside a word is a path or a fraction, not a command.
+    expect(invokedStarter("see docs/launch-commercial", starters)).toBeNull();
+  });
+
+  it("takes the first command written when the prompt names two", () => {
+    expect(
+      invokedStarter("/house-style then /launch-commercial", starters)
+    ).toBe(houseStyle);
+  });
+});
+
+describe("toggleStarterInPrompt", () => {
+  it("writes a picked starter in front of the ask", () => {
+    expect(toggleStarterInPrompt("A spot", null, "launch-commercial")).toBe(
+      "/launch-commercial A spot"
+    );
+    expect(toggleStarterInPrompt("", null, "launch-commercial")).toBe(
+      "/launch-commercial "
+    );
+  });
+
+  it("swaps the starter in place when the prompt already carries one", () => {
+    expect(
+      toggleStarterInPrompt(
+        "A spot /house-style please",
+        "house-style",
+        "launch-commercial"
+      )
+    ).toBe("A spot /launch-commercial please");
+  });
+
+  it("takes the command out when the starter is let go", () => {
+    expect(
+      toggleStarterInPrompt("/launch-commercial A spot", "launch-commercial", null)
+    ).toBe("A spot");
+    expect(
+      toggleStarterInPrompt("A spot /launch-commercial lit", "launch-commercial", null)
+    ).toBe("A spot lit");
+    expect(
+      toggleStarterInPrompt("/launch-commercial ", "launch-commercial", null)
+    ).toBe("");
+  });
+
+  it("leaves the prompt alone when there is nothing to let go", () => {
+    expect(toggleStarterInPrompt("A spot", null, null)).toBe("A spot");
+  });
+});
+
+describe("rankStarters", () => {
+  const cut: ProjectStarter = {
+    name: "beat-sync-editing",
+    description: "Cut to music.",
+    system: true
+  };
+  const at = (kind: string, updatedAt: string): ProjectDetail =>
+    ({
+      ...summary(kind, 3),
+      project: { ...summary(kind, 3).project, updatedAt }
+    }) as ProjectDetail;
+
+  it("puts starters used before first, the most recent ahead", () => {
+    expect(
+      rankStarters(
+        [houseStyle, cut, launch],
+        [at("launch-commercial", "2026-01-01"), at("beat-sync-editing", "2026-03-01")]
+      ).map((starter) => starter.name)
+    ).toEqual(["beat-sync-editing", "launch-commercial", "house-style"]);
+  });
+
+  it("keeps the catalog's order when nothing was started before", () => {
+    expect(
+      rankStarters([houseStyle, cut, launch], [at("", "2026-03-01")]).map(
+        (starter) => starter.name
+      )
+    ).toEqual(["house-style", "beat-sync-editing", "launch-commercial"]);
+  });
+
+  // A guide to prompting one model line is loaded by the agent mid-run, not
+  // started from; it goes to the back unless this user did start from it.
+  it("ranks the model-line prompting guides last", () => {
+    const veo: ProjectStarter = {
+      name: "veo-3-prompting",
+      description: "Prompt Veo 3.",
+      system: true
+    };
+    expect(
+      rankStarters([veo, houseStyle, launch], []).map((starter) => starter.name)
+    ).toEqual(["house-style", "launch-commercial", "veo-3-prompting"]);
+    expect(
+      rankStarters([veo, houseStyle, launch], [at("veo-3-prompting", "2026-03-01")]).map(
+        (starter) => starter.name
+      )
+    ).toEqual(["veo-3-prompting", "house-style", "launch-commercial"]);
   });
 });
 

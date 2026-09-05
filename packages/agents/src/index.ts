@@ -99,6 +99,7 @@ export {
   toolForCapabilityName,
   capabilityFromTool,
   capabilitySpec,
+  capabilityCategoryFor,
   capabilityModuleOf,
   listCapabilitySpecs,
   createCapabilityRun,
@@ -392,6 +393,7 @@ export {
   NODETOOL_PRELUDE
 } from "./sandbox-toolbelt.js";
 export type { ToolSignatureSource } from "./codeact/tool-api.js";
+export { compactResourceIds, compactAssetUris } from "./codeact/compact-ids.js";
 export { createChatCodeActSession } from "./codeact/chat-codeact.js";
 export type {
   ChatCodeActSession,

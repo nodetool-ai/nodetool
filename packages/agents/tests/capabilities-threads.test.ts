@@ -13,9 +13,11 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Message, ModelObserver, Thread, initTestDb } from "@nodetool-ai/models";
 import { module as threads } from "../src/capabilities/threads.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
-import { capabilityModuleIssues } from "../src/capabilities/registry.js";
+import {
+  capabilityCategoryFor,
+  capabilityModuleIssues
+} from "../src/capabilities/registry.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import { DEFAULT_MAX_CHARS } from "../src/capabilities/threads.specs.js";
 
 const NAMES = ["list_threads", "get_thread", "get_message"] as const;
@@ -69,7 +71,7 @@ describe("threads capability module", () => {
     for (const entry of threads.exports) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
-        permissionCategoryFor(entry.spec.name)
+        capabilityCategoryFor(entry.spec.name)
       ]);
     }
   });
