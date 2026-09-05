@@ -11,7 +11,7 @@
  */
 import type { Connection, Edge, Node } from "@xyflow/react";
 
-import type { NodeMetadata } from "../stores/ApiTypes";
+import type { NodeMetadata, TypeMetadata } from "../stores/ApiTypes";
 import type { NodeData } from "../stores/NodeData";
 import { CONTROL_HANDLE_ID, isAgentNodeType } from "../stores/graphEdgeToReactFlowEdge";
 import { isTypedSlot } from "./dynamicSlots";
@@ -39,6 +39,8 @@ export interface ConnectionAccepted {
   isControlEdge: boolean;
   /** Edges that survive the connect — the replaced edge is already dropped. */
   remainingEdges: Edge[];
+  /** Type of the source handle, or null when the node carries no metadata. */
+  sourceType: TypeMetadata | null;
 }
 
 export type ConnectionValidation = ConnectionAccepted | ConnectionRejection;
@@ -93,7 +95,12 @@ export function validateConnection(
     if (wouldCreateCycle(edges, source, target)) {
       return reject("cycle", CYCLE_MESSAGE);
     }
-    return { ok: true, isControlEdge: true, remainingEdges: edges };
+    return {
+      ok: true,
+      isControlEdge: true,
+      remainingEdges: edges,
+      sourceType: null
+    };
   }
 
   const sourceMetadata = getMetadata(sourceNode.type ?? "");
@@ -140,7 +147,12 @@ export function validateConnection(
   // Placeholder nodes (a pack that is not installed) carry no metadata; their
   // edges are kept so the graph round-trips.
   if (!sourceMetadata || !targetMetadata) {
-    return { ok: true, isControlEdge: false, remainingEdges };
+    return {
+      ok: true,
+      isControlEdge: false,
+      remainingEdges,
+      sourceType: sourceHandleMetadata ? sourceHandleMetadata.type : null
+    };
   }
   if (!sourceHandleMetadata) {
     return reject("unknown-handle", null);
@@ -155,5 +167,10 @@ export function validateConnection(
     return reject("incompatible-types", INCOMPATIBLE_MESSAGE);
   }
 
-  return { ok: true, isControlEdge: false, remainingEdges };
+  return {
+    ok: true,
+    isControlEdge: false,
+    remainingEdges,
+    sourceType: sourceHandleMetadata ? sourceHandleMetadata.type : null
+  };
 }

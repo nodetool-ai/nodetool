@@ -21,18 +21,14 @@
  *
  * Wire names, descriptions, schemas and categories are unchanged. Each
  * capability's identity is a Zod schema (`uiToolSchemas`), so `inputSchema` is
- * derived with `zodToJsonSchema` and the validation `Tool.execute` used to run
- * before `process()` moves inside the implementation, returning the same
- * `invalid_tool_arguments` envelope. The deprecated `WorkflowDocumentTool`
- * subclass keeps the Zod schema on `schema` and runs the unvalidated core, so
- * the class path validates exactly once, where it always did.
+ * derived with `zodToJsonSchema` from the `zodSchema` its spec carries, and
+ * the argument check runs once per entrance in `validateCapabilityArgs`
+ * (`./args.ts`) — never here.
  *
  * Design: docs/tool-class-retirement-design.md § "`ui_*` capabilities: in the
  * pack surface, outside its implementation".
  */
 
-import { z, type ZodType } from "zod";
-import { parseWithTypeCoercion, zodToJsonSchema } from "@nodetool-ai/runtime";
 import type { Workflow as WorkflowRow } from "@nodetool-ai/models";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import {
@@ -53,11 +49,7 @@ import type {
 } from "./types.js";
 import { isRecord, isString } from "../utils/type-guards.js";
 
-/**
- * Apply one document op to the stored workflow. The unvalidated core: the
- * class path has already parsed the arguments, and {@link withZodValidation}
- * parses them for everyone else.
- */
+/** Apply one document op to the stored workflow. */
 function documentCore(name: WorkflowDocumentToolName): CapabilityImpl {
   return async (run, params) => {
     const client = run.client;

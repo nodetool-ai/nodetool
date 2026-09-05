@@ -3070,129 +3070,25 @@ export class ChatTurnHandler {
           },
           null,
           async () => {
-
-        // Some providers (e.g. HuggingFace, OpenAI) can return fully-encoded
-        // audio. Prefer that path when available and honor the requested
-        // container when the provider supports it.
-        const encoded = await provider.textToSpeechEncoded({
-          text: expandedPrompt,
-          model: modelId,
-          voice,
-          speed,
-          audioFormat: requestedFormat ?? undefined
-        });
-
-        if (encoded) {
-          const mimeToExt: Record<string, string> = {
-            "audio/mpeg": "mp3",
-            "audio/wav": "wav",
-            "audio/ogg": "ogg",
-            "audio/flac": "flac",
-            "audio/aac": "aac"
-          };
-          const ext = mimeToExt[encoded.mimeType] ?? "flac";
-          if (
-            requestedFormat &&
-            requestedFormat !== ext &&
-            requestedFormat !== "pcm"
-          ) {
-            log.warn(
-              "Requested audio_format not supported by provider; returning native format",
+            const speech = await generateSpeechBytes(
+              provider,
               {
-                providerId,
-                modelId,
-                requestedFormat,
-                returnedMime: encoded.mimeType
-              }
+                text: expandedPrompt,
+                model: modelId,
+                voice,
+                speed,
+                audioFormat: requestedFormat
+              },
+              cancelled
             );
-          }
-          if (cancelled()) return;
-          assetId = await storeMediaAsset(encoded.data, encoded.mimeType, ext);
-          audioMimeType = encoded.mimeType;
-        } else {
-          // Streaming PCM path (OpenAI, Gemini, etc.)
-          const pcmChunks: Uint8Array[] = [];
-          let totalBytes = 0;
-          let chunkSampleRate = 24000;
-          for await (const chunk of provider.textToSpeech({
-            text: expandedPrompt,
-            model: modelId,
-            voice,
-            speed,
-            audioFormat: requestedFormat ?? undefined
-          })) {
-            if (cancelled()) return;
-            if (chunk?.samples) {
-              if (chunk.sampleRate) chunkSampleRate = chunk.sampleRate;
-              const view = new Uint8Array(
-                chunk.samples.buffer,
-                chunk.samples.byteOffset,
-                chunk.samples.byteLength
-              );
-              const copy = new Uint8Array(view);
-              pcmChunks.push(copy);
-              totalBytes += copy.byteLength;
-            }
-          }
-          const merged = new Uint8Array(totalBytes);
-          let off = 0;
-          for (const c of pcmChunks) {
-            merged.set(c, off);
-            off += c.byteLength;
-          }
-
-          if (requestedFormat === "pcm") {
-            // Return raw PCM Int16 bytes (no container).
-            if (cancelled()) return;
-            assetId = await storeMediaAsset(merged, "audio/pcm", "pcm");
-            audioMimeType = "audio/pcm";
-          } else {
-            if (
-              requestedFormat &&
-              requestedFormat !== "wav" &&
-              requestedFormat !== "pcm"
-            ) {
-              log.warn(
-                "Requested audio_format cannot be produced from streaming PCM; falling back to WAV",
-                { providerId, modelId, requestedFormat }
-              );
-            }
-            // Wrap raw PCM Int16 in a WAV container so browsers can play it.
-            const sampleRate = chunkSampleRate;
-            const numChannels = 1;
-            const bitsPerSample = 16;
-            const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
-            const blockAlign = numChannels * (bitsPerSample / 8);
-            const wavHeader = new ArrayBuffer(44);
-            const dv = new DataView(wavHeader);
-            const writeStr = (pos: number, str: string) => {
-              for (let i = 0; i < str.length; i++)
-                dv.setUint8(pos + i, str.charCodeAt(i));
-            };
-            writeStr(0, "RIFF");
-            dv.setUint32(4, 36 + merged.byteLength, true);
-            writeStr(8, "WAVE");
-            writeStr(12, "fmt ");
-            dv.setUint32(16, 16, true);
-            dv.setUint16(20, 1, true);
-            dv.setUint16(22, numChannels, true);
-            dv.setUint32(24, sampleRate, true);
-            dv.setUint32(28, byteRate, true);
-            dv.setUint16(32, blockAlign, true);
-            dv.setUint16(34, bitsPerSample, true);
-            writeStr(36, "data");
-            dv.setUint32(40, merged.byteLength, true);
-
-            const wav = new Uint8Array(44 + merged.byteLength);
-            wav.set(new Uint8Array(wavHeader), 0);
-            wav.set(merged, 44);
-
-            if (cancelled()) return;
-            assetId = await storeMediaAsset(wav, "audio/wav", "wav");
-            audioMimeType = "audio/wav";
-          }
-        }
-            return assetId ?? null;
+            if (!speech) return null;
+            assetId = await storeMediaAsset(
+              speech.bytes,
+              speech.mimeType,
+              speech.ext
+            );
+            audioMimeType = speech.mimeType;
+            return assetId;
           },
           audioGenerationId
         );
