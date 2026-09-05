@@ -82,7 +82,6 @@ export function AssistantDock({
           total={state.total}
           progressMessage={state.progressMessage}
           runningToolCallId={state.runningToolCallId}
-          runningToolMessage={state.runningToolMessage}
           model={model}
           showNewChatButton={false}
         />
