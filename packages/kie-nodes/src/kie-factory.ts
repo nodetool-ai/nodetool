@@ -457,7 +457,8 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
         apiKey,
         specRef.submitEndpoint,
         params,
-        specRef.responseIdKey
+        specRef.responseIdKey,
+        context?.signal
       );
     }
     if (specRef.useSuno) {
@@ -466,7 +467,8 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
         params,
         specRef.pollInterval,
         specRef.maxAttempts,
-        specRef.sunoEndpoint
+        specRef.sunoEndpoint,
+        context?.signal
       );
     }
     return await kieExecuteTask(
@@ -477,7 +479,8 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
       specRef.maxAttempts,
       specRef.submitEndpoint,
       specRef.pollEndpoint,
-      specRef.resultObjectKey
+      specRef.resultObjectKey,
+      context?.signal
     );
   };
 

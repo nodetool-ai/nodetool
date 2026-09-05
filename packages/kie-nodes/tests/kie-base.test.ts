@@ -435,6 +435,36 @@ describe("kieExecuteTask transport", () => {
     expect(submits).toBe(1);
   });
 
+  it("stops polling when the run is cancelled", async () => {
+    let polls = 0;
+    global.fetch = vi.fn(async (url: string | URL) => {
+      const u = String(url);
+      if (u.includes("createTask")) {
+        return jsonRes({ code: 200, data: { taskId: "task_cancel" } });
+      }
+      polls++;
+      return jsonRes({ code: 200, data: { state: "generating" } });
+    }) as unknown as typeof fetch;
+
+    const controller = new AbortController();
+    controller.abort(new Error("Workflow cancelled"));
+
+    await expect(
+      kieExecuteTask(
+        "key",
+        "m",
+        { prompt: "x" },
+        1,
+        50,
+        undefined,
+        undefined,
+        undefined,
+        controller.signal
+      )
+    ).rejects.toThrow("Workflow cancelled");
+    expect(polls).toBe(0);
+  });
+
   it("treats every terminal success synonym as done", async () => {
     global.fetch = vi.fn(async (url: string | URL) => {
       const u = String(url);

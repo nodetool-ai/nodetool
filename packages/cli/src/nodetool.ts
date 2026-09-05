@@ -13,7 +13,7 @@
  *   nodetool settings show
  */
 
-import { program, Command } from "commander";
+import { program } from "commander";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
@@ -26,7 +26,6 @@ import {
   Workflow,
   Asset,
   Secret,
-  TimelineSequence,
   getSecret
 } from "@nodetool-ai/models";
 import {

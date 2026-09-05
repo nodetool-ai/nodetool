@@ -294,7 +294,8 @@ export async function uploadFile(
   apiKey: string,
   data: Buffer,
   uploadPath: string,
-  filename: string
+  filename: string,
+  signal?: AbortSignal
 ): Promise<string> {
   const form = new globalThis.FormData();
   form.append("file", new Blob([new Uint8Array(data)]), filename);
@@ -303,7 +304,8 @@ export async function uploadFile(
   const res = await fetch(KIE_UPLOAD_URL, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}` },
-    body: form
+    body: form,
+    signal
   });
   const resData = await parseKieJson(res, "upload");
   if (!res.ok || !resData.success)
@@ -367,7 +369,8 @@ export async function uploadImageInput(
     apiKey,
     bytes,
     "images/user-uploads",
-    `upload-${Date.now()}.png`
+    `upload-${Date.now()}.png`,
+    context?.signal
   );
 }
 
@@ -388,7 +391,8 @@ export async function uploadAudioInput(
     apiKey,
     bytes,
     "audio/user-uploads",
-    `upload-${Date.now()}.mp3`
+    `upload-${Date.now()}.mp3`,
+    context?.signal
   );
 }
 
@@ -409,7 +413,8 @@ export async function uploadVideoInput(
     apiKey,
     bytes,
     "videos/user-uploads",
-    `upload-${Date.now()}.mp4`
+    `upload-${Date.now()}.mp4`,
+    context?.signal
   );
 }
 
@@ -645,12 +650,14 @@ export async function kieExecuteOmniDirect(
   apiKey: string,
   endpoint: string,
   body: Record<string, unknown>,
-  responseIdKey: string
+  responseIdKey: string,
+  signal?: AbortSignal
 ): Promise<KieExecuteResult> {
   const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
     method: "POST",
     headers: headers(apiKey),
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal
   });
   const data = await parseKieJson(res, "omni submit");
   if (!res.ok) {
@@ -672,7 +679,8 @@ export async function kieExecuteTask(
   maxAttempts = 300,
   submitEndpoint?: string,
   pollEndpoint?: string,
-  resultObjectKey?: string
+  resultObjectKey?: string,
+  signal?: AbortSignal
 ): Promise<KieExecuteResult> {
   const webhookBase = getWebhookBaseUrl();
 
@@ -681,17 +689,17 @@ export async function kieExecuteTask(
     const customInput = webhookBase
       ? { model, ...input, callBackUrl: `${webhookBase}/api/kie/webhook` }
       : { model, ...input };
-    const taskId = await submitCustom(apiKey, submitEndpoint, customInput);
+    const taskId = await submitCustom(apiKey, submitEndpoint, customInput, signal);
 
     if (webhookBase) {
       const timeoutMs = pollInterval * maxAttempts;
-      await registerWebhookWait(taskId, timeoutMs);
+      await registerWebhookWait(taskId, timeoutMs, signal);
       // Fetch the final status after webhook fires
       const url = `${KIE_API_BASE}${pollEndpoint ?? submitEndpoint}?taskId=${taskId}`;
-      const res = await kieGet(url, apiKey);
+      const res = await kieGet(url, apiKey, signal);
       const statusData = await parseKieJson(res, "recordInfo");
       const creditsConsumed = parseCreditsConsumed(statusData);
-      const resultBytes = await downloadCustomResult(statusData);
+      const resultBytes = await downloadCustomResult(statusData, signal);
       const b64 = resultBytes.toString("base64");
       return { data: b64, items: [b64], taskId, creditsConsumed };
     }
@@ -701,10 +709,11 @@ export async function kieExecuteTask(
       taskId,
       pollEndpoint ?? submitEndpoint,
       pollInterval,
-      maxAttempts
+      maxAttempts,
+      signal
     );
     const creditsConsumed = parseCreditsConsumed(statusData);
-    const resultBytes = await downloadCustomResult(statusData);
+    const resultBytes = await downloadCustomResult(statusData, signal);
     const b64 = resultBytes.toString("base64");
     return { data: b64, items: [b64], taskId, creditsConsumed };
   }
@@ -712,23 +721,34 @@ export async function kieExecuteTask(
   const finalInput = webhookBase
     ? { ...input, callBackUrl: `${webhookBase}/api/kie/webhook` }
     : input;
-  const taskId = await submitTask(apiKey, model, finalInput);
+  const taskId = await submitTask(apiKey, model, finalInput, signal);
 
   let statusData: Record<string, unknown>;
   if (webhookBase) {
     const timeoutMs = pollInterval * maxAttempts;
-    await registerWebhookWait(taskId, timeoutMs);
-    statusData = await fetchRecordInfo(apiKey, taskId);
+    await registerWebhookWait(taskId, timeoutMs, signal);
+    statusData = await fetchRecordInfo(apiKey, taskId, signal);
   } else {
-    statusData = await pollStatus(apiKey, taskId, pollInterval, maxAttempts);
+    statusData = await pollStatus(
+      apiKey,
+      taskId,
+      pollInterval,
+      maxAttempts,
+      signal
+    );
   }
 
   const creditsConsumed = parseCreditsConsumed(statusData);
   if (resultObjectKey) {
-    const text = await downloadTextResult(apiKey, taskId, resultObjectKey);
+    const text = await downloadTextResult(
+      apiKey,
+      taskId,
+      resultObjectKey,
+      signal
+    );
     return { data: text, items: [text], taskId, creditsConsumed };
   }
-  const result = await downloadResult(apiKey, taskId);
+  const result = await downloadResult(apiKey, taskId, signal);
   const items = result.items.map((b) => b.toString("base64"));
   return { data: items[0], items, taskId: result.taskId, creditsConsumed };
 }
@@ -737,7 +757,8 @@ export async function kieExecuteTask(
 export async function kieSubmitSuno(
   apiKey: string,
   input: Record<string, unknown>,
-  endpoint = "/api/v1/generate"
+  endpoint = "/api/v1/generate",
+  signal?: AbortSignal
 ): Promise<string> {
   // callBackUrl is always required by the Suno API. When KIE_WEBHOOK_URL is
   // set we use it; otherwise inject a placeholder (we poll instead).
@@ -751,7 +772,8 @@ export async function kieSubmitSuno(
   const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
     method: "POST",
     headers: headers(apiKey),
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal
   });
   const data = await parseKieJson(res, "submit");
   if (!res.ok)
@@ -773,7 +795,8 @@ export function kiePollSuno(
   apiKey: string,
   taskId: string,
   pollInterval = 4000,
-  maxAttempts = 120
+  maxAttempts = 120,
+  signal?: AbortSignal
 ): Promise<Record<string, unknown>> {
   return pollKieTask(
     apiKey,
@@ -788,7 +811,8 @@ export function kiePollSuno(
         throw new Error(withTaskId(`Suno task failed: ${status}`, taskId));
       }
       return false;
-    }
+    },
+    signal
   );
 }
 
@@ -797,19 +821,26 @@ export async function kieExecuteSunoTask(
   input: Record<string, unknown>,
   pollInterval = 4000,
   maxAttempts = 120,
-  endpoint?: string
+  endpoint?: string,
+  signal?: AbortSignal
 ): Promise<KieExecuteResult> {
-  const taskId = await kieSubmitSuno(apiKey, input, endpoint);
+  const taskId = await kieSubmitSuno(apiKey, input, endpoint, signal);
   const webhookBase = getWebhookBaseUrl();
 
   let pollResult: Record<string, unknown>;
   if (webhookBase) {
     const timeoutMs = pollInterval * maxAttempts;
-    await registerWebhookWait(taskId, timeoutMs);
-    const res = await kieGet(sunoRecordUrl(taskId), apiKey);
+    await registerWebhookWait(taskId, timeoutMs, signal);
+    const res = await kieGet(sunoRecordUrl(taskId), apiKey, signal);
     pollResult = await parseKieJson(res, "record-info");
   } else {
-    pollResult = await kiePollSuno(apiKey, taskId, pollInterval, maxAttempts);
+    pollResult = await kiePollSuno(
+      apiKey,
+      taskId,
+      pollInterval,
+      maxAttempts,
+      signal
+    );
   }
 
   const creditsConsumed = parseCreditsConsumed(pollResult);
@@ -819,7 +850,7 @@ export async function kieExecuteSunoTask(
   if (!sunoData?.length) throw new Error("No sunoData in Suno response");
   const audioUrl = sunoData[0].audioUrl as string;
   if (!audioUrl) throw new Error("No audioUrl in Suno response");
-  const dlRes = await fetchBilledResult(audioUrl);
+  const dlRes = await fetchBilledResult(audioUrl, signal);
   if (!dlRes.ok) throw new Error(`Failed to download audio: ${dlRes.status}`);
   const buf = Buffer.from(await dlRes.arrayBuffer());
   const b64 = buf.toString("base64");
