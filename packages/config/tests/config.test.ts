@@ -1,5 +1,5 @@
 /**
- * Tests for T-CFG-1 (environment loader) and T-CFG-2 (settings registry).
+ * Tests for T-CFG-1 (environment loader).
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs/promises";
@@ -9,10 +9,7 @@ import {
   loadEnvironment,
   getEnv,
   requireEnv,
-  resetEnvironment,
-  registerSetting,
-  getSettings,
-  clearSettings
+  resetEnvironment
 } from "../src/index.js";
 
 // ── T-CFG-1 — Environment loader ────────────────────────────────────
@@ -109,94 +106,5 @@ describe("T-CFG-1: Environment loader", () => {
     delete process.env.TEST_CFG_VAR;
     loadEnvironment(tmpDir);
     expect(requireEnv("TEST_CFG_VAR")).toBe("present");
-  });
-});
-
-// ── T-CFG-2 — Settings registry ─────────────────────────────────────
-
-describe("T-CFG-2: Settings registry", () => {
-  const savedEnv: Record<string, string | undefined> = {};
-
-  beforeEach(() => {
-    clearSettings();
-    savedEnv.MY_TEST_KEY = process.env.MY_TEST_KEY;
-    savedEnv.MY_SECRET = process.env.MY_SECRET;
-  });
-
-  afterEach(() => {
-    clearSettings();
-    for (const [key, val] of Object.entries(savedEnv)) {
-      if (val === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = val;
-      }
-    }
-  });
-
-  it("registerSetting adds to registry", () => {
-    registerSetting({
-      package: "nodetool",
-      envVar: "MY_TEST_KEY",
-      group: "TestGroup",
-      description: "A test setting",
-      isSecret: false
-    });
-    const settings = getSettings();
-    expect(settings.length).toBe(1);
-    expect(settings[0].envVar).toBe("MY_TEST_KEY");
-    expect(settings[0].group).toBe("TestGroup");
-  });
-
-  it("getSettings marks configured when env var is set", () => {
-    registerSetting({
-      package: "nodetool",
-      envVar: "MY_TEST_KEY",
-      group: "Test",
-      description: "test",
-      isSecret: false
-    });
-    process.env.MY_TEST_KEY = "some_value";
-    const settings = getSettings();
-    expect(settings[0].configured).toBe(true);
-  });
-
-  it("getSettings marks unconfigured when env var is not set", () => {
-    registerSetting({
-      package: "nodetool",
-      envVar: "MY_TEST_KEY",
-      group: "Test",
-      description: "test",
-      isSecret: false
-    });
-    delete process.env.MY_TEST_KEY;
-    const settings = getSettings();
-    expect(settings[0].configured).toBe(false);
-  });
-
-  it("multiple settings registered correctly", () => {
-    registerSetting({
-      package: "nodetool",
-      envVar: "MY_TEST_KEY",
-      group: "Test",
-      description: "test key",
-      isSecret: false
-    });
-    registerSetting({
-      package: "nodetool",
-      envVar: "MY_SECRET",
-      group: "Secrets",
-      description: "a secret",
-      isSecret: true
-    });
-    process.env.MY_TEST_KEY = "v";
-    delete process.env.MY_SECRET;
-    const settings = getSettings();
-    expect(settings.length).toBe(2);
-    const keySet = settings.find((s) => s.envVar === "MY_TEST_KEY");
-    const secretUnset = settings.find((s) => s.envVar === "MY_SECRET");
-    expect(keySet?.configured).toBe(true);
-    expect(secretUnset?.configured).toBe(false);
-    expect(secretUnset?.isSecret).toBe(true);
   });
 });

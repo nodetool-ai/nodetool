@@ -13,26 +13,19 @@
  *   nodetool settings show
  */
 
-import { program, Command } from "commander";
+import { program } from "commander";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
-import type { AppRouter } from "@nodetool-ai/websocket/trpc";
-import {
-  TRPC_MAX_BATCH_SIZE,
-  type Intervention
-} from "@nodetool-ai/protocol";
+import { type Intervention } from "@nodetool-ai/protocol";
 import { workflowToDsl } from "@nodetool-ai/dsl";
 import {
   initDb,
   Workflow,
-  Job,
   Asset,
   Secret,
-  TimelineSequence,
   getSecret
 } from "@nodetool-ai/models";
 import {
@@ -59,13 +52,8 @@ import { registerFalNodes } from "@nodetool-ai/fal-nodes";
 import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
 import { registerReveNodes } from "@nodetool-ai/reve-nodes";
 import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
-import {
-  ProcessingContext,
-  FileStorageAdapter,
-  createLocalWorkspace,
-  initTelemetry,
-  onPythonBridgeCreated
-} from "@nodetool-ai/runtime";
+import { ProcessingContext, createLocalWorkspace, initTelemetry, onPythonBridgeCreated } from "@nodetool-ai/runtime";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type { AssetOutputMode } from "@nodetool-ai/runtime";
 import { mkdirSync } from "node:fs";
 import {
@@ -106,6 +94,8 @@ import { registerCostsCommands } from "./commands/costs.js";
 import { registerGenerationsCommands } from "./commands/generations.js";
 import { registerAuthCommands } from "./commands/auth.js";
 import { registerTelegramCommands } from "./commands/telegram.js";
+import { registerResourceReadCommands } from "./commands/resource-read.js";
+import { createApiClient } from "./api-client.js";
 import {
   listAllModels,
   listConfiguredProviderInfo,
@@ -114,6 +104,8 @@ import {
   type ProviderModelKind
 } from "./providers.js";
 import { isString } from "./predicates.js";
+import { printTable, asJson } from "./commands/output.js";
+import { printCommandError } from "./command-errors.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -157,20 +149,6 @@ async function setupDb(): Promise<void> {
 // ---------------------------------------------------------------------------
 // API clients
 // ---------------------------------------------------------------------------
-
-function createApiClient(apiUrl: string) {
-  return createTRPCClient<AppRouter>({
-    links: [
-      httpBatchLink({
-        url: `${apiUrl}/trpc`,
-        maxItems: TRPC_MAX_BATCH_SIZE,
-        // POST keeps the batched input in the request body instead of the URL,
-        // so large batches stay under reverse-proxy URL-length limits. See #3979.
-        methodOverride: "POST"
-      })
-    ]
-  });
-}
 
 // REST GET (text) — used for the DSL export endpoint which stays REST
 // because it returns a TypeScript source string rather than JSON.
@@ -263,51 +241,6 @@ async function makeLocalAssetFetcher(): Promise<
     }
     return null;
   };
-}
-
-// ---------------------------------------------------------------------------
-// Table printer
-// ---------------------------------------------------------------------------
-
-function printTable<Row extends object>(
-  rows: readonly Row[],
-  columns?: string[]
-): void {
-  if (rows.length === 0) {
-    console.log("(no results)");
-    return;
-  }
-  // Render every cell up front, keyed by column name. A table prints whatever
-  // column names the caller asked for off rows of any object shape, so the
-  // lookup is by name — not by a property the row type declares.
-  const cells = rows.map(
-    (row) =>
-      new Map(
-        Object.entries(row).map(([column, value]): [string, string] => [
-          column,
-          String(value ?? "")
-        ])
-      )
-  );
-  const cols = columns ?? Object.keys(rows[0]!);
-  const widths = cols.map((c) =>
-    Math.max(c.length, ...cells.map((r) => (r.get(c) ?? "").length))
-  );
-  const sep = widths.map((w) => "─".repeat(w + 2)).join("┼");
-  const header = cols.map((c, i) => ` ${c.padEnd(widths[i]!)} `).join("│");
-  console.log(header);
-  console.log(sep);
-  for (const rendered of cells) {
-    console.log(
-      cols
-        .map((c, i) => ` ${(rendered.get(c) ?? "").padEnd(widths[i]!)} `)
-        .join("│")
-    );
-  }
-}
-
-function asJson(data: unknown): void {
-  console.log(JSON.stringify(data, null, 2));
 }
 
 // Asset and timeline persistence for every context any command builds, here
@@ -552,89 +485,6 @@ program
 const workflows = program
   .command("workflows")
   .description("Workflow management");
-
-workflows
-  .command("list")
-  .description(
-    "List workflows (reads the local database; --api-url for remote)"
-  )
-  .option(
-    "--api-url <url>",
-    "Query a remote server instead of the local database",
-    process.env["NODETOOL_API_URL"]
-  )
-  .option("--limit <n>", "Max results", "100")
-  .option("--json", "Output as JSON")
-  .action(async (opts) => {
-    try {
-      const limit = Number.parseInt(opts.limit, 10);
-      let rows: Record<string, unknown>[];
-      if (opts.apiUrl) {
-        const client = createApiClient(opts.apiUrl);
-        const data = await client.workflows.list.query({ limit });
-        rows = data.workflows;
-      } else {
-        ensureDb();
-        const [items] = await Workflow.paginate(LOCAL_USER_ID, { limit });
-        rows = items.map((w) => ({ ...w }));
-      }
-      if (opts.json) {
-        asJson(rows);
-        return;
-      }
-      printTable(
-        rows.map((r) => ({
-          id: r["id"],
-          name: r["name"],
-          updated_at: r["updated_at"]
-        }))
-      );
-    } catch (e) {
-      console.error(String(e));
-      process.exit(1);
-    }
-  });
-
-workflows
-  .command("get <workflow_id>")
-  .description(
-    "Get a workflow by ID (reads the local database; --api-url for remote)"
-  )
-  .option(
-    "--api-url <url>",
-    "Query a remote server instead of the local database",
-    process.env["NODETOOL_API_URL"]
-  )
-  .option("--json", "Output as JSON")
-  .action(async (workflowId, opts) => {
-    try {
-      let data: WorkflowSummaryRow;
-      if (opts.apiUrl) {
-        const client = createApiClient(opts.apiUrl);
-        data = await client.workflows.get.query({ id: workflowId });
-      } else {
-        ensureDb();
-        const wf = await Workflow.find(LOCAL_USER_ID, workflowId);
-        if (!wf) throw new Error(`Workflow not found: ${workflowId}`);
-        data = { ...wf };
-      }
-      if (opts.json) {
-        asJson(data);
-        return;
-      }
-      printTable([
-        {
-          id: data.id,
-          name: data.name,
-          description: data.description,
-          updated_at: data.updated_at
-        }
-      ]);
-    } catch (e) {
-      console.error(String(e));
-      process.exit(1);
-    }
-  });
 
 addSupervisorOptions(
   workflows
@@ -972,7 +822,7 @@ workflows
 
         console.log(source);
       } catch (e) {
-        console.error(String(e));
+        printCommandError(e);
         process.exit(1);
       }
     }
@@ -1144,7 +994,7 @@ workflows
         }
         console.log(outPath);
       } catch (e) {
-        console.error(String(e));
+        printCommandError(e);
         process.exit(1);
       }
     }
@@ -1262,7 +1112,7 @@ workflows
         );
         console.log(outPath);
       } catch (e) {
-        console.error(String(e));
+        printCommandError(e);
         process.exit(1);
       }
     }
@@ -1331,252 +1181,26 @@ workflows
         }
       }
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
 
 // ---------------------------------------------------------------------------
-// jobs
+// jobs / assets — the read commands are registered from commands/resource-read.ts
 // ---------------------------------------------------------------------------
 
 const jobs = program.command("jobs").description("Job management");
-
-jobs
-  .command("list")
-  .description("List jobs (reads the local database; --api-url for remote)")
-  .option(
-    "--api-url <url>",
-    "Query a remote server instead of the local database",
-    process.env["NODETOOL_API_URL"]
-  )
-  .option("--workflow-id <id>", "Filter by workflow ID")
-  .option("--limit <n>", "Max results", "100")
-  .option("--json", "Output as JSON")
-  .action(async (opts) => {
-    try {
-      const limit = Number.parseInt(opts.limit, 10);
-      let rows: Record<string, unknown>[];
-      if (opts.apiUrl) {
-        const client = createApiClient(opts.apiUrl);
-        type QueryFields = { limit: number; workflow_id?: string };
-        const query: QueryFields = { limit };
-        if (opts.workflowId) {
-          query.workflow_id = opts.workflowId;
-        }
-        const data = await client.jobs.list.query(query);
-        rows = data.jobs;
-      } else {
-        ensureDb();
-        const page: Parameters<typeof Job.paginate>[1] = { limit };
-        if (opts.workflowId) {
-          page.workflowId = opts.workflowId;
-        }
-        const [items] = await Job.paginate(LOCAL_USER_ID, page);
-        rows = items.map((j) => ({ ...j }));
-      }
-      if (opts.json) {
-        asJson(rows);
-        return;
-      }
-      printTable(
-        rows.map((r) => ({
-          id: r["id"],
-          status: r["status"],
-          workflow_id: r["workflow_id"],
-          started_at: r["started_at"],
-          cost: r["cost"] ?? ""
-        }))
-      );
-    } catch (e) {
-      console.error(String(e));
-      process.exit(1);
-    }
-  });
-
-jobs
-  .command("get <job_id>")
-  .description(
-    "Get a job by ID (reads the local database; --api-url for remote)"
-  )
-  .option(
-    "--api-url <url>",
-    "Query a remote server instead of the local database",
-    process.env["NODETOOL_API_URL"]
-  )
-  .option("--json", "Output as JSON")
-  .action(async (jobId, opts) => {
-    try {
-      let data: JobSummaryRow;
-      if (opts.apiUrl) {
-        const client = createApiClient(opts.apiUrl);
-        data = await client.jobs.get.query({ id: jobId });
-      } else {
-        ensureDb();
-        const job = await Job.find(LOCAL_USER_ID, jobId);
-        if (!job) throw new Error(`Job not found: ${jobId}`);
-        data = { ...job };
-      }
-      if (opts.json) {
-        asJson(data);
-        return;
-      }
-      printTable([
-        {
-          id: data.id,
-          status: data.status,
-          workflow_id: data.workflow_id,
-          error: data.error ?? "",
-          cost: data.cost ?? ""
-        }
-      ]);
-    } catch (e) {
-      console.error(String(e));
-      process.exit(1);
-    }
-  });
-
-// ---------------------------------------------------------------------------
-// assets
-// ---------------------------------------------------------------------------
-
 const assets = program.command("assets").description("Asset management");
 
-assets
-  .command("list")
-  .description("List assets (reads the local database; --api-url for remote)")
-  .option(
-    "--api-url <url>",
-    "Query a remote server instead of the local database",
-    process.env["NODETOOL_API_URL"]
-  )
-  .option("--query <q>", "Search query")
-  .option("--content-type <type>", "Filter by content type")
-  .option("--limit <n>", "Max results", "100")
-  .option("--json", "Output as JSON")
-  .action(async (opts) => {
-    try {
-      const limit = Number.parseInt(opts.limit, 10);
-      let rows: Record<string, unknown>[];
-      if (opts.apiUrl) {
-        const client = createApiClient(opts.apiUrl);
-        type QueryFields2 = { page_size: number; content_type?: string };
-        const query: QueryFields2 = {
-          page_size: limit
-        };
-        if (opts.contentType) {
-          query.content_type = opts.contentType;
-        }
-        const data = await client.assets.list.query(query);
-        rows = data.assets;
-      } else {
-        ensureDb();
-        const page: Parameters<typeof Asset.paginate>[1] = { limit };
-        if (opts.contentType) {
-          page.contentType = opts.contentType;
-        }
-        const [items] = await Asset.paginate(LOCAL_USER_ID, page);
-        rows = items.map((a) => ({ ...a }));
-      }
-      // --query has no server-side search; filter by name in memory (matches
-      // the direct path too, which paginates without a search term).
-      if (opts.query) {
-        const q = String(opts.query).toLowerCase();
-        rows = rows.filter((r) =>
-          String(r["name"] ?? "")
-            .toLowerCase()
-            .includes(q)
-        );
-      }
-      if (opts.json) {
-        asJson(rows);
-        return;
-      }
-      printTable(
-        rows.map((r) => ({
-          id: r["id"],
-          name: r["name"],
-          content_type: r["content_type"],
-          size: r["size"]
-        }))
-      );
-    } catch (e) {
-      console.error(String(e));
-      process.exit(1);
-    }
-  });
-
-assets
-  .command("get <asset_id>")
-  .description(
-    "Get an asset by ID (reads the local database; --api-url for remote)"
-  )
-  .option(
-    "--api-url <url>",
-    "Query a remote server instead of the local database",
-    process.env["NODETOOL_API_URL"]
-  )
-  .option("--json", "Output as JSON")
-  .action(async (assetId, opts) => {
-    try {
-      let data: AssetSummaryRow;
-      if (opts.apiUrl) {
-        const client = createApiClient(opts.apiUrl);
-        data = await client.assets.get.query({ id: assetId });
-      } else {
-        ensureDb();
-        const asset = await Asset.find(LOCAL_USER_ID, assetId);
-        if (!asset) throw new Error(`Asset not found: ${assetId}`);
-        data = { ...asset };
-      }
-      if (opts.json) {
-        asJson(data);
-        return;
-      }
-      printTable([
-        {
-          id: data.id,
-          name: data.name,
-          content_type: data.content_type,
-          size: data.size,
-          url: data.url
-        }
-      ]);
-    } catch (e) {
-      console.error(String(e));
-      process.exit(1);
-    }
-  });
+registerResourceReadCommands(
+  { workflows, jobs, assets },
+  { ensureDb, localUserId: LOCAL_USER_ID }
+);
 
 // ---------------------------------------------------------------------------
 // models
 // ---------------------------------------------------------------------------
-
-/** The fields the `workflows get` table prints, from either source. */
-type WorkflowSummaryRow = {
-  id?: unknown;
-  name?: unknown;
-  description?: unknown;
-  updated_at?: unknown;
-};
-
-/** The fields the `jobs get` table prints, from either source. */
-type JobSummaryRow = {
-  id?: unknown;
-  status?: unknown;
-  workflow_id?: unknown;
-  error?: unknown;
-  cost?: unknown;
-};
-
-/** The fields the `assets get` table prints, from either source. */
-type AssetSummaryRow = {
-  id?: unknown;
-  name?: unknown;
-  content_type?: unknown;
-  size?: unknown;
-  url?: unknown;
-};
 
 /** Exactly what `Workflow.create` hands back, kept for the id we print. */
 type CreatedWorkflowRow = Awaited<ReturnType<typeof Workflow.create>>;
@@ -1637,7 +1261,7 @@ models
       }
       printTable(rows.map(modelRow));
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
@@ -1661,7 +1285,7 @@ models
         }))
       );
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
@@ -1696,7 +1320,7 @@ models
       }
       printTable(rows.map(modelRow));
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
@@ -1751,7 +1375,7 @@ models
       }
       printTable(rows.map(modelRow));
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
@@ -1780,7 +1404,7 @@ models
       }
       printTable(rows.map(modelRow));
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
@@ -1820,7 +1444,7 @@ storage
       }
       if (report.failed > 0) process.exit(1);
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
@@ -1854,7 +1478,7 @@ workflows
       }
       if (report.failed > 0) process.exit(1);
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
@@ -1883,7 +1507,7 @@ secrets
         items.map((s) => ({ key: s.key, updated_at: s.updated_at ?? "" }))
       );
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e);
       process.exit(1);
     }
   });
@@ -1915,7 +1539,7 @@ secrets
       });
       console.log(`Secret '${key}' stored.`);
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e);
       process.exit(1);
     }
   });
@@ -1934,7 +1558,7 @@ secrets
       }
       console.log(value);
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e);
       process.exit(1);
     }
   });
@@ -2407,7 +2031,7 @@ mcp
       // The stdio transport keeps the event loop alive until the client
       // closes the connection.
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e);
       process.exit(1);
     }
   });

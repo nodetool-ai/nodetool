@@ -14,7 +14,7 @@ import {
   isFiniteNumber,
   isNonEmptyString,
   isString
-} from "../type-predicates.js";
+} from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.providers.gemini");
 import type {

@@ -50,7 +50,7 @@ import {
 
 import { restFetch } from "../rest-fetch";
 import type { WorkflowGraph } from "../../stores/ApiTypes";
-import { isArray, isString } from "../../utils/typePredicates";
+import { isArray, isRecord, isString } from "../../utils/typePredicates";
 
 const ROUTE_PREFIX = "/api/sandbox-modules/";
 
@@ -93,11 +93,8 @@ export type SandboxModuleRecord =
 
 const CODE_NODE_TYPE = "nodetool.code.Code";
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  isRecord(value) ? value : null;
 
 /**
  * The sandbox packages every Code node in `graph` imports, deduped. Nothing

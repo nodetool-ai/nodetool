@@ -17,11 +17,10 @@ npm install @nodetool-ai/config
 | `loadEnvironment` / `resetEnvironment` | function | Load and reset the process environment (dotenv) |
 | `getEnv` / `requireEnv` | function | Read an env var, optionally throwing if missing |
 | `getByteLimitEnv` | function | Parse a byte-size limit from an env var |
-| `registerSetting` / `getSettings` / `clearSettings` | function | Register and read typed settings |
-| `SettingDefinition` / `SettingStatus` | type | Setting registration and status shapes |
+| `settingCatalog` / `settingDefinition` | function | Read the catalog of every configuration knob NodeTool ships |
+| `SettingCatalogEntry` | type | One catalog definition: env var, group, description, `isSecret` |
 | `configureLogging` / `getLogLevel` / `createLogger` | function | Configure logging and create named loggers |
 | `LogLevel` / `LoggingOptions` / `Logger` | type | Logging types |
-| `diagnoseEnvironment` / `maskSecret` | function | Environment diagnostics and secret masking |
 | `getNodetoolDataDir` / `getDefaultDbPath` / `getDefaultAssetsPath` | function | Resolve standard data, database, and asset paths |
 | `getPostgresDatabaseUrl` / `getDefaultVectorstoreDbPath` | function | Resolve Postgres and vectorstore locations |
 | `getAssetFilePath` / `buildAssetUrl` | function | Map asset keys to file paths and URLs |

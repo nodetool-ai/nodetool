@@ -1,10 +1,11 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ImageRef } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
-import { isString } from "./type-predicates.js";
+import { isString } from "@nodetool-ai/node-sdk";
 
 const XAI_API_BASE = "https://api.x.ai/v1";
 
-type ImageRefLike = { data?: string | Uint8Array; uri?: string };
+type ImageRefLike = { data?: unknown; uri?: string };
 
 function getApiKey(secrets: Record<string, string>): string {
   const key = secrets.XAI_API_KEY || process.env.XAI_API_KEY || "";
@@ -81,7 +82,7 @@ export class ChatComplete extends BaseNode {
     description:
       "The Grok model to use (e.g. grok-4, grok-4.3, grok-3, grok-3-mini)."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -89,7 +90,7 @@ export class ChatComplete extends BaseNode {
     title: "Prompt",
     description: "The prompt for text generation"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -97,7 +98,7 @@ export class ChatComplete extends BaseNode {
     title: "System Prompt",
     description: "Optional system prompt to guide the model's behavior"
   })
-  declare system_prompt: any;
+  declare system_prompt: string;
 
   @prop({
     type: "float",
@@ -107,7 +108,7 @@ export class ChatComplete extends BaseNode {
     min: 0,
     max: 2
   })
-  declare temperature: any;
+  declare temperature: number;
 
   @prop({
     type: "int",
@@ -117,17 +118,17 @@ export class ChatComplete extends BaseNode {
     min: 1,
     max: 131072
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   async process(): Promise<ChatCompleteOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const prompt = String(this.prompt ?? "");
+    const prompt = this.prompt;
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = String(this.model ?? "grok-4");
-    const systemPrompt = String(this.system_prompt ?? "");
-    const temperature = Number(this.temperature ?? 0.7);
-    const maxTokens = Number(this.max_tokens ?? 1024);
+    const model = this.model;
+    const systemPrompt = this.system_prompt;
+    const temperature = this.temperature;
+    const maxTokens = this.max_tokens;
 
     const messages: Record<string, unknown>[] = [];
     if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
@@ -172,7 +173,7 @@ export class WebSearch extends BaseNode {
     title: "Model",
     description: "The Grok model to use for the search query."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -180,7 +181,7 @@ export class WebSearch extends BaseNode {
     title: "Query",
     description: "The question to research using live web/X search."
   })
-  declare query: any;
+  declare query: string;
 
   @prop({
     type: "enum",
@@ -190,7 +191,7 @@ export class WebSearch extends BaseNode {
       "auto lets Grok decide when to search, on forces search, off disables it.",
     values: ["auto", "on", "off"]
   })
-  declare search_mode: any;
+  declare search_mode: string;
 
   @prop({
     type: "int",
@@ -200,16 +201,16 @@ export class WebSearch extends BaseNode {
     min: 1,
     max: 30
   })
-  declare max_results: any;
+  declare max_results: number;
 
   async process(): Promise<WebSearchOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const query = String(this.query ?? "");
+    const query = this.query;
     if (!query) throw new Error("Search query cannot be empty");
 
-    const model = String(this.model ?? "grok-4");
-    const mode = String(this.search_mode ?? "auto");
-    const maxResults = Number(this.max_results ?? 10);
+    const model = this.model;
+    const mode = this.search_mode;
+    const maxResults = this.max_results;
 
     const data = await xaiPost(apiKey, "chat/completions", {
       model,
@@ -261,7 +262,7 @@ export class ImageToText extends BaseNode {
     title: "Image",
     description: "The image to analyze"
   })
-  declare image: any;
+  declare image: ImageRef;
 
   @prop({
     type: "str",
@@ -269,7 +270,7 @@ export class ImageToText extends BaseNode {
     title: "Prompt",
     description: "The prompt/question about the image"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -278,7 +279,7 @@ export class ImageToText extends BaseNode {
     description:
       "The Grok vision model to use (e.g. grok-2-vision-1212, grok-4)."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "float",
@@ -288,7 +289,7 @@ export class ImageToText extends BaseNode {
     min: 0,
     max: 2
   })
-  declare temperature: any;
+  declare temperature: number;
 
   @prop({
     type: "int",
@@ -298,19 +299,19 @@ export class ImageToText extends BaseNode {
     min: 1,
     max: 131072
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   async process(): Promise<ImageToTextOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const image = (this.image ?? {}) as ImageRefLike;
+    const image = this.image;
     if (!image.data && !image.uri) throw new Error("Image is required");
 
-    const prompt = String(this.prompt ?? "Describe this image in detail.");
+    const prompt = this.prompt;
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = String(this.model ?? "grok-2-vision-1212");
-    const temperature = Number(this.temperature ?? 0.3);
-    const maxTokens = Number(this.max_tokens ?? 1024);
+    const model = this.model;
+    const temperature = this.temperature;
+    const maxTokens = this.max_tokens;
 
     const dataUri = imageToDataUri(image);
 
@@ -362,7 +363,7 @@ export class GenerateImage extends BaseNode {
     title: "Prompt",
     description: "The prompt describing the image to generate."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -371,14 +372,14 @@ export class GenerateImage extends BaseNode {
     description:
       "The Grok image model to use (e.g. grok-2-image, grok-imagine-image)."
   })
-  declare model: any;
+  declare model: string;
 
   async process(): Promise<GenerateImageOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const prompt = String(this.prompt ?? "");
+    const prompt = this.prompt;
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = String(this.model ?? "grok-2-image");
+    const model = this.model;
 
     // xAI's image endpoint mirrors OpenAI but rejects size/quality/style
     // params — only model, prompt, n and response_format are accepted.

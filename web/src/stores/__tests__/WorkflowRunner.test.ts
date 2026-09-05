@@ -43,12 +43,6 @@ jest.mock("../ResultsStore", () => ({
     getState: jest.fn().mockReturnValue({
       clearEdges: jest.fn(),
       clearResults: jest.fn(),
-      clearProgress: jest.fn(),
-      clearToolCalls: jest.fn(),
-      clearTasks: jest.fn(),
-      clearChunks: jest.fn(),
-      clearPlanningUpdates: jest.fn(),
-      clearOutputResults: jest.fn(),
       clearJobRunVisuals: jest.fn(),
     }),
   },
@@ -118,18 +112,6 @@ describe("WorkflowRunner", () => {
       expect(state.statusMessage).toBeNull();
       expect(state.notifications).toEqual([]);
     });
-
-    it("initializes a message handler", () => {
-      expect(store.getState().messageHandler).toEqual(expect.any(Function));
-    });
-  });
-
-  describe("setMessageHandler", () => {
-    it("updates the message handler", () => {
-      const mockHandler = jest.fn();
-      store.getState().setMessageHandler(mockHandler);
-      expect(store.getState().messageHandler).toBe(mockHandler);
-    });
   });
 
   describe("setStatusMessage", () => {
@@ -172,19 +154,21 @@ describe("WorkflowRunner", () => {
   });
 
   describe("cleanup", () => {
-    it("cleans up unsubscribe function if present", () => {
-      const mockUnsubscribe = jest.fn();
-      store.setState({ unsubscribe: mockUnsubscribe });
+    it("resets job and runtime state", () => {
+      store.setState({
+        job_id: "job-123",
+        jobReplayCursor: 7,
+        isBrowserRun: true,
+        state: "running"
+      });
 
       store.getState().cleanup();
 
-      expect(mockUnsubscribe).toHaveBeenCalled();
-      expect(store.getState().unsubscribe).toBeNull();
-    });
-
-    it("does nothing if unsubscribe is null", () => {
-      store.setState({ unsubscribe: null });
-      expect(() => store.getState().cleanup()).not.toThrow();
+      const state = store.getState();
+      expect(state.job_id).toBeNull();
+      expect(state.jobReplayCursor).toBe(0);
+      expect(state.isBrowserRun).toBe(false);
+      expect(state.state).toBe("idle");
     });
   });
 
@@ -206,11 +190,11 @@ describe("WorkflowRunner", () => {
       expect(store.getState().state).toBe("error");
     });
 
-    it("transitions to running state on reconnect", async () => {
+    it("attaches to the job on reconnect", async () => {
       await store.getState().ensureConnection();
-      await store.getState().reconnect("job-123");
+      await store.getState().reconnect("job-123", testWorkflow);
 
-      expect(store.getState().state).toBe("running");
+      expect(store.getState().state).toBe("connecting");
       expect(store.getState().job_id).toBe("job-123");
     });
   });
@@ -219,7 +203,7 @@ describe("WorkflowRunner", () => {
     it("reconnects from the cursor of the job it is already tracking", async () => {
       store.setState({ job_id: "job-123", jobReplayCursor: 12 });
 
-      await store.getState().reconnect("job-123");
+      await store.getState().reconnect("job-123", testWorkflow);
 
       expect(globalWebSocketManager.send).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -235,7 +219,7 @@ describe("WorkflowRunner", () => {
     it("reconnects from zero for a job it was not tracking", async () => {
       store.setState({ job_id: "job-other", jobReplayCursor: 12 });
 
-      await store.getState().reconnect("job-123");
+      await store.getState().reconnect("job-123", testWorkflow);
 
       expect(globalWebSocketManager.send).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -246,10 +230,10 @@ describe("WorkflowRunner", () => {
       expect(store.getState().jobReplayCursor).toBe(0);
     });
 
-    it("reconnectWithWorkflow carries the cursor too", async () => {
+    it("carries the workflow id on the reconnect frame", async () => {
       store.setState({ job_id: "job-123", jobReplayCursor: 4 });
 
-      await store.getState().reconnectWithWorkflow("job-123", testWorkflow);
+      await store.getState().reconnect("job-123", testWorkflow);
 
       expect(globalWebSocketManager.send).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -263,25 +247,15 @@ describe("WorkflowRunner", () => {
       );
     });
 
-    it.each([
-      ["reconnect", (jobId: string) => store.getState().reconnect(jobId)],
-      [
-        "reconnectWithWorkflow",
-        (jobId: string) =>
-          store.getState().reconnectWithWorkflow(jobId, testWorkflow),
-      ],
-    ] as const)(
-      "%s clears isBrowserRun so the job stays eligible for auto-resume",
-      async (_name, doReconnect) => {
-        // A previous in-browser run left the flag set; the job being attached
-        // to is a server job, and the open-event resume skips browser runs.
-        store.setState({ isBrowserRun: true, job_id: "job-browser" });
+    it("clears isBrowserRun so the job stays eligible for auto-resume", async () => {
+      // A previous in-browser run left the flag set; the job being attached
+      // to is a server job, and the open-event resume skips browser runs.
+      store.setState({ isBrowserRun: true, job_id: "job-browser" });
 
-        await doReconnect("job-server");
+      await store.getState().reconnect("job-server", testWorkflow);
 
-        expect(store.getState().isBrowserRun).toBe(false);
-      }
-    );
+      expect(store.getState().isBrowserRun).toBe(false);
+    });
 
     it("starts a fresh run at cursor zero", async () => {
       store.setState({ jobReplayCursor: 9 });
@@ -295,7 +269,7 @@ describe("WorkflowRunner", () => {
   describe("streaming methods", () => {
     beforeEach(async () => {
       await store.getState().ensureConnection();
-      await store.getState().reconnect("job-123");
+      await store.getState().reconnect("job-123", testWorkflow);
     });
 
     it("streams input to running job", async () => {

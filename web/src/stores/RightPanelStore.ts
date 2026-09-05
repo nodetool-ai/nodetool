@@ -3,174 +3,22 @@
  * hosts only the Inspector — secondary tools (logs, jobs, assistant, etc.)
  * moved to the bottom panel.
  */
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { isNumber, isObjectLike } from "../utils/typePredicates";
+import { createResizablePanelStore } from "./createResizablePanelStore";
 
 export type RightPanelView = "inspector";
 
-interface PanelState {
-  panelSize: number;
-  isVisible: boolean;
-  isDragging: boolean;
-  hasDragged: boolean;
-  minWidth: number;
-  maxWidth: number;
-  defaultWidth: number;
-  activeView: RightPanelView;
-}
+const isRightPanelView = (value: unknown): value is RightPanelView =>
+  value === "inspector";
 
-interface ResizePanelState {
-  panel: PanelState;
-  setSize: (newSize: number) => void;
-  setIsDragging: (isDragging: boolean) => void;
-  setHasDragged: (hasDragged: boolean) => void;
-  initializePanelSize: (size?: number) => void;
-  setActiveView: (view: RightPanelView) => void;
-  closePanel: () => void;
-  handleViewChange: (view: RightPanelView) => void;
-  setVisibility: (isVisible: boolean) => void;
-}
-
-const DEFAULT_PANEL_SIZE = 350;
-const MIN_DRAG_SIZE = 60;
-const MIN_PANEL_SIZE = 130;
-const MAX_PANEL_SIZE = 600;
-
-const createInitialState = (): PanelState => ({
-  panelSize: DEFAULT_PANEL_SIZE,
-  isVisible: false,
-  isDragging: false,
-  hasDragged: false,
-  minWidth: MIN_DRAG_SIZE,
-  maxWidth: MAX_PANEL_SIZE,
-  defaultWidth: DEFAULT_PANEL_SIZE,
-  activeView: "inspector"
+export const useRightPanelStore = createResizablePanelStore<RightPanelView>({
+  name: "right-panel-storage",
+  version: 3,
+  sizes: { drag: 60, min: 130, max: 600, initial: 350 },
+  defaultView: "inspector",
+  isView: isRightPanelView,
+  // Visibility is selection-driven — the panel only opens while a node is
+  // selected. Persisting `isVisible` would re-open an empty inspector on a
+  // fresh load (no selection yet), so only the size/view are persisted, and a
+  // legacy persisted `isVisible` (pre-v3) is ignored on rehydrate.
+  persistVisibility: false
 });
-
-export const useRightPanelStore = create<ResizePanelState>()(
-  persist(
-    (set, get) => ({
-      panel: createInitialState(),
-
-      setSize: (newSize: number) =>
-        set((state: ResizePanelState) => {
-          if (newSize <= MIN_DRAG_SIZE) {
-            return { panel: { ...state.panel, panelSize: MIN_DRAG_SIZE } };
-          }
-          const validSize = Math.min(newSize, MAX_PANEL_SIZE);
-          return { panel: { ...state.panel, panelSize: validSize } };
-        }),
-
-      setIsDragging: (isDragging: boolean) =>
-        set((state: ResizePanelState) => ({
-          panel: { ...state.panel, isDragging }
-        })),
-
-      setHasDragged: (hasDragged: boolean) =>
-        set((state: ResizePanelState) => ({
-          panel: { ...state.panel, hasDragged }
-        })),
-
-      initializePanelSize: (size?: number) => {
-        const validSize = Math.max(
-          MIN_PANEL_SIZE,
-          Math.min(size || DEFAULT_PANEL_SIZE, MAX_PANEL_SIZE)
-        );
-        set((state: ResizePanelState) => ({
-          panel: { ...state.panel, panelSize: validSize }
-        }));
-      },
-
-      setActiveView: (view: RightPanelView) =>
-        set((state: ResizePanelState) => ({
-          panel: { ...state.panel, activeView: view }
-        })),
-
-      closePanel: () =>
-        set((state: ResizePanelState) => ({
-          panel: { ...state.panel, panelSize: MIN_DRAG_SIZE, isVisible: false }
-        })),
-
-      setVisibility: (isVisible: boolean) =>
-        set((state: ResizePanelState) => ({
-          panel: {
-            ...state.panel,
-            isVisible,
-            // A drag-collapse can persist a sliver-sized panel (MIN_DRAG_SIZE).
-            // When reopening, restore at least the usable minimum so the panel
-            // doesn't come back as a 60px sliver.
-            panelSize:
-              isVisible && state.panel.panelSize < MIN_PANEL_SIZE
-                ? MIN_PANEL_SIZE
-                : state.panel.panelSize
-          }
-        })),
-
-      handleViewChange: (view: RightPanelView) => {
-        const { panel } = get();
-        if (panel.activeView === view) {
-          if (!panel.isVisible && panel.panelSize < MIN_PANEL_SIZE) {
-            set((state: ResizePanelState) => ({
-              panel: {
-                ...state.panel,
-                panelSize: MIN_PANEL_SIZE,
-                isVisible: true
-              }
-            }));
-          } else {
-            set((state: ResizePanelState) => ({
-              panel: { ...state.panel, isVisible: !state.panel.isVisible }
-            }));
-          }
-        } else {
-          set((state: ResizePanelState) => ({
-            panel: { ...state.panel, activeView: view, isVisible: true }
-          }));
-        }
-      }
-    }),
-    {
-      name: "right-panel-storage",
-      version: 3,
-      // Visibility is selection-driven — the panel only opens while a node is
-      // selected. Persisting `isVisible` would re-open an empty inspector on a
-      // fresh load (no selection yet), so only the size/view are persisted.
-      partialize: (state: ResizePanelState) => ({
-        panel: {
-          panelSize: state.panel.panelSize,
-          activeView: state.panel.activeView
-        }
-      }),
-      merge: (persistedState, currentState) => {
-        if (!persistedState || !isObjectLike(persistedState) || Array.isArray(persistedState)) {
-          return currentState;
-        }
-        const persisted = persistedState as Record<string, unknown>;
-        const rawPanel = persisted.panel;
-        if (!rawPanel || !isObjectLike(rawPanel) || Array.isArray(rawPanel)) {
-          return currentState;
-        }
-        const persistedPanel = rawPanel as Record<string, unknown>;
-        // Only "inspector" survives; any legacy view collapses to "inspector".
-        return {
-          ...currentState,
-          panel: {
-            ...currentState.panel,
-            panelSize:
-              isNumber(persistedPanel.panelSize)
-                ? Math.max(
-                    MIN_DRAG_SIZE,
-                    Math.min(persistedPanel.panelSize, MAX_PANEL_SIZE)
-                  )
-                : currentState.panel.panelSize,
-            // Always start hidden; selection re-derives visibility. Ignore any
-            // legacy persisted `isVisible` (pre-v3) to avoid an empty panel.
-            isVisible: false,
-            activeView: "inspector"
-          }
-        };
-      }
-    }
-  )
-);

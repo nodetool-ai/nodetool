@@ -18,6 +18,10 @@ export {
   bytesToImageDataUri,
   extForImageMime
 } from "./image-mime.js";
+export { sniffAudioMime, sniffAudioMimeOrNull } from "./audio-mime.js";
+export { sniffVideoMime, sniffVideoMimeOrNull } from "./video-mime.js";
+export { sniffMedia, sniffMediaMime, MEDIA_KINDS } from "./media-mime.js";
+export type { MediaKind } from "./media-mime.js";
 import { OLLAMA_DEFAULT_URL, LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 import { ClaudeAgentProvider } from "./claude-agent-provider.js";
@@ -116,6 +120,32 @@ export {
   assertSafePublicHttpsUrl,
   safeFetch
 } from "./safe-url.js";
+export {
+  RETRYABLE_STATUS,
+  MAX_BACKOFF_MS,
+  TERMINAL_SUCCESS_STATES,
+  TERMINAL_FAILURE_STATES,
+  sleep,
+  retryAfterMs,
+  fetchWithRetry,
+  pollUntilTerminal,
+  imageRefFromBytes,
+  ATLAS_BASE,
+  SUBMIT_PATH,
+  pollPath,
+  atlasDownload,
+  atlasSubmit,
+  atlasPoll,
+  pickOutputUrl
+} from "./provider-transport.js";
+export type {
+  FetchWithRetryOptions,
+  PollUntilTerminalOptions,
+  EncodedImageRef,
+  AtlasModality,
+  AtlasPollResult,
+  AtlasPollOptions
+} from "./provider-transport.js";
 export { AnthropicProvider };
 export { ClaudeAgentProvider };
 export { GeminiProvider };

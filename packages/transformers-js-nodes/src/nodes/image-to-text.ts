@@ -13,6 +13,10 @@ import {
   loadRawImage,
   normalizeOption
 } from "../transformers-base.js";
+import type {
+  HfModelRef,
+  ImageRefLike
+} from "../transformers-base.js";
 import { defaultRepoFor } from "../recommended-models.js";
 
 const TJS_TYPE = "tjs.image_to_text";
@@ -44,7 +48,7 @@ export class ImageToTextNode extends BaseNode {
     title: "Image",
     description: "Image to caption."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: TJS_TYPE,
@@ -52,7 +56,7 @@ export class ImageToTextNode extends BaseNode {
     title: "Model",
     description: "Transformers.js model (ONNX-compatible)."
   })
-  declare model: any;
+  declare model: HfModelRef;
 
   @prop({
     type: "int",
@@ -62,7 +66,7 @@ export class ImageToTextNode extends BaseNode {
     min: 1,
     max: 1024
   })
-  declare max_new_tokens: any;
+  declare max_new_tokens: number;
 
   @prop({
     type: "enum",
@@ -71,7 +75,7 @@ export class ImageToTextNode extends BaseNode {
     description: "Model dtype / quantization level.",
     values: DTYPE_VALUES
   })
-  declare dtype: any;
+  declare dtype: string;
 
   @prop({
     type: "enum",
@@ -80,7 +84,7 @@ export class ImageToTextNode extends BaseNode {
     description: "Inference device.",
     values: DEVICE_VALUES
   })
-  declare device: any;
+  declare device: string;
 
   async process(
     context?: ProcessingContext

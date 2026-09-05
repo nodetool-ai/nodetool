@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadSharp, SHARP_UNAVAILABLE_MESSAGE } from "./image-io.js";
 import { decodeImage } from "./lib-image-utils.js";
@@ -73,7 +74,7 @@ export class SliceImageGridLibNode extends BaseNode {
     title: "Image",
     description: "The image to slice into a grid."
   })
-  declare image: any;
+  declare image: ImageRef;
 
   @prop({
     type: "int",
@@ -83,7 +84,7 @@ export class SliceImageGridLibNode extends BaseNode {
       "Number of columns in the grid. 0 auto-derives from rows, or falls back to a 3x3 grid when rows is also 0.",
     min: 0
   })
-  declare columns: any;
+  declare columns: number;
 
   @prop({
     type: "int",
@@ -93,7 +94,7 @@ export class SliceImageGridLibNode extends BaseNode {
       "Number of rows in the grid. 0 auto-derives from columns, or falls back to a 3x3 grid when columns is also 0.",
     min: 0
   })
-  declare rows: any;
+  declare rows: number;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const sharp = await requireSharp();
@@ -108,8 +109,10 @@ export class SliceImageGridLibNode extends BaseNode {
       throw new Error("Input image has invalid dimensions.");
     }
 
-    let columns = Number(this.columns ?? 0);
-    let rows = Number(this.rows ?? 0);
+    // A non-finite count coming over an edge falls back to the descriptor's
+    // 0 sentinel ("auto"), not to NaN, which would emit zero tiles.
+    let columns = Number.isFinite(this.columns) ? this.columns : 0;
+    let rows = Number.isFinite(this.rows) ? this.rows : 0;
 
     if (columns <= 0 && rows <= 0) {
       columns = 3;

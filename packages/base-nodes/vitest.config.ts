@@ -70,6 +70,10 @@ export default defineConfig({
         __dirname,
         "../runtime/src/prompt-asset-refs.ts"
       ),
+      "@nodetool-ai/runtime/provider-transport": resolve(
+        __dirname,
+        "../runtime/src/providers/provider-transport.ts"
+      ),
       "@nodetool-ai/runtime": resolve(__dirname, "../runtime/src/index.ts")
     },
     // integration-nodes nests its own nodemailer (imapflow/mailparser pin it

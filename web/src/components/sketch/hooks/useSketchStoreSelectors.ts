@@ -7,16 +7,14 @@
  * ## Design notes
  *
  * `useResolvedToolSettings` is the canonical way to read *all* tool settings
- * with defaults merged. Use `useActiveToolSettings()` when a component only
- * needs the settings for the currently active tool.
+ * with defaults merged.
  *
  * See STORE_RULES.md for the full subscription architecture and rules.
  */
 
 import { useMemo } from "react";
 import { useSketchStore } from "../state";
-import type { SketchTool, ToolSettings } from "../types";
-import { isShapeTool } from "../types";
+import type { ToolSettings } from "../types";
 import {
   DEFAULT_BRUSH_SETTINGS,
   DEFAULT_PENCIL_SETTINGS,
@@ -103,100 +101,4 @@ export function useResolvedToolSettings(): ToolSettings {
       })()
     };
   }, [liveToolSettings]);
-}
-
-// ─── Active-tool-only resolved settings ─────────────────────────────────────
-
-/**
- * The tools that carry their own settings object. Narrower than
- * `keyof ToolSettings`, which also covers the `penPressure` curve merged into
- * brush/pencil and the `move`/`transform` settings no active-tool panel reads.
- */
-type ResolvedToolKey =
-  | "brush"
-  | "pencil"
-  | "eraser"
-  | "shape"
-  | "fill"
-  | "blur"
-  | "gradient"
-  | "cloneStamp"
-  | "select"
-  | "segment";
-
-/** Resolved settings for one tool, whichever is active. */
-export type ActiveToolSettings = ToolSettings[ResolvedToolKey];
-
-/** Map from active tool name to the key in the resolved settings object. */
-function toolToSettingsKey(tool: SketchTool): ResolvedToolKey | null {
-  if (tool === "brush") return "brush";
-  if (tool === "pencil") return "pencil";
-  if (tool === "eraser") return "eraser";
-  if (isShapeTool(tool)) return "shape";
-  if (tool === "fill") return "fill";
-  if (tool === "blur") return "blur";
-  if (tool === "gradient") return "gradient";
-  if (tool === "clone_stamp") return "cloneStamp";
-  if (tool === "select") return "select";
-  if (tool === "segment") return "segment";
-  return null;
-}
-
-/**
- * Returns the resolved settings for the currently active tool only.
- *
- * This is narrower than `useResolvedToolSettings()`: it selects only the
- * raw sub-object for the active tool from the store and resolves defaults
- * in a memoised pass, so a brush-slider change while the eraser is active
- * does **not** trigger a rerender.
- */
-export function useActiveToolSettings(): ActiveToolSettings | null {
-  const activeTool = useSketchStore((s) => s.activeTool);
-  const liveToolSettings = useSketchStore((s) => s.toolSettings);
-
-  return useMemo(() => {
-    const key = toolToSettingsKey(activeTool);
-    if (!key) return null;
-
-    const resolvedPenPressure = {
-      ...DEFAULT_PEN_PRESSURE,
-      ...liveToolSettings.penPressure
-    };
-
-    switch (key) {
-      case "brush":
-        return {
-          ...DEFAULT_BRUSH_SETTINGS,
-          ...liveToolSettings.brush,
-          ...resolvedPenPressure
-        };
-      case "pencil":
-        return {
-          ...DEFAULT_PENCIL_SETTINGS,
-          ...liveToolSettings.pencil,
-          ...resolvedPenPressure
-        };
-      case "eraser":
-        return { ...DEFAULT_ERASER_SETTINGS, ...liveToolSettings.eraser };
-      case "shape":
-        return { ...DEFAULT_SHAPE_SETTINGS, ...liveToolSettings.shape };
-      case "fill":
-        return { ...DEFAULT_FILL_SETTINGS, ...liveToolSettings.fill };
-      case "blur":
-        return { ...DEFAULT_BLUR_SETTINGS, ...liveToolSettings.blur };
-      case "gradient":
-        return { ...DEFAULT_GRADIENT_SETTINGS, ...liveToolSettings.gradient };
-      case "cloneStamp":
-        return {
-          ...DEFAULT_CLONE_STAMP_SETTINGS,
-          ...liveToolSettings.cloneStamp
-        };
-      case "select":
-        return { ...DEFAULT_SELECT_SETTINGS, ...liveToolSettings.select };
-      case "segment":
-        return { ...DEFAULT_SEGMENT_SETTINGS, ...liveToolSettings.segment };
-      default:
-        return null;
-    }
-  }, [activeTool, liveToolSettings]);
 }

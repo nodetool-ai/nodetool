@@ -1,5 +1,17 @@
 import useResultsStore from "../ResultsStore";
 import { PlanningUpdate, ProviderCost, Task, ToolCallUpdate } from "../ApiTypes";
+import { nodeKey, edgeKey } from "../nodeKey";
+
+const edgeAt = (wf: string, job: string, id: string) =>
+  useResultsStore.getState().edges[edgeKey(wf, job, id)];
+const taskAt = (wf: string, job: string, id: string) =>
+  useResultsStore.getState().tasks[nodeKey(wf, job, id)];
+const toolCallAt = (wf: string, job: string, id: string) =>
+  useResultsStore.getState().toolCalls[nodeKey(wf, job, id)];
+const toolResultsAt = (wf: string, job: string, id: string) =>
+  useResultsStore.getState().toolResults[nodeKey(wf, job, id)] ?? [];
+const planningUpdateAt = (wf: string, job: string, id: string) =>
+  useResultsStore.getState().planningUpdates[nodeKey(wf, job, id)];
 
 describe("ResultsStore", () => {
   const workflowId1 = "workflow-1";
@@ -43,7 +55,7 @@ describe("ResultsStore", () => {
       useResultsStore.getState().setOutputResult(workflowId1, jobId1, nodeId2, { data: "2" });
       useResultsStore.getState().setOutputResult(workflowId2, jobId1, nodeId1, { data: "3" });
 
-      useResultsStore.getState().clearOutputResults(workflowId1);
+      useResultsStore.getState().clearResults(workflowId1);
 
       expect(useResultsStore.getState().getOutputResult(workflowId1, jobId1, nodeId1)).toBeUndefined();
       expect(useResultsStore.getState().getOutputResult(workflowId1, jobId1, nodeId2)).toBeUndefined();
@@ -71,7 +83,7 @@ describe("ResultsStore", () => {
       useResultsStore.getState().setProgress(workflowId1, jobId1, nodeId1, 50, 100);
       useResultsStore.getState().setProgress(workflowId2, jobId1, nodeId1, 25, 50);
 
-      useResultsStore.getState().clearProgress(workflowId1);
+      useResultsStore.getState().clearResults(workflowId1);
 
       expect(useResultsStore.getState().getProgress(workflowId1, jobId1, nodeId1)).toBeUndefined();
       expect(useResultsStore.getState().getProgress(workflowId2, jobId1, nodeId1)).toEqual({ progress: 25, total: 50, chunk: "" });
@@ -82,14 +94,14 @@ describe("ResultsStore", () => {
     it("should set edge status", () => {
       useResultsStore.getState().setEdge(workflowId1, jobId1, edgeId1, "running");
 
-      const edge = useResultsStore.getState().getEdge(workflowId1, jobId1, edgeId1);
+      const edge = edgeAt(workflowId1, jobId1, edgeId1);
       expect(edge).toEqual({ status: "running" });
     });
 
     it("should set edge with counter", () => {
       useResultsStore.getState().setEdge(workflowId1, jobId1, edgeId1, "running", 5);
 
-      const edge = useResultsStore.getState().getEdge(workflowId1, jobId1, edgeId1);
+      const edge = edgeAt(workflowId1, jobId1, edgeId1);
       expect(edge).toEqual({ status: "running", counter: 5 });
     });
 
@@ -97,7 +109,7 @@ describe("ResultsStore", () => {
       useResultsStore.getState().setEdge(workflowId1, jobId1, edgeId1, "running", 5);
       useResultsStore.getState().setEdge(workflowId1, jobId1, edgeId1, "completed");
 
-      const edge = useResultsStore.getState().getEdge(workflowId1, jobId1, edgeId1);
+      const edge = edgeAt(workflowId1, jobId1, edgeId1);
       expect(edge).toEqual({ status: "completed", counter: 5 });
     });
 
@@ -107,8 +119,8 @@ describe("ResultsStore", () => {
 
       useResultsStore.getState().clearEdges(workflowId1);
 
-      expect(useResultsStore.getState().getEdge(workflowId1, jobId1, edgeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getEdge(workflowId2, jobId1, edgeId1)).toBeDefined();
+      expect(edgeAt(workflowId1, jobId1, edgeId1)).toBeUndefined();
+      expect(edgeAt(workflowId2, jobId1, edgeId1)).toBeDefined();
     });
   });
 
@@ -134,7 +146,7 @@ describe("ResultsStore", () => {
       useResultsStore.getState().addChunk(workflowId1, jobId1, nodeId1, "chunk1");
       useResultsStore.getState().addChunk(workflowId2, jobId1, nodeId1, "chunk2");
 
-      useResultsStore.getState().clearChunks(workflowId1);
+      useResultsStore.getState().clearResults(workflowId1);
 
       expect(useResultsStore.getState().getChunk(workflowId1, jobId1, nodeId1)).toBeUndefined();
       expect(useResultsStore.getState().getChunk(workflowId2, jobId1, nodeId1)).toBe("chunk2");
@@ -153,21 +165,21 @@ describe("ResultsStore", () => {
     it("should set task for a node", () => {
       useResultsStore.getState().setTask(workflowId1, jobId1, nodeId1, mockTask);
 
-      expect(useResultsStore.getState().getTask(workflowId1, jobId1, nodeId1)).toEqual(mockTask);
+      expect(taskAt(workflowId1, jobId1, nodeId1)).toEqual(mockTask);
     });
 
     it("should return undefined for non-existent task", () => {
-      expect(useResultsStore.getState().getTask(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(taskAt(workflowId1, jobId1, nodeId1)).toBeUndefined();
     });
 
     it("should clear tasks for a workflow", () => {
       useResultsStore.getState().setTask(workflowId1, jobId1, nodeId1, mockTask);
       useResultsStore.getState().setTask(workflowId2, jobId1, nodeId1, mockTask);
 
-      useResultsStore.getState().clearTasks(workflowId1);
+      useResultsStore.getState().clearResults(workflowId1);
 
-      expect(useResultsStore.getState().getTask(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getTask(workflowId2, jobId1, nodeId1)).toEqual(mockTask);
+      expect(taskAt(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(taskAt(workflowId2, jobId1, nodeId1)).toEqual(mockTask);
     });
   });
 
@@ -182,21 +194,21 @@ describe("ResultsStore", () => {
     it("should set tool call for a node", () => {
       useResultsStore.getState().setToolCall(workflowId1, jobId1, nodeId1, mockToolCall);
 
-      expect(useResultsStore.getState().getToolCall(workflowId1, jobId1, nodeId1)).toEqual(mockToolCall);
+      expect(toolCallAt(workflowId1, jobId1, nodeId1)).toEqual(mockToolCall);
     });
 
     it("should return undefined for non-existent tool call", () => {
-      expect(useResultsStore.getState().getToolCall(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(toolCallAt(workflowId1, jobId1, nodeId1)).toBeUndefined();
     });
 
     it("should clear tool calls for a workflow", () => {
       useResultsStore.getState().setToolCall(workflowId1, jobId1, nodeId1, mockToolCall);
       useResultsStore.getState().setToolCall(workflowId2, jobId1, nodeId1, mockToolCall);
 
-      useResultsStore.getState().clearToolCalls(workflowId1);
+      useResultsStore.getState().clearResults(workflowId1);
 
-      expect(useResultsStore.getState().getToolCall(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getToolCall(workflowId2, jobId1, nodeId1)).toEqual(mockToolCall);
+      expect(toolCallAt(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(toolCallAt(workflowId2, jobId1, nodeId1)).toEqual(mockToolCall);
     });
   });
 
@@ -211,21 +223,21 @@ describe("ResultsStore", () => {
     it("should set planning update for a node", () => {
       useResultsStore.getState().setPlanningUpdate(workflowId1, jobId1, nodeId1, mockPlanningUpdate);
 
-      expect(useResultsStore.getState().getPlanningUpdate(workflowId1, jobId1, nodeId1)).toEqual(mockPlanningUpdate);
+      expect(planningUpdateAt(workflowId1, jobId1, nodeId1)).toEqual(mockPlanningUpdate);
     });
 
     it("should return undefined for non-existent planning update", () => {
-      expect(useResultsStore.getState().getPlanningUpdate(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(planningUpdateAt(workflowId1, jobId1, nodeId1)).toBeUndefined();
     });
 
     it("should clear planning updates for a workflow", () => {
       useResultsStore.getState().setPlanningUpdate(workflowId1, jobId1, nodeId1, mockPlanningUpdate);
       useResultsStore.getState().setPlanningUpdate(workflowId2, jobId1, nodeId1, mockPlanningUpdate);
 
-      useResultsStore.getState().clearPlanningUpdates(workflowId1);
+      useResultsStore.getState().clearResults(workflowId1);
 
-      expect(useResultsStore.getState().getPlanningUpdate(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getPlanningUpdate(workflowId2, jobId1, nodeId1)).toEqual(mockPlanningUpdate);
+      expect(planningUpdateAt(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(planningUpdateAt(workflowId2, jobId1, nodeId1)).toEqual(mockPlanningUpdate);
     });
   });
 
@@ -252,7 +264,7 @@ describe("ResultsStore", () => {
       useResultsStore.getState().setOutputResult(workflowId1, jobId1, nodeId1, "out-1");
       useResultsStore.getState().setOutputResult(workflowId1, jobId1, nodeId2, "out-2");
 
-      useResultsStore.getState().clearOutputResults(workflowId1, new Set([nodeId1]));
+      useResultsStore.getState().clearResults(workflowId1, new Set([nodeId1]));
 
       expect(useResultsStore.getState().getOutputResult(workflowId1, jobId1, nodeId1)).toBeUndefined();
       expect(useResultsStore.getState().getOutputResult(workflowId1, jobId1, nodeId2)).toBe("out-2");
@@ -262,7 +274,7 @@ describe("ResultsStore", () => {
       useResultsStore.getState().setProgress(workflowId1, jobId1, nodeId1, 50, 100);
       useResultsStore.getState().setProgress(workflowId1, jobId1, nodeId2, 30, 60);
 
-      useResultsStore.getState().clearProgress(workflowId1, new Set([nodeId1]));
+      useResultsStore.getState().clearResults(workflowId1, new Set([nodeId1]));
 
       expect(useResultsStore.getState().getProgress(workflowId1, jobId1, nodeId1)).toBeUndefined();
       expect(useResultsStore.getState().getProgress(workflowId1, jobId1, nodeId2)).toEqual({ progress: 30, total: 60, chunk: "" });
@@ -274,15 +286,15 @@ describe("ResultsStore", () => {
 
       useResultsStore.getState().clearEdges(workflowId1, new Set([edgeId1]));
 
-      expect(useResultsStore.getState().getEdge(workflowId1, jobId1, edgeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getEdge(workflowId1, jobId1, "edge-2")).toEqual({ status: "inactive", counter: undefined });
+      expect(edgeAt(workflowId1, jobId1, edgeId1)).toBeUndefined();
+      expect(edgeAt(workflowId1, jobId1, "edge-2")).toEqual({ status: "inactive", counter: undefined });
     });
 
     it("should clear chunks only for specified nodes", () => {
       useResultsStore.getState().addChunk(workflowId1, jobId1, nodeId1, "chunk-1");
       useResultsStore.getState().addChunk(workflowId1, jobId1, nodeId2, "chunk-2");
 
-      useResultsStore.getState().clearChunks(workflowId1, new Set([nodeId1]));
+      useResultsStore.getState().clearResults(workflowId1, new Set([nodeId1]));
 
       expect(useResultsStore.getState().getChunk(workflowId1, jobId1, nodeId1)).toBeUndefined();
       expect(useResultsStore.getState().getChunk(workflowId1, jobId1, nodeId2)).toBe("chunk-2");
@@ -351,10 +363,10 @@ describe("ResultsStore", () => {
       expect(state.getOutputResult(workflowId1, jobId1, nodeId1)).toBeUndefined();
       expect(state.getProgress(workflowId1, jobId1, nodeId1)).toBeUndefined();
       expect(state.getChunk(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(state.getTask(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(state.getToolCall(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(state.getToolResults(workflowId1, jobId1, nodeId1)).toEqual([]);
-      expect(state.getPlanningUpdate(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(taskAt(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(toolCallAt(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(toolResultsAt(workflowId1, jobId1, nodeId1)).toEqual([]);
+      expect(planningUpdateAt(workflowId1, jobId1, nodeId1)).toBeUndefined();
       expect(state.getLiveGenerations(workflowId1, nodeId1)).toEqual([]);
       expect(state.getOutputResult(workflowId2, jobId1, nodeId1)).toBe("other-out");
     });

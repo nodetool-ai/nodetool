@@ -1,4 +1,9 @@
-import { isBoolean, isNumber, isString } from "./typePredicates";
+import {
+  isBoolean,
+  isNumber,
+  isObjectLike,
+  isString
+} from "./typePredicates";
 /**
  * Renders a failing node's configuration and wiring as readable text for the
  * bug-report bundle (see NodeErrors.tsx and utils/bugReportBundle.ts).
@@ -21,11 +26,6 @@ const MAX_VALUE_LEN = 160;
 const DATA_URI_RE = /^data:([\w/+.-]+)?(;base64)?,/i;
 
 const REDACTED = "«redacted»";
-
-/** Narrow an unknown to an indexable object (excludes null; arrays pass). */
-function isObjectLike(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && !!value;
-}
 
 /** True for model-selection values like { type: "image_model", provider, id, name }. */
 function isModelValue(

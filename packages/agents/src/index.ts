@@ -140,24 +140,15 @@ export {
   buildSecurityMonitorUserPrompt
 } from "./prompts/security-monitor-prompt.js";
 export {
-  registerTool,
-  resolveTool,
-  listTools,
-  getAllTools
-} from "./tools/tool-registry.js";
-export {
   BUILTIN_TOOL_NAMES,
   availableBuiltinToolNames,
-  getBuiltinTools,
-  registerBuiltinTools,
-  resetBuiltinToolsRegistration
+  getBuiltinTools
 } from "./tools/builtin-tools.js";
 export { isYtDlpEnabled } from "./yt-dlp-gate.js";
 export { BLENDER_DISABLED_ERROR, isBlenderEnabled } from "./blender-gate.js";
 export {
   GOOGLE_WORKSPACE_TOOL_NAMES,
-  getGoogleWorkspaceTools,
-  registerGoogleWorkspaceTools
+  getGoogleWorkspaceTools
 } from "./tools/google-workspace-tools.js";
 export {
   APIFY_TOOL_NAMES,
@@ -167,7 +158,6 @@ export {
 } from "./tools/external-capability-tools.js";
 
 export { getMediaTools } from "./tools/media-tools.js";
-export { CREATIVE_CRITIQUE_TOOL_NAMES } from "./tools/creative-critique-tools.js";
 export {
   persistOutput,
   workspaceDir as workspaceDirFromContext,
@@ -462,19 +452,7 @@ export {
   type ModelPromptingSkill
 } from "./model-prompting-skills.js";
 
-export {
-  getMemoryTools,
-  formatMemoriesForPrompt,
-  MEMORY_TOOL_NAMES
-} from "./tools/memory-tools.js";
-export {
-  getAssetLibraryTools,
-  ASSET_LIBRARY_TOOL_NAMES
-} from "./tools/asset-library-tools.js";
-export { SCRIPT_VOICE_TOOL_NAMES } from "./tools/script-voice-tools.js";
-export { STORYBOARD_RENDER_TOOL_NAMES } from "./tools/storyboard-render-tools.js";
-export { SKETCH_VERSION_TOOL_NAMES } from "./tools/sketch-version-tools.js";
-export { TIMELINE_VERSION_TOOL_NAMES } from "./tools/timeline-version-tools.js";
+export { formatMemoriesForPrompt } from "./tools/memory-tools.js";
 
 // Planning & orchestration
 export { TaskPlanner } from "./task-planner.js";

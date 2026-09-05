@@ -5,9 +5,44 @@
  */
 
 import type { Point, Selection } from "../types";
+import {
+  MAX_SELECTION_FEATHER_RADIUS,
+  cloneSelection,
+  combineSelections,
+  ellipseSelection,
+  emptySelection,
+  featherSelectionInPlace,
+  hasSelectionPixels,
+  isValidSelection,
+  rectSelection
+} from "@nodetool-ai/image-editor/raster.js";
+
+/**
+ * The mask primitives live in `@nodetool-ai/image-editor/raster` so the agent
+ * tools and the pointer tools produce the same pixels. `Selection` is that
+ * package's `RasterSelection` under the editor's name.
+ */
+export { MAX_SELECTION_FEATHER_RADIUS };
+export const createEmptyMask = emptySelection;
+export const cloneSelectionMask = cloneSelection;
+export const validateSelectionMask: (sel: Selection | null) => sel is Selection =
+  isValidSelection;
+export const selectionHasAnyPixels = hasSelectionPixels;
+export const rectSelectionMask = rectSelection;
+export const ellipseSelectionMask = ellipseSelection;
+export const featherMaskAlpha = featherSelectionInPlace;
+
+export type SelectionCombineOp = "replace" | "add" | "subtract" | "intersect";
+
+export function combineMasks(
+  base: Selection | null,
+  overlay: Selection,
+  op: SelectionCombineOp
+): Selection {
+  return combineSelections(base, overlay, op);
+}
 
 const THRESH = 128;
-export const MAX_SELECTION_FEATHER_RADIUS = 32;
 
 const ANT_ON = "#aaa";
 const ANT_OFF = "#000";
@@ -91,53 +126,6 @@ function strokeSoftOuterSelectionHalo(
     }
   }
   ctx.restore();
-}
-
-export function createEmptyMask(width: number, height: number): Selection {
-  const n = width * height;
-  return {
-    width,
-    height,
-    data: new Uint8ClampedArray(n)
-  };
-}
-
-export function cloneSelectionMask(src: Selection): Selection {
-  const out: Selection = {
-    width: src.width,
-    height: src.height,
-    data: new Uint8ClampedArray(src.data)
-  };
-  if (src.originX != null) {
-    out.originX = src.originX;
-  }
-  if (src.originY != null) {
-    out.originY = src.originY;
-  }
-  return out;
-}
-
-export function validateSelectionMask(sel: Selection | null): sel is Selection {
-  if (!sel) {
-    return false;
-  }
-  return (
-    sel.width > 0 &&
-    sel.height > 0 &&
-    sel.data.length === sel.width * sel.height
-  );
-}
-
-export function selectionHasAnyPixels(sel: Selection | null): boolean {
-  if (!validateSelectionMask(sel)) {
-    return false;
-  }
-  for (let i = 0; i < sel.data.length; i++) {
-    if (sel.data[i] > 0) {
-      return true;
-    }
-  }
-  return false;
 }
 
 export function selectionHasSoftEdges(sel: Selection | null): boolean {
@@ -237,29 +225,6 @@ export function fillRectMask(
   }
 }
 
-/** New mask covering a solid rectangle (rest zero). Uses a sub-rect buffer. */
-export function rectSelectionMask(
-  canvasW: number,
-  canvasH: number,
-  x: number,
-  y: number,
-  rw: number,
-  rh: number
-): Selection {
-  const x0 = Math.max(0, Math.floor(x));
-  const y0 = Math.max(0, Math.floor(y));
-  const x1 = Math.min(canvasW, Math.ceil(x + rw));
-  const y1 = Math.min(canvasH, Math.ceil(y + rh));
-  const maskW = x1 - x0;
-  const maskH = y1 - y0;
-  if (maskW <= 0 || maskH <= 0) {
-    return createEmptyMask(1, 1);
-  }
-  const data = new Uint8ClampedArray(maskW * maskH);
-  data.fill(255);
-  return { width: maskW, height: maskH, data, originX: x0, originY: y0 };
-}
-
 /**
  * Pixel-aligned marquee bounds in document space from two drag endpoints.
  * Matches {@link fillRectMask}: every pixel that intersects the continuous
@@ -317,54 +282,6 @@ export function marqueeAdjustedDocPoints(
   return { start: anchor, end: { x: ex, y: ey } };
 }
 
-/** Filled axis-aligned ellipse inside pixel bounds [x,x+rw)×[y,y+rh).
- *  The mask may extend beyond canvas bounds so the marching-ants outline
- *  renders the full ellipse curve instead of clipping to straight edges.
- */
-export function ellipseSelectionMask(
-  canvasW: number,
-  canvasH: number,
-  x: number,
-  y: number,
-  rw: number,
-  rh: number
-): Selection {
-  if (rw < 1 || rh < 1) {
-    return createEmptyMask(canvasW, canvasH);
-  }
-  const cx = x + rw / 2;
-  const cy = y + rh / 2;
-  const rx = rw / 2;
-  const ry = rh / 2;
-
-  // Use the full ellipse bounding box so the outline is not clipped at
-  // canvas edges.  originX / originY shift the grid so indices stay positive.
-  const bx0 = Math.floor(x);
-  const by0 = Math.floor(y);
-  const bx1 = Math.ceil(x + rw);
-  const by1 = Math.ceil(y + rh);
-
-  const maskW = bx1 - bx0;
-  const maskH = by1 - by0;
-  const n = maskW * maskH;
-  const data = new Uint8ClampedArray(n);
-
-  for (let py = by0; py < by1; py++) {
-    const row = (py - by0) * maskW;
-    for (let px = bx0; px < bx1; px++) {
-      const nx = (px + 0.5 - cx) / rx;
-      const ny = (py + 0.5 - cy) / ry;
-      if (nx * nx + ny * ny <= 1) {
-        data[row + (px - bx0)] = 255;
-      }
-    }
-  }
-
-  return { width: maskW, height: maskH, data, originX: bx0, originY: by0 };
-}
-
-export type SelectionCombineOp = "replace" | "add" | "subtract" | "intersect";
-
 /**
  * Rasterize `sel` into a `docW×docH` mask with top-left at document (0,0).
  * Pixels outside the canvas are dropped (combine / invert work on the image).
@@ -399,139 +316,6 @@ export function selectionToDocumentAligned(
     }
   }
   return out;
-}
-
-export function combineMasks(
-  base: Selection | null,
-  overlay: Selection,
-  op: SelectionCombineOp
-): Selection {
-  if (op === "replace" || !base || !validateSelectionMask(base)) {
-    return cloneSelectionMask(overlay);
-  }
-
-  const oox = overlay.originX ?? 0;
-  const ooy = overlay.originY ?? 0;
-  const box = base.originX ?? 0;
-  const boy = base.originY ?? 0;
-
-  // ── Fast path: both masks share the same dimensions and origin ──
-  // This is the common case (canvas-sized selections at origin 0,0).
-  // Operate directly on typed arrays without union-buffer allocation.
-  if (
-    box === oox &&
-    boy === ooy &&
-    base.width === overlay.width &&
-    base.height === overlay.height
-  ) {
-    const n = base.width * base.height;
-    const out = new Uint8ClampedArray(n);
-    const bd = base.data;
-    const od = overlay.data;
-    if (op === "add") {
-      for (let i = 0; i < n; i++) {
-        out[i] = Math.min(255, bd[i] + od[i]);
-      }
-    } else if (op === "subtract") {
-      for (let i = 0; i < n; i++) {
-        out[i] = Math.max(0, bd[i] - od[i]);
-      }
-    } else {
-      // intersect
-      for (let i = 0; i < n; i++) {
-        out[i] = Math.min(bd[i], od[i]);
-      }
-    }
-    return {
-      width: base.width,
-      height: base.height,
-      data: out,
-      originX: box,
-      originY: boy
-    };
-  }
-
-  // ── General path: masks may differ in size/origin ──
-  // Compute the union bounding box of both masks (they may have different
-  // dimensions and origins, e.g. an ellipse that extends beyond canvas).
-  const uMinX = Math.min(oox, box);
-  const uMinY = Math.min(ooy, boy);
-  const uMaxX = Math.max(oox + overlay.width, box + base.width);
-  const uMaxY = Math.max(ooy + overlay.height, boy + base.height);
-  const uW = uMaxX - uMinX;
-  const uH = uMaxY - uMinY;
-
-  const out = createEmptyMask(uW, uH);
-
-  const baseDx = box - uMinX;
-  const baseDy = boy - uMinY;
-
-  // For intersect, skip copying base — pixels outside overlay must end up zero.
-  // For add/subtract, seed the union buffer with base so overlay pixels mix in.
-  if (op !== "intersect") {
-    for (let by = 0; by < base.height; by++) {
-      const dy = baseDy + by;
-      if (dy < 0 || dy >= uH) {
-        continue;
-      }
-      const srcOff = by * base.width;
-      const dstOff = dy * uW + baseDx;
-      if (baseDx >= 0 && baseDx + base.width <= uW) {
-        out.data.set(base.data.subarray(srcOff, srcOff + base.width), dstOff);
-      } else {
-        for (let bx = 0; bx < base.width; bx++) {
-          const dx = baseDx + bx;
-          if (dx >= 0 && dx < uW) {
-            out.data[dy * uW + dx] = base.data[srcOff + bx];
-          }
-        }
-      }
-    }
-  }
-
-  // Combine overlay into the union buffer — only iterate overlay rows/cols
-  const overlayDx = oox - uMinX;
-  const overlayDy = ooy - uMinY;
-  for (let oy = 0; oy < overlay.height; oy++) {
-    const dy = overlayDy + oy;
-    if (dy < 0 || dy >= uH) {
-      continue;
-    }
-    const srcRow = oy * overlay.width;
-    const dstRow = dy * uW;
-    for (let ox = 0; ox < overlay.width; ox++) {
-      const dx = overlayDx + ox;
-      if (dx < 0 || dx >= uW) {
-        continue;
-      }
-      const idx = dstRow + dx;
-      const o = overlay.data[srcRow + ox];
-      let v = 0;
-      if (op === "add") {
-        v = Math.min(255, out.data[idx] + o);
-      } else if (op === "subtract") {
-        v = Math.max(0, out.data[idx] - o);
-      } else {
-        // intersect: sample base directly since we didn't seed it
-        const bbx = dx - baseDx;
-        const bby = dy - baseDy;
-        const bv =
-          bbx >= 0 && bbx < base.width && bby >= 0 && bby < base.height
-            ? base.data[bby * base.width + bbx]
-            : 0;
-        v = Math.min(bv, o);
-      }
-      out.data[idx] = v;
-    }
-  }
-
-  return {
-    width: uW,
-    height: uH,
-    data: out.data,
-    originX: uMinX,
-    originY: uMinY
-  };
 }
 
 /**
@@ -787,96 +571,6 @@ export function polygonToBinaryMask(
     out[i] = id.data[i * 4 + 3] >= THRESH ? 255 : 0;
   }
   return out;
-}
-
-/**
- * Approximate Gaussian feather via repeated box blur.
- * Values are clamped to 0–255 without peak renormalization (Photoshop-like:
- * thin selections stay softer in the middle instead of being contrast-stretched).
- */
-export function featherMaskAlpha(mask: Selection, radiusPx: number): void {
-  const requestedRadius = Math.max(
-    0,
-    Math.min(MAX_SELECTION_FEATHER_RADIUS, Math.round(radiusPx))
-  );
-  if (requestedRadius <= 0) {
-    return;
-  }
-  const passes = 3;
-  // Repeated box blurs compound quickly; a smaller per-pass radius keeps the
-  // visible feather closer to the slider value instead of washing far outward.
-  const blurRadius = Math.max(1, Math.round(requestedRadius / 2));
-  const { width: w, height: h, data } = mask;
-  const n = w * h;
-  const tmp = new Float32Array(n);
-  const cur = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    cur[i] = data[i];
-  }
-  for (let p = 0; p < passes; p++) {
-    horizontalBoxBlurFloat(cur, tmp, w, h, blurRadius);
-    verticalBoxBlurFloat(tmp, cur, w, h, blurRadius);
-  }
-  for (let i = 0; i < n; i++) {
-    data[i] = Math.max(0, Math.min(255, Math.round(cur[i])));
-  }
-}
-
-function horizontalBoxBlurFloat(
-  src: Float32Array,
-  dst: Float32Array,
-  w: number,
-  h: number,
-  r: number
-): void {
-  for (let y = 0; y < h; y++) {
-    const row = y * w;
-    let sum = 0;
-    const diam = r * 2 + 1;
-    for (let x = -r; x <= r; x++) {
-      if (x >= 0 && x < w) {
-        sum += src[row + x];
-      }
-    }
-    for (let x = 0; x < w; x++) {
-      dst[row + x] = sum / diam;
-      const xOut = x - r;
-      const xIn = x + r + 1;
-      const vOut =
-        xOut < 0 || xOut >= w ? 0 : src[row + xOut];
-      const vIn =
-        xIn < 0 || xIn >= w ? 0 : src[row + xIn];
-      sum += vIn - vOut;
-    }
-  }
-}
-
-function verticalBoxBlurFloat(
-  src: Float32Array,
-  dst: Float32Array,
-  w: number,
-  h: number,
-  r: number
-): void {
-  const diam = r * 2 + 1;
-  for (let x = 0; x < w; x++) {
-    let sum = 0;
-    for (let y = -r; y <= r; y++) {
-      if (y >= 0 && y < h) {
-        sum += src[y * w + x];
-      }
-    }
-    for (let y = 0; y < h; y++) {
-      dst[y * w + x] = sum / diam;
-      const yOut = y - r;
-      const yIn = y + r + 1;
-      const vOut =
-        yOut < 0 || yOut >= h ? 0 : src[yOut * w + x];
-      const vIn =
-        yIn < 0 || yIn >= h ? 0 : src[yIn * w + x];
-      sum += vIn - vOut;
-    }
-  }
 }
 
 /**

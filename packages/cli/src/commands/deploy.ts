@@ -18,11 +18,6 @@ import {
   WorkflowSyncer
 } from "@nodetool-ai/deploy";
 import {
-  getDefaultVectorProvider,
-  CollectionNotFoundError
-} from "@nodetool-ai/vectorstore";
-
-import {
   asJson,
   confirm,
   getAdminClient,
@@ -122,8 +117,6 @@ export function registerDeployCommands(program: Command): void {
   registerLogs(deploy);
   registerDestroy(deploy);
   registerWorkflows(deploy);
-  registerDatabase(deploy);
-  registerCollections(deploy);
   registerUsers(deploy);
 }
 
@@ -509,156 +502,6 @@ function registerWorkflows(deploy: Command): void {
           const client = await getAdminClient(dep, deploymentName, opts);
           const result = await client.runWorkflow(workflowId, params);
           asJson(result);
-        }
-      )
-    );
-}
-
-// ---------------------------------------------------------------------------
-// database subgroup
-// ---------------------------------------------------------------------------
-
-function registerDatabase(deploy: Command): void {
-  const db = deploy.command("database").description("Remote DB row management");
-
-  db.command("get <deployment> <table> <key>")
-    .description("Read a DB row")
-    .option("--token <token>", "Admin bearer token")
-    .action(
-      runAction(
-        async (
-          deploymentName: string,
-          table: string,
-          key: string,
-          opts: { token?: string }
-        ) => {
-          const config = await loadConfigOrExit();
-          const dep = getDeploymentOrExit(config, deploymentName);
-          const client = await getAdminClient(dep, deploymentName, opts);
-          const row = await client.dbGet(table, key);
-          asJson(row);
-        }
-      )
-    );
-
-  db.command("save <deployment> <table> <json_data>")
-    .description("Upsert a DB row (positional JSON string)")
-    .option("--token <token>", "Admin bearer token")
-    .action(
-      runAction(
-        async (
-          deploymentName: string,
-          table: string,
-          jsonData: string,
-          opts: { token?: string }
-        ) => {
-          let parsed: Record<string, unknown>;
-          try {
-            parsed = JSON.parse(jsonData) as Record<string, unknown>;
-          } catch (e) {
-            throw new Error(`Invalid JSON for <json_data>: ${String(e)}`);
-          }
-          const config = await loadConfigOrExit();
-          const dep = getDeploymentOrExit(config, deploymentName);
-          const client = await getAdminClient(dep, deploymentName, opts);
-          const row = await client.dbSave(table, parsed);
-          asJson(row);
-        }
-      )
-    );
-
-  db.command("delete <deployment> <table> <key>")
-    .description("Delete a DB row")
-    .option("--force", "Skip confirmation")
-    .option("--token <token>", "Admin bearer token")
-    .action(
-      runAction(
-        async (
-          deploymentName: string,
-          table: string,
-          key: string,
-          opts: { force?: boolean; token?: string }
-        ) => {
-          const ok = await confirm(
-            `Delete '${table}/${key}' on '${deploymentName}'?`,
-            { force: Boolean(opts.force) }
-          );
-          if (!ok) return;
-          const config = await loadConfigOrExit();
-          const dep = getDeploymentOrExit(config, deploymentName);
-          const client = await getAdminClient(dep, deploymentName, opts);
-          await client.dbDelete(table, key);
-          console.log("deleted");
-        }
-      )
-    );
-}
-
-// ---------------------------------------------------------------------------
-// collections sync
-// ---------------------------------------------------------------------------
-
-function registerCollections(deploy: Command): void {
-  const coll = deploy
-    .command("collections")
-    .description("Sync local vector collections to a deployment");
-
-  coll
-    .command("sync <deployment> <collection>")
-    .description("Sync a local collection to the deployment")
-    .option("--token <token>", "Admin bearer token")
-    .option("--batch-size <n>", "Batch size for uploads", "100")
-    .action(
-      runAction(
-        async (
-          deploymentName: string,
-          collectionName: string,
-          opts: { token?: string; batchSize: string }
-        ) => {
-          const batchSize = parsePositiveInt(opts.batchSize, "--batch-size");
-
-          let collection;
-          try {
-            collection = await getDefaultVectorProvider().getCollection({
-              name: collectionName
-            });
-          } catch (err) {
-            if (err instanceof CollectionNotFoundError) {
-              throw new Error(`Local collection not found: ${collectionName}`);
-            }
-            throw err;
-          }
-
-          const metadata = collection.metadata ?? {};
-          const embeddingModel =
-            (metadata.embedding_model as string | undefined) ?? "";
-          if (!embeddingModel) {
-            throw new Error(
-              `Local collection '${collectionName}' has no embedding_model in metadata — cannot sync without embeddings.`
-            );
-          }
-
-          // Inspect the local collection BEFORE creating anything on the
-          // remote, so partial failures don't leave an empty/orphan collection
-          // on the deployment.
-          const page = await collection.get({ limit: batchSize, offset: 0 });
-
-          if (page.length > 0) {
-            throw new Error(
-              "deploy collections sync: re-embedding of local documents during sync is not yet implemented in the Node CLI. " +
-                `Found ${page.length} document(s) locally but cannot upload without embeddings. ` +
-                "No remote collection was created."
-            );
-          }
-
-          // Empty collection — safe to create on the remote as a no-op sync.
-          const config = await loadConfigOrExit();
-          const dep = getDeploymentOrExit(config, deploymentName);
-          const client = await getAdminClient(dep, deploymentName, opts);
-          await client.createCollection(collectionName, embeddingModel);
-          console.log(
-            `Collection '${collectionName}' is empty — created an empty collection on '${deploymentName}'.`
-          );
         }
       )
     );

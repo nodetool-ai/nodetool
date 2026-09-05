@@ -3,7 +3,7 @@ import { getNodeBuiltinSync } from "@nodetool-ai/config";
 import type { ProcessingContext } from "./context.js";
 import { fetchExternalMedia } from "./external-media-fetch.js";
 import { encodeRawRgbaToPng } from "./image-codec.js";
-import { isNonEmptyString } from "./type-predicates.js";
+import { isNonEmptyString } from "@nodetool-ai/protocol";
 
 const _nodeFsP = getNodeBuiltinSync<typeof import("node:fs/promises")>(
   "node:fs/promises"

@@ -12,7 +12,6 @@
  * loading this module costs nothing.
  */
 
-import type { JsonSchema } from "@nodetool-ai/runtime";
 import {
   jobRecord,
   jobSummaryRecord,
@@ -23,13 +22,9 @@ import {
   listJobsSpec,
   getJobSpec,
   getJobLogsSpec,
-  cancelJobSpec,
-  LIST_JOBS_SCHEMA,
-  GET_JOB_LOGS_SCHEMA
+  cancelJobSpec
 } from "./jobs.specs.js";
 import { isString } from "../utils/type-guards.js";
-
-export { LIST_JOBS_SCHEMA, GET_JOB_LOGS_SCHEMA } from "./jobs.specs.js";
 
 /** The paging/filter bag `Job.paginate` takes. */
 interface JobPageOptions {

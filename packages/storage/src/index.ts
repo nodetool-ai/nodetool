@@ -4,13 +4,6 @@ export {
   assertUploadWithinLimit
 } from "./storage-limits.js";
 
-// Low-level key-based storage (bytes in, bytes out)
-export type { AbstractStorage } from "./abstract-storage.js";
-export { MemoryStorage } from "./memory-storage.js";
-export { FileStorage } from "./file-storage.js";
-export { S3Storage } from "./s3-storage.js";
-export { SupabaseStorage } from "./supabase-storage.js";
-
 // URI-based asset storage (used by the runtime / websocket server)
 export type {
   DownloadUrlOptions,

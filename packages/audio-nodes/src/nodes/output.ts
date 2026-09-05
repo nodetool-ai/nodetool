@@ -3,11 +3,11 @@ import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { audioBytesAsync } from "../lib/audio-wav.js";
 import {
-  isFunction,
+  isCallable as isFunction,
   isNonEmptyString,
   isObjectLike,
   isString
-} from "../type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 // PreviewNode lives in its own browser-safe module so it can be registered in
 // the in-browser node registry (this file pulls in `audio-wav` → not browser-
@@ -147,7 +147,7 @@ export class OutputNode extends BaseNode {
     title: "Name",
     description: "The parameter name for the workflow."
   })
-  declare name: any;
+  declare name: string;
 
   @prop({
     type: "any",
@@ -155,7 +155,7 @@ export class OutputNode extends BaseNode {
     title: "Value",
     description: "The value of the output."
   })
-  declare value: any;
+  declare value: unknown;
 
   @prop({
     type: "str",
@@ -163,7 +163,7 @@ export class OutputNode extends BaseNode {
     title: "Description",
     description: "The description of the output for the workflow."
   })
-  declare description: any;
+  declare description: string;
 
   private async normalize(
     value: unknown,

@@ -13,9 +13,27 @@ import {
 } from "./defaults.js";
 import { glbOutput } from "./base.js";
 import { imageRefToBytes } from "./utils.js";
-import { isFiniteNumber, isNonEmptyString } from "../../type-predicates.js";
+import type { ImageRefLike } from "./types.js";
+import {
+  isFiniteNumber,
+  isNonEmptyString
+} from "@nodetool-ai/node-sdk";
 
 const SUPPORTED_OUTPUT_FORMATS = ["glb", "obj", "fbx", "usdz"] as const;
+
+type OutputFormat = (typeof SUPPORTED_OUTPUT_FORMATS)[number];
+
+/**
+ * What a `model_3d_model` slot carries. snake_case matches the persisted
+ * workflow JSON; the provider layer uses camelCase.
+ */
+type Model3DModelRef = {
+  provider?: string;
+  id?: string;
+  name?: string;
+  supported_tasks?: string[];
+  output_formats?: string[];
+};
 
 /**
  * Build the {@link Model3D} object expected by the runtime providers from the
@@ -23,45 +41,38 @@ const SUPPORTED_OUTPUT_FORMATS = ["glb", "obj", "fbx", "usdz"] as const;
  * snake_case (`supported_tasks`, `output_formats`) to match the persisted
  * workflow JSON; the provider layer uses camelCase.
  */
-function nodeModelToProviderModel(raw: unknown): Model3D {
-  const obj = (raw as Record<string, unknown> | null | undefined) ?? {};
-  const provider = String(obj.provider ?? "").trim();
-  const id = String(obj.id ?? "").trim();
+function nodeModelToProviderModel(raw: Model3DModelRef): Model3D {
+  const provider = (raw.provider ?? "").trim();
+  const id = (raw.id ?? "").trim();
   if (!provider) throw new Error("3D model is missing a provider id");
   if (!id) throw new Error("3D model is missing a model id");
   return {
     id,
-    name: String(obj.name ?? id),
+    name: raw.name ?? id,
     provider,
-    supportedTasks: Array.isArray(obj.supported_tasks)
-      ? (obj.supported_tasks as string[])
-      : undefined,
-    outputFormats: Array.isArray(obj.output_formats)
-      ? (obj.output_formats as string[])
-      : undefined
+    supportedTasks: raw.supported_tasks,
+    outputFormats: raw.output_formats
   };
 }
 
 /** Treat 0 (the field's "use provider default" sentinel) as undefined. */
-function normalizeTimeoutSeconds(v: unknown): number | null {
+function normalizeTimeoutSeconds(v: number): number | null {
   if (!isFiniteNumber(v) || v <= 0) return null;
   return v;
 }
 
 /** -1 is the random-seed sentinel; convert to null so providers omit it. */
-function normalizeSeed(v: unknown): number | null {
+function normalizeSeed(v: number): number | null {
   if (!isFiniteNumber(v) || v < 0) return null;
   return v;
 }
 
 function normalizeOutputFormat(
-  value: unknown,
+  value: OutputFormat,
   model: Model3D,
   nodeType: "TextTo3DNode" | "ImageTo3DNode"
 ): string {
-  const format = String(value ?? "glb")
-    .trim()
-    .toLowerCase();
+  const format = value.trim().toLowerCase();
   if (!(SUPPORTED_OUTPUT_FORMATS as readonly string[]).includes(format)) {
     throw new Error(
       `${nodeType} output_format must be one of: ${SUPPORTED_OUTPUT_FORMATS.join(", ")}`
@@ -96,28 +107,28 @@ export class TextTo3DNode extends BaseNode {
     title: "Model",
     description: "The 3D generation model to use"
   })
-  declare model: any;
+  declare model: Model3DModelRef;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "Text description of the 3D model to generate" })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({ type: "str", default: "", title: "Negative Prompt", description: "Elements to avoid in the generated model" })
-  declare negative_prompt: any;
+  declare negative_prompt: string;
 
   @prop({ type: "str", default: "", title: "Art Style", description: "Art style for the model (e.g., 'realistic', 'cartoon', 'low-poly')" })
-  declare art_style: any;
+  declare art_style: string;
 
   @prop({ type: "enum", default: "glb", title: "Output Format", description: "Output format for the 3D model", values: [...SUPPORTED_OUTPUT_FORMATS] })
-  declare output_format: any;
+  declare output_format: OutputFormat;
 
   @prop({ type: "bool", default: true, title: "Enable Textures", description: "Generate PBR textures after shape generation (Meshy only; adds a second API call)" })
-  declare enable_textures: any;
+  declare enable_textures: boolean;
 
   @prop({ type: "int", default: -1, title: "Seed", description: "Random seed for reproducibility (-1 for random)", min: -1 })
-  declare seed: any;
+  declare seed: number;
 
   @prop({ type: "int", default: 600, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use provider default)", min: 0, max: 7200 })
-  declare timeout_seconds: any;
+  declare timeout_seconds: number;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     if (!context) {
@@ -137,7 +148,7 @@ export class TextTo3DNode extends BaseNode {
       outputFormat: normalizeOutputFormat(this.output_format, model, "TextTo3DNode"),
       seed: normalizeSeed(this.seed),
       timeoutSeconds: normalizeTimeoutSeconds(this.timeout_seconds),
-      enableTextures: this.enable_textures === true
+      enableTextures: this.enable_textures
     };
 
     // Through the generation seam, so the render is a ledger row with a cost
@@ -180,22 +191,22 @@ export class ImageTo3DNode extends BaseNode {
     title: "Model",
     description: "The 3D generation model to use"
   })
-  declare model: any;
+  declare model: Model3DModelRef;
 
   @prop({ type: "image", default: DEFAULT_IMAGE, title: "Image", description: "Input image to convert to 3D" })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "Optional text prompt to guide the 3D generation" })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({ type: "enum", default: "glb", title: "Output Format", description: "Output format for the 3D model", values: [...SUPPORTED_OUTPUT_FORMATS] })
-  declare output_format: any;
+  declare output_format: OutputFormat;
 
   @prop({ type: "int", default: -1, title: "Seed", description: "Random seed for reproducibility (-1 for random)", min: -1 })
-  declare seed: any;
+  declare seed: number;
 
   @prop({ type: "int", default: 600, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use provider default)", min: 0, max: 7200 })
-  declare timeout_seconds: any;
+  declare timeout_seconds: number;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     if (!context) {
@@ -211,7 +222,7 @@ export class ImageTo3DNode extends BaseNode {
 
     const params: ImageTo3DParams = {
       model,
-      prompt: this.prompt ? String(this.prompt) : null,
+      prompt: this.prompt || null,
       outputFormat: normalizeOutputFormat(this.output_format, model, "ImageTo3DNode"),
       seed: normalizeSeed(this.seed),
       timeoutSeconds: normalizeTimeoutSeconds(this.timeout_seconds)

@@ -6,13 +6,10 @@ import { callNode, streamNode } from "../guest-core.js";
 
 // Telegram Bot Trigger — messaging.telegram.TelegramBotTrigger
 export type TelegramBotTriggerInputs = {
-  max_events?: number;
   token?: string;
   chat_id?: number;
   allow_bot_messages?: boolean;
   include_edited_messages?: boolean;
-  poll_timeout_seconds?: number;
-  poll_interval_seconds?: number;
 };
 
 export interface TelegramBotTriggerOutputs {

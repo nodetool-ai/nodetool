@@ -12,22 +12,11 @@
 // Format matches the server's `createTimeOrderedUuid`
 // (packages/models/src/base-model.ts) — a v4 UUID with the dashes stripped —
 // so client-minted and server-minted ids are indistinguishable in the DB.
+//
+// `crypto.randomUUID` is secure-context-only; `cryptoUUIDPolyfill.ts`
+// (imported first in `index.tsx`) installs a spec-correct v4 fallback for
+// plain-http origins, so callers can use it unguarded.
 // -----------------------------------------------------------------
 
-/**
- * `crypto.randomUUID` needs a secure context. It is present in every browser
- * this app supports over https/localhost, but not on a plain-http LAN origin,
- * which self-hosted installs do hit — hence the fallback rather than a throw.
- */
-const randomUuid = (): string => {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-};
-
-export const newDocumentId = (): string => randomUuid().replace(/-/g, "");
+export const newDocumentId = (): string =>
+  crypto.randomUUID().replace(/-/g, "");

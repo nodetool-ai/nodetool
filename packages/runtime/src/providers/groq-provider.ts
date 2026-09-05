@@ -9,8 +9,6 @@ export class GroqProvider extends OpenAICompatProvider {
     return ["GROQ_API_KEY"];
   }
 
-  private _groqFetch: typeof fetch;
-
   constructor(
     secrets: { GROQ_API_KEY?: string },
     options: OpenAICompatProviderOptions = {}
@@ -20,18 +18,14 @@ export class GroqProvider extends OpenAICompatProvider {
       throw new Error("GROQ_API_KEY is required");
     }
 
-    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
-
     super(
       {
         providerId: "groq",
         apiKey,
         baseURL: "https://api.groq.com/openai/v1"
       },
-      { ...options, fetchFn }
+      options
     );
-
-    this._groqFetch = fetchFn;
   }
 
   override getContainerEnv() {
@@ -43,33 +37,6 @@ export class GroqProvider extends OpenAICompatProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const response = await this._groqFetch(
-      "https://api.groq.com/openai/v1/models",
-      {
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`
-        }
-      }
-    );
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const payload = (await response.json()) as {
-      data?: Array<{ id?: string; name?: string }>;
-    };
-    // Stryker disable next-line ArrayDeclaration: the fallback is filtered downstream (rows need a string id), so [] vs any array is observably identical.
-    const rows = payload.data ?? [];
-    return rows
-      .filter(
-        (row): row is { id: string; name?: string } =>
-          typeof row.id === "string" && row.id.length > 0
-      )
-      .map((row) => ({
-        id: row.id,
-        name: row.name ?? row.id,
-        provider: "groq"
-      }));
+    return this.listCompatModels();
   }
 }

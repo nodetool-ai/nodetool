@@ -9,7 +9,6 @@ import {
   getMaxUploadBytes,
   assertUploadWithinLimit
 } from "../src/storage-limits.js";
-import { FileStorage } from "../src/file-storage.js";
 import { FileStorageAdapter } from "../src/file-storage-adapter.js";
 
 const KEY = "NODETOOL_MAX_UPLOAD_BYTES";
@@ -54,14 +53,6 @@ describe("backend enforcement", () => {
   afterEach(async () => {
     delete process.env[KEY];
     if (tmpDir) await fs.rm(tmpDir, { recursive: true, force: true });
-  });
-
-  it("FileStorage.upload rejects oversized data", async () => {
-    const storage = new FileStorage(tmpDir);
-    await expect(
-      storage.upload("big.bin", Buffer.alloc(11))
-    ).rejects.toThrow(/exceeds maximum/);
-    await expect(storage.upload("ok.bin", Buffer.alloc(10))).resolves.toBeUndefined();
   });
 
   it("FileStorageAdapter.store rejects oversized data", async () => {

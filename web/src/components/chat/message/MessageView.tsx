@@ -41,7 +41,6 @@ import {
   SPACING
 } from "../../ui_primitives";
 import type { SvgIconComponent } from "@mui/icons-material";
-import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -56,7 +55,6 @@ import PlanDocument from "./PlanDocument";
 import { parsePlanDocument } from "./parsePlanDocument";
 import { formatDuration, formatToolName } from "../../../utils/formatUtils";
 import { formatJavaScriptForDisplay } from "../../../utils/formatJavaScript";
-import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 import { visibleToolArgs as visibleArgs } from "../../../core/chat/toolCallFields";
 import { subAgentTranscript } from "../../../core/chat/subAgentMessages";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
@@ -805,9 +803,7 @@ interface MessageViewProps {
   threadId?: string | null;
 }
 
-export const MessageView: React.FC<
-  MessageViewProps & { componentStyles?: Record<string, unknown> }
-> = React.memo(
+export const MessageView: React.FC<MessageViewProps> = React.memo(
   ({
     message,
     isThoughtExpanded,
@@ -1001,9 +997,6 @@ export const MessageView: React.FC<
       Boolean(draftThreadId);
     const messageClass = [
       baseClass,
-      (message as Message & { error_type?: string }).error_type
-        ? "error-message"
-        : null,
       hasToolCalls ? "has-tool-calls" : null,
       hasToolCalls && !hasNonEmptyContent ? "tool-calls-only" : null
     ]
@@ -1035,11 +1028,7 @@ export const MessageView: React.FC<
                   renderTextContent(message.content, message.id || 0)}
                 {Array.isArray(content) &&
                   (isMediaOnlyContent(content) &&
-                  (((
-                    message as Message & {
-                      media_generation?: MediaGenerationRequest | null;
-                    }
-                  ).media_generation?.mode ?? "chat") !== "chat" ||
+                  ((message.media_generation?.mode ?? "chat") !== "chat" ||
                     content.length > 1) ? (
                     <MediaOutputGroup message={message} mediaContents={content} />
                   ) : (
@@ -1062,9 +1051,6 @@ export const MessageView: React.FC<
               </>
             )}
           </div>
-          {(message as Message & { error_type?: string }).error_type && (
-            <ErrorIcon className="error-icon" />
-          )}
           {!Array.isArray(message.tool_calls) && (
             <div className="message-actions">
               {formattedTime && (

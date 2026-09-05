@@ -20,5 +20,3 @@ export {
   resetKeytarLoader,
   KeychainAccessError
 } from "./master-key.js";
-
-export { runStartupChecks, type StartupCheckResult } from "./startup-checks.js";

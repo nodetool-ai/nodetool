@@ -1,6 +1,9 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type {
+  Chunk,
+  FolderRef,
   InputMode,
+  MusicModel,
   OutputCorrelation,
   Platform,
   AudioRef,
@@ -39,7 +42,7 @@ import {
   isObjectLike,
   isPositiveNumber,
   isString
-} from "../type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 
 const DEFAULT_AUDIO_EXTENSIONS = [
   ".mp3",
@@ -174,7 +177,7 @@ export class LoadAudioAssetsNode extends BaseNode {
     title: "Folder",
     description: "The asset folder to load the audio files from."
   })
-  declare folder: any;
+  declare folder: FolderRef;
 
   async process(): Promise<Record<string, unknown>> {
     const collected: Record<string, unknown>[] = [];
@@ -240,10 +243,10 @@ export class LoadAudioFileNode extends BaseNode {
     title: "Path",
     description: "Path to the audio file to read"
   })
-  declare path: any;
+  declare path: string;
 
   async process(): Promise<LoadAudioFileNodeOutputs> {
-    const p = uriToPath(String(this.path ?? ""));
+    const p = uriToPath(this.path);
     const fs = await loadNodeFsPromises();
     const data = new Uint8Array(await fs.readFile(p));
     return { output: audioRefFromBytes(data, `file://${p}`) };
@@ -277,7 +280,7 @@ export class LoadAudioFolderNode extends BaseNode {
     title: "Folder",
     description: "Folder to scan for audio files"
   })
-  declare folder: any;
+  declare folder: string;
 
   @prop({
     type: "bool",
@@ -285,21 +288,18 @@ export class LoadAudioFolderNode extends BaseNode {
     title: "Include Subdirectories",
     description: "Include audio in subfolders"
   })
-  declare include_subdirectories: any;
+  declare include_subdirectories: boolean;
 
   @prop({
     type: "list[str]",
-    default: [".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac"],
+    default: DEFAULT_AUDIO_EXTENSIONS,
     title: "Extensions",
     description: "Audio file extensions to include"
   })
-  declare extensions: any;
+  declare extensions: string[];
 
   private _extensions(): string[] {
-    const list = Array.isArray(this.extensions)
-      ? (this.extensions as unknown[])
-      : DEFAULT_AUDIO_EXTENSIONS;
-    return list.map((e) => {
+    return this.extensions.map((e) => {
       const s = String(e).toLowerCase();
       return s.startsWith(".") ? s : `.${s}`;
     });
@@ -308,7 +308,7 @@ export class LoadAudioFolderNode extends BaseNode {
   private async *_load(): AsyncGenerator<Record<string, unknown>> {
     const folder = resolveFolderPath(this.folder);
     if (!folder) return;
-    const recursive = Boolean(this.include_subdirectories);
+    const recursive = this.include_subdirectories;
     const extensions = this._extensions();
     const fs = await loadNodeFsPromises();
     for await (const { full } of walkAudioFiles(
@@ -369,7 +369,7 @@ export class SaveAudioNode extends BaseNode {
     },
     title: "Audio"
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "folder",
@@ -383,7 +383,7 @@ export class SaveAudioNode extends BaseNode {
     title: "Folder",
     description: "The asset folder to save the audio file to. "
   })
-  declare folder: any;
+  declare folder: FolderRef;
 
   @prop({
     type: "str",
@@ -392,7 +392,7 @@ export class SaveAudioNode extends BaseNode {
     description:
       "\n        The name of the audio file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
   })
-  declare name: any;
+  declare name: string;
 
   async process(): Promise<SaveAudioNodeOutputs> {
     const audio = this.audio;
@@ -436,7 +436,7 @@ export class SaveAudioFileNode extends BaseNode {
     title: "Audio",
     description: "The audio to save"
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "bool",
@@ -444,7 +444,7 @@ export class SaveAudioFileNode extends BaseNode {
     title: SAVE_TO_WORKSPACE_TITLE,
     description: SAVE_TO_WORKSPACE_DESCRIPTION
   })
-  declare save_to_workspace: any;
+  declare save_to_workspace: boolean;
 
   @prop({
     type: "str",
@@ -453,7 +453,7 @@ export class SaveAudioFileNode extends BaseNode {
     description: "Folder where the file will be saved",
     json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
-  declare folder: any;
+  declare folder: string;
 
   @prop({
     type: "str",
@@ -462,21 +462,7 @@ export class SaveAudioFileNode extends BaseNode {
     description:
       "\n        Name of the file to save.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
   })
-  declare filename: any;
-
-  @prop({
-    type: "dict[str, str]",
-    default: {
-      ".mp3": "mp3",
-      ".wav": "wav",
-      ".ogg": "ogg",
-      ".flac": "flac",
-      ".aac": "adts",
-      ".m4a": "ipod"
-    },
-    title: "Format Map"
-  })
-  declare FORMAT_MAP: any;
+  declare filename: string;
 
   async process(context?: ProcessingContext): Promise<SaveAudioFileNodeOutputs> {
     const audio = this.audio;
@@ -520,7 +506,7 @@ export class NormalizeAudioNode extends BaseNode {
     title: "Audio",
     description: "The audio file to normalize."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   async process(context?: ProcessingContext): Promise<NormalizeAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
@@ -584,7 +570,7 @@ export class OverlayAudioNode extends BaseNode {
     title: "A",
     description: "The first audio file."
   })
-  declare a: any;
+  declare a: AudioRef;
 
   @prop({
     type: "audio",
@@ -598,7 +584,7 @@ export class OverlayAudioNode extends BaseNode {
     title: "B",
     description: "The second audio file."
   })
-  declare b: any;
+  declare b: AudioRef;
 
   async process(context?: ProcessingContext): Promise<OverlayAudioNodeOutputs> {
     const aBytes = await audioBytesAsync(this.a, context);
@@ -664,7 +650,7 @@ export class RemoveSilenceNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "int",
@@ -674,7 +660,7 @@ export class RemoveSilenceNode extends BaseNode {
     min: 0,
     max: 10000
   })
-  declare min_length: any;
+  declare min_length: number;
 
   @prop({
     type: "int",
@@ -685,7 +671,7 @@ export class RemoveSilenceNode extends BaseNode {
     min: -60,
     max: 0
   })
-  declare threshold: any;
+  declare threshold: number;
 
   @prop({
     type: "float",
@@ -696,7 +682,7 @@ export class RemoveSilenceNode extends BaseNode {
     min: 0,
     max: 1
   })
-  declare reduction_factor: any;
+  declare reduction_factor: number;
 
   @prop({
     type: "int",
@@ -707,7 +693,7 @@ export class RemoveSilenceNode extends BaseNode {
     min: 0,
     max: 50
   })
-  declare crossfade: any;
+  declare crossfade: number;
 
   @prop({
     type: "int",
@@ -718,7 +704,7 @@ export class RemoveSilenceNode extends BaseNode {
     min: 0,
     max: 500
   })
-  declare min_silence_between_parts: any;
+  declare min_silence_between_parts: number;
 
   async process(context?: ProcessingContext): Promise<RemoveSilenceNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
@@ -729,11 +715,11 @@ export class RemoveSilenceNode extends BaseNode {
 
     const { sampleRate, numChannels } = wav;
     const frames = wavFrameCount(wav);
-    const thresholdDb = Number(this.threshold ?? -40);
-    const minLenMs = Math.max(0, Number(this.min_length ?? 200));
-    const reduction = Math.min(1, Math.max(0, Number(this.reduction_factor ?? 1)));
-    const minGapMs = Math.max(0, Number(this.min_silence_between_parts ?? 100));
-    const crossfadeMs = Math.max(0, Number(this.crossfade ?? 10));
+    const thresholdDb = this.threshold;
+    const minLenMs = Math.max(0, this.min_length);
+    const reduction = Math.min(1, Math.max(0, this.reduction_factor));
+    const minGapMs = Math.max(0, this.min_silence_between_parts);
+    const crossfadeMs = Math.max(0, this.crossfade);
 
     const thresholdLin = Math.pow(10, thresholdDb / 20);
     const minLenFrames = Math.round((minLenMs / 1000) * sampleRate);
@@ -845,7 +831,7 @@ export class SliceAudioNode extends BaseNode {
     title: "Audio",
     description: "The audio file."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "float",
@@ -854,7 +840,7 @@ export class SliceAudioNode extends BaseNode {
     description: "The start time in seconds.",
     min: 0
   })
-  declare start: any;
+  declare start: number;
 
   @prop({
     type: "float",
@@ -863,12 +849,12 @@ export class SliceAudioNode extends BaseNode {
     description: "The end time in seconds. 0 or less slices to the end.",
     min: 0
   })
-  declare end: any;
+  declare end: number;
 
   async process(context?: ProcessingContext): Promise<SliceAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
-    const start = Math.max(0, Number(this.start ?? 0));
-    const end = Number(this.end ?? 0);
+    const start = Math.max(0, this.start);
+    const end = this.end;
     const wav = await decodeAudioToWav(bytes);
     const { sampleRate, numChannels } = wav;
     const frames = wavFrameCount(wav);
@@ -913,7 +899,7 @@ export class MonoToStereoNode extends BaseNode {
     title: "Audio",
     description: "The mono audio file to convert."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   async process(context?: ProcessingContext): Promise<MonoToStereoNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
@@ -973,7 +959,7 @@ export class StereoToMonoNode extends BaseNode {
     title: "Audio",
     description: "The stereo audio file to convert."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "str",
@@ -981,11 +967,11 @@ export class StereoToMonoNode extends BaseNode {
     title: "Method",
     description: "Method to use for conversion: 'average', 'left', or 'right'."
   })
-  declare method: any;
+  declare method: string;
 
   async process(context?: ProcessingContext): Promise<StereoToMonoNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
-    const method = String(this.method ?? "average");
+    const method = this.method;
     const wav = parseWavBytes(bytes);
     if (!wav) {
       // Non-WAV fallback: keep every other byte.
@@ -1048,7 +1034,7 @@ export class ReverseAudioNode extends BaseNode {
     title: "Audio",
     description: "The audio file to reverse."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   async process(context?: ProcessingContext): Promise<ReverseAudioNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
@@ -1100,7 +1086,7 @@ export class FadeInAudioNode extends BaseNode {
     title: "Audio",
     description: "The audio file to apply fade-in to."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "float",
@@ -1109,11 +1095,11 @@ export class FadeInAudioNode extends BaseNode {
     description: "Duration of the fade-in effect in seconds.",
     min: 0
   })
-  declare duration: any;
+  declare duration: number;
 
   async process(context?: ProcessingContext): Promise<FadeInAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
-    const duration = Math.max(0, Number(this.duration ?? 1));
+    const duration = Math.max(0, this.duration);
     const wav = await decodeAudioToWav(bytes);
     const { sampleRate, numChannels } = wav;
     const frames = wavFrameCount(wav);
@@ -1159,7 +1145,7 @@ export class FadeOutAudioNode extends BaseNode {
     title: "Audio",
     description: "The audio file to apply fade-out to."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "float",
@@ -1168,11 +1154,11 @@ export class FadeOutAudioNode extends BaseNode {
     description: "Duration of the fade-out effect in seconds.",
     min: 0
   })
-  declare duration: any;
+  declare duration: number;
 
   async process(context?: ProcessingContext): Promise<FadeOutAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
-    const duration = Math.max(0, Number(this.duration ?? 1));
+    const duration = Math.max(0, this.duration);
     const wav = await decodeAudioToWav(bytes);
     const { sampleRate, numChannels } = wav;
     const frames = wavFrameCount(wav);
@@ -1219,7 +1205,7 @@ export class RepeatAudioNode extends BaseNode {
     title: "Audio",
     description: "The audio file to loop."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "int",
@@ -1230,11 +1216,11 @@ export class RepeatAudioNode extends BaseNode {
     min: 1,
     max: 100
   })
-  declare loops: any;
+  declare loops: number;
 
   async process(context?: ProcessingContext): Promise<RepeatAudioNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
-    const count = Math.max(1, Math.floor(Number(this.loops ?? 2)));
+    const count = Math.max(1, Math.floor(this.loops));
     const wav = parseWavBytes(bytes);
     if (!wav) {
       // Non-WAV fallback: repeat raw bytes.
@@ -1352,7 +1338,7 @@ export class TrimAudioNode extends BaseNode {
     title: "Audio",
     description: "The audio file to trim."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "float",
@@ -1361,7 +1347,7 @@ export class TrimAudioNode extends BaseNode {
     description: "The start time of the trimmed audio in seconds.",
     min: 0
   })
-  declare start: any;
+  declare start: number;
 
   @prop({
     type: "float",
@@ -1370,12 +1356,12 @@ export class TrimAudioNode extends BaseNode {
     description: "The end time of the trimmed audio in seconds.",
     min: 0
   })
-  declare end: any;
+  declare end: number;
 
   async process(context?: ProcessingContext): Promise<TrimAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
-    const start = Math.max(0, Number(this.start ?? 0));
-    const end = Math.max(0, Number(this.end ?? 0));
+    const start = Math.max(0, this.start);
+    const end = Math.max(0, this.end);
     const wav = await decodeAudioToWav(bytes);
     const { sampleRate, numChannels } = wav;
     const frames = wavFrameCount(wav);
@@ -1416,7 +1402,7 @@ export class CreateSilenceNode extends BaseNode {
     description: "The duration of the silence in seconds.",
     min: 0
   })
-  declare duration: any;
+  declare duration: number;
 
   @prop({
     type: "int",
@@ -1425,11 +1411,11 @@ export class CreateSilenceNode extends BaseNode {
     description: "Sample rate of the generated silence in Hz.",
     min: 1
   })
-  declare sample_rate: any;
+  declare sample_rate: number;
 
   async process(): Promise<CreateSilenceNodeOutputs> {
-    const duration = Math.max(0, Number(this.duration ?? 1));
-    const sampleRate = Math.max(1, Math.floor(Number(this.sample_rate ?? 44100)));
+    const duration = Math.max(0, this.duration);
+    const sampleRate = Math.max(1, Math.floor(this.sample_rate));
     const frames = Math.round(duration * sampleRate);
     return {
       output: audioRefFromWav(
@@ -1528,12 +1514,10 @@ export class ConcatAudioListNode extends BaseNode {
     title: "Audio Files",
     description: "List of audio files to concatenate in sequence."
   })
-  declare audio_files: any;
+  declare audio_files: AudioRef[];
 
   async process(context?: ProcessingContext): Promise<ConcatAudioListNodeOutputs> {
-    const audios = Array.isArray(this.audio_files)
-      ? (this.audio_files as unknown[])
-      : [];
+    const audios = this.audio_files;
     const parts = (
       await Promise.all(audios.map((a) => audioBytesAsync(a, context)))
     ).filter((b) => b.length > 0);
@@ -1672,7 +1656,7 @@ export class TextToSpeechNode extends BaseNode {
   declare instructions: string;
 
   async process(context?: ProcessingContext): Promise<TextToSpeechNodeOutputs> {
-    const text = String(this.text ?? "");
+    const text = this.text;
     const { providerId, modelId } = getModelConfig(this.serialize());
     const modelObj = this.model;
     const explicitVoice = isString(modelObj.selected_voice)
@@ -1836,7 +1820,7 @@ export class TextToMusicNode extends BaseNode {
     title: "Model",
     description: "The text-to-music model to use"
   })
-  declare model: any;
+  declare model: MusicModel;
 
   @prop({
     type: "str",
@@ -1844,7 +1828,7 @@ export class TextToMusicNode extends BaseNode {
     title: "Prompt",
     description: "Describe the style, mood, genre, and instrumentation"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -1853,7 +1837,7 @@ export class TextToMusicNode extends BaseNode {
     description:
       "Optional song lyrics for vocal models (e.g. Suno, MiniMax). Leave empty for instrumental."
   })
-  declare lyrics: any;
+  declare lyrics: string;
 
   @prop({
     type: "float",
@@ -1863,11 +1847,11 @@ export class TextToMusicNode extends BaseNode {
     min: 1,
     max: 300
   })
-  declare duration: any;
+  declare duration: number;
 
   async process(context?: ProcessingContext): Promise<TextToMusicNodeOutputs> {
-    const prompt = String(this.prompt ?? "");
-    const lyrics = String(this.lyrics ?? "");
+    const prompt = this.prompt;
+    const lyrics = this.lyrics;
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (!hasMusicProviderSupport(context, providerId, modelId)) {
       throw new Error(
@@ -1882,7 +1866,7 @@ export class TextToMusicNode extends BaseNode {
       params: {
         prompt,
         lyrics: lyrics || undefined,
-        duration_seconds: Number(this.duration) || undefined
+        duration_seconds: this.duration || undefined
       }
     });
     if (encoded?.data && encoded.data.length > 0) {
@@ -1927,7 +1911,7 @@ export class ChunkToAudioNode extends BaseNode {
     title: "Chunk",
     description: "Stream of audio chunks"
   })
-  declare chunk: any;
+  declare chunk: Chunk;
 
   async process(): Promise<ChunkToAudioNodeOutputs> {
     const chunk = this.chunk;
@@ -1990,7 +1974,7 @@ export class GetAudioInfoNode extends BaseNode {
     title: "Audio",
     description: "The audio to inspect."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   async process(context?: ProcessingContext): Promise<GetAudioInfoNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);

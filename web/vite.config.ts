@@ -82,6 +82,17 @@ const BARE_BUILTIN_STUBS: Record<string, string> = Object.fromEntries(
     .map(([key, stub]) => [key.replace(/^node:/, ""), stub])
 );
 
+// npm packages — not builtins — that are Node-only *at module scope*, so a
+// browser graph that merely contains one throws before any code calls into it.
+// `@openclaw/fs-safe` backs `@nodetool-ai/storage`'s `FileStorageAdapter`; its
+// native-binding loader builds a `createRequire` and reads `process.env` while
+// the module evaluates. The browser never constructs that adapter — `root()`
+// is called only from its constructor, and a browser has no local directory to
+// point one at — so the stub throws on use.
+const NODE_PACKAGE_STUBS: Record<string, string> = {
+  "@openclaw/fs-safe": `${NODE_STUBS}/fs-safe-stub.js`
+};
+
 // Vite's `resolve.alias` doesn't intercept the `node:` protocol — these imports
 // bypass the alias plugin and hit the default resolver. Catch them in a `pre`
 // resolveId hook before any other plugin runs. `includeBare` additionally stubs
@@ -94,6 +105,7 @@ function stubNodeProtocolPlugin(includeBare = false): Plugin {
     resolveId(source) {
       return (
         NODE_BUILTIN_STUBS[source] ??
+        NODE_PACKAGE_STUBS[source] ??
         (includeBare ? BARE_BUILTIN_STUBS[source] : undefined) ??
         null
       );

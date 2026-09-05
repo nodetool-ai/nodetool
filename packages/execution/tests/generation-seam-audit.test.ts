@@ -64,6 +64,13 @@ const ALLOWED: ReadonlyArray<{ file: string; why: string }> = [
     why: "generate_media RPC, inside runGenerationWith"
   },
   {
+    file: "packages/websocket/src/session/media-generation.ts",
+    why:
+      "generateSpeechBytes, extracted from the two entries above and still " +
+      "called only from inside their run.generate() — which is " +
+      "runGenerationWith"
+  },
+  {
     file: "packages/cli/src/commands/generate.ts",
     why: "nodetool generate, inside runGenerationWith"
   },

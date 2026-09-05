@@ -11,6 +11,9 @@ import {
   tjsModelDefault,
   normalizeOption
 } from "../transformers-base.js";
+import type {
+  HfModelRef
+} from "../transformers-base.js";
 import { defaultRepoFor } from "../recommended-models.js";
 
 const TJS_TYPE = "tjs.translation";
@@ -42,7 +45,7 @@ export class TranslationNode extends BaseNode {
     title: "Text",
     description: "Source text to translate."
   })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: TJS_TYPE,
@@ -50,7 +53,7 @@ export class TranslationNode extends BaseNode {
     title: "Model",
     description: "Transformers.js model (ONNX-compatible)."
   })
-  declare model: any;
+  declare model: HfModelRef;
 
   @prop({
     type: "str",
@@ -59,7 +62,7 @@ export class TranslationNode extends BaseNode {
     description:
       "Source language code understood by the model (e.g. NLLB BCP-47 codes)."
   })
-  declare src_lang: any;
+  declare src_lang: string;
 
   @prop({
     type: "str",
@@ -67,7 +70,7 @@ export class TranslationNode extends BaseNode {
     title: "Target Language",
     description: "Target language code understood by the model."
   })
-  declare tgt_lang: any;
+  declare tgt_lang: string;
 
   @prop({
     type: "int",
@@ -77,7 +80,7 @@ export class TranslationNode extends BaseNode {
     min: 1,
     max: 4096
   })
-  declare max_length: any;
+  declare max_length: number;
 
   @prop({
     type: "enum",
@@ -86,7 +89,7 @@ export class TranslationNode extends BaseNode {
     description: "Model dtype / quantization level.",
     values: DTYPE_VALUES
   })
-  declare dtype: any;
+  declare dtype: string;
 
   @prop({
     type: "enum",
@@ -95,7 +98,7 @@ export class TranslationNode extends BaseNode {
     description: "Inference device.",
     values: DEVICE_VALUES
   })
-  declare device: any;
+  declare device: string;
 
   async process(): Promise<TranslationNodeOutputs> {
     const text = asString(this.text);

@@ -13,7 +13,7 @@
  */
 import type { TypeMetadata } from "../stores/ApiTypes";
 import type { DynamicSlotDeclaration } from "../stores/NodeData";
-import { isBoolean, isNumber, isString } from "./typePredicates";
+import { isBoolean, isNumber, isRecord, isString } from "./typePredicates";
 
 export const ANY_TYPE: TypeMetadata = {
   type: "any",
@@ -22,9 +22,6 @@ export const ANY_TYPE: TypeMetadata = {
   type_args: [],
   type_name: null
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 const asEnumValues = (value: unknown): Array<string | number> | null => {
   if (!Array.isArray(value)) {

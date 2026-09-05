@@ -61,8 +61,12 @@ import {
   globalWebSocketManager,
   type WebSocketMessage
 } from "../../lib/websocket/GlobalWebSocketManager";
-import useResultsStore from "../../stores/ResultsStore";
-import useStatusStore from "../../stores/StatusStore";
+import {
+  applyThreadRunUpdate,
+  type MsgpackData as WorkflowMsgpackData
+} from "../../stores/workflowUpdates";
+import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import type { Graph } from "../../stores/ApiTypes";
 import {
   getThreadRuntime,
@@ -171,22 +175,12 @@ interface ChatTurnActiveUpdate {
   last_seq: number;
 }
 
+/**
+ * Everything the chat socket can deliver: the shared run frames (declared once,
+ * in the editor's run reducer) plus the frames only a chat turn produces.
+ */
 type MsgpackData =
-  | JobUpdate
-  | Chunk
-  | Prediction
-  | NodeProgress
-  | NodeUpdate
-  | EdgeUpdate
-  | Message
-  | ToolCallUpdate
-  | ToolResultUpdate
-  | TaskUpdate
-  | TodoUpdate
-  | PlanningUpdate
-  | LogUpdate
-  | OutputUpdate
-  | StepResult
+  | WorkflowMsgpackData
   | WorkflowCreatedUpdate
   | WorkflowUpdatedUpdate
   | GenerationStoppedUpdate
@@ -198,6 +192,12 @@ type MsgpackData =
   | ChatResumedUpdate
   | ChatTurnActiveUpdate
   | ErrorMessage;
+
+/** A run frame the editor's reducer understands, as chat receives it. */
+type RunFrame = Extract<
+  WorkflowMsgpackData,
+  { workflow_id?: string | null }
+>;
 
 interface ToolResultMessage {
   type: "tool_result";
@@ -261,7 +261,7 @@ const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
   throw new Error(`Unknown message content type: ${type}`);
 };
 
-type ChatStateSetter = (
+export type ChatStateSetter = (
   state:
     | Partial<GlobalChatState>
     | ((state: GlobalChatState) => Partial<GlobalChatState>)
@@ -352,28 +352,64 @@ const applyJobUpdate = (
   return noopUpdate;
 };
 
+/**
+ * Hand a run frame that arrived on the thread subscription to the editor's run
+ * reducer. `applyThreadRunUpdate` drops the frames the editor's own workflow
+ * subscription already receives, so a run on an open canvas is not processed
+ * twice.
+ */
+/**
+ * The job a run frame belongs to. Several members of the union (`log_update`,
+ * `notification`) carry no job id at all, so this reads the field only where it
+ * is present rather than asserting a shape the union does not have.
+ */
+const frameJobId = (update: RunFrame): string | null =>
+  "job_id" in update && isString(update.job_id) ? update.job_id : null;
+
+const applyRunFrame = (
+  state: GlobalChatState,
+  update: RunFrame,
+  threadId: string | null
+): void => {
+  const workflowId =
+    update.workflow_id ?? state.threadWorkflowId[threadId ?? ""];
+  if (!workflowId) {
+    return;
+  }
+  const taken = applyThreadRunUpdate(
+    workflowId,
+    update,
+    getWorkflowRunnerStore(workflowId)
+  );
+  if (!taken) {
+    return;
+  }
+  // A run streamed over a chat thread does not reach the editor's job_update
+  // path, so nothing else puts it in the run registry. Without an entry the
+  // workflow has no focused job and every per-node footer the canvas reads
+  // through it (cost, timing, progress) stays empty.
+  const jobId = frameJobId(update);
+  if (!jobId) {
+    return;
+  }
+  const runsStore = useWorkflowRunsStore.getState();
+  if (!runsStore.hasRun(workflowId, jobId)) {
+    runsStore.recordRun({
+      jobId,
+      workflowId,
+      state: "running",
+      startedAt: Date.now(),
+      label: jobId
+    });
+  }
+};
+
 const applyEdgeUpdate = (
   state: GlobalChatState,
   update: EdgeUpdate,
   threadId: string | null
 ): ReducerResult => {
-  const workflowId = update.workflow_id ?? undefined;
-  const effectiveWorkflowId =
-    workflowId ?? state.threadWorkflowId[threadId ?? ""];
-  // Edges are scoped by the producing run's job_id so concurrent same-workflow
-  // runs stay isolated. Skip the write if job_id is absent.
-  const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
-  if (effectiveWorkflowId && jobId) {
-    useResultsStore
-      .getState()
-      .setEdge(
-        effectiveWorkflowId,
-        jobId,
-        update.edge_id,
-        update.status,
-        update.counter ?? undefined
-      );
-  }
+  applyRunFrame(state, update, threadId);
   return noopUpdate;
 };
 
@@ -382,20 +418,7 @@ const applyNodeUpdate = (
   update: NodeUpdate,
   threadId: string | null
 ): ReducerResult => {
-  const workflowId = update.workflow_id ?? undefined;
-  const effectiveWorkflowId =
-    workflowId ?? state.threadWorkflowId[threadId ?? ""];
-
-  if (effectiveWorkflowId) {
-    // Sync status, scoped by the producing run's job_id so concurrent
-    // same-workflow runs stay isolated. Skip the write if job_id is absent.
-    const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
-    if (jobId) {
-      useStatusStore
-        .getState()
-        .setStatus(effectiveWorkflowId, jobId, update.node_id, update.status);
-    }
-  }
+  applyRunFrame(state, update, threadId);
 
   if (!threadId) {
     return noopUpdate;
@@ -511,12 +534,8 @@ const applyChunk = (
   }
 
   const postAction = (get: ChatStateGetter) => {
-    const { selectedModel, summarizeThread, updateThreadTitle } = get();
+    const { summarizeThread, updateThreadTitle } = get();
     const messagesAfterUpdate = get().messageCache[threadId] || [];
-    if (messagesAfterUpdate.length === 2) {
-      console.debug("Triggering thread summarization for thread:", threadId);
-    }
-
     const assistantMessages = messagesAfterUpdate.filter(
       (msg) => msg.role === "assistant"
     );
@@ -527,14 +546,7 @@ const applyChunk = (
       }
     }
 
-    if (selectedModel.provider && selectedModel.id) {
-      summarizeThread(
-        threadId,
-        selectedModel.provider,
-        selectedModel.id,
-        JSON.stringify(messagesAfterUpdate)
-      );
-    }
+    summarizeThread(threadId);
   };
 
   return {
@@ -558,20 +570,7 @@ const applyOutputUpdate = (
     return noopUpdate;
   }
 
-  const workflowId = update.workflow_id ?? undefined;
-  const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[threadId];
-  // Output results are scoped by the producing run's job_id so concurrent
-  // same-workflow runs stay isolated. Skip the write if job_id is absent.
-  const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
-  if (effectiveWorkflowId && jobId) {
-    useResultsStore.getState().setOutputResult(
-      effectiveWorkflowId,
-      jobId,
-      update.node_id,
-      update.value,
-      true // append
-    );
-  }
+  applyRunFrame(state, update, threadId);
 
   if (update.output_type === "string" && isString(update.value)) {
     const messages = state.messageCache[threadId] || [];
@@ -841,10 +840,6 @@ const applyAgentExecutionMessage = (
         update,
         threadRuntimeUpdate(state, threadId, { taskUpdate: content })
       );
-      update.lastTaskUpdatesByThread = {
-        ...state.lastTaskUpdatesByThread,
-        [threadId]: content
-      };
     }
   } else if (msg.execution_event_type === "log_update") {
     if (isLogUpdateContent(content)) {
@@ -1158,23 +1153,7 @@ const applyNodeProgress = (
   progress: NodeProgress,
   threadId: string | null
 ): ReducerResult => {
-  const workflowId = progress.workflow_id ?? undefined;
-  const effectiveWorkflowId =
-    workflowId ?? state.threadWorkflowId[threadId ?? ""];
-  // Progress is scoped by the producing run's job_id so concurrent same-workflow
-  // runs stay isolated. Skip the write if job_id is absent.
-  const jobId = (progress as { job_id?: string | null }).job_id ?? undefined;
-  if (effectiveWorkflowId && jobId) {
-    useResultsStore
-      .getState()
-      .setProgress(
-        effectiveWorkflowId,
-        jobId,
-        progress.node_id,
-        progress.progress,
-        progress.total
-      );
-  }
+  applyRunFrame(state, progress, threadId);
 
   if (!threadId) {
     return noopUpdate;
@@ -1582,13 +1561,7 @@ export async function handleChatWebSocketMessage(
   } else if (data.type === "task_update") {
     if (tid) {
       const taskUpdate = data;
-      set((state) => ({
-        ...threadRuntimeUpdate(state, tid, { taskUpdate }),
-        lastTaskUpdatesByThread: {
-          ...state.lastTaskUpdatesByThread,
-          [tid]: taskUpdate
-        }
-      }));
+      set((state) => threadRuntimeUpdate(state, tid, { taskUpdate }));
     }
   } else if (data.type === "log_update") {
     if (tid) {

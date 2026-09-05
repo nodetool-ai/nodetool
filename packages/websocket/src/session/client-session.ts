@@ -27,6 +27,12 @@ export interface ClientSession {
    * not the visitor, so an authorization decision must read both.
    */
   readonly userId: string | null;
+  /**
+   * The acting user, or a throw. Every handler in `session/` runs after
+   * `connect()`, which assigns an id, so a null here is a wiring bug — not a
+   * reason to act as the local single-user id and touch someone else's rows.
+   */
+  requireUserId(): string;
   /** Set when a deployed app's visitor opened this connection. */
   readonly appSession: AppSessionScope | null;
   readonly mode: WebSocketMode;

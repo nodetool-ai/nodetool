@@ -31,11 +31,7 @@ import type {
   Prediction,
   LLMCallUpdate
 } from "../src/messages.js";
-import {
-  TaskUpdateEvent,
-  sanitizeMemoryUris,
-  encodeBinaryUpdate
-} from "../src/messages.js";
+import { TaskUpdateEvent, sanitizeMemoryUris } from "../src/messages.js";
 
 // ---------------------------------------------------------------------------
 // Helpers: minimal valid instances of each message type
@@ -385,99 +381,6 @@ describe("sanitizeMemoryUris", () => {
     expect(sanitizeMemoryUris(false)).toBe(false);
     expect(sanitizeMemoryUris(null)).toBe(null);
     expect(sanitizeMemoryUris(undefined)).toBe(undefined);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// encodeBinaryUpdate
-// ---------------------------------------------------------------------------
-
-describe("encodeBinaryUpdate", () => {
-  it("encodes a BinaryUpdate with correct format: JSON header + null byte + raw binary", () => {
-    const update: BinaryUpdate = {
-      type: "binary_update",
-      node_id: "n1",
-      output_name: "img",
-      binary: new Uint8Array([0xde, 0xad, 0xbe, 0xef])
-    };
-    const encoded = encodeBinaryUpdate(update);
-
-    // Find null byte separator
-    const nullIdx = encoded.indexOf(0);
-    expect(nullIdx).toBeGreaterThan(0);
-
-    // Header before null byte should be valid JSON
-    const headerStr = new TextDecoder().decode(encoded.slice(0, nullIdx));
-    const header = JSON.parse(headerStr);
-    expect(header).toEqual({
-      type: "binary_update",
-      node_id: "n1",
-      output_name: "img"
-    });
-
-    // Binary payload after null byte should match original
-    const payload = encoded.slice(nullIdx + 1);
-    expect(payload).toEqual(new Uint8Array([0xde, 0xad, 0xbe, 0xef]));
-  });
-
-  it("JSON header contains type, node_id, output_name", () => {
-    const update: BinaryUpdate = {
-      type: "binary_update",
-      node_id: "node-42",
-      output_name: "audio_out",
-      binary: new Uint8Array([1])
-    };
-    const encoded = encodeBinaryUpdate(update);
-    const nullIdx = encoded.indexOf(0);
-    const header = JSON.parse(
-      new TextDecoder().decode(encoded.slice(0, nullIdx))
-    );
-
-    expect(Object.keys(header).sort()).toEqual([
-      "node_id",
-      "output_name",
-      "type"
-    ]);
-    expect(header.type).toBe("binary_update");
-    expect(header.node_id).toBe("node-42");
-    expect(header.output_name).toBe("audio_out");
-  });
-
-  it("binary payload is preserved exactly", () => {
-    const binaryData = new Uint8Array(256);
-    for (let i = 0; i < 256; i++) binaryData[i] = i;
-
-    const update: BinaryUpdate = {
-      type: "binary_update",
-      node_id: "n",
-      output_name: "o",
-      binary: binaryData
-    };
-    const encoded = encodeBinaryUpdate(update);
-    const nullIdx = encoded.indexOf(0);
-    const payload = encoded.slice(nullIdx + 1);
-    expect(payload).toEqual(binaryData);
-  });
-
-  it("works with empty binary payload", () => {
-    const update: BinaryUpdate = {
-      type: "binary_update",
-      node_id: "n1",
-      output_name: "empty",
-      binary: new Uint8Array(0)
-    };
-    const encoded = encodeBinaryUpdate(update);
-    const nullIdx = encoded.indexOf(0);
-
-    // Header should still be valid
-    const header = JSON.parse(
-      new TextDecoder().decode(encoded.slice(0, nullIdx))
-    );
-    expect(header.node_id).toBe("n1");
-
-    // Nothing after the null byte
-    const payload = encoded.slice(nullIdx + 1);
-    expect(payload.length).toBe(0);
   });
 });
 

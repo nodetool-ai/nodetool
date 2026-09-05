@@ -9,7 +9,7 @@
 
 import type { EdgeType } from "./messages.js";
 import type { TypeMetadata } from "./type-metadata.js";
-import { isString } from "./predicates.js";
+import { isRecord, isString } from "./predicates.js";
 
 // ---------------------------------------------------------------------------
 // Edge
@@ -821,16 +821,12 @@ const MIGRATION_BY_FROM: ReadonlyMap<string, NodeTypeMigration> = new Map(
   NODE_TYPE_MIGRATIONS.map((m) => [m.from, m])
 );
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 /** Return a renamed copy of `container`, or undefined if nothing changed. */
 function renameKeys(
   container: unknown,
   renames: Record<string, string>
 ): Record<string, unknown> | undefined {
-  if (!isPlainObject(container)) return undefined;
+  if (!isRecord(container)) return undefined;
   let next: Record<string, unknown> | undefined;
   for (const [from, to] of Object.entries(renames)) {
     const current = next ?? container;
@@ -857,13 +853,13 @@ export interface MigratableGraph {
  * call on every load.
  */
 export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
-  if (!isPlainObject(graph) || !Array.isArray(graph.nodes)) return graph;
+  if (!isRecord(graph) || !Array.isArray(graph.nodes)) return graph;
 
   const handleRenamesByNodeId = new Map<string, Record<string, string>>();
   let changed = false;
 
   const nodes = graph.nodes.map((node) => {
-    if (!isPlainObject(node) || !isString(node.type)) return node;
+    if (!isRecord(node) || !isString(node.type)) return node;
     const migration = MIGRATION_BY_FROM.get(node.type);
     if (!migration) return node;
     changed = true;
@@ -883,16 +879,16 @@ export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
 
     if (migration.moveRemainingPropertiesToDynamic) {
       const moved: Record<string, unknown> = {};
-      if (isPlainObject(next.data)) {
+      if (isRecord(next.data)) {
         Object.assign(moved, next.data);
         next.data = {};
       }
-      if (isPlainObject(next.properties)) {
+      if (isRecord(next.properties)) {
         Object.assign(moved, next.properties);
         next.properties = {};
       }
       if (Object.keys(moved).length > 0) {
-        const existing = isPlainObject(next.dynamic_properties)
+        const existing = isRecord(next.dynamic_properties)
           ? next.dynamic_properties
           : {};
         next.dynamic_properties = { ...existing, ...moved };
@@ -900,12 +896,12 @@ export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
     }
 
     if (migration.setProperties) {
-      if (isPlainObject(next.data) || "data" in next) {
-        const existing = isPlainObject(next.data) ? next.data : {};
+      if (isRecord(next.data) || "data" in next) {
+        const existing = isRecord(next.data) ? next.data : {};
         next.data = { ...existing, ...migration.setProperties };
       }
-      if (isPlainObject(next.properties) || "properties" in next) {
-        const existing = isPlainObject(next.properties) ? next.properties : {};
+      if (isRecord(next.properties) || "properties" in next) {
+        const existing = isRecord(next.properties) ? next.properties : {};
         next.properties = { ...existing, ...migration.setProperties };
       }
       if (!("data" in next) && !("properties" in next)) {
@@ -914,7 +910,7 @@ export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
     }
 
     if (migration.setDynamicSlots) {
-      const existing = isPlainObject(next.dynamic_inputs)
+      const existing = isRecord(next.dynamic_inputs)
         ? next.dynamic_inputs
         : {};
       next.dynamic_inputs = { ...existing, ...migration.setDynamicSlots };
@@ -928,7 +924,7 @@ export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
   let edges = graph.edges;
   if (handleRenamesByNodeId.size > 0 && Array.isArray(edges)) {
     edges = edges.map((edge) => {
-      if (!isPlainObject(edge) || !isString(edge.target)) return edge;
+      if (!isRecord(edge) || !isString(edge.target)) return edge;
       const renames = handleRenamesByNodeId.get(edge.target);
       if (
         renames &&

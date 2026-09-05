@@ -5,9 +5,8 @@ import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
 const CLIENT_FILES = [
   "../../../electron/src/api.ts",
   "../../../mobile/src/trpc/client.ts",
-  "../../../packages/cli/src/nodetool.ts",
-  "../../../packages/cli/src/commands/agent.ts",
-  "../../../packages/cli/src/commands/models-recommended.ts",
+  // The CLI had three copies of this client; they are now one shared factory.
+  "../../../packages/cli/src/api-client.ts",
   "../../../packages/deploy/src/api-user-manager.ts",
   "../../../packages/sdk/src/client.ts",
   "../../../web/src/trpc/links.ts"

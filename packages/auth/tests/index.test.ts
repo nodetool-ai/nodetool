@@ -9,17 +9,8 @@ import {
   TokenType,
   AuthProvider,
   LocalAuthProvider,
-  StaticTokenProvider,
-  MultiUserAuthProvider,
   SupabaseAuthProvider,
-  createAuthMiddleware,
-  getUserId,
-  HttpError,
-  extractBearerToken,
-  authenticateRequest,
-  requireAuth,
   isAdmin,
-  UserManager,
   FileUserManager,
   type User
 } from "../src/index.js";
@@ -41,48 +32,9 @@ describe("index exports", () => {
     expect(new LocalAuthProvider()).toBeInstanceOf(AuthProvider);
   });
 
-  it("StaticTokenProvider is exported and instantiable", () => {
-    const p = new StaticTokenProvider({ tok: "user-1" });
-    expect(p).toBeInstanceOf(AuthProvider);
-  });
-
-  it("MultiUserAuthProvider is exported and instantiable", () => {
-    const p = new MultiUserAuthProvider({ secret: "s".repeat(32) });
-    expect(p).toBeInstanceOf(AuthProvider);
-  });
-
   it("SupabaseAuthProvider is exported and instantiable", () => {
     const p = new SupabaseAuthProvider({ supabaseJwtSecret: "s".repeat(32) });
     expect(p).toBeInstanceOf(AuthProvider);
-  });
-
-  it("createAuthMiddleware is exported and is a function", () => {
-    expect(typeof createAuthMiddleware).toBe("function");
-  });
-
-  it("getUserId is exported and is a function", () => {
-    expect(typeof getUserId).toBe("function");
-  });
-
-  it("HttpError is exported and is constructable", () => {
-    const err = new HttpError(404, "Not found");
-    expect(err).toBeInstanceOf(Error);
-  });
-
-  it("extractBearerToken is exported and is a function", () => {
-    expect(typeof extractBearerToken).toBe("function");
-  });
-
-  it("authenticateRequest is exported and is a function", () => {
-    expect(typeof authenticateRequest).toBe("function");
-  });
-
-  it("requireAuth is exported and is a function", () => {
-    expect(typeof requireAuth).toBe("function");
-  });
-
-  it("UserManager is exported and instantiable", () => {
-    expect(new UserManager()).toBeInstanceOf(UserManager);
   });
 
   it("FileUserManager is exported and instantiable", () => {

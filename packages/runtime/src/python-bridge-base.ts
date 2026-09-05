@@ -54,7 +54,7 @@ import {
   MIN_NODETOOL_CORE_VERSION
 } from "@nodetool-ai/protocol/bridge-protocol";
 import { validateBridgeFrame } from "@nodetool-ai/protocol";
-import { isNumber } from "./type-predicates.js";
+import { isNumber } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.python-bridge-base");
 

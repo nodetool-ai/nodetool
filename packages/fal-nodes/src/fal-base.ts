@@ -266,12 +266,20 @@ export function falImageToRef(img: FalImageResult) {
   };
 }
 
+/**
+ * Delete `null`/`undefined`/empty-string keys from the top level of an object.
+ *
+ * Intentionally NON-recursive, matching `replicate-base.ts`: a FAL arg bag is a
+ * flat set of parameters, and its only nested objects are pass-through
+ * `dict[...]` inputs the user supplied. Recursing mutated those in place and
+ * silently stripped sub-keys they meant to send — a deliberate
+ * `"negative_prompt": ""` inside one is a value, not an omission. `0` and
+ * `false` are kept.
+ */
 export function removeNulls(obj: Record<string, unknown>): void {
   for (const k of Object.keys(obj)) {
     if (obj[k] == null || obj[k] === "") {
       delete obj[k];
-    } else if (typeof obj[k] === "object" && !Array.isArray(obj[k])) {
-      removeNulls(obj[k] as Record<string, unknown>);
     }
   }
 }

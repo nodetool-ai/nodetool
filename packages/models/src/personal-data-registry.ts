@@ -522,10 +522,6 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
   }
 ];
 
-/** Registry entries indexed by physical table name. */
-export const PERSONAL_DATA_BY_TABLE: ReadonlyMap<string, PersonalDataEntry> =
-  new Map(PERSONAL_DATA_REGISTRY.map((entry) => [entry.table, entry]));
-
 /** Dispositions that require erasure to do something to the table. */
 const ACTIONABLE: readonly PersonalDataDisposition[] = [
   "delete",

@@ -15,7 +15,12 @@ jest.mock("../useModels", () => ({
 
 const mockUseWorkers = jest.fn();
 jest.mock("../../../../hooks/useWorkers", () => ({
-  useWorkers: () => mockUseWorkers()
+  useWorkers: () => mockUseWorkers(),
+  // The hooks under this tree (useModelsByProvider, useWorkerCachedModels,
+  // useModelDownloadTarget) read the attached worker through useActiveWorker,
+  // so it has to come from the same scenario state as useWorkers or a test
+  // that attaches a worker would still see none.
+  useActiveWorker: () => mockUseWorkers().activeWorker ?? null
 }));
 
 // Keep the heavy child components inert — this test is about the header toggle

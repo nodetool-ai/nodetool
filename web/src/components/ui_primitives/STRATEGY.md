@@ -56,7 +56,7 @@ These primitives exist but are barely adopted:
 `FlexColumn` | `FlexRow` | `Stack` | `Container` | `ScrollArea`
 
 ### Surfaces (replace raw Box/Paper/div)
-`Card` | `Panel` | `Surface` | `Overlay` | `DrawerPanel`
+`Card` | `Panel` | `Surface` | `Overlay`
 
 ### Typography (replace raw Typography)
 `Text` | `Label` | `Caption` | `TruncatedText` | `TextLink` | `ExternalLink`
@@ -65,7 +65,7 @@ These primitives exist but are barely adopted:
 `NodeTextField` | `TextInput` | `NodeSelect` | `SelectField` | `NodeSwitch` | `LabeledSwitch` | `NodeSlider` | `Checkbox` | `Autocomplete` | `AutocompleteTagInput` | `TagInput` | `SearchInput`
 
 ### Buttons (replace raw Button/IconButton)
-`EditorButton` | `ToolbarIconButton` | `StateIconButton` | `CircularActionButton` | `NavButton` | `CreateFab` | `PlaybackButton` | `RunWorkflowButton` | `ExpandCollapseButton` | `RefreshButton` | `ViewModeToggle` | `LabeledToggle` | `ConfirmButton`
+`EditorButton` | `ToolbarIconButton` | `StateIconButton` | `CircularActionButton` | `NavButton` | `CreateFab` | `PlaybackButton` | `RunWorkflowButton` | `ExpandCollapseButton` | `RefreshButton` | `ViewModeToggle` | `LabeledToggle`
 
 ### Semantic Action Buttons (replace custom icon+tooltip combos)
 `CopyButton` | `CloseButton` | `DeleteButton` | `DownloadButton` | `UploadButton` | `EditButton` | `SettingsButton` | `FavoriteButton` | `HelpButton` | `DocsHelpLink` | `UndoRedoButtons`
@@ -80,13 +80,13 @@ These primitives exist but are barely adopted:
 `FormField` | `SectionHeader` | `CollapsibleSection` | `TabGroup` / `TabPanel` | `ActionButtonGroup` | `ButtonGroup` | `ToggleGroup` | `SelectionControls` | `ListGroup` / `ListItemRow` | `DataTable`
 
 ### Menus & Navigation
-`EditorMenu` | `EditorMenuItem` | `MenuItemPrimitive` | `ContextMenu` | `Breadcrumbs` | `InfoTooltip` | `Tooltip` | `Popover`
+`EditorMenu` | `EditorMenuItem` | `MenuItemPrimitive` | `ContextMenu` | `Breadcrumbs` | `Tooltip` | `Popover`
 
 ### Media (the media-locator rendering boundary)
 `ResponsiveImage` | `VideoPlayer` | `AudioPlayback`
 
 ### Misc
-`Dialog` | `PositionedDialog` | `DialogActionButtons` | `ColorSwatch` | `ShortcutHint` | `KeyboardShortcutCard` | `ThemeToggleButton` | `Chip` | `Divider` | `SkipLinks` | `ZoomControls` | `HoverActionGroup` | `SelectableListItem` | `DropZoneOverlay` | `MetadataListRow`
+`Dialog` | `DialogActionButtons` | `ColorSwatch` | `ShortcutHint` | `Chip` | `Divider` | `SkipLinks` | `ZoomControls` | `HoverActionGroup` | `SelectableListItem`
 
 ## Media: resolution is the rendering boundary
 
@@ -140,8 +140,7 @@ Need a button?
 ├── Icon-only in toolbar → ToolbarIconButton
 ├── Specific action (copy/delete/close/etc.) → Semantic action button
 ├── Toggle on/off → LabeledToggle / ViewModeToggle
-├── Floating action → CreateFab / CircularActionButton
-└── Confirm with danger → ConfirmButton
+└── Floating action → CreateFab / CircularActionButton
 
 Need an input?
 ├── Text → NodeTextField (in nodes) / TextInput (elsewhere)
@@ -158,7 +157,6 @@ Need a container/surface?
 ├── Panel with header/footer → Panel
 ├── Generic surface → Surface
 ├── Modal → Dialog
-├── Side panel → DrawerPanel
 ├── Backdrop → Overlay
 └── Scrollable content → ScrollArea / Container
 
@@ -176,7 +174,7 @@ Need a menu/nav?
 ├── Context menu → ContextMenu / EditorMenu
 ├── Menu item → MenuItemPrimitive / EditorMenuItem
 ├── Breadcrumbs → Breadcrumbs
-├── Tooltip → Tooltip / InfoTooltip
+├── Tooltip → Tooltip
 └── Popover → Popover
 ```
 

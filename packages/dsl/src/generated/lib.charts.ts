@@ -10,7 +10,6 @@ export type ChartRendererInputs = {
   height?: Connectable<number>;
   data?: Connectable<DataframeRef>;
   background_color?: Connectable<string>;
-  despine?: Connectable<boolean>;
   trim_margins?: Connectable<boolean>;
 };
 

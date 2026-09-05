@@ -14,7 +14,8 @@ import {
   isExecutionPreflightError
 } from "@nodetool-ai/execution";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
-import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
+import { ProcessingContext } from "@nodetool-ai/runtime";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { summarizeInterventions } from "@nodetool-ai/execution/debug";
 import { createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
 import { buildFullRegistry } from "../node-registry.js";

@@ -19,7 +19,7 @@ import type {
   StreamingInputs,
   StreamingOutputs
 } from "@nodetool-ai/node-sdk";
-import type { OutputCorrelation } from "@nodetool-ai/protocol";
+import type { Chunk, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
 import {
@@ -81,7 +81,7 @@ export class AudioToChunksNode extends BaseNode {
     title: "Audio",
     description: "The audio file to slice into chunks (must be WAV)."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -91,7 +91,7 @@ export class AudioToChunksNode extends BaseNode {
     min: 0.01,
     max: 10
   })
-  declare chunk_duration: any;
+  declare chunk_duration: number;
 
   // Required by BaseNode but unused — genProcess is the execution path
   async process(): Promise<Record<string, unknown>> {
@@ -101,8 +101,8 @@ export class AudioToChunksNode extends BaseNode {
   async *genProcess(
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const chunkDuration = Number(this.chunk_duration ?? 0.25);
+    const audio = this.audio;
+    const chunkDuration = this.chunk_duration;
 
     const bytes = await audioBytesAsync(audio, context);
     const wav = parseWavBytes(bytes);
@@ -145,7 +145,7 @@ export class ChunksToAudioNode extends BaseNode {
     title: "Chunk",
     description: "Stream of PCM16LE audio chunks to accumulate."
   })
-  declare chunk: any;
+  declare chunk: Chunk;
 
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
@@ -211,7 +211,7 @@ export class AudioOutputNode extends BaseNode {
     title: "Chunk",
     description: "Stream of PCM16LE audio chunks to play."
   })
-  declare chunk: any;
+  declare chunk: Chunk;
 
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
@@ -251,7 +251,7 @@ export class StreamingGainNode extends BaseNode {
     title: "Chunk",
     description: "Stream of PCM16LE audio chunks to process."
   })
-  declare chunk: any;
+  declare chunk: Chunk;
 
   @prop({
     type: "float",
@@ -262,7 +262,7 @@ export class StreamingGainNode extends BaseNode {
     min: -60,
     max: 24
   })
-  declare gain_db: any;
+  declare gain_db: number;
 
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
@@ -287,7 +287,7 @@ export class StreamingGainNode extends BaseNode {
       // Float32Array is shared by reference with fan-out edges and any UI
       // buffer holding the upstream chunk; mutating it in place would
       // corrupt those.
-      const factor = Math.pow(10, Number(this.gain_db ?? 0) / 20);
+      const factor = Math.pow(10, this.gain_db / 20);
       const samples = chunk.samples;
       const scaled = new Float32Array(samples.length);
       for (let i = 0; i < samples.length; i++) scaled[i] = samples[i] * factor;
@@ -384,7 +384,7 @@ export class StreamingLowPassNode extends BaseNode {
     title: "Chunk",
     description: "Stream of PCM16LE audio chunks to process."
   })
-  declare chunk: any;
+  declare chunk: Chunk;
 
   @prop({
     type: "float",
@@ -394,7 +394,7 @@ export class StreamingLowPassNode extends BaseNode {
     min: 500,
     max: 20000
   })
-  declare cutoff_frequency_hz: any;
+  declare cutoff_frequency_hz: number;
 
   @prop({
     type: "float",
@@ -404,7 +404,7 @@ export class StreamingLowPassNode extends BaseNode {
     min: 0.1,
     max: 10
   })
-  declare q: any;
+  declare q: number;
 
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
@@ -415,8 +415,8 @@ export class StreamingLowPassNode extends BaseNode {
     await runStreamingFilter(
       "lowpass",
       () => ({
-        frequency: Number(this.cutoff_frequency_hz ?? 5000),
-        q: Number(this.q ?? DEFAULT_Q)
+        frequency: this.cutoff_frequency_hz,
+        q: this.q
       }),
       inputs,
       outputs
@@ -442,7 +442,7 @@ export class StreamingHighPassNode extends BaseNode {
     title: "Chunk",
     description: "Stream of PCM16LE audio chunks to process."
   })
-  declare chunk: any;
+  declare chunk: Chunk;
 
   @prop({
     type: "float",
@@ -452,7 +452,7 @@ export class StreamingHighPassNode extends BaseNode {
     min: 20,
     max: 5000
   })
-  declare cutoff_frequency_hz: any;
+  declare cutoff_frequency_hz: number;
 
   @prop({
     type: "float",
@@ -462,7 +462,7 @@ export class StreamingHighPassNode extends BaseNode {
     min: 0.1,
     max: 10
   })
-  declare q: any;
+  declare q: number;
 
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
@@ -473,8 +473,8 @@ export class StreamingHighPassNode extends BaseNode {
     await runStreamingFilter(
       "highpass",
       () => ({
-        frequency: Number(this.cutoff_frequency_hz ?? 80),
-        q: Number(this.q ?? DEFAULT_Q)
+        frequency: this.cutoff_frequency_hz,
+        q: this.q
       }),
       inputs,
       outputs

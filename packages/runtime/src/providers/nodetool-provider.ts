@@ -24,6 +24,7 @@
  */
 import {
   NODETOOL_MODELS,
+  isNonEmptyString,
   nodetoolModelById,
   type NodetoolModelDef,
   type NodetoolModelKind
@@ -45,7 +46,6 @@ import type {
 } from "./types.js";
 import { FalProvider } from "./fal-provider.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
-import { isNonEmptyString } from "../type-predicates.js";
 
 const PLATFORM_KEYS: Record<string, string> = {
   fal_ai: "NODETOOL_PLATFORM_FAL_KEY",

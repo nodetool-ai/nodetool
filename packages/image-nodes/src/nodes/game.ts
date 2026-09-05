@@ -4,7 +4,7 @@
  * reads frame regions off the sheet without looking at pixels. Nothing here
  * calls a model; generation is upstream.
  */
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { BaseNode, isObjectLike, isString, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   SLOT_METADATA_KEY,
@@ -19,7 +19,6 @@ import {
 import { loadMediaRefBytes } from "@nodetool-ai/runtime/media-ref-bytes";
 import { loadSharp, SHARP_UNAVAILABLE_MESSAGE } from "./image-io.js";
 import type { ImageRefLike } from "./lib-image-utils.js";
-import { isObjectLike, isString } from "../type-predicates.js";
 
 /** Animations that play once by default. Everything else loops. */
 const ONE_SHOT_ANIMATIONS = ["jump", "hurt", "die", "attack"] as const;
@@ -181,7 +180,7 @@ export class SpriteSheetNode extends BaseNode {
     title: "Image",
     description: "The generated sprite sheet."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "int",
@@ -190,7 +189,7 @@ export class SpriteSheetNode extends BaseNode {
     description: "Pixel width of one frame.",
     min: 1
   })
-  declare cell_width: any;
+  declare cell_width: number;
 
   @prop({
     type: "int",
@@ -199,7 +198,7 @@ export class SpriteSheetNode extends BaseNode {
     description: "Pixel height of one frame.",
     min: 1
   })
-  declare cell_height: any;
+  declare cell_height: number;
 
   @prop({
     type: "dict",
@@ -208,7 +207,7 @@ export class SpriteSheetNode extends BaseNode {
     description:
       "Animation name to frame count, in sheet order. A dict or a JSON object string, e.g. {\"idle\": 4, \"run\": 8}."
   })
-  declare animations: any;
+  declare animations: Record<string, unknown> | string;
 
   @prop({
     type: "int",
@@ -217,7 +216,7 @@ export class SpriteSheetNode extends BaseNode {
     description: "Frames per second for every animation.",
     min: 1
   })
-  declare fps: any;
+  declare fps: number;
 
   @prop({
     type: "str",
@@ -225,7 +224,7 @@ export class SpriteSheetNode extends BaseNode {
     title: "Slot ID",
     description: "The manifest slot this sheet fills, e.g. player."
   })
-  declare slot_id: any;
+  declare slot_id: string;
 
   @prop({
     type: "dict",
@@ -234,7 +233,7 @@ export class SpriteSheetNode extends BaseNode {
     description:
       "Per-animation loop overrides, name to boolean. By default every animation loops except jump, hurt, die and attack."
   })
-  declare loop: any;
+  declare loop: Record<string, unknown> | string;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const name = SpriteSheetNode.title;
@@ -321,7 +320,7 @@ export class TilesetNode extends BaseNode {
     title: "Image",
     description: "The generated tileset sheet."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "int",
@@ -330,7 +329,7 @@ export class TilesetNode extends BaseNode {
     description: "Pixel width of one tile.",
     min: 1
   })
-  declare cell_width: any;
+  declare cell_width: number;
 
   @prop({
     type: "int",
@@ -339,7 +338,7 @@ export class TilesetNode extends BaseNode {
     description: "Pixel height of one tile.",
     min: 1
   })
-  declare cell_height: any;
+  declare cell_height: number;
 
   @prop({
     type: "int",
@@ -348,7 +347,7 @@ export class TilesetNode extends BaseNode {
     description: "Number of distinct tiles on the sheet, row-major from the top left.",
     min: 1
   })
-  declare count: any;
+  declare count: number;
 
   @prop({
     type: "str",
@@ -356,7 +355,7 @@ export class TilesetNode extends BaseNode {
     title: "Slot ID",
     description: "The manifest slot this tileset fills, e.g. tiles.ground."
   })
-  declare slot_id: any;
+  declare slot_id: string;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const name = TilesetNode.title;
@@ -433,7 +432,7 @@ export class SeamlessImageNode extends BaseNode {
     title: "Image",
     description: "The generated image."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "str",
@@ -441,7 +440,7 @@ export class SeamlessImageNode extends BaseNode {
     title: "Slot ID",
     description: "The manifest slot this image fills, e.g. bg.far."
   })
-  declare slot_id: any;
+  declare slot_id: string;
 
   @prop({
     type: "bool",
@@ -450,7 +449,7 @@ export class SeamlessImageNode extends BaseNode {
     description:
       "Compare the left and right columns. When off, seamless_x is reported false."
   })
-  declare check_x: any;
+  declare check_x: number;
 
   @prop({
     type: "bool",
@@ -459,7 +458,7 @@ export class SeamlessImageNode extends BaseNode {
     description:
       "Compare the top and bottom rows. When off, seamless_y is reported false."
   })
-  declare check_y: any;
+  declare check_y: number;
 
   @prop({
     type: "float",
@@ -470,7 +469,7 @@ export class SeamlessImageNode extends BaseNode {
     min: 0,
     max: 255
   })
-  declare threshold: any;
+  declare threshold: number;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const name = SeamlessImageNode.title;

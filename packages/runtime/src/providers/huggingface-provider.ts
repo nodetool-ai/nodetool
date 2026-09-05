@@ -1,6 +1,6 @@
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
-import { isCallable, isNumber, isString } from "../type-predicates.js";
+import { isCallable, isNumber, isString } from "@nodetool-ai/protocol";
 import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   ASRModel,

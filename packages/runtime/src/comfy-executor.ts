@@ -4,7 +4,7 @@
  */
 import { createLogger } from "@nodetool-ai/config";
 import WebSocket from "ws";
-import { isNumber, isString } from "./type-predicates.js";
+import { isNumber, isString } from "@nodetool-ai/protocol";
 
 const log = createLogger("runtime:comfy-executor");
 

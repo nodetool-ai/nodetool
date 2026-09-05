@@ -9,7 +9,8 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
+import { ProcessingContext } from "@nodetool-ai/runtime";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { initDb, getSecret, Asset } from "@nodetool-ai/models";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
 

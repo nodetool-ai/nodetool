@@ -18,13 +18,19 @@ const webp = () =>
     0x52, 0x49, 0x46, 0x46, 0x24, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50
   ]);
 
+/** TIFF little-endian "II*\0" and big-endian "MM\0*" — Topaz upscale output. */
+const tiffLE = () => new Uint8Array([0x49, 0x49, 0x2a, 0x00, 0x08]);
+const tiffBE = () => new Uint8Array([0x4d, 0x4d, 0x00, 0x2a, 0x00]);
+
 describe("sniffImageMime", () => {
   it.each([
     ["image/png", png()],
     ["image/jpeg", jpeg()],
     ["image/webp", webp()],
     ["image/gif", gif()],
-    ["image/bmp", bmp()]
+    ["image/bmp", bmp()],
+    ["image/tiff", tiffLE()],
+    ["image/tiff", tiffBE()]
   ])("identifies %s", (expected, bytes) => {
     expect(sniffImageMime(bytes)).toBe(expected);
   });
@@ -45,7 +51,7 @@ describe("sniffImageMime", () => {
 
 describe("detectImageMime", () => {
   it("agrees with sniffImageMime on every recognized container", () => {
-    for (const bytes of [png(), jpeg(), webp(), gif(), bmp()]) {
+    for (const bytes of [png(), jpeg(), webp(), gif(), bmp(), tiffLE()]) {
       expect(detectImageMime(bytes)).toBe(sniffImageMime(bytes));
     }
   });

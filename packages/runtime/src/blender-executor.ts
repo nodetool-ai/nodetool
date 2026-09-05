@@ -38,7 +38,7 @@ import { randomUUID } from "node:crypto";
 
 import { createLogger } from "@nodetool-ai/config";
 
-import { isNumber, isString } from "./type-predicates.js";
+import { isNumber, isString } from "@nodetool-ai/protocol";
 import type {
   BlenderExecuteJob,
   BlenderExecuteResult,

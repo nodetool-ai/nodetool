@@ -8,19 +8,19 @@
 
 import {
   applyContentCardBody,
+  assetKindOf,
   BaseNode,
   classifyFields,
   classNameToTitle,
+  coerceManifestScalar,
   defaultForPropType,
+  isListAssetPropType,
+  manifestEnumIsNumeric,
+  promptAssetOverridesFor,
   propertyOf,
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
-import type {
-  PromptAssetTextField,
-  PromptAssetInputField
-} from "@nodetool-ai/runtime";
-import { mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
 import {
   getReplicateApiKey,
   replicateSubmit,
@@ -72,66 +72,6 @@ export interface ReplicateManifestEntry {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function isAssetPropType(propType: string): boolean {
-  return [
-    "image",
-    "video",
-    "audio",
-    "list[image]",
-    "list[video]",
-    "list[audio]"
-  ].includes(propType);
-}
-
-function assetKind(
-  propType: string
-): "image" | "video" | "audio" | "none" {
-  if (propType === "image" || propType === "list[image]") return "image";
-  if (propType === "video" || propType === "list[video]") return "video";
-  if (propType === "audio" || propType === "list[audio]") return "audio";
-  return "none";
-}
-
-function isListAsset(propType: string): boolean {
-  return propType.startsWith("list[") && isAssetPropType(propType);
-}
-
-/**
- * True when every enum option parses as a finite number (e.g. SD width/height,
- * which Replicate types as an integer enum). The manifest stores all enum
- * values as strings, so without this such fields would be sent to the API as
- * strings ("768") and rejected against the model's integer schema.
- */
-function isNumericEnum(enumValues?: string[]): boolean {
-  return (
-    Array.isArray(enumValues) &&
-    enumValues.length > 0 &&
-    enumValues.every((v) => v !== "" && Number.isFinite(Number(v)))
-  );
-}
-
-function castValue(
-  value: NodeValue,
-  propType: string,
-  enumValues?: string[]
-): NodeValue {
-  if (value === null || value === undefined) return value;
-  if (propType.startsWith("list[") || propType.startsWith("dict[")) {
-    return value;
-  }
-  switch (propType) {
-    case "int":
-    case "float":
-      return Number(value);
-    case "bool":
-      return Boolean(value);
-    case "enum":
-      return isNumericEnum(enumValues) ? Number(value) : String(value);
-    default:
-      return String(value);
-  }
-}
-
 const EXCLUDED_FIELDS = new Set(["prompt_template"]);
 
 // ---------------------------------------------------------------------------
@@ -151,43 +91,17 @@ function computeFieldClassification(fields: ReplicateFieldDef[]) {
   );
 }
 
-/**
- * Route `asset://` media mentioned inline in a node's text inputs onto its
- * empty image/audio/video inputs (and strip the mentions from the text).
- * Shared with FAL / KIE / image-to-image via `mapPromptAssetsToInputs`.
- */
-async function promptAssetOverrides(
+function promptAssetOverrides(
   instance: BaseNode,
   spec: ReplicateManifestEntry,
   context?: Parameters<BaseNode["process"]>[0]
 ): Promise<Record<string, unknown>> {
-  const textFields: PromptAssetTextField[] = [];
-  const assetFields: PromptAssetInputField[] = [];
-  for (const field of spec.inputFields) {
-    if (field.parentField) continue;
-    if (EXCLUDED_FIELDS.has(field.name)) continue;
-    const kind = assetKind(field.propType);
-    if (kind === "image" || kind === "audio" || kind === "video") {
-      const list = isListAsset(field.propType);
-      const value = propertyOf(instance, field.name);
-      const hasSource = list
-        ? Array.isArray(value) && value.some(isRefSet)
-        : isRefSet(value);
-      assetFields.push({
-        name: field.name,
-        label: field.apiParamName ?? field.name,
-        kind,
-        list,
-        hasSource
-      });
-    } else if (field.propType.toLowerCase() === "str") {
-      textFields.push({
-        name: field.name,
-        value: String(propertyOf(instance, field.name) ?? "")
-      });
-    }
-  }
-  return mapPromptAssetsToInputs(textFields, assetFields, context);
+  return promptAssetOverridesFor(
+    instance,
+    spec.inputFields.filter((f) => !EXCLUDED_FIELDS.has(f.name)),
+    isRefSet,
+    context
+  );
 }
 
 async function buildArgs(
@@ -219,10 +133,10 @@ async function buildArgs(
         : propertyOf(instance, field.name)
     ) as NodeValue;
     const apiName = field.apiParamName ?? field.name;
-    const kind = assetKind(field.propType);
+    const kind = assetKindOf(field.propType);
 
-    if (kind !== "none") {
-      if (isListAsset(field.propType)) {
+    if (kind) {
+      if (isListAssetPropType(field.propType)) {
         const refs = Array.isArray(value) ? value : [];
         const urls: string[] = [];
         for (const ref of refs) {
@@ -244,7 +158,12 @@ async function buildArgs(
         }
       }
     } else {
-      args[apiName] = castValue(value, field.propType, field.enumValues);
+      args[apiName] = coerceManifestScalar(
+        value,
+        field.propType,
+        field.enumValues,
+        "parsed"
+      );
     }
   }
 
@@ -364,7 +283,8 @@ export function createReplicateNodeClass(
     // value stays an integer end-to-end (UI selection + API arg). Otherwise the
     // numeric default never matches the string options and the API gets a string.
     const numericEnum =
-      field.propType === "enum" && isNumericEnum(field.enumValues);
+      field.propType === "enum" &&
+      manifestEnumIsNumeric(field.enumValues, "parsed");
     let defaultValue: unknown =
       field.default ?? defaultForPropType(field.propType);
     if (numericEnum) {

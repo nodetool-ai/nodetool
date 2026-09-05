@@ -16,7 +16,7 @@
  * matches the message text, because that is all a provider hands back.
  */
 
-import { isObjectLike, isString } from "../type-predicates.js";
+import { isObjectLike, isString } from "@nodetool-ai/protocol";
 
 /** Extra attempts after a refusal, before the refusal reaches the node. */
 export const CONTENT_FILTER_MAX_RETRIES = 2;

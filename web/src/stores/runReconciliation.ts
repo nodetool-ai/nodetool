@@ -11,7 +11,7 @@
  *
  * This module closes that gap. When a workflow is opened and its runner is
  * idle, it asks the server for the workflow's in-flight jobs and reattaches:
- * the newest one through the runner store (`reconnectWithWorkflow`, so the
+ * the newest one through the runner store (`reconnect`, so the
  * Stop/pause controls and `job_resumed` settling apply as usual), any
  * concurrent siblings through a bare `reconnect_job`. Every reattach replays
  * from `last_seq: 0`, so the run's whole buffered stream flows back through
@@ -107,7 +107,7 @@ export const startRunReconciliation = (
     );
     setPendingResumeJobId(primary.id);
     try {
-      await runnerStore.getState().reconnectWithWorkflow(primary.id, workflow);
+      await runnerStore.getState().reconnect(primary.id, workflow);
     } catch (error) {
       console.warn(
         `[runReconciliation] Failed to reattach job ${primary.id}`,

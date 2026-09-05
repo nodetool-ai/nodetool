@@ -15,10 +15,14 @@ export function createHash() {
   throw new Error("node:crypto.createHash not available in browser");
 }
 
+export function createHmac() {
+  throw new Error("node:crypto.createHmac not available in browser");
+}
+
 export function randomBytes(n) {
   const buf = new Uint8Array(n);
   globalThis.crypto.getRandomValues(buf);
   return buf;
 }
 
-export default { randomUUID, createHash, randomBytes };
+export default { randomUUID, createHash, createHmac, randomBytes };

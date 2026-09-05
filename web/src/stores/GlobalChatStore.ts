@@ -13,8 +13,6 @@
  */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { useQuery } from "@tanstack/react-query";
-import React from "react";
 import {
   Message,
   TaskUpdate,
@@ -23,12 +21,8 @@ import {
   Thread,
   LanguageModel,
   TodoItem,
-  PermissionMode,
-  NodeUpdate
+  PermissionMode
 } from "./ApiTypes";
-import useResultsStore from "./ResultsStore";
-import useWorkflowRunsStore from "./WorkflowRunsStore";
-import type { WebSocketMessage } from "../lib/websocket/GlobalWebSocketManager";
 import {
   sendPermissionMode,
   sendPlanApprovalResponse,
@@ -50,7 +44,10 @@ import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { FrontendToolRegistry } from "../lib/tools/frontendTools";
-import { handleChatWebSocketMessage } from "../core/chat/chatProtocol";
+import {
+  handleChatWebSocketMessage,
+  type ChatStateSetter
+} from "../core/chat/chatProtocol";
 import type { SubAgentMessages } from "../core/chat/subAgentMessages";
 import type { ChatOutgoingMessage } from "./MediaGenerationStore";
 import { useShallow } from "zustand/react/shallow";
@@ -309,8 +306,6 @@ export interface GlobalChatState {
 
   // Task updates
   currentTaskUpdate: TaskUpdate | null;
-  currentTaskUpdateThreadId: string | null;
-  lastTaskUpdatesByThread: Record<string, TaskUpdate | null>;
 
   // Log updates
   currentLogUpdate: LogUpdate | null;
@@ -371,12 +366,7 @@ export interface GlobalChatState {
   getCurrentMessages: () => Message[];
   loadMessages: (threadId: string, cursor?: string) => Promise<Message[]>;
   updateThreadTitle: (threadId: string, title: string) => Promise<void>;
-  summarizeThread: (
-    threadId: string,
-    provider: string,
-    model: string,
-    content: string
-  ) => Promise<void>;
+  summarizeThread: (threadId: string) => Promise<void>;
   /** Stop generation on `threadId`, or the current thread when omitted. */
   stopGeneration: (threadId?: string) => void;
 
@@ -408,52 +398,36 @@ const inFlightMessageLoads = new Map<
 >();
 
 /**
- * Chat-initiated workflow runs stream `node_update`s over the chat socket, not
- * through the editor's `handleUpdate` pipeline — so their run never registers as
- * the focused job and their provider costs never land in ResultsStore under the
- * workflow id. That left the per-node cost footers stuck at $0.
+ * Register the socket handler for one thread, once.
  *
- * Mirror the editor path here: register the run so `getProviderCost` finds it,
- * record any provider charge, and refresh the session budget spend.
+ * Four call sites used to spell this out; two of them without the race guard,
+ * so a handler registered between the "already subscribed?" check and the
+ * `set` was leaked (it stays on the socket with nothing holding its
+ * unsubscribe). Registering twice also delivers every chunk twice.
  */
-function isNodeUpdate(
-  msg: WebSocketMessage
-): msg is WebSocketMessage & NodeUpdate {
-  return msg.type === "node_update";
-}
-
-const captureChatRunSpend = (
-  data: WebSocketMessage,
+const ensureThreadSubscription = (
   threadId: string,
+  set: ChatStateSetter,
   get: () => GlobalChatState
 ): void => {
-  if (!isNodeUpdate(data)) {
+  if (get().wsThreadSubscriptions[threadId]) {
     return;
   }
-  const update = data;
-  const jobId = data.job_id;
-  const workflowId =
-    data.workflow_id ?? get().threadWorkflowId[threadId] ?? undefined;
-  if (!workflowId || !jobId) {
-    return;
-  }
-
-  const runsStore = useWorkflowRunsStore.getState();
-  if (!runsStore.hasRun(workflowId, jobId)) {
-    runsStore.recordRun({
-      jobId,
-      workflowId,
-      state: "running",
-      startedAt: Date.now(),
-      label: jobId
-    });
-  }
-
-  if (update.provider_cost) {
-    useResultsStore
-      .getState()
-      .setProviderCost(workflowId, jobId, update.node_id, update.provider_cost);
-  }
+  const unsubscribe = globalWebSocketManager.subscribe(threadId, (data) => {
+    handleChatWebSocketMessage(data, set, get, threadId);
+  });
+  set((state) => {
+    if (state.wsThreadSubscriptions[threadId] !== undefined) {
+      unsubscribe();
+      return {};
+    }
+    return {
+      wsThreadSubscriptions: {
+        ...state.wsThreadSubscriptions,
+        [threadId]: unsubscribe
+      }
+    };
+  });
 };
 
 /**
@@ -703,8 +677,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       // Task updates
       currentTaskUpdate: null,
-      currentTaskUpdateThreadId: null,
-      lastTaskUpdatesByThread: {},
 
       // Log updates
       currentLogUpdate: null,
@@ -797,22 +769,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
             )
           );
 
-          const threadSubscriptions: Record<string, () => void> = {};
-          const stateThreads = Object.keys(get().threads);
-          stateThreads.forEach((threadId) => {
-            // Unsubscribe any handler that was registered between the
-            // initial cleanup and this point (possible during the await)
-            const existing = get().wsThreadSubscriptions[threadId];
-            if (existing) {
-              existing();
-            }
-            threadSubscriptions[threadId] = globalWebSocketManager.subscribe(
-              threadId,
-              (data) => {
-                captureChatRunSpend(data, threadId, get);
-                handleChatWebSocketMessage(data, set, get, threadId);
-              }
-            );
+          Object.keys(get().threads).forEach((threadId) => {
+            ensureThreadSubscription(threadId, set, get);
           });
 
           const sendManifest = () => {
@@ -920,8 +878,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           // Store subscriptions
           set({
             error: null,
-            wsEventUnsubscribes: eventUnsubscribes,
-            wsThreadSubscriptions: threadSubscriptions
+            wsEventUnsubscribes: eventUnsubscribes
           });
 
           // Connection is automatic via globalWebSocketManager
@@ -1073,27 +1030,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         // Ensure we have a WS subscription for this thread before sending,
         // otherwise streamed chunks/messages will be routed with no handler.
-        if (!get().wsThreadSubscriptions[threadId]) {
-          const unsub = globalWebSocketManager.subscribe(tid, (data) => {
-            captureChatRunSpend(data, tid, get);
-            handleChatWebSocketMessage(data, set, get, tid);
-          });
-          set((state) => {
-            // Guard against a race: if another path registered a handler
-            // between our check and this set(), clean ours up to avoid a leak.
-            const existing = state.wsThreadSubscriptions[tid];
-            if (existing !== undefined) {
-              unsub();
-              return {};
-            }
-            return {
-              wsThreadSubscriptions: {
-                ...state.wsThreadSubscriptions,
-                [tid]: unsub
-              }
-            };
-          });
-        }
+        ensureThreadSubscription(tid, set, get);
 
         // Targeted sends (chat tabs) keep the thread's own workflow binding;
         // untargeted sends bind the thread to the currently-open workflow as
@@ -1233,7 +1170,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       fetchThreads: async () => {
         set({ isLoadingThreads: true });
         try {
-          const data = await trpcClient.threads.list.query({});
+          const data = await trpcClient.threads.list.query({ limit: 100 });
 
           const threadsRecord: Record<string, Thread> = {};
           data.threads.forEach((thread) => {
@@ -1308,17 +1245,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
             ? options.workflowId
             : (get().workflowId ?? null);
 
-        // Subscribe first, then atomically store the unsubscribe handle.
-        // This avoids the closure being created inside set() where a stale
-        // read of wsThreadSubscriptions could leak an old handler.
-        const existingUnsub = get().wsThreadSubscriptions[threadId];
-        if (existingUnsub) {
-          existingUnsub();
-        }
-        const newUnsub = globalWebSocketManager.subscribe(threadId, (data) => {
-          captureChatRunSpend(data, threadId, get);
-          handleChatWebSocketMessage(data, set, get, threadId);
-        });
+        ensureThreadSubscription(threadId, set, get);
 
         const now = new Date().toISOString();
         const localThread: Thread = {
@@ -1349,10 +1276,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
               ...state.messageCache,
               [threadId]: []
             },
-            wsThreadSubscriptions: {
-              ...state.wsThreadSubscriptions,
-              [threadId]: newUnsub
-            }
           };
           if (makeCurrent) {
             patch.currentThreadId = threadId;
@@ -1392,25 +1315,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           return;
         }
 
-        if (!get().wsThreadSubscriptions[threadId]) {
-          const unsub = globalWebSocketManager.subscribe(threadId, (data) => {
-            captureChatRunSpend(data, threadId, get);
-            handleChatWebSocketMessage(data, set, get, threadId);
-          });
-          set((state) => {
-            const existing = state.wsThreadSubscriptions[threadId];
-            if (existing !== undefined) {
-              unsub();
-              return {};
-            }
-            return {
-              wsThreadSubscriptions: {
-                ...state.wsThreadSubscriptions,
-                [threadId]: unsub
-              }
-            };
-          });
-        }
+        ensureThreadSubscription(threadId, set, get);
 
         set((state) => ({
           currentThreadId: threadId,
@@ -1679,15 +1584,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
       },
 
-      summarizeThread: async (
-        threadId: string,
-        _provider: string,
-        _model: string,
-        _content: string
-      ) => {
-        // Note: the server derives the title from existing thread messages and
-        // ignores provider/model/content. Kept in the signature for backward
-        // compatibility with existing callers.
+      // The server derives the title from the thread's stored messages.
+      summarizeThread: async (threadId: string) => {
         try {
           const data = await trpcClient.threads.summarize.mutate({
             id: threadId
@@ -1938,189 +1836,41 @@ const useGlobalChatStore = create<GlobalChatState>()(
               : fallback.lastPermissionMode
         };
       },
+      // `merge` above already guarantees every persisted map is an object and
+      // leaves the unpersisted fields at their initial values, so only the two
+      // persisted scalars that can carry a bad value are re-checked here.
       onRehydrateStorage: () => (state) => {
-        // State has been rehydrated from storage
-        if (state) {
-          // Ensure threads is always an object
-          if (!state.threads) {
-            state.threads = {};
-          }
-          // Initialize message cache as empty
-          state.messageCache = {};
-          state.messageCursors = {};
-          state.isLoadingMessages = false;
-          state.isLoadingThreads = false;
-
-          // Guard the per-workflow maps against corrupt persisted values
-          // (they're read with spreads, so a non-object would crash).
-          const asRecord = (value: unknown) =>
-            value && typeof value === "object" && !Array.isArray(value)
-              ? (value as Record<string, never>)
-              : {};
-          state.workflowThreadId = asRecord(state.workflowThreadId);
-          state.threadWorkflowId = asRecord(state.threadWorkflowId);
-
-          // Load threads from API if not loaded yet
-          if (!state.threadsLoaded) {
-            // Use setTimeout to avoid calling during hydration
-            setTimeout(() => {
-              const store = useGlobalChatStore.getState();
-              store.fetchThreads().catch((error) => {
+        if (!state) {
+          return;
+        }
+        if (
+          state.lastPermissionMode !== "plan" &&
+          state.lastPermissionMode !== "auto" &&
+          state.lastPermissionMode !== "default"
+        ) {
+          state.lastPermissionMode = DEFAULT_PERMISSION_MODE;
+        }
+        if (!state.selectedModel) {
+          state.selectedModel = buildDefaultLanguageModel();
+        }
+        if (!state.threadsLoaded) {
+          // setTimeout so the fetch does not run during hydration.
+          setTimeout(() => {
+            useGlobalChatStore
+              .getState()
+              .fetchThreads()
+              .catch((error) => {
                 console.error(
                   "Failed to load threads during initialization:",
                   error
                 );
               });
-            }, 0);
-          }
-          // Ensure selection defaults are present
-          if (!state.permissionMode) {
-            state.permissionMode = {};
-          }
-          if (
-            state.lastPermissionMode !== "plan" &&
-            state.lastPermissionMode !== "auto" &&
-            state.lastPermissionMode !== "default"
-          ) {
-            state.lastPermissionMode = DEFAULT_PERMISSION_MODE;
-          }
-          if (!state.pendingApprovals) {
-            state.pendingApprovals = {};
-          }
-          if (!state.pendingPlanApprovals) {
-            state.pendingPlanApprovals = {};
-          }
-          if (!state.pendingSecretRequests) {
-            state.pendingSecretRequests = {};
-          }
-          if (!state.selectedModel) {
-            state.selectedModel = buildDefaultLanguageModel();
-          }
-          if (typeof state.lastUsedThreadId === "undefined") {
-            state.lastUsedThreadId = null;
-          }
+          }, 0);
         }
       }
     }
   )
 );
-
-// Network status monitoring
-const registerGlobalChatListeners = () => {
-  if (typeof window === "undefined") {
-    return () => {};
-  }
-
-  const handleOnline = () => {
-    const state = useGlobalChatStore.getState();
-    if (state.status === "disconnected" || state.status === "failed") {
-      console.info(
-        "Network came online, connection will be established automatically"
-      );
-      // globalWebSocketManager handles reconnection automatically
-    }
-  };
-
-  const handleOffline = () => {
-    console.info("Network went offline");
-    // The WebSocket will close automatically, triggering our reconnection logic
-  };
-
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === "visible") {
-      const state = useGlobalChatStore.getState();
-      if (state.status === "disconnected" || state.status === "failed") {
-        console.info(
-          "Tab became visible, connection will be established automatically"
-        );
-        // globalWebSocketManager handles reconnection automatically
-      }
-    }
-  };
-
-  window.addEventListener("online", handleOnline);
-  window.addEventListener("offline", handleOffline);
-  document.addEventListener("visibilitychange", handleVisibilityChange);
-
-  return () => {
-    window.removeEventListener("online", handleOnline);
-    window.removeEventListener("offline", handleOffline);
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
-  };
-};
-
-// Guard against multiple registrations from HMR / multi-bundle loads. Each
-// extra import would otherwise install another set of listeners that the
-// `return cleanup` path never calls back into.
-declare global {
-  interface Window {
-    __nodetoolGlobalChatListenersBound?: boolean;
-    __nodetoolGlobalChatListenersCleanup?: () => void;
-  }
-}
-
-if (
-  typeof window !== "undefined" &&
-  !window.__nodetoolGlobalChatListenersBound
-) {
-  window.__nodetoolGlobalChatListenersBound = true;
-  window.__nodetoolGlobalChatListenersCleanup = registerGlobalChatListeners();
-}
-
-// Custom hook for TanStack Query thread loading
-export const useThreadsQuery = () => {
-  const query = useQuery({
-    queryKey: ["threads"],
-    queryFn: async () => {
-      const data = await trpcClient.threads.list.query({ limit: 100 });
-      console.debug("Threads fetched:", data);
-      return data;
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false
-  });
-
-  // Handle success and error states using useEffect
-  React.useEffect(() => {
-    if (query.isSuccess && query.data) {
-      const threadsRecord: Record<string, Thread> = {};
-      query.data.threads.forEach((thread) => {
-        threadsRecord[thread.id] = thread;
-      });
-
-      // Merge with existing threads so locally-created/optimistic threads
-      // that haven't reached the server yet don't get wiped on refetch, and
-      // hydrate the thread→workflow map from the server (see fetchThreads).
-      useGlobalChatStore.setState((state) => {
-        const threadWorkflowId = { ...state.threadWorkflowId };
-        for (const thread of query.data.threads) {
-          if (thread.workflow_id != null) {
-            threadWorkflowId[thread.id] = thread.workflow_id;
-          }
-        }
-        return {
-          threads: { ...state.threads, ...threadsRecord },
-          threadWorkflowId,
-          threadsLoaded: true,
-          isLoadingThreads: false
-        };
-      });
-    }
-  }, [query.isSuccess, query.data]);
-
-  React.useEffect(() => {
-    if (query.isError) {
-      // Update store with error state
-      useGlobalChatStore.setState({
-        threadsLoaded: true,
-        isLoadingThreads: false
-      });
-      console.error("Failed to fetch threads:", query.error);
-    }
-  }, [query.isError, query.error]);
-
-  return query;
-};
 
 /**
  * Subscribe to one thread's generation runtime. Returns the default (idle)

@@ -27,7 +27,7 @@
  *   error reference enumerates no code for it, so the message is the signal.
  */
 
-import { isRecord, isString } from "../type-predicates.js";
+import { isRecord, isString } from "@nodetool-ai/protocol";
 
 /** Which of a provider's signals identified the overflow. */
 export type ContextExceededSignal = "stop_reason" | "error_code" | "message";

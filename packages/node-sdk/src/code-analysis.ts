@@ -338,9 +338,8 @@ function collectReturns(node: unknown, out: acorn.ReturnStatement[]): void {
     for (const item of node) collectReturns(item, out);
     return;
   }
-  const candidate = node as { type?: unknown };
-  if (!isString(candidate.type)) return;
-  const astNode = node as acorn.AnyNode;
+  if (!isString(node.type)) return;
+  const astNode = node as unknown as acorn.AnyNode;
   // A `return` inside a helper function belongs to that helper, not the body.
   if (isFunctionLike(astNode)) return;
   if (astNode.type === "ReturnStatement") out.push(astNode);

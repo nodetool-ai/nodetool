@@ -19,6 +19,7 @@ import {
   type ChatCompletionsRequest
 } from "./openai-compat/index.js";
 import type {
+  LanguageModel,
   Message,
   ProviderId,
   ProviderStreamItem,
@@ -86,6 +87,68 @@ export class OpenAICompatProvider extends OpenAIProvider {
     this._compatConfig = config;
     this._compatClient = options.compatClient ?? null;
     this._compatFetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
+  }
+
+  /** The injected (or global) `fetch`, for surfaces this class does not cover. */
+  protected get compatFetch(): typeof fetch {
+    return this._compatFetch;
+  }
+
+  /** Chat endpoint root this instance was configured with. */
+  protected get compatBaseURL(): string {
+    return this._compatConfig.baseURL;
+  }
+
+  /**
+   * Decode an OpenAI-shaped `GET /models` listing into language models tagged
+   * with this provider's id.
+   *
+   * A failed request answers `[]` rather than throwing: model discovery runs
+   * on every picker open, across every configured provider, and one bad key
+   * must not break the others. The status is logged so a user staring at an
+   * empty list can find the 401 in the log.
+   */
+  protected async listCompatModels(
+    url: string = `${this._compatConfig.baseURL}/models`,
+    init: { headers?: Record<string, string>; signal?: AbortSignal } = {}
+  ): Promise<LanguageModel[]> {
+    const request: RequestInit = {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        // Same precedence as OpenAICompatClient: a configured header (gateway
+        // attribution, a non-Bearer auth scheme) wins over the default.
+        ...this._compatConfig.defaultHeaders,
+        ...init.headers
+      }
+    };
+    if (init.signal) {
+      request.signal = init.signal;
+    }
+    const response = await this._compatFetch(url, request);
+
+    if (!response.ok) {
+      log.warn("Model listing failed", {
+        provider: this.provider,
+        url,
+        status: response.status
+      });
+      return [];
+    }
+
+    const payload = (await response.json()) as {
+      data?: Array<{ id?: string; name?: string }>;
+    };
+    // Stryker disable next-line ArrayDeclaration: the fallback is filtered downstream (rows need a string id), so [] vs any array is observably identical.
+    return (payload.data ?? [])
+      .filter(
+        (row): row is { id: string; name?: string } =>
+          typeof row.id === "string" && row.id.length > 0
+      )
+      .map((row) => ({
+        id: row.id,
+        name: row.name ?? row.id,
+        provider: this.provider
+      }));
   }
 
   protected getCompatClient(): OpenAICompatClient {

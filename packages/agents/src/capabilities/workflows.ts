@@ -21,7 +21,6 @@
  * `nodetool.workflows`".
  */
 
-import type { JsonSchema } from "@nodetool-ai/runtime";
 import type { GraphValidationReport } from "@nodetool-ai/node-sdk";
 import type { Workflow as WorkflowRow } from "@nodetool-ai/models";
 import {
@@ -69,24 +68,9 @@ import {
   getExampleWorkflowSpec,
   exportWorkflowDigraphSpec,
   DEFAULT_VERSION_LIMIT,
-  MAX_VERSION_LIMIT,
-  LIST_WORKFLOWS_SCHEMA,
-  CREATE_WORKFLOW_SCHEMA,
-  RUN_WORKFLOW_SCHEMA,
-  DEBUG_WORKFLOW_SCHEMA,
-  RESOLVE_ESCALATION_SCHEMA,
-  VALIDATE_WORKFLOW_SCHEMA
+  MAX_VERSION_LIMIT
 } from "./workflows.specs.js";
 import { isObjectLike, isString } from "../utils/type-guards.js";
-
-export {
-  LIST_WORKFLOWS_SCHEMA,
-  CREATE_WORKFLOW_SCHEMA,
-  RUN_WORKFLOW_SCHEMA,
-  DEBUG_WORKFLOW_SCHEMA,
-  RESOLVE_ESCALATION_SCHEMA,
-  VALIDATE_WORKFLOW_SCHEMA
-} from "./workflows.specs.js";
 
 /** The run environment this run can execute a workflow in, or null. */
 function runEnvironmentOf(run: CapabilityRun) {

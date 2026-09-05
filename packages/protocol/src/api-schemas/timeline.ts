@@ -373,7 +373,9 @@ export const clipVignetteEffect = z.object({
   type: z.literal("vignette"),
   enabled: z.boolean(),
   amount: z.number(),
-  softness: z.number()
+  softness: z.number(),
+  /** Absent means the shader's own default. Mirrors ClipVignetteEffect.radius. */
+  radius: z.number().optional()
 });
 
 export const clipSharpenEffect = z.object({
@@ -381,7 +383,9 @@ export const clipSharpenEffect = z.object({
   type: z.literal("sharpen"),
   enabled: z.boolean(),
   amount: z.number(),
-  radius: z.number().optional()
+  radius: z.number().optional(),
+  /** Absent means the shader's own default. Mirrors ClipSharpenEffect.threshold. */
+  threshold: z.number().optional()
 });
 
 export const clipChromaKeyEffect = z.object({

@@ -11,7 +11,7 @@
  */
 
 import type { ProviderCallFailed } from "@nodetool-ai/protocol";
-import { isObjectLike, isString } from "../type-predicates.js";
+import { isObjectLike, isString } from "@nodetool-ai/protocol";
 import { httpStatusFromError } from "./provider-error.js";
 import { sanitizeForLog } from "./provider-request-log.js";
 

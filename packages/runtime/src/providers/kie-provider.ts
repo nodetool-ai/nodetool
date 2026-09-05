@@ -13,7 +13,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
-import { isString } from "../type-predicates.js";
+import { isString } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   EncodedAudioResult,
@@ -45,6 +45,7 @@ import {
 } from "./manifest-models.js";
 import { registerWebhookWait } from "./kie-webhook-registry.js";
 import { sniffAudioMime } from "./audio-mime.js";
+import { detectImageMime, extForImageMime } from "./image-mime.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 import {
@@ -394,52 +395,6 @@ async function parseKieJson(
   return data;
 }
 
-/** Detect an image container from its magic bytes; defaults to PNG. */
-function sniffImageType(bytes: Uint8Array) {
-  if (
-    bytes.length >= 8 &&
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47
-  ) {
-    return { mime: "image/png", ext: "png" };
-  }
-  if (
-    bytes.length >= 3 &&
-    bytes[0] === 0xff &&
-    bytes[1] === 0xd8 &&
-    bytes[2] === 0xff
-  ) {
-    return { mime: "image/jpeg", ext: "jpg" };
-  }
-  if (
-    bytes.length >= 12 &&
-    bytes[0] === 0x52 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x46 &&
-    bytes[8] === 0x57 &&
-    bytes[9] === 0x45 &&
-    bytes[10] === 0x42 &&
-    bytes[11] === 0x50
-  ) {
-    return { mime: "image/webp", ext: "webp" };
-  }
-  if (
-    bytes.length >= 6 &&
-    bytes[0] === 0x47 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x38 &&
-    (bytes[4] === 0x37 || bytes[4] === 0x39) &&
-    bytes[5] === 0x61
-  ) {
-    return { mime: "image/gif", ext: "gif" };
-  }
-  return { mime: "image/png", ext: "png" };
-}
-
 /** Parse an "a:b" aspect ratio string into its numeric value, or undefined. */
 function aspectToNumber(ratio: string): number | undefined {
   const m = /^(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)$/.exec(ratio.trim());
@@ -519,7 +474,8 @@ async function uploadImageBytes(
   bytes: Uint8Array,
   signal?: AbortSignal
 ): Promise<string> {
-  const { mime, ext } = sniffImageType(bytes);
+  const mime = detectImageMime(bytes);
+  const ext = extForImageMime(mime) ?? "png";
   const fileName = `upload-${Date.now()}.${ext}`;
   const form = new FormData();
   form.append("file", new Blob([new Uint8Array(bytes)], { type: mime }), fileName);

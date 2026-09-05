@@ -51,20 +51,6 @@ import {
   type ProviderMeta
 } from "./providerCatalog";
 
-// Icons for the decorative logo wall. Provider-card icons live on the catalog
-// entries themselves.
-import openaiIcon from "../../icons/providers/openai.svg";
-import anthropicIcon from "../../icons/providers/anthropic.svg";
-import geminiColorIcon from "../../icons/providers/gemini-color.svg";
-import mistralColorIcon from "../../icons/providers/mistral-color.svg";
-import groqIcon from "../../icons/providers/groq.svg";
-import huggingfaceColorIcon from "../../icons/providers/huggingface-color.svg";
-import xaiIcon from "../../icons/providers/xai.svg";
-import deepseekColorIcon from "../../icons/providers/deepseek-color.svg";
-import cohereColorIcon from "../../icons/providers/cohere-color.svg";
-import falColorIcon from "../../icons/providers/fal-color.svg";
-import replicateIcon from "../../icons/providers/replicate.svg";
-import elevenlabsIcon from "../../icons/providers/elevenlabs.svg";
 import { docsLink, docsUrl } from "../../config/docsLinks";
 
 // For multi-field credentials, find the parent provider (the one with fields array)
@@ -484,21 +470,31 @@ export const ProviderCard = memo(function ProviderCard({
 /* ------------------------------------------------------------------ */
 
 // A curated row of recognizable provider logos, shown at the top of the page
-// to make the empty/first-run state feel alive. Purely decorative.
-const HERO_LOGOS: Array<{ name: string; icon: string; mono?: boolean }> = [
-  { name: "OpenAI", icon: openaiIcon, mono: true },
-  { name: "Anthropic", icon: anthropicIcon, mono: true },
-  { name: "Gemini", icon: geminiColorIcon },
-  { name: "Mistral", icon: mistralColorIcon },
-  { name: "Groq", icon: groqIcon, mono: true },
-  { name: "HuggingFace", icon: huggingfaceColorIcon },
-  { name: "xAI", icon: xaiIcon, mono: true },
-  { name: "DeepSeek", icon: deepseekColorIcon },
-  { name: "Cohere", icon: cohereColorIcon },
-  { name: "FAL", icon: falColorIcon },
-  { name: "Replicate", icon: replicateIcon, mono: true },
-  { name: "ElevenLabs", icon: elevenlabsIcon, mono: true }
+// to make the empty/first-run state feel alive. Purely decorative; the name,
+// icon and mono flag come from the catalog entry so they cannot drift from the
+// card below.
+const HERO_LOGO_KEYS = [
+  "OPENAI_API_KEY",
+  "ANTHROPIC_API_KEY",
+  "GEMINI_API_KEY",
+  "MISTRAL_API_KEY",
+  "GROQ_API_KEY",
+  "HF_TOKEN",
+  "XAI_API_KEY",
+  "DEEPSEEK_API_KEY",
+  "COHERE_API_KEY",
+  "FAL_API_KEY",
+  "REPLICATE_API_TOKEN",
+  "ELEVENLABS_API_KEY"
 ];
+
+const HERO_LOGOS: Array<{ name: string; icon: string; mono?: boolean }> =
+  HERO_LOGO_KEYS.flatMap((key) => {
+    const meta = getProviderMeta(key);
+    return meta?.icon
+      ? [{ name: meta.name, icon: meta.icon, mono: meta.mono }]
+      : [];
+  });
 
 const ProviderHero = memo(function ProviderHero({ theme }: { theme: Theme }) {
   return (

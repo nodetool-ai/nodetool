@@ -27,13 +27,27 @@
 
 import { z } from "zod";
 import { isRecord, isString } from "./predicates.js";
-import type { DocumentOp } from "./document-ops.js";
 import {
   supervisorDecisionSchema,
-  supervisorEscalationSchema,
-  type SupervisorDecision,
-  type SupervisorEscalation
+  supervisorEscalationSchema
 } from "./supervisor.js";
+import {
+  clientToolManifestMessageInSchema,
+  pingMessageInSchema,
+  pongMessageOutSchema,
+  rendererRegisteredMessageOutSchema,
+  rendererToolCallMessageOutSchema,
+  rendererToolResultMessageInSchema,
+  resourceChangeMessageOutSchema,
+  rpcErrorPayloadOutSchema,
+  rpcResponseMessageOutSchema,
+  systemStatsMessageOutSchema,
+  toolResultMessageInSchema,
+  type GenerateMediaRequest,
+  type UnifiedCommandType
+} from "./ws-commands.js";
+
+export type { GenerateMediaRequest, UnifiedCommandType };
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -733,31 +747,6 @@ export type ProviderCallFailed = z.infer<typeof providerCallFailedSchema>;
 
 export type WebSocketMode = "binary" | "text";
 
-export type UnifiedCommandType =
-  | "run_job"
-  | "reconnect_job"
-  | "cancel_job"
-  | "update_node_properties"
-  | "get_status"
-  | "set_mode"
-  | "set_permission_mode"
-  | "clear_models"
-  | "stream_input"
-  | "end_input_stream"
-  | "chat_message"
-  | "resume_chat"
-  | "list_chat_turns"
-  | "inference"
-  | "stop"
-  | "list_workflows"
-  | "get_workflow"
-  | "list_assets"
-  | "get_asset"
-  | "list_nodes"
-  | "get_node"
-  | "generate_media"
-  | "generate_text"
-  | "transcribe_audio";
 
 /**
  * Read-only RPC commands that require a `request_id` and return a single
@@ -850,38 +839,6 @@ export interface GetNodeRequest {
   node_type: string;
 }
 
-/**
- * Request payload for the `generate_media` RPC. Drives the sketch editor's
- * direct-generation layers (text-to-image and image-to-image) and the
- * timeline's direct-gen clips (text-to-video, text-to-audio) — bypasses
- * the chat path so no thread/Message row is created. Returns
- * `{ asset_ids: string[] }`.
- */
-export interface GenerateMediaRequest {
-  /**
-   * "image" = text-to-image; "image_edit" = image-to-image;
-   * "video" = text-to-video; "audio" = text-to-speech.
-   */
-  mode: "image" | "image_edit" | "video" | "audio";
-  provider: string;
-  model: string;
-  prompt: string;
-  /** Required when mode === "image_edit". Bytes are loaded server-side. */
-  source_asset_id?: string;
-  width?: number;
-  height?: number;
-  strength?: number;
-  num_inference_steps?: number;
-  /** Number of variations to request (1..8, clamped server-side). */
-  variations?: number;
-  /** TTS voice id, when mode === "audio". */
-  voice?: string;
-  /** Playback rate for TTS, when mode === "audio". */
-  speed?: number;
-  /** Requested audio container ("mp3", "wav", "flac", "ogg", "aac", "pcm"). */
-  audio_format?: string;
-}
-
 export interface GenerateMediaResponse {
   asset_ids: string[];
 }
@@ -902,103 +859,61 @@ export interface GenerateTextResponse {
   data: Record<string, unknown> | null;
 }
 
-export interface RpcErrorPayload {
-  code: string;
-  message: string;
-  retryable: boolean;
-  apiCode?: string | null;
-  trpcCode?: string | null;
-}
+/**
+ * The frames below are declared once, as Zod schemas in `ws-commands.ts`, and
+ * derived here. The schemas are what the server actually validates on the
+ * wire; a type restated by hand beside them drifted twice before (see
+ * `RpcResponseMessage.command` and `ClientToolManifestMessage.tools`).
+ */
+
+export type RpcErrorPayload = z.infer<typeof rpcErrorPayloadOutSchema>;
 
 /**
  * Single response frame for RPC commands. Either `result` or `error` is
  * set; both are absent only for malformed requests where the server
  * couldn't route the response (those use the legacy `{ error }` shape).
+ *
+ * `command` is a plain string, not `UnifiedCommandType`: `runRpc` in
+ * `packages/websocket/src/session/commands.ts` takes the command name as a
+ * string and echoes whatever it was called with.
  */
-export interface RpcResponseMessage {
-  type: "rpc_response";
-  request_id: string;
-  command: UnifiedCommandType;
-  result?: unknown;
-  error?: RpcErrorPayload;
-}
+export type RpcResponseMessage = z.infer<typeof rpcResponseMessageOutSchema>;
 
-export interface PingMessage {
-  type: "ping";
-  ts?: number;
-}
+export type PingMessage = z.infer<typeof pingMessageInSchema>;
 
-export interface PongMessage {
-  type: "pong";
-  ts: number;
-}
+export type PongMessage = z.infer<typeof pongMessageOutSchema>;
 
-export interface ClientToolManifestMessage {
-  type: "client_tools_manifest";
-  tools: Array<Record<string, unknown>>;
-}
+/**
+ * `tools` is optional and its elements are `unknown`: the receiver
+ * (`websocket-client-session.ts`) does `Array.isArray(data.tools) ? … : []`
+ * and validates each entry itself.
+ */
+export type ClientToolManifestMessage = z.infer<
+  typeof clientToolManifestMessageInSchema
+>;
 
 /** Server-assigned identity for the browser/editor on this /ws connection. */
-export interface RendererRegisteredMessage {
-  type: "renderer_registered";
-  renderer_id: string;
-}
+export type RendererRegisteredMessage = z.infer<
+  typeof rendererRegisteredMessageOutSchema
+>;
 
 /** A frontend-tool request that is independent of a chat thread. */
-export interface RendererToolCallMessage {
-  type: "renderer_tool_call";
-  renderer_id: string;
-  tool_call_id: string;
-  name: string;
-  args: unknown;
-}
-
-interface RendererToolResultMessageBase {
-  type: "renderer_tool_result";
-  renderer_id: string;
-  tool_call_id: string;
-  elapsed_ms?: number;
-}
+export type RendererToolCallMessage = z.infer<
+  typeof rendererToolCallMessageOutSchema
+>;
 
 /** Result for a connection-level frontend-tool request. */
-export type RendererToolResultMessage = RendererToolResultMessageBase &
-  (
-    | {
-        ok: true;
-        result?: unknown;
-        error?: never;
-      }
-    | {
-        ok: false;
-        result?: never;
-        error: string;
-      }
-  );
+export type RendererToolResultMessage = z.infer<
+  typeof rendererToolResultMessageInSchema
+>;
 
-export interface ToolResultMessage {
-  type: "tool_result";
-  tool_call_id?: string;
-  [key: string]: unknown;
-}
+export type ToolResultMessage = z.infer<typeof toolResultMessageInSchema>;
 
-export interface SystemStatsMessage {
-  type: "system_stats";
-  stats: Record<string, unknown>;
-}
+export type SystemStatsMessage = z.infer<typeof systemStatsMessageOutSchema>;
 
-export interface ResourceChangeMessage {
-  type: "resource_change";
-  event: "created" | "updated" | "deleted";
-  resource_type: string;
-  resource: Record<string, unknown>;
-  /**
-   * The per-merge-unit ops the write was made with, when the writer attached
-   * them (`meta.ops` on the model write). A change without ops — another tab's
-   * autosave, a CLI restore — is treated by editors as a whole-document
-   * replacement.
-   */
-  ops?: DocumentOp[];
-}
+export type ResourceChangeMessage = z.infer<
+  typeof resourceChangeMessageOutSchema
+>;
 
 export type WebSocketControlMessage =
   | PingMessage
@@ -1125,76 +1040,16 @@ export function isJobUpdate(value: unknown): value is JobUpdate {
 export function isNodeUpdate(value: unknown): value is NodeUpdate {
   return hasType(value, "node_update");
 }
-export function isGenerationComplete(
-  value: unknown
-): value is GenerationComplete {
-  return hasType(value, "generation_complete");
-}
-export function isNodeProgress(value: unknown): value is NodeProgress {
-  return hasType(value, "node_progress");
-}
-export function isEdgeUpdate(value: unknown): value is EdgeUpdate {
-  return hasType(value, "edge_update");
-}
 export function isOutputUpdate(value: unknown): value is OutputUpdate {
   return hasType(value, "output_update");
 }
-export function isSaveUpdate(value: unknown): value is SaveUpdate {
-  return hasType(value, "save_update");
-}
-export function isBinaryUpdate(value: unknown): value is BinaryUpdate {
-  return hasType(value, "binary_update");
-}
-export function isLogUpdate(value: unknown): value is LogUpdate {
-  return hasType(value, "log_update");
-}
-export function isNotification(value: unknown): value is Notification {
-  return hasType(value, "notification");
-}
-export function isErrorMessage(value: unknown): value is ErrorMessage {
-  return hasType(value, "error");
-}
-export function isToolCallUpdate(value: unknown): value is ToolCallUpdate {
-  return hasType(value, "tool_call_update");
-}
-export function isToolResultUpdate(value: unknown): value is ToolResultUpdate {
-  return hasType(value, "tool_result_update");
-}
-export function isTaskUpdate(value: unknown): value is TaskUpdate {
-  return hasType(value, "task_update");
-}
-export function isStepResult(value: unknown): value is StepResult {
-  return hasType(value, "step_result");
-}
-export function isPlanningUpdate(value: unknown): value is PlanningUpdate {
-  return hasType(value, "planning_update");
-}
 export function isChunk(value: unknown): value is Chunk {
   return hasType(value, "chunk");
-}
-export function isPrediction(value: unknown): value is Prediction {
-  return hasType(value, "prediction");
-}
-export function isLLMCallUpdate(value: unknown): value is LLMCallUpdate {
-  return hasType(value, "llm_call");
 }
 export function isProviderCallFailed(
   value: unknown
 ): value is ProviderCallFailed {
   return hasType(value, "provider_call_failed");
-}
-export function isTodoUpdate(value: unknown): value is TodoUpdate {
-  return hasType(value, "todo_update");
-}
-export function isSupervisorEscalation(
-  value: unknown
-): value is SupervisorEscalation {
-  return hasType(value, "supervisor_escalation");
-}
-export function isSupervisorDecision(
-  value: unknown
-): value is SupervisorDecision {
-  return hasType(value, "supervisor_decision");
 }
 
 /** True when `value` is a structurally valid `ProcessingMessage`. */
@@ -1230,23 +1085,3 @@ export function sanitizeMemoryUris<T>(value: T): T {
   return value;
 }
 
-/**
- * Encode a BinaryUpdate into a single Buffer/Uint8Array suitable for
- * binary WebSocket transmission.
- * Format: JSON header (node_id + output_name) + null byte + raw binary.
- * Mirrors Python's BinaryUpdate.encode().
- */
-export function encodeBinaryUpdate(update: BinaryUpdate): Uint8Array {
-  const header = JSON.stringify({
-    type: update.type,
-    node_id: update.node_id,
-    output_name: update.output_name
-  });
-  const headerBytes = new TextEncoder().encode(header);
-  const separator = new Uint8Array([0]); // null byte separator
-  const result = new Uint8Array(headerBytes.length + 1 + update.binary.length);
-  result.set(headerBytes, 0);
-  result.set(separator, headerBytes.length);
-  result.set(update.binary, headerBytes.length + 1);
-  return result;
-}

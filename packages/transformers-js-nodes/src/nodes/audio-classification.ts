@@ -13,6 +13,10 @@ import {
   loadAudioSamples,
   normalizeOption
 } from "../transformers-base.js";
+import type {
+  AudioRefLike,
+  HfModelRef
+} from "../transformers-base.js";
 import { defaultRepoFor } from "../recommended-models.js";
 
 const TJS_TYPE = "tjs.audio_classification";
@@ -52,7 +56,7 @@ export class AudioClassificationNode extends BaseNode {
     title: "Audio",
     description: "Audio clip to classify."
   })
-  declare audio: any;
+  declare audio: AudioRefLike;
 
   @prop({
     type: TJS_TYPE,
@@ -60,7 +64,7 @@ export class AudioClassificationNode extends BaseNode {
     title: "Model",
     description: "Transformers.js model (ONNX-compatible)."
   })
-  declare model: any;
+  declare model: HfModelRef;
 
   @prop({
     type: "int",
@@ -70,7 +74,7 @@ export class AudioClassificationNode extends BaseNode {
     min: 1,
     max: 100
   })
-  declare top_k: any;
+  declare top_k: number;
 
   @prop({
     type: "int",
@@ -80,7 +84,7 @@ export class AudioClassificationNode extends BaseNode {
     min: 8000,
     max: 48000
   })
-  declare sampling_rate: any;
+  declare sampling_rate: number;
 
   @prop({
     type: "enum",
@@ -89,7 +93,7 @@ export class AudioClassificationNode extends BaseNode {
     description: "Model dtype / quantization level.",
     values: DTYPE_VALUES
   })
-  declare dtype: any;
+  declare dtype: string;
 
   @prop({
     type: "enum",
@@ -98,7 +102,7 @@ export class AudioClassificationNode extends BaseNode {
     description: "Inference device.",
     values: DEVICE_VALUES
   })
-  declare device: any;
+  declare device: string;
 
   async process(
     context?: ProcessingContext

@@ -22,7 +22,11 @@ import { join } from "node:path";
 const RAW_RGBA_MIME = "image/x-raw-rgba";
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
-vi.mock("@nodetool-ai/protocol", () => ({
+// Spread the real module first: `src/predicates.ts` re-exports the workspace
+// predicates from here, so a mock that only names the two symbols this file
+// stubs would leave `isRecord` and friends undefined at every call site.
+vi.mock("@nodetool-ai/protocol", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   RAW_RGBA_MIME: "image/x-raw-rgba",
   isRawRgbaImage: (value: unknown) => {
     if (!value || typeof value !== "object") return false;

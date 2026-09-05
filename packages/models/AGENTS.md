@@ -21,22 +21,42 @@ Use `getDbType()` → `"sqlite" | "postgres"` to branch on dialect if unavoidabl
    - `src/schema/<table>.ts` — `sqliteTable`, e.g. `text("my_col")`
    - `src/schema-pg/<table>.ts` — `pgTable`, same column name and semantics
 
-2. Update `TABLE_COLUMNS` in `src/db.ts` (the additive-migration map) so SQLite users get the column automatically without a migration file.
+2. Add the column to the `CREATE TABLE` for that table in `getCreateSchemaSql()` in
+   `src/db.ts` — the DDL a fresh SQLite database is created from.
 
 3. Add a `declare my_col: ...` field to the model class.
 
 4. Update the constructor to set a default: `this.my_col ??= null;`
 
-5. If needed, add a migration entry in `src/migrations/versions.ts`.
+5. Add a migration entry in `src/migrations/versions.ts`. This is not optional on
+   PostgreSQL: `initPostgresDb` creates no tables and runs no column repair, so the
+   migration chain is the whole cloud schema.
+
+`TABLE_COLUMNS` — the map `addMissingColumns()` uses to repair a legacy SQLite install —
+is **derived** from the Drizzle tables, so there is nothing to update there.
+
+Three tests relate the remaining declaration sites, each by building the schema and
+reading it back rather than by matching text:
+
+- `tests/schema-parity.test.ts` — bootstrap DDL and `TABLE_COLUMNS` against the Drizzle
+  tables: column names, types, NOT NULL, primary keys, defaults, indexes, foreign keys.
+  Forget step 2 and it fails.
+- `tests/schema-dialect-parity.test.ts` — `src/schema/` against `src/schema-pg/`: tables,
+  columns, constraints, defaults, index names. Forget half of step 1 and it fails.
+- `tests/migration-schema-parity.test.ts` — applies the migration chain to a real
+  database and checks it creates every Drizzle table and column. Forget step 5 and it
+  fails.
 
 ## Adding a New Model
 
 1. Create `src/schema/<name>.ts` (SQLite) and `src/schema-pg/<name>.ts` (PostgreSQL).
 2. Export both from their respective `index.ts` barrel files.
-3. Add the table to `TABLE_COLUMNS` in `src/db.ts`.
-4. Add the `CREATE TABLE IF NOT EXISTS` and index SQL to `getCreateSchemaSql()` in `src/db.ts`.
-5. Create `src/<model-name>.ts` extending `DBModel`. Set `static override table = <sqliteTable>`.
-6. Export the new model from `src/index.ts`.
+3. Add the `CREATE TABLE IF NOT EXISTS` and index SQL to `getCreateSchemaSql()` in `src/db.ts`,
+   and a `createsTables` migration entry in `src/migrations/versions.ts` — the DDL covers a
+   fresh SQLite database, the migration covers every existing one and all of PostgreSQL.
+   `TABLE_COLUMNS` is derived from the schema and needs no edit.
+4. Create `src/<model-name>.ts` extending `DBModel`. Set `static override table = <sqliteTable>`.
+5. Export the new model from `src/index.ts`.
 
 ## Writing Query Methods
 
@@ -133,4 +153,6 @@ When writing tests for new models, call `initTestDb()` in `beforeEach` to reset 
 - Annotate `.map()` callbacks explicitly: `(r: Record<string, unknown>) => new Model(r)` — `getDb()` returns `any`, so TypeScript cannot infer row types.
 - Never import from `dist/`. Use `@nodetool-ai/models` for cross-package imports.
 - Keep `src/schema/` (SQLite) and `src/schema-pg/` (PostgreSQL) in sync — columns, names, and types must match.
-- `TABLE_COLUMNS` in `db.ts` must stay in sync with `src/schema/` to support additive SQLite migrations.
+- `TABLE_COLUMNS` in `db.ts` is generated from `src/schema/` — never hand-edit it. The DDL in
+  `getCreateSchemaSql()` is still hand-written and must match `src/schema/`;
+  `tests/schema-parity.test.ts` enforces that.

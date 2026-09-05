@@ -18,10 +18,11 @@ const path = getNodeBuiltinSync<typeof import("node:path")>(
 const fs = getNodeBuiltinSync<typeof import("node:fs")>(
   "node:fs"
 ) as typeof import("node:fs");
-import { ProcessingContext, InMemoryStorageAdapter, MemoryCache } from "./context.js";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
+import { ProcessingContext, MemoryCache } from "./context.js";
 import { FakeProvider } from "./providers/fake-provider.js";
 import type { BaseProvider } from "./providers/base-provider.js";
-import { isString } from "./type-predicates.js";
+import { isString } from "@nodetool-ai/protocol";
 
 export interface FakeContextOptions {
   /**

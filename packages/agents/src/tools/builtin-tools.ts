@@ -5,7 +5,8 @@
  * `ProcessingContext` — not tied to a specific NodeRegistry, sandbox,
  * workspace, or vector collection. These are the tools the WebSocket server
  * exposes by name; any name listed here can be selected from the chat / agent
- * frontends and resolved via `resolveTool(name)` without additional context.
+ * frontends; any name listed here becomes a `Tool` with nothing but a
+ * `ProcessingContext`.
  *
  * Capabilities that need something a run must carry (a node registry, a vector
  * collection, a provider map, an example catalog) are NOT listed here; the
@@ -28,7 +29,6 @@
  */
 
 import type { Tool } from "./base-tool.js";
-import { registerTool } from "./tool-registry.js";
 import { toolForCapabilityName } from "../capabilities/lazy-tool.js";
 import { isYtDlpEnabled } from "../yt-dlp-gate.js";
 import { isBrowserEnabled } from "../browser-gate.js";
@@ -284,33 +284,4 @@ export function availableBuiltinToolNames(): readonly string[] {
   if (!isBlenderEnabled()) dropped.add("render_model3d");
   if (dropped.size === 0) return BUILTIN_TOOL_NAMES;
   return BUILTIN_TOOL_NAMES.filter((name) => !dropped.has(name));
-}
-
-let registeredNames: string[] | null = null;
-
-/**
- * Register all built-in tools in the global tool registry, so that
- * `resolveTool(name)` returns a usable instance for any built-in by name.
- *
- * Truly idempotent: only the first call instantiates and registers; later
- * calls return the cached list of names without touching the registry.
- * Returns the array of registered tool names.
- */
-export function registerBuiltinTools(): string[] {
-  if (registeredNames) return registeredNames;
-  const names: string[] = [];
-  for (const tool of getBuiltinTools()) {
-    registerTool(tool);
-    names.push(tool.name);
-  }
-  registeredNames = names;
-  return names;
-}
-
-/**
- * Reset the one-time registration guard. Test-only — production code
- * should never call this.
- */
-export function resetBuiltinToolsRegistration(): void {
-  registeredNames = null;
 }

@@ -438,9 +438,11 @@ Always prefer `getSecret` over `process.env` — secrets are user-scoped and may
 const resp = await context.httpGet("https://api.example.com/data", {
   headers: { Authorization: `Bearer ${apiKey}` }
 });
-await context.httpPost(url, { json: { foo: 1 } });
-// Also: httpPut, httpPatch, httpDelete, httpHead
+await context.httpRequestWithRetries("POST", url, { json: { foo: 1 } });
 ```
+
+`httpGet` is the GET shorthand. Every other verb goes through
+`httpRequestWithRetries`, which carries the shared retry and backoff policy.
 
 ### Cache
 

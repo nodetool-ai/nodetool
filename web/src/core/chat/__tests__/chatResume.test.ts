@@ -12,6 +12,9 @@ jest.mock("../../../lib/tools/frontendTools", () => ({
 
 jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
   globalWebSocketManager: {
+    setResumeJobIdProvider: jest.fn(),
+    subscribe: jest.fn(() => () => undefined),
+    subscribeEvent: jest.fn(() => () => undefined),
     send: jest.fn().mockResolvedValue(undefined),
     ensureConnection: jest.fn().mockResolvedValue(undefined)
   }

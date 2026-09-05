@@ -32,15 +32,8 @@ export * from "./auth.js";
 export * from "./remote-users.js";
 export * from "./api-user-manager.js";
 
-// Admin operations
+// Remote admin API client
 export * from "./admin-client.js";
-export * from "./admin-operations.js";
-export * from "./admin-routes.js";
 
-// Sync and workflow
-export * from "./sync.js";
+// Workflow sync
 export * from "./workflow-syncer.js";
-
-// Routes (framework-agnostic handlers)
-export * from "./storage-routes.js";
-export * from "./collection-routes.js";

@@ -18,6 +18,8 @@ export const accessSync = notInBrowser("accessSync");
 export const writeFileSync = notInBrowser("writeFileSync");
 export const openSync = notInBrowser("openSync");
 export const writeSync = notInBrowser("writeSync");
+export const readSync = notInBrowser("readSync");
+export const closeSync = notInBrowser("closeSync");
 export const createReadStream = notInBrowser("createReadStream");
 export const createWriteStream = notInBrowser("createWriteStream");
 export const cpSync = notInBrowser("cpSync");
@@ -58,6 +60,8 @@ export default {
   writeFileSync,
   openSync,
   writeSync,
+  readSync,
+  closeSync,
   createReadStream,
   createWriteStream,
   cpSync,

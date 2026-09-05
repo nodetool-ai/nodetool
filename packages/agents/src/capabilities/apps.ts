@@ -45,8 +45,6 @@ import type {
 import type { AppBridgeDocument } from "../app-build/bridge.js";
 import { resolveProjectId } from "./project-scope.js";
 
-export { DEBUG_APP_SCHEMA } from "./apps.specs.js";
-
 const debugApp: CapabilityExport = {
   spec: debugAppSpec,
   impl: async (run, params) => {

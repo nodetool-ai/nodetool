@@ -1,7 +1,7 @@
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import { NodeMetadata } from "../stores/ApiTypes";
-import { isString } from "./typePredicates";
+import { isRecord, isString } from "./typePredicates";
 
 /**
  * Content-addressed node hashing for run-subgraph caching.
@@ -63,9 +63,6 @@ const hash = (str: string): string => {
     (h1 >>> 0).toString(16).padStart(8, "0")
   );
 };
-
-const isRecord = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null && !Array.isArray(v);
 
 /**
  * An asset-valued property: identify it by its durable id/uri so an in-memory
