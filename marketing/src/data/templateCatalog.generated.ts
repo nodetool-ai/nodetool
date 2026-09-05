@@ -361,14 +361,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "relight-a-portrait",
-        "name": "Relight a Portrait",
-        "description": "Change where the light comes from after the shot. The subject and framing stay put while the lighting is re-rendered from a description.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
         "slug": "relight-a-product-for-a-seasonal-campaign",
         "name": "Relight a Product for a Seasonal Campaign",
         "description": "Same product, different season, no reshoot. Relighting keeps the geometry and materials and changes only where the light comes from.",
@@ -380,14 +372,6 @@ export const templateCatalog: CatalogCategory[] = [
         "slug": "restyle-a-photo-as-an-illustration",
         "name": "Restyle a Photo as an Illustration",
         "description": "Keep the composition, change the medium. Strength is the dial: low preserves the photograph, high redraws it into something new.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "slug": "restyle-a-still-with-flux-dev",
-        "name": "Restyle a Still with FLUX Dev",
-        "description": "Image-to-image at moderate strength: keep the composition, change the medium. Strength is the dial — low preserves the original, high redraws it.",
         "tags": [
           "image"
         ]
@@ -445,14 +429,6 @@ export const templateCatalog: CatalogCategory[] = [
         "slug": "vectorize-a-generated-logo",
         "name": "Vectorize a Generated Logo",
         "description": "Generate a flat mark, then trace it to true vector art. Raster generators cannot produce clean vectors, so the two steps are separate: FLUX draws the shape, Recraft converts it to SVG paths that scale without resampling.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "slug": "vectorize-a-photo-you-provide",
-        "name": "Vectorize a Photo You Provide",
-        "description": "Trace an image you supply into SVG paths. Useful for turning a scanned sketch or a flat render into artwork you can recolour and scale.",
         "tags": [
           "image"
         ]
@@ -678,15 +654,6 @@ export const templateCatalog: CatalogCategory[] = [
         "description": "Fps reads the rate off the header without decoding the video. Cheap enough to run before deciding whether a clip needs conforming.",
         "tags": [
           "video"
-        ]
-      },
-      {
-        "slug": "resize-for-vertical",
-        "name": "Resize for Vertical",
-        "description": "Rescale footage to a vertical 1080x1920 frame for stories and shorts. This stretches rather than crops, so start from a shot framed with room to lose. Runs locally through ffmpeg - no API key and no per-run cost.",
-        "tags": [
-          "video",
-          "utility"
         ]
       },
       {
@@ -1230,24 +1197,12 @@ export const templateCatalog: CatalogCategory[] = [
     "description": "Campaign assets and content at scale — ad creative, social calendars, SEO copy, and outreach.",
     "templates": [
       {
-        "slug": "a-boolean-constant",
-        "name": "A Boolean Constant",
-        "description": "The smallest possible graph, and a real one: a pinned flag feeding a branch, so a switch lives in the workflow rather than in someone's head.",
-        "tags": []
-      },
-      {
         "slug": "a-campaign-concept-from-a-brief",
         "name": "A Campaign Concept from a Brief",
         "description": "A brief becomes a concept with a line, a visual idea and three channel executions. Asking for the executions is what forces the concept to be one that survives contact with a media plan.",
         "tags": [
           "text"
         ]
-      },
-      {
-        "slug": "a-fixed-point-in-time",
-        "name": "A Fixed Point in Time",
-        "description": "A pinned timestamp with an explicit timezone. Anything that has to be reproducible needs the date fixed in the graph rather than read off the clock at run time.",
-        "tags": []
       },
       {
         "slug": "a-webhook-that-answers",
@@ -1321,12 +1276,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "count-and-measure",
-        "name": "Count and Measure",
-        "description": "An integer and a float constant side by side — the pinned numbers a workflow reads as settings: how many, and how much.",
-        "tags": []
-      },
-      {
         "slug": "does-this-text-mention-the-deadline",
         "name": "Does This Text Mention the Deadline",
         "description": "A containment check returning a boolean — the branch condition for a workflow that routes on what a document says.",
@@ -1382,14 +1331,6 @@ export const templateCatalog: CatalogCategory[] = [
         "slug": "five-headlines-for-a-landing-page",
         "name": "Five Headlines for a Landing Page",
         "description": "Headline variants for a test. Asking for a stated angle per line makes the set genuinely different rather than five rewordings of the first idea.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "how-long-is-this-string",
-        "name": "How Long Is This String",
-        "description": "Character length as a first-class value, so downstream nodes can branch on size without a code node.",
         "tags": [
           "text"
         ]
@@ -1499,14 +1440,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "strip-accents-for-a-search-key",
-        "name": "Strip Accents for a Search Key",
-        "description": "Fold accented characters down to ASCII so a lookup key matches regardless of how the name was typed.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
         "slug": "subject-lines-worth-testing",
         "name": "Subject Lines Worth Testing",
         "description": "Eight subject lines split between curiosity and clarity — the two strategies that behave differently enough to be worth an A/B, unlike eight variations on one.",
@@ -1532,14 +1465,6 @@ export const templateCatalog: CatalogCategory[] = [
         "slug": "tidy-up-messy-text",
         "name": "Tidy Up Messy Text",
         "description": "Three cleanups in a row — collapse runs of whitespace, strip punctuation, then lowercase. The order matters, which is the point of showing it as a chain rather than one node.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "title-case-a-heading",
-        "name": "Title Case a Heading",
-        "description": "Casing helpers, applied to a heading. Small, but these are the nodes you reach for constantly when formatting model output for display.",
         "tags": [
           "text"
         ]
@@ -1583,22 +1508,6 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": [
           "text"
         ]
-      },
-      {
-        "slug": "validate-a-postcode-shape",
-        "name": "Validate a Postcode Shape",
-        "description": "RegexValidate answers whether text matches a pattern — a guard to run before you trust user input or model output as structured data.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "wrap-a-value-in-quotes",
-        "name": "Wrap a Value in Quotes",
-        "description": "SurroundWith builds a fragment from a value — the small assembly step between a model's answer and a template that expects delimiters.",
-        "tags": [
-          "text"
-        ]
       }
     ]
   },
@@ -1607,24 +1516,6 @@ export const templateCatalog: CatalogCategory[] = [
     "label": "Learning & Data",
     "description": "Study aids and data workflows — flashcards, learning paths, summaries, and structured generation.",
     "templates": [
-      {
-        "slug": "a-constant-dictionary",
-        "name": "A Constant Dictionary",
-        "description": "Emit a fixed key/value map. The usual way to hold configuration a graph reads in several places, so the values live in one node instead of being retyped into three.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "a-fixed-date",
-        "name": "A Fixed Date",
-        "description": "Emit a fixed calendar date. Looks trivial and is - it exists so a scheduled workflow can be tested against a known date instead of whatever today happens to be.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
       {
         "slug": "a-run-button-for-any-job",
         "name": "A Run Button for Any Job",
