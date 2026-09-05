@@ -20,13 +20,8 @@
 
 import { z } from "zod";
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
-import {
-  FileStorageAdapter,
-  PERMISSION_GATE_CONTEXT_KEY,
-  parseWithTypeCoercion,
-  ProcessingContext,
-  headlessGate
-} from "@nodetool-ai/runtime";
+import { PERMISSION_GATE_CONTEXT_KEY, parseWithTypeCoercion, ProcessingContext, headlessGate } from "@nodetool-ai/runtime";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import {
   emptyJsScriptDocument,
   JS_SCRIPT_MAX_TIMEOUT_SECONDS,

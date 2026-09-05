@@ -476,7 +476,12 @@ export class JobExecutionManager {
     const active = this.activeJobs.get(jobId);
     if (active?.runSession) return active.runSession;
     if (!this.adoptedJobIds.has(jobId)) return null;
-    return jobRunRegistry.get(this.session.requireUserId(), jobId);
+    // No user means no connect(), so this session can own no registered run.
+    // "Nothing running" is the honest answer; main looked the job up under a
+    // hardcoded "1", which could return another user's run.
+    const userId = this.session.userId;
+    if (userId === null) return null;
+    return jobRunRegistry.get(userId, jobId);
   }
 
   /**
@@ -503,7 +508,9 @@ export class JobExecutionManager {
         }
       };
     }
-    const registered = jobRunRegistry.get(this.session.requireUserId(), jobId);
+    const lookupUserId = this.session.userId;
+    if (lookupUserId === null) return null;
+    const registered = jobRunRegistry.get(lookupUserId, jobId);
     if (registered && registered.status === "running") {
       return { hooks: registered.hooks, workflowId: registered.workflowId };
     }
@@ -649,9 +656,13 @@ export class JobExecutionManager {
     for (const job of this.activeJobs.values()) {
       if (!job.runSession) sessionless += 1;
     }
+    // A session with no user has no registered runs to count; the local
+    // counters are still the honest answer. Same reasoning as the registry
+    // lookups above.
+    const countUserId = this.session.userId;
     return (
       this.startingJobs +
-      jobRunRegistry.countRunning(this.session.requireUserId()) +
+      (countUserId === null ? 0 : jobRunRegistry.countRunning(countUserId)) +
       sessionless
     );
   }
@@ -667,10 +678,11 @@ export class JobExecutionManager {
     if (!workflowId) {
       return 0;
     }
-    let count = jobRunRegistry.countRunningForWorkflow(
-      this.session.requireUserId(),
-      workflowId
-    );
+    const workflowUserId = this.session.userId;
+    let count =
+      workflowUserId === null
+        ? 0
+        : jobRunRegistry.countRunningForWorkflow(workflowUserId, workflowId);
     for (const job of this.activeJobs.values()) {
       if (!job.runSession && job.workflowId === workflowId && !job.finished) {
         count++;
@@ -2480,7 +2492,12 @@ export class JobExecutionManager {
     const model = isString(outbound.model) ? outbound.model : "";
     if (!provider || !model) return;
     const priced = priceGeneration({
-      userId: this.session.requireUserId(),
+      // Pricing is a pure function of provider, model, quantity and params —
+      // `priceGeneration` never reads `userId`, so this must not demand one.
+      // `requireUserId()` here turned cost accounting into a throw on any
+      // session that has not connected. The guard stays on the paths that do
+      // key on identity: registry lookups and spend reservation.
+      userId: this.session.userId ?? "",
       provider,
       model,
       capability,

@@ -61,7 +61,7 @@ import {
   extractInjectableImages,
   stripImagePayload
 } from "@nodetool-ai/agents";
-import { FileStorageAdapter } from "@nodetool-ai/runtime";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import { uiToolSchemas } from "@nodetool-ai/protocol";
 import { loadConfiguredProviders } from "./configured-providers.js";

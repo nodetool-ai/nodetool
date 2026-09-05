@@ -52,13 +52,8 @@ import { registerFalNodes } from "@nodetool-ai/fal-nodes";
 import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
 import { registerReveNodes } from "@nodetool-ai/reve-nodes";
 import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
-import {
-  ProcessingContext,
-  FileStorageAdapter,
-  createLocalWorkspace,
-  initTelemetry,
-  onPythonBridgeCreated
-} from "@nodetool-ai/runtime";
+import { ProcessingContext, createLocalWorkspace, initTelemetry, onPythonBridgeCreated } from "@nodetool-ai/runtime";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type { AssetOutputMode } from "@nodetool-ai/runtime";
 import { mkdirSync } from "node:fs";
 import {

@@ -1650,6 +1650,27 @@ export async function handleApiRequest(
     if (response) return response;
   }
 
+  // Restored: the REST-to-tRPC migration on this branch dropped this route as a
+  // side effect, with no tRPC replacement, and its suite (ws-phase2, T-WS-8)
+  // still covers it. Whether to retire a public endpoint is a deliberate
+  // decision, not a refactor's leftover. Note it never consulted storage —
+  // `available` has always been unconditionally true.
+  if (pathname === "/api/users/validate_username") {
+    if (request.method !== "GET") {
+      return errorResponse(405, "Method not allowed");
+    }
+    const url = new URL(request.url);
+    const username = url.searchParams.get("username")?.trim() ?? null;
+    if (username === null) {
+      return errorResponse(400, "username parameter is required");
+    }
+    if (!username) {
+      return errorResponse(400, "username cannot be empty");
+    }
+    const valid = /^[a-zA-Z0-9_-]{3,32}$/.test(username);
+    return jsonResponse({ valid, available: true });
+  }
+
   if (pathname === "/api/nodes/metadata" || pathname === "/api/node/metadata") {
     return handleNodeMetadata(request, options);
   }

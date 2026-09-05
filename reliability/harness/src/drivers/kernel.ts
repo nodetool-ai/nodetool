@@ -30,11 +30,8 @@ import {
   type RawGraphInput
 } from "@nodetool-ai/execution";
 import { createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
-import {
-  InMemoryStorageAdapter,
-  ProcessingContext,
-  listRegisteredProviderIds
-} from "@nodetool-ai/runtime";
+import { ProcessingContext, listRegisteredProviderIds } from "@nodetool-ai/runtime";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import type { Journey, JourneyInteraction } from "../core/journey.js";
 import {
   makeFrame,
