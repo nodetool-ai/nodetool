@@ -8,7 +8,8 @@
 import { randomUUID } from "node:crypto";
 import { createHash } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
-import { Column, eq, getTableColumns, Table } from "drizzle-orm";
+import { Column, eq, getTableColumns, like, Table } from "drizzle-orm";
+import { isShortResourceId } from "@nodetool-ai/protocol";
 import { getDb } from "./db.js";
 
 const log = createLogger("nodetool.models");
@@ -191,8 +192,30 @@ export abstract class DBModel {
     const pkCol = getTableColumn(table, this.primaryKey);
     const rows = await db.select().from(table).where(eq(pkCol, key)).limit(1);
     const row = rows[0];
-    if (!row) return null;
-    return new this(row as Record<string, unknown>) as T;
+    if (row) return new this(row as Record<string, unknown>) as T;
+    // A short resource id (`resource-id.ts` in protocol) resolves by prefix.
+    // Only the `id` column, only the exact short length, and only after the
+    // exact lookup missed: a numeric key or a table keyed by something else
+    // never reaches this query. Two matches is an error, not a guess.
+    if (
+      this.primaryKey !== "id" ||
+      typeof key !== "string" ||
+      !isShortResourceId(key)
+    ) {
+      return null;
+    }
+    const matches = await db
+      .select()
+      .from(table)
+      .where(like(pkCol, `${key}%`))
+      .limit(2);
+    if (matches.length > 1) {
+      throw new Error(
+        `short id "${key}" matches more than one row; use the full id`
+      );
+    }
+    const match = matches[0];
+    return match ? (new this(match as Record<string, unknown>) as T) : null;
   }
 
   beforeSave(): void {}

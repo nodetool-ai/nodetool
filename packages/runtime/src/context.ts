@@ -18,6 +18,7 @@ import type {
   ProviderCost
 } from "@nodetool-ai/protocol";
 import {
+  isShortResourceId,
   packageAssetHttpPath,
   parsePackageAssetUri
 } from "@nodetool-ai/protocol";
@@ -2887,14 +2888,17 @@ export class ProcessingContext {
           try {
             const listing = await adapter.list(prefix);
             const bareEndsWithThumb = bareId.endsWith("_thumb");
+            // A short resource id is a prefix of the stored id, so the key
+            // continues with more hex before its extension; a full id is
+            // followed by the extension itself.
+            const needle = isShortResourceId(bareId) ? bareId : `${bareId}.`;
             const match = listing.entries.find((entry) => {
               const key = entry.key;
               const lastSegment = key.split("/").pop() ?? "";
               // A hierarchical id (`user-1/image`) lives in the full key, a flat
               // id in the last segment — match against whichever form fits.
               const matches =
-                key.startsWith(`${bareId}.`) ||
-                lastSegment.startsWith(`${bareId}.`);
+                key.startsWith(needle) || lastSegment.startsWith(needle);
               if (!matches) {
                 return false;
               }

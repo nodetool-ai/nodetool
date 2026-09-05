@@ -27,6 +27,7 @@ import {
   stripImagePayload
 } from "../tools/image-injection.js";
 import type { JsonValue } from "../utils/json-parser.js";
+import { compactResourceIds } from "./compact-ids.js";
 import { GRAPH_MODEL_GLOBALS } from "./graph-model.js";
 import { NODETOOL_API_GLOBALS } from "./nodetool-api.js";
 import { TOOLS_PRELUDE } from "./tools-prelude.js";
@@ -233,7 +234,7 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
         });
         return { ok: false, error: `tools.${name}: ${errorPayload}` };
       }
-      const transferable = toTransferable(result);
+      const transferable = toTransferable(compactResourceIds(result));
       options.onToolResult?.({
         name,
         toolCallId,

@@ -116,6 +116,9 @@ Rules:
   along in the same observation, costs nothing, and turns a wrong guess into
   something you can fix inside the same program instead of a probe action.
 - A failed tool call throws; use try/catch when partial failure is acceptable.
+- Resource ids (\`id\`, \`workflow_id\`, \`asset://…\`) arrive as 12-character
+  prefixes of the stored id. Pass them back as they are: every capability
+  accepts the prefix or the full id.
 - Top-level \`await\` and \`return\` work.`;
 
 const actionContractStep = (

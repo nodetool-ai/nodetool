@@ -1157,6 +1157,17 @@ describe("ProcessingContext.resolveAssetBytes", () => {
     expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([4, 5, 6]));
   });
 
+  it("resolves a 12-char short id to the stored full id under the owner prefix", async () => {
+    const full = "0192a7f3c4e5b6d7a8f9e0c1b2d3e4f5";
+    const storage = new InMemoryStorageAdapter();
+    await storage.store(`user-7/${full}.png`, new Uint8Array([3, 1, 4]), "image/png");
+    await storage.store(`user-7/${full}_thumb.png`, new Uint8Array([9]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "user-7", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes(`asset://${full.slice(0, 12)}.png`);
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([3, 1, 4]));
+  });
+
   it("resolves the owner-prefixed key by exact lookup, without listing", async () => {
     // Regression: assets are written under `<userId>/<id>.<ext>`, but only the
     // flat and `assets/` candidates were probed. Every reference missed all
