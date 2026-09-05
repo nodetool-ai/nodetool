@@ -1,0 +1,34 @@
+[
+  {
+    "path": "assets/images/bg_far.png",
+    "asset_id": "bg_far"
+  },
+  {
+    "path": "assets/sprites/enemy_walker.png",
+    "asset_id": "enemy_walker"
+  },
+  {
+    "path": "assets/audio/music_level.ogg",
+    "asset_id": "music_level"
+  },
+  {
+    "path": "assets/sprites/player.png",
+    "asset_id": "player"
+  },
+  {
+    "path": "assets/audio/sfx_hurt.ogg",
+    "asset_id": "sfx_hurt"
+  },
+  {
+    "path": "assets/audio/sfx_jump.ogg",
+    "asset_id": "sfx_jump"
+  },
+  {
+    "path": "assets/tiles/tiles_ground.png",
+    "asset_id": "tiles_ground"
+  },
+  {
+    "path": "assets/images/title.png",
+    "asset_id": "title"
+  }
+]

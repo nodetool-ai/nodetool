@@ -44,6 +44,7 @@ export * as creative from "./nodetool.creative.js";
 export * as data from "./nodetool.data.js";
 export * as document from "./nodetool.document.js";
 export * as fake from "./nodetool.fake.js";
+export * as game from "./nodetool.game.js";
 export * as generators from "./nodetool.generators.js";
 export * as image from "./nodetool.image.js";
 export * as input from "./nodetool.input.js";

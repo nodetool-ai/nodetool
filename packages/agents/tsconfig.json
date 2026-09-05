@@ -17,6 +17,12 @@
       "path": "../config"
     },
     {
+      "path": "../godot"
+    },
+    {
+      "path": "../godot-templates"
+    },
+    {
       "path": "../image-editor"
     },
     {

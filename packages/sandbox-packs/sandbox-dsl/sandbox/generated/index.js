@@ -43,6 +43,7 @@ import * as creative from "./nodetool.creative.js";
 import * as data from "./nodetool.data.js";
 import * as document from "./nodetool.document.js";
 import * as fake from "./nodetool.fake.js";
+import * as game from "./nodetool.game.js";
 import * as generators from "./nodetool.generators.js";
 import * as image from "./nodetool.image.js";
 import * as input from "./nodetool.input.js";
@@ -80,6 +81,7 @@ export {
   data,
   document,
   fake,
+  game,
   geminiAudio,
   geminiImage,
   geminiText,

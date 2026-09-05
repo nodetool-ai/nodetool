@@ -1,0 +1,13 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://19enof69rgagu"
+
+[deps]
+
+source_file="res://assets/audio/sfx_jump.ogg"
+
+[params]
+
+loop=false

@@ -48,6 +48,7 @@ import { jobsSpecs } from "./jobs.specs.js";
 import { jsScriptsSpecs } from "./js-scripts.specs.js";
 import { mediaSpecs } from "./media.specs.js";
 import { memorySpecs } from "./memory.specs.js";
+import { godotSpecs } from "./godot.specs.js";
 import { model3dSpecs } from "./model3d.specs.js";
 import { modelsSpecs } from "./models.specs.js";
 import { nodesSpecs } from "./nodes.specs.js";
@@ -93,6 +94,7 @@ const MODULES: Readonly<Record<string, Loader>> = {
   timelines: () => import("./timelines.js").then((m) => m.module),
   sketches: () => import("./sketches.js").then((m) => m.module),
   model3d: () => import("./model3d.js").then((m) => m.module),
+  godot: () => import("./godot.js").then((m) => m.module),
   scripts: () => import("./scripts.js").then((m) => m.module),
   storyboards: () => import("./storyboards.js").then((m) => m.module),
   entities: () => import("./entities.js").then((m) => m.module),
@@ -140,6 +142,7 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "timelines",
   "sketches",
   "model3d",
+  "godot",
   "scripts",
   "storyboards",
   "entities",
@@ -192,6 +195,7 @@ const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
   timelines: timelinesSpecs,
   sketches: sketchesSpecs,
   model3d: model3dSpecs,
+  godot: godotSpecs,
   scripts: scriptsSpecs,
   storyboards: storyboardsSpecs,
   entities: entitiesSpecs,

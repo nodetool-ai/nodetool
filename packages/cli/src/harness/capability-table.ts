@@ -2170,6 +2170,36 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "list_game_templates",
+    module: "godot",
+    impl: "packages/agents/src/capabilities/godot.ts",
+    contract: "85f4fc8fe398",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-godot.test.ts",
+    ],
+  },
+  {
+    name: "export_godot_project",
+    module: "godot",
+    impl: "packages/agents/src/capabilities/godot.ts",
+    contract: "f9f830100b22",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-godot.test.ts",
+    ],
+  },
+  {
+    name: "verify_godot_project",
+    module: "godot",
+    impl: "packages/agents/src/capabilities/godot.ts",
+    contract: "692f31ffcb66",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-godot.test.ts",
+    ],
+  },
+  {
     name: "list_scripts",
     module: "scripts",
     impl: "packages/agents/src/capabilities/scripts.ts",

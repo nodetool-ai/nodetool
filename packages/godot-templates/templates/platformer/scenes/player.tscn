@@ -1,0 +1,29 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="SpriteFrames" path="res://assets/sprites/player.tres" id="2_frames"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_jump.wav" id="3_jump"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_hurt.wav" id="4_hurt"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(20, 30)
+
+[node name="Player" type="CharacterBody2D" groups=["player"]]
+script = ExtResource("1_player")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("2_frames")
+animation = &"idle"
+autoplay = "idle"
+
+[node name="Collision" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_body")
+
+[node name="JumpSfx" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_jump")
+
+[node name="HurtSfx" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_hurt")
+
+[node name="Camera" type="Camera2D" parent="."]
+position_smoothing_enabled = true
