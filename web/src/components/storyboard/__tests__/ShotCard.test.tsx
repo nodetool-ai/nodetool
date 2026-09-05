@@ -1,5 +1,5 @@
 import React from "react";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Shot, ShotStatus } from "@nodetool-ai/protocol";
@@ -50,6 +50,15 @@ jest.mock("../../node/ImageRefPreview", () => ({
   )
 }));
 
+const generateKeyframeMock = jest.fn(async () => undefined);
+const generateClipMock = jest.fn(async () => undefined);
+jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
+  useGenerateShot: () => ({
+    generateKeyframe: generateKeyframeMock,
+    generateClip: generateClipMock
+  })
+}));
+
 import ShotCard from "../ShotCard";
 import { useStoryboardGenerationStore } from "../../../stores/storyboard/StoryboardGenerationStore";
 
@@ -72,6 +81,100 @@ const renderCard = (
       <ShotCard boardId="board-1" shot={shot} {...props} />
     </ThemeProvider>
   );
+
+describe("ShotCard retry", () => {
+  beforeEach(() => {
+    generateKeyframeMock.mockClear();
+    generateClipMock.mockClear();
+    act(() => useStoryboardGenerationStore.setState({ shotJobs: {} }));
+  });
+
+  it("re-runs the failed step from the card without selecting it", async () => {
+    const onSelect = jest.fn();
+    const shot = makeShot({ status: "failed" });
+    act(() => {
+      useStoryboardGenerationStore.setState({
+        shotJobs: {
+          [shot.id]: {
+            shotId: shot.id,
+            boardId: "board-1",
+            jobId: "job-1",
+            kind: "clip",
+            status: "failed",
+            errorMessage: "Provider rejected the request"
+          }
+        }
+      });
+    });
+    renderCard(shot, { onSelect });
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(generateClipMock).toHaveBeenCalledWith("board-1", shot);
+    expect(generateKeyframeMock).not.toHaveBeenCalled();
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("retries the still when no job state says which step failed", async () => {
+    const shot = makeShot({ status: "failed" });
+    renderCard(shot);
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(generateKeyframeMock).toHaveBeenCalledWith("board-1", shot);
+  });
+
+  it("offers no retry on a read-only board", () => {
+    renderCard(makeShot({ status: "failed" }), { readOnly: true });
+    expect(
+      screen.queryByRole("button", { name: "Retry" })
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("ShotCard drag to reorder", () => {
+  it("reports drag start, hover and drop by shot id when draggable", () => {
+    const onDragStart = jest.fn();
+    const onDragEnter = jest.fn();
+    const onDrop = jest.fn();
+    renderCard(makeShot(), {
+      onSelect: jest.fn(),
+      draggable: true,
+      onDragStart,
+      onDragEnter,
+      onDrop
+    });
+    const card = screen.getByRole("button", { name: "1. Opening" });
+    expect(card).toHaveAttribute("draggable", "true");
+
+    const dataTransfer = {
+      setData: jest.fn(),
+      effectAllowed: "",
+      dropEffect: ""
+    };
+    fireEvent.dragStart(card, { dataTransfer });
+    fireEvent.dragEnter(card, { dataTransfer });
+    fireEvent.dragOver(card, { dataTransfer });
+    fireEvent.drop(card, { dataTransfer });
+
+    expect(onDragStart).toHaveBeenCalledWith("shot-1");
+    expect(onDragEnter).toHaveBeenCalledWith("shot-1");
+    expect(onDrop).toHaveBeenCalledWith("shot-1");
+    expect(dataTransfer.dropEffect).toBe("move");
+  });
+
+  it("is not draggable by default", () => {
+    renderCard(makeShot(), { onSelect: jest.fn() });
+    expect(
+      screen.getByRole("button", { name: "1. Opening" })
+    ).not.toHaveAttribute("draggable");
+  });
+
+  it("marks the card a drop target", () => {
+    renderCard(makeShot(), { onSelect: jest.fn(), dropTarget: true });
+    expect(screen.getByRole("button", { name: "1. Opening" })).toHaveAttribute(
+      "data-drop-target",
+      "true"
+    );
+  });
+});
 
 describe("ShotCard", () => {
   it("shows the shot number, its length, and the action line", () => {

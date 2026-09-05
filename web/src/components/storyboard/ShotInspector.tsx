@@ -3,7 +3,8 @@
  *
  * The selected shot's detail, docked under the shot grid. Its top bar is the
  * selection footer — which shot is selected, where it appears in the
- * project's sibling documents, and the two actions that re-render it. Below
+ * project's sibling documents, and the render actions, with the step the shot
+ * has not taken yet (a still before a clip) as the one filled button. Below
  * that sits everything the grid card no longer shows: the action line, the
  * camera and cost meta, the cast chips, the takes browser, the script lines
  * the shot covers, and the reorder/delete controls.
@@ -357,6 +358,9 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
 
   const meta = STATUS_META[shot.status];
   const isGenerating = isShotGenerating(shot);
+  // The clip is animated from a still, so a shot without one (and not set to
+  // render straight from its prompt) has the still as its next step.
+  const needsStill = !shot.keyframe && shotRenderMode(shot) !== "direct";
   const camera = cameraLine(shot);
   const shotName = `${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`;
   const shotNumber = `SH ${String(shot.index + 1).padStart(2, "0")}`;
@@ -671,13 +675,25 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
               Revise take
             </EditorButton>
             <EditorButton
-              variant="contained"
-              color="primary"
-              onClick={handleGenerateClip}
-              disabled={
-                isGenerating ||
-                (!shot.keyframe && shotRenderMode(shot) !== "direct")
+              variant={needsStill ? "contained" : "text"}
+              color={needsStill ? "primary" : undefined}
+              onClick={handleGenerateStill}
+              disabled={isGenerating}
+              sx={needsStill ? undefined : quietActionSx}
+              title={
+                shot.keyframe
+                  ? "Generate another still for this shot"
+                  : "Generate the still the clip is animated from"
               }
+            >
+              {shot.keyframe ? "New still" : "Generate still"}
+            </EditorButton>
+            <EditorButton
+              variant={needsStill ? "text" : "contained"}
+              color={needsStill ? undefined : "primary"}
+              onClick={handleGenerateClip}
+              disabled={isGenerating || needsStill}
+              sx={needsStill ? quietActionSx : undefined}
               title={
                 shot.keyframe
                   ? "Animate the selected still into a clip"
@@ -688,6 +704,15 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
             >
               {shot.clip ? "Re-render clip" : "Render clip"}
             </EditorButton>
+            {(shot.keyframe || shot.clip) && (
+              <ToolbarIconButton
+                icon={<MoreHorizIcon sx={{ fontSize: "1em" }} />}
+                tooltip="More actions"
+                ariaLabel="More shot actions"
+                onClick={handleOpenMenu}
+                disabled={isGenerating}
+              />
+            )}
           </>
         )}
         {onClose && (
@@ -862,10 +887,7 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
                 onClick={handleToggleDurationSource}
               />
             )}
-            <ShotCostLine
-              estimate={costEstimate}
-              sx={{ mb: SPACING.micro }}
-            />
+            <ShotCostLine estimate={costEstimate} sx={{ mb: SPACING.micro }} />
           </FlexRow>
         )}
 
@@ -906,27 +928,6 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
         <ShotTakesGallery boardId={boardId} shot={shot} readOnly={readOnly} />
 
         <ShotScriptPanel boardId={boardId} shot={shot} readOnly={readOnly} />
-
-        {!readOnly && (
-          <FlexRow gap={SPACING.xs} align="center" wrap>
-            <EditorButton
-              onClick={handleGenerateStill}
-              disabled={isGenerating}
-              sx={shot.keyframe ? quietActionSx : undefined}
-            >
-              {shot.keyframe ? "New still" : "Generate still"}
-            </EditorButton>
-            {(shot.keyframe || shot.clip) && (
-              <ToolbarIconButton
-                icon={<MoreHorizIcon sx={{ fontSize: "1em" }} />}
-                tooltip="More actions"
-                ariaLabel="More shot actions"
-                onClick={handleOpenMenu}
-                disabled={isGenerating}
-              />
-            )}
-          </FlexRow>
-        )}
       </FlexColumn>
 
       <EditorMenu
