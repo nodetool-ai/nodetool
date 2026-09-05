@@ -38,7 +38,12 @@ jest.mock("../../../trpc/client", () => ({
 import { useGenerateShot, __resetStartingShotsForTests } from "../useGenerateShot";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useStoryboardGenerationStore } from "../../../stores/storyboard/StoryboardGenerationStore";
-import type { Entity, Shot } from "@nodetool-ai/protocol";
+import {
+  clipPrompt,
+  directClipPrompt,
+  keyframePrompt
+} from "@nodetool-ai/protocol";
+import type { Entity, Scene, Shot } from "@nodetool-ai/protocol";
 
 const BOARD = "board-sf";
 const shot: Shot = {
@@ -394,5 +399,107 @@ describe("a start that fails", () => {
     const job = useStoryboardGenerationStore.getState().shotJobs[clipShot.id];
     expect(job?.status).toBe("failed");
     expect(job?.errorMessage).toBe("socket closed");
+  });
+});
+
+describe("prompts come from the shared shot-prompt module", () => {
+  // The hook must not compose prompts of its own: what it sends has to equal
+  // what `@nodetool-ai/protocol` composes, or the same board renders
+  // differently in the editor than through the headless capabilities.
+  const scene: Scene = {
+    type: "scene",
+    id: "sc-1",
+    slugline: "EXT. HEADLAND — DUSK",
+    lighting: "last light, sodium spill from the road"
+  };
+  const STYLE = "grainy 16mm, muted palette";
+  const directed: Shot = {
+    type: "shot",
+    id: "shot-directed",
+    index: 0,
+    action: "a lighthouse",
+    scene_id: "sc-1",
+    camera: {
+      framing: "wide",
+      angle: "low angle",
+      lens: "85mm",
+      movement: "slow push in",
+      equipment: "steadicam"
+    },
+    motion: "the beam sweeps across the water",
+    dialogue: "Nobody is coming",
+    notes: "reshoot at golden hour",
+    duration_seconds: 6,
+    status: "planned"
+  };
+
+  let boardId = "";
+  const seed = (shotToRender: Shot): void => {
+    boardId = `board-prompt-${shotToRender.id}`;
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(boardId);
+    store.setScreenplay(boardId, {
+      type: "screenplay",
+      id: "sp-prompt",
+      title: "Film",
+      style_bible: STYLE,
+      scenes: [scene],
+      shots: []
+    });
+    store.upsertShot(boardId, shotToRender);
+    useStoryboardGenerationStore.getState().clear(shotToRender.id);
+  };
+
+  const promptSent = (): string => {
+    const frame = send.mock.calls[0][0] as { data?: { prompt?: unknown } };
+    return String(frame.data?.prompt ?? "");
+  };
+
+  beforeEach(() => {
+    send.mockReset();
+    send.mockResolvedValue(undefined);
+    __resetStartingShotsForTests();
+    mockEntities.length = 0;
+    mockImageModels.length = 0;
+  });
+
+  it("sends the module's still prompt", async () => {
+    seed(directed);
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateKeyframe(boardId, directed);
+    });
+    expect(promptSent()).toBe(
+      keyframePrompt(directed, { scene, style: STYLE })
+    );
+  });
+
+  it("sends the module's keyframe-mode clip prompt", async () => {
+    const withStill: Shot = {
+      ...directed,
+      id: "shot-directed-clip",
+      status: "keyframe_ready",
+      keyframe: { type: "image", uri: "asset://still-3", asset_id: "still-3" }
+    };
+    seed(withStill);
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateClip(boardId, withStill);
+    });
+    expect(promptSent()).toBe(clipPrompt(withStill));
+  });
+
+  it("sends the module's direct clip prompt", async () => {
+    const direct: Shot = {
+      ...directed,
+      id: "shot-directed-direct",
+      render_mode: "direct"
+    };
+    seed(direct);
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateClip(boardId, direct);
+    });
+    expect(promptSent()).toBe(directClipPrompt(direct, { scene, style: STYLE }));
   });
 });

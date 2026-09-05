@@ -366,34 +366,6 @@ const wireEntity = (entity: Entity) => ({
   reference_images: entity.reference_images?.slice(0, 1) ?? []
 });
 
-/** Still prompt: the shot's action, its framing, and the board style. */
-function keyframePrompt(shot: Shot, style: string): string {
-  const parts = [shot.action.trim()];
-  if (shot.camera?.framing) parts.push(`${shot.camera.framing} shot`);
-  if (style.trim()) parts.push(style.trim());
-  return parts.filter((p) => p.length > 0).join(", ");
-}
-
-/** Clip prompt: what moves, then what is in frame. */
-const clipPrompt = (shot: Shot): string =>
-  [shot.motion, shot.action]
-    .filter((p): p is string => !!p && p.trim().length > 0)
-    .join(", ");
-
-/**
- * Direct-mode clip prompt. No still carries the look into the render, so the
- * prompt has to: framing and board style ride along with the action and the
- * motion.
- */
-function directClipPrompt(shot: Shot, style: string): string {
-  const parts = [shot.action, shot.motion, style];
-  if (shot.camera?.framing) parts.splice(1, 0, `${shot.camera.framing} shot`);
-  return parts
-    .filter((p): p is string => !!p && p.trim().length > 0)
-    .map((p) => p.trim())
-    .join(", ");
-}
-
 interface ModelChoice {
   provider: string;
   model: string;
@@ -697,7 +669,9 @@ const renderStoryboardStills: CapabilityExport = {
       };
     }
 
-    const { entitiesForShot } = await import("@nodetool-ai/protocol");
+    const { entitiesForShot, keyframePrompt, sceneForShot } = await import(
+      "@nodetool-ai/protocol"
+    );
     const { inferImageMime } = await import("../tools/asset-persist.js");
     const style =
       isString(params["style"])
@@ -724,7 +698,10 @@ const renderStoryboardStills: CapabilityExport = {
               capability: "text_to_image",
               model: model.model,
               params: {
-                prompt: keyframePrompt(shot, style),
+                prompt: keyframePrompt(shot, {
+                  scene: sceneForShot(shot, doc.screenplay?.scenes),
+                  style
+                }),
                 entities: entitiesForShot(shot, entities).map(wireEntity),
                 aspect_ratio: aspectRatio
               }
@@ -832,7 +809,8 @@ const renderStoryboardClips: CapabilityExport = {
     }
 
     const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
-    const { entitiesForShot } = await import("@nodetool-ai/protocol");
+    const { clipPrompt, directClipPrompt, entitiesForShot, sceneForShot } =
+      await import("@nodetool-ai/protocol");
     const { effectiveShotDuration, scriptLinesById } = await import(
       "@nodetool-ai/timeline"
     );
@@ -887,7 +865,10 @@ const renderStoryboardClips: CapabilityExport = {
           const predictionParams: Record<string, unknown> = {
             prompt:
               mode === "direct"
-                ? directClipPrompt(shot, style)
+                ? directClipPrompt(shot, {
+                    scene: sceneForShot(shot, doc.screenplay?.scenes),
+                    style
+                  })
                 : clipPrompt(shot),
             entities: entitiesForShot(shot, entities).map(wireEntity),
             aspect_ratio: aspectRatio,

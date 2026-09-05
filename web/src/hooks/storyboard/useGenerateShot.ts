@@ -22,7 +22,14 @@
 
 import { useCallback } from "react";
 import type { Entity, Shot } from "@nodetool-ai/protocol";
-import { injectEntities, shotRenderMode } from "@nodetool-ai/protocol";
+import {
+  clipPrompt,
+  directClipPrompt,
+  injectEntities,
+  keyframePrompt,
+  sceneForShot,
+  shotRenderMode
+} from "@nodetool-ai/protocol";
 import {
   globalWebSocketManager
 } from "../../lib/websocket/GlobalWebSocketManager";
@@ -80,44 +87,6 @@ const assetIdFromRef = (ref: unknown): string | undefined => {
     return bare.slice(0, bare.lastIndexOf("."));
   }
   return undefined;
-};
-
-/**
- * Compose an image prompt from a shot's action, camera framing, and board
- * style. Entity mentions ride as `entity://` tokens appended to the prompt;
- * the server expands them (descriptor block + routed reference images).
- */
-const keyframePrompt = (shot: Shot, style: string): string => {
-  const parts = [shot.action.trim()];
-  if (shot.camera?.framing) {
-    parts.push(`${shot.camera.framing} shot`);
-  }
-  if (style.trim().length > 0) {
-    parts.push(style.trim());
-  }
-  return parts.filter((p) => p.length > 0).join(", ");
-};
-
-const clipPrompt = (shot: Shot): string =>
-  [shot.motion, shot.action]
-    .filter((p) => !!p && p.trim().length > 0)
-    .join(", ");
-
-/**
- * Direct-mode clip prompt. No still carries the look into the render, so the
- * prompt has to: framing and board style ride along with the action and the
- * motion (mirrors the headless `render_storyboard_clips` tool).
- */
-const directClipPrompt = (shot: Shot, style: string): string => {
-  const parts: (string | undefined)[] = [shot.action];
-  if (shot.camera?.framing) {
-    parts.push(`${shot.camera.framing} shot`);
-  }
-  parts.push(shot.motion, style);
-  return parts
-    .filter((p): p is string => !!p && p.trim().length > 0)
-    .map((p) => p.trim())
-    .join(", ");
 };
 
 /** Entity mentions on their own line; the server seasons the prompt with them. */
@@ -235,7 +204,10 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       const useEditModel =
         hasReferenceImage(entities) &&
         !!stillModel?.supported_tasks?.includes("image_to_image");
-      const basePrompt = keyframePrompt(shot, style);
+      const basePrompt = keyframePrompt(shot, {
+        scene: sceneForShot(shot, board?.screenplay?.scenes),
+        style
+      });
       const prompt =
         useEditModel && entities.length > 0
           ? `${basePrompt}${entityTokenSuffix(entities)}`
@@ -285,7 +257,10 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         shot
       );
       const prompt = isDirect
-        ? directClipPrompt(shot, board?.style ?? "")
+        ? directClipPrompt(shot, {
+            scene: sceneForShot(shot, board?.screenplay?.scenes),
+            style: board?.style ?? ""
+          })
         : clipPrompt(shot);
       const data: Record<string, unknown> = {
         mode: "video",

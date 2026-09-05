@@ -18,7 +18,9 @@
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import type {
+  Entity,
   ImageRef,
+  Scene,
   Screenplay,
   Shot,
   ShotStatus,
@@ -38,6 +40,10 @@ import type {
   LanguageModelValue,
   VideoModelValue
 } from "../ApiTypes";
+import {
+  sceneOrder,
+  scenesAreContiguous
+} from "../../lib/storyboard/sceneOrder";
 import {
   linkedShots,
   reprojectedShots,
@@ -73,6 +79,9 @@ export interface StoryboardBoard {
   /** Epoch ms of the last mutation; drives the sidebar's recency sort. */
   updatedAt: number;
 }
+
+/** The scene fields the surface edits; a scene carries no order of its own. */
+export type ScenePatch = Partial<Pick<Scene, "slugline" | "lighting">>;
 
 interface StoryboardStoreState {
   boards: Record<string, StoryboardBoard>;
@@ -215,13 +224,76 @@ interface StoryboardStoreState {
    * Returns the new shot's id, or null when the board is not in the store.
    */
   addShot: (boardId: string) => string | null;
-  /** Reorder shots to match `orderedIds`; re-stamps each shot's `index`. */
+  /**
+   * Insert a blank planned shot directly after `afterShotId`, in that shot's
+   * scene, and select it. An unknown or omitted `afterShotId` appends to the
+   * board. Returns the new shot's id, or null when the board is absent.
+   */
+  insertShot: (boardId: string, afterShotId?: string | null) => string | null;
+  /**
+   * Copy a shot directly after itself in the same scene (PRD § 7.7.6). The
+   * copy keeps the direction, media versions and selections; it drops the
+   * script link (`script_line_ids`, `script_text_snapshot`, `covered_by`) —
+   * the copy covers no script line — and reads `duration_source: "manual"`.
+   * Returns the copy's id, or null when the shot is absent.
+   */
+  duplicateShot: (boardId: string, shotId: string) => string | null;
+  /**
+   * Reorder shots to match `orderedIds`; re-stamps each shot's `index`. An
+   * order that splits a scene is refused outright (PRD § 7.7.3).
+   */
   reorderShots: (boardId: string, orderedIds: string[]) => void;
   /**
-   * Move one shot a single position earlier ("up") or later ("down") in the
-   * board order, re-stamping every shot's `index`. No-op at the ends.
+   * Move one shot to `position` within `sceneId` (`null` is the implicit
+   * header), clamped to that scene's length. Scene-creating: on a legacy board
+   * every unscened shot joins one new scene before the move lands.
    */
-  moveShot: (boardId: string, shotId: string, direction: "up" | "down") => void;
+  moveShot: (
+    boardId: string,
+    shotId: string,
+    sceneId: string | null,
+    position: number
+  ) => void;
+  /**
+   * Move one shot a single position earlier ("up") or later ("down") within
+   * its own scene, re-stamping every shot's `index`. No-op at the scene's
+   * ends — crossing a header is a {@link moveShot}, which names the scene.
+   */
+  nudgeShot: (
+    boardId: string,
+    shotId: string,
+    direction: "up" | "down"
+  ) => void;
+  /** Patch a scene's slugline/lighting. No-op when the scene is gone. */
+  updateScene: (boardId: string, sceneId: string, patch: ScenePatch) => void;
+  /**
+   * Add a scene after `afterSceneId` (or at the end), holding one blank shot.
+   * A scene with no shots has no position — the order is derived from its
+   * first shot — so it would neither render nor survive the next operation.
+   * Scene-creating: a legacy board's unscened shots join one new scene first.
+   * Returns the new scene's id, or null when the board is absent.
+   */
+  createScene: (boardId: string, afterSceneId?: string | null) => string | null;
+  /**
+   * Fold a scene's shots into the scene before it, dropping the empty scene.
+   * No-op on the first scene, which has nothing to merge into.
+   */
+  mergeSceneIntoPrevious: (boardId: string, sceneId: string) => void;
+  /**
+   * Apply a style preset (PRD § 7.7.5): the chosen entity replaces every other
+   * `style` entity on the board and its descriptor becomes `style`. Character,
+   * location and prop selections are untouched; a per-shot exclusion of a
+   * style entity is dropped, since a style applies board-wide. Renders nothing.
+   *
+   * `entities` is the resolved library the ids are read against — the store
+   * holds ids, and the kinds and descriptors live in a server query the
+   * caller already has.
+   */
+  setStylePreset: (
+    boardId: string,
+    entityId: string,
+    entities: readonly Entity[]
+  ) => void;
   selectShot: (boardId: string, shotId: string | null) => void;
 
   getBoard: (id: string) => StoryboardBoard | undefined;
@@ -327,6 +399,131 @@ export const sameMediaRef = (
  */
 const renumberShots = (shots: Shot[]): Shot[] =>
   shots.map((shot, i) => (shot.index === i ? shot : { ...shot, index: i }));
+
+/** The board's scenes. They live on the screenplay; the board reads them. */
+const boardScenes = (board: StoryboardBoard): Scene[] =>
+  board.screenplay?.scenes ?? [];
+
+/**
+ * Write `scenes` back onto the board. A hand-built board (shots added without
+ * a Director run) has no screenplay to hang them off, so the first scene
+ * materializes a minimal one. Its `shots` stays empty, matching the convention
+ * that `screenplay.shots` is what the Director wrote and `board.shots` is the
+ * live direction.
+ */
+const withScenes = (
+  board: StoryboardBoard,
+  scenes: Scene[]
+): StoryboardBoard => {
+  if (board.screenplay) {
+    return scenes === board.screenplay.scenes
+      ? board
+      : { ...board, screenplay: { ...board.screenplay, scenes } };
+  }
+  if (scenes.length === 0) {
+    return board;
+  }
+  return {
+    ...board,
+    screenplay: {
+      type: "screenplay",
+      id: crypto.randomUUID(),
+      title: board.title,
+      shots: [],
+      scenes
+    }
+  };
+};
+
+/** Put a shot in a scene, or out of every scene when `sceneId` is null. */
+const withScene = (shot: Shot, sceneId: string | null): Shot => {
+  if ((shot.scene_id ?? null) === sceneId) {
+    return shot;
+  }
+  if (sceneId === null) {
+    // Deleted rather than set to undefined: the key must not survive the
+    // document's JSON round-trip as an explicit null-ish scene.
+    const next = { ...shot };
+    delete next.scene_id;
+    return next;
+  }
+  return { ...shot, scene_id: sceneId };
+};
+
+/** Same shots in the same order — identity survives an unchanged renumber. */
+const sameShots = (a: readonly Shot[], b: readonly Shot[]): boolean =>
+  a.length === b.length && a.every((shot, i) => shot === b[i]);
+
+/**
+ * Finish a structural edit (PRD § 7.7.3): collect each scene's shots into one
+ * run in the order the board already renders them, re-stamp `index` to
+ * `0..n-1`, and drop every scene no shot is in. Returns null when neither
+ * shots nor scenes moved, so a no-op records no undo entry.
+ */
+const structural = (
+  board: StoryboardBoard,
+  shots: readonly Shot[],
+  scenes?: Scene[]
+): StoryboardBoard | null => {
+  const current = boardScenes(board);
+  const source = scenes ?? current;
+  // The caller's array order is the intent, so stamp it before grouping:
+  // `sceneOrder` reads `index`, which is stale until this runs.
+  const proposed = renumberShots([...shots]);
+  const next = renumberShots(
+    sceneOrder(proposed).flatMap((group) => group.shots)
+  );
+  const used = new Set(
+    next.map((shot) => shot.scene_id).filter((id): id is string => !!id)
+  );
+  const pruned = source.filter((scene) => used.has(scene.id));
+  const kept = pruned.length === source.length ? source : pruned;
+  const sameScenes =
+    kept.length === current.length &&
+    kept.every((scene, i) => scene === current[i]);
+  if (sameShots(next, board.shots) && sameScenes) {
+    return null;
+  }
+  return withScenes({ ...board, shots: next }, kept);
+};
+
+/**
+ * The first scene-creating operation on a legacy board puts every unscened
+ * shot in one new scene, in index order (PRD § 7.7.3). Returns the board's own
+ * shots and scenes when there is nothing unscened to assign.
+ */
+const materializeLegacyScene = (
+  board: StoryboardBoard
+): { shots: readonly Shot[]; scenes: Scene[]; sceneId: string | null } => {
+  const scenes = boardScenes(board);
+  if (!board.shots.some((shot) => !shot.scene_id)) {
+    return { shots: board.shots, scenes, sceneId: null };
+  }
+  const scene: Scene = {
+    type: "scene",
+    id: crypto.randomUUID(),
+    slugline: ""
+  };
+  return {
+    shots: board.shots.map((shot) =>
+      shot.scene_id ? shot : withScene(shot, scene.id)
+    ),
+    scenes: [...scenes, scene],
+    sceneId: scene.id
+  };
+};
+
+/** A blank planned shot. `index` is stamped by the reindex that follows. */
+const blankShot = (id: string, sceneId: string | null): Shot => {
+  const shot: Shot = {
+    type: "shot",
+    id,
+    index: 0,
+    action: "",
+    status: "planned"
+  };
+  return sceneId === null ? shot : withScene(shot, sceneId);
+};
 
 const patchShot = (
   board: StoryboardBoard,
@@ -887,11 +1084,16 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         if (!b.shots.some((s) => s.id === shotId)) {
           return null;
         }
-        return {
-          ...b,
-          shots: b.shots.filter((s) => s.id !== shotId),
-          activeShotId: b.activeShotId === shotId ? null : b.activeShotId
-        };
+        const next = structural(
+          b,
+          b.shots.filter((s) => s.id !== shotId)
+        );
+        return (
+          next && {
+            ...next,
+            activeShotId: b.activeShotId === shotId ? null : b.activeShotId
+          }
+        );
       })
     ),
 
@@ -924,40 +1126,246 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
       withBoard(state, boardId, (b) => {
         const byId = new Map(b.shots.map((s) => [s.id, s]));
         const reordered = orderedIds
-          .map((id, index) => {
-            const s = byId.get(id);
-            return s ? { ...s, index } : null;
-          })
+          .map((id) => byId.get(id) ?? null)
           .filter((s): s is Shot => s !== null);
         // Keep any shots not named in orderedIds, appended in their order.
         const named = new Set(orderedIds);
         for (const s of b.shots) {
           if (!named.has(s.id)) {
-            reordered.push({ ...s, index: reordered.length });
+            reordered.push(s);
           }
         }
-        return { ...b, shots: reordered };
+        if (!scenesAreContiguous(reordered)) {
+          // An order that splits a scene is not a board (PRD § 7.7.3). Refuse
+          // it rather than silently regrouping what the caller asked for.
+          return null;
+        }
+        return structural(b, reordered);
       })
     ),
 
-  moveShot: (boardId, shotId, direction) =>
+  insertShot: (boardId, afterShotId) => {
+    const board = get().boards[boardId];
+    if (!board) {
+      return null;
+    }
+    const after = board.shots.find((s) => s.id === afterShotId);
+    const id = crypto.randomUUID();
     set((state) =>
       withBoard(state, boardId, (b) => {
-        const from = b.shots.findIndex((s) => s.id === shotId);
-        if (from === -1) {
-          return null;
-        }
-        const to = direction === "up" ? from - 1 : from + 1;
-        if (to < 0 || to >= b.shots.length) {
-          return null;
-        }
+        const at = after
+          ? b.shots.findIndex((s) => s.id === after.id) + 1
+          : b.shots.length;
         const shots = [...b.shots];
-        const [moved] = shots.splice(from, 1);
-        shots.splice(to, 0, moved);
-        return {
-          ...b,
-          shots: renumberShots(shots)
+        shots.splice(at, 0, blankShot(id, after?.scene_id ?? null));
+        const next = structural(b, shots);
+        return next && { ...next, activeShotId: id };
+      })
+    );
+    return id;
+  },
+
+  duplicateShot: (boardId, shotId) => {
+    const source = get().boards[boardId]?.shots.find((s) => s.id === shotId);
+    if (!source) {
+      return null;
+    }
+    const id = crypto.randomUUID();
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const at = b.shots.findIndex((s) => s.id === shotId);
+        if (at === -1) {
+          return null;
+        }
+        const copy: Shot = {
+          ...b.shots[at],
+          id,
+          // The copy covers no script line, so the link fields go with the
+          // original; an ERT read off a script line is now the user's own.
+          duration_source: "manual"
         };
+        delete copy.script_line_ids;
+        delete copy.script_text_snapshot;
+        delete copy.covered_by;
+        const shots = [...b.shots];
+        shots.splice(at + 1, 0, copy);
+        const next = structural(b, shots);
+        return next && { ...next, activeShotId: id };
+      })
+    );
+    return id;
+  },
+
+  moveShot: (boardId, shotId, sceneId, position) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        if (!b.shots.some((s) => s.id === shotId)) {
+          return null;
+        }
+        const seeded = materializeLegacyScene(b);
+        const targetSceneId = sceneId ?? seeded.sceneId;
+        const ordered = sceneOrder(seeded.shots).flatMap((g) => g.shots);
+        const from = ordered.findIndex((s) => s.id === shotId);
+        const moved = withScene(ordered[from], targetSceneId);
+        const rest = ordered.filter((s) => s.id !== shotId);
+        const run: number[] = [];
+        rest.forEach((s, i) => {
+          if ((s.scene_id ?? null) === targetSceneId) {
+            run.push(i);
+          }
+        });
+        // A target scene the move empties has no run to count from, so the
+        // shot holds its place and only changes scene.
+        const at =
+          run.length > 0
+            ? run[0] + Math.max(0, Math.min(position, run.length))
+            : Math.min(Math.max(from, 0), rest.length);
+        const shots = [...rest.slice(0, at), moved, ...rest.slice(at)];
+        return structural(b, shots, seeded.scenes);
+      })
+    ),
+
+  nudgeShot: (boardId, shotId, direction) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const groups = sceneOrder(b.shots);
+        const group = groups.find((g) => g.shots.some((s) => s.id === shotId));
+        if (!group) {
+          return null;
+        }
+        const from = group.shots.findIndex((s) => s.id === shotId);
+        const to = direction === "up" ? from - 1 : from + 1;
+        if (to < 0 || to >= group.shots.length) {
+          return null;
+        }
+        const swapped = [...group.shots];
+        swapped[from] = group.shots[to];
+        swapped[to] = group.shots[from];
+        return structural(
+          b,
+          groups.flatMap((g) => (g === group ? swapped : g.shots))
+        );
+      })
+    ),
+
+  updateScene: (boardId, sceneId, patch) =>
+    set((state) =>
+      withBoard(
+        state,
+        boardId,
+        (b) => {
+          const scenes = boardScenes(b);
+          const target = scenes.find((scene) => scene.id === sceneId);
+          if (!target) {
+            return null;
+          }
+          const keys = Object.keys(patch) as Array<keyof ScenePatch>;
+          if (keys.every((k) => Object.is(target[k], patch[k]))) {
+            return null;
+          }
+          return structural(
+            b,
+            b.shots,
+            scenes.map((scene) =>
+              scene.id === sceneId ? { ...scene, ...patch } : scene
+            )
+          );
+        },
+        // Fold a run of edits to one scene field (typing a slugline) into a
+        // single undo step, as updateShot does.
+        {
+          coalesceKey: `scene:${sceneId}:${Object.keys(patch).sort().join(",")}`
+        }
+      )
+    ),
+
+  createScene: (boardId, afterSceneId) => {
+    if (!get().boards[boardId]) {
+      return null;
+    }
+    const sceneId = crypto.randomUUID();
+    const shotId = crypto.randomUUID();
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const seeded = materializeLegacyScene(b);
+        const groups = sceneOrder(seeded.shots, seeded.scenes);
+        const after = groups.findIndex((g) => g.sceneId === afterSceneId);
+        const ordered = groups.flatMap((g) => g.shots);
+        // Right after the last shot of `afterSceneId`, so the new scene lands
+        // in the position its first shot's index gives it.
+        const at =
+          after === -1
+            ? ordered.length
+            : groups
+                .slice(0, after + 1)
+                .reduce((n, g) => n + g.shots.length, 0);
+        const shots = [...ordered];
+        shots.splice(at, 0, blankShot(shotId, sceneId));
+        const scene: Scene = { type: "scene", id: sceneId, slugline: "" };
+        const next = structural(b, shots, [...seeded.scenes, scene]);
+        return next && { ...next, activeShotId: shotId };
+      })
+    );
+    return sceneId;
+  },
+
+  mergeSceneIntoPrevious: (boardId, sceneId) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const groups = sceneOrder(b.shots, boardScenes(b));
+        const at = groups.findIndex((g) => g.sceneId === sceneId);
+        if (at <= 0) {
+          return null;
+        }
+        const into = groups[at - 1].sceneId;
+        // The emptied scene is dropped by the reindex that follows.
+        return structural(
+          b,
+          groups.flatMap((g) =>
+            g === groups[at] ? g.shots.map((s) => withScene(s, into)) : g.shots
+          )
+        );
+      })
+    ),
+
+  setStylePreset: (boardId, entityId, entities) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const chosen = entities.find((e) => e.id === entityId);
+        if (!chosen || chosen.kind !== "style") {
+          return null;
+        }
+        const styleIds = new Set(
+          entities.filter((e) => e.kind === "style").map((e) => e.id)
+        );
+        const entityIds = [
+          ...b.entityIds.filter((id) => !styleIds.has(id)),
+          entityId
+        ];
+        // A shot's explicit list is its whole selection, so a style missing
+        // from it reads as an exclusion. Styles are board-wide: put the chosen
+        // one back and drop the ones the board no longer carries.
+        const shots = b.shots.map((shot) => {
+          if (!shot.entity_ids) {
+            return shot;
+          }
+          const entity_ids = [
+            ...shot.entity_ids.filter((id) => !styleIds.has(id)),
+            entityId
+          ];
+          return entity_ids.length === shot.entity_ids.length &&
+            entity_ids.every((id, i) => id === shot.entity_ids?.[i])
+            ? shot
+            : { ...shot, entity_ids };
+        });
+        const unchanged =
+          b.style === chosen.descriptor &&
+          entityIds.length === b.entityIds.length &&
+          entityIds.every((id, i) => id === b.entityIds[i]) &&
+          sameShots(shots, b.shots);
+        return unchanged
+          ? null
+          : { ...b, style: chosen.descriptor, entityIds, shots };
       })
     ),
 
