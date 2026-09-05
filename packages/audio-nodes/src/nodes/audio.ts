@@ -1,6 +1,9 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type {
+  Chunk,
+  FolderRef,
   InputMode,
+  MusicModel,
   OutputCorrelation,
   Platform,
   AudioRef,
@@ -243,7 +246,7 @@ export class LoadAudioFileNode extends BaseNode {
   declare path: string;
 
   async process(): Promise<LoadAudioFileNodeOutputs> {
-    const p = uriToPath(String(this.path ?? ""));
+    const p = uriToPath(this.path);
     const fs = await loadNodeFsPromises();
     const data = new Uint8Array(await fs.readFile(p));
     return { output: audioRefFromBytes(data, `file://${p}`) };
@@ -289,17 +292,14 @@ export class LoadAudioFolderNode extends BaseNode {
 
   @prop({
     type: "list[str]",
-    default: [".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac"],
+    default: DEFAULT_AUDIO_EXTENSIONS,
     title: "Extensions",
     description: "Audio file extensions to include"
   })
   declare extensions: string[];
 
   private _extensions(): string[] {
-    const list = Array.isArray(this.extensions)
-      ? (this.extensions as unknown[])
-      : DEFAULT_AUDIO_EXTENSIONS;
-    return list.map((e) => {
+    return this.extensions.map((e) => {
       const s = String(e).toLowerCase();
       return s.startsWith(".") ? s : `.${s}`;
     });
@@ -308,7 +308,7 @@ export class LoadAudioFolderNode extends BaseNode {
   private async *_load(): AsyncGenerator<Record<string, unknown>> {
     const folder = resolveFolderPath(this.folder);
     if (!folder) return;
-    const recursive = Boolean(this.include_subdirectories);
+    const recursive = this.include_subdirectories;
     const extensions = this._extensions();
     const fs = await loadNodeFsPromises();
     for await (const { full } of walkAudioFiles(
@@ -463,20 +463,6 @@ export class SaveAudioFileNode extends BaseNode {
       "\n        Name of the file to save.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
   })
   declare filename: string;
-
-  @prop({
-    type: "dict[str, str]",
-    default: {
-      ".mp3": "mp3",
-      ".wav": "wav",
-      ".ogg": "ogg",
-      ".flac": "flac",
-      ".aac": "adts",
-      ".m4a": "ipod"
-    },
-    title: "Format Map"
-  })
-  declare FORMAT_MAP: any;
 
   async process(context?: ProcessingContext): Promise<SaveAudioFileNodeOutputs> {
     const audio = this.audio;
@@ -729,11 +715,11 @@ export class RemoveSilenceNode extends BaseNode {
 
     const { sampleRate, numChannels } = wav;
     const frames = wavFrameCount(wav);
-    const thresholdDb = Number(this.threshold ?? -40);
-    const minLenMs = Math.max(0, Number(this.min_length ?? 200));
-    const reduction = Math.min(1, Math.max(0, Number(this.reduction_factor ?? 1)));
-    const minGapMs = Math.max(0, Number(this.min_silence_between_parts ?? 100));
-    const crossfadeMs = Math.max(0, Number(this.crossfade ?? 10));
+    const thresholdDb = this.threshold;
+    const minLenMs = Math.max(0, this.min_length);
+    const reduction = Math.min(1, Math.max(0, this.reduction_factor));
+    const minGapMs = Math.max(0, this.min_silence_between_parts);
+    const crossfadeMs = Math.max(0, this.crossfade);
 
     const thresholdLin = Math.pow(10, thresholdDb / 20);
     const minLenFrames = Math.round((minLenMs / 1000) * sampleRate);
@@ -867,8 +853,8 @@ export class SliceAudioNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<SliceAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
-    const start = Math.max(0, Number(this.start ?? 0));
-    const end = Number(this.end ?? 0);
+    const start = Math.max(0, this.start);
+    const end = this.end;
     const wav = await decodeAudioToWav(bytes);
     const { sampleRate, numChannels } = wav;
     const frames = wavFrameCount(wav);
@@ -985,7 +971,7 @@ export class StereoToMonoNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<StereoToMonoNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
-    const method = String(this.method ?? "average");
+    const method = this.method;
     const wav = parseWavBytes(bytes);
     if (!wav) {
       // Non-WAV fallback: keep every other byte.
@@ -1113,7 +1099,7 @@ export class FadeInAudioNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<FadeInAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
-    const duration = Math.max(0, Number(this.duration ?? 1));
+    const duration = Math.max(0, this.duration);
     const wav = await decodeAudioToWav(bytes);
     const { sampleRate, numChannels } = wav;
     const frames = wavFrameCount(wav);
@@ -1172,7 +1158,7 @@ export class FadeOutAudioNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<FadeOutAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
-    const duration = Math.max(0, Number(this.duration ?? 1));
+    const duration = Math.max(0, this.duration);
     const wav = await decodeAudioToWav(bytes);
     const { sampleRate, numChannels } = wav;
     const frames = wavFrameCount(wav);
@@ -1234,7 +1220,7 @@ export class RepeatAudioNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<RepeatAudioNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
-    const count = Math.max(1, Math.floor(Number(this.loops ?? 2)));
+    const count = Math.max(1, Math.floor(this.loops));
     const wav = parseWavBytes(bytes);
     if (!wav) {
       // Non-WAV fallback: repeat raw bytes.
@@ -1374,8 +1360,8 @@ export class TrimAudioNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<TrimAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
-    const start = Math.max(0, Number(this.start ?? 0));
-    const end = Math.max(0, Number(this.end ?? 0));
+    const start = Math.max(0, this.start);
+    const end = Math.max(0, this.end);
     const wav = await decodeAudioToWav(bytes);
     const { sampleRate, numChannels } = wav;
     const frames = wavFrameCount(wav);
@@ -1428,8 +1414,8 @@ export class CreateSilenceNode extends BaseNode {
   declare sample_rate: number;
 
   async process(): Promise<CreateSilenceNodeOutputs> {
-    const duration = Math.max(0, Number(this.duration ?? 1));
-    const sampleRate = Math.max(1, Math.floor(Number(this.sample_rate ?? 44100)));
+    const duration = Math.max(0, this.duration);
+    const sampleRate = Math.max(1, Math.floor(this.sample_rate));
     const frames = Math.round(duration * sampleRate);
     return {
       output: audioRefFromWav(
@@ -1531,9 +1517,7 @@ export class ConcatAudioListNode extends BaseNode {
   declare audio_files: AudioRef[];
 
   async process(context?: ProcessingContext): Promise<ConcatAudioListNodeOutputs> {
-    const audios = Array.isArray(this.audio_files)
-      ? (this.audio_files as unknown[])
-      : [];
+    const audios = this.audio_files;
     const parts = (
       await Promise.all(audios.map((a) => audioBytesAsync(a, context)))
     ).filter((b) => b.length > 0);
@@ -1672,7 +1656,7 @@ export class TextToSpeechNode extends BaseNode {
   declare instructions: string;
 
   async process(context?: ProcessingContext): Promise<TextToSpeechNodeOutputs> {
-    const text = String(this.text ?? "");
+    const text = this.text;
     const { providerId, modelId } = getModelConfig(this.serialize());
     const modelObj = this.model;
     const explicitVoice = isString(modelObj.selected_voice)
@@ -1866,8 +1850,8 @@ export class TextToMusicNode extends BaseNode {
   declare duration: number;
 
   async process(context?: ProcessingContext): Promise<TextToMusicNodeOutputs> {
-    const prompt = String(this.prompt ?? "");
-    const lyrics = String(this.lyrics ?? "");
+    const prompt = this.prompt;
+    const lyrics = this.lyrics;
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (!hasMusicProviderSupport(context, providerId, modelId)) {
       throw new Error(
@@ -1882,7 +1866,7 @@ export class TextToMusicNode extends BaseNode {
       params: {
         prompt,
         lyrics: lyrics || undefined,
-        duration_seconds: Number(this.duration) || undefined
+        duration_seconds: this.duration || undefined
       }
     });
     if (encoded?.data && encoded.data.length > 0) {
