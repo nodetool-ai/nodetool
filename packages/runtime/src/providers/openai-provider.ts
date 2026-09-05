@@ -409,7 +409,7 @@ export class OpenAIProvider extends BaseProvider {
    * reports none.
    */
   protected servesOpenAICatalog(): boolean {
-    return true;
+    return this.provider === PROVIDER_IDS.OPENAI;
   }
 
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {

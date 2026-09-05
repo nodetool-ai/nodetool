@@ -82,7 +82,7 @@ describe("browser timeline tools", () => {
     const manifest = FrontendToolRegistry.getManifest();
     for (const [name, contract] of Object.entries(contracts)) {
       const tool = manifest.find((t) => t.name === name);
-      expect(tool?.description, name).toBe(contract.description);
+      expect([name, tool?.description]).toEqual([name, contract.description]);
     }
   });
 
