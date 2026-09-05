@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/components/ui_primitives",
+    "src/components/assets",
+    "src/components/menus",
+    "src/components/appbuilder",
+    "src/components/workspace",
+    "src/vite-env.d.ts"
+  ]
+}

@@ -3,6 +3,8 @@ import type {
   StreamingInputs,
   StreamingOutputs
 } from "@nodetool-ai/node-sdk";
+import type { ImageRef, AudioRef } from "@nodetool-ai/node-sdk";
+import type { Chunk } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { fetchExternalMedia } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
@@ -57,9 +59,9 @@ export class EmbeddingNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    const text = String(this.input ?? "");
-    const model = String(this.model ?? "text-embedding-3-small");
-    const chunkSize = Number(this.chunk_size ?? 4096);
+    const text = this.input;
+    const model = this.model;
+    const chunkSize = this.chunk_size;
 
     const chunks: string[] = [];
     for (let i = 0; i < text.length; i += chunkSize) {
@@ -123,7 +125,7 @@ export class WebSearchNode extends BaseNode {
 
   async process(): Promise<WebSearchNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const query = String(this.query ?? "");
+    const query = this.query;
     if (!query) throw new Error("Search query cannot be empty");
 
     const res = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
@@ -195,8 +197,8 @@ export class ModerationNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    const text = String(this.input ?? "");
-    const model = String(this.model ?? "omni-moderation-latest");
+    const text = this.input;
+    const model = this.model;
     if (!text) throw new Error("Input text cannot be empty");
 
     const res = await fetch(`${OPENAI_API_BASE}/moderations`, {
@@ -292,13 +294,13 @@ export class CreateImageNode extends BaseNode {
 
   async process(): Promise<CreateImageNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const prompt = String(this.prompt ?? "");
+    const prompt = this.prompt;
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = String(this.model ?? "gpt-image-1");
-    const size = String(this.size ?? "1024x1024");
-    const quality = String(this.quality ?? "high");
-    const background = String(this.background ?? "auto");
+    const model = this.model;
+    const size = this.size;
+    const quality = this.quality;
+    const background = this.background;
 
     const res = await fetch(`${OPENAI_API_BASE}/images/generations`, {
       method: "POST",
@@ -419,17 +421,17 @@ export class EditImageNode extends BaseNode {
 
   async process(): Promise<EditImageNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const prompt = String(this.prompt ?? "");
+    const prompt = this.prompt;
     if (!prompt) throw new Error("Edit prompt cannot be empty");
 
-    const image = this.image as Record<string, unknown> | undefined;
+    const image = this.image;
     if (!image || (!image.data && !image.uri)) {
       throw new Error("Input image is required");
     }
 
-    const model = String(this.model ?? "gpt-image-1");
-    const size = String(this.size ?? "1024x1024");
-    const quality = String(this.quality ?? "high");
+    const model = this.model;
+    const size = this.size;
+    const quality = this.quality;
 
     // gpt-image-1 always returns base64 and rejects `response_format`, so it
     // must not be sent (unlike the legacy dall-e-2 edits endpoint).
@@ -444,7 +446,7 @@ export class EditImageNode extends BaseNode {
     formData.append("image", imageBlob, "image.png");
 
     // Optional mask
-    const mask = this.mask as Record<string, unknown> | undefined;
+    const mask = this.mask;
     if (mask && (mask.data || mask.uri)) {
       const maskBlob = await refToBlob(mask);
       formData.append("mask", maskBlob, "mask.png");
@@ -521,11 +523,11 @@ export class ImageVariationNode extends BaseNode {
 
   async process(): Promise<ImageVariationNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const image = this.image as Record<string, unknown> | undefined;
+    const image = this.image;
     if (!image || (!image.data && !image.uri)) {
       throw new Error("Input image is required");
     }
-    const size = String(this.size ?? "1024x1024");
+    const size = this.size;
 
     // The variations endpoint only supports dall-e-2, which requires the
     // `response_format` to request base64 output.
@@ -577,7 +579,9 @@ function audioRefFromB64(b64: string, contentType: string) {
 }
 
 /** Convert an image/audio ref object to a Blob for multipart upload. */
-async function refToBlob(ref: Record<string, unknown>): Promise<Blob> {
+type MediaRefLike = { uri?: string; data?: unknown };
+
+async function refToBlob(ref: MediaRefLike): Promise<Blob> {
   if (ref.data && isString(ref.data)) {
     const dataStr = ref.data;
     // Handle data: URI
@@ -666,12 +670,12 @@ export class TextToSpeechNode extends BaseNode {
 
   async process(): Promise<TextToSpeechNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const text = String(this.input ?? "");
+    const text = this.input;
     if (!text) throw new Error("Input text cannot be empty");
-    const model = String(this.model ?? "tts-1");
-    const voice = String(this.voice ?? "alloy");
-    const speed = Number(this.speed ?? 1.0);
-    const instructions = String(this.instructions ?? "");
+    const model = this.model;
+    const voice = this.voice;
+    const speed = this.speed;
+    const instructions = this.instructions;
 
     const isMiniTts = model === "gpt-4o-mini-tts";
     const body: Record<string, unknown> = {
@@ -750,11 +754,11 @@ export class TranslateNode extends BaseNode {
 
   async process(): Promise<TranslateNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const audio = this.audio as Record<string, unknown> | undefined;
+    const audio = this.audio;
     if (!audio || (!audio.data && !audio.uri)) {
       throw new Error("Audio input is required");
     }
-    const temperature = Number(this.temperature ?? 0.0);
+    const temperature = this.temperature;
 
     const audioBlob = await refToBlob(audio);
     const formData = new FormData();
@@ -926,16 +930,16 @@ export class TranscribeNode extends BaseNode {
 
   async process(): Promise<TranscribeNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const audio = this.audio as Record<string, unknown> | undefined;
+    const audio = this.audio;
     if (!audio || (!audio.data && !audio.uri)) {
       throw new Error("Audio input is required");
     }
 
-    const model = String(this.model ?? "whisper-1");
-    const language = String(this.language ?? "auto_detect");
-    const timestamps = Boolean(this.timestamps ?? false);
-    const promptText = String(this.prompt ?? "");
-    const temperature = Number(this.temperature ?? 0);
+    const model = this.model;
+    const language = this.language;
+    const timestamps = this.timestamps;
+    const promptText = this.prompt;
+    const temperature = this.temperature;
 
     const isNewModel =
       model === "gpt-4o-transcribe" || model === "gpt-4o-mini-transcribe";
@@ -1124,11 +1128,11 @@ export class RealtimeAgentNode extends BaseNode {
     if (!apiKey) apiKey = process.env.OPENAI_API_KEY ?? "";
     if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
 
-    const model = String(this.model ?? "gpt-4o-mini-realtime-preview");
-    const voice = String(this.voice ?? "alloy");
-    const system = String(this.system ?? "");
-    const temperature = Number(this.temperature ?? 0.8);
-    const speed = Number(this.speed ?? 1);
+    const model = this.model;
+    const voice = this.voice;
+    const system = this.system;
+    const temperature = this.temperature;
+    const speed = this.speed;
     const wantAudio = voice !== "none";
 
     const { WebSocket } = await import("ws");
@@ -1406,8 +1410,8 @@ export class RealtimeTranscriptionNode extends BaseNode {
     if (!apiKey) apiKey = process.env.OPENAI_API_KEY ?? "";
     if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
 
-    const model = String(this.model ?? "gpt-4o-mini-realtime-preview");
-    const temperature = Number(this.temperature ?? 0.8);
+    const model = this.model;
+    const temperature = this.temperature;
 
     const { WebSocket } = await import("ws");
     const wsUrl = `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(model)}`;
@@ -1429,7 +1433,7 @@ export class RealtimeTranscriptionNode extends BaseNode {
         type: "session.update",
         session: {
           modalities: ["text"],
-          instructions: this.system ? String(this.system) : undefined,
+          instructions: this.system || undefined,
           input_audio_format: "pcm16",
           input_audio_transcription: { model: "gpt-4o-mini-transcribe" },
           turn_detection: {

@@ -441,6 +441,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
       const result = await runMeteredMessage(context, providerId, modelId, {
         model: modelId,
         messages,
+        max_tokens: Number(this.max_tokens ?? 4096),
         response_format: {
           type: "json_schema",
           json_schema: {

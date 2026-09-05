@@ -421,6 +421,27 @@ export function buildUserMessage(
 }
 
 /**
+ * A user message that keeps `content` a plain string unless a media ref is
+ * actually attached. The Summarizer/Extractor/Classifier nodes declare `image`
+ * and `audio` props; wiring them through {@link buildUserMessage} unconditionally
+ * would also turn every text-only request into a parts array and run the prompt
+ * through `expandAssetReferences`, changing what existing graphs send. This
+ * keeps the old string shape whenever no ref resolves.
+ */
+export function userMessageWithMedia(
+  text: string,
+  images: unknown,
+  audios: unknown
+): Message {
+  const message = buildUserMessage(text, images, audios);
+  const parts = Array.isArray(message.content) ? message.content : [];
+  const hasMedia = parts.some(
+    (part) => part.type === "image_url" || part.type === "audio"
+  );
+  return hasMedia ? message : { role: "user", content: text };
+}
+
+/**
  * A single classified item from a provider's {@link BaseProvider.generateLoop}
  * stream. Both {@link runAgentLoop} and the AgentNode's genProcess drive the
  * same normalize → classify dance off generateLoop; keeping that classification

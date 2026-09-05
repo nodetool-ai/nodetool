@@ -33,6 +33,7 @@ import {
   parseCategory,
   normalizeMessage,
   buildUserMessage,
+  userMessageWithMedia,
   uniqueToolName,
   normalizeTools,
   gateAgentTools,
@@ -275,10 +276,11 @@ export class SummarizerNode extends BaseNode {
       for await (const item of streamProviderMessages(provider, {
         messages: [
           { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: `Summarize the following text in about ${maxSentences} sentence(s):\n\n${text}`
-          }
+          userMessageWithMedia(
+            `Summarize the following text in about ${maxSentences} sentence(s):\n\n${text}`,
+            this.image,
+            this.audio
+          )
         ],
         model: modelId,
         maxTokens: Math.max(64, maxSentences * 128)
@@ -642,7 +644,7 @@ export class ExtractorNode extends BaseNode {
             content:
               asText(this.system_prompt ?? "").trim() || EXTRACTOR_SYSTEM_PROMPT
           },
-          { role: "user", content: text }
+          userMessageWithMedia(text, this.image, this.audio)
         ],
         toolName: "extraction_result",
         toolDescription: "Submit the extracted data.",
@@ -787,10 +789,11 @@ export class ClassifierNode extends BaseNode {
             content:
               asText(this.system_prompt ?? "").trim() || CLASSIFIER_SYSTEM_PROMPT
           },
-          {
-            role: "user",
-            content: `Allowed categories: ${categories.join(", ")}\n\nText: ${text}`
-          }
+          userMessageWithMedia(
+            `Allowed categories: ${categories.join(", ")}\n\nText: ${text}`,
+            this.image,
+            this.audio
+          )
         ],
         toolName: "classification_result",
         toolDescription: "Submit the classification result.",
