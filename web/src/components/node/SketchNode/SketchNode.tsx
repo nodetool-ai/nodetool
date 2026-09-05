@@ -293,16 +293,13 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
 
 const EMPTY_ASSETS: Asset[] = [];
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
 const getSketchRefId = (value: unknown): string | null =>
-  isRecord(value) && isString(value.id) && value.id.length > 0
+  isObjectLike(value) && isString(value.id) && value.id.length > 0
     ? value.id
     : null;
 
 const readSketchDocumentFromValue = (value: unknown): SketchDocument | null => {
-  if (!isRecord(value)) {
+  if (!isObjectLike(value)) {
     return null;
   }
   const candidates = [value.data, value.document, value.sketch, value];
@@ -712,7 +709,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       const doc = pendingDocumentSyncRef.current;
       pendingProps.sketch_data = serializeDocument(doc);
       pendingProps.value = {
-        ...(isRecord(props.data.properties?.value)
+        ...(isObjectLike(props.data.properties?.value)
           ? props.data.properties?.value
           : { type: "sketch", id: null }),
         type: "sketch",
@@ -817,7 +814,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     updateNodeProperties(props.id, {
       sketch_data: serializeDocument(nextDoc),
       value: {
-        ...(isRecord(props.data.properties?.value)
+        ...(isObjectLike(props.data.properties?.value)
           ? props.data.properties?.value
           : { type: "sketch", id: null }),
         type: "sketch",
@@ -1034,7 +1031,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           updateNodeProperties(props.id, {
             sketch_data: serializeDocument(updatedDoc),
             value: {
-              ...(isRecord(props.data.properties?.value)
+              ...(isObjectLike(props.data.properties?.value)
                 ? props.data.properties?.value
                 : { type: "sketch", id: null }),
               type: "sketch",

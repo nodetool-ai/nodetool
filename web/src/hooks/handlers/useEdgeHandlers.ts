@@ -45,45 +45,36 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
 
   const onEdgeMouseEnter = useCallback(
     (_event: React.MouseEvent, edge: Edge) => {
-      const hovered_edge = findEdge(edge.id);
-      if (hovered_edge) {
-        hovered_edge.label = edge.className
-          ?.replace(" hovered", "")
-          .toUpperCase();
+      const hovered = findEdge(edge.id);
+      if (!hovered) {
+        return;
       }
-      if (hovered_edge && hovered_edge.selected) {
-        hovered_edge.animated = true;
-      }
-      if (hovered_edge?.className) {
-        if (!hovered_edge.className.includes("hovered")) {
-          hovered_edge.className = hovered_edge.className + " hovered";
-        }
-      }
-      if (hovered_edge) {
-        updateEdge(hovered_edge);
-      }
+      const className =
+        hovered.className && !hovered.className.includes("hovered")
+          ? `${hovered.className} hovered`
+          : hovered.className;
+      updateEdge({
+        ...hovered,
+        label: edge.className?.replace(" hovered", "").toUpperCase(),
+        animated: hovered.selected ? true : hovered.animated,
+        className
+      });
     },
     [findEdge, updateEdge]
   );
 
   const onEdgeMouseLeave = useCallback(
     (_event: React.MouseEvent, edge: Edge) => {
-      const hovered_edge = findEdge(edge.id);
-      if (hovered_edge) {
-        hovered_edge.animated = false;
-        hovered_edge.label = "";
+      const hovered = findEdge(edge.id);
+      if (!hovered) {
+        return;
       }
-      if (hovered_edge?.className) {
-        if (hovered_edge.className.includes(" hovered")) {
-          hovered_edge.className = hovered_edge.className.replace(
-            " hovered",
-            ""
-          );
-        }
-      }
-      if (hovered_edge) {
-        updateEdge(hovered_edge);
-      }
+      updateEdge({
+        ...hovered,
+        label: "",
+        animated: false,
+        className: hovered.className?.replace(" hovered", "")
+      });
     },
     [findEdge, updateEdge]
   );

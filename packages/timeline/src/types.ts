@@ -888,8 +888,7 @@ export interface ClipVignetteEffect {
    * Outer radius relative to the frame half-diagonal, 0.1..1.5. Absent means
    * `vignette@1`'s own default, which is where a clip vignette has always
    * started. Written by the track conversion, which carries a midpoint the
-   * legacy spelling made mandatory; `packages/protocol`'s `clipVignetteEffect`
-   * does not mirror it yet, so nothing persists it.
+   * legacy spelling made mandatory.
    */
   radius?: number;
 }

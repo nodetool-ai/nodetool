@@ -26,10 +26,7 @@ import {
   type TimelineToolArgs,
   type TimelineToolName
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
-import {
-  uiToolParams,
-  type UiToolContract
-} from "@nodetool-ai/protocol/api-schemas/ui-tool-contract.js";
+import { uiToolParams } from "@nodetool-ai/protocol/api-schemas/ui-tool-contract.js";
 import { FrontendToolRegistry } from "../frontendTools";
 import {
   getTimelineAgentHandler,
