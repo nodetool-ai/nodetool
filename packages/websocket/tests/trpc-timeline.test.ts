@@ -273,6 +273,68 @@ describe("timeline router", () => {
       expect(TS.update).toHaveBeenCalled();
     });
 
+    // The document schema strips a field it does not declare, and the write
+    // stores the stripped copy — so a clip field a newer client sent is gone
+    // for good with nothing logged. The save still succeeds; it reports.
+    it("names a clip field the schema dropped on the way in", async () => {
+      TS.findById.mockResolvedValue(makeSeq());
+      TS.update.mockResolvedValue(makeSeq());
+      const caller = createCaller(makeCtx());
+      const clip = {
+        id: "c1",
+        trackId: "t1",
+        name: "Clip",
+        startMs: 0,
+        durationMs: 1000,
+        mediaType: "video",
+        sourceType: "imported",
+        status: "generated",
+        locked: false,
+        versions: [],
+        holographicDepth: 0.5
+      };
+      const out = await caller.timeline.update({
+        id: "seq-1",
+        document: { tracks: [], clips: [clip], markers: [] }
+      } as never);
+      expect(out.stripped).toEqual(["clips[*].holographicDepth"]);
+      // Reported, not refused: the rest of the document was still written.
+      const savedDocument = JSON.parse(
+        TS.update.mock.calls[0][1].document as string
+      );
+      expect(savedDocument.clips[0].id).toBe("c1");
+      expect(savedDocument.clips[0].holographicDepth).toBeUndefined();
+    });
+
+    it("reports nothing for a document the schema keeps whole", async () => {
+      TS.findById.mockResolvedValue(makeSeq());
+      TS.update.mockResolvedValue(makeSeq());
+      const caller = createCaller(makeCtx());
+      const out = await caller.timeline.update({
+        id: "seq-1",
+        document: {
+          tracks: [],
+          clips: [
+            {
+              id: "c1",
+              trackId: "t1",
+              name: "Clip",
+              startMs: 0,
+              durationMs: 1000,
+              mediaType: "video",
+              sourceType: "imported",
+              status: "generated",
+              locked: false,
+              versions: [],
+              aspectRatio: "16:9"
+            }
+          ],
+          markers: []
+        }
+      } as never);
+      expect(out.stripped).toBeUndefined();
+    });
+
     it("persists the transcript in the merged document", async () => {
       TS.findById.mockResolvedValue(makeSeq());
       TS.update.mockResolvedValue(makeSeq());

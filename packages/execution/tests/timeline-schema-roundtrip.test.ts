@@ -74,16 +74,15 @@ import { validateTimelineSequence } from "../src/timeline-debug/index.js";
 // `packages/protocol` cannot import `@nodetool-ai/timeline` (the dependency runs
 // the other way), so the mirror lives here, in the one package that holds both.
 //
-// Two kinds of assertion, because they fail on different drift.
-//
-// `SameKeys` names every key one side declares and the other does not. It is
-// what catches an OPTIONAL field added to the model and never mirrored — the
-// class that lost `aspectRatio` and `resolution` — because
-// `{ id: string; aspectRatio?: string }` and `{ id: string }` are mutually
-// assignable, so `MutuallyAssignable` reports nothing about it.
-//
-// `MutuallyAssignable` still earns its place on top: it catches a key both
-// sides declare with different value types, which a key diff cannot see.
+// `SameKeys` is the guard. It names every key one side declares and the other
+// does not, PLUS every shared key whose value types drifted. The key half is
+// what a whole-object `MutuallyAssignable` cannot see: an OPTIONAL field added
+// to the model and never mirrored — the class that lost `aspectRatio` and
+// `resolution` — because `{ id: string; aspectRatio?: string }` and
+// `{ id: string }` are mutually assignable. The value half is what a key diff
+// alone cannot see. A whole-clip `MutuallyAssignable` is therefore redundant
+// and misleading, and is gone; the remaining `MutuallyAssignable` constants
+// stand over unions, where `keyof` says nothing useful.
 //
 // Both are compile-time only — Vitest strips types and never typechecks — so
 // they fail through `npm run lint --workspace=packages/execution`, which runs
@@ -95,12 +94,19 @@ type MutuallyAssignable<A, B> = Extends<A, B> & Extends<B, A>;
 /** Every key one of the two objects declares and the other does not. */
 type KeyDiff<A, B> = Exclude<keyof A, keyof B> | Exclude<keyof B, keyof A>;
 
+/** Every key both declare whose value types are not mutually assignable. */
+type ValueDiff<A, B> = {
+  [K in keyof A & keyof B]-?: MutuallyAssignable<A[K], B[K]> extends true
+    ? never
+    : K;
+}[keyof A & keyof B];
+
 /**
- * `{}` satisfies this only while `KeyDiff` is `never`. One unmirrored key
- * turns it into a required property, so `const x: SameKeys<A, B> = {}` stops
- * compiling and names the key that drifted.
+ * `{}` satisfies this only while both diffs are `never`. One unmirrored key,
+ * or one shared key whose types drifted, turns it into a required property, so
+ * `const x: SameKeys<A, B> = {}` stops compiling and names the key.
  */
-type SameKeys<A, B> = Record<KeyDiff<A, B>, never>;
+type SameKeys<A, B> = Record<KeyDiff<A, B> | ValueDiff<A, B>, never>;
 
 /**
  * The same, per member of a discriminated union. A union's `keyof` is the
@@ -285,10 +291,6 @@ const unknownTransitionMirror: MutuallyAssignable<
   WireUnknownTransition,
   ModelUnknownTransition
 > = true;
-// The whole clip, both ways. `ClipAnimation.easing` was the last field the
-// model narrowed further than the wire; T6 widened it to a string so the
-// easing grammar (`cubic-bezier(...)`, `spring(...)`) fits.
-const wholeClipMirror: MutuallyAssignable<ModelClip, WireClip> = true;
 
 const clip = (overrides: Record<string, unknown>): Record<string, unknown> => ({
   trackId: "track-1",
@@ -728,9 +730,8 @@ describe("timeline schema round trip — motion-graphics fields", () => {
       knownEffectMirror,
       knownTransitionMirror,
       unknownEffectMirror,
-      unknownTransitionMirror,
-      wholeClipMirror
-    ]).toEqual([true, true, true, true, true, true, true, true]);
+      unknownTransitionMirror
+    ]).toEqual([true, true, true, true, true, true, true]);
   });
 });
 

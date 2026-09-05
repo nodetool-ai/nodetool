@@ -29,6 +29,8 @@ import {
 } from "@nodetool-ai/models";
 import type { TimelineDocument } from "@nodetool-ai/models";
 import { makeClip } from "@nodetool-ai/timeline";
+import { collectStrippedPaths } from "@nodetool-ai/execution/timeline-debug";
+import { createLogger } from "@nodetool-ai/config";
 import { computeDependencyHash } from "@nodetool-ai/timeline/dependencyHash.js";
 import {
   createClipInput,
@@ -51,6 +53,8 @@ import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { isString } from "../../lib/wire-values.js";
 
+const log = createLogger("nodetool.websocket.trpc.timeline");
+
 /** A decoded JSON value: what a stored document or graph carries. */
 type JsonValue =
   | string
@@ -68,14 +72,51 @@ const listInput = z.object({
 
 const idInput = z.object({ id: z.string() });
 
-const updateInput = patchTimelineInput.and(
-  z.object({
-    id: z.string(),
-    baseUpdatedAt: z.string().optional()
-  })
+/**
+ * `patchTimelineInput.document` is a stripping schema: a clip field this build
+ * does not declare is dropped by the parse and lost on the write, and nothing
+ * downstream ever sees it again. The handler compares the document it is about
+ * to store against what the client actually sent, so the parse must not be the
+ * only place the raw value exists — `rawDocument` carries it through unparsed.
+ */
+const updateInput = z.preprocess(
+  (raw) =>
+    isRecord(raw) && !("rawDocument" in raw)
+      ? { ...raw, rawDocument: raw.document }
+      : raw,
+  patchTimelineInput.and(
+    z.object({
+      id: z.string(),
+      baseUpdatedAt: z.string().optional(),
+      rawDocument: z.unknown().optional()
+    })
+  )
 );
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * Paths the schema dropped between what the client sent and what is stored.
+ * Same walk the timeline debug report uses, so the save path and the report
+ * cannot disagree about what was lost.
+ */
+function strippedDocumentPaths(raw: unknown, parsed: unknown): string[] {
+  const found = new Set<string>();
+  collectStrippedPaths(raw, parsed, "", found);
+  return [...found].sort();
+}
+
 const okOutput = z.object({ ok: z.literal(true) });
+
+/**
+ * The stored sequence, plus the paths the schema dropped on the way in. The
+ * field is absent on a clean save; every existing caller reads the sequence and
+ * is unaffected.
+ */
+const updateOutput = timelineSequenceResponse.extend({
+  stripped: z.array(z.string()).optional()
+});
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -287,7 +328,7 @@ export const timelineRouter = router({
 
   update: protectedProcedure
     .input(updateInput)
-    .output(timelineSequenceResponse)
+    .output(updateOutput)
     .mutation(async ({ ctx, input }) => {
       const seq = await loadOwned(ctx.userId, input.id);
 
@@ -304,6 +345,8 @@ export const timelineRouter = router({
           "Timeline has been modified since last load"
         );
       }
+
+      let stripped: string[] = [];
 
       const fields: Parameters<
         typeof TimelineSequence.updateFieldsIfUnchanged
@@ -329,6 +372,14 @@ export const timelineRouter = router({
             input.document.scriptEnabled ?? current.scriptEnabled
         };
         fields.document = JSON.stringify(merged);
+
+        stripped = strippedDocumentPaths(input.rawDocument, input.document);
+        if (stripped.length > 0) {
+          log.warn("Timeline document fields dropped by the schema on save", {
+            timelineId: input.id,
+            strippedPaths: stripped
+          });
+        }
       }
 
       const updated = await TimelineSequence.updateFieldsIfUnchanged(
@@ -370,7 +421,12 @@ export const timelineRouter = router({
         }
       }
 
-      return updated.toTimelineSequence();
+      // Reported, never refused: the write the user asked for already
+      // happened, and refusing a document because one field is unknown would
+      // lose far more than the field does.
+      return stripped.length > 0
+        ? { ...updated.toTimelineSequence(), stripped }
+        : updated.toTimelineSequence();
     }),
 
   delete: protectedProcedure

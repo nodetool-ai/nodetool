@@ -142,8 +142,15 @@ function unknownDirectionIssue(clip: TimelineClip): TimelineDebugIssue | null {
   };
 }
 
-/** Collect every leaf/branch path the parse output dropped from the input. */
-function collectStrippedPaths(
+/**
+ * Collect every leaf/branch path the parse output dropped from the input.
+ *
+ * Exported because the save path needs the same answer the debug report gives:
+ * `timeline.update` in `packages/websocket` parses the incoming document with
+ * the same stripping schema and reports what it dropped, so a field lost on
+ * autosave is named at the moment it is lost rather than at the next debug run.
+ */
+export function collectStrippedPaths(
   input: unknown,
   output: unknown,
   path: string,
