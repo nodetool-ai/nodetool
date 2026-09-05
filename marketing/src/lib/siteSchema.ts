@@ -14,7 +14,7 @@ export const softwareApplicationSchema: JsonLdObject = {
   "@type": "SoftwareApplication",
   name: "NodeTool",
   description:
-    "NodeTool is the open-source, agent-first creative workspace for film production. Every editor — the node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, and app builder — is exposed to agents as tools, around 120 in all: pitch your concept and the agent drafts the script, casts the voices, boards the scenes, generates the footage, and cuts a multi-track timeline you can still edit, running on every major model from every major provider with your own keys. It runs as a desktop app on macOS, Windows, and Linux, or in the browser with NodeTool Cloud.",
+    "NodeTool is an open-source creative AI workspace. Create and edit images, video, audio, and text with agents that work alongside you. Let them build and revise workflows, then inspect and edit the results yourself. Your project keeps the brief, assets, and edits together. Studio runs on macOS, Windows, and Linux. Cloud is the hosted browser edition, in alpha.",
   applicationCategory: "MultimediaApplication",
   applicationSubCategory: "Creative AI Workspace",
   operatingSystem: "macOS, Windows, Linux",
@@ -68,14 +68,14 @@ export const organizationSchema: JsonLdObject = {
     "https://discord.gg/WmQTWZRcYE",
   ],
   description:
-    "NodeTool builds the open, agent-first creative workspace: every editor is exposed to agents as tools, connecting every major model from every major provider using the creator's own keys, available as a desktop app and as a hosted browser edition.",
+    "NodeTool is an open-source creative AI workspace. Create and edit images, video, audio, and text with agents that work alongside you. Let them build and revise workflows, then inspect and edit the results yourself. Your project keeps the brief, assets, and edits together. Studio runs on macOS, Windows, and Linux. Cloud is the hosted browser edition, in alpha.",
 };
 
 /** The demo video on the home page. Emitted by the page that shows it. */
 export const demoVideoSchema: JsonLdObject = {
   "@context": "https://schema.org",
   "@type": "VideoObject",
-  name: "NodeTool — the open, agent-first creative workspace (demo)",
+  name: "NodeTool | Open-source creative AI workspace (demo)",
   description:
     "A trailer built end to end in NodeTool: the agent drafts the script, boards the shots, generates the footage, and cuts the timeline — on one canvas, with your own keys.",
   thumbnailUrl: "https://nodetool.ai/preview.png",

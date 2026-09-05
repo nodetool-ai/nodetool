@@ -29,7 +29,7 @@ const BASE_URL = "https://nodetool.ai";
 // --- Preamble prose (hand-written; edit here) --------------------------------
 const PREAMBLE = `# NodeTool
 
-> NodeTool is the open-source, agent-first creative workspace: every editor — a node-based canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, and app builder — is exposed to agents as tools. An agent builds workflows that wire image, video, audio, and text models from every major provider, runs them, and repairs what fails. Bring your own API keys. Runs as a free desktop app (Studio) or in the browser (Cloud). Licensed AGPL-3.0.
+> NodeTool is an open-source creative AI workspace. Create and edit images, video, audio, and text with agents that work alongside you. Let them build and revise workflows, then inspect and edit the results yourself. Your project keeps the brief, assets, and edits together. Studio is the free desktop edition; Cloud is the hosted browser edition, in alpha. Use supported local models in Studio or connect cloud providers with your own keys. Licensed AGPL-3.0.
 
 ## What NodeTool is
 
@@ -97,8 +97,8 @@ function markdownPath(route) {
 const MARKDOWN_PAGES = {
   "index.md": {
     title: "NodeTool",
-    description: "The open-source, agent-first creative workspace.",
-    body: `NodeTool is an open-source, agent-first visual workspace for building and running AI workflows. Every editor is exposed to [agents](${BASE_URL}/agents.md) as tools: an agent can build the workflow, run it, and repair what fails. The canvas connects image, video, audio, language, agent, and data models on a node-based graph.
+    description: "Open-source creative AI workspace.",
+    body: `NodeTool is an open-source creative AI workspace. Create and edit images, video, audio, and text with agents that work alongside you. Let them build and revise workflows, then inspect and edit the results yourself. Your project keeps the brief, assets, and edits together. Every editor is exposed to [agents](${BASE_URL}/agents.md) as tools: an agent can build the workflow, run it, and repair what fails. The canvas connects image, video, audio, language, agent, and data models on a node-based graph.
 
 ## Editions
 

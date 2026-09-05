@@ -174,28 +174,23 @@ export default function CloudPage() {
                     Alpha — not generally available
                   </span>
                 </div>
-                {/* Sized a step below the landing hero's 3.25rem cap: this
-                    headline carries an extra clause, and at that cap it wrapped
-                    to five lines in the 5/12 column and pushed the demo out of
-                    line with the copy. text-balance is off for the same reason
-                    — it broke the short first line to equalise against the
-                    much longer second one. */}
                 <h1
                   id="cloud-hero-title"
                   className="mt-6 text-[clamp(2rem,7vw,2.75rem)] font-bold leading-[1.1] tracking-tight text-white lg:text-[clamp(2rem,3.1vw,2.75rem)]"
                 >
-                  You are the director.
+                  Open-source
                   <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300 pb-[0.12em]">
-                    The agent is your crew — in your browser.
+                    creative AI workspace
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
-                  Describe your idea. The agent writes the script, storyboards
-                  every scene, generates the footage, and cuts the timeline —
-                  all of it in the hosted version of the same open-source
-                  studio. Nothing to install, no hardware to set up, and your
-                  own API keys for whichever providers you want to use.
+                  Create and edit images, video, audio, and text with agents that
+                  work alongside you. Let them build and revise workflows, then
+                  inspect and edit the results yourself. Your project keeps the
+                  brief, assets, and edits together. Cloud brings the workspace to
+                  your browser with hosted storage and your own provider keys. Cloud
+                  is in alpha.
                 </p>
                 <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-4 text-sm text-amber-100/90 max-w-xl">
                   <strong className="text-amber-200">Heads up:</strong> Cloud is

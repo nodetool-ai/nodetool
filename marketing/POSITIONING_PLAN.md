@@ -44,13 +44,12 @@ production combined with programmable, deterministic workflow automation**.
 
 ### Category anchor and pitch
 
-- **Category:** the open-source, agent-first creative studio — a programmable
-  multimodal workspace.
+- **Category:** the open-source creative AI workspace.
 - **Elevator pitch:** NodeTool is the open-source platform where creative
   teams, developers, and marketers orchestrate generative AI models,
   deterministic media editors (timelines, sketches, scripts, 3D), and web
   automations into reproducible workflows and standalone mini-apps.
-- **Headline (outcome-first):** *"From prompt to final cut on one canvas."*
+- **Primary headline:** *"Open-source creative AI workspace."*
 
 Audience-specific taglines:
 
@@ -192,7 +191,7 @@ Comparison-page punchlines:
 The order below is the one [NARRATIVE.md § Order of the page](NARRATIVE.md#order-of-the-page)
 pins; that file wins when the two drift.
 
-1. **Hero** — "You are the director. The agent is your crew." + the project
+1. **Hero** — "Open-source creative AI workspace" + the project
    reel + download CTA. The subhead carries the project-not-render claim.
 2. **The enemy** — the closed AI studio, once, briefly: their models, their
    credits, their locked project.
@@ -214,22 +213,21 @@ pins; that file wins when the two drift.
 ### Hero section
 
 - **Badge:** `Open Source (AGPL-3.0) · Local-First · BYOK Direct Pricing`
-- **Headline:** **You are the director. The agent is your crew.**
+- **Headline:** **Open-source creative AI workspace**
   ([NARRATIVE.md](NARRATIVE.md) pins the line, and the homepage H1 carries it.
-  "From prompt to final cut on one canvas" was the earlier line.)
-- **Subhead:** *Stop juggling Midjourney, Runway, ElevenLabs, and Premiere.
-  NodeTool combines visual AI models, a multi-track timeline, layered
-  sketching, and scripts into one open-source workspace you drive manually or
-  through autonomous agents.*
+  Keep "agent-first" in supporting explanations.)
+- **Subhead:** Create and edit images, video, audio, and text with agents that
+  work alongside you. Let them build and revise workflows, then inspect and
+  edit the results yourself. Your project keeps the brief, assets, and edits
+  together.
 - **CTAs:** `Download NodeTool Studio (Free)` / `Try Instant Cloud Alpha`
 - **Visual:** interactive or looping 3-state demo — brief prompt → agent
   builds storyboard, casts voices, places clips on the timeline → finished
   video playback with captions.
 
-Rationale: "The agent-first creative workspace" is abstract for first-time
-visitors — lead with the outcome and let "agent-first" be shown, not asserted.
-It stays as the category descriptor in `<title>`, meta descriptions, schema,
-and body copy, per NARRATIVE.md.
+Rationale: "Creative AI workspace" names the category. Explain agent-first
+through editable workflows and persistent project context. Use the same
+category in titles, metadata, and schema, per NARRATIVE.md.
 
 ### The five surfaces (tab copy, condensed)
 

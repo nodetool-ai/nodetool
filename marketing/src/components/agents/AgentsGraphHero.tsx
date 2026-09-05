@@ -26,7 +26,7 @@ export default function AgentsGraphHero() {
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-500/10 border border-rose-500/20 mb-6">
                             <Sparkles className="w-4 h-4 text-rose-300" />
                             <span className="text-sm font-medium text-rose-200">
-                                An agent-first creative workspace
+                                Open-source creative AI workspace
                             </span>
                         </div>
 

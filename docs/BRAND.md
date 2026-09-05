@@ -22,18 +22,22 @@ change.
 
 - **Mission.** Give creators and developers control over multi-modal AI
   orchestration without platform lock-in, credit markups, or lost context.
-- **Elevator pitch.** NodeTool is the open canvas for multi-modal AI. It
-  connects image, video, audio, and language models into repeatable workflows
-  that run in the cloud, locally on your own hardware, or headless over MCP.
+- **Primary tagline.** Open-source creative AI workspace.
+- **Intro.** Create and edit images, video, audio, and text with agents that
+  work alongside you. Let them build and revise workflows, then inspect and
+  edit the results yourself. Your project keeps the brief, assets, and edits
+  together.
+- **Agent-first.** Use this in supporting copy to explain that agents operate
+  the same editable workflows and documents as the creator. Keep AI in the
+  primary category label.
 - **What we are against.** The closed AI studio: a model list they picked,
   priced in their credits, saved in a project only their app opens. Five
   browser tabs, lost context and markups are symptoms of it, not the enemy.
 
 The pitch above is the general-purpose one — README, docs, conference blurb,
-app store listing. The marketing homepage runs a narrower, filmmaker-first
-line; [marketing/NARRATIVE.md](../marketing/NARRATIVE.md) owns that hero and
-wins on nodetool.ai. The two must not contradict each other: both say the
-creator directs and keeps the project file.
+app store listing. The marketing homepage uses the same tagline and intro;
+[marketing/NARRATIVE.md](../marketing/NARRATIVE.md) owns the page narrative.
+Both describe editable agent work and persistent project context.
 
 ## 2. Voice
 
@@ -100,7 +104,8 @@ Vocabulary: MCP server, headless execution, API endpoints, CLI, spec-driven.
 
 | Term | Means |
 |---|---|
-| Studio | The product. Not "workspace", "platform", or "tool". |
+| Workspace | The product category: shared project context, agents, and editors. |
+| Studio | The desktop edition of NodeTool. |
 | Canvas | The surface where the work happens, inside the studio. |
 | Orchestrate / wire | Connecting models and steps. |
 | Pipeline / workflow | The repeatable system the user builds. |
