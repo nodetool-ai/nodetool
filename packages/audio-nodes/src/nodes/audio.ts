@@ -174,7 +174,7 @@ export class LoadAudioAssetsNode extends BaseNode {
     title: "Folder",
     description: "The asset folder to load the audio files from."
   })
-  declare folder: any;
+  declare folder: FolderRef;
 
   async process(): Promise<Record<string, unknown>> {
     const collected: Record<string, unknown>[] = [];
@@ -240,7 +240,7 @@ export class LoadAudioFileNode extends BaseNode {
     title: "Path",
     description: "Path to the audio file to read"
   })
-  declare path: any;
+  declare path: string;
 
   async process(): Promise<LoadAudioFileNodeOutputs> {
     const p = uriToPath(String(this.path ?? ""));
@@ -277,7 +277,7 @@ export class LoadAudioFolderNode extends BaseNode {
     title: "Folder",
     description: "Folder to scan for audio files"
   })
-  declare folder: any;
+  declare folder: string;
 
   @prop({
     type: "bool",
@@ -285,7 +285,7 @@ export class LoadAudioFolderNode extends BaseNode {
     title: "Include Subdirectories",
     description: "Include audio in subfolders"
   })
-  declare include_subdirectories: any;
+  declare include_subdirectories: boolean;
 
   @prop({
     type: "list[str]",
@@ -293,7 +293,7 @@ export class LoadAudioFolderNode extends BaseNode {
     title: "Extensions",
     description: "Audio file extensions to include"
   })
-  declare extensions: any;
+  declare extensions: string[];
 
   private _extensions(): string[] {
     const list = Array.isArray(this.extensions)
@@ -369,7 +369,7 @@ export class SaveAudioNode extends BaseNode {
     },
     title: "Audio"
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "folder",
@@ -383,7 +383,7 @@ export class SaveAudioNode extends BaseNode {
     title: "Folder",
     description: "The asset folder to save the audio file to. "
   })
-  declare folder: any;
+  declare folder: FolderRef;
 
   @prop({
     type: "str",
@@ -392,7 +392,7 @@ export class SaveAudioNode extends BaseNode {
     description:
       "\n        The name of the audio file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
   })
-  declare name: any;
+  declare name: string;
 
   async process(): Promise<SaveAudioNodeOutputs> {
     const audio = this.audio;
@@ -436,7 +436,7 @@ export class SaveAudioFileNode extends BaseNode {
     title: "Audio",
     description: "The audio to save"
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "bool",
@@ -444,7 +444,7 @@ export class SaveAudioFileNode extends BaseNode {
     title: SAVE_TO_WORKSPACE_TITLE,
     description: SAVE_TO_WORKSPACE_DESCRIPTION
   })
-  declare save_to_workspace: any;
+  declare save_to_workspace: boolean;
 
   @prop({
     type: "str",
@@ -453,7 +453,7 @@ export class SaveAudioFileNode extends BaseNode {
     description: "Folder where the file will be saved",
     json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
-  declare folder: any;
+  declare folder: string;
 
   @prop({
     type: "str",
@@ -462,7 +462,7 @@ export class SaveAudioFileNode extends BaseNode {
     description:
       "\n        Name of the file to save.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
   })
-  declare filename: any;
+  declare filename: string;
 
   @prop({
     type: "dict[str, str]",
@@ -520,7 +520,7 @@ export class NormalizeAudioNode extends BaseNode {
     title: "Audio",
     description: "The audio file to normalize."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   async process(context?: ProcessingContext): Promise<NormalizeAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
@@ -584,7 +584,7 @@ export class OverlayAudioNode extends BaseNode {
     title: "A",
     description: "The first audio file."
   })
-  declare a: any;
+  declare a: AudioRef;
 
   @prop({
     type: "audio",
@@ -598,7 +598,7 @@ export class OverlayAudioNode extends BaseNode {
     title: "B",
     description: "The second audio file."
   })
-  declare b: any;
+  declare b: AudioRef;
 
   async process(context?: ProcessingContext): Promise<OverlayAudioNodeOutputs> {
     const aBytes = await audioBytesAsync(this.a, context);
@@ -664,7 +664,7 @@ export class RemoveSilenceNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "int",
@@ -674,7 +674,7 @@ export class RemoveSilenceNode extends BaseNode {
     min: 0,
     max: 10000
   })
-  declare min_length: any;
+  declare min_length: number;
 
   @prop({
     type: "int",
@@ -685,7 +685,7 @@ export class RemoveSilenceNode extends BaseNode {
     min: -60,
     max: 0
   })
-  declare threshold: any;
+  declare threshold: number;
 
   @prop({
     type: "float",
@@ -696,7 +696,7 @@ export class RemoveSilenceNode extends BaseNode {
     min: 0,
     max: 1
   })
-  declare reduction_factor: any;
+  declare reduction_factor: number;
 
   @prop({
     type: "int",
@@ -707,7 +707,7 @@ export class RemoveSilenceNode extends BaseNode {
     min: 0,
     max: 50
   })
-  declare crossfade: any;
+  declare crossfade: number;
 
   @prop({
     type: "int",
@@ -718,7 +718,7 @@ export class RemoveSilenceNode extends BaseNode {
     min: 0,
     max: 500
   })
-  declare min_silence_between_parts: any;
+  declare min_silence_between_parts: number;
 
   async process(context?: ProcessingContext): Promise<RemoveSilenceNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
@@ -845,7 +845,7 @@ export class SliceAudioNode extends BaseNode {
     title: "Audio",
     description: "The audio file."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "float",
@@ -854,7 +854,7 @@ export class SliceAudioNode extends BaseNode {
     description: "The start time in seconds.",
     min: 0
   })
-  declare start: any;
+  declare start: number;
 
   @prop({
     type: "float",
@@ -863,7 +863,7 @@ export class SliceAudioNode extends BaseNode {
     description: "The end time in seconds. 0 or less slices to the end.",
     min: 0
   })
-  declare end: any;
+  declare end: number;
 
   async process(context?: ProcessingContext): Promise<SliceAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
@@ -913,7 +913,7 @@ export class MonoToStereoNode extends BaseNode {
     title: "Audio",
     description: "The mono audio file to convert."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   async process(context?: ProcessingContext): Promise<MonoToStereoNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
@@ -973,7 +973,7 @@ export class StereoToMonoNode extends BaseNode {
     title: "Audio",
     description: "The stereo audio file to convert."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "str",
@@ -981,7 +981,7 @@ export class StereoToMonoNode extends BaseNode {
     title: "Method",
     description: "Method to use for conversion: 'average', 'left', or 'right'."
   })
-  declare method: any;
+  declare method: string;
 
   async process(context?: ProcessingContext): Promise<StereoToMonoNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
@@ -1048,7 +1048,7 @@ export class ReverseAudioNode extends BaseNode {
     title: "Audio",
     description: "The audio file to reverse."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   async process(context?: ProcessingContext): Promise<ReverseAudioNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
@@ -1100,7 +1100,7 @@ export class FadeInAudioNode extends BaseNode {
     title: "Audio",
     description: "The audio file to apply fade-in to."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "float",
@@ -1109,7 +1109,7 @@ export class FadeInAudioNode extends BaseNode {
     description: "Duration of the fade-in effect in seconds.",
     min: 0
   })
-  declare duration: any;
+  declare duration: number;
 
   async process(context?: ProcessingContext): Promise<FadeInAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
@@ -1159,7 +1159,7 @@ export class FadeOutAudioNode extends BaseNode {
     title: "Audio",
     description: "The audio file to apply fade-out to."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "float",
@@ -1168,7 +1168,7 @@ export class FadeOutAudioNode extends BaseNode {
     description: "Duration of the fade-out effect in seconds.",
     min: 0
   })
-  declare duration: any;
+  declare duration: number;
 
   async process(context?: ProcessingContext): Promise<FadeOutAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
@@ -1219,7 +1219,7 @@ export class RepeatAudioNode extends BaseNode {
     title: "Audio",
     description: "The audio file to loop."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "int",
@@ -1230,7 +1230,7 @@ export class RepeatAudioNode extends BaseNode {
     min: 1,
     max: 100
   })
-  declare loops: any;
+  declare loops: number;
 
   async process(context?: ProcessingContext): Promise<RepeatAudioNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
@@ -1352,7 +1352,7 @@ export class TrimAudioNode extends BaseNode {
     title: "Audio",
     description: "The audio file to trim."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "float",
@@ -1361,7 +1361,7 @@ export class TrimAudioNode extends BaseNode {
     description: "The start time of the trimmed audio in seconds.",
     min: 0
   })
-  declare start: any;
+  declare start: number;
 
   @prop({
     type: "float",
@@ -1370,7 +1370,7 @@ export class TrimAudioNode extends BaseNode {
     description: "The end time of the trimmed audio in seconds.",
     min: 0
   })
-  declare end: any;
+  declare end: number;
 
   async process(context?: ProcessingContext): Promise<TrimAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
@@ -1416,7 +1416,7 @@ export class CreateSilenceNode extends BaseNode {
     description: "The duration of the silence in seconds.",
     min: 0
   })
-  declare duration: any;
+  declare duration: number;
 
   @prop({
     type: "int",
@@ -1425,7 +1425,7 @@ export class CreateSilenceNode extends BaseNode {
     description: "Sample rate of the generated silence in Hz.",
     min: 1
   })
-  declare sample_rate: any;
+  declare sample_rate: number;
 
   async process(): Promise<CreateSilenceNodeOutputs> {
     const duration = Math.max(0, Number(this.duration ?? 1));
@@ -1528,7 +1528,7 @@ export class ConcatAudioListNode extends BaseNode {
     title: "Audio Files",
     description: "List of audio files to concatenate in sequence."
   })
-  declare audio_files: any;
+  declare audio_files: AudioRef[];
 
   async process(context?: ProcessingContext): Promise<ConcatAudioListNodeOutputs> {
     const audios = Array.isArray(this.audio_files)
@@ -1836,7 +1836,7 @@ export class TextToMusicNode extends BaseNode {
     title: "Model",
     description: "The text-to-music model to use"
   })
-  declare model: any;
+  declare model: MusicModel;
 
   @prop({
     type: "str",
@@ -1844,7 +1844,7 @@ export class TextToMusicNode extends BaseNode {
     title: "Prompt",
     description: "Describe the style, mood, genre, and instrumentation"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -1853,7 +1853,7 @@ export class TextToMusicNode extends BaseNode {
     description:
       "Optional song lyrics for vocal models (e.g. Suno, MiniMax). Leave empty for instrumental."
   })
-  declare lyrics: any;
+  declare lyrics: string;
 
   @prop({
     type: "float",
@@ -1863,7 +1863,7 @@ export class TextToMusicNode extends BaseNode {
     min: 1,
     max: 300
   })
-  declare duration: any;
+  declare duration: number;
 
   async process(context?: ProcessingContext): Promise<TextToMusicNodeOutputs> {
     const prompt = String(this.prompt ?? "");
@@ -1927,7 +1927,7 @@ export class ChunkToAudioNode extends BaseNode {
     title: "Chunk",
     description: "Stream of audio chunks"
   })
-  declare chunk: any;
+  declare chunk: Chunk;
 
   async process(): Promise<ChunkToAudioNodeOutputs> {
     const chunk = this.chunk;
@@ -1990,7 +1990,7 @@ export class GetAudioInfoNode extends BaseNode {
     title: "Audio",
     description: "The audio to inspect."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   async process(context?: ProcessingContext): Promise<GetAudioInfoNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);

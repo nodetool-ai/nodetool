@@ -23,6 +23,7 @@ import {
   buildTimelineToolContracts,
   liftCustomAnimation,
   rejectUnknownClipParams,
+  type TimelineToolArgs,
   type TimelineToolName
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
 import {
@@ -75,23 +76,29 @@ const TIMELINE_CONTRACTS = buildTimelineToolContracts({
 });
 
 /**
- * The shared fields plus the browser's own `timeline_id` — the one field the
- * headless bridge has no use for, since it drives a single implicit sequence.
- *
- * `uiToolParams` answers `z.ZodType` because a contract's `finalize` may close
- * or reopen the object; the cast names the argument type its shape already
- * fixes, which is what `execute` destructures.
+ * The name, description and parameters of one shared tool: the contract's own
+ * fields plus the browser's `timeline_id` — the one field the headless bridge
+ * has no use for, since it drives a single implicit sequence.
  */
-const hostParams = <S extends z.ZodRawShape>(contract: UiToolContract<S>) =>
-  uiToolParams(contract, { timeline_id: timelineIdParam }) as unknown as z.ZodType<
-    z.infer<z.ZodObject<S>> & { timeline_id: string }
-  >;
+interface SharedTimelineTool<K extends TimelineToolName> {
+  name: K;
+  description: string;
+  parameters: z.ZodType<TimelineToolArgs<K> & { timeline_id: string }>;
+}
 
-/** The name, description and parameters of one shared tool. */
-const shared = <K extends TimelineToolName>(name: K) => ({
+/**
+ * `uiToolParams` answers `z.ZodType` because a contract's `finalize` may close
+ * or reopen the object, so the cast names the argument type its shape already
+ * fixes — which is what `execute` destructures.
+ */
+const shared = <K extends TimelineToolName>(
+  name: K
+): SharedTimelineTool<K> => ({
   name,
   description: TIMELINE_CONTRACTS[name].description,
-  parameters: hostParams(TIMELINE_CONTRACTS[name])
+  parameters: uiToolParams(TIMELINE_CONTRACTS[name], {
+    timeline_id: timelineIdParam
+  }) as unknown as SharedTimelineTool<K>["parameters"]
 });
 
 /**
