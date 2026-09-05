@@ -875,4 +875,159 @@ describe("storyboards capability behaviour", () => {
     expect(result.ops[2].error).toContain('No shot matches "nope"');
     expect(result.shots[0].slug).toBe("wide");
   });
+
+  // A model that renders a fixed 5.184s window covers several 1.5-2.2s beats
+  // in one generation. The clip lands on the first shot of the run; before
+  // `covered_by` the siblings stayed `has_clip: false` for the rest of the
+  // session, so the board read as half unrendered when the cut was locked and
+  // the default clip selection offered to generate them again.
+  describe("fused shots", () => {
+    const fusedBoard = () =>
+      makeBoard([
+        shot({
+          id: "event",
+          index: 0,
+          status: "rendered",
+          duration_seconds: 2.5,
+          clip: { type: "video", asset_id: "clip-fused", duration: 5.184 }
+        }),
+        shot({
+          id: "reception",
+          index: 1,
+          status: "keyframe_ready",
+          keyframe: { type: "image", asset_id: "still-reception" }
+        })
+      ]);
+
+    const cover = async (context: ProcessingContext, boardId: string) =>
+      (await run(context).invoke("edit_storyboard", {
+        storyboard_id: boardId,
+        ops: [
+          {
+            op: "update_shot",
+            target: "reception",
+            covered_by: {
+              shot_id: "event",
+              start_seconds: 2.5,
+              end_seconds: 5.184
+            }
+          }
+        ]
+      })) as { applied: number; failed: number; ops: Array<{ error?: string }> };
+
+    it("reads a covered shot back as rendered, with its window", async () => {
+      const board = await fusedBoard();
+      const context = ctx();
+      expect(await cover(context, board.id)).toMatchObject({
+        applied: 1,
+        failed: 0
+      });
+
+      const read = (await run(context).invoke("get_storyboard", {
+        storyboard_id: board.id
+      })) as {
+        shots: Array<{
+          id: string;
+          status: string;
+          has_clip: boolean;
+          covered_by: { shot_id: string; start_seconds?: number } | null;
+        }>;
+      };
+      expect(read.shots[1]).toMatchObject({
+        id: "reception",
+        status: "rendered",
+        has_clip: true,
+        covered_by: {
+          shot_id: "event",
+          start_seconds: 2.5,
+          end_seconds: 5.184
+        }
+      });
+      expect(read.shots[0].covered_by).toBeNull();
+    });
+
+    it("does not offer a covered shot up for another render", async () => {
+      const board = await fusedBoard();
+      const context = ctx();
+      await cover(context, board.id);
+
+      // Nothing is selected at all — not "selected and then failed", which is
+      // what the old `!s.clip` predicate produced on a shot whose picture had
+      // already been generated into its sibling.
+      const clips = (await run(context).invoke("render_storyboard_clips", {
+        storyboard_id: board.id
+      })) as { rendered: number; results: unknown[]; note?: string };
+      expect(clips).toMatchObject({ rendered: 0, results: [] });
+      expect(clips.note).toContain("No shot is ready for a clip");
+    });
+
+    it("assembles the covered shot as a slice of the covering clip", async () => {
+      const board = await fusedBoard();
+      const context = ctx();
+      await cover(context, board.id);
+
+      const assembled = (await run(context).invoke(
+        "assemble_storyboard_timeline",
+        { storyboard_id: board.id }
+      )) as { timeline_id: string };
+      const sequence = await sequenceOf(assembled.timeline_id);
+      const picture = sequence
+        .toDocument()
+        .clips.filter((c) => c.mediaType !== "audio");
+
+      expect(picture).toHaveLength(2);
+      expect(picture[1]).toMatchObject({
+        currentAssetId: "clip-fused",
+        startMs: 2500,
+        inPointMs: 2500,
+        outPointMs: 5184
+      });
+    });
+
+    it("refuses coverage that names a shot, itself, or another window", async () => {
+      const board = await fusedBoard();
+      const context = ctx();
+      const refused = (await run(context).invoke("edit_storyboard", {
+        storyboard_id: board.id,
+        ops: [
+          { op: "update_shot", target: "reception", covered_by: "ghost" },
+          { op: "update_shot", target: "event", covered_by: "event" },
+          {
+            op: "update_shot",
+            target: "reception",
+            covered_by: { shot_id: "event", start_seconds: 3, end_seconds: 1 }
+          }
+        ]
+      })) as { failed: number; ops: Array<{ error?: string }> };
+      expect(refused.failed).toBe(3);
+      expect(refused.ops[0].error).toContain('covered_by names no shot: "ghost"');
+      expect(refused.ops[1].error).toContain("cannot cover itself");
+      expect(refused.ops[2].error).toContain("must be after start_seconds");
+    });
+
+    it("uncovers the dependents when the covering shot is removed", async () => {
+      const board = await fusedBoard();
+      const context = ctx();
+      await cover(context, board.id);
+
+      const removed = (await run(context).invoke("edit_storyboard", {
+        storyboard_id: board.id,
+        ops: [{ op: "remove_shot", target: "event" }]
+      })) as { ops: Array<{ result?: { uncovered?: string[] } }> };
+      expect(removed.ops[0].result?.uncovered).toEqual(["reception"]);
+
+      const read = (await run(context).invoke("get_storyboard", {
+        storyboard_id: board.id
+      })) as {
+        shots: Array<{ id: string; status: string; has_clip: boolean }>;
+      };
+      expect(read.shots).toEqual([
+        expect.objectContaining({
+          id: "reception",
+          status: "keyframe_ready",
+          has_clip: false
+        })
+      ]);
+    });
+  });
 });

@@ -2286,7 +2286,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "a9792020b14a",
+    contract: "23b366075a94",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
@@ -2318,7 +2318,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "render_storyboard_clips",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "7cfc44e9c9d6",
+    contract: "63dfa003d0f1",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
@@ -2360,7 +2360,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "9b3c1f3f93a1",
+    contract: "e0a1059b33ed",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",

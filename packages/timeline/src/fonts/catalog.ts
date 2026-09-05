@@ -210,6 +210,60 @@ export interface ResolvedFontFamily {
 }
 
 /**
+ * Generic CSS families: names that select no typeface at all.
+ *
+ * `sans-serif` is not a font, it is "whatever this machine calls its default
+ * sans" — so a title set in it draws in one face in the editor preview,
+ * another in a server render, and a third on the reviewer's laptop. Unlike a
+ * named system font, there is no version of it that is right, which is why
+ * these are refused where a clip is authored rather than reported afterwards
+ * as `font_not_portable`.
+ */
+const GENERIC_FONT_FAMILIES = new Set([
+  "sans-serif",
+  "serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "system-ui",
+  "ui-sans-serif",
+  "ui-serif",
+  "ui-monospace",
+  "ui-rounded",
+  "math",
+  "emoji",
+  "fangsong",
+  "-apple-system",
+  "blinkmacsystemfont"
+]);
+
+/**
+ * Why a `fontFamily` cannot be authored as written, or null when it can.
+ *
+ * Only the generics are refused. A named system font stays authorable and is
+ * reported by the timeline validator as `font_not_portable` (D8) — the family
+ * exists somewhere, and pinning it may be exactly what the caller wants.
+ */
+export function fontFamilyRefusal(family: string | undefined): string | null {
+  if (family === undefined) return null;
+  const head = primaryFamilyOf(family);
+  if (!GENERIC_FONT_FAMILIES.has(head.toLowerCase())) return null;
+  return (
+    `"${head}" names no typeface — it is whatever the machine drawing the ` +
+    "frame calls its default, so the editor preview, the render and the " +
+    "agent's frame preview each pick their own. Set a family NodeTool ships: " +
+    `${BUNDLED_FONT_FAMILIES.join(", ")}. Omit fontFamily to get ` +
+    `${DEFAULT_FONT_FAMILY}.`
+  );
+}
+
+/** Throw {@link fontFamilyRefusal} when a family cannot be authored. */
+export function assertAuthorableFontFamily(family: string | undefined): void {
+  const refusal = fontFamilyRefusal(family);
+  if (refusal !== null) throw new Error(refusal);
+}
+
+/**
  * Turn a document's `fontFamily` into the family list every host draws with.
  *
  * A bundled family resolves to itself plus its generic; anything else keeps

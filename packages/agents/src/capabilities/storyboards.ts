@@ -32,6 +32,7 @@ import type {
   Screenplay,
   ScriptLinkDocument,
   Shot,
+  ShotCoverage,
   VideoRef
 } from "@nodetool-ai/protocol";
 import type { ScriptAssemblyInput } from "@nodetool-ai/timeline";
@@ -226,6 +227,20 @@ function findShot(shots: Shot[], target: string): Shot | undefined {
   const slug = target.trim().toLowerCase();
   return shots.find((s) => (s.slug ?? "").trim().toLowerCase() === slug);
 }
+
+/**
+ * Whether a shot's picture already exists — its own clip, or a window into the
+ * clip of the shot that covers it.
+ *
+ * The render selections read this rather than `shot.clip`, so a shot fused
+ * into a sibling's generation is not offered up to be generated a second time.
+ */
+const shotHasPicture = (shot: Shot, shots: readonly Shot[]): boolean => {
+  if (shot.clip) return true;
+  const coverage = shot.covered_by;
+  if (!coverage) return false;
+  return shots.some((s) => s.id === coverage.shot_id && !!s.clip);
+};
 
 /**
  * The shots a render call acts on: the explicit `targets` when given, else
@@ -634,7 +649,8 @@ const getStoryboard: CapabilityExport = {
           duration_seconds: shot.duration_seconds,
           status: shot.status,
           has_keyframe: !!shot.keyframe,
-          has_clip: !!shot.clip,
+          has_clip: shotHasPicture(shot, doc.shots),
+          covered_by: shot.covered_by ?? null,
           render_mode: shot.render_mode ?? "keyframe",
           script_line_ids: shot.script_line_ids ?? [],
           duration_source: shot.duration_source,
@@ -662,7 +678,10 @@ const renderStoryboardStills: CapabilityExport = {
     const selected = selectShots(
       doc.shots,
       params["targets"],
-      (s) => !s.keyframe && shotRenderMode(s) !== "direct"
+      (s) =>
+        !s.keyframe &&
+        shotRenderMode(s) !== "direct" &&
+        !shotHasPicture(s, doc.shots)
     );
     if (isError(selected)) return selected;
     if (selected.length === 0) {
@@ -794,7 +813,9 @@ const renderStoryboardClips: CapabilityExport = {
     const selected = selectShots(
       doc.shots,
       params["targets"],
-      (s) => !s.clip && (modeOf(s) === "direct" || !!s.keyframe)
+      (s) =>
+        !shotHasPicture(s, doc.shots) &&
+        (modeOf(s) === "direct" || !!s.keyframe)
     );
     if (isError(selected)) return selected;
     if (selected.length === 0) {
@@ -1348,7 +1369,8 @@ const SHOT_EDIT_FIELDS = new Set([
   "duration_source",
   "render_mode",
   "entity_ids",
-  "location_id"
+  "location_id",
+  "covered_by"
 ]);
 
 /** Fields a caller reaches for to attach media, which an edit cannot set. */
@@ -1414,8 +1436,73 @@ function assertKnownBoardFields(args: Record<string, unknown>): void {
   );
 }
 
+/**
+ * Read `covered_by` on an edit: which shot's clip holds this shot's picture,
+ * and the window of it this shot uses.
+ *
+ * A model that renders a fixed 5.2s window covers several 1.5-2.2s beats in
+ * one generation, and the clip lands on one shot. Before this the siblings had
+ * no way to say so: they stayed `has_clip: false`, the board read as half
+ * unrendered when the cut was locked, and the default clip selection offered
+ * to generate them again. The covering shot must own its clip — a window
+ * measured against a window has no source length behind it.
+ */
+function parseShotCoverage(
+  shot: Shot,
+  shots: readonly Shot[],
+  value: unknown
+): ShotCoverage | null {
+  if (value === null) return null;
+  const raw = isString(value) ? { shot_id: value } : value;
+  if (!isRecord(raw)) {
+    throw new Error(
+      "covered_by must be {shot_id, start_seconds?, end_seconds?} or null. " +
+        "A bare shot id is accepted and means the whole clip."
+    );
+  }
+  const ref = raw["shot_id"] ?? raw["target"] ?? raw["shot"];
+  if (!isString(ref) || ref.trim() === "") {
+    throw new Error("covered_by needs a `shot_id` naming the covering shot.");
+  }
+  const cover = findShot([...shots], ref.trim());
+  if (!cover) throw new Error(`covered_by names no shot: "${ref}".`);
+  if (cover.id === shot.id) {
+    throw new Error("A shot cannot cover itself.");
+  }
+  if (cover.covered_by) {
+    throw new Error(
+      `Shot ${cover.id} is itself covered by ${cover.covered_by.shot_id}; ` +
+        "point at the shot that owns the clip."
+    );
+  }
+  const seconds = (key: "start_seconds" | "end_seconds"): number | undefined => {
+    const given = raw[key];
+    if (given === undefined || given === null) return undefined;
+    const n = Number(given);
+    if (!Number.isFinite(n) || n < 0) {
+      throw new Error(`covered_by.${key} must be a number of seconds >= 0.`);
+    }
+    return n;
+  };
+  const start = seconds("start_seconds");
+  const end = seconds("end_seconds");
+  if (start !== undefined && end !== undefined && end <= start) {
+    throw new Error(
+      `covered_by.end_seconds (${end}) must be after start_seconds (${start}).`
+    );
+  }
+  const coverage: ShotCoverage = { shot_id: cover.id };
+  if (start !== undefined) coverage.start_seconds = start;
+  if (end !== undefined) coverage.end_seconds = end;
+  return coverage;
+}
+
 /** The shot fields an edit may set. Media and status stay the render tools'. */
-function applyShotFields(shot: Shot, args: Record<string, unknown>): Shot {
+function applyShotFields(
+  shot: Shot,
+  args: Record<string, unknown>,
+  shots: readonly Shot[] = []
+): Shot {
   const next: Shot = { ...shot };
   if (args["action"] !== undefined) next.action = String(args["action"]);
   if (args["slug"] !== undefined) next.slug = String(args["slug"]);
@@ -1453,6 +1540,18 @@ function applyShotFields(shot: Shot, args: Record<string, unknown>): Shot {
   if (args["location_id"] !== undefined) {
     next.location_id = optionalString(args["location_id"]) ?? null;
   }
+  if (args["covered_by"] !== undefined) {
+    const coverage = parseShotCoverage(next, shots, args["covered_by"]);
+    next.covered_by = coverage;
+    // Status is the render tools' to write, with one exception: coverage is
+    // the only way a shot's picture arrives without a render, and a covered
+    // shot left at `keyframe_ready` is the drift this field exists to remove.
+    if (coverage) {
+      next.status = "rendered";
+    } else if (!next.clip) {
+      next.status = next.keyframe ? "keyframe_ready" : "planned";
+    }
+  }
   return next;
 }
 
@@ -1484,7 +1583,8 @@ function applyBoardOp(
           action: "",
           status: "planned"
         },
-        args
+        args,
+        doc.shots
       );
       const at =
         isNumber(args["index"])
@@ -1501,7 +1601,7 @@ function applyBoardOp(
       const target = String(args["target"] ?? "");
       const shot = findShot(doc.shots, target);
       if (!shot) throw new Error(`No shot matches "${target}".`);
-      const updated = applyShotFields(shot, args);
+      const updated = applyShotFields(shot, args, doc.shots);
       doc.shots = doc.shots.map((s) => (s.id === shot.id ? updated : s));
       return { id: updated.id, action: updated.action };
     }
@@ -1510,8 +1610,28 @@ function applyBoardOp(
       const target = String(args["target"] ?? "");
       const shot = findShot(doc.shots, target);
       if (!shot) throw new Error(`No shot matches "${target}".`);
-      doc.shots = renumberShots(doc.shots.filter((s) => s.id !== shot.id));
-      return { removed: shot.id };
+      // Coverage pointing at a shot that is gone would read as a picture that
+      // exists and assemble as nothing, so the dependents go back to needing
+      // their own render.
+      const uncovered = doc.shots
+        .filter((s) => s.covered_by?.shot_id === shot.id)
+        .map((s) => s.id);
+      doc.shots = renumberShots(
+        doc.shots
+          .filter((s) => s.id !== shot.id)
+          .map((s) =>
+            s.covered_by?.shot_id === shot.id
+              ? {
+                  ...s,
+                  covered_by: null,
+                  status: s.keyframe ? "keyframe_ready" : "planned"
+                }
+              : s
+          )
+      );
+      return uncovered.length > 0
+        ? { removed: shot.id, uncovered }
+        : { removed: shot.id };
     }
 
     case "reorder_shot": {

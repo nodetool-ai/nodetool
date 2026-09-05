@@ -11,7 +11,7 @@ Work with no editor open. Shot `target` = shot id, 0-based index as a string, or
 |---|---|
 | `list_storyboards` | `limit?` → id, name, shots, with_keyframe, with_clip, timeline_id, updated_at |
 | `create_storyboard` | `name` (required), `brief?`, `style?`, `aspect_ratio?` (default `16:9`), `project_id?`, `id?` |
-| `get_storyboard` | `storyboard_id` → brief, style, aspect ratio, narration, music_prompt, image_model, video_model, script link, and every shot with id/index/slug/action/camera/motion/duration/status/has_keyframe/has_clip |
+| `get_storyboard` | `storyboard_id` → brief, style, aspect ratio, narration, music_prompt, image_model, video_model, script link, and every shot with id/index/slug/action/camera/motion/duration/status/has_keyframe/has_clip/covered_by |
 | `edit_storyboard` | `storyboard_id`, `ops[]` — see below |
 | `render_storyboard_stills` | `storyboard_id`, `targets?`, `provider?`, `model?`, `style?`, `concurrency?` |
 | `render_storyboard_clips` | `storyboard_id`, `targets?`, `provider?`, `model?`, `resolution?`, `mode?` (`keyframe`\|`direct`), `concurrency?` |
@@ -24,7 +24,8 @@ Render limits: **24 shots per call**, `concurrency` default 3, max 8.
 
 Omitting `targets` selects every shot that still needs that step. For stills that is
 every shot with no keyframe that is not set to render directly; for clips, every shot
-with no clip. A `keyframe`-mode shot that reaches `render_storyboard_clips` with no
+with no picture — its own or one it is covered by (§ Fusing shots). A `keyframe`-mode
+shot that reaches `render_storyboard_clips` with no
 still is reported in the results, not rendered — render its still first, or set its
 `render_mode` to `direct`. Each render appends to `keyframe_versions` /
 `clip_versions` and makes the new one selected.
@@ -36,22 +37,52 @@ still is reported in the results, not rendered — render its still first, or se
 
 Shot fields (add and update both): `action`, `slug`, `camera`, `motion`, `dialogue`,
 `narration`, `notes`, `duration_seconds`, `duration_source` (`audio`\|`manual`),
-`render_mode` (`keyframe`\|`direct`), `entity_ids`, `location_id`, `index`.
+`render_mode` (`keyframe`\|`direct`), `entity_ids`, `location_id`, `covered_by`, `index`.
 
 `camera` is `{framing?, lens?, angle?, movement?}`.
+
+`covered_by` is `{shot_id, start_seconds?, end_seconds?}` — this shot's picture is a
+window into another shot's clip. See § Fusing shots below. `null` undoes it.
 
 Board fields (`set_board` only): `brief`, `style`, `aspect_ratio`, `entity_ids`,
 `image_model`, `video_model`. The two model fields take a model **object** from
 `find_model`, or null.
 
 **An edit cannot set `keyframe`, `clip` or `status`.** Those belong to the render
-tools; passing them raises an error naming the right tool.
+tools; passing them raises an error naming the right tool. `covered_by` is the one
+exception: coverage is a picture that arrived without a render, so setting it marks
+the shot `rendered` and clearing it puts the shot back to `keyframe_ready`/`planned`.
 
 **An edit cannot set `title`, `logline`, `style_bible`, `narration` or `music_prompt`
 at the board level.** Those live on the screenplay, which only
 `ui_storyboard_set_screenplay` writes. Per-*shot* `narration` is an ordinary shot
 field and works fine headlessly. Board narration and music matter because
 `assemble_storyboard_timeline` turns them into draft audio clips.
+
+### Fusing shots
+
+A video model returns a fixed window — 5.184s, 6s, 8s — whatever length the shot was
+directed at. A cut whose beats run 1.5-2.5s is therefore cheaper to render as one
+generation covering a run of shots and split afterwards, than as one generation per
+shot: fifteen 1.5-2.5s beats bought one at a time is ~77s of footage for a 30s cut.
+
+Direct the run as one prompt with bracketed timecodes
+(`[00:00 to 00:02.5] Event … [00:02.5 to 00:05.2] Reception`), render it on the first
+shot of the run, then tell the board which slice each sibling uses:
+
+```json
+{"op": "update_shot", "target": "06",
+ "covered_by": {"shot_id": "05", "start_seconds": 2.5, "end_seconds": 5.184}}
+```
+
+The covered shot then reads `has_clip: true` with `status: "rendered"`, is skipped by
+`render_storyboard_clips` (so it is never generated twice), and
+`assemble_storyboard_timeline` lays it down as that window of the covering clip
+instead of skipping it. Without `end_seconds` it runs to the end of the covering clip,
+capped at its own `duration_seconds`.
+
+One hop only: `shot_id` must name a shot that owns its clip, not another covered shot.
+Removing the covering shot clears the coverage and reports which shots it uncovered.
 
 ## Storyboard — browser (`ui_storyboard_*`)
 
@@ -160,6 +191,26 @@ clips with `muted: true`, or `volumeDb: -18`. `set_clip_params` also takes `name
 `opacity`, `speedMultiplier`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`,
 `hidden`, `locked`, `textStyle`, `shapeStyle`.
 
+Every field goes on the op itself. A `params` / `props` wrapper is unwrapped, but the
+flat form is the contract:
+
+```json
+{"op": "set_clip_params", "target": "clip_1",
+ "textStyle": {"fontFamily": "Space Grotesk", "fontWeight": 800}}
+```
+
+`textStyle` is **merged** over the clip's own, so send only what you are changing —
+re-sending the whole object is how the fields you did not mean to touch get
+overwritten. `fontWeight` is a number, and the CSS keywords (`bold`, `semibold`,
+`extrabold`) are accepted and stored as one.
+
+**Set a bundled family or none at all.** `sans-serif`, `serif`, `system-ui` and the
+other CSS generics are refused where the clip is authored: they name no typeface, so
+the editor preview, the render and `preview_timeline_frame` each pick a different one.
+NodeTool ships Inter (the default), Space Grotesk, Bebas Neue, Playfair Display, Lora
+and JetBrains Mono. A named system font is still allowed and `validate_timeline`
+reports it as `font_not_portable`.
+
 `validate_timeline {timeline_id | document, fps?}` after every edit pass. It catches
 overlaps, fades longer than their clip, unknown presets and incomplete bindings.
 
@@ -175,7 +226,21 @@ line ids it covers, and from then on the script owns the words. `derive_storyboa
 goes the other way, one shot per line, optionally with a director pass over the scaffold.
 
 `voice_script_lines` synthesizes each line with its cast voice; `assemble_script_timeline`
-lays the takes end to end. On a linked board, `assemble_storyboard_timeline` cuts words
+lays the takes end to end.
+
+**Give the cast their voices first, then voice with no override.** A voice is the
+triple `{provider, model, voice}` where `voice` is the voice's own name (`Aoede`,
+`Charon`, `alloy`) — a provider and a model alone do not pick one, so
+`voice_script_lines {provider, model}` is refused. Set each speaker once:
+
+```json
+{"op": "set_speaker_voice", "target": "MOM",
+ "provider": "gemini", "model": "tts-hd", "voice": "Aoede"}
+```
+
+The three keys sit on the op, though a `voice: {provider, model, voice_id}` object —
+the shape `get_script` reports a voice in — is flattened onto it. Then call
+`voice_script_lines {script_id}` with no override and every speaker resolves its own. On a linked board, `assemble_storyboard_timeline` cuts words
 and picture together: each shot runs as long as the takes it covers and every voiced
 line gets its own voiceover clip.
 

@@ -36,10 +36,10 @@ import {
 } from "./script-link.js";
 import {
   SHOT_AUDIO_TRACK_NAME,
-  isAssemblableShot,
   shotAudioClip,
   shotDurationMs,
-  shotSourceDurationMs,
+  shotSource,
+  shotsById,
   type AssembledTimeline,
   type TrimmedShot
 } from "./storyboard.js";
@@ -83,11 +83,13 @@ export function buildLinkedTimeline(
       ? input.script.cast.find((s) => s.id === speakerId)?.name
       : undefined;
 
+  const byId = shotsById(input.shots);
   let cursorMs = 0;
   const trimmedShots: TrimmedShot[] = [];
   for (const shot of ordered) {
     const lineIds = shot.script_line_ids ?? [];
-    if (!isAssemblableShot(shot)) {
+    const source = shotSource(shot, byId);
+    if (!source) {
       skippedShotIds.push(shot.id);
       skippedLineIds.push(...lineIds);
       continue;
@@ -101,7 +103,7 @@ export function buildLinkedTimeline(
     // under `usedMs` is the caller's cue that the picture runs out first.
     const durationMs =
       linkedShotDurationMs(shot, linesById) ?? shotDurationMs(shot);
-    const sourceMs = shotSourceDurationMs(shot);
+    const sourceMs = source.availableMs;
     if (sourceMs !== null && sourceMs !== durationMs) {
       trimmedShots.push({ shotId: shot.id, usedMs: durationMs, sourceMs });
     }
@@ -113,12 +115,19 @@ export function buildLinkedTimeline(
       mediaType: "video",
       sourceType: "imported",
       status: "generated",
-      currentAssetId: shot.clip?.asset_id ?? undefined,
+      currentAssetId: source.assetId,
       linkId: createTimeOrderedUuid(),
       storyboardBoardId: input.boardId,
       storyboardShotId: shot.id,
       versions: []
     });
+    // A covered shot is a slice out of the middle of someone else's
+    // generation, so it needs its window written; a shot playing its own clip
+    // starts at the head and is left exactly as it was.
+    if (source.sourceShotId !== shot.id) {
+      videoClip.inPointMs = source.inPointMs;
+      videoClip.outPointMs = source.inPointMs + durationMs;
+    }
     clips.push(videoClip, shotAudioClip(videoClip, shotAudioTrack.id));
     cursorMs += durationMs;
 

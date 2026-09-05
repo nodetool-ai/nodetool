@@ -177,11 +177,16 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
         'Operations in order. Each is {"op": <name>, ...arguments}: ' +
         "add_shot {action, slug?, camera?, motion?, dialogue?, narration?, " +
         "duration_seconds?, duration_source?, render_mode?, entity_ids?, " +
-        "location_id?, notes?, index?}, " +
+        "location_id?, covered_by?, notes?, index?}, " +
         "update_shot {target, ...same fields}, remove_shot {target}, " +
         "reorder_shot {target, index}, set_board {brief?, style?, " +
         "aspect_ratio?, entity_ids?, image_model?, video_model?}. " +
         "`target` is a shot id, its 0-based index, or its slug. " +
+        "covered_by {shot_id, start_seconds?, end_seconds?} says this shot's " +
+        "picture is a window into another shot's clip — how you record a " +
+        "generation whose fixed length covers several beats. The covered " +
+        "shot then reads as rendered, is skipped by the render selections, " +
+        "and assembles as that window. Pass null to undo it. " +
         "image_model/video_model take a model object from find_model and " +
         "become the board's defaults for render_storyboard_stills and " +
         "render_storyboard_clips.",
@@ -246,6 +251,8 @@ export const getStoryboardSpec: CapabilitySpec = {
     "Read one storyboard: brief, style, aspect ratio, the still/clip models it " +
     "renders with, and every shot with its id, index, slug, action, camera, " +
     "motion, duration, status, and whether it already has a still or a clip. " +
+    "`has_clip` counts a shot whose picture is a window into another shot's " +
+    "generation; `covered_by` says which shot and which window. " +
     "Call this before rendering — the other tools address shots by these ids.",
   inputSchema: GET_STORYBOARD_SCHEMA,
   category: "read",
@@ -282,7 +289,9 @@ export const renderStoryboardClipsSpec: CapabilitySpec = {
     "call. Each clip is saved as an asset and attached to its shot (previous " +
     "takes are kept as versions), leaving the shot 'rendered' and ready for " +
     "assemble_storyboard_timeline. Omit `targets` to render every shot that " +
-    "still needs a clip and can render one. A keyframe-mode shot with no " +
+    "still needs a clip and can render one — a shot covered by another " +
+    "shot's generation already has its picture and is skipped. " +
+    "A keyframe-mode shot with no " +
     "still is reported, not rendered — run render_storyboard_stills first, or " +
     "set its render_mode to 'direct'. This is the expensive step.",
   inputSchema: RENDER_CLIPS_SCHEMA,
