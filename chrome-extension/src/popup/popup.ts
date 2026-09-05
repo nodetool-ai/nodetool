@@ -5,6 +5,9 @@
  * exposes the explicit "Attach to this tab" gesture. All actual work happens in
  * the service worker; the popup only sends runtime messages and renders the
  * returned {@link RelayStatus}.
+ *
+ * It also opens the chat side panel. `chrome.sidePanel.open` needs a user
+ * gesture, and a popup button click is one — the service worker cannot do it.
  */
 
 import {
@@ -25,6 +28,7 @@ const dom = {
   serverUrl: requireEl<HTMLInputElement>("server-url"),
   saveUrl: requireEl<HTMLButtonElement>("save-url"),
   attachInfo: requireEl<HTMLParagraphElement>("attach-info"),
+  openChat: requireEl<HTMLButtonElement>("open-chat"),
   attachBtn: requireEl<HTMLButtonElement>("attach-btn"),
   detachBtn: requireEl<HTMLButtonElement>("detach-btn"),
   error: requireEl<HTMLParagraphElement>("error"),
@@ -105,6 +109,22 @@ function applyResponse(response: PopupResponse): void {
     render(response.status);
   }
 }
+
+dom.openChat.addEventListener("click", () => {
+  void (async () => {
+    try {
+      const window_ = await chrome.windows.getCurrent();
+      if (window_.id === undefined) {
+        throw new Error("No current window to open the panel in.");
+      }
+      await chrome.sidePanel.open({ windowId: window_.id });
+      // The panel is open behind the popup; closing it puts the chat in view.
+      window.close();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : String(err));
+    }
+  })();
+});
 
 dom.saveUrl.addEventListener("click", () => {
   void (async () => {
