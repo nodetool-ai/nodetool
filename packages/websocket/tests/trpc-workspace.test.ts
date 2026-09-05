@@ -457,7 +457,10 @@ describe("workspace router", () => {
     });
 
     it("rejects path traversal attempts", async () => {
-      const ws = makeWorkspace({ id: "w1", path: "/home/user/ws" });
+      // A writable path: constructing the adapter now creates its root (see
+      // the note on the NOT_FOUND case below), so a fixture the process
+      // cannot mkdir fails with EACCES before the assertion is reached.
+      const ws = makeWorkspace({ id: "w1", path: join(dir, "ws-traversal") });
       (Workspace.find as ReturnType<typeof vi.fn>).mockResolvedValue(ws);
 
       const caller = createCaller(makeCtx());
@@ -467,7 +470,12 @@ describe("workspace router", () => {
     });
 
     it("throws NOT_FOUND when directory does not exist on disk", async () => {
-      const ws = makeWorkspace({ id: "w1", path: "/home/user/ws" });
+      // `path` must be writable: `FileStorageAdapter`'s constructor calls
+      // `mkdirSync(root, { recursive: true })`. The runtime adapter this
+      // branch consolidated away only resolved the path, so a read used to
+      // touch nothing. "Does not exist on disk" is still what this asserts —
+      // the listing itself is what fails, via the rejected readdir below.
+      const ws = makeWorkspace({ id: "w1", path: join(dir, "ws-missing") });
       (Workspace.find as ReturnType<typeof vi.fn>).mockResolvedValue(ws);
       (readdir as ReturnType<typeof vi.fn>).mockRejectedValue(
         new Error("ENOENT")
