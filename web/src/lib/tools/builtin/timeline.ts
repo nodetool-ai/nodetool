@@ -31,6 +31,7 @@ import { FrontendToolRegistry } from "../frontendTools";
 import {
   getTimelineAgentHandler,
   type ClipAnimationInput,
+  type TimelineAgentHandler,
   type TimelineClipNode,
   type TimelineMarkerNode
 } from "../../../components/timeline/timelineAgentBridge";
@@ -349,9 +350,7 @@ FrontendToolRegistry.register({
     if (fontSizePx !== undefined) {
       // Shorthand for the one text field callers reach for by name.
       const style =
-        patch.textStyle ??
-        (clip ?? handler.getSnapshot().clips.find((c) => c.id === target))
-          ?.textStyle;
+        patch.textStyle ?? (clip ?? resolveClip(handler, target))?.textStyle;
       if (!style) {
         throw new Error(
           `Clip "${clip?.name ?? target}" carries no text to size; fontSizePx applies to a text clip's textStyle.`
@@ -654,6 +653,18 @@ FrontendToolRegistry.register({
     };
   }
 });
+
+/** The clip a target names — an id, a name, or the literal "selected". */
+function resolveClip(
+  handler: TimelineAgentHandler,
+  target: string
+): TimelineClipNode | undefined {
+  const snapshot = handler.getSnapshot();
+  if (target === "selected") {
+    return snapshot.clips.find((c) => snapshot.selectedClipIds.includes(c.id));
+  }
+  return resolveSnapTargets(snapshot.clips, [target]).clips[0];
+}
 
 /** Clips a snap targets: named ones resolved by id or name, else every clip. */
 function resolveSnapTargets(
