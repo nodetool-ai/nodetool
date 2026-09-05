@@ -8,27 +8,13 @@ import {
 import { registerAppRouter } from "../../appNavigation";
 import {
   setTimelineAgentHandler,
-  type TimelineAgentHandler,
-  type TimelineSnapshot
+  type TimelineAgentHandler
 } from "../../../components/timeline/timelineAgentBridge";
 import "../builtin/openDocument";
 
-const snapshot = (sequenceId: string | null): TimelineSnapshot => ({
-  sequenceId,
-  fps: 30,
-  width: 1920,
-  height: 1080,
-  durationMs: 0,
-  playheadMs: 0,
-  selectedClipIds: [],
-  tracks: [],
-  clips: [],
-  markers: []
-});
-
 const timelineHandler = (sequenceId: string | null): TimelineAgentHandler =>
   stub<TimelineAgentHandler>({
-    getSnapshot: () => snapshot(sequenceId)
+    getSequenceId: () => sequenceId
   });
 
 const ctx = {

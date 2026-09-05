@@ -76,6 +76,58 @@ import type {
 /** Units a failed lookup names before it stops and points at get_state. */
 const MAX_LISTED_UNITS = 12;
 
+/**
+ * The clip one `target` names: an id, a case-insensitive name, or the literal
+ * `"selected"`. Exported because a host's own I/O needs the same resolution —
+ * the browser's `get_clip_frames` samples the clip a caller named, and reading
+ * it any other way would give the agent two different answers to "which clip is
+ * that?".
+ */
+export function resolveClipTarget(
+  state: TimelineOpState,
+  target: string
+): TimelineClip {
+  if (target.toLowerCase() === "selected") {
+    const selected = state.selectedClipIds;
+    if (selected.length !== 1) {
+      throw new Error(
+        `"selected" requires exactly one selected clip (currently ${selected.length}).`
+      );
+    }
+    const clip = state.clips.find((c) => c.id === selected[0]);
+    if (!clip) throw new Error("Selected clip no longer exists.");
+    return clip;
+  }
+  const byId = state.clips.find((c) => c.id === target);
+  if (byId) return byId;
+  const lower = target.toLowerCase();
+  const byName = state.clips.find((c) => c.name.toLowerCase() === lower);
+  if (byName) return byName;
+  throw new Error(
+    `No clip found matching "${target}". ${listUnits(state.clips, "clip")}`
+  );
+}
+
+/**
+ * Name the units a caller could have meant, capped: a 200-clip sequence
+ * listing all of them is one an agent stops reading.
+ */
+function listUnits(
+  units: readonly { id: string; name: string }[],
+  kind: string
+): string {
+  if (units.length === 0) return `The timeline has no ${kind}s yet.`;
+  const shown = units
+    .slice(0, MAX_LISTED_UNITS)
+    .map((u) => `${u.id} ("${u.name}")`)
+    .join(", ");
+  const rest = units.length - MAX_LISTED_UNITS;
+  return rest > 0
+    ? `Valid ${kind}s: ${shown}, and ${rest} more — call get_state for the full list.`
+    : `Valid ${kind}s: ${shown}.`;
+}
+
+
 /** Timing and geometry are their own ops; name the op that does the job. */
 const CLIP_PARAM_ELSEWHERE: Record<string, string> = {
   animations: "animate_clip",
@@ -147,15 +199,7 @@ class OpScope {
    * listing all of them is one an agent stops reading.
    */
   validUnits(units: readonly { id: string; name: string }[], kind: string): string {
-    if (units.length === 0) return `The timeline has no ${kind}s yet.`;
-    const shown = units
-      .slice(0, MAX_LISTED_UNITS)
-      .map((u) => `${u.id} ("${u.name}")`)
-      .join(", ");
-    const rest = units.length - MAX_LISTED_UNITS;
-    return rest > 0
-      ? `Valid ${kind}s: ${shown}, and ${rest} more — call get_state for the full list.`
-      : `Valid ${kind}s: ${shown}.`;
+    return listUnits(units, kind);
   }
 
   addTrack(type: TimelineTrack["type"], name?: string): TimelineTrack {
@@ -192,25 +236,7 @@ class OpScope {
   }
 
   resolveClip(target: string): TimelineClip {
-    if (target.toLowerCase() === "selected") {
-      const selected = this.state.selectedClipIds;
-      if (selected.length !== 1) {
-        throw new Error(
-          `"selected" requires exactly one selected clip (currently ${selected.length}).`
-        );
-      }
-      const clip = this.clips.find((c) => c.id === selected[0]);
-      if (!clip) throw new Error("Selected clip no longer exists.");
-      return clip;
-    }
-    const byId = this.clips.find((c) => c.id === target);
-    if (byId) return byId;
-    const lower = target.toLowerCase();
-    const byName = this.clips.find((c) => c.name.toLowerCase() === lower);
-    if (byName) return byName;
-    throw new Error(
-      `No clip found matching "${target}". ${this.validUnits(this.clips, "clip")}`
-    );
+    return resolveClipTarget(this.state, target);
   }
 
   /** Swap an engine-returned clip into `clips`, keeping the array's order. */

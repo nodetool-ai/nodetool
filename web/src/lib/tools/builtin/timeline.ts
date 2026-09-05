@@ -1,17 +1,10 @@
 import { z } from "zod";
 import {
   ANIMATED_PROPERTIES,
-  ANIMATION_PRESETS,
-  CUSTOM_ANIMATION_CONTRACT,
   DEFAULT_BEAT_TOLERANCE_MS,
-  STAGGER_UNITS,
-  beatCountToCover,
-  buildBeatGrid,
-  snapClipsToGrid,
-  type ClipSnapResult,
-  type SnapBoundaryMode,
-  type SnapAction
+  STAGGER_UNITS
 } from "@nodetool-ai/timeline";
+import type { TimelineOpResult } from "@nodetool-ai/timeline/ops";
 import {
   ADD_SHAPE_CLIP_DESCRIPTION,
   ADD_TEXT_CLIP_DESCRIPTION,
@@ -39,23 +32,19 @@ import {
   transitionParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import { FrontendToolRegistry } from "../frontendTools";
-import {
-  getTimelineAgentHandler,
-  type TimelineClipNode,
-  type TimelineMarkerNode
-} from "../../../components/timeline/timelineAgentBridge";
+import { getTimelineAgentHandler } from "../../../components/timeline/timelineAgentBridge";
 import { docUrl } from "./resourceLinks";
-
-const animationRole = z.enum(["in", "out", "emphasis", "loop"]);
 
 /**
  * Frontend tools that let the agent drive the live timeline / video editor —
  * cutting, arranging, generating, and tweaking clips like a real editor.
  *
- * They delegate to the handler each open {@link TimelineEditor} registers under
- * its sequence id on the {@link timelineAgentBridge}. When no editor is open for
- * the requested id, `getTimelineAgentHandler` throws a descriptive error listing
- * the ids that are open, which the tool layer surfaces back to the agent.
+ * Every tool parses its own input and hands one op to the handler each open
+ * {@link TimelineEditor} registers on the {@link timelineAgentBridge}; the op
+ * semantics live in `@nodetool-ai/timeline/ops`, shared with the headless
+ * bridge, so the two surfaces cannot drift. When no editor is open for the
+ * requested id, `getTimelineAgentHandler` throws a descriptive error listing
+ * the ids that are open.
  *
  * Conventions:
  *   - Every tool names its target sequence via `timeline_id` — there is no
@@ -117,14 +106,37 @@ const customMaskParam = z
   .optional()
   .describe("Required when a curve drives wipeProgress, ignored otherwise.");
 
+const animationRole = z.enum(["in", "out", "emphasis", "loop"]);
+
+/**
+ * An op result that names one clip, plus the resource link to it. Every
+ * clip-returning tool reports the same way, so the agent gets one shape back
+ * whichever edit it made.
+ */
+function clipResult(
+  timelineId: string,
+  result: TimelineOpResult
+): TimelineOpResult & { url: string } {
+  const clip = (result as { clip?: { id?: string } }).clip;
+  return {
+    ...result,
+    url:
+      typeof clip?.id === "string"
+        ? docUrl("timeline", timelineId, { key: "clip", value: clip.id })
+        : docUrl("timeline", timelineId)
+  };
+}
+
 FrontendToolRegistry.register({
   name: "ui_timeline_get_state",
   description:
     "Read the specified timeline sequence: resolution + fps + duration, the playhead position, the current selection, every track, and every clip with its timing, media type, generation binding (prompt/provider/model/status) and render params. Call this first to discover what's on the timeline and to get the ids/names other timeline tools need.",
   parameters: z.object({ timeline_id: timelineIdParam }),
   async execute({ timeline_id }) {
-    const snapshot = getTimelineAgentHandler(timeline_id).getSnapshot();
-    return { ok: true, ...snapshot };
+    const result = await getTimelineAgentHandler(timeline_id).applyOp({
+      op: "get_state"
+    });
+    return { ...result, sequenceId: timeline_id };
   }
 });
 
@@ -137,8 +149,12 @@ FrontendToolRegistry.register({
     name: z.string().optional()
   }),
   async execute({ timeline_id, type, name }) {
-    const track = getTimelineAgentHandler(timeline_id).addTrack(type, name);
-    return { ok: true, track, url: docUrl("timeline", timeline_id) };
+    const result = await getTimelineAgentHandler(timeline_id).applyOp({
+      op: "add_track",
+      type,
+      name
+    });
+    return { ...result, url: docUrl("timeline", timeline_id) };
   }
 });
 
@@ -150,12 +166,14 @@ FrontendToolRegistry.register({
     .strict(),
   async execute({ timeline_id, ...rest }) {
     const { target, toIndex, before, after } = resolveMoveTrackArgs(rest);
-    const tracks = getTimelineAgentHandler(timeline_id).moveTrack(target, {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp({
+      op: "move_track",
+      target,
       toIndex,
       before,
       after
     });
-    return { ok: true, tracks, url: docUrl("timeline", timeline_id) };
+    return { ...result, url: docUrl("timeline", timeline_id) };
   }
 });
 
@@ -167,11 +185,12 @@ FrontendToolRegistry.register({
     .strict(),
   async execute({ timeline_id, ...rest }) {
     const { target, deleteClips } = resolveDeleteTrackArgs(rest);
-    const result = getTimelineAgentHandler(timeline_id).deleteTrack(
+    const result = await getTimelineAgentHandler(timeline_id).applyOp({
+      op: "delete_track",
       target,
       deleteClips
-    );
-    return { ok: true, ...result, url: docUrl("timeline", timeline_id) };
+    });
+    return { ...result, url: docUrl("timeline", timeline_id) };
   }
 });
 
@@ -188,12 +207,13 @@ FrontendToolRegistry.register({
     name: z.string().optional()
   }),
   async execute({ timeline_id, ...args }) {
-    const clip = await getTimelineAgentHandler(timeline_id).addMediaClip(args);
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "add_media_clip",
+        ...args
+      })
+    );
   }
 });
 
@@ -224,21 +244,20 @@ FrontendToolRegistry.register({
     style,
     ...loose
   }) {
-    const clip = getTimelineAgentHandler(timeline_id).addTextClip({
-      text,
-      trackId,
-      startMs,
-      durationMs,
-      opacity,
-      // `style` wins over a top-level twin: a caller that sent both meant the
-      // bag it named.
-      style: { ...loose, ...(style ?? {}) }
-    });
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "add_text_clip",
+        text,
+        trackId,
+        startMs,
+        durationMs,
+        opacity,
+        // `style` wins over a top-level twin: a caller that sent both meant the
+        // bag it named.
+        style: { ...loose, ...(style ?? {}) }
+      })
+    );
   }
 });
 
@@ -267,18 +286,17 @@ FrontendToolRegistry.register({
     opacity,
     ...loose
   }) {
-    const clip = getTimelineAgentHandler(timeline_id).addShapeClip({
-      shape: resolveShapeArg(shape, shapeStyle, loose),
-      trackId,
-      startMs,
-      durationMs,
-      opacity
-    });
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "add_shape_clip",
+        shape: resolveShapeArg(shape, shapeStyle, loose),
+        trackId,
+        startMs,
+        durationMs,
+        opacity
+      })
+    );
   }
 });
 
@@ -326,8 +344,12 @@ FrontendToolRegistry.register({
     atMs: z.number().optional()
   }),
   async execute({ timeline_id, target, atMs }) {
-    const clips = getTimelineAgentHandler(timeline_id).splitClip(target, atMs);
-    return { ok: true, clips, url: docUrl("timeline", timeline_id) };
+    const result = await getTimelineAgentHandler(timeline_id).applyOp({
+      op: "split_clip",
+      target,
+      atMs
+    });
+    return { ...result, url: docUrl("timeline", timeline_id) };
   }
 });
 
@@ -343,16 +365,16 @@ FrontendToolRegistry.register({
     outPointMs: z.number().optional()
   }),
   async execute({ timeline_id, target, durationMs, inPointMs, outPointMs }) {
-    const clip = getTimelineAgentHandler(timeline_id).trimClip(target, {
-      durationMs,
-      inPointMs,
-      outPointMs
-    });
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "trim_clip",
+        target,
+        durationMs,
+        inPointMs,
+        outPointMs
+      })
+    );
   }
 });
 
@@ -367,15 +389,15 @@ FrontendToolRegistry.register({
     trackId: z.string().optional()
   }),
   async execute({ timeline_id, target, startMs, trackId }) {
-    const clip = getTimelineAgentHandler(timeline_id).moveClip(target, {
-      startMs,
-      trackId
-    });
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "move_clip",
+        target,
+        startMs,
+        trackId
+      })
+    );
   }
 });
 
@@ -387,8 +409,11 @@ FrontendToolRegistry.register({
     target: targetParam
   }),
   async execute({ timeline_id, target }) {
-    const clip = getTimelineAgentHandler(timeline_id).deleteClip(target);
-    return { ok: true, deleted: clip, url: docUrl("timeline", timeline_id) };
+    const result = await getTimelineAgentHandler(timeline_id).applyOp({
+      op: "delete_clip",
+      target
+    });
+    return { ...result, url: docUrl("timeline", timeline_id) };
   }
 });
 
@@ -402,50 +427,59 @@ FrontendToolRegistry.register({
     gapMs: z.number().optional()
   }),
   async execute({ timeline_id, target, gapMs }) {
-    const clip = await getTimelineAgentHandler(timeline_id).duplicateClip(
-      target,
-      gapMs
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "duplicate_clip",
+        target,
+        gapMs
+      })
     );
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
   }
 });
 
 FrontendToolRegistry.register({
   name: "ui_timeline_set_clip_params",
   description:
-    "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. Omit a field to leave it unchanged.",
-  parameters: z.object({
-    timeline_id: timelineIdParam,
-    target: targetParam,
-    name: z.string().optional(),
-    opacity: z.number().optional(),
-    speedMultiplier: z.number().optional(),
-    volumeDb: z.number().optional(),
-    fadeInMs: z.number().optional(),
-    fadeOutMs: z.number().optional(),
-    blendMode: z.string().optional(),
-    borderRadius: z.number().optional(),
-    hidden: z.boolean().optional(),
-    muted: z.boolean().optional(),
-    locked: z.boolean().optional(),
-    textStyle: textStyleParams.optional(),
-    shapeStyle: shapeStyleParams.optional(),
-    captionStyle: captionStyleParams.optional()
-  }),
+    "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. `fontSizePx` is shorthand for `textStyle.fontSizePx`. Timing is accepted too and applied as trim_clip/move_clip would: `durationMs`, `inPointMs`, `outPointMs`, `startMs`, `trackId`. A key this tool does not know is refused by name rather than ignored. Omit a field to leave it unchanged.",
+  parameters: z
+    .object({
+      timeline_id: timelineIdParam,
+      target: targetParam,
+      startMs: z.number().optional(),
+      trackId: z.string().optional(),
+      durationMs: z.number().optional(),
+      inPointMs: z.number().optional(),
+      outPointMs: z.number().optional(),
+      fontSizePx: z.number().optional(),
+      name: z.string().optional(),
+      opacity: z.number().optional(),
+      speedMultiplier: z.number().optional(),
+      volumeDb: z.number().optional(),
+      fadeInMs: z.number().optional(),
+      fadeOutMs: z.number().optional(),
+      blendMode: z.string().optional(),
+      borderRadius: z.number().optional(),
+      hidden: z.boolean().optional(),
+      muted: z.boolean().optional(),
+      locked: z.boolean().optional(),
+      textStyle: textStyleParams.optional(),
+      shapeStyle: shapeStyleParams.optional(),
+      captionStyle: captionStyleParams.optional()
+      // A key the schema does not list is kept rather than stripped, so the op
+      // can refuse it by name: silently dropping `startMs` looked like a
+      // successful call that changed nothing.
+    })
+    .catchall(z.unknown()),
   async execute({ timeline_id, target, ...patch }) {
-    const clip = getTimelineAgentHandler(timeline_id).setClipParams(
-      target,
-      patch
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "set_clip_params",
+        target,
+        patch
+      })
     );
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
   }
 });
 
@@ -455,15 +489,13 @@ FrontendToolRegistry.register({
     "Create a group clip: a clip with no media of its own whose transform, opacity and window every clip naming it inherits. Move the group and its children move with it; fade the group and they fade together; a child outside the group's window is not drawn. Children keep their own tracks, so what covers what is unchanged. Pass `children` to parent clips as the group is created, or use ui_timeline_set_parent afterwards.",
   parameters: addGroupParams.extend({ timeline_id: timelineIdParam }),
   async execute({ timeline_id, ...args }) {
-    const result = getTimelineAgentHandler(timeline_id).addGroup(args);
-    return {
-      ok: true,
-      ...result,
-      url: docUrl("timeline", timeline_id, {
-        key: "clip",
-        value: result.clip.id
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "add_group",
+        ...args
       })
-    };
+    );
   }
 });
 
@@ -473,15 +505,14 @@ FrontendToolRegistry.register({
     "Parent a clip to a group so it inherits the group's transform, opacity and window, or release it with `parentId: null`. The parent must be a clip created with ui_timeline_add_group; a clip cannot parent itself or any group beneath it.",
   parameters: setParentParams.extend({ timeline_id: timelineIdParam }),
   async execute({ timeline_id, target, parentId }) {
-    const clip = getTimelineAgentHandler(timeline_id).setParent(
-      target,
-      parentId
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "set_parent",
+        target,
+        parentId
+      })
     );
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
   }
 });
 
@@ -495,15 +526,14 @@ FrontendToolRegistry.register({
     transition: transitionParams.nullable()
   }),
   async execute({ timeline_id, target, transition }) {
-    const clip = getTimelineAgentHandler(timeline_id).setTransition(
-      target,
-      transition
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "set_transition",
+        target,
+        transition
+      })
     );
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
   }
 });
 
@@ -517,12 +547,14 @@ FrontendToolRegistry.register({
     mask: maskParams.nullable()
   }),
   async execute({ timeline_id, target, mask }) {
-    const clip = getTimelineAgentHandler(timeline_id).setMask(target, mask);
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "set_mask",
+        target,
+        mask
+      })
+    );
   }
 });
 
@@ -536,12 +568,14 @@ FrontendToolRegistry.register({
     matte: matteParams.nullable()
   }),
   async execute({ timeline_id, target, matte }) {
-    const clip = getTimelineAgentHandler(timeline_id).setMatte(target, matte);
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "set_matte",
+        target,
+        matte
+      })
+    );
   }
 });
 
@@ -557,15 +591,14 @@ FrontendToolRegistry.register({
       .describe("The chain, in order. An empty list clears it.")
   }),
   async execute({ timeline_id, target, effects }) {
-    const clip = getTimelineAgentHandler(timeline_id).setEffects(
-      target,
-      effects
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "set_effects",
+        target,
+        effects
+      })
     );
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
   }
 });
 
@@ -590,15 +623,18 @@ FrontendToolRegistry.register({
     regenerate: z.boolean().optional()
   }),
   async execute({ timeline_id, target, ...patch }) {
-    const clip = await getTimelineAgentHandler(timeline_id).setClipBinding(
+    const { regenerate, ...binding } = patch;
+    const handler = getTimelineAgentHandler(timeline_id);
+    const result = await handler.applyOp({
+      op: "set_clip_binding",
       target,
-      patch
-    );
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
+      ...binding
+    });
+    // Re-running generation is the browser's job, not the document's.
+    if (regenerate) {
+      await handler.regenerateClip((result as { clip: { id: string } }).clip.id);
+    }
+    return clipResult(timeline_id, result);
   }
 });
 
@@ -646,16 +682,15 @@ FrontendToolRegistry.register({
       .min(1)
   }),
   async execute({ timeline_id, target, mode, animations }) {
-    const clip = getTimelineAgentHandler(timeline_id).setClipAnimations(
-      target,
-      animations,
-      mode ?? "replace"
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "animate_clip",
+        target,
+        mode: mode ?? "replace",
+        animations
+      })
     );
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
   }
 });
 
@@ -669,15 +704,14 @@ FrontendToolRegistry.register({
     role: animationRole.optional()
   }),
   async execute({ timeline_id, target, role }) {
-    const clip = getTimelineAgentHandler(timeline_id).clearClipAnimations(
-      target,
-      role
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "clear_animations",
+        target,
+        role
+      })
     );
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
   }
 });
 
@@ -685,22 +719,11 @@ FrontendToolRegistry.register({
   name: "ui_timeline_list_animation_presets",
   description:
     "List the motion-design animation presets: id, allowed roles, params (with defaults and ranges), default duration/easing, and a one-line description. Also returns the `custom` preset's contract and every animatable property with its fold, identity and range, for keyframed motion no preset covers. Use this to discover the exact preset names and params for ui_timeline_animate_clip.",
-  parameters: z.object({}),
-  async execute() {
-    const presets = ANIMATION_PRESETS.map((p) => ({
-      id: p.id,
-      roles: p.roles,
-      defaultDurationMs: p.defaultDurationMs,
-      defaultEasing: p.defaultEasing,
-      params: p.params,
-      describe: p.describe
-    }));
-    return {
-      ok: true,
-      presets,
-      custom: CUSTOM_ANIMATION_CONTRACT,
-      properties: CUSTOM_ANIMATION_CONTRACT.properties
-    };
+  parameters: z.object({ timeline_id: timelineIdParam }),
+  async execute({ timeline_id }) {
+    return getTimelineAgentHandler(timeline_id).applyOp({
+      op: "list_animation_presets"
+    });
   }
 });
 
@@ -755,10 +778,10 @@ FrontendToolRegistry.register({
     target: targetParam.nullable().optional()
   }),
   async execute({ timeline_id, target }) {
-    const clip = getTimelineAgentHandler(timeline_id).selectClip(
-      target ?? null
-    );
-    return { ok: true, selected: clip };
+    return getTimelineAgentHandler(timeline_id).applyOp({
+      op: "select_clip",
+      target: target ?? null
+    });
   }
 });
 
@@ -771,8 +794,10 @@ FrontendToolRegistry.register({
     timeMs: z.number()
   }),
   async execute({ timeline_id, timeMs }) {
-    const playheadMs = getTimelineAgentHandler(timeline_id).seek(timeMs);
-    return { ok: true, playheadMs };
+    return getTimelineAgentHandler(timeline_id).applyOp({
+      op: "seek",
+      timeMs
+    });
   }
 });
 
@@ -790,8 +815,11 @@ FrontendToolRegistry.register({
     note: z.string().optional().describe("Longer note attached to the marker.")
   }),
   async execute({ timeline_id, ...opts }) {
-    const marker = getTimelineAgentHandler(timeline_id).addMarker(opts);
-    return { ok: true, marker, url: docUrl("timeline", timeline_id) };
+    const result = await getTimelineAgentHandler(timeline_id).applyOp({
+      op: "add_marker",
+      ...opts
+    });
+    return { ...result, url: docUrl("timeline", timeline_id) };
   }
 });
 
@@ -804,8 +832,11 @@ FrontendToolRegistry.register({
     target: z.string().describe("Marker id or label (case-insensitive).")
   }),
   async execute({ timeline_id, target }) {
-    const deleted = getTimelineAgentHandler(timeline_id).deleteMarker(target);
-    return { ok: true, deleted, url: docUrl("timeline", timeline_id) };
+    const result = await getTimelineAgentHandler(timeline_id).applyOp({
+      op: "delete_marker",
+      target
+    });
+    return { ...result, url: docUrl("timeline", timeline_id) };
   }
 });
 
@@ -815,15 +846,14 @@ FrontendToolRegistry.register({
     "Retime a clip from a curve — ramps, freezes, speed changes — or clear it with `timeRemap: null` so it plays at its own rate. Each keyframe maps a position in the clip's window (`t`, 0..1) to a point in the source media (`sourceMs`); the curve must start at t 0 and end at t 1, ascending, with at least two keyframes. A remapped clip refuses splits and trims: clear the curve first.",
   parameters: setTimeRemapParams.extend({ timeline_id: timelineIdParam }),
   async execute({ timeline_id, target, timeRemap }) {
-    const clip = getTimelineAgentHandler(timeline_id).setTimeRemap(
-      target,
-      timeRemap
+    return clipResult(
+      timeline_id,
+      await getTimelineAgentHandler(timeline_id).applyOp({
+        op: "set_time_remap",
+        target,
+        timeRemap
+      })
     );
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
   }
 });
 
@@ -851,63 +881,17 @@ FrontendToolRegistry.register({
       )
   }),
   async execute({ timeline_id, onsets_ms, bpm, offset_ms, count, label }) {
-    const handler = getTimelineAgentHandler(timeline_id);
-    const grid = buildBeatGrid({
-      onsetsMs: onsets_ms,
+    const result = await getTimelineAgentHandler(timeline_id).applyOp({
+      op: "set_markers_from_beats",
+      onsets_ms,
       bpm,
-      offsetMs: offset_ms,
-      count
+      offset_ms,
+      count,
+      label
     });
-    const stem = (label ?? "Beat").trim() || "Beat";
-    const taken = new Set(
-      handler.getSnapshot().markers.map((marker) => marker.timeMs)
-    );
-    const added: TimelineMarkerNode[] = [];
-    const skipped: number[] = [];
-    for (const [index, timeMs] of grid.entries()) {
-      if (taken.has(timeMs)) {
-        skipped.push(timeMs);
-        continue;
-      }
-      added.push(handler.addMarker({ timeMs, label: `${stem} ${index + 1}` }));
-      taken.add(timeMs);
-    }
-    return {
-      ok: true,
-      grid: {
-        count: grid.length,
-        firstMs: grid[0],
-        lastMs: grid[grid.length - 1]
-      },
-      added,
-      skipped_times_ms: skipped,
-      markers: handler.getSnapshot().markers.length,
-      url: docUrl("timeline", timeline_id)
-    };
+    return { ...result, url: docUrl("timeline", timeline_id) };
   }
 });
-
-/** Clips a snap targets: named ones resolved by id or name, else every clip. */
-function resolveSnapTargets(
-  clips: TimelineClipNode[],
-  targets: string[] | undefined
-): { clips: TimelineClipNode[]; missing: string[] } {
-  if (!targets || targets.length === 0) {
-    return { clips: [...clips], missing: [] };
-  }
-  const resolved: TimelineClipNode[] = [];
-  const missing: string[] = [];
-  for (const target of targets) {
-    const lower = target.toLowerCase();
-    const clip =
-      clips.find((c) => c.id === target) ??
-      clips.find((c) => c.name.toLowerCase() === lower);
-    // Recorded as a skip in the op's own report, with the reason.
-    if (!clip) missing.push(target);
-    else if (!resolved.includes(clip)) resolved.push(clip);
-  }
-  return { clips: resolved, missing };
-}
 
 FrontendToolRegistry.register({
   name: "ui_timeline_snap_to_beats",
@@ -958,107 +942,42 @@ FrontendToolRegistry.register({
     mode,
     action
   }) {
-    const handler = getTimelineAgentHandler(timeline_id);
-    const named = targets === undefined || targets === "all" ? undefined : targets;
-    const { clips: targeted, missing } = resolveSnapTargets(
-      handler.getSnapshot().clips,
-      named
-    );
-
-    const offsetMs = offset_ms ?? 0;
-    // A tempo grid has to reach the last boundary being snapped, so its length
-    // comes from the targets rather than from the caller.
-    const reachMs = targeted.reduce(
-      (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
-      0
-    );
-    const grid = buildBeatGrid({
-      onsetsMs: onsets_ms,
+    const result = await getTimelineAgentHandler(timeline_id).applyOp({
+      op: "snap_to_beats",
+      targets,
+      onsets_ms,
       bpm,
-      offsetMs: offset_ms,
-      count: bpm === undefined ? undefined : beatCountToCover(bpm, offsetMs, reachMs)
+      offset_ms,
+      tolerance_ms,
+      mode,
+      action
     });
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
 
-    const options: {
-      toleranceMs?: number;
-      mode?: SnapBoundaryMode;
-      action?: SnapAction;
-    } = {};
-    if (tolerance_ms !== undefined) options.toleranceMs = tolerance_ms;
-    if (mode !== undefined) options.mode = mode;
-    if (action !== undefined) options.action = action;
-
-    const result = snapClipsToGrid(
-      targeted.map((clip) => ({
-        id: clip.id,
-        startMs: clip.startMs,
-        durationMs: clip.durationMs
-      })),
-      grid,
-      options
-    );
-
-    const byId = new Map(targeted.map((clip) => [clip.id, clip]));
-    const reported: (ClipSnapResult & { clipName: string | null })[] = [];
-    let applied = 0;
-    for (const entry of result.clips) {
-      const clip = byId.get(entry.clipId);
-      if (!entry.snapped) {
-        reported.push({ ...entry, clipName: clip?.name ?? null });
-        continue;
-      }
-      try {
-        // The move carries a group's children with it; the trim then holds the
-        // far boundary, so the two together land the clip on `after`.
-        if (entry.after.startMs !== entry.before.startMs) {
-          handler.moveClip(entry.clipId, { startMs: entry.after.startMs });
-        }
-        if (entry.after.durationMs !== entry.before.durationMs) {
-          handler.trimClip(entry.clipId, { durationMs: entry.after.durationMs });
-        }
-        applied += 1;
-        reported.push({ ...entry, clipName: clip?.name ?? null });
-      } catch (e) {
-        reported.push({
-          ...entry,
-          snapped: false,
-          after: entry.before,
-          delta: { startMs: 0, endMs: 0 },
-          clipName: clip?.name ?? null,
-          reason: e instanceof Error ? e.message : String(e)
-        });
-      }
-    }
-
-    // A name nothing matched is a skip like any other: the caller has to see it
-    // in the same list, not infer it from a shorter one.
-    for (const target of missing) {
-      reported.push({
-        clipId: target,
-        clipName: null,
-        snapped: false,
-        before: { startMs: 0, endMs: 0, durationMs: 0 },
-        after: { startMs: 0, endMs: 0, durationMs: 0 },
-        delta: { startMs: 0, endMs: 0 },
-        reason: `no clip matches "${target}"`
-      });
-    }
-
-    return {
-      ok: true,
-      grid: {
-        count: grid.length,
-        firstMs: grid[0],
-        lastMs: grid[grid.length - 1]
-      },
-      toleranceMs: result.toleranceMs,
-      mode: result.mode,
-      action: result.action,
-      snapped: applied,
-      skipped: reported.length - applied,
-      clips: reported,
-      url: docUrl("timeline", timeline_id)
-    };
+FrontendToolRegistry.register({
+  name: "ui_timeline_insert_composition",
+  description:
+    "Insert a saved composition — a group template with its children and its own params — onto the sequence at `startMs`. Name the template in `composition_id` and override any of its params in `params`. The clips land parented to a group clip, so the whole insert moves, fades and trims as one.",
+  parameters: z.object({
+    timeline_id: timelineIdParam,
+    composition_id: z.string().trim().min(1),
+    startMs: z.number(),
+    trackId: z.string().optional(),
+    params: z
+      .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+      .optional()
+  }),
+  async execute({ timeline_id, composition_id, startMs, trackId, params }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp({
+      op: "insert_composition",
+      composition_id,
+      startMs,
+      trackId,
+      params
+    });
+    return { ...result, url: docUrl("timeline", timeline_id) };
   }
 });
 
