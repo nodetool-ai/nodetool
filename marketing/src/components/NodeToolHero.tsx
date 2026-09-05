@@ -54,6 +54,12 @@ export default function NodeToolHero() {
             />
           </div>
 
+          {/* Trust line, directly under the CTA (NARRATIVE.md § Positioning
+              line). One number we actually have, no adjectives. */}
+          <p className="mt-3 text-xs text-slate-400">
+            Free and open source, AGPL-3.0. macOS, Windows, and Linux.
+          </p>
+
           <ul className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-300">
             <li className="flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5 text-fuchsia-400" />

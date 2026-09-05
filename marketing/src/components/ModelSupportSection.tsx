@@ -122,9 +122,9 @@ export default function ModelSupportSection({
                         transition={{ duration: 0.25 }}
                         className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6"
                     >
-                        Model freedom.{" "}
+                        Every model you need.{" "}
                         <span className="text-white">
-                            No platform lock-in.
+                            On your own keys.
                         </span>
                     </motion.h2>
 
@@ -136,9 +136,10 @@ export default function ModelSupportSection({
                         className="text-lg text-slate-400 leading-relaxed"
                     >
                         Route your shots through the best video, image, audio,
-                        and language models on the market — or run open weights
+                        and language models on the market, or run open weights
                         locally on your own hardware. Switch between them with
-                        one click.
+                        one click, and pay each provider directly at their
+                        published price.
                     </motion.p>
                 </div>
 

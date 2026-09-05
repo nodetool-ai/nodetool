@@ -125,24 +125,39 @@ export default function MarketingSegmentPage() {
                 <div className="relative inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-amber-500/30 bg-gradient-to-r from-amber-500/[0.08] via-emerald-500/[0.05] to-cyan-500/[0.08] mb-10 shadow-[0_0_40px_-10px_rgba(245,158,11,0.35)]">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   <span className="text-sm font-medium text-white tracking-wide">
-                    The agent-first canvas for marketing production
+                    Advertising and marketing
                   </span>
                 </div>
 
                 <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight leading-[1.05] mb-10">
-                  <span className="text-white">One brief.</span>{" "}
+                  <span className="text-white">AI for</span>{" "}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-emerald-300 to-cyan-400">
-                    A campaign&apos;s worth of assets.
+                    advertising.
                   </span>
                 </h1>
 
-                <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-                  Pitch the brief to an agent and it builds the workflow that
-                  turns out product videos, ad creative, social calendars, and
-                  brand assets — routed through every major model on your own
-                  keys. No token markups, no platform lock-in, and every asset
-                  lands as an editable project rather than a flat render.
+                <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-3xl mx-auto leading-relaxed">
+                  Put generative models into your creative and production
+                  pipeline, from the first idea through to delivery. Pitch the
+                  brief to an agent and it builds the workflow that turns out
+                  product videos, ad creative, social calendars, and brand
+                  assets. Teams move faster, pitch more ambitious work, and
+                  spend less doing it, because every model runs on your own
+                  keys at the provider&apos;s published price.
                 </p>
+
+                {/* Two countable credibility chips beside the CTA
+                    (NARRATIVE.md § Vertical pages). */}
+                <div className="flex flex-wrap items-center justify-center gap-3 mb-12 text-sm">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-slate-300">
+                    <Check className="h-4 w-4 text-emerald-400" />
+                    Shipped workflows you import and run
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-slate-300">
+                    <Check className="h-4 w-4 text-emerald-400" />
+                    Every major model, on your own keys
+                  </span>
+                </div>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
                   <SmartDownloadButton
@@ -154,7 +169,7 @@ export default function MarketingSegmentPage() {
                     className="inline-flex items-center gap-2.5 px-9 py-4 rounded-full border border-white/15 bg-[#0a0a14]/70 backdrop-blur-sm text-white font-semibold hover:bg-white/5 hover:border-white/25 transition-all"
                   >
                     <Play className="w-5 h-5" />
-                    See a Campaign Workflow
+                    Try now
                   </a>
                 </div>
 

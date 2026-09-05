@@ -7,7 +7,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import NodeToolHero from "../components/NodeToolHero";
-import StatusQuoSection from "../components/StatusQuoSection";
 import BuildRunDeploy from "../components/BuildRunDeploy";
 import OwnershipSection from "../components/OwnershipSection";
 import ModelSupportSection from "../components/ModelSupportSection";
@@ -19,6 +18,7 @@ import ComparisonSection from "../components/ComparisonSection";
 import EditionsCompareSection from "../components/EditionsCompareSection";
 import RecipeShowcase from "../components/RecipeShowcase";
 import UnderneathSection from "../components/UnderneathSection";
+import AppsSection from "../components/AppsSection";
 import WaysInSection from "../components/WaysInSection";
 import FaqBlock from "../components/FaqBlock";
 import { XMarkIcon } from "@heroicons/react/24/outline";
@@ -210,9 +210,13 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Results first: four recipes, each a real run with its bundle. A
-            reader who has not seen the product yet has no reason to care what
-            we think of Runway (NARRATIVE.md § Order of the page). */}
+        {/* Breadth first: the model wall sits directly under the hero, because
+            a reader who cannot find their model stops reading and no amount of
+            finished work later recovers them (NARRATIVE.md § Order of the
+            page). Ownership rides in the same headline: your own keys. */}
+        <ModelSupportSection reducedMotion={reducedMotion} />
+
+        {/* Then proof: four recipes, each a real run with its bundle */}
         <RecipeShowcase />
 
         {/* What one of those runs leaves behind: an executable, editable
@@ -229,14 +233,19 @@ export default function Home() {
         {/* The five editors, each over a loop of the real thing (#surface-<id>) */}
         <SurfaceShowcase />
 
-        {/* Model choice, then ownership — keys, project file, source; local
-            inference stays on /studio. The calculator lives on /pricing. */}
-        <ModelSupportSection reducedMotion={reducedMotion} />
+        {/* One job, one tool — for the reader who is not here to direct a film */}
+        <AppsSection />
+
+        {/* Ownership: keys, project file, source. Local inference stays on
+            /studio; the calculator lives on /pricing. */}
         <OwnershipSection reducedMotion={reducedMotion} />
 
-        {/* The enemy, once, and the comparison that answers it — after the
-            work, not before it (NARRATIVE.md § The enemy) */}
-        <StatusQuoSection />
+        {/* The node canvas as the power-user layer, introduced last */}
+        <UnderneathSection />
+
+        {/* Open studio against hosted platform, as categories with a real price
+            worked through — never a brand name and a column of crosses
+            (NARRATIVE.md § The argument we do not make) */}
         <ComparisonSection reducedMotion={reducedMotion} />
 
         {/* Which edition to run, before the FAQ asks it */}
@@ -244,9 +253,6 @@ export default function Home() {
 
         {/* Route by intent once the core story has landed */}
         <WaysInSection />
-
-        {/* What is underneath, as one strip of routes rather than ten sections */}
-        <UnderneathSection />
 
         {/* Feature Modal (accessible) */}
         {selectedFeature && (
