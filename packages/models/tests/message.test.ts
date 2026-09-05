@@ -26,6 +26,20 @@ async function createMessage(
 }
 
 describe("Message model", () => {
+  it.each([false, true])("paginates tied timestamps without losing messages (reverse=%s)", async (reverse) => {
+    const ids = ["a", "b", "c", "d", "e"];
+    for (const id of ids) {
+      await createMessage("u1", "t1", { id, created_at: "2026-01-01T00:00:00.000Z" });
+    }
+    const found: string[] = [];
+    let cursor = "";
+    do {
+      const [page, next] = await Message.paginate("t1", { limit: 2, reverse, startKey: cursor });
+      found.push(...page.map((message) => message.id));
+      cursor = next;
+    } while (cursor && found.length < 10);
+    expect(found).toEqual(reverse ? [...ids].reverse() : ids);
+  });
   beforeEach(() => {
     initTestDb();
   });

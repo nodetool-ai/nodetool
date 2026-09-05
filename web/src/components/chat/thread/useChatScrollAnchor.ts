@@ -72,6 +72,7 @@ export interface UseChatScrollAnchorOptions {
   lastUserMessageIndex: number;
   status: ChatStatus;
   overscan: number;
+  loadOlderMessages?: () => Promise<unknown>;
 }
 
 export interface ChatScrollAnchor {
@@ -100,7 +101,8 @@ export function useChatScrollAnchor({
   filteredMessages,
   lastUserMessageIndex,
   status,
-  overscan
+  overscan,
+  loadOlderMessages
 }: UseChatScrollAnchorOptions): ChatScrollAnchor {
   const scrollRef = useRef<HTMLDivElement>(null);
   const realContentRef = useRef<HTMLDivElement>(null);
@@ -115,6 +117,12 @@ export function useChatScrollAnchor({
   const positionedAnchorIdRef = useRef<string | null>(null);
   const anchorSawBusyRef = useRef(false);
   const previousMessageCountRef = useRef(messages.length);
+  const previousLastMessageRef = useRef(messages.at(-1)?.id);
+  const previousRowsRef = useRef({
+    threadId: visibleThreadId,
+    firstId: filteredMessages[0]?.id
+  });
+  const loadingOlderThreadsRef = useRef(new Set<string | null | undefined>());
   const scrollRafRef = useRef<number | null>(null);
   const layoutRafRef = useRef<number | null>(null);
   const viewportAnchorRef = useRef<{
@@ -141,6 +149,8 @@ export function useChatScrollAnchor({
     count: filteredMessages.length,
     getScrollElement: () => scrollHost,
     estimateSize: () => ESTIMATED_MESSAGE_HEIGHT,
+    anchorTo: "end",
+    followOnAppend: false,
     overscan,
     getItemKey: (index) => filteredMessages[index].id ?? `msg-${index}`,
     initialRect: { width: 0, height: 800 }
@@ -158,6 +168,20 @@ export function useChatScrollAnchor({
   };
 
   const totalSize = virtualizer.getTotalSize();
+
+  // The virtualizer preserves its keyed anchor across prepends. Discard the
+  // old DOM anchor so our reflow policy does not apply the same shift twice.
+  useLayoutEffect(() => {
+    const previous = previousRowsRef.current;
+    previousRowsRef.current = {
+      threadId: visibleThreadId,
+      firstId: filteredMessages[0]?.id
+    };
+    if (previous.threadId !== visibleThreadId || !previous.firstId) return;
+    const index = filteredMessages.findIndex((m) => m.id === previous.firstId);
+    if (index <= 0 || !scrollRef.current) return;
+    viewportAnchorRef.current = null;
+  }, [filteredMessages, visibleThreadId]);
 
   const getRealContentBottom = useCallback((): number | null => {
     const el = scrollRef.current;
@@ -244,6 +268,17 @@ export function useChatScrollAnchor({
       scrollRafRef.current = requestAnimationFrame(() => {
         scrollRafRef.current = null;
         updateScrollState();
+        if (
+          el.scrollTop < ESTIMATED_MESSAGE_HEIGHT &&
+          scrollModeRef.current === "free-scrolling" &&
+          loadOlderMessages &&
+          !loadingOlderThreadsRef.current.has(visibleThreadId)
+        ) {
+          loadingOlderThreadsRef.current.add(visibleThreadId);
+          void loadOlderMessages().finally(() => {
+            loadingOlderThreadsRef.current.delete(visibleThreadId);
+          });
+        }
       });
     };
     const onManualNavigation = () => {
@@ -255,21 +290,38 @@ export function useChatScrollAnchor({
       setAnchorTailHeight(0);
       captureViewportAnchor();
     };
+    const onKeyboardNavigation = (event: KeyboardEvent) => {
+      if (
+        event.target === el &&
+        ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(event.key)
+      ) {
+        onManualNavigation();
+      }
+    };
     el.addEventListener("scroll", onScroll, { passive: true });
     el.addEventListener("wheel", onManualNavigation, { passive: true });
     el.addEventListener("touchmove", onManualNavigation, { passive: true });
     el.addEventListener("pointerdown", onManualNavigation, { passive: true });
+    el.addEventListener("keydown", onKeyboardNavigation);
     return () => {
       el.removeEventListener("scroll", onScroll);
       el.removeEventListener("wheel", onManualNavigation);
       el.removeEventListener("touchmove", onManualNavigation);
       el.removeEventListener("pointerdown", onManualNavigation);
+      el.removeEventListener("keydown", onKeyboardNavigation);
       if (scrollRafRef.current != null) {
         cancelAnimationFrame(scrollRafRef.current);
         scrollRafRef.current = null;
       }
     };
-  }, [captureViewportAnchor, scrollHost, setScrollMode, updateScrollState]);
+  }, [
+    captureViewportAnchor,
+    scrollHost,
+    setScrollMode,
+    updateScrollState,
+    loadOlderMessages,
+    visibleThreadId
+  ]);
 
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current;
@@ -312,6 +364,7 @@ export function useChatScrollAnchor({
     setScrollMode("following-end");
 
     const land = () => {
+      if (scrollModeRef.current !== "following-end") return;
       virtualizer.scrollToIndex(filteredMessages.length - 1, { align: "end" });
       const el = scrollRef.current;
       if (el) {
@@ -344,7 +397,10 @@ export function useChatScrollAnchor({
   useEffect(() => {
     const prevCount = previousMessageCountRef.current;
     previousMessageCountRef.current = messages.length;
+    const previousLast = previousLastMessageRef.current;
+    previousLastMessageRef.current = messages.at(-1)?.id;
     if (messages.length <= prevCount) return;
+    if (previousLast && previousLast === messages.at(-1)?.id) return;
 
     const last = messages[messages.length - 1];
     if (last?.role === "user" && lastUserMessageIndex >= 0) {

@@ -1,11 +1,13 @@
 /** @jsxImportSource @emotion/react */
-import React, { useRef, useCallback, useMemo, memo } from "react";
+import React, { useRef, useCallback, useMemo, useState, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import {
   Caption,
+  EditorButton,
   FlexColumn,
   FlexRow,
   SPACING,
+  SPACING_PX,
   ShimmerText,
   Text
 } from "../../ui_primitives";
@@ -244,6 +246,24 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const pendingApprovals = useGlobalChatStore((s) => s.pendingApprovals);
   const currentThreadId = useGlobalChatStore((s) => s.currentThreadId);
   const visibleThreadId = threadId ?? currentThreadId;
+  const olderCursor = useGlobalChatStore((s) =>
+    visibleThreadId ? s.messageCursors[visibleThreadId] : null
+  );
+  const loadMessages = useGlobalChatStore((s) => s.loadMessages);
+  const [loadingHistoryThread, setLoadingHistoryThread] =
+    useState<string | null>(null);
+  const loadOlderMessages = useCallback(async () => {
+    if (visibleThreadId && olderCursor) {
+      setLoadingHistoryThread(visibleThreadId);
+      try {
+        await loadMessages(visibleThreadId, olderCursor);
+      } finally {
+        setLoadingHistoryThread((current) =>
+          current === visibleThreadId ? null : current
+        );
+      }
+    }
+  }, [visibleThreadId, olderCursor, loadMessages]);
   const activePredictions = useGlobalChatStore(
     (s) =>
       getThreadRuntime(s, visibleThreadId).activePredictions ??
@@ -419,7 +439,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     filteredMessages,
     lastUserMessageIndex,
     status,
-    overscan: theme.virtualScroll.overscan.small
+    overscan: theme.virtualScroll.overscan.small,
+    loadOlderMessages: olderCursor ? loadOlderMessages : undefined
   });
 
   const isThoughtExpanded = useCallback(
@@ -454,6 +475,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
         ref={handleScrollRef}
         css={componentStyles.messageWrapper}
         className="scrollable-message-wrapper"
+        tabIndex={0}
       >
         <div
           css={componentStyles.chatMessagesList}
@@ -464,6 +486,18 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
           aria-label="Conversation"
         >
           <div ref={realContentRef} className="chat-messages-real-content">
+            <FlexRow justify="center" sx={{ minHeight: SPACING_PX.xxxl }}>
+              {olderCursor && (
+                <EditorButton
+                  onClick={loadOlderMessages}
+                  disabled={loadingHistoryThread === visibleThreadId}
+                >
+                  {loadingHistoryThread === visibleThreadId
+                    ? "Loading older messages…"
+                    : "Load older messages"}
+                </EditorButton>
+              )}
+            </FlexRow>
             <div
               className="chat-messages-virtual"
               style={{

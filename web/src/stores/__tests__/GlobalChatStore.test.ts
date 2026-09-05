@@ -66,6 +66,14 @@ jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
 import { pack } from "msgpackr";
 import { Server } from "mock-socket";
 import useGlobalChatStore from "../GlobalChatStore";
+import { trpcClient } from "../../trpc/client";
+
+jest.mock("../../trpc/client", () => ({
+  trpcClient: {
+    ...jest.requireActual("../../trpc/client").trpcClient,
+    messages: { list: { query: jest.fn() } }
+  }
+}));
 import {
   Message,
   JobUpdate,
@@ -175,6 +183,47 @@ describe("GlobalChatStore", () => {
     const state = store.getState();
     expect(state.currentThreadId).toBe(id);
     expect(state.threads[id]).toBeDefined();
+  });
+
+  it("loads the newest page then prepends older history without losing live messages", async () => {
+    const query = jest.mocked(trpcClient.messages.list.query);
+    const row = (id: string) => ({
+      type: "message" as const, id, thread_id: "history", user_id: "u",
+      role: "assistant", content: id, tool_calls: null, name: null, tool_call_id: null,
+      created_at: "2026-01-01", updated_at: "2026-01-01"
+    });
+    query.mockResolvedValueOnce({ messages: [row("4"), row("3")], next: "3" });
+    await store.getState().loadMessages("history");
+    expect(query).toHaveBeenLastCalledWith({ thread_id: "history", limit: 100, reverse: true });
+    expect(store.getState().messageCache.history.map((m) => m.id)).toEqual(["3", "4"]);
+    store.setState({ messageCache: { history: [...store.getState().messageCache.history, row("5")] } });
+    query.mockResolvedValueOnce({ messages: [row("3"), row("2"), row("1")], next: null });
+    await Promise.all([
+      store.getState().loadMessages("history", "3"),
+      store.getState().loadMessages("history", "3")
+    ]);
+    expect(query).toHaveBeenCalledTimes(2);
+    expect(store.getState().messageCache.history.map((m) => m.id)).toEqual(["1", "2", "3", "4", "5"]);
+    expect(store.getState().messageCursors.history).toBeNull();
+    await store.getState().loadMessages("history", "3");
+    expect(query).toHaveBeenCalledTimes(2);
+    query.mockResolvedValueOnce({ messages: [row("5"), row("4")], next: "4" });
+    await store.getState().loadMessages("history");
+    expect(store.getState().messageCache.history.map((m) => m.id)).toEqual(["1", "2", "3", "4", "5"]);
+    expect(store.getState().messageCursors.history).toBeNull();
+  });
+
+  it("keeps the older cursor and messages after a failed page so it can be retried", async () => {
+    const query = jest.mocked(trpcClient.messages.list.query);
+    const messages: Message[] = [{ type: "message", id: "last", role: "user", content: "hello" }];
+    store.setState({ messageCache: { history: messages }, messageCursors: { history: "last" } });
+    query.mockRejectedValueOnce(new Error("offline"));
+    await store.getState().loadMessages("history", "last");
+    expect(store.getState().messageCache.history).toEqual(messages);
+    expect(store.getState().messageCursors.history).toBe("last");
+    query.mockResolvedValueOnce({ messages: [], next: null });
+    await store.getState().loadMessages("history", "last");
+    expect(store.getState().messageCursors.history).toBeNull();
   });
 
   it("ensureLocalThread seeds a given id without stealing the current thread", () => {
