@@ -74,28 +74,40 @@ describe("splitClip with animations", () => {
     expect(rightEmphasis[0].delayMs).toBe(60);
   });
 
-  it("keeps a loop's phase across the cut", () => {
-    // period 300ms, loop starts at 20ms; the cut at clip-local 200ms lands
-    // 180ms into the first cycle, so the right half resumes at the next
-    // cycle boundary rather than restarting.
+  it("keeps a loop's phase across the cut, with no pause to the next cycle", () => {
+    // period 300ms, loop starts at clip-local 20ms; the cut at clip-local
+    // 200ms lands 180ms into the first cycle. The right half must resume
+    // mid-cycle at once: every instant after the cut samples the same value
+    // the unsplit clip would have.
     const clip = makeClipWithAnimations([
       { id: "loop-1", role: "loop", preset: "float", durationMs: 300, delayMs: 20 }
     ]);
     const [left, right] = splitClip(clip, 300);
 
     const rightLoop = (right.animations ?? []).find((a) => a.role === "loop");
-    expect(rightLoop?.delayMs).toBe(120);
+    expect(rightLoop?.delayMs).toBe(-180);
 
+    const wholeCompiled = compileClipAnimations(clip.animations, clip.durationMs, CANVAS);
     const leftCompiled = compileClipAnimations(left.animations, left.durationMs, CANVAS);
     const rightCompiled = compileClipAnimations(right.animations, right.durationMs, CANVAS);
-    // The cycle grid is unbroken: left-local 320 and right-local 120 are the
-    // same instant on the timeline's second cycle boundary.
-    for (const offset of [0, 20, 60]) {
-      const before = sampleAnimations(leftCompiled, 20 + offset);
-      const after = sampleAnimations(rightCompiled, 120 + offset);
-      expect(after.offsetY).toBeCloseTo(before.offsetY, 6);
-      expect(after.offsetX).toBeCloseTo(before.offsetX, 6);
+    // Left half: unchanged up to the cut.
+    for (const localMs of [20, 100, 199]) {
+      const whole = sampleAnimations(wholeCompiled, localMs);
+      const half = sampleAnimations(leftCompiled, localMs);
+      expect(half.offsetY).toBeCloseTo(whole.offsetY, 6);
     }
+    // Right half: local 20 and 60 are unsplit-local 220 and 260, inside the
+    // cycle the cut interrupted. A delay to the next boundary would return 0
+    // here and only resume at unsplit-local 320.
+    let moved = false;
+    for (const localMs of [0, 20, 60, 120, 200]) {
+      const whole = sampleAnimations(wholeCompiled, 200 + localMs);
+      const half = sampleAnimations(rightCompiled, localMs);
+      expect(half.offsetY).toBeCloseTo(whole.offsetY, 6);
+      expect(half.offsetX).toBeCloseTo(whole.offsetX, 6);
+      if (Math.abs(whole.offsetY) > 1e-6) moved = true;
+    }
+    expect(moved).toBe(true);
   });
 
   it("does not delay a loop that has not started at the cut", () => {

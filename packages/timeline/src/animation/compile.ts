@@ -172,6 +172,13 @@ export interface CompiledAnimation {
   loop: boolean;
   /** Cycle length in ms when `loop` is true; the window runs to clip end. */
   periodMs?: number;
+  /**
+   * Clip-local ms the cycle is counted from when `loop` is true. Equals
+   * `windowStartMs` unless the authored `delayMs` was negative, which is how
+   * a split carries the phase of a cycle already under way onto the right
+   * half: the window still opens at 0, the phase does not restart.
+   */
+  loopOriginMs?: number;
   /** Hold the `t=0` values before the window (true for `"in"`). */
   holdBefore: boolean;
   /** Hold the `t=1` values after the window (true for `"out"`). */
@@ -358,7 +365,9 @@ export function compileClipAnimations(
 
     if (animation.role === "loop") {
       // The window runs from the delay to clip end, cycling at `durationMs`.
-      const windowStartMs = Math.max(0, delayMs);
+      // A negative delay is a phase offset (see `loopOriginMs`).
+      const loopOriginMs = animation.delayMs ?? 0;
+      const windowStartMs = Math.max(0, loopOriginMs);
       if (windowStartMs >= clipDurationMs) continue;
       const compiled: CompiledAnimation = {
         id: animation.id,
@@ -367,6 +376,7 @@ export function compileClipAnimations(
         windowEndMs: clipDurationMs,
         loop: true,
         periodMs: durationMs,
+        loopOriginMs,
         holdBefore: false,
         holdAfter: false,
         curves

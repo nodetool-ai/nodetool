@@ -1288,15 +1288,34 @@ export function hasActiveAnimation(
   layers: ActiveLayer[],
   currentTimeMs: number,
   canvas: RenderCanvas,
-  cache?: AnimationCompileCache
+  cache?: AnimationCompileCache,
+  clips?: readonly TimelineClip[]
 ): boolean {
-  for (const layer of layers) {
-    const clip = layer.clip;
-    if (!clip.animations || clip.animations.length === 0) continue;
+  // Group clips never appear in `layers`, but their motion rides into every
+  // child through `parentMatrix`, so a still child of a moving group is a
+  // moving layer. `clips` is how the ancestors are reached; without it only
+  // the layers' own animations are seen.
+  const byId = clips ? new Map(clips.map((clip) => [clip.id, clip])) : null;
+  const animating = (clip: TimelineClip): boolean => {
+    if (!clip.animations || clip.animations.length === 0) return false;
     const compiled = compiledFor(clip, canvas, cache);
-    if (hasActiveAnimationWindow(compiled, currentTimeMs - clip.startMs)) {
-      return true;
+    return hasActiveAnimationWindow(compiled, currentTimeMs - clip.startMs);
+  };
+  const chainAnimating = (clip: TimelineClip): boolean => {
+    let cursor: TimelineClip | undefined = clip;
+    // Bounded walk: the validator reports a parent cycle, the render ignores it.
+    for (let hops = 0; cursor && hops < MAX_PARENT_HOPS; hops++) {
+      if (animating(cursor)) return true;
+      cursor = cursor.parentId && byId ? byId.get(cursor.parentId) : undefined;
     }
+    return false;
+  };
+  for (const layer of layers) {
+    if (chainAnimating(layer.clip)) return true;
+    if (layer.matte && chainAnimating(layer.matte.layer.clip)) return true;
   }
   return false;
 }
+
+/** Longest parent chain the motion check follows before giving up. */
+const MAX_PARENT_HOPS = 64;

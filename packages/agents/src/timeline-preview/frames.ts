@@ -689,7 +689,7 @@ export async function renderTimelineFrames(
     );
     return shutterWindowIsStatic(
       layers,
-      hasActiveAnimation(layers, timeMs, animationCanvas, animCache)
+      hasActiveAnimation(layers, timeMs, animationCanvas, animCache, sequence.clips)
     );
   };
 

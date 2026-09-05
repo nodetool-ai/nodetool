@@ -61,24 +61,19 @@ function splitAnimations(
 
 /**
  * Right-half delay for a loop cut at `splitMs`. Before the loop starts the
- * remaining delay carries over; after it has started, the delay lands on the
- * first cycle boundary at or after the cut, so the right half samples the same
- * phase the left half would have. `delayMs` cannot go negative (the compiler
- * clamps it), so a cut inside a cycle costs the remainder of that cycle rather
- * than re-phasing the loop.
+ * remaining delay carries over. After it has started the delay goes negative
+ * by the time already elapsed, which the compiler reads as a phase offset
+ * (`loopOriginMs`): the right half opens at 0 mid-cycle exactly where the
+ * left half left off, with no pause to the next boundary. A `fullClip` loop
+ * ignores delay and replays whole on both halves.
  */
 function rebaseLoopDelayMs(anim: ClipAnimation, splitMs: number): number {
-  const delayMs = Math.max(0, anim.delayMs ?? 0);
-  if (delayMs >= splitMs) {
-    return delayMs - splitMs;
-  }
+  const delayMs = anim.delayMs ?? 0;
   const preset = getAnimationPreset(anim.preset);
   if (preset?.fullClip === true) {
-    return delayMs;
+    return Math.max(0, delayMs);
   }
-  const periodMs = Math.max(1, anim.durationMs);
-  const elapsedInCycleMs = (splitMs - delayMs) % periodMs;
-  return elapsedInCycleMs === 0 ? 0 : periodMs - elapsedInCycleMs;
+  return delayMs - splitMs;
 }
 
 /**

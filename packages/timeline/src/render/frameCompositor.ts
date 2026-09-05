@@ -339,6 +339,12 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       label: `${this.label}-frame`
     });
 
+    // Every group and matte in this frame records into `encoder` before one
+    // submit, so the precomposite core's uniform ring is reset here, once, and
+    // each pass below takes its own slot. Resetting it per group would hand
+    // the second group the first group's buffers while those commands are
+    // still pending.
+    this.precompCore?.beginFrame();
     const { stack, drawn } = this.composePrecomposites(
       ordered,
       precomposites,
@@ -767,7 +773,10 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       ]
     });
     seed.end();
-    core.beginFrame();
+    // With a frame encoder the ring was reset once at the top of the frame
+    // (see `composite`); resetting here would alias this pass's uniforms
+    // with the previous group's.
+    if (!frameEncoder) core.beginFrame();
     const composed = this.blendStack(
       composeEncoder,
       core,

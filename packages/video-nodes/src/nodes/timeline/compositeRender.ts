@@ -458,7 +458,7 @@ export async function renderTimelineComposited(
       );
       return shutterWindowIsStatic(
         layers,
-        hasActiveAnimation(layers, timeMs, canvas, animCache)
+        hasActiveAnimation(layers, timeMs, canvas, animCache, sequence.clips)
       );
     };
 
