@@ -82,11 +82,11 @@ describe("declared image/audio props reach the provider", () => {
   it("ExtractorNode sends the image it declares", async () => {
     let seen: unknown;
     const provider = {
-      async *generateMessages(args: { messages: { content: unknown }[] }) {
+      async generateMessage(args: { messages: { content: unknown }[] }) {
         seen = args.messages[1].content;
-        yield {
-          role: "assistant",
-          tool_calls: [{ id: "1", name: "extraction_result", args: { a: "b" } }]
+        return {
+          content: "",
+          toolCalls: [{ id: "1", name: "extraction_result", args: { a: "b" } }]
         };
       }
     };
@@ -103,11 +103,11 @@ describe("declared image/audio props reach the provider", () => {
   it("ClassifierNode sends the audio it declares", async () => {
     let seen: unknown;
     const provider = {
-      async *generateMessages(args: { messages: { content: unknown }[] }) {
+      async generateMessage(args: { messages: { content: unknown }[] }) {
         seen = args.messages[1].content;
-        yield {
-          role: "assistant",
-          tool_calls: [
+        return {
+          content: "",
+          toolCalls: [
             { id: "1", name: "classification_result", args: { category: "a" } }
           ]
         };
@@ -128,13 +128,16 @@ describe("declared image/audio props reach the provider", () => {
 describe("StructuredOutputGeneratorNode.max_tokens", () => {
   it("passes the declared max_tokens to the provider call", async () => {
     let seen: unknown;
-    const provider = {
-      async generateMessage(args: { max_tokens?: unknown }) {
-        seen = args.max_tokens;
+    const context = {
+      getProvider: async () => ({ provider: "test", cost: 0 }),
+      setProviderCost: () => undefined,
+      async runProviderPrediction({
+        params
+      }: {
+        params: { max_tokens?: unknown };
+      }) {
+        seen = params.max_tokens;
         return { content: '{"a":1}' };
-      },
-      async generateMessageTraced(...a: any[]) {
-        return (this as any).generateMessage(...a);
       }
     };
     const n = new (StructuredOutputGeneratorNode as any)();
@@ -144,7 +147,7 @@ describe("StructuredOutputGeneratorNode.max_tokens", () => {
       max_tokens: 321
     });
     n._dynamic_outputs = { a: "int" };
-    await n.process({ getProvider: async () => provider } as any);
+    await n.process(context as any);
     expect(seen).toBe(321);
   });
 });
