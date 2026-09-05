@@ -11,9 +11,14 @@
  * controls, and putting those inside the tile button would nest one focusable
  * control in another. Such a tile frames the player and puts the select
  * control beneath it.
+ *
+ * A preset whose art is missing or fails to load falls back to a typographic
+ * sample — its name set in the space the picture would fill. A broken-image
+ * glyph reads as a bug; a set name reads as a choice, and the grid stays usable
+ * while art is still being made.
  */
 
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import { useTheme } from "@mui/material/styles";
 
@@ -56,6 +61,52 @@ export interface PresetTileGridProps {
   aspectRatio?: string;
   minColumnWidth?: number;
 }
+
+/**
+ * A preset's still sample, or its name set in the same box when there is no
+ * picture to show. `showErrorFallback` is off because this component owns the
+ * failure: the primitive's broken-image glyph would replace the very thing the
+ * fallback is for.
+ */
+const StillSample: React.FC<{
+  preset: PresetTile;
+  aspectRatio: string;
+}> = ({ preset, aspectRatio }) => {
+  const theme = useTheme();
+  const [failed, setFailed] = useState(false);
+  const handleError = useCallback(() => setFailed(true), []);
+
+  if (preset.image !== undefined && !failed) {
+    return (
+      <ResponsiveImage
+        locator={preset.image}
+        alt=""
+        aspectRatio={aspectRatio}
+        borderRadius={BORDER_RADIUS.sm}
+        showErrorFallback={false}
+        onError={handleError}
+      />
+    );
+  }
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        aspectRatio,
+        display: "grid",
+        placeItems: "center",
+        padding: PADDING.compact,
+        borderRadius: BORDER_RADIUS.sm,
+        backgroundColor: theme.vars.palette.action.hover,
+        color: theme.vars.palette.text.secondary
+      }}
+    >
+      <Text size="normal" component="span" align="center">
+        {preset.title}
+      </Text>
+    </Box>
+  );
+};
 
 const PresetTileGridInternal: React.FC<PresetTileGridProps> = ({
   label,
@@ -135,12 +186,7 @@ const PresetTileGridInternal: React.FC<PresetTileGridProps> = ({
             padding={PADDING.compact}
           >
             <FlexColumn gap={GAP.tight}>
-              <ResponsiveImage
-                locator={preset.image}
-                alt=""
-                aspectRatio={aspectRatio}
-                borderRadius={BORDER_RADIUS.sm}
-              />
+              <StillSample preset={preset} aspectRatio={aspectRatio} />
               <Text size="small" component="span">
                 {preset.title}
               </Text>

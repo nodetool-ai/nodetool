@@ -9,6 +9,7 @@
  *   delete  (mutation) — { ok: true }
  *   examples       (query)    — ExampleStoryboardSummary[] (shipped boards)
  *   installExample (mutation) — StoryboardResponse
+ *   stylePresets   (mutation) — StylePresetEntity[] (seeds, then lists)
  */
 
 import { z } from "zod";
@@ -21,10 +22,12 @@ import {
   storyboardListItem,
   storyboardResponse
 } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
+import { STYLE_PRESETS } from "@nodetool-ai/protocol";
 import {
   installExampleStoryboard,
   listExampleStoryboards
 } from "../../lib/example-storyboards.js";
+import { seedStylePresets } from "../../lib/style-presets.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -44,6 +47,17 @@ const updateInput = patchStoryboardInput.and(
 );
 
 const okOutput = z.object({ ok: z.literal(true) });
+
+/** One seeded preset, as the style step needs it: an id to apply, art to show. */
+const stylePresetEntity = z.object({
+  /** The library entity id `setStylePreset` writes onto the board. */
+  entityId: z.string(),
+  presetId: z.string(),
+  name: z.string(),
+  descriptor: z.string(),
+  /** `package://` path of the tile art. */
+  thumbnail: z.string()
+});
 
 function toListItem(board: Storyboard) {
   return {
@@ -175,5 +189,23 @@ export const storyboardsRouter = router({
         input
       );
       return storyboardResponse.parse(board);
+    }),
+
+  // ── shipped style presets ─────────────────────────────────────────────────
+  // Rows, not files: the style step applies one by entity id, so the row has to
+  // exist before a board can reference it. A mutation because it writes on
+  // first call; idempotent, so the step can call it every time it opens.
+
+  stylePresets: protectedProcedure
+    .output(z.array(stylePresetEntity))
+    .mutation(async ({ ctx }) => {
+      const assets = await seedStylePresets(ctx.userId);
+      return STYLE_PRESETS.map((preset, index) => ({
+        entityId: assets[index].id,
+        presetId: preset.id,
+        name: preset.name,
+        descriptor: preset.descriptor,
+        thumbnail: preset.thumbnail
+      }));
     })
 });

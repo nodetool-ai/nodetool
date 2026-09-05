@@ -23,6 +23,8 @@ import { shotRenderMode } from "@nodetool-ai/protocol";
 import AddIcon from "@mui/icons-material/Add";
 import TuneIcon from "@mui/icons-material/Tune";
 
+import { ASPECT_OPTIONS } from "./aspectOptions";
+
 import {
   Box,
   Card,
@@ -99,14 +101,6 @@ interface StoryboardBoardProps {
   /** Error from the last assembly, shown under the header fields. */
   assembleError?: string | null;
 }
-
-const ASPECT_OPTIONS = [
-  { value: "16:9", label: "16:9 — Widescreen" },
-  { value: "9:16", label: "9:16 — Vertical" },
-  { value: "1:1", label: "1:1 — Square" },
-  { value: "4:3", label: "4:3 — Classic" },
-  { value: "21:9", label: "21:9 — Cinematic" }
-] as const;
 
 const SHOT_COUNT_OPTIONS = [3, 4, 5, 6, 8, 10, 12].map((n) => ({
   value: n,

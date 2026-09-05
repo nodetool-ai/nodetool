@@ -452,4 +452,38 @@ describe("create_entity and update_entity", () => {
       await run().invoke("delete_entity", {})
     ).toMatchObject({ error: expect.stringMatching(/entity_id is required/) });
   });
+
+  it("refuses to update or delete a shipped system entity", async () => {
+    // A seeded style preset: same marker, plus the flag that makes it read-only.
+    const preset = await makeEntity("Noir", "style", "high-contrast mono", {
+      system: true,
+      preset_id: "noir"
+    });
+
+    expect(
+      await run().invoke("update_entity", {
+        entity_id: preset.id,
+        descriptor: "whatever I want"
+      })
+    ).toMatchObject({ error: expect.stringMatching(/shipped style preset/) });
+    expect(
+      await run().invoke("delete_entity", { entity_id: preset.id })
+    ).toMatchObject({ error: expect.stringMatching(/shipped style preset/) });
+
+    // Retargeting is a write too: moving the marker onto another asset would
+    // both edit the preset and strip the row it came from.
+    const mine = await makeEntity("Mine", "style", "my own look");
+    expect(
+      await run().invoke("update_entity", {
+        entity_id: preset.id,
+        asset_id: mine.id
+      })
+    ).toMatchObject({ error: expect.stringMatching(/shipped style preset/) });
+
+    const reread = await Asset.find(USER, preset.id);
+    expect(
+      (reread?.metadata?.["nodetool_entity"] as { descriptor: string })
+        .descriptor
+    ).toBe("high-contrast mono");
+  });
 });

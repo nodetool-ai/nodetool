@@ -25,6 +25,11 @@ import { useDocumentUndoShortcuts } from "../hooks/useDocumentUndoShortcuts";
 import { useStoryboardAgentBridge } from "../hooks/storyboard/useStoryboardAgentBridge";
 import { useDirectScreenplay } from "../hooks/storyboard/useDirectScreenplay";
 import { useAssembleTimeline } from "../hooks/storyboard/useAssembleTimeline";
+import { SetupFlow } from "../components/setup/SetupFlow";
+import {
+  useStoryboardSetupFlow,
+  useStoryboardSetupStage
+} from "../components/setup/storyboard/useStoryboardSetupFlow";
 import StudioShell from "./StudioShell";
 import {
   STUDIO_CLIP_MODEL,
@@ -79,6 +84,12 @@ const StudioStoryboardPage = () => {
     onRedo: useCallback(() => redo(boardId), [redo, boardId])
   });
 
+  // A board still in setup renders the flow inside the Studio chrome, at the
+  // stage the document carries (PRD § 6.4). A board with no stage reads `done`
+  // and opens as the board (D3).
+  const setupStage = useStoryboardSetupStage(boardId);
+  const setupConfig = useStoryboardSetupFlow({ boardId });
+
   const { direct, directing, error: directError } = useDirectScreenplay();
   const handleDirect = useCallback(
     (shotCount: number) => direct(boardId, shotCount),
@@ -93,6 +104,14 @@ const StudioStoryboardPage = () => {
         // Surfaced via assembleError; swallow to keep the click handler quiet.
       });
   }, [assemble, boardId, navigate]);
+
+  if (setupStage !== "done") {
+    return (
+      <StudioShell title={title || "Untitled storyboard"}>
+        <SetupFlow config={setupConfig} />
+      </StudioShell>
+    );
+  }
 
   return (
     <StudioShell title={title || "Untitled storyboard"}>

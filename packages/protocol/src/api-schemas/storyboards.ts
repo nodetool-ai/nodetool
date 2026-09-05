@@ -376,6 +376,12 @@ export const exampleStoryboardSummary = z.object({
   slug: z.string(),
   name: z.string(),
   description: z.string(),
+  /**
+   * The board's own one-sentence idea — its brief. What a creator would type
+   * to get this board, so step 1 of the storyboard flow offers it as an
+   * inspiration chip (PRD § 7.1).
+   */
+  logline: z.string().default(""),
   tags: z.array(z.string()),
   shotCount: z.number(),
   /** How many of those shots already have a rendered clip. */

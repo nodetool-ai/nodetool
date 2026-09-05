@@ -96,15 +96,32 @@ jest.mock("../../workspace/newDocumentCatalog", () => ({
   }
 }));
 
+const createStoryboard = jest.fn(async () => ({
+  id: "b7",
+  projectId: "p9",
+  name: "A spot for our desk lamp"
+}));
 jest.mock("../../../hooks/storyboard/useStoryboards", () => ({
-  useExampleStoryboards: () => ({ data: [], isLoading: false })
+  useExampleStoryboards: () => ({ data: [], isLoading: false }),
+  useCreateStoryboard: () => ({ mutateAsync: createStoryboard })
+}));
+
+// The flow's real host runs the board's server sync and agent bridge; this
+// suite only asks whether the surface swapped itself for it.
+jest.mock("../../setup/storyboard/StoryboardSetupHost", () => ({
+  __esModule: true,
+  default: ({ boardId }: { boardId: string }) => (
+    <div data-testid="setup-flow">{boardId}</div>
+  )
 }));
 
 const closeTab = jest.fn();
+const openTab = jest.fn();
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   ...jest.requireActual("../../../stores/WorkspaceTabsStore"),
-  useWorkspaceTabsStore: <T,>(selector: (s: { closeTab: jest.Mock }) => T) =>
-    selector({ closeTab })
+  useWorkspaceTabsStore: <T,>(
+    selector: (s: { closeTab: jest.Mock; openTab: jest.Mock }) => T
+  ) => selector({ closeTab, openTab })
 }));
 
 const addNotification = jest.fn();
@@ -623,5 +640,81 @@ describe("NewProjectSurface", () => {
     await userEvent.click(within(menu).getByText("Aurora lamp"));
 
     expect(prompt).toHaveValue("A spot lit by entity://e1 ");
+  });
+
+  // D2 — explicit entry only. Whatever is in the prompt box, `Start` is the
+  // project agent's door and the flow's is the card.
+  it.each([
+    ["a plain prompt", "A spot for our desk lamp"],
+    ["a `/skill` prompt", "/launch-commercial A spot for our desk lamp"]
+  ])("starts the project agent for %s and never mounts the flow", async (
+    _name,
+    typed
+  ) => {
+    renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      typed
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+
+    await waitFor(() => expect(createProject).toHaveBeenCalled());
+    expect(openProject).toHaveBeenCalled();
+    expect(createStoryboard).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("setup-flow")).not.toBeInTheDocument();
+  });
+
+  it("opens the storyboard flow on the card, carrying the typed prompt", async () => {
+    renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A spot for our desk lamp"
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: /^Storyboard From a sentence to a rendered board/
+      })
+    );
+
+    await waitFor(() =>
+      expect(createProject).toHaveBeenCalledWith({
+        name: "A spot for our desk lamp",
+        kind: "storyboard"
+      })
+    );
+    expect(createStoryboard).toHaveBeenCalledWith({
+      name: "A spot for our desk lamp",
+      projectId: "p9",
+      document: expect.objectContaining({
+        brief: "A spot for our desk lamp",
+        setupStage: "idea"
+      })
+    });
+    // The tab is the flow now, and the project agent was never started.
+    expect(await screen.findByTestId("setup-flow")).toHaveTextContent("b7");
+    expect(openProject).not.toHaveBeenCalled();
+  });
+
+  it("names the phase that turns each unbuilt flow on", () => {
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    const off = [
+      ["Video", "Video ships in phase P6."],
+      ["Script", "Script ships in phase P7."],
+      ["Image", "Image ships in phase P8."],
+      ["Workflow", "Workflow ships in phase P9."]
+    ] as const;
+    for (const [title, reason] of off) {
+      const card = within(cards).getByRole("button", {
+        name: new RegExp(`^${title} `)
+      });
+      expect(card).toHaveAttribute("aria-disabled", "true");
+      expect(card).toHaveAttribute("title", reason);
+    }
+    expect(
+      within(cards).getByRole("button", { name: /^Storyboard / })
+    ).not.toHaveAttribute("aria-disabled");
   });
 });

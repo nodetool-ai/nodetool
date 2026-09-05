@@ -1,10 +1,16 @@
 /** @jsxImportSource @emotion/react */
 /**
- * Studio home: one prompt that lands on a linked script + storyboard, the two
- * blank starting points for people who would rather write first, and the
- * projects that came out of them. Linked documents share a card — the script,
- * the board it links, and the timeline either produced are one project, not
- * three rows (see {@link groupLinkedProjects}).
+ * Studio home: the three entry cards Studio offers (PRD § 6.1, D24 — Image
+ * and Workflow are workspace flows), the two blank starting points for people
+ * who would rather write first, and the projects that came out of them. Linked
+ * documents share a card — the script, the board it links, and the timeline
+ * either produced are one project, not three rows (see
+ * {@link groupLinkedProjects}).
+ *
+ * The Storyboard card creates a board at stage `idea` and opens it; the flow
+ * itself lives on the board page, which resumes from the stage the document
+ * carries. Models are the curated Studio ones stamped on there, so nothing
+ * here asks for a model.
  */
 
 import { useCallback, useRef, useState } from "react";
@@ -15,19 +21,19 @@ import RecordVoiceOverRoundedIcon from "@mui/icons-material/RecordVoiceOverRound
 import MovieRoundedIcon from "@mui/icons-material/MovieRounded";
 import {
   BORDER_RADIUS,
-  Card,
   EditorButton,
   FlexColumn,
   FlexRow,
   SPACING,
-  Text,
-  TextInput
+  Text
 } from "../components/ui_primitives";
+import { OptionCardGrid } from "../components/setup/OptionCardGrid";
+import { STUDIO_ENTRY_CARDS } from "../components/setup/entryCards";
+import { newStoryboardSetupDocument } from "../components/setup/storyboard/useStoryboardSetupFlow";
 import { useCreateStoryboard } from "../hooks/storyboard/useStoryboards";
 import { useCreateScript } from "../hooks/script/useScripts";
 import StudioShell from "./StudioShell";
 import { useStudioProjects } from "./useStudioProjects";
-import { useStudioPromptStart } from "./useStudioPromptStart";
 import type {
   StudioDocument,
   StudioDocumentKind,
@@ -49,12 +55,6 @@ const KIND_ICON = {
 
 const documentRoute = (document: StudioDocument) =>
   `/studio/${document.kind}/${document.id}`;
-
-const PROMPT_STAGE_LABEL = {
-  idle: "Make it",
-  directing: "Directing…",
-  writing: "Writing the script…"
-} as const;
 
 const ProjectCard = ({
   project,
@@ -137,19 +137,8 @@ const StudioHome = () => {
   const createStoryboard = useCreateStoryboard();
   const createScript = useCreateScript();
   const [creating, setCreating] = useState<StudioDocumentKind | null>(null);
-  const [prompt, setPrompt] = useState("");
 
   const { projects } = useStudioProjects();
-  const { start, stage, busy, error: promptError } = useStudioPromptStart();
-
-  const makeIt = useCallback(() => {
-    if (busy) return;
-    void start(prompt)
-      .then(({ boardId }) => navigate(`/studio/storyboard/${boardId}`))
-      .catch(() => {
-        // Surfaced through promptError; the prompt stays for a second try.
-      });
-  }, [busy, navigate, prompt, start]);
 
   // One creation at a time: the blank starts disable while either runs, and
   // the handlers guard on a ref as well so a double-activation can't create
@@ -167,6 +156,35 @@ const StudioHome = () => {
         setCreating(null);
       });
   }, [createStoryboard, navigate]);
+
+  // The Storyboard entry card: a board at stage `idea`, opened straight away.
+  // The board page renders the flow from that stage and stamps the curated
+  // Studio models, so there is no model picker here (D24).
+  const startStoryboardFlow = useCallback(() => {
+    if (creatingRef.current) return;
+    creatingRef.current = true;
+    setCreating("storyboard");
+    createStoryboard
+      .mutateAsync({
+        name: "Untitled storyboard",
+        projectId: creationProjectId(),
+        document: newStoryboardSetupDocument("")
+      })
+      .then((created) => navigate(`/studio/storyboard/${created.id}`))
+      .finally(() => {
+        creatingRef.current = false;
+        setCreating(null);
+      });
+  }, [createStoryboard, navigate]);
+
+  const handleEntryCard = useCallback(
+    (id: string) => {
+      if (id === "storyboard") {
+        startStoryboardFlow();
+      }
+    },
+    [startStoryboardFlow]
+  );
 
   const startScript = useCallback(() => {
     if (creatingRef.current) return;
@@ -198,59 +216,38 @@ const StudioHome = () => {
             Make a video
           </Text>
           <Text size="normal" color="secondary">
-            Describe it once — the agent directs the shots and writes the
-            script, linked to each other.
+            Pick where to start. Each one takes a sentence and returns a
+            document you can keep editing.
           </Text>
         </FlexColumn>
 
-        <Card
-          variant="outlined"
-          padding="comfortable"
-          sx={{ width: "100%", maxWidth: 720 }}
-        >
-          <FlexColumn gap={SPACING.md} align="stretch">
-            <TextInput
-              label="What is the video about?"
-              placeholder="A 30-second explainer about how tides work, calm narration over close-up ocean shots."
-              multiline
-              rows={3}
-              value={prompt}
-              disabled={busy}
-              onChange={(event) => setPrompt(event.target.value)}
+        <FlexColumn gap={SPACING.md} sx={{ width: "100%", maxWidth: 720 }}>
+          <OptionCardGrid
+            label="What are you making?"
+            options={STUDIO_ENTRY_CARDS}
+            onSelect={handleEntryCard}
+            minColumnWidth={200}
+          />
+          <FlexRow align="center" gap={SPACING.sm} wrap>
+            <Text size="smaller" color="secondary" sx={{ flex: 1 }}>
+              or start blank:
+            </Text>
+            <BlankStart
+              icon={<TheatersRoundedIcon />}
+              label="New storyboard"
+              busy={creating === "storyboard"}
+              disabled={creating !== null}
+              onStart={startStoryboard}
             />
-            {promptError && (
-              <Text size="small" color="error">
-                {promptError}
-              </Text>
-            )}
-            <FlexRow align="center" gap={SPACING.sm} wrap>
-              <EditorButton
-                variant="contained"
-                onClick={makeIt}
-                disabled={busy || prompt.trim().length === 0}
-              >
-                {PROMPT_STAGE_LABEL[stage]}
-              </EditorButton>
-              <Text size="smaller" color="secondary" sx={{ flex: 1 }}>
-                or start blank:
-              </Text>
-              <BlankStart
-                icon={<TheatersRoundedIcon />}
-                label="New storyboard"
-                busy={creating === "storyboard"}
-                disabled={busy || creating !== null}
-                onStart={startStoryboard}
-              />
-              <BlankStart
-                icon={<RecordVoiceOverRoundedIcon />}
-                label="New script"
-                busy={creating === "script"}
-                disabled={busy || creating !== null}
-                onStart={startScript}
-              />
-            </FlexRow>
-          </FlexColumn>
-        </Card>
+            <BlankStart
+              icon={<RecordVoiceOverRoundedIcon />}
+              label="New script"
+              busy={creating === "script"}
+              disabled={creating !== null}
+              onStart={startScript}
+            />
+          </FlexRow>
+        </FlexColumn>
 
         {projects.length > 0 && (
           <FlexColumn gap={SPACING.sm} sx={{ width: "100%", maxWidth: 880 }}>

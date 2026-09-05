@@ -70,7 +70,10 @@ import {
   useNewDocumentCatalog,
   type NewDocumentSubmenu
 } from "../workspace/newDocumentCatalog";
-import { useExampleStoryboards } from "../../hooks/storyboard/useStoryboards";
+import {
+  useCreateStoryboard,
+  useExampleStoryboards
+} from "../../hooks/storyboard/useStoryboards";
 import { useHasConfiguredProvider } from "../../hooks/useHasConfiguredProvider";
 import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
@@ -80,6 +83,10 @@ import useOnboardingStore, {
 import GettingStartedChecklist from "../onboarding/GettingStartedChecklist";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import { openPageTab } from "../workspace/openPageTab";
+import { OptionCardGrid } from "../setup/OptionCardGrid";
+import { ENTRY_CARDS } from "../setup/entryCards";
+import StoryboardSetupHost from "../setup/storyboard/StoryboardSetupHost";
+import { newStoryboardSetupDocument } from "../setup/storyboard/useStoryboardSetupFlow";
 import { clearProjectFirstTurn, stageProjectFirstTurn } from "./projectAgent";
 import { PROJECT_COLOR } from "./projectIdentity";
 import {
@@ -118,6 +125,13 @@ interface SubmenuAnchor {
   element: HTMLElement;
 }
 
+/** The board the Storyboard card created, which this tab then hosts. */
+interface SetupTarget {
+  boardId: string;
+  projectId: string;
+  name: string;
+}
+
 
 const NewProjectSurface = () => {
   const [prompt, setPrompt] = useState("");
@@ -127,6 +141,8 @@ const NewProjectSurface = () => {
   const [entityAnchor, setEntityAnchor] = useState<HTMLElement | null>(null);
   const [submenu, setSubmenu] = useState<SubmenuAnchor | null>(null);
   const [starting, setStarting] = useState(false);
+  // The board an entry card created. Set, and this surface is the flow.
+  const [setupTarget, setSetupTarget] = useState<SetupTarget | null>(null);
   // The model the project agent will run on, picked here — the prompt box has
   // no model chip, so this menu is the only place to pick one before Start.
   const [modelAnchor, setModelAnchor] = useState<HTMLElement | null>(null);
@@ -147,8 +163,10 @@ const NewProjectSurface = () => {
   const { data: skills } = useSkills({ includeSystem: true });
   const summaries = useProjectSummaries();
   const createProject = useCreateProject();
+  const createStoryboard = useCreateStoryboard();
   const openProject = useOpenProject();
   const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -386,6 +404,69 @@ const NewProjectSurface = () => {
     starting
   ]);
 
+  // The Storyboard entry card (PRD § 6.1, D2). Explicit: nothing typed in the
+  // prompt box reaches the flow unless this card is clicked — a plain prompt
+  // and a `/skill` prompt both keep going to the project agent through
+  // `handleStart`. The board is created with its stage already at `idea` and
+  // the typed prompt as its brief, so the flow resumes from the document
+  // alone (D3).
+  const startStoryboardFlow = useCallback(async () => {
+    if (starting) {
+      return;
+    }
+    const text = prompt.trim();
+    const name =
+      text.length > 0 ? projectNameFromPrompt(text, null) : "New storyboard";
+    setStarting(true);
+    try {
+      const project = await createProject.mutateAsync({
+        name,
+        kind: "storyboard"
+      });
+      const board = await createStoryboard.mutateAsync({
+        name,
+        projectId: project.id,
+        document: newStoryboardSetupDocument(text)
+      });
+      setSetupTarget({ boardId: board.id, projectId: project.id, name });
+    } catch (error) {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: `Could not start the storyboard: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      });
+    } finally {
+      setStarting(false);
+    }
+  }, [addNotification, createProject, createStoryboard, prompt, starting]);
+
+  const handleEntryCard = useCallback(
+    (id: string) => {
+      if (id === "storyboard") {
+        void startStoryboardFlow();
+      }
+    },
+    [startStoryboardFlow]
+  );
+
+  // The flow's last step wrote stage `done`: hand the finished board its own
+  // tab and let this one go.
+  const handleSetupFinished = useCallback(() => {
+    if (!setupTarget) {
+      return;
+    }
+    openTab({
+      type: "storyboard",
+      ref: setupTarget.boardId,
+      mode: "edit",
+      title: setupTarget.name,
+      projectId: setupTarget.projectId
+    });
+    closeTab(tabId("project-new", PROJECT_NEW_REF));
+  }, [closeTab, openTab, setupTarget]);
+
   // A start that was parked on provider onboarding resumes on its own once a
   // provider is connected, so the user finishes the thing they asked for.
   const resumeProject = useRef(handleStart);
@@ -431,6 +512,16 @@ const NewProjectSurface = () => {
   const handleOpenTutorials = useCallback(() => {
     openPageTab("tutorials");
   }, []);
+
+  // An entry card was clicked: this tab is the flow now (PRD § 6.1).
+  if (setupTarget) {
+    return (
+      <StoryboardSetupHost
+        boardId={setupTarget.boardId}
+        onFinish={handleSetupFinished}
+      />
+    );
+  }
 
   return (
     <ScrollArea fullHeight>
@@ -553,6 +644,16 @@ const NewProjectSurface = () => {
                 Start
               </EditorButton>
             </FlexRow>
+          </FlexColumn>
+
+          <FlexColumn gap={SPACING.md}>
+            <Caption color="muted">Or start from a guided flow</Caption>
+            <OptionCardGrid
+              label="Guided creation flows"
+              options={ENTRY_CARDS}
+              onSelect={handleEntryCard}
+              minColumnWidth={160}
+            />
           </FlexColumn>
 
           {starters.length > 0 && (

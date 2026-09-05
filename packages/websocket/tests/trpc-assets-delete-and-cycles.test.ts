@@ -46,6 +46,8 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       find: mocks.assetFind,
       getChildren: mocks.getChildren,
       validateParent: mocks.validateParent,
+      // Statics are non-enumerable, so the spread above does not carry them.
+      systemEntityRefusal: actual.Asset.systemEntityRefusal,
       paginate: vi.fn(),
       searchAssetsGlobal: vi.fn()
     }

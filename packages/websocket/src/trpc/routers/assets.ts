@@ -231,6 +231,20 @@ async function assertValidParent(
   }
 }
 
+/**
+ * Refuse a write to a shipped system entity — a seeded style preset.
+ *
+ * The rule is `Asset.systemEntityRefusal`, shared with the sandbox's entity
+ * capability so both write surfaces answer the same way; this wrapper only
+ * turns it into an HTTP error.
+ */
+function assertWritable(asset: AssetModel): void {
+  const problem = Asset.systemEntityRefusal(asset);
+  if (problem) {
+    throwApiError(ApiErrorCode.FORBIDDEN, problem);
+  }
+}
+
 export const assetsRouter = router({
   list: protectedProcedure
     .input(listInput)
@@ -423,6 +437,7 @@ export const assetsRouter = router({
       if (!asset) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
       }
+      assertWritable(asset);
 
       if (input.name !== undefined) asset.name = input.name;
       if (input.content_type !== undefined) {
@@ -489,6 +504,7 @@ export const assetsRouter = router({
       if (!asset) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
       }
+      assertWritable(asset);
 
       let deletedAssetIds: string[];
       if (asset.content_type === "folder") {

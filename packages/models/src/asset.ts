@@ -5,6 +5,7 @@
  */
 
 import { eq, and, or, like, desc, isNull, lt, inArray } from "drizzle-orm";
+import { isSystemEntityMetadata } from "@nodetool-ai/protocol";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { assets } from "./schema/assets.js";
@@ -154,6 +155,24 @@ export class Asset extends DBModel {
       currentId = ancestor.parent_id ?? null;
     }
     return null;
+  }
+
+  /**
+   * Why this asset may not be written or deleted by its owner, or null when it
+   * may.
+   *
+   * Shipped style presets are seeded into every library as ordinary asset rows
+   * carrying a `system` entity marker. They are read-only (PRD § 7.7.9): a
+   * preset's descriptor must mean the same thing on every board, and a user who
+   * wants a variant takes a copy through `Add your own style`. The rule lives
+   * here, next to `validateParent`, because more than one surface writes assets
+   * — the tRPC route and the sandbox's entity capability — and a rule enforced
+   * on one of them is not enforced.
+   */
+  static systemEntityRefusal(asset: Asset): string | null {
+    return isSystemEntityMetadata(asset.metadata)
+      ? `"${asset.name || asset.id}" is a shipped style preset and cannot be changed. Use "Add your own style" to make an editable copy.`
+      : null;
   }
 
   /** List assets in a folder. */

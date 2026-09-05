@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import mockTheme from "../../__mocks__/themeMock";
 
 const navigate = jest.fn();
-const start = jest.fn();
+const createStoryboard = jest.fn(async () => ({ id: "b9" }));
 
 jest.mock("react-router-dom", () => ({
   __esModule: true,
@@ -16,16 +16,6 @@ jest.mock("react-router-dom", () => ({
 jest.mock("../StudioShell", () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
-}));
-
-jest.mock("../useStudioPromptStart", () => ({
-  __esModule: true,
-  useStudioPromptStart: () => ({
-    start,
-    stage: "idle" as const,
-    busy: false,
-    error: null
-  })
 }));
 
 jest.mock("../../hooks/storyboard/useStoryboards", () => ({
@@ -42,7 +32,7 @@ jest.mock("../../hooks/storyboard/useStoryboards", () => ({
     ],
     isLoading: false
   }),
-  useCreateStoryboard: () => ({ mutateAsync: jest.fn() })
+  useCreateStoryboard: () => ({ mutateAsync: createStoryboard })
 }));
 
 jest.mock("../../hooks/script/useScripts", () => ({
@@ -119,8 +109,7 @@ const renderHome = () => {
 describe("StudioHome", () => {
   beforeEach(() => {
     navigate.mockReset();
-    start.mockReset();
-    start.mockResolvedValue({ boardId: "b9", scriptId: "s9" });
+    createStoryboard.mockClear();
   });
 
   it("shows one card for the linked script, board and timeline", async () => {
@@ -150,18 +139,51 @@ describe("StudioHome", () => {
     expect(navigate).toHaveBeenCalledWith("/studio/timeline/t1");
   });
 
-  it("starts a linked project from a prompt and lands on the board", async () => {
+  // PRD § 6.1 and D24: Studio offers Storyboard, Video and Script — Image and
+  // Workflow are workspace flows and are not here at all.
+  it("offers three entry cards and names the phase behind each unbuilt one", async () => {
+    renderHome();
+
+    const cards = await screen.findByRole("group", {
+      name: "What are you making?"
+    });
+    expect(
+      within(cards)
+        .getAllByRole("button")
+        .map((card) => card.textContent)
+    ).toEqual([
+      "StoryboardFrom a sentence to a rendered board in three steps.",
+      "VideoFrom a sentence to a cut on the timeline, no board.",
+      "ScriptFrom a topic to voiced lines, ready to place."
+    ]);
+
+    const video = within(cards).getByRole("button", { name: /^Video / });
+    expect(video).toHaveAttribute("aria-disabled", "true");
+    expect(video).toHaveAttribute("title", "Video ships in phase P6.");
+
+    const script = within(cards).getByRole("button", { name: /^Script / });
+    expect(script).toHaveAttribute("aria-disabled", "true");
+    expect(script).toHaveAttribute("title", "Script ships in phase P7.");
+
+    expect(
+      within(cards).getByRole("button", { name: /^Storyboard / })
+    ).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("creates a board at stage idea and opens it", async () => {
     const user = userEvent.setup();
     renderHome();
 
-    await user.type(
-      screen.getByLabelText("What is the video about?"),
-      "a short film about tides"
+    await user.click(
+      await screen.findByRole("button", { name: /^Storyboard From a sentence/ })
     );
-    await user.click(screen.getByRole("button", { name: "Make it" }));
 
     await waitFor(() =>
-      expect(start).toHaveBeenCalledWith("a short film about tides")
+      expect(createStoryboard).toHaveBeenCalledWith(
+        expect.objectContaining({
+          document: expect.objectContaining({ setupStage: "idea", brief: "" })
+        })
+      )
     );
     await waitFor(() =>
       expect(navigate).toHaveBeenCalledWith("/studio/storyboard/b9")
