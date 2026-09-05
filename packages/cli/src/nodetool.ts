@@ -114,6 +114,7 @@ import {
   type ProviderModelKind
 } from "./providers.js";
 import { isString } from "./predicates.js";
+import { printTable, asJson } from "./commands/output.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -263,51 +264,6 @@ async function makeLocalAssetFetcher(): Promise<
     }
     return null;
   };
-}
-
-// ---------------------------------------------------------------------------
-// Table printer
-// ---------------------------------------------------------------------------
-
-function printTable<Row extends object>(
-  rows: readonly Row[],
-  columns?: string[]
-): void {
-  if (rows.length === 0) {
-    console.log("(no results)");
-    return;
-  }
-  // Render every cell up front, keyed by column name. A table prints whatever
-  // column names the caller asked for off rows of any object shape, so the
-  // lookup is by name — not by a property the row type declares.
-  const cells = rows.map(
-    (row) =>
-      new Map(
-        Object.entries(row).map(([column, value]): [string, string] => [
-          column,
-          String(value ?? "")
-        ])
-      )
-  );
-  const cols = columns ?? Object.keys(rows[0]!);
-  const widths = cols.map((c) =>
-    Math.max(c.length, ...cells.map((r) => (r.get(c) ?? "").length))
-  );
-  const sep = widths.map((w) => "─".repeat(w + 2)).join("┼");
-  const header = cols.map((c, i) => ` ${c.padEnd(widths[i]!)} `).join("│");
-  console.log(header);
-  console.log(sep);
-  for (const rendered of cells) {
-    console.log(
-      cols
-        .map((c, i) => ` ${(rendered.get(c) ?? "").padEnd(widths[i]!)} `)
-        .join("│")
-    );
-  }
-}
-
-function asJson(data: unknown): void {
-  console.log(JSON.stringify(data, null, 2));
 }
 
 // Asset and timeline persistence for every context any command builds, here

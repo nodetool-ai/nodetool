@@ -68,155 +68,193 @@ import { isFunction, isString } from "../utils/type-guards.js";
 
 type Loader = () => Promise<CapabilityModule>;
 
-/** One lazy loader per namespace. The rest land in PRs 4–9. */
-const MODULES: Readonly<Record<string, Loader>> = {
-  workflows: () => import("./workflows.js").then((m) => m.module),
-  models: () => import("./models.js").then((m) => m.module),
-  media: () => import("./media.js").then((m) => m.module),
-  collections: () => import("./collections.js").then((m) => m.module),
-  costs: () => import("./costs.js").then((m) => m.module),
-  nodes: () => import("./nodes.js").then((m) => m.module),
-  jobs: () => import("./jobs.js").then((m) => m.module),
-  generations: () => import("./generations.js").then((m) => m.module),
-  assets: () => import("./assets.js").then((m) => m.module),
-  browser: () => import("./browser.js").then((m) => m.module),
-  apps: () => import("./apps.js").then((m) => m.module),
-  documents: () => import("./documents.js").then((m) => m.module),
-  email: () => import("./email.js").then((m) => m.module),
-  memory: () => import("./memory.js").then((m) => m.module),
-  shared: () => import("./shared.js").then((m) => m.module),
-  web: () => import("./web.js").then((m) => m.module),
-  files: () => import("./files.js").then((m) => m.module),
-  agents: () => import("./agents.js").then((m) => m.module),
-  google: () => import("./google.js").then((m) => m.module),
-  threads: () => import("./threads.js").then((m) => m.module),
-  timelines: () => import("./timelines.js").then((m) => m.module),
-  sketches: () => import("./sketches.js").then((m) => m.module),
-  model3d: () => import("./model3d.js").then((m) => m.module),
-  scripts: () => import("./scripts.js").then((m) => m.module),
-  storyboards: () => import("./storyboards.js").then((m) => m.module),
-  entities: () => import("./entities.js").then((m) => m.module),
-  compositions: () => import("./compositions.js").then((m) => m.module),
-  code: () => import("./code.js").then((m) => m.module),
-  flow: () => import("./flow.js").then((m) => m.module),
-  "js-scripts": () => import("./js-scripts.js").then((m) => m.module),
-  packs: () => import("./packs.js").then((m) => m.module),
-  ui: () => import("./ui.js").then((m) => m.module),
-  apify: () => import("./apify.js").then((m) => m.module),
-  serpapi: () => import("./serpapi.js").then((m) => m.module),
-  settings: () => import("./settings.js").then((m) => m.module),
-  skills: () => import("./skills.js").then((m) => m.module),
-  analysis: () => import("./analysis.js").then((m) => m.module)
-};
-
 /**
- * The namespaces this build declares. It is the other half of {@link MODULES}
- * the way `SANDBOX_HOST_MODULES` is the other half of the host-module loader
- * table: the declaration a reviewer reads, against which
- * {@link capabilityModuleDrift} checks what is actually implemented. A module
- * lands in both or it lands in neither.
- */
-export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
-  "workflows",
-  "models",
-  "media",
-  "collections",
-  "costs",
-  "nodes",
-  "jobs",
-  "generations",
-  "assets",
-  "browser",
-  "apps",
-  "documents",
-  "email",
-  "memory",
-  "shared",
-  "web",
-  "files",
-  "agents",
-  "google",
-  "threads",
-  "timelines",
-  "sketches",
-  "model3d",
-  "scripts",
-  "storyboards",
-  "entities",
-  "compositions",
-  "code",
-  "flow",
-  "js-scripts",
-  "packs",
-  "ui",
-  "apify",
-  "serpapi",
-  "settings",
-  "skills",
-  "analysis"
-];
-
-/**
- * The eager half of the table: every module's specs, available synchronously.
+ * One entry per namespace: the lazy loader and the eager spec table, together
+ * — the reviewer's declaration, the loader table, and the spec table used to
+ * be three separately-maintained lists of the same 37 names, kept in sync by
+ * a drift check whose only job was noticing when they were not.
  *
  * A spec file is data — the wire name, the description, the JSON schema, the
  * category, the message template — and imports nothing an implementation
  * needs, so importing all of them costs one object graph and no `import()`.
- * That is what lets a belt be assembled synchronously from the registry while
- * {@link MODULES} keeps every implementation behind a lazy import.
- *
- * Both halves list the same modules, and `capabilityModuleDrift` compares them
- * spec by spec, so the eager table cannot fall behind what a module exports.
+ * That is what lets a belt be assembled synchronously from `specs` while
+ * `loader` stays a lazy import — {@link eagerSpecDrift} still checks that a
+ * module's own exports carry the *same* spec objects as its `.specs.ts`
+ * sibling, which a single table cannot guarantee by construction.
  */
-const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
-  workflows: workflowsSpecs,
-  models: modelsSpecs,
-  media: mediaSpecs,
-  collections: collectionsSpecs,
-  costs: costsSpecs,
-  nodes: nodesSpecs,
-  jobs: jobsSpecs,
-  generations: generationsSpecs,
-  assets: assetsSpecs,
-  browser: browserSpecs,
-  apps: appsSpecs,
-  documents: documentsSpecs,
-  email: emailSpecs,
-  memory: memorySpecs,
-  shared: sharedSpecs,
-  web: webSpecs,
-  files: filesSpecs,
-  agents: agentsSpecs,
-  google: googleSpecs,
-  threads: threadsSpecs,
-  timelines: timelinesSpecs,
-  sketches: sketchesSpecs,
-  model3d: model3dSpecs,
-  scripts: scriptsSpecs,
-  storyboards: storyboardsSpecs,
-  entities: entitiesSpecs,
-  compositions: compositionsSpecs,
-  code: codeSpecs,
-  flow: flowSpecs,
-  "js-scripts": jsScriptsSpecs,
-  packs: packsSpecs,
-  ui: uiSpecs,
-  apify: apifySpecs,
-  serpapi: serpApiSpecs,
-  settings: settingsSpecs,
-  skills: skillsSpecs,
-  analysis: analysisSpecs
+interface CapabilityModuleEntry {
+  readonly loader: Loader;
+  readonly specs: readonly CapabilitySpec[];
+}
+
+const CAPABILITY_MODULES: Readonly<Record<string, CapabilityModuleEntry>> = {
+  workflows: {
+    loader: () => import("./workflows.js").then((m) => m.module),
+    specs: workflowsSpecs
+  },
+  models: {
+    loader: () => import("./models.js").then((m) => m.module),
+    specs: modelsSpecs
+  },
+  media: {
+    loader: () => import("./media.js").then((m) => m.module),
+    specs: mediaSpecs
+  },
+  collections: {
+    loader: () => import("./collections.js").then((m) => m.module),
+    specs: collectionsSpecs
+  },
+  costs: {
+    loader: () => import("./costs.js").then((m) => m.module),
+    specs: costsSpecs
+  },
+  nodes: {
+    loader: () => import("./nodes.js").then((m) => m.module),
+    specs: nodesSpecs
+  },
+  jobs: {
+    loader: () => import("./jobs.js").then((m) => m.module),
+    specs: jobsSpecs
+  },
+  generations: {
+    loader: () => import("./generations.js").then((m) => m.module),
+    specs: generationsSpecs
+  },
+  assets: {
+    loader: () => import("./assets.js").then((m) => m.module),
+    specs: assetsSpecs
+  },
+  browser: {
+    loader: () => import("./browser.js").then((m) => m.module),
+    specs: browserSpecs
+  },
+  apps: {
+    loader: () => import("./apps.js").then((m) => m.module),
+    specs: appsSpecs
+  },
+  documents: {
+    loader: () => import("./documents.js").then((m) => m.module),
+    specs: documentsSpecs
+  },
+  email: {
+    loader: () => import("./email.js").then((m) => m.module),
+    specs: emailSpecs
+  },
+  memory: {
+    loader: () => import("./memory.js").then((m) => m.module),
+    specs: memorySpecs
+  },
+  shared: {
+    loader: () => import("./shared.js").then((m) => m.module),
+    specs: sharedSpecs
+  },
+  web: {
+    loader: () => import("./web.js").then((m) => m.module),
+    specs: webSpecs
+  },
+  files: {
+    loader: () => import("./files.js").then((m) => m.module),
+    specs: filesSpecs
+  },
+  agents: {
+    loader: () => import("./agents.js").then((m) => m.module),
+    specs: agentsSpecs
+  },
+  google: {
+    loader: () => import("./google.js").then((m) => m.module),
+    specs: googleSpecs
+  },
+  threads: {
+    loader: () => import("./threads.js").then((m) => m.module),
+    specs: threadsSpecs
+  },
+  timelines: {
+    loader: () => import("./timelines.js").then((m) => m.module),
+    specs: timelinesSpecs
+  },
+  sketches: {
+    loader: () => import("./sketches.js").then((m) => m.module),
+    specs: sketchesSpecs
+  },
+  model3d: {
+    loader: () => import("./model3d.js").then((m) => m.module),
+    specs: model3dSpecs
+  },
+  scripts: {
+    loader: () => import("./scripts.js").then((m) => m.module),
+    specs: scriptsSpecs
+  },
+  storyboards: {
+    loader: () => import("./storyboards.js").then((m) => m.module),
+    specs: storyboardsSpecs
+  },
+  entities: {
+    loader: () => import("./entities.js").then((m) => m.module),
+    specs: entitiesSpecs
+  },
+  compositions: {
+    loader: () => import("./compositions.js").then((m) => m.module),
+    specs: compositionsSpecs
+  },
+  code: {
+    loader: () => import("./code.js").then((m) => m.module),
+    specs: codeSpecs
+  },
+  flow: {
+    loader: () => import("./flow.js").then((m) => m.module),
+    specs: flowSpecs
+  },
+  "js-scripts": {
+    loader: () => import("./js-scripts.js").then((m) => m.module),
+    specs: jsScriptsSpecs
+  },
+  packs: {
+    loader: () => import("./packs.js").then((m) => m.module),
+    specs: packsSpecs
+  },
+  ui: {
+    loader: () => import("./ui.js").then((m) => m.module),
+    specs: uiSpecs
+  },
+  apify: {
+    loader: () => import("./apify.js").then((m) => m.module),
+    specs: apifySpecs
+  },
+  serpapi: {
+    loader: () => import("./serpapi.js").then((m) => m.module),
+    specs: serpApiSpecs
+  },
+  settings: {
+    loader: () => import("./settings.js").then((m) => m.module),
+    specs: settingsSpecs
+  },
+  skills: {
+    loader: () => import("./skills.js").then((m) => m.module),
+    specs: skillsSpecs
+  },
+  analysis: {
+    loader: () => import("./analysis.js").then((m) => m.module),
+    specs: analysisSpecs
+  }
 };
 
+/**
+ * The namespaces this build declares, in the order {@link CAPABILITY_MODULES}
+ * lists them — the module list a reviewer reads.
+ */
+export const DECLARED_CAPABILITY_MODULES: readonly string[] = Object.keys(
+  CAPABILITY_MODULES
+);
+
 const SPEC_BY_NAME: ReadonlyMap<string, CapabilitySpec> = new Map(
-  Object.values(MODULE_SPECS).flatMap((specs) =>
-    specs.map((spec) => [spec.name, spec] as const)
+  Object.values(CAPABILITY_MODULES).flatMap((entry) =>
+    entry.specs.map((spec) => [spec.name, spec] as const)
   )
 );
 
 const MODULE_OF_NAME: ReadonlyMap<string, string> = new Map(
-  Object.entries(MODULE_SPECS).flatMap(([moduleName, specs]) =>
-    specs.map((spec) => [spec.name, moduleName] as const)
+  Object.entries(CAPABILITY_MODULES).flatMap(([moduleName, entry]) =>
+    entry.specs.map((spec) => [spec.name, moduleName] as const)
   )
 );
 
@@ -238,8 +276,8 @@ export function listCapabilitySpecs(): readonly CapabilitySpec[] {
 export function capabilityModuleSpecTable(
   moduleName: string
 ): readonly CapabilitySpec[] {
-  return Object.hasOwn(MODULE_SPECS, moduleName)
-    ? MODULE_SPECS[moduleName]
+  return Object.hasOwn(CAPABILITY_MODULES, moduleName)
+    ? CAPABILITY_MODULES[moduleName].specs
     : [];
 }
 
@@ -265,8 +303,8 @@ export function loadCapabilityModule(
 ): Promise<CapabilityModule> {
   const cached = cache.get(moduleName);
   if (cached !== undefined) return cached;
-  const loader = Object.hasOwn(MODULES, moduleName)
-    ? MODULES[moduleName]
+  const loader = Object.hasOwn(CAPABILITY_MODULES, moduleName)
+    ? CAPABILITY_MODULES[moduleName].loader
     : undefined;
   if (loader === undefined) {
     return Promise.reject(
@@ -306,7 +344,7 @@ export async function loadCapabilityImpl(
 
 /** Module names this process can serve. */
 export function listCapabilityModules(): readonly string[] {
-  return Object.keys(MODULES).sort();
+  return Object.keys(CAPABILITY_MODULES).sort();
 }
 
 /** Load every registered module. Used by the drift walk and by name lookup. */
@@ -442,31 +480,17 @@ export function eagerSpecDrift(
 }
 
 /**
- * Modules declared with no loader, loaders nobody declared, and any module
- * whose exports fail {@link capabilityModuleIssues} — including a spec with no
- * category, which is the failure this whole mechanism exists to catch. Also
- * flags one name exported by two modules. Always empty in a healthy build; the
- * drift test asserts it.
+ * Any module whose exports fail {@link capabilityModuleIssues} — including a
+ * spec with no category, which is the failure this whole mechanism exists to
+ * catch — or {@link eagerSpecDrift}. Also flags one name exported by two
+ * modules. Always empty in a healthy build; the drift test asserts it.
+ *
+ * A declared module with no loader or a loader nobody declared cannot occur:
+ * both come from the same {@link CAPABILITY_MODULES} entry now, so there is
+ * nothing left to compare two lists for.
  */
 export async function capabilityModuleDrift(): Promise<readonly string[]> {
-  const declared = new Set(DECLARED_CAPABILITY_MODULES);
-  const implemented = new Set(Object.keys(MODULES));
   const drift: string[] = [];
-  for (const name of declared) {
-    if (!implemented.has(name)) {
-      drift.push(`${name} is declared but not implemented`);
-    }
-  }
-  for (const name of implemented) {
-    if (!declared.has(name)) {
-      drift.push(`${name} is implemented but not declared`);
-    }
-  }
-  for (const name of Object.keys(MODULE_SPECS)) {
-    if (!implemented.has(name)) {
-      drift.push(`${name} has an eager spec table but no loader`);
-    }
-  }
   const owners = new Map<string, string>();
   for (const name of listCapabilityModules()) {
     const mod = await loadCapabilityModule(name);

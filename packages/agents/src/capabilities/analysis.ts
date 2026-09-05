@@ -68,7 +68,6 @@ import {
 import { filesystemPathForUri } from "../sandbox-media-ref.js";
 import { isNonBlankString } from "../utils/type-guards.js";
 import {
-  analysisSpecs,
   analyzeAudioSpec,
   analyzeAudioSpectrumSpec,
   analyzeVideoSpec,
@@ -972,5 +971,3 @@ export const module: CapabilityModule = {
     detectVideoScenes
   ]
 };
-
-export { analysisSpecs };
