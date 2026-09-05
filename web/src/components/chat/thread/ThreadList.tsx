@@ -1,16 +1,21 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useMemo } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { createStyles } from "./ThreadList.styles";
 import { ThreadItem } from "./ThreadItem";
 import { EmptyThreadList } from "./EmptyThreadList";
+import ConfirmDialog from "../../dialogs/ConfirmDialog";
+import { MOTION } from "../../ui_primitives";
 import type { ThreadListProps } from "../types/thread.types";
 import { sortThreadsByDate } from "../utils/threadUtils";
 import { groupByDate } from "../../../utils/groupByDate";
 import { formatDayMonth } from "../../../utils/formatUtils";
 
 export type { ThreadInfo } from "../types/thread.types";
+
+/** Length of the row's exit transition, taken from the style it runs on. */
+const DELETE_ANIMATION_MS = Number.parseInt(MOTION.normal, 10);
 
 function formatGroupDate(dateStr: string): string {
   return formatDayMonth(dateStr).toUpperCase();
@@ -26,6 +31,45 @@ const ThreadList: React.FC<ThreadListProps> = ({
 }) => {
   const theme = useTheme<Theme>();
   const componentStyles = useMemo(() => createStyles(theme), [theme]);
+  // The row whose deletion is awaiting confirmation, and the row currently
+  // animating out. One dialog for the whole list, not one per row.
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const animationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (animationTimer.current !== null) {
+        clearTimeout(animationTimer.current);
+      }
+    },
+    []
+  );
+
+  const handleRequestDelete = useCallback((threadId: string) => {
+    setPendingDeleteId(threadId);
+  }, []);
+
+  const handleCancelDelete = useCallback(() => {
+    setPendingDeleteId(null);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!pendingDeleteId) {
+      return;
+    }
+    const threadId = pendingDeleteId;
+    setDeletingId(threadId);
+    animationTimer.current = setTimeout(() => {
+      animationTimer.current = null;
+      setDeletingId((current) => (current === threadId ? null : current));
+      onDeleteThread(threadId);
+    }, DELETE_ANIMATION_MS);
+  }, [pendingDeleteId, onDeleteThread]);
+
+  const pendingLabel = pendingDeleteId
+    ? threads?.[pendingDeleteId]?.title || getThreadPreview(pendingDeleteId)
+    : "";
 
   const listElements = useMemo(() => {
     const elements: React.ReactNode[] = [];
@@ -42,8 +86,9 @@ const ThreadList: React.FC<ThreadListProps> = ({
             threadId={singleId}
             thread={singleThread}
             isSelected={singleId === currentThreadId}
+            isDeleting={singleId === deletingId}
             onSelect={onSelectThread}
-            onDelete={onDeleteThread}
+            onRequestDelete={handleRequestDelete}
             previewText={getThreadPreview(singleId)}
           />
         );
@@ -75,8 +120,9 @@ const ThreadList: React.FC<ThreadListProps> = ({
               threadId={threadId}
               thread={thread}
               isSelected={threadId === currentThreadId}
+              isDeleting={threadId === deletingId}
               onSelect={onSelectThread}
-              onDelete={onDeleteThread}
+              onRequestDelete={handleRequestDelete}
               previewText={getThreadPreview(threadId)}
             />
           );
@@ -85,7 +131,14 @@ const ThreadList: React.FC<ThreadListProps> = ({
     }
 
     return elements;
-  }, [threads, currentThreadId, onSelectThread, onDeleteThread, getThreadPreview]);
+  }, [
+    threads,
+    currentThreadId,
+    deletingId,
+    onSelectThread,
+    handleRequestDelete,
+    getThreadPreview
+  ]);
 
   return (
     <div className="thread-list-container" css={componentStyles}>
@@ -96,6 +149,17 @@ const ThreadList: React.FC<ThreadListProps> = ({
           listElements
         )}
       </ul>
+      {pendingDeleteId && (
+        <ConfirmDialog
+          open
+          onClose={handleCancelDelete}
+          onConfirm={handleConfirmDelete}
+          title="Delete conversation"
+          content={`Delete "${pendingLabel}"? This cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+        />
+      )}
     </div>
   );
 };
