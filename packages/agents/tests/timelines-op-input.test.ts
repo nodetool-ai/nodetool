@@ -1730,3 +1730,121 @@ describe("ui_timeline_insert_composition", () => {
     ).rejects.toThrow(/no composition library/);
   });
 });
+
+describe("trim_clip through the engine", () => {
+  function bridgeWithOneClip() {
+    const bridge = createTimelineToolBridge({
+      tracks: [{ type: "video" }],
+      clips: [
+        {
+          name: "shot",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 0,
+          durationMs: 1000
+        }
+      ]
+    });
+    return {
+      bridge,
+      tools: Object.fromEntries(bridge.tools.map((t) => [t.name, t]))
+    };
+  }
+
+  it("moves outPointMs with the trimmed edge", async () => {
+    const { bridge, tools } = bridgeWithOneClip();
+    await tools["ui_timeline_set_clip_params"].execute({
+      target: "shot",
+      inPointMs: 200,
+      outPointMs: 1200
+    });
+    await tools["ui_timeline_trim_clip"].execute({
+      target: "shot",
+      durationMs: 600
+    });
+    const clip = bridge
+      .finalState()
+      .documentClips.find((c) => c.name === "shot");
+    expect(clip?.durationMs).toBe(600);
+    expect(clip?.outPointMs).toBe(800);
+    expect(clip?.inPointMs).toBe(200);
+  });
+
+  it("refuses to trim a time-remapped clip and says how to clear the remap", async () => {
+    const { tools } = bridgeWithOneClip();
+    await tools["ui_timeline_set_time_remap"].execute({
+      target: "shot",
+      timeRemap: {
+        keyframes: [
+          { t: 0, sourceMs: 0 },
+          { t: 1, sourceMs: 2000 }
+        ]
+      }
+    });
+    await expect(
+      tools["ui_timeline_trim_clip"].execute({ target: "shot", durationMs: 600 })
+    ).rejects.toThrow(/time remap[\s\S]*bake_time_remap/);
+  });
+});
+
+describe("snap_to_beats through the move/trim ops", () => {
+  it("carries a group's children when the group snaps", async () => {
+    const bridge = createTimelineToolBridge({
+      tracks: [{ type: "video" }],
+      clips: [
+        {
+          name: "child",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 530,
+          durationMs: 1000
+        }
+      ]
+    });
+    const tools = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    await tools["ui_timeline_add_group"].execute({
+      name: "grp",
+      startMs: 530,
+      durationMs: 1000,
+      children: ["child"]
+    });
+    await tools["ui_timeline_snap_to_beats"].execute({
+      targets: ["grp"],
+      bpm: 120
+    });
+    const clips = bridge.finalState().documentClips;
+    expect(clips.find((c) => c.name === "grp")?.startMs).toBe(500);
+    expect(clips.find((c) => c.name === "child")?.startMs).toBe(500);
+  });
+});
+
+describe("duplicate_clip", () => {
+  it("mints new animation ids on the copy", async () => {
+    const bridge = createTimelineToolBridge({
+      tracks: [{ type: "video" }],
+      clips: [
+        {
+          name: "shot",
+          trackIndex: 0,
+          mediaType: "video",
+          startMs: 0,
+          durationMs: 1000
+        }
+      ]
+    });
+    const tools = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    await tools["ui_timeline_animate_clip"].execute({
+      target: "shot",
+      animations: [{ role: "in", preset: "fade", durationMs: 300 }]
+    });
+    await tools["ui_timeline_duplicate_clip"].execute({ target: "shot" });
+    const clips = bridge.finalState().documentClips;
+    const originalIds = clips[0].animations?.map((a) => a.id) ?? [];
+    const copyIds =
+      clips.find((c) => c.id !== clips[0].id && c.name === clips[0].name)
+        ?.animations?.map((a) => a.id) ?? [];
+    expect(originalIds).toHaveLength(1);
+    expect(copyIds).toHaveLength(1);
+    expect(copyIds[0]).not.toBe(originalIds[0]);
+  });
+});

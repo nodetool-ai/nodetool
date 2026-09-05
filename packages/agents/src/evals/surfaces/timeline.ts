@@ -53,6 +53,7 @@ import {
   moveGroup,
   ungroup,
   trimGroup,
+  trimClip,
   type TrackDestination,
   type AnimationRole,
   type CustomClipAnimation,
@@ -775,10 +776,41 @@ export function createTimelineToolBridge(
       clips = trimGroup(clips, clip.id, "end", patch.durationMs - clip.durationMs);
       return clips.find((c) => c.id === clip.id)!;
     }
-    if (patch.durationMs !== undefined) clip.durationMs = patch.durationMs;
-    if (patch.inPointMs !== undefined) clip.inPointMs = patch.inPointMs;
-    if (patch.outPointMs !== undefined) clip.outPointMs = patch.outPointMs;
-    return clip;
+    // Through the engine, not a raw duration write: `trimClip` refuses a
+    // time-remapped clip (D13) and carries the source out-point with the edge,
+    // which is what the web bridge does through the store.
+    let next = clip;
+    if (patch.durationMs !== undefined) {
+      next = replaceClip(
+        clip,
+        trimClip(clip, "end", Math.max(1, patch.durationMs) - clip.durationMs)
+      );
+    }
+    if (patch.inPointMs !== undefined) next.inPointMs = patch.inPointMs;
+    if (patch.outPointMs !== undefined) next.outPointMs = patch.outPointMs;
+    return next;
+  }
+
+  /** Swap an engine-returned clip into `clips`, keeping the array's order. */
+  function replaceClip(clip: TimelineClip, next: TimelineClip): TimelineClip {
+    const index = clips.findIndex((c) => c.id === clip.id);
+    if (index >= 0) clips[index] = next;
+    return next;
+  }
+
+  /**
+   * Trim the start edge: hold the clip's end and move its start to `startMs`.
+   * A group pulls its children with it (D4); anything else goes through the
+   * engine so the source in-point follows the edge.
+   */
+  function applyTrimStart(clip: TimelineClip, startMs: number): TimelineClip {
+    const deltaMs = clip.startMs - Math.max(0, startMs);
+    if (deltaMs === 0) return clip;
+    if (isGroupClip(clip)) {
+      clips = trimGroup(clips, clip.id, "start", deltaMs);
+      return clips.find((c) => c.id === clip.id)!;
+    }
+    return replaceClip(clip, trimClip(clip, "start", deltaMs));
   }
 
   /** The body of `move_clip`, shared with `set_clip_params`. */
@@ -1493,7 +1525,7 @@ export function createTimelineToolBridge(
           id: nextClipId(),
           startMs: src.startMs + src.durationMs + ((gapMs as number | undefined) ?? 0),
           versions: [],
-          animations: src.animations?.map((a) => ({ ...a }))
+          animations: src.animations?.map((a) => ({ ...a, id: nextAnimId() }))
         };
         clips.push(copy);
         selectedClipIds = [copy.id];
@@ -2177,8 +2209,29 @@ export function createTimelineToolBridge(
         const reported = result.clips.map((entry) => {
           const clip = byId.get(entry.clipId);
           if (entry.snapped && clip) {
-            clip.startMs = entry.after.startMs;
-            clip.durationMs = entry.after.durationMs;
+            // Through the same ops the caller would use: a group carries its
+            // children (D4) and a trim carries the source points, neither of
+            // which a raw startMs/durationMs write does.
+            try {
+              if (entry.after.durationMs === entry.before.durationMs) {
+                applyMove(clip, { startMs: entry.after.startMs });
+              } else {
+                let trimmed = clip;
+                if (entry.after.startMs !== entry.before.startMs) {
+                  trimmed = applyTrimStart(clip, entry.after.startMs);
+                }
+                applyTrim(trimmed, { durationMs: entry.after.durationMs });
+              }
+            } catch (error) {
+              return {
+                ...entry,
+                snapped: false,
+                after: entry.before,
+                delta: { startMs: 0, endMs: 0 },
+                reason: error instanceof Error ? error.message : String(error),
+                clipName: clip.name
+              };
+            }
           }
           return { ...entry, clipName: clip?.name ?? null };
         });
@@ -2652,23 +2705,36 @@ export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeF
           {
             name: "scrimBehindTextInsideTheShot",
             detail:
-              "no shape clip on a higher-index track than the text, both inside 0-6000ms",
+              "no shape clip drawn over the picture and under the text, sharing frames with it inside 0-6000ms",
             test: (s) => {
               const indexOf = (trackId: string): number =>
                 s.tracks.find((t) => t.id === trackId)?.index ?? -1;
               const inShot = (c: { startMs: number; durationMs: number }) =>
                 c.startMs >= 0 && c.startMs + c.durationMs <= 6000;
+              const overlaps = (
+                a: { startMs: number; durationMs: number },
+                b: { startMs: number; durationMs: number }
+              ) =>
+                a.startMs < b.startMs + b.durationMs &&
+                b.startMs < a.startMs + a.durationMs;
               const texts = s.clips.filter(
                 (c) => c.mediaType === "text" && inShot(c)
               );
               const shapes = s.clips.filter(
                 (c) => c.mediaType === "shape" && inShot(c)
               );
-              // Lowest index draws on top, so the scrim's track index must be
-              // the larger one for the words to sit over it.
+              const picture = s.clips.filter((c) => c.mediaType === "video");
+              // Lowest index draws on top, so the scrim sits between the two:
+              // over the shot it darkens, under the words it backs. A scrim
+              // that never shares a frame with the text backs nothing.
               return texts.some((text) =>
                 shapes.some(
-                  (shape) => indexOf(shape.trackId) > indexOf(text.trackId)
+                  (shape) =>
+                    indexOf(shape.trackId) > indexOf(text.trackId) &&
+                    overlaps(shape, text) &&
+                    picture.some(
+                      (shot) => indexOf(shot.trackId) > indexOf(shape.trackId)
+                    )
                 )
               );
             }
@@ -2781,10 +2847,16 @@ export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeF
           {
             name: "previewedAfterTheLastEdit",
             detail:
-              "the run's last edit is not followed by a preview_timeline_frame call",
+              "the run's last edit is not followed by a preview_timeline_frame call landing inside a motion",
+            // Rendering the card is not graded here: the eval bridge has no
+            // render tool, so a run cannot reach one.
             test: (s) =>
               s.clips.some((c) => c.mediaType === "text") &&
-              previewedAfterLastEdit(s.toolLog)
+              previewedAfterLastEdit(s.toolLog) &&
+              previewedMidMotion(s.previewTimesMs, s.documentClips, {
+                width: s.width,
+                height: s.height
+              })
           }
         ]
       }

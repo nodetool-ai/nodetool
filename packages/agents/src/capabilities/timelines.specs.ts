@@ -745,9 +745,10 @@ export const RENDER_TIMELINE_SCHEMA: JsonSchema = {
         "format's default."
     },
     bitrate: {
-      type: "string",
+      type: ["string", "number"],
       description:
-        "Target video bitrate, e.g. '8M'. Omit for the encoder's default."
+        "Target video bitrate: bits per second as a number, or a string with " +
+        "a k/M suffix ('8M', '800k'). Omit for the encoder's default."
     },
     motion_blur_samples: {
       type: "number",

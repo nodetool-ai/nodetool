@@ -1,18 +1,33 @@
 import { createTimeOrderedUuid } from "./defaults.js";
+import { getAnimationPreset } from "./animation/presets.js";
 import { sourceRate } from "./sourceRate.js";
 import { assertNotTimeRemapped } from "./timeRemap.js";
 import type { ClipAnimation } from "./animation/types.js";
 import type { CaptionWord, TimelineClip } from "./types.js";
 
 /**
- * Partition a clip's animations across a split. `"in"` animations stay on the
- * left half (they play at the clip's original start); `"out"` on the right (they
- * play at the original end); `"emphasis"` and `"loop"` are copied to both halves
- * — their windows re-derive from each half's own duration at compile time.
+ * Partition a clip's animations across a split at `splitMs` (clip-local ms).
+ *
+ * - `"in"` stays on the left half (it plays at the clip's original start),
+ *   `"out"` on the right (it plays at the original end).
+ * - An `"emphasis"` plays once at its `delayMs`, so it belongs to exactly one
+ *   half: left when the delay falls before the cut, otherwise right with the
+ *   delay rebased to the right half's start.
+ * - A `"loop"` runs on both halves. `windowT` counts the cycle from the clip's
+ *   own start, so the right half's delay is shifted to the next cycle boundary
+ *   after the cut — the cycle grid carries across the cut instead of the loop
+ *   restarting mid-cycle. A loop that has not started yet keeps the rest of
+ *   its delay.
+ * - A `fullClip` preset (kenBurns) ignores `delayMs` and runs once over the
+ *   whole clip, and its curves are in canvas pixels that `splitClip` cannot
+ *   compute, so neither half can carry a partial move: both replay the whole
+ *   one-shot.
+ *
  * Right-half animations get fresh ids so the two clips edit independently.
  */
 function splitAnimations(
-  animations: ReadonlyArray<ClipAnimation>
+  animations: ReadonlyArray<ClipAnimation>,
+  splitMs: number
 ) {
   const left: ClipAnimation[] = [];
   const right: ClipAnimation[] = [];
@@ -21,12 +36,49 @@ function splitAnimations(
       left.push({ ...anim });
     } else if (anim.role === "out") {
       right.push({ ...anim, id: createTimeOrderedUuid() });
+    } else if (anim.role === "emphasis") {
+      const delayMs = Math.max(0, anim.delayMs ?? 0);
+      if (delayMs < splitMs) {
+        left.push({ ...anim });
+      } else {
+        right.push({
+          ...anim,
+          id: createTimeOrderedUuid(),
+          delayMs: delayMs - splitMs
+        });
+      }
     } else {
       left.push({ ...anim });
-      right.push({ ...anim, id: createTimeOrderedUuid() });
+      right.push({
+        ...anim,
+        id: createTimeOrderedUuid(),
+        delayMs: rebaseLoopDelayMs(anim, splitMs)
+      });
     }
   }
   return { left, right };
+}
+
+/**
+ * Right-half delay for a loop cut at `splitMs`. Before the loop starts the
+ * remaining delay carries over; after it has started, the delay lands on the
+ * first cycle boundary at or after the cut, so the right half samples the same
+ * phase the left half would have. `delayMs` cannot go negative (the compiler
+ * clamps it), so a cut inside a cycle costs the remainder of that cycle rather
+ * than re-phasing the loop.
+ */
+function rebaseLoopDelayMs(anim: ClipAnimation, splitMs: number): number {
+  const delayMs = Math.max(0, anim.delayMs ?? 0);
+  if (delayMs >= splitMs) {
+    return delayMs - splitMs;
+  }
+  const preset = getAnimationPreset(anim.preset);
+  if (preset?.fullClip === true) {
+    return delayMs;
+  }
+  const periodMs = Math.max(1, anim.durationMs);
+  const elapsedInCycleMs = (splitMs - delayMs) % periodMs;
+  return elapsedInCycleMs === 0 ? 0 : periodMs - elapsedInCycleMs;
 }
 
 /**
@@ -96,7 +148,7 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
     ? splitCaptionWords(clip.caption.words, leftDurationMs, rightDurationMs)
     : null;
 
-  const animations = clip.animations ? splitAnimations(clip.animations) : null;
+  const animations = clip.animations ? splitAnimations(clip.animations, leftDurationMs) : null;
 
   const leftClip: TimelineClip = {
     ...clip,

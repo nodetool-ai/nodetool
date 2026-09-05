@@ -31,6 +31,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import {
   hasTimeRemap,
+  sourceRate,
   makeClip,
   makeSequence,
   makeTrack,
@@ -592,7 +593,10 @@ async function mixAudioInto(opts: {
       continue;
     }
     if (!baseHasAudio && !(await ffprobeHasAudio(audioPath))) continue;
-    if (!hasTimeRemap(clip)) {
+    // Only a clip that plays at source rate can use the plain chain: a
+    // speedMultiplier is a rate too, and without atempo (and the wider source
+    // window it needs) a 2x clip's audio ran on past the clip.
+    if (!hasTimeRemap(clip) && sourceRate(clip) === 1) {
       inputs.push("-i", audioPath);
       const label = `a${i}`;
       filters.push(audioClipFilter(clip, inputIndex, label));

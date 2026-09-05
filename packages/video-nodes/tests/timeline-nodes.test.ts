@@ -243,6 +243,25 @@ describe("RenderTimelineNode", () => {
     expect(args).not.toContain("[a0]");
   });
 
+  it("retimes a sped-up clip's audio instead of playing it at 1x", async () => {
+    // A 2x clip consumes two source seconds per timeline second: the window is
+    // twice the clip's length and atempo carries it back.
+    const seq = baseSequence();
+    const audio = seq.clips[2] as Record<string, unknown>;
+    audio.startMs = 0;
+    audio.durationMs = 1000;
+    audio.speedMultiplier = 2;
+    delete audio.outPointMs;
+    const context = stubContext(seq);
+    const node = new RenderTimelineNode();
+    node.assign({ timeline: { type: "timeline", id: "seq-1" } });
+    await node.process(context as never);
+
+    const args = ffmpegArgString();
+    expect(args).toContain("atrim=start=0:end=2,asetpts=PTS-STARTPTS,atempo=2");
+    expect(args).toContain("adelay=0|0");
+  });
+
   it("suppresses a linked video clip's embedded audio so only the extracted audio clip plays", async () => {
     // A video clip and its extracted audio share a linkId. The audio comes
     // from the audio-track clip (amix'd); the video's own muxed audio must NOT
