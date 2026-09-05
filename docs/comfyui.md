@@ -318,8 +318,8 @@ the authoritative field reference is `docs/comfy-proxy.md` in `nodetool-core`.
 
 Moving the worker node onto the same v2 API, which would give it streaming
 outputs and the `<comfyNodeId>:<kind>` slot names, is planned but not built. The
-design is
-[ComfyUI integration on the Comfy SDK](superpowers/specs/2026-09-05-comfy-sdk-integration-design.md).
+design is `docs/superpowers/specs/2026-09-05-comfy-sdk-integration-design.md`
+in the repository (engineering specs are not part of the published site).
 
 ---
 
