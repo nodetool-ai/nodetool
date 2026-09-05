@@ -58,6 +58,9 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ["Delete"], action: "Delete selected clips", alt: ["Backspace"] },
       { keys: ["Shift", "Delete"], action: "Ripple delete (close the gap)" },
       { keys: ["Ctrl", "drag edge"], action: "Roll the cut with its neighbour" },
+      { keys: ["click edge"], action: "Select the edit point" },
+      { keys: ["E"], action: "Extend the edit point to the playhead" },
+      { keys: ["Ctrl", "Shift", "←"], action: "Trim edit point one frame (Alt: ten)", alt: ["Ctrl", "Shift", "→"] },
       { keys: ["Ctrl", "D"], action: "Duplicate (after each source)" },
       { keys: ["Ctrl", "Shift", "D"], action: "Duplicate with a 1 s gap" },
       { keys: ["Ctrl", "A"], action: "Select all clips" }

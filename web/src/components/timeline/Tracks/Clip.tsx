@@ -57,6 +57,9 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const isSelected = useIsClipSelected(clipId);
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
   const activeTool = useTimelineUIStore((s) => s.activeTool);
+  const selectedEdge = useTimelineUIStore((s) =>
+    s.selectedEdit?.clipId === clipId ? s.selectedEdit.edge : null
+  );
 
   const selectClip = useTimelineUIStore((s) => s.selectClip);
   const addToSelection = useTimelineUIStore((s) => s.addToSelection);
@@ -236,6 +239,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         handleTrimEndPointerMove={handleTrimEndPointerMove}
         handleTrimPointerEnd={handleTrimPointerEnd}
         cutMode={activeTool === "cut"}
+        selectedEdge={selectedEdge}
         interactionLocked={interactionLocked}
       />
       {contextMenuPos && (

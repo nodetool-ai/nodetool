@@ -56,6 +56,11 @@ interface WordSelection {
   focus: WordRef;
 }
 
+export interface SelectedEdit {
+  clipId: string;
+  edge: "start" | "end";
+}
+
 export interface TimelineUIState {
   /** Set of selected clip IDs. */
   selectedClipIds: Set<string>;
@@ -78,6 +83,11 @@ export interface TimelineUIState {
    * renderer cross-fade. Ctrl/Cmd during a drag forces insert.
    */
   dropMode: DropMode;
+  /**
+   * The edit point the keyboard trims act on: one edge of one clip, picked by
+   * clicking a trim handle without dragging. Cleared with the clip selection.
+   */
+  selectedEdit: SelectedEdit | null;
   /**
    * Milliseconds per pixel — the primary zoom metric.
    * Default 10 ms/px ≈ 100 px/s. Smaller = zoomed in.
@@ -180,6 +190,7 @@ export interface TimelineUIState {
   setRippleMode: (on: boolean) => void;
   toggleRippleMode: () => void;
   setDropMode: (mode: DropMode) => void;
+  setSelectedEdit: (edit: SelectedEdit | null) => void;
 
   // ── FX panel ─────────────────────────────────────────────────────────────
 
@@ -216,6 +227,7 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   activeTool: "select",
   rippleMode: false,
   dropMode: "overwrite",
+  selectedEdit: null,
   msPerPx: 10,
   scrollLeftPx: 0,
   revealRequest: null,
@@ -223,7 +235,8 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   expandedFxTrackId: null,
   draggingTrackId: null,
   trackDropTarget: null,
-  selectClip: (id) => set({ selectedClipIds: new Set([id]) }),
+  selectClip: (id) =>
+    set({ selectedClipIds: new Set([id]), selectedEdit: null }),
 
   addToSelection: (id) =>
     set((state) => ({
@@ -246,9 +259,11 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     }
   },
 
-  clearSelection: () => set({ selectedClipIds: new Set() }),
+  clearSelection: () =>
+    set({ selectedClipIds: new Set(), selectedEdit: null }),
 
-  setSelection: (ids) => set({ selectedClipIds: new Set(ids) }),
+  setSelection: (ids) =>
+    set({ selectedClipIds: new Set(ids), selectedEdit: null }),
 
   rubberBand: null,
 
@@ -296,6 +311,8 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   toggleRippleMode: () => set((state) => ({ rippleMode: !state.rippleMode })),
 
   setDropMode: (mode) => set({ dropMode: mode }),
+
+  setSelectedEdit: (edit) => set({ selectedEdit: edit }),
 
   setExpandedFxTrackId: (trackId) => set({ expandedFxTrackId: trackId }),
 

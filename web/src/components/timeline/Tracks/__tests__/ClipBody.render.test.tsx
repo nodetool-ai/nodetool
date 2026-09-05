@@ -62,6 +62,7 @@ const renderBody = (
         handleTrimEndPointerMove={jest.fn()}
         handleTrimPointerEnd={jest.fn()}
         cutMode={false}
+        selectedEdge={null}
         interactionLocked={false}
       />
     </ThemeProvider>

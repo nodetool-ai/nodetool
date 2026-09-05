@@ -68,6 +68,9 @@ interface TrimGesture {
   durationMsAtStart: number;
   /** Edit mode locked in at pointerdown so it cannot flip mid-gesture. */
   mode: "trim" | "ripple" | "roll";
+  /** Set once the pointer has travelled; a press that never moves selects
+   *  the edge as the edit point instead of trimming. */
+  moved: boolean;
 }
 
 /** The snapped edge the pointer is asking for, and the guide to show. */
@@ -111,7 +114,8 @@ export function useClipTrim({
     edgeMsAtStart: 0,
     candidates: [],
     durationMsAtStart: 0,
-    mode: "trim"
+    mode: "trim",
+    moved: false
   });
 
   const beginGesture = useCallback(
@@ -140,7 +144,8 @@ export function useClipTrim({
           new Set([clip.id])
         ),
         durationMsAtStart: clip.durationMs,
-        mode
+        mode,
+        moved: false
       };
       history.begin();
     },
@@ -178,6 +183,7 @@ export function useClipTrim({
         return;
       }
       const gesture = gestureRef.current;
+      gesture.moved = true;
       const { valueMs, guideMs } = targetEdge(gesture, e, msPerPx);
       // trimClip(edge="start", deltaMs) convention (packages/timeline/src/trimClip.ts):
       //   nextStartMs    = clip.startMs    - deltaMs  (positive = move start left = grow)
@@ -257,6 +263,7 @@ export function useClipTrim({
       if (!fresh) {
         return;
       }
+      gestureRef.current.moved = true;
       const { valueMs, guideMs } = targetEdge(gestureRef.current, e, msPerPx);
       // trimClip(edge="end", deltaMs): nextDurationMs = durationMs + deltaMs,
       // so the delta that lands the end edge on `valueMs` is value - end.
@@ -297,11 +304,22 @@ export function useClipTrim({
   );
 
   const handleTrimPointerEnd = useCallback(() => {
+    const edge = isTrimmingStartRef.current
+      ? "start"
+      : isTrimmingEndRef.current
+        ? "end"
+        : null;
     isTrimmingStartRef.current = false;
     isTrimmingEndRef.current = false;
-    clearGestureFeedback(useTimelineUIStore.getState());
+    const ui = useTimelineUIStore.getState();
+    clearGestureFeedback(ui);
     history.end();
-  }, [history]);
+    // The edge just handled becomes the edit point for E and the keyboard
+    // trims, whether the press dragged it or only clicked it.
+    if (edge && clip) {
+      ui.setSelectedEdit({ clipId: clip.id, edge });
+    }
+  }, [history, clip]);
 
   return {
     handleTrimStartPointerDown,

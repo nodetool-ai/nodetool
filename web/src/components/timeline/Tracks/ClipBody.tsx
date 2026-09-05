@@ -403,7 +403,8 @@ const trimHandleStyles = (
   theme: Theme,
   edge: "start" | "end",
   interactionLocked: boolean,
-  selected: boolean
+  selected: boolean,
+  editSelected: boolean
 ) =>
   css({
     position: "absolute",
@@ -412,10 +413,12 @@ const trimHandleStyles = (
     width: TRIM_HANDLE_WIDTH_PX,
     [edge === "start" ? "left" : "right"]: 0,
     cursor: interactionLocked ? "not-allowed" : "ew-resize",
-    backgroundColor: "var(--palette-c_overlay_strong)",
-    // Hidden until the clip is hovered (root selector), selected, or under a
-    // finger, where there is no hover to reveal it.
-    opacity: selected ? 1 : 0,
+    backgroundColor: editSelected
+      ? theme.vars.palette.primary.main
+      : "var(--palette-c_overlay_strong)",
+    // Hidden until the clip is hovered (root selector), selected, picked as
+    // the edit point, or under a finger, where there is no hover to reveal it.
+    opacity: selected || editSelected ? 1 : 0,
     transition: `opacity ${MOTION.fast}, background-color ${MOTION.fast}`,
     "&:hover": {
       backgroundColor: interactionLocked
@@ -514,6 +517,8 @@ export interface ClipBodyProps {
   handleTrimEndPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimPointerEnd: () => void;
   cutMode: boolean;
+  /** The edge picked as the edit point (E, Ctrl+Shift+arrows), if this clip's. */
+  selectedEdge: "start" | "end" | null;
   /** clip.locked OR the clip's track is locked: drives the not-allowed cursor.
    *  The lock badge below stays tied to clip.locked alone. */
   interactionLocked: boolean;
@@ -538,6 +543,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     handleTrimEndPointerMove,
     handleTrimPointerEnd,
     cutMode,
+    selectedEdge,
     interactionLocked
   }) => {
     const theme = useTheme();
@@ -655,11 +661,25 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     const nameCss = useMemo(() => clipNameStyles(theme), [theme]);
     const durationCss = useMemo(() => clipDurationStyles(theme), [theme]);
     const trimStartCss = useMemo(
-      () => trimHandleStyles(theme, "start", interactionLocked, isSelected),
+      () =>
+        trimHandleStyles(
+          theme,
+          "start",
+          interactionLocked,
+          isSelected,
+          selectedEdge === "start"
+        ),
       [theme, interactionLocked, isSelected]
     );
     const trimEndCss = useMemo(
-      () => trimHandleStyles(theme, "end", interactionLocked, isSelected),
+      () =>
+        trimHandleStyles(
+          theme,
+          "end",
+          interactionLocked,
+          isSelected,
+          selectedEdge === "end"
+        ),
       [theme, interactionLocked, isSelected]
     );
     const transitionCss = useMemo(

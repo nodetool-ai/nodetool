@@ -732,6 +732,53 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         const playback = playbackStore.getState();
         const liveMs = playback.getTimeMs();
 
+        // Keyboard trims act on the selected edit point (a clicked clip edge).
+        // E extends it to the playhead; Ctrl+Shift+←/→ nudges it a frame
+        // (Alt: ten). Ripple mode decides whether later clips follow.
+        const trimEdit = (edgeTargetMs: number) => {
+          const edit = uiStoreApi.getState().selectedEdit;
+          if (!edit) return false;
+          const doc = docStore.getState();
+          const target = doc.clips.find((c) => c.id === edit.clipId);
+          if (!target) return false;
+          const ripple = uiStoreApi.getState().rippleMode;
+          if (edit.edge === "start") {
+            const delta = target.startMs - edgeTargetMs;
+            if (ripple) doc.rippleTrimClipStart(target.id, delta);
+            else doc.trimClipStart(target.id, delta);
+          } else {
+            const delta = edgeTargetMs - (target.startMs + target.durationMs);
+            if (ripple) doc.rippleTrimClipEnd(target.id, delta);
+            else doc.trimClipEnd(target.id, delta);
+          }
+          return true;
+        };
+        if (plain && e.key === "e") {
+          if (trimEdit(liveMs)) e.preventDefault();
+          return;
+        }
+        if (
+          isCtrl &&
+          e.shiftKey &&
+          (e.key === "ArrowLeft" || e.key === "ArrowRight")
+        ) {
+          const edit = uiStoreApi.getState().selectedEdit;
+          const target = edit
+            ? docStore.getState().clips.find((c) => c.id === edit.clipId)
+            : undefined;
+          if (edit && target) {
+            e.preventDefault();
+            const frameMs = 1000 / Math.max(1, docStore.getState().fps);
+            const stepMs = Math.round(frameMs * (e.altKey ? 10 : 1));
+            const edgeMs =
+              edit.edge === "start"
+                ? target.startMs
+                : target.startMs + target.durationMs;
+            trimEdit(edgeMs + (e.key === "ArrowLeft" ? -stepMs : stepMs));
+          }
+          return;
+        }
+
         // I / O → mark in and out; Ctrl+Shift+X clears both.
         if (plain && (e.key === "i" || e.key === "o")) {
           e.preventDefault();
@@ -814,7 +861,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         // Escape → clear selection and drop back to the select tool. No
         // preventDefault so Escape still closes any open menu/dialog.
         if (e.key === "Escape") {
-          if (selectedClipIds.size > 0) {
+          if (selectedClipIds.size > 0 || uiStoreApi.getState().selectedEdit) {
             setSelection([]);
           }
           if (uiStoreApi.getState().activeTool !== "select") {
