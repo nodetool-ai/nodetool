@@ -59,6 +59,9 @@ const secretKeyToDisplayName: Record<string, string> = {
   REVE_API_KEY: "Reve API Key",
   FAL_API_KEY: "FAL API Key",
   ELEVENLABS_API_KEY: "ElevenLabs API Key",
+  // Only lib.comfy.RunWorkflowOnCloud needs this, so `namespaceToSecretKey`
+  // stays untouched — the per-node `required_settings` metadata drives it.
+  COMFY_API_KEY: "Comfy Cloud",
   SERPAPI_API_KEY: "SerpAPI Key",
   ATLASCLOUD_API_KEY: "AtlasCloud API Key",
   XAI_API_KEY: "xAI API Key",

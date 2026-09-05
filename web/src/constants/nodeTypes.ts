@@ -41,7 +41,17 @@ export const GET_VARIABLE_NODE_TYPE = "nodetool.variable.GetVariable";
 export const DYNAMIC_FAL_NODE_TYPE = "fal.DynamicFal";
 export const DYNAMIC_KIE_NODE_TYPE = "kie.dynamic_schema.KieAI";
 export const DYNAMIC_REPLICATE_NODE_TYPE = "replicate.DynamicReplicate";
-export const DYNAMIC_COMFY_NODE_TYPE = "lib.comfy.RunWorkflow";
+/**
+ * The ComfyUI runners that share the schema-driven node body: the loader
+ * derives input handles `<comfyNodeId>:<field>` and output handles
+ * `<comfyNodeId>:<kind>` from the loaded workflow. The worker runner
+ * (`lib.comfy.RunWorkflowOnWorker`) names its output slots after the worker's
+ * blob keys, so it stays out until it moves onto the same output convention.
+ */
+export const DYNAMIC_COMFY_NODE_TYPES: ReadonlySet<string> = new Set([
+  "lib.comfy.RunWorkflow",
+  "lib.comfy.RunWorkflowOnCloud"
+]);
 
 // --- Image-editing node bodies ---------------------------------------------
 export const BLUR_NODE_TYPE = "nodetool.image.Blur";

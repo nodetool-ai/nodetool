@@ -1,7 +1,7 @@
 # Provider brand icons
 
 Vendored from [`@lobehub/icons-static-svg`](https://github.com/lobehub/lobe-icons)
-version **1.91.0**. The package ships thousands of icons; we only use the 109 in
+version **1.91.0**. The package ships thousands of icons; we only use the 110 in
 this directory, so we copied them in and dropped the dependency.
 
 To add an icon, copy it from the upstream repo (or a newer release of the npm

@@ -10,7 +10,7 @@ import type { Node } from "@xyflow/react";
 import type { NodeMetadata, TypeMetadata } from "../stores/ApiTypes";
 import type { NodeData } from "../stores/NodeData";
 import {
-  DYNAMIC_COMFY_NODE_TYPE,
+  DYNAMIC_COMFY_NODE_TYPES,
   DYNAMIC_FAL_NODE_TYPE,
   DYNAMIC_KIE_NODE_TYPE,
   DYNAMIC_REPLICATE_NODE_TYPE,
@@ -89,7 +89,7 @@ const SCHEMA_DRIVEN_NODE_TYPES: ReadonlySet<string> = new Set([
   DYNAMIC_FAL_NODE_TYPE,
   DYNAMIC_KIE_NODE_TYPE,
   DYNAMIC_REPLICATE_NODE_TYPE,
-  DYNAMIC_COMFY_NODE_TYPE,
+  ...DYNAMIC_COMFY_NODE_TYPES,
   // Legacy aliases still present in saved graphs.
   "kie.DynamicKie",
   // These derive their slots from an inner graph's Input nodes.

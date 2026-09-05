@@ -24,6 +24,7 @@ import huggingfaceColorIcon from "../../icons/providers/huggingface-color.svg";
 import replicateIcon from "../../icons/providers/replicate.svg";
 import falColorIcon from "../../icons/providers/fal-color.svg";
 import elevenlabsIcon from "../../icons/providers/elevenlabs.svg";
+import comfyuiIcon from "../../icons/providers/comfyui.svg";
 import moonshotIcon from "../../icons/providers/moonshot.svg";
 import topazlabsIcon from "../../icons/providers/topazlabs.svg";
 import atlascloudIcon from "../../icons/providers/atlascloud.svg";
@@ -315,6 +316,17 @@ export const PROVIDER_META: ProviderMeta[] = [
     section: "media",
     docsUrl: "https://elevenlabs.io/docs",
     icon: elevenlabsIcon,
+    mono: true
+  },
+  {
+    key: "COMFY_API_KEY",
+    providerId: PROVIDER_IDS.COMFY_CLOUD,
+    name: "Comfy Cloud",
+    description:
+      "Run ComfyUI workflows on Comfy's hosted GPUs with your own key.",
+    section: "media",
+    docsUrl: "https://platform.comfy.org",
+    icon: comfyuiIcon,
     mono: true
   },
   {

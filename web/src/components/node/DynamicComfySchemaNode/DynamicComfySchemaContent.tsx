@@ -75,9 +75,10 @@ export const DynamicComfySchemaContent: React.FC<DynamicComfySchemaContentProps>
               "& .action-icons": { display: "none" }
             }}
           >
-            {/* Static props (workflow, endpoint, timeout) are managed via the
-                loader and Inspector — not shown inline or as input handles.
-                Only the workflow-derived dynamic inputs render here. */}
+            {/* Static props differ per runner (the local node's `endpoint`,
+                none on Cloud) and are
+                managed via the loader and Inspector — not shown inline or as
+                input handles. Only workflow-derived dynamic inputs render. */}
             <NodeInputs
               id={id}
               nodeMetadata={nodeMetadata}

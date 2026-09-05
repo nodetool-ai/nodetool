@@ -9,6 +9,7 @@ import NodeStatus from "../NodeStatus";
 import NodeResizeHandle from "../NodeResizeHandle";
 import NodeSelectionToolbar from "../NodeSelectionToolbar";
 import NodeExecutionTime from "../NodeExecutionTime";
+import RequiredSettingsWarning from "../RequiredSettingsWarning";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { useNodeStatus } from "../../../hooks/nodes/useNodeExecState";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
@@ -19,9 +20,10 @@ import { ComfyWorkflowLoader } from "./ComfyWorkflowLoader";
 const COMFY_HEADER_COLOR = "#1F9E89";
 
 /**
- * Dedicated React Flow node for lib.comfy.RunWorkflow. Provides workflow
- * loading (paste / drop) and renders typed inputs/outputs derived from the
- * loaded ComfyUI workflow.
+ * Dedicated React Flow node for the schema-driven lib.comfy runners
+ * (RunWorkflow, RunWorkflowOnCloud). Provides workflow loading (paste / drop)
+ * and renders typed inputs/outputs derived from the loaded ComfyUI workflow.
+ * Runner-specific static props stay in the Inspector.
  */
 const DynamicComfySchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
@@ -106,6 +108,7 @@ const DynamicComfySchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         </Box>
       </Box>
       <NodeErrors id={id} workflow_id={workflow_id} />
+      <RequiredSettingsWarning nodeType={type} />
       <NodeStatus status={statusValue} />
       <NodeExecutionTime
         nodeId={id}
