@@ -39,6 +39,14 @@ vi.mock("node:fs", async (orig) => {
   };
 });
 
+/**
+ * The unmocked module. `afterEach`'s `restoreAllMocks` strips any
+ * implementation the mock factory supplied, so the default is re-bound in
+ * `beforeEach` instead.
+ */
+const realFsPromises =
+  await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
+
 import { Workspace } from "@nodetool-ai/models";
 import { stat, readdir, access } from "node:fs/promises";
 import {
@@ -99,6 +107,12 @@ function makeWorkspace(opts: {
 describe("workspace router", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // These three default to real fs: the listFiles cases write real files
+    // into a real temp directory and assert their real sizes. A case that
+    // wants a stubbed answer overrides with mockResolvedValue/mockRejectedValue.
+    vi.mocked(stat).mockImplementation(realFsPromises.stat);
+    vi.mocked(readdir).mockImplementation(realFsPromises.readdir);
+    vi.mocked(access).mockImplementation(realFsPromises.access);
     // Ensure tests run in non-production (the router rejects in prod).
     delete process.env.NODETOOL_ENV;
   });
