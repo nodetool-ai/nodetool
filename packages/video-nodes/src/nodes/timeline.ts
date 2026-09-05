@@ -30,10 +30,14 @@ import type { DocumentRef, TimelineRef, VideoRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import {
+  DEFAULT_MIDI_INSTRUMENT,
+  encodeWavPcm16,
   hasTimeRemap,
   makeClip,
   makeSequence,
   makeTrack,
+  renderMidiClip,
+  resolveTempo,
   timeRemapAudioSegments,
   type TimeRemapAudioSegment,
   type TimelineClip,
@@ -147,19 +151,27 @@ function renderableVideoClips(seq: TimelineSequence): TimelineClip[] {
     .sort((a, b) => a.startMs - b.startMs);
 }
 
+/**
+ * Clips the mix draws from: audio-track clips backed by an asset, and midi
+ * clips, whose sound is rendered from the notes they carry rather than fetched
+ * (they have no `currentAssetId` at all).
+ */
 function mixableAudioClips(seq: TimelineSequence): TimelineClip[] {
   const tracks = trackById(seq.tracks);
   return seq.clips
     .filter((clip) => {
       const track = tracks.get(clip.trackId);
+      if (!track || track.muted === true || clip.muted || clip.hidden) {
+        return false;
+      }
+      if (clip.durationMs <= 0) return false;
+      if (track.type === "midi") {
+        return clip.mediaType === "midi" && (clip.notes?.length ?? 0) > 0;
+      }
       return (
-        track?.type === "audio" &&
-        track.muted !== true &&
-        !clip.muted &&
-        !clip.hidden &&
+        track.type === "audio" &&
         clip.mediaType === "audio" &&
-        !!clip.currentAssetId &&
-        clip.durationMs > 0
+        !!clip.currentAssetId
       );
     })
     .sort((a, b) => a.startMs - b.startMs);
@@ -336,9 +348,14 @@ function audioClipFilter(
   label: string
 ): string {
   const steps: string[] = [];
-  const inS = isNumber(clip.inPointMs) ? clip.inPointMs / 1000 : 0;
+  // A midi clip's WAV *is* its window: `renderMidiClip` already dropped
+  // everything before `inPointMs` and stopped at `durationMs`. Trimming by the
+  // source in/out again would cut the same window twice and lose the head of
+  // every trimmed clip.
+  const isMidi = clip.mediaType === "midi";
+  const inS = !isMidi && isNumber(clip.inPointMs) ? clip.inPointMs / 1000 : 0;
   const outS =
-    isPositiveNumber(clip.outPointMs)
+    !isMidi && isPositiveNumber(clip.outPointMs)
       ? clip.outPointMs / 1000
       : inS + clip.durationMs / 1000;
   steps.push(`atrim=start=${inS}:end=${outS}`, "asetpts=PTS-STARTPTS");
@@ -446,6 +463,69 @@ class AssetFiles {
     await fs.writeFile(file, bytes);
     return file;
   }
+}
+
+/** Sample rate the midi renderer runs at, matching the mix's own `-ar`. */
+const MIDI_SAMPLE_RATE = 48000;
+
+/**
+ * Renders each midi clip's notes to a WAV on disk once, for ffmpeg to read.
+ *
+ * The buffer `renderMidiClip` returns is exactly the clip's window — it starts
+ * at the clip's timeline start and is `durationMs` long — so the file needs no
+ * source-side trim, only the `adelay` that puts it at its offset.
+ */
+class MidiFiles {
+  private readonly files = new Map<string, Promise<string>>();
+  private readonly tracks: Map<string, TimelineTrack>;
+  private readonly bpm: number;
+
+  constructor(
+    private readonly workDir: string,
+    seq: TimelineSequence
+  ) {
+    this.tracks = trackById(seq.tracks);
+    this.bpm = resolveTempo(seq).bpm;
+  }
+
+  path(clip: TimelineClip): Promise<string> {
+    let pending = this.files.get(clip.id);
+    if (!pending) {
+      pending = this.write(clip);
+      this.files.set(clip.id, pending);
+    }
+    return pending;
+  }
+
+  private async write(clip: TimelineClip): Promise<string> {
+    // The instrument belongs to the track, not the clip.
+    const instrument =
+      this.tracks.get(clip.trackId)?.instrument ?? DEFAULT_MIDI_INSTRUMENT;
+    const mono = renderMidiClip({
+      clip,
+      bpm: this.bpm,
+      instrument,
+      sampleRate: MIDI_SAMPLE_RATE
+    });
+    const file = path.join(this.workDir, `midi_${clip.id}.wav`);
+    await fs.writeFile(file, encodeWavPcm16(mono, MIDI_SAMPLE_RATE));
+    return file;
+  }
+}
+
+/**
+ * The file ffmpeg reads one audible clip from: the materialized asset, or the
+ * WAV rendered from a midi clip's notes.
+ */
+function audioSourcePath(
+  clip: TimelineClip,
+  assets: AssetFiles,
+  midi: MidiFiles
+): Promise<string | null> {
+  if (clip.mediaType === "midi") return midi.path(clip);
+  return clip.currentAssetId
+    ? assets.path(clip.currentAssetId)
+    : Promise.resolve(null);
 }
 
 /**
@@ -563,6 +643,7 @@ async function mixAudioInto(opts: {
   clips: TimelineClip[];
   baseHasAudio: boolean;
   assets: AssetFiles;
+  midi: MidiFiles;
   workDir: string;
   extension: string;
   audioCodec: string;
@@ -572,6 +653,7 @@ async function mixAudioInto(opts: {
     clips,
     baseHasAudio,
     assets,
+    midi,
     workDir,
     extension,
     audioCodec
@@ -582,9 +664,7 @@ async function mixAudioInto(opts: {
   let inputIndex = 1;
 
   for (const [i, clip] of clips.entries()) {
-    const audioPath = clip.currentAssetId
-      ? await assets.path(clip.currentAssetId)
-      : null;
+    const audioPath = await audioSourcePath(clip, assets, midi);
     if (!audioPath) {
       console.warn(
         `RenderTimeline: skipping audio of clip "${clip.name}" — asset ${clip.currentAssetId} not found`
@@ -842,6 +922,7 @@ export class RenderTimelineNode extends BaseNode {
     );
     try {
       const assets = new AssetFiles(workDir, ctx);
+      const midi = new MidiFiles(workDir, seq);
       let basePath: string;
       let baseHasAudio: boolean;
       let audioToMix: TimelineClip[];
@@ -945,6 +1026,7 @@ export class RenderTimelineNode extends BaseNode {
               clips: audioToMix,
               baseHasAudio,
               assets,
+              midi,
               workDir,
               extension: output.extension,
               audioCodec: output.audioCodec ?? "aac"
