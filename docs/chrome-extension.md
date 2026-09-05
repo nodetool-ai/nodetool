@@ -1,8 +1,10 @@
 ---
 layout: page
 title: "Chrome Extension"
-description: "Drive your real, logged-in Chrome browser from NodeTool workflows."
+description: "Chat with NodeTool from Chrome's side panel, and drive your real, logged-in browser from NodeTool workflows."
 ---
+
+The extension does two things. It puts the NodeTool **chat** in Chrome's side panel, so you can ask your agent something without leaving the page you're on. And it relays the Chrome DevTools Protocol between your browser and your server, so a workflow can drive the tab you're already signed in to.
 
 Let NodeTool workflows control your **actual Chrome browser** — the one you're already logged into — instead of a fresh, anonymous, headless one. The NodeTool Chrome Extension is a thin relay that hands the Chrome DevTools Protocol (CDP) from your browser to your NodeTool server, so a workflow node can click, type, scroll, and screenshot inside a real tab with your cookies, sessions, and 2FA already in place.
 
@@ -14,7 +16,7 @@ Let NodeTool workflows control your **actual Chrome browser** — the one you're
 
 | Feature | Notes |
 |---------|-------|
-| **What it is** | A Manifest V3 extension that proxies CDP commands between your server and `chrome.debugger` |
+| **What it is** | A Manifest V3 extension with a side-panel chat UI and a CDP proxy between your server and `chrome.debugger` |
 | **What it is not** | Not an automation engine itself — it originates no commands, it only relays them |
 | **Why you'd use it** | Sites that block headless/server-launched browsers, or require your existing login (OAuth, 2FA, CAPTCHAs already solved) |
 | **Transport** | Dedicated WebSocket at `/ws/extension` on your NodeTool server, JSON frames |
@@ -90,6 +92,28 @@ npm run clean       # remove dist/
 ### Configuring the server URL
 
 By default the extension connects to `ws://localhost:7777/ws/extension` — your local NodeTool server. To point it at a different server (a remote deployment, a different port), open the popup, edit the **Server URL** field, and click **Save**. The value persists in the extension's local storage across restarts.
+
+The chat panel keeps its own server setting (an HTTP base URL, e.g. `http://localhost:7777`), edited from the gear icon inside the panel — see [Chat in the side panel](#chat-in-the-side-panel).
+
+---
+
+## Chat in the side panel
+
+Click the toolbar icon, then **Open chat**. Chrome's side panel opens beside the page with the NodeTool chat: pick a model from any provider your server has configured, send a message, and watch the reply stream in with the agent's tool calls listed as it works. The conversations are the same threads the desktop and web apps read and write — start something in the panel, finish it in the app.
+
+The panel supports **chat only**. Image, video, audio and other media-generation modes live in the full app, as does the workflow editor.
+
+**Settings** (gear icon in the panel):
+
+| Field | Notes |
+|---|---|
+| **NodeTool server URL** | HTTP base, e.g. `http://localhost:7777`. The panel calls `/trpc` and the `/ws` chat socket on this host. |
+| **Access token** | Only for a server that enforces authentication. Leave it empty for a local server — it maps loopback requests to the local user. |
+
+Two things to know when pointing the panel at something other than a local server:
+
+- **The host has to be one Chrome lets the extension reach.** `localhost`, `127.0.0.1` and any HTTPS host are granted in the manifest. Anything else — a LAN box over plain HTTP — prompts for permission when you save it; decline, and every request to that server is blocked by CORS even though the chat socket still connects.
+- **Tool calls run without asking.** The panel has no approval cards, so it sends turns in the permissive mode. Point it at a server you trust.
 
 ---
 
@@ -190,8 +214,9 @@ The action loop itself is `@nodetool-ai/browser` (`packages/browser/`), which kn
 ## Server Requirements
 
 - A running NodeTool server: `nodetool serve --port 7777` (or your deployed URL).
-- The `/ws/extension` route is part of the standard NodeTool WebSocket server — no extra server-side setup is required beyond running the server.
+- The `/ws/extension` route (CDP proxy) and the `/trpc` + `/ws` routes (chat panel) are part of the standard NodeTool WebSocket server — no extra server-side setup is required beyond running the server.
 - The extension and the server must be able to reach each other over the configured WebSocket URL (typically `localhost` for local development).
+- Chrome 116 or newer, for the side panel.
 
 ---
 
@@ -202,11 +227,16 @@ The action loop itself is `@nodetool-ai/browser` (`packages/browser/`), which kn
 - **Mutually exclusive with DevTools.** You can't have Chrome DevTools open on a tab while the extension is attached to it (both use `chrome.debugger`).
 - **Session-only.** Attaching does not persist across Chrome restarts — reattach after restarting your browser.
 - **One session per server process.** The browser session is a process singleton shared by every agent and workflow on that server, so two concurrent runs drive the same tab. Sequence them, or give each its own server.
-- **Manual build.** The `chrome-extension/` package isn't part of `npm run build:packages` — build it on demand. A diff touching it does run the `live-browser` surface's selfcheck through `nodetool harness gate`, but that covers the capability seam, not the relay: the extension → `chrome.debugger` → page round trip runs only in `npm run test:integration --workspace=packages/browser`, which needs Chrome and port 7777. Keep the two protocol definitions (`chrome-extension/src/lib/protocol.ts` and `packages/browser/src/extension/protocol.ts`) in sync by hand if you change the wire format.
+- **Chat only in the panel.** Media generation, the workflow editor and tool-approval prompts are the full app's job — the panel sends turns in the permissive tool mode rather than asking.
+- **Manual build.** The `chrome-extension/` package isn't part of `npm run build:packages` — build it on demand. A diff touching it does run the `live-browser` surface's selfcheck through `nodetool harness gate`, but that covers the capability seam, not the relay: the extension → `chrome.debugger` → page round trip runs only in `npm run test:integration --workspace=packages/browser`, which needs Chrome and port 7777. Keep the two protocol definitions (`chrome-extension/src/lib/protocol.ts` and `packages/browser/src/extension/protocol.ts`) in sync by hand if you change the wire format, and likewise `chrome-extension/src/lib/chat-socket.ts` with `packages/sdk/src/chat.ts` for the chat panel.
 
 ---
 
 ## Troubleshooting
+
+### The chat panel shows "Cannot reach …"
+
+Check the server URL in the panel's settings (gear icon). If it names a host that is not `localhost`, `127.0.0.1` or an HTTPS address, save it again and accept Chrome's permission prompt — without that grant the browser blocks every request to it. A green connection dot with failing requests is exactly this: the WebSocket is not CORS-gated, the HTTP calls are.
 
 ### Popup shows "disconnected"
 

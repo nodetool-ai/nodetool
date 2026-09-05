@@ -1,0 +1,477 @@
+/**
+ * ChatSocket — typed wrapper around the unified NodeTool chat WebSocket.
+ *
+ * This file is a **mirror** of `packages/sdk/src/chat.ts`. The extension lives
+ * outside the npm workspace and cannot import from `packages/`, so the two are
+ * kept in step by hand — the same arrangement as `src/lib/protocol.ts` and
+ * `packages/browser/src/extension/protocol.ts`. Change one, change the other.
+ *
+ * Two deliberate divergences from the SDK original:
+ *   - The `@nodetool-ai/protocol` types the SDK imports are inlined below,
+ *     narrowed to the fields this UI reads.
+ *   - `tool_call_update` is a known frame tag. That is the tag the server
+ *     actually stamps on a mid-turn tool call (see
+ *     `packages/websocket/src/session/chat-turn.ts`); the SDK only lists
+ *     `tool_call`, so both are accepted here.
+ *
+ * Wire format: msgpack frames by default (length-tagged, binary), with a JSON
+ * text fallback if msgpack encoding fails. Inbound frames are decoded and
+ * dispatched to the appropriate `on(<type>)` handlers as a discriminated
+ * union, so consumers never see raw bytes.
+ */
+
+import { pack, unpack } from "msgpackr";
+
+export type WebSocketCtor = typeof WebSocket;
+
+/** A text part of a message's content array. */
+export interface MessageTextContent {
+  type: "text";
+  text: string;
+}
+
+/** One persisted conversation turn, narrowed to what this UI renders. */
+export interface Message {
+  id?: string | null;
+  role: string;
+  content?: string | unknown[] | null;
+  thread_id?: string | null;
+  model?: string | null;
+  provider?: string | null;
+  name?: string | null;
+  tool_calls?: unknown[] | null;
+  tool_call_id?: string | null;
+  created_at?: string | null;
+  [field: string]: unknown;
+}
+
+/**
+ * A field value as it comes off the wire. msgpack and JSON both decode into
+ * this domain, so a frame's own fields have a contract before anything narrows
+ * them to a protocol shape.
+ */
+export type ChatFrameValue =
+  | null
+  | boolean
+  | number
+  | string
+  | Uint8Array
+  | ChatFrameValue[]
+  | ChatFrameFields;
+
+export interface ChatFrameFields {
+  [field: string]: ChatFrameValue | undefined;
+}
+
+/** What a WebSocket hands `onmessage`: a text frame, or binary as a buffer or a view over one. */
+type InboundFrame = string | ArrayBuffer | ArrayBufferView;
+
+export type ConnectionState =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "disconnected"
+  | "reconnecting"
+  | "error";
+
+/** A streamed text chunk. `done: true` marks the end of one assistant turn. */
+export interface ChatChunkEvent {
+  type: "chunk";
+  thread_id?: string | null;
+  content: string;
+  done?: boolean;
+  /** Reasoning tokens, rendered apart from the answer. */
+  thinking?: boolean;
+}
+
+/** A complete persisted message (assistant final or echoed user input). */
+export interface ChatMessageEvent extends Message {
+  type: "message";
+  role: "user" | "assistant" | "system" | "tool";
+}
+
+/** Tool invocation announced mid-stream. */
+export interface ChatToolCallEvent {
+  type: "tool_call_update" | "tool_call";
+  thread_id?: string | null;
+  tool_call_id?: string | null;
+  name: string;
+  message?: string | null;
+}
+
+/** Server-side failure during chat processing. */
+export interface ChatErrorEvent {
+  type: "error";
+  message: string;
+  thread_id?: string | null;
+}
+
+/** Ack frame after a `stop` command. */
+export interface ChatGenerationStoppedEvent {
+  type: "generation_stopped";
+  thread_id?: string | null;
+  job_id?: string | null;
+  message?: string;
+}
+
+/** A new derived title for a thread (e.g. after summarisation). */
+export interface ChatThreadUpdateEvent {
+  type: "thread_update";
+  thread_id: string;
+  title?: string;
+}
+
+/** Anything else — surfaced raw so callers can opt in to it. */
+export interface ChatRawEvent extends ChatFrameFields {
+  type: string;
+}
+
+export type ChatEvent =
+  | ChatChunkEvent
+  | ChatMessageEvent
+  | ChatToolCallEvent
+  | ChatErrorEvent
+  | ChatGenerationStoppedEvent
+  | ChatThreadUpdateEvent
+  | ChatRawEvent;
+
+/** Outbound `chat_message` command: one user turn, in the shape the server persists. */
+interface ChatMessageCommand {
+  command: "chat_message";
+  data: Message & {
+    type: "message";
+    role: "user";
+    content: MessageTextContent[];
+    thread_id: string;
+    /** Persisted on the message row, but absent from the protocol `Message`. */
+    agent_mode: boolean;
+  };
+}
+
+/** Outbound `stop` command: cancel the in-flight turn on a thread. */
+interface StopCommand {
+  command: "stop";
+  data: { thread_id: string };
+}
+
+type ChatCommand = ChatMessageCommand | StopCommand;
+
+export interface SendChatMessageOptions {
+  threadId: string;
+  text: string;
+  model?: string | null;
+  provider?: string | null;
+  /**
+   * Whether the turn's tool calls run, ask, or are blocked — `"auto"` runs
+   * everything, `"default"` parks actions on an approval request, `"plan"`
+   * blocks them. The side panel has no approval surface, so it sends `"auto"`.
+   */
+  permissionMode?: "plan" | "default" | "auto" | null;
+}
+
+export interface ChatSocketOptions {
+  /** Full WebSocket URL, e.g. `ws://localhost:7777/ws`. */
+  url: string;
+  authToken?: string | null;
+  /** Override for environments without a global `WebSocket`. */
+  WebSocket?: WebSocketCtor;
+  /** Initial reconnect backoff in ms (default 1500, capped at 15s). */
+  reconnectDelayMs?: number;
+  /** Max reconnect attempts before giving up (default 10, 0 disables). */
+  maxReconnect?: number;
+}
+
+type EventMap = {
+  // Discriminated frame types
+  chunk: ChatChunkEvent;
+  message: ChatMessageEvent;
+  tool_call: ChatToolCallEvent;
+  tool_call_update: ChatToolCallEvent;
+  error: ChatErrorEvent;
+  generation_stopped: ChatGenerationStoppedEvent;
+  thread_update: ChatThreadUpdateEvent;
+  // Catch-all and lifecycle
+  raw: ChatEvent;
+  state: ConnectionState;
+};
+
+type Listener<K extends keyof EventMap> = (payload: EventMap[K]) => void;
+
+type ListenerStore = { [K in keyof EventMap]: Set<Listener<K>> };
+
+const DEFAULT_RECONNECT_MS = 1500;
+const DEFAULT_MAX_RECONNECT = 10;
+const MAX_RECONNECT_MS = 15_000;
+
+export class ChatSocket {
+  private readonly url: string;
+  private readonly authToken: string | null;
+  private readonly Ctor: WebSocketCtor;
+  private readonly reconnectDelayMs: number;
+  private readonly maxReconnect: number;
+
+  private socket: WebSocket | null = null;
+  private state: ConnectionState = "idle";
+  private intentionalClose = false;
+  private reconnectAttempts = 0;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly listeners: ListenerStore = {
+    chunk: new Set(),
+    message: new Set(),
+    tool_call: new Set(),
+    tool_call_update: new Set(),
+    error: new Set(),
+    generation_stopped: new Set(),
+    thread_update: new Set(),
+    raw: new Set(),
+    state: new Set(),
+  };
+
+  constructor(options: ChatSocketOptions) {
+    this.url = options.url;
+    this.authToken = options.authToken ?? null;
+    this.reconnectDelayMs = options.reconnectDelayMs ?? DEFAULT_RECONNECT_MS;
+    this.maxReconnect = options.maxReconnect ?? DEFAULT_MAX_RECONNECT;
+    const Ctor = options.WebSocket ?? globalCtor();
+    if (!Ctor) {
+      throw new Error(
+        "No `WebSocket` constructor available. Run in a browser context.",
+      );
+    }
+    this.Ctor = Ctor;
+  }
+
+  /** Current connection state. */
+  getState(): ConnectionState {
+    return this.state;
+  }
+
+  /**
+   * Subscribe to an event. Returns an unsubscribe function.
+   *
+   * The `raw` event fires for every inbound frame, including types that don't
+   * have their own typed handler — useful for bridging future server events.
+   */
+  on<K extends keyof EventMap>(event: K, listener: Listener<K>): () => void {
+    const set = this.listeners[event];
+    set.add(listener);
+    return () => {
+      set.delete(listener);
+    };
+  }
+
+  /** Open the socket. No-op if already open or connecting. */
+  connect(): void {
+    if (
+      this.socket &&
+      (this.socket.readyState === this.Ctor.OPEN ||
+        this.socket.readyState === this.Ctor.CONNECTING)
+    ) {
+      return;
+    }
+    this.intentionalClose = false;
+    this.setState("connecting");
+
+    let url = this.url;
+    if (this.authToken) {
+      url +=
+        (url.includes("?") ? "&" : "?") +
+        "token=" +
+        encodeURIComponent(this.authToken);
+    }
+    const ws = new this.Ctor(url);
+    ws.binaryType = "arraybuffer";
+    this.socket = ws;
+
+    ws.onopen = () => {
+      this.reconnectAttempts = 0;
+      this.setState("connected");
+    };
+    ws.onclose = () => {
+      this.socket = null;
+      if (this.intentionalClose) {
+        this.setState("disconnected");
+        return;
+      }
+      this.setState("reconnecting");
+      this.scheduleReconnect();
+    };
+    ws.onerror = () => this.setState("error");
+    ws.onmessage = (ev: MessageEvent<InboundFrame>) => this.handleRaw(ev.data);
+  }
+
+  /** Close the socket and cancel any pending reconnect. */
+  disconnect(): void {
+    this.intentionalClose = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.socket?.close();
+  }
+
+  /** Send a `chat_message` command. */
+  send(opts: SendChatMessageOptions): void {
+    this.sendCommand({
+      command: "chat_message",
+      data: {
+        type: "message",
+        role: "user",
+        content: [{ type: "text", text: opts.text }],
+        thread_id: opts.threadId,
+        model: opts.model ?? null,
+        provider: opts.provider ?? null,
+        agent_mode: false,
+        permission_mode: opts.permissionMode ?? null,
+      },
+    });
+  }
+
+  /** Send a `stop` command for the given thread. */
+  stop(threadId: string): void {
+    this.sendCommand({ command: "stop", data: { thread_id: threadId } });
+  }
+
+  private setState(state: ConnectionState): void {
+    if (this.state === state) return;
+    this.state = state;
+    this.emit("state", state);
+  }
+
+  private emit<K extends keyof EventMap>(event: K, payload: EventMap[K]): void {
+    for (const fn of this.listeners[event]) {
+      try {
+        fn(payload);
+      } catch (err) {
+        // Don't let one buggy listener break the dispatcher.
+        console.error("[ChatSocket] listener for", event, "threw:", err);
+      }
+    }
+  }
+
+  private sendCommand(payload: ChatCommand): void {
+    if (!this.socket || this.socket.readyState !== this.Ctor.OPEN) {
+      throw new Error("WebSocket is not connected");
+    }
+    let frame: string | Uint8Array;
+    try {
+      frame = pack(payload);
+    } catch (err) {
+      console.warn(
+        "[ChatSocket] msgpack encode failed, falling back to JSON:",
+        err,
+      );
+      frame = JSON.stringify(payload);
+    }
+    this.socket.send(frame);
+  }
+
+  private handleRaw(inbound: InboundFrame): void {
+    const frame = isTextFrame(inbound)
+      ? parseTextFrame(inbound)
+      : decodeBinaryFrame(inbound);
+    if (!frame) return;
+
+    this.emit("raw", frame);
+    const type = frame.type;
+    if (isKnownEventType(type)) {
+      // SAFETY: `isKnownEventType` proved the tag is one of `EventMap`'s
+      // discriminated keys, so the frame is that key's payload. TypeScript
+      // cannot correlate a union key with its own payload across the generic
+      // `emit` call.
+      this.emit(type, frame as EventMap[typeof type]);
+    }
+  }
+
+  private scheduleReconnect(): void {
+    if (this.maxReconnect === 0) {
+      this.setState("error");
+      return;
+    }
+    if (this.reconnectAttempts >= this.maxReconnect) {
+      this.setState("error");
+      return;
+    }
+    this.reconnectAttempts++;
+    const delay = Math.min(
+      this.reconnectDelayMs * this.reconnectAttempts,
+      MAX_RECONNECT_MS,
+    );
+    this.reconnectTimer = setTimeout(() => this.connect(), delay);
+  }
+}
+
+/** Every event with a typed handler; `raw` and `state` are local, not frame tags. */
+type KnownType = Exclude<keyof EventMap, "raw" | "state">;
+
+const KNOWN_TYPES: ReadonlySet<string> = new Set<KnownType>([
+  "chunk",
+  "message",
+  "tool_call",
+  "tool_call_update",
+  "error",
+  "generation_stopped",
+  "thread_update",
+]);
+
+function isKnownEventType(type: string): type is KnownType {
+  return KNOWN_TYPES.has(type);
+}
+
+function isTextFrame(inbound: InboundFrame): inbound is string {
+  return typeof inbound === "string";
+}
+
+/** `typeof` calls null, arrays and byte blobs "object" too; a frame body is none of those. */
+function isFrameFields(value: ChatFrameValue): value is ChatFrameFields {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    !(value instanceof Uint8Array)
+  );
+}
+
+function isFrameTag(value: ChatFrameValue | undefined): value is string {
+  return typeof value === "string";
+}
+
+function toChatEvent(decoded: ChatFrameValue): ChatEvent | null {
+  if (!isFrameFields(decoded) || !isFrameTag(decoded.type)) return null;
+  // SAFETY: the two predicates above establish exactly what `ChatEvent`'s
+  // widest member `ChatRawEvent` declares — a keyed frame body with a string
+  // `type`. Tags we model narrow further in `handleRaw`.
+  return decoded as ChatRawEvent;
+}
+
+function parseTextFrame(text: string): ChatEvent | null {
+  try {
+    return toChatEvent(JSON.parse(text) as ChatFrameValue);
+  } catch (err) {
+    console.error("[ChatSocket] failed to parse JSON frame:", err);
+    return null;
+  }
+}
+
+function decodeBinaryFrame(
+  inbound: ArrayBuffer | ArrayBufferView,
+): ChatEvent | null {
+  try {
+    return toChatEvent(unpack(frameBytes(inbound)) as ChatFrameValue);
+  } catch (err) {
+    console.error("[ChatSocket] failed to decode msgpack frame:", err);
+    return null;
+  }
+}
+
+/** Some platforms deliver a Buffer-like view rather than a bare `ArrayBuffer`. */
+function frameBytes(inbound: ArrayBuffer | ArrayBufferView): Uint8Array {
+  return inbound instanceof ArrayBuffer
+    ? new Uint8Array(inbound)
+    : new Uint8Array(inbound.buffer, inbound.byteOffset, inbound.byteLength);
+}
+
+function globalCtor(): WebSocketCtor | null {
+  if (typeof WebSocket !== "undefined") return WebSocket;
+  return null;
+}
