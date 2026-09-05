@@ -81,7 +81,7 @@ export function createPackageConsoleSlice<S extends PackageConsoleSlice>(
       sink = null;
     },
 
-    clearConsole: () => set({ consoleLines: [] } as Partial<S>)
+    clearConsole: () => set({ consoleLines: [] as string[] } as Partial<S>)
   };
 }
 

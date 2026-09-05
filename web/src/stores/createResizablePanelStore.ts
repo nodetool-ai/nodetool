@@ -33,7 +33,12 @@ export interface ResizablePanelActions<View extends string> {
   handleViewChange: (view: View) => void;
 }
 
-type NoExtra = Record<string, never>;
+/**
+ * "This panel adds nothing." `Record<never, never>` has no keys and, crucially,
+ * no index signature — `Record<string, never>` would give the intersected panel
+ * one that types every field as `never`, so no `patch` update is assignable.
+ */
+type NoExtra = Record<never, never>;
 
 export type ResizablePanelStore<
   View extends string,
@@ -130,34 +135,45 @@ export function createResizablePanelStore<
               ({ panel: { ...state.panel, ...update(state.panel) } }) as Partial<Store>
           );
 
+        /**
+         * The same patch, for updates that only touch the shared fields.
+         * `Partial<Panel>` is `Partial<State & Extra>` with `Extra` still a type
+         * parameter, and TypeScript will not assume an unresolved `Extra` leaves
+         * `panelSize` alone — so every base-only update below fails to assign to
+         * it. `Partial<ResizablePanelState<View>>` is fully resolved and does.
+         */
+        const patchBase = (
+          update: (panel: Panel) => Partial<ResizablePanelState<View>>
+        ) => patch(update as (panel: Panel) => Partial<Panel>);
+
         const actions: ResizablePanelActions<View> = {
           setSize: (newSize) =>
-            patch(() => ({
+            patchBase(() => ({
               panelSize:
                 newSize <= sizes.drag ? sizes.drag : Math.min(newSize, sizes.max)
             })),
 
-          setIsDragging: (isDragging) => patch(() => ({ isDragging })),
+          setIsDragging: (isDragging) => patchBase(() => ({ isDragging })),
 
-          setHasDragged: (hasDragged) => patch(() => ({ hasDragged })),
+          setHasDragged: (hasDragged) => patchBase(() => ({ hasDragged })),
 
           initializePanelSize: (size) =>
-            patch(() => ({
+            patchBase(() => ({
               panelSize: Math.max(
                 sizes.min,
                 Math.min(size || sizes.initial, sizes.max)
               )
             })),
 
-          setActiveView: (activeView) => patch(() => ({ activeView })),
+          setActiveView: (activeView) => patchBase(() => ({ activeView })),
 
           closePanel: () =>
-            patch(() => ({ panelSize: sizes.drag, isVisible: false })),
+            patchBase(() => ({ panelSize: sizes.drag, isVisible: false })),
 
           // A drag-collapse persists a sliver-sized panel. Reopening restores
           // at least the usable minimum so it doesn't come back unusable.
           setVisibility: (isVisible) =>
-            patch((panel) => ({
+            patchBase((panel) => ({
               isVisible,
               panelSize:
                 isVisible && panel.panelSize < sizes.min
@@ -166,7 +182,7 @@ export function createResizablePanelStore<
             })),
 
           handleViewChange: (view) =>
-            patch((panel) => {
+            patchBase((panel) => {
               if (panel.activeView !== view) {
                 return { activeView: view, isVisible: true };
               }

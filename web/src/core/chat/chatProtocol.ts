@@ -358,6 +358,14 @@ const applyJobUpdate = (
  * subscription already receives, so a run on an open canvas is not processed
  * twice.
  */
+/**
+ * The job a run frame belongs to. Several members of the union (`log_update`,
+ * `notification`) carry no job id at all, so this reads the field only where it
+ * is present rather than asserting a shape the union does not have.
+ */
+const frameJobId = (update: RunFrame): string | null =>
+  "job_id" in update && isString(update.job_id) ? update.job_id : null;
+
 const applyRunFrame = (
   state: GlobalChatState,
   update: RunFrame,
@@ -380,7 +388,7 @@ const applyRunFrame = (
   // path, so nothing else puts it in the run registry. Without an entry the
   // workflow has no focused job and every per-node footer the canvas reads
   // through it (cost, timing, progress) stays empty.
-  const jobId = update.job_id;
+  const jobId = frameJobId(update);
   if (!jobId) {
     return;
   }

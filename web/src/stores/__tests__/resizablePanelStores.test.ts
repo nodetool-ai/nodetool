@@ -6,48 +6,79 @@
  * panel came back as an unusable sliver — the guard existed only in
  * RightPanelStore before the three stores were unified.
  */
+import type { StoreApi } from "zustand";
+
 import { usePanelStore } from "../PanelStore";
 import { useRightPanelStore } from "../RightPanelStore";
 import { useBottomPanelStore } from "../BottomPanelStore";
 
-const panels = [
-  { name: "left", store: usePanelStore, drag: 60, min: 160 },
-  { name: "right", store: useRightPanelStore, drag: 60, min: 130 },
-  { name: "bottom", store: useBottomPanelStore, drag: 40, min: 200 }
-] as const;
-
-describe.each(panels)("$name panel", ({ store, drag, min }) => {
+/**
+ * Each store carries its own view union, so a table holding the three stores
+ * themselves infers a union of store types — and a union of `setState`
+ * overloads is not callable. Binding each store inside a generic keeps its
+ * concrete type at the call site and hands the table one shared shape.
+ */
+function panelCase<
+  S extends {
+    panel: { panelSize: number; isVisible: boolean };
+    closePanel: () => void;
+    setVisibility: (isVisible: boolean) => void;
+  }
+>(name: string, store: StoreApi<S>, drag: number, min: number) {
   const initial = store.getState();
-  afterEach(() => {
-    store.setState(initial, true);
-  });
+  return {
+    name,
+    drag,
+    min,
+    reset: () => store.setState(initial, true),
+    seedSize: (panelSize: number) =>
+      store.setState({
+        panel: { ...store.getState().panel, panelSize, isVisible: false }
+      } as Partial<S>),
+    panel: () => store.getState().panel,
+    closePanel: () => store.getState().closePanel(),
+    setVisibility: (isVisible: boolean) =>
+      store.getState().setVisibility(isVisible)
+  };
+}
 
-  it("reopens a drag-collapsed panel at the usable minimum", () => {
-    store.getState().closePanel();
-    expect(store.getState().panel.panelSize).toBe(drag);
+const panels = [
+  panelCase("left", usePanelStore, 60, 160),
+  panelCase("right", useRightPanelStore, 60, 130),
+  panelCase("bottom", useBottomPanelStore, 40, 200)
+];
 
-    store.getState().setVisibility(true);
-
-    const { panel } = store.getState();
-    expect(panel.isVisible).toBe(true);
-    expect(panel.panelSize).toBe(min);
-  });
-
-  it("leaves a usable size alone when reopening", () => {
-    store.setState({
-      panel: { ...store.getState().panel, panelSize: min + 40, isVisible: false }
+describe.each(panels)(
+  "$name panel",
+  ({ reset, seedSize, panel, closePanel, setVisibility, drag, min }) => {
+    afterEach(() => {
+      reset();
     });
 
-    store.getState().setVisibility(true);
+    it("reopens a drag-collapsed panel at the usable minimum", () => {
+      closePanel();
+      expect(panel().panelSize).toBe(drag);
 
-    expect(store.getState().panel.panelSize).toBe(min + 40);
-  });
+      setVisibility(true);
 
-  it("keeps the collapsed size while hidden", () => {
-    store.getState().closePanel();
-    store.getState().setVisibility(false);
+      expect(panel().isVisible).toBe(true);
+      expect(panel().panelSize).toBe(min);
+    });
 
-    expect(store.getState().panel.panelSize).toBe(drag);
-    expect(store.getState().panel.isVisible).toBe(false);
-  });
-});
+    it("leaves a usable size alone when reopening", () => {
+      seedSize(min + 40);
+
+      setVisibility(true);
+
+      expect(panel().panelSize).toBe(min + 40);
+    });
+
+    it("keeps the collapsed size while hidden", () => {
+      closePanel();
+      setVisibility(false);
+
+      expect(panel().panelSize).toBe(drag);
+      expect(panel().isVisible).toBe(false);
+    });
+  }
+);
