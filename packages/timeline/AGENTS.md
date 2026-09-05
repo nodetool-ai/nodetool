@@ -58,6 +58,25 @@
   to both sides so the sequence length never changes; either side running out
   of source throws and the store leaves the document alone.
 
+## Drop modes, transitions, keyframes
+
+- **A drop settles once, on release** (`src/dropResolve.ts`). During a drag
+  the store lets a clip overlap; `resolveDrop` then overwrites (trims, splits
+  or removes what the mover covers on its track), inserts (cuts a straddler
+  on the mover's track and shifts every later clip on unlocked tracks by the
+  moved span) or leaves the overlap for the renderer. Linked siblings of a
+  mover are never its victims.
+- **A transition needs two pictures** (`src/transitionAtCut.ts`). The document
+  keeps `transitionIn` on the incoming clip; `applyTransitionAtCut` also
+  extends the abutting predecessor under it by the transition length, so a
+  hard cut becomes a dissolve rather than a fade from transparent. It never
+  exceeds the shorter of the two clips.
+- **Hand-set keyframes are one custom animation** (`src/keyframes.ts`):
+  `preset: "custom"`, role `emphasis`, `params.keyframed`, duration equal to
+  the clip's, one curve per property. The sampler plays it like any custom
+  animation. Times are `t` over the clip, so a trim stretches its keyframes;
+  a caller that needs absolute times converts through `keyframeTimesMs`.
+
 ## Snapping & placement
 
 - **Generate snap-point ticks as `i * interval`, never `t += interval`** —

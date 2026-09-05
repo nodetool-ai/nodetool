@@ -4,6 +4,31 @@ The timeline editor (`/timeline/:sequenceId`) is a generation-aware media
 sequencing surface. Tracks hold imported or AI-generated clips; each clip
 remembers how it was made and can be re-generated, versioned, and exported.
 
+## Editing model
+
+The tracks region follows the editing habits of Premiere and Final Cut, on
+a keyboard layout the user picks in the shortcut sheet (`?`):
+`timelineKeymap.ts` holds the three layouts and the window handler in
+`TracksRegion` resolves every key through it.
+
+- **Ripple** (toolbar toggle): trims and Delete close the gap they would
+  leave, on every unlocked track. Shift+Delete ripple-deletes regardless.
+  Ctrl-drag on a clip edge rolls the cut with its neighbour. Close gap sits
+  in the empty-lane menu.
+- **Drop modes** (toolbar): Overwrite, Insert or Overlap decide what a
+  dropped clip does to the clips under it; Ctrl on release forces Insert.
+- **Edit points**: clicking a trim handle selects that edge. E extends it to
+  the playhead, Ctrl+Shift+arrows nudge it a frame.
+- **Transitions on the cut**: drag the wedge's right edge for length,
+  Ctrl+T cross-fades into the selected clips (the predecessor is extended
+  under them), the clip menu adds or removes one.
+- **Keyframes**: the inspector's Keyframes section keys a property at the
+  playhead; the clip draws them as diamonds. Alt+K keys the armed property.
+- **Source viewer** (Source tab): mark in and out on the explorer's selected
+  asset, then Append, Insert or Overwrite it at the playhead.
+- **Playback**: J/K/L shuttle, I/O mark a loop range shown on the ruler, M
+  adds a marker, Up/Down step between cuts.
+
 ## Phone layout
 
 Below the `sm` breakpoint (`useTimelineIsMobile`, matching `MobileClassProvider`
