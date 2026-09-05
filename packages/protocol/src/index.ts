@@ -27,6 +27,7 @@ export * from "./toolSchemas.js";
 export * from "./creative.js";
 export * from "./screenplay-authoring.js";
 export * from "./script-link.js";
+export * from "./sha256.js";
 export * from "./builtin-packs.js";
 export * from "./triggers.js";
 export * from "./cloud-profile.js";
