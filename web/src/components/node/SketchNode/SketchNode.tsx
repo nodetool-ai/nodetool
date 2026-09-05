@@ -951,12 +951,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   ]);
 
   useEffect(() => {
-    layerIoSignatureRef.current = sketchDoc.layers
-      .map(
-        (l) =>
-          `${l.id}:${l.name}:${Boolean(l.exposedAsInput)}:${Boolean(l.exposedAsOutput)}`
-      )
-      .join("|");
+    layerIoSignatureRef.current = sketchLayerIoSignature(sketchDoc);
   }, [sketchDoc]);
 
   const outputImageUri = useMemo(
@@ -1268,12 +1263,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       // Sync sketch_data to the node when exposure or layer identity changes so
       // handles appear on the canvas without closing the modal — but do not
       // schedule on every paint stroke (debounced full serialize is too heavy).
-      const ioSig = doc.layers
-        .map(
-          (l) =>
-            `${l.id}:${l.name}:${Boolean(l.exposedAsInput)}:${Boolean(l.exposedAsOutput)}`
-        )
-        .join("|");
+      const ioSig = sketchLayerIoSignature(doc);
       if (ioSig !== layerIoSignatureRef.current) {
         layerIoSignatureRef.current = ioSig;
         schedulePendingNodeSync();
