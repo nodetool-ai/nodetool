@@ -190,7 +190,7 @@ export class SaveModel3DNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<SaveModel3DNodeOutputs> {
     // folderPathOf, not String(): `folder` carries a folder ref object, and
     // stringifying it wrote every model into a directory named "[object Object]".
-    const folder = String(this.folder ?? ".");
+    const folder = folderPathOf(this.folder);
     const name = dateName(this.name);
     const full = path.resolve(folder, name);
     await fs.mkdir(path.dirname(full), { recursive: true });

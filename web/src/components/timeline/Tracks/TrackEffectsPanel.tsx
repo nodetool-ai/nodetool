@@ -46,6 +46,8 @@ import {
 import {
   DEVICE_WIDTHS,
   EFFECT_LABELS,
+  KNOBS,
+  type Knob,
   AUDIO_EFFECT_TYPES,
   VIDEO_EFFECT_TYPES
 } from "./trackEffectsConstants";
@@ -268,28 +270,50 @@ const ParamRow: React.FC<ParamRowProps> = memo(
 );
 ParamRow.displayName = "ParamRow";
 
+interface KnobListProps<E extends TrackEffect> {
+  effect: E;
+  knobs: readonly Knob<E>[];
+  onPatch: (patch: Partial<E>) => void;
+  disabled: boolean;
+}
+
+/** The slider rows one effect type declares in {@link KNOBS}, in rack order. */
+const KnobList = <E extends TrackEffect>({
+  effect,
+  knobs,
+  onPatch,
+  disabled
+}: KnobListProps<E>) => (
+  <>
+    {knobs.map((knob) => (
+      <ParamRow
+        key={String(knob.key)}
+        label={knob.label}
+        value={effect[knob.key] as number}
+        min={knob.min}
+        max={knob.max}
+        step={knob.step}
+        unit={knob.unit}
+        format={
+          knob.digits === undefined
+            ? undefined
+            : (v) => v.toFixed(knob.digits)
+        }
+        onChange={(v) => onPatch({ [knob.key]: v } as Partial<E>)}
+        disabled={disabled}
+      />
+    ))}
+  </>
+);
+
 interface EffectEditorProps<E extends TrackEffect> {
   effect: E;
   onPatch: (patch: Partial<E>) => void;
   disabled: boolean;
 }
 
-const GainEditor: React.FC<EffectEditorProps<TrackGainEffect>> = ({
-  effect,
-  onPatch,
-  disabled
-}) => (
-  <ParamRow
-    label="Gain"
-    value={effect.gainDb}
-    min={-24}
-    max={24}
-    step={0.1}
-    unit="dB"
-    format={(v) => v.toFixed(1)}
-    onChange={(v) => onPatch({ gainDb: v })}
-    disabled={disabled}
-  />
+const GainEditor: React.FC<EffectEditorProps<TrackGainEffect>> = (props) => (
+  <KnobList {...props} knobs={KNOBS.gain} />
 );
 
 // 3-Band EQ visualizer (Logic-style)
@@ -813,24 +837,10 @@ const FilterEditor: React.FC<EffectEditorProps<TrackFilterEffect>> = ({
       size="small"
       disabled={disabled}
     />
-    <ParamRow
-      label="Frequency"
-      value={effect.frequency}
-      min={20}
-      max={20000}
-      step={10}
-      unit="Hz"
-      onChange={(v) => onPatch({ frequency: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Q"
-      value={effect.q}
-      min={0.1}
-      max={20}
-      step={0.1}
-      format={(v) => v.toFixed(1)}
-      onChange={(v) => onPatch({ q: v })}
+    <KnobList
+      effect={effect}
+      knobs={KNOBS.filter}
+      onPatch={onPatch}
       disabled={disabled}
     />
   </FlexColumn>
@@ -1291,35 +1301,10 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
         </div>
       </FlexRow>
       <FlexColumn gap={0.5}>
-        <ParamRow
-          label="Attack"
-          value={effect.attackMs}
-          min={0}
-          max={500}
-          step={1}
-          unit="ms"
-          onChange={(v) => onPatch({ attackMs: v })}
-          disabled={disabled}
-        />
-        <ParamRow
-          label="Release"
-          value={effect.releaseMs}
-          min={0}
-          max={2000}
-          step={1}
-          unit="ms"
-          onChange={(v) => onPatch({ releaseMs: v })}
-          disabled={disabled}
-        />
-        <ParamRow
-          label="Knee"
-          value={effect.kneeDb}
-          min={0}
-          max={40}
-          step={0.5}
-          unit="dB"
-          format={(v) => v.toFixed(1)}
-          onChange={(v) => onPatch({ kneeDb: v })}
+        <KnobList
+          effect={effect}
+          knobs={KNOBS.compressor}
+          onPatch={onPatch}
           disabled={disabled}
         />
       </FlexColumn>
@@ -1334,88 +1319,9 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
 
 const ColorCorrectionEditor: React.FC<
   EffectEditorProps<TrackColorCorrectionEffect>
-> = ({ effect, onPatch, disabled }) => (
+> = (props) => (
   <FlexColumn gap={0.5}>
-    <ParamRow
-      label="Brightness"
-      value={effect.brightness}
-      min={-1}
-      max={1}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ brightness: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Contrast"
-      value={effect.contrast}
-      min={0}
-      max={4}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ contrast: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Saturation"
-      value={effect.saturation}
-      min={0}
-      max={4}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ saturation: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Hue"
-      value={effect.hue}
-      min={-180}
-      max={180}
-      step={1}
-      unit="°"
-      onChange={(v) => onPatch({ hue: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Temp"
-      value={effect.temperature}
-      min={-1}
-      max={1}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ temperature: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Tint"
-      value={effect.tint}
-      min={-1}
-      max={1}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ tint: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Shadows"
-      value={effect.shadows}
-      min={-1}
-      max={1}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ shadows: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Highlights"
-      value={effect.highlights}
-      min={-1}
-      max={1}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ highlights: v })}
-      disabled={disabled}
-    />
+    <KnobList {...props} knobs={KNOBS.colorCorrection} />
   </FlexColumn>
 );
 
@@ -1448,45 +1354,21 @@ const VideoBlurEditor: React.FC<
           }}
         />
       </div>
-      <ParamRow
-        label="Radius"
-        value={effect.radius}
-        min={0}
-        max={40}
-        step={0.5}
-        unit="px"
-        format={(v) => v.toFixed(1)}
-        onChange={(v) => onPatch({ radius: v })}
+      <KnobList
+        effect={effect}
+        knobs={KNOBS.videoBlur}
+        onPatch={onPatch}
         disabled={disabled}
       />
     </FlexColumn>
   );
 };
 
-const SharpenEditor: React.FC<
-  EffectEditorProps<TrackSharpenEffect>
-> = ({ effect, onPatch, disabled }) => (
+const SharpenEditor: React.FC<EffectEditorProps<TrackSharpenEffect>> = (
+  props
+) => (
   <FlexColumn gap={0.5}>
-    <ParamRow
-      label="Amount"
-      value={effect.amount}
-      min={0}
-      max={2}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ amount: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Threshold"
-      value={effect.threshold}
-      min={0}
-      max={1}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ threshold: v })}
-      disabled={disabled}
-    />
+    <KnobList {...props} knobs={KNOBS.sharpen} />
   </FlexColumn>
 );
 
@@ -1516,34 +1398,10 @@ const VignetteEditor: React.FC<
           }}
         />
       </div>
-      <ParamRow
-        label="Intensity"
-        value={effect.intensity}
-        min={0}
-        max={1}
-        step={0.01}
-        format={(v) => v.toFixed(2)}
-        onChange={(v) => onPatch({ intensity: v })}
-        disabled={disabled}
-      />
-      <ParamRow
-        label="Radius"
-        value={effect.radius}
-        min={0.1}
-        max={1.5}
-        step={0.01}
-        format={(v) => v.toFixed(2)}
-        onChange={(v) => onPatch({ radius: v })}
-        disabled={disabled}
-      />
-      <ParamRow
-        label="Softness"
-        value={effect.softness}
-        min={0}
-        max={1}
-        step={0.01}
-        format={(v) => v.toFixed(2)}
-        onChange={(v) => onPatch({ softness: v })}
+      <KnobList
+        effect={effect}
+        knobs={KNOBS.vignette}
+        onPatch={onPatch}
         disabled={disabled}
       />
     </FlexColumn>
@@ -1598,34 +1456,10 @@ const ChromaKeyEditor: React.FC<
           {effect.keyColor.toUpperCase()}
         </span>
       </FlexRow>
-      <ParamRow
-        label="Tolerance"
-        value={effect.tolerance}
-        min={0}
-        max={1}
-        step={0.01}
-        format={(v) => v.toFixed(2)}
-        onChange={(v) => onPatch({ tolerance: v })}
-        disabled={disabled}
-      />
-      <ParamRow
-        label="Softness"
-        value={effect.softness}
-        min={0}
-        max={1}
-        step={0.01}
-        format={(v) => v.toFixed(2)}
-        onChange={(v) => onPatch({ softness: v })}
-        disabled={disabled}
-      />
-      <ParamRow
-        label="Spill"
-        value={effect.spill}
-        min={0}
-        max={1}
-        step={0.01}
-        format={(v) => v.toFixed(2)}
-        onChange={(v) => onPatch({ spill: v })}
+      <KnobList
+        effect={effect}
+        knobs={KNOBS.chromaKey}
+        onPatch={onPatch}
         disabled={disabled}
       />
     </FlexColumn>

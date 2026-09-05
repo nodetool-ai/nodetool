@@ -415,8 +415,40 @@ export type ProviderStreamItem = { type: string };
 export type ProviderTool = { name: string };
 export type Chunk = { type: "chunk"; content: string };
 
-// protocol
-export type {}; // nothing needed
+// protocol — the named type predicates `src/predicates.ts` re-exports. These
+// are pure and have no dependencies, so the stub carries the real behaviour:
+// a stubbed-away `isString` silently returns undefined and every narrowing
+// call site takes the wrong branch.
+export function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+export function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+export function isNonBlankString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+export function isNumber(value: unknown): value is number {
+  return typeof value === "number";
+}
+export function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+export function isPositiveFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+export function isBoolean(value: unknown): value is boolean {
+  return typeof value === "boolean";
+}
+export function isObjectLike(value: unknown): value is object {
+  return typeof value === "object" && value !== null;
+}
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+export function isCallable(value: unknown): value is (...args: never[]) => unknown {
+  return typeof value === "function";
+}
 
 // marked (used by markdown.ts — not available at repo root)
 export const marked = Object.assign((_text: string) => _text, {

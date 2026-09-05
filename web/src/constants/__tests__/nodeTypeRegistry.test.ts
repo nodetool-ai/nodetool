@@ -31,7 +31,12 @@ const KNOWN_ORPHANS: Record<string, string> = {
 };
 
 const PACKAGES_DIR = resolve(__dirname, "../../../../packages");
-const NODE_TYPE_DECLARATION = /static\s+readonly\s+nodeType\s*=\s*"([^"]+)"/g;
+/**
+ * The three ways a package spells a node id: `static readonly nodeType = "…"`,
+ * a factory config's `nodeType: "…"`, and a `const X_NODE_TYPE = "…"` the class
+ * then assigns.
+ */
+const NODE_TYPE_DECLARATION = /(?:nodeType|NODE_TYPE)\s*[=:]\s*"([^"]+)"/g;
 
 function collectTsFiles(dir: string, out: string[]): void {
   for (const entry of readdirSync(dir)) {

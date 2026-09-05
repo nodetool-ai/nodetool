@@ -156,7 +156,14 @@ export function createResizablePanelStore<
 
           // A drag-collapse persists a sliver-sized panel. Reopening restores
           // at least the usable minimum so it doesn't come back unusable.
-          setVisibility: (isVisible) => patch(() => ({ isVisible })),
+          setVisibility: (isVisible) =>
+            patch((panel) => ({
+              isVisible,
+              panelSize:
+                isVisible && panel.panelSize < sizes.min
+                  ? sizes.min
+                  : panel.panelSize
+            })),
 
           handleViewChange: (view) =>
             patch((panel) => {
