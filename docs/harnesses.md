@@ -917,6 +917,37 @@ answers "how big is this and where is it" without one. Implementations:
 `packages/agents/src/capabilities/model3d.ts`. The `ui_3d_*` tools remain the
 path when the model is open in a browser.
 
+### Godot game pipeline (templates, slot nodes, project export)
+
+A 2D game is a Godot template plus the assets that fill its slots.
+**`list_game_templates`** lists the shipped Godot 4.3 projects (platformer,
+top-down, shoot-em-up) with the slot manifest each one declares: sprite sheets
+with named animations and frame counts, tilesets, seamless backgrounds, sound
+effects, a music loop, and the hook scripts an agent edits after export. The
+`nodetool.game.*` nodes fill one slot each and stamp the fill on the stored
+asset under `metadata.nodetool_slot`: `SpriteSheet` derives frame ranges from
+a generated sheet and the cell size, `Tileset` counts tiles, `SeamlessImage`
+measures the opposite edges, `SoundEffect` trims to the slot's length, and
+`MusicLoop` crossfades the tail into the head. **`export_godot_project`** takes
+the template id and one asset per slot, checks every fill against the
+manifest, copies the template into a workspace directory, writes the
+`SpriteFrames` and `TileSet` resources with atlas regions and collision from
+the fills, copies the asset bytes to the paths the scenes reference, and
+reports any `res://` reference no file answers. **`verify_godot_project`** runs
+headless Godot over a project directory: import, `--check-only` on every
+script, and `test/smoke.gd` for sixty physics frames. Both say when Godot
+could not run (no binary, or a virtual workspace) rather than reporting green.
+
+The slot contract and the acceptance check are `@nodetool-ai/protocol`
+(`game-assets.ts`, fixture under `fixtures/game-assets/`), the resource writer
+and reference checker are `@nodetool-ai/godot`, the templates and the runner
+are `@nodetool-ai/godot-templates`. A template's placeholders sit at the
+exact paths the writer emits, so the template runs before any asset exists
+and a filled export replaces files without touching a scene. Godot is found
+through `GODOT_BIN` or `godot`/`godot4`/`Godot` on `PATH`; the suites that
+need it skip with a named reason when it is absent. Implementations:
+`packages/agents/src/capabilities/godot.ts`.
+
 ### Entity library tools (no browser)
 
 The reusable production entities — characters, locations, styles, props — are

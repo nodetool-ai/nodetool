@@ -110,6 +110,10 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   validate_model3d: "read",
   list_model3ds: "read",
   get_model3d: "read",
+  // Templates are package data; verifying runs Godot over files already in
+  // the workspace and writes only its import cache.
+  list_game_templates: "read",
+  verify_godot_project: "read",
   // Measuring media decodes it in-process and writes nothing.
   analyze_audio: "read",
   analyze_audio_spectrum: "read",
@@ -287,6 +291,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   create_model3d: "write",
   // Renders the model through Blender and stores the PNG as an asset.
   render_model3d: "write",
+  export_godot_project: "write",
   save_js_script: "write",
   edit_script: "write",
   edit_storyboard: "write",

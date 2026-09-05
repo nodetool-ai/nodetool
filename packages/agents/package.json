@@ -26,6 +26,8 @@
     "@nodetool-ai/browser": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/execution": "*",
+    "@nodetool-ai/godot": "*",
+    "@nodetool-ai/godot-templates": "*",
     "@nodetool-ai/image-editor": "*",
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/model-pricing": "*",
