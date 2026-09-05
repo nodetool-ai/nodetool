@@ -75,7 +75,7 @@ does it with a smaller view of the run than the caller has.
 ### Tests
 
 - `packages/runtime/tests/agent-memory.test.ts` — unit tests for `AgentMemory`
-- `packages/agents/tests/memory-tools.test.ts` — unit tests for the `shared` capabilities `list_shared` / `read_shared` / `share_result`, and the belt `getMemoryTools()` builds from them
+- `packages/agents/tests/shared-tools.test.ts` — unit tests for the `shared` capabilities `list_shared` / `read_shared` / `share_result`, and the belt `getSharedTools()` builds from them
 - `packages/agents/tests/memory-propagation.test.ts` — end-to-end through `execute_plan`, `TaskExecutor` and `StepExecutor`, including a fake-provider round trip that drives `list_shared` → `read_shared` → `finish_step`
 - `packages/agents/tests/_helpers/mock-context.ts` — shared mock context with a real `AgentMemory` for executor tests
 
@@ -1022,13 +1022,9 @@ await gmail_send_message({ to: "a@b.c", subject: "Invoices", body: String(files.
 ```
 
 ```ts
-import {
-  getGoogleWorkspaceTools,
-  registerGoogleWorkspaceTools
-} from "@nodetool-ai/agents";
+import { getGoogleWorkspaceTools } from "@nodetool-ai/agents";
 
 if (isGoogleWorkspaceEnabled()) {
-  registerGoogleWorkspaceTools();   // makes resolveTool(name) work
   toolbelt.push(...getGoogleWorkspaceTools());
 }
 ```

@@ -231,8 +231,7 @@ export interface NodeStoreState {
   autoLayout: () => Promise<void>;
   workflowIsDirty: boolean;
   shouldFitToScreen: boolean;
-  fitViewTargetNodeIds: string[] | null;
-  setShouldFitToScreen: (value: boolean, nodeIds?: string[] | null) => void;
+  setShouldFitToScreen: (value: boolean) => void;
   selectAllNodes: () => void;
   cleanup: () => void;
   toggleBypass: (nodeId: string) => void;
@@ -377,7 +376,6 @@ export const createNodeStore = (
           edgeUpdateSuccessful: false,
           hoveredNodes: [],
           shouldFitToScreen: state?.shouldFitToScreen ?? true,
-          fitViewTargetNodeIds: state?.fitViewTargetNodeIds ?? null,
           connectionAttempted: false,
           setConnectionAttempted: (value: boolean): void =>
             set({ connectionAttempted: value }),
@@ -1223,14 +1221,8 @@ export const createNodeStore = (
             get().setNodes(updatedNodes);
             set({ shouldFitToScreen: true });
           },
-          setShouldFitToScreen: (
-            value: boolean,
-            nodeIds?: string[] | null
-          ): void => {
-            set({
-              shouldFitToScreen: value,
-              fitViewTargetNodeIds: nodeIds ?? null
-            });
+          setShouldFitToScreen: (value: boolean): void => {
+            set({ shouldFitToScreen: value });
           },
           setNodes: (
             nodesOrCallback:

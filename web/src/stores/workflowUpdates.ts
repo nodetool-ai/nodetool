@@ -775,7 +775,7 @@ const validationIssueNotification = (
         const target = findNode(firstIssue.node_id);
         if (!target) return;
         setSelectedNodes([target]);
-        setShouldFitToScreen(true, [firstIssue.node_id]);
+        setShouldFitToScreen(true);
       }
     }
   };

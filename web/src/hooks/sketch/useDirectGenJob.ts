@@ -29,13 +29,6 @@ function assetIdFromUri(uri: string | undefined | null): string | null {
   return dot > 0 ? rest.slice(0, dot) : rest;
 }
 
-function randomId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-}
-
 interface DirectGenRpcResponse extends WebSocketMessage {
   type: "rpc_response";
   request_id: string;
@@ -146,7 +139,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
     // settle on top of this one.
     clearInFlight(layerId);
 
-    const requestId = randomId();
+    const requestId = crypto.randomUUID();
     bindings.patchBinding(layerId, { status: "generating" });
 
     let unsubscribe: (() => void) | undefined;

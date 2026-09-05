@@ -15,11 +15,6 @@ import type {
 const STRING_INPUT_TYPE = "nodetool.input.StringInput";
 const OUTPUT_TYPE = "nodetool.output.Output";
 
-const generateId = (): string =>
-  typeof crypto !== "undefined" && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `n_${Math.random().toString(36).slice(2, 12)}`;
-
 const computeCentroid = (nodes: RFNode<NodeData>[]) => {
   if (nodes.length === 0) return { x: 0, y: 0 };
   let xSum = 0;
@@ -94,7 +89,7 @@ function buildPlan(
       let port = inputPortByKey.get(key);
       if (!port) {
         const portName = `in${inputCounter++}`;
-        const inputNodeId = generateId();
+        const inputNodeId = crypto.randomUUID();
         port = { portName, inputNodeId };
         inputPortByKey.set(key, port);
         innerNodes.push({
@@ -108,7 +103,7 @@ function buildPlan(
           ui_properties: { position: inputXY() }
         });
         innerEdges.push({
-          id: generateId(),
+          id: crypto.randomUUID(),
           source: inputNodeId,
           sourceHandle: "output",
           target: edge.target,
@@ -118,7 +113,7 @@ function buildPlan(
       }
       outerEdgesToAdd.push({
         ...edge,
-        id: generateId(),
+        id: crypto.randomUUID(),
         target: subgraphId,
         targetHandle: port.portName
       });
@@ -133,7 +128,7 @@ function buildPlan(
       let port = outputPortByKey.get(key);
       if (!port) {
         const portName = `out${outputCounter++}`;
-        const outputNodeId = generateId();
+        const outputNodeId = crypto.randomUUID();
         port = { portName, outputNodeId };
         outputPortByKey.set(key, port);
         innerNodes.push({
@@ -147,7 +142,7 @@ function buildPlan(
           ui_properties: { position: outputXY() }
         });
         innerEdges.push({
-          id: generateId(),
+          id: crypto.randomUUID(),
           source: edge.source,
           sourceHandle: handle,
           target: outputNodeId,
@@ -157,7 +152,7 @@ function buildPlan(
       }
       outerEdgesToAdd.push({
         ...edge,
-        id: generateId(),
+        id: crypto.randomUUID(),
         source: subgraphId,
         sourceHandle: port.portName
       });
