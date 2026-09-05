@@ -28,6 +28,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import AddIcon from "@mui/icons-material/Add";
+import CompressOutlinedIcon from "@mui/icons-material/CompressOutlined";
+import { findGap } from "@nodetool-ai/timeline";
 import TitleIcon from "@mui/icons-material/Title";
 
 import {
@@ -121,6 +123,8 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const setRubberBand = useTimelineUIStore((s) => s.setRubberBand);
   const addImportedClip = useTimelineStore((s) => s.addImportedClip);
   const addClip = useTimelineStore((s) => s.addClip);
+  const closeGapAt = useTimelineStore((s) => s.closeGapAt);
+  const resolveDropInStore = useTimelineStore((s) => s.resolveDrop);
   const importVideoWithAudio = useVideoAudioImport();
 
   const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
@@ -304,7 +308,8 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       if (mediaType === "video" && track.type === "video") {
         void importVideoWithAudio(asset, track.id, startMs);
       } else {
-        addImportedClip(asset, track.id, startMs);
+        const newId = addImportedClip(asset, track.id, startMs);
+        resolveDropInStore(new Set([newId]), useTimelineUIStore.getState().dropMode);
       }
     },
     [
@@ -313,6 +318,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       track.id,
       msPerPx,
       addImportedClip,
+      resolveDropInStore,
       importVideoWithAudio,
       showWarning
     ]
@@ -546,6 +552,21 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     [track.locked, openLaneMenuAt]
   );
 
+  // Read once per menu open, not subscribed: the lane must not re-render on
+  // every clip mutation for a menu that is closed almost all the time.
+  const menuGap =
+    contextMenuPos === null
+      ? null
+      : findGap(timelineStore.getState().clips, track.id, contextMenuPos.startMs);
+
+  const handleCloseGap = useCallback(() => {
+    if (!contextMenuPos) {
+      return;
+    }
+    closeGapAt(track.id, contextMenuPos.startMs);
+    setContextMenuPos(null);
+  }, [closeGapAt, contextMenuPos, track.id]);
+
   const handleAddClipFromMenu = useCallback(() => {
     if (!contextMenuPos) {
       return;
@@ -648,6 +669,14 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
           onClick={handleAddClipFromMenu}
           compact
         />
+        {menuGap && (
+          <MenuItemPrimitive
+            label="Close gap"
+            icon={<CompressOutlinedIcon fontSize="small" />}
+            onClick={handleCloseGap}
+            compact
+          />
+        )}
       </ContextMenu>
 
       {/* Invisible anchor for AddClipMenu, positioned at click location */}

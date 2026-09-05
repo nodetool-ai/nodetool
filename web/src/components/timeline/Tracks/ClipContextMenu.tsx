@@ -7,6 +7,9 @@ import ImageIcon from "@mui/icons-material/Image";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import GradientOutlinedIcon from "@mui/icons-material/GradientOutlined";
+import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { findClipById } from "../../../stores/timeline/clipLookup";
 
 import { ContextMenu, MenuItemPrimitive } from "../../ui_primitives";
 import {
@@ -40,6 +43,11 @@ export function ClipContextMenu({
   onError
 }: ClipContextMenuProps) {
   const actions = useClipMenuActions(clipId, { onRequestReplace, onError });
+  const hasTransition = useTimelineStore(
+    (s) => (findClipById(s.clips, clipId)?.transitionIn?.durationMs ?? 0) > 0
+  );
+  const applyDefaultTransition = useTimelineStore((s) => s.applyDefaultTransition);
+  const removeTransition = useTimelineStore((s) => s.removeTransition);
 
   const run = (fn: () => void) => () => {
     fn();
@@ -59,6 +67,16 @@ export function ClipContextMenu({
         icon={<ContentCopyIcon fontSize="small" />}
         compact
         onClick={run(actions.duplicate)}
+      />
+      <MenuItemPrimitive
+        label={hasTransition ? "Remove transition" : "Cross-fade in"}
+        icon={<GradientOutlinedIcon fontSize="small" />}
+        compact
+        onClick={run(() =>
+          hasTransition
+            ? removeTransition(clipId)
+            : applyDefaultTransition(new Set([clipId]))
+        )}
       />
       {actions.isGenerated && (
         <MenuItemPrimitive

@@ -34,6 +34,16 @@ import {
   moveGroup,
   splitClip,
   trimClip,
+  rippleTrim,
+  rollEdit,
+  rippleDelete,
+  closeGap,
+  resolveDrop,
+  applyTransitionAtCut,
+  removeTransitionAtCut,
+  DEFAULT_TRANSITION_MS,
+  setKeyframe,
+  removeKeyframe,
   trimGroup,
   ungroup,
   snap,
@@ -43,6 +53,7 @@ import {
   makeTrackEffect,
   createTimeOrderedUuid
 } from "@nodetool-ai/timeline";
+import type { AnimatedProperty, DropMode } from "@nodetool-ai/timeline";
 import type {
   TimelineSequence,
   TimelineTrack,
@@ -101,6 +112,11 @@ export interface TimelineStoreState {
    */
   scriptEnabled: boolean;
   /**
+   * Linked selection: a clip's linked siblings (a video and its extracted
+   * audio) move and trim with it. Editor state, not part of the document.
+   */
+  linkedSelection: boolean;
+  /**
    * The document as the editor last read or wrote it — the merge base for an
    * external change into a dirty draft. Refreshed by `loadSequence` and by
    * `setBaseUpdatedAt` (which only autosave calls after a landed write).
@@ -149,6 +165,7 @@ export interface TimelineStoreState {
   ) => void;
   /** Show or hide the script feature (non-destructive; does not touch clips). */
   setScriptEnabled: (enabled: boolean) => void;
+  setLinkedSelection: (on: boolean) => void;
 
   /**
    * Patch the project settings — canvas resolution (`width`/`height`) and frame
@@ -251,6 +268,77 @@ export interface TimelineStoreState {
     maxSourceDurationMs?: number
   ) => void;
 
+  /**
+   * Trim an edge and ripple: every clip on an unlocked track that started at
+   * or after the clip's old end moves by the change in duration. Same delta
+   * convention as trimClipStart/trimClipEnd. A start-edge ripple keeps the
+   * clip parked at its startMs. Invalid trims no-op.
+   */
+  rippleTrimClipStart: (clipId: string, deltaMs: number) => void;
+  rippleTrimClipEnd: (
+    clipId: string,
+    deltaMs: number,
+    maxSourceDurationMs?: number
+  ) => void;
+
+  /**
+   * Roll the cut on one edge of a clip: the neighbour across the cut gives up
+   * what this clip gains. Positive delta moves the cut later. No-ops when the
+   * edge has no neighbour or either side runs out of source.
+   */
+  rollClipEdge: (
+    clipId: string,
+    edge: "start" | "end",
+    deltaMs: number
+  ) => void;
+
+  /** Delete the selection and close the time it covered on unlocked tracks. */
+  rippleDeleteSelected: (selectedIds: Set<string>) => void;
+
+  /** Close the empty stretch on `trackId` containing `timeMs`. */
+  closeGapAt: (trackId: string, timeMs: number) => void;
+
+  /**
+   * Settle a finished drop: overwrite what the moved clips cover, insert and
+   * push everything right, or leave the overlap for the renderer.
+   */
+  resolveDrop: (movedIds: ReadonlySet<string>, mode: DropMode) => void;
+
+  /**
+   * Cross-fade into each clip: its abutting predecessor is extended under it
+   * by the transition length so the dissolve has two pictures. A clip that
+   * already carries a transition keeps its type. One undo step.
+   */
+  applyDefaultTransition: (clipIds: ReadonlySet<string>, durationMs?: number) => void;
+  /** Resize a clip's incoming transition, growing the predecessor as needed. */
+  setTransitionDuration: (clipId: string, durationMs: number) => void;
+  removeTransition: (clipId: string) => void;
+
+  /** Keyframe `property` at a clip-relative time (see `keyframes.ts`). */
+  setClipKeyframe: (
+    clipId: string,
+    property: AnimatedProperty,
+    atMs: number,
+    value: number
+  ) => void;
+  removeClipKeyframe: (
+    clipId: string,
+    property: AnimatedProperty,
+    atMs: number
+  ) => void;
+
+  /**
+   * Add the marked range of an asset as a clip (three-point editing from the
+   * source viewer). Returns the new clip's id.
+   */
+  addSourceRange: (
+    asset: Asset,
+    trackId: string,
+    startMs: number,
+    inMs: number,
+    outMs: number
+  ) => string;
+
   /** Split the clip at the given time. The clip must contain that time. */
   splitClipAtTime: (clipId: string, atMs: number) => void;
 
@@ -309,7 +397,7 @@ export interface TimelineStoreState {
    * The clip geometry is derived from the asset's content type and duration.
    * Use this action to add clips created by asset drag-and-drop.
    */
-  addImportedClip: (asset: Asset, trackId: string, startMs: number) => void;
+  addImportedClip: (asset: Asset, trackId: string, startMs: number) => string;
 
   /** Update an arbitrary subset of fields on a clip. */
   patchClip: (clipId: string, patch: Partial<TimelineClip>) => void;
@@ -617,6 +705,50 @@ function patchById<T extends { id: string }>(
   return items.map((it) => (it.id === id ? { ...it, ...patch } : it));
 }
 
+/** Ids of the tracks a ripple must leave alone. */
+function lockedTrackIds(tracks: readonly TimelineTrack[]): Set<string> {
+  return new Set(tracks.filter((t) => t.locked).map((t) => t.id));
+}
+
+/**
+ * Remove `ids` from `clips`: a deleted group releases its children, and a
+ * link group left with one member drops its linkId.
+ */
+function removeClipsLinkAware(
+  clips: readonly TimelineClip[],
+  ids: ReadonlySet<string>
+): TimelineClip[] {
+  const affectedLinkIds = new Set<string>();
+  let remaining: TimelineClip[] = [...clips];
+  for (const c of clips) {
+    if (!ids.has(c.id)) continue;
+    if (c.linkId !== undefined) affectedLinkIds.add(c.linkId);
+    if (isGroupClip(c)) remaining = ungroup(remaining, c.id);
+  }
+  const next = remaining.filter((c) => !ids.has(c.id));
+
+  if (affectedLinkIds.size > 0) {
+    const linkCounts = new Map<string, number>();
+    const lastSeenLinkIndex = new Map<string, number>();
+    for (let j = 0; j < next.length; j++) {
+      const linkId = next[j].linkId;
+      if (linkId !== undefined && affectedLinkIds.has(linkId)) {
+        const count = (linkCounts.get(linkId) ?? 0) + 1;
+        linkCounts.set(linkId, count);
+        if (count === 1) {
+          lastSeenLinkIndex.set(linkId, j);
+        } else if (count === 2) {
+          lastSeenLinkIndex.delete(linkId);
+        }
+      }
+    }
+    for (const idx of lastSeenLinkIndex.values()) {
+      next[idx] = { ...next[idx], linkId: undefined };
+    }
+  }
+  return next;
+}
+
 // ── Scene split/merge helpers (pure) ───────────────────────────────────────
 
 /**
@@ -815,6 +947,7 @@ const emptyState = {
   markers: [],
   transcript: [],
   scriptEnabled: false,
+  linkedSelection: true,
   syncedDocument: null
 } satisfies {
   sequenceId: string | null;
@@ -828,6 +961,7 @@ const emptyState = {
   markers: TimelineMarker[];
   transcript: TranscriptLine[];
   scriptEnabled: boolean;
+  linkedSelection: boolean;
   syncedDocument: TimelineStoreState["syncedDocument"];
 };
 
@@ -987,6 +1121,8 @@ export const createTimelineStore = (
           }),
 
         setScriptEnabled: (enabled) => set({ scriptEnabled: enabled }),
+
+        setLinkedSelection: (on) => set({ linkedSelection: on }),
 
         setProjectSettings: (patch) =>
           set((state) => {
@@ -1264,7 +1400,7 @@ export const createTimelineStore = (
             }
 
             const linkedIds =
-              clip.linkId !== undefined
+              state.linkedSelection && clip.linkId !== undefined
                 ? new Set(
                     state.clips
                       .filter(
@@ -1342,7 +1478,9 @@ export const createTimelineStore = (
             const carried = new Set<string>();
             for (const c of state.clips) {
               if (!selectedIds.has(c.id)) continue;
-              if (c.linkId !== undefined) selectedLinkIds.add(c.linkId);
+              if (state.linkedSelection && c.linkId !== undefined) {
+                selectedLinkIds.add(c.linkId);
+              }
               if (isGroupClip(c)) {
                 for (const id of groupDescendantIds(state.clips, c.id)) {
                   carried.add(id);
@@ -1399,7 +1537,7 @@ export const createTimelineStore = (
                 return state;
               }
             }
-            const linkId = clip.linkId;
+            const linkId = state.linkedSelection ? clip.linkId : undefined;
             // All-or-nothing: compute the primary AND every linked sibling
             // first. If any trim is invalid, abort so the link never desyncs.
             const trimmed = new Map<string, TimelineClip>();
@@ -1444,7 +1582,7 @@ export const createTimelineStore = (
                 return state;
               }
             }
-            const linkId = clip.linkId;
+            const linkId = state.linkedSelection ? clip.linkId : undefined;
             // All-or-nothing: compute the primary AND every linked sibling
             // first. If any trim is invalid, abort so the link never desyncs.
             const trimmed = new Map<string, TimelineClip>();
@@ -1464,6 +1602,141 @@ export const createTimelineStore = (
               clips: state.clips.map((c) => trimmed.get(c.id) ?? c)
             };
           }),
+
+        rippleTrimClipStart: (clipId, deltaMs) =>
+          set((state) => {
+            try {
+              return {
+                clips: rippleTrim(state.clips, clipId, "start", deltaMs, {
+                  lockedTrackIds: lockedTrackIds(state.tracks),
+                  followLinks: state.linkedSelection
+                })
+              };
+            } catch {
+              return state;
+            }
+          }),
+
+        rippleTrimClipEnd: (clipId, deltaMs, maxSourceDurationMs) =>
+          set((state) => {
+            try {
+              return {
+                clips: rippleTrim(state.clips, clipId, "end", deltaMs, {
+                  lockedTrackIds: lockedTrackIds(state.tracks),
+                  followLinks: state.linkedSelection,
+                  maxSourceDurationMs
+                })
+              };
+            } catch {
+              return state;
+            }
+          }),
+
+        rollClipEdge: (clipId, edge, deltaMs) =>
+          set((state) => {
+            try {
+              return {
+                clips: rollEdit(state.clips, clipId, edge, deltaMs, {
+                  followLinks: state.linkedSelection
+                })
+              };
+            } catch {
+              return state;
+            }
+          }),
+
+        rippleDeleteSelected: (selectedIds) =>
+          set((state) => {
+            // Which clips left and the spans they covered come from the
+            // pre-delete array; the shift runs over the survivors.
+            const removed = state.clips.filter((c) => selectedIds.has(c.id));
+            if (removed.length === 0) return state;
+            const survivors = removeClipsLinkAware(state.clips, selectedIds);
+            return {
+              clips: rippleDelete([...removed, ...survivors], selectedIds, {
+                lockedTrackIds: lockedTrackIds(state.tracks)
+              })
+            };
+          }),
+
+        closeGapAt: (trackId, timeMs) =>
+          set((state) => {
+            const next = closeGap(state.clips, trackId, timeMs, {
+              lockedTrackIds: lockedTrackIds(state.tracks)
+            });
+            return next.length === state.clips.length &&
+              next.every((c, i) => c === state.clips[i])
+              ? state
+              : { clips: next };
+          }),
+
+        resolveDrop: (movedIds, mode) =>
+          set((state) => {
+            if (mode === "overlap") return state;
+            return {
+              clips: resolveDrop(state.clips, movedIds, mode, {
+                lockedTrackIds: lockedTrackIds(state.tracks)
+              })
+            };
+          }),
+
+        applyDefaultTransition: (clipIds, durationMs = DEFAULT_TRANSITION_MS) =>
+          set((state) => {
+            let clips: TimelineClip[] = state.clips;
+            for (const id of clipIds) {
+              if (!clips.some((c) => c.id === id)) continue;
+              clips = applyTransitionAtCut(clips, id, durationMs);
+            }
+            return clips === state.clips ? state : { clips };
+          }),
+
+        setTransitionDuration: (clipId, durationMs) =>
+          set((state) => {
+            if (!state.clips.some((c) => c.id === clipId)) return state;
+            return { clips: applyTransitionAtCut(state.clips, clipId, durationMs) };
+          }),
+
+        removeTransition: (clipId) =>
+          set((state) => ({ clips: removeTransitionAtCut(state.clips, clipId) })),
+
+        setClipKeyframe: (clipId, property, atMs, value) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip) return state;
+            const animations = setKeyframe(clip, property, atMs, value);
+            return {
+              clips: state.clips.map((c) =>
+                c.id === clipId ? { ...c, animations } : c
+              )
+            };
+          }),
+
+        removeClipKeyframe: (clipId, property, atMs) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip) return state;
+            const animations = removeKeyframe(clip, property, atMs);
+            return {
+              clips: state.clips.map((c) =>
+                c.id === clipId ? { ...c, animations } : c
+              )
+            };
+          }),
+
+        addSourceRange: (asset, trackId, startMs, inMs, outMs) => {
+          const base = assetToClip(asset, trackId, startMs);
+          const ranged: TimelineClip =
+            base.mediaType === "image"
+              ? { ...base, durationMs: Math.max(1, outMs - inMs) || base.durationMs }
+              : {
+                  ...base,
+                  inPointMs: inMs,
+                  outPointMs: outMs,
+                  durationMs: Math.max(1, outMs - inMs)
+                };
+          set((state) => ({ clips: [...state.clips, ranged] }));
+          return ranged.id;
+        },
 
         splitClipAtTime: (clipId, atMs) =>
           set((state) => {
@@ -1534,44 +1807,9 @@ export const createTimelineStore = (
         },
 
         deleteSelected: (selectedIds) =>
-          set((state) => {
-            // Link ids touched by the removal — survivors that drop below two
-            // members are unlinked so they don't keep a dangling linkId.
-            const affectedLinkIds = new Set<string>();
-            let remaining = state.clips;
-            for (const c of state.clips) {
-              if (!selectedIds.has(c.id)) continue;
-              if (c.linkId !== undefined) affectedLinkIds.add(c.linkId);
-              // Same rule as `deleteClip`: a deleted group releases its
-              // children rather than taking them with it (D4).
-              if (isGroupClip(c)) remaining = ungroup(remaining, c.id);
-            }
-            let clips = remaining.filter((c) => !selectedIds.has(c.id));
-
-            if (affectedLinkIds.size > 0) {
-              const linkCounts = new Map<string, number>();
-              const lastSeenLinkIndex = new Map<string, number>();
-
-              for (let j = 0; j < clips.length; j++) {
-                const linkId = clips[j].linkId;
-                if (linkId !== undefined && affectedLinkIds.has(linkId)) {
-                  const count = (linkCounts.get(linkId) ?? 0) + 1;
-                  linkCounts.set(linkId, count);
-                  if (count === 1) {
-                    lastSeenLinkIndex.set(linkId, j);
-                  } else if (count === 2) {
-                    lastSeenLinkIndex.delete(linkId);
-                  }
-                }
-              }
-
-              for (const idx of lastSeenLinkIndex.values()) {
-                clips[idx] = { ...clips[idx], linkId: undefined };
-              }
-            }
-
-            return { clips };
-          }),
+          set((state) => ({
+            clips: removeClipsLinkAware(state.clips, selectedIds)
+          })),
 
         deleteClip: (clipId) =>
           set((state) => {
@@ -1617,6 +1855,7 @@ export const createTimelineStore = (
         addImportedClip: (asset, trackId, startMs) => {
           const clip = assetToClip(asset, trackId, startMs);
           set((state) => ({ clips: [...state.clips, clip] }));
+          return clip.id;
         },
 
         unlinkClip: (clipId) =>
