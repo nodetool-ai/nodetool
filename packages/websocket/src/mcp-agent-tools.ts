@@ -39,7 +39,7 @@ import {
   getGoogleWorkspaceTools,
   getApifyTools,
   getSerpApiTools,
-  permissionCategoryFor,
+  capabilityCategoryFor,
   toolForCapabilityName,
   UNGATED,
   createCapabilityRun,
@@ -631,7 +631,7 @@ function buildCapabilityCatalog(
       .map((tool) => ({
         name: tool.name,
         description: oneLine(tool.description),
-        permission_category: permissionCategoryFor(tool.name)
+        permission_category: capabilityCategoryFor(tool.name)
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
   };

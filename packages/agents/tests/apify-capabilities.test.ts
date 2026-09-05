@@ -18,13 +18,13 @@ import {
   module as apifyModule
 } from "../src/capabilities/apify.js";
 import {
+  capabilityCategoryFor,
   capabilityModuleIssues,
   listCapabilityModules,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
 import { createChatCodeActSession } from "../src/codeact/chat-codeact.js";
 import type { CapabilityRun } from "../src/capabilities/types.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 
 const TOKEN = "apify_api_TOKENTHATMUSTNOTLEAK00000";
 
@@ -102,7 +102,7 @@ describe("registration", () => {
         expected
       ]);
       // The classification map the gate reads must agree with the spec.
-      expect(permissionCategoryFor(entry.spec.name)).toBe(expected);
+      expect(capabilityCategoryFor(entry.spec.name)).toBe(expected);
     }
   });
 

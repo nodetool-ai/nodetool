@@ -8,7 +8,7 @@ import {
 } from "@nodetool-ai/models";
 import { formatMemoriesForPrompt } from "../src/tools/memory-tools.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+import { capabilityCategoryFor } from "../src/capabilities/registry.js";
 import { READ_ONLY_TOOL_NAMES } from "../src/tools/run-search-tool.js";
 
 const USER = "u1";
@@ -244,13 +244,13 @@ describe("formatMemoriesForPrompt", () => {
 
 describe("memory tool permission categories", () => {
   it("classifies reads as read (auto-run) and writes as write (gated)", () => {
-    expect(permissionCategoryFor("memory_list")).toBe("read");
-    expect(permissionCategoryFor("memory_search")).toBe("read");
-    expect(permissionCategoryFor("asset_search")).toBe("read");
-    expect(permissionCategoryFor("asset_list")).toBe("read");
-    expect(permissionCategoryFor("memory_save")).toBe("write");
-    expect(permissionCategoryFor("memory_update")).toBe("write");
-    expect(permissionCategoryFor("memory_delete")).toBe("write");
+    expect(capabilityCategoryFor("memory_list")).toBe("read");
+    expect(capabilityCategoryFor("memory_search")).toBe("read");
+    expect(capabilityCategoryFor("asset_search")).toBe("read");
+    expect(capabilityCategoryFor("asset_list")).toBe("read");
+    expect(capabilityCategoryFor("memory_save")).toBe("write");
+    expect(capabilityCategoryFor("memory_update")).toBe("write");
+    expect(capabilityCategoryFor("memory_delete")).toBe("write");
   });
 
   it("exposes the read tools to the read-only fan-out search", () => {

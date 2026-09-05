@@ -37,10 +37,7 @@ import {
 } from "@nodetool-ai/protocol";
 
 import type { CapabilityGate } from "../capabilities/types.js";
-import {
-  permissionCategoryFor,
-  TOOL_PERMISSION_CATEGORIES
-} from "../tools/tool-permissions.js";
+import { TOOL_PERMISSION_CATEGORIES } from "../tools/tool-permissions.js";
 import { isString } from "../utils/type-guards.js";
 
 export const EXECUTE_CODE_TOOL_NAME = "execute_code";
@@ -140,7 +137,7 @@ export function declaredActionRisk(
  * tell that write from a delete, so the declaration carries it.
  *
  * Only names the permission table knows raise the floor. A session tool
- * (`.../session`, a client `ui_*` schema) has no entry — `permissionCategoryFor`
+ * (`.../session`, a client `ui_*` schema) has no entry — the lookup
  * answers its fail-closed `external` for any unknown string — and it is gated
  * per call inside the action, so its import keeps the declared risk. The
  * object model (`nodetool.*`) reaches tools without an import and is not
@@ -174,14 +171,24 @@ async function moduleIsActionable(module: string): Promise<boolean> {
 async function actionable(
   statements: readonly CodeBodyStatement[]
 ): Promise<boolean> {
-  for (const binding of staticImportBindings(statements)) {
-    if (!binding.specifier.startsWith(SANDBOX_CAPABILITY_PACK)) continue;
-    for (const name of binding.named) {
-      if (
-        Object.hasOwn(TOOL_PERMISSION_CATEGORIES, name) &&
-        FLOOR_CATEGORIES.has(permissionCategoryFor(name))
-      ) {
-        return true;
+  const bindings = staticImportBindings(statements).filter((binding) =>
+    binding.specifier.startsWith(SANDBOX_CAPABILITY_PACK)
+  );
+  if (bindings.length > 0) {
+    // Same lazy reach as `moduleIsActionable`, and for the same reason.
+    const { capabilitySpec } = await import("../capabilities/registry.js");
+    for (const binding of bindings) {
+      for (const name of binding.named) {
+        // A spec names its own class; the map covers the few Tool classes
+        // without one; an unknown name (a session `ui_*` tool) stays at the
+        // declared risk.
+        const category =
+          capabilitySpec(name)?.category ??
+          TOOL_PERMISSION_CATEGORIES[name] ??
+          "";
+        if (FLOOR_CATEGORIES.has(category)) {
+          return true;
+        }
       }
     }
   }

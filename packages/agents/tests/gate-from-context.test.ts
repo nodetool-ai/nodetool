@@ -4,9 +4,12 @@
  * A2 makes one permission ladder cover every host. Two things have to hold for
  * that: a loop the host never constructed must find the host's gate on the
  * context, and a loop that finds nothing must fail closed rather than build an
- * ungated run of its own. The second half is what let a chat in plan mode
- * mutate through an `AgentNode`, so the runs allowed to stay ungated are
- * enumerated here and the enumeration is checked against the sources.
+ * ungated run of its own. Every host sets a gate — a headless one sets
+ * `headlessGate` itself — so a context with none is a bug, and the answer is
+ * a gate that reads but denies everything else. The second half is what let a
+ * chat in plan mode mutate through an `AgentNode`, so the runs allowed to stay
+ * ungated are enumerated here and the enumeration is checked against the
+ * sources.
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -75,17 +78,33 @@ describe("gateFromContext", () => {
     expect(gateFromContext(context, "chat turn")).toBe(gate);
   });
 
-  it("falls back to the headless gate when no host set one", () => {
-    const gate = gateFromContext(contextWith({}), "kernel job runner");
+  it("fails closed when no host set one: reads run, everything else is denied", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const gate = gateFromContext(contextWith({}), "kernel job runner");
 
-    expect(gate.mode).toBe("auto");
-    expect(gate.sessionAllow.size).toBe(0);
+      expect(gate.mode).toBe("default");
+      expect(gate.sessionAllow.size).toBe(0);
+      expect(decidePermission(gate.mode, "read")).toBe("allow");
+      for (const category of ["write", "execute", "external"] as const) {
+        expect(decidePermission(gate.mode, category)).toBe("ask");
+      }
+      await expect(gate.requestApproval(approvalRequest)).resolves.toBe("deny");
+    } finally {
+      warn.mockRestore();
+    }
   });
 
-  it("falls back to the headless gate when the context cannot answer", () => {
-    expect(gateFromContext(undefined, "kernel job runner").mode).toBe("auto");
-    expect(gateFromContext(null, "kernel job runner").mode).toBe("auto");
-    expect(gateFromContext({}, "kernel job runner").mode).toBe("auto");
+  it("is not the headless gate: a forgotten gate never runs auto", () => {
+    expect(gateFromContext(contextWith({}), "kernel job runner").mode).not.toBe(
+      headlessGate("kernel job runner").mode
+    );
+  });
+
+  it("fails closed when the context cannot answer", () => {
+    expect(gateFromContext(undefined, "kernel job runner").mode).toBe("default");
+    expect(gateFromContext(null, "kernel job runner").mode).toBe("default");
+    expect(gateFromContext({}, "kernel job runner").mode).toBe("default");
   });
 
   it.each([
@@ -107,12 +126,12 @@ describe("gateFromContext", () => {
         requestApproval: async () => "allow"
       }
     ]
-  ])("falls back to the headless gate on %s", (_label, stored) => {
+  ])("fails closed on %s", (_label, stored) => {
     const context = contextWith({ [PERMISSION_GATE_CONTEXT_KEY]: stored });
     const gate = gateFromContext(context, "kernel job runner");
 
     expect(gate).not.toBe(stored);
-    expect(gate.mode).toBe("auto");
+    expect(gate.mode).toBe("default");
     expect(gate.sessionAllow.size).toBe(0);
   });
 
@@ -127,7 +146,7 @@ describe("gateFromContext", () => {
     expect(logged.error).toHaveBeenCalledTimes(1);
     const message = String(logged.error.mock.calls[0]?.[0]);
     expect(message).toContain(host);
-    expect(message).toContain("headless gate");
+    expect(message).toContain("denying every call past read");
     expect(message).toContain("PERMISSION_GATE_CONTEXT_KEY");
   });
 

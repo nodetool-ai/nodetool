@@ -1,9 +1,11 @@
 import { createLogger, workspaceStorageKind } from "@nodetool-ai/config";
 import { Workflow, Workspace as WorkspaceRow, getSecret } from "@nodetool-ai/models";
 import {
+  PERMISSION_GATE_CONTEXT_KEY,
   ProcessingContext,
   createLocalWorkspace,
   createWorkspace,
+  headlessGate,
   observeWorkspace,
   type StorageAdapter,
   type Workspace,
@@ -11,6 +13,13 @@ import {
 } from "@nodetool-ai/runtime";
 
 const log = createLogger("nodetool.execution.workspace");
+
+/**
+ * The host name the kernel's headless gate reports a denial under. Shared by
+ * the context built here and by `ExecutionSession.create`, which gates a
+ * caller's own context the same way when that caller set no gate.
+ */
+export const WORKFLOW_RUN_HOST = "kernel workflow run";
 
 /**
  * The object store a cloud deployment keeps workspaces in.
@@ -151,15 +160,14 @@ export function usesCloudWorkspaces(): boolean {
  * adapters the streaming WebSocket runner uses; a host that passes neither
  * keeps the old read-nothing behaviour rather than guessing at a backend.
  *
- * No permission gate goes on this context, and that is the decision, not an
- * omission: a workflow run is consent — the user pressed Run on a graph whose
- * nodes list their tools — so an agent loop inside it gates in `auto` with no
- * human to ask. That is exactly what `gateFromContext` in
- * `@nodetool-ai/agents` answers for a context carrying no host gate, and
- * building the same object here would invert the package edge (`agents`
- * depends on `execution`, not the reverse) to say what its absence already
- * says. A host that does have a user to ask — a chat turn — puts its own gate
- * on the context it hands in.
+ * The context carries the headless permission gate, set here on purpose: a
+ * workflow run is consent — the user pressed Run on a graph whose nodes list
+ * their tools — so an agent loop inside it gates in `auto` with no human to
+ * ask, and every escalation the ladder raises is denied. Setting it
+ * explicitly is what lets `gateFromContext` in `@nodetool-ai/agents` treat a
+ * context with no gate as a bug and fail closed. A host that does have a
+ * user to ask — a chat turn — puts its own gate on the context it hands in
+ * and never comes through here.
  */
 export function buildWorkspaceExecutionContext(opts: {
   jobId: string;
@@ -176,7 +184,7 @@ export function buildWorkspaceExecutionContext(opts: {
   /** Asset store `asset://<id>` references resolve through. */
   assetStorage?: StorageAdapter | null;
 }): ProcessingContext {
-  return new ProcessingContext({
+  const context = new ProcessingContext({
     jobId: opts.jobId,
     workflowId: opts.workflowId ?? null,
     userId: opts.userId,
@@ -187,4 +195,6 @@ export function buildWorkspaceExecutionContext(opts: {
       opts.secretResolver ??
       ((key: string, userId: string) => getSecret(key, userId))
   });
+  context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate(WORKFLOW_RUN_HOST));
+  return context;
 }

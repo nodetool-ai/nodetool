@@ -10,7 +10,7 @@
 import { describe, it, expect } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { toolForCapabilityName } from "../src/capabilities/index.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+import { capabilityCategoryFor } from "../src/capabilities/registry.js";
 import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 import { createMockContext } from "./_helpers/mock-context.js";
 
@@ -394,8 +394,8 @@ describe("registration", () => {
     expect(BUILTIN_TOOL_NAMES).toContain("validate_code");
     expect(BUILTIN_TOOL_NAMES).toContain("run_code");
     expect(BUILTIN_TOOL_NAMES).toContain("test_code");
-    expect(permissionCategoryFor("validate_code")).toBe("read");
-    expect(permissionCategoryFor("run_code")).toBe("execute");
-    expect(permissionCategoryFor("test_code")).toBe("execute");
+    expect(capabilityCategoryFor("validate_code")).toBe("read");
+    expect(capabilityCategoryFor("run_code")).toBe("execute");
+    expect(capabilityCategoryFor("test_code")).toBe("execute");
   });
 });

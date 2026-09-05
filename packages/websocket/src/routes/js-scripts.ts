@@ -22,7 +22,11 @@ import {
   missingDeclaredJsScriptOutputs
 } from "@nodetool-ai/execution/js-script-debug";
 import { getSecret, JsScript } from "@nodetool-ai/models";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  PERMISSION_GATE_CONTEXT_KEY,
+  ProcessingContext,
+  headlessGate
+} from "@nodetool-ai/runtime";
 import {
   JS_SCRIPT_MAX_TIMEOUT_SECONDS,
   runJsScriptRequest,
@@ -113,6 +117,7 @@ const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         secretResolver: getSecret,
         storage: opts.storage ?? getAssetAdapter()
       });
+      context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("JS script run"));
 
       const runOptions: Parameters<typeof runCodeBody>[1] = {
         code: document.code,

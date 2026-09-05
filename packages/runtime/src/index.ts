@@ -311,3 +311,21 @@ export type {
   ReconciledCost
 } from "./cost-reconciler.js";
 export * from "./google/index.js";
+export {
+  PERMISSION_GATE_CONTEXT_KEY,
+  decidePermission,
+  headlessDenialReason,
+  headlessGate
+} from "./permission-gate.js";
+export type {
+  ApprovalDecision,
+  ApprovalRequest,
+  PermissionCategory,
+  PermissionDecision,
+  PermissionGateAction,
+  PermissionGateClock,
+  PermissionGateOptions,
+  PermissionGateVerdict,
+  PermissionMode,
+  RequestApproval
+} from "./permission-gate.js";

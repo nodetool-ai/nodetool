@@ -11,7 +11,9 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
+  PERMISSION_GATE_CONTEXT_KEY,
   ProcessingContext,
+  headlessGate,
   refuseSandboxDelivery
 } from "@nodetool-ai/runtime";
 import { JsScript, ModelObserver, initTestDb } from "@nodetool-ai/models";
@@ -28,7 +30,7 @@ import {
   JS_SCRIPT_SECRET_ALLOWANCE_KEY,
   MAX_JS_SCRIPT_DEPTH
 } from "../src/capabilities/js-scripts.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+import { capabilityCategoryFor } from "../src/capabilities/registry.js";
 import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 import { assembleSandboxToolbelt } from "../src/sandbox-toolbelt.js";
 
@@ -39,13 +41,17 @@ function context(
     secretResolver?: (name: string, userId: string) => Promise<string | null>;
   } = {}
 ): ProcessingContext {
-  return new ProcessingContext({
+  const init: ConstructorParameters<typeof ProcessingContext>[0] = {
     jobId: `job-${Math.random()}`,
-    userId: USER,
-    ...(overrides.secretResolver
-      ? { secretResolver: overrides.secretResolver }
-      : {})
-  });
+    userId: USER
+  };
+  if (overrides.secretResolver) {
+    init.secretResolver = overrides.secretResolver;
+  }
+  const ctx = new ProcessingContext(init);
+  // Every host sets a gate; a script run under none is denied past read.
+  ctx.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("js-scripts test"));
+  return ctx;
 }
 
 function document(overrides: Partial<JsScriptDocument> = {}): JsScriptDocument {
@@ -778,12 +784,12 @@ describe("list_js_scripts and get_js_script", () => {
 
 describe("permission categories", () => {
   it("classifies reads, writes and executions", () => {
-    expect(permissionCategoryFor("list_js_scripts")).toBe("read");
-    expect(permissionCategoryFor("get_js_script")).toBe("read");
-    expect(permissionCategoryFor("validate_js_script")).toBe("read");
-    expect(permissionCategoryFor("save_js_script")).toBe("write");
-    expect(permissionCategoryFor("run_js_script")).toBe("execute");
-    expect(permissionCategoryFor("test_js_script")).toBe("execute");
+    expect(capabilityCategoryFor("list_js_scripts")).toBe("read");
+    expect(capabilityCategoryFor("get_js_script")).toBe("read");
+    expect(capabilityCategoryFor("validate_js_script")).toBe("read");
+    expect(capabilityCategoryFor("save_js_script")).toBe("write");
+    expect(capabilityCategoryFor("run_js_script")).toBe("execute");
+    expect(capabilityCategoryFor("test_js_script")).toBe("execute");
   });
 
   it("is on the builtin belt the Code node and a script share", () => {

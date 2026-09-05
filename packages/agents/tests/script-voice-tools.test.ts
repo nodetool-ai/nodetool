@@ -9,7 +9,7 @@ import {
 } from "@nodetool-ai/models";
 import type { ScriptLine, ScriptTake } from "@nodetool-ai/models";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+import { capabilityCategoryFor } from "../src/capabilities/registry.js";
 import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 
 /**
@@ -146,8 +146,8 @@ describe("script voice tools", () => {
         "assemble_script_timeline"
       ])
     );
-    expect(permissionCategoryFor("get_script")).toBe("read");
-    expect(permissionCategoryFor("voice_script_lines")).toBe("write");
+    expect(capabilityCategoryFor("get_script")).toBe("read");
+    expect(capabilityCategoryFor("voice_script_lines")).toBe("write");
   });
 
   it("lists scripts and reports each line's voicing status", async () => {

@@ -8,6 +8,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
+import { PERMISSION_GATE_CONTEXT_KEY } from "@nodetool-ai/runtime";
 
 const getSecret = vi.fn(
   async (key: string, userId: string): Promise<string | null> =>
@@ -54,5 +55,40 @@ describe("buildWorkspaceExecutionContext", () => {
     });
     await expect(context.getSecret("OPENAI_API_KEY")).resolves.toBe("from-host");
     await expect(context.getSecret("FAL_API_KEY")).resolves.toBeNull();
+  });
+
+  it("carries the headless gate: auto, with every escalation denied", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const context = buildWorkspaceExecutionContext({
+        jobId: "job-4",
+        userId: "u1",
+        workspace: null
+      });
+      const gate = context.get<{
+        mode: string;
+        sessionAllow: Set<string>;
+        requestApproval: (request: {
+          toolName: string;
+          category: "write";
+          args: Record<string, unknown>;
+          message: string;
+        }) => Promise<string>;
+      }>(PERMISSION_GATE_CONTEXT_KEY);
+
+      expect(gate.mode).toBe("auto");
+      expect(gate.sessionAllow.size).toBe(0);
+      await expect(
+        gate.requestApproval({
+          toolName: "delete_workflow",
+          category: "write",
+          args: {},
+          message: "Delete"
+        })
+      ).resolves.toBe("deny");
+      expect(String(warn.mock.calls[0]?.[0])).toContain("kernel workflow run");
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

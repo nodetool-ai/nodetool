@@ -22,9 +22,11 @@ import {
 import type { Shot } from "@nodetool-ai/protocol";
 import { module as storyboards } from "../src/capabilities/storyboards.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
-import { capabilityModuleIssues } from "../src/capabilities/registry.js";
+import {
+  capabilityCategoryFor,
+  capabilityModuleIssues
+} from "../src/capabilities/registry.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import { Tool } from "../src/tools/base-tool.js";
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]);
@@ -210,7 +212,7 @@ describe("storyboards capability module", () => {
     for (const entry of storyboards.exports) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
-        permissionCategoryFor(entry.spec.name)
+        capabilityCategoryFor(entry.spec.name)
       ]);
     }
   });

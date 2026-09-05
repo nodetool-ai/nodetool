@@ -26,11 +26,11 @@ import {
   toolFromCapability
 } from "../src/capabilities/index.js";
 import {
+  capabilityCategoryFor,
   capabilityModuleIssues,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import type { Tool } from "../src/tools/base-tool.js";
 import type { PackageAssetLister } from "../src/tools/mcp-tools.js";
 
@@ -88,7 +88,7 @@ describe("assets capability module", () => {
 
   it("classifies every capability the way the gate does today", () => {
     for (const entry of ASSET_CAPABILITIES) {
-      expect(entry.spec.category).toBe(permissionCategoryFor(entry.spec.name));
+      expect(entry.spec.category).toBe(capabilityCategoryFor(entry.spec.name));
     }
   });
 

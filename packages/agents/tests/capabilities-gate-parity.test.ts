@@ -28,11 +28,11 @@ import type {
   PermissionCategory
 } from "../src/capabilities/types.js";
 import {
-  permissionCategoryFor,
   type ApprovalDecision,
   type ApprovalRequest,
   type PermissionMode
 } from "../src/tools/tool-permissions.js";
+import { capabilityCategoryFor } from "../src/capabilities/registry.js";
 import { gateTools } from "../src/capabilities/gate-tools.js";
 
 const ctx = {} as ProcessingContext;
@@ -142,9 +142,9 @@ async function bothPaths(
 }
 
 describe("canary classification", () => {
-  it("each canary's spec category matches the classification map", () => {
+  it("each canary's spec category is what the registry-aware lookup answers", () => {
     for (const [category, name] of Object.entries(CANARIES)) {
-      expect(permissionCategoryFor(name)).toBe(category);
+      expect(capabilityCategoryFor(name)).toBe(category);
     }
   });
 });

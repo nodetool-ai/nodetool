@@ -7,7 +7,7 @@ import {
   initTestDb
 } from "@nodetool-ai/models";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+import { capabilityCategoryFor } from "../src/capabilities/registry.js";
 import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 
 const ctx = (userId = "u1") => ({ userId }) as unknown as ProcessingContext;
@@ -67,12 +67,12 @@ describe("sketch version tools", () => {
         "delete_sketch_version"
       ])
     );
-    expect(permissionCategoryFor("list_sketch_versions")).toBe("read");
-    expect(permissionCategoryFor("get_sketch_version")).toBe("read");
-    expect(permissionCategoryFor("restore_sketch_version")).toBe("write");
-    expect(permissionCategoryFor("delete_sketch_version")).toBe("write");
-    expect(permissionCategoryFor("validate_sketch")).toBe("read");
-    expect(permissionCategoryFor("create_sketch")).toBe("write");
+    expect(capabilityCategoryFor("list_sketch_versions")).toBe("read");
+    expect(capabilityCategoryFor("get_sketch_version")).toBe("read");
+    expect(capabilityCategoryFor("restore_sketch_version")).toBe("write");
+    expect(capabilityCategoryFor("delete_sketch_version")).toBe("write");
+    expect(capabilityCategoryFor("validate_sketch")).toBe("read");
+    expect(capabilityCategoryFor("create_sketch")).toBe("write");
   });
 
   /**

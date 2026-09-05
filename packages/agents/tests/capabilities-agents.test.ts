@@ -32,11 +32,11 @@ import {
   executePlan
 } from "../src/capabilities/agents.js";
 import {
+  capabilityCategoryFor,
   capabilityModuleDrift,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import type { SubAgentToolRuntime } from "../src/subagent.js";
 import { BackgroundSubtaskRegistry } from "../src/background-subtasks.js";
 import {
@@ -137,7 +137,7 @@ describe("the agents capability module", () => {
     for (const entry of AGENT_CAPABILITIES) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
-        permissionCategoryFor(entry.spec.name)
+        capabilityCategoryFor(entry.spec.name)
       ]);
     }
     // Delegating and planning have no side effect of their own; running a plan

@@ -55,12 +55,13 @@ const { browserActionKey } = await import("../src/capabilities/browser.specs.js"
 const { UNGATED, createCapabilityRun } = await import(
   "../src/capabilities/index.js"
 );
-const { capabilityModuleIssues, capabilityModuleOf, loadCapabilityModule } =
-  await import("../src/capabilities/registry.js");
+const {
+  capabilityCategoryFor,
+  capabilityModuleIssues,
+  capabilityModuleOf,
+  loadCapabilityModule
+} = await import("../src/capabilities/registry.js");
 const { BUILTIN_TOOL_NAMES } = await import("../src/tools/builtin-tools.js");
-const { permissionCategoryFor } = await import(
-  "../src/tools/tool-permissions.js"
-);
 
 /**
  * A context with no asset store: `persistOutput` falls back to a workspace
@@ -129,7 +130,7 @@ describe("module registration", () => {
     for (const entry of browserModule.exports) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
-        permissionCategoryFor(entry.spec.name)
+        capabilityCategoryFor(entry.spec.name)
       ]);
     }
     expect(byName["browser_status"]).toBe("read");
