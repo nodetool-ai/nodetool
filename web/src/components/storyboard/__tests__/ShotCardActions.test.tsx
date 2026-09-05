@@ -46,6 +46,24 @@ jest.mock("../../../serverState/useAssetUpload", () => ({
     selector({ uploadAsset: mockUploadAsset })
 }));
 
+// The dialog has its own suite; here only which surface the card opens matters.
+jest.mock("../ShotEditDialog", () => ({
+  __esModule: true,
+  default: ({
+    open,
+    focusDialogue
+  }: {
+    open: boolean;
+    focusDialogue?: boolean;
+  }) =>
+    open ? (
+      <div
+        data-testid="shot-edit-dialog"
+        data-focus-dialogue={focusDialogue ? "true" : undefined}
+      />
+    ) : null
+}));
+
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
     generateKeyframe: jest.fn(async () => undefined),
@@ -248,12 +266,27 @@ describe("ShotCard action line (criterion 12)", () => {
     );
   });
 
-  it("opens the shot from the dialogue icon (the Edit dialog until P4)", async () => {
+  it("opens the Edit dialog on the dialogue cell, without selecting the card", async () => {
     const onSelect = jest.fn();
     renderCard(seedShot({ dialogue: "Keep it lit." }), { onSelect });
 
     await userEvent.click(screen.getByTestId("shot-dialogue-icon"));
-    expect(onSelect).toHaveBeenCalledWith("shot-1");
+    expect(screen.getByTestId("shot-edit-dialog")).toHaveAttribute(
+      "data-focus-dialogue",
+      "true"
+    );
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("opens the Edit dialog on the fields from Edit", async () => {
+    const onSelect = jest.fn();
+    renderCard(seedShot(), { onSelect });
+
+    await userEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByTestId("shot-edit-dialog")).not.toHaveAttribute(
+      "data-focus-dialogue"
+    );
+    expect(onSelect).not.toHaveBeenCalled();
   });
 
   it("renders the scene and shot caption the board computed", () => {

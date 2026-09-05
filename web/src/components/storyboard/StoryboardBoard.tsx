@@ -15,7 +15,7 @@
  * own: dropping a card is `moveShot(shotId, sceneId, position)` and the `+`
  * between cards is `insertShot(afterShotId)`. Both reindex in the store.
  *
- * Selecting a card opens {@link ShotInspector} under the grid and scrolls it
+ * Selecting a card opens the selection footer under the grid and scrolls it
  * into view; the arrow keys walk the selection along the grid.
  */
 
@@ -939,8 +939,6 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               boardId={boardId}
               shot={activeShot}
               readOnly={readOnly}
-              isFirst={activeShotIndex === 0}
-              isLast={activeShotIndex === shots.length - 1}
               onClose={clearSelection}
             />
           </Box>

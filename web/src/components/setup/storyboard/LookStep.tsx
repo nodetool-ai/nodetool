@@ -16,7 +16,7 @@
  *   `style_bible` into it, so the step's completion is written, never inferred.
  */
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import type { Shot } from "@nodetool-ai/protocol";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 
@@ -33,14 +33,11 @@ import { useEntities } from "../../../serverState/useEntities";
 import { useStylePresets } from "../../../serverState/useStylePresets";
 import { useGenerateShot } from "../../../hooks/storyboard/useGenerateShot";
 import { useRenderBatchCostEstimate } from "../../../hooks/storyboard/useRenderBatchCostEstimate";
+import { AddStyleDialog } from "./AddStyleDialog";
+import { useCustomStyle } from "./useCustomStyle";
 
 export interface LookStepProps {
   boardId: string;
-  /** Opens the "Add your own style" reference picker. */
-  onAddOwnStyle: () => void;
-  /** Off while the reference-to-descriptor call is in flight. */
-  addOwnDisabled?: boolean;
-  addOwnDisabledReason?: string;
 }
 
 /** Stable empty results, so a selector never hands React a fresh array. */
@@ -114,12 +111,9 @@ export function useLookStep(boardId: string): LookStepControls {
   return { canAdvance: style.trim().length > 0, primaryDetail, generate };
 }
 
-export const LookStep: React.FC<LookStepProps> = ({
-  boardId,
-  onAddOwnStyle,
-  addOwnDisabled,
-  addOwnDisabledReason
-}) => {
+export const LookStep: React.FC<LookStepProps> = ({ boardId }) => {
+  const [addingStyle, setAddingStyle] = useState(false);
+  const customStyle = useCustomStyle(boardId);
   const aspectRatio = useStoryboardStore(
     useCallback(
       (state) => state.getBoard(boardId)?.aspectRatio ?? "16:9",
@@ -170,6 +164,14 @@ export const LookStep: React.FC<LookStepProps> = ({
     [boardId, setAspectRatio]
   );
 
+  // `PresetTileGrid` is memoized, so both handlers keep a stable identity.
+  const openAddStyle = useCallback(() => setAddingStyle(true), []);
+  const clearStyleError = customStyle.clearError;
+  const closeAddStyle = useCallback(() => {
+    clearStyleError();
+    setAddingStyle(false);
+  }, [clearStyleError]);
+
   return (
     <FlexColumn gap={GAP.spacious}>
       <SelectField
@@ -187,12 +189,18 @@ export const LookStep: React.FC<LookStepProps> = ({
           presets={tiles}
           selectedId={selectedId}
           onSelect={handleSelect}
-          onAddOwn={onAddOwnStyle}
+          onAddOwn={openAddStyle}
           addOwnLabel="Add your own style"
-          addOwnDisabled={addOwnDisabled}
-          addOwnDisabledReason={addOwnDisabledReason}
+          addOwnDisabled={customStyle.saving}
         />
       </FlexColumn>
+      <AddStyleDialog
+        open={addingStyle}
+        saving={customStyle.saving}
+        error={customStyle.error}
+        onClose={closeAddStyle}
+        onSubmit={customStyle.addStyle}
+      />
     </FlexColumn>
   );
 };

@@ -4,13 +4,16 @@
  * One cell of the storyboard's shot grid: the rendered clip or selected still
  * on top, the action line under it. The card carries only what reads at a
  * glance — the shot number and length, a status pill, a render's progress —
- * and clicking it selects the shot, which opens {@link ShotInspector} under
- * the grid with the shot's prompt, takes, cast, and per-shot actions.
+ * and clicking it selects the shot, which opens the selection footer under
+ * the grid.
  *
  * Two rows of controls sit on top of that: {@link ShotHoverToolbar} on the
  * still (drag grip, fullscreen, download, duplicate, delete) and the footer
  * under the action (Edit, Iterate, Regenerate, Upload). Both swallow their
  * clicks, so reaching for an action never also selects the card.
+ *
+ * `Edit` and the dialogue icon both open {@link ShotEditDialog}; the icon
+ * opens it on the dialogue cell (PRD § 7.5).
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
@@ -46,6 +49,7 @@ import {
 } from "../ui_primitives";
 import ImageRefPreview from "../node/ImageRefPreview";
 import ShotActionText from "./ShotActionText";
+import ShotEditDialog from "./ShotEditDialog";
 import ShotHoverToolbar from "./ShotHoverToolbar";
 import ShotMediaViewer from "./ShotMediaViewer";
 import ShotStatusPill, { CLIP_COLOR, isShotGenerating } from "./ShotStatusPill";
@@ -166,6 +170,10 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [iterateOpen, setIterateOpen] = useState(false);
   const [iterateText, setIterateText] = useState("");
+  // Null while the Edit dialog is closed; `dialogue` opens it on that cell.
+  const [editFocus, setEditFocus] = useState<"fields" | "dialogue" | null>(
+    null
+  );
 
   // Why the last still or clip failed. Kept on the shot's job state until the
   // next attempt registers, so the card can say more than "failed".
@@ -279,11 +287,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     removeShot(boardId, shot.id);
   }, [removeShot, boardId, shot.id]);
 
-  // P4 replaces this with the Edit dialog (PRD § 7.5). Until then Edit and the
-  // dialogue icon open the shot in the inspector, which holds the same fields.
-  const handleEdit = useCallback(() => {
-    onSelect?.(shot.id);
-  }, [onSelect, shot.id]);
+  const handleEdit = useCallback(() => setEditFocus("fields"), []);
+  const handleEditDialogue = useCallback(() => setEditFocus("dialogue"), []);
+  const handleCloseEdit = useCallback(() => setEditFocus(null), []);
 
   const handleRegenerate = useCallback(() => {
     void generateKeyframe(boardId, shot).catch(() => undefined);
@@ -530,7 +536,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
               ariaLabel={hasDialogue ? "Edit dialogue" : "Add dialogue"}
               data-testid="shot-dialogue-icon"
               data-filled={hasDialogue ? "true" : undefined}
-              onClick={handleEdit}
+              onClick={handleEditDialogue}
             />
           </FlexRow>
         )}
@@ -541,6 +547,19 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         media={viewerMedia}
         onClose={handleCloseViewer}
       />
+
+      {/* The dialog is its own surface: its clicks must not reach the card's
+          selection handler through the React tree. */}
+      <Box onClick={swallowClick}>
+        <ShotEditDialog
+          boardId={boardId}
+          shotId={shot.id}
+          open={editFocus !== null}
+          onClose={handleCloseEdit}
+          focusDialogue={editFocus === "dialogue"}
+          readOnly={readOnly}
+        />
+      </Box>
 
       {/* Both dialogs sit inside the card, so their clicks would bubble into
           its selection handler through the React tree. */}

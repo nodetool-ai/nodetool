@@ -8,19 +8,12 @@
  * board belongs to the editor from there on (D3).
  */
 
-import {
-  createElement,
-  useCallback,
-  useMemo,
-  useRef,
-  type ReactNode
-} from "react";
+import { createElement, useCallback, useMemo, useRef } from "react";
 import type {
   StoryboardDocumentSchema,
   StoryboardSetupStage
 } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 
-import { Text } from "../../ui_primitives";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useDirectScreenplay } from "../../../hooks/storyboard/useDirectScreenplay";
 import { openPageTab } from "../../workspace/openPageTab";
@@ -60,9 +53,6 @@ export const newStoryboardSetupDocument = (
   imageModel: null,
   videoModel: null
 });
-
-/** A stable identity for a step action that is not this phase's to implement. */
-const noop = (): void => {};
 
 /**
  * The flow's name, above the stepper. Each step body carries its own heading
@@ -187,15 +177,7 @@ export const useStoryboardSetupFlow = ({
         primaryLabel: "Generate your storyboard",
         canAdvance: look.canAdvance,
         primaryDetail: look.primaryDetail,
-        render: () =>
-          createElement(LookStep, {
-            boardId,
-            // `Add your own style` is P5's; until it exists the tile says so
-            // rather than accepting a click and doing nothing.
-            onAddOwnStyle: noop,
-            addOwnDisabled: true,
-            addOwnDisabledReason: "Custom styles ship in phase P5."
-          }),
+        render: () => createElement(LookStep, { boardId }),
         // `generate` writes the terminal stage itself, before it enqueues
         // anything (PRD § 7.3, D3); the host opens the board once the jobs are
         // away.

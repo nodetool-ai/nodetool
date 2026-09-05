@@ -1,9 +1,12 @@
 /**
- * Step 2, review half (criterion 4): the screenplay renders as text with no
- * render job started, an edit here is the value the next step reads, and a
- * Re-direct keeps the ids and media of the shots the revision retains.
+ * Step 2, review half (criteria 4 and 5): the screenplay renders as text with
+ * no render job started, an edit here is the value the next step reads, a
+ * Re-direct keeps the ids and media of the shots the revision retains, and an
+ * imported script reads back verbatim however the Director answered.
  */
 import React from "react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -23,6 +26,11 @@ import type { Screenplay } from "@nodetool-ai/protocol";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { ReviewStep } from "../ReviewStep";
 import { useStoryboardStore } from "../../../../stores/storyboard/StoryboardStore";
+import {
+  clearImport,
+  setImportSource
+} from "../../../../lib/storyboard/importSource";
+import { parseFdx } from "../../../../lib/storyboard/parseFdx";
 
 const BOARD = "board-review";
 
@@ -84,6 +92,7 @@ const board = () => useStoryboardStore.getState().getBoard(BOARD);
 
 beforeEach(() => {
   rpcRequest.mockReset();
+  clearImport(BOARD);
   useStoryboardStore.setState({ boards: {} } as never);
   seed();
 });
@@ -206,5 +215,112 @@ describe("ReviewStep", () => {
     );
     expect(board()?.shots).toHaveLength(2);
     expect(board()?.setupStage).toBe("review");
+  });
+});
+
+/**
+ * Criterion 5. The board is one an FDX import produced, so a Re-direct runs
+ * the camera pass — and this Director answers it by rewriting a line and
+ * reversing the order, which is exactly what the post-check exists for.
+ */
+describe("ReviewStep — an imported FDX", () => {
+  const parsed = () =>
+    parseFdx(
+      readFileSync(
+        join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "..",
+          "lib",
+          "storyboard",
+          "__fixtures__",
+          "two-scenes.fdx"
+        ),
+        "utf8"
+      )
+    );
+
+  const seedImport = (): ReturnType<typeof parsed> => {
+    const parse = parsed();
+    const store = useStoryboardStore.getState();
+    store.setScreenplay(BOARD, {
+      type: "screenplay",
+      id: "fdx-1",
+      title: "",
+      shots: parse.shots,
+      scenes: parse.scenes
+    });
+    setImportSource(BOARD, { kind: "fdx", parsed: parse });
+    return parse;
+  };
+
+  it("shows every imported line verbatim and in order", () => {
+    seedImport();
+    renderStep();
+
+    // Each scene numbers its own shots, so the label repeats per scene.
+    expect(screen.getAllByLabelText("Shot 2 · Dialogue")[0]).toHaveValue(
+      "SOPHIA\n(under her breath)\nNot today. Not again."
+    );
+    expect(
+      screen.getAllByLabelText("Slugline").map((el) => el.getAttribute("value"))
+    ).toEqual([
+      "INT. SOPHIA'S FLAT - HALLWAY - EARLY MORNING",
+      "EXT. CANAL PATH - MINUTES LATER"
+    ]);
+  });
+
+  it("restores a Director answer that rewrote a line, and names the shot", async () => {
+    const user = userEvent.setup();
+    const parse = seedImport();
+    rpcRequest.mockResolvedValue({
+      text: "",
+      data: {
+        shots: [...parse.shots].reverse().map((shot) => {
+          const answer: Record<string, unknown> = {
+            id: shot.id,
+            camera: { framing: "wide", angle: "eye level", movement: "static" },
+            motion: "Steady.",
+            duration_seconds: 4
+          };
+          if (shot.id === "fdx-shot-2") {
+            answer.dialogue = "Never again, I swear it.";
+          }
+          return answer;
+        })
+      }
+    });
+    renderStep();
+
+    await user.click(screen.getByRole("button", { name: "Re-direct" }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Your script was kept as written/)
+      ).toBeInTheDocument()
+    );
+    const shots = board()?.shots ?? [];
+    expect(shots.map((shot) => shot.id)).toEqual([
+      "fdx-shot-1",
+      "fdx-shot-2",
+      "fdx-shot-3",
+      "fdx-shot-4"
+    ]);
+    expect(shots[1].dialogue).toBe(
+      "SOPHIA\n(under her breath)\nNot today. Not again."
+    );
+    // The camera work the Director was asked for is kept.
+    expect(shots[1].camera?.framing).toBe("wide");
+    expect(screen.getByRole("alert").textContent).toContain("Scene 1 | Shot 2");
+
+    // The ask offered no place to write the words.
+    const [, request] = rpcRequest.mock.calls[0] as [
+      string,
+      Record<string, unknown>
+    ];
+    expect(JSON.stringify(request.schema)).not.toContain("dialogue");
+    expect(String(request.system)).toContain("never rewrite");
   });
 });

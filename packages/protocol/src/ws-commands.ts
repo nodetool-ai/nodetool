@@ -248,11 +248,19 @@ export const transcribeAudioDataSchema = z
  * One message in a `generate_text` request. Role stays a bare string — the
  * runner maps anything it does not know onto "user" rather than rejecting the
  * frame, which is the loose-schema convention this file follows.
+ *
+ * Content is a string or the content blocks a chat turn uses, so a caller can
+ * hand the model a picture to look at: the storyboard's "Add your own style"
+ * sends reference images this way. The block shape stays loose here — the
+ * providers own what they accept.
  */
 const generateTextMessageSchema = z
   .object({
     role: z.string(),
-    content: z.string()
+    content: z.union([
+      z.string(),
+      z.array(z.object({ type: z.string() }).passthrough())
+    ])
   })
   .passthrough();
 

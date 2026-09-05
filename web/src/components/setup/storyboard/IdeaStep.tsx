@@ -8,11 +8,16 @@
  * `/` completes a skill on the New Project surface, where the prompt starts a
  * project agent. Inside the flow the text is a brief for the Director, not a
  * turn for an agent, so the skill trigger is deliberately not wired here.
+ *
+ * The two import paths land here as well: an uploaded script fills the same
+ * textarea (§ 7.6), and a shotlist skips the story entirely and goes to
+ * step 3 (§ 7.7.8).
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useRef } from "react";
 
 import {
+  AlertBanner,
   Box,
   Caption,
   Chip,
@@ -25,12 +30,16 @@ import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useExampleStoryboards } from "../../../hooks/storyboard/useStoryboards";
 import { AlternativesColumn } from "../AlternativesColumn";
 import type { AlternativeEntry } from "../AlternativesColumn";
+import { ShotlistReport } from "./ShotlistReport";
+import { SCRIPT_ACCEPT, useScriptImport } from "./useScriptImport";
+import {
+  SHOTLIST_ACCEPT,
+  SHOTLIST_TEMPLATE_URL,
+  useShotlistImport
+} from "./useShotlistImport";
 
 /** How many example loglines are offered as inspiration (PRD § 7.1). */
 const INSPIRATION_COUNT = 3;
-
-/** A card that is shown but cannot be pressed yet. */
-const notYet = (): void => {};
 
 export interface IdeaStepProps {
   boardId: string;
@@ -48,12 +57,30 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   const brief = useStoryboardStore((state) => state.boards[boardId]?.brief ?? "");
   const setSetup = useStoryboardStore((state) => state.setSetup);
   const { data: examples } = useExampleStoryboards();
+  const script = useScriptImport(boardId);
+  const shotlist = useShotlistImport(boardId);
+  const scriptInput = useRef<HTMLInputElement>(null);
+  const shotlistInput = useRef<HTMLInputElement>(null);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setSetup(boardId, { brief: event.target.value });
     },
     [boardId, setSetup]
+  );
+
+  // The picked file is read once; resetting the value lets the same file be
+  // picked again after a refusal.
+  const handlePicked = useCallback(
+    (importFile: (file: File) => Promise<void>) =>
+      (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (file) {
+          void importFile(file);
+        }
+      },
+    []
   );
 
   // The shipped boards' own briefs: what someone typed to get a board that
@@ -73,17 +100,17 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         id: "upload",
         title: "Upload your file",
         description: "PDF, DOCX, FDX",
-        onSelect: notYet,
-        disabled: true,
-        disabledReason: "Available in P5"
+        onSelect: () => scriptInput.current?.click(),
+        disabled: script.importing,
+        disabledReason: script.importing ? "Reading your file…" : undefined
       },
       {
         id: "shotlist",
         title: "Import your shotlist",
-        description: "Download the template to get started",
-        onSelect: notYet,
-        disabled: true,
-        disabledReason: "Available in P5"
+        description: "CSV — download the template to get started",
+        onSelect: () => shotlistInput.current?.click(),
+        disabled: shotlist.importing,
+        disabledReason: shotlist.importing ? "Reading your file…" : undefined
       },
       {
         id: "blank",
@@ -98,7 +125,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         onSelect: onOpenTutorial
       }
     ],
-    [onOpenTutorial, onStartBlank]
+    [onOpenTutorial, onStartBlank, script.importing, shotlist.importing]
   );
 
   return (
@@ -134,6 +161,17 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           onChange={handleChange}
         />
 
+        {script.error ? (
+          <AlertBanner severity="error" onClose={script.clearError}>
+            {script.error}
+          </AlertBanner>
+        ) : null}
+        {shotlist.error ? (
+          <AlertBanner severity="error" onClose={shotlist.clearError}>
+            {shotlist.error}
+          </AlertBanner>
+        ) : null}
+
         {inspirations.length > 0 ? (
           <FlexColumn gap={GAP.normal}>
             <Caption color="secondary" component="p">
@@ -156,9 +194,42 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         ) : null}
       </FlexColumn>
 
-      <AlternativesColumn
-        label="Other ways to start"
-        alternatives={alternatives}
+      <FlexColumn gap={GAP.normal}>
+        <AlternativesColumn
+          label="Other ways to start"
+          alternatives={alternatives}
+        />
+        <Caption color="secondary" component="p">
+          <a href={SHOTLIST_TEMPLATE_URL} download>
+            Download template
+          </a>{" "}
+          for the shotlist CSV.
+        </Caption>
+      </FlexColumn>
+
+      {/* The cards are the controls; these inputs only open the picker. */}
+      <input
+        type="file"
+        hidden
+        ref={scriptInput}
+        accept={SCRIPT_ACCEPT}
+        aria-label="Upload your file"
+        onChange={handlePicked(script.importFile)}
+      />
+      <input
+        type="file"
+        hidden
+        ref={shotlistInput}
+        accept={SHOTLIST_ACCEPT}
+        aria-label="Import your shotlist"
+        onChange={handlePicked(shotlist.importFile)}
+      />
+
+      <ShotlistReport
+        open={shotlist.report !== null}
+        shotCount={shotlist.shotCount}
+        entries={shotlist.report ?? []}
+        onClose={shotlist.dismissReport}
       />
     </Box>
   );

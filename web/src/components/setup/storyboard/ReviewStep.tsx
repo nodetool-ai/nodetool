@@ -12,14 +12,20 @@
  * model call it can make is `Re-direct`, which rewrites the same text through
  * `setScreenplay` — a merge by shot id, so a shot the revision keeps keeps its
  * id, its stills and its clips.
+ *
+ * An imported script adds a notice above the text (D10): an FDX says which
+ * shots the post-check put back, a PDF or DOCX which source lines no shot
+ * picked up. The lines are named, never silently dropped, because the words
+ * are the creator's.
  */
 
 import React, { memo, useCallback, useMemo } from "react";
 import type { Shot } from "@nodetool-ai/protocol";
 
-import { FlexColumn, GAP, Text } from "../../ui_primitives";
+import { AlertBanner, Caption, FlexColumn, GAP, Text } from "../../ui_primitives";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useDirectScreenplay } from "../../../hooks/storyboard/useDirectScreenplay";
+import { useImportNotice } from "../../../hooks/storyboard/useImportNotice";
 import { sceneOrder } from "../../../lib/storyboard/sceneOrder";
 import { PlanReview } from "../PlanReview";
 import type { PlanReviewField, PlanReviewSection } from "../PlanReview";
@@ -30,6 +36,9 @@ export interface ReviewStepProps {
 
 /** One array, so a board that has not loaded yet returns a stable snapshot. */
 const NO_SHOTS: readonly Shot[] = [];
+
+/** How many shots the import notice names before it counts the rest. */
+const NAMED_SHOT_LIMIT = 8;
 
 const ReviewStepInternal: React.FC<ReviewStepProps> = ({ boardId }) => {
   const shots = useStoryboardStore(
@@ -45,6 +54,52 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({ boardId }) => {
   const updateShot = useStoryboardStore((state) => state.updateShot);
   const updateScene = useStoryboardStore((state) => state.updateScene);
   const { direct, directing, error } = useDirectScreenplay();
+  const notice = useImportNotice(boardId);
+
+  // What the post-check touched, in the numbering the creator is reading.
+  // One pass over the scene groups: an answer that reordered a long script
+  // corrects every shot, and re-deriving each one's number would walk the
+  // board once per shot.
+  const shotNumbers = useMemo(() => {
+    const numbers = new Map<string, string>();
+    sceneOrder(shots).forEach((group, sceneIndex) => {
+      group.shots.forEach((shot, position) => {
+        numbers.set(shot.id, `Scene ${sceneIndex + 1} | Shot ${position + 1}`);
+      });
+    });
+    return numbers;
+  }, [shots]);
+
+  const importNotice = useMemo(() => {
+    if (!notice) {
+      return null;
+    }
+    if (notice.kind === "fdx") {
+      if (notice.correctedShotIds.length === 0) {
+        return null;
+      }
+      const named = notice.correctedShotIds
+        .map((id) => shotNumbers.get(id))
+        .filter((number): number is string => number !== undefined);
+      const listed = named.slice(0, NAMED_SHOT_LIMIT).join(", ");
+      const rest = named.length - NAMED_SHOT_LIMIT;
+      return {
+        severity: "warning" as const,
+        title: "Your script was kept as written",
+        body: `The Director changed the words or the order of ${listed}${
+          rest > 0 ? ` and ${rest} more` : ""
+        }. The imported text was put back.`
+      };
+    }
+    if (notice.missingLines.length === 0) {
+      return null;
+    }
+    return {
+      severity: "info" as const,
+      title: "Some lines are not in any shot",
+      body: notice.missingLines.join(" · ")
+    };
+  }, [notice, shotNumbers]);
 
   const handleRedirect = useCallback(() => {
     // Re-direct rewrites what is there, so it asks for the shot count the
@@ -131,6 +186,11 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({ boardId }) => {
           Edit anything here. It is the text your storyboard is drawn from.
         </Text>
       </FlexColumn>
+      {importNotice ? (
+        <AlertBanner severity={importNotice.severity} title={importNotice.title}>
+          <Caption component="span">{importNotice.body}</Caption>
+        </AlertBanner>
+      ) : null}
       <PlanReview
         sections={sections}
         replanLabel="Re-direct"

@@ -99,7 +99,7 @@ const SCRIPT_STORYBOARD_LINK_SUITES =
   "render-record creative-scenes screenplay-authoring api-schemas-storyboards && " +
   "npm run test --workspace=packages/timeline -- script-link linked storyboard && " +
   "npm run test --workspace=packages/execution -- linked-timeline-validate && " +
-  "npm run test --workspace=web -- src/lib/storyboard";
+  "npm run test --workspace=web -- src/lib/storyboard src/components/setup";
 
 export const HARNESSES: HarnessEntry[] = [
   {
@@ -418,9 +418,12 @@ export const HARNESSES: HarnessEntry[] = [
     // timeline to the same validator `nodetool timeline validate` runs.
     //
     // The guided-creation-flow suites ride here too (PRD § 7.7): prompt
-    // composition, scene ordering, staleness and the Director's scene output
-    // are pure functions on the same documents, and a diff that touches one
-    // usually touches the link.
+    // composition, scene ordering, staleness, the Director's scene output and
+    // the P5 import parsers (`parseFdx`, `verifyImportedText`,
+    // `parseShotlistCsv`) are pure functions on the same documents, and a diff
+    // that touches one usually touches the link. `web/src/components/setup`
+    // rides along because the flow steps are where those functions are wired:
+    // an FDX import that stops reading back verbatim shows up there first.
     command: SCRIPT_STORYBOARD_LINK_SUITES,
     kind: "static",
     capabilities: ["no-db"],

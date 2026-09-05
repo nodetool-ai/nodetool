@@ -11,9 +11,16 @@
  * The system prompt, the schema, the prompt shaping and the parse all come
  * from `@nodetool-ai/protocol`, so a screenplay directed here and one directed
  * by the `nodetool.creative.Director` node are authored the same way.
+ *
+ * An imported script is directed differently (D10). An FDX already carries the
+ * words and the scene order, so the run asks for camera, motion and duration
+ * only and `verifyImportedText` restores anything the answer changed. A PDF or
+ * DOCX has no structure to keep, so it is directed normally and the same
+ * post-check flags the source lines no shot picked up.
  */
 
 import { useCallback, useState } from "react";
+import type { Screenplay } from "@nodetool-ai/protocol";
 import {
   DIRECTOR_SYSTEM_PROMPT,
   SCREENPLAY_TOOL_DESCRIPTION,
@@ -27,6 +34,22 @@ import {
 import { rpcRequest } from "../../lib/websocket/rpcRequest";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useEntities } from "../../serverState/useEntities";
+import {
+  CAMERA_PASS_SYSTEM_PROMPT,
+  CAMERA_PASS_TOOL_DESCRIPTION,
+  CAMERA_PASS_TOOL_NAME,
+  applyCameraPass,
+  buildCameraPassPrompt,
+  buildCameraPassSchema
+} from "../../lib/storyboard/cameraPass";
+import {
+  getImportSource,
+  setImportNotice
+} from "../../lib/storyboard/importSource";
+import {
+  verifyImportedFdx,
+  verifyImportedPlainText
+} from "../../lib/storyboard/verifyImportedText";
 
 interface UseDirectScreenplayResult {
   /**
@@ -85,7 +108,45 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
       const genre = board?.genre ?? "";
       const shotCount = clampShotCount(requestedShots);
 
+      const imported = getImportSource(boardId);
+
       try {
+        if (imported?.kind === "fdx") {
+          const answer = await rpcRequest("generate_text", {
+            provider: model.provider,
+            model: model.id,
+            system: CAMERA_PASS_SYSTEM_PROMPT,
+            prompt: buildCameraPassPrompt(imported.parsed, genre, style),
+            max_tokens: 4096,
+            schema: buildCameraPassSchema(
+              imported.parsed.shots.map((shot) => shot.id)
+            ),
+            schema_name: CAMERA_PASS_TOOL_NAME,
+            schema_description: CAMERA_PASS_TOOL_DESCRIPTION
+          });
+          const returned = applyCameraPass(imported.parsed, answer.data);
+          const verified = verifyImportedFdx(imported.parsed, returned);
+          const store = useStoryboardStore.getState();
+          const screenplay: Screenplay = {
+            type: "screenplay",
+            id: `fdx-${boardId}`,
+            title: board?.title ?? "",
+            shots: verified.shots,
+            scenes: verified.scenes,
+            genre,
+            aspect_ratio: aspectRatio
+          };
+          store.setScreenplay(boardId, screenplay);
+          setImportNotice(boardId, {
+            kind: "fdx",
+            correctedShotIds: verified.correctedShotIds
+          });
+          if (store.getBoard(boardId)?.setupStage === "genre") {
+            store.setSetup(boardId, { stage: "review" });
+          }
+          return true;
+        }
+
         const result = await rpcRequest("generate_text", {
           provider: model.provider,
           model: model.id,
@@ -115,6 +176,13 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
             : fallbackScreenplay({ brief, style, shotCount, aspectRatio });
         const store = useStoryboardStore.getState();
         store.setScreenplay(boardId, screenplay);
+        if (imported?.kind === "text") {
+          const check = verifyImportedPlainText(imported.text, screenplay.shots);
+          setImportNotice(boardId, {
+            kind: "text",
+            missingLines: check.missingLines
+          });
+        }
         // Only a run that was waiting for its screenplay moves the stage on.
         // The same hook drives the board's own Direct button, where the board
         // is finished (`done`) and must not be thrown back into setup.

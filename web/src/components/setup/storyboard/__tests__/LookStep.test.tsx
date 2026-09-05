@@ -5,10 +5,17 @@
  *
  * Two claims carry the step and both are about *when* things happen: the stage
  * is written before the first job is enqueued, and picking a style enqueues
- * nothing at all.
+ * nothing at all. `Add your own style` adds a third: it only ever creates a
+ * new entity, so the preset it started from is untouched (§ 7.7.9).
  */
 import React from "react";
-import { render, renderHook, screen, act } from "@testing-library/react";
+import {
+  act,
+  render,
+  renderHook,
+  screen,
+  waitFor
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Entity, Shot } from "@nodetool-ai/protocol";
@@ -44,8 +51,50 @@ jest.mock("../../../../hooks/storyboard/useRenderBatchCostEstimate", () => ({
 }));
 
 let library: Entity[] = [];
+const saveEntity = jest.fn(
+  async (input: {
+    assetId: string;
+    kind: string;
+    name: string;
+    descriptor: string;
+  }): Promise<Entity> => ({
+    type: "entity",
+    id: "e-mine",
+    kind: "style",
+    name: input.name,
+    descriptor: input.descriptor
+  })
+);
 jest.mock("../../../../serverState/useEntities", () => ({
-  useEntities: () => ({ data: library })
+  useEntities: () => ({ data: library }),
+  useSaveEntity: () => ({ mutateAsync: saveEntity })
+}));
+
+/** The reference upload: the first picture becomes the entity's own asset. */
+const uploadAsset = jest.fn(
+  (file: { onCompleted?: (asset: { id: string }) => void }) => {
+    file.onCompleted?.({ id: "asset-ref-1" });
+  }
+);
+jest.mock("../../../../serverState/useAssetUpload", () => ({
+  useAssetUpload: { getState: () => ({ uploadAsset }) }
+}));
+
+/** What the language model answers when it is shown the references. */
+const rpcRequest = jest.fn(
+  async (
+    _command: string,
+    _data: Record<string, unknown>
+  ): Promise<{ data: Record<string, unknown> }> => ({
+    data: {
+      name: "Sun-bleached Super 8",
+      descriptor: "Grainy 16mm, warm halation."
+    }
+  })
+);
+jest.mock("../../../../lib/websocket/rpcRequest", () => ({
+  rpcRequest: (command: string, data: Record<string, unknown>) =>
+    rpcRequest(command, data)
 }));
 
 let presets: Array<{
@@ -132,13 +181,16 @@ const seed = (): void => {
 const renderStep = () =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <LookStep boardId={BOARD} onAddOwnStyle={jest.fn()} />
+      <LookStep boardId={BOARD} />
     </ThemeProvider>
   );
 
 beforeEach(() => {
   stageWhenEnqueued.length = 0;
   generateKeyframe.mockClear();
+  saveEntity.mockClear();
+  uploadAsset.mockClear();
+  rpcRequest.mockClear();
   presets = [NOIR, COMIC];
   library = [asEntity(NOIR), asEntity(COMIC)];
   useStoryboardStore.setState({ boards: {}, history: {} } as never);
@@ -285,5 +337,81 @@ describe("useLookStep — Generate your storyboard", () => {
     const { result } = renderHook(() => useLookStep(BOARD));
 
     expect(result.current.canAdvance).toBe(false);
+  });
+});
+
+describe("LookStep — Add your own style", () => {
+  /** The board arrives on a preset and with a model, as step 2 leaves it. */
+  const seedOnNoir = (): void => {
+    const current = board();
+    useStoryboardStore.getState().loadBoard(BOARD, {
+      ...current,
+      entityIds: [NOIR.entityId],
+      style: NOIR.descriptor,
+      directorModel: { type: "language_model", provider: "openai", id: "gpt-5" }
+    } as never);
+  };
+
+  const addOwnStyle = async (): Promise<void> => {
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /Add your own style/ }));
+    await user.upload(
+      screen.getByLabelText("Reference images"),
+      new File(["ref"], "ref.png", { type: "image/png" })
+    );
+    await user.click(screen.getByRole("button", { name: "Add style" }));
+  };
+
+  it("saves the model's descriptor as a user entity and applies it", async () => {
+    seedOnNoir();
+    renderStep();
+
+    await addOwnStyle();
+
+    await waitFor(() => expect(board().entityIds).toEqual(["e-mine"]));
+    expect(board().style).toBe("Grainy 16mm, warm halation.");
+    expect(saveEntity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assetId: "asset-ref-1",
+        kind: "style",
+        name: "Sun-bleached Super 8"
+      })
+    );
+    // The references reach the model as content blocks, not as prose.
+    const request = rpcRequest.mock.calls[0][1] as unknown as {
+      messages: Array<{ content: unknown }>;
+    };
+    const content = request.messages[1].content as Array<{ type: string }>;
+    expect(content.map((block) => block.type)).toEqual(["text", "image_url"]);
+  });
+
+  // § 7.7.9: a preset's descriptor never changes under a user.
+  it("leaves the preset it was started from untouched", async () => {
+    seedOnNoir();
+    const before = JSON.stringify(library);
+    renderStep();
+
+    await addOwnStyle();
+
+    await waitFor(() => expect(board().entityIds).toEqual(["e-mine"]));
+    expect(JSON.stringify(library)).toBe(before);
+    expect(
+      library.find((entity) => entity.id === NOIR.entityId)?.descriptor
+    ).toBe(NOIR.descriptor);
+  });
+
+  it("keeps the board's style when the model describes nothing", async () => {
+    seedOnNoir();
+    rpcRequest.mockResolvedValueOnce({ data: { name: "", descriptor: "" } });
+    renderStep();
+
+    await addOwnStyle();
+
+    expect(
+      await screen.findByText("The model did not describe these references.")
+    ).toBeInTheDocument();
+    expect(board().entityIds).toEqual([NOIR.entityId]);
+    expect(board().style).toBe(NOIR.descriptor);
+    expect(saveEntity).not.toHaveBeenCalled();
   });
 });
