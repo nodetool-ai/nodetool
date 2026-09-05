@@ -102,6 +102,13 @@ import { assetMediaType } from "../dnd/assetToClipAdapter";
 import { buildTypedIndexMap } from "./trackVisuals";
 import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
 import { resolveTimelineAction } from "../timelineKeymap";
+import { performSourceEdit } from "../sourceEdit";
+import { useAssetGridStore } from "../../../stores/AssetGridStore";
+import {
+  hasKeyframeAt,
+  keyframeTimesMs,
+  keyframeValueAt
+} from "@nodetool-ai/timeline";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 
 const DEFAULT_TRACK_HEIGHT_PX = 64;
@@ -988,13 +995,57 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
           case "addKeyframe":
           case "nextKeyframe":
-          case "prevKeyframe":
+          case "prevKeyframe": {
+            // The selected clip (one) and the inspector's armed property.
+            if (selectedClipIds.size !== 1) return;
+            const clipId: string = selectedClipIds.values().next().value!;
+            const target = doc.clips.find((c) => c.id === clipId);
+            if (!target) return;
+            e.preventDefault();
+            const relMs = liveMs - target.startMs;
+            if (action === "addKeyframe") {
+              if (relMs < 0 || relMs > target.durationMs) return;
+              const property = ui.keyframeProperty;
+              if (hasKeyframeAt(target, property, relMs)) {
+                doc.removeClipKeyframe(clipId, property, relMs);
+              } else {
+                doc.setClipKeyframe(
+                  clipId,
+                  property,
+                  relMs,
+                  keyframeValueAt(target, property, relMs)
+                );
+              }
+              return;
+            }
+            seekToNeighbour(
+              keyframeTimesMs(target).map((t) => target.startMs + t),
+              action === "nextKeyframe"
+            );
+            return;
+          }
+
           case "sourceAppend":
           case "sourceInsert":
-          case "sourceOverwrite":
-            // Handled by the surfaces that own them (transition, keyframe
-            // and source-viewer actions); nothing here yet.
+          case "sourceOverwrite": {
+            const kind =
+              action === "sourceAppend"
+                ? "append"
+                : action === "sourceInsert"
+                  ? "insert"
+                  : "overwrite";
+            const id = performSourceEdit(kind, {
+              doc,
+              ui,
+              playheadMs: playback.currentTimeMs,
+              asset: useAssetGridStore.getState().selectedAssets.at(-1)
+            });
+            if (id) {
+              e.preventDefault();
+              setSelection([id]);
+            }
             return;
+          }
         }
       };
 

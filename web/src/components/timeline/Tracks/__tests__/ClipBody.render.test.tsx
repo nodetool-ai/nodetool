@@ -66,6 +66,8 @@ const renderBody = (
         handleTransitionPointerDown={jest.fn()}
         handleTransitionPointerMove={jest.fn()}
         handleTransitionPointerEnd={jest.fn()}
+        keyframeTimesMs={[]}
+        onKeyframeClick={jest.fn()}
         interactionLocked={false}
       />
     </ThemeProvider>

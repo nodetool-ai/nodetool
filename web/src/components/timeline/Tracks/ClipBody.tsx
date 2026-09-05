@@ -393,6 +393,22 @@ const transitionWedgeStyles = (theme: Theme, tint: string, accent: string) =>
     }
   });
 
+/** A hand-set keyframe, drawn as a diamond on the clip's bottom edge. */
+const keyframeDiamondStyles = (theme: Theme) =>
+  css({
+    position: "absolute",
+    bottom: 2,
+    width: 7,
+    height: 7,
+    marginLeft: -3.5,
+    transform: "rotate(45deg)",
+    background: theme.vars.palette.primary.main,
+    border: `1px solid ${theme.vars.palette.background.paper}`,
+    cursor: "pointer",
+    padding: 0,
+    zIndex: Z_INDEX.base + 3
+  });
+
 /** The draggable right edge of the transition wedge. */
 const transitionHandleStyles = css({
   position: "absolute",
@@ -534,6 +550,9 @@ export interface ClipBodyProps {
   handleTransitionPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTransitionPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTransitionPointerEnd: () => void;
+  /** Clip-relative times of hand-set keyframes, drawn as diamonds. */
+  keyframeTimesMs: readonly number[];
+  onKeyframeClick: (clipRelativeMs: number) => void;
   /** clip.locked OR the clip's track is locked: drives the not-allowed cursor.
    *  The lock badge below stays tied to clip.locked alone. */
   interactionLocked: boolean;
@@ -562,6 +581,8 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     handleTransitionPointerDown,
     handleTransitionPointerMove,
     handleTransitionPointerEnd,
+    keyframeTimesMs,
+    onKeyframeClick,
     interactionLocked
   }) => {
     const theme = useTheme();
@@ -678,6 +699,10 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     const dotCss = useMemo(() => clipDotStyles(accent), [accent]);
     const nameCss = useMemo(() => clipNameStyles(theme), [theme]);
     const durationCss = useMemo(() => clipDurationStyles(theme), [theme]);
+    const keyframeDiamondCss = useMemo(
+      () => keyframeDiamondStyles(theme),
+      [theme]
+    );
     const trimStartCss = useMemo(
       () =>
         trimHandleStyles(
@@ -687,7 +712,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           isSelected,
           selectedEdge === "start"
         ),
-      [theme, interactionLocked, isSelected]
+      [theme, interactionLocked, isSelected, selectedEdge]
     );
     const trimEndCss = useMemo(
       () =>
@@ -698,7 +723,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           isSelected,
           selectedEdge === "end"
         ),
-      [theme, interactionLocked, isSelected]
+      [theme, interactionLocked, isSelected, selectedEdge]
     );
     const transitionCss = useMemo(
       () =>
@@ -811,6 +836,22 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
         )}
 
         {imageUrl && <div css={filmstripStyles} style={imageStyle} />}
+
+        {keyframeTimesMs.map((t) => (
+          <button
+            key={t}
+            type="button"
+            css={keyframeDiamondCss}
+            style={{ left: t / msPerPx }}
+            aria-label={`Keyframe at ${formatClipDuration(t)}`}
+            data-testid={`clip-keyframe-${clipId}`}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onKeyframeClick(t);
+            }}
+          />
+        ))}
 
         {clip.mediaType === "group" && (
           <GroupBracket

@@ -233,3 +233,15 @@ describe("transitions on the cut", () => {
     expect(clip(b.id).transitionIn).toBeUndefined();
   });
 });
+
+describe("keyframes", () => {
+  it("setClipKeyframe and removeClipKeyframe round-trip through the store", () => {
+    const { store, b, clip } = storeWithCut();
+    store.getState().setClipKeyframe(b.id, "opacity", 500, 0.5);
+    expect(clip(b.id).animations?.[0].custom?.curves[0].keyframes).toEqual([
+      { t: 0.5, value: 0.5 }
+    ]);
+    store.getState().removeClipKeyframe(b.id, "opacity", 500);
+    expect(clip(b.id).animations).toEqual([]);
+  });
+});

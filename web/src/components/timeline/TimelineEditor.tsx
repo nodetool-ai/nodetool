@@ -71,6 +71,8 @@ import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import { PreviewArea } from "./preview/PreviewArea";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
+import { SourceViewerPanel } from "./SourceViewerPanel";
+import MovieFilterOutlinedIcon from "@mui/icons-material/MovieFilterOutlined";
 import TimelineAgentPanel from "./TimelineAgentPanel";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import TimelineVersionHistoryPanel from "./TimelineVersionHistoryPanel";
@@ -291,10 +293,11 @@ const PreviewRegion: React.FC<{
 });
 PreviewRegion.displayName = "PreviewRegion";
 
-type InspectorTab = "inspector" | "agent" | "history" | "script";
+type InspectorTab = "inspector" | "source" | "agent" | "history" | "script";
 
 const INSPECTOR_TABS = [
   { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon /> },
+  { value: "source", label: "Source", icon: <MovieFilterOutlinedIcon /> },
   { value: "agent", label: "Assistant", icon: <AutoAwesomeIcon /> },
   { value: "history", label: "History", icon: <HistoryOutlinedIcon /> }
 ];
@@ -333,6 +336,8 @@ const InspectorRegion: React.FC<{ sequenceId: string | undefined }> = memo(
         <FlexColumn fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
           {tab === "inspector" ? (
             <TimelineInspector />
+          ) : tab === "source" ? (
+            <SourceViewerPanel />
           ) : tab === "agent" ? (
             <TimelineAgentPanel />
           ) : (

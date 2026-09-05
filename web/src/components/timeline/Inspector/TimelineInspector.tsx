@@ -47,6 +47,7 @@ import { ClipAdjustments } from "./ClipAdjustments";
 import { ClipCaptionStyle } from "./ClipCaptionStyle";
 import { ClipStoryboardLink } from "./ClipStoryboardLink";
 import { ClipAnimations } from "./ClipAnimations";
+import { ClipKeyframes } from "./ClipKeyframes";
 import { ClipShapeSection } from "./ClipShapeSection";
 import { ClipTextStyleSection } from "./ClipTextStyleSection";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
@@ -408,6 +409,8 @@ export const TimelineInspector: React.FC = memo(() => {
       <ClipAdjustments clip={clip} />
 
       <ClipAnimations clip={clip} />
+
+      <ClipKeyframes clip={clip} />
     </Panel>
   );
 });

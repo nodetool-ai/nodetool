@@ -22,6 +22,7 @@ export * from "./trimClip.js";
 export * from "./rippleEdit.js";
 export * from "./dropResolve.js";
 export * from "./transitionAtCut.js";
+export * from "./keyframes.js";
 export * from "./sourceRate.js";
 export * from "./timeRemap.js";
 export * from "./snap.js";

@@ -42,6 +42,8 @@ import {
   applyTransitionAtCut,
   removeTransitionAtCut,
   DEFAULT_TRANSITION_MS,
+  setKeyframe,
+  removeKeyframe,
   trimGroup,
   ungroup,
   snap,
@@ -51,7 +53,7 @@ import {
   makeTrackEffect,
   createTimeOrderedUuid
 } from "@nodetool-ai/timeline";
-import type { DropMode } from "@nodetool-ai/timeline";
+import type { AnimatedProperty, DropMode } from "@nodetool-ai/timeline";
 import type {
   TimelineSequence,
   TimelineTrack,
@@ -311,6 +313,31 @@ export interface TimelineStoreState {
   /** Resize a clip's incoming transition, growing the predecessor as needed. */
   setTransitionDuration: (clipId: string, durationMs: number) => void;
   removeTransition: (clipId: string) => void;
+
+  /** Keyframe `property` at a clip-relative time (see `keyframes.ts`). */
+  setClipKeyframe: (
+    clipId: string,
+    property: AnimatedProperty,
+    atMs: number,
+    value: number
+  ) => void;
+  removeClipKeyframe: (
+    clipId: string,
+    property: AnimatedProperty,
+    atMs: number
+  ) => void;
+
+  /**
+   * Add the marked range of an asset as a clip (three-point editing from the
+   * source viewer). Returns the new clip's id.
+   */
+  addSourceRange: (
+    asset: Asset,
+    trackId: string,
+    startMs: number,
+    inMs: number,
+    outMs: number
+  ) => string;
 
   /** Split the clip at the given time. The clip must contain that time. */
   splitClipAtTime: (clipId: string, atMs: number) => void;
@@ -1671,6 +1698,45 @@ export const createTimelineStore = (
 
         removeTransition: (clipId) =>
           set((state) => ({ clips: removeTransitionAtCut(state.clips, clipId) })),
+
+        setClipKeyframe: (clipId, property, atMs, value) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip) return state;
+            const animations = setKeyframe(clip, property, atMs, value);
+            return {
+              clips: state.clips.map((c) =>
+                c.id === clipId ? { ...c, animations } : c
+              )
+            };
+          }),
+
+        removeClipKeyframe: (clipId, property, atMs) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip) return state;
+            const animations = removeKeyframe(clip, property, atMs);
+            return {
+              clips: state.clips.map((c) =>
+                c.id === clipId ? { ...c, animations } : c
+              )
+            };
+          }),
+
+        addSourceRange: (asset, trackId, startMs, inMs, outMs) => {
+          const base = assetToClip(asset, trackId, startMs);
+          const ranged: TimelineClip =
+            base.mediaType === "image"
+              ? { ...base, durationMs: Math.max(1, outMs - inMs) || base.durationMs }
+              : {
+                  ...base,
+                  inPointMs: inMs,
+                  outPointMs: outMs,
+                  durationMs: Math.max(1, outMs - inMs)
+                };
+          set((state) => ({ clips: [...state.clips, ranged] }));
+          return ranged.id;
+        },
 
         splitClipAtTime: (clipId, atMs) =>
           set((state) => {

@@ -33,6 +33,8 @@ import { useClipSourceDuration } from "./useClipSourceDuration";
 import { useClipDrag } from "./useClipDrag";
 import { useClipTrim } from "./useClipTrim";
 import { useTransitionHandle } from "./useTransitionHandle";
+import { keyframeTimesMs as deriveKeyframeTimes } from "@nodetool-ai/timeline";
+import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { ClipBody, CLIP_STATUS_MAP, MIN_CLIP_WIDTH_PX } from "./ClipBody";
 import { ClipContextMenu } from "./ClipContextMenu";
 import { ReplaceOutputDialog } from "./ReplaceOutputDialog";
@@ -159,6 +161,18 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     handleTransitionPointerEnd
   } = useTransitionHandle(clip, msPerPx, interactionLocked);
 
+  const keyframeTimes = useMemo(
+    () => (clip ? deriveKeyframeTimes(clip) : []),
+    [clip]
+  );
+  const seek = useTimelinePlaybackStore((s) => s.seek);
+  const handleKeyframeClick = useCallback(
+    (relMs: number) => {
+      if (clip) seek(clip.startMs + relMs);
+    },
+    [clip, seek]
+  );
+
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       if (!clip) {
@@ -250,6 +264,8 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         handleTransitionPointerDown={handleTransitionPointerDown}
         handleTransitionPointerMove={handleTransitionPointerMove}
         handleTransitionPointerEnd={handleTransitionPointerEnd}
+        keyframeTimesMs={keyframeTimes}
+        onKeyframeClick={handleKeyframeClick}
         interactionLocked={interactionLocked}
       />
       {contextMenuPos && (

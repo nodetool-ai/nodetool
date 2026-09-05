@@ -14,7 +14,7 @@
  */
 
 import { create, type StoreApi, type UseBoundStore } from "zustand";
-import type { DropMode } from "@nodetool-ai/timeline";
+import type { DropMode, KeyframeProperty } from "@nodetool-ai/timeline";
 
 export type TimelineTool = "select" | "cut";
 
@@ -90,6 +90,10 @@ export interface TimelineUIState {
   selectedEdit: SelectedEdit | null;
   /** Magnet: edges snap to clips, the playhead and the grid. Alt-drag bypasses. */
   snapEnabled: boolean;
+  /** The property Alt+K keyframes; the inspector's last-touched row. */
+  keyframeProperty: KeyframeProperty;
+  /** In and out on the source viewer's asset, clip-source milliseconds. */
+  sourceRange: { inMs: number; outMs: number } | null;
   /**
    * Milliseconds per pixel — the primary zoom metric.
    * Default 10 ms/px ≈ 100 px/s. Smaller = zoomed in.
@@ -194,6 +198,8 @@ export interface TimelineUIState {
   setDropMode: (mode: DropMode) => void;
   setSelectedEdit: (edit: SelectedEdit | null) => void;
   toggleSnap: () => void;
+  setKeyframeProperty: (property: KeyframeProperty) => void;
+  setSourceRange: (range: { inMs: number; outMs: number } | null) => void;
 
   // ── FX panel ─────────────────────────────────────────────────────────────
 
@@ -232,6 +238,8 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   dropMode: "overwrite",
   selectedEdit: null,
   snapEnabled: true,
+  keyframeProperty: "opacity",
+  sourceRange: null,
   msPerPx: 10,
   scrollLeftPx: 0,
   revealRequest: null,
@@ -319,6 +327,10 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   setSelectedEdit: (edit) => set({ selectedEdit: edit }),
 
   toggleSnap: () => set((state) => ({ snapEnabled: !state.snapEnabled })),
+
+  setKeyframeProperty: (property) => set({ keyframeProperty: property }),
+
+  setSourceRange: (range) => set({ sourceRange: range }),
 
   setExpandedFxTrackId: (trackId) => set({ expandedFxTrackId: trackId }),
 
