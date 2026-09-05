@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { OpenAICompatProvider } from "../../src/providers/openai-compat-provider.js";
+import { GMIProvider } from "../../src/providers/gmi-provider.js";
+import { MetaProvider } from "../../src/providers/meta-provider.js";
+import { AlibabaProvider } from "../../src/providers/alibaba-provider.js";
+import { EvolinkProvider } from "../../src/providers/evolink-provider.js";
 import type {
   Message,
   ProviderStreamItem,
@@ -557,5 +561,27 @@ describe("OpenAICompatProvider inherits OpenAI's catalog guard", () => {
     expect(await provider.getAvailableVideoModels()).toEqual([]);
     expect(await provider.getAvailableImageModels()).toEqual([]);
     expect(await provider.getAvailableEmbeddingModels()).toEqual([]);
+  });
+
+  // These four dropped their own `return []` overrides; the guard above is
+  // what keeps `whisper-1` / `gpt-image-2` out of their pickers.
+  it.each([
+    ["gmi", new GMIProvider({ GMI_API_KEY: "k" })],
+    ["meta", new MetaProvider({ META_API_KEY: "k" })],
+    ["alibaba", new AlibabaProvider({ DASHSCOPE_API_KEY: "k" })],
+    ["evolink", new EvolinkProvider({ EVOLINK_API_KEY: "k" })]
+  ])("%s serves no OpenAI TTS, ASR or embedding models", async (_id, p) => {
+    expect(await p.getAvailableTTSModels()).toEqual([]);
+    expect(await p.getAvailableASRModels()).toEqual([]);
+    expect(await p.getAvailableEmbeddingModels()).toEqual([]);
+  });
+
+  it.each([
+    ["gmi", new GMIProvider({ GMI_API_KEY: "k" })],
+    ["meta", new MetaProvider({ META_API_KEY: "k" })],
+    ["alibaba", new AlibabaProvider({ DASHSCOPE_API_KEY: "k" })]
+  ])("%s serves no OpenAI image or video models", async (_id, p) => {
+    expect(await p.getAvailableImageModels()).toEqual([]);
+    expect(await p.getAvailableVideoModels()).toEqual([]);
   });
 });

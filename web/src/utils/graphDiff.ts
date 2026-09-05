@@ -6,9 +6,7 @@
  */
 
 import { Graph, Node, Edge } from "../stores/ApiTypes";
-
-const isRecord = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null && !Array.isArray(v);
+import { isRecord } from "./typePredicates";
 
 export interface PropertyChange {
   key: string;

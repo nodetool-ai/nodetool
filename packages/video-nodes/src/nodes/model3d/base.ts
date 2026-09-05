@@ -10,11 +10,10 @@ type GlbTransformNodeOutputs = {
 };
 
 export abstract class GlbTransformNode extends BaseNode {
-  declare model: any;
+  declare model: Model3DRefLike;
 
   protected getModel(): Model3DRefLike {
-    const v = this.model;
-    return isObjectLike(v) ? (v as Model3DRefLike) : {};
+    return isObjectLike(this.model) ? this.model : {};
   }
 
   protected abstract transform(

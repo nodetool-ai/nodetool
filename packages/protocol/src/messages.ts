@@ -27,11 +27,26 @@
 
 import { z } from "zod";
 import { isRecord, isString } from "./predicates.js";
-import type { DocumentOp } from "./document-ops.js";
 import {
   supervisorDecisionSchema,
   supervisorEscalationSchema
 } from "./supervisor.js";
+import {
+  clientToolManifestMessageInSchema,
+  pingMessageInSchema,
+  pongMessageOutSchema,
+  rendererRegisteredMessageOutSchema,
+  rendererToolCallMessageOutSchema,
+  rendererToolResultMessageInSchema,
+  resourceChangeMessageOutSchema,
+  rpcErrorPayloadOutSchema,
+  rpcResponseMessageOutSchema,
+  systemStatsMessageOutSchema,
+  toolResultMessageInSchema,
+  type UnifiedCommandType
+} from "./ws-commands.js";
+
+export type { UnifiedCommandType };
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -731,31 +746,6 @@ export type ProviderCallFailed = z.infer<typeof providerCallFailedSchema>;
 
 export type WebSocketMode = "binary" | "text";
 
-export type UnifiedCommandType =
-  | "run_job"
-  | "reconnect_job"
-  | "cancel_job"
-  | "update_node_properties"
-  | "get_status"
-  | "set_mode"
-  | "set_permission_mode"
-  | "clear_models"
-  | "stream_input"
-  | "end_input_stream"
-  | "chat_message"
-  | "resume_chat"
-  | "list_chat_turns"
-  | "inference"
-  | "stop"
-  | "list_workflows"
-  | "get_workflow"
-  | "list_assets"
-  | "get_asset"
-  | "list_nodes"
-  | "get_node"
-  | "generate_media"
-  | "generate_text"
-  | "transcribe_audio";
 
 /**
  * Read-only RPC commands that require a `request_id` and return a single
@@ -900,103 +890,61 @@ export interface GenerateTextResponse {
   data: Record<string, unknown> | null;
 }
 
-export interface RpcErrorPayload {
-  code: string;
-  message: string;
-  retryable: boolean;
-  apiCode?: string | null;
-  trpcCode?: string | null;
-}
+/**
+ * The frames below are declared once, as Zod schemas in `ws-commands.ts`, and
+ * derived here. The schemas are what the server actually validates on the
+ * wire; a type restated by hand beside them drifted twice before (see
+ * `RpcResponseMessage.command` and `ClientToolManifestMessage.tools`).
+ */
+
+export type RpcErrorPayload = z.infer<typeof rpcErrorPayloadOutSchema>;
 
 /**
  * Single response frame for RPC commands. Either `result` or `error` is
  * set; both are absent only for malformed requests where the server
  * couldn't route the response (those use the legacy `{ error }` shape).
+ *
+ * `command` is a plain string, not `UnifiedCommandType`: `runRpc` in
+ * `packages/websocket/src/session/commands.ts` takes the command name as a
+ * string and echoes whatever it was called with.
  */
-export interface RpcResponseMessage {
-  type: "rpc_response";
-  request_id: string;
-  command: UnifiedCommandType;
-  result?: unknown;
-  error?: RpcErrorPayload;
-}
+export type RpcResponseMessage = z.infer<typeof rpcResponseMessageOutSchema>;
 
-export interface PingMessage {
-  type: "ping";
-  ts?: number;
-}
+export type PingMessage = z.infer<typeof pingMessageInSchema>;
 
-export interface PongMessage {
-  type: "pong";
-  ts: number;
-}
+export type PongMessage = z.infer<typeof pongMessageOutSchema>;
 
-export interface ClientToolManifestMessage {
-  type: "client_tools_manifest";
-  tools: Array<Record<string, unknown>>;
-}
+/**
+ * `tools` is optional and its elements are `unknown`: the receiver
+ * (`websocket-client-session.ts`) does `Array.isArray(data.tools) ? … : []`
+ * and validates each entry itself.
+ */
+export type ClientToolManifestMessage = z.infer<
+  typeof clientToolManifestMessageInSchema
+>;
 
 /** Server-assigned identity for the browser/editor on this /ws connection. */
-export interface RendererRegisteredMessage {
-  type: "renderer_registered";
-  renderer_id: string;
-}
+export type RendererRegisteredMessage = z.infer<
+  typeof rendererRegisteredMessageOutSchema
+>;
 
 /** A frontend-tool request that is independent of a chat thread. */
-export interface RendererToolCallMessage {
-  type: "renderer_tool_call";
-  renderer_id: string;
-  tool_call_id: string;
-  name: string;
-  args: unknown;
-}
-
-interface RendererToolResultMessageBase {
-  type: "renderer_tool_result";
-  renderer_id: string;
-  tool_call_id: string;
-  elapsed_ms?: number;
-}
+export type RendererToolCallMessage = z.infer<
+  typeof rendererToolCallMessageOutSchema
+>;
 
 /** Result for a connection-level frontend-tool request. */
-export type RendererToolResultMessage = RendererToolResultMessageBase &
-  (
-    | {
-        ok: true;
-        result?: unknown;
-        error?: never;
-      }
-    | {
-        ok: false;
-        result?: never;
-        error: string;
-      }
-  );
+export type RendererToolResultMessage = z.infer<
+  typeof rendererToolResultMessageInSchema
+>;
 
-export interface ToolResultMessage {
-  type: "tool_result";
-  tool_call_id?: string;
-  [key: string]: unknown;
-}
+export type ToolResultMessage = z.infer<typeof toolResultMessageInSchema>;
 
-export interface SystemStatsMessage {
-  type: "system_stats";
-  stats: Record<string, unknown>;
-}
+export type SystemStatsMessage = z.infer<typeof systemStatsMessageOutSchema>;
 
-export interface ResourceChangeMessage {
-  type: "resource_change";
-  event: "created" | "updated" | "deleted";
-  resource_type: string;
-  resource: Record<string, unknown>;
-  /**
-   * The per-merge-unit ops the write was made with, when the writer attached
-   * them (`meta.ops` on the model write). A change without ops — another tab's
-   * autosave, a CLI restore — is treated by editors as a whole-document
-   * replacement.
-   */
-  ops?: DocumentOp[];
-}
+export type ResourceChangeMessage = z.infer<
+  typeof resourceChangeMessageOutSchema
+>;
 
 export type WebSocketControlMessage =
   | PingMessage

@@ -1,7 +1,7 @@
 /**
  * Minimal date helpers replacing the date-fns functions this app used.
- * Only the format patterns actually used at call sites are supported:
- * "PPpp" and "MMM d, yyyy · HH:mm".
+ * Relative phrasing lives in `formatDateAndTime.relativeTime`; localized
+ * date/time rendering in `formatUtils.formatDateTime`.
  */
 
 const MONTHS_SHORT = [
@@ -59,106 +59,10 @@ function formatPPpp(date: Date): string {
   );
 }
 
-/** "Apr 5, 2023 · 09:07" */
-function formatShortDateTime(date: Date): string {
-  return (
-    `${MONTHS_SHORT[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}` +
-    ` · ${pad(date.getHours())}:${pad(date.getMinutes())}`
-  );
-}
-
 /** Format a date with one of the supported patterns. */
 export function format(date: Date, pattern: string): string {
-  switch (pattern) {
-    case "PPpp":
-      return formatPPpp(date);
-    case "MMM d, yyyy · HH:mm":
-      return formatShortDateTime(date);
-    default:
-      throw new Error(`Unsupported date format pattern: ${pattern}`);
+  if (pattern === "PPpp") {
+    return formatPPpp(date);
   }
-}
-
-/**
- * Human "distance to now" phrasing matching date-fns closely:
- * "less than a minute", "5 minutes", "about 3 hours", "2 days",
- * "about 1 month", "3 months", "about 1 year", "over 1 year",
- * "almost 2 years" — with " ago" / "in " when addSuffix is set.
- */
-export function formatDistanceToNow(
-  date: Date,
-  options?: { addSuffix?: boolean }
-): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const isPast = diffMs >= 0;
-  const start = isPast ? date : now;
-  const end = isPast ? now : date;
-  const seconds = Math.trunc(Math.abs(diffMs) / 1000);
-  const offsetInSeconds =
-    (end.getTimezoneOffset() - start.getTimezoneOffset()) * 60;
-  const minutes = Math.round((seconds - offsetInSeconds) / 60);
-  const minutesInDay = 1440;
-  const minutesInMonth = 43200;
-
-  let distance: string;
-  if (minutes === 0) {
-    distance = "less than a minute";
-  } else if (minutes < 45) {
-    distance = minutes === 1 ? "1 minute" : `${minutes} minutes`;
-  } else if (minutes < 90) {
-    distance = "about 1 hour";
-  } else if (minutes < minutesInDay) {
-    distance = `about ${Math.round(minutes / 60)} hours`;
-  } else if (minutes < 2520) {
-    distance = "1 day";
-  } else if (minutes < minutesInMonth) {
-    distance = `${Math.round(minutes / minutesInDay)} days`;
-  } else if (minutes < minutesInMonth * 2) {
-    const months = Math.round(minutes / minutesInMonth);
-    distance = `about ${months} ${months === 1 ? "month" : "months"}`;
-  } else {
-    const months = differenceInFullMonths(end, start);
-    if (months < 12) {
-      const nearestMonth = Math.round(minutes / minutesInMonth);
-      distance = `${nearestMonth} months`;
-    } else {
-      const years = Math.trunc(months / 12);
-      const remainder = months % 12;
-      if (remainder < 3) {
-        distance = years === 1 ? "about 1 year" : `about ${years} years`;
-      } else if (remainder < 9) {
-        distance = years === 1 ? "over 1 year" : `over ${years} years`;
-      } else {
-        distance = `almost ${years + 1} years`;
-      }
-    }
-  }
-
-  if (options?.addSuffix) {
-    return isPast ? `${distance} ago` : `in ${distance}`;
-  }
-  return distance;
-}
-
-function differenceInFullMonths(later: Date, earlier: Date): number {
-  const difference =
-    (later.getFullYear() - earlier.getFullYear()) * 12 +
-    later.getMonth() -
-    earlier.getMonth();
-  if (difference < 1) {
-    return 0;
-  }
-
-  const adjustedLater = new Date(later);
-  if (adjustedLater.getMonth() === 1 && adjustedLater.getDate() > 27) {
-    adjustedLater.setDate(30);
-  }
-  adjustedLater.setMonth(adjustedLater.getMonth() - difference);
-
-  const lastDayOfMonth =
-    later.getDate() ===
-    new Date(later.getFullYear(), later.getMonth() + 1, 0).getDate();
-  const lastMonthIsFull = lastDayOfMonth && difference === 1;
-  return difference - Number(adjustedLater < earlier && !lastMonthIsFull);
+  throw new Error(`Unsupported date format pattern: ${pattern}`);
 }

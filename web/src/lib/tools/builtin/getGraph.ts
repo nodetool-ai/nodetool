@@ -6,7 +6,7 @@ import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 import { COMMENT_NODE_TYPE, GROUP_NODE_TYPE } from "../../../constants/nodeTypes";
 import { parsesAsCodeBody } from "../../../utils/codeOutputInference";
-import { isObjectLike, isString } from "../../../utils/typePredicates";
+import { isObjectLike, isRecord, isString } from "../../../utils/typePredicates";
 
 /**
  * Node types that are not expected to have incoming edges.
@@ -45,11 +45,8 @@ interface ValidationResult {
 
 const CODE_NODE_TYPE = "nodetool.code.Code";
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return isObjectLike(value) && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
+const asRecord = (value: unknown): Record<string, unknown> =>
+  isRecord(value) ? value : {};
 
 /**
  * Check a Code node's body. A body that does not parse fails here; named

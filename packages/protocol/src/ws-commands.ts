@@ -21,18 +21,15 @@
  */
 
 import { z } from "zod";
-import type { UnifiedCommandType } from "./messages.js";
 
 // ---------------------------------------------------------------------------
 // Command envelope
 // ---------------------------------------------------------------------------
 
 /**
- * Every literal of `UnifiedCommandType`, duplicated as a runtime tuple so
- * Zod can validate against it. Kept in exact sync with the type via the
- * compile-time assertion below — if the two ever drift, `typecheck` fails
- * here instead of silently accepting/rejecting the wrong commands at
- * runtime.
+ * Every command a client may send. The runtime tuple is the single
+ * declaration: `UnifiedCommandType` below is derived from it, so the type and
+ * the Zod enum cannot drift.
  */
 export const UNIFIED_COMMAND_TYPES = [
   "run_job",
@@ -61,16 +58,7 @@ export const UNIFIED_COMMAND_TYPES = [
   "transcribe_audio"
 ] as const;
 
-type _AssertCommandTypesCoverType =
-  (typeof UNIFIED_COMMAND_TYPES)[number] extends UnifiedCommandType
-    ? UnifiedCommandType extends (typeof UNIFIED_COMMAND_TYPES)[number]
-      ? true
-      : never
-    : never;
-// If this line fails to typecheck, `UNIFIED_COMMAND_TYPES` above has drifted
-// from `UnifiedCommandType` in messages.ts — add/remove the literal there too.
-const _commandTypesMatch: _AssertCommandTypesCoverType = true;
-void _commandTypesMatch;
+export type UnifiedCommandType = (typeof UNIFIED_COMMAND_TYPES)[number];
 
 export const unifiedCommandTypeSchema = z.enum(UNIFIED_COMMAND_TYPES);
 
@@ -501,12 +489,26 @@ export const systemStatsMessageOutSchema = z
   })
   .passthrough();
 
+/** One per-merge-unit edit a document write was made with (`DocumentOp`). */
+export const documentOpOutSchema = z
+  .object({
+    tool: z.string(),
+    input: z.unknown()
+  })
+  .passthrough();
+
 export const resourceChangeMessageOutSchema = z
   .object({
     type: z.literal("resource_change"),
     event: z.enum(["created", "updated", "deleted"]),
     resource_type: z.string(),
-    resource: z.record(z.string(), z.unknown())
+    resource: z.record(z.string(), z.unknown()),
+    /**
+     * The ops the write was made with, when the writer attached them
+     * (`meta.ops` on the model write). A change without ops — another tab's
+     * autosave, a CLI restore — is a whole-document replacement to editors.
+     */
+    ops: z.array(documentOpOutSchema).optional()
   })
   .passthrough();
 

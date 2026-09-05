@@ -1,6 +1,7 @@
 import { prop } from "@nodetool-ai/node-sdk";
 
 import { GlbTransformNode } from "./base.js";
+import type { Model3DRefLike } from "./types.js";
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import {
   extractLargestComponentGlb,
@@ -26,7 +27,7 @@ export class RecalculateNormalsNode extends GlbTransformNode {
     title: "Model",
     description: "The 3D model to process"
   })
-  declare model: any;
+  declare model: Model3DRefLike;
 
   @prop({
     type: "enum",
@@ -35,7 +36,7 @@ export class RecalculateNormalsNode extends GlbTransformNode {
     description: "Shading mode: smooth, flat, or auto (uses mesh default)",
     values: ["smooth", "flat", "auto"]
   })
-  declare mode: any;
+  declare mode: "smooth" | "flat" | "auto";
 
   @prop({
     type: "bool",
@@ -43,12 +44,12 @@ export class RecalculateNormalsNode extends GlbTransformNode {
     title: "Fix Winding",
     description: "Fix inconsistent face winding (inverted faces)"
   })
-  declare fix_winding: any;
+  declare fix_winding: boolean;
 
   protected transform(bytes: Uint8Array): Uint8Array | null {
     return recalculateNormalsGlb(bytes, {
-      mode: String(this.mode ?? "auto"),
-      fixWinding: Boolean(this.fix_winding)
+      mode: this.mode,
+      fixWinding: this.fix_winding
     });
   }
 }
@@ -70,7 +71,7 @@ export class FlipNormalsNode extends GlbTransformNode {
     title: "Model",
     description: "The 3D model to process"
   })
-  declare model: any;
+  declare model: Model3DRefLike;
 
   protected transform(bytes: Uint8Array): Uint8Array | null {
     return flipNormalsGlb(bytes);
@@ -94,7 +95,7 @@ export class ExtractLargestComponentNode extends GlbTransformNode {
     title: "Model",
     description: "The 3D model to clean up"
   })
-  declare model: any;
+  declare model: Model3DRefLike;
 
   protected transform(bytes: Uint8Array): Uint8Array | null {
     return extractLargestComponentGlb(bytes);
@@ -118,7 +119,7 @@ export class RepairMeshNode extends GlbTransformNode {
     title: "Model",
     description: "The 3D model to repair"
   })
-  declare model: any;
+  declare model: Model3DRefLike;
 
   @prop({
     type: "bool",
@@ -126,7 +127,7 @@ export class RepairMeshNode extends GlbTransformNode {
     title: "Merge Duplicate Vertices",
     description: "Merge exact or near-duplicate vertices before other cleanup"
   })
-  declare merge_duplicate_vertices: any;
+  declare merge_duplicate_vertices: boolean;
 
   @prop({
     type: "bool",
@@ -134,7 +135,7 @@ export class RepairMeshNode extends GlbTransformNode {
     title: "Remove Degenerate Faces",
     description: "Drop triangles with repeated vertices or near-zero area"
   })
-  declare remove_degenerate_faces: any;
+  declare remove_degenerate_faces: boolean;
 
   @prop({
     type: "float",
@@ -143,13 +144,13 @@ export class RepairMeshNode extends GlbTransformNode {
     description: "Tolerance used for near-duplicate vertex welding and degenerate checks",
     min: 0
   })
-  declare position_tolerance: any;
+  declare position_tolerance: number;
 
   protected transform(bytes: Uint8Array): Uint8Array | null {
     return repairGlb(bytes, {
-      mergeDuplicateVertices: Boolean(this.merge_duplicate_vertices ?? true),
-      removeDegenerateFaces: Boolean(this.remove_degenerate_faces ?? true),
-      positionTolerance: Number(this.position_tolerance ?? 0.0001)
+      mergeDuplicateVertices: this.merge_duplicate_vertices,
+      removeDegenerateFaces: this.remove_degenerate_faces,
+      positionTolerance: this.position_tolerance
     });
   }
 }

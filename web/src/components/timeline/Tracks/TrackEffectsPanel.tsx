@@ -221,64 +221,21 @@ interface ParamRowProps {
 const ParamRow: React.FC<ParamRowProps> = memo(
   ({ label, value, min, max, step, unit, format, onChange, disabled }) => {
     const theme = useTheme();
-    const history = useTimelineHistoryBatch();
-
-    // Same rAF-coalesced, history-batched gesture as InspectorSliderRow: at
-    // most one store write per animation frame while dragging, one undo
-    // entry per gesture (or per key-repeat press) instead of one per tick.
-    const onChangeRef = useRef(onChange);
-    onChangeRef.current = onChange;
-    const gestureActiveRef = useRef(false);
-    const pendingValueRef = useRef<number | null>(null);
-    const rafIdRef = useRef<number | null>(null);
-
-    const flush = useCallback(() => {
-      rafIdRef.current = null;
-      if (pendingValueRef.current === null) return;
-      const next = pendingValueRef.current;
-      pendingValueRef.current = null;
-      onChangeRef.current(next);
-      history.mark();
-    }, [history]);
+    const gesture = useBatchedGesture(onChange);
 
     const handleChange = useCallback(
       (_e: Event, v: number | number[]) => {
-        const next = Array.isArray(v) ? v[0] : v;
-        if (!gestureActiveRef.current) {
-          gestureActiveRef.current = true;
-          history.begin();
-        }
-        pendingValueRef.current = next;
-        if (rafIdRef.current === null) {
-          rafIdRef.current = requestAnimationFrame(flush);
-        }
+        gesture.schedule(Array.isArray(v) ? v[0] : v);
       },
-      [history, flush]
+      [gesture]
     );
 
     const handleChangeCommitted = useCallback(
       (_e: React.SyntheticEvent | Event, v: number | number[]) => {
-        const next = Array.isArray(v) ? v[0] : v;
-        if (rafIdRef.current !== null) {
-          cancelAnimationFrame(rafIdRef.current);
-          rafIdRef.current = null;
-        }
-        pendingValueRef.current = null;
-        onChangeRef.current(next);
-        history.mark();
-        history.end();
-        gestureActiveRef.current = false;
+        gesture.commit(Array.isArray(v) ? v[0] : v);
       },
-      [history]
+      [gesture]
     );
-
-    useEffect(() => {
-      return () => {
-        if (rafIdRef.current !== null) {
-          cancelAnimationFrame(rafIdRef.current);
-        }
-      };
-    }, []);
 
     // Dragging the slider re-renders this row once per animation frame.
     const labelCss = useMemo(() => paramLabelStyles(theme), [theme]);

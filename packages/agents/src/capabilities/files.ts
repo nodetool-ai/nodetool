@@ -15,7 +15,7 @@
  * Every one is context-only: what the class read off the `ProcessingContext`
  * the implementation reads off `run.context`, and nothing else rides on the
  * run. A belt builds all seven from `files.specs.ts` by name, so
- * `BUILTIN_TOOL_NAMES` and `resolveTool(name)` see what they saw before.
+ * `BUILTIN_TOOL_NAMES` sees what it saw before.
  *
  * The todo store lives here with the implementation that writes it;
  * `../tools/todo-tools.ts` re-exports the three readers other code calls.

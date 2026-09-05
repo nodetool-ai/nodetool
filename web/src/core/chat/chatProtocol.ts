@@ -66,6 +66,7 @@ import {
   type MsgpackData as WorkflowMsgpackData
 } from "../../stores/workflowUpdates";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import type { Graph } from "../../stores/ApiTypes";
 import {
   getThreadRuntime,
@@ -260,7 +261,7 @@ const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
   throw new Error(`Unknown message content type: ${type}`);
 };
 
-type ChatStateSetter = (
+export type ChatStateSetter = (
   state:
     | Partial<GlobalChatState>
     | ((state: GlobalChatState) => Partial<GlobalChatState>)
@@ -367,11 +368,32 @@ const applyRunFrame = (
   if (!workflowId) {
     return;
   }
-  applyThreadRunUpdate(
+  const taken = applyThreadRunUpdate(
     workflowId,
     update,
     getWorkflowRunnerStore(workflowId)
   );
+  if (!taken) {
+    return;
+  }
+  // A run streamed over a chat thread does not reach the editor's job_update
+  // path, so nothing else puts it in the run registry. Without an entry the
+  // workflow has no focused job and every per-node footer the canvas reads
+  // through it (cost, timing, progress) stays empty.
+  const jobId = update.job_id;
+  if (!jobId) {
+    return;
+  }
+  const runsStore = useWorkflowRunsStore.getState();
+  if (!runsStore.hasRun(workflowId, jobId)) {
+    runsStore.recordRun({
+      jobId,
+      workflowId,
+      state: "running",
+      startedAt: Date.now(),
+      label: jobId
+    });
+  }
 };
 
 const applyEdgeUpdate = (

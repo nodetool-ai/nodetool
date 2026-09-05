@@ -67,6 +67,7 @@ import {
   expandEntitiesForGeneration,
   getProcessSandboxModuleCatalog,
   estimatePromptTokens,
+  isToolCall,
   isProviderSessionUpdate,
   isProviderMessageEvent,
   isProviderStop,
@@ -82,7 +83,6 @@ import {
   noMediaModelSelectedMessage
 } from "@nodetool-ai/protocol";
 import type {
-  Chunk,
   HydratedGraphData,
   ProcessingMessage
 } from "@nodetool-ai/protocol";
@@ -2352,17 +2352,19 @@ export class ChatTurnHandler {
           continue;
         }
 
-        if ("type" in item && (item as Chunk).type === "chunk") {
-          // --- Text chunk --- forward to client (not persisted)
-          const chunk = item as Chunk;
-          if (!chunk.thread_id) chunk.thread_id = threadId;
-          await this.session.send({ ...chunk });
-        } else if ("name" in item && "id" in item) {
-          // --- Tool call from the provider (informational; executed by the
-          // loop via executeTool) ---
-          const tc = item as ProviderToolCall;
-          toolNames.set(tc.id, tc.name);
-          log.info("Tool call", { tool: tc.name, args: tc.args });
+        if (isToolCall(item)) {
+          // Informational: the loop executes it through executeTool.
+          toolNames.set(item.id, item.name);
+          log.info("Tool call", { tool: item.name, args: item.args });
+          continue;
+        }
+
+        // `isChunk` from the runtime additionally requires string content, so
+        // it drops the native-`Float32Array` audio chunks the client decodes.
+        // `type === "chunk"` is Chunk's alone in this union, so test that.
+        if (item.type === "chunk") {
+          if (!item.thread_id) item.thread_id = threadId;
+          await this.session.send({ ...item });
         }
       }
     };

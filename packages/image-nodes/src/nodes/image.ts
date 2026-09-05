@@ -316,7 +316,7 @@ export class LoadImageFileNode extends BaseNode {
     title: "Path",
     description: "Path to the image file to read"
   })
-  declare path: any;
+  declare path: string;
 
   async process(): Promise<LoadImageFileNodeOutputs> {
     const fs = await loadNodeFsPromises();
@@ -361,7 +361,7 @@ export class LoadImageFolderNode extends BaseNode {
     title: "Folder",
     description: "Folder to scan for images"
   })
-  declare folder: any;
+  declare folder: string | FolderRef;
 
   @prop({
     type: "bool",
@@ -369,7 +369,7 @@ export class LoadImageFolderNode extends BaseNode {
     title: "Include Subdirectories",
     description: "Include images in subfolders"
   })
-  declare include_subdirectories: any;
+  declare include_subdirectories: boolean;
 
   @prop({
     type: "list[str]",
@@ -377,7 +377,7 @@ export class LoadImageFolderNode extends BaseNode {
     title: "Extensions",
     description: "Image file extensions to include"
   })
-  declare extensions: any;
+  declare extensions: string[];
 
   @prop({
     type: "str",
@@ -385,7 +385,7 @@ export class LoadImageFolderNode extends BaseNode {
     title: "Pattern",
     description: "Pattern to match image files"
   })
-  declare pattern: any;
+  declare pattern: string;
 
   async process(): Promise<Record<string, unknown>> {
     const collected: Record<string, unknown>[] = [];
@@ -508,7 +508,7 @@ export class SaveImageFileImageNode extends BaseNode {
     title: "Image",
     description: "The image to save"
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "bool",
@@ -516,7 +516,7 @@ export class SaveImageFileImageNode extends BaseNode {
     title: SAVE_TO_WORKSPACE_TITLE,
     description: SAVE_TO_WORKSPACE_DESCRIPTION
   })
-  declare save_to_workspace: any;
+  declare save_to_workspace: boolean;
 
   @prop({
     type: "str",
@@ -525,7 +525,7 @@ export class SaveImageFileImageNode extends BaseNode {
     description: "Folder where the file will be saved",
     json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
-  declare folder: any;
+  declare folder: string;
 
   @prop({
     type: "str",
@@ -534,7 +534,7 @@ export class SaveImageFileImageNode extends BaseNode {
     description:
       "\n        The name of the image file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
   })
-  declare filename: any;
+  declare filename: string;
 
   @prop({
     type: "bool",
@@ -543,7 +543,7 @@ export class SaveImageFileImageNode extends BaseNode {
     description:
       "Overwrite the file if it already exists, otherwise file will be renamed"
   })
-  declare overwrite: any;
+  declare overwrite: boolean;
 
   async process(context?: ProcessingContext): Promise<SaveImageFileImageNodeOutputs> {
     const bytes = await imageBytesAsync(this.image, context);
@@ -610,7 +610,7 @@ export class LoadImageAssetsNode extends BaseNode {
     title: "Folder",
     description: "The asset folder to load the images from."
   })
-  declare folder: any;
+  declare folder: FolderRef;
 
   async process(): Promise<Record<string, unknown>> {
     const loader = new LoadImageFolderNode();
@@ -657,7 +657,7 @@ export class SaveImageNode extends BaseNode {
     title: "Image",
     description: "The image to save."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "folder",
@@ -671,7 +671,7 @@ export class SaveImageNode extends BaseNode {
     title: "Folder",
     description: "The asset folder to save the image in."
   })
-  declare folder: any;
+  declare folder: FolderRef | string;
 
   @prop({
     type: "str",
@@ -680,7 +680,7 @@ export class SaveImageNode extends BaseNode {
     description:
       "\n        Name of the output file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
   })
-  declare name: any;
+  declare name: string;
 
   async process(context?: ProcessingContext): Promise<SaveImageNodeOutputs> {
     const bytes = await imageBytesAsync(this.image, context);
@@ -772,7 +772,7 @@ export class GetMetadataNode extends BaseNode {
     title: "Image",
     description: "The input image."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   async process(context?: ProcessingContext): Promise<GetMetadataNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
@@ -840,7 +840,7 @@ export class BatchToListNode extends BaseNode {
     title: "Batch",
     description: "The batch of images to convert."
   })
-  declare batch: any;
+  declare batch: ImageRefLike;
 
   async process(): Promise<Record<string, unknown>> {
     const batch = this.batch;
@@ -932,7 +932,7 @@ export class PasteNode extends TransformImageNode {
     title: "Image",
     description: "The image to paste into."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "image",
@@ -946,7 +946,7 @@ export class PasteNode extends TransformImageNode {
     title: "Paste",
     description: "The image to paste."
   })
-  declare paste: any;
+  declare paste: ImageRefLike;
 
   @prop({
     type: "int",
@@ -956,7 +956,7 @@ export class PasteNode extends TransformImageNode {
     min: 0,
     max: 8192
   })
-  declare left: any;
+  declare left: number;
 
   @prop({
     type: "int",
@@ -966,7 +966,7 @@ export class PasteNode extends TransformImageNode {
     min: 0,
     max: 8192
   })
-  declare top: any;
+  declare top: number;
 
   async process(context?: ProcessingContext): Promise<PasteNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
@@ -1043,7 +1043,7 @@ export class ResizeImageNode extends TransformImageNode {
     title: "Image",
     description: "The image to resize."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "enum",
@@ -1053,7 +1053,7 @@ export class ResizeImageNode extends TransformImageNode {
     description:
       "Scale multiplies pixel size; Dimensions sets exact W×H; Fit preserves aspect inside a box."
   })
-  declare mode: any;
+  declare mode: "scale" | "dimensions" | "fit";
 
   @prop({
     type: "float",
@@ -1063,7 +1063,7 @@ export class ResizeImageNode extends TransformImageNode {
     min: 0.1,
     max: 10
   })
-  declare scale: any;
+  declare scale: number;
 
   @prop({
     type: "int",
@@ -1074,7 +1074,7 @@ export class ResizeImageNode extends TransformImageNode {
     min: 0,
     max: 8192
   })
-  declare width: any;
+  declare width: number;
 
   @prop({
     type: "int",
@@ -1085,7 +1085,7 @@ export class ResizeImageNode extends TransformImageNode {
     min: 0,
     max: 8192
   })
-  declare height: any;
+  declare height: number;
 
   async process(context?: ProcessingContext): Promise<ResizeImageNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
@@ -1167,7 +1167,7 @@ export class ScaleNode extends TransformImageNode {
     title: "Image",
     description: "The image to scale."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "float",
@@ -1177,7 +1177,7 @@ export class ScaleNode extends TransformImageNode {
     min: 0,
     max: 10
   })
-  declare scale: any;
+  declare scale: number;
 
   async process(context?: ProcessingContext): Promise<ScaleNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
@@ -1230,7 +1230,7 @@ export class ResizeNode extends TransformImageNode {
     title: "Image",
     description: "The image to resize."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "int",
@@ -1240,7 +1240,7 @@ export class ResizeNode extends TransformImageNode {
     min: 0,
     max: 8192
   })
-  declare width: any;
+  declare width: number;
 
   @prop({
     type: "int",
@@ -1250,7 +1250,7 @@ export class ResizeNode extends TransformImageNode {
     min: 0,
     max: 8192
   })
-  declare height: any;
+  declare height: number;
 
   async process(context?: ProcessingContext): Promise<ResizeNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
@@ -1337,7 +1337,7 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Image",
     description: "The image to place on the expanded canvas."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "enum",
@@ -1346,7 +1346,7 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Mode",
     description: "How to resize the canvas."
   })
-  declare mode: any;
+  declare mode: "fixed" | "scale" | "padding";
 
   @prop({
     type: "enum",
@@ -1366,7 +1366,7 @@ export class CanvasResizeNode extends TransformImageNode {
     description:
       "Where to place the original image on the new canvas (fixed/scale modes)."
   })
-  declare anchor: any;
+  declare anchor: CanvasAnchor;
 
   @prop({
     type: "int",
@@ -1376,7 +1376,7 @@ export class CanvasResizeNode extends TransformImageNode {
     min: 1,
     max: 8192
   })
-  declare width: any;
+  declare width: number;
 
   @prop({
     type: "int",
@@ -1386,7 +1386,7 @@ export class CanvasResizeNode extends TransformImageNode {
     min: 1,
     max: 8192
   })
-  declare height: any;
+  declare height: number;
 
   @prop({
     type: "float",
@@ -1396,7 +1396,7 @@ export class CanvasResizeNode extends TransformImageNode {
     min: 0.01,
     max: 10
   })
-  declare scale: any;
+  declare scale: number;
 
   @prop({
     type: "enum",
@@ -1405,7 +1405,7 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Padding unit",
     description: "Whether padding values are pixels or percent of source size."
   })
-  declare padding_unit: any;
+  declare padding_unit: "px" | "percent";
 
   @prop({
     type: "float",
@@ -1415,7 +1415,7 @@ export class CanvasResizeNode extends TransformImageNode {
     min: 0,
     max: 8192
   })
-  declare top: any;
+  declare top: number;
 
   @prop({
     type: "float",
@@ -1425,7 +1425,7 @@ export class CanvasResizeNode extends TransformImageNode {
     min: 0,
     max: 8192
   })
-  declare bottom: any;
+  declare bottom: number;
 
   @prop({
     type: "float",
@@ -1435,7 +1435,7 @@ export class CanvasResizeNode extends TransformImageNode {
     min: 0,
     max: 8192
   })
-  declare left: any;
+  declare left: number;
 
   @prop({
     type: "float",
@@ -1445,7 +1445,7 @@ export class CanvasResizeNode extends TransformImageNode {
     min: 0,
     max: 8192
   })
-  declare right: any;
+  declare right: number;
 
   @prop({
     type: "color",
@@ -1453,7 +1453,7 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Fill Color",
     description: "Background color for the expanded canvas area."
   })
-  declare color: any;
+  declare color: ColorValue;
 
   async process(context?: ProcessingContext): Promise<CanvasResizeNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
@@ -1589,7 +1589,7 @@ export class CropNode extends TransformImageNode {
     title: "Image",
     description: "The image to crop."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "int",
@@ -1599,7 +1599,7 @@ export class CropNode extends TransformImageNode {
     min: 0,
     max: 8192
   })
-  declare left: any;
+  declare left: number;
 
   @prop({
     type: "int",
@@ -1609,7 +1609,7 @@ export class CropNode extends TransformImageNode {
     min: 0,
     max: 8192
   })
-  declare top: any;
+  declare top: number;
 
   @prop({
     type: "int",
@@ -1619,7 +1619,7 @@ export class CropNode extends TransformImageNode {
     min: 0,
     max: 8192
   })
-  declare right: any;
+  declare right: number;
 
   @prop({
     type: "int",
@@ -1629,7 +1629,7 @@ export class CropNode extends TransformImageNode {
     min: 0,
     max: 8192
   })
-  declare bottom: any;
+  declare bottom: number;
 
   async process(context?: ProcessingContext): Promise<CropNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
@@ -1690,7 +1690,7 @@ export class FitNode extends TransformImageNode {
     title: "Image",
     description: "The image to fit."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "int",
@@ -1700,7 +1700,7 @@ export class FitNode extends TransformImageNode {
     min: 1,
     max: 8192
   })
-  declare width: any;
+  declare width: number;
 
   @prop({
     type: "int",
@@ -1710,7 +1710,7 @@ export class FitNode extends TransformImageNode {
     min: 1,
     max: 8192
   })
-  declare height: any;
+  declare height: number;
 
   async process(context?: ProcessingContext): Promise<FitNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
@@ -1766,7 +1766,7 @@ export class TextToImageNode extends BaseNode {
     title: "Model",
     description: "The image generation model to use"
   })
-  declare model: any;
+  declare model: ImageModel;
 
   @prop({
     type: "str",
@@ -1774,7 +1774,7 @@ export class TextToImageNode extends BaseNode {
     title: "Prompt",
     description: "Text prompt describing the desired image"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -1782,7 +1782,7 @@ export class TextToImageNode extends BaseNode {
     title: "Negative Prompt",
     description: "Text prompt describing what to avoid in the image"
   })
-  declare negative_prompt: any;
+  declare negative_prompt: string;
 
   @prop({
     type: "list[dict]",
@@ -1791,7 +1791,7 @@ export class TextToImageNode extends BaseNode {
     description:
       "Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt"
   })
-  declare entities: any;
+  declare entities: Record<string, unknown>[];
 
   @prop({
     type: "str",
@@ -1801,7 +1801,7 @@ export class TextToImageNode extends BaseNode {
     values: IMAGE_ASPECT_RATIO_VALUES,
     json_schema_extra: { type: "media_aspect_ratio_image" }
   })
-  declare aspect_ratio: any;
+  declare aspect_ratio: string;
 
   @prop({
     type: "str",
@@ -1811,7 +1811,7 @@ export class TextToImageNode extends BaseNode {
     values: IMAGE_RESOLUTION_VALUES,
     json_schema_extra: { type: "media_resolution_image" }
   })
-  declare resolution: any;
+  declare resolution: string;
 
   async process(context?: ProcessingContext): Promise<TextToImageNodeOutputs> {
     const prompt = String(this.prompt ?? "");
@@ -1878,7 +1878,7 @@ export class ImageToImageNode extends BaseNode {
     title: "Model",
     description: "The image generation model to use"
   })
-  declare model: any;
+  declare model: ImageModel;
 
   @prop({
     type: "list[image]",
@@ -1887,7 +1887,7 @@ export class ImageToImageNode extends BaseNode {
     description:
       "Input image(s) to transform. The first image is the primary subject; additional images are used as references by providers that support multi-image editing."
   })
-  declare image: any;
+  declare image: ImageRefLike[];
 
   @prop({
     type: "str",
@@ -1895,7 +1895,7 @@ export class ImageToImageNode extends BaseNode {
     title: "Prompt",
     description: "Text prompt describing the desired transformation"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -1903,7 +1903,7 @@ export class ImageToImageNode extends BaseNode {
     title: "Negative Prompt",
     description: "Text prompt describing what to avoid"
   })
-  declare negative_prompt: any;
+  declare negative_prompt: string;
 
   @prop({
     type: "list[dict]",
@@ -1912,7 +1912,7 @@ export class ImageToImageNode extends BaseNode {
     description:
       "Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt and whose reference images are appended to the input images"
   })
-  declare entities: any;
+  declare entities: Record<string, unknown>[];
 
   @prop({
     type: "float",
@@ -1923,7 +1923,7 @@ export class ImageToImageNode extends BaseNode {
     values: IMAGE_EDIT_STRENGTH_VALUES,
     json_schema_extra: { type: "media_strength" }
   })
-  declare strength: any;
+  declare strength: number;
 
   @prop({
     type: "str",
@@ -1933,7 +1933,7 @@ export class ImageToImageNode extends BaseNode {
     values: IMAGE_ASPECT_RATIO_VALUES,
     json_schema_extra: { type: "media_aspect_ratio_image" }
   })
-  declare aspect_ratio: any;
+  declare aspect_ratio: string;
 
   @prop({
     type: "str",
@@ -1943,7 +1943,7 @@ export class ImageToImageNode extends BaseNode {
     values: IMAGE_RESOLUTION_VALUES,
     json_schema_extra: { type: "media_resolution_image" }
   })
-  declare resolution: any;
+  declare resolution: string;
 
   @prop({
     type: "str",
@@ -1951,7 +1951,7 @@ export class ImageToImageNode extends BaseNode {
     title: "Scheduler",
     description: "Scheduler to use (provider-specific)"
   })
-  declare scheduler: any;
+  declare scheduler: string;
 
   async process(context?: ProcessingContext): Promise<ImageToImageNodeOutputs> {
     let images = normalizeImageList(this.image);
@@ -2054,7 +2054,7 @@ export class RotateAndFlipNode extends TransformImageNode {
     title: "Image",
     description: "The image to rotate and flip."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "float",
@@ -2064,7 +2064,7 @@ export class RotateAndFlipNode extends TransformImageNode {
     min: -360,
     max: 360
   })
-  declare angle: any;
+  declare angle: number;
 
   @prop({
     type: "bool",
@@ -2072,7 +2072,7 @@ export class RotateAndFlipNode extends TransformImageNode {
     title: "Flip Horizontal",
     description: "Mirror left/right."
   })
-  declare flip_horizontal: any;
+  declare flip_horizontal: boolean;
 
   @prop({
     type: "bool",
@@ -2080,7 +2080,7 @@ export class RotateAndFlipNode extends TransformImageNode {
     title: "Flip Vertical",
     description: "Mirror top/bottom."
   })
-  declare flip_vertical: any;
+  declare flip_vertical: boolean;
 
   async process(
     context?: ProcessingContext
@@ -2183,7 +2183,7 @@ export class ChannelsNode extends TransformImageNode {
     title: "Image",
     description: "The image to extract a channel from."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "str",
@@ -2192,7 +2192,7 @@ export class ChannelsNode extends TransformImageNode {
     description: "Which channel to extract.",
     values: ["red", "green", "blue", "alpha", "luminance"]
   })
-  declare channel: any;
+  declare channel: string;
 
   async process(
     context?: ProcessingContext
@@ -2257,7 +2257,7 @@ export class BlurNode extends TransformImageNode {
     title: "Image",
     description: "The image to blur."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "str",
@@ -2266,7 +2266,7 @@ export class BlurNode extends TransformImageNode {
     description: "Blur algorithm: gaussian (smooth), box (boxcar), motion (horizontal streak).",
     values: ["gaussian", "box", "motion"]
   })
-  declare blur_type: any;
+  declare blur_type: string;
 
   @prop({
     type: "int",
@@ -2276,7 +2276,7 @@ export class BlurNode extends TransformImageNode {
     min: 0,
     max: 100
   })
-  declare size: any;
+  declare size: number;
 
   async process(
     context?: ProcessingContext
@@ -2347,7 +2347,7 @@ export class LevelsNode extends TransformImageNode {
     title: "Image",
     description: "The image to adjust."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "int",
@@ -2357,7 +2357,7 @@ export class LevelsNode extends TransformImageNode {
     min: 0,
     max: 255
   })
-  declare r_black: any;
+  declare r_black: number;
 
   @prop({
     type: "float",
@@ -2367,7 +2367,7 @@ export class LevelsNode extends TransformImageNode {
     min: 0.01,
     max: 10
   })
-  declare r_gamma: any;
+  declare r_gamma: number;
 
   @prop({
     type: "int",
@@ -2377,7 +2377,7 @@ export class LevelsNode extends TransformImageNode {
     min: 0,
     max: 255
   })
-  declare r_white: any;
+  declare r_white: number;
 
   @prop({
     type: "int",
@@ -2387,7 +2387,7 @@ export class LevelsNode extends TransformImageNode {
     min: 0,
     max: 255
   })
-  declare g_black: any;
+  declare g_black: number;
 
   @prop({
     type: "float",
@@ -2397,7 +2397,7 @@ export class LevelsNode extends TransformImageNode {
     min: 0.01,
     max: 10
   })
-  declare g_gamma: any;
+  declare g_gamma: number;
 
   @prop({
     type: "int",
@@ -2407,7 +2407,7 @@ export class LevelsNode extends TransformImageNode {
     min: 0,
     max: 255
   })
-  declare g_white: any;
+  declare g_white: number;
 
   @prop({
     type: "int",
@@ -2417,7 +2417,7 @@ export class LevelsNode extends TransformImageNode {
     min: 0,
     max: 255
   })
-  declare b_black: any;
+  declare b_black: number;
 
   @prop({
     type: "float",
@@ -2427,7 +2427,7 @@ export class LevelsNode extends TransformImageNode {
     min: 0.01,
     max: 10
   })
-  declare b_gamma: any;
+  declare b_gamma: number;
 
   @prop({
     type: "int",
@@ -2437,7 +2437,7 @@ export class LevelsNode extends TransformImageNode {
     min: 0,
     max: 255
   })
-  declare b_white: any;
+  declare b_white: number;
 
   async process(
     context?: ProcessingContext
@@ -2899,7 +2899,7 @@ export class UpscaleImageNode extends BaseNode {
     title: "Model",
     description: "The upscaling model to use"
   })
-  declare model: any;
+  declare model: ImageModel;
 
   @prop({
     type: "image",
@@ -2907,7 +2907,7 @@ export class UpscaleImageNode extends BaseNode {
     title: "Image",
     description: "Input image to upscale"
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "int",
@@ -2916,7 +2916,7 @@ export class UpscaleImageNode extends BaseNode {
     description: "Target magnification factor",
     values: [2, 4]
   })
-  declare scale: any;
+  declare scale: 2 | 4;
 
   @prop({
     type: "str",
@@ -2924,7 +2924,7 @@ export class UpscaleImageNode extends BaseNode {
     title: "Prompt",
     description: "Optional guidance prompt for creative upscalers"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   async process(context?: ProcessingContext): Promise<UpscaleImageNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
@@ -2984,7 +2984,7 @@ export class RemoveBackgroundNode extends BaseNode {
     title: "Model",
     description: "The background-removal model to use"
   })
-  declare model: any;
+  declare model: ImageModel;
 
   @prop({
     type: "image",
@@ -2992,7 +2992,7 @@ export class RemoveBackgroundNode extends BaseNode {
     title: "Image",
     description: "Input image to remove the background from"
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   async process(context?: ProcessingContext): Promise<RemoveBackgroundNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
@@ -3048,7 +3048,7 @@ export class RelightImageNode extends BaseNode {
     title: "Model",
     description: "The relighting model to use"
   })
-  declare model: any;
+  declare model: ImageModel;
 
   @prop({
     type: "image",
@@ -3056,7 +3056,7 @@ export class RelightImageNode extends BaseNode {
     title: "Image",
     description: "Input image to relight"
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "str",
@@ -3064,7 +3064,7 @@ export class RelightImageNode extends BaseNode {
     title: "Prompt",
     description: "Description of the desired lighting"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -3072,7 +3072,7 @@ export class RelightImageNode extends BaseNode {
     title: "Negative Prompt",
     description: "Text prompt describing what to avoid"
   })
-  declare negative_prompt: any;
+  declare negative_prompt: string;
 
   async process(context?: ProcessingContext): Promise<RelightImageNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
@@ -3169,7 +3169,7 @@ export class SegmentImageNode extends BaseNode {
     title: "Model",
     description: "The segmentation model to use"
   })
-  declare model: any;
+  declare model: ImageModel;
 
   @prop({
     type: "image",
@@ -3177,7 +3177,7 @@ export class SegmentImageNode extends BaseNode {
     title: "Image",
     description: "Input image to segment"
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: "str",
@@ -3186,7 +3186,7 @@ export class SegmentImageNode extends BaseNode {
     description:
       "The object to find, e.g. \"the red car\". Most models need this: a concept-driven model such as SAM 3.1 segments nothing without it, and ignores points and boxes. Leave it empty only for a model that finds objects on its own, such as fal-ai/sam2/auto-segment."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "list[dict]",
@@ -3195,7 +3195,7 @@ export class SegmentImageNode extends BaseNode {
     description:
       "Clicks that point at one object, in source-image pixels: {x, y, include}. `include: false` marks a point that is NOT part of it."
   })
-  declare points: any;
+  declare points: Record<string, unknown>[];
 
   @prop({
     type: "dict",
@@ -3204,7 +3204,7 @@ export class SegmentImageNode extends BaseNode {
     description:
       "A rectangle around one object, in source-image pixels: {x, y, width, height}"
   })
-  declare box: any;
+  declare box: Record<string, unknown>;
 
   @prop({
     type: "int",
@@ -3212,7 +3212,7 @@ export class SegmentImageNode extends BaseNode {
     title: "Max Masks",
     description: "Upper bound on how many masks to return"
   })
-  declare max_masks: any;
+  declare max_masks: number;
 
   @prop({
     type: "float",
@@ -3220,7 +3220,7 @@ export class SegmentImageNode extends BaseNode {
     title: "Min Confidence",
     description: "Drop masks the model scores below this (0 = keep every mask)"
   })
-  declare min_confidence: any;
+  declare min_confidence: number;
 
   async process(context?: ProcessingContext): Promise<SegmentImageNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
@@ -3290,7 +3290,7 @@ export class VectorizeImageNode extends BaseNode {
     title: "Model",
     description: "The vectorization model to use"
   })
-  declare model: any;
+  declare model: ImageModel;
 
   @prop({
     type: "image",
@@ -3298,7 +3298,7 @@ export class VectorizeImageNode extends BaseNode {
     title: "Image",
     description: "Input image to vectorize"
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   async process(context?: ProcessingContext): Promise<VectorizeImageNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;

@@ -56,7 +56,8 @@ export interface VersionCommandSpec<
   Row,
   Item,
   V extends Validation,
-  Counts
+  Counts,
+  Meta
 > {
   /** Argument placeholder, e.g. `timeline_id`. */
   idArg: string;
@@ -93,13 +94,15 @@ export interface VersionCommandSpec<
   ) => string;
   /** Extra `--json` keys describing the document after a restore. */
   restoreJsonExtra: (doc: Doc) => Record<string, unknown>;
+  /** The render settings the validator needs, read off the version row. */
+  validateMeta: (row: Row) => Meta;
   renderValidation: (validation: V) => string[];
 }
 
 /** Injected with lazy defaults so registration stays light and actions unit-test. */
-export interface VersionCommandDeps<Doc, Row, V extends Validation> {
+export interface VersionCommandDeps<Doc, Row, V extends Validation, Meta> {
   store?: () => Promise<VersionStore<Doc, Row>>;
-  validate?: (document: unknown, row: Row) => Promise<V> | V;
+  validate?: (document: unknown, meta: Meta) => Promise<V> | V;
   confirmDelete?: (message: string, force?: boolean) => Promise<boolean>;
 }
 
@@ -143,14 +146,15 @@ export function registerVersionCommands<
   Row,
   Item,
   V extends Validation,
-  Counts
+  Counts,
+  Meta
 >(
   parent: Command,
-  spec: VersionCommandSpec<Doc, Row, Item, V, Counts>,
-  deps: VersionCommandDeps<Doc, Row, V>,
+  spec: VersionCommandSpec<Doc, Row, Item, V, Counts, Meta>,
+  deps: VersionCommandDeps<Doc, Row, V, Meta>,
   defaults: {
     store: () => Promise<VersionStore<Doc, Row>>;
-    validate: (document: unknown, row: Row) => Promise<V> | V;
+    validate: (document: unknown, meta: Meta) => Promise<V> | V;
   }
 ): void {
   const openStore = deps.store ?? defaults.store;
@@ -304,7 +308,7 @@ export function registerVersionCommands<
         const document = parseVersionDocument(
           (target as { document?: unknown }).document
         );
-        const validation = await validate(document, target);
+        const validation = await validate(document, spec.validateMeta(target));
 
         if (opts.json) {
           asJson({

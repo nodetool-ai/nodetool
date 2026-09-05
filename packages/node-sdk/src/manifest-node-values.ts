@@ -153,9 +153,14 @@ export function isListAssetPropType(propType: string): boolean {
  */
 export type ManifestEnumPolicy = "declared" | "parsed";
 
-function enumIsNumeric(
+/**
+ * Whether an enum's API argument must be sent as a number under `policy`.
+ * Exported because replicate also needs it at property-registration time, to
+ * register numeric options and a numeric default.
+ */
+export function manifestEnumIsNumeric(
   values: readonly (string | number)[] | undefined,
-  policy: ManifestEnumPolicy
+  policy: ManifestEnumPolicy = "declared"
 ): boolean {
   if (!Array.isArray(values) || values.length === 0) return false;
   if (policy === "declared") {
@@ -199,7 +204,7 @@ export function coerceManifestScalar(
       return Boolean(value);
     }
     default:
-      return enumIsNumeric(enumValues, enumPolicy)
+      return manifestEnumIsNumeric(enumValues, enumPolicy)
         ? Number(value)
         : String(value);
   }

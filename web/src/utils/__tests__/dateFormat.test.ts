@@ -1,9 +1,4 @@
-import {
-  parseISO,
-  isValid,
-  format,
-  formatDistanceToNow
-} from "../dateFormat";
+import { parseISO, isValid, format } from "../dateFormat";
 
 // Run with TZ=UTC so local getters match the ISO strings below.
 
@@ -11,6 +6,13 @@ describe("parseISO", () => {
   it("parses an ISO datetime string", () => {
     const date = parseISO("2023-04-05T09:07:03Z");
     expect(date.getTime()).toBe(Date.UTC(2023, 3, 5, 9, 7, 3));
+  });
+
+  it("parses ISO datetime strings via the Date constructor", () => {
+    const date = parseISO("2023-04-05T14:30:00Z");
+    expect(isValid(date)).toBe(true);
+    expect(date.getUTCHours()).toBe(14);
+    expect(date.getUTCMinutes()).toBe(30);
   });
 
   it("parses date-only strings at local midnight", () => {
@@ -31,6 +33,23 @@ describe("parseISO", () => {
     }
   });
 
+  it("parses a date-only string to midnight local time", () => {
+    const date = parseISO("2023-04-05");
+    expect(date.getFullYear()).toBe(2023);
+    expect(date.getMonth()).toBe(3);
+    expect(date.getDate()).toBe(5);
+    expect(date.getHours()).toBe(0);
+    expect(date.getMinutes()).toBe(0);
+  });
+
+  it("returns an invalid Date for impossible dates", () => {
+    expect(isValid(parseISO("2023-02-30"))).toBe(false);
+  });
+
+  it("returns an invalid Date for month 13", () => {
+    expect(isValid(parseISO("2023-13-01"))).toBe(false);
+  });
+
   it("returns an invalid Date for garbage input", () => {
     expect(isValid(parseISO("not-a-date"))).toBe(false);
   });
@@ -39,10 +58,12 @@ describe("parseISO", () => {
 describe("isValid", () => {
   it("accepts a real date", () => {
     expect(isValid(new Date("2023-01-15T00:00:00Z"))).toBe(true);
+    expect(isValid(new Date(2023, 0, 1))).toBe(true);
   });
 
   it("rejects an invalid date", () => {
     expect(isValid(new Date(NaN))).toBe(false);
+    expect(isValid(new Date("invalid"))).toBe(false);
   });
 });
 
@@ -60,12 +81,8 @@ describe("format", () => {
   it("handles midnight and noon in PPpp", () => {
     expect(format(midnight, "PPpp")).toBe("Apr 5, 2023, 12:30:00 AM");
     expect(format(noon, "PPpp")).toBe("Apr 5, 2023, 12:00:00 PM");
-  });
-
-  it("formats MMM d, yyyy · HH:mm", () => {
-    expect(format(morning, "MMM d, yyyy · HH:mm")).toBe("Apr 5, 2023 · 09:07");
-    expect(format(afternoon, "MMM d, yyyy · HH:mm")).toBe(
-      "Dec 25, 2023 · 13:05"
+    expect(format(new Date(2023, 3, 5, 0, 0, 0), "PPpp")).toBe(
+      "Apr 5, 2023, 12:00:00 AM"
     );
   });
 
@@ -73,88 +90,8 @@ describe("format", () => {
     expect(() => format(morning, "yyyy-MM-dd")).toThrow(
       "Unsupported date format pattern"
     );
-  });
-});
-
-describe("formatDistanceToNow", () => {
-  const ago = (ms: number) => new Date(Date.now() - ms);
-  const MINUTE = 60_000;
-  const HOUR = 60 * MINUTE;
-  const DAY = 24 * HOUR;
-
-  it("says less than a minute for very recent dates", () => {
-    expect(formatDistanceToNow(ago(20_000), { addSuffix: true })).toBe(
-      "less than a minute ago"
-    );
-  });
-
-  it("formats minutes", () => {
-    expect(formatDistanceToNow(ago(MINUTE), { addSuffix: true })).toBe(
-      "1 minute ago"
-    );
-    expect(formatDistanceToNow(ago(5 * MINUTE), { addSuffix: true })).toBe(
-      "5 minutes ago"
-    );
-  });
-
-  it("formats hours", () => {
-    expect(formatDistanceToNow(ago(HOUR), { addSuffix: true })).toBe(
-      "about 1 hour ago"
-    );
-    expect(formatDistanceToNow(ago(3 * HOUR), { addSuffix: true })).toBe(
-      "about 3 hours ago"
-    );
-  });
-
-  it("formats days", () => {
-    expect(formatDistanceToNow(ago(DAY), { addSuffix: true })).toBe(
-      "1 day ago"
-    );
-    expect(formatDistanceToNow(ago(5 * DAY), { addSuffix: true })).toBe(
-      "5 days ago"
-    );
-  });
-
-  it("uses date-fns distance thresholds", () => {
-    jest.useFakeTimers().setSystemTime(new Date("2024-06-01T12:00:00Z"));
-    try {
-      expect(formatDistanceToNow(ago(30_000))).toBe("1 minute");
-      expect(formatDistanceToNow(ago(41.5 * HOUR))).toBe("1 day");
-      expect(formatDistanceToNow(ago(42 * HOUR))).toBe("2 days");
-      expect(formatDistanceToNow(ago(45 * DAY))).toBe("about 2 months");
-    } finally {
-      jest.useRealTimers();
-    }
-  });
-
-  it("formats months", () => {
-    expect(formatDistanceToNow(ago(40 * DAY), { addSuffix: true })).toBe(
-      "about 1 month ago"
-    );
-    expect(formatDistanceToNow(ago(90 * DAY), { addSuffix: true })).toBe(
-      "3 months ago"
-    );
-  });
-
-  it("formats years", () => {
-    expect(formatDistanceToNow(ago(400 * DAY), { addSuffix: true })).toBe(
-      "about 1 year ago"
-    );
-    expect(formatDistanceToNow(ago(550 * DAY), { addSuffix: true })).toBe(
-      "over 1 year ago"
-    );
-    expect(formatDistanceToNow(ago(700 * DAY), { addSuffix: true })).toBe(
-      "almost 2 years ago"
-    );
-  });
-
-  it("omits the suffix without addSuffix", () => {
-    expect(formatDistanceToNow(ago(5 * MINUTE))).toBe("5 minutes");
-  });
-
-  it("phrases future dates with 'in'", () => {
-    expect(formatDistanceToNow(ago(-5 * MINUTE), { addSuffix: true })).toBe(
-      "in 5 minutes"
+    expect(() => format(morning, "MMM d, yyyy · HH:mm")).toThrow(
+      "Unsupported date format pattern"
     );
   });
 });

@@ -11,6 +11,7 @@ import {
   detectImageMime,
   expandEntitiesForGeneration,
   generateStructured,
+  isToolCall,
   IMAGE_MIME_TO_EXT,
   messageText
 } from "@nodetool-ai/runtime";
@@ -299,22 +300,17 @@ export class DirectInferenceHandler {
       signal
     })) {
       if (requestSeq !== this.deps.currentRequestSeq()) break; // cancelled
-      if ("type" in item && item.type === "chunk") {
-        await this.session.send({ ...item, seq: requestSeq });
-      } else if ("name" in item) {
-        const toolItem = item as {
-          id: string;
-          name: string;
-          args: Record<string, unknown>;
-        };
-        log.info("Tool call", { tool: toolItem.name, args: toolItem.args });
+      if (isToolCall(item)) {
+        log.info("Tool call", { tool: item.name, args: item.args });
         await this.session.send({
           type: "tool_call",
-          id: toolItem.id,
-          name: toolItem.name,
-          args: toolItem.args,
+          id: item.id,
+          name: item.name,
+          args: item.args,
           seq: requestSeq
         });
+      } else if (item.type === "chunk") {
+        await this.session.send({ ...item, seq: requestSeq });
       }
     }
 

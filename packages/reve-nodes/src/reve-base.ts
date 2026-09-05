@@ -21,10 +21,10 @@
  * `file://` paths, and remote `http(s)` URLs are all supported.
  */
 
-import { promises as fs } from "node:fs";
-import { fileURLToPath } from "node:url";
-
-import { fetchExternalMedia } from "@nodetool-ai/runtime";
+import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import type { MediaRefValue, ProcessingContext } from "@nodetool-ai/runtime";
+import { imageRefFromBytes } from "@nodetool-ai/runtime/provider-transport";
+import type { EncodedImageRef } from "@nodetool-ai/runtime/provider-transport";
 
 export const REVE_API_BASE = "https://api.reve.com";
 
@@ -59,19 +59,6 @@ export interface ReveImageResponse {
   credits_remaining?: number;
 }
 
-type StorageLike = {
-  retrieve: (uri: string) => Promise<Uint8Array | null> | Uint8Array | null;
-} | null;
-
-type AssetContext =
-  | {
-      storage?: StorageLike;
-      resolveAssetBytes?: (
-        uri: string
-      ) => Promise<{ bytes: Uint8Array | null }>;
-    }
-  | undefined;
-
 // ---------------------------------------------------------------------------
 // API key
 // ---------------------------------------------------------------------------
@@ -86,14 +73,6 @@ export function getReveApiKey(secrets: Record<string, string>): string {
 // Asset → base64
 // ---------------------------------------------------------------------------
 
-function localFilePath(uri: string): string {
-  try {
-    return fileURLToPath(new URL(uri));
-  } catch {
-    return uri.slice("file://".length);
-  }
-}
-
 /**
  * The `ImageRef` fields this pack resolves bytes from. Node props arrive
  * untyped from the graph, so the contract is stated here rather than at each
@@ -102,71 +81,32 @@ function localFilePath(uri: string): string {
 export interface ReveImageInput {
   uri?: string;
   data?: Uint8Array | string;
+  asset_id?: string | null;
 }
 
-/** Whether an image payload arrived base64-encoded rather than as bytes. */
-function isEncodedData(data: Uint8Array | string): data is string {
-  return typeof data === "string";
-}
-
-/** Resolve an ImageRef-like value to raw bytes. */
+/**
+ * Resolve an ImageRef-like value to raw bytes. Delegates to the canonical
+ * {@link loadMediaRefBytes}, which — unlike the copy this replaced — checks
+ * `data.length > 0` rather than bare truthiness (a zero-length `Uint8Array` is
+ * truthy and shadowed a perfectly good `uri`) and resolves an `asset_id`-only
+ * ref. Throws rather than returning null: every caller here needs the bytes.
+ */
 export async function refToBytes(
   ref: ReveImageInput | null | undefined,
-  context?: AssetContext
+  context?: ProcessingContext
 ): Promise<Uint8Array> {
   if (!ref) {
     throw new Error("Image is required");
   }
-  const r = ref;
-
-  if (r.data) {
-    if (isEncodedData(r.data)) {
-      const inline = r.data.match(/^data:[^;]*;base64,(.+)$/s);
-      const b64 = inline ? inline[1] : r.data;
-      return new Uint8Array(Buffer.from(b64, "base64"));
-    }
-    return r.data;
-  }
-
-  const uri = r.uri;
-  if (!uri) throw new Error("Image has no data or URI");
-
-  const dataUriMatch = uri.match(/^data:[^;]*;base64,(.+)$/s);
-  if (dataUriMatch) {
-    return new Uint8Array(Buffer.from(dataUriMatch[1], "base64"));
-  }
-
-  if (
-    (uri.startsWith("asset://") || uri.startsWith("package://")) &&
-    context?.resolveAssetBytes
-  ) {
-    const { bytes } = await context.resolveAssetBytes(uri);
-    if (bytes) return new Uint8Array(bytes);
-  }
-
-  if (context?.storage) {
-    const stored = await context.storage.retrieve(uri);
-    if (stored) return new Uint8Array(stored);
-  }
-
-  if (uri.startsWith("file://")) {
-    return new Uint8Array(await fs.readFile(localFilePath(uri)));
-  }
-
-  if (uri.startsWith("http://") || uri.startsWith("https://")) {
-    // Caller-supplied media uri — the media-ref egress policy decides.
-    const resp = await fetchExternalMedia(uri);
-    if (!resp.ok) throw new Error(`Failed to fetch image: ${resp.status}`);
-    return new Uint8Array(await resp.arrayBuffer());
-  }
-
-  throw new Error(`Cannot resolve image URI: ${uri}`);
+  const bytes = await loadMediaRefBytes(ref as MediaRefValue, context);
+  if (!bytes) throw new Error("Image has no data or URI");
+  return bytes;
 }
 
 /** Resolve an ImageRef-like value to a base64 string (no data: prefix). */
 export async function refToBase64(
   ref: ReveImageInput | null | undefined,
-  context?: AssetContext
+  context?: ProcessingContext
 ): Promise<string> {
   const bytes = await refToBytes(ref, context);
   return Buffer.from(bytes).toString("base64");
@@ -176,34 +116,12 @@ export async function refToBase64(
 // Response → ImageRef
 // ---------------------------------------------------------------------------
 
-/** The `ImageRef` this pack emits: a base64 PNG, sized when sharp is present. */
-export interface ReveImageRef {
-  type: "image";
-  uri: string;
-  data: string;
-  mimeType: string;
-  width?: number;
-  height?: number;
-}
+/** The `ImageRef` this pack emits: a base64 image, sized when sharp is present. */
+export type ReveImageRef = EncodedImageRef;
 
-/** Build an ImageRef from a base64 PNG, attaching dimensions when sharp is available. */
+/** Build an ImageRef from the base64 image Reve returns. */
 export async function reveImageToRef(base64: string): Promise<ReveImageRef> {
-  const ref: ReveImageRef = {
-    type: "image",
-    uri: "",
-    data: base64,
-    mimeType: "image/png"
-  };
-  try {
-    const sharp = (await import("sharp")).default;
-    const meta = await sharp(Buffer.from(base64, "base64")).metadata();
-    if (meta.width) ref.width = meta.width;
-    if (meta.height) ref.height = meta.height;
-    if (meta.format) ref.mimeType = `image/${meta.format}`;
-  } catch {
-    // sharp is optional — fall back to the base64 payload without dimensions.
-  }
-  return ref;
+  return imageRefFromBytes(new Uint8Array(Buffer.from(base64, "base64")));
 }
 
 // ---------------------------------------------------------------------------

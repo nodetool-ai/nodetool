@@ -18,7 +18,6 @@ import { GZIP_THRESHOLD } from "./lib/compression.js";
 import { withCacheBuster } from "./lib/example-thumbnail.js";
 import {
   loadExampleGraph,
-  defaultExamplePackageName,
   deriveExampleAssetsDir
 } from "./example-workflows.js";
 import {
@@ -109,8 +108,7 @@ import {
   workflowRunBodySchema,
   workflowVersionCreateBodySchema,
   workflowsExportBundleBodySchema,
-  type ParsedAssetCreateBody,
-  type ParsedWorkflowRequestBody
+  type ParsedAssetCreateBody
 } from "./http-body-schemas.js";
 
 const log = createLogger("nodetool.websocket.http");

@@ -33,8 +33,6 @@ import type {
 import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
 import { createLogger } from "@nodetool-ai/config";
 import {
-  loadExampleGraph,
-  defaultExamplePackageName,
   deriveExampleAssetsDir
 } from "../../example-workflows.js";
 import { ApiErrorCode } from "../../error-codes.js";

@@ -20,7 +20,7 @@ interface SecretsStore {
   secrets: SecretResponse[];
   isLoading: boolean;
   error: string | null;
-  fetchSecrets: (limit?: number) => Promise<SecretResponse[]>;
+  fetchSecrets: () => Promise<SecretResponse[]>;
   getSecretValue: (key: string) => Promise<string | null>;
   updateSecret: (
     key: string,
@@ -56,10 +56,7 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  // Note: the `limit` parameter is retained for signature compatibility with
-  // existing callers, but the tRPC `settings.secrets.list` procedure does not
-  // accept a limit (it returns the full registry + DB merge in one shot).
-  fetchSecrets: async (_limit = 100) => {
+  fetchSecrets: async () => {
     set({ isLoading: true, error: null });
     try {
       const data = await trpcClient.settings.secrets.list.query();

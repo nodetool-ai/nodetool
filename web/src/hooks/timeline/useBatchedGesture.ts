@@ -13,7 +13,13 @@
  * one write and one undo entry.
  */
 
-import { useCallback, useEffect, useRef, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  type RefObject
+} from "react";
 
 import { useTimelineHistoryBatch } from "../../stores/timeline/useTimelineHistoryBatch";
 
@@ -103,7 +109,10 @@ export function useBatchedGesture<T>(
 
   useEffect(() => cancelFrame, [cancelFrame]);
 
-  return { begin, schedule, commit, cancel };
+  return useMemo(
+    () => ({ begin, schedule, commit, cancel }),
+    [begin, schedule, commit, cancel]
+  );
 }
 
 /**

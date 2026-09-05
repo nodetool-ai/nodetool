@@ -23,12 +23,8 @@ import {
   Thread,
   LanguageModel,
   TodoItem,
-  PermissionMode,
-  NodeUpdate
+  PermissionMode
 } from "./ApiTypes";
-import useResultsStore from "./ResultsStore";
-import useWorkflowRunsStore from "./WorkflowRunsStore";
-import type { WebSocketMessage } from "../lib/websocket/GlobalWebSocketManager";
 import {
   sendPermissionMode,
   sendPlanApprovalResponse,
@@ -50,7 +46,10 @@ import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { FrontendToolRegistry } from "../lib/tools/frontendTools";
-import { handleChatWebSocketMessage } from "../core/chat/chatProtocol";
+import {
+  handleChatWebSocketMessage,
+  type ChatStateSetter
+} from "../core/chat/chatProtocol";
 import type { SubAgentMessages } from "../core/chat/subAgentMessages";
 import type { ChatOutgoingMessage } from "./MediaGenerationStore";
 import { useShallow } from "zustand/react/shallow";
@@ -405,52 +404,36 @@ let connectPromise: Promise<void> | null = null;
 const inFlightMessageLoads = new Map<string, Promise<Message[]>>();
 
 /**
- * Chat-initiated workflow runs stream `node_update`s over the chat socket, not
- * through the editor's `handleUpdate` pipeline — so their run never registers as
- * the focused job and their provider costs never land in ResultsStore under the
- * workflow id. That left the per-node cost footers stuck at $0.
+ * Register the socket handler for one thread, once.
  *
- * Mirror the editor path here: register the run so `getProviderCost` finds it,
- * record any provider charge, and refresh the session budget spend.
+ * Four call sites used to spell this out; two of them without the race guard,
+ * so a handler registered between the "already subscribed?" check and the
+ * `set` was leaked (it stays on the socket with nothing holding its
+ * unsubscribe). Registering twice also delivers every chunk twice.
  */
-function isNodeUpdate(
-  msg: WebSocketMessage
-): msg is WebSocketMessage & NodeUpdate {
-  return msg.type === "node_update";
-}
-
-const captureChatRunSpend = (
-  data: WebSocketMessage,
+const ensureThreadSubscription = (
   threadId: string,
+  set: ChatStateSetter,
   get: () => GlobalChatState
 ): void => {
-  if (!isNodeUpdate(data)) {
+  if (get().wsThreadSubscriptions[threadId]) {
     return;
   }
-  const update = data;
-  const jobId = data.job_id;
-  const workflowId =
-    data.workflow_id ?? get().threadWorkflowId[threadId] ?? undefined;
-  if (!workflowId || !jobId) {
-    return;
-  }
-
-  const runsStore = useWorkflowRunsStore.getState();
-  if (!runsStore.hasRun(workflowId, jobId)) {
-    runsStore.recordRun({
-      jobId,
-      workflowId,
-      state: "running",
-      startedAt: Date.now(),
-      label: jobId
-    });
-  }
-
-  if (update.provider_cost) {
-    useResultsStore
-      .getState()
-      .setProviderCost(workflowId, jobId, update.node_id, update.provider_cost);
-  }
+  const unsubscribe = globalWebSocketManager.subscribe(threadId, (data) => {
+    handleChatWebSocketMessage(data, set, get, threadId);
+  });
+  set((state) => {
+    if (state.wsThreadSubscriptions[threadId] !== undefined) {
+      unsubscribe();
+      return {};
+    }
+    return {
+      wsThreadSubscriptions: {
+        ...state.wsThreadSubscriptions,
+        [threadId]: unsubscribe
+      }
+    };
+  });
 };
 
 /**
@@ -794,22 +777,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
             )
           );
 
-          const threadSubscriptions: Record<string, () => void> = {};
-          const stateThreads = Object.keys(get().threads);
-          stateThreads.forEach((threadId) => {
-            // Unsubscribe any handler that was registered between the
-            // initial cleanup and this point (possible during the await)
-            const existing = get().wsThreadSubscriptions[threadId];
-            if (existing) {
-              existing();
-            }
-            threadSubscriptions[threadId] = globalWebSocketManager.subscribe(
-              threadId,
-              (data) => {
-                captureChatRunSpend(data, threadId, get);
-                handleChatWebSocketMessage(data, set, get, threadId);
-              }
-            );
+          Object.keys(get().threads).forEach((threadId) => {
+            ensureThreadSubscription(threadId, set, get);
           });
 
           const sendManifest = () => {
@@ -917,8 +886,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           // Store subscriptions
           set({
             error: null,
-            wsEventUnsubscribes: eventUnsubscribes,
-            wsThreadSubscriptions: threadSubscriptions
+            wsEventUnsubscribes: eventUnsubscribes
           });
 
           // Connection is automatic via globalWebSocketManager
@@ -1070,27 +1038,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         // Ensure we have a WS subscription for this thread before sending,
         // otherwise streamed chunks/messages will be routed with no handler.
-        if (!get().wsThreadSubscriptions[threadId]) {
-          const unsub = globalWebSocketManager.subscribe(tid, (data) => {
-            captureChatRunSpend(data, tid, get);
-            handleChatWebSocketMessage(data, set, get, tid);
-          });
-          set((state) => {
-            // Guard against a race: if another path registered a handler
-            // between our check and this set(), clean ours up to avoid a leak.
-            const existing = state.wsThreadSubscriptions[tid];
-            if (existing !== undefined) {
-              unsub();
-              return {};
-            }
-            return {
-              wsThreadSubscriptions: {
-                ...state.wsThreadSubscriptions,
-                [tid]: unsub
-              }
-            };
-          });
-        }
+        ensureThreadSubscription(tid, set, get);
 
         // Targeted sends (chat tabs) keep the thread's own workflow binding;
         // untargeted sends bind the thread to the currently-open workflow as
@@ -1305,17 +1253,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
             ? options.workflowId
             : (get().workflowId ?? null);
 
-        // Subscribe first, then atomically store the unsubscribe handle.
-        // This avoids the closure being created inside set() where a stale
-        // read of wsThreadSubscriptions could leak an old handler.
-        const existingUnsub = get().wsThreadSubscriptions[threadId];
-        if (existingUnsub) {
-          existingUnsub();
-        }
-        const newUnsub = globalWebSocketManager.subscribe(threadId, (data) => {
-          captureChatRunSpend(data, threadId, get);
-          handleChatWebSocketMessage(data, set, get, threadId);
-        });
+        ensureThreadSubscription(threadId, set, get);
 
         const now = new Date().toISOString();
         const localThread: Thread = {
@@ -1346,10 +1284,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
               ...state.messageCache,
               [threadId]: []
             },
-            wsThreadSubscriptions: {
-              ...state.wsThreadSubscriptions,
-              [threadId]: newUnsub
-            }
           };
           if (makeCurrent) {
             patch.currentThreadId = threadId;
@@ -1389,25 +1323,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           return;
         }
 
-        if (!get().wsThreadSubscriptions[threadId]) {
-          const unsub = globalWebSocketManager.subscribe(threadId, (data) => {
-            captureChatRunSpend(data, threadId, get);
-            handleChatWebSocketMessage(data, set, get, threadId);
-          });
-          set((state) => {
-            const existing = state.wsThreadSubscriptions[threadId];
-            if (existing !== undefined) {
-              unsub();
-              return {};
-            }
-            return {
-              wsThreadSubscriptions: {
-                ...state.wsThreadSubscriptions,
-                [threadId]: unsub
-              }
-            };
-          });
-        }
+        ensureThreadSubscription(threadId, set, get);
 
         set((state) => ({
           currentThreadId: threadId,

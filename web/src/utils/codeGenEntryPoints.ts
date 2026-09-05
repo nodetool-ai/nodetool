@@ -105,7 +105,7 @@ export function seedOutputPortName(
  * Whether a submission has already been written to the node. The dialog closes
  * the same way on Apply and on Cancel, so the host reads the node instead: a
  * node created purely to open the dialog still has the Code node's empty
- * default, while `applyCodeGenSubmission` always writes non-empty code.
+ * default, while an applied submission always writes non-empty code.
  */
 export function isCodeGenApplied(node: Node<NodeData> | undefined): boolean {
   const code = node?.data.properties?.code;

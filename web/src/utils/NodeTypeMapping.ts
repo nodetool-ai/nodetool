@@ -125,7 +125,7 @@ export const constantToInputType = (constantType: string): string | null => {
     case "nodetool.constant.Document":
       return "nodetool.input.DocumentInput";
     case "nodetool.constant.DataFrame":
-      return "nodetool.input.DataFrameInput";
+      return "nodetool.input.DataframeInput";
     case "nodetool.constant.Model3D":
       return "nodetool.input.Model3DInput";
     default:
@@ -154,7 +154,7 @@ export const inputToConstantType = (inputType: string): string | null => {
       return "nodetool.constant.Audio";
     case "nodetool.input.DocumentInput":
       return "nodetool.constant.Document";
-    case "nodetool.input.DataFrameInput":
+    case "nodetool.input.DataframeInput":
       return "nodetool.constant.DataFrame";
     case "nodetool.input.Model3DInput":
       return "nodetool.constant.Model3D";
@@ -169,17 +169,16 @@ export const inputToConstantType = (inputType: string): string | null => {
 export const constantForType = (type: TypeName): string | null => {
   switch (type) {
     case "str":
-      return "nodetool.constant.String";
     case "text":
-      return "nodetool.constant.Text";
+      return "nodetool.constant.String";
     case "dataframe":
-      return "nodetool.dataframe.Dataframe";
+      return "nodetool.constant.DataFrame";
     case "int":
       return "nodetool.constant.Integer";
     case "float":
       return "nodetool.constant.Float";
     case "bool":
-      return "nodetool.constant.Boolean";
+      return "nodetool.constant.Bool";
     case "image":
       return "nodetool.constant.Image";
     case "video":
@@ -189,7 +188,7 @@ export const constantForType = (type: TypeName): string | null => {
     case "list":
       return "nodetool.constant.List";
     case "folder":
-      return "nodetool.input.Folder";
+      return "nodetool.input.AssetFolderInput";
     case "document":
       return "nodetool.constant.Document";
     case "model_3d":

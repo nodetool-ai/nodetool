@@ -52,7 +52,7 @@ const versionRow = (
   ...overrides
 });
 
-const loadScript = vi.fn();
+const load = vi.fn();
 const listVersions = vi.fn();
 const findVersion = vi.fn();
 const snapshot = vi.fn();
@@ -62,7 +62,7 @@ const confirmDelete = vi.fn();
 const validate = vi.fn();
 
 const store: JsScriptVersionStore = {
-  loadScript,
+  load,
   listVersions,
   findVersion,
   snapshot,
@@ -116,7 +116,7 @@ function run(...argv: string[]) {
 }
 
 beforeEach(() => {
-  loadScript.mockReset().mockResolvedValue(scriptRow());
+  load.mockReset().mockResolvedValue(scriptRow());
   listVersions.mockReset().mockResolvedValue([versionRow()]);
   findVersion.mockReset().mockResolvedValue(versionRow());
   snapshot
@@ -157,7 +157,7 @@ describe("jsscript versions list", () => {
   });
 
   it("exits non-zero for an unknown script id", async () => {
-    loadScript.mockResolvedValueOnce(null);
+    load.mockResolvedValueOnce(null);
     const { exitCode, stderr } = await run("list", "nope");
     expect(exitCode).toBe(1);
     expect(stderr).toContain("JS script not found: nope");

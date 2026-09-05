@@ -2,7 +2,7 @@
  * The gesture-coalescing invariants five inspector controls relied on when
  * each of them spelled this state machine out inline.
  */
-import { act, renderHook } from "@testing-library/react";
+import { act, render, renderHook } from "@testing-library/react";
 import { useRef } from "react";
 
 import { useBatchedGesture, useWheelBatch } from "../useBatchedGesture";
@@ -140,55 +140,67 @@ describe("useBatchedGesture", () => {
   });
 });
 
-const useWheelTarget = (
-  onTick: (d: 1 | -1) => void,
-  disabled = false
-): { ref: React.RefObject<HTMLDivElement | null> } => {
+const WheelTarget = ({
+  onTick,
+  disabled
+}: {
+  onTick: (d: 1 | -1) => void;
+  disabled?: boolean;
+}) => {
   const ref = useRef<HTMLDivElement | null>(null);
   useWheelBatch(ref, onTick, disabled);
-  return { ref };
+  return <div ref={ref} data-testid="wheel" />;
 };
 
 describe("useWheelBatch", () => {
   const mount = (onTick: (d: 1 | -1) => void, disabled = false) => {
-    const el = document.createElement("div");
-    document.body.appendChild(el);
-    const hook = renderHook(() => useWheelTarget(onTick, disabled));
-    act(() => {
-      hook.result.current.ref.current = el;
-    });
-    hook.rerender();
-    return { el, hook };
+    const view = render(<WheelTarget onTick={onTick} disabled={disabled} />);
+    return { el: view.getByTestId("wheel"), view };
   };
+
+  const wheel = (el: Element, deltaY: number) =>
+    act(() => {
+      el.dispatchEvent(new WheelEvent("wheel", { deltaY, cancelable: true }));
+    });
 
   it("signs the tick by wheel direction", () => {
     const onTick = jest.fn();
     const { el } = mount(onTick);
-    act(() => {
-      el.dispatchEvent(new WheelEvent("wheel", { deltaY: 1, cancelable: true }));
-      el.dispatchEvent(
-        new WheelEvent("wheel", { deltaY: -1, cancelable: true })
-      );
-    });
+    wheel(el, 1);
+    wheel(el, -1);
     expect(onTick.mock.calls).toEqual([[-1], [1]]);
   });
 
   it("stays silent while disabled", () => {
     const onTick = jest.fn();
     const { el } = mount(onTick, true);
-    act(() => {
-      el.dispatchEvent(new WheelEvent("wheel", { deltaY: 1, cancelable: true }));
-    });
+    wheel(el, 1);
     expect(onTick).not.toHaveBeenCalled();
   });
 
-  it("stops preventing scroll once unmounted", () => {
+  it("keeps the same listener across a re-render", () => {
+    const add = jest.spyOn(HTMLElement.prototype, "addEventListener");
+    const nonPassiveWheel = () =>
+      add.mock.calls.filter(
+        ([type, , opts]) =>
+          type === "wheel" &&
+          typeof opts === "object" &&
+          opts?.passive === false
+      ).length;
+
     const onTick = jest.fn();
-    const { el, hook } = mount(onTick);
-    hook.unmount();
-    act(() => {
-      el.dispatchEvent(new WheelEvent("wheel", { deltaY: 1, cancelable: true }));
-    });
+    const view = render(<WheelTarget onTick={onTick} />);
+    expect(nonPassiveWheel()).toBe(1);
+    view.rerender(<WheelTarget onTick={onTick} />);
+    expect(nonPassiveWheel()).toBe(1);
+    add.mockRestore();
+  });
+
+  it("detaches on unmount", () => {
+    const onTick = jest.fn();
+    const { el, view } = mount(onTick);
+    view.unmount();
+    wheel(el, 1);
     expect(onTick).not.toHaveBeenCalled();
   });
 });
