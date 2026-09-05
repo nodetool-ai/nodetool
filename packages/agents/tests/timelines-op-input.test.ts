@@ -118,6 +118,33 @@ describe("resolveTimelineOpInput", () => {
       resolveTimelineOpInput({ id: "T9" }, before, state, { ok: true })
     ).toEqual({ id: "T9" });
   });
+
+  // The midi ops name their unit `clip` and `track` rather than `target`, so
+  // the canonicalizer has to read those keys or the broadcast carries a name.
+  it("resolves the `clip` and `track` keys the midi ops use", () => {
+    expect(
+      resolveTimelineOpInput({ clip: "Title" }, before, state, {
+        ok: true,
+        clip: { id: "C2" }
+      })
+    ).toEqual({ clip: "C2", id: "C2" });
+    expect(
+      resolveTimelineOpInput({ track: "Music" }, before, state, {
+        ok: true,
+        track: { id: "T2" }
+      })
+    ).toEqual({ track: "T2", id: "T2" });
+  });
+
+  it("resolves `track` against tracks even when a clip shares the name", () => {
+    const shadowed = {
+      tracks: [{ id: "T2", name: "Music" }],
+      clips: [{ id: "C9", name: "Music" }]
+    } as unknown as TimelineBridgeFinalState;
+    expect(
+      resolveTimelineOpInput({ track: "Music" }, before, shadowed, { ok: true })
+    ).toEqual({ track: "T2" });
+  });
 });
 
 /**
@@ -967,6 +994,154 @@ describe("target errors list the valid ids", () => {
         trackId: "Audio 9"
       })
     ).rejects.toThrow(/Valid tracks: .*\("Video 1"\)/);
+  });
+});
+
+/**
+ * The midi ops, at the seam this file owns: `edit_timeline` dispatches by op
+ * name, so a new op is reachable only once the bridge registers it under the
+ * `ui_timeline_` prefix, and each one has to name the unit the broadcast
+ * attributes the write to.
+ */
+describe("midi ops", () => {
+  async function midiBridge() {
+    const bridge = createTimelineToolBridge();
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    await byName["ui_timeline_add_track"].execute({
+      type: "midi",
+      name: "Lead"
+    });
+    return { bridge, byName };
+  }
+
+  const quarter = (i: number) => ({
+    pitch: 60 + i,
+    start_tick: i * 960,
+    duration_tick: 960
+  });
+
+  it("adds a midi track carrying the default synth and a document tempo", async () => {
+    const { bridge } = await midiBridge();
+    const state = bridge.finalState();
+    expect(state.tempo?.bpm).toBe(120);
+    expect(state.documentTracks[0].instrument?.type).toBe("subtractive");
+  });
+
+  it("places a phrase and names the clip it created", async () => {
+    const { bridge, byName } = await midiBridge();
+    const result = (await byName["ui_timeline_add_midi_clip"].execute({
+      track: "Lead",
+      start_ms: 0,
+      duration_ms: 2000,
+      name: "Walk",
+      notes: [0, 1, 2, 3].map(quarter)
+    })) as { ok: true; clip: { id: string } };
+    expect(resultUnitIds(result)).toEqual([result.clip.id]);
+    expect(bridge.finalState().documentClips[0].notes).toHaveLength(4);
+  });
+
+  it("refuses a phrase on a track that is not midi", async () => {
+    const { byName } = await midiBridge();
+    await byName["ui_timeline_add_track"].execute({
+      type: "audio",
+      name: "Music"
+    });
+    await expect(
+      byName["ui_timeline_add_midi_clip"].execute({
+        track: "Music",
+        start_ms: 0,
+        duration_ms: 1000
+      })
+    ).rejects.toThrow(/audio track/);
+  });
+
+  it("rescales the midi clips on a tempo change and nothing else", async () => {
+    const { bridge, byName } = await midiBridge();
+    await byName["ui_timeline_add_track"].execute({
+      type: "audio",
+      name: "Music"
+    });
+    await byName["ui_timeline_add_midi_clip"].execute({
+      track: "Lead",
+      start_ms: 1000,
+      duration_ms: 2000,
+      name: "Walk",
+      notes: [quarter(0)]
+    });
+    await byName["ui_timeline_add_text_clip"].execute({
+      text: "Title",
+      startMs: 1000,
+      durationMs: 2000
+    });
+
+    await byName["ui_timeline_set_tempo"].execute({ bpm: 60 });
+
+    const clips = bridge.finalState().documentClips;
+    const walk = clips.find((c) => c.name === "Walk");
+    expect([walk?.startMs, walk?.durationMs]).toEqual([2000, 4000]);
+    const title = clips.find((c) => c.name === "Title");
+    expect([title?.startMs, title?.durationMs]).toEqual([1000, 2000]);
+    expect(bridge.finalState().tempo?.bpm).toBe(60);
+  });
+
+  it("replaces a clip's notes and refuses a list validateNotes rejects", async () => {
+    const { bridge, byName } = await midiBridge();
+    await byName["ui_timeline_add_midi_clip"].execute({
+      track: "Lead",
+      start_ms: 0,
+      duration_ms: 2000,
+      name: "Walk",
+      notes: [quarter(0)]
+    });
+
+    await byName["ui_timeline_set_notes"].execute({
+      clip: "Walk",
+      notes: [quarter(0), quarter(1)]
+    });
+    expect(bridge.finalState().documentClips[0].notes).toHaveLength(2);
+
+    await expect(
+      byName["ui_timeline_set_notes"].execute({
+        clip: "Walk",
+        notes: [
+          { id: "same", ...quarter(0) },
+          { id: "same", ...quarter(1) }
+        ]
+      })
+    ).rejects.toThrow(/share the id/);
+    // The refused list left the stored one alone.
+    expect(bridge.finalState().documentClips[0].notes).toHaveLength(2);
+  });
+
+  it("sets a midi track's instrument and refuses one elsewhere", async () => {
+    const { bridge, byName } = await midiBridge();
+    const instrument = {
+      type: "subtractive",
+      waveform: "square",
+      attackMs: 1,
+      decayMs: 50,
+      sustain: 0.5,
+      releaseMs: 80,
+      cutoffHz: 2000,
+      resonance: 1,
+      gainDb: -3
+    };
+    await byName["ui_timeline_set_track_instrument"].execute({
+      track: "Lead",
+      instrument
+    });
+    expect(bridge.finalState().documentTracks[0].instrument).toEqual(instrument);
+
+    await byName["ui_timeline_add_track"].execute({
+      type: "audio",
+      name: "Music"
+    });
+    await expect(
+      byName["ui_timeline_set_track_instrument"].execute({
+        track: "Music",
+        instrument
+      })
+    ).rejects.toThrow(/audio track/);
   });
 });
 

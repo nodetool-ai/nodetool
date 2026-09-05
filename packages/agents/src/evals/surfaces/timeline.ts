@@ -66,7 +66,18 @@ import {
   type TimelineTrack,
   type ClipAnimation,
   instantiateComposition,
-  type TimelineComposition
+  type TimelineComposition,
+  DEFAULT_MIDI_INSTRUMENT,
+  DEFAULT_TEMPO,
+  createMidiNote,
+  sortNotes,
+  validateNotes,
+  visibleNotes,
+  rescaleClipsForTempo,
+  resolveTempo,
+  type MidiInstrument,
+  type MidiNote,
+  type TimelineTempo
 } from "@nodetool-ai/timeline";
 import {
   computeActiveLayers,
@@ -158,6 +169,12 @@ export interface TimelineBridgeSequenceSeed {
   clips: TimelineClip[];
   /** The document's markers. Absent reads as a sequence with none. */
   markers?: TimelineMarker[];
+  /**
+   * The document's tempo. Absent is a document that has never carried one:
+   * midi clips read at {@link DEFAULT_TEMPO} until a midi track is added or
+   * `set_tempo` is called, and the bridge writes none back.
+   */
+  tempo?: TimelineTempo;
 }
 
 /**
@@ -237,7 +254,10 @@ export interface TimelineBridgeInitialState {
    * exist.
    */
   sequenceId?: string;
-  tracks?: { name?: string; type: "video" | "audio" | "overlay" | "subtitle" }[];
+  tracks?: {
+    name?: string;
+    type: "video" | "audio" | "overlay" | "subtitle" | "midi";
+  }[];
   clips?: {
     name: string;
     trackIndex: number;
@@ -277,6 +297,13 @@ export interface TimelineBridgeFinalState {
    * wide, so a predicate and a document reader want the same shape.
    */
   markers: TimelineMarker[];
+  /**
+   * The document's tempo, or undefined when it never carried one. A host
+   * writing the session back has to store it: `set_tempo` and the first midi
+   * track are the two ops that set it, and dropping it means every midi clip
+   * plays at the wrong speed on the next read.
+   */
+  tempo?: TimelineTempo;
   /**
    * Every tool this bridge ran, in call order, by name — failed calls
    * included, because a call that errored still happened. A document cannot
@@ -517,6 +544,9 @@ export function createTimelineToolBridge(
 
   let playheadMs = 0;
   let selectedClipIds: string[] = [];
+  // Absent until a midi track or `set_tempo` puts one there — a document with
+  // no midi in it should not grow a tempo field it never asked for.
+  let tempo: TimelineTempo | undefined = seed?.tempo;
   let trackSeq = 0;
   let clipSeq = 0;
   let animSeq = 0;
@@ -551,8 +581,58 @@ export function createTimelineToolBridge(
       name: name ?? `${capitalize(type)} ${index + 1}`,
       index
     });
+    if (type === "midi") {
+      // The track owns the voice, so a midi track without one plays nothing.
+      track.instrument = DEFAULT_MIDI_INSTRUMENT;
+      // Ticks are read against the tempo, so the first midi track is where a
+      // document that never had one gets it — written down rather than left
+      // implicit, so the next reader does not have to know the default.
+      tempo ??= DEFAULT_TEMPO;
+    }
     tracks.push(track);
     return track;
+  }
+
+  /** The midi track a clip or instrument op names, refusing any other type. */
+  function resolveMidiTrack(idOrName: string): TimelineTrack {
+    const track = resolveTrack(idOrName);
+    if (track.type !== "midi") {
+      throw new Error(
+        `Track "${track.name}" is a ${track.type} track — notes are played by a midi track's instrument. ${validUnits(
+          tracks.filter((t) => t.type === "midi"),
+          "midi track"
+        )}`
+      );
+    }
+    return track;
+  }
+
+  /**
+   * The notes a caller sent, minted and checked as one list.
+   *
+   * Every problem is reported at once: an agent that fixes one note only to be
+   * told about the next spends a call per note.
+   */
+  function buildNotes(raw: unknown, clipName: string): MidiNote[] {
+    const notes = ((raw ?? []) as Array<Record<string, unknown>>).map((note) =>
+      createMidiNote({
+        id: note["id"] as string | undefined,
+        pitch: note["pitch"] as number,
+        velocity: note["velocity"] as number | undefined,
+        startTick: note["start_tick"] as number,
+        durationTick: note["duration_tick"] as number
+      })
+    );
+    const problems = validateNotes(notes);
+    if (problems.length > 0) {
+      throw new Error(
+        `Clip "${clipName}" was not given its notes — ${problems.length} problem(s): ` +
+          problems
+            .map((p) => (p.noteId ? `${p.noteId}: ${p.message}` : p.message))
+            .join(" ")
+      );
+    }
+    return sortNotes(notes);
   }
 
   function findOrCreateTrack(type: TimelineTrack["type"]): TimelineTrack {
@@ -718,7 +798,9 @@ export function createTimelineToolBridge(
       locked: t.locked,
       muted: t.muted ?? false,
       solo: t.solo ?? false,
-      clipCount: clips.filter((c) => c.trackId === t.id).length
+      clipCount: clips.filter((c) => c.trackId === t.id).length,
+      // The voice every clip on this track plays. Absent on every other type.
+      instrument: t.instrument
     };
   }
 
@@ -853,7 +935,15 @@ export function createTimelineToolBridge(
       matte: c.matte,
       timeRemap: c.timeRemap,
       effects: c.effects,
-      parentId: c.parentId
+      parentId: c.parentId,
+      // The notes themselves are the clip's bulk — a phrase is hundreds of
+      // them — so state reports how many there are and how many the window
+      // actually plays. `set_notes` sends the list; nothing reads it back.
+      noteCount: c.notes?.length,
+      audibleNoteCount:
+        c.mediaType === "midi"
+          ? visibleNotes(c, resolveTempo({ tempo }).bpm).length
+          : undefined
     };
   }
 
@@ -920,6 +1010,10 @@ export function createTimelineToolBridge(
           durationMs,
           playheadMs,
           selectedClipIds: [...selectedClipIds],
+          // Absent when the document carries none: a reader that needs a
+          // number reads DEFAULT_TEMPO, and saying so beats printing a tempo
+          // the document does not store.
+          tempo,
           tracks: tracks.map(serializeTrack),
           clips: clips.map(serializeClip),
           markers: markers.map((m) => ({ ...m }))
@@ -1800,6 +1894,87 @@ export function createTimelineToolBridge(
       }
     ),
 
+    // ── MIDI ────────────────────────────────────────────────────────────
+    // Notes live on the clip, the instrument on the track, and the tempo on
+    // the document, so each gets its own op.
+
+    sharedTool(
+      "ui_timeline_add_midi_clip",
+      async ({ track, start_ms, duration_ms, name, notes }) => {
+        const midiTrack = resolveMidiTrack(track as string);
+        const clipName = (name as string | undefined) ?? "Phrase";
+        const clip = makeClip({
+          id: nextClipId(),
+          trackId: midiTrack.id,
+          name: clipName,
+          startMs: start_ms as number,
+          durationMs: duration_ms as number,
+          mediaType: "midi",
+          sourceType: "imported",
+          status: "generated",
+          notes: buildNotes(notes, clipName)
+        });
+        clips.push(clip);
+        selectedClipIds = [clip.id];
+        return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    sharedTool(
+      "ui_timeline_set_notes",
+      async ({ clip: target, notes }) => {
+        const clip = resolveClip(target as string);
+        if (clip.mediaType !== "midi") {
+          throw new Error(
+            `Clip "${clip.name}" is a ${clip.mediaType} clip — only a midi clip carries notes. Place one with add_midi_clip.`
+          );
+        }
+        // Built before anything is written: a refused list must leave the clip
+        // exactly as it was, not half replaced.
+        clip.notes = buildNotes(notes, clip.name);
+        return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    sharedTool(
+      "ui_timeline_set_tempo",
+      async ({ bpm, offset_ms, beats_per_bar, beat_unit }) => {
+        const previous = resolveTempo({ tempo });
+        const next: TimelineTempo = {
+          bpm: bpm as number,
+          offsetMs: (offset_ms as number | undefined) ?? previous.offsetMs,
+          timeSignature: {
+            beatsPerBar:
+              (beats_per_bar as number | undefined) ??
+              previous.timeSignature.beatsPerBar,
+            beatUnit:
+              (beat_unit as number | undefined) ?? previous.timeSignature.beatUnit
+          }
+        };
+        // Milliseconds are the master clock, so the stored ms of every midi
+        // clip move and nothing else on the timeline does.
+        clips = rescaleClipsForTempo(clips, tracks, previous, next);
+        tempo = next;
+        return {
+          ok: true,
+          tempo: next,
+          previousTempo: previous,
+          rescaledClipIds: clips
+            .filter((c) => c.mediaType === "midi")
+            .map((c) => c.id)
+        };
+      }
+    ),
+
+    sharedTool(
+      "ui_timeline_set_track_instrument",
+      async ({ track, instrument }) => {
+        const midiTrack = resolveMidiTrack(track as string);
+        midiTrack.instrument = instrument as MidiInstrument;
+        return { ok: true, track: serializeTrack(midiTrack) };
+      }
+    ),
+
     tool(
       "ui_timeline_insert_composition",
       "Insert a stored composition — a group of clips with named parameters (a lower third, a title card, a callout) — at a timecode. Its children keep the layering the template declares: each template track becomes an overlay track of its own, front-most on top, reused across insertions. `params` overrides the template's defaults by name; anything omitted keeps its default. Call list_compositions for the ids and their parameters.",
@@ -1976,6 +2151,7 @@ export function createTimelineToolBridge(
       documentTracks: tracks.map((t) => structuredClone(t)),
       documentClips: clips.map((c) => structuredClone(c)),
       markers: markers.map((m) => structuredClone(m)),
+      tempo: tempo ? structuredClone(tempo) : undefined,
       toolLog: [...toolLog]
     })
   };
@@ -1990,6 +2166,7 @@ Use the ui_timeline_* tools to inspect and modify the sequence:
 - Before animating a clip, call ui_timeline_list_animation_presets to discover the exact preset ids, allowed roles, and params.
 - For motion no preset covers, animate with preset "custom" and pass curves — [{property, keyframes: [{t, value}]}], where t runs 0..1 over the animation window. list_animation_presets reports which properties a curve may drive.
 - ui_timeline_seek moves the playhead (useful before a playhead-relative split).
+- For a played part: add a midi track, place phrases with ui_timeline_add_midi_clip (notes in ticks from the clip's content start, 960 ticks = a quarter note), rewrite them with ui_timeline_set_notes, pick the synth with ui_timeline_set_track_instrument, and set the speed once with ui_timeline_set_tempo — which rescales the midi clips and leaves picture and audio where they are.
 - Flag moments with ui_timeline_add_marker / ui_timeline_delete_marker. To cut to music, lay the grid down with ui_timeline_set_markers_from_beats and put clip boundaries on it with ui_timeline_snap_to_beats, then read its per-clip report — a clip further than the tolerance from every beat is left alone and says so.
 
 - Look at what you made with preview_timeline_frame before you stop.
