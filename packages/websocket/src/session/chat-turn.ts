@@ -15,7 +15,10 @@ import {
   isString
 } from "../lib/wire-values.js";
 import { storeAssetWithThumbnail } from "../lib/thumbnail.js";
-import { createAssetModelInterface } from "../lib/asset-model-interface.js";
+import {
+  createGenerationRun,
+  generateSpeechBytes
+} from "./media-generation.js";
 import {
   attachRunCostLedger,
   linkGenerationAssets,
@@ -52,15 +55,12 @@ import type {
   TextToImageParams,
   ImageToImageParams,
   ImageToVideoParams,
-  GenerationRequest,
-  GenerationResult,
   PromptAssetRef
 } from "@nodetool-ai/runtime";
 import {
   ACTIVE_MODEL_CONTEXT_KEY,
   DIRECT_TOOL_NAMES,
   RUN_BUDGET_CONTEXT_KEY,
-  ProcessingContext as GenerationContext,
   createRunBudget,
   detectImageMime,
   IMAGE_MIME_TO_EXT,

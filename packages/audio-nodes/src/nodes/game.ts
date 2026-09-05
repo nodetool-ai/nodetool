@@ -8,8 +8,7 @@
  */
 import type { AudioRef, MusicFill, SfxFill } from "@nodetool-ai/protocol";
 import { SLOT_METADATA_KEY, musicFill, sfxFill } from "@nodetool-ai/protocol";
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import { isString } from "../type-predicates.js";
+import { BaseNode, isString, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {

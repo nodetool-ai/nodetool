@@ -4,7 +4,7 @@
  * reads frame regions off the sheet without looking at pixels. Nothing here
  * calls a model; generation is upstream.
  */
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { BaseNode, isObjectLike, isString, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   SLOT_METADATA_KEY,
@@ -19,7 +19,6 @@ import {
 import { loadMediaRefBytes } from "@nodetool-ai/runtime/media-ref-bytes";
 import { loadSharp, SHARP_UNAVAILABLE_MESSAGE } from "./image-io.js";
 import type { ImageRefLike } from "./lib-image-utils.js";
-import { isObjectLike, isString } from "../type-predicates.js";
 
 /** Animations that play once by default. Everything else loops. */
 const ONE_SHOT_ANIMATIONS = ["jump", "hurt", "die", "attack"] as const;

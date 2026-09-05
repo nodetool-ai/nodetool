@@ -29,7 +29,6 @@ import { createAssetUrlBuilder } from "@nodetool-ai/storage";
 import { workflowToDsl } from "@nodetool-ai/dsl";
 import {
   Workflow,
-  WorkflowVersion,
   WorkflowCollaborator,
   Job,
   Asset
@@ -103,10 +102,8 @@ import {
 import {
   assetCreateBodySchema,
   escalationVerdictBodySchema,
-  workflowAutosaveBodySchema,
   workflowRequestBodySchema,
   workflowRunBodySchema,
-  workflowVersionCreateBodySchema,
   workflowsExportBundleBodySchema,
   type ParsedAssetCreateBody
 } from "./http-body-schemas.js";
@@ -125,7 +122,6 @@ import {
 } from "./lib/asset-paths.js";
 import { resolveAssetBytesForExport } from "./lib/asset-export.js";
 import { assetObjectKey } from "@nodetool-ai/storage";
-import { getStorageRetentionSettings } from "./storage-retention.js";
 export { getAssetFileName, getAssetStoragePath };
 
 type JsonObject = Record<string, unknown>;
@@ -434,9 +430,6 @@ export interface WorkflowRequestBody {
   expected_updated_at?: string;
 }
 
-// Rate-limit tracking for autosave: maps workflow_id -> last autosave timestamp (ms)
-const lastAutosaveTime = new Map<string, number>();
-const AUTOSAVE_RATE_LIMIT_MS = 30_000;
 
 function normalizePath(pathname: string): string {
   if (pathname.length > 1 && pathname.endsWith("/")) {
