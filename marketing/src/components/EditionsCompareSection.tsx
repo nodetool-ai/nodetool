@@ -30,7 +30,7 @@ const rows: Row[] = [
   },
   {
     label: "Install required",
-    studio: { value: "Desktop app + ~20GB for local models", ok: false },
+    studio: { value: "The desktop app. Model downloads are optional", ok: false },
     cloud: { value: "None — sign in and start building", ok: true },
   },
   {
@@ -55,7 +55,7 @@ const rows: Row[] = [
   },
   {
     label: "GPU requirements",
-    studio: { value: "Recommended for local models", ok: false },
+    studio: { value: "None, unless you run models on your own hardware", ok: true },
     cloud: { value: "None — heavy jobs run on cloud APIs", ok: true },
   },
   {
@@ -71,7 +71,7 @@ const rows: Row[] = [
   {
     label: "Cost",
     studio: { value: "Free — pay only for the cloud APIs you use", ok: true },
-    cloud: { value: "Free during alpha — you pay only your own API costs", ok: true },
+    cloud: { value: "Free while it is in alpha, a hosting subscription at full release — provider bills are yours either way", ok: true },
   },
 ];
 
@@ -248,16 +248,17 @@ export default function EditionsCompareSection({
         </div>
 
         <p className="mt-10 text-sm text-slate-400 text-center max-w-2xl mx-auto">
-          Not sure? Start with{" "}
-          <a href="/cloud" className="text-blue-300 hover:text-blue-200 underline underline-offset-2">
-            Cloud
-          </a>{" "}
-          to try it in 30 seconds, then move to{" "}
+          One recommendation, not two: use{" "}
           <a href="/studio" className="text-blue-300 hover:text-blue-200 underline underline-offset-2">
             Studio
           </a>{" "}
-          when you want everything on your own machine. Your workflows move freely
-          between the two.
+          for work you are being paid for — it is the finished edition.{" "}
+          <a href="/cloud" className="text-blue-300 hover:text-blue-200 underline underline-offset-2">
+            Cloud
+          </a>{" "}
+          is worth a look if you want to see the workspace without installing
+          anything, and it is in alpha until further notice. Your workflows move
+          freely between the two.
         </p>
       </div>
     </section>

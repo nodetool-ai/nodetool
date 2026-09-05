@@ -22,6 +22,22 @@ export interface RecipeModelRef {
   model: string;
 }
 
+/**
+ * Another shipped workflow that can take a step's place and end somewhere
+ * else. The trailer chain's third step has one: the same shots, delivered as
+ * an editable sequence rather than a rendered file.
+ */
+export interface RecipeStepAlternative {
+  /** Template slug — resolves in `templateEntries`. */
+  template: string;
+  name: string;
+  route: string;
+  /** Call to action on the step card. */
+  label: string;
+  /** What changes if you swap it in. */
+  why: string;
+}
+
 export interface RecipeStep {
   /** Template slug — resolves in `templateEntries`. */
   template: string;
@@ -36,6 +52,8 @@ export interface RecipeStep {
   nodeCount: number;
   /** Empty when the step runs locally and calls no provider. */
   models: RecipeModelRef[];
+  /** A swap-in that reaches a different ending, or null. */
+  alternative: RecipeStepAlternative | null;
 }
 
 /** A provider key the chain needs, with the env var NodeTool reads. */
@@ -99,6 +117,30 @@ export interface RecipeEntry extends PageEntry {
 }
 
 export { recipeEntries } from "./recipeEntries.generated";
+
+/** How close a recipe's recorded run is to what the download will do. */
+export interface SampleFidelity {
+  /** Models the run called. */
+  total: number;
+  /** Of those, the ones the shipped workflow names. */
+  asShipped: number;
+  /** The rest, each with the reason it stood in. */
+  changed: RecipeSampleModel[];
+}
+
+/**
+ * A visitor's first question about a sample is whether they can reproduce it.
+ * The per-model disclosure under the picture answers it in full; this is the
+ * one-line version that belongs above the fold and on a card.
+ */
+export function sampleFidelity(sample: RecipeSample): SampleFidelity {
+  const changed = sample.producedBy.filter((m) => m.grade !== "exact");
+  return {
+    total: sample.producedBy.length,
+    asShipped: sample.producedBy.length - changed.length,
+    changed,
+  };
+}
 
 /** A step's card art, falling back to the template entry if one is missing. */
 export function stepThumbnail(step: RecipeStep): string | null {

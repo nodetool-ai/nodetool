@@ -74,14 +74,17 @@ export default function NodeToolHero() {
         <div className="hero-rise-delayed relative lg:col-span-7">
           <div
             aria-hidden
-            className="absolute -inset-6 -z-10 rounded-[2rem] opacity-70 blur-3xl"
+            className="absolute -inset-6 -z-10 rounded-[2rem] opacity-40 blur-3xl"
             style={{
               background:
                 "radial-gradient(60% 60% at 50% 0%, rgba(168,85,247,0.35), transparent 60%), radial-gradient(50% 60% at 100% 100%, rgba(244,114,182,0.25), transparent 60%), radial-gradient(50% 60% at 0% 100%, rgba(59,130,246,0.25), transparent 60%)",
             }}
           />
           <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
-            <HeroDemoPlayer alt="NodeTool: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film" />
+            <HeroDemoPlayer
+              alt="NodeTool: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film"
+              caption="One sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film. Recorded in the app — open it full screen to read the panels."
+            />
           </div>
         </div>
       </div>

@@ -18,13 +18,15 @@
  * start the reel by hand.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Pause, Play } from "lucide-react";
+import { Maximize2, Pause, Play } from "lucide-react";
 
 interface HeroDemoPlayerProps {
   alt: string;
+  /** Printed under the frame. Without it the reel has to explain itself. */
+  caption?: string;
 }
 
-export default function HeroDemoPlayer({ alt }: HeroDemoPlayerProps) {
+export default function HeroDemoPlayer({ alt, caption }: HeroDemoPlayerProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [mountVideo, setMountVideo] = useState(false);
@@ -76,61 +78,95 @@ export default function HeroDemoPlayer({ alt }: HeroDemoPlayerProps) {
     }
   }, []);
 
+  // The frame goes fullscreen rather than the video, so the poster still
+  // covers the first frames. iOS Safari has no element fullscreen at all and
+  // only takes a <video>, hence the fallback.
+  const enterFullscreen = useCallback(() => {
+    const frame = frameRef.current;
+    const video = videoRef.current as
+      | (HTMLVideoElement & { webkitEnterFullscreen?: () => void })
+      | null;
+    if (frame?.requestFullscreen) {
+      void frame.requestFullscreen().catch(() => {});
+      void video?.play().catch(() => {});
+      return;
+    }
+    video?.webkitEnterFullscreen?.();
+  }, []);
+
   return (
-    <div ref={frameRef} className="relative">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/hero-project-poster.webp"
-        srcSet="/hero-project-poster-960.webp 960w, /hero-project-poster.webp 1920w"
-        sizes="(max-width: 1023px) 100vw, 58vw"
-        alt={alt}
-        width={1920}
-        height={1080}
-        decoding="async"
-        className="block h-auto w-full rounded-xl"
-        fetchPriority="high"
-      />
+    <figure className="m-0">
+      <div ref={frameRef} className="hero-demo relative">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/hero-project-poster.webp"
+          srcSet="/hero-project-poster-960.webp 960w, /hero-project-poster.webp 1920w"
+          sizes="(max-width: 1023px) 100vw, 58vw"
+          alt={caption ? "" : alt}
+          width={1920}
+          height={1080}
+          decoding="async"
+          className="block h-auto w-full rounded-xl"
+          fetchPriority="high"
+        />
 
-      {mountVideo && (
-        <video
-          ref={videoRef}
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          onLoadedMetadata={() => setHasMetadata(true)}
-          onPlaying={() => {
-            setStarted(true);
-            setPlaying(true);
-          }}
-          onPause={() => setPlaying(false)}
-          aria-label={alt}
-          className={`absolute inset-0 h-full w-full rounded-xl object-cover transition-opacity duration-500 ${
-            started ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          {/* The codecs are spelled out so a browser that cannot decode VP9
-              rejects this source outright instead of selecting it on a bare
-              type and stalling. */}
-          <source src="/hero-project.webm" type='video/webm; codecs="vp9"' />
-          <source src="/hero-project.mp4" type="video/mp4" />
-        </video>
-      )}
+        {mountVideo && (
+          <video
+            ref={videoRef}
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            onLoadedMetadata={() => setHasMetadata(true)}
+            onPlaying={() => {
+              setStarted(true);
+              setPlaying(true);
+            }}
+            onPause={() => setPlaying(false)}
+            aria-label={alt}
+            className={`absolute inset-0 h-full w-full rounded-xl object-cover transition-opacity duration-500 ${
+              started ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            {/* The codecs are spelled out so a browser that cannot decode VP9
+                rejects this source outright instead of selecting it on a bare
+                type and stalling. */}
+            <source src="/hero-project.webm" type='video/webm; codecs="vp9"' />
+            <source src="/hero-project.mp4" type="video/mp4" />
+          </video>
+        )}
 
-      {hasMetadata && (
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={playing ? "Pause the demo" : "Play the demo"}
-          className="absolute bottom-3 right-3 rounded-full border border-slate-600/80 bg-slate-950/70 p-2 text-slate-200 backdrop-blur hover:text-white focus-ring"
-        >
-          {playing ? (
-            <Pause className="h-4 w-4" aria-hidden />
-          ) : (
-            <Play className="h-4 w-4" aria-hidden />
+        <div className="absolute bottom-3 right-3 flex items-center gap-2">
+          {hasMetadata && (
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label={playing ? "Pause the demo" : "Play the demo"}
+              className="rounded-full border border-slate-600/80 bg-slate-950/70 p-2 text-slate-200 backdrop-blur hover:text-white focus-ring"
+            >
+              {playing ? (
+                <Pause className="h-4 w-4" aria-hidden />
+              ) : (
+                <Play className="h-4 w-4" aria-hidden />
+              )}
+            </button>
           )}
-        </button>
+          <button
+            type="button"
+            onClick={enterFullscreen}
+            aria-label="Play the demo full screen"
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-600/80 bg-slate-950/70 px-3 py-2 text-xs font-semibold text-slate-200 backdrop-blur hover:text-white focus-ring"
+          >
+            <Maximize2 className="h-4 w-4" aria-hidden />
+            Full screen
+          </button>
+        </div>
+      </div>
+      {caption && (
+        <figcaption className="px-2 pb-1 pt-3 text-sm leading-relaxed text-slate-300">
+          {caption}
+        </figcaption>
       )}
-    </div>
+    </figure>
   );
 }

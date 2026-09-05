@@ -121,9 +121,9 @@ export default function FeaturesSection({
               border: "border-blue-500/20",
             },
             {
-              title: "Any model, local or cloud",
+              title: "Any model you can reach",
               description:
-                "Route your shots through Flux, Seedance, Wan, Whisper, ElevenLabs, Suno, and the rest — or run open weights locally on your own hardware. No platform lock-in.",
+                "Route your shots through Flux, Seedance, Wan, Whisper, ElevenLabs, Suno, and the rest, on your own keys. Studio adds open weights running on your own hardware. No platform lock-in.",
               icon: Layers,
               color: "text-purple-400",
               bg: "bg-purple-500/10",
