@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-csv",
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "Parse and write CSV inside the NodeTool sandbox, from papaparse running on the host",
   "license": "MIT",
   "nodetool": {

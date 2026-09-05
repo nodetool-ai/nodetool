@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-twilio",
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "Build authenticated Twilio API requests inside the NodeTool sandbox, from NodeTool's helper running on the host",
   "license": "MIT",
   "nodetool": {

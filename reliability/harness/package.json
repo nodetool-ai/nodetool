@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "Reliability harness core: journey manifests, RunRecord, normalization, and per-channel stream diff (docs/RELIABILITY_ARCHITECTURE.md §12)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

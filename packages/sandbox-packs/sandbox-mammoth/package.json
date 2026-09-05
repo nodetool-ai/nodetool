@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-mammoth",
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "Read Word documents inside the NodeTool sandbox, from mammoth running on the host",
   "license": "MIT",
   "nodetool": {
