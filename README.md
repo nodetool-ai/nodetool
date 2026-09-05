@@ -10,8 +10,9 @@
 **You are the director. The agent is your crew.**
 
 Create and edit AI images, video, audio, and text in NodeTool, an open-source
-creative studio. Let agents build and revise your work, then inspect and edit
-it yourself in the workflow canvas, storyboard, or timeline.
+creative studio. Describe what you want and the agent builds it. What comes
+back is a project, not a render: open it in the workflow canvas, storyboard, or
+timeline and re-roll one shot, re-voice one line, re-cut the ending.
 
 **[Download NodeTool Studio](https://github.com/nodetool-ai/nodetool/releases/latest)** ·
 **[Quick start](#first-run-in-studio)** ·
@@ -20,22 +21,36 @@ it yourself in the workflow canvas, storyboard, or timeline.
 
 ![NodeTool: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film](marketing/public/hero-project-poster.webp)
 
+## Every model you need, on your own keys
+
+Route a shot through GPT-5.6, Claude Opus 5, Gemini, or Grok for text; FLUX,
+Nano Banana, Seedream, or Ideogram for stills; Sora 2, Veo 3.1, Kling, Wan, or
+Seedance for motion; ElevenLabs, Suno, or Whisper for sound. Switch between
+them in one click, or run open weights locally through Ollama, vLLM, LM Studio,
+or llama.cpp.
+
+You connect the provider and NodeTool calls it with your key, so you pay that
+provider directly at their published price. There is no NodeTool billing unit
+in between, and a price the provider drops is a price you get the same day.
+[Models and Providers](docs/models-and-providers.md) lists what runs where.
+
 ## Why NodeTool
 
-- Inspect intermediate results, swap a model, and rerun the changed part of a
-  workflow. Agents can wire the graph, run it, and repair failures within the
-  limits you set.
-- Keep the graph, inputs, assets, and edits together in your project. Export
-  `.nodetool` bundles to reopen in another NodeTool installation.
-- Run repeatable workflows from the studio, CLI, or an external agent through
+- Agents drive the real editors, not a transcript. They wire the graph, run it,
+  and repair failures within the limits you set, and you take the wheel at any
+  point.
+- Inspect intermediate results, swap a model, and rerun only the part that
+  changed.
+- The graph, inputs, assets, and edits stay together in your project. Export a
+  `.nodetool` bundle and reopen it in any NodeTool installation.
+- Run the same workflow from the studio, the CLI, or an external agent over
   [MCP](#mcp).
 
-Studio is free and runs on macOS, Windows, and Linux. Cloud model requests go
-to the provider you connect, billed to your account at provider rates. Local
-models run through supported engines such as Ollama, MLX, and llama.cpp, with
-hardware requirements that depend on the model. Offline work requires local
-models and assets. [NodeTool Cloud](https://nodetool.ai/cloud) is in alpha and uses
-hosted storage and cloud providers rather than your machine's local models.
+Studio is free and runs on macOS, Windows, and Linux. Local models have
+hardware requirements that depend on the model, and working offline needs both
+the models and the assets on your machine.
+[NodeTool Cloud](https://nodetool.ai/cloud) is in alpha; it runs on hosted
+storage and cloud providers rather than your machine's local models.
 
 ## First run in Studio
 
