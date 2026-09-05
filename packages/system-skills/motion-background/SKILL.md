@@ -87,9 +87,14 @@ a screensaver, and text in front of it becomes hard to hold.
 
 For organic motion nothing on the timeline can draw — smoke, ink, particles,
 clouds — generate it. `find_model` with `text_to_video`, then `generate_video`,
-then `add_media_clip` with the returned `asset://` reference. Prompt for slow,
-even motion with no cuts and no subject; a bed with an event in it is a shot, not
-a bed.
+then `add_media_clip` with the returned `asset://` reference. The `find_model`
+result names a `prompting_skill` for the line it picked; load it, because each
+line wants the prompt shaped differently. Whatever the line, prompt for slow,
+even motion with no cuts and no subject; a bed with an event in it is a shot,
+not a bed. On a line that writes native audio (Seedance 2, Veo 3, MiniMax H3,
+Kling 2.6 and later) the bed arrives with a soundtrack: either brief it as room
+tone and keep it, or mute the clip under the track you meant to use —
+`video-audio-continuity` is the rule for which.
 
 A generated clip does not loop. Cover a longer sequence by duplicating it and
 crossfading the joins: overlap the copies by 800–1500ms on one track, which

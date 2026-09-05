@@ -32,19 +32,130 @@ export const starterLabel = (name: string): string => {
   return words.length === 0 ? name : words[0].toUpperCase() + words.slice(1);
 };
 
+const escapeRegExp = (text: string): string =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** `/name` as a whitespace-delimited word, which is what the host matches. */
+const invocationPattern = (name: string): RegExp =>
+  new RegExp(`(^|\\s)/${escapeRegExp(name)}(?=\\s|$)`, "g");
+
+/** True when the prompt already invokes `/name` as a whitespace-delimited word. */
+export const invokesStarter = (prompt: string, name: string): boolean =>
+  invocationPattern(name).test(prompt);
+
+/**
+ * The starter the prompt invokes, or null. The prompt is the one record of
+ * what the agent will be handed, so this is read off it rather than kept
+ * beside it: a `/name` typed by hand counts, and a `/name` deleted stops
+ * counting. A prompt naming several skills starts from the one written first.
+ */
+export const invokedStarter = <T extends { name: string }>(
+  prompt: string,
+  starters: readonly T[]
+): T | null => {
+  let found: T | null = null;
+  let foundAt = Infinity;
+  for (const starter of starters) {
+    const match = invocationPattern(starter.name).exec(prompt);
+    if (match && match.index < foundAt) {
+      found = starter;
+      foundAt = match.index;
+    }
+  }
+  return found;
+};
+
+/** The prompt with every `/name` of the given starter taken out, one space with it. */
+const withoutStarter = (prompt: string, name: string): string =>
+  prompt.replace(
+    new RegExp(`(^|\\s)/${escapeRegExp(name)}(?:\\s|$)`, "g"),
+    "$1"
+  );
+
+/**
+ * The prompt after the starter pills' toggle: `next` picked, `current` let go.
+ * A picked starter replaces the one the prompt already carries, in place, so a
+ * command typed mid-sentence stays where it was; a prompt carrying none gets
+ * `/next` in front of it, which is where the agent reads it first. Letting go
+ * takes the command out and leaves the ask as it was.
+ */
+export const toggleStarterInPrompt = (
+  prompt: string,
+  current: string | null,
+  next: string | null
+): string => {
+  if (next === null) {
+    return current === null ? prompt : withoutStarter(prompt, current);
+  }
+  if (current !== null && invokesStarter(prompt, current)) {
+    return prompt.replace(invocationPattern(current), `$1/${next}`);
+  }
+  return prompt.length === 0 ? `/${next} ` : `/${next} ${prompt}`;
+};
+
+/**
+ * How many starter pills the row shows before the rest fold behind a count.
+ * NodeTool ships more skills than fit a glance; the rest are one click away,
+ * and every one of them still answers to `/` in the prompt.
+ */
+export const VISIBLE_STARTERS = 8;
+
+/**
+ * A shipped guide to prompting one model line. The agent loads these mid-run,
+ * when `find_model` names one for the model it picked; nobody starts a project
+ * from "Veo 3 prompting", so they rank behind everything else.
+ */
+const isPromptingGuide = (name: string): boolean => name.endsWith("-prompting");
+
+/**
+ * Starters in the order the row shows them: the ones this user's past projects
+ * started from, most recently used first, then the rest as the catalog lists
+ * them — the user's own skills, then the shipped ones — with the model-line
+ * prompting guides last. What someone has started before is the best guess at
+ * what they will start next.
+ */
+export const rankStarters = <T extends { name: string }>(
+  starters: readonly T[],
+  summaries: readonly ProjectDetail[]
+): T[] => {
+  const lastUsed = new Map<string, string>();
+  for (const { project } of summaries) {
+    if (project.kind.length === 0) {
+      continue;
+    }
+    const seen = lastUsed.get(project.kind);
+    if (seen === undefined || project.updatedAt > seen) {
+      lastUsed.set(project.kind, project.updatedAt);
+    }
+  }
+  const used = starters
+    .filter((starter) => lastUsed.has(starter.name))
+    .sort((a, b) =>
+      (lastUsed.get(b.name) ?? "").localeCompare(lastUsed.get(a.name) ?? "")
+    );
+  const rest = starters.filter((starter) => !lastUsed.has(starter.name));
+  return [
+    ...used,
+    ...rest.filter((starter) => !isPromptingGuide(starter.name)),
+    ...rest.filter((starter) => isPromptingGuide(starter.name))
+  ];
+};
+
 /** How long a name derived from the prompt may run before it is cut short. */
 const NAME_LIMIT = 60;
 
 /**
  * The project's name, taken from the prompt's first line. A name is what the
  * tab and the card carry, so it is trimmed to a phrase rather than left as a
- * paragraph; an empty prompt falls back to the starter's label.
+ * paragraph, and the starter's own `/name` is left out of it: the command is
+ * for the agent, not a title. An empty prompt falls back to the starter's label.
  */
 export const projectNameFromPrompt = (
   prompt: string,
   starter: ProjectStarter | null
 ): string => {
-  const firstLine = prompt.trim().split("\n")[0]?.trim() ?? "";
+  const ask = starter ? withoutStarter(prompt, starter.name) : prompt;
+  const firstLine = ask.trim().split("\n")[0]?.trim() ?? "";
   if (firstLine.length === 0) {
     return starter ? starterLabel(starter.name) : "New project";
   }
@@ -63,12 +174,6 @@ interface FirstTurnInput {
   /** Entity names picked from the library, injected by name downstream. */
   entityNames: readonly string[];
 }
-
-/** True when the prompt already invokes `/name` as a whitespace-delimited word. */
-const invokesStarter = (prompt: string, name: string): boolean => {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(^|\\s)/${escaped}(\\s|$)`).test(prompt);
-};
 
 /**
  * The first thing the project's agent reads: the starter it was given, what

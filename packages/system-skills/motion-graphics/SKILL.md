@@ -26,10 +26,18 @@ job is about, and come back here for argument shapes.
 | A logo sting, an end card, a splash | `logo-reveal` |
 | An ambient bed behind the content | `motion-background` |
 
-Two are neighbours rather than layers: `caption-titles` decides what text says
-and when it appears, and the board skills (`explainer-storyboard`,
-`commercial-beat-sheet`, `launch-commercial`, `music-video-treatment`) decide
-the shots before there is a timeline to animate.
+Three are neighbours rather than layers. `caption-titles` decides what text
+says and when it appears. `video-audio-continuity` decides, before the first
+clip renders, whether a multi-scene piece's sound comes from one generated clip
+or from a track of your own — a decision this file's ops cannot undo. The
+board skills (`explainer-storyboard`, `commercial-beat-sheet`,
+`launch-commercial`, `music-video-treatment`, `trailer-template`) decide the
+shots before there is a timeline to animate; `assemble_storyboard_timeline` is
+where their board becomes this file's document.
+
+Anything generated for the timeline — a bed, a sting, a voice, a clip — has a
+model line with its own guide. `find_model` returns `prompting_skill` on a
+route it covers; `load_skill` it before writing that prompt.
 
 ## Read before you animate
 

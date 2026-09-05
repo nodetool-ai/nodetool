@@ -4,6 +4,7 @@ import {
   ImageDocument,
   Message,
   Script,
+  Setting,
   TimelineSequence
 } from "@nodetool-ai/models";
 import {
@@ -29,6 +30,10 @@ import { getAssetStoragePath } from "./asset-autosave.js";
  */
 export function serverModelInterfaces(): ProcessingContextModelInterfaces {
   return {
+    getSetting: async ({ userId, key }) => {
+      const setting = await Setting.find(userId, key);
+      return setting && setting.value.length > 0 ? setting.value : null;
+    },
     // Shared with MCP sessions and workflow runs (lib/asset-model-interface):
     // one persistence path, one home-folder default.
     createAsset: createAssetModelInterface,

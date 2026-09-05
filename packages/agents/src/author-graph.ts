@@ -41,11 +41,13 @@ import type {
 import type { Tool } from "./tools/base-tool.js";
 import { toolForCapabilityName } from "./capabilities/lazy-tool.js";
 import {
-  UNGATED,
   createCapabilityRun,
   contextSecretAvailability,
+  gateFromContext,
+  type CapabilityGate,
   type CreateCapabilityRunOptions
 } from "./capabilities/index.js";
+import { gateTools } from "./capabilities/gate-tools.js";
 import {
   GRAPH_DSL_PACKAGE,
   catalogServesGraphDsl
@@ -124,6 +126,13 @@ export interface AuthorGraphOptions {
   threadId?: string;
   /** Provider rounds. Defaults to {@link AUTHOR_GRAPH_MAX_ITERATIONS}. */
   maxIterations?: number;
+  /**
+   * The permission gate the authoring belt runs under. `run_code` and
+   * `test_code` are execute-class, so the belt meets the same ladder the
+   * caller's other calls do. Omitted, the gate on {@link context} is read
+   * (`gateFromContext`), which is the parent run's when a host set one.
+   */
+  gate?: CapabilityGate;
 }
 
 /**
@@ -274,11 +283,16 @@ function resolveAuthoringBudget(opts: AuthorGraphOptions): RunBudget | undefined
 /**
  * Discovery, graph validation, and the Code-body harness — plus `find_model`
  * when providers are configured. Everything else the agent needs is the pack.
+ *
+ * The belt is wrapped in `gateTools` under the caller's gate: a lazy
+ * capability tool calls its implementation directly, so the gate on the run
+ * alone would cover what `run_code` invokes, not `run_code` itself.
  */
 export function buildAuthoringBelt(opts: AuthorGraphOptions): Tool[] {
+  const gate = opts.gate ?? gateFromContext(opts.context, "authorGraph");
   const runOptions: CreateCapabilityRunOptions = {
     context: opts.context,
-    gate: UNGATED,
+    gate,
     // The belt's capabilities run inside the authoring run, so they share its
     // budget rather than starting one.
     budget: resolveAuthoringBudget(opts),
@@ -298,7 +312,10 @@ export function buildAuthoringBelt(opts: AuthorGraphOptions): Tool[] {
       "authorGraph has no configured providers — `find_model` is off the belt, so AI work falls back to the model-less Agent node."
     );
   }
-  return names.map((name) => toolForCapabilityName(name, run));
+  return gateTools(
+    names.map((name) => toolForCapabilityName(name, run)),
+    gate
+  );
 }
 
 /**

@@ -147,29 +147,55 @@ describe("SecurityMonitor.review", () => {
     expect(verdict.tier).toBe("soft");
   });
 
-  it("defaults to allow (block:false) on unparseable/garbage model output", async () => {
+  it("fails closed on unparseable/garbage model output for an actionable class", async () => {
     const provider = createJudgeProvider("totally not a verdict");
     const monitor = new SecurityMonitor({ provider, model: "judge" });
     const verdict = await monitor.review(ACTION);
     expect(verdict).toEqual({
-      block: false,
-      reason: "",
-      severity: "low",
-      tier: "none"
+      block: true,
+      reason:
+        "the security monitor could not judge this action (verdict unparseable)",
+      severity: "high",
+      tier: "soft"
     });
   });
 
-  it("defaults to allow when the provider call throws", async () => {
+  function explodingProvider(): BaseProvider {
     const generateMessageTraced = vi.fn(async () => {
       throw new Error("provider exploded");
     });
-    const provider = {
+    return {
       provider: "scripted",
       generateMessageTraced
     } as unknown as BaseProvider;
-    const monitor = new SecurityMonitor({ provider, model: "judge" });
-    const verdict = await monitor.review(ACTION);
-    expect(verdict.block).toBe(false);
+  }
+
+  it.each(["write", "execute", "external"] as const)(
+    "fails closed when the provider call throws for a %s action",
+    async (category) => {
+      const monitor = new SecurityMonitor({
+        provider: explodingProvider(),
+        model: "judge"
+      });
+      const verdict = await monitor.review({ ...ACTION, category });
+      expect(verdict.block).toBe(true);
+      expect(verdict.tier).toBe("soft");
+      expect(verdict.reason).toContain("provider exploded");
+    }
+  );
+
+  it("still allows a read action when the judge cannot answer", async () => {
+    const read = { name: "read_file", category: "read" as const, args: {} };
+    const onError = new SecurityMonitor({
+      provider: explodingProvider(),
+      model: "judge"
+    });
+    expect((await onError.review(read)).block).toBe(false);
+    const onGarbage = new SecurityMonitor({
+      provider: createJudgeProvider("totally not a verdict"),
+      model: "judge"
+    });
+    expect((await onGarbage.review(read)).block).toBe(false);
   });
 
   it("truncates oversized args JSON and transcript to the configured caps", async () => {

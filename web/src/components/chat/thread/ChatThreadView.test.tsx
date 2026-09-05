@@ -133,6 +133,42 @@ describe("ChatThreadView", () => {
     expect(screen.getByTestId("message-2")).toHaveTextContent("Hi there");
   });
 
+  it("loads older messages near the top and preserves the viewport when they arrive", async () => {
+    jest.useFakeTimers();
+    const loadMessages = jest.fn().mockResolvedValue([]);
+    const originalLoad = useGlobalChatStore.getState().loadMessages;
+    useGlobalChatStore.setState({ messageCursors: { history: "1" }, loadMessages });
+    const { container, rerender } = renderWithTheme(<ChatThreadView {...defaultProps} threadId="history" />);
+    act(() => { jest.runOnlyPendingTimers(); });
+    const host = container.querySelector<HTMLDivElement>(".scrollable-message-wrapper");
+    expect(host).not.toBeNull();
+    if (!host) throw new Error("Missing scroll host");
+    host.scrollTop = 100;
+    Object.defineProperty(host, "clientHeight", { configurable: true, value: 100 });
+    const real = container.querySelector<HTMLDivElement>(".chat-messages-real-content");
+    if (!real) throw new Error("Missing content");
+    real.getBoundingClientRect = () => ({ bottom: 1000, top: 0 }) as DOMRect;
+    act(() => {
+      fireEvent.wheel(host);
+      fireEvent.scroll(host);
+      jest.runOnlyPendingTimers();
+    });
+    await act(async () => { await Promise.resolve(); });
+    expect(loadMessages).toHaveBeenCalledWith("history", "1");
+    mockScrollToIndex.mockClear();
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <ChatThreadView {...defaultProps} threadId="history" messages={[
+          { type: "message", id: "older", role: "user", content: "Earlier" }, ...mockMessages
+        ]} />
+      </ThemeProvider>
+    );
+    expect(host).toHaveAttribute("data-scroll-mode", "free-scrolling");
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+    useGlobalChatStore.setState({ loadMessages: originalLoad, messageCursors: {} });
+    jest.useRealTimers();
+  });
+
   it("shows approvals only for the conversation rendered by this instance", () => {
     useGlobalChatStore.setState({
       currentThreadId: "thread-b",

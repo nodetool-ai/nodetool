@@ -28,6 +28,7 @@ import {
   type SandboxCapabilityModuleSpec
 } from "@nodetool-ai/protocol";
 
+import { compactResourceIds } from "../codeact/compact-ids.js";
 import { extractErrorPayload, toTransferable } from "../codeact/tool-api.js";
 import { coerceCapabilityArgs } from "./args.js";
 import { listCapabilityModules, loadCapabilityModule } from "./registry.js";
@@ -127,7 +128,9 @@ export function createCapabilityDispatcher(
       if (failure !== null) {
         throw new SandboxCapabilityError(`${found.spec.name}: ${failure}`);
       }
-      return value;
+      // Short ids from here on: the guest, and so the observation, reads the
+      // 12-char form that every capability accepts back.
+      return toTransferable(compactResourceIds(value));
     }
   };
 }

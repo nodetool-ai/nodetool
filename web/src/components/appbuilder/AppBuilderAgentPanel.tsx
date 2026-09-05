@@ -210,7 +210,6 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
           total={runtime.progress.total}
           progressMessage={runtime.statusMessage}
           runningToolCallId={runtime.runningToolCallId}
-          runningToolMessage={runtime.toolMessage}
           model={selectedModel}
           onModelChange={setSelectedModel}
           onStop={stopGeneration}
@@ -223,7 +222,6 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
           systemPrompt={APP_BUILDER_SYSTEM_PROMPT}
           chatSource="app_builder"
           uiContext={appBuilderUiContext}
-          composerVariant="media"
           hideModePicker
           composerPlaceholder="Ask the agent to build your app or edit the workflow…"
           threadId={threadId}

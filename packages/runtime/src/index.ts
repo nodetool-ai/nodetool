@@ -179,7 +179,12 @@ export type {
   ComfyExecuteResult,
   ComfyModelDownloadRequest,
   ComfyModelDownloadUpdate,
-  ComfyModelInfo
+  ComfyModelInfo,
+  BlenderExecuteJob,
+  BlenderStatusInfo,
+  BlenderEvent,
+  BlenderExecuteOptions,
+  BlenderExecuteResult
 } from "./python-bridge-types.js";
 export {
   WebsocketPythonBridge,
@@ -267,6 +272,13 @@ export {
   type FakeContextOptions
 } from "./testing.js";
 export { executeComfy, uploadComfyFile } from "./comfy-executor.js";
+export { executeBlender, BlenderExecutorError } from "./blender-executor.js";
+export type {
+  BlenderWorkerJob,
+  BlenderExecutorOptions,
+  BlenderExecutorStats,
+  BlenderExecutorResult
+} from "./blender-executor.js";
 export type {
   ComfyExecutorResult,
   ComfyImage,
@@ -299,3 +311,21 @@ export type {
   ReconciledCost
 } from "./cost-reconciler.js";
 export * from "./google/index.js";
+export {
+  PERMISSION_GATE_CONTEXT_KEY,
+  decidePermission,
+  headlessDenialReason,
+  headlessGate
+} from "./permission-gate.js";
+export type {
+  ApprovalDecision,
+  ApprovalRequest,
+  PermissionCategory,
+  PermissionDecision,
+  PermissionGateAction,
+  PermissionGateClock,
+  PermissionGateOptions,
+  PermissionGateVerdict,
+  PermissionMode,
+  RequestApproval
+} from "./permission-gate.js";

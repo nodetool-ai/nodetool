@@ -13,7 +13,11 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { ProcessingContext, createRunBudget } from "@nodetool-ai/runtime";
+import {
+  BaseProvider,
+  ProcessingContext,
+  createRunBudget
+} from "@nodetool-ai/runtime";
 import type { RunBudget } from "@nodetool-ai/runtime";
 import {
   BackgroundSubtaskRegistry,
@@ -21,7 +25,10 @@ import {
   RunSubtaskTool,
   StartSubtaskTool
 } from "../src/index.js";
+import { MAX_BACKGROUND_SUBTASKS_PER_TURN } from "../src/tools/start-subtask-tool.js";
+import type { TaskPlan } from "../src/types.js";
 import { createLoopingMockProvider } from "./_helpers/looping-mock-provider.js";
+import { isString } from "../src/utils/type-guards.js";
 
 /** A model the price catalog covers, so a turn has a knowable worst case. */
 const PRICED_MODEL = "gpt-4o-mini";
@@ -201,7 +208,7 @@ describe("run budget propagation", () => {
     expect(budget.exhausted?.kind).toBe("cost");
   });
 
-  it("keeps a fan-out of twenty background children inside the run's permit pool", async () => {
+  it("keeps a fan-out of background children inside the run's permit pool, and caps it", async () => {
     const budget = makeBudget({ capUsd: null, maxConcurrency: 2, maxTurns: 100 });
     const registry = new BackgroundSubtaskRegistry();
 
@@ -235,19 +242,149 @@ describe("run budget propagation", () => {
     });
 
     const ctx = makeCtx();
-    for (let i = 0; i < 20; i++) {
+    const fanOut = MAX_BACKGROUND_SUBTASKS_PER_TURN;
+    for (let i = 0; i < fanOut; i++) {
       const receipt = (await tool.process(ctx, {
         description: `job ${i}`,
         prompt: "work"
       })) as Record<string, unknown>;
       expect(receipt.status).toBe("running");
     }
+    // Past the cap the registry admits nothing more, and says so by name.
+    const refused = (await tool.process(ctx, {
+      description: "one too many",
+      prompt: "work"
+    })) as Record<string, unknown>;
+    expect(refused.error).toBe("background_limit_reached");
+    expect(registry.size).toBe(fanOut);
 
     await vi.waitFor(() => expect(registry.runningCount).toBe(0), {
       timeout: 10_000
     });
 
-    expect(provider.turnsStarted).toBe(20);
+    expect(provider.turnsStarted).toBe(fanOut);
     expect(peak).toBeLessThanOrEqual(2);
   }, 20_000);
+
+  it("bounds every layer of a plan — tasks, steps and their sub-agents — by one pool", async () => {
+    // The pool used to bound the outermost merge only: every nested
+    // `TaskExecutor` saw the branch holding a permit and ran its steps on a
+    // pool of its own, and every sub-agent under a step took no permit at all.
+    // Three tasks of three steps, each step spawning two `run_subtask`
+    // children, under two permits: never more than two conversations open.
+    const budget = makeBudget({
+      capUsd: null,
+      maxConcurrency: 2,
+      maxTurns: 500
+    });
+
+    let active = 0;
+    let peak = 0;
+    const provider = {
+      provider: "mock",
+      hasToolSupport: async () => true,
+      getTotalCost: () => 0,
+      async *generateMessages(opts: {
+        messages?: Array<{ role: string; content?: unknown }>;
+      }) {
+        active++;
+        peak = Math.max(peak, active);
+        try {
+          // Long enough for every other loop to reach its own turn, so an
+          // unbounded layer piles up rather than serialising by accident.
+          await new Promise((r) => setTimeout(r, 8));
+          const history = opts.messages ?? [];
+          const text = history
+            .map((m) => (isString(m.content) ? m.content : ""))
+            .join(" ");
+          if (history.some((m) => m.role === "tool")) {
+            // The step's second turn: its children have answered.
+            yield {
+              type: "message" as const,
+              message: { role: "assistant", content: "done" }
+            };
+          } else if (text.includes("CHILD:")) {
+            yield {
+              type: "message" as const,
+              message: { role: "assistant", content: "child answer" }
+            };
+          } else {
+            const step = text.match(/STEP:([a-z_0-9]+)/)?.[1] ?? "?";
+            for (const n of [1, 2]) {
+              yield {
+                id: `${step}_child_${n}`,
+                name: "run_subtask",
+                args: { description: `child ${n}`, prompt: `CHILD:${step}_${n}` }
+              };
+            }
+          }
+        } finally {
+          active--;
+        }
+      },
+      async *generateMessagesTraced(...args: unknown[]) {
+        yield* (
+          provider as {
+            generateMessages: (...a: unknown[]) => AsyncGenerator<unknown>;
+          }
+        ).generateMessages(...args);
+      },
+      generateLoop(args: unknown) {
+        return (
+          BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+        ).generateLoop.call(provider, args);
+      },
+      _admitTurn(...args: unknown[]) {
+        return (
+          BaseProvider.prototype as unknown as {
+            _admitTurn: (...a: unknown[]) => unknown;
+          }
+        )._admitTurn.apply(provider, args);
+      },
+      async generateMessageTraced() {
+        return null;
+      },
+      generateMessage: vi.fn(),
+      getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
+      getContainerEnv: () => ({}),
+      isContextLengthError: () => false
+    } as unknown as BaseProvider;
+
+    const tasks: TaskPlan["tasks"] = ["a", "b", "c"].map((t) => ({
+      id: `task_${t}`,
+      title: `Task ${t}`,
+      steps: [1, 2, 3].map((n) => ({
+        id: `${t}_s${n}`,
+        instructions: `STEP:${t}_s${n}`,
+        completed: false,
+        dependsOn: [],
+        logs: []
+      }))
+    }));
+    const executor = new ParallelTaskExecutor({
+      provider,
+      model: "test-model",
+      context: makeCtx(),
+      tools: [
+        new RunSubtaskTool({
+          provider,
+          model: "test-model",
+          parentTools: () => [],
+          forwardMessage: () => {},
+          budget
+        })
+      ],
+      taskPlan: { title: "wide plan", tasks },
+      budget
+    });
+
+    for await (const _ of executor.execute()) {
+      // drained
+    }
+
+    expect(executor.getFailedTaskIds()).toEqual([]);
+    // 9 steps × 2 turns + 18 children × 1 turn.
+    expect(budget.turnCount.current).toBe(36);
+    expect(peak).toBeLessThanOrEqual(2);
+  }, 30_000);
 });

@@ -23,8 +23,8 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "21550fd305ce",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/nodetool-api-workflows.test.ts",
       "packages/agents/tests/capabilities-dispatcher.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
     ],
     evals: [
       {
@@ -40,8 +40,8 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "500f60f725d0",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/capabilities-args.test.ts",
       "packages/agents/tests/capabilities-dispatcher.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
     ],
   },
   {
@@ -51,8 +51,8 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "efc501df79a2",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/capabilities-adapters.test.ts",
       "packages/agents/tests/capabilities-dispatcher.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
     ],
   },
   {
@@ -143,7 +143,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/nodetool-api-workflows.test.ts",
-      "packages/agents/tests/capabilities-gate-parity.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
     ],
     evals: [
       {
@@ -169,7 +169,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "42abfc3a3312",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/nodetool-api-workflows.test.ts",
       "packages/agents/tests/mcp-tools.test.ts",
     ],
     evals: [
@@ -187,7 +186,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/nodetool-api-workflows.test.ts",
-      "packages/agents/tests/capability-run-secrets-audit.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
     ],
     evals: [
       {
@@ -219,7 +218,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "5f748ba651f3",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/nodetool-api-workflows.test.ts",
       "packages/agents/tests/mcp-tools.test.ts",
     ],
   },
@@ -258,7 +256,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-models.test.ts",
-      "packages/agents/tests/capability-run-secrets-audit.test.ts",
     ],
     evals: [
       {
@@ -316,7 +313,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "e65e3ff23393",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/capabilities-media.test.ts",
       "packages/agents/tests/capabilities-segment-image.test.ts",
     ],
   },
@@ -360,7 +356,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "b9917297fc35",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/capabilities-media.test.ts",
       "packages/agents/tests/capabilities-generations.test.ts",
     ],
   },
@@ -389,10 +384,13 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
     contract: "57305485ad36",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-media.test.ts",
-    ],
+    gap:
+      "`media-read-bytes.test.ts` drives it from a chat action by " +
+      "guest import, but the `capability-suites` selfcheck's filter " +
+      "list (packages/cli/src/harness/registry.ts) does not run that " +
+      "file, and a suite named here must be one it runs. Adding " +
+      "`media-read-bytes` to that command and to the sync script's " +
+      "extras would credit it.",
   },
   {
     name: "critique_image",
@@ -402,7 +400,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
     ],
     evals: [
       {
@@ -439,7 +436,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
-      "packages/agents/tests/capabilities-timeline-render.test.ts",
     ],
   },
   {
@@ -460,7 +456,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "b4bba48ad634",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/capabilities-media.test.ts",
       "packages/agents/tests/capabilities-media-ffprobe.test.ts",
     ],
   },
@@ -571,20 +566,22 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "collections",
     impl: "packages/agents/src/capabilities/collections.ts",
     contract: "4fd457fa1ff6",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-collections.test.ts",
-    ],
+    gap:
+      "`capabilities-collections.test.ts` snapshots the module's wire " +
+      "names and builds Tools for the readers and indexers; neither " +
+      "lifecycle call has a case. A case that creates a collection, " +
+      "indexes into it and deletes it would close it.",
   },
   {
     name: "delete_collection",
     module: "collections",
     impl: "packages/agents/src/capabilities/collections.ts",
     contract: "eb59236a182f",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-collections.test.ts",
-    ],
+    gap:
+      "`capabilities-collections.test.ts` snapshots the module's wire " +
+      "names and builds Tools for the readers and indexers; neither " +
+      "lifecycle call has a case. A case that creates a collection, " +
+      "indexes into it and deletes it would close it.",
   },
   {
     name: "get_cost_summary",
@@ -604,7 +601,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-nodes.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
     ],
   },
   {
@@ -615,7 +611,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-nodes.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
     ],
     evals: [
       {
@@ -632,7 +627,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-nodes.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
     ],
   },
   {
@@ -654,7 +648,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-jobs.test.ts",
-      "packages/agents/tests/capabilities-timeline-render.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
     ],
     evals: [
       {
@@ -718,6 +712,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-generations.test.ts",
+      "packages/agents/tests/capabilities-model3d.test.ts",
     ],
   },
   {
@@ -787,7 +782,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-assets.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
     ],
     evals: [
       {
@@ -836,7 +830,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-assets.test.ts",
-      "packages/agents/tests/capabilities-media.test.ts",
     ],
   },
   {
@@ -846,7 +839,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "8dfc3e1b4b9e",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/capabilities-assets.test.ts",
       "packages/agents/tests/capabilities-lifecycle.test.ts",
     ],
   },
@@ -875,20 +867,24 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "9660cd6b5c02",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-browser.test.ts",
-    ],
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
   },
   {
     name: "browser_restart",
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "defb85a11e39",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-browser.test.ts",
-    ],
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
   },
   {
     name: "browser_click",
@@ -915,60 +911,72 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "1a36915fa601",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-browser.test.ts",
-    ],
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
   },
   {
     name: "browser_press_key",
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "d1b1b2fc95c9",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-browser.test.ts",
-    ],
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
   },
   {
     name: "browser_select_option",
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "73c53d222990",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-browser.test.ts",
-    ],
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
   },
   {
     name: "browser_scroll",
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "e2012b881bd6",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-browser.test.ts",
-    ],
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
   },
   {
     name: "browser_console_exec",
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "7add1995b4bc",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-browser.test.ts",
-    ],
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
   },
   {
     name: "browser_console_view",
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "daf5f59b767f",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-browser.test.ts",
-    ],
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
   },
   {
     name: "browser_capture_media",
@@ -1014,7 +1022,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "8e4f918a4fb5",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/capabilities-apps.test.ts",
       "packages/agents/tests/capabilities-lifecycle.test.ts",
     ],
   },
@@ -1037,7 +1044,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-apps.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
     ],
   },
   {
@@ -1048,7 +1054,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-apps.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
     ],
   },
   {
@@ -1058,7 +1063,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "34f77614fa6d",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/capabilities-apps.test.ts",
       "packages/agents/tests/capabilities-lifecycle.test.ts",
     ],
   },
@@ -1309,7 +1313,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",
-      "packages/agents/tests/capabilities-threads.test.ts",
     ],
     evals: [
       {
@@ -1337,7 +1340,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",
-      "packages/agents/tests/apify-capabilities.test.ts",
+      "packages/agents/tests/browser-tools.test.ts",
     ],
   },
   {
@@ -1370,7 +1373,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",
-      "packages/agents/tests/capabilities-gate-parity.test.ts",
     ],
   },
   {
@@ -1457,7 +1459,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-agents.test.ts",
-      "packages/agents/tests/capabilities-gate-parity.test.ts",
     ],
     evals: [
       {
@@ -1521,200 +1522,240 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "5eb13fc29956",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "google_drive_read_file",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "0faf5cd573c3",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "google_drive_get_file",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "afdc399211bb",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "google_drive_create_file",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "cd4796152389",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "gmail_search",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "c95cdb216e9c",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "gmail_get_message",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "f05758fd1d38",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "gmail_send_message",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "9bd61587642a",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "gmail_modify_labels",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "3817260faa01",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "gmail_list_labels",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "0e9627c9efcd",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "google_docs_read",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "26bd47cd6a0f",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "google_docs_create",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "456bad82acbc",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "google_docs_append",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "eb73d01f558b",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "google_sheets_read",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "3a21bbb8c59f",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "google_sheets_append",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "f0f81493694e",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "google_sheets_update",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "47e7930f9810",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "google_sheets_create",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "ba23cc1b88c6",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "google_calendar_list_calendars",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "151e73884ee0",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "google_calendar_list_events",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "539122030fbd",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "google_calendar_create_event",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "7e6f8ec90cbc",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "google_calendar_delete_event",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "cf6421e03cd2",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-google.test.ts",
-    ],
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
   },
   {
     name: "list_threads",
@@ -1905,7 +1946,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "b28a18fe7574",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/capabilities-timelines.test.ts",
       "packages/agents/tests/capabilities-timeline-preview.test.ts",
     ],
     evals: [
@@ -1922,7 +1962,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "6f1e9b2a38fc",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/capabilities-timelines.test.ts",
       "packages/agents/tests/capabilities-timeline-compare.test.ts",
     ],
   },
@@ -1944,7 +1983,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "8a3eb82365c0",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/capabilities-timelines.test.ts",
       "packages/agents/tests/capabilities-lifecycle.test.ts",
     ],
   },
@@ -2068,7 +2106,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "8a4a0df4daf9",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/capabilities-sketches.test.ts",
       "packages/agents/tests/capabilities-lifecycle.test.ts",
     ],
   },
@@ -2126,7 +2163,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "render_model3d",
     module: "model3d",
     impl: "packages/agents/src/capabilities/model3d.ts",
-    contract: "3d837c0a7471",
+    contract: "87ab7a3e2f89",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-model3d.test.ts",
@@ -2352,7 +2389,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "fcec52d68eb0",
     selfcheck: "capability-suites",
     suites: [
-      "packages/agents/tests/capabilities-storyboards.test.ts",
       "packages/agents/tests/capabilities-lifecycle.test.ts",
     ],
   },
@@ -2672,12 +2708,12 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
     contract: "c758c2ba012f",
-    gap:
-      "Schema-only capability: the implementation is the browser's " +
-      "(web/src/lib/tools/builtin), and the headless graph bridge the " +
-      "tool-loop eval drives seeds its own state instead of reading " +
-      "it back. A case whose objective needs the current graph before " +
-      "editing it would close it.",
+    evals: [
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["rewire-and-relabel"],
+      },
+    ],
   },
   {
     name: "ui_add_node",
@@ -2707,7 +2743,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
       },
       {
         file: "packages/agents/src/evals/tool-loop-cases.ts",
-        cases: ["extend-existing", "summarize"],
+        cases: ["extend-existing", "rewire-and-relabel", "summarize"],
       },
     ],
   },
@@ -2716,11 +2752,12 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
     contract: "53ad5b26a7d1",
-    gap:
-      "Schema-only capability routed to the browser. The graph " +
-      "tool-loop cases add and connect nodes; none sets a property " +
-      "afterwards. A case that builds a graph and then fills a " +
-      "required property would close it.",
+    evals: [
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["rewire-and-relabel"],
+      },
+    ],
   },
   {
     name: "ui_delete_node",
@@ -2739,29 +2776,36 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
     contract: "43bb0e75e132",
-    gap:
-      "Schema-only capability routed to the browser. No tool-loop " +
-      "case rewires a seeded graph. A case that disconnects and " +
-      "reconnects an edge would close it.",
+    evals: [
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["rewire-and-relabel"],
+      },
+    ],
   },
   {
     name: "ui_move_node",
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
     contract: "35780f769033",
-    gap:
-      "Schema-only capability routed to the browser. Layout is not " +
-      "scored by any case. A case whose final-state predicate reads " +
-      "node positions would close it.",
+    evals: [
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["rewire-and-relabel"],
+      },
+    ],
   },
   {
     name: "ui_set_node_title",
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
     contract: "b8500a8d6207",
-    gap:
-      "Schema-only capability routed to the browser. No case renames " +
-      "a node. A case that titles the nodes it adds would close it.",
+    evals: [
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["rewire-and-relabel"],
+      },
+    ],
   },
   {
     name: "search_apify_actors",
@@ -2792,7 +2836,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/apify-capabilities.test.ts",
-      "packages/agents/tests/capabilities-args.test.ts",
     ],
   },
   {

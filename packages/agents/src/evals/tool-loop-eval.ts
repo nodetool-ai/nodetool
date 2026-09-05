@@ -45,6 +45,11 @@ import {
   type EscalationExpectations,
   type EscalationTurn
 } from "./escalation.js";
+import {
+  gateHeadlessTools,
+  type PermissionRequestRecord,
+  type ToolLoopPermission
+} from "./tool-loop-permission.js";
 
 /**
  * The minimal contract every headless surface bridge (graph editor, script,
@@ -94,6 +99,14 @@ export interface ToolLoopEvalExpectations<TFinal = unknown> {
    * any other tool call.
    */
   escalation?: EscalationExpectations;
+  /**
+   * Predicates over the approval requests the permission gate made (all must
+   * hold). Only meaningful when the case declares a
+   * {@link ToolLoopEvalCase.permission} mode; without one the list is empty.
+   */
+  permissionRequests?: ToolLoopStatePredicate<
+    readonly PermissionRequestRecord[]
+  >[];
 }
 
 export interface ToolLoopEvalCase<TFinal = ToolLoopFinalState> {
@@ -125,6 +138,12 @@ export interface ToolLoopEvalCase<TFinal = ToolLoopFinalState> {
    */
   escalation?: EscalationConfig;
   /**
+   * Run the belt through the permission gate in this mode, with a scripted
+   * user answering every approval prompt. A case without it is ungated, as
+   * before. See `./tool-loop-permission.ts`.
+   */
+  permission?: ToolLoopPermission;
+  /**
    * Turn cap for this case, overriding the runner's `maxIterations`. A case
    * whose work is inherently many-turned — drawing is dozens of strokes, not
    * three property edits — declares the budget it needs rather than forcing
@@ -140,6 +159,8 @@ export interface ToolLoopObservation<TFinal = unknown> {
   finalState: TFinal;
   /** Question/answer exchanges, for cases with an escalation channel. */
   escalations?: readonly EscalationTurn[];
+  /** Approval requests the gate made, for cases with a permission mode. */
+  permissionRequests?: readonly PermissionRequestRecord[];
 }
 
 export interface ToolLoopCaseResult {
@@ -168,6 +189,8 @@ export interface ToolLoopCaseResult {
   toolCalls: Record<string, number>;
   /** Total tool calls across all names. */
   totalToolCalls: number;
+  /** Approval requests the permission gate made; empty for an ungated case. */
+  permissionRequests: PermissionRequestRecord[];
   durationMs: number;
   costUsd: number;
   error?: string;
@@ -382,6 +405,25 @@ export function checkToolLoopExpectations<TFinal>(
     );
   }
 
+  for (const predicate of expect.permissionRequests ?? []) {
+    const requests = observation.permissionRequests ?? [];
+    let pass = false;
+    let detail = predicate.detail;
+    try {
+      pass = predicate.test(requests);
+    } catch (e) {
+      detail = e instanceof Error ? e.message : String(e);
+    }
+    checks.push({
+      name: `permission:${predicate.name}`,
+      pass,
+      severity: "critical",
+      detail: pass
+        ? undefined
+        : (detail ?? `predicate ${predicate.name} failed`)
+    });
+  }
+
   return checks;
 }
 
@@ -398,11 +440,16 @@ async function runCase<TFinal>(
   const surfaceTools: HeadlessTool[] = escalation
     ? [...bridge.tools, escalation.tool]
     : bridge.tools;
+  // A case with a permission mode runs the whole belt through the gate, the
+  // scripted user included.
+  const gated = evalCase.permission
+    ? gateHeadlessTools(surfaceTools, evalCase.permission)
+    : undefined;
 
   const run = await runToolLoop({
     provider: opts.provider,
     model: opts.model,
-    tools: surfaceTools,
+    tools: gated ? gated.tools : surfaceTools,
     // Per-case (surface-specific) prompt wins over the runner-wide override,
     // which in turn wins over the graph-editor default.
     systemPrompt:
@@ -422,7 +469,8 @@ async function runCase<TFinal>(
   const observation: ToolLoopObservation<TFinal> = {
     toolCalls: run.calls,
     finalState: bridge.finalState(),
-    escalations: escalation?.turns()
+    escalations: escalation?.turns(),
+    permissionRequests: gated?.requests()
   };
 
   const checks: EvalCheck[] = [
@@ -450,6 +498,7 @@ async function runCase<TFinal>(
     checks,
     toolCalls: run.countsByName,
     totalToolCalls: run.totalCalls,
+    permissionRequests: [...(observation.permissionRequests ?? [])],
     durationMs: run.durationMs,
     costUsd: run.costUsd,
     error: run.error
@@ -480,6 +529,7 @@ export async function runToolLoopEval<TFinal = ToolLoopFinalState>(
         checks: [],
         toolCalls: {},
         totalToolCalls: 0,
+        permissionRequests: [],
         durationMs: 0,
         costUsd: 0
       });

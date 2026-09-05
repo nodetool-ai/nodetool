@@ -16,16 +16,21 @@
  * without one — the scene's world-space bounds.
  */
 
+import { randomUUID } from "node:crypto";
 import type { GltfJson, Model3DFile } from "@nodetool-ai/model3d";
 import {
   runBlenderJob,
   type BlenderEngine,
+  type BlenderResultStats,
   type CameraMode,
-  type LightingPreset
+  type LightingPreset,
+  type RenderImageParams
 } from "@nodetool-ai/blender-nodes";
 import {
   HostBinaryMissingError,
   loadMediaRefBytes,
+  type GenerationRequest,
+  type GenerationResult,
   type ProcessingContext
 } from "@nodetool-ai/runtime";
 import type {
@@ -47,6 +52,10 @@ import {
 } from "./model3d.specs.js";
 import { userIdOf } from "../tools/mcp-tool-support.js";
 import { isRecord, isString } from "../utils/type-guards.js";
+import {
+  backgroundGenerationLimitError,
+  startBackgroundGeneration
+} from "./background-generation.js";
 
 export {
   DEFAULT_LIMIT,
@@ -127,7 +136,7 @@ async function loadModelBytes(
     };
   }
 
-  let bytes: Uint8Array | null = null;
+  let bytes: Uint8Array | null;
   try {
     bytes = await loadMediaRefBytes(
       { uri: `asset://${assetId}`, asset_id: assetId },
@@ -443,6 +452,120 @@ function numParam(params: Record<string, unknown>, key: string, fallback: number
   return Number.isFinite(value) ? value : fallback;
 }
 
+function oneOf<T extends string>(
+  value: unknown,
+  values: readonly T[],
+  fallback: T
+): T {
+  return values.find((candidate) => candidate === value) ?? fallback;
+}
+
+function renderParams(
+  params: Record<string, unknown>
+): RenderImageParams {
+  return {
+    camera_mode: oneOf<CameraMode>(
+      params["camera_mode"],
+      ["auto", "scene", "orbit"],
+      "auto"
+    ),
+    azimuth: numParam(params, "azimuth", 45),
+    elevation: numParam(params, "elevation", 25),
+    fov: numParam(params, "fov", 35),
+    zoom: numParam(params, "zoom", 1),
+    lighting: oneOf<LightingPreset>(
+      params["lighting"],
+      ["studio", "soft", "flat"],
+      "studio"
+    ),
+    light_intensity: numParam(params, "light_intensity", 1),
+    background_color: String(params["background_color"] ?? "#808080"),
+    transparent: params["transparent"] === true,
+    engine: oneOf<BlenderEngine>(
+      params["engine"],
+      ["eevee", "cycles"],
+      "eevee"
+    ),
+    samples: Math.max(1, Math.round(numParam(params, "samples", 16))),
+    denoise: params["denoise"] !== false,
+    resolution_percentage: Math.max(
+      1,
+      Math.round(numParam(params, "resolution_percentage", 100))
+    ),
+    width: Math.max(1, Math.round(numParam(params, "width", 1024))),
+    height: Math.max(1, Math.round(numParam(params, "height", 1024)))
+  };
+}
+
+function renderGenerationRequest(
+  id: string,
+  model: LoadedModelBytes,
+  params: Record<string, unknown>
+): GenerationRequest {
+  const toolCallId = params["_tool_call_id"];
+  return {
+    id,
+    provider: "blender",
+    capability: "render_model3d",
+    model: "render_image",
+    params: { model_id: model.assetId, ...renderParams(params) },
+    origin: {
+      surface: "capability",
+      tool_call_id: isString(toolCallId) && toolCallId.trim() ? toolCallId : null
+    },
+    persist: {
+      name: `${model.name.replace(/\.(glb|gltf)$/i, "") || "model"}.png`,
+      mime: "image/png"
+    }
+  };
+}
+
+async function renderGeneration(
+  context: ProcessingContext,
+  model: LoadedModelBytes,
+  params: Record<string, unknown>,
+  id: string
+): Promise<{ stats: BlenderResultStats; assets: GenerationResult["assets"] }> {
+  const timeoutMs = Math.max(1, numParam(params, "timeout", 600)) * 1000;
+  let stats: BlenderResultStats = {
+    blender_version: "",
+    render_seconds: 0
+  };
+  const generation = await context.runGenerationWith(
+    renderGenerationRequest(id, model, params),
+    async (_provider, signal) => {
+      const result = await runBlenderJob(
+        context,
+        model.bytes,
+        { op: "render_image", params: renderParams(params) },
+        { image: "render.png" },
+        { timeoutMs, signal }
+      );
+      stats = result.stats;
+      const png = result.outputs["image"] ?? new Uint8Array();
+      if (png.length === 0) {
+        throw new Error(`Blender produced no image for 3D model ${model.assetId}.`);
+      }
+      return png;
+    },
+    { withoutProvider: true }
+  );
+  return { stats, assets: generation.assets };
+}
+
+function backgroundReceipt(id: string): Record<string, unknown> {
+  return {
+    type: "image",
+    generation_id: id,
+    status: "running",
+    background: true,
+    provider: "blender",
+    model: "render_image",
+    capability: "render_model3d",
+    next: "Call await_generation with this generation_id to collect the asset, or get_generation to check on it."
+  };
+}
+
 const renderModel3d: CapabilityExport = {
   spec: renderModel3dSpec,
   impl: async (run, params) => {
@@ -452,41 +575,23 @@ const renderModel3d: CapabilityExport = {
     const model = await loadModelBytes(run, params["model_id"]);
     if (isError(model)) return model;
 
-    const timeoutMs = Math.max(1, numParam(params, "timeout", 600)) * 1000;
-    let png: Uint8Array;
-    let stats: Record<string, unknown>;
-    try {
-      const result = await runBlenderJob(
-        run.context,
-        model.bytes,
-        {
-          op: "render_image",
-          params: {
-            camera_mode: String(params["camera_mode"] ?? "auto") as CameraMode,
-            azimuth: numParam(params, "azimuth", 45),
-            elevation: numParam(params, "elevation", 25),
-            fov: numParam(params, "fov", 35),
-            zoom: numParam(params, "zoom", 1),
-            lighting: String(params["lighting"] ?? "studio") as LightingPreset,
-            light_intensity: numParam(params, "light_intensity", 1),
-            background_color: String(params["background_color"] ?? "#808080"),
-            transparent: params["transparent"] === true,
-            engine: String(params["engine"] ?? "eevee") as BlenderEngine,
-            samples: Math.max(1, Math.round(numParam(params, "samples", 16))),
-            denoise: params["denoise"] !== false,
-            resolution_percentage: Math.max(
-              1,
-              Math.round(numParam(params, "resolution_percentage", 100))
-            ),
-            width: Math.max(1, Math.round(numParam(params, "width", 1024))),
-            height: Math.max(1, Math.round(numParam(params, "height", 1024)))
-          }
-        },
-        { image: "render.png" },
-        { timeoutMs, signal: run.context.signal }
+    const id = randomUUID();
+    if (params["background"] === true) {
+      const started = startBackgroundGeneration(run.context, () =>
+        renderGeneration(run.context, model, params, id)
       );
-      png = result.outputs["image"] ?? new Uint8Array();
-      stats = result.stats as Record<string, unknown>;
+      if (!started) {
+        return backgroundGenerationLimitError();
+      }
+      return backgroundReceipt(id);
+    }
+
+    let rendered: {
+      stats: BlenderResultStats;
+      assets: GenerationResult["assets"];
+    };
+    try {
+      rendered = await renderGeneration(run.context, model, params, id);
     } catch (error) {
       // Blender is a host binary, so a server without one still serves the
       // capability and only fails here. The failure then names the cause
@@ -505,27 +610,16 @@ const renderModel3d: CapabilityExport = {
         error: `Could not render 3D model ${model.assetId}: ${error instanceof Error ? error.message : String(error)}`
       };
     }
-    if (png.length === 0) {
-      return { error: `Blender produced no image for 3D model ${model.assetId}.` };
-    }
-
-    let created: unknown;
-    try {
-      created = await run.context.createAsset({
-        name: `${model.name.replace(/\.(glb|gltf)$/i, "") || "model"}.png`,
-        contentType: "image/png",
-        content: png
-      });
-    } catch (error) {
-      return {
-        error: `Could not store the render of 3D model ${model.assetId}: ${error instanceof Error ? error.message : String(error)}`
-      };
-    }
-    const imageId = isRecord(created) && isString(created["id"]) ? created["id"] : null;
+    const imageId = rendered.assets[0]?.asset_id ?? null;
     if (!imageId) {
-      return { error: "The render asset was created without an id." };
+      return { error: "The render asset could not be stored." };
     }
-    return { image_id: imageId, url: `asset://${imageId}.png`, stats };
+    return {
+      image_id: imageId,
+      url: `asset://${imageId}.png`,
+      stats: rendered.stats,
+      generation_id: id
+    };
   }
 };
 

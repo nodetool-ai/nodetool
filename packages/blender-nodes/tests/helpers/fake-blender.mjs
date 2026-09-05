@@ -65,9 +65,9 @@ switch (mode) {
     break;
   }
   case "fra": {
-    process.stderr.write("Fra:1 Mem:10.00M | Time:00:00.10\n");
-    process.stderr.write("Fra:2 Mem:10.00M | Time:00:00.10\n");
-    process.stderr.write("Fra:3 Mem:10.00M | Time:00:00.10\n");
+    for (let frame = job.job.params.frame_start; frame <= job.job.params.frame_end; frame++) {
+      process.stderr.write(`Fra:${frame} Mem:10.00M | Time:00:00.10\n`);
+    }
     writeDeclared(32);
     writeResult({ ok: true, produced: Object.keys(outputs), stats: okStats() });
     break;

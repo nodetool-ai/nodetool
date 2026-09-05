@@ -11,11 +11,13 @@ import {
   formatToolLoopReport,
   checkToolLoopExpectations,
   createToolLoopBridge,
+  TOOL_LOOP_EVAL_CASES,
   type ToolLoopEvalCase,
   type ToolLoopObservation,
   type ToolLoopFinalState
 } from "../src/index.js";
 import { DEFAULT_MAX_ITERATIONS } from "../src/app-build/tool-loop.js";
+import { gateHeadlessTools } from "../src/evals/tool-loop-permission.js";
 import type {
   BaseProvider,
   ProviderStreamItem,
@@ -91,7 +93,11 @@ interface ScriptedCall {
  * `execute` closures (mirroring how a real provider's `generateLoop` dispatches
  * self-executing tools), then ends the turn.
  */
-function createScriptedProvider(script: ScriptedCall[]): BaseProvider {
+function createScriptedProvider(
+  script: ScriptedCall[],
+  /** Receives each tool's stringified result, in call order. */
+  results?: string[]
+): BaseProvider {
   return {
     provider: "scripted",
     hasToolSupport: async () => true,
@@ -106,7 +112,8 @@ function createScriptedProvider(script: ScriptedCall[]): BaseProvider {
         if (args.signal?.aborted) break;
         const id = `call_${++seq}`;
         yield { id, name: call.name, args: call.args } as ProviderStreamItem;
-        await toolMap.get(call.name)?.execute?.(call.args, id);
+        const result = await toolMap.get(call.name)?.execute?.(call.args, id);
+        if (results && typeof result === "string") results.push(result);
       }
       yield { type: "chunk", content: "", done: true } as ProviderStreamItem;
     }
@@ -333,6 +340,103 @@ describe("runToolLoopEval", () => {
     expect(text).toContain("provider=scripted model=test-model");
     expect(text).toContain("good");
     expect(text).toContain("success 1/1 (100%)");
+  });
+});
+
+// --- permission gate ---------------------------------------------------------
+
+function catalogueCase(id: string): ToolLoopEvalCase {
+  const found = TOOL_LOOP_EVAL_CASES.find((c) => c.id === id);
+  if (!found) throw new Error(`no catalogue case ${id}`);
+  return found;
+}
+
+const ADD_OUT1: ScriptedCall = {
+  name: "ui_add_node",
+  args: {
+    id: "out1",
+    type: "nodetool.output.StringOutput",
+    position: { x: 600, y: 100 },
+    properties: { name: "result" }
+  }
+};
+
+describe("permission-gated cases", () => {
+  it("plan mode: ui_add_node is blocked, the graph is unchanged, nothing was asked", async () => {
+    const results: string[] = [];
+    const provider = createScriptedProvider(
+      [{ name: "ui_get_graph", args: {} }, ADD_OUT1],
+      results
+    );
+    const report = await runToolLoopEval({
+      provider,
+      model: "test-model",
+      cases: [catalogueCase("plan-mode-blocks-mutation")]
+    });
+    const r = report.cases[0];
+    expect(r.accepted).toBe(true);
+    expect(r.success).toBe(true);
+    expect(r.checks.every((c) => c.pass)).toBe(true);
+    expect(r.toolCalls["ui_add_node"]).toBe(1);
+    expect(r.permissionRequests).toEqual([]);
+    // The read went through; the write came back as the ladder's block.
+    expect(JSON.parse(results[0])).toMatchObject({ nodes: expect.any(Array) });
+    expect(JSON.parse(results[1])).toMatchObject({
+      error: "blocked_in_plan_mode"
+    });
+  });
+
+  it("default mode + deny: one write request is recorded, denied, and the graph is unchanged", async () => {
+    const results: string[] = [];
+    const provider = createScriptedProvider([ADD_OUT1], results);
+    const report = await runToolLoopEval({
+      provider,
+      model: "test-model",
+      cases: [catalogueCase("denied-mutation-stays-out")]
+    });
+    const r = report.cases[0];
+    expect(r.accepted).toBe(true);
+    expect(r.success).toBe(true);
+    expect(r.checks.every((c) => c.pass)).toBe(true);
+    expect(r.permissionRequests).toEqual([
+      { toolName: "ui_add_node", category: "write", decision: "deny" }
+    ]);
+    expect(JSON.parse(results[0])).toMatchObject({
+      error: "permission_denied"
+    });
+  });
+
+  it("an ungated case runs the bridge as before and records no requests", async () => {
+    const provider = createScriptedProvider(GOOD_SCRIPT);
+    const report = await runToolLoopEval({
+      provider,
+      model: "test-model",
+      cases: [GOOD_CASE]
+    });
+    expect(report.cases[0].success).toBe(true);
+    expect(report.cases[0].permissionRequests).toEqual([]);
+  });
+
+  it("gateHeadlessTools lets reads through, allows writes on approval, and keeps the tool contract", async () => {
+    const bridge = createToolLoopBridge({ nodeMetadata: CATALOG });
+    const gated = gateHeadlessTools(bridge.tools, {
+      mode: "default",
+      approve: "allow"
+    });
+    expect(gated.tools.map((t) => t.name)).toEqual(
+      bridge.tools.map((t) => t.name)
+    );
+    const byName = Object.fromEntries(gated.tools.map((t) => [t.name, t]));
+    await byName["ui_get_graph"].execute({});
+    expect(gated.requests()).toEqual([]);
+    const added = (await byName["ui_add_node"].execute(ADD_OUT1.args)) as {
+      ok?: boolean;
+    };
+    expect(added.ok).toBe(true);
+    expect(bridge.finalState().nodes).toHaveLength(1);
+    expect(gated.requests()).toEqual([
+      { toolName: "ui_add_node", category: "write", decision: "allow" }
+    ]);
   });
 });
 

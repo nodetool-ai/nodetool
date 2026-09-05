@@ -31,7 +31,7 @@ def _set_active(obj):
 
 
 def _decimate(meshes, target_faces):
-    """Collapse every mesh toward the face target. Skips when already under."""
+    """Collapse every mesh toward its face target. Skips when already under."""
     for obj in meshes:
         faces = len(obj.data.polygons)
         if faces == 0:
@@ -48,6 +48,12 @@ def _decimate(meshes, target_faces):
             raise RenderFailed(
                 "decimate failed on %r: %s" % (obj.name, exc)
             )
+
+
+def _decimate_lod(meshes):
+    """Halve each mesh so the aggregate LOD is half the prepared scene."""
+    for obj in meshes:
+        _decimate([obj], max(1, len(obj.data.polygons) // 2))
 
 
 def _smart_project(obj):
@@ -330,7 +336,7 @@ def run(job, workdir):
     for index in range(1, lod_count + 1):
         lod = _duplicate(current)
         _hide(current)
-        _decimate(lod, max(1, _face_count(current) // 2))
+        _decimate_lod(lod)
         _set_active(lod[0])
         for obj in lod:
             obj.select_set(True)

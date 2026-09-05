@@ -1,6 +1,11 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { scrollbarStyles, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import {
+  scrollbarStyles,
+  MOTION,
+  BORDER_RADIUS,
+  FONT_SIZE_SANS
+} from "../../ui_primitives";
 import { SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 
 export const createStyles = (theme: Theme) =>
@@ -26,8 +31,8 @@ export const createStyles = (theme: Theme) =>
       alignItems: "baseline",
       justifyContent: "space-between",
       gap: theme.spacing(1),
-      padding: "0.4em 0.75em 0.3em",
-      marginTop: "1em",
+      padding: `${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.md)}`,
+      marginTop: theme.spacing(SPACING.lg),
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[400],
       textTransform: "uppercase",
@@ -44,15 +49,12 @@ export const createStyles = (theme: Theme) =>
 
     ".thread-item": {
       position: "relative",
-      padding: "0.35em 0.6em",
       margin: theme.spacing(0.5, 0),
       fontSize: theme.fontSizeSmall,
       width: "100%",
-      cursor: "pointer",
       transition: `${MOTION.background}, opacity ${MOTION.normal}, transform ${MOTION.normal}, max-height ${MOTION.normal}`,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
-      outline: "none",
       backgroundColor: "transparent",
 
       "&:hover": {
@@ -61,8 +63,9 @@ export const createStyles = (theme: Theme) =>
         ".thread-time": { opacity: 0 }
       },
 
-      "&:focus-visible": {
-        backgroundColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`
+      // A keyboard user reaching the delete button must be able to see it.
+      "&:focus-within": {
+        ".delete-button": { opacity: 1 }
       },
 
       "&.selected": {
@@ -73,14 +76,34 @@ export const createStyles = (theme: Theme) =>
         opacity: 0,
         transform: "translateX(-100%)",
         maxHeight: 0,
-        paddingTop: 0,
-        paddingBottom: 0,
         marginTop: 0,
-        marginBottom: 0
-      },
-      p: {
-        fontWeight: 400,
-        margin: 0
+        marginBottom: 0,
+        ".thread-item-select": {
+          paddingTop: 0,
+          paddingBottom: 0
+        }
+      }
+    },
+
+    // The whole row is one button, so it carries the row's padding and the
+    // focus ring. Reset the UA button styling to keep the row's look.
+    ".thread-item-select": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: theme.spacing(SPACING.xs),
+      width: "100%",
+      padding: `${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.md)}`,
+      border: "none",
+      background: "transparent",
+      font: "inherit",
+      color: "inherit",
+      textAlign: "left",
+      cursor: "pointer",
+
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: -2
       }
     },
 
@@ -113,7 +136,7 @@ export const createStyles = (theme: Theme) =>
     // Position the span wrapper absolutely so it doesn't affect li height.
     "span:has(> .delete-button)": {
       position: "absolute",
-      right: "0.35em",
+      right: getSpacingPx(SPACING.xs),
       top: "50%",
       transform: "translateY(-50%)",
       zIndex: Z_INDEX.raised
@@ -132,7 +155,7 @@ export const createStyles = (theme: Theme) =>
         transform: "scale(1.05)"
       },
 
-      svg: { fontSize: "1.2em" }
+      svg: { fontSize: FONT_SIZE_SANS.body }
     },
 
     // Without hover the delete button never appears, yet it still sits on top

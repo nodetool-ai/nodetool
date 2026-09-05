@@ -86,12 +86,14 @@ describe("a JS script's capability calls", () => {
     expect(await Workflow.find(USER, "wf-plan")).not.toBeNull();
   });
 
-  it("run in auto when no host gated the context", async () => {
+  // Every host sets a gate; a context that reaches the dispatcher without one
+  // is a bug, and the answer is to deny past read rather than run unattended.
+  it("are denied when no host gated the context, and the workflow survives", async () => {
     await saveWorkflow("wf-headless");
 
-    const answer = await deleteThrough(contextWith({}), "wf-headless");
-
-    expect(answer).toMatchObject({ deleted: true });
-    expect(await Workflow.find(USER, "wf-headless")).toBeNull();
+    await expect(
+      deleteThrough(contextWith({}), "wf-headless")
+    ).rejects.toThrow(/declined/);
+    expect(await Workflow.find(USER, "wf-headless")).not.toBeNull();
   });
 });

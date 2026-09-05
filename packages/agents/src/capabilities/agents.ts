@@ -189,15 +189,28 @@ const createPlan: CapabilityExport = {
       provider: runtime.provider,
       model: runtime.model,
       tools: runtime.parentTools().filter((t) => t.name !== createPlanSpec.name),
+      // The run's budget: planning turns spend the same cap as the steps.
+      budget: runtime.budget,
       signal: run.context.signal
     });
 
     const generator = planner.planMultiTask(objective, run.context);
+    // The planner says why it stopped only through its final failed
+    // `planning_update`, so keep that for the model rather than guessing.
+    let failure: string | null = null;
     let next = await generator.next();
     while (!next.done) {
+      const message = next.value;
+      if (
+        message.type === "planning_update" &&
+        message.status === "failed" &&
+        isNonEmptyString(message.content)
+      ) {
+        failure = message.content;
+      }
       // The plan is the deliverable, so it goes to the user as it is built
       // rather than being summarized back by the model afterwards.
-      await runtime.forwardMessage(next.value);
+      await runtime.forwardMessage(message);
       next = await generator.next();
     }
     const plan = next.value;
@@ -206,6 +219,7 @@ const createPlan: CapabilityExport = {
       return {
         error: "plan_failed",
         message:
+          failure ??
           "The planner did not commit a plan. The objective may be too vague to decompose — restate it with the concrete outcome and try again."
       };
     }
@@ -363,6 +377,18 @@ const executePlan: CapabilityExport = {
 
     const failed = new Set(executor.getFailedTaskIds());
     const results: Record<string, unknown> = {};
+    // Every completed step's own result, keyed by step id. A task's result is
+    // its last step's, so what the siblings produced would otherwise reach the
+    // model only through `read_shared`. A failed step's `{ error }` payload is
+    // reported through its task, not here.
+    const steps: Record<string, unknown> = {};
+    for (const task of plan.tasks) {
+      for (const step of task.steps) {
+        if (!step.completed) continue;
+        const value = run.context.memory.getValue(memoryKeys.step(step.id));
+        if (value !== undefined) steps[step.id] = value;
+      }
+    }
     const tasks: ExecutedTask[] = plan.tasks.map((task) => {
       if (failed.has(task.id)) {
         return {
@@ -390,15 +416,30 @@ const executePlan: CapabilityExport = {
       return { id: task.id, title: task.title, status: "completed" };
     });
 
-    return {
+    const completedCount = tasks.filter((t) => t.status === "completed").length;
+    const failedCount = tasks.filter((t) => t.status === "failed").length;
+    const report = {
       title: plan.title,
       executed: true,
       task_count: tasks.length,
-      completed_count: tasks.filter((t) => t.status === "completed").length,
-      failed_count: tasks.filter((t) => t.status === "failed").length,
+      completed_count: completedCount,
+      failed_count: failedCount,
       tasks,
-      results
+      results,
+      steps
     };
+    // Nothing succeeded: an error the model cannot read as a deliverable,
+    // rather than a success-shaped object with empty results.
+    if (completedCount === 0 && failedCount > 0) {
+      return {
+        error: "plan_failed",
+        message: `Every task of "${plan.title}" failed: ${tasks
+          .map((t) => `${t.id}: ${t.error ?? "unknown error"}`)
+          .join("; ")}`,
+        ...report
+      };
+    }
+    return report;
   }
 };
 

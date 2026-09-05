@@ -22,7 +22,10 @@ export interface ThreadItemProps {
   threadId: string;
   thread: ThreadInfo;
   isSelected: boolean;
+  /** True while the row plays its removal animation. */
+  isDeleting: boolean;
   onSelect: (id: string) => void;
-  onDelete: (id: string) => void;
+  /** Asks the list for confirmation; the list owns the single dialog. */
+  onRequestDelete: (id: string) => void;
   previewText: string;
 }

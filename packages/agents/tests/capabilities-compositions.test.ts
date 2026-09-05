@@ -19,11 +19,11 @@ import {
 } from "../src/capabilities/compositions.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/index.js";
 import {
+  capabilityCategoryFor,
   capabilityModuleIssues,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 
 const USER = "user-compositions";
 
@@ -140,7 +140,7 @@ describe("compositions capability module", () => {
     for (const entry of COMPOSITION_CAPABILITIES) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
-        permissionCategoryFor(entry.spec.name)
+        capabilityCategoryFor(entry.spec.name)
       ]);
     }
   });

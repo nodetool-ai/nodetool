@@ -7,7 +7,12 @@
  * exercised end-to-end rather than unit-tested.
  */
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
-import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
+import {
+  FileStorageAdapter,
+  PERMISSION_GATE_CONTEXT_KEY,
+  ProcessingContext,
+  headlessGate
+} from "@nodetool-ai/runtime";
 import { buildFullRegistry } from "../node-registry.js";
 
 interface NodeRunResult {
@@ -77,6 +82,7 @@ export async function runSingleNode(
     secretResolver: options.secretResolver ?? (() => Promise.resolve(null)),
     storage: new FileStorageAdapter(getDefaultAssetsPath())
   });
+  context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("node run"));
 
   const startedAt = Date.now();
   const chunks: Array<Record<string, unknown>> = [];

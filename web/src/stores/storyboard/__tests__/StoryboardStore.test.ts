@@ -144,6 +144,37 @@ describe("moveShot", () => {
   });
 });
 
+describe("addShot", () => {
+  it("appends a blank planned shot at the end and selects it", () => {
+    seed();
+    const id = useStoryboardStore.getState().addShot(BOARD);
+
+    const board = useStoryboardStore.getState().boards[BOARD];
+    expect(id).not.toBeNull();
+    expect(board?.shots.map((s) => s.id)).toEqual([SHOT, id]);
+    expect(board?.shots[1]).toMatchObject({
+      index: 1,
+      action: "",
+      status: "planned"
+    });
+    expect(board?.activeShotId).toBe(id);
+  });
+
+  it("returns null for a board the store does not carry", () => {
+    expect(useStoryboardStore.getState().addShot("no-such-board")).toBeNull();
+  });
+
+  it("is one undo step", () => {
+    seed();
+    const store = useStoryboardStore.getState();
+    store.addShot(BOARD);
+    store.undo(BOARD);
+    expect(
+      useStoryboardStore.getState().boards[BOARD]?.shots.map((s) => s.id)
+    ).toEqual([SHOT]);
+  });
+});
+
 describe("setShotClip / selectClipVersion", () => {
   it("accumulates takes and switches between them", () => {
     seed();
@@ -263,7 +294,9 @@ describe("removeBoard cleanup", () => {
     expect(useStoryboardStore.getState().serverRevisions[BOARD]).toBe("rev-1");
 
     store.removeBoard(BOARD);
-    expect(useStoryboardStore.getState().serverRevisions[BOARD]).toBeUndefined();
+    expect(
+      useStoryboardStore.getState().serverRevisions[BOARD]
+    ).toBeUndefined();
   });
 });
 
@@ -280,7 +313,9 @@ describe("undo selection safety", () => {
       status: "planned"
     });
     store.selectShot(BOARD, "s0");
-    expect(useStoryboardStore.getState().boards[BOARD]?.activeShotId).toBe("s0");
+    expect(useStoryboardStore.getState().boards[BOARD]?.activeShotId).toBe(
+      "s0"
+    );
 
     // Undo the creation of the selected shot: the selection must not dangle.
     store.undo(BOARD);

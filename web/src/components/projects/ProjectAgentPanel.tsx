@@ -290,7 +290,6 @@ const ProjectAgentPanel = ({
           currentTaskUpdate={runtime.taskUpdate}
           currentLogUpdate={runtime.logUpdate}
           runningToolCallId={runtime.runningToolCallId}
-          runningToolMessage={runtime.toolMessage}
           hideModePicker
           composerPlaceholder="Ask for a change to this project…"
           noMessagesPlaceholder={

@@ -4,7 +4,7 @@ How `main` reaches https://api.nodetool.ai, what the rolling deploy does to each
 machine, and what to do when it stops half way. Self-hosting somebody else's
 NodeTool is a different job — see [Self-Hosted Deployment](self-hosted-deployment.md).
 
-The app is `nodetool` on Fly.io, configured by [`fly.toml`](../fly.toml) at the
+The app is `nodetool` on Fly.io, configured by [`fly.toml`](https://github.com/nodetool-ai/nodetool/blob/main/fly.toml) at the
 repo root. Its machines run in `fra`, next to the Supabase database, and the
 deploy replaces them one at a time so the others keep serving. That needs at
 least two machines (`fly scale count 2`); with one, the drain is an outage
@@ -14,7 +14,7 @@ window rather than a handover.
 
 A push to `main` starts two workflows independently: `docker.yml` builds and
 pushes the GHCR image, and `user-journeys.yml` runs the `reliability-ring1`
-suite. [`fly-deploy.yml`](../.github/workflows/fly-deploy.yml) triggers on the
+suite. [`fly-deploy.yml`](https://github.com/nodetool-ai/nodetool/blob/main/.github/workflows/fly-deploy.yml) triggers on the
 *completion* of either, and its `gate` job polls the other for the same commit.
 Whichever finishes second is the run that reaches the rollout; both must be
 green.
@@ -31,7 +31,7 @@ conclusion next to a later `success` on the same commit is not a failure.
 
 ## What the rollout does
 
-[`scripts/fly-rolling-deploy.sh`](../scripts/fly-rolling-deploy.sh) takes the
+[`scripts/fly-rolling-deploy.sh`](https://github.com/nodetool-ai/nodetool/blob/main/scripts/fly-rolling-deploy.sh) takes the
 image ref and does the whole release. In order:
 
 1. **Migrate.** `flyctl machine run --rm --restart no node /app/backend/db-migrate.mjs`

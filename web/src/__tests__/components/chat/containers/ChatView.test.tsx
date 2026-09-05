@@ -1,9 +1,19 @@
 import React from "react";
 import "@testing-library/jest-dom";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  waitFor
+} from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import ChatView from "../../../../components/chat/containers/ChatView";
+import { KeyboardProvider } from "../../../../components/KeyboardProvider";
+import useGlobalChatStore from "../../../../stores/GlobalChatStore";
+import { DEFAULT_THREAD_RUNTIME } from "../../../../core/chat/threadRuntime";
 import mockTheme from "../../../../__mocks__/themeMock";
 import {
   Message,
@@ -114,7 +124,37 @@ jest.mock("../../../../components/chat/containers/ChatInputSection", () => ({
 }));
 
 const renderWithProviders = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
+  return render(
+    <ThemeProvider theme={mockTheme}>
+      <KeyboardProvider>{component}</KeyboardProvider>
+    </ThemeProvider>
+  );
+};
+
+/**
+ * `railsFit` reads `breakpoints.up("md")` (a min-width query) and `isMobile`
+ * reads `breakpoints.down("sm")` (a max-width one), so one mocked hook has to
+ * answer both.
+ */
+const setViewport = (viewport: "desktop" | "narrow") => {
+  (useMediaQuery as jest.MockedFunction<typeof useMediaQuery>).mockImplementation(
+    (query) =>
+      String(query).includes("min-width")
+        ? viewport === "desktop"
+        : viewport === "narrow"
+  );
+};
+
+const seedThreadError = (threadId: string, error: string) => {
+  act(() => {
+    useGlobalChatStore.setState({
+      currentThreadId: threadId,
+      error: null,
+      threadRuntime: {
+        [threadId]: { ...DEFAULT_THREAD_RUNTIME, error }
+      }
+    });
+  });
 };
 
 describe("ChatView", () => {
@@ -137,13 +177,20 @@ describe("ChatView", () => {
     messages: [] as Message[],
     sendMessage: mockSendMessage,
     progressMessage: null,
-    model: mockModel,
-    showToolbar: true
+    model: mockModel
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockedUseMediaQuery.mockReturnValue(false);
+    act(() => {
+      useGlobalChatStore.setState({
+        currentThreadId: null,
+        error: null,
+        threadRuntime: {},
+        todosByThread: {}
+      });
+    });
   });
 
   describe("Initial Rendering", () => {
@@ -502,7 +549,6 @@ describe("ChatView", () => {
           {...baseProps}
           messages={messages}
           runningToolCallId="tool-call-123"
-          runningToolMessage="Running tool..."
         />
       );
 
@@ -511,18 +557,235 @@ describe("ChatView", () => {
   });
 
   describe("Toolbar and Controls", () => {
-    it("passes showToolbar prop to ChatInputSection", () => {
-      renderWithProviders(<ChatView {...baseProps} showToolbar={false} />);
-
-      expect(screen.getByTestId("chat-input-section")).toBeInTheDocument();
-    });
-
     it("passes model change handler to ChatInputSection", () => {
       renderWithProviders(
         <ChatView {...baseProps} onModelChange={jest.fn()} />
       );
 
       expect(screen.getByTestId("chat-input-section")).toBeInTheDocument();
+    });
+  });
+
+  describe("Error Banner", () => {
+    const conversation: Message[] = [
+      {
+        id: "1",
+        type: "message",
+        role: "user",
+        content: [{ type: "text", text: "First ask" }]
+      },
+      {
+        id: "2",
+        type: "message",
+        role: "assistant",
+        content: [{ type: "text", text: "Partial reply" }]
+      }
+    ];
+
+    it("shows the rendered thread's runtime error", () => {
+      seedThreadError("thread-1", "Provider refused the request");
+
+      renderWithProviders(
+        <ChatView {...baseProps} threadId="thread-1" messages={conversation} />
+      );
+
+      expect(
+        screen.getByText("Provider refused the request")
+      ).toBeInTheDocument();
+    });
+
+    it("renders no banner when the thread has no error", () => {
+      renderWithProviders(
+        <ChatView {...baseProps} threadId="thread-1" messages={conversation} />
+      );
+
+      expect(
+        document.querySelector(".chat-error-banner")
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Retry" })
+      ).not.toBeInTheDocument();
+    });
+
+    it("clears the top-level and thread errors on dismiss", async () => {
+      seedThreadError("thread-1", "Provider refused the request");
+      act(() => {
+        useGlobalChatStore.setState({ error: "Provider refused the request" });
+      });
+
+      renderWithProviders(
+        <ChatView {...baseProps} threadId="thread-1" messages={conversation} />
+      );
+
+      await userEvent.click(screen.getByRole("button", { name: /close/i }));
+
+      const state = useGlobalChatStore.getState();
+      expect(state.error).toBeNull();
+      expect(state.threadRuntime["thread-1"].error).toBeNull();
+      await waitFor(() =>
+        expect(
+          screen.queryByText("Provider refused the request")
+        ).not.toBeInTheDocument()
+      );
+    });
+
+    it("retries with the last user message's content", async () => {
+      seedThreadError("thread-1", "Provider refused the request");
+
+      renderWithProviders(
+        <ChatView {...baseProps} threadId="thread-1" messages={conversation} />
+      );
+
+      await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+      expect(mockSendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: "user",
+          content: [{ type: "text", text: "First ask" }]
+        })
+      );
+    });
+
+    it("hides Retry while a reply is in flight", () => {
+      seedThreadError("thread-1", "Provider refused the request");
+
+      renderWithProviders(
+        <ChatView
+          {...baseProps}
+          status="streaming"
+          threadId="thread-1"
+          messages={conversation}
+        />
+      );
+
+      expect(
+        screen.getByText("Provider refused the request")
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Retry" })
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Keyboard Shortcuts", () => {
+    it("starts a new chat on Control+Shift+O", () => {
+      const onNewChat = jest.fn();
+      renderWithProviders(
+        <ChatView {...baseProps} onNewChat={onNewChat} showNewChatButton />
+      );
+
+      act(() => {
+        fireEvent.keyDown(window, {
+          key: "O",
+          ctrlKey: true,
+          shiftKey: true
+        });
+      });
+
+      expect(onNewChat).toHaveBeenCalledTimes(1);
+    });
+
+    it("ignores the shortcut in a background workspace tab", () => {
+      const onNewChat = jest.fn();
+      render(
+        <ThemeProvider theme={mockTheme}>
+          <KeyboardProvider>
+            <div inert>
+              <ChatView
+                {...baseProps}
+                onNewChat={onNewChat}
+                showNewChatButton
+              />
+            </div>
+          </KeyboardProvider>
+        </ThemeProvider>
+      );
+
+      act(() => {
+        fireEvent.keyDown(window, {
+          key: "O",
+          ctrlKey: true,
+          shiftKey: true
+        });
+      });
+
+      expect(onNewChat).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Mobile Rails", () => {
+    const todoThread = "thread-todos";
+
+    const seedTodos = () => {
+      act(() => {
+        useGlobalChatStore.setState({
+          currentThreadId: todoThread,
+          todosByThread: {
+            [todoThread]: [
+              { content: "Render the frames", status: "in_progress" },
+              { content: "Cut the edit", status: "pending" }
+            ]
+          }
+        });
+      });
+    };
+
+    it("offers the rails as tabs and swaps in the todo rail", async () => {
+      setViewport("narrow");
+      seedTodos();
+
+      renderWithProviders(
+        <ChatView
+          {...baseProps}
+          threadId={todoThread}
+          messages={[
+            {
+              id: "1",
+              type: "message",
+              role: "user",
+              content: [{ type: "text", text: "Go" }]
+            }
+          ]}
+        />
+      );
+
+      expect(screen.getByRole("button", { name: "Chat" })).toBeInTheDocument();
+      expect(screen.queryByText("Render the frames")).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: "Tasks" }));
+
+      expect(screen.getByText("Render the frames")).toBeInTheDocument();
+      expect(screen.getByText("Cut the edit")).toBeInTheDocument();
+      expect(screen.queryByTestId("chat-thread-view")).not.toBeInTheDocument();
+      // The composer stays put whichever rail is showing.
+      expect(screen.getByTestId("chat-input-section")).toBeInTheDocument();
+    });
+
+    it("leaves the desktop layout without the tabs", () => {
+      setViewport("desktop");
+      seedTodos();
+
+      renderWithProviders(
+        <ChatView
+          {...baseProps}
+          threadId={todoThread}
+          messages={[
+            {
+              id: "1",
+              type: "message",
+              role: "user",
+              content: [{ type: "text", text: "Go" }]
+            }
+          ]}
+        />
+      );
+
+      expect(
+        screen.queryByRole("button", { name: "Tasks" })
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("chat-thread-view")).toBeInTheDocument();
+      // The rail is still there, on the right, as it always was.
+      expect(screen.getByText("Render the frames")).toBeInTheDocument();
     });
   });
 });

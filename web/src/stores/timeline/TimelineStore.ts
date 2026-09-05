@@ -8,7 +8,8 @@
  *   - Holds an in-memory copy of the TimelineSequence document
  *     (tracks + clips + markers).
  *   - Exposes pure-reducer actions: move, trim, split, duplicate, delete,
- *     addTrack, removeTrack, reorderTracks, setTrackHeight.
+ *     addTrack, insertTrack, duplicateTrack, removeTrack, reorderTracks,
+ *     setTrackHeight.
  *   - Undo granularity: the temporal `equality` option dedupes no-op sets so
  *     guard-returns never create history entries, and drag handlers (e.g. in
  *     Clip.tsx) call the temporal middleware's `pause()` / `resume()` from the outside so each
@@ -56,6 +57,7 @@ import type { Asset } from "../ApiTypes";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
 import { useLastModelStore, modelKindForBinding } from "../lastModelStore";
 import { trpcClient } from "../../trpc/client";
+import { cloneClipsToTrack } from "./clipboardOps";
 import {
   migrateTranscriptToClips,
   reflowGenerated,
@@ -174,6 +176,21 @@ export interface TimelineStoreState {
   // ── Track mutations ──────────────────────────────────────────────────────
 
   addTrack: (type: TimelineTrack["type"], name?: string) => void;
+  /**
+   * Insert a new track at `atIndex` (clamped to 0..tracks.length) and
+   * renumber `index` on every track. Returns the new track id.
+   */
+  insertTrack: (
+    type: TimelineTrack["type"],
+    atIndex: number,
+    name?: string
+  ) => string;
+  /**
+   * Copy a track (fresh id, "<name> copy", same settings, effects re-id'd)
+   * right after the source, with every clip on it copied under fresh ids.
+   * Returns the new track id, or null when `trackId` is unknown.
+   */
+  duplicateTrack: (trackId: string) => string | null;
   removeTrack: (trackId: string) => void;
   /** Reorder tracks by supplying the new ordered array of track IDs. */
   reorderTracks: (orderedIds: string[]) => void;
@@ -579,6 +596,20 @@ function partializedEqual(
  * avoid a needless allocation + subscriber re-render. Unchanged elements keep
  * their object identity (only the matched element is re-created).
  */
+/**
+ * Insert `track` at `atIndex` (clamped) and renumber `index` on every track so
+ * it always matches array position, as `reorderTracks` does.
+ */
+function insertTrackAt(
+  tracks: readonly TimelineTrack[],
+  track: TimelineTrack,
+  atIndex: number
+): TimelineTrack[] {
+  const at = Math.max(0, Math.min(atIndex, tracks.length));
+  const next = [...tracks.slice(0, at), track, ...tracks.slice(at)];
+  return next.map((t, index) => (t.index === index ? t : { ...t, index }));
+}
+
 function patchById<T extends { id: string }>(
   items: T[],
   id: string,
@@ -996,15 +1027,47 @@ export const createTimelineStore = (
 
         // ── Tracks ──────────────────────────────────────────────────────────
 
-        addTrack: (type, name) =>
-          set((state) => {
-            const track = makeTrack({
-              type,
-              name: name ?? `${type} ${state.tracks.length + 1}`,
-              index: state.tracks.length
-            });
-            return { tracks: [...state.tracks, track] };
-          }),
+        addTrack: (type, name) => {
+          get().insertTrack(type, get().tracks.length, name);
+        },
+
+        insertTrack: (type, atIndex, name) => {
+          const track = makeTrack({
+            type,
+            name: name ?? `${type} ${get().tracks.length + 1}`
+          });
+          set((state) => ({
+            tracks: insertTrackAt(state.tracks, track, atIndex)
+          }));
+          return track.id;
+        },
+
+        duplicateTrack: (trackId) => {
+          const state = get();
+          const sourceIndex = state.tracks.findIndex((t) => t.id === trackId);
+          if (sourceIndex === -1) {
+            return null;
+          }
+          const source = state.tracks[sourceIndex];
+          const copy = makeTrack({
+            ...structuredClone(source),
+            id: createTimeOrderedUuid(),
+            name: `${source.name} copy`,
+            effects: source.effects?.map((e) => ({
+              ...structuredClone(e),
+              id: createTimeOrderedUuid()
+            }))
+          });
+          const copiedClips = cloneClipsToTrack(
+            state.clips.filter((c) => c.trackId === trackId),
+            copy.id
+          );
+          set((s) => ({
+            tracks: insertTrackAt(s.tracks, copy, sourceIndex + 1),
+            clips: [...s.clips, ...copiedClips]
+          }));
+          return copy.id;
+        },
 
         getOrCreateAudioTrack: (range) => {
           const audioTracks = get().tracks.filter((t) => t.type === "audio");

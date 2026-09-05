@@ -14,11 +14,11 @@ import { describe, expect, it } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { GOOGLE_CAPABILITIES } from "../src/capabilities/google.js";
 import {
+  capabilityCategoryFor,
   capabilityModuleDrift,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import { getGoogleWorkspaceTools } from "../src/tools/google-workspace-tools.js";
 
 /** A context with no Google credential — `getSecret` finds nothing. */
@@ -62,7 +62,7 @@ describe("the google capability module", () => {
     for (const entry of GOOGLE_CAPABILITIES) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
-        permissionCategoryFor(entry.spec.name)
+        capabilityCategoryFor(entry.spec.name)
       ]);
     }
   });

@@ -6,6 +6,8 @@
  *   - Type glyph + name + index chip (V1, A1, …) on the top row
  *   - Visibility / lock / mute / solo / fx / delete row beneath
  *   - Height resize handle at the bottom edge
+ *   - Right-click (or touch hold) context menu: rename, duplicate, insert a
+ *     same-type track above/below, remove
  */
 
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
@@ -21,6 +23,10 @@ import VolumeUpOutlinedIcon from "@mui/icons-material/VolumeUpOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import VerticalAlignTopIcon from "@mui/icons-material/VerticalAlignTop";
+import VerticalAlignBottomIcon from "@mui/icons-material/VerticalAlignBottom";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import {
@@ -36,7 +42,21 @@ import {
   computeReorderedTrackIds,
   type TrackDropPosition
 } from "./trackReorder";
-import { Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
+import {
+  ContextMenu,
+  MenuItemPrimitive,
+  Tooltip,
+  MOTION,
+  BORDER_RADIUS,
+  FONT_SIZE_SANS,
+  FONT_SIZE_MONO,
+  FONT_WEIGHT,
+  SPACING,
+  getSpacingPx,
+  Z_INDEX
+} from "../../ui_primitives";
+import { useLongPress } from "../../../hooks/timeline/useLongPress";
+import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import { DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX } from "./trackHeight";
 import {
   trackTypeMeta,
@@ -291,6 +311,8 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
   const setTrackName = useTimelineStore((s) => s.setTrackName);
   const removeTrack = useTimelineStore((s) => s.removeTrack);
   const reorderTracks = useTimelineStore((s) => s.reorderTracks);
+  const insertTrack = useTimelineStore((s) => s.insertTrack);
+  const duplicateTrack = useTimelineStore((s) => s.duplicateTrack);
 
   const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
   const meta = trackTypeMeta(track.type);
@@ -300,12 +322,21 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
   const [editingName, setEditingName] = useState(false);
   const [localName, setLocalName] = useState(track.name);
   const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleNameDoubleClick = useCallback(() => {
+  const startRename = useCallback(() => {
     setEditingName(true);
     setLocalName(track.name);
-    setTimeout(() => inputRef.current?.select(), 0);
+    // The input is read-only until the re-render above lands; the deferred
+    // focus also outruns the closing menu's own focus handling.
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 0);
   }, [track.name]);
 
   const commitName = useCallback(() => {
@@ -380,6 +411,78 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
     isResizingRef.current = false;
     history.end();
   }, [history]);
+
+  // Context menu: right-click anywhere on the header, or a touch hold. The
+  // resize handle and the drag grip stop pointer/contextmenu propagation so a
+  // resize or reorder gesture never opens it.
+
+  const openHeaderMenuAt = useCallback(
+    (x: number, y: number) => {
+      if (editingName) {
+        return;
+      }
+      setContextMenuPos({ x, y });
+    },
+    [editingName]
+  );
+
+  const headerLongPress = useLongPress(
+    useCallback(
+      (point: LongPressPoint) => {
+        openHeaderMenuAt(point.clientX, point.clientY);
+      },
+      [openHeaderMenuAt]
+    )
+  );
+
+  const handleHeaderContextMenu = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (editingName) {
+        return;
+      }
+      e.preventDefault();
+      openHeaderMenuAt(e.clientX, e.clientY);
+    },
+    [editingName, openHeaderMenuAt]
+  );
+
+  const closeContextMenu = useCallback(() => setContextMenuPos(null), []);
+
+  const stopPointerPropagation = useCallback(
+    (e: React.SyntheticEvent) => e.stopPropagation(),
+    []
+  );
+
+  const positionOf = useCallback(
+    () =>
+      timelineStoreApi.getState().tracks.findIndex((t) => t.id === track.id),
+    [timelineStoreApi, track.id]
+  );
+
+  const handleMenuRename = useCallback(() => {
+    closeContextMenu();
+    startRename();
+  }, [closeContextMenu, startRename]);
+
+  const handleMenuDuplicate = useCallback(() => {
+    closeContextMenu();
+    duplicateTrack(track.id);
+  }, [closeContextMenu, duplicateTrack, track.id]);
+
+  const handleMenuInsertAbove = useCallback(() => {
+    closeContextMenu();
+    insertTrack(track.type, positionOf());
+  }, [closeContextMenu, insertTrack, positionOf, track.type]);
+
+  const handleMenuInsertBelow = useCallback(() => {
+    closeContextMenu();
+    insertTrack(track.type, positionOf() + 1);
+  }, [closeContextMenu, insertTrack, positionOf, track.type]);
+
+  const handleMenuRemove = useCallback(() => {
+    closeContextMenu();
+    setConfirmRemoveOpen(true);
+  }, [closeContextMenu]);
 
   const isAudioTrack = track.type === "audio";
   const supportsEffects =
@@ -512,6 +615,11 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
       data-testid={`track-header-${track.id}`}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
+      onContextMenu={handleHeaderContextMenu}
+      onPointerDown={headerLongPress.start}
+      onPointerMove={headerLongPress.move}
+      onPointerUp={headerLongPress.cancel}
+      onPointerCancel={headerLongPress.cancel}
     >
       {dropEdge && (
         <div
@@ -529,6 +637,8 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
               draggable
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
+              onPointerDown={stopPointerPropagation}
+              onContextMenu={stopPointerPropagation}
               aria-label={`Reorder ${track.name}`}
               role="button"
               tabIndex={-1}
@@ -553,10 +663,11 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
             value={editingName ? localName : track.name}
             readOnly={!editingName}
             onChange={(e) => setLocalName(e.target.value)}
-            onDoubleClick={handleNameDoubleClick}
+            onDoubleClick={startRename}
             onBlur={commitName}
             onKeyDown={handleNameKeyDown}
             aria-label={`Track name: ${track.name}`}
+            title={editingName ? undefined : "Double-click to rename"}
           />
           <span
             css={indexChipCss}
@@ -678,11 +789,53 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
         onPointerMove={handleResizePointerMove}
         onPointerUp={handleResizePointerEnd}
         onPointerCancel={handleResizePointerEnd}
+        onContextMenu={stopPointerPropagation}
         aria-label="Resize track height"
         role="separator"
         aria-orientation="horizontal"
       />
     </div>
+    <ContextMenu
+      open={contextMenuPos !== null}
+      position={contextMenuPos}
+      onClose={closeContextMenu}
+      disableRestoreFocus
+      compact
+      data-testid={`track-context-menu-${track.id}`}
+    >
+      <MenuItemPrimitive
+        label="Rename"
+        icon={<DriveFileRenameOutlineIcon fontSize="small" />}
+        onClick={handleMenuRename}
+        compact
+      />
+      <MenuItemPrimitive
+        label="Duplicate track"
+        icon={<ContentCopyIcon fontSize="small" />}
+        onClick={handleMenuDuplicate}
+        compact
+      />
+      <MenuItemPrimitive
+        label={`Insert ${meta.label} track above`}
+        icon={<VerticalAlignTopIcon fontSize="small" />}
+        onClick={handleMenuInsertAbove}
+        compact
+      />
+      <MenuItemPrimitive
+        label={`Insert ${meta.label} track below`}
+        icon={<VerticalAlignBottomIcon fontSize="small" />}
+        onClick={handleMenuInsertBelow}
+        compact
+      />
+      <MenuItemPrimitive
+        label="Remove track"
+        icon={<DeleteOutlineOutlinedIcon fontSize="small" />}
+        onClick={handleMenuRemove}
+        color="error"
+        dividerBefore
+        compact
+      />
+    </ContextMenu>
     <ConfirmDialog
       open={confirmRemoveOpen}
       onClose={() => setConfirmRemoveOpen(false)}

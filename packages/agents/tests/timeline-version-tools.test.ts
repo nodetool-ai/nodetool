@@ -7,7 +7,7 @@ import {
   initTestDb
 } from "@nodetool-ai/models";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+import { capabilityCategoryFor } from "../src/capabilities/registry.js";
 import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 
 const ctx = (userId = "u1") => ({ userId }) as unknown as ProcessingContext;
@@ -75,12 +75,12 @@ describe("timeline version tools", () => {
         "delete_timeline_version"
       ])
     );
-    expect(permissionCategoryFor("list_timelines")).toBe("read");
-    expect(permissionCategoryFor("list_timeline_versions")).toBe("read");
-    expect(permissionCategoryFor("get_timeline_version")).toBe("read");
-    expect(permissionCategoryFor("create_timeline_version")).toBe("write");
-    expect(permissionCategoryFor("restore_timeline_version")).toBe("write");
-    expect(permissionCategoryFor("delete_timeline_version")).toBe("write");
+    expect(capabilityCategoryFor("list_timelines")).toBe("read");
+    expect(capabilityCategoryFor("list_timeline_versions")).toBe("read");
+    expect(capabilityCategoryFor("get_timeline_version")).toBe("read");
+    expect(capabilityCategoryFor("create_timeline_version")).toBe("write");
+    expect(capabilityCategoryFor("restore_timeline_version")).toBe("write");
+    expect(capabilityCategoryFor("delete_timeline_version")).toBe("write");
   });
 
   /**

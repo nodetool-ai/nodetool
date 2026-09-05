@@ -7,6 +7,7 @@ import WelcomePlaceholder from "../chat/containers/WelcomePlaceholder";
 import useGlobalChatStore, {
   useThreadRuntime
 } from "../../stores/GlobalChatStore";
+import useChatDraftStore from "../../stores/ChatDraftStore";
 import type { Message, LanguageModel } from "../../stores/ApiTypes";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import DocumentLoadStatus from "./DocumentLoadStatus";
@@ -168,23 +169,14 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
     [setSelectedModel]
   );
 
+  // A suggestion is a starting point, not a finished turn: "Analyze an image"
+  // used to go out with no image attached. Seed the composer and let the user
+  // add what it needs.
   const handleSuggestionClick = useCallback(
     (suggestion: string) => {
-      sendMessage(
-        {
-          type: "message",
-          name: "",
-          role: "user",
-          provider: selectedModel?.provider,
-          model: selectedModel?.id,
-          content: [{ type: "text", text: suggestion }]
-        },
-        refId
-      ).catch((error) => {
-        console.error("Failed to send suggestion:", error);
-      });
+      useChatDraftStore.getState().setDraft(refId, suggestion);
     },
-    [sendMessage, selectedModel, refId]
+    [refId]
   );
 
   const noMessagesPlaceholder = useMemo(
@@ -222,7 +214,6 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
         total={runtime.progress.total}
         progressMessage={runtime.statusMessage}
         runningToolCallId={runtime.runningToolCallId}
-        runningToolMessage={runtime.toolMessage}
         model={selectedModel}
         onModelChange={handleModelChange}
         onStop={handleStop}

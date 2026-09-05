@@ -11,7 +11,6 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { TaskExecutor } from "../../src/task-executor.js";
 import { StepExecutor } from "../../src/step-executor.js";
 import {
-  AgentMemory,
   ScriptedProvider,
   stepScript,
   codeStepScript,
@@ -21,33 +20,14 @@ import {
 } from "@nodetool-ai/runtime";
 import type { Task } from "../../src/types.js";
 import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
+import { createMockContext } from "../_helpers/mock-context.js";
 
 // ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
 
-function makeContext() {
-  const store = new Map<string, unknown>();
-  return {
-    memory: new AgentMemory(),
-    workspaceDir: null,
-    storeStepResult: async (key: string, value: unknown) => {
-      store.set(key, value);
-      return key;
-    },
-    loadStepResult: async <T = unknown>(
-      key: string,
-      defaultValue?: T
-    ): Promise<T> => {
-      return (store.has(key) ? store.get(key) : defaultValue) as T;
-    },
-    set: (key: string, value: unknown) => {
-      store.set(key, value);
-    },
-    get: (key: string) => store.get(key),
-    _store: store
-  } as any;
-}
+// The shared mock carries `copy`, which TaskExecutor calls once per step.
+const makeContext = () => createMockContext();
 
 async function collectMessages(
   gen: AsyncGenerator<ProcessingMessage>

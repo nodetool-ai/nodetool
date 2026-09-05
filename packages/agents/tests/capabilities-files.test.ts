@@ -23,12 +23,12 @@ import {
   getThreadTodos
 } from "../src/capabilities/files.js";
 import {
+  capabilityCategoryFor,
   capabilityModuleDrift,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import type { CapabilityRun } from "../src/capabilities/types.js";
 import { Tool } from "../src/tools/base-tool.js";
 
@@ -96,7 +96,7 @@ describe("the files capability module", () => {
     for (const entry of FILE_CAPABILITIES) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
-        permissionCategoryFor(entry.spec.name)
+        capabilityCategoryFor(entry.spec.name)
       ]);
     }
   });

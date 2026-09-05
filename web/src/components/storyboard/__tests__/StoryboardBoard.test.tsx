@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Shot } from "@nodetool-ai/protocol";
@@ -21,6 +21,9 @@ jest.mock("../../../utils/modelUnitPricing", () => ({
   getModelUnitPrice: (model: unknown, params: PriceParams) =>
     mockPrice(model, params)
 }));
+const mockSelectShot = jest.fn();
+const mockAddShot = jest.fn();
+const mockReorderShots = jest.fn();
 jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
   useBoard: () => ({
     title: "My film",
@@ -49,6 +52,8 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
       undo: jest.Mock;
       redo: jest.Mock;
       selectShot: jest.Mock;
+      addShot: jest.Mock;
+      reorderShots: jest.Mock;
     }) => T
   ) =>
     selector({
@@ -62,7 +67,9 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
       setVideoModel: jest.fn(),
       undo: jest.fn(),
       redo: jest.fn(),
-      selectShot: jest.fn()
+      selectShot: mockSelectShot,
+      addShot: mockAddShot,
+      reorderShots: mockReorderShots
     }),
   useStoryboardCanUndo: () => false,
   useStoryboardCanRedo: () => false
@@ -111,7 +118,46 @@ const stub = (name: string) => ({
 jest.mock("../../properties/LanguageModelSelect", () => stub("lang-model"));
 jest.mock("../../properties/ImageModelSelect", () => stub("image-model"));
 jest.mock("../../properties/VideoModelSelect", () => stub("video-model"));
-jest.mock("../ShotCard", () => stub("shot-card"));
+// The card's own behaviour has its own suite (ShotCard.test.tsx); this stub
+// keeps the contract the board drives — the shot id hook the keyboard
+// navigation focuses, selection on click, and the drag callbacks.
+jest.mock("../ShotCard", () => ({
+  __esModule: true,
+  default: ({
+    shot,
+    selected,
+    onSelect,
+    draggable,
+    dropTarget,
+    onDragStart,
+    onDragEnter,
+    onDrop
+  }: {
+    shot: Shot;
+    selected?: boolean;
+    onSelect?: (id: string) => void;
+    draggable?: boolean;
+    dropTarget?: boolean;
+    onDragStart?: (id: string) => void;
+    onDragEnter?: (id: string) => void;
+    onDrop?: (id: string) => void;
+  }) => (
+    <div
+      data-testid="shot-card"
+      data-shot-id={shot.id}
+      data-draggable={draggable ? "true" : undefined}
+      data-drop-target={dropTarget ? "true" : undefined}
+      role="button"
+      tabIndex={0}
+      aria-pressed={!!selected}
+      aria-label={shot.id}
+      onClick={() => onSelect?.(shot.id)}
+      onDragStart={() => onDragStart?.(shot.id)}
+      onDragEnter={() => onDragEnter?.(shot.id)}
+      onDrop={() => onDrop?.(shot.id)}
+    />
+  )
+}));
 // The inspector reads the real store, the entity library and the linked
 // script; it has its own suite (ShotInspector.test.tsx).
 jest.mock("../ShotInspector", () => stub("shot-inspector"));
@@ -330,6 +376,125 @@ describe("StoryboardBoard toolbar", () => {
     boardModels = { imageModel: null, videoModel: null };
     mockPrice.mockReset();
     mockPrice.mockReturnValue(null);
+  });
+});
+
+describe("StoryboardBoard add shot", () => {
+  it("appends a shot through the store", async () => {
+    mockShots = [makeShot("s1")];
+    mockAddShot.mockClear();
+    renderBoard(jest.fn());
+    await userEvent.click(screen.getByRole("button", { name: "Add shot" }));
+    expect(mockAddShot).toHaveBeenCalledWith("board-1");
+  });
+
+  it("is hidden on a read-only board", () => {
+    mockShots = [makeShot("s1")];
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StoryboardBoard boardId="board-1" readOnly />
+      </ThemeProvider>
+    );
+    expect(
+      screen.queryByRole("button", { name: "Add shot" })
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("StoryboardBoard keyboard navigation", () => {
+  beforeEach(() => {
+    mockShots = [makeShot("s1"), makeShot("s2"), makeShot("s3")];
+    mockSelectShot.mockClear();
+  });
+  afterEach(() => {
+    activeShot = null;
+  });
+
+  it("moves the selection to the next shot and focuses its card", () => {
+    activeShot = "s1";
+    renderBoard(jest.fn());
+    const grid = screen.getByRole("group", { name: "Shots" });
+    screen.getByRole("button", { name: "s1" }).focus();
+
+    fireEvent.keyDown(grid, { key: "ArrowRight" });
+    expect(mockSelectShot).toHaveBeenCalledWith("board-1", "s2");
+    expect(screen.getByRole("button", { name: "s2" })).toHaveFocus();
+  });
+
+  it("stops at the last shot rather than wrapping", () => {
+    activeShot = "s3";
+    renderBoard(jest.fn());
+    fireEvent.keyDown(screen.getByRole("group", { name: "Shots" }), {
+      key: "ArrowRight"
+    });
+    expect(mockSelectShot).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "s3" })).toHaveFocus();
+  });
+
+  it("jumps to the ends with Home and End", () => {
+    activeShot = "s2";
+    renderBoard(jest.fn());
+    const grid = screen.getByRole("group", { name: "Shots" });
+    fireEvent.keyDown(grid, { key: "End" });
+    expect(mockSelectShot).toHaveBeenLastCalledWith("board-1", "s3");
+    fireEvent.keyDown(grid, { key: "Home" });
+    expect(mockSelectShot).toHaveBeenLastCalledWith("board-1", "s1");
+  });
+
+  it("clears the selection on Escape", () => {
+    activeShot = "s2";
+    renderBoard(jest.fn());
+    fireEvent.keyDown(screen.getByRole("group", { name: "Shots" }), {
+      key: "Escape"
+    });
+    expect(mockSelectShot).toHaveBeenCalledWith("board-1", null);
+  });
+});
+
+describe("StoryboardBoard drag to reorder", () => {
+  beforeEach(() => {
+    mockShots = [makeShot("s1"), makeShot("s2"), makeShot("s3")];
+    mockReorderShots.mockClear();
+  });
+
+  it("drops the dragged shot into the target's slot", () => {
+    renderBoard(jest.fn());
+    const first = screen.getByRole("button", { name: "s1" });
+    const third = screen.getByRole("button", { name: "s3" });
+    expect(first).toHaveAttribute("data-draggable", "true");
+
+    fireEvent.dragStart(first);
+    fireEvent.dragEnter(third);
+    expect(third).toHaveAttribute("data-drop-target", "true");
+    fireEvent.drop(third);
+
+    expect(mockReorderShots).toHaveBeenCalledWith("board-1", [
+      "s2",
+      "s3",
+      "s1"
+    ]);
+    expect(third).not.toHaveAttribute("data-drop-target");
+  });
+
+  it("ignores a drop on the dragged card itself", () => {
+    renderBoard(jest.fn());
+    const first = screen.getByRole("button", { name: "s1" });
+    fireEvent.dragStart(first);
+    fireEvent.dragEnter(first);
+    expect(first).not.toHaveAttribute("data-drop-target");
+    fireEvent.drop(first);
+    expect(mockReorderShots).not.toHaveBeenCalled();
+  });
+
+  it("does not make cards draggable on a read-only board", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StoryboardBoard boardId="board-1" readOnly />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("button", { name: "s1" })).not.toHaveAttribute(
+      "data-draggable"
+    );
   });
 });
 

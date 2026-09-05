@@ -32,3 +32,29 @@ export function findClipById(
 ): TimelineClip | undefined {
   return clipsById(clips).get(clipId);
 }
+
+const byTrackCache = new WeakMap<readonly TimelineClip[], Map<string, string[]>>();
+
+/**
+ * Clip ids grouped by track, in `clips` order. Cached per `clips` array
+ * identity so every TrackLane's selector shares one pass over the array per
+ * store publish instead of filtering the whole list once per lane.
+ */
+export function clipIdsByTrack(
+  clips: readonly TimelineClip[]
+): Map<string, string[]> {
+  let index = byTrackCache.get(clips);
+  if (!index) {
+    index = new Map();
+    for (const c of clips) {
+      const ids = index.get(c.trackId);
+      if (ids) {
+        ids.push(c.id);
+      } else {
+        index.set(c.trackId, [c.id]);
+      }
+    }
+    byTrackCache.set(clips, index);
+  }
+  return index;
+}

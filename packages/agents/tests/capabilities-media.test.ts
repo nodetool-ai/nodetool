@@ -20,6 +20,7 @@ import { toolFromCapability } from "../src/capabilities/adapters.js";
 import { DEFAULT_UNDERSTAND_VIDEO_TOKENS } from "../src/capabilities/media.specs.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
 import {
+  capabilityCategoryFor,
   capabilityModuleDrift,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
@@ -43,7 +44,6 @@ import {
 } from "../src/capabilities/media.js";
 import type { CapabilityExport } from "../src/capabilities/types.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import { Tool } from "../src/tools/base-tool.js";
 
 function makeContext(
@@ -104,7 +104,7 @@ describe("the media capability module", () => {
 
   it("class every export the way the permission map does", () => {
     for (const entry of MEDIA_CAPABILITIES) {
-      expect(entry.spec.category).toBe(permissionCategoryFor(entry.spec.name));
+      expect(entry.spec.category).toBe(capabilityCategoryFor(entry.spec.name));
     }
   });
 });

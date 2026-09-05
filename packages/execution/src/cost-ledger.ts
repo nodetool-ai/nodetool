@@ -66,7 +66,8 @@ const UNIT_BILLED_CAPABILITIES = new Set([
   "text_to_music",
   "automatic_speech_recognition",
   "text_to_3d",
-  "image_to_3d"
+  "image_to_3d",
+  "render_model3d"
 ]);
 
 /** Whether a capability is billed per unit of output (and so belongs here). */

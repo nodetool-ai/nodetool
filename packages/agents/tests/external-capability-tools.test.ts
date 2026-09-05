@@ -7,7 +7,7 @@ import {
 } from "../src/tools/external-capability-tools.js";
 import { searchTools } from "../src/tools/tool-search.js";
 import { getBuiltinTools } from "../src/tools/builtin-tools.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+import { capabilityCategoryFor } from "../src/capabilities/registry.js";
 
 describe("Apify and SerpAPI belt tools", () => {
   it("expose every capability the two modules declare, uniquely named", () => {
@@ -40,10 +40,10 @@ describe("Apify and SerpAPI belt tools", () => {
     // SerpAPI call runs without a prompt.
     for (const name of APIFY_TOOL_NAMES) {
       const external = name === "run_apify_actor" || name === "abort_apify_run";
-      expect(permissionCategoryFor(name)).toBe(external ? "external" : "read");
+      expect(capabilityCategoryFor(name)).toBe(external ? "external" : "read");
     }
     for (const name of SERPAPI_TOOL_NAMES) {
-      expect(permissionCategoryFor(name)).toBe("read");
+      expect(capabilityCategoryFor(name)).toBe("read");
     }
     // `toolFromLazyCapability` reads the schema off the spec synchronously.
     const byName = new Map(getApifyTools().map((t) => [t.name, t]));

@@ -283,15 +283,18 @@ category decide (`decidePermission`), then the session allow-set, then the
 approval round trip. A capability declares its `category` (`read`, `write`,
 `execute`, `external`) in its spec; a `Tool` reaches the same ladder through
 `gateTools`, which builds a one-call `CapabilityRun` over a capability view of
-the tool and classifies it by name with `permissionCategoryFor`.
+the tool and classifies it with `capabilityCategoryFor`, which reads the
+registered spec's category first and the hand-written map only for the few
+Tool classes without a spec.
 
 The gate is per run, not per tool. A host publishes one
 `PermissionGateOptions` on the context under `PERMISSION_GATE_CONTEXT_KEY`, and
 every loop it never constructed reads that object with `gateFromContext` rather
 than building its own: an `AgentNode` reached through `run_node`, a JS script,
-a sub-agent several levels down. A context with no gate on it is a headless
-host, and the answer there is `auto` with every escalation denied, not
-"ungated". Which host sets what is the table in
+a sub-agent several levels down. Every host sets one: the workflow-run hosts
+set `headlessGate` (`auto`, escalations denied) explicitly, so a context that
+reaches `gateFromContext` with no gate is a bug, logged at error level and
+answered by denying every call past read. Which host sets what is the table in
 [packages/agents/AGENTS.md § Where the permission gate is set](../packages/agents/AGENTS.md).
 
 ### The MCP surface is CodeAct too

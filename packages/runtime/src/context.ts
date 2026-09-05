@@ -18,6 +18,7 @@ import type {
   ProviderCost
 } from "@nodetool-ai/protocol";
 import {
+  isShortResourceId,
   packageAssetHttpPath,
   parsePackageAssetUri
 } from "@nodetool-ai/protocol";
@@ -345,7 +346,8 @@ export type ProviderCapability =
   | "automatic_speech_recognition"
   | "generate_embedding"
   | "text_to_3d"
-  | "image_to_3d";
+  | "image_to_3d"
+  | "render_model3d";
 
 type PredictionStatus =
   | "pending"
@@ -397,6 +399,13 @@ export interface GenerationResult<T = ProviderPredictionResult> {
   assets: AssetRef[];
   receipt: GenerationReceipt | null;
   duration_ms: number;
+}
+
+interface GenerationRunOptions {
+  /** A receipt known only after persistence finishes. */
+  receiptAfterPersist?: () => Partial<GenerationReceipt> | null;
+  /** A host-local generation, such as a Blender render, has no provider. */
+  withoutProvider?: true;
 }
 
 /**
@@ -530,6 +539,11 @@ export interface PersistedRecordLike {
 }
 
 export interface ProcessingContextModelInterfaces {
+  /** Read a non-secret setting owned by the current user. */
+  getSetting?: (args: {
+    userId: string;
+    key: string;
+  }) => Promise<string | null>;
   getJob?: (args: {
     userId: string;
     jobId: string;
@@ -1709,6 +1723,17 @@ export class ProcessingContext {
     return isCallable(this.modelInterfaces()?.[name]);
   }
 
+  /** Read a user setting, falling back to this run's environment. */
+  async getSetting(key: string): Promise<string | null> {
+    const fn = this.modelInterfaces()?.getSetting;
+    if (fn) {
+      const value = await fn({ userId: this.userId, key });
+      if (value !== null && value.length > 0) return value;
+    }
+    const value = this.environment[key];
+    return value !== undefined && value.length > 0 ? value : null;
+  }
+
   // -----------------------------------------------------------------------
   // Control event dispatch
   // -----------------------------------------------------------------------
@@ -2863,14 +2888,17 @@ export class ProcessingContext {
           try {
             const listing = await adapter.list(prefix);
             const bareEndsWithThumb = bareId.endsWith("_thumb");
+            // A short resource id is a prefix of the stored id, so the key
+            // continues with more hex before its extension; a full id is
+            // followed by the extension itself.
+            const needle = isShortResourceId(bareId) ? bareId : `${bareId}.`;
             const match = listing.entries.find((entry) => {
               const key = entry.key;
               const lastSegment = key.split("/").pop() ?? "";
               // A hierarchical id (`user-1/image`) lives in the full key, a flat
               // id in the last segment — match against whichever form fits.
               const matches =
-                key.startsWith(`${bareId}.`) ||
-                lastSegment.startsWith(`${bareId}.`);
+                key.startsWith(needle) || lastSegment.startsWith(needle);
               if (!matches) {
                 return false;
               }
@@ -3579,6 +3607,9 @@ export class ProcessingContext {
    */
   async runGeneration(req: GenerationRequest): Promise<GenerationResult> {
     return this.runGenerationWith(req, (provider, signal) => {
+      if (!provider) {
+        throw new Error("Provider generation requires a provider.");
+      }
       const dispatchReq: ProviderPredictionRequest = {
         ...req,
         params: { ...(req.params ?? {}), signal }
@@ -3600,15 +3631,8 @@ export class ProcessingContext {
    */
   async runGenerationWith<T>(
     req: GenerationRequest,
-    call: (provider: BaseProvider, signal: AbortSignal) => Promise<T>,
-    opts?: {
-      /**
-       * A receipt the caller can only state once the output is persisted —
-       * a managed provider's running total, read after the assets landed.
-       * Merged over what the provider recorded during the call.
-       */
-      receiptAfterPersist?: () => Partial<GenerationReceipt> | null;
-    }
+    call: (provider: BaseProvider | null, signal: AbortSignal) => Promise<T>,
+    opts?: GenerationRunOptions
   ): Promise<GenerationResult<T>> {
     const id = req.id ?? randomUUID();
     const startedAt = Date.now();
@@ -3625,7 +3649,9 @@ export class ProcessingContext {
       origin
     });
     try {
-      const provider = await this.getProvider(req.provider);
+      const provider = opts?.withoutProvider
+        ? null
+        : await this.getProvider(req.provider);
       const { value: output, receipt: recorded } =
         await runWithGenerationReceipt(() => call(provider, signal));
       const assets = req.persist

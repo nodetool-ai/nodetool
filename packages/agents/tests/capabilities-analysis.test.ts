@@ -25,10 +25,10 @@ import {
 import { module as analysisModule } from "../src/capabilities/analysis.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/index.js";
 import {
+  capabilityCategoryFor,
   capabilityModuleIssues,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
-import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import { registerMediabunnyServer } from "@mediabunny/server";
 
 registerMediabunnyServer();
@@ -178,7 +178,7 @@ describe("analysis capability module", () => {
     for (const entry of analysisModule.exports) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
-        permissionCategoryFor(entry.spec.name)
+        capabilityCategoryFor(entry.spec.name)
       ]);
       expect(entry.spec.category).toBe("read");
     }

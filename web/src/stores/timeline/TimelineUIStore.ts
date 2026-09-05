@@ -7,6 +7,7 @@
  *   - horizontal scroll position (scrollLeftPx)
  *   - hover state
  *   - fullscreen flag
+ *   - drag/trim gesture feedback (snap guide, geometry readout)
  *
  * Kept separate from TimelineStore so clip-geometry mutations (move, trim)
  * never force the selection panel to re-render and vice versa.
@@ -25,6 +26,21 @@ export interface TimelineRubberBand {
   top: number;
   width: number;
   height: number;
+}
+
+/** Which clip edge a pointer gesture is moving. */
+export type GestureKind = "move" | "trim-start" | "trim-end";
+
+/**
+ * Live geometry of the clip under a pointer gesture, for the readout pill.
+ * `inPointMs` is the source in-point (0 when the clip has none).
+ */
+export interface GestureReadout {
+  clipId: string;
+  kind: GestureKind;
+  startMs: number;
+  durationMs: number;
+  inPointMs: number;
 }
 
 /** A reference to one transcript word: its clip and the word index within it. */
@@ -96,6 +112,20 @@ export interface TimelineUIState {
   rubberBand: TimelineRubberBand | null;
   /** Set (or clear, with null) the rubber-band rect. */
   setRubberBand: (rect: TimelineRubberBand | null) => void;
+
+  // ── Gesture feedback ─────────────────────────────────────────────────────
+
+  /**
+   * Timeline position (ms) the active drag/trim gesture is snapped to, or
+   * null when no snap is engaged. Drawn as a vertical guide over the lanes.
+   */
+  snapGuideMs: number | null;
+  /** Set (or clear, with null) the snap guide position. */
+  setSnapGuide: (ms: number | null) => void;
+  /** Geometry of the clip under an active drag/trim gesture, or null. */
+  gestureReadout: GestureReadout | null;
+  /** Set (or clear, with null) the gesture readout. */
+  setGestureReadout: (readout: GestureReadout | null) => void;
 
   // ── Transcript word selection ──────────────────────────────────────────────
 
@@ -205,6 +235,14 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   rubberBand: null,
 
   setRubberBand: (rect) => set({ rubberBand: rect }),
+
+  snapGuideMs: null,
+
+  setSnapGuide: (ms) => set({ snapGuideMs: ms }),
+
+  gestureReadout: null,
+
+  setGestureReadout: (readout) => set({ gestureReadout: readout }),
 
   wordSelection: null,
 

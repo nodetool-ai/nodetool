@@ -16,17 +16,48 @@ import { PassThrough } from "node:stream";
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@nodetool-ai/agents", async () => {
+  // The gate contract lives in runtime, which this suite stubs, so the real
+  // module is spread in beside the agents classification map.
+  const gate = await import("../../runtime/src/permission-gate.js");
   const real = await import("../../agents/src/tools/tool-permissions.js");
   const contract = await import(
     "../../agents/src/codeact/execute-code-contract.js"
   );
-  return { ...real, EXECUTE_CODE_TOOL_NAME: contract.EXECUTE_CODE_TOOL_NAME };
+  return {
+    ...real,
+    ...gate,
+    EXECUTE_CODE_TOOL_NAME: contract.EXECUTE_CODE_TOOL_NAME
+  };
 });
 
-const { headlessDenialReason, decidePermission, permissionCategoryFor } =
-  await import("../../agents/src/tools/tool-permissions.js");
+const { headlessDenialReason, decidePermission } = await import(
+  "../../runtime/src/permission-gate.js"
+);
+type PermissionCategory = import(
+  "../../runtime/src/permission-gate.js"
+).PermissionCategory;
+
+/**
+ * The classes of the three names this suite drives. The live lookup is
+ * `capabilityCategoryFor`, which reads the capability registry; this suite
+ * stubs `@nodetool-ai/runtime`, so the registry cannot load here, and what
+ * is under test is the ladder's prompting, not the classification.
+ */
+const FIXTURE_CATEGORIES: Record<string, PermissionCategory> = {
+  get_workflow: "read",
+  update_workflow: "write",
+  delete_workflow: "write"
+};
+
+function permissionCategoryFor(toolName: string): PermissionCategory {
+  const category = FIXTURE_CATEGORIES[toolName];
+  if (category === undefined) {
+    throw new Error(`no fixture category for ${toolName}`);
+  }
+  return category;
+}
 type PermissionGateOptions = import(
-  "../../agents/src/tools/tool-permissions.js"
+  "../../runtime/src/permission-gate.js"
 ).PermissionGateOptions;
 
 const { createCliPermissionGate, parsePermissionMode } = await import(
