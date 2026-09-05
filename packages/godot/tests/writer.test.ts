@@ -142,6 +142,35 @@ describe("writeGodotProject", () => {
     expect(resource.properties.tile_size).toBe("Vector2i(16, 16)");
   });
 
+  it("gives a collision polygon to every tile when the slot says all", () => {
+    const tiles = project.files.find((f) => f.path === "assets/tiles/tiles_ground.tres")!;
+    const source = readTres(tiles.content).blocks.find((b) => b.kind === "sub_resource")!;
+    for (let i = 0; i < 12; i++) {
+      const cell = `${i % 4}:${Math.floor(i / 4)}/0`;
+      expect(source.properties[`${cell}/physics_layer_0/polygon_0/points`], cell).toBe(
+        "PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)"
+      );
+    }
+  });
+
+  it("leaves walkable tiles without collision when the slot lists the solid ones", () => {
+    const input = platformerInput();
+    const ground = input.manifest.slots.find((s) => s.id === "tiles.ground");
+    if (ground?.kind !== "tileset") throw new Error("tiles.ground is a tileset");
+    ground.solid = [4, 5, 6, 7, 8, 9, 10, 11];
+    const topdown = writeGodotProject(input);
+    const tiles = topdown.files.find((f) => f.path === "assets/tiles/tiles_ground.tres")!;
+    const source = readTres(tiles.content).blocks.find((b) => b.kind === "sub_resource")!;
+    const tileKeys = Object.keys(source.properties).filter((k) => /^\d+:\d+\/0$/.test(k));
+    expect(tileKeys).toHaveLength(12);
+    for (let i = 0; i < 12; i++) {
+      const cell = `${i % 4}:${Math.floor(i / 4)}/0`;
+      const polygon = source.properties[`${cell}/physics_layer_0/polygon_0/points`];
+      expect(polygon === undefined, cell).toBe(i < 4);
+    }
+    expect(checkGodotProject(topdown)).toEqual([]);
+  });
+
   it("writes audio import sidecars with the loop flag", () => {
     const music = project.files.find((f) => f.path === "assets/audio/music_level.ogg.import")!;
     expect(music.content).toContain('importer="oggvorbisstr"');

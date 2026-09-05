@@ -24,6 +24,7 @@
       "kind": "tileset",
       "cell": [16, 16],
       "count": 12,
+      "solid": [4, 5, 6, 7, 8, 9, 10, 11],
       "prompt": "dungeon floor and wall tiles: four floor variants, then wall faces, edges, corners"
     },
     { "id": "sfx.hit", "kind": "sfx", "seconds": 0.4, "prompt": "player takes a hit" },

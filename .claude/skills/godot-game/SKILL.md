@@ -83,7 +83,10 @@ Report a contact sheet: every slot, its asset id, and the check result. Stop.
 
 The user plays and reports back. A feel note ("jump is floaty") is a constant
 in a hook script: edit, verify, report. An art note regenerates one slot
-through P2, then re-exports; nothing else is regenerated.
+through P2, then calls `export_godot_project` again with the same `name` and
+the full slot table; the result reports `mode: "refresh"` and the hook edits
+stay in place. Never pass `overwrite: true` here, it resets the hooks to the
+template.
 
 ## When Godot cannot run
 

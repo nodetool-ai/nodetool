@@ -66,6 +66,15 @@ export const EXPORT_GODOT_PROJECT_SCHEMA: JsonSchema = {
         "Run headless Godot over the exported project (import, script check, " +
         "smoke scene) when a Godot binary and a local workspace are available. " +
         "Defaults to true. The result says when it was skipped and why."
+    },
+    overwrite: {
+      type: "boolean",
+      description:
+        "Replace the template's scripts and scenes even when dir already holds " +
+        "a project. Defaults to false: a re-export into an existing project " +
+        "keeps every edited hook script and scene and only replaces the " +
+        "generated resources and asset files, so an art change does not undo " +
+        "gameplay edits."
     }
   },
   required: ["template", "name", "slots"]
@@ -83,7 +92,10 @@ export const exportGodotProjectSpec: CapabilitySpec = {
     "runs the smoke scene. Every slot in the template's manifest must be " +
     "filled and every fill must pass the slot's acceptance check; the error " +
     "names what is missing or wrong. Edit the manifest's hook scripts with " +
-    "write_file / edit_file afterwards, then re-run with verify to check them.",
+    "write_file / edit_file afterwards, then verify_godot_project to check " +
+    "them. Exporting again into the same dir refreshes the assets and keeps " +
+    "the edited scripts and scenes (mode \"refresh\" in the result); pass " +
+    "overwrite to start from the template again.",
   inputSchema: EXPORT_GODOT_PROJECT_SCHEMA,
   category: "write",
   userMessage: (params) =>

@@ -16,8 +16,9 @@ import {
   type SpritesheetFill,
   type TilesetFill
 } from "@nodetool-ai/protocol";
+import { loadMediaRefBytes } from "@nodetool-ai/runtime/media-ref-bytes";
 import { loadSharp, SHARP_UNAVAILABLE_MESSAGE } from "./image-io.js";
-import { decodeImage } from "./lib-image-utils.js";
+import type { ImageRefLike } from "./lib-image-utils.js";
 import { isObjectLike, isString } from "../type-predicates.js";
 
 /** Animations that play once by default. Everything else loops. */
@@ -31,8 +32,14 @@ const EMPTY_IMAGE = {
   metadata: null
 };
 
-type Measured = { buf: Buffer; width: number; height: number; format: string };
+/** A measured image, its bytes always PNG: the Godot writer names them so. */
+type Measured = { buf: Buffer; width: number; height: number };
 
+/**
+ * Read the input through the context-aware loader (inline bytes, `asset://`
+ * through the asset store, a storage key) and hand back PNG bytes, re-encoding
+ * a JPEG or WebP generation so the exported `.png` path holds a PNG.
+ */
 async function measureImage(
   nodeName: string,
   image: unknown,
@@ -42,17 +49,23 @@ async function measureImage(
   if (!sharp) {
     throw new Error(`${nodeName}: ${SHARP_UNAVAILABLE_MESSAGE}`);
   }
-  const buf = await decodeImage(image, context);
-  if (!buf) {
+  const bytes = isObjectLike(image)
+    ? await loadMediaRefBytes(image as ImageRefLike, context)
+    : null;
+  if (!bytes || bytes.length === 0) {
     throw new Error(`${nodeName}: image input is required.`);
   }
-  const meta = await sharp(buf, { failOn: "none" }).metadata();
+  const meta = await sharp(bytes, { failOn: "none" }).metadata();
   const width = meta.width ?? 0;
   const height = meta.height ?? 0;
   if (width <= 0 || height <= 0) {
     throw new Error(`${nodeName}: input image has invalid dimensions.`);
   }
-  return { buf, width, height, format: meta.format ?? "png" };
+  const buf =
+    meta.format === "png"
+      ? Buffer.from(bytes)
+      : await sharp(bytes, { failOn: "none" }).png().toBuffer();
+  return { buf, width, height };
 }
 
 function positiveInt(nodeName: string, name: string, value: unknown): number {
@@ -118,20 +131,18 @@ async function persistStamped(
   context: ProcessingContext | undefined,
   nodeName: string,
   slotId: string,
-  ref: Record<string, unknown>,
-  format: string
+  ref: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
   if (!context?.hasModelInterface?.("createAsset")) return ref;
-  const ext = format === "jpeg" ? "jpg" : format;
   const created = (await context.createAsset({
-    name: `${slotId.replace(/\./g, "_")}.${ext}`,
-    contentType: `image/${format}`,
+    name: `${slotId.replace(/\./g, "_")}.png`,
+    contentType: "image/png",
     content: ref.data as Uint8Array,
     metadata: ref.metadata as Record<string, unknown>
   })) as Record<string, unknown> | null;
   const id = created ? created["id"] : null;
   if (!isString(id) || id === "") throw new Error(`${nodeName}: the asset was created without an id.`);
-  return { ...ref, uri: `asset://${id}.${ext}`, asset_id: id };
+  return { ...ref, uri: `asset://${id}.png`, asset_id: id };
 }
 
 function stampFill(image: unknown, img: Measured, fill: SlotFill) {
@@ -285,8 +296,7 @@ export class SpriteSheetNode extends BaseNode {
         context,
         name,
         parsed.data.slot_id,
-        stampFill(this.image, img, parsed.data),
-        img.format
+        stampFill(this.image, img, parsed.data)
       ),
       fill: parsed.data
     };
@@ -377,8 +387,7 @@ export class TilesetNode extends BaseNode {
         context,
         name,
         parsed.data.slot_id,
-        stampFill(this.image, img, parsed.data),
-        img.format
+        stampFill(this.image, img, parsed.data)
       ),
       fill: parsed.data
     };
@@ -522,8 +531,7 @@ export class SeamlessImageNode extends BaseNode {
         context,
         name,
         parsed.data.slot_id,
-        stampFill(this.image, img, parsed.data),
-        img.format
+        stampFill(this.image, img, parsed.data)
       ),
       fill: parsed.data
     };

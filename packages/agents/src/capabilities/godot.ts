@@ -8,8 +8,10 @@
  * `@nodetool-ai/protocol`. What is decided here is the join: the template's
  * own `project.godot` wins over the writer's (it carries the input map and
  * window settings), a filled audio slot whose extension differs from the
- * placeholder's has the scene references rewritten, and verification runs
- * only where a real directory and a Godot binary exist, saying so otherwise.
+ * placeholder's has the scene references rewritten, a directory that already
+ * holds a project keeps its scripts and scenes and only takes new assets, and
+ * verification runs only where a real directory and a Godot binary exist,
+ * saying so otherwise.
  */
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -171,6 +173,14 @@ async function loadFilledManifest(
     }
     const ext = extensionOf(asset.name);
     const type = asset.content_type.startsWith("audio/") ? "audio" : "image";
+    if (type === "image" && asset.content_type !== "image/png") {
+      return {
+        error:
+          `Asset ${asset_id} for slot ${slot_id} is ${asset.content_type}; the ` +
+          `Godot project names image assets .png. Re-run the image through its ` +
+          `nodetool.game node, which stores a PNG.`
+      };
+    }
     filled.push({
       slot_id,
       asset: {
@@ -195,12 +205,20 @@ async function loadFilledManifest(
 /** `dir/relative`, with the workspace doing the normalizing. */
 const under = (dir: string, path: string): string => `${dir}/${path}`;
 
+type LayoutMode = "create" | "refresh";
+
 /**
  * Copy the template into the workspace, then lay the writer's output over it.
  *
  * Audio placeholders are `.wav`; a filled slot may be `.ogg`. When the
  * extensions differ the placeholder is dropped and every scene that named it
  * is rewritten to the real path, so the reference check below sees one file.
+ *
+ * In `refresh` mode a template file the directory already holds is left as it
+ * is, so the hook scripts and scenes an agent edited after the first export
+ * survive an art change. Audio references inside those kept files are still
+ * rewritten, since the file they name may have moved extension this time.
+ * The writer's resources and the asset copies are replaced in both modes.
  */
 async function layOutProject(
   workspace: Workspace,
@@ -208,10 +226,12 @@ async function layOutProject(
   templateDir: string,
   name: string,
   project: GodotProject,
-  filled: FilledManifest
-): Promise<{ written: string[]; rewritten: string[] }> {
+  filled: FilledManifest,
+  mode: LayoutMode
+): Promise<{ written: string[]; rewritten: string[]; preserved: string[] }> {
   const written: string[] = [];
   const rewritten: string[] = [];
+  const preserved: string[] = [];
 
   const templateFiles = walkTemplate(templateDir);
 
@@ -253,6 +273,18 @@ async function layOutProject(
     if (placeholderFor(rel)) continue;
     const full = join(templateDir, rel);
     const ext = extensionOf(rel);
+    if (mode === "refresh" && (await workspace.exists(under(dir, rel)))) {
+      preserved.push(rel);
+      if (REFERENCING_EXTENSIONS.has(ext)) {
+        const current = await workspace.readText(under(dir, rel));
+        const { text, changed } = rewriteRefs(current ?? "");
+        if (changed) {
+          rewritten.push(rel);
+          await workspace.write(under(dir, rel), text, "text/plain");
+        }
+      }
+      continue;
+    }
     if (rel === "project.godot") {
       const text = readFileSync(full, "utf8").replace(
         /^config\/name=".*"$/m,
@@ -273,7 +305,7 @@ async function layOutProject(
     await workspace.write(under(dir, file.path), file.content, "text/plain");
     written.push(file.path);
   }
-  return { written, rewritten };
+  return { written, rewritten, preserved };
 }
 
 async function copyAssets(
@@ -406,6 +438,7 @@ const exportGodotProject: CapabilityExport = {
       ? params["dir"].replace(/\/+$/, "")
       : `godot/${name.replace(/[^a-z0-9_-]+/gi, "_")}`;
     const verify = params["verify"] !== false;
+    const overwrite = params["overwrite"] === true;
 
     const filled = await loadFilledManifest(run, template.id, slots);
     if (isError(filled)) return filled;
@@ -428,13 +461,18 @@ const exportGodotProject: CapabilityExport = {
       return { error: "The writer produced dangling resources.", problems: resourceProblems };
     }
 
-    const { written, rewritten } = await layOutProject(
+    const mode: LayoutMode =
+      !overwrite && (await workspace.exists(under(dir, "project.godot")))
+        ? "refresh"
+        : "create";
+    const { written, rewritten, preserved } = await layOutProject(
       workspace,
       dir,
       template.dir,
       name,
       project,
-      filled
+      filled,
+      mode
     );
     const copied = await copyAssets(run, workspace, dir, project);
     if (isError(copied)) return copied;
@@ -447,8 +485,10 @@ const exportGodotProject: CapabilityExport = {
     return {
       dir,
       template: template.id,
+      mode,
       hooks: template.manifest.hooks,
       files_written: written.length + copied.length,
+      files_preserved: preserved,
       assets_copied: copied,
       references_rewritten: rewritten,
       dangling_references: dangling,

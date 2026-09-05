@@ -49,6 +49,24 @@ describe("game asset manifest", () => {
     }
     expect(gameAssetManifest.safeParse(m).success).toBe(false);
   });
+
+  it("reads a tileset's solid tiles and defaults to all of them", () => {
+    const tiles = manifest.slots.find((s) => s.id === "tiles.ground");
+    expect(tiles?.kind === "tileset" && tiles.solid).toBe("all");
+    const m = clone(fixture("platformer.manifest.json")) as GameAssetManifest;
+    const ground = m.slots.find((s) => s.id === "tiles.ground");
+    if (ground?.kind === "tileset") ground.solid = [4, 5, 6, 7, 8, 9, 10, 11];
+    const parsed = gameAssetManifest.parse(m);
+    const spec = parsed.slots.find((s) => s.id === "tiles.ground");
+    expect(spec?.kind === "tileset" && spec.solid).toEqual([4, 5, 6, 7, 8, 9, 10, 11]);
+  });
+
+  it("rejects a solid tile index the tileset does not have", () => {
+    const m = clone(fixture("platformer.manifest.json")) as GameAssetManifest;
+    const ground = m.slots.find((s) => s.id === "tiles.ground");
+    if (ground?.kind === "tileset") ground.solid = [0, 12];
+    expect(gameAssetManifest.safeParse(m).success).toBe(false);
+  });
 });
 
 describe("filled manifest", () => {

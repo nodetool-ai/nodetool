@@ -931,9 +931,12 @@ measures the opposite edges, `SoundEffect` trims to the slot's length, and
 `MusicLoop` crossfades the tail into the head. **`export_godot_project`** takes
 the template id and one asset per slot, checks every fill against the
 manifest, copies the template into a workspace directory, writes the
-`SpriteFrames` and `TileSet` resources with atlas regions and collision from
-the fills, copies the asset bytes to the paths the scenes reference, and
-reports any `res://` reference no file answers. **`verify_godot_project`** runs
+`SpriteFrames` and `TileSet` resources with atlas regions from the fills and
+collision on the tiles the slot's `solid` list names, copies the asset bytes
+to the paths the scenes reference, and reports any `res://` reference no file
+answers. Exporting again into a directory that already holds a project
+refreshes the resources and assets and keeps every script and scene as it is,
+so an art change does not undo the hook edits; `overwrite` starts over. **`verify_godot_project`** runs
 headless Godot over a project directory: import, `--check-only` on every
 script, and `test/smoke.gd` for sixty physics frames. Both say when Godot
 could not run (no binary, or a virtual workspace) rather than reporting green.

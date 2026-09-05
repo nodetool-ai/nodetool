@@ -4,7 +4,8 @@ import {
   type MusicFill,
   type SfxFill,
   type SpritesheetFill,
-  type TilesetFill
+  type TilesetFill,
+  type TilesetSlotSpec
 } from "@nodetool-ai/protocol";
 
 import { extResourceId, resourceUid, subResourceId } from "./ids.js";
@@ -115,7 +116,11 @@ function spriteFrames(slot: FilledSlot, fill: SpritesheetFill): {
   };
 }
 
-function tileSet(slot: FilledSlot, fill: TilesetFill): {
+function tileSet(
+  slot: FilledSlot,
+  fill: TilesetFill,
+  spec: TilesetSlotSpec
+): {
   file: GodotFile;
   copy: GodotCopy;
 } {
@@ -126,16 +131,19 @@ function tileSet(slot: FilledSlot, fill: TilesetFill): {
   const textureUid = resourceUid(slot.slot_id, assetId, "sheet");
   const sourceId = subResourceId("TileSetAtlasSource", slot.slot_id, assetId, "atlas");
   const [w, h] = fill.cell;
-  // Every tile is solid: a ground tileset is what a slot of this kind fills,
-  // and a template's TileMapLayer relies on the physics layer for collision.
+  // The slot says which tiles collide. A template's TileMapLayer relies on
+  // the physics layer, so a floor tile given a polygon walls the room off.
   const hw = w / 2;
   const hh = h / 2;
   const polygon = `PackedVector2Array(${-hw}, ${-hh}, ${hw}, ${-hh}, ${hw}, ${hh}, ${-hw}, ${hh})`;
+  const solid = spec.solid === "all" ? null : new Set(spec.solid);
   const tiles: string[] = [];
   for (let i = 0; i < fill.count; i++) {
     const cell = `${i % fill.columns}:${Math.floor(i / fill.columns)}/0`;
     tiles.push(`${cell} = 0`);
-    tiles.push(`${cell}/physics_layer_0/polygon_0/points = ${polygon}`);
+    if (solid === null || solid.has(i)) {
+      tiles.push(`${cell}/physics_layer_0/polygon_0/points = ${polygon}`);
+    }
   }
   const content = [
     resourceHeader("TileSet", 3, resourceUid(slot.slot_id, assetId, "tileset")),
@@ -260,6 +268,7 @@ export function writeGodotProject(input: GodotProjectInput): GodotProject {
   }
   const files: GodotFile[] = [projectGodot(input)];
   const copies: GodotCopy[] = [];
+  const specs = new Map(input.manifest.slots.map((s) => [s.id, s]));
   const slots = [...input.filled.slots].sort((a, b) =>
     a.slot_id < b.slot_id ? -1 : a.slot_id > b.slot_id ? 1 : 0
   );
@@ -273,7 +282,11 @@ export function writeGodotProject(input: GodotProjectInput): GodotProject {
         break;
       }
       case "tileset": {
-        const out = tileSet(slot, fill);
+        const spec = specs.get(slot.slot_id);
+        if (spec?.kind !== "tileset") {
+          throw new Error(`slot ${slot.slot_id} is not a tileset in the manifest`);
+        }
+        const out = tileSet(slot, fill, spec);
         files.push(out.file);
         copies.push(out.copy);
         break;

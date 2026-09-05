@@ -49,14 +49,27 @@ export const spritesheetSlotSpec = z.object({
   prompt: z.string().optional()
 });
 
-export const tilesetSlotSpec = z.object({
-  id: slotId,
-  kind: z.literal("tileset"),
-  cell: cellSchema,
-  /** Number of distinct tiles the template references. */
-  count: positiveInt,
-  prompt: z.string().optional()
-});
+export const tilesetSlotSpec = z
+  .object({
+    id: slotId,
+    kind: z.literal("tileset"),
+    cell: cellSchema,
+    /** Number of distinct tiles the template references. */
+    count: positiveInt,
+    /**
+     * Tiles that get a collision polygon, as row-major indices, or `all`. A
+     * top-down template walks on its first tiles and collides with the rest;
+     * a platformer's ground is solid throughout.
+     */
+    solid: z
+      .union([z.literal("all"), z.array(z.number().int().nonnegative())])
+      .default("all"),
+    prompt: z.string().optional()
+  })
+  .refine(
+    (s) => s.solid === "all" || s.solid.every((i) => i < s.count),
+    "solid tile indices must be below count"
+  );
 
 export const imageSlotSpec = z.object({
   id: slotId,

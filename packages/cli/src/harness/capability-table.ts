@@ -2183,7 +2183,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "export_godot_project",
     module: "godot",
     impl: "packages/agents/src/capabilities/godot.ts",
-    contract: "59a3dd34f1a0",
+    contract: "f9f830100b22",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-godot.test.ts",

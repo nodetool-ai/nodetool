@@ -367,4 +367,78 @@ describe("nodetool.game.SeamlessImage", () => {
     expect(calls[0].content).toBeInstanceOf(Uint8Array);
     expect((calls[0].metadata as Record<string, unknown>)[SLOT_METADATA_KEY]).toEqual(result.fill);
   });
+
+  it("reads a stored asset through the asset resolver, not the temporary store", async () => {
+    const inline = await makeImage(64, 32, noise);
+    const png = Buffer.from(inline.data as string, "base64");
+    const retrieved: string[] = [];
+    const resolved: string[] = [];
+    const context = {
+      resolveAssetBytes: async (uri: string) => {
+        resolved.push(uri);
+        return { bytes: new Uint8Array(png), attempts: [] };
+      },
+      storage: {
+        retrieve: async (key: string) => {
+          retrieved.push(key);
+          return null;
+        }
+      }
+    };
+    const result = await runNode(
+      ".Tileset",
+      {
+        image: { type: "image", uri: "asset://stored-tiles.png", asset_id: "stored-tiles" },
+        cell_width: 16,
+        cell_height: 16,
+        count: 8,
+        slot_id: "tiles.ground"
+      },
+      context
+    );
+    expect(resolved).toEqual(["asset://stored-tiles.png"]);
+    expect(retrieved).toEqual([]);
+    const fill = result.fill as TilesetFill;
+    expect([fill.columns, fill.rows]).toEqual([4, 2]);
+  });
+
+  it("re-encodes a WebP generation as PNG before stamping and storing it", async () => {
+    const pixels = Buffer.alloc(64 * 32 * 3);
+    for (let i = 0; i < 64 * 32; i++) {
+      const [r, g, b] = noise(i % 64, Math.floor(i / 64));
+      pixels.set([r, g, b], i * 3);
+    }
+    const webp = await sharp(pixels, { raw: { width: 64, height: 32, channels: 3 } })
+      .webp()
+      .toBuffer();
+    expect(webp.subarray(8, 12).toString("ascii")).toBe("WEBP");
+    const calls: Array<Record<string, unknown>> = [];
+    const context = {
+      hasModelInterface: (name: string) => name === "createAsset",
+      createAsset: async (args: Record<string, unknown>) => {
+        calls.push(args);
+        return { id: "asset-title" };
+      }
+    };
+    const result = await runNode(
+      ".SeamlessImage",
+      {
+        image: { type: "image", data: webp.toString("base64"), uri: "" },
+        slot_id: "title",
+        check_x: false,
+        check_y: false
+      },
+      context
+    );
+    const output = result.output as { data: Uint8Array; uri: string };
+    expect(Buffer.from(output.data.subarray(0, 8))).toEqual(PNG_MAGIC);
+    expect(output.uri).toBe("asset://asset-title.png");
+    expect(calls[0].name).toBe("title.png");
+    expect(calls[0].contentType).toBe("image/png");
+    expect(Buffer.from((calls[0].content as Uint8Array).subarray(0, 8))).toEqual(PNG_MAGIC);
+    const meta = await sharp(Buffer.from(output.data)).metadata();
+    expect([meta.format, meta.width, meta.height]).toEqual(["png", 64, 32]);
+  });
 });
+
+const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
