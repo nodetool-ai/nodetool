@@ -1,7 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
 import Image from "next/image";
-import { ArrowRight, Download, Package } from "lucide-react";
+import { ArrowRight, Package } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
@@ -13,7 +13,7 @@ const BASE_URL = "https://nodetool.ai";
 export const metadata: Metadata = {
   title: "AI Workflow Recipes — NodeTool",
   description:
-    "Multi-step NodeTool recipes for ad production, video dubbing, product catalogues, and trailers. Each one is the workflows to run, in order, as a single downloadable bundle.",
+    "Multi-step NodeTool recipes for ad production, video dubbing, product catalogues, and trailers. Each one is the workflows to run, in order, and each ships inside Studio.",
   alternates: { canonical: `${BASE_URL}/recipes` },
 };
 
@@ -47,8 +47,8 @@ export default function RecipesHub() {
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
               A template shows you a graph. A recipe gives you the finished job:
               which workflows to run, in what order, what each one hands the
-              next, and where the money goes. Download the chain as one file and
-              import it into Studio.
+              next, and where the money goes. Every recipe ships inside Studio,
+              on the Examples page.
             </p>
           </div>
         </section>
@@ -109,15 +109,14 @@ export default function RecipesHub() {
 
         <section className="relative pb-24">
           <div className="mx-auto max-w-3xl px-6 text-center">
-            <Download className="mx-auto h-8 w-8 text-amber-400" />
+            <Package className="mx-auto h-8 w-8 text-amber-400" />
             <h2 className="mt-5 text-3xl font-bold tracking-tight md:text-4xl">
-              Every recipe is one file
+              Every recipe is already installed
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-400">
-              A <code className="font-mono text-amber-300">.nodetool</code>{" "}
-              bundle carries every workflow in the chain. In Studio, open the
-              command menu and choose Import Workflow as Bundle — the whole
-              recipe lands in your library, editable node by node.
+              Studio ships these chains with its examples: open Examples, pick a
+              recipe, and add its workflows to your library in one click,
+              editable node by node. Nothing to download or import.
             </p>
             <a
               href="/templates"

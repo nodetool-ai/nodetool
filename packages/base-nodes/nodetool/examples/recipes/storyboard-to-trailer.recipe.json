@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "slug": "storyboard-to-trailer",
+  "name": "Storyboard to Trailer",
+  "outcome": "A logline becomes a beat sheet, a numbered shot list, a cut teaser, and a score under it.",
+  "audience": "Directors, agencies, and anyone pitching a film that does not exist yet.",
+  "summary": [
+    "The two text steps come first because they are the ones you will rewrite. A beat sheet and a shot list are cheap to redo and expensive to skip — prose cannot be iterated over by a generation pipeline, numbered shots can.",
+    "Only the third step spends. It runs each shot through a video model metered per second, which is why the two documents in front of it are worth arguing over first."
+  ],
+  "caveats": [
+    "Steps three and four both hold their own storyboard. Rewriting the beat sheet does not reach back into a teaser you already rendered — re-run the chain.",
+    "Continuity across shots comes from a shared style bible, not from a persistent character model. Faces drift over a long cut."
+  ],
+  "hero": "Movie Trailer Generator",
+  "steps": [
+    {
+      "example": "Trailer Beats from a Premise",
+      "role": "Write the structure before buying footage",
+      "handoff": "In: the premise. Out: hook, escalation, turn, title card. The shape a trailer needs, settled while it still costs one text call to change."
+    },
+    {
+      "example": "Shot List from a Synopsis",
+      "role": "Turn prose into something a pipeline can walk",
+      "handoff": "In: the synopsis. Out: numbered shots with framing and duration. This is the document the next step iterates over."
+    },
+    {
+      "example": "Movie Trailer Generator",
+      "role": "Film it and cut it",
+      "handoff": "In: the logline. Out: a cut teaser. A Director node writes the storyboard and one style bible, each shot becomes an image prompt, and the frames are rendered, animated, and assembled. The per-second video model is the expensive step.",
+      "alternative": {
+        "example": "Directed Film to Timeline",
+        "label": "Swap this step to keep editing",
+        "why": "The same director-to-shots chain, ending on the timeline as an editable sequence rather than a finished file. Re-roll one shot or re-cut the ending without running the chain again."
+      }
+    },
+    {
+      "example": "Score a Silent Clip",
+      "role": "Put music under it",
+      "handoff": "In: the cut and a mood. Out: a bed written to the clip's own length, mixed under the original audio. One audio generation per run."
+    }
+  ]
+}

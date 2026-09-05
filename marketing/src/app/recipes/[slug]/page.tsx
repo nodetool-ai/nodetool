@@ -170,9 +170,9 @@ export default async function RecipePage({
               directly — NodeTool takes no cut and adds no markup.
             </p>
             <p className="mb-6 max-w-2xl text-sm leading-relaxed text-slate-400">
-              You need none of them to look. Downloading the bundle, importing
-              it, opening every graph, and reading what each node is set to
-              costs nothing and connects to nothing.
+              You need none of them to look. Opening every graph in the chain
+              and reading what each node is set to costs nothing and connects to
+              nothing.
               {firstSingleKeyStep && (
                 <>
                   {" "}
@@ -318,23 +318,19 @@ export default async function RecipePage({
             <h2 className="mb-8 text-2xl font-bold tracking-tight md:text-3xl">
               Running it
             </h2>
-            <ol className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <ol className="grid gap-5 sm:grid-cols-3">
               {[
                 {
                   title: "Install Studio",
                   body: "The desktop app is free and runs on your own machine. No account, no sign-in, and no key is needed to open a workflow.",
                 },
                 {
-                  title: "Import the bundle",
-                  body: "Open the command menu and choose Import Workflow as Bundle. All the workflows in this recipe land in your library at once.",
+                  title: "Open it from Examples",
+                  body: `This recipe ships inside Studio. Open Examples, find ${entry.name} under Recipes, and add all ${entry.workflowCount} workflows to your library in one click.`,
                 },
                 {
-                  title: "Add your keys",
-                  body: "Paste each key above into Settings. Studio stores them in your OS keychain and sends them only to that provider.",
-                },
-                {
-                  title: "Run the chain",
-                  body: "Work down the list. Each step takes what the one before it produced, so you can stop and change your mind at any point.",
+                  title: "Add your keys and work down the chain",
+                  body: "Paste each key above into Settings. Studio keeps them in your OS keychain and sends them only to that provider. Each step takes what the one before it produced, so you can stop and change your mind at any point.",
                 },
               ].map((step, i) => (
                 <li
@@ -353,6 +349,16 @@ export default async function RecipePage({
                 </li>
               ))}
             </ol>
+            <p className="mt-6 max-w-2xl text-sm leading-relaxed text-slate-500">
+              Prefer a file? The same chain is packed as{" "}
+              <a
+                href={entry.bundle}
+                className="text-slate-300 underline decoration-slate-600 underline-offset-2 hover:text-amber-300"
+              >
+                one <code className="font-mono">.nodetool</code> bundle
+              </a>
+              , which imports from the command menu.
+            </p>
           </div>
         </section>
 

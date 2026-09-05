@@ -235,6 +235,52 @@ export function verifyBackendBundle(bundleDir) {
     summary.push(`${exampleCompositions.length} example composition(s) staged`);
   }
 
+  // A recipe manifest holds no graphs: it names the shipped examples its chain
+  // runs, in order. Check the names against what was staged, so a recipe cannot
+  // reach the packaged app pointing at a workflow that is not in it.
+  const recipeDir = path.join(bundleDir, "examples", "recipes");
+  const recipeFiles = (listFiles(recipeDir) ?? []).filter((f) =>
+    f.toLowerCase().endsWith(".recipe.json")
+  );
+  if (recipeFiles.length === 0) {
+    errors.push(
+      "examples/recipes/ is missing or has no recipe manifests — the packaged " +
+        "app would offer no recipes on its Examples page."
+    );
+  } else {
+    const stagedExamples = new Set(
+      exampleJsons.map((file) => file.replace(/\.json$/i, ""))
+    );
+    const missingSteps = [];
+    for (const file of recipeFiles) {
+      let recipe;
+      try {
+        recipe = JSON.parse(readFileSync(path.join(recipeDir, file), "utf8"));
+      } catch (err) {
+        errors.push(`examples/recipes/${file} is not readable: ${err.message}`);
+        continue;
+      }
+      for (const step of recipe?.steps ?? []) {
+        for (const name of [step?.example, step?.alternative?.example]) {
+          if (name && !stagedExamples.has(name)) {
+            missingSteps.push(`${file}: ${name}`);
+          }
+        }
+      }
+      if (recipe?.hero && !stagedExamples.has(recipe.hero)) {
+        missingSteps.push(`${file}: ${recipe.hero} (hero)`);
+      }
+    }
+    if (missingSteps.length > 0) {
+      errors.push(
+        "recipe steps name examples that were not staged — those recipes would " +
+          `not list in the packaged app:\n  ${missingSteps.join("\n  ")}`
+      );
+    } else {
+      summary.push(`${recipeFiles.length} recipe(s) staged with their steps`);
+    }
+  }
+
   // Every shot of a shipped storyboard points at a `package://` still and
   // clip. Those live under assets/nodetool-base/storyboards/<slug>/, one
   // directory deeper than anything else staged here — so check the files the

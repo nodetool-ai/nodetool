@@ -1254,6 +1254,28 @@ async function main() {
     );
   }
 
+  // The recipe manifests sit next to them too — the server resolves
+  // `exampleRecipesDir` as the `recipes` sibling of the examples dir. They hold
+  // no graphs, only the ordered example names each chain runs.
+  const exampleRecipesSrc = path.join(
+    BASE_NODES_NODETOOL_DIR,
+    "examples",
+    "recipes"
+  );
+  const exampleRecipesDest = path.join(BUNDLE_DIR, "examples", "recipes");
+  if (fs.existsSync(exampleRecipesSrc)) {
+    await fsp.mkdir(path.dirname(exampleRecipesDest), { recursive: true });
+    await copyDir(exampleRecipesSrc, exampleRecipesDest);
+    const recipeCount = (await fsp.readdir(exampleRecipesDest)).filter((f) =>
+      f.toLowerCase().endsWith(".recipe.json")
+    ).length;
+    console.log(`  Copied ${recipeCount} recipe manifest(s) to examples/recipes/`);
+  } else {
+    console.warn(
+      `  Warning: example recipes directory not found, skipping: ${exampleRecipesSrc}`
+    );
+  }
+
   // The example storyboards sit next to them, same rule: the server resolves
   // `exampleStoryboardsDir` as the `storyboards` sibling of the examples dir.
   // Their stills and clips are `package://` assets and ride along in
