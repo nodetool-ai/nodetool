@@ -37,7 +37,8 @@ const SKILL_NAMES = [
   "logo-reveal",
   "motion-background",
   "motion-curves",
-  "caption-titles"
+  "caption-titles",
+  "video-audio-continuity"
 ] as const;
 
 function skillPath(name: string): string {

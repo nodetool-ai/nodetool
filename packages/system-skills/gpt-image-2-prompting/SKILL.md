@@ -132,7 +132,9 @@ reference, and it guesses wrong.
   believable UI spacing" does the layout work; remove those clauses and the HUD
   collapses into noise.
 - **Text in image.** Give the copy verbatim, then typography, then layout, then
-  "render the text verbatim / no extra words / no duplicate text".
+  "render the text verbatim / no extra words / no duplicate text". For a still
+  that will sit on a timeline or seed a video clip, leave the copy off and add
+  it as a text clip afterwards (`caption-titles`) so it stays editable.
 - **Style transfer.** "Same style" is not enough. Name the parts: chunky pixel
   forms, limited arcade palette, bright glow accents, clean silhouette edges.
 - **Drawing to photo.** Say whether the drawing is a suggestion or a contract:

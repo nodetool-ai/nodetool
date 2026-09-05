@@ -23,9 +23,17 @@ For each section, provide timecode and bar range, musical and visual jobs, frami
 
 ## Persist the board
 
-Create a storyboard with `create_storyboard({ name, brief, style, aspect_ratio })`, using `storyboard_id` from its result. Put the full brief, lyrics, section map, bar grid, and roster in `brief`. Attach entity ids with `edit_storyboard({ storyboard_id, ops: [{ op: "set_board", entity_ids }] })`; `set_entities` does not exist. Add one `add_shot` op per section. Each action names visible entities in brackets, includes its sync point, and uses the section duration rounded to 0.5 seconds.
+Create a storyboard with `create_storyboard({ name, brief, style, aspect_ratio })`, using `storyboard_id` from its result, never `.id`. Put the full brief, lyrics, section map, bar grid, and roster in `brief`. The call shapes every board skill shares — entity id equals the asset id you passed in, the five `edit_storyboard` ops, what `set_board` accepts, what text the generator actually reads — are in `commercial-beat-sheet` § Tool contract.
+
+Attach entity ids with `edit_storyboard({ storyboard_id, ops: [{ op: "set_board", entity_ids, image_model, video_model }] })` (`set_entities` is only an alias). The two models are the `.ref` of a `find_model` call each, for `text_to_image` and `image_to_video`; load the `prompting_skill` each one names before writing shot text, since `motion` then `action` is the clip prompt verbatim and a performance section is worded differently for Kling's shot list, Hailuo's ordered beats or Seedance's sound brief.
+
+Add one `add_shot` op per section. Each action names visible entities in brackets, includes its sync point, and uses the section duration rounded to 0.5 seconds. The render attaches the artist or a prop to a shot only when its name appears in that shot's text (style and location always apply), so the artist's name goes in every performance shot, or on that shot's own `entity_ids`. Lyric text on screen is a note for the cut and goes on as a text clip after assembly (`caption-titles`), not into the render prompt.
 
 Stop at the planned board unless asked to render. Report the directions, selected treatment, and entity roster.
+
+## Render (only on request)
+
+Stills first with `render_storyboard_stills`; look at each with `view_image` asking what is wrong, and fix a drifting artist at the entity, never in one shot's prompt. Clips with `render_storyboard_clips`; ask for longer clips than the section needs (bump `duration_seconds` with `update_shot`, restore after) so the cut has frames to choose from on the beat. A clip wrong where its still was right is one `revise_storyboard_clip`. Then `assemble_storyboard_timeline`.
 
 ## When the treatment becomes a cut
 
