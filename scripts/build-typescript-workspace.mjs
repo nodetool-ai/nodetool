@@ -80,6 +80,23 @@ export async function pruneOrphanedDistOutputs(workspaceDir) {
   }
 }
 
+/**
+ * Drop a `tsconfig.tsbuildinfo` left behind by a removed `dist/`.
+ *
+ * `tsc --build` trusts that state: with the build info still claiming every
+ * output is current, a package whose `dist/` was deleted (a hand-rolled clean,
+ * a partial checkout) builds green and emits nothing, and the next import of
+ * it fails with "Failed to resolve entry for package". Reproduced against
+ * @nodetool-ai/document-nodes. Only the build info is removed — `dist/` is
+ * never wiped here, so the parallel-task race described below stays closed.
+ */
+export async function dropOrphanedBuildInfo(workspaceDir) {
+  if (await pathExists(resolve(workspaceDir, "dist"))) {
+    return;
+  }
+  await rm(resolve(workspaceDir, "tsconfig.tsbuildinfo"), { force: true });
+}
+
 export async function runCommand(command, args, options = {}) {
   await new Promise((resolveRun, rejectRun) => {
     const child = spawn(command, args, {
@@ -115,6 +132,8 @@ export async function prepareTypeScriptWorkspaceBuild(workspaceDir, execute = ru
   // prune those after the build instead of wiping dist/ up front, so already
   // up-to-date outputs stay available throughout and only genuinely orphaned
   // files disappear.
+  await dropOrphanedBuildInfo(workspaceDir);
+
   const { command, args } = getTypeScriptBuildCommand(repoRoot, {
     force: process.env.NODETOOL_FORCE_TSC_BUILD === "1",
   });
