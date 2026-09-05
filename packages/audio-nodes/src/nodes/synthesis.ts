@@ -120,7 +120,7 @@ export class OscillatorNode extends BaseNode {
     description:
       "Pitch control stream in octaves (volts/octave): freq = frequency * 2^cv. When patched, drives the output chunk cadence."
   })
-  declare pitch_cv: any;
+  declare pitch_cv: Chunk;
 
   @prop({
     type: "cv",
@@ -129,7 +129,7 @@ export class OscillatorNode extends BaseNode {
     description:
       "Linear frequency modulation stream: freq is multiplied by (1 + fm_amount * fm)."
   })
-  declare fm: any;
+  declare fm: Chunk;
 
   @prop({
     type: "enum",
@@ -138,7 +138,7 @@ export class OscillatorNode extends BaseNode {
     description: "Oscillator waveform.",
     values: ["sine", "saw", "square", "triangle", "noise"]
   })
-  declare waveform: any;
+  declare waveform: Waveform;
 
   @prop({
     type: "float",
@@ -148,7 +148,7 @@ export class OscillatorNode extends BaseNode {
     min: 0.1,
     max: 20000
   })
-  declare frequency: any;
+  declare frequency: number;
 
   @prop({
     type: "float",
@@ -158,7 +158,7 @@ export class OscillatorNode extends BaseNode {
     min: 0,
     max: 1
   })
-  declare amplitude: any;
+  declare amplitude: number;
 
   @prop({
     type: "float",
@@ -168,7 +168,7 @@ export class OscillatorNode extends BaseNode {
     min: 0.05,
     max: 0.95
   })
-  declare pulse_width: any;
+  declare pulse_width: number;
 
   @prop({
     type: "float",
@@ -178,7 +178,7 @@ export class OscillatorNode extends BaseNode {
     min: 0,
     max: 10
   })
-  declare fm_amount: any;
+  declare fm_amount: number;
 
   @prop({
     type: "int",
@@ -188,7 +188,7 @@ export class OscillatorNode extends BaseNode {
     min: 8000,
     max: 96000
   })
-  declare sample_rate: any;
+  declare sample_rate: number;
 
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
@@ -294,7 +294,7 @@ export class LfoNode extends BaseNode {
     description:
       "Optional clock stream: drives chunk cadence; phase resets on each rising edge."
   })
-  declare clock: any;
+  declare clock: Chunk;
 
   @prop({
     type: "enum",
@@ -303,7 +303,7 @@ export class LfoNode extends BaseNode {
     description: "LFO waveform.",
     values: ["sine", "triangle", "saw", "square"]
   })
-  declare waveform: any;
+  declare waveform: Waveform;
 
   @prop({
     type: "float",
@@ -313,7 +313,7 @@ export class LfoNode extends BaseNode {
     min: 0.01,
     max: 100
   })
-  declare rate_hz: any;
+  declare rate_hz: number;
 
   @prop({
     type: "float",
@@ -323,7 +323,7 @@ export class LfoNode extends BaseNode {
     min: 0,
     max: 10
   })
-  declare depth: any;
+  declare depth: number;
 
   @prop({
     type: "float",
@@ -333,7 +333,7 @@ export class LfoNode extends BaseNode {
     min: -10,
     max: 10
   })
-  declare offset: any;
+  declare offset: number;
 
   @prop({
     type: "int",
@@ -343,7 +343,7 @@ export class LfoNode extends BaseNode {
     min: 8000,
     max: 96000
   })
-  declare sample_rate: any;
+  declare sample_rate: number;
 
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
@@ -426,7 +426,7 @@ export class AdsrNode extends BaseNode {
     title: "Gate",
     description: "Gate CV stream — values ≥ 0.5 count as gate-high."
   })
-  declare gate: any;
+  declare gate: Chunk;
 
   @prop({
     type: "float",
@@ -436,7 +436,7 @@ export class AdsrNode extends BaseNode {
     min: 0.0005,
     max: 10
   })
-  declare attack: any;
+  declare attack: number;
 
   @prop({
     type: "float",
@@ -446,7 +446,7 @@ export class AdsrNode extends BaseNode {
     min: 0.0005,
     max: 10
   })
-  declare decay: any;
+  declare decay: number;
 
   @prop({
     type: "float",
@@ -456,7 +456,7 @@ export class AdsrNode extends BaseNode {
     min: 0,
     max: 1
   })
-  declare sustain: any;
+  declare sustain: number;
 
   @prop({
     type: "float",
@@ -466,7 +466,7 @@ export class AdsrNode extends BaseNode {
     min: 0.0005,
     max: 10
   })
-  declare release: any;
+  declare release: number;
 
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
@@ -525,7 +525,7 @@ export class GateNode extends BaseNode {
     min: 0.001,
     max: 60
   })
-  declare on_duration: any;
+  declare on_duration: number;
 
   @prop({
     type: "float",
@@ -535,7 +535,7 @@ export class GateNode extends BaseNode {
     min: 0.001,
     max: 60
   })
-  declare off_duration: any;
+  declare off_duration: number;
 
   @prop({
     type: "float",
@@ -545,7 +545,7 @@ export class GateNode extends BaseNode {
     min: 0,
     max: 10
   })
-  declare amplitude: any;
+  declare amplitude: number;
 
   @prop({
     type: "int",
@@ -555,7 +555,7 @@ export class GateNode extends BaseNode {
     min: 8000,
     max: 96000
   })
-  declare sample_rate: any;
+  declare sample_rate: number;
 
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
@@ -612,7 +612,7 @@ export class VcaNode extends BaseNode {
     title: "Audio",
     description: "Audio chunk stream to amplify (drives chunk cadence)."
   })
-  declare audio: any;
+  declare audio: Chunk;
 
   @prop({
     type: "cv",
@@ -620,7 +620,7 @@ export class VcaNode extends BaseNode {
     title: "CV",
     description: "Amplitude control stream; negative values clamp to 0."
   })
-  declare cv: any;
+  declare cv: Chunk;
 
   @prop({
     type: "float",
@@ -630,7 +630,7 @@ export class VcaNode extends BaseNode {
     min: 0,
     max: 10
   })
-  declare gain: any;
+  declare gain: number;
 
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
@@ -689,7 +689,7 @@ export class VcfNode extends BaseNode {
     title: "Audio",
     description: "Audio chunk stream to filter (drives chunk cadence)."
   })
-  declare audio: any;
+  declare audio: Chunk;
 
   @prop({
     type: "cv",
@@ -698,7 +698,7 @@ export class VcfNode extends BaseNode {
     description:
       "Cutoff modulation in octaves: cutoff = cutoff_hz * 2^(cv * cv_amount)."
   })
-  declare cutoff_cv: any;
+  declare cutoff_cv: Chunk;
 
   @prop({
     type: "enum",
@@ -707,7 +707,7 @@ export class VcfNode extends BaseNode {
     description: "Filter mode.",
     values: ["lowpass", "highpass"]
   })
-  declare mode: any;
+  declare mode: "lowpass" | "highpass";
 
   @prop({
     type: "float",
@@ -717,7 +717,7 @@ export class VcfNode extends BaseNode {
     min: 20,
     max: 20000
   })
-  declare cutoff_hz: any;
+  declare cutoff_hz: number;
 
   @prop({
     type: "float",
@@ -727,7 +727,7 @@ export class VcfNode extends BaseNode {
     min: 0.1,
     max: 10
   })
-  declare q: any;
+  declare q: number;
 
   @prop({
     type: "float",
@@ -737,7 +737,7 @@ export class VcfNode extends BaseNode {
     min: 0,
     max: 5
   })
-  declare cv_amount: any;
+  declare cv_amount: number;
 
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
@@ -824,7 +824,7 @@ export class AttenuverterNode extends BaseNode {
     title: "Signal",
     description: "Input CV or audio stream."
   })
-  declare signal: any;
+  declare signal: Chunk;
 
   @prop({
     type: "float",
@@ -834,7 +834,7 @@ export class AttenuverterNode extends BaseNode {
     min: -10,
     max: 10
   })
-  declare scale: any;
+  declare scale: number;
 
   @prop({
     type: "float",
@@ -844,7 +844,7 @@ export class AttenuverterNode extends BaseNode {
     min: -10,
     max: 10
   })
-  declare offset: any;
+  declare offset: number;
 
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
@@ -896,7 +896,7 @@ export class SampleHoldNode extends BaseNode {
     title: "Signal",
     description: "Stream to sample (drives chunk cadence)."
   })
-  declare signal: any;
+  declare signal: Chunk;
 
   @prop({
     type: "cv",
@@ -904,7 +904,7 @@ export class SampleHoldNode extends BaseNode {
     title: "Trigger",
     description: "Sampling clock — samples on each rising edge (≥ 0.5)."
   })
-  declare trigger: any;
+  declare trigger: Chunk;
 
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
@@ -959,7 +959,7 @@ export class MixerNode extends BaseNode {
     title: "In 1",
     description: "Audio input 1."
   })
-  declare in1: any;
+  declare in1: Chunk;
 
   @prop({
     type: "chunk",
@@ -967,7 +967,7 @@ export class MixerNode extends BaseNode {
     title: "In 2",
     description: "Audio input 2."
   })
-  declare in2: any;
+  declare in2: Chunk;
 
   @prop({
     type: "chunk",
@@ -975,7 +975,7 @@ export class MixerNode extends BaseNode {
     title: "In 3",
     description: "Audio input 3."
   })
-  declare in3: any;
+  declare in3: Chunk;
 
   @prop({
     type: "chunk",
@@ -983,7 +983,7 @@ export class MixerNode extends BaseNode {
     title: "In 4",
     description: "Audio input 4."
   })
-  declare in4: any;
+  declare in4: Chunk;
 
   @prop({
     type: "float",
@@ -993,7 +993,7 @@ export class MixerNode extends BaseNode {
     min: 0,
     max: 2
   })
-  declare level1: any;
+  declare level1: number;
 
   @prop({
     type: "float",
@@ -1003,7 +1003,7 @@ export class MixerNode extends BaseNode {
     min: 0,
     max: 2
   })
-  declare level2: any;
+  declare level2: number;
 
   @prop({
     type: "float",
@@ -1013,7 +1013,7 @@ export class MixerNode extends BaseNode {
     min: 0,
     max: 2
   })
-  declare level3: any;
+  declare level3: number;
 
   @prop({
     type: "float",
@@ -1023,7 +1023,7 @@ export class MixerNode extends BaseNode {
     min: 0,
     max: 2
   })
-  declare level4: any;
+  declare level4: number;
 
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
