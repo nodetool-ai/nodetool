@@ -195,6 +195,7 @@ exclude:
   - STUDIO_PRD.md
   - STUDIO_MVP_PROMPT.md
   - image-editor-prd.md
+  - creation-flows/
   - timeline-editor-prd.md
   - correlation-design.md
   # Internal implementation plans & specs (agentic-worker instructions).
