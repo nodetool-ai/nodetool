@@ -115,6 +115,7 @@ export function useClipDrag({
 }: UseClipDragOptions): ClipDragHandlers {
   const moveClip = useTimelineStore((s) => s.moveClip);
   const moveSelectedClips = useTimelineStore((s) => s.moveSelectedClips);
+  const resolveDrop = useTimelineStore((s) => s.resolveDrop);
   const splitClipAtTime = useTimelineStore((s) => s.splitClipAtTime);
 
   // Undo batching: the gesture mutates the store on every pointermove. begin()
@@ -354,7 +355,7 @@ export function useClipDrag({
         }
       };
 
-      const onUpOrCancel = () => {
+      const onUpOrCancel = (ev?: PointerEvent) => {
         longPress.cancel();
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUpOrCancel);
@@ -365,6 +366,20 @@ export function useClipDrag({
         }
         stopAutoScroll();
         clearGestureFeedback(useTimelineUIStore.getState());
+        if (isDraggingRef.current && ev?.type === "pointerup") {
+          // The drop settles inside the gesture's undo entry. Ctrl/Cmd on
+          // release forces insert; otherwise the toolbar's drop mode applies.
+          const ui = useTimelineUIStore.getState();
+          const moved =
+            ui.selectedClipIds.has(clipId) && ui.selectedClipIds.size > 1
+              ? new Set(ui.selectedClipIds)
+              : new Set([clipId]);
+          resolveDrop(
+            moved,
+            ev.ctrlKey || ev.metaKey ? "insert" : ui.dropMode
+          );
+          history.mark();
+        }
         history.end();
         // Defer dragging flag reset so the synthetic click that follows
         // pointerup is still suppressed by handleClick.
@@ -392,6 +407,7 @@ export function useClipDrag({
       splitClipAtTime,
       moveClip,
       moveSelectedClips,
+      resolveDrop,
       history
     ]
   );

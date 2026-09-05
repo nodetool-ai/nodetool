@@ -13,8 +13,18 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ContentCutOutlinedIcon from "@mui/icons-material/ContentCutOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
+import KeyboardTabOutlinedIcon from "@mui/icons-material/KeyboardTabOutlined";
+import FlipToFrontOutlinedIcon from "@mui/icons-material/FlipToFrontOutlined";
 
-import { FlexRow, Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import {
+  FlexRow,
+  Tooltip,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 
 /** Custom pointer cursor — monoline, 1.6px stroke. */
@@ -71,6 +81,14 @@ const buttonStyles = (theme: Theme, active: boolean, compact: boolean) =>
     }
   });
 
+const dividerStyles = css({
+  width: 1,
+  height: 16,
+  margin: `0 ${getSpacingPx(SPACING.xs)}`,
+  background: "currentColor",
+  opacity: 0.2
+});
+
 interface ToolButtonProps {
   label: string;
   shortcut: string;
@@ -115,6 +133,8 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
   const setActiveTool = useTimelineUIStore((s) => s.setActiveTool);
   const rippleMode = useTimelineUIStore((s) => s.rippleMode);
   const toggleRippleMode = useTimelineUIStore((s) => s.toggleRippleMode);
+  const dropMode = useTimelineUIStore((s) => s.dropMode);
+  const setDropMode = useTimelineUIStore((s) => s.setDropMode);
   return (
     <FlexRow gap={0.5} align="center">
       <ToolButton
@@ -143,6 +163,34 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         onClick={toggleRippleMode}
       >
         <SwapHorizOutlinedIcon />
+      </ToolButton>
+      <span css={dividerStyles} aria-hidden />
+      <ToolButton
+        label="Overwrite"
+        shortcut="drop replaces what it covers"
+        active={dropMode === "overwrite"}
+        compact={compact}
+        onClick={() => setDropMode("overwrite")}
+      >
+        <FlipToFrontOutlinedIcon />
+      </ToolButton>
+      <ToolButton
+        label="Insert"
+        shortcut="drop pushes later clips right · Ctrl+drag"
+        active={dropMode === "insert"}
+        compact={compact}
+        onClick={() => setDropMode("insert")}
+      >
+        <KeyboardTabOutlinedIcon />
+      </ToolButton>
+      <ToolButton
+        label="Overlap"
+        shortcut="drop stacks and cross-fades"
+        active={dropMode === "overlap"}
+        compact={compact}
+        onClick={() => setDropMode("overlap")}
+      >
+        <LayersOutlinedIcon />
       </ToolButton>
     </FlexRow>
   );

@@ -14,6 +14,7 @@
  */
 
 import { create, type StoreApi, type UseBoundStore } from "zustand";
+import type { DropMode } from "@nodetool-ai/timeline";
 
 export type TimelineTool = "select" | "cut";
 
@@ -71,6 +72,12 @@ export interface TimelineUIState {
    * Off, a trim or delete leaves the rest of the sequence where it is.
    */
   rippleMode: boolean;
+  /**
+   * What a dropped clip does to the clips under it: overwrite them
+   * (Premiere's default), insert and push them right, or overlap and let the
+   * renderer cross-fade. Ctrl/Cmd during a drag forces insert.
+   */
+  dropMode: DropMode;
   /**
    * Milliseconds per pixel — the primary zoom metric.
    * Default 10 ms/px ≈ 100 px/s. Smaller = zoomed in.
@@ -172,6 +179,7 @@ export interface TimelineUIState {
   setActiveTool: (tool: TimelineTool) => void;
   setRippleMode: (on: boolean) => void;
   toggleRippleMode: () => void;
+  setDropMode: (mode: DropMode) => void;
 
   // ── FX panel ─────────────────────────────────────────────────────────────
 
@@ -207,6 +215,7 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   hoveredClipId: null,
   activeTool: "select",
   rippleMode: false,
+  dropMode: "overwrite",
   msPerPx: 10,
   scrollLeftPx: 0,
   revealRequest: null,
@@ -285,6 +294,8 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   setRippleMode: (on) => set({ rippleMode: on }),
 
   toggleRippleMode: () => set((state) => ({ rippleMode: !state.rippleMode })),
+
+  setDropMode: (mode) => set({ dropMode: mode }),
 
   setExpandedFxTrackId: (trackId) => set({ expandedFxTrackId: trackId }),
 

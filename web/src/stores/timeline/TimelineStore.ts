@@ -38,6 +38,7 @@ import {
   rollEdit,
   rippleDelete,
   closeGap,
+  resolveDrop,
   trimGroup,
   ungroup,
   snap,
@@ -47,6 +48,7 @@ import {
   makeTrackEffect,
   createTimeOrderedUuid
 } from "@nodetool-ai/timeline";
+import type { DropMode } from "@nodetool-ai/timeline";
 import type {
   TimelineSequence,
   TimelineTrack,
@@ -285,6 +287,12 @@ export interface TimelineStoreState {
   /** Close the empty stretch on `trackId` containing `timeMs`. */
   closeGapAt: (trackId: string, timeMs: number) => void;
 
+  /**
+   * Settle a finished drop: overwrite what the moved clips cover, insert and
+   * push everything right, or leave the overlap for the renderer.
+   */
+  resolveDrop: (movedIds: ReadonlySet<string>, mode: DropMode) => void;
+
   /** Split the clip at the given time. The clip must contain that time. */
   splitClipAtTime: (clipId: string, atMs: number) => void;
 
@@ -343,7 +351,7 @@ export interface TimelineStoreState {
    * The clip geometry is derived from the asset's content type and duration.
    * Use this action to add clips created by asset drag-and-drop.
    */
-  addImportedClip: (asset: Asset, trackId: string, startMs: number) => void;
+  addImportedClip: (asset: Asset, trackId: string, startMs: number) => string;
 
   /** Update an arbitrary subset of fields on a clip. */
   patchClip: (clipId: string, patch: Partial<TimelineClip>) => void;
@@ -1604,6 +1612,16 @@ export const createTimelineStore = (
               : { clips: next };
           }),
 
+        resolveDrop: (movedIds, mode) =>
+          set((state) => {
+            if (mode === "overlap") return state;
+            return {
+              clips: resolveDrop(state.clips, movedIds, mode, {
+                lockedTrackIds: lockedTrackIds(state.tracks)
+              })
+            };
+          }),
+
         splitClipAtTime: (clipId, atMs) =>
           set((state) => {
             const next = splitClipsLinkAware(state.clips, atMs, [clipId]);
@@ -1721,6 +1739,7 @@ export const createTimelineStore = (
         addImportedClip: (asset, trackId, startMs) => {
           const clip = assetToClip(asset, trackId, startMs);
           set((state) => ({ clips: [...state.clips, clip] }));
+          return clip.id;
         },
 
         unlinkClip: (clipId) =>

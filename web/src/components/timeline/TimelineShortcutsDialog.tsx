@@ -76,7 +76,8 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     shortcuts: [
       { keys: ["←"], action: "Nudge one frame", alt: ["→"] },
       { keys: ["Shift", "←"], action: "Nudge one second", alt: ["Shift", "→"] },
-      { keys: ["Alt", "drag"], action: "Disable snapping while moving or trimming" }
+      { keys: ["Alt", "drag"], action: "Disable snapping while moving or trimming" },
+      { keys: ["Ctrl", "drag clip"], action: "Insert on drop (push later clips right)" }
     ]
   },
   {

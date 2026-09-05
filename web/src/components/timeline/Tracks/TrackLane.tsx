@@ -124,6 +124,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const addImportedClip = useTimelineStore((s) => s.addImportedClip);
   const addClip = useTimelineStore((s) => s.addClip);
   const closeGapAt = useTimelineStore((s) => s.closeGapAt);
+  const resolveDropInStore = useTimelineStore((s) => s.resolveDrop);
   const importVideoWithAudio = useVideoAudioImport();
 
   const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
@@ -307,7 +308,8 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       if (mediaType === "video" && track.type === "video") {
         void importVideoWithAudio(asset, track.id, startMs);
       } else {
-        addImportedClip(asset, track.id, startMs);
+        const newId = addImportedClip(asset, track.id, startMs);
+        resolveDropInStore(new Set([newId]), useTimelineUIStore.getState().dropMode);
       }
     },
     [
@@ -316,6 +318,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       track.id,
       msPerPx,
       addImportedClip,
+      resolveDropInStore,
       importVideoWithAudio,
       showWarning
     ]

@@ -139,3 +139,42 @@ describe("closeGapAt", () => {
     expect(clip(c.id).startMs).toBe(2000);
   });
 });
+
+describe("resolveDrop", () => {
+  it("overwrite trims what the moved clip covers", () => {
+    const { store, a, b, clip } = storeWithCut();
+    store.getState().moveClip(b.id, -300);
+    store.getState().resolveDrop(new Set([b.id]), "overwrite");
+    expect(clip(a.id).durationMs).toBe(700);
+    expect(clip(b.id).startMs).toBe(700);
+  });
+
+  it("insert pushes later clips right on unlocked tracks", () => {
+    const { store, a, b, c, vo, clip } = storeWithCut();
+    store.getState().moveClip(c.id, -1500);
+    store.getState().resolveDrop(new Set([c.id]), "insert");
+    expect(clip(c.id).startMs).toBe(500);
+    // a straddled 500 and was cut into fresh halves; its tail and b moved
+    // right by c's length.
+    const v1Clips = store
+      .getState()
+      .clips.filter((x) => x.trackId === clip(c.id).trackId && x.id !== c.id)
+      .map((x) => [x.startMs, x.durationMs])
+      .sort((p, q) => p[0] - q[0]);
+    expect(v1Clips).toEqual([
+      [0, 500],
+      [1500, 500],
+      [2000, 1000]
+    ]);
+    expect(clip(vo.id).startMs).toBe(2200);
+  });
+
+  it("overlap leaves the document alone", () => {
+    const { store, b, clip } = storeWithCut();
+    store.getState().moveClip(b.id, -300);
+    const before = store.getState().clips;
+    store.getState().resolveDrop(new Set([b.id]), "overlap");
+    expect(store.getState().clips).toBe(before);
+    expect(clip(b.id).startMs).toBe(700);
+  });
+});
