@@ -1,4 +1,5 @@
 export * from "./nodes/audio.js";
+export * from "./nodes/game.js";
 export * from "./nodes/lib-audio-dsp.js";
 export * from "./nodes/lib-audio-effects.js";
 export * from "./nodes/output.js";

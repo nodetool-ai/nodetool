@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "template": "shmup",
+  "godot": "4.3",
+  "slots": [
+    {
+      "id": "player",
+      "kind": "spritesheet",
+      "cell": [32, 32],
+      "fps": 8,
+      "animations": { "idle": 2, "bank_left": 2, "bank_right": 2 },
+      "prompt": "the player's ship, top-down view, nose pointing up"
+    },
+    {
+      "id": "enemy.drone",
+      "kind": "spritesheet",
+      "cell": [32, 32],
+      "fps": 8,
+      "animations": { "fly": 4, "die": 4 },
+      "prompt": "a small enemy drone, top-down view, nose pointing down"
+    },
+    {
+      "id": "bg.space",
+      "kind": "image",
+      "size": [960, 540],
+      "seamless_x": false,
+      "seamless_y": true,
+      "prompt": "vertically scrolling space background, stars and nebula, no ships"
+    },
+    { "id": "sfx.shoot", "kind": "sfx", "seconds": 0.2, "prompt": "laser shot" },
+    { "id": "sfx.explode", "kind": "sfx", "seconds": 0.6, "prompt": "small explosion" },
+    { "id": "music.level", "kind": "music", "seconds": 60, "loop": true, "prompt": "fast space shooter theme" },
+    { "id": "title", "kind": "image", "size": [1920, 1080], "seamless_x": false, "seamless_y": false, "prompt": "title screen key art" }
+  ],
+  "hooks": ["scripts/player.gd", "scripts/enemy_drone.gd", "scripts/level_01.gd", "scenes/level_01.tscn"]
+}

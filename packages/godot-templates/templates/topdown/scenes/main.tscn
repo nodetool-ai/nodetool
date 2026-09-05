@@ -1,0 +1,23 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Texture2D" path="res://assets/images/title.png" id="2_title"]
+[ext_resource type="AudioStream" path="res://assets/audio/music_level.wav" id="3_music"]
+[ext_resource type="PackedScene" path="res://scenes/level_01.tscn" id="4_level"]
+
+[node name="Main" type="Node"]
+script = ExtResource("1_main")
+
+[node name="Level" parent="." instance=ExtResource("4_level")]
+
+[node name="Music" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_music")
+autoplay = true
+
+[node name="TitleLayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="Title" type="Sprite2D" parent="TitleLayer"]
+position = Vector2(480, 270)
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_title")

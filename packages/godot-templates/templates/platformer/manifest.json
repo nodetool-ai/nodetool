@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "template": "platformer",
+  "godot": "4.3",
+  "slots": [
+    {
+      "id": "player",
+      "kind": "spritesheet",
+      "cell": [32, 32],
+      "fps": 8,
+      "animations": { "idle": 4, "run": 8, "jump": 2, "hurt": 2 },
+      "prompt": "the player character, side view, facing right"
+    },
+    {
+      "id": "enemy.walker",
+      "kind": "spritesheet",
+      "cell": [32, 32],
+      "fps": 8,
+      "animations": { "walk": 6, "die": 4 },
+      "prompt": "a small ground enemy, side view, facing left"
+    },
+    {
+      "id": "tiles.ground",
+      "kind": "tileset",
+      "cell": [16, 16],
+      "count": 12,
+      "prompt": "ground and platform tiles: grass top, dirt fill, edges, corners"
+    },
+    {
+      "id": "bg.far",
+      "kind": "image",
+      "size": [960, 540],
+      "seamless_x": true,
+      "seamless_y": false,
+      "prompt": "distant background layer, horizon, no characters"
+    },
+    { "id": "sfx.jump", "kind": "sfx", "seconds": 0.4, "prompt": "short jump" },
+    { "id": "sfx.hurt", "kind": "sfx", "seconds": 0.5, "prompt": "player hit" },
+    { "id": "music.level", "kind": "music", "seconds": 60, "loop": true, "prompt": "level theme" },
+    { "id": "title", "kind": "image", "size": [1920, 1080], "seamless_x": false, "seamless_y": false, "prompt": "title screen key art" }
+  ],
+  "hooks": ["scripts/player.gd", "scripts/enemy_walker.gd", "scenes/level_01.tscn"]
+}

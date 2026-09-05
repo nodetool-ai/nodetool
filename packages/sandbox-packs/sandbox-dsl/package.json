@@ -233,6 +233,11 @@
         "file": "sandbox/generated/nodetool.fake.js"
       },
       {
+        "name": "nodetool.game",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.game.js"
+      },
+      {
         "name": "nodetool.generators",
         "kind": "js",
         "file": "sandbox/generated/nodetool.generators.js"

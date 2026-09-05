@@ -1,0 +1,26 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy_chaser.gd" id="1_enemy"]
+[ext_resource type="SpriteFrames" path="res://assets/sprites/enemy_chaser.tres" id="2_frames"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_body"]
+radius = 11.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hitbox"]
+radius = 13.0
+
+[node name="EnemyChaser" type="CharacterBody2D" groups=["enemies"]]
+script = ExtResource("1_enemy")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("2_frames")
+animation = &"walk"
+autoplay = "walk"
+
+[node name="Collision" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_body")
+
+[node name="Hitbox" type="Area2D" parent="."]
+
+[node name="HitboxShape" type="CollisionShape2D" parent="Hitbox"]
+shape = SubResource("CircleShape2D_hitbox")

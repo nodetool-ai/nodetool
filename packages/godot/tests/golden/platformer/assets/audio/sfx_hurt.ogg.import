@@ -1,0 +1,13 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://0yxo62e36lif0"
+
+[deps]
+
+source_file="res://assets/audio/sfx_hurt.ogg"
+
+[params]
+
+loop=false

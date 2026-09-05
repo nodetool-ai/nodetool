@@ -1,0 +1,13 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://1bynycsabudiu"
+
+[deps]
+
+source_file="res://assets/audio/music_level.ogg"
+
+[params]
+
+loop=true

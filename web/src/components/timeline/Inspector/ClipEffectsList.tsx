@@ -12,7 +12,8 @@
  * slot while a listed one steps over it.
  */
 
-import React, { memo, useCallback, useRef, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import type { Theme } from "@mui/material/styles";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
@@ -46,7 +47,6 @@ import {
 } from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
 import {
-  INSPECTOR_ROW_BUTTON_SX,
   InspectorDivider,
   InspectorPillInput,
   InspectorRow,
@@ -488,6 +488,85 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
 );
 EffectFields.displayName = "EffectFields";
 
+const ROW_SX = {
+  borderTop: (theme: Theme) => `1px solid ${theme.vars.palette.divider}`,
+  pt: SPACING.md
+};
+const DELETE_SX = { width: 24, height: 24 };
+
+interface EffectRowProps {
+  effect: ClipEffect;
+  isFirst: boolean;
+  isLast: boolean;
+  onPatch: (id: string, patch: Record<string, unknown>) => void;
+  onRemove: (id: string) => void;
+  onMove: (id: string, delta: -1 | 1) => void;
+}
+
+/**
+ * One effect's header and fields. Bound to its own id so the callbacks handed
+ * down stay identical across a sibling's edit — dragging one effect's slider
+ * re-renders that effect, not every other effect's whole field set.
+ */
+const EffectRow: React.FC<EffectRowProps> = memo(
+  ({ effect, isFirst, isLast, onPatch, onRemove, onMove }) => {
+    const { id } = effect;
+    const name = EFFECT_LABELS[effect.type] ?? effect.type;
+
+    const patch = useCallback(
+      (next: Record<string, unknown>) => onPatch(id, next),
+      [id, onPatch]
+    );
+    const setEnabled = useCallback(
+      (enabled: boolean) => onPatch(id, { enabled }),
+      [id, onPatch]
+    );
+    const remove = useCallback(() => onRemove(id), [id, onRemove]);
+    const moveUp = useCallback(() => onMove(id, -1), [id, onMove]);
+    const moveDown = useCallback(() => onMove(id, 1), [id, onMove]);
+
+    return (
+      <FlexColumn gap={SPACING.xs} sx={ROW_SX}>
+        <FlexRow align="center" justify="space-between" gap={SPACING.md}>
+          <Text size="small">{name}</Text>
+          <FlexRow align="center" gap={SPACING.micro}>
+            <ToolbarIconButton
+              icon={<ArrowUpwardOutlinedIcon />}
+              tooltip={`Move ${name} up`}
+              aria-label={`Move ${name} up`}
+              size="small"
+              disabled={isFirst}
+              onClick={moveUp}
+            />
+            <ToolbarIconButton
+              icon={<ArrowDownwardOutlinedIcon />}
+              tooltip={`Move ${name} down`}
+              aria-label={`Move ${name} down`}
+              size="small"
+              disabled={isLast}
+              onClick={moveDown}
+            />
+            <DeleteButton
+              onClick={remove}
+              tooltip={`Remove ${name} effect`}
+              ariaLabel={`Remove ${name} effect`}
+              iconVariant="clear"
+              sx={DELETE_SX}
+            />
+          </FlexRow>
+        </FlexRow>
+        <InspectorToggleRow
+          label="Enabled"
+          checked={effect.enabled}
+          onChange={setEnabled}
+        />
+        <EffectFields effect={effect} onPatch={patch} />
+      </FlexColumn>
+    );
+  }
+);
+EffectRow.displayName = "EffectRow";
+
 interface ClipEffectsListProps {
   clip: TimelineClip;
 }
@@ -552,8 +631,17 @@ export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
       [setEffects]
     );
 
-    const listed = (clip.effects ?? []).filter(
-      (effect) => !SECTION_OWNED_IDS.has(effect.id)
+    const handleNewType = useCallback(
+      (value: string) => setNewType(value as AddableEffectType),
+      []
+    );
+
+    const listed = useMemo(
+      () =>
+        (clip.effects ?? []).filter(
+          (effect) => !SECTION_OWNED_IDS.has(effect.id)
+        ),
+      [clip.effects]
     );
 
     return (
@@ -576,7 +664,7 @@ export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
                 label="New effect type"
                 value={newType}
                 options={ADDABLE_EFFECTS}
-                onChange={(value) => setNewType(value as AddableEffectType)}
+                onChange={handleNewType}
                 grow
               />
               <Button
@@ -595,60 +683,17 @@ export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
                 effects apply in list order.
               </Caption>
             ) : (
-              listed.map((effect, index) => {
-                const name = EFFECT_LABELS[effect.type] ?? effect.type;
-                return (
-                  <FlexColumn
-                    key={effect.id}
-                    gap={SPACING.xs}
-                    sx={{
-                      borderTop: (theme) =>
-                        `1px solid ${theme.vars.palette.divider}`,
-                      pt: SPACING.md
-                    }}
-                  >
-                    <FlexRow align="center" justify="space-between" gap={SPACING.md}>
-                      <Text size="small">{name}</Text>
-                      <FlexRow align="center" gap={SPACING.micro}>
-                        <ToolbarIconButton
-                          icon={<ArrowUpwardOutlinedIcon />}
-                          tooltip={`Move ${name} up`}
-                          aria-label={`Move ${name} up`}
-                          size="small"
-                          disabled={index === 0}
-                          onClick={() => moveEffect(effect.id, -1)}
-                        />
-                        <ToolbarIconButton
-                          icon={<ArrowDownwardOutlinedIcon />}
-                          tooltip={`Move ${name} down`}
-                          aria-label={`Move ${name} down`}
-                          size="small"
-                          disabled={index === listed.length - 1}
-                          onClick={() => moveEffect(effect.id, 1)}
-                        />
-                        <DeleteButton
-                          onClick={() => removeEffect(effect.id)}
-                          tooltip={`Remove ${name} effect`}
-                          ariaLabel={`Remove ${name} effect`}
-                          iconVariant="clear"
-                          sx={INSPECTOR_ROW_BUTTON_SX}
-                        />
-                      </FlexRow>
-                    </FlexRow>
-                    <InspectorToggleRow
-                      label="Enabled"
-                      checked={effect.enabled}
-                      onChange={(enabled) =>
-                        patchEffect(effect.id, { enabled })
-                      }
-                    />
-                    <EffectFields
-                      effect={effect}
-                      onPatch={(patch) => patchEffect(effect.id, patch)}
-                    />
-                  </FlexColumn>
-                );
-              })
+              listed.map((effect, index) => (
+                <EffectRow
+                  key={effect.id}
+                  effect={effect}
+                  isFirst={index === 0}
+                  isLast={index === listed.length - 1}
+                  onPatch={patchEffect}
+                  onRemove={removeEffect}
+                  onMove={moveEffect}
+                />
+              ))
             )}
           </FlexColumn>
         </CollapsibleSection>

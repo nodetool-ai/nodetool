@@ -237,7 +237,46 @@ export interface Shot {
    * `"keyframe"`.
    */
   render_mode?: ShotRenderMode;
+  /**
+   * The clip this shot's picture is cut out of, when one generation covers
+   * several shots. Null or absent means the shot renders its own.
+   */
+  covered_by?: ShotCoverage | null;
 }
+
+/**
+ * A shot whose picture is a slice of another shot's clip.
+ *
+ * Video models return a fixed window — one returns 5.184s whatever the shot
+ * was directed at — so a cut whose beats run 1.5-2.2s is rendered as one
+ * generation spanning several of them and split on the timeline. The
+ * generation attaches to the first shot of the run; each of the others names
+ * it here with the window it uses. Without this the siblings sat at
+ * `has_clip: false` for the rest of the session and read as unrendered, and
+ * the default `render_storyboard_clips` selection offered to generate them
+ * again.
+ *
+ * One level only: the shot named by {@link shot_id} must own its clip. A chain
+ * would let a window be measured against a window, and the second hop has no
+ * source length of its own to measure against.
+ */
+export interface ShotCoverage {
+  /** The shot whose `clip` holds this shot's picture. */
+  shot_id: string;
+  /** Where this shot begins inside that clip, in seconds. Defaults to 0. */
+  start_seconds?: number;
+  /**
+   * Where it ends, in seconds. When set it is the shot's length on the
+   * timeline; without it the shot takes its own `duration_seconds`, capped at
+   * what is left of the covering clip.
+   */
+  end_seconds?: number;
+}
+
+/** A shot's coverage, or null when it renders its own picture. */
+export const shotCoverage = (
+  shot: Pick<Shot, "covered_by">
+): ShotCoverage | null => shot.covered_by ?? null;
 
 /** Whether a shot's length follows its linked audio or a pinned user value. */
 export type ShotDurationSource = "audio" | "manual";

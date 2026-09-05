@@ -5,28 +5,161 @@
  * and the live timeline editor, mirroring `model3DToolBridge` for the 3D editor.
  *
  * Each open {@link TimelineEditor} registers a {@link TimelineAgentHandler}
- * under its sequence id on mount (and clears it on unmount). Tools name the
- * sequence they target, so every open sequence is addressable regardless of
- * which one has focus.
+ * under its sequence id on mount (and clears it on unmount). The handler closes
+ * over that editor's per-instance stores (document, UI, playback) plus the
+ * direct-generation job runner. Tools name the sequence they target, so every
+ * open sequence is addressable regardless of which one has focus.
  *
- * The handler carries no op semantics of its own: `applyOp` runs the op through
- * `applyTimelineOp` from `@nodetool-ai/timeline/ops` — the same function the
- * headless eval bridge and mobile run — and writes the document it returns back
- * to the store. Only what a pure function cannot do stays here: starting a
- * generation job and sampling rendered frames.
+ * Everything crossing the bridge is a plain serializable value: the agent reads
+ * {@link TimelineSnapshot} / {@link TimelineClipNode} objects and never touches
+ * Zustand store handles directly.
  */
 
-import type { TimelineOp, TimelineOpResult } from "@nodetool-ai/timeline/ops";
+import type {
+  ClipShapeStyle,
+  ClipTextStyle,
+  StaggerUnit
+} from "@nodetool-ai/timeline";
+import type { timeline } from "@nodetool-ai/protocol/api-schemas";
+import type {
+  AddGroupParams,
+  EffectParams,
+  MaskParams,
+  MatteParams,
+  TimeRemapParams,
+  TransitionParams
+} from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 
+/**
+ * The style bags are the document's own types, not a copy. Three were
+ * hand-written here and each fell behind the renderer — this file's
+ * `TimelineShapeStyle` listed `path | polygon | star` while the tool schema
+ * did not, so the two disagreed on what a shape could be and an agent could
+ * build a document the tools could not express.
+ */
+type TimelineTextStyle = ClipTextStyle;
+type TimelineShapeStyle = ClipShapeStyle;
+type TimelineCaptionStyle = timeline.CaptionStyle;
+
+/** Serializable view of a single timeline track. */
+export interface TimelineTrackNode {
+  id: string;
+  name: string;
+  type: "video" | "audio" | "overlay" | "subtitle";
+  index: number;
+  visible: boolean;
+  locked: boolean;
+  muted: boolean;
+  solo: boolean;
+  /** Number of clips currently on this track. */
+  clipCount: number;
+}
+
+/** Serializable view of a single timeline clip (editor-friendly units). */
+export interface TimelineClipNode {
+  id: string;
+  name: string;
+  trackId: string;
+  /** Name of the clip's track, or null when the track is gone. */
+  trackName: string | null;
+  mediaType:
+    | "image"
+    | "video"
+    | "audio"
+    | "overlay"
+    | "text"
+    | "shape"
+    | "group";
+  sourceType: "imported" | "generated";
+  bindingKind?: string;
+  /** Absolute start on the sequence timeline (ms). */
+  startMs: number;
+  durationMs: number;
+  /** Absolute end on the sequence timeline (ms) — startMs + durationMs. */
+  endMs: number;
+  inPointMs?: number;
+  outPointMs?: number;
+  status: string;
+  /** Whether the clip has a rendered asset (generated clips). */
+  hasRender: boolean;
+  prompt?: string;
+  provider?: string;
+  model?: string;
+  voice?: string;
+  workflowId?: string;
+  width?: number;
+  height?: number;
+  aspectRatio?: string;
+  resolution?: string;
+  speedMultiplier?: number;
+  opacity?: number;
+  volumeDb?: number;
+  fadeInMs?: number;
+  fadeOutMs?: number;
+  hidden: boolean;
+  muted: boolean;
+  locked: boolean;
+  /** Motion-design animations attached to the clip, when any. */
+  animations?: TimelineAnimationNode[];
+  textStyle?: TimelineTextStyle;
+  shapeStyle?: TimelineShapeStyle;
+  /** The group clip this one inherits from, when it is in one. */
+  parentId?: string;
+}
+
+/** Serializable view of one motion-design animation on a clip. */
+export interface TimelineAnimationNode {
+  id: string;
+  role: "in" | "out" | "emphasis" | "loop";
+  preset: string;
+  durationMs: number;
+  delayMs?: number;
+  easing?: string;
+  enabled?: boolean;
+  params?: Record<string, number | string | boolean>;
+}
+
+/** Serializable view of a marker on the ruler. */
+export interface TimelineMarkerNode {
+  id: string;
+  timeMs: number;
+  label: string;
+  color?: string;
+  note?: string;
+}
+
+/** What `addMarker` places. */
+export interface TimelineAddMarkerOptions {
+  timeMs: number;
+  label?: string;
+  color?: string;
+  note?: string;
+}
+
+/** Full snapshot of the open sequence the agent reads to plan edits. */
+export interface TimelineSnapshot {
+  sequenceId: string | null;
+  fps: number;
+  /** Sequence resolution. */
+  width: number;
+  height: number;
+  durationMs: number;
+  /** Current playhead position (ms). */
+  playheadMs: number;
+  /** Ids of the currently-selected clips. */
+  selectedClipIds: string[];
+  tracks: TimelineTrackNode[];
+  clips: TimelineClipNode[];
+  markers: TimelineMarkerNode[];
+}
+
+/** Direct-generation kinds the agent can spawn. */
 export type TimelineGenerateKind =
   | "text-to-video"
   | "text-to-image"
   | "text-to-audio";
 
-/** The clip shape every op result reports (`serializeClip`). */
-export type TimelineClipSummary = Record<string, unknown> & { id: string };
-
-export interface TimelineGenerateOptions {
+interface TimelineGenerateOptions {
   kind: TimelineGenerateKind;
   prompt: string;
   /** Target track id; defaults to a sensible track for the media kind. */
@@ -46,15 +179,87 @@ export interface TimelineGenerateOptions {
   autoGenerate?: boolean;
 }
 
-export interface TimelineGenerateResult {
-  clip: TimelineClipSummary;
+interface TimelineGenerateResult {
+  clip: TimelineClipNode;
   /** True when a generation job was dispatched for the new clip. */
   generationStarted: boolean;
   /** Why generation did not start, when applicable. */
   note?: string;
 }
 
-export interface TimelineClipFramesOptions {
+export interface TimelineAddTextClipOptions {
+  text: string;
+  trackId?: string;
+  startMs?: number;
+  durationMs?: number;
+  /** Every field is optional — `textStyleWithDefaults` fills in the required ones. */
+  style?: Partial<Omit<TimelineTextStyle, "text">>;
+  /** Clip opacity, 0..1. */
+  opacity?: number;
+}
+
+export interface TimelineAddShapeClipOptions {
+  shape: TimelineShapeStyle;
+  trackId?: string;
+  startMs?: number;
+  durationMs?: number;
+  /** Clip opacity, 0..1. A scrim can be authored with this or with an alpha fill. */
+  opacity?: number;
+}
+
+/** Render/audio params the agent can patch on any clip. */
+interface TimelineClipParamsPatch {
+  name?: string;
+  opacity?: number;
+  speedMultiplier?: number;
+  volumeDb?: number;
+  fadeInMs?: number;
+  fadeOutMs?: number;
+  blendMode?: string;
+  borderRadius?: number;
+  hidden?: boolean;
+  muted?: boolean;
+  locked?: boolean;
+  /** Merged over the clip's own style — a partial patch, not a replacement. */
+  textStyle?: Partial<TimelineTextStyle>;
+  shapeStyle?: TimelineShapeStyle;
+  captionStyle?: TimelineCaptionStyle;
+}
+
+/** Generation-binding fields the agent can change on a generated clip. */
+interface TimelineClipBindingPatch {
+  prompt?: string;
+  negativePrompt?: string;
+  provider?: string;
+  model?: string;
+  voice?: string;
+  width?: number;
+  height?: number;
+  aspectRatio?: string;
+  resolution?: string;
+  strength?: number;
+  numInferenceSteps?: number;
+  /** Re-run generation after applying the patch (default false). */
+  regenerate?: boolean;
+}
+
+interface TimelineTrimPatch {
+  /** New clip duration on the timeline (ms). */
+  durationMs?: number;
+  /** Source-time trim start (ms). */
+  inPointMs?: number;
+  /** Source-time trim end (ms). */
+  outPointMs?: number;
+}
+
+interface TimelineMovePatch {
+  /** New absolute start on the timeline (ms). */
+  startMs?: number;
+  /** Reassign the clip to a different track. */
+  trackId?: string;
+}
+
+interface TimelineClipFramesOptions {
   /** Absolute timeline timestamps to sample. Defaults to evenly spaced samples. */
   timesMs?: number[];
   /** Number of evenly spaced samples when `timesMs` is omitted. */
@@ -75,37 +280,165 @@ export interface TimelineClipFrameNode {
   dataUrl: string;
 }
 
-export interface TimelineClipFramesResult {
-  clip: TimelineClipSummary;
+interface TimelineClipFramesResult {
+  clip: TimelineClipNode;
   frames: TimelineClipFrameNode[];
 }
 
+/** One animation the agent asks to apply. Ids and defaults are filled in by
+ *  the handler from the preset catalog. */
+export interface ClipAnimationInput {
+  role: "in" | "out" | "emphasis" | "loop";
+  preset: string;
+  /**
+   * Keyframes for `preset: "custom"` — the motion no preset covers. `t` runs
+   * 0..1 over the animation's window. The browser path takes curves only: a
+   * `code` body is baked host-side, and the editor has no client for that
+   * route, so it is refused here rather than silently ignored.
+   */
+  curves?: unknown;
+  code?: string;
+  mask?: unknown;
+  durationMs?: number;
+  delayMs?: number;
+  easing?: string;
+  enabled?: boolean;
+  params?: Record<string, number | string | boolean>;
+  /**
+   * Per-unit stagger — text clips only. Each word, grapheme cluster or
+   * wrapped line runs the animation for `durationMs`, delayed `offsetMs` from
+   * the previous unit (`from` picks which unit leads; default "start"). The
+   * handler throws when the target clip is not a text clip.
+   */
+  stagger?: {
+    unit: StaggerUnit;
+    offsetMs: number;
+    from?: "start" | "end" | "center";
+  };
+}
+
+/** Place an asset the library already holds as a clip. */
+export interface TimelineAddMediaClipOptions {
+  /** Asset id or `asset://<id>.<ext>` URI. */
+  asset: string;
+  trackId?: string;
+  startMs?: number;
+  /** Overrides the asset's own duration. */
+  durationMs?: number;
+  /** Overrides the asset's name as the clip label. */
+  name?: string;
+}
+
+/** How {@link TimelineAgentHandler.setClipAnimations} applies its inputs. */
+type ClipAnimationMode = "add" | "replace";
+
 /**
- * What the live {@link TimelineEditor} exposes to the agent tooling layer.
- *
- * `applyOp` covers every op in `TIMELINE_OP_NAMES`; the two other members are
- * the host I/O no pure op can do. A refusal is thrown, so the tool layer
- * reports it the way it reports any other failure.
+ * Operations the live {@link TimelineEditor} exposes to the agent tooling
+ * layer. Clips and tracks are addressed by id or by (case-insensitive) name;
+ * the literal `"selected"` resolves to the single selected clip. Each mutator
+ * returns the affected node(s) so the agent gets immediate feedback.
  */
 export interface TimelineAgentHandler {
+  getSnapshot: () => TimelineSnapshot;
+  addTrack: (
+    type: TimelineTrackNode["type"],
+    name?: string
+  ) => TimelineTrackNode;
   /**
-   * The sequence the editor has actually loaded, or null while it is still
-   * loading. The handler registers on mount, before the document arrives, so
-   * `ui_open_document` waits on this rather than on registration.
+   * Reorder one track. Track order is z-order, so this is how a picture track
+   * added after its overlays stops covering them. Returns the whole stack in
+   * its new order.
    */
-  getSequenceId: () => string | null;
-  applyOp: (op: TimelineOp) => Promise<TimelineOpResult>;
-  /** Create the clip through `applyOp`, then start the generation job. */
+  moveTrack: (
+    target: string,
+    destination: { toIndex?: number; before?: string; after?: string }
+  ) => TimelineTrackNode[];
+  /**
+   * Remove one track, and with it the clips on it when `deleteClips` says so.
+   * The editor's own track menu has done this all along; without it here the
+   * agent could add a track and never take it back. Returns the stack that is
+   * left, reindexed, plus the clips that went with it.
+   */
+  deleteTrack: (
+    target: string,
+    deleteClips: boolean
+  ) => { deleted: TimelineTrackNode; deletedClipIds: string[]; tracks: TimelineTrackNode[] };
   generateClip: (
     opts: TimelineGenerateOptions
   ) => Promise<TimelineGenerateResult>;
-  /** Re-run generation for a clip whose binding just changed. */
-  regenerateClip: (clipId: string) => Promise<void>;
-  /** Sample rendered frames from one clip. No document mutation. */
+  /**
+   * Place an existing library asset. Async because the asset row is fetched
+   * for its media type, duration and thumbnail.
+   */
+  addMediaClip: (
+    opts: TimelineAddMediaClipOptions
+  ) => Promise<TimelineClipNode>;
+  addTextClip: (opts: TimelineAddTextClipOptions) => TimelineClipNode;
+  addShapeClip: (opts: TimelineAddShapeClipOptions) => TimelineClipNode;
+  /** Split a clip at the given time (defaults to the playhead). */
+  splitClip: (target: string, atMs?: number) => TimelineClipNode[];
+  trimClip: (target: string, patch: TimelineTrimPatch) => TimelineClipNode;
+  moveClip: (target: string, patch: TimelineMovePatch) => TimelineClipNode;
+  deleteClip: (target: string) => TimelineClipNode;
+  duplicateClip: (target: string, gapMs?: number) => Promise<TimelineClipNode>;
+  setClipParams: (
+    target: string,
+    patch: TimelineClipParamsPatch
+  ) => TimelineClipNode;
+  setClipBinding: (
+    target: string,
+    patch: TimelineClipBindingPatch
+  ) => Promise<TimelineClipNode>;
+  /**
+   * Apply motion-design animations to a clip. `replace` (default) swaps the
+   * clip's animations; `add` appends. Throws with the valid options when a
+   * preset is unknown or a role is not allowed for the preset.
+   */
+  setClipAnimations: (
+    target: string,
+    animations: ClipAnimationInput[],
+    mode: ClipAnimationMode
+  ) => TimelineClipNode;
+  /** Remove a clip's animations, optionally only those of one role. */
+  clearClipAnimations: (
+    target: string,
+    role?: ClipAnimationInput["role"]
+  ) => TimelineClipNode;
   getClipFrames: (
     target: string,
     opts: TimelineClipFramesOptions
   ) => Promise<TimelineClipFramesResult>;
+  /** Create a group clip and optionally parent clips to it. */
+  addGroup: (opts: AddGroupParams) => {
+    clip: TimelineClipNode;
+    children: string[];
+  };
+  /** Parent a clip to a group, or release it with `parentId: null`. */
+  setParent: (target: string, parentId: string | null) => TimelineClipNode;
+  setTransition: (
+    target: string,
+    transition: TransitionParams | null
+  ) => TimelineClipNode;
+  setMask: (target: string, mask: MaskParams | null) => TimelineClipNode;
+  setMatte: (target: string, matte: MatteParams | null) => TimelineClipNode;
+  /**
+   * Retime a clip from a curve, or clear it with null so it plays at its own
+   * rate. The curve is checked by `buildTimeRemap`, so both hosts refuse the
+   * same shapes.
+   */
+  setTimeRemap: (
+    target: string,
+    timeRemap: TimeRemapParams | null
+  ) => TimelineClipNode;
+  /** Replace the whole chain; an empty list clears it. */
+  setEffects: (target: string, effects: EffectParams[]) => TimelineClipNode;
+  selectClip: (target: string | null) => TimelineClipNode | null;
+  /** Move the playhead and return the resulting position (ms). */
+  seek: (timeMs: number) => number;
+  /** Flag a moment on the ruler. Markers annotate; they do not render. */
+  addMarker: (opts: TimelineAddMarkerOptions) => TimelineMarkerNode;
+  /** Remove a marker by id or by case-insensitive label. */
+  deleteMarker: (target: string) => TimelineMarkerNode;
 }
 
 const handlers = new Map<string, TimelineAgentHandler>();
