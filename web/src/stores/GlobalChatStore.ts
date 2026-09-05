@@ -13,8 +13,6 @@
  */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { useQuery } from "@tanstack/react-query";
-import React from "react";
 import {
   Message,
   TaskUpdate,
@@ -1169,7 +1167,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       fetchThreads: async () => {
         set({ isLoadingThreads: true });
         try {
-          const data = await trpcClient.threads.list.query({});
+          const data = await trpcClient.threads.list.query({ limit: 100 });
 
           const threadsRecord: Record<string, Thread> = {};
           data.threads.forEach((thread) => {
@@ -1886,61 +1884,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
     }
   )
 );
-
-// Custom hook for TanStack Query thread loading
-export const useThreadsQuery = () => {
-  const query = useQuery({
-    queryKey: ["threads"],
-    queryFn: async () => {
-      const data = await trpcClient.threads.list.query({ limit: 100 });
-      console.debug("Threads fetched:", data);
-      return data;
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false
-  });
-
-  // Handle success and error states using useEffect
-  React.useEffect(() => {
-    if (query.isSuccess && query.data) {
-      const threadsRecord: Record<string, Thread> = {};
-      query.data.threads.forEach((thread) => {
-        threadsRecord[thread.id] = thread;
-      });
-
-      // Merge with existing threads so locally-created/optimistic threads
-      // that haven't reached the server yet don't get wiped on refetch, and
-      // hydrate the thread→workflow map from the server (see fetchThreads).
-      useGlobalChatStore.setState((state) => {
-        const threadWorkflowId = { ...state.threadWorkflowId };
-        for (const thread of query.data.threads) {
-          if (thread.workflow_id != null) {
-            threadWorkflowId[thread.id] = thread.workflow_id;
-          }
-        }
-        return {
-          threads: { ...state.threads, ...threadsRecord },
-          threadWorkflowId,
-          threadsLoaded: true,
-          isLoadingThreads: false
-        };
-      });
-    }
-  }, [query.isSuccess, query.data]);
-
-  React.useEffect(() => {
-    if (query.isError) {
-      // Update store with error state
-      useGlobalChatStore.setState({
-        threadsLoaded: true,
-        isLoadingThreads: false
-      });
-      console.error("Failed to fetch threads:", query.error);
-    }
-  }, [query.isError, query.error]);
-
-  return query;
-};
 
 /**
  * Subscribe to one thread's generation runtime. Returns the default (idle)

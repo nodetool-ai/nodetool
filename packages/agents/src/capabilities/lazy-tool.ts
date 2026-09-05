@@ -9,17 +9,21 @@
  * `Tool.process()` is already async, so the implementation can arrive on the
  * first invoke, from the one module that owns it.
  *
- * Gating is unchanged and stays single-pass. Like `CapabilityTool` before it,
- * this calls the implementation directly rather than `run.invoke`: a belt is
- * gated from the outside by `gateTools`, which runs the one ladder in
- * `invoke.ts`. Routing through `invoke` here would gate twice.
+ * Gating is unchanged and stays single-pass. This calls the implementation
+ * directly rather than `run.invoke`: a belt is gated from the outside by
+ * `gateTools`, which runs the one ladder in `invoke.ts`. Routing through
+ * `invoke` here would gate twice.
+ *
+ * Argument validation is single-pass for the same reason. `Tool.execute`
+ * exposes no `schema`, so it does not pre-parse; the check runs here, once,
+ * through `validateCapabilityArgs` — the same function `gatedCall` runs for a
+ * call that arrives through `invoke` instead.
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { JsonSchema } from "@nodetool-ai/runtime";
-import type { ZodType } from "zod";
 import { Tool } from "../tools/base-tool.js";
-import { withSnakeCaseAliases } from "./args.js";
+import { validateCapabilityArgs, withSnakeCaseAliases } from "./args.js";
 import { capabilitySpec, loadCapabilityImpl } from "./registry.js";
 import { ungatedCapabilityRun } from "./invoke.js";
 import type { CapabilityRunSource } from "./adapters.js";
@@ -45,14 +49,6 @@ class LazyCapabilityTool extends Tool {
     return this.spec.inputSchema;
   }
 
-  /**
-   * The Zod schema for the capabilities whose identity is one. `Tool.execute`
-   * then validates on the way in, exactly where the class this replaced did.
-   */
-  override get schema(): ZodType | undefined {
-    return this.spec.zodSchema;
-  }
-
   override userMessage(params: Record<string, unknown>): string {
     const template = this.spec.userMessage?.(params);
     if (template) return template;
@@ -63,12 +59,16 @@ class LazyCapabilityTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
+    const checked = validateCapabilityArgs(
+      this.spec,
+      withSnakeCaseAliases(params)
+    );
+    if (!checked.ok) return checked.error;
     const impl = await loadCapabilityImpl(this.spec.name);
-    const run =
-      isFunction(this.runSource)
-        ? this.runSource(context)
-        : this.runSource;
-    return impl(run, withSnakeCaseAliases(params));
+    const run = isFunction(this.runSource)
+      ? this.runSource(context)
+      : this.runSource;
+    return impl(run, checked.args);
   }
 }
 

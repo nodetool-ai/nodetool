@@ -734,85 +734,6 @@ export async function handleDebugSessionRequest(
   return errorResponse(404, "Not found");
 }
 
-// ── Autosave ──────────────────────────────────────────────────────────
-
-export async function handleWorkflowAutosave(
-  request: Request,
-  workflowId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "POST" && request.method !== "PUT") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-  if (!workflow) return errorResponse(404, "Workflow not found");
-  if (workflow.user_id !== userId)
-    return errorResponse(404, "Workflow not found");
-
-  const body = await parseBody(request, workflowAutosaveBodySchema);
-  if (!body || !body.graph) {
-    return errorResponse(400, "Invalid body: graph is required");
-  }
-  const graph = body.graph;
-  const force = body.force === true;
-  const { policy: retentionPolicy } = await getStorageRetentionSettings(userId);
-  const maxVersions = retentionPolicy.maxAutosavesPerWorkflow;
-
-  // Rate-limit: skip if last autosave < 30s ago and force is false
-  if (!force) {
-    const last = lastAutosaveTime.get(workflowId);
-    if (last !== undefined && Date.now() - last < AUTOSAVE_RATE_LIMIT_MS) {
-      return jsonResponse({
-        version: null,
-        message: "Autosave skipped (rate limited)",
-        skipped: true
-      });
-    }
-  }
-
-  workflow.graph = graph;
-  if (body.name !== undefined) workflow.name = body.name;
-  if (body.description !== undefined) workflow.description = body.description;
-  if (body.access === "public" || body.access === "private")
-    workflow.access = body.access;
-  await workflow.save();
-  lastAutosaveTime.set(workflowId, Date.now());
-
-  // Create a version and prune old ones if WorkflowVersion table is available
-  let version: JsonObject | null = null;
-  try {
-    const nextVer = await WorkflowVersion.nextVersion(workflowId);
-    const wv = new WorkflowVersion({
-      workflow_id: workflowId,
-      user_id: userId,
-      graph,
-      version: nextVer,
-      save_type: "autosave",
-      name: workflow.name,
-      description: workflow.description
-    });
-    await wv.save();
-    version = {
-      id: wv.id,
-      version: wv.version,
-      workflow_id: wv.workflow_id,
-      save_type: wv.save_type,
-      created_at: wv.created_at
-    } as JsonObject;
-    await WorkflowVersion.pruneOldAutosaves(workflowId, maxVersions);
-  } catch {
-    // non-fatal — version table may not exist
-  }
-
-  return jsonResponse({
-    version,
-    message: "Autosaved successfully",
-    skipped: false
-  });
-}
-
 // ── Workflow tools ─────────────────────────────────────────────────────
 
 export async function handleWorkflowTools(
@@ -1111,81 +1032,6 @@ export async function handleWorkflowExamplesThumbnail(
   });
 }
 
-// ── Workflow app page ──────────────────────────────────────────────────
-
-export async function handleWorkflowApp(
-  request: Request,
-  workflowId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "GET") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const baseUrl = options.baseUrl ?? "http://127.0.0.1:7777";
-  const html = `<!DOCTYPE html><html><head><title>Workflow App</title>
-<script>window.WORKFLOW_ID=${JSON.stringify(workflowId)};window.API_URL=${JSON.stringify(baseUrl)};</script>
-</head><body><div id="app"></div></body></html>`;
-  return new Response(html, {
-    status: 200,
-    headers: { "content-type": "text/html" }
-  });
-}
-
-// ── Workflow generate-name ─────────────────────────────────────────────
-
-/**
- * Generate a descriptive name for a workflow based on its node types.
- * The Python backend uses an LLM for this; the TS standalone mode derives
- * a name from the workflow graph's node types instead.
- *
- * Node types follow the pattern `<root>.<category>[.<subcategory>...]`,
- * e.g. `nodetool.text.Generate`. We collect unique category segments
- * (parts[1]) to form a human-readable label.
- */
-function deriveWorkflowName(workflow: Workflow): string {
-  const graph = workflow.graph as { nodes?: Array<{ type?: unknown }> } | null;
-  const nodes: Array<{ type?: unknown }> = graph?.nodes ?? [];
-  if (nodes.length === 0) {
-    return workflow.name || "Untitled Workflow";
-  }
-  // Collect unique category segments from node types (second dotted segment).
-  const categories = new Set<string>();
-  for (const n of nodes) {
-    if (isString(n.type)) {
-      const parts = n.type.split(".");
-      // Require at least root.category format.
-      if (parts.length >= 2 && parts[1]) {
-        categories.add(parts[1]);
-      }
-    }
-  }
-  const segments = Array.from(categories).slice(0, 3);
-  if (segments.length === 0) {
-    return workflow.name || "Untitled Workflow";
-  }
-  const label = segments
-    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-    .join(" + ");
-  return `${label} Workflow`;
-}
-
-export async function handleWorkflowGenerateName(
-  request: Request,
-  workflowId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "POST") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-  if (!workflow) return errorResponse(404, "Workflow not found");
-  if (workflow.user_id !== userId)
-    return errorResponse(404, "Workflow not found");
-  const name = deriveWorkflowName(workflow);
-  return jsonResponse({ name });
-}
-
 // ── Workflow DSL export (stub) ─────────────────────────────────────────
 
 export async function handleWorkflowDslExport(
@@ -1422,129 +1268,6 @@ export async function handleWorkflowImportBundle(
   });
 }
 
-// ── Workflow versions ──────────────────────────────────────────────────
-
-function toVersionResponse(v: WorkflowVersion) {
-  return {
-    id: v.id,
-    workflow_id: v.workflow_id,
-    user_id: v.user_id,
-    name: v.name,
-    description: v.description,
-    graph: v.graph,
-    version: v.version,
-    save_type: v.save_type ?? "manual",
-    autosave_metadata: v.autosave_metadata ?? null,
-    created_at: v.created_at
-  };
-}
-
-export async function handleWorkflowVersions(
-  request: Request,
-  workflowId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  if (request.method === "POST") {
-    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-    if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId)
-      return errorResponse(404, "Workflow not found");
-
-    const body = await parseBody(request, workflowVersionCreateBodySchema);
-    const nextVer = await WorkflowVersion.nextVersion(workflowId);
-    const version = (await WorkflowVersion.create({
-      workflow_id: workflowId,
-      user_id: userId,
-      name: body?.name ?? null,
-      description: body?.description ?? null,
-      graph: workflow.graph,
-      version: nextVer
-    })) as WorkflowVersion;
-    return jsonResponse(toVersionResponse(version));
-  }
-
-  if (request.method === "GET") {
-    // Version history (and its full graphs) is private to the owner. Enforce
-    // ownership before listing, mirroring the POST branch — otherwise any
-    // authenticated user could read another user's workflows by id (IDOR).
-    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-    if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId && workflow.access !== "public")
-      return errorResponse(404, "Workflow not found");
-
-    const url = new URL(request.url);
-    const limit = parseLimit(url, 100);
-    const versions = await WorkflowVersion.listForWorkflow(workflowId, {
-      limit
-    });
-    return jsonResponse({ versions: versions.map(toVersionResponse) });
-  }
-
-  return errorResponse(405, "Method not allowed");
-}
-
-export async function handleWorkflowVersionByNumber(
-  request: Request,
-  workflowId: string,
-  versionNumber: number,
-  options: HttpApiOptions
-): Promise<Response> {
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  if (request.method === "GET") {
-    const version = await WorkflowVersion.findByVersion(
-      workflowId,
-      versionNumber
-    );
-    if (!version) return errorResponse(404, "Version not found");
-    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-    if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId)
-      return errorResponse(404, "Workflow not found");
-    return jsonResponse(toVersionResponse(version));
-  }
-
-  if (request.method === "POST") {
-    // restore: copy version graph back to workflow
-    const version = await WorkflowVersion.findByVersion(
-      workflowId,
-      versionNumber
-    );
-    if (!version) return errorResponse(404, "Version not found");
-    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-    if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId)
-      return errorResponse(404, "Workflow not found");
-    workflow.graph = version.graph;
-    await workflow.save();
-    return jsonResponse(toWorkflowResponse(workflow));
-  }
-
-  return errorResponse(405, "Method not allowed");
-}
-
-export async function handleWorkflowVersionDeleteById(
-  request: Request,
-  _workflowId: string,
-  versionId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "DELETE") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  const version = (await WorkflowVersion.get(
-    versionId
-  )) as WorkflowVersion | null;
-  if (!version) return errorResponse(404, "Version not found");
-  if (version.user_id !== userId)
-    return errorResponse(404, "Version not found");
-  await version.delete();
-  return new Response(null, { status: 204 });
-}
-
 export async function handleWorkflowsRoot(
   request: Request,
   options: HttpApiOptions
@@ -1701,21 +1424,6 @@ export function toJobResponse(job: Job) {
     cost: job.cost ?? null,
     outputs: job.runOutputs()
   };
-}
-
-// ── Nodes dummy ───────────────────────────────────────────────────
-
-export async function handleNodesDummy(request: Request): Promise<Response> {
-  if (request.method !== "GET") {
-    return errorResponse(405, "Method not allowed");
-  }
-  return jsonResponse({
-    type: "asset",
-    uri: "",
-    asset_id: null,
-    data: null,
-    metadata: null
-  });
 }
 
 // ── Asset types & helpers ──────────────────────────────────────────
@@ -2007,22 +1715,6 @@ export async function handleApiRequest(
     if (response) return response;
   }
 
-  if (pathname === "/api/users/validate_username") {
-    if (request.method !== "GET")
-      return errorResponse(405, "Method not allowed");
-    const url = new URL(request.url);
-    const username = url.searchParams.get("username")?.trim() ?? null;
-    if (username === null)
-      return errorResponse(400, "username parameter is required");
-    if (!username) return errorResponse(400, "username cannot be empty");
-    const valid = /^[a-zA-Z0-9_-]{3,32}$/.test(username);
-    return jsonResponse({ valid, available: true });
-  }
-
-  if (pathname === "/api/nodes/dummy") {
-    return handleNodesDummy(request);
-  }
-
   if (pathname === "/api/nodes/metadata" || pathname === "/api/node/metadata") {
     return handleNodeMetadata(request, options);
   }
@@ -2125,56 +1817,11 @@ export async function handleApiRequest(
       if (subPath === "debug") {
         return handleWorkflowRun(request, workflowId, options, true);
       }
-      if (subPath === "autosave") {
-        return handleWorkflowAutosave(request, workflowId, options);
-      }
-      if (subPath === "app") {
-        return handleWorkflowApp(request, workflowId, options);
-      }
-      if (subPath === "generate-name") {
-        return handleWorkflowGenerateName(request, workflowId, options);
-      }
       if (subPath === "dsl-export") {
         return handleWorkflowDslExport(request, workflowId, options);
       }
       if (subPath === "export-bundle") {
         return handleWorkflowExportBundle(request, workflowId, options);
-      }
-      if (subPath === "versions") {
-        return handleWorkflowVersions(request, workflowId, options);
-      }
-      // /api/workflows/{id}/versions/{version}/restore
-      const versionRestoreMatch = subPath.match(/^versions\/(\d+)\/restore$/);
-      if (versionRestoreMatch) {
-        const versionNum = Number.parseInt(versionRestoreMatch[1], 10);
-        return handleWorkflowVersionByNumber(
-          request,
-          workflowId,
-          versionNum,
-          options
-        );
-      }
-      // /api/workflows/{id}/versions/{version} (GET by version number)
-      const versionNumMatch = subPath.match(/^versions\/(\d+)$/);
-      if (versionNumMatch) {
-        const versionNum = Number.parseInt(versionNumMatch[1], 10);
-        return handleWorkflowVersionByNumber(
-          request,
-          workflowId,
-          versionNum,
-          options
-        );
-      }
-      // /api/workflows/{id}/versions/{version_id} (DELETE by id — version_id is not numeric)
-      const versionIdMatch = subPath.match(/^versions\/([^/]+)$/);
-      if (versionIdMatch) {
-        const versionId = decodeURIComponent(versionIdMatch[1]);
-        return handleWorkflowVersionDeleteById(
-          request,
-          workflowId,
-          versionId,
-          options
-        );
       }
     }
   }

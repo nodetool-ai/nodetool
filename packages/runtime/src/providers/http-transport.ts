@@ -181,6 +181,9 @@ export async function pollUntilTerminal<T>(
   } = options;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (signal?.aborted) {
+      throw signal.reason instanceof Error ? signal.reason : new Error("Aborted");
+    }
     const body = await fetchStatus(attempt);
     const status = statusOf(body);
     if (success.has(status)) return body;
