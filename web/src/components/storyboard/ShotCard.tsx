@@ -17,7 +17,9 @@ import {
   Box,
   Card,
   Caption,
+  EditorButton,
   FlexColumn,
+  FlexRow,
   ProgressBar,
   Text,
   ToolbarIconButton,
@@ -28,11 +30,9 @@ import {
 } from "../ui_primitives";
 import ImageRefPreview from "../node/ImageRefPreview";
 import ShotMediaViewer from "./ShotMediaViewer";
-import ShotStatusPill, {
-  CLIP_COLOR,
-  isShotGenerating
-} from "./ShotStatusPill";
+import ShotStatusPill, { CLIP_COLOR, isShotGenerating } from "./ShotStatusPill";
 import { useStoryboardGenerationStore } from "../../stores/storyboard/StoryboardGenerationStore";
+import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import { useShotDuration } from "../../hooks/storyboard/useShotDuration";
 import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 
@@ -43,6 +43,17 @@ interface ShotCardProps {
   selected?: boolean;
   /** Selects (or, on the selected card, deselects) this shot. */
   onSelect?: (shotId: string) => void;
+  /** Hide the per-shot actions (Retry) on a board that cannot be edited. */
+  readOnly?: boolean;
+  /** When set, the card can be dragged onto another card to reorder shots. */
+  draggable?: boolean;
+  /** True while another card is being dragged over this one. */
+  dropTarget?: boolean;
+  onDragStart?: (shotId: string) => void;
+  onDragEnter?: (shotId: string) => void;
+  onDragEnd?: () => void;
+  /** Fired on the card a drag was released on. */
+  onDrop?: (shotId: string) => void;
 }
 
 /** The thumbnail: a fixed 16:9 media area every card in the grid shares. */
@@ -85,7 +96,14 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   boardId,
   shot,
   selected,
-  onSelect
+  onSelect,
+  readOnly,
+  draggable,
+  dropTarget,
+  onDragStart,
+  onDragEnter,
+  onDragEnd,
+  onDrop
 }) => {
   const theme = useTheme();
   // The still or clip the fullscreen viewer shows; null when it is closed.
@@ -99,9 +117,15 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     const job = state.shotJobs[shot.id];
     return job?.status === "failed" ? job.errorMessage : undefined;
   });
+  // Which step failed, so Retry re-runs that one rather than guessing.
+  const failedKind = useStoryboardGenerationStore((state) => {
+    const job = state.shotJobs[shot.id];
+    return job?.status === "failed" ? job.kind : undefined;
+  });
   const progress = useStoryboardGenerationStore(
     (state) => state.shotJobs[shot.id]?.progress
   );
+  const { generateKeyframe, generateClip } = useGenerateShot();
 
   const failed = shot.status === "failed";
   const isGenerating = isShotGenerating(shot);
@@ -131,6 +155,50 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     onSelect?.(shot.id);
   }, [onSelect, shot.id]);
 
+  // A start that throws records its reason on the shot's job state, which is
+  // the line this button sits under — so the rejection is already shown.
+  const handleRetry = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation();
+      const retryClip =
+        failedKind === "clip" || (!failedKind && !!shot.keyframe);
+      const run = retryClip ? generateClip : generateKeyframe;
+      void run(boardId, shot).catch(() => undefined);
+    },
+    [failedKind, shot, generateClip, generateKeyframe, boardId]
+  );
+
+  const handleDragStart = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", shot.id);
+      onDragStart?.(shot.id);
+    },
+    [onDragStart, shot.id]
+  );
+  const handleDragEnter = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      onDragEnter?.(shot.id);
+    },
+    [onDragEnter, shot.id]
+  );
+  // Without preventDefault on dragover the browser refuses the drop.
+  const handleDragOver = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+    },
+    []
+  );
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      onDrop?.(shot.id);
+    },
+    [onDrop, shot.id]
+  );
+
   return (
     <Card
       variant="outlined"
@@ -143,29 +211,46 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
       data-shot-id={shot.id}
       data-generating={isGenerating ? "true" : undefined}
       data-selected={selected ? "true" : undefined}
+      data-drop-target={dropTarget ? "true" : undefined}
+      draggable={draggable || undefined}
+      onDragStart={draggable ? handleDragStart : undefined}
+      onDragEnter={draggable ? handleDragEnter : undefined}
+      onDragOver={draggable ? handleDragOver : undefined}
+      onDragEnd={draggable ? onDragEnd : undefined}
+      onDrop={draggable ? handleDrop : undefined}
       sx={{
         overflow: "hidden",
         borderRadius: BORDER_RADIUS.lg,
-        borderColor: isGenerating
-          ? CLIP_COLOR
-          : selected
+        borderColor:
+          dropTarget || selected
             ? "primary.main"
-            : "divider",
-        boxShadow: isGenerating
-          ? `0 0 0 1px ${CLIP_COLOR}`
-          : selected
-            ? `0 0 0 1px ${theme.palette.primary.main}`
-            : undefined
+            : isGenerating
+              ? CLIP_COLOR
+              : "divider",
+        boxShadow: dropTarget
+          ? `0 0 0 2px ${theme.palette.primary.main}`
+          : isGenerating
+            ? `0 0 0 1px ${CLIP_COLOR}`
+            : selected
+              ? `0 0 0 1px ${theme.palette.primary.main}`
+              : undefined,
+        cursor: draggable ? "grab" : undefined
       }}
     >
-      <Box sx={mediaSx} onDoubleClick={previewMedia ? handleOpenViewer : undefined}>
+      <Box
+        sx={mediaSx}
+        onDoubleClick={previewMedia ? handleOpenViewer : undefined}
+      >
         {clipUri ? (
           <VideoPlayer locator={shot.clip} />
         ) : (
           <ImageRefPreview
             value={shot.keyframe}
             placeholder={
-              <Caption color="muted" sx={{ textAlign: "center", p: SPACING.md }}>
+              <Caption
+                color="muted"
+                sx={{ textAlign: "center", p: SPACING.md }}
+              >
                 No still yet
               </Caption>
             }
@@ -180,7 +265,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
           <ToolbarIconButton
             icon={<FullscreenIcon sx={{ fontSize: "1em" }} />}
             tooltip="View fullscreen (double-click)"
-            ariaLabel={clipUri ? "View clip fullscreen" : "View still fullscreen"}
+            ariaLabel={
+              clipUri ? "View clip fullscreen" : "View still fullscreen"
+            }
             onClick={handleOpenViewer}
             sx={{
               position: "absolute",
@@ -207,7 +294,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
           <Box sx={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
             <ProgressBar
               value={progress ?? 0}
-              progressVariant={progress == null ? "indeterminate" : "determinate"}
+              progressVariant={
+                progress == null ? "indeterminate" : "determinate"
+              }
               showValue={false}
               sx={{
                 height: RENDER_BAR_HEIGHT,
@@ -221,13 +310,25 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
 
       <FlexColumn gap={SPACING.xs} sx={{ p: SPACING.lg, minWidth: 0 }}>
         {failed && (
-          <Caption
-            role="alert"
-            data-testid="shot-render-error"
-            sx={{ color: "error.main" }}
-          >
-            {renderError ?? "The render failed. Try again."}
-          </Caption>
+          <FlexRow align="center" justify="space-between" gap={SPACING.sm}>
+            <Caption
+              role="alert"
+              data-testid="shot-render-error"
+              sx={{ color: "error.main", minWidth: 0 }}
+            >
+              {renderError ?? "The render failed. Try again."}
+            </Caption>
+            {!readOnly && (
+              <EditorButton
+                size="small"
+                variant="outlined"
+                onClick={handleRetry}
+                sx={{ flexShrink: 0 }}
+              >
+                Retry
+              </EditorButton>
+            )}
+          </FlexRow>
         )}
         <Text size="small" weight={400} lineClamp={2} sx={{ lineHeight: 1.45 }}>
           {shot.action}

@@ -6,11 +6,21 @@
  * forward (render stills, render clips, assemble the timeline); the
  * Screenplay/Direction form — including *Direct* — folds into a collapsible
  * section behind *Board settings*, open by default while the board has no
- * shots. Selecting a card opens {@link ShotInspector} under the grid.
+ * shots. Selecting a card opens {@link ShotInspector} under the grid and
+ * scrolls it into view; the arrow keys walk the selection along the grid, and
+ * dragging one card onto another reorders the shots.
  */
 
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { shotRenderMode } from "@nodetool-ai/protocol";
+import AddIcon from "@mui/icons-material/Add";
 import TuneIcon from "@mui/icons-material/Tune";
 
 import {
@@ -68,6 +78,7 @@ import ScriptLinkControl from "./ScriptLinkControl";
 import ShotCard from "./ShotCard";
 import ShotInspector from "./ShotInspector";
 import StoryboardEntitiesField from "./StoryboardEntitiesField";
+import { dropShotOrder, isShotNavigationKey, navigateShots } from "./shotOrder";
 
 // The preview mounts the timeline compositor; keep it out of the board bundle.
 const LazyStoryboardPreview = React.lazy(() => import("./StoryboardPreview"));
@@ -236,10 +247,14 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const setBrief = useStoryboardStore((state) => state.setBrief);
   const setStyle = useStoryboardStore((state) => state.setStyle);
   const setAspectRatio = useStoryboardStore((state) => state.setAspectRatio);
-  const setDirectorModel = useStoryboardStore((state) => state.setDirectorModel);
+  const setDirectorModel = useStoryboardStore(
+    (state) => state.setDirectorModel
+  );
   const setImageModel = useStoryboardStore((state) => state.setImageModel);
   const setVideoModel = useStoryboardStore((state) => state.setVideoModel);
   const selectShot = useStoryboardStore((state) => state.selectShot);
+  const addShot = useStoryboardStore((state) => state.addShot);
+  const reorderShots = useStoryboardStore((state) => state.reorderShots);
   const undo = useStoryboardStore((state) => state.undo);
   const redo = useStoryboardStore((state) => state.redo);
   const canUndo = useStoryboardCanUndo(boardId);
@@ -263,12 +278,34 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     []
   );
 
+  // The inspector docks under the grid, so on a board of more than a row or
+  // two it opens below the fold. A selection the user makes here scrolls it
+  // into view; one made from another document (useStoryboardShotFocus) does
+  // not, because that already centres the card.
+  const gridRef = useRef<HTMLDivElement>(null);
+  const inspectorRef = useRef<HTMLDivElement>(null);
+  const revealInspector = useRef(false);
+  useEffect(() => {
+    if (!revealInspector.current) {
+      return;
+    }
+    revealInspector.current = false;
+    // `scrollIntoView` is absent under jsdom, so the call is guarded.
+    inspectorRef.current?.scrollIntoView?.({
+      block: "nearest",
+      behavior: "smooth"
+    });
+  }, [activeShotId]);
+
   // Clicking the selected card deselects it (the card's aria-pressed
   // contract); the store's selectShot stays idempotent for programmatic
   // callers.
   const handleSelectShot = useCallback(
-    (shotId: string) =>
-      selectShot(boardId, shotId === activeShotId ? null : shotId),
+    (shotId: string) => {
+      const next = shotId === activeShotId ? null : shotId;
+      revealInspector.current = next !== null;
+      selectShot(boardId, next);
+    },
     [selectShot, boardId, activeShotId]
   );
   const clearSelection = useCallback(
@@ -277,6 +314,89 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   );
   const activeShotIndex = shots.findIndex((s) => s.id === activeShotId);
   const activeShot = activeShotIndex >= 0 ? shots[activeShotIndex] : undefined;
+
+  // Arrow keys walk the selection along the grid and move focus with it;
+  // Escape clears it. A card's fullscreen viewer is a portal whose key events
+  // still bubble here in React, so only keys from the grid's own DOM count,
+  // and none typed into a field.
+  const handleGridKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      const target = event.target as HTMLElement;
+      if (
+        !gridRef.current?.contains(target) ||
+        target.closest("input, textarea, [contenteditable=true]")
+      ) {
+        return;
+      }
+      if (event.key === "Escape") {
+        if (activeShotId) {
+          event.preventDefault();
+          selectShot(boardId, null);
+        }
+        return;
+      }
+      if (!isShotNavigationKey(event.key)) {
+        return;
+      }
+      const next = navigateShots(
+        shots.map((s) => s.id),
+        activeShotId,
+        event.key
+      );
+      if (!next) {
+        return;
+      }
+      event.preventDefault();
+      if (next !== activeShotId) {
+        revealInspector.current = true;
+        selectShot(boardId, next);
+      }
+      gridRef.current
+        ?.querySelector<HTMLElement>(`[data-shot-id="${next}"]`)
+        ?.focus();
+    },
+    [shots, activeShotId, selectShot, boardId]
+  );
+
+  // Drag one card onto another: the dragged shot takes the target's slot.
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const handleDragStart = useCallback((shotId: string) => {
+    setDraggingId(shotId);
+  }, []);
+  const handleDragEnter = useCallback(
+    (shotId: string) => {
+      setDropTargetId(shotId === draggingId ? null : shotId);
+    },
+    [draggingId]
+  );
+  const handleDragEnd = useCallback(() => {
+    setDraggingId(null);
+    setDropTargetId(null);
+  }, []);
+  const handleDrop = useCallback(
+    (targetId: string) => {
+      if (draggingId && draggingId !== targetId) {
+        reorderShots(
+          boardId,
+          dropShotOrder(
+            shots.map((s) => s.id),
+            draggingId,
+            targetId
+          )
+        );
+      }
+      setDraggingId(null);
+      setDropTargetId(null);
+    },
+    [draggingId, reorderShots, boardId, shots]
+  );
+
+  // A shot added by hand opens in the inspector, blank, ready to describe.
+  const handleAddShot = useCallback(() => {
+    revealInspector.current = true;
+    addShot(boardId);
+  }, [addShot, boardId]);
 
   // Entity reference images only reach generation through an editing model;
   // warn when entities are attached but the still model can't take them.
@@ -371,7 +491,11 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   }, [pendingClips, generateClip, boardId]);
 
   // What each batch button is about to spend, over exactly the shots it loops.
-  const stillsCost = useRenderBatchCostEstimate(boardId, pendingStills, "still");
+  const stillsCost = useRenderBatchCostEstimate(
+    boardId,
+    pendingStills,
+    "still"
+  );
   const clipsCost = useRenderBatchCostEstimate(boardId, pendingClips, "clip");
 
   // The archive is packed server-side from the saved board, so a download
@@ -420,6 +544,14 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 redoTooltip="Redo (⌘⇧Z)"
               />
               <ScriptLinkControl boardId={boardId} disabled={directing} />
+              <EditorButton
+                variant="outlined"
+                startIcon={<AddIcon fontSize="small" />}
+                onClick={handleAddShot}
+                disabled={directing}
+              >
+                Add shot
+              </EditorButton>
               <EditorButton
                 variant="outlined"
                 onClick={togglePreview}
@@ -652,7 +784,13 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             }
           />
         ) : (
-          <Box sx={shotGridSx}>
+          <Box
+            ref={gridRef}
+            role="group"
+            aria-label="Shots"
+            onKeyDown={handleGridKeyDown}
+            sx={shotGridSx}
+          >
             {shots.map((shot) => (
               <ShotCard
                 key={shot.id}
@@ -660,21 +798,30 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 shot={shot}
                 selected={shot.id === activeShotId}
                 onSelect={handleSelectShot}
+                readOnly={readOnly}
+                draggable={!readOnly && !directing}
+                dropTarget={shot.id === dropTargetId}
+                onDragStart={handleDragStart}
+                onDragEnter={handleDragEnter}
+                onDragEnd={handleDragEnd}
+                onDrop={handleDrop}
               />
             ))}
           </Box>
         )}
 
         {activeShot && (
-          <ShotInspector
-            key={activeShot.id}
-            boardId={boardId}
-            shot={activeShot}
-            readOnly={readOnly}
-            isFirst={activeShotIndex === 0}
-            isLast={activeShotIndex === shots.length - 1}
-            onClose={clearSelection}
-          />
+          <Box ref={inspectorRef}>
+            <ShotInspector
+              key={activeShot.id}
+              boardId={boardId}
+              shot={activeShot}
+              readOnly={readOnly}
+              isFirst={activeShotIndex === 0}
+              isLast={activeShotIndex === shots.length - 1}
+              onClose={clearSelection}
+            />
+          </Box>
         )}
       </FlexColumn>
     </ScrollArea>
