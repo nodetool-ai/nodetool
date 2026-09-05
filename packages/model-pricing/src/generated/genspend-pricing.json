@@ -2,8 +2,8 @@
   "schemaVersion": 3,
   "source": "https://genspend.io/api/v1/export",
   "attribution": "Prices via genspend.io",
-  "updatedAt": "2026-09-04T08:12:26.572Z",
-  "catalogGeneratedAt": "2026-09-04T08:12:25.636Z",
+  "updatedAt": "2026-09-05T07:50:07.688Z",
+  "catalogGeneratedAt": "2026-09-05T07:50:06.953Z",
   "etag": "\"363cbe11286573b29e5168540f6d2da959d39eab\"",
   "catalogModels": 142,
   "catalogOfferings": 479,
@@ -283,7 +283,7 @@
       "source_url": "https://www.atlascloud.ai/models/black-forest-labs/flux-schnell"
     },
     "atlascloud:bytedance/seedance-2.0-fast/image-to-video": {
-      "unit_price": 0.072,
+      "unit_price": 0.027,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-fast",
@@ -293,19 +293,19 @@
       "tier": "fast",
       "variants": [
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": true
         },
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
         },
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
@@ -317,7 +317,7 @@
       }
     },
     "atlascloud:bytedance/seedance-2.0-fast/reference-to-video": {
-      "unit_price": 0.072,
+      "unit_price": 0.027,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-fast",
@@ -327,19 +327,19 @@
       "tier": "fast",
       "variants": [
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": true
         },
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
         },
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
@@ -351,7 +351,7 @@
       }
     },
     "atlascloud:bytedance/seedance-2.0-fast/text-to-video": {
-      "unit_price": 0.072,
+      "unit_price": 0.027,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-fast",
@@ -361,19 +361,19 @@
       "tier": "fast",
       "variants": [
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": true
         },
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
         },
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
@@ -612,7 +612,7 @@
       "source_url": "https://www.atlascloud.ai/models/bytedance/seedream-v5.0-lite/edit-sequential"
     },
     "atlascloud:bytedance/seedream-v5.0-pro/edit": {
-      "unit_price": 0.045,
+      "unit_price": 0.036,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "seedream-5-pro",
@@ -633,7 +633,7 @@
       ]
     },
     "atlascloud:bytedance/seedream-v5.0-pro/text-to-image": {
-      "unit_price": 0.045,
+      "unit_price": 0.036,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "seedream-5-pro",
@@ -1880,10 +1880,10 @@
       "unit_price": 0.04,
       "billing_unit": "images",
       "unit_class": "per-image",
-      "model_slug": "bria-fibo",
-      "match": "provider-id",
+      "model_slug": "bria-fibo-edit",
+      "match": "catalog",
       "live": true,
-      "source_url": "https://fal.ai/models/bria/fibo/generate"
+      "source_url": "https://fal.ai/models/bria/fibo-edit/edit"
     },
     "fal_ai:bytedance/seedance-2.5/image-to-video": {
       "unit_price": 21.4,
