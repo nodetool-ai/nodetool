@@ -32,6 +32,7 @@ import {
   assetFileNameCandidates
 } from "../../lib/asset-paths.js";
 import { getAssetAdapter } from "../../lib/storage.js";
+import { toAssetResponse } from "../../lib/asset-response.js";
 import {
   assetHasRasterThumbnail,
   generateThumbnailForStoredAsset,
@@ -61,61 +62,6 @@ import {
   searchOutput,
   type AssetResponse
 } from "@nodetool-ai/protocol/api-schemas/assets.js";
-
-// Lazily initialized URL builder based on the configured storage backend.
-let _storageConfig: StorageConfig | null = null;
-let _urlBuilder: ((key: string) => Promise<string>) | null = null;
-
-function getUrlBuilder(): (key: string) => Promise<string> {
-  const config = loadAssetStorageConfig();
-  // Recreate if the config kind changed (e.g. test env switching backends).
-  if (!_urlBuilder || _storageConfig?.kind !== config.kind) {
-    _storageConfig = config;
-    _urlBuilder = createAssetUrlBuilder(config);
-  }
-  return _urlBuilder;
-}
-
-async function toAssetResponse(asset: AssetModel): Promise<AssetResponse> {
-  const isFolder = asset.content_type === "folder";
-  const fileName = isFolder
-    ? null
-    : getAssetFileName(asset.id, asset.content_type);
-  // Owner-prefixed keys. Objects written before this layout are flat; the
-  // `/api/storage` route falls back to the legacy path on a miss, and cloud
-  // backends need `nodetool storage migrate-keys` (see docs/configuration.md).
-  const getUrl = fileName
-    ? await getUrlBuilder()(assetObjectKey(asset.user_id, fileName)).catch(
-        () => null
-      )
-    : null;
-
-  const hasThumbnail = assetHasRasterThumbnail(asset.content_type);
-  const thumbUrl = hasThumbnail
-    ? await getUrlBuilder()(
-        assetObjectKey(asset.user_id, thumbnailKey(asset.id))
-      ).catch(() => null)
-    : null;
-
-  return {
-    id: asset.id,
-    user_id: asset.user_id,
-    workflow_id: asset.workflow_id ?? null,
-    parent_id: asset.parent_id ?? null,
-    name: asset.name,
-    content_type: asset.content_type,
-    size: asset.size ?? null,
-    metadata: asset.metadata ?? null,
-    sketch_document_id: asset.sketch_document_id ?? null,
-    created_at: asset.created_at,
-    get_url: getUrl,
-    thumb_url: thumbUrl,
-    duration: asset.duration ?? null,
-    node_id: asset.node_id ?? null,
-    job_id: asset.job_id ?? null,
-    timeline_id: asset.timeline_id ?? null
-  };
-}
 
 /**
  * Remove an asset's stored bytes and its thumbnail.

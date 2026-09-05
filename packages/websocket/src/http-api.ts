@@ -122,6 +122,9 @@ import {
 } from "./lib/asset-paths.js";
 import { resolveAssetBytesForExport } from "./lib/asset-export.js";
 import { assetObjectKey } from "@nodetool-ai/storage";
+import { toAssetResponse } from "./lib/asset-response.js";
+
+export { toAssetResponse };
 export { getAssetFileName, getAssetStoragePath };
 
 type JsonObject = Record<string, unknown>;
@@ -1420,57 +1423,6 @@ export function toJobResponse(job: Job) {
 }
 
 // ── Asset types & helpers ──────────────────────────────────────────
-
-// Lazily initialized URL builder based on the configured storage backend.
-let _httpStorageConfig: StorageConfig | null = null;
-let _httpUrlBuilder: ((key: string) => Promise<string>) | null = null;
-
-function getHttpUrlBuilder(): (key: string) => Promise<string> {
-  const config = loadAssetStorageConfig();
-  if (!_httpUrlBuilder || _httpStorageConfig?.kind !== config.kind) {
-    _httpStorageConfig = config;
-    _httpUrlBuilder = createAssetUrlBuilder(config);
-  }
-  return _httpUrlBuilder;
-}
-
-export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
-  const isFolder = asset.content_type === "folder";
-  const fileName = isFolder
-    ? null
-    : getAssetFileName(asset.id, asset.content_type);
-  const getUrl = fileName
-    ? await getHttpUrlBuilder()(assetObjectKey(asset.user_id, fileName)).catch(
-        () => null
-      )
-    : null;
-
-  const hasThumbnail = assetHasRasterThumbnail(asset.content_type);
-  const thumbUrl = hasThumbnail
-    ? await getHttpUrlBuilder()(
-        assetObjectKey(asset.user_id, thumbnailKey(asset.id))
-      ).catch(() => null)
-    : null;
-
-  return {
-    id: asset.id,
-    user_id: asset.user_id,
-    workflow_id: asset.workflow_id ?? null,
-    parent_id: asset.parent_id ?? null,
-    name: asset.name,
-    content_type: asset.content_type,
-    size: asset.size ?? null,
-    metadata: asset.metadata ?? null,
-    sketch_document_id: asset.sketch_document_id ?? null,
-    created_at: asset.created_at,
-    get_url: getUrl,
-    thumb_url: thumbUrl,
-    duration: asset.duration ?? null,
-    node_id: asset.node_id ?? null,
-    job_id: asset.job_id ?? null,
-    timeline_id: asset.timeline_id ?? null
-  };
-}
 
 /**
  * Handle multipart file upload at POST /api/assets. JSON-only creation has
