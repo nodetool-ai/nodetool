@@ -98,4 +98,20 @@ describe("readTscn", () => {
       expect(doc.blocks.at(-1)?.kind, file.path).toBe("resource");
     }
   });
+
+  it("parses a crafted header in linear time instead of backtracking", () => {
+    // The shape CodeQL flagged: `[A A=` followed by many `"" A=` repetitions and
+    // no closing quote. The old regex took exponential time here.
+    const line = `[A A=${'"" A='.repeat(40)}`;
+    const started = performance.now();
+    expect(() => readTscn(`${line}\n`)).toThrow();
+    expect(performance.now() - started).toBeLessThan(200);
+  });
+
+  it("reads escaped quotes and bare attribute values", () => {
+    const doc = readTscn(
+      '[gd_scene format=3]\n\n[node name="a \\"b\\"" type=Node2D]\n'
+    );
+    expect(doc.blocks[0].attributes).toEqual({ name: 'a "b"', type: "Node2D" });
+  });
 });

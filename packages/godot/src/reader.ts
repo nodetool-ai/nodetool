@@ -1,14 +1,65 @@
 import type { GodotBlock, TscnDocument } from "./types.js";
 
-const HEADER =
-  /^\[([A-Za-z_]+)((?:\s+[A-Za-z_][A-Za-z0-9_]*=(?:"(?:[^"\\]|\\.)*"|[^\s\]]+))*)\s*\]$/;
-const ATTRIBUTE = /([A-Za-z_][A-Za-z0-9_]*)=("(?:[^"\\]|\\.)*"|[^\s\]]+)/g;
 const PROPERTY = /^([A-Za-z0-9_./:-]+) = (.*)$/;
 
-function unquote(raw: string): string {
-  return raw.startsWith('"') && raw.endsWith('"')
-    ? raw.slice(1, -1).replace(/\\(.)/g, "$1")
-    : raw;
+const isIdentStart = (c: string): boolean => /[A-Za-z_]/.test(c);
+const isIdent = (c: string): boolean => /[A-Za-z0-9_]/.test(c);
+const isSpace = (c: string): boolean => c === " " || c === "\t";
+
+/**
+ * Parse a `[kind key="value" key=value ...]` header, or null when the line is
+ * not one. A single left-to-right scan: a quoted value runs to its closing
+ * quote (backslash escapes one character), a bare one to the next space or
+ * `]`. The regex this replaced nested a quantifier over overlapping
+ * alternatives and backtracked exponentially on a crafted header.
+ */
+function parseHeader(
+  line: string
+): { kind: string; attributes: Record<string, string> } | null {
+  if (!line.startsWith("[") || !line.endsWith("]")) return null;
+  const body = line.slice(1, -1);
+  let i = 0;
+  const readIdent = (): string | null => {
+    if (i >= body.length || !isIdentStart(body[i])) return null;
+    const start = i;
+    while (i < body.length && isIdent(body[i])) i++;
+    return body.slice(start, i);
+  };
+  const kind = readIdent();
+  if (kind === null) return null;
+  const attributes: Record<string, string> = {};
+  while (i < body.length) {
+    if (!isSpace(body[i])) return null;
+    while (i < body.length && isSpace(body[i])) i++;
+    if (i >= body.length) break;
+    const key = readIdent();
+    if (key === null || body[i] !== "=") return null;
+    i++;
+    if (body[i] === '"') {
+      i++;
+      let value = "";
+      let closed = false;
+      while (i < body.length) {
+        const c = body[i++];
+        if (c === "\\" && i < body.length) {
+          value += body[i++];
+        } else if (c === '"') {
+          closed = true;
+          break;
+        } else {
+          value += c;
+        }
+      }
+      if (!closed) return null;
+      attributes[key] = value;
+    } else {
+      const start = i;
+      while (i < body.length && !isSpace(body[i]) && body[i] !== "]") i++;
+      if (i === start) return null;
+      attributes[key] = body.slice(start, i);
+    }
+  }
+  return { kind, attributes };
 }
 
 /**
@@ -24,12 +75,9 @@ export function readTscn(text: string): TscnDocument {
   let lastKey: string | null = null;
   for (const rawLine of text.split(/\r?\n/)) {
     const line = rawLine.trimEnd();
-    const header = HEADER.exec(line);
+    const header = parseHeader(line);
     if (header) {
-      current = { kind: header[1], attributes: {}, properties: {} };
-      for (const m of header[2].matchAll(ATTRIBUTE)) {
-        current.attributes[m[1]] = unquote(m[2]);
-      }
+      current = { kind: header.kind, attributes: header.attributes, properties: {} };
       blocks.push(current);
       lastKey = null;
       continue;
