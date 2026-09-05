@@ -10,3 +10,20 @@ const handler = {
   }
 };
 export default new Proxy({}, handler);
+
+// A named import binds at bundle time and the Proxy above cannot satisfy it,
+// so every name a workspace bundle destructures from one of these builtins
+// needs a real export here.
+export function request() {
+  throw new Error("Browser stub: node:http.request not supported");
+}
+
+/** `node:zlib`. Compression has no browser path in this bundle. */
+export function createGzip() {
+  throw new Error("Browser stub: node:zlib.createGzip not supported");
+}
+
+/** `node:module`. A bundle reaching for CJS resolution has no browser path. */
+export function createRequire() {
+  throw new Error("Browser stub: node:module.createRequire not supported");
+}
