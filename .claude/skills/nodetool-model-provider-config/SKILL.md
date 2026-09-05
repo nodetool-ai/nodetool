@@ -17,6 +17,7 @@ You help users configure AI model providers and select the right models for thei
 | **HuggingFace** | Local/Cloud | `HF_TOKEN` | 1000+ models, auto-download |
 | **FAL** | Cloud | `FAL_API_KEY` | Fast image/video generation |
 | **Replicate** | Cloud | `REPLICATE_API_TOKEN` | Community models |
+| **Comfy Cloud** | Cloud | `COMFY_API_KEY` | No model list; runs a ComfyUI workflow on Comfy's GPUs via `lib.comfy.RunWorkflowOnCloud` |
 | **vLLM** | Local | `VLLM_API_URL` | Self-hosted, OpenAI-compatible |
 | **llama.cpp** | Local | — | GGUF models, CPU/GPU |
 | **MLX** | Local | — | Apple Silicon optimized |
@@ -38,6 +39,7 @@ nodetool secrets store GEMINI_API_KEY
 nodetool secrets store HF_TOKEN
 nodetool secrets store FAL_API_KEY
 nodetool secrets store REPLICATE_API_TOKEN
+nodetool secrets store COMFY_API_KEY
 
 # Via environment variables
 export OPENAI_API_KEY=sk-...
@@ -46,6 +48,7 @@ export GEMINI_API_KEY=AI...
 export HF_TOKEN=hf_...
 export FAL_API_KEY=...
 export REPLICATE_API_TOKEN=r8_...
+export COMFY_API_KEY=comfyui-...
 export OLLAMA_API_URL=http://localhost:11434
 ```
 

@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "ComfyUI"
-description: "Run ComfyUI workflows inside NodeTool — directly against a ComfyUI server, or proxied over a NodeTool GPU worker."
+description: "Run ComfyUI workflows inside NodeTool: directly against a ComfyUI server, proxied over a NodeTool GPU worker, or on Comfy Cloud."
 ---
 
 NodeTool runs ComfyUI workflows as nodes in a NodeTool graph. You export a
@@ -9,21 +9,23 @@ workflow from ComfyUI in **API (prompt) format**, load it into a node, and its
 `Load*` nodes become typed inputs while its `Save*` nodes become typed outputs.
 Everything around it — asset handling, LLM steps, mini apps — stays NodeTool's.
 
-Two nodes cover two topologies:
+Three nodes cover three topologies:
 
-| | `lib.comfy.RunWorkflow` | `lib.comfy.RunWorkflowOnWorker` |
-|---|---|---|
-| Title | Run ComfyUI Workflow | Run ComfyUI Workflow (Worker) |
-| Talks to | Any ComfyUI HTTP/WebSocket endpoint | A NodeTool worker that fronts ComfyUI |
-| Transport | ComfyUI's own `/prompt`, `/ws`, `/view`, `/history` | The worker bridge's `comfy.*` messages |
-| ComfyUI reachable from NodeTool? | Yes, directly | No — loopback-only inside the worker |
-| Workflow loader in the editor | Yes | No (see [limitations](#known-limitations)) |
-| Outputs | Streamed, one frame per file | Buffered, returned at the end |
+| | `lib.comfy.RunWorkflow` | `lib.comfy.RunWorkflowOnWorker` | `lib.comfy.RunWorkflowOnCloud` |
+|---|---|---|---|
+| Title | Run ComfyUI Workflow | Run ComfyUI Workflow (Worker) | Run ComfyUI Workflow (Comfy Cloud) |
+| Talks to | Any ComfyUI HTTP/WebSocket endpoint | A NodeTool worker that fronts ComfyUI | Comfy Cloud, `https://cloud.comfy.org` |
+| Transport | ComfyUI's own `/prompt`, `/ws`, `/view`, `/history` | The worker bridge's `comfy.*` messages | `@comfyorg/sdk` over the Comfy API v2 |
+| Auth | None | Worker bearer token in a node property | The `COMFY_API_KEY` secret |
+| GPU | Yours | The rented worker's | Comfy's |
+| ComfyUI reachable from NodeTool? | Yes, directly | No, loopback-only inside the worker | Not applicable |
+| Workflow loader in the editor | Yes | No (see [limitations](#known-limitations)) | Yes |
+| Outputs | Streamed, one frame per file | Buffered, returned at the end | Streamed, one frame per file |
 
-Both live in the `lib.comfy` namespace and ship in the built-in `base` node
+All three live in the `lib.comfy` namespace and ship in the built-in `base` node
 pack, so every install registers them — including a server running the curated
 cloud profile (`NODETOOL_NODE_PROFILE=cloud`, the production default), which
-allowlists the two runners by name while dropping the rest of the namespace.
+allowlists the three runners by name while dropping the rest of the namespace.
 
 If they don't appear in the node menu, that is the menu's own decluttering, not
 a gate: `lib.comfy` sits in the **Developer Tools** group of
@@ -119,6 +121,10 @@ execution start, `execution_cached` (as a count of reused nodes), the class name
 of each executing node, and errors. Sampler `progress` events become
 `node_progress` messages, so the node shows a progress bar.
 
+Cancelling the run posts `/interrupt` to the ComfyUI server and closes the
+WebSocket, so the prompt stops there instead of running on with nothing
+listening. The node then fails with `ComfyUI execution was canceled`.
+
 ---
 
 ## Run ComfyUI Workflow (Worker)
@@ -171,6 +177,84 @@ is sniffed from its leading bytes — PNG, JPEG, GIF, RIFF (WEBP/WAVE/AVI),
 `ftyp` boxes for MP4/MOV, OGG, and ID3 — and emitted as a base64 media ref on a
 slot named after the worker's blob key. ComfyUI's raw outputs land on the static
 `output` slot.
+
+---
+
+## Run ComfyUI Workflow (Comfy Cloud)
+
+Use this when you have no GPU and no ComfyUI install. The node submits the same
+API-format prompt to [Comfy Cloud](https://cloud.comfy.org) through the official
+`@comfyorg/sdk`, which speaks the Comfy API v2: `POST /api/v2/jobs` to submit,
+`/api/v2/assets` for media inputs, and an SSE stream at
+`/api/v2/jobs/{id}/events` for the run. Base URL is `https://cloud.comfy.org`
+(the SDK reads `COMFY_BASE_URL` from the server's environment if you point it
+somewhere else) and the key travels as a `Bearer` token.
+
+Add the key first. Get one at <https://platform.comfy.org> (Comfy Cloud keys are
+prefixed `comfyui-`) and store it as `COMFY_API_KEY`, either on the Comfy Cloud
+card in **Settings → Models & Providers** or with
+`nodetool secrets store COMFY_API_KEY`. The node declares it in
+`requiredSettings`, so the editor badges it as unconfigured until it is set. The
+same key is sent alongside the workflow as `extra_data.api_key_comfy_org`, which
+is what authenticates any partner (API) node inside the graph.
+
+### Properties
+
+| Property | Default | Meaning |
+|---|---|---|
+| `workflow` | *empty* | The API-format prompt as a JSON string, same shape as the other two nodes. Required. |
+| `timeout` | `600` | Seconds to wait for the job. Comfy caps a run at 30 minutes, 60 on Pro. |
+| `previews` | `false` | Write a line to the run log for each preview frame Comfy sends. No slot carries the bitmaps. |
+
+The node has the same **Load Workflow** button and the same schema-derived
+handles as the direct node, so a pasted API-format JSON, a dropped `.json`, or a
+ComfyUI `.png` all fill it in. See
+[Loading a workflow](#loading-a-workflow) and
+[What becomes an input or an output](#what-becomes-an-input-or-an-output).
+
+### How a run works
+
+The prompt is deep-cloned per run, so the stored `workflow` property is never
+mutated. Each dynamic input keyed `<comfyNodeId>:<field>` is written into
+`prompt[id].inputs[field]`: a scalar goes in as it is, and a connected image,
+audio, or video ref is uploaded through the SDK's asset API and referenced as a
+`core/ASSET` object. That upload is deduplicated by a blake3 hash of the bytes,
+so re-running with the same input file uploads nothing the second time.
+
+UI-format JSON is rejected before any request is made. Re-export from ComfyUI
+with **Save (API Format)**.
+
+While the job runs, the SSE stream drives the node: sampler progress becomes
+`node_progress`, and logs, status changes and queue position go to the run log.
+When the stream ends the node refreshes the job over HTTP and decides on that
+status, so a deployment with no live SSE still finishes correctly. Cancelling
+the NodeTool run calls the job's cancel, so the job stops on Comfy's side too
+rather than running on unwatched.
+
+### Outputs
+
+This is a streaming-output node. Each finished file is fetched while the job is
+still running, because the signed URL Comfy hands out expires, and emitted on
+its own slot, keyed `<comfyNodeId>:<output type>`: `image`, `audio` and `video`
+carry a media ref, `text` carries the decoded string, and anything else
+(`file`, `latent`) carries a document ref.
+
+A final frame on the static `output` slot (`dict[str, any]`) describes the
+finished job: `job_id`, `status`, and one entry per output file with its
+`node_id`, `name`, `type`, `content_type`, `size_bytes` and `asset_id`. The
+bytes already went out on the dynamic slots, so this frame is metadata.
+
+### Limits
+
+Comfy's own, not NodeTool's:
+
+- **Concurrent jobs**: 1, 3 or 5 at a time depending on the plan. A full queue
+  answers `429`; the SDK waits the `Retry-After` and resubmits until a 60 second
+  budget runs out, then the node fails with `Comfy queue is full: …`.
+- **Runtime**: 30 minutes per job, 60 on Pro. The node's `timeout` bounds the
+  NodeTool side of the same run.
+- **Credit**: an account without enough credit gets `402` from the submit and
+  the node fails with `Comfy account has insufficient credits: …`.
 
 ---
 
@@ -227,6 +311,15 @@ the authoritative field reference is `docs/comfy-proxy.md` in `nodetool-core`.
 - **`include_temp` is not exposed on either node.** The bridge supports it
   (`ComfyExecuteOptions.includeTemp`), so preview-node outputs can be fetched
   from code, but no node property surfaces it.
+- **The Cloud node reports no cost.** Comfy's v2 job response carries no cost
+  field, so no provider cost record is written for a Cloud run and the Comfy
+  Cloud column in a run's cost breakdown stays empty. The Comfy job id is
+  written to the run log, so a run can be matched against Comfy's own billing.
+
+Moving the worker node onto the same v2 API, which would give it streaming
+outputs and the `<comfyNodeId>:<kind>` slot names, is planned but not built. The
+design is
+[ComfyUI integration on the Comfy SDK](superpowers/specs/2026-09-05-comfy-sdk-integration-design.md).
 
 ---
 
@@ -242,6 +335,11 @@ the authoritative field reference is `docs/comfy-proxy.md` in `nodetool-core`.
 | `Submit failed (400)` | ComfyUI rejected the prompt — usually a missing model or an unknown `class_type` on that server. The response body is included. |
 | `Timeout waiting for ComfyUI result` | The run exceeded `timeout` seconds. Raise it for large video or upscale graphs. |
 | `The connected worker does not front a ComfyUI server` | The worker isn't running the ComfyUI image, or reports `comfy.enabled: false`. |
+| `Comfy account has insufficient credits` | Comfy Cloud answered `402`. Top the account up at [platform.comfy.org](https://platform.comfy.org). |
+| `Comfy queue is full` | Your plan's concurrent-job limit was still full 60 seconds after the first `429`. |
+| `Comfy Cloud job did not finish within <n>s` | The job outlived the Cloud node's `timeout`. Raise it, up to Comfy's own 30 or 60 minute cap. |
+| `COMFY_API_KEY is required to run a workflow on Comfy Cloud` | No key stored. Add it in **Settings → Models & Providers**. |
+| `ComfyUI workflow is in UI-export format` | The Cloud node's SDK rejected the prompt before sending it. Re-export with **Save (API Format)**. |
 
 ---
 
@@ -249,7 +347,9 @@ the authoritative field reference is `docs/comfy-proxy.md` in `nodetool-core`.
 
 | Concern | File |
 |---|---|
-| Both nodes | `packages/integration-nodes/src/nodes/comfy.ts` |
+| Direct and worker nodes | `packages/integration-nodes/src/nodes/comfy.ts` |
+| Cloud node | `packages/integration-nodes/src/nodes/comfy-cloud.ts` |
+| Comfy API v2 transport and runner | `packages/integration-nodes/src/nodes/comfy-sdk.ts` |
 | Direct HTTP/WS executor | `packages/runtime/src/comfy-executor.ts` |
 | `comfy.*` bridge methods | `packages/runtime/src/python-bridge-base.ts` |
 | Bridge types | `packages/runtime/src/python-bridge-types.ts` |
