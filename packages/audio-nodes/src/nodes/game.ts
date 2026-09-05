@@ -96,6 +96,31 @@ function withSlotMetadata(ref: AudioRef, fill: SfxFill | MusicFill, seconds: num
   };
 }
 
+/**
+ * Store the trimmed clip as its own asset when the context can. The bytes
+ * differ from the input's (trimmed, faded, crossfaded), so the stored asset
+ * is the only durable copy `export_godot_project` can read, and the fill
+ * rides on its metadata.
+ */
+async function persistStamped(
+  context: ProcessingContext | undefined,
+  nodeName: string,
+  slotId: string,
+  ref: AudioRef,
+  wavBytes: Uint8Array
+): Promise<AudioRef> {
+  if (!context?.hasModelInterface?.("createAsset")) return ref;
+  const created = (await context.createAsset({
+    name: `${slotId.replace(/\./g, "_")}.wav`,
+    contentType: "audio/wav",
+    content: wavBytes,
+    metadata: ref.metadata as Record<string, unknown>
+  })) as Record<string, unknown> | null;
+  const id = created && typeof created["id"] === "string" ? created["id"] : null;
+  if (!id) throw new Error(`${nodeName}: the asset was created without an id.`);
+  return { ...ref, uri: `asset://${id}.wav`, asset_id: id };
+}
+
 // ── SoundEffect ───────────────────────────────────────────────────
 
 type SoundEffectNodeOutputs = {
@@ -164,8 +189,12 @@ export class SoundEffectNode extends BaseNode {
       slot_id: String(this.slot_id ?? ""),
       seconds
     });
-    const ref = audioRefFromWav(encodeWav(wav.samples, wav.sampleRate, wav.numChannels));
-    return { output: withSlotMetadata(ref, fill, seconds), fill };
+    const wavBytes = encodeWav(wav.samples, wav.sampleRate, wav.numChannels);
+    const ref = audioRefFromWav(wavBytes);
+    return {
+      output: await persistStamped(context, SoundEffectNode.title, fill.slot_id, withSlotMetadata(ref, fill, seconds), wavBytes),
+      fill
+    };
   }
 }
 
@@ -251,8 +280,12 @@ export class MusicLoopNode extends BaseNode {
       seconds,
       loop: true
     });
-    const ref = audioRefFromWav(encodeWav(wav.samples, wav.sampleRate, wav.numChannels));
-    return { output: withSlotMetadata(ref, fill, seconds), fill };
+    const wavBytes = encodeWav(wav.samples, wav.sampleRate, wav.numChannels);
+    const ref = audioRefFromWav(wavBytes);
+    return {
+      output: await persistStamped(context, MusicLoopNode.title, fill.slot_id, withSlotMetadata(ref, fill, seconds), wavBytes),
+      fill
+    };
   }
 }
 

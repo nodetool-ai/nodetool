@@ -42,7 +42,8 @@ function slot(id: string): GameSlotSpec {
 
 async function runNode(
   suffix: string,
-  inputs: Record<string, unknown>
+  inputs: Record<string, unknown>,
+  context?: unknown
 ): Promise<Record<string, unknown>> {
   const Cls = GAME_NODES.find((n) =>
     (n as unknown as { nodeType: string }).nodeType.endsWith(suffix)
@@ -56,7 +57,7 @@ async function runNode(
     };
   })();
   node.assign(inputs);
-  return node.process();
+  return node.process(context);
 }
 
 /** An RGB PNG image ref whose pixel (x, y) is chosen by `pixel`. */
@@ -331,5 +332,39 @@ describe("nodetool.game.SeamlessImage", () => {
     expect(checkSlotFill(bgFar, result.fill as ImageFill)).toContain(
       "size 64x64 is not 960x540"
     );
+  });
+
+  it("stores the stamped sheet as an asset when the context can create one", async () => {
+    const player = slot("player");
+    if (player.kind !== "spritesheet") throw new Error("player is a spritesheet");
+    const image = await makeImage(256, 64, noise);
+    const calls: Array<Record<string, unknown>> = [];
+    const context = {
+      hasModelInterface: (name: string) => name === "createAsset",
+      createAsset: async (args: Record<string, unknown>) => {
+        calls.push(args);
+        return { id: "asset-player" };
+      }
+    };
+    const result = await runNode(
+      ".SpriteSheet",
+      {
+        image,
+        cell_width: 32,
+        cell_height: 32,
+        animations: player.animations,
+        fps: player.fps,
+        slot_id: player.id
+      },
+      context
+    );
+    const output = result.output as { asset_id?: string; uri?: string };
+    expect(output.asset_id).toBe("asset-player");
+    expect(output.uri).toBe("asset://asset-player.png");
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("player.png");
+    expect(calls[0].contentType).toBe("image/png");
+    expect(calls[0].content).toBeInstanceOf(Uint8Array);
+    expect((calls[0].metadata as Record<string, unknown>)[SLOT_METADATA_KEY]).toEqual(result.fill);
   });
 });

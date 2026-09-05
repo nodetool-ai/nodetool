@@ -3,6 +3,7 @@
  * protocol's checkSlotFill for the platformer fixture, and MusicLoop's
  * crossfade closes the loop seam.
  */
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import {
@@ -129,5 +130,43 @@ describe("MusicLoop", () => {
     const threshold = 0.05;
     expect(before).toBeGreaterThan(threshold);
     expect(after).toBeLessThan(threshold);
+  });
+
+  it("stores the trimmed clip as a stamped asset when the context can create one", async () => {
+    const spec = slot("sfx.jump");
+    const calls: Array<Record<string, unknown>> = [];
+    const context = {
+      hasModelInterface: (name: string) => name === "createAsset",
+      createAsset: async (args: Record<string, unknown>) => {
+        calls.push(args);
+        return { id: "asset-sfx" };
+      }
+    } as unknown as ProcessingContext;
+    const { output, fill } = await new SoundEffectNode({
+      audio: sineRef(2),
+      slot_id: spec.id,
+      seconds: spec.seconds
+    }).process(context);
+    expect(output.asset_id).toBe("asset-sfx");
+    expect(output.uri).toBe("asset://asset-sfx.wav");
+    expect(calls).toHaveLength(1);
+    expect(calls[0].contentType).toBe("audio/wav");
+    expect(calls[0].name).toBe("sfx_jump.wav");
+    const content = calls[0].content as Uint8Array;
+    expect(content).toBeInstanceOf(Uint8Array);
+    // The stored bytes are the trimmed clip, not the two-second input.
+    expect(content.length).toBeLessThan(sineRef(1).data!.length);
+    expect((calls[0].metadata as Record<string, unknown>)[SLOT_METADATA_KEY]).toEqual(fill);
+  });
+
+  it("returns the ref inline when the context cannot create assets", async () => {
+    const spec = slot("sfx.jump");
+    const context = { hasModelInterface: () => false } as unknown as ProcessingContext;
+    const { output } = await new SoundEffectNode({
+      audio: sineRef(2),
+      slot_id: spec.id,
+      seconds: spec.seconds
+    }).process(context);
+    expect(output.asset_id).toBeUndefined();
   });
 });

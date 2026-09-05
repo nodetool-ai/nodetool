@@ -31,7 +31,7 @@ const EMPTY_IMAGE = {
   metadata: null
 };
 
-type Measured = { buf: Buffer; width: number; height: number };
+type Measured = { buf: Buffer; width: number; height: number; format: string };
 
 async function measureImage(
   nodeName: string,
@@ -52,7 +52,7 @@ async function measureImage(
   if (width <= 0 || height <= 0) {
     throw new Error(`${nodeName}: input image has invalid dimensions.`);
   }
-  return { buf, width, height };
+  return { buf, width, height, format: meta.format ?? "png" };
 }
 
 function positiveInt(nodeName: string, name: string, value: unknown): number {
@@ -106,6 +106,32 @@ function parseDict(
     throw new Error(`${nodeName}: ${name} must be a JSON object.`);
   }
   return parsed as Record<string, unknown>;
+}
+
+/**
+ * Store the stamped sheet as its own asset when the context can, so the fill
+ * outlives the run: `export_godot_project` reads it back off the asset row.
+ * Without `createAsset` (a hermetic run, a graph with no store) the ref is
+ * returned inline and the caller keeps it.
+ */
+async function persistStamped(
+  context: ProcessingContext | undefined,
+  nodeName: string,
+  slotId: string,
+  ref: Record<string, unknown>,
+  format: string
+): Promise<Record<string, unknown>> {
+  if (!context?.hasModelInterface?.("createAsset")) return ref;
+  const ext = format === "jpeg" ? "jpg" : format;
+  const created = (await context.createAsset({
+    name: `${slotId.replace(/\./g, "_")}.${ext}`,
+    contentType: `image/${format}`,
+    content: ref.data as Uint8Array,
+    metadata: ref.metadata as Record<string, unknown>
+  })) as Record<string, unknown> | null;
+  const id = created && typeof created["id"] === "string" ? created["id"] : null;
+  if (!id) throw new Error(`${nodeName}: the asset was created without an id.`);
+  return { ...ref, uri: `asset://${id}.${ext}`, asset_id: id };
 }
 
 function stampFill(image: unknown, img: Measured, fill: SlotFill) {
@@ -254,7 +280,16 @@ export class SpriteSheetNode extends BaseNode {
     if (!parsed.success) {
       throw formatZodIssues(name, parsed.error);
     }
-    return { output: stampFill(this.image, img, parsed.data), fill: parsed.data };
+    return {
+      output: await persistStamped(
+        context,
+        name,
+        parsed.data.slot_id,
+        stampFill(this.image, img, parsed.data),
+        img.format
+      ),
+      fill: parsed.data
+    };
   }
 }
 
@@ -337,7 +372,16 @@ export class TilesetNode extends BaseNode {
     if (!parsed.success) {
       throw formatZodIssues(name, parsed.error);
     }
-    return { output: stampFill(this.image, img, parsed.data), fill: parsed.data };
+    return {
+      output: await persistStamped(
+        context,
+        name,
+        parsed.data.slot_id,
+        stampFill(this.image, img, parsed.data),
+        img.format
+      ),
+      fill: parsed.data
+    };
   }
 }
 
@@ -473,7 +517,16 @@ export class SeamlessImageNode extends BaseNode {
     if (!parsed.success) {
       throw formatZodIssues(name, parsed.error);
     }
-    return { output: stampFill(this.image, img, parsed.data), fill: parsed.data };
+    return {
+      output: await persistStamped(
+        context,
+        name,
+        parsed.data.slot_id,
+        stampFill(this.image, img, parsed.data),
+        img.format
+      ),
+      fill: parsed.data
+    };
   }
 }
 
