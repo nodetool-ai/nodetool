@@ -850,16 +850,17 @@ export class KieAINode extends BaseNode {
     const bundle = parseKieDocs(modelInfo);
 
     const apiInput: Record<string, unknown> = {};
+    // Parameter names come from the pasted kie.ai docs, so which declared
+    // property matches is only known at runtime. `serialize()` is the node's
+    // own name-keyed view of its declared and dynamic props.
+    const declared = this.serialize();
     for (const p of bundle.params) {
       const fieldName = fieldNameForParam(p);
-      // SAFETY: parameter names come from the pasted kie.ai docs, so the
-      // matching declared property (if any) is only known at runtime.
-      const self = this as unknown as Record<string, unknown>;
       const val =
         this.getDynamic(fieldName) ??
-        self[fieldName] ??
+        declared[fieldName] ??
         this.getDynamic(p.name) ??
-        self[p.name];
+        declared[p.name];
       if (val === undefined || val === null) {
         if (p.required) throw new Error(`Missing required input: ${fieldName}`);
         continue;

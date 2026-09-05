@@ -203,17 +203,19 @@ export function createResizablePanelStore<
         name: options.name,
         version: options.version,
         migrate: options.migrate,
-        partialize: (state) =>
-          ({
-            panel: {
-              panelSize: state.panel.panelSize,
-              activeView: state.panel.activeView,
-              ...(options.persistVisibility
-                ? { isVisible: state.panel.isVisible }
-                : {}),
-              ...(options.partializeExtra?.(state.panel) ?? {})
-            }
-          }) as Store,
+        partialize: (state) => {
+          const panel: Record<string, unknown> = {
+            panelSize: state.panel.panelSize,
+            activeView: state.panel.activeView,
+            ...(options.partializeExtra?.(state.panel) ?? {})
+          };
+          // The right panel's visibility is derived from the selection, so a
+          // persisted `true` would restore an empty inspector on a fresh load.
+          if (options.persistVisibility) {
+            panel["isVisible"] = state.panel.isVisible;
+          }
+          return { panel } as Store;
+        },
         merge: (persistedState, currentState) => {
           const persisted = asRecord(persistedState);
           const persistedPanel = persisted && asRecord(persisted.panel);
@@ -226,13 +228,16 @@ export function createResizablePanelStore<
             panelSize: isNumber(persistedPanel.panelSize)
               ? clamp(persistedPanel.panelSize)
               : currentState.panel.panelSize,
-            ...(options.persistVisibility && isBoolean(persistedPanel.isVisible)
-              ? { isVisible: persistedPanel.isVisible }
-              : {}),
             activeView: isView(persistedPanel.activeView)
               ? persistedPanel.activeView
               : currentState.panel.activeView
           };
+          if (
+            options.persistVisibility &&
+            isBoolean(persistedPanel.isVisible)
+          ) {
+            merged.isVisible = persistedPanel.isVisible;
+          }
 
           return {
             ...currentState,

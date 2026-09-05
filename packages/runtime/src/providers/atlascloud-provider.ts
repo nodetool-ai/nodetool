@@ -531,11 +531,14 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     const maxAttempts = opts.timeoutSeconds
       ? Math.max(1, Math.ceil((opts.timeoutSeconds * 1000) / info.pollInterval))
       : info.maxAttempts;
-    const result = await atlasPoll(apiKey, predictionId, {
+    const pollOptions: Parameters<typeof atlasPoll>[2] = {
       pollInterval: info.pollInterval,
-      maxAttempts,
-      ...(opts.signal ? { signal: opts.signal } : {})
-    });
+      maxAttempts
+    };
+    if (opts.signal) {
+      pollOptions.signal = opts.signal;
+    }
+    const result = await atlasPoll(apiKey, predictionId, pollOptions);
     return atlasDownload(pickOutputUrl(result), opts.signal);
   }
 

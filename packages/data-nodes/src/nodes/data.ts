@@ -1,4 +1,4 @@
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { BaseNode, isString, prop } from "@nodetool-ai/node-sdk";
 import type {
   ColumnDef,
   FolderRef,
@@ -120,7 +120,7 @@ function toDataframe(rows: Row[]): RowsDataframe {
  * to scan; an empty ref (the descriptor default) means the working directory.
  */
 async function folderPath(folder: FolderRef | string): Promise<string> {
-  const uri = typeof folder === "string" ? folder : (folder?.uri ?? "");
+  const uri = isString(folder) ? folder : (folder?.uri ?? "");
   if (!uri) return ".";
   if (!uri.startsWith("file://")) return uri;
   try {

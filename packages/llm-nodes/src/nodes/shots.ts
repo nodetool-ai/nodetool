@@ -70,7 +70,10 @@ function optionalNumber(value: unknown): number | undefined {
 }
 
 function asImageRef(value: unknown): ImageRef | null {
-  return isObjectLike(value) ? (value as unknown as ImageRef) : null;
+  if (!isObjectLike(value)) return null;
+  // SAFETY: the model returns a ref-shaped object here; only its object-ness
+  // is checkable without duplicating the ImageRef schema.
+  return value as ImageRef;
 }
 
 /** A generation-ready spec for one shot, produced by {@link toShotSpecs}. */

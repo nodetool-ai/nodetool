@@ -112,16 +112,19 @@ export class OpenAICompatProvider extends OpenAIProvider {
     url: string = `${this._compatConfig.baseURL}/models`,
     init: { headers?: Record<string, string>; signal?: AbortSignal } = {}
   ): Promise<LanguageModel[]> {
-    const response = await this._compatFetch(url, {
+    const request: RequestInit = {
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         // Same precedence as OpenAICompatClient: a configured header (gateway
         // attribution, a non-Bearer auth scheme) wins over the default.
         ...this._compatConfig.defaultHeaders,
         ...init.headers
-      },
-      ...(init.signal ? { signal: init.signal } : {})
-    });
+      }
+    };
+    if (init.signal) {
+      request.signal = init.signal;
+    }
+    const response = await this._compatFetch(url, request);
 
     if (!response.ok) {
       log.warn("Model listing failed", {

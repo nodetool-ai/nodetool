@@ -98,6 +98,8 @@ export async function refToBytes(
   if (!ref) {
     throw new Error("Image is required");
   }
+  // SAFETY: ReveImageInput is the union of the ref shapes loadMediaRefBytes
+  // accepts; it is narrower than MediaRefValue, not a different shape.
   const bytes = await loadMediaRefBytes(ref as MediaRefValue, context);
   if (!bytes) throw new Error("Image has no data or URI");
   return bytes;

@@ -106,11 +106,14 @@ export function createGenerationRun(
   });
   context.registerProvider(providerId, provider);
   context.setModelInterfaces({ createAsset: createAssetModelInterface });
-  const ledger = attachRunCostLedger(context, {
+  const ledgerOptions: Parameters<typeof attachRunCostLedger>[1] = {
     userId,
-    workflowId,
-    ...(nodeType ? { nodeType } : {})
-  });
+    workflowId
+  };
+  if (nodeType) {
+    ledgerOptions.nodeType = nodeType;
+  }
+  const ledger = attachRunCostLedger(context, ledgerOptions);
 
   return {
     async generate(capability, params, persist, call, id) {

@@ -683,15 +683,34 @@ export class MinimaxProvider extends OpenAICompatProvider {
     const url = `${MINIMAX_BASE_URL}/v1/query/video_generation?task_id=${encodeURIComponent(
       taskId
     )}`;
+    const pollOptions: Parameters<
+      typeof pollUntilTerminal<Record<string, unknown>>
+    >[1] = {
+      intervalMs: pollIntervalMs,
+      maxAttempts,
+      onFailure: (body) =>
+        new Error(
+          `MiniMax video task failed: ${JSON.stringify(body.base_resp ?? body)}`
+        ),
+      onTimeout: () =>
+        new Error(
+          `MiniMax video task timed out after ${maxAttempts * pollIntervalMs}ms`
+        )
+    };
+    if (signal) {
+      pollOptions.signal = signal;
+    }
     const data = await pollUntilTerminal<Record<string, unknown>>(
       async () => {
         // The job is already submitted and billed: a 429 or a gateway 5xx on
         // the status GET must back off, not throw the job away.
-        const res = await fetchWithRetry(
-          url,
-          { headers: this.headers(), ...(signal ? { signal } : {}) },
-          { fetchImpl: this._minimaxFetch }
-        );
+        const statusRequest: RequestInit = { headers: this.headers() };
+        if (signal) {
+          statusRequest.signal = signal;
+        }
+        const res = await fetchWithRetry(url, statusRequest, {
+          fetchImpl: this._minimaxFetch
+        });
         if (!res.ok) {
           throw new Error(
             `MiniMax video status failed: ${res.status} ${await res.text()}`
@@ -703,19 +722,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
         assertBaseResp(body, "video status");
         return body;
       },
-      {
-        intervalMs: pollIntervalMs,
-        maxAttempts,
-        ...(signal ? { signal } : {}),
-        onFailure: (body) =>
-          new Error(
-            `MiniMax video task failed: ${JSON.stringify(body.base_resp ?? body)}`
-          ),
-        onTimeout: () =>
-          new Error(
-            `MiniMax video task timed out after ${maxAttempts * pollIntervalMs}ms`
-          )
-      }
+      pollOptions
     );
     const fileId = data.file_id as string | undefined;
     if (!fileId) {
