@@ -12,7 +12,7 @@
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit && tsc --noEmit -p tsconfig.tests.json"
   },
   "dependencies": {
     "@nodetool-ai/app-runtime": "*",

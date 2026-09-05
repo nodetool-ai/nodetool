@@ -57,7 +57,7 @@ describe("setClipAnimations", () => {
 });
 
 describe("splitClipAtTime with animations", () => {
-  it("keeps in on the left, out on the right, copies emphasis/loop to both", () => {
+  it("keeps in and an early emphasis on the left, out on the right, and the loop on both", () => {
     const store = mkStore();
     const clip = seedClip(store, [
       { id: "in-1", role: "in", preset: "fade", durationMs: 300 },
@@ -76,7 +76,6 @@ describe("splitClipAtTime with animations", () => {
       "loop"
     ]);
     expect((right.animations ?? []).map((a) => a.role).sort()).toEqual([
-      "emphasis",
       "loop",
       "out"
     ]);

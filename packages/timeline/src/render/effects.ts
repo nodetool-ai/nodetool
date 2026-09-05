@@ -162,7 +162,16 @@ export class WebGPUEffectsProcessor {
     height: number,
     clipEffects: ClipEffect[],
     trackEffects: TrackEffect[] = [],
-    sourceAlpha: AlphaMode = "straight"
+    sourceAlpha: AlphaMode = "straight",
+    /**
+     * Record into the caller's encoder instead of one of this call's own.
+     *
+     * A frame with several graded layers, a precomposite and a matte used to
+     * submit one command buffer per call — each submit is a queue round trip,
+     * and the GPU idles between them. Given an encoder, this records and lets
+     * the caller submit the frame once. Omitted, it behaves as it always did.
+     */
+    frameEncoder?: GPUCommandEncoder
   ): GPUTexture {
     const enabledClip = clipEffects.filter((e) => e.enabled);
     const enabledTrack = trackEffects.filter((e) => e.enabled);
@@ -199,9 +208,11 @@ export class WebGPUEffectsProcessor {
     }
 
     const pool = this.getPool(poolKey, width, height);
-    const encoder = this.device.createCommandEncoder({
-      label: `preview-effects-${poolKey}`
-    });
+    const encoder =
+      frameEncoder ??
+      this.device.createCommandEncoder({
+        label: `preview-effects-${poolKey}`
+      });
 
     // Decoded media arrives straight-alpha (uploaded with
     // `premultipliedAlpha: false`), which is what `sourceAlpha` defaults to.
@@ -330,7 +341,7 @@ export class WebGPUEffectsProcessor {
       step(alphaPremulToStraightV1, alphaPremulToStraightV1.paramDefaults);
     }
 
-    this.device.queue.submit([encoder.finish()]);
+    if (!frameEncoder) this.device.queue.submit([encoder.finish()]);
     return pool.textures[pool.currentIndex].texture;
   }
 
@@ -494,12 +505,16 @@ export class WebGPUEffectsProcessor {
     coverage: GPUTexture,
     coverageWidth: number,
     coverageHeight: number,
-    sourceAlpha: "straight" | "premultiplied" = "straight"
+    sourceAlpha: "straight" | "premultiplied" = "straight",
+    /** Record into the frame's encoder. See {@link EffectChain.process}. */
+    frameEncoder?: GPUCommandEncoder
   ): GPUTexture {
     const pool = this.getPool(poolKey, width, height);
-    const encoder = this.device.createCommandEncoder({
-      label: `preview-mask-${poolKey}`
-    });
+    const encoder =
+      frameEncoder ??
+      this.device.createCommandEncoder({
+        label: `preview-mask-${poolKey}`
+      });
     this.executor.encode({
       ctx: this.ctx,
       module: maskApplyV1,
@@ -539,7 +554,7 @@ export class WebGPUEffectsProcessor {
     });
     pool.textures[1].meta.alpha = alphaPremulToStraightV1.io.output.alpha;
     pool.currentIndex = 1;
-    this.device.queue.submit([encoder.finish()]);
+    if (!frameEncoder) this.device.queue.submit([encoder.finish()]);
     return pool.textures[1].texture;
   }
 
@@ -563,12 +578,16 @@ export class WebGPUEffectsProcessor {
     height: number,
     mode: "alpha" | "luma",
     invert: boolean,
-    sourceAlpha: "straight" | "premultiplied" = "straight"
+    sourceAlpha: "straight" | "premultiplied" = "straight",
+    /** Record into the frame's encoder. See {@link EffectChain.process}. */
+    frameEncoder?: GPUCommandEncoder
   ): GPUTexture {
     const pool = this.getPool(poolKey, width, height);
-    const encoder = this.device.createCommandEncoder({
-      label: `preview-matte-${poolKey}`
-    });
+    const encoder =
+      frameEncoder ??
+      this.device.createCommandEncoder({
+        label: `preview-matte-${poolKey}`
+      });
     const weighted =
       mode === "luma"
         ? this.premultiplyForLuma(
@@ -594,7 +613,7 @@ export class WebGPUEffectsProcessor {
     });
     pool.textures[0].meta.alpha = maskFromImageV1.io.output.alpha;
     pool.currentIndex = 0;
-    this.device.queue.submit([encoder.finish()]);
+    if (!frameEncoder) this.device.queue.submit([encoder.finish()]);
     return pool.textures[0].texture;
   }
 

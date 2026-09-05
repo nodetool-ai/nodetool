@@ -27,6 +27,7 @@ import { z } from "zod";
 import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
 import {
   splitClip,
+  trimClip,
   ANIMATION_PRESETS,
   ANIMATED_PROPERTIES,
   CUSTOM_ANIMATION_CONTRACT,
@@ -45,6 +46,7 @@ import {
   trackTypeForMediaType,
   STAGGER_UNITS,
   parseStaggerUnit,
+  parseEasing,
   DEFAULT_BEAT_TOLERANCE_MS,
   buildBeatGrid,
   beatCountToCover,
@@ -71,7 +73,8 @@ import {
 import {
   computeActiveLayers,
   countTextStaggerUnits,
-  parseSvgPath
+  parseSvgPath,
+  type RenderCanvas
 } from "@nodetool-ai/timeline/scene";
 import {
   addGroupParams,
@@ -330,6 +333,8 @@ export interface TimelineBridgeFinalState {
    * the runner hands a case.
    */
   toolLog: string[];
+  /** Timecodes successfully previewed by the bridge. */
+  previewTimesMs: number[];
 }
 
 /**
@@ -355,6 +360,77 @@ export function previewedAfterLastEdit(toolLog: readonly string[]): boolean {
 }
 
 /**
+ * Whether a preview landed inside a motion rather than beside it.
+ *
+ * {@link previewedAfterLastEdit} reads the transcript's shape: a preview call
+ * came last. That passes on a look at 0ms, where an entrance has not started —
+ * the endpoints tell you nothing, which is what the skill's "sample the middle
+ * of a motion" is about. This reads the timecodes instead: at least one falls
+ * strictly inside the window of an animation the document now carries.
+ *
+ * Every animation in a graded final state is one the run authored, since the
+ * seeded worlds carry none.
+ */
+export function previewedMidMotion(
+  previewTimesMs: readonly number[],
+  clips: readonly TimelineClip[],
+  canvas: RenderCanvas
+): boolean {
+  if (previewTimesMs.length === 0) return false;
+  return clips.some((clip) =>
+    (clip.animations ?? []).some((animation) => {
+      const window = animationWindow(clip, animation, canvas);
+      if (!(window.endMs > window.startMs)) return false;
+      return previewTimesMs.some(
+        (timeMs) => timeMs > window.startMs && timeMs < window.endMs
+      );
+    })
+  );
+}
+
+/**
+ * How long an animation is in motion for: its own window, widened by the
+ * stagger's last unit. `durationMs` unset takes the preset's default.
+ */
+function motionSpanMs(
+  clip: TimelineClip,
+  animation: ClipAnimation,
+  canvas: RenderCanvas
+): number {
+  const preset = ANIMATION_PRESETS.find((p) => p.id === animation.preset);
+  const durationMs = animation.durationMs ?? preset?.defaultDurationMs ?? 0;
+  const stagger = animation.stagger;
+  if (!stagger || !(stagger.offsetMs > 0)) return durationMs;
+  const units = staggerUnitsOf(clip, stagger.unit, canvas);
+  if (units < 2) return durationMs;
+  return durationMs + stagger.offsetMs * (units - 1);
+}
+
+/**
+ * When an animation runs, in timeline ms. `delayMs` offsets an `in` and an
+ * `emphasis` from the clip's start and an `out` backwards from its end, which
+ * is the role rule the skill states. A `loop` runs for the whole clip.
+ */
+export function animationWindow(
+  clip: TimelineClip,
+  animation: ClipAnimation,
+  canvas: RenderCanvas
+): { startMs: number; endMs: number } {
+  const clipEndMs = clip.startMs + clip.durationMs;
+  if (animation.role === "loop") {
+    return { startMs: clip.startMs, endMs: clipEndMs };
+  }
+  const delayMs = animation.delayMs ?? 0;
+  const spanMs = motionSpanMs(clip, animation, canvas);
+  if (animation.role === "out") {
+    const endMs = clipEndMs - delayMs;
+    return { startMs: endMs - spanMs, endMs };
+  }
+  const startMs = clip.startMs + delayMs;
+  return { startMs, endMs: startMs + spanMs };
+}
+
+/**
  * Whether a staggered animation finishes inside its clip: the last unit
  * starts `offsetMs × (units − 1)` in and still runs the full `durationMs`.
  * An animation with no stagger, or one on a clip that splits into fewer than
@@ -362,11 +438,12 @@ export function previewedAfterLastEdit(toolLog: readonly string[]): boolean {
  */
 export function staggerSpanFitsClip(
   clip: TimelineClip,
-  animation: ClipAnimation
+  animation: ClipAnimation,
+  canvas: RenderCanvas
 ): boolean {
   const stagger = animation.stagger;
   if (!stagger || !(stagger.offsetMs > 0)) return true;
-  const units = staggerUnitsOf(clip, stagger.unit);
+  const units = staggerUnitsOf(clip, stagger.unit, canvas);
   if (units < 2) return true;
   const preset = ANIMATION_PRESETS.find((p) => p.id === animation.preset);
   const durationMs = animation.durationMs ?? preset?.defaultDurationMs ?? 0;
@@ -380,17 +457,17 @@ export function staggerSpanFitsClip(
  * wraps against the sequence size; with no text measurer every authored
  * paragraph is one line, which is what a headless surface can know.
  */
-export function staggerUnitsOf(clip: TimelineClip, unit: string): number {
+export function staggerUnitsOf(
+  clip: TimelineClip,
+  unit: string,
+  canvas: RenderCanvas
+): number {
   const style = clip.textStyle;
   const parsed = parseStaggerUnit(unit);
   // An unknown unit compiles as a plain block animation, so it splits into
   // nothing — same answer as a clip with no text.
   if (!style || !parsed) return 0;
-  return countTextStaggerUnits(
-    style,
-    { width: 1920, height: 1080 },
-    parsed
-  );
+  return countTextStaggerUnits(style, canvas, parsed);
 }
 
 /**
@@ -413,9 +490,29 @@ export function effectiveEasing(animation: ClipAnimation): string {
   }
 }
 
-/** Whether an easing decelerates into its landing: an ease-out or a spring. */
+/** How far either side of the curve a slope is measured over. */
+const EASING_SLOPE_STEP = 0.02;
+
+/**
+ * Whether an easing decelerates into its landing.
+ *
+ * The `easeOut` family qualifies by name: its endpoints are exact, and
+ * `easeOutBounce` deliberately accelerates into its last bounce, which a slope
+ * reading at t=1 would score as an ease-in. Everything else in the grammar is
+ * measured — the curve's slope entering the landing against its slope leaving
+ * the start — so `cubic-bezier(0.16,1,0.3,1)`, the deceleration the skill
+ * recommends for entrances, passes and `cubic-bezier(0.7,0,0.84,0)`, the exit
+ * curve beside it, does not. An easing outside the grammar eases linearly and
+ * does not decelerate.
+ */
 export function easingDecelerates(easing: string): boolean {
-  return /^easeOut/.test(easing) || /^spring\(/.test(easing.replace(/\s+/g, ""));
+  const text = easing.trim();
+  if (/^easeOut/.test(text)) return true;
+  const curve = parseEasing(text);
+  if (!curve) return false;
+  const entry = (curve(EASING_SLOPE_STEP) - curve(0)) / EASING_SLOPE_STEP;
+  const landing = (curve(1) - curve(1 - EASING_SLOPE_STEP)) / EASING_SLOPE_STEP;
+  return landing < entry;
 }
 
 function tool<TResult>(
@@ -615,6 +712,7 @@ export function createTimelineToolBridge(
   let clips: TimelineClip[] = [];
   let markers: TimelineMarker[] = [];
   const toolLog: string[] = [];
+  const previewTimesMs: number[] = [];
 
   // Ids the sequence already uses. A seeded document brings its own, which the
   // `track_1`/`clip_1` counters would otherwise collide with on the first edit.
@@ -725,10 +823,31 @@ export function createTimelineToolBridge(
       clips = trimGroup(clips, clip.id, "end", patch.durationMs - clip.durationMs);
       return clips.find((c) => c.id === clip.id)!;
     }
-    if (patch.durationMs !== undefined) clip.durationMs = patch.durationMs;
-    if (patch.inPointMs !== undefined) clip.inPointMs = patch.inPointMs;
-    if (patch.outPointMs !== undefined) clip.outPointMs = patch.outPointMs;
-    return clip;
+    let next = clip;
+    if (patch.durationMs !== undefined) {
+      if (patch.durationMs <= 0) {
+        throw new Error(
+          `durationMs must be greater than 0 (got ${patch.durationMs}); delete the clip instead of trimming it to nothing`
+        );
+      }
+      next = trimClip(clip, "end", patch.durationMs - clip.durationMs);
+      clips = clips.map((entry) => entry.id === clip.id ? next : entry);
+    }
+    if (patch.inPointMs !== undefined) next.inPointMs = patch.inPointMs;
+    if (patch.outPointMs !== undefined) next.outPointMs = patch.outPointMs;
+    return next;
+  }
+
+  function applyTrimStart(clip: TimelineClip, startMs: number): TimelineClip {
+    const deltaMs = clip.startMs - Math.max(0, startMs);
+    if (deltaMs === 0) return clip;
+    if (isGroupClip(clip)) {
+      clips = trimGroup(clips, clip.id, "start", deltaMs);
+      return clips.find((entry) => entry.id === clip.id)!;
+    }
+    const next = trimClip(clip, "start", deltaMs);
+    clips = clips.map((entry) => entry.id === clip.id ? next : entry);
+    return next;
   }
 
   /** The body of `move_clip`, shared with `set_clip_params`. */
@@ -1443,7 +1562,7 @@ export function createTimelineToolBridge(
           id: nextClipId(),
           startMs: src.startMs + src.durationMs + ((gapMs as number | undefined) ?? 0),
           versions: [],
-          animations: src.animations?.map((a) => ({ ...a }))
+          animations: src.animations?.map((a) => ({ ...a, id: nextAnimId() }))
         };
         clips.push(copy);
         selectedClipIds = [copy.id];
@@ -2134,8 +2253,29 @@ export function createTimelineToolBridge(
         const reported = result.clips.map((entry) => {
           const clip = byId.get(entry.clipId);
           if (entry.snapped && clip) {
-            clip.startMs = entry.after.startMs;
-            clip.durationMs = entry.after.durationMs;
+            // Through the same ops the caller would use: a group carries its
+            // children (D4) and a trim carries the source points, neither of
+            // which a raw startMs/durationMs write does.
+            try {
+              if (entry.after.durationMs === entry.before.durationMs) {
+                applyMove(clip, { startMs: entry.after.startMs });
+              } else {
+                let trimmed = clip;
+                if (entry.after.startMs !== entry.before.startMs) {
+                  trimmed = applyTrimStart(clip, entry.after.startMs);
+                }
+                applyTrim(trimmed, { durationMs: entry.after.durationMs });
+              }
+            } catch (error) {
+              return {
+                ...entry,
+                snapped: false,
+                after: entry.before,
+                delta: { startMs: 0, endMs: 0 },
+                reason: error instanceof Error ? error.message : String(error),
+                clipName: clip.name
+              };
+            }
           }
           return { ...entry, clipName: clip?.name ?? null };
         });
@@ -2297,6 +2437,7 @@ export function createTimelineToolBridge(
               // Top of the stack first, the order the skill's report describes.
               .sort((a, b) => b.z_index - a.z_index)
           }));
+          previewTimesMs.push(...(times_ms as number[]));
           return { ok: true, width, height, frames };
         }
       )
@@ -2347,7 +2488,8 @@ export function createTimelineToolBridge(
       documentTracks: tracks.map((t) => structuredClone(t)),
       documentClips: clips.map((c) => structuredClone(c)),
       markers: markers.map((m) => structuredClone(m)),
-      toolLog: [...toolLog]
+      toolLog: [...toolLog],
+      previewTimesMs: [...previewTimesMs]
     })
   };
 }
@@ -2555,8 +2697,8 @@ export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeF
                 const stagger = entrance?.stagger;
                 if (!entrance || !stagger) return false;
                 return (
-                  staggerUnitsOf(clip, stagger.unit) >= 2 &&
-                  staggerSpanFitsClip(clip, entrance)
+                  staggerUnitsOf(clip, stagger.unit, s) >= 2 &&
+                  staggerSpanFitsClip(clip, entrance, s)
                 );
               })
           }
@@ -2596,23 +2738,36 @@ export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeF
           {
             name: "scrimBehindTextInsideTheShot",
             detail:
-              "no shape clip on a higher-index track than the text, both inside 0-6000ms",
+              "no shape clip drawn over the picture and under the text, sharing frames with it inside 0-6000ms",
             test: (s) => {
               const indexOf = (trackId: string): number =>
                 s.tracks.find((t) => t.id === trackId)?.index ?? -1;
               const inShot = (c: { startMs: number; durationMs: number }) =>
                 c.startMs >= 0 && c.startMs + c.durationMs <= 6000;
+              const overlaps = (
+                a: { startMs: number; durationMs: number },
+                b: { startMs: number; durationMs: number }
+              ) =>
+                a.startMs < b.startMs + b.durationMs &&
+                b.startMs < a.startMs + a.durationMs;
               const texts = s.clips.filter(
                 (c) => c.mediaType === "text" && inShot(c)
               );
               const shapes = s.clips.filter(
                 (c) => c.mediaType === "shape" && inShot(c)
               );
-              // Lowest index draws on top, so the scrim's track index must be
-              // the larger one for the words to sit over it.
+              const picture = s.clips.filter((c) => c.mediaType === "video");
+              // Lowest index draws on top, so the scrim sits between the two:
+              // over the shot it darkens, under the words it backs. A scrim
+              // that never shares a frame with the text backs nothing.
               return texts.some((text) =>
                 shapes.some(
-                  (shape) => indexOf(shape.trackId) > indexOf(text.trackId)
+                  (shape) =>
+                    indexOf(shape.trackId) > indexOf(text.trackId) &&
+                    overlaps(shape, text) &&
+                    picture.some(
+                      (shot) => indexOf(shot.trackId) > indexOf(shape.trackId)
+                    )
                 )
               );
             }
@@ -2728,7 +2883,8 @@ export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeF
               "the run's last edit is not followed by a preview_timeline_frame call",
             test: (s) =>
               s.clips.some((c) => c.mediaType === "text") &&
-              previewedAfterLastEdit(s.toolLog)
+              previewedAfterLastEdit(s.toolLog) &&
+              previewedMidMotion(s.previewTimesMs, s.documentClips, s)
           }
         ]
       }

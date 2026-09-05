@@ -519,7 +519,15 @@ export type AnimationKeyframe = z.infer<typeof animationKeyframe>;
  */
 export const animationPropertyCurve = z.object({
   property: z.string(),
-  keyframes: z.array(animationKeyframe)
+  /**
+   * Bounded to `MAX_CUSTOM_KEYFRAMES` in
+   * `packages/timeline/src/animation/custom.ts` — a curve the bake would refuse
+   * must not be storable through the wire either. `packages/timeline` depends
+   * on this package, so the two are pinned equal by
+   * `packages/execution/tests/timeline-schema-bounds.test.ts` rather than by an
+   * import.
+   */
+  keyframes: z.array(animationKeyframe).max(4096)
 });
 export type AnimationPropertyCurve = z.infer<typeof animationPropertyCurve>;
 
@@ -539,7 +547,8 @@ export const customClipAnimation = z.object({
   code: z.string().optional(),
   /** ISO timestamp of the bake that produced `curves`. */
   bakedAt: z.string().optional(),
-  curves: z.array(animationPropertyCurve),
+  /** Bounded to `MAX_CUSTOM_CURVES`; see `animationPropertyCurve.keyframes`. */
+  curves: z.array(animationPropertyCurve).max(16),
   /**
    * Required when a curve drives `wipeProgress`: direction and softness never
    * animate, so they ride here rather than on a curve.
@@ -606,7 +615,10 @@ export const clipAnimation = z.object({
   id: z.string(),
   role: z.enum(["in", "out", "emphasis", "loop"]),
   preset: z.string(),
-  durationMs: z.number(),
+  /** A zero or negative window has no frames to fill. (`z.number()` already
+   * refuses NaN and Infinity, so `delayMs` needs no bound of its own —
+   * `packages/execution/tests/timeline-schema-bounds.test.ts` pins that.) */
+  durationMs: z.number().positive(),
   delayMs: z.number().optional(),
   easing: z.string().optional(),
   enabled: z.boolean().optional(),
@@ -792,6 +804,12 @@ export const timelineClip = z.object({
   linkId: z.string().optional(),
   width: z.number().optional(),
   height: z.number().optional(),
+  /** Direct-gen target aspect ratio ("16:9") and resolution tier ("720p"),
+   * both written by the direct-gen clip panel. Without these fields Zod strips
+   * them on every PATCH, so a clip re-generates at the provider default rather
+   * than at the size the user picked. */
+  aspectRatio: z.string().optional(),
+  resolution: z.string().optional(),
   strength: z.number().optional(),
   numInferenceSteps: z.number().optional(),
   seed: z.number().optional(),

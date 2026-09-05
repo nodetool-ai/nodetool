@@ -14,14 +14,52 @@ import { describe, expect, it } from "vitest";
 
 import {
   timelineDocument,
+  type CaptionStyle as WireCaptionStyle,
+  type CaptionWord as WireCaptionWord,
+  type ClipAnimation as WireAnimation,
+  type ClipCaption as WireCaption,
+  type ClipMask as WireMask,
+  type ClipMatte as WireMatte,
+  type ClipShapeStyle as WireShapeStyle,
+  type ClipTextStyle as WireTextStyle,
+  type ClipTimeRemap as WireTimeRemap,
+  type ClipTransform as WireTransform,
+  type ClipVersion as WireVersion,
+  type CustomClipAnimation as WireCustomAnimation,
+  type ShapeFill as WireShapeFill,
   type TimelineClip as WireClip,
+  type TimelineDocument as WireDocument,
+  type TimelineMarker as WireMarker,
+  type TimelineSequenceResponse as WireSequence,
+  type TimelineTrack as WireTrack,
+  type TrackEffect as WireTrackEffect,
+  type TranscriptLine as WireTranscriptLine,
   type KnownClipEffect as WireKnownEffect,
   type KnownClipTransition as WireKnownTransition,
   type UnknownClipEffect as WireUnknownEffect,
   type UnknownClipTransition as WireUnknownTransition
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import type {
+  AnimationStagger as ModelStagger,
+  CaptionStyle as ModelCaptionStyle,
+  CaptionWord as ModelCaptionWord,
+  ClipAnimation as ModelAnimation,
+  ClipCaption as ModelCaption,
+  ClipMask as ModelMask,
+  ClipMatte as ModelMatte,
+  ClipShapeStyle as ModelShapeStyle,
+  ClipTextStyle as ModelTextStyle,
+  ClipTimeRemap as ModelTimeRemap,
+  ClipTransform as ModelTransform,
+  ClipVersion as ModelVersion,
+  CustomClipAnimation as ModelCustomAnimation,
+  ShapeFill as ModelShapeFill,
   TimelineClip as ModelClip,
+  TimelineMarker as ModelMarker,
+  TimelineSequence as ModelSequence,
+  TimelineTrack as ModelTrack,
+  TrackEffect as ModelTrackEffect,
+  TranscriptLine as ModelTranscriptLine,
   ClipEffect as ModelClipEffect,
   ClipTransition as ModelClipTransition,
   KnownClipEffect as ModelKnownEffect,
@@ -32,13 +70,182 @@ import type {
 
 import { validateTimelineSequence } from "../src/timeline-debug/index.js";
 
-// ── Type mirror ──────────────────────────────────────────────────────────────
+// ── Type mirror (I1) ─────────────────────────────────────────────────────────
 // `packages/protocol` cannot import `@nodetool-ai/timeline` (the dependency runs
-// the other way), so the two-way assignability check lives here, in the one
-// package that holds both. A field present on one side only fails to compile.
+// the other way), so the mirror lives here, in the one package that holds both.
+//
+// `SameKeys` is the guard. It names every key one side declares and the other
+// does not, PLUS every shared key whose value types drifted. The key half is
+// what a whole-object `MutuallyAssignable` cannot see: an OPTIONAL field added
+// to the model and never mirrored — the class that lost `aspectRatio` and
+// `resolution` — because `{ id: string; aspectRatio?: string }` and
+// `{ id: string }` are mutually assignable. The value half is what a key diff
+// alone cannot see. A whole-clip `MutuallyAssignable` is therefore redundant
+// and misleading, and is gone; the remaining `MutuallyAssignable` constants
+// stand over unions, where `keyof` says nothing useful.
+//
+// Both are compile-time only — Vitest strips types and never typechecks — so
+// they fail through `npm run lint --workspace=packages/execution`, which runs
+// `tsconfig.tests.json` over this file.
 type Extends<A, B> = A extends B ? true : false;
 /** `true` only when each side is assignable to the other. */
 type MutuallyAssignable<A, B> = Extends<A, B> & Extends<B, A>;
+
+/** Every key one of the two objects declares and the other does not. */
+type KeyDiff<A, B> = Exclude<keyof A, keyof B> | Exclude<keyof B, keyof A>;
+
+/** Every key both declare whose value types are not mutually assignable. */
+type ValueDiff<A, B> = {
+  [K in keyof A & keyof B]-?: MutuallyAssignable<A[K], B[K]> extends true
+    ? never
+    : K;
+}[keyof A & keyof B];
+
+/**
+ * `{}` satisfies this only while both diffs are `never`. One unmirrored key,
+ * or one shared key whose types drifted, turns it into a required property, so
+ * `const x: SameKeys<A, B> = {}` stops compiling and names the key.
+ */
+type SameKeys<A, B> = Record<KeyDiff<A, B> | ValueDiff<A, B>, never>;
+
+/**
+ * The same, per member of a discriminated union. A union's `keyof` is the
+ * INTERSECTION of its members' keys, so a plain `SameKeys` over
+ * `KnownClipTransition` would ignore every field that is not on all six cuts.
+ * This names a variant one side does not carry, plus the key diff of each
+ * variant both sides do.
+ */
+type VariantKeyDiff<A extends { type: string }, B extends { type: string }> =
+  | Exclude<A["type"], B["type"]>
+  | Exclude<B["type"], A["type"]>
+  | {
+      [K in A["type"] & B["type"]]: KeyDiff<
+        Extract<A, { type: K }>,
+        Extract<B, { type: K }>
+      >;
+    }[A["type"] & B["type"]];
+type SameVariantKeys<
+  A extends { type: string },
+  B extends { type: string }
+> = Record<VariantKeyDiff<A, B>, never>;
+
+/** The document half of the model's `TimelineSequence` — what a save writes. */
+type ModelDocument = Pick<
+  ModelSequence,
+  "tracks" | "clips" | "markers" | "transcript" | "scriptEnabled"
+>;
+
+/** Unwrap an optional property so its own key set can be compared. */
+type Prop<T, K extends keyof T> = NonNullable<T[K]>;
+
+const clipKeys: SameKeys<ModelClip, WireClip> = {};
+const trackKeys: SameKeys<ModelTrack, WireTrack> = {};
+const documentKeys: SameKeys<ModelDocument, WireDocument> = {};
+const sequenceKeys: SameKeys<ModelSequence, WireSequence> = {};
+const markerKeys: SameKeys<ModelMarker, WireMarker> = {};
+const versionKeys: SameKeys<ModelVersion, WireVersion> = {};
+const transcriptLineKeys: SameKeys<
+  ModelTranscriptLine,
+  WireTranscriptLine
+> = {};
+const transformKeys: SameKeys<ModelTransform, WireTransform> = {};
+const maskKeys: SameKeys<ModelMask, WireMask> = {};
+const matteKeys: SameKeys<ModelMatte, WireMatte> = {};
+const timeRemapKeys: SameKeys<ModelTimeRemap, WireTimeRemap> = {};
+const timeRemapKeyframeKeys: SameKeys<
+  ModelTimeRemap["keyframes"][number],
+  WireTimeRemap["keyframes"][number]
+> = {};
+const captionKeys: SameKeys<ModelCaption, WireCaption> = {};
+const captionWordKeys: SameKeys<ModelCaptionWord, WireCaptionWord> = {};
+const captionStyleKeys: SameKeys<ModelCaptionStyle, WireCaptionStyle> = {};
+const captionOutlineKeys: SameKeys<
+  Prop<ModelCaptionStyle, "outline">,
+  Prop<WireCaptionStyle, "outline">
+> = {};
+const captionBackgroundKeys: SameKeys<
+  Prop<ModelCaptionStyle, "background">,
+  Prop<WireCaptionStyle, "background">
+> = {};
+const textStyleKeys: SameKeys<ModelTextStyle, WireTextStyle> = {};
+const textStrokeKeys: SameKeys<
+  Prop<ModelTextStyle, "stroke">,
+  Prop<WireTextStyle, "stroke">
+> = {};
+const textShadowKeys: SameKeys<
+  Prop<ModelTextStyle, "shadow">,
+  Prop<WireTextStyle, "shadow">
+> = {};
+const textBackgroundKeys: SameKeys<
+  Prop<ModelTextStyle, "background">,
+  Prop<WireTextStyle, "background">
+> = {};
+const shapeStyleKeys: SameKeys<ModelShapeStyle, WireShapeStyle> = {};
+const animationKeys: SameKeys<ModelAnimation, WireAnimation> = {};
+const staggerKeys: SameKeys<ModelStagger, Prop<WireAnimation, "stagger">> = {};
+const customAnimationKeys: SameKeys<
+  ModelCustomAnimation,
+  WireCustomAnimation
+> = {};
+const customCurveKeys: SameKeys<
+  ModelCustomAnimation["curves"][number],
+  WireCustomAnimation["curves"][number]
+> = {};
+const customKeyframeKeys: SameKeys<
+  ModelCustomAnimation["curves"][number]["keyframes"][number],
+  WireCustomAnimation["curves"][number]["keyframes"][number]
+> = {};
+const customMaskKeys: SameKeys<
+  Prop<ModelCustomAnimation, "mask">,
+  Prop<WireCustomAnimation, "mask">
+> = {};
+const shapeFillKeys: SameVariantKeys<ModelShapeFill, WireShapeFill> = {};
+const trackEffectKeys: SameVariantKeys<ModelTrackEffect, WireTrackEffect> = {};
+const knownTransitionKeys: SameVariantKeys<
+  ModelKnownTransition,
+  WireKnownTransition
+> = {};
+const knownEffectKeys: SameVariantKeys<ModelKnownEffect, WireKnownEffect> = {};
+
+/**
+ * The two catch-alls carry `[key: string]: unknown`, so `keyof` is `string`
+ * on both sides and a key diff over them is vacuously empty. They stay on
+ * `MutuallyAssignable` below, which does say something about them.
+ */
+const MIRRORED_KEY_SETS = [
+  clipKeys,
+  trackKeys,
+  documentKeys,
+  sequenceKeys,
+  markerKeys,
+  versionKeys,
+  transcriptLineKeys,
+  transformKeys,
+  maskKeys,
+  matteKeys,
+  timeRemapKeys,
+  timeRemapKeyframeKeys,
+  captionKeys,
+  captionWordKeys,
+  captionStyleKeys,
+  captionOutlineKeys,
+  captionBackgroundKeys,
+  textStyleKeys,
+  textStrokeKeys,
+  textShadowKeys,
+  textBackgroundKeys,
+  shapeStyleKeys,
+  animationKeys,
+  staggerKeys,
+  customAnimationKeys,
+  customCurveKeys,
+  customKeyframeKeys,
+  customMaskKeys,
+  shapeFillKeys,
+  trackEffectKeys,
+  knownTransitionKeys,
+  knownEffectKeys
+];
 
 /** The fields this schema landing adds, plus the two it widened. */
 type MotionFieldKeys =
@@ -84,10 +291,6 @@ const unknownTransitionMirror: MutuallyAssignable<
   WireUnknownTransition,
   ModelUnknownTransition
 > = true;
-// The whole clip, both ways. `ClipAnimation.easing` was the last field the
-// model narrowed further than the wire; T6 widened it to a string so the
-// easing grammar (`cubic-bezier(...)`, `spring(...)`) fits.
-const wholeClipMirror: MutuallyAssignable<ModelClip, WireClip> = true;
 
 const clip = (overrides: Record<string, unknown>): Record<string, unknown> => ({
   trackId: "track-1",
@@ -156,7 +359,9 @@ function motionDocument(): Record<string, unknown> {
           ]
         },
         compositionId: "comp-lower-third",
-        compositionParams: { title: "Ada", lines: 2, boxed: true }
+        compositionParams: { title: "Ada", lines: 2, boxed: true },
+        aspectRatio: "16:9",
+        resolution: "720p"
       }),
       clip({ id: "matte-src", startMs: 2000, mediaType: "shape" }),
       clip({
@@ -340,6 +545,8 @@ function motionDocument(): Record<string, unknown> {
  * every one of them.
  */
 const NEW_FIELD_PATHS = [
+  "clips[*].aspectRatio",
+  "clips[*].resolution",
   "clips[*].parentId",
   "clips[*].mask.kind",
   "clips[*].mask.x",
@@ -501,6 +708,16 @@ describe("timeline schema round trip — motion-graphics fields", () => {
     expect(strippedPaths(doc)).toEqual(["clips[*].textStyle.notATextField"]);
   });
 
+  it("mirrors every document object's key set (I1)", () => {
+    // The constants are the assertion: each is `Record<never, never>` only
+    // while the two sides declare the same keys, so `{}` stops compiling the
+    // moment one drifts. Reading them here keeps `noUnusedLocals` — and a
+    // reader tidying unused bindings — from deleting the guard.
+    expect(
+      MIRRORED_KEY_SETS.filter((set) => Object.keys(set).length > 0)
+    ).toEqual([]);
+  });
+
   it("keeps the wire and model clip types mutually assignable", () => {
     // The three constants above are compile-time assertions: each is typed
     // `true & true` only while both directions hold, so a field on one side
@@ -513,9 +730,8 @@ describe("timeline schema round trip — motion-graphics fields", () => {
       knownEffectMirror,
       knownTransitionMirror,
       unknownEffectMirror,
-      unknownTransitionMirror,
-      wholeClipMirror
-    ]).toEqual([true, true, true, true, true, true, true, true]);
+      unknownTransitionMirror
+    ]).toEqual([true, true, true, true, true, true, true]);
   });
 });
 

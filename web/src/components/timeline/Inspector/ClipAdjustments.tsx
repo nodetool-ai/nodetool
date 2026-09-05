@@ -36,7 +36,12 @@ import type {
 import { BLEND_MODES } from "@nodetool-ai/gpu";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { CollapsibleSection, FlexColumn } from "../../ui_primitives";
+import {
+  CollapsibleSection,
+  FlexColumn,
+  SPACING,
+  getSpacingPx
+} from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
 import {
   InspectorDivider,
@@ -97,8 +102,8 @@ const sectionContentStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: 2,
-    padding: theme.spacing(0.5, 0, 2)
+    gap: getSpacingPx(SPACING.micro),
+    padding: theme.spacing(SPACING.micro, SPACING.none, SPACING.md)
   });
 
 // Hoisted so InspectorPillInput's memo holds: an inline literal would be a

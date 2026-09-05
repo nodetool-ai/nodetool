@@ -815,12 +815,39 @@ const editTimeline: CapabilityExport = {
         clips: state.documentClips,
         markers: state.markers
       };
+      const failed = records.filter((record) => !record.ok);
+      // Only the ops that landed describe the write, and a script where none
+      // landed is not a write at all: saving it would bump the revision and
+      // hand an open editor a merge with nothing in it.
+      const appliedOps = ops
+        .map((parsed, index) => ({ parsed, index }))
+        .filter(({ index }) => records[index]?.ok);
+      if (appliedOps.length === 0) {
+        return {
+          timeline_id: timelineId,
+          updated_at: sequence.updated_at,
+          applied: 0,
+          failed: failed.length,
+          ops: records,
+          tracks: state.tracks,
+          clips: state.clips.map((clip) => ({
+            id: clip.id,
+            name: clip.name,
+            track_id: clip.trackId,
+            media_type: clip.mediaType,
+            start_ms: clip.startMs,
+            duration_ms: clip.durationMs,
+            animations: clip.animations
+          }))
+        };
+      }
+
       const saved = await TimelineSequence.updateDocumentIfUnchanged(
         timelineId,
         sequence.updated_at,
         next,
         {
-          ops: ops.map((parsed, index) => ({
+          ops: appliedOps.map(({ parsed, index }) => ({
             tool: parsed.op,
             input: resolveTimelineOpInput(
               parsed.input,
@@ -833,7 +860,6 @@ const editTimeline: CapabilityExport = {
       );
       if (!saved) continue;
 
-      const failed = records.filter((record) => !record.ok);
       return {
         timeline_id: timelineId,
         updated_at: saved.updated_at,
@@ -1410,7 +1436,8 @@ const previewTimelineFrame: CapabilityExport = {
         width: frame.width,
         height: frame.height,
         layers: frame.layers,
-        dropped: frame.dropped
+        dropped: frame.dropped,
+        degraded: frame.degraded
       };
       if (!wantSheet) {
         const saved = await persistOutput(run.context, frame.png, {
@@ -1662,6 +1689,31 @@ const RENDER_NODE_ID = "render";
 const RENDER_OUTPUT_NODE_ID = "output";
 /** The handle the render's asset comes back under. */
 const RENDER_OUTPUT_NAME = "video";
+/** The Output node a png_sequence's zip goes through. */
+const RENDER_FRAMES_OUTPUT_NODE_ID = "frames_output";
+/** The handle a png_sequence's zip comes back under. */
+const RENDER_FRAMES_OUTPUT_NAME = "frames";
+
+/**
+ * Bits per second from a `bitrate` argument, or undefined when there is none
+ * to read. The node takes a number; a caller writes what ffmpeg takes, so
+ * "8M" and "800k" parse here rather than being dropped on the way to the graph.
+ */
+export function parseBitrate(value: unknown): number | undefined {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0 ? Math.round(value) : undefined;
+  }
+  if (typeof value !== "string") return undefined;
+  const match = /^\s*([0-9]*\.?[0-9]+)\s*([kKmM]?)\s*$/.exec(value);
+  if (!match) return undefined;
+  const scale = match[2]?.toLowerCase() === "m"
+    ? 1_000_000
+    : match[2]?.toLowerCase() === "k"
+      ? 1_000
+      : 1;
+  const bits = Number(match[1]) * scale;
+  return bits > 0 ? Math.round(bits) : undefined;
+}
 
 /** How often a `wait: true` render re-reads the job row. */
 const RENDER_POLL_INTERVAL_MS = 1000;
@@ -1700,51 +1752,87 @@ export function buildRenderTimelineGraph(
   };
   for (const prop of RENDER_NODE_PROPS) {
     const value = params[prop];
-    if (value !== undefined && value !== null) properties[prop] = value;
+    if (value === undefined || value === null) continue;
+    if (prop === "bitrate") {
+      const bitrate = parseBitrate(value);
+      if (bitrate !== undefined) properties[prop] = bitrate;
+      continue;
+    }
+    properties[prop] = value;
   }
-  return {
-    nodes: [
-      {
-        id: RENDER_NODE_ID,
-        type: "nodetool.timeline.RenderTimeline",
-        data: properties
-      },
-      {
-        id: RENDER_OUTPUT_NODE_ID,
-        type: "nodetool.output.Output",
-        data: { name: RENDER_OUTPUT_NAME }
-      }
-    ],
-    edges: [
-      {
-        id: "render-to-output",
-        source: RENDER_NODE_ID,
-        sourceHandle: "output",
-        target: RENDER_OUTPUT_NODE_ID,
-        targetHandle: "value"
-      }
-    ]
-  };
+  const nodes: Record<string, unknown>[] = [
+    {
+      id: RENDER_NODE_ID,
+      type: "nodetool.timeline.RenderTimeline",
+      data: properties
+    },
+    {
+      id: RENDER_OUTPUT_NODE_ID,
+      type: "nodetool.output.Output",
+      data: { name: RENDER_OUTPUT_NAME }
+    }
+  ];
+  const edges: Record<string, unknown>[] = [
+    {
+      id: "render-to-output",
+      source: RENDER_NODE_ID,
+      sourceHandle: "output",
+      target: RENDER_OUTPUT_NODE_ID,
+      targetHandle: "value"
+    }
+  ];
+  // A png_sequence leaves the zip on the node's `frames` handle and an empty
+  // ref on `output`, so a graph wired to `output` alone comes back with
+  // nothing to open.
+  if (params["format"] === "png_sequence") {
+    nodes.push({
+      id: RENDER_FRAMES_OUTPUT_NODE_ID,
+      type: "nodetool.output.Output",
+      data: { name: RENDER_FRAMES_OUTPUT_NAME }
+    });
+    edges.push({
+      id: "render-to-frames-output",
+      source: RENDER_NODE_ID,
+      sourceHandle: "frames",
+      target: RENDER_FRAMES_OUTPUT_NODE_ID,
+      targetHandle: "value"
+    });
+  }
+  return { nodes, edges };
 }
 
-/** The video ref a finished render left on the job row, wherever it sits. */
+/**
+ * The ref a finished render left on the job row, wherever it sits — a video,
+ * or the zipped document a png_sequence renders to. A png_sequence leaves an
+ * empty ref on the video handle beside the zip, so a ref carrying an asset id
+ * wins over one that carries none.
+ */
 export function findRenderedVideo(
   outputs: unknown
 ): Record<string, unknown> | null {
-  if (Array.isArray(outputs)) {
-    for (const item of outputs) {
-      const found = findRenderedVideo(item);
-      if (found) return found;
+  const found: Record<string, unknown>[] = [];
+  const walk = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      for (const item of value) walk(item);
+      return;
     }
-    return null;
-  }
-  if (!isRecord(outputs)) return null;
-  if (outputs["type"] === "video") return outputs;
-  for (const value of Object.values(outputs)) {
-    const found = findRenderedVideo(value);
-    if (found) return found;
-  }
-  return null;
+    if (!isRecord(value)) return;
+    if (value["type"] === "video" || value["type"] === "document") {
+      found.push(value);
+      return;
+    }
+    for (const nested of Object.values(value)) walk(nested);
+  };
+  walk(outputs);
+  return (
+    found.find(
+      (ref) =>
+        (isString(ref["asset_id"]) && ref["asset_id"].length > 0) ||
+        (isString(ref["uri"]) && ref["uri"].length > 0)
+    ) ??
+    found[0] ??
+    null
+  );
 }
 
 /** The job row fields a settled render is read out of. */

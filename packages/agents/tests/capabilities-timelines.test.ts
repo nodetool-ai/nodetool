@@ -414,6 +414,39 @@ describe("timelines capability behaviour", () => {
     expect(result.ops[1].error).toContain("cannot go on a timeline");
   });
 
+  it("does not write when every op failed", async () => {
+    const row = await makeTimeline();
+    const before = await TimelineSequence.findById(row.id);
+    const result = (await run().invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [{ op: "levitate_clip" }]
+    })) as { applied: number; failed: number; updated_at: string };
+    expect(result).toMatchObject({ applied: 0, failed: 1 });
+
+    const after = await TimelineSequence.findById(row.id);
+    expect(after?.updated_at).toBe(before?.updated_at);
+    expect(after?.revision).toBe(before?.revision);
+  });
+
+  it("passes only the applied ops as merge metadata", async () => {
+    const row = await makeTimeline();
+    const metas: unknown[][] = [];
+    ModelObserver.subscribe((_instance, _event, meta) => {
+      if (meta?.ops) metas.push(meta.ops);
+    }, "TimelineSequence");
+    await run().invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [
+        { op: "levitate_clip" },
+        { op: "add_track", type: "audio", name: "Music" }
+      ]
+    });
+    expect(metas).toHaveLength(1);
+    expect((metas[0] as { tool: string }[]).map((o) => o.tool)).toEqual([
+      "ui_timeline_add_track"
+    ]);
+  });
+
   it("records an unknown edit op instead of throwing", async () => {
     const row = await makeTimeline();
     const result = (await run().invoke("edit_timeline", {

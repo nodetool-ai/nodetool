@@ -13,6 +13,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useRef } from "react";
+import { useShallow } from "zustand/react/shallow";
 import CropFreeOutlinedIcon from "@mui/icons-material/CropFreeOutlined";
 import FilterOutlinedIcon from "@mui/icons-material/FilterOutlined";
 import type { ClipMask, ClipMatte, TimelineClip } from "@nodetool-ai/timeline";
@@ -70,9 +71,18 @@ export const ClipMaskMatte: React.FC<ClipMaskMatteProps> = memo(({ clip }) => {
   const [matteOpen, setMatteOpen] = usePersistedFold("matte");
 
   // Every other clip is a candidate matte source; a clip cannot matte itself.
-  // The selector returns the store's own array so the snapshot stays stable;
-  // the option list is derived here.
-  const clips = useTimelineStore((s) => s.clips);
+  // Only the id and the name reach the option list, so a shallow-compared
+  // projection keeps a keyframe scrub on another clip from re-rendering this
+  // section.
+  const clipNames = useTimelineStore(
+    useShallow((s) =>
+      s.clips.flatMap((candidate) =>
+        candidate.id === clip.id
+          ? []
+          : [{ id: candidate.id, name: candidate.name }]
+      )
+    )
+  );
 
   const clipRef = useRef(clip);
   clipRef.current = clip;
@@ -171,14 +181,12 @@ export const ClipMaskMatte: React.FC<ClipMaskMatteProps> = memo(({ clip }) => {
   const sourceOptions = useMemo(
     () => [
       { value: NO_MATTE, label: "None" },
-      ...clips
-        .filter((candidate) => candidate.id !== clip.id)
-        .map((candidate) => ({
-          value: candidate.id,
-          label: candidate.name || candidate.id
-        }))
+      ...clipNames.map((candidate) => ({
+        value: candidate.id,
+        label: candidate.name || candidate.id
+      }))
     ],
-    [clips, clip.id]
+    [clipNames]
   );
 
   const mask = clip.mask;

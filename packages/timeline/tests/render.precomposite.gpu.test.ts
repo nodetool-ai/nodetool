@@ -119,6 +119,31 @@ describe.runIf(!noAdapterReason)("HeadlessFrameCompositor — precomposite", () 
     });
   });
 
+  it("keeps two groups' uniforms distinct inside one frame submit", async () => {
+    // Two groups whose first children differ in opacity and placement. Every
+    // group records into the frame encoder before one submit, so a per-group
+    // reset of the uniform ring makes both passes read the last group's
+    // buffers: both bands would then land at the 0.75 group's brightness.
+    await withCompositor(async (compositor) => {
+      const frame = await compositor.renderFrame(
+        [
+          { ...child("left", band(0, 20)), opacity: 0.25, precomposeGroupId: "a" },
+          { ...child("right", band(44, SIZE)), opacity: 0.75, precomposeGroupId: "b" }
+        ],
+        [
+          { ...halfOpaqueGroup, id: "a", opacity: 1, zIndex: 10 },
+          { ...halfOpaqueGroup, id: "b", opacity: 1, zIndex: 11 }
+        ]
+      );
+      const dim = redAt(frame, 10);
+      const bright = redAt(frame, 54);
+      expect(dim).toBeGreaterThan(52);
+      expect(dim).toBeLessThan(76);
+      expect(bright).toBeGreaterThan(180);
+      expect(bright).toBeLessThan(204);
+    });
+  });
+
   it("stacks the same children twice without the group's effects", async () => {
     // The same fixture with nothing to precomposite for: the group's opacity
     // rides on each child, so the overlap is composited twice. This is what the

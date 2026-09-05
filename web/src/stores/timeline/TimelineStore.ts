@@ -151,6 +151,16 @@ export interface TimelineStoreState {
     width?: number;
     height?: number;
   }) => void;
+  /**
+   * Write back the document `applyTimelineOp` returned, in one `set` so one
+   * agent tool call is one undo entry. Clips are reflowed and `durationMs`
+   * recomputed, as `applyExternalMerge` does.
+   */
+  applyAgentEdit: (next: {
+    tracks: TimelineTrack[];
+    clips: TimelineClip[];
+    markers: TimelineMarker[];
+  }) => void;
   /** Reset the store to an empty document. */
   reset: () => void;
   /**
@@ -1103,6 +1113,18 @@ export const createTimelineStore = (
               }
             }
             return next;
+          });
+        },
+
+        applyAgentEdit: (next) => {
+          set(() => {
+            const reflowed = reflowGenerated(next.clips);
+            return {
+              tracks: next.tracks,
+              clips: reflowed.clips,
+              markers: next.markers,
+              durationMs: reflowed.durationMs
+            };
           });
         },
 

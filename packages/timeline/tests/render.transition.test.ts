@@ -24,6 +24,11 @@ import {
   transitionTransform,
   type ResolvedTransition
 } from "../src/render/transition.js";
+import {
+  drawTimelineFrame,
+  type Canvas2DLayer,
+  type CompositeContext2D
+} from "../src/render/canvas2d.js";
 
 const OUT_START = 0;
 const OUT_DURATION = 1200;
@@ -323,5 +328,189 @@ describe("computeActiveLayers — transition on the layer", () => {
       expect(layer.transition).toBeUndefined();
       expect(layer.opacity).toBe(1);
     }
+  });
+});
+
+// ── The 2D draw: where a cut and a matte meet ────────────────────────────────
+
+/** One thing a context was asked to put on the surface, in order. */
+type SurfaceOp =
+  | { kind: "fill"; style: string }
+  | { kind: "draw"; source: string };
+
+/** The smallest {@link CompositeContext2D} that records what it painted. */
+class RecordingContext implements CompositeContext2D<string> {
+  globalAlpha = 1;
+  globalCompositeOperation = "source-over";
+  filter = "none";
+  shadowColor = "rgba(0, 0, 0, 0)";
+  shadowBlur = 0;
+  shadowOffsetX = 0;
+  shadowOffsetY = 0;
+  fillStyle: string | object = "#000";
+  readonly ops: SurfaceOp[] = [];
+
+  save(): void {}
+  restore(): void {}
+  setTransform(): void {}
+  clearRect(): void {}
+  fillRect(): void {
+    this.ops.push({ kind: "fill", style: String(this.fillStyle) });
+  }
+  beginPath(): void {}
+  closePath(): void {}
+  rect(): void {}
+  moveTo(): void {}
+  lineTo(): void {}
+  bezierCurveTo(): void {}
+  quadraticCurveTo(): void {}
+  ellipse(): void {}
+  arcTo(): void {}
+  clip(): void {}
+  fill(): void {}
+  translate(): void {}
+  scale(): void {}
+  drawImage(source: string): void {
+    this.ops.push({ kind: "draw", source });
+  }
+  createLinearGradient(): { addColorStop(o: number, c: string): void } {
+    return { addColorStop: () => {} };
+  }
+  createRadialGradient(): { addColorStop(o: number, c: string): void } {
+    return { addColorStop: () => {} };
+  }
+  getImageData(
+    _x: number,
+    _y: number,
+    w: number,
+    h: number
+  ): { data: Uint8ClampedArray; width: number; height: number } {
+    return { data: new Uint8ClampedArray(w * h * 4), width: w, height: h };
+  }
+  putImageData(): void {}
+}
+
+const GEOMETRY = { canvasWidth: 100, canvasHeight: 100 };
+
+const drawLayer = (
+  over: Partial<Canvas2DLayer<string>> = {}
+): Canvas2DLayer<string> => ({
+  source: "shot",
+  sourceWidth: 100,
+  sourceHeight: 100,
+  opacity: 1,
+  blendMode: "normal",
+  zIndex: 0,
+  ...over
+});
+
+const dip: ResolvedTransition = {
+  type: "dipToColor",
+  role: "in",
+  progress: 0.5,
+  opacity: 1,
+  solid: { color: "#ff0000", opacity: 1 }
+};
+
+describe("drawTimelineFrame — a dip over a matted layer", () => {
+  it("puts the solid on the frame, not inside the matte", () => {
+    // The GPU pushes the dip solid onto the main stack beside the layer
+    // (`composePrecomposites`), so it covers the frame. Composing it *inside*
+    // the matte instead lets `destination-in` key the solid by the keyhole —
+    // a full-frame dip that only dips where the matte lets it through.
+    const frame = new RecordingContext();
+    const composed = new RecordingContext();
+    const keyhole = new RecordingContext();
+    const surfaces = [composed, keyhole];
+    let taken = 0;
+
+    drawTimelineFrame(
+      frame,
+      [
+        drawLayer({
+          clipId: "shot",
+          transition: dip,
+          matte: {
+            mode: "alpha",
+            invert: false,
+            layer: drawLayer({ clipId: "key", source: "key" })
+          }
+        })
+      ],
+      GEOMETRY,
+      {
+        matteSurface: () => {
+          const index = taken++;
+          return { ctx: surfaces[index]!, surface: `surface-${index}` };
+        }
+      }
+    );
+
+    // The layer and the keyhole it is multiplied by, and no dip fill.
+    expect(composed.ops).toEqual([
+      { kind: "draw", source: "shot" },
+      { kind: "draw", source: "surface-1" }
+    ]);
+    // The frame gets its black ground, then the dip, then the matted layer —
+    // the solid beneath the clip it dips into, as on the GPU.
+    expect(frame.ops).toEqual([
+      { kind: "fill", style: "#000" },
+      { kind: "fill", style: "#ff0000" },
+      { kind: "draw", source: "surface-0" }
+    ]);
+  });
+
+  it("still draws the solid on the frame with no matte", () => {
+    const frame = new RecordingContext();
+    drawTimelineFrame(frame, [drawLayer({ transition: dip })], GEOMETRY);
+    expect(frame.ops).toEqual([
+      { kind: "fill", style: "#000" },
+      { kind: "fill", style: "#ff0000" },
+      { kind: "draw", source: "shot" }
+    ]);
+  });
+});
+
+describe("drawTimelineFrame — the wipe it degrades", () => {
+  const soft = {
+    direction: "left" as const,
+    progress: 0.5,
+    softness: 0.3
+  };
+
+  it("draws a feathered wipe as a hard edge and reports it", () => {
+    const frame = new RecordingContext();
+    const { degraded } = drawTimelineFrame(
+      frame,
+      [drawLayer({ clipId: "shot", mask: soft })],
+      GEOMETRY
+    );
+    expect(degraded).toEqual([{ clipId: "shot", reason: "wipe_hard_edge" }]);
+  });
+
+  it("keeps a hard wipe off the list", () => {
+    const frame = new RecordingContext();
+    const { degraded } = drawTimelineFrame(
+      frame,
+      [drawLayer({ clipId: "shot", mask: { ...soft, softness: 0 } })],
+      GEOMETRY
+    );
+    expect(degraded).toEqual([]);
+  });
+
+  it("reports nothing once the host vends the scratch the feather needs", () => {
+    const frame = new RecordingContext();
+    const scratch = new RecordingContext();
+    const { degraded } = drawTimelineFrame(
+      frame,
+      [drawLayer({ clipId: "shot", mask: soft })],
+      GEOMETRY,
+      { maskScratch: () => ({ ctx: scratch, surface: "scratch" }) }
+    );
+    expect(degraded).toEqual([]);
+    expect(frame.ops).toEqual([
+      { kind: "fill", style: "#000" },
+      { kind: "draw", source: "scratch" }
+    ]);
   });
 });

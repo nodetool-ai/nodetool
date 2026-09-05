@@ -19,8 +19,45 @@ import { runToolLoopEval } from "../src/evals/tool-loop-eval.js";
 import {
   createTimelineToolBridge,
   TIMELINE_TOOL_LOOP_CASES,
+  staggerSpanFitsClip,
+  staggerUnitsOf,
   type TimelineBridgeFinalState
 } from "../src/evals/surfaces/timeline.js";
+
+describe("stagger predicates", () => {
+  const clip = makeClip({
+    name: "title",
+    mediaType: "text",
+    sourceType: "imported",
+    startMs: 0,
+    durationMs: 600,
+    textStyle: {
+      text: "MAKE IT MOVE",
+      fontSizePx: 48,
+      color: "#ffffff"
+    }
+  });
+  const measureText = (text: string) => text.length * 100;
+  const portrait = { width: 1080, height: 1920, measureText };
+  const landscape = { width: 1920, height: 1080, measureText };
+
+  it("counts lines against the supplied frame width", () => {
+    expect(staggerUnitsOf(clip, "line", portrait)).toBe(2);
+    expect(staggerUnitsOf(clip, "line", landscape)).toBe(1);
+  });
+
+  it("rejects a stagger that overruns only after portrait wrapping", () => {
+    const animation = {
+      id: "entrance",
+      role: "in" as const,
+      preset: "fade",
+      durationMs: 400,
+      stagger: { unit: "line" as const, offsetMs: 300 }
+    };
+    expect(staggerSpanFitsClip(clip, animation, portrait)).toBe(false);
+    expect(staggerSpanFitsClip(clip, animation, landscape)).toBe(true);
+  });
+});
 
 // --- scripted provider -------------------------------------------------------
 
@@ -421,7 +458,11 @@ function predicateOf(
 function stateOf(
   tracks: TimelineTrack[],
   clips: TimelineClip[],
-  extra: { markers?: TimelineMarker[]; toolLog?: string[] } = {}
+  extra: {
+    markers?: TimelineMarker[];
+    toolLog?: string[];
+    previewTimesMs?: number[];
+  } = {}
 ): TimelineBridgeFinalState {
   return {
     fps: 30,
@@ -450,7 +491,8 @@ function stateOf(
     documentTracks: tracks,
     documentClips: clips,
     markers: extra.markers ?? [],
-    toolLog: extra.toolLog ?? []
+    toolLog: extra.toolLog ?? [],
+    previewTimesMs: extra.previewTimesMs ?? []
   };
 }
 
@@ -568,6 +610,86 @@ describe("motion eval predicates", () => {
     expect(test(stateOf(tracks, [host, overrunning, scrim]))).toBe(false);
   });
 
+  it("lower-third-layered: a scrim that never shares a frame with the text fails", () => {
+    // Both inside the shot, both on the right tracks, and never on screen
+    // together — the words are on bare picture for their whole window.
+    const test = predicateOf(
+      "lower-third-layered",
+      "scrimBehindTextInsideTheShot"
+    );
+    const host = makeClip({
+      id: "c_host",
+      trackId: pictureTrack.id,
+      mediaType: "video",
+      name: "Host",
+      startMs: 0,
+      durationMs: 6000
+    });
+    const name = textClip({
+      id: "c_name",
+      text: "Maya Chen",
+      startMs: 3000,
+      durationMs: 2000
+    });
+    const scrim = makeClip({
+      id: "c_scrim",
+      trackId: scrimTrack.id,
+      mediaType: "shape",
+      startMs: 0,
+      durationMs: 2000
+    });
+    const tracks = [overlay, scrimTrack, pictureTrack];
+    expect(test(stateOf(tracks, [host, name, scrim]))).toBe(false);
+    // The same pair, overlapping: it is only the timing that was wrong.
+    expect(
+      test(
+        stateOf(tracks, [host, name, { ...scrim, startMs: 3000, durationMs: 2000 }])
+      )
+    ).toBe(true);
+  });
+
+  it("lower-third-layered: a scrim under the picture darkens nothing", () => {
+    // A scrim below the shot it is meant to darken is invisible, and the words
+    // sit on bare picture. Track index is z-order, so this is the ordering the
+    // predicate has to require in both directions.
+    const test = predicateOf(
+      "lower-third-layered",
+      "scrimBehindTextInsideTheShot"
+    );
+    const buriedScrimTrack = makeTrack({
+      id: "t_buried",
+      type: "overlay",
+      index: 2
+    });
+    const midPictureTrack = makeTrack({ id: "t_pic2", type: "video", index: 1 });
+    const host = makeClip({
+      id: "c_host",
+      trackId: midPictureTrack.id,
+      mediaType: "video",
+      name: "Host",
+      startMs: 0,
+      durationMs: 6000
+    });
+    const name = textClip({
+      id: "c_name",
+      text: "Maya Chen",
+      startMs: 1000,
+      durationMs: 3000
+    });
+    const scrim = makeClip({
+      id: "c_scrim",
+      trackId: buriedScrimTrack.id,
+      mediaType: "shape",
+      startMs: 1000,
+      durationMs: 3000
+    });
+    expect(
+      test(
+        stateOf([overlay, midPictureTrack, buriedScrimTrack], [host, name, scrim])
+      )
+    ).toBe(false);
+  });
+
   it("entrance-decelerates: ease-out and spring pass, easeIn and linear fail", () => {
     const test = predicateOf("entrance-decelerates", "everyEntranceDecelerates");
     const withEasing = (id: string, easing?: string): TimelineClip =>
@@ -597,6 +719,69 @@ describe("motion eval predicates", () => {
     ).toBe(false);
     expect(
       test(stateOf([overlay], [withEasing("c1", "linear"), withEasing("c2", "easeOut")]))
+    ).toBe(false);
+  });
+
+  it("entrance-decelerates: a decelerating bezier passes, an accelerating one fails", () => {
+    // The skill recommends `cubic-bezier(0.16,1,0.3,1)` for entrances, so a
+    // check that only reads easing names scores the shipped advice as wrong.
+    const test = predicateOf("entrance-decelerates", "everyEntranceDecelerates");
+    const withEasing = (id: string, easing: string): TimelineClip =>
+      textClip({
+        id,
+        text: "Chapter",
+        animations: [{ id: `${id}_a`, role: "in", preset: "fade", easing }]
+      });
+    expect(
+      test(
+        stateOf(
+          [overlay],
+          [
+            withEasing("c1", "cubic-bezier(0.16,1,0.3,1)"),
+            withEasing("c2", "cubic-bezier(0.16, 1, 0.3, 1)")
+          ]
+        )
+      )
+    ).toBe(true);
+    // The exit curve the skill names, used as an entrance: it speeds up into
+    // the landing, which is the shape this check exists to catch.
+    expect(
+      test(
+        stateOf(
+          [overlay],
+          [
+            withEasing("c1", "cubic-bezier(0.16,1,0.3,1)"),
+            withEasing("c2", "cubic-bezier(0.7,0,0.84,0)")
+          ]
+        )
+      )
+    ).toBe(false);
+  });
+
+  it("looked-before-done: a preview inside the entrance passes, one at 0ms fails", () => {
+    // A look at the clip's first frame is a look at nothing moving: the
+    // entrance has not started. The check reads where the preview landed, not
+    // that one happened.
+    const test = predicateOf("looked-before-done", "previewedAfterTheLastEdit");
+    const card = textClip({
+      id: "c_end",
+      text: "END",
+      startMs: 4000,
+      durationMs: 2000,
+      animations: [
+        { id: "a1", role: "in", preset: "fade", durationMs: 600 }
+      ]
+    });
+    const toolLog = ["ui_timeline_add_text_clip", "preview_timeline_frame"];
+    expect(
+      test(stateOf([overlay], [card], { toolLog, previewTimesMs: [4300] }))
+    ).toBe(true);
+    expect(
+      test(stateOf([overlay], [card], { toolLog, previewTimesMs: [4000] }))
+    ).toBe(false);
+    // A preview after the card has settled is also an endpoint look.
+    expect(
+      test(stateOf([overlay], [card], { toolLog, previewTimesMs: [5500] }))
     ).toBe(false);
   });
 
@@ -641,10 +826,19 @@ describe("motion eval predicates", () => {
 
   it("looked-before-done: a preview after the last edit passes, one before it fails", () => {
     const test = predicateOf("looked-before-done", "previewedAfterTheLastEdit");
-    const card = textClip({ id: "c_end", text: "END", startMs: 4000 });
+    // The card carries an entrance and every look here lands inside it, so
+    // only the transcript's ordering is under test.
+    const card = textClip({
+      id: "c_end",
+      text: "END",
+      startMs: 4000,
+      animations: [{ id: "a1", role: "in", preset: "fade", durationMs: 600 }]
+    });
+    const midMotion = [4300];
     expect(
       test(
         stateOf([overlay], [card], {
+          previewTimesMs: midMotion,
           toolLog: [
             "ui_timeline_add_text_clip",
             "ui_timeline_animate_clip",
@@ -657,6 +851,7 @@ describe("motion eval predicates", () => {
     expect(
       test(
         stateOf([overlay], [card], {
+          previewTimesMs: midMotion,
           toolLog: [
             "ui_timeline_add_text_clip",
             "preview_timeline_frame",
@@ -669,6 +864,7 @@ describe("motion eval predicates", () => {
     expect(
       test(
         stateOf([overlay], [card], {
+          previewTimesMs: midMotion,
           toolLog: [
             "ui_timeline_add_text_clip",
             "preview_timeline_frame",
@@ -677,7 +873,7 @@ describe("motion eval predicates", () => {
         })
       )
     ).toBe(true);
-    expect(test(stateOf([overlay], [card], { toolLog: [] }))).toBe(false);
+    expect(test(stateOf([overlay], [card], { previewTimesMs: [], toolLog: [] }))).toBe(false);
   });
 });
 
@@ -699,6 +895,7 @@ describe("preview_timeline_frame (eval surface)", () => {
 
     expect(result.frames).toHaveLength(1);
     expect(result.frames[0].layers[0].text).toBe("END");
+    expect(bridge.finalState().previewTimesMs).toEqual([1000]);
     expect(bridge.finalState().toolLog).toEqual([
       "ui_timeline_add_text_clip",
       "preview_timeline_frame"

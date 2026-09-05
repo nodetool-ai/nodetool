@@ -47,39 +47,16 @@ type Extends<A, B> = A extends B ? true : false;
 /** `true` only when each side is assignable to the other. */
 type MutuallyAssignable<A, B> = Extends<A, B> & Extends<B, A>;
 
-/** The motion-graphics half of `TimelineClip` as `types.ts` declares it. */
-interface MotionClipFields {
-  mediaType:
-    | "image"
-    | "video"
-    | "audio"
-    | "overlay"
-    | "text"
-    | "shape"
-    | "group";
-  parentId?: string;
-  mask?: {
-    kind: string;
-    x?: number;
-    y?: number;
-    width?: number;
-    height?: number;
-    d?: string;
-    featherPx?: number;
-    invert?: boolean;
-  };
-  matte?: { sourceClipId: string; mode: string; invert?: boolean };
-  timeRemap?: {
-    keyframes: { t: number; sourceMs: number; easing?: string }[];
-  };
-  compositionId?: string;
-  compositionParams?: Record<string, number | string | boolean>;
-}
-
-const motionFieldMirror: MutuallyAssignable<
-  Pick<TimelineClip, keyof MotionClipFields>,
-  MotionClipFields
-> = true;
+/**
+ * There is deliberately no hand-copied mirror of `TimelineClip`'s motion fields
+ * here. A copy of `packages/timeline/src/types.ts` written out in this file
+ * only ever pins the schema against the copy, so the two drift together and the
+ * guard goes green on data loss — which is how `aspectRatio` and `resolution`
+ * were missed. The real clip mirror runs against the real interface in
+ * `packages/execution/tests/timeline-schema-roundtrip.test.ts`, the one package
+ * that can import both sides. What stays below are mirrors of things this
+ * package alone defines (the open unions and their catch-all shapes).
+ */
 
 type MotionShapeFill =
   | { type: "solid"; color: string }
@@ -158,7 +135,6 @@ describe("timelineClip — motion-graphics field types", () => {
     // this file stops compiling when the two sides drift. Asserting them keeps
     // a reader from deleting them as unused.
     expect([
-      motionFieldMirror,
       shapeFillMirror,
       transitionTypeMirror,
       effectTypeMirror,
@@ -166,7 +142,7 @@ describe("timelineClip — motion-graphics field types", () => {
       openEffectMirror,
       unknownTransitionMirror,
       unknownEffectMirror
-    ]).toEqual([true, true, true, true, true, true, true, true]);
+    ]).toEqual([true, true, true, true, true, true, true]);
   });
 });
 
