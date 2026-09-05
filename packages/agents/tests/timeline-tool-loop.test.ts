@@ -421,7 +421,11 @@ function predicateOf(
 function stateOf(
   tracks: TimelineTrack[],
   clips: TimelineClip[],
-  extra: { markers?: TimelineMarker[]; toolLog?: string[] } = {}
+  extra: {
+    markers?: TimelineMarker[];
+    toolLog?: string[];
+    previewTimesMs?: number[];
+  } = {}
 ): TimelineBridgeFinalState {
   return {
     fps: 30,
@@ -450,7 +454,8 @@ function stateOf(
     documentTracks: tracks,
     documentClips: clips,
     markers: extra.markers ?? [],
-    toolLog: extra.toolLog ?? []
+    toolLog: extra.toolLog ?? [],
+    previewTimesMs: extra.previewTimesMs ?? []
   };
 }
 
@@ -716,6 +721,33 @@ describe("motion eval predicates", () => {
     ).toBe(false);
   });
 
+  it("looked-before-done: a preview inside the entrance passes, one at 0ms fails", () => {
+    // A look at the clip's first frame is a look at nothing moving: the
+    // entrance has not started. The check reads where the preview landed, not
+    // that one happened.
+    const test = predicateOf("looked-before-done", "previewedAfterTheLastEdit");
+    const card = textClip({
+      id: "c_end",
+      text: "END",
+      startMs: 4000,
+      durationMs: 2000,
+      animations: [
+        { id: "a1", role: "in", preset: "fade", durationMs: 600 }
+      ]
+    });
+    const toolLog = ["ui_timeline_add_text_clip", "preview_timeline_frame"];
+    expect(
+      test(stateOf([overlay], [card], { toolLog, previewTimesMs: [4300] }))
+    ).toBe(true);
+    expect(
+      test(stateOf([overlay], [card], { toolLog, previewTimesMs: [4000] }))
+    ).toBe(false);
+    // A preview after the card has settled is also an endpoint look.
+    expect(
+      test(stateOf([overlay], [card], { toolLog, previewTimesMs: [5500] }))
+    ).toBe(false);
+  });
+
   it("beat-cut: boundaries within 60ms of an onset pass, a drifted cut fails", () => {
     const test = predicateOf("beat-cut", "everyBoundaryOnAnOnset");
     const shots = (bounds: [number, number][]): TimelineClip[] =>
@@ -757,10 +789,19 @@ describe("motion eval predicates", () => {
 
   it("looked-before-done: a preview after the last edit passes, one before it fails", () => {
     const test = predicateOf("looked-before-done", "previewedAfterTheLastEdit");
-    const card = textClip({ id: "c_end", text: "END", startMs: 4000 });
+    // The card carries an entrance and every look here lands inside it, so
+    // only the transcript's ordering is under test.
+    const card = textClip({
+      id: "c_end",
+      text: "END",
+      startMs: 4000,
+      animations: [{ id: "a1", role: "in", preset: "fade", durationMs: 600 }]
+    });
+    const midMotion = [4300];
     expect(
       test(
         stateOf([overlay], [card], {
+          previewTimesMs: midMotion,
           toolLog: [
             "ui_timeline_add_text_clip",
             "ui_timeline_animate_clip",
@@ -773,6 +814,7 @@ describe("motion eval predicates", () => {
     expect(
       test(
         stateOf([overlay], [card], {
+          previewTimesMs: midMotion,
           toolLog: [
             "ui_timeline_add_text_clip",
             "preview_timeline_frame",
@@ -785,6 +827,7 @@ describe("motion eval predicates", () => {
     expect(
       test(
         stateOf([overlay], [card], {
+          previewTimesMs: midMotion,
           toolLog: [
             "ui_timeline_add_text_clip",
             "preview_timeline_frame",
@@ -793,7 +836,7 @@ describe("motion eval predicates", () => {
         })
       )
     ).toBe(true);
-    expect(test(stateOf([overlay], [card], { toolLog: [] }))).toBe(false);
+    expect(test(stateOf([overlay], [card], { previewTimesMs: [], toolLog: [] }))).toBe(false);
   });
 });
 

@@ -75,6 +75,38 @@ Rules that follow from the ordering:
   but nine overlapping video clips means the bottom one silently does not draw.
   A preview frame is how you find that out.
 
+## Build the elements
+
+The clips you animate are made with the same `edit_timeline` op list.
+
+```json
+{"op": "add_text_clip", "text": "Maya Chen", "trackId": "<overlay>",
+ "startMs": 4000, "durationMs": 3000, "fontSizePx": 64}
+{"op": "add_shape_clip", "shape": {"kind": "rect", "x": 0, "y": 0.72,
+ "width": 1, "height": 0.18, "fill": "#000000"}, "startMs": 4000,
+ "durationMs": 3000, "opacity": 0.55}
+```
+
+`add_text_clip` needs only `text`; the style fields (`fontSizePx`, `color`,
+`background`, `stroke`) are read from the op itself or from a `style` bag, and
+with no `trackId` it lands on an overlay track. `add_shape_clip` takes its
+geometry in `shape` (or `shapeStyle`, or the op's own keys) with `x`, `y`,
+`width` and `height` as 0..1 fractions of the frame — no geometry at all is a
+full-frame rect, which is the scrim you usually want.
+
+Tracks are the z-order, so how they are made matters:
+
+```json
+{"op": "add_track", "type": "overlay", "name": "Titles"}
+{"op": "move_track", "target": "Picture", "toIndex": 2}
+```
+
+`add_track` takes `type` (`video`, `audio`, `overlay`, `subtitle`) and an
+optional `name`, and **appends to the bottom** — the highest index, which draws
+last. A picture track added after the overlays therefore covers them. Add the
+overlays last, or move the picture down afterwards: `move_track` takes a
+`target` and one of `toIndex` (0 is the top), `before` or `after`.
+
 ## Animating a clip
 
 `edit_timeline` with `{"op": "animate_clip", "target": <clip id or name>,
@@ -114,9 +146,9 @@ default is almost always right: an entrance decelerates into place, an exit
 accelerates away. Reach for `easeOutBack` or `easeOutElastic` only when the
 piece is playful; they read as cheap on anything corporate.
 
-Call `list_animation_presets` (or `{"op": "list_animation_presets"}`) when you
-need the exact param list rather than this summary — the catalog is the
-authority.
+`{"op": "list_animation_presets"}` reports the exact param list when this
+summary is not enough — the catalog is the authority. It is an `edit_timeline`
+op like every other call here, not a tool of its own.
 
 ### Keyframes and the easing grammar
 
@@ -133,12 +165,12 @@ twice, a hold in the middle of a move, two channels on different schedules, a
 decay, an arc, a path draw-on. Reach for one as soon as a preset is close but
 not right — bending `durationMs` and `easing` around a preset that was never the
 shape you wanted takes longer and lands flatter. `motion-curves` carries the
-channel table and nine worked recipes. Then `{"role": "in", "preset": "custom",
+channel table and the worked recipes. Then `{"role": "in", "preset": "custom",
 ...}` carrying exactly one of
 
 - `curves` — `[{property, keyframes: [{t, value, easing?}]}]`, with `t` running
-  0..1 across the animation's window. `list_animation_presets` reports the
-  animatable properties.
+  0..1 across the animation's window. The `list_animation_presets` op reports
+  the animatable properties.
 - `code` — a JavaScript body baked into curves once, host-side, at author time.
   Nothing evaluates at render.
 
@@ -161,13 +193,14 @@ instants means one of them does nothing, and `validate_timeline` reports
 compose with other motion, and with `positionX` only when you mean an absolute
 placement nothing else touches.
 
-### Durations that read
+### Durations the contract constrains
 
-- An entrance under 200ms reads as a hard cut; over 800ms it drags.
-  300–500ms covers most work.
-- `in` + `out` together must fit inside the clip with hold time left over. A
-  3000ms title with a 500ms in and a 500ms out holds for 2000ms. Below about
-  1000ms of hold, the element never settles and looks like a glitch.
+`motion-principles` holds the numbers — how long an entrance runs, how long a
+title holds. What this contract adds is what the document refuses:
+
+- `in` + `out` together must fit inside the clip. A window that does not fit
+  after its `delayMs` is clamped or never runs, and `validate_timeline` says so
+  as `animation_exceeds_clip`.
 - A `loop` on a clip shorter than one cycle shows a fragment of the motion.
   `kenBurns` at its 3000ms default on a 2000ms clip is a slow drift that stops
   halfway, not a Ken Burns move.
@@ -195,14 +228,26 @@ per-word stagger. Add `stagger` to an animation on a text clip:
 ]}
 ```
 
-Each word runs the full animation for `durationMs`, offset `offsetMs` from the
-previous. `from` picks which word leads: `start` (default), `end`, or `center`.
-Words are whitespace-separated, and a stagger needs at least two of them —
-below that it compiles as an ordinary block animation.
+Each unit runs the full animation for `durationMs`, offset `offsetMs` from the
+previous. `from` picks which unit leads: `start` (default), `end`, or `center`.
+A stagger needs at least two units — below that it compiles as an ordinary
+block animation.
 
-The span is `durationMs + offsetMs × (words − 1)`, halved for `from: "center"`
-(the middle word leads and both edges run last, so the largest delay is half
-the span). Six words at `offsetMs: 200` with a 500ms preset span 1500ms.
+`unit` is one of three, and the count is what the span math is built on:
+
+| `unit` | One unit is | Counted as |
+|---|---|---|
+| `word` | a whitespace-separated word | the words in the clip's text |
+| `character` | a grapheme cluster — an emoji, or a letter with its combining marks, counts once | every cluster including the spaces between words, which are timed and draw nothing |
+| `line` | a wrapped line | the lines the text wraps to at the sequence's width and the clip's `fontSizePx`, not the newlines you typed |
+
+The span is `durationMs + offsetMs × (units − 1)`, halved for `from: "center"`
+(the middle unit leads and both edges run last, so the largest delay is half
+the span). Six words at `offsetMs: 200` with a 500ms preset span 1500ms. The
+same line at `unit: "character"` is roughly thirty units, so the same offset
+spans six seconds — character staggers want offsets an order of magnitude
+smaller than word staggers, and a `line` stagger changes count when the frame
+does.
 
 **A span that does not fit the clip is silently compressed, not cut off.** The
 engine shrinks the per-step offset — never the per-word duration — so the last
@@ -217,13 +262,8 @@ letting the clamp choose for you.
 `loop` staggers are the exception: the offset is a phase shift, so it is
 neither stretched nor clamped.
 
-Offsets that read:
-
-- 60–100ms reads as one phrase arriving with texture.
-- 150–250ms reads as words landing individually — right for a short punchline,
-  wrong for a sentence someone has to read.
-- Stagger a line of five words or fewer. Longer, and the reader is still
-  waiting for the end of the sentence when it should already be legible.
+Which offset reads as texture and which reads as one word at a time is in
+`motion-principles`, with the line-length limit that goes with it.
 
 Stagger applies only to text clips and only to transform and opacity motion.
 `wipe`, `blur` and `colorFade` stay block-level even with a stagger set — the
@@ -339,10 +379,14 @@ unaffected. Judge those looks from a render, not from a previewed frame.
 
 ## Time remap
 
-`{"op": "set_time_remap", "target": "Shot 3", ...}` maps timeline time onto
-source time with keyframes. `t` must ascend; `sourceMs` may descend, and that
-is how a reverse is written. A repeated or backwards `t` is
-`time_remap_not_monotonic`, an error.
+`{"op": "set_time_remap", "target": "Shot 3", "timeRemap": {"keyframes":
+[{"t": 0, "sourceMs": 0}, {"t": 1, "sourceMs": 4000, "easing": "easeInOut"}]}}`
+maps timeline time onto source time. `set_time_remap` replaces the whole map
+each time it is called. `t` runs 0..1 over the clip's window and
+must start at 0, end at 1 and ascend; `sourceMs` says which millisecond of the
+source plays there, so a descending pair is a reverse and a flat pair is a
+freeze. `"timeRemap": null` clears it, and the remap replaces the clip's rate.
+A repeated or backwards `t` is `time_remap_not_monotonic`, an error.
 
 `split_clip` and `trim_clip` refuse a remapped clip. Both would have to
 re-derive the map, and re-deriving it silently is how a speed ramp turns into a
@@ -410,9 +454,11 @@ not perform the motion you wrote:
 | `parent_cycle` | error | A `parentId` chain loops, so the group cannot be resolved at all. Break the loop |
 | `matte_source_missing` | error | The matte names a clip the document lacks, or itself. The layer draws unmatted, showing everything the matte was there to hide |
 | `time_remap_not_monotonic` | error | `t` repeats or goes backwards. `sourceMs` may descend — that is a reverse — but `t` may not |
+| `custom_animation_invalid` | error | A `preset: "custom"` animation carries neither `curves` nor `code`, or both, or a curve the compiler cannot read. Nothing of that animation runs. Send exactly one, with `t` ascending from 0 to 1 |
 | `animation_exceeds_clip` | warning | The window does not fit the clip after its delay, so the motion is clamped or never runs. Shorten `durationMs`, cut the delay, or lengthen the clip |
 | `stagger_compressed` | warning | The units did not fit, so the per-unit offset was shrunk. The line lands faster and flatter than you wrote it. Shorten the per-unit `durationMs` or give the clip more time |
 | `replace_curves_overlap` | warning | Two animations drive one absolute channel (`positionX/Y`, `anchorX/Y`, `trimStart/End`) at once. The last in document order wins and the other is discarded. Separate them in time or fold them into one curve |
+| `text_backing_unproven` | warning | Text draws over picture with no `background`, `stroke` or shape behind it, so nothing decides whether it reads. Preview the frame and look, or give it a plate |
 | `text_illegible` | warning | Type under 2.5% of frame height, or under a 3:1 contrast ratio against its own `background` plate or a full-frame shape behind it. Raise `fontSizePx`, darken the scrim, or add a `stroke` |
 | `unknown_easing` | warning | Outside the grammar, so it eases linearly. Check the spelling: `easeOut`, not `ease-out` |
 | `unknown_transition` | warning | This build cannot draw that `type` or `direction`; it cross-fades left instead. Pick one from the table above |
@@ -426,9 +472,10 @@ not perform the motion you wrote:
 | `field_stripped` | warning | A field the schema drops, lost on the next save. Usually a newer build wrote it; re-author it in this build's grammar |
 
 The contrast half refuses to guess: a colour it cannot parse, a translucent
-plate, gradient-filled type or a backdrop it cannot prove is behind the text
-produces no finding at all. A silent `text_illegible` is not a pass — that is
-what the frames are for.
+plate or gradient-filled type produces no contrast finding. Type over picture
+with no plate at all is the case it can name without measuring, and it says so
+as `text_backing_unproven`. Either way a silent `text_illegible` is not a pass
+— that is what the frames are for.
 
 **`preview_timeline_frame`** answers "what does it look like". It composites
 the real frame — every track layered in order, transforms and opacity applied,
@@ -466,6 +513,14 @@ plate, a lower-third under the wrong element because two tracks are the wrong
 way round, a title that has slid outside the frame, a stagger still finishing
 when the clip ends, a scrim covering the face it was supposed to sit beside, an
 element that never appears because its clip is on an audio track.
+
+Each frame also carries a `degraded` list: what the 2D compositor drew
+differently from the GPU. A mask edge drawn hard because it could not feather,
+a matte skipped, a group's blend mode lost, a wipe with no soft edge, drop
+shadows beyond the one it can stack — each is named there rather than dropped
+quietly. When Canvas 2D cannot match the GPU's additive grade it reports the
+brightness it drew instead. Motion and layout are unaffected; judge those
+looks from a render.
 
 Read the `skipped` field on any layer that drew nothing — it says whether the
 clip is still `draft`, its asset would not read, or the source had no frame at
