@@ -911,9 +911,13 @@ copies the whole chain into the library. The site builds its `/recipes` pages
 and the downloadable `.nodetool` bundles from the same manifests
 (`marketing/scripts/generate-recipes.mjs`, with the sample renders and page
 order in `marketing/scripts/recipes.mjs`), so the page and the product name one
-list of workflows. `npm run validate:examples` checks every step, alternative
-and hero resolves; `scripts/verify-backend-bundle.mjs` checks the manifests and
-the examples they name were staged into the packaged bundle.
+list of workflows. The `recipes` harness is the gate on that: its selfcheck runs
+the resolver's suite (`packages/websocket/tests/example-recipes.test.ts`) and
+the site generator in `--check` mode, and it fires on any diff touching a
+manifest, the resolver, the Examples listing, or the recipe pages.
+`npm run validate:examples` also checks every step, alternative and hero
+resolves, and `scripts/verify-backend-bundle.mjs` checks the manifests and the
+examples they name were staged into the packaged bundle.
 
 ### 3D scene tools (no editor, no browser)
 
