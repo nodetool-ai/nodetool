@@ -121,6 +121,53 @@ export const ClipMaskMatte: React.FC<ClipMaskMatteProps> = memo(({ clip }) => {
     [patchClip]
   );
 
+  // A stable callback per field, so an edit re-renders only the field whose
+  // value changed rather than every memoized control in the section.
+  const handleMaskKindChange = useCallback(
+    (kind: string) => patchMask({ kind: kind as ClipMask["kind"] }),
+    [patchMask]
+  );
+  const handleMaskPathCommit = useCallback(
+    (d: string) => patchMask({ d: d.trim() || undefined }),
+    [patchMask]
+  );
+  const handleMaskXCommit = useCallback(
+    (raw: string) => commitUnit(raw, (x) => patchMask({ x })),
+    [patchMask]
+  );
+  const handleMaskYCommit = useCallback(
+    (raw: string) => commitUnit(raw, (y) => patchMask({ y })),
+    [patchMask]
+  );
+  const handleMaskWidthCommit = useCallback(
+    (raw: string) => commitUnit(raw, (width) => patchMask({ width })),
+    [patchMask]
+  );
+  const handleMaskHeightCommit = useCallback(
+    (raw: string) => commitUnit(raw, (height) => patchMask({ height })),
+    [patchMask]
+  );
+  const handleMaskFeatherCommit = useCallback(
+    (raw: string) => {
+      const featherPx = Number(raw);
+      if (!Number.isFinite(featherPx) || featherPx < 0) return;
+      patchMask({ featherPx });
+    },
+    [patchMask]
+  );
+  const handleMaskInvertChange = useCallback(
+    (invert: boolean) => patchMask({ invert }),
+    [patchMask]
+  );
+  const handleMatteModeChange = useCallback(
+    (mode: string) => patchMatte({ mode: mode as ClipMatte["mode"] }),
+    [patchMatte]
+  );
+  const handleMatteInvertChange = useCallback(
+    (invert: boolean) => patchMatte({ invert }),
+    [patchMatte]
+  );
+
   const sourceOptions = useMemo(
     () => [
       { value: NO_MATTE, label: "None" },
@@ -166,7 +213,7 @@ export const ClipMaskMatte: React.FC<ClipMaskMatteProps> = memo(({ clip }) => {
                   label="Mask shape"
                   value={mask.kind}
                   options={MASK_KINDS}
-                  onChange={(kind) => patchMask({ kind })}
+                  onChange={handleMaskKindChange}
                 />
               </InspectorRow>
               {mask.kind === "path" ? (
@@ -176,7 +223,7 @@ export const ClipMaskMatte: React.FC<ClipMaskMatteProps> = memo(({ clip }) => {
                       value={mask.d ?? ""}
                       ariaLabel="Mask path data"
                       placeholder="M 0 0 L 1 0 L 1 1 Z"
-                      onCommit={(d) => patchMask({ d: d.trim() || undefined })}
+                      onCommit={handleMaskPathCommit}
                     />
                   </InspectorRow>
                   <Caption color="muted">
@@ -190,14 +237,14 @@ export const ClipMaskMatte: React.FC<ClipMaskMatteProps> = memo(({ clip }) => {
                       value={(mask.x ?? 0).toFixed(2)}
                       minWidth={64}
                       scrub={SCRUB_UNIT}
-                      onCommit={(raw) => commitUnit(raw, (x) => patchMask({ x }))}
+                      onCommit={handleMaskXCommit}
                       ariaLabel="Mask X"
                     />
                     <InspectorPillInput
                       value={(mask.y ?? 0).toFixed(2)}
                       minWidth={64}
                       scrub={SCRUB_UNIT}
-                      onCommit={(raw) => commitUnit(raw, (y) => patchMask({ y }))}
+                      onCommit={handleMaskYCommit}
                       ariaLabel="Mask Y"
                     />
                   </InspectorRow>
@@ -206,18 +253,14 @@ export const ClipMaskMatte: React.FC<ClipMaskMatteProps> = memo(({ clip }) => {
                       value={(mask.width ?? 1).toFixed(2)}
                       minWidth={64}
                       scrub={SCRUB_UNIT}
-                      onCommit={(raw) =>
-                        commitUnit(raw, (width) => patchMask({ width }))
-                      }
+                      onCommit={handleMaskWidthCommit}
                       ariaLabel="Mask width"
                     />
                     <InspectorPillInput
                       value={(mask.height ?? 1).toFixed(2)}
                       minWidth={64}
                       scrub={SCRUB_UNIT}
-                      onCommit={(raw) =>
-                        commitUnit(raw, (height) => patchMask({ height }))
-                      }
+                      onCommit={handleMaskHeightCommit}
                       ariaLabel="Mask height"
                     />
                   </InspectorRow>
@@ -228,18 +271,14 @@ export const ClipMaskMatte: React.FC<ClipMaskMatteProps> = memo(({ clip }) => {
                   value={String(mask.featherPx ?? 0)}
                   unit="px"
                   scrub={SCRUB_PX}
-                  onCommit={(raw) => {
-                    const featherPx = Number(raw);
-                    if (!Number.isFinite(featherPx) || featherPx < 0) return;
-                    patchMask({ featherPx });
-                  }}
+                  onCommit={handleMaskFeatherCommit}
                   ariaLabel="Mask feather"
                 />
               </InspectorRow>
               <InspectorToggleRow
                 label="Invert"
                 checked={mask.invert === true}
-                onChange={(invert) => patchMask({ invert })}
+                onChange={handleMaskInvertChange}
               />
             </>
           )}
@@ -275,13 +314,13 @@ export const ClipMaskMatte: React.FC<ClipMaskMatteProps> = memo(({ clip }) => {
                   label="Matte mode"
                   value={matte.mode}
                   options={MATTE_MODES}
-                  onChange={(mode) => patchMatte({ mode })}
+                  onChange={handleMatteModeChange}
                 />
               </InspectorRow>
               <InspectorToggleRow
                 label="Invert"
                 checked={matte.invert === true}
-                onChange={(invert) => patchMatte({ invert })}
+                onChange={handleMatteInvertChange}
               />
             </>
           )}
