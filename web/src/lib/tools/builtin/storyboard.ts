@@ -132,7 +132,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_set_screenplay",
   description:
-    "Load a full screenplay onto the specified storyboard, replacing its shots. `screenplay` is a Screenplay object ({ type:'screenplay', title, shots: Shot[], ... }) — typically the output of the Director node. Shot ids, indexes and statuses are filled in for you; every shot needs an `action`. A top-level `entityIds` casts those entities on the board (use ui_storyboard_set_entities to change the cast without replacing the shots); a shot's own `entityIds` overrides the board cast for that shot.",
+    "Load a full screenplay onto the specified storyboard. Use ui_storyboard_update_shot for edits to existing shot prompts. When revising a screenplay, retain existing shot ids from ui_storyboard_get_state: their rendered media and status are preserved. Removing a shot with rendered media is refused. `screenplay` is a Screenplay object ({ type:'screenplay', title, shots: Shot[], ... }) — typically the output of the Director node. Missing ids, indexes and statuses are filled in for new shots; every shot needs an `action`. A top-level `entityIds` casts those entities on the board (use ui_storyboard_set_entities to change only the cast); a shot's own `entityIds` overrides the board cast for that shot.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
     screenplay: screenplayParam
@@ -141,8 +141,18 @@ FrontendToolRegistry.register({
     const play = storyboards.normalizeStoryboardScreenplay(screenplay, {
       generateId: () => crypto.randomUUID()
     });
-    const snapshot =
-      getStoryboardAgentHandler(storyboard_id).setScreenplay(play);
+    const handler = getStoryboardAgentHandler(storyboard_id);
+    const shotIds = new Set(play.shots.map((shot) => shot.id));
+    const dropped = handler.getSnapshot().shots.filter(
+      (shot) => (shot.hasKeyframe || shot.hasClip) && !shotIds.has(shot.id)
+    );
+    if (dropped.length > 0) {
+      throw new Error(
+        `This screenplay would remove rendered shots: ${dropped.map((shot) => shot.id).join(", ")}. ` +
+        "Use ui_storyboard_update_shot for prompt edits, or retain their existing ids from ui_storyboard_get_state."
+      );
+    }
+    const snapshot = handler.setScreenplay(play);
     const persisted = await persistBoard(storyboard_id, "The screenplay");
     return {
       ok: true,

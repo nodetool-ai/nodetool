@@ -2,13 +2,15 @@ import React from "react";
 import { ArrowRight } from "lucide-react";
 
 /**
- * The enemy, named once, between the hero and the project demo.
+ * The enemy, named once, after the work and immediately before the comparison
+ * that answers it.
  *
  * One enemy: the closed AI studio. Five browser tabs was the 2024 pain and
  * the closed studios already solve it; what holds against them is their
  * models, their credits, and a project only their app opens
- * (NARRATIVE.md § The enemy). Deliberately low-chrome, so the demo that
- * follows lands harder.
+ * (NARRATIVE.md § The enemy). Deliberately low-chrome, and deliberately late:
+ * a reader who has not yet seen a finished job has no reason to care what we
+ * think of Runway.
  */
 
 const locks = [
@@ -18,7 +20,7 @@ const locks = [
   },
   {
     what: "Their credits",
-    how: "Priced above what the model costs, spendable only on their list.",
+    how: "Bought up front, spendable only on their list, and priced by them rather than by the model.",
   },
   {
     what: "Their project",
@@ -44,14 +46,16 @@ export default function StatusQuoSection() {
                 id="status-quo-title"
                 className="text-2xl font-bold tracking-tight text-white md:text-3xl"
               >
-                They make the film.
+                They hand you the file.
                 <br />
-                Then they keep it.
+                They keep the project.
               </h2>
               <p className="mt-4 text-slate-400 leading-relaxed">
-                Runway, LTX Studio, Figma Weave and the rest will generate your
-                trailer. When they raise the price or drop the model, the film
-                goes with it. NodeTool hands the project back, on your keys.
+                Runway, LTX Studio and Figma Weave will generate your trailer,
+                and you can download the finished video. What does not come
+                with it is everything above: the board, the takes you turned
+                down, the cut, and the freedom to run the next version on a
+                model they have not added yet.
               </p>
               <a
                 href="#differences"

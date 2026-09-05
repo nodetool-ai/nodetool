@@ -335,6 +335,88 @@ describe("setScreenplay", () => {
     ...extra
   });
 
+  it("keeps rendered stills and takes when a revised screenplay edits another shot", () => {
+    const store = useStoryboardStore.getState();
+    const screenplay = {
+      type: "screenplay" as const,
+      id: "sp-1",
+      title: "Two shots",
+      shots: [play(), play({ id: "sp-shot-2", index: 1, action: "The keeper" })]
+    };
+    store.setScreenplay(BOARD, screenplay);
+    store.setShotKeyframe(BOARD, "sp-shot-1", image(1));
+    store.setShotKeyframe(BOARD, "sp-shot-1", image(2));
+    store.selectKeyframeVersion(BOARD, "sp-shot-1", 0);
+    store.setShotClip(BOARD, "sp-shot-1", video(1));
+    store.setShotClip(BOARD, "sp-shot-1", video(2));
+    store.selectClipVersion(BOARD, "sp-shot-1", 0);
+    store.setShotStatus(BOARD, "sp-shot-1", "rendered");
+    const rendered = useStoryboardStore.getState().boards[BOARD]?.shots[0];
+
+    store.setScreenplay(BOARD, {
+      ...screenplay,
+      shots: [screenplay.shots[0], { ...screenplay.shots[1], action: "The keeper waves" }]
+    });
+
+    const board = useStoryboardStore.getState().boards[BOARD];
+    expect(board?.shots[0]).toEqual(rendered);
+    expect(board?.shots[1].action).toBe("The keeper waves");
+    expect(board?.shots[0].keyframe_versions).toEqual([image(1), image(2)]);
+    expect(board?.shots[0].clip_versions).toEqual([video(1), video(2)]);
+  });
+
+  it("keeps newer renders and selections over stale screenplay media", () => {
+    const store = useStoryboardStore.getState();
+    const screenplay = {
+      type: "screenplay" as const,
+      id: "sp-1",
+      title: "One shot",
+      shots: [play({ keyframe: image(1), keyframe_versions: [image(1)] })]
+    };
+    store.setScreenplay(BOARD, screenplay);
+    store.setShotKeyframe(BOARD, "sp-shot-1", image(2));
+    store.setShotStatus(BOARD, "sp-shot-1", "keyframe_ready");
+    store.setScreenplay(BOARD, screenplay);
+    const shot = useStoryboardStore.getState().boards[BOARD]?.shots[0];
+    expect(shot?.keyframe).toEqual(image(2));
+    expect(shot?.keyframe_versions).toEqual([image(1), image(2)]);
+    expect(shot?.status).toBe("keyframe_ready");
+
+    store.removeKeyframeVersion(BOARD, "sp-shot-1", 1);
+    store.removeKeyframeVersion(BOARD, "sp-shot-1", 0);
+    store.setScreenplay(BOARD, screenplay);
+    expect(useStoryboardStore.getState().boards[BOARD]?.shots[0].keyframe).toBeNull();
+  });
+
+  it("retains a render in progress and attaches its result after the screenplay edit", () => {
+    const store = useStoryboardStore.getState();
+    const screenplay = {
+      type: "screenplay" as const,
+      id: "sp-1",
+      title: "One shot",
+      shots: [play()]
+    };
+    store.setScreenplay(BOARD, screenplay);
+    store.setShotStatus(BOARD, "sp-shot-1", "keyframe_generating");
+    store.setScreenplay(BOARD, { ...screenplay, title: "New title" });
+    expect(useStoryboardStore.getState().boards[BOARD]?.shots[0].status).toBe("keyframe_generating");
+    store.setShotKeyframe(BOARD, "sp-shot-1", image(1));
+    expect(useStoryboardStore.getState().boards[BOARD]?.shots[0].keyframe).toEqual(image(1));
+  });
+
+  it("does not transfer media to new shot ids when replacing the screenplay", () => {
+    const store = useStoryboardStore.getState();
+    seed();
+    store.setShotKeyframe(BOARD, SHOT, image(1));
+    store.setScreenplay(BOARD, {
+      type: "screenplay",
+      id: "sp-2",
+      title: "New direction",
+      shots: [play()]
+    });
+    expect(useStoryboardStore.getState().boards[BOARD]?.shots).toEqual([play()]);
+  });
+
   it("takes brief, style and shots from the screenplay", () => {
     const store = useStoryboardStore.getState();
     store.ensureBoard(BOARD);

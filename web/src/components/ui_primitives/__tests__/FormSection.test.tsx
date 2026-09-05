@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { FormSection } from "../FormSection";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
+import { asElement, firstElement } from "../../../test-utils/doubles";
 
 describe("FormSection", () => {
   const renderWithTheme = (component: React.ReactElement) => {
@@ -69,7 +70,7 @@ describe("FormSection", () => {
 
     expect(container.querySelector("label")).toBeNull();
     // Only the field column remains under the root.
-    const root = container.firstChild as HTMLElement;
+    const root = firstElement(container);
     expect(root.childNodes).toHaveLength(1);
   });
 
@@ -80,7 +81,7 @@ describe("FormSection", () => {
       </FormSection>
     );
 
-    const body = screen.getByText("Field").parentElement as HTMLElement;
+    const body = asElement(screen.getByText("Field").parentElement);
     expect(body).toHaveStyle({ display: "flex", flexDirection: "column" });
   });
 

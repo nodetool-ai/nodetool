@@ -12,6 +12,7 @@ import {
   BORDER_RADIUS,
   MOTION,
   SPACING,
+  SPACING_PX,
   getSpacingPx
 } from "../../ui_primitives";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
@@ -31,6 +32,9 @@ const styles = (theme: Theme) =>
     minHeight: 0,
     width: "100%",
     overflowY: "auto",
+    // `overflowY` alone leaves the other axis at `auto`, which lets a phone
+    // pan the welcome screen sideways.
+    overflowX: "hidden",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -77,7 +81,26 @@ const styles = (theme: Theme) =>
       flexWrap: "wrap",
       justifyContent: "center",
       gap: getSpacingPx(SPACING.md),
-      marginTop: getSpacingPx(SPACING.xs)
+      marginTop: getSpacingPx(SPACING.xs),
+      // A chip's label does not wrap, so on a phone the longest opener is
+      // wider than the column and pushes the whole screen sideways.
+      maxWidth: "100%"
+    },
+
+    // Rather than ellipsing the opener away on a narrow screen, let it run
+    // onto a second line.
+    ".suggestions .MuiChip-root": {
+      height: "auto",
+      minHeight: `${SPACING_PX.xxxl}px`,
+      maxWidth: "100%"
+    },
+
+    ".suggestions .MuiChip-label": {
+      whiteSpace: "normal",
+      overflow: "visible",
+      textOverflow: "clip",
+      paddingTop: getSpacingPx(SPACING.xs),
+      paddingBottom: getSpacingPx(SPACING.xs)
     }
   });
 
@@ -155,7 +178,7 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
   const noProvider = !isLoading && !error && providers.length === 0;
 
   return (
-    <div css={cssStyles}>
+    <div css={cssStyles} className="chat-welcome">
       <div className="welcome-inner">
         {noProvider ? (
           <FlexColumn align="center" gap={SPACING.sm} sx={{ textAlign: "center" }}>

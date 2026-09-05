@@ -6,16 +6,17 @@ import JsonLd from "../../components/JsonLd";
 import FaqBlock from "../../components/FaqBlock";
 import { breadcrumbSchema } from "../../lib/jsonld";
 import { SmartDownloadButton } from "../SmartDownloadButton";
+import ByokCalculator from "../../components/ByokCalculator";
 
 export const metadata: Metadata = {
-  title: "Pricing — free Studio, your own keys, pay providers directly | NodeTool",
+  title: "Pricing — free Studio, free Cloud alpha, pay providers directly | NodeTool",
   description:
-    "NodeTool Studio is free and open source. NodeTool Cloud is a subscription that covers hosting. In both, you bring your own API keys and pay providers their list prices, with no credits and no markup.",
+    "NodeTool Studio is free and open source. NodeTool Cloud is free while it is in alpha, and a hosting subscription follows at full release. In both, you bring your own API keys and pay providers their list prices, with no credits and no markup.",
   alternates: { canonical: "/pricing" },
   openGraph: {
     title: "NodeTool Pricing — free Studio, your own keys to every provider",
     description:
-      "Studio is free and open source. Cloud covers hosting. In both you bring your own keys and pay providers directly at their list prices, with no credits and no markup.",
+      "Studio is free and open source. Cloud is free during its alpha, then a hosting subscription. In both you bring your own keys and pay providers directly at their list prices, with no credits and no markup.",
     url: "https://nodetool.ai/pricing",
     type: "website",
   },
@@ -28,7 +29,7 @@ const offers = {
   "@type": "Product",
   name: "NodeTool",
   description:
-    "The open creative AI workspace. Studio on the desktop is free, and Cloud is a hosted subscription. In both you bring your own API keys.",
+    "The open creative AI workspace. Studio on the desktop is free, and Cloud is free while it is in alpha. In both you bring your own API keys.",
   brand: { "@type": "Brand", name: "NodeTool" },
   offers: [
     {
@@ -42,8 +43,10 @@ const offers = {
     {
       "@type": "Offer",
       name: "NodeTool Cloud",
+      price: "0",
+      priceCurrency: "USD",
       description:
-        "Hosted subscription, currently in alpha. Bring your own keys to every provider.",
+        "Free during the alpha. A hosting subscription follows at full release. Bring your own keys to every provider.",
       url: "https://nodetool.ai/cloud",
       availability: "https://schema.org/PreOrder",
     },
@@ -51,12 +54,14 @@ const offers = {
 };
 
 const editionRows: { label: string; studio: string | boolean; cloud: string | boolean }[] = [
-  { label: "Price", studio: "Free", cloud: "Subscription (alpha)" },
+  { label: "Price today", studio: "Free", cloud: "Free — alpha" },
+  { label: "Price at full release", studio: "Free", cloud: "Hosting subscription, price not set" },
   { label: "Where it runs", studio: "Your machine (macOS, Windows, Linux)", cloud: "Your browser, hosted by us" },
   { label: "Bring your own API keys", studio: true, cloud: true },
   { label: "Pay providers directly (no markup)", studio: true, cloud: true },
   { label: "Local models (Ollama, MLX, llama.cpp)", studio: true, cloud: false },
-  { label: "No setup and no graphics card needed", studio: false, cloud: true },
+  { label: "Graphics card needed", studio: "Only for local models", cloud: "No" },
+  { label: "Setup", studio: "Install the desktop app", cloud: "None — sign in" },
   { label: "Open source (AGPL-3.0)", studio: true, cloud: true },
   { label: "Self-host any time", studio: true, cloud: true },
 ];
@@ -96,10 +101,11 @@ export default function PricingPage() {
             Free to download. You pay providers, not us.
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            NodeTool Studio is free and open source. NodeTool Cloud is a
-            subscription that covers hosting. In both, you bring your own API keys
-            and pay each provider their list price. No credit packs, no token
-            markups, and no curated list of models you are stuck with.
+            NodeTool Studio is free and open source. NodeTool Cloud is free
+            while it is in alpha, and a hosting subscription follows at full
+            release. In both, you bring your own API keys and pay each provider
+            their list price. No credit packs, no token markups, and no curated
+            list of models you are stuck with.
           </p>
         </section>
 
@@ -145,11 +151,13 @@ export default function PricingPage() {
               </div>
               <p className="mt-1 text-sm text-slate-400">Hosted · nothing to install</p>
               <div className="mt-6 flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-white">Subscription</span>
+                <span className="text-4xl font-bold text-white">Free</span>
+                <span className="text-sm text-slate-400">while in alpha</span>
               </div>
               <p className="mt-1 text-sm text-slate-400">
-                Hosting for the same open-source app. Pricing will be set at
-                full release.
+                At full release, a subscription covers hosting the same
+                open-source app. That price is not set yet, and nothing is
+                charged before it is announced.
               </p>
               <ul className="mt-6 space-y-3 text-sm text-slate-300">
                 {[
@@ -191,8 +199,10 @@ export default function PricingPage() {
           </h2>
           <p className="mt-3 max-w-2xl leading-relaxed text-slate-400">
             Studio is the free desktop app and runs on your machine, local
-            models included. Cloud is a subscription for the same open-source
-            workspace in the browser. Both call providers with your own keys.
+            models included. Cloud is the same open-source workspace in a
+            browser tab, free while it is in alpha. Both call providers with
+            your own keys. For work you are being paid for, use Studio: it is
+            the finished edition.
           </p>
           <div className="mt-6 overflow-hidden rounded-2xl border border-slate-800/70 ring-1 ring-white/5">
             <table className="w-full border-collapse text-left">
@@ -235,6 +245,10 @@ export default function PricingPage() {
             </p>
           </div>
         </section>
+
+        {/* The one place cost is proven with numbers, moved here off the
+            homepage: a reader asking what a month costs is already on /pricing. */}
+        <ByokCalculator />
 
         {/* Visible FAQ — and this page's FAQPage schema, from these rows. */}
         <FaqBlock surface="pricing" className="mt-16" linkToStandalone emitSchema />

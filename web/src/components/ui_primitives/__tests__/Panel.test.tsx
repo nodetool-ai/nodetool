@@ -4,6 +4,7 @@ import { Panel } from "../Panel";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import userEvent from "@testing-library/user-event";
+import { firstElement } from "../../../test-utils/doubles";
 
 describe("Panel", () => {
   const renderWithTheme = (component: React.ReactElement) => {
@@ -32,7 +33,7 @@ describe("Panel", () => {
         </Panel>
       );
 
-      const panel = container.firstChild as HTMLElement;
+      const panel = firstElement(container);
       expect(panel).toBeInTheDocument();
     });
   });
@@ -110,7 +111,7 @@ describe("Panel", () => {
         </Panel>
       );
 
-      const panel = container.firstChild as HTMLElement;
+      const panel = firstElement(container);
       expect(panel).toBeInTheDocument();
     });
 
@@ -121,7 +122,7 @@ describe("Panel", () => {
         </Panel>
       );
 
-      const panel = container.firstChild as HTMLElement;
+      const panel = firstElement(container);
       expect(panel).toBeInTheDocument();
     });
 
@@ -132,7 +133,7 @@ describe("Panel", () => {
         </Panel>
       );
 
-      const panel = container.firstChild as HTMLElement;
+      const panel = firstElement(container);
       expect(panel).toBeInTheDocument();
     });
 
@@ -143,7 +144,7 @@ describe("Panel", () => {
         </Panel>
       );
 
-      const panel = container.firstChild as HTMLElement;
+      const panel = firstElement(container);
       expect(panel).toBeInTheDocument();
     });
 
@@ -154,7 +155,7 @@ describe("Panel", () => {
         </Panel>
       );
 
-      const panel = container.firstChild as HTMLElement;
+      const panel = firstElement(container);
       expect(panel).toBeInTheDocument();
     });
 
@@ -165,7 +166,7 @@ describe("Panel", () => {
         </Panel>
       );
 
-      const panel = container.firstChild as HTMLElement;
+      const panel = firstElement(container);
       expect(panel).toBeInTheDocument();
     });
   });
@@ -178,7 +179,7 @@ describe("Panel", () => {
         </Panel>
       );
 
-      const panel = container.firstChild as HTMLElement;
+      const panel = firstElement(container);
       expect(panel).toHaveStyle({ border: "1px solid #2f2f2f" });
     });
 
@@ -189,7 +190,7 @@ describe("Panel", () => {
         </Panel>
       );
 
-      const panel = container.firstChild as HTMLElement;
+      const panel = firstElement(container);
       expect(panel).not.toHaveStyle({ border: "1px solid #2f2f2f" });
     });
   });
@@ -202,7 +203,7 @@ describe("Panel", () => {
         </Panel>
       );
 
-      const panel = container.firstChild as HTMLElement;
+      const panel = firstElement(container);
       expect(panel).toHaveStyle({ backgroundColor: "#232323" });
     });
 
@@ -213,7 +214,7 @@ describe("Panel", () => {
         </Panel>
       );
 
-      const panel = container.firstChild as HTMLElement;
+      const panel = firstElement(container);
       expect(panel).toHaveStyle({ backgroundColor: "#202020" });
     });
 
@@ -224,7 +225,7 @@ describe("Panel", () => {
         </Panel>
       );
 
-      const panel = container.firstChild as HTMLElement;
+      const panel = firstElement(container);
       expect(panel).toBeInTheDocument();
     });
 
@@ -235,7 +236,7 @@ describe("Panel", () => {
         </Panel>
       );
 
-      const panel = container.firstChild as HTMLElement;
+      const panel = firstElement(container);
       expect(panel).toBeInTheDocument();
     });
   });

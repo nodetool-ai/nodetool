@@ -15,6 +15,7 @@ import {
   SPACING_STEPS,
   resolveSpacing,
   snapSpacing,
+  type SpacingStep,
   type SpacingValue
 } from "./spacing";
 
@@ -31,9 +32,8 @@ export interface FormGridProps {
 }
 
 /** One canonical step below the given spacing (xl → lg); floors at the smallest step. */
-const stepDownSpacing = (units: number): number => {
-  const snapped = snapSpacing(units) as (typeof SPACING_STEPS)[number];
-  const index = SPACING_STEPS.indexOf(snapped);
+const stepDownSpacing = (units: number): SpacingStep => {
+  const index = SPACING_STEPS.indexOf(snapSpacing(units));
   return SPACING_STEPS[Math.max(index - 1, 0)];
 };
 

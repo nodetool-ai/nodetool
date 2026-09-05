@@ -161,6 +161,29 @@ function buildSample(spec) {
   };
 }
 
+/**
+ * A step's swap-in variant: another shipped template that reaches a different
+ * ending from the same inputs. Resolved the same way a step is, so a variant
+ * cannot name a template that stopped shipping.
+ */
+function buildAlternative(spec, step, byTemplateSlug) {
+  if (!step.alternative) return null;
+  const entry = byTemplateSlug.get(step.alternative.template);
+  if (!entry) {
+    fail(
+      `recipe "${spec.slug}" step "${step.template}" offers alternative ` +
+        `"${step.alternative.template}", which resolves to no shipped template.`,
+    );
+  }
+  return {
+    template: entry.slug,
+    name: entry.name,
+    route: entry.route,
+    label: step.alternative.label,
+    why: step.alternative.why,
+  };
+}
+
 /** Resolve one recipe spec into the record the page renders. */
 function buildRecipe(spec, byTemplateSlug) {
   const steps = spec.steps.map((step) => {
@@ -189,6 +212,7 @@ function buildRecipe(spec, byTemplateSlug) {
         thumbnail: entry.thumbnail,
         nodeCount: entry.nodeCount,
         models: modelRefs(graph),
+        alternative: buildAlternative(spec, step, byTemplateSlug),
       },
     };
   });

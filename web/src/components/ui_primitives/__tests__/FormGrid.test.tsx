@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { FormGrid } from "../FormGrid";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
+import { firstElement } from "../../../test-utils/doubles";
 
 describe("FormGrid", () => {
   const renderWithTheme = (component: React.ReactElement) => {
@@ -42,7 +43,7 @@ describe("FormGrid", () => {
       </FormGrid>
     );
 
-    const grid = container.firstChild as HTMLElement;
+    const grid = firstElement(container);
     expect(grid).toHaveStyle({
       display: "grid",
       gridTemplateColumns: "minmax(0, 1fr) 260px"
@@ -58,7 +59,7 @@ describe("FormGrid", () => {
       </FormGrid>
     );
 
-    const grid = container.firstChild as HTMLElement;
+    const grid = firstElement(container);
     expect(grid).toHaveStyle({ gridTemplateColumns: "1fr 1fr 1fr" });
   });
 
@@ -79,7 +80,7 @@ describe("FormGrid", () => {
       </FormGrid>
     );
 
-    const grid = container.firstChild as HTMLElement;
+    const grid = firstElement(container);
     expect(grid).toHaveStyle({
       display: "grid",
       gridTemplateColumns: "minmax(0, 1fr) 260px"

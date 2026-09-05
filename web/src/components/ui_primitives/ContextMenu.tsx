@@ -14,6 +14,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import { SxProps, Theme } from "@mui/material";
 import { isNumber } from "../../utils/typePredicates";
+import { sxEntries } from "./tokens";
 
 export interface ContextMenuProps extends Omit<MuiMenuProps, "anchorPosition"> {
   /** Position for right-click context menus */
@@ -87,19 +88,21 @@ const ContextMenuInternal: React.FC<ContextMenuProps> = ({
         ...slotProps,
         paper: {
           ...slotProps?.paper,
-          sx: {
-            borderRadius: borderRadiusValue,
-            maxHeight,
-            minWidth,
-            ...(compact && {
-              "& .MuiMenuItem-root": {
-                minHeight: "auto",
-                py: 0.5,
-                fontSize: theme.fontSizeSmall,
-              },
-            }),
-            ...(paperSx as object),
-          } as SxProps<Theme>,
+          sx: [
+            {
+              borderRadius: borderRadiusValue,
+              maxHeight,
+              minWidth,
+              ...(compact && {
+                "& .MuiMenuItem-root": {
+                  minHeight: "auto",
+                  py: 0.5,
+                  fontSize: theme.fontSizeSmall,
+                },
+              }),
+            },
+            ...sxEntries(paperSx),
+          ],
         },
       }}
       {...props}

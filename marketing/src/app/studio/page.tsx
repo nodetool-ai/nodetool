@@ -83,16 +83,16 @@ const proPoints = [
 
 const consPoints = [
   {
-    title: "Hardware matters",
-    body: "Local models need memory and ideally a graphics card. For serious local work we suggest 16GB or more of RAM and at least 4GB of graphics memory.",
+    title: "Hardware matters, if you run models locally",
+    body: "Working through hosted providers needs no graphics card at all. Running open weights on your own machine does: for serious local work we suggest 16GB or more of RAM and at least 4GB of graphics memory.",
   },
   {
     title: "You manage updates",
     body: "When a new release comes out, you install it. Builds are signed and notarized for macOS and Windows, so updating stays simple.",
   },
   {
-    title: "Disk space",
-    body: "Local models are large. Allow around 20GB for a small starter set, and considerably more for image and video models.",
+    title: "Disk space, if you download models",
+    body: "The app installs and downloads nothing else on its own. Open weights are large, so if you want them: allow around 20GB for a small starter set, and considerably more for image and video models.",
   },
 ];
 
@@ -255,7 +255,10 @@ export default function StudioPage() {
                   }}
                 />
                 <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
-                  <HeroDemoPlayer alt="NodeTool Studio: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film — all on your own machine" />
+                  <HeroDemoPlayer
+                    alt="NodeTool Studio: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film — all on your own machine"
+                    caption="Storyboard, rendered shots, a cut on the timeline, a finished film — all on your own machine. Open it full screen to read the panels."
+                  />
                 </div>
               </div>
             </div>

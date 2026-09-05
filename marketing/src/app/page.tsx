@@ -12,11 +12,11 @@ import BuildRunDeploy from "../components/BuildRunDeploy";
 import OwnershipSection from "../components/OwnershipSection";
 import ModelSupportSection from "../components/ModelSupportSection";
 import SurfaceShowcase from "../components/SurfaceShowcase";
-import ByokCalculator from "../components/ByokCalculator";
 import ProjectSection from "../components/ProjectSection";
 import CommunitySection from "../components/CommunitySection";
 import ContactSection from "../components/ContactSection";
 import ComparisonSection from "../components/ComparisonSection";
+import EditionsCompareSection from "../components/EditionsCompareSection";
 import RecipeShowcase from "../components/RecipeShowcase";
 import UnderneathSection from "../components/UnderneathSection";
 import WaysInSection from "../components/WaysInSection";
@@ -173,7 +173,7 @@ export default function Home() {
         />
         <svg
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full opacity-[.28]"
+          className="pointer-events-none absolute inset-0 h-full w-full opacity-[.12]"
           shapeRendering="crispEdges"
         >
           <defs>
@@ -210,11 +210,13 @@ export default function Home() {
           </div>
         </section>
 
-        {/* The enemy, once: the closed studio (NARRATIVE.md § The enemy) */}
-        <StatusQuoSection />
+        {/* Results first: four recipes, each a real run with its bundle. A
+            reader who has not seen the product yet has no reason to care what
+            we think of Runway (NARRATIVE.md § Order of the page). */}
+        <RecipeShowcase />
 
-        {/* The core differentiator, right after the problem: the agent leaves
-            an executable, editable process behind — not a transcript */}
+        {/* What one of those runs leaves behind: an executable, editable
+            project rather than a transcript */}
         <ProjectSection />
 
         {/* How it works (Describe / Run / Inspect) — the 3-step mental model */}
@@ -224,21 +226,21 @@ export default function Home() {
           </div>
         </section>
 
-        {/* The jobs: four recipes, each a real run with its bundle */}
-        <RecipeShowcase />
-
         {/* The five editors, each over a loop of the real thing (#surface-<id>) */}
         <SurfaceShowcase />
 
-        {/* Ownership — keys, project file, source; local inference stays on /studio */}
-        <OwnershipSection reducedMotion={reducedMotion} />
+        {/* Model choice, then ownership — keys, project file, source; local
+            inference stays on /studio. The calculator lives on /pricing. */}
         <ModelSupportSection reducedMotion={reducedMotion} />
+        <OwnershipSection reducedMotion={reducedMotion} />
 
-        {/* The one place cost is proven with numbers */}
-        <ByokCalculator />
-
-        {/* Against the closed studios — answers the enemy block up top */}
+        {/* The enemy, once, and the comparison that answers it — after the
+            work, not before it (NARRATIVE.md § The enemy) */}
+        <StatusQuoSection />
         <ComparisonSection reducedMotion={reducedMotion} />
+
+        {/* Which edition to run, before the FAQ asks it */}
+        <EditionsCompareSection reducedMotion={reducedMotion} />
 
         {/* Route by intent once the core story has landed */}
         <WaysInSection />

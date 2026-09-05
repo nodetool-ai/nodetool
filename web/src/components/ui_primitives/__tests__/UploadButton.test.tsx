@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { UploadButton } from "../UploadButton";
 import mockTheme from "../../../__mocks__/themeMock";
+import { queryInput } from "../../../test-utils/doubles";
 
 describe("UploadButton", () => {
   const mockOnFileSelect = jest.fn();
@@ -90,7 +91,7 @@ describe("UploadButton", () => {
     fireEvent.click(button);
 
     // Should create file input and click it
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const input = queryInput(document, 'input[type="file"]');
     expect(input).toBeInTheDocument();
   });
 

@@ -38,10 +38,15 @@ studio**. Nobody searches for a coined label.
 
 ## The enemy
 
-One enemy, named once, early: **the closed AI studio**. Runway, LTX Studio,
-Figma Weave, Flora, Higgsfield and the rest will generate the trailer. On their
-model list, priced in their credits, saved in a project only their app opens.
-When they raise the price or drop the model, the film goes with it.
+One enemy, named once, and **after the work has been shown**: the closed AI
+studio. Runway, LTX Studio, Figma Weave, Flora, Higgsfield and the rest will
+generate the trailer and let you download the file. What does not come with it
+is the project — the board, the rejected takes, the cut — and the freedom to
+run the next version on a model they have not added.
+
+State that precisely or not at all. "They keep your film" is false: every one
+of them exports a video. What they keep is the editable project and the model
+list, which is the claim that survives contact with a reader who has used them.
 
 "Five browser tabs per shot" was the 2024 pain, and the closed studios already
 solve it. Against them, the only pain that holds is the last one: their models,
@@ -74,16 +79,23 @@ claims, not next to them. On the homepage they are one strip of links to
 
 ## Order of the page
 
-Hero → the enemy (once, briefly) → the project the agent leaves behind → the
-three steps (Pitch / Automate / Direct) → the jobs, each with its bundle →
-the five surfaces → ownership → the calculator → comparison against the closed
-studios → ways in → what is underneath, as a strip → FAQ → community →
-download.
+Hero → the jobs, each a real run with its bundle → the project one of those
+runs leaves behind → the three steps (Pitch / Automate / Direct) → the five
+surfaces → models → ownership → the enemy (once, briefly) → comparison against
+the closed studios → Studio vs Cloud → ways in → what is underneath, as a strip
+→ FAQ → community → download.
 
-The enemy comes before any feature because the features only mean something
-against it. Comparisons come late: a reader who is convinced does not need
-them, and a reader who is not will scroll to them. Everything after "ways in"
-is a route to another page, not a section that argues.
+**Results before the argument.** The page used to name the enemy in the second
+section, which asked a reader to agree with our competitive position before
+they had seen a single finished job. Proof earns the argument, not the other
+way round: the recipes come first, then what one of them leaves behind, then
+how it is made. The enemy and the comparison sit together, late, where a reader
+who is already convinced can skip both. Everything after "ways in" is a route
+to another page, not a section that argues.
+
+Detailed comparison tables and the calculator belong on their own pages —
+`/alternatives/*` and `/pricing`. The homepage names the difference and links
+to the numbers.
 
 ## Audience
 
@@ -118,16 +130,22 @@ turns out wrong costs more trust than no number.
 ## Cost, once
 
 Cost appears in three places and no more: the hero bullet ("your own keys,
-provider list prices"), the recipe cards, and the calculator. It used to appear
-seven times. Repetition reads as anxiety, and a reader who has seen the
-calculator does not need the dashboard.
+provider list prices"), the recipe cards, and the calculator — which lives on
+`/pricing`, not on the homepage. It used to appear seven times. Repetition
+reads as anxiety, and a reader who has seen the calculator does not need the
+dashboard.
 
 - **Cost.** "Studio is free. You pay providers directly, at their published
   prices." Never imply a NodeTool credit exists.
 - **Cloud.** Studio is the full product; Cloud is the zero-install preview and is
   in alpha. Say "alpha" wherever Cloud is offered as an entry point, the closing
   CTA included. A "start in seconds" claim that lands a reader in an alpha is a
-  claim we lose.
+  claim we lose. One recommendation across the site, never two: Studio for paid
+  work, Cloud to look around without installing. A page that recommends Studio
+  at the top and Cloud at the bottom has made the choice harder, not easier.
+- **The alpha price and the price after it are different facts.** Cloud is free
+  while it is in alpha. A hosting subscription follows at full release and its
+  price is not set. Show both, separately, wherever Cloud is priced.
 - **Local models.** True for language and image models, and for a filmmaker
   making video mostly not: open-weight video needs hardware they do not have. On
   the film page, ownership is keys, project file, and source. Local inference is
@@ -138,14 +156,25 @@ calculator does not need the dashboard.
 Still the weakest part of the story, and not a copy problem. What closes the
 gap, in order of value:
 
-1. A real provider bill on each recipe, from a recorded run.
+1. A real provider bill and an elapsed time on each recipe, from a recorded
+   run. `scripts/recipe-samples.manifest.json` records which models ran but
+   neither what they cost nor how long they took, so neither number can be
+   printed yet.
 2. The hero reel ending on the backward edit: one shot re-rolled, one line
    re-voiced, the cut updating. Today it shows only the forward pass, sentence
    in, film out, which every closed studio can also show.
-3. Short user quotes about time saved or control regained.
+3. A recorded run of the trailer recipe on the editable-sequence variant, so
+   the flagship example ends where the hero claim says it does.
+4. Short user quotes about time saved or control regained.
 
 Until those exist, do not compensate with adjectives. A missing testimonial is
 better than a manufactured superlative.
+
+What the pages can say today, and do: how far the recorded run is from the
+download. Every sample carries a per-model disclosure, and `sampleFidelity`
+turns it into the one line that goes above the picture and on the card — run as
+shipped, or *n* of *m* models reached another way. A visitor should never have
+to infer that from a list.
 
 ## Phrasing rules
 

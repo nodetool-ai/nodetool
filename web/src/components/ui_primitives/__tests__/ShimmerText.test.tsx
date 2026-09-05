@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import { ShimmerText } from "../ShimmerText";
+import { queryElement } from "../../../test-utils/doubles";
 
 const renderWithTheme = (ui: React.ReactElement) =>
   render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
@@ -17,7 +18,7 @@ describe("ShimmerText", () => {
     const { container } = renderWithTheme(
       <ShimmerText>search_the_web</ShimmerText>
     );
-    const span = container.querySelector("span") as HTMLElement;
+    const span = queryElement(container, "span");
     expect(getComputedStyle(span).display).toBe("inline");
   });
 

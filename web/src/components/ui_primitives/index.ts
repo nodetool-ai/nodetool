@@ -234,7 +234,7 @@ export {
   resolveSpacing,
   snapSpacing
 } from "./spacing";
-export type { SpacingValue } from "./spacing";
+export type { SpacingStep, SpacingValue } from "./spacing";
 
 // Design tokens
 export {

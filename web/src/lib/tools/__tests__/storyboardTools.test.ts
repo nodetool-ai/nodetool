@@ -41,7 +41,7 @@ const snapshot = (): StoryboardSnapshot => ({
 });
 
 const createMockHandler = (): jest.Mocked<StoryboardAgentHandler> => ({
-  getSnapshot: jest.fn(),
+  getSnapshot: jest.fn().mockReturnValue(snapshot()),
   setScreenplay: jest.fn(),
   setEntityIds: jest.fn(),
   addShot: jest.fn(),
@@ -283,6 +283,25 @@ describe("ui_storyboard_* tools", () => {
   });
 
   describe("ui_storyboard_set_screenplay", () => {
+    it.each(["hasKeyframe", "hasClip"])("refuses to drop a shot with %s when the agent omits its id", async (media) => {
+      const handler = createMockHandler();
+      handler.getSnapshot.mockReturnValue({
+        ...snapshot(),
+        shots: [shotNode({ [media]: true })]
+      });
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      await expect(FrontendToolRegistry.call(
+        "ui_storyboard_set_screenplay",
+        { storyboard_id: BOARD_ID, screenplay: {
+          type: "screenplay", title: "Revised", shots: [{ action: "A different prompt" }]
+        } },
+        "tc-preserve-media",
+        ctx
+      )).rejects.toThrow("ui_storyboard_update_shot");
+      expect(handler.setScreenplay).not.toHaveBeenCalled();
+    });
+
     // The shape an agent actually sent, which the store copied verbatim and the
     // save then rejected: no `type`, no `id`, no `index`, no `status`.
     const agentScreenplay = {

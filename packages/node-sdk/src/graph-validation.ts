@@ -1599,9 +1599,14 @@ export function validateGraph(
     }
   }
 
-  const errors = issues.filter((i) => i.severity === "error").length;
-  const warnings = issues.filter((i) => i.severity === "warning").length;
-  const info = issues.filter((i) => i.severity === "info").length;
+  let errors = 0;
+  let warnings = 0;
+  let info = 0;
+  for (const i of issues) {
+    if (i.severity === "error") errors++;
+    else if (i.severity === "warning") warnings++;
+    else if (i.severity === "info") info++;
+  }
   return {
     ok: errors === 0,
     nodeCount: nodes.length,

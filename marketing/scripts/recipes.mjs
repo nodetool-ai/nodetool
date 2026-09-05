@@ -239,6 +239,11 @@ export const recipes = [
         role: "Film it and cut it",
         handoff:
           "In: the logline. Out: a cut teaser. A Director node writes the storyboard and one style bible, each shot becomes an image prompt, and the frames are rendered, animated, and assembled. The per-second video model is the expensive step.",
+        alternative: {
+          template: "directed-film-to-timeline",
+          label: "Swap this step to keep editing",
+          why: "The same director-to-shots chain, ending on the timeline as an editable sequence rather than a finished file. Re-roll one shot or re-cut the ending without running the chain again.",
+        },
       },
       {
         template: "score-a-silent-clip",
@@ -258,7 +263,6 @@ export const recipes = [
     caveats: [
       "Steps three and four both hold their own storyboard. Rewriting the beat sheet does not reach back into a teaser you already rendered — re-run the chain.",
       "Continuity across shots comes from a shared style bible, not from a persistent character model. Faces drift over a long cut.",
-      "For a rough cut you can keep editing rather than a finished teaser, swap step three for Directed Film to Timeline, which ends in an editable sequence.",
     ],
   },
 ];

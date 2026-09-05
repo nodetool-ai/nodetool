@@ -14,7 +14,10 @@
  */
 import { useEffect } from "react";
 
-import { registerDocumentSync } from "../../stores/documentSync";
+import {
+  handleDocumentResourceChange,
+  registerDocumentSync
+} from "../../stores/documentSync";
 import {
   isOlderUpdatedAt,
   timelineTemporalOf,
@@ -185,11 +188,21 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
       isDirty: () => isTimelineDocumentDirty(sequenceId),
       reload: () => {
         void (async () => {
-          adopt(
-            await trpcClient.timeline.get.query({
-              id: sequenceId
-            })
-          );
+          const sequence = await trpcClient.timeline.get.query({
+            id: sequenceId
+          });
+          // A render may finish while this clean-editor reload is in flight.
+          // Re-route the already-observed external change so the dirty path
+          // merges it with the completed render rather than overwriting it.
+          if (isTimelineDocumentDirty(sequenceId)) {
+            handleDocumentResourceChange("timelinesequence", {
+              event: "updated",
+              id: sequenceId,
+              updatedAt: sequence.updatedAt
+            });
+            return;
+          }
+          adopt(sequence);
         })();
       },
       merge: (notice) => {
