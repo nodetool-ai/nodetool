@@ -137,7 +137,10 @@ describe("url egress inventory", () => {
     // The positive control. Every assertion below is vacuous if the walk or
     // the regexes stop matching, so prove they matched before trusting them.
     expect(sourceFiles().length).toBeGreaterThan(500);
-    expect(plainFetches.size).toBeGreaterThanOrEqual(50);
+    // Lowered from 50: consolidating the per-vendor retry/poll loops into one
+    // shared transport removed several bare fetches. This floor exists so the
+    // scan cannot pass by matching nothing, not as a security threshold.
+    expect(plainFetches.size).toBeGreaterThanOrEqual(45);
     expect(screenedFiles.size).toBeGreaterThanOrEqual(30);
     expect(URL_EGRESS_INVENTORY.length).toBeGreaterThanOrEqual(70);
   });
@@ -230,7 +233,14 @@ describe("url egress inventory", () => {
     // A predicate can reject a URL; only safeFetch re-checks each hop. Every
     // entry that claims per-hop redirect checking must reach one of the two
     // protected fetches, not a bare predicate.
-    const protectedFetches = ["safeFetch", "fetchExternalMedia"];
+    // loadMediaRefBytes counts because it is not a predicate: its http(s)
+    // branch ends in fetchExternalMedia, and media-ref-bytes.ts carries its own
+    // guarded entry, so a caller delegating to it still gets per-hop checking.
+    const protectedFetches = [
+      "safeFetch",
+      "fetchExternalMedia",
+      "loadMediaRefBytes"
+    ];
     const offenders = URL_EGRESS_INVENTORY.filter(
       (entry) =>
         entry.policy === "guarded" &&

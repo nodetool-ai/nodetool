@@ -210,11 +210,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Model bytes → bytes (shared resolution)",
     "The shared resolveModelBytes both RenderToImage and the Blender nodes call; same policy."
   ),
-  guardedMedia(
-    "packages/reve-nodes/src/reve-base.ts",
-    "Reve reference-image upload",
-    "Reads the ref a workflow points at before sending it to Reve."
-  ),
+  {
+    ...guardedMedia(
+      "packages/reve-nodes/src/reve-base.ts",
+      "Reve reference-image upload",
+      "Reads the ref a workflow points at before sending it to Reve."
+    ),
+    // Reaches fetchExternalMedia through loadMediaRefBytes rather than calling
+    // it here: the hand-rolled resolver this replaced missed the asset_id-only
+    // ref and tested `if (ref.data)`, where a zero-length array shadows a good
+    // uri. media-ref-bytes.ts carries its own entry above.
+    guardedBy: ["loadMediaRefBytes"]
+  },
   guardedMedia(
     "packages/huggingface-nodes/src/huggingface-base.ts",
     "HF pipeline media input",
@@ -273,7 +280,10 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
       "provider-response",
       "download_url from a status body, plus a media-ref read on the way in."
     ),
-    guardedBy: ["safeFetch", "fetchExternalMedia"]
+    // Same delegation as reve-base: the inbound media read goes through
+    // loadMediaRefBytes, which is inventoried above; safeFetch still guards the
+    // download_url that comes out of the status body.
+    guardedBy: ["safeFetch", "loadMediaRefBytes"]
   },
   guardedSafeFetch(
     "packages/minimax-nodes/src/minimax-base.ts",
