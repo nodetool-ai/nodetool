@@ -1,5 +1,14 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import type {
+  AudioRef,
+  DataframeRef,
+  ImageRef
+} from "@nodetool-ai/node-sdk";
+import type {
+  InputMode,
+  LanguageModel,
+  OutputCorrelation
+} from "@nodetool-ai/protocol";
 import { isChunk } from "@nodetool-ai/protocol";
 import type { Message, ProcessingContext, ToolCall } from "@nodetool-ai/runtime";
 import { isToolCall } from "@nodetool-ai/runtime";
@@ -30,6 +39,7 @@ import {
 
 type Row = Record<string, unknown>;
 type ColumnSpec = { name: string; data_type?: string };
+type RecordTypeRef = { type: "record_type"; columns: ColumnSpec[] };
 function parseRequestedCount(prompt: string, fallback: number): number {
   // Match any integer; large requests are clamped below rather than ignored.
   const m = prompt.match(/\b(\d{1,9})\b/);
@@ -427,9 +437,9 @@ export class StructuredOutputGeneratorNode extends BaseNode {
       (this as any)._dynamic_outputs
     );
     if (schema && hasProviderSupport(context, providerId, modelId)) {
-      const instructions = asText(this.instructions ?? "");
-      const extraContext = asText(this.context ?? "");
-      const systemPrompt = asText(this.system_prompt ?? "");
+      const instructions = asText(this.instructions);
+      const extraContext = asText(this.context);
+      const systemPrompt = asText(this.system_prompt);
       const userText = [instructions, extraContext]
         .filter(Boolean)
         .join("\n\n");
@@ -441,7 +451,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
       const result = await runMeteredMessage(context, providerId, modelId, {
         model: modelId,
         messages,
-        max_tokens: Number(this.max_tokens ?? 4096),
+        max_tokens: this.max_tokens,
         response_format: {
           type: "json_schema",
           json_schema: {
@@ -474,8 +484,8 @@ export class StructuredOutputGeneratorNode extends BaseNode {
       return out;
     }
 
-    const instructions = asText(this.instructions ?? "");
-    const contextText = asText(this.context ?? "");
+    const instructions = asText(this.instructions);
+    const contextText = asText(this.context);
     return {
       output: {
         instructions,
@@ -562,8 +572,8 @@ export class DataGeneratorNode extends BaseNode {
   declare columns: RecordTypeRef;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const prompt = asText(this.prompt ?? "");
-    const inputText = asText(this.input_text ?? "");
+    const prompt = asText(this.prompt);
+    const inputText = asText(this.input_text);
     const columnsInput = this.columns;
     const columns = parseColumns(columnsInput);
     const count = parseRequestedCount(`${prompt} ${inputText}`, 5);
@@ -576,7 +586,7 @@ export class DataGeneratorNode extends BaseNode {
         [prompt, inputText].filter(Boolean).join("\n\n"),
         columnsInput,
         count,
-        Number(this.max_tokens ?? 4096)
+        this.max_tokens
       );
       if (rows.length > 0) {
         return { output: dataframeFromRows(rows, columnsInput) };
@@ -695,8 +705,8 @@ export class ListGeneratorNode extends BaseNode {
   async *genProcess(
     context?: ProcessingContext
   ): AsyncGenerator<ListGeneratorNodeStreamOutputs> {
-    const prompt = asText(this.prompt ?? "");
-    const inputText = asText(this.input_text ?? "");
+    const prompt = asText(this.prompt);
+    const inputText = asText(this.input_text);
     const userMessage = [prompt, inputText].filter(Boolean).join("\n\n");
     const { providerId, modelId } = getModelConfig(this.serialize());
     // Accumulate items so the stream-end frame can carry the whole list on the
@@ -705,7 +715,7 @@ export class ListGeneratorNode extends BaseNode {
 
     if (hasProviderAccess(context) && providerId && modelId) {
       let index = 0;
-      const maxTokens = Number(this.max_tokens ?? 128);
+      const maxTokens = this.max_tokens;
       // Try the neutral prompt first. If the model answers in prose and emits no
       // `add_item` calls (zero items), re-run once with an enforcement prompt
       // that pushes it to use the tool before giving up.
@@ -801,7 +811,10 @@ export class ChartGeneratorNode extends BaseNode {
     title: "Data",
     description: "The data to visualize"
   })
-  declare data: DataframeRef;
+  // `DataframeRef` in the protocol has no `rows`, but every dataframe this repo
+  // actually passes carries one — `dataframeFromRows` above emits it, and
+  // `data-nodes` builds the same `RowsDataframe` shape.
+  declare data: DataframeRef & { rows?: Row[] };
 
   @prop({
     type: "int",
@@ -814,11 +827,8 @@ export class ChartGeneratorNode extends BaseNode {
   declare max_tokens: number;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const prompt = asText(this.prompt ?? "");
-    const data = this.data ?? { rows: [] };
-    const rows = Array.isArray((data as { rows?: unknown }).rows)
-      ? ((data as { rows: Row[] }).rows ?? [])
-      : [];
+    const prompt = asText(this.prompt);
+    const rows = Array.isArray(this.data.rows) ? this.data.rows : [];
     const keys = rows.length > 0 ? Object.keys(rows[0]) : [];
     const xKey = keys[0] ?? "x";
     const yKey = keys[1] ?? xKey;
@@ -875,7 +885,7 @@ Set a descriptive title, axis labels, and legend settings.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userMessage }
         ],
-        max_tokens: Number(this.max_tokens ?? 4096),
+        max_tokens: this.max_tokens,
         response_format: {
           type: "json_schema",
           json_schema: {
@@ -1053,7 +1063,7 @@ export class SVGGeneratorNode extends BaseNode {
   declare max_tokens: number;
 
   async process(context?: ProcessingContext): Promise<SVGGeneratorNodeOutputs> {
-    const prompt = asText(this.prompt ?? "");
+    const prompt = asText(this.prompt);
     const width = Number((this as any).width ?? 512) || 512;
     const height = Number((this as any).height ?? 512) || 512;
 
@@ -1072,7 +1082,7 @@ Output only SVG markup, no explanations or markdown fences.`;
       const result = await runMeteredMessage(context, providerId, modelId, {
         model: modelId,
         messages,
-        max_tokens: Number(this.max_tokens ?? 8192)
+        max_tokens: this.max_tokens
       });
 
       const content = asText(

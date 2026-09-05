@@ -86,7 +86,6 @@ into the Fix 1 sweep):
 | `WarningBanner.tsx:73` | `border-radius: 8px` |
 | `Breadcrumbs.tsx:56` | `border-radius: 4px` |
 | `ZoomControls.tsx:34` | `minWidth: "45px"` — off-grid |
-| `InfoTooltip.tsx:77` | `font-size: 14px` — off the type scale |
 | `NotificationBadge.tsx:56` | `font-size: 10px` — off the type scale |
 
 ### 2.2 Unrelated defaults across primitives
@@ -416,7 +415,7 @@ props); every existing screen improves without migration. Each PR:
    `SelectField`, `SearchInput`, `TagInput`.
 3. Off-grid sweep: `Slider`, `NodeSlider`, `Panel` padding, plus the ⚠ table
    in 2.1 (TabGroup, Chip, UndoRedoButtons, MenuItemPrimitive,
-   MobileBottomSheet, WarningBanner, Breadcrumbs, ZoomControls, InfoTooltip,
+   MobileBottomSheet, WarningBanner, Breadcrumbs, ZoomControls,
    NotificationBadge).
 4. Add a `DesignTokens.Control` Storybook story (heights/paddings/radius
    swatches) next to the existing `DesignTokens.*` stories.
