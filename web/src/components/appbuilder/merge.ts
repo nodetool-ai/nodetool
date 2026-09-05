@@ -11,6 +11,7 @@
  * units by id; the root props (title, theme) are last-write-wins.
  */
 import type { DocumentOp } from "@nodetool-ai/protocol";
+import { widgetSlots } from "@nodetool-ai/app-runtime";
 import type {
   DocumentMergeAdapter,
   MergeConflict,
@@ -46,11 +47,18 @@ const isRecord = (v: unknown): v is AnyNode =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 
 /**
- * Structural slot detection without the Puck config: an array of objects
- * that all look like Puck nodes (`{type, props: {id}}`). Generated apps only
- * ever nest through real slots, so this matches what the editor produces.
+ * Children nest only into the slot props the widget catalog declares — the
+ * same list the editor config, the headless bridge and the CLI harness read.
+ * The node-shape check stays as a guard: a persisted document with a malformed
+ * slot value is left as an opaque prop rather than flattened into units with
+ * `undefined` ids.
  */
-const isSlotArray = (value: unknown): value is AnyNode[] =>
+const isSlotArray = (
+  type: string,
+  prop: string,
+  value: unknown
+): value is AnyNode[] =>
+  widgetSlots(type).includes(prop) &&
   Array.isArray(value) &&
   value.length > 0 &&
   value.every(
@@ -83,7 +91,7 @@ function flattenAppComponents(content: unknown[]): FlatComponent[] {
       const ownSlots: [string, AnyNode[]][] = [];
       const props: Record<string, unknown> & { id: string } = { id };
       for (const [key, value] of Object.entries(rawProps)) {
-        if (isSlotArray(value)) {
+        if (isSlotArray(String(item["type"]), key, value)) {
           ownSlots.push([key, value]);
           continue;
         }

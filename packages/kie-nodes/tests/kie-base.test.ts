@@ -114,6 +114,10 @@ describe("uploadImageInput", () => {
       json: async () => ({
         success: true,
         data: { downloadUrl: "https://kie.example/uploaded.png" }
+      }),
+      text: async () => JSON.stringify({
+        success: true,
+        data: { downloadUrl: "https://kie.example/uploaded.png" }
       })
     }) as unknown as typeof fetch;
   });
@@ -192,6 +196,10 @@ describe("kieExecuteOmniDirect", () => {
       json: async () => ({
         code: 200,
         data: { audioId: "ff6af85771af49b08bef5b0aa1cba56b", name: "Test" }
+      }),
+      text: async () => JSON.stringify({
+        code: 200,
+        data: { audioId: "ff6af85771af49b08bef5b0aa1cba56b", name: "Test" }
       })
     }) as unknown as typeof fetch;
 
@@ -213,6 +221,10 @@ describe("kieExecuteOmniDirect", () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
+        code: 0,
+        data: { characterId: "char_123" }
+      }),
+      text: async () => JSON.stringify({
         code: 0,
         data: { characterId: "char_123" }
       })
@@ -289,11 +301,16 @@ describe("kieExecuteTask poll failure", () => {
       .fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ code: 200, data: { taskId: "task_fail" } })
+        json: async () => ({ code: 200, data: { taskId: "task_fail" } }),
+        text: async () => JSON.stringify({ code: 200, data: { taskId: "task_fail" } })
       })
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
+          code: 200,
+          data: { state: "fail", failMsg: "Internal Error" }
+        }),
+        text: async () => JSON.stringify({
           code: 200,
           data: { state: "fail", failMsg: "Internal Error" }
         })
@@ -309,11 +326,16 @@ describe("kieExecuteTask poll failure", () => {
       .fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ code: 200, data: { taskId: "task_ok" } })
+        json: async () => ({ code: 200, data: { taskId: "task_ok" } }),
+        text: async () => JSON.stringify({ code: 200, data: { taskId: "task_ok" } })
       })
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
+          code: 200,
+          data: { state: "success", creditsConsumed: 15 }
+        }),
+        text: async () => JSON.stringify({
           code: 200,
           data: { state: "success", creditsConsumed: 15 }
         })
@@ -321,6 +343,12 @@ describe("kieExecuteTask poll failure", () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
+          code: 200,
+          data: {
+            resultJson: JSON.stringify({ resultUrls: ["https://example.com/out.png"] })
+          }
+        }),
+        text: async () => JSON.stringify({
           code: 200,
           data: {
             resultJson: JSON.stringify({ resultUrls: ["https://example.com/out.png"] })

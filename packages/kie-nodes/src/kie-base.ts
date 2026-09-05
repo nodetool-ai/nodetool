@@ -94,7 +94,11 @@ async function parseKieJson(
   return data;
 }
 
-/** GET a KIE endpoint, retrying 429/5xx and network errors. */
+/**
+ * GET a KIE endpoint once the job exists, retrying 429/5xx and thrown network
+ * errors with backoff (`Retry-After` honored). The poll loop does not use this:
+ * its own interval is the backoff, and {@link pollKieTask} counts the failures.
+ */
 function kieGet(url: string, apiKey: string): Promise<Response> {
   return fetchWithRetry(url, { headers: headers(apiKey) });
 }
@@ -134,7 +138,17 @@ async function pollKieTask(
 ): Promise<Record<string, unknown>> {
   let consecutiveErrors = 0;
   for (let i = 0; i < maxAttempts; i++) {
-    const res = await kieGet(url, apiKey);
+    let res: Response;
+    try {
+      res = await fetch(url, { headers: headers(apiKey) });
+    } catch (err) {
+      // A thrown network error is the same transient the loop already tolerates,
+      // so it counts toward the same cutoff instead of losing a running job.
+      consecutiveErrors += 1;
+      if (consecutiveErrors >= MAX_CONSECUTIVE_POLL_ERRORS) throw err;
+      await sleep(pollInterval);
+      continue;
+    }
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       // A non-OK poll can still carry KIE's error envelope, which names the

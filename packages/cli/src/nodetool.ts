@@ -111,6 +111,7 @@ import {
 } from "./providers.js";
 import { isString } from "./predicates.js";
 import { printTable, asJson } from "./commands/output.js";
+import { printCommandError } from "./command-errors.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -827,7 +828,7 @@ workflows
 
         console.log(source);
       } catch (e) {
-        console.error(String(e));
+        printCommandError(e);
         process.exit(1);
       }
     }
@@ -999,7 +1000,7 @@ workflows
         }
         console.log(outPath);
       } catch (e) {
-        console.error(String(e));
+        printCommandError(e);
         process.exit(1);
       }
     }
@@ -1117,7 +1118,7 @@ workflows
         );
         console.log(outPath);
       } catch (e) {
-        console.error(String(e));
+        printCommandError(e);
         process.exit(1);
       }
     }
@@ -1186,7 +1187,7 @@ workflows
         }
       }
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
@@ -1266,7 +1267,7 @@ models
       }
       printTable(rows.map(modelRow));
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
@@ -1290,7 +1291,7 @@ models
         }))
       );
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
@@ -1325,7 +1326,7 @@ models
       }
       printTable(rows.map(modelRow));
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
@@ -1380,7 +1381,7 @@ models
       }
       printTable(rows.map(modelRow));
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
@@ -1409,7 +1410,7 @@ models
       }
       printTable(rows.map(modelRow));
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
@@ -1449,7 +1450,7 @@ storage
       }
       if (report.failed > 0) process.exit(1);
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
@@ -1483,7 +1484,7 @@ workflows
       }
       if (report.failed > 0) process.exit(1);
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e, opts.json);
       process.exit(1);
     }
   });
@@ -1512,7 +1513,7 @@ secrets
         items.map((s) => ({ key: s.key, updated_at: s.updated_at ?? "" }))
       );
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e);
       process.exit(1);
     }
   });
@@ -1544,7 +1545,7 @@ secrets
       });
       console.log(`Secret '${key}' stored.`);
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e);
       process.exit(1);
     }
   });
@@ -1563,7 +1564,7 @@ secrets
       }
       console.log(value);
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e);
       process.exit(1);
     }
   });
@@ -2036,7 +2037,7 @@ mcp
       // The stdio transport keeps the event loop alive until the client
       // closes the connection.
     } catch (e) {
-      console.error(String(e));
+      printCommandError(e);
       process.exit(1);
     }
   });
