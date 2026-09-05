@@ -125,9 +125,13 @@ of each other. Inside a phase, tasks are listed in dependency order.
       cards render disabled until P5. `Continue` writes `brief` and stage
       `genre`. `/` completion off inside the flow. (PRD § 7.1)
 - [ ] **Step 2: genre.** Fourteen cards through `OptionCardGrid`. Fourteen
-      `package://` stills under the example-board asset path, registered in
-      `PACKAGE_RUNTIME_ASSETS`; `npm run backend:smoke` passes. Picking
-      writes `genre`. (PRD § 7.2)
+      `package://` stills under the example-board asset path
+      (`packages/base-nodes/nodetool/assets/nodetool-base/storyboards/genres/`).
+      That tree needs no per-file registration: `scripts/bundle-backend.mjs`
+      copies `assets/nodetool-base/` wholesale, which is why no example-board
+      still appears in `PACKAGE_RUNTIME_ASSETS` either — that registry is for
+      files shipped beside a package's compiled `dist/`. Picking writes
+      `genre`. (PRD § 7.2)
 - [ ] **Step 2: Direct.** `useDirectScreenplay` takes `genre`; `Review your
       screenplay` runs it and sets stage `review` on success only. Test: the
       Director prompt contains the genre (criterion 3); a rejected call leaves
@@ -417,5 +421,10 @@ of each other. Inside a phase, tasks are listed in dependency order.
       in the PR's Verification section.
 - [ ] `docs/creation-flows/prd.md` is updated in the same PR when a phase
       changes a contract it states.
-- [ ] Shipped assets (genre stills, style thumbnails) are registered in
-      `PACKAGE_RUNTIME_ASSETS` and `npm run backend:smoke` passes.
+- [ ] Shipped assets (genre stills, style thumbnails) live under
+      `packages/base-nodes/nodetool/assets/nodetool-base/`, which
+      `scripts/bundle-backend.mjs` copies wholesale — no `PACKAGE_RUNTIME_ASSETS`
+      entry, which is for files shipped beside a package's compiled `dist/`.
+      A registered path with no file behind it fails `npm run backend:smoke`,
+      so register nothing you have not shipped. Each asset stays under the
+      example-board size budget (PRD R5).
