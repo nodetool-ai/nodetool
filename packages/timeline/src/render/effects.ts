@@ -273,14 +273,14 @@ export class WebGPUEffectsProcessor {
       settle(outIdx, module.io.output.alpha);
     };
 
+    if (chromaKeyActive && chromaKey) {
+      this.stepClipEffect(chromaKey, width, height, step, stepRecipe);
+    }
     for (const effect of shaderClip) {
       this.stepClipEffect(effect, width, height, step, stepRecipe);
     }
     if (colorActive) {
       step(colorGradeV1, { ...color });
-    }
-    if (chromaKeyActive && chromaKey) {
-      this.stepClipEffect(chromaKey, width, height, step, stepRecipe);
     }
     if (blurActive) {
       const sigma = blurRadius / 3;
