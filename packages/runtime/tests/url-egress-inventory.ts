@@ -418,6 +418,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "A Comfy server is normally on localhost or the LAN — reaching it is the feature, so screening private addresses would refuse the ordinary case. The address is the node's `endpoint` property, so the graph author picks it, and the two runners are allowlisted on the cloud profile."
   },
   {
+    file: "packages/integration-nodes/src/nodes/comfy-sdk.ts",
+    owner: "Comfy API v2 transport (@comfyorg/sdk)",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope: "the user's COMFY_API_KEY as a Bearer header, same-origin only",
+    redirects: "runtime-follows",
+    dnsRebinding: "n/a",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "@comfyorg/sdk opens the socket against the constant https://cloud.comfy.org, which COMFY_BASE_URL can repoint at a local comfy-api-proxy. The key is attached only to requests on the client's own origin: a job's urls.* link resolves against that origin, and a signed output URL elsewhere is fetched without it."
+  },
+  {
     file: "packages/agents/src/capabilities/web.ts",
     owner: "browse / http_request / download_file / take_screenshot",
     inputSource: "model",
