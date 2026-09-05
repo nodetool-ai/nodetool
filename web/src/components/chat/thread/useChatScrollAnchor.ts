@@ -75,7 +75,7 @@ export interface UseChatScrollAnchorOptions {
 }
 
 export interface ChatScrollAnchor {
-  virtualizer: Virtualizer<Element, Element>;
+  virtualizer: Virtualizer<HTMLDivElement, Element>;
   /** Ref callback for the scrolling element. */
   handleScrollRef: (node: HTMLDivElement | null) => void;
   /** Ref for the wrapper holding the real (non-tail) content. */

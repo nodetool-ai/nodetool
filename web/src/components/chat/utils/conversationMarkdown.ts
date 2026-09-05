@@ -6,7 +6,10 @@
  * issue or a doc: who said what, links to the media, and one line per tool the
  * agent ran.
  */
-import type { Message, MessageContent } from "../../../stores/ApiTypes";
+import type { Message } from "../../../stores/ApiTypes";
+
+/** One stored content block, in the union the server writes. */
+type ContentBlock = Extract<Message["content"], unknown[]>[number];
 import { parseThoughtContent, stripContextContent } from "./messageUtils";
 import { isCompactionMessage } from "../message/CompactionCard";
 
@@ -40,7 +43,7 @@ const visibleText = (text: string): string => {
   return body.trim();
 };
 
-const renderBlock = (block: MessageContent): string | null => {
+const renderBlock = (block: ContentBlock): string | null => {
   switch (block.type) {
     case "text": {
       const text = visibleText(block.text);

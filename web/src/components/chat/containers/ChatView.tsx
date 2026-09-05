@@ -187,10 +187,15 @@ type ChatViewProps = {
 // fresh `[]` triggered React's "Maximum update depth exceeded" loop.
 const NO_TODOS: TodoItem[] = [];
 
+/** A thought block is the model's, not the user's; a resend carries the rest. */
+const isSendableBlock = (
+  block: Extract<Message["content"], unknown[]>[number]
+): block is MessageContent => block.type !== "thought";
+
 /** A user turn's content, normalized to the block list a resend needs. */
 const messageBlocks = (message: Message): MessageContent[] | null => {
   if (Array.isArray(message.content)) {
-    return message.content;
+    return message.content.filter(isSendableBlock);
   }
   if (typeof message.content === "string") {
     return [{ type: "text", text: message.content }];
