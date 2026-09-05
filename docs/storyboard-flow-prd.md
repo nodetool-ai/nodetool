@@ -92,9 +92,9 @@ buttons, Video Count toggle) are not part of this flow. See § 4.3.
 - 3D camera blocking view (S5 right panel). Candidate for a later slice on
   `packages/model3d`.
 - In-dialog painting. Brush, palette and eraser open the existing image editor
-  on the still; the result comes back as a new version.
+  on the still. The result comes back as a new version.
 - PDF or share-link export. ZIP stays.
-- Changes to the Director prompt beyond genre, scenes and lighting; changes to
+- Changes to the Director prompt beyond genre, scenes and lighting. Changes to
   Assemble, the timeline, or the script editor.
 - Inferring the flow from a plain prompt. A plain prompt on the New Project
   surface keeps going to the project agent. Shape selection across
@@ -104,9 +104,9 @@ buttons, Video Count toggle) are not part of this flow. See § 4.3.
 ### 4.3 Non-goals
 
 - No plan gating or upsell chrome in the flow. Studio's account page owns plan
-  state; the flow never shows a remaining-projects banner.
+  state. The flow never shows a remaining-projects banner.
 - No second board component. `StoryboardBoard` gains scene headers and card
-  affordances; the Studio page and the workspace tab keep hosting it.
+  affordances. The Studio page and the workspace tab keep hosting it.
 - No change to what `Start` does on the New Project surface. The flow is
   reached only through the explicit Storyboard entry (§ 6.0).
 
@@ -141,7 +141,7 @@ Boards saved before this PRD carry no stage and read as `done`.
 
 Stepper across the top, `1. Idea` active. Heading "What's your story?",
 subline "We'll turn it into a screenplay and storyboard." Three inspiration
-chips seeded from the shipped example boards' loglines; one click fills the
+chips seeded from the shipped example boards' loglines. One click fills the
 textarea. The prompt card keeps `@` mentions, ref images and entities. `/`
 skill completion is off inside the flow. Placeholder: "One sentence is enough,
 or paste a full script."
@@ -149,7 +149,7 @@ or paste a full script."
 Right column, three option cards and one tutorial card:
 
 - **Upload your file** (PDF, DOCX, FDX). See § 8 for the extraction path and
-  the error contract. The text lands in the textarea; FDX also yields typed
+  the error contract. The text lands in the textarea. FDX also yields typed
   scenes and dialogue that step 2 uses verbatim.
 - **Import your shotlist** (CSV). "Download template" serves a static file.
   Import creates scenes and shots, sets `setupStage: "look"`, and advances to
@@ -173,16 +173,16 @@ board. `Back`, `Review your screenplay`.
 (when present) the parsed script. On success the store applies the screenplay
 and sets `setupStage: "review"`. On failure the stage stays `genre` and the
 error shows on the button. Closing the tab mid-call loses the in-flight result
-only; rerunning is the recovery.
+only. Rerunning is the recovery.
 
 **Review.** The screenplay as text: title, logline, then each scene as a
 slugline header with its lighting note, and the shots beneath as action lines
 with dialogue. Every field is editable inline and writes through the store
-(`updateShot`, `updateScene`); the document is the draft, since nothing else
+(`updateShot`, `updateScene`). The document is the draft, since nothing else
 writes it during review. `Re-direct` sends the current screenplay back to the
 Director as context and applies the revision through `setScreenplay`, which
 already merges by shot id and keeps media. Shots the revision drops are
-removed; new ones are appended. `Back` returns to genre and keeps the
+removed. New ones are appended. `Back` returns to genre and keeps the
 screenplay. `Continue to storyboard` sets `setupStage: "look"`.
 
 **Imported scripts.** An FDX yields typed paragraphs, so scenes and dialogue
@@ -190,7 +190,7 @@ are built deterministically by the parser: one scene per `Scene Heading`, one
 shot per `Action` paragraph or dialogue block, `dialogue` set from the
 `Character` and `Dialogue` paragraphs verbatim. The Director is asked only for
 camera, motion and duration per shot and may not alter `dialogue` or scene
-order; a post-check (`verifyImportedText`) compares the returned dialogue and
+order. A post-check (`verifyImportedText`) compares the returned dialogue and
 scene sequence against the parse and restores the parsed values where they
 differ, with a review-step notice naming the shots it corrected. PDF and DOCX
 yield plain text, so the Director structures it and the same post-check flags,
@@ -256,7 +256,7 @@ Card:
 Toolbar during and after a batch: `Retry N failed` appears while any shot's
 last job failed and retries each with its saved fields. A banner "Style
 changed. N stills and M clips are stale. Re-render stills" appears when § 7.4
-finds stale versions; clicking renders stills only, clips stay stale until
+finds stale versions. Clicking renders stills only, clips stay stale until
 `Render clips`.
 
 Batch jobs are server jobs. A board closed mid-batch reattaches on open: the
@@ -274,7 +274,7 @@ selection footer from Phase 0 keeps only `Edit`, `Iterate`, `Regenerate`,
   overwrite. Version pager `k / n`.
 - **Right.** The existing takes gallery: every version, select or delete.
 - **Header row.** `SCENE N:` slugline as a dropdown that runs `moveShot` to the
-  end of the chosen scene; the scene's lighting note, editable.
+  end of the chosen scene. The scene's lighting note, editable.
 - **Table row.** Scene, Shot, Description, Dialogue, ERT, Size, Perspective,
   Movement, Equipment, Focal length, Aspect ratio, Notes. Field mapping in
   § 7.2. Aspect ratio is the board's value, read-only, linking to Board
@@ -283,7 +283,7 @@ selection footer from Phase 0 keeps only `Edit`, `Iterate`, `Regenerate`,
   speaker; `Edit in script` opens the script at the first line. The script
   owns words. On an unlinked board the cell is a textarea.
 - **ERT on a linked board.** Shows the value with the existing `from takes` /
-  `pinned` chip. Typing a value pins it (`duration_source: "manual"`); the
+  `pinned` chip. Typing a value pins it (`duration_source: "manual"`). The
   chip toggles back to `audio`, which restores the takes' duration. On an
   unlinked board it is a plain number.
 - **Script panel** for a linked board stays below the table.
@@ -293,7 +293,7 @@ Save semantics: the table row and the header row are a draft. `Save` commits
 the draft as one store update and one undo step. `Regenerate` saves first, then
 renders from the saved fields. Closing with unsaved changes asks "Discard
 changes?" with `Save` and `Discard`. Version selection, deletion, flip and
-upload are not draft state; they commit immediately, as they do today.
+upload are not draft state. They commit immediately, as they do today.
 
 Keyboard: `Esc` closes (with the confirm above when dirty), `←`/`→` step
 versions, `Cmd/Ctrl+S` saves.
@@ -341,10 +341,10 @@ render_inputs?: RenderInputs;   // see 7.4
 Equipment vocabulary in `cameraOptions.ts`: handheld, tripod, steadicam,
 gimbal, dolly, slider, crane, drone.
 
-Table column → field: Description → `action`; Dialogue → `dialogue`; ERT →
-`duration_seconds` with `duration_source`; Size → `camera.framing`;
-Perspective → `camera.angle`; Movement → `camera.movement`; Equipment →
-`camera.equipment`; Focal length → `camera.lens`; Notes → `notes`.
+Table column → field: Description → `action`. Dialogue → `dialogue`. ERT →
+`duration_seconds` with `duration_source`. Size → `camera.framing`;
+Perspective → `camera.angle`. Movement → `camera.movement`. Equipment →
+`camera.equipment`. Focal length → `camera.lens`. Notes → `notes`.
 
 ### 7.3 Ordering contract
 
@@ -392,7 +392,7 @@ export interface RenderInputs {
 Written when the job is enqueued and stored on the version when the asset
 lands, so a render that finishes after a style change carries its
 enqueue-time inputs. A version is **stale** when its `render_inputs` differs
-from the inputs the same shot would use now; the comparison is pure
+from the inputs the same shot would use now. The comparison is pure
 (`isVersionStale(shot, board)`) and derived at render time, never persisted as
 a flag. Versions without a record (legacy, upload, flip, image-editor edit)
 are never stale. A keyframe-mode clip is also stale when its
@@ -424,7 +424,7 @@ never enter a prompt.
 `setStylePreset(entityId)`: one store operation, one undo step. Removes every
 entity of kind `style` from `board.entityIds`, adds the chosen id, sets
 `board.style` to its descriptor. Per-shot include and exclude lists for
-characters, locations and props are untouched; a per-shot exclusion of a style
+characters, locations and props are untouched. A per-shot exclusion of a style
 entity is removed, since styles apply board-wide. Nothing renders. Staleness
 follows from § 7.4.
 
@@ -456,13 +456,13 @@ Columns, header row required, order free:
 scene, shot, description, dialogue, duration_seconds, size, perspective, movement, equipment, focal_length, notes
 ```
 
-`scene` and `description` are required; a file missing either header is
+`scene` and `description` are required. A file missing either header is
 refused with the missing names. Parsing is RFC 4180 through a real CSV parser:
 quoted fields, embedded commas, multiline dialogue. A `scene` value that starts
-with `INT.`, `EXT.` or `INT./EXT.` becomes the slugline; otherwise the scene is
+with `INT.`, `EXT.` or `INT./EXT.` becomes the slugline. Otherwise the scene is
 named `Scene N`. Vocabulary columns match the option lists
-case-insensitively; a non-match leaves the field unset. `duration_seconds`
-must be a positive number; otherwise unset. Every discarded value is listed in
+case-insensitively. A non-match leaves the field unset. `duration_seconds`
+must be a positive number. Otherwise unset. Every discarded value is listed in
 the import report (row, column, value) shown after import, so the creator can
 fix it in the dialog. A row with an empty `description` is skipped and
 reported.
@@ -471,7 +471,7 @@ reported.
 
 Shipped as system entities of kind `style`, one row each, read-only,
 thumbnails under a `package://` path, seeded the way example boards are.
-`Add your own style` always creates a user-owned copy; a preset's descriptor
+`Add your own style` always creates a user-owned copy. A preset's descriptor
 never changes under a user.
 
 ## 8. Imports
@@ -503,7 +503,7 @@ imports the rest and shows the report.
 
 - **D1 — One setup component, two hosts.** `StoryboardSetupFlow` renders
   inside the New Project tab and Studio home. The board's `setupStage` and
-  fields are the flow's state; there is no wizard store.
+  fields are the flow's state. There is no wizard store.
 - **D2 — Explicit entry only.** The flow starts from the Storyboard card or the
   Studio "Make a video" card. A plain or `/skill` prompt on the New Project
   surface keeps going to the project agent. (Resolves F1.)
@@ -511,7 +511,7 @@ imports the rest and shows the report.
   board opens. No field value (shots, style, genre) is read as progress.
   (Resolves F2.)
 - **D4 — Review before pixels.** The Director runs at the end of step 2 and its
-  output is shown as text; no still renders before step 3's button.
+  output is shown as text. No still renders before step 3's button.
 - **D5 — Scenes on the screenplay, one global order.** § 7.3. Assemble, the
   script link and the timeline keep reading `shot.index`. (Resolves F4.)
 - **D6 — Style preset = style entity, applied by one operation.** § 7.5. No
@@ -519,10 +519,10 @@ imports the rest and shows the report.
 - **D7 — Staleness is derived from a per-version render record.** § 7.4. No
   stale flag is stored. (Resolves F6.)
 - **D8 — Camera fields reach the prompt or they do not ship.** § 7.5 is in
-  scope for P1; the dialog's fields are not rearranged before their prompt
+  scope for P1. The dialog's fields are not rearranged before their prompt
   effect exists. (Resolves F5.)
 - **D9 — The script owns words.** On a linked board dialogue is read-only in
-  the board and edited in the script; duration follows takes unless pinned,
+  the board and edited in the script. Duration follows takes unless pinned,
   through the existing toggle. Studio still extracts a linked script, now at
   `Continue to storyboard`. (Resolves F3, Q1.)
 - **D10 — Imported dialogue is deterministic.** FDX dialogue and scene order
@@ -579,10 +579,10 @@ tests on the store and hooks, not on the parsers. The
 3. Genre appears in the Director prompt (asserted in the hook's test) and as a
    chip on the board.
 4. The review step renders the directed screenplay as text with no render job
-   started; a shot edited there is the shot that renders in step 3. Re-direct
+   started. A shot edited there is the shot that renders in step 3. Re-direct
    keeps the ids and media of shots the revision retains.
 5. An FDX import's dialogue lines and scene order appear in the review verbatim
-   and in order, asserted against the fixture; a Director response that
+   and in order, asserted against the fixture. A Director response that
    changes one is restored and the shot is named in the notice.
 6. Studio extracts the linked script at `Continue to storyboard`, from the
    reviewed screenplay.
@@ -595,10 +595,10 @@ tests on the store and hooks, not on the parsers. The
    Assemble's clip order equals `shot.index`.
 10. Each field marked yes in § 7.5 appears in the composed prompt for that mode
     and is absent otherwise, in the UI path and the headless path.
-11. Hover toolbar: download saves the still or clip; duplicate inserts after
+11. Hover toolbar: download saves the still or clip. Duplicate inserts after
     the source with script links dropped and `duration_source: "manual"`;
     delete asks once.
-12. Entity names in a card's action render as chips; a shot with dialogue shows
+12. Entity names in a card's action render as chips. A shot with dialogue shows
     the filled icon.
 13. "~M:SS remaining" appears only when a duration was measured for that model
     and kind.
@@ -607,13 +607,13 @@ tests on the store and hooks, not on the parsers. The
     read-only on a linked board and the ERT chip toggles `duration_source`.
 15. Flip, image-editor edits and uploads each add a version, never overwrite;
     upload selects the new version.
-16. PDF, DOCX and FDX uploads land as text through the extraction route; a
+16. PDF, DOCX and FDX uploads land as text through the extraction route. A
     scanned PDF and a malformed file write nothing and show the § 8.2 notice.
-17. A CSV missing `scene` or `description` is refused naming the header; a
-    multiline quoted dialogue cell imports intact; an invalid duration and an
+17. A CSV missing `scene` or `description` is refused naming the header. A
+    multiline quoted dialogue cell imports intact. An invalid duration and an
     unknown vocabulary value import with the field unset and appear in the
     report.
-18. A board closed during a batch shows the landed versions on reopen; failed
+18. A board closed during a batch shows the landed versions on reopen. Failed
     shots show Retry and `Retry N failed` retries only those.
 19. Every criterion above that is a document operation also passes when driven
     through the § 10 tools during setup and on the board.
@@ -627,7 +627,7 @@ tests on the store and hooks, not on the parsers. The
   genre, scenes and lighting, ordering operations in the store, `shot-prompt`
   module wired into `useGenerateShot` and the headless render tools, render
   record on enqueue and land, `isVersionStale`, `setStylePreset`,
-  `duplicateShot`, tool additions in § 10. No UI change. Ships alone; the
+  `duplicateShot`, tool additions in § 10. No UI change. Ships alone. The
   board already benefits from prompt composition.
 - **P2 — Setup flow.** Entry cards, stepper, inspiration chips, genre grid,
   Direct with stage transitions, review view, aspect select, preset tiles from
@@ -648,13 +648,13 @@ P2 and P3 are independent after P1. P4 depends on P3's card footer.
 
 - **R1 — Director quality with scenes.** Asking for scenes and shots in one
   structured call may lower shot quality. Evaluate on the shipped example
-  briefs before P2; fall back to two calls (scenes, then shots per scene).
+  briefs before P2. Fall back to two calls (scenes, then shots per scene).
 - **R2 — Inspector removal.** Creators work in the docked inspector today. The
   dialog must reach parity (script panel, cost line, entity chips, duration
   toggle) before P4 removes fields.
 - **R3 — Prompt change alters existing renders.** § 7.5 adds lens, angle and
   lighting to every still prompt, so a regenerate after P1 differs from before.
-  Acceptable; the render record makes the difference visible as stale.
+  Acceptable. The render record makes the difference visible as stale.
 - **R4 — Batch reattachment.** Criterion 18 depends on the generation store
   reconciling by job id on open. If today's overlay only tracks in-memory
   jobs, P3 adds the persisted pending-job list.
