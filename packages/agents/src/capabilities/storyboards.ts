@@ -1081,9 +1081,25 @@ const assembleStoryboardTimeline: CapabilityExport = {
     const skippedLineIds =
       "skippedLineIds" in assembled ? assembled.skippedLineIds : [];
     // A model returns the length it returns: shots directed at 1.5s come back
-    // at 5.2s, and the cut then shows each shot's head. Saying which shots
-    // that happened to, and by how much, is what turns a silent mismatch into
-    // a decision the caller can make.
+    // at 5.2s, and the cut plays all of it. Saying which shots came back off
+    // the length they were directed at turns a film longer than the caller
+    // planned into a decision they can make.
+    if (assembled.retimedShots.length > 0) {
+      const worst = assembled.retimedShots.reduce((a, b) =>
+        Math.abs(b.directedMs - b.usedMs) > Math.abs(a.directedMs - a.usedMs)
+          ? b
+          : a
+      );
+      warnings.push(
+        `${assembled.retimedShots.length} shot(s) run at their rendered length, not the length they were directed at — ` +
+          `the largest difference is ${Math.round(Math.abs(worst.directedMs - worst.usedMs))}ms on shot ${worst.shotId} ` +
+          `(${worst.usedMs}ms in the cut, ${worst.directedMs}ms directed). ` +
+          `Re-render with a duration the model honours, or trim the clips in the timeline.`
+      );
+    }
+    // A jointly assembled cut takes its lengths from the words, so a shot can
+    // sit in a slot its footage does not fill: black under the voiceover, or a
+    // render the cut never reaches the end of.
     if (assembled.trimmedShots.length > 0) {
       const worst = assembled.trimmedShots.reduce((a, b) =>
         Math.abs(b.sourceMs - b.usedMs) > Math.abs(a.sourceMs - a.usedMs)
@@ -1094,7 +1110,7 @@ const assembleStoryboardTimeline: CapabilityExport = {
         `${assembled.trimmedShots.length} shot(s) do not match their rendered footage — ` +
           `the longest gap is ${Math.round(Math.abs(worst.sourceMs - worst.usedMs))}ms on shot ${worst.shotId} ` +
           `(${worst.usedMs}ms in the cut, ${worst.sourceMs}ms rendered). ` +
-          `Re-time the clips, or set each shot's duration_seconds to the length its model produces.`
+          `Re-render those shots at the length their lines need.`
       );
     }
     if (assembled.clips.length === 0) {
@@ -1162,7 +1178,8 @@ const assembleStoryboardTimeline: CapabilityExport = {
         script_id: script ? scriptId : null,
         skipped_shot_ids: assembled.skippedShotIds,
         skipped_line_ids: skippedLineIds,
-        trimmed_shots: assembled.trimmedShots
+        trimmed_shots: assembled.trimmedShots,
+        retimed_shots: assembled.retimedShots
       };
       if (warnings.length) {
         created.warnings = warnings;
@@ -1246,7 +1263,8 @@ const assembleStoryboardTimeline: CapabilityExport = {
         script_id: script ? scriptId : null,
         skipped_shot_ids: assembled.skippedShotIds,
         skipped_line_ids: skippedLineIds,
-        trimmed_shots: assembled.trimmedShots
+        trimmed_shots: assembled.trimmedShots,
+        retimed_shots: assembled.retimedShots
       };
       if (warnings.length) {
         result.warnings = warnings;

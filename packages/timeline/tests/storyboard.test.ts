@@ -345,9 +345,9 @@ describe("buildStoryboardPreviewTimeline", () => {
 // ── rendered length vs directed length ────────────────────────────────
 //
 // Reproduction of the shipped failure: eight shots directed at 1.0–3.5s all
-// came back from the model at 5.184s, and assembly laid down the directed
-// length with no in/out point — so every clip played its source's head and
-// discarded the rest without saying so.
+// came back from the model at 5.184s, and assembly cut every clip down to the
+// directed length — so the cut played each render's head and discarded the
+// rest. The footage that came back is the picture, so it is the clip.
 
 describe("assembly against the footage that came back", () => {
   const renderedShot = (
@@ -367,17 +367,19 @@ describe("assembly against the footage that came back", () => {
           : { type: "video", asset_id: `asset-${id}`, duration: sourceSeconds }
     });
 
-  it("writes an explicit source window and reports the unused footage", () => {
+  it("plays the whole render of a shot that came back long", () => {
     const result = buildStoryboardTimeline({
       boardId: "board-1",
       shots: [renderedShot("a", 0, 1.5, 5.184)]
     });
     const [picture] = pictureClips(result.clips);
-    expect(picture.durationMs).toBe(1500);
+    expect(picture.durationMs).toBe(5184);
     expect(picture.inPointMs).toBe(0);
-    expect(picture.outPointMs).toBe(1500);
-    expect(result.trimmedShots).toEqual([
-      { shotId: "a", usedMs: 1500, sourceMs: 5184 }
+    expect(picture.outPointMs).toBe(5184);
+    expect(result.durationMs).toBe(5184);
+    expect(result.trimmedShots).toEqual([]);
+    expect(result.retimedShots).toEqual([
+      { shotId: "a", usedMs: 5184, directedMs: 1500 }
     ]);
   });
 
@@ -389,10 +391,21 @@ describe("assembly against the footage that came back", () => {
     const [picture] = pictureClips(result.clips);
     expect(picture.durationMs).toBe(5184);
     expect(result.durationMs).toBe(5184);
-    expect(result.trimmedShots).toEqual([]);
+    expect(result.retimedShots).toEqual([
+      { shotId: "a", usedMs: 5184, directedMs: 8000 }
+    ]);
   });
 
-  it("leaves a shot whose source length is unknown exactly as before", () => {
+  it("says nothing about a render that matches its direction", () => {
+    const result = buildStoryboardTimeline({
+      boardId: "board-1",
+      shots: [renderedShot("a", 0, 5.184, 5.184)]
+    });
+    expect(pictureClips(result.clips)[0].durationMs).toBe(5184);
+    expect(result.retimedShots).toEqual([]);
+  });
+
+  it("falls back to the directed length when the source length is unknown", () => {
     const result = buildStoryboardTimeline({
       boardId: "board-1",
       shots: [renderedShot("a", 0, 1.5)]
@@ -400,7 +413,7 @@ describe("assembly against the footage that came back", () => {
     const [picture] = pictureClips(result.clips);
     expect(picture.durationMs).toBe(1500);
     expect(picture.inPointMs).toBeUndefined();
-    expect(result.trimmedShots).toEqual([]);
+    expect(result.retimedShots).toEqual([]);
   });
 
   it("keeps the audio twin on the same window as its picture", () => {
@@ -410,7 +423,7 @@ describe("assembly against the footage that came back", () => {
     });
     const audio = result.clips.filter((c) => c.mediaType === "audio");
     expect(audio).toHaveLength(1);
-    expect(audio[0].durationMs).toBe(1500);
+    expect(audio[0].durationMs).toBe(5184);
   });
 
   it("lays the whole board end to end without gaps or overlaps", () => {
@@ -418,22 +431,22 @@ describe("assembly against the footage that came back", () => {
       boardId: "board-1",
       shots: [
         renderedShot("a", 0, 1.5, 5.184),
-        renderedShot("b", 1, 1.0, 5.184),
-        renderedShot("c", 2, 2.0, 5.184)
+        renderedShot("b", 1, 1.0, 2.0),
+        renderedShot("c", 2, 2.0, 3.5)
       ]
     });
     expect(pictureClips(result.clips).map((c) => [c.startMs, c.durationMs])).toEqual(
       [
-        [0, 1500],
-        [1500, 1000],
-        [2500, 2000]
+        [0, 5184],
+        [5184, 2000],
+        [7184, 3500]
       ]
     );
-    expect(result.durationMs).toBe(4500);
-    expect(result.trimmedShots).toHaveLength(3);
+    expect(result.durationMs).toBe(10684);
+    expect(result.retimedShots).toHaveLength(3);
   });
 
-  it("fits a preview clip to its footage too, and leaves stills alone", () => {
+  it("plays a preview clip at its footage length, and leaves stills alone", () => {
     const result = buildStoryboardPreviewTimeline({
       boardId: "board-1",
       shots: [
@@ -497,6 +510,28 @@ describe("covered shots", () => {
       outPointMs: 5184
     });
     expect(result.durationMs).toBe(5184);
+  });
+
+  it("ends the covering shot where the covered one takes over", () => {
+    // The claim decides, not the direction: the owner holds the whole fused
+    // asset, so laying it down at its rendered length would play the run
+    // once and then play the covered slices again after it.
+    const shots = fused();
+    shots[0].duration_seconds = 1;
+    const result = buildStoryboardTimeline({ boardId: "b", shots });
+    const picture = pictureClips(result.clips);
+
+    expect(picture[0]).toMatchObject({
+      startMs: 0,
+      durationMs: 2500,
+      inPointMs: 0,
+      outPointMs: 2500
+    });
+    expect(picture[1]).toMatchObject({ startMs: 2500, durationMs: 2684 });
+    expect(result.durationMs).toBe(5184);
+    // Neither shot's length came from `duration_seconds`, so neither is a
+    // shot that came back off the length it was directed at.
+    expect(result.retimedShots).toEqual([]);
   });
 
   it("runs to the end of the covering clip when no end is named", () => {

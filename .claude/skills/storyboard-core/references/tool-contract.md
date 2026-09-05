@@ -78,8 +78,8 @@ shot of the run, then tell the board which slice each sibling uses:
 The covered shot then reads `has_clip: true` with `status: "rendered"`, is skipped by
 `render_storyboard_clips` (so it is never generated twice), and
 `assemble_storyboard_timeline` lays it down as that window of the covering clip
-instead of skipping it. Without `end_seconds` it runs to the end of the covering clip,
-capped at its own `duration_seconds`.
+instead of skipping it, and the covering shot ends where the first covered shot takes
+over. Without `end_seconds` the covered shot runs to the end of the covering clip.
 
 One hop only: `shot_id` must name a shot that owns its clip, not another covered shot.
 Removing the covering shot clears the coverage and reports which shots it uncovered.
@@ -179,6 +179,14 @@ do not pre-season shot text with it.
 board and shot id, and gives every shot clip an **audio twin on a "Shot Audio" track**
 (each surface mutes video elements and mixes audio clips only). Board narration and
 music become draft clips on their own tracks.
+
+**Each shot is as long as its render**, not as long as its `duration_seconds` — a shot
+directed at 1.5s that came back at 5.184s occupies 5.184s of the cut. Shots that came
+back off their directed length are returned in `retimed_shots` and warned about, so a
+cut that runs longer than planned is visible without playing it. `duration_seconds`
+only decides a shot whose footage has no measurable length. A board linked to a script
+is the exception: there the words decide, and `trimmed_shots` names the shots whose
+footage does not fill the slot its lines gave it.
 
 `edit_timeline {timeline_id, ops[]}` ops: `get_state`, `add_track`, `add_media_clip`,
 `add_text_clip`, `add_shape_clip`, `split_clip`, `trim_clip`, `move_clip`,
