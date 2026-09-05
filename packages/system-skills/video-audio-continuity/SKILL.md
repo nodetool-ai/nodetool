@@ -29,13 +29,24 @@ Separate per-shot clips are right in two cases:
 
 - the piece is silent, or
 - the continuity comes from a track you add yourself — narration from
-  `generate_speech`, a bed from `generate_music` — on its own timeline track.
-  Then the visual beds can be separate and the shots are muted under it.
+  `generate_speech` (or `voice_script_lines`, which voices every line of a
+  board's script in one call), a bed from `generate_music` — on its own
+  timeline track. Then the visual beds can be separate and the shots are muted
+  under it. `elevenlabs-audio-prompting` directs the voice and the music plan,
+  `stable-audio-prompting` the bed and any effects; a bed generated with a
+  stated BPM is a bed whose grid `beat-sync-editing` already knows.
+
+Two video lines force the second build: Wan 2.6 takes an audio file as input
+but writes none, and Hailuo has no native audio at all, so a piece on either
+gets its sound from a track of your own.
 
 On a storyboard this means one shot, not seven. A board whose shots each render
 their own native-audio clip cannot be assembled into a continuous mix; decide
 which of the two builds you are doing before the first render, because the fix
-afterwards is a re-render.
+afterwards is a re-render. The board skills (`commercial-beat-sheet`,
+`trailer-template`, `explainer-storyboard`, `music-video-treatment`) each say
+which build they default to; the sound brief itself goes into the shot's
+`motion` and `action`, the only fields the clip prompt is built from.
 
 ## A sound brief that is not refused
 
@@ -73,4 +84,5 @@ and the model-line skill says how to write them.
 
 `motion-graphics` carries the timeline op contract for laying the bed and muting
 shot audio under a narration track. `beat-sync-editing` sits the cuts on that
-bed once it exists.
+bed once it exists, and `caption-titles` times the type to it — a title card is
+never rendered into the clip, whichever build you chose.

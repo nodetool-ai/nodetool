@@ -49,11 +49,11 @@ These are the exact shapes. Getting them wrong cost a previous run six failed ac
 
 Never write `result.id || result.asset_id` and proceed. If an id is `undefined`, stop and read it back with `list_*` — do not pass it onward.
 
-**`edit_storyboard` ops are exactly five:** `add_shot`, `update_shot`, `remove_shot`, `reorder_shot`, `set_board`. There is no `set_entities`. `set_board` takes `{brief?, style?, aspect_ratio?, entity_ids?}` — **and nothing else**. Keys it does not know are dropped silently.
+**`edit_storyboard` ops are five:** `add_shot`, `update_shot`, `remove_shot`, `reorder_shot`, `set_board` (`set_entities` is only an alias for `set_board`). `set_board` takes `{brief?, style?, aspect_ratio?, entity_ids?, image_model?, video_model?}` and refuses any other key with an error — nothing is dropped silently. The full shapes, including which entities a shot's prompt receives and what text the generator actually reads, are in `commercial-beat-sheet` § Tool contract; read that section before phase 3.
 
-**The board cannot hold a model.** `set_board` has no `image_model` / `video_model`, so passing them appears to work and leaves the board's fields null. **Pass `provider` + `model` explicitly to every `render_storyboard_stills` and `render_storyboard_clips` call.** Do not rely on a board default; there isn't one.
+**The board holds the default models.** `image_model` / `video_model` on `set_board` take the `.ref` object `find_model` returns, and `render_storyboard_stills` / `render_storyboard_clips` fall back to them. With no board model and no `provider` + `model` on the call, the render fails and says so — it never picks one. Set them on the board once in phase 3 and pass `provider` + `model` only for a shot that needs a different line.
 
-**`image.*` cannot read an `asset://` uri here.** `image.info` / `image.resize` on a stored PNG fails with "could not decode the image (png) — Invalid SVG image". So: no contact sheets, and **no programmatic dimension check**. You grade frames with `view_image` and `score_image_adherence`, and you standardize aspect at assembly rather than measuring it now.
+**`image.*` cannot read an `asset://` uri here.** `image.info` / `image.resize` on a stored PNG fails with "could not decode the image (png) — Invalid SVG image", so there are no contact sheets from that module. **Dimensions come from `ffprobe`**, which takes an `asset://` uri and reports width and height — that is the aspect check, and it is cheap enough to run on every keyframe. You grade the picture itself with `view_image` and `score_image_adherence`.
 
 **`take_screenshot` needs a configured remote browser.** Without `BROWSER_URL` it fails with a message saying exactly that. Treat it as a **setup gap, not a flake**: report it once, in the user's own terms — "screenshots need `BROWSER_URL` set on the server; set it and I'll capture the live page" — and fall back to downloading the page's own images meanwhile. Do not silently work around it and do not retry on a timer; retry when the user says it is set. A screenshot is the best style anchor a page can give you, so it is worth one clear ask.
 
@@ -145,7 +145,7 @@ for (const shot of shots) {
 
 Set `render_mode` per shot: `"keyframe"` where the product or a face must hold steady, `"direct"` for the one or two heavy-motion shots. A launch spot usually has exactly one direct shot.
 
-Resolve the model slate now with `nodetool.models.pick` / `find_model`, name what you picked, and **carry provider+model in variables** — you will pass them to every render call.
+Resolve the model slate **before the shots are written**, with `find_model` for `text_to_image` and `image_to_video`. Name what you picked, put each result's `.ref` on the board with `set_board {image_model, video_model}`, and `load_skill` the `prompting_skill` each result names: the shot `action` and `motion` you are about to write are the prompt, and each model line wants them shaped differently. On-screen copy stays out of the prompt and goes on as a text layer in phase 7.
 
 ---
 
@@ -154,11 +154,7 @@ Resolve the model slate now with `nodetool.models.pick` / `find_model`, name wha
 ```js
 import { render_storyboard_stills, get_storyboard } from "@nodetool-ai/sandbox-nodetool/storyboards";
 
-await render_storyboard_stills({
-  storyboard_id: boardId,
-  provider,                   // required — the board holds no model
-  model
-});
+await render_storyboard_stills({ storyboard_id: boardId });   // uses the board's image_model
 ```
 
 Then grade. **This is the step most likely to fail, and it fails as flattery.** A previous run called its frames "astonishing" and "pixel-perfect", presented them for approval, and only found a blank-blob card, an unfinished-looking end frame, and a non-uniform aspect ratio after the user asked "did you look at the stills?".
@@ -169,7 +165,7 @@ The discipline:
 2. **Score adherence** with `score_image_adherence({image, prompt})` where the shot prompt is specific enough to score against.
 3. **Compare frames to each other**, not just to their prompts. The defect that killed two frames in the real run was only visible next to a third that got it right.
 4. **Report per frame: keep, or the specific defect.** Banned words in a grade: stunning, astonishing, gorgeous, perfect, night-and-day. If you cannot name a defect, write "checked: card fidelity, baked text, palette, framing — none found".
-5. **Never claim a property you did not verify.** You cannot measure dimensions (`image.info` fails on `asset://`), so do not state the aspect ratio. Say it is unverified and will be standardized at assembly.
+5. **Never claim a property you did not verify.** Measure the aspect ratio with `ffprobe` on each keyframe's `asset://` uri rather than eyeballing it; a plate that came back in the wrong ratio is a defect to name at G2, and it is still standardized at assembly.
 
 Two failure classes, two different fixes — never confuse them:
 
@@ -183,10 +179,10 @@ Present all keyframes at G2 with the per-clip cost of phase 5.
 ## Phase 5 — Clips
 
 ```js
-await render_storyboard_clips({ storyboard_id: boardId, provider, model });
+await render_storyboard_clips({ storyboard_id: boardId });   // uses the board's video_model
 ```
 
-A clip wrong where its keyframe was right is a **motion** problem: one `revise_storyboard_clip`, never a board-wide re-render. Cap at one revision per shot before flagging.
+A clip wrong where its keyframe was right is a **motion** problem: one `revise_storyboard_clip`, never a board-wide re-render. Cap at one revision per shot before flagging. Video models overshoot the requested length and can ignore a 9:16 source: `analyze_video` on each clip reports duration and frame before you assemble (`video-audio-continuity` § Check what came back).
 
 ---
 

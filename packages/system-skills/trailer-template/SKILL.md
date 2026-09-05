@@ -184,7 +184,7 @@ await create_entity({
 const entityId = still.asset_id;   // the entity IS its asset
 ```
 
-The descriptor is the face. Name entities in plain text in a shot's `action` or `motion` — "Mara turns from the window", never `@Mara` — and do not re-describe them in shot text. Show the roster before drafting beats.
+The descriptor is the face. Name entities in plain text in a shot's `action` or `motion` — "Mara turns from the window", never `@Mara` — and do not re-describe them in shot text. The render attaches a character or prop entity to a shot only when its name appears in that shot's text (style and location entities always apply), so a reception shot that says "she" instead of "Mara" renders a stranger. Show the roster before drafting beats.
 
 ---
 
@@ -206,14 +206,19 @@ const boardId = board.storyboard_id;   // NOT board.id
 
 ### 2. Roster and models
 
-`edit_storyboard` takes five ops: `add_shot`, `update_shot`, `remove_shot`, `reorder_shot`, `set_board`. `set_board` accepts `{brief?, style?, aspect_ratio?, entity_ids?, image_model?, video_model?}`. Models come from `find_model` — there is no default, and an unset model fails the render.
+`edit_storyboard` takes five ops: `add_shot`, `update_shot`, `remove_shot`, `reorder_shot`, `set_board`. `set_board` accepts `{brief?, style?, aspect_ratio?, entity_ids?, image_model?, video_model?}` and refuses anything else. Models come from `find_model` — pass each result's `.ref`; there is no default, and an unset model fails the render. The full contract, including which entities each shot's prompt receives, is in `commercial-beat-sheet` § Tool contract.
 
 ```js
+const stills = await find_model({ capability: "text_to_image" });
+const clips = await find_model({ capability: "image_to_video" });
 await edit_storyboard({
   storyboard_id: boardId,
-  ops: [{ op: "set_board", entity_ids: roster, image_model, video_model }]
+  ops: [{ op: "set_board", entity_ids: roster,
+          image_model: stills.ref, video_model: clips.ref }]
 });
 ```
+
+Each result also names a `prompting_skill`. Load it before step 3: the shot `action` and `motion` are the prompt the generator reads (`motion` first, then `action`, for a clip), and a trailer's receptions and its drop are worded differently for a line that wants beats in order (Hailuo), a shot list (Kling) or a sound brief (Seedance).
 
 ### 3. One shot per row
 
@@ -272,7 +277,7 @@ Run before showing anyone. Every line must be true of the board, not the plan.
 
 **Stills first.** `render_storyboard_stills` costs cents and you look at them. A wrong face is fixed at the entity, never in one shot's prompt.
 
-**Generate every clip long.** Ask the video model for 4–5s per shot even where the plan says 1.5s — you want frames to choose from — and trim in the timeline. Set `duration_seconds` to the plan length and pass the longer value on the render call, or bump it on `update_shot` before `render_storyboard_clips` and restore it after. Shots render individually and mute their own audio.
+**Generate every clip long.** Ask the video model for 4–5s per shot even where the plan says 1.5s — you want frames to choose from — and trim in the timeline. `render_storyboard_clips` has no duration override, so bump `duration_seconds` on `update_shot` before the render and restore it after. Shots render individually and mute their own audio; `analyze_video` on each clip gives the real length before you trim, because the model honours the request loosely.
 
 **The bed is one clip.** After `assemble_storyboard_timeline`:
 

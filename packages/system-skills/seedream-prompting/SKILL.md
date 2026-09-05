@@ -52,7 +52,10 @@ describe rather than quote, the model writes for you.
 > palette. No other text.
 
 Closing with "no other text" is what stops the model filling the margins with
-invented lettering.
+invented lettering. Quote copy only when it belongs to the deliverable itself;
+a keyframe for a timeline or a video clip keeps its titles and supers off the
+image and gets them as text clips afterwards (`caption-titles`), where they
+stay editable.
 
 ## Editing: pin before you change
 
