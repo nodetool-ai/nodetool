@@ -37,6 +37,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | AKI | ✅ | ✅ | | | | | |
 | Replicate | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | FAL | | ✅ | ✅ | ✅ | | | |
+| Comfy Cloud | | ⁵ | ⁵ | | | | |
 | HuggingFace | ✅ | ✅ | ✅² | ✅ | ✅ | ✅ | |
 | Ollama | ✅ | | | | | ✅ | |
 | vLLM | ✅ | | | | | | |
@@ -56,6 +57,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 ² Text-to-video only; no image-to-video.
 ³ Via a dedicated Speech-to-Text node, not the generic ASR picker.
 ⁴ Upscale and enhancement, not text-to-image generation.
+⁵ No models in the generic pickers — the Comfy API enumerates none. What comes out is whatever the ComfyUI graph you submit produces, through the `lib.comfy.RunWorkflowOnCloud` node.
 
 ### Provider capabilities
 
@@ -144,6 +146,10 @@ Replicate runs chat, image, video, and music, plus curated TTS, ASR, and embeddi
 ## FAL
 
 FAL generates image, video, TTS, and music from models whose nodes are generated straight from FAL's OpenAPI schemas. No chat. Cloud only, keyed by `FAL_API_KEY`. See the [FAL provider guide](developer/providers/fal.md).
+
+## Comfy Cloud
+
+Comfy Cloud runs a ComfyUI workflow graph on cloud.comfy.org — no local ComfyUI install, no GPU of your own. It is reached through the `lib.comfy.RunWorkflowOnCloud` node rather than a model dropdown: the graph you paste in names its own checkpoints and LoRAs, so the provider lists no models and doesn't appear in the generic image or video pickers. Cloud only, keyed by `COMFY_API_KEY` from https://platform.comfy.org. The same key also authenticates partner API nodes inside the submitted graph. See [ComfyUI](comfyui.md).
 
 ## HuggingFace
 

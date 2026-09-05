@@ -457,6 +457,11 @@ s(
   "Global timeout in seconds for Kie.ai API calls (0 = use default per-model timeout)"
 );
 sec(
+  "COMFY_API_KEY",
+  "Comfy Cloud",
+  "Comfy Cloud API key for running ComfyUI workflows on cloud.comfy.org. Get yours at https://platform.comfy.org"
+);
+sec(
   "TOPAZ_API_KEY",
   "Topaz",
   "Topaz Labs API key for image and video enhancement. Get yours at https://developer.topazlabs.com/"
