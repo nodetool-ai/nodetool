@@ -104,7 +104,6 @@ npm config set prefer-offline true
 # to download optional CUDA binaries from GitHub on Linux, which often fails in
 # sandboxed/Codex containers without outbound GitHub access. CPU binaries remain
 # usable when CUDA installation is skipped.
-npm config set onnxruntime-node-install-cuda skip
 export npm_config_onnxruntime_node_install_cuda="${npm_config_onnxruntime_node_install_cuda:-skip}"
 export ELECTRON_SKIP_BINARY_DOWNLOAD="${ELECTRON_SKIP_BINARY_DOWNLOAD:-1}"
 export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD:-1}"
