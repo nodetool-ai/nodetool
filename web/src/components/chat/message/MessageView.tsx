@@ -14,7 +14,8 @@ import { MessageContentRenderer } from "./MessageContentRenderer";
 import {
   parseThoughtContent,
   getMessageClass,
-  stripContextContent
+  stripContextContent,
+  formatMessageTimestamp
 } from "../utils/messageUtils";
 import {
   parseHarmonyContent,
@@ -22,6 +23,7 @@ import {
   getDisplayContent
 } from "../utils/harmonyUtils";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
+import useChatDraftStore from "../../../stores/ChatDraftStore";
 import {
   DEFAULT_THREAD_RUNTIME,
   getThreadRuntime
@@ -35,14 +37,14 @@ import {
   FlexColumn,
   ShimmerText,
   Collapse,
+  ToolbarIconButton,
   SPACING
 } from "../../ui_primitives";
 import type { SvgIconComponent } from "@mui/icons-material";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
-import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { getToolIcon } from "./toolCallIcon";
 
 import AgentExecutionView from "./AgentExecutionView";
@@ -52,11 +54,7 @@ import { isMediaOnlyContent } from "./MediaOutputGroup.helpers";
 import { ToolResult } from "./toolResults";
 import PlanDocument from "./PlanDocument";
 import { parsePlanDocument } from "./parsePlanDocument";
-import {
-  formatClockTime24,
-  formatDuration,
-  formatToolName
-} from "../../../utils/formatUtils";
+import { formatDuration, formatToolName } from "../../../utils/formatUtils";
 import { formatJavaScriptForDisplay } from "../../../utils/formatJavaScript";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 import { visibleToolArgs as visibleArgs } from "../../../core/chat/toolCallFields";
@@ -91,13 +89,6 @@ const PrettyJson: React.FC<{ value: unknown }> = React.memo(({ value }) => {
   return <pre className="pretty-json">{text}</pre>;
 });
 PrettyJson.displayName = "PrettyJson";
-
-function formatTime(dateStr?: string | null): string | null {
-  if (!dateStr) {
-    return null;
-  }
-  return formatClockTime24(dateStr) || null;
-}
 
 /**
  * `run_subtask` is the recursive-decomposition primitive: its LLM-provided
@@ -812,12 +803,6 @@ interface MessageViewProps {
   executionMessagesById?: Map<string, Message[]>;
   /** Thread the message belongs to; keys sub-agent transcripts. */
   threadId?: string | null;
-  /**
-   * Render the per-message meta layout: an avatar + a persistent header line
-   * (role · time · model), left-aligned for both roles. Enabled only in the
-   * full-page chat; embedded chats keep the compact bubble layout.
-   */
-  showMeta?: boolean;
 }
 
 export const MessageView: React.FC<
@@ -830,10 +815,10 @@ export const MessageView: React.FC<
     onInsertCode,
     toolResultsByCallId,
     executionMessagesById,
-    threadId,
-    showMeta = false
+    threadId
   }) => {
     const insertIntoEditor = useEditorInsertion();
+    const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
 
     const copyText = useMemo(() => {
       if (isString(message.content)) {
@@ -850,6 +835,17 @@ export const MessageView: React.FC<
       }
       return "";
     }, [message.content]);
+
+    // Seeding the draft store is the whole action: the thread's composer
+    // reads the seed and puts the text back in the box, so the user edits and
+    // sends it again rather than retyping it.
+    const draftThreadId = threadId ?? message.thread_id ?? currentThreadId;
+    const handleEditAndResend = useCallback(() => {
+      if (!draftThreadId) {
+        return;
+      }
+      useChatDraftStore.getState().setDraft(draftThreadId, copyText);
+    }, [draftThreadId, copyText]);
 
     const toggleCallbackRef = useRef(onToggleThought);
     toggleCallbackRef.current = onToggleThought;
@@ -999,16 +995,17 @@ export const MessageView: React.FC<
           return true;
         }));
 
-    const showRoleMeta =
-      showMeta && (message.role === "assistant" || message.role === "user");
+    const canEditAndResend =
+      message.role === "user" &&
+      copyText.trim().length > 0 &&
+      Boolean(draftThreadId);
     const messageClass = [
       baseClass,
       (message as Message & { error_type?: string }).error_type
         ? "error-message"
         : null,
       hasToolCalls ? "has-tool-calls" : null,
-      hasToolCalls && !hasNonEmptyContent ? "tool-calls-only" : null,
-      showRoleMeta ? "chat-message--meta" : null
+      hasToolCalls && !hasNonEmptyContent ? "tool-calls-only" : null
     ]
       .filter(Boolean)
       .join(" ");
@@ -1017,25 +1014,10 @@ export const MessageView: React.FC<
       | Array<MessageTextContent | MessageImageContent>
       | string;
 
-    const formattedTime = formatTime(message.created_at);
+    const formattedTime = formatMessageTimestamp(message.created_at);
     return (
       <div className={messageClass}>
         <div className="message-body">
-          {showRoleMeta && (
-            <div className="message-header">
-              {message.role === "user" ? (
-                <PersonOutlineRoundedIcon className="message-role-icon" />
-              ) : (
-                <HubOutlinedIcon className="message-role-icon" />
-              )}
-              {formattedTime && (
-                <span className="message-time">{formattedTime}</span>
-              )}
-              {message.role === "assistant" && message.model && (
-                <span className="message-model">{message.model}</span>
-              )}
-            </div>
-          )}
           <div className="message-content">
             {message.role === "assistant" &&
               Array.isArray(message.tool_calls) &&
@@ -1085,14 +1067,22 @@ export const MessageView: React.FC<
           )}
           {!Array.isArray(message.tool_calls) && (
             <div className="message-actions">
-              {!showRoleMeta && formattedTime && (
+              {formattedTime && (
                 <span className="message-timestamp">{formattedTime}</span>
               )}
-              {!showRoleMeta &&
-                message.role === "assistant" &&
-                message.model && (
-                  <span className="message-model">{message.model}</span>
-                )}
+              {message.role === "assistant" && message.model && (
+                <span className="message-model" title={message.model}>
+                  {message.model}
+                </span>
+              )}
+              {canEditAndResend && (
+                <ToolbarIconButton
+                  icon={<EditOutlinedIcon fontSize="small" />}
+                  tooltip="Edit and resend"
+                  ariaLabel="Edit and resend"
+                  onClick={handleEditAndResend}
+                />
+              )}
               <CopyButton
                 value={copyText}
                 buttonSize="small"

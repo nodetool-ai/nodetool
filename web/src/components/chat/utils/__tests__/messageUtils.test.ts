@@ -1,5 +1,10 @@
 import { describe, expect, it } from "@jest/globals";
-import { stripContextContent, parseThoughtContent, getMessageClass } from "../messageUtils";
+import {
+  stripContextContent,
+  parseThoughtContent,
+  getMessageClass,
+  formatMessageTimestamp
+} from "../messageUtils";
 
 describe("stripContextContent", () => {
   it("removes editor_context block with closing tag", () => {
@@ -95,5 +100,34 @@ describe("getMessageClass", () => {
 
   it("returns base class for empty string", () => {
     expect(getMessageClass("")).toBe("chat-message");
+  });
+});
+
+describe("formatMessageTimestamp", () => {
+  const now = new Date("2026-09-04T09:00:00");
+
+  it("shows only the clock for a message sent today", () => {
+    expect(formatMessageTimestamp("2026-09-04T14:05:00", now)).toBe("14:05");
+  });
+
+  it("puts the day in front for a message from another day", () => {
+    expect(formatMessageTimestamp("2026-09-01T14:05:00", now)).toBe(
+      "Sep 01 14:05"
+    );
+  });
+
+  it("treats the same clock time in another year as another day", () => {
+    expect(formatMessageTimestamp("2025-09-04T14:05:00", now)).toBe(
+      "Sep 04 14:05"
+    );
+  });
+
+  it("returns null for a missing date", () => {
+    expect(formatMessageTimestamp(null, now)).toBeNull();
+    expect(formatMessageTimestamp(undefined, now)).toBeNull();
+  });
+
+  it("returns null for an unparseable date", () => {
+    expect(formatMessageTimestamp("not a date", now)).toBeNull();
   });
 });
