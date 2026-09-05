@@ -79,6 +79,8 @@ const EMPTY_BOARD: StoryboardCastDoc = {
   style: "",
   entityIds: [],
   aspectRatio: "16:9",
+  setupStage: "done",
+  genre: "",
   directorModel: null,
   imageModel: null,
   videoModel: null,

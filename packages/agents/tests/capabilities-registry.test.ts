@@ -104,6 +104,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   derive_storyboard_from_script: "write",
   detect_audio_events: "read",
   detect_video_scenes: "read",
+  direct_storyboard: "write",
   download_file: "write",
   edit_app: "write",
   edit_file: "write",

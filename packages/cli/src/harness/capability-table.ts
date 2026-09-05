@@ -2332,10 +2332,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "render_storyboard_stills",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "ad4811893137",
+    contract: "da01cbd62dfc",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
+      "packages/agents/tests/capabilities-storyboard-board-ops.test.ts",
     ],
     evals: [
       {
@@ -2348,10 +2349,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "render_storyboard_clips",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "63dfa003d0f1",
+    contract: "99052baaa53f",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
+      "packages/agents/tests/capabilities-storyboard-board-ops.test.ts",
     ],
     evals: [
       {
@@ -2390,16 +2392,28 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "e0a1059b33ed",
+    contract: "8a5eece9137a",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
+      "packages/agents/tests/capabilities-storyboard-board-ops.test.ts",
     ],
     evals: [
       {
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
         cases: ["storyboard-direct-shots"],
       },
+    ],
+  },
+  {
+    name: "direct_storyboard",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "87b782d42437",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboards.test.ts",
+      "packages/agents/tests/capabilities-storyboard-board-ops.test.ts",
     ],
   },
   {

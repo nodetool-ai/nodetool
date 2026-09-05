@@ -91,6 +91,13 @@ export const RENDER_STILLS_SCHEMA: JsonSchema = {
       description:
         "Style text appended to every prompt. Defaults to the board's style."
     },
+    stale_only: {
+      type: "boolean",
+      description:
+        "Render only the selected shots whose current version is stale — " +
+        "recorded against a style, model, aspect ratio or prompt the shot no " +
+        "longer has. Omitted or false renders every selected shot."
+    },
     concurrency: {
       type: "number",
       description: `Shots rendered in parallel (default ${DEFAULT_CONCURRENCY}, max ${MAX_CONCURRENCY}).`
@@ -127,6 +134,13 @@ export const RENDER_CLIPS_SCHEMA: JsonSchema = {
         "generates from the prompt with no still (text_to_video). Defaults " +
         "to each shot's own render_mode, which defaults to 'keyframe'. Set " +
         "the shot's render_mode with edit_storyboard to make it stick."
+    },
+    stale_only: {
+      type: "boolean",
+      description:
+        "Render only the selected shots whose current version is stale — " +
+        "recorded against a style, model, aspect ratio or prompt the shot no " +
+        "longer has. Omitted or false renders every selected shot."
     },
     concurrency: {
       type: "number",
@@ -179,8 +193,20 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
         "duration_seconds?, duration_source?, render_mode?, entity_ids?, " +
         "location_id?, covered_by?, notes?, index?}, " +
         "update_shot {target, ...same fields}, remove_shot {target}, " +
-        "reorder_shot {target, index}, set_board {brief?, style?, " +
-        "aspect_ratio?, entity_ids?, image_model?, video_model?}. " +
+        "reorder_shot {target, index}, move_shot {target, scene_id?, " +
+        "position}, duplicate_shot {target}, set_board {brief?, style?, " +
+        "aspect_ratio?, entity_ids?, image_model?, video_model?}, " +
+        "set_setup {brief?, genre?, stage?}, update_scene {scene_id, " +
+        "slugline?, lighting?}, create_scene {after_scene_id?}, " +
+        "merge_scene {scene_id}, set_style {entity_id? | style?}, " +
+        "select_version {target, kind, version}, delete_version {target, " +
+        "kind, version}, add_keyframe_version {target, asset_id, flip_of?}. " +
+        "move_shot is how a shot changes scene: `position` is 0-based inside " +
+        "the target scene and every shot is renumbered after, so a scene's " +
+        "shots stay contiguous. set_style with an entity_id applies that " +
+        "style entity as the board preset (it replaces any other style " +
+        "entity and its descriptor becomes the board style); with `style` it " +
+        "sets the descriptor alone. Versions are 0-based, oldest first. " +
         "`target` is a shot id, its 0-based index, or its slug. " +
         "covered_by {shot_id, start_seconds?, end_seconds?} says this shot's " +
         "picture is a window into another shot's clip — how you record a " +
@@ -194,6 +220,36 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
     }
   },
   required: ["storyboard_id", "ops"]
+};
+
+export const DIRECT_STORYBOARD_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    storyboard_id: { type: "string", description: "Storyboard id." },
+    redirect: {
+      type: "boolean",
+      description:
+        "Required to run over a board that already has shots. Retained " +
+        "shots keep their ids, their rendered stills and clips, and their " +
+        "status, so a re-direct rewrites the direction without resetting the " +
+        "media. Without it a board with shots is refused."
+    },
+    shot_count: {
+      type: "number",
+      description: "How many shots to ask for (default 6)."
+    },
+    provider: {
+      type: "string",
+      description:
+        "Provider id (from find_model). Defaults to the board's director model."
+    },
+    model: {
+      type: "string",
+      description:
+        "Model id (from find_model). Defaults to the board's director model."
+    }
+  },
+  required: ["storyboard_id"]
 };
 
 export const EXTRACT_SCRIPT_SCHEMA: JsonSchema = {
@@ -366,6 +422,23 @@ export const extractScriptFromStoryboardSpec: CapabilitySpec = {
     `Extracting a script from storyboard ${String(params["storyboard_id"])}`
 };
 
+export const directStoryboardSpec: CapabilitySpec = {
+  name: "direct_storyboard",
+  description:
+    "Run the Director over a storyboard's brief, genre and style, and write " +
+    "the screenplay it produces onto the board: scenes with sluglines and " +
+    "lighting, and shots with action, camera and motion. This is how a board " +
+    "gets its shot list without writing each one by hand — set the brief with " +
+    "edit_storyboard's set_setup first. Pass redirect: true to re-direct a " +
+    "board that already has shots; retained shots keep their ids and their " +
+    "rendered media. Renders nothing: stills and clips stay with " +
+    "render_storyboard_stills / render_storyboard_clips.",
+  inputSchema: DIRECT_STORYBOARD_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Directing storyboard ${String(params["storyboard_id"])}`
+};
+
 export const deleteStoryboardSpec: CapabilitySpec = {
   name: "delete_storyboard",
   description:
@@ -396,6 +469,7 @@ export const storyboardsSpecs: readonly CapabilitySpec[] = [
   reviseStoryboardClipSpec,
   assembleStoryboardTimelineSpec,
   editStoryboardSpec,
+  directStoryboardSpec,
   extractScriptFromStoryboardSpec,
   deleteStoryboardSpec
 ];

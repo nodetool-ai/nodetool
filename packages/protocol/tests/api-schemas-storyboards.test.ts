@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   STORYBOARD_BUNDLE_SCHEMA_VERSION,
+  normalizeStoryboardScene,
   normalizeStoryboardScreenplay,
   normalizeStoryboardShot,
   parseStoryboardBundle,
+  storyboardDocument,
   storyboardScreenplay
 } from "../src/api-schemas/storyboards.js";
 
@@ -227,5 +229,123 @@ describe("parseStoryboardBundle", () => {
         document
       })
     ).toBeNull();
+  });
+});
+
+describe("setup stage and genre", () => {
+  /** A board written before the guided setup shipped. */
+  const legacyDocument = {
+    screenplay: null,
+    shots: [],
+    brief: "A keeper's last night",
+    style: "noir",
+    entityIds: [],
+    aspectRatio: "16:9",
+    directorModel: null,
+    imageModel: null,
+    videoModel: null
+  };
+
+  it("reads a document with neither field as done and no genre", () => {
+    const doc = storyboardDocument.parse(legacyDocument);
+    expect(doc.setupStage).toBe("done");
+    expect(doc.genre).toBe("");
+  });
+
+  it("round-trips every stage", () => {
+    for (const stage of ["idea", "genre", "review", "look", "done"] as const) {
+      const doc = storyboardDocument.parse({
+        ...legacyDocument,
+        setupStage: stage,
+        genre: "thriller"
+      });
+      expect(doc.setupStage).toBe(stage);
+      expect(doc.genre).toBe("thriller");
+    }
+  });
+
+  it("refuses a stage it does not know", () => {
+    expect(
+      storyboardDocument.safeParse({ ...legacyDocument, setupStage: "look-dev" })
+        .success
+    ).toBe(false);
+  });
+});
+
+describe("scenes", () => {
+  /** A screenplay saved before scenes existed. */
+  const legacyScreenplay = {
+    type: "screenplay",
+    id: "sp_old",
+    title: "Lighthouse Dawn",
+    shots: [
+      {
+        type: "shot",
+        id: "shot_a",
+        index: 0,
+        action: "A lighthouse against a darkening sky",
+        status: "planned"
+      }
+    ]
+  };
+
+  it("parses a pre-scene screenplay unchanged", () => {
+    const parsed = storyboardScreenplay.parse(legacyScreenplay);
+    expect(parsed).toEqual(legacyScreenplay);
+    expect(parsed.genre).toBeUndefined();
+    expect(parsed.scenes).toBeUndefined();
+    expect(parsed.shots[0].scene_id).toBeUndefined();
+  });
+
+  it("normalizes a camelCase agent payload into scenes and scene_id", () => {
+    let n = 0;
+    const play = normalizeStoryboardScreenplay(
+      {
+        type: "screenplay",
+        title: "Scened",
+        genre: "thriller",
+        scenes: [
+          { slugline: "INT. FLAT - HALLWAY - DAWN", lighting: "cold key" },
+          { slugline: "EXT. PIER - NIGHT" }
+        ],
+        shots: [
+          { action: "She opens the door", sceneId: "sc_1" },
+          { action: "The pier lights cut out", sceneId: "sc_2" }
+        ]
+      },
+      { generateId: () => `id_${++n}` }
+    );
+    expect(play.genre).toBe("thriller");
+    expect(play.shots.map((shot) => shot.scene_id)).toEqual(["sc_1", "sc_2"]);
+    expect(play.scenes).toEqual([
+      {
+        type: "scene",
+        id: "id_4",
+        slugline: "INT. FLAT - HALLWAY - DAWN",
+        lighting: "cold key"
+      },
+      { type: "scene", id: "id_5", slugline: "EXT. PIER - NIGHT" }
+    ]);
+  });
+
+  it("prefers an explicit scene_id over the sceneId alias", () => {
+    const play = normalizeStoryboardScreenplay({
+      type: "screenplay",
+      title: "Both",
+      shots: [{ action: "A shot", scene_id: "wire", sceneId: "alias" }]
+    });
+    expect(play.shots[0].scene_id).toBe("wire");
+  });
+
+  it("names a scene with no slugline by its position", () => {
+    const scene = normalizeStoryboardScene({ lighting: "practicals" }, 2, {
+      generateId: () => "sc_x"
+    });
+    expect(scene).toEqual({
+      type: "scene",
+      id: "sc_x",
+      slugline: "Scene 3",
+      lighting: "practicals"
+    });
   });
 });

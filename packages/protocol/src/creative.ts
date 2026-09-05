@@ -177,6 +177,65 @@ export interface CameraDirection {
   angle?: string;
   /** e.g. "static", "slow push in", "handheld", "crane up". */
   movement?: string;
+  /**
+   * What the camera is on: handheld, tripod, steadicam, gimbal, dolly, slider,
+   * crane, drone. Kept separate from {@link movement} because the rig is what a
+   * video model reads for the texture of the motion, not its direction.
+   */
+  equipment?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Render record
+// ---------------------------------------------------------------------------
+
+/**
+ * What a version was rendered from, written when the job is enqueued and stored
+ * on the version when the asset lands — so a render that finishes after a style
+ * change still carries the inputs it was actually given.
+ *
+ * Staleness is the comparison of this record against the inputs the same shot
+ * would use now, derived at render time and never persisted as a flag. A
+ * version with no record (legacy, upload, flip, image-editor edit) is never
+ * stale.
+ */
+export interface RenderInputs {
+  kind: "keyframe" | "clip";
+  /** sha-256 of the composed prompt (PRD 7.7.5). */
+  prompt_hash: string;
+  /** provider/model id. */
+  model: string;
+  aspect_ratio: string;
+  style_entity_id: string | null;
+  /** The still a keyframe-mode clip animated. */
+  source_version_id?: string;
+  recorded_at: string;
+}
+
+/**
+ * A media ref carrying its render record. The record rides on the ref itself
+ * (the storyboard schemas are passthrough, so it survives a round trip) rather
+ * than in a parallel array that a reorder or a delete could desynchronize.
+ */
+export type VersionRef<T> = T & { render_inputs?: RenderInputs };
+
+export type KeyframeVersion = VersionRef<ImageRef>;
+export type ClipVersion = VersionRef<VideoRef>;
+
+/**
+ * Field-by-field equality of two render records, ignoring `recorded_at` — a
+ * timestamp is not an input, and every re-render would otherwise read as
+ * different.
+ */
+export function renderInputsMatch(a: RenderInputs, b: RenderInputs): boolean {
+  return (
+    a.kind === b.kind &&
+    a.prompt_hash === b.prompt_hash &&
+    a.model === b.model &&
+    a.aspect_ratio === b.aspect_ratio &&
+    a.style_entity_id === b.style_entity_id &&
+    a.source_version_id === b.source_version_id
+  );
 }
 
 /** One shot in a {@link Screenplay}. */
@@ -202,14 +261,19 @@ export interface Shot {
   entity_ids?: string[];
   /** Location entity for this shot. */
   location_id?: string | null;
+  /**
+   * The {@link Scene} this shot belongs to. Absent on legacy shots, which
+   * render under one implicit header until a scene-creating operation runs.
+   */
+  scene_id?: string;
   /** The selected still anchoring the shot (the storyboard frame). */
-  keyframe?: ImageRef | null;
+  keyframe?: KeyframeVersion | null;
   /** Every generated still for this shot, oldest first. `keyframe` is one of them. */
-  keyframe_versions?: ImageRef[];
+  keyframe_versions?: KeyframeVersion[];
   /** The selected clip — what assembly/export uses. */
-  clip?: VideoRef | null;
+  clip?: ClipVersion | null;
   /** Every rendered take for this shot, oldest first. `clip` is one of them. */
-  clip_versions?: VideoRef[];
+  clip_versions?: ClipVersion[];
   status: ShotStatus;
   /** Estimated cost to render this shot's clip, for the gate. */
   cost_estimate?: number | null;
@@ -303,6 +367,21 @@ export const shotRenderMode = (
 ): ShotRenderMode => (shot.render_mode === "direct" ? "direct" : "keyframe");
 
 /**
+ * A scene: the set of shots sharing its id. Those shots are contiguous in
+ * `shot.index`, which is the one global order — so a scene needs no index, its
+ * position is the index of its first shot. A scene left with no shots is
+ * dropped by the next structural operation.
+ */
+export interface Scene {
+  type: "scene";
+  id: string;
+  /** "INT. SOPHIA'S FLAT — HALLWAY — EARLY MORNING" */
+  slugline: string;
+  /** Lighting for every shot in the scene, pasted into still prompts. */
+  lighting?: string;
+}
+
+/**
  * The direction artifact: a full screenplay a Director agent produces from a
  * brief. The single source of truth the storyboard surface renders and the
  * assembly pipeline consumes.
@@ -324,6 +403,14 @@ export interface Screenplay {
   music_prompt?: string;
   /** Entities referenced anywhere in the screenplay. */
   entity_ids?: string[];
+  /** Copy of the board's genre, taken when the Director ran. */
+  genre?: string;
+  /**
+   * The board's scenes. Authoritative list, but not an ordering: scene order is
+   * derived from the index of each scene's first shot, so a {@link Scene}
+   * carries no index of its own.
+   */
+  scenes?: Scene[];
   /**
    * The script resource this board's words come from. The board references the
    * script, never the reverse: line↔shot membership lives in the shots'
@@ -348,6 +435,14 @@ export function isShot(value: unknown): value is Shot {
     !!value &&
     typeof value === "object" &&
     (value as { type?: unknown }).type === "shot"
+  );
+}
+
+export function isScene(value: unknown): value is Scene {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    (value as { type?: unknown }).type === "scene"
   );
 }
 

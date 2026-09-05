@@ -84,6 +84,8 @@ export const useStudioPromptStart = (): UseStudioPromptStartResult => {
           style: "",
           entityIds: [],
           aspectRatio: ASPECT_RATIO,
+          setupStage: "done",
+          genre: "",
           directorModel: STUDIO_DIRECTOR_MODEL,
           imageModel: STUDIO_STILL_MODEL,
           videoModel: STUDIO_CLIP_MODEL
@@ -101,6 +103,8 @@ export const useStudioPromptStart = (): UseStudioPromptStartResult => {
           style: "",
           entityIds: [],
           aspectRatio: ASPECT_RATIO,
+          setupStage: "done",
+          genre: "",
           directorModel: STUDIO_DIRECTOR_MODEL,
           imageModel: STUDIO_STILL_MODEL,
           videoModel: STUDIO_CLIP_MODEL,

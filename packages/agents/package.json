@@ -102,6 +102,12 @@
       "import": "./dist/tools/base-tool.js",
       "default": "./dist/tools/base-tool.js"
     },
+    "./host-modules/mammoth": {
+      "nodetool-dev": "./src/host-modules/mammoth.ts",
+      "types": "./dist/host-modules/mammoth.d.ts",
+      "import": "./dist/host-modules/mammoth.js",
+      "default": "./dist/host-modules/mammoth.js"
+    },
     "./js-sandbox": {
       "nodetool-dev": "./src/js-sandbox.ts",
       "types": "./dist/js-sandbox.d.ts",

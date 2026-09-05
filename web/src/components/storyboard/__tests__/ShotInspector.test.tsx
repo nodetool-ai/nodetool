@@ -16,7 +16,7 @@ jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   })
 }));
 
-const moveShotMock = jest.fn();
+const nudgeShotMock = jest.fn();
 const removeShotMock = jest.fn();
 const updateShotMock = jest.fn();
 const removeKeyframeVersionMock = jest.fn();
@@ -39,7 +39,7 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => {
     useStoryboardStore: <T,>(selector: (s: unknown) => T) =>
       selector({
         toggleShotEntity: jest.fn(),
-        moveShot: moveShotMock,
+        nudgeShot: nudgeShotMock,
         removeShot: removeShotMock,
         updateShot: updateShotMock,
         removeKeyframeVersion: removeKeyframeVersionMock,
@@ -185,7 +185,7 @@ const renderInspector = (
 
 describe("ShotInspector", () => {
   beforeEach(() => {
-    moveShotMock.mockClear();
+    nudgeShotMock.mockClear();
     removeShotMock.mockClear();
     updateShotMock.mockClear();
     removeKeyframeVersionMock.mockClear();
@@ -323,11 +323,11 @@ describe("ShotInspector", () => {
   it("reorders a shot with the move controls", async () => {
     renderInspector(makeShot(), { isFirst: false, isLast: false });
     await userEvent.click(screen.getByRole("button", { name: "Move shot up" }));
-    expect(moveShotMock).toHaveBeenCalledWith("board-1", "shot-1", "up");
+    expect(nudgeShotMock).toHaveBeenCalledWith("board-1", "shot-1", "up");
     await userEvent.click(
       screen.getByRole("button", { name: "Move shot down" })
     );
-    expect(moveShotMock).toHaveBeenCalledWith("board-1", "shot-1", "down");
+    expect(nudgeShotMock).toHaveBeenCalledWith("board-1", "shot-1", "down");
   });
 
   it("disables move-up on the first shot and move-down on the last", () => {

@@ -19,7 +19,12 @@ import {
   TimelineSequence,
   initTestDb
 } from "@nodetool-ai/models";
-import type { Shot } from "@nodetool-ai/protocol";
+import {
+  clipPrompt,
+  directClipPrompt,
+  keyframePrompt
+} from "@nodetool-ai/protocol";
+import type { Scene, Shot } from "@nodetool-ai/protocol";
 import { module as storyboards } from "../src/capabilities/storyboards.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import {
@@ -185,6 +190,7 @@ const PAIRS: Array<[string, () => Tool]> = [
     () => toolForCapabilityName("assemble_storyboard_timeline")
   ],
   ["edit_storyboard", () => toolForCapabilityName("edit_storyboard")],
+  ["direct_storyboard", () => toolForCapabilityName("direct_storyboard")],
   [
     "extract_script_from_storyboard",
     () => toolForCapabilityName("extract_script_from_storyboard")
@@ -203,6 +209,7 @@ describe("storyboards capability module", () => {
       "revise_storyboard_clip",
       "assemble_storyboard_timeline",
       "edit_storyboard",
+      "direct_storyboard",
       "extract_script_from_storyboard",
       "delete_storyboard"
     ]);
@@ -1067,6 +1074,97 @@ describe("storyboards capability behaviour", () => {
           has_clip: false
         })
       ]);
+    });
+  });
+  describe("prompts come from the shared shot-prompt module", () => {
+    // The capability must not compose prompts of its own: what it sends has to
+    // equal what `@nodetool-ai/protocol` composes, or a board renders
+    // differently headlessly than it does in the editor.
+    const scene: Scene = {
+      type: "scene",
+      id: "sc-1",
+      slugline: "EXT. HEADLAND — DUSK",
+      lighting: "last light, sodium spill from the road"
+    };
+    const STYLE = "grainy 16mm, muted palette";
+    const directed = (id: string, overrides: Partial<Shot> = {}): Shot =>
+      shot({
+        id,
+        index: 0,
+        action: "a lighthouse",
+        scene_id: "sc-1",
+        camera: {
+          framing: "wide",
+          angle: "low angle",
+          lens: "85mm",
+          movement: "slow push in",
+          equipment: "steadicam"
+        },
+        motion: "the beam sweeps across the water",
+        dialogue: "Nobody is coming",
+        notes: "reshoot at golden hour",
+        duration_seconds: 6,
+        ...overrides
+      });
+
+    const boardWith = (shots: Shot[]): Promise<Storyboard> =>
+      makeBoard(shots, {
+        style: STYLE,
+        screenplay: {
+          type: "screenplay",
+          id: "sp-prompt",
+          title: "Board",
+          shots: [],
+          scenes: [scene]
+        }
+      });
+
+    /** The prompt of the nth provider call. */
+    const promptOf = (
+      context: ReturnType<typeof ctx>,
+      call: number
+    ): string => {
+      const req = context.runProviderPrediction.mock.calls[call][0] as {
+        params: { prompt: string };
+      };
+      return req.params.prompt;
+    };
+
+    it("sends the module's still prompt", async () => {
+      const target = directed("s1");
+      const board = await boardWith([target]);
+      const context = ctx();
+      await run(context).invoke("render_storyboard_stills", {
+        storyboard_id: board.id
+      });
+      expect(promptOf(context, 0)).toBe(
+        keyframePrompt(target, { scene, style: STYLE })
+      );
+    });
+
+    it("sends the module's keyframe-mode clip prompt", async () => {
+      const target = directed("s1");
+      const board = await boardWith([target]);
+      const context = ctx();
+      await run(context).invoke("render_storyboard_stills", {
+        storyboard_id: board.id
+      });
+      await run(context).invoke("render_storyboard_clips", {
+        storyboard_id: board.id
+      });
+      expect(promptOf(context, 1)).toBe(clipPrompt(target));
+    });
+
+    it("sends the module's direct clip prompt", async () => {
+      const target = directed("s1", { render_mode: "direct" });
+      const board = await boardWith([target]);
+      const context = ctx();
+      await run(context).invoke("render_storyboard_clips", {
+        storyboard_id: board.id
+      });
+      expect(promptOf(context, 0)).toBe(
+        directClipPrompt(target, { scene, style: STYLE })
+      );
     });
   });
 });

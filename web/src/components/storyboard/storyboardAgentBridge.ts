@@ -20,6 +20,7 @@ import type {
   ShotDurationSource,
   ShotStatus
 } from "@nodetool-ai/protocol";
+import type { StoryboardSetupStage } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 
 /** Serializable view of a single shot the agent reads and edits. */
 export interface StoryboardShotNode {
@@ -33,11 +34,34 @@ export interface StoryboardShotNode {
   /** Where `durationSeconds` comes from; absent on an unlinked board. */
   durationSource?: ShotDurationSource;
   status: ShotStatus;
+  /** The scene this shot sits in, or null under the implicit header. */
+  sceneId: string | null;
+  dialogue?: string;
+  notes?: string;
   /** Whether the shot has a rendered keyframe still. */
   hasKeyframe: boolean;
   /** Whether the shot has a rendered clip. */
   hasClip: boolean;
+  /** How many stills and takes are preserved on the shot. */
+  keyframeVersionCount: number;
+  clipVersionCount: number;
+  /**
+   * Whether the *selected* still and clip were rendered from inputs the shot
+   * no longer has (`isVersionStale`). A version with no render record — an
+   * upload, a flip — never reads stale.
+   */
+  staleKeyframe: boolean;
+  staleClip: boolean;
   costEstimate?: number | null;
+}
+
+/** A scene as the agent reads it. Order comes from its shots, not the scene. */
+export interface StoryboardSceneNode {
+  id: string;
+  slugline: string;
+  lighting?: string;
+  /** Ids of the shots in this scene, in board order. */
+  shotIds: string[];
 }
 
 /** Full snapshot of the open board the agent reads to plan direction. */
@@ -47,6 +71,12 @@ export interface StoryboardSnapshot {
   brief: string;
   style: string;
   aspectRatio: string;
+  /** Where the board sits in the guided setup; "done" once it is finished. */
+  setupStage: StoryboardSetupStage;
+  /** The genre picked in setup, seasoning the Director run. */
+  genre: string;
+  /** The board's scenes in order. Empty on a board directed before scenes. */
+  scenes: StoryboardSceneNode[];
   /**
    * Library entity (asset) ids cast on this board. Their descriptors season
    * every shot prompt, subject to each shot's own `entity_ids` override.
@@ -90,6 +120,38 @@ export interface StoryboardAddShotInput {
   durationSeconds?: number;
   /** 0-based insertion index; appended when omitted. */
   index?: number;
+  /**
+   * Insert directly after this shot, in its scene. Wins over `index`, which
+   * cannot say which scene a position belongs to.
+   */
+  afterShotId?: string;
+}
+
+/** The guided-setup fields one call writes, as one edit. */
+export interface StoryboardSetupInput {
+  brief?: string;
+  genre?: string;
+  stage?: StoryboardSetupStage;
+}
+
+/** Which media list a version operation addresses. */
+export type StoryboardVersionKind = "keyframe" | "clip";
+
+/** How a render call selects and filters its shots. */
+export interface StoryboardRenderOptions {
+  /**
+   * Render only the selected shots whose current version is stale. Absent or
+   * false renders every selected shot, which is the default.
+   */
+  staleOnly?: boolean;
+}
+
+/** What a render call enqueued, and what it passed over. */
+export interface StoryboardRenderResult {
+  /** The shots a job was started for, in board order. */
+  shots: StoryboardShotNode[];
+  /** Ids of shots the selection held but `staleOnly` filtered out. */
+  skipped: string[];
 }
 
 /** Fields the agent can patch on an existing shot. */
@@ -100,6 +162,10 @@ export interface StoryboardUpdateShotPatch {
   camera?: CameraDirection;
   motion?: string;
   status?: ShotStatus;
+  /** Spoken line delivered in-shot. Read-only on a board linked to a script. */
+  dialogue?: string;
+  /** Direction that never reaches a prompt — a note to the crew. */
+  notes?: string;
   /** Target clip length in seconds. Pins the shot when it covers script lines. */
   durationSeconds?: number;
   /**
@@ -116,6 +182,18 @@ export interface StoryboardUpdateShotPatch {
 export interface StoryboardAgentHandler {
   getSnapshot: () => StoryboardSnapshot;
   setScreenplay: (screenplay: Screenplay) => StoryboardSnapshot;
+  /** Write brief, genre and setup stage in one edit. */
+  setSetup: (input: StoryboardSetupInput) => StoryboardSnapshot;
+  /**
+   * Run the Director over the board's brief and write the result. `redirect`
+   * re-runs over an existing screenplay, keeping the ids and media of the
+   * shots the revision retains; without it a board that already has a
+   * screenplay is refused, so a rerun is never accidental.
+   */
+  direct: (options: {
+    redirect: boolean;
+    shotCount?: number;
+  }) => Promise<StoryboardSnapshot>;
   /** Replace the board's entity cast. An empty array clears it. */
   setEntityIds: (entityIds: string[]) => StoryboardSnapshot;
   addShot: (input: StoryboardAddShotInput) => StoryboardShotNode;
@@ -123,8 +201,61 @@ export interface StoryboardAgentHandler {
     target: string,
     patch: StoryboardUpdateShotPatch
   ) => StoryboardShotNode;
-  generateKeyframe: (target: string) => Promise<StoryboardShotNode>;
-  generateClip: (target: string) => Promise<StoryboardShotNode>;
+  /** Move a shot into `sceneId` at `position` within that scene. */
+  moveShot: (
+    target: string,
+    sceneId: string | null,
+    position: number
+  ) => StoryboardShotNode;
+  /** Copy a shot in after itself, dropping its script link. */
+  duplicateShot: (target: string) => StoryboardShotNode;
+  removeShot: (target: string) => { removed: string };
+  updateScene: (
+    sceneId: string,
+    patch: { slugline?: string; lighting?: string }
+  ) => StoryboardSceneNode;
+  /** Add a scene after `afterSceneId` (or last), holding one blank shot. */
+  createScene: (afterSceneId?: string | null) => StoryboardSceneNode;
+  /** Fold a scene's shots into the scene before it. */
+  mergeScene: (sceneId: string) => { merged: string; into: string };
+  /**
+   * Apply a style: an entity id runs the preset (the entity replaces every
+   * other style entity and its descriptor becomes the board style); a bare
+   * descriptor with no entity sets the board style alone.
+   */
+  setStyle: (input: {
+    entityId?: string;
+    descriptor?: string;
+  }) => StoryboardSnapshot;
+  /** Select one of a shot's preserved stills or takes. */
+  selectVersion: (
+    target: string,
+    kind: StoryboardVersionKind,
+    version: number
+  ) => StoryboardShotNode;
+  /** Remove one preserved still or take, re-selecting a neighbour. */
+  deleteVersion: (
+    target: string,
+    kind: StoryboardVersionKind,
+    version: number
+  ) => StoryboardShotNode;
+  /**
+   * Add a stored asset as a new still on the shot and select it — an upload,
+   * a flip, or an image-editor result. Never overwrites a version.
+   */
+  addKeyframeVersion: (
+    target: string,
+    assetId: string,
+    flipOf?: string
+  ) => StoryboardShotNode;
+  generateKeyframe: (
+    target: string,
+    options?: StoryboardRenderOptions
+  ) => Promise<StoryboardRenderResult>;
+  generateClip: (
+    target: string,
+    options?: StoryboardRenderOptions
+  ) => Promise<StoryboardRenderResult>;
   /**
    * Regenerate an existing shot's clip via video-to-video, seeded by its current
    * clip plus a text instruction (e.g. "make it darker, add rain"). Throws when

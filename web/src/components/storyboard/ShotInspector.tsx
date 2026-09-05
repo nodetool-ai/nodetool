@@ -321,7 +321,7 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
     (state) => state.toggleShotEntity
   );
   const updateShot = useStoryboardStore((state) => state.updateShot);
-  const moveShot = useStoryboardStore((state) => state.moveShot);
+  const nudgeShot = useStoryboardStore((state) => state.nudgeShot);
   const removeShot = useStoryboardStore((state) => state.removeShot);
   const removeKeyframeVersion = useStoryboardStore(
     (state) => state.removeKeyframeVersion
@@ -388,12 +388,12 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
   }, [reviseText, generateRevisedClip, boardId, shot]);
 
   const handleMoveUp = useCallback(() => {
-    moveShot(boardId, shot.id, "up");
-  }, [moveShot, boardId, shot.id]);
+    nudgeShot(boardId, shot.id, "up");
+  }, [nudgeShot, boardId, shot.id]);
 
   const handleMoveDown = useCallback(() => {
-    moveShot(boardId, shot.id, "down");
-  }, [moveShot, boardId, shot.id]);
+    nudgeShot(boardId, shot.id, "down");
+  }, [nudgeShot, boardId, shot.id]);
 
   // A shot covering script lines is timed by the takes under it unless the
   // user pins it; the chip says which, and clicking it switches.

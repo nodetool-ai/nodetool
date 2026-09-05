@@ -31,6 +31,8 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
     style: "",
     entityIds: [],
     aspectRatio: "16:9",
+    setupStage: "done",
+    genre: "",
     directorModel: { id: "model-1" },
     imageModel: boardModels.imageModel,
     videoModel: boardModels.videoModel,

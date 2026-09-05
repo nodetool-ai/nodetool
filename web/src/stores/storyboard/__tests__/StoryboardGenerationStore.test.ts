@@ -22,6 +22,8 @@ import {
   __resetStoryboardSubscriptionsForTests,
   type DirectShotJobContext
 } from "../StoryboardGenerationStore";
+import type { BoardRenderContext, Shot } from "@nodetool-ai/protocol";
+import { isVersionStale } from "@nodetool-ai/protocol";
 import { useStoryboardStore } from "../StoryboardStore";
 import { useNotificationStore } from "../../NotificationStore";
 
@@ -279,5 +281,162 @@ describe("failure reporting", () => {
     expect(
       useNotificationStore.getState().notifications.at(-1)?.content
     ).toContain("No model chosen");
+  });
+});
+
+/**
+ * Render records (PRD § 7.7.4, criterion 8).
+ *
+ * The record is taken when the job is enqueued, not when the asset lands, so a
+ * render that finishes after a style change reads stale against the board it
+ * finished on.
+ */
+describe("render record on enqueue and land", () => {
+  const boardA: BoardRenderContext = {
+    aspect_ratio: "16:9",
+    image_model: "fal-ai/flux/dev",
+    video_model: "fal-ai/kling/v2",
+    style_entity_id: "ent-noir",
+    style: "high-contrast noir, hard shadows",
+    scenes: null
+  };
+  const boardB: BoardRenderContext = {
+    ...boardA,
+    style_entity_id: "ent-pastel",
+    style: "soft pastel daylight"
+  };
+
+  const shotOf = (shotId: string): Shot => {
+    const shot = useStoryboardStore
+      .getState()
+      .getBoard(BOARD)
+      ?.shots.find((s) => s.id === shotId);
+    if (!shot) {
+      throw new Error(`shot ${shotId} was not seeded`);
+    }
+    return shot;
+  };
+
+  /** Enqueue with `render`, then land one asset on the shot. */
+  const enqueueAndLand = (
+    shotId: string,
+    requestId: string,
+    kind: "keyframe" | "clip",
+    render?: { shot: Shot; board: BoardRenderContext }
+  ): void => {
+    useStoryboardGenerationStore
+      .getState()
+      .registerJob(shotId, BOARD, requestId, kind, render);
+    __handleShotJobMessageForTests(requestId, context(shotId, kind), {
+      type: "rpc_response",
+      request_id: requestId,
+      result: { asset_ids: [`ast-${requestId}`] }
+    } as never);
+  };
+
+  it("a still enqueued before a style change reads stale after it lands", () => {
+    seedShot("s-stale");
+    const shot = shotOf("s-stale");
+
+    // Enqueued against board A…
+    useStoryboardGenerationStore
+      .getState()
+      .registerJob("s-stale", BOARD, "req-stale", "keyframe", {
+        shot,
+        board: boardA
+      });
+    // …the style changes while the render is in flight, and only then does the
+    // asset arrive.
+    __handleShotJobMessageForTests(
+      "req-stale",
+      context("s-stale", "keyframe"),
+      {
+        type: "rpc_response",
+        request_id: "req-stale",
+        result: { asset_ids: ["ast-stale"] }
+      } as never
+    );
+
+    const landed = shotOf("s-stale");
+    expect(landed.keyframe?.render_inputs).toBeDefined();
+    expect(isVersionStale(landed.keyframe, landed, boardB)).toBe(true);
+    // Against the board it was enqueued on it is current — which is what
+    // proves the record was taken at enqueue and not at landing.
+    expect(isVersionStale(landed.keyframe, landed, boardA)).toBe(false);
+  });
+
+  it("records the shot as it read at enqueue, not as it reads on landing", () => {
+    seedShot("s-timing");
+    useStoryboardGenerationStore
+      .getState()
+      .registerJob("s-timing", BOARD, "req-timing", "keyframe", {
+        shot: shotOf("s-timing"),
+        board: boardA
+      });
+    // The action is rewritten while the render is in flight. A record stamped
+    // on landing would hash the new action and read current; the enqueue-time
+    // record hashes the action that was actually rendered, so the landed still
+    // is stale.
+    useStoryboardStore
+      .getState()
+      .updateShot(BOARD, "s-timing", { action: "a different action entirely" });
+    __handleShotJobMessageForTests(
+      "req-timing",
+      context("s-timing", "keyframe"),
+      {
+        type: "rpc_response",
+        request_id: "req-timing",
+        result: { asset_ids: ["ast-timing"] }
+      } as never
+    );
+
+    const landed = shotOf("s-timing");
+    expect(isVersionStale(landed.keyframe, landed, boardA)).toBe(true);
+  });
+
+  it("a still enqueued and landed on the same board reads current", () => {
+    seedShot("s-current");
+    enqueueAndLand("s-current", "req-current", "keyframe", {
+      shot: shotOf("s-current"),
+      board: boardA
+    });
+
+    const landed = shotOf("s-current");
+    expect(isVersionStale(landed.keyframe, landed, boardA)).toBe(false);
+  });
+
+  it("a version that lands without a record is never stale", () => {
+    seedShot("s-legacy");
+    enqueueAndLand("s-legacy", "req-legacy", "keyframe");
+
+    const landed = shotOf("s-legacy");
+    expect(landed.keyframe?.render_inputs).toBeUndefined();
+    expect(isVersionStale(landed.keyframe, landed, boardB)).toBe(false);
+  });
+
+  it("records the board's still model for a keyframe", () => {
+    seedShot("s-model-still");
+    enqueueAndLand("s-model-still", "req-model-still", "keyframe", {
+      shot: shotOf("s-model-still"),
+      board: boardA
+    });
+
+    const record = shotOf("s-model-still").keyframe?.render_inputs;
+    expect(record?.kind).toBe("keyframe");
+    expect(record?.model).toBe(boardA.image_model);
+    expect(record?.aspect_ratio).toBe(boardA.aspect_ratio);
+    expect(record?.style_entity_id).toBe(boardA.style_entity_id);
+  });
+
+  it("records the board's video model for a clip", () => {
+    seedShot("s-model-clip");
+    enqueueAndLand("s-model-clip", "req-model-clip", "clip", {
+      shot: shotOf("s-model-clip"),
+      board: boardA
+    });
+
+    const record = shotOf("s-model-clip").clip?.render_inputs;
+    expect(record?.kind).toBe("clip");
+    expect(record?.model).toBe(boardA.video_model);
   });
 });

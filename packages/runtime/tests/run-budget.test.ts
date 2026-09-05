@@ -7,7 +7,7 @@
  * indistinguishable from a free one (assumption A-5, invariant I-4). Both are
  * pinned here.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   CompositeTurnBudget,
   createCounter,
@@ -313,17 +313,27 @@ describe("RunBudget", () => {
     expect(budget.turnCount.current).toBe(0);
   });
 
-  it("keeps the first reason when a second ceiling is hit later", async () => {
+  it("keeps the first reason when a second ceiling is hit later", () => {
     // Reporting the deadline for a run that had already run out of money would
     // point whoever reads it at the wrong limit.
-    const budget = createRunBudget({ ...options, capUsd: 0, deadlineMs: 10 });
-    expect(budget.turns.reserve(pricedTurn())).toBeNull();
-    expect(budget.exhausted?.kind).toBe("cost");
+    //
+    // The clock is faked because the deadline is measured against `Date.now()`
+    // from the moment the budget is built. On real time a loaded runner can
+    // spend the whole 10ms getting to the first `reserve`, so the deadline
+    // wins the race and the case never tests what it is named for.
+    vi.useFakeTimers();
+    try {
+      const budget = createRunBudget({ ...options, capUsd: 0, deadlineMs: 10 });
+      expect(budget.turns.reserve(pricedTurn())).toBeNull();
+      expect(budget.exhausted?.kind).toBe("cost");
 
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(budget.deadline.expired()).toBe(true);
-    expect(budget.turns.reserve(pricedTurn())).toBeNull();
-    expect(budget.exhausted?.kind).toBe("cost");
+      vi.advanceTimersByTime(20);
+      expect(budget.deadline.expired()).toBe(true);
+      expect(budget.turns.reserve(pricedTurn())).toBeNull();
+      expect(budget.exhausted?.kind).toBe("cost");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

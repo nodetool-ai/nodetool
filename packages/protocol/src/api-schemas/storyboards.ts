@@ -37,10 +37,23 @@ export const storyboardShot = z
     script_text_snapshot: z.string().optional(),
     duration_source: z.enum(["audio", "manual"]).optional(),
     /** Animate the shot's still, or generate the clip straight from text. */
-    render_mode: z.enum(["keyframe", "direct"]).optional()
+    render_mode: z.enum(["keyframe", "direct"]).optional(),
+    /** The scene this shot belongs to. Absent on legacy, unscened shots. */
+    scene_id: z.string().optional()
   })
   .passthrough();
 export type StoryboardShot = z.infer<typeof storyboardShot>;
+
+export const storyboardScene = z
+  .object({
+    type: z.literal("scene"),
+    id: z.string(),
+    /** "INT. SOPHIA'S FLAT - HALLWAY - EARLY MORNING". */
+    slugline: z.string(),
+    lighting: z.string().optional()
+  })
+  .passthrough();
+export type StoryboardScene = z.infer<typeof storyboardScene>;
 
 export const storyboardScreenplay = z
   .object({
@@ -49,7 +62,11 @@ export const storyboardScreenplay = z
     title: z.string(),
     shots: z.array(storyboardShot),
     /** The linked script resource, when this board's words come from one. */
-    script_id: z.string().nullable().optional()
+    script_id: z.string().nullable().optional(),
+    /** The board's genre as it stood when this screenplay was directed. */
+    genre: z.string().optional(),
+    /** The authoritative scene list. Order is derived from `shot.index`. */
+    scenes: z.array(storyboardScene).optional()
   })
   .passthrough();
 export type StoryboardScreenplay = z.infer<typeof storyboardScreenplay>;
@@ -73,8 +90,12 @@ const SHOT_KEY_ALIASES: Readonly<Record<string, string>> = {
   scriptLineIds: "script_line_ids",
   scriptTextSnapshot: "script_text_snapshot",
   durationSource: "duration_source",
-  renderMode: "render_mode"
+  renderMode: "render_mode",
+  sceneId: "scene_id"
 };
+
+// A scene has no multi-word key, so there is no scene alias table: `slugline`
+// and `lighting` are spelled the same on both surfaces.
 
 /** Tool-surface screenplay key → wire key. `style` is the Director's alias. */
 const SCREENPLAY_KEY_ALIASES: Readonly<Record<string, string>> = {
@@ -160,6 +181,34 @@ export function normalizeStoryboardShot(
 }
 
 /**
+ * Normalize one agent-supplied scene into the wire shape: `type` and `id` are
+ * filled in. Unlike a shot's `action`, a missing `slugline` does not throw — the
+ * CSV import path names an unrecognised scene value `Scene N`, and a scene the
+ * agent under-specified is still a usable grouping, so the same fallback applies
+ * here.
+ */
+export function normalizeStoryboardScene(
+  input: unknown,
+  index: number,
+  options: StoryboardNormalizeOptions = {}
+): StoryboardScene {
+  const newId = options.generateId ?? fallbackId;
+  if (!isPlainObject(input)) {
+    throw new Error(`Scene at position ${index} must be an object.`);
+  }
+  const slugline =
+    isString(input.slugline) && input.slugline.trim() !== ""
+      ? input.slugline
+      : `Scene ${index + 1}`;
+  return {
+    ...input,
+    type: "scene",
+    id: isNonEmptyString(input.id) ? input.id : newId(),
+    slugline
+  };
+}
+
+/**
  * Normalize an agent-supplied screenplay into the exact shape the storyboard
  * save accepts, then validate it against {@link storyboardScreenplay} — the
  * schema `storyboards.update` uses. Throws with the failing paths when the
@@ -182,7 +231,7 @@ export function normalizeStoryboardScreenplay(
     );
   }
   const play = applyAliases(input, SCREENPLAY_KEY_ALIASES);
-  const candidate = {
+  const candidate: Record<string, unknown> = {
     ...play,
     type: "screenplay",
     id: isNonEmptyString(play.id) ? play.id : newId(),
@@ -191,6 +240,13 @@ export function normalizeStoryboardScreenplay(
       normalizeStoryboardShot(shot, index, options)
     )
   };
+  // Only overwrite `scenes` when the payload carried one, so a screenplay
+  // without scenes stays without the key rather than gaining an empty one.
+  if (Array.isArray(play.scenes)) {
+    candidate.scenes = (play.scenes as unknown[]).map((scene, index) =>
+      normalizeStoryboardScene(scene, index, options)
+    );
+  }
   const parsed = storyboardScreenplay.safeParse(candidate);
   if (!parsed.success) {
     const paths = parsed.error.issues
@@ -216,6 +272,16 @@ const modelSelection = z
 
 // ── Document ────────────────────────────────────────────────────────────────
 
+/** Where a board sits in the guided setup. A board built before it reads "done". */
+export const storyboardSetupStage = z.enum([
+  "idea",
+  "genre",
+  "review",
+  "look",
+  "done"
+]);
+export type StoryboardSetupStage = z.infer<typeof storyboardSetupStage>;
+
 export const storyboardDocument = z.object({
   screenplay: storyboardScreenplay.nullable(),
   shots: z.array(storyboardShot),
@@ -224,6 +290,9 @@ export const storyboardDocument = z.object({
   /** Library entity (asset) ids whose descriptors season every shot prompt. */
   entityIds: z.array(z.string()).default([]),
   aspectRatio: z.string(),
+  setupStage: storyboardSetupStage.default("done"),
+  /** Genre sits on the board, not the screenplay: it is picked before one exists. */
+  genre: z.string().default(""),
   directorModel: modelSelection.nullable(),
   imageModel: modelSelection.nullable(),
   videoModel: modelSelection.nullable()

@@ -1,5 +1,6 @@
 import { eq, desc, and, sql } from "drizzle-orm";
 import type { Screenplay, Shot } from "@nodetool-ai/protocol";
+import type { StoryboardSetupStage } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 import {
   DBModel,
   ModelChangeEvent,
@@ -22,6 +23,10 @@ export interface StoryboardDocument {
   /** Library entity (asset) ids applied to the board's shot prompts. */
   entityIds: string[];
   aspectRatio: string;
+  /** Where the board sits in guided setup. Rows written before it read "done". */
+  setupStage: StoryboardSetupStage;
+  /** Genre lives on the board, not the screenplay: it is picked before one exists. */
+  genre: string;
   /** Model selections; loosely typed — validated by the router schemas. */
   directorModel: Record<string, unknown> | null;
   imageModel: Record<string, unknown> | null;
@@ -52,6 +57,8 @@ export const emptyStoryboardDocument = (): StoryboardDocument => ({
   style: "",
   entityIds: [],
   aspectRatio: "16:9",
+  setupStage: "done",
+  genre: "",
   directorModel: null,
   imageModel: null,
   videoModel: null
@@ -107,8 +114,10 @@ export class Storyboard extends DBModel {
 
   toDocument(): StoryboardDocument {
     const doc = JSON.parse(this.document) as StoryboardDocument;
-    // Rows persisted before entities existed lack the field.
+    // Rows persisted before these fields existed lack them.
     doc.entityIds ??= [];
+    doc.setupStage ??= "done";
+    doc.genre ??= "";
     return doc;
   }
 
