@@ -11,7 +11,7 @@
  * (see `TopBarPrompt`'s `compact` layout).
  */
 
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
@@ -80,10 +80,30 @@ export const TopBar: React.FC<TopBarProps> = memo(
   }) => {
     const theme = useTheme();
     const isMobile = useTimelineIsMobile();
+    const [isNarrow, setIsNarrow] = useState(false);
+    const isCompact = isMobile || isNarrow;
+    const barRef = React.useRef<HTMLDivElement>(null);
     const [overflowAnchor, setOverflowAnchor] = useState<HTMLElement | null>(
       null
     );
     const closeOverflow = useCallback(() => setOverflowAnchor(null), []);
+
+    useEffect(() => {
+      const element = barRef.current;
+      if (!element) return;
+      // The prompt's model/settings rail and the four labelled actions need
+      // roughly 1,200px together. Collapse the actions before flexbox starts
+      // shrinking controls into one another, so this remains safe when a
+      // sidebar reduces the editor to an intermediate width.
+      const update = () => {
+        if (element.clientWidth === 0) return;
+        setIsNarrow(element.clientWidth < 1200);
+      };
+      update();
+      const observer = new ResizeObserver(update);
+      observer.observe(element);
+      return () => observer.disconnect();
+    }, []);
 
     // "Save as Asset" anchors a folder popover to whatever element was clicked.
     // From the overflow menu that element is the menu item, which unmounts on
@@ -97,11 +117,17 @@ export const TopBar: React.FC<TopBarProps> = memo(
       [closeOverflow]
     );
 
-    if (isMobile) {
+    if (isCompact) {
       const hasActions =
         !!onOpenSettings || !!onSave || !!onSaveToAssets || !!onExportVideo;
       return (
-        <FlexRow align="flex-start" gap={SPACING.sm} fullWidth css={styles(theme, true)}>
+        <FlexRow
+          ref={barRef}
+          align="flex-start"
+          gap={SPACING.sm}
+          fullWidth
+          css={styles(theme, true)}
+        >
           <TopBarPrompt compact />
           {activitySlot}
           {hasActions && (
@@ -163,6 +189,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
 
     return (
       <FlexRow
+        ref={barRef}
         align="center"
         gap={SPACING.xs}
         fullWidth

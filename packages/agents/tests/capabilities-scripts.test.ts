@@ -479,4 +479,70 @@ describe("scripts capability behaviour", () => {
     expect(result.note).toContain("set_speaker_voice");
     expect(result.note).not.toContain("already up to date");
   });
+
+  // `get_script` reports a speaker's voice as one object, so a caller that
+  // reads the cast back and writes it straight into `set_speaker_voice` sends
+  // that object — and used to be refused with a message listing the three keys
+  // it had just supplied, one level down.
+  describe("a voice sent as an object", () => {
+    it("flattens it onto the speaker, whichever key names the voice", async () => {
+      const row = await makeScript(
+        [line({ id: "l1", speakerId: "sp1" })],
+        [{ id: "sp1", name: "MOM", voice: null }] as never
+      );
+      const result = (await run(ctx().context).invoke("edit_script", {
+        script_id: row.id,
+        ops: [
+          {
+            op: "set_speaker_voice",
+            target: "MOM",
+            voice: { provider: "gemini", model: "tts-hd", voice_id: "Aoede" }
+          }
+        ]
+      })) as { applied: number; failed: number; ops: Array<{ error?: string }> };
+      expect(result).toMatchObject({ applied: 1, failed: 0 });
+
+      const read = (await run(ctx().context).invoke("get_script", {
+        script_id: row.id
+      })) as { cast: Array<{ name: string; voice: unknown }> };
+      expect(read.cast[0].voice).toEqual({
+        provider: "gemini",
+        model: "tts-hd",
+        voice: "Aoede"
+      });
+    });
+
+    it("still refuses one that names no voice, and says which key is missing", async () => {
+      const row = await makeScript(
+        [line({ id: "l1", speakerId: "sp1" })],
+        [{ id: "sp1", name: "MOM", voice: null }] as never
+      );
+      const result = (await run(ctx().context).invoke("edit_script", {
+        script_id: row.id,
+        ops: [
+          {
+            op: "set_speaker_voice",
+            target: "MOM",
+            voice: { provider: "gemini", model: "tts-hd" }
+          }
+        ]
+      })) as { failed: number; ops: Array<{ error?: string }> };
+      expect(result.failed).toBe(1);
+      expect(result.ops[0].error).toContain("has no voice");
+    });
+  });
+
+  // A provider and a model with no voice is the shape a caller sends meaning
+  // "use this endpoint for the whole script". The refusal used to list the
+  // three keys without saying what `voice` is or where to set it once.
+  it("points a half-specified voice override at set_speaker_voice", async () => {
+    const row = await makeScript([line({ id: "l1", speakerId: "sp1" })]);
+    const result = (await run(ctx().context).invoke("voice_script_lines", {
+      script_id: row.id,
+      provider: "gemini",
+      model: "tts-hd"
+    })) as { error?: string };
+    expect(result.error).toContain("set_speaker_voice");
+    expect(result.error).toContain("the voice's own name");
+  });
 });

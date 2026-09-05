@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/storage",
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "Uniform storage interface for NodeTool over local files, memory, Amazon S3, and Supabase Storage",
   "type": "module",
   "engines": {

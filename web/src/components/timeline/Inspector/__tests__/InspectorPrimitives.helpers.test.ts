@@ -44,9 +44,15 @@ describe("formatTimecode", () => {
     expect(formatTimecode(-100, 30)).toBe("00:00:00:00");
   });
 
-  it("handles fractional fps by rounding", () => {
-    // 29.97fps → 30fps
+  it("uses the actual fractional fps for elapsed frame math", () => {
     expect(formatTimecode(1000, 29.97)).toBe("00:00:01:00");
+    expect(formatTimecode(984, 29.97)).toBe("00:00:00:29");
+  });
+
+  it("round-trips a long fractional-fps timecode", () => {
+    // A frame-aligned timestamp is exactly representable in HH:MM:SS:FF.
+    const timeMs = 60_060;
+    expect(parseTimecode(formatTimecode(timeMs, 29.97), 29.97)).toBe(timeMs);
   });
 
   it("handles 0 fps by using 1", () => {

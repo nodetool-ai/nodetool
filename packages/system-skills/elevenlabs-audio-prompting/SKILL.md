@@ -130,6 +130,18 @@ Check the result with `analyze_audio` and `detect_audio_events` rather than
 listening through it, and `transcribe_audio` when you need to prove the words
 landed as written.
 
+## Where it lands
+
+A voice or a bed from here is the "track of your own" build in
+`video-audio-continuity`: it goes on its own audio track and the generated
+clips are muted under it, which is what lets a multi-scene piece keep one
+continuous mix. For a storyboard's script, `voice_script_lines` voices every
+line in one call, each with its own voice, instead of one `generate_speech`
+per line. A bed built from a `composition_plan` has sections of known length,
+which is the grid `beat-sync-editing` cuts to; a sound-effect hit is what
+`logo-reveal` times a sting against. `motion-graphics` carries the timeline ops
+that lay the clip down.
+
 Adapted from the ElevenLabs prompting documentation for Eleven v3, sound
 effects and music:
 https://elevenlabs.io/docs/best-practices/prompting/eleven-v3

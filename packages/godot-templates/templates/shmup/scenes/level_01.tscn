@@ -1,0 +1,30 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/level_01.gd" id="1_level"]
+[ext_resource type="Texture2D" path="res://assets/images/bg_space.png" id="2_bg"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3_player"]
+[ext_resource type="PackedScene" path="res://scenes/enemy_drone.tscn" id="4_enemy"]
+
+[node name="Level01" type="Node2D"]
+script = ExtResource("1_level")
+enemy_scene = ExtResource("4_enemy")
+
+[node name="Background" type="ParallaxBackground" parent="."]
+
+[node name="SpaceLayer" type="ParallaxLayer" parent="Background"]
+motion_mirroring = Vector2(0, 540)
+
+[node name="Space" type="Sprite2D" parent="Background/SpaceLayer"]
+position = Vector2(480, 270)
+texture = ExtResource("2_bg")
+
+[node name="Enemies" type="Node2D" parent="."]
+
+[node name="Bullets" type="Node2D" parent="."]
+
+[node name="Player" parent="." instance=ExtResource("3_player")]
+position = Vector2(480, 460)
+
+[node name="SpawnTimer" type="Timer" parent="."]
+wait_time = 1.2
+autostart = true

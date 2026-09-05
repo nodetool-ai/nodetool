@@ -392,7 +392,10 @@ let connectPromise: Promise<void> | null = null;
 // - `inFlightMessageLoads` dedupes loadMessages() per thread: concurrent calls
 //   for the SAME thread await one request, while loads for different threads
 //   proceed independently.
-const inFlightMessageLoads = new Map<string, Promise<Message[]>>();
+const inFlightMessageLoads = new Map<
+  string,
+  { cursor?: string; promise: Promise<Message[]> }
+>();
 
 /**
  * Register the socket handler for one thread, once.
@@ -1464,14 +1467,19 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // independently (a store-wide guard used to silently drop them).
         const inFlight = inFlightMessageLoads.get(threadId);
         if (inFlight) {
-          return inFlight;
+          if (inFlight.cursor === cursor) return inFlight.promise;
+          await inFlight.promise;
+          return get().loadMessages(threadId, cursor);
+        }
+        if (cursor && get().messageCursors[threadId] !== cursor) {
+          return get().messageCache[threadId] || [];
         }
 
         const load = (async (): Promise<Message[]> => {
           try {
             const listInput: Parameters<
               typeof trpcClient.messages.list.query
-            >[0] = { thread_id: threadId, limit: 100 };
+            >[0] = { thread_id: threadId, limit: 100, reverse: true };
             if (cursor) listInput.cursor = cursor;
             const data = await trpcClient.messages.list.query(listInput);
 
@@ -1479,19 +1487,27 @@ const useGlobalChatStore = create<GlobalChatState>()(
             // web-side `Message` openapi type — the endpoint never emits the
             // agent-specific fields that type adds, and every one of them is
             // optional, so each row read here is a `Message` at run time.
-            const messages = (data.messages ?? []) as Message[];
+            const messages = [...(data.messages ?? [])].reverse() as Message[];
             const nextCursor = data.next;
 
             set((state) => {
               const existingMessages = state.messageCache[threadId] || [];
-              // A full refresh replaces the cache with persisted history —
-              // but the trailing `local-stream-*` placeholder holds streamed
-              // text of a reply that is not persisted yet (it exists while a
-              // resume replay and this REST load race), so carry it over
-              // instead of wiping it.
+              // Keep already-loaded older history when the refreshed page
+              // overlaps it. A disconnected gap starts a new window instead.
+              const overlapIndex = messages[0]?.id
+                ? existingMessages.findIndex((m) => m.id === messages[0].id)
+                : -1;
+              const olderHistory = overlapIndex > 0
+                ? existingMessages.slice(0, overlapIndex)
+                : [];
+              const existingIds = new Set(existingMessages.map((m) => m.id));
               const updatedMessages = cursor
-                ? [...existingMessages, ...messages]
+                ? [
+                    ...messages.filter((m) => !existingIds.has(m.id)),
+                    ...existingMessages
+                  ]
                 : [
+                    ...olderHistory,
                     ...messages,
                     ...existingMessages.filter(
                       (m) =>
@@ -1507,7 +1523,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
                 },
                 messageCursors: {
                   ...state.messageCursors,
-                  [threadId]: nextCursor
+                  [threadId]: !cursor && olderHistory.length > 0
+                    ? state.messageCursors[threadId]
+                    : nextCursor
                 }
               };
             });
@@ -1526,7 +1544,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         })();
 
         // `isLoadingMessages` stays a store-wide "any load in flight" flag.
-        inFlightMessageLoads.set(threadId, load);
+        inFlightMessageLoads.set(threadId, { cursor, promise: load });
         set({ isLoadingMessages: true, error: null });
         try {
           return await load;

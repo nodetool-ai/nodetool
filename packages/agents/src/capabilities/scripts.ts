@@ -533,8 +533,9 @@ const getScript: CapabilityExport = {
 
 /** The call-level voice override, or null when the lines' own voices apply. */
 function voiceOverrideFrom(
-  params: Record<string, unknown>
+  rawParams: Record<string, unknown>
 ): ScriptVoiceBinding | null | ToolError {
+  const params = flattenVoiceArg(rawParams);
   const provider = params["provider"];
   const model = params["model"];
   const voice = params["voice"];
@@ -545,9 +546,18 @@ function voiceOverrideFrom(
     !isNonEmptyString(model) ||
     !isNonEmptyString(voice)
   ) {
+    // A provider and a model with no voice is the shape a caller sends when
+    // it means "use this TTS endpoint for the whole script" — there is no
+    // such thing here, because the endpoint does not pick a voice. Naming the
+    // op that does say it saves the round trip the refusal used to cost.
     return {
       error:
-        "A voice override needs all three of provider, model, and voice (use find_model with capability=text_to_speech). Omit all three to use each line's own voice."
+        "A voice override needs all three of provider, model, and voice — " +
+        "`voice` is the voice's own name (e.g. \"Aoede\"), which find_model " +
+        "with capability=text_to_speech lists per model. To give the whole " +
+        'script one model, set each speaker\'s voice once with edit_script ' +
+        '{"op": "set_speaker_voice", "target": "<speaker>", "provider", ' +
+        '"model", "voice"} and call this with no override at all.'
     };
   }
   return { provider, model, voice };
@@ -1146,18 +1156,65 @@ function mintId(prefix: string, used: Set<string>): string {
   return `${prefix}_${n}`;
 }
 
+/**
+ * How the voice's own name is spelled inside a nested voice object, depending
+ * on which surface printed it. All five mean the same field.
+ */
+const VOICE_NAME_KEYS = ["voice", "voice_id", "voiceId", "id", "name"] as const;
+
+/**
+ * Flatten a voice sent as an object under `voice`.
+ *
+ * The binding is three sibling keys, but `get_script` *reports* a speaker's
+ * voice as one object, so `{op: "set_speaker_voice", target, voice: {provider,
+ * model, voice_id}}` is what a caller writes after reading the cast back — and
+ * it used to land as a `voice` that was not a string, fail the triple check,
+ * and be refused with a message listing the three keys it had just supplied.
+ */
+function flattenVoiceArg(
+  args: Record<string, unknown>
+): Record<string, unknown> {
+  const nested = args["voice"];
+  if (!isRecord(nested)) return args;
+  const { voice: _nested, ...rest } = args;
+  const flat: Record<string, unknown> = { ...rest };
+  for (const key of ["provider", "model", "settings"]) {
+    if (flat[key] === undefined && nested[key] !== undefined) {
+      flat[key] = nested[key];
+    }
+  }
+  const name = VOICE_NAME_KEYS.map((key) => nested[key]).find((v) =>
+    isString(v)
+  );
+  if (name !== undefined) flat["voice"] = name;
+  return flat;
+}
+
 /** A provider/model/voice triple, all three or none — never a half-guess. */
 function parseVoiceBinding(
-  args: Record<string, unknown>
+  raw: Record<string, unknown>
 ): ScriptVoiceBinding | null {
+  const args = flattenVoiceArg(raw);
   const provider = args["provider"];
   const model = args["model"];
   const voice = args["voice"];
   const given = [provider, model, voice].filter((v) => isString(v));
   if (given.length === 0) return null;
   if (given.length !== 3) {
+    const missing = (
+      [
+        ["provider", provider],
+        ["model", model],
+        ["voice", voice]
+      ] as const
+    )
+      .filter(([, value]) => !isString(value))
+      .map(([key]) => key);
     throw new Error(
-      "A voice needs provider, model and voice together (use find_model to pick one)."
+      `A voice needs provider, model and voice together; this one has no ${missing.join(" and no ")}. ` +
+        "`voice` is the voice's own name (e.g. \"Aoede\"), not a second model " +
+        "id — find_model with capability=text_to_speech lists the names a " +
+        "model takes."
     );
   }
   const binding: ScriptVoiceBinding = {

@@ -3,7 +3,7 @@ import { isAuthRequired } from "../runtimeConfig";
 import { supabase } from "../supabaseClient";
 import { BASE_URL } from "../../stores/BASE_URL";
 import useMetadataStore from "../../stores/MetadataStore";
-import type { Edge, Node, WorkflowGraph } from "../../stores/ApiTypes";
+import type { WorkflowGraph } from "../../stores/ApiTypes";
 import {
   canRunGraphInBrowserSync,
   runBrowserGraphJob
@@ -15,8 +15,6 @@ import {
 } from "../../stores/runSignatures";
 import { isString } from "../../utils/typePredicates";
 
-export type GraphNode = Node;
-export type GraphEdge = Edge;
 export type InlineGraph = WorkflowGraph;
 
 interface InlineGraphJobOptions {

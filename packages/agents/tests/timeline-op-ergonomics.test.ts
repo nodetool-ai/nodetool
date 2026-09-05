@@ -109,6 +109,81 @@ describe("ui_timeline_set_clip_params", () => {
     ).toBe(140);
   });
 
+  /**
+   * `{op, target, params: {...}}` is the REST-shaped guess. The fields were
+   * refused as one unknown key called `params`, with the real ones hidden a
+   * level down inside it.
+   */
+  it("lifts a patch the caller nested under `params`", async () => {
+    const { b, byName } = bridge();
+    await byName["ui_timeline_set_clip_params"].execute({
+      target: "shot",
+      params: { opacity: 0.4, durationMs: 3000 }
+    });
+    expect(b.finalState().documentClips[0]).toMatchObject({
+      opacity: 0.4,
+      durationMs: 3000
+    });
+  });
+
+  it("lets a key on the op itself win over the wrapper's copy", async () => {
+    const { b, byName } = bridge();
+    await byName["ui_timeline_set_clip_params"].execute({
+      target: "shot",
+      opacity: 0.9,
+      params: { opacity: 0.1 }
+    });
+    expect(b.finalState().documentClips[0].opacity).toBe(0.9);
+  });
+
+  /**
+   * A finished title needed one field changed. `textStyle` required the whole
+   * bag — text, fontSizePx and color — so a partial failed Zod validation, and
+   * re-sending the whole object to get past that is how the fields the caller
+   * did not mean to touch get overwritten.
+   */
+  it("merges a partial textStyle over the one the clip carries", async () => {
+    const { byName } = bridge();
+    await byName["ui_timeline_add_text_clip"].execute({
+      text: "MY MOM IS HOMELESS",
+      fontSizePx: 64,
+      color: "#ffffff"
+    });
+    const result = await byName["ui_timeline_set_clip_params"].execute({
+      target: "selected",
+      textStyle: { fontFamily: "Space Grotesk", fontWeight: 800 }
+    });
+    expect(clipOf(result).textStyle).toMatchObject({
+      text: "MY MOM IS HOMELESS",
+      fontSizePx: 64,
+      color: "#ffffff",
+      fontFamily: "Space Grotesk",
+      fontWeight: 800
+    });
+  });
+
+  it("takes a CSS weight keyword and stores the number the renderer draws", async () => {
+    const { byName } = bridge();
+    await byName["ui_timeline_add_text_clip"].execute({ text: "TITLE" });
+    const result = await byName["ui_timeline_set_clip_params"].execute({
+      target: "selected",
+      textStyle: { fontWeight: "extrabold" }
+    });
+    expect(
+      (clipOf(result).textStyle as Record<string, unknown>).fontWeight
+    ).toBe(800);
+  });
+
+  it("says what a patch is still missing on a clip with no text style", async () => {
+    const { byName } = bridge();
+    await expect(
+      byName["ui_timeline_set_clip_params"].execute({
+        target: "shot",
+        textStyle: { fontFamily: "Space Grotesk" }
+      })
+    ).rejects.toThrow(/still needs .*(text|color|fontSizePx)/);
+  });
+
   it("refuses a key it does not know, naming the op that does the job", async () => {
     const { byName } = bridge();
     await expect(
@@ -123,6 +198,47 @@ describe("ui_timeline_set_clip_params", () => {
         wobble: 3
       })
     ).rejects.toThrow(/no `wobble` param/);
+  });
+});
+
+/**
+ * `sans-serif` names no typeface: it is whatever the machine drawing the frame
+ * calls its default, so the editor preview, the render and the frame preview
+ * each pick their own. It used to be stored and reported afterwards as a
+ * `font_not_portable` validator warning — one round trip after the title was
+ * already authored.
+ */
+describe("generic font families", () => {
+  it("refuses one on the clip that is being authored", async () => {
+    const { byName } = bridge();
+    await expect(
+      byName["ui_timeline_add_text_clip"].execute({
+        text: "TITLE",
+        fontFamily: "sans-serif"
+      })
+    ).rejects.toThrow(/names no typeface[\s\S]*Space Grotesk/);
+  });
+
+  it("refuses one on a set_clip_params patch as well", async () => {
+    const { byName } = bridge();
+    await byName["ui_timeline_add_text_clip"].execute({ text: "TITLE" });
+    await expect(
+      byName["ui_timeline_set_clip_params"].execute({
+        target: "selected",
+        textStyle: { fontFamily: "system-ui" }
+      })
+    ).rejects.toThrow(/names no typeface/);
+  });
+
+  it("still takes a named system font, which the validator reports instead", async () => {
+    const { byName } = bridge();
+    const result = await byName["ui_timeline_add_text_clip"].execute({
+      text: "TITLE",
+      fontFamily: "Helvetica Neue"
+    });
+    expect(
+      (clipOf(result).textStyle as Record<string, unknown>).fontFamily
+    ).toBe("Helvetica Neue");
   });
 });
 

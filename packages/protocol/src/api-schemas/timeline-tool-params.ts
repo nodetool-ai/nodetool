@@ -269,6 +269,57 @@ const textBackgroundParams = z
   })
   .strict();
 
+/**
+ * CSS weight keywords, as the number the rasterizer draws with.
+ *
+ * `fontWeight` is a number on the document because that is what a canvas font
+ * shorthand takes, but every caller writes CSS, and `"bold"` came back as a
+ * Zod type error on a title that was otherwise complete. The keywords are
+ * unambiguous, so translating them costs nothing; a weight that is neither a
+ * number nor a keyword is still refused.
+ */
+const FONT_WEIGHT_KEYWORDS: Readonly<Record<string, number>> = {
+  thin: 100,
+  hairline: 100,
+  extralight: 200,
+  ultralight: 200,
+  light: 300,
+  normal: 400,
+  regular: 400,
+  book: 400,
+  medium: 500,
+  semibold: 600,
+  demibold: 600,
+  bold: 700,
+  extrabold: 800,
+  ultrabold: 800,
+  black: 900,
+  heavy: 900
+};
+
+/** A weight written as a word (or a quoted number), as its number. */
+const writtenFontWeight = z
+  .string()
+  .transform((raw) => raw.trim().toLowerCase().replace(/[\s_-]/g, ""))
+  .refine(
+    (key) => FONT_WEIGHT_KEYWORDS[key] !== undefined || isFiniteWeight(key),
+    {
+      message: `not a weight — use a number, or one of: ${Object.keys(FONT_WEIGHT_KEYWORDS).join(", ")}`
+    }
+  )
+  .transform((key) => FONT_WEIGHT_KEYWORDS[key] ?? Number(key));
+
+const isFiniteWeight = (key: string): boolean =>
+  key !== "" && Number.isFinite(Number(key));
+
+/** `fontWeight`, accepting the CSS keyword spellings as well as the number. */
+export const fontWeightParam = z
+  .union([z.number(), writtenFontWeight])
+  .describe(
+    "Numeric weight (400 regular, 600 semibold, 800 extrabold). The CSS " +
+      'keywords ("bold", "semibold", …) are accepted and stored as their number.'
+  );
+
 /** A text clip's whole authored look, as `set_clip_params` replaces it. */
 export const textStyleParams = withFieldNotes(clipTextStyle, {
   fontSizePx: "Font size in sequence pixels, not CSS pixels.",
@@ -295,6 +346,7 @@ export const textStyleParams = withFieldNotes(clipTextStyle, {
    * Only the authoring surface is strict. Widening the document schema would
    * make an already-saved sequence carrying `"center"` fail to save.
    */
+  fontWeight: fontWeightParam.optional(),
   verticalAlign: z
     .enum(["top", "middle", "bottom"])
     .optional()
@@ -355,6 +407,20 @@ export function withTextClipRemedies<TSchema extends z.ZodType>(
 export const partialTextStyleParams = textStyleParams
   .omit({ text: true })
   .partial();
+
+/**
+ * The look as `set_clip_params` takes it: every field optional, merged over
+ * what the clip already carries.
+ *
+ * Changing one field used to mean re-sending the whole style, because
+ * `textStyleParams` requires `text`, `fontSizePx` and `color` — so
+ * `{textStyle: {fontFamily: "Space Grotesk"}}` on a finished title failed
+ * validation, and re-sending the whole object to get past it is how a caller
+ * overwrites the four fields it did not mean to touch. The op merges instead,
+ * and a clip with no text style yet still needs the three required fields
+ * before it draws anything.
+ */
+export const textStylePatchParams = textStyleParams.partial();
 
 /** A shape clip's geometry and fill. */
 export const shapeStyleParams = withFieldNotes(clipShapeStyle, {

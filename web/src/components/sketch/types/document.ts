@@ -17,9 +17,7 @@ import {
   IDENTITY_AFFINE,
   type AffineTransform,
   type LayerTransform,
-  type LayerTransformModeTag,
   type Quad,
-  type QuadTransform,
   type SingleQuadMode,
   type SingleQuadTransform,
   cloneQuad,
@@ -95,9 +93,7 @@ export type {
   AffineMatrix,
   AffineTransform,
   LayerTransform,
-  LayerTransformModeTag,
   Quad,
-  QuadTransform,
   SingleQuadMode,
   SingleQuadTransform
 };

@@ -6,7 +6,8 @@
  * - Major ticks every 5 s, minor every 1 s by default.
  * - Tick density adapts to msPerPx zoom level.
  * - Click → set playhead; drag → scrub (live update).
- * - Timecode format: M:SS (e.g. 0:05, 1:30).
+ * - Timecode format: M:SS (e.g. 0:05, 1:30); M:SS:FF once ticks go sub-second.
+ * - In/out range (I / O) drawn as a band behind the ticks.
  */
 
 import React, {
@@ -240,16 +241,31 @@ function computeTickIntervals(msPerPx: number) {
 }
 
 /**
- * Formats ms into M:SS (e.g. 0:05, 1:30), gaining decimals once the tick
- * interval is sub-second — otherwise zooming past 1 s/tick prints the same
- * label on every tick ("0:02  0:02  0:02") and the ruler stops saying where
- * anything is.
+ * Formats ms into M:SS (e.g. 0:05, 1:30). Once the tick interval is
+ * sub-second the label has to say more or every tick reads the same
+ * ("0:02  0:02  0:02"): with an `fps` it gains a frame field (M:SS:FF, the
+ * non-drop-frame timecode editors count in), without one it gains decimals.
  */
-export function formatTimecode(ms: number, majorMs = 1000): string {
+export function formatTimecode(
+  ms: number,
+  majorMs = 1000,
+  fps?: number
+): string {
   const totalSec = ms / 1000;
   const min = Math.floor(totalSec / 60);
   const sec = totalSec - min * 60;
-  const decimals = majorMs >= 1000 ? 0 : majorMs >= 500 ? 1 : 2;
+  if (majorMs >= 1000) {
+    return `${min}:${sec < 10 ? "0" : ""}${sec.toFixed(0)}`;
+  }
+  if (fps !== undefined && fps > 0) {
+    const fpsInt = Math.max(1, Math.round(fps));
+    const totalFrames = Math.round((ms / 1000) * fps);
+    const frame = totalFrames % fpsInt;
+    const wholeSec = Math.floor(totalFrames / fpsInt) % 60;
+    const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+    return `${min}:${pad(wholeSec)}:${pad(frame)}`;
+  }
+  const decimals = majorMs >= 500 ? 1 : 2;
   const secText = sec.toFixed(decimals);
   return `${min}:${sec < 10 ? "0" : ""}${secText}`;
 }
@@ -276,6 +292,9 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
     const playbackStoreApi = useTimelinePlaybackStoreApi();
     const markers = useTimelineStore((s) => s.markers);
     const removeScene = useTimelineStore((s) => s.removeScene);
+    const fps = useTimelineStore((s) => s.fps);
+    const rangeInMs = useTimelinePlaybackStore((s) => s.rangeInMs);
+    const rangeOutMs = useTimelinePlaybackStore((s) => s.rangeOutMs);
 
     // Resize → redraw.
     // The canvas backing store is sized from offsetWidth/offsetHeight inside
@@ -336,9 +355,21 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       scrollLeftPx,
       theme,
       activeMode,
-      markers
+      markers,
+      fps,
+      rangeInMs,
+      rangeOutMs
     });
-    drawInputsRef.current = { msPerPx, scrollLeftPx, theme, activeMode, markers };
+    drawInputsRef.current = {
+      msPerPx,
+      scrollLeftPx,
+      theme,
+      activeMode,
+      markers,
+      fps,
+      rangeInMs,
+      rangeOutMs
+    };
 
     const rafIdRef = useRef<number | null>(null);
 
@@ -353,7 +384,10 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
         scrollLeftPx: scrollLeft,
         theme: th,
         activeMode: mode,
-        markers: marks
+        markers: marks,
+        fps: frameRate,
+        rangeInMs: rangeIn,
+        rangeOutMs: rangeOut
       } = drawInputsRef.current;
 
       const dpr = window.devicePixelRatio || 1;
@@ -383,6 +417,27 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       const tickColor = colors.tick;
 
       const { majorMs, minorMs } = computeTickIntervals(mpp);
+
+      // In/out range: a translucent band from the in point (or 0) to the out
+      // point (or the right edge), with a solid edge line at each set point.
+      if (rangeIn !== null || rangeOut !== null) {
+        const inPx = rangeIn === null ? 0 : rangeIn / mpp - scrollLeft;
+        const outPx = rangeOut === null ? w : rangeOut / mpp - scrollLeft;
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        ctx.fillStyle = colors.marker;
+        ctx.fillRect(Math.max(0, inPx), 0, Math.min(w, outPx) - Math.max(0, inPx), h);
+        ctx.restore();
+        ctx.strokeStyle = colors.marker;
+        ctx.lineWidth = 2;
+        for (const px of [rangeIn === null ? null : inPx, rangeOut === null ? null : outPx]) {
+          if (px === null || px < 0 || px > w) continue;
+          ctx.beginPath();
+          ctx.moveTo(px, 0);
+          ctx.lineTo(px, h);
+          ctx.stroke();
+        }
+      }
 
       // The canvas is already offset by the CSS paddingLeft (headerWidthPx),
       // so its x=0 aligns with the scrollable lanes' left edge. We work in the
@@ -419,7 +474,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
 
         if (isMajor) {
           ctx.fillStyle = textColor;
-          ctx.fillText(formatTimecode(tMs, majorMs), px + 3, 3);
+          ctx.fillText(formatTimecode(tMs, majorMs, frameRate), px + 3, 3);
         }
       }
 
@@ -465,6 +520,9 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       headerWidthPx,
       activeMode,
       markers,
+      fps,
+      rangeInMs,
+      rangeOutMs,
       resizeTick,
       scheduleDraw
     ]);

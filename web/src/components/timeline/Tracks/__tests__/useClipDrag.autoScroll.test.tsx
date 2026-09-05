@@ -32,7 +32,6 @@ jest.mock("../../../../stores/timeline/TimelineGenerationStore", () => ({
   ) => sel({ clipJobs: {} })
 }));
 
-import React from "react";
 import { act, screen } from "@testing-library/react";
 import {
   installPointerEvent,

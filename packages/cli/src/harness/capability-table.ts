@@ -2170,6 +2170,36 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "list_game_templates",
+    module: "godot",
+    impl: "packages/agents/src/capabilities/godot.ts",
+    contract: "85f4fc8fe398",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-godot.test.ts",
+    ],
+  },
+  {
+    name: "export_godot_project",
+    module: "godot",
+    impl: "packages/agents/src/capabilities/godot.ts",
+    contract: "f9f830100b22",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-godot.test.ts",
+    ],
+  },
+  {
+    name: "verify_godot_project",
+    module: "godot",
+    impl: "packages/agents/src/capabilities/godot.ts",
+    contract: "692f31ffcb66",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-godot.test.ts",
+    ],
+  },
+  {
     name: "list_scripts",
     module: "scripts",
     impl: "packages/agents/src/capabilities/scripts.ts",
@@ -2286,7 +2316,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "a9792020b14a",
+    contract: "23b366075a94",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
@@ -2318,7 +2348,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "render_storyboard_clips",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "7cfc44e9c9d6",
+    contract: "63dfa003d0f1",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
@@ -2360,7 +2390,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "9b3c1f3f93a1",
+    contract: "e0a1059b33ed",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",

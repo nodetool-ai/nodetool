@@ -1,5 +1,11 @@
-import { act } from "@testing-library/react";
-import { useAssetGridStore } from "../AssetGridStore";
+import { act, render, waitFor } from "@testing-library/react";
+import {
+  AssetGridStoreProvider,
+  ASSETS_ASSET_GRID_STORE_KEY,
+  getSelectedAssetForExplorer,
+  useAssetGridStore
+} from "../AssetGridStore";
+import { useEffect } from "react";
 import { Asset } from "../ApiTypes";
 
 const createMockAsset = (id: string, name: string = `Asset ${id}`): Asset => ({
@@ -32,6 +38,28 @@ describe("AssetGridStore", () => {
     store.setAssetItemSize(2);
     store.setIsGlobalSearchMode(false);
     store.setGlobalSearchResults([]);
+  });
+
+  it("exposes the selected asset from the active scoped explorer", async () => {
+    const asset = createMockAsset("sidebar-video", "Beach scene");
+    const SelectionWriter = () => {
+      const setSelectedAssets = useAssetGridStore(
+        (state) => state.setSelectedAssets
+      );
+      useEffect(() => setSelectedAssets([asset]), [setSelectedAssets]);
+      return null;
+    };
+
+    render(
+      <AssetGridStoreProvider persistKey={ASSETS_ASSET_GRID_STORE_KEY}>
+        <SelectionWriter />
+      </AssetGridStoreProvider>
+    );
+
+    await waitFor(() => {
+      expect(getSelectedAssetForExplorer("assets")).toEqual(asset);
+    });
+    expect(getSelectedAssetForExplorer("library")).toBeNull();
   });
 
   describe("initial state", () => {

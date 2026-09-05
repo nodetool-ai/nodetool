@@ -873,6 +873,21 @@ export const SURFACES: SurfaceEntry[] = [
     ]
   },
   {
+    id: "godot",
+    title: "Godot game pipeline (slot contract, game nodes, project writer, templates, godot capabilities)",
+    harnesses: ["capability-suites"],
+    paths: [
+      "packages/protocol/src/game-assets.ts",
+      "packages/protocol/fixtures/game-assets/",
+      "packages/godot/",
+      "packages/godot-templates/",
+      "packages/image-nodes/src/nodes/game.ts",
+      "packages/audio-nodes/src/nodes/game.ts",
+      "packages/agents/src/capabilities/godot.ts",
+      "packages/agents/src/capabilities/godot.specs.ts"
+    ]
+  },
+  {
     id: "blender",
     title: "Blender headless render (op scripts, runner, blender nodes)",
     harnesses: ["blender"],

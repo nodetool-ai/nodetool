@@ -7,8 +7,6 @@ import { getSystemDataPath } from "./systemPaths";
 import type { Vault, VaultListResult } from "./types.d";
 import { isObjectLike, isString } from "./typePredicates";
 
-export type { Vault, VaultListResult };
-
 /**
  * Vault management for the desktop app.
  *

@@ -60,6 +60,31 @@ describe("shotPill", () => {
       label: "still"
     });
   });
+
+  // A shot fused into a sibling's generation has its picture but no clip of
+  // its own. "still" reads as a shot nobody has rendered yet, which is what
+  // sent a finished cut back round for a second render.
+  it("says a shot is covered rather than still waiting on a clip", () => {
+    expect(
+      shotPill(
+        makeShot({
+          status: "rendered",
+          covered_by: { shot_id: "shot-0", start_seconds: 2.5 }
+        })
+      )
+    ).toEqual({ tone: "neutral", label: "covered" });
+  });
+
+  it("says nothing for a shot that has its own clip, covered or not", () => {
+    expect(
+      shotPill(
+        makeShot({
+          status: "rendered",
+          clip: { type: "video", uri: "http://example.com/clip.mp4" }
+        })
+      )
+    ).toBeNull();
+  });
 });
 
 describe("ShotStatusPill", () => {

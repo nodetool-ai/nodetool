@@ -202,7 +202,7 @@ const WorkspaceTabItem = ({
             )}
             <span
               className="tab-name"
-              title={canRename ? "Double-click to rename" : undefined}
+              title={tab.title}
             >
               {tab.title}
             </span>

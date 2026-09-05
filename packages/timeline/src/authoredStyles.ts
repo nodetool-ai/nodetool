@@ -25,6 +25,7 @@ import {
   DEFAULT_TEXT_CLIP_COLOR,
   DEFAULT_TEXT_CLIP_FONT_SIZE_PX
 } from "./defaults.js";
+import { assertAuthorableFontFamily } from "./fonts/catalog.js";
 import type { ClipShapeStyle, ClipTextStyle } from "./types.js";
 
 /**
@@ -39,6 +40,10 @@ export function textStyleWithDefaults(
   text: string,
   style?: Partial<Omit<ClipTextStyle, "text">>
 ): ClipTextStyle {
+  // A generic CSS family is refused here rather than stored and reported by
+  // the validator afterwards: it names no face, so there is no version of it
+  // that renders the same twice.
+  assertAuthorableFontFamily(style?.fontFamily);
   return {
     ...style,
     text,

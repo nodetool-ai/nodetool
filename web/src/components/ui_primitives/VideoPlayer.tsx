@@ -169,6 +169,8 @@ export interface VideoPlayerProps {
   muted?: boolean;
   /** Called on every timeupdate with currentTime in seconds */
   onTimeUpdate?: (time: number) => void;
+  /** Called once media metadata provides the duration, in seconds. */
+  onDurationChange?: (duration: number) => void;
   /** Accessible name for the player. */
   label?: string;
   className?: string;
@@ -181,6 +183,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
   loop = false,
   muted = false,
   onTimeUpdate,
+  onDurationChange,
   label = "Video player",
   className
 }) => {
@@ -229,8 +232,12 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
   const handlePause = useCallback(() => setIsPlaying(false), []);
 
   const handleLoadedMetadata = useCallback(() => {
-    if (videoRef.current) {setDuration(videoRef.current.duration);}
-  }, []);
+    if (videoRef.current) {
+      const duration = videoRef.current.duration;
+      setDuration(duration);
+      onDurationChange?.(duration);
+    }
+  }, [onDurationChange]);
 
   const handleVideoTimeUpdate = useCallback(() => {
     const v = videoRef.current;

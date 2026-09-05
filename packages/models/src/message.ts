@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.message`.
  */
 
-import { eq, and, gt, lt, desc, asc } from "drizzle-orm";
+import { eq, and, or, gt, lt, desc, asc } from "drizzle-orm";
 import type { ProviderSession } from "@nodetool-ai/protocol";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
@@ -125,19 +125,26 @@ export class Message extends DBModel {
     if (startKey) {
       const cursorRow = await Message.get<Message>(startKey);
       if (cursorRow && cursorRow.thread_id === threadId) {
-        conditions.push(
-          reverse
-            ? lt(messages.created_at, cursorRow.created_at)
-            : gt(messages.created_at, cursorRow.created_at)
+        const compare = reverse ? lt : gt;
+        const afterCursor = or(
+          compare(messages.created_at, cursorRow.created_at),
+          and(
+            eq(messages.created_at, cursorRow.created_at),
+            compare(messages.id, cursorRow.id)
+          )
         );
+        if (afterCursor) conditions.push(afterCursor);
       }
     }
     const rows = await db
       .select()
       .from(messages)
       .where(conditions.length === 1 ? conditions[0] : and(...conditions))
-      .orderBy(reverse ? desc(messages.created_at) : asc(messages.created_at))
-      .limit(limit + 1)
+      .orderBy(
+        reverse ? desc(messages.created_at) : asc(messages.created_at),
+        reverse ? desc(messages.id) : asc(messages.id)
+      )
+      .limit(limit + 1);
 
     const items = rows.map((r: Record<string, unknown>) => new Message(r));
     if (items.length <= limit) return [items, ""];

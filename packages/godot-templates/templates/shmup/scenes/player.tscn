@@ -1,0 +1,32 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="SpriteFrames" path="res://assets/sprites/player.tres" id="2_frames"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_shoot.wav" id="3_shoot"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_explode.wav" id="4_explode"]
+[ext_resource type="PackedScene" path="res://scenes/bullet.tscn" id="5_bullet"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(18, 22)
+
+[node name="Player" type="Area2D" groups=["player"]]
+script = ExtResource("1_player")
+bullet_scene = ExtResource("5_bullet")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("2_frames")
+animation = &"idle"
+autoplay = "idle"
+
+[node name="Collision" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_body")
+
+[node name="ShootSfx" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_shoot")
+
+[node name="ExplodeSfx" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_explode")
+
+[node name="FireTimer" type="Timer" parent="."]
+wait_time = 0.15
+one_shot = true

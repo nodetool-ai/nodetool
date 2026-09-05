@@ -700,7 +700,14 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         if (patch.hidden !== undefined) next.hidden = patch.hidden;
         if (patch.muted !== undefined) next.muted = patch.muted;
         if (patch.locked !== undefined) next.locked = patch.locked;
-        if (patch.textStyle !== undefined) next.textStyle = patch.textStyle;
+        if (patch.textStyle !== undefined) {
+          // A patch over the clip's own style, so changing one field does not
+          // mean re-sending (and overwriting) the whole bag.
+          next.textStyle = textStyleWithDefaults(
+            patch.textStyle.text ?? clip.textStyle?.text ?? clip.name,
+            { ...clip.textStyle, ...patch.textStyle }
+          );
+        }
         if (patch.shapeStyle !== undefined) {
           next.shapeStyle = shapeStyleWithDefaults(patch.shapeStyle);
         }

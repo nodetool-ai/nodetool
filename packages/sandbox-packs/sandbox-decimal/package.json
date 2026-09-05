@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-decimal",
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "Arbitrary-precision decimal arithmetic inside the NodeTool sandbox, from decimal.js",
   "license": "MIT",
   "dependencies": {

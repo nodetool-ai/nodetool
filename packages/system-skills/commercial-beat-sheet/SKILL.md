@@ -30,6 +30,28 @@ Never generate a storyboard before the roster is resolved. Without entities, bea
 
 **Ids.** `create_entity` returns `{entity}`; an entity's id **is the asset id you passed in**. Do not read `.id` off the result.
 
+**Which entities a shot's prompt receives.** The render does not send the whole roster to every shot. Per shot it applies the style and location entities always, plus every character and prop whose **name appears in the shot's text** (`action`, `motion`, `dialogue`, `narration`, `slug`, case-insensitive). That is why the shot text names entities in plain words — `[Protagonist]` works because the word is there, `@Protagonist` or a pronoun does not. To override the match, `add_shot` / `update_shot` take an explicit `entity_ids` list for that shot, and then only those apply.
+
+---
+
+## Tool contract (shared by every board skill)
+
+`explainer-storyboard`, `music-video-treatment`, `trailer-template` and `launch-commercial` build the same board with the same calls and point here for the shapes. Every line below is checked against the capability code, not remembered.
+
+| Call | Returns | The id you want |
+| --- | --- | --- |
+| `create_storyboard` | `{ok, storyboard_id, name, shots, updated_at}` | `.storyboard_id`, never `.id` |
+| `create_entity` | `{entity: {...}}` | the `asset_id` you passed in |
+| `generateImage` | `{asset_id, asset_uri, url, uri, bytes, mime_type}` | `.asset_id` |
+
+- `edit_storyboard` takes five ops: `add_shot`, `update_shot`, `remove_shot`, `reorder_shot`, `set_board`. `set_entities` is accepted only as an alias that resolves to `set_board`.
+- `set_board` takes `{brief?, style?, aspect_ratio?, entity_ids?, image_model?, video_model?}`. Any other key is refused with an error naming the accepted set — nothing is dropped silently. `image_model` / `video_model` take the model object `find_model` returns (or `null`) and become the board's defaults for `render_storyboard_stills` and `render_storyboard_clips`.
+- `add_shot` / `update_shot` take `{action, slug?, camera?, motion?, dialogue?, narration?, duration_seconds?, duration_source?, render_mode?, entity_ids?, location_id?, notes?, index?}`. `target` on an update is a shot id, its 0-based index, or its slug.
+- The render calls take `provider` + `model` and fall back to the board's model. With neither, the call fails and says so — it never picks one. Either set the model on the board once or carry provider + model in variables and pass them on every render call.
+- `render_storyboard_clips` has no duration override. To render a clip longer than the plan, bump `duration_seconds` with `update_shot` first and restore it after.
+- **What the model actually reads.** A still's prompt is `action`, then `<framing> shot`, then the board `style`, comma-joined, with the matched entities' descriptors and one reference image each attached. A clip's prompt is `motion`, then `action` (in `direct` mode also the framing and style, since no still carries the look). Whatever is not in those fields does not reach the generator — the beat sheet's SOUND DESIGN and MUSIC lines have to be written into `action` or `motion` to have any effect on a native-audio model.
+- **The chosen model line has its own prompting skill.** `find_model` returns `prompting_skill` on a route it covers; `load_skill` it before writing `action` and `motion`, because the same beat is worded differently for Seedance (verbs and a sound brief), Kling (a shot list, tagged elements), Hailuo (beats in order, no negatives) or Veo (150–300 characters). The image line for the stills has one too.
+
 ---
 
 ## Brief (collect from the user, never invent)
@@ -228,18 +250,23 @@ const board = await create_storyboard({
 const boardId = board.storyboard_id;   // NOT board.id
 ```
 
-### 7. Attach the roster
+### 7. Attach the roster and the models
 
-`edit_storyboard` takes exactly five ops: `add_shot`, `update_shot`, `remove_shot`, `reorder_shot`, `set_board`. **There is no `set_entities`** — the roster goes on `set_board`, which accepts `{brief?, style?, aspect_ratio?, entity_ids?}` and drops anything else silently.
+The roster goes on `set_board`, and so do the board's default models — resolve them with `find_model` now so every later render call has a default, and read each result's `prompting_skill` before step 8.
 
 ```js
+const stills = await find_model({ capability: "text_to_image" });
+const clips = await find_model({ capability: "image_to_video" });
+// .ref is {type, provider, id, name} — the object the board and the render read.
+// .prompting_skill names the guide to load before writing shot text.
 await edit_storyboard({
   storyboard_id: boardId,
-  ops: [{ op: "set_board", entity_ids: roster }]
+  ops: [{ op: "set_board", entity_ids: roster,
+          image_model: stills.ref, video_model: clips.ref }]
 });
 ```
 
-The render pipeline reads that list and applies the relevant descriptors per shot, so you do not pass them again.
+The render pipeline reads that list and applies, per shot, the style and location entities plus every entity named in the shot's text (see the tool contract above), so you do not pass them again.
 
 ### 8. Add one shot per beat
 
@@ -261,6 +288,10 @@ await edit_storyboard({
 ```
 HOOK (0:00–0:01.5): In media res failure. ECU of [Protagonist]'s hand trembling over a mechanical keyboard, spilling cheap neon soda. Text: YOUR ENERGY IS BROKEN.
 ```
+
+Write `action` and `motion` the way the chosen model line's prompting skill says (the `prompting_skill` that `find_model` returned in step 7): the still prompt is this text plus the framing and the board style, and the clip prompt is `motion` then `action`, so the generator sees nothing you did not put in these two fields. Put the beat's sound design into `motion` when the video line writes native audio.
+
+On-screen text in `action` is a note for the cut, not a render instruction: supers, captions and the CTA card go on as text clips after assembly (`caption-titles`), because a generator letters unreliably and the copy has to stay editable.
 
 Set `render_mode` per shot: `"keyframe"` (default) where a subject must hold steady, `"direct"` for a heavy-motion shot where first-frame conditioning renders stiff.
 
@@ -289,7 +320,7 @@ import { render_storyboard_stills, render_storyboard_clips } from "@nodetool-ai/
 await render_storyboard_stills({ storyboard_id: boardId, provider, model });
 ```
 
-**Pass `provider` and `model` on every render call.** The board has `image_model` / `video_model` fields, and if this build's `set_board` cannot write them, an unset board fails the render outright — never silently picks something.
+`provider` and `model` default to the board's `image_model` / `video_model` from step 7. With neither set nor passed, the render fails and says so — it never silently picks something. Pass them explicitly when one shot needs a different line than the board default.
 
 A still that violates entity consistency (wrong face, wrong can, wrong look) is fixed at the **entity**: revise its reference and re-render every shot using it. Never paper over drift in one shot's prompt. A clip wrong where its keyframe was right is a **motion** problem: one `revise_storyboard_clip`.
 

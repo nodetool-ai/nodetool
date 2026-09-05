@@ -220,7 +220,8 @@ interface TimelineClipParamsPatch {
   hidden?: boolean;
   muted?: boolean;
   locked?: boolean;
-  textStyle?: TimelineTextStyle;
+  /** Merged over the clip's own style — a partial patch, not a replacement. */
+  textStyle?: Partial<TimelineTextStyle>;
   shapeStyle?: TimelineShapeStyle;
   captionStyle?: TimelineCaptionStyle;
 }

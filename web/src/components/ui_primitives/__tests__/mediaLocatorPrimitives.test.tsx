@@ -8,7 +8,7 @@
  * end up as.
  */
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
@@ -52,6 +52,17 @@ describe("ResponsiveImage", () => {
       "src",
       "https://cdn.test/a.png"
     );
+  });
+
+  it("reports metadata duration to source monitors", () => {
+    const onDurationChange = jest.fn();
+    renderWithTheme(
+      <VideoPlayer src={HTTPS_URL} onDurationChange={onDurationChange} />
+    );
+    const video = screen.getByLabelText("Video player");
+    Object.defineProperty(video, "duration", { configurable: true, value: 4.25 });
+    fireEvent.loadedMetadata(video);
+    expect(onDurationChange).toHaveBeenCalledWith(4.25);
   });
 
   it("sets no src for a locator that resolves to nothing", () => {

@@ -47,22 +47,7 @@ import { AudioGraph } from "./AudioGraph";
 import { PreviewCompositor } from "./PreviewCompositor";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import { useCombo } from "../../../stores/KeyPressedStore";
-
-function formatTimecode(timeMs: number, fps: number): string {
-  // Integer frame math: fractional rates (29.97, 23.976) would otherwise
-  // leak fractions into the frame field. Non-drop-frame timecode.
-  const fpsInt = Math.max(1, Math.round(fps));
-  const totalFrames = Math.floor((timeMs / 1000) * fps);
-  const framePart = totalFrames % fpsInt;
-  const totalSeconds = Math.floor(totalFrames / fpsInt);
-  const seconds = totalSeconds % 60;
-  const totalMinutes = Math.floor(totalSeconds / 60);
-  const minutes = totalMinutes % 60;
-  const hours = Math.floor(totalMinutes / 60);
-
-  const pad2 = (n: number) => String(n).padStart(2, "0");
-  return `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}:${pad2(framePart)}`;
-}
+import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
 
 function frameDeltaMs(fps: number): number {
   return 1000 / Math.max(1, fps);
@@ -243,21 +228,21 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     // subscription: it feeds the `graph.updateTracks` effect below so DSP/
     // gain/solo/mute changes are audible immediately.
     const tracks = useTimelineStore((s) => s.tracks);
-    const durationMs = useTimelineStore((s) => s.durationMs);
-
     // `durationMs` is set only on load and is NOT recomputed when clips are
     // added/moved (see TracksRegion, which derives its own content extent).
     // For a new/unsaved sequence it stays 0, which would pin the scrubber's
     // range to [0, 1] (max ≤ step → every drag snaps to the end). Derive the
-    // max from the actual clip extent, matching the ruler. Returning a
+    // max from the actual clip extent, matching the ruler. When a sequence is
+    // empty, retain its stored duration so an intentional blank sequence still
+    // has a usable range. Returning a
     // primitive means the default equality skips re-renders for edits that
     // don't move the content boundary (e.g. an opacity slider drag).
     const contentEndMs = useTimelineStore((s) => {
-      let end = s.durationMs || 0;
+      let end = 0;
       for (const c of s.clips) {
         end = Math.max(end, c.startMs + c.durationMs);
       }
-      return end;
+      return s.clips.length > 0 ? end : s.durationMs || 0;
     });
 
     /** All unique clip boundary timestamps (start + end), sorted ascending.
@@ -273,7 +258,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           pts.add(c.startMs);
           pts.add(c.startMs + c.durationMs);
         }
-        if (s.durationMs) {
+        if (s.clips.length === 0 && s.durationMs) {
           pts.add(s.durationMs);
         }
         return Array.from(pts).sort((a, b) => a - b);
@@ -410,6 +395,10 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       [getAsset, getTimeMs, playbackApi, timelineApi]
     );
 
+    /** The rate the running clock was started with; the rate-change restart
+     *  effect compares against it so a same-rate re-render is not a restart. */
+    const startedRateRef = useRef(1);
+
     const handlePlay = useCallback(async () => {
       const generation = ++playGenRef.current;
       const isStale = () => playGenRef.current !== generation;
@@ -427,12 +416,18 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
       // Read fresh to avoid stale closure when the user scrubs before pressing play.
       let startMs = playbackApi.getState().currentTimeMs;
-      // Pressing Play while parked at the end restarts from the top. Uses the
-      // live content end (contentEndMs), not the stale store `durationMs`,
-      // which is only set on load and never recomputed as clips change.
-      if (contentEndMs > 0 && startMs >= contentEndMs - frameDeltaMs(fps)) {
-        startMs = 0;
-        setCurrentTimeMs(0);
+      // An out point bounds playback and loops it back to the in point (or
+      // the top); without one the live content end stops it. The store
+      // `durationMs` is only set on load and never recomputed as clips change.
+      const { rangeInMs: rangeIn, rangeOutMs: rangeOut } =
+        playbackApi.getState();
+      const loopStartMs = rangeIn ?? 0;
+      const endMs = rangeOut ?? contentEndMs;
+      // Pressing Play while parked at the end restarts from the top (or the
+      // in point).
+      if (endMs > 0 && startMs >= endMs - frameDeltaMs(fps)) {
+        startMs = loopStartMs;
+        setCurrentTimeMs(loopStartMs);
       }
 
       play();
@@ -441,14 +436,24 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       // (and the live rate-change restart below) takes effect. Feeds both the
       // clock and audio scheduling so the visual clock and audio stay locked.
       const globalRate = playbackApi.getState().rate;
+      startedRateRef.current = globalRate;
+      const clockOptions = {
+        floorMs: loopStartMs,
+        // Only a marked out point loops; the content end still parks.
+        onReachEnd:
+          rangeOut !== null ? () => playbackApi.getState().seek(loopStartMs) : undefined
+      };
 
       // Read fresh rather than closing over the reactive `clips` value so
       // this component never needs to subscribe to (and re-render on) the
       // clips array itself.
       const clipsNow = timelineApi.getState().clips;
-      const remainingAudioClips = clipsNow.filter((c) =>
-        isPendingAudioClip(c, startMs)
-      );
+      // Backwards playback (J) is picture only: the audio graph schedules
+      // forward from a source position.
+      const remainingAudioClips =
+        globalRate < 0
+          ? []
+          : clipsNow.filter((c) => isPendingAudioClip(c, startMs));
 
       if (remainingAudioClips.length === 0) {
         // Nothing left to play — e.g. a seek landed past the last audio
@@ -456,7 +461,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         // AudioContext creation/resume entirely rather than paying the
         // autoplay-policy round trip for silence.
         graph.stopAll();
-        clock.start(startMs, globalRate, null, contentEndMs || Infinity);
+        clock.start(startMs, globalRate, null, endMs || Infinity, clockOptions);
         return;
       }
 
@@ -503,7 +508,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         scheduledClipIdsRef.current.add(clip.id);
       }
 
-      clock.start(startMs, globalRate, ctx, contentEndMs || Infinity);
+      clock.start(startMs, globalRate, ctx, endMs || Infinity, clockOptions);
 
       topUpIntervalRef.current = setInterval(() => {
         void topUpAudio(isStale);
@@ -588,19 +593,22 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     // rate. Guarded on isPlaying so a rate set while paused just applies on the
     // next play.
     useEffect(() => {
-      if (!isPlaying) return;
+      if (!isPlaying || rate === startedRateRef.current) return;
       seek(getTimeMs());
       // Only restart on an actual rate change, not on play/pause transitions.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rate]);
 
+    // Space always plays at normal speed; a J/L shuttle speed does not
+    // outlive the pause that ended it.
     const handlePlayPauseToggle = useCallback(() => {
       if (isPlaying) {
         handlePause();
       } else {
+        playbackApi.getState().setRate(1);
         void handlePlay();
       }
-    }, [isPlaying, handlePlay, handlePause]);
+    }, [isPlaying, handlePlay, handlePause, playbackApi]);
 
     const stepFrame = useCallback(
       (direction: 1 | -1) => {
@@ -610,11 +618,11 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         const delta = frameDeltaMs(fps) * direction;
         const next = Math.max(
           0,
-          Math.min(durationMs || Infinity, currentTimeMs + delta)
+          Math.min(contentEndMs || Infinity, currentTimeMs + delta)
         );
         setCurrentTimeMs(next);
       },
-      [isPlaying, fps, durationMs, currentTimeMs, setCurrentTimeMs]
+      [isPlaying, fps, contentEndMs, currentTimeMs, setCurrentTimeMs]
     );
 
     const stepBack = useCallback(() => stepFrame(-1), [stepFrame]);
@@ -750,7 +758,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             if (isPlaying) {
               handleStop();
             }
-            setCurrentTimeMs(durationMs || 0);
+            setCurrentTimeMs(contentEndMs || 0);
             break;
           default:
             break;
@@ -764,12 +772,12 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         isPlaying,
         handleStop,
         setCurrentTimeMs,
-        durationMs
+        contentEndMs
       ]
     );
 
     const timecode = formatTimecode(currentTimeMs, fps);
-    const durationTimecode = formatTimecode(durationMs || 0, fps);
+    const durationTimecode = formatTimecode(contentEndMs, fps);
 
     // Playback no longer re-renders the bar (see above), but a scrub still
     // does, once per discrete `currentTimeMs` write.

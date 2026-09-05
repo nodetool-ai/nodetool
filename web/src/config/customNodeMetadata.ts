@@ -45,7 +45,7 @@ export interface CustomNodeScript {
 }
 
 /** "My API" → "my_api". Same slugging the snippet palette uses. */
-export function categoryToSlug(category: string): string {
+function categoryToSlug(category: string): string {
   return (
     category
       .toLowerCase()

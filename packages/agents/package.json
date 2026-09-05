@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/agents",
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "Agent system for planning and executing multi-step LLM tasks",
   "type": "module",
   "engines": {
@@ -26,6 +26,8 @@
     "@nodetool-ai/browser": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/execution": "*",
+    "@nodetool-ai/godot": "*",
+    "@nodetool-ai/godot-templates": "*",
     "@nodetool-ai/image-editor": "*",
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/model-pricing": "*",
