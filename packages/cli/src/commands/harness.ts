@@ -19,6 +19,7 @@ import {
   HARNESSES,
   SURFACES,
   auditHarnessCoverage,
+  isUnclaimedPath,
   planGate,
   type GatePlan
 } from "../harness/registry.js";
@@ -284,9 +285,13 @@ export function registerHarnessCommands(program: Command): void {
         const skippedExpensive = plan.checks.filter(
           (c) => !opts.expensive && c.cost === "expensive"
         );
-        const unmappedCodeFiles = plan.unmappedFiles.filter(
-          isGateRelevantCodeFile
-        );
+        // A directory recorded in UNCLAIMED_PATHS has already been judged: no
+        // harness reaches it, and the entry says why. `auditPathClaims` honors
+        // that; the gate did not, so the first diff to touch such a directory
+        // failed with no way to satisfy it short of inventing a surface.
+        const unmappedCodeFiles = plan.unmappedFiles
+          .filter(isGateRelevantCodeFile)
+          .filter((f) => !isUnclaimedPath(f));
 
         if (!opts.json) {
           printGatePlan(plan, toRun.length, skippedExpensive.length, opts.all);

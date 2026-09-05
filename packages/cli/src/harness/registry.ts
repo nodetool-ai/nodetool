@@ -1140,6 +1140,16 @@ export const UNCLAIMED_PATHS: Record<string, string> = {
     "checks every directory ships, not the skill content."
 };
 
+/**
+ * Whether a repo-relative file sits under a directory {@link UNCLAIMED_PATHS}
+ * already documents as having no harness. `nodetool harness gate` uses this so
+ * a diff touching such a directory is not reported as an unmapped code file —
+ * the judgement, and its reason, are already recorded above.
+ */
+export function isUnclaimedPath(file: string): boolean {
+  return Object.keys(UNCLAIMED_PATHS).some((prefix) => file.startsWith(prefix));
+}
+
 interface HarnessAuditResult {
   surfaces: Array<{
     id: string;
