@@ -5,6 +5,11 @@
  * clip's in-point (startMs and durationMs change together); the end handle
  * changes durationMs only, capped at the source length when one is known.
  *
+ * Three edit modes share the gesture: a plain trim leaves the rest of the
+ * sequence alone; with ripple mode on (toolbar toggle) the clips after the
+ * edit follow it so no gap opens; holding Ctrl/Cmd rolls the cut instead,
+ * so the neighbour across it gives up what this clip gains.
+ *
  * The moving edge is targeted absolutely from the pointer (edge at
  * pointerdown + pointer travel), snapped against a candidate set snapshotted
  * at pointerdown unless Alt is held, and converted to the delta the store's
@@ -59,6 +64,13 @@ interface TrimGesture {
   edgeMsAtStart: number;
   /** Snap candidates snapshotted at pointerdown. */
   candidates: number[];
+  /** Clip length at pointerdown; a ripple head-trim measures against it. */
+  durationMsAtStart: number;
+  /** Edit mode locked in at pointerdown so it cannot flip mid-gesture. */
+  mode: "trim" | "ripple" | "roll";
+  /** Set once the pointer has travelled; a press that never moves selects
+   *  the edge as the edit point instead of trimming. */
+  moved: boolean;
 }
 
 /** The snapped edge the pointer is asking for, and the guide to show. */
@@ -68,7 +80,7 @@ function targetEdge(
   msPerPx: number
 ) {
   const rawMs = gesture.edgeMsAtStart + (e.clientX - gesture.startX) * msPerPx;
-  if (e.altKey) {
+  if (e.altKey || !useTimelineUIStore.getState().snapEnabled) {
     return { valueMs: rawMs, guideMs: null };
   }
   return snapEdge(rawMs, gesture.candidates, msPerPx);
@@ -83,6 +95,9 @@ export function useClipTrim({
 }: UseClipTrimOptions): ClipTrimHandlers {
   const trimClipStart = useTimelineStore((s) => s.trimClipStart);
   const trimClipEnd = useTimelineStore((s) => s.trimClipEnd);
+  const rippleTrimClipStart = useTimelineStore((s) => s.rippleTrimClipStart);
+  const rippleTrimClipEnd = useTimelineStore((s) => s.rippleTrimClipEnd);
+  const rollClipEdge = useTimelineStore((s) => s.rollClipEdge);
 
   // One undo entry per trim gesture; see useTimelineHistoryBatch.
   const history = useTimelineHistoryBatch();
@@ -97,7 +112,10 @@ export function useClipTrim({
   const gestureRef = useRef<TrimGesture>({
     startX: 0,
     edgeMsAtStart: 0,
-    candidates: []
+    candidates: [],
+    durationMsAtStart: 0,
+    mode: "trim",
+    moved: false
   });
 
   const beginGesture = useCallback(
@@ -109,6 +127,12 @@ export function useClipTrim({
       e.stopPropagation();
       e.currentTarget.setPointerCapture(e.pointerId);
       const state = useTimelineStore.getState();
+      const mode =
+        e.ctrlKey || e.metaKey
+          ? "roll"
+          : useTimelineUIStore.getState().rippleMode
+            ? "ripple"
+            : "trim";
       gestureRef.current = {
         startX: e.clientX,
         edgeMsAtStart:
@@ -118,7 +142,10 @@ export function useClipTrim({
           state.durationMs,
           useTimelinePlaybackStore.getState().getTimeMs(),
           new Set([clip.id])
-        )
+        ),
+        durationMsAtStart: clip.durationMs,
+        mode,
+        moved: false
       };
       history.begin();
     },
@@ -155,25 +182,55 @@ export function useClipTrim({
       if (!fresh) {
         return;
       }
-      const { valueMs, guideMs } = targetEdge(gestureRef.current, e, msPerPx);
+      const gesture = gestureRef.current;
+      gesture.moved = true;
+      const { valueMs, guideMs } = targetEdge(gesture, e, msPerPx);
       // trimClip(edge="start", deltaMs) convention (packages/timeline/src/trimClip.ts):
       //   nextStartMs    = clip.startMs    - deltaMs  (positive = move start left = grow)
       //   nextDurationMs = clip.durationMs + deltaMs
       // so the delta that lands the start edge on `valueMs` is start - value.
-      trimClipStart(clip.id, fresh.startMs - valueMs);
+      let landed: boolean;
+      if (gesture.mode === "ripple") {
+        // A ripple head-trim keeps the clip parked, so the pointer's travel
+        // from the original edge is the total to take off (or add back), and
+        // the duration says how much of that is already applied.
+        const wantedMs = gesture.edgeMsAtStart - valueMs;
+        const appliedMs = fresh.durationMs - gesture.durationMsAtStart;
+        rippleTrimClipStart(clip.id, wantedMs - appliedMs);
+        landed =
+          findClipById(useTimelineStore.getState().clips, clip.id)
+            ?.durationMs === gesture.durationMsAtStart + wantedMs;
+      } else {
+        const deltaMs = fresh.startMs - valueMs;
+        if (gesture.mode === "roll") {
+          rollClipEdge(clip.id, "start", -deltaMs);
+        } else {
+          trimClipStart(clip.id, deltaMs);
+        }
+        landed =
+          findClipById(useTimelineStore.getState().clips, clip.id)?.startMs ===
+          valueMs;
+      }
       history.mark();
       const trimmed = findClipById(useTimelineStore.getState().clips, clip.id);
       if (trimmed) {
         // An invalid trim leaves the clip alone; then the snap did not land.
-        const applied = trimmed.startMs === valueMs ? guideMs : null;
         publishGestureFeedback(
           useTimelineUIStore.getState(),
-          applied,
+          landed ? guideMs : null,
           readoutFor(trimmed, "trim-start")
         );
       }
     },
-    [clip, interactionLocked, msPerPx, trimClipStart, history]
+    [
+      clip,
+      interactionLocked,
+      msPerPx,
+      trimClipStart,
+      rippleTrimClipStart,
+      rollClipEdge,
+      history
+    ]
   );
 
   const handleTrimEndPointerDown = useCallback<TrimPointerHandler>(
@@ -206,11 +263,20 @@ export function useClipTrim({
       if (!fresh) {
         return;
       }
+      gestureRef.current.moved = true;
       const { valueMs, guideMs } = targetEdge(gestureRef.current, e, msPerPx);
       // trimClip(edge="end", deltaMs): nextDurationMs = durationMs + deltaMs,
       // so the delta that lands the end edge on `valueMs` is value - end.
       const currentEndMs = fresh.startMs + fresh.durationMs;
-      trimClipEnd(clip.id, valueMs - currentEndMs, sourceDurationMs);
+      const deltaMs = valueMs - currentEndMs;
+      const mode = gestureRef.current.mode;
+      if (mode === "roll") {
+        rollClipEdge(clip.id, "end", deltaMs);
+      } else if (mode === "ripple") {
+        rippleTrimClipEnd(clip.id, deltaMs, sourceDurationMs);
+      } else {
+        trimClipEnd(clip.id, deltaMs, sourceDurationMs);
+      }
       history.mark();
       const trimmed = findClipById(useTimelineStore.getState().clips, clip.id);
       if (trimmed) {
@@ -225,15 +291,35 @@ export function useClipTrim({
         );
       }
     },
-    [clip, interactionLocked, msPerPx, trimClipEnd, sourceDurationMs, history]
+    [
+      clip,
+      interactionLocked,
+      msPerPx,
+      trimClipEnd,
+      rippleTrimClipEnd,
+      rollClipEdge,
+      sourceDurationMs,
+      history
+    ]
   );
 
   const handleTrimPointerEnd = useCallback(() => {
+    const edge = isTrimmingStartRef.current
+      ? "start"
+      : isTrimmingEndRef.current
+        ? "end"
+        : null;
     isTrimmingStartRef.current = false;
     isTrimmingEndRef.current = false;
-    clearGestureFeedback(useTimelineUIStore.getState());
+    const ui = useTimelineUIStore.getState();
+    clearGestureFeedback(ui);
     history.end();
-  }, [history]);
+    // The edge just handled becomes the edit point for E and the keyboard
+    // trims, whether the press dragged it or only clicked it.
+    if (edge && clip) {
+      ui.setSelectedEdit({ clipId: clip.id, edge });
+    }
+  }, [history, clip]);
 
   return {
     handleTrimStartPointerDown,

@@ -14,6 +14,7 @@
  */
 
 import { create, type StoreApi, type UseBoundStore } from "zustand";
+import type { DropMode, KeyframeProperty } from "@nodetool-ai/timeline";
 
 export type TimelineTool = "select" | "cut";
 
@@ -55,6 +56,11 @@ interface WordSelection {
   focus: WordRef;
 }
 
+export interface SelectedEdit {
+  clipId: string;
+  edge: "start" | "end";
+}
+
 export interface TimelineUIState {
   /** Set of selected clip IDs. */
   selectedClipIds: Set<string>;
@@ -65,6 +71,29 @@ export interface TimelineUIState {
    * pointer into a razor that splits a clip at the click position.
    */
   activeTool: TimelineTool;
+  /**
+   * Ripple mode: trims and deletes close the gap they would otherwise open,
+   * pulling every later clip along (Premiere's ripple tools, FCP's default).
+   * Off, a trim or delete leaves the rest of the sequence where it is.
+   */
+  rippleMode: boolean;
+  /**
+   * What a dropped clip does to the clips under it: overwrite them
+   * (Premiere's default), insert and push them right, or overlap and let the
+   * renderer cross-fade. Ctrl/Cmd during a drag forces insert.
+   */
+  dropMode: DropMode;
+  /**
+   * The edit point the keyboard trims act on: one edge of one clip, picked by
+   * clicking a trim handle without dragging. Cleared with the clip selection.
+   */
+  selectedEdit: SelectedEdit | null;
+  /** Magnet: edges snap to clips, the playhead and the grid. Alt-drag bypasses. */
+  snapEnabled: boolean;
+  /** The property Alt+K keyframes; the inspector's last-touched row. */
+  keyframeProperty: KeyframeProperty;
+  /** In and out on the source viewer's asset, clip-source milliseconds. */
+  sourceRange: { inMs: number; outMs: number } | null;
   /**
    * Milliseconds per pixel — the primary zoom metric.
    * Default 10 ms/px ≈ 100 px/s. Smaller = zoomed in.
@@ -164,6 +193,13 @@ export interface TimelineUIState {
   // ── Tool ─────────────────────────────────────────────────────────────────
 
   setActiveTool: (tool: TimelineTool) => void;
+  setRippleMode: (on: boolean) => void;
+  toggleRippleMode: () => void;
+  setDropMode: (mode: DropMode) => void;
+  setSelectedEdit: (edit: SelectedEdit | null) => void;
+  toggleSnap: () => void;
+  setKeyframeProperty: (property: KeyframeProperty) => void;
+  setSourceRange: (range: { inMs: number; outMs: number } | null) => void;
 
   // ── FX panel ─────────────────────────────────────────────────────────────
 
@@ -198,6 +234,12 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   selectedClipIds: new Set(),
   hoveredClipId: null,
   activeTool: "select",
+  rippleMode: false,
+  dropMode: "overwrite",
+  selectedEdit: null,
+  snapEnabled: true,
+  keyframeProperty: "opacity",
+  sourceRange: null,
   msPerPx: 10,
   scrollLeftPx: 0,
   revealRequest: null,
@@ -205,7 +247,8 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   expandedFxTrackId: null,
   draggingTrackId: null,
   trackDropTarget: null,
-  selectClip: (id) => set({ selectedClipIds: new Set([id]) }),
+  selectClip: (id) =>
+    set({ selectedClipIds: new Set([id]), selectedEdit: null }),
 
   addToSelection: (id) =>
     set((state) => ({
@@ -228,9 +271,11 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     }
   },
 
-  clearSelection: () => set({ selectedClipIds: new Set() }),
+  clearSelection: () =>
+    set({ selectedClipIds: new Set(), selectedEdit: null }),
 
-  setSelection: (ids) => set({ selectedClipIds: new Set(ids) }),
+  setSelection: (ids) =>
+    set({ selectedClipIds: new Set(ids), selectedEdit: null }),
 
   rubberBand: null,
 
@@ -272,6 +317,20 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   toggleFullscreen: () => set((state) => ({ fullscreen: !state.fullscreen })),
 
   setActiveTool: (tool) => set({ activeTool: tool }),
+
+  setRippleMode: (on) => set({ rippleMode: on }),
+
+  toggleRippleMode: () => set((state) => ({ rippleMode: !state.rippleMode })),
+
+  setDropMode: (mode) => set({ dropMode: mode }),
+
+  setSelectedEdit: (edit) => set({ selectedEdit: edit }),
+
+  toggleSnap: () => set((state) => ({ snapEnabled: !state.snapEnabled })),
+
+  setKeyframeProperty: (property) => set({ keyframeProperty: property }),
+
+  setSourceRange: (range) => set({ sourceRange: range }),
 
   setExpandedFxTrackId: (trackId) => set({ expandedFxTrackId: trackId }),
 

@@ -65,6 +65,8 @@ export interface Settings {
    * load. Applies to live patches (Audio Out node).
    */
   audioBufferMs: number;
+  /** Which editor's keyboard layout the timeline follows. */
+  timelineKeyboardPreset: "nodetool" | "premiere" | "fcp";
   autosave: AutosaveSettings;
 }
 
@@ -113,6 +115,7 @@ export const defaultSettings: Settings = {
   confirmLargeRun: true,
   largeRunThreshold: 5,
   audioBufferMs: 100,
+  timelineKeyboardPreset: "nodetool",
   autosave: { ...defaultAutosaveSettings }
 };
 

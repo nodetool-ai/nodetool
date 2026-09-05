@@ -42,6 +42,12 @@ export interface TimelinePlaybackState {
    *  clock at the new position. The playback clock itself does NOT bump this
    *  when advancing currentTimeMs frame-by-frame. */
   seekNonce: number;
+  /**
+   * In and out points (I / O). Playback runs inside the range and loops back
+   * to `rangeInMs` at `rangeOutMs`; null on either side leaves that end open.
+   */
+  rangeInMs: number | null;
+  rangeOutMs: number | null;
 
   setCurrentTimeMs: (timeMs: number) => void;
   /** Seek to a new position (bumps seekNonce). */
@@ -51,6 +57,11 @@ export interface TimelinePlaybackState {
   play: () => void;
   pause: () => void;
   stop: () => void;
+  /** Set the in point; an out point at or before it is dropped. */
+  setRangeIn: (timeMs: number | null) => void;
+  /** Set the out point; an in point at or after it is dropped. */
+  setRangeOut: (timeMs: number | null) => void;
+  clearRange: () => void;
 
   // ── Transient playhead channel (does NOT trigger React re-renders) ─────────
   /** Read the live playhead position. Updated ~60×/s during playback. */
@@ -81,6 +92,8 @@ export const createTimelinePlaybackStore = (): TimelinePlaybackStoreApi => {
     isPlaying: false,
     rate: 1,
     seekNonce: 0,
+    rangeInMs: null,
+    rangeOutMs: null,
 
     setCurrentTimeMs: (timeMs) => {
       liveTimeMs = timeMs;
@@ -103,6 +116,32 @@ export const createTimelinePlaybackStore = (): TimelinePlaybackStoreApi => {
       emitTime(0);
       set({ isPlaying: false, currentTimeMs: 0 });
     },
+
+    setRangeIn: (timeMs) =>
+      set((s) => {
+        if (timeMs === null) return { rangeInMs: null };
+        const rangeInMs = Math.max(0, timeMs);
+        return {
+          rangeInMs,
+          rangeOutMs:
+            s.rangeOutMs !== null && s.rangeOutMs <= rangeInMs
+              ? null
+              : s.rangeOutMs
+        };
+      }),
+    setRangeOut: (timeMs) =>
+      set((s) => {
+        if (timeMs === null) return { rangeOutMs: null };
+        const rangeOutMs = Math.max(0, timeMs);
+        return {
+          rangeOutMs,
+          rangeInMs:
+            s.rangeInMs !== null && s.rangeInMs >= rangeOutMs
+              ? null
+              : s.rangeInMs
+        };
+      }),
+    clearRange: () => set({ rangeInMs: null, rangeOutMs: null }),
 
     getTimeMs: () => liveTimeMs,
     setTimeMs: (timeMs) => {

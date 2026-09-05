@@ -54,6 +54,7 @@ import {
   ClipCompositionInfo,
   ClipTimeRemapSection
 } from "./ClipTimeRemap";
+import { ClipKeyframes } from "./ClipKeyframes";
 import { ClipShapeSection } from "./ClipShapeSection";
 import { ClipTextStyleSection } from "./ClipTextStyleSection";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
@@ -523,6 +524,8 @@ export const TimelineInspector: React.FC = memo(() => {
       <ClipCompositionInfo clip={clip} />
 
       <ClipAnimations clip={clip} />
+
+      <ClipKeyframes clip={clip} />
     </Panel>
   );
 });

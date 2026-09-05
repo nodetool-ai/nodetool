@@ -19,8 +19,45 @@ import { runToolLoopEval } from "../src/evals/tool-loop-eval.js";
 import {
   createTimelineToolBridge,
   TIMELINE_TOOL_LOOP_CASES,
+  staggerSpanFitsClip,
+  staggerUnitsOf,
   type TimelineBridgeFinalState
 } from "../src/evals/surfaces/timeline.js";
+
+describe("stagger predicates", () => {
+  const clip = makeClip({
+    name: "title",
+    mediaType: "text",
+    sourceType: "imported",
+    startMs: 0,
+    durationMs: 600,
+    textStyle: {
+      text: "MAKE IT MOVE",
+      fontSizePx: 48,
+      color: "#ffffff"
+    }
+  });
+  const measureText = (text: string) => text.length * 100;
+  const portrait = { width: 1080, height: 1920, measureText };
+  const landscape = { width: 1920, height: 1080, measureText };
+
+  it("counts lines against the supplied frame width", () => {
+    expect(staggerUnitsOf(clip, "line", portrait)).toBe(2);
+    expect(staggerUnitsOf(clip, "line", landscape)).toBe(1);
+  });
+
+  it("rejects a stagger that overruns only after portrait wrapping", () => {
+    const animation = {
+      id: "entrance",
+      role: "in" as const,
+      preset: "fade",
+      durationMs: 400,
+      stagger: { unit: "line" as const, offsetMs: 300 }
+    };
+    expect(staggerSpanFitsClip(clip, animation, portrait)).toBe(false);
+    expect(staggerSpanFitsClip(clip, animation, landscape)).toBe(true);
+  });
+});
 
 // --- scripted provider -------------------------------------------------------
 
@@ -858,6 +895,7 @@ describe("preview_timeline_frame (eval surface)", () => {
 
     expect(result.frames).toHaveLength(1);
     expect(result.frames[0].layers[0].text).toBe("END");
+    expect(bridge.finalState().previewTimesMs).toEqual([1000]);
     expect(bridge.finalState().toolLog).toEqual([
       "ui_timeline_add_text_clip",
       "preview_timeline_frame"

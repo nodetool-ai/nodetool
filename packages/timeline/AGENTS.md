@@ -41,6 +41,42 @@
   straddling word) and **rebase** the moved side's local timings
   (`startMs - splitMs`), not copy the whole `words` array to both.
 
+## Ripple and roll (`src/rippleEdit.ts`)
+
+- **A ripple moves every unlocked track, not just the edited one.** A voiceover
+  or caption sits against a shot; a ripple that only closed the video track
+  would pull them out of sync. `shiftClipsFrom` is the one shift, and every
+  ripple (`rippleTrim`, `rippleDelete`, `closeGap`) is a trim or removal
+  followed by it, so the "what moves" rule lives in one place.
+- **A ripple head-trim keeps the clip parked.** `rippleTrim(..., "start", d)`
+  moves the in-point and the duration and puts `startMs` back; the downstream
+  shift is measured from the clip's *old* end. The web trim gesture
+  (`useClipTrim`) measures a head-trim against the duration at pointerdown for
+  the same reason.
+- **A roll is two trims that sum to zero.** `rollEdit` finds the neighbour
+  across the cut (`findRollNeighbour`, 1 ms tolerance) and applies `trimClip`
+  to both sides so the sequence length never changes; either side running out
+  of source throws and the store leaves the document alone.
+
+## Drop modes, transitions, keyframes
+
+- **A drop settles once, on release** (`src/dropResolve.ts`). During a drag
+  the store lets a clip overlap; `resolveDrop` then overwrites (trims, splits
+  or removes what the mover covers on its track), inserts (cuts a straddler
+  on the mover's track and shifts every later clip on unlocked tracks by the
+  moved span) or leaves the overlap for the renderer. Linked siblings of a
+  mover are never its victims.
+- **A transition needs two pictures** (`src/transitionAtCut.ts`). The document
+  keeps `transitionIn` on the incoming clip; `applyTransitionAtCut` also
+  extends the abutting predecessor under it by the transition length, so a
+  hard cut becomes a dissolve rather than a fade from transparent. It never
+  exceeds the shorter of the two clips.
+- **Hand-set keyframes are one custom animation** (`src/keyframes.ts`):
+  `preset: "custom"`, role `emphasis`, `params.keyframed`, duration equal to
+  the clip's, one curve per property. The sampler plays it like any custom
+  animation. Times are `t` over the clip, so a trim stretches its keyframes;
+  a caller that needs absolute times converts through `keyframeTimesMs`.
+
 ## Snapping & placement
 
 - **Generate snap-point ticks as `i * interval`, never `t += interval`** —

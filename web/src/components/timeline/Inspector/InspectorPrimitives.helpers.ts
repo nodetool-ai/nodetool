@@ -1,7 +1,8 @@
 /** Formats ms as HH:MM:SS:FF (frames) — used for the Start field. */
 export function formatTimecode(ms: number, fps: number): string {
+  const actualFps = Math.max(1, fps);
   const safeFps = Math.max(1, Math.round(fps));
-  const totalFrames = Math.max(0, Math.round((ms / 1000) * safeFps));
+  const totalFrames = Math.max(0, Math.round((ms / 1000) * actualFps));
   const ff = totalFrames % safeFps;
   const totalSec = Math.floor(totalFrames / safeFps);
   const ss = totalSec % 60;
@@ -15,6 +16,7 @@ export function formatTimecode(ms: number, fps: number): string {
 export function parseTimecode(input: string, fps: number): number | null {
   const trimmed = input.trim();
   if (trimmed === "") return null;
+  const actualFps = Math.max(1, fps);
   const safeFps = Math.max(1, Math.round(fps));
   if (/^\d+(\.\d+)?$/.test(trimmed)) {
     const n = Number(trimmed);
@@ -41,7 +43,12 @@ export function parseTimecode(input: string, fps: number): number | null {
     return null;
   }
   const totalSec = hh * 3600 + mm * 60 + ss;
-  return Math.round(totalSec * 1000 + (ff * 1000) / safeFps);
+  if (nums.length === 4) {
+    // The displayed seconds/frames use the nominal integer FPS as their
+    // timecode base, while the source timestamp uses the actual FPS.
+    return Math.round(((totalSec * safeFps + ff) * 1000) / actualFps);
+  }
+  return Math.round(totalSec * 1000 + (ff * 1000) / actualFps);
 }
 
 /** "4.60s" → 4.6 seconds, returns ms. */

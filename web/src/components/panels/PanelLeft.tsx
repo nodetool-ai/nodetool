@@ -27,6 +27,7 @@ import { useShallow } from "zustand/react/shallow";
 import AssetGrid from "../assets/AssetGrid";
 import {
   AssetGridStoreProvider,
+  ASSETS_ASSET_GRID_STORE_KEY,
   LIBRARY_ASSET_GRID_STORE_KEY
 } from "../../stores/AssetGridStore";
 import WorkflowList from "../workflows/WorkflowList";
@@ -455,7 +456,7 @@ const PanelContent = memo(function PanelContent({
               }
             />
           )}
-          <AssetGridStoreProvider persistKey="asset-grid-storage:assets">
+          <AssetGridStoreProvider persistKey={ASSETS_ASSET_GRID_STORE_KEY}>
             <AssetGrid maxItemSize={5} isMobile={isMobile} />
           </AssetGridStoreProvider>
         </FlexColumn>

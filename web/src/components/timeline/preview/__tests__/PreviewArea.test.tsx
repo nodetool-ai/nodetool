@@ -44,6 +44,8 @@ const mockSubscribeTime = jest.fn(() => () => {});
 
 let mockCurrentTimeMs = 0;
 let mockIsPlaying = false;
+let mockDurationMs = 60_000;
+let mockClips: unknown[] = [];
 
 jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => {
   const getState = () => ({
@@ -74,9 +76,9 @@ jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => {
 
 jest.mock("../../../../stores/timeline/TimelineStore", () => {
   const getState = () => ({
-    clips: [] as unknown[],
+    clips: mockClips,
     tracks: [] as unknown[],
-    durationMs: 60_000
+    durationMs: mockDurationMs
   });
   const useTimelineStore = <T,>(
     selector: (s: ReturnType<typeof getState>) => T
@@ -114,6 +116,8 @@ describe("PreviewArea", () => {
     jest.clearAllMocks();
     mockCurrentTimeMs = 0;
     mockIsPlaying = false;
+    mockDurationMs = 60_000;
+    mockClips = [];
   });
 
   describe("rendering", () => {
@@ -220,6 +224,16 @@ describe("PreviewArea", () => {
       const stepBack = screen.getByRole("button", { name: /step back one frame/i });
       expect(stepBack).not.toBeDisabled();
     });
+
+    it("does not navigate to a stale stored duration boundary", () => {
+      mockDurationMs = 60_000;
+      mockClips = [{ id: "clip", startMs: 0, durationMs: 10_000 }];
+      renderPreview();
+      fireEvent.click(
+        screen.getByRole("button", { name: "Next clip boundary" })
+      );
+      expect(mockSetCurrentTimeMs).toHaveBeenCalledWith(10_000);
+    });
   });
 
   describe("timecode formatting", () => {
@@ -234,6 +248,21 @@ describe("PreviewArea", () => {
       mockCurrentTimeMs = 60_000;
       renderPreview({ fps: 30 });
       expect(screen.getByText("00:01:00:00")).toBeInTheDocument();
+    });
+
+    it("shows the live clip extent when the stored duration is stale", () => {
+      mockDurationMs = 60_000;
+      mockClips = [
+        { id: "clip", startMs: 0, durationMs: 10_000 }
+      ];
+      renderPreview();
+      expect(screen.getByText("/00:00:10:00")).toBeInTheDocument();
+    });
+
+    it("uses the same rounded frame as the playhead at fractional frames", () => {
+      mockCurrentTimeMs = 4825;
+      renderPreview({ fps: 30 });
+      expect(screen.getByText("00:00:04:25")).toBeInTheDocument();
     });
   });
 });
