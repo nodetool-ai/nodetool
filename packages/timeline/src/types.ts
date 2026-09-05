@@ -49,6 +49,11 @@ export interface TimelineSequence {
    * Unset on legacy sequences (treated as enabled if transcript clips exist).
    */
   scriptEnabled?: boolean;
+  /**
+   * Constant tempo the midi clips are read against. Absent means
+   * `DEFAULT_TEMPO` (120 BPM, 4/4, no offset) — see `midi/tempo.ts`.
+   */
+  tempo?: TimelineTempo;
   createdAt: string;
   updatedAt: string;
 }
@@ -226,7 +231,7 @@ export interface TranscriptLine {
 export interface TimelineTrack {
   id: string;
   name: string;
-  type: "video" | "audio" | "overlay" | "subtitle";
+  type: "video" | "audio" | "overlay" | "subtitle" | "midi";
   index: number;
   visible: boolean;
   locked: boolean;
@@ -242,6 +247,12 @@ export interface TimelineTrack {
    * whose type doesn't match the track type.
    */
   effects?: TrackEffect[];
+  /**
+   * The voice every midi clip on this track plays. The track owns the
+   * instrument, not the clip, so moving a clip to another midi track changes
+   * its sound. Must also exist on the protocol zod schema or PATCH strips it.
+   */
+  instrument?: MidiInstrument;
 }
 
 // ── Track DSP effects ───────────────────────────────────────────────────────
@@ -428,7 +439,63 @@ export type ClipMediaType =
   | "overlay"
   | "text"
   | "shape"
-  | "group";
+  | "group"
+  | "midi";
+
+/**
+ * One note inside a midi clip. Ticks are counted from the clip's *content*
+ * start (MIDI_PPQ = 960 per quarter note), not from its window — the same
+ * relationship an audio clip's samples have to its source — so trimming the
+ * window hides notes rather than deleting them.
+ *
+ * Structurally identical to `MidiNote` in `@nodetool-ai/protocol`; pinned by
+ * `tests/midi.protocolCompat.test.ts`.
+ */
+export interface MidiNote {
+  id: string;
+  /** MIDI note number, 0..127 (integer). */
+  pitch: number;
+  /** How hard the note is struck, 1..127 (integer). */
+  velocity: number;
+  /** Onset in ticks from the clip's content start (integer >= 0). */
+  startTick: number;
+  /** Held length in ticks (integer > 0). */
+  durationTick: number;
+}
+
+/** The synth a midi track plays. One member today; a union so adding a second
+ * synth does not reshape what is already stored. */
+export type MidiInstrument = SubtractiveMidiInstrument;
+
+/** One oscillator through a lowpass filter and an ADSR envelope. */
+export interface SubtractiveMidiInstrument {
+  type: "subtractive";
+  waveform: "saw" | "square" | "triangle" | "sine";
+  attackMs: number;
+  decayMs: number;
+  /** Sustain level, 0..1 of the peak. */
+  sustain: number;
+  releaseMs: number;
+  cutoffHz: number;
+  /** Lowpass Q. */
+  resonance: number;
+  gainDb: number;
+}
+
+/**
+ * Document-level constant tempo. Milliseconds stay the stored master clock, so
+ * changing `bpm` rescales every midi clip around `offsetMs` (see
+ * `midi/tempo.ts`) and leaves every other clip where it is.
+ */
+export interface TimelineTempo {
+  bpm: number;
+  /** Where beat one sits on the timeline, in ms. */
+  offsetMs: number;
+  timeSignature: {
+    beatsPerBar: number;
+    beatUnit: number;
+  };
+}
 
 export interface TimelineClip {
   id: string;
@@ -570,6 +637,13 @@ export interface TimelineClip {
   compositionId?: string;
   /** Parameter values the composition was instantiated with. */
   compositionParams?: Record<string, number | string | boolean>;
+  /**
+   * Notes carried inline by a `midi` clip, in content ticks. `inPointMs` /
+   * `durationMs` are the window over them, exactly as they are the window over
+   * an audio clip's source: a trim hides notes, it does not delete them. Must
+   * also exist on the protocol zod schema or PATCH strips it.
+   */
+  notes?: MidiNote[];
 }
 
 /**

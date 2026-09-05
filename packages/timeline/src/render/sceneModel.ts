@@ -767,6 +767,8 @@ export function computeActiveLayersWithHorizon(
       // Only visual tracks draw picture; audio clips never do.
       if (!isVisual) continue;
       if (clip.mediaType === "audio") continue;
+      // A midi clip is notes, not pixels — it never becomes a layer.
+      if (clip.mediaType === "midi") continue;
 
       if (clip.mediaType === "text") {
         if (!clip.textStyle) continue;

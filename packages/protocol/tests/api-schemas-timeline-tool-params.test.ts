@@ -13,11 +13,14 @@ import {
   captionStyle,
   clipShapeStyle,
   clipTextStyle,
+  midiInstrument,
   KNOWN_CLIP_EFFECT_TYPE_LIST,
-  KNOWN_TRANSITION_TYPE_LIST
+  KNOWN_TRANSITION_TYPE_LIST,
+  MIDI_MAX_NOTES_PER_CLIP
 } from "../src/api-schemas/timeline.js";
 import {
   addGroupParams,
+  addMidiClipParams,
   buildEffect,
   buildMask,
   buildTimeRemap,
@@ -25,8 +28,12 @@ import {
   captionStyleParams,
   effectParams,
   partialTextStyleParams,
+  midiNoteParams,
+  setNotesParams,
   setParentParams,
+  setTempoParams,
   setTimeRemapParams,
+  setTrackInstrumentParams,
   shapeStyleParams,
   textStyleParams,
   transitionParams,
@@ -401,5 +408,115 @@ describe("what a real build got wrong", () => {
     expect(message).toContain("This op accepts:");
     expect(message).toContain("`align`");
     expect(message).toContain("verticalAlign");
+  });
+});
+
+describe("the midi ops", () => {
+  const note = { pitch: 60, start_tick: 0, duration_tick: 960 };
+
+  it("takes a note without an id or a velocity — both are filled in", () => {
+    expect(midiNoteParams.parse(note)).toEqual(note);
+    expect(midiNoteParams.parse({ ...note, id: "keep", velocity: 40 })).toEqual({
+      ...note,
+      id: "keep",
+      velocity: 40
+    });
+  });
+
+  it("refuses a note outside the ranges the document stores", () => {
+    expect(() => midiNoteParams.parse({ ...note, pitch: 128 })).toThrow();
+    expect(() => midiNoteParams.parse({ ...note, velocity: 0 })).toThrow();
+    expect(() => midiNoteParams.parse({ ...note, start_tick: -1 })).toThrow();
+    expect(() => midiNoteParams.parse({ ...note, duration_tick: 0 })).toThrow();
+  });
+
+  it("places a clip on a named track, notes optional", () => {
+    const parsed = addMidiClipParams.parse({
+      track: "Keys",
+      start_ms: 0,
+      duration_ms: 2000,
+      notes: [note]
+    });
+    expect(parsed.track).toBe("Keys");
+    expect(parsed.notes).toEqual([note]);
+    expect(
+      addMidiClipParams.parse({ track: "Keys", start_ms: 0, duration_ms: 500 })
+        .notes
+    ).toBeUndefined();
+    expect(() =>
+      addMidiClipParams.parse({ track: "Keys", start_ms: 0, duration_ms: 0 })
+    ).toThrow();
+  });
+
+  it("caps a note list at what the document schema stores", () => {
+    const many = Array.from(
+      { length: MIDI_MAX_NOTES_PER_CLIP + 1 },
+      () => note
+    );
+    expect(() =>
+      setNotesParams.parse({ clip: "selected", notes: many })
+    ).toThrow();
+  });
+
+  it("replaces a clip's whole note list", () => {
+    expect(setNotesParams.parse({ clip: "Phrase", notes: [note] })).toEqual({
+      clip: "Phrase",
+      notes: [note]
+    });
+  });
+
+  it("takes a tempo with the time signature optional", () => {
+    expect(setTempoParams.parse({ bpm: 90 })).toEqual({ bpm: 90 });
+    expect(
+      setTempoParams.parse({
+        bpm: 128,
+        offset_ms: 250,
+        beats_per_bar: 3,
+        beat_unit: 4
+      })
+    ).toEqual({ bpm: 128, offset_ms: 250, beats_per_bar: 3, beat_unit: 4 });
+    expect(() => setTempoParams.parse({ bpm: 0 })).toThrow();
+    expect(() => setTempoParams.parse({ bpm: 120, offset_ms: -1 })).toThrow();
+  });
+
+  it("takes exactly the instrument the document schema stores", () => {
+    const instrument = {
+      type: "subtractive" as const,
+      waveform: "square" as const,
+      attackMs: 1,
+      decayMs: 50,
+      sustain: 0.5,
+      releaseMs: 90,
+      cutoffHz: 1200,
+      resonance: 1.2,
+      gainDb: -3
+    };
+    expect(midiInstrument.parse(instrument)).toEqual(instrument);
+    expect(setTrackInstrumentParams.parse({ track: "Keys", instrument })).toEqual(
+      { track: "Keys", instrument }
+    );
+    expect(() =>
+      setTrackInstrumentParams.parse({
+        track: "Keys",
+        instrument: { ...instrument, sustain: 1.5 }
+      })
+    ).toThrow();
+    expect(() =>
+      setTrackInstrumentParams.parse({
+        track: "Keys",
+        instrument: { ...instrument, type: "fm" }
+      })
+    ).toThrow();
+  });
+
+  it("names all four ops on the shared surface", () => {
+    for (const name of [
+      "ui_timeline_add_midi_clip",
+      "ui_timeline_set_notes",
+      "ui_timeline_set_tempo",
+      "ui_timeline_set_track_instrument"
+    ]) {
+      expect(SHARED_TIMELINE_TOOL_NAMES).toContain(name);
+    }
   });
 });

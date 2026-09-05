@@ -106,3 +106,26 @@ describe("trimClip", () => {
     expect(grownEnd.outPointMs).toBe(700); // baked → 1:1, 600 + 100
   });
 });
+
+describe("trimClip on a midi clip", () => {
+  it("moves the window and keeps every note", () => {
+    const clip: TimelineClip = {
+      ...makeBaseClip(),
+      mediaType: "midi",
+      startMs: 0,
+      durationMs: 1000,
+      inPointMs: 0,
+      outPointMs: 1000,
+      notes: [
+        { id: "n1", pitch: 60, velocity: 100, startTick: 0, durationTick: 960 },
+        { id: "n2", pitch: 67, velocity: 90, startTick: 960, durationTick: 960 }
+      ]
+    };
+
+    // A head trim hides the first note without deleting it.
+    const trimmed = trimClip(clip, "start", -500);
+    expect(trimmed.inPointMs).toBe(500);
+    expect(trimmed.durationMs).toBe(500);
+    expect(trimmed.notes).toEqual(clip.notes);
+  });
+});

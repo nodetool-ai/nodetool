@@ -29,7 +29,10 @@ import {
   ADD_TRACK_DESCRIPTION,
   DELETE_TRACK_DESCRIPTION,
   MOVE_TRACK_DESCRIPTION,
+  SET_TEMPO_DESCRIPTION,
+  SET_TRACK_INSTRUMENT_DESCRIPTION,
   addGroupParams,
+  addMidiClipParams,
   captionStyleParams,
   clipOpacityParam,
   deleteTrackShape,
@@ -38,8 +41,11 @@ import {
   matteParams,
   moveTrackShape,
   partialTextStyleParams,
+  setNotesParams,
   setParentParams,
+  setTempoParams,
   setTimeRemapParams,
+  setTrackInstrumentParams,
   shapeStyleParams,
   targetParam,
   textStyleParams,
@@ -242,7 +248,7 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
     ui_timeline_add_track: {
       description: ADD_TRACK_DESCRIPTION,
       shape: {
-        type: z.enum(["video", "audio", "overlay", "subtitle"]),
+        type: z.enum(["video", "audio", "overlay", "subtitle", "midi"]),
         name: z.string().optional()
       }
     },
@@ -600,6 +606,29 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
             '"move" slides the clip, "trim" changes its length. Default "move".'
           )
       }
+    }
+,
+
+    ui_timeline_add_midi_clip: {
+      description:
+        "Place a midi clip — a phrase played by the track's synth — on a midi track. The notes ride inside the clip in ticks from its content start (960 ticks = one quarter note, read against the document tempo), so trimming the clip hides notes rather than deleting them. `duration_ms` is the window: a note running past its end is gated there. Set the voice with ui_timeline_set_track_instrument and the tempo with ui_timeline_set_tempo.",
+      shape: addMidiClipParams.shape
+    },
+
+    ui_timeline_set_notes: {
+      description:
+        "Replace a midi clip's notes. This is the whole list, not a merge — send every note the clip should keep, each with `pitch`, `start_tick` and `duration_tick` (960 ticks = one quarter note, counted from the clip's content start). Pass a note's `id` to keep the one it already has.",
+      shape: setNotesParams.shape
+    },
+
+    ui_timeline_set_tempo: {
+      description: SET_TEMPO_DESCRIPTION,
+      shape: setTempoParams.shape
+    },
+
+    ui_timeline_set_track_instrument: {
+      description: SET_TRACK_INSTRUMENT_DESCRIPTION,
+      shape: setTrackInstrumentParams.shape
     }
   } satisfies Record<string, UiToolContract>;
 }
