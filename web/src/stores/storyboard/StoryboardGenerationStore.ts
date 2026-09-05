@@ -15,7 +15,17 @@
 
 import { useEffect } from "react";
 import { create } from "zustand";
-import type { ImageRef, ShotStatus, VideoRef } from "@nodetool-ai/protocol";
+import type {
+  BoardRenderContext,
+  ClipVersion,
+  ImageRef,
+  KeyframeVersion,
+  RenderInputs,
+  Shot,
+  ShotStatus,
+  VideoRef
+} from "@nodetool-ai/protocol";
+import { currentRenderInputs, stampRenderInputs } from "@nodetool-ai/protocol";
 import {
   globalWebSocketManager,
   type WebSocketMessage
@@ -48,6 +58,25 @@ export interface ShotJobState {
   /** Asset id resolved from the completed job's output, when present. */
   assetId?: string;
   errorMessage?: string;
+  /**
+   * The inputs this render was enqueued with, stamped at registration and
+   * written onto the version when the asset lands (PRD § 7.7.4). Absent when
+   * the caller had no board context to record — that version is never stale.
+   */
+  renderInputs?: RenderInputs;
+}
+
+/**
+ * What a render record is taken from at enqueue time: the shot as it reads
+ * now, and the board settings it would render with.
+ *
+ * The store is handed both rather than reading them back from
+ * {@link useStoryboardStore}, so the record is a snapshot of the moment the
+ * job was sent and cannot drift with a later edit.
+ */
+export interface ShotRenderContext {
+  shot: Shot;
+  board: BoardRenderContext;
 }
 
 /**
@@ -85,7 +114,8 @@ interface StoryboardGenerationStoreState {
     shotId: string,
     boardId: string,
     requestId: string,
-    kind: ShotJobKind
+    kind: ShotJobKind,
+    render?: ShotRenderContext
   ) => void;
   updateJobStatus: (
     jobId: string,
@@ -200,7 +230,7 @@ export const useStoryboardGenerationStore =
     generatingShotIds: [],
     failedShotIds: [],
 
-    registerJob: (shotId, boardId, jobId, kind) => {
+    registerJob: (shotId, boardId, jobId, kind, render) => {
       // A direct request has no server queue: it is in flight the moment it
       // is sent, so it registers as running rather than queued.
       const jobState: ShotJobState = {
@@ -211,6 +241,14 @@ export const useStoryboardGenerationStore =
         status: "running",
         progress: 0
       };
+      // Taken here, not when the asset lands: a render that finishes after a
+      // style change has to carry the inputs it was started with, or it would
+      // read current against a board it never saw (PRD § 7.7.4).
+      if (render) {
+        jobState.renderInputs = stampRenderInputs(
+          currentRenderInputs(render.shot, render.board, kind)
+        );
+      }
       set((state) => {
         const nextShotJobs = { ...state.shotJobs, [shotId]: jobState };
         const nextJobToShot = { ...state.jobToShot, [jobId]: shotId };
@@ -407,19 +445,24 @@ export const __resetStoryboardSubscriptionsForTests = (): void => {
 const settleShotAsset = (
   context: DirectShotJobContext,
   ref: ImageRef | VideoRef,
-  assetId: string
+  assetId: string,
+  renderInputs?: RenderInputs
 ): void => {
   const storyboard = useStoryboardStore.getState();
   if (context.kind === "keyframe") {
-    storyboard.setShotKeyframe(
-      context.boardId,
-      context.shotId,
-      ref as ImageRef
-    );
+    const keyframe: KeyframeVersion = { ...(ref as ImageRef) };
+    if (renderInputs) {
+      keyframe.render_inputs = renderInputs;
+    }
+    storyboard.setShotKeyframe(context.boardId, context.shotId, keyframe);
     storyboard.setShotStatus(context.boardId, context.shotId, "keyframe_ready");
     return;
   }
-  storyboard.setShotClip(context.boardId, context.shotId, ref as VideoRef);
+  const clip: ClipVersion = { ...(ref as VideoRef) };
+  if (renderInputs) {
+    clip.render_inputs = renderInputs;
+  }
+  storyboard.setShotClip(context.boardId, context.shotId, clip);
   storyboard.setShotStatus(context.boardId, context.shotId, "rendered");
   // Round-trip the new clip into an assembled timeline, if one is linked.
   void syncShotClipToTimeline(context.boardId, context.shotId, assetId);
@@ -453,7 +496,16 @@ const handleDirectResponse = (
     context.kind === "keyframe"
       ? { type: "image", uri: `asset://${assetId}`, asset_id: assetId }
       : { type: "video", uri: `asset://${assetId}`, asset_id: assetId };
-  settleShotAsset(context, ref, assetId);
+  // The record was stamped at enqueue; the job row still holds it here,
+  // before `clear` drops the row. Match on the request id so a row that a
+  // newer render already replaced does not lend its record to this one.
+  const job = generationStore.shotJobs[context.shotId];
+  settleShotAsset(
+    context,
+    ref,
+    assetId,
+    job?.jobId === requestId ? job.renderInputs : undefined
+  );
   generationStore.updateJobStatus(requestId, "completed", { assetId });
   generationStore.clear(context.shotId);
   unsubscribeShotJob(requestId);

@@ -40,6 +40,7 @@ import type {
   LanguageModelValue,
   VideoModelValue
 } from "../ApiTypes";
+import type { StoryboardSetupStage } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 import {
   sceneOrder,
   scenesAreContiguous
@@ -67,6 +68,13 @@ export interface StoryboardBoard {
    */
   entityIds: string[];
   aspectRatio: string;
+  /**
+   * Where the board sits in the guided setup. A board built before the flow
+   * existed, and one the flow has finished, both read "done".
+   */
+  setupStage: StoryboardSetupStage;
+  /** Genre sits on the board, not the screenplay: it is picked before one exists. */
+  genre: string;
   /** Language model the Director run uses. Null until the user picks one. */
   directorModel: LanguageModelValue | null;
   /** Image model every keyframe still is generated with. Null = node default. */
@@ -78,6 +86,13 @@ export interface StoryboardBoard {
   timelineId: string | null;
   /** Epoch ms of the last mutation; drives the sidebar's recency sort. */
   updatedAt: number;
+}
+
+/** The guided-setup fields one step writes. Omitted keys are left alone. */
+export interface StoryboardSetupPatch {
+  brief?: string;
+  genre?: string;
+  stage?: StoryboardSetupStage;
 }
 
 /** The scene fields the surface edits; a scene carries no order of its own. */
@@ -123,6 +138,12 @@ interface StoryboardStoreState {
 
   setBrief: (boardId: string, brief: string) => void;
   setStyle: (boardId: string, style: string) => void;
+  /**
+   * Write the guided-setup fields in one edit. The three move together — a
+   * step writes its answer and advances — so they are one undo entry, not
+   * three (PRD § 7.7.1).
+   */
+  setSetup: (boardId: string, patch: StoryboardSetupPatch) => void;
   /** Replace the board's entity selection. */
   setEntityIds: (boardId: string, entityIds: string[]) => void;
   /**
@@ -310,6 +331,8 @@ const emptyBoard = (id: string): StoryboardBoard => ({
   style: "",
   entityIds: [],
   aspectRatio: "16:9",
+  setupStage: "done",
+  genre: "",
   directorModel: null,
   imageModel: null,
   videoModel: null,
@@ -739,6 +762,27 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         boardId,
         (b) => (b.style === style ? null : { ...b, style }),
         { coalesceKey: "style" }
+      )
+    ),
+
+  setSetup: (boardId, patch) =>
+    set((state) =>
+      withBoard(
+        state,
+        boardId,
+        (b) => {
+          const next: StoryboardBoard = { ...b };
+          if (patch.brief !== undefined) next.brief = patch.brief;
+          if (patch.genre !== undefined) next.genre = patch.genre;
+          if (patch.stage !== undefined) next.setupStage = patch.stage;
+          return next.brief === b.brief &&
+            next.genre === b.genre &&
+            next.setupStage === b.setupStage
+            ? null
+            : next;
+        },
+        // Typing in a setup field coalesces the same way a brief edit does.
+        { coalesceKey: `setup:${Object.keys(patch).sort().join(",")}` }
       )
     ),
 
@@ -1429,6 +1473,8 @@ export const useBoard = (
   style: string;
   entityIds: string[];
   aspectRatio: string;
+  setupStage: StoryboardSetupStage;
+  genre: string;
   directorModel: LanguageModelValue | null;
   imageModel: ImageModelValue | null;
   videoModel: VideoModelValue | null;
@@ -1445,6 +1491,8 @@ export const useBoard = (
         style: b?.style ?? "",
         entityIds: b?.entityIds ?? EMPTY_ENTITY_IDS,
         aspectRatio: b?.aspectRatio ?? "16:9",
+        setupStage: b?.setupStage ?? "done",
+        genre: b?.genre ?? "",
         directorModel: b?.directorModel ?? null,
         imageModel: b?.imageModel ?? null,
         videoModel: b?.videoModel ?? null,

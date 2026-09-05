@@ -503,3 +503,62 @@ describe("prompts come from the shared shot-prompt module", () => {
     expect(promptSent()).toBe(directClipPrompt(direct, { scene, style: STYLE }));
   });
 });
+
+/**
+ * The board context the enqueue path hands the generation store (PRD § 7.7.4).
+ * `style_entity_id` is derived from the board's entities here, not in the
+ * store — the store holds ids, the kinds live in the entity query.
+ */
+describe("render record context", () => {
+  const styleEntity: Entity = {
+    type: "entity",
+    id: "ent-style",
+    name: "Noir",
+    kind: "style",
+    descriptor: "high-contrast noir"
+  };
+
+  it("records the board's still model and style entity when a keyframe starts", async () => {
+    mockEntities.push(styleEntity, location);
+    const store = useStoryboardStore.getState();
+    store.setImageModel(BOARD, {
+      type: "image_model",
+      id: "model-still",
+      provider: "prov",
+      name: "Still",
+      path: ""
+    });
+    store.setEntityIds(BOARD, ["ent-1", "ent-style"]);
+
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateKeyframe(BOARD, shot);
+    });
+
+    const record =
+      useStoryboardGenerationStore.getState().shotJobs[shot.id]?.renderInputs;
+    expect(record?.kind).toBe("keyframe");
+    expect(record?.model).toBe("model-still");
+    expect(record?.style_entity_id).toBe("ent-style");
+    expect(record?.recorded_at).toEqual(expect.any(String));
+  });
+
+  it("leaves a clip revision without a record — it is never stale", async () => {
+    const revisable: Shot = {
+      ...shot,
+      id: "shot-revise-record",
+      clip: { type: "video", asset_id: "clip-1", uri: "asset://clip-1" }
+    };
+    useStoryboardStore.getState().upsertShot(BOARD, revisable);
+
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateRevisedClip(BOARD, revisable, "brighter");
+    });
+
+    expect(
+      useStoryboardGenerationStore.getState().shotJobs[revisable.id]
+        ?.renderInputs
+    ).toBeUndefined();
+  });
+});

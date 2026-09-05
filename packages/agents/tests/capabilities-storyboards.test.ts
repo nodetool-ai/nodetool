@@ -190,6 +190,7 @@ const PAIRS: Array<[string, () => Tool]> = [
     () => toolForCapabilityName("assemble_storyboard_timeline")
   ],
   ["edit_storyboard", () => toolForCapabilityName("edit_storyboard")],
+  ["direct_storyboard", () => toolForCapabilityName("direct_storyboard")],
   [
     "extract_script_from_storyboard",
     () => toolForCapabilityName("extract_script_from_storyboard")
@@ -208,6 +209,7 @@ describe("storyboards capability module", () => {
       "revise_storyboard_clip",
       "assemble_storyboard_timeline",
       "edit_storyboard",
+      "direct_storyboard",
       "extract_script_from_storyboard",
       "delete_storyboard"
     ]);

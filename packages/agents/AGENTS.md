@@ -857,13 +857,24 @@ result as an asset, and write it back onto the persisted board.
 | `list_storyboards` | Boards newest first, with per-board still/clip counts |
 | `create_storyboard` | Blank board (then `edit_storyboard` adds shots) |
 | `get_storyboard` | Shots with ids, status, and whether each has a still/clip |
+| `direct_storyboard` | Runs the Director over the board's brief/genre/style and writes the screenplay; `redirect` keeps retained shots' ids and media |
 | `render_storyboard_stills` | `text_to_image` per shot → the shot's keyframe |
 | `render_storyboard_clips` | the shot's clip: `image_to_video` seeded by the keyframe, or `text_to_video` from the prompt |
 | `revise_storyboard_clip` | `video_to_video` revision of one shot's clip |
 | `assemble_storyboard_timeline` | Rendered clips → a saved `timeline_sequences` row |
 
+`edit_storyboard` is the document half: beside the shot ops it carries the
+guided flow's `set_setup`, the scene ops (`move_shot`, `duplicate_shot`,
+`update_scene`, `create_scene`, `merge_scene`), `set_style`, and the version ops
+(`select_version`, `delete_version`, `add_keyframe_version`). Every one mirrors
+a `ui_storyboard_*` browser tool and writes the same document shape, so a board
+edited headlessly and one edited in the editor cannot diverge (PRD § 7.10).
+
 Both render tools take `targets` (shot ids, indexes, or slugs) and default to
-"whatever still needs this step", so a whole board is one call. Shots render
+"whatever still needs this step", so a whole board is one call. `stale_only`
+narrows that to the shots whose selected version was rendered from inputs the
+shot no longer has (`isVersionStale`), which is how a style change is re-rendered
+without re-rendering the board. Shots render
 concurrently (default 3, max 8, 24 shots per call). Every write is a CAS on the
 row's `updated_at` with a bounded retry, because concurrent renders all land on
 the same board document; a conflicting write re-reads and re-applies rather than

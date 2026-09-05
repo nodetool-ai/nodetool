@@ -27,14 +27,19 @@ import type {
   StoryboardDocument
 } from "@nodetool-ai/models";
 import type {
+  BoardRenderContext,
+  ClipVersion,
   Entity,
   ImageRef,
+  KeyframeVersion,
+  Scene,
   Screenplay,
   ScriptLinkDocument,
   Shot,
   ShotCoverage,
   VideoRef
 } from "@nodetool-ai/protocol";
+import type { StoryboardSetupStage } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 import type { ScriptAssemblyInput } from "@nodetool-ai/timeline";
 import type {
   CapabilityExport,
@@ -51,6 +56,7 @@ import {
   reviseStoryboardClipSpec,
   assembleStoryboardTimelineSpec,
   editStoryboardSpec,
+  directStoryboardSpec,
   extractScriptFromStoryboardSpec,
   DEFAULT_CONCURRENCY,
   MAX_CONCURRENCY,
@@ -63,6 +69,7 @@ import {
   REVISE_CLIP_SCHEMA,
   ASSEMBLE_STORYBOARD_TIMELINE_SCHEMA,
   EDIT_STORYBOARD_SCHEMA,
+  DIRECT_STORYBOARD_SCHEMA,
   EXTRACT_SCRIPT_SCHEMA,
   deleteStoryboardSpec
 } from "./storyboards.specs.js";
@@ -85,6 +92,7 @@ export {
   REVISE_CLIP_SCHEMA,
   ASSEMBLE_STORYBOARD_TIMELINE_SCHEMA,
   EDIT_STORYBOARD_SCHEMA,
+  DIRECT_STORYBOARD_SCHEMA,
   EXTRACT_SCRIPT_SCHEMA
 } from "./storyboards.specs.js";
 import { resolveProjectId } from "./project-scope.js";
@@ -93,6 +101,14 @@ import { mp4DurationSeconds } from "../utils/video-duration.js";
 const MAX_SHOTS_PER_CALL = 24;
 /** Attempts to land a document write: the first try plus one re-read-and-reapply (ADR 0001). */
 const CAS_ATTEMPTS = 2;
+/** The guided-setup stages, in order. Mirrors `storyboardSetupStage`. */
+const SETUP_STAGES: readonly StoryboardSetupStage[] = [
+  "idea",
+  "genre",
+  "review",
+  "look",
+  "done"
+];
 
 interface BoardHandle {
   row: Storyboard;
@@ -632,6 +648,61 @@ const getStoryboard: CapabilityExport = {
   }
 };
 
+/**
+ * The board values a version's render record is compared against
+ * (`BoardRenderContext`). The board's one style entity is the last style id in
+ * the cast, which is what `set_style` writes.
+ */
+function boardRenderContext(
+  doc: StoryboardDocument,
+  entities: readonly Entity[]
+): BoardRenderContext {
+  const styleIds = new Set(
+    entities.filter((e) => e.kind === "style").map((e) => e.id)
+  );
+  return {
+    aspect_ratio: doc.aspectRatio || "16:9",
+    image_model: isString(doc.imageModel?.id) ? doc.imageModel.id : "",
+    video_model: isString(doc.videoModel?.id) ? doc.videoModel.id : "",
+    style_entity_id:
+      [...(doc.entityIds ?? [])].reverse().find((id) => styleIds.has(id)) ??
+      null,
+    style: doc.style,
+    scenes: doc.screenplay?.scenes ?? null
+  };
+}
+
+/**
+ * Drop the shots whose selected version is still current. Additive: without
+ * `stale_only` the selection is returned untouched.
+ */
+async function filterStale(
+  selected: Shot[],
+  params: Record<string, unknown>,
+  doc: StoryboardDocument,
+  entities: readonly Entity[],
+  kind: "keyframe" | "clip"
+): Promise<{ shots: Shot[]; skipped: string[] }> {
+  if (params["stale_only"] !== true) {
+    return { shots: selected, skipped: [] };
+  }
+  const { staleClipShots, staleKeyframeShots } = await import(
+    "@nodetool-ai/protocol"
+  );
+  const context = boardRenderContext(doc, entities);
+  const stale =
+    kind === "keyframe"
+      ? staleKeyframeShots(selected, context)
+      : staleClipShots(selected, context);
+  const keep = new Set(stale.map((shot) => shot.id));
+  return {
+    shots: stale,
+    skipped: selected
+      .filter((shot) => !keep.has(shot.id))
+      .map((shot) => shot.id)
+  };
+}
+
 const renderStoryboardStills: CapabilityExport = {
   spec: renderStoryboardStillsSpec,
   impl: async (run, params) => {
@@ -656,32 +727,52 @@ const renderStoryboardStills: CapabilityExport = {
         !shotHasPicture(s, doc.shots)
     );
     if (isError(selected)) return selected;
-    if (selected.length === 0) {
+    const entities = await loadBoardEntities(context, doc);
+    const fresh = await filterStale(selected, params, doc, entities, "keyframe");
+    const skipped = fresh.skipped;
+    const chosen = fresh.shots;
+    if (chosen.length === 0) {
       return {
         rendered: 0,
         results: [],
-        note: "No shot needs a still: each already has one, or renders its clip directly."
+        skipped,
+        note:
+          skipped.length > 0
+            ? "No selected shot's still is stale."
+            : "No shot needs a still: each already has one, or renders its clip directly."
       };
     }
-    if (selected.length > MAX_SHOTS_PER_CALL) {
+    if (chosen.length > MAX_SHOTS_PER_CALL) {
       return {
-        error: `${selected.length} shots selected, over the ${MAX_SHOTS_PER_CALL}-shot per-call limit. Pass targets in batches.`
+        error: `${chosen.length} shots selected, over the ${MAX_SHOTS_PER_CALL}-shot per-call limit. Pass targets in batches.`
       };
     }
 
-    const { entitiesForShot, keyframePrompt, sceneForShot } = await import(
-      "@nodetool-ai/protocol"
-    );
+    const {
+      currentRenderInputs,
+      entitiesForShot,
+      keyframePrompt,
+      sceneForShot,
+      stampRenderInputs
+    } = await import("@nodetool-ai/protocol");
     const { inferImageMime } = await import("../tools/asset-persist.js");
     const style =
       isString(params["style"])
         ? params["style"]
         : doc.style;
-    const entities = await loadBoardEntities(context, doc);
     const aspectRatio = doc.aspectRatio || "16:9";
+    // What this call actually renders with, which is not always what the board
+    // says: `style` and `model` can be overridden per call. Recording the
+    // override is the point — a version rendered against something other than
+    // the board's settings reads stale against the board, correctly.
+    const rendered: BoardRenderContext = {
+      ...boardRenderContext(doc, entities),
+      image_model: model.model,
+      style
+    };
 
     const results = await mapWithConcurrency(
-      selected,
+      chosen,
       clampConcurrency(params["concurrency"]),
       async (shot): Promise<ShotOutcome> => {
         const base: ShotOutcome = {
@@ -710,10 +801,13 @@ const renderStoryboardStills: CapabilityExport = {
           );
           if (isError(saved)) return { ...base, error: saved.error };
 
-          const keyframe: ImageRef = {
+          const keyframe: KeyframeVersion = {
             type: "image",
             asset_id: saved.assetId,
-            uri: saved.uri
+            uri: saved.uri,
+            render_inputs: stampRenderInputs(
+              currentRenderInputs(shot, rendered, "keyframe")
+            )
           };
           const updated = await patchShot(row.id, shot.id, (current) => {
             const versions =
@@ -751,6 +845,7 @@ const renderStoryboardStills: CapabilityExport = {
       model: model.model,
       rendered: results.filter((r) => r.ok).length,
       failed: results.filter((r) => !r.ok).length,
+      skipped,
       results
     };
   }
@@ -795,26 +890,40 @@ const renderStoryboardClips: CapabilityExport = {
         (modeOf(s) === "direct" || !!s.keyframe)
     );
     if (isError(selected)) return selected;
-    if (selected.length === 0) {
+    const entities = await loadBoardEntities(context, doc);
+    const fresh = await filterStale(selected, params, doc, entities, "clip");
+    const skipped = fresh.skipped;
+    const chosen = fresh.shots;
+    if (chosen.length === 0) {
       return {
         rendered: 0,
         results: [],
-        note: "No shot is ready for a clip. A keyframe-mode shot needs a still first (render_storyboard_stills), or set its render_mode to \"direct\" — or pass mode: \"direct\" here — to render straight from the prompt. Name shots explicitly with `targets` to override the selection."
+        skipped,
+        note:
+          skipped.length > 0
+            ? "No selected shot's clip is stale."
+            : "No shot is ready for a clip. A keyframe-mode shot needs a still first (render_storyboard_stills), or set its render_mode to \"direct\" — or pass mode: \"direct\" here — to render straight from the prompt. Name shots explicitly with `targets` to override the selection."
       };
     }
-    if (selected.length > MAX_SHOTS_PER_CALL) {
+    if (chosen.length > MAX_SHOTS_PER_CALL) {
       return {
-        error: `${selected.length} shots selected, over the ${MAX_SHOTS_PER_CALL}-shot per-call limit. Pass targets in batches.`
+        error: `${chosen.length} shots selected, over the ${MAX_SHOTS_PER_CALL}-shot per-call limit. Pass targets in batches.`
       };
     }
 
     const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
-    const { clipPrompt, directClipPrompt, entitiesForShot, sceneForShot } =
+    const {
+      clipPrompt,
+      currentRenderInputs,
+      directClipPrompt,
+      entitiesForShot,
+      sceneForShot,
+      stampRenderInputs
+    } =
       await import("@nodetool-ai/protocol");
     const { effectiveShotDuration, scriptLinesById } = await import(
       "@nodetool-ai/timeline"
     );
-    const entities = await loadBoardEntities(context, doc);
     // A linked board times its shots from the words they cover, so a clip is
     // rendered long enough to hold its voiceover (design §2.3). A shot pinned
     // to `manual`, an unvoiced line, or an unlinked board keeps
@@ -830,9 +939,16 @@ const renderStoryboardClips: CapabilityExport = {
       isString(params["resolution"])
         ? params["resolution"]
         : undefined;
+    // As in the stills path: the record says what this call rendered with, so
+    // a per-call model or style override reads stale against the board.
+    const rendered: BoardRenderContext = {
+      ...boardRenderContext(doc, entities),
+      video_model: model.model,
+      style
+    };
 
     const results = await mapWithConcurrency(
-      selected,
+      chosen,
       clampConcurrency(params["concurrency"]),
       async (shot): Promise<ShotOutcome> => {
         const mode = modeOf(shot);
@@ -892,7 +1008,12 @@ const renderStoryboardClips: CapabilityExport = {
           );
           if (isError(saved)) return { ...base, error: saved.error };
 
-          const clip = renderedVideoRef(saved);
+          const clip: ClipVersion = {
+            ...renderedVideoRef(saved),
+            render_inputs: stampRenderInputs(
+              currentRenderInputs(shot, rendered, "clip")
+            )
+          };
           const updated = await patchShot(row.id, shot.id, (current) => {
             const versions =
               current.clip_versions ?? (current.clip ? [current.clip] : []);
@@ -931,6 +1052,7 @@ const renderStoryboardClips: CapabilityExport = {
       model: model.model,
       rendered: results.filter((r) => r.ok).length,
       failed: results.filter((r) => !r.ok).length,
+      skipped,
       results
     };
   }
@@ -1276,7 +1398,17 @@ const BOARD_OPS = [
   "update_shot",
   "remove_shot",
   "reorder_shot",
-  "set_board"
+  "move_shot",
+  "duplicate_shot",
+  "set_board",
+  "set_setup",
+  "update_scene",
+  "create_scene",
+  "merge_scene",
+  "set_style",
+  "select_version",
+  "delete_version",
+  "add_keyframe_version"
 ] as const;
 
 type BoardOpName = (typeof BOARD_OPS)[number];
@@ -1296,7 +1428,13 @@ const BOARD_OP_ALIASES: Readonly<Record<string, BoardOpName>> = {
   add_shots: "add_shot",
   edit_shot: "update_shot",
   delete_shot: "remove_shot",
-  move_shot: "reorder_shot"
+  // `move_shot` used to alias `reorder_shot`. It is its own op now, and the
+  // two coincide on a board with no scenes: one implicit group means a
+  // position inside it is a board position.
+  copy_shot: "duplicate_shot",
+  set_scene: "update_scene",
+  add_scene: "create_scene",
+  set_setup_stage: "set_setup"
 };
 
 const isBoardOpName = (value: string): value is BoardOpName =>
@@ -1350,6 +1488,153 @@ function renumberShots(shots: Shot[]): Shot[] {
   );
 }
 
+// ── Scenes ──────────────────────────────────────────────────────────────────
+// A scene has no order of its own: its position is the position of its first
+// shot, and its shots are contiguous in `index` (PRD § 7.7.3). These mirror
+// `web/src/lib/storyboard/sceneOrder.ts` and the store's `structural`, so a
+// board edited headlessly and one edited in the browser end up the same shape.
+
+/** The board's scenes. They live on the screenplay; the document reads them. */
+function docScenes(doc: StoryboardDocument): Scene[] {
+  return doc.screenplay?.scenes ?? [];
+}
+
+/** Write scenes back, materializing a minimal screenplay when there is none. */
+function setDocScenes(doc: StoryboardDocument, scenes: Scene[]): void {
+  if (doc.screenplay) {
+    doc.screenplay = { ...doc.screenplay, scenes };
+    return;
+  }
+  if (scenes.length === 0) return;
+  doc.screenplay = {
+    type: "screenplay",
+    id: `sp_${Date.now().toString(36)}`,
+    title: "",
+    shots: [],
+    scenes
+  };
+}
+
+interface SceneGroup {
+  sceneId: string | null;
+  shots: Shot[];
+}
+
+/** Scenes in derived order, each with its shots. `null` is the implicit header. */
+function sceneGroups(shots: readonly Shot[]): SceneGroup[] {
+  const groups: SceneGroup[] = [];
+  const byKey = new Map<string | null, SceneGroup>();
+  for (const shot of [...shots].sort((a, b) => a.index - b.index)) {
+    const key = shot.scene_id ?? null;
+    let group = byKey.get(key);
+    if (!group) {
+      group = { sceneId: key, shots: [] };
+      byKey.set(key, group);
+      groups.push(group);
+    }
+    group.shots.push(shot);
+  }
+  return groups;
+}
+
+/** Put a shot in a scene, or out of every scene when `sceneId` is null. */
+function withScene(shot: Shot, sceneId: string | null): Shot {
+  if ((shot.scene_id ?? null) === sceneId) return shot;
+  const next = { ...shot };
+  if (sceneId === null) {
+    delete next.scene_id;
+  } else {
+    next.scene_id = sceneId;
+  }
+  return next;
+}
+
+/**
+ * Finish a structural edit: collect each scene's shots into one run in the
+ * order the board already renders them, renumber `0..n-1`, and drop every
+ * scene no shot is in. The caller's array order is the intent, so it is
+ * stamped before grouping.
+ */
+function applyStructural(doc: StoryboardDocument, shots: Shot[]): void {
+  const proposed = renumberShots(shots);
+  doc.shots = renumberShots(
+    sceneGroups(proposed).flatMap((group) => group.shots)
+  );
+  const used = new Set(
+    doc.shots.map((shot) => shot.scene_id).filter((id): id is string => !!id)
+  );
+  const scenes = docScenes(doc);
+  const pruned = scenes.filter((scene) => used.has(scene.id));
+  if (pruned.length !== scenes.length) {
+    setDocScenes(doc, pruned);
+  }
+}
+
+/**
+ * The first scene-creating operation on a board with unscened shots puts them
+ * all in one new scene, in index order (PRD § 7.7.3). Returns that scene's id,
+ * or null when there was nothing unscened.
+ */
+function materializeLegacyScene(doc: StoryboardDocument): string | null {
+  if (!doc.shots.some((shot) => !shot.scene_id)) return null;
+  const scene: Scene = {
+    type: "scene",
+    id: `scene_${Date.now().toString(36)}_${doc.shots.length}`,
+    slugline: ""
+  };
+  doc.shots = doc.shots.map((shot) =>
+    shot.scene_id ? shot : withScene(shot, scene.id)
+  );
+  setDocScenes(doc, [...docScenes(doc), scene]);
+  return scene.id;
+}
+
+/** A blank planned shot. `index` is stamped by the reindex that follows. */
+function blankShot(id: string, sceneId: string | null): Shot {
+  const shot: Shot = {
+    type: "shot",
+    id,
+    index: 0,
+    action: "",
+    status: "planned"
+  };
+  return sceneId === null ? shot : withScene(shot, sceneId);
+}
+
+/** A shot's stills or takes, oldest first, seeded from a legacy single ref. */
+function versionList(
+  shot: Shot,
+  kind: "keyframe" | "clip"
+): (KeyframeVersion | ClipVersion)[] {
+  if (kind === "keyframe") {
+    return shot.keyframe_versions ?? (shot.keyframe ? [shot.keyframe] : []);
+  }
+  return shot.clip_versions ?? (shot.clip ? [shot.clip] : []);
+}
+
+/** Read `kind` and a 0-based `version` off an op, refusing anything else. */
+function readVersionTarget(
+  shot: Shot,
+  args: Record<string, unknown>
+): {
+  kind: "keyframe" | "clip";
+  index: number;
+  versions: (KeyframeVersion | ClipVersion)[];
+} {
+  const kind = String(args["kind"] ?? "keyframe");
+  if (kind !== "keyframe" && kind !== "clip") {
+    throw new Error('kind must be "keyframe" or "clip".');
+  }
+  const index = Number(args["version"] ?? args["index"]);
+  const versions = versionList(shot, kind);
+  if (!Number.isInteger(index) || index < 0 || index >= versions.length) {
+    throw new Error(
+      `version must be an integer in [0, ${Math.max(versions.length - 1, 0)}]; shot ${shot.id} holds ${versions.length} ${kind} version(s).`
+    );
+  }
+  return { kind, index, versions };
+}
+
 const optionalString = (value: unknown): string | undefined =>
   isString(value) ? value : undefined;
 
@@ -1369,7 +1654,9 @@ const SHOT_EDIT_FIELDS = new Set([
   "render_mode",
   "entity_ids",
   "location_id",
-  "covered_by"
+  "covered_by",
+  "scene_id",
+  "after_shot_id"
 ]);
 
 /** Fields a caller reaches for to attach media, which an edit cannot set. */
@@ -1539,6 +1826,14 @@ function applyShotFields(
   if (args["location_id"] !== undefined) {
     next.location_id = optionalString(args["location_id"]) ?? null;
   }
+  if (args["scene_id"] !== undefined) {
+    const sceneId = optionalString(args["scene_id"]);
+    if (sceneId) {
+      next.scene_id = sceneId;
+    } else {
+      delete next.scene_id;
+    }
+  }
   if (args["covered_by"] !== undefined) {
     const coverage = parseShotCoverage(next, shots, args["covered_by"]);
     next.covered_by = coverage;
@@ -1561,10 +1856,16 @@ interface BoardOpRecord {
   error?: string;
 }
 
-/** Apply one board operation. Returns its summary, or throws with the reason. */
+/**
+ * Apply one board operation. Returns its summary, or throws with the reason.
+ *
+ * `entities` is the resolved library `set_style` reads — the document holds
+ * ids, and the kinds and descriptors live in the asset rows the caller loaded.
+ */
 function applyBoardOp(
   doc: StoryboardDocument,
-  { op, args }: ParsedBoardOp
+  { op, args }: ParsedBoardOp,
+  entities: readonly Entity[] = []
 ) {
   switch (op) {
     case "add_shot": {
@@ -1585,13 +1886,25 @@ function applyBoardOp(
         args,
         doc.shots
       );
+      // An explicit anchor is the scene-safe insert: the new shot lands in
+      // the anchor's scene, which a bare index cannot say.
+      const anchorRef = optionalString(args["after_shot_id"]);
+      if (anchorRef !== undefined) {
+        const anchor = findShot(doc.shots, anchorRef);
+        if (!anchor) throw new Error(`after_shot_id names no shot: "${anchorRef}".`);
+        const ordered = [...doc.shots].sort((a, b) => a.index - b.index);
+        const at = ordered.findIndex((s) => s.id === anchor.id) + 1;
+        ordered.splice(at, 0, withScene(shot, anchor.scene_id ?? null));
+        applyStructural(doc, ordered);
+        return { id: shot.id, index: at };
+      }
       const at =
         isNumber(args["index"])
           ? Math.max(0, Math.min(Math.trunc(args["index"]), doc.shots.length))
           : doc.shots.length;
       const shots = [...doc.shots];
       shots.splice(at, 0, shot);
-      doc.shots = renumberShots(shots);
+      applyStructural(doc, shots);
       return { id: shot.id, index: at };
     }
 
@@ -1651,6 +1964,288 @@ function applyBoardOp(
       return { id: shot.id, index: to };
     }
 
+    case "move_shot": {
+      const target = String(args["target"] ?? "");
+      const shot = findShot(doc.shots, target);
+      if (!shot) throw new Error(`No shot matches "${target}".`);
+      const seeded = materializeLegacyScene(doc);
+      const moved = doc.shots.find((s) => s.id === shot.id) as Shot;
+      const sceneGiven = args["scene_id"] !== undefined;
+      const sceneId = sceneGiven
+        ? (optionalString(args["scene_id"]) ?? null)
+        : (moved.scene_id ?? seeded ?? null);
+      if (sceneId !== null && !docScenes(doc).some((s) => s.id === sceneId)) {
+        throw new Error(`move_shot names no scene on this board: "${sceneId}".`);
+      }
+      const position = Number(args["position"] ?? args["index"]);
+      if (!Number.isInteger(position) || position < 0) {
+        throw new Error(
+          "move_shot needs a `position`: the 0-based place inside the target scene."
+        );
+      }
+      const ordered = sceneGroups(doc.shots).flatMap((g) => g.shots);
+      const from = ordered.findIndex((s) => s.id === moved.id);
+      const rest = ordered.filter((s) => s.id !== moved.id);
+      const run: number[] = [];
+      rest.forEach((s, i) => {
+        if ((s.scene_id ?? null) === sceneId) run.push(i);
+      });
+      // A target scene the move empties has no run to count from, so the shot
+      // holds its place and only changes scene.
+      const at =
+        run.length > 0
+          ? run[0] + Math.min(position, run.length)
+          : Math.min(Math.max(from, 0), rest.length);
+      applyStructural(doc, [
+        ...rest.slice(0, at),
+        withScene(moved, sceneId),
+        ...rest.slice(at)
+      ]);
+      const landed = doc.shots.find((s) => s.id === moved.id) as Shot;
+      return { id: landed.id, index: landed.index, scene_id: sceneId };
+    }
+
+    case "duplicate_shot": {
+      const target = String(args["target"] ?? "");
+      const shot = findShot(doc.shots, target);
+      if (!shot) throw new Error(`No shot matches "${target}".`);
+      const ordered = [...doc.shots].sort((a, b) => a.index - b.index);
+      const at = ordered.findIndex((s) => s.id === shot.id);
+      const copy: Shot = {
+        ...shot,
+        id: `shot_${doc.shots.length + 1}_${Date.now().toString(36)}`,
+        // The copy covers no script line, so the link fields go with the
+        // original and an ERT read off a line is now the user's own.
+        duration_source: "manual"
+      };
+      delete copy.script_line_ids;
+      delete copy.script_text_snapshot;
+      delete copy.covered_by;
+      ordered.splice(at + 1, 0, copy);
+      applyStructural(doc, ordered);
+      return { id: copy.id, index: at + 1, source: shot.id };
+    }
+
+    case "set_setup": {
+      const unknown = Object.keys(args).filter(
+        (key) => !["brief", "genre", "stage"].includes(key)
+      );
+      if (unknown.length > 0) {
+        throw new Error(
+          `set_setup does not take ${unknown.map((k) => `\`${k}\``).join(", ")}. Accepted: brief, genre, stage.`
+        );
+      }
+      if (args["brief"] !== undefined) doc.brief = String(args["brief"]);
+      if (args["genre"] !== undefined) doc.genre = String(args["genre"]);
+      if (args["stage"] !== undefined) {
+        const stage = String(args["stage"]);
+        if (!SETUP_STAGES.includes(stage as StoryboardSetupStage)) {
+          throw new Error(
+            `stage must be one of ${SETUP_STAGES.join(", ")}; got "${stage}".`
+          );
+        }
+        doc.setupStage = stage as StoryboardSetupStage;
+      }
+      return { brief: doc.brief, genre: doc.genre, stage: doc.setupStage };
+    }
+
+    case "update_scene": {
+      const sceneId = String(args["scene_id"] ?? "");
+      const scenes = docScenes(doc);
+      const target = scenes.find((scene) => scene.id === sceneId);
+      if (!target) {
+        throw new Error(`No scene matches "${sceneId}".`);
+      }
+      const next: Scene = { ...target };
+      if (args["slugline"] !== undefined) next.slugline = String(args["slugline"]);
+      if (args["lighting"] !== undefined) next.lighting = String(args["lighting"]);
+      setDocScenes(
+        doc,
+        scenes.map((scene) => (scene.id === sceneId ? next : scene))
+      );
+      return { id: next.id, slugline: next.slugline, lighting: next.lighting };
+    }
+
+    case "create_scene": {
+      materializeLegacyScene(doc);
+      const scene: Scene = {
+        type: "scene",
+        id: `scene_${Date.now().toString(36)}_${docScenes(doc).length}`,
+        slugline: optionalString(args["slugline"]) ?? ""
+      };
+      const groups = sceneGroups(doc.shots);
+      const afterRef = optionalString(args["after_scene_id"]);
+      const after = afterRef
+        ? groups.findIndex((g) => g.sceneId === afterRef)
+        : -1;
+      if (afterRef && after === -1) {
+        throw new Error(`after_scene_id names no scene: "${afterRef}".`);
+      }
+      const ordered = groups.flatMap((g) => g.shots);
+      // Right after the last shot of `after_scene_id`, so the new scene lands
+      // in the position its first shot's index gives it.
+      const at =
+        after === -1
+          ? ordered.length
+          : groups.slice(0, after + 1).reduce((n, g) => n + g.shots.length, 0);
+      // A scene with no shot has no position, so it would neither render nor
+      // survive the next operation: it opens holding one blank shot.
+      const shotId = `shot_${doc.shots.length + 1}_${Date.now().toString(36)}`;
+      ordered.splice(at, 0, blankShot(shotId, scene.id));
+      setDocScenes(doc, [...docScenes(doc), scene]);
+      applyStructural(doc, ordered);
+      return { id: scene.id, shot_id: shotId };
+    }
+
+    case "merge_scene": {
+      const sceneId = String(args["scene_id"] ?? "");
+      const groups = sceneGroups(doc.shots);
+      const at = groups.findIndex((g) => g.sceneId === sceneId);
+      if (at === -1) throw new Error(`No scene matches "${sceneId}".`);
+      if (at === 0) {
+        throw new Error(
+          `Scene ${sceneId} is the first scene; there is nothing before it to merge into.`
+        );
+      }
+      const into = groups[at - 1].sceneId;
+      // The emptied scene is dropped by the reindex that follows.
+      applyStructural(
+        doc,
+        groups.flatMap((g) =>
+          g === groups[at] ? g.shots.map((s) => withScene(s, into)) : g.shots
+        )
+      );
+      return { merged: sceneId, into };
+    }
+
+    case "set_style": {
+      const entityId = optionalString(args["entity_id"]);
+      if (entityId) {
+        const chosen = entities.find((e) => e.id === entityId);
+        if (!chosen) {
+          throw new Error(
+            `No entity "${entityId}" is in the library. Call list_entities, or pass \`style\` instead.`
+          );
+        }
+        if (chosen.kind !== "style") {
+          throw new Error(
+            `Entity "${entityId}" is a ${chosen.kind}, not a style. Cast it with set_board's entity_ids.`
+          );
+        }
+        const styleIds = new Set(
+          entities.filter((e) => e.kind === "style").map((e) => e.id)
+        );
+        doc.style = chosen.descriptor;
+        doc.entityIds = [
+          ...(doc.entityIds ?? []).filter((id) => !styleIds.has(id)),
+          entityId
+        ];
+        // A shot's explicit list is its whole selection, so a style missing
+        // from it reads as an exclusion. Styles are board-wide.
+        doc.shots = doc.shots.map((shot) => {
+          if (!shot.entity_ids) return shot;
+          return {
+            ...shot,
+            entity_ids: [
+              ...shot.entity_ids.filter((id) => !styleIds.has(id)),
+              entityId
+            ]
+          };
+        });
+        return {
+          style: doc.style,
+          style_entity_id: entityId,
+          entity_ids: doc.entityIds
+        };
+      }
+      const descriptor = optionalString(args["style"]) ?? optionalString(args["descriptor"]);
+      if (descriptor === undefined) {
+        throw new Error("set_style needs an `entity_id` or a `style` descriptor.");
+      }
+      doc.style = descriptor;
+      return { style: doc.style, style_entity_id: null };
+    }
+
+    case "select_version": {
+      const target = String(args["target"] ?? "");
+      const shot = findShot(doc.shots, target);
+      if (!shot) throw new Error(`No shot matches "${target}".`);
+      const { kind, index, versions } = readVersionTarget(shot, args);
+      const chosen = versions[index];
+      const updated: Shot =
+        kind === "keyframe"
+          ? { ...shot, keyframe: chosen as KeyframeVersion, keyframe_versions: versions as KeyframeVersion[] }
+          : { ...shot, clip: chosen as ClipVersion, clip_versions: versions as ClipVersion[] };
+      doc.shots = doc.shots.map((s) => (s.id === shot.id ? updated : s));
+      return { id: shot.id, kind, version: index };
+    }
+
+    case "delete_version": {
+      const target = String(args["target"] ?? "");
+      const shot = findShot(doc.shots, target);
+      if (!shot) throw new Error(`No shot matches "${target}".`);
+      const { kind, index, versions } = readVersionTarget(shot, args);
+      const remaining = versions.filter((_, i) => i !== index);
+      const selected = kind === "keyframe" ? shot.keyframe : shot.clip;
+      const refId = (v: { asset_id?: string | null; uri?: string } | null) =>
+        v?.asset_id ?? v?.uri ?? "";
+      const removedSelected = !!selected && refId(versions[index]) === refId(selected);
+      // The next version at the same position becomes selected, or the last
+      // one when the removed version was at the end.
+      const next =
+        remaining.length === 0
+          ? null
+          : removedSelected
+            ? remaining[Math.min(index, remaining.length - 1)]
+            : selected ?? null;
+      const updated: Shot = { ...shot };
+      if (kind === "keyframe") {
+        updated.keyframe = next as KeyframeVersion | null;
+        updated.keyframe_versions = remaining as KeyframeVersion[];
+        if (remaining.length === 0 && !updated.clip) updated.status = "planned";
+      } else {
+        updated.clip = next as ClipVersion | null;
+        updated.clip_versions = remaining as ClipVersion[];
+        if (remaining.length === 0) {
+          updated.status = updated.keyframe ? "keyframe_ready" : "planned";
+        }
+      }
+      doc.shots = doc.shots.map((s) => (s.id === shot.id ? updated : s));
+      return { id: shot.id, kind, removed: index, remaining: remaining.length };
+    }
+
+    case "add_keyframe_version": {
+      const target = String(args["target"] ?? "");
+      const shot = findShot(doc.shots, target);
+      if (!shot) throw new Error(`No shot matches "${target}".`);
+      const assetId = optionalString(args["asset_id"]);
+      if (!assetId) {
+        throw new Error(
+          "add_keyframe_version needs an `asset_id` naming a stored image."
+        );
+      }
+      const keyframe: KeyframeVersion = {
+        type: "image",
+        asset_id: assetId,
+        uri: `asset://${assetId}`
+      };
+      const flipOf = optionalString(args["flip_of"]);
+      if (flipOf) {
+        // Provenance for a flip or an editor pass. It carries no render
+        // record, so the still never reads stale.
+        (keyframe as KeyframeVersion & { flip_of: string }).flip_of = flipOf;
+      }
+      const versions = versionList(shot, "keyframe") as KeyframeVersion[];
+      const updated: Shot = {
+        ...shot,
+        keyframe,
+        keyframe_versions: [...versions, keyframe],
+        status: shot.status === "planned" ? "keyframe_ready" : shot.status
+      };
+      doc.shots = doc.shots.map((s) => (s.id === shot.id ? updated : s));
+      return { id: shot.id, asset_id: assetId, versions: versions.length + 1 };
+    }
+
     case "set_board": {
       assertKnownBoardFields(args);
       if (args["brief"] !== undefined) doc.brief = String(args["brief"]);
@@ -1700,6 +2295,31 @@ function applyBoardOp(
   }
 }
 
+/**
+ * The library `set_style` reads: the board's own cast, plus every entity a
+ * `set_style` op names. The named one need not be cast yet — applying a preset
+ * is how it gets cast.
+ */
+async function loadStyleEntities(
+  run: CapabilityRun,
+  doc: StoryboardDocument,
+  ops: readonly ParsedBoardOp[]
+): Promise<Entity[]> {
+  const named = ops
+    .filter((parsed) => parsed.op === "set_style")
+    .map((parsed) => optionalString(parsed.args["entity_id"]))
+    .filter((id): id is string => !!id);
+  if (named.length === 0) return [];
+  const cast = await loadBoardEntities(run.context, doc);
+  const missing = named.filter((id) => !cast.some((e) => e.id === id));
+  if (missing.length === 0) return cast;
+  const extra = await loadBoardEntities(run.context, {
+    ...doc,
+    entityIds: missing
+  });
+  return [...cast, ...extra];
+}
+
 const editStoryboard: CapabilityExport = {
   spec: editStoryboardSpec,
   impl: async (run, params) => {
@@ -1716,10 +2336,13 @@ const editStoryboard: CapabilityExport = {
       // A failing op is recorded and the script continues: stopping at the
       // first error hides every problem behind it.
       const records: BoardOpRecord[] = [];
+      const entities = await loadStyleEntities(run, doc, ops);
       const resolvedOps: { tool: string; input: Record<string, unknown> }[] = [];
       for (const parsed of ops) {
         try {
-          const result = applyBoardOp(doc, parsed) as Record<string, unknown> | undefined;
+          const result = applyBoardOp(doc, parsed, entities) as
+            | Record<string, unknown>
+            | undefined;
           records.push({
             op: parsed.op,
             ok: true,
@@ -1733,7 +2356,16 @@ const editStoryboard: CapabilityExport = {
               : typeof result?.["removed"] === "string"
                 ? (result["removed"] as string)
                 : undefined;
-          if (canonicalId && (parsed.op === "update_shot" || parsed.op === "remove_shot" || parsed.op === "reorder_shot")) {
+          if (
+            canonicalId &&
+            (parsed.op === "update_shot" ||
+              parsed.op === "remove_shot" ||
+              parsed.op === "reorder_shot" ||
+              parsed.op === "move_shot" ||
+              parsed.op === "select_version" ||
+              parsed.op === "delete_version" ||
+              parsed.op === "add_keyframe_version")
+          ) {
             resolvedOps.push({
               tool: parsed.op,
               input: { ...parsed.args, target: canonicalId, id: canonicalId }
@@ -1784,6 +2416,181 @@ const editStoryboard: CapabilityExport = {
 
     return {
       error: `Storyboard ${String(params["storyboard_id"])} is being modified concurrently; nothing was saved. Retry the call.`
+    };
+  }
+};
+
+// ---------------------------------------------------------------------------
+// direct_storyboard
+// ---------------------------------------------------------------------------
+
+const DEFAULT_DIRECTED_SHOTS = 6;
+
+/**
+ * The Director, headless. The browser runs the same three protocol functions
+ * from `useDirectScreenplay`; keeping the prompt, the schema and the parse in
+ * `@nodetool-ai/protocol` is what makes a board directed here and one directed
+ * in the editor the same artifact.
+ */
+const directStoryboard: CapabilityExport = {
+  spec: directStoryboardSpec,
+  impl: async (run, params) => {
+    const context = run.context;
+    const board = await loadBoard(run, params["storyboard_id"]);
+    if (isError(board)) return board;
+    const { row, doc } = board;
+
+    const brief = doc.brief.trim();
+    if (!brief) {
+      return {
+        error: `Storyboard ${row.id} has no brief, so there is nothing to direct. Write one with edit_storyboard's set_setup op.`
+      };
+    }
+    if (doc.shots.length > 0 && params["redirect"] !== true) {
+      return {
+        error: `Storyboard ${row.id} already has ${doc.shots.length} shots. Pass redirect: true to run the Director over them again — retained shots keep their ids and their rendered media.`
+      };
+    }
+
+    const model = resolveModel(
+      params,
+      doc.directorModel,
+      "director",
+      "generate_text"
+    );
+    if (isError(model)) return model;
+
+    const {
+      DIRECTOR_SYSTEM_PROMPT,
+      SCREENPLAY_TOOL_DESCRIPTION,
+      SCREENPLAY_TOOL_NAME,
+      buildDirectorPrompt,
+      buildScreenplaySchema,
+      clampShotCount,
+      fallbackScreenplay,
+      parseScreenplay
+    } = await import("@nodetool-ai/protocol");
+    const { generateStructured } = await import("@nodetool-ai/runtime");
+
+    const shotCount = clampShotCount(
+      isNumber(params["shot_count"])
+        ? params["shot_count"]
+        : DEFAULT_DIRECTED_SHOTS
+    );
+    const aspectRatio = doc.aspectRatio || "16:9";
+    // The cast reaches the model so the screenplay names entities by their
+    // exact names, which is what activates them per shot.
+    const entities = await loadBoardEntities(context, doc);
+    const castLines = entities.map(
+      (e) => `- ${e.name} (${e.kind})${e.descriptor ? `: ${e.descriptor}` : ""}`
+    );
+    const genre = doc.genre.trim();
+    const directedBrief = [
+      brief,
+      genre ? `Genre: ${genre}` : "",
+      castLines.length > 0
+        ? `Cast & ingredients — reference these by exact name in the shots:\n${castLines.join("\n")}`
+        : ""
+    ]
+      .filter((part) => part !== "")
+      .join("\n\n");
+
+    const provider = await context.getProvider(model.provider);
+    const raw = await generateStructured(provider, {
+      model: model.model,
+      maxTokens: 8192,
+      messages: [
+        { role: "system", content: DIRECTOR_SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: buildDirectorPrompt(
+            directedBrief,
+            doc.style,
+            shotCount,
+            aspectRatio
+          )
+        }
+      ],
+      toolName: SCREENPLAY_TOOL_NAME,
+      toolDescription: SCREENPLAY_TOOL_DESCRIPTION,
+      schema: buildScreenplaySchema(shotCount)
+    });
+    const parsed = raw
+      ? parseScreenplay(raw, { shotCount, aspectRatio, genre: genre || undefined })
+      : null;
+    // No usable answer — a provider without tool support, or the fake provider
+    // — falls back to placeholder shots derived from the brief, the same rule
+    // the Director node and the editor apply. A provider error still throws.
+    const screenplay =
+      parsed && parsed.shots.length > 0
+        ? parsed
+        : fallbackScreenplay({
+            brief,
+            style: doc.style,
+            shotCount,
+            aspectRatio
+          });
+
+    const { Storyboard } = await import("@nodetool-ai/models");
+    for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
+      const current = await loadBoard(run, row.id);
+      if (isError(current)) return current;
+      const next = current.doc;
+      // A screenplay describes direction. Its media can predate renders made
+      // while the Director ran, so a retained shot keeps its own.
+      const existing = new Map(next.shots.map((shot) => [shot.id, shot]));
+      next.shots = screenplay.shots.map((shot, index) => {
+        const held = existing.get(shot.id);
+        if (!held) return { ...shot, index };
+        return {
+          ...held,
+          ...shot,
+          index,
+          keyframe: held.keyframe,
+          keyframe_versions: held.keyframe_versions,
+          clip: held.clip,
+          clip_versions: held.clip_versions,
+          covered_by: held.covered_by,
+          status: held.status
+        };
+      });
+      next.screenplay = screenplay;
+      next.style = screenplay.style_bible ?? next.style;
+      next.aspectRatio = screenplay.aspect_ratio ?? next.aspectRatio;
+      if (screenplay.genre) next.genre = screenplay.genre;
+
+      const saved = await Storyboard.updateFieldsIfUnchanged(
+        current.row.id,
+        current.row.updated_at,
+        { document: JSON.stringify(next) }
+      );
+      if (!saved) continue;
+      return {
+        storyboard_id: current.row.id,
+        updated_at: saved.updated_at,
+        title: screenplay.title,
+        genre: next.genre,
+        redirected: params["redirect"] === true,
+        scenes: (screenplay.scenes ?? []).map((scene) => ({
+          id: scene.id,
+          slugline: scene.slugline,
+          lighting: scene.lighting
+        })),
+        shots: next.shots.map((shot) => ({
+          id: shot.id,
+          index: shot.index,
+          slug: shot.slug,
+          action: shot.action,
+          scene_id: shot.scene_id,
+          status: shot.status,
+          has_keyframe: !!shot.keyframe,
+          has_clip: !!shot.clip
+        }))
+      };
+    }
+
+    return {
+      error: `Storyboard ${row.id} is being modified concurrently; the screenplay was directed but could not be saved. Retry the call.`
     };
   }
 };
@@ -1987,6 +2794,7 @@ export const STORYBOARD_CAPABILITIES: readonly CapabilityExport[] = [
   reviseStoryboardClip,
   assembleStoryboardTimeline,
   editStoryboard,
+  directStoryboard,
   extractScriptFromStoryboard,
   deleteStoryboard
 ];
@@ -2005,6 +2813,7 @@ export {
   reviseStoryboardClip,
   assembleStoryboardTimeline,
   editStoryboard,
+  directStoryboard,
   extractScriptFromStoryboard,
   deleteStoryboard
 };

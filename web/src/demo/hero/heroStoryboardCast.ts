@@ -100,6 +100,8 @@ const BOARD: StoryboardCastDoc = {
   style: screenplay.style_bible ?? "",
   entityIds: [],
   aspectRatio: "16:9",
+  setupStage: "done",
+  genre: "",
   directorModel: null,
   imageModel: null,
   videoModel: null,

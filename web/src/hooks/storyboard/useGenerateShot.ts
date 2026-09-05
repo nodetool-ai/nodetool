@@ -21,7 +21,11 @@
  */
 
 import { useCallback } from "react";
-import type { Entity, Shot } from "@nodetool-ai/protocol";
+import type {
+  BoardRenderContext,
+  Entity,
+  Shot
+} from "@nodetool-ai/protocol";
 import {
   clipPrompt,
   directClipPrompt,
@@ -33,7 +37,10 @@ import {
 import {
   globalWebSocketManager
 } from "../../lib/websocket/GlobalWebSocketManager";
-import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
+import {
+  useStoryboardStore,
+  type StoryboardBoard
+} from "../../stores/storyboard/StoryboardStore";
 import { entitiesForShot } from "../../stores/storyboard/shotEntities";
 import { useEntities } from "../../serverState/useEntities";
 import { useImageModelsByProvider } from "../useModelsByProvider";
@@ -134,13 +141,36 @@ export const useGenerateShot = (): UseGenerateShotResult => {
     [allEntities]
   );
 
+  /**
+   * The board settings a render record is taken from.
+   *
+   * `style_entity_id` is derived here rather than in the generation store: the
+   * board holds entity ids, and the kinds live in the entity query this hook
+   * already has. `setStylePreset` keeps at most one `style` entity on a board,
+   * so the first match is the board's style.
+   */
+  const renderContext = useCallback(
+    (board: StoryboardBoard | undefined): BoardRenderContext => ({
+      aspect_ratio: board?.aspectRatio ?? "16:9",
+      image_model: board?.imageModel?.id ?? "",
+      video_model: board?.videoModel?.id ?? "",
+      style_entity_id:
+        boardEntities(board?.entityIds).find((e) => e.kind === "style")?.id ??
+        null,
+      style: board?.style ?? "",
+      scenes: board?.screenplay?.scenes ?? null
+    }),
+    [boardEntities]
+  );
+
   /** Fire one direct-generation request and track it on the shot. */
   const startDirectGeneration = useCallback(
     async (
       boardId: string,
       shot: Shot,
       kind: ShotJobKind,
-      data: Record<string, unknown>
+      data: Record<string, unknown>,
+      board?: BoardRenderContext
     ): Promise<void> => {
       // Single-flight per shot: skip when a job is active or a start is
       // already in the pre-registration window.
@@ -150,7 +180,13 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       startingShots.add(shot.id);
       const requestId = randomRequestId();
       try {
-        registerJob(shot.id, boardId, requestId, kind);
+        registerJob(
+          shot.id,
+          boardId,
+          requestId,
+          kind,
+          board ? { shot, board } : undefined
+        );
         await subscribeDirectShotJob(requestId, {
           shotId: shot.id,
           boardId,
@@ -226,9 +262,15 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         data.provider = board.imageModel.provider;
         data.model = board.imageModel.id;
       }
-      await startDirectGeneration(boardId, shot, "keyframe", data);
+      await startDirectGeneration(
+        boardId,
+        shot,
+        "keyframe",
+        data,
+        renderContext(board)
+      );
     },
-    [startDirectGeneration, boardEntities, imageModels]
+    [startDirectGeneration, boardEntities, imageModels, renderContext]
   );
 
   const generateClip = useCallback(
@@ -281,9 +323,15 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         data.provider = board.videoModel.provider;
         data.model = board.videoModel.id;
       }
-      await startDirectGeneration(boardId, shot, "clip", data);
+      await startDirectGeneration(
+        boardId,
+        shot,
+        "clip",
+        data,
+        renderContext(board)
+      );
     },
-    [startDirectGeneration, boardEntities]
+    [startDirectGeneration, boardEntities, renderContext]
   );
 
   const generateRevisedClip = useCallback(
@@ -311,6 +359,10 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         data.provider = board.videoModel.provider;
         data.model = board.videoModel.id;
       }
+      // No render record: a revision renders the instruction over an existing
+      // clip, not the shot's composed prompt, so there is nothing a later
+      // board change would make it out of date with respect to. Like an
+      // upload or an image-editor edit, it is never stale (PRD § 7.7.4).
       await startDirectGeneration(boardId, shot, "clip", data);
     },
     [startDirectGeneration]

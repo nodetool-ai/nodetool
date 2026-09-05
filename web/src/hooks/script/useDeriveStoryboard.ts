@@ -92,6 +92,8 @@ export const useDeriveStoryboard = (): UseDeriveStoryboardResult => {
           style: "",
           entityIds: [],
           aspectRatio: "16:9",
+          setupStage: "done",
+          genre: "",
           directorModel: null,
           imageModel: null,
           videoModel: null,
@@ -118,6 +120,8 @@ export const useDeriveStoryboard = (): UseDeriveStoryboardResult => {
           style: board.style,
           entityIds: board.entityIds,
           aspectRatio: board.aspectRatio,
+          setupStage: "done",
+          genre: "",
           directorModel: board.directorModel,
           imageModel: board.imageModel,
           videoModel: board.videoModel

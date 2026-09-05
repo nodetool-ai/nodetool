@@ -66,6 +66,8 @@ const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument =>
     style: board.style,
     entityIds: board.entityIds,
     aspectRatio: board.aspectRatio,
+    setupStage: board.setupStage,
+    genre: board.genre,
     directorModel: board.directorModel,
     imageModel: board.imageModel,
     videoModel: board.videoModel
@@ -87,6 +89,8 @@ const responseToBoard = (
     style: doc.style,
     entityIds: (doc.entityIds as string[] | undefined) ?? [],
     aspectRatio: doc.aspectRatio,
+    setupStage: doc.setupStage,
+    genre: doc.genre,
     directorModel:
       doc.directorModel as StoryboardBoard["directorModel"],
     imageModel: doc.imageModel as StoryboardBoard["imageModel"],
