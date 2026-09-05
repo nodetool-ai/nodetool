@@ -200,7 +200,7 @@ contains.
 **Script link in Studio.** Studio's automatic linked-script extraction stays.
 It moves from "after Direct" to `Continue to storyboard`, so the script is
 extracted from the reviewed screenplay, not the raw one. The workspace flow
-does not extract automatically; `Extract script` on the board is unchanged.
+does not extract automatically. `Extract script` on the board is unchanged.
 
 ### 6.3 Step 3 — Storyboard
 
@@ -280,7 +280,7 @@ selection footer from Phase 0 keeps only `Edit`, `Iterate`, `Regenerate`,
   § 7.2. Aspect ratio is the board's value, read-only, linking to Board
   settings. Notes is `Add +` until set.
 - **Dialogue on a linked board.** Read-only, showing the linked lines with
-  speaker; `Edit in script` opens the script at the first line. The script
+  speaker. `Edit in script` opens the script at the first line. The script
   owns words. On an unlinked board the cell is a textarea.
 - **ERT on a linked board.** Shows the value with the existing `from takes` /
   `pinned` chip. Typing a value pins it (`duration_source: "manual"`). The
@@ -301,7 +301,7 @@ versions, `Cmd/Ctrl+S` saves.
 ## 7. Data model and contracts
 
 Additive only. Every storyboard schema is `passthrough`, so old documents load
-unchanged; § 7.7 states each default.
+unchanged. § 7.7 states each default.
 
 ### 7.1 Board, screenplay, scene
 
@@ -353,7 +353,7 @@ Perspective → `camera.angle`. Movement → `camera.movement`. Equipment →
   shots.
 - A scene is the set of shots sharing its `scene_id`. Invariant: those shots
   are contiguous in `shot.index`. Scene order is derived from the index of each
-  scene's first shot; `Scene` carries no index of its own. A scene with no
+  scene's first shot. `Scene` carries no index of its own. A scene with no
   shots is dropped on the next structural operation.
 - Display: `Scene N` is the derived scene position plus one. `Shot N` is the
   shot's position within its scene plus one. Neither is stored.
@@ -370,7 +370,7 @@ Perspective → `camera.angle`. Movement → `camera.movement`. Equipment →
 - The Edit dialog's scene dropdown is `moveShot(shotId, sceneId, end)`. Drag
   across a header is `moveShot` with the drop position. Grouping never changes
   without index changing with it.
-- CSV: `scene` groups rows; `shot` is the sort key within a scene (numeric
+- CSV: `scene` groups rows. `shot` is the sort key within a scene (numeric
   ascending, non-numeric or missing values keep row order after the numeric
   ones). Rows are then assigned `shot.index` in scene order. The displayed
   shot number is recomputed, never taken from the column.
@@ -591,7 +591,7 @@ tests on the store and hooks, not on the parsers. The
 8. A version rendered before a style change and landing after it reads stale
    on landing.
 9. After every ordering operation `shot.index` is contiguous and each scene's
-   shots are contiguous; `Scene N | Shot N` matches the derived numbering;
+   shots are contiguous. `Scene N | Shot N` matches the derived numbering.
    Assemble's clip order equals `shot.index`.
 10. Each field marked yes in § 7.5 appears in the composed prompt for that mode
     and is absent otherwise, in the UI path and the headless path.
@@ -602,8 +602,8 @@ tests on the store and hooks, not on the parsers. The
     the filled icon.
 13. "~M:SS remaining" appears only when a duration was measured for that model
     and kind.
-14. The Edit dialog edits every field in § 7.2; `Save` is one undo step;
-    closing dirty asks; `Regenerate` renders from saved values. Dialogue is
+14. The Edit dialog edits every field in § 7.2. `Save` is one undo step.
+    Closing dirty asks. `Regenerate` renders from saved values. Dialogue is
     read-only on a linked board and the ERT chip toggles `duration_source`.
 15. Flip, image-editor edits and uploads each add a version, never overwrite;
     upload selects the new version.
