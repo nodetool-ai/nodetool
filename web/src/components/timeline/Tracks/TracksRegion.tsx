@@ -700,13 +700,107 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         // selection change (e.g. every rubber-band drag tick).
         const { selectedClipIds } = uiStoreApi.getState();
 
-        // Delete / Backspace → delete selected
+        // Delete / Backspace → delete selected. Shift, or ripple mode,
+        // closes the gap the clips leave (Premiere's Ripple Delete, FCP's
+        // default Delete).
         if (
           (e.key === "Delete" || e.key === "Backspace") &&
           selectedClipIds.size > 0
         ) {
           e.preventDefault();
-          deleteSelected(selectedClipIds);
+          if (e.shiftKey || uiStoreApi.getState().rippleMode) {
+            docStore.getState().rippleDeleteSelected(selectedClipIds);
+          } else {
+            deleteSelected(selectedClipIds);
+          }
+          return;
+        }
+
+        // Ctrl+K → cut every unlocked clip under the playhead, on every
+        // track (Premiere's Add Edit to all tracks, FCP's Blade All).
+        if (isCtrl && (e.key === "k" || e.key === "K")) {
+          e.preventDefault();
+          splitSelectedAtPlayhead(
+            playbackStore.getState().currentTimeMs,
+            new Set()
+          );
+          return;
+        }
+
+        // Unmodified single keys the rest of this handler shares.
+        const plain = !isCtrl && !e.altKey && !e.shiftKey;
+        const playback = playbackStore.getState();
+        const liveMs = playback.getTimeMs();
+
+        // I / O → mark in and out; Ctrl+Shift+X clears both.
+        if (plain && (e.key === "i" || e.key === "o")) {
+          e.preventDefault();
+          if (e.key === "i") playback.setRangeIn(liveMs);
+          else playback.setRangeOut(liveMs);
+          return;
+        }
+        if (isCtrl && e.shiftKey && e.key === "X") {
+          e.preventDefault();
+          playback.clearRange();
+          return;
+        }
+
+        // J / K / L → shuttle. J plays backwards, L forwards, each press
+        // doubles the speed; K stops and puts the speed back to 1.
+        if (plain && (e.key === "j" || e.key === "l")) {
+          e.preventDefault();
+          const dir = e.key === "j" ? -1 : 1;
+          const cur = playback.rate;
+          const sameDir = playback.isPlaying && Math.sign(cur) === dir;
+          const next = sameDir ? Math.sign(cur) * Math.min(8, Math.abs(cur) * 2) : dir;
+          playback.setRate(next);
+          if (!playback.isPlaying) {
+            playback.play();
+          }
+          // A seek while playing restarts the clock and audio at the new
+          // rate; see PreviewArea's seek-restart effect.
+          playback.seek(liveMs);
+          return;
+        }
+        if (plain && e.key === "k") {
+          e.preventDefault();
+          if (playback.isPlaying) playback.pause();
+          playback.setRate(1);
+          return;
+        }
+
+        // M → marker at the playhead. Shift+M / Ctrl+Shift+M → next / previous.
+        if ((e.key === "m" || e.key === "M") && !e.altKey) {
+          e.preventDefault();
+          const { markers, addMarker } = docStore.getState();
+          if (!e.shiftKey) {
+            if (!isCtrl) {
+              addMarker({ timeMs: liveMs, label: `Marker ${markers.length + 1}` });
+            }
+            return;
+          }
+          const times = markers.map((m) => m.timeMs).sort((a, b) => a - b);
+          const target = isCtrl
+            ? times.filter((t) => t < liveMs - 1).at(-1)
+            : times.find((t) => t > liveMs + 1);
+          if (target !== undefined) playback.seek(target);
+          return;
+        }
+
+        // ↑ / ↓ → previous / next cut (every clip edge on every track).
+        if (plain && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+          e.preventDefault();
+          const pts = new Set<number>([0]);
+          for (const c of docStore.getState().clips) {
+            pts.add(c.startMs);
+            pts.add(c.startMs + c.durationMs);
+          }
+          const sorted = [...pts].sort((a, b) => a - b);
+          const target =
+            e.key === "ArrowUp"
+              ? sorted.filter((t) => t < liveMs - 1).at(-1)
+              : sorted.find((t) => t > liveMs + 1);
+          if (target !== undefined) playback.seek(target);
           return;
         }
 

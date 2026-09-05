@@ -33,6 +33,17 @@ describe("formatTimecode", () => {
     expect(formatTimecode(2200, 200)).toBe("0:02.20");
   });
 
+  it("counts frames instead of decimals when the sequence fps is known", () => {
+    expect(formatTimecode(2000, 500, 30)).toBe("0:02:00");
+    expect(formatTimecode(2500, 500, 30)).toBe("0:02:15");
+    expect(formatTimecode(2080, 100, 25)).toBe("0:02:02");
+    expect(formatTimecode(61_500, 500, 24)).toBe("1:01:12");
+  });
+
+  it("keeps whole seconds at coarse intervals even with an fps", () => {
+    expect(formatTimecode(5000, 1000, 30)).toBe("0:05");
+  });
+
   it("pads seconds under ten and rolls over past a minute", () => {
     expect(formatTimecode(9900, 100)).toBe("0:09.90");
     expect(formatTimecode(61_500, 500)).toBe("1:01.5");

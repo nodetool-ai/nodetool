@@ -66,6 +66,12 @@ export interface TimelineUIState {
    */
   activeTool: TimelineTool;
   /**
+   * Ripple mode: trims and deletes close the gap they would otherwise open,
+   * pulling every later clip along (Premiere's ripple tools, FCP's default).
+   * Off, a trim or delete leaves the rest of the sequence where it is.
+   */
+  rippleMode: boolean;
+  /**
    * Milliseconds per pixel — the primary zoom metric.
    * Default 10 ms/px ≈ 100 px/s. Smaller = zoomed in.
    */
@@ -164,6 +170,8 @@ export interface TimelineUIState {
   // ── Tool ─────────────────────────────────────────────────────────────────
 
   setActiveTool: (tool: TimelineTool) => void;
+  setRippleMode: (on: boolean) => void;
+  toggleRippleMode: () => void;
 
   // ── FX panel ─────────────────────────────────────────────────────────────
 
@@ -198,6 +206,7 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   selectedClipIds: new Set(),
   hoveredClipId: null,
   activeTool: "select",
+  rippleMode: false,
   msPerPx: 10,
   scrollLeftPx: 0,
   revealRequest: null,
@@ -272,6 +281,10 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   toggleFullscreen: () => set((state) => ({ fullscreen: !state.fullscreen })),
 
   setActiveTool: (tool) => set({ activeTool: tool }),
+
+  setRippleMode: (on) => set({ rippleMode: on }),
+
+  toggleRippleMode: () => set((state) => ({ rippleMode: !state.rippleMode })),
 
   setExpandedFxTrackId: (trackId) => set({ expandedFxTrackId: trackId }),
 

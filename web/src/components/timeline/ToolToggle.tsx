@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 /**
- * ToolToggle — Select / Cut tool buttons for the timeline editor.
+ * ToolToggle — Select / Cut tool buttons plus the Ripple toggle for the
+ * timeline editor.
  *
  * Labeled ghost buttons (icon + text). The active button picks up the
  * primary accent + subtle filled background; tooltip carries the shortcut.
@@ -11,6 +12,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ContentCutOutlinedIcon from "@mui/icons-material/ContentCutOutlined";
+import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 
 import { FlexRow, Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
@@ -111,6 +113,8 @@ interface ToolToggleProps {
 export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) => {
   const activeTool = useTimelineUIStore((s) => s.activeTool);
   const setActiveTool = useTimelineUIStore((s) => s.setActiveTool);
+  const rippleMode = useTimelineUIStore((s) => s.rippleMode);
+  const toggleRippleMode = useTimelineUIStore((s) => s.toggleRippleMode);
   return (
     <FlexRow gap={0.5} align="center">
       <ToolButton
@@ -130,6 +134,15 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         onClick={() => setActiveTool("cut")}
       >
         <ContentCutOutlinedIcon />
+      </ToolButton>
+      <ToolButton
+        label="Ripple"
+        shortcut="trims and deletes close the gap"
+        active={rippleMode}
+        compact={compact}
+        onClick={toggleRippleMode}
+      >
+        <SwapHorizOutlinedIcon />
       </ToolButton>
     </FlexRow>
   );

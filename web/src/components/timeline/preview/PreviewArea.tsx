@@ -410,6 +410,10 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       [getAsset, getTimeMs, playbackApi, timelineApi]
     );
 
+    /** The rate the running clock was started with; the rate-change restart
+     *  effect compares against it so a same-rate re-render is not a restart. */
+    const startedRateRef = useRef(1);
+
     const handlePlay = useCallback(async () => {
       const generation = ++playGenRef.current;
       const isStale = () => playGenRef.current !== generation;
@@ -427,12 +431,18 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
       // Read fresh to avoid stale closure when the user scrubs before pressing play.
       let startMs = playbackApi.getState().currentTimeMs;
-      // Pressing Play while parked at the end restarts from the top. Uses the
-      // live content end (contentEndMs), not the stale store `durationMs`,
-      // which is only set on load and never recomputed as clips change.
-      if (contentEndMs > 0 && startMs >= contentEndMs - frameDeltaMs(fps)) {
-        startMs = 0;
-        setCurrentTimeMs(0);
+      // An out point bounds playback and loops it back to the in point (or
+      // the top); without one the live content end stops it. The store
+      // `durationMs` is only set on load and never recomputed as clips change.
+      const { rangeInMs: rangeIn, rangeOutMs: rangeOut } =
+        playbackApi.getState();
+      const loopStartMs = rangeIn ?? 0;
+      const endMs = rangeOut ?? contentEndMs;
+      // Pressing Play while parked at the end restarts from the top (or the
+      // in point).
+      if (endMs > 0 && startMs >= endMs - frameDeltaMs(fps)) {
+        startMs = loopStartMs;
+        setCurrentTimeMs(loopStartMs);
       }
 
       play();
@@ -441,14 +451,24 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       // (and the live rate-change restart below) takes effect. Feeds both the
       // clock and audio scheduling so the visual clock and audio stay locked.
       const globalRate = playbackApi.getState().rate;
+      startedRateRef.current = globalRate;
+      const clockOptions = {
+        floorMs: loopStartMs,
+        // Only a marked out point loops; the content end still parks.
+        onReachEnd:
+          rangeOut !== null ? () => playbackApi.getState().seek(loopStartMs) : undefined
+      };
 
       // Read fresh rather than closing over the reactive `clips` value so
       // this component never needs to subscribe to (and re-render on) the
       // clips array itself.
       const clipsNow = timelineApi.getState().clips;
-      const remainingAudioClips = clipsNow.filter((c) =>
-        isPendingAudioClip(c, startMs)
-      );
+      // Backwards playback (J) is picture only: the audio graph schedules
+      // forward from a source position.
+      const remainingAudioClips =
+        globalRate < 0
+          ? []
+          : clipsNow.filter((c) => isPendingAudioClip(c, startMs));
 
       if (remainingAudioClips.length === 0) {
         // Nothing left to play — e.g. a seek landed past the last audio
@@ -456,7 +476,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         // AudioContext creation/resume entirely rather than paying the
         // autoplay-policy round trip for silence.
         graph.stopAll();
-        clock.start(startMs, globalRate, null, contentEndMs || Infinity);
+        clock.start(startMs, globalRate, null, endMs || Infinity, clockOptions);
         return;
       }
 
@@ -503,7 +523,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         scheduledClipIdsRef.current.add(clip.id);
       }
 
-      clock.start(startMs, globalRate, ctx, contentEndMs || Infinity);
+      clock.start(startMs, globalRate, ctx, endMs || Infinity, clockOptions);
 
       topUpIntervalRef.current = setInterval(() => {
         void topUpAudio(isStale);
@@ -588,19 +608,22 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     // rate. Guarded on isPlaying so a rate set while paused just applies on the
     // next play.
     useEffect(() => {
-      if (!isPlaying) return;
+      if (!isPlaying || rate === startedRateRef.current) return;
       seek(getTimeMs());
       // Only restart on an actual rate change, not on play/pause transitions.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rate]);
 
+    // Space always plays at normal speed; a J/L shuttle speed does not
+    // outlive the pause that ended it.
     const handlePlayPauseToggle = useCallback(() => {
       if (isPlaying) {
         handlePause();
       } else {
+        playbackApi.getState().setRate(1);
         void handlePlay();
       }
-    }, [isPlaying, handlePlay, handlePause]);
+    }, [isPlaying, handlePlay, handlePause, playbackApi]);
 
     const stepFrame = useCallback(
       (direction: 1 | -1) => {

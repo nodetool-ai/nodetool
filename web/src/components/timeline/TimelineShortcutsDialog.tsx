@@ -54,7 +54,10 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "Editing",
     shortcuts: [
       { keys: ["S"], action: "Split selected clips at playhead" },
+      { keys: ["Ctrl", "K"], action: "Cut all tracks at playhead" },
       { keys: ["Delete"], action: "Delete selected clips", alt: ["Backspace"] },
+      { keys: ["Shift", "Delete"], action: "Ripple delete (close the gap)" },
+      { keys: ["Ctrl", "drag edge"], action: "Roll the cut with its neighbour" },
       { keys: ["Ctrl", "D"], action: "Duplicate (after each source)" },
       { keys: ["Ctrl", "Shift", "D"], action: "Duplicate with a 1 s gap" },
       { keys: ["Ctrl", "A"], action: "Select all clips" }
@@ -74,6 +77,20 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ["←"], action: "Nudge one frame", alt: ["→"] },
       { keys: ["Shift", "←"], action: "Nudge one second", alt: ["Shift", "→"] },
       { keys: ["Alt", "drag"], action: "Disable snapping while moving or trimming" }
+    ]
+  },
+  {
+    title: "Playback",
+    shortcuts: [
+      { keys: ["Space"], action: "Play / pause" },
+      { keys: ["J"], action: "Shuttle backwards (again: faster)" },
+      { keys: ["K"], action: "Stop shuttle" },
+      { keys: ["L"], action: "Shuttle forwards (again: faster)" },
+      { keys: ["I"], action: "Mark in", alt: ["O"] },
+      { keys: ["Ctrl", "Shift", "X"], action: "Clear in and out" },
+      { keys: ["↑"], action: "Previous cut", alt: ["↓"] },
+      { keys: ["M"], action: "Add marker at playhead" },
+      { keys: ["Shift", "M"], action: "Next marker", alt: ["Ctrl", "Shift", "M"] }
     ]
   },
   {

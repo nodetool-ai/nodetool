@@ -22,18 +22,29 @@ export class PlaybackClock {
   private audioStartTimeSec = 0;
   private rate = 1;
   private durationMs = Infinity;
+  private floorMs = 0;
+  private onReachEnd: (() => void) | null = null;
 
+  /**
+   * Run from `positionMs` at `rate` (negative plays backwards) until the
+   * position leaves [`floorMs`, `durationMs`]. Reaching the end calls
+   * `onReachEnd` when given (a loop restarts from there) and pauses
+   * otherwise; reaching the floor always pauses.
+   */
   start(
     positionMs: number,
     rate = 1,
     audioContext: BaseAudioContext | null = null,
-    durationMs = Infinity
+    durationMs = Infinity,
+    options: { floorMs?: number; onReachEnd?: () => void } = {}
   ): void {
     this.stop();
     this.startPositionMs = positionMs;
     this.startWallMs = performance.now();
     this.rate = rate;
     this.durationMs = durationMs;
+    this.floorMs = options.floorMs ?? 0;
+    this.onReachEnd = options.onReachEnd ?? null;
     this.audioContext = audioContext;
     if (audioContext) {
       this.audioStartTimeSec = audioContext.currentTime;
@@ -74,8 +85,19 @@ export class PlaybackClock {
     // Clamp to sequence boundaries. On the boundary case we write the
     // *reactive* snapshot (setCurrentTimeMs) before pausing so subscribers
     // see the correct final position; pause() also syncs to the live value.
-    if (currentTimeMs >= this.durationMs) {
+    if (this.rate > 0 && currentTimeMs >= this.durationMs) {
+      this.rafId = null;
+      if (this.onReachEnd) {
+        setTimeMs(this.durationMs);
+        this.onReachEnd();
+        return;
+      }
       setCurrentTimeMs(this.durationMs);
+      pause();
+      return;
+    }
+    if (this.rate < 0 && currentTimeMs <= this.floorMs) {
+      setCurrentTimeMs(this.floorMs);
       pause();
       this.rafId = null;
       return;
