@@ -254,25 +254,101 @@ describe("NewProjectSurface", () => {
     ).toBeInTheDocument();
   });
 
-  it("names the picked starter's slash command and what it does", async () => {
+  // A pill is a shortcut for typing the command: the prompt stays the one
+  // record of what the agent is handed.
+  it("writes the picked starter into the prompt, and says what it does", async () => {
     renderSurface();
+    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
     expect(
       screen.getByText(/Pick a skill to start from/)
     ).toBeInTheDocument();
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "Launch commercial" })
-    );
-    expect(screen.getByText("/launch-commercial")).toBeInTheDocument();
+    await userEvent.type(prompt, "A spot for our desk lamp");
+    const pill = screen.getByRole("button", { name: "Launch commercial" });
+    await userEvent.click(pill);
+    expect(prompt).toHaveValue("/launch-commercial A spot for our desk lamp");
+    expect(pill).toHaveAttribute("aria-pressed", "true");
     expect(
       screen.getByText("Turn a product page into a finished launch commercial.")
     ).toBeInTheDocument();
+    // The caret is back in the box, so the user keeps typing.
+    expect(prompt).toHaveFocus();
 
-    // Pressing the picked starter again starts the project from nothing.
+    // Pressing the picked starter again takes the command out.
+    await userEvent.click(pill);
+    expect(prompt).toHaveValue("A spot for our desk lamp");
+    expect(pill).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.getByText(/Pick a skill to start from/)
+    ).toBeInTheDocument();
+  });
+
+  it("swaps one starter for another in place", async () => {
+    renderSurface();
+    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
     await userEvent.click(
       screen.getByRole("button", { name: "Launch commercial" })
     );
-    expect(screen.queryByText("/launch-commercial")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "House style" }));
+    expect(prompt).toHaveValue("/house-style ");
+    expect(
+      screen.getByRole("button", { name: "Launch commercial" })
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.getByRole("button", { name: "House style" })
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  // BUG: a starter picked from `/` stayed the project's kind after its command
+  // was deleted from the prompt, and a hand-typed one never counted at all.
+  it("lights the pill for a hand-typed command and clears it when deleted", async () => {
+    renderSurface();
+    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
+    await userEvent.type(prompt, "/house-style{Escape} our lamp");
+    expect(
+      screen.getByRole("button", { name: "House style" })
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByText("Our house grade and typography.")
+    ).toBeInTheDocument();
+
+    await userEvent.clear(prompt);
+    await userEvent.type(prompt, "our lamp");
+    expect(
+      screen.getByRole("button", { name: "House style" })
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("folds the row past eight starters, keeping the picked one in view", async () => {
+    skills = Array.from({ length: 12 }, (_, index) => ({
+      id: `s${index}`,
+      name: `skill-${String.fromCharCode(97 + index)}`,
+      description: `Skill ${index}.`,
+      updatedAt: "",
+      system: true
+    }));
+    renderSurface();
+    const row = screen.getByRole("group", { name: "Start from a skill" });
+    expect(within(row).getAllByRole("button")).toHaveLength(9);
+    expect(
+      within(row).queryByRole("button", { name: "Skill l" })
+    ).not.toBeInTheDocument();
+
+    // Typed from `/`, a hidden starter is shown lit rather than left folded.
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "/skill-l{Escape} our lamp"
+    );
+    expect(
+      within(row).getByRole("button", { name: "Skill l" })
+    ).toHaveAttribute("aria-pressed", "true");
+
+    await userEvent.click(within(row).getByRole("button", { name: "3 more" }));
+    expect(within(row).getAllByRole("button")).toHaveLength(13);
+    await userEvent.click(
+      within(row).getByRole("button", { name: "Show fewer" })
+    );
+    expect(within(row).getAllByRole("button")).toHaveLength(10);
   });
 
   it("shows no starter row when there are no skills", () => {
@@ -300,12 +376,12 @@ describe("NewProjectSurface", () => {
 
   it("creates the project, stages its first turn, and opens its group", async () => {
     renderSurface();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Launch commercial" })
+    );
     await userEvent.type(
       screen.getByPlaceholderText(/30-second launch spot/),
       "A spot for our desk lamp"
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: "Launch commercial" })
     );
     await userEvent.click(screen.getByRole("button", { name: "Entities · none" }));
     await userEvent.click(screen.getByText("Aurora lamp"));
@@ -327,13 +403,30 @@ describe("NewProjectSurface", () => {
     );
     expect(closeTab).toHaveBeenCalledWith("project-new:new");
 
-    // The staged turn triggers the skill the way a typed `/name` does.
+    // The staged turn is the prompt as written, command and all, plus the
+    // entities picked from the button.
     const staged = takeProjectFirstTurn("p9");
     expect(staged).not.toBeNull();
     const text = staged?.[0].type === "text" ? staged[0].text : "";
     expect(text).toBe(
-      "/launch-commercial\n\nA spot for our desk lamp\n\n" +
+      "/launch-commercial A spot for our desk lamp\n\n" +
         "Use these entities: Aurora lamp."
+    );
+  });
+
+  it("starts on Ctrl+Enter, and keeps Enter for a new line", async () => {
+    renderSurface();
+    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
+    await userEvent.type(prompt, "A spot for our desk lamp{Enter}warm");
+    expect(createProject).not.toHaveBeenCalled();
+    expect(prompt).toHaveValue("A spot for our desk lamp\nwarm");
+
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+    await waitFor(() =>
+      expect(createProject).toHaveBeenCalledWith({
+        name: "A spot for our desk lamp",
+        kind: ""
+      })
     );
   });
 
