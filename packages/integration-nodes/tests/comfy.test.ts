@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { getNodeMetadata } from "@nodetool-ai/node-sdk";
 import {
   ComfyWorkflowNode,
@@ -8,8 +8,35 @@ import {
 import type {
   PythonBridge,
   ComfyEvent,
-  ComfyExecuteResult
+  ComfyExecuteResult,
+  ProcessingContext
 } from "@nodetool-ai/runtime";
+
+/**
+ * A stand-in for `executeComfy` whose result never settles, so a test can
+ * abort mid-run and observe the cancel handle being pulled.
+ */
+const comfyExecutor = vi.hoisted(() => ({
+  cancelCalls: 0,
+  reset(): void {
+    comfyExecutor.cancelCalls = 0;
+  }
+}));
+
+vi.mock("@nodetool-ai/runtime", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    executeComfy: () => ({
+      result: new Promise(() => {
+        // Never settles: the only way out of this run is cancellation.
+      }),
+      cancel: () => {
+        comfyExecutor.cancelCalls += 1;
+      }
+    })
+  };
+});
 
 const samplePrompt = {
   "3": {
@@ -63,6 +90,25 @@ describe("ComfyWorkflowNode", () => {
   it("throws a helpful error when the workflow JSON is malformed", async () => {
     const node = makeNode({ workflow: "{not json" });
     await expect(drain(node)).rejects.toThrow(/not valid JSON/i);
+  });
+
+  it("cancels the ComfyUI execution when the run signal aborts", async () => {
+    comfyExecutor.reset();
+    const controller = new AbortController();
+    const context = {
+      signal: controller.signal,
+      postMessage: () => {}
+    } as unknown as ProcessingContext;
+
+    const node = makeNode();
+    const gen = node.genProcess(context);
+    const pending = gen.next();
+    // Let the generator reach its drain loop before pulling the signal.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    controller.abort();
+    expect(comfyExecutor.cancelCalls).toBe(1);
+    await expect(pending).rejects.toThrow(/canceled/i);
   });
 });
 

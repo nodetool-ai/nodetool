@@ -9,43 +9,17 @@ import {
   type ComfyEvent,
   type ComfyExecuteResult,
   type ProcessingContext,
-  type MediaRefValue,
   type ComfyNodeOutputs,
   type ComfyFileOutput,
   type ComfyProgressEvent
 } from "@nodetool-ai/runtime";
-
-type ComfyPrompt = Record<
-  string,
-  { class_type: string; inputs: Record<string, unknown> }
->;
-
-/** Media kind → default filename extension / mime for uploads. */
-const UPLOAD_DEFAULTS: Record<string, { ext: string; mime: string }> = {
-  image: { ext: "png", mime: "image/png" },
-  audio: { ext: "wav", mime: "audio/wav" },
-  video: { ext: "mp4", mime: "video/mp4" }
-};
-
-/** A connected media ref looks like an object carrying uri/data/asset_id. */
-function isMediaRef(value: unknown): value is MediaRefValue {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false;
-  }
-  const v = value as Record<string, unknown>;
-  return (
-    "uri" in v || "data" in v || "asset_id" in v || typeof v.type === "string"
-  );
-}
-
-function extFromUri(uri: string | undefined): string | undefined {
-  if (!uri) return undefined;
-  const clean = uri.split("?")[0].split("#")[0];
-  const ext = clean.split(".").pop();
-  return ext && ext.length <= 5 && /^[a-z0-9]+$/i.test(ext)
-    ? ext.toLowerCase()
-    : undefined;
-}
+import { ComfyCloudWorkflowNode } from "./comfy-cloud.js";
+import {
+  extFromUri,
+  isMediaRef,
+  UPLOAD_DEFAULTS,
+  type ComfyPrompt
+} from "./comfy-sdk.js";
 
 /**
  * Run a ComfyUI workflow on any ComfyUI server, with typed inputs/outputs
@@ -310,27 +284,67 @@ export class ComfyWorkflowNode extends BaseNode {
     };
 
     let settledResult: Awaited<typeof result> | null = null;
-    const { result } = executeComfy(
+    const { result, cancel } = executeComfy(
       prompt,
       endpoint,
       onProgress,
       timeoutMs,
       onNodeOutput
     );
-    const done = result.then((r) => {
-      settledResult = r;
+
+    // Run-level cancellation: interrupt ComfyUI (POST /interrupt + WS close)
+    // rather than merely discarding the result, and wake the drain loop so it
+    // does not block on a notify that will never come.
+    const signal = context?.signal;
+    const onAbort = (): void => {
+      cancel();
       wake();
-    });
+    };
+    if (signal) {
+      if (signal.aborted) {
+        onAbort();
+      } else {
+        signal.addEventListener("abort", onAbort, { once: true });
+      }
+    }
+
+    const done = result.then(
+      (r) => {
+        settledResult = r;
+        wake();
+      },
+      (err) => {
+        settledResult = {
+          status: "failed",
+          error: err instanceof Error ? err.message : String(err)
+        };
+        wake();
+      }
+    );
 
     // Drain streamed outputs as they arrive, until execution settles.
-    while (settledResult === null || queue.length > 0) {
-      if (queue.length === 0) {
-        await new Promise<void>((resolve) => {
-          notify = resolve;
-        });
-        continue;
+    try {
+      while (settledResult === null || queue.length > 0) {
+        if (queue.length === 0) {
+          // An abort that the executor has not yet turned into a result must
+          // not park this loop on a notify nobody will fire.
+          if (signal?.aborted) break;
+          await new Promise<void>((resolve) => {
+            notify = resolve;
+          });
+          continue;
+        }
+        yield queue.shift() as Record<string, unknown>;
       }
-      yield queue.shift() as Record<string, unknown>;
+    } finally {
+      signal?.removeEventListener("abort", onAbort);
+    }
+
+    if (settledResult === null) {
+      const aborted = new Error("ComfyUI execution was canceled");
+      aborted.name = "AbortError";
+      logLine(aborted.message, "error");
+      throw aborted;
     }
     await done;
 
@@ -645,5 +659,6 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
 
 export const COMFY_NODES = tagAsServer([
   ComfyWorkflowNode,
-  ComfyWorkerWorkflowNode
+  ComfyWorkerWorkflowNode,
+  ComfyCloudWorkflowNode
 ]);
