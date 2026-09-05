@@ -12,10 +12,11 @@
  * the motion came from and leaves it alone (I4).
  */
 
-import React, { memo, useCallback, useRef } from "react";
+import React, { memo, useCallback, useRef, useState } from "react";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import {
   ANIMATED_PROPERTIES,
+  parseEasing,
   type CustomClipAnimation
 } from "@nodetool-ai/timeline";
 
@@ -29,11 +30,16 @@ import {
   Text
 } from "../../ui_primitives";
 import {
+  INSPECTOR_ROW_BUTTON_SX,
   InspectorPillInput,
   InspectorRow,
   InspectorSelect
 } from "./InspectorPrimitives";
-import { EASING_HINT } from "./InspectorMotionFields";
+import { keyframeRowKeys } from "./InspectorPrimitives.helpers";
+import {
+  EASING_HINT,
+  UNPARSEABLE_EASING_HINT
+} from "./InspectorMotionFields";
 
 type CustomCurve = CustomClipAnimation["curves"][number];
 type CustomKeyframe = CustomCurve["keyframes"][number];
@@ -53,6 +59,9 @@ export function makeCustomAnimation(): CustomClipAnimation {
   return { curves: [{ property: "opacity", keyframes: DEFAULT_KEYFRAMES }] };
 }
 
+/** Keyframes are sampled in array order, so every commit re-sorts by `t`. */
+const byTime = (a: CustomKeyframe, b: CustomKeyframe) => a.t - b.t;
+
 const SCRUB_T = { step: 0.01, min: 0, max: 1 };
 const SCRUB_VALUE = { step: 0.01 };
 
@@ -67,6 +76,9 @@ interface ClipCustomCurvesProps {
 export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
   ({ custom, labelPrefix, onChange }) => {
     const curves = custom?.curves ?? [];
+    // Set when a `t` edit collided with an existing keyframe, cleared by the
+    // next successful edit. A caption under the rows says so.
+    const [duplicateTime, setDuplicateTime] = useState(false);
     const bakedFromCode = custom?.code !== undefined;
 
     // Latest-payload ref, the pattern the rest of the inspector uses: the
@@ -96,10 +108,23 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
       (curveIndex: number, keyIndex: number, patch: Partial<CustomKeyframe>) => {
         const curve = customRef.current?.curves[curveIndex];
         if (!curve) return;
+        // Two keyframes at one `t` make a zero-length segment the sampler
+        // reads as an instant jump, and the rows become indistinguishable, so
+        // the edit is refused rather than merged behind the user's back.
+        if (
+          patch.t !== undefined &&
+          curve.keyframes.some((keyframe, i) => i !== keyIndex && keyframe.t === patch.t)
+        ) {
+          setDuplicateTime(true);
+          return;
+        }
+        setDuplicateTime(false);
         patchCurve(curveIndex, {
-          keyframes: curve.keyframes.map((keyframe, i) =>
-            i === keyIndex ? { ...keyframe, ...patch } : keyframe
-          )
+          keyframes: curve.keyframes
+            .map((keyframe, i) =>
+              i === keyIndex ? { ...keyframe, ...patch } : keyframe
+            )
+            .sort(byTime)
         });
       },
       [patchCurve]
@@ -114,6 +139,7 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
 
     const removeCurve = useCallback(
       (index: number) => {
+        setDuplicateTime(false);
         setCurves(
           (customRef.current?.curves ?? []).filter((_, i) => i !== index)
         );
@@ -126,11 +152,19 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
         const curve = customRef.current?.curves[curveIndex];
         if (!curve) return;
         const last = curve.keyframes[curve.keyframes.length - 1];
+        const taken = new Set(curve.keyframes.map((keyframe) => keyframe.t));
+        const candidate = Math.min(1, (last?.t ?? 0) + 0.1);
+        const previous = curve.keyframes[curve.keyframes.length - 2]?.t ?? 0;
+        // The tail is already at 1, so the new row splits the last gap.
+        const t = taken.has(candidate)
+          ? (previous + (last?.t ?? 1)) / 2
+          : candidate;
+        if (taken.has(t)) return;
         patchCurve(curveIndex, {
           keyframes: [
             ...curve.keyframes,
-            { t: Math.min(1, (last?.t ?? 0) + 0.1), value: last?.value ?? 0 }
-          ]
+            { t, value: last?.value ?? 0 }
+          ].sort(byTime)
         });
       },
       [patchCurve]
@@ -140,6 +174,7 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
       (curveIndex: number, keyIndex: number) => {
         const curve = customRef.current?.curves[curveIndex];
         if (!curve) return;
+        setDuplicateTime(false);
         patchCurve(curveIndex, {
           keyframes: curve.keyframes.filter((_, i) => i !== keyIndex)
         });
@@ -167,7 +202,7 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
                 tooltip={`Remove ${labelPrefix} curve ${curveIndex + 1}`}
                 ariaLabel={`Remove ${labelPrefix} curve ${curveIndex + 1}`}
                 iconVariant="clear"
-                sx={{ width: 24, height: 24 }}
+                sx={INSPECTOR_ROW_BUTTON_SX}
               />
             </FlexRow>
             <InspectorRow label="Property">
@@ -179,14 +214,19 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
                 grow
               />
             </InspectorRow>
-            {curve.keyframes.map((keyframe, keyIndex) => {
+            {keyframeRowKeys(curve.keyframes.map((k) => k.t)).map((rowKey, keyIndex) => {
+              const keyframe = curve.keyframes[keyIndex];
               const name = `${labelPrefix} curve ${curveIndex + 1} keyframe ${keyIndex + 1}`;
+              const easingUnparseable =
+                keyframe.easing !== undefined &&
+                keyframe.easing !== "" &&
+                parseEasing(keyframe.easing) === null;
               return (
-                <FlexRow
-                  key={keyIndex}
-                  align="center"
-                  gap={SPACING.micro}
-                >
+                // `t` is unique within a curve (duplicates are refused above)
+                // and the rows are sorted by it, so it is the row's identity —
+                // an index would hand a removed row's draft to its neighbour.
+                <FlexColumn key={rowKey} gap={SPACING.micro}>
+                <FlexRow align="center" gap={SPACING.micro}>
                   <InspectorPillInput
                     value={keyframe.t.toFixed(2)}
                     minWidth={52}
@@ -228,11 +268,21 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
                     tooltip={`Remove ${name}`}
                     ariaLabel={`Remove ${name}`}
                     iconVariant="clear"
-                    sx={{ width: 20, height: 20 }}
+                    sx={INSPECTOR_ROW_BUTTON_SX}
                   />
                 </FlexRow>
+                {easingUnparseable && (
+                  <Caption color="muted">{UNPARSEABLE_EASING_HINT}</Caption>
+                )}
+                </FlexColumn>
               );
             })}
+            {duplicateTime && (
+              <Caption color="muted">
+                Another keyframe already sits at that time. Keyframe times must
+                differ.
+              </Caption>
+            )}
             <Button
               size="small"
               variant="text"

@@ -46,6 +46,7 @@ import {
 } from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
 import {
+  INSPECTOR_ROW_BUTTON_SX,
   InspectorDivider,
   InspectorPillInput,
   InspectorRow,
@@ -630,7 +631,7 @@ export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
                           tooltip={`Remove ${name} effect`}
                           ariaLabel={`Remove ${name} effect`}
                           iconVariant="clear"
-                          sx={{ width: 24, height: 24 }}
+                          sx={INSPECTOR_ROW_BUTTON_SX}
                         />
                       </FlexRow>
                     </FlexRow>

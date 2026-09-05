@@ -8,6 +8,7 @@ import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 
 import { makeClip } from "@nodetool-ai/timeline";
+import { useShallow } from "zustand/react/shallow";
 
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import {
@@ -35,6 +36,7 @@ import {
   InspectorPillInput,
   InspectorRow,
   InspectorSectionTitle,
+  InspectorSelect,
   InspectorStaticValue,
   InspectorToggleRow
 } from "./InspectorPrimitives";
@@ -47,6 +49,11 @@ import { ClipAdjustments } from "./ClipAdjustments";
 import { ClipCaptionStyle } from "./ClipCaptionStyle";
 import { ClipStoryboardLink } from "./ClipStoryboardLink";
 import { ClipAnimations } from "./ClipAnimations";
+import { ClipGroupPanel } from "./ClipGroupPanel";
+import {
+  ClipCompositionInfo,
+  ClipTimeRemapSection
+} from "./ClipTimeRemap";
 import { ClipShapeSection } from "./ClipShapeSection";
 import { ClipTextStyleSection } from "./ClipTextStyleSection";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
@@ -67,8 +74,8 @@ const sectionContentStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: 2,
-    padding: theme.spacing(0.5, 0, 2)
+    gap: getSpacingPx(SPACING.micro),
+    padding: theme.spacing(SPACING.micro, SPACING.none, SPACING.md)
   });
 
 const inspectorPanelSx = {
@@ -82,6 +89,9 @@ const inspectorPanelSx = {
 // Hoisted so InspectorPillInput's memo holds — see ClipAdjustments.
 const SCRUB_DURATION = { step: 0.02, min: 0.01 };
 const SCRUB_SPEED = { step: 0.01, min: 0.1, max: 8 };
+
+/** The parent select's empty option: this clip belongs to no group. */
+const NO_PARENT = "none";
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -108,12 +118,22 @@ export const TimelineInspector: React.FC = memo(() => {
   const track = useTimelineStore((s) =>
     clip ? s.tracks.find((t) => t.id === clip.trackId) : null
   );
-  // The group this clip inherits its transform, opacity and window from (D4).
-  // Read-only here: parenting is set from the lane and by the agent ops.
-  const parentName = useTimelineStore((s) =>
-    clip?.parentId
-      ? (findClipById(s.clips, clip.parentId)?.name ?? clip.parentId)
-      : null
+  // Every group in the sequence, projected to what the parent picker needs, so
+  // a scrub on any other clip does not re-render the inspector.
+  const groupSummaries = useTimelineStore(
+    useShallow((s) =>
+      s.clips.flatMap((candidate) =>
+        candidate.mediaType === "group"
+          ? [
+              {
+                id: candidate.id,
+                name: candidate.name,
+                parentId: candidate.parentId
+              }
+            ]
+          : []
+      )
+    )
   );
   const fps = useTimelineStore((s) => s.fps);
   const deleteSelected = useTimelineStore((s) => s.deleteSelected);
@@ -214,6 +234,69 @@ export const TimelineInspector: React.FC = memo(() => {
     [clipId, patchClip]
   );
 
+  /**
+   * Groups this clip may be parented to: every group except itself and its own
+   * descendants. A cycle would make the transform chain infinite, and the
+   * validator reports one as an error, so the picker never offers one.
+   */
+  const parentOptions = useMemo(() => {
+    const parentOf = new Map(
+      groupSummaries.map((group) => [group.id, group.parentId])
+    );
+    const isUnder = (groupId: string): boolean => {
+      const seen = new Set<string>();
+      let cursor: string | undefined = parentOf.get(groupId);
+      while (cursor !== undefined && !seen.has(cursor)) {
+        if (cursor === clipId) return true;
+        seen.add(cursor);
+        cursor = parentOf.get(cursor);
+      }
+      return false;
+    };
+    return [
+      { value: NO_PARENT, label: "None (ungrouped)" },
+      ...groupSummaries
+        .filter((group) => group.id !== clipId && !isUnder(group.id))
+        .map((group) => ({
+          value: group.id,
+          label: group.name || group.id
+        }))
+    ];
+  }, [groupSummaries, clipId]);
+
+  const handleParentChange = useCallback(
+    (value: string) => {
+      if (!clipId) return;
+      patchClip(clipId, {
+        parentId: value === NO_PARENT ? undefined : value
+      });
+    },
+    [clipId, patchClip]
+  );
+
+  const handleUngroup = useCallback(() => {
+    if (!clipId) return;
+    patchClip(clipId, { parentId: undefined });
+  }, [clipId, patchClip]);
+
+  /**
+   * Ungroup from the group's own panel: release the direct children, then
+   * delete the group clip. One undo entry.
+   */
+  const handleUngroupChildren = useCallback(() => {
+    if (!clipId) return;
+    const members = storeApi
+      .getState()
+      .clips.filter((candidate) => candidate.parentId === clipId);
+    history.begin();
+    for (const member of members) {
+      patchClip(member.id, { parentId: undefined });
+      history.mark();
+    }
+    deleteSelected(new Set([clipId]));
+    history.end();
+  }, [clipId, deleteSelected, history, patchClip, storeApi]);
+
   // ── Identity metadata ───────────────────────────────────────────────────
 
   const accentColor = useMemo(
@@ -293,6 +376,25 @@ export const TimelineInspector: React.FC = memo(() => {
 
   if (!clip) return null;
 
+  // A group draws nothing, so the media/speed panel would be all blanks.
+  if (clip.mediaType === "group") {
+    return (
+      <Panel
+        background="default"
+        bordered={false}
+        css={containerStyles}
+        sx={inspectorPanelSx}
+      >
+        <ClipIdentityCard
+          name={clip.name}
+          metadata={identityMeta}
+          accentColor={accentColor}
+        />
+        <ClipGroupPanel clip={clip} onUngroup={handleUngroupChildren} />
+      </Panel>
+    );
+  }
+
   // Direct-gen and workflow-bound generated clips keep their bespoke panels.
   if (clip.sourceType === "generated") {
     if (
@@ -347,10 +449,19 @@ export const TimelineInspector: React.FC = memo(() => {
           <InspectorRow label="Asset">
             <InspectorStaticValue value={clip.currentAssetId ?? "—"} />
           </InspectorRow>
-          {parentName !== null && (
-            <InspectorRow label="Parent">
-              <InspectorStaticValue value={parentName} />
-            </InspectorRow>
+          <InspectorRow label="Parent">
+            <InspectorSelect
+              label="Parent group"
+              value={clip.parentId ?? NO_PARENT}
+              options={parentOptions}
+              onChange={handleParentChange}
+              grow
+            />
+          </InspectorRow>
+          {clip.parentId !== undefined && (
+            <Button size="small" variant="text" onClick={handleUngroup}>
+              Ungroup
+            </Button>
           )}
         </FlexColumn>
       </CollapsibleSection>
@@ -406,6 +517,10 @@ export const TimelineInspector: React.FC = memo(() => {
       <ClipCaptionStyle clip={clip} />
 
       <ClipAdjustments clip={clip} />
+
+      <ClipTimeRemapSection clip={clip} />
+
+      <ClipCompositionInfo clip={clip} />
 
       <ClipAnimations clip={clip} />
     </Panel>
