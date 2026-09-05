@@ -86,12 +86,15 @@ const styles = (theme: Theme) =>
  * to finish. Each leads with the outcome and names only what the user is about
  * to supply — never an attachment the thread does not have.
  */
+// Each chip is the start of a brief the user finishes in the composer, one
+// per job the studio is built for: a product spot, a creator-style cut, a
+// narrated explainer, a whole campaign, and the pipeline that repeats it.
 const SUGGESTIONS = [
-  "Summarize the document I attach",
-  "Generate an image of …",
-  "Write a script for a 30-second ad about …",
-  "Build a workflow that …",
-  "Explain this code: …"
+  "Storyboard a 30-second ad for …",
+  "Direct a UGC-style testimonial for …",
+  "Narrate a 60-second explainer about …",
+  "Turn this brief into a launch campaign: …",
+  "Build a workflow that renders an ad for every …"
 ];
 
 // Cloud LLM providers we point first-time users at. Each maps to an API key

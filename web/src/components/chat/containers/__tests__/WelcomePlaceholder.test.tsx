@@ -80,14 +80,18 @@ describe("WelcomePlaceholder", () => {
       screen.queryByText("Connect an AI provider to get started")
     ).not.toBeInTheDocument();
 
-    // Every opener either names what the user is about to attach or trails off
-    // for them to finish — none of them commands a run on its own.
-    expect(screen.getByText("Generate an image of …")).toBeInTheDocument();
-    expect(screen.getByText("Build a workflow that …")).toBeInTheDocument();
+    // Every opener names a job the studio is built for and trails off for the
+    // user to finish — none of them commands a run on its own.
+    expect(
+      screen.getByText("Direct a UGC-style testimonial for …")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Build a workflow that renders an ad for every …")
+    ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("Summarize the document I attach"));
+    fireEvent.click(screen.getByText("Storyboard a 30-second ad for …"));
     expect(onSuggestionClick).toHaveBeenCalledWith(
-      "Summarize the document I attach"
+      "Storyboard a 30-second ad for …"
     );
   });
 
