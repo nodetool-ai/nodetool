@@ -139,12 +139,13 @@ ownership.
 
 The homepage shows the four recipes (`/recipes`) under the heading "How teams
 are using NodeTool", because each is a job with a buyer, a real run against live
-models, and a `.nodetool` bundle to download. The four use cases on `/use-cases`
+models, and a chain that ships inside Studio (Examples → Recipes; the site also
+packs each as a `.nodetool` bundle). The four use cases on `/use-cases`
 (trailer, teaser, product video, poster) are demos of a surface; they stay on
 their own pages.
 
-Each recipe card carries: what you end up holding, who it is for, the models
-the shipped chain calls, and the bundle. That is the proof the BYOK claim has
+Each recipe card carries: what you end up holding, who it is for, and the models
+the shipped chain calls. That is the proof the BYOK claim has
 today. The proof it still lacks is a real provider bill per recipe. Until a
 recorded run produces one, the card says "at provider list prices" and names
 the models. **Do not put an estimated dollar figure on a card.** A number that

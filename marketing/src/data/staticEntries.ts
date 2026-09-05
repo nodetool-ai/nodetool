@@ -28,7 +28,7 @@ export const staticEntries: PageEntry[] = [
   { route: "/marketing", title: "For Marketing", description: "Produce campaign assets with AI workflows.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   // /alternatives/* comes from the competitorEntries engine module.
   { route: "/templates", title: "AI Workflow Templates", description: "Browse ready-to-run NodeTool workflow templates by category.", priority: 0.8, changeFrequency: "weekly", indexable: true },
-  { route: "/recipes", title: "AI Workflow Recipes", description: "Multi-step NodeTool recipes: the workflows to run, in order, as one downloadable bundle.", priority: 0.8, changeFrequency: "monthly", indexable: true },
+  { route: "/recipes", title: "AI Workflow Recipes", description: "Multi-step NodeTool recipes: the workflows to run, in order, shipped inside Studio.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/apps", title: "AI Mini Apps", description: "Ready-to-use AI mini apps built with NodeTool's App Builder.", priority: 0.8, changeFrequency: "weekly", indexable: true },
   { route: "/use-cases/product-video", title: "Product Video", description: "Make product videos with AI workflows.", priority: 0.6, changeFrequency: "monthly", indexable: true },
   { route: "/use-cases/movie-poster", title: "Movie Poster", description: "Generate movie posters with AI workflows.", priority: 0.6, changeFrequency: "monthly", indexable: true },

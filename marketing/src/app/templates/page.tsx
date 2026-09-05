@@ -126,8 +126,8 @@ export default function TemplatesHub() {
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-400">
                 A recipe chains several of these templates in order and ships
-                them as one downloadable bundle, with the keys each step needs
-                and where the money goes.
+                that chain inside Studio, with the keys each step needs and
+                where the money goes.
               </p>
               <ul className="mt-5 flex flex-wrap gap-2">
                 {recipeEntries.map((recipe) => (

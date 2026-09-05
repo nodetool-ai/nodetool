@@ -30,6 +30,7 @@ export * as users from "./users.js";
 export * as sketch from "./sketch.js";
 export * as skills from "./skills.js";
 export * as storyboards from "./storyboards.js";
+export * as recipes from "./recipes.js";
 export * as applications from "./applications.js";
 export * as resources from "./resources.js";
 export * as timeline from "./timeline.js";

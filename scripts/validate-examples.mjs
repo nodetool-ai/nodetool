@@ -34,7 +34,7 @@ import {
   writeFileSync
 } from "node:fs";
 import { availableParallelism, tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Worker, isMainThread, parentPort } from "node:worker_threads";
 
@@ -294,6 +294,53 @@ function checkStoryboard(file) {
   return problems.length > 0 ? problems.join("\n") : null;
 }
 
+// A recipe manifest carries no graph either: it names the shipped example
+// workflows its chain runs, in order. What rots is a step whose example was
+// renamed — the app drops such a recipe from its Examples page and the site's
+// bundle generator fails, so catch it here with the rest of the examples.
+function checkRecipe(file, exampleNames) {
+  let recipe;
+  try {
+    recipe = JSON.parse(readFileSync(file, "utf8"));
+  } catch (err) {
+    return `not parsable JSON: ${err.message}`;
+  }
+  const problems = [];
+  const slug = basename(file, ".recipe.json");
+  if (recipe?.slug !== slug) {
+    problems.push(`declares slug "${recipe?.slug}" but the file is ${slug}.recipe.json`);
+  }
+  const steps = Array.isArray(recipe?.steps) ? recipe.steps : [];
+  if (steps.length === 0) {
+    return "recipe declares no steps";
+  }
+  const named = [];
+  for (const [index, step] of steps.entries()) {
+    const where = step?.example ? `step "${step.example}"` : `step ${index}`;
+    for (const [what, name] of [
+      ["example", step?.example],
+      ["alternative", step?.alternative?.example]
+    ]) {
+      if (what === "alternative" && !step?.alternative) continue;
+      if (typeof name !== "string" || !exampleNames.has(name)) {
+        problems.push(`${where} names ${what} "${name}", which no shipped example matches`);
+        continue;
+      }
+      if (what === "example") named.push(name);
+    }
+    if (typeof step?.role !== "string" || step.role.trim() === "") {
+      problems.push(`${where} has no role text`);
+    }
+    if (typeof step?.handoff !== "string" || step.handoff.trim() === "") {
+      problems.push(`${where} has no handoff text`);
+    }
+  }
+  if (!named.includes(recipe?.hero)) {
+    problems.push(`hero "${recipe?.hero}" is not one of its steps`);
+  }
+  return problems.length > 0 ? problems.join("\n") : null;
+}
+
 function statSafe(file) {
   try {
     return statSync(file);
@@ -365,11 +412,13 @@ async function main() {
   const bundles = examples.filter((f) => f.endsWith(".app.json"));
   const storyboards = examples.filter((f) => f.endsWith(".storyboard.json"));
   const compositions = examples.filter((f) => f.endsWith(".composition.json"));
+  const recipes = examples.filter((f) => f.endsWith(".recipe.json"));
   const workflowExamples = examples.filter(
     (f) =>
       !f.endsWith(".app.json") &&
       !f.endsWith(".storyboard.json") &&
-      !f.endsWith(".composition.json")
+      !f.endsWith(".composition.json") &&
+      !f.endsWith(".recipe.json")
   );
 
   if (packageExamples.length === 0) {
@@ -400,11 +449,19 @@ async function main() {
     process.exit(1);
   }
 
+  if (recipes.length === 0) {
+    console.error(
+      "No *.recipe.json manifests found under packages/**/examples/ — check the search path."
+    );
+    process.exit(1);
+  }
+
   console.log(
     `Validating ${workflowExamples.length} example workflow(s), ` +
       `${bundles.length} app bundle(s), ` +
-      `${storyboards.length} storyboard(s), and ` +
-      `${compositions.length} composition(s)...\n`
+      `${storyboards.length} storyboard(s), ` +
+      `${compositions.length} composition(s), and ` +
+      `${recipes.length} recipe(s)...\n`
   );
 
   // Each job is one graph to validate; `failure` short-circuits a job the
@@ -470,6 +527,17 @@ async function main() {
     jobs.push({
       label: file.slice(repoRoot.length + 1),
       failure: await checkComposition(file)
+    });
+  }
+  // A recipe is checked against the workflow examples this scan already found,
+  // by the name each step gives — the same name the app resolves at runtime.
+  const exampleNames = new Set(
+    workflowExamples.map((file) => basename(file, ".json"))
+  );
+  for (const file of recipes) {
+    jobs.push({
+      label: file.slice(repoRoot.length + 1),
+      failure: checkRecipe(file, exampleNames)
     });
   }
 

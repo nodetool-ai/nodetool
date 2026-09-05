@@ -891,6 +891,34 @@ and the `edit_timeline` op `insert_composition`; the pure
 `instantiateComposition`/`extractComposition` live in
 `packages/timeline/src/composition.ts`.
 
+### Shipped recipes
+
+A recipe is a named outcome plus the ordered example workflows that reach it —
+"one packshot per SKU becomes the whole channel set", four to six shipped
+workflows deep. The manifests are
+`packages/base-nodes/nodetool/examples/recipes/<slug>.recipe.json` (the
+`recipes` sibling of the example workflows, where `exampleRecipesDir` looks by
+default in the monorepo, the packaged backend, and the server image). They hold
+no graphs: each step names a shipped example, and
+`listExampleRecipes` (`packages/websocket/src/lib/example-recipes.ts`) resolves
+those names against the examples the install actually ships, reading each
+step's node count, thumbnail and models out of the graph. A recipe with a step
+that no longer resolves is dropped from the listing rather than half-offered.
+
+`workflows.recipes` serves them; the web app shows them above the gallery on
+**Examples**, where a step opens that example as a workflow and "Add all"
+copies the whole chain into the library. The site builds its `/recipes` pages
+and the downloadable `.nodetool` bundles from the same manifests
+(`marketing/scripts/generate-recipes.mjs`, with the sample renders and page
+order in `marketing/scripts/recipes.mjs`), so the page and the product name one
+list of workflows. The `recipes` harness is the gate on that: its selfcheck runs
+the resolver's suite (`packages/websocket/tests/example-recipes.test.ts`) and
+the site generator in `--check` mode, and it fires on any diff touching a
+manifest, the resolver, the Examples listing, or the recipe pages.
+`npm run validate:examples` also checks every step, alternative and hero
+resolves, and `scripts/verify-backend-bundle.mjs` checks the manifests and the
+examples they name were staged into the packaged bundle.
+
 ### 3D scene tools (no editor, no browser)
 
 An agent builds and fixes a 3D model without an editor open:

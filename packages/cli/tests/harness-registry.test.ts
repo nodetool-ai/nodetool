@@ -167,6 +167,7 @@ describe("gated capability matches a real CI trigger", () => {
     "docker-smoke": "docker-smoke.mjs http://localhost:7777",
     "provider-contract": "provider-contract-probes",
     "provider-codegen": "npm run generate:fal:check -- --strict",
+    recipes: "dev:nodetool -- harness gate",
     "node-pack-parity": "parity example-workflows"
   };
 

@@ -8,6 +8,7 @@
  *   - list, get, create, update, delete
  *   - autosave
  *   - examples (list + search)
+ *   - recipes (shipped chains of examples)
  *   - public (list + get) — publicProcedure (no auth required)
  *   - versions (list, create, restore, delete)
  *
@@ -19,6 +20,7 @@
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import nodePath from "node:path";
+import { z } from "zod";
 import { withCacheBuster } from "../../lib/example-thumbnail.js";
 import {
   Workflow,
@@ -37,6 +39,8 @@ import {
   defaultExamplePackageName,
   deriveExampleAssetsDir
 } from "../../example-workflows.js";
+import { exampleRecipeSummary } from "@nodetool-ai/protocol/api-schemas/recipes.js";
+import { listExampleRecipes } from "../../lib/example-recipes.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -772,6 +776,13 @@ export const workflowsRouter = router({
         : workflows;
       return { workflows: filtered, next: null };
     }),
+
+  // ── recipes (shipped chains of example workflows) ─────────────────────────
+  // Manifest files on disk, like the examples they order: no user, no database,
+  // and each step resolved against the examples this install actually ships.
+  recipes: protectedProcedure
+    .output(z.array(exampleRecipeSummary))
+    .query(({ ctx }) => listExampleRecipes(ctx.apiOptions)),
 
   // ── public workflows ──────────────────────────────────────────────────────
   public: router({
