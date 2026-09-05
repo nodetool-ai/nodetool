@@ -62,6 +62,12 @@ const renderTab = (overrides: Partial<React.ComponentProps<typeof WorkspaceTabIt
 };
 
 describe("WorkspaceTabItem rename input", () => {
+  it("shows the full tab name on hover", () => {
+    renderTab();
+
+    expect(screen.getByText(tab.title)).toHaveAttribute("title", tab.title);
+  });
+
   it("lets the user type spaces into the rename input", async () => {
     const user = userEvent.setup();
     const handlers = renderTab({ isEditing: true });
