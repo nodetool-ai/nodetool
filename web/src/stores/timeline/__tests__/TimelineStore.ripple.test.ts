@@ -214,3 +214,22 @@ describe("linkedSelection", () => {
     expect(clip(audio.id).startMs).toBe(5100);
   });
 });
+
+describe("transitions on the cut", () => {
+  it("applyDefaultTransition extends the predecessor and sets a cross-fade", () => {
+    const { store, a, b, clip } = storeWithCut();
+    store.getState().applyDefaultTransition(new Set([b.id]), 400);
+    expect(clip(a.id).durationMs).toBe(1400);
+    expect(clip(b.id).transitionIn).toEqual({ type: "crossfade", durationMs: 400 });
+  });
+
+  it("setTransitionDuration grows the window and removeTransition drops it", () => {
+    const { store, a, b, clip } = storeWithCut();
+    store.getState().applyDefaultTransition(new Set([b.id]), 200);
+    store.getState().setTransitionDuration(b.id, 600);
+    expect(clip(a.id).durationMs).toBe(1600);
+    expect(clip(b.id).transitionIn?.durationMs).toBe(600);
+    store.getState().removeTransition(b.id);
+    expect(clip(b.id).transitionIn).toBeUndefined();
+  });
+});

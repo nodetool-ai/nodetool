@@ -32,6 +32,7 @@ import type { ClipErrorState } from "../status/clipStatusReducer";
 import { useClipSourceDuration } from "./useClipSourceDuration";
 import { useClipDrag } from "./useClipDrag";
 import { useClipTrim } from "./useClipTrim";
+import { useTransitionHandle } from "./useTransitionHandle";
 import { ClipBody, CLIP_STATUS_MAP, MIN_CLIP_WIDTH_PX } from "./ClipBody";
 import { ClipContextMenu } from "./ClipContextMenu";
 import { ReplaceOutputDialog } from "./ReplaceOutputDialog";
@@ -152,6 +153,12 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     sourceDurationMs
   });
 
+  const {
+    handleTransitionPointerDown,
+    handleTransitionPointerMove,
+    handleTransitionPointerEnd
+  } = useTransitionHandle(clip, msPerPx, interactionLocked);
+
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       if (!clip) {
@@ -240,6 +247,9 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         handleTrimPointerEnd={handleTrimPointerEnd}
         cutMode={activeTool === "cut"}
         selectedEdge={selectedEdge}
+        handleTransitionPointerDown={handleTransitionPointerDown}
+        handleTransitionPointerMove={handleTransitionPointerMove}
+        handleTransitionPointerEnd={handleTransitionPointerEnd}
         interactionLocked={interactionLocked}
       />
       {contextMenuPos && (

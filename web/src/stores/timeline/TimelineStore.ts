@@ -39,6 +39,9 @@ import {
   rippleDelete,
   closeGap,
   resolveDrop,
+  applyTransitionAtCut,
+  removeTransitionAtCut,
+  DEFAULT_TRANSITION_MS,
   trimGroup,
   ungroup,
   snap,
@@ -298,6 +301,16 @@ export interface TimelineStoreState {
    * push everything right, or leave the overlap for the renderer.
    */
   resolveDrop: (movedIds: ReadonlySet<string>, mode: DropMode) => void;
+
+  /**
+   * Cross-fade into each clip: its abutting predecessor is extended under it
+   * by the transition length so the dissolve has two pictures. A clip that
+   * already carries a transition keeps its type. One undo step.
+   */
+  applyDefaultTransition: (clipIds: ReadonlySet<string>, durationMs?: number) => void;
+  /** Resize a clip's incoming transition, growing the predecessor as needed. */
+  setTransitionDuration: (clipId: string, durationMs: number) => void;
+  removeTransition: (clipId: string) => void;
 
   /** Split the clip at the given time. The clip must contain that time. */
   splitClipAtTime: (clipId: string, atMs: number) => void;
@@ -1639,6 +1652,25 @@ export const createTimelineStore = (
               })
             };
           }),
+
+        applyDefaultTransition: (clipIds, durationMs = DEFAULT_TRANSITION_MS) =>
+          set((state) => {
+            let clips: TimelineClip[] = state.clips;
+            for (const id of clipIds) {
+              if (!clips.some((c) => c.id === id)) continue;
+              clips = applyTransitionAtCut(clips, id, durationMs);
+            }
+            return clips === state.clips ? state : { clips };
+          }),
+
+        setTransitionDuration: (clipId, durationMs) =>
+          set((state) => {
+            if (!state.clips.some((c) => c.id === clipId)) return state;
+            return { clips: applyTransitionAtCut(state.clips, clipId, durationMs) };
+          }),
+
+        removeTransition: (clipId) =>
+          set((state) => ({ clips: removeTransitionAtCut(state.clips, clipId) })),
 
         splitClipAtTime: (clipId, atMs) =>
           set((state) => {

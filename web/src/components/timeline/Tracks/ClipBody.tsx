@@ -393,6 +393,18 @@ const transitionWedgeStyles = (theme: Theme, tint: string, accent: string) =>
     }
   });
 
+/** The draggable right edge of the transition wedge. */
+const transitionHandleStyles = css({
+  position: "absolute",
+  top: 0,
+  bottom: 0,
+  right: -3,
+  width: TRIM_HANDLE_WIDTH_PX,
+  cursor: "ew-resize",
+  pointerEvents: "auto",
+  zIndex: Z_INDEX.base + 3
+});
+
 /** Applied to both grips when the clip is too narrow to host them. */
 const HIDDEN_TRIM_HANDLE_STYLE: React.CSSProperties = {
   display: "none",
@@ -519,6 +531,9 @@ export interface ClipBodyProps {
   cutMode: boolean;
   /** The edge picked as the edit point (E, Ctrl+Shift+arrows), if this clip's. */
   selectedEdge: "start" | "end" | null;
+  handleTransitionPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
+  handleTransitionPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
+  handleTransitionPointerEnd: () => void;
   /** clip.locked OR the clip's track is locked: drives the not-allowed cursor.
    *  The lock badge below stays tied to clip.locked alone. */
   interactionLocked: boolean;
@@ -544,6 +559,9 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     handleTrimPointerEnd,
     cutMode,
     selectedEdge,
+    handleTransitionPointerDown,
+    handleTransitionPointerMove,
+    handleTransitionPointerEnd,
     interactionLocked
   }) => {
     const theme = useTheme();
@@ -775,12 +793,20 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           <div
             css={transitionCss}
             style={{ width: fadeMarkers.transitionIn.widthPx }}
-            aria-hidden
             data-testid={`clip-transition-in-${clipId}`}
           >
             {fadeMarkers.transitionIn.widthPx >= TRANSITION_LABEL_MIN_PX && (
-              <span>{fadeMarkers.transitionIn.type}</span>
+              <span aria-hidden>{fadeMarkers.transitionIn.type}</span>
             )}
+            <div
+              css={transitionHandleStyles}
+              onPointerDown={handleTransitionPointerDown}
+              onPointerMove={handleTransitionPointerMove}
+              onPointerUp={handleTransitionPointerEnd}
+              onPointerCancel={handleTransitionPointerEnd}
+              aria-label="Transition length"
+              data-testid={`clip-transition-handle-${clipId}`}
+            />
           </div>
         )}
 

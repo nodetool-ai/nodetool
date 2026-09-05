@@ -981,6 +981,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             return;
 
           case "applyDefaultTransition":
+            if (selectedClipIds.size === 0) return;
+            e.preventDefault();
+            doc.applyDefaultTransition(selectedClipIds);
+            return;
+
           case "addKeyframe":
           case "nextKeyframe":
           case "prevKeyframe":
