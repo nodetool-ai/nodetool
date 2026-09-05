@@ -9,7 +9,7 @@
 
 import { createLogger, loadPackageAssetJson } from "@nodetool-ai/config";
 import type { ImageModel, MusicModel, TTSModel, VideoModel } from "./types.js";
-import { isNumber } from "../type-predicates.js";
+import { isNumber } from "@nodetool-ai/protocol";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.manifest-models");

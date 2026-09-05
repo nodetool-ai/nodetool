@@ -14,7 +14,7 @@
  *    a second POST is a second bill.
  */
 
-import { isString } from "../type-predicates.js";
+import { isString } from "@nodetool-ai/protocol";
 import {
   TERMINAL_FAILURE_STATES,
   TERMINAL_SUCCESS_STATES,

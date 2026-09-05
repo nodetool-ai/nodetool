@@ -6,7 +6,7 @@
  * matching on `String(error)` (BaseProvider.isRateLimitError looks for `429` /
  * "rate limit", isContextLengthError for "context length", …).
  */
-import { isNumber, isString } from "../../type-predicates.js";
+import { isNumber, isString } from "@nodetool-ai/protocol";
 
 export class OpenAICompatError extends Error {
   /** HTTP status; `undefined` for mid-stream error events with no status. */

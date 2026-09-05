@@ -4,7 +4,7 @@
  * might carry token material is funnelled through here first.
  */
 
-import { isObjectLike } from "../../type-predicates.js";
+import { isObjectLike } from "@nodetool-ai/protocol";
 
 const REDACTED = "<redacted>";
 

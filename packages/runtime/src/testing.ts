@@ -22,7 +22,7 @@ import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { ProcessingContext, MemoryCache } from "./context.js";
 import { FakeProvider } from "./providers/fake-provider.js";
 import type { BaseProvider } from "./providers/base-provider.js";
-import { isString } from "./type-predicates.js";
+import { isString } from "@nodetool-ai/protocol";
 
 export interface FakeContextOptions {
   /**

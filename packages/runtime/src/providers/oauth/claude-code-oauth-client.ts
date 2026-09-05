@@ -17,7 +17,9 @@ import {
   CLAUDE_CODE_OAUTH_PROFILE_URL,
   CLAUDE_CODE_OAUTH_REFRESH_SCOPES,
   CLAUDE_CODE_OAUTH_SCOPES,
-  CLAUDE_CODE_OAUTH_TOKEN_URL
+  CLAUDE_CODE_OAUTH_TOKEN_URL,
+  isNonEmptyString,
+  isNumber
 } from "@nodetool-ai/protocol";
 import {
   CredentialsRevokedError,
@@ -28,7 +30,6 @@ import {
 } from "./errors.js";
 import { redactObject } from "./redaction.js";
 import { type Clock, systemClock } from "./types.js";
-import { isNonEmptyString, isNumber } from "../../type-predicates.js";
 
 /** Minimal `fetch` surface this client needs — satisfied by global `fetch`. */
 export type JsonFetchLike = (

@@ -13,7 +13,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
-import { isString } from "../type-predicates.js";
+import { isString } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   EncodedAudioResult,

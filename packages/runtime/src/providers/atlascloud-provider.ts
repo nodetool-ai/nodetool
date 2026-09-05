@@ -30,7 +30,7 @@ import { OpenAICompatProvider } from "./openai-compat-provider.js";
 import { bytesToImageDataUri } from "./image-mime.js";
 import type { OpenAICompatProviderOptions } from "./openai-compat-provider.js";
 import { createLogger } from "@nodetool-ai/config";
-import { isBoolean, isNumber } from "../type-predicates.js";
+import { isBoolean, isNumber } from "@nodetool-ai/protocol";
 import {
   ATLAS_BASE,
   atlasDownload,

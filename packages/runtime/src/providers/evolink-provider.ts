@@ -14,7 +14,7 @@ import type {
   TextToVideoParams,
   VideoModel
 } from "./types.js";
-import { isString } from "../type-predicates.js";
+import { isString } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.providers.evolink");
 

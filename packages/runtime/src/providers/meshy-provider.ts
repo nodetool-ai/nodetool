@@ -24,7 +24,7 @@ import type {
   ProviderStreamItem,
   TextTo3DParams
 } from "./types.js";
-import { isNonEmptyString } from "../type-predicates.js";
+import { isNonEmptyString } from "@nodetool-ai/protocol";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.meshy");

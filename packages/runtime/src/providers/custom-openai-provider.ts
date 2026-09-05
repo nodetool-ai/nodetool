@@ -13,8 +13,7 @@ import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
-import { normalizeBaseUrl } from "@nodetool-ai/protocol";
-import { isString } from "../type-predicates.js";
+import { isString, normalizeBaseUrl } from "@nodetool-ai/protocol";
 import type { LanguageModel } from "./types.js";
 
 /** Cap on the model-list probe so an unreachable proxy cannot stall the model menu. */

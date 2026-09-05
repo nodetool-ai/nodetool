@@ -43,7 +43,7 @@ import {
   isObjectLike,
   isRecord,
   isString
-} from "./type-predicates.js";
+} from "@nodetool-ai/protocol";
 import {
   expandAssetReferences,
   expandEntityRefs,

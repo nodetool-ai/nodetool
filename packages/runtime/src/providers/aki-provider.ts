@@ -17,7 +17,7 @@ import type {
   LanguageModel,
   TextToImageParams
 } from "./types.js";
-import { isString } from "../type-predicates.js";
+import { isString } from "@nodetool-ai/protocol";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.aki");

@@ -373,20 +373,6 @@ export const mergeNodeUpdateProperties = ({
   };
 };
 
-// Module-level getter for NodeStore, set by WorkflowManagerStore during initialization
-let getNodeStoreImpl: (workflowId: string) => NodeStore | undefined = () =>
-  undefined;
-
-export const setGetNodeStore = (
-  fn: (workflowId: string) => NodeStore | undefined
-): void => {
-  getNodeStoreImpl = fn;
-};
-
-export const getNodeStore = (workflowId: string): NodeStore | undefined => {
-  return getNodeStoreImpl(workflowId);
-};
-
 /**
  * The `inputSignature` to stamp on a node's completed generation. Recomputes the
  * signature against the LIVE graph at completion so a computed descendant of a
@@ -1602,6 +1588,8 @@ export const handleUpdate = (
 };
 
 /** Stand-in attributes for a workflow no editor tab has open. */
+const noNodeStore = (): NodeStore | undefined => undefined;
+
 const detachedWorkflowAttributes = (
   workflowId: string
 ): WorkflowAttributes => ({
@@ -1649,7 +1637,7 @@ export const applyThreadRunUpdate = (
     subscription?.workflow ?? detachedWorkflowAttributes(workflowId),
     data,
     subscription?.runnerStore ?? runnerStore,
-    subscription?.getNodeStore ?? getNodeStore
+    subscription?.getNodeStore ?? noNodeStore
   );
   return true;
 };
