@@ -38,7 +38,6 @@ import { getDb } from "./db.js";
 import {
   PERSONAL_DATA_REGISTRY,
   WITHHELD_VALUE,
-  isActionable,
   type PersonalDataDisposition,
   type PersonalDataEntry,
   type PersonalDataReach

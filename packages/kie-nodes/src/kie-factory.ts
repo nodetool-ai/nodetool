@@ -193,8 +193,14 @@ function castValue(value: unknown, type: string): CoercedScalar {
   if (value === null || value === undefined) return value;
   switch (type) {
     case "int":
-    case "float":
-      return Number(value);
+    case "float": {
+      // A saved graph can hold a non-numeric string in a numeric slot. `Number`
+      // answers NaN there, and NaN reaches KIE as the literal "NaN" or a
+      // JSON null. Return null so the caller's empty-arg pruning drops the
+      // field and the model's own default applies.
+      const n = Number(value);
+      return Number.isFinite(n) ? n : null;
+    }
     case "bool":
       return Boolean(value);
     default:

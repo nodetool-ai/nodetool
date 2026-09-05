@@ -1,99 +1,20 @@
-import { access, readdir } from "node:fs/promises";
-import { constants as fsConstants } from "node:fs";
-import { homedir } from "node:os";
-import { basename, isAbsolute, join, relative } from "node:path";
 import { getSecret as getStoredSecret } from "@nodetool-ai/models";
 import {
-  getProvider,
-  getRegisteredProvider,
-  isProviderConfigured,
   listRegisteredProviderIds,
-  RECOMMENDED_MODELS,
-  OLLAMA_DEFAULT_URL,
-  LMSTUDIO_DEFAULT_URL,
-  type ASRModel,
-  type EmbeddingModel,
-  type ImageModel,
-  type LanguageModel,
-  type MusicModel,
-  type ProviderId,
-  type RecommendedUnifiedModel,
-  type TTSModel,
-  type VideoModel
+  PythonProvider,
+  registerProvider
 } from "@nodetool-ai/runtime";
-import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import type { WorkerManager } from "@nodetool-ai/compute";
-import {
-  readCachedHfModels,
-  searchCachedHfModels,
-  getModelsByHfType,
-  deleteCachedHfModel,
-  getHuggingfaceFileInfos,
-  resolveWorkerHfToken,
-  type HFFileRequest
-} from "@nodetool-ai/huggingface";
+import { resolveWorkerHfToken } from "@nodetool-ai/huggingface";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
 import {
   modelRankings,
   rankedForTask,
   type ModelRankingsArtifact
 } from "@nodetool-ai/model-pricing";
-import {
-  readyProviderExecution,
-  resolveModelExecutionAvailability,
-  type ProviderExecutionInfo
-} from "./model-execution-availability.js";
 
 export type { UnifiedModel };
-
-/**
- * Optional dependencies threaded into the model routes so worker-scoped
- * requests can reach the attached worker. When absent, only `scope=local`
- * (the default) works and worker-scope requests fail with a clear `409`.
- */
-export interface ModelsApiDeps {
-  pythonBridge?: PythonBridge;
-  workerManager?: WorkerManager;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ---------------------------------------------------------------------------
-// Provider access — delegates to the runtime's single provider registry.
-// No duplicate registry here; the runtime's registerProvider() calls in
-// providers/index.ts are the single source of truth.
-// ---------------------------------------------------------------------------
-
-import { PythonProvider, registerProvider } from "@nodetool-ai/runtime";
-import { isString } from "./lib/wire-values.js";
 
 /**
  * Register Python-only providers (HuggingFace Local, MLX) discovered
@@ -135,23 +56,6 @@ export async function registerPythonProviders(
   }
   return registered;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /**
  * The `type` a merged entry carries, by task — the same value the hand-pinned
@@ -217,13 +121,6 @@ export function mergeRankedRecommendations(
 
   return merged;
 }
-
-
-
-
-
-
-
 
 // ---------------------------------------------------------------------------
 // Worker-scoped model download relay

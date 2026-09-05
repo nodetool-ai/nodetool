@@ -20,7 +20,7 @@ import {
   useMusicProviders,
   useVideoProviders
 } from "./useProviders";
-import { useWorkers } from "./useWorkers";
+import { useActiveWorker } from "./useWorkers";
 
 /**
  * Collection of React Query hooks that bridge the UI to backend model endpoints.
@@ -508,7 +508,7 @@ export const useHuggingFaceImageModelsByProvider = (opts?: {
   // With a worker attached, nodes run on the worker, so the relevant cache
   // (and the dialog's model list) is the worker's — query that instead of
   // the local HF cache.
-  const { activeWorker } = useWorkers();
+  const activeWorker = useActiveWorker();
   const scope = activeWorker ? ("worker" as const) : ("local" as const);
 
   const query = useQuery({

@@ -3,6 +3,7 @@ import type { Screenplay, Shot } from "../creative.js";
 import {
   isNonEmptyString,
   isNumber,
+  isRecord,
   isString
 } from "../predicates.js";
 
@@ -90,10 +91,6 @@ const SCREENPLAY_KEY_ALIASES: Readonly<Record<string, string>> = {
 
 const DEFAULT_SHOT_STATUS = "planned";
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
 /** Move each alias onto its wire key. An explicit wire key always wins. */
 function applyAliases(
   source: Record<string, unknown>,
@@ -135,7 +132,7 @@ export function normalizeStoryboardShot(
   options: StoryboardNormalizeOptions = {}
 ): Shot {
   const newId = options.generateId ?? fallbackId;
-  if (!isPlainObject(input)) {
+  if (!isRecord(input)) {
     throw new Error(`Shot at position ${index} must be an object.`);
   }
   const shot = applyAliases(input, SHOT_KEY_ALIASES);
@@ -171,7 +168,7 @@ export function normalizeStoryboardScreenplay(
   options: StoryboardNormalizeOptions = {}
 ): Screenplay {
   const newId = options.generateId ?? fallbackId;
-  if (!isPlainObject(input)) {
+  if (!isRecord(input)) {
     throw new Error(
       "`screenplay` must be a Screenplay object ({ type: 'screenplay', title, shots: [...] })."
     );

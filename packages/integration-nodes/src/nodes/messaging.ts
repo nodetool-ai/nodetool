@@ -36,15 +36,6 @@ export class DiscordBotTrigger extends BaseNode {
   } satisfies Record<string, OutputCorrelation>;
 
   @prop({
-    type: "int",
-    default: 0,
-    title: "Max Events",
-    description: "Maximum number of events to process (0 = unlimited)",
-    min: 0
-  })
-  declare max_events: number;
-
-  @prop({
     type: "str",
     default: "",
     title: "Token",
@@ -153,15 +144,6 @@ export class TelegramBotTrigger extends BaseNode {
   } satisfies Record<string, OutputCorrelation>;
 
   @prop({
-    type: "int",
-    default: 0,
-    title: "Max Events",
-    description: "Maximum number of events to process (0 = unlimited)",
-    min: 0
-  })
-  declare max_events: number;
-
-  @prop({
     type: "str",
     default: "",
     title: "Token",
@@ -192,25 +174,6 @@ export class TelegramBotTrigger extends BaseNode {
     description: "Include edited messages"
   })
   declare include_edited_messages: boolean;
-
-  @prop({
-    type: "int",
-    default: 30,
-    title: "Poll Timeout Seconds",
-    description: "Long polling timeout in seconds",
-    min: 1,
-    max: 60
-  })
-  declare poll_timeout_seconds: number;
-
-  @prop({
-    type: "float",
-    default: 0.2,
-    title: "Poll Interval Seconds",
-    description: "Delay between polling requests",
-    min: 0
-  })
-  declare poll_interval_seconds: number;
 
   async process(): Promise<Record<string, unknown>> {
     const secrets = this._secrets;

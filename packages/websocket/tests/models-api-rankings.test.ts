@@ -1,22 +1,16 @@
 /**
- * The ranked-model merge behind the task-specific `/api/models/recommended/*`
- * endpoints: hand-pinned RECOMMENDED_MODELS entries first, the task
- * leaderboard after them, one row per canonical model.
+ * The ranked-model merge: hand-pinned RECOMMENDED_MODELS entries first, the
+ * task leaderboard after them, one row per canonical model.
  *
  * The helper takes the artifact as a parameter, so a fixture drives it
- * directly — nothing here mocks a module. The endpoint tests below run
- * against the shipped artifact, whose contents the nightly sync rewrites, so
- * they assert the merge's invariants rather than a fixed list of models.
+ * directly — nothing here mocks a module.
  */
 import { describe, it, expect } from "vitest";
 import { RECOMMENDED_MODELS } from "@nodetool-ai/runtime";
 import { rankedForTask } from "@nodetool-ai/model-pricing";
 import type { ModelRankingsArtifact } from "@nodetool-ai/model-pricing";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
-import {
-  handleModelsApiRequest,
-  mergeRankedRecommendations
-} from "../src/models-api.js";
+import { mergeRankedRecommendations } from "../src/models-api.js";
 
 const EMPTY_ARTIFACT: ModelRankingsArtifact = {
   schemaVersion: 1,
@@ -69,10 +63,6 @@ const ARTIFACT: ModelRankingsArtifact = {
 
 const pinned = (task: string): UnifiedModel[] =>
   RECOMMENDED_MODELS.filter((model) => model.task === task);
-
-function get(path: string): Request {
-  return new Request(`http://localhost/api/models${path}`, { method: "GET" });
-}
 
 describe("mergeRankedRecommendations", () => {
   it("appends ranked models after the pinned entries, in rank order", () => {
@@ -130,83 +120,8 @@ describe("mergeRankedRecommendations", () => {
   });
 });
 
-describe("recommended endpoints with the shipped artifact", () => {
-  /**
-   * What the endpoint must answer for a ranked task, whatever the sync last
-   * wrote: the pinned entries first and unchanged, then the task's
-   * leaderboard in rank order, one row per canonical model, and nothing
-   * listed twice.
-   */
-  async function expectPinnedThenRanked(
-    path: string,
-    task: string,
-    base: UnifiedModel[],
-    type: string
-  ): Promise<void> {
-    const res = await handleModelsApiRequest(get(path));
-    expect(res!.status).toBe(200);
-    const body = (await res!.json()) as UnifiedModel[];
-
-    expect(body.slice(0, base.length)).toEqual(
-      JSON.parse(JSON.stringify(base))
-    );
-
-    const pinnedKeys = new Set(
-      base.map((model) => `${model.provider ?? ""}::${model.id}`)
-    );
-    const expectedTail = rankedForTask(task)
-      .filter(
-        (entry) =>
-          !entry.routes.some((route) =>
-            pinnedKeys.has(`${route.provider}::${route.modelId}`)
-          )
-      )
-      .map((entry) => entry.name);
-    expect(body.slice(base.length).map((model) => model.name)).toEqual(
-      expectedTail
-    );
-
-    for (const model of body.slice(base.length)) {
-      expect(model.type).toBe(type);
-    }
-    const keys = body.map((model) => `${model.provider ?? ""}::${model.id}`);
-    expect(new Set(keys).size).toBe(keys.length);
-  }
-
-  const cases: Array<[string, string, string]> = [
-    ["/recommended/image/text-to-image", "text_to_image", "image_model"],
-    ["/recommended/image/image-to-image", "image_to_image", "image_model"],
-    ["/recommended/video/text-to-video", "text_to_video", "video_model"],
-    ["/recommended/video/image-to-video", "image_to_video", "video_model"]
-  ];
-
-  for (const [path, task, type] of cases) {
-    it(`GET ${path} pins first, then the ${task} leaderboard`, async () => {
-      await expectPinnedThenRanked(path, task, pinned(task), type);
-    });
-  }
-
-  it("GET /recommended/tts and /recommended/music merge by modality", async () => {
-    const byModality = (modality: string): UnifiedModel[] =>
-      RECOMMENDED_MODELS.filter((model) => model.modality === modality);
-
-    await expectPinnedThenRanked(
-      "/recommended/tts",
-      "text_to_speech",
-      byModality("tts"),
-      "tts_model"
-    );
-    await expectPinnedThenRanked(
-      "/recommended/music",
-      "text_to_music",
-      byModality("music"),
-      "music_model"
-    );
-  });
-
-  it("has something to merge, so the assertions above are not vacuous", () => {
-    // A leaderboard that answered with nothing would make every tail above an
-    // empty list, and the endpoint tests would pass on an empty artifact.
+describe("the shipped artifact", () => {
+  it("has something to merge, so a ranked task is never an empty tail", () => {
     expect(rankedForTask("text_to_image").length).toBeGreaterThan(0);
     expect(rankedForTask("text_to_video").length).toBeGreaterThan(0);
   });
