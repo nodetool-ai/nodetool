@@ -173,6 +173,36 @@ const EXTEND_SEED_EDGES: HeadlessEdge[] = [
   }
 ];
 
+/** Node ids/types/properties and edge endpoints: what a mutation would change. */
+function graphShape(nodes: HeadlessNode[], edges: HeadlessEdge[]): string {
+  return JSON.stringify({
+    nodes: nodes.map((n) => [n.id, n.type, n.data.properties]),
+    edges: edges.map((e) => [
+      e.source,
+      e.sourceHandle,
+      e.target,
+      e.targetHandle
+    ])
+  });
+}
+
+const EXTEND_SEED_SHAPE = graphShape(EXTEND_SEED_NODES, EXTEND_SEED_EDGES);
+
+/** The seeded input→agent graph came through untouched. */
+const extendSeedUnchanged: ToolLoopStatePredicate<ToolLoopFinalState> = {
+  name: "graphUnchanged",
+  detail: "the seeded graph was mutated",
+  test: (state) => graphShape(state.nodes, state.edges) === EXTEND_SEED_SHAPE
+};
+
+/**
+ * The mutation the two permission-gate cases ask for. It names the node type,
+ * so the model needs no `ui_search_nodes` call — that tool has no permission
+ * class of its own and plan mode blocks it along with the writes.
+ */
+const GATED_MUTATION_OBJECTIVE =
+  "The workflow already has a StringInput ('text', id=in1) feeding an Agent (id=agent1). Add a node of type nodetool.output.StringOutput (id=out1) named 'result' and connect agent1's output to its value input. You may inspect the graph with ui_get_graph first.";
+
 /** Seeded positions for the `rewire-and-relabel` case, read back by its layout predicate. */
 const REWIRE_SEED_POSITIONS: Record<"in1" | "agent1" | "out1", { x: number; y: number }> = {
   in1: { x: 60, y: 60 },
@@ -376,6 +406,64 @@ export const TOOL_LOOP_EVAL_CASES: readonly ToolLoopEvalCase<ToolLoopFinalState>
                 const node = s.nodes.find((n) => n.id === id);
                 return !!node?.data.title && node.data.title.trim().length > 0;
               })
+          }
+        ]
+      }
+    },
+    {
+      id: "plan-mode-blocks-mutation",
+      description:
+        "Under plan mode, a requested add-node mutation must not reach the graph and must never prompt for approval",
+      objective: GATED_MUTATION_OBJECTIVE,
+      createBridge: () =>
+        createToolLoopBridge({
+          nodeMetadata: TOOL_LOOP_NODE_CATALOG,
+          nodes: EXTEND_SEED_NODES,
+          edges: EXTEND_SEED_EDGES
+        }),
+      permission: { mode: "plan" },
+      expect: {
+        maxToolCalls: 6,
+        finalState: [extendSeedUnchanged],
+        permissionRequests: [
+          {
+            name: "neverPrompted",
+            detail: "plan mode blocks writes outright; it must not ask",
+            test: (requests) => requests.length === 0
+          }
+        ]
+      }
+    },
+    {
+      id: "denied-mutation-stays-out",
+      description:
+        "Under default mode with the user denying, the add-node call is asked about exactly once, denied, and the graph is untouched",
+      objective: GATED_MUTATION_OBJECTIVE,
+      createBridge: () =>
+        createToolLoopBridge({
+          nodeMetadata: TOOL_LOOP_NODE_CATALOG,
+          nodes: EXTEND_SEED_NODES,
+          edges: EXTEND_SEED_EDGES
+        }),
+      permission: { mode: "default", approve: "deny" },
+      expect: {
+        maxToolCalls: 6,
+        finalState: [extendSeedUnchanged],
+        permissionRequests: [
+          {
+            name: "addNodeDeniedOnce",
+            detail:
+              "expected exactly one ui_add_node approval request, category write, denied, and no request granted",
+            test: (requests) => {
+              const addNode = requests.filter(
+                (r) => r.toolName === "ui_add_node"
+              );
+              return (
+                addNode.length === 1 &&
+                addNode[0].category === "write" &&
+                requests.every((r) => r.decision === "deny")
+              );
+            }
           }
         ]
       }
