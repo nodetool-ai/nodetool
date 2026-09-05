@@ -27,9 +27,11 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
   );
 
   return (
-    <li className="chat-message-list-item execution-event">
+    // A `div`, not an `li`: the parent is the virtualizer's absolutely
+    // positioned row, which is not a list.
+    <div className="chat-message-list-item execution-event">
       <ExecutionTree state={state} onToggleTask={toggleExpand} />
-    </li>
+    </div>
   );
 };
 

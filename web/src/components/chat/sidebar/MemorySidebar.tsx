@@ -14,13 +14,12 @@ import {
   SearchInput,
   ToggleGroup,
   ToggleOption,
+  ResponsiveImage,
   MOTION,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx
 } from "../../ui_primitives";
-import type { Image } from "../../../stores/ApiTypes";
-import { useAsset } from "../../../serverState/useAsset";
 import { trpc, type RouterOutputs } from "../../../trpc/client";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import ConfirmDialog from "../../dialogs/ConfirmDialog";
@@ -93,14 +92,6 @@ const styles = (theme: Theme) =>
       gap: getSpacingPx(SPACING.sm),
       marginTop: getSpacingPx(SPACING.sm)
     },
-    ".memory-thumb": {
-      width: THUMB_SIZE,
-      height: THUMB_SIZE,
-      objectFit: "cover",
-      borderRadius: BORDER_RADIUS.sm,
-      border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.10)`,
-      display: "block"
-    },
     ".memory-origin": {
       opacity: 0.5,
       marginTop: getSpacingPx(SPACING.xs)
@@ -112,21 +103,27 @@ const styles = (theme: Theme) =>
     }
   });
 
-/** An asset resource of an image content-type — rendered as a small thumbnail. */
+/**
+ * An asset resource of an image content-type — rendered as a small thumbnail.
+ * `asset://<id>` is an identifier, not a URL, so the locator goes to
+ * `ResponsiveImage`, which resolves it to the asset's own signed URL.
+ */
 const MemoryAssetThumb: React.FC<{ resource: Resource }> = memo(({ resource }) => {
-  const image: Image = {
-    type: "image",
-    uri: resource.uri ?? "",
-    asset_id: resource.id
-  };
-  const { uri } = useAsset({ image });
-  if (!uri) return null;
+  const theme = useTheme();
+  const label = resource.label ?? resource.id;
   return (
-    <img
-      className="memory-thumb"
-      src={uri}
-      alt={resource.label ?? resource.id}
-      title={resource.label ?? resource.id}
+    <ResponsiveImage
+      locator={{ uri: resource.uri, asset_id: resource.id }}
+      alt={label}
+      title={label}
+      fit="cover"
+      borderRadius={BORDER_RADIUS.sm}
+      sx={{
+        width: THUMB_SIZE,
+        height: THUMB_SIZE,
+        flexShrink: 0,
+        border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.10)`
+      }}
     />
   );
 });
@@ -154,8 +151,8 @@ const MemoryCard: React.FC<{
     const otherResources = memory.resources.filter((r) => !isImageAsset(r));
     return (
       <div className="memory-item">
-        <FlexRow align="center" justify="space-between" gap={6}>
-          <FlexRow align="center" gap={6} sx={{ minWidth: 0 }}>
+        <FlexRow align="center" justify="space-between" gap={SPACING.xxl}>
+          <FlexRow align="center" gap={SPACING.xxl} sx={{ minWidth: 0 }}>
             <Chip label={memory.kind} compact />
             {memory.title && (
               <Text size="small" weight={600} sx={{ minWidth: 0 }}>

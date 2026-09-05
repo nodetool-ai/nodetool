@@ -1,7 +1,10 @@
+import type React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
 import ChatSurface from "../ChatSurface";
+import useChatDraftStore from "../../../stores/ChatDraftStore";
 import mockTheme from "../../../__mocks__/themeMock";
 
 const fetchThread = jest.fn();
@@ -73,12 +76,25 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
 
 jest.mock("../../chat/containers/ChatView", () => ({
   __esModule: true,
-  default: () => <div>chat view</div>
+  default: ({
+    noMessagesPlaceholder
+  }: {
+    noMessagesPlaceholder?: React.ReactNode;
+  }) => (
+    <div>
+      chat view
+      {noMessagesPlaceholder}
+    </div>
+  )
 }));
 
 jest.mock("../../chat/containers/WelcomePlaceholder", () => ({
   __esModule: true,
-  default: () => null
+  default: ({ onSuggestionClick }: { onSuggestionClick: (s: string) => void }) => (
+    <button onClick={() => onSuggestionClick("Analyze an image")}>
+      suggestion
+    </button>
+  )
 }));
 
 const renderSurface = (refId = "thread-new") =>
@@ -120,5 +136,17 @@ describe("ChatSurface", () => {
     await waitFor(() => expect(loadMessages).toHaveBeenCalledWith("thread-new"));
     expect(fetchThread).not.toHaveBeenCalled();
     expect(ensureLocalThread).not.toHaveBeenCalled();
+  });
+
+  it("seeds the composer with a welcome suggestion instead of sending it", async () => {
+    useChatDraftStore.setState({ drafts: {} });
+    renderSurface();
+
+    await userEvent.click(await screen.findByText("suggestion"));
+
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(useChatDraftStore.getState().drafts["thread-new"]).toBe(
+      "Analyze an image"
+    );
   });
 });

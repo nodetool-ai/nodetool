@@ -538,6 +538,36 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: false
   },
 
+  // ---------- CHAT --------------------------------------------------------
+  // Grouped under "panel" because the shortcuts view's category filter only
+  // offers Editor / Workflow / Panels / Assets.
+  {
+    title: "New Chat",
+    slug: "newChat",
+    keyCombo: ["Control", "Shift", "O"],
+    keyComboMac: ["Meta", "Shift", "O"],
+    category: "panel",
+    description: "Start a new conversation in the focused chat",
+    registerCombo: false
+  },
+  {
+    title: "Focus Chat Composer",
+    slug: "focusChatComposer",
+    keyCombo: ["Control", "Shift", "L"],
+    keyComboMac: ["Meta", "Shift", "L"],
+    category: "panel",
+    description: "Put the cursor in the focused chat's message box",
+    registerCombo: false
+  },
+  {
+    title: "Stop Generation",
+    slug: "stopChatGeneration",
+    keyCombo: ["Escape"],
+    category: "panel",
+    description: "While a reply is in flight and the composer has focus",
+    registerCombo: false
+  },
+
   // ---------- WORKFLOW ----------------------------------------------------
   {
     title: "Run Workflow",

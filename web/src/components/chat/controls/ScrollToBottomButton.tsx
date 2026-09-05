@@ -1,7 +1,10 @@
 import React from "react";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import { CircularActionButton } from "../../ui_primitives";
-import { useTheme } from "@mui/material/styles";
+import {
+  CircularActionButton,
+  SPACING_PX,
+  Z_INDEX
+} from "../../ui_primitives";
 
 interface ScrollToBottomButtonProps {
   isVisible: boolean;
@@ -17,18 +20,16 @@ export const ScrollToBottomButton: React.FC<ScrollToBottomButtonProps> = ({
   isVisible,
   onClick
 }) => {
-  const theme = useTheme();
-
   return (
     <CircularActionButton
       icon={<ArrowDownwardIcon />}
       onClick={onClick}
       tooltip="Scroll to bottom"
       position="absolute"
-      bottom={12}
+      bottom={SPACING_PX.lg}
       left="50%"
       transform="translateX(-50%)"
-      zIndex={theme.zIndex.appBar}
+      zIndex={Z_INDEX.overlay}
       size={32}
       backgroundColor="grey.500"
       hoverBackgroundColor="grey.400"

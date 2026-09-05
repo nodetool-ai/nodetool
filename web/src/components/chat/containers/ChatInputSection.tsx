@@ -4,18 +4,16 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo } from "react";
 import MediaChatComposer from "../composer/MediaChatComposer";
-import ChatComposer from "../composer/ChatComposer";
 import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
+import { CHAT_COLUMN_MAX_WIDTH, type ChatStatus } from "../types/chat.types";
 import type { MediaGenerationRequest } from "../types/media.types";
-
-export type ChatComposerVariant = "media" | "simple";
 
 const styles = (_theme: Theme) =>
   css({
     width: "100%",
-    // Match the 800px message column (`chatMessagesList`) so the composer and
-    // the thread share the same left/right edges.
-    maxWidth: "800px",
+    // Match the message column (`chatMessagesList`) so the composer and the
+    // thread share the same left/right edges.
+    maxWidth: `${CHAT_COLUMN_MAX_WIDTH}px`,
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
@@ -36,34 +34,17 @@ const styles = (_theme: Theme) =>
   });
 
 type ChatInputSectionProps = {
-  status:
-  | "disconnected"
-  | "connecting"
-  | "connected"
-  | "loading"
-  | "error"
-  | "streaming"
-  | "reconnecting"
-  | "disconnecting"
-  | "failed";
-  showToolbar?: boolean;
+  status: ChatStatus;
   onSendMessage: (
     content: MessageContent[],
     prompt: string,
     mediaGeneration?: MediaGenerationRequest
   ) => Promise<void> | void;
   onStop?: () => void;
-  onNewChat?: () => void;
   selectedModel?: LanguageModel;
   onModelChange?: (model: LanguageModel) => void;
   allowedProviders?: string[];
   requireToolSupport?: boolean;
-  variant?: ChatComposerVariant;
-  /**
-   * Extra node rendered in the composer footer (left of the action
-   * buttons). Only used by the "simple" variant.
-   */
-  composerToolbar?: React.ReactNode;
   /** Override the composer's textarea placeholder. */
   placeholder?: string;
   /** Pure chat panel: hide the media mode picker, force chat mode. */
@@ -77,13 +58,10 @@ const ChatInputSection = ({
   status,
   onSendMessage,
   onStop,
-  onNewChat,
   selectedModel,
   onModelChange,
   allowedProviders,
   requireToolSupport,
-  variant = "media",
-  composerToolbar,
   placeholder,
   hideModePicker,
   hideModelPicker,
@@ -96,33 +74,20 @@ const ChatInputSection = ({
   return (
     <div className="chat-input-section" css={cssStyles}>
       <div className="chat-composer-wrapper">
-        {variant === "simple" ? (
-          <ChatComposer
-            isLoading={isLoading}
-            isStreaming={isStreaming}
-            onSendMessage={onSendMessage}
-            onStop={onStop}
-            onNewChat={onNewChat}
-            toolbarNode={composerToolbar}
-            placeholder={placeholder}
-          />
-        ) : (
-          <MediaChatComposer
-            isLoading={isLoading}
-            isStreaming={isStreaming}
-            onSendMessage={onSendMessage}
-            onStop={onStop}
-            onNewChat={onNewChat}
-            selectedModel={selectedModel}
-            onModelChange={onModelChange}
-            allowedProviders={allowedProviders}
-            requireToolSupport={requireToolSupport}
-            placeholder={placeholder}
-            hideModePicker={hideModePicker}
-            hideModelPicker={hideModelPicker}
-            threadId={threadId}
-          />
-        )}
+        <MediaChatComposer
+          isLoading={isLoading}
+          isStreaming={isStreaming}
+          onSendMessage={onSendMessage}
+          onStop={onStop}
+          selectedModel={selectedModel}
+          onModelChange={onModelChange}
+          allowedProviders={allowedProviders}
+          requireToolSupport={requireToolSupport}
+          placeholder={placeholder}
+          hideModePicker={hideModePicker}
+          hideModelPicker={hideModelPicker}
+          threadId={threadId}
+        />
       </div>
     </div>
   );

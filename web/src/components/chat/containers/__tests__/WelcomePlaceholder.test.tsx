@@ -59,7 +59,7 @@ describe("WelcomePlaceholder", () => {
     );
   });
 
-  it("shows prompt suggestions once a provider is configured", () => {
+  it("offers openers the user finishes, not commands", () => {
     const onSuggestionClick = jest.fn();
     mockUseLanguageModelProviders.mockReturnValue({
       providers: [
@@ -74,11 +74,21 @@ describe("WelcomePlaceholder", () => {
 
     expect(screen.getByText("How can I help you today?")).toBeInTheDocument();
     expect(
+      screen.getByText("Ask anything, drop in files, or start with one of these:")
+    ).toBeInTheDocument();
+    expect(
       screen.queryByText("Connect an AI provider to get started")
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("Summarize a document"));
-    expect(onSuggestionClick).toHaveBeenCalledWith("Summarize a document");
+    // Every opener either names what the user is about to attach or trails off
+    // for them to finish — none of them commands a run on its own.
+    expect(screen.getByText("Generate an image of …")).toBeInTheDocument();
+    expect(screen.getByText("Build a workflow that …")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Summarize the document I attach"));
+    expect(onSuggestionClick).toHaveBeenCalledWith(
+      "Summarize the document I attach"
+    );
   });
 
   it("keeps the neutral suggestions view while providers are loading", () => {

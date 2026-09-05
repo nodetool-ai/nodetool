@@ -171,7 +171,6 @@ const AssistantChatPanel = ({
           currentTaskUpdate={runtime.taskUpdate}
           currentLogUpdate={runtime.logUpdate}
           runningToolCallId={runtime.runningToolCallId}
-          runningToolMessage={runtime.toolMessage}
           systemPrompt={systemPrompt}
           composerPlaceholder={composerPlaceholder}
           chatSource={chatSource}

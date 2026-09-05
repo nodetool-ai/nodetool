@@ -67,7 +67,6 @@ export function ChatDemoPlayer({
               total={state.total}
               progressMessage={state.progressMessage}
               runningToolCallId={state.runningToolCallId}
-              runningToolMessage={state.runningToolMessage}
               model={cast.model}
               showNewChatButton={false}
             />

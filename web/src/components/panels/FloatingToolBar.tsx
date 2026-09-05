@@ -668,7 +668,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             <AlertBanner
               severity="error"
               compact
-              onClose={clearChatError}
+              onClose={() => clearChatError()}
               sx={{ borderRadius: BORDER_RADIUS.xl }}
             >
               <FlexRow align="center" gap={SPACING.sm}>

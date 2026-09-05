@@ -250,7 +250,6 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
     total,
     statusMessage,
     runningToolCallId,
-    runningToolMessage,
     currentPlanningUpdate,
     currentTaskUpdate,
     currentLogUpdate
@@ -264,7 +263,6 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
       total: state.progress.total,
       statusMessage: state.statusMessage,
       runningToolCallId: state.currentRunningToolCallId,
-      runningToolMessage: state.currentToolMessage,
       currentPlanningUpdate: state.currentPlanningUpdate,
       currentTaskUpdate: state.currentTaskUpdate,
       currentLogUpdate: state.currentLogUpdate
@@ -506,7 +504,6 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
             total={total}
             progressMessage={statusMessage}
             runningToolCallId={runningToolCallId}
-            runningToolMessage={runningToolMessage}
             currentPlanningUpdate={currentPlanningUpdate}
             currentTaskUpdate={currentTaskUpdate}
             currentLogUpdate={currentLogUpdate}

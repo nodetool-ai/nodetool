@@ -253,8 +253,12 @@ export interface GlobalChatState {
    */
   chatReplayCursors: Record<string, number>;
 
-  /** Clear the current error (e.g. when dismissing an error banner). */
-  clearError: () => void;
+  /**
+   * Clear the current error (e.g. when dismissing an error banner). Pass a
+   * thread id to also clear that thread's runtime error — a surface rendering
+   * one thread has to drop both, or the banner comes straight back.
+   */
+  clearError: (threadId?: string) => void;
 
   // Agent execution trace
   agentExecutionToolCalls: AgentExecutionToolCalls;
@@ -557,7 +561,15 @@ const useGlobalChatStore = create<GlobalChatState>()(
       isLoadingMessages: false,
       chatReplayCursors: {},
 
-      clearError: () => set({ error: null }),
+      clearError: (threadId?: string) =>
+        set((state) =>
+          threadId
+            ? {
+                error: null,
+                ...threadRuntimeUpdate(state, threadId, { error: null })
+              }
+            : { error: null }
+        ),
 
       // Agent execution trace
       agentExecutionToolCalls: {},
