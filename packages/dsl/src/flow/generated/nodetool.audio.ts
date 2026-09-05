@@ -317,7 +317,6 @@ export type SaveAudioFileInputs = {
   save_to_workspace?: boolean;
   folder?: string;
   filename?: string;
-  FORMAT_MAP?: Record<string, string>;
 };
 
 export interface SaveAudioFileOutputs {

@@ -4,7 +4,6 @@ import { createNode, Connectable, DslNode } from "../core.js";
 
 // Discord Bot Trigger — messaging.discord.DiscordBotTrigger
 export type DiscordBotTriggerInputs = {
-  max_events?: Connectable<number>;
   token?: Connectable<string>;
   channel_id?: Connectable<string>;
   allow_bot_messages?: Connectable<boolean>;
