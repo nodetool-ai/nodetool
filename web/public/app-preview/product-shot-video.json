@@ -1,0 +1,426 @@
+{
+  "slug": "product-shot-video",
+  "name": "Product Shot Video",
+  "emoji": "🎥",
+  "description": "Image-to-video keeps the product identical and adds only the camera move. Pick a motion for a looping ad, or spin a packshot into a turntable for the product page.",
+  "tagline": "A product photo becomes a hero loop or a turntable clip.",
+  "note": "🔑 The ad loop runs Kling on Kie and needs a KIE key. The turntable runs LTX on FAL and needs a FAL key. Both are billed per generation.",
+  "featured": true,
+  "image": "/app-preview/img/product-shot-video.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🎥 Product Shot Video",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "A product photo becomes a hero loop or a turntable clip."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 The ad loop runs Kling on Kie and needs a KIE key. The turntable runs LTX on FAL and needs a FAL key. Both are billed per generation."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-your-product",
+            "title": "Your product",
+            "content": [
+              {
+                "type": "ImageInput",
+                "props": {
+                  "id": "in-productphoto",
+                  "binding": "var:productPhoto",
+                  "label": "A clean product photo",
+                  "events": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-hero-loop",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-hero-loop",
+                  "title": "Hero loop",
+                  "content": [
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-loop-motion",
+                        "binding": "op:loop/in:in-motion",
+                        "label": "Camera move",
+                        "options": [
+                          {
+                            "value": "Slow orbit around the product as a soft highlight travels across its surface"
+                          },
+                          {
+                            "value": "Slow push in toward the product as the background falls out of focus"
+                          },
+                          {
+                            "value": "Gentle dolly from left to right, product fixed, light sweeping across"
+                          },
+                          {
+                            "value": "Rise from a low angle to eye level, product centred, soft reflections"
+                          },
+                          {
+                            "value": "Hold still while steam and light drift around the product"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-loop",
+                        "label": "Make the loop",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "loop",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-hero-loop-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-loop",
+                        "binding": "op:loop/exec#progress",
+                        "label": "Animating…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-loop-ad-loop",
+                        "text": "Hero loop",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-loop-ad-loop",
+                        "binding": "op:loop/out:output-loop",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-turntable",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-turntable",
+                  "title": "Turntable",
+                  "content": [
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "select-turntable-v-prompt",
+                        "binding": "op:turntable/prop:v#prompt",
+                        "label": "Spin",
+                        "options": [
+                          {
+                            "value": "slow orbit around the product, fixed lighting, product stays centred"
+                          },
+                          {
+                            "value": "full 360 degree turntable rotation, product centred, studio lighting fixed"
+                          },
+                          {
+                            "value": "slow half turn revealing the back of the product, fixed lighting"
+                          },
+                          {
+                            "value": "gentle rocking turn, product centred, soft studio light"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-turntable",
+                        "label": "Spin it",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "turntable",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-turntable-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-turntable",
+                        "binding": "op:turntable/exec#progress",
+                        "label": "Rendering the turntable…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-turntable-turntable",
+                        "text": "Turntable clip",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-turntable-turntable",
+                        "binding": "op:turntable/out:out",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "loop",
+        "name": "Ad loop",
+        "workflowId": "loop",
+        "inputs": {
+          "in-photo": {
+            "from": "variable",
+            "variableId": "productPhoto"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "turntable",
+        "name": "Turntable",
+        "workflowId": "turntable",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "productPhoto"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "productPhoto",
+        "name": "Product photo",
+        "type": {
+          "type": "image",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "loop",
+      "name": "Ad Loop from a Product Photo",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in-photo",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "product_photo",
+              "value": null,
+              "description": "A clean photo of the product"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 240
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Product photo"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-motion",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "motion",
+              "value": "Slow orbit around the product as a soft highlight travels across its surface",
+              "description": "How the shot should move"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 400
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Motion"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-loop",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "ad_loop"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1440,
+                "y": 360
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "5  Ad loop"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "turntable",
+      "name": "Spin a Packshot into a Turntable Clip",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "photo",
+              "value": null,
+              "description": "The packshot"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Packshot"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "turntable"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:loop/in:in-motion": "Slow orbit around the product as a soft highlight travels across its surface",
+    "op:loop/out:output-loop": {
+      "$demo": "video"
+    },
+    "op:turntable/prop:v#prompt": "slow orbit around the product, fixed lighting, product stays centred",
+    "op:turntable/out:out": {
+      "$demo": "video"
+    }
+  }
+}

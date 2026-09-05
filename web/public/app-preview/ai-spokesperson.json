@@ -1,0 +1,237 @@
+{
+  "slug": "ai-spokesperson",
+  "name": "AI Spokesperson",
+  "emoji": "🗣️",
+  "description": "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localise a take, fix a fluffed line, or spin one recording into many variants.",
+  "tagline": "Give a presenter clip a new script.",
+  "note": "🔑 Needs a FAL key for lip-sync and an Inworld key for the voice. Both steps are billed per run.",
+  "featured": false,
+  "image": "/app-preview/img/ai-spokesperson.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🗣️ AI Spokesperson",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "Give a presenter clip a new script."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs a FAL key for lip-sync and an Inworld key for the voice. Both steps are billed per run."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-new-words-same-take",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-new-words-same-take",
+                  "title": "New words, same take",
+                  "content": [
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-revoice-presenter-clip",
+                        "binding": "op:revoice/in:in-clip",
+                        "label": "Presenter clip",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-revoice-script",
+                        "binding": "op:revoice/in:in-script",
+                        "label": "What they should say",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-revoice-speech-speed",
+                        "binding": "op:revoice/prop:speech#speed",
+                        "label": "Speaking pace",
+                        "min": 0.7,
+                        "max": 1.3,
+                        "step": 0.05,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-revoice",
+                        "label": "Revoice the clip",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "revoice",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-new-words-same-take-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-revoice",
+                        "binding": "op:revoice/exec#progress",
+                        "label": "Voicing and syncing…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-revoice-revoiced-clip",
+                        "text": "Revoiced clip",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-revoice-revoiced-clip",
+                        "binding": "op:revoice/out:output-clip",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "revoice",
+        "name": "Revoice",
+        "workflowId": "revoice",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "workflows": [
+    {
+      "key": "revoice",
+      "name": "AI Spokesperson",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in-clip",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "presenter_clip",
+              "value": null,
+              "description": "Footage of a person speaking to camera"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 240
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Presenter clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-script",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "script",
+              "value": "Our spring release ships today. Faster renders, sharper output, and a price that did not move.",
+              "description": "The new words the presenter should say"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 400
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  New script"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-clip",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "revoiced_clip"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1120,
+                "y": 320
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "5  Re-voiced clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:revoice/in:in-script": "Our spring release ships today. Faster renders, sharper output, and a price that did not move.",
+    "op:revoice/prop:speech#speed": 1,
+    "op:revoice/out:output-clip": {
+      "$demo": "video"
+    }
+  }
+}

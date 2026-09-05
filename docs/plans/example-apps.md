@@ -8,8 +8,9 @@ contains. No code.
 
 Today every template gets a generated app from the CURATION table in
 `scripts/generate-template-apps.mjs` — 36 variations of one form. This spec
-replaces that with **11 curated apps binding 23 workflows**; the remaining 13
-templates ship as workflows only.
+replaces that with **11 curated studio apps binding 23 workflows**; the
+remaining templates ship as workflows only. A second set of **10 single-job
+apps** ([below](#single-job-apps)) binds 16 more templates.
 
 ## Selection criteria
 
@@ -205,9 +206,49 @@ unreadable on a canvas.
   genuinely better surface than a Preview node, and it is the reference for the
   Table widget.
 
+## Single-job apps
+
+The studios above put several jobs behind one surface. These ten are the
+opposite shape, the one a Runway-style app has: one upload, a few choices, one
+result. Each is a media job somebody already knows they want, so the app is the
+whole product and the graph is an implementation detail. C1 applies to every
+one; C2 comes from variables carrying one upload into several operations, and
+from Select and Slider widgets driving node properties inside the graph rather
+than Input nodes.
+
+| App | Workflows bound | Operations | Key widgets | Needs |
+|---|---|---|---|---|
+| Vary Image | Edit a Still with Words | `edit` | ImageInput, Select (what to change), Slider (`ed.strength`), Image | FAL |
+| Product Reshoot | Put a Product on a Studio Backdrop, Relight a Product for a Seasonal Campaign, Cut a Product Out of Its Background | `backdrop`, `relight`, `cutout` | ImageInput, Select (`comp.prompt`), Select (`rl.prompt`), Image ×3 | FAL |
+| Product Shot Video | Ad Loop from a Product Photo, Spin a Packshot into a Turntable Clip | `loop`, `turntable` | ImageInput, Select, Select (`v.prompt`), Video ×2 | KIE for `loop`, FAL for `turntable` |
+| Multi-Shot Video | Movie Trailer Generator | `trailer` | TextInput, Select, Slider (shot count), Video | Gemini + OpenAI + Veo; cost note |
+| Scene Builder | Editorial Still from a Line, Bring a Still to Life | `look`, `motion` | TextInput, Image, Select, Slider (`vid.duration`), Video | FAL |
+| Video Restyle | Video Restyle Studio | `restyle` | WorkflowInput (video), Select, TextInput, Slider (`restyle.strength`), Video | FAL |
+| AI Spokesperson | AI Spokesperson | `revoice` | WorkflowInput (video), TextInput, Slider (`speech.speed`), Video | FAL + Inworld |
+| Upscale Image | Upscale a Still, Take a Product Shot to Print Resolution | `faithful`, `clarity` | ImageInput, Slider (`up.scale`) ×2, Image ×2 | FAL |
+| Vertical Cut | Cut a Landscape Clip for Vertical, Pull a Still from a Clip | `vertical`, `cover` | VideoInput, Slider (`frame.time`), Video, Image | none (ffmpeg) |
+| Ad Maker | Ad Copy in Three Registers, Five Headlines for a Landing Page, Write the Prompt, Then Make the Image | `copy`, `headlines`, `visual` | TextInput, Markdown ×3, Image | OpenAI + FAL |
+
+Per-app notes, where the table does not say it all:
+
+- **Vary Image.** The Select is bound to the `instruction` Input, so each option
+  is a complete edit instruction; the first one is the graph's own default.
+  Strength drives `ed.strength` directly.
+- **Product Reshoot.** One `productPhoto` variable feeds all three operations.
+  The setting and season selects drive the prompt property of the edit and
+  relight nodes, so the graph's Input nodes stay as they are.
+- **Scene Builder.** `look` writes its `picture` output to the `still` variable,
+  which `motion` reads as its `still` input. The still is shown from the
+  variable, so the user sees exactly the frame that will be animated.
+- **Vertical Cut.** The only keyless app in this set. One `clip` variable of type
+  `video` feeds both operations, and one button runs them in parallel.
+- **Ad Maker.** The `offer` variable is user-scoped and persisted; all three
+  agents read it and one button starts them in parallel. `visual` maps the
+  offer to the template's `idea` input.
+
 ## Templates that stay workflow-only
 
-11 templates ship without an app:
+These templates were considered and left without an app:
 
 | Template | Reason |
 |---|---|
@@ -217,7 +258,6 @@ unreadable on a canvas.
 | Conditional Logic Engine | Teaching example. Its value *is* the graph. |
 | Image To Audio Story | One image in, one audio clip out — a Run button with extra steps. |
 | Image to Video Animation | Text-to-image → Veo; it has no image input, so it cannot be the "animate this" step of any gallery app (see Findings). |
-| Movie Trailer Generator | Overlaps Film Studio's `produce` at higher cost and with a weaker output set. |
 | Music Video Visualizer | Strong candidate deferred: one upload, one long paid run, one video. Revisit once a Podcast/Audio app justifies the surface. |
 | Podcast Repurposing Studio | Preview-only terminals; needs Output nodes and structured quote-card output before an app can render it. |
 | SEO Content Engine | Preview-only terminals; the typed article fields want a per-article editor, not a results panel. |

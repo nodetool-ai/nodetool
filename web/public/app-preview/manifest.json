@@ -75,5 +75,75 @@
     "emoji": "🧮",
     "featured": false,
     "workflows": 1
+  },
+  {
+    "slug": "vary-image",
+    "name": "Vary Image",
+    "emoji": "🪄",
+    "featured": true,
+    "workflows": 1
+  },
+  {
+    "slug": "product-reshoot",
+    "name": "Product Reshoot",
+    "emoji": "📦",
+    "featured": true,
+    "workflows": 3
+  },
+  {
+    "slug": "product-shot-video",
+    "name": "Product Shot Video",
+    "emoji": "🎥",
+    "featured": true,
+    "workflows": 2
+  },
+  {
+    "slug": "multi-shot-video",
+    "name": "Multi-Shot Video",
+    "emoji": "🎬",
+    "featured": true,
+    "workflows": 1
+  },
+  {
+    "slug": "scene-builder",
+    "name": "Scene Builder",
+    "emoji": "🎞️",
+    "featured": true,
+    "workflows": 2
+  },
+  {
+    "slug": "video-restyle",
+    "name": "Video Restyle",
+    "emoji": "🎨",
+    "featured": false,
+    "workflows": 1
+  },
+  {
+    "slug": "ai-spokesperson",
+    "name": "AI Spokesperson",
+    "emoji": "🗣️",
+    "featured": false,
+    "workflows": 1
+  },
+  {
+    "slug": "upscale-image",
+    "name": "Upscale Image",
+    "emoji": "🔍",
+    "featured": false,
+    "workflows": 2
+  },
+  {
+    "slug": "vertical-cut",
+    "name": "Vertical Cut",
+    "emoji": "📱",
+    "featured": false,
+    "workflows": 2
+  },
+  {
+    "slug": "ad-maker",
+    "name": "Ad Maker",
+    "emoji": "📣",
+    "featured": false,
+    "workflows": 3
   }
 ]

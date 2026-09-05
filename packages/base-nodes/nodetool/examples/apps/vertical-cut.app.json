@@ -1,0 +1,374 @@
+{
+  "schemaVersion": 1,
+  "name": "Vertical Cut",
+  "description": "Resize a 16:9 clip to the vertical frame and pull a still at the timestamp you choose for the cover. Both run locally through ffmpeg.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "📱 Vertical Cut",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "Landscape footage in, a 9:16 post and its cover frame out."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "✨ Keyless. Both steps run on your machine."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-cut-for-vertical",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-cut-for-vertical",
+                  "title": "Cut for vertical",
+                  "content": [
+                    {
+                      "type": "VideoInput",
+                      "props": {
+                        "id": "in-clip",
+                        "binding": "var:clip",
+                        "label": "Landscape clip",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-cover-frame-time",
+                        "binding": "op:cover/prop:frame#time",
+                        "label": "Cover frame at (seconds)",
+                        "min": 0,
+                        "max": 30,
+                        "step": 0.5,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-vertical-cover",
+                        "label": "Cut it",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "vertical",
+                            "key": "",
+                            "value": ""
+                          },
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "cover",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-cut-for-vertical-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-vertical",
+                        "binding": "op:vertical/exec#progress",
+                        "label": "Resizing…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-vertical-vertical",
+                        "text": "Vertical clip",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-vertical-vertical",
+                        "binding": "op:vertical/out:out",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-cover-still",
+                        "text": "Cover frame",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-cover-still",
+                        "binding": "op:cover/out:out",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "vertical",
+        "name": "Vertical",
+        "workflowId": "vertical",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "clip"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      },
+      {
+        "id": "cover",
+        "name": "Cover",
+        "workflowId": "cover",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "clip"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "clip",
+        "name": "The clip",
+        "type": {
+          "type": "video",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "vertical",
+      "name": "Cut a Landscape Clip for Vertical",
+      "description": "Footage arrives 16:9 and the channel wants 9:16. Resizing to the vertical frame is the unglamorous step between having a film and being able to post it.",
+      "sourceId": "nodetool-base/Cut a Landscape Clip for Vertical",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "clip",
+              "value": null,
+              "description": "The landscape clip"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "rs",
+            "type": "nodetool.video.Resize",
+            "data": {
+              "width": 1080,
+              "height": 1920
+            },
+            "ui_properties": {
+              "position": {
+                "x": 330,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "2  To 9:16"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "vertical"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Vertical"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "in",
+            "sourceHandle": "output",
+            "target": "rs",
+            "targetHandle": "video"
+          },
+          {
+            "id": "e2",
+            "source": "rs",
+            "sourceHandle": "output",
+            "target": "out",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "cover",
+      "name": "Pull a Still from a Clip",
+      "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs locally through ffmpeg.",
+      "sourceId": "nodetool-base/Pull a Still from a Clip",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "clip",
+              "value": null,
+              "description": "The clip to sample"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 180
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "frame",
+            "type": "nodetool.video.ExtractFrame",
+            "data": {
+              "time": 2
+            },
+            "ui_properties": {
+              "position": {
+                "x": 360,
+                "y": 180
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Grab a frame"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "still"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 720,
+                "y": 200
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "3  Still"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "in",
+            "sourceHandle": "output",
+            "target": "frame",
+            "targetHandle": "video"
+          },
+          {
+            "id": "e2",
+            "source": "frame",
+            "sourceHandle": "output",
+            "target": "out",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}

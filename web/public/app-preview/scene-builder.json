@@ -1,0 +1,409 @@
+{
+  "slug": "scene-builder",
+  "name": "Scene Builder",
+  "emoji": "🎞️",
+  "description": "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and colour.",
+  "tagline": "See the look as a still, then bring it to life.",
+  "note": "🔑 Needs a FAL key. The still is one FLUX call, the motion one LTX call.",
+  "featured": true,
+  "image": "/app-preview/img/scene-builder.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🎞️ Scene Builder",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "See the look as a still, then bring it to life."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs a FAL key. The still is one FLUX call, the motion one LTX call."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-the-look",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-look",
+                  "title": "The look",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-look-subject",
+                        "binding": "op:look/in:in",
+                        "label": "Describe the scene",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-look",
+                        "label": "Show me the look",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "look",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-look-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-look",
+                        "binding": "op:look/exec#progress",
+                        "label": "Rendering the still…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-still",
+                        "text": "The still",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-still",
+                        "binding": "var:still",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-bring-it-to-life",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-bring-it-to-life",
+                  "title": "Bring it to life",
+                  "content": [
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-motion-motion",
+                        "binding": "op:motion/in:mo",
+                        "label": "Camera move",
+                        "options": [
+                          {
+                            "value": "Slow push in with a gentle parallax drift"
+                          },
+                          {
+                            "value": "Slow pull back revealing more of the scene"
+                          },
+                          {
+                            "value": "Lateral dolly left to right with foreground parallax"
+                          },
+                          {
+                            "value": "Locked-off camera, only atmosphere and light move"
+                          },
+                          {
+                            "value": "Slow tilt up from the ground to the sky"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-motion-vid-duration",
+                        "binding": "op:motion/prop:vid#duration",
+                        "label": "Seconds",
+                        "min": 2,
+                        "max": 8,
+                        "step": 1,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-motion",
+                        "label": "Animate the still",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "motion",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-bring-it-to-life-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-motion",
+                        "binding": "op:motion/exec#progress",
+                        "label": "Animating…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-motion-animated",
+                        "text": "The moving shot",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-motion-animated",
+                        "binding": "op:motion/out:out",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "look",
+        "name": "Look",
+        "workflowId": "look",
+        "inputs": {},
+        "outputs": {
+          "out": {
+            "to": "variable",
+            "variableId": "still"
+          }
+        },
+        "policy": "replace"
+      },
+      {
+        "id": "motion",
+        "name": "Motion",
+        "workflowId": "motion",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "still"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "still",
+        "name": "The still",
+        "type": {
+          "type": "image",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "look",
+      "name": "Editorial Still from a Line",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "subject",
+              "value": "A lone lighthouse on a basalt cliff under moving storm light",
+              "description": "What to picture"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 180
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Subject"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "picture"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1080,
+                "y": 200
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "4  Image"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "motion",
+      "name": "Bring a Still to Life",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "still",
+              "value": null,
+              "description": "A still to bring to life"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 180
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Still"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "mo",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "motion",
+              "value": "Slow push in with a gentle parallax drift",
+              "description": "How the camera should move"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 340
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Motion"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "animated"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1160,
+                "y": 220
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "5  Clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:look/in:in": "A lone lighthouse on a basalt cliff under moving storm light",
+    "var:still": {
+      "$demo": "image"
+    },
+    "op:motion/in:mo": "Slow push in with a gentle parallax drift",
+    "op:motion/prop:vid#duration": 6,
+    "op:motion/out:out": {
+      "$demo": "video"
+    }
+  }
+}

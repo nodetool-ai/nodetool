@@ -1,0 +1,325 @@
+{
+  "schemaVersion": 1,
+  "name": "Vary Image",
+  "description": "Pick what should change — lighting, background, pose, palette, camera angle — and an edit model alters only that. Composition and subject survive because the model edits in place instead of regenerating.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🪄 Vary Image",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "Change one thing about a photo and keep the rest."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs a FAL key (Nano Banana edit). Billed per image."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-vary-it",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-vary-it",
+                  "title": "Vary it",
+                  "content": [
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "in-picture",
+                        "binding": "var:picture",
+                        "label": "Your image",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-edit-instruction",
+                        "binding": "op:edit/in:ins",
+                        "label": "What should change?",
+                        "options": [
+                          {
+                            "value": "Make it golden hour, warm low sun raking across the subject"
+                          },
+                          {
+                            "value": "Relight it as an overcast studio shot, soft even light, no hard shadows"
+                          },
+                          {
+                            "value": "Replace the background with a quiet city street at dusk, keep the subject exactly as is"
+                          },
+                          {
+                            "value": "Change the subject's pose so they face the camera with arms relaxed"
+                          },
+                          {
+                            "value": "Change the subject's outfit to a black tailored suit, keep face and pose"
+                          },
+                          {
+                            "value": "Shift the colour palette to muted teal and sand tones"
+                          },
+                          {
+                            "value": "Render it as a loose watercolour illustration, keep the composition"
+                          },
+                          {
+                            "value": "Move the camera to a low angle looking up, same subject and setting"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-edit-ed-strength",
+                        "binding": "op:edit/prop:ed#strength",
+                        "label": "How far to go",
+                        "min": 0.2,
+                        "max": 1,
+                        "step": 0.05,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-edit",
+                        "label": "Vary the image",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "edit",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-vary-it-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-edit",
+                        "binding": "op:edit/exec#progress",
+                        "label": "Editing…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-edit-edited",
+                        "text": "Varied image",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-edit-edited",
+                        "binding": "op:edit/out:out",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "edit",
+        "name": "Edit",
+        "workflowId": "edit",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "picture"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "picture",
+        "name": "Your image",
+        "type": {
+          "type": "image",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "edit",
+      "name": "Edit a Still with Words",
+      "description": "Change an image by describing the change. Nano Banana edits in place rather than regenerating, so composition and subject survive - the instruction should name what to alter and leave the rest unsaid.",
+      "sourceId": "nodetool-base/Edit a Still with Words",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "picture",
+              "value": null,
+              "description": "The image to edit"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 180
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Image"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "ins",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "instruction",
+              "value": "Make it golden hour, warm low sun raking across the subject",
+              "description": "What to change"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 340
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Instruction"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "ed",
+            "type": "nodetool.image.ImageToImage",
+            "data": {
+              "model": {
+                "type": "image_model",
+                "provider": "fal_ai",
+                "id": "fal-ai/nano-banana/edit",
+                "name": "Nano Banana Edit",
+                "path": null,
+                "supported_tasks": []
+              },
+              "negative_prompt": "",
+              "entities": [],
+              "strength": 0.6,
+              "aspect_ratio": "16:9",
+              "resolution": "1080p",
+              "scheduler": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 400,
+                "y": 240
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3  Edit"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "edited"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 760,
+                "y": 260
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "4  Result"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "in",
+            "sourceHandle": "output",
+            "target": "ed",
+            "targetHandle": "image"
+          },
+          {
+            "id": "e2",
+            "source": "ins",
+            "sourceHandle": "output",
+            "target": "ed",
+            "targetHandle": "prompt"
+          },
+          {
+            "id": "e3",
+            "source": "ed",
+            "sourceHandle": "output",
+            "target": "out",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}

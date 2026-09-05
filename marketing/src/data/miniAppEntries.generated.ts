@@ -4,6 +4,123 @@ import type { MiniAppEntry } from "./miniApps";
 
 export const miniAppEntries: MiniAppEntry[] = [
   {
+    "route": "/apps/ad-maker",
+    "title": "Ad Maker — Free AI Mini App | NodeTool",
+    "description": "One offer, three registers of copy, five headlines and a hero image.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "ad-maker",
+    "name": "Ad Maker",
+    "summary": "Type the offer once. Three agents run side by side: ad copy written plain, playful and premium; five headlines each taking a different angle; and a hero image whose prompt stays visible so it can be corrected rather than guessed at.",
+    "featured": false,
+    "note": "🔑 Needs an OpenAI key for the writing and a FAL key for the image.",
+    "workflows": [
+      {
+        "name": "Ad Copy in Three Registers",
+        "slug": "ad-copy-in-three-registers",
+        "route": "/templates/ad-copy-in-three-registers"
+      },
+      {
+        "name": "Five Headlines for a Landing Page",
+        "slug": "five-headlines-for-a-landing-page",
+        "route": "/templates/five-headlines-for-a-landing-page"
+      },
+      {
+        "name": "Write the Prompt, Then Make the Image",
+        "slug": "write-the-prompt-then-make-the-image",
+        "route": "/templates/write-the-prompt-then-make-the-image"
+      }
+    ],
+    "templateRoute": "/templates/ad-copy-in-three-registers",
+    "screenshot": null,
+    "tags": [
+      "example",
+      "image",
+      "text"
+    ],
+    "heading": "📣 Ad Maker",
+    "tagline": "One offer, three registers of copy, five headlines and a hero image.",
+    "buttonLabel": "Make the ad",
+    "inputs": [
+      {
+        "label": "What are you advertising?",
+        "kind": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Ad copy",
+        "kind": "text"
+      },
+      {
+        "label": "Headlines",
+        "kind": "text"
+      },
+      {
+        "label": "Hero image",
+        "kind": "image"
+      },
+      {
+        "label": "Prompt used",
+        "kind": "text"
+      }
+    ],
+    "widgetCount": 17
+  },
+  {
+    "route": "/apps/ai-spokesperson",
+    "title": "AI Spokesperson — Free AI Mini App | NodeTool",
+    "description": "Give a presenter clip a new script.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "ai-spokesperson",
+    "name": "AI Spokesperson",
+    "summary": "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localise a take, fix a fluffed line, or spin one recording into many variants.",
+    "featured": false,
+    "note": "🔑 Needs a FAL key for lip-sync and an Inworld key for the voice. Both steps are billed per run.",
+    "workflows": [
+      {
+        "name": "AI Spokesperson",
+        "slug": "ai-spokesperson",
+        "route": "/templates/ai-spokesperson"
+      }
+    ],
+    "templateRoute": "/templates/ai-spokesperson",
+    "screenshot": null,
+    "tags": [
+      "audio",
+      "example",
+      "marketing",
+      "video"
+    ],
+    "heading": "🗣️ AI Spokesperson",
+    "tagline": "Give a presenter clip a new script.",
+    "buttonLabel": "Revoice the clip",
+    "inputs": [
+      {
+        "label": "Presenter clip",
+        "kind": "video"
+      },
+      {
+        "label": "What they should say",
+        "kind": "text"
+      },
+      {
+        "label": "Speaking pace",
+        "kind": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Revoiced clip",
+        "kind": "video"
+      }
+    ],
+    "widgetCount": 13
+  },
+  {
     "route": "/apps/ask-your-documents",
     "title": "Ask Your Documents — Free AI Mini App | NodeTool",
     "description": "Ask your own documents — with a local mode that never leaves your machine.",
@@ -579,6 +696,62 @@ export const miniAppEntries: MiniAppEntry[] = [
     "widgetCount": 16
   },
   {
+    "route": "/apps/multi-shot-video",
+    "title": "Multi-Shot Video — Free AI Mini App | NodeTool",
+    "description": "One logline in, a cut sequence of shots out.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "multi-shot-video",
+    "name": "Multi-Shot Video",
+    "summary": "A director model writes the shot list and a style bible, every shot is rendered as a keyframe and animated, and the clips are cut together into one video.",
+    "featured": true,
+    "note": "💸 Needs Gemini, OpenAI and Google Veo keys. Every shot is one Veo call, metered per second of video, so start with a small shot count.",
+    "workflows": [
+      {
+        "name": "Movie Trailer Generator",
+        "slug": "movie-trailer-generator",
+        "route": "/templates/movie-trailer-generator"
+      }
+    ],
+    "templateRoute": "/templates/movie-trailer-generator",
+    "screenshot": null,
+    "tags": [
+      "ai",
+      "creative",
+      "example",
+      "generation",
+      "storyboard",
+      "storytelling",
+      "trailer",
+      "video"
+    ],
+    "heading": "🎬 Multi-Shot Video",
+    "tagline": "One logline in, a cut sequence of shots out.",
+    "buttonLabel": "Direct the video",
+    "inputs": [
+      {
+        "label": "Logline",
+        "kind": "text"
+      },
+      {
+        "label": "Visual style",
+        "kind": "choice"
+      },
+      {
+        "label": "How many shots?",
+        "kind": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Your video",
+        "kind": "video"
+      }
+    ],
+    "widgetCount": 13
+  },
+  {
     "route": "/apps/photo-studio",
     "title": "Photo Studio — Free AI Mini App | NodeTool",
     "description": "Drag five sliders and watch the photo re-render — then run the same grade over a whole folder.",
@@ -749,6 +922,135 @@ export const miniAppEntries: MiniAppEntry[] = [
     "widgetCount": 27
   },
   {
+    "route": "/apps/product-reshoot",
+    "title": "Product Reshoot — Free AI Mini App | NodeTool",
+    "description": "New setting, new light, or a clean cutout — without a reshoot.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "product-reshoot",
+    "name": "Product Reshoot",
+    "summary": "One product photo, three treatments. Put it on a described set, relight it for a season, or strip the background to a real alpha channel for compositing.",
+    "featured": true,
+    "note": "🔑 Needs a FAL key. Each treatment is one or two image calls.",
+    "workflows": [
+      {
+        "name": "Put a Product on a Studio Backdrop",
+        "slug": "put-a-product-on-a-studio-backdrop",
+        "route": "/templates/put-a-product-on-a-studio-backdrop"
+      },
+      {
+        "name": "Relight a Product for a Seasonal Campaign",
+        "slug": "relight-a-product-for-a-seasonal-campaign",
+        "route": "/templates/relight-a-product-for-a-seasonal-campaign"
+      },
+      {
+        "name": "Cut a Product Out of Its Background",
+        "slug": "cut-a-product-out-of-its-background",
+        "route": "/templates/cut-a-product-out-of-its-background"
+      }
+    ],
+    "templateRoute": "/templates/put-a-product-on-a-studio-backdrop",
+    "screenshot": null,
+    "tags": [
+      "example",
+      "image"
+    ],
+    "heading": "📦 Product Reshoot",
+    "tagline": "New setting, new light, or a clean cutout — without a reshoot.",
+    "buttonLabel": "Place it on the set",
+    "inputs": [
+      {
+        "label": "Product photo",
+        "kind": "image"
+      },
+      {
+        "label": "Setting",
+        "kind": "choice"
+      },
+      {
+        "label": "Season and light",
+        "kind": "choice"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "On the set",
+        "kind": "image"
+      },
+      {
+        "label": "Relit",
+        "kind": "image"
+      },
+      {
+        "label": "Cutout with alpha",
+        "kind": "image"
+      }
+    ],
+    "widgetCount": 28
+  },
+  {
+    "route": "/apps/product-shot-video",
+    "title": "Product Shot Video — Free AI Mini App | NodeTool",
+    "description": "A product photo becomes a hero loop or a turntable clip.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "product-shot-video",
+    "name": "Product Shot Video",
+    "summary": "Image-to-video keeps the product identical and adds only the camera move. Pick a motion for a looping ad, or spin a packshot into a turntable for the product page.",
+    "featured": true,
+    "note": "🔑 The ad loop runs Kling on Kie and needs a KIE key. The turntable runs LTX on FAL and needs a FAL key. Both are billed per generation.",
+    "workflows": [
+      {
+        "name": "Ad Loop from a Product Photo",
+        "slug": "ad-loop-from-a-product-photo",
+        "route": "/templates/ad-loop-from-a-product-photo"
+      },
+      {
+        "name": "Spin a Packshot into a Turntable Clip",
+        "slug": "spin-a-packshot-into-a-turntable-clip",
+        "route": "/templates/spin-a-packshot-into-a-turntable-clip"
+      }
+    ],
+    "templateRoute": "/templates/ad-loop-from-a-product-photo",
+    "screenshot": null,
+    "tags": [
+      "example",
+      "image",
+      "marketing",
+      "video"
+    ],
+    "heading": "🎥 Product Shot Video",
+    "tagline": "A product photo becomes a hero loop or a turntable clip.",
+    "buttonLabel": "Make the loop",
+    "inputs": [
+      {
+        "label": "A clean product photo",
+        "kind": "image"
+      },
+      {
+        "label": "Camera move",
+        "kind": "choice"
+      },
+      {
+        "label": "Spin",
+        "kind": "choice"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Hero loop",
+        "kind": "video"
+      },
+      {
+        "label": "Turntable clip",
+        "kind": "video"
+      }
+    ],
+    "widgetCount": 21
+  },
+  {
     "route": "/apps/research-desk",
     "title": "Research Desk — Free AI Mini App | NodeTool",
     "description": "One topic, two sources, two briefings side by side.",
@@ -810,6 +1112,66 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "widgetCount": 18
+  },
+  {
+    "route": "/apps/scene-builder",
+    "title": "Scene Builder — Free AI Mini App | NodeTool",
+    "description": "See the look as a still, then bring it to life.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "scene-builder",
+    "name": "Scene Builder",
+    "summary": "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and colour.",
+    "featured": true,
+    "note": "🔑 Needs a FAL key. The still is one FLUX call, the motion one LTX call.",
+    "workflows": [
+      {
+        "name": "Editorial Still from a Line",
+        "slug": "editorial-still-from-a-line",
+        "route": "/templates/editorial-still-from-a-line"
+      },
+      {
+        "name": "Bring a Still to Life",
+        "slug": "bring-a-still-to-life",
+        "route": "/templates/bring-a-still-to-life"
+      }
+    ],
+    "templateRoute": "/templates/editorial-still-from-a-line",
+    "screenshot": null,
+    "tags": [
+      "example",
+      "image",
+      "video"
+    ],
+    "heading": "🎞️ Scene Builder",
+    "tagline": "See the look as a still, then bring it to life.",
+    "buttonLabel": "Show me the look",
+    "inputs": [
+      {
+        "label": "Describe the scene",
+        "kind": "text"
+      },
+      {
+        "label": "Camera move",
+        "kind": "choice"
+      },
+      {
+        "label": "Seconds",
+        "kind": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "The still",
+        "kind": "image"
+      },
+      {
+        "label": "The moving shot",
+        "kind": "video"
+      }
+    ],
+    "widgetCount": 20
   },
   {
     "route": "/apps/study-buddy",
@@ -877,5 +1239,226 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "widgetCount": 16
+  },
+  {
+    "route": "/apps/upscale-image",
+    "title": "Upscale Image — Free AI Mini App | NodeTool",
+    "description": "Enlarge an image without the softness of a plain resize.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "upscale-image",
+    "name": "Upscale Image",
+    "summary": "Two upscalers behind one drop zone. ESRGAN reconstructs the detail that is there, which is what you want for a photo. Clarity invents plausible detail, which is what you want when the source is small.",
+    "featured": false,
+    "note": "🔑 Needs a FAL key. One call per upscale.",
+    "workflows": [
+      {
+        "name": "Upscale a Still",
+        "slug": "upscale-a-still",
+        "route": "/templates/upscale-a-still"
+      },
+      {
+        "name": "Take a Product Shot to Print Resolution",
+        "slug": "take-a-product-shot-to-print-resolution",
+        "route": "/templates/take-a-product-shot-to-print-resolution"
+      }
+    ],
+    "templateRoute": "/templates/upscale-a-still",
+    "screenshot": null,
+    "tags": [
+      "example",
+      "image"
+    ],
+    "heading": "🔍 Upscale Image",
+    "tagline": "Enlarge an image without the softness of a plain resize.",
+    "buttonLabel": "Upscale (ESRGAN)",
+    "inputs": [
+      {
+        "label": "The image to enlarge",
+        "kind": "image"
+      },
+      {
+        "label": "Scale",
+        "kind": "number"
+      },
+      {
+        "label": "Scale",
+        "kind": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Enlarged",
+        "kind": "image"
+      },
+      {
+        "label": "Print-ready",
+        "kind": "image"
+      }
+    ],
+    "widgetCount": 21
+  },
+  {
+    "route": "/apps/vary-image",
+    "title": "Vary Image — Free AI Mini App | NodeTool",
+    "description": "Change one thing about a photo and keep the rest.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "vary-image",
+    "name": "Vary Image",
+    "summary": "Pick what should change — lighting, background, pose, palette, camera angle — and an edit model alters only that. Composition and subject survive because the model edits in place instead of regenerating.",
+    "featured": true,
+    "note": "🔑 Needs a FAL key (Nano Banana edit). Billed per image.",
+    "workflows": [
+      {
+        "name": "Edit a Still with Words",
+        "slug": "edit-a-still-with-words",
+        "route": "/templates/edit-a-still-with-words"
+      }
+    ],
+    "templateRoute": "/templates/edit-a-still-with-words",
+    "screenshot": null,
+    "tags": [
+      "example",
+      "image"
+    ],
+    "heading": "🪄 Vary Image",
+    "tagline": "Change one thing about a photo and keep the rest.",
+    "buttonLabel": "Vary the image",
+    "inputs": [
+      {
+        "label": "Your image",
+        "kind": "image"
+      },
+      {
+        "label": "What should change?",
+        "kind": "choice"
+      },
+      {
+        "label": "How far to go",
+        "kind": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Varied image",
+        "kind": "image"
+      }
+    ],
+    "widgetCount": 13
+  },
+  {
+    "route": "/apps/vertical-cut",
+    "title": "Vertical Cut — Free AI Mini App | NodeTool",
+    "description": "Landscape footage in, a 9:16 post and its cover frame out.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "vertical-cut",
+    "name": "Vertical Cut",
+    "summary": "Resize a 16:9 clip to the vertical frame and pull a still at the timestamp you choose for the cover. Both run locally through ffmpeg.",
+    "featured": false,
+    "note": "✨ Keyless. Both steps run on your machine.",
+    "workflows": [
+      {
+        "name": "Cut a Landscape Clip for Vertical",
+        "slug": "cut-a-landscape-clip-for-vertical",
+        "route": "/templates/cut-a-landscape-clip-for-vertical"
+      },
+      {
+        "name": "Pull a Still from a Clip",
+        "slug": "pull-a-still-from-a-clip",
+        "route": "/templates/pull-a-still-from-a-clip"
+      }
+    ],
+    "templateRoute": "/templates/cut-a-landscape-clip-for-vertical",
+    "screenshot": null,
+    "tags": [
+      "example",
+      "image",
+      "utility",
+      "video"
+    ],
+    "heading": "📱 Vertical Cut",
+    "tagline": "Landscape footage in, a 9:16 post and its cover frame out.",
+    "buttonLabel": "Cut it",
+    "inputs": [
+      {
+        "label": "Landscape clip",
+        "kind": "video"
+      },
+      {
+        "label": "Cover frame at (seconds)",
+        "kind": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Vertical clip",
+        "kind": "video"
+      },
+      {
+        "label": "Cover frame",
+        "kind": "image"
+      }
+    ],
+    "widgetCount": 14
+  },
+  {
+    "route": "/apps/video-restyle",
+    "title": "Video Restyle — Free AI Mini App | NodeTool",
+    "description": "Repaint a clip in a new style while its motion stays put.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "video-restyle",
+    "name": "Video Restyle",
+    "summary": "Upload footage, name the look and what must survive, and a video-to-video model applies the style. Strength is the dial: low keeps the original read, high commits to the new look.",
+    "featured": false,
+    "note": "🔑 Needs a FAL key (Lucy Edit). Billed per clip.",
+    "workflows": [
+      {
+        "name": "Video Restyle Studio",
+        "slug": "video-restyle-studio",
+        "route": "/templates/video-restyle-studio"
+      }
+    ],
+    "templateRoute": "/templates/video-restyle-studio",
+    "screenshot": null,
+    "tags": [
+      "design",
+      "example",
+      "video"
+    ],
+    "heading": "🎨 Video Restyle",
+    "tagline": "Repaint a clip in a new style while its motion stays put.",
+    "buttonLabel": "Restyle the clip",
+    "inputs": [
+      {
+        "label": "The clip",
+        "kind": "video"
+      },
+      {
+        "label": "The look",
+        "kind": "choice"
+      },
+      {
+        "label": "What must survive",
+        "kind": "text"
+      },
+      {
+        "label": "Strength",
+        "kind": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Restyled clip",
+        "kind": "video"
+      }
+    ],
+    "widgetCount": 14
   }
 ];
