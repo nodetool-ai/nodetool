@@ -74,17 +74,18 @@ export default function UnderneathSection() {
         <header className="scroll-fade mb-10 max-w-3xl">
           <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/80">
             <span className="h-px w-8 bg-blue-300/60" />
-            Underneath
+            Workflows
           </div>
           <h2
             id="underneath-title"
             className="text-3xl md:text-4xl font-bold tracking-tight text-white"
           >
-            The studio under the film
+            Build the workflows that work for you.
           </h2>
           <p className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
-            The same canvas runs jobs that are not films. Each part has its own
-            page.
+            Chain models, editors, and code into a node graph you can re-run on
+            new inputs, ship as a mini-app, or drive headless from the CLI. Each
+            part has its own page.
           </p>
         </header>
 

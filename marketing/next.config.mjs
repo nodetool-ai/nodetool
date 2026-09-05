@@ -43,6 +43,13 @@ const nextConfig = {
   // permanent redirects to the absorbing template's pages, which already carry
   // whatever search equity the retired slug had.
   redirects: async () => {
+    // The advertising vertical is named after its industry (NARRATIVE.md
+    // § Vertical pages); /marketing stays the canonical route.
+    const verticalAliases = [
+      { source: "/ai-for-ads", destination: "/marketing", permanent: true },
+      { source: "/ai-for-advertising", destination: "/marketing", permanent: true },
+    ];
+
     const merges = {
       'agent-google-search': 'research-agent',
       'wikipedia-agent': 'research-agent',
@@ -114,6 +121,7 @@ const nextConfig = {
     ];
 
     return [
+      ...verticalAliases,
       // The `/vs/<slug>` comparison family is retired (2026-08-10). It and
       // `/alternatives/<slug>` generated from the same `competitors` array, so
       // the two pages competed for one query set and split its equity;

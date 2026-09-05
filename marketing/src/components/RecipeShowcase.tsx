@@ -53,14 +53,15 @@ export default function RecipeShowcase() {
             id="jobs-title"
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            Four jobs a team runs every week
+            How teams are using NodeTool.
           </h2>
           <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-            Each one is a real run against live models: what you end up holding,
-            who it is for, the models the chain calls, and every workflow in it
-            as one file you import into Studio. Downloading a chain and reading
-            every graph in it needs no key and no account. Running it bills the
-            providers you chose, at their list prices.
+            Four jobs that run every week, each a real run against live models:
+            what you end up holding, who it is for, the models the chain calls,
+            and every workflow in it as one file you import into Studio.
+            Downloading a chain and reading every graph in it needs no key and no
+            account. Running it bills the providers you chose, at their list
+            prices.
           </p>
         </div>
 
