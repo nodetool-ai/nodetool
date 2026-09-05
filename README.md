@@ -7,26 +7,34 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 [![Powered by Atlas Cloud](https://www.atlascloud.ai/oss-program/powered-by-atlas-cloud.svg)](https://www.atlascloud.ai/?ref=PW9AD2)
 
-![NodeTool: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film](marketing/public/hero-project-poster.webp)
-
 **You are the director. The agent is your crew.**
 
 Create and edit AI images, video, audio, and text in NodeTool, an open-source
-creative studio. Connect models into repeatable workflows on a visual canvas.
-Agents can wire the graph, run it, and repair failures. Your project
-file keeps the graph, inputs, assets, and edits together.
+creative studio. Let agents build and revise your work, then inspect and edit
+it yourself in the workflow canvas, storyboard, or timeline.
 
 **[Download NodeTool Studio](https://github.com/nodetool-ai/nodetool/releases/latest)** ·
 **[Quick start](#first-run-in-studio)** ·
 **[Documentation](https://docs.nodetool.ai/)** · **[MCP setup](#mcp)** ·
 **[Contribute](#contributing)**
 
+![NodeTool: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film](marketing/public/hero-project-poster.webp)
+
+## Why NodeTool
+
+- Inspect intermediate results, swap a model, and rerun the changed part of a
+  workflow. Agents can wire the graph, run it, and repair failures within the
+  limits you set.
+- Keep the graph, inputs, assets, and edits together in your project. Export
+  `.nodetool` bundles to reopen in another NodeTool installation.
+- Run repeatable workflows from the studio, CLI, or an external agent through
+  [MCP](#mcp).
+
 Studio is free and runs on macOS, Windows, and Linux. Cloud model requests go
 to the provider you connect, billed to your account at provider rates. Local
 models run through supported engines such as Ollama, MLX, and llama.cpp, with
 hardware requirements that depend on the model. Offline work requires local
-models and assets. Export `.nodetool` bundles to reopen in another NodeTool
-installation. [NodeTool Cloud](https://nodetool.ai/cloud) is in alpha and uses
+models and assets. [NodeTool Cloud](https://nodetool.ai/cloud) is in alpha and uses
 hosted storage and cloud providers rather than your machine's local models.
 
 ## First run in Studio
@@ -36,15 +44,80 @@ hosted storage and cloud providers rather than your machine's local models.
    [installation guide](docs/installation.md) for requirements and per-OS steps.
 2. Open Studio and press **+** on the workspace tab bar, then choose
    **New storyboard…**.
-3. Choose one of the example storyboards listed as **already rendered**. Open
-   its shot cards to inspect the existing images and clips without generating
-   new media or adding a provider key.
+3. Choose the **Lighthouse Keeper** opening, listed as **already rendered**.
+   Open its shot cards to inspect the existing images and clips.
+4. Press **Preview**, then play the board to watch its shots in sequence.
+   Exploring this example does not require a provider key or new generation.
 
-To create your own footage, follow the [film quick start](docs/getting-started.md).
-It explains connecting providers through **Settings → Models & Providers**,
-writing a brief, approving stills before generating clips, and assembling a
-cut. Those generation steps use paid provider calls. No GPU is required when
-you use cloud models.
+Connect providers through **Settings → Models & Providers** when you are ready
+to generate new media. Cloud generation uses paid provider calls and needs no
+GPU.
+
+## From brief to editable film
+
+Write a brief and ask the agent for a storyboard. Approve the stills before
+spending on video generation, then assemble the clips on a timeline. Trim and
+reorder the cut, add narration, and export an MP4. Revise an individual shot
+without regenerating the rest of the film.
+
+![NodeTool storyboard](marketing/public/surface-storyboard-poster.webp)
+
+The [film quick start](docs/getting-started.md) walks through each step,
+including model setup and export.
+
+## Recipes
+
+These recipes link to downloadable workflows and describe their outputs and
+limitations. Whether the result is an editable timeline or an exported video
+depends on the workflow you choose.
+
+| Example | Output | Link |
+| --- | --- | --- |
+| Viral video ad | Vertical product ad, hooks, and thumbnails | [Open recipe](https://nodetool.ai/recipes/viral-video-ad-engine) |
+| Multilingual dub | Lip-synced presenter clip with subtitles | [Open recipe](https://nodetool.ai/recipes/multilingual-video-dubber) |
+| SKU visual set | Packshot cutout, scenes, relight, and listing copy | [Open recipe](https://nodetool.ai/recipes/ecommerce-sku-visual-factory) |
+| Storyboard to trailer | Beat sheet, shot list, teaser, and score | [Open recipe](https://nodetool.ai/recipes/storyboard-to-trailer) |
+
+The [recipe gallery](https://nodetool.ai/recipes) has the model chain and
+contact sheet for each run.
+
+## Agents and workflows
+
+Beyond the film workflow, the studio supports:
+
+- image generation and editing, audio and speech, video, and text
+- storyboards, scripts, and multi-track timelines
+- JavaScript scripts and mini apps on top of a workflow
+- custom TypeScript and Python nodes
+- local inference or provider APIs, where the relevant model is available
+
+Read the [Creative Agent guide](https://docs.nodetool.ai/creative-agent),
+[Video Editor guide](https://docs.nodetool.ai/video-editor), and
+[Sketch Editor guide](https://docs.nodetool.ai/sketch-editor).
+
+![NodeTool workflow canvas](marketing/public/screen_workflow.webp)
+
+## MCP
+
+The installed CLI registers NodeTool's local toolbelt with Claude Code, Codex,
+or OpenCode:
+
+```bash
+npm install -g @nodetool-ai/cli
+nodetool mcp install
+```
+
+For Claude Desktop, build the source MCP bundle after installing dependencies
+and building packages:
+
+```bash
+npm run build:mcpb
+# writes dist/nodetool.mcpb
+```
+
+The MCP server can drive workflows and creative editing surfaces. See the
+[MCP production guide](docs/mcp-production.md) and
+[agent architecture](docs/AGENTS.md).
 
 ## First run from source
 
@@ -84,77 +157,11 @@ billing depend on your provider account. See
 [Provider Guides](https://docs.nodetool.ai/developer/providers/) for other
 providers and local setup. Do not add a key to a committed file.
 
-## Recipes
-
-These recipes link to downloadable workflows and describe their outputs and
-limitations. Whether the result is an editable timeline or an exported video
-depends on the workflow you choose. Cloud model runs require your provider
-keys and are billed by those providers.
-
-| Example | Output | Link |
-| --- | --- | --- |
-| Viral video ad | Vertical product ad, hooks, and thumbnails | [Open recipe](https://nodetool.ai/recipes/viral-video-ad-engine) |
-| Multilingual dub | Lip-synced presenter clip with subtitles | [Open recipe](https://nodetool.ai/recipes/multilingual-video-dubber) |
-| SKU visual set | Packshot cutout, scenes, relight, and listing copy | [Open recipe](https://nodetool.ai/recipes/ecommerce-sku-visual-factory) |
-| Storyboard to trailer | Beat sheet, shot list, teaser, and score | [Open recipe](https://nodetool.ai/recipes/storyboard-to-trailer) |
-
-The [recipe gallery](https://nodetool.ai/recipes) has the model chain and
-contact sheet for each run.
-
-## Agents and workflows
-
-Describe a pipeline and an agent can plan steps, select nodes, connect a graph,
-run it, and repair failures within the limits you set. Workflows are editable:
-inspect every input and intermediate result, substitute a model, and rerun the
-changed part. The same canvas supports:
-
-- image generation and editing, audio and speech, video, and text
-- storyboards, scripts, and multi-track timelines
-- JavaScript scripts and mini apps on top of a workflow
-- custom TypeScript and Python nodes
-- local inference or provider APIs, where the relevant model is available
-
-The film workflow is the showcase: storyboard shots, generate approved clips,
-voice a script, and assemble a timeline that remains editable. Read the
-[Creative Agent guide](https://docs.nodetool.ai/creative-agent),
-[Video Editor guide](https://docs.nodetool.ai/video-editor), and
-[Sketch Editor guide](https://docs.nodetool.ai/sketch-editor).
-
-![NodeTool workflow canvas](marketing/public/screen_workflow.webp)
-
-![NodeTool storyboard](marketing/public/surface-storyboard-poster.webp)
-
-## MCP
-
-The installed CLI registers NodeTool's local toolbelt with Claude Code, Codex,
-or OpenCode:
-
-```bash
-npm install -g @nodetool-ai/cli
-nodetool mcp install
-```
-
-For Claude Desktop, build the source MCP bundle after installing dependencies
-and building packages:
-
-```bash
-npm run build:mcpb
-# writes dist/nodetool.mcpb
-```
-
-The MCP server can drive workflows and creative editing surfaces. See the
-[MCP production guide](docs/mcp-production.md) and
-[agent architecture](docs/AGENTS.md).
-
 ## CLI
 
-Install the CLI with `npm install -g @nodetool-ai/cli` using Node.js 22.22.1.
-From the repository checkout, run the same no-key example:
-
-```bash
-nodetool workflows run ./examples/workflows/hello_input_output_cli.json \
-  --params '{"text":"hello from NodeTool"}'
-```
+Install the CLI as shown in [MCP](#mcp), using Node.js 22.22.1. The
+[CLI package guide](packages/cli/README.md) covers running workflows with the
+installed command.
 
 To serve the API, run `nodetool serve` in a separate terminal. Commands that
 support remote execution accept `--api-url` or `NODETOOL_API_URL`.
@@ -167,27 +174,17 @@ See the [CLI reference](https://docs.nodetool.ai/cli) and
 
 ## Development setup
 
-The source checkout contains the backend packages, web UI, Electron desktop
-shell, and mobile app. Use the recommended bootstrap path first:
+After the [source quick start](#first-run-from-source), start the API and web
+UI from the prepared checkout:
 
 ```bash
-git clone https://github.com/nodetool-ai/nodetool.git
-cd nodetool
-nvm use
-./start.sh full                # installs, builds, then starts API and web UI
+npm run dev
 ```
 
-`./start.sh full` serves the API and web UI. It does not package or launch the
-Electron desktop app. To start only the API, use `./start.sh`; to inspect the
+For an automatic install, build, and launch from a fresh checkout, use
+`./start.sh full`. To start only the API, use `./start.sh`; to inspect the
 environment without changing it, use `./start.sh doctor`.
-
-For a manual setup, run these commands from the checkout root:
-
-```bash
-npm install
-npm run build:packages
-npm run dev                    # API and web development servers
-```
+These commands do not launch the Electron desktop app.
 
 In a separate terminal, launch the desktop shell with `npm run electron` from
 the prepared checkout. Node.js 22.22.1 is pinned in
