@@ -16,6 +16,10 @@ import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import KeyboardTabOutlinedIcon from "@mui/icons-material/KeyboardTabOutlined";
 import FlipToFrontOutlinedIcon from "@mui/icons-material/FlipToFrontOutlined";
+import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
+import LinkOffOutlinedIcon from "@mui/icons-material/LinkOffOutlined";
+import GridGoldenratioOutlinedIcon from "@mui/icons-material/GridGoldenratioOutlined";
+import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 
 import {
   FlexRow,
@@ -135,6 +139,10 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
   const toggleRippleMode = useTimelineUIStore((s) => s.toggleRippleMode);
   const dropMode = useTimelineUIStore((s) => s.dropMode);
   const setDropMode = useTimelineUIStore((s) => s.setDropMode);
+  const snapEnabled = useTimelineUIStore((s) => s.snapEnabled);
+  const toggleSnap = useTimelineUIStore((s) => s.toggleSnap);
+  const linkedSelection = useTimelineStore((s) => s.linkedSelection);
+  const setLinkedSelection = useTimelineStore((s) => s.setLinkedSelection);
   return (
     <FlexRow gap={0.5} align="center">
       <ToolButton
@@ -191,6 +199,25 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         onClick={() => setDropMode("overlap")}
       >
         <LayersOutlinedIcon />
+      </ToolButton>
+      <span css={dividerStyles} aria-hidden />
+      <ToolButton
+        label="Snap"
+        shortcut="N · Alt-drag bypasses"
+        active={snapEnabled}
+        compact={compact}
+        onClick={toggleSnap}
+      >
+        <GridGoldenratioOutlinedIcon />
+      </ToolButton>
+      <ToolButton
+        label="Linked"
+        shortcut="video and its audio move together"
+        active={linkedSelection}
+        compact={compact}
+        onClick={() => setLinkedSelection(!linkedSelection)}
+      >
+        {linkedSelection ? <LinkOutlinedIcon /> : <LinkOffOutlinedIcon />}
       </ToolButton>
     </FlexRow>
   );

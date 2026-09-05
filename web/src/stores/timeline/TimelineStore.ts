@@ -107,6 +107,11 @@ export interface TimelineStoreState {
    */
   scriptEnabled: boolean;
   /**
+   * Linked selection: a clip's linked siblings (a video and its extracted
+   * audio) move and trim with it. Editor state, not part of the document.
+   */
+  linkedSelection: boolean;
+  /**
    * The document as the editor last read or wrote it — the merge base for an
    * external change into a dirty draft. Refreshed by `loadSequence` and by
    * `setBaseUpdatedAt` (which only autosave calls after a landed write).
@@ -155,6 +160,7 @@ export interface TimelineStoreState {
   ) => void;
   /** Show or hide the script feature (non-destructive; does not touch clips). */
   setScriptEnabled: (enabled: boolean) => void;
+  setLinkedSelection: (on: boolean) => void;
 
   /**
    * Patch the project settings — canvas resolution (`width`/`height`) and frame
@@ -901,6 +907,7 @@ const emptyState = {
   markers: [],
   transcript: [],
   scriptEnabled: false,
+  linkedSelection: true,
   syncedDocument: null
 } satisfies {
   sequenceId: string | null;
@@ -914,6 +921,7 @@ const emptyState = {
   markers: TimelineMarker[];
   transcript: TranscriptLine[];
   scriptEnabled: boolean;
+  linkedSelection: boolean;
   syncedDocument: TimelineStoreState["syncedDocument"];
 };
 
@@ -1073,6 +1081,8 @@ export const createTimelineStore = (
           }),
 
         setScriptEnabled: (enabled) => set({ scriptEnabled: enabled }),
+
+        setLinkedSelection: (on) => set({ linkedSelection: on }),
 
         setProjectSettings: (patch) =>
           set((state) => {
@@ -1350,7 +1360,7 @@ export const createTimelineStore = (
             }
 
             const linkedIds =
-              clip.linkId !== undefined
+              state.linkedSelection && clip.linkId !== undefined
                 ? new Set(
                     state.clips
                       .filter(
@@ -1428,7 +1438,9 @@ export const createTimelineStore = (
             const carried = new Set<string>();
             for (const c of state.clips) {
               if (!selectedIds.has(c.id)) continue;
-              if (c.linkId !== undefined) selectedLinkIds.add(c.linkId);
+              if (state.linkedSelection && c.linkId !== undefined) {
+                selectedLinkIds.add(c.linkId);
+              }
               if (isGroupClip(c)) {
                 for (const id of groupDescendantIds(state.clips, c.id)) {
                   carried.add(id);
@@ -1485,7 +1497,7 @@ export const createTimelineStore = (
                 return state;
               }
             }
-            const linkId = clip.linkId;
+            const linkId = state.linkedSelection ? clip.linkId : undefined;
             // All-or-nothing: compute the primary AND every linked sibling
             // first. If any trim is invalid, abort so the link never desyncs.
             const trimmed = new Map<string, TimelineClip>();
@@ -1530,7 +1542,7 @@ export const createTimelineStore = (
                 return state;
               }
             }
-            const linkId = clip.linkId;
+            const linkId = state.linkedSelection ? clip.linkId : undefined;
             // All-or-nothing: compute the primary AND every linked sibling
             // first. If any trim is invalid, abort so the link never desyncs.
             const trimmed = new Map<string, TimelineClip>();
@@ -1556,7 +1568,8 @@ export const createTimelineStore = (
             try {
               return {
                 clips: rippleTrim(state.clips, clipId, "start", deltaMs, {
-                  lockedTrackIds: lockedTrackIds(state.tracks)
+                  lockedTrackIds: lockedTrackIds(state.tracks),
+                  followLinks: state.linkedSelection
                 })
               };
             } catch {
@@ -1570,6 +1583,7 @@ export const createTimelineStore = (
               return {
                 clips: rippleTrim(state.clips, clipId, "end", deltaMs, {
                   lockedTrackIds: lockedTrackIds(state.tracks),
+                  followLinks: state.linkedSelection,
                   maxSourceDurationMs
                 })
               };
@@ -1581,7 +1595,11 @@ export const createTimelineStore = (
         rollClipEdge: (clipId, edge, deltaMs) =>
           set((state) => {
             try {
-              return { clips: rollEdit(state.clips, clipId, edge, deltaMs) };
+              return {
+                clips: rollEdit(state.clips, clipId, edge, deltaMs, {
+                  followLinks: state.linkedSelection
+                })
+              };
             } catch {
               return state;
             }

@@ -22,6 +22,8 @@ import type { TimelineClip } from "./types.js";
 export interface RippleOptions {
   /** Tracks whose clips never move. */
   lockedTrackIds?: ReadonlySet<string>;
+  /** Linked siblings follow the edited clip (default). Off, only it moves. */
+  followLinks?: boolean;
 }
 
 const clipEndMs = (c: TimelineClip): number => c.startMs + c.durationMs;
@@ -29,10 +31,11 @@ const clipEndMs = (c: TimelineClip): number => c.startMs + c.durationMs;
 /** Every clip sharing `clip`'s link group, the clip itself included. */
 function linkGroupIds(
   clips: readonly TimelineClip[],
-  clip: TimelineClip
+  clip: TimelineClip,
+  followLinks = true
 ): Set<string> {
   const ids = new Set([clip.id]);
-  if (clip.linkId !== undefined) {
+  if (followLinks && clip.linkId !== undefined) {
     for (const c of clips) {
       if (c.linkId === clip.linkId) ids.add(c.id);
     }
@@ -79,7 +82,7 @@ export function rippleTrim(
 ): TimelineClip[] {
   const clip = clips.find((c) => c.id === clipId);
   if (!clip) throw new Error(`rippleTrim: clip ${clipId} not found`);
-  const group = linkGroupIds(clips, clip);
+  const group = linkGroupIds(clips, clip, options.followLinks);
   const oldEndMs = clipEndMs(clip);
 
   const trimmed = new Map<string, TimelineClip>();
@@ -129,7 +132,8 @@ export function rollEdit(
   clips: readonly TimelineClip[],
   clipId: string,
   edge: "start" | "end",
-  deltaMs: number
+  deltaMs: number,
+  options: Pick<RippleOptions, "followLinks"> = {}
 ): TimelineClip[] {
   const clip = clips.find((c) => c.id === clipId);
   if (!clip) throw new Error(`rollEdit: clip ${clipId} not found`);
@@ -138,8 +142,8 @@ export function rollEdit(
 
   const left = edge === "end" ? clip : neighbour;
   const right = edge === "end" ? neighbour : clip;
-  const leftIds = linkGroupIds(clips, left);
-  const rightIds = linkGroupIds(clips, right);
+  const leftIds = linkGroupIds(clips, left, options.followLinks);
+  const rightIds = linkGroupIds(clips, right, options.followLinks);
 
   const next = new Map<string, TimelineClip>();
   for (const c of clips) {

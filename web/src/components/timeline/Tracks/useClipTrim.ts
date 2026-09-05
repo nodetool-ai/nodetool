@@ -80,7 +80,7 @@ function targetEdge(
   msPerPx: number
 ) {
   const rawMs = gesture.edgeMsAtStart + (e.clientX - gesture.startX) * msPerPx;
-  if (e.altKey) {
+  if (e.altKey || !useTimelineUIStore.getState().snapEnabled) {
     return { valueMs: rawMs, guideMs: null };
   }
   return snapEdge(rawMs, gesture.candidates, msPerPx);

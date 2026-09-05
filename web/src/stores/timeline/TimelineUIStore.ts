@@ -88,6 +88,8 @@ export interface TimelineUIState {
    * clicking a trim handle without dragging. Cleared with the clip selection.
    */
   selectedEdit: SelectedEdit | null;
+  /** Magnet: edges snap to clips, the playhead and the grid. Alt-drag bypasses. */
+  snapEnabled: boolean;
   /**
    * Milliseconds per pixel — the primary zoom metric.
    * Default 10 ms/px ≈ 100 px/s. Smaller = zoomed in.
@@ -191,6 +193,7 @@ export interface TimelineUIState {
   toggleRippleMode: () => void;
   setDropMode: (mode: DropMode) => void;
   setSelectedEdit: (edit: SelectedEdit | null) => void;
+  toggleSnap: () => void;
 
   // ── FX panel ─────────────────────────────────────────────────────────────
 
@@ -228,6 +231,7 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   rippleMode: false,
   dropMode: "overwrite",
   selectedEdit: null,
+  snapEnabled: true,
   msPerPx: 10,
   scrollLeftPx: 0,
   revealRequest: null,
@@ -313,6 +317,8 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   setDropMode: (mode) => set({ dropMode: mode }),
 
   setSelectedEdit: (edit) => set({ selectedEdit: edit }),
+
+  toggleSnap: () => set((state) => ({ snapEnabled: !state.snapEnabled })),
 
   setExpandedFxTrackId: (trackId) => set({ expandedFxTrackId: trackId }),
 

@@ -254,7 +254,8 @@ export function useClipDrag({
           0,
           dragStartMsRef.current + deltaPx * msPerPx
         );
-        const { startMs: targetStartMs, guideMs } = lastPointer.altKey
+        const { startMs: targetStartMs, guideMs } =
+          lastPointer.altKey || !useTimelineUIStore.getState().snapEnabled
           ? { startMs: rawStartMs, guideMs: null }
           : snapClipWindow(
               rawStartMs,

@@ -178,3 +178,39 @@ describe("resolveDrop", () => {
     expect(clip(b.id).startMs).toBe(700);
   });
 });
+
+describe("linkedSelection", () => {
+  it("off, a move and a trim leave the linked sibling alone", () => {
+    const { store, v1, a1, clip } = storeWithCut();
+    const video = makeClip({
+      trackId: v1,
+      mediaType: "video",
+      startMs: 5000,
+      durationMs: 1000,
+      inPointMs: 0,
+      outPointMs: 1000,
+      linkId: "L",
+      status: "generated"
+    });
+    const audio = makeClip({
+      trackId: a1,
+      mediaType: "audio",
+      startMs: 5000,
+      durationMs: 1000,
+      inPointMs: 0,
+      outPointMs: 1000,
+      linkId: "L",
+      status: "generated"
+    });
+    store.getState().addClips([video, audio]);
+    store.getState().setLinkedSelection(false);
+    store.getState().moveClip(video.id, 500);
+    store.getState().trimClipEnd(video.id, -200);
+    expect(clip(video.id).startMs).toBe(5500);
+    expect(clip(audio.id).startMs).toBe(5000);
+    expect(clip(audio.id).durationMs).toBe(1000);
+    store.getState().setLinkedSelection(true);
+    store.getState().moveClip(video.id, 100);
+    expect(clip(audio.id).startMs).toBe(5100);
+  });
+});

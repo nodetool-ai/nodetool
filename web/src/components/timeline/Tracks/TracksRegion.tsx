@@ -101,6 +101,8 @@ import { deserializeDragData } from "../../../lib/dragdrop";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
 import { buildTypedIndexMap } from "./trackVisuals";
 import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
+import { resolveTimelineAction } from "../timelineKeymap";
+import { useSettingsStore } from "../../../stores/SettingsStore";
 
 const DEFAULT_TRACK_HEIGHT_PX = 64;
 const ZOOM_SENSITIVITY = 0.001;
@@ -681,210 +683,58 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           return;
         }
 
-        const isCtrl = e.ctrlKey || e.metaKey;
-
-        // ? → toggle the keyboard-shortcut reference sheet. Match the resolved
-        // character, not the modifier state: some layouts produce "?" via AltGr
-        // (reported as ctrlKey+altKey), so gating on modifiers would hide the
-        // shortcut there. Editable targets are already excluded above.
-        if (e.key === "?") {
-          e.preventDefault();
-          // Ignore auto-repeat so holding the key doesn't flip the dialog
-          // open/closed every repeat tick and land on an unpredictable state.
-          if (!e.repeat) setShortcutsOpen((open) => !open);
+        const preset =
+          useSettingsStore.getState().settings.timelineKeyboardPreset;
+        const action = resolveTimelineAction(e, preset);
+        if (action === null) {
           return;
         }
 
         // Read on demand instead of subscribing reactively — subscribing
         // would re-render the region and re-attach this listener on every
         // selection change (e.g. every rubber-band drag tick).
-        const { selectedClipIds } = uiStoreApi.getState();
-
-        // Delete / Backspace → delete selected. Shift, or ripple mode,
-        // closes the gap the clips leave (Premiere's Ripple Delete, FCP's
-        // default Delete).
-        if (
-          (e.key === "Delete" || e.key === "Backspace") &&
-          selectedClipIds.size > 0
-        ) {
-          e.preventDefault();
-          if (e.shiftKey || uiStoreApi.getState().rippleMode) {
-            docStore.getState().rippleDeleteSelected(selectedClipIds);
-          } else {
-            deleteSelected(selectedClipIds);
-          }
-          return;
-        }
-
-        // Ctrl+K → cut every unlocked clip under the playhead, on every
-        // track (Premiere's Add Edit to all tracks, FCP's Blade All).
-        if (isCtrl && (e.key === "k" || e.key === "K")) {
-          e.preventDefault();
-          splitSelectedAtPlayhead(
-            playbackStore.getState().currentTimeMs,
-            new Set()
-          );
-          return;
-        }
-
-        // Unmodified single keys the rest of this handler shares.
-        const plain = !isCtrl && !e.altKey && !e.shiftKey;
+        const ui = uiStoreApi.getState();
+        const { selectedClipIds } = ui;
+        const doc = docStore.getState();
         const playback = playbackStore.getState();
         const liveMs = playback.getTimeMs();
+        const frameMs = 1000 / Math.max(1, doc.fps);
 
         // Keyboard trims act on the selected edit point (a clicked clip edge).
-        // E extends it to the playhead; Ctrl+Shift+←/→ nudges it a frame
-        // (Alt: ten). Ripple mode decides whether later clips follow.
-        const trimEdit = (edgeTargetMs: number) => {
-          const edit = uiStoreApi.getState().selectedEdit;
+        // Ripple mode decides whether later clips follow.
+        const trimEdit = (edgeTargetMs: number): boolean => {
+          const edit = ui.selectedEdit;
           if (!edit) return false;
-          const doc = docStore.getState();
           const target = doc.clips.find((c) => c.id === edit.clipId);
           if (!target) return false;
-          const ripple = uiStoreApi.getState().rippleMode;
           if (edit.edge === "start") {
             const delta = target.startMs - edgeTargetMs;
-            if (ripple) doc.rippleTrimClipStart(target.id, delta);
+            if (ui.rippleMode) doc.rippleTrimClipStart(target.id, delta);
             else doc.trimClipStart(target.id, delta);
           } else {
             const delta = edgeTargetMs - (target.startMs + target.durationMs);
-            if (ripple) doc.rippleTrimClipEnd(target.id, delta);
+            if (ui.rippleMode) doc.rippleTrimClipEnd(target.id, delta);
             else doc.trimClipEnd(target.id, delta);
           }
           return true;
         };
-        if (plain && e.key === "e") {
-          if (trimEdit(liveMs)) e.preventDefault();
-          return;
-        }
-        if (
-          isCtrl &&
-          e.shiftKey &&
-          (e.key === "ArrowLeft" || e.key === "ArrowRight")
-        ) {
-          const edit = uiStoreApi.getState().selectedEdit;
+        const trimEditBy = (deltaMs: number): boolean => {
+          const edit = ui.selectedEdit;
           const target = edit
-            ? docStore.getState().clips.find((c) => c.id === edit.clipId)
+            ? doc.clips.find((c) => c.id === edit.clipId)
             : undefined;
-          if (edit && target) {
-            e.preventDefault();
-            const frameMs = 1000 / Math.max(1, docStore.getState().fps);
-            const stepMs = Math.round(frameMs * (e.altKey ? 10 : 1));
-            const edgeMs =
-              edit.edge === "start"
-                ? target.startMs
-                : target.startMs + target.durationMs;
-            trimEdit(edgeMs + (e.key === "ArrowLeft" ? -stepMs : stepMs));
-          }
-          return;
-        }
-
-        // I / O → mark in and out; Ctrl+Shift+X clears both.
-        if (plain && (e.key === "i" || e.key === "o")) {
-          e.preventDefault();
-          if (e.key === "i") playback.setRangeIn(liveMs);
-          else playback.setRangeOut(liveMs);
-          return;
-        }
-        if (isCtrl && e.shiftKey && e.key === "X") {
-          e.preventDefault();
-          playback.clearRange();
-          return;
-        }
-
-        // J / K / L → shuttle. J plays backwards, L forwards, each press
-        // doubles the speed; K stops and puts the speed back to 1.
-        if (plain && (e.key === "j" || e.key === "l")) {
-          e.preventDefault();
-          const dir = e.key === "j" ? -1 : 1;
-          const cur = playback.rate;
-          const sameDir = playback.isPlaying && Math.sign(cur) === dir;
-          const next = sameDir ? Math.sign(cur) * Math.min(8, Math.abs(cur) * 2) : dir;
-          playback.setRate(next);
-          if (!playback.isPlaying) {
-            playback.play();
-          }
-          // A seek while playing restarts the clock and audio at the new
-          // rate; see PreviewArea's seek-restart effect.
-          playback.seek(liveMs);
-          return;
-        }
-        if (plain && e.key === "k") {
-          e.preventDefault();
-          if (playback.isPlaying) playback.pause();
-          playback.setRate(1);
-          return;
-        }
-
-        // M → marker at the playhead. Shift+M / Ctrl+Shift+M → next / previous.
-        if ((e.key === "m" || e.key === "M") && !e.altKey) {
-          e.preventDefault();
-          const { markers, addMarker } = docStore.getState();
-          if (!e.shiftKey) {
-            if (!isCtrl) {
-              addMarker({ timeMs: liveMs, label: `Marker ${markers.length + 1}` });
-            }
-            return;
-          }
-          const times = markers.map((m) => m.timeMs).sort((a, b) => a - b);
-          const target = isCtrl
-            ? times.filter((t) => t < liveMs - 1).at(-1)
-            : times.find((t) => t > liveMs + 1);
-          if (target !== undefined) playback.seek(target);
-          return;
-        }
-
-        // ↑ / ↓ → previous / next cut (every clip edge on every track).
-        if (plain && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-          e.preventDefault();
-          const pts = new Set<number>([0]);
-          for (const c of docStore.getState().clips) {
-            pts.add(c.startMs);
-            pts.add(c.startMs + c.durationMs);
-          }
-          const sorted = [...pts].sort((a, b) => a - b);
-          const target =
-            e.key === "ArrowUp"
-              ? sorted.filter((t) => t < liveMs - 1).at(-1)
-              : sorted.find((t) => t > liveMs + 1);
-          if (target !== undefined) playback.seek(target);
-          return;
-        }
-
-        // Ctrl/Cmd+A → select every clip
-        if (isCtrl && (e.key === "a" || e.key === "A")) {
-          e.preventDefault();
-          setSelection(docStore.getState().clips.map((c) => c.id));
-          return;
-        }
-
-        // Escape → clear selection and drop back to the select tool. No
-        // preventDefault so Escape still closes any open menu/dialog.
-        if (e.key === "Escape") {
-          if (selectedClipIds.size > 0 || uiStoreApi.getState().selectedEdit) {
-            setSelection([]);
-          }
-          if (uiStoreApi.getState().activeTool !== "select") {
-            setActiveTool("select");
-          }
-          return;
-        }
-
-        // ←/→ → nudge selected clips by one frame (Shift: 1 s)
-        if (
-          (e.key === "ArrowLeft" || e.key === "ArrowRight") &&
-          !isCtrl &&
-          !e.altKey &&
-          selectedClipIds.size > 0
-        ) {
-          e.preventDefault();
+          if (!edit || !target) return false;
+          const edgeMs =
+            edit.edge === "start"
+              ? target.startMs
+              : target.startMs + target.durationMs;
+          return trimEdit(edgeMs + deltaMs);
+        };
+        const nudge = (deltaMs: number) => {
           if (!arrowNudgeOpen) {
             arrowNudgeOpen = true;
             arrowNudgeHistory.begin();
           }
-          const fps = docStore.getState().fps;
-          const stepMs = e.shiftKey ? 1000 : Math.round(1000 / Math.max(1, fps));
-          const deltaMs = e.key === "ArrowLeft" ? -stepMs : stepMs;
           const primaryId: string = selectedClipIds.values().next().value!;
           moveSelectedClips(primaryId, selectedClipIds, deltaMs);
           arrowNudgeHistory.mark();
@@ -892,98 +742,223 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             clearTimeout(arrowNudgeTimeoutId);
           }
           arrowNudgeTimeoutId = setTimeout(endArrowNudgeBatch, 400);
-          return;
-        }
-
-        // Ctrl+C / Ctrl+X → copy (cut) selected clips
-        if (isCtrl && (e.key === "c" || e.key === "x") && selectedClipIds.size > 0) {
-          e.preventDefault();
-          const clips = docStore
-            .getState()
-            .clips.filter((c) => selectedClipIds.has(c.id));
-          copyClipsToClipboard(clips);
-          if (e.key === "x") {
-            deleteSelected(selectedClipIds);
+        };
+        const seekToNeighbour = (times: number[], forward: boolean) => {
+          const sorted = [...times].sort((a, b) => a - b);
+          const target = forward
+            ? sorted.find((t) => t > liveMs + 1)
+            : sorted.filter((t) => t < liveMs - 1).at(-1);
+          if (target !== undefined) playback.seek(target);
+        };
+        const shuttle = (dir: 1 | -1) => {
+          const cur = playback.rate;
+          const sameDir = playback.isPlaying && Math.sign(cur) === dir;
+          const next = sameDir
+            ? Math.sign(cur) * Math.min(8, Math.abs(cur) * 2)
+            : dir;
+          playback.setRate(next);
+          if (!playback.isPlaying) {
+            playback.play();
           }
-          return;
-        }
+          // A seek while playing restarts the clock and audio at the new
+          // rate; see PreviewArea's seek-restart effect.
+          playback.seek(liveMs);
+        };
 
-        // Ctrl+V → paste at playhead (earliest clip lands on the playhead,
-        // the rest keep their relative offsets)
-        if (isCtrl && e.key === "v" && hasClipboardClips()) {
-          e.preventDefault();
-          const pasted = buildPastedClips(
-            docStore.getState().tracks,
-            playbackStore.getState().currentTimeMs
-          );
-          if (pasted.length > 0) {
-            addClips(pasted);
-            setSelection(pasted.map((c) => c.id));
+        switch (action) {
+          case "toggleShortcuts":
+            e.preventDefault();
+            // Ignore auto-repeat so holding the key doesn't flip the dialog
+            // open/closed every repeat tick.
+            if (!e.repeat) setShortcutsOpen((open) => !open);
+            return;
+
+          case "deleteSelected":
+          case "rippleDeleteSelected":
+            if (selectedClipIds.size === 0) return;
+            e.preventDefault();
+            if (action === "rippleDeleteSelected" || ui.rippleMode) {
+              doc.rippleDeleteSelected(selectedClipIds);
+            } else {
+              deleteSelected(selectedClipIds);
+            }
+            return;
+
+          case "splitAtPlayhead":
+            e.preventDefault();
+            splitSelectedAtPlayhead(playback.currentTimeMs, selectedClipIds);
+            return;
+
+          case "cutAllTracks":
+            e.preventDefault();
+            splitSelectedAtPlayhead(playback.currentTimeMs, new Set());
+            return;
+
+          case "extendEdit":
+            if (trimEdit(liveMs)) e.preventDefault();
+            return;
+          case "trimEditLeft":
+            if (trimEditBy(-Math.round(frameMs))) e.preventDefault();
+            return;
+          case "trimEditRight":
+            if (trimEditBy(Math.round(frameMs))) e.preventDefault();
+            return;
+          case "trimEditLeftLarge":
+            if (trimEditBy(-Math.round(frameMs * 10))) e.preventDefault();
+            return;
+          case "trimEditRightLarge":
+            if (trimEditBy(Math.round(frameMs * 10))) e.preventDefault();
+            return;
+
+          case "markIn":
+            e.preventDefault();
+            playback.setRangeIn(liveMs);
+            return;
+          case "markOut":
+            e.preventDefault();
+            playback.setRangeOut(liveMs);
+            return;
+          case "clearRange":
+            e.preventDefault();
+            playback.clearRange();
+            return;
+
+          case "shuttleBack":
+            e.preventDefault();
+            shuttle(-1);
+            return;
+          case "shuttleForward":
+            e.preventDefault();
+            shuttle(1);
+            return;
+          case "shuttleStop":
+            e.preventDefault();
+            if (playback.isPlaying) playback.pause();
+            playback.setRate(1);
+            return;
+
+          case "addMarker":
+            e.preventDefault();
+            doc.addMarker({
+              timeMs: liveMs,
+              label: `Marker ${doc.markers.length + 1}`
+            });
+            return;
+          case "nextMarker":
+          case "prevMarker":
+            e.preventDefault();
+            seekToNeighbour(
+              doc.markers.map((m) => m.timeMs),
+              action === "nextMarker"
+            );
+            return;
+
+          case "prevCut":
+          case "nextCut": {
+            e.preventDefault();
+            const pts = new Set<number>([0]);
+            for (const c of doc.clips) {
+              pts.add(c.startMs);
+              pts.add(c.startMs + c.durationMs);
+            }
+            seekToNeighbour([...pts], action === "nextCut");
+            return;
           }
-          return;
-        }
 
-        // Ctrl+D → duplicate selected (placed right after each source)
-        if (isCtrl && e.key === "d" && !e.shiftKey) {
-          e.preventDefault();
-          const newIds = duplicateSelected(selectedClipIds);
-          if (newIds.length > 0) setSelection(newIds);
-          return;
-        }
+          case "selectAll":
+            e.preventDefault();
+            setSelection(doc.clips.map((c) => c.id));
+            return;
 
-        // Ctrl+Shift+D → duplicate with an extra 1 s gap after each source
-        if (isCtrl && e.shiftKey && e.key === "D") {
-          e.preventDefault();
-          const newIds = duplicateSelected(selectedClipIds, DUPLICATE_OFFSET_MS);
-          if (newIds.length > 0) setSelection(newIds);
-          return;
-        }
+          case "escape":
+            // No preventDefault so Escape still closes any open menu/dialog.
+            if (selectedClipIds.size > 0 || ui.selectedEdit) {
+              setSelection([]);
+            }
+            if (ui.activeTool !== "select") {
+              setActiveTool("select");
+            }
+            return;
 
-        // S → split at playhead (no modifier; avoid hijacking browser Ctrl+S)
-        if (e.key === "s" && !isCtrl && !e.shiftKey && !e.altKey) {
-          e.preventDefault();
-          splitSelectedAtPlayhead(
-            playbackStore.getState().currentTimeMs,
-            selectedClipIds
-          );
-          return;
-        }
+          case "nudgeLeft":
+          case "nudgeRight":
+          case "nudgeLeftLarge":
+          case "nudgeRightLarge": {
+            if (selectedClipIds.size === 0) return;
+            e.preventDefault();
+            const large = action.endsWith("Large");
+            const stepMs = large ? 1000 : Math.round(frameMs);
+            nudge(action.startsWith("nudgeLeft") ? -stepMs : stepMs);
+            return;
+          }
 
-        // V → select tool, C → cut tool (FCP-style)
-        if (
-          (e.key === "v" || e.key === "c") &&
-          !isCtrl &&
-          !e.shiftKey &&
-          !e.altKey
-        ) {
-          e.preventDefault();
-          setActiveTool(e.key === "v" ? "select" : "cut");
-          return;
-        }
+          case "copy":
+          case "cut": {
+            if (selectedClipIds.size === 0) return;
+            e.preventDefault();
+            copyClipsToClipboard(
+              doc.clips.filter((c) => selectedClipIds.has(c.id))
+            );
+            if (action === "cut") {
+              deleteSelected(selectedClipIds);
+            }
+            return;
+          }
 
-        // +/= → zoom in, -/_ → zoom out. setZoom triggers the scale-change
-        // layout effect above, which keeps the playhead pinned to the same
-        // viewport x as the lanes rescale.
-        if (!isCtrl && !e.altKey && (e.key === "+" || e.key === "=")) {
-          e.preventDefault();
-          const cur = uiStoreApi.getState().msPerPx;
-          uiStoreApi.getState().setZoom(cur * ZOOM_IN_FACTOR);
-          return;
-        }
-        if (!isCtrl && !e.altKey && (e.key === "-" || e.key === "_")) {
-          e.preventDefault();
-          const cur = uiStoreApi.getState().msPerPx;
-          uiStoreApi.getState().setZoom(cur * ZOOM_OUT_FACTOR);
-          return;
-        }
+          case "paste": {
+            if (!hasClipboardClips()) return;
+            e.preventDefault();
+            // The earliest clip lands on the playhead, the rest keep their
+            // relative offsets.
+            const pasted = buildPastedClips(doc.tracks, playback.currentTimeMs);
+            if (pasted.length > 0) {
+              addClips(pasted);
+              setSelection(pasted.map((c) => c.id));
+            }
+            return;
+          }
 
-        // Shift+Z → zoom so the whole content fits the visible lane width.
-        if (!isCtrl && e.shiftKey && (e.key === "z" || e.key === "Z")) {
-          e.preventDefault();
-          const el = scrollableRef.current;
-          if (el) {
-            let end = docStore.getState().durationMs || 0;
-            for (const c of docStore.getState().clips) {
+          case "duplicate":
+          case "duplicateWithGap": {
+            e.preventDefault();
+            const newIds = duplicateSelected(
+              selectedClipIds,
+              action === "duplicateWithGap" ? DUPLICATE_OFFSET_MS : 0
+            );
+            if (newIds.length > 0) setSelection(newIds);
+            return;
+          }
+
+          case "selectTool":
+            e.preventDefault();
+            setActiveTool("select");
+            return;
+          case "cutTool":
+            e.preventDefault();
+            setActiveTool("cut");
+            return;
+          case "toggleSnap":
+            e.preventDefault();
+            ui.toggleSnap();
+            return;
+
+          // setZoom triggers the scale-change layout effect above, which
+          // keeps the playhead pinned to the same viewport x as the lanes
+          // rescale.
+          case "zoomIn":
+            e.preventDefault();
+            ui.setZoom(ui.msPerPx * ZOOM_IN_FACTOR);
+            return;
+          case "zoomOut":
+            e.preventDefault();
+            ui.setZoom(ui.msPerPx * ZOOM_OUT_FACTOR);
+            return;
+          case "zoomFit": {
+            e.preventDefault();
+            const el = scrollableRef.current;
+            if (!el) return;
+            let end = doc.durationMs || 0;
+            for (const c of doc.clips) {
               end = Math.max(end, c.startMs + c.durationMs);
             }
             const viewport = el.clientWidth - ZOOM_FIT_PADDING_PX;
@@ -991,26 +966,30 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               // Pin the content start to the left edge as the lanes rescale,
               // reusing the cursor-zoom anchor path (see the layout effect).
               zoomAnchorRef.current = { timeMs: 0, cursorPx: 0 };
-              uiStoreApi.getState().setZoom(end / viewport);
+              ui.setZoom(end / viewport);
             }
+            return;
           }
-          return;
-        }
 
-        // Ctrl+Z → undo
-        if (isCtrl && !e.shiftKey && e.key === "z") {
-          e.preventDefault();
-          getTimelineTemporal().undo();
-          return;
-        }
+          case "undo":
+            e.preventDefault();
+            getTimelineTemporal().undo();
+            return;
+          case "redo":
+            e.preventDefault();
+            getTimelineTemporal().redo();
+            return;
 
-        // Ctrl+Shift+Z / Ctrl+Y → redo
-        if (
-          (isCtrl && e.shiftKey && e.key === "Z") ||
-          (isCtrl && e.key === "y")
-        ) {
-          e.preventDefault();
-          getTimelineTemporal().redo();
+          case "applyDefaultTransition":
+          case "addKeyframe":
+          case "nextKeyframe":
+          case "prevKeyframe":
+          case "sourceAppend":
+          case "sourceInsert":
+          case "sourceOverwrite":
+            // Handled by the surfaces that own them (transition, keyframe
+            // and source-viewer actions); nothing here yet.
+            return;
         }
       };
 
