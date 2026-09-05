@@ -29,8 +29,6 @@ import { useShotDuration } from "./useShotDuration";
 import { CLIP_RESOLUTION, STILL_RESOLUTION } from "./renderSpec";
 import { priceRenderStep, type ShotCostStep } from "./shotCostPricing";
 
-export type { ShotCostStep };
-
 export interface ShotCostEstimate {
   /** The whole-shot cost in USD: every priced step below, summed. */
   cost: number;

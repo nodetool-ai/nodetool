@@ -325,7 +325,7 @@ export const sameMediaRef = (
  * merge that inserted a server shot — must renumber or the board renders out
  * of order. Shots already at their position keep their identity.
  */
-export const renumberShots = (shots: Shot[]): Shot[] =>
+const renumberShots = (shots: Shot[]): Shot[] =>
   shots.map((shot, i) => (shot.index === i ? shot : { ...shot, index: i }));
 
 const patchShot = (
