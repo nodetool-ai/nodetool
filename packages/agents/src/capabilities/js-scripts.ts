@@ -63,12 +63,7 @@ import {
 } from "./js-scripts.specs.js";
 import { isNonBlankString, isRecord } from "../utils/type-guards.js";
 
-export {
-  DEFAULT_VERSION_LIMIT,
-  MAX_VERSION_LIMIT,
-  MAX_JS_SCRIPT_DEPTH,
-  MAX_JS_SCRIPT_TIMEOUT_SECONDS
-} from "./js-scripts.specs.js";
+export { MAX_JS_SCRIPT_DEPTH } from "./js-scripts.specs.js";
 
 /** Context variable carrying how many script invocations deep this run is. */
 export const JS_SCRIPT_DEPTH_KEY = "__js_script_depth";

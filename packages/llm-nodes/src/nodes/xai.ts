@@ -1,6 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
-import { isString } from "./type-predicates.js";
+import { isString } from "@nodetool-ai/node-sdk";
 
 const XAI_API_BASE = "https://api.x.ai/v1";
 

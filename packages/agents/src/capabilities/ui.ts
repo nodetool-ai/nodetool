@@ -53,8 +53,6 @@ import type {
 } from "./types.js";
 import { isRecord, isString } from "../utils/type-guards.js";
 
-export { workflowDocumentSchema } from "./ui.specs.js";
-
 /**
  * Apply one document op to the stored workflow. The unvalidated core: the
  * class path has already parsed the arguments, and {@link withZodValidation}

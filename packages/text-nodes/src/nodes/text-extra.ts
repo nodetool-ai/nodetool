@@ -19,7 +19,10 @@ import {
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
 } from "@nodetool-ai/nodes-utils";
-import { isNonEmptyString, isString } from "../type-predicates.js";
+import {
+  isNonEmptyString,
+  isString
+} from "@nodetool-ai/node-sdk";
 
 const NODE_ONLY: readonly Platform[] = ["node"];
 
@@ -171,7 +174,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     },
     title: "Model"
   })
-  declare model: any;
+  declare model: ModelSelection;
 
   @prop({
     type: "audio",
@@ -186,7 +189,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     description: "The audio to transcribe",
     required: true
   })
-  declare audio: any;
+  declare audio: AudioLike | null;
 
   @prop({
     type: "str",
@@ -194,7 +197,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     title: "Language",
     description: "Language of the audio (ISO 639-1 code, empty for auto-detect)"
   })
-  declare language: any;
+  declare language: string;
 
   @prop({
     type: "str",
@@ -202,7 +205,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     title: "Prompt",
     description: "Optional prompt to guide the transcription"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "float",
@@ -212,7 +215,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     min: 0,
     max: 1
   })
-  declare temperature: any;
+  declare temperature: number;
 
   async process(context?: ProcessingContext): Promise<AutomaticSpeechRecognitionNodeOutputs> {
     const { providerId, modelId } = modelConfig(this.model);
@@ -248,9 +251,9 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
         model: modelId,
         params: {
           audio: bytes,
-          language: String(this.language ?? "") || undefined,
-          prompt: String(this.prompt ?? "") || undefined,
-          temperature: Number(this.temperature ?? 0) || undefined
+          language: this.language || undefined,
+          prompt: this.prompt || undefined,
+          temperature: this.temperature || undefined
         }
       });
       if (!isAsrResult(result)) {
@@ -295,7 +298,7 @@ export class EmbeddingTextNode extends BaseNode {
     title: "Model",
     description: "The embedding model to use"
   })
-  declare model: any;
+  declare model: ModelSelection;
 
   @prop({
     type: "str",
@@ -303,7 +306,7 @@ export class EmbeddingTextNode extends BaseNode {
     title: "Input",
     description: "The text to embed"
   })
-  declare input: any;
+  declare input: string;
 
   @prop({
     type: "int",
@@ -314,14 +317,14 @@ export class EmbeddingTextNode extends BaseNode {
     min: 1,
     max: 8192
   })
-  declare chunk_size: any;
+  declare chunk_size: number;
 
   async process(context?: ProcessingContext): Promise<EmbeddingTextNodeOutputs> {
-    const text = String(this.input ?? "");
+    const text = this.input;
     if (!text) {
       throw new Error("input text must not be empty");
     }
-    const model: ModelSelection = this.model;
+    const model = this.model;
     const { providerId, modelId } = modelConfig(model);
     if (!context || !hasProviderPrediction(context.runProviderPrediction)) {
       throw new Error(
@@ -365,7 +368,7 @@ export class SaveTextFileNode extends BaseNode {
   static readonly inputFields: string[] = ["text"];
 
   @prop({ type: "str", default: "", title: "Text" })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: "bool",
@@ -373,7 +376,7 @@ export class SaveTextFileNode extends BaseNode {
     title: SAVE_TO_WORKSPACE_TITLE,
     description: SAVE_TO_WORKSPACE_DESCRIPTION
   })
-  declare save_to_workspace: any;
+  declare save_to_workspace: boolean;
 
   @prop({
     type: "str",
@@ -382,7 +385,7 @@ export class SaveTextFileNode extends BaseNode {
     description: "Path to the output folder.",
     json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
-  declare folder: any;
+  declare folder: string;
 
   @prop({
     type: "str",
@@ -391,21 +394,20 @@ export class SaveTextFileNode extends BaseNode {
     description:
       "\n        Name of the output file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
   })
-  declare name: any;
+  declare name: string;
 
   async process(context?: ProcessingContext): Promise<SaveTextFileNodeOutputs> {
-    const text = String(this.text ?? "");
-    const saveToWorkspace = this.save_to_workspace === true;
+    const text = this.text;
+    const saveToWorkspace = this.save_to_workspace;
     const folder = folderPathOf(this.folder);
     if (!folder && !(saveToWorkspace && context?.workspace)) {
       throw new Error(
         "No destination: set a folder, or turn on \"Save to workspace\" and assign a workspace to this workflow."
       );
     }
-    const fs = await loadNodeFsPromises();
     const fsPath = await writeSavedFile({
       folder: this.folder,
-      filename: formatFilename(String(this.name ?? "output.txt")),
+      filename: formatFilename(this.name),
       saveToWorkspace,
       workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,
@@ -435,7 +437,7 @@ export class SaveTextNode extends BaseNode {
   static readonly inputFields: string[] = ["text"];
 
   @prop({ type: "str", default: "", title: "Text" })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: "folder",
@@ -449,7 +451,7 @@ export class SaveTextNode extends BaseNode {
     title: "Folder",
     description: "Name of the output folder."
   })
-  declare folder: any;
+  declare folder: FolderLike;
 
   @prop({
     type: "str",
@@ -458,12 +460,12 @@ export class SaveTextNode extends BaseNode {
     description:
       "\n        Name of the output file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
   })
-  declare name: any;
+  declare name: string;
 
   async process(): Promise<SaveTextNodeOutputs> {
-    const text = String(this.text ?? "");
-    const name = formatFilename(String(this.name ?? "output.txt"));
-    const folder = folderPath(this.folder ?? "");
+    const text = this.text;
+    const name = formatFilename(this.name);
+    const folder = folderPath(this.folder);
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
     const fsPath = folder ? path.join(folder, name) : name;
@@ -511,7 +513,7 @@ export class LoadTextFolderNode extends BaseNode {
     title: "Folder",
     description: "Folder to scan for text files"
   })
-  declare folder: any;
+  declare folder: string;
 
   @prop({
     type: "bool",
@@ -519,7 +521,7 @@ export class LoadTextFolderNode extends BaseNode {
     title: "Include Subdirectories",
     description: "Include text files in subfolders"
   })
-  declare include_subdirectories: any;
+  declare include_subdirectories: boolean;
 
   @prop({
     type: "list[str]",
@@ -527,7 +529,7 @@ export class LoadTextFolderNode extends BaseNode {
     title: "Extensions",
     description: "Text file extensions to include"
   })
-  declare extensions: any;
+  declare extensions: string[];
 
   @prop({
     type: "str",
@@ -535,7 +537,7 @@ export class LoadTextFolderNode extends BaseNode {
     title: "Pattern",
     description: "Pattern to match text files"
   })
-  declare pattern: any;
+  declare pattern: string;
 
   async process(): Promise<LoadTextFolderNodeOutputs> {
     const allTexts: string[] = [];
@@ -556,11 +558,9 @@ export class LoadTextFolderNode extends BaseNode {
     text: string;
     path: string;
   }> {
-    const folder = String(this.folder ?? "");
-    const includeSubdirs = Boolean(this.include_subdirectories ?? false);
-    const extensions: string[] = Array.isArray(this.extensions)
-      ? this.extensions.map((ext) => String(ext).toLowerCase())
-      : [".txt"];
+    const folder = this.folder;
+    const includeSubdirs = this.include_subdirectories;
+    const extensions = this.extensions.map((ext) => String(ext).toLowerCase());
 
     if (!folder) {
       throw new Error("folder cannot be empty");
@@ -639,12 +639,12 @@ export class LoadTextAssetsNode extends BaseNode {
     title: "Folder",
     description: "The asset folder to load the text files from."
   })
-  declare folder: any;
+  declare folder: FolderLike;
 
   async process(): Promise<LoadTextAssetsNodeOutputs> {
     const allTexts: string[] = [];
     const allNames: string[] = [];
-    const folder = folderPath(this.folder ?? "");
+    const folder = folderPath(this.folder);
     if (!folder) {
       throw new Error("folder cannot be empty");
     }
@@ -663,7 +663,7 @@ export class LoadTextAssetsNode extends BaseNode {
   }
 
   async *genProcess(): AsyncGenerator<LoadTextAssetsNodeOutputs> {
-    const folder = folderPath(this.folder ?? "");
+    const folder = folderPath(this.folder);
     if (!folder) {
       throw new Error("folder cannot be empty");
     }
@@ -724,7 +724,7 @@ export class FilterStringNode extends BaseNode {
     title: "Value",
     description: "Input string stream"
   })
-  declare value: any;
+  declare value: string;
 
   @prop({
     type: "enum",
@@ -740,7 +740,7 @@ export class FilterStringNode extends BaseNode {
       "exact_length"
     ]
   })
-  declare filter_type: any;
+  declare filter_type: FilterStringType;
 
   @prop({
     type: "str",
@@ -748,12 +748,13 @@ export class FilterStringNode extends BaseNode {
     title: "Criteria",
     description: "The filtering criteria (text to match or length as string)"
   })
-  declare criteria: any;
+  declare criteria: string;
 
   private readFilterProps(): void {
-    const filterType = String(this.filter_type ?? "contains");
-    this._filterType = isFilterStringType(filterType) ? filterType : null;
-    this._criteria = String(this.criteria ?? "");
+    this._filterType = isFilterStringType(this.filter_type)
+      ? this.filter_type
+      : null;
+    this._criteria = this.criteria;
   }
 
   async initialize(): Promise<void> {
@@ -829,7 +830,7 @@ export class FilterRegexStringNode extends BaseNode {
     title: "Value",
     description: "Input string stream"
   })
-  declare value: any;
+  declare value: string;
 
   @prop({
     type: "str",
@@ -837,7 +838,7 @@ export class FilterRegexStringNode extends BaseNode {
     title: "Pattern",
     description: "The regular expression pattern to match against."
   })
-  declare pattern: any;
+  declare pattern: string;
 
   @prop({
     type: "bool",
@@ -846,16 +847,16 @@ export class FilterRegexStringNode extends BaseNode {
     description:
       "Whether to match the entire string or find pattern anywhere in string"
   })
-  declare full_match: any;
+  declare full_match: boolean;
 
   async initialize(): Promise<void> {
-    this._pattern = String(this.pattern ?? "");
-    this._fullMatch = Boolean(this.full_match ?? false);
+    this._pattern = this.pattern;
+    this._fullMatch = this.full_match;
   }
 
   async process(): Promise<FilterRegexStringNodeOutputs> {
-    this._pattern = String(this.pattern ?? "");
-    this._fullMatch = Boolean(this.full_match ?? false);
+    this._pattern = this.pattern;
+    this._fullMatch = this.full_match;
 
     const value = this.value;
     if (!isString(value)) {
@@ -940,7 +941,7 @@ export class CollectTextNode extends BaseNode {
     title: "Input Item",
     description: "Text to collect."
   })
-  declare input_item: any;
+  declare input_item: string;
 
   @prop({
     type: "str",
@@ -948,16 +949,15 @@ export class CollectTextNode extends BaseNode {
     title: "Separator",
     description: "Separator between collected items."
   })
-  declare separator: any;
+  declare separator: string;
 
   async initialize(): Promise<void> {
     this._items = [];
   }
 
   async process(): Promise<CollectTextNodeOutputs> {
-    this._items.push(String(this.input_item ?? ""));
-    const sep = String(this.separator ?? "");
-    return { output: this._items.join(sep) };
+    this._items.push(this.input_item);
+    return { output: this._items.join(this.separator) };
   }
 }
 
@@ -997,10 +997,10 @@ export class PromptNode extends BaseNode {
     title: "Prompt",
     description: "Prompt text. Reference variables with {{ name }} or {name}."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   async process(context?: ProcessingContext): Promise<PromptNodeOutputs> {
-    const template = String(this.prompt ?? "");
+    const template = this.prompt;
     const props = new Map<string, unknown>(this.dynamicProps);
 
     // Resolve `{{ name }}` references against variable channels: wait for the
@@ -1056,10 +1056,10 @@ export class TemplateTextNode extends BaseNode {
     description:
       "Template string with {{ variable }} or {variable} placeholders."
   })
-  declare string: any;
+  declare string: string;
 
   async process(): Promise<TemplateTextNodeOutputs> {
-    let result = String(this.string ?? "");
+    let result = this.string;
     const props = tokenizeAssetVars(this.dynamicProps);
 
     for (const [key, value] of Object.entries(props)) {

@@ -61,12 +61,7 @@ import {
   updateAssetSpec,
   DEFAULT_LIMIT,
   MAX_LIMIT,
-  LIST_ASSETS_SCHEMA,
-  SAVE_ASSET_SCHEMA,
-  ASSET_SEARCH_SCHEMA,
-  ASSET_LIST_SCHEMA,
   LIST_IMAGES_SCHEMA,
-  REGION_SCHEMA,
   VIEW_IMAGE_SCHEMA
 } from "./assets.specs.js";
 import {
@@ -75,18 +70,6 @@ import {
   isRecord,
   isString
 } from "../utils/type-guards.js";
-
-export {
-  DEFAULT_LIMIT,
-  MAX_LIMIT,
-  LIST_ASSETS_SCHEMA,
-  SAVE_ASSET_SCHEMA,
-  ASSET_SEARCH_SCHEMA,
-  ASSET_LIST_SCHEMA,
-  LIST_IMAGES_SCHEMA,
-  REGION_SCHEMA,
-  VIEW_IMAGE_SCHEMA
-} from "./assets.specs.js";
 
 // ---------------------------------------------------------------------------
 // Shared projections

@@ -39,7 +39,7 @@ import {
   isObjectLike,
   isPositiveNumber,
   isString
-} from "../type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 
 const DEFAULT_AUDIO_EXTENSIONS = [
   ".mp3",

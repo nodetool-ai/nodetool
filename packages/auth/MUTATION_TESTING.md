@@ -1,7 +1,7 @@
 # Mutation Testing — `@nodetool-ai/auth`
 
-This package is security-critical (token verification, auth middleware, user
-roles), so its tests are verified with **mutation testing** in addition to
+This package is security-critical (token verification, user records, roles),
+so its tests are verified with **mutation testing** in addition to
 ordinary coverage. Line coverage only proves code *ran*; mutation testing proves
 the tests would actually *fail* if the behaviour changed — exactly the property
 you want from an auth layer, where a silently-weakened check is a vulnerability.
@@ -18,24 +18,9 @@ The HTML report lands in `reports/mutation/mutation.html` (git-ignored).
 
 ## Current status
 
-```
-File                     | % score | killed | survived
--------------------------|---------|--------|---------
-auth-provider.ts         |  100.00 |      6 |        0
-file-user-manager.ts     |  100.00 |     66 |        0
-http-auth.ts             |  100.00 |     43 |        0
-middleware.ts            |  100.00 |     40 |        0
-user-manager.ts          |  100.00 |     12 |        0
-providers/local          |  100.00 |      4 |        0
-providers/static-token   |  100.00 |     23 |        0
-providers/multi-user     |  100.00 |     25 |        0
-providers/supabase       |  100.00 |     73 |        0
--------------------------|---------|--------|---------
-All files                |  100.00 |    292 |        0
-```
-
-The config gate (`stryker.config.json`) **breaks below 90%**, mirroring
-`packages/security`, so a regression in test quality fails fast.
+Stryker reports a per-file score; the config gate (`stryker.config.json`)
+**breaks below 90%**, mirroring `packages/security`, so a regression in test
+quality fails fast.
 
 ## How the suite was hardened
 
@@ -43,12 +28,11 @@ Mutation testing surfaced gaps that line coverage hid. The tests added to close
 them pin *observable behaviour*, not implementation details (each test asserts
 one externally-meaningful property and reads as Arrange/Act/Assert):
 
-- **Operator-facing error messages** (`user-manager`, `middleware`, `http-auth`):
-  tests asserted *that* a throw/401 happened but not *what* it said, so blanking
-  or rerouting a message survived. They now pin the exact text — e.g. the
-  no-token middleware 401 must name `Authorization: Bearer <token>`, and a
-  provider's own rejection message must reach the caller (`error ?? default`).
-- **Token-parsing whitespace** (`auth-provider`, `http-auth`): `split(/\s+/)` is
+- **Operator-facing error messages**: tests asserted *that* a throw happened but
+  not *what* it said, so blanking or rerouting a message survived. They now pin
+  the exact text, so a provider's own rejection message must reach the caller
+  (`error ?? default`).
+- **Token-parsing whitespace** (`auth-provider`): `split(/\s+/)` is
   exercised with a *run* of whitespace (`"Bearer  tok"`) so the `/\s+/` → `/\s/`
   mutant, which would split a double space into three parts, is caught.
 - **Empty / non-string credential edge cases**: an empty `STATIC_AUTH_TOKEN`
@@ -57,12 +41,7 @@ one externally-meaningful property and reads as Arrange/Act/Assert):
   rejected by the `typeof !== "string"` arm (each kills a different operand
   mutant in the same guard).
 - **Default-value short-circuits**: a provider that returns `ok:true` with no
-  `tokenType` proves the `?? TokenType.STATIC` default; an accept-everything
-  provider proves `authenticateRequest`'s `if (!token) return null` runs *before*
-  `verifyToken`.
-- **401 wire format** (`http-auth`): the response body (`{ detail: … }`) and the
-  `Content-Type` / `WWW-Authenticate` challenge headers are asserted so the
-  object/string literals can't be emptied.
+  `tokenType` proves the `?? TokenType.STATIC` default.
 - **Persistence & path resolution** (`file-user-manager`): the users file is
   asserted to carry `version: "1.0"`; `resetToken` must preserve the stored
   record's id/username/role; and a mocked `homedir()` pins the per-platform
@@ -83,14 +62,11 @@ line-scoped `// Stryker disable` comment that documents *why*:
 - **`"utf-8"` encoding arguments** (`file-user-manager` read/write) — Node returns
   a Buffer for an empty/invalid encoding and JSON.parse coerces it via the default
   utf8 decoding, so `"utf8"` and `""` are byte-identical.
-- **`parts[1].trim()`** (`auth-provider`, `http-auth`) — `split(/\s+/)` already
+- **`parts[1].trim()`** (`auth-provider`) — `split(/\s+/)` already
   yields tokens with no surrounding whitespace, so the trim is a no-op.
 - **Case-insensitive `Headers` fallback** (`auth-provider`) — `Headers.get` is
   case-insensitive, so the capitalized fallback always resolves to the same value
   as the primary lookup; every mutant on those two lines is equivalent.
-- **`STATIC_AUTH_TOKENS` parse guard** (`static-token`) — a falsy value makes
-  `JSON.parse` throw into the swallowing catch, so forcing the branch registers
-  no tokens either way.
 - **Supabase cache fast-paths** (`supabase-provider`) — the `cacheTtl<=0` /
   `cacheMax<=0` guards are redundant with, respectively, the matching read gate in
   `_getCachedUser` and the `size > cacheMax` eviction (an add-then-evict at

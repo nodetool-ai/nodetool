@@ -13,7 +13,10 @@ import {
 } from "./defaults.js";
 import { glbOutput } from "./base.js";
 import { imageRefToBytes } from "./utils.js";
-import { isFiniteNumber, isNonEmptyString } from "../../type-predicates.js";
+import {
+  isFiniteNumber,
+  isNonEmptyString
+} from "@nodetool-ai/node-sdk";
 
 const SUPPORTED_OUTPUT_FORMATS = ["glb", "obj", "fbx", "usdz"] as const;
 

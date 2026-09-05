@@ -33,6 +33,7 @@ import {
 } from "@nodetool-ai/image-editor/raster.js";
 
 import { useSketchInstance } from "../../stores/sketch/SketchInstance";
+import type { SketchCanvasRefState } from "../../stores/sketch/SketchCanvasRefStore";
 import { useDirectGenJob } from "./useDirectGenJob";
 import {
   renderLayerToAsset,
@@ -194,6 +195,20 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
       return layer;
     };
 
+    /**
+     * The editor's own layer verb, which runs the runtime half as well as the
+     * store half. Half of a two-part destructive op is worse than none.
+     */
+    const requireOp = <K extends keyof SketchCanvasRefState>(
+      name: K
+    ): NonNullable<SketchCanvasRefState[K]> => {
+      const op = canvasRef.getState()[name];
+      if (!op) {
+        throw new Error("Canvas is not ready yet.");
+      }
+      return op as NonNullable<SketchCanvasRefState[K]>;
+    };
+
     const applyRaster = (
       layer: Layer,
       label: string,
@@ -246,41 +261,25 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
       },
 
       addLayer(opts) {
-        const state = editor.getState();
-        const id = state.addLayer(
-          uniqueLayerName(opts.name ?? "Layer"),
-          opts.type ?? "raster"
-        );
-        if (opts.fillColor) {
-          // The canvas creates the layer on its next render; fill once it
-          // exists, then persist the pixels and record a history entry —
-          // mirroring the layers panel's fill-on-add behavior.
-          requestAnimationFrame(() => {
-            const refs = canvasRef.getState();
-            refs.fillLayerWithColor?.(id, opts.fillColor as string);
-            const data = refs.getLayerData?.(id);
-            if (data) editor.getState().updateLayerData(id, data);
-            editor.getState().pushHistory("add layer");
-          });
-        } else {
-          state.pushHistory("add layer");
-        }
+        const id = requireOp("addLayer")({
+          name: uniqueLayerName(opts.name ?? "Layer"),
+          type: opts.type ?? "raster",
+          fillColor: opts.fillColor
+        });
         return layerNode(reReadLayer(id));
       },
 
       removeLayer(target) {
         const layer = requireLayer(target);
         const node = layerNode(layer);
-        editor.getState().removeLayer(layer.id);
-        editor.getState().pushHistory("remove layer");
+        requireOp("removeLayer")(layer.id);
         return node;
       },
 
       duplicateLayer(target) {
         const layer = requireLayer(target);
         const before = new Set(doc().layers.map((l) => l.id));
-        editor.getState().duplicateLayer(layer.id);
-        editor.getState().pushHistory("duplicate layer");
+        requireOp("duplicateLayer")(layer.id);
         const created = doc().layers.find((l) => !before.has(l.id));
         return layerNode(created ?? reReadLayer(layer.id));
       },
@@ -338,17 +337,13 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
 
       mergeLayerDown(target) {
         const layer = requireLayer(target);
-        editor.getState().mergeLayerDown(layer.id);
-        editor.getState().pushHistory("merge down");
-        const survivor = doc().layers.find((l) => l.id === layer.id);
-        return survivor ? layerNode(survivor) : null;
+        const survivorId = requireOp("mergeLayerDown")(layer.id);
+        return survivorId ? layerNode(reReadLayer(survivorId)) : null;
       },
 
       flattenVisible() {
-        editor.getState().flattenVisible();
-        editor.getState().pushHistory("flatten visible");
-        const id = doc().activeLayerId;
-        return layerNode(reReadLayer(id));
+        requireOp("flattenVisible")();
+        return layerNode(reReadLayer(doc().activeLayerId));
       },
 
       async generate(opts) {
@@ -544,8 +539,7 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
       resizeCanvas(width, height) {
         const w = Math.max(1, Math.round(width));
         const h = Math.max(1, Math.round(height));
-        editor.getState().resizeCanvas(w, h);
-        editor.getState().pushHistory("resize canvas");
+        requireOp("resizeCanvas")(w, h);
         return { width: w, height: h };
       },
 

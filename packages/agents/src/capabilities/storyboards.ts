@@ -53,16 +53,6 @@ import {
   extractScriptFromStoryboardSpec,
   DEFAULT_CONCURRENCY,
   MAX_CONCURRENCY,
-  SHOT_TARGETS_SCHEMA,
-  LIST_STORYBOARDS_SCHEMA,
-  CREATE_STORYBOARD_SCHEMA,
-  GET_STORYBOARD_SCHEMA,
-  RENDER_STILLS_SCHEMA,
-  RENDER_CLIPS_SCHEMA,
-  REVISE_CLIP_SCHEMA,
-  ASSEMBLE_STORYBOARD_TIMELINE_SCHEMA,
-  EDIT_STORYBOARD_SCHEMA,
-  EXTRACT_SCRIPT_SCHEMA,
   deleteStoryboardSpec
 } from "./storyboards.specs.js";
 import {
@@ -72,20 +62,6 @@ import {
   isString
 } from "../utils/type-guards.js";
 
-export {
-  DEFAULT_CONCURRENCY,
-  MAX_CONCURRENCY,
-  SHOT_TARGETS_SCHEMA,
-  LIST_STORYBOARDS_SCHEMA,
-  CREATE_STORYBOARD_SCHEMA,
-  GET_STORYBOARD_SCHEMA,
-  RENDER_STILLS_SCHEMA,
-  RENDER_CLIPS_SCHEMA,
-  REVISE_CLIP_SCHEMA,
-  ASSEMBLE_STORYBOARD_TIMELINE_SCHEMA,
-  EDIT_STORYBOARD_SCHEMA,
-  EXTRACT_SCRIPT_SCHEMA
-} from "./storyboards.specs.js";
 import { resolveProjectId } from "./project-scope.js";
 import { mp4DurationSeconds } from "../utils/video-duration.js";
 /** Shots one call may render, so a stray `targets: "all"` cannot bankrupt a run. */

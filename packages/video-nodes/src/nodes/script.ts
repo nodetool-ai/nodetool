@@ -41,7 +41,10 @@ import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { ffprobeDuration } from "./ffmpeg-helpers.js";
-import { isPositiveNumber, isString } from "../type-predicates.js";
+import {
+  isPositiveNumber,
+  isString
+} from "@nodetool-ai/node-sdk";
 
 const scriptRefDefault = { type: "script", id: null, data: null } as const;
 

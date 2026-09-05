@@ -20,25 +20,6 @@ export class AdminHTTPClient {
   async runWorkflow(_id?: string, _params?: unknown) {
     return {};
   }
-  async dbGet(_table?: string, _key?: string) {
-    return {};
-  }
-  async dbSave(_table?: string, _data?: unknown) {
-    return {};
-  }
-  async dbDelete(_table?: string, _key?: string) {}
-  async createCollection(_n?: string, _m?: string) {
-    return {};
-  }
-  async addToCollection(
-    _n?: string,
-    _d?: unknown,
-    _i?: unknown,
-    _m?: unknown,
-    _e?: unknown
-  ) {
-    return {};
-  }
 }
 export class APIUserManager {
   constructor(_u?: string, _t?: string) {}

@@ -28,7 +28,7 @@ import {
   isObjectLike,
   isRecord,
   isString
-} from "./type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 
 const execFile = promisify(execFileCb);
 
@@ -70,7 +70,7 @@ function optionalNumber(value: unknown): number | undefined {
 }
 
 function asImageRef(value: unknown): ImageRef | null {
-  return isObjectLike(value) ? (value as ImageRef) : null;
+  return isObjectLike(value) ? (value as unknown as ImageRef) : null;
 }
 
 /** A generation-ready spec for one shot, produced by {@link toShotSpecs}. */

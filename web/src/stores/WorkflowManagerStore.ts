@@ -22,8 +22,7 @@ import {
 } from "../serverState/useWorkflow";
 import {
   subscribeToWorkflowUpdates,
-  unsubscribeFromWorkflowUpdates,
-  setGetNodeStore
+  unsubscribeFromWorkflowUpdates
 } from "./workflowUpdates";
 import {
   disposeWorkflowRunnerStore,
@@ -283,8 +282,6 @@ export type WorkflowManagerState = {
   currentWorkflowId: string | null;
   openWorkflows: WorkflowAttributes[];
   queryClient: QueryClient;
-  // Track notified autosave versions to prevent duplicate notifications
-  notifiedAutosaveVersions: Record<string, Set<string>>;
   // Workflows created in memory (createNew) that the server has never seen.
   // Their first save must not send expected_updated_at — the client-fabricated
   // timestamp makes the server's update route refuse the create-on-first-save
@@ -315,11 +312,7 @@ export type WorkflowManagerState = {
     fromExamplePackage?: string,
     fromExampleName?: string
   ) => Promise<Workflow>;
-  load: (
-    cursor?: string,
-    limit?: number,
-    columns?: string
-  ) => Promise<WorkflowList>;
+  load: (cursor?: string, limit?: number) => Promise<WorkflowList>;
   loadTemplates: () => Promise<WorkflowList>;
   searchTemplates: (query: string) => Promise<WorkflowList>;
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
@@ -424,7 +417,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
     return {
       nodeStores: {},
       openWorkflows: [],
-      notifiedAutosaveVersions: {},
       unsavedWorkflowIds: {},
       currentWorkflowId: storage.getCurrentWorkflow() || null,
       queryClient: queryClient,
@@ -692,15 +684,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return data;
       },
 
-      /**
-       * Loads workflows with optional pagination.
-       * @param {string} [cursor] Pagination cursor
-       * @param {number} [limit] Number of workflows to load
-       * @param {string} [columns] Optional comma-separated list of columns to fetch
-       * @returns {Promise<WorkflowList>} The loaded workflows data
-       * @throws {Error} If the API call fails
-       */
-      load: async (cursor?: string, limit?: number, _columns?: string) => {
+      load: async (cursor?: string, limit?: number) => {
         try {
           const data = await trpcClient.workflows.list.query({
             limit: limit ?? 100,
@@ -1094,7 +1078,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           nodeStores,
           openWorkflows,
           currentWorkflowId,
-          notifiedAutosaveVersions,
           unsavedWorkflowIds
         } = get();
 
@@ -1118,12 +1101,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         // Drop per-workflow keyed entries from singleton stores so they
         // don't accumulate forever in long-lived sessions.
         useResultsStore.getState().clearResults(workflowId);
-        useResultsStore.getState().clearOutputResults(workflowId);
-        useResultsStore.getState().clearProgress(workflowId);
-        useResultsStore.getState().clearChunks(workflowId);
-        useResultsStore.getState().clearTasks(workflowId);
-        useResultsStore.getState().clearToolCalls(workflowId);
-        useResultsStore.getState().clearPlanningUpdates(workflowId);
         useResultsStore.getState().clearEdges(workflowId);
         useErrorStore.getState().clearErrors(workflowId);
         useStatusStore.getState().clearStatuses(workflowId);
@@ -1146,9 +1123,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           }
         }
 
-        const newNotified = { ...notifiedAutosaveVersions };
-        delete newNotified[workflowId];
-
         const newUnsaved = { ...unsavedWorkflowIds };
         delete newUnsaved[workflowId];
 
@@ -1162,7 +1136,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           nodeStores: newStores,
           openWorkflows: newOpenWorkflows,
           currentWorkflowId: newCurrentId,
-          notifiedAutosaveVersions: newNotified,
           unsavedWorkflowIds: newUnsaved
         });
 
@@ -1324,10 +1297,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
     };
   });
 
-  // Set the global getNodeStore getter so other modules can access node stores
-  setGetNodeStore((workflowId: string) =>
-    store.getState().getNodeStore(workflowId)
-  );
   setWorkflowResourceReloader((workflowId, etag, ops) => {
     void store.getState().refreshWorkflow(workflowId, etag, ops);
   });

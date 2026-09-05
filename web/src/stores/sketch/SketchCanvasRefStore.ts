@@ -56,6 +56,26 @@ export interface SketchCanvasRefState {
   /** Fit the whole artboard into the viewport and re-center it (Ctrl+0). */
   fitViewToScreen: (() => void) | null;
 
+  /**
+   * The editor's own layer verbs. Each is the *whole* operation — the runtime
+   * bake plus the store rewrite plus the history entry — so a non-React caller
+   * (the agent bridge) cannot run half of a two-part destructive op.
+   */
+  addLayer:
+    | ((options?: {
+        name?: string;
+        type?: "raster" | "mask";
+        fillColor?: string | null;
+      }) => string)
+    | null;
+  removeLayer: ((layerId: string) => void) | null;
+  duplicateLayer: ((layerId: string) => void) | null;
+  /** Merge a layer into the sibling below it; returns the survivor's id. */
+  mergeLayerDown: ((upperLayerId: string) => string | null) | null;
+  flattenVisible: (() => void) | null;
+  /** Resize the artboard, keeping the visible center put. */
+  resizeCanvas: ((width: number, height: number) => void) | null;
+
   setGetters: (getters: {
     flattenToDataUrl: () => string;
     getMaskDataUrl: () => string | null;
@@ -83,6 +103,16 @@ export interface SketchCanvasRefState {
     ) => { r: number; g: number; b: number; a: number } | null;
     clearActiveLayer: () => void;
     fitViewToScreen?: () => void;
+    addLayer?: (options?: {
+      name?: string;
+      type?: "raster" | "mask";
+      fillColor?: string | null;
+    }) => string;
+    removeLayer?: (layerId: string) => void;
+    duplicateLayer?: (layerId: string) => void;
+    mergeLayerDown?: (upperLayerId: string) => string | null;
+    flattenVisible?: () => void;
+    resizeCanvas?: (width: number, height: number) => void;
   }) => void;
   clearGetters: () => void;
 }
@@ -105,6 +135,12 @@ export const createSketchCanvasRefStore = (): SketchCanvasRefStoreApi =>
     sampleColor: null,
     clearActiveLayer: null,
     fitViewToScreen: null,
+    addLayer: null,
+    removeLayer: null,
+    duplicateLayer: null,
+    mergeLayerDown: null,
+    flattenVisible: null,
+    resizeCanvas: null,
 
     setGetters: (getters) =>
       set({
@@ -118,7 +154,13 @@ export const createSketchCanvasRefStore = (): SketchCanvasRefStoreApi =>
         cropDocument: getters.cropDocument ?? null,
         sampleColor: getters.sampleColor ?? null,
         clearActiveLayer: getters.clearActiveLayer,
-        fitViewToScreen: getters.fitViewToScreen ?? null
+        fitViewToScreen: getters.fitViewToScreen ?? null,
+        addLayer: getters.addLayer ?? null,
+        removeLayer: getters.removeLayer ?? null,
+        duplicateLayer: getters.duplicateLayer ?? null,
+        mergeLayerDown: getters.mergeLayerDown ?? null,
+        flattenVisible: getters.flattenVisible ?? null,
+        resizeCanvas: getters.resizeCanvas ?? null
       }),
 
     clearGetters: () =>
@@ -133,7 +175,13 @@ export const createSketchCanvasRefStore = (): SketchCanvasRefStoreApi =>
         cropDocument: null,
         sampleColor: null,
         clearActiveLayer: null,
-        fitViewToScreen: null
+        fitViewToScreen: null,
+        addLayer: null,
+        removeLayer: null,
+        duplicateLayer: null,
+        mergeLayerDown: null,
+        flattenVisible: null,
+        resizeCanvas: null
       })
   }));
 

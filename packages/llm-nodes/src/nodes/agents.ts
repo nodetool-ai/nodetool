@@ -23,7 +23,7 @@ import {
   isNonEmptyString,
   isObjectLike,
   isString
-} from "./type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 import {
   asText,
   makeThreadId,

@@ -1,31 +1,14 @@
 /**
- * Named type predicates for the representation checks the runner makes on
- * values that arrive from a node's output, a graph descriptor, or a run
- * parameter — none of which the kernel parses at a schema boundary.
+ * The workspace's named type predicates, re-exported for the runner's call
+ * sites. The definitions live in `@nodetool-ai/protocol`.
  */
 
-export const isString = (value: unknown): value is string =>
-  typeof value === "string";
-
-/** A string with at least one character. */
-export const isNonEmptyString = (value: unknown): value is string =>
-  typeof value === "string" && value.length > 0;
-
-export const isNumber = (value: unknown): value is number =>
-  typeof value === "number";
-
-export const isBoolean = (value: unknown): value is boolean =>
-  typeof value === "boolean";
-
-/**
- * An object value. Arrays pass — the runner's own checks never excluded them,
- * and the sites that care test `Array.isArray` on their own.
- */
-export const isObjectValue = (
-  value: unknown
-): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-export const isCallable = (
-  value: unknown
-): value is (...args: never[]) => unknown => typeof value === "function";
+export {
+  isBoolean,
+  isCallable,
+  isNonEmptyString,
+  isNumber,
+  isString,
+  /** An object value. Arrays pass — the sites that care test `Array.isArray`. */
+  isObjectLike as isObjectValue
+} from "@nodetool-ai/protocol";

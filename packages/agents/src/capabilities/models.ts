@@ -46,9 +46,7 @@ import {
   listModelsSpec,
   listProviderModelsSpec,
   SUPPORTED_CAPABILITIES,
-  FIND_MODEL_INPUT_SCHEMA,
-  MODEL_TYPES,
-  LIST_MODELS_SCHEMA
+  MODEL_TYPES
 } from "./models.specs.js";
 import {
   isFunction,
@@ -57,13 +55,6 @@ import {
   isString
 } from "../utils/type-guards.js";
 import { promptingSkillFor } from "../model-prompting-skills.js";
-
-export {
-  SUPPORTED_CAPABILITIES,
-  FIND_MODEL_INPUT_SCHEMA,
-  MODEL_TYPES,
-  LIST_MODELS_SCHEMA
-} from "./models.specs.js";
 
 /** Providers this run can reach. Empty when the host wired none. */
 function providersOf(run: CapabilityRun): Record<string, BaseProvider> {

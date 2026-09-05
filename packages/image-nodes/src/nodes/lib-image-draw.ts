@@ -32,7 +32,7 @@ import {
   loadSharp,
   SHARP_UNAVAILABLE_MESSAGE
 } from "./image-io.js";
-import { isObjectLike } from "../type-predicates.js";
+import { isObjectLike } from "@nodetool-ai/node-sdk";
 
 // Clamp a requested output dimension to [1, max]. Guards the low end, the NaN
 // case (via num) and the high end so a programmatic graph can't request an

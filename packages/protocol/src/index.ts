@@ -51,3 +51,4 @@ export {
   supportsPlatform
 } from "./platform.js";
 export * from "./nodetool-models.js";
+export * from "./predicates.js";

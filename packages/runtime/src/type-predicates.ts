@@ -1,43 +1,32 @@
 /**
- * Narrowing predicates for values whose static type does not describe what a
- * provider or an asset payload actually carries at runtime — JSON decoded from
- * an API response, a message content union, an optional SDK method.
+ * Re-export of the workspace's one predicate module.
+ *
+ * Kept as a file so the ~55 modules in this package that import
+ * `./type-predicates.js` keep resolving; the definitions live in
+ * `@nodetool-ai/protocol`.
  */
 
-export function isString(value: unknown): value is string {
-  return typeof value === "string";
-}
+import { isObjectLike as isObjectLikeRecord } from "@nodetool-ai/protocol";
 
-export function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0;
-}
-
-export function isNumber(value: unknown): value is number {
-  return typeof value === "number";
-}
-
-export function isBoolean(value: unknown): value is boolean {
-  return typeof value === "boolean";
-}
-
-export function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
+export {
+  isBoolean,
+  isCallable,
+  isFiniteNumber,
+  isInteger,
+  isNonBlankString,
+  isNonEmptyString,
+  isNumber,
+  isPositiveFiniteNumber,
+  isRecord,
+  isString
+} from "@nodetool-ai/protocol";
 
 /**
- * An object or an array — anything `typeof` calls "object" except `null`.
- * Use {@link isRecord} when array payloads must be rejected.
+ * Same check as the protocol predicate, narrowed to `object` rather than
+ * `Record<string, unknown>`. `providers/replicate-provider.ts:93` casts the
+ * narrowed value to `ReadableStream`, which TypeScript refuses from a
+ * `Record`; once that cast goes through `unknown` this can re-export directly.
  */
 export function isObjectLike(value: unknown): value is object {
-  return value !== null && typeof value === "object";
-}
-
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-export function isCallable<T>(
-  value: T
-): value is T & ((...args: never[]) => unknown) {
-  return typeof value === "function";
+  return isObjectLikeRecord(value);
 }

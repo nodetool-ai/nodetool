@@ -7,6 +7,7 @@ import type {
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
   loadNodeFsPromises,
+  loadNodeOs,
   loadNodePath,
   writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
@@ -34,6 +35,19 @@ function toFilePath(uriOrPath: string): string {
     return uriOrPath.slice("file://".length);
   }
   return uriOrPath;
+}
+
+/**
+ * Expand a leading `~` to the home directory. `ListDocuments` ships `"~"` as
+ * its folder default, and without this `fs.readdir` scandir's a literal `~`
+ * and the node throws ENOENT on its own defaults.
+ */
+async function expandUser(p: string): Promise<string> {
+  if (p !== "~" && !p.startsWith("~/")) return p;
+  const os = await loadNodeOs();
+  if (p === "~") return os.homedir();
+  const path = await loadNodePath();
+  return path.join(os.homedir(), p.slice(2));
 }
 
 function wildcardToRegExp(pattern: string): RegExp {
@@ -64,11 +78,10 @@ export class LoadDocumentFileNode extends BaseNode {
     title: "Path",
     description: "Path to the document to read"
   })
-  declare path: any;
+  declare path: string;
 
   async process(): Promise<LoadDocumentFileNodeOutputs> {
-    const p = String(this.path ?? this.path ?? "");
-    const full = toFilePath(p);
+    const full = toFilePath(this.path);
     const fs = await loadNodeFsPromises();
     const bytes = new Uint8Array(await fs.readFile(full));
     return {
@@ -211,7 +224,7 @@ export class ListDocumentsNode extends BaseNode {
     title: "Folder",
     description: "Directory to scan"
   })
-  declare folder: any;
+  declare folder: string;
 
   @prop({
     type: "str",
@@ -219,7 +232,7 @@ export class ListDocumentsNode extends BaseNode {
     title: "Pattern",
     description: "File pattern to match (e.g. *.txt)"
   })
-  declare pattern: any;
+  declare pattern: string;
 
   @prop({
     type: "bool",
@@ -227,7 +240,7 @@ export class ListDocumentsNode extends BaseNode {
     title: "Recursive",
     description: "Search subdirectories"
   })
-  declare recursive: any;
+  declare recursive: boolean;
 
   async process(): Promise<ListDocumentsNodeOutputs> {
     const collected: ListedDocument[] = [];
@@ -241,9 +254,8 @@ export class ListDocumentsNode extends BaseNode {
   }
 
   private async *_listDocuments(): AsyncGenerator<{ document: ListedDocument }> {
-    const folder = String(this.folder ?? this.folder ?? ".");
-    const pattern = String(this.pattern ?? this.pattern ?? "*");
-    const recursive = Boolean(this.recursive ?? this.recursive ?? false);
+    const folder = await expandUser(this.folder);
+    const recursive = this.recursive;
     const allowed = new Set([
       ".txt",
       ".md",
@@ -253,7 +265,7 @@ export class ListDocumentsNode extends BaseNode {
       ".pdf",
       ".docx"
     ]);
-    const matches = wildcardToRegExp(pattern);
+    const matches = wildcardToRegExp(this.pattern);
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
     const visit = async function* (dir: string): AsyncGenerator<string> {

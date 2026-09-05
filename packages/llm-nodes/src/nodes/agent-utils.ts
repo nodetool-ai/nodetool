@@ -36,7 +36,7 @@ import {
   isObjectLike,
   isRecord,
   isString
-} from "./type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 
 // The structured-output call and its JSON fallback live in
 // `@nodetool-ai/runtime` — one implementation for the nodes, the agents, and

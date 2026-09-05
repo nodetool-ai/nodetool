@@ -304,14 +304,6 @@ export function isScreenplay(value: unknown): value is Screenplay {
   );
 }
 
-export function isShot(value: unknown): value is Shot {
-  return (
-    !!value &&
-    typeof value === "object" &&
-    (value as { type?: unknown }).type === "shot"
-  );
-}
-
 /**
  * The board entities that apply to `shot`.
  *

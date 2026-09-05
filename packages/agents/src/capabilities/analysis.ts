@@ -90,14 +90,6 @@ import type {
   CapabilityRun
 } from "./types.js";
 
-export {
-  ANALYZE_AUDIO_SCHEMA,
-  ANALYZE_AUDIO_SPECTRUM_SCHEMA,
-  ANALYZE_VIDEO_SCHEMA,
-  DETECT_AUDIO_EVENTS_SCHEMA,
-  DETECT_VIDEO_SCENES_SCHEMA
-} from "./analysis.specs.js";
-
 type ToolError = { error: string };
 
 /** Seconds of media one call decodes when the caller names no cap. */

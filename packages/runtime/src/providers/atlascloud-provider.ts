@@ -30,7 +30,14 @@ import { OpenAICompatProvider } from "./openai-compat-provider.js";
 import { bytesToImageDataUri } from "./image-mime.js";
 import type { OpenAICompatProviderOptions } from "./openai-compat-provider.js";
 import { createLogger } from "@nodetool-ai/config";
-import { isBoolean, isNumber, isString } from "../type-predicates.js";
+import { isBoolean, isNumber } from "../type-predicates.js";
+import {
+  ATLAS_BASE,
+  atlasDownload,
+  atlasPoll,
+  atlasSubmit,
+  pickOutputUrl
+} from "./atlascloud-transport.js";
 import {
   getManifestNodeMeta,
   getModelInputFields,
@@ -56,34 +63,9 @@ const log = createLogger("nodetool.runtime.providers.atlascloud");
 const ATLASCLOUD_MANIFEST_PKG = "@nodetool-ai/atlascloud-nodes";
 const ATLASCLOUD_MANIFEST_PATH = "atlascloud-manifest.json";
 
-const ATLAS_BASE = "https://api.atlascloud.ai";
 const ATLAS_CHAT_BASE_URL = `${ATLAS_BASE}/v1`;
-const SUBMIT_IMAGE = "/api/v1/model/generateImage";
-const SUBMIT_VIDEO = "/api/v1/model/generateVideo";
 const DEFAULT_POLL_INTERVAL_MS = 3000;
 const DEFAULT_MAX_POLL_ATTEMPTS = 600;
-
-const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
-const RETRY_MAX_WAIT_MS = 30000;
-const sleep = (ms: number): Promise<void> =>
-  new Promise((r) => setTimeout(r, ms));
-
-// Parse a Retry-After header (delta-seconds or HTTP-date) into a bounded wait.
-// Returns null when absent/unparseable so the caller falls back to its backoff.
-// Capping matters: an unbounded header value (or a NaN from an HTTP-date) would
-// otherwise hang for hours or collapse the backoff to zero.
-function parseRetryAfterMs(value: string | null): number | null {
-  if (!value) return null;
-  const secs = Number(value);
-  if (Number.isFinite(secs)) {
-    return Math.min(RETRY_MAX_WAIT_MS, Math.max(0, secs * 1000));
-  }
-  const dateMs = Date.parse(value);
-  if (Number.isFinite(dateMs)) {
-    return Math.min(RETRY_MAX_WAIT_MS, Math.max(0, dateMs - Date.now()));
-  }
-  return null;
-}
 
 // ---------------------------------------------------------------------------
 // Manifest peek — model id → declared fields + modality
@@ -156,37 +138,6 @@ function buildModelMap(): Map<string, ModelInfo> {
   return map;
 }
 
-// ---------------------------------------------------------------------------
-// HTTP helpers (duplicated from atlascloud-nodes/atlascloud-base.ts to keep
-// runtime free of node-pack code dependencies — mirrors topaz-provider).
-// ---------------------------------------------------------------------------
-
-function authHeaders(apiKey: string) {
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json"
-  };
-}
-
-async function fetchWithRetry(
-  url: string,
-  init: RequestInit = {},
-  maxAttempts = 6
-): Promise<Response> {
-  let delay = 1000;
-  let last: Response | undefined;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const resp = await fetch(url, init);
-    if (!RETRYABLE_STATUS.has(resp.status)) return resp;
-    last = resp;
-    if (attempt === maxAttempts) break;
-    const wait = parseRetryAfterMs(resp.headers.get("Retry-After")) ?? delay;
-    await sleep(wait);
-    delay = Math.min(delay * 2, RETRY_MAX_WAIT_MS);
-  }
-  return last as Response;
-}
-
 type RunJobOptions = { timeoutSeconds?: number | null; signal?: AbortSignal };
 
 /**
@@ -205,140 +156,6 @@ function runJobOptions(params: {
     opts.signal = params.signal;
   }
   return opts;
-}
-
-/**
- * A one-line summary of a submit body for an error message: scalar values
- * verbatim, long strings and data URIs reduced to a length, so a rejection can
- * name the parameter that was sent without echoing a prompt or an image.
- */
-function describeInput(input: Record<string, unknown>): string {
-  const parts = Object.entries(input).map(([key, value]) => {
-    if (isString(value)) {
-      return value.length > 40 || value.startsWith("data:")
-        ? `${key}=<${value.length} chars>`
-        : `${key}=${value}`;
-    }
-    if (isNumber(value) || isBoolean(value)) return `${key}=${value}`;
-    return `${key}=<${Array.isArray(value) ? "array" : typeof value}>`;
-  });
-  return parts.length > 0 ? parts.join(", ") : "no fields";
-}
-
-async function atlasSubmit(
-  apiKey: string,
-  modality: "image" | "video",
-  modelId: string,
-  input: Record<string, unknown>,
-  signal?: AbortSignal
-): Promise<string> {
-  const path = modality === "image" ? SUBMIT_IMAGE : SUBMIT_VIDEO;
-  // Submit POST is not idempotent — never retry.
-  const init: RequestInit = {
-    method: "POST",
-    headers: authHeaders(apiKey),
-    body: JSON.stringify({ model: modelId, ...input })
-  };
-  if (signal) {
-    init.signal = signal;
-  }
-  const res = await fetch(`${ATLAS_BASE}${path}`, init);
-  const text = await res.text();
-  let data: { data?: { id?: string }; message?: string } | null;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    data = null;
-  }
-  if (!res.ok) {
-    // AtlasCloud answers a bad field with a bare "Invalid request parameters",
-    // which names nothing. Append the request shape so the caller can see which
-    // parameter it sent — prompts and data URIs are summarized, not echoed.
-    throw new Error(
-      `AtlasCloud submit ${res.status} for ${modelId}: ${text.slice(0, 500)} ` +
-        `(sent ${describeInput(input)})`
-    );
-  }
-  const id = data?.data?.id;
-  if (!id) {
-    throw new Error(
-      `AtlasCloud: no prediction id in submit response: ${text.slice(0, 500)}`
-    );
-  }
-  return id;
-}
-
-interface AtlasPollResult {
-  status?: string;
-  outputs?: Array<string | { url?: string }>;
-  output?: string;
-  url?: string;
-  error?: string;
-}
-
-// AtlasCloud documents processing/completed/failed, but its workers have been
-// observed emitting synonyms for the terminal states. Accept them rather than
-// poll a finished job until the attempt budget runs out.
-const SUCCESS_STATUS = new Set([
-  "completed",
-  "complete",
-  "succeeded",
-  "success",
-  "done"
-]);
-const FAILURE_STATUS = new Set(["failed", "error", "canceled", "cancelled"]);
-
-async function atlasPoll(
-  apiKey: string,
-  predictionId: string,
-  pollInterval: number,
-  maxAttempts: number,
-  signal?: AbortSignal
-): Promise<AtlasPollResult> {
-  const url = `${ATLAS_BASE}/api/v1/model/prediction/${predictionId}`;
-  for (let i = 0; i < maxAttempts; i++) {
-    const init: RequestInit = { headers: authHeaders(apiKey) };
-    if (signal) {
-      init.signal = signal;
-    }
-    const res = await fetchWithRetry(url, init);
-    const text = await res.text();
-    let data: { data?: AtlasPollResult; message?: string } | null;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = null;
-    }
-    // A non-2xx can still carry a structured failure body (status: "failed",
-    // error: "…"). Report those as job failures so the user sees the reason.
-    const d = data?.data ?? {};
-    const status = String(d.status ?? "").toLowerCase();
-    if (SUCCESS_STATUS.has(status)) {
-      return d;
-    }
-    if (FAILURE_STATUS.has(status)) {
-      const msg = d.error || data?.message || text.slice(0, 500);
-      throw new Error(
-        `AtlasCloud job failed: ${msg} (predictionId: ${predictionId})`
-      );
-    }
-    if (!res.ok) {
-      throw new Error(`AtlasCloud poll ${res.status}: ${text.slice(0, 500)}`);
-    }
-    await sleep(pollInterval);
-  }
-  throw new Error(`AtlasCloud job timed out (predictionId: ${predictionId})`);
-}
-
-function pickOutputUrl(result: AtlasPollResult): string {
-  if (Array.isArray(result.outputs) && result.outputs.length > 0) {
-    const first = result.outputs[0];
-    if (isString(first)) return first;
-    if (first && isString(first.url)) return first.url;
-  }
-  if (isString(result.output)) return result.output;
-  if (isString(result.url)) return result.url;
-  throw new Error("No output URL in AtlasCloud result");
 }
 
 // ---------------------------------------------------------------------------
@@ -732,21 +549,12 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     const maxAttempts = opts.timeoutSeconds
       ? Math.max(1, Math.ceil((opts.timeoutSeconds * 1000) / info.pollInterval))
       : info.maxAttempts;
-    const result = await atlasPoll(
-      apiKey,
-      predictionId,
-      info.pollInterval,
+    const result = await atlasPoll(apiKey, predictionId, {
+      pollInterval: info.pollInterval,
       maxAttempts,
-      opts.signal
-    );
-    const url = pickOutputUrl(result);
-    const dl = await fetchWithRetry(url);
-    if (!dl.ok) {
-      throw new Error(
-        `AtlasCloud download failed: HTTP ${dl.status} fetching ${url}`
-      );
-    }
-    return new Uint8Array(await dl.arrayBuffer());
+      ...(opts.signal ? { signal: opts.signal } : {})
+    });
+    return atlasDownload(pickOutputUrl(result), opts.signal);
   }
 
   override async textToImage(params: TextToImageParams): Promise<Uint8Array> {

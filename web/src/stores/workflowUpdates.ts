@@ -206,7 +206,9 @@ const mapJobStatusToRunState = (status: string): RunState | undefined => {
 
 type WorkflowSubscription = {
   workflowId: string;
+  workflow: WorkflowAttributes;
   runnerStore: WorkflowRunnerStore;
+  getNodeStore: (workflowId: string) => NodeStore | undefined;
   unsubscribe: () => void;
 };
 
@@ -503,7 +505,9 @@ export const subscribeToWorkflowUpdates = (
 
   workflowSubscriptions.set(workflowId, {
     workflowId,
+    workflow,
     runnerStore,
+    getNodeStore,
     unsubscribe: () => {
       unsubscribeWorkflow();
       unsubscribeRunnerStore();
@@ -1595,4 +1599,57 @@ export const handleUpdate = (
   if (data.type === "node_update") {
     handleNodeUpdate(workflow, data, runnerStore, runner, getNodeStore);
   }
+};
+
+/** Stand-in attributes for a workflow no editor tab has open. */
+const detachedWorkflowAttributes = (
+  workflowId: string
+): WorkflowAttributes => ({
+  id: workflowId,
+  name: "",
+  description: "",
+  access: "private",
+  created_at: "",
+  updated_at: ""
+});
+
+/**
+ * Apply a run frame that reached the client on a chat thread subscription.
+ *
+ * `GlobalWebSocketManager.routeMessage` routes one message to the handlers of
+ * every key it carries (thread_id, workflow_id, job_id) and dedupes only by
+ * handler identity, so a frame stamped with both a thread and a workflow
+ * reaches the chat handler AND the editor's workflow handler. Delegating
+ * unconditionally would process such a frame twice. Return false for the
+ * frames the editor subscription already sees; take the others, which is how a
+ * chat-driven run gets timings, provider cost, live generations, errors, logs
+ * and traces for a workflow the editor never subscribed to.
+ */
+export const applyThreadRunUpdate = (
+  workflowId: string,
+  data: MsgpackData,
+  runnerStore: WorkflowRunnerStore
+): boolean => {
+  const frameWorkflow = (data as { workflow_id?: unknown }).workflow_id;
+  const frameWorkflowId = isString(frameWorkflow) ? frameWorkflow : undefined;
+  if (frameWorkflowId && workflowSubscriptions.has(frameWorkflowId)) {
+    return false;
+  }
+  const jobId = extractJobId(data);
+  if (!frameWorkflowId && jobId) {
+    for (const subscription of workflowSubscriptions.values()) {
+      if (subscription.runnerStore.getState().job_id === jobId) {
+        return false;
+      }
+    }
+  }
+
+  const subscription = workflowSubscriptions.get(workflowId);
+  handleUpdate(
+    subscription?.workflow ?? detachedWorkflowAttributes(workflowId),
+    data,
+    subscription?.runnerStore ?? runnerStore,
+    subscription?.getNodeStore ?? getNodeStore
+  );
+  return true;
 };

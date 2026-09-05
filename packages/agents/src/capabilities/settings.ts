@@ -48,14 +48,6 @@ import {
 } from "./settings.specs.js";
 import { isNonEmptyString, isString } from "../utils/type-guards.js";
 
-export {
-  GET_SETTING_TOOL_NAME,
-  LIST_SECRETS_TOOL_NAME,
-  LIST_SETTINGS_TOOL_NAME,
-  REQUEST_SECRET_TOOL_NAME,
-  SET_SETTING_TOOL_NAME
-} from "./settings.specs.js";
-
 /** One setting as the guest sees it. A secret never reaches this shape. */
 export interface SettingView {
   key: string;

@@ -6,15 +6,12 @@ import {
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
 import type {
-  ASRModel,
-  EmbeddingModel,
   ImageModel,
   ImageToImageParams,
   ImageToVideoParams,
   LanguageModel,
   TextToImageParams,
   TextToVideoParams,
-  TTSModel,
   VideoModel
 } from "./types.js";
 import { isString } from "../type-predicates.js";
@@ -124,8 +121,6 @@ export class EvolinkProvider extends OpenAICompatProvider {
     return ["EVOLINK_API_KEY"];
   }
 
-  private _evolinkFetch: typeof fetch;
-
   constructor(
     secrets: { EVOLINK_API_KEY?: string },
     options: OpenAICompatProviderOptions = {}
@@ -135,18 +130,14 @@ export class EvolinkProvider extends OpenAICompatProvider {
       throw new Error("EVOLINK_API_KEY is required");
     }
 
-    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
-
     super(
       {
         providerId: "evolink",
         apiKey,
         baseURL: EVOLINK_CHAT_BASE_URL
       },
-      { ...options, fetchFn }
+      options
     );
-
-    this._evolinkFetch = fetchFn;
   }
 
   override getContainerEnv() {
@@ -154,30 +145,7 @@ export class EvolinkProvider extends OpenAICompatProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const response = await this._evolinkFetch(`${EVOLINK_CHAT_BASE_URL}/models`, {
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`
-      }
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const payload = (await response.json()) as {
-      data?: Array<{ id?: string; name?: string }>;
-    };
-    const rows = payload.data ?? [];
-    return rows
-      .filter(
-        (row): row is { id: string; name?: string } =>
-          typeof row.id === "string" && row.id.length > 0
-      )
-      .map((row) => ({
-        id: row.id,
-        name: row.name ?? row.id,
-        provider: "evolink"
-      }));
+    return this.listCompatModels();
   }
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
@@ -186,22 +154,6 @@ export class EvolinkProvider extends OpenAICompatProvider {
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
     return EVOLINK_VIDEO_MODELS;
-  }
-
-  // Evolink's media gateway has no speech-to-text, embedding, or built-in-voice
-  // TTS endpoints (Qwen TTS requires a pre-created custom voice). Override the
-  // OpenAIProvider lists so those OpenAI-only models don't surface under the
-  // evolink provider id.
-  override async getAvailableTTSModels(): Promise<TTSModel[]> {
-    return [];
-  }
-
-  override async getAvailableASRModels(): Promise<ASRModel[]> {
-    return [];
-  }
-
-  override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
-    return [];
   }
 
   override async textToImage(params: TextToImageParams): Promise<Uint8Array> {
@@ -351,7 +303,7 @@ export class EvolinkProvider extends OpenAICompatProvider {
     mimeType = detectImageMime(image)
   ): Promise<string> {
     const base64 = Buffer.from(image).toString("base64");
-    const response = await this._evolinkFetch(EVOLINK_FILE_UPLOAD_URL, {
+    const response = await this.compatFetch(EVOLINK_FILE_UPLOAD_URL, {
       method: "POST",
       headers: this.mediaHeaders(),
       body: JSON.stringify({
@@ -395,7 +347,7 @@ export class EvolinkProvider extends OpenAICompatProvider {
     path: string,
     body: Record<string, unknown>
   ): Promise<string> {
-    const response = await this._evolinkFetch(`${EVOLINK_MEDIA_BASE_URL}${path}`, {
+    const response = await this.compatFetch(`${EVOLINK_MEDIA_BASE_URL}${path}`, {
       method: "POST",
       headers: this.mediaHeaders(),
       body: JSON.stringify(body)
@@ -421,7 +373,7 @@ export class EvolinkProvider extends OpenAICompatProvider {
   ): Promise<string[]> {
     const url = `${EVOLINK_MEDIA_BASE_URL}/v1/tasks/${taskId}`;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const response = await this._evolinkFetch(url, {
+      const response = await this.compatFetch(url, {
         headers: { Authorization: `Bearer ${this.apiKey}` }
       });
       if (!response.ok) {
@@ -454,7 +406,7 @@ export class EvolinkProvider extends OpenAICompatProvider {
   private async downloadResult(url: string): Promise<Uint8Array> {
     // url is task-result-body-controlled — gate it through safeFetch (SSRF)
     // while still using the injected fetch impl for testability.
-    const response = await safeFetch(url, undefined, 5, this._evolinkFetch);
+    const response = await safeFetch(url, undefined, 5, this.compatFetch);
     if (!response.ok) {
       throw new Error(`Failed to download Evolink result: ${response.status}`);
     }

@@ -26,12 +26,10 @@ import isEqual from "../utils/isEqual";
 
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import { migrateGraphNodeTypes } from "@nodetool-ai/protocol";
-import type { codeGen } from "@nodetool-ai/protocol/api-schemas";
 import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 import { isTypedSlot, normalizeDynamicSlots } from "../utils/dynamicSlots";
-import { codeGenSubmissionToNodeData } from "../utils/codeGenSubmission";
 import { addExposedInput } from "../utils/exposedInputs";
 import { WorkflowAttributes } from "./ApiTypes";
 import { wouldCreateCycle } from "../utils/graphCycle";
@@ -186,10 +184,6 @@ export interface NodeStoreState {
   updateNodeProperties: (
     id: string,
     properties: Record<string, unknown>
-  ) => void;
-  applyCodeGenSubmission: (
-    id: string,
-    submission: codeGen.CodeGenSubmission
   ) => void;
   deleteNode: (id: string) => void;
   deleteNodes: (ids: string[]) => void;
@@ -942,27 +936,6 @@ export const createNodeStore = (
               return { ...state, nodes };
             });
             get().setWorkflowDirty(true);
-          },
-          /**
-           * Write an accepted AI-authored submission onto a Code Node: code,
-           * title, typed input and output slots, and the slots' default values.
-           *
-           * One `updateNodeData` call, so the temporal middleware records one
-           * undo entry and a single undo restores the node exactly as it was
-           * before generation.
-           */
-          applyCodeGenSubmission: (
-            id: string,
-            submission: codeGen.CodeGenSubmission
-          ): void => {
-            const node = get().findNode(id);
-            if (!node) {
-              return;
-            }
-            get().updateNodeData(
-              id,
-              codeGenSubmissionToNodeData(submission, node.data.properties)
-            );
           },
           deleteNode: (id: string): void => {
             get().deleteNodes([id]);

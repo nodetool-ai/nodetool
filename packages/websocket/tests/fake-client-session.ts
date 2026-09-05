@@ -52,6 +52,14 @@ export class FakeClientSession implements ClientSession {
   readonly errors: Array<{ context: string; error: unknown }> = [];
 
   readonly userId: string | null;
+
+  requireUserId(): string {
+    if (this.userId === null) {
+      throw new Error("FakeClientSession was built with a null user id");
+    }
+    return this.userId;
+  }
+
   readonly appSession: AppSessionScope | null;
   readonly mode: WebSocketMode;
   readonly resolveExecutor: ResolveExecutor;

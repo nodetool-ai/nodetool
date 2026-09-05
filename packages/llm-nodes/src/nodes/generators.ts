@@ -10,7 +10,13 @@ import {
   toProviderTools,
   type ToolLike
 } from "./agents.js";
-import { hasProviderAccess } from "./agent-utils.js";
+import {
+  asText,
+  buildUserMessage,
+  getModelConfig,
+  hasProviderAccess,
+  hasProviderSupport
+} from "./agent-utils.js";
 import { meterProviderSpend } from "./provider-spend.js";
 import {
   isBoolean,
@@ -20,31 +26,10 @@ import {
   isObjectLike,
   isRecord,
   isString
-} from "./type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 
 type Row = Record<string, unknown>;
 type ColumnSpec = { name: string; data_type?: string };
-type LanguageModelLike = { provider?: string; id?: string; name?: string };
-type BinaryRef = {
-  uri?: string;
-  data?: Uint8Array | string;
-  mimeType?: string;
-};
-type MessageTextContent = { type: "text"; text: string };
-type MessageImageContent = { type: "image"; image: BinaryRef };
-type MessageAudioContent = { type: "audio"; audio: BinaryRef };
-type MessageContent =
-  | MessageTextContent
-  | MessageImageContent
-  | MessageAudioContent;
-
-function asText(value: unknown): string {
-  if (isString(value)) return value;
-  if (isNumber(value) || isBoolean(value)) return String(value);
-  if (!value) return "";
-  return JSON.stringify(value);
-}
-
 function parseRequestedCount(prompt: string, fallback: number): number {
   // Match any integer; large requests are clamped below rather than ignored.
   const m = prompt.match(/\b(\d{1,9})\b/);
@@ -136,69 +121,6 @@ function buildSchemaFromDynamicOutputs(
   }
   if (required.length === 0) return null;
   return { type: "object", additionalProperties: false, required, properties };
-}
-
-function normalizeBinaryRef(value: unknown): BinaryRef | null {
-  if (!isObjectLike(value)) return null;
-  const record = value as Record<string, unknown>;
-  const out: BinaryRef = {};
-  if (isNonEmptyString(record.uri)) out.uri = record.uri;
-  if (record.data instanceof Uint8Array || isString(record.data))
-    out.data = record.data;
-  if (isNonEmptyString(record.mimeType)) out.mimeType = record.mimeType;
-  if (isNonEmptyString(record.mime_type)) out.mimeType = record.mime_type;
-  return out.uri || out.data ? out : null;
-}
-
-/**
- * Normalize a list-typed media input to an array. Accepts an array (the
- * declared `list[image]`/`list[audio]` shape), a lone ref (defensive, in case
- * coercion didn't run), or null/undefined.
- */
-function toRefArray(value: unknown): unknown[] {
-  if (Array.isArray(value)) return value;
-  if (value === null || value === undefined) return [];
-  return [value];
-}
-
-function buildMessageContent(
-  text: string,
-  images: unknown,
-  audios: unknown
-): string | MessageContent[] {
-  const imageRefs = toRefArray(images)
-    .map(normalizeBinaryRef)
-    .filter((ref): ref is BinaryRef => ref !== null);
-  const audioRefs = toRefArray(audios)
-    .map(normalizeBinaryRef)
-    .filter((ref): ref is BinaryRef => ref !== null);
-  if (imageRefs.length === 0 && audioRefs.length === 0) return text;
-  const parts: MessageContent[] = [{ type: "text", text }];
-  for (const image of imageRefs) parts.push({ type: "image", image });
-  for (const audio of audioRefs) parts.push({ type: "audio", audio });
-  return parts;
-}
-
-function getModelConfig(props: Record<string, unknown>) {
-  const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
-  return {
-    providerId: model.provider ?? "",
-    modelId: model.id ?? ""
-  };
-}
-
-function hasProviderSupport(
-  context: ProcessingContext | undefined,
-  providerId: string,
-  modelId: string
-): context is ProcessingContext {
-  return (
-    !!context &&
-    typeof context.runProviderPrediction === "function" &&
-    typeof context.streamProviderPrediction === "function" &&
-    !!providerId &&
-    !!modelId
-  );
 }
 
 /**
@@ -511,14 +433,11 @@ export class StructuredOutputGeneratorNode extends BaseNode {
       const userText = [instructions, extraContext]
         .filter(Boolean)
         .join("\n\n");
-      const messages: Array<{ role: string; content: unknown }> = [];
+      const messages: Message[] = [];
       if (systemPrompt) {
         messages.push({ role: "system", content: systemPrompt });
       }
-      messages.push({
-        role: "user",
-        content: buildMessageContent(userText, this.image, this.audio)
-      });
+      messages.push(buildUserMessage(userText, this.image, this.audio));
       const result = await runMeteredMessage(context, providerId, modelId, {
         model: modelId,
         messages,
@@ -1144,12 +1063,9 @@ Return one or more complete <svg>...</svg> elements. Each SVG should use the xml
 Default canvas size is ${width}x${height} unless the user specifies otherwise.
 Output only SVG markup, no explanations or markdown fences.`;
 
-      const messages: Array<{ role: string; content: unknown }> = [
+      const messages: Message[] = [
         { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: buildMessageContent(prompt, this.image, this.audio)
-        }
+        buildUserMessage(prompt, this.image, this.audio)
       ];
 
       const result = await runMeteredMessage(context, providerId, modelId, {

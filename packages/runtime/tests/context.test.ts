@@ -3,14 +3,11 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import {
   ProcessingContext,
   MemoryCache,
-  InMemoryStorageAdapter,
-  FileStorageAdapter,
-  S3StorageAdapter,
   resolveWorkspacePath,
-  type S3Client,
   type MessageCreateRequestLike,
   type StorageListResult
 } from "../src/context.js";
@@ -158,34 +155,34 @@ describe("ProcessingContext – message queue", () => {
     });
   });
 
-  it("supports Python-style message queue aliases", async () => {
+  it("queues, pops and clears messages", async () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
-    ctx.post_message({ type: "job_update", status: "running" });
+    ctx.postMessage({ type: "job_update", status: "running" });
     expect(ctx.getMessages()).toHaveLength(1);
-    await expect(ctx.pop_message_async()).resolves.toMatchObject({
+    await expect(ctx.popMessageAsync()).resolves.toMatchObject({
       type: "job_update",
       status: "running"
     });
     ctx.postMessage({ type: "job_update", status: "completed" });
-    ctx.clear_messages();
+    ctx.clearMessages();
     expect(ctx.getMessages()).toHaveLength(0);
   });
 });
 
-describe("ProcessingContext – Python model interfaces", () => {
-  it("supports get_job via configured model interfaces", async () => {
+describe("ProcessingContext – model interfaces", () => {
+  it("reads a job through the configured model interface", async () => {
     const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
     ctx.setModelInterfaces({
       getJob: async ({ userId, jobId }) => ({ id: jobId, user_id: userId })
     });
 
-    await expect(ctx.get_job("job-123")).resolves.toEqual({
+    await expect(ctx.getJob("job-123")).resolves.toEqual({
       id: "job-123",
       user_id: "u1"
     });
   });
 
-  it("supports create_message and get_messages via configured model interfaces", async () => {
+  it("creates and lists thread messages through the configured model interfaces", async () => {
     const created: MessageCreateRequestLike[] = [];
     const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
     ctx.setModelInterfaces({
@@ -208,7 +205,7 @@ describe("ProcessingContext – Python model interfaces", () => {
     });
 
     await expect(
-      ctx.create_message({
+      ctx.createMessage({
         thread_id: "t1",
         role: "user",
         content: "hello"
@@ -216,7 +213,7 @@ describe("ProcessingContext – Python model interfaces", () => {
     ).resolves.toMatchObject({ id: "m1", thread_id: "t1" });
     expect(created).toHaveLength(1);
 
-    await expect(ctx.get_messages("t1", 25, "cursor-1", true)).resolves.toEqual(
+    await expect(ctx.getThreadMessages("t1", 25, "cursor-1", true)).resolves.toEqual(
       {
         messages: [
           {
@@ -232,7 +229,7 @@ describe("ProcessingContext – Python model interfaces", () => {
     );
   });
 
-  it("supports create_asset and Python-style aliases", async () => {
+  it("creates an asset through the configured model interface", async () => {
     const ctx = new ProcessingContext({
       jobId: "j1",
       userId: "u1",
@@ -250,7 +247,7 @@ describe("ProcessingContext – Python model interfaces", () => {
     });
 
     await expect(
-      ctx.create_asset({
+      ctx.createAsset({
         name: "out.txt",
         contentType: "text/plain",
         content: new Uint8Array([1, 2, 3])
@@ -267,16 +264,16 @@ describe("ProcessingContext – Python model interfaces", () => {
 
   it("throws when required model interfaces are not configured", async () => {
     const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
-    await expect(ctx.get_job("j2")).rejects.toThrow("model interface 'getJob'");
+    await expect(ctx.getJob("j2")).rejects.toThrow("model interface 'getJob'");
     await expect(
-      ctx.create_message({ thread_id: "t1", role: "user", content: "hello" })
+      ctx.createMessage({ thread_id: "t1", role: "user", content: "hello" })
     ).rejects.toThrow("model interface 'createMessage'");
-    await expect(ctx.get_messages("t1")).rejects.toThrow(
+    await expect(ctx.getThreadMessages("t1")).rejects.toThrow(
       "model interface 'getMessages'"
     );
   });
 
-  it("copies model interfaces and Python aliases", async () => {
+  it("carries model interfaces into a copied context", async () => {
     const ctx = new ProcessingContext({
       jobId: "j1",
       userId: "u1",
@@ -286,7 +283,42 @@ describe("ProcessingContext – Python model interfaces", () => {
     });
 
     const cloned = ctx.copy();
-    await expect(cloned.get_job("j9")).resolves.toEqual({ id: "j9" });
+    await expect(cloned.getJob("j9")).resolves.toEqual({ id: "j9" });
+  });
+
+  it("propagates a listFolderAssets failure instead of reporting no folder", async () => {
+    // A thrown model interface used to be caught and reported as `null`, which
+    // reads identically to "this id is not a folder" — a DB outage silently
+    // dropped every folder expansion out of a prompt.
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      userId: "u1",
+      modelInterfaces: {
+        listFolderAssets: async () => {
+          throw new Error("db down");
+        }
+      }
+    });
+    await expect(ctx.listFolderAssets("f1")).rejects.toThrow("db down");
+  });
+
+  it("propagates a getAssetInfo failure instead of reporting a missing asset", async () => {
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      userId: "u1",
+      modelInterfaces: {
+        getAssetInfo: async () => {
+          throw new Error("db down");
+        }
+      }
+    });
+    await expect(ctx.getAssetInfo("a1")).rejects.toThrow("db down");
+  });
+
+  it("still reports null when the optional interfaces are not configured", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
+    await expect(ctx.listFolderAssets("f1")).resolves.toBeNull();
+    await expect(ctx.getAssetInfo("a1")).resolves.toBeNull();
   });
 
   it("carries the run's cancellation signal to the child", () => {
@@ -565,152 +597,6 @@ describe("ProcessingContext.sanitizeForClient", () => {
       data: null,
       asset_id: "a123"
     });
-  });
-});
-
-describe("Storage adapters", () => {
-  it("InMemoryStorageAdapter stores and retrieves bytes", async () => {
-    const storage = new InMemoryStorageAdapter();
-    const uri = await storage.store(
-      "assets/test.txt",
-      new Uint8Array([1, 2, 3])
-    );
-
-    expect(uri).toBe("memory://assets/test.txt");
-    expect(await storage.exists(uri)).toBe(true);
-    expect(await storage.retrieve(uri)).toEqual(new Uint8Array([1, 2, 3]));
-  });
-
-  it("normalizes Windows separators in URI storage keys", async () => {
-    const memory = new InMemoryStorageAdapter();
-    expect(
-      await memory.store("assets\\nested\\test.txt", new Uint8Array([1]))
-    ).toBe("memory://assets/nested/test.txt");
-
-    let storedKey = "";
-    const s3 = new S3StorageAdapter({
-      bucket: "test-bucket",
-      prefix: "runs\\r1",
-      client: {
-        async putObject(input) {
-          storedKey = input.key;
-        },
-        async getObject() {
-          return null;
-        },
-        async headObject() {
-          return false;
-        }
-      }
-    });
-    expect(
-      await s3.store("assets\\out.bin", new Uint8Array([2]))
-    ).toBe("s3://test-bucket/runs/r1/assets/out.bin");
-    expect(storedKey).toBe("runs/r1/assets/out.bin");
-  });
-
-  it("InMemoryStorageAdapter returns null/false for unknown URIs", async () => {
-    const storage = new InMemoryStorageAdapter();
-    expect(await storage.retrieve("memory://missing.bin")).toBeNull();
-    expect(await storage.exists("memory://missing.bin")).toBe(false);
-    expect(await storage.retrieve("file:///tmp/not-memory")).toBeNull();
-  });
-
-  it("FileStorageAdapter stores and retrieves bytes under root", async () => {
-    const root = await mkdtemp(join(tmpdir(), "nodetool-ts-runtime-"));
-    try {
-      const storage = new FileStorageAdapter(root);
-      const uri = await storage.store(
-        "assets/out.bin",
-        new Uint8Array([9, 8, 7, 6])
-      );
-
-      expect(uri.startsWith("file://")).toBe(true);
-      expect(await storage.exists(uri)).toBe(true);
-      const bytes = await storage.retrieve(uri);
-      expect(bytes).not.toBeNull();
-      expect(Array.from(bytes ?? [])).toEqual([9, 8, 7, 6]);
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("FileStorageAdapter rejects traversal keys", async () => {
-    const root = await mkdtemp(join(tmpdir(), "nodetool-ts-runtime-"));
-    try {
-      const storage = new FileStorageAdapter(root);
-      await expect(
-        storage.store("../escape.txt", new Uint8Array([1]))
-      ).rejects.toThrow("Invalid storage key");
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("exists/retrieve return false/null (not throw) for an invalid /api/storage key", async () => {
-    // Regression: the /api/storage/ branch of resolvePathFromUri called
-    // resolvePathFromKey outside a try/catch, so a traversal key threw out of
-    // exists()/retrieve() instead of resolving to the documented false/null.
-    const root = await mkdtemp(join(tmpdir(), "nodetool-ts-runtime-"));
-    try {
-      const storage = new FileStorageAdapter(root);
-      await expect(
-        storage.exists("/api/storage/../secret")
-      ).resolves.toBe(false);
-      await expect(
-        storage.retrieve("/api/storage/../secret")
-      ).resolves.toBeNull();
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("S3StorageAdapter stores and returns s3 uri", async () => {
-    const store = new Map<string, Uint8Array>();
-    const client: S3Client = {
-      async putObject(input) {
-        store.set(`${input.bucket}/${input.key}`, new Uint8Array(input.body));
-      },
-      async getObject(input) {
-        return store.get(`${input.bucket}/${input.key}`) ?? null;
-      },
-      async headObject(input) {
-        return store.has(`${input.bucket}/${input.key}`);
-      }
-    };
-
-    const storage = new S3StorageAdapter({
-      bucket: "test-bucket",
-      prefix: "runs/r1",
-      client
-    });
-    const uri = await storage.store(
-      "assets/out.bin",
-      new Uint8Array([4, 5, 6]),
-      "application/octet-stream"
-    );
-
-    expect(uri).toBe("s3://test-bucket/runs/r1/assets/out.bin");
-    expect(await storage.exists(uri)).toBe(true);
-    expect(await storage.retrieve(uri)).toEqual(new Uint8Array([4, 5, 6]));
-  });
-
-  it("S3StorageAdapter returns null/false for other buckets or invalid uri", async () => {
-    const client: S3Client = {
-      async putObject() {},
-      async getObject() {
-        return new Uint8Array([1]);
-      },
-      async headObject() {
-        return true;
-      }
-    };
-
-    const storage = new S3StorageAdapter({ bucket: "bucket-a", client });
-    expect(await storage.retrieve("s3://bucket-b/key")).toBeNull();
-    expect(await storage.exists("s3://bucket-b/key")).toBe(false);
-    expect(await storage.retrieve("file:///tmp/nope")).toBeNull();
-    expect(await storage.exists("file:///tmp/nope")).toBe(false);
   });
 });
 
@@ -1050,56 +936,6 @@ describe("output normalization", () => {
     expect(normalized.image.uri).toContain(
       Buffer.from([1, 2, 3]).toString("base64")
     );
-  });
-});
-
-describe("FileStorageAdapter", () => {
-  it("retrieves assets via /api/storage URLs", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "nodetool-storage-"));
-    try {
-      const storage = new FileStorageAdapter(dir);
-      const storedUri = await storage.store(
-        "asset-123.png",
-        new Uint8Array([1, 2, 3])
-      );
-      expect(storedUri.startsWith("file://")).toBe(true);
-
-      const fromRelative = await storage.retrieve("/api/storage/asset-123.png");
-      expect(Uint8Array.from(fromRelative ?? [])).toEqual(
-        new Uint8Array([1, 2, 3])
-      );
-
-      const fromAbsolute = await storage.retrieve(
-        "http://127.0.0.1:7777/api/storage/asset-123.png"
-      );
-      expect(Uint8Array.from(fromAbsolute ?? [])).toEqual(
-        new Uint8Array([1, 2, 3])
-      );
-    } finally {
-      await rm(dir, { recursive: true, force: true });
-    }
-  });
-
-  it("lists the workspace root for every root prefix form", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "nodetool-storage-root-"));
-    try {
-      const storage = new FileStorageAdapter(dir);
-      await storage.store("hello.txt", new Uint8Array([1, 2]));
-      await storage.store("sub/inner.txt", new Uint8Array([3]));
-
-      // "", ".", and "/" all denote the workspace root. normalizeStorageKey
-      // rejects "." and "/", so the listing must special-case them rather than
-      // resolving them as keys (which previously yielded an empty root).
-      for (const prefix of ["", ".", "/"]) {
-        const { entries, commonPrefixes } = await storage.list(prefix, {
-          delimiter: "/"
-        });
-        expect(entries.map((e) => e.key)).toEqual(["hello.txt"]);
-        expect(commonPrefixes).toEqual(["sub/"]);
-      }
-    } finally {
-      await rm(dir, { recursive: true, force: true });
-    }
   });
 });
 
@@ -1896,7 +1732,7 @@ describe("ProcessingContext – variables and secrets", () => {
 });
 
 describe("ProcessingContext – HTTP helpers", () => {
-  it("retries transient responses and downloads bytes/text", async () => {
+  it("retries transient responses and downloads bytes", async () => {
     let calls = 0;
     const ctx = new ProcessingContext({
       jobId: "j1",
@@ -1919,9 +1755,6 @@ describe("ProcessingContext – HTTP helpers", () => {
       retry: { maxRetries: 1, backoffMs: 1 }
     });
     expect(new TextDecoder().decode(bytes)).toBe("hello");
-    await expect(ctx.downloadText("https://example.com/text")).resolves.toBe(
-      "hello"
-    );
   });
 });
 
@@ -2108,7 +1941,13 @@ describe("ProcessingContext – setTempUrlResolver", () => {
 });
 
 describe("ProcessingContext – HTTP method variants", () => {
-  it("httpPost sends POST method", async () => {
+  it.each([
+    ["POST"],
+    ["PATCH"],
+    ["DELETE"],
+    ["PUT"],
+    ["HEAD"]
+  ])("httpRequestWithRetries sends %s", async (method) => {
     let capturedMethod = "";
     const ctx = new ProcessingContext({
       jobId: "j1",
@@ -2117,61 +1956,10 @@ describe("ProcessingContext – HTTP method variants", () => {
         return new Response("ok", { status: 200 });
       }
     });
-    await ctx.httpPost("https://example.com/api");
-    expect(capturedMethod).toBe("POST");
+    await ctx.httpRequestWithRetries(method, "https://example.com/api");
+    expect(capturedMethod).toBe(method);
   });
 
-  it("httpPatch sends PATCH method", async () => {
-    let capturedMethod = "";
-    const ctx = new ProcessingContext({
-      jobId: "j1",
-      fetchFn: async (_url, init) => {
-        capturedMethod = (init as RequestInit).method ?? "";
-        return new Response("ok", { status: 200 });
-      }
-    });
-    await ctx.httpPatch("https://example.com/api");
-    expect(capturedMethod).toBe("PATCH");
-  });
-
-  it("httpDelete sends DELETE method", async () => {
-    let capturedMethod = "";
-    const ctx = new ProcessingContext({
-      jobId: "j1",
-      fetchFn: async (_url, init) => {
-        capturedMethod = (init as RequestInit).method ?? "";
-        return new Response("ok", { status: 200 });
-      }
-    });
-    await ctx.httpDelete("https://example.com/api");
-    expect(capturedMethod).toBe("DELETE");
-  });
-
-  it("httpPut sends PUT method", async () => {
-    let capturedMethod = "";
-    const ctx = new ProcessingContext({
-      jobId: "j1",
-      fetchFn: async (_url, init) => {
-        capturedMethod = (init as RequestInit).method ?? "";
-        return new Response("ok", { status: 200 });
-      }
-    });
-    await ctx.httpPut("https://example.com/api");
-    expect(capturedMethod).toBe("PUT");
-  });
-
-  it("httpHead sends HEAD method", async () => {
-    let capturedMethod = "";
-    const ctx = new ProcessingContext({
-      jobId: "j1",
-      fetchFn: async (_url, init) => {
-        capturedMethod = (init as RequestInit).method ?? "";
-        return new Response("ok", { status: 200 });
-      }
-    });
-    await ctx.httpHead("https://example.com/api");
-    expect(capturedMethod).toBe("HEAD");
-  });
 
   it("httpGet sends GET method", async () => {
     let capturedMethod = "";
@@ -2485,40 +2273,6 @@ describe("ProcessingContext – workspace path errors", () => {
   it("handles absolute paths as workspace-relative", () => {
     const result = resolveWorkspacePath("/tmp/ws", "/some/path.txt");
     expect(result).toBe(resolve("/tmp/ws", "some/path.txt"));
-  });
-});
-
-describe("ProcessingContext – S3 parseUri edge cases", () => {
-  it("returns null for s3 uri with no key", async () => {
-    const client: S3Client = {
-      async putObject() {},
-      async getObject() {
-        return null;
-      },
-      async headObject() {
-        return false;
-      }
-    };
-    const storage = new S3StorageAdapter({ bucket: "b", client });
-    expect(await storage.retrieve("s3://b/")).toBeNull();
-    expect(await storage.exists("s3://b/")).toBe(false);
-    expect(await storage.retrieve("s3://")).toBeNull();
-    expect(await storage.exists("s3://")).toBe(false);
-  });
-
-  it("S3 constructor requires bucket", () => {
-    const client: S3Client = {
-      async putObject() {},
-      async getObject() {
-        return null;
-      },
-      async headObject() {
-        return false;
-      }
-    };
-    expect(() => new S3StorageAdapter({ bucket: "", client })).toThrow(
-      "S3 bucket is required"
-    );
   });
 });
 
@@ -2895,30 +2649,6 @@ describe("ProcessingContext – generateNodeCacheKey edge cases", () => {
   });
 });
 
-describe("ProcessingContext – FileStorageAdapter edge cases", () => {
-  it("returns null for non-file:// URIs", async () => {
-    const root = await mkdtemp(join(tmpdir(), "nodetool-ts-fs-"));
-    try {
-      const storage = new FileStorageAdapter(root);
-      expect(await storage.retrieve("memory://foo")).toBeNull();
-      expect(await storage.exists("memory://foo")).toBe(false);
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("returns null for file outside root", async () => {
-    const root = await mkdtemp(join(tmpdir(), "nodetool-ts-fs-"));
-    try {
-      const storage = new FileStorageAdapter(root);
-      expect(await storage.retrieve("file:///etc/passwd")).toBeNull();
-      expect(await storage.exists("file:///etc/passwd")).toBe(false);
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-});
-
 describe("ProcessingContext – sanitizeForClient edge cases", () => {
   it("sanitizes memory uri asset with no data and no asset_id", () => {
     const value = {
@@ -2963,35 +2693,6 @@ describe("ProcessingContext – stream prediction non-Error throw", () => {
         // consume
       }
     }).rejects.toBe("string error");
-  });
-});
-
-describe("ProcessingContext – storage path escape prevention", () => {
-  it("throws when storage key tries to escape root", async () => {
-    const { FileStorageAdapter } = await import("../src/context.js");
-    const tmpDir = "/tmp/nodetool-test-storage-" + Date.now();
-    const adapter = new FileStorageAdapter(tmpDir);
-    await expect(
-      adapter.store("../../etc/passwd", new Uint8Array([1]))
-    ).rejects.toThrow("Invalid storage key");
-  });
-});
-
-describe("ProcessingContext – storage retrieve returns null on error", () => {
-  it("returns null for non-existent file", async () => {
-    const { FileStorageAdapter } = await import("../src/context.js");
-    const tmpDir = "/tmp/nodetool-test-storage-" + Date.now();
-    const adapter = new FileStorageAdapter(tmpDir);
-    const result = await adapter.retrieve("file:///nonexistent/path/file.txt");
-    expect(result).toBeNull();
-  });
-
-  it("returns null for non-file URI", async () => {
-    const { FileStorageAdapter } = await import("../src/context.js");
-    const tmpDir = "/tmp/nodetool-test-storage-" + Date.now();
-    const adapter = new FileStorageAdapter(tmpDir);
-    const result = await adapter.retrieve("https://example.com/file.txt");
-    expect(result).toBeNull();
   });
 });
 

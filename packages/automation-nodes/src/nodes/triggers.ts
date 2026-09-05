@@ -118,7 +118,7 @@ export class WaitNode extends BaseNode {
     description: "Seconds to wait before continuing (0 = no wait)",
     min: 0
   })
-  declare timeout_seconds: any;
+  declare timeout_seconds: number;
 
   @prop({
     type: "any",
@@ -126,11 +126,11 @@ export class WaitNode extends BaseNode {
     title: "Input",
     description: "Input data to pass through to the output after waiting"
   })
-  declare input: any;
+  declare input: unknown;
 
   async process(): Promise<WaitOutputs> {
-    const timeoutSeconds = Number(this.timeout_seconds ?? 0);
-    const inputData = this.input ?? "";
+    const timeoutSeconds = this.timeout_seconds;
+    const inputData = this.input;
 
     const start = Date.now();
     if (timeoutSeconds > 0) {
@@ -182,7 +182,7 @@ export class ManualTriggerNode extends BaseNode {
       "Events to process before the node stops listening (0 = unlimited). Applies only while the node listens in a running workflow; a fired trigger starts its own run and emits exactly one event.",
     min: 0
   })
-  declare max_events: any;
+  declare max_events: number;
 
   @prop({
     type: "str",
@@ -190,7 +190,7 @@ export class ManualTriggerNode extends BaseNode {
     title: "Name",
     description: "Name for this trigger, emitted on the source output"
   })
-  declare name: any;
+  declare name: string;
 
   @prop({
     type: "float",
@@ -200,7 +200,7 @@ export class ManualTriggerNode extends BaseNode {
       "How long to wait for the next event before stopping (empty = wait forever). Applies only while the node listens in a running workflow.",
     min: 0
   })
-  declare timeout_seconds: any;
+  declare timeout_seconds: number | null;
 
   async process(): Promise<NoBufferedOutputs> {
     return {};
@@ -215,10 +215,7 @@ export class ManualTriggerNode extends BaseNode {
     event: TriggerEvent,
     outputs: StreamingOutputs
   ): Promise<void> {
-    const parsed = parseManualEvent(
-      event.payload,
-      String(this.name ?? "manual_trigger")
-    );
+    const parsed = parseManualEvent(event.payload, this.name);
     await outputs.emit("data", parsed.data);
     await outputs.emit("timestamp", parsed.timestamp);
     await outputs.emit("source", parsed.source);
@@ -230,9 +227,10 @@ export class ManualTriggerNode extends BaseNode {
    * and emits them downstream. Keeps running until EOS or max_events.
    */
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    const maxEvents = Number(this.max_events ?? 0);
-    const triggerName = String(this.name ?? "manual_trigger");
-    const timeoutSeconds = Number(this.timeout_seconds ?? 0) || 0;
+    const maxEvents = this.max_events;
+    const triggerName = this.name;
+    // `timeout_seconds` defaults to null, the documented "wait forever" value.
+    const timeoutSeconds = this.timeout_seconds ?? 0;
     const timeoutMs = timeoutSeconds > 0 ? timeoutSeconds * 1000 : 0;
     let eventsProcessed = 0;
 
@@ -314,7 +312,7 @@ export class IntervalTriggerNode extends BaseNode {
       "Ticks to emit before the node stops (0 = unlimited). Applies only while the node runs in the editor; the scheduler keeps firing an activated trigger regardless.",
     min: 0
   })
-  declare max_events: any;
+  declare max_events: number;
 
   @prop({
     type: "float",
@@ -322,7 +320,7 @@ export class IntervalTriggerNode extends BaseNode {
     title: "Interval Seconds",
     description: "Interval between triggers in seconds"
   })
-  declare interval_seconds: any;
+  declare interval_seconds: number;
 
   @prop({
     type: "float",
@@ -331,7 +329,7 @@ export class IntervalTriggerNode extends BaseNode {
     description: "Delay before the first trigger fires",
     min: 0
   })
-  declare initial_delay_seconds: any;
+  declare initial_delay_seconds: number;
 
   @prop({
     type: "bool",
@@ -339,7 +337,7 @@ export class IntervalTriggerNode extends BaseNode {
     title: "Emit On Start",
     description: "Whether to emit an event immediately on start"
   })
-  declare emit_on_start: any;
+  declare emit_on_start: boolean;
 
   @prop({
     type: "bool",
@@ -347,7 +345,7 @@ export class IntervalTriggerNode extends BaseNode {
     title: "Include Drift Compensation",
     description: "Compensate for execution time to maintain accurate intervals"
   })
-  declare include_drift_compensation: any;
+  declare include_drift_compensation: boolean;
 
   async process(): Promise<NoBufferedOutputs> {
     return {};
@@ -362,10 +360,7 @@ export class IntervalTriggerNode extends BaseNode {
     event: TriggerEvent,
     outputs: StreamingOutputs
   ): Promise<void> {
-    const parsed = parseIntervalTick(
-      event.payload,
-      Number(this.interval_seconds ?? 60)
-    );
+    const parsed = parseIntervalTick(event.payload, this.interval_seconds);
     await outputs.emit("tick", parsed.tick);
     await outputs.emit("elapsed_seconds", parsed.elapsed_seconds);
     await outputs.emit("interval_seconds", parsed.interval_seconds);
@@ -375,11 +370,14 @@ export class IntervalTriggerNode extends BaseNode {
   }
 
   async *genProcess(): AsyncGenerator<IntervalTickEvent> {
-    const intervalMs = Number(this.interval_seconds ?? 60) * 1000;
-    const initialDelayMs = Number(this.initial_delay_seconds ?? 0) * 1000;
-    const maxEvents = Number(this.max_events ?? 0);
-    const emitOnStart = Boolean(this.emit_on_start ?? true);
-    const driftCompensation = Boolean(this.include_drift_compensation ?? true);
+    const intervalMs = Math.max(
+      MIN_WAIT_SECONDS * 1000,
+      this.interval_seconds * 1000
+    );
+    const initialDelayMs = this.initial_delay_seconds * 1000;
+    const maxEvents = this.max_events;
+    const emitOnStart = this.emit_on_start;
+    const driftCompensation = this.include_drift_compensation;
 
     const startTime = Date.now();
     let tickCount = 0;
@@ -423,7 +421,7 @@ export class IntervalTriggerNode extends BaseNode {
     return {
       tick,
       elapsed_seconds: (Date.now() - startTime) / 1000,
-      interval_seconds: Number(this.interval_seconds ?? 60),
+      interval_seconds: this.interval_seconds,
       timestamp: new Date().toISOString(),
       source: "interval",
       event_type: "tick"
@@ -523,7 +521,7 @@ export class FileWatchTriggerNode extends BaseNode {
       "File events to emit before the node stops (0 = unlimited). Applies only while the node runs in the editor; the file-watch adapter keeps firing an activated trigger regardless.",
     min: 0
   })
-  declare max_events: any;
+  declare max_events: number;
 
   @prop({
     type: "str",
@@ -531,7 +529,7 @@ export class FileWatchTriggerNode extends BaseNode {
     title: "Path",
     description: "Path to watch (file or directory)"
   })
-  declare path: any;
+  declare path: string;
 
   @prop({
     type: "bool",
@@ -539,7 +537,7 @@ export class FileWatchTriggerNode extends BaseNode {
     title: "Recursive",
     description: "Watch subdirectories recursively"
   })
-  declare recursive: any;
+  declare recursive: boolean;
 
   @prop({
     type: "list[str]",
@@ -547,7 +545,7 @@ export class FileWatchTriggerNode extends BaseNode {
     title: "Patterns",
     description: "File patterns to watch (e.g., ['*.txt', '*.json'])"
   })
-  declare patterns: any;
+  declare patterns: string[];
 
   @prop({
     type: "list[str]",
@@ -555,7 +553,7 @@ export class FileWatchTriggerNode extends BaseNode {
     title: "Ignore Patterns",
     description: "File patterns to ignore"
   })
-  declare ignore_patterns: any;
+  declare ignore_patterns: string[];
 
   @prop({
     type: "list[str]",
@@ -563,7 +561,7 @@ export class FileWatchTriggerNode extends BaseNode {
     title: "Events",
     description: "Types of events to watch for"
   })
-  declare events: any;
+  declare events: string[];
 
   @prop({
     type: "float",
@@ -572,7 +570,7 @@ export class FileWatchTriggerNode extends BaseNode {
     description: "Debounce time to avoid duplicate events",
     min: 0
   })
-  declare debounce_seconds: any;
+  declare debounce_seconds: number;
 
   async process(): Promise<NoBufferedOutputs> {
     return {};
@@ -595,19 +593,13 @@ export class FileWatchTriggerNode extends BaseNode {
   }
 
   async *genProcess(): AsyncGenerator<FileWatchEvent> {
-    const watchPath = path.resolve(String(this.path ?? "."));
-    const recursive = Boolean(this.recursive ?? false);
-    const patterns: string[] = Array.isArray(this.patterns)
-      ? this.patterns
-      : ["*"];
-    const ignorePatterns: string[] = Array.isArray(this.ignore_patterns)
-      ? this.ignore_patterns
-      : [];
-    const watchEvents: string[] = Array.isArray(this.events)
-      ? this.events
-      : ["created", "modified", "deleted", "moved"];
-    const debounceMs = Number(this.debounce_seconds ?? 0.5) * 1000;
-    const maxEvents = Number(this.max_events ?? 0);
+    const watchPath = path.resolve(this.path);
+    const recursive = this.recursive;
+    const patterns = this.patterns;
+    const ignorePatterns = this.ignore_patterns;
+    const watchEvents = this.events;
+    const debounceMs = this.debounce_seconds * 1000;
+    const maxEvents = this.max_events;
 
     if (!fs.existsSync(watchPath)) {
       throw new Error(`Watch path does not exist: ${watchPath}`);

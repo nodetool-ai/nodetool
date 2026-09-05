@@ -18,7 +18,6 @@
  * Design: docs/tool-class-retirement-design.md § "Migration".
  */
 
-import type { JsonSchema } from "@nodetool-ai/runtime";
 import type {
   TimelineDocument,
   TimelineSequence,
@@ -61,18 +60,6 @@ import {
   MAX_PREVIEW_RANGE_COUNT,
   DEFAULT_VERSION_LIMIT,
   MAX_VERSION_LIMIT,
-  SAVE_TYPE_PROPERTY,
-  LIST_TIMELINES_SCHEMA,
-  CREATE_TIMELINE_SCHEMA,
-  GET_TIMELINE_SCHEMA,
-  LIST_TIMELINE_VERSIONS_SCHEMA,
-  GET_TIMELINE_VERSION_SCHEMA,
-  CREATE_TIMELINE_VERSION_SCHEMA,
-  RESTORE_TIMELINE_VERSION_SCHEMA,
-  DELETE_TIMELINE_VERSION_SCHEMA,
-  EDIT_TIMELINE_SCHEMA,
-  VALIDATE_TIMELINE_SCHEMA,
-  SET_TIMELINE_DOCUMENT_SCHEMA,
   deleteTimelineSpec
 } from "./timelines.specs.js";
 import {
@@ -81,23 +68,6 @@ import {
 } from "@nodetool-ai/timeline";
 import { isFiniteNumber, isRecord, isString } from "../utils/type-guards.js";
 
-export {
-  DEFAULT_VERSION_LIMIT,
-  MAX_VERSION_LIMIT,
-  SAVE_TYPE_PROPERTY,
-  LIST_TIMELINES_SCHEMA,
-  CREATE_TIMELINE_SCHEMA,
-  GET_TIMELINE_SCHEMA,
-  LIST_TIMELINE_VERSIONS_SCHEMA,
-  GET_TIMELINE_VERSION_SCHEMA,
-  CREATE_TIMELINE_VERSION_SCHEMA,
-  RESTORE_TIMELINE_VERSION_SCHEMA,
-  DELETE_TIMELINE_VERSION_SCHEMA,
-  EDIT_TIMELINE_SCHEMA,
-  VALIDATE_TIMELINE_SCHEMA,
-  SET_TIMELINE_DOCUMENT_SCHEMA,
-  COMPARE_TIMELINE_FRAMES_SCHEMA
-} from "./timelines.specs.js";
 import { resolveProjectId } from "./project-scope.js";
 
 type ToolError = { error: string };

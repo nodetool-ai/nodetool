@@ -36,15 +36,6 @@ import {
 import { userIdOf } from "../tools/mcp-tool-support.js";
 import { isRecord, isString } from "../utils/type-guards.js";
 
-export {
-  DEFAULT_LIMIT,
-  MAX_LIMIT,
-  LIST_COMPOSITIONS_SCHEMA,
-  GET_COMPOSITION_SCHEMA,
-  SAVE_COMPOSITION_SCHEMA,
-  DELETE_COMPOSITION_SCHEMA
-} from "./compositions.specs.js";
-
 /** The metadata key a saved composition's marker lives under. */
 export const COMPOSITION_METADATA_KEY = "nodetool_composition";
 

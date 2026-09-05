@@ -61,8 +61,11 @@ import {
   globalWebSocketManager,
   type WebSocketMessage
 } from "../../lib/websocket/GlobalWebSocketManager";
-import useResultsStore from "../../stores/ResultsStore";
-import useStatusStore from "../../stores/StatusStore";
+import {
+  applyThreadRunUpdate,
+  type MsgpackData as WorkflowMsgpackData
+} from "../../stores/workflowUpdates";
+import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import type { Graph } from "../../stores/ApiTypes";
 import {
   getThreadRuntime,
@@ -171,22 +174,12 @@ interface ChatTurnActiveUpdate {
   last_seq: number;
 }
 
+/**
+ * Everything the chat socket can deliver: the shared run frames (declared once,
+ * in the editor's run reducer) plus the frames only a chat turn produces.
+ */
 type MsgpackData =
-  | JobUpdate
-  | Chunk
-  | Prediction
-  | NodeProgress
-  | NodeUpdate
-  | EdgeUpdate
-  | Message
-  | ToolCallUpdate
-  | ToolResultUpdate
-  | TaskUpdate
-  | TodoUpdate
-  | PlanningUpdate
-  | LogUpdate
-  | OutputUpdate
-  | StepResult
+  | WorkflowMsgpackData
   | WorkflowCreatedUpdate
   | WorkflowUpdatedUpdate
   | GenerationStoppedUpdate
@@ -198,6 +191,12 @@ type MsgpackData =
   | ChatResumedUpdate
   | ChatTurnActiveUpdate
   | ErrorMessage;
+
+/** A run frame the editor's reducer understands, as chat receives it. */
+type RunFrame = Extract<
+  WorkflowMsgpackData,
+  { workflow_id?: string | null }
+>;
 
 interface ToolResultMessage {
   type: "tool_result";
@@ -352,28 +351,35 @@ const applyJobUpdate = (
   return noopUpdate;
 };
 
+/**
+ * Hand a run frame that arrived on the thread subscription to the editor's run
+ * reducer. `applyThreadRunUpdate` drops the frames the editor's own workflow
+ * subscription already receives, so a run on an open canvas is not processed
+ * twice.
+ */
+const applyRunFrame = (
+  state: GlobalChatState,
+  update: RunFrame,
+  threadId: string | null
+): void => {
+  const workflowId =
+    update.workflow_id ?? state.threadWorkflowId[threadId ?? ""];
+  if (!workflowId) {
+    return;
+  }
+  applyThreadRunUpdate(
+    workflowId,
+    update,
+    getWorkflowRunnerStore(workflowId)
+  );
+};
+
 const applyEdgeUpdate = (
   state: GlobalChatState,
   update: EdgeUpdate,
   threadId: string | null
 ): ReducerResult => {
-  const workflowId = update.workflow_id ?? undefined;
-  const effectiveWorkflowId =
-    workflowId ?? state.threadWorkflowId[threadId ?? ""];
-  // Edges are scoped by the producing run's job_id so concurrent same-workflow
-  // runs stay isolated. Skip the write if job_id is absent.
-  const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
-  if (effectiveWorkflowId && jobId) {
-    useResultsStore
-      .getState()
-      .setEdge(
-        effectiveWorkflowId,
-        jobId,
-        update.edge_id,
-        update.status,
-        update.counter ?? undefined
-      );
-  }
+  applyRunFrame(state, update, threadId);
   return noopUpdate;
 };
 
@@ -382,20 +388,7 @@ const applyNodeUpdate = (
   update: NodeUpdate,
   threadId: string | null
 ): ReducerResult => {
-  const workflowId = update.workflow_id ?? undefined;
-  const effectiveWorkflowId =
-    workflowId ?? state.threadWorkflowId[threadId ?? ""];
-
-  if (effectiveWorkflowId) {
-    // Sync status, scoped by the producing run's job_id so concurrent
-    // same-workflow runs stay isolated. Skip the write if job_id is absent.
-    const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
-    if (jobId) {
-      useStatusStore
-        .getState()
-        .setStatus(effectiveWorkflowId, jobId, update.node_id, update.status);
-    }
-  }
+  applyRunFrame(state, update, threadId);
 
   if (!threadId) {
     return noopUpdate;
@@ -558,20 +551,7 @@ const applyOutputUpdate = (
     return noopUpdate;
   }
 
-  const workflowId = update.workflow_id ?? undefined;
-  const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[threadId];
-  // Output results are scoped by the producing run's job_id so concurrent
-  // same-workflow runs stay isolated. Skip the write if job_id is absent.
-  const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
-  if (effectiveWorkflowId && jobId) {
-    useResultsStore.getState().setOutputResult(
-      effectiveWorkflowId,
-      jobId,
-      update.node_id,
-      update.value,
-      true // append
-    );
-  }
+  applyRunFrame(state, update, threadId);
 
   if (update.output_type === "string" && isString(update.value)) {
     const messages = state.messageCache[threadId] || [];
@@ -1158,23 +1138,7 @@ const applyNodeProgress = (
   progress: NodeProgress,
   threadId: string | null
 ): ReducerResult => {
-  const workflowId = progress.workflow_id ?? undefined;
-  const effectiveWorkflowId =
-    workflowId ?? state.threadWorkflowId[threadId ?? ""];
-  // Progress is scoped by the producing run's job_id so concurrent same-workflow
-  // runs stay isolated. Skip the write if job_id is absent.
-  const jobId = (progress as { job_id?: string | null }).job_id ?? undefined;
-  if (effectiveWorkflowId && jobId) {
-    useResultsStore
-      .getState()
-      .setProgress(
-        effectiveWorkflowId,
-        jobId,
-        progress.node_id,
-        progress.progress,
-        progress.total
-      );
-  }
+  applyRunFrame(state, progress, threadId);
 
   if (!threadId) {
     return noopUpdate;

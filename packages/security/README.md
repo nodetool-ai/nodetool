@@ -1,8 +1,8 @@
 # @nodetool-ai/security
 
-Secret storage and encryption for [NodeTool](https://nodetool.ai) — master-key management, crypto helpers, and startup security checks.
+Secret storage and encryption for [NodeTool](https://nodetool.ai) — master-key management and crypto helpers.
 
-This package owns encryption at rest for the NodeTool backend. It derives and stores a master key (OS keychain via keytar or environment variable), encrypts and decrypts secrets (including Fernet-compatible payloads), and runs startup checks that verify the security configuration before the server accepts traffic.
+This package owns encryption at rest for the NodeTool backend. It derives and stores a master key (OS keychain via keytar or environment variable) and encrypts and decrypts secrets, including Fernet-compatible payloads.
 
 ## Install
 
@@ -25,8 +25,6 @@ npm install @nodetool-ai/security
 | `isUsingEnvKey` | function | Report whether the env var supplies the key |
 | `setKeytarLoader` / `resetKeytarLoader` | function | Override the keytar loader (for tests) |
 | `KeychainAccessError` | class | Error thrown when the OS keychain is unreachable |
-| `runStartupChecks` | function | Verify security configuration at startup |
-| `StartupCheckResult` | type | Result of a startup check |
 
 ## Usage
 

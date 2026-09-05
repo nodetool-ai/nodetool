@@ -31,7 +31,6 @@ import type {
   WorkspaceEntry
 } from "@nodetool-ai/runtime";
 import type { TodoItem, TodoStatus, TodoUpdate } from "@nodetool-ai/protocol";
-import { Tool } from "../tools/base-tool.js";
 import {
   isNonBlankString,
   isNumber,
@@ -51,24 +50,7 @@ import {
   editFileSpec,
   globSpec,
   grepSpec,
-  todoWriteSpec,
-  READ_FILE_SCHEMA,
-  WRITE_FILE_SCHEMA,
-  LIST_DIRECTORY_SCHEMA,
-  EDIT_FILE_SCHEMA,
-  GLOB_SCHEMA,
-  GREP_SCHEMA,
-  TODO_WRITE_SCHEMA
-} from "./files.specs.js";
-
-export {
-  READ_FILE_SCHEMA,
-  WRITE_FILE_SCHEMA,
-  LIST_DIRECTORY_SCHEMA,
-  EDIT_FILE_SCHEMA,
-  GLOB_SCHEMA,
-  GREP_SCHEMA,
-  TODO_WRITE_SCHEMA
+  todoWriteSpec
 } from "./files.specs.js";
 
 /**

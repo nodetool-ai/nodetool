@@ -2,7 +2,7 @@ import { BaseNode } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Model3DRefLike } from "./types.js";
 import { modelRef, modelRefToBytes } from "./utils.js";
-import { isObjectLike } from "../../type-predicates.js";
+import { isObjectLike } from "@nodetool-ai/node-sdk";
 
 /** Output handles GlbTransformNode.process() emits. */
 type GlbTransformNodeOutputs = {

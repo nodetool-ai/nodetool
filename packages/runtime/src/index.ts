@@ -7,9 +7,6 @@ export {
   ACTIVE_MODEL_CONTEXT_KEY,
   type ActiveModelSelection,
   MemoryCache,
-  InMemoryStorageAdapter,
-  FileStorageAdapter,
-  S3StorageAdapter,
   resolveWorkspacePath,
   setDefaultModelInterfaces,
   getDefaultModelInterfaces,
@@ -22,12 +19,18 @@ export {
   type GenerationRequest,
   type GenerationResult,
   type InjectedTool,
-  type S3Client,
   type StorageAdapter,
   type StorageEntry,
   type StorageListResult,
   type StorageStat
 } from "./context.js";
+
+// The storage backends themselves live in `@nodetool-ai/storage`; re-exported
+// here because every host reaches them through this barrel.
+export {
+  InMemoryStorageAdapter,
+  FileStorageAdapter
+} from "@nodetool-ai/storage";
 
 // The run's workspace, as an interface over any storage backend. Importing
 // `storage-workspace.js` here also installs the factory ProcessingContext uses

@@ -10,7 +10,7 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
-import { isFunction } from "../type-predicates.js";
+import { isCallable as isFunction } from "@nodetool-ai/node-sdk";
 
 export class PreviewNode extends BaseNode {
   static readonly nodeType = "nodetool.workflows.base_node.Preview";

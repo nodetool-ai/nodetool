@@ -30,9 +30,7 @@ import { isRecord, isString } from "./predicates.js";
 import type { DocumentOp } from "./document-ops.js";
 import {
   supervisorDecisionSchema,
-  supervisorEscalationSchema,
-  type SupervisorDecision,
-  type SupervisorEscalation
+  supervisorEscalationSchema
 } from "./supervisor.js";
 
 // ---------------------------------------------------------------------------
@@ -1125,76 +1123,16 @@ export function isJobUpdate(value: unknown): value is JobUpdate {
 export function isNodeUpdate(value: unknown): value is NodeUpdate {
   return hasType(value, "node_update");
 }
-export function isGenerationComplete(
-  value: unknown
-): value is GenerationComplete {
-  return hasType(value, "generation_complete");
-}
-export function isNodeProgress(value: unknown): value is NodeProgress {
-  return hasType(value, "node_progress");
-}
-export function isEdgeUpdate(value: unknown): value is EdgeUpdate {
-  return hasType(value, "edge_update");
-}
 export function isOutputUpdate(value: unknown): value is OutputUpdate {
   return hasType(value, "output_update");
 }
-export function isSaveUpdate(value: unknown): value is SaveUpdate {
-  return hasType(value, "save_update");
-}
-export function isBinaryUpdate(value: unknown): value is BinaryUpdate {
-  return hasType(value, "binary_update");
-}
-export function isLogUpdate(value: unknown): value is LogUpdate {
-  return hasType(value, "log_update");
-}
-export function isNotification(value: unknown): value is Notification {
-  return hasType(value, "notification");
-}
-export function isErrorMessage(value: unknown): value is ErrorMessage {
-  return hasType(value, "error");
-}
-export function isToolCallUpdate(value: unknown): value is ToolCallUpdate {
-  return hasType(value, "tool_call_update");
-}
-export function isToolResultUpdate(value: unknown): value is ToolResultUpdate {
-  return hasType(value, "tool_result_update");
-}
-export function isTaskUpdate(value: unknown): value is TaskUpdate {
-  return hasType(value, "task_update");
-}
-export function isStepResult(value: unknown): value is StepResult {
-  return hasType(value, "step_result");
-}
-export function isPlanningUpdate(value: unknown): value is PlanningUpdate {
-  return hasType(value, "planning_update");
-}
 export function isChunk(value: unknown): value is Chunk {
   return hasType(value, "chunk");
-}
-export function isPrediction(value: unknown): value is Prediction {
-  return hasType(value, "prediction");
-}
-export function isLLMCallUpdate(value: unknown): value is LLMCallUpdate {
-  return hasType(value, "llm_call");
 }
 export function isProviderCallFailed(
   value: unknown
 ): value is ProviderCallFailed {
   return hasType(value, "provider_call_failed");
-}
-export function isTodoUpdate(value: unknown): value is TodoUpdate {
-  return hasType(value, "todo_update");
-}
-export function isSupervisorEscalation(
-  value: unknown
-): value is SupervisorEscalation {
-  return hasType(value, "supervisor_escalation");
-}
-export function isSupervisorDecision(
-  value: unknown
-): value is SupervisorDecision {
-  return hasType(value, "supervisor_decision");
 }
 
 /** True when `value` is a structurally valid `ProcessingMessage`. */
@@ -1230,23 +1168,3 @@ export function sanitizeMemoryUris<T>(value: T): T {
   return value;
 }
 
-/**
- * Encode a BinaryUpdate into a single Buffer/Uint8Array suitable for
- * binary WebSocket transmission.
- * Format: JSON header (node_id + output_name) + null byte + raw binary.
- * Mirrors Python's BinaryUpdate.encode().
- */
-export function encodeBinaryUpdate(update: BinaryUpdate): Uint8Array {
-  const header = JSON.stringify({
-    type: update.type,
-    node_id: update.node_id,
-    output_name: update.output_name
-  });
-  const headerBytes = new TextEncoder().encode(header);
-  const separator = new Uint8Array([0]); // null byte separator
-  const result = new Uint8Array(headerBytes.length + 1 + update.binary.length);
-  result.set(headerBytes, 0);
-  result.set(separator, headerBytes.length);
-  result.set(update.binary, headerBytes.length + 1);
-  return result;
-}

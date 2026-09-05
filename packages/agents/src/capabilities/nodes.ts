@@ -16,7 +16,6 @@
  * Design: docs/tool-class-retirement-design.md § "Migration" (`/nodes`).
  */
 
-import type { JsonSchema } from "@nodetool-ai/runtime";
 import type {
   NodeMetadata,
   ScoredNode,
@@ -31,10 +30,7 @@ import type {
 import {
   listNodesSpec,
   searchNodesSpec,
-  getNodeInfoSpec,
-  LIST_NODES_INPUT_SCHEMA,
-  SEARCH_NODES_INPUT_SCHEMA,
-  GET_NODE_INFO_INPUT_SCHEMA
+  getNodeInfoSpec
 } from "./nodes.specs.js";
 import {
   isFunction,
@@ -42,12 +38,6 @@ import {
   isNumber,
   isString
 } from "../utils/type-guards.js";
-
-export {
-  LIST_NODES_INPUT_SCHEMA,
-  SEARCH_NODES_INPUT_SCHEMA,
-  GET_NODE_INFO_INPUT_SCHEMA
-} from "./nodes.specs.js";
 
 function firstSentence(text: string): string {
   const dot = text.indexOf(".");

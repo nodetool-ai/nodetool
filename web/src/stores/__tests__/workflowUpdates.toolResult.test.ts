@@ -1,6 +1,7 @@
 import type { ToolResultUpdate, WorkflowAttributes } from "../ApiTypes";
 import { stub } from "../../test-utils/doubles";
 import useResultsStore from "../ResultsStore";
+import { nodeKey } from "../nodeKey";
 import { handleUpdate } from "../workflowUpdates";
 
 /**
@@ -58,9 +59,10 @@ describe("handleUpdate tool_result_update → artifact channel", () => {
       () => undefined
     );
 
-    const results = useResultsStore
-      .getState()
-      .getToolResults("workflow-1", "job-1", "agent-1");
+    const results =
+      useResultsStore.getState().toolResults[
+        nodeKey("workflow-1", "job-1", "agent-1")
+      ];
     expect(results).toEqual([{ a: 1 }, { b: 2 }]);
   });
 

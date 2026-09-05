@@ -52,12 +52,6 @@ type ResultsStore = {
   toolResults: Record<NodeKey, unknown[]>;
   planningUpdates: Record<NodeKey, PlanningUpdate>;
   clearResults: (workflowId: string, nodeIds?: Set<string>) => void;
-  clearOutputResults: (workflowId: string, nodeIds?: Set<string>) => void;
-  clearProgress: (workflowId: string, nodeIds?: Set<string>) => void;
-  clearToolCalls: (workflowId: string, nodeIds?: Set<string>) => void;
-  clearTasks: (workflowId: string, nodeIds?: Set<string>) => void;
-  clearChunks: (workflowId: string, nodeIds?: Set<string>) => void;
-  clearPlanningUpdates: (workflowId: string, nodeIds?: Set<string>) => void;
   clearEdges: (workflowId: string, edgeIds?: Set<string>) => void;
   clearJobRunVisuals: (workflowId: string, jobId: string) => void;
   setEdge: (
@@ -67,11 +61,6 @@ type ResultsStore = {
     status: string,
     counter?: number
   ) => void;
-  getEdge: (
-    workflowId: string,
-    jobId: string,
-    edgeId: string
-  ) => { status: string; counter?: number } | undefined;
   upsertLiveGeneration: (
     workflowId: string,
     nodeId: string,
@@ -114,11 +103,6 @@ type ResultsStore = {
     nodeId: string,
     task: Task
   ) => void;
-  getTask: (
-    workflowId: string,
-    jobId: string,
-    nodeId: string
-  ) => Task | undefined;
   addChunk: (
     workflowId: string,
     jobId: string,
@@ -136,22 +120,12 @@ type ResultsStore = {
     nodeId: string,
     toolCall: ToolCallUpdate
   ) => void;
-  getToolCall: (
-    workflowId: string,
-    jobId: string,
-    nodeId: string
-  ) => ToolCallUpdate | undefined;
   appendToolResult: (
     workflowId: string,
     jobId: string,
     nodeId: string,
     result: unknown
   ) => void;
-  getToolResults: (
-    workflowId: string,
-    jobId: string,
-    nodeId: string
-  ) => unknown[];
   setProgress: (
     workflowId: string,
     jobId: string,
@@ -165,11 +139,6 @@ type ResultsStore = {
     jobId: string,
     nodeId: string
   ) => { progress: number; total: number; chunk?: string } | undefined;
-  getPlanningUpdate: (
-    workflowId: string,
-    jobId: string,
-    nodeId: string
-  ) => PlanningUpdate | undefined;
   setPlanningUpdate: (
     workflowId: string,
     jobId: string,
@@ -277,9 +246,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
       }
     }));
   },
-  getPlanningUpdate: (workflowId: string, jobId: string, nodeId: string) => {
-    return get().planningUpdates[nodeKey(workflowId, jobId, nodeId)];
-  },
   setEdge: (
     workflowId: string,
     jobId: string,
@@ -298,9 +264,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
       }
     }));
   },
-  getEdge: (workflowId: string, jobId: string, edgeId: string) => {
-    return get().edges[edgeKey(workflowId, jobId, edgeId)];
-  },
   setToolCall: (
     workflowId: string,
     jobId: string,
@@ -313,9 +276,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
         [nodeKey(workflowId, jobId, nodeId)]: toolCall
       }
     }));
-  },
-  getToolCall: (workflowId: string, jobId: string, nodeId: string) => {
-    return get().toolCalls[nodeKey(workflowId, jobId, nodeId)];
   },
   /**
    * Append a tool result for a node.
@@ -336,16 +296,10 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
       }
     }));
   },
-  getToolResults: (workflowId: string, jobId: string, nodeId: string) => {
-    return get().toolResults[nodeKey(workflowId, jobId, nodeId)] ?? [];
-  },
   setTask: (workflowId: string, jobId: string, nodeId: string, task: Task) => {
     set((state) => ({
       tasks: { ...state.tasks, [nodeKey(workflowId, jobId, nodeId)]: task }
     }));
-  },
-  getTask: (workflowId: string, jobId: string, nodeId: string) => {
-    return get().tasks[nodeKey(workflowId, jobId, nodeId)];
   },
   /**
    * Clear all per-node results for a workflow (or for specific nodes of it):
@@ -365,36 +319,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
       toolCalls: filterRecord(state.toolCalls, workflowId, nodeIds),
       planningUpdates: filterRecord(state.planningUpdates, workflowId, nodeIds),
       resultsVersion: state.resultsVersion + 1
-    }));
-  },
-  clearOutputResults: (workflowId: string, nodeIds?: Set<string>) => {
-    set((state) => ({
-      outputResults: filterRecord(state.outputResults, workflowId, nodeIds)
-    }));
-  },
-  clearProgress: (workflowId: string, nodeIds?: Set<string>) => {
-    set((state) => ({
-      progress: filterRecord(state.progress, workflowId, nodeIds)
-    }));
-  },
-  clearToolCalls: (workflowId: string, nodeIds?: Set<string>) => {
-    set((state) => ({
-      toolCalls: filterRecord(state.toolCalls, workflowId, nodeIds)
-    }));
-  },
-  clearTasks: (workflowId: string, nodeIds?: Set<string>) => {
-    set((state) => ({
-      tasks: filterRecord(state.tasks, workflowId, nodeIds)
-    }));
-  },
-  clearPlanningUpdates: (workflowId: string, nodeIds?: Set<string>) => {
-    set((state) => ({
-      planningUpdates: filterRecord(state.planningUpdates, workflowId, nodeIds)
-    }));
-  },
-  clearChunks: (workflowId: string, nodeIds?: Set<string>) => {
-    set((state) => ({
-      chunks: filterRecord(state.chunks, workflowId, nodeIds)
     }));
   },
   /**

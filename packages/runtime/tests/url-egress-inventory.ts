@@ -312,6 +312,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "finalUrl from the result body."
   ),
   guardedSafeFetch(
+    "packages/runtime/src/providers/atlascloud-transport.ts",
+    "AtlasCloud submit/poll/download, shared by the provider and the node pack",
+    "provider-response",
+    "Prediction output URLs; submit and poll address the constant API base."
+  ),
+  guardedSafeFetch(
     "packages/runtime/src/providers/meshy-provider.ts",
     "Meshy model download",
     "provider-response",
@@ -574,12 +580,6 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "generativelanguage.googleapis.com, model id from a constant."
   ),
   fixedHost(
-    "packages/atlascloud-nodes/src/atlascloud-base.ts",
-    "AtlasCloud API",
-    "ATLASCLOUD_API_KEY",
-    "AtlasCloud base URL from a constant."
-  ),
-  fixedHost(
     "packages/elevenlabs-nodes/src/nodes/text-to-speech.ts",
     "ElevenLabs TTS",
     "ELEVENLABS_API_KEY",
@@ -662,12 +662,6 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Google API client",
     "the user's Google OAuth token",
     "googleapis.com from constants."
-  ),
-  fixedHost(
-    "packages/runtime/src/providers/atlascloud-provider.ts",
-    "AtlasCloud provider",
-    "ATLASCLOUD_API_KEY",
-    "Constant base URL."
   ),
   fixedHost(
     "packages/runtime/src/providers/codex-provider.ts",

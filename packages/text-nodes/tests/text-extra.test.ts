@@ -50,3 +50,40 @@ describe("ConcatTextNode — flattens list inputs", () => {
     expect((await node.process()).output).toBe("<xy>");
   });
 });
+
+describe("empty prop bag materializes the descriptor default", () => {
+  it("SaveTextNode names the file from the descriptor default, not \"output.txt\"", async () => {
+    const { SaveTextNode } = await import("@nodetool-ai/text-nodes");
+    const fs = await import("node:fs/promises");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "savetext-"));
+
+    // The same path `nodetool node run <type> --props '{}'` takes: the
+    // constructor calls assign({}), which materializes every declared default.
+    const node = new SaveTextNode();
+    node.assign({ text: "hello", folder: dir });
+    const { output } = await node.process();
+
+    const written = path.basename(output.uri);
+    expect(written).not.toBe("output.txt");
+    expect(written).toMatch(/^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.txt$/);
+    expect(await fs.readFile(output.uri, "utf-8")).toBe("hello");
+  });
+
+  it("LoadTextFolderNode scans every descriptor extension, not just .txt", async () => {
+    const { LoadTextFolderNode } = await import("@nodetool-ai/text-nodes");
+    const fs = await import("node:fs/promises");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "loadtext-"));
+    await fs.writeFile(path.join(dir, "a.md"), "markdown");
+
+    const node = new LoadTextFolderNode();
+    node.assign({ folder: dir });
+    const { paths, text } = await node.process();
+
+    expect(paths).toHaveLength(1);
+    expect(text).toBe("markdown");
+  });
+});

@@ -87,7 +87,12 @@ import {
   importWorkflowBundle,
   type BundledWorkflow
 } from "./lib/workflow-bundle.js";
-import { syncRegistrations } from "./triggers/registration-sync.js";
+import {
+  createWorkflow,
+  deleteWorkflow,
+  updateWorkflow,
+  WorkflowServiceError
+} from "./lib/workflow-service.js";
 import type { SdkV1ImplementationBoundary } from "./sdk/sdk-v1-handler-map.js";
 import { z } from "zod";
 import {
@@ -431,9 +436,6 @@ export interface WorkflowRequestBody {
   expected_updated_at?: string;
 }
 
-const WORKFLOW_CONFLICT_MESSAGE =
-  "Workflow was modified since last read (optimistic concurrency conflict)";
-
 // Rate-limit tracking for autosave: maps workflow_id -> last autosave timestamp (ms)
 const lastAutosaveTime = new Map<string, number>();
 const AUTOSAVE_RATE_LIMIT_MS = 30_000;
@@ -618,127 +620,6 @@ export function parseLimit(url: URL, defaultLimit = 100): number {
   const parsed = Number.parseInt(raw, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return defaultLimit;
   return Math.min(parsed, 500);
-}
-
-async function createWorkflow(
-  body: ParsedWorkflowRequestBody,
-  userId: string
-): Promise<Workflow> {
-  if (!body || body.name === undefined) {
-    throw new Error("Invalid workflow");
-  }
-  if (
-    !body.graph ||
-    !Array.isArray(body.graph.nodes) ||
-    !Array.isArray(body.graph.edges)
-  ) {
-    throw new Error("graph is required and must have nodes and edges arrays");
-  }
-  const graph = body.graph;
-
-  return (await Workflow.create({
-    user_id: userId,
-    name: body.name,
-    tool_name: body.tool_name ?? null,
-    package_name: body.package_name ?? null,
-    path: body.path ?? null,
-    tags: body.tags ?? [],
-    description: body.description ?? "",
-    thumbnail: body.thumbnail ?? null,
-    thumbnail_url: body.thumbnail_url ?? null,
-    access: body.access === "public" ? "public" : "private",
-    graph,
-    settings: body.settings ?? null,
-    run_mode: body.run_mode ?? "workflow",
-    workspace_id: body.workspace_id ?? null,
-    html_app: body.html_app ?? null,
-    app_doc: body.app_doc ?? null
-  })) as Workflow;
-}
-
-async function updateWorkflow(
-  id: string,
-  body: ParsedWorkflowRequestBody,
-  userId: string
-): Promise<Workflow> {
-  if (!body || body.name === undefined) {
-    throw new Error("Invalid workflow");
-  }
-  if (
-    !body.graph ||
-    !Array.isArray(body.graph.nodes) ||
-    !Array.isArray(body.graph.edges)
-  ) {
-    throw new Error("graph is required and must have nodes and edges arrays");
-  }
-  const graph = body.graph;
-
-  const existing = (await Workflow.get(id)) as Workflow | null;
-
-  if (existing) {
-    const isOwner = existing.user_id === userId;
-    const collaborator = isOwner
-      ? null
-      : await WorkflowCollaborator.findFor(id, userId);
-    if (!isOwner && collaborator?.role !== "editor") {
-      throw new Error("Workflow not found");
-    }
-    const fields: Parameters<typeof Workflow.updateFieldsIfUnchanged>[2] = {
-      name: body.name,
-      tool_name: body.tool_name ?? null,
-      description: body.description ?? "",
-      tags: body.tags ?? [],
-      package_name: body.package_name ?? null,
-      graph
-    };
-    if (isOwner) {
-      fields.access = body.access === "public" ? "public" : "private";
-    }
-    if (body.thumbnail !== undefined) fields.thumbnail = body.thumbnail;
-    // Only touch optional columns when the caller sends them, so partial saves
-    // (e.g. graph autosave) don't wipe stored values. A deliberate clear still
-    // sends an explicit null.
-    if (body.settings !== undefined) fields.settings = body.settings ?? null;
-    if (body.run_mode !== undefined && body.run_mode !== null)
-      fields.run_mode = body.run_mode;
-    if (body.workspace_id !== undefined)
-      fields.workspace_id = body.workspace_id ?? null;
-    if (body.html_app !== undefined) fields.html_app = body.html_app ?? null;
-    if (body.app_doc !== undefined) fields.app_doc = body.app_doc;
-
-    const updated = await Workflow.updateFieldsIfUnchanged(
-      id,
-      body.expected_updated_at ?? existing.updated_at,
-      fields
-    );
-    if (!updated) throw new Error(WORKFLOW_CONFLICT_MESSAGE);
-    return updated;
-  }
-
-  if (body.expected_updated_at) {
-    throw new Error("Workflow not found");
-  }
-
-  // Upsert: create the workflow if it doesn't exist
-  return (await Workflow.create({
-    id,
-    user_id: userId,
-    name: body.name,
-    tool_name: body.tool_name ?? null,
-    package_name: body.package_name ?? null,
-    path: body.path ?? null,
-    tags: body.tags ?? [],
-    description: body.description ?? "",
-    thumbnail: body.thumbnail ?? null,
-    thumbnail_url: body.thumbnail_url ?? null,
-    access: body.access === "public" ? "public" : "private",
-    graph: body.graph,
-    settings: body.settings ?? null,
-    run_mode: body.run_mode ?? "workflow",
-    workspace_id: body.workspace_id ?? null,
-    html_app: body.html_app ?? null,
-    app_doc: body.app_doc ?? null
-  })) as Workflow;
 }
 
 export async function handleWorkflowRun(
@@ -1513,18 +1394,15 @@ export async function handleWorkflowImportBundle(
   const created: JsonObject[] = [];
   try {
     for (const wf of result.workflows) {
-      const workflow = await createWorkflow(
-        {
-          name: wf.name,
-          description: wf.description ?? "",
-          tags: wf.tags ?? [],
-          access: "private",
-          graph: wf.graph,
-          settings: wf.settings ?? null,
-          run_mode: wf.run_mode ?? "workflow"
-        },
-        userId
-      );
+      const workflow = await createWorkflow(userId, {
+        name: wf.name,
+        description: wf.description ?? "",
+        tags: wf.tags ?? [],
+        access: "private",
+        graph: wf.graph,
+        settings: wf.settings ?? null,
+        run_mode: wf.run_mode ?? "workflow"
+      });
       created.push(toWorkflowResponse(workflow));
     }
   } catch (error) {
@@ -1695,22 +1573,27 @@ export async function handleWorkflowsRoot(
   if (request.method === "POST") {
     const body = await parseBody(request, workflowRequestBodySchema);
     if (!body) return errorResponse(400, "Invalid JSON body");
+    const exampleName =
+      url.searchParams.get("from_example_name")?.trim() || undefined;
     try {
-      const fromPkg =
-        url.searchParams.get("from_example_package")?.trim() ?? undefined;
-      const fromName =
-        url.searchParams.get("from_example_name")?.trim() ?? undefined;
-      if (fromName && (!body.graph || body.graph.nodes?.length === 0)) {
-        const packageName =
-          fromPkg ?? defaultExamplePackageName(options) ?? "nodetool-base";
-        const example = loadExampleGraph(packageName, fromName, options);
-        if (example?.graph) {
-          body.graph = example.graph as WorkflowRequestBody["graph"];
-        }
-      }
-      const workflow = await createWorkflow(body, userId);
+      const workflow = await createWorkflow(
+        userId,
+        body,
+        exampleName
+          ? {
+              packageName:
+                url.searchParams.get("from_example_package")?.trim() ||
+                undefined,
+              exampleName,
+              apiOptions: options
+            }
+          : undefined
+      );
       return jsonResponse(toWorkflowResponse(workflow));
     } catch (error) {
+      if (error instanceof WorkflowServiceError) {
+        return errorResponse(error.status, error.message);
+      }
       const message =
         error instanceof Error ? error.message : "Invalid workflow";
       return errorResponse(400, message);
@@ -1777,32 +1660,27 @@ export async function handleWorkflowById(
     const body = await parseBody(request, workflowRequestBodySchema);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
-      const workflow = await updateWorkflow(workflowId, body, userId);
-      try {
-        await syncRegistrations(workflow, {});
-      } catch (error) {
-        log.error("Trigger registration sync failed", {
-          workflowId,
-          error: error instanceof Error ? error.message : String(error)
-        });
-      }
+      const workflow = await updateWorkflow(userId, workflowId, body);
       return jsonResponse(toWorkflowResponse(workflow));
     } catch (error) {
+      if (error instanceof WorkflowServiceError) {
+        return errorResponse(error.status, error.message);
+      }
       const message =
         error instanceof Error ? error.message : "Invalid workflow";
-      if (message === "Workflow not found") return errorResponse(404, message);
-      if (message === WORKFLOW_CONFLICT_MESSAGE)
-        return errorResponse(409, message);
       return errorResponse(400, message);
     }
   }
 
   if (request.method === "DELETE") {
-    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-    if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId)
-      return errorResponse(404, "Workflow not found");
-    await workflow.delete();
+    try {
+      await deleteWorkflow(userId, workflowId);
+    } catch (error) {
+      if (error instanceof WorkflowServiceError) {
+        return errorResponse(error.status, error.message);
+      }
+      throw error;
+    }
     return new Response(null, { status: 204 });
   }
 

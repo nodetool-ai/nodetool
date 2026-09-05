@@ -1596,8 +1596,8 @@ The file lives in the user config directory, not the working directory:
 than guessing the path.
 
 **Subcommands:** `init`, `add`, `edit`, `list`, `show`, `plan`, `apply`,
-`status`, `logs`, `destroy`, plus the remote groups `workflows`, `database`,
-`collections` and the `users-*` verbs below.
+`status`, `logs`, `destroy`, plus the remote group `workflows` and the
+`users-*` verbs below.
 
 **Options:**
 
@@ -1645,33 +1645,22 @@ create it.`
 The full server walkthrough is [Deployment](deployment.md) and
 [Self-Hosted Deployment](self-hosted-deployment.md).
 
-#### Remote workflows, rows, and collections
+#### Remote workflows
 
-Once a target is up, three groups act on it over the admin API rather than on
-the local database:
+Once a target is up, `workflows` acts on the deployment's `/api/workflows`
+routes rather than on the local database:
 
 ```bash
-# Push a local workflow and everything it references, then run it there
+# Push a local workflow to the deployment, then run it there
 nodetool deploy workflows sync my-server <workflow_id>
 nodetool deploy workflows list my-server
 nodetool deploy workflows run my-server <workflow_id> -p prompt="a red fox"
 nodetool deploy workflows delete my-server <workflow_id>
-
-# Read, upsert, and delete a single remote DB row
-nodetool deploy database get my-server users alice
-nodetool deploy database save my-server users '{"id":"alice","role":"admin"}'
-nodetool deploy database delete my-server users alice
-
-# Push a local RAG collection to the deployment
-nodetool deploy collections sync my-server my_docs
 ```
 
-`workflows run` takes `-p, --param <k=v>`, repeatable. `<table>` is passed
-through to the deployment, which resolves it against its own adapters — the
-valid names are the remote server's tables, not a list this CLI holds. `save`
-takes the row as a positional JSON string, and `get` on a row that is not there
-answers `404`. `collections sync` uploads in batches of `--batch-size`,
-default `100`.
+`workflows run` takes `-p, --param <k=v>`, repeatable. `sync` pushes the
+workflow row itself; the assets and models its nodes reference must already be
+present on the target.
 
 #### API users on the deployment
 
@@ -1686,7 +1675,7 @@ nodetool deploy users-remove my-server alice
 ```
 
 Every subcommand that touches a live deployment — the `users-*` verbs and the
-three remote groups above — sends an admin bearer token. `--token <token>`
+`workflows` group above — sends an admin bearer token. `--token <token>`
 passes it explicitly and wins over `NODETOOL_ADMIN_TOKEN`; with neither, an
 interactive shell prompts and a non-interactive one exits `1`.
 

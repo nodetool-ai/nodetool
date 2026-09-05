@@ -41,7 +41,13 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
-import { syncRegistrations } from "../../triggers/registration-sync.js";
+import {
+  createWorkflow,
+  deleteWorkflow,
+  syncTriggerRegistrations,
+  updateWorkflow,
+  WorkflowServiceError
+} from "../../lib/workflow-service.js";
 import {
   listInput,
   listOutput,
@@ -89,21 +95,15 @@ import { getStorageRetentionSettings } from "../../storage-retention.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
 
-/**
- * Reconcile `trigger_registrations` against the workflow's current graph.
- * Non-fatal by design — a broken trigger sync must not stop the user's graph
- * from saving, so failures are logged and swallowed here.
- */
-async function syncTriggerRegistrations(
-  workflow: WorkflowModel
-): Promise<void> {
+/** Map a `workflow-service` failure onto this router's tRPC error shape. */
+async function runWorkflowService<T>(run: () => Promise<T>): Promise<T> {
   try {
-    await syncRegistrations(workflow, {});
+    return await run();
   } catch (error) {
-    log.error("Trigger registration sync failed", {
-      workflowId: workflow.id,
-      error: error instanceof Error ? error.message : String(error)
-    });
+    if (error instanceof WorkflowServiceError) {
+      throwApiError(error.code, error.message);
+    }
+    throw error;
   }
 }
 
@@ -485,60 +485,19 @@ export const workflowsRouter = router({
     .input(createInput)
     .output(workflowResponse)
     .mutation(async ({ ctx, input }) => {
-      if (
-        !input.graph ||
-        !Array.isArray(input.graph.nodes) ||
-        !Array.isArray(input.graph.edges)
-      ) {
-        throwApiError(
-          ApiErrorCode.INVALID_INPUT,
-          "graph is required and must have nodes and edges arrays"
-        );
-      }
-      let graph = input.graph;
-      let appDoc = input.app_doc ?? null;
-
-      // Optionally seed from example
-      if (input.from_example_name && (!graph || graph.nodes?.length === 0)) {
-        const examplePackage =
-          input.from_example_package ??
-          defaultExamplePackageName(ctx.apiOptions) ??
-          "nodetool-base";
-        const example = loadExampleGraph(
-          examplePackage,
-          input.from_example_name,
-          ctx.apiOptions
-        );
-        if (example?.graph) {
-          graph = example.graph as typeof graph;
-        }
-        // Carry the example's app UI unless the caller supplied one.
-        if (appDoc == null && example?.app_doc) {
-          appDoc = example.app_doc as Record<string, unknown>;
-        }
-      }
-
-      const workflow = (await Workflow.create({
-        user_id: ctx.userId,
-        name: input.name,
-        tool_name: input.tool_name ?? null,
-        package_name: input.package_name ?? null,
-        path: input.path ?? null,
-        tags: input.tags ?? [],
-        description: input.description ?? "",
-        thumbnail: input.thumbnail ?? null,
-        thumbnail_url: input.thumbnail_url ?? null,
-        access: input.access === "public" ? "public" : "private",
-        graph,
-        settings: input.settings ?? null,
-        run_mode: input.run_mode ?? "workflow",
-        workspace_id: input.workspace_id ?? null,
-        html_app: input.html_app ?? null,
-        app_doc: appDoc
-      })) as WorkflowModel;
-
-      await syncTriggerRegistrations(workflow);
-
+      const workflow = await runWorkflowService(() =>
+        createWorkflow(
+          ctx.userId,
+          input,
+          input.from_example_name
+            ? {
+                packageName: input.from_example_package ?? undefined,
+                exampleName: input.from_example_name,
+                apiOptions: ctx.apiOptions
+              }
+            : undefined
+        )
+      );
       return toWorkflowResponse(workflow);
     }),
 
@@ -547,94 +506,9 @@ export const workflowsRouter = router({
     .input(updateInput)
     .output(workflowResponse)
     .mutation(async ({ ctx, input }) => {
-      if (
-        !input.graph ||
-        !Array.isArray(input.graph.nodes) ||
-        !Array.isArray(input.graph.edges)
-      ) {
-        throwApiError(
-          ApiErrorCode.INVALID_INPUT,
-          "graph is required and must have nodes and edges arrays"
-        );
-      }
-      const graph = input.graph;
-      const existing = (await Workflow.get(input.id)) as WorkflowModel | null;
-
-      let existingRole: WorkflowRole | null = null;
-      if (existing) {
-        existingRole = await resolveWorkflowRole(existing, ctx.userId);
-        if (existingRole !== "owner" && existingRole !== "editor") {
-          throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-        }
-      }
-
-      if (existing) {
-        const fields: Parameters<typeof Workflow.updateFieldsIfUnchanged>[2] = {
-          name: input.name,
-          tool_name: input.tool_name ?? null,
-          description: input.description ?? "",
-          tags: input.tags ?? [],
-          package_name: input.package_name ?? null,
-          graph
-        };
-        if (input.thumbnail !== undefined) fields.thumbnail = input.thumbnail;
-        // Only the owner can change visibility; editors keep it as-is.
-        if (existingRole === "owner") {
-          fields.access = input.access === "public" ? "public" : "private";
-        }
-        // Only touch optional columns when the caller sent them, so a partial
-        // update (a body omitting these keys) doesn't wipe stored values. A
-        // deliberate clear still sends an explicit null.
-        if (input.settings !== undefined) fields.settings = input.settings;
-        if (input.run_mode !== undefined && input.run_mode !== null)
-          fields.run_mode = input.run_mode;
-        if (input.workspace_id !== undefined)
-          fields.workspace_id = input.workspace_id;
-        if (input.html_app !== undefined) fields.html_app = input.html_app;
-        if (input.app_doc !== undefined) fields.app_doc = input.app_doc;
-
-        const updated = await Workflow.updateFieldsIfUnchanged(
-          input.id,
-          input.expected_updated_at ?? existing.updated_at,
-          fields
-        );
-        if (!updated) {
-          throwApiError(
-            ApiErrorCode.ALREADY_EXISTS,
-            "Workflow was modified since last read (optimistic concurrency conflict)"
-          );
-        }
-        await syncTriggerRegistrations(updated);
-        return toWorkflowResponse(updated);
-      }
-
-      if (input.expected_updated_at) {
-        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      }
-
-      // Upsert: create if doesn't exist
-      const workflow = (await Workflow.create({
-        id: input.id,
-        user_id: ctx.userId,
-        name: input.name,
-        tool_name: input.tool_name ?? null,
-        package_name: input.package_name ?? null,
-        path: input.path ?? null,
-        tags: input.tags ?? [],
-        description: input.description ?? "",
-        thumbnail: input.thumbnail ?? null,
-        thumbnail_url: input.thumbnail_url ?? null,
-        access: input.access === "public" ? "public" : "private",
-        graph,
-        settings: input.settings ?? null,
-        run_mode: input.run_mode ?? "workflow",
-        workspace_id: input.workspace_id ?? null,
-        html_app: input.html_app ?? null,
-        app_doc: input.app_doc ?? null
-      })) as WorkflowModel;
-
-      await syncTriggerRegistrations(workflow);
-
+      const workflow = await runWorkflowService(() =>
+        updateWorkflow(ctx.userId, input.id, input)
+      );
       return toWorkflowResponse(workflow);
     }),
 
@@ -643,13 +517,7 @@ export const workflowsRouter = router({
     .input(deleteInput)
     .output(deleteOutput)
     .mutation(async ({ ctx, input }) => {
-      // Ownership, the row, and the grants that outlive it are one operation
-      // in `deleteOwned` — the sandbox's `delete_workflow` capability calls
-      // the same function, so the cascade cannot drift between the two.
-      const deleted = await Workflow.deleteOwned(ctx.userId, input.id);
-      if (!deleted) {
-        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      }
+      await runWorkflowService(() => deleteWorkflow(ctx.userId, input.id));
       lastAutosaveTime.delete(input.id);
       return { ok: true as const };
     }),

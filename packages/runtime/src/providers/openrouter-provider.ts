@@ -32,8 +32,6 @@ export class OpenRouterProvider extends OpenAICompatProvider {
     return ["OPENROUTER_API_KEY"];
   }
 
-  private _routerFetch: typeof fetch;
-
   constructor(
     secrets: { OPENROUTER_API_KEY?: string },
     options: OpenAICompatProviderOptions = {}
@@ -42,8 +40,6 @@ export class OpenRouterProvider extends OpenAICompatProvider {
     if (!apiKey) {
       throw new Error("OPENROUTER_API_KEY is required");
     }
-
-    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
       {
@@ -60,10 +56,8 @@ export class OpenRouterProvider extends OpenAICompatProvider {
           "X-Title": "NodeTool"
         }
       },
-      { ...options, fetchFn }
+      options
     );
-
-    this._routerFetch = fetchFn;
   }
 
   override getContainerEnv() {
@@ -177,7 +171,7 @@ export class OpenRouterProvider extends OpenAICompatProvider {
     }
 
     if (item.url) {
-      const fetchResponse = await this._routerFetch(item.url);
+      const fetchResponse = await this.compatFetch(item.url);
       if (!fetchResponse.ok) {
         throw new Error(`Image fetch failed: ${fetchResponse.status}`);
       }
@@ -192,35 +186,6 @@ export class OpenRouterProvider extends OpenAICompatProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const response = await this._routerFetch(
-      "https://openrouter.ai/api/v1/models",
-      {
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "HTTP-Referer": "https://github.com/nodetool-ai/nodetool-core",
-          "X-Title": "NodeTool"
-        }
-      }
-    );
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const payload = (await response.json()) as {
-      data?: Array<{ id?: string; name?: string }>;
-    };
-    // Stryker disable next-line ArrayDeclaration: the fallback is filtered downstream (rows need a string id), so [] vs any array is observably identical.
-    const rows = payload.data ?? [];
-    return rows
-      .filter(
-        (row): row is { id: string; name?: string } =>
-          typeof row.id === "string" && row.id.length > 0
-      )
-      .map((row) => ({
-        id: row.id,
-        name: row.name ?? row.id,
-        provider: "openrouter"
-      }));
+    return this.listCompatModels();
   }
 }

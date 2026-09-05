@@ -136,7 +136,7 @@ export class DocumentLibNode extends BaseNode {
     title: "Elements",
     description: "List of SVG elements"
   })
-  declare elements: any;
+  declare elements: SvgContent[];
 
   @prop({
     type: "int",
@@ -146,7 +146,7 @@ export class DocumentLibNode extends BaseNode {
     min: 1,
     max: 4096
   })
-  declare width: any;
+  declare width: number;
 
   @prop({
     type: "int",
@@ -156,7 +156,7 @@ export class DocumentLibNode extends BaseNode {
     min: 1,
     max: 4096
   })
-  declare height: any;
+  declare height: number;
 
   @prop({
     type: "str",
@@ -164,14 +164,11 @@ export class DocumentLibNode extends BaseNode {
     title: "Viewbox",
     description: "SVG viewBox attribute"
   })
-  declare viewBox: any;
+  declare viewBox: string;
 
   async process(): Promise<DocumentLibNodeOutputs> {
-    const content = normalizeContent(this.elements ?? []);
-    const width = Number(this.width ?? 800);
-    const height = Number(this.height ?? 600);
-    const viewBox = String(this.viewBox ?? "0 0 800 600");
-    const doc = svgDocument(content, width, height, viewBox);
+    const content = normalizeContent(this.elements);
+    const doc = svgDocument(content, this.width, this.height, this.viewBox);
     return { output: { data: Buffer.from(doc, "utf-8").toString("base64") } };
   }
 }
@@ -208,7 +205,7 @@ export class SVGToImageLibNode extends BaseNode {
     title: "Elements",
     description: "List of SVG elements"
   })
-  declare elements: any;
+  declare elements: SvgContent[];
 
   @prop({
     type: "int",
@@ -218,7 +215,7 @@ export class SVGToImageLibNode extends BaseNode {
     min: 1,
     max: 4096
   })
-  declare width: any;
+  declare width: number;
 
   @prop({
     type: "int",
@@ -228,7 +225,7 @@ export class SVGToImageLibNode extends BaseNode {
     min: 1,
     max: 4096
   })
-  declare height: any;
+  declare height: number;
 
   @prop({
     type: "str",
@@ -236,7 +233,7 @@ export class SVGToImageLibNode extends BaseNode {
     title: "Viewbox",
     description: "SVG viewBox attribute"
   })
-  declare viewBox: any;
+  declare viewBox: string;
 
   @prop({
     type: "int",
@@ -246,17 +243,14 @@ export class SVGToImageLibNode extends BaseNode {
     min: 1,
     max: 10
   })
-  declare scale: any;
+  declare scale: number;
 
   async process(): Promise<SVGToImageLibNodeOutputs> {
     const sharp = await loadSharp();
     if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
-    const content = normalizeContent(this.elements ?? []);
-    const width = Number(this.width ?? 800);
-    const height = Number(this.height ?? 600);
-    const scale = Number(this.scale ?? 1);
-    const viewBox = String(this.viewBox ?? "0 0 800 600");
-    const doc = svgDocument(content, width, height, viewBox);
+    const content = normalizeContent(this.elements);
+    const { width, height, scale } = this;
+    const doc = svgDocument(content, width, height, this.viewBox);
     const svgBuffer = Buffer.from(doc, "utf-8");
     const pngBuffer = await sharp(svgBuffer, { density: 72 * scale })
       .resize(width * scale, height * scale)

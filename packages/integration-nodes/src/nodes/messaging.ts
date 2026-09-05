@@ -42,7 +42,7 @@ export class DiscordBotTrigger extends BaseNode {
     description: "Maximum number of events to process (0 = unlimited)",
     min: 0
   })
-  declare max_events: any;
+  declare max_events: number;
 
   @prop({
     type: "str",
@@ -50,7 +50,7 @@ export class DiscordBotTrigger extends BaseNode {
     title: "Token",
     description: "Discord bot token"
   })
-  declare token: any;
+  declare token: string;
 
   @prop({
     type: "str",
@@ -58,7 +58,7 @@ export class DiscordBotTrigger extends BaseNode {
     title: "Channel Id",
     description: "Optional channel ID to filter messages"
   })
-  declare channel_id: any;
+  declare channel_id: string | null;
 
   @prop({
     type: "bool",
@@ -66,13 +66,13 @@ export class DiscordBotTrigger extends BaseNode {
     title: "Allow Bot Messages",
     description: "Include messages authored by bots"
   })
-  declare allow_bot_messages: any;
+  declare allow_bot_messages: boolean;
 
   async process(): Promise<Record<string, unknown>> {
     const secrets = this._secrets;
-    const token = String(this.token ?? "") || secrets.DISCORD_BOT_TOKEN || "";
-    const channelId = String(this.channel_id ?? "");
-    const allowBotMessages = Boolean(this.allow_bot_messages ?? false);
+    const token = this.token || secrets.DISCORD_BOT_TOKEN || "";
+    const channelId = this.channel_id ?? "";
+    const allowBotMessages = this.allow_bot_messages;
 
     if (!token) {
       throw new Error("Discord bot token is required");
@@ -159,7 +159,7 @@ export class TelegramBotTrigger extends BaseNode {
     description: "Maximum number of events to process (0 = unlimited)",
     min: 0
   })
-  declare max_events: any;
+  declare max_events: number;
 
   @prop({
     type: "str",
@@ -167,7 +167,7 @@ export class TelegramBotTrigger extends BaseNode {
     title: "Token",
     description: "Telegram bot token"
   })
-  declare token: any;
+  declare token: string;
 
   @prop({
     type: "int",
@@ -175,7 +175,7 @@ export class TelegramBotTrigger extends BaseNode {
     title: "Chat Id",
     description: "Optional chat ID to filter messages"
   })
-  declare chat_id: any;
+  declare chat_id: number | null;
 
   @prop({
     type: "bool",
@@ -183,7 +183,7 @@ export class TelegramBotTrigger extends BaseNode {
     title: "Allow Bot Messages",
     description: "Include messages authored by bots"
   })
-  declare allow_bot_messages: any;
+  declare allow_bot_messages: boolean;
 
   @prop({
     type: "bool",
@@ -191,7 +191,7 @@ export class TelegramBotTrigger extends BaseNode {
     title: "Include Edited Messages",
     description: "Include edited messages"
   })
-  declare include_edited_messages: any;
+  declare include_edited_messages: boolean;
 
   @prop({
     type: "int",
@@ -201,7 +201,7 @@ export class TelegramBotTrigger extends BaseNode {
     min: 1,
     max: 60
   })
-  declare poll_timeout_seconds: any;
+  declare poll_timeout_seconds: number;
 
   @prop({
     type: "float",
@@ -210,16 +210,14 @@ export class TelegramBotTrigger extends BaseNode {
     description: "Delay between polling requests",
     min: 0
   })
-  declare poll_interval_seconds: any;
+  declare poll_interval_seconds: number;
 
   async process(): Promise<Record<string, unknown>> {
     const secrets = this._secrets;
-    const token = String(this.token ?? "") || secrets.TELEGRAM_BOT_TOKEN || "";
-    const chatId = Number(this.chat_id ?? 0);
-    const allowBotMessages = Boolean(this.allow_bot_messages ?? false);
-    const includeEditedMessages = Boolean(
-      this.include_edited_messages ?? false
-    );
+    const token = this.token || secrets.TELEGRAM_BOT_TOKEN || "";
+    const chatId = this.chat_id;
+    const allowBotMessages = this.allow_bot_messages;
+    const includeEditedMessages = this.include_edited_messages;
 
     if (!token) {
       throw new Error("Telegram bot token is required");

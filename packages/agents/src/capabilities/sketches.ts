@@ -17,7 +17,6 @@
  * Design: docs/tool-class-retirement-design.md § "Migration".
  */
 
-import type { JsonSchema } from "@nodetool-ai/runtime";
 import type {
   ImageDocument,
   ImageDocumentData,
@@ -41,17 +40,6 @@ import {
   validateSketchSpec,
   DEFAULT_VERSION_LIMIT,
   MAX_VERSION_LIMIT,
-  SAVE_TYPE_PROPERTY,
-  LIST_SKETCHES_SCHEMA,
-  CREATE_SKETCH_SCHEMA,
-  GET_SKETCH_SCHEMA,
-  LIST_SKETCH_VERSIONS_SCHEMA,
-  GET_SKETCH_VERSION_SCHEMA,
-  CREATE_SKETCH_VERSION_SCHEMA,
-  RESTORE_SKETCH_VERSION_SCHEMA,
-  DELETE_SKETCH_VERSION_SCHEMA,
-  EDIT_SKETCH_SCHEMA,
-  VALIDATE_SKETCH_SCHEMA,
   deleteSketchSpec
 } from "./sketches.specs.js";
 import {
@@ -62,21 +50,6 @@ import {
   isString
 } from "../utils/type-guards.js";
 
-export {
-  DEFAULT_VERSION_LIMIT,
-  MAX_VERSION_LIMIT,
-  SAVE_TYPE_PROPERTY,
-  LIST_SKETCHES_SCHEMA,
-  CREATE_SKETCH_SCHEMA,
-  GET_SKETCH_SCHEMA,
-  LIST_SKETCH_VERSIONS_SCHEMA,
-  GET_SKETCH_VERSION_SCHEMA,
-  CREATE_SKETCH_VERSION_SCHEMA,
-  RESTORE_SKETCH_VERSION_SCHEMA,
-  DELETE_SKETCH_VERSION_SCHEMA,
-  EDIT_SKETCH_SCHEMA,
-  VALIDATE_SKETCH_SCHEMA
-} from "./sketches.specs.js";
 import { resolveProjectId } from "./project-scope.js";
 import { encodeSketchLayerData } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 

@@ -72,7 +72,7 @@ import {
   isNumber,
   isObjectLike,
   isString
-} from "../type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 
 /** Filesystem / sharp-bound nodes that only run on a full Node runtime. */
 const NODE_ONLY: readonly Platform[] = ["node"];

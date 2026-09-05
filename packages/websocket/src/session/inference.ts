@@ -291,7 +291,7 @@ export class DirectInferenceHandler {
       })
       .filter((t) => t.name.length > 0);
 
-    const provider = await this.session.resolveProvider(providerId, this.session.userId ?? "1");
+    const provider = await this.session.resolveProvider(providerId, this.session.requireUserId());
     for await (const item of provider.generateMessagesTraced({
       messages,
       model,
@@ -347,7 +347,7 @@ export class DirectInferenceHandler {
     if (req.messages.length === 0) {
       throw new Error("prompt or messages is required");
     }
-    const userId = this.session.userId ?? "1";
+    const userId = this.session.requireUserId();
     const provider = await this.session.resolveProvider(req.provider, userId);
     if (req.provider !== "nodetool") {
       // BYOK: the user's own keys, never metered.
@@ -464,7 +464,7 @@ export class DirectInferenceHandler {
     if (!req.prompt || !req.prompt.trim()) {
       throw new Error("prompt is required");
     }
-    const userId = this.session.userId ?? "1";
+    const userId = this.session.requireUserId();
     const provider = await this.session.resolveProvider(req.provider, userId);
     if (req.provider !== "nodetool") {
       // BYOK: the user's own keys, never metered.
@@ -556,7 +556,7 @@ export class DirectInferenceHandler {
       generationIds: string[];
     }
   ): Promise<{ asset_ids: string[] }> {
-    const userId = this.session.userId ?? "1";
+    const userId = this.session.requireUserId();
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
 
     // Every provider call below runs inside the generation seam: one ledger
@@ -1107,7 +1107,7 @@ export class DirectInferenceHandler {
       throw new Error("asset_id is required");
     }
 
-    const userId = this.session.userId ?? "1";
+    const userId = this.session.requireUserId();
     if (req.provider === "nodetool") {
       const creditDecision = await admitSpend(userId, 0, [req.model]);
       if (!creditDecision.allowed) {

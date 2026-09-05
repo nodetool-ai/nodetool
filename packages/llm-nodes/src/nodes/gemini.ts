@@ -1,7 +1,11 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { safeFetch } from "@nodetool-ai/runtime";
-import { isNonEmptyString, isObjectLike, isString } from "./type-predicates.js";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isString
+} from "@nodetool-ai/node-sdk";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 

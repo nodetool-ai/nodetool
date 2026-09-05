@@ -22,7 +22,7 @@ import {
   isNonEmptyString,
   isObjectLike,
   isString
-} from "../type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 
 export const execFile = promisify(execFileCb);
 

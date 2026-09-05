@@ -100,9 +100,7 @@ import {
 import {
   getBuiltinTools,
   getAllMcpTools,
-  registerBuiltinTools,
   getGoogleWorkspaceTools,
-  registerGoogleWorkspaceTools,
   getApifyTools,
   getSerpApiTools,
   toolForCapabilityName,
@@ -518,7 +516,7 @@ export class ChatTurnHandler {
     threadId?: string,
     workflowId?: string | null
   ): Promise<string> {
-    const userId = this.session.userId ?? "1";
+    const userId = this.session.requireUserId();
     if (!threadId) {
       const thread = await Thread.create({
         user_id: userId,
@@ -550,7 +548,7 @@ export class ChatTurnHandler {
     delete data.type;
     const threadId = isString(data.thread_id) ? data.thread_id : "";
     delete data.thread_id;
-    const userId = this.session.userId ?? "1";
+    const userId = this.session.requireUserId();
     delete data.user_id;
 
     await Message.create({
@@ -1156,7 +1154,7 @@ export class ChatTurnHandler {
     const providerId = data.provider as string;
     const model = data.model as string;
     const workflowId = messageWorkflowId;
-    const userId = this.session.userId ?? "1";
+    const userId = this.session.requireUserId();
     log.debug("Chat message", { threadId, model, provider: providerId });
 
     // Save user message to DB — matches Python's _save_message_to_db_async(data)
@@ -1380,11 +1378,9 @@ export class ChatTurnHandler {
     // Assemble the fixed, always-on toolbelt. There is no per-message tool
     // selection anymore — the agent reasons over the full toolbelt and the
     // permission gate (below) governs execution.
-    registerBuiltinTools();
     // Google Workspace runs on the token from the user's Google sign-in, so it
     // only exists on deployments that have a login. Local mode never sees it.
     const googleWorkspace = isGoogleWorkspaceEnabled();
-    if (googleWorkspace) registerGoogleWorkspaceTools();
     const chatProviders = await this.deps.configuredProviders(userId);
     // The project this conversation belongs to, when it is a project's own
     // agent thread. Documents the turn creates land in it rather than in the
@@ -2705,7 +2701,7 @@ export class ChatTurnHandler {
   ): Promise<void> {
     const threadId = isString(data.thread_id) ? data.thread_id : "";
     const workflowId = isString(data.workflow_id) ? data.workflow_id : null;
-    const userId = this.session.userId ?? "1";
+    const userId = this.session.requireUserId();
     const mode = String(mediaGeneration.mode ?? "");
     // The media composer's own selection first; a client without a separate
     // media picker (mobile) sends only the message-level one. The built-in
@@ -3544,7 +3540,7 @@ export class ChatTurnHandler {
       ? data.provider
       : this.deps.defaults.provider;
     const model = isString(data.model) ? data.model : this.deps.defaults.model;
-    const userId = this.session.userId ?? "1";
+    const userId = this.session.requireUserId();
     const jobId = randomUUID();
 
     log.info("Workflow message", { threadId, workflowId, jobId });

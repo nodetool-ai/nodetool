@@ -3,11 +3,11 @@ import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { audioBytesAsync } from "../lib/audio-wav.js";
 import {
-  isFunction,
+  isCallable as isFunction,
   isNonEmptyString,
   isObjectLike,
   isString
-} from "../type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 // PreviewNode lives in its own browser-safe module so it can be registered in
 // the in-browser node registry (this file pulls in `audio-wav` → not browser-

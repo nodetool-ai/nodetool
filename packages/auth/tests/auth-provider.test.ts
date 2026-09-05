@@ -1,13 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   AuthProvider,
   AuthResult,
   TokenType,
-  LocalAuthProvider,
-  StaticTokenProvider,
-  createAuthMiddleware,
-  getUserId,
-  HttpError
+  LocalAuthProvider
 } from "../src/index.js";
 
 // ---------------------------------------------------------------------------
@@ -24,13 +20,6 @@ class StubProvider extends AuthProvider {
   async verifyToken(_token: string): Promise<AuthResult> {
     return this.result;
   }
-}
-
-// ---------------------------------------------------------------------------
-// Helper to build a minimal Request with given headers
-// ---------------------------------------------------------------------------
-function makeRequest(headers: Record<string, string>): Request {
-  return new Request("http://localhost/test", { headers });
 }
 
 // ---------------------------------------------------------------------------
@@ -159,207 +148,6 @@ describe("LocalAuthProvider", () => {
     const provider = new LocalAuthProvider();
     const result = await provider.verifyToken("");
     expect(result.ok).toBe(true);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// StaticTokenProvider
-// ---------------------------------------------------------------------------
-describe("StaticTokenProvider", () => {
-  it("accepts a valid token", async () => {
-    const provider = new StaticTokenProvider({ "secret123-token-value": "user42" });
-    const result = await provider.verifyToken("secret123-token-value");
-    expect(result.ok).toBe(true);
-    expect(result.userId).toBe("user42");
-    expect(result.tokenType).toBe(TokenType.STATIC);
-  });
-
-  it("rejects an invalid token", async () => {
-    const provider = new StaticTokenProvider({ "secret123-token-value": "user42" });
-    const result = await provider.verifyToken("wrong-token-value-1234");
-    expect(result.ok).toBe(false);
-    expect(result.error).toBe("Invalid token");
-  });
-
-  it("rejects a token below the minimum length", async () => {
-    const provider = new StaticTokenProvider({ "secret123-token-value": "user42" });
-    expect((await provider.verifyToken("short")).ok).toBe(false);
-    expect((await provider.verifyToken("")).ok).toBe(false);
-  });
-
-  it("supports multiple tokens", async () => {
-    const provider = new StaticTokenProvider({
-      "tok1-value-1234567890": "u1",
-      "tok2-value-1234567890": "u2"
-    });
-    expect((await provider.verifyToken("tok1-value-1234567890")).userId).toBe(
-      "u1"
-    );
-    expect((await provider.verifyToken("tok2-value-1234567890")).userId).toBe(
-      "u2"
-    );
-    expect((await provider.verifyToken("tok3-value-1234567890")).ok).toBe(false);
-  });
-
-  describe("from environment variables", () => {
-    const originalEnv = { ...process.env };
-
-    afterEach(() => {
-      process.env = { ...originalEnv };
-    });
-
-    it("reads STATIC_AUTH_TOKEN", async () => {
-      process.env["STATIC_AUTH_TOKEN"] = "envtok-value-1234567890";
-      const provider = new StaticTokenProvider();
-      const result = await provider.verifyToken("envtok-value-1234567890");
-      expect(result.ok).toBe(true);
-      expect(result.userId).toBe("1");
-    });
-
-    it("reads STATIC_AUTH_TOKENS as JSON", async () => {
-      process.env["STATIC_AUTH_TOKENS"] = JSON.stringify({
-        "alpha-value-1234567890": "uA",
-        "beta-value-12345678901": "uB"
-      });
-      const provider = new StaticTokenProvider();
-      expect((await provider.verifyToken("alpha-value-1234567890")).userId).toBe(
-        "uA"
-      );
-      expect((await provider.verifyToken("beta-value-12345678901")).userId).toBe(
-        "uB"
-      );
-    });
-
-    it("ignores malformed STATIC_AUTH_TOKENS JSON", async () => {
-      process.env["STATIC_AUTH_TOKENS"] = "not-json{";
-      // Should not throw
-      const provider = new StaticTokenProvider();
-      const result = await provider.verifyToken("anything");
-      expect(result.ok).toBe(false);
-    });
-  });
-});
-
-// ---------------------------------------------------------------------------
-// createAuthMiddleware
-// ---------------------------------------------------------------------------
-describe("createAuthMiddleware", () => {
-  it("returns default user when enforceAuth is false and no token", async () => {
-    const staticProvider = new StaticTokenProvider({ "tok-value-1234567890": "u1" });
-    const authenticate = createAuthMiddleware({
-      staticProvider,
-      enforceAuth: false
-    });
-
-    const request = makeRequest({});
-    const user = await authenticate(request);
-    expect(user.userId).toBe("1");
-    expect(user.tokenType).toBe(TokenType.STATIC);
-  });
-
-  it("still validates token when enforceAuth is false and token is provided", async () => {
-    const staticProvider = new StaticTokenProvider({ "tok-value-1234567890": "u1" });
-    const authenticate = createAuthMiddleware({
-      staticProvider,
-      enforceAuth: false
-    });
-
-    const request = makeRequest({ authorization: "Bearer tok-value-1234567890" });
-    const user = await authenticate(request);
-    expect(user.userId).toBe("u1");
-  });
-
-  it("throws 401 when enforceAuth is true and no token", async () => {
-    const staticProvider = new StaticTokenProvider({ "tok-value-1234567890": "u1" });
-    const authenticate = createAuthMiddleware({
-      staticProvider,
-      enforceAuth: true
-    });
-
-    const request = makeRequest({});
-    await expect(authenticate(request)).rejects.toThrow(HttpError);
-    try {
-      await authenticate(request);
-    } catch (e) {
-      expect((e as HttpError).statusCode).toBe(401);
-    }
-  });
-
-  it("authenticates via static provider", async () => {
-    const staticProvider = new StaticTokenProvider({ "secret-value-1234567890": "u5" });
-    const authenticate = createAuthMiddleware({
-      staticProvider,
-      enforceAuth: true
-    });
-
-    const request = makeRequest({ authorization: "Bearer secret-value-1234567890" });
-    const user = await authenticate(request);
-    expect(user.userId).toBe("u5");
-  });
-
-  it("falls back to user provider when static fails", async () => {
-    const staticProvider = new StaticTokenProvider({ "stok-value-1234567890": "u1" });
-    const userProvider = new StaticTokenProvider({ "utok-value-1234567890": "u2" });
-    const authenticate = createAuthMiddleware({
-      staticProvider,
-      userProvider,
-      enforceAuth: true
-    });
-
-    const request = makeRequest({ authorization: "Bearer utok-value-1234567890" });
-    const user = await authenticate(request);
-    expect(user.userId).toBe("u2");
-    expect(user.tokenType).toBe(TokenType.STATIC);
-  });
-
-  it("throws 401 when both providers reject", async () => {
-    const staticProvider = new StaticTokenProvider({ "stok-value-1234567890": "u1" });
-    const userProvider = new StaticTokenProvider({ "utok-value-1234567890": "u2" });
-    const authenticate = createAuthMiddleware({
-      staticProvider,
-      userProvider,
-      enforceAuth: true
-    });
-
-    const request = makeRequest({ authorization: "Bearer bad-value-1234567890" });
-    await expect(authenticate(request)).rejects.toThrow(HttpError);
-  });
-
-  it("throws 401 with static error when no user provider", async () => {
-    const staticProvider = new StaticTokenProvider({ "stok-value-1234567890": "u1" });
-    const authenticate = createAuthMiddleware({
-      staticProvider,
-      enforceAuth: true
-    });
-
-    const request = makeRequest({ authorization: "Bearer bad-value-1234567890" });
-    try {
-      await authenticate(request);
-      expect.unreachable("should have thrown");
-    } catch (e) {
-      expect(e).toBeInstanceOf(HttpError);
-      expect((e as HttpError).message).toContain("Invalid");
-    }
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getUserId helper
-// ---------------------------------------------------------------------------
-describe("getUserId", () => {
-  it("returns user ID from x-user-id header", () => {
-    const request = makeRequest({ "x-user-id": "u99" });
-    expect(getUserId(request)).toBe("u99");
-  });
-
-  it("returns '1' when header is missing", () => {
-    const request = makeRequest({});
-    expect(getUserId(request)).toBe("1");
-  });
-
-  it("supports custom header name", () => {
-    const request = makeRequest({ "x-custom-user": "u50" });
-    expect(getUserId(request, "x-custom-user")).toBe("u50");
   });
 });
 

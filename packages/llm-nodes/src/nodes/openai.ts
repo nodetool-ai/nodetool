@@ -6,7 +6,10 @@ import type {
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { fetchExternalMedia } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
-import { isCallable, isString } from "./type-predicates.js";
+import {
+  isCallable,
+  isString
+} from "@nodetool-ai/node-sdk";
 
 const OPENAI_API_BASE = "https://api.openai.com/v1";
 
