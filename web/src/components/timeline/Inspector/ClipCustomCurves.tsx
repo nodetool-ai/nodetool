@@ -56,6 +56,184 @@ export function makeCustomAnimation(): CustomClipAnimation {
 const SCRUB_T = { step: 0.01, min: 0, max: 1 };
 const SCRUB_VALUE = { step: 0.01 };
 
+const CURVE_DELETE_SX = { width: 24, height: 24 };
+const KEYFRAME_DELETE_SX = { width: 20, height: 20 };
+
+interface KeyframeRowProps {
+  keyframe: CustomKeyframe;
+  curveIndex: number;
+  keyIndex: number;
+  /** Label stem shared by this row's three inputs and its delete button. */
+  name: string;
+  onPatch: (
+    curveIndex: number,
+    keyIndex: number,
+    patch: Partial<CustomKeyframe>
+  ) => void;
+  onRemove: (curveIndex: number, keyIndex: number) => void;
+}
+
+/**
+ * One keyframe's time / value / easing inputs. Bound to its own indices so
+ * scrubbing one row leaves every other row's props identical.
+ */
+const KeyframeRow: React.FC<KeyframeRowProps> = memo(
+  ({ keyframe, curveIndex, keyIndex, name, onPatch, onRemove }) => {
+    const handleTimeCommit = useCallback(
+      (raw: string) => {
+        const t = Number(raw);
+        if (!Number.isFinite(t)) return;
+        onPatch(curveIndex, keyIndex, { t: Math.min(1, Math.max(0, t)) });
+      },
+      [curveIndex, keyIndex, onPatch]
+    );
+    const handleValueCommit = useCallback(
+      (raw: string) => {
+        const value = Number(raw);
+        if (!Number.isFinite(value)) return;
+        onPatch(curveIndex, keyIndex, { value });
+      },
+      [curveIndex, keyIndex, onPatch]
+    );
+    const handleEasingCommit = useCallback(
+      (raw: string) => {
+        const easing = raw.trim();
+        onPatch(curveIndex, keyIndex, {
+          easing: easing === "" ? undefined : easing
+        });
+      },
+      [curveIndex, keyIndex, onPatch]
+    );
+    const handleRemove = useCallback(
+      () => onRemove(curveIndex, keyIndex),
+      [curveIndex, keyIndex, onRemove]
+    );
+
+    return (
+      <FlexRow align="center" gap={SPACING.micro}>
+        <InspectorPillInput
+          value={keyframe.t.toFixed(2)}
+          minWidth={52}
+          scrub={SCRUB_T}
+          onCommit={handleTimeCommit}
+          ariaLabel={`${name} time`}
+        />
+        <InspectorPillInput
+          value={String(keyframe.value)}
+          minWidth={64}
+          scrub={SCRUB_VALUE}
+          onCommit={handleValueCommit}
+          ariaLabel={`${name} value`}
+        />
+        <InspectorPillInput
+          value={keyframe.easing ?? ""}
+          placeholder="linear"
+          minWidth={96}
+          onCommit={handleEasingCommit}
+          ariaLabel={`${name} easing`}
+        />
+        <DeleteButton
+          onClick={handleRemove}
+          tooltip={`Remove ${name}`}
+          ariaLabel={`Remove ${name}`}
+          iconVariant="clear"
+          sx={KEYFRAME_DELETE_SX}
+        />
+      </FlexRow>
+    );
+  }
+);
+KeyframeRow.displayName = "KeyframeRow";
+
+interface CurveEditorProps {
+  curve: CustomCurve;
+  curveIndex: number;
+  labelPrefix: string;
+  onPatchCurve: (index: number, patch: Partial<CustomCurve>) => void;
+  onRemoveCurve: (index: number) => void;
+  onAddKeyframe: (curveIndex: number) => void;
+  onPatchKeyframe: (
+    curveIndex: number,
+    keyIndex: number,
+    patch: Partial<CustomKeyframe>
+  ) => void;
+  onRemoveKeyframe: (curveIndex: number, keyIndex: number) => void;
+}
+
+const CurveEditor: React.FC<CurveEditorProps> = memo(
+  ({
+    curve,
+    curveIndex,
+    labelPrefix,
+    onPatchCurve,
+    onRemoveCurve,
+    onAddKeyframe,
+    onPatchKeyframe,
+    onRemoveKeyframe
+  }) => {
+    const curveLabel = `${labelPrefix} curve ${curveIndex + 1}`;
+    const handleRemove = useCallback(
+      () => onRemoveCurve(curveIndex),
+      [curveIndex, onRemoveCurve]
+    );
+    const handlePropertyChange = useCallback(
+      (property: string) =>
+        onPatchCurve(curveIndex, {
+          property: property as CustomCurve["property"]
+        }),
+      [curveIndex, onPatchCurve]
+    );
+    const handleAddKeyframe = useCallback(
+      () => onAddKeyframe(curveIndex),
+      [curveIndex, onAddKeyframe]
+    );
+
+    return (
+      <FlexColumn gap={SPACING.xs}>
+        <FlexRow align="center" justify="space-between" gap={SPACING.md}>
+          <Text size="small">Curve {curveIndex + 1}</Text>
+          <DeleteButton
+            onClick={handleRemove}
+            tooltip={`Remove ${curveLabel}`}
+            ariaLabel={`Remove ${curveLabel}`}
+            iconVariant="clear"
+            sx={CURVE_DELETE_SX}
+          />
+        </FlexRow>
+        <InspectorRow label="Property">
+          <InspectorSelect
+            label={`${curveLabel} property`}
+            value={curve.property}
+            options={PROPERTY_OPTIONS}
+            onChange={handlePropertyChange}
+            grow
+          />
+        </InspectorRow>
+        {curve.keyframes.map((keyframe, keyIndex) => (
+          <KeyframeRow
+            key={keyIndex}
+            keyframe={keyframe}
+            curveIndex={curveIndex}
+            keyIndex={keyIndex}
+            name={`${curveLabel} keyframe ${keyIndex + 1}`}
+            onPatch={onPatchKeyframe}
+            onRemove={onRemoveKeyframe}
+          />
+        ))}
+        <Button
+          size="small"
+          variant="text"
+          startIcon={<AddOutlinedIcon />}
+          onClick={handleAddKeyframe}
+        >
+          {`Add keyframe to curve ${curveIndex + 1}`}
+        </Button>
+      </FlexColumn>
+    );
+  }
+);
+CurveEditor.displayName = "CurveEditor";
+
 interface ClipCustomCurvesProps {
   /** The animation's `custom` payload, absent until the first curve. */
   custom: CustomClipAnimation | undefined;
@@ -159,89 +337,17 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
     return (
       <FlexColumn gap={SPACING.md}>
         {curves.map((curve, curveIndex) => (
-          <FlexColumn key={`${curve.property}-${curveIndex}`} gap={SPACING.xs}>
-            <FlexRow align="center" justify="space-between" gap={SPACING.md}>
-              <Text size="small">Curve {curveIndex + 1}</Text>
-              <DeleteButton
-                onClick={() => removeCurve(curveIndex)}
-                tooltip={`Remove ${labelPrefix} curve ${curveIndex + 1}`}
-                ariaLabel={`Remove ${labelPrefix} curve ${curveIndex + 1}`}
-                iconVariant="clear"
-                sx={{ width: 24, height: 24 }}
-              />
-            </FlexRow>
-            <InspectorRow label="Property">
-              <InspectorSelect
-                label={`${labelPrefix} curve ${curveIndex + 1} property`}
-                value={curve.property}
-                options={PROPERTY_OPTIONS}
-                onChange={(property) => patchCurve(curveIndex, { property })}
-                grow
-              />
-            </InspectorRow>
-            {curve.keyframes.map((keyframe, keyIndex) => {
-              const name = `${labelPrefix} curve ${curveIndex + 1} keyframe ${keyIndex + 1}`;
-              return (
-                <FlexRow
-                  key={keyIndex}
-                  align="center"
-                  gap={SPACING.micro}
-                >
-                  <InspectorPillInput
-                    value={keyframe.t.toFixed(2)}
-                    minWidth={52}
-                    scrub={SCRUB_T}
-                    onCommit={(raw) => {
-                      const t = Number(raw);
-                      if (!Number.isFinite(t)) return;
-                      patchKeyframe(curveIndex, keyIndex, {
-                        t: Math.min(1, Math.max(0, t))
-                      });
-                    }}
-                    ariaLabel={`${name} time`}
-                  />
-                  <InspectorPillInput
-                    value={String(keyframe.value)}
-                    minWidth={64}
-                    scrub={SCRUB_VALUE}
-                    onCommit={(raw) => {
-                      const value = Number(raw);
-                      if (!Number.isFinite(value)) return;
-                      patchKeyframe(curveIndex, keyIndex, { value });
-                    }}
-                    ariaLabel={`${name} value`}
-                  />
-                  <InspectorPillInput
-                    value={keyframe.easing ?? ""}
-                    placeholder="linear"
-                    minWidth={96}
-                    onCommit={(raw) => {
-                      const easing = raw.trim();
-                      patchKeyframe(curveIndex, keyIndex, {
-                        easing: easing === "" ? undefined : easing
-                      });
-                    }}
-                    ariaLabel={`${name} easing`}
-                  />
-                  <DeleteButton
-                    onClick={() => removeKeyframe(curveIndex, keyIndex)}
-                    tooltip={`Remove ${name}`}
-                    ariaLabel={`Remove ${name}`}
-                    iconVariant="clear"
-                    sx={{ width: 20, height: 20 }}
-                  />
-                </FlexRow>
-              );
-            })}
-            <Button
-              size="small"
-              variant="text"
-              startIcon={<AddOutlinedIcon />}
-              onClick={() => addKeyframe(curveIndex)}
-            >
-              {`Add keyframe to curve ${curveIndex + 1}`}
-            </Button>
-          </FlexColumn>
+          <CurveEditor
+            key={`${curve.property}-${curveIndex}`}
+            curve={curve}
+            curveIndex={curveIndex}
+            labelPrefix={labelPrefix}
+            onPatchCurve={patchCurve}
+            onRemoveCurve={removeCurve}
+            onAddKeyframe={addKeyframe}
+            onPatchKeyframe={patchKeyframe}
+            onRemoveKeyframe={removeKeyframe}
+          />
         ))}
         <Caption color="muted">
           Columns are time (0..1 across the animation), value, and easing:{" "}

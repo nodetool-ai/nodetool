@@ -65,6 +65,9 @@ const SCRUB_UNIT = { step: 0.01 };
 const SCRUB_PX = { step: 1, min: 0 };
 const SCRUB_COUNT = { step: 1, min: 3 };
 
+const FILL_COLOR_INPUT_PROPS = { "aria-label": "Shape fill color" };
+const STROKE_COLOR_INPUT_PROPS = { "aria-label": "Shape stroke color" };
+
 interface ClipShapeSectionProps {
   clip: TimelineClip;
   shapeStyle: ClipShapeStyle;
@@ -94,6 +97,102 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
       [patchShape]
     );
 
+    // A stable callback per field, so an edit re-renders only the field whose
+    // value changed rather than every memoized control in the section.
+    const handleKindChange = useCallback(
+      (value: string) => patchShape({ kind: value as ClipShapeKind }),
+      [patchShape]
+    );
+    const handleXCommit = useCallback(
+      (raw: string) => commitNumber(raw, (x) => patchShape({ x })),
+      [patchShape]
+    );
+    const handleYCommit = useCallback(
+      (raw: string) => commitNumber(raw, (y) => patchShape({ y })),
+      [patchShape]
+    );
+    const handleWidthCommit = useCallback(
+      (raw: string) => commitNumber(raw, (width) => patchShape({ width })),
+      [patchShape]
+    );
+    const handleHeightCommit = useCallback(
+      (raw: string) => commitNumber(raw, (height) => patchShape({ height })),
+      [patchShape]
+    );
+    const handleX2Commit = useCallback(
+      (raw: string) => commitNumber(raw, (x2) => patchShape({ x2 })),
+      [patchShape]
+    );
+    const handleY2Commit = useCallback(
+      (raw: string) => commitNumber(raw, (y2) => patchShape({ y2 })),
+      [patchShape]
+    );
+    const handlePathCommit = useCallback(
+      (d: string) => patchShape({ d: d.trim() || undefined }),
+      [patchShape]
+    );
+    const handleSidesCommit = useCallback(
+      (raw: string) => {
+        const sides = Math.round(Number(raw));
+        if (!Number.isFinite(sides) || sides < 3) return;
+        patchShape({ sides });
+      },
+      [patchShape]
+    );
+    const handleInnerRadiusChange = useCallback(
+      (innerRadius: number) => patchShape({ innerRadius }),
+      [patchShape]
+    );
+    const handleCornerRadiusCommit = useCallback(
+      (raw: string) =>
+        commitNumber(raw, (cornerRadius) => patchShape({ cornerRadius })),
+      [patchShape]
+    );
+    const handleFillColorChange = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) =>
+        patchShape({ fill: event.target.value }),
+      [patchShape]
+    );
+    const handleStrokeColorChange = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) =>
+        patchShape({ stroke: event.target.value }),
+      [patchShape]
+    );
+    const handleStrokeWidthCommit = useCallback(
+      (raw: string) => {
+        const strokeWidthPx = Number(raw);
+        if (!Number.isFinite(strokeWidthPx) || strokeWidthPx < 0) return;
+        patchShape({ strokeWidthPx });
+      },
+      [patchShape]
+    );
+    const handleDashCommit = useCallback(
+      (raw: string) => {
+        const dash = parseNumberList(raw);
+        if (dash === null) return;
+        patchShape({ dash: dash.length === 0 ? undefined : dash });
+      },
+      [patchShape]
+    );
+    const handleLineCapChange = useCallback(
+      (lineCap: string) =>
+        patchShape({ lineCap: lineCap as ClipShapeStyle["lineCap"] }),
+      [patchShape]
+    );
+    const handleLineJoinChange = useCallback(
+      (lineJoin: string) =>
+        patchShape({ lineJoin: lineJoin as ClipShapeStyle["lineJoin"] }),
+      [patchShape]
+    );
+    const handleTrimStartChange = useCallback(
+      (trimStart: number) => patchShape({ trimStart }),
+      [patchShape]
+    );
+    const handleTrimEndChange = useCallback(
+      (trimEnd: number) => patchShape({ trimEnd }),
+      [patchShape]
+    );
+
     const kind = shapeStyle.kind;
     const isLine = kind === "line";
     const isPath = kind === "path";
@@ -119,9 +218,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
                 label="Shape kind"
                 value={kind}
                 options={SHAPE_KINDS}
-                onChange={(value) =>
-                  patchShape({ kind: value as ClipShapeKind })
-                }
+                onChange={handleKindChange}
               />
             </InspectorRow>
 
@@ -132,18 +229,14 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
                     value={(shapeStyle.x ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
-                    onCommit={(raw) =>
-                      commitNumber(raw, (x) => patchShape({ x }))
-                    }
+                    onCommit={handleXCommit}
                     ariaLabel="Shape X"
                   />
                   <InspectorPillInput
                     value={(shapeStyle.y ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
-                    onCommit={(raw) =>
-                      commitNumber(raw, (y) => patchShape({ y }))
-                    }
+                    onCommit={handleYCommit}
                     ariaLabel="Shape Y"
                   />
                 </InspectorRow>
@@ -152,18 +245,14 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
                     value={(shapeStyle.width ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
-                    onCommit={(raw) =>
-                      commitNumber(raw, (width) => patchShape({ width }))
-                    }
+                    onCommit={handleWidthCommit}
                     ariaLabel="Shape width"
                   />
                   <InspectorPillInput
                     value={(shapeStyle.height ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
-                    onCommit={(raw) =>
-                      commitNumber(raw, (height) => patchShape({ height }))
-                    }
+                    onCommit={handleHeightCommit}
                     ariaLabel="Shape height"
                   />
                 </InspectorRow>
@@ -177,18 +266,14 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
                     value={(shapeStyle.x ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
-                    onCommit={(raw) =>
-                      commitNumber(raw, (x) => patchShape({ x }))
-                    }
+                    onCommit={handleXCommit}
                     ariaLabel="Line start X"
                   />
                   <InspectorPillInput
                     value={(shapeStyle.y ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
-                    onCommit={(raw) =>
-                      commitNumber(raw, (y) => patchShape({ y }))
-                    }
+                    onCommit={handleYCommit}
                     ariaLabel="Line start Y"
                   />
                 </InspectorRow>
@@ -197,18 +282,14 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
                     value={(shapeStyle.x2 ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
-                    onCommit={(raw) =>
-                      commitNumber(raw, (x2) => patchShape({ x2 }))
-                    }
+                    onCommit={handleX2Commit}
                     ariaLabel="Line end X"
                   />
                   <InspectorPillInput
                     value={(shapeStyle.y2 ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
-                    onCommit={(raw) =>
-                      commitNumber(raw, (y2) => patchShape({ y2 }))
-                    }
+                    onCommit={handleY2Commit}
                     ariaLabel="Line end Y"
                   />
                 </InspectorRow>
@@ -222,7 +303,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
                     value={shapeStyle.d ?? ""}
                     ariaLabel="Shape path data"
                     placeholder="M 0 0 L 1 0 L 1 1 Z"
-                    onCommit={(d) => patchShape({ d: d.trim() || undefined })}
+                    onCommit={handlePathCommit}
                   />
                 </InspectorRow>
                 <Caption color="muted">
@@ -236,11 +317,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
                 <InspectorPillInput
                   value={String(shapeStyle.sides ?? 5)}
                   scrub={SCRUB_COUNT}
-                  onCommit={(raw) => {
-                    const sides = Math.round(Number(raw));
-                    if (!Number.isFinite(sides) || sides < 3) return;
-                    patchShape({ sides });
-                  }}
+                  onCommit={handleSidesCommit}
                   ariaLabel="Shape point count"
                 />
               </InspectorRow>
@@ -254,7 +331,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
                 step={0.01}
                 value={shapeStyle.innerRadius ?? 0.5}
                 display={(shapeStyle.innerRadius ?? 0.5).toFixed(2)}
-                onChange={(innerRadius) => patchShape({ innerRadius })}
+                onChange={handleInnerRadiusChange}
               />
             )}
 
@@ -263,11 +340,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
                 <InspectorPillInput
                   value={(shapeStyle.cornerRadius ?? 0).toFixed(3)}
                   scrub={SCRUB_UNIT}
-                  onCommit={(raw) =>
-                    commitNumber(raw, (cornerRadius) =>
-                      patchShape({ cornerRadius })
-                    )
-                  }
+                  onCommit={handleCornerRadiusCommit}
                   ariaLabel="Shape corner radius"
                 />
               </InspectorRow>
@@ -277,8 +350,8 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
               <TextInput
                 type="color"
                 value={shapeStyle.fill ?? "#ffffff"}
-                onChange={(event) => patchShape({ fill: event.target.value })}
-                inputProps={{ "aria-label": "Shape fill color" }}
+                onChange={handleFillColorChange}
+                inputProps={FILL_COLOR_INPUT_PROPS}
               />
             </InspectorRow>
             <FillFields
@@ -291,8 +364,8 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
               <TextInput
                 type="color"
                 value={shapeStyle.stroke ?? "#000000"}
-                onChange={(event) => patchShape({ stroke: event.target.value })}
-                inputProps={{ "aria-label": "Shape stroke color" }}
+                onChange={handleStrokeColorChange}
+                inputProps={STROKE_COLOR_INPUT_PROPS}
               />
             </InspectorRow>
             <InspectorRow label="Stroke width">
@@ -300,13 +373,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
                 value={String(shapeStyle.strokeWidthPx ?? 0)}
                 unit="px"
                 scrub={SCRUB_PX}
-                onCommit={(raw) => {
-                  const strokeWidthPx = Number(raw);
-                  if (!Number.isFinite(strokeWidthPx) || strokeWidthPx < 0) {
-                    return;
-                  }
-                  patchShape({ strokeWidthPx });
-                }}
+                onCommit={handleStrokeWidthCommit}
                 ariaLabel="Shape stroke width"
               />
             </InspectorRow>
@@ -315,11 +382,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
                 value={formatNumberList(shapeStyle.dash)}
                 ariaLabel="Shape dash pattern"
                 placeholder="0.02, 0.01"
-                onCommit={(raw) => {
-                  const dash = parseNumberList(raw);
-                  if (dash === null) return;
-                  patchShape({ dash: dash.length === 0 ? undefined : dash });
-                }}
+                onCommit={handleDashCommit}
               />
             </InspectorRow>
             <InspectorRow label="Cap">
@@ -327,7 +390,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
                 label="Shape line cap"
                 value={shapeStyle.lineCap ?? "butt"}
                 options={LINE_CAPS}
-                onChange={(lineCap) => patchShape({ lineCap })}
+                onChange={handleLineCapChange}
               />
             </InspectorRow>
             <InspectorRow label="Join">
@@ -335,7 +398,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
                 label="Shape line join"
                 value={shapeStyle.lineJoin ?? "miter"}
                 options={LINE_JOINS}
-                onChange={(lineJoin) => patchShape({ lineJoin })}
+                onChange={handleLineJoinChange}
               />
             </InspectorRow>
             <InspectorSliderRow
@@ -345,7 +408,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
               step={0.01}
               value={shapeStyle.trimStart ?? 0}
               display={(shapeStyle.trimStart ?? 0).toFixed(2)}
-              onChange={(trimStart) => patchShape({ trimStart })}
+              onChange={handleTrimStartChange}
             />
             <InspectorSliderRow
               label="Trim end"
@@ -354,7 +417,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
               step={0.01}
               value={shapeStyle.trimEnd ?? 1}
               display={(shapeStyle.trimEnd ?? 1).toFixed(2)}
-              onChange={(trimEnd) => patchShape({ trimEnd })}
+              onChange={handleTrimEndChange}
             />
           </FlexColumn>
         </CollapsibleSection>

@@ -65,6 +65,12 @@ const DEFAULT_BACKGROUND = { color: "#000000", paddingPx: 16, radiusPx: 8 };
 const SCRUB_PX = { step: 1 };
 const SCRUB_UNIT = { step: 0.01, min: 0 };
 
+const TEXT_CONTENT_INPUT_PROPS = { "aria-label": "Text content" };
+const TEXT_COLOR_INPUT_PROPS = { "aria-label": "Text color" };
+const STROKE_COLOR_INPUT_PROPS = { "aria-label": "Text stroke color" };
+const SHADOW_COLOR_INPUT_PROPS = { "aria-label": "Text shadow color" };
+const BACKGROUND_COLOR_INPUT_PROPS = { "aria-label": "Text background color" };
+
 interface ClipTextStyleSectionProps {
   clip: TimelineClip;
   textStyle: ClipTextStyle;
@@ -121,6 +127,151 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
       [patchStyle]
     );
 
+    // A stable callback per field, so an edit re-renders only the field whose
+    // value changed rather than every memoized control in the section.
+    const handleTextChange = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) =>
+        patchStyle({ text: event.target.value }),
+      [patchStyle]
+    );
+    const handleFontFamilyChange = useCallback(
+      (fontFamily: string | undefined) => patchStyle({ fontFamily }),
+      [patchStyle]
+    );
+    const handleFontSizeCommit = useCallback(
+      (raw: string) => {
+        const fontSizePx = Number(raw);
+        if (!Number.isFinite(fontSizePx) || fontSizePx < 1) return;
+        patchStyle({ fontSizePx });
+      },
+      [patchStyle]
+    );
+    const handleFontWeightCommit = useCallback(
+      (raw: string) => {
+        const fontWeight = Number(raw);
+        if (!Number.isFinite(fontWeight) || fontWeight < 1) return;
+        patchStyle({ fontWeight });
+      },
+      [patchStyle]
+    );
+    const handleFontStyleChange = useCallback(
+      (fontStyle: string) =>
+        patchStyle({ fontStyle: fontStyle as ClipTextStyle["fontStyle"] }),
+      [patchStyle]
+    );
+    const handleColorChange = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) =>
+        patchStyle({ color: event.target.value }),
+      [patchStyle]
+    );
+    const handleAlignChange = useCallback(
+      (align: string) =>
+        patchStyle({ align: align as ClipTextStyle["align"] }),
+      [patchStyle]
+    );
+    const handleVerticalAlignChange = useCallback(
+      (verticalAlign: string) =>
+        patchStyle({
+          verticalAlign: verticalAlign as ClipTextStyle["verticalAlign"]
+        }),
+      [patchStyle]
+    );
+    const handleLetterSpacingCommit = useCallback(
+      (raw: string) => {
+        const letterSpacingPx = Number(raw);
+        if (!Number.isFinite(letterSpacingPx)) return;
+        patchStyle({ letterSpacingPx });
+      },
+      [patchStyle]
+    );
+    const handleLineHeightCommit = useCallback(
+      (raw: string) => {
+        const lineHeight = Number(raw);
+        if (!Number.isFinite(lineHeight) || lineHeight <= 0) return;
+        patchStyle({ lineHeight });
+      },
+      [patchStyle]
+    );
+
+    const handleStrokeToggle = useCallback(
+      (on: boolean) => patchStyle({ stroke: on ? DEFAULT_STROKE : undefined }),
+      [patchStyle]
+    );
+    const handleStrokeColorChange = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) =>
+        patchStroke({ color: event.target.value }),
+      [patchStroke]
+    );
+    const handleStrokeWidthCommit = useCallback(
+      (raw: string) => {
+        const widthPx = Number(raw);
+        if (!Number.isFinite(widthPx) || widthPx < 0) return;
+        patchStroke({ widthPx });
+      },
+      [patchStroke]
+    );
+
+    const handleShadowToggle = useCallback(
+      (on: boolean) => patchStyle({ shadow: on ? DEFAULT_SHADOW : undefined }),
+      [patchStyle]
+    );
+    const handleShadowColorChange = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) =>
+        patchShadow({ color: event.target.value }),
+      [patchShadow]
+    );
+    const handleShadowBlurCommit = useCallback(
+      (raw: string) => {
+        const blurPx = Number(raw);
+        if (!Number.isFinite(blurPx) || blurPx < 0) return;
+        patchShadow({ blurPx });
+      },
+      [patchShadow]
+    );
+    const handleShadowOffsetXCommit = useCallback(
+      (raw: string) => {
+        const offsetX = Number(raw);
+        if (!Number.isFinite(offsetX)) return;
+        patchShadow({ offsetX });
+      },
+      [patchShadow]
+    );
+    const handleShadowOffsetYCommit = useCallback(
+      (raw: string) => {
+        const offsetY = Number(raw);
+        if (!Number.isFinite(offsetY)) return;
+        patchShadow({ offsetY });
+      },
+      [patchShadow]
+    );
+
+    const handleBackgroundToggle = useCallback(
+      (on: boolean) =>
+        patchStyle({ background: on ? DEFAULT_BACKGROUND : undefined }),
+      [patchStyle]
+    );
+    const handleBackgroundColorChange = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) =>
+        patchBackground({ color: event.target.value }),
+      [patchBackground]
+    );
+    const handleBackgroundPaddingCommit = useCallback(
+      (raw: string) => {
+        const paddingPx = Number(raw);
+        if (!Number.isFinite(paddingPx) || paddingPx < 0) return;
+        patchBackground({ paddingPx });
+      },
+      [patchBackground]
+    );
+    const handleBackgroundRadiusCommit = useCallback(
+      (raw: string) => {
+        const radiusPx = Number(raw);
+        if (!Number.isFinite(radiusPx) || radiusPx < 0) return;
+        patchBackground({ radiusPx });
+      },
+      [patchBackground]
+    );
+
     return (
       <>
         <CollapsibleSection
@@ -137,14 +288,14 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
               multiline
               minRows={3}
               fullWidth
-              onChange={(event) => patchStyle({ text: event.target.value })}
-              inputProps={{ "aria-label": "Text content" }}
+              onChange={handleTextChange}
+              inputProps={TEXT_CONTENT_INPUT_PROPS}
             />
             <InspectorRow label="Font">
               <FontPicker
                 label="Text font family"
                 value={textStyle.fontFamily}
-                onChange={(fontFamily) => patchStyle({ fontFamily })}
+                onChange={handleFontFamilyChange}
               />
             </InspectorRow>
             <InspectorRow label="Font size">
@@ -152,22 +303,14 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                 value={String(textStyle.fontSizePx)}
                 unit="px"
                 scrub={SCRUB_PX}
-                onCommit={(raw) => {
-                  const fontSizePx = Number(raw);
-                  if (!Number.isFinite(fontSizePx) || fontSizePx < 1) return;
-                  patchStyle({ fontSizePx });
-                }}
+                onCommit={handleFontSizeCommit}
                 ariaLabel="Text font size"
               />
             </InspectorRow>
             <InspectorRow label="Weight">
               <InspectorPillInput
                 value={String(textStyle.fontWeight ?? 400)}
-                onCommit={(raw) => {
-                  const fontWeight = Number(raw);
-                  if (!Number.isFinite(fontWeight) || fontWeight < 1) return;
-                  patchStyle({ fontWeight });
-                }}
+                onCommit={handleFontWeightCommit}
                 ariaLabel="Text font weight"
               />
             </InspectorRow>
@@ -176,15 +319,15 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                 label="Text font style"
                 value={textStyle.fontStyle ?? "normal"}
                 options={FONT_STYLES}
-                onChange={(fontStyle) => patchStyle({ fontStyle })}
+                onChange={handleFontStyleChange}
               />
             </InspectorRow>
             <InspectorRow label="Color">
               <TextInput
                 type="color"
                 value={textStyle.color}
-                onChange={(event) => patchStyle({ color: event.target.value })}
-                inputProps={{ "aria-label": "Text color" }}
+                onChange={handleColorChange}
+                inputProps={TEXT_COLOR_INPUT_PROPS}
               />
             </InspectorRow>
             <InspectorRow label="Align">
@@ -192,9 +335,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                 label="Text alignment"
                 value={textStyle.align ?? "center"}
                 options={TEXT_ALIGNMENTS}
-                onChange={(value) =>
-                  patchStyle({ align: value as "left" | "center" | "right" })
-                }
+                onChange={handleAlignChange}
               />
             </InspectorRow>
             <InspectorRow label="Vertical align">
@@ -202,7 +343,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                 label="Text vertical alignment"
                 value={textStyle.verticalAlign ?? "middle"}
                 options={VERTICAL_ALIGNMENTS}
-                onChange={(verticalAlign) => patchStyle({ verticalAlign })}
+                onChange={handleVerticalAlignChange}
               />
             </InspectorRow>
             <InspectorRow label="Letter spacing">
@@ -210,11 +351,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                 value={String(textStyle.letterSpacingPx ?? 0)}
                 unit="px"
                 scrub={SCRUB_PX}
-                onCommit={(raw) => {
-                  const letterSpacingPx = Number(raw);
-                  if (!Number.isFinite(letterSpacingPx)) return;
-                  patchStyle({ letterSpacingPx });
-                }}
+                onCommit={handleLetterSpacingCommit}
                 ariaLabel="Text letter spacing"
               />
             </InspectorRow>
@@ -223,11 +360,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                 value={(textStyle.lineHeight ?? 1.2).toFixed(2)}
                 unit="×"
                 scrub={SCRUB_UNIT}
-                onCommit={(raw) => {
-                  const lineHeight = Number(raw);
-                  if (!Number.isFinite(lineHeight) || lineHeight <= 0) return;
-                  patchStyle({ lineHeight });
-                }}
+                onCommit={handleLineHeightCommit}
                 ariaLabel="Text line height"
               />
             </InspectorRow>
@@ -235,9 +368,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
             <InspectorToggleRow
               label="Stroke"
               checked={textStyle.stroke !== undefined}
-              onChange={(on) =>
-                patchStyle({ stroke: on ? DEFAULT_STROKE : undefined })
-              }
+              onChange={handleStrokeToggle}
             />
             {textStyle.stroke && (
               <>
@@ -245,10 +376,8 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                   <TextInput
                     type="color"
                     value={textStyle.stroke.color}
-                    onChange={(event) =>
-                      patchStroke({ color: event.target.value })
-                    }
-                    inputProps={{ "aria-label": "Text stroke color" }}
+                    onChange={handleStrokeColorChange}
+                    inputProps={STROKE_COLOR_INPUT_PROPS}
                   />
                 </InspectorRow>
                 <InspectorRow label="Stroke width">
@@ -256,11 +385,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                     value={String(textStyle.stroke.widthPx)}
                     unit="px"
                     scrub={SCRUB_PX}
-                    onCommit={(raw) => {
-                      const widthPx = Number(raw);
-                      if (!Number.isFinite(widthPx) || widthPx < 0) return;
-                      patchStroke({ widthPx });
-                    }}
+                    onCommit={handleStrokeWidthCommit}
                     ariaLabel="Text stroke width"
                   />
                 </InspectorRow>
@@ -270,9 +395,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
             <InspectorToggleRow
               label="Shadow"
               checked={textStyle.shadow !== undefined}
-              onChange={(on) =>
-                patchStyle({ shadow: on ? DEFAULT_SHADOW : undefined })
-              }
+              onChange={handleShadowToggle}
             />
             {textStyle.shadow && (
               <>
@@ -280,10 +403,8 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                   <TextInput
                     type="color"
                     value={textStyle.shadow.color}
-                    onChange={(event) =>
-                      patchShadow({ color: event.target.value })
-                    }
-                    inputProps={{ "aria-label": "Text shadow color" }}
+                    onChange={handleShadowColorChange}
+                    inputProps={SHADOW_COLOR_INPUT_PROPS}
                   />
                 </InspectorRow>
                 <InspectorRow label="Shadow blur">
@@ -291,11 +412,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                     value={String(textStyle.shadow.blurPx)}
                     unit="px"
                     scrub={SCRUB_PX}
-                    onCommit={(raw) => {
-                      const blurPx = Number(raw);
-                      if (!Number.isFinite(blurPx) || blurPx < 0) return;
-                      patchShadow({ blurPx });
-                    }}
+                    onCommit={handleShadowBlurCommit}
                     ariaLabel="Text shadow blur"
                   />
                 </InspectorRow>
@@ -305,11 +422,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                     unit="px"
                     minWidth={64}
                     scrub={SCRUB_PX}
-                    onCommit={(raw) => {
-                      const offsetX = Number(raw);
-                      if (!Number.isFinite(offsetX)) return;
-                      patchShadow({ offsetX });
-                    }}
+                    onCommit={handleShadowOffsetXCommit}
                     ariaLabel="Text shadow offset X"
                   />
                   <InspectorPillInput
@@ -317,11 +430,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                     unit="px"
                     minWidth={64}
                     scrub={SCRUB_PX}
-                    onCommit={(raw) => {
-                      const offsetY = Number(raw);
-                      if (!Number.isFinite(offsetY)) return;
-                      patchShadow({ offsetY });
-                    }}
+                    onCommit={handleShadowOffsetYCommit}
                     ariaLabel="Text shadow offset Y"
                   />
                 </InspectorRow>
@@ -331,9 +440,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
             <InspectorToggleRow
               label="Background"
               checked={textStyle.background !== undefined}
-              onChange={(on) =>
-                patchStyle({ background: on ? DEFAULT_BACKGROUND : undefined })
-              }
+              onChange={handleBackgroundToggle}
             />
             {textStyle.background && (
               <>
@@ -341,10 +448,8 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                   <TextInput
                     type="color"
                     value={textStyle.background.color}
-                    onChange={(event) =>
-                      patchBackground({ color: event.target.value })
-                    }
-                    inputProps={{ "aria-label": "Text background color" }}
+                    onChange={handleBackgroundColorChange}
+                    inputProps={BACKGROUND_COLOR_INPUT_PROPS}
                   />
                 </InspectorRow>
                 <InspectorRow label="Background padding">
@@ -352,11 +457,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                     value={String(textStyle.background.paddingPx)}
                     unit="px"
                     scrub={SCRUB_PX}
-                    onCommit={(raw) => {
-                      const paddingPx = Number(raw);
-                      if (!Number.isFinite(paddingPx) || paddingPx < 0) return;
-                      patchBackground({ paddingPx });
-                    }}
+                    onCommit={handleBackgroundPaddingCommit}
                     ariaLabel="Text background padding"
                   />
                 </InspectorRow>
@@ -365,11 +466,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                     value={String(textStyle.background.radiusPx ?? 0)}
                     unit="px"
                     scrub={SCRUB_PX}
-                    onCommit={(raw) => {
-                      const radiusPx = Number(raw);
-                      if (!Number.isFinite(radiusPx) || radiusPx < 0) return;
-                      patchBackground({ radiusPx });
-                    }}
+                    onCommit={handleBackgroundRadiusCommit}
                     ariaLabel="Text background radius"
                   />
                 </InspectorRow>

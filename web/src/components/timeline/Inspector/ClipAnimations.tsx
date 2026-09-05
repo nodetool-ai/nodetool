@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import type { Theme } from "@mui/material/styles";
 import AnimationOutlinedIcon from "@mui/icons-material/AnimationOutlined";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import {
@@ -75,8 +76,34 @@ const ROLE_OPTIONS = ROLES.map((role) => ({
   label: ROLE_LABELS[role]
 }));
 
+/** The catalog is static, so both the per-role split and the select's option
+ *  list are built once instead of re-filtered and re-mapped on every render. */
+const PRESETS_BY_ROLE: Record<AnimationRole, AnimationPreset[]> = {
+  in: [],
+  out: [],
+  emphasis: [],
+  loop: []
+};
+const PRESET_OPTIONS_BY_ROLE: Record<
+  AnimationRole,
+  { value: string; label: string }[]
+> = { in: [], out: [], emphasis: [], loop: [] };
+
+for (const role of ROLES) {
+  PRESETS_BY_ROLE[role] = ANIMATION_PRESETS.filter((preset) =>
+    preset.roles.includes(role)
+  );
+  PRESET_OPTIONS_BY_ROLE[role] = [
+    ...PRESETS_BY_ROLE[role].map((preset) => ({
+      value: preset.id,
+      label: preset.id
+    })),
+    CUSTOM_OPTION
+  ];
+}
+
 function presetsForRole(role: AnimationRole): readonly AnimationPreset[] {
-  return ANIMATION_PRESETS.filter((preset) => preset.roles.includes(role));
+  return PRESETS_BY_ROLE[role];
 }
 
 function defaultParams(
@@ -117,26 +144,29 @@ function makeAnimation(
 interface AnimationParamControlProps {
   animation: ClipAnimation;
   spec: PresetParamSpec;
-  onChange: (value: number | string | boolean) => void;
+  onChange: (name: string, value: number | string | boolean) => void;
 }
 
-const AnimationParamControl: React.FC<AnimationParamControlProps> = ({
-  animation,
-  spec,
-  onChange
-}) => {
+const AnimationParamControl: React.FC<AnimationParamControlProps> = memo(
+  ({ animation, spec, onChange }) => {
   const value = animation.params?.[spec.name] ?? spec.default;
+  const handleChange = useCallback(
+    (next: number | string | boolean) => onChange(spec.name, next),
+    [onChange, spec.name]
+  );
+  const options = useMemo(
+    () =>
+      spec.options?.map((option) => ({ value: option, label: option })) ?? [],
+    [spec.options]
+  );
   if (spec.options) {
     return (
       <InspectorRow label={spec.name}>
         <InspectorSelect
           label={`${animation.role} ${spec.name}`}
           value={String(value)}
-          options={spec.options.map((option) => ({
-            value: option,
-            label: option
-          }))}
-          onChange={onChange}
+          options={options}
+          onChange={handleChange}
         />
       </InspectorRow>
     );
@@ -161,50 +191,73 @@ const AnimationParamControl: React.FC<AnimationParamControlProps> = ({
         max={spec.max}
         step={step}
         origin={isNumber(spec.default) ? spec.default : undefined}
-        onChange={onChange}
+        onChange={handleChange}
       />
     );
   }
 
   return null;
-};
+  }
+);
+AnimationParamControl.displayName = "AnimationParamControl";
 
 const DEFAULT_STAGGER_OFFSET_MS = 120;
+
+const EDITOR_SX = {
+  borderTop: (theme: Theme) => `1px solid ${theme.vars.palette.divider}`,
+  pt: SPACING.md
+};
+const DELETE_SX = { width: 24, height: 24 };
 
 interface ClipAnimationEditorProps {
   animation: ClipAnimation;
   /** True on text clips — the only place per-word stagger applies. */
   staggerAvailable: boolean;
-  onPatch: (patch: Partial<ClipAnimation>) => void;
-  onDelete: () => void;
+  onPatch: (id: string, patch: Partial<ClipAnimation>) => void;
+  onDelete: (id: string) => void;
 }
 
-const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
+/**
+ * One animation's controls. Bound to its own id so a sibling's edit leaves
+ * these callbacks identical and the memoized fields below skip the render.
+ */
+const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = memo(({
   animation,
   staggerAvailable,
   onPatch,
   onDelete
 }) => {
-  const rolePresets = presetsForRole(animation.role);
   const preset = ANIMATION_PRESETS.find(
     (candidate) => candidate.id === animation.preset
   );
   const isCustom = animation.preset === CUSTOM_PRESET;
+  const animationId = animation.id;
+  const onPatchThis = useCallback(
+    (patch: Partial<ClipAnimation>) => onPatch(animationId, patch),
+    [animationId, onPatch]
+  );
+  const handleDelete = useCallback(
+    () => onDelete(animationId),
+    [animationId, onDelete]
+  );
+  const animationRef = useRef(animation);
+  animationRef.current = animation;
+
   const handlePresetChange = useCallback(
     (value: string) => {
       if (value === CUSTOM_PRESET) {
-        onPatch({
+        onPatchThis({
           preset: CUSTOM_PRESET,
           params: undefined,
           custom: makeCustomAnimation()
         });
         return;
       }
-      const next = presetsForRole(animation.role).find(
+      const next = presetsForRole(animationRef.current.role).find(
         (candidate) => candidate.id === value
       );
       if (!next) return;
-      onPatch({
+      onPatchThis({
         preset: next.id,
         durationMs: next.defaultDurationMs,
         easing: next.defaultEasing,
@@ -212,56 +265,99 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
         custom: undefined
       });
     },
-    [animation.role, onPatch]
+    [onPatchThis]
   );
 
   const handleCustomChange = useCallback(
-    (custom: CustomClipAnimation) => onPatch({ custom }),
-    [onPatch]
+    (custom: CustomClipAnimation) => onPatchThis({ custom }),
+    [onPatchThis]
   );
 
-  const patchParam = (name: string, value: number | string | boolean) => {
-    onPatch({
-      params: { ...animation.params, [name]: value }
-    });
-  };
+  const patchParam = useCallback(
+    (name: string, value: number | string | boolean) => {
+      onPatchThis({
+        params: { ...animationRef.current.params, [name]: value }
+      });
+    },
+    [onPatchThis]
+  );
+
+  const handleEnabledChange = useCallback(
+    (enabled: boolean) => onPatchThis({ enabled }),
+    [onPatchThis]
+  );
+
+  const handleDurationCommit = useCallback(
+    (raw: string) => {
+      const durationMs = Number(raw);
+      if (Number.isFinite(durationMs) && durationMs > 0) {
+        onPatchThis({ durationMs });
+      }
+    },
+    [onPatchThis]
+  );
+
+  const handleDelayCommit = useCallback(
+    (raw: string) => {
+      const delayMs = Number(raw);
+      if (Number.isFinite(delayMs) && delayMs >= 0) {
+        onPatchThis({ delayMs });
+      }
+    },
+    [onPatchThis]
+  );
+
+  const handleEasingChange = useCallback(
+    (easing: string | undefined) => onPatchThis({ easing: easing as EasingId }),
+    [onPatchThis]
+  );
+
+  const handleStaggerToggle = useCallback(
+    (on: boolean) =>
+      onPatchThis({
+        stagger: on
+          ? { unit: "word", offsetMs: DEFAULT_STAGGER_OFFSET_MS }
+          : undefined
+      }),
+    [onPatchThis]
+  );
+
+  const handleStaggerOffsetCommit = useCallback(
+    (raw: string) => {
+      const offsetMs = Number(raw);
+      if (Number.isFinite(offsetMs) && offsetMs > 0) {
+        onPatchThis({
+          stagger: { ...animationRef.current.stagger, unit: "word", offsetMs }
+        });
+      }
+    },
+    [onPatchThis]
+  );
 
   return (
-    <FlexColumn
-      gap={SPACING.md}
-      sx={{
-        borderTop: (theme) => `1px solid ${theme.vars.palette.divider}`,
-        pt: SPACING.md
-      }}
-    >
+    <FlexColumn gap={SPACING.md} sx={EDITOR_SX}>
       <FlexRow align="center" justify="space-between" gap={SPACING.md}>
         <Text size="small">{ROLE_LABELS[animation.role]}</Text>
         <DeleteButton
-          onClick={onDelete}
+          onClick={handleDelete}
           tooltip={`Remove ${ROLE_LABELS[animation.role]} animation`}
           ariaLabel={`Remove ${ROLE_LABELS[animation.role]} animation`}
           iconVariant="clear"
-          sx={{ width: 24, height: 24 }}
+          sx={DELETE_SX}
         />
       </FlexRow>
 
       <InspectorToggleRow
         label="Enabled"
         checked={animation.enabled !== false}
-        onChange={(enabled) => onPatch({ enabled })}
+        onChange={handleEnabledChange}
       />
 
       <InspectorRow label="Preset">
         <InspectorSelect
           label={`${animation.role} animation preset`}
           value={animation.preset}
-          options={[
-            ...rolePresets.map((candidate) => ({
-              value: candidate.id,
-              label: candidate.id
-            })),
-            CUSTOM_OPTION
-          ]}
+          options={PRESET_OPTIONS_BY_ROLE[animation.role]}
           onChange={handlePresetChange}
         />
       </InspectorRow>
@@ -274,12 +370,7 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
             <InspectorPillInput
               value={String(animation.durationMs)}
               unit="ms"
-              onCommit={(raw) => {
-                const durationMs = Number(raw);
-                if (Number.isFinite(durationMs) && durationMs > 0) {
-                  onPatch({ durationMs });
-                }
-              }}
+              onCommit={handleDurationCommit}
               ariaLabel={`${animation.role} animation duration`}
             />
           </InspectorRow>
@@ -287,12 +378,7 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
             <InspectorPillInput
               value={String(animation.delayMs ?? 0)}
               unit="ms"
-              onCommit={(raw) => {
-                const delayMs = Number(raw);
-                if (Number.isFinite(delayMs) && delayMs >= 0) {
-                  onPatch({ delayMs });
-                }
-              }}
+              onCommit={handleDelayCommit}
               ariaLabel={`${animation.role} animation delay`}
             />
           </InspectorRow>
@@ -305,7 +391,7 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
         <EasingField
           value={animation.easing}
           ariaLabel={`${animation.role} animation easing`}
-          onChange={(easing) => onPatch({ easing })}
+          onChange={handleEasingChange}
         />
       ) : (
         <InspectorRow label="Easing">
@@ -313,7 +399,7 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
             label={`${animation.role} animation easing`}
             value={animation.easing ?? preset?.defaultEasing ?? "linear"}
             options={EASING_OPTIONS}
-            onChange={(value) => onPatch({ easing: value as EasingId })}
+            onChange={handleEasingChange}
           />
         </InspectorRow>
       )}
@@ -323,27 +409,14 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
           <InspectorToggleRow
             label="Stagger words"
             checked={animation.stagger !== undefined}
-            onChange={(on) =>
-              onPatch({
-                stagger: on
-                  ? { unit: "word", offsetMs: DEFAULT_STAGGER_OFFSET_MS }
-                  : undefined
-              })
-            }
+            onChange={handleStaggerToggle}
           />
           {animation.stagger !== undefined && (
             <InspectorRow label="Word offset">
               <InspectorPillInput
                 value={String(animation.stagger.offsetMs)}
                 unit="ms"
-                onCommit={(raw) => {
-                  const offsetMs = Number(raw);
-                  if (Number.isFinite(offsetMs) && offsetMs > 0) {
-                    onPatch({
-                      stagger: { ...animation.stagger, unit: "word", offsetMs }
-                    });
-                  }
-                }}
+                onCommit={handleStaggerOffsetCommit}
                 ariaLabel={`${animation.role} animation word stagger offset`}
               />
             </InspectorRow>
@@ -364,13 +437,14 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
           key={spec.name}
           animation={animation}
           spec={spec}
-          onChange={(value) => patchParam(spec.name, value)}
+          onChange={patchParam}
         />
       ))}
       {preset && <Caption color="muted">{preset.describe}</Caption>}
     </FlexColumn>
   );
-};
+});
+ClipAnimationEditor.displayName = "ClipAnimationEditor";
 
 interface ClipAnimationsProps {
   clip: TimelineClip;
@@ -382,34 +456,46 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
     (state) => state.setClipAnimations
   );
   const [newRole, setNewRole] = useState<AnimationRole>("in");
-  const rolePresets = presetsForRole(newRole);
   // A preset id or CUSTOM_PRESET, which the catalog does not carry.
-  const [newPreset, setNewPreset] = useState<string>(rolePresets[0].id);
-  const animations = clip.animations ?? EMPTY_ANIMATIONS;
-  const groupedAnimations = ROLES.flatMap((role) =>
-    animations.filter((animation) => animation.role === role)
+  const [newPreset, setNewPreset] = useState<string>(
+    () => presetsForRole("in")[0].id
   );
+  const animations = clip.animations ?? EMPTY_ANIMATIONS;
+  const groupedAnimations = useMemo(
+    () =>
+      ROLES.flatMap((role) =>
+        animations.filter((animation) => animation.role === role)
+      ),
+    [animations]
+  );
+
+  // Read through a ref so editing one animation does not hand every other
+  // editor a new callback and re-render its whole control set.
+  const stateRef = useRef({ clipId: clip.id, animations });
+  stateRef.current = { clipId: clip.id, animations };
 
   const patchAnimation = useCallback(
     (id: string, patch: Partial<ClipAnimation>) => {
+      const { clipId, animations: current } = stateRef.current;
       setClipAnimations(
-        clip.id,
-        animations.map((animation) =>
+        clipId,
+        current.map((animation) =>
           animation.id === id ? { ...animation, ...patch } : animation
         )
       );
     },
-    [animations, clip.id, setClipAnimations]
+    [setClipAnimations]
   );
 
   const removeAnimation = useCallback(
     (id: string) => {
+      const { clipId, animations: current } = stateRef.current;
       setClipAnimations(
-        clip.id,
-        animations.filter((animation) => animation.id !== id)
+        clipId,
+        current.filter((animation) => animation.id !== id)
       );
     },
-    [animations, clip.id, setClipAnimations]
+    [setClipAnimations]
   );
 
   const handleRoleChange = useCallback((value: string) => {
@@ -419,8 +505,9 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
   }, []);
 
   const handleAdd = useCallback(() => {
+    const { clipId, animations: current } = stateRef.current;
     if (newPreset === CUSTOM_PRESET) {
-      setClipAnimations(clip.id, [...animations, makeCustom(newRole)]);
+      setClipAnimations(clipId, [...current, makeCustom(newRole)]);
       return;
     }
     const preset = ANIMATION_PRESETS.find(
@@ -428,8 +515,8 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
         candidate.id === newPreset && candidate.roles.includes(newRole)
     );
     if (!preset) return;
-    setClipAnimations(clip.id, [...animations, makeAnimation(newRole, preset)]);
-  }, [animations, clip.id, newPreset, newRole, setClipAnimations]);
+    setClipAnimations(clipId, [...current, makeAnimation(newRole, preset)]);
+  }, [newPreset, newRole, setClipAnimations]);
 
   return (
     <>
@@ -457,13 +544,7 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
             <InspectorSelect
               label="New animation preset"
               value={newPreset}
-              options={[
-                ...rolePresets.map((preset) => ({
-                  value: preset.id,
-                  label: preset.id
-                })),
-                CUSTOM_OPTION
-              ]}
+              options={PRESET_OPTIONS_BY_ROLE[newRole]}
               onChange={setNewPreset}
               grow
             />
@@ -487,8 +568,8 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
                 key={animation.id}
                 animation={animation}
                 staggerAvailable={clip.mediaType === "text"}
-                onPatch={(patch) => patchAnimation(animation.id, patch)}
-                onDelete={() => removeAnimation(animation.id)}
+                onPatch={patchAnimation}
+                onDelete={removeAnimation}
               />
             ))
           )}
