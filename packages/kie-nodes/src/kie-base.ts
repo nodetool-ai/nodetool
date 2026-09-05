@@ -191,12 +191,14 @@ async function pollKieTask(
 async function submitTask(
   apiKey: string,
   model: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
+  signal?: AbortSignal
 ): Promise<string> {
   const res = await fetch(`${KIE_API_BASE}/api/v1/jobs/createTask`, {
     method: "POST",
     headers: headers(apiKey),
-    body: JSON.stringify({ model, input })
+    body: JSON.stringify({ model, input }),
+    signal
   });
   const data = await parseKieJson(res, "submit");
   if (!res.ok)
@@ -239,7 +241,8 @@ function pollStatus(
   apiKey: string,
   taskId: string,
   pollInterval: number,
-  maxAttempts: number
+  maxAttempts: number,
+  signal?: AbortSignal
 ): Promise<Record<string, unknown>> {
   return pollKieTask(
     apiKey,
@@ -247,23 +250,26 @@ function pollStatus(
     taskId,
     pollInterval,
     maxAttempts,
-    recordInfoDone(taskId)
+    recordInfoDone(taskId),
+    signal
   );
 }
 
 async function fetchRecordInfo(
   apiKey: string,
-  taskId: string
+  taskId: string,
+  signal?: AbortSignal
 ): Promise<Record<string, unknown>> {
-  const res = await kieGet(recordInfoUrl(taskId), apiKey);
+  const res = await kieGet(recordInfoUrl(taskId), apiKey, signal);
   return parseKieJson(res, "recordInfo");
 }
 
 async function downloadResult(
   apiKey: string,
-  taskId: string
+  taskId: string,
+  signal?: AbortSignal
 ): Promise<{ items: Buffer[]; taskId: string }> {
-  const res = await kieGet(recordInfoUrl(taskId), apiKey);
+  const res = await kieGet(recordInfoUrl(taskId), apiKey, signal);
   if (!res.ok) throw new Error(withTaskId(`Failed to get result: ${res.status}`, taskId));
   const data = await parseKieJson(res, "recordInfo");
   const resultJsonStr = (data.data as Record<string, unknown>)
@@ -274,7 +280,7 @@ async function downloadResult(
   if (!resultUrls?.length) throw new Error(withTaskId("No resultUrls in resultJson", taskId));
   const items = await Promise.all(
     resultUrls.map(async (resultUrl) => {
-      const dlRes = await fetchBilledResult(resultUrl);
+      const dlRes = await fetchBilledResult(resultUrl, signal);
       if (!dlRes.ok) {
         throw new Error(withTaskId(`Failed to download from ${resultUrl}`, taskId));
       }
@@ -422,12 +428,14 @@ export { isRefSet };
 async function submitCustom(
   apiKey: string,
   endpoint: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  signal?: AbortSignal
 ): Promise<string> {
   const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
     method: "POST",
     headers: headers(apiKey),
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    signal
   });
   const data = await parseKieJson(res, "submit");
   if (!res.ok)
@@ -443,7 +451,8 @@ function pollCustom(
   taskId: string,
   pollEndpoint: string,
   pollInterval: number,
-  maxAttempts: number
+  maxAttempts: number,
+  signal?: AbortSignal
 ): Promise<Record<string, unknown>> {
   const stateDone = recordInfoDone(taskId);
   return pollKieTask(
@@ -466,19 +475,21 @@ function pollCustom(
       }
       // Runway-style completion: a state word.
       return stateDone(data);
-    }
+    },
+    signal
   );
 }
 
 async function downloadCustomResult(
-  statusData: Record<string, unknown>
+  statusData: Record<string, unknown>,
+  signal?: AbortSignal
 ): Promise<Buffer> {
   const data = statusData.data as Record<string, unknown>;
 
   // Try Runway-style: data.videoInfo.videoUrl
   const videoInfo = data?.videoInfo as Record<string, unknown> | undefined;
   if (videoInfo?.videoUrl) {
-    const res = await fetchBilledResult(videoInfo.videoUrl as string);
+    const res = await fetchBilledResult(videoInfo.videoUrl as string, signal);
     if (!res.ok) throw new Error(`Download failed: ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
   }
@@ -508,7 +519,7 @@ async function downloadCustomResult(
   if (!resultUrls.length)
     throw new Error(`No result URLs in response: ${JSON.stringify(statusData)}`);
 
-  const res = await fetchBilledResult(resultUrls[0]);
+  const res = await fetchBilledResult(resultUrls[0], signal);
   if (!res.ok) throw new Error(`Download failed: ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
 }
@@ -516,9 +527,10 @@ async function downloadCustomResult(
 async function downloadTextResult(
   apiKey: string,
   taskId: string,
-  resultObjectKey: string
+  resultObjectKey: string,
+  signal?: AbortSignal
 ): Promise<string> {
-  const res = await kieGet(recordInfoUrl(taskId), apiKey);
+  const res = await kieGet(recordInfoUrl(taskId), apiKey, signal);
   if (!res.ok) throw new Error(withTaskId(`Failed to get result: ${res.status}`, taskId));
   const data = await parseKieJson(res, "recordInfo");
   const resultJsonStr = (data.data as Record<string, unknown>)?.resultJson as string;
