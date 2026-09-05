@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "template": "topdown",
+  "godot": "4.3",
+  "slots": [
+    {
+      "id": "player",
+      "kind": "spritesheet",
+      "cell": [32, 32],
+      "fps": 8,
+      "animations": { "idle": 4, "walk": 6, "hurt": 2 },
+      "prompt": "the player character, top-down three-quarter view, facing down"
+    },
+    {
+      "id": "enemy.chaser",
+      "kind": "spritesheet",
+      "cell": [32, 32],
+      "fps": 8,
+      "animations": { "walk": 6, "die": 4 },
+      "prompt": "a small creature that chases the player, top-down three-quarter view"
+    },
+    {
+      "id": "tiles.floor",
+      "kind": "tileset",
+      "cell": [16, 16],
+      "count": 12,
+      "prompt": "dungeon floor and wall tiles: four floor variants, then wall faces, edges, corners"
+    },
+    { "id": "sfx.hit", "kind": "sfx", "seconds": 0.4, "prompt": "player takes a hit" },
+    { "id": "sfx.step", "kind": "sfx", "seconds": 0.2, "prompt": "soft footstep on stone" },
+    { "id": "music.level", "kind": "music", "seconds": 60, "loop": true, "prompt": "dungeon exploration theme" },
+    { "id": "title", "kind": "image", "size": [1920, 1080], "seamless_x": false, "seamless_y": false, "prompt": "title screen key art" }
+  ],
+  "hooks": ["scripts/player.gd", "scripts/enemy_chaser.gd", "scenes/level_01.tscn"]
+}

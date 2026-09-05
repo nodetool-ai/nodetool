@@ -1,0 +1,29 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/level_01.gd" id="1_level"]
+[ext_resource type="TileSet" path="res://assets/tiles/tiles_ground.tres" id="2_tiles"]
+[ext_resource type="Texture2D" path="res://assets/images/bg_far.png" id="3_bg"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="4_player"]
+[ext_resource type="PackedScene" path="res://scenes/enemy_walker.tscn" id="5_enemy"]
+
+[node name="Level01" type="Node2D"]
+script = ExtResource("1_level")
+
+[node name="Background" type="ParallaxBackground" parent="."]
+
+[node name="FarLayer" type="ParallaxLayer" parent="Background"]
+motion_scale = Vector2(0.3, 1)
+motion_mirroring = Vector2(960, 0)
+
+[node name="Far" type="Sprite2D" parent="Background/FarLayer"]
+position = Vector2(480, 270)
+texture = ExtResource("3_bg")
+
+[node name="Ground" type="TileMapLayer" parent="."]
+tile_set = ExtResource("2_tiles")
+
+[node name="Player" parent="." instance=ExtResource("4_player")]
+position = Vector2(80, 400)
+
+[node name="EnemyWalker" parent="." instance=ExtResource("5_enemy")]
+position = Vector2(560, 336)

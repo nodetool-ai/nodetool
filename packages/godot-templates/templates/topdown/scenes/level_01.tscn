@@ -1,0 +1,21 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/level_01.gd" id="1_level"]
+[ext_resource type="TileSet" path="res://assets/tiles/tiles_floor.tres" id="2_tiles"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3_player"]
+[ext_resource type="PackedScene" path="res://scenes/enemy_chaser.tscn" id="4_enemy"]
+
+[node name="Level01" type="Node2D"]
+script = ExtResource("1_level")
+
+[node name="Floor" type="TileMapLayer" parent="."]
+tile_set = ExtResource("2_tiles")
+
+[node name="Walls" type="TileMapLayer" parent="."]
+tile_set = ExtResource("2_tiles")
+
+[node name="Player" parent="." instance=ExtResource("3_player")]
+position = Vector2(160, 270)
+
+[node name="EnemyChaser" parent="." instance=ExtResource("4_enemy")]
+position = Vector2(400, 270)
