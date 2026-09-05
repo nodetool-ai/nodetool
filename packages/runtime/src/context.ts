@@ -18,6 +18,7 @@ import type {
   ProviderCost
 } from "@nodetool-ai/protocol";
 import {
+  buildAssetGenerationMetadata,
   isShortResourceId,
   packageAssetHttpPath,
   parsePackageAssetUri
@@ -3718,6 +3719,17 @@ export class ProcessingContext {
   ): Promise<AssetRef[]> {
     if (!this.hasModelInterface("createAsset")) return [];
     const assets: AssetRef[] = [];
+    // The prompt and settings ride on the asset, not only on the ledger row:
+    // the row has its own retention and lives in another table, while the
+    // asset is what somebody opens weeks later to make a variant.
+    const provenance = buildAssetGenerationMetadata({
+      prompt: req.params?.prompt,
+      provider: req.provider,
+      model: req.model,
+      capability: req.capability,
+      params: req.params
+    });
+    const metadata = { generation_id: id, ...provenance };
     for (const [index, bytes] of buffers.entries()) {
       const mime =
         req.persist?.mime ?? mimeOverride ?? generationMime(req.capability, bytes);
@@ -3733,7 +3745,7 @@ export class ProcessingContext {
           content: bytes,
           parentId: req.persist?.parentId ?? null,
           nodeId: req.nodeId ?? null,
-          metadata: { generation_id: id }
+          metadata: { ...metadata }
         });
         const assetId =
           isRecord(created) && typeof created.id === "string"
@@ -3744,7 +3756,7 @@ export class ProcessingContext {
           type: assetRefType(mime),
           uri: `asset://${assetId}.${ext}`,
           asset_id: assetId,
-          metadata: { generation_id: id }
+          metadata: { ...metadata }
         });
       } catch (error) {
         // The generation happened and was billed; a failed save must not turn

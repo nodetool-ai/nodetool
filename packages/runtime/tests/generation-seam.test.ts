@@ -126,16 +126,61 @@ describe("runGeneration", () => {
     expect(created).toHaveLength(1);
     expect(created[0].name).toBe("fox.png");
     expect(created[0].contentType).toBe("image/png");
-    expect(created[0].metadata).toEqual({ generation_id: result.id });
+    expect(created[0].metadata).toEqual({
+      generation_id: result.id,
+      prompt: "x",
+      generation: { provider: "fake", model: "m", capability: "text_to_image" }
+    });
     expect(result.assets).toEqual([
       {
         type: "image",
         uri: "asset://asset-1.png",
         asset_id: "asset-1",
-        metadata: { generation_id: result.id }
+        metadata: {
+          generation_id: result.id,
+          prompt: "x",
+          generation: { provider: "fake", model: "m", capability: "text_to_image" }
+        }
       }
     ]);
     expect(predictions(ctx)[1].asset_ids).toEqual(["asset-1"]);
+  });
+
+  it("keeps the prompt and settings on the asset, without the input bytes", async () => {
+    const ctx = new ProcessingContext({ jobId: "job-1" });
+    const created: Array<Record<string, unknown>> = [];
+    ctx.setModelInterfaces({
+      createAsset: async (args) => {
+        created.push({ ...args });
+        return { id: "asset-1", content_type: args.contentType };
+      }
+    });
+    ctx.registerProvider("fake", new ImageProvider(async () => PNG));
+    await ctx.runGeneration({
+      provider: "fake",
+      capability: "text_to_image",
+      model: "flux-dev",
+      params: {
+        prompt: "  a fox in snow  ",
+        negative_prompt: "blurry",
+        width: 1024,
+        seed: 42,
+        images: [new Uint8Array(40)]
+      },
+      persist: { name: "fox.png" }
+    });
+    // What it takes to ask for another one like this, and nothing that cannot
+    // be re-run: the conditioning bytes are not a setting.
+    expect(created[0].metadata).toEqual({
+      generation_id: expect.any(String),
+      prompt: "a fox in snow",
+      generation: {
+        provider: "fake",
+        model: "flux-dev",
+        capability: "text_to_image",
+        params: { negative_prompt: "blurry", width: 1024, seed: 42 }
+      }
+    });
   });
 
   it("tracks a local generation without resolving a provider", async () => {
