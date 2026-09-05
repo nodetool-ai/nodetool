@@ -28,6 +28,10 @@ a keyboard layout the user picks in the shortcut sheet (`?`):
   asset, then Append, Insert or Overwrite it at the playhead.
 - **Playback**: J/K/L shuttle, I/O mark a loop range shown on the ruler, M
   adds a marker, Up/Down step between cuts.
+- **Zoom and pan**: Ctrl/Cmd+wheel zooms at the cursor, and so does a macOS
+  trackpad pinch — Chromium reports one as a synthetic ctrlKey wheel, Safari as
+  WebKit gesture events, and both land on the same anchored zoom. A two-finger
+  horizontal swipe or Shift+wheel pans the lanes.
 
 ## Phone layout
 
