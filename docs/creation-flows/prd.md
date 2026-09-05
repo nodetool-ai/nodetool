@@ -3,8 +3,9 @@
 **Author:** Matti Georgi
 **Status:** Draft — revised after review (F1–F9 resolved), extended to five flows
 **Reference UX:** storyboarder.ai (five screens: Idea, Genre, Aspect ratio and style, Board, Edit shot)
-**Shipped plan this builds on:** [plans/project-view/PLAN.md](plans/project-view/PLAN.md) (Phases 0 and 4)
-**Related:** [creative-agent.md](creative-agent.md), [agentic-video-product.md](agentic-video-product.md), [script-storyboard-link/prd.md](script-storyboard-link/prd.md), [timeline-editor-prd.md](timeline-editor-prd.md), [image-editor-prd.md](image-editor-prd.md), [triggers-prd.md](triggers-prd.md)
+**Shipped plan this builds on:** [plans/project-view/PLAN.md](../plans/project-view/PLAN.md) (Phases 0 and 4)
+**Tasks:** [tasks.md](tasks.md)
+**Related:** [creative-agent.md](../creative-agent.md), [agentic-video-product.md](../agentic-video-product.md), [script-storyboard-link/prd.md](../script-storyboard-link/prd.md), [timeline-editor-prd.md](../timeline-editor-prd.md), [image-editor-prd.md](../image-editor-prd.md), [triggers-prd.md](../triggers-prd.md)
 
 ---
 
@@ -1216,7 +1217,7 @@ and are independent of each other.
 
 ## Appendix A — Copy
 
-Copy follows [BRAND.md § Lexicon](BRAND.md#5-lexicon): no billing terms, no
+Copy follows [BRAND.md § Lexicon](../BRAND.md#5-lexicon): no billing terms, no
 "users", name the mechanism.
 
 | Where | Text |
