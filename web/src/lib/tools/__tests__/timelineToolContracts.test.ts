@@ -36,7 +36,7 @@ const contracts = buildTimelineToolContracts({
 const timelineToolNames = () =>
   FrontendToolRegistry.getManifest()
     .map((tool) => tool.name)
-    .filter((name) => name.startsWith("ui_timeline_"));
+    .filter((name) => name.startsWith("ui_timeline_") && name !== "ui_timeline_seek");
 
 const ctx = { getState: () => ({}) as FrontendToolState };
 const SEQ_ID = "seq-contracts";

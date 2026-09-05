@@ -7,7 +7,9 @@
  * stubbed `creationProjectId`. Importing this module registers all of them.
  *
  * Test-only. The `mock` prefixes are required — Jest's factory hoisting refuses
- * an out-of-scope reference whose name does not begin with them.
+ * an out-of-scope reference whose name does not begin with them, and every
+ * factory must reach `mockOpenMenu` lazily: the factories run while `OpenMenu`
+ * is being imported, before this module's own consts are initialized.
  */
 import { render } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
@@ -35,11 +37,6 @@ export const mockOpenMenu = {
   createSkill: jest.fn()
 };
 
-const mockSelectorOver =
-  <S,>(state: S) =>
-  <T,>(selector: (s: S) => T): T =>
-    selector(state);
-
 jest.mock("../../hooks/storyboard/useStoryboards", () => ({
   useCreateStoryboard: () => ({ mutateAsync: mockOpenMenu.createStoryboard }),
   useExampleStoryboards: (enabled?: boolean) => ({
@@ -53,26 +50,30 @@ jest.mock("../../hooks/storyboard/useStoryboards", () => ({
 
 jest.mock("../../stores/WorkspaceTabsStore", () => ({
   creationProjectId: () => "default",
-  useWorkspaceTabsStore: mockSelectorOver({ openTab: mockOpenMenu.openTab })
+  useWorkspaceTabsStore: <T,>(selector: (s: { openTab: jest.Mock }) => T): T =>
+    selector({ openTab: mockOpenMenu.openTab })
 }));
 
 jest.mock("../../stores/NotificationStore", () => ({
-  useNotificationStore: mockSelectorOver({
-    addNotification: mockOpenMenu.addNotification
-  })
+  useNotificationStore: <T,>(
+    selector: (s: { addNotification: jest.Mock }) => T
+  ): T => selector({ addNotification: mockOpenMenu.addNotification })
 }));
 
 jest.mock("../../stores/AssetStore", () => ({
-  useAssetStore: mockSelectorOver({ createAsset: mockOpenMenu.createAsset })
+  useAssetStore: <T,>(selector: (s: { createAsset: jest.Mock }) => T): T =>
+    selector({ createAsset: mockOpenMenu.createAsset })
 }));
 
 jest.mock("../../contexts/WorkflowManagerContext", () => ({
-  useWorkflowManager: mockSelectorOver({ createNew: mockOpenMenu.createNew })
+  useWorkflowManager: <T,>(selector: (s: { createNew: jest.Mock }) => T): T =>
+    selector({ createNew: mockOpenMenu.createNew })
 }));
 
 jest.mock("../../stores/GlobalChatStore", () => ({
   __esModule: true,
-  default: mockSelectorOver({ createNewThread: mockOpenMenu.createNewThread })
+  default: <T,>(selector: (s: { createNewThread: jest.Mock }) => T): T =>
+    selector({ createNewThread: mockOpenMenu.createNewThread })
 }));
 
 jest.mock("../../hooks/useTimelineSequence", () => ({
