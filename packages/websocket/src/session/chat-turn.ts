@@ -2786,76 +2786,21 @@ export class ChatTurnHandler {
     // and asset ids (docs/media-generation-tracking-design.md § 8, S5). The
     // seam saves the asset; `storeMediaAsset` is the fallback when it could
     // not.
-    const generationContext = new GenerationContext({
-      jobId: randomUUID(),
+    const {
+      generate,
+      seamAssetId,
+      storeAsset: storeMediaAsset
+    } = createGenerationRun({
       userId,
-      threadId: threadId || null
+      providerId,
+      modelId,
+      provider,
+      origin: { surface: "chat", thread_id: threadId || null },
+      threadId,
+      workflowId: workflowId ?? null,
+      assetNamePrefix: mode,
+      signal
     });
-    generationContext.registerProvider(providerId, provider);
-    generationContext.setModelInterfaces({
-      createAsset: createAssetModelInterface
-    });
-    const ledger = attachRunCostLedger(generationContext, {
-      userId,
-      workflowId: workflowId ?? null
-    });
-    const generate = async <T>(
-      capability: GenerationRequest["capability"],
-      params: Record<string, unknown>,
-      persist: GenerationRequest["persist"] | null,
-      call: (abort: AbortSignal) => Promise<T>,
-      id?: string
-    ): Promise<GenerationResult<T>> => {
-      const result = await generationContext.runGenerationWith(
-        {
-          id,
-          provider: providerId,
-          capability,
-          model: modelId,
-          params,
-          origin: { surface: "chat", thread_id: threadId || null },
-          persist: persist ? { ...persist, parentId: userId } : undefined,
-          signal
-        },
-        (_provider, abort) => call(abort)
-      );
-      await ledger.settled();
-      return result;
-    };
-    const seamAssetId = (
-      result: { assets: ReadonlyArray<{ asset_id?: string | null }> },
-      index = 0
-    ): string | null => result.assets[index]?.asset_id ?? null;
-
-    // Store generated media as a proper Asset record and return the
-    // asset ID.  The DB message stores only `asset_id` — URLs are
-    // resolved at serve time by resolveContentUrls / sendMessage.
-    const storeMediaAsset = async (
-      bytes: Uint8Array,
-      contentType: string,
-      ext: string
-    ): Promise<string> => {
-      const asset = new Asset({
-        user_id: userId,
-        workflow_id: workflowId ?? null,
-        name: `${mode}_${Date.now()}`,
-        content_type: contentType,
-        // Home, the same folder an upload lands in. A null parent is
-        // unreachable from the folder the asset browser opens on.
-        parent_id: userId
-      });
-      const fileName = `${asset.id}.${ext}`;
-      await storeAssetWithThumbnail(
-        asset.user_id,
-        asset.id,
-        fileName,
-        bytes,
-        contentType
-      );
-      asset.size = bytes.length;
-      await asset.save();
-      return asset.id;
-    };
 
     try {
       if (mode === "image") {
