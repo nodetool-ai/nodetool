@@ -709,6 +709,45 @@ describe("storyboards capability behaviour", () => {
     });
   });
 
+  it("cuts each shot at its rendered length and says which came back off plan", async () => {
+    // A video model returns the length it returns: a shot directed at 1.5s
+    // comes back at 5.184s. The cut plays all of it, and the caller is told
+    // rather than left to discover a film three times the length they planned.
+    const board = await makeBoard([
+      shot({
+        id: "s1",
+        index: 0,
+        status: "rendered",
+        duration_seconds: 1.5,
+        clip: { type: "video", asset_id: "clip-s1", duration: 5.184 }
+      })
+    ]);
+
+    const assembled = (await run(ctx()).invoke(
+      "assemble_storyboard_timeline",
+      { storyboard_id: board.id }
+    )) as {
+      timeline_id: string;
+      duration_ms: number;
+      retimed_shots: Array<{ shotId: string; usedMs: number; directedMs: number }>;
+      warnings?: string[];
+    };
+
+    expect(assembled.duration_ms).toBe(5184);
+    expect(assembled.retimed_shots).toEqual([
+      { shotId: "s1", usedMs: 5184, directedMs: 1500 }
+    ]);
+    expect(assembled.warnings?.join(" ")).toContain("rendered length");
+
+    const document = (await sequenceOf(assembled.timeline_id)).toDocument();
+    expect(
+      document.clips.map((c) => [c.mediaType, c.durationMs])
+    ).toEqual([
+      ["video", 5184],
+      ["audio", 5184]
+    ]);
+  });
+
   it("cuts a linked board against the script's takes", async () => {
     const script = await makeVoicedScript();
     const board = await makeBoard(
