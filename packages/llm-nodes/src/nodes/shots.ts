@@ -72,8 +72,12 @@ function optionalNumber(value: unknown): number | undefined {
 function asImageRef(value: unknown): ImageRef | null {
   if (!isObjectLike(value)) return null;
   // SAFETY: the model returns a ref-shaped object here; only its object-ness
-  // is checkable without duplicating the ImageRef schema.
-  return value as ImageRef;
+  // is checkable without duplicating the ImageRef schema. Widening to
+  // `unknown` first keeps this to one assertion — asserting the narrowed
+  // `Record<string, unknown>` straight to ImageRef does not compile, because
+  // the record has no `type` discriminator.
+  const ref: unknown = value;
+  return ref as ImageRef;
 }
 
 /** A generation-ready spec for one shot, produced by {@link toShotSpecs}. */
