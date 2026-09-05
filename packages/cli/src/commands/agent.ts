@@ -30,10 +30,7 @@ import {
 import { processChat } from "@nodetool-ai/chat";
 import { initDb } from "@nodetool-ai/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
-import {
-  TRPC_MAX_BATCH_SIZE,
-  type ProcessingMessage
-} from "@nodetool-ai/protocol";
+import { type ProcessingMessage } from "@nodetool-ai/protocol";
 import { createProvider, buildConfiguredProviders } from "../providers.js";
 import { buildFullRegistry } from "../node-registry.js";
 import { mcpToolHostDeps } from "@nodetool-ai/websocket";
@@ -529,19 +526,8 @@ async function fetchJob(
   jobId: string
 ): Promise<DiagnoseJob | null> {
   try {
-    const { createTRPCClient, httpBatchLink } = await import("@trpc/client");
-    type Router = import("@nodetool-ai/websocket/trpc").AppRouter;
-    const client = createTRPCClient<Router>({
-      // methodOverride POST keeps batched input in the body, not the URL, so
-      // large batches stay under reverse-proxy URL-length limits. See #3979.
-      links: [
-        httpBatchLink({
-          url: `${apiUrl}/trpc`,
-          maxItems: TRPC_MAX_BATCH_SIZE,
-          methodOverride: "POST"
-        })
-      ]
-    });
+    const { createApiClient } = await import("../api-client.js");
+    const client = createApiClient(apiUrl);
     const data = await client.jobs.get.query({ id: jobId });
     return {
       id: isString(data["id"]) ? data["id"] : jobId,

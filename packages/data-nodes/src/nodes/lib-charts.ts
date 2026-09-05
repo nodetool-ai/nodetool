@@ -127,14 +127,6 @@ export class ChartRendererLibNode extends BaseNode {
   @prop({
     type: "bool",
     default: true,
-    title: "Despine",
-    description: "Whether to remove top and right spines."
-  })
-  declare despine: boolean;
-
-  @prop({
-    type: "bool",
-    default: true,
     title: "Trim Margins",
     description: "Whether to use tight layout for margins."
   })

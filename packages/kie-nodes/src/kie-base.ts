@@ -14,8 +14,10 @@ import {
   TERMINAL_FAILURE_STATES,
   TERMINAL_SUCCESS_STATES,
   fetchWithRetry,
+  imageRefFromBytes,
   sleep
 } from "@nodetool-ai/runtime/provider-transport";
+import type { EncodedImageRef } from "@nodetool-ai/runtime/provider-transport";
 
 const KIE_API_BASE = "https://api.kie.ai";
 const KIE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-stream-upload";
@@ -801,20 +803,7 @@ export async function kieExecuteSunoTask(
   return { data: b64, items: [b64], taskId, creditsConsumed };
 }
 
-export async function kieImageRef(base64: string): Promise<Record<string, unknown>> {
-  try {
-    const sharp = (await import("sharp")).default;
-    const buf = Buffer.from(base64, "base64");
-    const meta = await sharp(buf).metadata();
-    return {
-      type: "image",
-      uri: "",
-      data: base64,
-      mimeType: meta.format ? `image/${meta.format}` : "image/png",
-      width: meta.width,
-      height: meta.height
-    };
-  } catch {
-    return { type: "image", uri: "", data: base64 };
-  }
+/** Build an ImageRef from the base64 image KIE returns. */
+export function kieImageRef(base64: string): Promise<EncodedImageRef> {
+  return imageRefFromBytes(new Uint8Array(Buffer.from(base64, "base64")));
 }

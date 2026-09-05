@@ -187,11 +187,18 @@ export const stopDataSchema = z
 
 export const generateMediaDataSchema = z
   .object({
+    /**
+     * "image" = text-to-image; "image_edit" = image-to-image;
+     * "inpaint" = image-to-image confined to `mask_asset_id`;
+     * "video" = text-to-video; "audio" = text-to-speech.
+     */
     mode: z.enum(["image", "image_edit", "inpaint", "video", "audio"]).optional(),
     provider: z.string().optional(),
     model: z.string().optional(),
     prompt: z.string().optional(),
+    /** Required for "image_edit" and "inpaint". Bytes are loaded server-side. */
     source_asset_id: z.string().optional(),
+    /** The region to repaint, for "inpaint". */
     mask_asset_id: z.string().optional(),
     width: z.number().optional(),
     height: z.number().optional(),
@@ -199,12 +206,29 @@ export const generateMediaDataSchema = z
     resolution: z.string().optional(),
     strength: z.number().optional(),
     num_inference_steps: z.number().optional(),
+    /** Number of variations to request (1..8, clamped server-side). */
     variations: z.number().optional(),
+    /** TTS voice id, when mode === "audio". */
     voice: z.string().optional(),
+    /** Playback rate for TTS, when mode === "audio". */
     speed: z.number().optional(),
+    /** Requested audio container ("mp3", "wav", "flac", "ogg", "aac", "pcm"). */
     audio_format: z.string().optional()
   })
   .passthrough();
+
+/**
+ * Request payload for the `generate_media` RPC. Drives the sketch editor's
+ * direct-generation layers (text-to-image, image-to-image, inpaint) and the
+ * timeline's direct-gen clips (text-to-video, text-to-audio) — bypasses the
+ * chat path so no thread/Message row is created. Returns
+ * `{ asset_ids: string[] }` (`GenerateMediaResponse` in `messages.ts`).
+ *
+ * Derived from the schema rather than restated: the hand-written twin that
+ * used to live in `messages.ts` had missed `inpaint`, `mask_asset_id`,
+ * `aspect_ratio` and `resolution`, all four of which `handleCommand` reads.
+ */
+export type GenerateMediaRequest = z.infer<typeof generateMediaDataSchema>;
 
 export const transcribeAudioDataSchema = z
   .object({

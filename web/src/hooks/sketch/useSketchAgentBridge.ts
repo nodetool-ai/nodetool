@@ -54,27 +54,14 @@ import {
   type SketchAgentHandler,
   type SketchLayerNode,
   type SketchRenderedAssetResult,
-  type SketchSnapshot,
-  type SketchToolName
+  type SketchSnapshot
 } from "../../components/sketch/sketchAgentBridge";
+import { ALL_TOOL_DEFINITIONS } from "../../components/sketch/toolDefinitions";
+import type { SketchTool } from "../../components/sketch/types";
 
-const SKETCH_TOOLS: readonly SketchToolName[] = [
-  "move",
-  "transform",
-  "select",
-  "brush",
-  "pencil",
-  "eraser",
-  "eyedropper",
-  "fill",
-  "shape",
-  "blur",
-  "gradient",
-  "crop",
-  "clone_stamp",
-  "adjust",
-  "segment"
-];
+const SKETCH_TOOLS: readonly SketchTool[] = ALL_TOOL_DEFINITIONS.map(
+  (d) => d.tool
+);
 
 /** Serialize a layer to the agent-facing shape. */
 function toLayerNode(

@@ -157,6 +157,21 @@ describe("legacy track effects on the Canvas 2D path", () => {
     ).toBe("none");
   });
 
+  it("does not report a track's audio effects as picture this path cannot draw", () => {
+    const audio: TrackEffect[] = [
+      { id: "g", type: "gain", enabled: true, gainDb: 6 },
+      {
+        id: "f",
+        type: "filter",
+        enabled: true,
+        mode: "lowpass",
+        frequency: 800,
+        q: 1
+      }
+    ];
+    expect(unsupportedEffectTypes([{ trackEffects: audio }])).toEqual([]);
+  });
+
   it("names the legacy video kinds this path cannot draw", () => {
     const track: TrackEffect[] = [
       { id: "s", type: "sharpen", enabled: true, amount: 1, threshold: 0.3 },
