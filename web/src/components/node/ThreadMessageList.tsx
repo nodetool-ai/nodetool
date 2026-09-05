@@ -175,14 +175,19 @@ const MessageView: React.FC<{ msg: Message }> = memo(({ msg }) => {
         <MarkdownRenderer content={msg.content} />
       )}
       {Array.isArray(msg.content) &&
-        msg.content.map((c, i) => (
-          <MessageContentRenderer
-            key={`content-${i}`}
-            content={c}
-            index={i}
-            renderTextContent={renderTextContent}
-          />
-        ))}
+        msg.content.map((c, i) =>
+          // `thought` blocks belong to the chat's reasoning UI, which this
+          // node-output list does not render, and they are outside the
+          // `MessageContent` union the renderer takes.
+          c.type === "thought" ? null : (
+            <MessageContentRenderer
+              key={`content-${i}`}
+              content={c}
+              index={i}
+              renderTextContent={renderTextContent}
+            />
+          )
+        )}
     </li>
   );
 });

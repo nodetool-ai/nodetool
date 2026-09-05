@@ -1,8 +1,9 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ImageRef } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { isString } from "@nodetool-ai/node-sdk";
 
-type ImageRefLike = { data?: string | Uint8Array; uri?: string };
+type ImageRefLike = { data?: unknown; uri?: string };
 
 function getApiKey(secrets: Record<string, string>): string {
   const key = secrets.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY || "";
@@ -76,7 +77,7 @@ export class ChatComplete extends BaseNode {
       "ministral-3b-latest"
     ]
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -84,7 +85,7 @@ export class ChatComplete extends BaseNode {
     title: "Prompt",
     description: "The prompt for text generation"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -92,7 +93,7 @@ export class ChatComplete extends BaseNode {
     title: "System Prompt",
     description: "Optional system prompt to guide the model's behavior"
   })
-  declare system_prompt: any;
+  declare system_prompt: string;
 
   @prop({
     type: "float",
@@ -102,7 +103,7 @@ export class ChatComplete extends BaseNode {
     min: 0,
     max: 1
   })
-  declare temperature: any;
+  declare temperature: number;
 
   @prop({
     type: "int",
@@ -112,17 +113,17 @@ export class ChatComplete extends BaseNode {
     min: 1,
     max: 32768
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   async process(): Promise<ChatCompleteOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const prompt = String(this.prompt ?? "");
+    const prompt = this.prompt;
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = String(this.model ?? "mistral-small-latest");
-    const systemPrompt = String(this.system_prompt ?? "");
-    const temperature = Number(this.temperature ?? 0.7);
-    const maxTokens = Number(this.max_tokens ?? 1024);
+    const model = this.model;
+    const systemPrompt = this.system_prompt;
+    const temperature = this.temperature;
+    const maxTokens = this.max_tokens;
 
     const messages: Record<string, unknown>[] = [];
     if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
@@ -170,7 +171,7 @@ export class CodeComplete extends BaseNode {
     title: "Prompt",
     description: "The prompt or code prefix for generation"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -178,7 +179,7 @@ export class CodeComplete extends BaseNode {
     title: "Suffix",
     description: "Optional suffix for fill-in-the-middle completion"
   })
-  declare suffix: any;
+  declare suffix: string;
 
   @prop({
     type: "float",
@@ -188,7 +189,7 @@ export class CodeComplete extends BaseNode {
     min: 0,
     max: 1
   })
-  declare temperature: any;
+  declare temperature: number;
 
   @prop({
     type: "int",
@@ -198,16 +199,16 @@ export class CodeComplete extends BaseNode {
     min: 1,
     max: 32768
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   async process(): Promise<CodeCompleteOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const prompt = String(this.prompt ?? "");
+    const prompt = this.prompt;
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const suffix = String(this.suffix ?? "");
-    const temperature = Number(this.temperature ?? 0.0);
-    const maxTokens = Number(this.max_tokens ?? 2048);
+    const suffix = this.suffix;
+    const temperature = this.temperature;
+    const maxTokens = this.max_tokens;
     const model = "codestral-latest";
 
     let data: Record<string, unknown>;
@@ -264,7 +265,7 @@ export class Embedding extends BaseNode {
     title: "Input",
     description: "The text to embed"
   })
-  declare input: any;
+  declare input: string;
 
   @prop({
     type: "enum",
@@ -273,7 +274,7 @@ export class Embedding extends BaseNode {
     description: "The embedding model to use",
     values: ["mistral-embed"]
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "int",
@@ -283,15 +284,15 @@ export class Embedding extends BaseNode {
     min: 1,
     max: 8192
   })
-  declare chunk_size: any;
+  declare chunk_size: number;
 
   async process(): Promise<EmbeddingOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const input = String(this.input ?? "");
+    const input = this.input;
     if (!input) throw new Error("Input text cannot be empty");
 
-    const model = String(this.model ?? "mistral-embed");
-    const chunkSize = Number(this.chunk_size ?? 4096);
+    const model = this.model;
+    const chunkSize = this.chunk_size;
 
     const chunks: string[] = [];
     for (let i = 0; i < input.length; i += chunkSize) {
@@ -356,7 +357,7 @@ export class ImageToText extends BaseNode {
     title: "Image",
     description: "The image to analyze"
   })
-  declare image: any;
+  declare image: ImageRef;
 
   @prop({
     type: "str",
@@ -364,7 +365,7 @@ export class ImageToText extends BaseNode {
     title: "Prompt",
     description: "The prompt/question about the image"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "enum",
@@ -373,7 +374,7 @@ export class ImageToText extends BaseNode {
     description: "The Pixtral model to use for vision tasks",
     values: ["pixtral-large-latest", "pixtral-12b-2409"]
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "float",
@@ -383,7 +384,7 @@ export class ImageToText extends BaseNode {
     min: 0,
     max: 1
   })
-  declare temperature: any;
+  declare temperature: number;
 
   @prop({
     type: "int",
@@ -393,19 +394,19 @@ export class ImageToText extends BaseNode {
     min: 1,
     max: 16384
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   async process(): Promise<ImageToTextOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const image = (this.image ?? {}) as ImageRefLike;
+    const image = this.image;
     if (!image.data && !image.uri) throw new Error("Image is required");
 
-    const prompt = String(this.prompt ?? "Describe this image in detail.");
+    const prompt = this.prompt;
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = String(this.model ?? "pixtral-large-latest");
-    const temperature = Number(this.temperature ?? 0.3);
-    const maxTokens = Number(this.max_tokens ?? 1024);
+    const model = this.model;
+    const temperature = this.temperature;
+    const maxTokens = this.max_tokens;
 
     const dataUri = imageToDataUri(image);
 
@@ -465,7 +466,7 @@ export class OCR extends BaseNode {
     title: "Image",
     description: "The image to extract text from"
   })
-  declare image: any;
+  declare image: ImageRef;
 
   @prop({
     type: "enum",
@@ -474,14 +475,14 @@ export class OCR extends BaseNode {
     description: "The Pixtral model to use for OCR",
     values: ["pixtral-large-latest", "pixtral-12b-2409"]
   })
-  declare model: any;
+  declare model: string;
 
   async process(): Promise<OCROutputs> {
     const apiKey = getApiKey(this._secrets);
-    const image = (this.image ?? {}) as ImageRefLike;
+    const image = this.image;
     if (!image.data && !image.uri) throw new Error("Image is required");
 
-    const model = String(this.model ?? "pixtral-large-latest");
+    const model = this.model;
     const dataUri = imageToDataUri(image);
 
     const data = await mistralPost(apiKey, "chat/completions", {

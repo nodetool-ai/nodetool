@@ -348,15 +348,17 @@ FrontendToolRegistry.register({
     }
     const patch = { ...rest };
     if (fontSizePx !== undefined) {
-      // Shorthand for the one text field callers reach for by name.
-      const style =
+      // Shorthand for the one text field callers reach for by name. The patch
+      // is merged over the clip's own style by the handler, so only the size
+      // goes in — but a clip with no style to merge into has nowhere to put it.
+      const styled =
         patch.textStyle ?? (clip ?? resolveClip(handler, target))?.textStyle;
-      if (!style) {
+      if (!styled) {
         throw new Error(
           `Clip "${clip?.name ?? target}" carries no text to size; fontSizePx applies to a text clip's textStyle.`
         );
       }
-      patch.textStyle = { ...style, fontSizePx };
+      patch.textStyle = { ...patch.textStyle, fontSizePx };
     }
     if (Object.keys(patch).length > 0 || clip === undefined) {
       clip = handler.setClipParams(target, patch);

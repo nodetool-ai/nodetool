@@ -360,7 +360,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     title: "System Prompt",
     description: "The system prompt guiding JSON generation."
   })
-  declare system_prompt: any;
+  declare system_prompt: string;
 
   @prop({
     type: "language_model",
@@ -375,7 +375,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     title: "Model",
     description: "Model to use for structured generation."
   })
-  declare model: any;
+  declare model: LanguageModel;
 
   @prop({
     type: "str",
@@ -383,7 +383,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     title: "Instructions",
     description: "Detailed instructions for the structured output."
   })
-  declare instructions: any;
+  declare instructions: string;
 
   @prop({
     type: "str",
@@ -391,7 +391,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     title: "Context",
     description: "Optional context to ground the generation."
   })
-  declare context: any;
+  declare context: string;
 
   @prop({
     type: "int",
@@ -401,7 +401,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     min: 1,
     max: 16384
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   @prop({
     type: "list[image]",
@@ -410,7 +410,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     description:
       "Optional images to include in the generation request. Accepts a list, or a single Image (auto-wrapped). Each becomes a separate block in the message sent to the provider."
   })
-  declare image: any;
+  declare image: ImageRef[] | ImageRef;
 
   @prop({
     type: "list[audio]",
@@ -419,7 +419,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     description:
       "Optional audio to include in the generation request. Accepts a list, or a single Audio (auto-wrapped). Each becomes a separate block in the message sent to the provider."
   })
-  declare audio: any;
+  declare audio: AudioRef[] | AudioRef;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const { providerId, modelId } = getModelConfig(this.serialize());
@@ -522,7 +522,7 @@ export class DataGeneratorNode extends BaseNode {
     title: "Model",
     description: "The model to use for data generation."
   })
-  declare model: any;
+  declare model: LanguageModel;
 
   @prop({
     type: "str",
@@ -530,7 +530,7 @@ export class DataGeneratorNode extends BaseNode {
     title: "Prompt",
     description: "The user prompt"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -538,7 +538,7 @@ export class DataGeneratorNode extends BaseNode {
     title: "Input Text",
     description: "The input text to be analyzed by the agent."
   })
-  declare input_text: any;
+  declare input_text: string;
 
   @prop({
     type: "int",
@@ -548,7 +548,7 @@ export class DataGeneratorNode extends BaseNode {
     min: 1,
     max: 100000
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   @prop({
     type: "record_type",
@@ -559,7 +559,7 @@ export class DataGeneratorNode extends BaseNode {
     title: "Columns",
     description: "The columns to use in the dataframe."
   })
-  declare columns: any;
+  declare columns: RecordTypeRef;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const prompt = asText(this.prompt ?? "");
@@ -655,7 +655,7 @@ export class ListGeneratorNode extends BaseNode {
     title: "Model",
     description: "The model to use for string generation."
   })
-  declare model: any;
+  declare model: LanguageModel;
 
   @prop({
     type: "str",
@@ -663,7 +663,7 @@ export class ListGeneratorNode extends BaseNode {
     title: "Prompt",
     description: "The user prompt"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -671,7 +671,7 @@ export class ListGeneratorNode extends BaseNode {
     title: "Input Text",
     description: "The input text to be analyzed by the agent."
   })
-  declare input_text: any;
+  declare input_text: string;
 
   @prop({
     type: "int",
@@ -681,7 +681,7 @@ export class ListGeneratorNode extends BaseNode {
     min: 1,
     max: 100000
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   async process(context?: ProcessingContext): Promise<ListGeneratorNodeOutputs> {
     const items: string[] = [];
@@ -778,7 +778,7 @@ export class ChartGeneratorNode extends BaseNode {
     title: "Model",
     description: "The model to use for chart generation."
   })
-  declare model: any;
+  declare model: LanguageModel;
 
   @prop({
     type: "str",
@@ -786,7 +786,7 @@ export class ChartGeneratorNode extends BaseNode {
     title: "Prompt",
     description: "Natural language description of the desired chart"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "dataframe",
@@ -801,7 +801,7 @@ export class ChartGeneratorNode extends BaseNode {
     title: "Data",
     description: "The data to visualize"
   })
-  declare data: any;
+  declare data: DataframeRef;
 
   @prop({
     type: "int",
@@ -811,7 +811,7 @@ export class ChartGeneratorNode extends BaseNode {
     min: 1,
     max: 100000
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const prompt = asText(this.prompt ?? "");
@@ -1014,7 +1014,7 @@ export class SVGGeneratorNode extends BaseNode {
     title: "Model",
     description: "The language model to use for SVG generation."
   })
-  declare model: any;
+  declare model: LanguageModel;
 
   @prop({
     type: "str",
@@ -1022,7 +1022,7 @@ export class SVGGeneratorNode extends BaseNode {
     title: "Prompt",
     description: "The user prompt for SVG generation"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "list[image]",
@@ -1031,7 +1031,7 @@ export class SVGGeneratorNode extends BaseNode {
     description:
       "Images to use for generation. Accepts a list, or a single Image (auto-wrapped). Each becomes a separate block in the message sent to the provider."
   })
-  declare image: any;
+  declare image: ImageRef[] | ImageRef;
 
   @prop({
     type: "list[audio]",
@@ -1040,7 +1040,7 @@ export class SVGGeneratorNode extends BaseNode {
     description:
       "Audio to use for generation. Accepts a list, or a single Audio (auto-wrapped). Each becomes a separate block in the message sent to the provider."
   })
-  declare audio: any;
+  declare audio: AudioRef[] | AudioRef;
 
   @prop({
     type: "int",
@@ -1050,7 +1050,7 @@ export class SVGGeneratorNode extends BaseNode {
     min: 1,
     max: 100000
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   async process(context?: ProcessingContext): Promise<SVGGeneratorNodeOutputs> {
     const prompt = asText(this.prompt ?? "");
