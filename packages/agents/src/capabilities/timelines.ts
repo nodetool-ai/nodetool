@@ -613,7 +613,8 @@ async function applyOps(
       height: sequence.height,
       tracks: document.tracks,
       clips: document.clips,
-      markers: document.markers
+      markers: document.markers,
+      tempo: document.tempo
     },
     resolveAsset: (ref) => resolveTimelineAsset(run, ref),
     bakeAnimation: (request) => bakeTimelineAnimation(run, request),
@@ -669,22 +670,44 @@ async function applyOps(
   return { records, state: bridge.finalState() };
 }
 
-const TIMELINE_OP_ID_KEYS = ["id", "target", "clip_id", "track_id"] as const;
+/**
+ * The keys an op names its unit under, and which list each one means.
+ *
+ * `id`, `target`, `clip_id` and `track_id` are resolved against both lists,
+ * because `target` addresses a clip on most ops and a track on `move_track`.
+ * The midi ops spell theirs `clip` and `track`, which already say which they
+ * mean — so each is resolved against that list alone, and a clip sharing a
+ * track's name cannot capture it.
+ */
+const TIMELINE_OP_ID_KEYS = {
+  id: "any",
+  target: "any",
+  clip_id: "any",
+  track_id: "any",
+  clip: "clip",
+  track: "track"
+} as const satisfies Record<string, "any" | "clip" | "track">;
 
 function resolveNamedUnit(
   value: string,
   clips: { id: string; name: string }[],
-  tracks: { id: string; name: string }[]
+  tracks: { id: string; name: string }[],
+  scope: "any" | "clip" | "track"
 ): string {
   const lower = value.toLowerCase();
-  const clip =
-    clips.find((c) => c.id === value) ??
-    clips.find((c) => c.name.toLowerCase() === lower);
-  if (clip) return clip.id;
-  const track =
-    tracks.find((t) => t.id === value) ??
-    tracks.find((t) => t.name.toLowerCase() === lower);
-  if (track) return track.id;
+  const match = (units: { id: string; name: string }[]): string | undefined =>
+    (
+      units.find((u) => u.id === value) ??
+      units.find((u) => u.name.toLowerCase() === lower)
+    )?.id;
+  if (scope !== "track") {
+    const clip = match(clips);
+    if (clip) return clip;
+  }
+  if (scope !== "clip") {
+    const track = match(tracks);
+    if (track) return track;
+  }
   return value;
 }
 
@@ -736,14 +759,14 @@ export function resolveTimelineOpInput(
   ];
   const resultIds = resultUnitIds(result);
   const next = { ...input };
-  for (const key of TIMELINE_OP_ID_KEYS) {
+  for (const [key, scope] of Object.entries(TIMELINE_OP_ID_KEYS)) {
     const value = next[key];
     if (typeof value !== "string" || value.length === 0) continue;
     if (value.toLowerCase() === "selected") {
       if (resultIds[0]) next[key] = resultIds[0];
       continue;
     }
-    next[key] = resolveNamedUnit(value, clips, tracks);
+    next[key] = resolveNamedUnit(value, clips, tracks, scope);
   }
   // An op that named no unit either created one or addressed the selection;
   // the result says which, so stamp it.
@@ -773,7 +796,7 @@ const editTimeline: CapabilityExport = {
       if (!sequence || sequence.user_id !== run.context.userId) {
         return { error: `Timeline ${timelineId} was not found.` };
       }
-      const document = sequence.toDocument();
+      const document: TimelineDocument = sequence.toDocument();
       const { records, state } = await applyOps(run, sequence, document, ops);
 
       // The transcript rides along untouched — no timeline operation edits it,
@@ -785,6 +808,10 @@ const editTimeline: CapabilityExport = {
         clips: state.documentClips,
         markers: state.markers
       };
+      // `set_tempo` and the first midi track both write it. Without this the
+      // stored document keeps the old BPM while the clips carry the rescaled
+      // milliseconds, so the part plays at the wrong speed on the next read.
+      if (state.tempo) next.tempo = state.tempo;
       const saved = await TimelineSequence.updateDocumentIfUnchanged(
         timelineId,
         sequence.updated_at,

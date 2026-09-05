@@ -15,16 +15,20 @@ import { useEffect, useMemo } from "react";
 import {
   makeClip,
   moveTrackOrder,
+  resolveTempo,
   shapeStyleWithDefaults,
   textStyleWithDefaults,
-  trackTypeForMediaType
+  trackTypeForMediaType,
+  validateNotes
 } from "@nodetool-ai/timeline";
 import type {
   TrackDestination,
   ClipAnimation,
   ClipMatte,
+  MidiInstrument,
   TimelineClip,
   TimelineMarker,
+  TimelineTempo,
   TimelineTrack
 } from "@nodetool-ai/timeline";
 import {
@@ -60,7 +64,9 @@ import {
   type TimelineClipNode,
   type TimelineClipFrameNode,
   type TimelineMarkerNode,
+  type MidiNoteInput,
   type TimelineAddMediaClipOptions,
+  type TimelineAddMidiClipOptions,
   type TimelineAddTextClipOptions,
   type TimelineAddShapeClipOptions,
   type TimelineGenerateKind,
@@ -81,6 +87,11 @@ const KIND_TO_MEDIA_TYPE = {
   "text-to-image": "image",
   "text-to-audio": "audio"
 } satisfies Record<TimelineGenerateKind, "image" | "video" | "audio" | "overlay">;
+
+/** Velocity a note gets when the agent names none — mirrors
+ *  `DEFAULT_MIDI_VELOCITY` in `@nodetool-ai/timeline`, which `createMidiNote`
+ *  applies when the store mints the note. */
+const DEFAULT_AGENT_NOTE_VELOCITY = 100;
 
 const DEFAULT_FRAME_COUNT = 3;
 const MAX_FRAME_COUNT = 8;
@@ -182,7 +193,8 @@ function toClipNode(
     animations: clip.animations?.map(toAnimationNode),
     textStyle: clip.textStyle,
     shapeStyle: clip.shapeStyle,
-    parentId: clip.parentId
+    parentId: clip.parentId,
+    noteCount: clip.mediaType === "midi" ? (clip.notes?.length ?? 0) : undefined
   };
 }
 
@@ -223,7 +235,8 @@ function toTrackNode(
     locked: track.locked,
     muted: !!track.muted,
     solo: !!track.solo,
-    clipCount
+    clipCount,
+    instrument: track.type === "midi" ? track.instrument : undefined
   };
 }
 
@@ -297,6 +310,30 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       return clip;
     };
 
+    /**
+     * The notes, with every problem reported at once. `validateNotes` reads a
+     * complete note, so ids and velocities are filled in first — the agent
+     * sends neither and would otherwise be told its own defaults are wrong.
+     */
+    const requireValidNotes = (notes: MidiNoteInput[]): MidiNoteInput[] => {
+      const complete = notes.map((note, index) => ({
+        id: note.id ?? `pending-${index}`,
+        velocity: note.velocity ?? DEFAULT_AGENT_NOTE_VELOCITY,
+        pitch: note.pitch,
+        startTick: note.startTick,
+        durationTick: note.durationTick
+      }));
+      const problems = validateNotes(complete);
+      if (problems.length > 0) {
+        throw new Error(
+          `These notes cannot be stored: ${problems
+            .map((p) => (p.index !== undefined ? `note ${p.index}: ${p.message}` : p.message))
+            .join(" ")}`
+        );
+      }
+      return notes;
+    };
+
     /** End of the last clip on a track, or 0 when the track is empty. */
     const trackEndMs = (trackId: string): number =>
       doc
@@ -304,7 +341,7 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         .clips.filter((c) => c.trackId === trackId)
         .reduce((end, c) => Math.max(end, c.startMs + c.durationMs), 0);
 
-    return {
+    const handlerImpl: TimelineAgentHandler = {
       getSnapshot(): TimelineSnapshot {
         const state = doc.getState();
         const tracks = state.tracks;
@@ -328,7 +365,8 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
             toTrackNode(t, clipCountByTrack.get(t.id) ?? 0)
           ),
           clips: state.clips.map((c) => toClipNode(c, map)),
-          markers: state.markers.map(toMarkerNode)
+          markers: state.markers.map(toMarkerNode),
+          tempo: resolveTempo(state)
         };
       },
 
@@ -1019,8 +1057,79 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         const marker = requireMarker(target);
         doc.getState().deleteMarker(marker.id);
         return toMarkerNode(marker);
+      },
+
+      addMidiClip(opts: TimelineAddMidiClipOptions) {
+        const store = doc.getState();
+        let trackId: string;
+        if (opts.trackId) {
+          const track = requireTrack(opts.trackId);
+          if (track.type !== "midi") {
+            throw new Error(
+              `Midi clips require a midi track; "${track.name}" is ${track.type}.`
+            );
+          }
+          trackId = track.id;
+        } else {
+          const existing = store.tracks.find((t) => t.type === "midi");
+          if (existing) {
+            trackId = existing.id;
+          } else {
+            store.addTrack("midi", "MIDI");
+            const created = doc.getState().tracks.at(-1);
+            if (!created) {
+              throw new Error("Could not create a midi track.");
+            }
+            trackId = created.id;
+          }
+        }
+        const notes = requireValidNotes(opts.notes ?? []);
+        const clipId = doc.getState().addMidiClip({
+          trackId,
+          startMs: Math.max(0, opts.startMs ?? trackEndMs(trackId)),
+          durationMs: Math.max(1, opts.durationMs),
+          name: opts.name,
+          notes
+        });
+        ui.getState().selectClip(clipId);
+        return clipNode(reReadClip(clipId));
+      },
+
+      setNotes(target, notes) {
+        const clip = requireClip(target);
+        if (clip.mediaType !== "midi") {
+          throw new Error(
+            `"${clip.name}" is a ${clip.mediaType} clip; only a midi clip carries notes.`
+          );
+        }
+        doc.getState().setClipNotes(clip.id, requireValidNotes(notes));
+        return clipNode(reReadClip(clip.id));
+      },
+
+      setTempo(tempo: TimelineTempo) {
+        doc.getState().setTempo(tempo);
+        // The clips that moved are the point of the call, so the caller gets
+        // the whole document back rather than having to re-read it.
+        return handlerImpl.getSnapshot();
+      },
+
+      setTrackInstrument(target, instrument: MidiInstrument) {
+        const track = requireTrack(target);
+        if (track.type !== "midi") {
+          throw new Error(
+            `"${track.name}" is a ${track.type} track; only a midi track has an instrument.`
+          );
+        }
+        doc.getState().setTrackInstrument(track.id, instrument);
+        const next = doc.getState().tracks.find((t) => t.id === track.id);
+        if (!next) throw new Error(`Track ${track.id} disappeared after the edit.`);
+        return toTrackNode(
+          next,
+          doc.getState().clips.filter((c) => c.trackId === next.id).length
+        );
       }
     };
+    return handlerImpl;
   }, [doc, ui, playback, startDirectGen]);
 
   useEffect(() => {

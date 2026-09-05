@@ -359,6 +359,11 @@ describe("TimelineSequence model", () => {
       tracks: [],
       clips: [],
       markers: [],
+      tempo: {
+        bpm: 96,
+        offsetMs: 250,
+        timeSignature: { beatsPerBar: 3, beatUnit: 4 }
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -372,6 +377,9 @@ describe("TimelineSequence model", () => {
 
     const roundTripped = loaded!.toTimelineSequence();
     expect(roundTripped.id).toBe(original.id);
+    // A midi document's tempo rides the row's JSON; dropping it here would
+    // silently retime every midi clip on the next read.
+    expect(roundTripped.tempo).toEqual(original.tempo);
     expect(roundTripped.projectId).toBe(original.projectId);
     expect(roundTripped.workflowId).toBe(original.workflowId);
     expect(roundTripped.name).toBe(original.name);

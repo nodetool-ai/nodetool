@@ -427,6 +427,34 @@ describe("timeline router", () => {
       expect(got.scriptEnabled).toBe(true);
     });
 
+    it("persists tempo through update and returns it from get", async () => {
+      TS.findById.mockResolvedValue(makeSeq());
+      let savedDocumentJson = "";
+      TS.update.mockImplementation((_id, fields) => {
+        savedDocumentJson = (fields as { document: string }).document;
+        return Promise.resolve(makeSeq({ document: savedDocumentJson }));
+      });
+      const caller = createCaller(makeCtx());
+      const tempo = {
+        bpm: 96,
+        offsetMs: 250,
+        timeSignature: { beatsPerBar: 3, beatUnit: 4 }
+      };
+      await caller.timeline.update({
+        id: "seq-1",
+        document: { tracks: [], clips: [], markers: [], tempo }
+      });
+      // The editor's autosave PATCHes through this merge; a tempo it drops
+      // retimes every midi clip on the next load.
+      expect(JSON.parse(savedDocumentJson).tempo).toEqual(tempo);
+
+      TS.findById.mockResolvedValue(
+        makeSeq({ id: "seq-1", document: savedDocumentJson })
+      );
+      const got = await caller.timeline.get({ id: "seq-1" });
+      expect(got.tempo).toEqual(tempo);
+    });
+
     it("persists a clip's speaker and paragraphId through the round-trip", async () => {
       TS.findById.mockResolvedValue(makeSeq());
       TS.update.mockResolvedValue(makeSeq());

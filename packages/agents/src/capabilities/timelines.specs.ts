@@ -128,7 +128,8 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "set_matte, set_time_remap, set_effects, animate_clip, " +
         "clear_animations, list_animation_presets, select_clip, seek, " +
         "add_marker, delete_marker, set_markers_from_beats, snap_to_beats, " +
-        "insert_composition. " +
+        "insert_composition, add_midi_clip, set_notes, set_tempo, " +
+        "set_track_instrument. " +
         "Start with get_state to " +
         "read track and clip ids. To lay existing videos end to end, call " +
         'add_media_clip once per asset ({"op": "add_media_clip", "asset": ' +
@@ -200,7 +201,22 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "callout — in as a group with its children, each template track " +
         "becoming an overlay track of its own so the layering survives. " +
         "`params` overrides the template's defaults by name; list_compositions " +
-        "reports the ids and what each one takes.",
+        "reports the ids and what each one takes. " +
+        'A played part is midi: add_track {"type": "midi"} makes a track that ' +
+        "owns the synth (and gives the document a 120 BPM tempo if it had " +
+        'none), add_midi_clip takes {"track", "start_ms", "duration_ms", ' +
+        'name?, notes?} and set_notes {"clip", "notes"} replaces the whole ' +
+        "list. A note is {pitch (0..127, 60 is middle C), start_tick, " +
+        "duration_tick, velocity? (1..127, default 100), id?} in ticks from " +
+        "the clip's content start, 960 ticks to a quarter note — so trimming " +
+        "the clip hides notes instead of deleting them. " +
+        'set_track_instrument takes {"track", "instrument": {type: ' +
+        '"subtractive", waveform, attackMs, decayMs, sustain, releaseMs, ' +
+        "cutoffHz, resonance, gainDb}}. " +
+        'set_tempo takes {"bpm", offset_ms?, beats_per_bar?, beat_unit?} and ' +
+        "rescales every midi clip around offset_ms — halving the BPM doubles " +
+        "each midi clip's start and length — while picture and audio stay " +
+        "where they are.",
       items: { type: "object" }
     }
   },

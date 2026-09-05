@@ -68,16 +68,21 @@ export function trackTypeForMediaType(
 /**
  * Whether a clip of this media type may sit on a track of this type.
  *
- * The one rule: audio goes on audio tracks, everything else — imported picture
- * and the authored kinds alike — goes on video or overlay tracks. Subtitle
- * tracks carry no clips. Every surface that places or moves a clip asks here,
- * so a drag and a `ui_timeline_*` call refuse the same things.
+ * The one rule: audio goes on audio tracks, midi on midi tracks, everything
+ * else — imported picture and the authored kinds alike — goes on video or
+ * overlay tracks. Subtitle tracks carry no clips. Every surface that places or
+ * moves a clip asks here, so a drag and a `ui_timeline_*` call refuse the same
+ * things.
  */
 export function clipFitsTrack(
   mediaType: ClipMediaType,
   trackType: TimelineTrack["type"]
 ): boolean {
   if (mediaType === "audio") return trackType === "audio";
+  // A midi clip's notes are played by the track's instrument, so it is only
+  // playable on a midi track — and a midi track carries nothing else.
+  if (mediaType === "midi") return trackType === "midi";
+  if (trackType === "midi") return false;
   return trackType === "video" || trackType === "overlay";
 }
 

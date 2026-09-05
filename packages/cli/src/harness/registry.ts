@@ -200,7 +200,17 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "static",
     capabilities: ["json", "no-db"],
     agentTool: "validate_timeline",
-    docs: "docs/harnesses.md § nodetool timeline validate / debug"
+    docs: "docs/harnesses.md § nodetool timeline validate / debug",
+    selfcheck: {
+      // The validator's own rule suites plus the harness host that drives it.
+      // Keyless and target-free: every case is a document literal, so this is
+      // the check a diff under `packages/execution/src/timeline-debug/` or
+      // `packages/timeline/` earns.
+      command:
+        "npm run test --workspace=packages/execution -- timeline- linked-timeline-validate && " +
+        "npm run test --workspace=packages/cli -- tests/timeline-harness.test.ts",
+      cost: "cheap"
+    }
   },
   {
     id: "timeline-debug",

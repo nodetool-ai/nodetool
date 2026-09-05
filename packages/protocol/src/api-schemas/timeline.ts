@@ -205,17 +205,88 @@ export const trackEffect = z.discriminatedUnion("type", [
 ]);
 export type TrackEffect = z.infer<typeof trackEffect>;
 
+// ── MIDI ─────────────────────────────────────────────────────────────────────
+
+/**
+ * How many notes one midi clip may carry. A clip is a phrase, not a song: the
+ * cap keeps a runaway generator from writing a document no editor can open,
+ * and it is checked here so the limit is the same on every surface.
+ */
+export const MIDI_MAX_NOTES_PER_CLIP = 4096;
+
+/**
+ * One note inside a midi clip. `startTick`/`durationTick` are ticks (960 per
+ * quarter note, `MIDI_PPQ` in `@nodetool-ai/timeline`) measured from the
+ * clip's *content* start, not from its window — exactly as an audio clip's
+ * samples are measured from the head of its source. Trimming the window
+ * therefore hides notes rather than deleting them.
+ */
+export const midiNote = z.object({
+  id: z.string(),
+  pitch: z.number().int().min(0).max(127),
+  velocity: z.number().int().min(1).max(127),
+  startTick: z.number().int().min(0),
+  durationTick: z.number().int().positive()
+});
+export type MidiNote = z.infer<typeof midiNote>;
+
+/**
+ * The voice a midi track plays. A discriminated union with one member today,
+ * so a second synth type is added without reshaping what is already stored.
+ */
+export const midiInstrument = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("subtractive"),
+    waveform: z.enum(["saw", "square", "triangle", "sine"]),
+    /** Envelope attack in ms. */
+    attackMs: z.number().min(0),
+    /** Envelope decay in ms. */
+    decayMs: z.number().min(0),
+    /** Sustain level, 0..1 of the peak. */
+    sustain: z.number().min(0).max(1),
+    /** Envelope release in ms. */
+    releaseMs: z.number().min(0),
+    /** Lowpass cutoff in Hz. */
+    cutoffHz: z.number().positive(),
+    /** Lowpass Q. */
+    resonance: z.number().positive(),
+    /** Output gain in dB. */
+    gainDb: z.number()
+  })
+]);
+export type MidiInstrument = z.infer<typeof midiInstrument>;
+
+/**
+ * Document-level constant tempo. Milliseconds stay the stored master clock —
+ * ticks are read against `bpm` — so changing the tempo rescales every midi
+ * clip's timing around `offsetMs` and leaves every other clip where it is.
+ */
+export const timelineTempo = z.object({
+  bpm: z.number().positive(),
+  /** Where beat one sits on the timeline, in ms. */
+  offsetMs: z.number().min(0),
+  timeSignature: z.object({
+    beatsPerBar: z.number().int().positive(),
+    beatUnit: z.number().int().positive()
+  })
+});
+export type TimelineTempo = z.infer<typeof timelineTempo>;
+
 export const timelineTrack = z.object({
   id: z.string(),
   name: z.string(),
-  type: z.enum(["video", "audio", "overlay", "subtitle"]),
+  type: z.enum(["video", "audio", "overlay", "subtitle", "midi"]),
   index: z.number().int(),
   visible: z.boolean(),
   locked: z.boolean(),
   muted: z.boolean().optional(),
   solo: z.boolean().optional(),
   heightPx: z.number().optional(),
-  effects: z.array(trackEffect).optional()
+  effects: z.array(trackEffect).optional(),
+  /** The voice a `midi` track plays; the track owns the instrument, not the
+   * clip. Without this field Zod strips it on every PATCH, so a track reverts
+   * to the default synth on the first autosave. */
+  instrument: midiInstrument.optional()
 });
 export type TimelineTrack = z.infer<typeof timelineTrack>;
 
@@ -776,7 +847,8 @@ export const timelineClip = z.object({
     "overlay",
     "text",
     "shape",
-    "group"
+    "group",
+    "midi"
   ]),
   sourceType: z.enum(["imported", "generated"]),
   bindingKind: clipBindingKind.optional(),
@@ -870,7 +942,10 @@ export const timelineClip = z.object({
   compositionId: z.string().optional(),
   compositionParams: z
     .record(z.string(), z.union([z.number(), z.string(), z.boolean()]))
-    .optional()
+    .optional(),
+  /** Notes carried inline by a `midi` clip, in content ticks. Without this
+   * field Zod strips it on every PATCH, so autosave erases the performance. */
+  notes: z.array(midiNote).max(MIDI_MAX_NOTES_PER_CLIP).optional()
 });
 export type TimelineClip = z.infer<typeof timelineClip>;
 
@@ -879,7 +954,11 @@ export const timelineDocument = z.object({
   clips: z.array(timelineClip),
   markers: z.array(timelineMarker),
   transcript: z.array(transcriptLine).optional(),
-  scriptEnabled: z.boolean().optional()
+  scriptEnabled: z.boolean().optional(),
+  /** Constant tempo the midi clips are read against. Without this field Zod
+   * strips it on every PATCH, so the document falls back to 120 BPM and every
+   * midi clip plays at the wrong speed after one save. */
+  tempo: timelineTempo.optional()
 });
 export type TimelineDocument = z.infer<typeof timelineDocument>;
 
@@ -899,6 +978,9 @@ export const timelineSequenceResponse = z.object({
   markers: z.array(timelineMarker),
   transcript: z.array(transcriptLine).optional(),
   scriptEnabled: z.boolean().optional(),
+  /** Constant tempo, mirroring the document's. Without this field Zod strips
+   * it from every read, so the editor loads a tempo-less sequence. */
+  tempo: timelineTempo.optional(),
   createdAt: z.string(),
   updatedAt: z.string()
 });

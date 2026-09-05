@@ -15,13 +15,14 @@ interface TimelineDocumentPayload {
   markers: TimelineStoreState["markers"];
   transcript: TimelineStoreState["transcript"];
   scriptEnabled: TimelineStoreState["scriptEnabled"];
+  tempo: TimelineStoreState["tempo"];
 }
 
 /** Build the `document` PATCH payload from any state slice carrying these fields. */
 export function buildTimelineDocumentPayload(
   state: Pick<
     TimelineStoreState,
-    "tracks" | "clips" | "markers" | "transcript" | "scriptEnabled"
+    "tracks" | "clips" | "markers" | "transcript" | "scriptEnabled" | "tempo"
   >
 ): TimelineDocumentPayload {
   return {
@@ -29,6 +30,7 @@ export function buildTimelineDocumentPayload(
     clips: state.clips,
     markers: state.markers,
     transcript: state.transcript,
-    scriptEnabled: state.scriptEnabled
+    scriptEnabled: state.scriptEnabled,
+    tempo: state.tempo
   };
 }

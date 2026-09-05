@@ -28,8 +28,10 @@ import {
   captionStyle,
   clipShapeStyle,
   clipTextStyle,
+  midiInstrument,
   KNOWN_CLIP_EFFECT_TYPE_LIST,
   KNOWN_TRANSITION_TYPE_LIST,
+  MIDI_MAX_NOTES_PER_CLIP,
   type ClipMask,
   type ClipTimeRemap,
   type KnownClipEffect,
@@ -58,8 +60,8 @@ export const trackTargetParam = z
  */
 export const ADD_TRACK_DESCRIPTION =
   "Add a new track to the specified timeline sequence. `type` is one of " +
-  "video, audio, overlay, subtitle. Optionally provide a name. The new track " +
-  "goes to the BOTTOM of the stack, and track order is z-order: index 0 " +
+  "video, audio, overlay, subtitle, midi. Optionally provide a name. The new " +
+  "track goes to the BOTTOM of the stack, and track order is z-order: index 0 " +
   "draws on top, so a track added later renders *under* the ones already " +
   "there. Add overlays and titles after the picture track they sit on, or " +
   "reorder afterwards with move_track.";
@@ -1023,6 +1025,130 @@ export const setParentParams = z.object({
 
 export type SetParentParams = z.infer<typeof setParentParams>;
 
+// ── MIDI ────────────────────────────────────────────────────────────────────
+
+/**
+ * A note as a tool call writes it. Ticks are content-relative (960 per quarter
+ * note) so a note keeps its place when the clip's window is trimmed, and `id`
+ * is optional because the implementation mints one — a caller that wants to
+ * edit a note it already knows sends the id back.
+ */
+export const midiNoteParams = z.object({
+  id: z
+    .string()
+    .optional()
+    .describe("Keep an existing note's id. Omit and one is assigned."),
+  pitch: z
+    .number()
+    .int()
+    .min(0)
+    .max(127)
+    .describe("MIDI note number, 0..127. 60 is middle C."),
+  velocity: z
+    .number()
+    .int()
+    .min(1)
+    .max(127)
+    .optional()
+    .describe("How hard the note is struck, 1..127. Default 100."),
+  start_tick: z
+    .number()
+    .int()
+    .min(0)
+    .describe(
+      "Where the note starts, in ticks from the clip's content start. 960 ticks = one quarter note."
+    ),
+  duration_tick: z
+    .number()
+    .int()
+    .positive()
+    .describe("How long the note is held, in ticks. 960 = one quarter note.")
+});
+export type MidiNoteParams = z.infer<typeof midiNoteParams>;
+
+const notesParam = z
+  .array(midiNoteParams)
+  .max(MIDI_MAX_NOTES_PER_CLIP)
+  .describe(
+    `The notes, in ticks from the clip's content start. At most ${MIDI_MAX_NOTES_PER_CLIP} per clip.`
+  );
+
+/**
+ * `add_midi_clip`. The clip carries its notes inline and the track carries the
+ * instrument, so a clip moved to another midi track plays that track's voice.
+ */
+export const addMidiClipParams = z.object({
+  track: trackTargetParam.describe(
+    "Midi track for the clip, by id or name. Must be a track of type `midi`."
+  ),
+  start_ms: z
+    .number()
+    .describe("Where the clip starts on the timeline, in ms."),
+  duration_ms: z
+    .number()
+    .positive()
+    .describe(
+      "The clip's window length in ms. Notes past the window end are gated at it, not deleted."
+    ),
+  name: z.string().optional().describe("Label for the clip."),
+  notes: notesParam.optional()
+});
+export type AddMidiClipParams = z.infer<typeof addMidiClipParams>;
+
+/** `set_notes`. Replaces the whole list — send every note the clip should keep. */
+export const setNotesParams = z.object({
+  clip: targetParam,
+  notes: notesParam.describe(
+    "The clip's complete note list; this replaces what is there. Pass a note's `id` to keep it."
+  )
+});
+export type SetNotesParams = z.infer<typeof setNotesParams>;
+
+/** `set_tempo`. One constant tempo for the document. */
+export const setTempoParams = z.object({
+  bpm: z.number().positive().describe("Beats per minute."),
+  offset_ms: z
+    .number()
+    .min(0)
+    .optional()
+    .describe("Where beat one sits on the timeline, in ms. Default 0."),
+  beats_per_bar: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe("Time-signature numerator, e.g. 4 in 4/4. Default 4."),
+  beat_unit: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe("Time-signature denominator, e.g. 4 in 4/4. Default 4.")
+});
+export type SetTempoParams = z.infer<typeof setTempoParams>;
+
+export const SET_TEMPO_DESCRIPTION =
+  "Set the document's constant tempo. Milliseconds are the timeline's master " +
+  "clock and a note's ticks are read against the tempo, so changing it " +
+  "rescales every midi clip around `offset_ms` — halving the BPM doubles each " +
+  "midi clip's start and length, and the notes keep their place inside it. " +
+  "Clips that are not midi do not move, so a midi part re-tempoed against " +
+  "picture will no longer line up with it.";
+
+/** `set_track_instrument`. The track owns the voice every clip on it plays. */
+export const setTrackInstrumentParams = z.object({
+  track: trackTargetParam.describe("Midi track, by id or name."),
+  instrument: midiInstrument.describe(
+    "The voice this track's clips play. `subtractive` is one oscillator through a lowpass filter and an ADSR envelope: `waveform` saw/square/triangle/sine, `attackMs`/`decayMs`/`releaseMs` in milliseconds, `sustain` 0..1 of the peak, `cutoffHz` the filter frequency in Hz, `resonance` its Q, `gainDb` the output level in dB."
+  )
+});
+export type SetTrackInstrumentParams = z.infer<typeof setTrackInstrumentParams>;
+
+export const SET_TRACK_INSTRUMENT_DESCRIPTION =
+  "Set the synth a midi track plays. Every clip on the track uses it — the " +
+  "track owns the instrument, not the clip — so moving a clip to another midi " +
+  "track changes its sound.";
+
 // ── The shared tool surface ─────────────────────────────────────────────────
 
 /**
@@ -1073,5 +1199,11 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   // Both surfaces registered these from the start and neither list named them,
   // so nothing checked they stayed in step.
   "ui_timeline_set_markers_from_beats",
-  "ui_timeline_snap_to_beats"
+  "ui_timeline_snap_to_beats",
+  // The midi surface: notes live on the clip, the instrument on the track,
+  // and the tempo on the document, so each gets its own op.
+  "ui_timeline_add_midi_clip",
+  "ui_timeline_set_notes",
+  "ui_timeline_set_tempo",
+  "ui_timeline_set_track_instrument"
 ] as const;

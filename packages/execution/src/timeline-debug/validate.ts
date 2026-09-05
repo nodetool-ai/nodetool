@@ -27,7 +27,11 @@ import {
   parseEasing,
   resolveFontFamily,
   resolveCustomMask,
-  sourceRate
+  sourceRate,
+  DEFAULT_TEMPO,
+  resolveTempo,
+  validateNotes,
+  visibleNotes
 } from "@nodetool-ai/timeline";
 import {
   MASK_KINDS,
@@ -730,6 +734,10 @@ function overlapConsequence(
   if (later.transitionIn) {
     return `That window is the ${later.transitionIn.type} transition authored on "${clipLabel(later)}".`;
   }
+  if (trackType === "midi") {
+    // Nothing cross-fades notes: both phrases sound, and their notes sum.
+    return "Both phrases play over the overlap and their notes sum — put one on its own midi track if that is not the chord you meant.";
+  }
   const auto =
     "With no transition authored on the later clip the renderer auto-cross-fades over the overlap.";
   return trackType === "overlay" || trackType === "subtitle"
@@ -828,6 +836,117 @@ function checkVideoLayerCap(doc: TimelineDocument): TimelineDebugIssue[] {
   ];
 }
 
+/**
+ * MIDI: what a played part cannot survive.
+ *
+ * A midi clip is notes plus a window over them, and the track owns the synth —
+ * so the two placement rules are errors: a midi clip anywhere but a midi track
+ * has no instrument to sound it, and a non-midi clip on a midi track has no
+ * picture path and no audio path either. Both are silence, not a different
+ * picture, which is what separates them from the warnings below.
+ *
+ * `midi_clip_retimed` is the same class: `speedMultiplier`, `speedBaked` and
+ * `timeRemap` all retime *source samples*, and a midi clip has none — its
+ * timing comes from ticks read against the tempo. A retimed midi clip is a
+ * document no reader can honour, so it is reported rather than silently
+ * ignored at render.
+ *
+ * The two warnings are recoverable: a clip whose window plays none of its
+ * notes still loads (it just makes no sound), and a document with midi and no
+ * `tempo` is read at {@link DEFAULT_TEMPO} — right until someone stores a
+ * different one and every phrase moves.
+ */
+function checkMidi(doc: TimelineDocument): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  const trackTypes = new Map(doc.tracks.map((track) => [track.id, track.type]));
+  const bpm = resolveTempo(doc).bpm;
+  let sawMidi = doc.tracks.some((track) => track.type === "midi");
+
+  for (const clip of doc.clips) {
+    const trackType = trackTypes.get(clip.trackId);
+    const at = { clipId: clip.id, trackId: clip.trackId };
+    const label = clipLabel(clip);
+
+    if (clip.mediaType === "midi") {
+      sawMidi = true;
+      // An unknown track is already `clip_track_missing`; saying it twice
+      // helps nobody.
+      if (trackType !== undefined && trackType !== "midi") {
+        issues.push({
+          severity: "error",
+          code: "midi_clip_off_midi_track",
+          message: `Clip "${label}" carries notes but sits on a ${trackType} track — only a midi track has an instrument to play them, so it makes no sound. Move it to a midi track (add_track type "midi").`,
+          path: "trackId",
+          ...at
+        });
+      }
+    } else if (trackType === "midi") {
+      issues.push({
+        severity: "error",
+        code: "non_midi_clip_on_midi_track",
+        message: `Clip "${label}" is a ${clip.mediaType} clip on a midi track — a midi track plays notes through its instrument and draws no picture, so this clip is neither heard nor seen.`,
+        path: "trackId",
+        ...at
+      });
+    }
+
+    // Checked wherever notes are stored: a list is unplayable for the same
+    // reasons whatever kind of clip is carrying it.
+    for (const problem of validateNotes(clip.notes ?? [])) {
+      issues.push({
+        severity: "error",
+        code: "midi_notes_invalid",
+        message: `Clip "${label}"${problem.noteId ? ` note "${problem.noteId}"` : ""}: ${problem.message}`,
+        path: problem.index === undefined ? "notes" : `notes[${problem.index}]`,
+        ...at
+      });
+    }
+
+    if (clip.mediaType !== "midi") continue;
+
+    const retimed: string[] = [];
+    if (clip.speedMultiplier !== undefined && clip.speedMultiplier !== 1) {
+      retimed.push(`speedMultiplier ${clip.speedMultiplier}`);
+    }
+    if (clip.speedBaked) retimed.push("speedBaked");
+    if (clip.timeRemap) retimed.push("timeRemap");
+    if (retimed.length > 0) {
+      issues.push({
+        severity: "error",
+        code: "midi_clip_retimed",
+        message: `Clip "${label}" carries ${retimed.join(" and ")} — those retime source samples, and a midi clip has none: its timing is ticks read against the document tempo. Change the tempo with set_tempo instead.`,
+        path: "speedMultiplier",
+        ...at
+      });
+    }
+
+    const carried = clip.notes?.length ?? 0;
+    if (visibleNotes(clip, bpm).length === 0) {
+      const windowStart = clip.inPointMs ?? 0;
+      issues.push({
+        severity: "warning",
+        code: "midi_clip_silent",
+        message:
+          carried === 0
+            ? `Clip "${label}" carries no notes, so it makes no sound. Give it some with set_notes, or delete it.`
+            : `Clip "${label}" plays none of its ${carried} notes: not one of them starts inside the clip's window (${windowStart}–${windowStart + clip.durationMs}ms of content at ${bpm} BPM). Widen the window or move the notes.`,
+        ...at
+      });
+    }
+  }
+
+  if (sawMidi && doc.tempo === undefined) {
+    issues.push({
+      severity: "warning",
+      code: "midi_tempo_missing",
+      message: `This document has midi in it but no \`tempo\`, so every note is read at the ${DEFAULT_TEMPO.bpm} BPM default. Store the tempo with set_tempo — the moment one is written the midi clips are rescaled to it.`,
+      path: "tempo"
+    });
+  }
+
+  return issues;
+}
+
 function checkDocumentLevel(doc: TimelineDocument): TimelineDebugIssue[] {
   const issues: TimelineDebugIssue[] = [];
 
@@ -846,7 +965,8 @@ function checkDocumentLevel(doc: TimelineDocument): TimelineDebugIssue[] {
   // tracks sharing an index with anything is normal and harmless.
   const indexes = new Map<number, string>();
   for (const track of doc.tracks) {
-    if (track.type === "audio") continue;
+    // Neither audio nor midi composites, so neither competes for z-order.
+    if (track.type === "audio" || track.type === "midi") continue;
     const previous = indexes.get(track.index);
     if (previous !== undefined) {
       issues.push({
@@ -989,6 +1109,7 @@ export function validateTimelineSequence(
     ...checkMattes(doc),
     ...checkOverlaps(doc),
     ...checkVideoLayerCap(doc),
+    ...checkMidi(doc),
     ...checkDocumentLevel(doc)
   ];
 

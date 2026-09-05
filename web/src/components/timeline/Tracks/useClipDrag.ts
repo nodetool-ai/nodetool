@@ -19,6 +19,7 @@
 import { useCallback, useRef } from "react";
 import type React from "react";
 
+import { clipFitsTrack } from "@nodetool-ai/timeline";
 import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
@@ -27,7 +28,6 @@ import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import type { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { TimelineTool } from "../../../stores/timeline/TimelineUIStore";
-import { isCompatibleWithTrack } from "../dnd/assetToClipAdapter";
 import {
   clearGestureFeedback,
   collectSnapCandidates,
@@ -36,21 +36,14 @@ import {
   snapClipWindow
 } from "./clipSnap";
 
-/** Clip-side wrapper: TimelineClip.mediaType also includes "overlay";
- *  treat those as video-track-compatible. */
+/** Clip-side wrapper over the shared rule: the authored kinds ("overlay",
+ *  "text", "shape", "group") sit on picture tracks, audio on audio tracks and
+ *  midi on midi tracks. */
 export function isClipCompatibleWithTrack(
   clipMediaType: TimelineClip["mediaType"],
   trackType: TimelineTrack["type"]
 ): boolean {
-  if (
-    clipMediaType === "overlay" ||
-    clipMediaType === "text" ||
-    clipMediaType === "shape" ||
-    clipMediaType === "group"
-  ) {
-    return trackType === "video" || trackType === "overlay";
-  }
-  return isCompatibleWithTrack(clipMediaType, trackType);
+  return clipFitsTrack(clipMediaType, trackType);
 }
 
 /** Pointer travel below which a press is a click, not a drag. */

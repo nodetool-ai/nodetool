@@ -61,7 +61,8 @@ const snapshot = (): TimelineSnapshot => ({
   selectedClipIds: [],
   tracks: [trackNode()],
   clips: [clipNode()],
-  markers: []
+  markers: [],
+  tempo: { bpm: 120, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } }
 });
 
 const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
@@ -93,7 +94,11 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   selectClip: jest.fn(),
   seek: jest.fn(),
   addMarker: jest.fn(),
-  deleteMarker: jest.fn()
+  deleteMarker: jest.fn(),
+  addMidiClip: jest.fn(),
+  setNotes: jest.fn(),
+  setTempo: jest.fn(),
+  setTrackInstrument: jest.fn()
 });
 
 // The timeline tools never touch the workflow state, so a bare stub satisfies ctx.
@@ -883,5 +888,106 @@ describe("ui_timeline_set_time_remap", () => {
       )
     ).rejects.toThrow();
     expect(handler.setTimeRemap).not.toHaveBeenCalled();
+  });
+  it("maps a midi note's snake_case ticks onto the document's fields", async () => {
+    const handler = createMockHandler();
+    handler.addMidiClip.mockReturnValue(
+      clipNode({ mediaType: "midi", noteCount: 1 })
+    );
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_add_midi_clip",
+      {
+        timeline_id: SEQ_ID,
+        track: "Bass",
+        start_ms: 1000,
+        duration_ms: 2000,
+        name: "Riff",
+        notes: [{ pitch: 60, start_tick: 0, duration_tick: 480 }]
+      },
+      "tc-midi-1",
+      ctx
+    );
+
+    expect(handler.addMidiClip).toHaveBeenCalledWith({
+      trackId: "Bass",
+      startMs: 1000,
+      durationMs: 2000,
+      name: "Riff",
+      notes: [{ pitch: 60, startTick: 0, durationTick: 480 }]
+    });
+  });
+
+  it("passes a note's id and velocity through when given", async () => {
+    const handler = createMockHandler();
+    handler.setNotes.mockReturnValue(
+      clipNode({ mediaType: "midi", noteCount: 1 })
+    );
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_set_notes",
+      {
+        timeline_id: SEQ_ID,
+        clip: "Riff",
+        notes: [
+          { id: "n1", pitch: 62, velocity: 80, start_tick: 240, duration_tick: 240 }
+        ]
+      },
+      "tc-midi-2",
+      ctx
+    );
+
+    expect(handler.setNotes).toHaveBeenCalledWith("Riff", [
+      { id: "n1", velocity: 80, pitch: 62, startTick: 240, durationTick: 240 }
+    ]);
+  });
+
+  it("fills in the time signature and offset set_tempo leaves out", async () => {
+    const handler = createMockHandler();
+    handler.setTempo.mockReturnValue(snapshot());
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_set_tempo",
+      { timeline_id: SEQ_ID, bpm: 90 },
+      "tc-midi-3",
+      ctx
+    );
+
+    expect(handler.setTempo).toHaveBeenCalledWith({
+      bpm: 90,
+      offsetMs: 0,
+      timeSignature: { beatsPerBar: 4, beatUnit: 4 }
+    });
+  });
+
+  it("forwards a track instrument unchanged", async () => {
+    const handler = createMockHandler();
+    handler.setTrackInstrument.mockReturnValue(
+      trackNode({ type: "midi", name: "Bass" })
+    );
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const instrument = {
+      type: "subtractive" as const,
+      waveform: "square" as const,
+      attackMs: 1,
+      decayMs: 50,
+      sustain: 0.5,
+      releaseMs: 100,
+      cutoffHz: 2000,
+      resonance: 1,
+      gainDb: -3
+    };
+    await FrontendToolRegistry.call(
+      "ui_timeline_set_track_instrument",
+      { timeline_id: SEQ_ID, track: "Bass", instrument },
+      "tc-midi-4",
+      ctx
+    );
+
+    expect(handler.setTrackInstrument).toHaveBeenCalledWith("Bass", instrument);
   });
 });

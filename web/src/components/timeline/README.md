@@ -101,6 +101,41 @@ This keeps the upload and clip-creation paths separate, ensures assets are
 persisted in the database before being referenced by a clip, and avoids
 partial-upload states in the timeline document.
 
+## MIDI tracks
+
+A `midi` track carries clips whose content is notes rather than a file, played
+by the track's own synth. It mixes exactly like an audio track — gain, fades,
+mute/solo, the DSP chain, the offline export — because the notes become an
+`AudioBuffer` before they reach any of that.
+
+- **Milliseconds stay the master clock.** A note's `startTick` / `durationTick`
+  are ticks (960 per quarter note) counted from its clip's *content* start, so
+  trimming the clip hides notes instead of deleting them, and a split copies
+  them and moves `inPointMs`. Reading a tick as a time needs the tempo, so
+  `setTempo` rescales every midi clip around `tempo.offsetMs` through
+  `rescaleClipsForTempo` and leaves every other clip where the editor put it —
+  a picture cut does not move because the music got slower.
+- **The track owns the instrument**, not the clip: moving a clip to another
+  midi track changes its sound. A new midi track gets
+  `DEFAULT_MIDI_INSTRUMENT`.
+- **Render path**: `preview/midiRender.ts` turns a clip into a mono buffer with
+  the pure renderer in `@nodetool-ai/timeline/midi`, caches it under
+  `midiRenderKey` (notes + window + tempo + instrument + sample rate) and runs
+  it in a module worker when the host has one. `AudioGraph` takes
+  `{ clip, buffer }` where an audio clip gives `{ clip, assetUrl }`; everything
+  downstream is unchanged. An edit while playing moves the render key, and the
+  audio top-up pass stops that clip's sources and re-adds it at the playhead.
+  `render/renderAudio.ts` renders midi clips inline on the offline context, so
+  an export sounds like the preview. `preview/audition.ts` plays one note
+  through the same voice on its own short-lived context.
+- **Not supported on a midi clip**: `speedMultiplier` and `timeRemap`. The
+  validator rejects them; the editor ignores them.
+
+Four agent tools drive it — `ui_timeline_add_midi_clip`,
+`ui_timeline_set_notes` (the whole list, not a merge), `ui_timeline_set_tempo`,
+and `ui_timeline_set_track_instrument`. `ui_timeline_get_state` reports the
+resolved tempo, each track's instrument, and each midi clip's note count.
+
 ## Persistence
 
 Every `TimelineStore` mutation (clip add, move, trim, split, delete) is
@@ -182,7 +217,7 @@ frontend tools.
 | Tool | What it does |
 |------|--------------|
 | `ui_timeline_get_state` | Read tracks, clips, selection, playhead, resolution, fps, duration. Call first. |
-| `ui_timeline_add_track` | Add a video / audio / overlay / subtitle track. |
+| `ui_timeline_add_track` | Add a video / audio / overlay / subtitle / midi track. |
 | `ui_timeline_generate_clip` | Generate a clip from a prompt (text-to-video / -image / -audio) and start generation. |
 | `ui_timeline_split_clip` | Cut a clip in two (razor) at a time or the playhead. |
 | `ui_timeline_trim_clip` | Set on-timeline duration and/or source in/out points. |
@@ -193,6 +228,10 @@ frontend tools.
 | `ui_timeline_set_clip_binding` | Edit a generated clip's prompt / provider / model / voice and optionally regenerate. |
 | `ui_timeline_select_clip` | Select a clip (drives the inspector). |
 | `ui_timeline_seek` | Move the playhead. |
+| `ui_timeline_add_midi_clip` | Place a midi phrase on a midi track, notes in ticks. |
+| `ui_timeline_set_notes` | Replace a midi clip's whole note list. |
+| `ui_timeline_set_tempo` | Set the document tempo; rescales the midi clips. |
+| `ui_timeline_set_track_instrument` | Set the synth a midi track plays. |
 
 Clips and tracks are addressed by id, by case-insensitive name, or — for the
 selected clip — the literal `"selected"`. Times are milliseconds on the
