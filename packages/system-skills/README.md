@@ -29,6 +29,7 @@ directory ships with no other change.
 | `caption-titles` | What on-screen text says and when it appears |
 | `video-audio-continuity` | Sound across a multi-scene cut — one clip carrying every scene, or a track of your own |
 | `explainer-storyboard`, `commercial-beat-sheet`, `launch-commercial`, `music-video-treatment` | Board shapes for four brief types |
+| `trailer-template` | Trailers and teasers: eight audio-first beats on a runtime-scaled grid, event/reception pairs, the drop at ~65%, one unbroken music bed |
 | `nano-banana-pro-prompting` | Nano Banana Pro: the art-director brief, and lock/change/amount/constraints for edits |
 | `gpt-image-2-prompting` | GPT Image 2: five slots, change-versus-preserve edits, labelled multi-image compositing |
 | `flux-2-klein-prompting` | FLUX.2 [klein]: the subject-first hierarchy, guidance and step choices, the seed-locked loop |
@@ -58,9 +59,10 @@ craft. A craft skill quotes calls rather than teaching them, so
 `packages/agents/tests/motion-graphics-skill-names.test.ts` checks every
 snake_case call in all ten against the capability registry and
 `edit_timeline`'s op list — a renamed tool fails there rather than in a model's
-hands. Add a skill to `SKILL_NAMES` in that test in the same change. The four
-board skills stay out of it: each names `set_entities` in order to say the op
-does not exist, and that check cannot tell such a warning from a typo.
+hands. Add a skill to `SKILL_NAMES` in that test in the same change. The board
+skills stay out of it: the test knows `edit_timeline`'s ops and not
+`edit_storyboard`'s, and four of them name `set_entities` in order to say the
+op does not exist, which that check cannot tell from a typo.
 
 Every skill states where the rest of the set picks up. A craft skill opens by
 pointing back at `motion-graphics` for the op contract and sideways at the
