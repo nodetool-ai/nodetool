@@ -15,3 +15,4 @@ export * from "./nodes/lib-image-utils.js";
 export * from "./nodes/lib-image-warp.js";
 export * from "./nodes/lib-shader-utils.js";
 export * from "./nodes/lib-grid.js";
+export * from "./nodes/game.js";
