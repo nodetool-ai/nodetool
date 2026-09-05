@@ -37,10 +37,10 @@ const scriptedJob: ComfyJob = {
     yield { kind: "statusChange", status: "succeeded", queuePosition: null };
   },
   async refresh() {
-    return undefined;
+    return scriptedJob;
   },
   async cancel() {
-    return undefined;
+    return scriptedJob;
   }
 };
 

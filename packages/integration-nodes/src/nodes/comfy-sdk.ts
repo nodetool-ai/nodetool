@@ -129,8 +129,10 @@ export interface ComfyJob {
   readonly outputs: ComfyOutput[];
   readonly error: ComfyJobError | null;
   events(signal?: AbortSignal): AsyncGenerator<ComfyRunEvent, void, void>;
-  refresh(signal?: AbortSignal): Promise<unknown>;
-  cancel(signal?: AbortSignal): Promise<unknown>;
+  /** Re-reads the job from the server; resolves to the same handle. */
+  refresh(signal?: AbortSignal): Promise<this>;
+  /** Requests cancellation; resolves to the same handle. */
+  cancel(signal?: AbortSignal): Promise<this>;
 }
 
 /** The one thing that differs between Comfy API v2 surfaces. */
