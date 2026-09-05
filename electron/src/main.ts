@@ -611,4 +611,4 @@ app.on("will-quit", () => {
   closeLogStream();
 });
 
-export { mainWindow, isAppQuitting };
+export { isAppQuitting };

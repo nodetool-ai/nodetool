@@ -25,8 +25,6 @@ import Model3DEditor, {
   type Model3DCameraPose
 } from "../../components/model_editor/Model3DEditor";
 
-export type { Model3DCameraPose };
-
 export interface Model3DDemoSurfaceProps {
   /** URL of the `.gltf`/`.glb` the editor loads. */
   url: string;

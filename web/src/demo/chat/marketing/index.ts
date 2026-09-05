@@ -14,5 +14,3 @@ export const marketingChatCasts: ChatDemoCast[] = [
   costPreviewCast,
   deliveredCast,
 ];
-
-export { capabilityMapCast, storyboardCast, costPreviewCast, deliveredCast };
