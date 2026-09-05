@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { FlexRow } from "../FlexRow";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
+import { firstElement } from "../../../test-utils/doubles";
 
 describe("FlexRow", () => {
   const renderWithTheme = (component: React.ReactElement) => {
@@ -32,7 +33,7 @@ describe("FlexRow", () => {
       </FlexRow>
     );
     
-    const flexRow = container.firstChild as HTMLElement;
+    const flexRow = firstElement(container);
     expect(flexRow).toHaveStyle({ display: "flex", flexDirection: "row" });
   });
 
@@ -43,7 +44,7 @@ describe("FlexRow", () => {
       </FlexRow>
     );
     
-    const flexRow = container.firstChild as HTMLElement;
+    const flexRow = firstElement(container);
     expect(flexRow).toHaveStyle({ width: "100%" });
   });
 
@@ -54,7 +55,7 @@ describe("FlexRow", () => {
       </FlexRow>
     );
     
-    const flexRow = container.firstChild as HTMLElement;
+    const flexRow = firstElement(container);
     expect(flexRow).toHaveStyle({ 
       alignItems: "center",
       justifyContent: "space-between"
@@ -68,7 +69,7 @@ describe("FlexRow", () => {
       </FlexRow>
     );
     
-    const flexRow = container.firstChild as HTMLElement;
+    const flexRow = firstElement(container);
     expect(flexRow).toHaveStyle({ flexWrap: "wrap" });
   });
 });

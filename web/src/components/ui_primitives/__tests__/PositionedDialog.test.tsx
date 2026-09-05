@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { PositionedDialog } from "../PositionedDialog";
 import mockTheme from "../../../__mocks__/themeMock";
+import { firstElement, queryElement } from "../../../test-utils/doubles";
 
 const renderDialog = (props: Partial<React.ComponentProps<typeof PositionedDialog>> = {}) => {
   const resolvedProps = {
@@ -46,7 +47,7 @@ describe("PositionedDialog", () => {
   it("invokes onClose on backdrop click", () => {
     const onClose = jest.fn();
     const { container } = renderDialog({ onClose });
-    fireEvent.click(container.firstChild as HTMLElement);
+    fireEvent.click(firstElement(container));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -63,7 +64,7 @@ describe("PositionedDialog", () => {
       width: 400,
       edgeMargin: 50
     });
-    const surface = container.querySelector(".MuiPaper-root") as HTMLElement;
+    const surface = queryElement(container, ".MuiPaper-root");
     expect(surface).toHaveStyle({ left: "50px" });
   });
 
@@ -73,7 +74,7 @@ describe("PositionedDialog", () => {
       width: 400,
       edgeMargin: 50
     });
-    const surface = container.querySelector(".MuiPaper-root") as HTMLElement;
+    const surface = queryElement(container, ".MuiPaper-root");
     // 1024 - 400 - 50 = 574
     expect(surface).toHaveStyle({ left: "574px" });
   });
@@ -84,7 +85,7 @@ describe("PositionedDialog", () => {
       offsetY: 100,
       width: 200
     });
-    const surface = container.querySelector(".MuiPaper-root") as HTMLElement;
+    const surface = queryElement(container, ".MuiPaper-root");
     expect(surface).toHaveStyle({ top: "300px" });
   });
 
@@ -103,7 +104,7 @@ describe("PositionedDialog", () => {
       offsetY: 200,
       edgeMargin: 50
     });
-    const surface = container.querySelector(".MuiPaper-root") as HTMLElement;
+    const surface = queryElement(container, ".MuiPaper-root");
     // rawTop = 20 - 200 = -180, clamped to edgeMargin = 50
     expect(surface).toHaveStyle({ top: "50px" });
   });
@@ -118,7 +119,7 @@ describe("PositionedDialog", () => {
       width: 800,
       edgeMargin: 50
     });
-    const surface = container.querySelector(".MuiPaper-root") as HTMLElement;
+    const surface = queryElement(container, ".MuiPaper-root");
     // effectiveWidth = min(800, 400 - 100) = 300
     expect(surface).toHaveStyle({ width: "300px" });
   });

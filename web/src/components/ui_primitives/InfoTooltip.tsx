@@ -100,6 +100,9 @@ type TooltipOrigin = {
   horizontal: "left" | "center" | "right";
 };
 
+/** An inline style that also sets CSS custom properties the stylesheet reads. */
+type StyleWithCssVars = React.CSSProperties & Record<`--${string}`, string>;
+
 export const InfoTooltip: React.FC<InfoTooltipProps> = memo(({
   content,
   title,
@@ -188,7 +191,8 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = memo(({
   };
   
   const origins = getPopoverOrigins(placement);
-  
+  const popoverStyle: StyleWithCssVars = { "--max-width": `${maxWidth}px` };
+
   return (
     <div className={`info-tooltip nodrag ${className || ""}`} css={styles(theme)}>
       {button}
@@ -205,7 +209,7 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = memo(({
           horizontal: origins.transform.horizontal
         }}
         css={popoverStyles(theme)}
-        style={{ "--max-width": `${maxWidth}px` } as React.CSSProperties}
+        style={popoverStyle}
       >
         <Box className="popover-content">
           {title && (

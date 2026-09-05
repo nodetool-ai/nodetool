@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { DropZoneOverlay } from "../DropZoneOverlay";
 import mockTheme from "../../../__mocks__/themeMock";
+import { firstElement } from "../../../test-utils/doubles";
 
 const renderOverlay = (
   props: Partial<React.ComponentProps<typeof DropZoneOverlay>> = {}
@@ -40,13 +41,13 @@ describe("DropZoneOverlay", () => {
 
   it("uses pointer-events: none by default", () => {
     const { container } = renderOverlay();
-    const box = container.firstChild as HTMLElement;
+    const box = firstElement(container);
     expect(box).toHaveStyle({ pointerEvents: "none" });
   });
 
   it("uses pointer-events: auto when interactive", () => {
     const { container } = renderOverlay({ interactive: true });
-    const box = container.firstChild as HTMLElement;
+    const box = firstElement(container);
     expect(box).toHaveStyle({ pointerEvents: "auto" });
   });
 

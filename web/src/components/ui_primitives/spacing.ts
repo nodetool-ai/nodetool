@@ -119,17 +119,20 @@ export const MARGIN = {
  */
 export const SPACING_STEPS = [0, 0.5, 1, 1.5, 2, 3, 4, 6, 8] as const;
 
+/** One of the canonical steps, as a theme-unit number. */
+export type SpacingStep = (typeof SPACING_STEPS)[number];
+
 /**
  * Snap an arbitrary theme-unit value to the nearest canonical step.
  * Use when migrating a legacy literal you cannot hand-classify.
  */
-export const snapSpacing = (units: number): number => {
-  return SPACING_STEPS.reduce((best, step) => {
+export const snapSpacing = (units: number): SpacingStep => {
+  return SPACING_STEPS.reduce<SpacingStep>((best, step) => {
     const d = Math.abs(step - units);
     const bd = Math.abs(best - units);
     // Nearest step; ties round up toward the larger step.
     return d < bd || (d === bd && step > best) ? step : best;
-  }, SPACING_STEPS[0] as number);
+  }, SPACING_STEPS[0]);
 };
 
 /**

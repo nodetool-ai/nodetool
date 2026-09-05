@@ -6,6 +6,8 @@
  */
 
 import { Theme } from "@mui/material/styles";
+import type { SxProps } from "@mui/material/styles";
+import type { SystemStyleObject } from "@mui/system";
 import type { CSSObject } from "@emotion/react";
 
 /**
@@ -189,6 +191,32 @@ export const MOTION = {
 export const reducedMotion = (overrides: CSSObject): CSSObject => ({
   "@media (prefers-reduced-motion: reduce)": overrides,
 });
+
+/**
+ * One entry of the array form of `SxProps`: a style object, a theme callback,
+ * or a `false`/`true` slot MUI skips.
+ */
+export type SxEntry =
+  | boolean
+  | SystemStyleObject<Theme>
+  | ((theme: Theme) => SystemStyleObject<Theme>);
+
+const isSxEntryArray = (sx: SxProps<Theme>): sx is readonly SxEntry[] =>
+  Array.isArray(sx);
+
+/**
+ * Normalizes any `SxProps` form to the array form MUI flattens.
+ *
+ * A primitive that wants its own defaults *underneath* a caller's `sx` cannot
+ * spread it: spreading drops the callback form and turns the array form into
+ * indexed keys. Concatenating entries works for all three.
+ */
+export const sxEntries = (sx: SxProps<Theme> | undefined): SxEntry[] => {
+  if (sx === undefined) {
+    return [];
+  }
+  return isSxEntryArray(sx) ? [...sx] : [sx];
+};
 
 /**
  * Z-index scale.

@@ -16,14 +16,14 @@ import { ResponsiveImage } from "../ResponsiveImage";
 import { VideoPlayer } from "../VideoPlayer";
 import { AudioPlayback } from "../AudioPlayback";
 import { mockAssetUrl } from "../../../hooks/__mocks__/useResolvedMediaUri";
-import type { ResolvedMediaUrl } from "../../../utils/resolveMediaUri";
+import { asResolvedMediaUrl } from "../../../utils/resolveMediaUri";
 
 jest.mock("../../../hooks/useResolvedMediaUri");
 
 const renderWithTheme = (ui: React.ReactElement) =>
   render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
 
-const HTTPS_URL = "https://cdn.test/clip.mp4" as ResolvedMediaUrl;
+const HTTPS_URL = asResolvedMediaUrl("https://cdn.test/clip.mp4") ?? "";
 
 describe("ResponsiveImage", () => {
   it("resolves an asset locator before setting src", () => {
@@ -72,7 +72,10 @@ describe("ResponsiveImage", () => {
 
   it("renders an already-resolved src without a lookup", () => {
     renderWithTheme(
-      <ResponsiveImage src={"https://cdn.test/b.png" as ResolvedMediaUrl} alt="Still" />
+      <ResponsiveImage
+        src={asResolvedMediaUrl("https://cdn.test/b.png") ?? ""}
+        alt="Still"
+      />
     );
     expect(screen.getByAltText("Still")).toHaveAttribute(
       "src",

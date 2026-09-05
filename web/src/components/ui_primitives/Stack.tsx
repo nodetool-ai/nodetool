@@ -21,6 +21,16 @@ export interface StackProps extends Omit<BoxProps, 'display' | 'flexDirection'> 
   fullWidth?: boolean;
 }
 
+/** The name React would show for an element's type: a tag, or a component name. */
+const elementTypeName = (type: React.ReactElement["type"]): string => {
+  if (isString(type)) {
+    return type;
+  }
+  // `displayName` is a React convention, not part of the constructor type.
+  const named: { name: string; displayName?: string } = type;
+  return named.displayName || named.name || "component";
+};
+
 /**
  * Stack - A vertical stack container with consistent spacing
  * 
@@ -51,9 +61,7 @@ const getChildKey = (child: React.ReactNode, index: number): string | number => 
     if (child.key) {
       return child.key;
     }
-    const componentType = child.type as string | (React.FC & { displayName?: string });
-    const type = isString(componentType) ? componentType : componentType?.displayName || componentType?.name || "component";
-    return `${type}-${index}`;
+    return `${elementTypeName(child.type)}-${index}`;
   }
   return index;
 };
