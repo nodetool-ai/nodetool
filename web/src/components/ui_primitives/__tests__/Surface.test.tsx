@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { Surface } from "../Surface";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
+import { firstElement } from "../../../test-utils/doubles";
 
 describe("Surface", () => {
   const renderWithTheme = (component: React.ReactElement) => {
@@ -26,7 +27,7 @@ describe("Surface", () => {
         <div>Elevated</div>
       </Surface>
     );
-    const paper = container.firstChild as HTMLElement;
+    const paper = firstElement(container);
     expect(paper).toBeInTheDocument();
   });
 
@@ -36,7 +37,7 @@ describe("Surface", () => {
         <div>Bordered</div>
       </Surface>
     );
-    const paper = container.firstChild as HTMLElement;
+    const paper = firstElement(container);
     expect(paper).toBeInTheDocument();
   });
 
@@ -46,7 +47,7 @@ describe("Surface", () => {
         <div>Transparent</div>
       </Surface>
     );
-    const paper = container.firstChild as HTMLElement;
+    const paper = firstElement(container);
     expect(paper).toBeInTheDocument();
   });
 
@@ -56,7 +57,7 @@ describe("Surface", () => {
         <div>Rounded</div>
       </Surface>
     );
-    const paper = container.firstChild as HTMLElement;
+    const paper = firstElement(container);
     expect(paper).toBeInTheDocument();
   });
 

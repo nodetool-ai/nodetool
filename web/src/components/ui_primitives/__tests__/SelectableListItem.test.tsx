@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { SelectableListItem } from "../SelectableListItem";
 import mockTheme from "../../../__mocks__/themeMock";
+import { firstElement } from "../../../test-utils/doubles";
 
 const renderItem = (
   props: Partial<React.ComponentProps<typeof SelectableListItem>> = {}
@@ -43,7 +44,7 @@ describe("SelectableListItem", () => {
 
   it("applies reduced opacity when disabled", () => {
     const { container } = renderItem({ disabled: true });
-    const box = container.firstChild as HTMLElement;
+    const box = firstElement(container);
     expect(box).toHaveStyle({ opacity: "0.6" });
   });
 
@@ -67,29 +68,29 @@ describe("SelectableListItem", () => {
   it("activates on Enter key", () => {
     const onClick = jest.fn();
     const { container } = renderItem({ onClick });
-    fireEvent.keyDown(container.firstChild as HTMLElement, { key: "Enter" });
+    fireEvent.keyDown(firstElement(container), { key: "Enter" });
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   it("activates on Space key", () => {
     const onClick = jest.fn();
     const { container } = renderItem({ onClick });
-    fireEvent.keyDown(container.firstChild as HTMLElement, { key: " " });
+    fireEvent.keyDown(firstElement(container), { key: " " });
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   it("ignores other keys", () => {
     const onClick = jest.fn();
     const { container } = renderItem({ onClick });
-    fireEvent.keyDown(container.firstChild as HTMLElement, { key: "a" });
+    fireEvent.keyDown(firstElement(container), { key: "a" });
     expect(onClick).not.toHaveBeenCalled();
   });
 
   it("does not activate on keyboard when disabled", () => {
     const onClick = jest.fn();
     const { container } = renderItem({ onClick, disabled: true });
-    fireEvent.keyDown(container.firstChild as HTMLElement, { key: "Enter" });
-    fireEvent.keyDown(container.firstChild as HTMLElement, { key: " " });
+    fireEvent.keyDown(firstElement(container), { key: "Enter" });
+    fireEvent.keyDown(firstElement(container), { key: " " });
     expect(onClick).not.toHaveBeenCalled();
   });
 });

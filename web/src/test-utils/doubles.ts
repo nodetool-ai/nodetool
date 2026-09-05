@@ -110,3 +110,47 @@ export function installGlobal<T>(name: string, value: T): void {
 export function removeGlobal(name: string): void {
   Reflect.deleteProperty(globalThis, name);
 }
+
+/**
+ * The rendered root of a `render()` result.
+ *
+ * The DOM reads below return `Node | null`, which tests used to assert straight
+ * to `HTMLElement`. Checking instead fails on the line that queried, naming
+ * what it looked for, rather than three assertions later on `undefined`.
+ */
+export function firstElement(container: HTMLElement): HTMLElement {
+  const child = container.firstChild;
+  if (!(child instanceof HTMLElement)) {
+    throw new Error("expected the container's first child to be an element");
+  }
+  return child;
+}
+
+/** The element matching `selector`. */
+export function queryElement(root: ParentNode, selector: string): HTMLElement {
+  const found = root.querySelector(selector);
+  if (!(found instanceof HTMLElement)) {
+    throw new Error(`expected an element matching ${selector}, found none`);
+  }
+  return found;
+}
+
+/** The `<input>` matching `selector`. */
+export function queryInput(
+  root: ParentNode,
+  selector: string
+): HTMLInputElement {
+  const found = root.querySelector(selector);
+  if (!(found instanceof HTMLInputElement)) {
+    throw new Error(`expected an input matching ${selector}, found none`);
+  }
+  return found;
+}
+
+/** Narrows a node a query already found, such as `closest` or `parentElement`. */
+export function asElement(node: Node | null): HTMLElement {
+  if (!(node instanceof HTMLElement)) {
+    throw new Error("expected an HTMLElement");
+  }
+  return node;
+}

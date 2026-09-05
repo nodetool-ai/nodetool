@@ -6,6 +6,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import { KeyboardShortcutCard } from "../KeyboardShortcutCard";
 import type { ShortcutItem } from "../KeyboardShortcutCard";
+import { firstElement } from "../../../test-utils/doubles";
 
 const mockShortcuts: ShortcutItem[] = [
   { action: "Save", keys: ["Ctrl", "S"] },
@@ -44,7 +45,7 @@ describe("KeyboardShortcutCard", () => {
       <KeyboardShortcutCard shortcuts={mockShortcuts} />
     );
     // Card should render without title
-    const card = container.firstChild as HTMLElement;
+    const card = firstElement(container);
     expect(card).toBeInTheDocument();
   });
 
@@ -128,7 +129,7 @@ describe("KeyboardShortcutCard", () => {
       />
     );
     
-    const card = container.firstChild as HTMLElement;
+    const card = firstElement(container);
     expect(card).toHaveStyle({ marginTop: "32px" }); // 4 * 8px
   });
 
@@ -140,7 +141,7 @@ describe("KeyboardShortcutCard", () => {
       />
     );
     
-    const card = container.firstChild as HTMLElement;
+    const card = firstElement(container);
     expect(card).toBeInTheDocument();
   });
 
@@ -153,7 +154,7 @@ describe("KeyboardShortcutCard", () => {
       />
     );
     
-    const card = container.firstChild as HTMLElement;
+    const card = firstElement(container);
     expect(card).toBeInTheDocument();
   });
 
@@ -186,7 +187,7 @@ describe("KeyboardShortcutCard", () => {
       <KeyboardShortcutCard shortcuts={[]} />
     );
     
-    const card = container.firstChild as HTMLElement;
+    const card = firstElement(container);
     expect(card).toBeInTheDocument();
     // No shortcuts should be rendered
     expect(screen.queryByText("Save")).not.toBeInTheDocument();
@@ -215,7 +216,7 @@ describe("KeyboardShortcutCard", () => {
       />
     );
     
-    const card = container.firstChild as HTMLElement;
+    const card = firstElement(container);
     expect(card).toHaveAttribute("data-testid", "shortcut-card");
   });
 
@@ -274,7 +275,7 @@ describe("KeyboardShortcutCard", () => {
       />
     );
     
-    const card = container.firstChild as HTMLElement;
+    const card = firstElement(container);
     expect(card).toBeInTheDocument();
     // Check that card exists and has some style
     expect(card.style).toBeDefined();

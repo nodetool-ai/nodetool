@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { TagInput } from "../TagInput";
 import mockTheme from "../../../__mocks__/themeMock";
+import { queryInput } from "../../../test-utils/doubles";
 
 // Helper function to render with theme
 const renderWithTheme = (component: React.ReactNode) => {
@@ -67,7 +68,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={[]} onTagsChange={mockOnChange} />);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       await user.type(input, "newtag{Enter}");
       
       expect(mockOnChange).toHaveBeenCalledWith(["newtag"]);
@@ -78,7 +79,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={[]} onTagsChange={mockOnChange} />);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       await user.type(input, "  tag  {Enter}");
       
       expect(mockOnChange).toHaveBeenCalledWith(["tag"]);
@@ -89,7 +90,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={[]} onTagsChange={mockOnChange} />);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       await user.type(input, "{Enter}");
       
       expect(mockOnChange).not.toHaveBeenCalled();
@@ -100,7 +101,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={[]} onTagsChange={mockOnChange} />);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       await user.type(input, "newtag");
       
       const addButton = screen.getByRole("button", { name: /add tag/i });
@@ -114,7 +115,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={[]} onTagsChange={mockOnChange} />);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       await user.type(input, "newtag{Enter}");
       
       await waitFor(() => {
@@ -140,7 +141,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={["tag1"]} onTagsChange={mockOnChange} />);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       input.focus();
       await user.keyboard("{Backspace}");
       
@@ -152,7 +153,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={["tag1"]} onTagsChange={mockOnChange} />);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       await user.type(input, "a");
       await user.keyboard("{Backspace}");
       
@@ -166,7 +167,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={["existing"]} onTagsChange={mockOnChange} />);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       await user.type(input, "existing{Enter}");
       
       expect(mockOnChange).not.toHaveBeenCalled();
@@ -180,7 +181,7 @@ describe("TagInput", () => {
         <TagInput tags={["existing"]} onTagsChange={mockOnChange} allowDuplicates={true} />
       );
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       await user.type(input, "existing{Enter}");
       
       expect(mockOnChange).toHaveBeenCalledWith(["existing", "existing"]);
@@ -191,7 +192,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={["existing"]} onTagsChange={mockOnChange} />);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       await user.type(input, "existing{Enter}");
       
       expect(screen.getByText(/this tag already exists/i)).toBeInTheDocument();
@@ -210,7 +211,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={["tag1", "tag2"]} onTagsChange={mockOnChange} maxTags={2} />);
 
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
 
       // Input should be disabled when max tags is reached
       expect(input).toBeDisabled();
@@ -230,7 +231,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={["tag1", "tag2"]} onTagsChange={mockOnChange} maxTags={2} />);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       expect(input).toBeDisabled();
     });
   });
@@ -248,7 +249,7 @@ describe("TagInput", () => {
         <TagInput tags={[]} onTagsChange={mockOnChange} validateTag={validateTag} />
       );
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       await user.type(input, "ab{Enter}");
       
       expect(validateTag).toHaveBeenCalledWith("ab");
@@ -265,7 +266,7 @@ describe("TagInput", () => {
         <TagInput tags={[]} onTagsChange={mockOnChange} validateTag={validateTag} />
       );
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       await user.type(input, "abc{Enter}");
       
       expect(mockOnChange).toHaveBeenCalledWith(["abc"]);
@@ -278,7 +279,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={[]} onTagsChange={mockOnChange} disabled={true} />);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       await user.type(input, "newtag{Enter}");
       
       expect(mockOnChange).not.toHaveBeenCalled();
@@ -302,7 +303,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={[]} onTagsChange={mockOnChange} disabled={true} />);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       expect(input).toBeDisabled();
     });
 
@@ -341,7 +342,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={["existing"]} onTagsChange={mockOnChange} />);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       await user.type(input, "existing{Enter}");
       
       const errorText = screen.getByText(/this tag already exists/i);
@@ -359,7 +360,7 @@ describe("TagInput", () => {
       const container = screen.getByRole("combobox");
       await user.click(container);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       expect(input).toHaveFocus();
     });
 
@@ -368,7 +369,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={["existing"]} onTagsChange={mockOnChange} />);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       await user.type(input, "existing{Enter}");
       expect(screen.getByText(/this tag already exists/i)).toBeInTheDocument();
       
@@ -394,7 +395,7 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={[]} onTagsChange={mockOnChange} error={true} />);
       
-      const input = screen.getByRole("combobox").querySelector("input") as HTMLInputElement;
+      const input = queryInput(screen.getByRole("combobox"), "input");
       expect(input).toHaveAttribute("aria-invalid", "true");
     });
 

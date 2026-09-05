@@ -12,6 +12,7 @@ import MuiPopover, {
 import { useTheme } from "@mui/material/styles";
 import { SxProps, Theme } from "@mui/material";
 import { isNumber } from "../../utils/typePredicates";
+import { sxEntries } from "./tokens";
 
 export type PopoverPlacement =
   | "bottom-left"
@@ -124,8 +125,6 @@ const PopoverInternal: React.FC<PopoverProps> = ({
     paperSlot && typeof paperSlot === "object" && "sx" in paperSlot
       ? paperSlot.sx
       : undefined;
-  const asArray = (s: SxProps<Theme> | undefined) =>
-    s === undefined ? [] : Array.isArray(s) ? s : [s];
 
   return (
     <MuiPopover
@@ -144,9 +143,9 @@ const PopoverInternal: React.FC<PopoverProps> = ({
               maxHeight,
               overflow: maxHeight ? "auto" : undefined
             },
-            ...asArray(callerPaperSx),
-            ...asArray(paperSx)
-          ] as SxProps<Theme>
+            ...sxEntries(callerPaperSx),
+            ...sxEntries(paperSx)
+          ]
         }
       }}
       {...props}
