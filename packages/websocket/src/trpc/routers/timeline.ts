@@ -326,7 +326,8 @@ export const timelineRouter = router({
           transcript:
             input.document.transcript ?? current.transcript,
           scriptEnabled:
-            input.document.scriptEnabled ?? current.scriptEnabled
+            input.document.scriptEnabled ?? current.scriptEnabled,
+          tempo: input.document.tempo ?? current.tempo
         };
         fields.document = JSON.stringify(merged);
       }

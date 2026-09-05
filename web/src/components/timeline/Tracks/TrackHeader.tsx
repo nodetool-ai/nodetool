@@ -484,9 +484,10 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
     setConfirmRemoveOpen(true);
   }, [closeContextMenu]);
 
-  const isAudioTrack = track.type === "audio";
-  const supportsEffects =
-    track.type === "audio" || track.type === "video";
+  // A midi track is mixed like an audio one: it carries gain, mute/solo and
+  // a DSP chain, and has no picture to show or hide.
+  const isSoundTrack = track.type === "audio" || track.type === "midi";
+  const supportsEffects = isSoundTrack || track.type === "video";
   const effectsCount = track.effects?.length ?? 0;
   const hasActiveEffects =
     track.effects?.some((e) => e.enabled) ?? false;
@@ -685,21 +686,23 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
         css={controlsRowCss}
         className={compact ? "timeline-track-controls" : undefined}
       >
-        <Tooltip title={track.visible ? "Hide track" : "Show track"}>
-          <button
-            type="button"
-            css={track.visible ? iconButtonOnCss : iconButtonOffCss}
-            onClick={() => setTrackVisible(track.id, !track.visible)}
-            aria-label={track.visible ? "Hide track" : "Show track"}
-            aria-pressed={!track.visible}
-          >
-            {track.visible ? (
-              <VisibilityOutlinedIcon />
-            ) : (
-              <VisibilityOffOutlinedIcon />
-            )}
-          </button>
-        </Tooltip>
+        {track.type !== "midi" && (
+          <Tooltip title={track.visible ? "Hide track" : "Show track"}>
+            <button
+              type="button"
+              css={track.visible ? iconButtonOnCss : iconButtonOffCss}
+              onClick={() => setTrackVisible(track.id, !track.visible)}
+              aria-label={track.visible ? "Hide track" : "Show track"}
+              aria-pressed={!track.visible}
+            >
+              {track.visible ? (
+                <VisibilityOutlinedIcon />
+              ) : (
+                <VisibilityOffOutlinedIcon />
+              )}
+            </button>
+          </Tooltip>
+        )}
 
         <Tooltip title={track.locked ? "Unlock track" : "Lock track"}>
           <button
@@ -713,7 +716,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
           </button>
         </Tooltip>
 
-        {isAudioTrack && (
+        {isSoundTrack && (
           <>
             <Tooltip title={track.muted ? "Unmute" : "Mute"} key="mute">
               <button

@@ -35,7 +35,11 @@ const makeMockHandler = (): TimelineAgentHandler => ({
   seek: jest.fn(),
   addMarker: jest.fn(),
   deleteMarker: jest.fn(),
-  setTimeRemap: jest.fn()
+  setTimeRemap: jest.fn(),
+  addMidiClip: jest.fn(),
+  setNotes: jest.fn(),
+  setTempo: jest.fn(),
+  setTrackInstrument: jest.fn()
 });
 
 describe("timelineAgentBridge", () => {

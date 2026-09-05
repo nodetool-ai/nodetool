@@ -180,6 +180,7 @@ export function useTimelineExport(): UseTimelineExportResult {
           height: state.height,
           fps: state.fps,
           durationMs: exportDurationMs,
+          tempo: state.tempo,
           format: options?.format,
           alpha: options?.alpha,
           resolveUrl,

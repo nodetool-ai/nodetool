@@ -17,7 +17,8 @@ import {
   resolveMoveTrackArgs,
   resolveShapeArg,
   targetParam,
-  textStylePatchParams
+  textStylePatchParams,
+  type MidiNoteParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import {
   buildTimelineToolContracts,
@@ -31,6 +32,7 @@ import { FrontendToolRegistry } from "../frontendTools";
 import {
   getTimelineAgentHandler,
   type ClipAnimationInput,
+  type MidiNoteInput,
   type TimelineAgentHandler,
   type TimelineClipNode,
   type TimelineMarkerNode
@@ -108,6 +110,22 @@ const sharedWithoutSequence = <K extends TimelineToolName>(name: K) => ({
   description: TIMELINE_CONTRACTS[name].description,
   parameters: uiToolParams(TIMELINE_CONTRACTS[name])
 });
+
+/** One note as the tool schema writes it, in the document's own field names. */
+const toNoteInput = (note: MidiNoteParams): MidiNoteInput => {
+  const input: MidiNoteInput = {
+    pitch: note.pitch,
+    startTick: note.start_tick,
+    durationTick: note.duration_tick
+  };
+  if (note.id !== undefined) {
+    input.id = note.id;
+  }
+  if (note.velocity !== undefined) {
+    input.velocity = note.velocity;
+  }
+  return input;
+};
 
 FrontendToolRegistry.register({
   ...shared("ui_timeline_get_state"),
@@ -599,6 +617,65 @@ FrontendToolRegistry.register({
   async execute({ timeline_id, target }) {
     const deleted = getTimelineAgentHandler(timeline_id).deleteMarker(target);
     return { ok: true, deleted, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_add_midi_clip"),
+  async execute({ timeline_id, track, start_ms, duration_ms, name, notes }) {
+    const clip = getTimelineAgentHandler(timeline_id).addMidiClip({
+      trackId: track,
+      startMs: start_ms,
+      durationMs: duration_ms,
+      name,
+      notes: (notes ?? []).map(toNoteInput)
+    });
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_set_notes"),
+  async execute({ timeline_id, clip: target, notes }) {
+    const clip = getTimelineAgentHandler(timeline_id).setNotes(
+      target,
+      notes.map(toNoteInput)
+    );
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_set_tempo"),
+  async execute({ timeline_id, bpm, offset_ms, beats_per_bar, beat_unit }) {
+    const snapshot = getTimelineAgentHandler(timeline_id).setTempo({
+      bpm,
+      offsetMs: offset_ms ?? 0,
+      timeSignature: {
+        beatsPerBar: beats_per_bar ?? 4,
+        beatUnit: beat_unit ?? 4
+      }
+    });
+    return { ok: true, ...snapshot, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_set_track_instrument"),
+  async execute({ timeline_id, track, instrument }) {
+    const updated = getTimelineAgentHandler(timeline_id).setTrackInstrument(
+      track,
+      instrument
+    );
+    return { ok: true, track: updated, url: docUrl("timeline", timeline_id) };
   }
 });
 

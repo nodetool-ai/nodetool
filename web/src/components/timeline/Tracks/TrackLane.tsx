@@ -60,6 +60,9 @@ import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 
+/** Two bars of 4/4 at 120 BPM — what an empty midi clip is sized to. */
+const DEFAULT_MIDI_CLIP_DURATION_MS = 4000;
+
 const DEFAULT_TRACK_HEIGHT_PX = 64;
 const NO_CLIP_IDS: string[] = [];
 /** Duration (ms) the mismatch warning banner remains visible. */
@@ -123,6 +126,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const setRubberBand = useTimelineUIStore((s) => s.setRubberBand);
   const addImportedClip = useTimelineStore((s) => s.addImportedClip);
   const addClip = useTimelineStore((s) => s.addClip);
+  const addMidiClip = useTimelineStore((s) => s.addMidiClip);
   const closeGapAt = useTimelineStore((s) => s.closeGapAt);
   const resolveDropInStore = useTimelineStore((s) => s.resolveDrop);
   const importVideoWithAudio = useVideoAudioImport();
@@ -600,6 +604,20 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     setContextMenuPos(null);
   }, [addClip, contextMenuPos, setSelection, track.id]);
 
+  const handleAddMidi = useCallback(() => {
+    if (!contextMenuPos) return;
+    // An empty two-bar container at 120 BPM. The notes come from the agent
+    // (ui_timeline_set_notes) or, later, a piano roll; an empty clip is silent
+    // rather than a placeholder tone.
+    const clipId = addMidiClip({
+      trackId: track.id,
+      startMs: contextMenuPos.startMs,
+      durationMs: DEFAULT_MIDI_CLIP_DURATION_MS
+    });
+    setSelection([clipId]);
+    setContextMenuPos(null);
+  }, [addMidiClip, contextMenuPos, setSelection, track.id]);
+
   const handleAddClipClose = useCallback(() => {
     setAddClipState(null);
     setAddClipAnchorEl(null);
@@ -663,12 +681,21 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
             compact
           />
         )}
-        <MenuItemPrimitive
-          label="Add generated clip here…"
-          icon={<AddIcon fontSize="small" />}
-          onClick={handleAddClipFromMenu}
-          compact
-        />
+        {track.type === "midi" ? (
+          <MenuItemPrimitive
+            label="Add MIDI clip"
+            icon={<AddIcon fontSize="small" />}
+            onClick={handleAddMidi}
+            compact
+          />
+        ) : (
+          <MenuItemPrimitive
+            label="Add generated clip here…"
+            icon={<AddIcon fontSize="small" />}
+            onClick={handleAddClipFromMenu}
+            compact
+          />
+        )}
         {menuGap && (
           <MenuItemPrimitive
             label="Close gap"

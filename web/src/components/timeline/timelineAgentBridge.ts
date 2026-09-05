@@ -18,7 +18,10 @@
 import type {
   ClipShapeStyle,
   ClipTextStyle,
-  StaggerUnit
+  MidiInstrument,
+  MidiNote,
+  StaggerUnit,
+  TimelineTempo
 } from "@nodetool-ai/timeline";
 import type { timeline } from "@nodetool-ai/protocol/api-schemas";
 import type {
@@ -45,7 +48,7 @@ type TimelineCaptionStyle = timeline.CaptionStyle;
 export interface TimelineTrackNode {
   id: string;
   name: string;
-  type: "video" | "audio" | "overlay" | "subtitle";
+  type: "video" | "audio" | "overlay" | "subtitle" | "midi";
   index: number;
   visible: boolean;
   locked: boolean;
@@ -53,6 +56,8 @@ export interface TimelineTrackNode {
   solo: boolean;
   /** Number of clips currently on this track. */
   clipCount: number;
+  /** The synth a midi track plays. Absent on every other track type. */
+  instrument?: MidiInstrument;
 }
 
 /** Serializable view of a single timeline clip (editor-friendly units). */
@@ -69,7 +74,8 @@ export interface TimelineClipNode {
     | "overlay"
     | "text"
     | "shape"
-    | "group";
+    | "group"
+    | "midi";
   sourceType: "imported" | "generated";
   bindingKind?: string;
   /** Absolute start on the sequence timeline (ms). */
@@ -105,6 +111,12 @@ export interface TimelineClipNode {
   shapeStyle?: TimelineShapeStyle;
   /** The group clip this one inherits from, when it is in one. */
   parentId?: string;
+  /**
+   * How many notes a midi clip carries. A snapshot names the count rather than
+   * the notes: a phrase runs to thousands of them and the agent asks for the
+   * clip it actually wants to edit.
+   */
+  noteCount?: number;
 }
 
 /** Serializable view of one motion-design animation on a clip. */
@@ -151,6 +163,9 @@ export interface TimelineSnapshot {
   tracks: TimelineTrackNode[];
   clips: TimelineClipNode[];
   markers: TimelineMarkerNode[];
+  /** The tempo the midi clips are read against — always resolved, so a
+   *  document that stores none still reports the 120 BPM it plays at. */
+  tempo: TimelineTempo;
 }
 
 /** Direct-generation kinds the agent can spawn. */
@@ -317,6 +332,25 @@ export interface ClipAnimationInput {
   };
 }
 
+/** A note as the agent writes it: ticks from the clip's content start, with
+ *  the id and velocity filled in when they are absent. */
+export type MidiNoteInput = Pick<
+  MidiNote,
+  "pitch" | "startTick" | "durationTick"
+> &
+  Partial<MidiNote>;
+
+/** Place a midi clip — a phrase played by the track's synth. */
+export interface TimelineAddMidiClipOptions {
+  /** Defaults to the first midi track, creating one when there is none. */
+  trackId?: string;
+  /** Defaults to the end of the target track's content. */
+  startMs?: number;
+  durationMs: number;
+  name?: string;
+  notes?: MidiNoteInput[];
+}
+
 /** Place an asset the library already holds as a clip. */
 export interface TimelineAddMediaClipOptions {
   /** Asset id or `asset://<id>.<ext>` URI. */
@@ -439,6 +473,26 @@ export interface TimelineAgentHandler {
   addMarker: (opts: TimelineAddMarkerOptions) => TimelineMarkerNode;
   /** Remove a marker by id or by case-insensitive label. */
   deleteMarker: (target: string) => TimelineMarkerNode;
+  /**
+   * Place a midi clip on a midi track. Notes ride inside the clip in ticks
+   * from its content start, so trimming the window hides them rather than
+   * deleting them.
+   */
+  addMidiClip: (opts: TimelineAddMidiClipOptions) => TimelineClipNode;
+  /** Replace a midi clip's whole note list — not a merge. */
+  setNotes: (target: string, notes: MidiNoteInput[]) => TimelineClipNode;
+  /**
+   * Set the document's constant tempo. Milliseconds are the master clock, so
+   * this rescales every midi clip around `offsetMs` and leaves the rest of the
+   * timeline where the editor put it. Returns the whole new snapshot: the
+   * clips that moved are the point of the call.
+   */
+  setTempo: (tempo: TimelineTempo) => TimelineSnapshot;
+  /** Set the synth a midi track plays. Every clip on the track uses it. */
+  setTrackInstrument: (
+    target: string,
+    instrument: MidiInstrument
+  ) => TimelineTrackNode;
 }
 
 const handlers = new Map<string, TimelineAgentHandler>();

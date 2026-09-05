@@ -13,6 +13,7 @@ import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import AudiotrackOutlinedIcon from "@mui/icons-material/AudiotrackOutlined";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
+import PianoOutlinedIcon from "@mui/icons-material/PianoOutlined";
 import type { SvgIconComponent } from "@mui/icons-material";
 
 export type TrackTypeKey = TimelineTrack["type"];
@@ -30,7 +31,8 @@ const TRACK_TYPES = {
   video: { prefix: "V", label: "Video", Icon: VideocamOutlinedIcon },
   audio: { prefix: "A", label: "Audio", Icon: AudiotrackOutlinedIcon },
   overlay: { prefix: "O", label: "Overlay", Icon: LayersOutlinedIcon },
-  subtitle: { prefix: "T", label: "Text", Icon: SubtitlesOutlinedIcon }
+  subtitle: { prefix: "T", label: "Text", Icon: SubtitlesOutlinedIcon },
+  midi: { prefix: "M", label: "MIDI", Icon: PianoOutlinedIcon }
 } satisfies Record<TrackTypeKey, TrackTypeMeta>;
 
 export function trackTypeMeta(type: TrackTypeKey): TrackTypeMeta {
@@ -48,6 +50,8 @@ export function trackTypeAccent(theme: Theme, type: TrackTypeKey): string {
       return theme.vars.palette.secondary.main; // magenta — overlays read as "on top"
     case "subtitle":
       return theme.vars.palette.warning.main; // amber — type/captions
+    case "midi":
+      return theme.vars.palette.primary.main; // the synth lane reads apart from audio
     default:
       return theme.vars.palette.info.main;
   }
@@ -64,6 +68,8 @@ export function clipSurfaceTint(type: ClipMediaKey): string {
       return "rgba(34, 211, 238, 0.08)";
     case "overlay":
       return "rgba(232, 121, 249, 0.10)"; // secondary / magenta
+    case "midi":
+      return "rgba(167, 139, 250, 0.10)"; // violet — a synth part, not a recording
     default:
       return "rgba(255, 255, 255, 0.04)";
   }
@@ -79,6 +85,8 @@ export function clipBorderTint(theme: Theme, type: ClipMediaKey): string {
       return "rgba(80, 250, 123, 0.35)";
     case "overlay":
       return "rgba(232, 121, 249, 0.40)";
+    case "midi":
+      return "rgba(167, 139, 250, 0.40)";
     default:
       return theme.vars.palette.divider;
   }

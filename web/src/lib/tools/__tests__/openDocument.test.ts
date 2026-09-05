@@ -23,7 +23,8 @@ const snapshot = (sequenceId: string | null): TimelineSnapshot => ({
   selectedClipIds: [],
   tracks: [],
   clips: [],
-  markers: []
+  markers: [],
+  tempo: { bpm: 120, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } }
 });
 
 const timelineHandler = (sequenceId: string | null): TimelineAgentHandler =>

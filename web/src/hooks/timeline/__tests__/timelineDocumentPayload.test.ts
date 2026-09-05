@@ -7,7 +7,12 @@ describe("buildTimelineDocumentPayload", () => {
     clips: { c1: { id: "c1", trackId: "t1", startTime: 0, endTime: 5 } },
     markers: [{ id: "m1", time: 2, label: "Intro" }],
     transcript: { segments: [] },
-    scriptEnabled: true
+    scriptEnabled: true,
+    tempo: {
+      bpm: 90,
+      offsetMs: 0,
+      timeSignature: { beatsPerBar: 4, beatUnit: 4 }
+    }
   };
 
   it("picks exactly the document fields from state", () => {
@@ -16,6 +21,7 @@ describe("buildTimelineDocumentPayload", () => {
       "clips",
       "markers",
       "scriptEnabled",
+      "tempo",
       "tracks",
       "transcript"
     ]);
@@ -44,6 +50,11 @@ describe("buildTimelineDocumentPayload", () => {
   it("preserves the scriptEnabled flag", () => {
     const payload = buildTimelineDocumentPayload(baseState as never);
     expect(payload.scriptEnabled).toBe(true);
+  });
+
+  it("carries the tempo — without it a midi part reloads at 120 BPM", () => {
+    const payload = buildTimelineDocumentPayload(baseState as never);
+    expect(payload.tempo).toBe(baseState.tempo);
   });
 
   it("excludes extra state fields", () => {

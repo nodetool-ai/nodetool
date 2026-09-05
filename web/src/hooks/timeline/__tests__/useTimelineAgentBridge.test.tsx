@@ -270,3 +270,134 @@ describe("useTimelineAgentBridge getClipFrames", () => {
     ).rejects.toThrow(/15552–20736ms.*0–5184ms/s);
   });
 });
+
+describe("useTimelineAgentBridge midi", () => {
+  /** One midi track with one two-note clip, addressed by name. */
+  const seedMidi = (): string => {
+    mockDoc.getState().addTrack("midi", "Bass");
+    const trackId = mockDoc.getState().tracks[0].id;
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    return getTimelineAgentHandler(SEQ_ID).addMidiClip({
+      trackId,
+      startMs: 1000,
+      durationMs: 2000,
+      name: "Riff",
+      notes: [
+        { pitch: 60, startTick: 0, durationTick: 480 },
+        { pitch: 64, startTick: 480, durationTick: 480 }
+      ]
+    }).id;
+  };
+
+  it("places a midi clip and reports its note count", () => {
+    const clipId = seedMidi();
+    const clip = getTimelineAgentHandler(SEQ_ID)
+      .getSnapshot()
+      .clips.find((c) => c.id === clipId);
+    expect(clip?.mediaType).toBe("midi");
+    expect(clip?.noteCount).toBe(2);
+  });
+
+  it("creates a midi track when the caller names none", () => {
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const clip = getTimelineAgentHandler(SEQ_ID).addMidiClip({
+      durationMs: 2000,
+      notes: [{ pitch: 60, startTick: 0, durationTick: 480 }]
+    });
+    const track = mockDoc.getState().tracks.find((t) => t.id === clip.trackId);
+    expect(track?.type).toBe("midi");
+    // Placed after the (empty) track's content, which is the top.
+    expect(clip.startMs).toBe(0);
+  });
+
+  it("refuses a midi clip on a track that is not midi", () => {
+    mockDoc.getState().addTrack("video", "Video 1");
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    expect(() =>
+      getTimelineAgentHandler(SEQ_ID).addMidiClip({
+        trackId: "Video 1",
+        startMs: 0,
+        durationMs: 1000
+      })
+    ).toThrow(/midi track/i);
+  });
+
+  it("reports the resolved tempo even when the document stores none", () => {
+    seedMidi();
+    expect(getTimelineAgentHandler(SEQ_ID).getSnapshot().tempo).toEqual({
+      bpm: 120,
+      offsetMs: 0,
+      timeSignature: { beatsPerBar: 4, beatUnit: 4 }
+    });
+  });
+
+  it("replaces a clip's whole note list", () => {
+    const clipId = seedMidi();
+    const node = getTimelineAgentHandler(SEQ_ID).setNotes(clipId, [
+      { pitch: 55, startTick: 0, durationTick: 960 }
+    ]);
+    expect(node.noteCount).toBe(1);
+    expect(clipById(clipId).notes?.[0].pitch).toBe(55);
+  });
+
+  it("refuses a note the document cannot store", () => {
+    const clipId = seedMidi();
+    expect(() =>
+      getTimelineAgentHandler(SEQ_ID).setNotes(clipId, [
+        { pitch: 200, startTick: 0, durationTick: 480 }
+      ])
+    ).toThrow(/pitch/);
+    expect(clipById(clipId).notes).toHaveLength(2);
+  });
+
+  it("rescales the midi clips on a tempo change and answers with the document", () => {
+    const clipId = seedMidi();
+    const snapshot = getTimelineAgentHandler(SEQ_ID).setTempo({
+      bpm: 60,
+      offsetMs: 0,
+      timeSignature: { beatsPerBar: 4, beatUnit: 4 }
+    });
+    expect(snapshot.tempo.bpm).toBe(60);
+    const clip = snapshot.clips.find((c) => c.id === clipId)!;
+    expect(clip.startMs).toBe(2000);
+    expect(clip.durationMs).toBe(4000);
+  });
+
+  it("sets a midi track's instrument and reports it in the snapshot", () => {
+    seedMidi();
+    const track = getTimelineAgentHandler(SEQ_ID).setTrackInstrument("Bass", {
+      type: "subtractive",
+      waveform: "square",
+      attackMs: 1,
+      decayMs: 50,
+      sustain: 0.5,
+      releaseMs: 100,
+      cutoffHz: 2000,
+      resonance: 1,
+      gainDb: -3
+    });
+    expect(track.instrument?.waveform).toBe("square");
+    expect(
+      getTimelineAgentHandler(SEQ_ID).getSnapshot().tracks[0].instrument
+        ?.waveform
+    ).toBe("square");
+  });
+
+  it("refuses an instrument on a track that is not midi", () => {
+    mockDoc.getState().addTrack("audio", "VO");
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    expect(() =>
+      getTimelineAgentHandler(SEQ_ID).setTrackInstrument("VO", {
+        type: "subtractive",
+        waveform: "sine",
+        attackMs: 1,
+        decayMs: 50,
+        sustain: 0.5,
+        releaseMs: 100,
+        cutoffHz: 2000,
+        resonance: 1,
+        gainDb: -3
+      })
+    ).toThrow(/midi track/i);
+  });
+});
