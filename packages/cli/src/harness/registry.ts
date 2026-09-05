@@ -86,6 +86,21 @@ export interface SurfaceEntry {
   gap?: string;
 }
 
+/**
+ * The pure suites behind the script↔storyboard link and the guided creation
+ * flows. One constant because the entry's `command` and its `selfcheck` must
+ * not drift: a selfcheck that runs less than the command it stands for reports
+ * green on code it never executed.
+ *
+ * Vitest and Jest both take these positional arguments as file-path filters.
+ */
+const SCRIPT_STORYBOARD_LINK_SUITES =
+  "npm run test --workspace=packages/protocol -- script-link shot-prompt " +
+  "render-record creative-scenes screenplay-authoring api-schemas-storyboards && " +
+  "npm run test --workspace=packages/timeline -- script-link linked storyboard && " +
+  "npm run test --workspace=packages/execution -- linked-timeline-validate && " +
+  "npm run test --workspace=web -- src/lib/storyboard";
+
 export const HARNESSES: HarnessEntry[] = [
   {
     id: "validate",
@@ -401,18 +416,17 @@ export const HARNESSES: HarnessEntry[] = [
     // timeline plus the tools that call them. The checked-in suites are the
     // headless surface — they build a linked document and hand the assembled
     // timeline to the same validator `nodetool timeline validate` runs.
-    command:
-      "npm run test --workspace=packages/protocol -- script-link && " +
-      "npm run test --workspace=packages/timeline -- script-link linked && " +
-      "npm run test --workspace=packages/execution -- linked-timeline-validate",
+    //
+    // The guided-creation-flow suites ride here too (PRD § 7.7): prompt
+    // composition, scene ordering, staleness and the Director's scene output
+    // are pure functions on the same documents, and a diff that touches one
+    // usually touches the link.
+    command: SCRIPT_STORYBOARD_LINK_SUITES,
     kind: "static",
     capabilities: ["no-db"],
     docs: "docs/script-storyboard-link/design.md § 6",
     selfcheck: {
-      command:
-        "npm run test --workspace=packages/protocol -- script-link && " +
-        "npm run test --workspace=packages/timeline -- script-link linked && " +
-        "npm run test --workspace=packages/execution -- linked-timeline-validate",
+      command: SCRIPT_STORYBOARD_LINK_SUITES,
       cost: "cheap"
     }
   },
@@ -815,6 +829,14 @@ export const SURFACES: SurfaceEntry[] = [
     paths: [
       "packages/protocol/src/script-link.ts",
       "packages/protocol/src/api-schemas/storyboards.ts",
+      // The guided creation flow's pure modules (PRD § 7.7): one prompt
+      // composition for both surfaces, the derived scene order, and the
+      // staleness comparison the board's marks come from.
+      "packages/protocol/src/shot-prompt.ts",
+      "packages/protocol/src/render-record.ts",
+      "packages/protocol/src/screenplay-authoring.ts",
+      "web/src/lib/storyboard/",
+      "web/src/components/setup/",
       "packages/timeline/src/storyboard.ts",
       "packages/timeline/src/script-link.ts",
       "packages/timeline/src/linked.ts",
