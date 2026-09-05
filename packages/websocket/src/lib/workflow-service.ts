@@ -126,8 +126,7 @@ function createRow(
   appDoc: Record<string, unknown> | null,
   id?: string
 ): Promise<unknown> {
-  return Workflow.create({
-    ...(id ? { id } : {}),
+  const row: Record<string, unknown> = {
     user_id: userId,
     name: input.name,
     tool_name: input.tool_name ?? null,
@@ -144,7 +143,10 @@ function createRow(
     workspace_id: input.workspace_id ?? null,
     html_app: input.html_app ?? null,
     app_doc: appDoc
-  });
+  };
+  // Upsert-on-PUT names the id; a plain create lets the model mint one.
+  if (id !== undefined) row.id = id;
+  return Workflow.create(row);
 }
 
 /**

@@ -164,7 +164,9 @@ export function manifestEnumIsNumeric(
 ): boolean {
   if (!Array.isArray(values) || values.length === 0) return false;
   if (policy === "declared") {
-    return values.every((v) => typeof v === "number");
+    // A numeric option equals its own numeric value; the string "1024" does
+    // not, and NaN never equals itself.
+    return values.every((v) => v === Number(v));
   }
   return values.every((v) => v !== "" && Number.isFinite(Number(v)));
 }
@@ -190,17 +192,19 @@ export function coerceManifestScalar(
   if (type.startsWith("list[") || type.startsWith("dict[")) return value;
   switch (type) {
     case "int": {
-      const n = typeof value === "number" ? value : parseInt(String(value), 10);
+      const n = Number(value);
       return Number.isFinite(n) ? Math.trunc(n) : null;
     }
     case "float": {
-      const n =
-        typeof value === "number" ? value : parseFloat(String(value));
+      const n = Number(value);
       return Number.isFinite(n) ? n : null;
     }
     case "bool": {
-      if (typeof value === "boolean") return value;
-      if (typeof value === "string") return value.toLowerCase() === "true";
+      // The UI serializes a checkbox as the string "false" as readily as the
+      // boolean; `Boolean("false")` is true, which is how fal/kie/topaz sent
+      // an unchecked box as checked.
+      const text = String(value).trim().toLowerCase();
+      if (text === "false" || text === "" || text === "0") return false;
       return Boolean(value);
     }
     default:

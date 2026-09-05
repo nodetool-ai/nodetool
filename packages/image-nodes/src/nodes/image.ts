@@ -9,6 +9,8 @@ import {
   type LayerTransform2D
 } from "@nodetool-ai/gpu/node";
 import type {
+  FolderRef,
+  ImageModel,
   InputMode,
   OutputCorrelation,
   Platform
@@ -84,6 +86,21 @@ type ImageRefLike = {
   width?: number;
   height?: number;
 };
+
+/** Where CanvasResize anchors the source image on the new canvas. */
+type CanvasAnchor =
+  | "top-left"
+  | "top"
+  | "top-right"
+  | "left"
+  | "center"
+  | "right"
+  | "bottom-left"
+  | "bottom"
+  | "bottom-right";
+
+/** A `color` prop's value: the editor's swatch object, or a bare CSS string. */
+type ColorValue = { type: "color"; value: string } | string;
 
 function toBytes(data: Uint8Array | string | undefined): Uint8Array {
   if (!data) return new Uint8Array();
@@ -320,7 +337,7 @@ export class LoadImageFileNode extends BaseNode {
 
   async process(): Promise<LoadImageFileNodeOutputs> {
     const fs = await loadNodeFsPromises();
-    const p = await filePath(String(this.path ?? ""));
+    const p = await filePath(this.path);
     const data = new Uint8Array(await fs.readFile(p));
     const meta = await metadataFor(data);
     return {
@@ -405,19 +422,11 @@ export class LoadImageFolderNode extends BaseNode {
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
     const raw = this.folder;
-    const folder =
-      isNonEmptyString(raw)
-        ? raw.startsWith("file:")
-          ? await filePath(raw)
-          : raw
-        : isObjectLike(raw) && isNonEmptyString((raw as Record<string, unknown>).uri)
-          ? await filePath((raw as Record<string, unknown>).uri as string)
-          : "";
+    const rawUri = isNonEmptyString(raw) ? raw : (raw.uri ?? "");
+    const folder = rawUri.startsWith("file:") ? await filePath(rawUri) : rawUri;
     if (!folder) return;
-    const extensions: string[] = Array.isArray(this.extensions)
-      ? this.extensions.map((e: string) => String(e).toLowerCase())
-      : [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tiff"];
-    const patternStr = String(this.pattern ?? "");
+    const extensions = this.extensions.map((e) => e.toLowerCase());
+    const patternStr = this.pattern;
     const patternRegex = patternStr
       ? new RegExp(
           "^" +
@@ -551,7 +560,7 @@ export class SaveImageFileImageNode extends BaseNode {
     // image landed one level up named after the folder; a name typed without
     // an extension produced a file nothing would open.
     const filename = saveFilename({
-      filename: dateName(String(this.filename ?? "")),
+      filename: dateName(this.filename),
       fallback: dateName("image_%Y-%m-%d_%H-%M-%S"),
       extension: imageExtension(bytes)
     });
@@ -614,14 +623,14 @@ export class LoadImageAssetsNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const loader = new LoadImageFolderNode();
-    loader.assign({ folder: this.folder ?? "." });
+    loader.assign({ folder: this.folder });
     const result = await loader.process();
     return result;
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
     const loader = new LoadImageFolderNode();
-    loader.assign({ folder: this.folder ?? "." });
+    loader.assign({ folder: this.folder });
     for await (const item of loader.genProcess()) {
       yield item;
     }
@@ -686,7 +695,7 @@ export class SaveImageNode extends BaseNode {
     const bytes = await imageBytesAsync(this.image, context);
     if (bytes.length === 0) throw new Error("The input image is not connected.");
 
-    const name = dateName(String(this.name ?? "image.png"));
+    const name = dateName(this.name);
     const mime = inferImageMime(undefined, bytes);
     const meta = await metadataFor(bytes);
 
@@ -695,8 +704,9 @@ export class SaveImageNode extends BaseNode {
     // for the function always passed and the fallback below was unreachable,
     // so a host without asset persistence threw instead of writing a file.
     if (context?.hasModelInterface?.("createAsset")) {
-      const folderRef = this.folder as Record<string, unknown> | undefined;
-      const parentId = (folderRef?.asset_id as string) ?? null;
+      const parentId = isString(this.folder)
+        ? null
+        : (this.folder.asset_id ?? null);
       const asset = (await context.createAsset({
         name,
         contentType: mime === "image/unknown" ? "image/png" : mime,
@@ -775,7 +785,7 @@ export class GetMetadataNode extends BaseNode {
   declare image: ImageRefLike;
 
   async process(context?: ProcessingContext): Promise<GetMetadataNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
+    const image = this.image;
     const bytes = await imageBytesAsync(image, context);
     try {
       const sharp = await loadSharp();
@@ -894,22 +904,12 @@ export class ImagesToListNode extends BaseNode {
   }
 }
 
-abstract class TransformImageNode extends BaseNode {
-  protected transformMeta() {
-    const image = ((this as any).image ?? {}) as ImageRefLike;
-    return {
-      width: Number((this as any).width ?? image.width ?? 0) || null,
-      height: Number((this as any).height ?? image.height ?? 0) || null
-    };
-  }
-}
-
 /** Output handles PasteNode.process() emits. */
 type PasteNodeOutputs = {
   output: ImageRefLike | ImageRef;
 };
 
-export class PasteNode extends TransformImageNode {
+export class PasteNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Paste";
   static readonly title = "Paste";
   static readonly description =
@@ -969,10 +969,10 @@ export class PasteNode extends TransformImageNode {
   declare top: number;
 
   async process(context?: ProcessingContext): Promise<PasteNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
-    const paste = (this.paste ?? {}) as ImageRefLike;
-    const left = Math.max(0, Number(this.left ?? 0));
-    const top = Math.max(0, Number(this.top ?? 0));
+    const image = this.image;
+    const paste = this.paste;
+    const left = Math.max(0, this.left);
+    const top = Math.max(0, this.top);
     const base = await decodeRgba(image, context);
     if (!base.width || !base.height) return { output: image };
     const over = await decodeRgba(paste, context);
@@ -1020,7 +1020,7 @@ type ResizeImageNodeOutputs = {
   output: ImageRefLike | ImageRef;
 };
 
-export class ResizeImageNode extends TransformImageNode {
+export class ResizeImageNode extends BaseNode {
   static readonly nodeType = RESIZE_IMAGE_NODE_TYPE;
   static readonly title = "Resize Image";
   static readonly description =
@@ -1088,31 +1088,31 @@ export class ResizeImageNode extends TransformImageNode {
   declare height: number;
 
   async process(context?: ProcessingContext): Promise<ResizeImageNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
+    const image = this.image;
     const { width: srcW, height: srcH } = await decodeRgba(image, context);
     if (!srcW || !srcH) return { output: image };
 
-    const modeRaw = String(this.mode ?? "dimensions");
+    // A graph saved before a value was removed can still carry it, so the
+    // mode is normalized rather than trusted.
     const mode =
-      modeRaw === "scale" || modeRaw === "fit" ? modeRaw : "dimensions";
+      this.mode === "scale" || this.mode === "fit" ? this.mode : "dimensions";
 
     let outputWidth: number;
     let outputHeight: number;
 
     if (mode === "scale") {
-      const requestedScale = Number(this.scale ?? 0);
-      const scale = requestedScale > 0 ? requestedScale : 1;
+      const scale = this.scale > 0 ? this.scale : 1;
       outputWidth = Math.max(1, Math.round(srcW * scale));
       outputHeight = Math.max(1, Math.round(srcH * scale));
     } else if (mode === "fit") {
-      const targetW = Math.max(1, Number(this.width ?? 512));
-      const targetH = Math.max(1, Number(this.height ?? 512));
+      const targetW = Math.max(1, this.width);
+      const targetH = Math.max(1, this.height);
       const ratio = Math.min(targetW / srcW, targetH / srcH);
       outputWidth = Math.max(1, Math.round(srcW * ratio));
       outputHeight = Math.max(1, Math.round(srcH * ratio));
     } else {
-      let w = Number(this.width ?? 0);
-      let h = Number(this.height ?? 0);
+      let w = this.width;
+      let h = this.height;
       if (w <= 0 && h <= 0) {
         w = srcW;
         h = srcH;
@@ -1141,7 +1141,7 @@ type ScaleNodeOutputs = {
   output: ImageRefLike | ImageRef;
 };
 
-export class ScaleNode extends TransformImageNode {
+export class ScaleNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Scale";
   static readonly title = "Scale";
   static readonly deprecated = true;
@@ -1180,9 +1180,8 @@ export class ScaleNode extends TransformImageNode {
   declare scale: number;
 
   async process(context?: ProcessingContext): Promise<ScaleNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
-    const requestedScale = Number(this.scale ?? 0);
-    const scale = requestedScale > 0 ? requestedScale : 1;
+    const image = this.image;
+    const scale = this.scale > 0 ? this.scale : 1;
     const { width: srcW, height: srcH } = await decodeRgba(image, context);
     if (!srcW || !srcH) return { output: image };
     const output = await runShaderNode(
@@ -1204,7 +1203,7 @@ type ResizeNodeOutputs = {
   output: ImageRefLike | ImageRef;
 };
 
-export class ResizeNode extends TransformImageNode {
+export class ResizeNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Resize";
   static readonly title = "Resize";
   static readonly deprecated = true;
@@ -1253,11 +1252,11 @@ export class ResizeNode extends TransformImageNode {
   declare height: number;
 
   async process(context?: ProcessingContext): Promise<ResizeNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
+    const image = this.image;
     const { width: srcW, height: srcH } = await decodeRgba(image, context);
     if (!srcW || !srcH) return { output: image };
-    let w = Number(this.width ?? 0);
-    let h = Number(this.height ?? 0);
+    let w = this.width;
+    let h = this.height;
     // A zero dimension means "preserve aspect from the other" (matches the old
     // sharp behaviour where one undefined dimension is derived from the source).
     if (w <= 0 && h <= 0) {
@@ -1302,7 +1301,7 @@ type CanvasResizeNodeOutputs = {
   output: ImageRefLike | ImageRef;
 };
 
-export class CanvasResizeNode extends TransformImageNode {
+export class CanvasResizeNode extends BaseNode {
   static readonly nodeType = "nodetool.image.CanvasResize";
   static readonly title = "Canvas Resize";
   static readonly description =
@@ -1456,11 +1455,11 @@ export class CanvasResizeNode extends TransformImageNode {
   declare color: ColorValue;
 
   async process(context?: ProcessingContext): Promise<CanvasResizeNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
+    const image = this.image;
     const { width: srcW, height: srcH } = await decodeRgba(image, context);
     if (!srcW || !srcH) return { output: image };
-    const mode = String(this.mode ?? "padding");
-    const anchor = String(this.anchor ?? "center");
+    const mode = this.mode;
+    const anchor = this.anchor;
 
     let canvasW: number;
     let canvasH: number;
@@ -1468,24 +1467,24 @@ export class CanvasResizeNode extends TransformImageNode {
     let offsetY: number;
 
     if (mode === "fixed") {
-      canvasW = Math.max(1, Math.floor(Number(this.width ?? srcW)));
-      canvasH = Math.max(1, Math.floor(Number(this.height ?? srcH)));
+      canvasW = Math.max(1, Math.floor(this.width));
+      canvasH = Math.max(1, Math.floor(this.height));
       [offsetX, offsetY] = anchorOffset(anchor, canvasW, canvasH, srcW, srcH);
     } else if (mode === "scale") {
-      const scale = Number(this.scale ?? 0) > 0 ? Number(this.scale ?? 1) : 1;
+      const scale = this.scale > 0 ? this.scale : 1;
       canvasW = Math.max(1, Math.round(srcW * scale));
       canvasH = Math.max(1, Math.round(srcH * scale));
       [offsetX, offsetY] = anchorOffset(anchor, canvasW, canvasH, srcW, srcH);
     } else {
-      const unit = String(this.padding_unit ?? "px");
+      const unit = this.padding_unit;
       const toPx = (val: number, dim: number): number =>
         unit === "percent"
           ? Math.max(0, Math.round((dim * val) / 100))
           : Math.max(0, Math.floor(val));
-      const left = toPx(Number(this.left ?? 0), srcW);
-      const right = toPx(Number(this.right ?? 0), srcW);
-      const top = toPx(Number(this.top ?? 0), srcH);
-      const bottom = toPx(Number(this.bottom ?? 0), srcH);
+      const left = toPx(this.left, srcW);
+      const right = toPx(this.right, srcW);
+      const top = toPx(this.top, srcH);
+      const bottom = toPx(this.bottom, srcH);
       canvasW = Math.max(1, srcW + left + right);
       canvasH = Math.max(1, srcH + top + bottom);
       offsetX = left;
@@ -1566,7 +1565,7 @@ type CropNodeOutputs = {
   output: ImageRefLike | ImageRef;
 };
 
-export class CropNode extends TransformImageNode {
+export class CropNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Crop";
   static readonly title = "Crop";
   static readonly description =
@@ -1632,15 +1631,15 @@ export class CropNode extends TransformImageNode {
   declare bottom: number;
 
   async process(context?: ProcessingContext): Promise<CropNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
+    const image = this.image;
     // Crop is defined in pixels; the GPU crop shader samples a normalized-UV
     // sub-rectangle, so resolve source dims first to convert px → UV.
     const { width: srcW, height: srcH } = await decodeRgba(image, context);
     if (!srcW || !srcH) return { output: image };
-    const left = Math.max(0, Math.min(srcW - 1, Number(this.left ?? 0)));
-    const top = Math.max(0, Math.min(srcH - 1, Number(this.top ?? 0)));
-    const right = Math.max(left + 1, Math.min(srcW, Number(this.right ?? srcW)));
-    const bottom = Math.max(top + 1, Math.min(srcH, Number(this.bottom ?? srcH)));
+    const left = Math.max(0, Math.min(srcW - 1, this.left));
+    const top = Math.max(0, Math.min(srcH - 1, this.top));
+    const right = Math.max(left + 1, Math.min(srcW, this.right));
+    const bottom = Math.max(top + 1, Math.min(srcH, this.bottom));
     const cropW = right - left;
     const cropH = bottom - top;
     const output = await runShaderNode(
@@ -1664,7 +1663,7 @@ type FitNodeOutputs = {
   output: ImageRefLike | ImageRef;
 };
 
-export class FitNode extends TransformImageNode {
+export class FitNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Fit";
   static readonly title = "Fit";
   static readonly deprecated = true;
@@ -1713,9 +1712,9 @@ export class FitNode extends TransformImageNode {
   declare height: number;
 
   async process(context?: ProcessingContext): Promise<FitNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
-    const targetW = Math.max(1, Number(this.width ?? 512));
-    const targetH = Math.max(1, Number(this.height ?? 512));
+    const image = this.image;
+    const targetW = Math.max(1, this.width);
+    const targetH = Math.max(1, this.height);
     const { width: srcW, height: srcH } = await decodeRgba(image, context);
     if (!srcW || !srcH) return { output: image };
     // Fit inside the target box, preserving aspect ratio (never upscale past
@@ -1814,9 +1813,9 @@ export class TextToImageNode extends BaseNode {
   declare resolution: string;
 
   async process(context?: ProcessingContext): Promise<TextToImageNodeOutputs> {
-    const prompt = String(this.prompt ?? "");
-    const aspectRatio = String(this.aspect_ratio ?? "1:1");
-    const resolution = String(this.resolution ?? "1K");
+    const prompt = this.prompt;
+    const aspectRatio = this.aspect_ratio;
+    const resolution = this.resolution;
     const { width, height } = resolveImageSize(resolution, aspectRatio);
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (!hasProviderSupport(context, providerId, modelId)) {
@@ -1955,7 +1954,7 @@ export class ImageToImageNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<ImageToImageNodeOutputs> {
     let images = normalizeImageList(this.image);
-    let prompt = String(this.prompt ?? "");
+    let prompt = this.prompt;
 
     // Inline asset mentions (e.g. from the Prompt composer's @-mention) carry
     // an `asset://<id>.<ext>` image reference in the prompt string. Text tasks
@@ -1992,8 +1991,8 @@ export class ImageToImageNode extends BaseNode {
     if (bytesList.length === 0 && !entityHasImage) {
       throw new Error("The input image is empty.");
     }
-    const aspectRatio = String(this.aspect_ratio ?? "1:1");
-    const resolution = String(this.resolution ?? "1K");
+    const aspectRatio = this.aspect_ratio;
+    const resolution = this.resolution;
     const { width, height } = resolveImageSize(resolution, aspectRatio);
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (!hasProviderSupport(context, providerId, modelId)) {
@@ -2031,7 +2030,7 @@ export class ImageToImageNode extends BaseNode {
   }
 }
 
-export class RotateAndFlipNode extends TransformImageNode {
+export class RotateAndFlipNode extends BaseNode {
   static readonly nodeType = "nodetool.image.RotateAndFlip";
   static readonly title = "Rotate & Flip";
   static readonly description =
@@ -2085,8 +2084,8 @@ export class RotateAndFlipNode extends TransformImageNode {
   async process(
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const image = (this.image ?? {}) as ImageRefLike;
-    const angle = Number(this.angle ?? 0);
+    const image = this.image;
+    const angle = this.angle;
     const flipH = !!this.flip_horizontal;
     const flipV = !!this.flip_vertical;
     const { rgba, width: srcW, height: srcH } = await decodeRgba(image, context);
@@ -2160,7 +2159,7 @@ type ChannelsNodeOutputs = {
   output: ImageRef | ImageRef | ImageRefLike;
 };
 
-export class ChannelsNode extends TransformImageNode {
+export class ChannelsNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Channels";
   static readonly title = "Channels";
   static readonly description =
@@ -2197,8 +2196,8 @@ export class ChannelsNode extends TransformImageNode {
   async process(
     context?: ProcessingContext
   ): Promise<ChannelsNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
-    const channel = String(this.channel ?? "luminance");
+    const image = this.image;
+    const channel = this.channel;
 
     if (channel === "luminance") {
       return {
@@ -2234,7 +2233,7 @@ type BlurNodeOutputs = {
   output: ImageRef | ImageRefLike | ImageRef;
 };
 
-export class BlurNode extends TransformImageNode {
+export class BlurNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Blur";
   static readonly title = "Blur";
   static readonly description =
@@ -2281,9 +2280,9 @@ export class BlurNode extends TransformImageNode {
   async process(
     context?: ProcessingContext
   ): Promise<BlurNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
-    const size = Math.max(0, Math.min(100, Math.round(Number(this.size ?? 0))));
-    const blurType = String(this.blur_type ?? "gaussian");
+    const image = this.image;
+    const size = Math.max(0, Math.min(100, Math.round(this.size)));
+    const blurType = this.blur_type;
 
     if (size <= 0) {
       const { rgba, width, height } = await decodeRgba(image, context);
@@ -2324,7 +2323,7 @@ type LevelsNodeOutputs = {
   output: ImageRefLike | ImageRef;
 };
 
-export class LevelsNode extends TransformImageNode {
+export class LevelsNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Levels";
   static readonly title = "Levels";
   static readonly description =
@@ -2442,20 +2441,20 @@ export class LevelsNode extends TransformImageNode {
   async process(
     context?: ProcessingContext
   ): Promise<LevelsNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
+    const image = this.image;
     const clamp255 = (n: number): number =>
       Math.max(0, Math.min(255, Math.round(n)));
     const clampGamma = (n: number): number => Math.max(0.01, Math.min(10, n));
 
-    const rBlack = clamp255(Number(this.r_black ?? 0));
-    const rWhite = clamp255(Number(this.r_white ?? 255));
-    const rGamma = clampGamma(Number(this.r_gamma ?? 1));
-    const gBlack = clamp255(Number(this.g_black ?? 0));
-    const gWhite = clamp255(Number(this.g_white ?? 255));
-    const gGamma = clampGamma(Number(this.g_gamma ?? 1));
-    const bBlack = clamp255(Number(this.b_black ?? 0));
-    const bWhite = clamp255(Number(this.b_white ?? 255));
-    const bGamma = clampGamma(Number(this.b_gamma ?? 1));
+    const rBlack = clamp255(this.r_black);
+    const rWhite = clamp255(this.r_white);
+    const rGamma = clampGamma(this.r_gamma);
+    const gBlack = clamp255(this.g_black);
+    const gWhite = clamp255(this.g_white);
+    const gGamma = clampGamma(this.g_gamma);
+    const bBlack = clamp255(this.b_black);
+    const bWhite = clamp255(this.b_white);
+    const bGamma = clampGamma(this.b_gamma);
 
     const { rgba, width, height } = await decodeRgba(image, context);
     if (!width || !height) return { output: image };
@@ -2749,7 +2748,7 @@ export class PainterNode extends BaseNode {
     title: "Image",
     description: "Source image painted on (passed through to output)."
   })
-  declare image: unknown;
+  declare image: ImageRefLike;
 
   @prop({
     type: "str",
@@ -2782,7 +2781,7 @@ export class PainterNode extends BaseNode {
   async process(
     context?: ProcessingContext
   ): Promise<PainterNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
+    const image = this.image;
 
     // Pass the source image through (resolved bytes if available) so
     // downstream nodes that want the original image can branch off the
@@ -2805,14 +2804,8 @@ export class PainterNode extends BaseNode {
       // Fall back to a transparent canvas. Prefer the source image's
       // dimensions; otherwise use the user-configured canvas size; finally
       // 1×1 if nothing is known.
-      const w = Math.max(
-        1,
-        Number(image.width ?? this.canvas_width ?? 1)
-      );
-      const h = Math.max(
-        1,
-        Number(image.height ?? this.canvas_height ?? 1)
-      );
+      const w = Math.max(1, image.width ?? this.canvas_width);
+      const h = Math.max(1, image.height ?? this.canvas_height);
       try {
         const sharp = await loadSharp();
         if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
@@ -2927,7 +2920,7 @@ export class UpscaleImageNode extends BaseNode {
   declare prompt: string;
 
   async process(context?: ProcessingContext): Promise<UpscaleImageNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
+    const image = this.image;
     const bytes = await imageBytesAsync(image, context);
     if (bytes.length === 0) throw new Error("The input image is empty.");
     const { providerId, modelId } = getModelConfig(this.serialize());
@@ -2940,8 +2933,8 @@ export class UpscaleImageNode extends BaseNode {
       model: modelId,
       params: {
         image: bytes,
-        scale: Number(this.scale ?? 2) || undefined,
-        prompt: this.prompt ? String(this.prompt) : undefined
+        scale: this.scale,
+        prompt: this.prompt || undefined
       }
     })) as Uint8Array;
     const meta = await metadataFor(output);
@@ -2995,7 +2988,7 @@ export class RemoveBackgroundNode extends BaseNode {
   declare image: ImageRefLike;
 
   async process(context?: ProcessingContext): Promise<RemoveBackgroundNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
+    const image = this.image;
     const bytes = await imageBytesAsync(image, context);
     if (bytes.length === 0) throw new Error("The input image is empty.");
     const { providerId, modelId } = getModelConfig(this.serialize());
@@ -3075,7 +3068,7 @@ export class RelightImageNode extends BaseNode {
   declare negative_prompt: string;
 
   async process(context?: ProcessingContext): Promise<RelightImageNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
+    const image = this.image;
     const bytes = await imageBytesAsync(image, context);
     if (bytes.length === 0) throw new Error("The input image is empty.");
     const { providerId, modelId } = getModelConfig(this.serialize());
@@ -3088,7 +3081,7 @@ export class RelightImageNode extends BaseNode {
       model: modelId,
       params: {
         image: bytes,
-        prompt: String(this.prompt ?? ""),
+        prompt: this.prompt,
         negative_prompt: this.negative_prompt
       }
     })) as Uint8Array;
@@ -3223,24 +3216,24 @@ export class SegmentImageNode extends BaseNode {
   declare min_confidence: number;
 
   async process(context?: ProcessingContext): Promise<SegmentImageNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
+    const image = this.image;
     const bytes = await imageBytesAsync(image, context);
     if (bytes.length === 0) throw new Error("The input image is empty.");
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (!hasProviderSupport(context, providerId, modelId)) {
       throw new Error("No provider available for image segmentation.");
     }
-    const minConfidence = Number(this.min_confidence ?? 0);
+    const minConfidence = this.min_confidence;
     const found = (await context.runProviderPrediction({
       provider: providerId,
       capability: "segment_image",
       model: modelId,
       params: {
         image: bytes,
-        prompt: this.prompt ? String(this.prompt) : undefined,
+        prompt: this.prompt || undefined,
         points: segmentPoints(this.points),
         box: segmentBox(this.box),
-        max_masks: Number(this.max_masks ?? 3) || undefined,
+        max_masks: this.max_masks || undefined,
         // 0 is "keep every mask", not a threshold to send.
         min_confidence: minConfidence > 0 ? minConfidence : undefined
       }
@@ -3301,7 +3294,7 @@ export class VectorizeImageNode extends BaseNode {
   declare image: ImageRefLike;
 
   async process(context?: ProcessingContext): Promise<VectorizeImageNodeOutputs> {
-    const image = (this.image ?? {}) as ImageRefLike;
+    const image = this.image;
     const bytes = await imageBytesAsync(image, context);
     if (bytes.length === 0) throw new Error("The input image is empty.");
     const { providerId, modelId } = getModelConfig(this.serialize());

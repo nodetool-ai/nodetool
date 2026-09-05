@@ -1,6 +1,5 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { isBoolean, isNumber } from "../utils/typePredicates";
+import { createResizablePanelStore } from "./createResizablePanelStore";
+import { isObjectLike } from "../utils/typePredicates";
 
 /**
  * Bottom panel hosts secondary workflow tools that used to live in PanelRight.
@@ -39,184 +38,38 @@ export const BOTTOM_PANEL_GROUPS: ReadonlyArray<{
   { id: "debug", label: "Debug", views: ["trace"] }
 ];
 
-const ALL_BOTTOM_VIEWS: BottomPanelView[] = BOTTOM_PANEL_GROUPS.flatMap(
-  (g) => [...g.views]
-);
+const ALL_BOTTOM_VIEWS: BottomPanelView[] = BOTTOM_PANEL_GROUPS.flatMap((g) => [
+  ...g.views
+]);
 
-function isPersistedShape(
-  value: unknown
-): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+const isBottomPanelView = (value: unknown): value is BottomPanelView =>
+  typeof value === "string" &&
+  (ALL_BOTTOM_VIEWS as readonly string[]).includes(value);
 
-function isBottomPanelView(value: unknown): value is BottomPanelView {
-  return typeof value === "string" && (ALL_BOTTOM_VIEWS as readonly string[]).includes(value);
-}
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  isObjectLike(value) && !Array.isArray(value);
 
-interface PanelState {
-  panelSize: number;
-  isVisible: boolean;
-  isDragging: boolean;
-  hasDragged: boolean;
-  minHeight: number;
-  maxHeight: number;
-  defaultHeight: number;
-  activeView: BottomPanelView;
-}
-
-interface ResizePanelState {
-  panel: PanelState;
-  setSize: (newSize: number) => void;
-  setIsDragging: (isDragging: boolean) => void;
-  setHasDragged: (hasDragged: boolean) => void;
-  initializePanelSize: (size?: number) => void;
-  setActiveView: (view: BottomPanelView) => void;
-  closePanel: () => void;
-  handleViewChange: (view: BottomPanelView) => void;
-  setVisibility: (isVisible: boolean) => void;
-}
-
-const DEFAULT_PANEL_SIZE = 320;
-const MIN_DRAG_SIZE = 40;
-const MIN_PANEL_SIZE = 200;
-const MAX_PANEL_SIZE = 700;
-
-const createInitialState = (): PanelState => ({
-  panelSize: DEFAULT_PANEL_SIZE,
-  isVisible: false,
-  isDragging: false,
-  hasDragged: false,
-  minHeight: MIN_DRAG_SIZE,
-  maxHeight: MAX_PANEL_SIZE,
-  defaultHeight: DEFAULT_PANEL_SIZE,
-  activeView: "logs"
-});
-
-export const useBottomPanelStore = create<ResizePanelState>()(
-  persist(
-    (set) => ({
-      panel: createInitialState(),
-
-      setSize: (newSize: number) =>
-        set((state: ResizePanelState) => {
-          if (newSize <= MIN_DRAG_SIZE) {
-            return { panel: { ...state.panel, panelSize: MIN_DRAG_SIZE } };
-          }
-          const validSize = Math.min(newSize, MAX_PANEL_SIZE);
-          return { panel: { ...state.panel, panelSize: validSize } };
-        }),
-
-      setIsDragging: (isDragging: boolean) =>
-        set((state: ResizePanelState) => ({
-          panel: { ...state.panel, isDragging }
-        })),
-
-      setHasDragged: (hasDragged: boolean) =>
-        set((state: ResizePanelState) => ({
-          panel: { ...state.panel, hasDragged }
-        })),
-
-      initializePanelSize: (size?: number) => {
-        const validSize = Math.max(
-          MIN_PANEL_SIZE,
-          Math.min(size || DEFAULT_PANEL_SIZE, MAX_PANEL_SIZE)
-        );
-        set((state: ResizePanelState) => ({
-          panel: { ...state.panel, panelSize: validSize }
-        }));
-      },
-
-      setActiveView: (view: BottomPanelView) =>
-        set((state: ResizePanelState) => ({
-          panel: { ...state.panel, activeView: view }
-        })),
-
-      closePanel: () =>
-        set((state: ResizePanelState) => ({
-          panel: { ...state.panel, panelSize: MIN_DRAG_SIZE, isVisible: false }
-        })),
-
-      setVisibility: (isVisible: boolean) =>
-        set((state: ResizePanelState) => ({
-          panel: { ...state.panel, isVisible }
-        })),
-
-      handleViewChange: (view: BottomPanelView) => {
-        set((state: ResizePanelState) => {
-          const { panel } = state;
-          if (panel.activeView === view) {
-            if (!panel.isVisible && panel.panelSize < MIN_PANEL_SIZE) {
-              return {
-                panel: {
-                  ...panel,
-                  panelSize: MIN_PANEL_SIZE,
-                  isVisible: true
-                }
-              };
-            } else {
-              return {
-                panel: { ...panel, isVisible: !panel.isVisible }
-              };
-            }
-          } else {
-            return {
-              panel: { ...panel, activeView: view, isVisible: true }
-            };
-          }
-        });
-      }
-    }),
-    {
-      name: "bottom-panel-storage",
-      version: 3,
-      // v3 removed the "workspace" view — the file browser lives in the left
-      // panel now. A persisted selection of it would leave the panel showing
-      // nothing, so it falls back to the default view.
-      migrate: (persistedState, _version) => {
-        if (!isPersistedShape(persistedState)) {
-          return persistedState;
-        }
-        const panel = persistedState.panel;
-        if (!isPersistedShape(panel) || panel.activeView !== "workspace") {
-          return persistedState;
-        }
-        return {
-          ...persistedState,
-          panel: { ...panel, activeView: "logs" }
-        };
-      },
-      partialize: (state: ResizePanelState) => ({
-        panel: {
-          panelSize: state.panel.panelSize,
-          isVisible: state.panel.isVisible,
-          activeView: state.panel.activeView
-        }
-      }),
-      merge: (persistedState, currentState) => {
-        const persisted = (persistedState ?? {}) as Partial<ResizePanelState>;
-        const persistedPanel = (persisted.panel ?? {}) as Partial<PanelState>;
-        const activeView = isBottomPanelView(persistedPanel.activeView)
-          ? persistedPanel.activeView
-          : currentState.panel.activeView;
-        return {
-          ...currentState,
-          panel: {
-            ...currentState.panel,
-            panelSize:
-              isNumber(persistedPanel.panelSize)
-                ? Math.max(
-                    MIN_DRAG_SIZE,
-                    Math.min(persistedPanel.panelSize, MAX_PANEL_SIZE)
-                  )
-                : currentState.panel.panelSize,
-            isVisible:
-              isBoolean(persistedPanel.isVisible)
-                ? persistedPanel.isVisible
-                : currentState.panel.isVisible,
-            activeView
-          }
-        };
-      }
+export const useBottomPanelStore = createResizablePanelStore<BottomPanelView>({
+  name: "bottom-panel-storage",
+  version: 3,
+  sizes: { drag: 40, min: 200, max: 700, initial: 320 },
+  defaultView: "logs",
+  isView: isBottomPanelView,
+  persistVisibility: true,
+  // v3 removed the "workspace" view — the file browser lives in the left
+  // panel now. A persisted selection of it would leave the panel showing
+  // nothing, so it falls back to the default view.
+  migrate: (persistedState) => {
+    if (!isRecord(persistedState)) {
+      return persistedState;
     }
-  )
-);
+    const panel = persistedState.panel;
+    if (!isRecord(panel) || panel.activeView !== "workspace") {
+      return persistedState;
+    }
+    return {
+      ...persistedState,
+      panel: { ...panel, activeView: "logs" }
+    };
+  }
+});

@@ -11,6 +11,9 @@ import {
   tjsModelDefault,
   normalizeOption
 } from "../transformers-base.js";
+import type {
+  HfModelRef
+} from "../transformers-base.js";
 import { defaultRepoFor } from "../recommended-models.js";
 
 const TJS_TYPE = "tjs.text_generation";
@@ -51,7 +54,7 @@ export class TextGenerationNode extends BaseNode {
     title: "Prompt",
     description: "Prompt for the language model."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: TJS_TYPE,
@@ -59,7 +62,7 @@ export class TextGenerationNode extends BaseNode {
     title: "Model",
     description: "Transformers.js model (ONNX-compatible)."
   })
-  declare model: any;
+  declare model: HfModelRef;
 
   @prop({
     type: "int",
@@ -69,7 +72,7 @@ export class TextGenerationNode extends BaseNode {
     min: 1,
     max: 4096
   })
-  declare max_new_tokens: any;
+  declare max_new_tokens: number;
 
   @prop({
     type: "float",
@@ -79,7 +82,7 @@ export class TextGenerationNode extends BaseNode {
     min: 0.0,
     max: 5.0
   })
-  declare temperature: any;
+  declare temperature: number;
 
   @prop({
     type: "float",
@@ -89,7 +92,7 @@ export class TextGenerationNode extends BaseNode {
     min: 0.0,
     max: 1.0
   })
-  declare top_p: any;
+  declare top_p: number;
 
   @prop({
     type: "int",
@@ -99,7 +102,7 @@ export class TextGenerationNode extends BaseNode {
     min: 0,
     max: 1000
   })
-  declare top_k: any;
+  declare top_k: number;
 
   @prop({
     type: "bool",
@@ -107,7 +110,7 @@ export class TextGenerationNode extends BaseNode {
     title: "Do Sample",
     description: "Sample tokens instead of greedy decoding."
   })
-  declare do_sample: any;
+  declare do_sample: boolean;
 
   @prop({
     type: "float",
@@ -117,7 +120,7 @@ export class TextGenerationNode extends BaseNode {
     min: 0.5,
     max: 5.0
   })
-  declare repetition_penalty: any;
+  declare repetition_penalty: number;
 
   @prop({
     type: "enum",
@@ -126,7 +129,7 @@ export class TextGenerationNode extends BaseNode {
     description: "Model dtype / quantization level.",
     values: DTYPE_VALUES
   })
-  declare dtype: any;
+  declare dtype: string;
 
   @prop({
     type: "enum",
@@ -135,7 +138,7 @@ export class TextGenerationNode extends BaseNode {
     description: "Inference device.",
     values: DEVICE_VALUES
   })
-  declare device: any;
+  declare device: string;
 
   async process(): Promise<TextGenerationNodeOutputs> {
     const prompt = asString(this.prompt);

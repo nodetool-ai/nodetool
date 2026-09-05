@@ -308,8 +308,6 @@ export interface GlobalChatState {
 
   // Task updates
   currentTaskUpdate: TaskUpdate | null;
-  currentTaskUpdateThreadId: string | null;
-  lastTaskUpdatesByThread: Record<string, TaskUpdate | null>;
 
   // Log updates
   currentLogUpdate: LogUpdate | null;
@@ -370,12 +368,7 @@ export interface GlobalChatState {
   getCurrentMessages: () => Message[];
   loadMessages: (threadId: string, cursor?: string) => Promise<Message[]>;
   updateThreadTitle: (threadId: string, title: string) => Promise<void>;
-  summarizeThread: (
-    threadId: string,
-    provider: string,
-    model: string,
-    content: string
-  ) => Promise<void>;
+  summarizeThread: (threadId: string) => Promise<void>;
   /** Stop generation on `threadId`, or the current thread when omitted. */
   stopGeneration: (threadId?: string) => void;
 
@@ -683,8 +676,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       // Task updates
       currentTaskUpdate: null,
-      currentTaskUpdateThreadId: null,
-      lastTaskUpdatesByThread: {},
 
       // Log updates
       currentLogUpdate: null,
@@ -1577,15 +1568,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
       },
 
-      summarizeThread: async (
-        threadId: string,
-        _provider: string,
-        _model: string,
-        _content: string
-      ) => {
-        // Note: the server derives the title from existing thread messages and
-        // ignores provider/model/content. Kept in the signature for backward
-        // compatibility with existing callers.
+      // The server derives the title from the thread's stored messages.
+      summarizeThread: async (threadId: string) => {
         try {
           const data = await trpcClient.threads.summarize.mutate({
             id: threadId
@@ -1902,68 +1886,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
     }
   )
 );
-
-// Network status monitoring
-const registerGlobalChatListeners = () => {
-  if (typeof window === "undefined") {
-    return () => {};
-  }
-
-  const handleOnline = () => {
-    const state = useGlobalChatStore.getState();
-    if (state.status === "disconnected" || state.status === "failed") {
-      console.info(
-        "Network came online, connection will be established automatically"
-      );
-      // globalWebSocketManager handles reconnection automatically
-    }
-  };
-
-  const handleOffline = () => {
-    console.info("Network went offline");
-    // The WebSocket will close automatically, triggering our reconnection logic
-  };
-
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === "visible") {
-      const state = useGlobalChatStore.getState();
-      if (state.status === "disconnected" || state.status === "failed") {
-        console.info(
-          "Tab became visible, connection will be established automatically"
-        );
-        // globalWebSocketManager handles reconnection automatically
-      }
-    }
-  };
-
-  window.addEventListener("online", handleOnline);
-  window.addEventListener("offline", handleOffline);
-  document.addEventListener("visibilitychange", handleVisibilityChange);
-
-  return () => {
-    window.removeEventListener("online", handleOnline);
-    window.removeEventListener("offline", handleOffline);
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
-  };
-};
-
-// Guard against multiple registrations from HMR / multi-bundle loads. Each
-// extra import would otherwise install another set of listeners that the
-// `return cleanup` path never calls back into.
-declare global {
-  interface Window {
-    __nodetoolGlobalChatListenersBound?: boolean;
-    __nodetoolGlobalChatListenersCleanup?: () => void;
-  }
-}
-
-if (
-  typeof window !== "undefined" &&
-  !window.__nodetoolGlobalChatListenersBound
-) {
-  window.__nodetoolGlobalChatListenersBound = true;
-  window.__nodetoolGlobalChatListenersCleanup = registerGlobalChatListeners();
-}
 
 // Custom hook for TanStack Query thread loading
 export const useThreadsQuery = () => {

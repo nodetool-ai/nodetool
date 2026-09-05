@@ -150,7 +150,6 @@ describe("chatProtocol", () => {
           sendMessageTimeoutId: null
         }
       },
-      lastTaskUpdatesByThread: {},
       messageCache: { "thread-1": [] },
       selectedModel: { provider: "", id: "" },
       summarizeThread: jest.fn(),
@@ -197,7 +196,7 @@ describe("chatProtocol", () => {
       });
     });
 
-    it("routes task_update to the thread runtime and the last-update map", async () => {
+    it("routes task_update to the thread runtime", async () => {
       const state = await dispatch({
         type: "task_update",
         thread_id: "thread-1",
@@ -206,9 +205,6 @@ describe("chatProtocol", () => {
       });
 
       expect(state.threadRuntime["thread-1"].taskUpdate).toMatchObject({
-        event: "task_created"
-      });
-      expect(state.lastTaskUpdatesByThread["thread-1"]).toMatchObject({
         event: "task_created"
       });
     });
@@ -517,7 +513,6 @@ describe("chatProtocol", () => {
       statusMessage: "Thinking...",
       currentPlanningUpdate: { planning_status: "in_progress" },
       currentTaskUpdate: { execution_status: "running" },
-      currentTaskUpdateThreadId: "thread-1",
       currentLogUpdate: { message: "step started" },
       threads: {
         "thread-1": {
@@ -564,7 +559,6 @@ describe("chatProtocol", () => {
     expect(capturedState.statusMessage).toBeNull();
     expect(capturedState.currentPlanningUpdate).toBeNull();
     expect(capturedState.currentTaskUpdate).toBeNull();
-    expect(capturedState.currentTaskUpdateThreadId).toBeNull();
     expect(capturedState.currentLogUpdate).toBeNull();
     expect(capturedState.messageCache["thread-1"]).toHaveLength(2);
 

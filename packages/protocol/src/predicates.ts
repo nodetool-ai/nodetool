@@ -64,9 +64,16 @@ export function isObjectLike(
   return typeof value === "object" && value !== null;
 }
 
-/** A callable slot on an object whose shape is only partly known. */
+/**
+ * A callable slot on an object whose shape is only partly known.
+ *
+ * The narrowed signature returns `void`, not `unknown`: narrowing a union
+ * still selects the original member (so a typed callback keeps its real
+ * signature at the call site), while narrowing a bare `unknown` gives a
+ * caller no result to misuse.
+ */
 export function isCallable(
   value: unknown
-): value is (...args: never[]) => unknown {
+): value is (...args: never[]) => void {
   return typeof value === "function";
 }

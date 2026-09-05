@@ -9,6 +9,9 @@ import {
   tjsModelDefault,
   normalizeOption
 } from "../transformers-base.js";
+import type {
+  HfModelRef
+} from "../transformers-base.js";
 import { defaultRepoFor } from "../recommended-models.js";
 
 const TJS_TYPE = "tjs.zero_shot_classification";
@@ -62,7 +65,7 @@ export class ZeroShotClassificationNode extends BaseNode {
     title: "Text",
     description: "Text to classify."
   })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: "str",
@@ -70,7 +73,7 @@ export class ZeroShotClassificationNode extends BaseNode {
     title: "Candidate Labels",
     description: "Comma-separated list of candidate labels."
   })
-  declare candidate_labels: any;
+  declare candidate_labels: string;
 
   @prop({
     type: "bool",
@@ -78,7 +81,7 @@ export class ZeroShotClassificationNode extends BaseNode {
     title: "Multi-label",
     description: "Allow multiple labels to be true simultaneously."
   })
-  declare multi_label: any;
+  declare multi_label: boolean;
 
   @prop({
     type: TJS_TYPE,
@@ -86,7 +89,7 @@ export class ZeroShotClassificationNode extends BaseNode {
     title: "Model",
     description: "Transformers.js model (ONNX-compatible)."
   })
-  declare model: any;
+  declare model: HfModelRef;
 
   @prop({
     type: "str",
@@ -94,7 +97,7 @@ export class ZeroShotClassificationNode extends BaseNode {
     title: "Hypothesis Template",
     description: "Template used to construct the entailment hypothesis."
   })
-  declare hypothesis_template: any;
+  declare hypothesis_template: string;
 
   @prop({
     type: "enum",
@@ -103,7 +106,7 @@ export class ZeroShotClassificationNode extends BaseNode {
     description: "Model dtype / quantization level.",
     values: DTYPE_VALUES
   })
-  declare dtype: any;
+  declare dtype: string;
 
   @prop({
     type: "enum",
@@ -112,7 +115,7 @@ export class ZeroShotClassificationNode extends BaseNode {
     description: "Inference device.",
     values: DEVICE_VALUES
   })
-  declare device: any;
+  declare device: string;
 
   async process(): Promise<ZeroShotClassificationNodeOutputs> {
     const text = asString(this.text);

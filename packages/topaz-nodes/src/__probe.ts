@@ -1,2 +1,2 @@
-import { nonexistentSymbol } from "@nodetool-ai/runtime/provider-transport";
-export const x = nonexistentSymbol;
+import { nonexistentSymbolXyz } from "@nodetool-ai/runtime/provider-transport";
+export const probeX = nonexistentSymbolXyz;

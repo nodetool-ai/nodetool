@@ -526,12 +526,8 @@ const applyChunk = (
   }
 
   const postAction = (get: ChatStateGetter) => {
-    const { selectedModel, summarizeThread, updateThreadTitle } = get();
+    const { summarizeThread, updateThreadTitle } = get();
     const messagesAfterUpdate = get().messageCache[threadId] || [];
-    if (messagesAfterUpdate.length === 2) {
-      console.debug("Triggering thread summarization for thread:", threadId);
-    }
-
     const assistantMessages = messagesAfterUpdate.filter(
       (msg) => msg.role === "assistant"
     );
@@ -542,14 +538,7 @@ const applyChunk = (
       }
     }
 
-    if (selectedModel.provider && selectedModel.id) {
-      summarizeThread(
-        threadId,
-        selectedModel.provider,
-        selectedModel.id,
-        JSON.stringify(messagesAfterUpdate)
-      );
-    }
+    summarizeThread(threadId);
   };
 
   return {
@@ -843,10 +832,6 @@ const applyAgentExecutionMessage = (
         update,
         threadRuntimeUpdate(state, threadId, { taskUpdate: content })
       );
-      update.lastTaskUpdatesByThread = {
-        ...state.lastTaskUpdatesByThread,
-        [threadId]: content
-      };
     }
   } else if (msg.execution_event_type === "log_update") {
     if (isLogUpdateContent(content)) {
@@ -1568,13 +1553,7 @@ export async function handleChatWebSocketMessage(
   } else if (data.type === "task_update") {
     if (tid) {
       const taskUpdate = data;
-      set((state) => ({
-        ...threadRuntimeUpdate(state, tid, { taskUpdate }),
-        lastTaskUpdatesByThread: {
-          ...state.lastTaskUpdatesByThread,
-          [tid]: taskUpdate
-        }
-      }));
+      set((state) => threadRuntimeUpdate(state, tid, { taskUpdate }));
     }
   } else if (data.type === "log_update") {
     if (tid) {

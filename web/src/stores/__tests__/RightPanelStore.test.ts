@@ -34,9 +34,9 @@ describe("RightPanelStore", () => {
 
     it("has correct size constraints", () => {
       const { panel } = useRightPanelStore.getState();
-      expect(panel.minWidth).toBe(60);
-      expect(panel.maxWidth).toBe(600);
-      expect(panel.defaultWidth).toBe(350);
+      expect(panel.minSize).toBe(60);
+      expect(panel.maxSize).toBe(600);
+      expect(panel.defaultSize).toBe(350);
     });
   });
 

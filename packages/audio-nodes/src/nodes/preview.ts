@@ -20,10 +20,11 @@ export class PreviewNode extends BaseNode {
   static readonly inputFields = ["value"];
 
   @prop({ type: "any", default: null })
-  declare value: any;
+  declare value: unknown;
 
+  /** Display label for the preview card; read by the editor, not by process(). */
   @prop({ type: "str", default: "" })
-  declare name: any;
+  declare name: string;
 
   private async normalize(
     value: unknown,

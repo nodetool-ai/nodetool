@@ -25,7 +25,7 @@ export const isInteger = (value: unknown): value is number =>
 
 export const isCallable = (
   value: unknown
-): value is (...args: never[]) => unknown => typeof value === "function";
+): value is (...args: never[]) => void => typeof value === "function";
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);

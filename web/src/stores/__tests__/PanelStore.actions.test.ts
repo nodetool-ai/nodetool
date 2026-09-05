@@ -22,7 +22,7 @@ describe("PanelStore actions", () => {
 
       const { panel } = usePanelStore.getState();
       expect(panel.isVisible).toBe(false);
-      expect(panel.panelSize).toBe(panel.minWidth);
+      expect(panel.panelSize).toBe(panel.minSize);
     });
   });
 
@@ -78,13 +78,13 @@ describe("PanelStore actions", () => {
     it("clamps to maximum panel size", () => {
       usePanelStore.getState().initializePanelSize(5000);
       const { panel } = usePanelStore.getState();
-      expect(panel.panelSize).toBeLessThanOrEqual(panel.maxWidth);
+      expect(panel.panelSize).toBeLessThanOrEqual(panel.maxSize);
     });
 
     it("uses default when no size provided", () => {
       usePanelStore.getState().initializePanelSize();
       const { panel } = usePanelStore.getState();
-      expect(panel.panelSize).toBe(panel.defaultWidth);
+      expect(panel.panelSize).toBe(panel.defaultSize);
     });
   });
 
@@ -137,14 +137,14 @@ describe("PanelStore actions", () => {
     });
 
     it("reopens and expands collapsed panel for same view", () => {
-      const { minWidth } = usePanelStore.getState().panel;
+      const { minSize } = usePanelStore.getState().panel;
       usePanelStore.setState({
         ...usePanelStore.getState(),
         panel: {
           ...usePanelStore.getState().panel,
           activeView: "workflows",
           isVisible: false,
-          panelSize: minWidth
+          panelSize: minSize
         }
       });
 
@@ -157,17 +157,17 @@ describe("PanelStore actions", () => {
   });
 
   describe("setSize edge cases", () => {
-    it("clamps negative values to minWidth", () => {
+    it("clamps negative values to minSize", () => {
       usePanelStore.getState().setSize(-100);
       expect(usePanelStore.getState().panel.panelSize).toBe(
-        usePanelStore.getState().panel.minWidth
+        usePanelStore.getState().panel.minSize
       );
     });
 
-    it("clamps exactly at minWidth boundary", () => {
-      const { minWidth } = usePanelStore.getState().panel;
-      usePanelStore.getState().setSize(minWidth);
-      expect(usePanelStore.getState().panel.panelSize).toBe(minWidth);
+    it("clamps exactly at minSize boundary", () => {
+      const { minSize } = usePanelStore.getState().panel;
+      usePanelStore.getState().setSize(minSize);
+      expect(usePanelStore.getState().panel.panelSize).toBe(minSize);
     });
 
     it("accepts values within valid range", () => {

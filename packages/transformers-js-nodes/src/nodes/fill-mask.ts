@@ -11,6 +11,9 @@ import {
   tjsModelDefault,
   normalizeOption
 } from "../transformers-base.js";
+import type {
+  HfModelRef
+} from "../transformers-base.js";
 import { defaultRepoFor } from "../recommended-models.js";
 
 const TJS_TYPE = "tjs.fill_mask";
@@ -51,7 +54,7 @@ export class FillMaskNode extends BaseNode {
     title: "Text",
     description: "Text containing a single mask token (e.g. [MASK] or <mask>)."
   })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: TJS_TYPE,
@@ -59,7 +62,7 @@ export class FillMaskNode extends BaseNode {
     title: "Model",
     description: "Transformers.js model (ONNX-compatible)."
   })
-  declare model: any;
+  declare model: HfModelRef;
 
   @prop({
     type: "int",
@@ -69,7 +72,7 @@ export class FillMaskNode extends BaseNode {
     min: 1,
     max: 50
   })
-  declare top_k: any;
+  declare top_k: number;
 
   @prop({
     type: "enum",
@@ -78,7 +81,7 @@ export class FillMaskNode extends BaseNode {
     description: "Model dtype / quantization level.",
     values: DTYPE_VALUES
   })
-  declare dtype: any;
+  declare dtype: string;
 
   @prop({
     type: "enum",
@@ -87,7 +90,7 @@ export class FillMaskNode extends BaseNode {
     description: "Inference device.",
     values: DEVICE_VALUES
   })
-  declare device: any;
+  declare device: string;
 
   async process(): Promise<FillMaskNodeOutputs> {
     const text = asString(this.text);
