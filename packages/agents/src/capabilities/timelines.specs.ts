@@ -600,7 +600,14 @@ export const previewTimelineFrameSpec: CapabilitySpec = {
     "face', 'is the fade halfway at 2s'. Returns one image handle per " +
     "timecode (call view_image on one to see the pixels) plus, for each " +
     "frame, the layers in composite order with their opacity, blend mode " +
-    "and wipe progress. Unlike get_clip_frames, which samples one clip's " +
+    "and wipe progress. A frame's `degraded` list names where this " +
+    "compositor drew something the export will draw differently — a " +
+    "feathered mask or wipe drawn as a hard edge, a track matte skipped, a " +
+    "group's blend mode lost, a second drop shadow not cast, brightness " +
+    "applied as a multiply instead of the export's addition — each with the " +
+    "clip it happened to; `effects_not_applied` names the effect types it " +
+    "cannot draw at all. Both empty means the preview is the export. " +
+    "Unlike get_clip_frames, which samples one clip's " +
     "source media, this is the finished picture. Needs no browser, GPU or " +
     "open editor. Sample the middle of an animation, not its endpoints — " +
     "the endpoints are the states you already know. `range` sweeps a window " +

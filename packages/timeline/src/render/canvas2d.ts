@@ -326,11 +326,17 @@ const CANVAS_EFFECT_TYPES = new Set([
  *
  * A grade is reported per channel rather than per type: `ctx.filter` carries
  * brightness, contrast, saturation and hue, and has no white balance at all, so
- * a `color` or `colorCorrection` effect that moves temperature or tint is
- * partly applied. Those two come back as `color.temperature` and `color.tint`,
- * at the identity the GPU grade uses (0 for both) — including on the effect the
- * scene model synthesizes for an animated grade, which arrives here as an
- * ordinary enabled `color`.
+ * a `color` or `colorCorrection` effect that moves temperature, tint, shadows
+ * or highlights is partly applied. Those come back as `color.temperature`,
+ * `color.tint`, `color.shadows` and `color.highlights`, at the identity the GPU
+ * grade uses (0 for all four) — including on the effect the scene model
+ * synthesizes for an animated grade, which arrives here as an ordinary enabled
+ * `color`.
+ *
+ * Brightness is not on this list: this path applies the GPU's addition itself
+ * when the host vends a scratch surface, and reports the CSS-multiply fallback
+ * as a {@link Canvas2DDegradation} instead, because whether it degraded is a
+ * property of the frame draw and not of the effect list.
  */
 export function unsupportedEffectTypes(
   layers: readonly {
@@ -342,9 +348,13 @@ export function unsupportedEffectTypes(
   const grade = (channel: {
     temperature?: number;
     tint?: number;
+    shadows?: number;
+    highlights?: number;
   }): void => {
     if (Math.abs(channel.temperature ?? 0) > 0.001) found.add("color.temperature");
     if (Math.abs(channel.tint ?? 0) > 0.001) found.add("color.tint");
+    if (Math.abs(channel.shadows ?? 0) > 0.001) found.add("color.shadows");
+    if (Math.abs(channel.highlights ?? 0) > 0.001) found.add("color.highlights");
   };
   for (const layer of layers) {
     for (const e of layer.effects ?? []) {
@@ -416,7 +426,8 @@ function clearShadow<TSource>(ctx: CompositeContext2D<TSource>): void {
  * Composite `layers` onto `ctx`, bottom-up by `zIndex`, over an opaque black
  * ground — the same clear the GPU compositor starts from, and with
  * `options.alpha` the same transparent one. The context is left in the reset
- * state. Returns the layers that drew nothing, in composite order.
+ * state. Returns the layers that drew nothing and every way this frame differs
+ * from the GPU render, both in composite order.
  *
  * A layer naming a precomposite in `options.precomposites` draws onto that
  * group's own surface first, and the surface blends once at the group's z. With
@@ -428,7 +439,7 @@ export function drawTimelineFrame<TSource>(
   layers: readonly Canvas2DLayer<TSource>[],
   geometry: Canvas2DFrameGeometry,
   options: DrawTimelineFrameOptions<TSource> = {}
-): Canvas2DLayer<TSource>[] {
+): Canvas2DFrameReport<TSource> {
   resetContext(ctx);
   if (options.alpha === true) {
     ctx.clearRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
@@ -438,15 +449,22 @@ export function drawTimelineFrame<TSource>(
   }
 
   const skipped: Canvas2DLayer<TSource>[] = [];
-  const stack = composePrecomposites(layers, geometry, options, skipped);
+  const degraded: Canvas2DDegradation[] = [];
+  const stack = composePrecomposites(
+    layers,
+    geometry,
+    options,
+    skipped,
+    degraded
+  );
   const ordered = [...stack].sort((a, b) => a.zIndex - b.zIndex);
   for (const layer of ordered) {
-    if (!drawTimelineLayer(ctx, layer, geometry, options)) {
+    if (!drawTimelineLayer(ctx, layer, geometry, options, degraded)) {
       skipped.push(layer);
     }
   }
   resetContext(ctx);
-  return skipped;
+  return { skipped, degraded };
 }
 
 /**
@@ -464,7 +482,8 @@ function composePrecomposites<TSource>(
   layers: readonly Canvas2DLayer<TSource>[],
   geometry: Canvas2DFrameGeometry,
   options: DrawTimelineFrameOptions<TSource>,
-  skipped: Canvas2DLayer<TSource>[]
+  skipped: Canvas2DLayer<TSource>[],
+  degraded: Canvas2DDegradation[]
 ): Canvas2DLayer<TSource>[] {
   const groups = options.precomposites ?? [];
   if (groups.length === 0) return [...layers];
@@ -498,8 +517,11 @@ function composePrecomposites<TSource>(
     if (!surface) {
       // Nothing to compose, or no surface to compose it on. Either way the
       // children draw where they would have without the group: the picture
-      // survives, the group's effects and blend mode do not, and
-      // `unsupportedEffectTypes` is what tells the caller so.
+      // survives and the group's effects and blend mode do not. A group with
+      // nothing on screen lost nothing, so only the second case is reported.
+      if (children.length > 0) {
+        degraded.push({ clipId: group.id, reason: "group_blend_lost" });
+      }
       for (const child of children) assign(group.precomposeGroupId, child);
       continue;
     }
@@ -508,7 +530,7 @@ function composePrecomposites<TSource>(
     resetContext(sctx);
     sctx.clearRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
     for (const child of [...children].sort((a, b) => a.zIndex - b.zIndex)) {
-      if (!drawTimelineLayer(sctx, child, geometry, options)) {
+      if (!drawTimelineLayer(sctx, child, geometry, options, degraded)) {
         skipped.push(child);
       }
     }
@@ -543,16 +565,25 @@ export function drawTimelineLayer<TSource>(
   ctx: CompositeContext2D<TSource>,
   layer: Canvas2DLayer<TSource>,
   geometry: Canvas2DFrameGeometry,
-  surfaces: DrawTimelineFrameOptions<TSource> = {}
+  surfaces: DrawTimelineFrameOptions<TSource> = {},
+  degraded: Canvas2DDegradation[] = []
 ): boolean {
   const { sourceWidth: width, sourceHeight: height } = layer;
   if (width <= 0 || height <= 0) return false;
 
   if (layer.matte) {
-    const matted = drawMattedLayer(ctx, layer, layer.matte, geometry, surfaces);
+    const matted = drawMattedLayer(
+      ctx,
+      layer,
+      layer.matte,
+      geometry,
+      surfaces,
+      degraded
+    );
     // Null means the host vended no surfaces to compose the matte on; the
     // layer then draws unmatted rather than not at all.
     if (matted !== null) return matted;
+    degraded.push({ clipId: layer.clipId, reason: "matte_skipped" });
   }
 
   const transition = layer.transition;
@@ -587,7 +618,6 @@ export function drawTimelineLayer<TSource>(
   ctx.save();
   ctx.globalAlpha = Math.max(0, Math.min(1, layer.opacity));
   ctx.globalCompositeOperation = blendModeToCanvasOp(layer.blendMode);
-  ctx.filter = filterForEffects(layer.effects, layer.trackEffects);
   ctx.setTransform(t.a, t.b, t.c, t.d, t.e, t.f);
 
   const radiusPx = layer.borderRadius ?? 0;
@@ -612,27 +642,52 @@ export function drawTimelineLayer<TSource>(
   // reveal; the clip's own wins, because it is the motion the author put there.
   const wipe = layer.mask ?? transition?.mask;
   const shape = layer.shapeMask;
-  let applied = { shape: false, wipe: false };
-  if ((wipe && wipe.softness > 0) || (shape && !maskIsHard(shape))) {
-    const softened = softMaskedSource(
+  const softWipe = wipe !== undefined && wipe.softness > 0;
+  const softShape = shape !== undefined && !maskIsHard(shape);
+  const brightness = brightnessForEffects(layer.effects, layer.trackEffects);
+  const lifts = Math.abs(brightness) > 0.001;
+  let applied = { shape: false, wipe: false, brightness: false };
+  if (softWipe || softShape || lifts) {
+    const prepared = prepareSource(
       layer.source,
       width,
       height,
       wipe,
       shape,
+      lifts ? brightness : 0,
       surfaces
     );
-    if (softened) {
-      source = softened.surface;
-      applied = softened;
+    if (prepared) {
+      source = prepared.surface;
+      applied = prepared;
     }
   }
   // Whatever the scratch pass did not take is drawn as a hard edge at the same
   // geometry, which is the honest fallback when the host vends no surface.
   if (shape && !applied.shape) clipMask(ctx, shape, width, height);
   if (wipe && !applied.wipe) clipWipeRect(ctx, width, height, wipe);
+  if (softShape && !applied.shape) {
+    degraded.push({ clipId: layer.clipId, reason: "mask_hard_edge" });
+  }
+  if (softWipe && !applied.wipe) {
+    degraded.push({ clipId: layer.clipId, reason: "wipe_hard_edge" });
+  }
+  if (lifts && !applied.brightness) {
+    degraded.push({ clipId: layer.clipId, reason: "brightness_multiplicative" });
+  }
 
+  ctx.filter = filterForEffects(
+    layer.effects,
+    layer.trackEffects,
+    applied.brightness
+  );
   applyDropShadow(ctx, layer.effects, t);
+  if (countDropShadows(layer.effects) > 1) {
+    degraded.push({
+      clipId: layer.clipId,
+      reason: "drop_shadow_extra_ignored"
+    });
+  }
 
   let drawn = true;
   try {
@@ -646,24 +701,31 @@ export function drawTimelineLayer<TSource>(
 }
 
 /**
- * Copy `source` onto a scratch surface and multiply the soft masks into its
- * alpha, in the layer's own source-pixel space. Null when the host vended no
- * scratch; the two flags say which mask actually landed, so the caller can
- * clip the other one hard.
+ * Copy `source` onto a scratch surface, add the grade's brightness to it, and
+ * multiply the soft masks into its alpha — all in the layer's own source-pixel
+ * space. Null when the host vended no scratch; the three flags say what
+ * actually landed, so the caller can clip the masks hard and put the brightness
+ * back in the CSS filter.
  *
  * Both masks reduce to a `destination-in` on one copy, which is why they share
  * a surface: a shape mask needs its coverage rasterized separately (it is a
  * ring of disjoint fills, and `destination-in` would intersect them), but the
  * wipe is a single gradient and multiplies straight in.
  */
-function softMaskedSource<TSource>(
+function prepareSource<TSource>(
   source: TSource,
   width: number,
   height: number,
   wipe: AnimationSampleMask | undefined,
   shape: ClipMask | undefined,
+  brightness: number,
   surfaces: DrawTimelineFrameOptions<TSource>
-): { surface: TSource; shape: boolean; wipe: boolean } | null {
+): {
+  surface: TSource;
+  shape: boolean;
+  wipe: boolean;
+  brightness: boolean;
+} | null {
   const scratch = surfaces.maskScratch?.(width, height);
   if (!scratch) return null;
   const sctx = scratch.ctx;
@@ -674,6 +736,14 @@ function softMaskedSource<TSource>(
   sctx.globalCompositeOperation = "source-over";
   sctx.clearRect(0, 0, width, height);
   sctx.drawImage(source, 0, 0, width, height);
+
+  // Brightness runs first, as it does in `colorGradeV1`, and before the masks
+  // so it never reads back a pixel a mask has already knocked out.
+  let brightnessApplied = false;
+  if (Math.abs(brightness) > 0.001) {
+    addBrightness(sctx, width, height, brightness);
+    brightnessApplied = true;
+  }
 
   let shapeApplied = false;
   if (shape && !maskIsHard(shape)) {
@@ -693,8 +763,54 @@ function softMaskedSource<TSource>(
     applyWipeGradient(sctx, width, height, wipe);
     wipeApplied = true;
   }
-  if (!shapeApplied && !wipeApplied) return null;
-  return { surface: scratch.surface, shape: shapeApplied, wipe: wipeApplied };
+  if (!shapeApplied && !wipeApplied && !brightnessApplied) return null;
+  return {
+    surface: scratch.surface,
+    shape: shapeApplied,
+    wipe: wipeApplied,
+    brightness: brightnessApplied
+  };
+}
+
+/**
+ * Add `amount` to every channel of the surface, which is what the GPU grade
+ * does (`rgb + brightness` in `color/grade/v1`) and what CSS `brightness()`
+ * does not — that one multiplies, so a +0.25 lift lands on 160 rather than 192
+ * from mid-grey.
+ *
+ * Shipped as a per-pixel pass rather than a `lighter` white draw keyed back to
+ * the layer's alpha: the composite version is exact only for a positive
+ * `amount`, needs a second surface to restrict the white to the layer's own
+ * coverage, and would still need this pass for the negative half. One read and
+ * one write on the scratch copy covers both signs at the same cost.
+ *
+ * Straight (un-premultiplied) alpha is what a canvas stores, so the channels
+ * move and the coverage does not — the same pixels the shader reads.
+ */
+function addBrightness<TSource>(
+  ctx: CompositeContext2D<TSource>,
+  width: number,
+  height: number,
+  amount: number
+): void {
+  const pixels = ctx.getImageData(0, 0, width, height);
+  const data = pixels.data;
+  const delta = Math.round(amount * 255);
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = data[i]! + delta;
+    data[i + 1] = data[i + 1]! + delta;
+    data[i + 2] = data[i + 2]! + delta;
+  }
+  ctx.putImageData(pixels, 0, 0);
+}
+
+/** How many drop shadows the chain asks for; `ctx.shadow*` casts one (D7). */
+function countDropShadows(effects: ClipEffect[] | undefined): number {
+  let n = 0;
+  for (const e of effects ?? []) {
+    if (e.enabled && isClipDropShadowEffect(e)) n += 1;
+  }
+  return n;
 }
 
 /**
@@ -744,7 +860,8 @@ function drawMattedLayer<TSource>(
   layer: Canvas2DLayer<TSource>,
   matte: Canvas2DMatte<TSource>,
   geometry: Canvas2DFrameGeometry,
-  surfaces: DrawTimelineFrameOptions<TSource>
+  surfaces: DrawTimelineFrameOptions<TSource>,
+  degraded: Canvas2DDegradation[]
 ): boolean | null {
   const make = surfaces.matteSurface;
   if (!make) return null;
@@ -756,13 +873,28 @@ function drawMattedLayer<TSource>(
   // The layer's own blend mode meets the frame once, when the composed surface
   // is drawn back — on the surface it is an ordinary source-over draw over
   // transparency. Its opacity rides along in the surface's alpha.
+  // A dip's solid covers the whole frame, so it belongs on the main stack
+  // beside the layer, the way the GPU compositor pushes it. Left on the inner
+  // draw, `destination-in` would key it by the keyhole and the frame would dip
+  // only where the matte lets it through.
+  const transition = layer.transition;
+  const inner = transition?.solid
+    ? { ...transition, solid: undefined }
+    : transition;
+
   resetContext(composed.ctx);
   composed.ctx.clearRect(0, 0, w, h);
   const drawn = drawTimelineLayer(
     composed.ctx,
-    { ...layer, matte: undefined, blendMode: "normal" },
+    {
+      ...layer,
+      matte: undefined,
+      blendMode: "normal",
+      transition: inner
+    },
     geometry,
-    surfaces
+    surfaces,
+    degraded
   );
 
   resetContext(keyhole.ctx);
@@ -771,7 +903,8 @@ function drawMattedLayer<TSource>(
     keyhole.ctx,
     { ...matte.layer, matte: undefined, blendMode: "normal" },
     geometry,
-    surfaces
+    surfaces,
+    degraded
   );
   if (matte.mode === "luma") lumaToAlpha(keyhole.ctx, w, h);
   if (matte.invert) invertAlpha(keyhole.ctx, w, h);
@@ -779,6 +912,18 @@ function drawMattedLayer<TSource>(
   composed.ctx.globalCompositeOperation = "destination-in";
   composed.ctx.drawImage(keyhole.surface, 0, 0, w, h);
   resetContext(composed.ctx);
+
+  const solid = transition?.solid;
+  if (solid && solid.opacity > 0) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = Math.min(1, solid.opacity);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.filter = "none";
+    ctx.fillStyle = solid.color;
+    ctx.fillRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
+    ctx.restore();
+  }
 
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -973,26 +1118,57 @@ function shadowPaint(color: string, opacity: number): string {
  */
 const FILTER_NONE_KEY: readonly never[] = Object.freeze([]);
 const filterCache = new WeakMap<object, WeakMap<object, string>>();
+const gradedFilterCache = new WeakMap<object, WeakMap<object, string>>();
 
+/**
+ * @param brightnessApplied The layer's brightness already landed as the GPU's
+ * addition on a scratch copy, so the filter must leave it out rather than
+ * apply the lift a second time.
+ */
 export function filterForEffects(
   clipEffects: ClipEffect[] | undefined,
-  trackEffects: TrackEffect[] | undefined
+  trackEffects: TrackEffect[] | undefined,
+  brightnessApplied = false
 ): string {
   // Normalize undefined to a shared sentinel so both keys are always objects
   // the WeakMaps can hold.
   const clipKey = (clipEffects ?? FILTER_NONE_KEY) as object;
   const trackKey = (trackEffects ?? FILTER_NONE_KEY) as object;
-  let inner = filterCache.get(clipKey);
+  const cache = brightnessApplied ? gradedFilterCache : filterCache;
+  let inner = cache.get(clipKey);
   if (inner) {
     const hit = inner.get(trackKey);
     if (hit !== undefined) return hit;
   } else {
     inner = new WeakMap<object, string>();
-    filterCache.set(clipKey, inner);
+    cache.set(clipKey, inner);
   }
-  const result = computeFilterForEffects(clipEffects, trackEffects);
+  const result = computeFilterForEffects(
+    clipEffects,
+    trackEffects,
+    brightnessApplied
+  );
   inner.set(trackKey, result);
   return result;
+}
+
+/**
+ * The grade's total brightness, summed over the clip and track effects exactly
+ * as the filter builder sums it — one accumulation, so the scratch pass and the
+ * filter can never disagree about how much lift is left to apply.
+ */
+export function brightnessForEffects(
+  clipEffects: ClipEffect[] | undefined,
+  trackEffects: TrackEffect[] | undefined
+): number {
+  let brightness = 0;
+  for (const e of clipEffects ?? []) {
+    if (e.enabled && isClipColorEffect(e)) brightness += e.brightness ?? 0;
+  }
+  for (const e of trackEffects ?? []) {
+    if (e.enabled && e.type === "colorCorrection") brightness += e.brightness;
+  }
+  return brightness;
 }
 
 /**
@@ -1002,7 +1178,8 @@ export function filterForEffects(
  */
 function computeFilterForEffects(
   clipEffects: ClipEffect[] | undefined,
-  trackEffects: TrackEffect[] | undefined
+  trackEffects: TrackEffect[] | undefined,
+  brightnessApplied: boolean
 ): string {
   let brightness = 0;
   let contrast = 1;
@@ -1034,7 +1211,7 @@ function computeFilterForEffects(
   }
 
   const parts: string[] = [];
-  if (Math.abs(brightness) > 0.001) {
+  if (!brightnessApplied && Math.abs(brightness) > 0.001) {
     parts.push(`brightness(${(1 + brightness).toFixed(3)})`);
   }
   if (Math.abs(contrast - 1) > 0.001) {

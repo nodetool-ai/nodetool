@@ -446,8 +446,11 @@ describe("drawTimelineFrame — a dip over a matted layer", () => {
       }
     );
 
-    // Nothing but the layer itself lands on the matte surface.
-    expect(composed.ops).toEqual([{ kind: "draw", source: "shot" }]);
+    // The layer and the keyhole it is multiplied by, and no dip fill.
+    expect(composed.ops).toEqual([
+      { kind: "draw", source: "shot" },
+      { kind: "draw", source: "surface-1" }
+    ]);
     // The frame gets its black ground, then the dip, then the matted layer —
     // the solid beneath the clip it dips into, as on the GPU.
     expect(frame.ops).toEqual([

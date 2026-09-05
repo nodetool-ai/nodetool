@@ -27,6 +27,7 @@ import type {
   AnimatedLayerProps,
   Canvas2DLayer,
   Canvas2DPrecomposite,
+  Canvas2DDegradationReason,
   CompositeContext2D,
   CompositeSurface,
   DroppedLayerReason,
@@ -121,6 +122,19 @@ export interface PreviewLayerReport {
   skipped?: string;
 }
 
+/**
+ * One way the Canvas 2D compositor drew this frame differently from the GPU
+ * render, where the difference is not an effect type `effects_not_applied`
+ * could name — a feathered mask drawn hard, a matte skipped, a group's blend
+ * lost, a second drop shadow not cast, a brightness applied as a multiply.
+ */
+export interface PreviewDegradation {
+  /** The clip it happened to, when the layer carried one. */
+  clip_id?: string;
+  clip_name?: string;
+  reason: Canvas2DDegradationReason;
+}
+
 /** A clip that was active at the frame's time and still did not draw. */
 export interface PreviewDroppedLayer {
   clip_id: string;
@@ -142,6 +156,12 @@ export interface PreviewFrame {
    * for, which is otherwise invisible in the pixels.
    */
   dropped: PreviewDroppedLayer[];
+  /**
+   * How this frame differs from the GPU render beyond the effects it could not
+   * draw. Empty on almost every frame; an entry means the picture is a
+   * degraded version of the one an export would produce.
+   */
+  degraded: PreviewDegradation[];
 }
 
 export interface RenderTimelineFramesResult {
@@ -372,6 +392,7 @@ export async function renderTimelineFrames(
   ): Promise<{
     reports: PreviewLayerReport[];
     dropped: PreviewDroppedLayer[];
+    degraded: PreviewDegradation[];
   }> => {
     const {
       layers: active,
@@ -531,6 +552,7 @@ export async function renderTimelineFrames(
       const resolved = await sourceForLayer(layer, anim);
       if ("skipped" in resolved) return resolved.skipped;
       const drawn: Canvas2DLayer<PreviewSource> = {
+        clipId: layer.clipId,
         source: resolved.source,
         sourceWidth: resolved.width,
         sourceHeight: resolved.height,
@@ -622,13 +644,14 @@ export async function renderTimelineFrames(
     }
 
 
-    for (const layer of drawTimelineFrame(ctx, drawLayers, geometry, {
+    const drawReport = drawTimelineFrame(ctx, drawLayers, geometry, {
       maskScratch: scratchFor,
       precomposites: drawPrecomposites,
       precompositeSurface: precompositeSurfaceFor,
       maskSurface: maskSurfaceFor,
       matteSurface: matteSurfaceFor
-    })) {
+    });
+    for (const layer of drawReport.skipped) {
       const report = reportFor.get(layer);
       if (report) report.skipped = "source could not be drawn";
     }
@@ -640,6 +663,11 @@ export async function renderTimelineFrames(
         clip_id: dropped.clipId,
         clip_name: clipName(sequence, dropped.clipId),
         reason: dropped.reason
+      })),
+      degraded: drawReport.degraded.map((entry) => ({
+        clip_id: entry.clipId,
+        clip_name: entry.clipId ? clipName(sequence, entry.clipId) : undefined,
+        reason: entry.reason
       }))
     };
   };
@@ -671,7 +699,8 @@ export async function renderTimelineFrames(
       width,
       height,
       layers: composed.reports,
-      dropped: composed.dropped
+      dropped: composed.dropped,
+      degraded: composed.degraded
     });
   }
 
