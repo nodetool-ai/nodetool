@@ -104,15 +104,22 @@ function makeWorkspace(opts: {
   return ws;
 }
 
+/**
+ * Let the fs spies through to the real implementation for one test. Only the
+ * cases that populate a real temp directory want this: the consolidated
+ * FileStorageAdapter reads through node:fs/promises, and the module mock's
+ * default `vi.fn()` resolves to undefined. Left global it would make every
+ * other case depend on whatever exists on the host.
+ */
+function useRealFs(): void {
+  vi.mocked(stat).mockImplementation(realFsPromises.stat);
+  vi.mocked(readdir).mockImplementation(realFsPromises.readdir);
+  vi.mocked(access).mockImplementation(realFsPromises.access);
+}
+
 describe("workspace router", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // These three default to real fs: the listFiles cases write real files
-    // into a real temp directory and assert their real sizes. A case that
-    // wants a stubbed answer overrides with mockResolvedValue/mockRejectedValue.
-    vi.mocked(stat).mockImplementation(realFsPromises.stat);
-    vi.mocked(readdir).mockImplementation(realFsPromises.readdir);
-    vi.mocked(access).mockImplementation(realFsPromises.access);
     // Ensure tests run in non-production (the router rejects in prod).
     delete process.env.NODETOOL_ENV;
   });
@@ -404,6 +411,7 @@ describe("workspace router", () => {
     });
 
     it("lists entries in the workspace root", async () => {
+      useRealFs();
       await realWriteFile(join(dir, "file.txt"), "x".repeat(123));
       await realMkdir(join(dir, "sub"), { recursive: true });
       await realWriteFile(join(dir, "sub", "inner.txt"), "y");
@@ -422,6 +430,7 @@ describe("workspace router", () => {
     });
 
     it("defaults path to '.'", async () => {
+      useRealFs();
       const ws = makeWorkspace({ id: "w1", path: dir });
       (Workspace.find as ReturnType<typeof vi.fn>).mockResolvedValue(ws);
 
