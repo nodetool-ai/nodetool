@@ -198,14 +198,21 @@ export async function runProbes(
   }
 
   const totals = {
-    passed: results.filter((r) => r.status === "passed").length,
-    schemaFailures: results.filter((r) => r.status === "schema-failure").length,
-    networkFailures: results.filter((r) => r.status === "network-failure")
-      .length,
-    skipped: results.filter((r) => r.status === "skipped").length,
-    requests: results.reduce((sum, r) => sum + r.requests, 0),
-    costUsd: results.reduce((sum, r) => sum + r.costUsd, 0)
+    passed: 0,
+    schemaFailures: 0,
+    networkFailures: 0,
+    skipped: 0,
+    requests: 0,
+    costUsd: 0
   };
+  for (const r of results) {
+    if (r.status === "passed") totals.passed++;
+    else if (r.status === "schema-failure") totals.schemaFailures++;
+    else if (r.status === "network-failure") totals.networkFailures++;
+    else if (r.status === "skipped") totals.skipped++;
+    totals.requests += r.requests;
+    totals.costUsd += r.costUsd;
+  }
 
   return {
     startedAt: new Date(now()).toISOString(),
