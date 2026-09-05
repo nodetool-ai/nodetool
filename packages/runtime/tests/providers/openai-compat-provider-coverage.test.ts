@@ -5,7 +5,7 @@ import { MetaProvider } from "../../src/providers/meta-provider.js";
 import { AlibabaProvider } from "../../src/providers/alibaba-provider.js";
 import { EvolinkProvider } from "../../src/providers/evolink-provider.js";
 import { AtlasCloudProvider } from "../../src/providers/atlascloud-provider.js";
-import { MiniMaxProvider } from "../../src/providers/minimax-provider.js";
+import { MinimaxProvider } from "../../src/providers/minimax-provider.js";
 import type {
   Message,
   ProviderStreamItem,
@@ -581,7 +581,7 @@ describe("OpenAICompatProvider inherits OpenAI's catalog guard", () => {
 
   // MiniMax serves its own TTS catalog; only ASR and embeddings are empty.
   it("minimax serves no OpenAI ASR or embedding models", async () => {
-    const p = new MiniMaxProvider({ MINIMAX_API_KEY: "k" });
+    const p = new MinimaxProvider({ MINIMAX_API_KEY: "k" });
     expect(await p.getAvailableASRModels()).toEqual([]);
     expect(await p.getAvailableEmbeddingModels()).toEqual([]);
   });

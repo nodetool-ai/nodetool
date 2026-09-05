@@ -25,6 +25,7 @@ import type {
   StreamingInputs,
   StreamingOutputs
 } from "@nodetool-ai/node-sdk";
+import type { Chunk } from "@nodetool-ai/protocol";
 import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
 import { deinterleave, interleave } from "../lib/audio-wav.js";
 import {
@@ -198,11 +199,11 @@ export class OscillatorNode extends BaseNode {
   /** Current property values — read per chunk so live updates apply. */
   private params() {
     return {
-      waveform: String(this.waveform ?? "sine") as Waveform,
-      baseFreq: Number(this.frequency ?? 220),
-      amplitude: Number(this.amplitude ?? 0.8),
-      pulseWidth: Number(this.pulse_width ?? 0.5),
-      fmAmount: Number(this.fm_amount ?? 0)
+      waveform: this.waveform,
+      baseFreq: this.frequency,
+      amplitude: this.amplitude,
+      pulseWidth: this.pulse_width,
+      fmAmount: this.fm_amount
     };
   }
 
@@ -259,7 +260,7 @@ export class OscillatorNode extends BaseNode {
       return;
     }
 
-    const sampleRate = Number(this.sample_rate ?? SYNTH_SAMPLE_RATE);
+    const sampleRate = this.sample_rate;
     await runGenerator(outputs, {
       slot: "chunk",
       sampleRate,
@@ -303,7 +304,7 @@ export class LfoNode extends BaseNode {
     description: "LFO waveform.",
     values: ["sine", "triangle", "saw", "square"]
   })
-  declare waveform: Waveform;
+  declare waveform: "sine" | "triangle" | "saw" | "square";
 
   @prop({
     type: "float",
@@ -353,10 +354,10 @@ export class LfoNode extends BaseNode {
   /** Current property values — read per chunk so live updates apply. */
   private params() {
     return {
-      waveform: String(this.waveform ?? "sine") as Waveform,
-      rateHz: Number(this.rate_hz ?? 2),
-      depth: Number(this.depth ?? 1),
-      offset: Number(this.offset ?? 0)
+      waveform: this.waveform,
+      rateHz: this.rate_hz,
+      depth: this.depth,
+      offset: this.offset
     };
   }
 
@@ -391,7 +392,7 @@ export class LfoNode extends BaseNode {
       return;
     }
 
-    const sampleRate = Number(this.sample_rate ?? SYNTH_SAMPLE_RATE);
+    const sampleRate = this.sample_rate;
     await runGenerator(outputs, {
       slot: "cv",
       sampleRate,
@@ -486,10 +487,10 @@ export class AdsrNode extends BaseNode {
       // Coefficients recomputed per chunk from the current property values
       // (three exp() calls per ~21 ms chunk) so live updates apply.
       const params = {
-        attackCoeff: adsrCoeff(Number(this.attack ?? 0.01), sampleRate),
-        decayCoeff: adsrCoeff(Number(this.decay ?? 0.1), sampleRate),
-        releaseCoeff: adsrCoeff(Number(this.release ?? 0.3), sampleRate),
-        sustain: Number(this.sustain ?? 0.7)
+        attackCoeff: adsrCoeff(this.attack, sampleRate),
+        decayCoeff: adsrCoeff(this.decay, sampleRate),
+        releaseCoeff: adsrCoeff(this.release, sampleRate),
+        sustain: this.sustain
       };
       const gate = chunkMono(chunk.samples, chunk.channels);
       const buf = new Float32Array(gate.length);
@@ -563,7 +564,7 @@ export class GateNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    const sampleRate = Number(this.sample_rate ?? SYNTH_SAMPLE_RATE);
+    const sampleRate = this.sample_rate;
 
     await runGenerator(outputs, {
       slot: "cv",
@@ -576,15 +577,15 @@ export class GateNode extends BaseNode {
         // the pattern instead of glitching it.
         const onFrames = Math.max(
           1,
-          Math.round(Number(this.on_duration ?? 0.25) * sampleRate)
+          Math.round(this.on_duration * sampleRate)
         );
         const periodFrames =
           onFrames +
           Math.max(
             1,
-            Math.round(Number(this.off_duration ?? 0.25) * sampleRate)
+            Math.round(this.off_duration * sampleRate)
           );
-        const amplitude = Number(this.amplitude ?? 1);
+        const amplitude = this.amplitude;
         for (let i = 0; i < buf.length; i++) {
           buf[i] =
             (startFrame + i) % periodFrames < onFrames ? amplitude : 0;
@@ -645,7 +646,7 @@ export class VcaNode extends BaseNode {
       primary: "audio",
       cvHandles: ["cv"]
     })) {
-      const gain = Number(this.gain ?? 1); // per chunk — live updates apply
+      const gain = this.gain; // per chunk — live updates apply
       sampleRate = frame.primary.sampleRate;
       channels = frame.primary.channels;
       const input = frame.primary.samples;
@@ -755,10 +756,10 @@ export class VcfNode extends BaseNode {
     })) {
       // Per chunk — live updates apply (coefficients are recomputed per
       // 64-frame control block below anyway).
-      const mode = String(this.mode ?? "lowpass") as "lowpass" | "highpass";
-      const cutoffHz = Number(this.cutoff_hz ?? 1000);
-      const q = Number(this.q ?? DEFAULT_Q);
-      const cvAmount = Number(this.cv_amount ?? 1);
+      const mode = this.mode;
+      const cutoffHz = this.cutoff_hz;
+      const q = this.q;
+      const cvAmount = this.cv_amount;
       sampleRate = frame.primary.sampleRate;
       if (states.length !== frame.primary.channels) {
         channels = frame.primary.channels;
@@ -860,8 +861,8 @@ export class AttenuverterNode extends BaseNode {
       if (!chunk) continue;
       if (chunk.done) break;
       if (chunk.samples.length === 0) continue;
-      const scale = Number(this.scale ?? 1); // per chunk — live updates apply
-      const offset = Number(this.offset ?? 0);
+      const scale = this.scale; // per chunk — live updates apply
+      const offset = this.offset;
       sampleRate = chunk.sampleRate;
       channels = chunk.channels;
       const buf = chunk.samples;
@@ -1033,10 +1034,10 @@ export class MixerNode extends BaseNode {
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
     // Read per emitted block — live updates apply.
     const levels = () => ({
-      in1: Number(this.level1 ?? 1),
-      in2: Number(this.level2 ?? 1),
-      in3: Number(this.level3 ?? 1),
-      in4: Number(this.level4 ?? 1)
+      in1: this.level1,
+      in2: this.level2,
+      in3: this.level3,
+      in4: this.level4
     });
     const connected = MIXER_HANDLES.filter((h) => inputs.hasStream(h));
     const fifos = new Map<string, SampleFifo>(

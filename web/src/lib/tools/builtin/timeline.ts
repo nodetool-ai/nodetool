@@ -94,6 +94,16 @@ const shared = <K extends TimelineToolName>(name: K) => ({
   parameters: hostParams(TIMELINE_CONTRACTS[name])
 });
 
+/**
+ * The same, for an op that reads a static catalog and so names no sequence —
+ * it answers with no editor open, which is what its own test asserts.
+ */
+const sharedWithoutSequence = <K extends TimelineToolName>(name: K) => ({
+  name,
+  description: TIMELINE_CONTRACTS[name].description,
+  parameters: uiToolParams(TIMELINE_CONTRACTS[name])
+});
+
 FrontendToolRegistry.register({
   ...shared("ui_timeline_get_state"),
   async execute({ timeline_id }) {
@@ -317,7 +327,7 @@ FrontendToolRegistry.register({
       ...rest
     });
     const handler = getTimelineAgentHandler(timeline_id);
-    let clip = handler.getSnapshot().clips.find((c) => c.id === target);
+    let clip: TimelineClipNode | undefined;
     // Timing belongs to trim_clip and move_clip, but a caller sending it here
     // means one edit either way — so apply it through the same handlers rather
     // than dropping it or making them call twice.
@@ -334,7 +344,10 @@ FrontendToolRegistry.register({
     const patch = { ...rest };
     if (fontSizePx !== undefined) {
       // Shorthand for the one text field callers reach for by name.
-      const style = patch.textStyle ?? clip?.textStyle;
+      const style =
+        patch.textStyle ??
+        (clip ?? handler.getSnapshot().clips.find((c) => c.id === target))
+          ?.textStyle;
       if (!style) {
         throw new Error(
           `Clip "${clip?.name ?? target}" carries no text to size; fontSizePx applies to a text clip's textStyle.`
@@ -489,7 +502,7 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
-  ...shared("ui_timeline_list_animation_presets"),
+  ...sharedWithoutSequence("ui_timeline_list_animation_presets"),
   async execute() {
     const presets = ANIMATION_PRESETS.map((p) => ({
       id: p.id,

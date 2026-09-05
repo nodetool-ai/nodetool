@@ -327,9 +327,6 @@ const imageTypeMetadata = {
 
 const NODE_SYNC_DEBOUNCE_MS = 200;
 
-/** Persisted alongside sketch_data so graph edge typing invalidates when layer I/O handles change (without parsing huge JSON each frame). */
-const SKETCH_LAYER_IO_SIG_KEY = "sketch_layer_io_sig";
-
 function sketchLayerIoSignature(doc: SketchDocument): string {
   return doc.layers
     .map(
@@ -721,7 +718,6 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         type: "sketch",
         data: doc
       };
-      pendingProps[SKETCH_LAYER_IO_SIG_KEY] = sketchLayerIoSignature(doc);
       pendingDocumentSyncRef.current = null;
     }
 
@@ -826,8 +822,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           : { type: "sketch", id: null }),
         type: "sketch",
         data: nextDoc
-      },
-      [SKETCH_LAYER_IO_SIG_KEY]: sketchLayerIoSignature(nextDoc)
+      }
     });
 
     if (isModalOpen) {
@@ -1044,8 +1039,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                 : { type: "sketch", id: null }),
               type: "sketch",
               data: updatedDoc
-            },
-            [SKETCH_LAYER_IO_SIG_KEY]: sketchLayerIoSignature(updatedDoc)
+            }
           });
 
           // Push the updated layer into the live editor store when open, or
