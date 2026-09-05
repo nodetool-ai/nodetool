@@ -223,29 +223,6 @@ export type KeyframeVersion = VersionRef<ImageRef>;
 export type ClipVersion = VersionRef<VideoRef>;
 
 /**
- * The render record on a version ref, or null. Defensive because refs arrive
- * from stored documents and from providers, where the field is absent or
- * whatever the document held.
- */
-export function versionRenderInputs(ref: unknown): RenderInputs | null {
-  if (!ref || typeof ref !== "object") {
-    return null;
-  }
-  const record = (ref as { render_inputs?: unknown }).render_inputs;
-  if (!record || typeof record !== "object") {
-    return null;
-  }
-  const { kind, prompt_hash, model } = record as Partial<RenderInputs>;
-  if (kind !== "keyframe" && kind !== "clip") {
-    return null;
-  }
-  if (typeof prompt_hash !== "string" || typeof model !== "string") {
-    return null;
-  }
-  return record as RenderInputs;
-}
-
-/**
  * Field-by-field equality of two render records, ignoring `recorded_at` — a
  * timestamp is not an input, and every re-render would otherwise read as
  * different.

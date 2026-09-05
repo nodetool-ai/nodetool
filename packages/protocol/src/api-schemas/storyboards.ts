@@ -231,22 +231,22 @@ export function normalizeStoryboardScreenplay(
     );
   }
   const play = applyAliases(input, SCREENPLAY_KEY_ALIASES);
-  const candidate = {
+  const candidate: Record<string, unknown> = {
     ...play,
     type: "screenplay",
     id: isNonEmptyString(play.id) ? play.id : newId(),
     title: isString(play.title) ? play.title : "",
     shots: (play.shots as unknown[]).map((shot, index) =>
       normalizeStoryboardShot(shot, index, options)
-    ),
-    ...(Array.isArray(play.scenes)
-      ? {
-          scenes: (play.scenes as unknown[]).map((scene, index) =>
-            normalizeStoryboardScene(scene, index, options)
-          )
-        }
-      : {})
+    )
   };
+  // Only overwrite `scenes` when the payload carried one, so a screenplay
+  // without scenes stays without the key rather than gaining an empty one.
+  if (Array.isArray(play.scenes)) {
+    candidate.scenes = (play.scenes as unknown[]).map((scene, index) =>
+      normalizeStoryboardScene(scene, index, options)
+    );
+  }
   const parsed = storyboardScreenplay.safeParse(candidate);
   if (!parsed.success) {
     const paths = parsed.error.issues

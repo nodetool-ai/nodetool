@@ -38,6 +38,7 @@
     "@nodetool-ai/chat": "*",
     "@nodetool-ai/compute": "*",
     "@nodetool-ai/config": "*",
+    "@nodetool-ai/document-nodes": "*",
     "@nodetool-ai/dsl": "^0.7.0-rc.36",
     "@nodetool-ai/elevenlabs-nodes": "*",
     "@nodetool-ai/execution": "*",

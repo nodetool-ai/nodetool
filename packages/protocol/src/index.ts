@@ -25,6 +25,7 @@ export {
 } from "./wrap-primitives.js";
 export * from "./toolSchemas.js";
 export * from "./creative.js";
+export * from "./shot-prompt.js";
 export * from "./screenplay-authoring.js";
 export * from "./script-link.js";
 export * from "./sha256.js";

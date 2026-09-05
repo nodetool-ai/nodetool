@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  isScene,
-  isScreenplay,
-  renderInputsMatch,
-  versionRenderInputs
-} from "../src/creative.js";
+import { isScene, isScreenplay, renderInputsMatch } from "../src/creative.js";
 import type {
   ClipVersion,
   KeyframeVersion,
@@ -109,8 +104,8 @@ describe("renderInputsMatch", () => {
   });
 });
 
-describe("versionRenderInputs", () => {
-  it("reads the record off a version ref", () => {
+describe("render_inputs on a version ref", () => {
+  it("rides on the ref, so a shot's versions carry what produced them", () => {
     const keyframe: KeyframeVersion = {
       type: "image",
       asset_id: "as_1",
@@ -121,24 +116,20 @@ describe("versionRenderInputs", () => {
       asset_id: "as_2",
       render_inputs: inputs({ kind: "clip", source_version_id: "as_1" })
     };
-    expect(versionRenderInputs(keyframe)).toEqual(inputs());
-    expect(versionRenderInputs(clip)?.source_version_id).toBe("as_1");
+    const rendered = shot({
+      keyframe,
+      keyframe_versions: [keyframe],
+      clip,
+      clip_versions: [clip],
+      status: "rendered"
+    });
 
-    const rendered = shot({ keyframe, keyframe_versions: [keyframe], clip });
-    expect(versionRenderInputs(rendered.keyframe_versions?.[0])).toEqual(
-      inputs()
-    );
+    expect(rendered.keyframe_versions?.[0].render_inputs).toEqual(inputs());
+    expect(rendered.clip?.render_inputs?.source_version_id).toBe("as_1");
   });
 
-  it("returns null for a ref with no usable record", () => {
-    expect(versionRenderInputs({ type: "image", asset_id: "as_1" })).toBeNull();
-    expect(versionRenderInputs(null)).toBeNull();
-    expect(versionRenderInputs("as_1")).toBeNull();
-    expect(
-      versionRenderInputs({ render_inputs: { kind: "poster" } })
-    ).toBeNull();
-    expect(
-      versionRenderInputs({ render_inputs: { kind: "clip", model: 7 } })
-    ).toBeNull();
+  it("is absent on a version that predates the record", () => {
+    const legacy: KeyframeVersion = { type: "image", asset_id: "as_0" };
+    expect(legacy.render_inputs).toBeUndefined();
   });
 });
