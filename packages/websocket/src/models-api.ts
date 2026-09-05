@@ -71,40 +71,12 @@ export interface ModelsApiDeps {
 
 
 
-function wildcardToRegExp(pattern: string): RegExp {
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
-  const regex = `^${escaped.replaceAll("*", ".*").replaceAll("?", ".")}$`;
-  return new RegExp(regex);
-}
 
 
 
 
-function getHfCacheRoot(): string {
-  // HF_HUB_CACHE (modern) and HUGGINGFACE_HUB_CACHE already point AT the hub
-  // directory that holds the `models--*` folders — they are used verbatim.
-  // Only HF_HOME needs `/hub` appended. Appending it to the hub-cache vars
-  // (the previous behavior) probed one level too deep, so every model showed as
-  // not-downloaded. Mirrors electron/src/fileExplorer.ts.
-  const hubDir = process.env.HF_HUB_CACHE ?? process.env.HUGGINGFACE_HUB_CACHE;
-  if (hubDir) return hubDir;
-  const hfHome = process.env.HF_HOME;
-  if (hfHome) return join(hfHome, "hub");
-  return join(homedir(), ".cache", "huggingface", "hub");
-}
 
-function repoToCacheDir(repoId: string): string {
-  return `models--${repoId.replaceAll("/", "--")}`;
-}
 
-async function pathExists(path: string): Promise<boolean> {
-  try {
-    await access(path, fsConstants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 
 
@@ -164,10 +136,6 @@ export async function registerPythonProviders(
   return registered;
 }
 
-function secretResolverFor(userId: string) {
-  return (key: string) =>
-    getStoredSecret(key, userId).then((v) => v ?? undefined);
-}
 
 
 

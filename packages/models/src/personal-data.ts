@@ -877,8 +877,3 @@ export async function exportPersonalData(
 export const ERASURE_HANDLED_TABLES: readonly string[] = ERASURE_STEPS.map(
   (step) => step.table
 );
-
-/** Registry entries erasure must handle. Exported for the audit. */
-export function actionableEntries(): readonly PersonalDataEntry[] {
-  return PERSONAL_DATA_REGISTRY.filter(isActionable);
-}

@@ -87,7 +87,6 @@ export type {
 // ── Personal data: Art. 17 erasure and Art. 20 portability ───────────
 export {
   PERSONAL_DATA_REGISTRY,
-  PERSONAL_DATA_BY_TABLE,
   WITHHELD_VALUE,
   isActionable
 } from "./personal-data-registry.js";
@@ -100,7 +99,6 @@ export {
   ERASURE_HANDLED_TABLES,
   ERASURE_STEPS,
   EXPORT_HANDLERS,
-  actionableEntries,
   erasePersonalData,
   exportPersonalData
 } from "./personal-data.js";
@@ -422,7 +420,6 @@ export {
 export type {
   MigrationDBAdapter,
   SqlParams,
-  Row as MigrationRow,
   MigrationDef,
   Migration,
   AppliedMigration,
