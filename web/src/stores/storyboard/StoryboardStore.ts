@@ -109,7 +109,7 @@ interface StoryboardStoreState {
    */
   applyMerged: (id: string, board: StoryboardBoard) => void;
 
-  /** Load a screenplay into a board, seeding `shots` from `screenplay.shots`. */
+  /** Load a screenplay, keeping generated media for shots with existing ids. */
   setScreenplay: (boardId: string, screenplay: Screenplay) => void;
 
   setBrief: (boardId: string, brief: string) => void;
@@ -472,10 +472,27 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
     set((state) => {
       const prev = state.boards[boardId];
       const board = prev ?? emptyBoard(boardId);
+      const currentShots = new Map(board.shots.map((shot) => [shot.id, shot]));
+      const shots = screenplay.shots.map((shot) => {
+        const current = currentShots.get(shot.id);
+        if (!current) return shot;
+        // A screenplay describes direction. Its media can predate renders
+        // and version selections made on the live board while the agent ran.
+        return {
+          ...current,
+          ...shot,
+          keyframe: current.keyframe,
+          keyframe_versions: current.keyframe_versions,
+          clip: current.clip,
+          clip_versions: current.clip_versions,
+          covered_by: current.covered_by,
+          status: current.status
+        };
+      });
       const next: StoryboardBoard = {
         ...board,
         screenplay,
-        shots: [...screenplay.shots],
+        shots,
         title: screenplay.title || board.title,
         aspectRatio: screenplay.aspect_ratio ?? board.aspectRatio,
         style: screenplay.style_bible ?? board.style,
