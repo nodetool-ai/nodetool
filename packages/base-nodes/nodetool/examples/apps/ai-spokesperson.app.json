@@ -1,0 +1,337 @@
+{
+  "schemaVersion": 1,
+  "name": "AI Spokesperson",
+  "description": "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localise a take, fix a fluffed line, or spin one recording into many variants.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🗣️ AI Spokesperson",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "Give a presenter clip a new script."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs a FAL key for lip-sync and an Inworld key for the voice. Both steps are billed per run."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-new-words-same-take",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-new-words-same-take",
+                  "title": "New words, same take",
+                  "content": [
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-revoice-presenter-clip",
+                        "binding": "op:revoice/in:in-clip",
+                        "label": "Presenter clip",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-revoice-script",
+                        "binding": "op:revoice/in:in-script",
+                        "label": "What they should say",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-revoice-speech-speed",
+                        "binding": "op:revoice/prop:speech#speed",
+                        "label": "Speaking pace",
+                        "min": 0.7,
+                        "max": 1.3,
+                        "step": 0.05,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-revoice",
+                        "label": "Revoice the clip",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "revoice",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-new-words-same-take-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-revoice",
+                        "binding": "op:revoice/exec#progress",
+                        "label": "Voicing and syncing…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-revoice-revoiced-clip",
+                        "text": "Revoiced clip",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-revoice-revoiced-clip",
+                        "binding": "op:revoice/out:output-clip",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "revoice",
+        "name": "Revoice",
+        "workflowId": "revoice",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "workflows": [
+    {
+      "key": "revoice",
+      "name": "AI Spokesperson",
+      "description": "Give a presenter clip a new script. Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Useful for localising a take, fixing a fluffed line, or spinning one recording into many variants. Both the speech and lip-sync steps are paid per run.",
+      "sourceId": "nodetool-base/AI Spokesperson",
+      "graph": {
+        "nodes": [
+          {
+            "id": "comment-1",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "headline": "AI Spokesperson",
+              "comment": [
+                "Re-voice an existing presenter clip without a reshoot.\n\n",
+                "1. Drop in footage of a person talking to camera.\n",
+                "2. Write the new script.\n",
+                "3. TTS voices it, then lip-sync redrives the mouth to match.\n\n",
+                "Keep the script close to the original length — lip-sync follows the audio, and a much longer script will run past the footage."
+              ]
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 170
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-clip",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "presenter_clip",
+              "value": null,
+              "description": "Footage of a person speaking to camera"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 240
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Presenter clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-script",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "script",
+              "value": "Our spring release ships today. Faster renders, sharper output, and a price that did not move.",
+              "description": "The new words the presenter should say"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 400
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  New script"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "speech",
+            "type": "nodetool.audio.TextToSpeech",
+            "data": {
+              "model": {
+                "type": "tts_model",
+                "provider": "replicate",
+                "id": "inworld/realtime-tts-1.5-max",
+                "name": "Inworld Realtime TTS 1.5 Max",
+                "path": null,
+                "voices": []
+              },
+              "speed": 1
+            },
+            "ui_properties": {
+              "position": {
+                "x": 380,
+                "y": 380
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3  Voice the script"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "sync",
+            "type": "nodetool.video.LipSync",
+            "data": {
+              "model": {
+                "type": "video_model",
+                "provider": "fal_ai",
+                "id": "fal-ai/sync-lipsync/v2/pro",
+                "name": "Sync Lipsync v2 Pro",
+                "path": null,
+                "supported_tasks": []
+              }
+            },
+            "ui_properties": {
+              "position": {
+                "x": 760,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "4  Lip-sync to the new audio"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-clip",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "revoiced_clip"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1120,
+                "y": 320
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "5  Re-voiced clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "in-script",
+            "sourceHandle": "output",
+            "target": "speech",
+            "targetHandle": "text"
+          },
+          {
+            "id": "e2",
+            "source": "in-clip",
+            "sourceHandle": "output",
+            "target": "sync",
+            "targetHandle": "video"
+          },
+          {
+            "id": "e3",
+            "source": "speech",
+            "sourceHandle": "audio",
+            "target": "sync",
+            "targetHandle": "audio"
+          },
+          {
+            "id": "e4",
+            "source": "sync",
+            "sourceHandle": "output",
+            "target": "output-clip",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}

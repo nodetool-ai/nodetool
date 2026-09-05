@@ -188,6 +188,22 @@ function buildControl(control, ctx) {
     return node;
   };
 
+  // `text`, `select` and `slider` take either an input name or `{ node, prop }`,
+  // which binds a property on a node inside the graph instead of an Input node.
+  const propTarget = (kind, target) => {
+    const operation = ctx.operations.get(control.op);
+    if (!operation) fail(`${ctx.app.name}: ${kind} names unknown operation "${control.op}"`);
+    const { node, prop } = target;
+    if (!operation.template.nodeIds.has(node)) {
+      fail(
+        `${ctx.app.name}: ${kind} binds node "${node}", which ${operation.template.name} does not have`
+      );
+    }
+    const binding = propBinding(control.op, node, prop);
+    if (control.default !== undefined) ctx.values[binding] = control.default;
+    return { binding, idParts: [kind, control.op, node, prop] };
+  };
+
   if (control.note !== undefined) {
     return { type: "Text", props: { id: nextId(["note"]), text: control.note } };
   }
@@ -239,6 +255,19 @@ function buildControl(control, ctx) {
     };
   }
 
+  if (control.video !== undefined) {
+    ctx.useVariable(control.video);
+    return {
+      type: "VideoInput",
+      props: {
+        id: nextId(["in", control.video]),
+        binding: varBinding(control.video),
+        label: control.label,
+        events: []
+      }
+    };
+  }
+
   if (control.switch !== undefined) {
     ctx.useVariable(control.switch);
     return {
@@ -266,13 +295,21 @@ function buildControl(control, ctx) {
   }
 
   if (control.text !== undefined) {
-    const node = opInput(control.op, control.text);
-    ctx.seedInputValue(control.op, node);
+    let binding;
+    let idParts;
+    if (typeof control.text === "string") {
+      const node = opInput(control.op, control.text);
+      ctx.seedInputValue(control.op, node);
+      binding = inputBinding(control.op, node.id);
+      idParts = ["in", control.op, control.text];
+    } else {
+      ({ binding, idParts } = propTarget("text", control.text));
+    }
     return {
       type: "TextInput",
       props: {
-        id: nextId(["in", control.op, control.text]),
-        binding: inputBinding(control.op, node.id),
+        id: nextId(idParts),
+        binding,
         label: control.label,
         multiline: control.multiline === true,
         events: []
@@ -297,13 +334,21 @@ function buildControl(control, ctx) {
   }
 
   if (control.select !== undefined) {
-    const node = opInput(control.op, control.select);
-    ctx.seedInputValue(control.op, node);
+    let binding;
+    let idParts;
+    if (typeof control.select === "string") {
+      const node = opInput(control.op, control.select);
+      ctx.seedInputValue(control.op, node);
+      binding = inputBinding(control.op, node.id);
+      idParts = ["in", control.op, control.select];
+    } else {
+      ({ binding, idParts } = propTarget("select", control.select));
+    }
     return {
       type: "Select",
       props: {
-        id: nextId(["in", control.op, control.select]),
-        binding: inputBinding(control.op, node.id),
+        id: nextId(idParts),
+        binding,
         label: control.label,
         options: control.options.map((value) => ({ value })),
         events: []
@@ -339,8 +384,6 @@ function buildControl(control, ctx) {
   }
 
   if (control.slider !== undefined) {
-    const operation = ctx.operations.get(control.op);
-    if (!operation) fail(`${ctx.app.name}: slider names unknown operation "${control.op}"`);
     let binding;
     let idParts;
     if (typeof control.slider === "string") {
@@ -349,15 +392,7 @@ function buildControl(control, ctx) {
       idParts = ["slider", control.op, control.slider];
       ctx.seedInputValue(control.op, node);
     } else {
-      const { node, prop } = control.slider;
-      if (!operation.template.nodeIds.has(node)) {
-        fail(
-          `${ctx.app.name}: slider binds node "${node}", which ${operation.template.name} does not have`
-        );
-      }
-      binding = propBinding(control.op, node, prop);
-      idParts = ["slider", control.op, node, prop];
-      if (control.default !== undefined) ctx.values[binding] = control.default;
+      ({ binding, idParts } = propTarget("slider", control.slider));
     }
     return {
       type: "Slider",

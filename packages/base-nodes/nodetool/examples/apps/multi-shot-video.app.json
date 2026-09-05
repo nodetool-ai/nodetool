@@ -1,0 +1,566 @@
+{
+  "schemaVersion": 1,
+  "name": "Multi-Shot Video",
+  "description": "A director model writes the shot list and a style bible, every shot is rendered as a keyframe and animated, and the clips are cut together into one video.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🎬 Multi-Shot Video",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "One logline in, a cut sequence of shots out."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "💸 Needs Gemini, OpenAI and Google Veo keys. Every shot is one Veo call, metered per second of video, so start with a small shot count."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-the-brief",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-brief",
+                  "title": "The brief",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-trailer-logline",
+                        "binding": "op:trailer/in:logline",
+                        "label": "Logline",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-trailer-visual-style",
+                        "binding": "op:trailer/in:style",
+                        "label": "Visual style",
+                        "options": [
+                          {
+                            "value": "cinematic film still, theatrical key art, anamorphic framing, high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, fine film grain, gritty"
+                          },
+                          {
+                            "value": "moody neo-noir, wet streets, sodium and neon, deep shadows, slow dolly moves, shallow focus"
+                          },
+                          {
+                            "value": "warm indie drama, natural window light, handheld 35mm, soft grain, muted pastel palette"
+                          },
+                          {
+                            "value": "clean sci-fi, cool white light, wide static compositions, glass and steel, minimal colour"
+                          },
+                          {
+                            "value": "animated storybook, painterly textures, soft gradients, gentle camera drift"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-trailer-shot-count",
+                        "binding": "op:trailer/in:shot_count",
+                        "label": "How many shots?",
+                        "min": 1,
+                        "max": 8,
+                        "step": 1,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-trailer",
+                        "label": "Direct the video",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "trailer",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-brief-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-trailer",
+                        "binding": "op:trailer/exec#progress",
+                        "label": "Writing, rendering and cutting shots…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-trailer-trailer",
+                        "text": "Your video",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-trailer-trailer",
+                        "binding": "op:trailer/out:output-trailer",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "trailer",
+        "name": "Direct",
+        "workflowId": "trailer",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "workflows": [
+    {
+      "key": "trailer",
+      "name": "Movie Trailer Generator",
+      "description": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
+      "sourceId": "nodetool-base/Movie Trailer Generator",
+      "graph": {
+        "edges": [
+          {
+            "id": "e-logline-director",
+            "source": "logline",
+            "sourceHandle": "output",
+            "target": "director",
+            "targetHandle": "brief",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e-style-director",
+            "source": "style",
+            "sourceHandle": "output",
+            "target": "director",
+            "targetHandle": "style",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e-count-director",
+            "source": "shot_count",
+            "sourceHandle": "output",
+            "target": "director",
+            "targetHandle": "shot_count",
+            "ui_properties": {
+              "className": "int"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e-director-shots",
+            "source": "director",
+            "sourceHandle": "screenplay",
+            "target": "shots",
+            "targetHandle": "screenplay",
+            "ui_properties": {
+              "className": "dict"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e-shots-keyframe",
+            "source": "shots",
+            "sourceHandle": "shot_prompt",
+            "target": "keyframe",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e-keyframe-animate",
+            "source": "keyframe",
+            "sourceHandle": "output",
+            "target": "animate",
+            "targetHandle": "image",
+            "ui_properties": {
+              "className": "image"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e-shots-animate",
+            "source": "shots",
+            "sourceHandle": "shot_prompt",
+            "target": "animate",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e-animate-collect",
+            "source": "animate",
+            "sourceHandle": "output",
+            "target": "collect",
+            "targetHandle": "input_item",
+            "ui_properties": {
+              "className": "video"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e-collect-concat",
+            "source": "collect",
+            "sourceHandle": "output",
+            "target": "concat",
+            "targetHandle": "ImageToVideo",
+            "ui_properties": {
+              "className": "list"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "edge-output-trailer",
+            "source": "concat",
+            "sourceHandle": "output",
+            "target": "output-trailer",
+            "targetHandle": "value",
+            "ui_properties": null
+          }
+        ],
+        "nodes": [
+          {
+            "id": "comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 🎬 Movie Trailer Generator\n\nType one logline and the canvas builds a cinematic teaser. The Director node writes the storyboard in one step — the same node the Storyboard editor runs behind its Direct button — so the screenplay, the camera direction, and one style bible applied to every shot all come out of a single node.\n\n**Pipeline:** Logline → Director (storyboard) → Screenplay Shots → Keyframes → Image-to-Video → Concat\n\n**Cost note:** the Image-to-Video step runs on Veo 3.1, billed per second of generated video — the most expensive node here. A 6-shot trailer fires 6 Veo calls, so raising Shot Count raises cost linearly.\n\n**Try this:** change the visual style or shot count, or swap the image / video model."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 40,
+                "y": -210
+              },
+              "zIndex": 0,
+              "width": 460,
+              "height": 190,
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "logline",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Logline",
+              "value": "A getaway driver speeds onto a bridge as it starts to collapse — and the only way out is to outrun the gap."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 69
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Logline",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "style",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Visual Style",
+              "value": "cinematic film still, theatrical key art, anamorphic framing, high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, fine film grain, gritty"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 343
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "2️⃣ Visual style",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "shot_count",
+            "type": "nodetool.input.IntegerInput",
+            "data": {
+              "name": "Shot Count",
+              "value": 6,
+              "min": 1,
+              "max": 20
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 619
+              },
+              "zIndex": 0,
+              "selectable": true,
+              "bypassed": false,
+              "width": 280,
+              "title": "3️⃣ Shot count"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "director",
+            "type": "nodetool.creative.Director",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "gemini",
+                "id": "gemini-3.1-pro-preview",
+                "name": "Gemini 3.1 Pro Preview",
+                "path": null,
+                "supported_tasks": []
+              },
+              "brief": "",
+              "style": "",
+              "shot_count": 6,
+              "aspect_ratio": "16:9",
+              "max_tokens": 8192
+            },
+            "ui_properties": {
+              "position": {
+                "x": 430,
+                "y": 180
+              },
+              "zIndex": 0,
+              "selectable": true,
+              "bypassed": false,
+              "width": 360,
+              "height": 400,
+              "title": "4️⃣ Direct the storyboard"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "shots",
+            "type": "nodetool.creative.ScreenplayShots",
+            "data": {
+              "screenplay": {}
+            },
+            "ui_properties": {
+              "position": {
+                "x": 860,
+                "y": 300
+              },
+              "zIndex": 0,
+              "selectable": true,
+              "bypassed": false,
+              "width": 320,
+              "height": 260,
+              "title": "5️⃣ One prompt per shot"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "keyframe",
+            "type": "nodetool.image.TextToImage",
+            "data": {
+              "model": {
+                "type": "image_model",
+                "provider": "kie",
+                "id": "gpt-image-2-text-to-image",
+                "name": "GPT Image-2",
+                "path": null,
+                "supported_tasks": []
+              },
+              "negative_prompt": "on-screen text, titles, logos, watermark, distorted anatomy",
+              "aspect_ratio": "16:9",
+              "resolution": "2K"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1250,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 342,
+              "title": "6️⃣ Render keyframes",
+              "selectable": true,
+              "bypassed": false,
+              "selected_generation": "133f0bef77d34f2bbb3cbc49a97b592b",
+              "selected_generations": []
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "animate",
+            "type": "nodetool.video.ImageToVideo",
+            "data": {
+              "model": {
+                "type": "video_model",
+                "provider": "gemini",
+                "id": "veo-3.1-generate-preview",
+                "name": "Veo 3.1 Preview",
+                "path": null,
+                "supported_tasks": []
+              },
+              "negative_prompt": "",
+              "aspect_ratio": "16:9",
+              "resolution": "720p",
+              "duration": 4,
+              "timeout_seconds": 0
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1640,
+                "y": 400
+              },
+              "zIndex": 0,
+              "width": 331,
+              "height": 222,
+              "title": "7️⃣ Animate each keyframe (Veo, metered per second)",
+              "selectable": true,
+              "bypassed": false,
+              "selected_generation": "8fb0f284a8e54876858f8155aff3dd5d",
+              "selected_generations": [
+                "8fb0f284a8e54876858f8155aff3dd5d",
+                "ee5b6e88d06243f1acc6154584369fac",
+                "7fe4a651a1aa4c65992da46808885a12",
+                "6de4e617560d42c58cb8e49e7b1a13a7",
+                "15c4876b28d1451cb48af44286b75ba7",
+                "ea3868954aef4f3cbce3548c436db0cb"
+              ]
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "collect",
+            "type": "nodetool.control.Collect",
+            "data": {},
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 2040,
+                "y": 436
+              },
+              "zIndex": 0,
+              "width": 161,
+              "height": 150,
+              "title": "Collect video clips",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "concat",
+            "type": "nodetool.video.Concat",
+            "data": {},
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 2260,
+                "y": 384
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 280,
+              "title": "🎬 Final trailer",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "ImageToVideo": ""
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-trailer",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "trailer"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2640,
+                "y": 384
+              },
+              "title": "8️⃣ Trailer output",
+              "selectable": true
+            }
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}

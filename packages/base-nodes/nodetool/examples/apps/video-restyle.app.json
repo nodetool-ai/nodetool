@@ -1,0 +1,386 @@
+{
+  "schemaVersion": 1,
+  "name": "Video Restyle",
+  "description": "Upload footage, name the look and what must survive, and a video-to-video model applies the style. Strength is the dial: low keeps the original read, high commits to the new look.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🎨 Video Restyle",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "Repaint a clip in a new style while its motion stays put."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs a FAL key (Lucy Edit). Billed per clip."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-restyle-a-clip",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-restyle-a-clip",
+                  "title": "Restyle a clip",
+                  "content": [
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-restyle-source-video",
+                        "binding": "op:restyle/in:in-video",
+                        "label": "The clip",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-restyle-style",
+                        "binding": "op:restyle/in:in-style",
+                        "label": "The look",
+                        "options": [
+                          {
+                            "value": "1980s anime cel animation, hand-inked outlines, flat gouache colour, visible film grain"
+                          },
+                          {
+                            "value": "claymation, soft studio light, fingerprints in the clay, stop-motion cadence"
+                          },
+                          {
+                            "value": "black and white 16mm documentary, heavy grain, high contrast"
+                          },
+                          {
+                            "value": "oil painting, thick impasto brushwork, warm gallery light"
+                          },
+                          {
+                            "value": "neon cyberpunk, wet reflections, magenta and cyan rim light"
+                          },
+                          {
+                            "value": "pencil sketch on paper, cross-hatched shading, visible paper grain"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-restyle-preserve",
+                        "binding": "op:restyle/in:in-keep",
+                        "label": "What must survive",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-restyle-restyle-strength",
+                        "binding": "op:restyle/prop:restyle#strength",
+                        "label": "Strength",
+                        "min": 0.1,
+                        "max": 1,
+                        "step": 0.05,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-restyle",
+                        "label": "Restyle the clip",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "restyle",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-restyle-a-clip-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-restyle",
+                        "binding": "op:restyle/exec#progress",
+                        "label": "Repainting every frame…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-restyle-restyled",
+                        "text": "Restyled clip",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-restyle-restyled",
+                        "binding": "op:restyle/out:output-video",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "restyle",
+        "name": "Restyle",
+        "workflowId": "restyle",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "workflows": [
+    {
+      "key": "restyle",
+      "name": "Video Restyle Studio",
+      "description": "Repaint an existing clip in a new visual style while its motion stays put. A prompt node turns a short style note into a full restyle brief, then a video-to-video model applies it. Strength is the dial: low keeps the original read, high commits to the new look.",
+      "sourceId": "nodetool-base/Video Restyle Studio",
+      "graph": {
+        "nodes": [
+          {
+            "id": "comment-1",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "headline": "Video Restyle Studio",
+              "comment": [
+                "Restyle a clip without re-shooting or re-animating it.\n\n",
+                "Motion, timing and framing come from the source video. Only the look changes.\n\n",
+                "Strength is the dial to turn: 0.3-0.5 keeps faces and text legible, 0.7+ commits to the style and will drift."
+              ]
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 170
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-video",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "source_video",
+              "value": null,
+              "description": "The clip to restyle"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 240
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Source clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-style",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "style",
+              "value": "1980s anime cel animation, hand-inked outlines, flat gouache colour, visible film grain",
+              "description": "The look to apply"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 400
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Target style"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-keep",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "preserve",
+              "value": "faces, text, and the position of every subject in frame",
+              "description": "What must survive the restyle"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 560
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3  Preserve"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "brief",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "Restyle this footage.\n\nTarget style: {{ style }}\n\nPreserve exactly: {{ preserve }}\n\nApply the style uniformly across every frame so the look does not flicker or drift shot to shot. Do not change camera movement, subject motion, timing, or composition."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 380,
+                "y": 420
+              },
+              "zIndex": 0,
+              "width": 320,
+              "selectable": true,
+              "title": "Restyle brief"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "restyle",
+            "type": "nodetool.video.VideoToVideo",
+            "data": {
+              "model": {
+                "type": "video_model",
+                "provider": "replicate",
+                "id": "decart/lucy-edit-2",
+                "name": "Lucy Edit 2",
+                "path": null,
+                "supported_tasks": []
+              },
+              "negative_prompt": "flicker, warping, melting faces, unreadable text, frame-to-frame drift",
+              "strength": 0.45
+            },
+            "ui_properties": {
+              "position": {
+                "x": 780,
+                "y": 320
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "4  Restyle"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-video",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "restyled"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1140,
+                "y": 340
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "5  Restyled clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "in-style",
+            "sourceHandle": "output",
+            "target": "brief",
+            "targetHandle": "style"
+          },
+          {
+            "id": "e2",
+            "source": "in-keep",
+            "sourceHandle": "output",
+            "target": "brief",
+            "targetHandle": "preserve"
+          },
+          {
+            "id": "e3",
+            "source": "in-video",
+            "sourceHandle": "output",
+            "target": "restyle",
+            "targetHandle": "video"
+          },
+          {
+            "id": "e4",
+            "source": "brief",
+            "sourceHandle": "output",
+            "target": "restyle",
+            "targetHandle": "prompt"
+          },
+          {
+            "id": "e5",
+            "source": "restyle",
+            "sourceHandle": "output",
+            "target": "output-video",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}
