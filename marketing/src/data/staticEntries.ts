@@ -14,6 +14,7 @@ import type { PageEntry } from "./types";
  */
 export const staticEntries: PageEntry[] = [
   { route: "/", title: "NodeTool", description: "The open creative AI workspace.", priority: 1.0, changeFrequency: "weekly", indexable: true },
+  { route: "/download", title: "Download NodeTool", description: "Installers for macOS, Windows and Linux, with what the app needs and how to open it.", priority: 0.9, changeFrequency: "weekly", indexable: true },
   { route: "/studio", title: "NodeTool Studio", description: "You direct the vision. The agent builds the film on your own machine.", priority: 0.9, changeFrequency: "weekly", indexable: true },
   { route: "/cloud", title: "NodeTool Cloud", description: "Run NodeTool workflows in the cloud.", priority: 0.9, changeFrequency: "weekly", indexable: true },
   { route: "/pricing", title: "Pricing", description: "Free Studio, your own keys, pay providers directly.", priority: 0.8, changeFrequency: "weekly", indexable: true },

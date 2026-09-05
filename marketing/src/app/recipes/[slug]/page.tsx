@@ -54,6 +54,16 @@ export default async function RecipePage({
   const entry = getEntry(slug);
   if (!entry) notFound();
 
+  // The cheapest way into a chain: the first step that calls exactly one
+  // provider. Someone evaluating the recipe can run that alone.
+  const firstSingleKeyStep = entry.steps
+    .map((step, index) => ({
+      index,
+      providers: [...new Set(step.models.map((m) => m.provider))],
+    }))
+    .filter((s) => s.providers.length === 1)
+    .map((s) => ({ index: s.index, provider: s.providers[0] }))[0];
+
   const howToLd = {
     "@context": "https://schema.org",
     "@type": "HowTo",
@@ -154,10 +164,25 @@ export default async function RecipePage({
                 Keys this chain needs
               </h2>
             </div>
-            <p className="mb-6 max-w-2xl text-sm leading-relaxed text-slate-400">
+            <p className="mb-4 max-w-2xl text-sm leading-relaxed text-slate-400">
               Read out of the workflows themselves, so this list is what the
               graphs actually call. You bring the keys and pay each provider
               directly — NodeTool takes no cut and adds no markup.
+            </p>
+            <p className="mb-6 max-w-2xl text-sm leading-relaxed text-slate-400">
+              You need none of them to look. Downloading the bundle, importing
+              it, opening every graph, and reading what each node is set to
+              costs nothing and connects to nothing.
+              {firstSingleKeyStep && (
+                <>
+                  {" "}
+                  When you do want to run something, step{" "}
+                  {String(firstSingleKeyStep.index + 1).padStart(2, "0")} is the
+                  cheapest way in: it calls{" "}
+                  {providerDisplay(firstSingleKeyStep.provider).name} and
+                  nothing else.
+                </>
+              )}
             </p>
             <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {entry.keys.map((key) => {
@@ -241,6 +266,23 @@ export default async function RecipePage({
                       {step.name} — see the graph
                       <ArrowRight className="h-3.5 w-3.5" />
                     </a>
+                    {step.alternative && (
+                      <div className="mt-4 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-emerald-300">
+                          {step.alternative.label}
+                        </div>
+                        <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                          {step.alternative.why}
+                        </p>
+                        <a
+                          href={step.alternative.route}
+                          className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-300 transition-colors hover:text-emerald-200"
+                        >
+                          {step.alternative.name} — see the graph
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </li>
               ))}
@@ -280,7 +322,7 @@ export default async function RecipePage({
               {[
                 {
                   title: "Install Studio",
-                  body: "The desktop app is free and runs on your own machine. No account is needed to open a workflow.",
+                  body: "The desktop app is free and runs on your own machine. No account, no sign-in, and no key is needed to open a workflow.",
                 },
                 {
                   title: "Import the bundle",

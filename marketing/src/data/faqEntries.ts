@@ -112,7 +112,7 @@ const seeds: FaqSeed[] = [
     slug: "how-much-does-nodetool-cost",
     question: "How much does NodeTool cost?",
     answerMd:
-      "NodeTool Studio, the desktop app, is free and open source. NodeTool Cloud is a subscription that covers hosting; it is in alpha and its price is set at full release. In both editions you bring your own API keys and pay each provider their list price directly, so what a run costs is whatever the provider charges for it. Local models through Ollama, MLX, or llama.cpp cost nothing per call.",
+      "NodeTool Studio, the desktop app, is free and open source. NodeTool Cloud is free while it is in alpha. At full release a subscription covers hosting, at a price announced before anyone is charged. In both editions you bring your own API keys and pay each provider their list price directly, so what a run costs is whatever the provider charges for it. Local models through Ollama, MLX, or llama.cpp cost nothing per call.",
     category: "byok",
     relatedRoute: "/pricing",
     surfaces: ["landing", "pricing", "comparison"],
@@ -130,7 +130,7 @@ const seeds: FaqSeed[] = [
     slug: "studio-or-cloud",
     question: "Studio or Cloud — which should I use?",
     answerMd:
-      "Studio is the desktop app: free, open source, running on your machine, with support for local models through MLX, Ollama, and GGUF. Cloud is the same workspace in the browser, with nothing to install and no graphics card needed, and your keys still go straight to the providers. The workflows are the same either way.",
+      "Studio, unless you cannot install software. Studio is the desktop app: free, open source, running on your machine, with local models through MLX, Ollama, and GGUF, and it is the finished edition — the one to use for work you are being paid for. Cloud is the same workspace in the browser, with nothing to install and no graphics card needed, and your keys still go straight to the providers. It is in alpha, so expect breaking changes and occasional downtime. The workflows are the same either way and move between the two.",
     category: "editions",
     relatedRoute: "/cloud",
     surfaces: ["pricing"],
