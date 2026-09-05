@@ -123,6 +123,28 @@ export function parseOutputFormat(raw: string | null | undefined): TimelineOutpu
  * VP9 is the only WebM video codec with an alpha plane, so `webm` pins it
  * rather than taking a `videoCodec` override that would silently lose alpha.
  */
+/**
+ * Convert to BT.709 and say so in the file.
+ *
+ * The compositor hands ffmpeg sRGB RGBA. Told only a `-pix_fmt`, ffmpeg picks
+ * the BT.601 matrix (its default for an untagged input) and writes no colour
+ * metadata, so a player that assumes BT.709 for HD — which is every player —
+ * shows greens and reds that are not the ones the editor previewed. The scaler
+ * does the conversion; the three tags record it, since an untagged file is
+ * guessed at all over again by the next tool that reads it. Limited range is
+ * what a YUV video carries and what a player expects.
+ */
+const BT709_ARGS: readonly string[] = [
+  "-vf",
+  "scale=out_color_matrix=bt709:out_range=tv",
+  "-colorspace",
+  "bt709",
+  "-color_primaries",
+  "bt709",
+  "-color_trc",
+  "bt709"
+];
+
 export function resolveTimelineOutput(
   request: TimelineOutputRequest = {}
 ): ResolvedTimelineOutput {
@@ -167,6 +189,7 @@ export function resolveTimelineOutput(
         "libvpx-vp9",
         "-pix_fmt",
         alpha ? "yuva420p" : "yuv420p",
+        ...BT709_ARGS,
         ...bitrateArgs
       ],
       requiredEncoder: "libvpx-vp9",
@@ -189,6 +212,7 @@ export function resolveTimelineOutput(
         alpha ? "4444" : "3",
         "-pix_fmt",
         alpha ? "yuva444p10le" : "yuv422p10le",
+        ...BT709_ARGS,
         ...bitrateArgs
       ],
       requiredEncoder: "prores_ks",
@@ -209,6 +233,7 @@ export function resolveTimelineOutput(
       ...(codec === "libx264" ? ["-preset", "veryfast"] : []),
       "-pix_fmt",
       "yuv420p",
+      ...BT709_ARGS,
       ...bitrateArgs
     ],
     requiredEncoder: codec,

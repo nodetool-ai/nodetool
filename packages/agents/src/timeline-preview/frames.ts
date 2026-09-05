@@ -40,12 +40,14 @@ import {
   computeActiveLayersWithHorizon,
   createAnimationCompileCache,
   drawTimelineFrame,
+  hasActiveAnimation,
   measureTextWith,
   motionBlurSampleTimes,
   resolveAnimatedLayerProps,
   resolveMotionBlur,
   resolveTextStaggerContext,
   seedBlurAccumulation,
+  shutterWindowIsStatic,
   trackZ,
   unsupportedEffectTypes
 } from "@nodetool-ai/timeline/scene";
@@ -672,12 +674,29 @@ export async function renderTimelineFrames(
     };
   };
 
-  for (const timeMs of options.timesMs) {
-    const sampleTimes = motionBlurSampleTimes(
+  /**
+   * True when the shutter window holds one picture. Resolving the layer set
+   * decodes nothing, so the check costs a fraction of the N decodes and N
+   * composites it saves on a still frame.
+   */
+  const shutterIsStatic = (timeMs: number): boolean => {
+    if (blur.samplesPerFrame <= 1) return false;
+    const { layers } = computeActiveLayersWithHorizon(
+      sequence.tracks,
+      sequence.clips,
       timeMs,
-      frameMs,
-      options.motionBlur
+      { canvas: animationCanvas, animationCache: animCache }
     );
+    return shutterWindowIsStatic(
+      layers,
+      hasActiveAnimation(layers, timeMs, animationCanvas, animCache)
+    );
+  };
+
+  for (const timeMs of options.timesMs) {
+    const sampleTimes = shutterIsStatic(timeMs)
+      ? [timeMs]
+      : motionBlurSampleTimes(timeMs, frameMs, options.motionBlur);
     let composed: Awaited<ReturnType<typeof composeAt>>;
     if (!blurCtx || !blurAccumulator || sampleTimes.length === 1) {
       composed = await composeAt(timeMs);

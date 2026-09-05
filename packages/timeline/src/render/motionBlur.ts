@@ -184,3 +184,44 @@ export function accumulateBlurSample<TSource>(
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = "source-over";
 }
+
+/**
+ * The parts of a resolved layer that decide whether the shutter window can
+ * move. Structural on purpose: `sceneModel`'s `ActiveLayer` satisfies it, and
+ * so does a test's literal, without this module depending on the scene model.
+ */
+export interface ShutterStaticnessLayer {
+  kind: string;
+  clip?: { timeRemap?: unknown } | null;
+  transition?: unknown;
+  matte?: { layer: { kind: string } } | null;
+}
+
+/**
+ * True when nothing in the frame changes across the shutter window, so N
+ * samples would all be the same picture.
+ *
+ * N samples cost N composites and N decodes. A still frame — a title card, a
+ * held image, a document with nothing animating — averages N copies of one
+ * picture into that same picture, so the whole cost buys nothing. Four things
+ * make a window move: an animation whose window covers the instant (the caller
+ * passes that in, since deciding it needs the compiled curves), a transition in
+ * flight, a video source whose decoded frame advances with time, and a time
+ * remap. Captions count as moving: word highlighting resolves per instant.
+ *
+ * Conservative in one direction only — a false `false` costs the render it
+ * would have cost anyway, a false `true` would drop real blur.
+ */
+export function shutterWindowIsStatic(
+  layers: readonly ShutterStaticnessLayer[],
+  hasActiveAnimation: boolean
+): boolean {
+  if (hasActiveAnimation) return false;
+  for (const layer of layers) {
+    if (layer.kind === "video" || layer.kind === "caption") return false;
+    if (layer.transition) return false;
+    if (layer.clip?.timeRemap) return false;
+    if (layer.matte && layer.matte.layer.kind === "video") return false;
+  }
+  return true;
+}

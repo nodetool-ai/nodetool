@@ -190,12 +190,15 @@ describe("RenderTimelineNode", () => {
     node.assign({ timeline: { type: "timeline", id: "seq-1" } });
 
     const result = (await node.process(context as never)) as {
-      output: { type: string; format: string; data: string };
+      output: { type: string; format: string; data: string | null; asset_id: string | null };
     };
 
     expect(result.output.type).toBe("video");
     expect(result.output.format).toBe("mp4");
-    expect(result.output.data.length).toBeGreaterThan(0);
+    // The render is stored as an asset and named by id: base64 of a real
+    // render is past what a string can hold (B10).
+    expect(result.output.asset_id).toBe("created-asset");
+    expect(result.output.data).toBeNull();
 
     const args = ffmpegArgString();
     // Both clips normalized to the sequence frame and fps.

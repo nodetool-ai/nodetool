@@ -23,8 +23,10 @@ import {
   clipSourceTimeSec,
   computeActiveLayersWithHorizon,
   createAnimationCompileCache,
+  hasActiveAnimation,
   measureTextWith,
   motionBlurSampleTimes,
+  shutterWindowIsStatic,
   resolveAnimatedLayerProps,
   resolveTextStaggerContext,
   trackZ
@@ -437,6 +439,29 @@ export async function renderTimelineComposited(
       };
     };
 
+    /**
+     * True when the shutter window holds one picture, so N samples would
+     * average N copies of it.
+     *
+     * Resolving the layer set is cheap — it decodes nothing — and it answers
+     * the question that N decodes and N composites would otherwise pay for. A
+     * held title at 8 samples is the case: 8× the render for the frame it
+     * already had.
+     */
+    const staticAt = (timeMs: number): boolean => {
+      if (motionBlur.samplesPerFrame <= 1) return false;
+      const { layers } = computeActiveLayersWithHorizon(
+        sequence.tracks,
+        sequence.clips,
+        timeMs,
+        { canvas, animationCache: animCache }
+      );
+      return shutterWindowIsStatic(
+        layers,
+        hasActiveAnimation(layers, timeMs, canvas, animCache)
+      );
+    };
+
     for (let frame = 0; frame < totalFrames; frame++) {
       if (signal?.aborted) throw abortError();
       const timeMs = (frame * 1000) / fps;
@@ -451,8 +476,13 @@ export async function renderTimelineComposited(
       const samples: FrameSample[] = [];
       // Sequential, not concurrent: a clip's frames come off one forward-only
       // ffmpeg stream, so two samples decoding at once would race for it.
-      const sampleTimes = motionBlurSampleTimes(timeMs, frameMs, motionBlur);
+      const sampleTimes = staticAt(timeMs)
+        ? [timeMs]
+        : motionBlurSampleTimes(timeMs, frameMs, motionBlur);
       for (const sampleMs of sampleTimes) {
+        // Per sample, not per frame: with 32 samples a cancelled render would
+        // otherwise finish 32 composites and decodes before it noticed.
+        if (signal?.aborted) throw abortError();
         samples.push(await sampleAt(sampleMs));
       }
 

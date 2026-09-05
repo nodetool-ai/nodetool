@@ -703,6 +703,41 @@ function emptyFramesRef(): TimelineFramesRef {
   return { type: "document", uri: "", asset_id: null, data: null };
 }
 
+/**
+ * Store a finished render in the host's asset store and describe it by id.
+ *
+ * A minute of 1080p is tens of megabytes; base64 of that sits at V8's string
+ * cap, so encoding the artifact into the ref fails after the whole render has
+ * already been paid for. With an asset store the bytes go there and the ref
+ * carries `asset_id` plus an `asset://` uri and no inline `data`. A host
+ * without one (the CLI, a unit test) keeps the inline encoding, which is the
+ * only way those callers see the result at all.
+ */
+async function storeRenderArtifact(args: {
+  context: ProcessingContext;
+  filePath: string;
+  name: string;
+  contentType: string;
+}): Promise<{ asset_id: string | null; uri: string; data: string | null }> {
+  const bytes = await fs.readFile(args.filePath);
+  if (typeof args.context.createAsset !== "function") {
+    return { asset_id: null, uri: "", data: bytes.toString("base64") };
+  }
+  const created = (await args.context.createAsset({
+    name: args.name,
+    contentType: args.contentType,
+    content: new Uint8Array(bytes)
+  })) as { id?: unknown } | null;
+  const assetId =
+    created && typeof created.id === "string" && created.id.length > 0
+      ? created.id
+      : null;
+  if (!assetId) {
+    return { asset_id: null, uri: "", data: bytes.toString("base64") };
+  }
+  return { asset_id: assetId, uri: `asset://${assetId}`, data: null };
+}
+
 export class RenderTimelineNode extends BaseNode {
   static readonly nodeType = "nodetool.timeline.RenderTimeline";
   static readonly title = "Render Timeline";
@@ -924,14 +959,19 @@ export class RenderTimelineNode extends BaseNode {
             "warning"
           );
         }
-        const archive = await fs.readFile(basePath);
+        const stored = await storeRenderArtifact({
+          context: ctx,
+          filePath: basePath,
+          name: `${seq.name || "timeline"}-frames.zip`,
+          contentType: output.mimeType
+        });
         return {
           output: emptyVideoRef(),
           frames: {
             type: "document",
-            uri: "",
-            asset_id: null,
-            data: archive.toString("base64"),
+            uri: stored.uri,
+            asset_id: stored.asset_id,
+            data: stored.data,
             metadata: {
               render_mode: renderMode,
               format: output.format,
@@ -955,10 +995,19 @@ export class RenderTimelineNode extends BaseNode {
             })
           : basePath;
 
-      const rendered = new Uint8Array(await fs.readFile(outPath));
       const duration = await ffprobeDuration(outPath);
+      const stored = await storeRenderArtifact({
+        context: ctx,
+        filePath: outPath,
+        name: `${seq.name || "timeline"}.${output.extension}`,
+        contentType: output.mimeType
+      });
       return {
-        output: videoRef(rendered, {
+        output: {
+          type: "video",
+          asset_id: stored.asset_id,
+          uri: stored.uri,
+          data: stored.data,
           format: output.extension,
           duration: duration > 0 ? duration : null,
           // Which of the two paths produced these bytes. The docker smoke test
@@ -969,7 +1018,7 @@ export class RenderTimelineNode extends BaseNode {
             format: output.format,
             alpha: output.alpha
           }
-        }),
+        },
         frames: emptyFramesRef()
       };
     } finally {
