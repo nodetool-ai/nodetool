@@ -46,15 +46,12 @@ import {
   loadVideoModels
 } from "./manifest-models.js";
 import type {
-  ASRModel,
-  EmbeddingModel,
   ImageModel,
   ImageToImageParams,
   ImageToVideoParams,
   LanguageModel,
   TextToImageParams,
   TextToVideoParams,
-  TTSModel,
   VideoModel
 } from "./types.js";
 
@@ -461,21 +458,6 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     // Unknown model: assume tools work rather than silently dropping them.
     if (!row?.supported_features) return true;
     return row.supported_features.includes("tools");
-  }
-
-  // AtlasCloud's OpenAI-compatible surface is chat-only — its audio and
-  // embedding models are not served from /v1. Suppress the OpenAI defaults so
-  // they don't surface as AtlasCloud models the provider can't actually run.
-  override async getAvailableTTSModels(): Promise<TTSModel[]> {
-    return [];
-  }
-
-  override async getAvailableASRModels(): Promise<ASRModel[]> {
-    return [];
-  }
-
-  override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
-    return [];
   }
 
   // ─── Image / video models ────────────────────────────────────────────────

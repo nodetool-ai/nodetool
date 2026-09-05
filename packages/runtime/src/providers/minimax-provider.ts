@@ -18,8 +18,6 @@ import { createLogger } from "@nodetool-ai/config";
 import { safeFetch } from "./safe-url.js";
 import { fetchWithRetry, pollUntilTerminal } from "./http-transport.js";
 import type {
-  ASRModel,
-  EmbeddingModel,
   EncodedAudioResult,
   ImageModel,
   ImageToImageParams,
@@ -389,16 +387,6 @@ export class MinimaxProvider extends OpenAICompatProvider {
       data: hexToUint8(audioHex),
       mimeType: fmt === "wav" ? "audio/wav" : "audio/mpeg"
     };
-  }
-
-  /** MiniMax does not expose a public ASR endpoint we support here. */
-  override async getAvailableASRModels(): Promise<ASRModel[]> {
-    return [];
-  }
-
-  /** Embeddings require a MiniMax GroupId we don't manage; leave disabled. */
-  override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
-    return [];
   }
 
   override async automaticSpeechRecognition(

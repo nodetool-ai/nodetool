@@ -13,30 +13,11 @@ import {
   type SnapAction
 } from "@nodetool-ai/timeline";
 import {
-  ADD_SHAPE_CLIP_DESCRIPTION,
-  ADD_TEXT_CLIP_DESCRIPTION,
-  ADD_TRACK_DESCRIPTION,
-  DELETE_TRACK_DESCRIPTION,
-  MOVE_TRACK_DESCRIPTION,
-  deleteTrackShape,
   resolveDeleteTrackArgs,
-  withTextClipRemedies,
-  clipOpacityParam,
-  moveTrackShape,
   resolveMoveTrackArgs,
-  addGroupParams,
-  captionStyleParams,
-  effectParams,
-  maskParams,
-  matteParams,
-  partialTextStyleParams,
-  setParentParams,
   resolveShapeArg,
-  setTimeRemapParams,
-  shapeStyleParams,
   targetParam,
-  textStylePatchParams,
-  transitionParams
+  textStylePatchParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import {
   buildTimelineToolContracts,
@@ -51,12 +32,11 @@ import {
 import { FrontendToolRegistry } from "../frontendTools";
 import {
   getTimelineAgentHandler,
+  type ClipAnimationInput,
   type TimelineClipNode,
   type TimelineMarkerNode
 } from "../../../components/timeline/timelineAgentBridge";
 import { docUrl } from "./resourceLinks";
-
-const animationRole = z.enum(["in", "out", "emphasis", "loop"]);
 
 /**
  * Frontend tools that let the agent drive the live timeline / video editor —
@@ -113,50 +93,6 @@ const shared = <K extends TimelineToolName>(name: K) => ({
   description: TIMELINE_CONTRACTS[name].description,
   parameters: hostParams(TIMELINE_CONTRACTS[name])
 });
-
-/**
- * The `custom` preset's inputs: keyframes written out, or a body baked into
- * them. Values are checked by the engine's own gates
- * (`normalizeCustomCurves`, `resolveCustomMask`), so Zod only pins the shape.
- */
-const customCurvesParam = z
-  .array(
-    z.object({
-      property: z
-        .string()
-        .describe(`One of: ${ANIMATED_PROPERTIES.join(", ")}.`),
-      keyframes: z
-        .array(
-          z.object({
-            t: z.number().describe("0..1 across the animation's window."),
-            value: z.number(),
-            easing: z.string().optional()
-          })
-        )
-        .min(1)
-    })
-  )
-  .optional()
-  .describe(
-    'Keyframes for `preset: "custom"`. Exactly one of `curves` and `code`.'
-  );
-
-const customCodeParam = z
-  .string()
-  .optional()
-  .describe(
-    'JS body for `preset: "custom"`, baked into curves once, host-side. ' +
-      "It returns `{curves}` or `{samples}` and reads its clip context off " +
-      "`inputs`. Exactly one of `curves` and `code`."
-  );
-
-const customMaskParam = z
-  .object({
-    direction: z.enum(["left", "right", "up", "down"]),
-    softness: z.number().min(0).max(1)
-  })
-  .optional()
-  .describe("Required when a curve drives wipeProgress, ignored otherwise.");
 
 FrontendToolRegistry.register({
   ...shared("ui_timeline_get_state"),
@@ -521,7 +457,12 @@ FrontendToolRegistry.register({
   async execute({ timeline_id, target, mode, animations }) {
     const clip = getTimelineAgentHandler(timeline_id).setClipAnimations(
       target,
-      animations,
+      // `{preset: "custom", custom: {curves}}` reads as naturally as the flat
+      // form, so lift it rather than handing the editor an animation with
+      // neither curves nor code. The units come from the engine's own
+      // STAGGER_UNITS, which `z.enum` widened to string on the way through the
+      // contract.
+      animations.map(liftCustomAnimation) as ClipAnimationInput[],
       mode ?? "replace"
     );
     return {

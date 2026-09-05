@@ -29,18 +29,11 @@ import { initDb, type TokenPolicy } from "@nodetool-ai/models";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath } from "@nodetool-ai/config";
 import { registerWorkerModelsCommands } from "./worker-models.js";
+import { printTable, asJson } from "./output.js";
 
 const SUPPORTED_TARGETS = ["runpod", "vast"] as const;
 type SupportedTarget = (typeof SUPPORTED_TARGETS)[number];
 const TOKEN_POLICIES = ["generate", "fixed"] as const satisfies readonly TokenPolicy[];
-
-// ---------------------------------------------------------------------------
-// Output helpers
-// ---------------------------------------------------------------------------
-
-function asJson(data: unknown): void {
-  console.log(JSON.stringify(data, null, 2));
-}
 
 /**
  * Redact a high-entropy bearer token for human-readable output. Shows only the
@@ -53,29 +46,6 @@ function maskToken(token: string | null | undefined): string {
     return "(none)";
   }
   return `${token.slice(0, 8)}… (full token: worker token <id>)`;
-}
-
-/** Print a simple aligned table. Missing values render as empty. */
-function printTable(rows: Record<string, unknown>[], columns?: string[]): void {
-  if (rows.length === 0) {
-    console.log("(no results)");
-    return;
-  }
-  const cols = columns ?? Object.keys(rows[0]!);
-  const widths = cols.map((c) =>
-    Math.max(c.length, ...rows.map((r) => String(r[c] ?? "").length))
-  );
-  const sep = widths.map((w) => "─".repeat(w + 2)).join("┼");
-  const header = cols.map((c, i) => ` ${c.padEnd(widths[i]!)} `).join("│");
-  console.log(header);
-  console.log(sep);
-  for (const row of rows) {
-    console.log(
-      cols
-        .map((c, i) => ` ${String(row[c] ?? "").padEnd(widths[i]!)} `)
-        .join("│")
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------
