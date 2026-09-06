@@ -60,9 +60,31 @@ const toMs = (
   Number(seconds) * 1000 +
   Number(fraction.padEnd(3, "0"));
 
-/** Player markup, which is not part of what is said. */
-const stripMarkup = (text: string): string =>
-  text.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+/**
+ * One cue tag: `<b>`, `<v Name>`, `<00:00:01.000>`. The class excludes `<` so
+ * only the innermost tag matches, rather than one match swallowing a nested
+ * pair from its opening bracket to the outer close.
+ */
+const CUE_TAG = /<[^<>]*>/g;
+
+/**
+ * Player markup, which is not part of what is said.
+ *
+ * Repeated to a fixed point. A single pass is incomplete sanitization: removing
+ * the inner tag of `<scr<b>ipt>` splices the remains into `<script>`, a tag the
+ * pass has already gone past. Each pass deletes at least two characters, so the
+ * loop ends. Text with a bare `<` and no `>` is left alone — a subtitle saying
+ * "if x < y" is words, not markup.
+ */
+const stripMarkup = (text: string): string => {
+  let out = text;
+  let previous = "";
+  while (out !== previous) {
+    previous = out;
+    out = out.replace(CUE_TAG, "");
+  }
+  return out.replace(/\s+/g, " ").trim();
+};
 
 /**
  * Read an SRT or WebVTT file. Cues with no words, and cues that end before

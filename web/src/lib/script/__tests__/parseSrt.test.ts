@@ -59,6 +59,28 @@ describe("parseSrt", () => {
     expect(lines.some((line) => line.text.includes("levels wander"))).toBe(false);
   });
 
+  // CodeQL, incomplete multi-character sanitization. One strip pass splices the
+  // remains of a nested tag into a new one the pass has already gone past, so
+  // `<scr<b>ipt>` came out as `<script>`.
+  it("leaves no tag behind, however they are nested", () => {
+    const cue = (text: string) =>
+      parseSrt(`1\n00:00:00,000 --> 00:00:02,000\n${text}\n`).lines[0].text;
+
+    expect(cue("<scr<b>ipt>alert(1)</scr</b>ipt>")).toBe("alert(1)");
+    expect(cue("<<i>>plain<</i>>")).toBe("plain");
+    expect(cue("<b>bold</b> and <i>italic</i>")).toBe("bold and italic");
+    expect(cue("<v Narrator>Hello there</v>")).toBe("Hello there");
+  });
+
+  // The parser's contract is the spoken words verbatim, so a bare `<` that
+  // never closes is text, not markup.
+  it("keeps a comparison the speaker actually says", () => {
+    const parsed = parseSrt(
+      "1\n00:00:00,000 --> 00:00:02,000\nif x < y then stop\n"
+    );
+    expect(parsed.lines[0].text).toBe("if x < y then stop");
+  });
+
   it("drops a cue with no words and one with no duration", () => {
     // The SRT fixture's fourth cue is both.
     expect(parseSrt(fixture("tide-clock.srt")).lines).toHaveLength(3);
