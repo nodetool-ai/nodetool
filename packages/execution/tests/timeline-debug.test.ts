@@ -550,6 +550,132 @@ describe("validateTimelineSequence — structural checks", () => {
     expect(result.warnings).toEqual([]);
   });
 
+  it("flags a source-anchored curve that reaches past the clip's source window", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            // 2000ms of timeline at 1x from source 1000 → the clip plays
+            // 1000–3000ms of the media.
+            inPointMs: 1000,
+            outPointMs: 3000,
+            animations: [
+              {
+                id: "anim-1",
+                role: "emphasis",
+                preset: "custom",
+                durationMs: 2000,
+                custom: {
+                  timeBase: "source",
+                  curves: [
+                    {
+                      property: "offsetY",
+                      keyframes: [
+                        { sourceMs: 1000, value: 0 },
+                        { sourceMs: 5000, value: 100 }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          })
+        ]
+      })
+    );
+    const outside = result.warnings.filter(
+      (issue) => issue.code === "source_curve_outside_window"
+    );
+    expect(outside).toHaveLength(1);
+    expect(outside[0].message).toContain("5000");
+    expect(outside[0].path).toBe(
+      "animations[*].custom.curves[*].keyframes[*].sourceMs"
+    );
+    // A warning: the clip still renders, holding the edge value.
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts a source-anchored curve inside the clip's source window", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            inPointMs: 1000,
+            outPointMs: 3000,
+            animations: [
+              {
+                id: "anim-1",
+                role: "emphasis",
+                preset: "custom",
+                durationMs: 2000,
+                custom: {
+                  timeBase: "source",
+                  bakedFrom: { kind: "audio", assetId: "asset-1" },
+                  curves: [
+                    {
+                      property: "offsetY",
+                      keyframes: [
+                        { sourceMs: 1000, value: 0 },
+                        { sourceMs: 2500, value: 100 },
+                        { sourceMs: 3000, value: 0 }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          })
+        ]
+      })
+    );
+    expect(result.warnings).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
+  it("measures a remapped clip's window against the remap's own range", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            inPointMs: 0,
+            outPointMs: 2000,
+            timeRemap: {
+              keyframes: [
+                { t: 0, sourceMs: 4000 },
+                { t: 1, sourceMs: 9000 }
+              ]
+            },
+            animations: [
+              {
+                id: "anim-1",
+                role: "emphasis",
+                preset: "custom",
+                durationMs: 2000,
+                custom: {
+                  timeBase: "source",
+                  curves: [
+                    {
+                      property: "offsetY",
+                      keyframes: [
+                        { sourceMs: 4000, value: 0 },
+                        { sourceMs: 9000, value: 100 }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          })
+        ]
+      })
+    );
+    expect(
+      result.warnings.filter(
+        (issue) => issue.code === "source_curve_outside_window"
+      )
+    ).toEqual([]);
+  });
+
   it("flags an easing string this build cannot parse, once per site", () => {
     const result = validateTimelineSequence(
       doc({

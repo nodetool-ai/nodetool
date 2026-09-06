@@ -24,6 +24,25 @@
   interpolation is `evalCurve`'s — the segment is eased by its *ending*
   keyframe and held flat past both ends — so one keyframe is a freeze frame
   and the easing grammar is the one the rest of the document speaks.
+- **A custom animation can be anchored to the media instead of the clip**
+  (`custom.timeBase: "source"`). Its keyframes name absolute source
+  milliseconds in `sourceMs` — the stored truth there, with `t` derived from it
+  by `normalizeCustomCurves` — and the sampler evaluates them at
+  `clipSourceMsAt`, the same source time the compositor seeks the video to, so
+  speed and a time remap move the motion the way they move the footage. The
+  caller passes that time to `sampleAnimations`; one that does not leaves such
+  an animation at identity rather than replaying it on the clip's clock.
+  Because the curve is placed in the media, **`trimClip` and `splitClip`
+  re-slice it** (`animation/sourceCurves.ts`) instead of letting the window
+  stretch it: keyframes outside the retained source window are dropped and an
+  interpolated keyframe is put on each new edge, so the motion at a given
+  timeline instant survives the edit — exactly for a linear segment (the
+  default a custom animation compiles with), approximately when an eased
+  segment is cut in half. A split hands each half the stretch of the curve its
+  own source window shows, so role says nothing about which half carries it. A
+  clip-based curve keeps stretching, which is what `t` over the window means.
+  The validator reports a curve reaching past the clip's source window as
+  `source_curve_outside_window`.
 - **Split and trim refuse a remapped clip** (`assertNotTimeRemapped`). The
   curve is normalized over the window, so changing the window retimes every
   frame the clip shows, including the ones the edit did not touch. The refusal
@@ -116,6 +135,18 @@
   the headless frame preview draw through it. Effects are where the two
   genuinely differ, so `unsupportedEffectTypes` names what Canvas 2D drops
   rather than letting a caller show a different picture silently.
+- **An adjustment clip is z-order, bottom-up, group-scoped, and blended by its
+  opacity.** `mediaType: "adjustment"` draws nothing: it treats the composite of
+  everything already on the surface at its own track's z — every track with a
+  higher index — runs its effect chain on that, and blends the treated result
+  back over the untreated one with its resolved opacity (1 fully treated, 0 a
+  no-op), inside its `mask` where it has one. Stacked adjustments therefore
+  apply bottom-up with no rule of their own: the higher one simply finds the
+  lower one's result. Inside a group it treats that group's surface and nothing
+  outside, which is why a group holding one always precomposites
+  (`groupNeedsPrecomposite`). The scene model decides all of it — `computeActiveLayers`
+  returns `AdjustmentLayer` records — so `canvas2d` and `frameCompositor`
+  execute one plan instead of each deciding.
 - **Nothing in `src/render` may be re-exported from the package root.** The root
   export stays runtime-dependency-free (mobile compiles it from source); the
   render module pulls in WebGPU through `@nodetool-ai/gpu`.

@@ -95,6 +95,65 @@ function unknownEasingIssue(
   };
 }
 
+/** Source milliseconds a curve may overhang before it counts as outside. */
+const SOURCE_WINDOW_SLACK_MS = 1;
+
+/**
+ * The stretch of source a clip shows: the remap curve's own range when it
+ * carries one, otherwise the in-point plus what the clip consumes at its rate.
+ * `outPointMs` is deliberately not consulted — a document where it disagrees
+ * with `durationMs * rate` is what `in_out_duration_mismatch` reports.
+ */
+function clipSourceWindow(clip: TimelineClip) {
+  const keyframes = clip.timeRemap?.keyframes ?? [];
+  if (keyframes.length > 0) {
+    const times = keyframes.map((keyframe) => keyframe.sourceMs);
+    return { fromMs: Math.min(...times), toMs: Math.max(...times) };
+  }
+  const fromMs = clip.inPointMs ?? 0;
+  return { fromMs, toMs: fromMs + clip.durationMs * sourceRate(clip) };
+}
+
+/**
+ * A source-anchored curve reaching past the source the clip plays.
+ *
+ * The keyframes name absolute times in the media, so the part outside the
+ * clip's window is never sampled: the motion the author drew there does not
+ * happen, and the sampler holds the edge value instead. A warning rather than
+ * an error — the clip still renders, and a trim that shortened the clip
+ * without re-slicing (an older client's edit) lands here.
+ */
+function sourceCurveOutsideWindowIssue(
+  clip: TimelineClip,
+  animationId: string,
+  curves: ReadonlyArray<{ keyframes: ReadonlyArray<{ sourceMs?: number }> }>
+): TimelineDebugIssue | null {
+  const times: number[] = [];
+  for (const curve of curves) {
+    for (const keyframe of curve.keyframes) {
+      if (keyframe.sourceMs !== undefined) times.push(keyframe.sourceMs);
+    }
+  }
+  if (times.length === 0) return null;
+  const curveFromMs = Math.min(...times);
+  const curveToMs = Math.max(...times);
+  const window = clipSourceWindow(clip);
+  if (
+    curveFromMs >= window.fromMs - SOURCE_WINDOW_SLACK_MS &&
+    curveToMs <= window.toMs + SOURCE_WINDOW_SLACK_MS
+  ) {
+    return null;
+  }
+  return {
+    severity: "warning",
+    code: "source_curve_outside_window",
+    message: `Clip "${clipLabel(clip)}" animation "${animationId}" keyframes ${Math.round(curveFromMs)}–${Math.round(curveToMs)}ms of source, outside the ${Math.round(window.fromMs)}–${Math.round(window.toMs)}ms the clip plays — the motion outside never runs. Re-slice the curve to the clip's source window.`,
+    path: "animations[*].custom.curves[*].keyframes[*].sourceMs",
+    clipId: clip.id,
+    trackId: clip.trackId
+  };
+}
+
 /** What a transition's `type` accepts, for the `unknown_transition` message. */
 const TRANSITION_GRAMMAR = TRANSITION_TYPES.join(", ");
 
@@ -405,7 +464,10 @@ function checkClip(
     // A custom animation renders nothing unless its baked curves survive the
     // one gate every render site applies, so what the compiler would skip with
     // a console warning is reported here instead.
-    const baked = normalizeCustomCurves(animation.custom?.curves);
+    const baked = normalizeCustomCurves(
+      animation.custom?.curves,
+      animation.custom?.timeBase
+    );
     if (!baked.ok) {
       issues.push({
         severity: "error",
@@ -423,6 +485,11 @@ function checkClip(
         "animations[*].custom.curves[*].keyframes[*].easing"
       );
       if (issue) issues.push(issue);
+    }
+
+    if (baked.timeBase === "source") {
+      const outside = sourceCurveOutsideWindowIssue(clip, animation.id, baked.curves);
+      if (outside) issues.push(outside);
     }
 
     const mask = resolveCustomMask(baked.curves, animation.custom?.mask);
