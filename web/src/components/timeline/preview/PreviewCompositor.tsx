@@ -14,7 +14,10 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 
-import type { TimelineClip } from "@nodetool-ai/timeline";
+import type {
+  ClipModel3DCamera,
+  TimelineClip
+} from "@nodetool-ai/timeline";
 import { computeModel3DBakeHash, hasTimeRemap } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
@@ -33,6 +36,7 @@ import {
 import { createCompositor } from "./gpu/createCompositor";
 import type { CompositeLayer, TimelineCompositor } from "./gpu/types";
 import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
+import { Model3DOrbitOverlay } from "./Model3DOrbitOverlay";
 import {
   bakedClipSourceTimeSec,
   clipSourceTimeSec,
@@ -267,6 +271,16 @@ export const PreviewCompositor: React.FC = memo(() => {
     [resolveUrl]
   );
   useEffect(() => () => model3dSource.dispose(), [model3dSource]);
+
+  /**
+   * The pose an orbit gesture is mid-way through, before it is written to the
+   * document. The overlay commits once per gesture, so without this the
+   * picture would not move until the pointer came up.
+   */
+  const [orbitPose, setOrbitPose] = useState<{
+    clipId: string;
+    camera: ClipModel3DCamera;
+  } | null>(null);
 
   // Hidden HTMLVideoElement pool — still browser-decoded, but never rendered.
   // Their pixels are uploaded each frame to GPU textures by the compositor.
@@ -928,9 +942,22 @@ export const PreviewCompositor: React.FC = memo(() => {
         }
 
         if (layer.kind === "model3d") {
+          // A gesture in flight replaces the style's camera, and the animation
+          // channels still fold on top of it, so the drag shows exactly the
+          // picture its commit will produce.
+          const dragged =
+            orbitPose && orbitPose.clipId === layer.clipId && layer.model3dStyle
+              ? {
+                  ...layer,
+                  model3dStyle: {
+                    ...layer.model3dStyle,
+                    camera: orbitPose.camera
+                  }
+                }
+              : layer;
           // Rendered at the sequence resolution, the space the export renders
           // in, so the preview and the exported file frame the model alike.
-          const canvas = model3dSource.frame(layer, anim, {
+          const canvas = model3dSource.frame(dragged, anim, {
             width: sequenceWidth,
             height: sequenceHeight
           });
@@ -967,6 +994,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       ensureImageElement,
       resolveUrl,
       model3dSource,
+      orbitPose,
       sceneCanvas,
       sequenceWidth,
       sequenceHeight
@@ -1228,6 +1256,18 @@ export const PreviewCompositor: React.FC = memo(() => {
             }}
             onDragStart={gizmoHistory.begin}
             onDragEnd={gizmoHistory.end}
+          />
+        )}
+
+        {selectedClipId && clipById.get(selectedClipId)?.mediaType === "model3d" && (
+          <Model3DOrbitOverlay
+            clip={clipById.get(selectedClipId)!}
+            frameHeight={frameSize.h}
+            onPreviewCamera={(camera) =>
+              setOrbitPose(
+                camera ? { clipId: selectedClipId, camera } : null
+              )
+            }
           />
         )}
 
