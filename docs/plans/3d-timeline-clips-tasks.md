@@ -351,9 +351,15 @@ generated clip registers a job and stores a version).
 
 1. Blender prerequisite, the sampled producer: `RenderAnimationParams` gains
    `frame_times?: number[]` (model time in seconds per output frame),
-   `animation_name?: string`, and `cameras?: CameraParams[]` (one per
-   frame). With `frame_times` set, `render_animation.py` selects the named
-   action (mutes every other NLA track), and for each entry calls
+   `animation_name?: string`, and `cameras?: BakeCameraParams[]` (one per
+   frame). `BakeCameraParams` extends `CameraParams` with
+   `scene_camera_name?` and `target_offset?`, the two fields
+   `ClipModel3DCamera` carries that the existing DTO does not; the mapping
+   from `ClipModel3DCamera` is one function in `packages/timeline`, tested
+   both ways. With `frame_times` set, `render_animation.py` selects the named
+   action (mutes every other NLA track) or, with `animation_name` absent,
+   leaves every action playing, the D2 default; a model with no animations
+   renders its rest pose at every entry. For each entry it calls
    `scene.frame_set(frame, subframe)` from the model time and the scene fps,
    places the orbit camera from that entry (`scene` mode keeps the glTF
    camera), and renders one still to `frame_%06d.png`; the op returns the
@@ -396,7 +402,11 @@ generated clip registers a job and stores a version).
   second frame equal to `render_image` at model time 1.0 and a third equal to
   0.5, within the existing image-compare tolerance; the same fixture with a
   180° camera sweep has different camera locations in its stats for the
-  first, middle and last frame.
+  first, middle and last frame; a two-animation fixture with no
+  `animation_name` differs from the same fixture with either name selected;
+  a fixture with no animations renders identical frames at every entry; a
+  fixture with a named glTF camera baked in `scene` mode reports that camera
+  in its stats.
 - The capability suite bakes an opaque fixture with the runner mocked.
 
 ### T13 — Transparent bake
