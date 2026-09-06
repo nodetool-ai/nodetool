@@ -20,9 +20,16 @@ const EXAMPLE_APPS_DIR = nodePath.resolve(
   nodePath.dirname(fileURLToPath(import.meta.url)),
   "../../base-nodes/nodetool/examples/apps"
 );
+const EXAMPLES_DIR = nodePath.resolve(
+  nodePath.dirname(fileURLToPath(import.meta.url)),
+  "../../base-nodes/nodetool/examples/nodetool-base"
+);
 
 async function buildServer(
-  apiOptions: HttpApiOptions = { exampleAppsDir: EXAMPLE_APPS_DIR }
+  apiOptions: HttpApiOptions = {
+    exampleAppsDir: EXAMPLE_APPS_DIR,
+    examplesDir: EXAMPLES_DIR
+  }
 ): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   app.decorateRequest("userId", null);
@@ -40,6 +47,7 @@ interface ExampleSummary {
   description: string;
   workflows: string[];
   operationCount: number;
+  thumbnailUrl: string | null;
 }
 
 describe("example apps", () => {
@@ -69,6 +77,20 @@ describe("example apps", () => {
     const photo = apps.find((a) => a.slug === "photo-studio");
     expect(photo?.name).toBe("Photo Studio");
     expect(photo?.workflows).toContain("Image Enhance");
+    // The art is the first bound workflow's gallery JPG, cache-busted the way
+    // example workflow thumbnails are.
+    expect(photo?.thumbnailUrl).toMatch(
+      /^\/api\/workflows\/examples\/thumbnails\/Image%20Enhance\.jpg\?v=[0-9a-f]{8}$/
+    );
+  });
+
+  it("carries no thumbnail when the examples directory is unknown", async () => {
+    await server.close();
+    server = await buildServer({ exampleAppsDir: EXAMPLE_APPS_DIR });
+    const response = await server.inject({ url: "/api/applications/examples" });
+    const apps = response.json() as ExampleSummary[];
+    expect(apps.length).toBeGreaterThan(0);
+    expect(apps.every((app) => app.thumbnailUrl === null)).toBe(true);
   });
 
   it("serves one bundle and 404s an unknown slug", async () => {
