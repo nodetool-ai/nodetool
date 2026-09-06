@@ -8,14 +8,15 @@
 ## Phase 1 — Types and entity nodes
 
 - [ ] **Protocol: `StoryboardRef`.** Add to `packages/protocol/src/api-types.ts`
-      next to `ScriptRef`; `storyboardRefDefault` in
+      next to `ScriptRef`, with the `writable` flag (design §2.1); `storyboardRefDefault` in
       `packages/core-nodes/src/nodes/ref-defaults.ts`;
       `nodetool.constant.Storyboard` and `nodetool.constant.Entity` in
       `constant.ts`; `StoryboardRef` + `Entity` in `packages/dsl/src/types.ts`;
       the `storyboard` and `entity` names in `scripts/verify-backend-bundle.mjs`.
       Test: DSL generation emits `storyboard`/`entity` typed inputs for the
       constant nodes.
-- [ ] **Lineage fields.** `templateId`/`recastKey` on `StoryboardDocument`
+- [ ] **Lineage fields.** `templateId`/`recastKey`/`templateFingerprint` on
+      `StoryboardDocument`
       (`packages/models/src/storyboard.ts`, `api-schemas/storyboards.ts`),
       `templateId` on `ScriptDocument` and `TimelineSequence`, `source` on
       `EntityMarker` (`creative.ts` zod + reader). Tests: old fixtures parse
@@ -53,11 +54,14 @@
       `CLAUDE.md`, an entry in `packages/AGENTS.md`, workspace + turbo wiring,
       dependency order `protocol → timeline → storyboard`. `npm run
       check:agents-docs` green.
-- [ ] **`recastStoryboard`.** Per design §3.1 with the fixture suite: explicit
-      `replaces`, single-of-kind, ambiguous kind appends, whole-word rename
-      (`Nova`/`Novak` case), explicit `entity_ids` rewrite, hash-based
-      invalidation keeping product-free shots, lineage stamping,
-      `recastKey` stability under cast order.
+- [ ] **`recastStoryboard` + `templateFingerprint`.** Per design §3.1 with
+      the fixture suite: explicit `replaces`, single-of-kind, ambiguous kind
+      appends, whole-word rename (`Nova`/`Novak` case), explicit `entity_ids`
+      rewrite, hash-based invalidation keeping product-free shots, lineage
+      stamping, `recastKey` stable under cast order and different for the
+      swapped assignment, re-derive over `existing` (edited template action
+      invalidates one shot, added shot appears, dropped shot reported,
+      unchanged fingerprint short-circuits).
 - [ ] **`planShotRenders` + `renderShots`.** Lift the plan and the IO from
       `packages/agents/src/capabilities/storyboards.ts`; the capability's
       `render_storyboard_stills`/`render_storyboard_clips`/`filterStale` call
@@ -67,9 +71,12 @@
       `RecastStoryboard`, `RenderStills`, `RenderClips`, `AssembleTimeline` in
       `packages/video-nodes/src/nodes/storyboard.ts` per design §4.2, tagged
       server. Node tests: `reuse_existing` returns the prior copy,
-      `only_stale` skips fresh shots, `require_keyframe` skips, the
-      template-write refusal, `AssembleTimeline` takes the linked path when
-      `script_id` is set and writes `timeline_id`.
+      `only_stale` skips fresh shots, `require_keyframe` skips, the write
+      contract (picker ref refused on first run and for a derived board,
+      `allow_writes` admits, derived refs carry `writable`),
+      `AssembleTimeline` clones the template cut for a copy and keeps its
+      foreign clips, takes the linked path when `script_id` is set, and
+      writes `timeline_id`.
 - [ ] **Web lineage chip.** "Recast from <template>" in the storyboard header
       when `templateId` is set, linking to the source board.
 
@@ -81,9 +88,11 @@
       `packages/video-nodes/src/nodes/script.ts` per design §4.3; `WriteScript`
       maps `cast` entities to speakers (`entityId`, `voice.voice` from
       `voice_id`). Node tests with a stubbed provider.
-- [ ] **`fillTimelineText` and `retargetSequence`.** In `packages/timeline`
-      per design §3.2; fixtures with a text clip, a keyframed transform, and
-      the validator run on every output.
+- [ ] **`cloneTimelineForBoard`, `fillTimelineText`, `retargetSequence`.**
+      In `packages/timeline` per design §3.2; fixtures with a text clip, a
+      music bed on a foreign track, a keyframed transform, and the validator
+      run on every output. Clone fixture: owned clips re-stamped and cleared,
+      foreign clips and tracks byte-identical.
 - [ ] **`nodetool.timeline.FillTimelineText` / `RetargetTimeline`.** Per design
       §4.4; both create a new sequence with `templateId`.
 
@@ -109,7 +118,8 @@
       each passing `validate_workflow` once models are stamped.
 - [ ] **Fake-mode fixtures.** The same graphs with `nodetool.fake.*`
       generators and `provider: fake` on the render nodes, runnable by
-      `nodetool debug` with no keys.
+      `nodetool debug` with no keys. The E1 run asserts the filled overlay
+      text is on the exported sequence.
 - [ ] **Harness registry.** `graph-resources` entry in
       `packages/cli/src/harness/registry.ts` whose selfcheck runs the pure
       suites and the fake-mode debug runs; `nodetool harness audit` clean;

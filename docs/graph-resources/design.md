@@ -56,6 +56,12 @@ export interface StoryboardRef {
   id?: string | null;
   /** Optional inline StoryboardDocument, for tests and the debug harness. */
   data?: unknown;
+  /**
+   * Set only by a node that created or derived the row in this run. A ref
+   * from the picker or from LoadStoryboard never carries it (§4.2, write
+   * contract).
+   */
+  writable?: boolean;
 }
 ```
 
@@ -76,9 +82,11 @@ Storyboard document lineage (`packages/models/src/storyboard.ts`,
 ```ts
 StoryboardDocument
 ├─ templateId?: string | null        // board this one was recast from
-└─ recastKey?: string | null         // the substitution identity (sorted
-                                     // entity ids joined "+"), so a re-run
-                                     // finds its previous copy
+├─ recastKey?: string | null         // the canonical substitution mapping
+│                                    // (§3.1), so a re-run finds its copy
+└─ templateFingerprint?: string | null
+                                     // hash of the template content the copy
+                                     // was last derived from (§3.1, reuse)
 ```
 
 Script document lineage (`packages/models/src/script.ts`):
@@ -163,22 +171,30 @@ render plan are storyboard-only and need both, and both `video-nodes` and
 ```ts
 // recast.ts
 export interface RecastInput {
-  document: StoryboardDocument;
+  document: StoryboardDocument;      // the template, as it is now
   /** Entities on the source board, resolved. */
   boardEntities: Entity[];
   /** Incoming cast. Each replaces the board entity it targets. */
   cast: Array<{ entity: Entity; replaces?: string /* board entity id or name */ }>;
+  /** The copy a previous run made for this mapping, when reusing (below). */
+  existing?: StoryboardDocument;
 }
 export interface RecastResult {
-  document: StoryboardDocument;      // new board document, lineage stamped
+  document: StoryboardDocument;      // new or re-derived copy, lineage stamped
   substitutions: Array<{ from: Entity; to: Entity }>;
   /** Shots whose rendered prompt changed and lost their takes. */
   invalidatedShotIds: string[];
   /** Shots whose prompt is unchanged and kept keyframe/clip versions. */
   keptShotIds: string[];
+  /** Shots the template no longer has; their takes on `existing` are gone. */
+  droppedShotIds: string[];
   recastKey: string;
+  templateFingerprint: string;
 }
 export function recastStoryboard(input: RecastInput): RecastResult;
+export function templateFingerprint(
+  doc: StoryboardDocument, entities: Entity[]
+): string;
 ```
 
 Rules, each pinned by a test:
@@ -194,8 +210,30 @@ Rules, each pinned by a test:
   `injectEntities`, hashes them the way `RenderInputs.prompt_hash` is written
   today, and clears `keyframe*`/`clip*`/`status` only when the hash moved. A
   product-only frame on a board whose model changed keeps its takes.
-- `templateId` = source board id, `recastKey` = sorted resulting entity ids
-  joined with `+`, `timeline_id` not copied.
+- `templateId` = source board id. `recastKey` is the **mapping**, not the
+  result: one token per resolved substitution, `<sourceEntityId>><destEntityId>`,
+  one per append, `+<destEntityId>`, sorted and joined with `,`. Input order
+  does not matter; role assignment does. On a board with characters A and B,
+  A→X, B→Y and A→Y, B→X are different keys and different copies.
+- Copies keep the template's shot ids, so a later re-derive merges by id.
+  `timeline_id` is not copied; the approved cut is carried by
+  `AssembleTimeline` (§4.2).
+- `templateFingerprint` hashes the fields a derivation reads and nothing
+  else: each shot's text fields, `camera`, `entity_ids`, `render_mode`,
+  `duration_seconds`, its scene's `lighting`; the board's `style`,
+  `aspectRatio`, `imageModel`, `videoModel`; each board entity's `descriptor`.
+  Takes and versions are not in it.
+
+**Reuse re-derives, it does not return.** With `existing` set, the function
+still derives from the *current* template, then merges: for every shot id in
+both documents the existing copy's `keyframe*`, `clip*`, `status` and
+`render_inputs` are carried over, and the hash rule above decides whether they
+survive. Shots new on the template appear; shots the template dropped
+disappear and are named in `droppedShotIds`. A template edit to one shot's
+action therefore invalidates that shot on every reused copy and no other, and
+the next `only_stale` render sees the new prompt against the old
+`render_inputs`. When the stored `templateFingerprint` equals the current one
+the merge is skipped and `existing` comes back unchanged.
 
 ```ts
 // render-plan.ts
@@ -233,6 +271,21 @@ export function fillTimelineText(
 ): { sequence: TimelineSequence; filled: string[]; unresolved: string[] };
 // `{{key}}` in ClipTextStyle.text and caption text. Unresolved keys are
 // reported, never blanked.
+
+// clone.ts
+export function cloneTimelineForBoard(
+  seq: TimelineSequence,
+  from: { boardId: string },
+  to: { boardId: string }
+): TimelineSequence;
+// A new sequence (fresh id, `templateId` = the source sequence id). Every
+// clip owned by `from.boardId` (`storyboardBoardId` matches) is re-stamped
+// to `to.boardId` with its media cleared; every other clip and every track
+// is copied verbatim. The next re-assemble fills the owned clips from the
+// copy's renders and, through `foreignTimelineParts` (`reassemble.ts`),
+// leaves the text overlay, the music bed and any other edit alone. Hand
+// edits on the shot clips themselves (a trim, a moved cut) are rebuilt from
+// the shots, exactly as today's re-assemble does.
 
 // retarget.ts
 export function retargetSequence(
@@ -293,15 +346,32 @@ entity ids twice.
 | `RenderClips` | `storyboard`, `targets?`, `max_shots: int = 8`, `require_keyframe: bool = true`, `concurrency: int = 1`, `only_stale: bool = true` | `storyboard`, `clips: list[video]`, `rendered`, `skipped`, `failed` |
 | `AssembleTimeline` | `storyboard`, `name?: str` | `timeline: timeline`, `skipped_shots: list[str]`, `retimed: list[dict]` |
 
-`RecastStoryboard` with `reuse_existing` looks up a board with the same
-`templateId` and `recastKey` in the same project and returns it instead of a
-new one; a re-run then re-renders only what `only_stale` finds. Render nodes
-refuse a board whose `templateId` is null **and** which is referenced by
-`recastKey` from another board (it is a template) unless
-`allow_template_writes: true`, so a mis-wired graph does not draw over the
-approved board. `AssembleTimeline` writes `timeline_id` on the board and, when
-the board is script-linked, calls `buildLinkedTimeline`, as the capability
-does.
+`RecastStoryboard` with `reuse_existing` looks up a board in the same project
+with the same `templateId` and `recastKey` and passes it to `recastStoryboard`
+as `existing`: the copy is re-derived from the current template (§3.1), so a
+template edit reaches every reused copy on the next run and nothing else is
+re-rendered. The output ref carries `writable: true`.
+
+**Write contract.** A `StoryboardRef` is read-only unless it carries
+`writable: true`, and only a node that created or derived the row in this run
+sets it: `RecastStoryboard`, and the render nodes on the ref they pass on.
+The picker (`nodetool.constant.Storyboard`), `LoadStoryboard` and
+`StoryboardShots` never set it. `RenderStills`, `RenderClips` and
+`AssembleTimeline` refuse a ref without the flag with an error naming
+`allow_writes`, the per-node override for a graph whose whole purpose is to
+render the board a person picked. Permission does not depend on whether any
+derived row exists yet, so a first-run miswire (picker → `RenderStills`)
+fails before any spend, and a derived board picked from the library is as
+protected as a template, whatever its lineage.
+
+`AssembleTimeline` writes `timeline_id` on the board. When the board has no
+cut yet and its template has one (`templateId` → that board's `timeline_id`),
+it first clones the template's sequence for the copy (`cloneTimelineForBoard`,
+§3.2), then re-assembles in place: only the shot clips are regenerated from
+the copy's renders, and the text overlay, the music bed and every other
+track survive. A copy therefore inherits the approved cut, not a bare
+assembly. When the board is script-linked it calls `buildLinkedTimeline`, as
+the capability does.
 
 Models come from the board (`imageModel`/`videoModel`), with an optional
 `image_model`/`video_model` input to override. Unset is an error naming
@@ -373,7 +443,8 @@ RecastStoryboard(template, cast: [entity], replaces: ["Product"])
                                             → board'  (invalidated: shots naming Product)
 RenderStills(board')                        → board'  (only stale shots render)
 RenderClips(board', require_keyframe: true) → board'
-AssembleTimeline(board')                    → timeline'
+AssembleTimeline(board')                    → timeline'  (clones the template cut, re-assembles
+                                                          the shot clips, keeps the overlay and music)
 FillTimelineText(timeline', values: {name: row.name, price: row.price})
                                             → timeline''
 RenderTimeline(timeline'')                  → video
@@ -479,10 +550,19 @@ the clips so the director can decide which shots need a real 9:16 board
   `slotPrompt` (sizes per kind, checker bag matches each checker's props).
   Every suite has a case that must fail: a rename that would hit a substring
   inside another word, a placeholder with no value, a board with two
-  entities of the target kind and no `replaces`.
+  entities of the target kind and no `replaces`. Recast fixtures also pin:
+  the swapped assignment (A→X, B→Y versus A→Y, B→X) yields two keys; a
+  re-run after editing one shot's action on the template, cast ids
+  unchanged, invalidates that shot on the reused copy and keeps the rest;
+  a cloned cut keeps its foreign clips and, after `fillTimelineText`, carries
+  the filled overlay text.
 - Vitest, nodes: each node against a `ProcessingContext` with in-memory model
-  interfaces (`testing.ts` already builds one), including the
-  template-write refusal and the upsert returning the same id twice.
+  interfaces (`testing.ts` already builds one), including the write
+  contract (picker → `RenderStills` refused on a board with no children; a
+  derived board picked from the library refused the same way; `allow_writes`
+  admits both), the upsert returning the same id twice, and the E1 fake-mode
+  run asserting the filled `{{name}} — {{price}}` overlay is present on the
+  exported sequence.
 - Harness registry (`packages/cli/src/harness/registry.ts`): a
   `graph-resources` entry whose selfcheck runs the suites above plus
   `nodetool debug` on the three example workflows in fake mode
@@ -518,8 +598,8 @@ the clips so the director can decide which shots need a real 9:16 board
 ## 10. Risks
 
 - **R1. A graph draws over the approved board.** Mitigated by P1 (derive
-  nodes create rows), the template-write refusal in render nodes, and the
-  lineage chip.
+  nodes create rows), the write contract in §4.2 (a ref is read-only unless
+  the run derived it), and the lineage chip.
 - **R2. Two branches write one board.** A `ForEachRow` that fans out and
   each branch renders on the same recast copy conflicts on `revision`.
   `renderShots` reloads and retries on conflict, and `RecastStoryboard`
