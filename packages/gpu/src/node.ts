@@ -25,9 +25,10 @@ type DawnModule = {
   /**
    * The WebGPU flag namespaces (`GPUShaderStage`, `GPUBufferUsage`,
    * `GPUTextureUsage`, `GPUMapMode`, …). Dawn ships these to be installed on
-   * `globalThis` rather than defining them itself.
+   * `globalThis` rather than defining them itself. Each namespace is a frozen
+   * bag of bit flags, so the value type is a numeric constant map.
    */
-  globals?: Record<string, unknown>;
+  globals?: Record<string, Record<string, number>>;
 };
 
 let devicePromise: Promise<GPUDevice> | null = null;
@@ -70,7 +71,12 @@ function installWebGPUGlobals(dawn: DawnModule): void {
   if (!dawn.globals) return;
   for (const [key, value] of Object.entries(dawn.globals)) {
     if (!(key in globalThis)) {
-      (globalThis as Record<string, unknown>)[key] = value;
+      Object.defineProperty(globalThis, key, {
+        value,
+        writable: true,
+        enumerable: true,
+        configurable: true
+      });
     }
   }
 }
@@ -85,12 +91,16 @@ export async function createNodeGPUDevice(): Promise<GPUDevice> {
   const spec = "webgpu";
   let dawn: DawnModule;
   try {
+    // SAFETY: a dynamic import with a non-literal specifier is untyped, and
+    // `DawnModule` claims only `create` and `globals` — both optional, and
+    // both guarded at their use sites — so a `webgpu` build that ships
+    // neither fails on the explicit checks below rather than here.
     dawn = (await import(/* @vite-ignore */ spec)) as DawnModule;
   } catch (err) {
     throw new Error(
       "Node WebGPU support requires the optional 'webgpu' (Dawn) package. " +
         "Install it with `npm install webgpu`.",
-      { cause: err as Error }
+      { cause: err }
     );
   }
   installWebGPUGlobals(dawn);
