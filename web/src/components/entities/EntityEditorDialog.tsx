@@ -1,14 +1,18 @@
 /**
  * EntityEditorDialog — tag an existing image asset as a reusable entity, or edit
- * an existing entity's fields. The reference image is chosen upstream (the
- * library picks the asset first); this dialog only writes the marker fields via
- * {@link useSaveEntity}.
+ * an existing entity's fields, including the picture it shows. Swapping the
+ * picture points the marker at another image asset; the entity keeps the id
+ * boards and scripts cast it by.
  */
 
 import React, { memo, useCallback, useEffect, useState } from "react";
+import { useTheme } from "@mui/material/styles";
 import type { Entity, EntityKind } from "@nodetool-ai/protocol";
 import {
+  BORDER_RADIUS,
   Dialog,
+  EditorButton,
+  FlexRow,
   Label,
   TextInput,
   ToggleGroup,
@@ -17,11 +21,14 @@ import {
   SPACING
 } from "../ui_primitives";
 import { useSaveEntity } from "../../serverState/useEntities";
+import { mediaRefFromAsset } from "../../utils/mediaRef";
+import ImageRefPreview from "../node/ImageRefPreview";
+import EntityAssetPickerDialog from "./EntityAssetPickerDialog";
 
 interface EntityEditorDialogProps {
   open: boolean;
   onClose: () => void;
-  /** The image asset to tag as this entity's reference. */
+  /** The asset carrying the entity marker — the entity's id once saved. */
   assetId: string;
   /** When editing, prefill from this entity. */
   entity?: Entity;
@@ -34,6 +41,8 @@ interface EntityEditorDialogProps {
   onSaved?: (entity: Entity | null) => void;
 }
 
+const PREVIEW_SIZE = 96;
+
 const KINDS: EntityKind[] = ["character", "location", "style", "prop"];
 
 const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
@@ -44,7 +53,10 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
   projectId,
   onSaved
 }) => {
+  const theme = useTheme();
   const saveEntity = useSaveEntity();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [referenceAssetId, setReferenceAssetId] = useState(assetId);
   const [kind, setKind] = useState<EntityKind>("character");
   const [name, setName] = useState("");
   const [descriptor, setDescriptor] = useState("");
@@ -55,12 +67,18 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
     if (!open) {
       return;
     }
+    setReferenceAssetId(entity?.reference_images?.[0]?.asset_id ?? assetId);
     setKind(entity?.kind ?? "character");
     setName(entity?.name ?? "");
     setDescriptor(entity?.descriptor ?? "");
     setVoiceId(entity?.voice_id ?? "");
     setTags(entity?.tags?.join(", ") ?? "");
-  }, [open, entity]);
+  }, [open, entity, assetId]);
+
+  const handlePickImage = useCallback((picked: string) => {
+    setReferenceAssetId(picked);
+    setPickerOpen(false);
+  }, []);
 
   const handleKindChange = useCallback(
     (_e: React.MouseEvent<HTMLElement>, value: EntityKind | null) => {
@@ -72,8 +90,11 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
   );
 
   const handleConfirm = useCallback(async () => {
+    // A new entity simply IS the picked image, so changing it there changes
+    // which asset gets the marker. An existing one keeps its id and points at
+    // the new picture instead.
     const saved = await saveEntity.mutateAsync({
-      assetId,
+      assetId: entity ? assetId : referenceAssetId,
       projectId,
       kind,
       name: name.trim(),
@@ -82,12 +103,14 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
       tags: tags
         .split(",")
         .map((t) => t.trim())
-        .filter(Boolean)
+        .filter(Boolean),
+      reference_asset_id: referenceAssetId
     });
     onSaved?.(saved);
     onClose();
   }, [
     saveEntity,
+    entity,
     assetId,
     projectId,
     kind,
@@ -95,6 +118,7 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
     descriptor,
     voiceId,
     tags,
+    referenceAssetId,
     onSaved,
     onClose
   ]);
@@ -113,6 +137,29 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
       isLoading={saveEntity.isPending}
     >
       <FlexColumn gap={SPACING.md} sx={{ pt: 1, minWidth: 360 }}>
+        <FlexColumn gap={SPACING.xs}>
+          <Label>Image</Label>
+          <FlexRow gap={SPACING.md} align="center">
+            <div
+              style={{
+                width: PREVIEW_SIZE,
+                height: PREVIEW_SIZE,
+                flexShrink: 0,
+                overflow: "hidden",
+                borderRadius: BORDER_RADIUS.sm,
+                background: theme.vars.palette.background.default
+              }}
+            >
+              <ImageRefPreview
+                value={mediaRefFromAsset({ id: referenceAssetId }, "image")}
+              />
+            </div>
+            <EditorButton variant="outlined" onClick={() => setPickerOpen(true)}>
+              Change image
+            </EditorButton>
+          </FlexRow>
+        </FlexColumn>
+
         <FlexColumn gap={SPACING.xs}>
           <Label>Kind</Label>
           <ToggleGroup
@@ -167,6 +214,12 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
           compact
         />
       </FlexColumn>
+
+      <EntityAssetPickerDialog
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={handlePickImage}
+      />
     </Dialog>
   );
 };

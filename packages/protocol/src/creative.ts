@@ -85,6 +85,13 @@ export interface EntityMarker {
   tags?: string[];
   lora?: Entity["lora"];
   palette?: Entity["palette"];
+  /**
+   * The image asset the entity shows, when it is not the marker asset's own
+   * bytes. Swapping the picture writes this rather than moving the marker: an
+   * entity's id is its asset's, and boards and scripts store that id, so an
+   * entity that changed asset would leave every one of them dangling.
+   */
+  reference_asset_id?: string;
 }
 
 /**
@@ -125,7 +132,8 @@ const entityMarkerSchema = z.object({
     .array(z.object({ name: z.string().optional(), hex: z.string() }))
     .nullable()
     .optional()
-    .catch(null)
+    .catch(null),
+  reference_asset_id: z.string().optional().catch(undefined)
 });
 
 /**
@@ -155,6 +163,10 @@ export function readEntityMarker(
   }
   if (parsed.data.tags !== undefined) {
     marker.tags = parsed.data.tags;
+  }
+  const swapped = parsed.data.reference_asset_id?.trim();
+  if (swapped) {
+    marker.reference_asset_id = swapped;
   }
   return marker;
 }

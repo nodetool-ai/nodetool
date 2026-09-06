@@ -176,8 +176,9 @@ export const createEntitySpec: CapabilitySpec = {
     "location, style, or prop). The asset keeps its bytes; this writes the " +
     "entity marker onto it, exactly what the browser's Save Entity does. The " +
     "asset must be yours and must be an image, and must not already be an " +
-    "entity — update_entity retags one. Created inside a project, the entity " +
-    "joins that project and shows up in its documents.",
+    "entity — update_entity edits the one that is already there. Created " +
+    "inside a project, the entity joins that project and shows up in its " +
+    "documents.",
   inputSchema: CREATE_ENTITY_SCHEMA,
   category: "write",
   userMessage: (params) =>
@@ -192,10 +193,13 @@ export const UPDATE_ENTITY_SCHEMA: JsonSchema = {
       description: "The entity's id (its asset id), from list_entities."
     },
     asset_id: {
-      type: "string",
+      type: ["string", "null"],
       description:
-        "Move the entity to a different image asset (retarget in one call). " +
-        "The new asset must be yours and must be an image. Omit to keep the current photo."
+        "Swap the entity's picture for a different image asset. The new asset " +
+        "must be yours and must be an image; the entity keeps its id, so every " +
+        "board and script that cast it still resolves. Pass null (or the " +
+        "entity's own id) to go back to its original image. Omit to leave the " +
+        "picture alone."
     },
     kind: {
       ...KIND_PROPERTY,
@@ -237,10 +241,10 @@ export const updateEntitySpec: CapabilitySpec = {
   name: "update_entity",
   description:
     "Change an existing entity's fields — kind, name, descriptor, notes, " +
-    "voice, tags, LoRA, palette, project via project_id, or its reference " +
-    "photo via asset_id. Only the " +
-    "fields you pass change; pass asset_id to retarget the entity to a " +
-    "different image asset in one call (otherwise use delete_entity + create_entity).",
+    "voice, tags, LoRA, palette, project via project_id, or the picture it " +
+    "shows via asset_id. Only the fields you pass change. Swapping the " +
+    "picture keeps the entity's id, so nothing that already cast it has to " +
+    "be re-pointed.",
   inputSchema: UPDATE_ENTITY_SCHEMA,
   category: "write",
   userMessage: (params) => `Updating entity ${String(params["entity_id"])}`
