@@ -33,12 +33,22 @@
   A shot is fresh when the *board* would render it the same way it already did;
   the record stamped on a version says what *this call* actually used, so a
   per-call model or style override reads stale against the board afterwards.
-- **Recast compares prompt to prompt, never to a stored record.** An entity
-  descriptor is part of what the model sees but not part of
-  `RenderInputs.prompt_hash`, so invalidation hashes the injected prompt on both
-  sides of the derivation. The one case this misses is documented on
-  `recastStoryboard`: a destination entity whose descriptor changed between two
-  reuses, under the same id and name.
+- **Recast invalidation has two witnesses, and they are not interchangeable.**
+  A first recast compares the injected prompt of the template shot against the
+  injected prompt of the derived shot — both entity sets are inputs, so an
+  entity descriptor edit is visible. A reused copy compares the derived shot's
+  hash against the `render_inputs.prompt_hash` the render actually wrote, which
+  is the prompt that produced the take being carried; a hand edit made on the
+  copy after it rendered therefore costs nothing. A take with no record (an
+  upload, a flip, a legacy version) falls back to the injected comparison.
+- **`RenderInputs.prompt_hash` hashes the composed prompt, not the injected
+  one.** `promptHashFor` in protocol's `render-record.ts` hashes
+  `keyframePrompt`/`clipPrompt`/`directClipPrompt` before `injectEntities`
+  runs, so entity descriptors are outside it — as they are outside the board's
+  own stale pill. That bounds the reuse path: a destination entity whose
+  descriptor changed under the same id and name between two reuses is not
+  detected. `tests/recast.test.ts` pins both halves, so the day the record
+  hashes the injected prompt the pin fails and this rule gets rewritten.
 - **Recast is order-free.** Targeting resolves explicit `replaces` first, then
   pairs a kind that has exactly one free seat with exactly one applicant.
   Feeding the same cast in a different order must produce the same `recastKey`

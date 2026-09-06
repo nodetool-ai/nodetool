@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { currentRenderInputs, stampRenderInputs } from "@nodetool-ai/protocol";
 import type { Entity, Shot } from "@nodetool-ai/protocol";
 import type { StoryboardDocument } from "../src/document.js";
 import { recastStoryboard } from "../src/recast.js";
+import { boardRenderContext } from "../src/render-plan.js";
 
 const entity = (
   over: Partial<Entity> & { id: string; name: string }
@@ -505,5 +507,184 @@ describe("recastStoryboard reuse", () => {
     expect(result.droppedShotIds).toEqual(["s2"]);
     expect(result.document.shots[2].keyframe).toBeUndefined();
     expect(result.document.shots[0].keyframe?.asset_id).toBe("k1");
+  });
+});
+
+/**
+ * The reuse path when the copy's takes carry the record the render wrote.
+ *
+ * That record — `render_inputs.prompt_hash` — is the prompt that actually
+ * produced the take, so it is a better witness than the copy's current text.
+ * It hashes the composed prompt before entities are injected, which is what
+ * bounds the last case below.
+ */
+describe("recastStoryboard reuse against the render record", () => {
+  const nova = entity({ id: "a1", name: "Nova" });
+  const vera = entity({
+    id: "x1",
+    name: "Vera",
+    descriptor: "a woman in a red coat"
+  });
+
+  const template = (shots?: Shot[]) =>
+    doc(
+      shots ?? [
+        shot({ id: "s1", index: 0, action: "Nova enters the hall" }),
+        shot({ id: "s2", index: 1, action: "Rain on the window" }),
+        shot({ id: "s3", index: 2, action: "Nova sits" })
+      ],
+      { entityIds: ["a1"] }
+    );
+
+  /** A first run, every shot rendered and its record stamped. */
+  const firstRun = (cast: Entity = vera): StoryboardDocument => {
+    const copy = recastStoryboard({
+      document: template(),
+      sourceId: "board-1",
+      boardEntities: [nova],
+      cast: [{ entity: cast, replaces: "a1" }]
+    }).document;
+    const board = boardRenderContext(copy, [cast]);
+    return {
+      ...copy,
+      shots: copy.shots.map((s, i) => {
+        const keyframe = {
+          ...still(`k${i + 1}`),
+          render_inputs: stampRenderInputs(
+            currentRenderInputs(s, board, "keyframe")
+          )
+        };
+        return {
+          ...s,
+          keyframe,
+          keyframe_versions: [keyframe],
+          status: "keyframe_ready" as const
+        };
+      })
+    };
+  };
+
+  it("keeps every take when nothing about the derivation moved", () => {
+    const result = recastStoryboard({
+      document: template(),
+      sourceId: "board-1",
+      boardEntities: [nova],
+      cast: [{ entity: vera, replaces: "a1" }],
+      existing: firstRun()
+    });
+    expect(result.invalidatedShotIds).toEqual([]);
+    expect(result.document.shots.map((s) => s.keyframe?.asset_id)).toEqual([
+      "k1",
+      "k2",
+      "k3"
+    ]);
+  });
+
+  it("invalidates exactly the shot whose template action was edited", () => {
+    const result = recastStoryboard({
+      document: template([
+        shot({ id: "s1", index: 0, action: "Nova enters the hall" }),
+        shot({ id: "s2", index: 1, action: "Rain on the window" }),
+        shot({ id: "s3", index: 2, action: "Nova stands at the window" })
+      ]),
+      sourceId: "board-1",
+      boardEntities: [nova],
+      cast: [{ entity: vera, replaces: "a1" }],
+      existing: firstRun()
+    });
+    expect(result.invalidatedShotIds).toEqual(["s3"]);
+    expect(result.document.shots[2].keyframe).toBeUndefined();
+  });
+
+  it("does not charge for a hand edit the copy made after it rendered", () => {
+    // The record still holds the prompt the take came from, and the re-derive
+    // puts the template's words back — so the take is current again. Comparing
+    // against the copy's edited text instead would throw it away.
+    const existing = firstRun();
+    const edited: StoryboardDocument = {
+      ...existing,
+      shots: [
+        { ...existing.shots[0], action: "Vera pauses in the doorway" },
+        ...existing.shots.slice(1)
+      ]
+    };
+    const result = recastStoryboard({
+      document: template(),
+      sourceId: "board-1",
+      boardEntities: [nova],
+      cast: [{ entity: vera, replaces: "a1" }],
+      existing: edited
+    });
+    expect(result.document.shots[0].action).toBe("Vera enters the hall");
+    expect(result.invalidatedShotIds).toEqual([]);
+    expect(result.document.shots[0].keyframe?.asset_id).toBe("k1");
+  });
+
+  it("still invalidates on a renamed destination entity", () => {
+    const result = recastStoryboard({
+      document: template(),
+      sourceId: "board-1",
+      boardEntities: [nova],
+      cast: [{ entity: entity({ id: "x1", name: "Vera Lin" }), replaces: "a1" }],
+      existing: firstRun()
+    });
+    expect(result.invalidatedShotIds).toEqual(["s1", "s3"]);
+    expect(result.document.shots[1].keyframe?.asset_id).toBe("k2");
+  });
+
+  it("falls back to the injected prompts for a take with no record", () => {
+    // An upload or a flip left no record, so the only witness left is the
+    // copy's own text — which the rename moves.
+    const existing = firstRun();
+    const uploaded: StoryboardDocument = {
+      ...existing,
+      shots: existing.shots.map((s) => ({
+        ...s,
+        keyframe: still(`u-${s.id}`),
+        keyframe_versions: [still(`u-${s.id}`)]
+      }))
+    };
+    const result = recastStoryboard({
+      document: template(),
+      sourceId: "board-1",
+      boardEntities: [nova],
+      cast: [{ entity: entity({ id: "x1", name: "Vera Lin" }), replaces: "a1" }],
+      existing: uploaded
+    });
+    expect(result.invalidatedShotIds).toEqual(["s1", "s3"]);
+    expect(result.keptShotIds).toEqual(["s2"]);
+  });
+
+  // The bound on the rule above, pinned so it is a decision and not a
+  // surprise. `RenderInputs.prompt_hash` hashes the composed prompt before
+  // `injectEntities` runs, so a descriptor is invisible to the record; the
+  // previous run's descriptors are not inputs to `recastStoryboard` either.
+  // A fresh recast does catch this (see "invalidates on a descriptor change
+  // alone"). If the record ever hashes the injected prompt, this flips.
+  it("does not see a descriptor edit under the same id and name on a reuse", () => {
+    const restyled = entity({
+      id: "x1",
+      name: "Vera",
+      descriptor: "a woman in a yellow raincoat"
+    });
+    const result = recastStoryboard({
+      document: template(),
+      sourceId: "board-1",
+      boardEntities: [nova],
+      cast: [{ entity: restyled, replaces: "a1" }],
+      existing: firstRun()
+    });
+    expect(result.invalidatedShotIds).toEqual([]);
+    // The same edit on a first recast is caught, because both sides of that
+    // comparison are injected prompts over entities the function was given.
+    // The copy from the first run is that first recast's template here: its
+    // shots already name Vera.
+    const fresh = recastStoryboard({
+      document: firstRun(),
+      sourceId: "board-2",
+      boardEntities: [vera],
+      cast: [{ entity: restyled, replaces: "x1" }]
+    });
+    expect(fresh.invalidatedShotIds).toEqual(["s1", "s3"]);
   });
 });

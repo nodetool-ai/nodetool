@@ -12,6 +12,7 @@
  */
 
 import {
+  currentRenderInputs,
   entitiesForShot,
   injectEntities,
   keyframePrompt,
@@ -23,6 +24,7 @@ import {
 } from "@nodetool-ai/protocol";
 import type { Entity, Screenplay, Shot } from "@nodetool-ai/protocol";
 import type { StoryboardDocument } from "./document.js";
+import { boardRenderContext } from "./render-plan.js";
 
 /** One incoming cast member, and the board entity it stands in for. */
 export interface RecastCastEntry {
@@ -56,7 +58,10 @@ export interface RecastResult {
   appended: Entity[];
   /** Shots whose rendered prompt changed and lost their takes. */
   invalidatedShotIds: string[];
-  /** Shots whose prompt is unchanged and kept keyframe/clip versions. */
+  /**
+   * Every other shot on the copy: its prompt is unchanged and it kept its
+   * versions, or it had none to lose.
+   */
   keptShotIds: string[];
   /** Shots the template no longer has; their takes on `existing` are gone. */
   droppedShotIds: string[];
@@ -268,10 +273,10 @@ const injectedPrompt = (
  * What this shot would render from, on this board, with this cast.
  *
  * The composition is the render path's own (`keyframePrompt`, `clipPrompt`,
- * `directClipPrompt`) plus `injectEntities`, and the digest is `sha256Hex` —
- * the function that writes `RenderInputs.prompt_hash`. Recast compares two of
- * these against each other, never against a stored record: a descriptor is part
- * of what a model sees, and the stored hash does not cover it.
+ * `directClipPrompt`) plus `injectEntities`, and the digest is `sha256Hex`, the
+ * one that writes `RenderInputs.prompt_hash`. Two of these are compared against
+ * each other, which is what makes a descriptor edit visible: the stored record
+ * hashes the composed prompt *before* injection, so it does not cover one.
  */
 function promptHashes(
   shot: Shot,
@@ -298,6 +303,30 @@ function promptHashes(
   };
 }
 
+/** The hash the render path recorded for the take this shot carries. */
+const recordedPromptHash = (
+  shot: Shot,
+  kind: "keyframe" | "clip"
+): string | undefined =>
+  (kind === "keyframe" ? shot.keyframe : shot.clip)?.render_inputs
+    ?.prompt_hash;
+
+/**
+ * The hash the render path would record for this shot on this board.
+ *
+ * `currentRenderInputs` is the function that writes the record, so the two
+ * sides of the comparison are produced by the same code — a change to what the
+ * record hashes moves both at once and cannot silently stop matching.
+ */
+const currentPromptHash = (
+  shot: Shot,
+  doc: StoryboardDocument,
+  entities: readonly Entity[],
+  kind: "keyframe" | "clip"
+): string =>
+  currentRenderInputs(shot, boardRenderContext(doc, entities), kind)
+    .prompt_hash;
+
 /** The status a shot with these takes sits at. */
 const statusFor = (shot: Shot): Shot["status"] => {
   if (shot.clip) return "rendered";
@@ -305,20 +334,28 @@ const statusFor = (shot: Shot): Shot["status"] => {
   return "planned";
 };
 
+/** Whether the shot has anything of this kind that an invalidation could take. */
+const hasTake = (shot: Shot, kind: "keyframe" | "clip"): boolean =>
+  kind === "keyframe"
+    ? !!shot.keyframe || !!shot.keyframe_versions?.length
+    : !!shot.clip || !!shot.clip_versions?.length;
+
 /**
  * Carry the takes a shot is entitled to keep, and say whether any were dropped.
  *
  * `keyframe` moving takes the clip with it — a keyframe-mode clip animates the
  * still that no longer exists, and both prompts are built from `action`. `clip`
- * moving on its own (a `motion` edit) leaves the still alone.
+ * moving on its own (a `motion` edit) leaves the still alone. A kind the shot
+ * has no take of is not asked about: there is nothing to lose, so the shot is
+ * not reported as invalidated for it.
  */
 function applyInvalidation(
   shot: Shot,
-  before: ShotPromptHashes,
-  after: ShotPromptHashes
+  moved: (kind: "keyframe" | "clip") => boolean
 ): { shot: Shot; invalidated: boolean } {
-  const keyframeMoved = before.keyframe !== after.keyframe;
-  const clipMoved = keyframeMoved || before.clip !== after.clip;
+  const keyframeMoved = hasTake(shot, "keyframe") && moved("keyframe");
+  const clipMoved =
+    hasTake(shot, "clip") && (keyframeMoved || moved("clip"));
   if (!keyframeMoved && !clipMoved) {
     return { shot, invalidated: false };
   }
@@ -379,12 +416,22 @@ function withTakes(shot: Shot, takes: Partial<Shot>): Shot {
  * then merged onto the previous one by shot id, and the prompt-hash rule
  * decides which of the carried takes survive.
  *
- * One case is out of reach: a destination entity whose *descriptor* changed
- * between two reuses, under the same id and the same name, is not detected on
- * the reused copy. The comparison for a carried shot is against the prompt that
- * produced the takes it carries, and the previous run's descriptor is not among
- * this function's inputs. A fresh recast (no `existing`) does see it, because
- * there the comparison is against the template's own entities.
+ * A carried take is measured against the prompt that actually produced it: the
+ * `render_inputs.prompt_hash` the render wrote, compared with the hash the
+ * render path would write for the derived shot now. So a hand edit made on the
+ * copy after it rendered does not cost a re-render, and a template edit does.
+ * A take with no record — an upload, a flip, a legacy version — has no such
+ * witness, so it falls back to the injected-prompt comparison above.
+ *
+ * One case is out of reach on a reused copy: a destination entity whose
+ * *descriptor* changed between two reuses, under the same id and the same name.
+ * `RenderInputs.prompt_hash` hashes the composed prompt *before* entities are
+ * injected (`promptHashFor` in protocol's `render-record.ts`), so the record
+ * does not cover a descriptor, and the previous run's descriptors are not among
+ * this function's inputs either. A fresh recast (no `existing`) does see it,
+ * because there both sides are injected prompts over known entities. Closing it
+ * on the reuse path means making the render record hash the injected prompt,
+ * which would re-stale every version already on every board.
  */
 export function recastStoryboard(input: RecastInput): RecastResult {
   const { document, boardEntities, cast, existing } = input;
@@ -444,15 +491,22 @@ export function recastStoryboard(input: RecastInput): RecastResult {
     // What produced the takes this shot carries: the previous copy when there
     // is one, else the template the copy inherited them from.
     const carried = previous ? withTakes(shot, takesOf(previous)) : shot;
+    // The injected pair, which is the only comparison that sees a descriptor.
+    // On a reuse it is the fallback: the previous run's entities are not inputs
+    // to this function, so `previous` can only be seasoned with the current
+    // cast, and the record below is the better witness where one exists.
     const before = previous
       ? promptHashes(previous, existingDoc, castEntities)
       : promptHashes(template, document, boardEntities);
     const after = promptHashes(carried, copy, castEntities);
-    const { shot: settled, invalidated } = applyInvalidation(
-      carried,
-      before,
-      after
-    );
+    const moved = (kind: "keyframe" | "clip"): boolean => {
+      const recorded = previous ? recordedPromptHash(carried, kind) : undefined;
+      if (recorded !== undefined) {
+        return recorded !== currentPromptHash(carried, copy, castEntities, kind);
+      }
+      return before[kind] !== after[kind];
+    };
+    const { shot: settled, invalidated } = applyInvalidation(carried, moved);
     (invalidated ? invalidatedShotIds : keptShotIds).push(settled.id);
     return settled;
   });
