@@ -76,7 +76,8 @@ const LAYER_ID_PREFIX: Record<ActiveLayer["kind"], string> = {
   image: "i",
   text: "t",
   shape: "s",
-  caption: "c"
+  caption: "c",
+  model3d: "m"
 };
 
 /** A layer's id, matte sources included — they never collide with the layer. */

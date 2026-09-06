@@ -160,7 +160,8 @@ export type AnimationPresetId =
   | "breathe"
   | "rotate"
   | "squash"
-  | "hueShift";
+  | "hueShift"
+  | "orbit";
 
 /**
  * Every property a curve can drive, as a runtime list so a custom animation's
@@ -190,6 +191,16 @@ export type AnimationPresetId =
  * - `positionX` / `positionY` — replace `transform.position`, canvas px
  * - `anchorX` / `anchorY` — replace `transform.anchor`, normalized 0..1
  * - `trimStart` / `trimEnd` — replace the shape's stroked sub-range, 0..1
+ *
+ * Four drive a `model3d` clip's camera, composing with `model3dStyle.camera`
+ * the way the grade channels compose with the clip's effects (D4). They are
+ * ignored on every other kind of layer, the way `wipeProgress` is ignored
+ * without a mask:
+ *
+ * - `cameraAzimuth` — added to the orbit azimuth, degrees (identity 0)
+ * - `cameraElevation` — added to the orbit elevation, degrees (identity 0)
+ * - `cameraZoom` — multiplies the framing distance multiplier (identity 1)
+ * - `cameraFov` — added to the camera's field of view, degrees (identity 0)
  */
 export const ANIMATED_PROPERTIES = [
   "offsetX",
@@ -212,7 +223,11 @@ export const ANIMATED_PROPERTIES = [
   "anchorX",
   "anchorY",
   "trimStart",
-  "trimEnd"
+  "trimEnd",
+  "cameraAzimuth",
+  "cameraElevation",
+  "cameraZoom",
+  "cameraFov"
 ] as const;
 
 export type AnimatedProperty = (typeof ANIMATED_PROPERTIES)[number];
@@ -252,7 +267,11 @@ export const ANIMATED_PROPERTY_FOLD: Record<
   anchorX: "replace",
   anchorY: "replace",
   trimStart: "replace",
-  trimEnd: "replace"
+  trimEnd: "replace",
+  cameraAzimuth: "add",
+  cameraElevation: "add",
+  cameraZoom: "multiply",
+  cameraFov: "add"
 };
 
 /**
@@ -287,5 +306,11 @@ export const ANIMATED_PROPERTY_PASS: Record<
   anchorX: "motion",
   anchorY: "motion",
   trimStart: "effects",
-  trimEnd: "effects"
+  trimEnd: "effects",
+  // A camera move applies to the whole 3D layer, never per word, so it folds
+  // in the block-level pass with the effect channels.
+  cameraAzimuth: "effects",
+  cameraElevation: "effects",
+  cameraZoom: "effects",
+  cameraFov: "effects"
 };

@@ -138,9 +138,13 @@ describe("loop start==end invariant", () => {
       );
       for (const anim of c) {
         for (const curve of anim.curves) {
-          // Angles are modular — 0 and 2π radians, 0° and 360° of hue, are
-          // the same picture — so those channels are exempt.
-          if (curve.property === "rotation" || curve.property === "hue") {
+          // Angles are modular — 0 and 2π radians, 0° and 360° of hue, a
+          // camera back where it started — so those channels are exempt.
+          if (
+            curve.property === "rotation" ||
+            curve.property === "hue" ||
+            curve.property === "cameraAzimuth"
+          ) {
             continue;
           }
           const first = curve.keyframes[0].value;

@@ -14,11 +14,13 @@
 import type {
   ClipEffect,
   ClipMask,
+  ClipModel3DStyle,
   ClipTransform,
   TimelineClip,
   TimelineTrack,
   TrackEffect
 } from "../types.js";
+import type { Model3DCameraChannels } from "../model3d.js";
 import type {
   AnimationSample,
   AnimationSampleMask,
@@ -84,6 +86,14 @@ const CAPTION_TRACK_INDEX = -1;
  * frame matches what the preview showed when many video clips overlap.
  */
 export const MAX_VIDEO_LAYERS = 8;
+
+/**
+ * Max simultaneous live 3D layers. Each one holds its own WebGL context in the
+ * browser and its own scene in the headless renderer, and browsers allow only
+ * about sixteen contexts per page across the whole editor (R2). A baked 3D clip
+ * plays as video and costs a decode slot instead, so it is not counted here.
+ */
+export const MAX_MODEL3D_LAYERS = 2;
 
 export function isClipActive(
   clip: TimelineClip,
@@ -448,7 +458,7 @@ export interface ResolvedMatte {
 
 /** A visual layer active at a point in time, in bottom-to-top composite order. */
 export interface ActiveLayer {
-  kind: "video" | "image" | "text" | "shape" | "caption";
+  kind: "video" | "image" | "text" | "shape" | "caption" | "model3d";
   clip: TimelineClip;
   clipId: string;
   trackIndex: number;
@@ -481,6 +491,28 @@ export interface ActiveLayer {
   textStyle?: TimelineClip["textStyle"];
   /** Present only when `kind === "shape"`: authored geometry to rasterize. */
   shapeStyle?: TimelineClip["shapeStyle"];
+  /**
+   * Present only when `kind === "model3d"`: the camera, lighting, background
+   * and animation selection the glTF is drawn with. The camera still has to be
+   * folded with the sampled channels — `resolveModel3DCamera` is that fold, and
+   * every host calls it rather than reading `model3dStyle.camera` directly.
+   */
+  model3dStyle?: ClipModel3DStyle;
+  /**
+   * Present only when `kind === "model3d"`: the glTF animation's own clock in
+   * seconds — the clip's source time (in point, speed, time remap) times
+   * `animation.speed` (D3). Trimming a 3D clip hides animation the way it hides
+   * video, and a reversed remap plays it backwards.
+   */
+  sourceTimeSec?: number;
+  /**
+   * Present only on the `video` layer a **baked** `model3d` clip emits: the
+   * time to seek the bake to, in seconds. A bake is the clip's evaluated
+   * picture, so its first frame is the clip's first frame however the clip is
+   * trimmed or retimed — every decoder seeks by this field when it is set,
+   * instead of `clipSourceTimeSec` (D6, time origin).
+   */
+  bakeSourceTimeSec?: number;
   /**
    * The clip's shape mask, in this layer's own normalized space, applied
    * before it blends (D6). Never set on a caption layer, which composites
@@ -516,11 +548,28 @@ export interface ComputeActiveLayersOptions {
   canvas?: RenderCanvas;
   /** Compile cache for the group clips' own animations. */
   animationCache?: AnimationCompileCache;
+  /**
+   * The live bake hash of a `model3d` clip — `computeModel3DBakeHash` from
+   * `@nodetool-ai/timeline/dependencyHash`, which this module cannot call
+   * itself: it is built on `node:crypto` and the scene model is bundled for
+   * the browser.
+   *
+   * A clip whose stored `model3dStyle.bake.dependencyHash` equals what this
+   * returns plays its bake as a video layer; on any mismatch — and for a host
+   * that supplies no resolver at all — the live 3D layer draws instead. A bake
+   * is never played on the strength of not having checked it (D6).
+   */
+  model3dBakeHash?: (clip: TimelineClip) => string | undefined;
 }
 
 /** Why a clip that was active at the query time contributed no layer. */
 export type DroppedLayerReason =
   | "video_layer_cap"
+  /**
+   * More live 3D clips are active than {@link MAX_MODEL3D_LAYERS}. Each one
+   * costs a renderer context, so the extras are named rather than drawn (R2).
+   */
+  | "model3d_layer_cap"
   /**
    * The clip is matted by a source that draws nothing at this time, so the
    * matte is empty and so is the layer. Reported rather than silently omitted:
@@ -646,6 +695,7 @@ export function computeActiveLayersWithHorizon(
   const captionLayers: ActiveLayer[] = [];
   const droppedLayers: DroppedLayer[] = [];
   let videoCount = 0;
+  let model3dCount = 0;
 
   // Matte sources are diverted, not drawn: the clips named by a readable
   // `matte` are held aside as the walk reaches them and handed to the layers
@@ -819,6 +869,71 @@ export function computeActiveLayersWithHorizon(
           shapeStyle: clip.shapeStyle,
           shapeMask: clip.mask,
           transition
+        });
+        continue;
+      }
+
+      if (clip.mediaType === "model3d") {
+        const style = clip.model3dStyle;
+        // Nothing names the camera, lighting or animation, so nothing can be
+        // drawn. The validator reports it as `model3d_style_missing`.
+        if (!style) continue;
+        const common3d = {
+          clip,
+          clipId: clip.id,
+          trackIndex: track.index,
+          blendMode: resolveBlendMode(clip.blendMode),
+          opacity,
+          transform: clip.transform,
+          parentMatrix,
+          precomposeGroupId,
+          borderRadius: clip.borderRadius,
+          effects: clip.effects,
+          trackEffects: track.effects,
+          shapeMask: clip.mask,
+          transition
+        } satisfies Omit<ActiveLayer, "kind" | "assetId">;
+
+        // A bake whose hash still matches the live document is the picture the
+        // clip would draw, already rendered: it plays as an ordinary video
+        // layer, costs a decode slot, and needs no 3D renderer at all.
+        const bake = style.bake;
+        if (bake && options.model3dBakeHash?.(clip) === bake.dependencyHash) {
+          if (!matteSourceIds.has(clip.id)) {
+            if (videoCount >= maxVideoLayers) {
+              droppedLayers.push({ clipId: clip.id, reason: "video_layer_cap" });
+              continue;
+            }
+            videoCount += 1;
+          }
+          emitMedia({
+            kind: "video",
+            ...common3d,
+            assetId: bake.assetId,
+            bakeSourceTimeSec: (currentTimeMs - clip.startMs) / 1000
+          });
+          continue;
+        }
+
+        // Every live 3D layer with a glTF to load costs a renderer context, a
+        // matte source included — a matte is rendered to read its channel, so
+        // it is not the free ride a diverted video layer is. A clip with no
+        // asset yet loads nothing and draws the host's placeholder.
+        const glbAssetId = effectiveAssetId(clip);
+        if (glbAssetId !== undefined) {
+          if (model3dCount >= MAX_MODEL3D_LAYERS) {
+            droppedLayers.push({ clipId: clip.id, reason: "model3d_layer_cap" });
+            continue;
+          }
+          model3dCount += 1;
+        }
+        emitMedia({
+          kind: "model3d",
+          ...common3d,
+          assetId: glbAssetId,
+          model3dStyle: style,
+          sourceTimeSec:
+            clipSourceTimeSec(clip, currentTimeMs) * style.animation.speed
         });
         continue;
       }
@@ -1013,7 +1128,7 @@ export function computeActiveLayers(
  * Composed from the layer's static `transform`/`opacity` and its animation
  * sample. Identical fields to the layer when it has no active animation.
  */
-export interface AnimatedLayerProps {
+export interface AnimatedLayerProps extends Model3DCameraChannels {
   transform?: ClipTransform;
   opacity: number;
   /** Wipe mask to apply in the compositor. Absent means unmasked. */
@@ -1030,6 +1145,9 @@ export interface AnimatedLayerProps {
    * not read the trim range yet, so today this is carried, not drawn.
    */
   shapeStyle?: TimelineClip["shapeStyle"];
+  // The four camera channels come from {@link Model3DCameraChannels}. They are
+  // at identity on every layer that is not `model3d`, which is what makes them
+  // free to ignore there — `resolveModel3DCamera` is the only reader.
 }
 
 interface CompileCacheEntry {
@@ -1184,7 +1302,11 @@ export function resolveAnimatedLayerProps(
     opacity: layer.opacity * s.opacity,
     mask: s.mask,
     effects: composeAnimatedEffects(clip.effects, s),
-    shapeStyle: composeAnimatedShapeStyle(clip.shapeStyle, s)
+    shapeStyle: composeAnimatedShapeStyle(clip.shapeStyle, s),
+    cameraAzimuth: s.cameraAzimuth,
+    cameraElevation: s.cameraElevation,
+    cameraZoom: s.cameraZoom,
+    cameraFov: s.cameraFov
   };
 }
 
@@ -1198,7 +1320,11 @@ function staticProps(layer: {
     transform: layer.transform,
     opacity: layer.opacity,
     effects: layer.clip.effects,
-    shapeStyle: layer.clip.shapeStyle
+    shapeStyle: layer.clip.shapeStyle,
+    cameraAzimuth: 0,
+    cameraElevation: 0,
+    cameraZoom: 1,
+    cameraFov: 0
   };
 }
 

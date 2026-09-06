@@ -184,6 +184,26 @@ const PROPERTY_RANGES: Record<
     identity: null,
     range: "0..1",
     describe: "Replaces the end of a shape's stroked sub-range."
+  },
+  cameraAzimuth: {
+    identity: 0,
+    range: "degrees",
+    describe: "Added to a 3D clip's orbit azimuth. Ignored on other clips."
+  },
+  cameraElevation: {
+    identity: 0,
+    range: "degrees",
+    describe: "Added to a 3D clip's orbit elevation. Ignored on other clips."
+  },
+  cameraZoom: {
+    identity: 1,
+    range: "0..n",
+    describe: "Multiplies a 3D clip's framing distance. Ignored on other clips."
+  },
+  cameraFov: {
+    identity: 0,
+    range: "degrees",
+    describe: "Added to a 3D clip's field of view. Ignored on other clips."
   }
 };
 

@@ -428,6 +428,28 @@ const PRESETS: AnimationPreset[] = [
         { property: "hue", keyframes: [{ t: 0, value: 0 }, { t: 1, value: sign * 360 }] }
       ];
     }
+  },
+  {
+    id: "orbit",
+    roles: ["loop"],
+    defaultDurationMs: 3000,
+    defaultEasing: "linear",
+    params: [
+      { name: "degrees", default: 360, min: -1440, max: 1440 },
+      { name: "direction", default: "cw", options: ["cw", "ccw"] }
+    ],
+    describe:
+      "Sweep a 3D clip's camera around the model, `degrees` per cycle. Drives cameraAzimuth, so it does nothing on a clip that is not 3D.",
+    curves: (params) => {
+      const degrees = num(params, "degrees", 360);
+      const sign = str(params, "direction", "cw") === "ccw" ? -1 : 1;
+      return [
+        {
+          property: "cameraAzimuth",
+          keyframes: [{ t: 0, value: 0 }, { t: 1, value: sign * degrees }]
+        }
+      ];
+    }
   }
 ];
 
