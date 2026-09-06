@@ -424,12 +424,7 @@ export class CreateEntityNode extends BaseNode {
     const description = trimmed(this.description);
     const voiceId = trimmed(this.voice_id);
 
-    // `upsertEntity` returns the row either way, so the node reads the library
-    // first to answer `created`. The probe applies the upsert's own identity
-    // rule — `source.key`, else (kind, name) — so the two cannot disagree.
-    const existing = await this._findExisting(ctx, kind, name, key);
-
-    const entity = await ctx.upsertEntity({
+    const result = await ctx.upsertEntity({
       kind,
       name,
       descriptor: isString(this.descriptor) ? this.descriptor : "",
@@ -443,28 +438,7 @@ export class CreateEntityNode extends BaseNode {
       }
     });
 
-    return { entity, created: existing?.id !== entity.id };
-  }
-
-  private async _findExisting(
-    context: ProcessingContext,
-    kind: EntityKind,
-    name: string,
-    key: string
-  ): Promise<Entity | null> {
-    const candidates = await context.listEntities({ kind });
-    if (key) {
-      const byKey = candidates.find(
-        (candidate) => trimmed(candidate.source?.key) === key
-      );
-      if (byKey) return byKey;
-    }
-    const lower = name.toLowerCase();
-    return (
-      candidates.find(
-        (candidate) => trimmed(candidate.name).toLowerCase() === lower
-      ) ?? null
-    );
+    return { entity: result.entity, created: result.created };
   }
 }
 

@@ -107,7 +107,7 @@ function library(seed: Entity[] = []) {
         ...(args.source !== undefined ? { source: args.source } : {})
       };
       rows.set(id, row);
-      return row;
+      return { entity: row, created: existing === undefined };
     }
   };
 

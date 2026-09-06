@@ -195,7 +195,7 @@ export function entityModelInterfaces(): Pick<
     upsertEntity: async (args) => {
       const existing = await findUpsertTarget(args);
       if (existing) {
-        return writeEntityMarker(existing, args);
+        return { entity: await writeEntityMarker(existing, args), created: false };
       }
       const asset = await Asset.find(args.userId, args.imageAssetId);
       if (!asset) {
@@ -206,7 +206,7 @@ export function entityModelInterfaces(): Pick<
           `${asset.name || asset.id} is a ${asset.content_type} asset; entities are image assets`
         );
       }
-      return writeEntityMarker(asset, args);
+      return { entity: await writeEntityMarker(asset, args), created: true };
     }
   };
 }

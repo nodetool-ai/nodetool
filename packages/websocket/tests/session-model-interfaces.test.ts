@@ -487,7 +487,7 @@ describe("entities", () => {
       ...overrides
     });
 
-  const upsert = (over: Record<string, unknown> = {}) =>
+  const upsertResult = (over: Record<string, unknown> = {}) =>
     ifaces.upsertEntity!({
       userId: USER,
       kind: "character",
@@ -496,6 +496,23 @@ describe("entities", () => {
       imageAssetId: "img-1",
       ...over
     } as Parameters<NonNullable<typeof ifaces.upsertEntity>>[0]);
+
+  const upsert = async (over: Record<string, unknown> = {}) =>
+    (await upsertResult(over)).entity;
+
+  it("says whether it made the row or found one", async () => {
+    await image("img-1");
+    await image("img-2");
+    const first = await upsertResult({ source: { key: "sku-42" } });
+    expect(first.created).toBe(true);
+
+    const second = await upsertResult({
+      imageAssetId: "img-2",
+      source: { key: "sku-42" }
+    });
+    expect(second.created).toBe(false);
+    expect(second.entity.id).toBe(first.entity.id);
+  });
 
   it("finds its own entity by source.key, even after a rename", async () => {
     await image("img-1");

@@ -652,7 +652,7 @@ export interface ProcessingContextModelInterfaces {
    * (project, kind, name) otherwise. A re-run of the same graph therefore
    * updates the entity it made last time instead of growing the library.
    */
-  upsertEntity?: (args: EntityUpsertArgs) => Promise<Entity>;
+  upsertEntity?: (args: EntityUpsertArgs) => Promise<EntityUpsertResult>;
   /** The shipped Godot templates and the asset slots each declares. */
   listGameTemplates?: () => Promise<GameTemplateInfo[]>;
 }
@@ -671,6 +671,17 @@ export interface EntityUpsertArgs {
   voiceId?: string | null;
   /** Stored verbatim on the marker, so a re-run finds its own row. */
   source?: EntitySource;
+}
+
+/**
+ * What an upsert did. The host owns the match rule (`source.key`, then
+ * project/kind/name), so it is the only place that can say whether the row is
+ * new — a caller re-deriving that from a probe duplicates the rule and drifts
+ * from it the moment the host's changes.
+ */
+export interface EntityUpsertResult {
+  entity: Entity;
+  created: boolean;
 }
 
 /** One shipped game template: its id and the asset slots it declares. */
@@ -2092,7 +2103,7 @@ export class ProcessingContext {
   /** Create or update one entity in the current user's library. */
   async upsertEntity(
     args: ModelInterfaceArgs<"upsertEntity">
-  ): Promise<Entity> {
+  ): Promise<EntityUpsertResult> {
     const fn = this.requireModelInterface("upsertEntity");
     return fn({ userId: this.userId, ...args });
   }
