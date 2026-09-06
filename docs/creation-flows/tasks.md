@@ -465,23 +465,23 @@ of each other. Inside a phase, tasks are listed in dependency order.
 
 ### G2 — Web flow
 
-- [ ] **Hooks.** `web/src/hooks/game/useGameSetup.ts` (reader, stage, writer
+- [x] **Hooks.** `web/src/hooks/game/useGameSetup.ts` (reader, stage, writer
       over `settings.game`), `useDesignGame.ts` (one `generate_text` call),
       `useBuildGame.ts` (place, validate, run per § 5.4), `useGameTemplates.ts`
       (the trpc query), `useGameStylePresets.ts`.
-- [ ] **Steps.** `web/src/components/setup/game/`: `IdeaStep`, `TemplateStep`,
+- [x] **Steps.** `web/src/components/setup/game/`: `IdeaStep`, `TemplateStep`,
       `ReviewStep`, `LookStep`, `useGameSetupFlow.ts`, `GameSetupHost.tsx`,
       `templates.ts` (card copy), `GameLandingChecklist.tsx`. Copy from
       game-prd Appendix A. Blocked reasons per § 4.2 and § 4.3.
-- [ ] **Entry.** `game` in `EntryFlowId` and `ENTRY_CARDS` (not Studio),
+- [x] **Entry.** `game` in `EntryFlowId` and `ENTRY_CARDS` (not Studio),
       `startGameFlow` and the `game` setup target in `NewProjectSurface`,
       landing through `handleSetupFinished` with the checklist in the agent
       panel. Update the "five flows" tests to six.
-- [ ] **Tools.** `ui_game_set_setup`, `ui_game_design`,
+- [x] **Tools.** `ui_game_set_setup`, `ui_game_design`,
       `ui_game_update_design`, `ui_game_build` in
       `web/src/lib/tools/builtin/gameSetup.ts`, registered in the index,
       tests in `__tests__/gameSetupTools.test.ts`.
-- [ ] **Tests.** Each step, the flow config at every stage, the checklist's
+- [x] **Tests.** Each step, the flow config at every stage, the checklist's
       verified-only-when-true rule (criterion 7), the entry card.
 
 ### G3 — Assets and docs

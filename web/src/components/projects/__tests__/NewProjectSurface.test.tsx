@@ -194,6 +194,12 @@ jest.mock("../../setup/video/VideoSetupHost", () => ({
     </div>
   )
 }));
+jest.mock("../../setup/game/GameSetupHost", () => ({
+  __esModule: true,
+  default: ({ workflowId }: { workflowId: string }) => (
+    <div data-testid="setup-flow">{workflowId}</div>
+  )
+}));
 jest.mock("../../setup/script/ScriptSetupHost", () => ({
   __esModule: true,
   default: ({ scriptId }: { scriptId: string }) => (
@@ -373,6 +379,7 @@ jest.mock("../../../hooks/useWorkflowActions", () => ({
   useWorkflowActions: () => ({ handleCreateNewWorkflow })
 }));
 
+import { readGameSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import NewProjectSurface from "../NewProjectSurface";
 import { takeProjectFirstTurn } from "../projectAgent";
 import useOnboardingStore from "../../../stores/OnboardingStore";
@@ -848,10 +855,10 @@ describe("NewProjectSurface", () => {
     expect(openProject).not.toHaveBeenCalled();
   });
 
-  // All five flows are built, so no card names a phase any more. The check
+  // All six flows are built, so no card names a phase any more. The check
   // that matters now is that each one starts its own document kind rather than
   // falling through to the project agent (D2).
-  it("offers all five flows, none of them disabled", () => {
+  it("offers all six flows, none of them disabled", () => {
     renderSurface();
     const cards = screen.getByRole("group", {
       name: "Guided creation flows"
@@ -861,7 +868,8 @@ describe("NewProjectSurface", () => {
       "Video",
       "Script",
       "Image",
-      "Workflow"
+      "Workflow",
+      "Game"
     ]) {
       expect(
         within(cards).getByRole("button", {
@@ -893,7 +901,8 @@ describe("NewProjectSurface", () => {
     ["Video", () => createTimeline],
     ["Script", () => createScript],
     ["Image", () => startImageFlowMock],
-    ["Workflow", () => managerCreateWorkflow]
+    ["Workflow", () => managerCreateWorkflow],
+    ["Game", () => managerCreateWorkflow]
   ])("starts the %s flow from its own card", async (title, mock) => {
     const user = userEvent.setup();
     renderSurface();
@@ -906,6 +915,34 @@ describe("NewProjectSurface", () => {
     );
 
     await waitFor(() => expect(mock()).toHaveBeenCalledTimes(1));
+  });
+
+  // The Game flow's document is a workflow too (game-prd D25), so the card is
+  // told apart from the Workflow card by what it writes: `settings.game` at
+  // stage `idea`, on a project row whose kind reads back as a game.
+  it("creates the game's workflow with settings.game at stage idea", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+
+    await user.click(within(cards).getByRole("button", { name: /^Game / }));
+
+    await waitFor(() => expect(managerCreateWorkflow).toHaveBeenCalled());
+    expect(createProject).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "game" })
+    );
+    const [[created]] = managerCreateWorkflow.mock.calls as unknown as Array<
+      [{ settings: Record<string, unknown> }]
+    >;
+    expect(readGameSetup(created.settings)).toMatchObject({
+      stage: "idea",
+      brief: ""
+    });
+    // The Workflow flow's own bag is not written by the Game card.
+    expect(created.settings["setup"]).toBeUndefined();
+    expect(await screen.findByTestId("setup-flow")).toHaveTextContent("wf-new");
   });
 
   // BUG: the video flow's enabled "Start from a script" card did nothing —

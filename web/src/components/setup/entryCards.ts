@@ -1,12 +1,13 @@
 /**
  * The creation-flow entry cards (PRD § 6.1) — one list, two hosts.
  *
- * The New Project surface shows all five, Studio shows three (D24: Image and
- * Workflow are workspace flows). The promise line on each card is PRD § 6.1
- * verbatim, kept here so both hosts say the same thing.
+ * The New Project surface shows all six, Studio shows three (D24 and D30:
+ * Image, Workflow and Game are workspace flows). The promise line on each card
+ * is PRD § 6.1 and game-prd Appendix A verbatim, kept here so both hosts say
+ * the same thing.
  *
  * `disabled` with a `disabledReason` naming the phase is how a card waits for
- * its flow to be built. All five are live now; the field stays on the type for
+ * its flow to be built. All six are live now; the field stays on the type for
  * the next one.
  */
 
@@ -17,7 +18,8 @@ export type EntryFlowId =
   | "video"
   | "script"
   | "image"
-  | "workflow";
+  | "workflow"
+  | "game";
 
 export interface EntryCard extends OptionCardItem {
   id: EntryFlowId;
@@ -48,6 +50,11 @@ export const ENTRY_CARDS: readonly EntryCard[] = [
     id: "workflow",
     title: "Workflow",
     description: "From a task to a running graph, with the plan reviewed first."
+  },
+  {
+    id: "game",
+    title: "Game",
+    description: "From a sentence to a running Godot project, assets checked."
   }
 ];
 
