@@ -75,8 +75,7 @@ const RUNTIME_STATUSES: ReadonlyArray<GlobalChatState["status"]> = [
 
 /** Project a runtime-patch onto the legacy top-level mirror fields. */
 const mirrorFromPatch = (
-  patch: Partial<ThreadRuntime>,
-  threadId: string
+  patch: Partial<ThreadRuntime>
 ): Partial<GlobalChatState> => {
   const mirror: Partial<GlobalChatState> = {};
   if ("status" in patch && patch.status !== undefined) {
@@ -124,7 +123,7 @@ export const threadRuntimeUpdate = (
     threadRuntime: { ...(state.threadRuntime ?? {}), [threadId]: next }
   };
   if (state.currentThreadId === threadId) {
-    Object.assign(update, mirrorFromPatch(patch, threadId));
+    Object.assign(update, mirrorFromPatch(patch));
   }
   return update;
 };
