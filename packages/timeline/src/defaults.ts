@@ -44,6 +44,19 @@ export const DEFAULT_TEXT_CLIP_FONT_SIZE_PX = 96;
 export const DEFAULT_MEDIA_CLIP_DURATION_MS = 4000;
 
 /**
+ * What a 3D clip is called before anyone renames it. The glTF's own name is on
+ * the asset row, and a clip is placed by asset id without reading it.
+ */
+export const DEFAULT_MODEL3D_CLIP_NAME = "3D model";
+
+/**
+ * Length a 3D clip gets when the caller names none. A glTF has no duration of
+ * its own — the model plays for as long as the clip is on screen — so four
+ * seconds is a window long enough to see a turntable go round.
+ */
+export const DEFAULT_MODEL3D_CLIP_DURATION_MS = 4000;
+
+/**
  * The timeline media type an asset's MIME type maps to, or null when the
  * asset is not placeable on a timeline. Shared by the editor's drag-and-drop
  * adapter and the headless agent surface so a clip placed by an agent matches

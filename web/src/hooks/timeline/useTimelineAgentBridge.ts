@@ -14,7 +14,10 @@
 import { useEffect, useMemo } from "react";
 import {
   createTimeOrderedUuid,
+  DEFAULT_MODEL3D_CLIP_DURATION_MS,
+  DEFAULT_MODEL3D_CLIP_NAME,
   makeClip,
+  model3dStyleWithPatch,
   moveTrackOrder,
   presetIdForInstrument,
   resolveTempo,
@@ -27,6 +30,7 @@ import type {
   TrackDestination,
   ClipAnimation,
   ClipMatte,
+  ClipModel3DStylePatch,
   MidiInstrument,
   QuantizeOptions,
   TimelineClip,
@@ -705,6 +709,57 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         if (opts.opacity !== undefined) clip.opacity = opts.opacity;
         store.addClip(clip);
         ui.getState().selectClip(clip.id);
+        return clipNode(reReadClip(clip.id));
+      },
+
+      addModel3DClip(opts) {
+        const store = doc.getState();
+        // 3D is picture (D1): it lands where a title or a shape lands.
+        const named = opts.trackId ? requireTrack(opts.trackId) : undefined;
+        if (named && named.type !== "video" && named.type !== "overlay") {
+          throw new Error(
+            `3D clips require a video or overlay track; "${named.name}" is ${named.type}.`
+          );
+        }
+        let track = named ?? store.tracks.find((t) => t.type === "overlay");
+        if (!track) {
+          store.addTrack("overlay", "3D");
+          track = doc.getState().tracks.at(-1);
+        }
+        if (!track) {
+          throw new Error("Could not create an overlay track for a 3D model.");
+        }
+        const clip = makeClip({
+          trackId: track.id,
+          name: DEFAULT_MODEL3D_CLIP_NAME,
+          startMs: Math.max(0, opts.startMs ?? trackEndMs(track.id)),
+          durationMs: Math.max(
+            1,
+            opts.durationMs ?? DEFAULT_MODEL3D_CLIP_DURATION_MS
+          ),
+          mediaType: "model3d",
+          sourceType: "imported",
+          status: "generated",
+          currentAssetId: opts.assetId,
+          model3dStyle: model3dStyleWithPatch(undefined, opts.style)
+        });
+        store.addClip(clip);
+        ui.getState().selectClip(clip.id);
+        return clipNode(reReadClip(clip.id));
+      },
+
+      setModel3DStyle(target, patch: ClipModel3DStylePatch) {
+        const clip = requireClip(target);
+        if (clip.mediaType !== "model3d") {
+          throw new Error(
+            `Clip "${clip.name}" is a ${clip.mediaType} clip, not a 3D clip — ` +
+              "model3dStyle names a camera, an animation and lighting for a " +
+              "glTF, and nothing else reads it."
+          );
+        }
+        doc.getState().patchClip(clip.id, {
+          model3dStyle: model3dStyleWithPatch(clip.model3dStyle, patch)
+        });
         return clipNode(reReadClip(clip.id));
       },
 

@@ -16,6 +16,7 @@ import type {
   TimeRemapParams,
   TransitionParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
+import type { ClipModel3DStylePatch } from "../authoredStyles.js";
 import type { TimelineClip, TimelineTrack } from "../types.js";
 import type { ClipAnimation } from "../animation/types.js";
 import type { TimelineAnimationInput } from "./types.js";
@@ -83,6 +84,27 @@ export interface AddShapeClipOp {
   durationMs?: number;
   opacity?: number;
   loose?: Record<string, unknown>;
+}
+
+/**
+ * Place a glTF on a picture track. The model is the clip's asset the way an
+ * image is an image clip's, so `assetId` is required — a 3D clip with nothing
+ * to draw is what the validator reports as `model3d_style_missing`.
+ */
+export interface AddModel3DClipOp {
+  op: "add_model3d_clip";
+  assetId: string;
+  trackId?: string;
+  startMs?: number;
+  durationMs?: number;
+  style?: ClipModel3DStylePatch;
+}
+
+/** Patch a 3D clip's camera, animation, lighting or background. */
+export interface SetModel3DStyleOp {
+  op: "set_model3d_style";
+  target: string;
+  patch: ClipModel3DStylePatch;
 }
 
 export type AddGroupOp = { op: "add_group" } & AddGroupParams;
@@ -289,6 +311,8 @@ export type TimelineOp =
   | AddTextClipOp
   | AddMediaClipOp
   | AddShapeClipOp
+  | AddModel3DClipOp
+  | SetModel3DStyleOp
   | AddGroupOp
   | GenerateClipOp
   | SplitClipOp
@@ -329,6 +353,8 @@ export const TIMELINE_OP_NAMES = [
   "add_text_clip",
   "add_media_clip",
   "add_shape_clip",
+  "add_model3d_clip",
+  "set_model3d_style",
   "add_group",
   "generate_clip",
   "split_clip",

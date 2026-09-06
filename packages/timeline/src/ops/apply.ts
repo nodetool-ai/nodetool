@@ -38,6 +38,8 @@ import {
 import { instantiateComposition } from "../composition.js";
 import {
   DEFAULT_MEDIA_CLIP_DURATION_MS,
+  DEFAULT_MODEL3D_CLIP_DURATION_MS,
+  DEFAULT_MODEL3D_CLIP_NAME,
   DEFAULT_TEXT_CLIP_DURATION_MS,
   makeClip,
   makeTrack,
@@ -45,6 +47,7 @@ import {
   trackTypeForMediaType
 } from "../defaults.js";
 import {
+  model3dStyleWithPatch,
   shapeStyleWithDefaults,
   textStyleWithDefaults
 } from "../authoredStyles.js";
@@ -711,6 +714,52 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
       if (op.opacity !== undefined) clip.opacity = op.opacity;
       scope.clips.push(clip);
       state.selectedClipIds = [clip.id];
+      scope.touch(clip.id);
+      return { ok: true, clip: scope.clipOut(clip) };
+    }
+
+    case "add_model3d_clip": {
+      const assetId = op.assetId.trim();
+      if (!assetId) {
+        throw new Error(
+          "add_model3d_clip needs the glTF's asset id — a 3D clip draws its " +
+            "asset the way an image clip draws its image. list_assets prints " +
+            "the ids."
+        );
+      }
+      // 3D is picture (D1), so it lands where a title lands: the first overlay
+      // track, or one made for it.
+      const track = op.trackId
+        ? scope.resolveTrack(op.trackId)
+        : scope.findOrCreateTrack("overlay");
+      const clip = makeClip({
+        id: scope.ctx.newId("clip"),
+        trackId: track.id,
+        name: DEFAULT_MODEL3D_CLIP_NAME,
+        startMs: op.startMs ?? scope.trackEndMs(track.id),
+        durationMs: op.durationMs ?? DEFAULT_MODEL3D_CLIP_DURATION_MS,
+        mediaType: "model3d",
+        sourceType: "imported",
+        status: "generated",
+        currentAssetId: assetId,
+        model3dStyle: model3dStyleWithPatch(undefined, op.style)
+      });
+      scope.clips.push(clip);
+      state.selectedClipIds = [clip.id];
+      scope.touch(clip.id);
+      return { ok: true, clip: scope.clipOut(clip) };
+    }
+
+    case "set_model3d_style": {
+      const clip = scope.resolveClip(op.target);
+      if (clip.mediaType !== "model3d") {
+        throw new Error(
+          `Clip "${clip.name}" is a ${clip.mediaType} clip, not a 3D clip — ` +
+            "model3dStyle names a camera, an animation and lighting for a " +
+            "glTF, and nothing else reads it."
+        );
+      }
+      clip.model3dStyle = model3dStyleWithPatch(clip.model3dStyle, op.patch);
       scope.touch(clip.id);
       return { ok: true, clip: scope.clipOut(clip) };
     }

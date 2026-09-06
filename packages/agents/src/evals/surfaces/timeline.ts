@@ -38,6 +38,10 @@ import {
   makeTrack,
   DEFAULT_TEXT_CLIP_DURATION_MS,
   DEFAULT_MEDIA_CLIP_DURATION_MS,
+  DEFAULT_MODEL3D_CLIP_DURATION_MS,
+  DEFAULT_MODEL3D_CLIP_NAME,
+  model3dStyleWithPatch,
+  type ClipModel3DStylePatch,
   shapeStyleWithDefaults,
   assertAuthorableFontFamily,
   textStyleWithDefaults,
@@ -338,6 +342,13 @@ export interface TimelineBridgeFinalState {
   toolLog: string[];
   /** Timecodes successfully previewed by the bridge. */
   previewTimesMs: number[];
+  /**
+   * Layer kinds the previews reported, deduplicated. A `model3d` clip that
+   * drew nothing is indistinguishable from one that was never added if a
+   * case can only read the document, so what the preview *said* is
+   * recorded too.
+   */
+  previewedLayerKinds: string[];
 }
 
 /**
@@ -678,6 +689,7 @@ export function createTimelineToolBridge(
   let beatSeq = 0;
   const toolLog: string[] = [];
   const previewTimesMs: number[] = [];
+  const previewedLayerKinds = new Set<string>();
 
   // Ids the sequence already uses. A seeded document brings its own, which the
   // `track_1`/`clip_1` counters would otherwise collide with on the first edit.
@@ -1434,6 +1446,52 @@ export function createTimelineToolBridge(
         return { ok: true, clip: serializeClip(clip) };
       }
     ),
+
+    sharedTool(
+      "ui_timeline_add_model3d_clip",
+      async ({ assetId, trackId, startMs, durationMs, style }) => {
+        // 3D is picture (D1), so it lands where a title lands.
+        const track = trackId
+          ? resolveTrack(trackId as string)
+          : findOrCreateTrack("overlay");
+        const clip = makeClip({
+          id: nextClipId(),
+          trackId: track.id,
+          name: DEFAULT_MODEL3D_CLIP_NAME,
+          startMs: (startMs as number | undefined) ?? trackEndMs(track.id),
+          durationMs:
+            (durationMs as number | undefined) ??
+            DEFAULT_MODEL3D_CLIP_DURATION_MS,
+          mediaType: "model3d",
+          sourceType: "imported",
+          status: "generated",
+          currentAssetId: (assetId as string).trim(),
+          model3dStyle: model3dStyleWithPatch(
+            undefined,
+            style as ClipModel3DStylePatch | undefined
+          )
+        });
+        clips.push(clip);
+        selectedClipIds = [clip.id];
+        return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    sharedTool("ui_timeline_set_model3d_style", async ({ target, patch }) => {
+      const clip = resolveClip(target as string);
+      if (clip.mediaType !== "model3d") {
+        throw new Error(
+          `Clip "${clip.name}" is a ${clip.mediaType} clip, not a 3D clip — ` +
+            "model3dStyle names a camera, an animation and lighting for a " +
+            "glTF, and nothing else reads it."
+        );
+      }
+      clip.model3dStyle = model3dStyleWithPatch(
+        clip.model3dStyle,
+        patch as ClipModel3DStylePatch
+      );
+      return { ok: true, clip: serializeClip(clip) };
+    }),
 
     sharedTool(
       "ui_timeline_generate_clip",
@@ -2584,6 +2642,11 @@ export function createTimelineToolBridge(
               .sort((a, b) => b.z_index - a.z_index)
           }));
           previewTimesMs.push(...(times_ms as number[]));
+          for (const frame of frames) {
+            for (const layer of frame.layers) {
+              previewedLayerKinds.add(layer.kind);
+            }
+          }
           return { ok: true, width, height, frames };
         }
       )
@@ -2637,7 +2700,8 @@ export function createTimelineToolBridge(
       tempo: tempo ? structuredClone(tempo) : undefined,
       setup: setup ? structuredClone(setup) : null,
       toolLog: [...toolLog],
-      previewTimesMs: [...previewTimesMs]
+      previewTimesMs: [...previewTimesMs],
+      previewedLayerKinds: [...previewedLayerKinds]
     })
   };
 }
@@ -3083,6 +3147,46 @@ export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeF
             name: "flowFinished",
             detail: "the flow's stage is not done after generating",
             test: (s) => s.setup?.stage === "done"
+          }
+        ]
+      }
+    },
+    {
+      id: "three-d-turntable",
+      description: "Put a glTF on the timeline, spin its camera, then look",
+      objective:
+        "Put the 3D model asset 'asset_lantern_glb' on an overlay track for 4 seconds, make its camera go all the way round the model over that time, and then look at the frame in the middle to check the model is actually on screen.",
+      createBridge: () => createTimelineToolBridge({ preview: true }),
+      systemPrompt: TIMELINE_SYSTEM_PROMPT,
+      expect: {
+        requiredTools: [
+          "ui_timeline_add_model3d_clip",
+          "ui_timeline_animate_clip",
+          "preview_timeline_frame"
+        ],
+        noErrorResults: true,
+        minToolCalls: 3,
+        maxToolCalls: 14,
+        finalState: [
+          {
+            name: "modelClipCarriesAnOrbit",
+            detail:
+              "no model3d clip holding the asset with a loop animation driving its camera",
+            test: (s) =>
+              s.documentClips.some(
+                (clip) =>
+                  clip.mediaType === "model3d" &&
+                  clip.currentAssetId === "asset_lantern_glb" &&
+                  clip.model3dStyle !== undefined &&
+                  (clip.animations ?? []).some((a) => a.role === "loop")
+              )
+          },
+          {
+            // The document can say a 3D clip exists; only the report says one
+            // was drawn — which is the whole point of looking before stopping.
+            name: "previewReportedTheModel",
+            detail: "no preview reported a model3d layer",
+            test: (s) => s.previewedLayerKinds.includes("model3d")
           }
         ]
       }

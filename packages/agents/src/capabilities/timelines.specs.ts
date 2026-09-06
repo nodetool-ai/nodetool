@@ -417,8 +417,10 @@ export const deleteTimelineVersionSpec: CapabilitySpec = {
 export const editTimelineSpec: CapabilitySpec = {
   name: "edit_timeline",
   description:
-    "Edit a saved timeline sequence headlessly: add tracks, add text and " +
-    "shape clips, split, trim, move, duplicate and delete clips, set clip " +
+    "Edit a saved timeline sequence headlessly: add tracks, add text, " +
+    "shape and 3D-model clips, split, trim, move, duplicate and delete " +
+    "clips, set a 3D clip's camera, animation and lighting with " +
+    "set_model3d_style, set clip " +
     "params and workflow bindings, group clips under a shared transform, " +
     "set transitions, masks, mattes and effect chains, and animate clips " +
     "with presets or keyframed custom curves. It also drives the guided video " +

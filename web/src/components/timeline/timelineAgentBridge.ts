@@ -16,6 +16,7 @@
  */
 
 import type {
+  ClipModel3DStylePatch,
   ClipShapeStyle,
   ClipTextStyle,
   MidiInstrument,
@@ -224,6 +225,16 @@ export interface TimelineAddTextClipOptions {
   opacity?: number;
 }
 
+export interface TimelineAddModel3DClipOptions {
+  /** Asset id of the .glb/.gltf model — a 3D clip's picture is its asset. */
+  assetId: string;
+  trackId?: string;
+  startMs?: number;
+  durationMs?: number;
+  /** Merged over the default look; every block is optional. */
+  style?: ClipModel3DStylePatch;
+}
+
 export interface TimelineAddShapeClipOptions {
   shape: TimelineShapeStyle;
   trackId?: string;
@@ -420,6 +431,12 @@ export interface TimelineAgentHandler {
   ) => Promise<TimelineClipNode>;
   addTextClip: (opts: TimelineAddTextClipOptions) => TimelineClipNode;
   addShapeClip: (opts: TimelineAddShapeClipOptions) => TimelineClipNode;
+  addModel3DClip: (opts: TimelineAddModel3DClipOptions) => TimelineClipNode;
+  /** Merge a patch into a 3D clip's camera, animation, lighting or background. */
+  setModel3DStyle: (
+    target: string,
+    patch: ClipModel3DStylePatch
+  ) => TimelineClipNode;
   /** Split a clip at the given time (defaults to the playhead). */
   splitClip: (target: string, atMs?: number) => TimelineClipNode[];
   trimClip: (target: string, patch: TimelineTrimPatch) => TimelineClipNode;

@@ -1935,7 +1935,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "08bf86eba93f",
+    contract: "777960b73f62",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
@@ -1991,7 +1991,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     evals: [
       {
         file: "packages/agents/src/evals/surfaces/timeline.ts",
-        cases: ["looked-before-done"],
+        cases: ["looked-before-done", "three-d-turntable"],
       },
     ],
   },

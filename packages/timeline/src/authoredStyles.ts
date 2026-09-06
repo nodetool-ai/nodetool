@@ -19,6 +19,7 @@
  */
 
 import {
+  DEFAULT_MODEL3D_STYLE,
   DEFAULT_SHAPE_FILL_COLOR,
   DEFAULT_SHAPE_STROKE_COLOR,
   DEFAULT_SHAPE_STROKE_WIDTH_PX,
@@ -26,7 +27,13 @@ import {
   DEFAULT_TEXT_CLIP_FONT_SIZE_PX
 } from "./defaults.js";
 import { assertAuthorableFontFamily } from "./fonts/catalog.js";
-import type { ClipShapeStyle, ClipTextStyle } from "./types.js";
+import type {
+  ClipModel3DAnimation,
+  ClipModel3DCamera,
+  ClipModel3DStyle,
+  ClipShapeStyle,
+  ClipTextStyle
+} from "./types.js";
 
 /**
  * A text clip's stored style: the caller's own fields, the words, and a
@@ -75,4 +82,48 @@ export function shapeStyleWithDefaults(shape: ClipShapeStyle): ClipShapeStyle {
       : { ...shape };
   }
   return { ...shape, fill: DEFAULT_SHAPE_FILL_COLOR };
+}
+
+/**
+ * A `model3d` style patch: every block optional, and the nested camera and
+ * animation blocks partial too.
+ *
+ * `background` is a discriminated union — a transparent background has no
+ * colour and an opaque one must carry it — so it is replaced whole rather than
+ * merged; half of it is not a background. `bake` is absent on purpose: it is a
+ * render plus the hash it was rendered at, which only the bake op can pair
+ * correctly.
+ */
+export interface ClipModel3DStylePatch {
+  camera?: Partial<ClipModel3DCamera>;
+  animation?: Partial<ClipModel3DAnimation>;
+  lighting?: ClipModel3DStyle["lighting"];
+  lightIntensity?: number;
+  background?: ClipModel3DStyle["background"];
+}
+
+/**
+ * A 3D clip's stored style: the patch merged over the clip's own style, or
+ * over {@link DEFAULT_MODEL3D_STYLE} for a clip that has none yet.
+ *
+ * Merged one level down so `{camera: {azimuthDeg: 90}}` turns the model and
+ * keeps the elevation, fov and zoom it was framed at. Sending the camera whole
+ * to change one term is how a caller resets the other four without meaning to.
+ */
+export function model3dStyleWithPatch(
+  base: ClipModel3DStyle | undefined,
+  patch: ClipModel3DStylePatch | undefined
+): ClipModel3DStyle {
+  const from = base ?? DEFAULT_MODEL3D_STYLE;
+  const next: ClipModel3DStyle = {
+    ...from,
+    camera: { ...from.camera, ...patch?.camera },
+    animation: { ...from.animation, ...patch?.animation }
+  };
+  if (patch?.lighting !== undefined) next.lighting = patch.lighting;
+  if (patch?.lightIntensity !== undefined) {
+    next.lightIntensity = patch.lightIntensity;
+  }
+  if (patch?.background !== undefined) next.background = patch.background;
+  return next;
 }

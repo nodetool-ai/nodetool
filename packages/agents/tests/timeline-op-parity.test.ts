@@ -11,6 +11,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  DEFAULT_MODEL3D_STYLE,
   makeClip,
   makeTrack,
   type TimelineClip,
@@ -103,6 +104,18 @@ function seedClips(): TimelineClip[] {
       sourceType: "generated",
       status: "generated",
       prompt: "a cat"
+    }),
+    makeClip({
+      id: "clip_m",
+      trackId: "track_b",
+      name: "Model",
+      startMs: 0,
+      durationMs: 4000,
+      mediaType: "model3d",
+      sourceType: "imported",
+      status: "generated",
+      currentAssetId: "asset_glb",
+      model3dStyle: DEFAULT_MODEL3D_STYLE
     }),
     makeClip({
       id: "clip_g",
@@ -233,6 +246,23 @@ const FIXTURES: Fixture[] = [
     tool: "add_shape_clip",
     args: { kind: "rect", width: 0.5 },
     op: { op: "add_shape_clip", loose: { kind: "rect", width: 0.5 } }
+  },
+  {
+    tool: "add_model3d_clip",
+    args: { assetId: "asset_glb", durationMs: 6000 },
+    op: { op: "add_model3d_clip", assetId: "asset_glb", durationMs: 6000 }
+  },
+  {
+    tool: "set_model3d_style",
+    args: {
+      target: "clip_m",
+      patch: { camera: { azimuthDeg: 120 }, lighting: "soft" }
+    },
+    op: {
+      op: "set_model3d_style",
+      target: "clip_m",
+      patch: { camera: { azimuthDeg: 120 }, lighting: "soft" }
+    }
   },
   {
     tool: "add_group",
@@ -497,6 +527,6 @@ describe("timeline op parity", () => {
     );
     expect(outcome.error).toContain('No clip found matching "nope"');
     expect(outcome.state).toBe(state);
-    expect(state.clips).toHaveLength(4);
+    expect(state.clips).toHaveLength(5);
   });
 });

@@ -74,6 +74,8 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   addMediaClip: jest.fn(),
   addTextClip: jest.fn(),
   addShapeClip: jest.fn(),
+  addModel3DClip: jest.fn(),
+  setModel3DStyle: jest.fn(),
   generateClip: jest.fn(),
   splitClip: jest.fn(),
   trimClip: jest.fn(),
@@ -325,6 +327,39 @@ describe("ui_timeline_* tools", () => {
     // left to the renderer's default.
     expect(handler.addShapeClip).toHaveBeenCalledWith({
       shape: { kind: "rect", x: 0, y: 0, width: 1, height: 1 }
+    });
+  });
+
+  it("places a 3D clip and patches its style through the handler", async () => {
+    const handler = createMockHandler();
+    handler.addModel3DClip.mockReturnValue(
+      clipNode({ mediaType: "model3d" })
+    );
+    handler.setModel3DStyle.mockReturnValue(clipNode({ mediaType: "model3d" }));
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_add_model3d_clip",
+      { timeline_id: SEQ_ID, assetId: "asset_glb" },
+      "tc-model3d-add",
+      ctx
+    );
+    expect(handler.addModel3DClip).toHaveBeenCalledWith(
+      expect.objectContaining({ assetId: "asset_glb" })
+    );
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_set_model3d_style",
+      {
+        timeline_id: SEQ_ID,
+        target: "selected",
+        patch: { camera: { azimuthDeg: 90 } }
+      },
+      "tc-model3d-style",
+      ctx
+    );
+    expect(handler.setModel3DStyle).toHaveBeenCalledWith("selected", {
+      camera: { azimuthDeg: 90 }
     });
   });
 
