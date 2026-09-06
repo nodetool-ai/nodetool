@@ -6,6 +6,12 @@
  * and does not depend on the web editor implementation.
  */
 
+import type { HashableValue } from "./dependencyHash.js";
+
+// Re-exported as a type only: consumers can name the value contract below
+// without importing `dependencyHash`, which pulls in `node:crypto`.
+export type { HashableValue };
+
 export type LayerStatus =
   | "draft"
   | "queued"
@@ -23,6 +29,14 @@ export interface LayerVersion {
   assetId: string;
   workflowUpdatedAt: string;
   dependencyHash: string;
+  /**
+   * HOLDOUT (anti-slop/no-unsafe-dictionary-type): the values arrive from
+   * `paramOverridesSnapshot: z.record(z.string(), z.unknown())` in
+   * `@nodetool-ai/protocol`'s sketch schema, so the parse that would name them
+   * has to happen there and in the web store that writes them
+   * (`setParamOverride(value: unknown)`). Typing it {@link ParamOverrides}
+   * here alone fails `npm run typecheck --workspace=web`.
+   */
   paramOverridesSnapshot: Record<string, unknown>;
   costCredits?: number;
   durationMs?: number;
@@ -61,6 +75,7 @@ export interface LayerWorkflowBinding {
   // Workflow-bound fields ────────────────────────────────────────────────
   workflowId?: string;
   selectedOutputNodeId?: string;
+  /** HOLDOUT (anti-slop/no-unsafe-dictionary-type): see `LayerVersion.paramOverridesSnapshot`. */
   paramOverrides?: Record<string, unknown>;
   // Direct-gen fields (text-to-image / image-to-image / inpaint) ──────────
   prompt?: string;
@@ -98,7 +113,11 @@ export interface LayerWorkflowBinding {
 export type LayerBinding = LayerWorkflowBinding;
 
 export interface SketchLayerLike {
-  [key: string]: unknown;
+  /**
+   * A persisted layer is JSON, so a host's richer layer type (opacity, blend
+   * mode, transform) round-trips through here without this package naming it.
+   */
+  [key: string]: HashableValue;
   id: string;
   name: string;
   type: "raster" | "mask" | "group";
@@ -120,7 +139,7 @@ export interface SketchViewportLike {
 export interface PersistedHistoryEntryLike {
   changedLayerIds?: string[];
   layerSnapshots: Record<string, string | null>;
-  layerStructure: Record<string, unknown>[];
+  layerStructure: SketchLayerLike[];
   documentCanvas: {
     width: number;
     height: number;
@@ -144,7 +163,7 @@ export interface SketchDocumentLike {
   layers: SketchLayerLike[];
   activeLayerId: string;
   maskLayerId?: string | null;
-  toolSettings?: Record<string, unknown>;
+  toolSettings?: Record<string, HashableValue>;
   activeTool?: string;
   viewport?: SketchViewportLike;
   history?: PersistedHistoryEntryLike[];
@@ -183,6 +202,28 @@ export interface ImageDocument<TSketchDocument extends SketchDocumentLike = Sket
   updatedAt: string;
 }
 
+/**
+ * A node in a template's workflow graph — the subset of
+ * `@nodetool-ai/protocol`'s `Node` a template carries. Mirrored rather than
+ * imported so this package keeps no dependencies.
+ */
+export interface TemplateGraphNode {
+  id: string;
+  type: string;
+  parent_id?: string | null;
+  data?: HashableValue;
+  ui_properties?: HashableValue;
+}
+
+/** An edge in a template's workflow graph — mirrors `@nodetool-ai/protocol`'s `Edge`. */
+export interface TemplateGraphEdge {
+  id?: string | null;
+  source: string;
+  sourceHandle: string;
+  target: string;
+  targetHandle: string;
+}
+
 export type LayerTemplateKind = "text-to-image" | "inpaint" | "background-remove";
 
 export interface LayerTemplateDefinition {
@@ -191,7 +232,7 @@ export interface LayerTemplateDefinition {
   name: string;
   description: string;
   graph: {
-    nodes: Record<string, unknown>[];
-    edges: Record<string, unknown>[];
+    nodes: TemplateGraphNode[];
+    edges: TemplateGraphEdge[];
   };
 }
