@@ -102,6 +102,35 @@
   scrim came back with a hard outline the same call in the editor did not draw.
   A shape the caller filled gets no stroke it did not ask for.
 
+## Midi voices (`src/midi`, `src/midi/engines`)
+
+- **One renderer, four synths.** `renderInstrumentEvents` switches on
+  `instrument.type` and every host — the browser preview, the audition, the
+  `RenderTimeline` node — goes through it. `subtractive` is the built-in voice;
+  `wavetable`, `bass` and `drum` are ports of FableSynth's WT-1, BL-1 and DR-1
+  ([github.com/georgi/fablesynth](https://github.com/georgi/fablesynth)),
+  living in `src/midi/engines/`.
+- **What was ported is the sound-shaping, not the plugin.** The band-limited
+  wavetables and their mip ladder, the Cytomic SVF, the ADAA tanh drive, the
+  envelopes, BL-1's accent and slide, DR-1's pad voice. Not ported: stereo
+  (this renderer is mono), the LFOs and mod matrix, the FX racks, and the
+  plugins' own sequencers — a track's effects live on the track and its notes
+  live in the clip.
+- **A render is reproducible or the cache is wrong.** No `Math.random` and no
+  clock: DR-1's noise is a seeded xorshift keyed by the pad and the hit, and
+  unison start phases are a fixed spread. `midiRenderKey` hands back a previous
+  render, so a voice that drifted between two renders would play as whichever
+  one was cached first.
+- **`instrumentSignature` walks the instrument rather than listing its
+  fields.** The FableSynth voices carry nested oscillators, envelopes and
+  sixteen pads; a hand-written field list would go stale on the first one
+  added, and the cache would serve audio from before the change.
+- **A new instrument type is two edits, not one.** `types.ts` and
+  `@nodetool-ai/protocol`'s `midiInstrument` schema both describe the union, and
+  `tests/midi.protocolCompat.test.ts` parses every shipped preset through the
+  schema — so a branch added on one side fails there rather than being stripped
+  by Zod on the first autosave.
+
 ## Rendering (`src/render`, `@nodetool-ai/timeline/render`)
 
 - **One scene model, one compositor, four hosts.** The live preview, the

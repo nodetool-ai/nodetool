@@ -15,5 +15,6 @@ export * from "./presets.js";
 export * from "./grid.js";
 export * from "./instrument.js";
 export * from "./voice.js";
+export * from "./engines/index.js";
 export * from "./cacheKey.js";
 export * from "./wav.js";

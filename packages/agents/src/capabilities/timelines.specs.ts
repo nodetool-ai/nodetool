@@ -213,10 +213,16 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "the clip hides notes instead of deleting them. " +
         'set_track_instrument takes {"track", "instrument"}, either a named ' +
         'voice — {"preset": "bass"}, one of saw-lead, square-lead, soft-pad, ' +
-        "pluck, bass, bell — or the synth spelled out: {type: " +
+        "pluck, bass, bell, the FableSynth WT-1 wavetable patches " +
+        "wt1-prime-lead, wt1-bloom-pad, wt1-vox-morph, wt1-chime-bell, the " +
+        "BL-1 acid basslines bl1-acid, bl1-deep, bl1-rubber, and the DR-1 " +
+        "drum kit dr1-tr-void — or the synth spelled out: {type: " +
         '"subtractive", waveform, attackMs, decayMs, sustain, releaseMs, ' +
-        "cutoffHz, resonance, gainDb}. get_state reports the preset a track's " +
-        "instrument matches as presetId. " +
+        "cutoffHz, resonance, gainDb}. dr1-tr-void plays one drum per note " +
+        "from 36 (kick, kick 2, snare, clap, rim, closed hat, open hat, ride, " +
+        "three toms, crash, two percs, vox, glitch) and is silent above 51. " +
+        "get_state reports the preset a track's instrument matches as " +
+        "presetId. " +
         'set_tempo takes {"bpm", offset_ms?, beats_per_bar?, beat_unit?} and ' +
         "rescales every midi clip around offset_ms — halving the BPM doubles " +
         "each midi clip's start and length — while picture and audio stay " +
