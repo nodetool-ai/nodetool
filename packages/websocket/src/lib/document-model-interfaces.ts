@@ -36,6 +36,13 @@ const norm = (value: string): string => value.trim().toLowerCase();
  * The entity row an upsert writes to: the one a previous run of the same graph
  * made (`source.key`), else the one with the same kind and name in the same
  * project. Null when neither exists and the entity is new.
+ *
+ * A caller that gives a key never lands on a row carrying a *different* key.
+ * Two SKUs of one product share a display name, so name matching would make the
+ * second SKU overwrite the first's descriptor, picture and key — and inherit
+ * its recast mapping. A row carrying no key of its own is still fair game: that
+ * is how an entity a person made by hand becomes the graph's on the first keyed
+ * run, instead of gaining a duplicate beside it.
  */
 async function findUpsertTarget(args: EntityUpsertArgs): Promise<Asset | null> {
   const [assets] = await Asset.paginate(args.userId, {
@@ -48,18 +55,18 @@ async function findUpsertTarget(args: EntityUpsertArgs): Promise<Asset | null> {
   );
   const key = args.source?.key?.trim();
   if (key) {
-    const bySource = markers.find(
-      ([, marker]) => marker?.source?.key === key
-    );
+    const bySource = markers.find(([, marker]) => marker?.source?.key === key);
     if (bySource) return bySource[0];
   }
   const name = norm(args.name);
-  return (
-    markers.find(
-      ([, marker]) =>
-        !!marker && marker.kind === args.kind && norm(marker.name) === name
-    )?.[0] ?? null
+  const byName = markers.find(
+    ([, marker]) =>
+      !!marker &&
+      marker.kind === args.kind &&
+      norm(marker.name) === name &&
+      (!key || !marker.source?.key?.trim())
   );
+  return byName?.[0] ?? null;
 }
 
 /**

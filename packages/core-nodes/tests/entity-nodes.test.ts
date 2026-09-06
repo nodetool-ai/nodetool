@@ -3,9 +3,11 @@
  *
  * The fake `listEntities`/`getEntity`/`upsertEntity` mirror the rules the
  * websocket host implements: a read is owner-scoped and filtered, and an upsert
- * finds its row by `source.key` first and by (kind, name) second. The identity
- * rule is the point of these nodes — a catalog batch that runs monthly must
- * update the entities it made last month, not add a second copy of each.
+ * finds its row by `source.key` first and by (kind, name) second, never
+ * adopting a row that carries a different key. The identity rule is the point
+ * of these nodes — a catalog batch that runs monthly must update the entities
+ * it made last month, not add a second copy of each, and two SKUs sharing a
+ * product name must stay two entities.
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -53,14 +55,17 @@ function library(seed: Entity[] = []) {
   const find = (args: UpsertArgs): Entity | undefined => {
     const key = args.source?.key?.trim();
     if (key) {
-      const byKey = [...rows.values()].find(
-        (row) => row.source?.key === key
-      );
+      const byKey = [...rows.values()].find((row) => row.source?.key === key);
       if (byKey) return byKey;
     }
     const name = args.name.trim().toLowerCase();
+    // A given key never lands on a row another key owns — two SKUs of one
+    // product share a display name. A row with no key of its own is adopted.
     return [...rows.values()].find(
-      (row) => row.kind === args.kind && row.name.trim().toLowerCase() === name
+      (row) =>
+        row.kind === args.kind &&
+        row.name.trim().toLowerCase() === name &&
+        (!key || !row.source?.key?.trim())
     );
   };
 
@@ -289,6 +294,53 @@ describe("CreateEntityNode", () => {
     expect(second.entity.id).toBe(first.entity.id);
     expect(second.entity.tags).toEqual(["cast"]);
     expect(second.entity.voice_id).toBe("voice-7");
+    expect(lib.rows.size).toBe(1);
+  });
+
+  it("keeps two SKUs that share a product name apart", async () => {
+    const context = contextWith(lib.interfaces);
+    const shared = { kind: "prop", name: "T-Shirt" };
+
+    const red = await node({
+      ...shared,
+      image: { type: "image", asset_id: "asset-red" },
+      descriptor: "a red cotton tee",
+      key: "SKU-RED"
+    }).process(context);
+    // Two SKUs of one product, same display name, different pictures. The blue
+    // key matches no row, so it must not adopt the red SKU's entity.
+    const blue = await node({
+      ...shared,
+      image: { type: "image", asset_id: "asset-blue" },
+      descriptor: "a blue cotton tee",
+      key: "SKU-BLUE"
+    }).process(context);
+
+    expect(red.created).toBe(true);
+    expect(blue.created).toBe(true);
+    expect(blue.entity.id).not.toBe(red.entity.id);
+    expect(lib.rows.size).toBe(2);
+    expect(lib.rows.get(red.entity.id)?.descriptor).toBe("a red cotton tee");
+    expect(lib.rows.get(red.entity.id)?.source?.key).toBe("SKU-RED");
+  });
+
+  it("adopts a keyless row of the same name and stamps its key on it", async () => {
+    const context = contextWith(lib.interfaces);
+    const shared = { kind: "prop", name: "T-Shirt", descriptor: "a cotton tee" };
+
+    const plain = await node({
+      ...shared,
+      image: { type: "image", asset_id: "asset-plain" }
+    }).process(context);
+    const keyed = await node({
+      ...shared,
+      image: { type: "image", asset_id: "asset-red" },
+      key: "SKU-RED"
+    }).process(context);
+
+    expect(keyed.created).toBe(false);
+    expect(keyed.entity.id).toBe(plain.entity.id);
+    expect(keyed.entity.source?.key).toBe("SKU-RED");
     expect(lib.rows.size).toBe(1);
   });
 

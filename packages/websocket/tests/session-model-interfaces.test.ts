@@ -544,6 +544,49 @@ describe("entities", () => {
     expect(readEntityMarker((await Asset.find(USER, "img-2"))?.metadata)).toBeNull();
   });
 
+  it("keeps two keys that share a display name apart", async () => {
+    await image("img-1");
+    await image("img-2");
+    const first = await upsert({ source: { key: "SKU-RED" } });
+    expect(first.id).toBe("img-1");
+
+    // Two SKUs of one product share a name. The blue key matches no row, so it
+    // must not adopt the red SKU's. The second call passes a different image
+    // asset, so a shared id cannot come from re-tagging the same picture.
+    const second = await upsertResult({
+      imageAssetId: "img-2",
+      descriptor: "a tall courier in a blue jacket",
+      source: { key: "SKU-BLUE" }
+    });
+    expect(second.created).toBe(true);
+    expect(second.entity.id).toBe("img-2");
+
+    // The red SKU is untouched: its descriptor, its picture and its own key.
+    const red = readEntityMarker((await Asset.find(USER, "img-1"))?.metadata);
+    expect(red?.descriptor).toBe("a tall courier in a red jacket");
+    expect(red?.reference_asset_id).toBeUndefined();
+    expect(red?.source?.key).toBe("SKU-RED");
+  });
+
+  it("adopts a keyless row of the same name and stamps its key on it", async () => {
+    await image("img-1");
+    await image("img-2");
+    const first = await upsert();
+    expect(first.id).toBe("img-1");
+
+    // A library entity somebody made by hand becomes this graph's own on the
+    // first keyed run, instead of being duplicated beside it.
+    const second = await upsertResult({
+      imageAssetId: "img-2",
+      source: { key: "SKU-RED" }
+    });
+    expect(second.created).toBe(false);
+    expect(second.entity.id).toBe("img-1");
+    expect(
+      readEntityMarker((await Asset.find(USER, "img-1"))?.metadata)?.source?.key
+    ).toBe("SKU-RED");
+  });
+
   it("matches on (project, kind, name) when no source key is given", async () => {
     await image("img-1");
     await image("img-2");
