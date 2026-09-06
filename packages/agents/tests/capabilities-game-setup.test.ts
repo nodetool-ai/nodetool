@@ -145,16 +145,17 @@ const METADATA: Record<string, unknown> = {
     [
       ["template", "str"],
       ["name", "str"],
+      ["fills", "list[slot_fill]"],
       ["directory", "str"],
-      ["verify", "bool"],
-      ["overwrite", "bool"]
+      ["verify", "bool"]
     ],
     [
       ["output", "dict"],
       ["directory", "str"],
-      ["verified", "bool"]
+      ["verified", "bool"],
+      ["archive", "str"]
     ],
-    { supports_dynamic_inputs: true }
+    { input_fields: ["fills"] }
   ),
   "nodetool.workflows.base_node.Preview": meta(
     "nodetool.workflows.base_node.Preview",

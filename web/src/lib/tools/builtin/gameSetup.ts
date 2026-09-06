@@ -330,15 +330,11 @@ FrontendToolRegistry.register({
     if (cast !== undefined) {
       next.cast = design.cast.map((member) => {
         const patch = cast.find((row) => row.slot_id === member.slot_id);
-        return patch === undefined
-          ? member
-          : {
-              ...member,
-              ...(patch.name === undefined ? {} : { name: patch.name }),
-              ...(patch.descriptor === undefined
-                ? {}
-                : { descriptor: patch.descriptor })
-            };
+        if (patch === undefined) return member;
+        const patched = { ...member };
+        if (patch.name !== undefined) patched.name = patch.name;
+        if (patch.descriptor !== undefined) patched.descriptor = patch.descriptor;
+        return patched;
       });
       // A cast entry for a slot the design has none for is added rather than
       // dropped: a spritesheet slot with no cast member is what criterion 4
@@ -361,15 +357,11 @@ FrontendToolRegistry.register({
     if (enemies !== undefined) {
       next.enemies = design.enemies.map((enemy) => {
         const patch = enemies.find((row) => row.slot_id === enemy.slot_id);
-        return patch === undefined
-          ? enemy
-          : {
-              ...enemy,
-              ...(patch.name === undefined ? {} : { name: patch.name }),
-              ...(patch.behaviour === undefined
-                ? {}
-                : { behaviour: patch.behaviour })
-            };
+        if (patch === undefined) return enemy;
+        const patched = { ...enemy };
+        if (patch.name !== undefined) patched.name = patch.name;
+        if (patch.behaviour !== undefined) patched.behaviour = patch.behaviour;
+        return patched;
       });
     }
 
@@ -493,18 +485,11 @@ FrontendToolRegistry.register({
         position: node.position,
         properties: node.properties
       });
-      const data: Record<string, unknown> = {};
-      if (node.dynamicProperties !== undefined) {
-        data["dynamic_properties"] = node.dynamicProperties;
-      }
       if (node.setupStepId !== undefined) {
-        data["setupStepId"] = node.setupStepId;
-      }
-      if (Object.keys(data).length > 0) {
         await call("ui_update_node_data", {
           workflow_id: workflowId,
           node_id: node.id,
-          data
+          data: { setupStepId: node.setupStepId }
         });
       }
     }

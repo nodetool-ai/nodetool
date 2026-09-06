@@ -144,12 +144,15 @@ export type ExportGodotProjectInputs = {
 };
 
 export interface ExportGodotProjectOutputs {
+  output: Record<string, unknown>;
   directory: string;
   files: string[];
   verified: boolean;
+  verification: Record<string, unknown>;
   errors: string[];
+  archive: string;
 }
 
 export function exportGodotProject(inputs: ExportGodotProjectInputs): DslNode<ExportGodotProjectOutputs> {
-  return createNode("nodetool.game.ExportGodotProject", inputs, { outputNames: ["directory", "files", "verified", "errors"] });
+  return createNode("nodetool.game.ExportGodotProject", inputs, { outputNames: ["output", "directory", "files", "verified", "verification", "errors", "archive"] });
 }

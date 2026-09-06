@@ -38,8 +38,10 @@ const METADATA = {
   },
   "nodetool.game.ExportGodotProject": {
     node_type: "nodetool.game.ExportGodotProject",
-    supports_dynamic_inputs: true,
-    properties: [{ name: "template", type: { type: "str" } }],
+    properties: [
+      { name: "template", type: { type: "str" } },
+      { name: "fills", type: { type: "list", type_args: [{ type: "slot_fill" }] } }
+    ],
     outputs: [{ name: "output", type: { type: "dict" } }]
   },
   "nodetool.output.Output": {
@@ -319,16 +321,17 @@ describe("ui_game_build", () => {
     expect(slots).toEqual(["player", "player", "player"]);
   });
 
-  it("feeds the export node one dynamic input named by the slot", async () => {
+  it("feeds the export node's fills list from the checker's output", async () => {
     await call("ui_game_design", { design: DESIGN });
     await build();
-    const exportUpdate = nodeToolCalls.find(
-      (call_) =>
-        call_.name === "ui_update_node_data" &&
-        call_.args["node_id"] === "export"
-    );
-    const data = exportUpdate?.args["data"] as Record<string, unknown>;
-    expect(data["dynamic_properties"]).toEqual({ player: "" });
+    const connects = nodeToolCalls
+      .filter((call_) => call_.name === "ui_connect_nodes")
+      .filter((call_) => call_.args["target_node_id"] === "export");
+    expect(connects).toHaveLength(1);
+    expect(connects[0].args).toMatchObject({
+      source_handle: "output",
+      target_handle: "fills"
+    });
   });
 
   it("keeps the template's placeholder audio when no model is chosen (D27)", async () => {

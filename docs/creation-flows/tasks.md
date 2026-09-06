@@ -429,27 +429,28 @@ of each other. Inside a phase, tasks are listed in dependency order.
       and reporting them, `GAME_INSPIRATION_CHIPS` with a pinned design per
       shipped template. Tests: a design missing a slot prompt is filled and
       reported; a chip's design has one cast entry per spritesheet slot.
-- [x] **Slot prompt.** `packages/protocol/src/game-slot-prompt.ts` per
-      § 5.3. Test table: sizes per kind for every slot in the three shipped
+- [x] **Slot prompt.** `packages/protocol/src/game-flow-prompt.ts`, on top of
+      `slotPrompt`, per § 5.3. Test table: sizes per kind for every slot in the three shipped
       manifests, style descriptor present verbatim, cast descriptor present
       only on the slot that names it, closest aspect ratio.
 - [x] **Graph builder.** `packages/protocol/src/game-graph.ts`
       `gameGraphPlacement` per § 5.3, returning a `WorkflowPlacement`.
       Tests: one chain per slot kind, audio chains omitted when unchosen,
-      every checker feeds a dynamic input named by its slot id on one export
-      node, an unknown node type is an issue and no node.
+      every checker's stamped output feeds the one export node's `fills` list
+      and nothing else does, an unknown node type is an issue and no node.
 - [x] **Style presets.** `GAME_STYLE_PRESETS` in `style-presets.ts` per
       § 5.6, thumbnails as `package://nodetool-base/styles/game-<id>.png`.
 
 ### G1b — Node, seeds, harness (backend)
 
 - [x] **`packages/game-nodes`.** `nodetool.game.ExportGodotProject` per
-      § 5.5 with `supportsDynamicInputs`, the export join extracted from
-      `packages/agents/src/capabilities/godot.ts` into one module both call,
-      the zip beside the directory. Registered in `@nodetool-ai/base-nodes`,
+      § 5.5, the export join (`joinGodotProject` in `src/project.ts`) that the
+      node and `packages/agents/src/capabilities/godot.ts` both call, the zip
+      beside the directory. Registered in `@nodetool-ai/base-nodes`,
       the root workspaces, the backend bundle. Tests: the filled fixture
       exports and reports `verified: false` with a reason without Godot; no
-      inputs exports the placeholders; a fill for another slot is an error.
+      fills exports the placeholders; an unfilled slot keeps its own; a fill
+      for a slot the template lacks is an error naming it.
 - [x] **Templates query and seeds.** `games.templates` trpc query;
       `seedStylePresets` takes a preset list; `games.stylePresets` seeds the
       six game presets idempotently.

@@ -95,6 +95,18 @@ function validate(placement: WorkflowPlacement) {
   });
 }
 
+/**
+ * The slots whose checker feeds the export node's `fills` list. Many edges land
+ * on that one handle, so a slot is present exactly when its checker has one.
+ */
+const fillSlots = (placement: WorkflowPlacement): string[] =>
+  placement.edges
+    .filter((edge) => edge.target === "export" && edge.targetHandle === "fills")
+    .map(
+      (edge) =>
+        placement.nodes.find((node) => node.id === edge.source)?.setupStepId ?? ""
+    );
+
 const errorsOf = (report: ReturnType<typeof validate>) =>
   report.issues
     .filter((issue) => issue.severity === "error")
@@ -124,10 +136,7 @@ describe("shipped game inspiration chips", () => {
       const visual = manifest.slots.filter(
         (slot) => slot.kind !== "sfx" && slot.kind !== "music"
       );
-      const exported = placement.nodes.find(
-        (node) => node.type === "nodetool.game.ExportGodotProject"
-      );
-      expect(Object.keys(exported?.dynamicProperties ?? {}).sort()).toEqual(
+      expect(fillSlots(placement).sort()).toEqual(
         visual.map((slot) => slot.id).sort()
       );
     });
@@ -184,11 +193,8 @@ describe("shipped game inspiration chips", () => {
     );
     const music = manifest.slots.filter((slot) => slot.kind === "music");
     expect(music.length).toBeGreaterThan(0);
-    const exported = placement.nodes.find(
-      (node) => node.type === "nodetool.game.ExportGodotProject"
-    );
     for (const slot of music) {
-      expect(Object.keys(exported?.dynamicProperties ?? {})).toContain(slot.id);
+      expect(fillSlots(placement)).toContain(slot.id);
     }
     expect(errorsOf(validate(placement))).toEqual([]);
   });

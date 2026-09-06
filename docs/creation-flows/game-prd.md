@@ -276,7 +276,8 @@ It places no node and starts no job.
 
 ### 5.3 Slot prompt and graph builder (pure)
 
-`packages/protocol/src/game-slot-prompt.ts`:
+`packages/protocol/src/game-flow-prompt.ts`, on top of `slotPrompt` in
+`game-slot-prompt.ts`:
 
 ```ts
 export function gameSlotPrompt(
@@ -287,14 +288,18 @@ export function gameSlotPrompt(
 ): { prompt: string; width: number; height: number; aspectRatio: string };
 ```
 
+- The wording and the canvas are `slotPrompt`'s: the subject is the reviewed
+  slot prompt rather than the template's generic one, and the style preset and
+  the slot's cast member are handed over as inline `Entity` values, so the
+  descriptors land through the same `injectEntities` block a shot render uses.
 - `spritesheet`: width = `cell[0] × max(frames)`, height = `cell[1] ×
-  animations`; the prompt names each animation row and its frame count, the
-  cast member's descriptor when the slot has one, "transparent background",
-  and the style descriptor.
+  animations`; the prompt names the frame range of each animation and
+  "Transparent background".
 - `tileset`: a near-square grid of `count` cells (columns = ceil(sqrt(count))).
-- `image`: the slot's `size`; "seamless, tileable on the horizontal axis"
-  when `seamless_x`, same for `y`.
-- `sfx` / `music`: no size; prompt is the subject and the seconds.
+- `image`: the slot's `size`, and which edges must match when the slot is
+  seamless on an axis.
+- `sfx` / `music`: no size and no entities — a pixel-ramp descriptor means
+  nothing to a sound model; the prompt is the subject and the seconds.
 - `aspectRatio` is the closest value in `nodetool.image.TextToImage`'s
   aspect-ratio list, so the generator produces the right shape and the resize
   step only scales.
@@ -333,10 +338,10 @@ Per slot, one chain, laid out one row per slot:
 Every TextToImage node gets `entities` set to the inline style entity plus
 the slot's cast member as inline `character` entities (`{type: "entity",
 kind, name, descriptor}`), which the node already accepts without a
-database row. Every checker's `fill` output connects to a dynamic input on
-one `nodetool.game.ExportGodotProject` node named by the slot id. The
-export node's `output` connects to a `nodetool.output.Output` named
-`project`. Each checker's `output` also connects to a preview so the canvas
+database row. Every checker's stamped `output` connects to the one
+`nodetool.game.ExportGodotProject` node's `fills` input — many edges onto one
+list handle, which the kernel folds into a list. The export node's `output`
+connects to a `nodetool.output.Output` named `project`. Each checker's `output` also connects to a preview so the canvas
 shows the asset.
 
 The builder returns `issues` for a node type the lookup does not have and
@@ -361,18 +366,18 @@ bundle like every node package).
 
 | | |
 | --- | --- |
-| Properties | `template: str` (enum from `listTemplates`), `name: str`, `directory: str` (workspace-relative, default `games/<slug>`), `verify: bool = true`, `overwrite: bool = false` |
-| Dynamic inputs | one per slot, named by slot id, typed `dict`; the value is a checker's `fill` output (`{ ...SlotFill, asset_id, uri }`) |
-| Outputs | `directory: str`, `files: list[str]`, `verified: bool`, `verification: dict` (the same shape `verify_godot_project` returns), `errors: list[str]`, `archive: str` (the `games/<slug>.zip` path) |
+| Properties | `template: str` (enum from `listTemplates`), `name: str`, `directory: str` (workspace-relative, default `games/<slug>`), `verify: bool = true` |
+| Fills | `fills: list[slot_fill]`, one entry per filled slot: a checker's stamped `output` ref, whose `metadata.nodetool_slot` is the fill. A directory that already holds a project keeps its scripts and scenes, so a re-export after an art change does not undo hook edits. |
+| Outputs | `output: dict` (`{directory, verified, archive}`, the one handle an `Output` takes), `directory: str`, `files: list[str]`, `verified: bool`, `verification: dict` (the same shape `verify_godot_project` returns), `errors: list[str]`, `archive: str` (the `games/<slug>.zip` path) |
 
 Behaviour is the existing capability's join, called rather than copied: the
 layout/copy/dangling-reference/verify code in
-`packages/agents/src/capabilities/godot.ts` moves to one module both the
-capability and the node import (the module lives wherever the package graph
-allows with no cycle; `npm run check`'s boundary check decides). A node with
-no slot inputs exports the template with its placeholders (§ 4.1's blank
-path). An asset that carries no fill, or a fill for another slot, is an error
-naming the slot. The node also writes `<directory>.zip` so the landing's
+`packages/agents/src/capabilities/godot.ts` moves to `joinGodotProject` in
+`packages/game-nodes/src/project.ts`, which both the capability and the node
+import. An empty `fills` exports the template with its placeholders (§ 4.1's
+blank path) and a slot nobody fed keeps its own (D27). An asset that carries no
+fill, or a fill for a slot the template does not have, is an error naming the
+slot. The node also writes `<directory>.zip` so the landing's
 `Download project` is one file.
 
 Verification runs only where the workspace is local and a Godot binary is

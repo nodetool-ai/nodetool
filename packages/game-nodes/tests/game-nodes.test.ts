@@ -12,6 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { unzipSync } from "fflate";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -263,8 +264,11 @@ describe("resolveFills", () => {
     ).toThrow(/carries no slot fill/);
   });
 
-  it("refuses an empty list", () => {
-    expect(() => resolveFills("platformer", [])).toThrow(/fills is empty/);
+  it("reads an empty list as a manifest with no slots", () => {
+    // The blank-template export: nothing generated, the template's own art.
+    const { manifest, refs } = resolveFills("platformer", []);
+    expect(manifest.slots).toEqual([]);
+    expect(refs.size).toBe(0);
   });
 
   it("derives an asset id from the slot when a hermetic run stored none", () => {
@@ -404,6 +408,8 @@ describe("ExportGodotProject", () => {
       directory: "game"
     }).process(context);
     expect(result.verified).toBe(false);
+    expect(result.verification.ran).toBe(false);
+    expect(result.verification.reason).toMatch(/virtual workspace/);
     expect(result.errors.join("\n")).toContain("virtual workspace");
   });
 
@@ -431,16 +437,75 @@ describe("ExportGodotProject", () => {
     );
   });
 
-  it("refuses fills that do not satisfy the manifest", async () => {
+  it("exports the template's own art when nothing was filled", async () => {
+    // The blank-template path (game-prd § 4.1): a project that runs in Godot
+    // today, with the placeholders still in it.
+    const { context, result } = await exportPlatformer({ fills: [] });
+    const workspace = context.workspace;
+    if (!workspace) throw new Error("expected a workspace");
+    expect(await workspace.readText("game/project.godot")).toContain(
+      'config/name="Platformer"'
+    );
+    expect(await workspace.exists("game/assets/sprites/player.png")).toBe(true);
+    expect(await workspace.exists("game/scripts/player.gd")).toBe(true);
+    expect(result.errors.filter((e) => e.startsWith("dangling"))).toEqual([]);
+    expect(result.archive).toBe("game.zip");
+  });
+
+  it("leaves an unfilled slot on the template's placeholder", async () => {
+    // D27: keeping the template's audio is a choice, not a failure.
+    const audio = new Set(["sfx.jump", "sfx.hurt", "music.level"]);
+    const { context, result } = await exportPlatformer({
+      fills: stampedRefs().filter(
+        (_, index) => !audio.has(FILLED.slots[index].slot_id)
+      )
+    });
+    const workspace = context.workspace;
+    if (!workspace) throw new Error("expected a workspace");
+    expect(await workspace.exists("game/assets/audio/music_level.wav")).toBe(true);
+    expect(await workspace.exists("game/assets/sprites/player.tres")).toBe(true);
+    expect(result.errors.filter((e) => e.startsWith("dangling"))).toEqual([]);
+  });
+
+  it("refuses a fill for a slot this template does not have, naming it", async () => {
     const context = tempWorkspaceContext();
+    const stray = {
+      ...stampedRefs()[0],
+      metadata: {
+        [SLOT_METADATA_KEY]: { ...FILLED.slots[0].fill, slot_id: "boss.final" }
+      }
+    };
     await expect(
       new ExportGodotProjectNode({
         template: "platformer",
         name: "Platformer",
-        fills: stampedRefs().slice(0, 3),
-        directory: "game"
+        fills: [stray],
+        directory: "game",
+        verify: false
       }).process(context)
-    ).rejects.toThrow(/do not satisfy platformer's manifest/);
+    ).rejects.toThrow(/has no slot named boss\.final/);
+  });
+
+  it("writes a zip beside the directory, every entry under the project folder", async () => {
+    const { context, result } = await exportPlatformer();
+    const workspace = context.workspace;
+    if (!workspace) throw new Error("expected a workspace");
+    expect(result.archive).toBe("game.zip");
+    const bytes = await workspace.read("game.zip");
+    if (!bytes) throw new Error("expected an archive");
+    const entries = Object.keys(unzipSync(bytes));
+    expect(entries).toContain("game/project.godot");
+    expect(entries).toContain("game/assets/sprites/player.tres");
+    expect(entries.length).toBe(result.files.length);
+  });
+
+  it("reports the whole export on one output handle", async () => {
+    const { result } = await exportPlatformer();
+    expect(result.output).toEqual({
+      directory: "game",
+      verified: result.verified,
+      archive: "game.zip"
+    });
   });
 
   it("refuses a run with no workspace", async () => {

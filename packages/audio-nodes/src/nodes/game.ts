@@ -172,31 +172,11 @@ async function persistStamped(
   return { ...ref, uri: `asset://${id}.wav`, asset_id: id };
 }
 
-/**
- * The `fill` a checker returns on its output handle: the protocol fill plus
- * where the stamped clip landed.
- *
- * `nodetool.game.ExportGodotProject` reads its dynamic inputs from this handle
- * and copies the asset's bytes into the project, so it needs the id the store
- * gave the trimmed clip. The fill written onto the ref's own metadata stays the
- * bare fill the Godot writer reads. `asset_id` is null on a run with no asset
- * store, and the export node says so rather than guessing.
- */
-type SlotFillOutput<T> = T & { asset_id: string | null; uri: string };
-
-function fillOutput<T>(fill: T, stamped: AudioRef): SlotFillOutput<T> {
-  return {
-    ...fill,
-    asset_id: isString(stamped.asset_id) ? stamped.asset_id : null,
-    uri: isString(stamped.uri) ? stamped.uri : ""
-  };
-}
-
 // ── SoundEffect ───────────────────────────────────────────────────
 
 type SoundEffectNodeOutputs = {
   output: AudioRef;
-  fill: SlotFillOutput<SfxFill>;
+  fill: SfxFill;
 };
 
 export class SoundEffectNode extends BaseNode {
@@ -273,14 +253,10 @@ export class SoundEffectNode extends BaseNode {
     });
     const wavBytes = encodeWav(wav.samples, wav.sampleRate, wav.numChannels);
     const ref = audioRefFromWav(wavBytes);
-    const stamped = await persistStamped(
-      context,
-      SoundEffectNode.title,
-      fill.slot_id,
-      withSlotMetadata(ref, fill, seconds),
-      wavBytes
-    );
-    return { output: stamped, fill: fillOutput(fill, stamped) };
+    return {
+      output: await persistStamped(context, SoundEffectNode.title, fill.slot_id, withSlotMetadata(ref, fill, seconds), wavBytes),
+      fill
+    };
   }
 }
 
@@ -288,7 +264,7 @@ export class SoundEffectNode extends BaseNode {
 
 type MusicLoopNodeOutputs = {
   output: AudioRef;
-  fill: SlotFillOutput<MusicFill>;
+  fill: MusicFill;
 };
 
 export class MusicLoopNode extends BaseNode {
@@ -379,14 +355,10 @@ export class MusicLoopNode extends BaseNode {
     });
     const wavBytes = encodeWav(wav.samples, wav.sampleRate, wav.numChannels);
     const ref = audioRefFromWav(wavBytes);
-    const stamped = await persistStamped(
-      context,
-      MusicLoopNode.title,
-      fill.slot_id,
-      withSlotMetadata(ref, fill, seconds),
-      wavBytes
-    );
-    return { output: stamped, fill: fillOutput(fill, stamped) };
+    return {
+      output: await persistStamped(context, MusicLoopNode.title, fill.slot_id, withSlotMetadata(ref, fill, seconds), wavBytes),
+      fill
+    };
   }
 }
 

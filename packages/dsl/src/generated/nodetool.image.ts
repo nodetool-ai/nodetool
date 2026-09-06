@@ -33,6 +33,23 @@ export function scale(inputs: ScaleInputs): DslNode<ScaleOutputs, "output"> {
   return createNode("nodetool.image.Scale", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
 
+// Resize Image — nodetool.image.ResizeImage
+export type ResizeImageInputs = {
+  image?: Connectable<ImageRef>;
+  mode?: Connectable<"scale" | "dimensions" | "fit">;
+  scale?: Connectable<number>;
+  width?: Connectable<number>;
+  height?: Connectable<number>;
+};
+
+export interface ResizeImageOutputs {
+  output: ImageRef;
+}
+
+export function resizeImage(inputs: ResizeImageInputs): DslNode<ResizeImageOutputs, "output"> {
+  return createNode("nodetool.image.ResizeImage", inputs, { outputNames: ["output"], defaultOutput: "output" });
+}
+
 // Resize — nodetool.image.Resize
 export type ResizeInputs = {
   image?: Connectable<ImageRef>;

@@ -1101,8 +1101,9 @@ The Game entry card turns one sentence into a graph that fills every slot the
 pipeline above declares and ends in `nodetool.game.ExportGodotProject`. Three
 pure pieces carry it, each with its own suite: `packages/protocol/src/game-design.ts`
 holds the designer contract that writes the cast, the level and one prompt per
-slot; `game-slot-prompt.ts` turns a slot spec and a reviewed prompt into a
-sized image prompt; and `game-graph.ts`'s `gameGraphPlacement` is a pure
+slot; `game-flow-prompt.ts` wraps `slotPrompt` so the reviewed subject, the
+style preset and the slot's cast member become a sized prompt with the aspect
+ratio the generator takes; and `game-graph.ts`'s `gameGraphPlacement` is a pure
 function of manifest, design and choices, so nothing a model decides changes
 the chain a slot gets. The flow's state is `settings.game` on the workflow, so
 a half-built game resumes at the step it stopped on.

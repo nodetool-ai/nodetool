@@ -78,8 +78,10 @@ const REGISTRY: Record<string, unknown> = {
   },
   "nodetool.game.ExportGodotProject": {
     node_type: "nodetool.game.ExportGodotProject",
-    supports_dynamic_inputs: true,
-    properties: [{ name: "template", type: { type: "str" } }],
+    properties: [
+      { name: "template", type: { type: "str" } },
+      { name: "fills", type: { type: "list", type_args: [{ type: "slot_fill" }] } }
+    ],
     outputs: [{ name: "output", type: { type: "dict" } }]
   },
   "nodetool.workflows.base_node.Preview": {
@@ -182,15 +184,23 @@ describe("buildGame", () => {
     expect(slotIds).toEqual(["player", "player", "player", "player"]);
   });
 
-  it("declares one dynamic input per slot on the export node", async () => {
+  it("connects the checker's output to the export node's fills list", async () => {
     await build();
-    const exportUpdate = calls.find(
-      (call) =>
-        call.name === "ui_update_node_data" &&
-        call.args["node_id"] === "export"
-    );
-    const data = exportUpdate?.args["data"] as Record<string, unknown>;
-    expect(data["dynamic_properties"]).toEqual({ player: "" });
+    expect(
+      calls.some(
+        (call) =>
+          call.name === "ui_update_node_data" && call.args["node_id"] === "export"
+      )
+    ).toBe(false);
+    const connects = calls
+      .filter((call) => call.name === "ui_connect_nodes")
+      .filter((call) => call.args["target_node_id"] === "export");
+    expect(connects).toHaveLength(1);
+    expect(connects[0].args).toMatchObject({
+      source_node_id: "check_1",
+      source_handle: "output",
+      target_handle: "fills"
+    });
   });
 
   it("writes the terminal stage once the nodes are placed", async () => {

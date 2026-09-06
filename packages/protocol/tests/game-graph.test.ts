@@ -155,12 +155,15 @@ const SHAPES: Record<string, PlanNodeShape> = {
     inputs: [
       { name: "template", type: "str" },
       { name: "name", type: "str" },
+      { name: "fills", type: "list[slot_fill]" },
       { name: "directory", type: "str" },
-      { name: "verify", type: "bool" },
-      { name: "overwrite", type: "bool" }
+      { name: "verify", type: "bool" }
     ],
-    outputs: [{ name: "output", type: "dict" }],
-    supportsDynamicInputs: true
+    outputs: [
+      { name: "output", type: "dict" },
+      { name: "directory", type: "str" },
+      { name: "archive", type: "str" }
+    ]
   },
   [PLAN_OUTPUT_NODE_TYPE]: {
     inputs: [{ name: "value", type: "any" }],
@@ -174,6 +177,37 @@ const SHAPES: Record<string, PlanNodeShape> = {
     outputs: [{ name: "output", type: "any" }]
   }
 };
+
+/** The checker node placed for one slot: the one with a `fill` handle. */
+const checkerFor = (
+  placement: { nodes: readonly { id: string; type: string; setupStepId?: string }[] },
+  slotId: string
+) =>
+  placement.nodes.find(
+    (node) =>
+      node.setupStepId === slotId &&
+      node.type !== GAME_PREVIEW_NODE_TYPE &&
+      Boolean(SHAPES[node.type]?.outputs.find((out) => out.name === "fill"))
+  )!;
+
+/** The slot ids whose checker feeds the export node's `fills` input, in order. */
+const fillSources = (
+  placement: {
+    nodes: readonly { id: string; type: string; setupStepId?: string }[];
+    edges: readonly {
+      source: string;
+      target: string;
+      targetHandle: string;
+    }[];
+  },
+  exportId: string
+): string[] =>
+  placement.edges
+    .filter((edge) => edge.target === exportId && edge.targetHandle === "fills")
+    .map(
+      (edge) =>
+        placement.nodes.find((node) => node.id === edge.source)?.setupStepId ?? ""
+    );
 
 const lookupWithout =
   (...missing: string[]): PlanNodeLookup =>
@@ -317,7 +351,7 @@ describe("gameGraphPlacement", () => {
     const exportNode = placement.nodes.find(
       (node) => node.type === GAME_EXPORT_NODE_TYPE
     )!;
-    expect(Object.keys(exportNode.dynamicProperties ?? {})).toEqual([
+    expect(fillSources(placement, exportNode.id)).toEqual([
       "player",
       "enemy.walker",
       "tiles.ground",
@@ -326,14 +360,12 @@ describe("gameGraphPlacement", () => {
     ]);
   });
 
-  it("gives the export node one dynamic input per placed checker, fed by its fill", () => {
+  it("feeds the export node's fills list from every checker's stamped output", () => {
     const placement = gameGraphPlacement(platformer, design, choices(), lookup);
     const exportNode = placement.nodes.find(
       (node) => node.type === GAME_EXPORT_NODE_TYPE
     )!;
-    expect(Object.keys(exportNode.dynamicProperties ?? {})).toEqual(
-      platformer.slots.map((slot) => slot.id)
-    );
+    expect(exportNode.dynamicProperties).toBeUndefined();
     expect(exportNode.properties).toMatchObject({
       template: "platformer",
       name: "Ember Run",
@@ -341,23 +373,34 @@ describe("gameGraphPlacement", () => {
       verify: true
     });
 
+    // One edge per slot, all onto the one list input the kernel folds.
+    expect(fillSources(placement, exportNode.id)).toEqual(
+      platformer.slots.map((slot) => slot.id)
+    );
     for (const slot of platformer.slots) {
-      const checker = placement.nodes.find(
-        (node) =>
-          node.setupStepId === slot.id &&
-          node.type !== GAME_PREVIEW_NODE_TYPE &&
-          Boolean(SHAPES[node.type].outputs.find((out) => out.name === "fill"))
-      )!;
-      const edge = placement.edges.find(
-        (candidate) =>
-          candidate.target === exportNode.id && candidate.targetHandle === slot.id
-      );
-      expect(edge).toEqual({
-        source: checker.id,
-        sourceHandle: "fill",
-        target: exportNode.id,
-        targetHandle: slot.id
-      });
+      const checker = checkerFor(placement, slot.id);
+      expect(
+        placement.edges.filter(
+          (edge) => edge.source === checker.id && edge.target === exportNode.id
+        )
+      ).toEqual([
+        {
+          source: checker.id,
+          sourceHandle: "output",
+          target: exportNode.id,
+          targetHandle: "fills"
+        }
+      ]);
+    }
+
+    // Nothing else reaches the export node.
+    const checkerIds = new Set(
+      platformer.slots.map((slot) => checkerFor(placement, slot.id).id)
+    );
+    for (const edge of placement.edges.filter(
+      (candidate) => candidate.target === exportNode.id
+    )) {
+      expect(checkerIds.has(edge.source)).toBe(true);
     }
   });
 
@@ -389,9 +432,7 @@ describe("gameGraphPlacement", () => {
     const exportNode = placement.nodes.find(
       (node) => node.type === GAME_EXPORT_NODE_TYPE
     )!;
-    expect(
-      Object.keys(exportNode.dynamicProperties ?? {})
-    ).not.toContain("tiles.ground");
+    expect(fillSources(placement, exportNode.id)).not.toContain("tiles.ground");
   });
 
   it("reports a missing export node and places no output", () => {

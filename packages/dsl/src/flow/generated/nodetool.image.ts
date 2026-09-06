@@ -35,6 +35,23 @@ export function scale(inputs: ScaleInputs): Promise<ScaleOutputs> {
   return callNode<ScaleOutputs>("nodetool.image.Scale", inputs);
 }
 
+// Resize Image — nodetool.image.ResizeImage
+export type ResizeImageInputs = {
+  image?: ImageRef;
+  mode?: "scale" | "dimensions" | "fit";
+  scale?: number;
+  width?: number;
+  height?: number;
+};
+
+export interface ResizeImageOutputs {
+  output: ImageRef;
+}
+
+export function resizeImage(inputs: ResizeImageInputs): Promise<ResizeImageOutputs> {
+  return callNode<ResizeImageOutputs>("nodetool.image.ResizeImage", inputs);
+}
+
 // Resize — nodetool.image.Resize
 export type ResizeInputs = {
   image?: ImageRef;

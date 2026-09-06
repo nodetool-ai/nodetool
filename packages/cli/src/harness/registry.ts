@@ -937,7 +937,7 @@ export const SURFACES: SurfaceEntry[] = [
     paths: [
       "packages/protocol/src/game-design.ts",
       "packages/protocol/src/game-graph.ts",
-      "packages/protocol/src/game-slot-prompt.ts",
+      "packages/protocol/src/game-flow-prompt.ts",
       "packages/protocol/src/style-presets.ts",
       "packages/game-nodes/",
       "packages/base-nodes/tests/game-graph-chips.test.ts",
@@ -1128,7 +1128,7 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/godot-templates/",
       "packages/image-nodes/src/nodes/game.ts",
       "packages/audio-nodes/src/nodes/game.ts",
-      "packages/game-nodes/src/export-join.ts",
+      "packages/game-nodes/src/project.ts",
       "packages/agents/src/capabilities/godot.ts",
       "packages/agents/src/capabilities/godot.specs.ts"
     ]

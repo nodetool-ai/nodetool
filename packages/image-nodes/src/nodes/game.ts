@@ -189,27 +189,6 @@ function stampFill(image: unknown, img: Measured, fill: SlotFill) {
   };
 }
 
-/**
- * The `fill` a checker returns on its output handle: the protocol
- * {@link SlotFill} plus where the stamped asset landed.
- *
- * `nodetool.game.ExportGodotProject` reads its dynamic inputs from this handle
- * and copies the asset's bytes into the project, so it needs the id the store
- * gave the stamped image. The fill written onto the ref's own metadata stays
- * the bare `SlotFill` the Godot writer reads. `asset_id` is null on a run with
- * no asset store, and the export node says so rather than guessing.
- */
-function fillOutput(
-  fill: SlotFill,
-  stamped: Record<string, unknown>
-): SlotFill & { asset_id: string | null; uri: string } {
-  return {
-    ...fill,
-    asset_id: isString(stamped["asset_id"]) ? stamped["asset_id"] : null,
-    uri: isString(stamped["uri"]) ? stamped["uri"] : ""
-  };
-}
-
 function formatZodIssues(nodeName: string, error: { issues: Array<{ path: PropertyKey[]; message: string }> }): Error {
   const lines = error.issues.map((i) => `${i.path.join(".") || "<root>"}: ${i.message}`);
   return new Error(`${nodeName}: fill failed validation. ${lines.join("; ")}`);
@@ -356,13 +335,15 @@ export class SpriteSheetNode extends BaseNode {
     if (!parsed.success) {
       throw formatZodIssues(name, parsed.error);
     }
-    const stamped = await persistStamped(
-      context,
-      name,
-      parsed.data.slot_id,
-      stampFill(this.image, img, parsed.data)
-    );
-    return { output: stamped, fill: fillOutput(parsed.data, stamped) };
+    return {
+      output: await persistStamped(
+        context,
+        name,
+        parsed.data.slot_id,
+        stampFill(this.image, img, parsed.data)
+      ),
+      fill: parsed.data
+    };
   }
 }
 
@@ -454,13 +435,15 @@ export class TilesetNode extends BaseNode {
     if (!parsed.success) {
       throw formatZodIssues(name, parsed.error);
     }
-    const stamped = await persistStamped(
-      context,
-      name,
-      parsed.data.slot_id,
-      stampFill(this.image, img, parsed.data)
-    );
-    return { output: stamped, fill: fillOutput(parsed.data, stamped) };
+    return {
+      output: await persistStamped(
+        context,
+        name,
+        parsed.data.slot_id,
+        stampFill(this.image, img, parsed.data)
+      ),
+      fill: parsed.data
+    };
   }
 }
 
@@ -605,13 +588,15 @@ export class SeamlessImageNode extends BaseNode {
     if (!parsed.success) {
       throw formatZodIssues(name, parsed.error);
     }
-    const stamped = await persistStamped(
-      context,
-      name,
-      parsed.data.slot_id,
-      stampFill(this.image, img, parsed.data)
-    );
-    return { output: stamped, fill: fillOutput(parsed.data, stamped) };
+    return {
+      output: await persistStamped(
+        context,
+        name,
+        parsed.data.slot_id,
+        stampFill(this.image, img, parsed.data)
+      ),
+      fill: parsed.data
+    };
   }
 }
 

@@ -4,7 +4,9 @@
  * `LoadGameTemplate` reads a shipped template's manifest and streams its asset
  * slots; `SlotPrompt` turns one slot into a prompt, a canvas and the prop bag
  * the matching checker wants; `ExportGodotProject` takes the checked fills and
- * writes a runnable project. The checkers themselves stay where the bytes are —
+ * writes a runnable project plus a zip of it, filling only the slots it was
+ * given so the template's own placeholder art stands for the rest. The
+ * checkers themselves stay where the bytes are —
  * `nodetool.game.SpriteSheet` / `Tileset` / `SeamlessImage` in image-nodes,
  * `SoundEffect` / `MusicLoop` in audio-nodes.
  *
@@ -13,10 +15,9 @@
  */
 
 import { BaseNode, isString, prop } from "@nodetool-ai/node-sdk";
-import { checkGodotProject, writeGodotProject } from "@nodetool-ai/godot";
 import { getTemplate, listTemplates } from "@nodetool-ai/godot-templates";
 import {
-  checkFilledManifest,
+  gameProjectDirectory,
   gameSlotSpec,
   slotPrompt,
   type Entity,
@@ -26,21 +27,19 @@ import {
   type OutputCorrelation
 } from "@nodetool-ai/protocol";
 import {
-  loadMediaRefBytes,
   resolveEntities,
   type ProcessingContext,
   type Workspace
 } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { zipSync } from "fflate";
 
 import { resolveFills } from "../fills.js";
 import {
-  danglingReferences,
-  layOutProject,
+  isJoinError,
+  joinGodotProject,
   under,
-  verifyWithGodot,
-  type GodotVerification,
-  type LayoutMode
+  type GodotVerification
 } from "../project.js";
 
 /**
@@ -260,23 +259,70 @@ export class SlotPromptNode extends BaseNode {
 
 // ── ExportGodotProject ───────────────────────────────────────────────────────
 
+/**
+ * What the export writes and what Godot made of it.
+ *
+ * `output` is the one handle a single `nodetool.output.Output` takes, so a
+ * graph does not need five wires to report a project. Everything on it is also
+ * a handle of its own, for a graph that wants one.
+ */
 type ExportGodotProjectOutputs = {
+  output: { directory: string; verified: boolean; archive: string };
   directory: string;
   files: string[];
   verified: boolean;
+  verification: GodotVerification;
   errors: string[];
+  archive: string;
 };
+
+/** Every file under `dir`, project-relative, sorted. */
+async function projectFiles(
+  workspace: Workspace,
+  dir: string
+): Promise<string[]> {
+  const entries = await workspace.list(dir, { recursive: true });
+  return entries
+    .filter((entry) => !entry.isDirectory)
+    .map((entry) =>
+      entry.path.startsWith(`${dir}/`) ? entry.path.slice(dir.length + 1) : entry.path
+    )
+    .sort();
+}
+
+/**
+ * Zip the exported project to `<dir>.zip`, every entry under the project's own
+ * folder name so unpacking gives a directory rather than loose files.
+ */
+async function writeArchive(
+  workspace: Workspace,
+  dir: string,
+  files: readonly string[]
+): Promise<string> {
+  const root = dir.split("/").filter((part) => part !== "").pop() ?? "project";
+  const entries: Record<string, Uint8Array> = {};
+  for (const rel of files) {
+    const bytes = await workspace.read(under(dir, rel));
+    if (bytes) entries[`${root}/${rel}`] = bytes;
+  }
+  const archive = `${dir}.zip`;
+  await workspace.write(archive, zipSync(entries), "application/zip");
+  return archive;
+}
 
 export class ExportGodotProjectNode extends BaseNode {
   static readonly nodeType = "nodetool.game.ExportGodotProject";
   static readonly title = "Export Godot Project";
   static readonly description =
-    "Write a runnable Godot 4 project into the workspace from a template and its filled asset slots, then verify it under headless Godot when one is installed.\n    game, godot, export, project, slot\n\n    Use cases:\n    - Turn a pack of checked game assets into a project you can open\n    - Re-export after regenerating one asset, keeping hand-edited scripts\n    - Prove the exported project imports and its smoke scene runs";
+    "Write a runnable Godot 4 project into the workspace from a template and its filled asset slots, zip it, then verify it under headless Godot when one is installed.\n    game, godot, export, project, slot\n\n    Use cases:\n    - Turn a pack of checked game assets into a project you can open\n    - Export a template with its placeholder art, to fill in by hand later\n    - Prove the exported project imports and its smoke scene runs";
   static readonly metadataOutputTypes = {
+    output: "dict",
     directory: "str",
     files: "list[str]",
     verified: "bool",
-    errors: "list[str]"
+    verification: "dict",
+    errors: "list[str]",
+    archive: "str"
   };
   static readonly inlineFields = ["template", "name", "verify"];
   static readonly inputFields = ["fills", "name", "directory"];
@@ -303,7 +349,7 @@ export class ExportGodotProjectNode extends BaseNode {
     default: [],
     title: "Fills",
     description:
-      "One entry per manifest slot: the output handle of the nodetool.game checker that accepted it. The fill handle alone has no asset and is refused."
+      "One entry per slot to fill: the output handle of the nodetool.game checker that accepted it. A slot nobody feeds keeps the template's placeholder, and an empty list exports the template as it ships. The fill handle alone has no asset and is refused."
   })
   declare fills: unknown[];
 
@@ -312,7 +358,7 @@ export class ExportGodotProjectNode extends BaseNode {
     default: "",
     title: "Directory",
     description:
-      "Workspace directory to write into. Blank derives one from the project name."
+      "Workspace directory to write into. Blank derives games/<slug> from the project name."
   })
   declare directory: string;
 
@@ -364,80 +410,62 @@ export class ExportGodotProjectNode extends BaseNode {
       );
     }
 
-    const problems = checkFilledManifest(manifest, resolved.manifest);
-    const errors = Object.entries(problems).map(
-      ([slot, list]) => `${slot || "manifest"}: ${list.join("; ")}`
-    );
-    if (errors.length > 0) {
-      throw new Error(
-        `${node}: the filled slots do not satisfy ${template.id}'s manifest.\n${errors.join("\n")}`
-      );
-    }
-
-    const project = writeGodotProject({
-      name,
-      godot: manifest.godot,
-      filled: resolved.manifest,
-      manifest
-    });
-    const resourceProblems = checkGodotProject(project);
-    if (resourceProblems.length > 0) {
-      throw new Error(
-        `${node}: the writer produced dangling resources. ${resourceProblems.join("; ")}`
-      );
-    }
-
     const directory =
-      trimmed(this.directory).replace(/\/+$/, "") ||
-      `godot/${name.replace(/[^a-z0-9_-]+/gi, "_")}`;
-    const mode: LayoutMode = (await workspace.exists(under(directory, "project.godot")))
-      ? "refresh"
-      : "create";
-    const { written } = await layOutProject(
-      workspace,
-      directory,
-      template.dir,
-      name,
-      project,
-      resolved.manifest,
-      mode
-    );
+      trimmed(this.directory).replace(/\/+$/, "") || gameProjectDirectory(name);
 
-    const copied: string[] = [];
-    for (const copy of project.copies) {
-      const ref = resolved.refs.get(copy.asset_id);
-      const bytes = ref ? await loadMediaRefBytes(ref, ctx) : null;
-      if (!bytes || bytes.length === 0) {
-        throw new Error(
-          `${node}: the asset for ${copy.path} has no bytes. Wire the checker's output handle, not a ref that was never stored.`
-        );
-      }
-      await workspace.write(under(directory, copy.path), bytes);
-      copied.push(copy.path);
+    // Only the filled slots reach the writer: a slot nobody fed keeps the
+    // template's own placeholder (D27), and no fills at all is the blank
+    // template with its placeholder art (game-prd § 4.1). The
+    // `export_godot_project` capability, which does want every slot, checks the
+    // whole manifest itself before it calls the same join.
+    const outcome = await joinGodotProject({
+      manifest,
+      templateDir: template.dir,
+      godot: manifest.godot,
+      name,
+      dir: directory,
+      filled: resolved.manifest,
+      workspace,
+      context: ctx,
+      refs: resolved.refs,
+      verify: this.verify !== false,
+      overwrite: false
+    });
+    if (isJoinError(outcome)) {
+      const detail = Array.isArray(outcome.problems)
+        ? ` ${outcome.problems.join("; ")}`
+        : outcome.problems
+          ? ` ${Object.entries(outcome.problems)
+              .map(([slot, list]) => `${slot}: ${list.join(", ")}`)
+              .join("; ")}`
+          : "";
+      throw new Error(`${node}: ${outcome.error}${detail}`);
     }
 
-    const dangling = (await danglingReferences(workspace, directory)).map(
-      (ref) => `dangling reference: ${ref}`
-    );
-    const verification: GodotVerification =
-      this.verify === false
-        ? { ran: false, reason: "verify was false", errors: [] }
-        : await verifyWithGodot(workspace, directory);
-    const skipped = verification.ran
+    const files = await projectFiles(workspace, directory);
+    const archive = await writeArchive(workspace, directory, files);
+
+    const dangling = outcome.dangling.map((ref) => `dangling reference: ${ref}`);
+    const skipped = outcome.verification.ran
       ? []
-      : [`godot verification skipped: ${verification.reason}`];
+      : [`godot verification skipped: ${outcome.verification.reason}`];
 
     // `verified` is only true when Godot actually ran and objected to nothing.
     // A skipped verification reports its reason and stays false: an export
-    // nobody checked is not a checked export.
+    // nobody checked is not a checked export (D28).
+    const verified =
+      outcome.verification.ran &&
+      outcome.verification.errors.length === 0 &&
+      dangling.length === 0;
+
     return {
+      output: { directory, verified, archive },
       directory,
-      files: [...written, ...copied].sort(),
-      verified:
-        verification.ran &&
-        verification.errors.length === 0 &&
-        dangling.length === 0,
-      errors: [...dangling, ...verification.errors, ...skipped]
+      files,
+      verified,
+      verification: outcome.verification,
+      errors: [...dangling, ...outcome.verification.errors, ...skipped],
+      archive
     };
   }
 }

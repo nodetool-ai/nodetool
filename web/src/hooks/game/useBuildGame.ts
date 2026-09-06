@@ -103,21 +103,13 @@ export const useBuildGame = (workflowId: string): UseBuildGameResult => {
             position: node.position,
             properties: node.properties
           });
-          // Two writes the add cannot carry: the dynamic slots the export
-          // node's per-slot edges land on, and the slot this node fills, which
+          // The one write the add cannot carry: the slot this node fills, which
           // is what the landing checklist maps a node to a row by.
-          const data: Record<string, unknown> = {};
-          if (node.dynamicProperties !== undefined) {
-            data["dynamic_properties"] = node.dynamicProperties;
-          }
           if (node.setupStepId !== undefined) {
-            data["setupStepId"] = node.setupStepId;
-          }
-          if (Object.keys(data).length > 0) {
             await callTool("ui_update_node_data", {
               workflow_id: workflowId,
               node_id: node.id,
-              data
+              data: { setupStepId: node.setupStepId }
             });
           }
         }

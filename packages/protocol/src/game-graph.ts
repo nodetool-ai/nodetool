@@ -46,8 +46,11 @@ export const GAME_PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
 /** The output node the export result lands on, named for the landing step. */
 export const GAME_PROJECT_OUTPUT_NAME = "project";
 
-/** The checker output the export node's per-slot input is fed from. */
-const FILL_HANDLE = "fill";
+/** The checker handle the export node reads: the stamped asset, not the bare fill. */
+const CHECKER_ASSET_HANDLE = "output";
+
+/** The export node's list input every checker's asset lands on. */
+const EXPORT_FILLS_INPUT = "fills";
 
 /**
  * Prompt input names a sound-effect generator may use, best first. FAL's
@@ -237,9 +240,9 @@ function checkerPropertiesFor(slot: GameSlotSpec): Record<string, unknown> {
  * Build the slot-filling graph for one template.
  *
  * One row per slot, left to right: generate, resize to the slot's exact
- * pixels, check and stamp, preview. Every checker's `fill` feeds a dynamic
- * input on one export node named by the slot id, and the export node's output
- * lands on an `Output` named `project`.
+ * pixels, check and stamp, preview. Every checker's stamped `output` feeds the
+ * one export node's `fills` list, and the export node's `output` lands on an
+ * `Output` named `project`.
  *
  * Audio slots are skipped without an issue when the creator kept the
  * placeholders (D27) — an omitted slot is a choice, not a failure.
@@ -272,7 +275,7 @@ export function gameGraphPlacement(
     return shape;
   };
 
-  /** Slot id → the checker node whose `fill` the export node reads. */
+  /** Slot id → the checker node whose stamped asset the export node reads. */
   const checkerFills: { slotId: string; nodeId: string; handle: string }[] = [];
 
   manifest.slots.forEach((slot, row) => {
@@ -438,10 +441,10 @@ export function gameGraphPlacement(
       );
     }
 
-    const fillOut = outputNamed(checkerShape, FILL_HANDLE);
-    if (!fillOut) {
+    const assetOut = outputNamed(checkerShape, CHECKER_ASSET_HANDLE);
+    if (!assetOut) {
       issues.push(
-        `${label} needs a "${FILL_HANDLE}" output on "${checkerType}", which has none, so nothing was placed for it.`
+        `${label} needs an "${CHECKER_ASSET_HANDLE}" output on "${checkerType}", which has none, so nothing was placed for it.`
       );
       return;
     }
@@ -457,8 +460,7 @@ export function gameGraphPlacement(
     // The preview is what puts the asset on the canvas. It is the one part of
     // a chain that may be missing without the chain being wrong.
     const previewShape = lookup(GAME_PREVIEW_NODE_TYPE);
-    const assetOut = outputNamed(checkerShape, "output");
-    if (previewShape && assetOut) {
+    if (previewShape) {
       const previewIn = previewShape.inputs[0];
       if (previewIn) {
         const previewId = `preview_${row + 1}`;
@@ -483,11 +485,11 @@ export function gameGraphPlacement(
     checkerFills.push({
       slotId: slot.id,
       nodeId: checkerId,
-      handle: fillOut.name
+      handle: assetOut.name
     });
   });
 
-  // The export node, one dynamic input per placed checker.
+  // The export node, fed by every placed checker at once.
   const exportShape = lookup(GAME_EXPORT_NODE_TYPE);
   if (!exportShape) {
     issues.push(
@@ -496,11 +498,14 @@ export function gameGraphPlacement(
     return { nodes, edges, issues };
   }
 
-  const exportId = "export";
-  const dynamicProperties: Record<string, unknown> = {};
-  for (const fill of checkerFills) {
-    dynamicProperties[fill.slotId] = "";
+  const fillsInput = inputNamed(exportShape, EXPORT_FILLS_INPUT);
+  if (!fillsInput) {
+    issues.push(
+      `the export node has no "${EXPORT_FILLS_INPUT}" input, so the checked assets have nowhere to land.`
+    );
+    return { nodes, edges, issues };
   }
+  const exportId = "export";
   nodes.push({
     id: exportId,
     type: GAME_EXPORT_NODE_TYPE,
@@ -509,17 +514,17 @@ export function gameGraphPlacement(
       template: manifest.template,
       name: choices.projectName,
       directory: choices.directory,
-      verify: choices.verify,
-      overwrite: true
-    },
-    dynamicProperties
+      verify: choices.verify
+    }
   });
+  // Many edges into one list input: the kernel folds them into the `fills`
+  // list in arrival order, so one handle takes every slot.
   for (const fill of checkerFills) {
     edges.push({
       source: fill.nodeId,
       sourceHandle: fill.handle,
       target: exportId,
-      targetHandle: fill.slotId
+      targetHandle: fillsInput.name
     });
   }
 

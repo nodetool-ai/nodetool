@@ -62,20 +62,17 @@ export interface ResolvedFills {
  * from.
  *
  * An entry is either a checker's stamped `output` ref or a whole
- * `{slot_id, asset, fill}` record. An asset id is taken from the ref when it
- * has one and derived from the slot id when it does not, so a hermetic run —
- * one whose context cannot create assets, where every checker returns its ref
- * inline — still exports a project with deterministic resource ids.
+ * `{slot_id, asset, fill}` record. An empty list is a filled manifest with no
+ * slots — the blank-template export, which ships the template's own art. An
+ * asset id is taken from the ref when it has one and derived from the slot id
+ * when it does not, so a hermetic run — one whose context cannot create
+ * assets, where every checker returns its ref inline — still exports a project
+ * with deterministic resource ids.
  */
 export function resolveFills(
   template: string,
   fills: readonly unknown[]
 ): ResolvedFills {
-  if (fills.length === 0) {
-    throw new Error(
-      "fills is empty: wire the output handle of one nodetool.game checker per slot."
-    );
-  }
   const slots: FilledSlot[] = [];
   const refs = new Map<string, MediaRefValue>();
 
