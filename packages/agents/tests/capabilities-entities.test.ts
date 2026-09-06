@@ -26,7 +26,8 @@ import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 const USER = "user-entities";
 
 const context = { userId: USER } as unknown as ProcessingContext;
-const run = () => createCapabilityRun({ context, gate: UNGATED });
+const run = (projectId?: string) =>
+  createCapabilityRun({ context, gate: UNGATED, projectId });
 
 async function makeEntity(
   name: string,
@@ -107,6 +108,21 @@ describe("the marker convention", () => {
       reference_images: [
         { type: "image", asset_id: "a1", uri: "asset://a1.png" }
       ]
+    });
+
+    expect(
+      entityFromAsset({
+        ...tagged,
+        metadata: {
+          nodetool_entity: {
+            ...tagged.metadata.nodetool_entity,
+            reference_asset_id: "a9"
+          }
+        }
+      })
+    ).toMatchObject({
+      id: "a1",
+      reference_images: [{ type: "image", asset_id: "a9", uri: "asset://a9" }]
     });
 
     const base = { id: "a2", content_type: "image/png", created_at: "" };
@@ -365,7 +381,7 @@ describe("create_entity and update_entity", () => {
     ).toMatchObject({ error: expect.stringMatching(/was not found/) });
   });
 
-  it("moves an entity to a new image asset when asset_id is passed", async () => {
+  it("swaps an entity's picture without moving its id", async () => {
     const mara = await makeEntity("Mara", "character", "red hair", {
       voice_id: "v1"
     });
@@ -375,48 +391,84 @@ describe("create_entity and update_entity", () => {
       content_type: "image/png"
     })) as Asset;
 
-    const moved = (await run().invoke("update_entity", {
+    const swapped = (await run().invoke("update_entity", {
       entity_id: mara.id,
       asset_id: target.id,
       descriptor: "a tall woman with cropped red hair"
     })) as {
-      entity: { id: string; descriptor: string; voice_id: string | null };
-      moved_from: string;
-      moved_to: string;
+      entity: {
+        id: string;
+        descriptor: string;
+        voice_id: string | null;
+        reference_images: Array<{ asset_id: string; uri: string }>;
+      };
     };
-    expect(moved.entity.id).toBe(target.id);
-    expect(moved.entity.descriptor).toBe("a tall woman with cropped red hair");
-    expect(moved.moved_from).toBe(mara.id);
-    expect(moved.moved_to).toBe(target.id);
+    // The id every board and script cast is the marker asset's, and it stays.
+    expect(swapped.entity.id).toBe(mara.id);
+    expect(swapped.entity.voice_id).toBe("v1");
+    expect(swapped.entity.descriptor).toBe("a tall woman with cropped red hair");
+    expect(swapped.entity.reference_images[0]).toEqual({
+      type: "image",
+      asset_id: target.id,
+      uri: `asset://${target.id}`
+    });
 
-    // Source no longer lists, target does; source asset keeps bytes.
+    // The library still lists it once, under the id it always had, and the
+    // target asset did not become an entity of its own.
     const listed = (await run().invoke("list_entities", {})) as {
       entities: Array<{ id: string }>;
     };
-    expect(listed.entities.map((e) => e.id)).not.toContain(mara.id);
-    expect(listed.entities.map((e) => e.id)).toContain(target.id);
-    const sourceStill = await Asset.find(USER, mara.id);
-    expect(sourceStill?.metadata?.["nodetool_entity"]).toBeUndefined();
-
-    // Refuses a target that is already an entity or not an image.
-    const other = await makeEntity("Rex", "character", "a dog");
+    expect(listed.entities.map((e) => e.id)).toContain(mara.id);
+    expect(listed.entities.map((e) => e.id)).not.toContain(target.id);
     expect(
-      await run().invoke("update_entity", {
-        entity_id: target.id,
-        asset_id: other.id
-      })
-    ).toMatchObject({ error: expect.stringMatching(/already an entity/) });
+      (await Asset.find(USER, target.id))?.metadata?.["nodetool_entity"]
+    ).toBeUndefined();
+
+    // apply_entities hands the model the swapped picture, not the old one.
+    const applied = (await run().invoke("apply_entities", {
+      text: "",
+      entity_ids: [mara.id]
+    })) as { referenceAssetIds: string[] };
+    expect(applied.referenceAssetIds).toEqual([target.id]);
+
+    // null puts the entity back on its own bytes.
+    const reset = (await run().invoke("update_entity", {
+      entity_id: mara.id,
+      asset_id: null
+    })) as { entity: { reference_images: Array<{ asset_id: string }> } };
+    expect(reset.entity.reference_images[0]?.asset_id).toBe(mara.id);
+  });
+
+  it("refuses a picture that is missing, not an image, or not yours", async () => {
+    const mara = await makeEntity("Mara", "character", "red hair");
     const doc = (await Asset.create({
       user_id: USER,
       name: "notes.pdf",
       content_type: "application/pdf"
     })) as Asset;
-    expect(
-      await run().invoke("update_entity", {
-        entity_id: target.id,
-        asset_id: doc.id
-      })
-    ).toMatchObject({ error: expect.stringMatching(/entities are image assets/) });
+    const theirs = (await Asset.create({
+      user_id: "someone-else",
+      name: "theirs.png",
+      content_type: "image/png"
+    })) as Asset;
+
+    for (const [assetId, pattern] of [
+      [doc.id, /entities are image assets/],
+      [theirs.id, /was not found/],
+      ["gone", /was not found/]
+    ] as const) {
+      expect(
+        await run().invoke("update_entity", {
+          entity_id: mara.id,
+          asset_id: assetId
+        })
+      ).toMatchObject({ error: expect.stringMatching(pattern) });
+    }
+    // A refused swap leaves the entity showing what it showed before.
+    const after = (await run().invoke("get_entity", {
+      entity_id: mara.id
+    })) as { entity: { reference_images: Array<{ asset_id: string }> } };
+    expect(after.entity.reference_images[0]?.asset_id).toBe(mara.id);
   });
 
   it("removes the marker but keeps the asset, and reports missing ids", async () => {
@@ -485,5 +537,107 @@ describe("create_entity and update_entity", () => {
       (reread?.metadata?.["nodetool_entity"] as { descriptor: string })
         .descriptor
     ).toBe("high-contrast mono");
+  });
+});
+
+describe("entities and projects", () => {
+  const imageAsset = async (name: string): Promise<Asset> =>
+    (await Asset.create({
+      user_id: USER,
+      name,
+      content_type: "image/png"
+    })) as Asset;
+
+  it("files a new entity into the project the run is bound to", async () => {
+    const asset = await imageAsset("mara.png");
+    const created = (await run("p1").invoke("create_entity", {
+      asset_id: asset.id,
+      kind: "character",
+      name: "Mara",
+      descriptor: "a tall woman with red hair"
+    })) as { entity: { project_id: string } };
+
+    expect(created.entity.project_id).toBe("p1");
+    expect((await Asset.find(USER, asset.id))?.project_id).toBe("p1");
+  });
+
+  it("lets the call name a project, overriding the run's", async () => {
+    const asset = await imageAsset("hall.png");
+    await run("p1").invoke("create_entity", {
+      asset_id: asset.id,
+      kind: "location",
+      name: "The Hall",
+      descriptor: "a long stone hall",
+      project_id: "p2"
+    });
+    expect((await Asset.find(USER, asset.id))?.project_id).toBe("p2");
+  });
+
+  it("leaves a run outside any project in the loose bucket", async () => {
+    const asset = await imageAsset("prop.png");
+    await run().invoke("create_entity", {
+      asset_id: asset.id,
+      kind: "prop",
+      name: "Lantern",
+      descriptor: "a dented brass lantern"
+    });
+    expect((await Asset.find(USER, asset.id))?.project_id).toBe("default");
+  });
+
+  it("moves an entity only when update_entity names a project", async () => {
+    const asset = await imageAsset("mara.png");
+    await run("p1").invoke("create_entity", {
+      asset_id: asset.id,
+      kind: "character",
+      name: "Mara",
+      descriptor: "a tall woman with red hair"
+    });
+
+    // A field edit inside another project does not drag the entity into it.
+    await run("p9").invoke("update_entity", {
+      entity_id: asset.id,
+      descriptor: "a tall woman with cropped red hair"
+    });
+    expect((await Asset.find(USER, asset.id))?.project_id).toBe("p1");
+
+    // Naming one moves it, and that alone is a valid update.
+    expect(
+      await run().invoke("update_entity", {
+        entity_id: asset.id,
+        project_id: "p2"
+      })
+    ).toMatchObject({ entity: { project_id: "p2" } });
+    expect((await Asset.find(USER, asset.id))?.project_id).toBe("p2");
+  });
+
+  it("lists one project's entities when asked, the library otherwise", async () => {
+    const inProject = await imageAsset("mara.png");
+    await run("p1").invoke("create_entity", {
+      asset_id: inProject.id,
+      kind: "character",
+      name: "Mara",
+      descriptor: "a tall woman with red hair"
+    });
+    const loose = await imageAsset("lantern.png");
+    await run().invoke("create_entity", {
+      asset_id: loose.id,
+      kind: "prop",
+      name: "Lantern",
+      descriptor: "a dented brass lantern"
+    });
+
+    const scoped = (await run().invoke("list_entities", {
+      project_id: "p1"
+    })) as { entities: Array<{ id: string }> };
+    expect(scoped.entities.map((e) => e.id)).toEqual([inProject.id]);
+
+    // The library is shared across projects, so an unscoped list from inside
+    // one still finds everything — that is what seasoning a prompt needs.
+    const all = (await run("p1").invoke("list_entities", {})) as {
+      entities: Array<{ id: string }>;
+    };
+    expect(all.entities.map((e) => e.id)).toEqual(
+      expect.arrayContaining([inProject.id, loose.id])
+    );
   });
 });

@@ -142,6 +142,18 @@ The same operations run headlessly through `create_model3d`, `get_model3d`,
 `edit_model3d`, `validate_model3d`, and `render_model3d`, so a scene is
 reproducible with no editor open.
 
+## The node editor
+
+![NodeTool workflow canvas](marketing/public/screen_workflow.webp)
+
+Every project is a graph you can open. Drag nodes in, connect typed ports, and
+read the live output at each step. Double-click the canvas to search and add a
+node, or drag a connection into empty space to see compatible next steps. The
+editor refuses a mismatch, so an image cannot land in a text field.
+
+Every editor above sits on this canvas, and an agent wires it through the
+same actions you have.
+
 ## Recipes
 
 Each recipe is a downloadable bundle that runs on your keys at provider list
@@ -202,12 +214,10 @@ cost. See the [agent guide](https://docs.nodetool.ai/agents/) and
 
 ## What is underneath
 
-The film surfaces sit on a node canvas, and everything on it is reachable
-without the film.
+Everything the film surfaces do is reachable on the canvas without the film.
 
 | | |
 | :--- | :--- |
-| **Node canvas** | Drag-and-drop nodes with type-safe connections. Live output at every step. |
 | **Mini apps** | Give a workflow a screen: inputs, a Run button, a place for the result. Hand it to a teammate who never sees the canvas. |
 | **Editing tools as nodes** | Mask, inpaint, outpaint, relight, upscale, layer, and composite. |
 | **Every modality** | Image, video, audio, and text in one workflow. |
@@ -218,12 +228,6 @@ without the film.
 | **MCP server** | Point Claude Desktop, Claude Code, Codex, or any MCP agent at the toolbelt. |
 | **Custom nodes** | Extend in TypeScript or Python. |
 | **Deploy and scale** | Self-host with Docker. Rent GPU workers on RunPod or Vast. |
-
-![NodeTool workflow canvas](marketing/public/screen_workflow.webp)
-
-Double-click the canvas to search and add a node, or drag a connection into
-empty space to see compatible next steps. The editor refuses a mismatch, so an
-image cannot land in a text field.
 
 ## Documentation
 

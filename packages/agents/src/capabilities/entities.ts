@@ -9,12 +9,17 @@
  * The browser reads the library through `ui_entity_list` / `ui_entity_apply`,
  * which need an open app. These six answer the same questions with no
  * browser: list, read one, season a prompt, tag an asset as an entity,
- * retag one, and untag one. The injection rule itself is `injectEntities` in
+ * edit one (its fields, or the picture it shows), and untag one. The injection rule itself is `injectEntities` in
  * `@nodetool-ai/protocol`, shared with the browser tool and the Director node,
  * so a prompt seasoned here and one seasoned in the editor come out the same.
  */
 
-import type { Entity, EntityKind } from "@nodetool-ai/protocol";
+import {
+  ENTITY_KINDS,
+  ENTITY_METADATA_KEY,
+  readEntityMarker,
+  type Entity
+} from "@nodetool-ai/protocol";
 import type { Asset } from "@nodetool-ai/models";
 import type {
   CapabilityExport,
@@ -36,16 +41,16 @@ import {
 import { MIME_TO_EXT } from "../tools/asset-persist.js";
 import { userIdOf } from "../tools/mcp-tool-support.js";
 import { isRecord, isString } from "../utils/type-guards.js";
+import { DEFAULT_PROJECT_ID, resolveProjectId } from "./project-scope.js";
 
-/** The metadata key an entity's marker lives under, set by the library UI. */
-export const ENTITY_METADATA_KEY = "nodetool_entity";
+export { ENTITY_KINDS, ENTITY_METADATA_KEY };
 
-export const ENTITY_KINDS: ReadonlySet<string> = new Set([
-  "character",
-  "location",
-  "style",
-  "prop"
-]);
+/**
+ * The marker field naming the image an entity shows, when it is not the marker
+ * asset's own bytes. Swapping the picture writes this rather than moving the
+ * marker, so the entity id — which boards and scripts store — never moves.
+ */
+export const REFERENCE_ASSET_KEY = "reference_asset_id";
 
 /** Assets the library scans for markers. Entities are always image assets. */
 const ENTITY_ASSET_LIMIT = 1000;
@@ -60,52 +65,60 @@ const stringArray = (value: unknown): string[] | undefined =>
 /**
  * Read the entity marker off an asset, or null when it carries none. Mirrors
  * `assetToEntity` in the web library: the asset's own bytes are the entity's
- * primary reference image, and the marker holds everything else.
+ * primary reference image unless the marker names a swapped one, the marker
+ * holds everything else, and the asset row says which project it belongs to.
  */
 export function entityFromAsset(
-  asset: Pick<Asset, "id" | "content_type" | "metadata" | "created_at">
+  asset: Pick<Asset, "id" | "content_type" | "metadata" | "created_at"> & {
+    /** Absent on a row read before the column existed — the loose bucket. */
+    project_id?: string;
+  }
 ): Entity | null {
-  const raw = asset.metadata?.[ENTITY_METADATA_KEY];
-  if (!isRecord(raw)) return null;
-  const kind = isString(raw["kind"]) ? raw["kind"] : "";
-  if (!ENTITY_KINDS.has(kind)) return null;
+  const marker = readEntityMarker(asset.metadata);
+  if (!marker) return null;
 
+  const { reference_asset_id: swapped, ...fields } = marker;
   const ext = MIME_TO_EXT[asset.content_type] ?? "png";
+  // A swapped picture is another asset, whose content type is not in hand
+  // here — `asset://<id>` with no extension is what the web library writes
+  // too, and resolves through the extension-tolerant asset lookup.
+  const referenceImage =
+    swapped && swapped !== asset.id
+      ? { type: "image" as const, asset_id: swapped, uri: `asset://${swapped}` }
+      : {
+          type: "image" as const,
+          asset_id: asset.id,
+          uri: `asset://${asset.id}.${ext}`
+        };
   const entity: Entity = {
+    ...fields,
     type: "entity",
     id: asset.id,
-    kind: kind as EntityKind,
-    name: isString(raw["name"]) ? raw["name"] : "",
-    descriptor: isString(raw["descriptor"]) ? raw["descriptor"] : "",
-    voice_id: isString(raw["voice_id"]) ? raw["voice_id"] : null,
-    lora: (raw["lora"] as Entity["lora"]) ?? null,
-    palette: (raw["palette"] as Entity["palette"]) ?? null,
-    reference_images: [
-      { type: "image", asset_id: asset.id, uri: `asset://${asset.id}.${ext}` }
-    ]
+    project_id: asset.project_id || DEFAULT_PROJECT_ID,
+    reference_images: [referenceImage]
   };
-  if (isString(raw["description"])) {
-    entity.description = raw["description"];
-  }
-  const tags = stringArray(raw["tags"]);
-  if (tags) {
-    entity.tags = tags;
-  }
   if (asset.created_at) {
     entity.created_at = asset.created_at;
   }
   return entity;
 }
 
-/** Every entity in the caller's library. */
+/**
+ * Every entity in the caller's library, or only one project's when
+ * `projectId` is given. The library is shared across projects on purpose — an
+ * entity is reusable, and seasoning a prompt must find one wherever it was
+ * made — so nothing here filters unless a caller asks.
+ */
 export async function loadEntities(
-  run: CapabilityRun
+  run: CapabilityRun,
+  projectId?: string
 ): Promise<Entity[] | ToolError> {
   const userId = userIdOf(run.context);
   if (!userId) return { error: "No user is bound to this session." };
   const { Asset } = await import("@nodetool-ai/models");
   const [assets] = await Asset.paginate(userId, {
     contentType: "image",
+    projectId,
     limit: ENTITY_ASSET_LIMIT
   });
   return assets
@@ -122,13 +135,21 @@ const entityRow = (entity: Entity) => ({
   asset_id: entity.id,
   name: entity.name,
   kind: entity.kind,
-  descriptor: entity.descriptor
+  descriptor: entity.descriptor,
+  project_id: entity.project_id ?? DEFAULT_PROJECT_ID
 });
 
 const listEntities: CapabilityExport = {
   spec: listEntitiesSpec,
   impl: async (run, params) => {
-    const entities = await loadEntities(run);
+    const scoped = params["project_id"];
+    if (scoped !== undefined && !isString(scoped)) {
+      return { error: "project_id must be a string." };
+    }
+    const entities = await loadEntities(
+      run,
+      isString(scoped) && scoped.trim() !== "" ? scoped.trim() : undefined
+    );
     if (isError(entities)) return entities;
 
     const requested = Number(params["limit"] ?? DEFAULT_LIMIT);
@@ -297,6 +318,28 @@ const requireKindNameDescriptor = (
   };
 };
 
+/**
+ * The project a write puts the entity in, or null to leave it where it is.
+ *
+ * A create always lands somewhere: the project the call named, else the one
+ * the run is bound to, else the loose bucket — the same rule every other
+ * document creation follows, so an entity made inside a project's agent panel
+ * shows up in that project without anyone saying so. An update only moves the
+ * entity when the call names a project.
+ */
+const projectForWrite = (
+  run: CapabilityRun,
+  params: Record<string, unknown>,
+  creating: boolean
+): string | null | ToolError => {
+  const named = params["project_id"];
+  if (named !== undefined && !isString(named)) {
+    return { error: "project_id must be a string." };
+  }
+  if (isString(named) && named.trim() !== "") return named.trim();
+  return creating ? resolveProjectId(run, {}) : null;
+};
+
 /** The metadata write both create_entity and update_entity land through. */
 const saveEntityAsset = async (
   run: CapabilityRun,
@@ -304,7 +347,8 @@ const saveEntityAsset = async (
   editMarker: (
     marker: Record<string, unknown>,
     existing: Entity | null
-  ) => string | null
+  ) => string | null,
+  projectId: string | null = null
 ): Promise<Record<string, unknown>> => {
   if (!isString(assetId) || assetId.trim() === "") {
     return { error: "asset_id is required (the id of an image asset)." };
@@ -340,6 +384,9 @@ const saveEntityAsset = async (
     ...(asset.metadata ?? {}),
     [ENTITY_METADATA_KEY]: marker
   };
+  if (projectId !== null) {
+    asset.project_id = projectId;
+  }
   await asset.save();
   const entity = entityFromAsset(asset);
   // `entity_id` and `id` alongside the record: an entity IS its asset, so the
@@ -355,21 +402,49 @@ const createEntity: CapabilityExport = {
   impl: async (run, params) => {
     const fields = requireKindNameDescriptor(params);
     if ("error" in fields) return fields;
+    const project = projectForWrite(run, params, true);
+    if (isError(project)) return project;
 
-    return saveEntityAsset(run, params["asset_id"], (marker, existing) => {
-      // A malformed leftover marker may be overwritten; a real entity may
-      // only be changed through update_entity.
-      if (existing) {
-        return (
-          "That asset is already an entity — use update_entity to change it."
-        );
-      }
-      marker["kind"] = fields.kind;
-      marker["name"] = fields.name;
-      marker["descriptor"] = fields.descriptor;
-      return applyOptionalMarkerFields(marker, params, { value: 0 });
-    });
+    return saveEntityAsset(
+      run,
+      params["asset_id"],
+      (marker, existing) => {
+        // A malformed leftover marker may be overwritten; a real entity may
+        // only be changed through update_entity.
+        if (existing) {
+          return (
+            "That asset is already an entity — use update_entity to change it."
+          );
+        }
+        marker["kind"] = fields.kind;
+        marker["name"] = fields.name;
+        marker["descriptor"] = fields.descriptor;
+        return applyOptionalMarkerFields(marker, params, { value: 0 });
+      },
+      project
+    );
   }
+};
+
+/**
+ * The asset a swap points the entity's picture at: it must be the caller's and
+ * must be an image. Returns the error to hand back, or null when it is usable.
+ */
+const referenceAssetProblem = async (
+  run: CapabilityRun,
+  assetId: string
+): Promise<string | null> => {
+  const userId = userIdOf(run.context);
+  if (!userId) return "No user is bound to this session.";
+  const { Asset } = await import("@nodetool-ai/models");
+  const asset = await Asset.find(userId, assetId);
+  if (!asset) {
+    return `Asset ${assetId} was not found.`;
+  }
+  if (!asset.content_type.startsWith("image/")) {
+    return `${asset.name || asset.id} is a ${asset.content_type} asset; entities are image assets. Generate or upload an image first.`;
+  }
+  return null;
 };
 
 const updateEntity: CapabilityExport = {
@@ -380,151 +455,96 @@ const updateEntity: CapabilityExport = {
       return { error: "entity_id is required (use list_entities to find one)." };
     }
 
+    const project = projectForWrite(run, params, false);
+    if (isError(project)) return project;
+
+    // A swap changes which picture the entity shows, never which asset carries
+    // the marker: boards and scripts store the entity id, and moving it would
+    // leave every one of those references pointing at nothing.
     const rawAssetId = params["asset_id"];
-    const wantsRetarget =
-      rawAssetId !== undefined &&
-      isString(rawAssetId) &&
-      rawAssetId.trim() !== "" &&
-      rawAssetId.trim() !== entityId.trim();
-    if (rawAssetId !== undefined && !wantsRetarget) {
-      if (!isString(rawAssetId)) {
-        return { error: "asset_id must be a string." };
-      }
-      const trimmed = rawAssetId.trim();
-      if (trimmed !== "" && trimmed === entityId.trim()) {
-        // Same-asset — treat as no move; fall through to normal field update.
-      } else if (trimmed === "") {
-        return { error: "asset_id must be a non-empty string." };
+    let swapTo: string | null | undefined;
+    if (rawAssetId !== undefined) {
+      if (rawAssetId === null) {
+        swapTo = null;
+      } else if (!isString(rawAssetId) || rawAssetId.trim() === "") {
+        return {
+          error:
+            "asset_id must be a non-empty string, or null to go back to the entity's own image."
+        };
       } else {
-        return { error: "asset_id must be a string." };
+        swapTo = rawAssetId.trim();
+        if (swapTo !== entityId.trim()) {
+          const problem = await referenceAssetProblem(run, swapTo);
+          if (problem) return { error: problem };
+        }
       }
     }
 
-    if (wantsRetarget) {
-      const targetId = (rawAssetId as string).trim();
-      const userId = userIdOf(run.context);
-      if (!userId) return { error: "No user is bound to this session." };
-      const { Asset } = await import("@nodetool-ai/models");
-      const sourceAsset = await Asset.find(userId, entityId.trim());
-      const sourceEntity = sourceAsset ? entityFromAsset(sourceAsset) : null;
-      if (!sourceEntity || !sourceAsset) {
-        return { error: `Asset ${entityId} is not an entity — use create_entity to tag it.` };
-      }
-      const readOnly = Asset.systemEntityRefusal(sourceAsset);
-      if (readOnly) {
-        return { error: readOnly };
-      }
-      const targetAsset = await Asset.find(userId, targetId);
-      if (!targetAsset) {
-        return { error: `Asset ${targetId} was not found.` };
-      }
-      if (!targetAsset.content_type.startsWith("image/")) {
-        return {
-          error: `${targetAsset.name || targetAsset.id} is a ${targetAsset.content_type} asset; entities are image assets. Generate or upload an image first.`
-        };
-      }
-      const targetExisting = entityFromAsset(targetAsset);
-      if (targetExisting) {
-        return {
-          error: "That asset is already an entity — pick another photo or update that entity instead."
-        };
-      }
-      const rawMarker = sourceAsset.metadata?.[ENTITY_METADATA_KEY];
-      const marker: Record<string, unknown> = isRecord(rawMarker)
-        ? { ...rawMarker }
-        : {};
-      const touched = { value: 1 }; // the move itself counts
-      let problem: string | null = null;
+    return saveEntityAsset(
+      run,
+      entityId,
+      (marker, existing) => {
+        // The same read rule get_entity applies: an asset whose marker does
+        // not parse is not in the library at all.
+        if (!existing) {
+          return `Asset ${entityId} is not an entity — use create_entity to tag it.`;
+        }
+        // A move is a change on its own: passing only project_id is a valid
+        // update, not an empty one.
+        const touched = { value: project === null ? 0 : 1 };
+        let problem: string | null = null;
 
-      const kind = params["kind"];
-      if (kind !== undefined) {
-        if (!isString(kind) || !ENTITY_KINDS.has(kind)) {
-          problem = `kind must be one of: ${[...ENTITY_KINDS].join(", ")}.`;
-        } else {
-          marker["kind"] = kind;
+        if (swapTo !== undefined) {
+          // Null, or the entity's own asset, means "show your own bytes again".
+          if (swapTo === null || swapTo === entityId.trim()) {
+            delete marker[REFERENCE_ASSET_KEY];
+          } else {
+            marker[REFERENCE_ASSET_KEY] = swapTo;
+          }
           touched.value += 1;
         }
-      }
-      for (const field of ["name", "descriptor", "description"] as const) {
-        const value = params[field];
-        if (value === undefined) continue;
-        if (
-          !isString(value) ||
-          (field !== "description" && value.trim() === "")
-        ) {
-          problem =
-            problem ??
-            `${field} must be${field === "description" ? " a string" : " a non-empty string"}.`;
-          break;
+
+        const kind = params["kind"];
+        if (kind !== undefined) {
+          if (!isString(kind) || !ENTITY_KINDS.has(kind)) {
+            problem = `kind must be one of: ${[...ENTITY_KINDS].join(", ")}.`;
+          } else {
+            marker["kind"] = kind;
+            touched.value += 1;
+          }
         }
-        marker[field] = value;
-        touched.value += 1;
-      }
-      if (problem) return { error: problem };
-      problem = applyOptionalMarkerFields(marker, params, touched);
-      if (problem) return { error: problem };
-
-      targetAsset.metadata = {
-        ...(targetAsset.metadata ?? {}),
-        [ENTITY_METADATA_KEY]: marker
-      };
-      await targetAsset.save();
-      const nextSourceMeta = { ...(sourceAsset.metadata ?? {}) } as Record<string, unknown>;
-      delete nextSourceMeta[ENTITY_METADATA_KEY];
-      sourceAsset.metadata = nextSourceMeta;
-      await sourceAsset.save();
-      const entity = entityFromAsset(targetAsset);
-      return entity
-        ? { entity, moved_from: entityId.trim(), moved_to: targetId }
-        : { error: "The entity marker was not readable after saving." };
-    }
-
-    return saveEntityAsset(run, entityId, (marker, existing) => {
-      // The same read rule get_entity applies: an asset whose marker does
-      // not parse is not in the library at all.
-      if (!existing) {
-        return `Asset ${entityId} is not an entity — use create_entity to tag it.`;
-      }
-      const touched = { value: 0 };
-      let problem: string | null = null;
-
-      const kind = params["kind"];
-      if (kind !== undefined) {
-        if (!isString(kind) || !ENTITY_KINDS.has(kind)) {
-          problem = `kind must be one of: ${[...ENTITY_KINDS].join(", ")}.`;
-        } else {
-          marker["kind"] = kind;
+        for (const field of ["name", "descriptor", "description"] as const) {
+          const value = params[field];
+          if (value === undefined) continue;
+          if (
+            !isString(value) ||
+            (field !== "description" && value.trim() === "")
+          ) {
+            problem =
+              problem ??
+              `${field} must be${field === "description" ? " a string" : " a non-empty string"}.`;
+            break;
+          }
+          marker[field] = value;
           touched.value += 1;
         }
-      }
-      for (const field of ["name", "descriptor", "description"] as const) {
-        const value = params[field];
-        if (value === undefined) continue;
-        if (
-          !isString(value) ||
-          (field !== "description" && value.trim() === "")
-        ) {
-          problem =
-            problem ??
-            `${field} must be${field === "description" ? " a string" : " a non-empty string"}.`;
-          break;
+        if (problem) return problem;
+        problem = applyOptionalMarkerFields(marker, params, touched);
+        if (problem) return problem;
+        if (touched.value === 0) {
+          return (
+            "Nothing to update — pass at least one field to change (kind, " +
+            "name, descriptor, description, voice_id, tags, lora, palette, " +
+            "project_id, asset_id)."
+          );
         }
-        marker[field] = value;
-        touched.value += 1;
-      }
-      if (problem) return problem;
-      problem = applyOptionalMarkerFields(marker, params, touched);
-      if (problem) return problem;
-      if (touched.value === 0) {
-        return (
-          "Nothing to update — pass at least one field to change (kind, name, " +
-          "descriptor, description, voice_id, tags, lora, palette, asset_id)."
-        );
-      }
-      return null;
-    });
+        return null;
+      },
+      project
+    );
   }
 };
+
 
 const deleteEntity: CapabilityExport = {
   spec: deleteEntitySpec,

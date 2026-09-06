@@ -9,8 +9,11 @@
  */
 
 import { and, eq } from "drizzle-orm";
+import { readEntityMarker } from "@nodetool-ai/protocol";
+import { Asset } from "./asset.js";
 import { getDb } from "./db.js";
 import { applications } from "./schema/applications.js";
+import { assets } from "./schema/assets.js";
 import { imageDocuments } from "./schema/image-documents.js";
 import { jsScripts } from "./schema/js-scripts.js";
 import { scripts } from "./schema/scripts.js";
@@ -19,9 +22,18 @@ import { timelineSequences } from "./schema/timeline-sequences.js";
 import type { ProjectDocumentType } from "./project-summary.js";
 
 /**
+ * What a project holds: its documents, plus entities — which are assets, not
+ * rows in a document table, so they are their own member type rather than a
+ * seventh {@link ProjectDocumentType}. Nothing opens an entity as a tab.
+ */
+export type ProjectMemberType = ProjectDocumentType | "entity";
+
+/**
  * Every table that carries `project_id`. The list is the one
  * {@link moveDocumentToProject} switches over and the one the project overview
- * reads; a new document kind has to arrive in both.
+ * reads; a new document kind has to arrive in both. `assets` is here for the
+ * bulk reassign a deleted project needs — an entity left naming a dead project
+ * would vanish from every list, exactly as a stranded document would.
  */
 const DOCUMENT_TABLES = [
   storyboards,
@@ -29,7 +41,8 @@ const DOCUMENT_TABLES = [
   timelineSequences,
   imageDocuments,
   applications,
-  jsScripts
+  jsScripts,
+  assets
 ] as const;
 
 /**
@@ -68,13 +81,24 @@ export async function reassignProjectDocuments(
  */
 export async function moveDocumentToProject(
   userId: string,
-  type: ProjectDocumentType,
+  type: ProjectMemberType,
   documentId: string,
   projectId: string
 ): Promise<boolean> {
   const db = getDb();
   const fields = { project_id: projectId };
   switch (type) {
+    case "entity": {
+      // An entity is its asset, so the move is a column write like every other
+      // — but only the assets carrying the marker are entities, and an asset
+      // that carries none reads as a miss rather than being quietly filed
+      // into a project that would never show it.
+      const asset = await Asset.find(userId, documentId);
+      if (!asset || !readEntityMarker(asset.metadata)) return false;
+      asset.project_id = projectId;
+      await asset.save();
+      return true;
+    }
     case "storyboard": {
       const rows = await db
         .update(storyboards)

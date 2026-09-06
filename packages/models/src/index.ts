@@ -258,6 +258,7 @@ export { Project, LOOSE_PROJECT_ID } from "./project.js";
 export type { ProjectResponse } from "./project.js";
 export {
   listProjectDocuments,
+  listProjectEntities,
   scriptStatus,
   spendCategory,
   storyboardStatus,
@@ -269,6 +270,7 @@ export {
 export type {
   CategorySpend,
   ProjectDocumentRef,
+  ProjectEntitySummary,
   ProjectDocumentStatus,
   ProjectDocumentSummary,
   ProjectDocumentType,
@@ -285,6 +287,7 @@ export {
   moveDocumentToProject,
   reassignProjectDocuments
 } from "./project-membership.js";
+export type { ProjectMemberType } from "./project-membership.js";
 export {
   Script,
   ScriptConflictError,

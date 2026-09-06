@@ -17,27 +17,48 @@ import {
 } from "@nodetool-ai/app-runtime";
 import {
   importApplicationBundleInput,
-  type ApplicationResponse
+  type ApplicationResponse,
+  type ExampleAppSummary
 } from "@nodetool-ai/protocol/api-schemas/applications.js";
 import { ApiErrorCode } from "../error-codes.js";
+import { deriveExampleAssetsDir } from "../example-workflows.js";
 import { throwApiError } from "../trpc/error-formatter.js";
 import { importApplicationBundle } from "./applications-service.js";
+import { withCacheBuster } from "./example-thumbnail.js";
 
 const BUNDLE_SUFFIX = ".app.json";
+const EXAMPLES_THUMBNAILS_PREFIX = "/api/workflows/examples/thumbnails/";
 
-/** What the list endpoint returns per example — no graphs, no document. */
-export interface ExampleAppSummary {
-  slug: string;
-  name: string;
-  description: string;
-  /** Names of the workflows installing this app creates. */
-  workflows: string[];
-  operationCount: number;
-}
+export type { ExampleAppSummary };
 
 export interface ExampleAppsOptions {
   examplesDir?: string;
+  examplesAssetsFallbackDir?: string;
   exampleAppsDir?: string;
+}
+
+/**
+ * The gallery art an app is shown with: the JPG of the first workflow it
+ * binds, served through the example-workflow thumbnail route. Null when the
+ * examples directory is unknown or that workflow ships no art.
+ */
+function thumbnailFor(
+  bundle: ApplicationBundle,
+  options: ExampleAppsOptions
+): string | null {
+  const first = bundle.workflows[0];
+  if (!first || !options.examplesDir) return null;
+  const assetsDir = deriveExampleAssetsDir(
+    options.examplesDir,
+    options.examplesAssetsFallbackDir
+  );
+  const jpgFile = `${first.name}.jpg`;
+  const jpgPath = nodePath.join(assetsDir, jpgFile);
+  if (!existsSync(jpgPath)) return null;
+  return withCacheBuster(
+    `${EXAMPLES_THUMBNAILS_PREFIX}${encodeURIComponent(jpgFile)}`,
+    jpgPath
+  );
 }
 
 /**
@@ -72,12 +93,17 @@ function readBundle(dir: string, file: string): ApplicationBundle | null {
 
 const slugOf = (file: string): string => file.slice(0, -BUNDLE_SUFFIX.length);
 
-const summarize = (bundle: ApplicationBundle, slug: string): ExampleAppSummary => ({
+const summarize = (
+  bundle: ApplicationBundle,
+  slug: string,
+  options: ExampleAppsOptions
+): ExampleAppSummary => ({
   slug,
   name: bundle.name,
   description: bundle.description,
   workflows: bundle.workflows.map((workflow) => workflow.name),
-  operationCount: bundle.app.operations.length
+  operationCount: bundle.app.operations.length,
+  thumbnailUrl: thumbnailFor(bundle, options)
 });
 
 /** Every shipped example app, sorted by slug. Invalid files are skipped. */
@@ -98,7 +124,7 @@ export function listExampleApps(
   for (const file of files) {
     const bundle = readBundle(dir, file);
     if (!bundle) continue;
-    apps.push(summarize(bundle, slugOf(file)));
+    apps.push(summarize(bundle, slugOf(file), options));
   }
   return apps;
 }
@@ -135,7 +161,7 @@ export function getExampleAppSummary(
   slug: string
 ): ExampleAppSummary | null {
   const bundle = getExampleAppBundle(options, slug);
-  return bundle ? summarize(bundle, slug) : null;
+  return bundle ? summarize(bundle, slug, options) : null;
 }
 
 /**

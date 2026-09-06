@@ -1,5 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
 import * as ReactRouterDom from "react-router-dom";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { useRecipeActions } from "../useRecipeActions";
 
 const mockCreateWorkflow = jest.fn();
@@ -13,7 +14,7 @@ jest.mock("../../contexts/WorkflowManagerContext", () => ({
   )
 }));
 
-jest.mock("../../utils/applicationBundle", () => ({
+jest.mock("../../utils/exampleApps", () => ({
   installExampleApp: (...args: unknown[]) => mockInstallExampleApp(...args)
 }));
 
@@ -49,7 +50,8 @@ const recipe = {
       description: "",
       role: "",
       workflows: ["Ad Copy in Three Registers"],
-      operationCount: 1
+      operationCount: 1,
+      thumbnailUrl: null
     }
   ],
   steps: [
@@ -84,14 +86,18 @@ describe("useRecipeActions", () => {
     expect(result.current.installingApp).toBeNull();
   });
 
-  it("stays put when the install fails", async () => {
+  it("stays put and says so when the install fails", async () => {
     mockInstallExampleApp.mockRejectedValueOnce(new Error("no server"));
-    jest.spyOn(console, "error").mockImplementation(() => {});
     const { result } = renderHook(() => useRecipeActions());
 
     await act(() => result.current.installApp("viral-ad-engine"));
 
     expect(mockOpenApplication).not.toHaveBeenCalled();
+    expect(
+      useNotificationStore
+        .getState()
+        .notifications.some((n) => n.content.includes("no server"))
+    ).toBe(true);
     expect(result.current.installingApp).toBeNull();
   });
 

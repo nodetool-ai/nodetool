@@ -19,6 +19,8 @@
 
 import { z } from "zod";
 
+import { exampleAppSummary } from "./applications.js";
+
 /** Bumped when a field the reader depends on changes shape. */
 export const RECIPE_BUNDLE_SCHEMA_VERSION = 1;
 
@@ -128,16 +130,14 @@ export const exampleRecipeStep = z.object({
 });
 export type ExampleRecipeStep = z.infer<typeof exampleRecipeStep>;
 
-/** A recipe's app with its shipped bundle resolved: enough to render and install. */
-export const exampleRecipeApp = z.object({
-  /** What `POST /api/applications/examples/:slug/install` takes. */
-  slug: z.string(),
-  name: z.string(),
-  description: z.string(),
-  role: z.string(),
-  /** Names of the workflows installing the app creates. */
-  workflows: z.array(z.string()),
-  operationCount: z.number()
+/**
+ * A recipe's app with its shipped bundle resolved: the same summary the example
+ * app listing returns — `slug` is what
+ * `POST /api/applications/examples/:slug/install` takes — plus what the app is
+ * for in this recipe's terms.
+ */
+export const exampleRecipeApp = exampleAppSummary.extend({
+  role: z.string()
 });
 export type ExampleRecipeApp = z.infer<typeof exampleRecipeApp>;
 

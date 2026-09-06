@@ -31,6 +31,13 @@ export const LIST_ENTITIES_SCHEMA: JsonSchema = {
         "Only entities whose name or descriptor contains this text " +
         "(case-insensitive)."
     },
+    project_id: {
+      type: "string",
+      description:
+        "Only entities belonging to this project. Omit for the whole library " +
+        "— entities are reusable across projects, so seasoning a prompt " +
+        "normally wants all of them."
+    },
     limit: {
       type: "number",
       description: `Max entities to return (default ${DEFAULT_LIMIT}, max ${MAX_LIMIT}).`
@@ -151,6 +158,12 @@ export const CREATE_ENTITY_SCHEMA: JsonSchema = {
       type: ["array", "null"],
       description:
         "Style palette as name+hex swatches ({name?, hex}), when kind is style."
+    },
+    project_id: {
+      type: "string",
+      description:
+        "The project the entity belongs to. Omit inside a project and it " +
+        "joins that one — pass an id only to file it somewhere else."
     }
   },
   required: ["asset_id", "kind", "name", "descriptor"]
@@ -163,7 +176,9 @@ export const createEntitySpec: CapabilitySpec = {
     "location, style, or prop). The asset keeps its bytes; this writes the " +
     "entity marker onto it, exactly what the browser's Save Entity does. The " +
     "asset must be yours and must be an image, and must not already be an " +
-    "entity — update_entity retags one.",
+    "entity — update_entity edits the one that is already there. Created " +
+    "inside a project, the entity joins that project and shows up in its " +
+    "documents.",
   inputSchema: CREATE_ENTITY_SCHEMA,
   category: "write",
   userMessage: (params) =>
@@ -178,10 +193,13 @@ export const UPDATE_ENTITY_SCHEMA: JsonSchema = {
       description: "The entity's id (its asset id), from list_entities."
     },
     asset_id: {
-      type: "string",
+      type: ["string", "null"],
       description:
-        "Move the entity to a different image asset (retarget in one call). " +
-        "The new asset must be yours and must be an image. Omit to keep the current photo."
+        "Swap the entity's picture for a different image asset. The new asset " +
+        "must be yours and must be an image; the entity keeps its id, so every " +
+        "board and script that cast it still resolves. Pass null (or the " +
+        "entity's own id) to go back to its original image. Omit to leave the " +
+        "picture alone."
     },
     kind: {
       ...KIND_PROPERTY,
@@ -208,6 +226,12 @@ export const UPDATE_ENTITY_SCHEMA: JsonSchema = {
     palette: {
       type: ["array", "null"],
       description: "Replacement style palette, or null to clear it."
+    },
+    project_id: {
+      type: "string",
+      description:
+        "Move the entity into this project. Pass \"default\" to take it out " +
+        "of every project. Omit to leave its project alone."
     }
   },
   required: ["entity_id"]
@@ -217,9 +241,10 @@ export const updateEntitySpec: CapabilitySpec = {
   name: "update_entity",
   description:
     "Change an existing entity's fields — kind, name, descriptor, notes, " +
-    "voice, tags, LoRA, palette, or its reference photo via asset_id. Only the " +
-    "fields you pass change; pass asset_id to retarget the entity to a " +
-    "different image asset in one call (otherwise use delete_entity + create_entity).",
+    "voice, tags, LoRA, palette, project via project_id, or the picture it " +
+    "shows via asset_id. Only the fields you pass change. Swapping the " +
+    "picture keeps the entity's id, so nothing that already cast it has to " +
+    "be re-pointed.",
   inputSchema: UPDATE_ENTITY_SCHEMA,
   category: "write",
   userMessage: (params) => `Updating entity ${String(params["entity_id"])}`

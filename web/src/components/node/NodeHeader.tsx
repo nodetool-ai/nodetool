@@ -37,9 +37,12 @@ interface NodeHeaderProps {
 
 const ICON_BACKGROUND_STYLE = { background: "transparent" };
 
+/** Height of the header row. Handle columns align their first dot to it. */
+export const NODE_HEADER_MIN_HEIGHT = 24;
+
 const headerCss = css({
   width: "100%",
-  minHeight: "24px",
+  minHeight: `${NODE_HEADER_MIN_HEIGHT}px`,
   backgroundColor: "transparent",
   color: "var(--palette-text-secondary)",
   margin: 0,

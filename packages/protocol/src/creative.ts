@@ -15,7 +15,10 @@
  * web, agents, and nodes one contract to share.
  */
 
+import { z } from "zod";
+
 import type { ImageRef, VideoRef } from "./api-types.js";
+import { ENTITY_METADATA_KEY } from "./style-presets.js";
 
 // ---------------------------------------------------------------------------
 // Entities ("ingredients")
@@ -51,8 +54,121 @@ export interface Entity {
   /** Style palette as name+hex swatches, when kind === "style". */
   palette?: Array<{ name?: string; hex: string }> | null;
   tags?: string[];
+  /**
+   * The project this entity belongs to, `"default"` for none. Membership lives
+   * on the entity's asset row, the same column every document table carries.
+   */
+  project_id?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+/** The kinds an entity marker may declare. Anything else is not an entity. */
+export const ENTITY_KINDS: ReadonlySet<string> = new Set<EntityKind>([
+  "character",
+  "location",
+  "style",
+  "prop"
+]);
+
+/**
+ * What an entity's asset carries under `metadata.nodetool_entity` — an
+ * {@link Entity} minus everything derived from the asset row itself (the id,
+ * the reference image, the timestamps, the project).
+ */
+export interface EntityMarker {
+  kind: EntityKind;
+  name: string;
+  descriptor: string;
+  description?: string;
+  voice_id?: string | null;
+  tags?: string[];
+  lora?: Entity["lora"];
+  palette?: Entity["palette"];
+  /**
+   * The image asset the entity shows, when it is not the marker asset's own
+   * bytes. Swapping the picture writes this rather than moving the marker: an
+   * entity's id is its asset's, and boards and scripts store that id, so an
+   * entity that changed asset would leave every one of them dangling.
+   */
+  reference_asset_id?: string;
+}
+
+/**
+ * The stored marker, parsed. Each field falls back rather than failing the
+ * whole read: a marker whose `name` went missing is still an entity with a
+ * blank name, and the library shows it instead of losing it. `kind` is the one
+ * field with no fallback — it is what makes the asset an entity at all.
+ */
+const entityMarkerSchema = z.object({
+  kind: z.enum(["character", "location", "style", "prop"]),
+  name: z.string().catch(""),
+  descriptor: z.string().catch(""),
+  description: z.string().optional().catch(undefined),
+  voice_id: z.string().nullable().optional().catch(null),
+  // A stray non-string entry loses itself, not the whole list: a marker with
+  // one bad tag still has its good ones, and dropping them all would take a
+  // label off the library for a typo in the one beside it.
+  tags: z
+    .array(z.unknown())
+    .transform((items) =>
+      items.flatMap((item) => {
+        const tag = z.string().safeParse(item);
+        return tag.success ? [tag.data] : [];
+      })
+    )
+    .optional()
+    .catch(undefined),
+  lora: z
+    .object({
+      url: z.string().optional(),
+      asset_id: z.string().nullable().optional(),
+      scale: z.number().optional()
+    })
+    .nullable()
+    .optional()
+    .catch(null),
+  palette: z
+    .array(z.object({ name: z.string().optional(), hex: z.string() }))
+    .nullable()
+    .optional()
+    .catch(null),
+  reference_asset_id: z.string().optional().catch(undefined)
+});
+
+/**
+ * Read the entity marker off an asset's metadata, or null when it carries
+ * none. An unknown `kind` reads as no marker: an asset with a malformed one is
+ * not an entity, and every surface that lists the library agrees on that.
+ *
+ * Shared because three of them ask — the agent capabilities, the project
+ * rollup, and the browser's library — and a marker that reads as an entity in
+ * one place and not in another is the library disagreeing with itself.
+ */
+export function readEntityMarker(
+  metadata: Record<string, unknown> | null | undefined
+): EntityMarker | null {
+  const parsed = entityMarkerSchema.safeParse(metadata?.[ENTITY_METADATA_KEY]);
+  if (!parsed.success) return null;
+  const marker: EntityMarker = {
+    kind: parsed.data.kind,
+    name: parsed.data.name,
+    descriptor: parsed.data.descriptor,
+    voice_id: parsed.data.voice_id ?? null,
+    lora: parsed.data.lora ?? null,
+    palette: parsed.data.palette ?? null
+  };
+  if (parsed.data.description !== undefined) {
+    marker.description = parsed.data.description;
+  }
+  if (parsed.data.tags !== undefined) {
+    marker.tags = parsed.data.tags;
+  }
+  const swapped = parsed.data.reference_asset_id?.trim();
+  if (swapped) {
+    marker.reference_asset_id = swapped;
+  }
+  return marker;
 }
 
 /** Lightweight pointer to a persisted {@link Entity}, safe to embed in shots. */

@@ -45,7 +45,8 @@ const app = (slug: string, name: string, workflows: string[]) => ({
   description: `${name} description`,
   role: `${name} role`,
   workflows,
-  operationCount: workflows.length
+  operationCount: workflows.length,
+  thumbnailUrl: null
 });
 
 const RECIPE = {

@@ -2,8 +2,10 @@ import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { recipes } from "@nodetool-ai/protocol/api-schemas";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
+import { useNotificationStore } from "../stores/NotificationStore";
 import useOnboardingStore from "../stores/OnboardingStore";
-import { installExampleApp } from "../utils/applicationBundle";
+import { queryClient } from "../queryClient";
+import { installExampleApp } from "../utils/exampleApps";
 import { useOpenApplication } from "./useOpenApplication";
 
 type Recipe = recipes.ExampleRecipeSummary;
@@ -84,11 +86,18 @@ export const useRecipeActions = (): RecipeActions => {
       setInstallingApp(appSlug);
       try {
         // The install creates the app and every workflow it binds, so the
-        // chain lands in the library alongside the surface that drives it.
+        // chain lands in the library alongside the surface that drives it —
+        // which is what both lists have to be told about.
         const installed = await installExampleApp(appSlug);
+        await queryClient.invalidateQueries({ queryKey: ["applications"] });
+        await queryClient.invalidateQueries({ queryKey: ["workflows"] });
         openApplication(installed.id, installed.name);
       } catch (error) {
-        console.error("Error installing recipe app:", error);
+        useNotificationStore.getState().addNotification({
+          type: "error",
+          alert: true,
+          content: `Couldn't add the app: ${error instanceof Error ? error.message : "Unknown error"}`
+        });
       } finally {
         setInstallingApp(null);
       }

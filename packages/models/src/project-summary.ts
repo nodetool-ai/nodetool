@@ -23,7 +23,9 @@ import type {
   ScriptSection as ProtocolScriptSection,
   Speaker as ProtocolSpeaker
 } from "@nodetool-ai/protocol/api-schemas/scripts.js";
+import { readEntityMarker, type EntityMarker } from "@nodetool-ai/protocol";
 import { Application } from "./application.js";
+import { Asset } from "./asset.js";
 import { ImageDocument } from "./image-document.js";
 import { JsScript } from "./js-script.js";
 import { Prediction } from "./prediction.js";
@@ -146,6 +148,19 @@ export interface ProjectDocumentSummary extends ProjectDocumentRef {
   preview: ProjectDocumentPreview | null;
 }
 
+/**
+ * One entity in a project: its whole marker, plus the id and timestamp its
+ * asset row carries. Entities are tagged image assets rather than document
+ * rows, so a card edits one in place instead of opening a tab — which is why
+ * this is not a {@link ProjectDocumentSummary}, and why it carries the fields
+ * that editor needs rather than only the ones the card draws.
+ */
+export interface ProjectEntitySummary extends EntityMarker {
+  /** The entity's id, which is its asset id — also its reference image. */
+  id: string;
+  updatedAt: string;
+}
+
 /** What a run paid for, in the categories the spend bar is split by. */
 export type SpendCategory = "stills" | "clips" | "voice" | "pipeline";
 
@@ -172,6 +187,8 @@ export interface ProjectSummary {
   documents: ProjectDocumentSummary[];
   /** True when a document table hit {@link DOCUMENTS_PER_TYPE}. */
   documentsPartial: boolean;
+  /** The project's entities, newest first. */
+  entities: ProjectEntitySummary[];
   spend: ProjectSpend;
 }
 
@@ -400,6 +417,36 @@ export function summarizeSpend(rows: SpendRow[], partial = false): ProjectSpend 
   };
 }
 
+// ── Entities ─────────────────────────────────────────────────────────────────
+
+/**
+ * Image assets a project's entity read scans. An entity is an image asset
+ * carrying the marker, and only the project's own assets are read — the
+ * column is indexed, so this is not the library-wide scan the agent's
+ * `list_entities` does.
+ */
+const PROJECT_ENTITY_ASSET_LIMIT = 500;
+
+/** Every entity filed under this project, newest first. */
+export async function listProjectEntities(
+  userId: string,
+  projectId: string,
+  limit = PROJECT_ENTITY_ASSET_LIMIT
+): Promise<ProjectEntitySummary[]> {
+  const [rows] = await Asset.paginate(userId, {
+    contentType: "image",
+    projectId,
+    limit
+  });
+  const entities: ProjectEntitySummary[] = [];
+  for (const asset of rows) {
+    const marker = readEntityMarker(asset.metadata);
+    if (!marker) continue;
+    entities.push({ ...marker, id: asset.id, updatedAt: asset.updated_at });
+  }
+  return entities.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
 // ── Gathering ────────────────────────────────────────────────────────────────
 
 interface ProjectDocumentRows {
@@ -530,7 +577,10 @@ export async function summarizeProject(
 ): Promise<ProjectSummary> {
   const { documentsPerType = DOCUMENTS_PER_TYPE, ledgerCap = LEDGER_CAP } =
     limits;
-  const rows = await loadProjectDocuments(userId, projectId, documentsPerType);
+  const [rows, entities] = await Promise.all([
+    loadProjectDocuments(userId, projectId, documentsPerType),
+    listProjectEntities(userId, projectId)
+  ]);
   // Projected to the columns the rollup reads — a ledger row's `logs` and
   // `parameters` are never looked at here. One row past the cap, so a capped
   // read is reported rather than summed as if it were the whole ledger.
@@ -602,6 +652,7 @@ export async function summarizeProject(
   return {
     documents,
     documentsPartial: rows.partial,
+    entities,
     spend: summarizeSpend(ledger, ledgerPartial)
   };
 }

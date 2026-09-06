@@ -10,6 +10,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import mockTheme from "../../../__mocks__/themeMock";
 
 const detail = {
@@ -49,6 +50,15 @@ const detail = {
           { speaker: "VO", text: "One touch.", state: "stale" }
         ]
       }
+    }
+  ],
+  entities: [
+    {
+      id: "e1",
+      kind: "character",
+      name: "Mara",
+      descriptor: "a tall woman with red hair",
+      updatedAt: "2026-08-29T00:00:00.000Z"
     }
   ],
   spend: {
@@ -92,11 +102,15 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
 
 import ProjectOverviewSurface from "../ProjectOverviewSurface";
 
+// The entities section removes an entity through a mutation, so the tree needs
+// a client even though every query the surface itself reads is mocked.
 const renderSurface = () =>
   render(
-    <ThemeProvider theme={mockTheme}>
-      <ProjectOverviewSurface refId="p1" />
-    </ThemeProvider>
+    <QueryClientProvider client={new QueryClient()}>
+      <ThemeProvider theme={mockTheme}>
+        <ProjectOverviewSurface refId="p1" />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 
 beforeEach(() => {
@@ -150,6 +164,15 @@ describe("ProjectOverviewSurface", () => {
     renderSurface();
     expect(screen.getByText("Late is when ideas show up.")).toBeInTheDocument();
     expect(screen.getByText("stale")).toBeInTheDocument();
+  });
+
+  it("lists the entities the project holds beside its documents", () => {
+    renderSurface();
+    expect(screen.getByText("Entities")).toBeInTheDocument();
+    expect(screen.getByText("Mara")).toBeInTheDocument();
+    expect(
+      screen.getByText("a tall woman with red hair")
+    ).toBeInTheDocument();
   });
 
   it("gives a phone the conversation, and the documents on demand", async () => {
