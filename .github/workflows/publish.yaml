@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - "v*"
+      # Nightly tags (v0.7.1-nightly.20260904.762) also match "v*". They are
+      # built daily and are not release artifacts, so keep them off the registry.
+      - "!v*-nightly.*"
   workflow_dispatch:
     inputs:
       version:
@@ -73,10 +76,55 @@ jobs:
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node scripts/publish-packages.mjs --tag "$NPM_TAG"
+
+      - name: Record published version
+        id: published
+        run: echo "version=${VERSION_NO_V}" >> "$GITHUB_OUTPUT"
+
+    outputs:
+      version: ${{ steps.published.outputs.version }}
+
+  # Nothing before this point proves the published tarballs install and run.
+  # rc.11 sat on the "latest" dist-tag for months while every later release
+  # failed, and no check noticed.
+  smoke:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install system libraries (keytar/libsecret)
+        run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev
+
+      - name: Install the published CLI from the registry
         run: |
-          npm publish \
-            --workspaces \
-            --access public \
-            --ignore-scripts \
-            --provenance \
-            --tag "$NPM_TAG"
+          mkdir -p /tmp/cli-smoke && cd /tmp/cli-smoke
+          npm init -y > /dev/null
+          npm install "@nodetool-ai/cli@${{ needs.publish.outputs.version }}"
+
+      - name: Verify the CLI reports its real version and runs
+        run: |
+          cd /tmp/cli-smoke
+          ACTUAL="$(./node_modules/.bin/nodetool --version)"
+          EXPECTED="${{ needs.publish.outputs.version }}"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "nodetool --version reported '$ACTUAL', expected '$EXPECTED'"
+            exit 1
+          fi
+          # `nodetool validate --help` is not a usable check: commander's
+          # --help short-circuits before unknown-command handling, so it prints
+          # top-level help and exits 0 even when the command is absent (rc.11
+          # does exactly that). Assert the command is listed instead.
+          ./node_modules/.bin/nodetool --help > /tmp/cli-smoke/help.txt
+          for cmd in validate debug node harness; do
+            if ! grep -qE "^  $cmd( |$)" /tmp/cli-smoke/help.txt; then
+              echo "published CLI is missing the '$cmd' command"
+              cat /tmp/cli-smoke/help.txt
+              exit 1
+            fi
+          done

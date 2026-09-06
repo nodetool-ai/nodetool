@@ -179,6 +179,7 @@ import accountRoutes from "./routes/account.js";
 import jsScriptsRoutes from "./routes/js-scripts.js";
 import timelineAnimationRoutes from "./routes/timeline-animations.js";
 import storyboardsRoutes from "./routes/storyboards.js";
+import timelinesRoutes from "./routes/timelines.js";
 import documentsRoutes from "./routes/documents.js";
 import sandboxModulesRoutes from "./routes/sandbox-modules.js";
 import falCreditsRoute from "./routes/fal-credits.js";
@@ -1599,6 +1600,7 @@ await app.register(publicAppRoutes, { appSessionSigningKey });
 await app.register(jsScriptsRoutes, routeOpts);
 await app.register(timelineAnimationRoutes, routeOpts);
 await app.register(storyboardsRoutes, routeOpts);
+await app.register(timelinesRoutes, routeOpts);
 // PDF/DOCX text extraction for script and screenplay imports. Stores
 // nothing and needs no apiOptions.
 await app.register(documentsRoutes);

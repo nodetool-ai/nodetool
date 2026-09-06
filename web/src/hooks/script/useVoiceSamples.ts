@@ -138,7 +138,4 @@ export const resetVoiceSamples = (): void => {
   announce();
 };
 
-/** How many calls the cache has served. Test-only. */
-export const voiceSampleCount = (): number => samples.size;
-
 export default useVoiceSamples;

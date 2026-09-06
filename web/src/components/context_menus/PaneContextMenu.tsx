@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 
 import { EditorButton, Text, Divider, FlexRow, ContextMenu, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";

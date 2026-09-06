@@ -388,6 +388,129 @@ describe("GlobalChatStore", () => {
     expect(store.getState().messageCache[threadId] ?? []).toEqual([]);
   });
 
+  describe("per-conversation model", () => {
+    const gpt = {
+      type: "language_model" as const,
+      provider: "openai" as const,
+      id: "gpt-5.4-mini",
+      name: "gpt-5.4-mini"
+    };
+    const claude = {
+      type: "language_model" as const,
+      provider: "anthropic" as const,
+      id: "claude-opus-5",
+      name: "claude-opus-5"
+    };
+
+    it("keeps each thread on its own model when another tab picks a different one", () => {
+      store.getState().setSelectedModel(claude, "thread-a");
+      store.getState().setSelectedModel(gpt, "thread-b");
+
+      expect(store.getState().getSelectedModel("thread-a")).toEqual(claude);
+      expect(store.getState().getSelectedModel("thread-b")).toEqual(gpt);
+    });
+
+    it("falls back to the last pick for a thread that has none of its own", () => {
+      store.getState().setSelectedModel(claude, "thread-a");
+
+      expect(store.getState().getSelectedModel("thread-unpicked")).toEqual(
+        claude
+      );
+      expect(store.getState().getSelectedModel(null)).toEqual(claude);
+    });
+
+    it("sends a thread's own model and does not follow a later pick elsewhere", async () => {
+      mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(true);
+      mockGlobalWebSocketManager.isConnected = true;
+      const sent: unknown[] = [];
+      mockGlobalWebSocketManager.send.mockImplementation(
+        async (data: unknown) => {
+          sent.push(data);
+        }
+      );
+
+      const threadId = await store.getState().createNewThread();
+      store.getState().setSelectedModel(claude, threadId);
+      // Another tab picks a different model afterwards.
+      store.getState().setSelectedModel(gpt, "other-thread");
+
+      await store
+        .getState()
+        .sendMessage(
+          { role: "user", type: "message", content: "hi" } as Message,
+          threadId
+        );
+
+      const last = sent[sent.length - 1] as { data: Record<string, unknown> };
+      expect(last.data).toMatchObject({
+        thread_id: threadId,
+        model: claude.id,
+        provider: claude.provider
+      });
+    });
+
+    it("pins a thread to the model its first turn ran on", async () => {
+      mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(true);
+      mockGlobalWebSocketManager.isConnected = true;
+      mockGlobalWebSocketManager.send.mockResolvedValue(undefined);
+      store.setState({ selectedModel: claude } as any);
+
+      const threadId = await store.getState().createNewThread();
+      await store
+        .getState()
+        .sendMessage(
+          { role: "user", type: "message", content: "hi" } as Message,
+          threadId
+        );
+
+      store.getState().setSelectedModel(gpt);
+      expect(store.getState().getSelectedModel(threadId)).toEqual(claude);
+    });
+
+    it("forcedModel overrides both the thread pin and the last pick", () => {
+      store.getState().setSelectedModel(gpt, "thread-a");
+      store.getState().setSelectedModel(claude);
+      store.getState().setForcedModel(claude);
+
+      expect(store.getState().getSelectedModel("thread-a")).toEqual(claude);
+      expect(store.getState().getSelectedModel(null)).toEqual(claude);
+
+      // Clearing the force gives the conversation its own pick back rather
+      // than leaving it on what the shell imposed.
+      store.getState().setForcedModel(null);
+      expect(store.getState().getSelectedModel("thread-a")).toEqual(gpt);
+    });
+
+    it("does not pin while a shell forces a model", () => {
+      store.getState().setForcedModel(claude);
+      store.getState().pinThreadModel("thread-a");
+
+      expect(store.getState().threadModel["thread-a"]).toBeUndefined();
+    });
+
+    it("does not pin the unsendable first-run placeholder", () => {
+      store.setState({
+        selectedModel: {
+          type: "language_model",
+          provider: "empty",
+          id: "",
+          name: ""
+        }
+      } as any);
+      store.getState().pinThreadModel("thread-a");
+
+      expect(store.getState().threadModel["thread-a"]).toBeUndefined();
+    });
+
+    it("drops a deleted thread's model pin", async () => {
+      const first = await store.getState().createNewThread();
+      store.getState().setSelectedModel(claude, first);
+      await store.getState().deleteThread(first);
+
+      expect(store.getState().threadModel[first]).toBeUndefined();
+    });
+  });
+
   it("switchThread does nothing for invalid id", () => {
     store.getState().createNewThread();
     store.getState().switchThread("nonexistent");

@@ -4,7 +4,7 @@
   "description": "Shared 3D scene document: glTF read/write, primitive geometry, the editor's scene operations, and validation",
   "type": "module",
   "engines": {
-    "node": ">=22.0.0 <23.0.0"
+    "node": ">=22.0.0"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

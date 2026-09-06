@@ -44,9 +44,7 @@ import {
   LogUpdate,
   PlanningUpdate,
   Prediction,
-  StepResult,
   TaskUpdate,
-  TodoUpdate,
   ToolCallUpdate,
   ToolResultUpdate
 } from "../../stores/ApiTypes";

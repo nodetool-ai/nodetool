@@ -4,7 +4,7 @@
   "description": "Godot 4.3 game project templates with asset-slot manifests, plus a headless Godot runner for import, script check, and smoke tests",
   "type": "module",
   "engines": {
-    "node": ">=22.0.0 <23.0.0"
+    "node": ">=22.0.0"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

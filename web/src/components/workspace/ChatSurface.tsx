@@ -8,7 +8,8 @@ import useGlobalChatStore, {
   useThreadRuntime
 } from "../../stores/GlobalChatStore";
 import useChatDraftStore from "../../stores/ChatDraftStore";
-import type { Message, LanguageModel } from "../../stores/ApiTypes";
+import useThreadModel from "../../hooks/chat/useThreadModel";
+import type { Message } from "../../stores/ApiTypes";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import DocumentLoadStatus from "./DocumentLoadStatus";
 
@@ -63,9 +64,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
     loadMessages,
     createNewThread,
     sendMessage,
-    stopGeneration,
-    selectedModel,
-    setSelectedModel
+    stopGeneration
   } = useGlobalChatStore(
     useShallow((state) => ({
       connect: state.connect,
@@ -75,11 +74,12 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
       loadMessages: state.loadMessages,
       createNewThread: state.createNewThread,
       sendMessage: state.sendMessage,
-      stopGeneration: state.stopGeneration,
-      selectedModel: state.selectedModel,
-      setSelectedModel: state.setSelectedModel
+      stopGeneration: state.stopGeneration
     }))
   );
+
+  // Each tab keeps its own model: a pick here never moves another tab's.
+  const { model, setModel } = useThreadModel(refId);
 
   const workflowId = useGlobalChatStore(
     (state) =>
@@ -164,11 +164,6 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
     stopGeneration(refId);
   }, [stopGeneration, refId]);
 
-  const handleModelChange = useCallback(
-    (model: LanguageModel) => setSelectedModel(model),
-    [setSelectedModel]
-  );
-
   // A suggestion is a starting point, not a finished turn: "Analyze an image"
   // used to go out with no image attached. Seed the composer and let the user
   // add what it needs.
@@ -214,8 +209,8 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
         total={runtime.progress.total}
         progressMessage={runtime.statusMessage}
         runningToolCallId={runtime.runningToolCallId}
-        model={selectedModel}
-        onModelChange={handleModelChange}
+        model={model}
+        onModelChange={setModel}
         onStop={handleStop}
         onNewChat={() => void handleNewChat()}
         currentPlanningUpdate={runtime.planningUpdate}

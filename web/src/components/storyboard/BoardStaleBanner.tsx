@@ -17,7 +17,6 @@
  */
 
 import { memo, useCallback, useMemo } from "react";
-import type { BoardRenderContext, Entity } from "@nodetool-ai/protocol";
 import { staleClipShots, staleKeyframeShots } from "@nodetool-ai/protocol";
 
 import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
