@@ -27,6 +27,10 @@ export default {
     "^@nodetool-ai/runtime/zod-schema$":
       "<rootDir>/../packages/runtime/src/zod-schema.ts",
     "^@nodetool-ai/timeline$": "<rootDir>/../packages/timeline/src/index.ts",
+    // glTF read/write, from source for the same reason: an ESM-only dist that
+    // Jest would not transform. The 3D bake reads a model's animation lengths
+    // with it before it asks Blender for anything.
+    "^@nodetool-ai/model3d$": "<rootDir>/../packages/model3d/src/index.ts",
     // The shared edit ops, from source: the agent bridge runs them.
     "^@nodetool-ai/timeline/ops$":
       "<rootDir>/../packages/timeline/src/ops/index.ts",

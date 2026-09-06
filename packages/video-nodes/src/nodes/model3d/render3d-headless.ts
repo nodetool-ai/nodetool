@@ -3,8 +3,8 @@
  *
  * The backend has no WebGL, so it launches a headless Chromium, injects the
  * self-contained render bundle (`dist/render3d-page.js`, built by
- * `scripts/bundle-render3d-page.mjs`), and calls `__nodetoolRenderGlb` over
- * CDP. SwiftShader flags keep WebGL working on GPU-less servers.
+ * `scripts/bundle-render3d-page.mjs`), and calls `__nodetoolRenderGlbFrames`
+ * over CDP. SwiftShader flags keep WebGL working on GPU-less servers.
  *
  * Chrome discovery follows the automation nodes: `CHROME_PATH` when set,
  * otherwise chrome-launcher's platform search. Everything here is
@@ -13,10 +13,19 @@
 
 import { readFile } from "node:fs/promises";
 import { resolvePackageAssetPath } from "@nodetool-ai/config";
-import type { Render3DOptions } from "./render3d-core.js";
+import {
+  renderFrameFromRender3DOptions,
+  sessionOptionsFromRender3DOptions,
+  type Model3DRenderFrame,
+  type Model3DSessionOptions,
+  type Render3DOptions
+} from "./render3d-core.js";
 import { isNonEmptyString } from "@nodetool-ai/node-sdk";
 
+/** Budget for the first frame, which pays the model load and the GL warm-up. */
 const RENDER_TIMEOUT_MS = 120_000;
+/** Added to the budget for every frame after the first. */
+const EXTRA_FRAME_TIMEOUT_MS = 30_000;
 
 /** How long to keep trying to attach to the debug port before giving up. */
 const CDP_CONNECT_TIMEOUT_MS = 10_000;
@@ -90,17 +99,19 @@ function throwOnException(
   throw new Error(`RenderToImage (${stage}): ${detail}`);
 }
 
-async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+async function withTimeout<T>(
+  promise: Promise<T>,
+  label: string,
+  timeoutMs: number
+): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(
       () =>
         reject(
-          new Error(
-            `RenderToImage: ${label} timed out after ${RENDER_TIMEOUT_MS}ms`
-          )
+          new Error(`RenderToImage: ${label} timed out after ${timeoutMs}ms`)
         ),
-      RENDER_TIMEOUT_MS
+      timeoutMs
     );
   });
   try {
@@ -178,14 +189,17 @@ export async function launchChromeWithRetry<T>(
 }
 
 /**
- * Render GLB bytes to PNG bytes in a fresh headless Chromium. One Chrome per
- * call keeps the node stateless; launch cost (~1s) is negligible next to a
- * typical workflow's model-generation steps.
+ * Render one session's worth of frames in a fresh headless Chromium: one
+ * launch, one model load, one PNG per frame. One Chrome per call keeps the
+ * node stateless; launch cost (~1s) is negligible next to a typical
+ * workflow's model-generation steps.
  */
-export async function renderGlbHeadless(
+export async function renderGlbFramesHeadless(
   glb: Uint8Array,
-  options: Render3DOptions
-): Promise<Uint8Array> {
+  options: Model3DSessionOptions,
+  frames: readonly Model3DRenderFrame[]
+): Promise<Uint8Array[]> {
+  if (frames.length === 0) return [];
   const bundle = await loadRenderBundle();
 
   const { launch } = await import("chrome-launcher");
@@ -207,21 +221,33 @@ export async function renderGlbHeadless(
     const glbBase64 = Buffer.from(glb).toString("base64");
     const call = await withTimeout(
       client.Runtime.evaluate({
-        expression: `globalThis.__nodetoolRenderGlb(${JSON.stringify(
+        expression: `globalThis.__nodetoolRenderGlbFrames(${JSON.stringify(
           glbBase64
-        )}, ${JSON.stringify(JSON.stringify(options))})`,
+        )}, ${JSON.stringify(JSON.stringify(options))}, ${JSON.stringify(
+          JSON.stringify(frames)
+        )})`,
         awaitPromise: true,
         returnByValue: true
       }),
-      "render"
+      "render",
+      RENDER_TIMEOUT_MS + EXTRA_FRAME_TIMEOUT_MS * (frames.length - 1)
     );
     throwOnException(call, "render");
 
-    const pngBase64 = call.result?.value;
-    if (!isNonEmptyString(pngBase64)) {
-      throw new Error("RenderToImage: headless render returned no image data");
+    const pngsBase64 = call.result?.value;
+    if (!Array.isArray(pngsBase64) || pngsBase64.length !== frames.length) {
+      throw new Error(
+        `RenderToImage: headless render returned ${
+          Array.isArray(pngsBase64) ? pngsBase64.length : "no"
+        } images for ${frames.length} frames`
+      );
     }
-    return new Uint8Array(Buffer.from(pngBase64, "base64"));
+    return pngsBase64.map((png) => {
+      if (!isNonEmptyString(png)) {
+        throw new Error("RenderToImage: headless render returned no image data");
+      }
+      return new Uint8Array(Buffer.from(png, "base64"));
+    });
   } finally {
     if (client) {
       try {
@@ -236,4 +262,17 @@ export async function renderGlbHeadless(
       // Process may already be gone.
     }
   }
+}
+
+/** Render GLB bytes to PNG bytes: the one-frame case of the above. */
+export async function renderGlbHeadless(
+  glb: Uint8Array,
+  options: Render3DOptions
+): Promise<Uint8Array> {
+  const [png] = await renderGlbFramesHeadless(
+    glb,
+    sessionOptionsFromRender3DOptions(options),
+    [renderFrameFromRender3DOptions(options)]
+  );
+  return png;
 }

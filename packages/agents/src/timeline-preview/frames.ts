@@ -21,7 +21,13 @@
  */
 
 import { createCanvas, loadImage, type Canvas } from "@napi-rs/canvas";
-import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
+import {
+  computeModel3DBakeHash,
+  resolveModel3DCamera,
+  type ClipModel3DCamera,
+  type TimelineClip,
+  type TimelineSequence
+} from "@nodetool-ai/timeline";
 import type {
   ActiveLayer,
   AnimatedLayerProps,
@@ -57,6 +63,11 @@ import {
   DEFAULT_PREVIEW_WIDTH,
   MAX_PREVIEW_WIDTH
 } from "../capabilities/timelines.specs.js";
+import {
+  collectModel3DLayers,
+  Model3DPrerenderer,
+  sessionOptionsFor
+} from "./model3d.js";
 import { PreviewRasterizer } from "./rasterize.js";
 
 /**
@@ -91,6 +102,24 @@ export interface RenderTimelineFramesOptions {
   motionBlur?: MotionBlurOptions;
 }
 
+/**
+ * The camera a `model3d` layer was drawn with: the clip's authored pose folded
+ * with the four animated camera channels. Reported because the pixels alone do
+ * not say where the camera was — a turntable mid-sweep and a static pose are
+ * the same picture at one instant.
+ */
+export interface PreviewCameraReport {
+  mode: ClipModel3DCamera["mode"];
+  azimuth_deg: number;
+  elevation_deg: number;
+  fov_deg: number;
+  zoom: number;
+  /** `scene` mode: the glTF camera the layer was drawn through. */
+  scene_camera_name?: string;
+  /** Look-at offset from the bounding-sphere center, world units. */
+  target_offset?: [number, number, number];
+}
+
 /** What one layer contributed to a frame, for the report beside the pixels. */
 export interface PreviewLayerReport {
   clip_id: string;
@@ -120,6 +149,14 @@ export interface PreviewLayerReport {
   matte?: { source_clip_id: string; mode: string; invert: boolean };
   /** The text a text or caption layer drew. */
   text?: string;
+  /** The camera a `model3d` layer was drawn with. */
+  camera?: PreviewCameraReport;
+  /**
+   * Present on a `model3d` layer: the glTF animation's own clock in seconds —
+   * the clip's source time times the style's `animation.speed` (D3). It is not
+   * the timeline time, so a trimmed or retimed clip's animation can be read.
+   */
+  animation_time_sec?: number;
   /** Why the layer contributed no pixels, when it didn't. */
   skipped?: string;
 }
@@ -134,8 +171,18 @@ export interface PreviewDegradation {
   /** The clip it happened to, when the layer carried one. */
   clip_id?: string;
   clip_name?: string;
-  reason: Canvas2DDegradationReason;
+  reason: PreviewDegradationReason;
 }
+
+/**
+ * Every way this pass can draw a frame differently from the GPU render: the
+ * Canvas 2D compositor's own list, plus the one only this host can hit — a
+ * `model3d` layer whose headless renderer would not launch (D5, host 2).
+ */
+export type PreviewDegradationReason =
+  | Canvas2DDegradationReason
+  /** A 3D layer left out because headless Chromium is missing or would not run. */
+  | "model3d_unavailable";
 
 /** A clip that was active at the frame's time and still did not draw. */
 export interface PreviewDroppedLayer {
@@ -187,17 +234,18 @@ function frameSize(
 }
 
 /**
- * Decode one video frame at the source time the clip is showing at `timeMs`.
+ * Decode one video frame at an already-resolved source time.
  *
- * `clipSourceTimeSec` is the same mapping the preview seeks with, so trims,
- * speed changes and offsets land on the frame the editor shows.
+ * The caller resolves it, because which mapping applies is the layer's to
+ * decide: an ordinary video clip seeks by `clipSourceTimeSec`, and a baked 3D
+ * clip by `bakeSourceTimeSec`, whose origin is the clip's own first frame
+ * however the clip is trimmed (design §D6, time origin).
  */
 async function decodeVideoFrameAt(
   bytes: Uint8Array,
-  clip: TimelineClip,
-  timeMs: number
+  sourceTimeSec: number
 ): Promise<{ canvas: Canvas; width: number; height: number } | null> {
-  const sourceSec = Math.max(0, clipSourceTimeSec(clip, timeMs));
+  const sourceSec = Math.max(0, sourceTimeSec);
   let out: { canvas: Canvas; width: number; height: number } | null = null;
   await forEachVideoFrame(bytes, [sourceSec], (frame) => {
     const canvas = createCanvas(frame.width, frame.height);
@@ -217,6 +265,20 @@ function layerText(layer: ActiveLayer): string | undefined {
     return layer.caption.words.map((w) => w.text).join(" ");
   }
   return undefined;
+}
+
+/** The camera a 3D layer drew with, in the report's vocabulary. */
+function cameraReport(camera: ClipModel3DCamera): PreviewCameraReport {
+  const report: PreviewCameraReport = {
+    mode: camera.mode,
+    azimuth_deg: Number(camera.azimuthDeg.toFixed(3)),
+    elevation_deg: Number(camera.elevationDeg.toFixed(3)),
+    fov_deg: Number(camera.fovDeg.toFixed(3)),
+    zoom: Number(camera.zoom.toFixed(3))
+  };
+  if (camera.sceneCameraName) report.scene_camera_name = camera.sceneCameraName;
+  if (camera.targetOffset) report.target_offset = camera.targetOffset;
+  return report;
 }
 
 /** A clip's authored name, for a report that only holds its id. */
@@ -256,6 +318,22 @@ export async function renderTimelineFrames(
 
   const rasterizer = new PreviewRasterizer(width, height);
   const animCache = createAnimationCompileCache();
+  /**
+   * The scene options every resolve in this pass shares. `model3dBakeHash` is
+   * what lets a `model3d` clip play its Blender bake as a video layer: without
+   * a resolver the scene model has no live hash to compare against and always
+   * draws the live 3D layer (design §D6).
+   */
+  const sceneOptions = {
+    canvas: animationCanvas,
+    animationCache: animCache,
+    model3dBakeHash: (clip: TimelineClip): string =>
+      computeModel3DBakeHash(clip, {
+        fps: Math.max(1, sequence.fps || 30),
+        width: animationCanvas.width,
+        height: animationCanvas.height
+      })
+  };
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d") as unknown as CompositeContext2D<
     PreviewSource
@@ -359,6 +437,16 @@ export async function renderTimelineFrames(
     assetBytes.set(assetId, pending);
     return pending;
   };
+  /**
+   * The 3D layers of the whole pass, drawn in headless Chromium before the
+   * first frame is composited (D5, host 2). It shares `bytesFor`, so a GLB is
+   * read once for the pass whether or not a layer of it also draws elsewhere.
+   */
+  const model3d = new Model3DPrerenderer({
+    width,
+    height,
+    loadAsset: bytesFor
+  });
   const decodedImages = new Map<string, PreviewSource | null>();
   /** Why an asset's bytes would not decode, for the layer's `skipped` reason. */
   const decodeErrors = new Map<string, string>();
@@ -406,7 +494,7 @@ export async function renderTimelineFrames(
       timeMs,
       // Group transforms are authored against the sequence resolution, the
       // same space the animations are sampled in.
-      { canvas: animationCanvas, animationCache: animCache }
+      sceneOptions
     );
     const drawPrecomposites: Canvas2DPrecomposite[] = precomposites.map(
       (group) => ({
@@ -431,6 +519,12 @@ export async function renderTimelineFrames(
 
     const drawLayers: Canvas2DLayer<PreviewSource>[] = [];
     const reports: PreviewLayerReport[] = [];
+    /**
+     * Degradations this pass finds before the draw — today only a 3D layer
+     * whose renderer would not run, which the compositor never sees because
+     * the layer never reaches it.
+     */
+    const degradedBeforeDraw: PreviewDegradation[] = [];
     /** Which report each drawn layer belongs to, matched by identity. */
     const reportFor = new Map<Canvas2DLayer<PreviewSource>, PreviewLayerReport>();
 
@@ -501,12 +595,46 @@ export async function renderTimelineFrames(
         return { skipped: `asset ${assetId} could not be read: ${reason}` };
       }
 
+      if (layer.kind === "model3d") {
+        const style = layer.model3dStyle;
+        if (!style) return { skipped: "clip has no 3D style to draw with" };
+        // The pixels were drawn before the pass started compositing: this only
+        // looks them up, by the same group, pose and instant they were asked
+        // for with.
+        const pixels = model3d.get(
+          assetId,
+          sessionOptionsFor(style),
+          resolveModel3DCamera(style, anim),
+          layer.sourceTimeSec ?? 0
+        );
+        if (!pixels) {
+          return { skipped: "the 3D layer was not rendered at this instant" };
+        }
+        if ("unavailable" in pixels) {
+          degradedBeforeDraw.push({
+            clip_id: layer.clipId,
+            clip_name: layer.clip.name,
+            reason: "model3d_unavailable"
+          });
+          return {
+            skipped: `the 3D renderer could not draw this clip: ${pixels.unavailable}`
+          };
+        }
+        return {
+          source: pixels.image,
+          width: pixels.image.width,
+          height: pixels.image.height
+        };
+      }
+
       if (layer.kind === "video") {
-        const frame = await decodeVideoFrameAt(bytes, layer.clip, timeMs);
+        const sourceTimeSec =
+          layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, timeMs);
+        const frame = await decodeVideoFrameAt(bytes, sourceTimeSec);
         if (!frame) {
           return {
             skipped: `no decodable frame at ${Math.round(
-              clipSourceTimeSec(layer.clip, timeMs) * 1000
+              sourceTimeSec * 1000
             )}ms into the source`
           };
         }
@@ -626,6 +754,14 @@ export async function renderTimelineFrames(
           progress: Number(layer.transition.progress.toFixed(3))
         };
       }
+      if (layer.kind === "model3d" && layer.model3dStyle) {
+        report.camera = cameraReport(
+          resolveModel3DCamera(layer.model3dStyle, anim)
+        );
+        report.animation_time_sec = Number(
+          (layer.sourceTimeSec ?? 0).toFixed(3)
+        );
+      }
       if (layer.shapeMask) report.mask = { kind: layer.shapeMask.kind };
       if (layer.matte) {
         report.matte = {
@@ -666,12 +802,49 @@ export async function renderTimelineFrames(
         clip_name: clipName(sequence, dropped.clipId),
         reason: dropped.reason
       })),
-      degraded: drawReport.degraded.map((entry) => ({
-        clip_id: entry.clipId,
-        clip_name: entry.clipId ? clipName(sequence, entry.clipId) : undefined,
-        reason: entry.reason
-      }))
+      degraded: [
+        ...degradedBeforeDraw,
+        ...drawReport.degraded.map((entry) => ({
+          clip_id: entry.clipId,
+          clip_name: entry.clipId ? clipName(sequence, entry.clipId) : undefined,
+          reason: entry.reason
+        }))
+      ]
     };
+  };
+
+  /**
+   * Ask the 3D pre-pass for every `model3d` layer at one instant, matte
+   * sources included.
+   *
+   * The layer set is resolved a second time here rather than shared with
+   * `composeAt`, because the whole point of the pass is to hold the pixels
+   * before the first frame is composed. It is a pure resolve — nothing is read
+   * or decoded — and it runs only on a document that has a 3D clip.
+   */
+  const requestModel3DAt = (timeMs: number): void => {
+    const { layers } = computeActiveLayersWithHorizon(
+      sequence.tracks,
+      sequence.clips,
+      timeMs,
+      sceneOptions
+    );
+    for (const layer of collectModel3DLayers(layers)) {
+      const style = layer.model3dStyle;
+      if (!layer.assetId || !style) continue;
+      const anim = resolveAnimatedLayerProps(
+        layer,
+        timeMs,
+        animationCanvas,
+        animCache
+      );
+      model3d.request(
+        layer.assetId,
+        sessionOptionsFor(style),
+        resolveModel3DCamera(style, anim),
+        layer.sourceTimeSec ?? 0
+      );
+    }
   };
 
   /**
@@ -685,7 +858,7 @@ export async function renderTimelineFrames(
       sequence.tracks,
       sequence.clips,
       timeMs,
-      { canvas: animationCanvas, animationCache: animCache }
+      sceneOptions
     );
     return shutterWindowIsStatic(
       layers,
@@ -693,10 +866,28 @@ export async function renderTimelineFrames(
     );
   };
 
-  for (const timeMs of options.timesMs) {
-    const sampleTimes = shutterIsStatic(timeMs)
+  /**
+   * Every instant this pass will compose: one per frame with blur off, and the
+   * shutter window's samples with it on. Resolved up front because the 3D
+   * pre-pass below has to know every instant before it renders any of them.
+   */
+  const frameInstants = options.timesMs.map((timeMs) => ({
+    timeMs,
+    sampleTimes: shutterIsStatic(timeMs)
       ? [timeMs]
-      : motionBlurSampleTimes(timeMs, frameMs, options.motionBlur);
+      : motionBlurSampleTimes(timeMs, frameMs, options.motionBlur)
+  }));
+
+  // Only a document that has a 3D clip pays for the extra layer resolve: a
+  // timeline of video and titles never touches this.
+  if (sequence.clips.some((clip) => clip.mediaType === "model3d")) {
+    for (const { sampleTimes } of frameInstants) {
+      for (const instantMs of sampleTimes) requestModel3DAt(instantMs);
+    }
+    await model3d.run();
+  }
+
+  for (const { timeMs, sampleTimes } of frameInstants) {
     let composed: Awaited<ReturnType<typeof composeAt>>;
     if (!blurCtx || !blurAccumulator || sampleTimes.length === 1) {
       composed = await composeAt(timeMs);

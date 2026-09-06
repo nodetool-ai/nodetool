@@ -1,6 +1,18 @@
 import type { CompositeSource } from "./types";
 
 /**
+ * Whether a source is a canvas — an `OffscreenCanvas` a 3D render session draws
+ * into, or a host surface passed through as one.
+ *
+ * Duck-typed rather than `instanceof OffscreenCanvas`, because the constructor
+ * is absent in jsdom and in a worker-less environment, where the check would
+ * throw or silently answer false for a real canvas.
+ */
+export function isCanvasSource(source: CompositeSource): boolean {
+  return typeof (source as Partial<OffscreenCanvas>).getContext === "function";
+}
+
+/**
  * Whether a composite source has decoded pixels ready to sample. Shared by the
  * WebGPU compositor (before uploading to a texture) and the Canvas2D fallback
  * (before `drawImage`).

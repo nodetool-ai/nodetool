@@ -16,6 +16,7 @@
  */
 
 import type {
+  ClipModel3DStylePatch,
   ClipShapeStyle,
   ClipTextStyle,
   MidiInstrument,
@@ -84,6 +85,7 @@ export interface TimelineClipNode {
     | "overlay"
     | "text"
     | "shape"
+    | "model3d"
     | "group"
     | "midi";
   sourceType: "imported" | "generated";
@@ -221,6 +223,16 @@ export interface TimelineAddTextClipOptions {
   style?: Partial<Omit<TimelineTextStyle, "text">>;
   /** Clip opacity, 0..1. */
   opacity?: number;
+}
+
+export interface TimelineAddModel3DClipOptions {
+  /** Asset id of the .glb/.gltf model — a 3D clip's picture is its asset. */
+  assetId: string;
+  trackId?: string;
+  startMs?: number;
+  durationMs?: number;
+  /** Merged over the default look; every block is optional. */
+  style?: ClipModel3DStylePatch;
 }
 
 export interface TimelineAddShapeClipOptions {
@@ -419,6 +431,17 @@ export interface TimelineAgentHandler {
   ) => Promise<TimelineClipNode>;
   addTextClip: (opts: TimelineAddTextClipOptions) => TimelineClipNode;
   addShapeClip: (opts: TimelineAddShapeClipOptions) => TimelineClipNode;
+  addModel3DClip: (opts: TimelineAddModel3DClipOptions) => TimelineClipNode;
+  /** Merge a patch into a 3D clip's camera, animation, lighting or background. */
+  setModel3DStyle: (
+    target: string,
+    patch: ClipModel3DStylePatch
+  ) => TimelineClipNode;
+  /**
+   * Render a 3D clip through Blender and store the bake on it (design §D6).
+   * Resolves once the video is an asset and the clip carries it.
+   */
+  bakeModel3DClip: (target: string) => Promise<TimelineClipNode>;
   /** Split a clip at the given time (defaults to the playhead). */
   splitClip: (target: string, atMs?: number) => TimelineClipNode[];
   trimClip: (target: string, patch: TimelineTrimPatch) => TimelineClipNode;

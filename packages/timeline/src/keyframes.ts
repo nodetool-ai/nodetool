@@ -14,17 +14,35 @@
 import type { ClipAnimation, CustomClipAnimation } from "./animation/types.js";
 import { ANIMATED_PROPERTY_FOLD, type AnimatedProperty } from "./animation/types.js";
 import { createTimeOrderedUuid } from "./defaults.js";
+import { MODEL3D_CAMERA_PROPERTIES } from "./model3d.js";
 import type { TimelineClip } from "./types.js";
 
-/** The properties the keyframe inspector offers, with their identity value. */
+/**
+ * Every property the keyframe inspector can offer. The four camera channels
+ * only mean anything on a `model3d` clip — keyed on any other, they render
+ * nothing, the way `wipeProgress` does without a mask — so a UI walks
+ * {@link keyframePropertiesFor} rather than this list.
+ */
 export const KEYFRAME_PROPERTIES = [
   "opacity",
   "scale",
   "offsetX",
   "offsetY",
-  "rotation"
+  "rotation",
+  ...MODEL3D_CAMERA_PROPERTIES
 ] as const satisfies readonly AnimatedProperty[];
 export type KeyframeProperty = (typeof KEYFRAME_PROPERTIES)[number];
+
+/** The keyframe properties that apply to `clip`, in inspector order. */
+export function keyframePropertiesFor(
+  clip: Pick<TimelineClip, "mediaType">
+): readonly KeyframeProperty[] {
+  if (clip.mediaType === "model3d") return KEYFRAME_PROPERTIES;
+  return KEYFRAME_PROPERTIES.filter(
+    (property) =>
+      !(MODEL3D_CAMERA_PROPERTIES as readonly string[]).includes(property)
+  );
+}
 
 /** The value that changes nothing for a property, by how it folds. */
 export function keyframeIdentity(property: AnimatedProperty): number {

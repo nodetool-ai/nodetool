@@ -9,6 +9,9 @@ function renderPasses(inputs) {
 function renderAnimation(inputs) {
   return createNode("nodetool.blender.RenderAnimation", inputs, { outputNames: ["video"], defaultOutput: "video" });
 }
+function bakeTimelineClip(inputs) {
+  return createNode("nodetool.blender.BakeTimelineClip", inputs, { outputNames: ["video"], defaultOutput: "video" });
+}
 function prepareForEngine(inputs) {
   return createNode("nodetool.blender.PrepareForEngine", inputs, { outputNames: ["model", "lods"] });
 }
@@ -16,6 +19,7 @@ function exportModel(inputs) {
   return createNode("nodetool.blender.ExportModel", inputs, { outputNames: ["file"], defaultOutput: "file" });
 }
 export {
+  bakeTimelineClip,
   exportModel,
   prepareForEngine,
   renderAnimation,

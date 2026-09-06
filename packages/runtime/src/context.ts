@@ -304,7 +304,9 @@ export type ProviderCapability =
   | "generate_embedding"
   | "text_to_3d"
   | "image_to_3d"
-  | "render_model3d";
+  | "render_model3d"
+  /** A timeline 3D clip rendered to video through Blender (design §D6). */
+  | "bake_model3d_clip";
 
 type PredictionStatus =
   | "pending"

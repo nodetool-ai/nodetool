@@ -59,6 +59,10 @@ export default defineConfig({
         __dirname,
         "../timeline/src/scene.ts"
       ),
+      "@nodetool-ai/timeline/dependencyHash.js": resolve(
+        __dirname,
+        "../timeline/src/dependencyHash.ts"
+      ),
       "@nodetool-ai/timeline": resolve(__dirname, "../timeline/src/index.ts")
     }
   },

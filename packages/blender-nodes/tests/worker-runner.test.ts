@@ -74,6 +74,9 @@ async function filesBelow(root: string, dir = root): Promise<string[]> {
   for (const entry of entries) {
     const file = path.join(dir, entry.name);
     if (entry.isDirectory()) {
+      // The runner skips Python's byte-cache, and a concurrent Blender run
+      // writes one into the source tree, so listing it here is a race.
+      if (entry.name === "__pycache__") continue;
       files.push(...(await filesBelow(root, file)));
     } else if (entry.isFile()) {
       files.push(path.relative(root, file).split(path.sep).join("/"));

@@ -38,13 +38,18 @@ import {
 import { instantiateComposition } from "../composition.js";
 import {
   DEFAULT_MEDIA_CLIP_DURATION_MS,
+  DEFAULT_MODEL3D_CLIP_DURATION_MS,
+  DEFAULT_MODEL3D_CLIP_NAME,
   DEFAULT_TEXT_CLIP_DURATION_MS,
   makeClip,
+  makeClipVersion,
   makeTrack,
   mediaTypeForContentType,
   trackTypeForMediaType
 } from "../defaults.js";
+import { computeModel3DBakeHash } from "../model3dBake.js";
 import {
+  model3dStyleWithPatch,
   shapeStyleWithDefaults,
   textStyleWithDefaults
 } from "../authoredStyles.js";
@@ -713,6 +718,114 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
       state.selectedClipIds = [clip.id];
       scope.touch(clip.id);
       return { ok: true, clip: scope.clipOut(clip) };
+    }
+
+    case "add_model3d_clip": {
+      const assetId = op.assetId.trim();
+      if (!assetId) {
+        throw new Error(
+          "add_model3d_clip needs the glTF's asset id — a 3D clip draws its " +
+            "asset the way an image clip draws its image. list_assets prints " +
+            "the ids."
+        );
+      }
+      // 3D is picture (D1), so it lands where a title lands: the first overlay
+      // track, or one made for it.
+      const track = op.trackId
+        ? scope.resolveTrack(op.trackId)
+        : scope.findOrCreateTrack("overlay");
+      const clip = makeClip({
+        id: scope.ctx.newId("clip"),
+        trackId: track.id,
+        name: DEFAULT_MODEL3D_CLIP_NAME,
+        startMs: op.startMs ?? scope.trackEndMs(track.id),
+        durationMs: op.durationMs ?? DEFAULT_MODEL3D_CLIP_DURATION_MS,
+        mediaType: "model3d",
+        sourceType: "imported",
+        status: "generated",
+        currentAssetId: assetId,
+        model3dStyle: model3dStyleWithPatch(undefined, op.style)
+      });
+      scope.clips.push(clip);
+      state.selectedClipIds = [clip.id];
+      scope.touch(clip.id);
+      return { ok: true, clip: scope.clipOut(clip) };
+    }
+
+    case "set_model3d_style": {
+      const clip = scope.resolveClip(op.target);
+      if (clip.mediaType !== "model3d") {
+        throw new Error(
+          `Clip "${clip.name}" is a ${clip.mediaType} clip, not a 3D clip — ` +
+            "model3dStyle names a camera, an animation and lighting for a " +
+            "glTF, and nothing else reads it."
+        );
+      }
+      clip.model3dStyle = model3dStyleWithPatch(clip.model3dStyle, op.patch);
+      scope.touch(clip.id);
+      return { ok: true, clip: scope.clipOut(clip) };
+    }
+
+    case "bake_model3d_clip": {
+      const clip = scope.resolveClip(op.target);
+      if (clip.mediaType !== "model3d") {
+        throw new Error(
+          `Clip "${clip.name}" is a ${clip.mediaType} clip, not a 3D clip — ` +
+            "only a 3D clip has a camera, lighting and a glTF to render."
+        );
+      }
+      const style = clip.model3dStyle;
+      if (!style) {
+        throw new Error(
+          `Clip "${clip.name}" has no model3dStyle, so nothing names the ` +
+            "camera, lighting or animation a bake would render."
+        );
+      }
+      if (!clip.currentAssetId) {
+        throw new Error(
+          `Clip "${clip.name}" has no glTF asset to bake — a 3D clip draws ` +
+            "its asset the way an image clip draws its image."
+        );
+      }
+      const sequence = {
+        fps: state.fps,
+        width: state.width,
+        height: state.height
+      };
+      const dependencyHash = computeModel3DBakeHash(clip, sequence);
+      if (!scope.ctx.bakeModel3DClip) {
+        return {
+          ok: true,
+          clip: scope.clipOut(clip),
+          bakeStarted: false,
+          note: "This surface has no Blender renderer, so nothing was baked."
+        };
+      }
+      const baked = await scope.ctx.bakeModel3DClip({
+        clip,
+        sequence,
+        dependencyHash
+      });
+      const now = (scope.ctx.now ?? (() => new Date().toISOString()))();
+      clip.model3dStyle = {
+        ...style,
+        bake: { assetId: baked.assetId, dependencyHash }
+      };
+      // The bake joins the clip's own version history, so an earlier one can
+      // be restored the way an earlier generation can.
+      clip.versions = [
+        ...(clip.versions ?? []),
+        makeClipVersion({
+          id: scope.ctx.newId("version"),
+          createdAt: now,
+          workflowUpdatedAt: now,
+          jobId: baked.jobId ?? "",
+          assetId: baked.assetId,
+          dependencyHash
+        })
+      ];
+      scope.touch(clip.id);
+      return { ok: true, clip: scope.clipOut(clip), bakeStarted: true };
     }
 
     case "add_group": {

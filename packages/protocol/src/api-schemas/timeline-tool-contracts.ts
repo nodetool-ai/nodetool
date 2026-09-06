@@ -24,6 +24,7 @@
 
 import { z } from "zod";
 import {
+  ADD_MODEL3D_CLIP_DESCRIPTION,
   ADD_SHAPE_CLIP_DESCRIPTION,
   ADD_TEXT_CLIP_DESCRIPTION,
   ADD_TRACK_DESCRIPTION,
@@ -42,6 +43,7 @@ import {
   effectParams,
   maskParams,
   matteParams,
+  model3dStyleParams,
   moveTrackShape,
   partialTextStyleParams,
   quantizeNotesParams,
@@ -51,6 +53,8 @@ import {
   setTempoParams,
   setTimeRemapParams,
   setTrackInstrumentParams,
+  SET_MODEL3D_STYLE_DESCRIPTION,
+  BAKE_MODEL3D_CLIP_DESCRIPTION,
   shapeStyleParams,
   transposeClipParams,
   targetParam,
@@ -310,6 +314,39 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         durationMs: z.number().optional(),
         opacity: clipOpacityParam,
         ...shapeStyleParams.partial().shape
+      },
+      finalize: strictParams
+    },
+
+    ui_timeline_add_model3d_clip: {
+      description: ADD_MODEL3D_CLIP_DESCRIPTION,
+      shape: {
+        assetId: z
+          .string()
+          .trim()
+          .min(1)
+          .describe("Asset id of the .glb/.gltf model (from list_assets)."),
+        trackId: z.string().optional(),
+        startMs: z.number().optional(),
+        durationMs: z.number().optional(),
+        style: model3dStyleParams.optional()
+      },
+      finalize: strictParams
+    },
+
+    ui_timeline_set_model3d_style: {
+      description: SET_MODEL3D_STYLE_DESCRIPTION,
+      shape: {
+        target: targetParam,
+        patch: model3dStyleParams
+      },
+      finalize: strictParams
+    },
+
+    ui_timeline_bake_model3d_clip: {
+      description: BAKE_MODEL3D_CLIP_DESCRIPTION,
+      shape: {
+        target: targetParam
       },
       finalize: strictParams
     },

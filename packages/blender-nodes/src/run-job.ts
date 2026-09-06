@@ -114,11 +114,12 @@ export async function runBlenderJob(
     );
   }
   const outputEntries = Object.entries(outputs);
-  if (outputEntries.length > MAX_OUTPUT_COUNT) {
+  const maxOutputCount = options.maxOutputCount ?? MAX_OUTPUT_COUNT;
+  if (outputEntries.length > maxOutputCount) {
     throw new BlenderJobError(
       "bad_job",
       `Too many Blender outputs: ${outputEntries.length} declared, ` +
-        `at most ${MAX_OUTPUT_COUNT} allowed.`
+        `at most ${maxOutputCount} allowed.`
     );
   }
   for (const [name, file] of outputEntries) {

@@ -14,6 +14,7 @@
 
 import type {
   ClipMediaType,
+  ClipModel3DStyle,
   TimelineSequence,
   TimelineTrack,
   TimelineClip,
@@ -41,6 +42,19 @@ export const DEFAULT_TEXT_CLIP_FONT_SIZE_PX = 96;
  * Assets are catalogued without probing, so `Asset.duration` is often null.
  */
 export const DEFAULT_MEDIA_CLIP_DURATION_MS = 4000;
+
+/**
+ * What a 3D clip is called before anyone renames it. The glTF's own name is on
+ * the asset row, and a clip is placed by asset id without reading it.
+ */
+export const DEFAULT_MODEL3D_CLIP_NAME = "3D model";
+
+/**
+ * Length a 3D clip gets when the caller names none. A glTF has no duration of
+ * its own — the model plays for as long as the clip is on screen — so four
+ * seconds is a window long enough to see a turntable go round.
+ */
+export const DEFAULT_MODEL3D_CLIP_DURATION_MS = 4000;
 
 /**
  * The timeline media type an asset's MIME type maps to, or null when the
@@ -90,6 +104,28 @@ export function clipFitsTrack(
 export const DEFAULT_SHAPE_FILL_COLOR = "#FFFFFF";
 export const DEFAULT_SHAPE_STROKE_COLOR = "#FFFFFF";
 export const DEFAULT_SHAPE_STROKE_WIDTH_PX = 8;
+
+/**
+ * The look a 3D clip starts with. The orbit terms, lighting and intensity are
+ * the `nodetool.model3d.RenderToImage` defaults, so the same model reads the
+ * same in a workflow render and on the timeline. The background differs on
+ * purpose: a clip is composited over the layers under it, so it starts
+ * transparent where the node starts on white.
+ */
+export const DEFAULT_MODEL3D_STYLE: ClipModel3DStyle = {
+  camera: {
+    mode: "orbit",
+    azimuthDeg: 45,
+    elevationDeg: 25,
+    fovDeg: 35,
+    zoom: 1
+  },
+  // `clipName` absent plays every animation the glTF declares.
+  animation: { loop: true, speed: 1 },
+  lighting: "studio",
+  lightIntensity: 1,
+  background: { transparent: true }
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────
 

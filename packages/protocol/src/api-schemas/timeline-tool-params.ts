@@ -26,6 +26,9 @@ import { isRecord, isString } from "../predicates.js";
 import { withKeyRemedies } from "../zod-schema.js";
 import {
   captionStyle,
+  clipModel3DAnimation,
+  clipModel3DCamera,
+  clipModel3DStyle,
   clipShapeStyle,
   clipTextStyle,
   midiInstrument,
@@ -561,6 +564,103 @@ export function resolveShapeArg(
   }
   return parsed.data;
 }
+
+/** Where a 3D clip's camera sits, in the orbit terms every 3D surface shares. */
+const model3dCameraParams = withFieldNotes(clipModel3DCamera, {
+  mode:
+    '"orbit" (default) frames the model\'s bounding sphere with the terms ' +
+    'below; "scene" uses a camera the glTF declares and ignores them.',
+  azimuthDeg: "Rotation around the model, degrees. 0 is front.",
+  elevationDeg: "Height of the camera, degrees. 0 is level, 90 is overhead.",
+  fovDeg: "Vertical field of view, degrees. Lower is a longer lens.",
+  zoom: "Distance multiplier on the auto-framed fit: above 1 moves closer.",
+  targetOffset:
+    "[x, y, z] offset of the look-at point from the bounding-sphere centre, " +
+    "in the model's own units. Use it to frame a detail off-centre.",
+  sceneCameraName:
+    'mode "scene" only: the glTF camera to shoot through. The first one when ' +
+    "absent."
+}).strict();
+
+/** Which glTF animation a 3D clip plays, and how. */
+const model3dAnimationParams = withFieldNotes(clipModel3DAnimation, {
+  clipName:
+    "Name of the glTF animation to play. Every animation the model declares " +
+    "plays when this is absent.",
+  loop: "Wrap at the animation's end (default), or hold its last frame.",
+  speed:
+    "Playback multiplier on top of the clip's own speed and time remap. The " +
+    "animation follows the clip's source time, so a trim hides frames rather " +
+    "than dropping them."
+}).strict();
+
+/**
+ * A 3D clip's look, as both `add_model3d_clip` and `set_model3d_style` take
+ * it: a patch, merged one level down over what the clip already has.
+ *
+ * Every block is optional so `{camera: {azimuthDeg: 90}}` turns the model and
+ * leaves the elevation, lens and framing alone — sending the camera whole to
+ * change one term is how a caller resets the other four by accident.
+ * `background` is the exception and replaces whole: it is a union, and half of
+ * it is not a background. `bake` is absent because a bake is a render paired
+ * with the hash it was rendered at, which only bake_model3d_clip can pair.
+ */
+export const model3dStyleParams = z
+  .object({
+    camera: model3dCameraParams.partial().optional(),
+    animation: model3dAnimationParams.partial().optional(),
+    lighting: clipModel3DStyle.shape.lighting
+      .optional()
+      .describe(
+        '"studio" (default), "soft" or "flat". The same three presets ' +
+          "nodetool.model3d.RenderToImage lights with."
+      ),
+    lightIntensity: clipModel3DStyle.shape.lightIntensity
+      .optional()
+      .describe("Multiplier on the lighting preset. Default 1."),
+    background: clipModel3DStyle.shape.background
+      .optional()
+      .describe(
+        "{transparent: true} (default — the model composites over the layers " +
+          'under it) or {transparent: false, color: "#101418"}.'
+      )
+  })
+  .strict();
+
+export const ADD_MODEL3D_CLIP_DESCRIPTION =
+  "Place a glTF model on a picture track of the specified timeline sequence. " +
+  "`assetId` is the .glb/.gltf asset's id (list_assets prints them) — the " +
+  "model is the clip's asset the way an image is an image clip's. Without a " +
+  "track the clip lands on the first overlay track, creating one when there " +
+  "is none; without `startMs` it is appended after that track's content. It " +
+  "lasts 4000ms by default. `style` is the look — camera (orbit " +
+  "azimuth/elevation/fov/zoom, or a glTF camera by name), which animation " +
+  "plays, lighting and background — and every field it leaves out takes the " +
+  "default: a 45\u00b0/25\u00b0 orbit, studio lighting, and a transparent background so " +
+  "the model composites over the picture beneath it. The model's own " +
+  "animation follows the clip's source time, so trimming and speed apply to " +
+  "it like video. For a turntable, animate_clip with the `orbit` preset " +
+  "drives the camera.";
+
+export const SET_MODEL3D_STYLE_DESCRIPTION =
+  "Change a 3D clip's camera, animation choice, lighting or background. The " +
+  "patch merges one level down, so {camera: {azimuthDeg: 90}} turns the model " +
+  "and keeps the elevation, lens and framing it was framed at. `background` " +
+  "replaces whole: {transparent: true} or {transparent: false, color}. Use " +
+  "animate_clip with the `orbit` preset for a camera move over time rather " +
+  "than a fixed pose.";
+
+export const BAKE_MODEL3D_CLIP_DESCRIPTION =
+  "Render a 3D clip through Blender and store the result on it, so the clip " +
+  "plays that video instead of the live proxy. The bake is the clip as it " +
+  "stands — its trim, speed, time remap, animation choice and camera move all " +
+  "applied — at the sequence's fps and resolution, and it is played from the " +
+  "clip's own first frame. Any later edit that changes the picture (the " +
+  "style, the model, the trim, the duration, the speed, the remap, a camera " +
+  "animation, or the sequence settings) makes it stale and the live 3D layer " +
+  "draws again until it is baked afresh; validate_timeline reports that as " +
+  "`bake_stale`. A clip with a transparent background is refused: an alpha " +
+  "bake needs a WebM VP9 encode this build does not have.";
 
 /**
  * A caption's look. Every field is optional and an absent one keeps the
@@ -1271,6 +1371,12 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_add_media_clip",
   "ui_timeline_add_text_clip",
   "ui_timeline_add_shape_clip",
+  // 3D is picture, so it goes on a video or overlay track like any other
+  // layer; the model is the clip's asset and the style is everything the
+  // timeline adds on top.
+  "ui_timeline_add_model3d_clip",
+  "ui_timeline_set_model3d_style",
+  "ui_timeline_bake_model3d_clip",
   "ui_timeline_add_group",
   "ui_timeline_generate_clip",
   "ui_timeline_split_clip",

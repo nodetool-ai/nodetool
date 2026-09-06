@@ -6,6 +6,7 @@
  *
  * - Default tab: "Templates" — workflows tagged `"timeline-template"`.
  * - Expander: "All workflows" — all standalone workflows (run_mode IN ("workflow", null)).
+ * - "3D model" — the glTF assets in the library, placed as a `model3d` clip.
  *
  * When the user picks a workflow:
  *  1. If it has multiple terminal output nodes, a second step asks which one to use.
@@ -17,6 +18,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ViewInArIcon from "@mui/icons-material/ViewInAr";
 
 import {
   FlexColumn,
@@ -42,7 +44,12 @@ import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import ImageModelSelect from "../properties/ImageModelSelect";
 import VideoModelSelect from "../properties/VideoModelSelect";
 import TTSModelSelect from "../properties/TTSModelSelect";
-import type { ImageModelValue, TTSModelValue } from "../../stores/ApiTypes";
+import type {
+  Asset,
+  ImageModelValue,
+  TTSModelValue
+} from "../../stores/ApiTypes";
+import { clipFitsTrack } from "@nodetool-ai/timeline";
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 
 interface VideoModelChange {
@@ -266,6 +273,85 @@ const OutputSelectPanel: React.FC<OutputSelectPanelProps> = memo(
 
 OutputSelectPanel.displayName = "OutputSelectPanel";
 
+// ── 3D model asset sub-panel ───────────────────────────────────────────────
+
+interface Model3DPickerPanelProps {
+  onSelect: (asset: Asset) => void;
+  onBack: () => void;
+}
+
+/**
+ * The library's glTF assets, filtered to `model/*` by the server. A 3D clip
+ * draws its asset the way an image clip draws its image, so picking one here
+ * is the same act as dragging it onto the lane.
+ */
+const Model3DPickerPanel: React.FC<Model3DPickerPanelProps> = memo(
+  ({ onSelect, onBack }) => {
+    const theme = useTheme();
+    const modelsQuery = trpc.assets.list.useQuery(
+      { content_type: "model", page_size: 200 },
+      { staleTime: 60_000 }
+    );
+    const assets = modelsQuery.data?.assets ?? [];
+
+    return (
+      <FlexColumn gap={1}>
+        <FlexRow align="center" gap={0.5}>
+          <ToolbarIconButton
+            icon={<ArrowBackIcon fontSize="small" />}
+            tooltip="Back"
+            onClick={onBack}
+            aria-label="Back to clip sources"
+          />
+          <Text size="small" weight={500} sx={{ flex: 1 }}>
+            Pick a 3D model
+          </Text>
+        </FlexRow>
+        {modelsQuery.isLoading ? (
+          <FlexRow justify="center" sx={{ py: 3 }}>
+            <LoadingSpinner size="small" />
+          </FlexRow>
+        ) : assets.length === 0 ? (
+          <EmptyState
+            title="No 3D models"
+            description="Upload a .glb or .gltf asset first."
+            size="small"
+          />
+        ) : (
+          <FlexColumn gap={0}>
+            {assets.map((asset) => (
+              <FlexColumn
+                key={asset.id}
+                gap={0}
+                css={workflowItemStyles(theme)}
+                role="button"
+                tabIndex={0}
+                aria-label={`Add a 3D clip from "${asset.name}"`}
+                onClick={() => onSelect(asset)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelect(asset);
+                  }
+                }}
+              >
+                <Text size="small" weight={500}>
+                  {asset.name}
+                </Text>
+                <Caption sx={{ color: "text.secondary" }}>
+                  {asset.content_type}
+                </Caption>
+              </FlexColumn>
+            ))}
+          </FlexColumn>
+        )}
+      </FlexColumn>
+    );
+  }
+);
+
+Model3DPickerPanel.displayName = "Model3DPickerPanel";
+
 // ── Main component ─────────────────────────────────────────────────────────
 
 interface AddClipMenuProps {
@@ -321,6 +407,9 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
       undefined
     );
 
+    // 3D model picking — the sub-panel replaces the menu body while open.
+    const [pickingModel3D, setPickingModel3D] = useState(false);
+
     // Reset transient state when the popover (re)opens. Without this, a stale
     // prompt or error from a previous open would still be visible, and the
     // model picker wouldn't reflect any direct-gen clips added since.
@@ -328,6 +417,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
       if (!anchorEl) return;
       setPrompt("");
       setError(null);
+      setPickingModel3D(false);
       setDirectProvider(lastModel.provider);
       setDirectModel(lastModel.model);
       setDirectVoice(lastModel.voice);
@@ -347,6 +437,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
 
     const addGeneratedClip = useTimelineStore((s) => s.addGeneratedClip);
     const addDirectGenClip = useTimelineStore((s) => s.addDirectGenClip);
+    const addImportedClip = useTimelineStore((s) => s.addImportedClip);
     const selectClip = useTimelineUIStore((s) => s.selectClip);
     const directGen = useTimelineDirectGenJob();
 
@@ -447,6 +538,24 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
       setTerminalOutputs(null);
       setError(null);
     }, []);
+
+    // 3D is picture, so it goes wherever a title goes: a video or overlay lane.
+    const canAddModel3D = clipFitsTrack("model3d", trackType);
+
+    const handleModel3DSelect = useCallback(
+      (asset: Asset) => {
+        setError(null);
+        try {
+          const clipId = addImportedClip(asset, trackId, startMs);
+          selectClip(clipId);
+          onClose();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Failed to add clip");
+          setPickingModel3D(false);
+        }
+      },
+      [addImportedClip, trackId, startMs, selectClip, onClose]
+    );
 
     const handleTabChange = useCallback((tab: string) => {
       setActiveTab(tab as "templates" | "all");
@@ -551,8 +660,8 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
         placement="bottom-left"
       >
         <FlexColumn gap={1} css={menuStyles(theme)}>
-          {/* Header (hidden when showing output-select sub-panel) */}
-          {!terminalOutputs && (
+          {/* Header (hidden while a sub-panel is showing) */}
+          {!terminalOutputs && !pickingModel3D && (
             <>
               <FlexRow align="center" justify="space-between">
                 <Text size="small" weight={600}>
@@ -629,6 +738,36 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                     )}
                   </FlexColumn>
 
+                  {/* 3D model — the asset picker, not a generator */}
+                  {canAddModel3D && (
+                    <FlexRow
+                      align="center"
+                      gap={1}
+                      css={workflowItemStyles(theme)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Add a 3D model clip"
+                      data-testid="add-clip-model3d"
+                      onClick={() => setPickingModel3D(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setPickingModel3D(true);
+                        }
+                      }}
+                    >
+                      <ViewInArIcon fontSize="small" />
+                      <FlexColumn gap={0}>
+                        <Text size="small" weight={500}>
+                          3D model
+                        </Text>
+                        <Caption sx={{ color: "text.secondary" }}>
+                          Place a glTF asset on this track
+                        </Caption>
+                      </FlexColumn>
+                    </FlexRow>
+                  )}
+
                   <Caption
                     sx={(theme) => ({
                       color: "text.disabled",
@@ -689,6 +828,14 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                 />
               </TabPanel>
             </>
+          )}
+
+          {/* 3D model sub-panel */}
+          {pickingModel3D && (
+            <Model3DPickerPanel
+              onSelect={handleModel3DSelect}
+              onBack={() => setPickingModel3D(false)}
+            />
           )}
 
           {/* Multi-output selection sub-panel */}

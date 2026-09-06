@@ -25,6 +25,7 @@
     "@nodetool-ai/gpu": "*",
     "@nodetool-ai/image-editor": "*",
     "@nodetool-ai/model-pricing": "*",
+    "@nodetool-ai/model3d": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
     "@nodetool-ai/timeline": "*",

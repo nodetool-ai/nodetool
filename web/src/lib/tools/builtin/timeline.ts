@@ -264,6 +264,49 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  ...shared("ui_timeline_add_model3d_clip"),
+  async execute({ timeline_id, assetId, trackId, startMs, durationMs, style }) {
+    const clip = getTimelineAgentHandler(timeline_id).addModel3DClip({
+      assetId,
+      trackId,
+      startMs,
+      durationMs,
+      style
+    });
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_set_model3d_style"),
+  async execute({ timeline_id, target, patch }) {
+    const clip = getTimelineAgentHandler(timeline_id).setModel3DStyle(
+      target,
+      patch
+    );
+    return { ok: true, clip };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_bake_model3d_clip"),
+  async execute({ timeline_id, target }) {
+    const clip =
+      await getTimelineAgentHandler(timeline_id).bakeModel3DClip(target);
+    return {
+      ok: true,
+      clip,
+      bakeStarted: true,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
   ...shared("ui_timeline_generate_clip"),
   async execute({ timeline_id, ...args }) {
     const result =
