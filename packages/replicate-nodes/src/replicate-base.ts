@@ -5,6 +5,21 @@
 
 import Replicate from "replicate";
 import { fetchExternalMedia, withReplicateRetry } from "@nodetool-ai/runtime";
+import { isCallable, isNonEmptyString, isString } from "@nodetool-ai/node-sdk";
+import type { NodeValue } from "@nodetool-ai/node-sdk";
+
+// ---------------------------------------------------------------------------
+// Domain types
+// ---------------------------------------------------------------------------
+
+/**
+ * The `input` bag a Replicate model receives. Every value comes off a node
+ * property or a prompt-asset override, so `NodeValue` is the exact contract.
+ */
+export type ReplicateInput = Record<string, NodeValue>;
+
+/** An asset ref held by a node property: `uri`, `data`, `asset_id`, `type`. */
+export type ReplicateAssetRef = Record<string, NodeValue>;
 
 // ---------------------------------------------------------------------------
 // Client cache — one Replicate client instance per API key
@@ -44,7 +59,7 @@ export function getReplicateApiKey(secrets: Record<string, string>): string {
  * (json_schema, response_format, …). Recursing would mutate those in place and
  * silently strip sub-keys the user meant to send. `0` and `false` are kept.
  */
-export function removeNulls(obj: Record<string, unknown>): void {
+export function removeNulls(obj: ReplicateInput): void {
   for (const k of Object.keys(obj)) {
     if (obj[k] == null || obj[k] === "") {
       delete obj[k];
@@ -53,13 +68,17 @@ export function removeNulls(obj: Record<string, unknown>): void {
 }
 
 /** Check if an asset ref has meaningful content (uri, data, or asset_id). */
-export function isRefSet(ref: unknown): boolean {
-  if (!ref || typeof ref !== "object") return false;
-  const r = ref as Record<string, unknown>;
+export function isRefSet(ref: NodeValue): ref is ReplicateAssetRef {
+  if (!isRefLike(ref)) return false;
   // A library-picked or freshly-generated ref carries only `asset_id` (with an
   // empty `uri`); it still resolves to bytes via the upload context, so treat a
   // non-empty `asset_id` as a source. `null`/`""` stay unset.
-  return Boolean(r.data || r.uri || r.asset_id);
+  return Boolean(ref.data || ref.uri || ref.asset_id);
+}
+
+/** Anything `typeof` calls "object" except `null` — arrays carry no ref keys. */
+function isRefLike(ref: NodeValue): ref is ReplicateAssetRef {
+  return ref !== null && typeof ref === "object";
 }
 
 interface UploadContext {
@@ -79,15 +98,15 @@ interface UploadContext {
  * files API via the SDK so the model can access them.
  */
 export async function assetToUrl(
-  ref: Record<string, unknown>,
+  ref: ReplicateAssetRef,
   apiKey?: string,
   context?: UploadContext
 ): Promise<string | null> {
-  let uri = ref.uri as string | undefined;
+  let uri = isString(ref.uri) ? ref.uri : undefined;
   // A library-picked or generated ref may carry only `asset_id` (empty `uri`).
   // Encode it as an `asset://<id>` URI so the trusted context-resolver branch
   // below uploads it instead of dropping the ref.
-  if (!uri && typeof ref.asset_id === "string" && ref.asset_id) {
+  if (!uri && isNonEmptyString(ref.asset_id)) {
     uri = `asset://${ref.asset_id}`;
   }
   if (uri) {
@@ -151,7 +170,7 @@ export async function assetToUrl(
     }
     return uri;
   }
-  const data = ref.data as string | undefined;
+  const data = isNonEmptyString(ref.data) ? ref.data : undefined;
   if (data) {
     const mime = inferMime(ref);
     return `data:${mime};base64,${data}`;
@@ -200,13 +219,44 @@ async function uploadToReplicate(
 // Submit via SDK
 // ---------------------------------------------------------------------------
 
+/** The SDK's `FileOutput`: a `url()` method, or a plain `url` string. */
+export interface ReplicateFileOutput {
+  url: string | (() => URL | string);
+}
+
 /**
  * What a Replicate model resolves to. The SDK types `run()` as `object`, but a
  * text model resolves to a bare string and a number of models resolve to a
  * number or boolean, so the union covers every JSON value a model can produce
  * — including the SDK's own `FileOutput` (an object carrying `url`).
  */
-export type ReplicateOutput = string | number | boolean | null | object;
+export type ReplicateOutput =
+  | string
+  | number
+  | boolean
+  | null
+  | ReplicateFileOutput
+  | ReplicateOutput[]
+  | { [key: string]: ReplicateOutput };
+
+/** An object-valued output: a keyed bag of further outputs, or an array. */
+type ReplicateOutputRecord = { [key: string]: ReplicateOutput };
+
+function isOutputRecord(
+  value: ReplicateOutput
+): value is ReplicateOutputRecord {
+  return value !== null && typeof value === "object";
+}
+
+function isOutputArray(value: ReplicateOutput): value is ReplicateOutput[] {
+  return Array.isArray(value);
+}
+
+/** The media ref a converter builds; `uri` is absent when no URL was found. */
+export type ReplicateMediaRef = {
+  type: "image" | "video" | "audio";
+  uri?: string;
+};
 
 export interface ReplicateResult {
   output: ReplicateOutput;
@@ -223,13 +273,19 @@ export interface ReplicateResult {
 export async function replicateSubmit(
   apiKey: string,
   modelId: string,
-  input: Record<string, unknown>
+  input: ReplicateInput
 ): Promise<ReplicateResult> {
   const client = getClient(apiKey);
-  const output = await withReplicateRetry(modelId, () =>
-    client.run(modelId as `${string}/${string}`, { input })
+  // SAFETY: `modelId` is a manifest `endpointId`, and every entry in
+  // `replicate-manifest.json` is a single `owner/name` pair.
+  const model = modelId as `${string}/${string}`;
+  const raw = await withReplicateRetry(modelId, () =>
+    client.run(model, { input })
   );
-  return { output };
+  // SAFETY: `run()` resolves to the model's decoded JSON response, with the
+  // SDK's own `FileOutput` objects substituted for file URLs — every branch
+  // `ReplicateOutput` names.
+  return { output: raw as ReplicateOutput };
 }
 
 // ---------------------------------------------------------------------------
@@ -247,28 +303,28 @@ const URL_LIKE = /^(https?:|data:)/;
  *     `{ output: <FileOutput> }`), found by scanning values for the first
  *     URL-like string or nested FileOutput/array/object.
  */
-function extractUrl(output: unknown): string | null {
+function extractUrl(output: ReplicateOutput): string | null {
   // A bare string output is itself the URL (the model's contract).
-  if (typeof output === "string") return output;
+  if (isString(output)) return output;
   return extractUrlFromValue(output);
 }
 
-function extractUrlFromValue(value: unknown): string | null {
-  if (!value || typeof value !== "object") return null;
+function extractUrlFromValue(value: ReplicateOutput): string | null {
+  if (!isOutputRecord(value)) return null;
 
   // FileOutput: a `.url()` method or a `.url` string property.
   if ("url" in value) {
     const u = value.url;
-    if (typeof u === "function") {
+    if (isCallable(u)) {
       // The Replicate SDK's FileOutput exposes `url()`, which returns a URL.
-      const resolved = (u as () => URL | string).call(value);
+      const resolved = u.call(value);
       if (resolved) return String(resolved);
     } else if (u) {
       return String(u);
     }
   }
 
-  if (Array.isArray(value)) {
+  if (isOutputArray(value)) {
     for (const item of value) {
       const url = urlFromAny(item);
       if (url) return url;
@@ -276,7 +332,7 @@ function extractUrlFromValue(value: unknown): string | null {
     return null;
   }
 
-  for (const v of Object.values(value as Record<string, unknown>)) {
+  for (const v of Object.values(value)) {
     const url = urlFromAny(v);
     if (url) return url;
   }
@@ -284,31 +340,31 @@ function extractUrlFromValue(value: unknown): string | null {
 }
 
 /** A nested string only counts if it looks like a URL; otherwise recurse. */
-function urlFromAny(value: unknown): string | null {
-  if (typeof value === "string") return URL_LIKE.test(value) ? value : null;
+function urlFromAny(value: ReplicateOutput): string | null {
+  if (isString(value)) return URL_LIKE.test(value) ? value : null;
   return extractUrlFromValue(value);
 }
 
-export function outputToImageRef(output: unknown) {
+export function outputToImageRef(output: ReplicateOutput): ReplicateMediaRef {
   const url = extractUrl(output);
   if (!url) return { type: "image" };
   return { type: "image", uri: url };
 }
 
-export function outputToVideoRef(output: unknown) {
+export function outputToVideoRef(output: ReplicateOutput): ReplicateMediaRef {
   const url = extractUrl(output);
   if (!url) return { type: "video" };
   return { type: "video", uri: url };
 }
 
-export function outputToAudioRef(output: unknown) {
+export function outputToAudioRef(output: ReplicateOutput): ReplicateMediaRef {
   const url = extractUrl(output);
   if (!url) return { type: "audio" };
   return { type: "audio", uri: url };
 }
 
-export function outputToString(output: unknown): string {
-  if (typeof output === "string") return output;
+export function outputToString(output: ReplicateOutput): string {
+  if (isString(output)) return output;
   if (Array.isArray(output)) return output.join("");
   if (output == null) return "";
   return JSON.stringify(output);
@@ -318,8 +374,8 @@ export function outputToString(output: unknown): string {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-function inferMime(ref: Record<string, unknown>): string {
-  const t = ref.type as string | undefined;
+function inferMime(ref: ReplicateAssetRef): string {
+  const t = isString(ref.type) ? ref.type : undefined;
   switch (t) {
     case "image":
       return "image/png";

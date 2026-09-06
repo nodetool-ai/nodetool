@@ -2,6 +2,26 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { getElevenLabsApiKey, VOICE_ID_MAP } from "../elevenlabs-base.js";
 
+/** Voice settings the API accepts; each field is sent only when it differs
+ * from the API default. */
+type VoiceSettingsPayload = {
+  stability?: number;
+  similarity_boost?: number;
+  style?: number;
+  use_speaker_boost?: boolean;
+};
+
+/** Request body for POST /v1/text-to-speech/{voice_id}. */
+type TextToSpeechPayload = {
+  text: string;
+  model_id: string;
+  optimize_streaming_latency: number;
+  language_code?: string;
+  seed?: number;
+  text_normalization?: string;
+  voice_settings?: VoiceSettingsPayload;
+};
+
 /** Output handles TextToSpeechNode.process() emits. */
 type TextToSpeechNodeOutputs = {
   output: { type: string; data: string };
@@ -194,7 +214,7 @@ export class TextToSpeechNode extends BaseNode {
     );
     const textNormalization = String(this.text_normalization ?? "auto");
 
-    const payload: Record<string, unknown> = {
+    const payload: TextToSpeechPayload = {
       text,
       model_id: modelId,
       optimize_streaming_latency: optimizeStreamingLatency
@@ -211,7 +231,7 @@ export class TextToSpeechNode extends BaseNode {
     }
 
     // Only send voice_settings when values differ from defaults
-    const voiceSettings: Record<string, unknown> = {};
+    const voiceSettings: VoiceSettingsPayload = {};
     if (stability !== 0.5) {
       voiceSettings.stability = stability;
     }

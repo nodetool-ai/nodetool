@@ -1,10 +1,22 @@
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import {
+  BaseNode,
+  isPositiveNumber,
+  isRecord,
+  isString,
+  prop
+} from "@nodetool-ai/node-sdk";
 import type {
   NodeClass,
   StreamingInputs,
   StreamingOutputs
 } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+
+/** Extra fields carried alongside a timestamped transcript chunk. */
+type TranscriptMetadata = {
+  language_code?: unknown;
+  words?: unknown;
+};
 
 export class RealtimeSpeechToTextNode extends BaseNode {
   static readonly nodeType = "elevenlabs.RealtimeSpeechToText";
@@ -115,8 +127,8 @@ export class RealtimeSpeechToTextNode extends BaseNode {
   })
   declare min_silence_duration_ms: any;
 
-  // Required by BaseNode but unused for streaming
-  async process(): Promise<Record<string, unknown>> {
+  // Required by BaseNode but unused for streaming: run() emits every output.
+  async process(): Promise<Record<string, never>> {
     return {};
   }
 
@@ -125,10 +137,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     outputs: StreamingOutputs,
     context?: ProcessingContext
   ): Promise<void> {
-    let apiKey = "";
-    if (context && typeof (context as any).getSecret === "function") {
-      apiKey = (await (context as any).getSecret("ELEVENLABS_API_KEY")) || "";
-    }
+    let apiKey = (await context?.getSecret("ELEVENLABS_API_KEY")) || "";
     if (!apiKey) apiKey = process.env.ELEVENLABS_API_KEY || "";
     if (!apiKey) throw new Error("ELEVENLABS_API_KEY is not configured");
 
@@ -178,8 +187,8 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     await new Promise<void>((resolve, reject) => {
       const onMsg = (data: Buffer | string) => {
         try {
-          const msg = JSON.parse(data.toString()) as Record<string, unknown>;
-          if (msg.message_type === "session_started") {
+          const msg: unknown = JSON.parse(data.toString());
+          if (isRecord(msg) && msg.message_type === "session_started") {
             ws.removeListener("message", onMsg);
             resolve();
           }
@@ -201,7 +210,8 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     const consumerPromise = new Promise<void>((resolve, reject) => {
       ws.on("message", async (data: Buffer | string) => {
         try {
-          const msg = JSON.parse(data.toString()) as Record<string, unknown>;
+          const msg: unknown = JSON.parse(data.toString());
+          if (!isRecord(msg)) return;
           const msgType = String(msg.message_type ?? "");
 
           if (
@@ -223,7 +233,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
           } else if (msgType === "committed_transcript_with_timestamps") {
             const text = String(msg.text ?? "");
             if (text) {
-              const metadata: Record<string, unknown> = {};
+              const metadata: TranscriptMetadata = {};
               if (msg.language_code) metadata.language_code = msg.language_code;
               if (msg.words) metadata.words = msg.words;
               await outputs.emit("chunk", {
@@ -263,26 +273,27 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     for await (const [handle, item] of inputs.any()) {
       if (handle === "__control__") continue;
 
-      const chunk = item as Record<string, unknown> | string;
       let audioB64: string;
       let done = false;
 
-      if (typeof chunk === "string") {
-        audioB64 = chunk;
-      } else {
-        if (!sampleRateDetected && chunk.content_metadata) {
-          const meta = chunk.content_metadata as Record<string, unknown>;
-          if (typeof meta.sample_rate === "number" && meta.sample_rate > 0) {
-            detectedSampleRate = meta.sample_rate;
+      if (isString(item)) {
+        audioB64 = item;
+      } else if (isRecord(item)) {
+        const metadata = item.content_metadata;
+        if (!sampleRateDetected && metadata) {
+          if (isRecord(metadata) && isPositiveNumber(metadata.sample_rate)) {
+            detectedSampleRate = metadata.sample_rate;
           }
           sampleRateDetected = true;
         }
 
-        if (chunk.content_type && chunk.content_type !== "audio") {
+        if (item.content_type && item.content_type !== "audio") {
           continue;
         }
-        audioB64 = String(chunk.content ?? "");
-        done = Boolean(chunk.done ?? false);
+        audioB64 = String(item.content ?? "");
+        done = Boolean(item.done ?? false);
+      } else {
+        continue;
       }
 
       if (done) {

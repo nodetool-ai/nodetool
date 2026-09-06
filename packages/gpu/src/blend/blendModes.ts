@@ -90,13 +90,19 @@ const INFO_BY_VALUE = new Map<BlendMode, BlendModeInfo>(
 );
 
 /**
- * Legacy / alias names accepted by {@link coerceBlendMode} that are not
- * themselves canonical values. The Compositor image node historically
- * stored `"over"` (the libvips name) for normal blending.
+ * Every persisted spelling of a blend mode, mapped to its canonical value:
+ * each canonical value itself, plus the legacy aliases — the Compositor image
+ * node historically stored `"over"` (the libvips name) for normal blending.
+ *
+ * Keyed by `unknown` so a persisted value that is not a blend-mode string at
+ * all (a number, an object, a stray data URL that leaked into UI state) simply
+ * misses the lookup instead of needing a representation check first.
  */
-const ALIASES: Record<string, BlendMode> = {
-  over: "normal"
-};
+const CANONICAL_BY_PERSISTED_VALUE = new Map<unknown, BlendMode>();
+for (const info of BLEND_MODE_INFOS) {
+  CANONICAL_BY_PERSISTED_VALUE.set(info.value, info.value);
+}
+CANONICAL_BY_PERSISTED_VALUE.set("over", "normal");
 
 /**
  * Coerce an arbitrary input to a canonical {@link BlendMode}. Unknown values
@@ -104,29 +110,23 @@ const ALIASES: Record<string, BlendMode> = {
  * to `"normal"`. Accepts the legacy `"over"` alias.
  */
 export function coerceBlendMode(value: unknown): BlendMode {
-  if (typeof value === "string") {
-    if (INFO_BY_VALUE.has(value as BlendMode)) {
-      return value as BlendMode;
-    }
-    const alias = ALIASES[value];
-    if (alias) {
-      return alias;
-    }
-  }
-  return "normal";
+  return CANONICAL_BY_PERSISTED_VALUE.get(value) ?? "normal";
 }
 
-/** Numeric id for the WGSL `applyBlendMode` switch. */
+/**
+ * Numeric id for the WGSL `applyBlendMode` switch. Takes a persisted value
+ * (canonical, legacy alias, or junk); anything unrecognized blends as normal.
+ */
 export function blendModeGpuId(value: unknown): number {
   return INFO_BY_VALUE.get(coerceBlendMode(value))?.gpuId ?? 0;
 }
 
-/** Canvas2D `globalCompositeOperation` for a blend mode. */
+/** Canvas2D `globalCompositeOperation` for a persisted blend mode. */
 export function blendModeToCanvasOp(value: unknown): CanvasCompositeOp {
   return INFO_BY_VALUE.get(coerceBlendMode(value))?.canvasOp ?? "source-over";
 }
 
-/** Sharp/libvips `blend` string for a blend mode. */
+/** Sharp/libvips `blend` string for a persisted blend mode. */
 export function blendModeToSharpBlend(value: unknown): string {
   return INFO_BY_VALUE.get(coerceBlendMode(value))?.sharpBlend ?? "over";
 }

@@ -13,6 +13,7 @@ import {
   videoRefFromBytes,
   videoRenderSettings
 } from "../minimax-base.js";
+import type { MinimaxVideoRequest } from "../minimax-base.js";
 
 /** Output handles MinimaxImageToVideoNode.process() emits. */
 type MinimaxImageToVideoNodeOutputs = {
@@ -98,7 +99,7 @@ export class MinimaxImageToVideoNode extends BaseNode {
 
     const model = String(this.model ?? "MiniMax-Hailuo-02");
     const dataUrl = `data:${mime};base64,${bytesToBase64(imageBytes)}`;
-    const body: Record<string, unknown> = {
+    const body: MinimaxVideoRequest = {
       model,
       ...videoRenderSettings(
         model,

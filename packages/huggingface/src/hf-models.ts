@@ -25,6 +25,14 @@ import * as os from "node:os";
 import { HfFastCache } from "./hf-cache.js";
 import { inspectPaths } from "./artifact-inspector.js";
 import type { ArtifactDetection } from "./artifact-inspector.js";
+import {
+  jsonArray,
+  jsonObject,
+  jsonString,
+  parseJsonObject,
+  type JsonObject
+} from "./json.js";
+import { tableLookup } from "./lookup.js";
 
 // ---------------------------------------------------------------------------
 // UnifiedModel interface
@@ -100,40 +108,39 @@ export const HF_PTH_FILE_PATTERNS: readonly string[] = ["*.pth", "*.pt"];
  * Known repo-id allowlists for supported model families.
  * These repos are recognized for offline type matching without hub metadata.
  */
-export const KNOWN_REPO_PATTERNS: Readonly<Record<string, readonly string[]>> =
-  {
-    flux: [
-      "Comfy-Org/flux1-dev",
-      "Comfy-Org/flux1-schnell",
-      "black-forest-labs/FLUX.1-dev",
-      "black-forest-labs/FLUX.1-schnell"
-    ],
-    flux_kontext: [
-      "black-forest-labs/FLUX.1-Kontext-dev",
-      "nunchaku-tech/nunchaku-flux-kontext"
-    ],
-    flux_canny: [
-      "black-forest-labs/FLUX.1-Canny-dev",
-      "nunchaku-tech/nunchaku-flux.1-canny-dev"
-    ],
-    flux_depth: [
-      "black-forest-labs/FLUX.1-Depth-dev",
-      "nunchaku-tech/nunchaku-flux.1-depth-dev"
-    ],
-    flux_vae: ["ffxvs/vae-flux"],
-    qwen_image: [
-      "Comfy-Org/Qwen-Image_ComfyUI",
-      "city96/Qwen-Image-gguf",
-      "nunchaku-tech/nunchaku-qwen-image"
-    ],
-    qwen_image_edit: ["Comfy-Org/Qwen-Image-Edit_ComfyUI"],
-    sd35: ["Comfy-Org/stable-diffusion-3.5-fp8"]
-  };
+export const KNOWN_REPO_PATTERNS = {
+  flux: [
+    "Comfy-Org/flux1-dev",
+    "Comfy-Org/flux1-schnell",
+    "black-forest-labs/FLUX.1-dev",
+    "black-forest-labs/FLUX.1-schnell"
+  ],
+  flux_kontext: [
+    "black-forest-labs/FLUX.1-Kontext-dev",
+    "nunchaku-tech/nunchaku-flux-kontext"
+  ],
+  flux_canny: [
+    "black-forest-labs/FLUX.1-Canny-dev",
+    "nunchaku-tech/nunchaku-flux.1-canny-dev"
+  ],
+  flux_depth: [
+    "black-forest-labs/FLUX.1-Depth-dev",
+    "nunchaku-tech/nunchaku-flux.1-depth-dev"
+  ],
+  flux_vae: ["ffxvs/vae-flux"],
+  qwen_image: [
+    "Comfy-Org/Qwen-Image_ComfyUI",
+    "city96/Qwen-Image-gguf",
+    "nunchaku-tech/nunchaku-qwen-image"
+  ],
+  qwen_image_edit: ["Comfy-Org/Qwen-Image-Edit_ComfyUI"],
+  sd35: ["Comfy-Org/stable-diffusion-3.5-fp8"]
+} satisfies Readonly<Record<string, readonly string[]>>;
 
 /**
  * Map hf.* types to repo-id allowlists so type matching can succeed offline.
  */
-export const KNOWN_TYPE_REPO_MATCHERS: Record<string, string[]> = {
+export const KNOWN_TYPE_REPO_MATCHERS = {
   "hf.flux": [...KNOWN_REPO_PATTERNS.flux],
   "hf.flux_fp8": [...KNOWN_REPO_PATTERNS.flux],
   "hf.flux_kontext": [...KNOWN_REPO_PATTERNS.flux_kontext],
@@ -169,12 +176,12 @@ export const KNOWN_TYPE_REPO_MATCHERS: Record<string, string[]> = {
     ...KNOWN_REPO_PATTERNS.qwen_image_edit
   ],
   "hf.t5": [...KNOWN_REPO_PATTERNS.sd35]
-};
+} satisfies Readonly<Record<string, string[]>>;
 
 /**
  * Base -> checkpoint variant mapping so heuristics propagate to single-file checkpoints.
  */
-export const _CHECKPOINT_BASES: Readonly<Record<string, string>> = {
+export const _CHECKPOINT_BASES = {
   "hf.stable_diffusion": "hf.stable_diffusion_checkpoint",
   "hf.stable_diffusion_xl": "hf.stable_diffusion_xl_checkpoint",
   "hf.stable_diffusion_3": "hf.stable_diffusion_3_checkpoint",
@@ -185,12 +192,12 @@ export const _CHECKPOINT_BASES: Readonly<Record<string, string>> = {
   "hf.flux_depth": "hf.flux_depth_checkpoint",
   "hf.qwen_image": "hf.qwen_image_checkpoint",
   "hf.qwen_image_edit": "hf.qwen_image_edit_checkpoint"
-};
+} satisfies Readonly<Record<string, string>>;
 
 /**
  * Keyword hints across repo id/tags/paths to associate models with hf.* types.
  */
-export const HF_TYPE_KEYWORD_MATCHERS: Record<string, string[]> = {
+const HF_TYPE_KEYWORD_MATCHERS_BASE = {
   "hf.stable_diffusion": ["stable-diffusion", "sd15"],
   "hf.stable_diffusion_xl": ["sdxl", "stable-diffusion-xl"],
   "hf.stable_diffusion_xl_refiner": ["refiner", "sdxl"],
@@ -216,22 +223,36 @@ export const HF_TYPE_KEYWORD_MATCHERS: Record<string, string[]> = {
   "hf.t5": ["t5"],
   "hf.flux_redux": ["flux", "redux"],
   "hf.real_esrgan": ["esrgan", "real-esrgan"]
-};
+} satisfies Readonly<Record<string, string[]>>;
 
-// Copy keyword matchers to checkpoint variants.
-for (const [base, ckpt] of Object.entries(_CHECKPOINT_BASES)) {
-  if (base in HF_TYPE_KEYWORD_MATCHERS && !(ckpt in HF_TYPE_KEYWORD_MATCHERS)) {
-    HF_TYPE_KEYWORD_MATCHERS[ckpt] = [...HF_TYPE_KEYWORD_MATCHERS[base]];
+/** Give each checkpoint variant the keywords of the base type it derives from. */
+function withCheckpointKeywords(
+  base: Readonly<Record<string, readonly string[]>>
+) {
+  const out: Record<string, string[]> = {};
+  for (const [type, keywords] of Object.entries(base)) {
+    out[type] = [...keywords];
   }
+  for (const [baseType, checkpointType] of Object.entries(_CHECKPOINT_BASES)) {
+    const keywords = out[baseType];
+    if (!keywords || checkpointType in out) continue;
+    out[checkpointType] = [...keywords];
+  }
+  return out;
 }
+
+/**
+ * Keyword hints per hf.* type, including the checkpoint variants derived from
+ * their base types.
+ */
+export const HF_TYPE_KEYWORD_MATCHERS: Record<string, string[]> =
+  withCheckpointKeywords(HF_TYPE_KEYWORD_MATCHERS_BASE);
 
 /**
  * Map transformer architecture class names (from `config.json` `architectures` array)
  * to hf.* types for offline model-type inference.
  */
-export const _CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING: Readonly<
-  Record<string, string>
-> = {
+export const _CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING = {
   // Causal language models (text generation)
   LlamaForCausalLM: "hf.text_generation",
   LlamaForSequenceClassification: "hf.text_classification",
@@ -287,12 +308,12 @@ export const _CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING: Readonly<
   Qwen2VLForConditionalGeneration: "hf.image_text_to_text",
   Qwen2_5_VLForConditionalGeneration: "hf.image_text_to_text",
   Qwen3VLForConditionalGeneration: "hf.image_text_to_text"
-};
+} satisfies Readonly<Record<string, string>>;
 
 /**
  * Map transformer `model_type` values to hf.* types when configs are parsed offline.
  */
-export const _CONFIG_MODEL_TYPE_MAPPING: Readonly<Record<string, string>> = {
+export const _CONFIG_MODEL_TYPE_MAPPING = {
   whisper: "hf.automatic_speech_recognition",
   "automatic-speech-recognition": "hf.automatic_speech_recognition",
   "audio-classification": "hf.audio_classification",
@@ -351,12 +372,12 @@ export const _CONFIG_MODEL_TYPE_MAPPING: Readonly<Record<string, string>> = {
   clip: "hf.zero_shot_image_classification",
   clip_vision_model: "hf.zero_shot_image_classification",
   resnet: "hf.image_classification"
-};
+} satisfies Readonly<Record<string, string>>;
 
 /**
  * Diffusers pipeline class name -> hf.* type mapping.
  */
-export const CLASSNAME_TO_MODEL_TYPE: Readonly<Record<string, string>> = {
+export const CLASSNAME_TO_MODEL_TYPE = {
   StableDiffusionPipeline: "hf.stable_diffusion",
   StableDiffusionImg2ImgPipeline: "hf.stable_diffusion",
   StableDiffusionInpaintPipeline: "hf.inpainting",
@@ -378,7 +399,7 @@ export const CLASSNAME_TO_MODEL_TYPE: Readonly<Record<string, string>> = {
   QwenImagePipeline: "hf.qwen_image",
   QwenImageEditPlusPipeline: "hf.qwen_image_edit",
   NunchakuQwenImageTransformer2DModel: "hf.qwen_image"
-};
+} satisfies Readonly<Record<string, string>>;
 
 // ---------------------------------------------------------------------------
 // RepoPackagingHint
@@ -456,10 +477,18 @@ export const _ADAPTER_MARKERS: readonly string[] = [
 /**
  * Static search hints per hf.* type used to build repo/file queries (offline/hub).
  */
-export const HF_SEARCH_TYPE_CONFIG: Record<
-  string,
-  Record<string, string[] | string>
-> = {
+export interface HfSearchTypeConfig {
+  /** Glob patterns matched against file names inside a repo. */
+  filename_pattern?: string[];
+  /** Glob patterns (or exact repo ids) matched against the repo id. */
+  repo_pattern?: string[];
+  /** Hub tag filters; `*` wildcards are stripped before they reach the API. */
+  tag?: string[];
+  /** Hub pipeline tags. Free text: not every value is a `PipelineType`. */
+  pipeline_tag?: string[];
+}
+
+const HF_SEARCH_TYPE_CONFIG_BASE = {
   "hf.stable_diffusion_3": {
     filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
     repo_pattern: [...KNOWN_REPO_PATTERNS.sd35]
@@ -604,27 +633,56 @@ export const HF_SEARCH_TYPE_CONFIG: Record<
     repo_pattern: ["*esrgan*"],
     filename_pattern: [...HF_DEFAULT_FILE_PATTERNS]
   }
-};
+} satisfies Readonly<Record<string, HfSearchTypeConfig>>;
 
-// Derive checkpoint variants (single-file) from base configs.
-for (const [base, ckpt] of Object.entries(_CHECKPOINT_BASES)) {
-  if (base in HF_SEARCH_TYPE_CONFIG && !(ckpt in HF_SEARCH_TYPE_CONFIG)) {
-    const baseCfg = HF_SEARCH_TYPE_CONFIG[base];
-    const derived: Record<string, string[] | string> = {};
-    for (const [k, v] of Object.entries(baseCfg)) {
-      derived[k] = Array.isArray(v) ? [...v] : v;
-    }
-    HF_SEARCH_TYPE_CONFIG[ckpt] = derived;
+/** Give each single-file checkpoint variant a copy of its base type's config. */
+function withCheckpointSearchConfig(
+  base: Readonly<Record<string, HfSearchTypeConfig>>
+) {
+  const out: Record<string, HfSearchTypeConfig> = {};
+  for (const [type, config] of Object.entries(base)) {
+    out[type] = copySearchConfig(config);
   }
+  for (const [baseType, checkpointType] of Object.entries(_CHECKPOINT_BASES)) {
+    const baseConfig = out[baseType];
+    if (!baseConfig || checkpointType in out) continue;
+    out[checkpointType] = copySearchConfig(baseConfig);
+  }
+  return out;
 }
+
+function copySearchConfig(config: HfSearchTypeConfig): HfSearchTypeConfig {
+  return {
+    filename_pattern: config.filename_pattern && [...config.filename_pattern],
+    repo_pattern: config.repo_pattern && [...config.repo_pattern],
+    tag: config.tag && [...config.tag],
+    pipeline_tag: config.pipeline_tag && [...config.pipeline_tag]
+  };
+}
+
+/**
+ * Search hints per hf.* type, including the checkpoint variants derived from
+ * their base types.
+ */
+export const HF_SEARCH_TYPE_CONFIG: Record<string, HfSearchTypeConfig> =
+  withCheckpointSearchConfig(HF_SEARCH_TYPE_CONFIG_BASE);
 
 // ---------------------------------------------------------------------------
 // HF_TYPE_STRUCTURAL_RULES
 // ---------------------------------------------------------------------------
 
-export const HF_TYPE_STRUCTURAL_RULES: Readonly<
-  Record<string, Record<string, boolean>>
-> = {
+export interface HfStructuralRules {
+  /** The type is only ever a single file inside a repo, never a whole repo. */
+  file_only?: boolean;
+  /** The type is a single-file checkpoint. */
+  checkpoint?: boolean;
+  /** The checkpoint lives in a subdirectory of the repo. */
+  nested_checkpoint?: boolean;
+  /** A repo holding exactly one file of this type counts as the model. */
+  single_file_repo?: boolean;
+}
+
+export const HF_TYPE_STRUCTURAL_RULES = {
   "hf.unet": { file_only: true },
   "hf.vae": { file_only: true },
   "hf.clip": { file_only: true },
@@ -650,7 +708,7 @@ export const HF_TYPE_STRUCTURAL_RULES: Readonly<
   "hf.stable_diffusion_xl": { single_file_repo: true },
   "hf.stable_diffusion_3": { single_file_repo: true },
   "hf.stable_diffusion_xl_refiner": { single_file_repo: true }
-};
+} satisfies Readonly<Record<string, HfStructuralRules>>;
 
 // ---------------------------------------------------------------------------
 // GENERIC_HF_TYPES & SUPPORTED_MODEL_TYPES
@@ -976,10 +1034,9 @@ export function _calculateRepoStats(
 // JSON helpers
 // ---------------------------------------------------------------------------
 
-function _safeLoadJson(filePath: string): Record<string, unknown> {
+function _safeLoadJson(filePath: string): JsonObject {
   try {
-    const content = fs.readFileSync(filePath, "utf-8");
-    return JSON.parse(content) as Record<string, unknown>;
+    return parseJsonObject(fs.readFileSync(filePath, "utf-8")) ?? {};
   } catch {
     return {};
   }
@@ -1027,26 +1084,23 @@ export function _inferModelTypeFromLocalConfigs(
     const data = _safeLoadJson(configPath);
     if (Object.keys(data).length === 0) continue;
 
-    const className = data._class_name;
-    if (typeof className === "string") {
-      const mapped = CLASSNAME_TO_MODEL_TYPE[className];
+    const className = jsonString(data._class_name);
+    if (className !== null) {
+      const mapped = tableLookup(CLASSNAME_TO_MODEL_TYPE, className);
       if (mapped) return mapped;
     }
 
-    const modelType =
-      typeof data.model_type === "string" ? data.model_type.toLowerCase() : "";
+    const modelType = jsonString(data.model_type)?.toLowerCase();
     if (modelType) {
-      const mapped = _CONFIG_MODEL_TYPE_MAPPING[modelType];
+      const mapped = tableLookup(_CONFIG_MODEL_TYPE_MAPPING, modelType);
       if (mapped) return mapped;
     }
 
-    const architectures = data.architectures;
-    if (Array.isArray(architectures)) {
-      for (const arch of architectures) {
-        if (typeof arch !== "string") continue;
-        const mapped = _CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING[arch];
-        if (mapped) return mapped;
-      }
+    for (const arch of jsonArray(data.architectures) ?? []) {
+      const name = jsonString(arch);
+      if (name === null) continue;
+      const mapped = tableLookup(_CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING, name);
+      if (mapped) return mapped;
     }
   }
 
@@ -1151,7 +1205,7 @@ export async function readCachedHfModels(): Promise<UnifiedModel[]> {
 /** Get search configuration for a given hf.* type, or null if not found. */
 export function _buildSearchConfigForType(
   modelType: string
-): Record<string, string[] | string> | null {
+): HfSearchTypeConfig | null {
   const normalized = modelType.toLowerCase();
   const config = HF_SEARCH_TYPE_CONFIG[normalized];
   if (config !== undefined) return config;
@@ -1214,7 +1268,7 @@ export function _matchesRepoForType(
   repoId: string,
   repoIdFromId: string
 ): boolean {
-  const matchers = KNOWN_TYPE_REPO_MATCHERS[normalizedType];
+  const matchers = tableLookup(KNOWN_TYPE_REPO_MATCHERS, normalizedType);
   if (!matchers) return false;
   const repoLower = repoId.toLowerCase();
   const repoFromIdLower = repoIdFromId.toLowerCase();
@@ -1500,10 +1554,12 @@ export function filterModelsByHfType(
   models: UnifiedModel[],
   modelType: string
 ): UnifiedModel[] {
-  const rules = HF_TYPE_STRUCTURAL_RULES[modelType] ?? {};
+  const rules: HfStructuralRules =
+    tableLookup(HF_TYPE_STRUCTURAL_RULES, modelType) ?? {};
   const fileOnly = rules.file_only ?? false;
   const checkpoint =
-    rules.checkpoint ?? Object.values(_CHECKPOINT_BASES).includes(modelType);
+    rules.checkpoint ??
+    Object.values<string>(_CHECKPOINT_BASES).includes(modelType);
   const nestedCheckpoint = rules.nested_checkpoint ?? false;
   const singleFileRepo = rules.single_file_repo ?? false;
 
@@ -1560,20 +1616,10 @@ export async function getModelsByHfType(
   modelType: string
 ): Promise<UnifiedModel[]> {
   const config = _buildSearchConfigForType(modelType) ?? {};
-  const repoPattern = config.repo_pattern;
-  const filenamePattern = config.filename_pattern;
 
   const offlineModels = await searchCachedHfModels(
-    repoPattern
-      ? Array.isArray(repoPattern)
-        ? repoPattern
-        : [repoPattern]
-      : null,
-    filenamePattern
-      ? Array.isArray(filenamePattern)
-        ? filenamePattern
-        : [filenamePattern]
-      : null
+    config.repo_pattern ?? null,
+    config.filename_pattern ?? null
   );
 
   return filterModelsByHfType(offlineModels, modelType);
@@ -1637,12 +1683,12 @@ export function _buildManifestLookup(
     if (!entry.startsWith("manifest=") || !entry.endsWith(".json")) continue;
     try {
       const filePath = path.join(cacheDir, entry);
-      const content = fs.readFileSync(filePath, "utf-8");
-      const manifest = JSON.parse(content) as Record<string, unknown>;
-      const metadata = manifest.metadata as Record<string, unknown> | undefined;
-      const ggufFile = manifest.ggufFile as Record<string, unknown> | undefined;
-      const repoId = (metadata?.repo_id ?? "") as string;
-      const rfilename = (ggufFile?.rfilename ?? "") as string;
+      const manifest = parseJsonObject(fs.readFileSync(filePath, "utf-8"));
+      if (!manifest) continue;
+      const metadata = jsonObject(manifest.metadata);
+      const ggufFile = jsonObject(manifest.ggufFile);
+      const repoId = jsonString(metadata?.repo_id) ?? "";
+      const rfilename = jsonString(ggufFile?.rfilename) ?? "";
       if (repoId && rfilename) {
         const flatName = `${repoId.replace("/", "_")}_${rfilename}`;
         lookup.set(flatName, [repoId, rfilename]);

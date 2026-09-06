@@ -32,7 +32,11 @@ import {
   outputToAudioRef,
   outputToString
 } from "./replicate-base.js";
-import type { ReplicateOutput } from "./replicate-base.js";
+import type {
+  ReplicateInput,
+  ReplicateMediaRef,
+  ReplicateOutput
+} from "./replicate-base.js";
 
 // ---------------------------------------------------------------------------
 // Manifest types — mirrors replicate-codegen types.ts NodeSpec
@@ -95,7 +99,7 @@ function promptAssetOverrides(
   instance: BaseNode,
   spec: ReplicateManifestEntry,
   context?: Parameters<BaseNode["process"]>[0]
-): Promise<Record<string, unknown>> {
+): Promise<Record<string, NodeValue>> {
   return promptAssetOverridesFor(
     instance,
     spec.inputFields.filter((f) => !EXCLUDED_FIELDS.has(f.name)),
@@ -109,8 +113,8 @@ async function buildArgs(
   spec: ReplicateManifestEntry,
   apiKey: string,
   context?: Parameters<BaseNode["process"]>[0]
-): Promise<Record<string, unknown>> {
-  const args: Record<string, unknown> = {};
+): Promise<ReplicateInput> {
+  const args: ReplicateInput = {};
   const overrides = await promptAssetOverrides(instance, spec, context);
 
   for (const field of spec.inputFields) {
@@ -141,21 +145,14 @@ async function buildArgs(
         const urls: string[] = [];
         for (const ref of refs) {
           if (isRefSet(ref)) {
-            const url = await assetToUrl(
-              ref as Record<string, unknown>,
-              apiKey,
-              context
-            );
+            const url = await assetToUrl(ref, apiKey, context);
             if (url) urls.push(url);
           }
         }
         if (urls.length) args[apiName] = urls;
-      } else {
-        const ref = value as Record<string, unknown> | undefined;
-        if (isRefSet(ref)) {
-          const url = await assetToUrl(ref!, apiKey, context);
-          if (url) args[apiName] = url;
-        }
+      } else if (isRefSet(value)) {
+        const url = await assetToUrl(value, apiKey, context);
+        if (url) args[apiName] = url;
       }
     } else {
       args[apiName] = coerceManifestScalar(
@@ -171,10 +168,13 @@ async function buildArgs(
   return args;
 }
 
+/** What a Replicate node's `process()` yields: one `output` slot. */
+type ReplicateNodeOutputs = { output: ReplicateOutput | ReplicateMediaRef };
+
 function mapOutput(
   spec: ReplicateManifestEntry,
-  output: unknown
-) {
+  output: ReplicateOutput
+): ReplicateNodeOutputs {
   switch (spec.outputType) {
     case "image":
       return { output: outputToImageRef(output) };
@@ -222,7 +222,7 @@ export function createReplicateNodeClass(
   const ReplicateNodeClass = class extends BaseNode {
     async process(
       context?: Parameters<BaseNode["process"]>[0]
-    ): Promise<Record<string, unknown>> {
+    ): Promise<ReplicateNodeOutputs> {
       const output = await executePrediction(this, context);
       return mapOutput(specRef, output);
     }

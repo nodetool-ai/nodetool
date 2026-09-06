@@ -250,6 +250,10 @@ function detectCapabilities(device: GPUDevice): GPUCapabilities {
 export async function createBrowserGPUContext(
   options: { adapterOptions?: GPURequestAdapterOptions } = {}
 ): Promise<GPUContext> {
+  // SAFETY: this package compiles without the DOM lib, so `navigator` is not a
+  // declared global here. The asserted shape only claims the two optional
+  // members read below, and both are guarded before use — a host without
+  // `navigator` or without `navigator.gpu` takes the throw.
   const nav = (globalThis as { navigator?: { gpu?: GPU } }).navigator;
   const gpu = nav?.gpu;
   if (!gpu) {

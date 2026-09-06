@@ -15,6 +15,8 @@
  * final output texture's lifetime.
  */
 
+import type { AnyVecInstance } from "typegpu/data";
+
 import type { GPUContext, ScratchSpec } from "./context.js";
 import type { Executor, ExecutorDispatch } from "./executor.js";
 import { createExecutor } from "./executor.js";
@@ -30,6 +32,18 @@ import type {
 
 /** A JSON path into the recipe's params, e.g. `"$.radius"`. */
 export type ParamRef = `$.${string}`;
+
+/**
+ * A literal param value: what a module's WGSL uniform field can hold — a
+ * scalar, or a TypeGPU vector instance such as `d.vec2f(1, 0)`.
+ */
+export type RecipeParamLiteral = number | boolean | AnyVecInstance;
+
+/** A recipe's own params: a flat bag of uniform literals, addressed by `$.name`. */
+export type RecipeParams = Record<string, RecipeParamLiteral>;
+
+/** A pass's param value: a literal, or a {@link ParamRef} into the recipe's params. */
+export type RecipeParamValue = ParamRef | RecipeParamLiteral;
 
 /** Intermediate texture specification. Sizes default to the input source. */
 export interface IntermediateSpec {
@@ -55,7 +69,7 @@ export interface RecipePass {
   /** `"output"` (the recipe's final target) or a named intermediate. */
   out: "output" | { kind: "intermediate"; name: string };
   /** Param values: literals or `ParamRef`s into the recipe's params object. */
-  params: Record<string, ParamRef | unknown>;
+  params: Record<string, RecipeParamValue>;
   /**
    * Compute dispatch sizing. Fragment passes omit it (always full-screen).
    * If the workgroup size is `[wx, wy, 1]`, set `kind: "compute"` and the
@@ -88,7 +102,7 @@ export interface Recipe<Params> {
  * Lives in the same registry as `ShaderModule` (Phase 3 onward), but has no
  * own WGSL — its `kind` is `"recipe"`.
  */
-export interface RecipeModule<Params = Record<string, unknown>> {
+export interface RecipeModule<Params = RecipeParams> {
   readonly id: string;
   readonly version: number;
   readonly surface: ShaderSurface;
@@ -103,7 +117,7 @@ export interface RecipeModule<Params = Record<string, unknown>> {
 }
 
 /** Build a frozen {@link RecipeModule}. */
-export function defineRecipe<Params>(spec: {
+export function defineRecipe<Params extends RecipeParams>(spec: {
   id: string;
   version: number;
   surface: ShaderSurface;
@@ -153,23 +167,25 @@ export interface RecipeRunner {
   }): void;
 }
 
-function readPath(obj: Record<string, unknown>, path: ParamRef): unknown {
+function isParamRef(value: RecipeParamValue): value is ParamRef {
+  return typeof value === "string" && value.startsWith("$.");
+}
+
+function readPath(
+  params: RecipeParams,
+  path: ParamRef
+): RecipeParamLiteral | undefined {
   // Strip leading `$.`; recipes are intentionally shallow (no nesting yet).
-  const key = path.slice(2);
-  return obj[key];
+  return params[path.slice(2)];
 }
 
 function resolveParams(
-  raw: Record<string, ParamRef | unknown>,
-  recipeParams: Record<string, unknown>
+  raw: Record<string, RecipeParamValue>,
+  recipeParams: RecipeParams
 ) {
-  const out: Record<string, unknown> = {};
+  const out: Record<string, RecipeParamLiteral | undefined> = {};
   for (const [name, value] of Object.entries(raw)) {
-    if (typeof value === "string" && value.startsWith("$.")) {
-      out[name] = readPath(recipeParams, value as ParamRef);
-    } else {
-      out[name] = value;
-    }
+    out[name] = isParamRef(value) ? readPath(recipeParams, value) : value;
   }
   return out;
 }
@@ -188,7 +204,7 @@ function resolveOp(
       `RecipeRunner(${recipeKey}): no registry or recipe.resolve to resolve ${pass.op.id}@${pass.op.version}`
     );
   }
-  return registry.get(pass.op) as ShaderModule;
+  return registry.getShader(pass.op);
 }
 
 /** Default {@link RecipeRunner}: scratch-pool intermediates, sequential passes. */
@@ -266,9 +282,14 @@ export function createRecipeRunner(): RecipeRunner {
                     `RecipeRunner(${key}): unknown intermediate "${pass.out.name}"`
                   );
                 })();
+          // SAFETY: `defineRecipe` constrains a recipe's params to
+          // `RecipeParams` — a flat bag of uniform literals. `P` is
+          // unconstrained here only so hosts can thread their own generic
+          // through `encode`; every module that reaches this line was built
+          // by `defineRecipe`.
           const resolvedParams = resolveParams(
             pass.params,
-            params as Record<string, unknown>
+            params as RecipeParams
           );
           const dispatch = resolveDispatch(pass, op, target);
           ex.encode({

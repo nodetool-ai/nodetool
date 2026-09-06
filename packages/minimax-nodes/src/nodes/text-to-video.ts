@@ -85,7 +85,7 @@ export class MinimaxTextToVideoNode extends BaseNode {
         Number(this.duration ?? 6),
         String(this.resolution ?? "768P")
       )
-    } satisfies Record<string, unknown>;
+    };
 
     const bytes = await generateVideo(apiKey, body);
     return { output: videoRefFromBytes(bytes) };
