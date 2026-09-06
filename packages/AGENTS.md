@@ -33,6 +33,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/cli` | Command-line interface (`nodetool` command) |
 | `@nodetool-ai/deploy` | Cloud deployment utilities |
 | `@nodetool-ai/dsl` | Workflow DSL for programmatic workflow creation |
+| `@nodetool-ai/storyboard` | Storyboard derivations — `recastStoryboard`, `planShotRenders`, and the one render path under `io/` |
 | `@nodetool-ai/app-runtime` | Mini-app document, bindings, instance state, and the streaming fold — dependency-free, shared by web, mobile, and `app debug` ([README](app-runtime/README.md)) |
 
 ## Package Overlays
@@ -58,6 +59,7 @@ first, then the overlay for the package you are touching.
 - [`replicate-nodes`](replicate-nodes/AGENTS.md) — Replicate node factory
 - [`runtime`](runtime/AGENTS.md) — `ProcessingContext` & LLM providers
 - [`security`](security/AGENTS.md) — secret storage & encryption
+- [`storyboard`](storyboard/AGENTS.md) — recast a board, plan and run its shot renders
 - [`timeline`](timeline/AGENTS.md) — clip editing math
 - [`topaz-nodes`](topaz-nodes/AGENTS.md) — Topaz API wrapper
 - [`transformers-js-nodes`](transformers-js-nodes/AGENTS.md) — local transformers.js inference

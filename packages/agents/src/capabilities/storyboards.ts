@@ -27,7 +27,6 @@ import type {
   StoryboardDocument
 } from "@nodetool-ai/models";
 import type {
-  BoardRenderContext,
   ClipVersion,
   Entity,
   ImageRef,
@@ -41,6 +40,12 @@ import type {
 } from "@nodetool-ai/protocol";
 import type { StoryboardSetupStage } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 import type { ScriptAssemblyInput } from "@nodetool-ai/timeline";
+import type {
+  RenderShotsOptions,
+  ShotRenderOutcome,
+  ShotRenderPlanOptions,
+  StoryboardRenderHost
+} from "@nodetool-ai/storyboard";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -267,28 +272,6 @@ function clampConcurrency(value: unknown): number {
   return Math.min(n, MAX_CONCURRENCY);
 }
 
-/** Run `task` over `items`, at most `limit` in flight. */
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  task: (item: T) => Promise<R>
-): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let next = 0;
-  const workers = Array.from(
-    { length: Math.min(limit, items.length) },
-    async () => {
-      for (;;) {
-        const index = next++;
-        if (index >= items.length) return;
-        results[index] = await task(items[index]);
-      }
-    }
-  );
-  await Promise.all(workers);
-  return results;
-}
-
 /**
  * Apply `patch` to one shot and persist the board.
  *
@@ -348,13 +331,6 @@ async function loadBoardEntities(
   );
   return loaded.filter((e): e is Entity => !!e && e.name.length > 0);
 }
-
-/** The wire shape the provider layer expands (descriptor text + one image). */
-const wireEntity = (entity: Entity) => ({
-  name: entity.name,
-  descriptor: entity.descriptor,
-  reference_images: entity.reference_images?.slice(0, 1) ?? []
-});
 
 interface ModelChoice {
   provider: string;
@@ -623,32 +599,81 @@ const getStoryboard: CapabilityExport = {
 };
 
 /**
- * The board values a version's render record is compared against
- * (`BoardRenderContext`). The board's one style entity is the last style id in
- * the cast, which is what `set_style` writes.
+ * The render path's host seam (`renderShots` in `@nodetool-ai/storyboard`).
+ *
+ * The package sits below runtime and models, so it takes these four operations
+ * rather than a `ProcessingContext`: the generation seam that records and
+ * persists a render, and the board read/write pair the per-shot CAS uses.
  */
-function boardRenderContext(
-  doc: StoryboardDocument,
-  entities: readonly Entity[]
-): BoardRenderContext {
-  const styleIds = new Set(
-    entities.filter((e) => e.kind === "style").map((e) => e.id)
-  );
+function renderHost(context: ProcessingContext): StoryboardRenderHost {
   return {
-    aspect_ratio: doc.aspectRatio || "16:9",
-    image_model: isString(doc.imageModel?.id) ? doc.imageModel.id : "",
-    video_model: isString(doc.videoModel?.id) ? doc.videoModel.id : "",
-    style_entity_id:
-      [...(doc.entityIds ?? [])].reverse().find((id) => styleIds.has(id)) ??
-      null,
-    style: doc.style,
-    scenes: doc.screenplay?.scenes ?? null
+    runGeneration: async (request) => {
+      const result = await context.runGeneration({
+        id: request.id,
+        provider: request.provider,
+        capability: request.capability,
+        model: request.model,
+        params: request.params,
+        origin: { surface: "capability" },
+        persist: request.persist
+      });
+      return { output: result.output, assets: result.assets };
+    },
+    getStoryboard: async (id) => {
+      const { Storyboard } = await import("@nodetool-ai/models");
+      const row = await Storyboard.findById(id);
+      return row
+        ? { document: row.toDocument(), updatedAt: row.updated_at }
+        : null;
+    },
+    updateStoryboard: async ({ id, document, baseUpdatedAt, shotId }) => {
+      const { Storyboard } = await import("@nodetool-ai/models");
+      const saved = await Storyboard.updateFieldsIfUnchanged(
+        id,
+        baseUpdatedAt,
+        { document: JSON.stringify(document) },
+        // One update_shot per write, so an open editor merges this into its
+        // draft per shot instead of treating the board as replaced.
+        { ops: [{ tool: "update_shot", input: { id: shotId } }] }
+      );
+      return saved ? { document, updatedAt: saved.updated_at } : null;
+    },
+    loadMedia: async (ref) => {
+      const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
+      return loadMediaRefBytes(ref, context);
+    },
+    videoDurationSeconds: (bytes) => mp4DurationSeconds(bytes)
   };
+}
+
+/** The per-shot result row a render capability answers with. */
+function outcomeRow(
+  outcome: ShotRenderOutcome,
+  withMode: boolean
+): ShotOutcome {
+  const row: ShotOutcome = {
+    shot_id: outcome.shotId,
+    index: outcome.index,
+    slug: outcome.slug,
+    ok: outcome.ok
+  };
+  if (withMode) row.render_mode = outcome.mode;
+  if (outcome.assetId !== undefined) row.asset_id = outcome.assetId;
+  if (outcome.assetUri !== undefined) row.asset_uri = outcome.assetUri;
+  if (outcome.generationId !== undefined) {
+    row.generation_id = outcome.generationId;
+  }
+  if (outcome.status !== undefined) row.status = outcome.status;
+  if (outcome.error !== undefined) row.error = outcome.error;
+  return row;
 }
 
 /**
  * Drop the shots whose selected version is still current. Additive: without
  * `stale_only` the selection is returned untouched.
+ *
+ * The freshness question is the render plan's, so a shot this skips is exactly
+ * a shot the node's `only_stale` skips.
  */
 async function filterStale(
   selected: Shot[],
@@ -660,19 +685,21 @@ async function filterStale(
   if (params["stale_only"] !== true) {
     return { shots: selected, skipped: [] };
   }
-  const { staleClipShots, staleKeyframeShots } = await import(
-    "@nodetool-ai/protocol"
+  const { planShotRenders } = await import("@nodetool-ai/storyboard");
+  const fresh = new Set(
+    planShotRenders(
+      doc,
+      entities,
+      kind,
+      selected.map((shot) => shot.id)
+    )
+      .filter((plan) => plan.fresh)
+      .map((plan) => plan.shotId)
   );
-  const context = boardRenderContext(doc, entities);
-  const stale =
-    kind === "keyframe"
-      ? staleKeyframeShots(selected, context)
-      : staleClipShots(selected, context);
-  const keep = new Set(stale.map((shot) => shot.id));
   return {
-    shots: stale,
+    shots: selected.filter((shot) => !fresh.has(shot.id)),
     skipped: selected
-      .filter((shot) => !keep.has(shot.id))
+      .filter((shot) => fresh.has(shot.id))
       .map((shot) => shot.id)
   };
 }
@@ -722,96 +749,31 @@ const renderStoryboardStills: CapabilityExport = {
       };
     }
 
-    const {
-      currentRenderInputs,
-      entitiesForShot,
-      keyframePrompt,
-      sceneForShot,
-      stampRenderInputs
-    } = await import("@nodetool-ai/protocol");
-    const { inferImageMime } = await import("../tools/asset-persist.js");
-    const style =
-      isString(params["style"])
-        ? params["style"]
-        : doc.style;
-    const aspectRatio = doc.aspectRatio || "16:9";
+    const { planShotRenders, renderShots } = await import(
+      "@nodetool-ai/storyboard"
+    );
     // What this call actually renders with, which is not always what the board
     // says: `style` and `model` can be overridden per call. Recording the
     // override is the point — a version rendered against something other than
     // the board's settings reads stale against the board, correctly.
-    const rendered: BoardRenderContext = {
-      ...boardRenderContext(doc, entities),
-      image_model: model.model,
-      style
+    const planOptions: ShotRenderPlanOptions = {
+      provider: model.provider,
+      model: model.model
     };
-
-    const results = await mapWithConcurrency(
-      chosen,
-      clampConcurrency(params["concurrency"]),
-      async (shot): Promise<ShotOutcome> => {
-        const base: ShotOutcome = {
-          shot_id: shot.id,
-          index: shot.index,
-          slug: shot.slug,
-          ok: false
-        };
-        try {
-          const saved = await renderMedia(
-            context,
-            {
-              provider: model.provider,
-              capability: "text_to_image",
-              model: model.model,
-              params: {
-                prompt: keyframePrompt(shot, {
-                  scene: sceneForShot(shot, doc.screenplay?.scenes),
-                  style
-                }),
-                entities: entitiesForShot(shot, entities).map(wireEntity),
-                aspect_ratio: aspectRatio
-              }
-            },
-            `shot-${shot.index + 1}-still`
-          );
-          if (isError(saved)) return { ...base, error: saved.error };
-
-          const keyframe: KeyframeVersion = {
-            type: "image",
-            asset_id: saved.assetId,
-            uri: saved.uri,
-            render_inputs: stampRenderInputs(
-              currentRenderInputs(shot, rendered, "keyframe")
-            )
-          };
-          const updated = await patchShot(row.id, shot.id, (current) => {
-            const versions =
-              current.keyframe_versions ??
-              (current.keyframe ? [current.keyframe] : []);
-            return {
-              ...current,
-              keyframe,
-              keyframe_versions: [...versions, keyframe],
-              status: "keyframe_ready"
-            };
-          });
-          if (isError(updated)) return { ...base, error: updated.error };
-          return {
-            ...base,
-            ok: true,
-            asset_id: saved.assetId,
-            asset_uri: saved.uri,
-            generation_id: saved.generationId,
-            status: updated.status
-          };
-        } catch (e) {
-          await patchShot(row.id, shot.id, (current) => ({
-            ...current,
-            status: "failed"
-          }));
-          return { ...base, error: `text_to_image failed: ${errorMessage(e)}` };
-        }
-      }
+    if (isString(params["style"])) {
+      planOptions.style = params["style"];
+    }
+    const plans = planShotRenders(
+      doc,
+      entities,
+      "keyframe",
+      chosen.map((shot) => shot.id),
+      planOptions
     );
+    const outcomes = await renderShots(renderHost(context), { id: row.id }, plans, {
+      concurrency: clampConcurrency(params["concurrency"])
+    });
+    const results = outcomes.map((outcome) => outcomeRow(outcome, false));
 
     return {
       storyboard_id: row.id,
@@ -885,18 +847,9 @@ const renderStoryboardClips: CapabilityExport = {
       };
     }
 
-    const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
-    const {
-      clipPrompt,
-      currentRenderInputs,
-      directClipPrompt,
-      entitiesForShot,
-      sceneForShot,
-      stampRenderInputs
-    } =
-      await import("@nodetool-ai/protocol");
-    const { effectiveShotDuration, scriptLinesById } = await import(
-      "@nodetool-ai/timeline"
+    const { scriptLinesById } = await import("@nodetool-ai/timeline");
+    const { planShotRenders, renderShots } = await import(
+      "@nodetool-ai/storyboard"
     );
     // A linked board times its shots from the words they cover, so a clip is
     // rendered long enough to hold its voiceover (design §2.3). A shot pinned
@@ -906,119 +859,37 @@ const renderStoryboardClips: CapabilityExport = {
       boardScreenplay(row, doc),
       context.userId
     );
-    const linesById = scriptLinesById(scriptDoc?.sections ?? []);
-    const aspectRatio = doc.aspectRatio || "16:9";
-    const style = isString(params["style"]) ? params["style"] : doc.style || "";
-    const resolution =
-      isString(params["resolution"])
-        ? params["resolution"]
-        : undefined;
     // As in the stills path: the record says what this call rendered with, so
     // a per-call model or style override reads stale against the board.
-    const rendered: BoardRenderContext = {
-      ...boardRenderContext(doc, entities),
-      video_model: model.model,
-      style
+    const planOptions: ShotRenderPlanOptions = {
+      provider: model.provider,
+      model: model.model,
+      style: isString(params["style"]) ? params["style"] : doc.style || "",
+      scriptLines: scriptLinesById(scriptDoc?.sections ?? [])
     };
-
-    const results = await mapWithConcurrency(
-      chosen,
-      clampConcurrency(params["concurrency"]),
-      async (shot): Promise<ShotOutcome> => {
-        const mode = modeOf(shot);
-        const base: ShotOutcome = {
-          shot_id: shot.id,
-          index: shot.index,
-          slug: shot.slug,
-          render_mode: mode,
-          ok: false
-        };
-        if (mode === "keyframe" && !shot.keyframe) {
-          return {
-            ...base,
-            error:
-              'Shot has no still to animate. Run render_storyboard_stills first, or set its render_mode to "direct".'
-          };
-        }
-        try {
-          // Direct mode skips the still: the prompt carries the whole shot.
-          let seed: Uint8Array | null = null;
-          if (mode === "keyframe" && shot.keyframe) {
-            seed = await loadMediaRefBytes(shot.keyframe, context);
-            if (!seed || seed.length === 0) {
-              return {
-                ...base,
-                error: "The shot's still could not be read back from storage."
-              };
-            }
-          }
-          const predictionParams: Record<string, unknown> = {
-            prompt:
-              mode === "direct"
-                ? directClipPrompt(shot, {
-                    scene: sceneForShot(shot, doc.screenplay?.scenes),
-                    style
-                  })
-                : clipPrompt(shot),
-            entities: entitiesForShot(shot, entities).map(wireEntity),
-            aspect_ratio: aspectRatio,
-            resolution,
-            duration_seconds: effectiveShotDuration(shot, linesById).seconds
-          };
-          if (seed) {
-            predictionParams["images"] = [seed];
-          }
-          const saved = await renderMedia(
-            context,
-            {
-              provider: model.provider,
-              capability:
-                mode === "direct" ? "text_to_video" : "image_to_video",
-              model: model.model,
-              params: predictionParams
-            },
-            `shot-${shot.index + 1}-clip`,
-            "video/mp4"
-          );
-          if (isError(saved)) return { ...base, error: saved.error };
-
-          const clip: ClipVersion = {
-            ...renderedVideoRef(saved),
-            render_inputs: stampRenderInputs(
-              currentRenderInputs(shot, rendered, "clip")
-            )
-          };
-          const updated = await patchShot(row.id, shot.id, (current) => {
-            const versions =
-              current.clip_versions ?? (current.clip ? [current.clip] : []);
-            return {
-              ...current,
-              clip,
-              clip_versions: [...versions, clip],
-              status: "rendered"
-            };
-          });
-          if (isError(updated)) return { ...base, error: updated.error };
-          return {
-            ...base,
-            ok: true,
-            asset_id: saved.assetId,
-            asset_uri: saved.uri,
-            generation_id: saved.generationId,
-            status: updated.status
-          };
-        } catch (e) {
-          await patchShot(row.id, shot.id, (current) => ({
-            ...current,
-            status: "failed"
-          }));
-          return {
-            ...base,
-            error: `${mode === "direct" ? "text_to_video" : "image_to_video"} failed: ${errorMessage(e)}`
-          };
-        }
-      }
+    if (override === "keyframe" || override === "direct") {
+      planOptions.mode = override;
+    }
+    const plans = planShotRenders(
+      doc,
+      entities,
+      "clip",
+      chosen.map((shot) => shot.id),
+      planOptions
     );
+    const renderOptions: RenderShotsOptions = {
+      concurrency: clampConcurrency(params["concurrency"])
+    };
+    if (isString(params["resolution"])) {
+      renderOptions.resolution = params["resolution"];
+    }
+    const outcomes = await renderShots(
+      renderHost(context),
+      { id: row.id },
+      plans,
+      renderOptions
+    );
+    const results = outcomes.map((outcome) => outcomeRow(outcome, true));
 
     return {
       storyboard_id: row.id,

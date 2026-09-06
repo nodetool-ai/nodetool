@@ -5,6 +5,7 @@
     "packages/protocol",
     "packages/gpu",
     "packages/timeline",
+    "packages/storyboard",
     "packages/app-runtime",
     "packages/image-editor",
     "packages/model3d",
