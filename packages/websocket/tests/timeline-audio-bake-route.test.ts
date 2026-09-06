@@ -30,7 +30,9 @@ const invoke = vi.fn<(name: string, args: Record<string, unknown>) => unknown>()
 // import graph reaches (llm-nodes' agent tools subclass it).
 vi.mock("@nodetool-ai/agents", () => ({
   Tool: class {},
-  ungatedCapabilityRun: () => ({
+  gateFromContext: () => ({}),
+  contextSecretAvailability: () => async () => new Set<string>(),
+  createCapabilityRun: () => ({
     invoke: (name: string, args: Record<string, unknown>) =>
       Promise.resolve(invoke(name, args))
   })

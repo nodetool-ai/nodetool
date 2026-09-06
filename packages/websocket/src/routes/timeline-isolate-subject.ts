@@ -21,10 +21,14 @@ import { z } from "zod";
 import {
   contextSecretAvailability,
   createCapabilityRun,
-  UNGATED
+  gateFromContext
 } from "@nodetool-ai/agents";
 import { getSecret } from "@nodetool-ai/models";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  PERMISSION_GATE_CONTEXT_KEY,
+  ProcessingContext,
+  headlessGate
+} from "@nodetool-ai/runtime";
 import type { StorageAdapter } from "@nodetool-ai/storage";
 import { bridge } from "../lib/bridge.js";
 import {
@@ -33,6 +37,8 @@ import {
   type HttpApiOptions
 } from "../http-api.js";
 import { getAssetAdapter } from "../lib/storage.js";
+
+const ISOLATE_HOST = "isolate-subject route";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
@@ -137,6 +143,10 @@ const timelineIsolateSubjectRoutes: FastifyPluginAsync<RouteOptions> = async (
         secretResolver: getSecret,
         storage: opts.storage ?? getAssetAdapter()
       });
+      // A route has nobody to ask, so it runs `auto` with escalations denied,
+      // the way every headless host does; the run reads that gate back off
+      // the context rather than being built ungated.
+      context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate(ISOLATE_HOST));
 
       const nodeRegistry =
         apiOptions.registry ??
@@ -144,7 +154,7 @@ const timelineIsolateSubjectRoutes: FastifyPluginAsync<RouteOptions> = async (
 
       const result = await createCapabilityRun({
         context,
-        gate: UNGATED,
+        gate: gateFromContext(context, ISOLATE_HOST),
         nodeRegistry,
         availableSecrets: contextSecretAvailability(context)
       }).invoke("isolate_subject", { ...parsed.data, timeline_id: id });

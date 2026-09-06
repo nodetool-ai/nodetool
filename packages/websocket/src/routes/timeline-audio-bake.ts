@@ -15,13 +15,23 @@
 
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { ungatedCapabilityRun } from "@nodetool-ai/agents";
+import {
+  contextSecretAvailability,
+  createCapabilityRun,
+  gateFromContext
+} from "@nodetool-ai/agents";
 import { getSecret } from "@nodetool-ai/models";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  PERMISSION_GATE_CONTEXT_KEY,
+  ProcessingContext,
+  headlessGate
+} from "@nodetool-ai/runtime";
 import type { StorageAdapter } from "@nodetool-ai/storage";
 import { bridge } from "../lib/bridge.js";
 import { getUserId, type HttpApiOptions } from "../http-api.js";
 import { getAssetAdapter } from "../lib/storage.js";
+
+const BAKE_HOST = "audio-bake route";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
@@ -115,10 +125,15 @@ const timelineAudioBakeRoutes: FastifyPluginAsync<RouteOptions> = async (
         storage: opts.storage ?? getAssetAdapter()
       });
 
-      const result = await ungatedCapabilityRun(context).invoke(
-        "bake_audio_animation",
-        { ...parsed.data, timeline_id: id }
-      );
+      // A route has nobody to ask, so it runs `auto` with escalations denied,
+      // the way every headless host does; the run reads that gate back off
+      // the context rather than being built ungated.
+      context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate(BAKE_HOST));
+      const result = await createCapabilityRun({
+        context,
+        gate: gateFromContext(context, BAKE_HOST),
+        availableSecrets: contextSecretAvailability(context)
+      }).invoke("bake_audio_animation", { ...parsed.data, timeline_id: id });
 
       // The capability reports a missing clip, a time remap it cannot invert,
       // or an unreadable asset as `{error}`; none of those are server faults.

@@ -37,7 +37,7 @@ let seenRegistry: unknown;
 // import graph reaches (llm-nodes' agent tools subclass it).
 vi.mock("@nodetool-ai/agents", () => ({
   Tool: class {},
-  UNGATED: {},
+  gateFromContext: () => ({}),
   contextSecretAvailability: () => async () => new Set<string>(),
   createCapabilityRun: (options: {
     nodeRegistry?: unknown;
