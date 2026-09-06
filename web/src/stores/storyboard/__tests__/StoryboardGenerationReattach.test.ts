@@ -14,6 +14,13 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
   }
 }));
 
+const lookupMock = jest.fn(async (_ids: readonly string[]) => new Map());
+jest.mock("../../../lib/websocket/lookupGenerations", () => ({
+  __esModule: true,
+  isSettled: (status: string) => status !== "running",
+  lookupGenerations: (ids: readonly string[]) => lookupMock(ids)
+}));
+
 import type { BoardRenderContext, Shot } from "@nodetool-ai/protocol";
 
 import {
@@ -25,6 +32,7 @@ import {
   __resetStoryboardSubscriptionsForTests,
   type PendingShotJob
 } from "../StoryboardGenerationStore";
+import { __resetGenerationWatchesForTests } from "../../../lib/websocket/generationWatch";
 import { useStoryboardStore } from "../StoryboardStore";
 import { useNotificationStore } from "../../NotificationStore";
 
@@ -76,6 +84,13 @@ const resetGeneration = (): void => {
 beforeEach(() => {
   localStorage.clear();
   resetGeneration();
+  // Default: no row to read, so every entry falls through to a subscription —
+  // the case where the socket outlived the board.
+  lookupMock.mockClear();
+  lookupMock.mockResolvedValue(new Map());
+  // The watcher is module state: a poll left running by one case would fire
+  // into the next one's board.
+  __resetGenerationWatchesForTests();
   useNotificationStore.getState().clearNotifications();
 });
 
@@ -232,5 +247,133 @@ describe("measured durations", () => {
         durationBucketKey("keyframe", "provider/still-v1")
       ]
     ).toHaveLength(5);
+  });
+});
+
+/**
+ * The reload case, which re-subscribing alone cannot recover.
+ *
+ * A `generate_media` reply is an `rpc_response` with no `job_id` and no
+ * `thread_id`, so it goes to the socket that asked and is dropped if that
+ * socket has gone. A render that finished while the browser was shut had its
+ * reply delivered to nobody, and no subscription made afterwards can produce
+ * it. The generation row outlives the socket, so the board reads it.
+ */
+describe("a board reopened after a reload", () => {
+  const settled = (
+    requestId: string,
+    over: Partial<{ status: string; assetIds: string[]; error: string | null }> = {}
+  ) =>
+    new Map([
+      [
+        requestId,
+        {
+          requestId,
+          generationId: "gen-1",
+          status: "completed",
+          assetIds: ["asset-recovered"],
+          error: null,
+          ...over
+        }
+      ]
+    ]);
+
+  /** Register a job, then rehydrate into a fresh session as a reload would. */
+  const reloadedWithPending = (shotId: string, requestId: string): Shot => {
+    const target = seedBoard(shotId);
+    useStoryboardGenerationStore
+      .getState()
+      .registerJob(target.id, BOARD, requestId, "keyframe", {
+        shot: target,
+        board
+      });
+    const written = localStorage.getItem(STORAGE_KEY) as string;
+    resetGeneration();
+    const rehydrated = JSON.parse(written).state;
+    useStoryboardGenerationStore.setState({
+      pendingJobs: rehydrated.pendingJobs,
+      durationSamples: rehydrated.durationSamples
+    });
+    useStoryboardStore.getState().setShotStatus(BOARD, target.id, "planned");
+    return target;
+  };
+
+  it("lands the version from the row when the render finished while shut", async () => {
+    const target = reloadedWithPending("s-reload", "req-reload");
+    lookupMock.mockResolvedValue(settled("req-reload"));
+
+    await reattachBoardJobs(BOARD);
+
+    const shotNow = boardShot(target.id);
+    expect(shotNow?.keyframe?.asset_id).toBe("asset-recovered");
+    expect(shotNow?.status).toBe("keyframe_ready");
+    // The record stamped before the reload survived onto the version.
+    expect(shotNow?.keyframe?.render_inputs?.model).toBe("provider/still-v1");
+    expect(
+      useStoryboardGenerationStore.getState().pendingJobs[BOARD]
+    ).toBeUndefined();
+  });
+
+  it("marks the shot failed when the row says the render failed", async () => {
+    const target = reloadedWithPending("s-reload-fail", "req-fail");
+    lookupMock.mockResolvedValue(
+      settled("req-fail", {
+        status: "failed",
+        assetIds: [],
+        error: "provider refused"
+      })
+    );
+
+    await reattachBoardJobs(BOARD);
+
+    expect(
+      useStoryboardGenerationStore.getState().shotJobs[target.id]?.status
+    ).toBe("failed");
+  });
+
+  // Never fires a handler by hand: after a reload no frame can arrive on the
+  // subscription at all, because the reply went to a socket that no longer
+  // exists. The row being read is the only thing that can settle this.
+  it("settles from the row when no reply can ever arrive on the socket", async () => {
+    jest.useFakeTimers();
+    try {
+      const target = reloadedWithPending("s-reload-running", "req-running");
+      lookupMock.mockResolvedValue(
+        settled("req-running", { status: "running", assetIds: [] })
+      );
+
+      await reattachBoardJobs(BOARD);
+      expect(boardShot(target.id)?.status).toBe("keyframe_generating");
+
+      // The render finishes server-side; its reply is dropped on the dead
+      // socket, and the row is the only record of it.
+      lookupMock.mockResolvedValue(settled("req-running"));
+      await jest.advanceTimersByTimeAsync(5_000);
+
+      const shotNow = boardShot(target.id);
+      expect(shotNow?.keyframe?.asset_id).toBe("asset-recovered");
+      expect(shotNow?.status).toBe("keyframe_ready");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("fails the shot when the row never settles inside its window", async () => {
+    jest.useFakeTimers();
+    try {
+      const target = reloadedWithPending("s-reload-stuck", "req-stuck");
+      lookupMock.mockResolvedValue(
+        settled("req-stuck", { status: "running", assetIds: [] })
+      );
+
+      await reattachBoardJobs(BOARD);
+      await jest.advanceTimersByTimeAsync(31 * 60 * 1000);
+
+      expect(
+        useStoryboardGenerationStore.getState().shotJobs[target.id]?.status
+      ).toBe("failed");
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

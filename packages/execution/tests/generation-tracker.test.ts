@@ -319,3 +319,59 @@ describe("generation tracker", () => {
     expect((await Prediction.find("live"))?.status).toBe("running");
   });
 });
+
+/**
+ * The `rpc` surface's request id on the row.
+ *
+ * A `generate_media` reply goes to the socket that asked and is dropped if
+ * that socket has gone, so a client that reloads mid-render can only recover
+ * the result by asking for the row. That lookup is by the request id the
+ * client persisted before sending — which is worth nothing unless the row
+ * actually carries it.
+ */
+describe("generation tracker records the rpc request id", () => {
+  beforeEach(() => {
+    initTestDb();
+    resetGenerationTrackerState();
+  });
+  afterEach(() => resetGenerationTrackerState());
+
+  it("writes origin.request_id onto the row, and finds it by that id", async () => {
+    const state = createTrackerState();
+    await recordFromMessage(
+      prediction({
+        id: "g-rpc",
+        status: "running",
+        origin: { surface: "rpc", request_id: "req-abc" }
+      }),
+      OPTIONS,
+      state
+    );
+
+    const open = await Prediction.find("g-rpc");
+    expect(open?.surface).toBe("rpc");
+    expect(open?.request_id).toBe("req-abc");
+
+    await recordFromMessage(
+      prediction({
+        id: "g-rpc",
+        status: "completed",
+        asset_ids: ["asset-7"],
+        origin: { surface: "rpc", request_id: "req-abc" }
+      }),
+      OPTIONS,
+      state
+    );
+
+    // The whole point: the outcome is reachable by the id the client kept.
+    const [found] = await Prediction.byRequestIds(USER, ["req-abc"]);
+    expect(found?.status).toBe("completed");
+    expect(found?.asset_ids).toEqual(["asset-7"]);
+  });
+
+  it("leaves request_id null for a surface that has none", async () => {
+    const state = createTrackerState();
+    await recordFromMessage(prediction({ id: "g-wf", status: "running" }), OPTIONS, state);
+    expect((await Prediction.find("g-wf"))?.request_id).toBeNull();
+  });
+});

@@ -65,6 +65,14 @@ export interface DirectMediaGenerationRequest {
   voice?: string;
   speed?: number;
   audioFormat?: string;
+  /**
+   * The RPC request id the client correlates the reply on.
+   *
+   * Recorded on the generation row so a client whose socket died before the
+   * reply arrived can ask what became of the request rather than waiting for
+   * a frame that was already delivered to a dead socket.
+   */
+  requestId?: string;
 }
 
 /**
@@ -596,7 +604,7 @@ export class DirectInferenceHandler {
       providerId: req.provider,
       modelId: req.model,
       provider,
-      origin: { surface: "rpc" },
+      origin: { surface: "rpc", request_id: req.requestId ?? null },
       workflowId: null,
       assetNamePrefix: req.mode,
       // The row names the RPC mode the way it always did.

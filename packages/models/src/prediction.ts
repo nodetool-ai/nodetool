@@ -63,6 +63,15 @@ export const TERMINAL_GENERATION_STATUSES: readonly string[] = [
 export const MAX_RECONCILE_ATTEMPTS = 5;
 
 /**
+ * How many request ids one lookup may name.
+ *
+ * The client's pending list is already bounded per sequence or board, so this
+ * is the second bound: a caller with a corrupt list asks for a page, not the
+ * table.
+ */
+export const MAX_REQUEST_ID_LOOKUP = 128;
+
+/**
  * The columns a project spend rollup reads off a ledger row — the projection
  * {@link Prediction.listSpendByProject} selects, and the shape
  * `project-summary`'s `SpendRow` consumes.
@@ -193,6 +202,7 @@ export class Prediction extends DBModel {
   declare surface: string | null;
   declare thread_id: string | null;
   declare tool_call_id: string | null;
+  declare request_id: string | null;
   declare job_id: string | null;
   declare asset_ids: string[] | null;
   declare reconciled_at: string | null;
@@ -237,6 +247,7 @@ export class Prediction extends DBModel {
     this.surface ??= null;
     this.thread_id ??= null;
     this.tool_call_id ??= null;
+    this.request_id ??= null;
     this.job_id ??= null;
     this.asset_ids ??= null;
     this.reconciled_at ??= null;
@@ -338,6 +349,43 @@ export class Prediction extends DBModel {
       )
       .returning({ id: predictions.id });
     return rows.length > 0;
+  }
+
+  /**
+   * The generations a set of RPC request ids produced, for this user only.
+   *
+   * What a reconnecting client asks: it persisted the request ids it sent and
+   * needs their outcomes, because the `rpc_response` frames went to a socket
+   * that no longer exists. Scoped by `user_id` so one caller cannot read
+   * another's rows by guessing an id, and capped so a client with a corrupt
+   * pending list cannot ask for the whole table.
+   *
+   * Newest first per id: a request id is a UUID the client mints per send, so
+   * a duplicate means a retry, and the latest row is the one that matters.
+   */
+  static async byRequestIds(
+    userId: string,
+    requestIds: readonly string[]
+  ): Promise<Prediction[]> {
+    const ids = [...new Set(requestIds.filter((id) => id.length > 0))].slice(
+      0,
+      MAX_REQUEST_ID_LOOKUP
+    );
+    if (ids.length === 0) {
+      return [];
+    }
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(predictions)
+      .where(
+        and(
+          eq(predictions.user_id, userId),
+          inArray(predictions.request_id, ids)
+        )
+      )
+      .orderBy(desc(predictions.created_at));
+    return rows.map((r: Record<string, unknown>) => new Prediction(r));
   }
 
   /**
