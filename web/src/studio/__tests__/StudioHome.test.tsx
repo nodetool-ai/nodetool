@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import mockTheme from "../../__mocks__/themeMock";
 
 const navigate = jest.fn();
-const start = jest.fn();
+const createStoryboard = jest.fn(async () => ({ id: "b9" }));
 
 jest.mock("react-router-dom", () => ({
   __esModule: true,
@@ -16,16 +16,6 @@ jest.mock("react-router-dom", () => ({
 jest.mock("../StudioShell", () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
-}));
-
-jest.mock("../useStudioPromptStart", () => ({
-  __esModule: true,
-  useStudioPromptStart: () => ({
-    start,
-    stage: "idle" as const,
-    busy: false,
-    error: null
-  })
 }));
 
 jest.mock("../../hooks/storyboard/useStoryboards", () => ({
@@ -42,7 +32,7 @@ jest.mock("../../hooks/storyboard/useStoryboards", () => ({
     ],
     isLoading: false
   }),
-  useCreateStoryboard: () => ({ mutateAsync: jest.fn() })
+  useCreateStoryboard: () => ({ mutateAsync: createStoryboard })
 }));
 
 jest.mock("../../hooks/script/useScripts", () => ({
@@ -62,8 +52,10 @@ jest.mock("../../hooks/script/useScripts", () => ({
   useCreateScript: () => ({ mutateAsync: jest.fn() })
 }));
 
+const createTimeline = jest.fn(async () => ({ id: "t-new" }));
 jest.mock("../../hooks/useTimelineSequence", () => ({
   __esModule: true,
+  useCreateTimeline: () => ({ mutateAsync: createTimeline }),
   useTimelines: () => ({
     data: [
       {
@@ -77,9 +69,12 @@ jest.mock("../../hooks/useTimelineSequence", () => ({
   })
 }));
 
+const timelineUpdate = jest.fn().mockResolvedValue({ id: "t-new" });
 jest.mock("../../trpc/client", () => ({
   __esModule: true,
   trpcClient: {
+    // The video card writes its setup as one PATCH after the create.
+    timeline: { update: { mutate: timelineUpdate } },
     scripts: {
       get: {
         query: jest.fn().mockResolvedValue({
@@ -119,8 +114,7 @@ const renderHome = () => {
 describe("StudioHome", () => {
   beforeEach(() => {
     navigate.mockReset();
-    start.mockReset();
-    start.mockResolvedValue({ boardId: "b9", scriptId: "s9" });
+    createStoryboard.mockClear();
   });
 
   it("shows one card for the linked script, board and timeline", async () => {
@@ -150,18 +144,69 @@ describe("StudioHome", () => {
     expect(navigate).toHaveBeenCalledWith("/studio/timeline/t1");
   });
 
-  it("starts a linked project from a prompt and lands on the board", async () => {
+  // PRD § 6.1 and D24: Studio offers Storyboard, Video and Script — Image and
+  // Workflow are workspace flows and are not here at all.
+  // D24: Studio offers three of the five flows — Image and Workflow are
+  // workspace flows. All three are built now, so none is disabled.
+  it("offers its three entry cards, all live", async () => {
+    renderHome();
+
+    const cards = await screen.findByRole("group", {
+      name: "What are you making?"
+    });
+    expect(
+      within(cards)
+        .getAllByRole("button")
+        .map((card) => card.textContent)
+    ).toEqual([
+      "StoryboardFrom a sentence to a rendered board in three steps.",
+      "VideoFrom a sentence to a cut on the timeline, no board.",
+      "ScriptFrom a topic to voiced lines, ready to place."
+    ]);
+
+    for (const name of [/^Storyboard /, /^Video /, /^Script /]) {
+      expect(within(cards).getByRole("button", { name })).not.toHaveAttribute(
+        "aria-disabled"
+      );
+    }
+  });
+
+  it("starts the video flow from its card", async () => {
     const user = userEvent.setup();
     renderHome();
 
-    await user.type(
-      screen.getByLabelText("What is the video about?"),
-      "a short film about tides"
+    const cards = await screen.findByRole("group", {
+      name: "What are you making?"
+    });
+    await user.click(within(cards).getByRole("button", { name: /^Video / }));
+
+    await waitFor(() => expect(createTimeline).toHaveBeenCalledTimes(1));
+    // The setup has to reach the sequence, or the flow opens at no stage.
+    await waitFor(() =>
+      expect(timelineUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          document: expect.objectContaining({
+            setup: expect.objectContaining({ stage: "idea" })
+          })
+        })
+      )
     );
-    await user.click(screen.getByRole("button", { name: "Make it" }));
+  });
+
+  it("creates a board at stage idea and opens it", async () => {
+    const user = userEvent.setup();
+    renderHome();
+
+    await user.click(
+      await screen.findByRole("button", { name: /^Storyboard From a sentence/ })
+    );
 
     await waitFor(() =>
-      expect(start).toHaveBeenCalledWith("a short film about tides")
+      expect(createStoryboard).toHaveBeenCalledWith(
+        expect.objectContaining({
+          document: expect.objectContaining({ setupStage: "idea", brief: "" })
+        })
+      )
     );
     await waitFor(() =>
       expect(navigate).toHaveBeenCalledWith("/studio/storyboard/b9")

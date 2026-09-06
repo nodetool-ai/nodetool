@@ -1,6 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ChartConfig, ChartData, ChartSeries } from "@nodetool-ai/protocol";
-import { asRows } from "./data.js";
+import { asRows, type DataframeInput } from "./data.js";
 
 /** Output handles ChartRendererLibNode.process() emits. */
 type ChartRendererLibNodeOutputs = {
@@ -79,7 +79,7 @@ export class ChartRendererLibNode extends BaseNode {
     title: "Chart Config",
     description: "The chart configuration to render."
   })
-  declare chart_config: any;
+  declare chart_config: ChartConfig;
 
   @prop({
     type: "int",
@@ -89,7 +89,7 @@ export class ChartRendererLibNode extends BaseNode {
     min: 0,
     max: 10000
   })
-  declare width: any;
+  declare width: number;
 
   @prop({
     type: "int",
@@ -99,7 +99,7 @@ export class ChartRendererLibNode extends BaseNode {
     min: 0,
     max: 10000
   })
-  declare height: any;
+  declare height: number;
 
   @prop({
     type: "dataframe",
@@ -114,7 +114,7 @@ export class ChartRendererLibNode extends BaseNode {
     title: "Data",
     description: "The data to visualize as a pandas DataFrame."
   })
-  declare data: any;
+  declare data: DataframeInput;
 
   @prop({
     type: "str",
@@ -122,15 +122,7 @@ export class ChartRendererLibNode extends BaseNode {
     title: "Background Color",
     description: "Background color of the chart (CSS color string)."
   })
-  declare background_color: any;
-
-  @prop({
-    type: "bool",
-    default: true,
-    title: "Despine",
-    description: "Whether to remove top and right spines."
-  })
-  declare despine: any;
+  declare background_color: string;
 
   @prop({
     type: "bool",
@@ -138,18 +130,18 @@ export class ChartRendererLibNode extends BaseNode {
     title: "Trim Margins",
     description: "Whether to use tight layout for margins."
   })
-  declare trim_margins: any;
+  declare trim_margins: boolean;
 
   async process(): Promise<ChartRendererLibNodeOutputs> {
-    const config: ChartConfig = this.chart_config ?? { type: "chart_config" };
-    const width = Number(this.width ?? 640);
-    const height = Number(this.height ?? 480);
+    const config = this.chart_config;
+    const width = this.width;
+    const height = this.height;
 
     // Accept both dataframe shapes: row-records ({ rows }), as produced by the
     // data nodes, and the canonical column matrix ({ columns, data }). asRows
     // normalizes either into row records, which we turn into the column matrix
     // chart.js consumes below.
-    const records = asRows(this.data ?? {});
+    const records = asRows(this.data);
     if (!records.length) {
       throw new Error("Data is required for rendering the chart.");
     }
@@ -240,6 +232,9 @@ export class ChartRendererLibNode extends BaseNode {
       data: { labels, datasets },
       options: {
         responsive: false,
+        // "Tight layout" in the seaborn config this node ports: no padding
+        // around the plot area.
+        layout: { padding: this.trim_margins ? 0 : 8 },
         plugins: {
           title: config.title
             ? { display: true, text: String(config.title) }
@@ -256,7 +251,7 @@ export class ChartRendererLibNode extends BaseNode {
       }
     };
 
-    const backgroundColor = String(this.background_color ?? "#ffffff");
+    const backgroundColor = this.background_color;
     const cvs = createCanvas(width, height);
     const ctx = cvs.getContext("2d");
 

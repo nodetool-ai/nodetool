@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
+import { debounce } from "../../utils/lodashAlternatives";
 
 interface UseModalResizeOptions {
   storageKey?: string;
@@ -35,13 +36,13 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
 
   const saveHeightToStorage = useMemo(
     () =>
-      debounce(((height: number) => {
+      debounce((height: number) => {
         try {
           localStorage.setItem(storageKey, height.toString());
         } catch {
           /* empty */
         }
-      }) as (...args: unknown[]) => void, 500),
+      }, 500),
     [storageKey]
   );
 
@@ -108,21 +109,3 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
 
   return { modalHeight, setModalHeight, handleResizeMouseDown } as const;
 }
-
-// local utility to avoid importing lodash globally here; caller may already bundle lodash
-function debounce<T extends (...args: unknown[]) => void>(fn: T, wait: number): T & { cancel: () => void } {
-  let t: number | undefined;
-  const debounced = (...args: Parameters<T>) => {
-    if (t) {window.clearTimeout(t);}
-    t = window.setTimeout(() => fn(...args), wait);
-  };
-  (debounced as T & { cancel: () => void }).cancel = () => {
-    if (t) {
-      window.clearTimeout(t);
-      t = undefined;
-    }
-  };
-  return debounced as T & { cancel: () => void };
-}
-
-

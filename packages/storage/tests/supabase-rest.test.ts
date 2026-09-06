@@ -6,7 +6,7 @@ import { SIGNED_URL_TTL } from "@nodetool-ai/config";
 // Fetch-layer tests for the in-house Supabase Storage REST client: exact
 // request URLs/headers/bodies for list, createSignedUrl, upsert uploads, and
 // error mapping. Upload/download/remove basics are covered through
-// SupabaseStorage in supabase-storage.test.ts.
+// SupabaseStorageAdapter in supabase-storage-adapter-coverage.test.ts.
 
 const fetchMock = vi.fn<typeof fetch>();
 

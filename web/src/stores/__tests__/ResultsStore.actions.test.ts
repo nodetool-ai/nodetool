@@ -1,4 +1,14 @@
 import useResultsStore from "../ResultsStore";
+import { nodeKey, edgeKey } from "../nodeKey";
+
+const edgeAt = (wf: string, job: string, id: string) =>
+  useResultsStore.getState().edges[edgeKey(wf, job, id)];
+const taskAt = (wf: string, job: string, id: string) =>
+  useResultsStore.getState().tasks[nodeKey(wf, job, id)];
+const toolCallAt = (wf: string, job: string, id: string) =>
+  useResultsStore.getState().toolCalls[nodeKey(wf, job, id)];
+const toolResultsAt = (wf: string, job: string, id: string) =>
+  useResultsStore.getState().toolResults[nodeKey(wf, job, id)] ?? [];
 
 const WF = "wf-1";
 const JOB = "job-1";
@@ -85,10 +95,10 @@ describe("ResultsStore — output results", () => {
 });
 
 describe("ResultsStore — edges", () => {
-  it("setEdge stores and getEdge retrieves", () => {
+  it("setEdge stores an edge status", () => {
     const s = useResultsStore.getState();
     s.setEdge(WF, JOB, "e1", "active", 1);
-    expect(useResultsStore.getState().getEdge(WF, JOB, "e1")).toEqual({
+    expect(edgeAt(WF, JOB, "e1")).toEqual({
       status: "active",
       counter: 1
     });
@@ -107,9 +117,9 @@ describe("ResultsStore — edges", () => {
     s.setEdge(WF, JOB, "e1", "active");
     s.setEdge("wf-other", JOB, "e2", "active");
     useResultsStore.getState().clearEdges(WF);
-    expect(useResultsStore.getState().getEdge(WF, JOB, "e1")).toBeUndefined();
+    expect(edgeAt(WF, JOB, "e1")).toBeUndefined();
     expect(
-      useResultsStore.getState().getEdge("wf-other", JOB, "e2")
+      edgeAt("wf-other", JOB, "e2")
     ).toBeDefined();
   });
 });
@@ -146,11 +156,11 @@ describe("ResultsStore — chunks", () => {
 });
 
 describe("ResultsStore — tool calls and results", () => {
-  it("setToolCall / getToolCall round-trips", () => {
+  it("setToolCall stores a tool call", () => {
     const tc = { name: "tool1", args: { x: 1 } };
     useResultsStore.getState().setToolCall(WF, JOB, NODE, tc as never);
     expect(
-      useResultsStore.getState().getToolCall(WF, JOB, NODE)
+      toolCallAt(WF, JOB, NODE)
     ).toMatchObject(tc);
   });
 
@@ -158,15 +168,15 @@ describe("ResultsStore — tool calls and results", () => {
     const s = useResultsStore.getState();
     s.appendToolResult(WF, JOB, NODE, "result1");
     s.appendToolResult(WF, JOB, NODE, "result2");
-    expect(useResultsStore.getState().getToolResults(WF, JOB, NODE)).toEqual([
+    expect(toolResultsAt(WF, JOB, NODE)).toEqual([
       "result1",
       "result2"
     ]);
   });
 
-  it("getToolResults returns empty array for unknown key", () => {
+  it("tool results default to an empty list", () => {
     expect(
-      useResultsStore.getState().getToolResults(WF, JOB, "none")
+      toolResultsAt(WF, JOB, "none")
     ).toEqual([]);
   });
 });
@@ -185,7 +195,7 @@ describe("ResultsStore — clearResults", () => {
     expect(after.getOutputResult(WF, JOB, NODE)).toBeUndefined();
     expect(after.getProgress(WF, JOB, NODE)).toBeUndefined();
     expect(after.getChunk(WF, JOB, NODE)).toBeUndefined();
-    expect(after.getTask(WF, JOB, NODE)).toBeUndefined();
+    expect(taskAt(WF, JOB, NODE)).toBeUndefined();
   });
 
   it("clearResults with nodeIds only clears specified nodes", () => {
@@ -223,7 +233,7 @@ describe("ResultsStore — clearJobRunVisuals", () => {
     useResultsStore.getState().clearJobRunVisuals(WF, JOB);
 
     const after = useResultsStore.getState();
-    expect(after.getEdge(WF, JOB, "e1")).toBeUndefined();
+    expect(edgeAt(WF, JOB, "e1")).toBeUndefined();
     expect(after.getProgress(WF, JOB, NODE)).toBeUndefined();
     expect(after.getOutputResult(WF, JOB, NODE)).toBe("result");
   });

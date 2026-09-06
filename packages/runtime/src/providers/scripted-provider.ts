@@ -34,7 +34,7 @@ import type {
   ProviderTool,
   ToolCall
 } from "./types.js";
-import { isString } from "../type-predicates.js";
+import { isString } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // Script types

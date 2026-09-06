@@ -112,13 +112,18 @@ export const EDIT_SCRIPT_SCHEMA: JsonSchema = {
       type: "array",
       description:
         'Operations in order. Each is {"op": <name>, ...arguments}: ' +
+        "set_setup {stage?, brief?, format?, length_seconds?, pace?, language?}, " +
         "add_speaker {name, color?, provider?, model?, voice?, entityId?}, " +
         "set_speaker {target, name?, color?, entityId?}, " +
         "set_speaker_voice {target, provider, model, voice, settings?}, " +
         "remove_speaker {target}, add_section {title?}, " +
         "add_line {text, speaker?, section?, direction?, pause_after_ms?, index?}, " +
         "set_line_text {target, text}, set_line_speaker {target, speaker}, " +
-        "remove_line {target}. `entityId` is an asset id from the ingredient " +
+        "remove_line {target}. `set_setup` writes the guided flow's own state — " +
+        "the stage the creator is standing at (idea, format, review, voices, " +
+        "done), the brief the script is written from, the format (voiceover, " +
+        "dialogue, interview, ad-read, tutorial), the length in seconds, the " +
+        "reading pace and the language; write_script reads them. `entityId` is an asset id from the ingredient " +
         "library (list_entities) — when set the speaker is that character/entity " +
         "and storyboard renders can season prompts with it. A line `target` is " +
         "its id, its 0-based index across the script, or its exact text; a " +
@@ -130,6 +135,37 @@ export const EDIT_SCRIPT_SCHEMA: JsonSchema = {
     }
   },
   required: ["script_id", "ops"]
+};
+
+export const WRITE_SCRIPT_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    script_id: { type: "string", description: "Script id." },
+    provider: {
+      type: "string",
+      description:
+        "Language-model provider id (from find_model) for the writer."
+    },
+    model: {
+      type: "string",
+      description: "Language model id (from find_model) for the writer."
+    },
+    rewrite: {
+      type: "boolean",
+      description:
+        "Rewrite the script that is already there instead of writing a new " +
+        "one. Lines the rewrite keeps come back with their own ids, so their " +
+        "takes and storyboard links survive."
+    },
+    imported_text: {
+      type: "string",
+      description:
+        "Words the user supplied — pasted, or extracted from a file. They are " +
+        "split into lines and given speakers, never rewritten. Overrides the " +
+        "brief as the source of the words."
+    }
+  },
+  required: ["script_id"]
 };
 
 export const DERIVE_STORYBOARD_SCHEMA: JsonSchema = {
@@ -253,7 +289,8 @@ export const assembleScriptTimelineSpec: CapabilitySpec = {
 export const editScriptSpec: CapabilitySpec = {
   name: "edit_script",
   description:
-    "Edit a saved script headlessly: add cast members and assign their " +
+    "Edit a saved script headlessly: write its guided setup (brief, format, " +
+    "length, pace, language, stage), add cast members and assign their " +
     "voices, add sections, and add, rewrite, reassign and remove lines. " +
     "Operations run in order against the stored document and the result is " +
     "saved; an open editor picks the change up live. Rewriting a line leaves " +
@@ -265,6 +302,22 @@ export const editScriptSpec: CapabilitySpec = {
     const count = Array.isArray(params["ops"]) ? params["ops"].length : 0;
     return `Editing script ${String(params["script_id"])} (${count} ops)`;
   }
+};
+
+export const writeScriptSpec: CapabilitySpec = {
+  name: "write_script",
+  description:
+    "Write a script's lines from its brief, format and length — set them " +
+    "first with edit_script's set_setup op — and save the cast and lines it " +
+    "produces, replacing what was there. Pass rewrite: true to rewrite an " +
+    "existing script; the lines it keeps keep their ids, so their takes and " +
+    "storyboard links survive. Words passed as imported_text are only split " +
+    "into lines and attributed to speakers, never reworded. Records no take: " +
+    "voice the result with voice_script_lines.",
+  inputSchema: WRITE_SCRIPT_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `${params["rewrite"] === true ? "Rewriting" : "Writing"} script ${String(params["script_id"])}`
 };
 
 export const deriveStoryboardFromScriptSpec: CapabilitySpec = {
@@ -312,6 +365,7 @@ export const scriptsSpecs: readonly CapabilitySpec[] = [
   voiceScriptLinesSpec,
   assembleScriptTimelineSpec,
   editScriptSpec,
+  writeScriptSpec,
   deriveStoryboardFromScriptSpec,
   deleteScriptSpec
 ];

@@ -1,11 +1,4 @@
-import type {
-  ClipEffect,
-  CurvePoint,
-  TrackEffect,
-  TrackSharpenEffect,
-  TrackVignetteEffect,
-  TrackChromaKeyEffect
-} from "../types.js";
+import type { ClipEffect, CurvePoint, TrackEffect } from "../types.js";
 import {
   isClipBlurEffect,
   isClipChromaKeyEffect,
@@ -51,6 +44,7 @@ import {
 import * as d from "typegpu/data";
 import type { AnyWgslStruct, Infer } from "typegpu/data";
 import { parseCssColorOrBlack } from "./color.js";
+import { trackEffectsAsClipEffects } from "./trackEffects.js";
 
 interface AggregatedColor {
   brightness: number;
@@ -148,6 +142,11 @@ export class WebGPUEffectsProcessor {
    * straight and darkened it by its own alpha a second time, invisible only
    * because an opaque layer's two conventions coincide.
    *
+   * `trackEffects` arrives in the legacy track spelling and is converted to
+   * clip effects at the door, so every stage below reads one vocabulary and
+   * {@link WebGPUEffectsProcessor.stepClipEffect} is the only place that knows
+   * which shader module an effect type is.
+   *
    * Order: the track key first, on pixels nothing has graded; then the clip's
    * own new-type effects in the order the document lists them; then the
    * aggregated clip+track colour and blur, and the track sharpen and vignette.
@@ -162,28 +161,33 @@ export class WebGPUEffectsProcessor {
     height: number,
     clipEffects: ClipEffect[],
     trackEffects: TrackEffect[] = [],
-    sourceAlpha: AlphaMode = "straight"
+    sourceAlpha: AlphaMode = "straight",
+    /**
+     * Record into the caller's encoder instead of one of this call's own.
+     *
+     * A frame with several graded layers, a precomposite and a matte used to
+     * submit one command buffer per call — each submit is a queue round trip,
+     * and the GPU idles between them. Given an encoder, this records and lets
+     * the caller submit the frame once. Omitted, it behaves as it always did.
+     */
+    frameEncoder?: GPUCommandEncoder
   ): GPUTexture {
     const enabledClip = clipEffects.filter((e) => e.enabled);
-    const enabledTrack = trackEffects.filter((e) => e.enabled);
+    const enabledTrack = trackEffectsAsClipEffects(trackEffects).filter(
+      (e) => e.enabled
+    );
 
     // Aggregate color & blur across clip + track scopes.
     const color = aggregateColor(enabledClip, enabledTrack);
     const blurRadius = aggregateBlurRadius(enabledClip, enabledTrack);
-    const sharpen = enabledTrack.find(
-      (e): e is TrackSharpenEffect => e.type === "sharpen"
-    );
-    const vignette = enabledTrack.find(
-      (e): e is TrackVignetteEffect => e.type === "vignette"
-    );
-    const chromaKey = enabledTrack.find(
-      (e): e is TrackChromaKeyEffect => e.type === "chromaKey"
-    );
+    const sharpen = enabledTrack.find(isClipSharpenEffect);
+    const vignette = enabledTrack.find(isClipVignetteEffect);
+    const chromaKey = enabledTrack.find(isClipChromaKeyEffect);
 
     const colorActive = isColorActive(color);
     const blurActive = blurRadius >= 0.5;
     const sharpenActive = sharpen != null && sharpen.amount > 0.001;
-    const vignetteActive = vignette != null && vignette.intensity > 0.001;
+    const vignetteActive = vignette != null && vignette.amount > 0.001;
     const chromaKeyActive = chromaKey != null && chromaKey.tolerance > 0.001;
     const shaderClip = enabledClip.filter(isShaderStepEffect);
 
@@ -199,9 +203,11 @@ export class WebGPUEffectsProcessor {
     }
 
     const pool = this.getPool(poolKey, width, height);
-    const encoder = this.device.createCommandEncoder({
-      label: `preview-effects-${poolKey}`
-    });
+    const encoder =
+      frameEncoder ??
+      this.device.createCommandEncoder({
+        label: `preview-effects-${poolKey}`
+      });
 
     // Decoded media arrives straight-alpha (uploaded with
     // `premultipliedAlpha: false`), which is what `sourceAlpha` defaults to.
@@ -279,13 +285,7 @@ export class WebGPUEffectsProcessor {
     };
 
     if (chromaKeyActive && chromaKey) {
-      const [r, g, b] = colorChannels(chromaKey.keyColor);
-      step(chromaKeyV1, {
-        keyColor: d.vec3f(r, g, b),
-        tolerance: chromaKey.tolerance,
-        softness: chromaKey.softness,
-        spill: chromaKey.spill
-      });
+      this.stepClipEffect(chromaKey, width, height, step, stepRecipe);
     }
     for (const effect of shaderClip) {
       this.stepClipEffect(effect, width, height, step, stepRecipe);
@@ -307,17 +307,10 @@ export class WebGPUEffectsProcessor {
       });
     }
     if (sharpenActive && sharpen) {
-      step(sharpenUnsharpMaskV1, {
-        amount: sharpen.amount,
-        threshold: sharpen.threshold
-      });
+      this.stepClipEffect(sharpen, width, height, step, stepRecipe);
     }
     if (vignetteActive && vignette) {
-      step(vignetteV1, {
-        intensity: vignette.intensity,
-        radius: vignette.radius,
-        softness: vignette.softness
-      });
+      this.stepClipEffect(vignette, width, height, step, stepRecipe);
     }
     // Hand back what the caller gave us. Nothing downstream re-reads the
     // module contracts, so a mislabeled texture here is a silently wrong
@@ -330,7 +323,7 @@ export class WebGPUEffectsProcessor {
       step(alphaPremulToStraightV1, alphaPremulToStraightV1.paramDefaults);
     }
 
-    this.device.queue.submit([encoder.finish()]);
+    if (!frameEncoder) this.device.queue.submit([encoder.finish()]);
     return pool.textures[pool.currentIndex].texture;
   }
 
@@ -378,11 +371,11 @@ export class WebGPUEffectsProcessor {
       return;
     }
     if (isClipVignetteEffect(effect)) {
-      // `lib.image.filter.Vignette`'s own default radius: the clip effect
-      // carries no midpoint, so the vignette starts where that node starts.
+      // Without a midpoint the vignette starts where `lib.image.filter.Vignette`
+      // starts. A track vignette always carries one.
       step(vignetteV1, {
         intensity: effect.amount,
-        radius: vignetteV1.paramDefaults.radius,
+        radius: effect.radius ?? vignetteV1.paramDefaults.radius,
         softness: effect.softness
       });
       return;
@@ -392,7 +385,8 @@ export class WebGPUEffectsProcessor {
       // is fixed — so it is carried in the document and not applied here.
       step(sharpenUnsharpMaskV1, {
         amount: effect.amount,
-        threshold: sharpenUnsharpMaskV1.paramDefaults.threshold
+        threshold:
+          effect.threshold ?? sharpenUnsharpMaskV1.paramDefaults.threshold
       });
       return;
     }
@@ -494,12 +488,16 @@ export class WebGPUEffectsProcessor {
     coverage: GPUTexture,
     coverageWidth: number,
     coverageHeight: number,
-    sourceAlpha: "straight" | "premultiplied" = "straight"
+    sourceAlpha: "straight" | "premultiplied" = "straight",
+    /** Record into the frame's encoder. See {@link EffectChain.process}. */
+    frameEncoder?: GPUCommandEncoder
   ): GPUTexture {
     const pool = this.getPool(poolKey, width, height);
-    const encoder = this.device.createCommandEncoder({
-      label: `preview-mask-${poolKey}`
-    });
+    const encoder =
+      frameEncoder ??
+      this.device.createCommandEncoder({
+        label: `preview-mask-${poolKey}`
+      });
     this.executor.encode({
       ctx: this.ctx,
       module: maskApplyV1,
@@ -539,7 +537,7 @@ export class WebGPUEffectsProcessor {
     });
     pool.textures[1].meta.alpha = alphaPremulToStraightV1.io.output.alpha;
     pool.currentIndex = 1;
-    this.device.queue.submit([encoder.finish()]);
+    if (!frameEncoder) this.device.queue.submit([encoder.finish()]);
     return pool.textures[1].texture;
   }
 
@@ -563,12 +561,16 @@ export class WebGPUEffectsProcessor {
     height: number,
     mode: "alpha" | "luma",
     invert: boolean,
-    sourceAlpha: "straight" | "premultiplied" = "straight"
+    sourceAlpha: "straight" | "premultiplied" = "straight",
+    /** Record into the frame's encoder. See {@link EffectChain.process}. */
+    frameEncoder?: GPUCommandEncoder
   ): GPUTexture {
     const pool = this.getPool(poolKey, width, height);
-    const encoder = this.device.createCommandEncoder({
-      label: `preview-matte-${poolKey}`
-    });
+    const encoder =
+      frameEncoder ??
+      this.device.createCommandEncoder({
+        label: `preview-matte-${poolKey}`
+      });
     const weighted =
       mode === "luma"
         ? this.premultiplyForLuma(
@@ -594,7 +596,7 @@ export class WebGPUEffectsProcessor {
     });
     pool.textures[0].meta.alpha = maskFromImageV1.io.output.alpha;
     pool.currentIndex = 0;
-    this.device.queue.submit([encoder.finish()]);
+    if (!frameEncoder) this.device.queue.submit([encoder.finish()]);
     return pool.textures[0].texture;
   }
 
@@ -716,35 +718,30 @@ export class WebGPUEffectsProcessor {
   }
 }
 
+function accumulateColor(
+  effects: readonly ClipEffect[],
+  out: AggregatedColor
+): void {
+  for (const e of effects) {
+    if (!isClipColorEffect(e)) continue;
+    out.brightness += e.brightness ?? 0;
+    out.contrast *= e.contrast ?? 1;
+    out.saturation *= e.saturation ?? 1;
+    out.hue += e.hue ?? 0;
+    out.temperature += e.temperature ?? 0;
+    out.tint += e.tint ?? 0;
+    out.shadows += e.shadows ?? 0;
+    out.highlights += e.highlights ?? 0;
+  }
+}
+
 function aggregateColor(
-  clipEffects: ClipEffect[],
-  trackEffects: TrackEffect[]
+  clipEffects: readonly ClipEffect[],
+  trackEffects: readonly ClipEffect[]
 ): AggregatedColor {
   const out: AggregatedColor = { ...NEUTRAL_COLOR };
-  for (const e of clipEffects) {
-    if (!isClipColorEffect(e)) continue;
-    const c = e;
-    out.brightness += c.brightness ?? 0;
-    out.contrast *= c.contrast ?? 1;
-    out.saturation *= c.saturation ?? 1;
-    out.hue += c.hue ?? 0;
-    out.temperature += c.temperature ?? 0;
-    out.tint += c.tint ?? 0;
-    out.shadows += c.shadows ?? 0;
-    out.highlights += c.highlights ?? 0;
-  }
-  for (const e of trackEffects) {
-    if (e.type !== "colorCorrection") continue;
-    const c = e;
-    out.brightness += c.brightness;
-    out.contrast *= c.contrast;
-    out.saturation *= c.saturation;
-    out.hue += c.hue;
-    out.temperature += c.temperature;
-    out.tint += c.tint;
-    out.shadows += c.shadows;
-    out.highlights += c.highlights;
-  }
+  accumulateColor(clipEffects, out);
+  accumulateColor(trackEffects, out);
   out.brightness = clamp(out.brightness, -1, 1);
   out.contrast = clamp(out.contrast, 0, 4);
   out.saturation = clamp(out.saturation, 0, 4);
@@ -757,17 +754,17 @@ function aggregateColor(
 }
 
 function aggregateBlurRadius(
-  clipEffects: ClipEffect[],
-  trackEffects: TrackEffect[]
+  clipEffects: readonly ClipEffect[],
+  trackEffects: readonly ClipEffect[]
 ): number {
-  let radius = 0;
-  for (const e of clipEffects) {
-    if (isClipBlurEffect(e)) radius += e.radius;
-  }
-  for (const e of trackEffects) {
-    if (e.type === "videoBlur") radius += e.radius;
-  }
-  return Math.min(40, radius);
+  const sum = (effects: readonly ClipEffect[]): number => {
+    let radius = 0;
+    for (const e of effects) {
+      if (isClipBlurEffect(e)) radius += e.radius;
+    }
+    return radius;
+  };
+  return Math.min(40, sum(clipEffects) + sum(trackEffects));
 }
 
 /**

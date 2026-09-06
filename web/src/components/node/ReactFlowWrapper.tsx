@@ -57,7 +57,7 @@ import {
   PREVIEW_NODE_TYPE,
   REROUTE_NODE_TYPE,
   STRING_NODE_TYPE,
-  DYNAMIC_COMFY_NODE_TYPE
+  DYNAMIC_COMFY_NODE_TYPES
 } from "../../constants/nodeTypes";
 import {
   useOpenSubgraph,
@@ -135,6 +135,11 @@ const EDGE_TYPES = {
 };
 
 const IS_APPLE_PLATFORM = /Mac|iPhone|iPad/.test(navigator.platform);
+
+/** Local, worker, and Cloud ComfyUI runners all render the same node body. */
+const comfyNodeTypes = Object.fromEntries(
+  [...DYNAMIC_COMFY_NODE_TYPES].map((type) => [type, DynamicComfySchemaNode])
+);
 
 interface ReactFlowWrapperProps {
   workflowId: string;
@@ -478,7 +483,6 @@ const ReactFlowWrapper = ({
       [GROUP_NODE_TYPE]: GroupNode,
       [COMMENT_NODE_TYPE]: CommentNode,
       [PREVIEW_NODE_TYPE]: PreviewNode,
-      "nodetool.workflows.base_node.Output": OutputNode,
       "nodetool.output.Output": OutputNode,
       "nodetool.compare.CompareImages": CompareImagesNode,
       [STRING_NODE_TYPE]: ConstantStringNode,
@@ -487,7 +491,7 @@ const ReactFlowWrapper = ({
       [DYNAMIC_KIE_NODE_TYPE]: DynamicKieSchemaNode,
       "kie.DynamicKie": DynamicKieSchemaNode,
       [DYNAMIC_REPLICATE_NODE_TYPE]: DynamicReplicateNode,
-      [DYNAMIC_COMFY_NODE_TYPE]: DynamicComfySchemaNode,
+      ...comfyNodeTypes,
       [WORKFLOW_NODE_TYPE]: WorkflowNode,
       [SUBGRAPH_NODE_TYPE]: SubgraphNode,
       [SKETCH_NODE_TYPE]: SketchNode,

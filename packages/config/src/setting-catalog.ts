@@ -26,7 +26,7 @@ export interface SettingCatalogEntry {
 const catalog: SettingCatalogEntry[] = [];
 
 /** Register a definition. First registration of an env var wins. */
-export function registerSettingDefinition(def: SettingCatalogEntry): void {
+function registerSettingDefinition(def: SettingCatalogEntry): void {
   if (!catalog.some((s) => s.envVar === def.envVar)) {
     catalog.push(def);
   }
@@ -312,6 +312,11 @@ sec(
   "GMI Cloud API key for accessing open-weight LLMs through GMI's OpenAI-compatible inference API. Get yours at https://console.gmicloud.ai/"
 );
 sec(
+  "EVOLINK_API_KEY",
+  "Evolink",
+  "Evolink API key for reaching GPT, Claude, Gemini, DeepSeek and other models through one gateway, plus Evolink's image and video generation. Get yours at https://docs.evolink.ai"
+);
+sec(
   "META_API_KEY",
   "Meta AI",
   "Meta AI API key for accessing the Muse Spark models through Meta's OpenAI-compatible API. Get yours at https://dev.meta.ai/"
@@ -370,6 +375,21 @@ sec(
   "HF_TOKEN",
   "HF",
   "Token for HuggingFace Inference Providers. Get yours at https://huggingface.co/settings/tokens"
+);
+sec(
+  "COHERE_API_KEY",
+  "Cohere",
+  "Cohere API key for Embed v4 text embeddings and reranking. Get yours at https://dashboard.cohere.com/api-keys"
+);
+sec(
+  "JINA_API_KEY",
+  "Jina",
+  "Jina AI API key for Jina embedding and reranker models. Get yours at https://jina.ai/api-dashboard/"
+);
+sec(
+  "VOYAGE_API_KEY",
+  "Voyage",
+  "Voyage AI API key for text and multimodal embeddings. Get yours at https://dashboard.voyageai.com/organization/api-keys"
 );
 sec(
   "LLAMA_API_KEY",
@@ -431,6 +451,11 @@ sec(
   "RunPod API key for accessing serverless endpoints. Get yours at https://www.runpod.io/console/user/settings"
 );
 sec(
+  "VAST_API_KEY",
+  "Vast.ai",
+  "Vast.ai API key for renting marketplace GPUs to run NodeTool workers. Get yours at https://cloud.vast.ai/manage-keys/"
+);
+sec(
   "NODE_SUPABASE_KEY",
   "NodeSupabase",
   "Supabase service key for user-provided nodes"
@@ -455,6 +480,11 @@ s(
   "KIE_TIMEOUT_SECONDS",
   "KIE",
   "Global timeout in seconds for Kie.ai API calls (0 = use default per-model timeout)"
+);
+sec(
+  "COMFY_API_KEY",
+  "Comfy Cloud",
+  "Comfy Cloud API key for running ComfyUI workflows on cloud.comfy.org. Get yours at https://platform.comfy.org"
 );
 sec(
   "TOPAZ_API_KEY",

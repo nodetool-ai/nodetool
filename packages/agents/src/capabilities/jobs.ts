@@ -12,7 +12,6 @@
  * loading this module costs nothing.
  */
 
-import type { JsonSchema } from "@nodetool-ai/runtime";
 import {
   jobRecord,
   jobSummaryRecord,
@@ -23,13 +22,9 @@ import {
   listJobsSpec,
   getJobSpec,
   getJobLogsSpec,
-  cancelJobSpec,
-  LIST_JOBS_SCHEMA,
-  GET_JOB_LOGS_SCHEMA
+  cancelJobSpec
 } from "./jobs.specs.js";
 import { isString } from "../utils/type-guards.js";
-
-export { LIST_JOBS_SCHEMA, GET_JOB_LOGS_SCHEMA } from "./jobs.specs.js";
 
 /** The paging/filter bag `Job.paginate` takes. */
 interface JobPageOptions {
@@ -71,7 +66,15 @@ const getJob: CapabilityExport = {
     // `error` string at the result root makes the CodeAct bridge throw and
     // discard everything else on a failed job.
     const { error, ...rest } = record;
-    return { ...rest, job_error: error ?? null, params: job.params ?? null };
+    return {
+      ...rest,
+      job_error: error ?? null,
+      params: job.params ?? null,
+      // What a still-running job can say about itself. A render posts one
+      // `node_progress` per frame; without this a poll during a two-minute
+      // render sees "running" and nothing more.
+      progress: job.progressRecord()
+    };
   }
 };
 

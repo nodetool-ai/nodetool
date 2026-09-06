@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { trpc } from "../lib/trpc";
-import { useWorkers } from "./useWorkers";
+import { useActiveWorker } from "./useWorkers";
 import type { RouterOutputs } from "../trpc/client";
 
 interface WorkerCachedModelsResult {
@@ -20,7 +20,7 @@ const EMPTY_IDS = new Set<string>();
  * Key format mirrors getHfCacheKey: `owner/repo` or `owner/repo/path`.
  */
 export const useWorkerCachedModels = (): WorkerCachedModelsResult => {
-  const { activeWorker } = useWorkers();
+  const activeWorker = useActiveWorker();
 
   type HuggingfaceListResult = RouterOutputs["models"]["huggingfaceList"];
 

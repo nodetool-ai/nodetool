@@ -33,7 +33,13 @@ import {
 } from "@nodetool-ai/image-editor/raster.js";
 
 import { useSketchInstance } from "../../stores/sketch/SketchInstance";
+import type { SketchCanvasRefState } from "../../stores/sketch/SketchCanvasRefStore";
 import { useDirectGenJob } from "./useDirectGenJob";
+import { requestRefinedBrief } from "./useRefineBrief";
+import {
+  IMAGE_USE_CASES,
+  findImageUseCase
+} from "@nodetool-ai/protocol/api-schemas/sketch.js";
 import {
   renderLayerToAsset,
   renderLayersMerged
@@ -53,27 +59,14 @@ import {
   type SketchAgentHandler,
   type SketchLayerNode,
   type SketchRenderedAssetResult,
-  type SketchSnapshot,
-  type SketchToolName
+  type SketchSnapshot
 } from "../../components/sketch/sketchAgentBridge";
+import { ALL_TOOL_DEFINITIONS } from "../../components/sketch/toolDefinitions";
+import type { SketchTool } from "../../components/sketch/types";
 
-const SKETCH_TOOLS: readonly SketchToolName[] = [
-  "move",
-  "transform",
-  "select",
-  "brush",
-  "pencil",
-  "eraser",
-  "eyedropper",
-  "fill",
-  "shape",
-  "blur",
-  "gradient",
-  "crop",
-  "clone_stamp",
-  "adjust",
-  "segment"
-];
+const SKETCH_TOOLS: readonly SketchTool[] = ALL_TOOL_DEFINITIONS.map(
+  (d) => d.tool
+);
 
 /** Serialize a layer to the agent-facing shape. */
 function toLayerNode(
@@ -194,6 +187,20 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
       return layer;
     };
 
+    /**
+     * The editor's own layer verb, which runs the runtime half as well as the
+     * store half. Half of a two-part destructive op is worse than none.
+     */
+    const requireOp = <K extends keyof SketchCanvasRefState>(
+      name: K
+    ): NonNullable<SketchCanvasRefState[K]> => {
+      const op = canvasRef.getState()[name];
+      if (!op) {
+        throw new Error("Canvas is not ready yet.");
+      }
+      return op as NonNullable<SketchCanvasRefState[K]>;
+    };
+
     const applyRaster = (
       layer: Layer,
       label: string,
@@ -241,46 +248,64 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
           backgroundColor: state.backgroundColor || "#000000",
           activeTool: state.activeTool,
           hasSelection: state.hasActiveSelection,
-          layers: d.layers.map((l, i) => toLayerNode(l, i, bindingFor(l.id)))
+          layers: d.layers.map((l, i) => toLayerNode(l, i, bindingFor(l.id))),
+          setup: d.setup
         };
       },
 
-      addLayer(opts) {
-        const state = editor.getState();
-        const id = state.addLayer(
-          uniqueLayerName(opts.name ?? "Layer"),
-          opts.type ?? "raster"
-        );
-        if (opts.fillColor) {
-          // The canvas creates the layer on its next render; fill once it
-          // exists, then persist the pixels and record a history entry —
-          // mirroring the layers panel's fill-on-add behavior.
-          requestAnimationFrame(() => {
-            const refs = canvasRef.getState();
-            refs.fillLayerWithColor?.(id, opts.fillColor as string);
-            const data = refs.getLayerData?.(id);
-            if (data) editor.getState().updateLayerData(id, data);
-            editor.getState().pushHistory("add layer");
-          });
-        } else {
-          state.pushHistory("add layer");
+      setSetup(patch) {
+        const next = { ...patch };
+        if (patch.use_case !== undefined) {
+          const useCase = findImageUseCase(patch.use_case);
+          if (!useCase) {
+            throw new Error(
+              `use_case must be one of ${IMAGE_USE_CASES.map((entry) => entry.id).join(", ")}.`
+            );
+          }
+          // The card writes the same two defaults, so an agent that picks a
+          // use case gets the document a person would have got.
+          next.variations ??=
+            editor.getState().document.setup?.variations ??
+            useCase.defaultVariations;
+          editor
+            .getState()
+            .resizeCanvas(useCase.defaultSize.width, useCase.defaultSize.height);
         }
+        editor.getState().setSetup(next);
+        return editor.getState().document.setup ?? {};
+      },
+
+      async refineBrief() {
+        const setup = editor.getState().document.setup;
+        const refined = await requestRefinedBrief({
+          brief: setup?.brief,
+          use_case: setup?.use_case
+        });
+        // D4: one language-model call and one store write. No layer, no job.
+        editor.getState().setSetup({ refined, stage: "review" });
+        return editor.getState().document.setup ?? {};
+      },
+
+      addLayer(opts) {
+        const id = requireOp("addLayer")({
+          name: uniqueLayerName(opts.name ?? "Layer"),
+          type: opts.type ?? "raster",
+          fillColor: opts.fillColor
+        });
         return layerNode(reReadLayer(id));
       },
 
       removeLayer(target) {
         const layer = requireLayer(target);
         const node = layerNode(layer);
-        editor.getState().removeLayer(layer.id);
-        editor.getState().pushHistory("remove layer");
+        requireOp("removeLayer")(layer.id);
         return node;
       },
 
       duplicateLayer(target) {
         const layer = requireLayer(target);
         const before = new Set(doc().layers.map((l) => l.id));
-        editor.getState().duplicateLayer(layer.id);
-        editor.getState().pushHistory("duplicate layer");
+        requireOp("duplicateLayer")(layer.id);
         const created = doc().layers.find((l) => !before.has(l.id));
         return layerNode(created ?? reReadLayer(layer.id));
       },
@@ -338,17 +363,13 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
 
       mergeLayerDown(target) {
         const layer = requireLayer(target);
-        editor.getState().mergeLayerDown(layer.id);
-        editor.getState().pushHistory("merge down");
-        const survivor = doc().layers.find((l) => l.id === layer.id);
-        return survivor ? layerNode(survivor) : null;
+        const survivorId = requireOp("mergeLayerDown")(layer.id);
+        return survivorId ? layerNode(reReadLayer(survivorId)) : null;
       },
 
       flattenVisible() {
-        editor.getState().flattenVisible();
-        editor.getState().pushHistory("flatten visible");
-        const id = doc().activeLayerId;
-        return layerNode(reReadLayer(id));
+        requireOp("flattenVisible")();
+        return layerNode(reReadLayer(doc().activeLayerId));
       },
 
       async generate(opts) {
@@ -393,6 +414,7 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
           height,
           aspectRatio: opts.aspectRatio,
           resolution: opts.resolution,
+          seed: opts.seed,
           sourceLayerId,
           status: "draft",
           versions: []
@@ -544,8 +566,7 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
       resizeCanvas(width, height) {
         const w = Math.max(1, Math.round(width));
         const h = Math.max(1, Math.round(height));
-        editor.getState().resizeCanvas(w, h);
-        editor.getState().pushHistory("resize canvas");
+        requireOp("resizeCanvas")(w, h);
         return { width: w, height: h };
       },
 

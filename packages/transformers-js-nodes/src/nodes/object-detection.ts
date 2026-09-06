@@ -13,6 +13,10 @@ import {
   loadRawImage,
   normalizeOption
 } from "../transformers-base.js";
+import type {
+  HfModelRef,
+  ImageRefLike
+} from "../transformers-base.js";
 import { defaultRepoFor } from "../recommended-models.js";
 
 const TJS_TYPE = "tjs.object_detection";
@@ -55,7 +59,7 @@ export class ObjectDetectionNode extends BaseNode {
     title: "Image",
     description: "Image to run detection on."
   })
-  declare image: any;
+  declare image: ImageRefLike;
 
   @prop({
     type: TJS_TYPE,
@@ -63,7 +67,7 @@ export class ObjectDetectionNode extends BaseNode {
     title: "Model",
     description: "Transformers.js model (ONNX-compatible)."
   })
-  declare model: any;
+  declare model: HfModelRef;
 
   @prop({
     type: "float",
@@ -73,7 +77,7 @@ export class ObjectDetectionNode extends BaseNode {
     min: 0.0,
     max: 1.0
   })
-  declare threshold: any;
+  declare threshold: number;
 
   @prop({
     type: "bool",
@@ -81,7 +85,7 @@ export class ObjectDetectionNode extends BaseNode {
     title: "Percentage Coordinates",
     description: "Return bounding boxes as fractions of image size."
   })
-  declare percentage: any;
+  declare percentage: boolean;
 
   @prop({
     type: "enum",
@@ -90,7 +94,7 @@ export class ObjectDetectionNode extends BaseNode {
     description: "Model dtype / quantization level.",
     values: DTYPE_VALUES
   })
-  declare dtype: any;
+  declare dtype: string;
 
   @prop({
     type: "enum",
@@ -99,7 +103,7 @@ export class ObjectDetectionNode extends BaseNode {
     description: "Inference device.",
     values: DEVICE_VALUES
   })
-  declare device: any;
+  declare device: string;
 
   async process(
     context?: ProcessingContext

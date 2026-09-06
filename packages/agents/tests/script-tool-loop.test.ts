@@ -60,7 +60,7 @@ describe("createScriptToolBridge", () => {
     const bridge = createScriptToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
     expect(byName).toHaveProperty("ui_script_get_state");
-    expect(Object.keys(byName)).toHaveLength(11);
+    expect(Object.keys(byName)).toHaveLength(13);
 
     const speakerResult = (await byName["ui_script_add_speaker"].execute({
       name: "Narrator",
@@ -220,10 +220,11 @@ describe("createScriptToolBridge", () => {
 // --- SCRIPT_TOOL_LOOP_CASES ---------------------------------------------------
 
 describe("SCRIPT_TOOL_LOOP_CASES", () => {
-  it("has four cases with the expected ids", () => {
+  it("has five cases with the expected ids", () => {
     expect(SCRIPT_TOOL_LOOP_CASES.map((c) => c.id)).toEqual([
       "voice-and-assemble",
       "write-dialogue",
+      "setup-then-write",
       "export-subtitles",
       "derive-storyboard"
     ]);

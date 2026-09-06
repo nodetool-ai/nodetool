@@ -1,5 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -23,9 +30,7 @@ import {
   BORDER_RADIUS,
   Z_INDEX
 } from "../ui_primitives";
-import useGlobalChatStore, {
-  useThreadsQuery
-} from "../../stores/GlobalChatStore";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
 import useCanvasChatDockStore from "../../stores/CanvasChatDockStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useCanvasDockResize } from "../../hooks/handlers/useCanvasDockResize";
@@ -240,8 +245,20 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Keep the thread list populated for the inline threads panel.
-  useThreadsQuery();
+  // Keep the thread list populated for the inline threads panel. `fetchThreads`
+  // is the one loader: the query hook that used to live here fetched the same
+  // rows and wrote them into this store, so the two raced on the same state.
+  const { threadsLoaded, fetchThreads } = useGlobalChatStore(
+    useShallow((state) => ({
+      threadsLoaded: state.threadsLoaded,
+      fetchThreads: state.fetchThreads
+    }))
+  );
+  useEffect(() => {
+    if (!threadsLoaded) {
+      void fetchThreads();
+    }
+  }, [threadsLoaded, fetchThreads]);
 
   const {
     messages,

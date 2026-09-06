@@ -23,6 +23,7 @@ import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
 import type {
   Script,
   ScriptDocument,
+  ScriptSetup,
   Storyboard,
   ScriptLine,
   ScriptSection,
@@ -60,37 +61,32 @@ import {
   voiceScriptLinesSpec,
   assembleScriptTimelineSpec,
   editScriptSpec,
+  writeScriptSpec,
   deriveStoryboardFromScriptSpec,
   DEFAULT_CONCURRENCY,
   MAX_CONCURRENCY,
   DEFAULT_ASR_PROVIDER,
   DEFAULT_ASR_MODEL,
-  LINE_TARGETS_SCHEMA,
-  LIST_SCRIPTS_SCHEMA,
-  GET_SCRIPT_SCHEMA,
-  VOICE_SCRIPT_LINES_SCHEMA,
-  ASSEMBLE_SCRIPT_TIMELINE_SCHEMA,
-  EDIT_SCRIPT_SCHEMA,
-  DERIVE_STORYBOARD_SCHEMA,
   deleteScriptSpec
 } from "./scripts.specs.js";
 
-export {
-  DEFAULT_CONCURRENCY,
-  MAX_CONCURRENCY,
-  DEFAULT_ASR_PROVIDER,
-  DEFAULT_ASR_MODEL,
-  LINE_TARGETS_SCHEMA,
-  LIST_SCRIPTS_SCHEMA,
-  GET_SCRIPT_SCHEMA,
-  VOICE_SCRIPT_LINES_SCHEMA,
-  ASSEMBLE_SCRIPT_TIMELINE_SCHEMA,
-  EDIT_SCRIPT_SCHEMA,
-  DERIVE_STORYBOARD_SCHEMA
-} from "./scripts.specs.js";
 import { resolveProjectId } from "./project-scope.js";
 /** Lines one call may voice, so a whole-script call cannot run away. */
 const MAX_LINES_PER_CALL = 60;
+/** Tokens the writer may spend on one script. */
+const MAX_WRITER_TOKENS = 8192;
+/** The length a script is written to when no step wrote one. */
+const DEFAULT_SCRIPT_SECONDS = 60;
+/** The guided-setup stages, in order. Mirrors `scriptSetupStage`. */
+const SETUP_STAGES: ReadonlyArray<ScriptSetup["stage"]> = [
+  "idea",
+  "format",
+  "review",
+  "voices",
+  "done"
+];
+/** The reading paces a script can be written and estimated at. */
+const SETUP_PACES: readonly string[] = ["slow", "normal", "fast"];
 /** Attempts to land a document write: the first try plus one re-read-and-reapply (ADR 0001). */
 const CAS_ATTEMPTS = 2;
 
@@ -967,6 +963,7 @@ const assembleScriptTimeline: CapabilityExport = {
 const MAX_SCRIPT_OPS = 80;
 
 const SCRIPT_OPS = [
+  "set_setup",
   "add_speaker",
   "set_speaker",
   "set_speaker_voice",
@@ -998,6 +995,7 @@ interface ParsedScriptOp {
  * work out which call had not taken. A key no op reads is now refused, by name.
  */
 const OP_KEYS: Record<ScriptOpName, readonly string[]> = {
+  set_setup: ["stage", "brief", "format", "length_seconds", "pace", "language"],
   add_speaker: [
     "name",
     "color",
@@ -1034,6 +1032,7 @@ const OP_KEYS: Record<ScriptOpName, readonly string[]> = {
  * refused rather than guessed at.
  */
 const OP_ALIASES: Record<ScriptOpName, Readonly<Record<string, string>>> = {
+  set_setup: { seconds: "length_seconds", length: "length_seconds" },
   add_speaker: { speaker: "name", speaker_name: "name" },
   set_speaker: { id: "target", speaker: "target", speaker_id: "target" },
   set_speaker_voice: {
@@ -1289,6 +1288,42 @@ function applyScriptOp(
   };
 
   switch (op) {
+    case "set_setup": {
+      const setup: ScriptSetup = doc.setup ?? { stage: "idea", brief: "" };
+      if (args["stage"] !== undefined) {
+        const stage = String(args["stage"]);
+        if (!SETUP_STAGES.includes(stage as ScriptSetup["stage"])) {
+          throw new Error(
+            `stage must be one of ${SETUP_STAGES.join(", ")}; got "${stage}".`
+          );
+        }
+        setup.stage = stage as ScriptSetup["stage"];
+      }
+      if (args["brief"] !== undefined) setup.brief = String(args["brief"]);
+      if (args["format"] !== undefined) setup.format = String(args["format"]);
+      if (args["length_seconds"] !== undefined) {
+        const seconds = Number(args["length_seconds"]);
+        if (!Number.isFinite(seconds) || seconds <= 0) {
+          throw new Error("length_seconds must be a positive number of seconds.");
+        }
+        setup.length_seconds = Math.round(seconds);
+      }
+      if (args["pace"] !== undefined) {
+        const pace = String(args["pace"]);
+        if (!SETUP_PACES.includes(pace)) {
+          throw new Error(
+            `pace must be one of ${SETUP_PACES.join(", ")}; got "${pace}".`
+          );
+        }
+        setup.pace = pace as ScriptSetup["pace"];
+      }
+      if (args["language"] !== undefined) {
+        setup.language = String(args["language"]);
+      }
+      doc.setup = setup;
+      return { ...setup };
+    }
+
     case "add_speaker": {
       const name = args["name"];
       if (!isNonBlankString(name)) {
@@ -1882,6 +1917,235 @@ const deriveStoryboardFromScript: CapabilityExport = {
   }
 };
 
+
+// ---------------------------------------------------------------------------
+// write_script
+// ---------------------------------------------------------------------------
+
+/**
+ * The writer, headless. The browser's `useWriteScript` runs the same protocol
+ * functions; keeping the prompt, the schema and the parse in
+ * `@nodetool-ai/protocol` is what makes a script written here and one written
+ * in the flow the same artifact.
+ *
+ * Imported words never reach the writer's schema. They are split by
+ * `splitImportedText` and attributed by a call whose schema has no text field,
+ * and every line's words come from the split — so an agent handed a user's own
+ * script cannot quietly improve it (PRD § 9.7 criterion 4).
+ */
+/**
+ * Ids for one written script. `Date.now()` alone is not enough: two writes
+ * inside the same millisecond mint the same prefix, so a rewrite's new line can
+ * be handed the id of a line that rewrite dropped — and with it that line's
+ * takes, which are paid-for audio of different words.
+ */
+let writeSequence = 0;
+const nextIdPrefix = (): string =>
+  `w${Date.now().toString(36)}${(writeSequence++).toString(36)}`;
+
+const writeScript: CapabilityExport = {
+  spec: writeScriptSpec,
+  impl: async (run, params) => {
+    const script = await loadScript(run, params["script_id"]);
+    if (isError(script)) return script;
+    const { row, doc } = script;
+
+    const setup = doc.setup;
+    const brief = setup?.brief.trim() ?? "";
+    const imported = isNonBlankString(params["imported_text"])
+      ? params["imported_text"]
+      : "";
+    if (brief === "" && imported === "") {
+      return {
+        error: `Script ${row.id} has no brief, so there is nothing to write. Set one with edit_script's set_setup op, or pass imported_text.`
+      };
+    }
+
+    const provider = isNonBlankString(params["provider"])
+      ? params["provider"]
+      : "";
+    const model = isNonBlankString(params["model"]) ? params["model"] : "";
+    if (!provider || !model) {
+      return {
+        error:
+          "write_script needs provider + model for the writer (use find_model with capability=generate_text)."
+      };
+    }
+
+    const {
+      ATTRIBUTION_SYSTEM_PROMPT,
+      ATTRIBUTION_TOOL_DESCRIPTION,
+      ATTRIBUTION_TOOL_NAME,
+      SCRIPT_TOOL_DESCRIPTION,
+      SCRIPT_TOOL_NAME,
+      SCRIPT_WRITER_SYSTEM_PROMPT,
+      applyAttribution,
+      buildAttributionPrompt,
+      buildAttributionSchema,
+      buildScriptSchema,
+      buildScriptWriterPrompt,
+      fallbackScript,
+      parseWrittenScript,
+      scriptFormatById,
+      splitImportedText
+    } = await import("@nodetool-ai/protocol");
+    const { generateStructured } = await import("@nodetool-ai/runtime");
+
+    const format = setup?.format ?? "";
+    const sectionTitle = scriptFormatById(format)?.sections[0] ?? "Script";
+    const idPrefix = nextIdPrefix();
+    const heldLineIds = doc.sections.flatMap((section) =>
+      section.lines.map((line) => line.id)
+    );
+    const existingCast = doc.cast.map((speaker) => ({
+      id: speaker.id,
+      name: speaker.name
+    }));
+    const llm = await run.context.getProvider(provider);
+
+    let written;
+    if (imported !== "") {
+      const texts = splitImportedText(imported);
+      const answer = await generateStructured(llm, {
+        model,
+        maxTokens: MAX_WRITER_TOKENS,
+        messages: [
+          { role: "system", content: ATTRIBUTION_SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: buildAttributionPrompt(texts, { brief, format })
+          }
+        ],
+        toolName: ATTRIBUTION_TOOL_NAME,
+        toolDescription: ATTRIBUTION_TOOL_DESCRIPTION,
+        schema: buildAttributionSchema(texts.length)
+      });
+      written = applyAttribution(texts, answer, {
+        idPrefix,
+        lineIds: heldLineIds,
+        sectionTitle,
+        existingCast
+      });
+    } else {
+      const rewrite = params["rewrite"] === true;
+      const input = {
+        brief,
+        format,
+        lengthSeconds: setup?.length_seconds ?? DEFAULT_SCRIPT_SECONDS,
+        pace: setup?.pace,
+        language: setup?.language,
+        existing: rewrite
+          ? {
+              cast: existingCast,
+              sections: doc.sections.map((section) => ({
+                id: section.id,
+                title: section.title ?? "",
+                lines: section.lines.map((line) => ({
+                  id: line.id,
+                  speakerId: line.speakerId ?? null,
+                  text: line.text,
+                  direction: line.direction
+                }))
+              }))
+            }
+          : undefined
+      };
+      const answer = await generateStructured(llm, {
+        model,
+        maxTokens: MAX_WRITER_TOKENS,
+        messages: [
+          { role: "system", content: SCRIPT_WRITER_SYSTEM_PROMPT },
+          { role: "user", content: buildScriptWriterPrompt(input) }
+        ],
+        toolName: SCRIPT_TOOL_NAME,
+        toolDescription: SCRIPT_TOOL_DESCRIPTION,
+        schema: buildScriptSchema({ retainIds: heldLineIds })
+      });
+      const parseOptions = { idPrefix, retainIds: heldLineIds, existingCast };
+      const parsed = parseWrittenScript(answer, parseOptions);
+      // A provider without tool support — or the fake one — falls back to the
+      // brief split into lines, the same rule the Director and the editor
+      // apply. Only a provider failure throws.
+      written =
+        parsed.sections.length > 0
+          ? parsed
+          : fallbackScript(input, parseOptions);
+    }
+
+    const { Script } = await import("@nodetool-ai/models");
+    for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
+      const current = await loadScript(run, row.id);
+      if (isError(current)) return current;
+      const next = current.doc;
+      // A line that comes back with an id the script already carries keeps its
+      // takes: re-voicing a line the writer did not touch would spend money to
+      // produce the same audio.
+      const heldLines = new Map(
+        next.sections
+          .flatMap((section) => section.lines)
+          .map((line) => [line.id, line] as const)
+      );
+      const heldSpeakers = new Map(
+        next.cast.map((speaker) => [speaker.id, speaker] as const)
+      );
+      next.cast = written.cast.map((speaker) => {
+        const kept = heldSpeakers.get(speaker.id);
+        return kept ? { ...kept, name: speaker.name } : { ...speaker };
+      });
+      next.sections = written.sections.map((section) => ({
+        id: section.id,
+        title: section.title,
+        lines: section.lines.map((line) => {
+          const kept = heldLines.get(line.id);
+          const merged: ScriptLine = {
+            ...kept,
+            id: line.id,
+            speakerId: line.speakerId,
+            text: line.text,
+            takes: kept?.takes ?? []
+          };
+          if (line.direction !== undefined) merged.direction = line.direction;
+          if (line.targetDurationMs !== undefined) {
+            merged.targetDurationMs = line.targetDurationMs;
+          }
+          return merged;
+        })
+      }));
+      if (next.setup) {
+        next.setup.stage = next.setup.stage === "format" ? "review" : next.setup.stage;
+      }
+
+      const saved = await Script.updateFieldsIfUnchanged(row.id, current.row.updated_at, {
+        document: JSON.stringify(next)
+      });
+      if (!saved) continue;
+      return {
+        script_id: row.id,
+        updated_at: saved.updated_at,
+        rewritten: params["rewrite"] === true,
+        imported: imported !== "",
+        cast: next.cast.map((speaker) => ({
+          id: speaker.id,
+          name: speaker.name
+        })),
+        lines: next.sections.flatMap((section) =>
+          section.lines.map((line) => ({
+            id: line.id,
+            section_id: section.id,
+            speaker_id: line.speakerId ?? null,
+            text: line.text,
+            direction: line.direction,
+            take_count: line.takes.length
+          }))
+        )
+      };
+    }
+    return {
+      error: `Script ${row.id} was modified while it was being written. Read it again and retry.`
+    };
+  }
+};
+
 /** Every script capability, in the order the tool file declared them. */
 /**
  * Delete a script the caller owns.
@@ -1911,6 +2175,7 @@ export const SCRIPT_CAPABILITIES: readonly CapabilityExport[] = [
   voiceScriptLines,
   assembleScriptTimeline,
   editScript,
+  writeScript,
   deriveStoryboardFromScript,
   deleteScript
 ];
@@ -1927,6 +2192,7 @@ export {
   voiceScriptLines,
   assembleScriptTimeline,
   editScript,
+  writeScript,
   deriveStoryboardFromScript,
   deleteScript
 };

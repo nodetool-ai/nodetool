@@ -819,6 +819,15 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Worth a capability once something headless wants to start from one."
   },
   "storyboards.list": { capability: "list_storyboards" },
+  "storyboards.stylePresets": {
+    gap:
+      "Seeds the shipped style presets into the caller's own library, then " +
+      "lists them. Reading them back is already reachable — they are " +
+      "`style` entities, which list_entities returns — but the seeding half " +
+      "has no headless trigger, so on an account whose editor has never " +
+      "opened the look step a run finds no presets to apply. A capability " +
+      "here, or seeding from list_entities, would close it."
+  },
   "storyboards.update": { capability: "edit_storyboard" },
   "memories.delete": { capability: "memory_delete" },
   "memories.list": { capability: "memory_list" },
@@ -983,6 +992,13 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "workflows.examples": { capability: "get_example_workflow" },
   "workflows.get": { capability: "get_workflow" },
   "workflows.list": { capability: "list_workflows" },
+  "workflows.recipes": {
+    gap:
+      "The shipped recipe chains: which example workflows to run, in what " +
+      "order, and what each hands the next. A run reaches any single step " +
+      "through get_example_workflow; the ordering and the outcome each chain " +
+      "names have no capability yet."
+  },
   "workflows.public.get": {
     elsewhere:
       "get_workflow resolves a public workflow by id."

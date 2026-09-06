@@ -373,7 +373,20 @@ function SketchEditor({
         return canvas.sampleLayer(layerId, x, y);
       },
       clearActiveLayer: () => session.canvasActions.handleClearLayer(),
-      fitViewToScreen: () => session.canvasActions.handleZoomFit()
+      fitViewToScreen: () => session.canvasActions.handleZoomFit(),
+      // The whole layer verb, runtime bake included. The agent bridge calls
+      // these instead of the store actions: merge and flatten are two-part
+      // operations whose store half assumes the runtime already baked the
+      // pixels, so running the store half alone silently discards them.
+      addLayer: (options) => session.layerActions.handleAddLayer(options),
+      removeLayer: (layerId) => session.layerActions.handleRemoveLayer(layerId),
+      duplicateLayer: (layerId) =>
+        session.layerActions.handleDuplicateLayer(layerId),
+      mergeLayerDown: (upperLayerId) =>
+        session.layerActions.handleMergeLayerDown(upperLayerId),
+      flattenVisible: () => session.layerActions.handleFlattenVisible(),
+      resizeCanvas: (width, height) =>
+        session.canvasActions.handleCanvasResize(width, height)
     });
     return () => {
       clearCanvasGetters();
@@ -381,6 +394,7 @@ function SketchEditor({
   }, [
     session.canvasRef,
     session.canvasActions,
+    session.layerActions,
     session.historyStore,
     setCanvasGetters,
     clearCanvasGetters

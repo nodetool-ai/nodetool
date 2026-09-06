@@ -16,7 +16,7 @@
  */
 
 import { getBuiltinTools, getMediaTools, Tool } from "@nodetool-ai/agents";
-import { isCallable } from "./type-predicates.js";
+import { isCallable } from "@nodetool-ai/node-sdk";
 
 type ToolCtor = new () => Tool;
 

@@ -9,7 +9,7 @@
  */
 import type { Asset, TypeMetadata } from "../stores/ApiTypes";
 import { assetToOutputValue } from "./nodeGenerations";
-import { isString } from "./typePredicates";
+import { isRecord, isString } from "./typePredicates";
 
 export interface CollectionItem {
   /** "image" | "video" | "audio" | "text" | "json" | "model_3d" | "asset" */
@@ -20,9 +20,6 @@ export interface CollectionItem {
   name?: string;
   [key: string]: unknown;
 }
-
-const isRecord = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null && !Array.isArray(v);
 
 /** The media type the whole collection is locked to (first item wins). */
 export const collectionType = (

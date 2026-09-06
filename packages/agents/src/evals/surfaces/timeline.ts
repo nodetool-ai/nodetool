@@ -27,6 +27,7 @@ import { z } from "zod";
 import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
 import {
   splitClip,
+  trimClip,
   ANIMATION_PRESETS,
   ANIMATED_PROPERTIES,
   CUSTOM_ANIMATION_CONTRACT,
@@ -45,6 +46,7 @@ import {
   trackTypeForMediaType,
   STAGGER_UNITS,
   parseStaggerUnit,
+  parseEasing,
   DEFAULT_BEAT_TOLERANCE_MS,
   buildBeatGrid,
   beatCountToCover,
@@ -61,8 +63,11 @@ import {
   type ClipMask,
   type SnapBoundaryMode,
   type SnapAction,
+  type TimelineBeat,
   type TimelineClip,
   type TimelineMarker,
+  type TimelineSetup,
+  type TimelineSetupStage,
   type TimelineTrack,
   type ClipAnimation,
   instantiateComposition,
@@ -71,41 +76,34 @@ import {
 import {
   computeActiveLayers,
   countTextStaggerUnits,
-  parseSvgPath
+  parseSvgPath,
+  type RenderCanvas
 } from "@nodetool-ai/timeline/scene";
 import {
-  addGroupParams,
   buildEffect,
   buildMask,
   buildTimeRemap,
   buildTransition,
-  captionStyleParams,
   effectParams,
   maskParams,
   matteParams,
   partialTextStyleParams,
-  deleteTrackShape,
   resolveDeleteTrackArgs,
-  withTextClipRemedies,
-  DELETE_TRACK_DESCRIPTION,
-  setParentParams,
-  setTimeRemapParams,
   timeRemapParams,
-  shapeStyleParams,
-  ADD_SHAPE_CLIP_DESCRIPTION,
-  ADD_TEXT_CLIP_DESCRIPTION,
-  ADD_TRACK_DESCRIPTION,
-  clipOpacityParam,
-  MOVE_TRACK_DESCRIPTION,
-  moveTrackShape,
   resolveMoveTrackArgs,
-  trackTargetParam,
   resolveShapeArg,
-  targetParam,
-  textStylePatchParams,
   textStyleParams,
-  transitionParams
+  textStylePatchParams,
+  transitionParams,
+  type TransitionParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
+import {
+  buildTimelineToolContracts,
+  liftCustomAnimation,
+  rejectUnknownClipParams,
+  type TimelineToolName
+} from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
+import { uiToolParams } from "@nodetool-ai/protocol/api-schemas/ui-tool-contract.js";
 import type { HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
@@ -114,55 +112,19 @@ import type {
 } from "../tool-loop-eval.js";
 import { findSystemSkill } from "../../system-skills.js";
 
-const animationRole = z.enum(["in", "out", "emphasis", "loop"]);
+/**
+ * The `ui_timeline_*` contracts, shared with the browser registry
+ * (`web/src/lib/tools/builtin/timeline.ts`). The vocabulary comes from
+ * `@nodetool-ai/timeline`, which the protocol package sits below.
+ */
+const CONTRACTS = buildTimelineToolContracts({
+  staggerUnits: STAGGER_UNITS,
+  animatedProperties: ANIMATED_PROPERTIES,
+  beatToleranceMs: DEFAULT_BEAT_TOLERANCE_MS
+});
 
 /** Units a failed lookup names before it stops and points at get_state. */
 const MAX_LISTED_UNITS = 12;
-
-/**
- * The `custom` preset's inputs. Values are checked by
- * `normalizeCustomCurves`/`resolveCustomMask` rather than by Zod: those are the
- * gates the compiler and the validator already run, and a second, looser copy
- * of the rules here would refuse or admit different curves than the engine.
- */
-const customCurvesParam = z
-  .array(
-    z.object({
-      property: z
-        .string()
-        .describe(`One of: ${ANIMATED_PROPERTIES.join(", ")}.`),
-      keyframes: z
-        .array(
-          z.object({
-            t: z.number().describe("0..1 across the animation's window."),
-            value: z.number(),
-            easing: z.string().optional()
-          })
-        )
-        .min(1)
-    })
-  )
-  .optional()
-  .describe(
-    'Keyframes for `preset: "custom"`. Exactly one of `curves` and `code`.'
-  );
-
-const customCodeParam = z
-  .string()
-  .optional()
-  .describe(
-    'JS body for `preset: "custom"`, baked into curves once. It returns ' +
-      "`{curves}` or `{samples}` and reads its clip context off `inputs`. " +
-      "Exactly one of `curves` and `code`."
-  );
-
-const customMaskParam = z
-  .object({
-    direction: z.enum(["left", "right", "up", "down"]),
-    softness: z.number().min(0).max(1)
-  })
-  .optional()
-  .describe("Required when a curve drives wipeProgress, ignored otherwise.");
 
 /**
  * What the bridge needs to know about an asset to place it as a clip. A host
@@ -203,6 +165,8 @@ export interface TimelineBridgeSequenceSeed {
   clips: TimelineClip[];
   /** The document's markers. Absent reads as a sequence with none. */
   markers?: TimelineMarker[];
+  /** Guided video-flow state. Absent reads as a sequence never in the flow. */
+  setup?: TimelineSetup;
 }
 
 /**
@@ -323,6 +287,12 @@ export interface TimelineBridgeFinalState {
    */
   markers: TimelineMarker[];
   /**
+   * Guided video-flow state, or null on a sequence that was never in it.
+   * `edit_timeline` writes it back, so the flow's stage and plan survive an
+   * op run the same way tracks and clips do.
+   */
+  setup: TimelineSetup | null;
+  /**
    * Every tool this bridge ran, in call order, by name — failed calls
    * included, because a call that errored still happened. A document cannot
    * say whether the agent *looked* at what it made: "previewed after the last
@@ -330,6 +300,8 @@ export interface TimelineBridgeFinalState {
    * the runner hands a case.
    */
   toolLog: string[];
+  /** Timecodes successfully previewed by the bridge. */
+  previewTimesMs: number[];
 }
 
 /**
@@ -355,6 +327,77 @@ export function previewedAfterLastEdit(toolLog: readonly string[]): boolean {
 }
 
 /**
+ * Whether a preview landed inside a motion rather than beside it.
+ *
+ * {@link previewedAfterLastEdit} reads the transcript's shape: a preview call
+ * came last. That passes on a look at 0ms, where an entrance has not started —
+ * the endpoints tell you nothing, which is what the skill's "sample the middle
+ * of a motion" is about. This reads the timecodes instead: at least one falls
+ * strictly inside the window of an animation the document now carries.
+ *
+ * Every animation in a graded final state is one the run authored, since the
+ * seeded worlds carry none.
+ */
+export function previewedMidMotion(
+  previewTimesMs: readonly number[],
+  clips: readonly TimelineClip[],
+  canvas: RenderCanvas
+): boolean {
+  if (previewTimesMs.length === 0) return false;
+  return clips.some((clip) =>
+    (clip.animations ?? []).some((animation) => {
+      const window = animationWindow(clip, animation, canvas);
+      if (!(window.endMs > window.startMs)) return false;
+      return previewTimesMs.some(
+        (timeMs) => timeMs > window.startMs && timeMs < window.endMs
+      );
+    })
+  );
+}
+
+/**
+ * How long an animation is in motion for: its own window, widened by the
+ * stagger's last unit. `durationMs` unset takes the preset's default.
+ */
+function motionSpanMs(
+  clip: TimelineClip,
+  animation: ClipAnimation,
+  canvas: RenderCanvas
+): number {
+  const preset = ANIMATION_PRESETS.find((p) => p.id === animation.preset);
+  const durationMs = animation.durationMs ?? preset?.defaultDurationMs ?? 0;
+  const stagger = animation.stagger;
+  if (!stagger || !(stagger.offsetMs > 0)) return durationMs;
+  const units = staggerUnitsOf(clip, stagger.unit, canvas);
+  if (units < 2) return durationMs;
+  return durationMs + stagger.offsetMs * (units - 1);
+}
+
+/**
+ * When an animation runs, in timeline ms. `delayMs` offsets an `in` and an
+ * `emphasis` from the clip's start and an `out` backwards from its end, which
+ * is the role rule the skill states. A `loop` runs for the whole clip.
+ */
+export function animationWindow(
+  clip: TimelineClip,
+  animation: ClipAnimation,
+  canvas: RenderCanvas
+): { startMs: number; endMs: number } {
+  const clipEndMs = clip.startMs + clip.durationMs;
+  if (animation.role === "loop") {
+    return { startMs: clip.startMs, endMs: clipEndMs };
+  }
+  const delayMs = animation.delayMs ?? 0;
+  const spanMs = motionSpanMs(clip, animation, canvas);
+  if (animation.role === "out") {
+    const endMs = clipEndMs - delayMs;
+    return { startMs: endMs - spanMs, endMs };
+  }
+  const startMs = clip.startMs + delayMs;
+  return { startMs, endMs: startMs + spanMs };
+}
+
+/**
  * Whether a staggered animation finishes inside its clip: the last unit
  * starts `offsetMs × (units − 1)` in and still runs the full `durationMs`.
  * An animation with no stagger, or one on a clip that splits into fewer than
@@ -362,11 +405,12 @@ export function previewedAfterLastEdit(toolLog: readonly string[]): boolean {
  */
 export function staggerSpanFitsClip(
   clip: TimelineClip,
-  animation: ClipAnimation
+  animation: ClipAnimation,
+  canvas: RenderCanvas
 ): boolean {
   const stagger = animation.stagger;
   if (!stagger || !(stagger.offsetMs > 0)) return true;
-  const units = staggerUnitsOf(clip, stagger.unit);
+  const units = staggerUnitsOf(clip, stagger.unit, canvas);
   if (units < 2) return true;
   const preset = ANIMATION_PRESETS.find((p) => p.id === animation.preset);
   const durationMs = animation.durationMs ?? preset?.defaultDurationMs ?? 0;
@@ -380,17 +424,17 @@ export function staggerSpanFitsClip(
  * wraps against the sequence size; with no text measurer every authored
  * paragraph is one line, which is what a headless surface can know.
  */
-export function staggerUnitsOf(clip: TimelineClip, unit: string): number {
+export function staggerUnitsOf(
+  clip: TimelineClip,
+  unit: string,
+  canvas: RenderCanvas
+): number {
   const style = clip.textStyle;
   const parsed = parseStaggerUnit(unit);
   // An unknown unit compiles as a plain block animation, so it splits into
   // nothing — same answer as a clip with no text.
   if (!style || !parsed) return 0;
-  return countTextStaggerUnits(
-    style,
-    { width: 1920, height: 1080 },
-    parsed
-  );
+  return countTextStaggerUnits(style, canvas, parsed);
 }
 
 /**
@@ -413,9 +457,29 @@ export function effectiveEasing(animation: ClipAnimation): string {
   }
 }
 
-/** Whether an easing decelerates into its landing: an ease-out or a spring. */
+/** How far either side of the curve a slope is measured over. */
+const EASING_SLOPE_STEP = 0.02;
+
+/**
+ * Whether an easing decelerates into its landing.
+ *
+ * The `easeOut` family qualifies by name: its endpoints are exact, and
+ * `easeOutBounce` deliberately accelerates into its last bounce, which a slope
+ * reading at t=1 would score as an ease-in. Everything else in the grammar is
+ * measured — the curve's slope entering the landing against its slope leaving
+ * the start — so `cubic-bezier(0.16,1,0.3,1)`, the deceleration the skill
+ * recommends for entrances, passes and `cubic-bezier(0.7,0,0.84,0)`, the exit
+ * curve beside it, does not. An easing outside the grammar eases linearly and
+ * does not decelerate.
+ */
 export function easingDecelerates(easing: string): boolean {
-  return /^easeOut/.test(easing) || /^spring\(/.test(easing.replace(/\s+/g, ""));
+  const text = easing.trim();
+  if (/^easeOut/.test(text)) return true;
+  const curve = parseEasing(text);
+  if (!curve) return false;
+  const entry = (curve(EASING_SLOPE_STEP) - curve(0)) / EASING_SLOPE_STEP;
+  const landing = (curve(1) - curve(1 - EASING_SLOPE_STEP)) / EASING_SLOPE_STEP;
+  return landing < entry;
 }
 
 function tool<TResult>(
@@ -439,41 +503,34 @@ function tool<TResult>(
 }
 
 /**
- * Timing and geometry are their own ops, and a key this tool does not read
- * used to be stripped by the schema — a call that reported success and changed
- * nothing. Name the op that does the job instead.
+ * `set_clip_params` takes the style as a patch merged over the clip's own, so
+ * every field is optional. The shared contract still declares the whole-bag
+ * `textStyleParams`, which refuses `{textStyle: {fontFamily}}` on a finished
+ * title. Both hosts override that one field; when protocol carries
+ * `textStylePatchParams` the two overrides go together.
  */
-const CLIP_PARAM_ELSEWHERE: Record<string, string> = {
-  animations: "animate_clip",
-  transition: "set_transition",
-  parentId: "set_parent",
-  mask: "set_mask",
-  effects: "set_effects",
-  timeRemap: "set_time_remap"
+const CONTRACT_SHAPE_OVERRIDES: Partial<
+  Record<TimelineToolName, z.ZodRawShape>
+> = {
+  ui_timeline_set_clip_params: { textStyle: textStylePatchParams.optional() }
 };
 
-const CLIP_PARAM_KEYS = [
-  "name",
-  "startMs",
-  "trackId",
-  "durationMs",
-  "inPointMs",
-  "outPointMs",
-  "opacity",
-  "speedMultiplier",
-  "volumeDb",
-  "fadeInMs",
-  "fadeOutMs",
-  "blendMode",
-  "borderRadius",
-  "hidden",
-  "muted",
-  "locked",
-  "fontSizePx",
-  "textStyle",
-  "shapeStyle",
-  "captionStyle"
-];
+/** A tool whose name, description and argument shape both hosts share. */
+function sharedTool<TResult>(
+  name: TimelineToolName,
+  impl: (args: Record<string, unknown>) => Promise<TResult>
+): HeadlessTool {
+  const contract = CONTRACTS[name];
+  const shape = { ...contract.shape, ...CONTRACT_SHAPE_OVERRIDES[name] };
+  // No host fields: this bridge drives one implicit sequence, so there is no
+  // `timeline_id` to disambiguate.
+  return tool(
+    name,
+    contract.description,
+    uiToolParams({ ...contract, shape }),
+    impl
+  );
+}
 
 /**
  * Keys a caller wraps the whole patch in.
@@ -530,44 +587,6 @@ function mergeTextStyle(
   return parsed.data as TimelineClip["textStyle"];
 }
 
-function rejectUnknownClipParams(patch: Record<string, unknown>): void {
-  for (const key of Object.keys(patch)) {
-    if (CLIP_PARAM_KEYS.includes(key)) continue;
-    const elsewhere = CLIP_PARAM_ELSEWHERE[key];
-    if (elsewhere) {
-      throw new Error(
-        `set_clip_params does not change \`${key}\`; use ${elsewhere}.`
-      );
-    }
-    throw new Error(
-      `set_clip_params has no \`${key}\` param. It takes: ${CLIP_PARAM_KEYS.join(", ")}.`
-    );
-  }
-}
-
-/**
- * Lift a nested `custom: {curves|code|mask}` onto the animation itself. The
- * flat form is the contract, but the nested one is the obvious guess from
- * `preset: "custom"`, and it used to be stripped by the schema and then
- * rejected as an animation with neither curves nor code.
- */
-function liftCustom<
-  T extends {
-    curves?: unknown;
-    code?: string;
-    mask?: unknown;
-    custom?: { curves?: unknown; code?: string; mask?: unknown };
-  }
->(input: T): T {
-  if (!input.custom) return input;
-  const { custom, ...rest } = input;
-  return {
-    ...rest,
-    curves: input.curves ?? custom.curves,
-    code: input.code ?? custom.code,
-    mask: input.mask ?? custom.mask
-  } as T;
-}
 
 function capitalize(s: string): string {
   return s.length > 0 ? s[0].toUpperCase() + s.slice(1) : s;
@@ -614,7 +633,12 @@ export function createTimelineToolBridge(
   const tracks: TimelineTrack[] = [];
   let clips: TimelineClip[] = [];
   let markers: TimelineMarker[] = [];
+  let setup: TimelineSetup | null = seed?.setup
+    ? structuredClone(seed.setup)
+    : null;
+  let beatSeq = 0;
   const toolLog: string[] = [];
+  const previewTimesMs: number[] = [];
 
   // Ids the sequence already uses. A seeded document brings its own, which the
   // `track_1`/`clip_1` counters would otherwise collide with on the first edit.
@@ -725,10 +749,31 @@ export function createTimelineToolBridge(
       clips = trimGroup(clips, clip.id, "end", patch.durationMs - clip.durationMs);
       return clips.find((c) => c.id === clip.id)!;
     }
-    if (patch.durationMs !== undefined) clip.durationMs = patch.durationMs;
-    if (patch.inPointMs !== undefined) clip.inPointMs = patch.inPointMs;
-    if (patch.outPointMs !== undefined) clip.outPointMs = patch.outPointMs;
-    return clip;
+    let next = clip;
+    if (patch.durationMs !== undefined) {
+      if (patch.durationMs <= 0) {
+        throw new Error(
+          `durationMs must be greater than 0 (got ${patch.durationMs}); delete the clip instead of trimming it to nothing`
+        );
+      }
+      next = trimClip(clip, "end", patch.durationMs - clip.durationMs);
+      clips = clips.map((entry) => entry.id === clip.id ? next : entry);
+    }
+    if (patch.inPointMs !== undefined) next.inPointMs = patch.inPointMs;
+    if (patch.outPointMs !== undefined) next.outPointMs = patch.outPointMs;
+    return next;
+  }
+
+  function applyTrimStart(clip: TimelineClip, startMs: number): TimelineClip {
+    const deltaMs = clip.startMs - Math.max(0, startMs);
+    if (deltaMs === 0) return clip;
+    if (isGroupClip(clip)) {
+      clips = trimGroup(clips, clip.id, "start", deltaMs);
+      return clips.find((entry) => entry.id === clip.id)!;
+    }
+    const next = trimClip(clip, "start", deltaMs);
+    clips = clips.map((entry) => entry.id === clip.id ? next : entry);
+    return next;
   }
 
   /** The body of `move_clip`, shared with `set_clip_params`. */
@@ -993,11 +1038,25 @@ export function createTimelineToolBridge(
     );
   }
 
+  /** Resolve a beat by id, or by its 1-based position in the plan. */
+  function resolveBeat(target: string): TimelineBeat {
+    const beats = setup?.beats ?? [];
+    const byId = beats.find((beat) => beat.id === target);
+    if (byId) return byId;
+    const position = Number.parseInt(target, 10);
+    const byPosition = beats[position - 1];
+    if (Number.isFinite(position) && byPosition) return byPosition;
+    throw new Error(
+      `No beat matches "${target}". Use a beat id or its 1-based position. ` +
+        (beats.length > 0
+          ? `This plan has ${beats.length} beats.`
+          : "This sequence has no beat plan yet; run ui_timeline_plan_beats first.")
+    );
+  }
+
   const tools: HeadlessTool[] = [
-    tool(
+    sharedTool(
       "ui_timeline_get_state",
-      "Read the specified timeline sequence: resolution + fps + duration, the playhead position, the current selection, every track, and every clip with its timing, media type, generation binding (prompt/provider/model/status) and render params. Call this first to discover what's on the timeline and to get the ids/names other timeline tools need.",
-      z.object({}),
       async () => {
         const durationMs = clips.reduce(
           (m, c) => Math.max(m, c.startMs + c.durationMs),
@@ -1019,13 +1078,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_add_track",
-      ADD_TRACK_DESCRIPTION,
-      z.object({
-        type: z.enum(["video", "audio", "overlay", "subtitle"]),
-        name: z.string().optional()
-      }),
       async ({ type, name }) => {
         const track = addTrackInternal(
           type as TimelineTrack["type"],
@@ -1035,10 +1089,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_move_track",
-      MOVE_TRACK_DESCRIPTION,
-      z.object(moveTrackShape).strict(),
       async (args) => {
         const { target, toIndex, before, after } = resolveMoveTrackArgs(args);
         const track = resolveTrack(target);
@@ -1068,22 +1120,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_add_text_clip",
-      ADD_TEXT_CLIP_DESCRIPTION,
-      withTextClipRemedies(
-        z
-          .object({
-            text: z.string().trim().min(1),
-            trackId: z.string().optional(),
-            startMs: z.number().optional(),
-            durationMs: z.number().optional(),
-            opacity: clipOpacityParam,
-            style: partialTextStyleParams.optional()
-          })
-          .merge(partialTextStyleParams)
-          .strict()
-      ),
       async ({
         text,
         trackId,
@@ -1122,10 +1160,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_delete_track",
-      DELETE_TRACK_DESCRIPTION,
-      z.object(deleteTrackShape).strict(),
       async (args) => {
         const { target, deleteClips } = resolveDeleteTrackArgs(args);
         const track = resolveTrack(target);
@@ -1168,16 +1204,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_add_media_clip",
-      "Place an existing asset — a video, image, or audio file already in the library — on the specified timeline sequence. `asset` is an asset id or `asset://<id>.<ext>` URI (list_assets returns both). Without a track the clip lands on a track matching its media kind, creating one when needed; without `startMs` it is appended after that track's existing content, so calling this once per asset lays them end to end. Duration comes from the asset when known.",
-      z.object({
-        asset: z.string().trim().min(1),
-        trackId: z.string().optional(),
-        startMs: z.number().optional(),
-        durationMs: z.number().optional(),
-        name: z.string().optional()
-      }),
       async ({ asset, trackId, startMs, durationMs, name }) => {
         if (!resolveAsset) {
           throw new Error(
@@ -1224,20 +1252,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_add_shape_clip",
-      ADD_SHAPE_CLIP_DESCRIPTION,
-      z
-        .object({
-          shape: shapeStyleParams.optional(),
-          shapeStyle: shapeStyleParams.optional(),
-          trackId: z.string().optional(),
-          startMs: z.number().optional(),
-          durationMs: z.number().optional(),
-          opacity: clipOpacityParam
-        })
-        .merge(shapeStyleParams.partial())
-        .strict(),
       async ({
         shape,
         shapeStyle,
@@ -1270,24 +1286,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_generate_clip",
-      'Generate a new media clip from a text prompt and place it on the specified timeline sequence. `kind` is text-to-video, text-to-image, or text-to-audio (TTS). Provide `provider` and `model` (discover valid ones with the model-search tool); when omitted the last-used model for that media kind is reused. `voice` is required for text-to-audio. Without a track the clip lands on a sensible track for its media kind; without `startMs` it is appended after the track\'s existing content. Generation starts immediately unless `autoGenerate` is false. For text-to-video, `aspectRatio` (e.g. "16:9") and `resolution` (e.g. "720p") and `durationMs` are honoured by video models.',
-      z.object({
-        kind: z.enum(["text-to-video", "text-to-image", "text-to-audio"]),
-        prompt: z.string(),
-        trackId: z.string().optional(),
-        startMs: z.number().optional(),
-        durationMs: z.number().optional(),
-        provider: z.string().optional(),
-        model: z.string().optional(),
-        voice: z.string().optional(),
-        width: z.number().optional(),
-        height: z.number().optional(),
-        aspectRatio: z.string().optional(),
-        resolution: z.string().optional(),
-        autoGenerate: z.boolean().optional()
-      }),
       async ({
         kind,
         prompt,
@@ -1356,13 +1356,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_split_clip",
-      "Cut a clip in two at the given time (the razor tool). `atMs` is an absolute time on the timeline and must fall inside the clip; omit it to split at the current playhead. Returns the two resulting halves.",
-      z.object({
-        target: targetParam,
-        atMs: z.number().optional()
-      }),
       async ({ target, atMs }) => {
         const clip = resolveClip(target as string);
         const at = (atMs as number | undefined) ?? playheadMs;
@@ -1376,15 +1371,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_trim_clip",
-      "Trim a clip's length or its source in/out points. `durationMs` sets the on-timeline length; `inPointMs`/`outPointMs` set the trimmed source window (ms into the source media). Omit a field to leave it unchanged.",
-      z.object({
-        target: targetParam,
-        durationMs: z.number().optional(),
-        inPointMs: z.number().optional(),
-        outPointMs: z.number().optional()
-      }),
       async ({ target, durationMs, inPointMs, outPointMs }) => {
         const trimmed = applyTrim(resolveClip(target as string), {
           durationMs: durationMs as number | undefined,
@@ -1395,14 +1383,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_move_clip",
-      "Move a clip to a new absolute start time and/or onto a different track. `startMs` is the new start on the timeline (ms, clamped to >= 0); `trackId` reassigns the track. Omit a field to leave it unchanged.",
-      z.object({
-        target: targetParam,
-        startMs: z.number().optional(),
-        trackId: z.string().optional()
-      }),
       async ({ target, startMs, trackId }) => {
         const moved = applyMove(resolveClip(target as string), {
           startMs: startMs as number | undefined,
@@ -1412,10 +1394,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_delete_clip",
-      "Remove a clip from the specified timeline sequence.",
-      z.object({ target: targetParam }),
       async ({ target }) => {
         const clip = resolveClip(target as string);
         // Deleting a group deletes the parent, not the picture: its children
@@ -1429,13 +1409,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_duplicate_clip",
-      "Duplicate a clip. The copy is placed immediately after the source (add `gapMs` for a gap) and keeps its generation binding so you can tweak the copy for a variation.",
-      z.object({
-        target: targetParam,
-        gapMs: z.number().optional()
-      }),
       async ({ target, gapMs }) => {
         const src = resolveClip(target as string);
         const copy: TimelineClip = {
@@ -1443,7 +1418,7 @@ export function createTimelineToolBridge(
           id: nextClipId(),
           startMs: src.startMs + src.durationMs + ((gapMs as number | undefined) ?? 0),
           versions: [],
-          animations: src.animations?.map((a) => ({ ...a }))
+          animations: src.animations?.map((a) => ({ ...a, id: nextAnimId() }))
         };
         clips.push(copy);
         selectedClipIds = [copy.id];
@@ -1451,35 +1426,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_set_clip_params",
-      "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. Fields go on the op itself, not inside a `params` wrapper. `textStyle` is merged over the clip's own, so send only what you are changing, and `fontWeight` takes the CSS keywords as well as the number. `fontSizePx` is shorthand for `textStyle.fontSizePx`. Timing is accepted too and applied as trim_clip/move_clip would: `durationMs`, `inPointMs`, `outPointMs`, `startMs`, `trackId`. A key this tool does not know is refused by name rather than ignored. Omit a field to leave it unchanged.",
-      z.object({
-        target: targetParam,
-        startMs: z.number().optional(),
-        trackId: z.string().optional(),
-        durationMs: z.number().optional(),
-        inPointMs: z.number().optional(),
-        outPointMs: z.number().optional(),
-        fontSizePx: z.number().optional(),
-        name: z.string().optional(),
-        opacity: z.number().optional(),
-        speedMultiplier: z.number().optional(),
-        volumeDb: z.number().optional(),
-        fadeInMs: z.number().optional(),
-        fadeOutMs: z.number().optional(),
-        blendMode: z.string().optional(),
-        borderRadius: z.number().optional(),
-        hidden: z.boolean().optional(),
-        muted: z.boolean().optional(),
-        locked: z.boolean().optional(),
-        textStyle: textStylePatchParams.optional(),
-        shapeStyle: shapeStyleParams.optional(),
-        captionStyle: captionStyleParams.optional()
-        // A key the schema does not list is kept rather than stripped, so it
-        // can be refused by name below: silently dropping `startMs` looked
-        // like a successful call that changed nothing.
-      }).catchall(z.unknown()),
       async ({ target, ...wrapped }) => {
         const patch = unwrapClipParams(wrapped);
         let clip = resolveClip(target as string);
@@ -1551,10 +1499,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_add_group",
-      "Create a group clip: a clip with no media of its own whose transform, opacity and window every clip naming it inherits. Move the group and its children move with it; fade the group and they fade together; a child outside the group's window is not drawn. Children keep their own tracks, so what covers what is unchanged. Pass `children` to parent clips as the group is created, or use set_parent afterwards.",
-      addGroupParams,
       async ({ name, startMs, durationMs, trackId, children }) => {
         // Resolve every child before anything is written: a half-applied group
         // leaves the caller with an empty group and no idea which of its clips
@@ -1588,10 +1534,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_set_parent",
-      "Parent a clip to a group so it inherits the group's transform, opacity and window, or release it with `parentId: null`. The parent must be a clip created with add_group; a clip cannot parent itself or any group beneath it.",
-      setParentParams,
       async ({ target, parentId }) => {
         const clip = resolveClip(target as string);
         if (parentId === null) {
@@ -1624,13 +1568,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_set_transition",
-      "Set the transition a clip opens with, or clear it with `transition: null`. A transition is between two clips: it plays over the head of `target` against whatever sits beneath it on the same track, so overlap the two clips by at least `durationMs` for both to be seen. Types: crossfade (dissolve), dipToColor (through a solid), wipe (feathered reveal), push (both clips travel), slide (only the incoming moves), zoom. With no transition set, overlapping clips still auto-dissolve across the overlap.",
-      z.object({
-        target: targetParam,
-        transition: transitionParams.nullable()
-      }),
       async ({ target, transition }) => {
         const clip = resolveClip(target as string);
         if (transition === null) {
@@ -1644,13 +1583,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_set_mask",
-      "Mask a clip to a rectangle, an ellipse or an SVG path, or clear it with `mask: null`. Coordinates are 0..1 in the clip's own space, so the mask turns and scales with the clip. `featherPx` softens the edge; `invert` keeps what the shape excludes instead.",
-      z.object({
-        target: targetParam,
-        mask: maskParams.nullable()
-      }),
       async ({ target, mask }) => {
         const clip = resolveClip(target as string);
         if (mask === null) {
@@ -1662,13 +1596,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_set_matte",
-      "Drive a clip's transparency from another clip — a track matte — or clear it with `matte: null`. The source clip stops drawing itself: its alpha (`mode: \"alpha\"`) or its brightness (`mode: \"luma\"`) becomes the target's transparency, so a white shape over black shows the target only where the shape is. Both clips are placed by their own transforms, so where the source sits on the frame is where the target shows through.",
-      z.object({
-        target: targetParam,
-        matte: matteParams.nullable()
-      }),
       async ({ target, matte }) => {
         const clip = resolveClip(target as string);
         if (matte === null) {
@@ -1692,10 +1621,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_set_time_remap",
-      "Retime a clip's source with a curve, or clear it with `timeRemap: null`. Each keyframe says where in the source media (`sourceMs`) the clip sits at position `t`, normalized 0..1 over the clip's own window — so the list must start at 0, end at 1 and ascend in `t`. A `sourceMs` that descends is reverse playback, a flat pair is a freeze, and a steeper segment plays faster. A remap replaces the clip's rate entirely, and split and trim refuse a remapped clip.",
-      setTimeRemapParams,
       async ({ target, timeRemap }) => {
         const clip = resolveClip(target as string);
         if (timeRemap === null) {
@@ -1709,15 +1636,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_set_effects",
-      "Replace a clip's effect chain, or clear it with `effects: []`. The list runs in order on the clip's own pixels, before it is placed on the frame. Types: color (brightness/contrast/saturation/hue/temperature/tint/shadows/highlights), blur, glow, dropShadow, vignette, sharpen, chromaKey, curves (control points, 0..1 on both axes), levels (in/out black and white plus gamma), liftGammaGain (a three-way grade, one number per channel). This replaces the whole chain — send every effect the clip should keep.",
-      z.object({
-        target: targetParam,
-        effects: z
-          .array(effectParams)
-          .describe("The chain, in order. An empty list clears it.")
-      }),
       async ({ target, effects }) => {
         const clip = resolveClip(target as string);
         const list = (effects as z.infer<typeof effectParams>[]).map(
@@ -1732,24 +1652,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_set_clip_binding",
-      "Edit a generated clip's generation binding — its `prompt`, `negativePrompt`, `provider`/`model`, TTS `voice`, dimensions, `aspectRatio`/`resolution`, `strength`, or `numInferenceSteps`. Set `regenerate` true to immediately re-run generation with the new settings. Only applies to generated clips.",
-      z.object({
-        target: targetParam,
-        prompt: z.string().optional(),
-        negativePrompt: z.string().optional(),
-        provider: z.string().optional(),
-        model: z.string().optional(),
-        voice: z.string().optional(),
-        width: z.number().optional(),
-        height: z.number().optional(),
-        aspectRatio: z.string().optional(),
-        resolution: z.string().optional(),
-        strength: z.number().optional(),
-        numInferenceSteps: z.number().optional(),
-        regenerate: z.boolean().optional()
-      }),
       async ({ target, ...patch }) => {
         const clip = resolveClip(target as string);
         if (clip.sourceType !== "generated") {
@@ -1777,57 +1681,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_animate_clip",
-      'Attach motion-design animations to a clip. Roles: `in` (entrance: fade, slide, pop, spin, wipe, blur, colorFade), `out` (exit: fade, slide, pop, spin, wipe, blur, colorFade), `emphasis` (mid-clip: pulse, flash, shake, bounce, squash), `loop` (continuous: kenBurns, float, breathe, rotate, hueShift). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. For motion no preset covers, use `preset: "custom"` with exactly one of `curves` (keyframes you write: [{property, keyframes:[{t, value, easing?}]}], `t` running 0..1 over the window) or `code` (a JS body baked into curves once, host-side); add `mask` when a curve drives wipeProgress. On text clips, add `stagger` for per-word motion typography: each word runs the animation for `durationMs`, offset `stagger.offsetMs` from the previous word (`from`: start|end|center picks the leading word) — e.g. a pop-in title whose words land one after another. `mode` "replace" (default) swaps the clip\'s animations; "add" appends. Call ui_timeline_list_animation_presets for the full param list and the animatable properties.',
-      z.object({
-        target: targetParam,
-        mode: z.enum(["add", "replace"]).optional(),
-        animations: z
-          .array(
-            z.object({
-              role: animationRole,
-              preset: z
-                .string()
-                .describe(
-                  'Preset id, e.g. fade, slide, wipe, pop, kenBurns, float — or "custom" with `curves` or `code`.'
-                ),
-              durationMs: z.number().positive().optional(),
-              delayMs: z.number().nonnegative().optional(),
-              easing: z.string().optional(),
-              params: z
-                .record(z.string(), z.union([z.number(), z.string(), z.boolean()]))
-                .optional(),
-              curves: customCurvesParam,
-              code: customCodeParam,
-              mask: customMaskParam,
-              custom: z
-                .object({
-                  curves: customCurvesParam,
-                  code: customCodeParam,
-                  mask: customMaskParam
-                })
-                .optional()
-                .describe(
-                  'Same as `curves`/`code`/`mask` one level down: {preset: "custom", custom: {curves: [...]}} is accepted and lifted.'
-                ),
-              stagger: z
-                .object({
-                  unit: z.enum(STAGGER_UNITS),
-                  offsetMs: z
-                    .number()
-                    .positive()
-                    .describe("Delay between successive units in ms."),
-                  from: z.enum(["start", "end", "center"]).optional()
-                })
-                .optional()
-                .describe(
-                  "Per-unit stagger — text clips only. The animation runs once per word, grapheme or wrapped line, each unit offset from the previous."
-                )
-            })
-          )
-          .min(1)
-      }),
       async ({ target, mode, animations }) => {
         const clip = resolveClip(target as string);
         const inputs = animations as Array<{
@@ -1848,7 +1703,7 @@ export function createTimelineToolBridge(
           if (input.preset === CUSTOM_ANIMATION_PRESET_ID) {
             // `{preset: "custom", custom: {curves}}` reads as naturally as the
             // flat form, so lift it rather than refusing it.
-            built.push(await buildCustomAnimation(clip, liftCustom(input)));
+            built.push(await buildCustomAnimation(clip, liftCustomAnimation(input)));
             continue;
           }
           const preset = ANIMATION_PRESETS.find((p) => p.id === input.preset);
@@ -1882,13 +1737,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_clear_animations",
-      "Remove motion-design animations from a clip. Pass `role` to clear only that role (in/out/emphasis/loop); omit it to clear all.",
-      z.object({
-        target: targetParam,
-        role: animationRole.optional()
-      }),
       async ({ target, role }) => {
         const clip = resolveClip(target as string);
         clip.animations = role
@@ -1898,10 +1748,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_list_animation_presets",
-      "List the motion-design animation presets: id, allowed roles, params (with defaults and ranges), default duration/easing, and a one-line description. Also returns the `custom` preset's contract and every animatable property with its fold, identity and range, for keyframed motion no preset covers. Use this to discover the exact preset names and params for ui_timeline_animate_clip.",
-      z.object({}),
       async () => {
         const presets = ANIMATION_PRESETS.map((p) => ({
           id: p.id,
@@ -1920,10 +1768,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_select_clip",
-      "Select a clip in the specified timeline sequence (driving the inspector). Pass null/empty to clear the selection.",
-      z.object({ target: targetParam.nullable().optional() }),
       async ({ target }) => {
         const t = target as string | null | undefined;
         if (!t) {
@@ -1936,27 +1782,16 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_seek",
-      "Move the playhead to an absolute time (ms) in the specified timeline sequence. Useful before splitting at the playhead.",
-      z.object({ timeMs: z.number() }),
       async ({ timeMs }) => {
         playheadMs = Math.max(0, timeMs as number);
         return { ok: true, playheadMs };
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_add_marker",
-      "Drop a marker at an absolute time on the timeline, to flag a moment — a beat, a scene boundary, a note for the user. Markers do not render; they are annotations on the ruler.",
-      z.object({
-        timeMs: z
-          .number()
-          .describe("Absolute position on the timeline in ms. Must be >= 0."),
-        label: z.string().optional().describe("Short label shown on the ruler."),
-        color: z.string().optional().describe("CSS colour for the marker dot."),
-        note: z.string().optional().describe("Longer note attached to the marker.")
-      }),
       async ({ timeMs, label, color, note }) => {
         const at = timeMs as number;
         if (at < 0) {
@@ -1974,12 +1809,205 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    // ── Guided video flow (PRD § 8.6) ───────────────────────────────────
+
+    sharedTool(
+      "ui_timeline_set_setup",
+      async ({ stage, brief, format }) => {
+        setup = {
+          stage: (stage as TimelineSetupStage | undefined) ?? setup?.stage ?? "idea",
+          brief: (brief as string | undefined) ?? setup?.brief ?? "",
+          format: (format as string | undefined) ?? setup?.format,
+          beats: setup?.beats
+        };
+        return { ok: true, setup: structuredClone(setup) };
+      }
+    ),
+
+    sharedTool(
+      "ui_timeline_plan_beats",
+      async ({ beats }) => {
+        // There is no Director on this surface — the caller *is* the model, so
+        // it writes the plan rather than asking for one. Refusing without
+        // `beats` says which half of the shared contract this host implements.
+        const written = beats as
+          | {
+              prompt: string;
+              durationMs: number;
+              transition?: string;
+              voiceover?: string;
+              music?: boolean;
+            }[]
+          | undefined;
+        if (!written || written.length === 0) {
+          throw new Error(
+            "This surface has no Director: pass `beats` with the plan you want. Each beat needs a prompt and a durationMs."
+          );
+        }
+        const planned: TimelineBeat[] = written.map((beat) => ({
+          id: `beat_${++beatSeq}`,
+          prompt: beat.prompt,
+          duration_ms: Math.max(1, Math.round(beat.durationMs)),
+          transition: beat.transition,
+          voiceover: beat.voiceover,
+          music: beat.music
+        }));
+        setup = {
+          stage: "review",
+          brief: setup?.brief ?? "",
+          format: setup?.format,
+          beats: planned
+        };
+        // Named in the answer because it is the contract: the plan is text,
+        // and costs nothing until generate_from_beats runs (D4).
+        return {
+          ok: true,
+          beats: planned.map((beat) => ({ ...beat })),
+          clipsCreated: 0,
+          jobsStarted: 0
+        };
+      }
+    ),
+
+    sharedTool(
+      "ui_timeline_update_beat",
+      async ({ beat, prompt, durationMs, transition, voiceover, music }) => {
+        const found = resolveBeat(beat as string);
+        const next: TimelineBeat = { ...found };
+        if (prompt !== undefined) next.prompt = prompt as string;
+        if (durationMs !== undefined) {
+          next.duration_ms = Math.max(1, Math.round(durationMs as number));
+        }
+        if (transition !== undefined) {
+          next.transition = (transition as string | null) ?? undefined;
+        }
+        if (voiceover !== undefined) next.voiceover = voiceover as string;
+        if (music !== undefined) next.music = music as boolean;
+        setup = {
+          stage: setup?.stage ?? "review",
+          brief: setup?.brief ?? "",
+          format: setup?.format,
+          beats: (setup?.beats ?? []).map((candidate) =>
+            candidate.id === found.id ? next : candidate
+          )
+        };
+        return { ok: true, beat: { ...next } };
+      }
+    ),
+
+    sharedTool(
+      "ui_timeline_generate_from_beats",
+      async ({ model, provider, voice, music }) => {
+        const plan = setup?.beats ?? [];
+        if (plan.length === 0) {
+          throw new Error(
+            "There is no beat plan to generate from; call ui_timeline_plan_beats first."
+          );
+        }
+        const videoTrack = findOrCreateTrack("video");
+        const wantsMusic =
+          (music as boolean | undefined) ??
+          plan.some((beat) => beat.music === true);
+        const voiceTrack =
+          voice !== undefined && plan.some((beat) => (beat.voiceover ?? "") !== "")
+            ? findOrCreateTrack("audio")
+            : null;
+
+        const videoClipIds: string[] = [];
+        const voiceoverClipIds: string[] = [];
+        const planned: TimelineBeat[] = [];
+        let startMs = 0;
+        for (const [index, beat] of plan.entries()) {
+          const durationMs = Math.max(1, Math.round(beat.duration_ms));
+          const clip = makeClip({
+            id: nextClipId(),
+            trackId: videoTrack.id,
+            name: `Beat ${index + 1}`,
+            startMs,
+            durationMs,
+            mediaType: "video",
+            sourceType: "generated",
+            bindingKind: "text-to-video",
+            prompt: beat.prompt,
+            provider: provider as string | undefined,
+            model: model as string | undefined,
+            beatId: beat.id,
+            status: "draft"
+          });
+          if (beat.transition) {
+            clip.transitionIn = buildTransition({
+              type: beat.transition as TransitionParams["type"],
+              durationMs: 500
+            });
+          }
+          clips.push(clip);
+          videoClipIds.push(clip.id);
+
+          const line = (beat.voiceover ?? "").trim();
+          if (voiceTrack && line.length > 0) {
+            const voiceClip = makeClip({
+              id: nextClipId(),
+              trackId: voiceTrack.id,
+              name: `Beat ${index + 1} voiceover`,
+              startMs,
+              durationMs,
+              mediaType: "audio",
+              sourceType: "generated",
+              bindingKind: "text-to-audio",
+              prompt: line,
+              voice: voice as string | undefined,
+              beatId: beat.id,
+              status: "draft"
+            });
+            clips.push(voiceClip);
+            voiceoverClipIds.push(voiceClip.id);
+          }
+          planned.push({ ...beat, clip_id: clip.id });
+          startMs += durationMs;
+        }
+
+        let musicClipId: string | null = null;
+        if (wantsMusic) {
+          // One bed under the whole cut, never one per beat: overlapping music
+          // clips would play at once.
+          const musicTrack = findOrCreateTrack("audio");
+          const musicClip = makeClip({
+            id: nextClipId(),
+            trackId: musicTrack.id,
+            name: "Music",
+            startMs: 0,
+            durationMs: startMs,
+            mediaType: "audio",
+            sourceType: "generated",
+            bindingKind: "text-to-audio",
+            prompt: `Instrumental score under: ${setup?.brief ?? ""}`,
+            status: "draft"
+          });
+          clips.push(musicClip);
+          musicClipId = musicClip.id;
+        }
+
+        setup = {
+          stage: "done",
+          brief: setup?.brief ?? "",
+          format: setup?.format,
+          beats: planned
+        };
+        return {
+          ok: true,
+          videoClipIds,
+          voiceoverClipIds,
+          musicClipId,
+          // Nothing renders headlessly: this authors the cut, and the clips are
+          // drafts until a renderer runs them.
+          startedClipIds: [],
+          note: "Clips created as drafts — this surface renders nothing."
+        };
+      }
+    ),
+
+    sharedTool(
       "ui_timeline_delete_marker",
-      "Remove a marker by id or by its label (case-insensitive). Call ui_timeline_get_state to see the markers a sequence carries.",
-      z.object({
-        target: z.string().describe("Marker id or label (case-insensitive).")
-      }),
       async ({ target }) => {
         const marker = resolveMarker(target as string);
         markers = markers.filter((m) => m.id !== marker.id);
@@ -1987,27 +2015,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_set_markers_from_beats",
-      "Lay a marker on every beat of a grid, so the cut has something to work against. The grid is either `onsets_ms` — detect_audio_events reports `onsets.times` in SECONDS, so multiply by 1000 — or `bpm` with `count` and an optional `offset_ms` for where beat one sits. Markers already on the sequence are kept, and a beat that already carries one is skipped, so re-running the same grid changes nothing.",
-      z.object({
-        onsets_ms: z
-          .array(z.number())
-          .optional()
-          .describe("Absolute beat times in ms. Exactly one of this and `bpm`."),
-        bpm: z.number().optional().describe("Tempo. Needs `count`."),
-        offset_ms: z
-          .number()
-          .optional()
-          .describe("Where beat one sits, in ms. Default 0."),
-        count: z.number().optional().describe("Beats to lay down, with `bpm`."),
-        label: z
-          .string()
-          .optional()
-          .describe(
-            'Label stem; each marker is numbered from 1 ("Beat 1", "Beat 2", …). Default "Beat".'
-          )
-      }),
       async ({ onsets_ms, bpm, offset_ms, count, label }) => {
         const grid = buildBeatGrid({
           onsetsMs: onsets_ms as number[] | undefined,
@@ -2043,40 +2052,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_snap_to_beats",
-      "Put clip boundaries on a beat grid. The grid is either `onsets_ms` — detect_audio_events reports `onsets.times` in SECONDS, so multiply by 1000 — or `bpm` with an optional `offset_ms`. `mode` picks the boundary, `action` picks how it gets there: `move` slides the whole clip and keeps its length, `trim` holds the opposite boundary and changes the length. A boundary further than `tolerance_ms` from every beat is left where it is and reported with the reason, so read the per-clip result rather than assuming everything moved.",
-      z.object({
-        targets: z
-          .union([z.array(z.string()), z.literal("all")])
-          .optional()
-          .describe(
-            'Clip ids or names, or "all". Default: every clip on the sequence.'
-          ),
-        onsets_ms: z
-          .array(z.number())
-          .optional()
-          .describe("Absolute beat times in ms. Exactly one of this and `bpm`."),
-        bpm: z.number().optional().describe("Tempo. The grid is generated far enough to reach every target."),
-        offset_ms: z
-          .number()
-          .optional()
-          .describe("Where beat one sits, in ms. Default 0."),
-        tolerance_ms: z
-          .number()
-          .optional()
-          .describe(
-            `How far a boundary may travel to reach a beat. Default ${DEFAULT_BEAT_TOLERANCE_MS}ms.`
-          ),
-        mode: z
-          .enum(["start", "end", "both"])
-          .optional()
-          .describe('Which boundary lands on a beat. Default "start".'),
-        action: z
-          .enum(["move", "trim"])
-          .optional()
-          .describe('"move" slides the clip, "trim" changes its length. Default "move".')
-      }),
       async ({
         targets,
         onsets_ms,
@@ -2134,8 +2111,29 @@ export function createTimelineToolBridge(
         const reported = result.clips.map((entry) => {
           const clip = byId.get(entry.clipId);
           if (entry.snapped && clip) {
-            clip.startMs = entry.after.startMs;
-            clip.durationMs = entry.after.durationMs;
+            // Through the same ops the caller would use: a group carries its
+            // children (D4) and a trim carries the source points, neither of
+            // which a raw startMs/durationMs write does.
+            try {
+              if (entry.after.durationMs === entry.before.durationMs) {
+                applyMove(clip, { startMs: entry.after.startMs });
+              } else {
+                let trimmed = clip;
+                if (entry.after.startMs !== entry.before.startMs) {
+                  trimmed = applyTrimStart(clip, entry.after.startMs);
+                }
+                applyTrim(trimmed, { durationMs: entry.after.durationMs });
+              }
+            } catch (error) {
+              return {
+                ...entry,
+                snapped: false,
+                after: entry.before,
+                delta: { startMs: 0, endMs: 0 },
+                reason: error instanceof Error ? error.message : String(error),
+                clipName: clip.name
+              };
+            }
           }
           return { ...entry, clipName: clip?.name ?? null };
         });
@@ -2297,6 +2295,7 @@ export function createTimelineToolBridge(
               // Top of the stack first, the order the skill's report describes.
               .sort((a, b) => b.z_index - a.z_index)
           }));
+          previewTimesMs.push(...(times_ms as number[]));
           return { ok: true, width, height, frames };
         }
       )
@@ -2347,7 +2346,9 @@ export function createTimelineToolBridge(
       documentTracks: tracks.map((t) => structuredClone(t)),
       documentClips: clips.map((c) => structuredClone(c)),
       markers: markers.map((m) => structuredClone(m)),
-      toolLog: [...toolLog]
+      setup: setup ? structuredClone(setup) : null,
+      toolLog: [...toolLog],
+      previewTimesMs: [...previewTimesMs]
     })
   };
 }
@@ -2555,8 +2556,8 @@ export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeF
                 const stagger = entrance?.stagger;
                 if (!entrance || !stagger) return false;
                 return (
-                  staggerUnitsOf(clip, stagger.unit) >= 2 &&
-                  staggerSpanFitsClip(clip, entrance)
+                  staggerUnitsOf(clip, stagger.unit, s) >= 2 &&
+                  staggerSpanFitsClip(clip, entrance, s)
                 );
               })
           }
@@ -2596,23 +2597,36 @@ export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeF
           {
             name: "scrimBehindTextInsideTheShot",
             detail:
-              "no shape clip on a higher-index track than the text, both inside 0-6000ms",
+              "no shape clip drawn over the picture and under the text, sharing frames with it inside 0-6000ms",
             test: (s) => {
               const indexOf = (trackId: string): number =>
                 s.tracks.find((t) => t.id === trackId)?.index ?? -1;
               const inShot = (c: { startMs: number; durationMs: number }) =>
                 c.startMs >= 0 && c.startMs + c.durationMs <= 6000;
+              const overlaps = (
+                a: { startMs: number; durationMs: number },
+                b: { startMs: number; durationMs: number }
+              ) =>
+                a.startMs < b.startMs + b.durationMs &&
+                b.startMs < a.startMs + a.durationMs;
               const texts = s.clips.filter(
                 (c) => c.mediaType === "text" && inShot(c)
               );
               const shapes = s.clips.filter(
                 (c) => c.mediaType === "shape" && inShot(c)
               );
-              // Lowest index draws on top, so the scrim's track index must be
-              // the larger one for the words to sit over it.
+              const picture = s.clips.filter((c) => c.mediaType === "video");
+              // Lowest index draws on top, so the scrim sits between the two:
+              // over the shot it darkens, under the words it backs. A scrim
+              // that never shares a frame with the text backs nothing.
               return texts.some((text) =>
                 shapes.some(
-                  (shape) => indexOf(shape.trackId) > indexOf(text.trackId)
+                  (shape) =>
+                    indexOf(shape.trackId) > indexOf(text.trackId) &&
+                    overlaps(shape, text) &&
+                    picture.some(
+                      (shot) => indexOf(shot.trackId) > indexOf(shape.trackId)
+                    )
                 )
               );
             }
@@ -2728,7 +2742,56 @@ export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeF
               "the run's last edit is not followed by a preview_timeline_frame call",
             test: (s) =>
               s.clips.some((c) => c.mediaType === "text") &&
-              previewedAfterLastEdit(s.toolLog)
+              previewedAfterLastEdit(s.toolLog) &&
+              previewedMidMotion(s.previewTimesMs, s.documentClips, s)
+          }
+        ]
+      }
+    },
+    {
+      id: "video-flow-plan-then-generate",
+      description:
+        "Plan a video's beats, then cut it — the guided flow through the tools",
+      objective:
+        "This is a 15-second ad for a paper boat. Write the brief onto the sequence, plan four beats — the second and fourth each carry a voiceover line — then generate the video from that plan with model 'nodetool/kling-turbo' and voice 'alloy'.",
+      createBridge: () => createTimelineToolBridge(),
+      systemPrompt: TIMELINE_SYSTEM_PROMPT,
+      expect: {
+        requiredTools: [
+          "ui_timeline_plan_beats",
+          "ui_timeline_generate_from_beats"
+        ],
+        noErrorResults: true,
+        minToolCalls: 2,
+        maxToolCalls: 12,
+        finalState: [
+          {
+            name: "onePictureClipPerBeat",
+            detail:
+              "the picture track does not hold exactly one clip per planned beat",
+            test: (s) =>
+              (s.setup?.beats?.length ?? 0) > 0 &&
+              s.clips.filter((c) => c.mediaType === "video").length ===
+                (s.setup?.beats?.length ?? 0)
+          },
+          {
+            name: "oneVoiceoverClipPerVoicedBeat",
+            detail:
+              "the voiceover clips do not match the beats that carry a line",
+            test: (s) => {
+              const voiced = (s.setup?.beats ?? []).filter(
+                (beat) => (beat.voiceover ?? "").trim().length > 0
+              ).length;
+              const audio = s.documentClips.filter(
+                (c) => c.bindingKind === "text-to-audio" && c.beatId
+              ).length;
+              return voiced > 0 && audio === voiced;
+            }
+          },
+          {
+            name: "flowFinished",
+            detail: "the flow's stage is not done after generating",
+            test: (s) => s.setup?.stage === "done"
           }
         ]
       }

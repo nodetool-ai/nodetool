@@ -96,7 +96,6 @@ const mirrorFromPatch = (
   }
   if ("taskUpdate" in patch) {
     mirror.currentTaskUpdate = patch.taskUpdate ?? null;
-    mirror.currentTaskUpdateThreadId = patch.taskUpdate ? threadId : null;
   }
   if ("logUpdate" in patch) {
     mirror.currentLogUpdate = patch.logUpdate ?? null;
@@ -154,7 +153,6 @@ export const mirrorsForThread = (
     progress: rt.progress,
     currentPlanningUpdate: rt.planningUpdate,
     currentTaskUpdate: rt.taskUpdate,
-    currentTaskUpdateThreadId: rt.taskUpdate ? threadId : null,
     currentLogUpdate: rt.logUpdate,
     currentRunningToolCallId: rt.runningToolCallId,
     currentToolMessage: rt.toolMessage

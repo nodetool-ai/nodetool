@@ -18,6 +18,7 @@ const isStateUpdater = (
   typeof value === "function";
 import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
+import useResultsStore from "../../../stores/ResultsStore";
 
 jest.mock("../../../lib/tools/frontendTools", () => ({
   FrontendToolRegistry: {
@@ -28,6 +29,9 @@ jest.mock("../../../lib/tools/frontendTools", () => ({
 
 jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
   globalWebSocketManager: {
+    setResumeJobIdProvider: jest.fn(),
+    subscribe: jest.fn(() => () => undefined),
+    subscribeEvent: jest.fn(() => () => undefined),
     send: jest.fn().mockResolvedValue(undefined),
     ensureConnection: jest.fn().mockResolvedValue(undefined)
   }
@@ -146,7 +150,6 @@ describe("chatProtocol", () => {
           sendMessageTimeoutId: null
         }
       },
-      lastTaskUpdatesByThread: {},
       messageCache: { "thread-1": [] },
       selectedModel: { provider: "", id: "" },
       summarizeThread: jest.fn(),
@@ -193,7 +196,7 @@ describe("chatProtocol", () => {
       });
     });
 
-    it("routes task_update to the thread runtime and the last-update map", async () => {
+    it("routes task_update to the thread runtime", async () => {
       const state = await dispatch({
         type: "task_update",
         thread_id: "thread-1",
@@ -202,9 +205,6 @@ describe("chatProtocol", () => {
       });
 
       expect(state.threadRuntime["thread-1"].taskUpdate).toMatchObject({
-        event: "task_created"
-      });
-      expect(state.lastTaskUpdatesByThread["thread-1"]).toMatchObject({
         event: "task_created"
       });
     });
@@ -513,7 +513,6 @@ describe("chatProtocol", () => {
       statusMessage: "Thinking...",
       currentPlanningUpdate: { planning_status: "in_progress" },
       currentTaskUpdate: { execution_status: "running" },
-      currentTaskUpdateThreadId: "thread-1",
       currentLogUpdate: { message: "step started" },
       threads: {
         "thread-1": {
@@ -560,7 +559,6 @@ describe("chatProtocol", () => {
     expect(capturedState.statusMessage).toBeNull();
     expect(capturedState.currentPlanningUpdate).toBeNull();
     expect(capturedState.currentTaskUpdate).toBeNull();
-    expect(capturedState.currentTaskUpdateThreadId).toBeNull();
     expect(capturedState.currentLogUpdate).toBeNull();
     expect(capturedState.messageCache["thread-1"]).toHaveLength(2);
 
@@ -1218,5 +1216,98 @@ describe("sub-agent events", () => {
       result: { ok: true }
     });
     expect(state.subAgentMessages).toEqual({});
+  });
+});
+
+describe("output_update store writes", () => {
+  const makeState = (): GlobalChatState =>
+    partialChatState({
+      status: "streaming",
+      currentThreadId: "thread-1",
+      threads: {
+        "thread-1": { id: "thread-1", title: "T", updated_at: "2024-01-01" }
+      },
+      threadRuntime: {},
+      threadWorkflowId: { "thread-1": "wf-1" },
+      messageCache: { "thread-1": [] },
+      chatReplayCursors: {},
+      selectedModel: { provider: "", id: "" },
+      summarizeThread: jest.fn(),
+      updateThreadTitle: jest.fn()
+    });
+
+  const run = async (
+    state: GlobalChatState,
+    msg: WebSocketMessage
+  ): Promise<GlobalChatState> => {
+    let current = state;
+    const set = jest.fn((updater) => {
+      current = {
+        ...current,
+        ...(isStateUpdater(updater) ? updater(current) : updater)
+      };
+    });
+    await handleChatWebSocketMessage(msg, set, () => current, "thread-1");
+    return current;
+  };
+
+  it("overwrites the stored value for disposition=replace instead of concatenating", async () => {
+    useResultsStore.setState({ outputResults: {}, resultsVersion: 0 });
+    let state = makeState();
+    state = await run(state, {
+      type: "output_update",
+      thread_id: "thread-1",
+      workflow_id: "wf-1",
+      job_id: "job-1",
+      node_id: "n1",
+      output_name: "output",
+      output_type: "object",
+      value: "H",
+      disposition: "replace"
+    });
+    state = await run(state, {
+      type: "output_update",
+      thread_id: "thread-1",
+      workflow_id: "wf-1",
+      job_id: "job-1",
+      node_id: "n1",
+      output_name: "output",
+      output_type: "object",
+      value: "He",
+      disposition: "replace"
+    });
+
+    expect(
+      useResultsStore.getState().getOutputResult("wf-1", "job-1", "n1")
+    ).toBe("He");
+  });
+
+  it("still appends when no disposition is given", async () => {
+    useResultsStore.setState({ outputResults: {}, resultsVersion: 0 });
+    let state = makeState();
+    state = await run(state, {
+      type: "output_update",
+      thread_id: "thread-1",
+      workflow_id: "wf-1",
+      job_id: "job-2",
+      node_id: "n1",
+      output_name: "output",
+      output_type: "object",
+      value: "a"
+    });
+    state = await run(state, {
+      type: "output_update",
+      thread_id: "thread-1",
+      workflow_id: "wf-1",
+      job_id: "job-2",
+      node_id: "n1",
+      output_name: "output",
+      output_type: "object",
+      value: "b"
+    });
+
+    expect(
+      useResultsStore.getState().getOutputResult("wf-1", "job-2", "n1")
+    ).toEqual(["a", "b"]);
   });
 });

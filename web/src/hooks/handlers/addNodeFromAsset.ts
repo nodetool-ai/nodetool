@@ -78,29 +78,31 @@ export const useAddNodeFromAsset = () => {
         return;
       }
 
-      const createNodeWithAsset = (nodeType: string, content?: string) => {
+      const createNodeWithAsset = (
+        nodeType: string,
+        properties?: Record<string, unknown>
+      ) => {
         const metadata = getMetadata(nodeType);
         if (!metadata) {
           throw new Error("metadata for node type " + nodeType + " is missing");
         }
         const newNode = createNode(metadata, position);
-        if (asset.content_type === "folder") {
-          newNode.data.properties.folder = {
-            type: "folder",
-            asset_id: asset.id
-          };
-          newNode.data.properties.label = asset.name;
-          newNode.data.properties.name = asset.name
-            .toLowerCase()
-            .replace(/\s+/g, "_");
-        } else {
-          newNode.data.properties.value = {
-            ...mediaRefFromAsset(asset, assetType ?? "asset"),
-            ...(content && { value: content })
-          };
-        }
+        Object.assign(
+          newNode.data.properties,
+          properties ?? { value: mediaRefFromAsset(asset, assetType ?? "asset") }
+        );
         addNode(newNode);
         return newNode;
+      };
+
+      const reportFailure = (error: unknown) => {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Could not add ${asset.name}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        });
       };
       let nodeMetadata: NodeMetadata | undefined;
 
@@ -114,30 +116,21 @@ export const useAddNodeFromAsset = () => {
               }
               createDataframeNode(csvContent, position, nodeMetadata);
             })
-            .catch((error) => {
-              console.error("Failed to download asset content", error);
-            });
+            .catch(reportFailure);
           break;
         case "str":
-          downloadAssetContent(asset)
-            .then((content) => {
-              createNodeWithAsset("nodetool.constant.String", content);
-            })
-            .catch((error) => {
-              console.error("Failed to download asset content", error);
-            });
-          break;
         case "text":
           downloadAssetContent(asset)
             .then((content) => {
-              createNodeWithAsset("nodetool.constant.Text", content);
+              createNodeWithAsset(nodeType, { value: content });
             })
-            .catch((error) => {
-              console.error("Failed to download asset content", error);
-            });
+            .catch(reportFailure);
           break;
         case "folder":
-          createNodeWithAsset(nodeType);
+          createNodeWithAsset(nodeType, {
+            value: { type: "folder", uri: "", asset_id: asset.id },
+            name: asset.name.toLowerCase().replace(/\s+/g, "_")
+          });
           break;
         default:
           createNodeWithAsset(nodeType);

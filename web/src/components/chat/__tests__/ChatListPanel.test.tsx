@@ -25,6 +25,8 @@ const chatState = {
     }
   },
   messageCache: {},
+  isLoadingThreads: false,
+  error: null,
   createNewThread,
   deleteThread
 };
@@ -35,8 +37,7 @@ jest.mock("../../../stores/GlobalChatStore", () => {
   useStore.getState = () => chatState;
   return {
     __esModule: true,
-    default: useStore,
-    useThreadsQuery: () => ({ isLoading: false, error: null })
+    default: useStore
   };
 });
 

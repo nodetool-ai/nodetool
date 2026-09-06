@@ -4,7 +4,10 @@ import {
 } from "@nodetool-ai/execution";
 import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
 import { Asset } from "@nodetool-ai/models";
-import { isRawRgbaImage } from "@nodetool-ai/protocol";
+import {
+  buildAssetGenerationMetadata,
+  isRawRgbaImage
+} from "@nodetool-ai/protocol";
 import { encodeRawRgbaToPng, fetchExternalMedia } from "@nodetool-ai/runtime";
 import { getAssetFileName } from "../lib/asset-paths.js";
 import { storeAssetWithThumbnail } from "../lib/thumbnail.js";
@@ -30,28 +33,41 @@ const ASSET_MEDIA_TYPES = new Set(["image", "audio", "video"]);
 /** Byte cap for inline-preview text stored in a text generation's asset metadata. */
 const TEXT_GENERATION_PREVIEW_CAP = 200_000;
 
-/** Char cap for the prompt stored in a media asset's metadata. */
-const PROMPT_METADATA_CAP = 8_000;
+/**
+ * The model property a generative node ran with, as the actor forwards it:
+ * `{type: "image_model", id, name, provider}`. Which key holds it varies by
+ * node, so the first model-shaped property wins.
+ */
+function modelProperty(
+  properties: Record<string, unknown> | undefined
+): { id?: unknown; name?: unknown; provider?: unknown } | null {
+  for (const value of Object.values(properties ?? {})) {
+    if (!isRecord(value)) continue;
+    if (isString(value.type) && value.type.endsWith("_model") && isString(value.id)) {
+      return value;
+    }
+  }
+  return null;
+}
 
 /**
- * Lift the prompt out of a generation's scalar input properties into asset
- * metadata. Returns `{ prompt }` when a non-empty `prompt` string is present
- * (capped), else an empty object. Other generation params are intentionally
- * left out — the prompt is the field the asset viewer surfaces.
+ * Lift the prompt and the generation settings out of a generation's input
+ * properties into asset metadata, so the asset says what produced it and can
+ * seed a variant later. Returns `{}` when nothing worth keeping is present.
  */
-function promptMetadata(
-  properties: Record<string, unknown> | undefined
+function generationMetadata(
+  properties: Record<string, unknown> | undefined,
+  nodeType: string | undefined
 ) {
-  const prompt = properties?.prompt;
-  if (!isString(prompt)) return {};
-  const trimmed = prompt.trim();
-  if (trimmed.length === 0) return {};
-  return {
-    prompt:
-      trimmed.length > PROMPT_METADATA_CAP
-        ? trimmed.slice(0, PROMPT_METADATA_CAP)
-        : trimmed
-  };
+  const model = modelProperty(properties);
+  return buildAssetGenerationMetadata({
+    prompt: properties?.prompt,
+    provider: model?.provider,
+    model: model?.id,
+    modelName: model?.name,
+    nodeType,
+    params: properties ?? null
+  });
 }
 
 /**
@@ -290,17 +306,20 @@ export async function autoSaveAssets(
      */
     generationIndex?: number;
     /**
-     * Scalar input properties from the `generation_complete` event (the actor's
-     * resolved declared/dynamic/edge inputs, filtered to scalars). The `prompt`
-     * is persisted into each saved media asset's `metadata.prompt` so the asset
-     * viewer can show what produced the image/audio/video.
+     * Input properties from the `generation_complete` event (the actor's
+     * resolved declared/dynamic/edge inputs, filtered to scalars and model
+     * refs). The prompt and the settings are persisted into each saved media
+     * asset's metadata so the asset viewer can show what produced the
+     * image/audio/video, and so the same settings can seed a variant.
      */
     properties?: Record<string, unknown>;
+    /** Node type that produced the result, recorded alongside the settings. */
+    nodeType?: string;
   }
 ): Promise<void> {
-  // Generation params lifted into each media asset's metadata. Just the prompt
-  // today — the field the asset viewer surfaces as "what produced this".
-  const promptMeta = promptMetadata(opts.properties);
+  // Prompt + settings lifted into each media asset's metadata: what produced
+  // this, and what to re-run to get another one like it.
+  const generationMeta = generationMetadata(opts.properties, opts.nodeType);
   // Generations the seam opened for this node that no asset names yet: the
   // node returned an inline ref, so the link is made here, on save
   // (docs/media-generation-tracking-design.md § 8, S3).
@@ -376,7 +395,7 @@ export async function autoSaveAssets(
       content_type: contentType,
       parent_id: null
     });
-    const mediaMeta: Record<string, unknown> = { ...promptMeta };
+    const mediaMeta: Record<string, unknown> = { ...generationMeta };
     if (opts.generationIndex != null) {
       mediaMeta.generation_index = opts.generationIndex;
     }

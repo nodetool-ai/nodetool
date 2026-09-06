@@ -35,6 +35,7 @@ const seedBoard = (): void => {
     provider: "anthropic",
     id: "claude-sonnet-5"
   } as never);
+  store.setSetup(BOARD, { genre: "Science Fiction", stage: "genre" });
 };
 
 beforeEach(() => {
@@ -85,6 +86,105 @@ describe("useDirectScreenplay", () => {
     };
     expect(schema.properties.shots.minItems).toBe(3);
     expect(schema.properties.shots.maxItems).toBe(3);
+  });
+
+  // Criterion 3: the genre picked in step 2 is what makes the Director shoot
+  // one way rather than another, so it has to be in the prompt.
+  it("names the board's genre in the Director prompt", async () => {
+    rpcRequest.mockResolvedValue(answer(2));
+    const { result } = renderHook(() => useDirectScreenplay());
+
+    await act(async () => {
+      await result.current.direct(BOARD, 2);
+    });
+
+    const [, request] = rpcRequest.mock.calls[0] as [
+      string,
+      Record<string, unknown>
+    ];
+    expect(String(request.prompt)).toContain("Genre:\nScience Fiction");
+    expect(useStoryboardStore.getState().getBoard(BOARD)?.screenplay?.genre).toBe(
+      "Science Fiction"
+    );
+  });
+
+  it("omits the genre line when none is picked", async () => {
+    useStoryboardStore.getState().setSetup(BOARD, { genre: "" });
+    rpcRequest.mockResolvedValue(answer(2));
+    const { result } = renderHook(() => useDirectScreenplay());
+
+    await act(async () => {
+      await result.current.direct(BOARD, 2);
+    });
+
+    const [, request] = rpcRequest.mock.calls[0] as [
+      string,
+      Record<string, unknown>
+    ];
+    expect(String(request.prompt)).not.toContain("Genre:");
+  });
+
+  // PRD § 7.2: the setup flow moves to the review only once a screenplay is
+  // actually on the board.
+  it("moves the setup stage to review on success", async () => {
+    rpcRequest.mockResolvedValue(answer(2));
+    const { result } = renderHook(() => useDirectScreenplay());
+
+    let applied = false;
+    await act(async () => {
+      applied = await result.current.direct(BOARD, 2);
+    });
+
+    expect(applied).toBe(true);
+    expect(useStoryboardStore.getState().getBoard(BOARD)?.setupStage).toBe(
+      "review"
+    );
+  });
+
+  it("leaves the stage at genre when the call is rejected", async () => {
+    rpcRequest.mockRejectedValue(new Error("model unavailable"));
+    const { result } = renderHook(() => useDirectScreenplay());
+
+    let applied = true;
+    await act(async () => {
+      applied = await result.current.direct(BOARD, 2);
+    });
+
+    expect(applied).toBe(false);
+    expect(useStoryboardStore.getState().getBoard(BOARD)?.setupStage).toBe(
+      "genre"
+    );
+  });
+
+  it("leaves the stage at genre when no model is picked", async () => {
+    useStoryboardStore.getState().setDirectorModel(BOARD, null);
+    const { result } = renderHook(() => useDirectScreenplay());
+
+    let applied = true;
+    await act(async () => {
+      applied = await result.current.direct(BOARD, 2);
+    });
+
+    expect(applied).toBe(false);
+    expect(useStoryboardStore.getState().getBoard(BOARD)?.setupStage).toBe(
+      "genre"
+    );
+  });
+
+  // The same hook drives the board's own Direct button. A finished board is
+  // not thrown back into setup by re-directing it.
+  it("does not move a finished board's stage", async () => {
+    useStoryboardStore.getState().setSetup(BOARD, { stage: "done" });
+    rpcRequest.mockResolvedValue(answer(2));
+    const { result } = renderHook(() => useDirectScreenplay());
+
+    await act(async () => {
+      await result.current.direct(BOARD, 2);
+    });
+
+    expect(useStoryboardStore.getState().getBoard(BOARD)?.setupStage).toBe(
+      "done"
+    );
   });
 
   it("writes the parsed screenplay onto the board", async () => {

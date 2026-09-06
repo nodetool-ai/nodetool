@@ -23,11 +23,8 @@ import type {
 } from "../app-debug/index.js";
 import { getSecret } from "@nodetool-ai/models";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import {
-  FileStorageAdapter,
-  ProcessingContext,
-  type StorageAdapter
-} from "@nodetool-ai/runtime";
+import { ProcessingContext, type StorageAdapter } from "@nodetool-ai/runtime";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 
 export interface AppServerRunnerOptions {
   /** Job-id prefix, so a run is attributable to the surface that started it. */

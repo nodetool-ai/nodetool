@@ -313,7 +313,8 @@ describe("render_timeline graph and read-back", () => {
       format: "webm",
       alpha: true,
       video_codec: "libvpx-vp9",
-      bitrate: "8M",
+      // The node takes bits per second; "8M" is what a caller writes.
+      bitrate: 8_000_000,
       motion_blur_samples: 8,
       shutter_angle: 180,
       preview_scale: 0.5,
@@ -322,6 +323,50 @@ describe("render_timeline graph and read-back", () => {
     // The sink is what turns the rendered bytes into an addressable asset.
     expect(output!["type"]).toBe("nodetool.output.Output");
     expect(graph.edges).toHaveLength(1);
+  });
+
+  it("parses a bitrate suffix, and passes a number through", () => {
+    const dataFor = (bitrate: unknown) =>
+      buildRenderTimelineGraph("tl-1", { bitrate }).nodes[0]!["data"] as Record<
+        string,
+        unknown
+      >;
+    expect(dataFor("800k")["bitrate"]).toBe(800_000);
+    expect(dataFor("8M")["bitrate"]).toBe(8_000_000);
+    expect(dataFor("6000000")["bitrate"]).toBe(6_000_000);
+    expect(dataFor(6_000_000)["bitrate"]).toBe(6_000_000);
+    expect(dataFor("fast")["bitrate"]).toBeUndefined();
+  });
+
+  it("wires the frames output for a png_sequence", () => {
+    const graph = buildRenderTimelineGraph("tl-1", { format: "png_sequence" });
+    const handles = graph.edges.map((e) => e["sourceHandle"]);
+    expect(handles).toContain("frames");
+    expect(graph.nodes.filter((n) => n["type"] === "nodetool.output.Output"))
+      .toHaveLength(2);
+  });
+
+  it("reads a png_sequence zip off a settled job", () => {
+    expect(
+      renderResult({
+        status: "completed",
+        metadata_json: {
+          outputs: {
+            frames: {
+              type: "document",
+              asset_id: "asset-zip",
+              uri: "asset://asset-zip.zip",
+              metadata: { render_mode: "composited", format: "png_sequence" }
+            }
+          }
+        }
+      })
+    ).toMatchObject({
+      status: "completed",
+      asset_id: "asset-zip",
+      uri: "asset://asset-zip.zip",
+      render_mode: "composited"
+    });
   });
 
   it("sets only the timeline when the call names no options", () => {

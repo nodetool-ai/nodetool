@@ -1,35 +1,22 @@
-import { useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
-import type { NodeStoreState } from "../stores/NodeStore";
+
+const NO_SUBSCRIPTION = () => () => {};
 
 /** Subscribe to a workflow tab's unsaved-changes flag. */
 export const useWorkflowDirty = (workflowId: string | undefined): boolean => {
   const nodeStore = useWorkflowManager((state) =>
     workflowId ? state.nodeStores[workflowId] : undefined
   );
-  const [isDirty, setIsDirty] = useState(false);
+  const subscribe = useCallback(
+    (onChange: () => void) => nodeStore?.subscribe(onChange) ?? NO_SUBSCRIPTION(),
+    [nodeStore]
+  );
+  const getSnapshot = useCallback(
+    () => nodeStore?.getState().workflowIsDirty ?? false,
+    [nodeStore]
+  );
 
-  useEffect(() => {
-    if (!nodeStore) {
-      setIsDirty(false);
-      return;
-    }
-
-    setIsDirty(nodeStore.getState().workflowIsDirty);
-
-    const unsubscribe = nodeStore.subscribe(
-      (state: NodeStoreState, prev: NodeStoreState) => {
-        if (state.workflowIsDirty !== prev.workflowIsDirty) {
-          setIsDirty(state.workflowIsDirty);
-        }
-      }
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [nodeStore]);
-
-  return isDirty;
+  return useSyncExternalStore(subscribe, getSnapshot);
 };

@@ -15,7 +15,7 @@ import type { PageEntry } from "./types";
 export const staticEntries: PageEntry[] = [
   { route: "/", title: "NodeTool", description: "The open creative AI workspace.", priority: 1.0, changeFrequency: "weekly", indexable: true },
   { route: "/download", title: "Download NodeTool", description: "Installers for macOS, Windows and Linux, with what the app needs and how to open it.", priority: 0.9, changeFrequency: "weekly", indexable: true },
-  { route: "/studio", title: "NodeTool Studio", description: "You direct the vision. The agent builds the film on your own machine.", priority: 0.9, changeFrequency: "weekly", indexable: true },
+  { route: "/studio", title: "NodeTool Studio", description: "Open-source creative AI workspace for your desktop. Agents build and revise; you inspect and edit.", priority: 0.9, changeFrequency: "weekly", indexable: true },
   { route: "/cloud", title: "NodeTool Cloud", description: "Run NodeTool workflows in the cloud.", priority: 0.9, changeFrequency: "weekly", indexable: true },
   { route: "/pricing", title: "Pricing", description: "Free Studio, your own keys, pay providers directly.", priority: 0.8, changeFrequency: "weekly", indexable: true },
   // The entity page for the "node based ai" / "ai node editor" cluster — the
@@ -28,7 +28,7 @@ export const staticEntries: PageEntry[] = [
   { route: "/marketing", title: "For Marketing", description: "Produce campaign assets with AI workflows.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   // /alternatives/* comes from the competitorEntries engine module.
   { route: "/templates", title: "AI Workflow Templates", description: "Browse ready-to-run NodeTool workflow templates by category.", priority: 0.8, changeFrequency: "weekly", indexable: true },
-  { route: "/recipes", title: "AI Workflow Recipes", description: "Multi-step NodeTool recipes: the workflows to run, in order, as one downloadable bundle.", priority: 0.8, changeFrequency: "monthly", indexable: true },
+  { route: "/recipes", title: "AI Workflow Recipes", description: "Multi-step NodeTool recipes: the workflows to run, in order, shipped inside Studio.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/apps", title: "AI Mini Apps", description: "Ready-to-use AI mini apps built with NodeTool's App Builder.", priority: 0.8, changeFrequency: "weekly", indexable: true },
   { route: "/use-cases/product-video", title: "Product Video", description: "Make product videos with AI workflows.", priority: 0.6, changeFrequency: "monthly", indexable: true },
   { route: "/use-cases/movie-poster", title: "Movie Poster", description: "Generate movie posters with AI workflows.", priority: 0.6, changeFrequency: "monthly", indexable: true },

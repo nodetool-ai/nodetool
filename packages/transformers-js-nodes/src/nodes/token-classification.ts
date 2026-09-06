@@ -10,6 +10,9 @@ import {
   tjsModelDefault,
   normalizeOption
 } from "../transformers-base.js";
+import type {
+  HfModelRef
+} from "../transformers-base.js";
 import { defaultRepoFor } from "../recommended-models.js";
 
 const TJS_TYPE = "tjs.token_classification";
@@ -50,7 +53,7 @@ export class TokenClassificationNode extends BaseNode {
     title: "Text",
     description: "Text to extract entities from."
   })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: TJS_TYPE,
@@ -58,7 +61,7 @@ export class TokenClassificationNode extends BaseNode {
     title: "Model",
     description: "Transformers.js model (ONNX-compatible)."
   })
-  declare model: any;
+  declare model: HfModelRef;
 
   @prop({
     type: "enum",
@@ -67,7 +70,7 @@ export class TokenClassificationNode extends BaseNode {
     description: "How to merge subword tokens into entity spans.",
     values: ["none", "simple", "first", "average", "max"]
   })
-  declare aggregation_strategy: any;
+  declare aggregation_strategy: "none" | "simple" | "first" | "average" | "max";
 
   @prop({
     type: "enum",
@@ -76,7 +79,7 @@ export class TokenClassificationNode extends BaseNode {
     description: "Model dtype / quantization level.",
     values: DTYPE_VALUES
   })
-  declare dtype: any;
+  declare dtype: string;
 
   @prop({
     type: "enum",
@@ -85,7 +88,7 @@ export class TokenClassificationNode extends BaseNode {
     description: "Inference device.",
     values: DEVICE_VALUES
   })
-  declare device: any;
+  declare device: string;
 
   async process(): Promise<TokenClassificationNodeOutputs> {
     const text = asString(this.text);

@@ -23,8 +23,14 @@ import { useStoryboardGenerationSubscriptions } from "../stores/storyboard/Story
 import { useStoryboardServerSync } from "../hooks/storyboard/useStoryboardServerSync";
 import { useDocumentUndoShortcuts } from "../hooks/useDocumentUndoShortcuts";
 import { useStoryboardAgentBridge } from "../hooks/storyboard/useStoryboardAgentBridge";
+import { useExtractScriptFromBoard } from "../hooks/storyboard/useExtractScriptFromBoard";
 import { useDirectScreenplay } from "../hooks/storyboard/useDirectScreenplay";
 import { useAssembleTimeline } from "../hooks/storyboard/useAssembleTimeline";
+import { SetupFlow } from "../components/setup/SetupFlow";
+import {
+  useStoryboardSetupFlow,
+  useStoryboardSetupStage
+} from "../components/setup/storyboard/useStoryboardSetupFlow";
 import StudioShell from "./StudioShell";
 import {
   STUDIO_CLIP_MODEL,
@@ -65,7 +71,7 @@ const StudioStoryboardPage = () => {
 
   useStoryboardServerSync(boardId);
   useStoryboardAgentBridge(boardId);
-  useStoryboardGenerationSubscriptions();
+  useStoryboardGenerationSubscriptions(boardId);
   useStudioModelPolicy(boardId);
 
   // The board's undo buttons advertise ⌘Z; the page is the only surface, so
@@ -77,6 +83,22 @@ const StudioStoryboardPage = () => {
     enabled: true,
     onUndo: useCallback(() => undo(boardId), [undo, boardId]),
     onRedo: useCallback(() => redo(boardId), [redo, boardId])
+  });
+
+  // A board still in setup renders the flow inside the Studio chrome, at the
+  // stage the document carries (PRD § 6.4). A board with no stage reads `done`
+  // and opens as the board (D3).
+  const setupStage = useStoryboardSetupStage(boardId);
+  // Studio boards carry a linked script, and it is extracted when the creator
+  // leaves the review step — from the screenplay they reviewed, not the
+  // Director's first draft (PRD D9, criterion 6).
+  const { extract } = useExtractScriptFromBoard();
+  const extractReviewed = useCallback(async () => {
+    await extract(boardId, { open: false });
+  }, [boardId, extract]);
+  const setupConfig = useStoryboardSetupFlow({
+    boardId,
+    onReviewed: extractReviewed
   });
 
   const { direct, directing, error: directError } = useDirectScreenplay();
@@ -93,6 +115,14 @@ const StudioStoryboardPage = () => {
         // Surfaced via assembleError; swallow to keep the click handler quiet.
       });
   }, [assemble, boardId, navigate]);
+
+  if (setupStage !== "done") {
+    return (
+      <StudioShell title={title || "Untitled storyboard"}>
+        <SetupFlow config={setupConfig} />
+      </StudioShell>
+    );
+  }
 
   return (
     <StudioShell title={title || "Untitled storyboard"}>

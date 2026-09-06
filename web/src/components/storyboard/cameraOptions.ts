@@ -1,7 +1,7 @@
 /**
  * cameraOptions
  *
- * The vocabularies the shot inspector offers for a shot's camera direction.
+ * The vocabularies the Edit Shot dialog offers for a shot's camera direction.
  * They are suggestions, not a schema: `CameraDirection` holds free strings, and
  * an agent or an imported screenplay may write anything. {@link cameraOptions}
  * therefore keeps whatever the shot already carries as an option of its own, so
@@ -63,6 +63,17 @@ export const MOVEMENT_OPTIONS = [
   "orbit",
   "zoom in",
   "zoom out"
+] as const;
+
+export const EQUIPMENT_OPTIONS = [
+  "handheld",
+  "tripod",
+  "steadicam",
+  "gimbal",
+  "dolly",
+  "slider",
+  "crane",
+  "drone"
 ] as const;
 
 /** The suggested values plus an empty entry, with `current` kept when it is new. */

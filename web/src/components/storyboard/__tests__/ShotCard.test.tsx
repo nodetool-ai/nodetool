@@ -50,12 +50,24 @@ jest.mock("../../node/ImageRefPreview", () => ({
   )
 }));
 
+// The card's cast chips read the entity library; the actions the card offers
+// are covered in ShotCardActions.test.tsx, so here it is simply empty.
+jest.mock("../../../serverState/useEntities", () => ({
+  useEntities: () => ({ data: [] })
+}));
+
+jest.mock("../../../serverState/useAssetUpload", () => ({
+  useAssetUpload: (selector: (state: unknown) => unknown) =>
+    selector({ uploadAsset: jest.fn() })
+}));
+
 const generateKeyframeMock = jest.fn(async () => undefined);
 const generateClipMock = jest.fn(async () => undefined);
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
     generateKeyframe: generateKeyframeMock,
-    generateClip: generateClipMock
+    generateClip: generateClipMock,
+    generateRevisedClip: jest.fn(async () => undefined)
   })
 }));
 

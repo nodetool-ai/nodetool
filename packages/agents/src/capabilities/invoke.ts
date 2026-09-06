@@ -25,7 +25,7 @@ import {
   decidePermission,
   type PermissionCategory
 } from "../tools/tool-permissions.js";
-import { withSnakeCaseAliases } from "./args.js";
+import { validateCapabilityArgs, withSnakeCaseAliases } from "./args.js";
 import { findCapability } from "./registry.js";
 import type {
   AvailableSecretsResolver,
@@ -201,8 +201,10 @@ async function gatedCall(
   entry: CapabilityExport,
   rawArgs: Record<string, unknown>
 ): Promise<unknown> {
-  const args = withSnakeCaseAliases(rawArgs);
   const { spec, impl } = entry;
+  const checked = validateCapabilityArgs(spec, withSnakeCaseAliases(rawArgs));
+  if (!checked.ok) return checked.error;
+  const args = checked.args;
   const category = spec.category;
   const decision = decidePermission(run.gate.mode, category);
 

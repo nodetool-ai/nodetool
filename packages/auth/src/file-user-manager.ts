@@ -1,7 +1,6 @@
 /**
  * FileUserManager — file-based persistent user management.
  *
- * Port of Python's `nodetool.security.user_manager.UserManager`.
  * Stores users in a JSON file at `~/.config/nodetool/users.json` by default.
  */
 

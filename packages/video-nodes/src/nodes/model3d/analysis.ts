@@ -24,10 +24,10 @@ export class GetModel3DMetadataNode extends BaseNode {
     title: "Model",
     description: "The 3D model to analyze"
   })
-  declare model: any;
+  declare model: Model3DRefLike;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const model = (this.model ?? {}) as Model3DRefLike;
+    const model = this.model;
     const bytes = await modelRefToBytes(model, context);
     const metadata =
       modelFormat(model) === "glb" && parseGlb(bytes)

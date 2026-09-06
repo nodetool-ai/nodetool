@@ -189,6 +189,65 @@ describe("timelines capability behaviour", () => {
     expect(other.timelines).toEqual([]);
   });
 
+  // `edit_timeline`'s description advertises the four guided-video-flow ops
+  // (PRD § 8.6). Nothing invoked the capability with them: the flow's own
+  // suite drives the eval bridge's `ui_timeline_*` tools directly, which is a
+  // different entry point. A description that promises an op no test reaches
+  // through this surface is a contract nobody checks.
+  it("runs the video-flow ops it advertises, and plans without spending", async () => {
+    const created = (await run().invoke("create_timeline", {
+      name: "Paper boat",
+      width: 1080,
+      height: 1920
+    })) as { timeline_id: string };
+
+    const planned = (await run().invoke("edit_timeline", {
+      timeline_id: created.timeline_id,
+      ops: [
+        { op: "set_setup", stage: "format", brief: "a paper boat in a gutter" },
+        {
+          op: "plan_beats",
+          beats: [
+            { prompt: "wide of the boat at the kerb", durationMs: 3000 },
+            { prompt: "it slips into the drain", durationMs: 4000 }
+          ]
+        }
+      ]
+    })) as {
+      applied: number;
+      failed: number;
+      ops: Array<{ op: string; ok: boolean; result?: Record<string, unknown> }>;
+    };
+    expect(planned.failed).toBe(0);
+    expect(planned.applied).toBe(2);
+    expect(planned.ops.map((entry) => entry.op)).toEqual([
+      "ui_timeline_set_setup",
+      "ui_timeline_plan_beats"
+    ]);
+
+    // D4: the plan is text. The op says so itself, and the document agrees.
+    expect(planned.ops[1].result).toMatchObject({
+      clipsCreated: 0,
+      jobsStarted: 0
+    });
+    const afterPlan = (await run().invoke("get_timeline", {
+      timeline_id: created.timeline_id
+    })) as { timeline: { clips: unknown[] } };
+    expect(afterPlan.timeline.clips).toEqual([]);
+
+    const generated = (await run().invoke("edit_timeline", {
+      timeline_id: created.timeline_id,
+      ops: [{ op: "generate_from_beats" }]
+    })) as { applied: number; failed: number };
+    expect(generated.failed).toBe(0);
+
+    // One clip per beat: the ops the description advertises do the work.
+    const afterGenerate = (await run().invoke("get_timeline", {
+      timeline_id: created.timeline_id
+    })) as { timeline: { clips: unknown[] } };
+    expect(afterGenerate.timeline.clips.length).toBeGreaterThanOrEqual(2);
+  });
+
   it("creates an empty sequence the caller can then edit", async () => {
     // Every other document surface could make one and timelines could not, so
     // "cut these clips together" meant editing whatever sequence the user had
@@ -412,6 +471,39 @@ describe("timelines capability behaviour", () => {
     expect(result.failed).toBe(2);
     expect(result.ops[0].error).toContain("No asset found");
     expect(result.ops[1].error).toContain("cannot go on a timeline");
+  });
+
+  it("does not write when every op failed", async () => {
+    const row = await makeTimeline();
+    const before = await TimelineSequence.findById(row.id);
+    const result = (await run().invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [{ op: "levitate_clip" }]
+    })) as { applied: number; failed: number; updated_at: string };
+    expect(result).toMatchObject({ applied: 0, failed: 1 });
+
+    const after = await TimelineSequence.findById(row.id);
+    expect(after?.updated_at).toBe(before?.updated_at);
+    expect(after?.revision).toBe(before?.revision);
+  });
+
+  it("passes only the applied ops as merge metadata", async () => {
+    const row = await makeTimeline();
+    const metas: unknown[][] = [];
+    ModelObserver.subscribe((_instance, _event, meta) => {
+      if (meta?.ops) metas.push(meta.ops);
+    }, "TimelineSequence");
+    await run().invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [
+        { op: "levitate_clip" },
+        { op: "add_track", type: "audio", name: "Music" }
+      ]
+    });
+    expect(metas).toHaveLength(1);
+    expect((metas[0] as { tool: string }[]).map((o) => o.tool)).toEqual([
+      "ui_timeline_add_track"
+    ]);
   });
 
   it("records an unknown edit op instead of throwing", async () => {

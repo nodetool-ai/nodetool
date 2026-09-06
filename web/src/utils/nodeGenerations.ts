@@ -1,5 +1,5 @@
 import type { Asset, ProviderCost } from "../stores/ApiTypes";
-import { isObjectLike, isString } from "./typePredicates";
+import { isRecord, isString } from "./typePredicates";
 
 /**
  * The `{ type, uri, … }` record the preview components render — the same shape
@@ -62,10 +62,7 @@ const jsonGenerationOutputs = (
   const ct = asset.content_type ?? "";
   if (!ct.includes("json")) return undefined;
   const json = asset.metadata?.json;
-  if (json && isObjectLike(json) && !Array.isArray(json)) {
-    return json as Record<string, unknown>;
-  }
-  return undefined;
+  return isRecord(json) ? json : undefined;
 };
 
 /**
@@ -116,9 +113,6 @@ export interface Generation {
    */
   index?: number;
 }
-
-const isRecord = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null && !Array.isArray(v);
 
 /**
  * Resolve a generation's value for an edge's source handle. Prefers the named

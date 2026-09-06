@@ -29,7 +29,7 @@ export class ScreenshotLibNode extends BaseNode {
     title: "Url",
     description: "URL to navigate to before taking screenshot"
   })
-  declare url: any;
+  declare url: string;
 
   @prop({
     type: "str",
@@ -37,7 +37,7 @@ export class ScreenshotLibNode extends BaseNode {
     title: "Selector",
     description: "Optional CSS selector for capturing a specific element"
   })
-  declare selector: any;
+  declare selector: string;
 
   @prop({
     type: "int",
@@ -45,12 +45,10 @@ export class ScreenshotLibNode extends BaseNode {
     title: "Timeout",
     description: "Timeout in milliseconds for page navigation"
   })
-  declare timeout: any;
+  declare timeout: number;
 
   async process(): Promise<ScreenshotLibNodeOutputs> {
-    const url = String(this.url ?? "");
-    const selector = String(this.selector ?? "");
-    const timeout = Number(this.timeout ?? 30000);
+    const { url, selector, timeout } = this;
     if (!url) throw new Error("URL is required");
 
     return withPage({}, async (page) => {

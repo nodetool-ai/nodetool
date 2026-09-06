@@ -3,7 +3,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { spawn } from "node:child_process";
-import { isString } from "../type-predicates.js";
+import { isString } from "@nodetool-ai/node-sdk";
 
 type ExecResult = {
   stdout: string;

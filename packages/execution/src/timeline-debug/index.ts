@@ -14,6 +14,9 @@ export type {
   TimelineDebugReport
 } from "./types.js";
 
-export { validateTimelineSequence } from "./validate.js";
+export {
+  validateTimelineSequence,
+  collectStrippedPaths
+} from "./validate.js";
 export { buildTimelineDebugReport } from "./report.js";
 export { renderTimelineReportMarkdown } from "./markdown.js";

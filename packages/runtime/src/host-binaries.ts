@@ -27,7 +27,7 @@
 import { spawn } from "node:child_process";
 import { stat } from "node:fs/promises";
 import path from "node:path";
-import { isNumber, isObjectLike } from "./type-predicates.js";
+import { isNumber, isObjectLike } from "@nodetool-ai/protocol";
 
 export type HostBinaryResult = {
   stdout: string;

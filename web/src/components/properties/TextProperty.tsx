@@ -46,7 +46,7 @@ const styles = (theme: Theme) =>
 
 const TextProperty = (props: PropertyProps) => {
   const id = `textfield-${props.property.name}-${props.propertyIndex}`;
-  const assetId = props.value.asset_id;
+  const assetId: string | undefined = props.value?.asset_id ?? undefined;
   const theme = useTheme();
 
   const memoizedStyles = useMemo(() => styles(theme), [theme]);
@@ -66,9 +66,7 @@ const TextProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {props.nodeType === "nodetool.constant.Text" && (
-        <TextAssetDisplay assetId={assetId} />
-      )}
+      {assetId && <TextAssetDisplay assetId={assetId} />}
     </div>
   );
 };

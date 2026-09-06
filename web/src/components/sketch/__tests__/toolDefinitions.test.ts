@@ -6,7 +6,6 @@ import {
   ALL_TOOL_DEFINITIONS,
   PAINTING_TOOLS,
   SHAPE_TOOLS,
-  CONTEXT_MENU_TOOLS,
   CONTEXT_MENU_TOOL_GROUPS,
   TOOLBAR_TOOL_GROUPS,
   getToolDefinition,
@@ -77,20 +76,13 @@ describe("toolDefinitions", () => {
     });
   });
 
-  describe("CONTEXT_MENU_TOOLS", () => {
+  describe("CONTEXT_MENU_TOOL_GROUPS", () => {
     it("excludes adjust tool", () => {
-      const tools = CONTEXT_MENU_TOOLS.map((d) => d.tool);
+      const tools = CONTEXT_MENU_TOOL_GROUPS.flat().map((d) => d.tool);
       expect(tools).not.toContain("adjust");
     });
 
-    it("matches left toolbar order (TOOLBAR_TOOL_GROUPS without adjust)", () => {
-      const expectedOrder = TOOLBAR_TOOL_GROUPS.flat()
-        .filter((d) => d.tool !== "adjust")
-        .map((d) => d.tool);
-      expect(CONTEXT_MENU_TOOLS.map((d) => d.tool)).toEqual(expectedOrder);
-    });
-
-    it("CONTEXT_MENU_TOOL_GROUPS mirrors toolbar sections (no adjust)", () => {
+    it("mirrors toolbar sections (no adjust)", () => {
       const expected = TOOLBAR_TOOL_GROUPS.map((group) =>
         group.filter((d) => d.tool !== "adjust").map((d) => d.tool)
       );
@@ -104,7 +96,9 @@ describe("toolDefinitions", () => {
       const allExceptAdjust = ALL_TOOL_DEFINITIONS.filter(
         (d) => d.tool !== "adjust"
       );
-      expect(CONTEXT_MENU_TOOLS.length).toBe(allExceptAdjust.length);
+      expect(CONTEXT_MENU_TOOL_GROUPS.flat().length).toBe(
+        allExceptAdjust.length
+      );
     });
   });
 

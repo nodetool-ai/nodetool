@@ -4,13 +4,10 @@ import { createNode, Connectable, DslNode } from "../core.js";
 
 // Telegram Bot Trigger — messaging.telegram.TelegramBotTrigger
 export type TelegramBotTriggerInputs = {
-  max_events?: Connectable<number>;
   token?: Connectable<string>;
   chat_id?: Connectable<number>;
   allow_bot_messages?: Connectable<boolean>;
   include_edited_messages?: Connectable<boolean>;
-  poll_timeout_seconds?: Connectable<number>;
-  poll_interval_seconds?: Connectable<number>;
 };
 
 export interface TelegramBotTriggerOutputs {

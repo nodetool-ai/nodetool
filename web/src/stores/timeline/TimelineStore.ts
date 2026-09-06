@@ -62,7 +62,9 @@ import type {
   TrackEffect,
   ClipBindingKind,
   ClipAnimation,
-  TranscriptLine
+  TranscriptLine,
+  TimelineBeat,
+  TimelineSetup
 } from "@nodetool-ai/timeline";
 import type { Asset } from "../ApiTypes";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
@@ -112,6 +114,13 @@ export interface TimelineStoreState {
    */
   scriptEnabled: boolean;
   /**
+   * Guided video-flow state (PRD § 8.5). Null on every sequence not built
+   * through the flow, which is what makes those open straight in the editor.
+   * Document state — it is persisted with the document — but deliberately
+   * outside the undo partialize: Ctrl+Z belongs to the cut, not to the wizard.
+   */
+  setup: TimelineSetup | null;
+  /**
    * Linked selection: a clip's linked siblings (a video and its extracted
    * audio) move and trim with it. Editor state, not part of the document.
    */
@@ -151,6 +160,16 @@ export interface TimelineStoreState {
     width?: number;
     height?: number;
   }) => void;
+  /**
+   * Write back the document `applyTimelineOp` returned, in one `set` so one
+   * agent tool call is one undo entry. Clips are reflowed and `durationMs`
+   * recomputed, as `applyExternalMerge` does.
+   */
+  applyAgentEdit: (next: {
+    tracks: TimelineTrack[];
+    clips: TimelineClip[];
+    markers: TimelineMarker[];
+  }) => void;
   /** Reset the store to an empty document. */
   reset: () => void;
   /**
@@ -165,6 +184,22 @@ export interface TimelineStoreState {
   ) => void;
   /** Show or hide the script feature (non-destructive; does not touch clips). */
   setScriptEnabled: (enabled: boolean) => void;
+  /**
+   * Write the guided flow's state. Fields you pass replace what is stored;
+   * the rest is left alone. The first write on a sequence with no setup starts
+   * one at stage `idea` with an empty brief.
+   */
+  setSetup: (
+    patch: Partial<Pick<TimelineSetup, "stage" | "brief" | "format" | "beats">>
+  ) => void;
+  /**
+   * Change one beat of the plan. Undefined fields are left alone; an explicit
+   * `null` transition clears it. A beat id that is not in the plan is a no-op.
+   */
+  updateBeat: (
+    beatId: string,
+    patch: Partial<Omit<TimelineBeat, "id">> & { transition?: string | null }
+  ) => void;
   setLinkedSelection: (on: boolean) => void;
 
   /**
@@ -947,6 +982,7 @@ const emptyState = {
   markers: [],
   transcript: [],
   scriptEnabled: false,
+  setup: null,
   linkedSelection: true,
   syncedDocument: null
 } satisfies {
@@ -961,6 +997,7 @@ const emptyState = {
   markers: TimelineMarker[];
   transcript: TranscriptLine[];
   scriptEnabled: boolean;
+  setup: TimelineSetup | null;
   linkedSelection: boolean;
   syncedDocument: TimelineStoreState["syncedDocument"];
 };
@@ -1057,7 +1094,8 @@ export const createTimelineStore = (
               clips,
               markers: seq.markers,
               transcript: [] as TranscriptLine[],
-              scriptEnabled: seq.scriptEnabled ?? clips.some(isTranscriptClip)
+              scriptEnabled: seq.scriptEnabled ?? clips.some(isTranscriptClip),
+              setup: seq.setup ?? null
             };
             set({
               ...next,
@@ -1077,7 +1115,8 @@ export const createTimelineStore = (
             clips: seq.clips,
             markers: seq.markers,
             transcript: [],
-            scriptEnabled: seq.scriptEnabled ?? seq.clips.some(isTranscriptClip)
+            scriptEnabled: seq.scriptEnabled ?? seq.clips.some(isTranscriptClip),
+            setup: seq.setup ?? null
           };
           set({
             ...next,
@@ -1106,6 +1145,18 @@ export const createTimelineStore = (
           });
         },
 
+        applyAgentEdit: (next) => {
+          set(() => {
+            const reflowed = reflowGenerated(next.clips);
+            return {
+              tracks: next.tracks,
+              clips: reflowed.clips,
+              markers: next.markers,
+              durationMs: reflowed.durationMs
+            };
+          });
+        },
+
         setBaseUpdatedAt: (updatedAt, synced) =>
           set((state) => {
             if (synced !== undefined) {
@@ -1121,6 +1172,44 @@ export const createTimelineStore = (
           }),
 
         setScriptEnabled: (enabled) => set({ scriptEnabled: enabled }),
+
+        setSetup: (patch) =>
+          set((state) => ({
+            setup: {
+              stage: "idea",
+              brief: "",
+              ...(state.setup ?? {}),
+              ...patch
+            }
+          })),
+
+        updateBeat: (beatId, patch) =>
+          set((state) => {
+            const beats = state.setup?.beats;
+            if (!beats?.some((beat) => beat.id === beatId)) {
+              return {};
+            }
+            const { transition, ...rest } = patch;
+            return {
+              setup: {
+                ...state.setup,
+                stage: state.setup?.stage ?? "review",
+                brief: state.setup?.brief ?? "",
+                beats: beats.map((beat) =>
+                  beat.id === beatId
+                    ? {
+                        ...beat,
+                        ...rest,
+                        transition:
+                          transition === undefined
+                            ? beat.transition
+                            : (transition ?? undefined)
+                      }
+                    : beat
+                )
+              }
+            };
+          }),
 
         setLinkedSelection: (on) => set({ linkedSelection: on }),
 

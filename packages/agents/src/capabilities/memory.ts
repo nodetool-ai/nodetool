@@ -32,18 +32,9 @@ import {
   memoryListSpec,
   memorySearchSpec,
   memoryUpdateSpec,
-  memoryDeleteSpec,
-  KNOWN_RESOURCE_TYPES,
-  KIND_SCHEMA,
-  RESOURCES_SCHEMA
+  memoryDeleteSpec
 } from "./memory.specs.js";
 import { isObjectLike, isString } from "../utils/type-guards.js";
-
-export {
-  KNOWN_RESOURCE_TYPES,
-  KIND_SCHEMA,
-  RESOURCES_SCHEMA
-} from "./memory.specs.js";
 
 const VALID_KINDS: ReadonlySet<string> = new Set([
   "note",

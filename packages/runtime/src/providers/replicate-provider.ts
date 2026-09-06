@@ -1,6 +1,6 @@
 import Replicate from "replicate";
 import { createLogger } from "@nodetool-ai/config";
-import { isCallable, isObjectLike, isString } from "../type-predicates.js";
+import { isCallable, isObjectLike, isString } from "@nodetool-ai/protocol";
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
 import { withReplicateRetry } from "./replicate-retry.js";
@@ -90,7 +90,10 @@ function decodeOutputValue(
   // FileOutput extends ReadableStream, so `getReader` is on its prototype.
   // Prefer it over `url()`: those bytes are already in flight.
   if ("getReader" in value) {
-    return { kind: "stream", stream: value as ReadableStream<Uint8Array> };
+    return {
+      kind: "stream",
+      stream: value as unknown as ReadableStream<Uint8Array>
+    };
   }
 
   // FileOutput also exposes `url()`, and some models answer a plain `{url}`.
@@ -102,7 +105,7 @@ function decodeOutputValue(
 
   const items: unknown[] = Array.isArray(value)
     ? value
-    : Object.values(value as Record<string, unknown>);
+    : Object.values(value);
   for (const item of items) {
     const found = isString(item)
       ? decodeOutputLeaf(item)

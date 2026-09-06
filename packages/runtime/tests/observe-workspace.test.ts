@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 
-import { InMemoryStorageAdapter } from "../src/context.js";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { StorageWorkspace } from "../src/storage-workspace.js";
 import {
   observeWorkspace,

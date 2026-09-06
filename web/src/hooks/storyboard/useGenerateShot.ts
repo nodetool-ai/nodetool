@@ -21,13 +21,28 @@
  */
 
 import { useCallback } from "react";
-import type { Entity, Shot } from "@nodetool-ai/protocol";
-import { injectEntities, shotRenderMode } from "@nodetool-ai/protocol";
+import type {
+  BoardRenderContext,
+  Entity,
+  Shot
+} from "@nodetool-ai/protocol";
+import {
+  clipPrompt,
+  directClipPrompt,
+  injectEntities,
+  keyframePrompt,
+  sceneForShot,
+  shotRenderMode
+} from "@nodetool-ai/protocol";
 import {
   globalWebSocketManager
 } from "../../lib/websocket/GlobalWebSocketManager";
-import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
+import {
+  useStoryboardStore,
+  type StoryboardBoard
+} from "../../stores/storyboard/StoryboardStore";
 import { entitiesForShot } from "../../stores/storyboard/shotEntities";
+import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
 import { useEntities } from "../../serverState/useEntities";
 import { useImageModelsByProvider } from "../useModelsByProvider";
 import {
@@ -60,14 +75,6 @@ export const __resetStartingShotsForTests = (): void => {
   startingShots.clear();
 };
 
-/** A request id for a direct-generation RPC (no server job exists). */
-const randomRequestId = (): string => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-};
-
 /** The stored asset id behind a media ref, when it has one. */
 const assetIdFromRef = (ref: unknown): string | undefined => {
   if (!ref || typeof ref !== "object") return undefined;
@@ -80,44 +87,6 @@ const assetIdFromRef = (ref: unknown): string | undefined => {
     return bare.slice(0, bare.lastIndexOf("."));
   }
   return undefined;
-};
-
-/**
- * Compose an image prompt from a shot's action, camera framing, and board
- * style. Entity mentions ride as `entity://` tokens appended to the prompt;
- * the server expands them (descriptor block + routed reference images).
- */
-const keyframePrompt = (shot: Shot, style: string): string => {
-  const parts = [shot.action.trim()];
-  if (shot.camera?.framing) {
-    parts.push(`${shot.camera.framing} shot`);
-  }
-  if (style.trim().length > 0) {
-    parts.push(style.trim());
-  }
-  return parts.filter((p) => p.length > 0).join(", ");
-};
-
-const clipPrompt = (shot: Shot): string =>
-  [shot.motion, shot.action]
-    .filter((p) => !!p && p.trim().length > 0)
-    .join(", ");
-
-/**
- * Direct-mode clip prompt. No still carries the look into the render, so the
- * prompt has to: framing and board style ride along with the action and the
- * motion (mirrors the headless `render_storyboard_clips` tool).
- */
-const directClipPrompt = (shot: Shot, style: string): string => {
-  const parts: (string | undefined)[] = [shot.action];
-  if (shot.camera?.framing) {
-    parts.push(`${shot.camera.framing} shot`);
-  }
-  parts.push(shot.motion, style);
-  return parts
-    .filter((p): p is string => !!p && p.trim().length > 0)
-    .map((p) => p.trim())
-    .join(", ");
 };
 
 /** Entity mentions on their own line; the server seasons the prompt with them. */
@@ -165,13 +134,28 @@ export const useGenerateShot = (): UseGenerateShotResult => {
     [allEntities]
   );
 
+  /**
+   * The board settings a render record is taken from.
+   *
+   * `style_entity_id` is derived here rather than in the generation store: the
+   * board holds entity ids, and the kinds live in the entity query this hook
+   * already has. `setStylePreset` keeps at most one `style` entity on a board,
+   * so the first match is the board's style.
+   */
+  const renderContext = useCallback(
+    (board: StoryboardBoard | undefined): BoardRenderContext =>
+      boardRenderContext(board, allEntities ?? []),
+    [allEntities]
+  );
+
   /** Fire one direct-generation request and track it on the shot. */
   const startDirectGeneration = useCallback(
     async (
       boardId: string,
       shot: Shot,
       kind: ShotJobKind,
-      data: Record<string, unknown>
+      data: Record<string, unknown>,
+      board?: BoardRenderContext
     ): Promise<void> => {
       // Single-flight per shot: skip when a job is active or a start is
       // already in the pre-registration window.
@@ -179,9 +163,15 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         return;
       }
       startingShots.add(shot.id);
-      const requestId = randomRequestId();
+      const requestId = crypto.randomUUID();
       try {
-        registerJob(shot.id, boardId, requestId, kind);
+        registerJob(
+          shot.id,
+          boardId,
+          requestId,
+          kind,
+          board ? { shot, board } : undefined
+        );
         await subscribeDirectShotJob(requestId, {
           shotId: shot.id,
           boardId,
@@ -235,7 +225,10 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       const useEditModel =
         hasReferenceImage(entities) &&
         !!stillModel?.supported_tasks?.includes("image_to_image");
-      const basePrompt = keyframePrompt(shot, style);
+      const basePrompt = keyframePrompt(shot, {
+        scene: sceneForShot(shot, board?.screenplay?.scenes),
+        style
+      });
       const prompt =
         useEditModel && entities.length > 0
           ? `${basePrompt}${entityTokenSuffix(entities)}`
@@ -254,9 +247,15 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         data.provider = board.imageModel.provider;
         data.model = board.imageModel.id;
       }
-      await startDirectGeneration(boardId, shot, "keyframe", data);
+      await startDirectGeneration(
+        boardId,
+        shot,
+        "keyframe",
+        data,
+        renderContext(board)
+      );
     },
-    [startDirectGeneration, boardEntities, imageModels]
+    [startDirectGeneration, boardEntities, imageModels, renderContext]
   );
 
   const generateClip = useCallback(
@@ -285,7 +284,10 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         shot
       );
       const prompt = isDirect
-        ? directClipPrompt(shot, board?.style ?? "")
+        ? directClipPrompt(shot, {
+            scene: sceneForShot(shot, board?.screenplay?.scenes),
+            style: board?.style ?? ""
+          })
         : clipPrompt(shot);
       const data: Record<string, unknown> = {
         mode: "video",
@@ -306,9 +308,15 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         data.provider = board.videoModel.provider;
         data.model = board.videoModel.id;
       }
-      await startDirectGeneration(boardId, shot, "clip", data);
+      await startDirectGeneration(
+        boardId,
+        shot,
+        "clip",
+        data,
+        renderContext(board)
+      );
     },
-    [startDirectGeneration, boardEntities]
+    [startDirectGeneration, boardEntities, renderContext]
   );
 
   const generateRevisedClip = useCallback(
@@ -336,6 +344,10 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         data.provider = board.videoModel.provider;
         data.model = board.videoModel.id;
       }
+      // No render record: a revision renders the instruction over an existing
+      // clip, not the shot's composed prompt, so there is nothing a later
+      // board change would make it out of date with respect to. Like an
+      // upload or an image-editor edit, it is never stale (PRD § 7.7.4).
       await startDirectGeneration(boardId, shot, "clip", data);
     },
     [startDirectGeneration]

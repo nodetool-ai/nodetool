@@ -29,6 +29,7 @@ export const readlink = makeThrower("readlink");
 export const utimes = makeThrower("utimes");
 export const truncate = makeThrower("truncate");
 export const rmdir = makeThrower("rmdir");
+export const mkdtemp = makeThrower("mkdtemp");
 
 export default {
   readFile,

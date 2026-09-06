@@ -25,6 +25,7 @@ import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import {
   NodeSlider,
   Tooltip,
+  CONTROL,
   MOTION,
   BORDER_RADIUS,
   FONT_SIZE_SANS,
@@ -37,16 +38,35 @@ import {
   Switch,
   type SelectOption
 } from "../../ui_primitives";
-import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
+import { useBatchedGesture } from "../../../hooks/timeline/useBatchedGesture";
 import { isFunction } from "../../../utils/typePredicates";
+
+/**
+ * Square box for the inline delete buttons that sit at the right edge of a
+ * repeated row (an animation, a curve, a keyframe, an effect). `DeleteButton`
+ * has no size token of its own, so every call site shares this one rather than
+ * spelling out a width and a height. `CONTROL.height.xs` is the 24px
+ * toolbar-density control box.
+ */
+export const INSPECTOR_ROW_BUTTON_SX = {
+  width: CONTROL.height.xs,
+  height: CONTROL.height.xs
+} as const;
+
+/**
+ * Width of a row's value column: the widest pill the inspector renders (the
+ * 112px timecode) — a column width, which the spacing scale does not cover, so
+ * it is named here and kept on the 4px grid.
+ */
+const ROW_CONTROL_MIN_WIDTH = 112;
 
 // ── Header ─────────────────────────────────────────────────────────────────
 
 const headerStyles = css({
   display: "flex",
   alignItems: "center",
-  gap: 8,
-  height: 32,
+  gap: getSpacingPx(SPACING.md),
+  height: CONTROL.height.md,
   padding: `0 ${getSpacingPx(SPACING.xs)} 0 ${getSpacingPx(SPACING.xs)}`
 });
 
@@ -64,7 +84,7 @@ const eyebrowStyles = (theme: Theme) =>
 const headerActionsStyles = css({
   display: "inline-flex",
   alignItems: "center",
-  gap: 2
+  gap: getSpacingPx(SPACING.micro)
 });
 
 const headerIconButtonStyles = (theme: Theme) =>
@@ -90,7 +110,7 @@ const headerIconButtonStyles = (theme: Theme) =>
       borderColor: theme.vars.palette.primary.main
     },
     "& svg": {
-      fontSize: 14
+      fontSize: FONT_SIZE_SANS.label
     }
   });
 
@@ -166,7 +186,7 @@ const identityNameStyles = (theme: Theme) =>
 const identityMetaRowStyles = css({
   display: "flex",
   alignItems: "center",
-  gap: 6
+  gap: getSpacingPx(SPACING.sm)
 });
 
 const identitySwatchStyles = (color: string) =>
@@ -219,8 +239,8 @@ ClipIdentityCard.displayName = "ClipIdentityCard";
 const rowStyles = css({
   display: "flex",
   alignItems: "center",
-  gap: 6,
-  minHeight: 24,
+  gap: getSpacingPx(SPACING.sm),
+  minHeight: CONTROL.height.xs,
   padding: `0 ${getSpacingPx(SPACING.xs)}`
 });
 
@@ -239,8 +259,8 @@ const rowControlStyles = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "flex-end",
-  gap: 4,
-  minWidth: 110
+  gap: getSpacingPx(SPACING.xs),
+  minWidth: ROW_CONTROL_MIN_WIDTH
 });
 
 interface InspectorRowProps {
@@ -307,7 +327,7 @@ const pillWrapStyles = (
   css({
     display: "inline-flex",
     alignItems: "center",
-    gap: 3,
+    gap: getSpacingPx(SPACING.micro),
     height: 20,
     padding: theme.spacing(0, 2),
     backgroundColor: theme.vars.palette.background.default,
@@ -402,6 +422,15 @@ export const InspectorPillInput = memo(function InspectorPillInput({
   const [draft, setDraft] = useState(value);
   const [focused, setFocused] = useState(false);
 
+  // The draft follows the store while the field is not being typed in. Derived
+  // during render rather than in an effect: an effect would paint one frame of
+  // the stale draft after every scrub tick and every undo.
+  const [syncedValue, setSyncedValue] = useState(value);
+  if (!focused && value !== syncedValue) {
+    setSyncedValue(value);
+    setDraft(value);
+  }
+
   const inputRef = useRef<HTMLInputElement | null>(null);
   const setRefs = useCallback(
     (node: HTMLInputElement | null) => {
@@ -414,12 +443,6 @@ export const InspectorPillInput = memo(function InspectorPillInput({
     },
     [ref]
   );
-
-  useEffect(() => {
-    if (!focused) {
-      setDraft(value);
-    }
-  }, [value, focused]);
 
   const commit = useCallback(() => {
     if (draft !== value) {
@@ -442,34 +465,20 @@ export const InspectorPillInput = memo(function InspectorPillInput({
   // ── Scrub gesture ────────────────────────────────────────────────────
   // Drag scrubs; a click without movement focuses the input for typing.
   // pointerdown preventDefault stops the native focus so the drag doesn't
-  // enter edit mode; store writes are rAF-coalesced and wrapped in one
-  // undo batch, same as InspectorSliderRow.
+  // enter edit mode.
 
-  const history = useTimelineHistoryBatch();
-  const onCommitRef = useRef(onCommit);
-  onCommitRef.current = onCommit;
+  const gesture = useBatchedGesture(onCommit);
   const gestureRef = useRef<{
     pointerId: number;
     startX: number;
     startValue: number;
     moved: boolean;
   } | null>(null);
-  const pendingRef = useRef<string | null>(null);
-  const rafIdRef = useRef<number | null>(null);
 
   const scrubDecimals = useMemo(() => {
     if (!scrub) return 0;
     return (String(scrub.step).split(".")[1] ?? "").length;
   }, [scrub]);
-
-  const flushScrub = useCallback(() => {
-    rafIdRef.current = null;
-    if (pendingRef.current === null) return;
-    const next = pendingRef.current;
-    pendingRef.current = null;
-    onCommitRef.current(next);
-    history.mark();
-  }, [history]);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -490,60 +499,39 @@ export const InspectorPillInput = memo(function InspectorPillInput({
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      const gesture = gestureRef.current;
-      if (!gesture || !scrub) return;
-      const dx = e.clientX - gesture.startX;
-      if (!gesture.moved) {
+      const drag = gestureRef.current;
+      if (!drag || !scrub) return;
+      const dx = e.clientX - drag.startX;
+      if (!drag.moved) {
         if (Math.abs(dx) < 3) return;
-        gesture.moved = true;
-        history.begin();
+        drag.moved = true;
+        gesture.begin();
       }
       const multiplier = e.shiftKey ? 10 : e.altKey ? 0.1 : 1;
-      let next = gesture.startValue + dx * scrub.step * multiplier;
+      let next = drag.startValue + dx * scrub.step * multiplier;
       if (scrub.min != null) next = Math.max(scrub.min, next);
       if (scrub.max != null) next = Math.min(scrub.max, next);
       const formatted = next.toFixed(scrubDecimals);
       setDraft(formatted);
-      pendingRef.current = formatted;
-      if (rafIdRef.current === null) {
-        rafIdRef.current = requestAnimationFrame(flushScrub);
-      }
+      gesture.schedule(formatted);
     },
-    [scrub, scrubDecimals, history, flushScrub]
+    [scrub, scrubDecimals, gesture]
   );
 
   const handlePointerUp = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      const gesture = gestureRef.current;
-      if (!gesture || gesture.pointerId !== e.pointerId) return;
+      const drag = gestureRef.current;
+      if (!drag || drag.pointerId !== e.pointerId) return;
       gestureRef.current = null;
-      if (gesture.moved) {
-        if (rafIdRef.current !== null) {
-          cancelAnimationFrame(rafIdRef.current);
-          rafIdRef.current = null;
-        }
-        if (pendingRef.current !== null) {
-          const next = pendingRef.current;
-          pendingRef.current = null;
-          onCommitRef.current(next);
-          history.mark();
-        }
-        history.end();
+      if (drag.moved) {
+        gesture.commit();
       } else {
         inputRef.current?.focus();
         inputRef.current?.select();
       }
     },
-    [history]
+    [gesture]
   );
-
-  useEffect(() => {
-    return () => {
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
-      }
-    };
-  }, []);
 
   // A scrub re-renders this pill per rAF; no style reads the dragged value.
   const hasScrub = !!scrub;
@@ -582,6 +570,11 @@ export const InspectorPillInput = memo(function InspectorPillInput({
         onBlur={() => {
           setFocused(false);
           commit();
+          // A commit the parent rejects (unparseable, out of range) leaves
+          // `value` untouched, so the field goes back to what the store holds
+          // instead of keeping text that never landed. A commit it accepts
+          // re-syncs from the new `value` on the next render.
+          setDraft(value);
         }}
         onKeyDown={handleKeyDown}
       />
@@ -616,8 +609,8 @@ const inspectorSelectStyles = (theme: Theme) =>
       borderColor: theme.vars.palette.divider
     },
     "& .MuiSelect-icon": {
-      fontSize: 14,
-      right: 2
+      fontSize: FONT_SIZE_SANS.label,
+      right: getSpacingPx(SPACING.micro)
     }
   });
 
@@ -670,7 +663,9 @@ const toggleSwitchSx = {
     margin: getSpacingPx(SPACING.micro),
     transitionDuration: "var(--motion-normal)",
     "&.Mui-checked": {
-      transform: "translateX(12px)",
+      // Track width less the thumb and its two margins — one grid step, so it
+      // reads from the spacing scale like the rest of the box.
+      transform: `translateX(${getSpacingPx(SPACING.lg)})`,
       color: "var(--palette-primary-contrastText)",
       "& + .MuiSwitch-track": {
         backgroundColor: "var(--palette-primary-main)",
@@ -773,6 +768,7 @@ const precisionSliderSx = (theme: Theme) => {
   const rail = "rgba(255, 255, 255, 0.14)";
   const accent = theme.vars.palette.primary.main;
   const ring = theme.vars.palette.primary.mainChannel;
+  const shadow = `0 1px 2px rgba(${theme.vars.palette.common.blackChannel} / 0.45)`;
   return {
     marginTop: 0,
     padding: `${getSpacingPx(SPACING.sm)} 0`,
@@ -804,13 +800,13 @@ const precisionSliderSx = (theme: Theme) => {
       borderRadius: BORDER_RADIUS.circle,
       backgroundColor: theme.vars.palette.text.primary,
       border: `1px solid rgba(${theme.vars.palette.common.blackChannel} / 0.28)`,
-      boxShadow: "0 1px 2px rgba(0, 0, 0, 0.45)",
+      boxShadow: shadow,
       transition: MOTION.shadow,
       "&:hover": {
-        boxShadow: `0 1px 2px rgba(0, 0, 0, 0.45), 0 0 0 4px rgba(${ring} / 0.18)`
+        boxShadow: `${shadow}, 0 0 0 4px rgba(${ring} / 0.18)`
       },
       "&.Mui-focusVisible, &.Mui-active": {
-        boxShadow: `0 1px 2px rgba(0, 0, 0, 0.45), 0 0 0 5px rgba(${ring} / 0.3)`
+        boxShadow: `${shadow}, 0 0 0 5px rgba(${ring} / 0.3)`
       },
       // Suppress MUI's value-label ripple pseudo-elements.
       "&::before, &::after": { display: "none" }
@@ -842,68 +838,21 @@ export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
   ({ label, value, display, min, max, step, disabled, onChange, origin }) => {
     const theme = useTheme();
     const sliderSx = useMemo(() => precisionSliderSx(theme), [theme]);
-    const history = useTimelineHistoryBatch();
-
-    // Gesture state: pointermove/key-repeat onChange ticks are coalesced to
-    // one store write per animation frame; onChangeCommitted flushes the
-    // final value and closes the undo batch. See useTimelineHistoryBatch for
-    // why a single arrow-key press (onChange immediately followed by
-    // onChangeCommitted, both synchronous) still yields exactly one entry:
-    // the pending rAF write never fires because onChangeCommitted cancels it
-    // and applies the value itself before the frame runs.
-    const onChangeRef = useRef(onChange);
-    onChangeRef.current = onChange;
-    const gestureActiveRef = useRef(false);
-    const pendingValueRef = useRef<number | null>(null);
-    const rafIdRef = useRef<number | null>(null);
-
-    const flush = useCallback(() => {
-      rafIdRef.current = null;
-      if (pendingValueRef.current === null) return;
-      const next = pendingValueRef.current;
-      pendingValueRef.current = null;
-      onChangeRef.current(next);
-      history.mark();
-    }, [history]);
+    const gesture = useBatchedGesture(onChange);
 
     const handleChange = useCallback(
       (_e: Event, next: number | number[]) => {
-        const value = Array.isArray(next) ? next[0] : next;
-        if (!gestureActiveRef.current) {
-          gestureActiveRef.current = true;
-          history.begin();
-        }
-        pendingValueRef.current = value;
-        if (rafIdRef.current === null) {
-          rafIdRef.current = requestAnimationFrame(flush);
-        }
+        gesture.schedule(Array.isArray(next) ? next[0] : next);
       },
-      [history, flush]
+      [gesture]
     );
 
     const handleChangeCommitted = useCallback(
       (_e: React.SyntheticEvent | Event, next: number | number[]) => {
-        const value = Array.isArray(next) ? next[0] : next;
-        if (rafIdRef.current !== null) {
-          cancelAnimationFrame(rafIdRef.current);
-          rafIdRef.current = null;
-        }
-        pendingValueRef.current = null;
-        onChangeRef.current(value);
-        history.mark();
-        history.end();
-        gestureActiveRef.current = false;
+        gesture.commit(Array.isArray(next) ? next[0] : next);
       },
-      [history]
+      [gesture]
     );
-
-    useEffect(() => {
-      return () => {
-        if (rafIdRef.current !== null) {
-          cancelAnimationFrame(rafIdRef.current);
-        }
-      };
-    }, []);
 
     const span = max - min || 1;
     const toPct = (v: number) =>
@@ -967,7 +916,7 @@ const sectionTitleStyles = (theme: Theme, dimmed: boolean) =>
     alignItems: "center",
     width: "100%",
     minWidth: 0,
-    gap: 6,
+    gap: getSpacingPx(SPACING.sm),
     color: dimmed
       ? theme.vars.palette.text.disabled
       : theme.vars.palette.text.primary,
@@ -992,7 +941,7 @@ const sectionTitleIconStyles = (theme: Theme) =>
   css({
     color: theme.vars.palette.text.secondary,
     display: "inline-flex",
-    "& svg": { fontSize: 12 }
+    "& svg": { fontSize: FONT_SIZE_SANS.caption }
   });
 
 const sectionCheckboxStyles = (theme: Theme, checked: boolean) =>
@@ -1021,7 +970,7 @@ const sectionCheckboxStyles = (theme: Theme, checked: boolean) =>
       outline: "none",
       boxShadow: `0 0 0 2px rgba(${theme.vars.palette.primary.mainChannel} / 0.35)`
     },
-    "& svg": { fontSize: 11 }
+    "& svg": { fontSize: FONT_SIZE_SANS.caption }
   });
 
 const sectionActionStyles = (theme: Theme) =>
@@ -1050,7 +999,7 @@ const sectionActionStyles = (theme: Theme) =>
       opacity: 0.4,
       cursor: "default"
     },
-    "& svg": { fontSize: 13 }
+    "& svg": { fontSize: FONT_SIZE_SANS.label }
   });
 
 interface InspectorSectionAction {

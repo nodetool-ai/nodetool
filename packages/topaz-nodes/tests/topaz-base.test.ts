@@ -2,7 +2,6 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   containerContentType,
   getApiKey,
-  parseRetryAfterMs,
   refToBytes,
   sourceContainerFromRef,
   topazExecuteImageTask,
@@ -91,6 +90,14 @@ describe("refToBytes", () => {
     );
     expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
     expect([...bytes]).toEqual([137, 80, 78, 71]);
+  });
+
+  it("falls through a zero-length data buffer to the uri", async () => {
+    // `if (r.data)` was truthy for an empty Uint8Array, so a ref carrying an
+    // empty buffer alongside a good uri resolved to zero bytes.
+    const uri = `data:image/png;base64,${Buffer.from("png").toString("base64")}`;
+    const bytes = await refToBytes({ data: new Uint8Array(0), uri });
+    expect(Buffer.from(bytes).toString()).toBe("png");
   });
 
   it("throws when neither data nor uri is set", async () => {
@@ -217,28 +224,6 @@ describe("containerContentType", () => {
     expect(containerContentType("flv")).toBe("application/octet-stream");
     expect(containerContentType(null)).toBe("application/octet-stream");
     expect(containerContentType(undefined)).toBe("application/octet-stream");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// parseRetryAfterMs
-// ---------------------------------------------------------------------------
-describe("parseRetryAfterMs", () => {
-  it("treats a numeric value as seconds", () => {
-    expect(parseRetryAfterMs("2", 5000)).toBe(2000);
-    expect(parseRetryAfterMs("0", 5000)).toBe(0);
-  });
-
-  it("treats an HTTP-date value as an absolute deadline", () => {
-    const ms = parseRetryAfterMs(new Date(Date.now() + 4000).toUTCString(), 9999);
-    // Allow a little slack for clock drift during the call.
-    expect(ms).toBeGreaterThan(2000);
-    expect(ms).toBeLessThanOrEqual(4000);
-  });
-
-  it("falls back (never NaN) for missing or unparseable values", () => {
-    expect(parseRetryAfterMs(null, 5000)).toBe(5000);
-    expect(parseRetryAfterMs("not-a-date", 5000)).toBe(5000);
   });
 });
 

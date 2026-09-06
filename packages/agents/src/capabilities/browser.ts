@@ -70,7 +70,6 @@ import {
   browserRestartSpec,
   browserScrollSpec,
   browserSelectOptionSpec,
-  browserSpecs,
   browserStatusSpec,
   browserUploadAssetSpec,
   browserViewSpec
@@ -344,5 +343,3 @@ export const module: CapabilityModule = {
     action(browserUploadAssetSpec)
   ]
 };
-
-export { browserSpecs };

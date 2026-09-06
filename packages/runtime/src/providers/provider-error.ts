@@ -10,7 +10,7 @@
  */
 
 import { getProviderSecretKey } from "./provider-registry.js";
-import { isNumber, isObjectLike, isString } from "../type-predicates.js";
+import { isNumber, isObjectLike, isString } from "@nodetool-ai/protocol";
 
 /** Marks an error already annotated, so nested wrappers don't stack hints. */
 const ANNOTATED = Symbol.for("nodetool.provider.errorAnnotated");

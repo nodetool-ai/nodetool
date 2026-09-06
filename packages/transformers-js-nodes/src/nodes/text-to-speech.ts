@@ -9,6 +9,9 @@ import {
   tjsModelDefault,
   normalizeOption
 } from "../transformers-base.js";
+import type {
+  HfModelRef
+} from "../transformers-base.js";
 import { defaultRepoFor } from "../recommended-models.js";
 import { encodeWav } from "../wav.js";
 import {
@@ -52,7 +55,7 @@ export class TextToSpeechNode extends BaseNode {
     title: "Text",
     description: "Text to synthesize."
   })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: TJS_TYPE,
@@ -60,7 +63,7 @@ export class TextToSpeechNode extends BaseNode {
     title: "Model",
     description: "Transformers.js model (ONNX-compatible)."
   })
-  declare model: any;
+  declare model: HfModelRef;
 
   @prop({
     type: "str",
@@ -70,7 +73,7 @@ export class TextToSpeechNode extends BaseNode {
     description:
       "Optional speaker embedding URL (required by SpeechT5; ignored by other models)."
   })
-  declare speaker_embeddings: any;
+  declare speaker_embeddings: string;
 
   @prop({
     type: "enum",
@@ -80,7 +83,7 @@ export class TextToSpeechNode extends BaseNode {
       "Voice ID for Kokoro models (English only in kokoro-js v1.2.x). af_*=American female, am_*=American male, bf_*=British female, bm_*=British male. Ignored by other TTS models.",
     values: [...KOKORO_VOICES]
   })
-  declare voice: any;
+  declare voice: string;
 
   @prop({
     type: "enum",
@@ -89,7 +92,7 @@ export class TextToSpeechNode extends BaseNode {
     description: "Model dtype / quantization level.",
     values: DTYPE_VALUES
   })
-  declare dtype: any;
+  declare dtype: string;
 
   @prop({
     type: "enum",
@@ -98,7 +101,7 @@ export class TextToSpeechNode extends BaseNode {
     description: "Inference device.",
     values: DEVICE_VALUES
   })
-  declare device: any;
+  declare device: string;
 
   async process(): Promise<TextToSpeechNodeOutputs> {
     const text = asString(this.text);

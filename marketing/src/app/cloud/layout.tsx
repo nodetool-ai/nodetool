@@ -1,9 +1,9 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
 
-const TITLE = "The Agent-First Workspace in Your Browser — NodeTool Cloud (Alpha)";
+const TITLE = "NodeTool Cloud | Open-source creative AI workspace (Alpha)";
 const DESCRIPTION =
-  "The agent-first studio in your browser — no install, no GPU required. Pitch your idea and the agent drafts the script, boards the scenes, generates the footage, and cuts a timeline you can still edit. NodeTool Cloud is the hosted, browser-based edition of the open-source NodeTool platform, currently in alpha (not yet generally available). Bring your own API keys for OpenAI, Anthropic, Gemini, Replicate, and more. AGPL-3.0.";
+  "Open-source creative AI workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together. Cloud is the hosted browser edition, in alpha. Use hosted storage and your own provider keys; no local model support.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -54,7 +54,7 @@ export default function CloudLayout({
           "@type": "SoftwareApplication",
           name: "NodeTool Cloud",
           description:
-            "Hosted, browser-based edition of the open-source, agent-first NodeTool platform (alpha). Tell the agent what you want and it builds and runs the workflow — no install, no GPU, bringing your own API keys for OpenAI, Anthropic, Gemini, Replicate, and more.",
+            "Open-source creative AI workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together. Cloud is the hosted browser edition, in alpha. Use hosted storage and your own provider keys; no local model support.",
           applicationCategory: "MultimediaApplication",
           operatingSystem: "Web browser",
           url: "https://nodetool.ai/cloud",

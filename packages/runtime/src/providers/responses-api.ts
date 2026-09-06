@@ -9,7 +9,7 @@ import type {
 } from "./types.js";
 import type { UsageInfo } from "./cost-calculator.js";
 
-import { isRecord, isString } from "../type-predicates.js";
+import { isRecord, isString } from "@nodetool-ai/protocol";
 
 export { isRecord };
 

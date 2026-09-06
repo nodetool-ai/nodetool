@@ -109,9 +109,6 @@ export { HighlightText } from "./HighlightText";
 export { TagInput } from "./TagInput";
 export type { TagInputProps, TagValidationResult } from "./TagInput";
 
-export { ThemeToggleButton } from "./ThemeToggleButton";
-export type { ThemeToggleButtonProps } from "./ThemeToggleButton";
-
 export { ThemeRoot } from "./ThemeRoot";
 export type { ThemeRootProps } from "./ThemeRoot";
 
@@ -125,9 +122,6 @@ export type { SearchInputProps } from "./SearchInput";
 export { Breadcrumbs } from "./Breadcrumbs";
 export type { BreadcrumbsProps, BreadcrumbItem } from "./Breadcrumbs";
 
-export { InfoTooltip } from "./InfoTooltip";
-export type { InfoTooltipProps } from "./InfoTooltip";
-
 export { WarningBanner } from "./WarningBanner";
 export type { WarningBannerProps, BannerVariant } from "./WarningBanner";
 
@@ -136,9 +130,6 @@ export type { NotificationBadgeProps } from "./NotificationBadge";
 
 export { UndoRedoButtons } from "./UndoRedoButtons";
 export type { UndoRedoButtonsProps } from "./UndoRedoButtons";
-
-export { ConfirmButton } from "./ConfirmButton";
-export type { ConfirmButtonProps, ConfirmIconVariant } from "./ConfirmButton";
 
 export { MenuItemPrimitive } from "./MenuItemPrimitive";
 export type { MenuItemPrimitiveProps } from "./MenuItemPrimitive";
@@ -273,10 +264,6 @@ export type {
 // Keyboard activation for non-native-button click targets
 export { activateOnKey } from "./keyboardActivation";
 
-// Keyboard shortcuts display
-export { KeyboardShortcutCard } from "./KeyboardShortcutCard";
-export type { KeyboardShortcutCardProps, ShortcutItem } from "./KeyboardShortcutCard";
-
 // New primitives - Phase 2
 
 export { TruncatedText } from "./TruncatedText";
@@ -348,9 +335,6 @@ export type { TextLinkProps } from "./TextLink";
 export { Skeleton } from "./Skeleton";
 export type { SkeletonProps } from "./Skeleton";
 
-export { DrawerPanel } from "./DrawerPanel";
-export type { DrawerPanelProps } from "./DrawerPanel";
-
 export { MobileBottomSheet } from "./MobileBottomSheet";
 export type { MobileBottomSheetProps } from "./MobileBottomSheet";
 
@@ -393,20 +377,11 @@ export { SkipLinks } from "./SkipLinks";
 
 // Phase 5 - Additional primitives
 
-export { PositionedDialog } from "./PositionedDialog";
-export type { PositionedDialogProps } from "./PositionedDialog";
-
 export { HoverActionGroup } from "./HoverActionGroup";
 export type { HoverActionGroupProps } from "./HoverActionGroup";
 
 export { SelectableListItem } from "./SelectableListItem";
 export type { SelectableListItemProps } from "./SelectableListItem";
-
-export { DropZoneOverlay } from "./DropZoneOverlay";
-export type { DropZoneOverlayProps } from "./DropZoneOverlay";
-
-export { MetadataListRow } from "./MetadataListRow";
-export type { MetadataListRowProps, MetadataItem } from "./MetadataListRow";
 
 // Node-editor redesign (PR 3) — primitives for ContentCardBody,
 // editing-node bodies, and the edge renderer. Consumed by later PRs.

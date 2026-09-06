@@ -78,6 +78,14 @@ const ADDABLE_EFFECTS = [
 
 type AddableEffectType = (typeof ADDABLE_EFFECTS)[number]["value"];
 
+/**
+ * Spill suppression a chroma key starts at: `keyer.chromaKey@1`'s own default,
+ * which is what `makeTrackEffect("chromaKey")` writes and what the renderer
+ * applies when a document leaves the field out. Read here as well as written,
+ * so the slider shows the number the frame was rendered with.
+ */
+const DEFAULT_SPILL = 0.5;
+
 const EFFECT_LABELS: Record<string, string> = {
   ...Object.fromEntries(ADDABLE_EFFECTS.map((e) => [e.value, e.label])),
   color: "Color",
@@ -117,7 +125,7 @@ function makeEffect(type: AddableEffectType): ClipEffect {
         color: "#00ff00",
         tolerance: 0.2,
         softness: 0.1,
-        spill: 0
+        spill: DEFAULT_SPILL
       };
     case "curves":
       return {
@@ -337,8 +345,8 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             min={0}
             max={1}
             step={0.01}
-            value={effect.spill ?? 0}
-            display={(effect.spill ?? 0).toFixed(2)}
+            value={effect.spill ?? DEFAULT_SPILL}
+            display={(effect.spill ?? DEFAULT_SPILL).toFixed(2)}
             onChange={(spill) => onPatch({ spill })}
           />
         </>

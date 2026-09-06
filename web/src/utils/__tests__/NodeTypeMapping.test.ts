@@ -30,10 +30,10 @@ describe('NodeTypeMapping utilities', () => {
   describe('constantForType', () => {
     test('maps type names to constant node types', () => {
       expect(constantForType('str')).toBe('nodetool.constant.String');
-      expect(constantForType('text')).toBe('nodetool.constant.Text');
+      expect(constantForType('text')).toBe('nodetool.constant.String');
       expect(constantForType('image')).toBe('nodetool.constant.Image');
       expect(constantForType('model_3d')).toBe('nodetool.constant.Model3D');
-      expect(constantForType('folder')).toBe('nodetool.input.Folder');
+      expect(constantForType('folder')).toBe('nodetool.input.AssetFolderInput');
     });
 
     test('returns null for unknown type', () => {
@@ -90,9 +90,9 @@ describe('NodeTypeMapping utilities', () => {
       );
     });
 
-    test('converts DataFrame constant to DataFrameInput', () => {
+    test('converts DataFrame constant to DataframeInput', () => {
       expect(constantToInputType('nodetool.constant.DataFrame')).toBe(
-        'nodetool.input.DataFrameInput'
+        'nodetool.input.DataframeInput'
       );
     });
 
@@ -158,8 +158,8 @@ describe('NodeTypeMapping utilities', () => {
       );
     });
 
-    test('converts DataFrameInput to DataFrame constant', () => {
-      expect(inputToConstantType('nodetool.input.DataFrameInput')).toBe(
+    test('converts DataframeInput to DataFrame constant', () => {
+      expect(inputToConstantType('nodetool.input.DataframeInput')).toBe(
         'nodetool.constant.DataFrame'
       );
     });

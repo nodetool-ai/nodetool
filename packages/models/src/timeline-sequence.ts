@@ -4,6 +4,7 @@ import type {
   TimelineTrack,
   TimelineClip,
   TimelineMarker,
+  TimelineSetup,
   TranscriptLine
 } from "@nodetool-ai/timeline";
 import {
@@ -75,6 +76,8 @@ export interface TimelineDocument {
   transcript?: TranscriptLine[];
   /** Whether the script lane + transcript panel are shown. Unset on legacy. */
   scriptEnabled?: boolean;
+  /** Guided video-flow state (PRD § 8.5). Unset outside the flow. */
+  setup?: TimelineSetup;
 }
 
 export class TimelineSequence extends DBModel {
@@ -149,6 +152,7 @@ export class TimelineSequence extends DBModel {
       markers: doc.markers,
       transcript: doc.transcript ?? [],
       scriptEnabled: doc.scriptEnabled,
+      setup: doc.setup,
       createdAt: this.created_at,
       updatedAt: this.updated_at
     };
@@ -163,7 +167,8 @@ export class TimelineSequence extends DBModel {
       clips: seq.clips,
       markers: seq.markers,
       transcript: seq.transcript ?? [],
-      scriptEnabled: seq.scriptEnabled
+      scriptEnabled: seq.scriptEnabled,
+      setup: seq.setup
     };
     return new TimelineSequence({
       id: seq.id,

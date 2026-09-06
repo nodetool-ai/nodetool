@@ -205,7 +205,23 @@ describe("the job registry", () => {
 
     // 120 BPM over 15s is 31 beats counting the downbeat at 0.
     await run("ui_timeline_set_markers_from_beats", { bpm: 120, count: 31 });
-    await run("ui_timeline_snap_to_beats", { bpm: 120, count: 31 });
+    // Two passes, because one cannot do it: sliding a clip keeps its length,
+    // so its far edge stays where it was, and a trim cannot extend a head
+    // before the source starts. Move the starts, then trim the ends back.
+    await run("ui_timeline_snap_to_beats", {
+      bpm: 120,
+      count: 31,
+      mode: "start",
+      action: "move",
+      tolerance_ms: 250
+    });
+    await run("ui_timeline_snap_to_beats", {
+      bpm: 120,
+      count: 31,
+      mode: "end",
+      action: "trim",
+      tolerance_ms: 250
+    });
     const title = await clipId("NIGHT SHIFT SESSIONS", 0, 3000);
     await run("ui_timeline_animate_clip", {
       target: title,
@@ -242,6 +258,44 @@ describe("the job registry", () => {
 
     const graded = world.grade();
     expect(graded.filter((o) => !o.passed).map((o) => o.name)).toEqual([]);
+  });
+
+  it("motion-title-sequence: a beat grid with the picture off it fails on-the-beat", async () => {
+    // Markers are a note to self. Writing the grid down without moving a cut
+    // onto it leaves the cut exactly where it was, so the outcome that says
+    // the picture follows the track must read the picture.
+    const job = findJob("motion-title-sequence");
+    if (!job) throw new Error("motion-title-sequence is not registered");
+    const world = job.start();
+    const tool = Object.fromEntries(world.tools.map((t) => [t.name, t]));
+    await tool["ui_timeline_set_markers_from_beats"].execute({
+      bpm: 120,
+      count: 31
+    });
+    const onTheBeat = world.grade().find((o) => o.name === "on-the-beat");
+    expect(onTheBeat?.passed).toBe(false);
+  });
+
+  it("motion-title-sequence: a group that holds no title fails titles-are-units", async () => {
+    // An empty group is a movable thing with nothing in it. The outcome is
+    // about the title being one unit, so a text clip has to name the group.
+    const job = findJob("motion-title-sequence");
+    if (!job) throw new Error("motion-title-sequence is not registered");
+    const world = job.start();
+    const tool = Object.fromEntries(world.tools.map((t) => [t.name, t]));
+    await tool["ui_timeline_add_text_clip"].execute({
+      text: "NIGHT SHIFT SESSIONS",
+      startMs: 0,
+      durationMs: 3000
+    });
+    await tool["ui_timeline_add_group"].execute({
+      name: "Title",
+      startMs: 0,
+      durationMs: 3000,
+      children: []
+    });
+    const units = world.grade().find((o) => o.name === "titles-are-units");
+    expect(units?.passed).toBe(false);
   });
 
   it("finds a job by id", () => {

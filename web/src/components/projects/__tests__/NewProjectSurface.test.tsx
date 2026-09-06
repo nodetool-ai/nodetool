@@ -17,6 +17,15 @@ const createProject = jest.fn(async () => ({
 }));
 const openProject = jest.fn(async () => true);
 
+// The Workflow card creates through the manager store, as the workspace's own
+// surfaces do; the provider is mounted app-wide in `index.tsx`.
+const managerCreateWorkflow = jest.fn(async () => ({ id: "wf-new" }));
+jest.mock("../../../contexts/WorkflowManagerContext", () => ({
+  __esModule: true,
+  useWorkflowManager: <T,>(selector: (state: { create: jest.Mock }) => T) =>
+    selector({ create: managerCreateWorkflow })
+}));
+
 jest.mock("../../../hooks/useProjects", () => ({
   useCreateProject: () => ({ mutateAsync: createProject }),
   useOpenProject: () => openProject,
@@ -96,15 +105,82 @@ jest.mock("../../workspace/newDocumentCatalog", () => ({
   }
 }));
 
+const createStoryboard = jest.fn(async () => ({
+  id: "b7",
+  projectId: "p9",
+  name: "A spot for our desk lamp"
+}));
 jest.mock("../../../hooks/storyboard/useStoryboards", () => ({
-  useExampleStoryboards: () => ({ data: [], isLoading: false })
+  useExampleStoryboards: () => ({ data: [], isLoading: false }),
+  useCreateStoryboard: () => ({ mutateAsync: createStoryboard })
+}));
+
+// The other four flows' creates. Each card makes its document before the
+// surface becomes the flow, so the surface renders these hooks on every mount.
+const createTimeline = jest.fn(async () => ({ id: "seq-1" }));
+jest.mock("../../../hooks/useTimelineSequence", () => ({
+  __esModule: true,
+  useCreateTimeline: () => ({ mutateAsync: createTimeline })
+}));
+const createScript = jest.fn(async () => ({ id: "script-1" }));
+jest.mock("../../../hooks/script/useScripts", () => ({
+  __esModule: true,
+  useCreateScript: () => ({ mutateAsync: createScript })
+}));
+const startImageFlowMock = jest.fn(
+  async (_options: { name: string; projectId: string; brief: string }) => ({
+    documentId: "sketch-1",
+    name: "A picture"
+  })
+);
+jest.mock("../../setup/image/startImageFlow", () => ({
+  __esModule: true,
+  startImageFlow: (options: { name: string; projectId: string; brief: string }) =>
+    startImageFlowMock(options)
+}));
+const timelineUpdate = jest.fn().mockResolvedValue({ id: "seq-1" });
+jest.mock("../../../trpc/client", () => ({
+  __esModule: true,
+  trpcClient: { timeline: { update: { mutate: timelineUpdate } } }
+}));
+
+// Each flow's host is exercised by its own suite; here they only have to be
+// the thing the surface swapped itself for.
+jest.mock("../../setup/video/VideoSetupHost", () => ({
+  __esModule: true,
+  default: ({ sequenceId }: { sequenceId: string }) => (
+    <div data-testid="setup-flow">{sequenceId}</div>
+  )
+}));
+jest.mock("../../setup/script/ScriptSetupHost", () => ({
+  __esModule: true,
+  default: ({ scriptId }: { scriptId: string }) => (
+    <div data-testid="setup-flow">{scriptId}</div>
+  )
+}));
+jest.mock("../../setup/workflow/WorkflowSetupHost", () => ({
+  __esModule: true,
+  default: ({ workflowId }: { workflowId: string }) => (
+    <div data-testid="setup-flow">{workflowId}</div>
+  )
+}));
+
+// The flow's real host runs the board's server sync and agent bridge; this
+// suite only asks whether the surface swapped itself for it.
+jest.mock("../../setup/storyboard/StoryboardSetupHost", () => ({
+  __esModule: true,
+  default: ({ boardId }: { boardId: string }) => (
+    <div data-testid="setup-flow">{boardId}</div>
+  )
 }));
 
 const closeTab = jest.fn();
+const openTab = jest.fn();
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   ...jest.requireActual("../../../stores/WorkspaceTabsStore"),
-  useWorkspaceTabsStore: <T,>(selector: (s: { closeTab: jest.Mock }) => T) =>
-    selector({ closeTab })
+  useWorkspaceTabsStore: <T,>(
+    selector: (s: { closeTab: jest.Mock; openTab: jest.Mock }) => T
+  ) => selector({ closeTab, openTab })
 }));
 
 const addNotification = jest.fn();
@@ -623,5 +699,100 @@ describe("NewProjectSurface", () => {
     await userEvent.click(within(menu).getByText("Aurora lamp"));
 
     expect(prompt).toHaveValue("A spot lit by entity://e1 ");
+  });
+
+  // D2 — explicit entry only. Whatever is in the prompt box, `Start` is the
+  // project agent's door and the flow's is the card.
+  it.each([
+    ["a plain prompt", "A spot for our desk lamp"],
+    ["a `/skill` prompt", "/launch-commercial A spot for our desk lamp"]
+  ])("starts the project agent for %s and never mounts the flow", async (
+    _name,
+    typed
+  ) => {
+    renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      typed
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+
+    await waitFor(() => expect(createProject).toHaveBeenCalled());
+    expect(openProject).toHaveBeenCalled();
+    expect(createStoryboard).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("setup-flow")).not.toBeInTheDocument();
+  });
+
+  it("opens the storyboard flow on the card, carrying the typed prompt", async () => {
+    renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A spot for our desk lamp"
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: /^Storyboard From a sentence to a rendered board/
+      })
+    );
+
+    await waitFor(() =>
+      expect(createProject).toHaveBeenCalledWith({
+        name: "A spot for our desk lamp",
+        kind: "storyboard"
+      })
+    );
+    expect(createStoryboard).toHaveBeenCalledWith({
+      name: "A spot for our desk lamp",
+      projectId: "p9",
+      document: expect.objectContaining({
+        brief: "A spot for our desk lamp",
+        setupStage: "idea"
+      })
+    });
+    // The tab is the flow now, and the project agent was never started.
+    expect(await screen.findByTestId("setup-flow")).toHaveTextContent("b7");
+    expect(openProject).not.toHaveBeenCalled();
+  });
+
+  // All five flows are built, so no card names a phase any more. The check
+  // that matters now is that each one starts its own document kind rather than
+  // falling through to the project agent (D2).
+  it("offers all five flows, none of them disabled", () => {
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    for (const title of [
+      "Storyboard",
+      "Video",
+      "Script",
+      "Image",
+      "Workflow"
+    ]) {
+      expect(
+        within(cards).getByRole("button", {
+          name: new RegExp(`^${title} `)
+        })
+      ).not.toHaveAttribute("aria-disabled");
+    }
+  });
+
+  it.each([
+    ["Video", () => createTimeline],
+    ["Script", () => createScript],
+    ["Image", () => startImageFlowMock],
+    ["Workflow", () => managerCreateWorkflow]
+  ])("starts the %s flow from its own card", async (title, mock) => {
+    const user = userEvent.setup();
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+
+    await user.click(
+      within(cards).getByRole("button", { name: new RegExp(`^${title} `) })
+    );
+
+    await waitFor(() => expect(mock()).toHaveBeenCalledTimes(1));
   });
 });

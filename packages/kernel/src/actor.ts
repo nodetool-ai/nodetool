@@ -186,12 +186,32 @@ export interface ActorResult {
 }
 
 /**
- * Pick the scalar input properties (string/number/boolean) from a resolved
- * input dict. Drops nested objects, arrays, and binary refs so the
- * `generation_complete` event stays small and carries only persistable
- * generation params (prompt, seed, model, …). Reserved keys (`_control_context`
- * and other `_`-prefixed internals) are stripped. Returns `null` when nothing
- * scalar remains.
+ * A resolved model property (`{type: "image_model", id, name, provider}`),
+ * reduced to the fields that identify it. Which model ran is the one
+ * generation setting that is never a scalar, and without it a saved asset
+ * cannot say what produced it.
+ */
+function modelReference(value: unknown): Record<string, unknown> | null {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const ref = value as Record<string, unknown>;
+  if (!isString(ref.type) || !ref.type.endsWith("_model")) return null;
+  if (!isString(ref.id) || ref.id.length === 0) return null;
+  const out: Record<string, unknown> = { type: ref.type, id: ref.id };
+  if (isString(ref.name)) out.name = ref.name;
+  if (isString(ref.provider)) out.provider = ref.provider;
+  return out;
+}
+
+/**
+ * Pick the persistable input properties from a resolved input dict: scalars
+ * (string/number/boolean) plus model references, reduced by
+ * {@link modelReference}. Drops every other nested object, array and binary
+ * ref so the `generation_complete` event stays small and carries only
+ * generation params (prompt, seed, model, …). Reserved keys
+ * (`_control_context` and other `_`-prefixed internals) are stripped. Returns
+ * `null` when nothing remains.
  */
 function scalarInputProperties(
   inputs: Record<string, unknown>
@@ -205,7 +225,10 @@ function scalarInputProperties(
       isBoolean(value)
     ) {
       out[key] = value;
+      continue;
     }
+    const model = modelReference(value);
+    if (model) out[key] = model;
   }
   return Object.keys(out).length > 0 ? out : null;
 }
@@ -2059,9 +2082,10 @@ export class NodeActor {
       node_name: this.node.name ?? this.node.type,
       node_type: this.node.type,
       outputs,
-      // Resolved scalar inputs (prompt, seed, model, …) ride along so the relay
-      // can persist them into auto-saved asset metadata. Filtered to scalars to
-      // keep the event small — binary refs and nested objects are dropped.
+      // Resolved inputs (prompt, seed, model, …) ride along so the relay can
+      // persist them into auto-saved asset metadata. Filtered to scalars plus
+      // model references to keep the event small — binary refs and every other
+      // nested object are dropped.
       properties: inputs ? scalarInputProperties(inputs) : null
       // NO job_id, NO index — the runner relay stamps them downstream.
     });

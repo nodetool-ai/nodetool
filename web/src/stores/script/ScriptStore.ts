@@ -18,6 +18,7 @@
 
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import type { ScriptSetup } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 import {
   pushHistory,
   undoHistory,
@@ -61,6 +62,8 @@ export interface ScriptLine {
   text: string;
   direction?: string;
   pauseAfterMs?: number;
+  /** How long the line is meant to take, in ms (a subtitle cue's own timing). */
+  targetDurationMs?: number;
   voiceOverride?: VoiceBinding | null;
   takes: ScriptTake[];
   currentTakeId?: string | null;
@@ -93,6 +96,12 @@ export interface ScriptDraft {
    * the script editor navigates by, so it survives a reload.
    */
   storyboardId: string | null;
+  /**
+   * Where the script sits in the guided setup, and the answers each step wrote
+   * (PRD § 9.5). Null on a script written before the flow existed, which is
+   * what makes such a script open as the editor rather than as step 1 (D3).
+   */
+  setup?: ScriptSetup | null;
   /** Epoch ms of the last mutation; drives the sidebar's recency sort. */
   updatedAt: number;
 }
@@ -155,6 +164,38 @@ export interface ScriptStoreState {
   getScript: (id: string) => ScriptDraft | undefined;
 
   setTitle: (scriptId: string, title: string) => void;
+  /**
+   * Merge fields into the guided setup, seeding one at stage `idea` when the
+   * script has none. Every step writes through here, so the flow's state is
+   * the document and a reload resumes where it left off (PRD § 9.5, D3).
+   */
+  setSetup: (scriptId: string, patch: Partial<ScriptSetup>) => void;
+  /**
+   * Replace the cast and the lines with a freshly written script (PRD § 9.2).
+   *
+   * A line that comes back with an id the script already carries keeps its
+   * takes, its per-line voice and its pauses, and a speaker that comes back
+   * with a known id keeps its voice binding — which is the whole point of the
+   * writer asking for ids back on a rewrite: re-voicing a line the rewrite did
+   * not touch would spend money to produce the same audio.
+   */
+  applyWrittenScript: (
+    scriptId: string,
+    written: {
+      cast: ReadonlyArray<{ id: string; name: string }>;
+      sections: ReadonlyArray<{
+        id: string;
+        title: string;
+        lines: ReadonlyArray<{
+          id: string;
+          speakerId: string | null;
+          text: string;
+          direction?: string;
+          targetDurationMs?: number;
+        }>;
+      }>;
+    }
+  ) => void;
   setTimelineLink: (scriptId: string, timelineId: string | null) => void;
   /** Record (or clear, with null) the storyboard derived from this script. */
   setStoryboardLink: (scriptId: string, storyboardId: string | null) => void;
@@ -250,6 +291,7 @@ const emptyScript = (id: string): ScriptDraft => ({
   sections: [],
   timelineId: null,
   storyboardId: null,
+  setup: null,
   updatedAt: Date.now()
 });
 
@@ -459,6 +501,60 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
         (s) => (s.title === title ? s : { ...s, title }),
         { coalesceKey: "title" }
       )
+    ),
+
+  setSetup: (scriptId, patch) =>
+    set((state) =>
+      withScript(
+        state,
+        scriptId,
+        (s) => ({
+          ...s,
+          setup: { stage: "idea", brief: "", ...s.setup, ...patch }
+        }),
+        // Setup is where the creator is standing, not an authoring edit: an
+        // undo checkpoint per keystroke of the brief would bury the edits they
+        // actually want back.
+        false
+      )
+    ),
+
+  applyWrittenScript: (scriptId, written) =>
+    set((state) =>
+      withScript(state, scriptId, (script) => {
+        const heldLines = new Map(
+          script.sections.flatMap((section) =>
+            section.lines.map((line) => [line.id, line] as const)
+          )
+        );
+        const heldSpeakers = new Map(
+          script.cast.map((speaker) => [speaker.id, speaker] as const)
+        );
+        return {
+          ...script,
+          cast: written.cast.map((speaker) => {
+            const held = heldSpeakers.get(speaker.id);
+            return held ? { ...held, name: speaker.name } : { ...speaker };
+          }),
+          sections: written.sections.map((section) => ({
+            id: section.id,
+            title: section.title,
+            lines: section.lines.map((line) => {
+              const held = heldLines.get(line.id);
+              return {
+                ...held,
+                id: line.id,
+                speakerId: line.speakerId,
+                text: line.text,
+                direction: line.direction,
+                targetDurationMs: line.targetDurationMs,
+                takes: held?.takes ?? [],
+                currentTakeId: held?.currentTakeId ?? null
+              };
+            })
+          }))
+        };
+      })
     ),
 
   setTimelineLink: (scriptId, timelineId) =>
@@ -856,6 +952,13 @@ export const useScriptStoryboardLink = (scriptId: string): string | null =>
 /** Reactive title for a script — see {@link useScriptCast} on why it's narrow. */
 export const useScriptTitle = (scriptId: string): string =>
   useScriptStore((state) => state.scripts[scriptId]?.title ?? "");
+
+/**
+ * Reactive guided-setup state for a script. Null means the script was written
+ * before the flow existed, which every surface reads as "open the editor".
+ */
+export const useScriptSetup = (scriptId: string): ScriptSetup | null =>
+  useScriptStore((state) => state.scripts[scriptId]?.setup ?? null);
 
 /** Reactive transient voicing flag for a line. */
 export const useLineVoicing = (lineId: string): boolean =>

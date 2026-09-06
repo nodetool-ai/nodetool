@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import { useAssetStore } from "../stores/AssetStore";
-import { useState } from "react";
 import { useNotificationStore } from "../stores/NotificationStore";
 
 export const useAssetDeletion = () => {
@@ -8,12 +7,10 @@ export const useAssetDeletion = () => {
     (state) => state.addNotification
   );
   const deleteAsset = useAssetStore((state) => state.delete);
-  const [_assets, setAssets] = useState<string[]>([]);
 
   const performMutation = async (
     assets: string[]
   ): Promise<{ deleted_asset_ids: string[] }> => {
-    setAssets(assets);
     const deletedIds = await Promise.all(assets.map((id) => deleteAsset(id)));
     const flattenedIds = deletedIds.flat();
     return { deleted_asset_ids: flattenedIds };
@@ -39,9 +36,6 @@ export const useAssetDeletion = () => {
         content: "Error deleting assets.",
         dismissable: false
       });
-    },
-    onSettled: () => {
-      setAssets([]);
     }
   });
 

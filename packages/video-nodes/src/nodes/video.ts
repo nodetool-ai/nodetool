@@ -37,7 +37,10 @@ import {
   coerceProviderBytes,
   FFMPEG_MAX_BUFFER
 } from "./ffmpeg-helpers.js";
-import { isObjectLike, isString } from "../type-predicates.js";
+import {
+  isObjectLike,
+  isString
+} from "@nodetool-ai/node-sdk";
 import {
   writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,

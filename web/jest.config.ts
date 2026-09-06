@@ -27,6 +27,9 @@ export default {
     "^@nodetool-ai/runtime/zod-schema$":
       "<rootDir>/../packages/runtime/src/zod-schema.ts",
     "^@nodetool-ai/timeline$": "<rootDir>/../packages/timeline/src/index.ts",
+    // The shared edit ops, from source: the agent bridge runs them.
+    "^@nodetool-ai/timeline/ops$":
+      "<rootDir>/../packages/timeline/src/ops/index.ts",
     "^@nodetool-ai/timeline/render$":
       "<rootDir>/../packages/timeline/src/render/index.ts",
     // The GPU-free half of `/render`. The agent bridge parses mask paths with
@@ -153,7 +156,6 @@ export default {
     "tests/smoke/",
     "tests/journeys/",
     // Shared helpers living inside __tests__ dirs — not suites themselves.
-    "/__tests__/testUtils\\.tsx$",
     "/__tests__/testRuntime\\.tsx$"
   ]
 };

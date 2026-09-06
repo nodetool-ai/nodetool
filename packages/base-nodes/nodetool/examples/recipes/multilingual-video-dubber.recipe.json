@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "slug": "multilingual-video-dubber",
+  "name": "Multilingual Video Dubber",
+  "outcome": "One presenter clip, spoken in a second language, with a lip-synced cut, subtitles, and a back-translation to check it.",
+  "audience": "Anyone re-releasing a recorded talk, demo, or ad into another market.",
+  "summary": [
+    "The spine is transcribe, translate, revoice. What makes it usable outside the languages your team reads is the third step: a back-translation printed next to the localised line, so the person approving the cut can see what was actually said.",
+    "The last two steps are a fork, not a sequence. A voice-over cut ends at the revoiced audio; an on-camera cut carries on into lip-sync so the presenter's mouth matches the new delivery."
+  ],
+  "caveats": [
+    "Lip-sync redrives the mouth. It does not change gesture, gaze, or anything a presenter does with their hands, so a take with heavy pointing at on-screen text will still read as dubbed.",
+    "Timing is not stretched to match the original. A language that runs longer than the source will run longer in the cut.",
+    "The back-translation is a check on meaning, not on register. A native reviewer is still the last word before a paid campaign."
+  ],
+  "hero": "AI Spokesperson",
+  "steps": [
+    {
+      "example": "Transcribe a Clip",
+      "role": "Get the script back out of the footage",
+      "handoff": "In: the source clip. Out: the spoken words as text. The audio is extracted on your machine and only the audio is sent to a speech-to-text model."
+    },
+    {
+      "example": "Localise a Script and Revoice It",
+      "role": "Translate and voice in one pass",
+      "handoff": "In: the transcript and a target language. Out: audio in that language. A translated document still leaves the recording to do, which is why this step ends in sound rather than text."
+    },
+    {
+      "example": "One Tagline, Six Markets",
+      "role": "Read back what you just shipped",
+      "handoff": "In: the lines that carry the message — the claim, the offer, the call to action. Out: each one in six languages with a back-translation beside it. This is the review gate for a language nobody in the room speaks."
+    },
+    {
+      "example": "AI Spokesperson",
+      "role": "Make the mouth match, for an on-camera cut",
+      "handoff": "In: the presenter clip and the translated script — the script, not the audio from step two, because this workflow voices the line itself before it redrives the mouth. Out: a take that looks recorded in the new language."
+    },
+    {
+      "example": "Subtitle Text from a Recording",
+      "role": "Ship the version people read",
+      "handoff": "In: the localised audio. Out: transcript broken into subtitle-length lines. The line-length rule is what separates a subtitle file from a wall of text."
+    }
+  ]
+}

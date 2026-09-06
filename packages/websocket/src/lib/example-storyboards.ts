@@ -83,6 +83,9 @@ function summarize(slug: string, bundle: StoryboardBundle): ExampleStoryboardSum
     slug,
     name: bundle.name,
     description: bundle.description,
+    // The bundle's description sells the example; its brief is the idea the
+    // board was directed from, which is what an inspiration chip pastes.
+    logline: bundle.document.brief,
     tags: bundle.tags,
     shotCount: shots.length,
     clipCount: shots.filter((shot) => shot.clip?.uri).length,

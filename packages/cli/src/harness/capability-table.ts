@@ -232,6 +232,46 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "set_workflow_setup",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "59bff5063fb4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-setup.test.ts",
+    ],
+  },
+  {
+    name: "plan_workflow",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "f214384d9c9b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-setup.test.ts",
+    ],
+  },
+  {
+    name: "update_workflow_plan_step",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "997202184d62",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-setup.test.ts",
+    ],
+  },
+  {
+    name: "build_workflow_from_plan",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "22ec9a7531ae",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-setup.test.ts",
+    ],
+  },
+  {
     name: "find_model",
     module: "models",
     impl: "packages/agents/src/capabilities/models.ts",
@@ -1895,7 +1935,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "389c547e57df",
+    contract: "018294022a0b",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
@@ -1943,7 +1983,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "preview_timeline_frame",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "b28a18fe7574",
+    contract: "f3b75b35a0b9",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timeline-preview.test.ts",
@@ -1969,7 +2009,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "render_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "817face10f28",
+    contract: "4b189f832d50",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
@@ -2070,16 +2110,28 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_sketch",
     module: "sketches",
     impl: "packages/agents/src/capabilities/sketches.ts",
-    contract: "8592a69488a7",
+    contract: "a1f7cff4f07d",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-sketches.test.ts",
+      "packages/agents/tests/capabilities-image-flow.test.ts",
     ],
     evals: [
       {
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
         cases: ["sketch-layer-repair"],
       },
+    ],
+  },
+  {
+    name: "refine_image_brief",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "f610f42c574e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-sketches.test.ts",
+      "packages/agents/tests/capabilities-image-flow.test.ts",
     ],
   },
   {
@@ -2265,7 +2317,17 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_script",
     module: "scripts",
     impl: "packages/agents/src/capabilities/scripts.ts",
-    contract: "0d3075938411",
+    contract: "dbe437f49389",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-scripts.test.ts",
+    ],
+  },
+  {
+    name: "write_script",
+    module: "scripts",
+    impl: "packages/agents/src/capabilities/scripts.ts",
+    contract: "1cc17ba0c559",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-scripts.test.ts",
@@ -2332,10 +2394,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "render_storyboard_stills",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "ad4811893137",
+    contract: "da01cbd62dfc",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
+      "packages/agents/tests/capabilities-storyboard-board-ops.test.ts",
     ],
     evals: [
       {
@@ -2348,10 +2411,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "render_storyboard_clips",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "63dfa003d0f1",
+    contract: "99052baaa53f",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
+      "packages/agents/tests/capabilities-storyboard-board-ops.test.ts",
     ],
     evals: [
       {
@@ -2390,16 +2454,28 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "e0a1059b33ed",
+    contract: "8a5eece9137a",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
+      "packages/agents/tests/capabilities-storyboard-board-ops.test.ts",
     ],
     evals: [
       {
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
         cases: ["storyboard-direct-shots"],
       },
+    ],
+  },
+  {
+    name: "direct_storyboard",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "87b782d42437",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboards.test.ts",
+      "packages/agents/tests/capabilities-storyboard-board-ops.test.ts",
     ],
   },
   {
@@ -2987,6 +3063,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-settings.test.ts",
+      "packages/agents/tests/capabilities-invoke-validation.test.ts",
     ],
   },
   {

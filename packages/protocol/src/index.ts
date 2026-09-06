@@ -25,8 +25,13 @@ export {
 } from "./wrap-primitives.js";
 export * from "./toolSchemas.js";
 export * from "./creative.js";
+export * from "./shot-prompt.js";
+export * from "./render-record.js";
+export * from "./style-presets.js";
 export * from "./screenplay-authoring.js";
+export * from "./script-authoring.js";
 export * from "./script-link.js";
+export * from "./sha256.js";
 export * from "./builtin-packs.js";
 export * from "./triggers.js";
 export * from "./cloud-profile.js";
@@ -40,6 +45,7 @@ export * from "./skill-document.js";
 export * from "./wasm-binary.js";
 export * from "./resource-id.js";
 export * from "./game-assets.js";
+export * from "./asset-generation.js";
 export {
   type Platform,
   type NodeEffect,
@@ -52,3 +58,5 @@ export {
   supportsPlatform
 } from "./platform.js";
 export * from "./nodetool-models.js";
+export * from "./predicates.js";
+export * from "./workflow-plan.js";

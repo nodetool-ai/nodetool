@@ -170,8 +170,9 @@ Run the case on Windows; a Windows-style string on macOS is not sufficient.
 
 ### 7C. Dialog containment audit
 
-`PositionedDialog` already clamps to the viewport. Enumerate other dialog
-primitives and direct users in a checked-in audit with a non-zero count. A
+No dialog primitive clamps to the viewport today — `PositionedDialog`, which
+did, is deleted. Enumerate the dialog primitives and direct users in a
+checked-in audit with a non-zero count. A
 dialog fails the audit when its rendered bounds extend outside a 600 x 600 px
 viewport or its content cannot scroll into view. Migrate failing callers and
 add one 600 x 600 px test per migrated primitive.

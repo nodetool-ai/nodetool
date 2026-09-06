@@ -93,7 +93,11 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   selectClip: jest.fn(),
   seek: jest.fn(),
   addMarker: jest.fn(),
-  deleteMarker: jest.fn()
+  deleteMarker: jest.fn(),
+  setSetup: jest.fn(),
+  planBeats: jest.fn(),
+  updateBeat: jest.fn(),
+  generateFromBeats: jest.fn()
 });
 
 // The timeline tools never touch the workflow state, so a bare stub satisfies ctx.

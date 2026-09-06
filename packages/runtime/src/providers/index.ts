@@ -18,6 +18,10 @@ export {
   bytesToImageDataUri,
   extForImageMime
 } from "./image-mime.js";
+export { sniffAudioMime, sniffAudioMimeOrNull } from "./audio-mime.js";
+export { sniffVideoMime, sniffVideoMimeOrNull } from "./video-mime.js";
+export { sniffMedia, sniffMediaMime, MEDIA_KINDS } from "./media-mime.js";
+export type { MediaKind } from "./media-mime.js";
 import { OLLAMA_DEFAULT_URL, LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 import { ClaudeAgentProvider } from "./claude-agent-provider.js";
@@ -52,6 +56,7 @@ import { ReplicateProvider } from "./replicate-provider.js";
 import { FalProvider } from "./fal-provider.js";
 import { NodetoolProvider } from "./nodetool-provider.js";
 import { KieProvider } from "./kie-provider.js";
+import { ComfyCloudProvider } from "./comfy-cloud-provider.js";
 import { ElevenLabsProvider } from "./elevenlabs-provider.js";
 import { TopazProvider } from "./topaz-provider.js";
 import { ReveProvider } from "./reve-provider.js";
@@ -116,6 +121,32 @@ export {
   assertSafePublicHttpsUrl,
   safeFetch
 } from "./safe-url.js";
+export {
+  RETRYABLE_STATUS,
+  MAX_BACKOFF_MS,
+  TERMINAL_SUCCESS_STATES,
+  TERMINAL_FAILURE_STATES,
+  sleep,
+  retryAfterMs,
+  fetchWithRetry,
+  pollUntilTerminal,
+  imageRefFromBytes,
+  ATLAS_BASE,
+  SUBMIT_PATH,
+  pollPath,
+  atlasDownload,
+  atlasSubmit,
+  atlasPoll,
+  pickOutputUrl
+} from "./provider-transport.js";
+export type {
+  FetchWithRetryOptions,
+  PollUntilTerminalOptions,
+  EncodedImageRef,
+  AtlasModality,
+  AtlasPollResult,
+  AtlasPollOptions
+} from "./provider-transport.js";
 export { AnthropicProvider };
 export { ClaudeAgentProvider };
 export { GeminiProvider };
@@ -152,6 +183,7 @@ export { withReplicateRetry } from "./replicate-retry.js";
 export { FalProvider };
 export { NodetoolProvider };
 export { KieProvider };
+export { ComfyCloudProvider };
 export {
   registerWebhookWait,
   resolveWebhook,
@@ -404,6 +436,11 @@ registerBuiltinProvider(
   }
 );
 registerBuiltinProvider(PROVIDER_IDS.KIE, KieProvider, { KIE_API_KEY: "" });
+// Comfy Cloud: credentials and a settings card only — the `lib.comfy` nodes
+// submit the graphs. It lists no models because the API enumerates none.
+registerBuiltinProvider(PROVIDER_IDS.COMFY_CLOUD, ComfyCloudProvider, {
+  COMFY_API_KEY: ""
+});
 registerBuiltinProvider(PROVIDER_IDS.ELEVENLABS, ElevenLabsProvider, {
   ELEVENLABS_API_KEY: ""
 });

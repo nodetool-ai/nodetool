@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useMemo, useState, useRef, useEffect } from "react";
+import { memo, useCallback, useMemo, useState, useRef, useEffect } from "react";
 
 import {
   LoadingSpinner,
@@ -93,7 +93,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const [quickAddNodeOpen, setQuickAddNodeOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
-  useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
+  const editorRoot = useCallback(() => reactFlowWrapperRef.current, []);
+  useNodeEditorShortcuts(
+    active,
+    () => setShowShortcuts((v) => !v),
+    editorRoot
+  );
 
   const { missing: missingRuntimes } = useWorkflowRuntimeCheck(workflowId);
   // Let the user dismiss the install prompt without acting on it.

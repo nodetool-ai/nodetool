@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
-import { initTestDb, Workflow, WorkflowVersion } from "@nodetool-ai/models";
+import { initTestDb, Workflow } from "@nodetool-ai/models";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   handleApiRequest,
@@ -11,17 +11,10 @@ import {
   toWorkflowResponse,
   handleNodeMetadata,
   handleWorkflowTools,
-  handleWorkflowGenerateName,
-  handleWorkflowApp,
-  handleWorkflowAutosave,
-  handleWorkflowVersions,
-  handleWorkflowVersionByNumber,
-  handleWorkflowVersionDeleteById,
   handleWorkflowExamples,
   handleWorkflowExamplesSearch,
   handleWorkflowExamplesThumbnail,
   handlePublicWorkflows,
-  handleNodesDummy,
   handleWorkflowDslExport
 } from "../src/http-api.js";
 
@@ -182,97 +175,6 @@ describe("http-api coverage: node metadata", () => {
   });
 });
 
-describe("http-api coverage: simple stub routes", () => {
-  beforeEach(() => initTestDb());
-
-  it("handleNodesDummy returns an empty asset ref, 405 otherwise", async () => {
-    const ok = (await jsonBody(
-      await handleNodesDummy(req("/api/nodes/dummy"))
-    )) as Record<string, unknown>;
-    expect(ok.type).toBe("asset");
-    expect((await handleNodesDummy(req("/x", { method: "POST" }))).status).toBe(
-      405
-    );
-  });
-
-  it("handleWorkflowApp serves an HTML page embedding the workflow id", async () => {
-    const res = await handleWorkflowApp(req("/api/workflows/w1/app"), "w1", {
-      baseUrl: "http://example.test"
-    });
-    expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toContain("text/html");
-    const html = await res.text();
-    expect(html).toContain('window.WORKFLOW_ID="w1"');
-    expect(html).toContain("http://example.test");
-    expect(
-      (await handleWorkflowApp(req("/x", { method: "POST" }), "w1", {})).status
-    ).toBe(405);
-  });
-});
-
-describe("http-api coverage: generate-name", () => {
-  beforeEach(() => initTestDb());
-
-  it("derives a name from unique node category segments", async () => {
-    const wf = await makeWorkflow({
-      graph: {
-        nodes: [
-          { id: "a", type: "nodetool.text.Generate" },
-          { id: "b", type: "nodetool.image.Blur" },
-          { id: "c", type: "nodetool.text.Concat" }
-        ],
-        edges: []
-      }
-    });
-    const res = await handleWorkflowGenerateName(
-      req(`/api/workflows/${wf.id}/generate-name`, {
-        method: "POST",
-        headers: { "x-user-id": "user-1" }
-      }),
-      wf.id,
-      {}
-    );
-    const data = (await jsonBody(res)) as { name: string };
-    expect(data.name).toBe("Text + Image Workflow");
-  });
-
-  it("falls back to the stored name for an empty graph", async () => {
-    const wf = await makeWorkflow({
-      name: "Kept Name",
-      graph: { nodes: [], edges: [] }
-    });
-    const res = await handleWorkflowGenerateName(
-      req("/x", { method: "POST", headers: { "x-user-id": "user-1" } }),
-      wf.id,
-      {}
-    );
-    const data = (await jsonBody(res)) as { name: string };
-    expect(data.name).toBe("Kept Name");
-  });
-
-  it("404s for a missing workflow or a foreign owner, 405 for GET", async () => {
-    const wf = await makeWorkflow({ user_id: "owner" });
-    expect(
-      (
-        await handleWorkflowGenerateName(
-          req("/x", { method: "POST" }),
-          "nope",
-          {}
-        )
-      ).status
-    ).toBe(404);
-    const foreign = await handleWorkflowGenerateName(
-      req("/x", { method: "POST", headers: { "x-user-id": "intruder" } }),
-      wf.id,
-      {}
-    );
-    expect(foreign.status).toBe(404);
-    expect(
-      (await handleWorkflowGenerateName(req("/x"), wf.id, {})).status
-    ).toBe(405);
-  });
-});
-
 describe("http-api coverage: workflow tools", () => {
   beforeEach(() => initTestDb());
 
@@ -301,229 +203,6 @@ describe("http-api coverage: workflow tools", () => {
     expect(
       (await handleWorkflowTools(req("/x", { method: "POST" }), {})).status
     ).toBe(405);
-  });
-});
-
-describe("http-api coverage: autosave", () => {
-  beforeEach(() => initTestDb());
-
-  it("saves the graph and creates a version", async () => {
-    const wf = await makeWorkflow({ user_id: "user-1" });
-    const res = await handleWorkflowAutosave(
-      req(`/api/workflows/${wf.id}/autosave`, {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-user-id": "user-1" },
-        body: JSON.stringify({
-          graph: { nodes: [{ id: "n1", type: "t" }], edges: [] },
-          name: "renamed",
-          description: "d",
-          access: "public"
-        })
-      }),
-      wf.id,
-      {}
-    );
-    expect(res.status).toBe(200);
-    const data = (await jsonBody(res)) as { skipped: boolean; version: unknown };
-    expect(data.skipped).toBe(false);
-    expect(data.version).not.toBeNull();
-
-    const reloaded = (await Workflow.get(wf.id)) as Workflow;
-    expect(reloaded.name).toBe("renamed");
-    expect(reloaded.access).toBe("public");
-  });
-
-  it("rate-limits a second autosave without force", async () => {
-    const wf = await makeWorkflow({ user_id: "user-1" });
-    const body = JSON.stringify({ graph: { nodes: [], edges: [] } });
-    const headers = {
-      "content-type": "application/json",
-      "x-user-id": "user-1"
-    };
-    await handleWorkflowAutosave(
-      req(`/api/workflows/${wf.id}/autosave`, { method: "POST", headers, body }),
-      wf.id,
-      {}
-    );
-    const second = await handleWorkflowAutosave(
-      req(`/api/workflows/${wf.id}/autosave`, { method: "POST", headers, body }),
-      wf.id,
-      {}
-    );
-    const data = (await jsonBody(second)) as { skipped: boolean };
-    expect(data.skipped).toBe(true);
-
-    // force bypasses the rate limit
-    const forced = await handleWorkflowAutosave(
-      req(`/api/workflows/${wf.id}/autosave`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ graph: { nodes: [], edges: [] }, force: true })
-      }),
-      wf.id,
-      {}
-    );
-    expect(((await jsonBody(forced)) as { skipped: boolean }).skipped).toBe(false);
-  });
-
-  it("returns 404 / 400 / 405 for the error branches", async () => {
-    const wf = await makeWorkflow({ user_id: "owner" });
-    // 405 wrong method
-    expect(
-      (
-        await handleWorkflowAutosave(
-          req("/x", { method: "GET" }),
-          wf.id,
-          {}
-        )
-      ).status
-    ).toBe(405);
-    // 404 missing workflow
-    expect(
-      (
-        await handleWorkflowAutosave(
-          req("/x", { method: "POST" }),
-          "missing",
-          {}
-        )
-      ).status
-    ).toBe(404);
-    // 404 foreign owner
-    expect(
-      (
-        await handleWorkflowAutosave(
-          req("/x", {
-            method: "POST",
-            headers: { "x-user-id": "intruder" }
-          }),
-          wf.id,
-          {}
-        )
-      ).status
-    ).toBe(404);
-    // 400 missing graph
-    const noGraph = await handleWorkflowAutosave(
-      req("/x", {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-user-id": "owner" },
-        body: JSON.stringify({ name: "no graph" })
-      }),
-      wf.id,
-      {}
-    );
-    expect(noGraph.status).toBe(400);
-  });
-});
-
-describe("http-api coverage: workflow versions", () => {
-  beforeEach(() => initTestDb());
-
-  it("creates, lists, fetches, restores, and deletes versions", async () => {
-    const wf = await makeWorkflow({ user_id: "user-1" });
-    const headers = {
-      "content-type": "application/json",
-      "x-user-id": "user-1"
-    };
-
-    // POST create a version
-    const createRes = await handleWorkflowVersions(
-      req(`/api/workflows/${wf.id}/versions`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ name: "v1", description: "first" })
-      }),
-      wf.id,
-      {}
-    );
-    expect(createRes.status).toBe(200);
-    const created = (await jsonBody(createRes)) as { version: number };
-    expect(created.version).toBe(1);
-
-    // GET list
-    const listRes = await handleWorkflowVersions(
-      req(`/api/workflows/${wf.id}/versions`, { headers: { "x-user-id": "user-1" } }),
-      wf.id,
-      {}
-    );
-    const list = (await jsonBody(listRes)) as { versions: unknown[] };
-    expect(list.versions).toHaveLength(1);
-
-    // GET a version by number
-    const byNum = await handleWorkflowVersionByNumber(
-      req("/x", { headers: { "x-user-id": "user-1" } }),
-      wf.id,
-      1,
-      {}
-    );
-    expect(byNum.status).toBe(200);
-
-    // POST restore copies the version graph back to the workflow
-    const restore = await handleWorkflowVersionByNumber(
-      req("/x", { method: "POST", headers: { "x-user-id": "user-1" } }),
-      wf.id,
-      1,
-      {}
-    );
-    expect(restore.status).toBe(200);
-
-    // DELETE by version id
-    const version = await WorkflowVersion.findByVersion(wf.id, 1);
-    const del = await handleWorkflowVersionDeleteById(
-      req("/x", { method: "DELETE", headers: { "x-user-id": "user-1" } }),
-      wf.id,
-      version!.id,
-      {}
-    );
-    expect(del.status).toBe(204);
-  });
-
-  it("covers the not-found and method-not-allowed branches", async () => {
-    // versions root: 405 for PUT
-    expect(
-      (
-        await handleWorkflowVersions(req("/x", { method: "PUT" }), "w", {})
-      ).status
-    ).toBe(405);
-    // POST version onto a missing workflow -> 404
-    expect(
-      (
-        await handleWorkflowVersions(req("/x", { method: "POST" }), "missing", {})
-      ).status
-    ).toBe(404);
-    // by-number: missing version -> 404
-    expect(
-      (
-        await handleWorkflowVersionByNumber(req("/x"), "missing", 5, {})
-      ).status
-    ).toBe(404);
-    // by-number: unsupported method -> 405
-    expect(
-      (
-        await handleWorkflowVersionByNumber(
-          req("/x", { method: "DELETE" }),
-          "w",
-          1,
-          {}
-        )
-      ).status
-    ).toBe(405);
-    // delete-by-id: wrong method -> 405
-    expect(
-      (
-        await handleWorkflowVersionDeleteById(req("/x"), "w", "vid", {})
-      ).status
-    ).toBe(405);
-    // delete-by-id: missing version -> 404
-    expect(
-      (
-        await handleWorkflowVersionDeleteById(
-          req("/x", { method: "DELETE" }),
-          "w",
-          "missing",
-          {}
-        )
-      ).status
-    ).toBe(404);
   });
 });
 
@@ -723,46 +402,7 @@ describe("http-api coverage: handleApiRequest routing", () => {
     expect(res.status).toBe(404);
   });
 
-  it("validates usernames with all guard branches", async () => {
-    // valid
-    const ok = (await jsonBody(
-      await handleApiRequest(req("/api/users/validate_username?username=alice_1"))
-    )) as { valid: boolean; available: boolean };
-    expect(ok.valid).toBe(true);
-    expect(ok.available).toBe(true);
-    // invalid characters
-    const bad = (await jsonBody(
-      await handleApiRequest(
-        req("/api/users/validate_username?username=no%20spaces!")
-      )
-    )) as { valid: boolean };
-    expect(bad.valid).toBe(false);
-    // missing param
-    expect(
-      (await handleApiRequest(req("/api/users/validate_username"))).status
-    ).toBe(400);
-    // empty param
-    expect(
-      (
-        await handleApiRequest(req("/api/users/validate_username?username=%20"))
-      ).status
-    ).toBe(400);
-    // wrong method
-    expect(
-      (
-        await handleApiRequest(
-          req("/api/users/validate_username?username=alice", { method: "POST" })
-        )
-      ).status
-    ).toBe(405);
-  });
-
-  it("routes /api/nodes/dummy and /api/workflows/names", async () => {
-    const dummy = await handleApiRequest(req("/api/nodes/dummy"));
-    expect(((await jsonBody(dummy)) as Record<string, unknown>).type).toBe(
-      "asset"
-    );
-
+  it("routes /api/workflows/names", async () => {
     await makeWorkflow({ user_id: "user-1", name: "Named" });
     const names = (await jsonBody(
       await handleApiRequest(
