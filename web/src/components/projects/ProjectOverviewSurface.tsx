@@ -38,6 +38,7 @@ import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import ProjectAgentPanel from "./ProjectAgentPanel";
 import ProjectDocumentCard from "./ProjectDocumentCard";
+import ProjectEntitiesSection from "./ProjectEntitiesSection";
 import ProjectSpendBar from "./ProjectSpendBar";
 import {
   formatSpend,
@@ -96,7 +97,7 @@ const ProjectOverviewSurface = ({ refId }: ProjectOverviewSurfaceProps) => {
     );
   }
 
-  const { project, documents, spend } = data;
+  const { project, documents, entities, spend } = data;
   const progress = projectProgress(documents);
   const nextStep = projectNextStep(documents);
 
@@ -238,6 +239,10 @@ const ProjectOverviewSurface = ({ refId }: ProjectOverviewSurfaceProps) => {
                   </Caption>
                 </FlexRow>
                 {documentCards}
+                <ProjectEntitiesSection
+                  projectId={project.id}
+                  entities={entities}
+                />
               </ScrollArea>
               <Divider />
               <Box sx={{ px: SPACING.xxl, py: SPACING.lg }}>
@@ -260,6 +265,10 @@ const ProjectOverviewSurface = ({ refId }: ProjectOverviewSurfaceProps) => {
               everything below opens as a tab in this group
             </Caption>
             {documentCards}
+            <ProjectEntitiesSection
+              projectId={project.id}
+              entities={entities}
+            />
             <Divider />
             <ProjectSpendBar spend={spend} />
           </FlexColumn>

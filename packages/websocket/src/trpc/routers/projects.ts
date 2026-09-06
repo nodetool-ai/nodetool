@@ -77,6 +77,7 @@ export const projectsRouter = router({
             project: project.toResponse(),
             documents: summary.documents,
             documentsPartial: summary.documentsPartial,
+            entities: summary.entities,
             spend: summary.spend
           });
         })
@@ -93,6 +94,7 @@ export const projectsRouter = router({
         project: project.toResponse(),
         documents: summary.documents,
         documentsPartial: summary.documentsPartial,
+        entities: summary.entities,
         spend: summary.spend
       });
     }),
@@ -187,9 +189,9 @@ export const projectsRouter = router({
     }),
 
   /**
-   * Move one document into a project — or, with the loose bucket's id, back
-   * out of every project. The document's own `updated_at` is left alone, so a
-   * move does not conflict with an editor that has it open.
+   * Move one document or entity into a project — or, with the loose bucket's
+   * id, back out of every project. A document's own `updated_at` is left
+   * alone, so a move does not conflict with an editor that has it open.
    */
   assignDocument: protectedProcedure
     .input(assignDocumentInput)
@@ -204,7 +206,12 @@ export const projectsRouter = router({
         input.ref,
         input.projectId
       );
-      if (!moved) throwApiError(ApiErrorCode.NOT_FOUND, "Document not found");
+      if (!moved) {
+        throwApiError(
+          ApiErrorCode.NOT_FOUND,
+          input.type === "entity" ? "Entity not found" : "Document not found"
+        );
+      }
       return { ok: true as const };
     })
 });

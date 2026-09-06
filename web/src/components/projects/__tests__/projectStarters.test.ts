@@ -50,6 +50,7 @@ const summary = (
       updatedAt: ""
     },
     documents,
+    entities: [],
     spend: { totalUsd, unpricedCount, byCategory: [] }
   }) as ProjectDetail;
 

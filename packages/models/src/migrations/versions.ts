@@ -3293,6 +3293,36 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_user_event_type_created");
       await db.execute("DROP TABLE IF EXISTS nodetool_user_events");
     }
+  },
+
+  // ── Project membership on assets ────────────────────────────────────
+  // An entity is an image asset carrying the entity marker, so its project
+  // membership goes on the asset row — the same one column every document
+  // table already carries. Existing rows land in the loose bucket.
+  {
+    version: "20260906_000000",
+    name: "add_asset_project",
+    createsTables: [],
+    modifiesTables: ["nodetool_assets"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_assets"))) return;
+      if (!(await db.columnExists("nodetool_assets", "project_id"))) {
+        await db.execute(
+          "ALTER TABLE nodetool_assets ADD COLUMN project_id TEXT NOT NULL DEFAULT 'default'"
+        );
+      }
+      // Serves the per-project entity read; the loose bucket is the bulk of
+      // it, which is why the user id leads.
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_assets_user_project
+        ON nodetool_assets (user_id, project_id)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_assets_user_project");
+      // The column stays: dropping one is unsafe across dialects and versions,
+      // and its value is a bucket id nothing else reads.
+    }
   }
 ];
 
