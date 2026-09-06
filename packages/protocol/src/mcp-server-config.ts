@@ -70,12 +70,26 @@ const MAX_TOOL_NAME_LENGTH = 64;
  * and the server id kept, so the name still says which server it belongs to.
  */
 export function mcpToolName(serverId: string, remoteName: string): string {
-  const remote = remoteName
-    .replace(/[^a-zA-Z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
   const prefix = `${MCP_TOOL_PREFIX}${serverId}_`;
   const room = Math.max(1, MAX_TOOL_NAME_LENGTH - prefix.length);
-  return `${prefix}${remote.slice(0, room)}`.replace(/_+$/, "");
+  // One linear pass: a run of non-alphanumerics becomes one `_`, never at the
+  // start; a trailing `_` is dropped. The remote name is server input, so no
+  // regex with a nested quantifier runs over it.
+  let remote = "";
+  let pendingUnderscore = false;
+  for (const ch of remoteName) {
+    if (remote.length >= room) break;
+    if (/[a-zA-Z0-9]/.test(ch)) {
+      if (pendingUnderscore && remote.length > 0 && remote.length < room - 1) {
+        remote += "_";
+      }
+      pendingUnderscore = false;
+      remote += ch;
+    } else {
+      pendingUnderscore = true;
+    }
+  }
+  return `${prefix}${remote}`;
 }
 
 const SECRET_REFERENCE = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
