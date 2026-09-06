@@ -15,12 +15,13 @@ Three nodes cover three topologies:
 |---|---|---|---|
 | Title | Run ComfyUI Workflow | Run ComfyUI Workflow (Worker) | Run ComfyUI Workflow (Comfy Cloud) |
 | Talks to | Any ComfyUI HTTP/WebSocket endpoint | A NodeTool worker that fronts ComfyUI | Comfy Cloud, `https://cloud.comfy.org` |
-| Transport | ComfyUI's own `/prompt`, `/ws`, `/view`, `/history` | The worker bridge's `comfy.*` messages | `@comfyorg/sdk` over the Comfy API v2 |
+| Transport | ComfyUI's own `/prompt`, `/ws`, `/view`, `/history`, or the Comfy API v2 | The worker bridge's `comfy.*` messages, or the Comfy API v2 | `@comfyorg/sdk` over the Comfy API v2 |
+| API | `native` (default) or `v2`, from the `api` property | Bridge, or v2 when the worker reports `comfy.api_v2` | v2 |
 | Auth | None | Worker bearer token in a node property | The `COMFY_API_KEY` secret |
 | GPU | Yours | The rented worker's | Comfy's |
 | ComfyUI reachable from NodeTool? | Yes, directly | No, loopback-only inside the worker | Not applicable |
 | Workflow loader in the editor | Yes | No (see [limitations](#known-limitations)) | Yes |
-| Outputs | Streamed, one frame per file | Buffered, returned at the end | Streamed, one frame per file |
+| Outputs | Streamed, one frame per file | Buffered on the bridge path, streamed on the v2 path | Streamed, one frame per file |
 
 All three live in the `lib.comfy` namespace and ship in the built-in `base` node
 pack, so every install registers them — including a server running the curated
@@ -39,7 +40,8 @@ nodes either way.
 
 Point the node at a ComfyUI server you can reach. It submits the prompt over
 HTTP, follows the run on ComfyUI's WebSocket, and downloads each output file as
-the node that produced it finishes.
+the node that produced it finishes. That is the default `native` API; setting
+`api` to `v2` swaps the transport, see [Using the v2 API](#using-the-v2-api).
 
 ### Properties
 
@@ -48,6 +50,7 @@ the node that produced it finishes.
 | `endpoint` | `127.0.0.1:8188` | Host:port or full URL. `https://…` and `wss://` proxies (RunPod pods, Cloudflare tunnels) work — the scheme is derived from the endpoint. |
 | `workflow` | *empty* | The API-format prompt as a JSON string: a map of node id to `{ class_type, inputs }`. |
 | `timeout` | `600` | Seconds to wait for the run. Also bounds the WebSocket handshake and the submit request. |
+| `api` | `native` | Which API the endpoint speaks. `native` is ComfyUI's own `/prompt` plus WebSocket. `v2` treats `endpoint` as a Comfy API v2 origin. |
 
 ### Loading a workflow
 
@@ -125,6 +128,33 @@ Cancelling the run posts `/interrupt` to the ComfyUI server and closes the
 WebSocket, so the prompt stops there instead of running on with nothing
 listening. The node then fails with `ComfyUI execution was canceled`.
 
+### Using the v2 API
+
+Set `api` to `v2` and the node sends the workflow through the same Comfy API v2
+client the Cloud node uses, pointed at `endpoint` instead of
+`https://cloud.comfy.org`. Two things serve that API in front of a local
+ComfyUI:
+
+- **`comfy-api-proxy`**, Comfy-Org's Python adapter, which translates v2 onto
+  the native protocol. `pip install comfy-api-proxy`, then
+  `comfy-api-proxy --comfyui http://127.0.0.1:8188 --port 8189`, and point
+  `endpoint` at port 8189.
+- **ComfyUI itself**, once core serves `/api/v2`. Then the proxy is unnecessary
+  and `v2` becomes the default.
+
+No API key is sent on this path, so the endpoint has to accept an unauthenticated
+submit. Everything else matches the Cloud node's run: the submit carries an
+idempotency key and retries a `429` for up to 60 seconds, media inputs are
+uploaded through the asset API and deduplicated by a blake3 hash of the bytes,
+the run is followed over SSE with polling as the fallback when the stream drops,
+and cancelling the NodeTool run calls the job's cancel endpoint.
+
+Outputs use the same `<comfyNodeId>:<kind>` convention as the Cloud node rather
+than ComfyUI's history payload: `image`, `audio` and `video` carry a media ref,
+`text` carries the decoded string, and `file` and `latent` carry a document ref.
+The static `output` slot carries the same job manifest the Cloud node returns:
+`job_id`, `status`, and one entry per output file.
+
 ---
 
 ## Run ComfyUI Workflow (Worker)
@@ -148,11 +178,32 @@ never published.
 
 ### How a run works
 
-The node opens a one-shot bridge connection (no auto-reconnect), checks
-`supportsComfy()`, and calls `comfy.execute`. The capability check requires both
-bridge protocol **v3+** and `worker.status.comfy.enabled: true`; a worker built
-from the plain image fails it with a message naming the ComfyUI image. The bridge
-is closed whether the run succeeds or throws.
+The node opens a one-shot bridge connection (no auto-reconnect), because the
+bridge is how it reads `worker.status.comfy`, and that status picks the path.
+
+#### The v2 path
+
+A worker whose status reports `comfy.api_v2: true` serves the Comfy API v2 on its
+own port 7777, behind the bearer token it already requires, with ComfyUI still
+loopback-only. The node closes the bridge, turns `worker_url` into an HTTP origin
+(`wss://host/ws` becomes `https://host`), and runs the workflow through the same
+v2 client the Cloud node uses, with `worker_token` as the key.
+
+Media inputs go through the asset API and are deduplicated by a blake3 hash of
+the bytes. The submit carries an idempotency key and retries a `429` for up to 60
+seconds, the run is followed over SSE with polling as the fallback, and
+cancelling calls the job's cancel endpoint.
+
+The worker image that reports the flag is a `nodetool-core` change and has not
+shipped, so today every worker takes the bridge path.
+
+#### The bridge path
+
+Without the flag the node calls `comfy.execute` over the same connection, and
+closes it whether the run succeeds or throws. This path also requires
+`supportsComfy()`: bridge protocol **v3+** and `worker.status.comfy.enabled: true`.
+A worker built from the plain image fails that check with a message naming the
+ComfyUI image.
 
 Media inputs are **not** uploaded over HTTP here. Each one is sent as a bridge
 blob and referenced from the workflow JSON as `"blob:<key>"`; the worker uploads
@@ -172,11 +223,17 @@ The node logs `started`, `cached`, and `executing`, and turns `progress`
 
 ### Outputs
 
-Output files come back as blobs on the terminal result. Each blob's media kind
-is sniffed from its leading bytes — PNG, JPEG, GIF, RIFF (WEBP/WAVE/AVI),
-`ftyp` boxes for MP4/MOV, OGG, and ID3 — and emitted as a base64 media ref on a
-slot named after the worker's blob key. ComfyUI's raw outputs land on the static
-`output` slot.
+On the v2 path each finished file is emitted on its own slot, keyed
+`<comfyNodeId>:<kind>`: `image`, `audio` and `video` carry a media ref, `text`
+carries the decoded string, and `file` and `latent` carry a document ref. The
+static `output` slot carries the job manifest, `job_id` and `status` and one
+entry per output file. That is the convention the direct and Cloud nodes use.
+
+On the bridge path output files come back as blobs on the terminal result. Each
+blob's media kind is sniffed from its leading bytes (PNG, JPEG, GIF, RIFF for
+WEBP/WAVE/AVI, `ftyp` boxes for MP4/MOV, OGG, and ID3) and emitted as a base64
+media ref on a slot named after the worker's blob key. ComfyUI's raw outputs land
+on the static `output` slot.
 
 ---
 
@@ -298,16 +355,20 @@ the authoritative field reference is `docs/comfy-proxy.md` in `nodetool-core`.
 
 ## Known limitations
 
-- **The worker node has no workflow loader in the editor.** Only
-  `lib.comfy.RunWorkflow` gets the dedicated node UI with the Load Workflow
-  button and schema-derived handles. For `lib.comfy.RunWorkflowOnWorker` you
-  paste the API-format JSON into the `workflow` property and add dynamic input
-  handles yourself, keyed `<comfyNodeId>:<field>`.
-- **The worker node's output slot names come from the worker**, not from the
-  `<comfyNodeId>:<kind>` convention the direct node and the schema parser use.
-  Check the emitted keys against a real run before wiring downstream nodes.
-- **The worker node does not stream outputs.** It returns everything on
-  completion, while the direct node yields each file as it lands.
+- **The worker node has no workflow loader in the editor.** The Load Workflow
+  button and the schema-derived handles belong to `lib.comfy.RunWorkflow` and
+  `lib.comfy.RunWorkflowOnCloud`, whose slot names the parser can predict. For
+  `lib.comfy.RunWorkflowOnWorker` you paste the API-format JSON into the
+  `workflow` property and add dynamic input handles yourself, keyed
+  `<comfyNodeId>:<field>`. What keeps it out is the bridge path's slot naming
+  below, which the v2 path fixes.
+- **On the bridge path, the worker node's output slot names come from the
+  worker**, not from the `<comfyNodeId>:<kind>` convention the direct and Cloud
+  nodes and the schema parser use. Check the emitted keys against a real run
+  before wiring downstream nodes. The v2 path uses the convention.
+- **On the bridge path the worker node does not stream outputs.** It returns
+  everything on completion. The v2 path yields each file as it lands, like the
+  direct and Cloud nodes.
 - **`include_temp` is not exposed on either node.** The bridge supports it
   (`ComfyExecuteOptions.includeTemp`), so preview-node outputs can be fetched
   from code, but no node property surfaces it.
@@ -316,10 +377,12 @@ the authoritative field reference is `docs/comfy-proxy.md` in `nodetool-core`.
   Cloud column in a run's cost breakdown stays empty. The Comfy job id is
   written to the run log, so a run can be matched against Comfy's own billing.
 
-Moving the worker node onto the same v2 API, which would give it streaming
-outputs and the `<comfyNodeId>:<kind>` slot names, is planned but not built. The
-design is `docs/superpowers/specs/2026-09-05-comfy-sdk-integration-design.md`
-in the repository (engineering specs are not part of the published site).
+The worker node's v2 path is built; the worker image that reports
+`comfy.api_v2` is a `nodetool-core` change and ships separately, so the `comfy.*`
+bridge family stays until it does. The direct node's `v2` stays opt-in while a
+local ComfyUI needs `comfy-api-proxy` in front of it. The design is
+`docs/superpowers/specs/2026-09-05-comfy-sdk-integration-design.md` in the
+repository (engineering specs are not part of the published site).
 
 ---
 
@@ -335,11 +398,12 @@ in the repository (engineering specs are not part of the published site).
 | `Submit failed (400)` | ComfyUI rejected the prompt — usually a missing model or an unknown `class_type` on that server. The response body is included. |
 | `Timeout waiting for ComfyUI result` | The run exceeded `timeout` seconds. Raise it for large video or upscale graphs. |
 | `The connected worker does not front a ComfyUI server` | The worker isn't running the ComfyUI image, or reports `comfy.enabled: false`. |
+| A submit that answers `404` on `/api/v2/jobs` | `api` is `v2` but the endpoint is a plain ComfyUI, which serves no `/api/v2`. Put `comfy-api-proxy` in front of it, or set `api` back to `native`. |
 | `Comfy account has insufficient credits` | Comfy Cloud answered `402`. Top the account up at [platform.comfy.org](https://platform.comfy.org). |
 | `Comfy queue is full` | Your plan's concurrent-job limit was still full 60 seconds after the first `429`. |
 | `Comfy Cloud job did not finish within <n>s` | The job outlived the Cloud node's `timeout`. Raise it, up to Comfy's own 30 or 60 minute cap. |
 | `COMFY_API_KEY is required to run a workflow on Comfy Cloud` | No key stored. Add it in **Settings → Models & Providers**. |
-| `ComfyUI workflow is in UI-export format` | The Cloud node's SDK rejected the prompt before sending it. Re-export with **Save (API Format)**. |
+| `ComfyUI workflow is in UI-export format` | The v2 client rejected the prompt before sending it, on the Cloud node or on either `v2` path. Re-export with **Save (API Format)**. |
 
 ---
 
@@ -349,7 +413,7 @@ in the repository (engineering specs are not part of the published site).
 |---|---|
 | Direct and worker nodes | `packages/integration-nodes/src/nodes/comfy.ts` |
 | Cloud node | `packages/integration-nodes/src/nodes/comfy-cloud.ts` |
-| Comfy API v2 transport and runner | `packages/integration-nodes/src/nodes/comfy-sdk.ts` |
+| Comfy API v2 transport and runner | `packages/integration-nodes/src/nodes/comfy-sdk.ts` — `cloudTransport` for Comfy Cloud, `v2Transport(baseUrl, apiKey?)` for the worker and direct v2 paths |
 | Direct HTTP/WS executor | `packages/runtime/src/comfy-executor.ts` |
 | `comfy.*` bridge methods | `packages/runtime/src/python-bridge-base.ts` |
 | Bridge types | `packages/runtime/src/python-bridge-types.ts` |

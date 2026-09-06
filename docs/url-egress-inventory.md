@@ -145,11 +145,17 @@ in the data module with its auth scope.
   it, and `lib.comfy.RunWorkflow` / `lib.comfy.RunWorkflowOnWorker` are
   allowlisted on the cloud profile.
 - `packages/integration-nodes/src/nodes/comfy-sdk.ts` — the Comfy API v2
-  transport behind `lib.comfy.RunWorkflowOnCloud`. `@comfyorg/sdk` opens the
-  socket, against the constant `https://cloud.comfy.org` unless `COMFY_BASE_URL`
-  in the server's environment names another deployment, which is the documented
-  way to point it at a local `comfy-api-proxy` on `127.0.0.1:8189`. The user's
-  `COMFY_API_KEY` rides as a `Bearer` header and the SDK attaches it only to
+  transport. `@comfyorg/sdk` opens the socket. For
+  `lib.comfy.RunWorkflowOnCloud` it opens against the constant
+  `https://cloud.comfy.org`, unless `COMFY_BASE_URL` in the server's environment
+  names another deployment, which is the documented way to point it at a local
+  `comfy-api-proxy` on `127.0.0.1:8189`. The same transport carries the v2 paths
+  of the other two nodes, where the base URL is the operator's: the `endpoint`
+  property of `lib.comfy.RunWorkflow` when its `api` is `v2`, and the HTTP origin
+  derived from the `worker_url` of `lib.comfy.RunWorkflowOnWorker`. Those are
+  normally localhost, the LAN, or a rented worker, the same case as
+  `comfy-executor.ts` above. The user's `COMFY_API_KEY` or the worker's bearer
+  token rides as an `Authorization` header, and the SDK attaches it only to
   requests on the client's own origin: a job's `urls.self` / `cancel` / `events`
   link resolves against that origin, and a signed output URL on another origin
   is fetched without the key.

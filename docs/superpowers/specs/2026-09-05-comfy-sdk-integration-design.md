@@ -285,11 +285,18 @@ lists the key. `packages/integration-nodes/README.md` links the node.
 1. **Cloud.** D1, D2, D3 (`cloudTransport` only), D4, D7, D8, D9, D10,
    D11 for the Cloud parts. Ships on its own and needs nothing from
    `nodetool-core`. Open the upstream `baseUrl` PR at the same time.
+   Status: shipped in this branch.
 2. **Worker.** `nodetool-core` mounts the v2 routes and reports
    `comfy.api_v2`. Then D3 `v2Transport`, D5, and the bridge removal. Ships
    when the image does.
+   Status: `v2Transport` and the dual-path worker node shipped. The worker
+   image and the bridge removal remain in `nodetool-core`, so the node still
+   selects the bridge path until a worker reports the flag.
 3. **Local.** D6's two fixes ship with step 1. The executor switch waits on
    ComfyUI core.
+   Status: `api: v2` shipped as an opt-in on `lib.comfy.RunWorkflow`, reaching
+   a `comfy-api-proxy` in front of a local ComfyUI. The default flips to `v2`
+   and `comfy-executor.ts` goes away when ComfyUI core serves v2.
 
 ## Risks
 
