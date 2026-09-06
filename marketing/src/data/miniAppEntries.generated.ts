@@ -9,7 +9,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "One offer, three registers of copy, five headlines and a hero image.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "ad-maker",
     "name": "Ad Maker",
     "summary": "Type the offer once. Three agents run side by side: ad copy written plain, playful and premium; five headlines each taking a different angle; and a hero image whose prompt stays visible so it can be corrected rather than guessed at.",
@@ -33,7 +33,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/ad-copy-in-three-registers",
-    "screenshot": null,
+    "screenshot": "/apps/ad-maker.png",
     "tags": [
       "example",
       "image",
@@ -74,7 +74,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Give a presenter clip a new script.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "ai-spokesperson",
     "name": "AI Spokesperson",
     "summary": "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localize a take, fix a fluffed line, or spin one recording into many variants.",
@@ -88,7 +88,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/ai-spokesperson",
-    "screenshot": null,
+    "screenshot": "/apps/ai-spokesperson.png",
     "tags": [
       "audio",
       "example",
@@ -701,7 +701,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "One logline in, a cut sequence of shots out.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "multi-shot-video",
     "name": "Multi-Shot Video",
     "summary": "A director model writes the shot list and a style bible, every shot is rendered as a keyframe and animated, and the clips are cut together into one video.",
@@ -715,7 +715,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/movie-trailer-generator",
-    "screenshot": null,
+    "screenshot": "/apps/multi-shot-video.png",
     "tags": [
       "ai",
       "creative",
@@ -927,7 +927,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "New setting, new light, or a clean cutout — without a reshoot.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "product-reshoot",
     "name": "Product Reshoot",
     "summary": "One product photo, three treatments. Put it on a described set, relight it for a season, or strip the background to a real alpha channel for compositing.",
@@ -951,7 +951,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/put-a-product-on-a-studio-backdrop",
-    "screenshot": null,
+    "screenshot": "/apps/product-reshoot.png",
     "tags": [
       "example",
       "image"
@@ -995,7 +995,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "A product photo becomes a hero loop or a turntable clip.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "product-shot-video",
     "name": "Product Shot Video",
     "summary": "Image-to-video keeps the product identical and adds only the camera move. Pick a motion for a looping ad, or spin a packshot into a turntable for the product page.",
@@ -1014,7 +1014,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/ad-loop-from-a-product-photo",
-    "screenshot": null,
+    "screenshot": "/apps/product-shot-video.png",
     "tags": [
       "example",
       "image",
@@ -1119,7 +1119,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "See the look as a still, then bring it to life.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "scene-builder",
     "name": "Scene Builder",
     "summary": "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and color.",
@@ -1138,7 +1138,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/editorial-still-from-a-line",
-    "screenshot": null,
+    "screenshot": "/apps/scene-builder.png",
     "tags": [
       "example",
       "image",
@@ -1246,7 +1246,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Enlarge an image without the softness of a plain resize.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "upscale-image",
     "name": "Upscale Image",
     "summary": "Two upscalers behind one drop zone. ESRGAN reconstructs the detail that is there, which is what you want for a photo. Clarity invents plausible detail, which is what you want when the source is small.",
@@ -1265,7 +1265,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/upscale-a-still",
-    "screenshot": null,
+    "screenshot": "/apps/upscale-image.png",
     "tags": [
       "example",
       "image"
@@ -1305,7 +1305,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Change one thing about a photo and keep the rest.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "vary-image",
     "name": "Vary Image",
     "summary": "Pick what should change: lighting, background, pose, palette, camera angle. An edit model alters only that, and composition and subject survive because it edits in place instead of regenerating.",
@@ -1319,7 +1319,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/edit-a-still-with-words",
-    "screenshot": null,
+    "screenshot": "/apps/vary-image.png",
     "tags": [
       "example",
       "image"
@@ -1359,7 +1359,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Landscape footage in, a 9:16 post and its cover frame out.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "vertical-cut",
     "name": "Vertical Cut",
     "summary": "Resize a 16:9 clip to the vertical frame and pull a still at the timestamp you choose for the cover. Both run locally through ffmpeg.",
@@ -1378,7 +1378,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/cut-a-landscape-clip-for-vertical",
-    "screenshot": null,
+    "screenshot": "/apps/vertical-cut.png",
     "tags": [
       "example",
       "image",
@@ -1416,7 +1416,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Repaint a clip in a new style while its motion stays put.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "video-restyle",
     "name": "Video Restyle",
     "summary": "Upload footage, name the look and what must survive, and a video-to-video model applies the style. Strength is the dial: low keeps the original read, high commits to the new look.",
@@ -1430,7 +1430,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/video-restyle-studio",
-    "screenshot": null,
+    "screenshot": "/apps/video-restyle.png",
     "tags": [
       "design",
       "example",
