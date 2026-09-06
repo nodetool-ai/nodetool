@@ -25,6 +25,11 @@ import type { Screenplay } from "@nodetool-ai/protocol";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { ReviewStep } from "../ReviewStep";
+import { useDirectScreenplay } from "../../../../hooks/storyboard/useDirectScreenplay";
+import {
+  clearSetupReports,
+  keepPreviousScreenplay
+} from "../setupChoices";
 import { useStoryboardStore } from "../../../../stores/storyboard/StoryboardStore";
 import {
   clearImport,
@@ -81,10 +86,38 @@ const seed = (): void => {
   store.setScreenplay(BOARD, screenplay());
 };
 
-const renderStep = () =>
+/**
+ * The flow owns the Director call and hands the step its wait, its reason and
+ * its rewrite (F2). This is that wiring, so the step is exercised the way the
+ * flow drives it.
+ */
+const Harness: React.FC<{ usedFallback?: boolean }> = ({
+  usedFallback = false
+}) => {
+  const { direct, directing, error, acceptFallback } = useDirectScreenplay();
+  return (
+    <ReviewStep
+      boardId={BOARD}
+      onRewrite={() => {
+        void direct(
+          BOARD,
+          useStoryboardStore.getState().getBoard(BOARD)?.shots.length ?? 0
+        );
+      }}
+      rewriting={directing}
+      error={error}
+      usedFallback={usedFallback}
+      onKeepFallback={acceptFallback}
+      model={{ id: "claude-sonnet-5", provider: "anthropic" }}
+      maxOutputTokens={8192}
+    />
+  );
+};
+
+const renderStep = (props: { usedFallback?: boolean } = {}) =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <ReviewStep boardId={BOARD} />
+      <Harness {...props} />
     </ThemeProvider>
   );
 
@@ -93,11 +126,27 @@ const board = () => useStoryboardStore.getState().getBoard(BOARD);
 beforeEach(() => {
   rpcRequest.mockReset();
   clearImport(BOARD);
+  clearSetupReports(BOARD);
   useStoryboardStore.setState({ boards: {} } as never);
   seed();
 });
 
 describe("ReviewStep", () => {
+  it("keeps the scene slugline out of repeated shot metadata", () => {
+    const store = useStoryboardStore.getState();
+    store.updateShot(BOARD, "shot-0", {
+      slug: "EXT. HEADLAND — DUSK",
+      duration_seconds: 2
+    });
+    renderStep();
+    expect(
+      screen.queryByText("EXT. HEADLAND — DUSK")
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Slugline")).toHaveValue(
+      "EXT. HEADLAND — DUSK"
+    );
+  });
+
   it("renders the screenplay as text and starts no render job", () => {
     renderStep();
 
@@ -118,7 +167,26 @@ describe("ReviewStep", () => {
     );
 
     expect(rpcRequest).not.toHaveBeenCalled();
-    expect(board()?.shots.every((shot) => shot.status === "planned")).toBe(true);
+    expect(board()?.shots.every((shot) => shot.status === "planned")).toBe(
+      true
+    );
+  });
+
+  // A screenplay is long, and the scroll says nothing about its size.
+  it("says how big the piece is, above the text", () => {
+    renderStep();
+
+    expect(screen.getByText(/2 shots · 1 scene/)).toBeInTheDocument();
+  });
+
+  // The retry belongs where a creator looks after reading the first shots,
+  // not below twelve fields.
+  it("offers exactly one Re-direct control", () => {
+    renderStep();
+
+    expect(
+      screen.getAllByRole("button", { name: "Rewrite from brief" })
+    ).toHaveLength(1);
   });
 
   // Criterion 4: the shot edited here is the shot step 3 renders.
@@ -138,6 +206,10 @@ describe("ReviewStep", () => {
     const user = userEvent.setup();
     renderStep();
 
+    expect(
+      screen.queryByLabelText("Shot 2 · Dialogue")
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add dialogue" }));
     await user.type(screen.getByLabelText("Shot 2 · Dialogue"), "Hold fast.");
 
     expect(board()?.shots[1].dialogue).toBe("Hold fast.");
@@ -187,7 +259,9 @@ describe("ReviewStep", () => {
     });
     renderStep();
 
-    await user.click(screen.getByRole("button", { name: "Re-direct" }));
+    await user.click(
+      screen.getByRole("button", { name: "Rewrite from brief" })
+    );
 
     await waitFor(() => {
       expect(board()?.shots[0].action).toBe("The keeper reaches the lamp");
@@ -203,12 +277,56 @@ describe("ReviewStep", () => {
     expect(String(request.prompt)).toContain("exactly 2 shots");
   });
 
+  // F20: the step claims everything on it is editable, so the duration is a
+  // field, not a number the review only reports.
+  it("writes a duration edit through updateShot", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.type(screen.getByLabelText("Shot 2 · Seconds"), "4");
+
+    expect(board()?.shots[1].duration_seconds).toBe(4);
+    expect(board()?.shots[1].duration_source).toBe("manual");
+  });
+
+  // F9: a locally built outline says so, and the creator decides.
+  it("names a locally written outline and offers both ways out", async () => {
+    const user = userEvent.setup();
+    renderStep({ usedFallback: true });
+
+    expect(
+      screen.getByText(/Written here, not by your model/)
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Keep this outline" })
+    );
+    expect(rpcRequest).not.toHaveBeenCalled();
+  });
+
+  // F15: a rewrite is undoable for as long as the tab is open.
+  it("restores the screenplay a rewrite replaced", async () => {
+    const user = userEvent.setup();
+    keepPreviousScreenplay(BOARD, screenplay());
+    useStoryboardStore.getState().updateShot(BOARD, "shot-0", {
+      action: "Something else entirely"
+    });
+    renderStep();
+
+    await user.click(
+      screen.getByRole("button", { name: "Restore the previous screenplay" })
+    );
+
+    expect(board()?.shots[0].action).toBe("The keeper climbs the stair");
+  });
+
   it("shows a failed Re-direct instead of losing the screenplay", async () => {
     const user = userEvent.setup();
     rpcRequest.mockRejectedValue(new Error("model unavailable"));
     renderStep();
 
-    await user.click(screen.getByRole("button", { name: "Re-direct" }));
+    await user.click(
+      screen.getByRole("button", { name: "Rewrite from brief" })
+    );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "model unavailable"
@@ -252,7 +370,12 @@ describe("ReviewStep — an imported FDX", () => {
       shots: parse.shots,
       scenes: parse.scenes
     });
-    setImportSource(BOARD, { kind: "fdx", parsed: parse });
+    setImportSource(BOARD, {
+      kind: "fdx",
+      fileName: "two-scenes.fdx",
+      importedAt: "2026-01-01T00:00:00.000Z",
+      preserveWords: true
+    });
     return parse;
   };
 
@@ -294,7 +417,9 @@ describe("ReviewStep — an imported FDX", () => {
     });
     renderStep();
 
-    await user.click(screen.getByRole("button", { name: "Re-direct" }));
+    await user.click(
+      screen.getByRole("button", { name: "Rewrite from brief" })
+    );
 
     await waitFor(() =>
       expect(

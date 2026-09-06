@@ -78,6 +78,12 @@ export interface BlenderRunOptions {
   /** Cap on the sum of all outputs. Default MAX_TOTAL_OUTPUT_BYTES (1 GiB). */
   maxTotalOutputBytes?: number;
   /**
+   * Ceiling on declared outputs. Default {@link MAX_OUTPUT_COUNT}. Raised only
+   * by the 3D bake, whose PNG sequence is one declared output per frame; the
+   * byte caps above still bound what that costs.
+   */
+  maxOutputCount?: number;
+  /**
    * Parent directory for the per-run scratch directory. `runBlenderJob`
    * derives this from `context.workspace.scratchDir()` (D6 step 1), so the
    * run stages through the workspace seam instead of a bare temp path. The
@@ -272,6 +278,10 @@ export class LocalBlenderRunner implements BlenderRunner {
       env["BLENDER_USER_CONFIG"] = path.join(userDir, "config");
       env["BLENDER_USER_SCRIPTS"] = path.join(userDir, "scripts");
       env["BLENDER_USER_EXTENSIONS"] = path.join(userDir, "extensions");
+      // Blender's Python byte-compiles the op scripts where it finds them,
+      // which for a source checkout is the tree itself. Two runs at once then
+      // disagree about what blender_ops holds.
+      env["PYTHONDONTWRITEBYTECODE"] = "1";
 
       // Step 2: spawn through the bounded host binary runner.
       const argv = [
@@ -585,6 +595,9 @@ async function readBlenderOpBlobs(): Promise<Record<string, Uint8Array>> {
   return blobs;
 }
 
+/** Python's byte-cache directory, written beside the sources it compiles. */
+const PYTHON_BYTECODE_DIR = "__pycache__";
+
 async function collectOpBlobs(
   root: string,
   dir: string,
@@ -594,6 +607,9 @@ async function collectOpBlobs(
   for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
     const file = path.join(dir, entry.name);
     if (entry.isDirectory()) {
+      // Bytecode a previous run left behind is not ours to ship: it is keyed
+      // to one Python version, and the worker recompiles from the sources.
+      if (entry.name === PYTHON_BYTECODE_DIR) continue;
       await collectOpBlobs(root, file, blobs);
       continue;
     }

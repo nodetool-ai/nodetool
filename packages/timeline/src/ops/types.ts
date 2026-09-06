@@ -15,6 +15,7 @@ import type {
   TimelineTrack
 } from "../types.js";
 import type { TimelineComposition } from "../composition.js";
+import type { Model3DBakeSequence } from "../model3dBake.js";
 import type {
   AnimationRole,
   ClipAnimation,
@@ -63,6 +64,26 @@ export interface TimelineOpBakeResult {
   error?: string;
 }
 
+/** What {@link TimelineOpContext.bakeModel3DClip} is asked to render. */
+export interface TimelineOpBakeModel3DRequest {
+  /** The clip to bake, as it stands after the op's own checks. */
+  clip: TimelineClip;
+  /** The settings the bake is rendered at. */
+  sequence: Model3DBakeSequence;
+  /**
+   * The hash the result is stored under — the picture the bake is of. Passed
+   * in rather than recomputed so the host stores exactly what the op checked.
+   */
+  dependencyHash: string;
+}
+
+/** What a finished bake hands back: the video asset, and the job that made it. */
+export interface TimelineOpBakeModel3DResult {
+  assetId: string;
+  /** Recorded on the clip version, so a bake is traceable to its run. */
+  jobId?: string;
+}
+
 /** Reads a composition by id and lists what this host offers. */
 export interface TimelineOpCompositionLoader {
   get(id: string): Promise<TimelineComposition | null>;
@@ -70,7 +91,12 @@ export interface TimelineOpCompositionLoader {
 }
 
 /** Ids a host mints. Kept out of the ops so ids stay the host's to allocate. */
-export type TimelineOpIdKind = "track" | "clip" | "anim" | "marker";
+export type TimelineOpIdKind =
+  | "track"
+  | "clip"
+  | "anim"
+  | "marker"
+  | "version";
 
 /** Everything an op needs that the document cannot answer. */
 export interface TimelineOpContext {
@@ -83,6 +109,14 @@ export interface TimelineOpContext {
   bakeAnimation?(request: TimelineOpBakeRequest): Promise<TimelineOpBakeResult>;
   /** Composition library for `insert_composition`. */
   loadComposition?: TimelineOpCompositionLoader;
+  /**
+   * Render `bake_model3d_clip` through Blender. Absent means this surface
+   * cannot bake — the op reports that instead of pretending it started one,
+   * the way `bakeAnimation` reports a host with no JS engine.
+   */
+  bakeModel3DClip?(
+    request: TimelineOpBakeModel3DRequest
+  ): Promise<TimelineOpBakeModel3DResult>;
   /**
    * The host's SVG path parser (`parseSvgPath` from `./scene`). Passed in
    * rather than imported: the parser lives under `src/render`, which this

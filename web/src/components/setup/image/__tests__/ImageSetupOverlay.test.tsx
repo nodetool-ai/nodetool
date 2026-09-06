@@ -8,7 +8,7 @@
  * inferred from what is on the canvas (D3).
  */
 import React from "react";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -25,8 +25,25 @@ jest.mock("../../../../serverState/useEntities", () => ({
   useEntities: () => ({ data: [] }),
   useSaveEntity: () => ({ mutateAsync: jest.fn() })
 }));
+// The look step reads the whole query result, not just the models, so the
+// mock answers with every field the four availability states are read from.
+const mockImageModels: Array<{
+  type: string;
+  id: string;
+  name: string;
+  provider: string;
+}> = [];
+const mockProviders: string[] = [];
+const mockRefetchModels = jest.fn(async () => {});
 jest.mock("../../../../hooks/useModelsByProvider", () => ({
-  useImageModelsByProvider: () => ({ models: [], isLoading: false })
+  useImageModelsByProvider: () => ({
+    models: mockImageModels,
+    providers: mockProviders,
+    isLoading: false,
+    isFetching: false,
+    error: null,
+    refetch: mockRefetchModels
+  })
 }));
 
 const createAsset = jest.fn(async (file: File) => ({
@@ -62,8 +79,21 @@ const seed = (setup?: SketchSetup): void => {
   });
 };
 
+const setModels = (
+  models: Array<{ type: string; id: string; name: string; provider: string }>
+): void => {
+  mockImageModels.splice(0, mockImageModels.length, ...models);
+  mockProviders.splice(
+    0,
+    mockProviders.length,
+    ...new Set(models.map((model) => model.provider))
+  );
+};
+
 beforeEach(() => {
   createAsset.mockClear();
+  mockRefetchModels.mockClear();
+  setModels([]);
   seed();
 });
 
@@ -133,13 +163,13 @@ describe("resume by stage (criterion 2)", () => {
   });
 });
 
+// The use case is one choice out of seven, so the cards are radios in a named
+// radio group, not buttons — `OptionCardGrid` reads that off `selectedId`.
 describe("use-case cards", () => {
   it("writes the use case, its variation count and its size", async () => {
     seed({ stage: "useCase", brief: "a dripper" });
     renderOverlay();
-    await userEvent.click(
-      screen.getByRole("button", { name: /Key art/ })
-    );
+    await userEvent.click(screen.getByRole("radio", { name: /Key art/ }));
     expect(useSketchStore.getState().document.setup).toMatchObject({
       use_case: "key-art",
       variations: 2
@@ -148,11 +178,18 @@ describe("use-case cards", () => {
       width: 683,
       height: 1024
     });
+    // The pick is visible as a pick, not only as a document write.
+    expect(screen.getByRole("radio", { name: /Key art/ })).toHaveAttribute(
+      "aria-checked",
+      "true"
+    );
   });
 
-  it("offers all seven", () => {
+  it("offers all seven in one radio group", () => {
     seed({ stage: "useCase", brief: "a dripper" });
     renderOverlay();
+    const group = screen.getByRole("radiogroup", { name: "Use case" });
+    expect(group).toBeInTheDocument();
     for (const title of [
       "Product shot",
       "Portrait",
@@ -163,7 +200,7 @@ describe("use-case cards", () => {
       "Texture"
     ]) {
       expect(
-        screen.getByRole("button", { name: new RegExp(title) })
+        screen.getByRole("radio", { name: new RegExp(title) })
       ).toBeInTheDocument();
     }
   });
@@ -195,15 +232,28 @@ describe("review step", () => {
     ).toBe("hard");
   });
 
-  it("offers 1, 2 and 4 variations and records the pick", async () => {
+  // The count is one choice of three, so the row is a radio group and the
+  // chosen count is checked — not three independent toggles (F26).
+  it("offers 1, 2 and 4 variations as one radio group and records the pick", async () => {
     seed(reviewing);
     renderOverlay();
-    const group = screen.getByRole("group", { name: "Variations" });
-    expect(
-      Array.from(group.querySelectorAll("[aria-pressed]")).length
-    ).toBe(3);
-    await userEvent.click(screen.getByText("2"));
+    const group = screen.getByRole("radiogroup", { name: "Variations" });
+    expect(within(group).getAllByRole("radio")).toHaveLength(3);
+    expect(within(group).getByRole("radio", { name: "4" })).toHaveAttribute(
+      "aria-checked",
+      "true"
+    );
+
+    await userEvent.click(within(group).getByRole("radio", { name: "2" }));
     expect(useSketchStore.getState().document.setup?.variations).toBe(2);
+    expect(within(group).getByRole("radio", { name: "2" })).toHaveAttribute(
+      "aria-checked",
+      "true"
+    );
+    expect(within(group).getByRole("radio", { name: "4" })).toHaveAttribute(
+      "aria-checked",
+      "false"
+    );
   });
 });
 
@@ -260,5 +310,97 @@ describe("step 1 alternatives (criterion 1)", () => {
     if (original) {
       Object.defineProperty(globalThis.Image.prototype, "src", original);
     }
+  });
+});
+
+/**
+ * F14 — the model list is a query with four answers, and the step says which
+ * one it got instead of showing an empty grid under a dead button.
+ * F28 — "No style" is a choice, so it is a tile that can look chosen.
+ */
+describe("look step", () => {
+  const atLook = (): void => {
+    seed({ stage: "look", brief: "a dripper", use_case: "product" });
+  };
+
+  it("explains an unconnected provider instead of showing an empty grid", () => {
+    atLook();
+    renderOverlay();
+    expect(
+      screen.getByText(/No image provider is connected/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Generate your image" })
+    ).toBeDisabled();
+  });
+
+  it("offers No style as a selectable option and records it", async () => {
+    atLook();
+    setModels([
+      { type: "image_model", id: "model-1", name: "Model One", provider: "prov" }
+    ]);
+    renderOverlay();
+
+    const noStyle = screen.getByRole("radio", { name: /No style/ });
+    await userEvent.click(noStyle);
+    expect(useSketchStore.getState().document.setup).toMatchObject({
+      style_entity_id: "no-style"
+    });
+    expect(
+      screen.getByRole("radio", { name: /No style/ })
+    ).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("persists the model choice on the document", async () => {
+    atLook();
+    setModels([
+      { type: "image_model", id: "model-1", name: "Model One", provider: "prov" }
+    ]);
+    renderOverlay();
+
+    await userEvent.click(screen.getByRole("radio", { name: /Model One/ }));
+    expect(useSketchStore.getState().document.setup).toMatchObject({
+      image_provider: "prov",
+      image_model: "model-1"
+    });
+    expect(
+      screen.getByRole("button", { name: "Generate your image" })
+    ).toBeEnabled();
+  });
+});
+
+/**
+ * F4 — the composer's reference images and entities travel on the document,
+ * and step 1 shows them, so the creator does not attach the same picture
+ * twice.
+ */
+describe("context carried from the composer", () => {
+  it("shows the attached references on the idea step", () => {
+    seed({
+      stage: "idea",
+      brief: "a dripper",
+      references: [
+        {
+          uri: "data:image/png;base64,AAA",
+          name: "counter.png",
+          type: "image/png"
+        }
+      ],
+      entity_ids: ["entity-1"]
+    });
+    renderOverlay();
+
+    expect(
+      screen.getByRole("heading", { name: "Came with your prompt" })
+    ).toBeInTheDocument();
+    expect(screen.getByAltText("counter.png")).toBeInTheDocument();
+  });
+
+  it("says nothing when the composer carried nothing", () => {
+    seed({ stage: "idea", brief: "a dripper" });
+    renderOverlay();
+    expect(
+      screen.queryByRole("heading", { name: "Came with your prompt" })
+    ).not.toBeInTheDocument();
   });
 });

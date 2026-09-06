@@ -10,24 +10,45 @@ import { stub } from "../../../../../test-utils/doubles";
 
 const blit = jest.fn();
 const composite = jest.fn(() => ({ texture: {}, drawn: 1 }));
+/** Every `GpuFrameCompositor` constructor call, so a test can drive `upload`. */
+const constructions: unknown[][] = [];
 
 jest.mock("@nodetool-ai/timeline/render", () => ({
-  GpuFrameCompositor: jest.fn().mockImplementation(() => ({
-    composite,
-    blit,
-    resize: jest.fn(),
-    setReferenceSize: jest.fn(),
-    dispose: jest.fn()
-  }))
+  GpuFrameCompositor: jest.fn().mockImplementation((...args: unknown[]) => {
+    constructions.push(args);
+    return {
+      composite,
+      blit,
+      resize: jest.fn(),
+      setReferenceSize: jest.fn(),
+      dispose: jest.fn()
+    };
+  })
 }));
 
+import type { CompositeSource } from "../types";
 import { WebGPUCompositor } from "../compositor";
+
+/** How the shared core asks this backend for a layer's texture. */
+type UploadSource = (
+  id: string,
+  source: CompositeSource
+) => { texture: unknown } | null;
+
+/** The `upload` callback the compositor handed the core it just built. */
+function lastUpload(): UploadSource {
+  const options = constructions[constructions.length - 1]?.[3];
+  return (options as { upload: UploadSource }).upload;
+}
 
 interface FakeGpu {
   device: GPUDevice;
   context: GPUCanvasContext;
   canvas: HTMLCanvasElement;
   configure: jest.Mock<(configuration: GPUCanvasConfiguration) => undefined>;
+  copyExternalImageToTexture: jest.Mock<
+    GPUQueue["copyExternalImageToTexture"]
+  >;
 }
 
 /**
@@ -37,10 +58,13 @@ interface FakeGpu {
 function fakeGpu(): FakeGpu {
   const configure =
     jest.fn<(configuration: GPUCanvasConfiguration) => undefined>();
+  const copyExternalImageToTexture =
+    jest.fn<GPUQueue["copyExternalImageToTexture"]>();
   const device = stub<GPUDevice>({
     createCommandEncoder: () =>
       stub<GPUCommandEncoder>({ finish: () => stub<GPUCommandBuffer>({}) }),
-    queue: stub<GPUQueue>({ submit() {} }),
+    createTexture: () => stub<GPUTexture>({ destroy() {} }),
+    queue: stub<GPUQueue>({ submit() {}, copyExternalImageToTexture }),
     destroy() {}
   });
   const context = stub<GPUCanvasContext>({
@@ -60,7 +84,17 @@ function fakeGpu(): FakeGpu {
       getPreferredCanvasFormat: () => "bgra8unorm"
     }
   });
-  return { device, context, canvas, configure };
+  // jsdom has no WebGPU globals, and a source upload reads the usage flags.
+  Object.defineProperty(globalThis, "GPUTextureUsage", {
+    configurable: true,
+    value: {
+      TEXTURE_BINDING: 1,
+      COPY_DST: 2,
+      COPY_SRC: 4,
+      RENDER_ATTACHMENT: 8
+    }
+  });
+  return { device, context, canvas, configure, copyExternalImageToTexture };
 }
 
 describe("WebGPUCompositor", () => {
@@ -69,6 +103,7 @@ describe("WebGPUCompositor", () => {
   beforeEach(() => {
     blit.mockClear();
     composite.mockClear();
+    constructions.length = 0;
   });
 
   afterEach(() => {
@@ -76,6 +111,7 @@ describe("WebGPUCompositor", () => {
       value: originalGpu,
       configurable: true
     });
+    Reflect.deleteProperty(globalThis, "GPUTextureUsage");
   });
 
   it("claims the canvas on the first present, not in init", async () => {
@@ -112,6 +148,47 @@ describe("WebGPUCompositor", () => {
     expect(gpu.configure).toHaveBeenCalledWith(
       expect.objectContaining({ device: gpu.device, format: "rgba8unorm" })
     );
+    compositor.dispose();
+  });
+
+  it("uploads an OffscreenCanvas source, and again on every frame", async () => {
+    // A 3D layer's session redraws into one canvas at one size, so the upload
+    // key cannot be the size: keying on it marks the first pose current and the
+    // model then holds it for the whole clip.
+    const gpu = fakeGpu();
+    const compositor = new WebGPUCompositor();
+    await compositor.init(gpu.canvas);
+    const upload = lastUpload();
+    const canvas = stub<OffscreenCanvas>({
+      width: 64,
+      height: 32,
+      getContext: (() => null) as OffscreenCanvas["getContext"]
+    });
+
+    expect(upload("m:clip-1", canvas)).not.toBeNull();
+    expect(gpu.copyExternalImageToTexture).toHaveBeenCalledWith(
+      { source: canvas, flipY: false },
+      expect.objectContaining({ premultipliedAlpha: false }),
+      { width: 64, height: 32 }
+    );
+
+    upload("m:clip-1", canvas);
+    expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(2);
+    compositor.dispose();
+  });
+
+  it("uploads an ImageBitmap once while its size holds", async () => {
+    // The contrast case for the one above: a rasterized bitmap is replaced when
+    // its pixels change, so re-uploading it every frame would be pure cost.
+    const gpu = fakeGpu();
+    const compositor = new WebGPUCompositor();
+    await compositor.init(gpu.canvas);
+    const upload = lastUpload();
+    const bitmap = stub<ImageBitmap>({ width: 64, height: 32 });
+
+    upload("t:clip-1", bitmap);
+    upload("t:clip-1", bitmap);
+    expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(1);
     compositor.dispose();
   });
 

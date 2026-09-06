@@ -20,10 +20,11 @@ import { useWriteScript } from "../useWriteScript";
 import { useScriptStore } from "../../../stores/script/ScriptStore";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import {
-  clearScriptImport,
   importedFromSubtitles,
   importedFromText,
-  setScriptImport
+  readScriptSource,
+  scriptSourcePatch,
+  type ImportedScript
 } from "../../../lib/script/importedScript";
 import { parseSrt } from "../../../lib/script/parseSrt";
 
@@ -47,13 +48,17 @@ const seed = (): void => {
 
 beforeEach(() => {
   rpcRequest.mockReset();
-  clearScriptImport(SCRIPT);
   useScriptStore.setState({ scripts: {}, history: {} } as never);
   useGlobalChatStore.setState({
     selectedModel: { type: "language_model", id: "claude-sonnet-5", provider: "anthropic" }
   } as never);
   seed();
 });
+
+/** Record a source on the document, the way step 1's imports do. */
+const setSource = (source: ImportedScript): void => {
+  useScriptStore.getState().setSetup(SCRIPT, scriptSourcePatch(source));
+};
 
 const scriptNow = () => useScriptStore.getState().getScript(SCRIPT)!;
 const linesNow = () => scriptNow().sections.flatMap((section) => section.lines);
@@ -100,7 +105,7 @@ describe("writeScript", () => {
   });
 
   it("keeps imported words verbatim, whatever the answer says", async () => {
-    setScriptImport(SCRIPT, importedFromText(IMPORTED));
+    setSource(importedFromText(IMPORTED));
     // The attribution call is answered by a model that ignored the schema and
     // sent back its own, tighter prose.
     rpcRequest.mockResolvedValue({
@@ -134,8 +139,11 @@ describe("writeScript", () => {
     expect(payload.schema_name).toBe("script_attribution");
   });
 
-  it("applies a Final Draft import with no model call at all", async () => {
-    setScriptImport(SCRIPT, {
+  it("applies a Final Draft import with no model call and no writer model", async () => {
+    setSource({
+      kind: "fdx",
+      preserve: "verbatim",
+      label: "Final Draft screenplay",
       lines: [
         { text: "Are you coming or not?", speakerName: "SOPHIA" },
         { text: "Give me a minute.", speakerName: "MARCUS", direction: "flat" }
@@ -144,6 +152,8 @@ describe("writeScript", () => {
       attributed: true,
       text: "Are you coming or not?\nGive me a minute."
     });
+    // No model is selected anywhere: an attributed import needs none (F16).
+    useGlobalChatStore.setState({ selectedModel: null } as never);
     const { result } = renderHook(() => useWriteScript());
 
     await act(async () => {
@@ -173,7 +183,7 @@ describe("writeScript", () => {
       "It goes round once a lunar day.",
       ""
     ].join("\n");
-    setScriptImport(SCRIPT, importedFromSubtitles(parseSrt(srt)));
+    setSource(importedFromSubtitles(parseSrt(srt)));
     const { result } = renderHook(() => useWriteScript());
 
     await act(async () => {
@@ -276,8 +286,8 @@ describe("writeScript", () => {
     expect(String(payload.prompt)).toContain(`[${kept.id}] Narrator:`);
   });
 
-  it("gives the import up on an explicit rewrite, keeping the review's edits", async () => {
-    setScriptImport(SCRIPT, importedFromText(IMPORTED));
+  it("gives the source up on an explicit rewrite, keeping the review's edits", async () => {
+    setSource(importedFromText(IMPORTED));
     rpcRequest.mockResolvedValue({
       text: "",
       data: {
@@ -315,6 +325,9 @@ describe("writeScript", () => {
       "It started as a weekend build.",
       "Then Tuesday happened."
     ]);
+    // The source is given up on the document, so a reload does not bring the
+    // old words back on the next write (F3).
+    expect(readScriptSource(scriptNow().setup ?? null)).toBeNull();
   });
 
   it("reports a refused run instead of throwing", async () => {

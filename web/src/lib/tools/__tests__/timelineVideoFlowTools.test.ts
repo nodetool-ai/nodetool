@@ -28,6 +28,7 @@ const handler = () => {
     setSetup: jest.fn(() => setup),
     planBeats: jest.fn(async () => setup.beats),
     updateBeat: jest.fn(() => setup.beats[0]),
+    removeBeat: jest.fn(() => setup.beats[0]),
     generateFromBeats: jest.fn(async () => ({
       videoClipIds: ["c1"],
       voiceoverClipIds: [],
@@ -121,6 +122,25 @@ describe("guided video flow tools", () => {
     register(stub);
     await call("ui_timeline_update_beat", { beat: "b1", transition: null });
     expect(stub.updateBeat).toHaveBeenCalledWith("b1", { transition: null });
+  });
+
+  // F20: the review tells a creator to drop a beat, so there is an op that
+  // does it — and headless parity (PRD § 6.5) says a tool reaches it too.
+  it("removes one beat by id or position and names what went", async () => {
+    const stub = handler();
+    register(stub);
+    const result = await call("ui_timeline_remove_beat", { beat: "1" });
+    expect(stub.removeBeat).toHaveBeenCalledWith("1");
+    expect(result).toMatchObject({ ok: true, removed: { id: "b1" } });
+  });
+
+  // F17: silence the creator chose and a line they have not written are
+  // different states, so the tool can say the first one.
+  it("writes a deliberate no-voiceover onto the setup", async () => {
+    const stub = handler();
+    register(stub);
+    await call("ui_timeline_set_setup", { voiceover: false });
+    expect(stub.setSetup).toHaveBeenCalledWith({ voiceover: false });
   });
 
   it("generates from the plan and reports what it made", async () => {

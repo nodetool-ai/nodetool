@@ -95,6 +95,14 @@ export interface AnimationSample {
   temperature: number;
   /** -1..1, add to the grade's green→magenta term (identity 0) */
   tint: number;
+  /** degrees, add to a `model3d` clip's orbit azimuth (identity 0) */
+  cameraAzimuth: number;
+  /** degrees, add to a `model3d` clip's orbit elevation (identity 0) */
+  cameraElevation: number;
+  /** multiply a `model3d` clip's framing distance multiplier (identity 1) */
+  cameraZoom: number;
+  /** degrees, add to a `model3d` clip's field of view (identity 0) */
+  cameraFov: number;
   /** canvas px, replaces transform.position.x. Absent = clip's own value. */
   positionX?: number;
   /** canvas px, replaces transform.position.y. Absent = clip's own value. */
@@ -133,7 +141,11 @@ export function createAnimationSample(): AnimationSample {
     contrast: 1,
     hue: 0,
     temperature: 0,
-    tint: 0
+    tint: 0,
+    cameraAzimuth: 0,
+    cameraElevation: 0,
+    cameraZoom: 1,
+    cameraFov: 0
   };
 }
 
@@ -162,6 +174,10 @@ export function isIdentitySample(s: AnimationSample): boolean {
     s.hue === 0 &&
     s.temperature === 0 &&
     s.tint === 0 &&
+    s.cameraAzimuth === 0 &&
+    s.cameraElevation === 0 &&
+    s.cameraZoom === 1 &&
+    s.cameraFov === 0 &&
     s.mask === undefined &&
     s.replacedBy === undefined
   );
@@ -182,6 +198,10 @@ function resetIdentity(s: AnimationSample): AnimationSample {
   s.hue = 0;
   s.temperature = 0;
   s.tint = 0;
+  s.cameraAzimuth = 0;
+  s.cameraElevation = 0;
+  s.cameraZoom = 1;
+  s.cameraFov = 0;
   s.positionX = undefined;
   s.positionY = undefined;
   s.anchorX = undefined;
@@ -363,6 +383,9 @@ function clampSample(acc: AnimationSample): AnimationSample {
   else if (acc.temperature > 1) acc.temperature = 1;
   if (acc.tint < -1) acc.tint = -1;
   else if (acc.tint > 1) acc.tint = 1;
+  // A negative zoom would put the camera behind the model, which no renderer
+  // can draw; overshoot easings reach one the way they reach a negative scale.
+  if (acc.cameraZoom < 0) acc.cameraZoom = 0;
   acc.trimStart = clampUnit(acc.trimStart);
   acc.trimEnd = clampUnit(acc.trimEnd);
   return acc;

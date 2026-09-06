@@ -32,7 +32,10 @@ import { STUDIO_ENTRY_CARDS } from "../components/setup/entryCards";
 import { newStoryboardSetupDocument } from "../components/setup/storyboard/useStoryboardSetupFlow";
 import { useCreateStoryboard } from "../hooks/storyboard/useStoryboards";
 import { useCreateScript } from "../hooks/script/useScripts";
-import { useCreateTimeline } from "../hooks/useTimelineSequence";
+import {
+  useCreateTimeline,
+  useSeedTimelineDetail
+} from "../hooks/useTimelineSequence";
 import { newScriptSetupDocument } from "../components/setup/script/useScriptSetupFlow";
 import { newVideoSetupDocument } from "../components/setup/video/useVideoSetupFlow";
 import { trpcClient } from "../trpc/client";
@@ -141,6 +144,7 @@ const StudioHome = () => {
   const createStoryboard = useCreateStoryboard();
   const createScript = useCreateScript();
   const createTimeline = useCreateTimeline();
+  const seedTimelineDetail = useSeedTimelineDetail();
   const [creating, setCreating] = useState<StudioDocumentKind | null>(null);
 
   const { projects } = useStudioProjects();
@@ -214,17 +218,20 @@ const StudioHome = () => {
         projectId: creationProjectId()
       })
       .then(async (created) => {
-        await trpcClient.timeline.update.mutate({
+        const withSetup = await trpcClient.timeline.update.mutate({
           id: created.id,
           document: newVideoSetupDocument("")
         });
+        // The create seeded the detail cache with a setup-less sequence; the
+        // timeline page must not load that copy (see `useSeedTimelineDetail`).
+        seedTimelineDetail(withSetup);
         navigate(`/studio/timeline/${created.id}`);
       })
       .finally(() => {
         creatingRef.current = false;
         setCreating(null);
       });
-  }, [createTimeline, navigate]);
+  }, [createTimeline, navigate, seedTimelineDetail]);
 
   const handleEntryCard = useCallback(
     (id: string) => {

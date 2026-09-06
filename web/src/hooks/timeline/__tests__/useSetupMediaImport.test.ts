@@ -55,10 +55,35 @@ describe("importSetupMedia (criterion 1)", () => {
     expect(picture.map((clip) => clip.startMs)).toEqual([0, 2000]);
   });
 
-  it("moves the flow on to the format step", async () => {
+  it("moves the flow on to the format step once there is a brief", async () => {
     const store = createTimelineStore();
-    await importSetupMedia(store, [asset("only", "image/png")]);
+    store.getState().setSetup({ stage: "idea", brief: "a paper boat" });
+    const result = await importSetupMedia(store, [asset("only", "image/png")]);
+    expect(result.advanced).toBe(true);
     expect(store.getState().setup?.stage).toBe("format");
+  });
+
+  // F10: step 2 ends in the Director, which refuses an empty brief. Footage
+  // dropped with nothing said about it stays on step 1 rather than landing on
+  // a button that cannot run.
+  it("stays on the idea step when nothing says what to make of the footage", async () => {
+    const store = createTimelineStore();
+    store.getState().setSetup({ stage: "idea", brief: "  " });
+    const result = await importSetupMedia(store, [asset("only", "image/png")]);
+    expect(result.advanced).toBe(false);
+    expect(store.getState().setup?.stage).toBe("idea");
+    expect(store.getState().clips.length).toBe(1);
+  });
+
+  it("reports what it placed, in drop order", async () => {
+    const store = createTimelineStore();
+    const result = await importSetupMedia(store, [
+      asset("one", "image/png"),
+      asset("notes", "application/pdf"),
+      asset("two", "audio/wav")
+    ]);
+    expect(result.placed.map((a) => a.id)).toEqual(["one", "two"]);
+    expect(result.skipped.map((a) => a.id)).toEqual(["notes"]);
   });
 
   it("puts audio on an audio track and pictures on a video track", async () => {

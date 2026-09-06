@@ -145,7 +145,9 @@ default 12), `colorFade` (600ms, grayscale blooming into color).
 `loop` — `kenBurns` (3000ms; `zoom` 0–1 default 0.12, `direction` in/out,
 `driftX`/`driftY` −0.2–0.2), `float` (3000ms; `amplitude` 0–0.2), `breathe`
 (3000ms; `intensity` 0–0.3), `rotate` (3000ms; `direction` cw/ccw),
-`hueShift` (3000ms; `direction` forward/reverse).
+`hueShift` (3000ms; `direction` forward/reverse), `orbit` (3000ms; `degrees`
+default 360, `direction` cw/ccw) — which sweeps a 3D clip's camera and does
+nothing on any other clip.
 
 Easing: `linear`, `easeIn`, `easeOut`, `easeInOut`, `easeOutBack`,
 `easeOutElastic`, `easeOutBounce`. Unset means the preset's own default, and

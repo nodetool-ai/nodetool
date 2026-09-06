@@ -101,6 +101,26 @@ export function renderAnimation(inputs: RenderAnimationInputs): DslNode<RenderAn
   return createNode("nodetool.blender.RenderAnimation", inputs, { outputNames: ["video"], defaultOutput: "video" });
 }
 
+// Bake 3D Timeline Clip — nodetool.blender.BakeTimelineClip
+export type BakeTimelineClipInputs = {
+  model?: Connectable<unknown>;
+  frame_times?: Connectable<unknown[]>;
+  cameras?: Connectable<unknown[]>;
+  animation_name?: Connectable<string>;
+  width?: Connectable<number>;
+  height?: Connectable<number>;
+  fps?: Connectable<number>;
+  timeout?: Connectable<number>;
+};
+
+export interface BakeTimelineClipOutputs {
+  video: VideoRef;
+}
+
+export function bakeTimelineClip(inputs: BakeTimelineClipInputs): DslNode<BakeTimelineClipOutputs, "video"> {
+  return createNode("nodetool.blender.BakeTimelineClip", inputs, { outputNames: ["video"], defaultOutput: "video" });
+}
+
 // Prepare 3D Model For Engine — nodetool.blender.PrepareForEngine
 export type PrepareForEngineInputs = {
   model?: Connectable<unknown>;

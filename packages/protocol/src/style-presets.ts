@@ -10,9 +10,11 @@
  * The list lives in protocol because two sides read it: the server seeds rows
  * from it, and the setup flow's style step renders tiles from the same order.
  *
- * `thumbnail` is the `package://` path the tile art is served from. The art is
- * not shipped yet — a tile whose thumbnail does not resolve falls back to a
- * typographic sample, so the step works with or without the files.
+ * `thumbnail` is the `package://` path the tile art is served from. Each file
+ * ships under `packages/base-nodes/nodetool/assets/nodetool-base/styles/`, and
+ * every sample renders the same street corner so the grid compares styles
+ * rather than subjects. A tile whose thumbnail does not resolve falls back to a
+ * typographic sample, so a new preset works before its art is drawn.
  */
 
 import { z } from "zod";

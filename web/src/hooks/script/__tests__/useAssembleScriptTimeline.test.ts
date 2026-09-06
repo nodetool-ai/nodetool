@@ -81,6 +81,27 @@ describe("useAssembleScriptTimeline", () => {
     expect(getQuery).not.toHaveBeenCalled();
   });
 
+  it("puts the sequence in the script's own project", async () => {
+    // A script started from the video flow lives in the project that flow
+    // created, which is not necessarily the active workspace project (F4).
+    seedVoicedScript("script-1", null);
+    (trpcClient.scripts.get.query as jest.Mock).mockResolvedValue({
+      id: "script-1",
+      projectId: "proj-from-video"
+    });
+    createMutate.mockResolvedValue({ id: "tl-new" });
+    updateMutate.mockResolvedValue({});
+
+    const { result } = renderHook(() => useAssembleScriptTimeline());
+    await act(async () => {
+      await result.current.assemble("script-1");
+    });
+
+    expect(createMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: "proj-from-video" })
+    );
+  });
+
   it("throws when no line is voiced", async () => {
     useScriptStore.getState().loadScript("script-2", {
       title: "Empty",

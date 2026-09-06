@@ -173,7 +173,7 @@ export function useTimelineExport(): UseTimelineExportResult {
           throw new Error("Add a clip before exporting.");
         }
 
-        const { bytes, mimeType, extension } = await renderTimeline({
+        const { bytes, mimeType, extension, degradations } = await renderTimeline({
           tracks: state.tracks,
           clips: state.clips,
           width: state.width,
@@ -187,6 +187,18 @@ export function useTimelineExport(): UseTimelineExportResult {
           signal: controller.signal,
           onProgress: handleProgress
         });
+        // A 3D clip whose alpha bake this browser could not play was drawn
+        // from its live proxy instead, so the file is not quite the baked
+        // picture — said once, rather than left to be noticed (§R6).
+        if (degradations.length > 0) {
+          useNotificationStore.getState().addNotification({
+            type: "warning",
+            content:
+              `${degradations.length} baked 3D clip` +
+              `${degradations.length === 1 ? "" : "s"} could not be decoded ` +
+              "in this browser and rendered from the live 3D layer instead."
+          });
+        }
         await sink(
           bytes,
           mimeType,

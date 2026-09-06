@@ -43,6 +43,23 @@ interface UseAssembleScriptTimelineResult {
   error: string | null;
 }
 
+/**
+ * The project the assembled sequence belongs in: the script's own, so a script
+ * started from the video flow's "Start from a script" card sends its timeline
+ * back to the project it was created in (PRD § 8.1). The active workspace
+ * project stands in when the script has no server copy to ask.
+ */
+async function sequenceProjectId(scriptId: string): Promise<string> {
+  try {
+    const script = await trpcClient.scripts.get.query({ id: scriptId });
+    return script.projectId;
+  } catch {
+    // A script that is not on the server yet: the active project is the only
+    // answer there is, and it is the one this call has always used.
+    return creationProjectId();
+  }
+}
+
 export const useAssembleScriptTimeline =
   (): UseAssembleScriptTimelineResult => {
     const [assembling, setAssembling] = useState(false);
@@ -114,7 +131,7 @@ export const useAssembleScriptTimeline =
           const sequence = await trpcClient.timeline.create.mutate({
             id: newDocumentId(),
             name,
-            projectId: creationProjectId()
+            projectId: await sequenceProjectId(scriptId)
           });
           await trpcClient.timeline.update.mutate({
             id: sequence.id,

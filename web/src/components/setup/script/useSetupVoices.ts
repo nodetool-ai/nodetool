@@ -8,7 +8,7 @@
  * a creator is choosing.
  */
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { trpc } from "../../../lib/trpc";
@@ -29,11 +29,26 @@ export interface SetupVoice {
 export interface SetupVoicesResult {
   voices: SetupVoice[];
   loading: boolean;
+  /** Why the lookup failed, when it did. */
+  error: string | null;
+  /** Run the lookup again. */
+  retry: () => void;
+  /**
+   * True when the lookup succeeded and no provider offers a voice — nothing to
+   * wait for and nothing to retry, only a provider to connect.
+   */
+  noProvider: boolean;
 }
 
 export function useSetupVoices(): SetupVoicesResult {
   const inStudio = useInStudio();
-  const { data: models, isLoading } = useQuery({
+  const {
+    data: models,
+    isLoading,
+    isError,
+    error,
+    refetch
+  } = useQuery({
     queryKey: ["tts-models"],
     queryFn: () => trpc.models.tts.query() as Promise<TTSModel[]>,
     enabled: !inStudio
@@ -60,7 +75,23 @@ export function useSetupVoices(): SetupVoicesResult {
     );
   }, [inStudio, models]);
 
-  return { voices, loading: !inStudio && isLoading };
+  const retry = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
+  return {
+    voices,
+    loading: !inStudio && isLoading,
+    error:
+      !inStudio && isError
+        ? error instanceof Error
+          ? error.message
+          : "The voice list could not be loaded."
+        : null,
+    retry,
+    noProvider:
+      !inStudio && !isLoading && !isError && voices.length === 0
+  };
 }
 
 export default useSetupVoices;

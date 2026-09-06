@@ -46,6 +46,15 @@ const styles = (theme: Theme, isDragging: boolean) =>
     "--workspace-rail-top": "0px",
     backgroundColor: "var(--c_editor_bg_color)",
 
+    // Only a visible tab can suppress workspace chrome. Panel preferences
+    // stay untouched and reappear when the flow finishes or the tab changes.
+    "&:has(.tab-layer:not([inert]) [data-setup-flow])": {
+      "& .panel-left-container, & .panel-left-mobile-launcher": {
+        display: "none"
+      },
+      "& .workspace-content": { marginLeft: "0 !important" }
+    },
+
     "& .workspace-main": {
       flex: 1,
       display: "flex",

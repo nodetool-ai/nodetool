@@ -114,6 +114,18 @@ const WORKFLOW_PLAN_SUITES =
   "npm run test --workspace=web -- src/components/setup/workflow src/hooks/workflow src/lib/tools/builtin/__tests__/workflowSetupTools";
 
 /**
+ * The 3D-clip suites: the render session `model3d` layers draw through in the
+ * browser, and the headless pre-pass that draws them for
+ * `preview_timeline_frame`. One constant so the entry's `command` and its
+ * `selfcheck` cannot drift.
+ *
+ * Vitest takes these positional arguments as file-path filters.
+ */
+const TIMELINE_MODEL3D_SUITES =
+  "npm run test --workspace=packages/video-nodes -- model3d-render && " +
+  "npm run test --workspace=packages/agents -- timeline-model3d-frames";
+
+/**
  * The per-capability contract suites. One constant because the entry's
  * `command` and its `selfcheck` must not drift — a selfcheck that runs less
  * than the command it stands for reports green on code it never executed.
@@ -292,6 +304,22 @@ export const HARNESSES: HarnessEntry[] = [
     capabilities: ["json"],
     agentTool: "restore_timeline_version",
     docs: "docs/harnesses.md § nodetool timeline versions"
+  },
+  {
+    id: "timeline-model3d",
+    title: "3D clips on the timeline (render session, headless preview frames)",
+    // No CLI command owns it: a 3D layer is drawn by the browser preview and,
+    // on the server, by the headless pre-pass behind `preview_timeline_frame`.
+    // The checked-in suites are the headless surface — the session's pure
+    // parts and the pre-pass's grouping, fallback and layer report, with no
+    // key, no database and no server. The Chromium half of the render suite
+    // skips without Chrome, as it did before the timeline used it.
+    command: TIMELINE_MODEL3D_SUITES,
+    kind: "static",
+    capabilities: ["no-db"],
+    agentTool: "preview_timeline_frame",
+    docs: "docs/harnesses.md § 3D clips in preview_timeline_frame",
+    selfcheck: { command: TIMELINE_MODEL3D_SUITES, cost: "cheap" }
   },
   {
     id: "sketch-validate",
@@ -895,6 +923,21 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/agents/src/tools/timeline-version-tools.ts",
       "packages/models/src/timeline-sequence-version.ts",
       "packages/websocket/src/trpc/routers/timeline.ts"
+    ]
+  },
+  {
+    id: "timeline-model3d",
+    title: "3D clips on the timeline (render session, camera channels, bake)",
+    harnesses: ["timeline-model3d", "capability-suites"],
+    // Overlaps the surfaces that claim these trees wholesale — `domain-nodes`
+    // (packages/video-nodes/), `workflow-authoring` (packages/agents/) and
+    // `web-editor` (web/) — so a diff here runs their checks as well.
+    paths: [
+      "packages/video-nodes/src/nodes/model3d/",
+      "packages/agents/src/timeline-preview/",
+      "web/src/components/timeline/preview/Model3DLayerSource.ts",
+      "web/src/components/timeline/preview/bakeDecoding.ts",
+      "web/src/components/timeline/Tracks/model3dClipFrames.ts"
     ]
   },
   {

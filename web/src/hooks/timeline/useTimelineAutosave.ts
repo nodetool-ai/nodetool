@@ -3,7 +3,7 @@
  *
  * Subscribes to the document slice of `TimelineStore` and PATCHes the
  * persisted sequence via `trpc.timeline.update` whenever the user mutates
- * tracks / clips / markers / transcript / tempo.
+ * tracks / clips / markers / transcript / tempo / setup.
  *
  * Robustness:
  *   - Debounces saves so a burst of edits coalesces into one PATCH.
@@ -277,6 +277,9 @@ export function useTimelineAutosave(
     let lastScriptEnabled: TimelineStoreState["scriptEnabled"] =
       initial.scriptEnabled;
     let lastTempo: TimelineStoreState["tempo"] = initial.tempo;
+    // Setup-only edits — removing a beat, switching voiceover off — change no
+    // other slice, so without this they never reach the debounce.
+    let lastSetup: TimelineStoreState["setup"] = initial.setup;
 
     const dirtyProbe: DirtyProbe = (sequenceId) => {
       const state = store.getState();
@@ -302,7 +305,8 @@ export function useTimelineAutosave(
         state.markers === lastMarkers &&
         state.transcript === lastTranscript &&
         state.scriptEnabled === lastScriptEnabled &&
-        state.tempo === lastTempo;
+        state.tempo === lastTempo &&
+        state.setup === lastSetup;
       if (docUnchanged) return;
       const isLoad = state.sequenceId !== lastSequenceId;
       lastSequenceId = state.sequenceId;
@@ -312,6 +316,7 @@ export function useTimelineAutosave(
       lastTranscript = state.transcript;
       lastScriptEnabled = state.scriptEnabled;
       lastTempo = state.tempo;
+      lastSetup = state.setup;
       if (isLoad && !consumeMigratedLoad(state.sequenceId)) {
         // Loading a sequence is not an edit: re-baseline without scheduling
         // a redundant PATCH of the document we just fetched. Record it as the

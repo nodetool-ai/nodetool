@@ -15,8 +15,19 @@ import type { LayerVersion } from "@nodetool-ai/image-editor";
 jest.mock("../../../../hooks/useResolvedMediaUri");
 
 const start = jest.fn(async (_layerId: string) => {});
+/** The reasons the hook would have recorded for this batch's layers. */
+const mockFailures = new Map<
+  string,
+  { kind: string; message: string; detail: string }
+>();
 jest.mock("../../../../hooks/sketch/useDirectGenJob", () => ({
-  useDirectGenJob: () => ({ start, cancel: jest.fn() })
+  useDirectGenJob: () => ({ start, cancel: jest.fn() }),
+  directGenFailure: (layerId: string) => mockFailures.get(layerId) ?? null,
+  describeDirectGenFailure: (failure: {
+    message: string;
+    detail: string;
+  }): string =>
+    failure.detail ? `${failure.message} (${failure.detail})` : failure.message
 }));
 
 import mockTheme from "../../../../__mocks__/themeMock";
@@ -73,13 +84,18 @@ const seedBatch = (): string[] => {
 
 const onPick = jest.fn();
 const onMakeMore = jest.fn();
-const onUseInStoryboard = jest.fn();
+const onSaveToLibrary = jest.fn(async (_layerId: string) => {});
+const onBackToSettings = jest.fn();
+const onOpenEditor = jest.fn();
 
 beforeEach(() => {
   onPick.mockClear();
   onMakeMore.mockClear();
-  onUseInStoryboard.mockClear();
+  onSaveToLibrary.mockClear();
+  onBackToSettings.mockClear();
+  onOpenEditor.mockClear();
   start.mockClear();
+  mockFailures.clear();
 });
 
 describe("ContactSheet Pick (criterion 5)", () => {
@@ -91,7 +107,9 @@ describe("ContactSheet Pick (criterion 5)", () => {
           layerIds={layerIds}
           onPick={onPick}
           onMakeMore={onMakeMore}
-          onUseInStoryboard={onUseInStoryboard}
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
         />
       </ThemeProvider>
     );
@@ -130,7 +148,9 @@ describe("ContactSheet Pick (criterion 5)", () => {
           layerIds={layerIds}
           onPick={onPick}
           onMakeMore={onMakeMore}
-          onUseInStoryboard={onUseInStoryboard}
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
         />
       </ThemeProvider>
     );
@@ -147,7 +167,7 @@ describe("ContactSheet Pick (criterion 5)", () => {
     ).toBe(true);
   });
 
-  it("offers the strip's two follow-ups", async () => {
+  it("offers the strip's follow-ups", async () => {
     const layerIds = seedBatch();
     render(
       <ThemeProvider theme={mockTheme}>
@@ -155,7 +175,9 @@ describe("ContactSheet Pick (criterion 5)", () => {
           layerIds={layerIds}
           onPick={onPick}
           onMakeMore={onMakeMore}
-          onUseInStoryboard={onUseInStoryboard}
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
         />
       </ThemeProvider>
     );
@@ -164,8 +186,164 @@ describe("ContactSheet Pick (criterion 5)", () => {
     );
     expect(onMakeMore).toHaveBeenCalled();
     await userEvent.click(
-      screen.getByRole("button", { name: "Use in a storyboard" })
+      screen.getByRole("button", { name: "Save to reference library" })
     );
-    expect(onUseInStoryboard).toHaveBeenCalledWith(layerIds[3]);
+    expect(onSaveToLibrary).toHaveBeenCalledWith(layerIds[3]);
+  });
+});
+
+/**
+ * F7 — a batch that renders nothing is the one state `Pick` cannot leave, so
+ * the sheet keeps two exits and a retry per variation, and says out loud how
+ * many landed.
+ */
+describe("a failed batch", () => {
+  /** Four requests, all refused, as `useDirectGenJob` leaves them. */
+  const seedFailedBatch = (): string[] => {
+    const layerIds = seedBatch();
+    act(() => {
+      const bindings = useSketchSessionStore.getState().bindings;
+      useSketchSessionStore.setState({
+        bindings: Object.fromEntries(
+          Object.entries(bindings).map(([layerId, binding]) => [
+            layerId,
+            { ...binding, status: "failed", currentAssetId: undefined }
+          ])
+        )
+      } as never);
+    });
+    return layerIds;
+  };
+
+  const renderSheet = (layerIds: string[]) =>
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ContactSheet
+          layerIds={layerIds}
+          onPick={onPick}
+          onMakeMore={onMakeMore}
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
+        />
+      </ThemeProvider>
+    );
+
+  it("leaves two ways out when nothing rendered", async () => {
+    const layerIds = seedFailedBatch();
+    renderSheet(layerIds);
+
+    // Every Pick is dead, which is exactly why the exits have to exist.
+    for (const pick of screen.getAllByRole("button", { name: "Pick" })) {
+      expect(pick).toBeDisabled();
+    }
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Back to generation settings" })
+    );
+    expect(onBackToSettings).toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Open editor" }));
+    expect(onOpenEditor).toHaveBeenCalled();
+  });
+
+  it("announces the counts and retries one variation", async () => {
+    const layerIds = seedFailedBatch();
+    renderSheet(layerIds);
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "0 of 4 rendered · 4 failed"
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Try Variation 2 again" })
+    );
+    expect(start).toHaveBeenCalledWith(layerIds[1]);
+  });
+});
+
+/**
+ * F7 — the reason the take gave is what the creator acts on. A quota and a
+ * refused prompt need different remedies, so the sheet renders the difference
+ * rather than "failed" four times.
+ */
+describe("failure reasons", () => {
+  const renderSheet = (layerIds: string[]) =>
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ContactSheet
+          layerIds={layerIds}
+          onPick={onPick}
+          onMakeMore={onMakeMore}
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
+        />
+      </ThemeProvider>
+    );
+
+  /** One landed, two failed for different reasons. */
+  const seedMixedBatch = (): string[] => {
+    const layerIds = seedBatch();
+    act(() => {
+      const bindings = useSketchSessionStore.getState().bindings;
+      useSketchSessionStore.setState({
+        bindings: {
+          ...bindings,
+          [layerIds[1]]: {
+            ...bindings[layerIds[1]],
+            status: "failed",
+            currentAssetId: undefined
+          },
+          [layerIds[2]]: {
+            ...bindings[layerIds[2]],
+            status: "failed",
+            currentAssetId: undefined
+          }
+        }
+      } as never);
+    });
+    mockFailures.set(layerIds[1], {
+      kind: "quota",
+      message:
+        "The provider turned the request away for now. Wait a moment, or use another model.",
+      detail: "You exceeded your quota"
+    });
+    mockFailures.set(layerIds[2], {
+      kind: "refused",
+      message: "The provider refused this prompt. Reword it and try again.",
+      detail: "content policy"
+    });
+    return layerIds;
+  };
+
+  it("shows each reason beside its own retry", () => {
+    renderSheet(seedMixedBatch());
+    expect(screen.getByText(/You exceeded your quota/)).toBeInTheDocument();
+    expect(screen.getByText(/Reword it and try again/)).toBeInTheDocument();
+  });
+
+  it("says a shared reason once", () => {
+    const layerIds = seedBatch();
+    act(() => {
+      const bindings = useSketchSessionStore.getState().bindings;
+      useSketchSessionStore.setState({
+        bindings: Object.fromEntries(
+          Object.entries(bindings).map(([layerId, binding]) => [
+            layerId,
+            { ...binding, status: "failed", currentAssetId: undefined }
+          ])
+        )
+      } as never);
+    });
+    for (const layerId of layerIds) {
+      mockFailures.set(layerId, {
+        kind: "auth",
+        message:
+          "The provider rejected the request as unauthorized. Check its API key in Settings.",
+        detail: "invalid api key"
+      });
+    }
+    renderSheet(layerIds);
+    expect(screen.getAllByText(/invalid api key/)).toHaveLength(1);
   });
 });

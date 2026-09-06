@@ -31,6 +31,7 @@ import {
 } from "../../ui_primitives";
 import type { StatusType } from "../../ui_primitives";
 import { useClipThumbnails } from "./useClipThumbnails";
+import { useModel3DClipThumbnails } from "./useModel3DClipThumbnails";
 import { useAudioPeaks } from "./useAudioPeaks";
 import { samplePeaksWindow } from "./audioPeaks";
 import { clipSurfaceTint, clipBorderTint } from "./trackVisuals";
@@ -612,7 +613,17 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     // leaves the tempo alone does not re-render every clip.
     const bpm = useTimelineStore((s) => resolveTempo(s).bpm);
 
-    const thumbnails = useClipThumbnails(videoUrl);
+    const videoThumbnails = useClipThumbnails(videoUrl);
+    // A 3D clip has no video to seek: its strip is rendered from the glTF, at
+    // the same source times a video clip's cells are picked at.
+    const sequenceWidth = useTimelineStore((s) => s.width);
+    const sequenceHeight = useTimelineStore((s) => s.height);
+    const model3dThumbnails = useModel3DClipThumbnails(
+      clip,
+      sequenceWidth,
+      sequenceHeight
+    );
+    const thumbnails = videoThumbnails ?? model3dThumbnails;
     const cellCount = Math.max(1, Math.floor(widthPx / FILMSTRIP_CELL_PX));
     const { inPointMs, outPointMs } = clipSourceWindow(clip);
 
@@ -624,11 +635,17 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     // Stripe the tail that runs past the source, once it is at least a cell
     // wide. The source length is estimated from the sample spacing, so a
     // sub-cell overflow is within that estimate's error and stays unmarked.
+    // A 3D clip is exempt: its samples are spread over the clip's own window,
+    // so they say nothing about where the glTF's animation ends.
     const beyondSourceWidthPct = useMemo(() => {
-      if (!thumbnails || thumbnails.length === 0) return 0;
-      const fraction = beyondSourceFraction(thumbnails, inPointMs, outPointMs);
+      if (!videoThumbnails || videoThumbnails.length === 0) return 0;
+      const fraction = beyondSourceFraction(
+        videoThumbnails,
+        inPointMs,
+        outPointMs
+      );
       return fraction * widthPx >= FILMSTRIP_CELL_PX ? fraction * 100 : 0;
-    }, [thumbnails, inPointMs, outPointMs, widthPx]);
+    }, [videoThumbnails, inPointMs, outPointMs, widthPx]);
 
     const accent = (() => {
       switch (clip.mediaType) {

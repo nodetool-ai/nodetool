@@ -37,6 +37,14 @@ export interface RankConfig<T> {
   includeCandidateOnlyMatches?: boolean;
   /** Tie-break when scores are equal. Defaults to lexicographic keyFn order. */
   tieBreak?: (a: T, b: T) => number;
+  /**
+   * When a query matches nothing literally, score it again ignoring the
+   * separators between words and allowing a subsequence. Off by default: it
+   * changes an empty result into a ranked guess, which is right for a picker
+   * over thousands of machine-named models and wrong where an empty result is
+   * the answer.
+   */
+  fuzzyFallback?: boolean;
 }
 
 interface Scored<T> {
@@ -45,6 +53,16 @@ interface Scored<T> {
 }
 
 const DEFAULT_EXACT_TOKEN_BONUS = 2;
+/**
+ * How much of a field's weight a loose match is worth. Both are below 1, so a
+ * fuzzy hit can never outrank a literal one — and the fuzzy pass only runs
+ * when the literal pass found nothing at all, so ordinary queries are scored
+ * exactly as before.
+ */
+const SQUASHED_MATCH_WEIGHT = 0.6;
+const SUBSEQUENCE_MATCH_WEIGHT = 0.3;
+/** Below this a subsequence match is noise: "ai" is inside half the catalog. */
+const MIN_SUBSEQUENCE_TERM_LENGTH = 4;
 const DEFAULT_RECENT_BONUS = 10;
 const DEFAULT_BOOSTED_BONUS = 6;
 
@@ -59,6 +77,22 @@ const getCandidateBoost = (
 ): number => {
   if (!source) return 0;
   return isReadonlyMap(source) ? source.get(key) ?? 0 : source[key] ?? 0;
+};
+
+/** Drops the separators that split one model's name from another's id. */
+const squash = (value: string): string =>
+  value.toLowerCase().replace(/[\s._\-/]+/g, "");
+
+/** True when every character of `term` appears in `text`, in order. */
+const isSubsequence = (text: string, term: string): boolean => {
+  let index = 0;
+  for (const char of text) {
+    if (char === term[index]) {
+      index += 1;
+      if (index === term.length) return true;
+    }
+  }
+  return false;
 };
 
 export function searchTermsFromQuery(query: string): string[] {
@@ -100,10 +134,46 @@ function fieldScore(
   return score;
 }
 
+/**
+ * The second pass. A model's name is written for a reader ("Minimax H3Max
+ * Turbo Image To Video") while its id is written for a machine
+ * ("minimax/h3-max-turbo/image-to-video"), so a creator typing what they
+ * remember — "h3maxturbo", "h3 max turbo pro" — can match neither. Squashing
+ * the separators out of both sides catches the first case; a subsequence
+ * catches an abbreviation or a dropped character.
+ */
+function looseFieldScore(
+  field: string | undefined,
+  lowerTerms: readonly string[],
+  weight: number
+): number {
+  if (!field) return 0;
+  const squashed = squash(field);
+  if (squashed.length === 0) return 0;
+
+  let score = 0;
+  for (const term of lowerTerms) {
+    const squashedTerm = squash(term);
+    if (squashedTerm.length === 0) continue;
+    if (squashed.includes(squashedTerm)) {
+      score += weight * SQUASHED_MATCH_WEIGHT;
+      continue;
+    }
+    if (
+      squashedTerm.length >= MIN_SUBSEQUENCE_TERM_LENGTH &&
+      isSubsequence(squashed, squashedTerm)
+    ) {
+      score += weight * SUBSEQUENCE_MATCH_WEIGHT;
+    }
+  }
+  return score;
+}
+
 function scoreItem<T>(
   item: T,
   lowerTerms: readonly string[],
-  config: RankConfig<T>
+  config: RankConfig<T>,
+  loose = false
 ): number {
   if (lowerTerms.length === 0) return 0;
 
@@ -111,7 +181,9 @@ function scoreItem<T>(
 
   let raw = 0;
   for (const field of config.fields) {
-    raw += fieldScore(field.get(item), lowerTerms, field.weight, exactBonus);
+    raw += loose
+      ? looseFieldScore(field.get(item), lowerTerms, field.weight)
+      : fieldScore(field.get(item), lowerTerms, field.weight, exactBonus);
   }
 
   if (raw === 0) return 0;
@@ -123,6 +195,19 @@ export function rank<T>(
   items: readonly T[],
   terms: readonly string[],
   config: RankConfig<T>
+): Scored<T>[] {
+  const strict = rankPass(items, terms, config, false);
+  if (strict.length > 0 || config.fuzzyFallback !== true) {
+    return strict;
+  }
+  return rankPass(items, terms, config, true);
+}
+
+function rankPass<T>(
+  items: readonly T[],
+  terms: readonly string[],
+  config: RankConfig<T>,
+  loose: boolean
 ): Scored<T>[] {
   const recentRank = new Map<string, number>();
   config.recentKeys?.forEach((key, index) => recentRank.set(key, index));
@@ -141,7 +226,7 @@ export function rank<T>(
 
     const key = config.keyFn(item);
     const candidateBoost = getCandidateBoost(config.candidateBoosts, key);
-    const baseScore = hasTerms ? scoreItem(item, lowerTerms, config) : 0;
+    const baseScore = hasTerms ? scoreItem(item, lowerTerms, config, loose) : 0;
     const matchedByCandidateOnly =
       config.includeCandidateOnlyMatches === true && candidateBoost > 0;
 

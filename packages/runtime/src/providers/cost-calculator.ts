@@ -18,7 +18,12 @@
 
 import { calcPrice, type Usage } from "@pydantic/genai-prices";
 import { createLogger } from "@nodetool-ai/config";
-import { PROVIDER_IDS, type ProviderId } from "@nodetool-ai/protocol";
+import {
+  GENAI_PROVIDER_MAP,
+  LOCAL_FREE_PROVIDERS,
+  PROVIDER_IDS,
+  type ProviderId
+} from "@nodetool-ai/protocol";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic text, not a behavioural contract.
 const log = createLogger("nodetool.runtime.cost");
@@ -138,42 +143,6 @@ export interface UsageInfo {
   /** Number of tasks submitted (for CostType.TASK_BASED providers). */
   taskCount?: number;
 }
-
-/**
- * NodeTool provider id → genai-prices provider id. Providers absent here fall
- * back to genai-prices' model-name matching (`providerId` omitted).
- */
-// The remapped id only selects which entry of the external @pydantic/genai-prices
-// catalog is hit. Asserting an individual remapping would couple a unit test to
-// that volatile price table, so these string mutants are equivalent for our
-// purposes — the cost math itself is pinned by the calculate() tests.
-// Stryker disable all
-const GENAI_PROVIDER_MAP: Record<string, string> = {
-  openai: "openai",
-  anthropic: "anthropic",
-  claude_agent_sdk: "anthropic",
-  "claude-agent-sdk": "anthropic",
-  gemini: "google",
-  google: "google",
-  mistral: "mistral",
-  groq: "groq",
-  deepseek: "deepseek",
-  xai: "x-ai",
-  grok: "x-ai",
-  moonshot: "moonshotai",
-  moonshotai: "moonshotai"
-};
-// Stryker restore all
-
-/** Providers that run locally and incur no API cost. */
-const LOCAL_FREE_PROVIDERS = new Set([
-  "ollama",
-  "local",
-  "lmstudio",
-  "llama_cpp",
-  "llamacpp",
-  "llama-cpp"
-]);
 
 /**
  * Token/embedding cost in USD via genai-prices. Returns `null` when no price is

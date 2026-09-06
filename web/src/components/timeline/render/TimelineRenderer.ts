@@ -26,6 +26,7 @@ import type {
   Quality,
   VideoCodec
 } from "mediabunny";
+import { computeModel3DBakeHash } from "@nodetool-ai/timeline";
 import type {
   TimelineClip,
   TimelineTempo,
@@ -54,6 +55,13 @@ import {
   buildCompositePrecomposites,
   type ResolvedCompositeSource
 } from "../preview/compositeLayers";
+import { Model3DLayerSource } from "../preview/Model3DLayerSource";
+import {
+  alphaBakesToProbe,
+  guardBakeHash,
+  probeAlphaBake,
+  type BakeUndecodable
+} from "../preview/bakeDecoding";
 import { CaptionRasterizer } from "../preview/captionRender";
 import { TextRasterizer } from "../preview/textRender";
 import { ensureBundledFontsLoaded } from "../preview/fontLoading";
@@ -129,6 +137,12 @@ export interface RenderResult {
   mimeType: string;
   /** File extension the bytes should be saved under, without the dot. */
   extension: string;
+  /**
+   * Bakes this browser could not play, drawn from their live 3D layer
+   * instead (§R6). Empty on almost every render; an entry means the file
+   * holds the proxy rather than the baked picture.
+   */
+  degradations: BakeUndecodable[];
 }
 
 /** What a `png_sequence` zip carries next to its frames. */
@@ -321,6 +335,10 @@ export async function renderTimeline(
 
   const { compositor, init } = await createCompositor(canvas);
   const videoPool = new OffscreenVideoPool();
+  // The export's own session pool: an export can run while the editor previews,
+  // and two pools of two contexts is what the cap is sized for. Disposed with
+  // everything else in the `finally` below.
+  const model3dSource = new Model3DLayerSource({ resolveUrl: resolveCached });
   const captionRasterizer = new CaptionRasterizer();
   const textRasterizer = new TextRasterizer();
   const shapeRasterizer = new ShapeRasterizer();
@@ -409,6 +427,30 @@ export async function renderTimeline(
       measureText: textMeasurer()
     };
     const animCache = createAnimationCompileCache();
+    /**
+     * A `model3d` clip plays its Blender bake as a video layer while the bake
+     * still matches the live document, so the export resolves the same hash
+     * the inspector and the validator do (design §D6).
+     */
+    const liveBakeHash = (clip: TimelineClip): string =>
+      computeModel3DBakeHash(clip, {
+        fps,
+        width: opts.width,
+        height: opts.height
+      });
+
+    // An alpha bake this browser cannot decode is checked once, before the
+    // first frame: a file is written here, so a bake that turns out to be an
+    // opaque box has to be swapped for the live layer everywhere rather than
+    // part way through (§R6).
+    const degradations: BakeUndecodable[] = [];
+    for (const bake of alphaBakesToProbe(clips, liveBakeHash)) {
+      const url = await resolveCached(bake.assetId);
+      if (!url) continue;
+      const reason = await probeAlphaBake(url, signal);
+      if (reason) degradations.push({ ...bake, reason });
+    }
+    const model3dBakeHash = guardBakeHash(liveBakeHash, degradations);
 
     const frameDurationSec = 1 / fps;
     const frameMs = 1000 / fps;
@@ -428,7 +470,8 @@ export async function renderTimeline(
         {
           // Group transforms live in the same space the animations sample in.
           canvas: animCanvas,
-          animationCache: animCache
+          animationCache: animCache,
+          model3dBakeHash
         }
       );
 
@@ -475,15 +518,27 @@ export async function renderTimeline(
           return bitmap ? { source: bitmap } : null;
         }
 
+        if (layer.kind === "model3d") {
+          // Awaited rather than polled: a frame is written to the file once, so
+          // a session that is still loading must not become a missing model.
+          const session = await model3dSource.load(layer);
+          if (!session) return null;
+          const canvas3d = model3dSource.frame(layer, anim, { width, height });
+          return canvas3d ? { source: canvas3d } : null;
+        }
+
         if (!layer.assetId) return null;
         const url = await resolveCached(layer.assetId);
         if (!url) return null;
 
         if (layer.kind === "video") {
+          // A baked 3D clip's video starts at its own first frame however the
+          // clip is trimmed or retimed, so the scene model hands the seek time
+          // down rather than letting the source mapping recompute it (§D6).
           const el = await videoPool.seek(
             layer.clipId,
             url,
-            clipSourceTimeSec(layer.clip, timeMs),
+            layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, timeMs),
             signal
           );
           return el.videoWidth === 0 ? null : { source: el };
@@ -593,7 +648,12 @@ export async function renderTimeline(
         count: pngFrames.length,
         pattern: "frame_%06d.png"
       });
-      return { bytes, mimeType: "application/zip", extension: "zip" };
+      return {
+        bytes,
+        mimeType: "application/zip",
+        extension: "zip",
+        degradations
+      };
     }
 
     await muxer.finalize();
@@ -605,11 +665,13 @@ export async function renderTimeline(
     return {
       bytes: new Uint8Array(buffer),
       mimeType: format === "webm" ? "video/webm" : "video/mp4",
-      extension: format
+      extension: format,
+      degradations
     };
   } finally {
     compositor.dispose();
     videoPool.dispose();
+    model3dSource.dispose();
     captionRasterizer.dispose();
     textRasterizer.dispose();
     shapeRasterizer.dispose();

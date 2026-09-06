@@ -279,6 +279,38 @@ export const storyboardSetupStage = z.enum([
 ]);
 export type StoryboardSetupStage = z.infer<typeof storyboardSetupStage>;
 
+/**
+ * Where a board's words came from, when they came from a file (PRD § 7.1,
+ * § 7.6, § 7.7).
+ *
+ * It belongs to the document because it is a contract about the board's
+ * content, not a browser detail: `preserveWords` says the Director may not
+ * rewrite the dialogue or the scene order (D10), the setup step holds the
+ * brief while it is true, and a `ui_storyboard_*` caller driving the same
+ * board headlessly has to read the same rule. The words themselves are not
+ * duplicated here — they are the board's brief and screenplay.
+ */
+export const storyboardImportSource = z
+  .object({
+    /** `fdx` carries typed scenes and dialogue; `text` is a PDF or DOCX. */
+    kind: z.enum(["fdx", "text"]),
+    /** The file the words came from — the import's attribution. */
+    fileName: z.string(),
+    /** ISO timestamp of the import. */
+    importedAt: z.string(),
+    /**
+     * The creator's words and scene order are used verbatim, and the Director
+     * is asked for camera work only. False once the creator chooses to edit
+     * the script as text.
+     */
+    preserveWords: z.boolean()
+  })
+  .passthrough();
+export type StoryboardImportSource = z.infer<typeof storyboardImportSource>;
+
+/** What the Director is asked for when the flow does not say otherwise. */
+export const DEFAULT_SETUP_SHOT_COUNT = 6;
+
 export const storyboardDocument = z.object({
   screenplay: storyboardScreenplay.nullable(),
   shots: z.array(storyboardShot),
@@ -296,7 +328,27 @@ export const storyboardDocument = z.object({
   /** Board this one was recast from. Absent on a board authored directly. */
   templateId: z.string().nullable().optional(),
   /** Canonical substitution mapping, so a re-run finds the copy it made. */
-  recastKey: z.string().nullable().optional()
+  recastKey: z.string().nullable().optional(),
+  /**
+   * The file this board's words were imported from, if any. Optional and
+   * additive: a board without it was typed, and opens exactly as it always
+   * did (PRD § 6.4).
+   */
+  importSource: storyboardImportSource.nullable().optional(),
+  /**
+   * How many shots the Director is asked for. It decides what the run writes
+   * and what it costs, so it is a document value, not component state.
+   * Missing reads as {@link DEFAULT_SETUP_SHOT_COUNT}.
+   */
+  setupShotCount: z.number().optional(),
+  /**
+   * The inputs the screenplay on this board was directed from, as one
+   * comparable string. The genre step compares it against the current inputs
+   * so returning to that step and pressing its button continues to the
+   * screenplay rather than paying for the same one twice. A missing or stale
+   * value only offers an explicit re-direct; it never spends on its own.
+   */
+  setupDirectedFrom: z.string().nullable().optional()
 });
 export type StoryboardDocumentSchema = z.infer<typeof storyboardDocument>;
 

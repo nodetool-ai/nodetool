@@ -16,7 +16,10 @@
  * anything; the one model call it can make is `Re-plan`.
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import type { WorkflowSetupPlan } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { resolveWorkflowPlan } from "@nodetool-ai/protocol";
 import type { ResolvedWorkflowStep } from "@nodetool-ai/protocol";
@@ -26,17 +29,24 @@ import {
   Autocomplete,
   Box,
   Caption,
+  Chip,
   EditorButton,
   FlexColumn,
   FlexRow,
   GAP,
   Text,
-  TextInput
+  TextInput,
+  ToolbarIconButton
 } from "../../ui_primitives";
 import type { AutocompleteOption } from "../../ui_primitives";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import { PlanReview } from "../PlanReview";
+import {
+  EDITABLE_FIELD,
+  REVIEW_BLOCK,
+  REVIEW_CONTENT_WIDTH
+} from "../reviewStyles";
 import type { PlanReviewSection } from "../PlanReview";
 import { MODEL_ROLE_ONBOARDING } from "./modelRoles";
 
@@ -118,6 +128,20 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
     [onPlanChange, plan]
   );
 
+  // Why `Continue to setup` is held. The button belongs to the shell, and a
+  // marker can sit a screen's worth of scroll above it. The two blocks are
+  // counted apart because their remedies are different: an unknown node type is
+  // fixed here with the search field, a missing provider by connecting one
+  // (D23). Calling both "missing nodes" sent creators looking for the wrong fix.
+  const blocked = useMemo(
+    () => ({
+      unknownNodeTypes: resolved.steps.filter((entry) => entry.unknownNodeType)
+        .length,
+      missingProviders: resolved.missingRoles
+    }),
+    [resolved.missingRoles, resolved.steps]
+  );
+
   const addStep = useCallback(() => {
     onPlanChange({
       ...plan,
@@ -133,26 +157,32 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
     });
   }, [onPlanChange, plan]);
 
-  const ioSections = useMemo<PlanReviewSection[]>(
+  // Inputs first, then the steps, then what comes out — the order the workflow
+  // itself runs in (F32). The sample values are shown here and edited on the
+  // setup step, which is where the PRD puts them (§ 11.3): one editable place,
+  // one read-only summary, so the same field is not asked for twice.
+  const inputSections = useMemo<PlanReviewSection[]>(
     () => [
       {
         id: "inputs",
         header: "Inputs",
-        subheader: "What the workflow is given when it runs.",
+        subheader:
+          "What the workflow is given when it runs. You set the sample values on the next step.",
         rows: plan.inputs.map((input, index) => ({
           id: `input-${index}`,
           label: `${input.name} (${input.type})`,
           value: String(input.sample ?? ""),
-          placeholder: "Sample value",
-          onChange: (value: string) =>
-            onPlanChange({
-              ...plan,
-              inputs: plan.inputs.map((entry, position) =>
-                position === index ? { ...entry, sample: value } : entry
-              )
-            })
+          placeholder: "No sample yet",
+          readOnly: true,
+          onChange: () => undefined
         }))
-      },
+      }
+    ],
+    [plan.inputs]
+  );
+
+  const outputSections = useMemo<PlanReviewSection[]>(
+    () => [
       {
         id: "outputs",
         header: "Outputs",
@@ -175,13 +205,16 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
   );
 
   return (
-    <FlexColumn gap={GAP.spacious}>
+    <FlexColumn
+      gap={GAP.spacious}
+      sx={{ width: "100%", maxWidth: REVIEW_CONTENT_WIDTH }}
+    >
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
           Your plan
         </Text>
         <Text size="normal" color="secondary">
-          Edit anything here. Nothing is built until you continue.
+          Review this plan, then choose models before building.
         </Text>
       </FlexColumn>
 
@@ -191,9 +224,31 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
         </AlertBanner>
       ) : null}
 
-      <FlexColumn gap={GAP.comfortable} component="ol" sx={{ listStyle: "none", m: 0, p: 0 }}>
+      {blocked.unknownNodeTypes > 0 ? (
+        <Caption color="secondary" component="p">
+          {blocked.unknownNodeTypes === 1
+            ? "1 step names no node this install has. Pick one below to continue."
+            : `${blocked.unknownNodeTypes} steps name no node this install has. Pick one for each below to continue.`}
+        </Caption>
+      ) : null}
+
+      {blocked.missingProviders.length > 0 ? (
+        <Caption color="secondary" component="p">
+          {`No connected provider offers a ${blocked.missingProviders.join(" or a ")} model. Connect one below to continue.`}
+        </Caption>
+      ) : null}
+
+      {plan.inputs.length > 0 ? <PlanReview sections={inputSections} /> : null}
+
+      {/* The blocks need air between them: the left rule says where a step
+          ends only if the next one does not start against it. */}
+      <FlexColumn
+        gap={GAP.spacious}
+        component="ol"
+        sx={{ listStyle: "none", m: 0, p: 0 }}
+      >
         {resolved.steps.map((entry, index) => (
-          <Box component="li" key={entry.step.id}>
+          <Box component="li" key={entry.step.id} sx={REVIEW_BLOCK}>
             <StepRow
               entry={entry}
               index={index}
@@ -214,7 +269,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
       </FlexRow>
 
       <PlanReview
-        sections={ioSections}
+        sections={outputSections}
         replanLabel="Re-plan"
         onReplan={onReplan}
         replanPending={replanPending}
@@ -247,50 +302,66 @@ const StepRow: React.FC<StepRowProps> = ({
 }) => {
   const { step } = entry;
   const missingRole = entry.missingProvider;
+  const [picking, setPicking] = useState(false);
   return (
     <FlexColumn gap={GAP.normal}>
-      <FlexRow gap={GAP.normal} align="center" justify="space-between">
-        <Text size="normal" component="h3">
-          {`${index + 1}. ${step.title}`}
+      {/* One row for the step's head: the number, the title as the field that
+          edits it, and the actions. A heading that repeated the title above
+          the field that holds it made every step read twice. */}
+      <FlexRow gap={GAP.normal} align="center">
+        <Text size="normal" color="secondary">
+          {`${index + 1}`}
         </Text>
+        <Box sx={{ ...EDITABLE_FIELD, flex: 1, minWidth: 0 }}>
+          <TextInput
+            label={`Step ${index + 1} title`}
+            hideLabel
+            value={step.title}
+            onChange={(event) =>
+              onChange(step.id, { title: event.target.value })
+            }
+          />
+        </Box>
         <FlexRow gap={GAP.tight}>
-          <EditorButton
-            variant="text"
+          <ToolbarIconButton
+            size="small"
+            icon={<ArrowUpwardIcon fontSize="inherit" />}
+            tooltip={index === 0 ? "" : "Move up"}
             onClick={() => onMove(index, -1)}
             disabled={index === 0}
             aria-label={`Move step ${index + 1} up`}
-          >
-            Up
-          </EditorButton>
-          <EditorButton
-            variant="text"
+          />
+          <ToolbarIconButton
+            size="small"
+            icon={<ArrowDownwardIcon fontSize="inherit" />}
+            tooltip={index === stepCount - 1 ? "" : "Move down"}
             onClick={() => onMove(index, 1)}
             disabled={index === stepCount - 1}
             aria-label={`Move step ${index + 1} down`}
-          >
-            Down
-          </EditorButton>
-          <EditorButton
-            variant="text"
+          />
+          <ToolbarIconButton
+            size="small"
+            color="error"
+            icon={<DeleteOutlineIcon fontSize="inherit" />}
+            tooltip="Remove step"
             onClick={() => onRemove(step.id)}
             aria-label={`Remove step ${index + 1}`}
-          >
-            Remove
-          </EditorButton>
+          />
         </FlexRow>
       </FlexRow>
 
-      <TextInput
-        label={`Step ${index + 1} title`}
-        value={step.title}
-        onChange={(event) => onChange(step.id, { title: event.target.value })}
-      />
-      <TextInput
-        label={`Step ${index + 1} description`}
-        value={step.summary}
-        multiline
-        onChange={(event) => onChange(step.id, { summary: event.target.value })}
-      />
+      <Box sx={EDITABLE_FIELD}>
+        <TextInput
+          label={`Step ${index + 1} description`}
+          hideLabel
+          placeholder="What this step does"
+          value={step.summary}
+          multiline
+          onChange={(event) =>
+            onChange(step.id, { summary: event.target.value })
+          }
+        />
+      </Box>
 
       {entry.unknownNodeType ? (
         <AlertBanner severity="error" title="No node for this step">
@@ -316,9 +387,39 @@ const StepRow: React.FC<StepRowProps> = ({
           </FlexColumn>
         </AlertBanner>
       ) : (
-        <Caption color="secondary" component="p">
-          {step.node_type}
-        </Caption>
+        <FlexColumn gap={GAP.tight}>
+          <FlexRow gap={GAP.tight} align="center">
+            <Caption color="secondary" component="span">
+              Builds
+            </Caption>
+            <Chip compact color="success" label={step.node_type ?? ""} />
+            <EditorButton variant="text" onClick={() => setPicking(!picking)}>
+              {picking ? "Keep it" : "Change"}
+            </EditorButton>
+          </FlexRow>
+          {/* The plan names a node the registry has — but not always the one
+              the step meant, because a step the planner left unnamed is
+              matched by search. So every step's node stays changeable, not
+              only the ones with no node at all. */}
+          {picking ? (
+            <Autocomplete
+              options={nodeTypeOptions}
+              value={
+                nodeTypeOptions.find(
+                  (option) => option.value === step.node_type
+                ) ?? null
+              }
+              label={`Node type for step ${index + 1}`}
+              placeholder="Search node types"
+              onChange={(_event, value) =>
+                onChange(step.id, {
+                  node_type:
+                    value === null ? null : (value as AutocompleteOption).value
+                })
+              }
+            />
+          ) : null}
+        </FlexColumn>
       )}
 
       {missingRole !== null ? (

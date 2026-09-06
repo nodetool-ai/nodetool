@@ -803,6 +803,62 @@ export const clipShapeStyle = z.object({
 export type ClipShapeStyle = z.infer<typeof clipShapeStyle>;
 
 /**
+ * How a `model3d` clip frames its glTF. `orbit` frames the model's bounding
+ * sphere in the vocabulary `nodetool.model3d.RenderToImage`, the Blender bake
+ * and the model editor's pose already share; `scene` uses a camera the glTF
+ * itself declares and ignores the orbit terms.
+ */
+export const clipModel3DCamera = z.object({
+  mode: z.enum(["orbit", "scene"]),
+  azimuthDeg: z.number(),
+  elevationDeg: z.number(),
+  fovDeg: z.number(),
+  /** Distance multiplier on the auto-framed fit: above 1 moves closer. */
+  zoom: z.number(),
+  /** Look-at offset from the bounding-sphere center, in world units. */
+  targetOffset: z.tuple([z.number(), z.number(), z.number()]).optional(),
+  /** `scene` mode: the glTF camera's name; the first camera when absent. */
+  sceneCameraName: z.string().optional()
+});
+export type ClipModel3DCamera = z.infer<typeof clipModel3DCamera>;
+
+/** Which glTF animation a `model3d` clip plays, and how. */
+export const clipModel3DAnimation = z.object({
+  /** glTF animation name; every animation plays when absent. */
+  clipName: z.string().optional(),
+  loop: z.boolean(),
+  /** Playback multiplier on top of the clip's own speed and time remap. */
+  speed: z.number()
+});
+export type ClipModel3DAnimation = z.infer<typeof clipModel3DAnimation>;
+
+/**
+ * Everything a `model3d` clip adds on top of its glTF asset, which lives in
+ * `currentAssetId` exactly the way an image clip keeps its image. Every field
+ * below has to be listed here or Zod strips it on every PATCH, so a camera
+ * pose, an animation choice or a finished bake would be lost on the next save.
+ */
+export const clipModel3DStyle = z.object({
+  camera: clipModel3DCamera,
+  animation: clipModel3DAnimation,
+  lighting: z.enum(["studio", "soft", "flat"]),
+  lightIntensity: z.number(),
+  background: z.discriminatedUnion("transparent", [
+    z.object({ transparent: z.literal(true) }),
+    z.object({ transparent: z.literal(false), color: z.string() })
+  ]),
+  /**
+   * A Blender render of this clip at a given style. The scene model plays it
+   * as video while `dependencyHash` matches the live style; a style edit makes
+   * it stale and the live 3D layer draws again.
+   */
+  bake: z
+    .object({ assetId: z.string(), dependencyHash: z.string() })
+    .optional()
+});
+export type ClipModel3DStyle = z.infer<typeof clipModel3DStyle>;
+
+/**
  * Shape mask on one clip, in the layer's own normalized 0..1 space. `kind` is
  * a plain string for forward compat: an unknown kind parses and is skipped at
  * render time rather than failing the document.
@@ -859,6 +915,7 @@ export const timelineClip = z.object({
     "overlay",
     "text",
     "shape",
+    "model3d",
     "group",
     "midi"
   ]),
@@ -933,6 +990,10 @@ export const timelineClip = z.object({
   transitionIn: clipTransition.optional(),
   textStyle: clipTextStyle.optional(),
   shapeStyle: clipShapeStyle.optional(),
+  /** Camera, animation and look for a `model3d` clip; the glTF itself is the
+   * clip's asset. Without this field Zod strips it on every PATCH, so a posed,
+   * lit and baked 3D clip reverts to nothing on the next save. */
+  model3dStyle: clipModel3DStyle.optional(),
   /** Word-level caption data; present only on caption clips. Without this
    * field Zod strips it on every PATCH, so autosave erases captions. */
   caption: clipCaption.optional(),
@@ -1018,6 +1079,14 @@ export const timelineSetup = z
     brief: z.string(),
     /** The format card's id, e.g. "social-9x16". */
     format: z.string().optional(),
+    /**
+     * Whether the cut gets a voiceover. Absent means the creator has not said,
+     * so the beats' own lines decide. `false` is a deliberate "no voiceover",
+     * which the lines cannot express: reading it off them would make silence
+     * indistinguishable from an unwritten line, and writing it by clearing
+     * them would throw the creator's words away (PRD § 8.3).
+     */
+    voiceover: z.boolean().optional(),
     beats: z.array(timelineBeat).optional()
   })
   .passthrough();

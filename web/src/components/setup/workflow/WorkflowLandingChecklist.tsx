@@ -106,13 +106,19 @@ const ChecklistInternal: React.FC<WorkflowLandingChecklistProps> = ({
               }`
         }
       />
+      {/* Why a run did not start matters more than that it did not: the
+          creator was told on the setup step that building would run it once,
+          so a missing run is a promise this screen has to account for (F1, F8). */}
       <Line
         done={result.testRun.started}
         label="Test run"
         detail={
           result.testRun.started
             ? "Started with your sample inputs"
-            : (result.testRun.error ?? "Not started")
+            : (result.testRun.error ??
+              (validated
+                ? "Not started — part of the plan is unwired"
+                : "Not started — the graph did not validate"))
         }
       />
 

@@ -69,20 +69,30 @@ rather than replacing them, so a hold and a drag can share one element.
 
 ### From AssetExplorer → TrackLane (supported)
 
-Drag any image, video, or audio asset from the `AssetExplorer` panel and drop
-it onto a compatible track lane:
+Drag any image, video, audio or 3D-model asset from the `AssetExplorer` panel
+and drop it onto a compatible track lane:
 
 | Asset type | Valid track types |
 |-----------|-------------------|
 | `image/*` | `video`, `overlay` |
 | `video/*` | `video`, `overlay` |
 | `audio/*` | `audio` |
+| `model/*` | `video`, `overlay` |
 
 A clip is created at the drop position with:
 - `sourceType = "imported"` and `status = "generated"` (the asset *is* its output).
 - `durationMs` derived from `asset.duration` (× 1 000 to convert seconds → ms),
   falling back to 4 000 ms for assets without duration metadata.
 - `currentAssetId` pointing to the dragged asset.
+
+A model lands as a `model3d` clip carrying `DEFAULT_MODEL3D_STYLE` — 3D is
+picture, so it goes where a title goes and never onto an audio lane. A glTF
+has no duration of its own, so the clip is 4 000 ms long whatever the asset
+says. A `.glb` or `.gltf` name also reads as a model wherever the whole asset
+is known (`assetToClip`), which covers an upload typed
+`application/octet-stream`; a lane drop matches on the content type alone.
+The same clip is one click away without a drag: the lane's add-clip menu has
+a "3D model" entry listing the library's models.
 
 Dropping onto an incompatible track (e.g. audio onto a video lane) shows a
 brief warning banner and does **not** create a clip.
@@ -213,6 +223,84 @@ Seven agent tools drive it — `ui_timeline_add_midi_clip`,
 `ui_timeline_quantize_notes` and `ui_timeline_scale_velocity`.
 `ui_timeline_get_state` reports the resolved tempo, each track's instrument and
 the preset it matches, and each midi clip's note count.
+
+## 3D clips
+
+A glTF asset on a `video` or `overlay` track is a clip with
+`mediaType: "model3d"`. The model sits in `currentAssetId`, where an image clip
+keeps its image, so replace, versions, thumbnails and the dependency hash work
+unchanged. Everything the timeline adds is `model3dStyle`: the camera (orbit
+terms, or a glTF camera by name), which glTF animation plays and how fast,
+lighting preset and intensity, background, and the bake once one exists.
+`DEFAULT_MODEL3D_STYLE` in `@nodetool-ai/timeline` is what a dropped model
+starts with.
+
+The animation runs on the clip's own source time, so trimming, speed and a time
+remap retime it exactly as they retime video, and `animation.speed` multiplies
+on top. Four animated channels (`cameraAzimuth`, `cameraElevation`,
+`cameraZoom`, `cameraFov`) fold onto the authored pose and keyframe like any
+other channel; on a clip that is not 3D they are ignored. The `orbit` preset
+drives `cameraAzimuth`, which is what makes a turntable one `animate_clip`
+call.
+
+### Live rendering
+
+`preview/Model3DLayerSource.ts` holds one three.js render session per active 3D
+clip — a GLB loaded once onto an `OffscreenCanvas`, then asked for frame after
+frame — and hands that canvas to the compositor as the layer's
+`CompositeSource`, so the live preview and the export draw the same pixels from
+the same code. A session owns a WebGL context, so the pool holds at most
+`MAX_MODEL3D_LAYERS` (two) and evicts the least recently drawn; the scene model
+caps live 3D layers at the same number and reports a third as a dropped layer
+with reason `model3d_layer_cap`. A baked clip is a video layer and counts
+against the video cap instead.
+
+Lighting, intensity, background and the animation selection fix a session, so
+changing one re-creates it; the camera is per frame, so orbiting, keying a
+camera channel and scrubbing never reload the model. Without WebGL, or with a
+GLB that will not load, the clip draws the outlined placeholder a missing asset
+draws rather than leaving a silent gap.
+
+Alt-drag on the preview turns the selected 3D clip's azimuth and elevation and
+Alt-wheel dollies its zoom (`preview/model3dOrbitGesture.ts`, at three.js
+`OrbitControls` rates so the model editor and the timeline turn by the same
+amount); both write `model3dStyle.camera` through `patchClip`, one undo entry
+per gesture. Lane filmstrips and the agent's `ui_timeline_get_clip_frames` draw
+from the same source on a separate one-session pool
+(`Tracks/model3dClipFrames.ts`), so building a strip cannot evict the clip being
+scrubbed.
+
+### Bake
+
+The inspector's Bake row and the `bake_model3d_clip` op render the clip through
+`nodetool.blender.RenderAnimation` and store `{ assetId, dependencyHash }` under
+`model3dStyle.bake`. Blender is sent the evaluated sample list — one model time
+and one camera per output frame — so a trimmed, sped-up, reversed or looped clip
+bakes as what it plays. An opaque style muxes to MP4 H.264; a transparent one
+encodes to WebM VP9 `yuva420p` so the bake still composites over the footage
+under it.
+
+The scene model plays a bake as a video layer only while its hash still matches
+the clip, seeking it by clip-local time (frame *i* is the clip's *i*-th frame,
+whatever its in point). A style, trim, speed, remap, duration or sequence-format
+edit makes the bake stale and the live layer draws again; moving or fading the
+clip does not, because those apply to the baked layer the way they apply to any
+video. A browser that cannot decode an alpha bake — Safari decodes VP9 and
+throws the alpha away — falls back to the live layer with a `bake_undecodable`
+degradation instead of drawing an opaque box over the footage
+(`preview/bakeDecoding.ts`).
+
+### From the agent
+
+Three ops reach a 3D clip: `add_model3d_clip`, `set_model3d_style` and
+`bake_model3d_clip`. The browser's `ui_timeline_edit` and the server's
+`edit_timeline` dispatch them from the same op union, and each is also a
+standalone `ui_timeline_*` tool.
+`validate_timeline` reports `model3d_style_missing` (a `model3d` clip with no
+style or no asset) as an error and `bake_stale` as a warning.
+`preview_timeline_frame` renders 3D layers server-side and reports each one's
+camera and animation time — [docs/harnesses.md § 3D clips in
+preview_timeline_frame](../../../../docs/harnesses.md#3d-clips-in-preview_timeline_frame).
 
 ## Persistence
 

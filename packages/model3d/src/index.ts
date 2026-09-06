@@ -1,3 +1,4 @@
+export * from "./animations.js";
 export * from "./gltf.js";
 export * from "./math.js";
 export * from "./operations.js";

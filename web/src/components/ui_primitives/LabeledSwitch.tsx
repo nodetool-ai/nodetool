@@ -78,9 +78,12 @@ const LabeledSwitchInternal: React.FC<LabeledSwitchProps> = ({
           htmlFor={id}
           sx={{
             fontSize: size === "small" ? theme.fontSizeSmall : theme.fontSizeNormal,
+            // `theme.vars`, not `theme.palette`: this app runs the CSS-vars
+            // theme, where the plain palette resolves to the light values and
+            // an enabled label came out reading as a disabled one.
             color: disabled
-              ? theme.palette.text.disabled
-              : theme.palette.text.primary,
+              ? theme.vars.palette.text.disabled
+              : theme.vars.palette.text.primary,
             cursor: disabled ? "default" : "pointer",
             userSelect: "none",
           }}
@@ -100,7 +103,7 @@ const LabeledSwitchInternal: React.FC<LabeledSwitchProps> = ({
         <Typography
           variant="body2"
           sx={{
-            color: theme.palette.text.secondary,
+            color: theme.vars.palette.text.secondary,
             fontSize: theme.fontSizeSmall,
             marginTop: 0,
           }}

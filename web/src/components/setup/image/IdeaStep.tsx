@@ -14,18 +14,25 @@ import React, { memo, useCallback, useMemo, useRef } from "react";
 
 import {
   AlertBanner,
+  BORDER_RADIUS,
   Box,
   Caption,
   Chip,
   FlexColumn,
+  FlexRow,
   GAP,
+  ResponsiveImage,
+  SPACING_PX,
   Text,
   TextInput
 } from "../../ui_primitives";
 import { useSketchStore } from "../../sketch/state/useSketchStore";
+import { useEntities } from "../../../serverState/useEntities";
+import { ExampleBriefs } from "../ExampleBriefs";
 import { AlternativesColumn } from "../AlternativesColumn";
 import type { AlternativeEntry } from "../AlternativesColumn";
 import type { UploadFirstLayerResult } from "../../../hooks/sketch/useUploadFirstLayer";
+import { readEntityIds, readReferences } from "./setupContext";
 
 /**
  * Three briefs that read like something a person would type. The storyboard
@@ -41,6 +48,9 @@ const INSPIRATIONS: readonly string[] = [
 
 export const IMAGE_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
 
+/** Reference thumbnail edge — 96px, big enough to recognise a picture. */
+const REFERENCE_THUMBNAIL = SPACING_PX.xxxl * 3;
+
 export interface IdeaStepProps {
   /** Opens the editor on a blank canvas — the flow's escape hatch. */
   onStartBlank: () => void;
@@ -52,8 +62,21 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   upload
 }) => {
   const brief = useSketchStore((state) => state.document.setup?.brief ?? "");
+  const setup = useSketchStore((state) => state.document.setup);
   const setSetup = useSketchStore((state) => state.setSetup);
   const fileInput = useRef<HTMLInputElement>(null);
+  const { data: entities } = useEntities();
+
+  // What the composer was holding when the Image card was clicked (F4). It is
+  // shown, not just stored: a reference the creator cannot see is a reference
+  // they will attach twice.
+  const references = useMemo(() => readReferences(setup), [setup]);
+  const entityNames = useMemo(() => {
+    const ids = new Set(readEntityIds(setup));
+    return (entities ?? [])
+      .filter((entity) => ids.has(entity.id))
+      .map((entity) => entity.name);
+  }, [entities, setup]);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -80,7 +103,8 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
       {
         id: "upload",
         title: "Upload an image to edit",
-        description: "PNG, JPEG, WebP or GIF — it lands as your first layer",
+        description:
+          "Opens the editor immediately with your image as the first layer. Skips the guided brief. PNG, JPEG, WebP or GIF.",
         onSelect: () => fileInput.current?.click(),
         disabled: upload.uploading,
         disabledReason: upload.uploading ? "Reading your file…" : undefined
@@ -135,24 +159,56 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           </AlertBanner>
         ) : null}
 
-        <FlexColumn gap={GAP.normal}>
-          <Caption color="secondary" component="p">
-            Or start from one of these:
-          </Caption>
-          <Box
-            role="group"
-            aria-label="Inspiration"
-            sx={{ display: "flex", flexWrap: "wrap", gap: GAP.normal }}
-          >
-            {INSPIRATIONS.map((line) => (
-              <Chip
-                key={line}
-                label={line}
-                onClick={() => setSetup({ brief: line })}
-              />
-            ))}
-          </Box>
-        </FlexColumn>
+        {references.length > 0 || entityNames.length > 0 ? (
+          <FlexColumn gap={GAP.normal}>
+            <Text size="small" component="h3">
+              Came with your prompt
+            </Text>
+            {references.length > 0 ? (
+              <FlexRow
+                role="group"
+                aria-label="Reference images"
+                gap={GAP.normal}
+                wrap
+              >
+                {references.map((reference) => (
+                  <FlexColumn
+                    key={reference.uri}
+                    gap={GAP.tight}
+                    sx={{ width: REFERENCE_THUMBNAIL }}
+                  >
+                    <ResponsiveImage
+                      locator={reference.uri}
+                      alt={reference.name}
+                      aspectRatio="1/1"
+                      fit="cover"
+                      borderRadius={BORDER_RADIUS.sm}
+                    />
+                    <Caption color="secondary">{reference.name}</Caption>
+                  </FlexColumn>
+                ))}
+              </FlexRow>
+            ) : null}
+            {entityNames.length > 0 ? (
+              <FlexRow role="group" aria-label="Entities" gap={GAP.normal} wrap>
+                {entityNames.map((name) => (
+                  <Chip key={name} label={name} />
+                ))}
+              </FlexRow>
+            ) : null}
+            <Caption color="secondary">
+              {references.length > 0
+                ? "The refinement reads these when it writes your brief."
+                : "These stay with the document as you set it up."}
+            </Caption>
+          </FlexColumn>
+        ) : null}
+
+        <ExampleBriefs
+          examples={INSPIRATIONS}
+          brief={brief}
+          onSelect={(value) => setSetup({ brief: value })}
+        />
       </FlexColumn>
 
       <AlternativesColumn

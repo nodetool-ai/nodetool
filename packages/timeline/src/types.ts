@@ -236,6 +236,58 @@ export interface ClipShapeStyle {
 }
 
 /**
+ * How a `model3d` clip's camera is placed. `orbit` frames the model's bounding
+ * sphere; `scene` uses a camera the glTF itself declares.
+ */
+export type Model3DCameraMode = "orbit" | "scene";
+
+/**
+ * A `model3d` clip's camera. The orbit terms are the vocabulary
+ * `nodetool.model3d.RenderToImage`, the Blender bake job and the model
+ * editor's pose already share, so one pose reads the same in all of them.
+ */
+export interface ClipModel3DCamera {
+  mode: Model3DCameraMode;
+  azimuthDeg: number;
+  elevationDeg: number;
+  fovDeg: number;
+  /** Distance multiplier on the auto-framed fit: above 1 moves closer. */
+  zoom: number;
+  /** Look-at offset from the bounding-sphere center, in world units. */
+  targetOffset?: [number, number, number];
+  /** `scene` mode: the glTF camera's name; the first camera when absent. */
+  sceneCameraName?: string;
+}
+
+/** Which glTF animation a `model3d` clip plays, and how. */
+export interface ClipModel3DAnimation {
+  /** glTF animation name; every animation plays when absent. */
+  clipName?: string;
+  loop: boolean;
+  /** Playback multiplier on top of the clip's own speed and time remap. */
+  speed: number;
+}
+
+/**
+ * Everything a `model3d` clip adds on top of its glTF, which is the clip's
+ * asset the way an image is an image clip's. Must also exist on the protocol
+ * zod schema or PATCH would strip it.
+ */
+export interface ClipModel3DStyle {
+  camera: ClipModel3DCamera;
+  animation: ClipModel3DAnimation;
+  lighting: "studio" | "soft" | "flat";
+  lightIntensity: number;
+  background: { transparent: true } | { transparent: false; color: string };
+  /**
+   * A Blender render of this clip at a given style. The scene model plays it
+   * as video while `dependencyHash` matches the live style; a style edit makes
+   * it stale and the live 3D layer draws again.
+   */
+  bake?: { assetId: string; dependencyHash: string };
+}
+
+/**
  * One line of the Studio transcript. Each line owns the clips generated from
  * it (`clipIds` — typically a voiceover audio clip and a caption clip).
  * `beatStartMs` is the line's position on the timeline, recomputed whenever
@@ -459,6 +511,7 @@ export type ClipMediaType =
   | "overlay"
   | "text"
   | "shape"
+  | "model3d"
   | "group"
   | "midi";
 
@@ -627,6 +680,8 @@ export interface TimelineClip {
   textStyle?: ClipTextStyle;
   /** Authored geometry for a rasterized shape clip. */
   shapeStyle?: ClipShapeStyle;
+  /** Camera, animation and look for a `model3d` clip. */
+  model3dStyle?: ClipModel3DStyle;
   /** 2D placement on the preview canvas. Default: identity (centered, contain-fit). */
   transform?: ClipTransform;
   /** Rounded-corner radius in source pixels. 0 = sharp corners. */

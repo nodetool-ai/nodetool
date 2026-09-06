@@ -14,7 +14,10 @@
 import { useEffect, useMemo } from "react";
 import {
   createTimeOrderedUuid,
+  DEFAULT_MODEL3D_CLIP_DURATION_MS,
+  DEFAULT_MODEL3D_CLIP_NAME,
   makeClip,
+  model3dStyleWithPatch,
   moveTrackOrder,
   presetIdForInstrument,
   resolveTempo,
@@ -27,6 +30,7 @@ import type {
   TrackDestination,
   ClipAnimation,
   ClipMatte,
+  ClipModel3DStylePatch,
   MidiInstrument,
   QuantizeOptions,
   TimelineClip,
@@ -62,6 +66,7 @@ import {
   isCompatibleWithTrack
 } from "../../components/timeline/dnd/assetToClipAdapter";
 import { getAssetUrl } from "../../utils/assetHelpers";
+import { useModel3DBake } from "./useModel3DBake";
 import { useTimelineDirectGenJob } from "./useTimelineDirectGenJob";
 import {
   getTimelineAgentHandler,
@@ -257,6 +262,7 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
   const ui = useTimelineUIStoreApi();
   const playback = useTimelinePlaybackStoreApi();
   const { start: startDirectGen } = useTimelineDirectGenJob();
+  const { bakeClip } = useModel3DBake();
 
   const handler = useMemo<TimelineAgentHandler>(() => {
     const trackMap = (): Map<string, TimelineTrack> =>
@@ -601,7 +607,11 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           }
           trackId = track.id;
         } else {
-          const wanted = trackTypeForMediaType(mediaType);
+          // 3D is picture, so it lands on the lanes a title lands on.
+          const wanted =
+            mediaType === "model3d"
+              ? "video"
+              : trackTypeForMediaType(mediaType);
           const existing = store.tracks.find((track) => track.type === wanted);
           if (existing) {
             trackId = existing.id;
@@ -705,6 +715,66 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         if (opts.opacity !== undefined) clip.opacity = opts.opacity;
         store.addClip(clip);
         ui.getState().selectClip(clip.id);
+        return clipNode(reReadClip(clip.id));
+      },
+
+      addModel3DClip(opts) {
+        const store = doc.getState();
+        // 3D is picture (D1): it lands where a title or a shape lands.
+        const named = opts.trackId ? requireTrack(opts.trackId) : undefined;
+        if (named && named.type !== "video" && named.type !== "overlay") {
+          throw new Error(
+            `3D clips require a video or overlay track; "${named.name}" is ${named.type}.`
+          );
+        }
+        let track = named ?? store.tracks.find((t) => t.type === "overlay");
+        if (!track) {
+          store.addTrack("overlay", "3D");
+          track = doc.getState().tracks.at(-1);
+        }
+        if (!track) {
+          throw new Error("Could not create an overlay track for a 3D model.");
+        }
+        const clip = makeClip({
+          trackId: track.id,
+          name: DEFAULT_MODEL3D_CLIP_NAME,
+          startMs: Math.max(0, opts.startMs ?? trackEndMs(track.id)),
+          durationMs: Math.max(
+            1,
+            opts.durationMs ?? DEFAULT_MODEL3D_CLIP_DURATION_MS
+          ),
+          mediaType: "model3d",
+          sourceType: "imported",
+          status: "generated",
+          currentAssetId: opts.assetId,
+          model3dStyle: model3dStyleWithPatch(undefined, opts.style)
+        });
+        store.addClip(clip);
+        ui.getState().selectClip(clip.id);
+        return clipNode(reReadClip(clip.id));
+      },
+
+      setModel3DStyle(target, patch: ClipModel3DStylePatch) {
+        const clip = requireClip(target);
+        if (clip.mediaType !== "model3d") {
+          throw new Error(
+            `Clip "${clip.name}" is a ${clip.mediaType} clip, not a 3D clip — ` +
+              "model3dStyle names a camera, an animation and lighting for a " +
+              "glTF, and nothing else reads it."
+          );
+        }
+        doc.getState().patchClip(clip.id, {
+          model3dStyle: model3dStyleWithPatch(clip.model3dStyle, patch)
+        });
+        return clipNode(reReadClip(clip.id));
+      },
+
+      async bakeModel3DClip(target) {
+        const clip = requireClip(target);
+        // Every refusal a bake has — not a 3D clip, no style, no asset, a
+        // transparent background — is `bakeClip`'s, so it is the one place
+        // the browser and the server can be compared against each other.
+        await bakeClip(clip.id);
         return clipNode(reReadClip(clip.id));
       },
 
@@ -913,7 +983,11 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           MAX_FRAME_WIDTH
         );
 
-        if (clip.mediaType === "text" || clip.mediaType === "shape") {
+        if (
+          clip.mediaType === "text" ||
+          clip.mediaType === "shape" ||
+          clip.mediaType === "model3d"
+        ) {
           const state = doc.getState();
           const frames = await renderRasterClipFrames(
             clip,
@@ -1260,12 +1334,20 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         return updated;
       },
 
+      removeBeat(target) {
+        // Resolved before it is dropped, so the answer names what went and an
+        // unresolvable target says so rather than reporting a silent success.
+        const beat = requireBeat(target);
+        doc.getState().removeBeat(beat.id);
+        return beat;
+      },
+
       generateFromBeats(opts) {
         return generateFromBeats(doc, { ...opts, startJob: startDirectGen });
       }
     };
     return handlerImpl;
-  }, [doc, ui, playback, startDirectGen]);
+  }, [doc, ui, playback, startDirectGen, bakeClip]);
 
   useEffect(() => {
     if (!sequenceId) return;

@@ -212,7 +212,9 @@ export interface TimelineStoreState {
    * one at stage `idea` with an empty brief.
    */
   setSetup: (
-    patch: Partial<Pick<TimelineSetup, "stage" | "brief" | "format" | "beats">>
+    patch: Partial<
+      Pick<TimelineSetup, "stage" | "brief" | "format" | "beats" | "voiceover">
+    >
   ) => void;
   /**
    * Change one beat of the plan. Undefined fields are left alone; an explicit
@@ -222,6 +224,12 @@ export interface TimelineStoreState {
     beatId: string,
     patch: Partial<Omit<TimelineBeat, "id">> & { transition?: string | null }
   ) => void;
+  /**
+   * Drop one beat from the plan. The review tells a creator to remove a beat
+   * that does not earn its length, so there is an operation that does it. A
+   * beat id that is not in the plan is a no-op.
+   */
+  removeBeat: (beatId: string) => void;
   setLinkedSelection: (on: boolean) => void;
 
   /**
@@ -1348,6 +1356,22 @@ export const createTimelineStore = (
                       }
                     : beat
                 )
+              }
+            };
+          }),
+
+        removeBeat: (beatId) =>
+          set((state) => {
+            const beats = state.setup?.beats;
+            if (!beats?.some((beat) => beat.id === beatId)) {
+              return {};
+            }
+            return {
+              setup: {
+                ...state.setup,
+                stage: state.setup?.stage ?? "review",
+                brief: state.setup?.brief ?? "",
+                beats: beats.filter((beat) => beat.id !== beatId)
               }
             };
           }),

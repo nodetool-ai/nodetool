@@ -622,6 +622,56 @@ the verdict is ok. Validation and report rules live in
 `@nodetool-ai/execution/timeline-debug`; the CLI keeps target resolution, the
 interaction script, and the bundle.
 
+### 3D clips in preview_timeline_frame
+
+`preview_timeline_frame` composites a sequence at one or more timecodes on
+`@napi-rs/canvas` and returns the frames with a per-layer report. A `model3d`
+layer is the one kind that path cannot draw itself — there is no WebGL behind
+that canvas. So the pass collects every 3D layer of every requested instant
+before compositing anything, groups them by the glTF plus the options that fix
+a renderer (lighting, intensity, background, animation selection), and hands
+each group to one headless Chromium page that loads the model once and returns
+one PNG per frame. Grouping is what makes it affordable: a launch costs about a
+second, so six timecodes of a turntable are one launch and six frames, not six
+launches.
+
+No Chrome on the host — or a launch that fails — is not an error the call
+throws. The group's layers are left out and reported as a `model3d_unavailable`
+degradation naming the clip, so an agent cannot read a missing renderer as an
+empty clip.
+
+Two fields on a 3D layer's report say what the pixels do not:
+
+- `camera` — the pose the layer was drawn with (mode, azimuth, elevation, fov,
+  zoom, and the glTF camera's name in `scene` mode), the clip's authored camera
+  already folded with the four animated camera channels. A turntable mid-sweep
+  and a static pose are the same picture at one instant.
+- `animation_time_sec` — the glTF animation's own clock: the clip's source time
+  times `animation.speed`. It is not the timeline time, so a trimmed or retimed
+  clip's animation is readable from the report.
+
+A clip whose bake is still current draws as a video layer instead, which the
+decoder seeks by clip-local time; a hash that no longer matches puts the live
+3D layer back. The pre-pass is
+`packages/agents/src/timeline-preview/model3d.ts`, its suite
+`packages/agents/tests/timeline-model3d-frames.test.ts`, and the renderer it
+calls is `renderGlbFramesHeadless`
+(`packages/video-nodes/src/nodes/model3d/render3d-headless.ts`), which the
+single-frame `RenderToImage` path also goes through. A diff under either
+package runs both suites through `harness gate` (the `timeline-model3d`
+harness).
+
+The Blender side has a coverage gap. The sampled producer behind a bake is
+exercised by
+`packages/blender-nodes/tests/render-animation-sampled.test.ts`, which runs
+only where Blender is installed — `BLENDER_PATH`, or `blender` on `PATH` —
+and skips everywhere else; CI sets `NODETOOL_REQUIRE_BLENDER=1`, which turns
+that skip into a failure. It therefore does not run in a plain dev container,
+and two defects in that producer surfaced only on the CI leg: a named animation
+that selected nothing because the glTF importer's active action played over the
+muted NLA tracks, and RGB output where `render_image` and `render_passes` both
+write RGBA, which made a bake frame incomparable to a still.
+
 ### nodetool timeline versions (Timeline Version History)
 
 `timeline versions` reads and writes a sequence's snapshot history against the

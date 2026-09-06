@@ -14,8 +14,11 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 
-import type { TimelineClip } from "@nodetool-ai/timeline";
-import { hasTimeRemap } from "@nodetool-ai/timeline";
+import type {
+  ClipModel3DCamera,
+  TimelineClip
+} from "@nodetool-ai/timeline";
+import { computeModel3DBakeHash, hasTimeRemap } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -33,7 +36,9 @@ import {
 import { createCompositor } from "./gpu/createCompositor";
 import type { CompositeLayer, TimelineCompositor } from "./gpu/types";
 import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
+import { Model3DOrbitOverlay } from "./Model3DOrbitOverlay";
 import {
+  bakedClipSourceTimeSec,
   clipSourceTimeSec,
   computeActiveLayers,
   computeActiveLayersWithHorizon,
@@ -55,6 +60,13 @@ import {
   buildCompositePrecomposites,
   type ResolvedCompositeSource
 } from "./compositeLayers";
+import { Model3DLayerSource } from "./Model3DLayerSource";
+import {
+  alphaBakesToProbe,
+  guardBakeHash,
+  probeAlphaBake,
+  type BakeUndecodable
+} from "./bakeDecoding";
 import { CaptionRasterizer } from "./captionRender";
 import { TextRasterizer } from "./textRender";
 import { ShapeRasterizer } from "./shapeRender";
@@ -155,6 +167,12 @@ const previewMagicOverlayStyles = css({
 interface ActiveVideoSlot {
   clipId: string;
   assetUrl: string;
+  /**
+   * Set when the slot plays a `model3d` clip's Blender bake: the bake is the
+   * clip's evaluated picture from its own first frame, so the element seeks by
+   * clip-local time rather than by the clip's source mapping (§D6).
+   */
+  baked?: boolean;
 }
 
 type AssetUrlEntry =
@@ -187,14 +205,16 @@ export const PreviewCompositor: React.FC = memo(() => {
   const [sceneTimeMs, setSceneTimeMs] = useState(reactiveTimeMs);
   const currentTimeMs = sceneTimeMs;
 
-  const { tracks, clips, sequenceWidth, sequenceHeight } = useTimelineStore(
-    useShallow((s) => ({
-      tracks: s.tracks,
-      clips: s.clips,
-      sequenceWidth: s.width,
-      sequenceHeight: s.height
-    }))
-  );
+  const { tracks, clips, sequenceWidth, sequenceHeight, sequenceFps } =
+    useTimelineStore(
+      useShallow((s) => ({
+        tracks: s.tracks,
+        clips: s.clips,
+        sequenceWidth: s.width,
+        sequenceHeight: s.height,
+        sequenceFps: s.fps
+      }))
+    );
 
   const patchClip = useTimelineStore((s) => s.patchClip);
   const selectedClipId = useTimelineUIStore((s) =>
@@ -240,6 +260,33 @@ export const PreviewCompositor: React.FC = memo(() => {
     },
     [getAsset]
   );
+
+  /**
+   * The 3D layers' pixels: one three.js render session per active `model3d`
+   * clip, capped and evicted by the pool itself. A session resolves
+   * asynchronously, so `model3dVersion` bumps when one becomes ready (or turns
+   * out to be impossible on this machine) and re-runs the scene memo below.
+   */
+  const [model3dVersion, setModel3dVersion] = useState(0);
+  const model3dSource = useMemo(
+    () =>
+      new Model3DLayerSource({
+        resolveUrl,
+        onChange: () => setModel3dVersion((v) => v + 1)
+      }),
+    [resolveUrl]
+  );
+  useEffect(() => () => model3dSource.dispose(), [model3dSource]);
+
+  /**
+   * The pose an orbit gesture is mid-way through, before it is written to the
+   * document. The overlay commits once per gesture, so without this the
+   * picture would not move until the pointer came up.
+   */
+  const [orbitPose, setOrbitPose] = useState<{
+    clipId: string;
+    camera: ClipModel3DCamera;
+  } | null>(null);
 
   // Hidden HTMLVideoElement pool — still browser-decoded, but never rendered.
   // Their pixels are uploaded each frame to GPU textures by the compositor.
@@ -430,6 +477,57 @@ export const PreviewCompositor: React.FC = memo(() => {
     }),
     [sequenceWidth, sequenceHeight]
   );
+  /**
+   * A `model3d` clip whose Blender bake still matches the live document plays
+   * that bake as a video layer; on any mismatch the live 3D layer draws (§D6).
+   * Without this resolver the scene model has nothing to compare against and
+   * every 3D clip stays live.
+   */
+  const liveBakeHash = useCallback(
+    (clip: TimelineClip): string =>
+      computeModel3DBakeHash(clip, {
+        fps: sequenceFps,
+        width: sequenceWidth,
+        height: sequenceHeight
+      }),
+    [sequenceFps, sequenceWidth, sequenceHeight]
+  );
+
+  /**
+   * Alpha bakes this browser turned out not to play — VP9 with alpha decodes
+   * in Chromium and Firefox and not in Safari (§R6). Each is probed once and
+   * then treated as no bake at all, so the live 3D layer draws rather than an
+   * opaque box over the footage.
+   */
+  const [undecodableBakes, setUndecodableBakes] = useState<BakeUndecodable[]>(
+    []
+  );
+  const probedBakes = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    let cancelled = false;
+    for (const bake of alphaBakesToProbe(clips, liveBakeHash)) {
+      if (probedBakes.current.has(bake.assetId)) continue;
+      const url = resolveUrl(bake.assetId);
+      if (!url) continue;
+      probedBakes.current.add(bake.assetId);
+      void probeAlphaBake(url).then((reason) => {
+        if (!reason || cancelled) return;
+        setUndecodableBakes((prev) =>
+          prev.some((b) => b.assetId === bake.assetId)
+            ? prev
+            : [...prev, { ...bake, reason }]
+        );
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [clips, liveBakeHash, resolveUrl, urlCacheVersion]);
+
+  const model3dBakeHash = useMemo(
+    () => guardBakeHash(liveBakeHash, undecodableBakes),
+    [liveBakeHash, undecodableBakes]
+  );
   // Latest sequence resolution, read by the rAF loop (whose closure only
   // rebinds on [gpuReady, isPlaying]) to resolve animation offsets in px.
   const canvasSizeRef = useRef({
@@ -461,7 +559,8 @@ export const PreviewCompositor: React.FC = memo(() => {
         {
           maxVideoLayers: HOT_POOL_SIZE,
           canvas: sceneCanvas,
-          animationCache: animCacheRef.current
+          animationCache: animCacheRef.current,
+          model3dBakeHash
         }
       );
       let sig = "";
@@ -474,7 +573,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       }
       return { signature: sig, nextChangeMs, layers };
     },
-    [tracks, clips, sceneCanvas]
+    [tracks, clips, sceneCanvas, model3dBakeHash]
   );
 
   const { sceneLayers, precomposites, activeVideoSlots, placeholderLayers } =
@@ -490,7 +589,8 @@ export const PreviewCompositor: React.FC = memo(() => {
         {
           maxVideoLayers: HOT_POOL_SIZE,
           canvas: sceneCanvas,
-          animationCache: animCacheRef.current
+          animationCache: animCacheRef.current,
+          model3dBakeHash
         }
       );
 
@@ -519,7 +619,26 @@ export const PreviewCompositor: React.FC = memo(() => {
           return;
         }
         if (layer.kind === "video") {
-          videoSlots.push({ clipId: layer.clipId, assetUrl: url });
+          const slot: ActiveVideoSlot = {
+            clipId: layer.clipId,
+            assetUrl: url
+          };
+          if (layer.bakeSourceTimeSec !== undefined) slot.baked = true;
+          videoSlots.push(slot);
+          return;
+        }
+        if (
+          layer.kind === "model3d" &&
+          model3dSource.state(layer.clipId)?.status === "unavailable"
+        ) {
+          // No WebGL, or a model that could not be loaded (R1). Draw the
+          // outlined placeholder rather than a silent gap in the frame.
+          placeholders.push({
+            clipId: layer.clipId,
+            trackIndex: layer.trackIndex,
+            status: layer.clip.status,
+            name: layer.clip.name
+          });
         }
       };
       for (const layer of layers) visit(layer);
@@ -530,7 +649,24 @@ export const PreviewCompositor: React.FC = memo(() => {
         activeVideoSlots: videoSlots,
         placeholderLayers: placeholders
       };
-    }, [tracks, clips, currentTimeMs, resolveUrl, urlCacheVersion, sceneCanvas]);
+    }, [
+      tracks,
+      clips,
+      currentTimeMs,
+      resolveUrl,
+      urlCacheVersion,
+      sceneCanvas,
+      model3dSource,
+      model3dVersion
+    ]);
+
+  // Hold a render session only while its clip is on screen: each one is a
+  // WebGL context, and a browser has about sixteen (R2).
+  useEffect(() => {
+    model3dSource.retain(
+      sceneLayers.filter((l) => l.kind === "model3d").map((l) => l.clipId)
+    );
+  }, [model3dSource, sceneLayers]);
 
   // Source dims + transform for the single selected clip, but only while it is
   // actually rendered (active at the playhead) so the gizmo traces a visible
@@ -652,9 +788,12 @@ export const PreviewCompositor: React.FC = memo(() => {
         // Read the live transient playhead instead, and do it here (at
         // call time, not effect-run time) so the loadedmetadata-deferred
         // path also gets a fresh value rather than a stale closure.
-        const targetSec = clip
-          ? clipSourceTimeSec(clip, isPlaying ? getTimeMs() : currentTimeMs)
-          : 0;
+        const atMs = isPlaying ? getTimeMs() : currentTimeMs;
+        const targetSec = !clip
+          ? 0
+          : slot.baked
+            ? bakedClipSourceTimeSec(clip, atMs)
+            : clipSourceTimeSec(clip, atMs);
         // A remapped element never runs on its own clock, so its position is
         // always wrong by more than a playing element's tolerance would allow.
         const toleranceSec = isPlaying && !remapped ? 0.15 : 0.04;
@@ -795,7 +934,8 @@ export const PreviewCompositor: React.FC = memo(() => {
         ? computeActiveLayers(tracks, clips, atMs, {
             maxVideoLayers: HOT_POOL_SIZE,
             canvas: sceneCanvas,
-            animationCache: cache
+            animationCache: cache,
+            model3dBakeHash
           })
         : sceneLayers;
 
@@ -843,6 +983,29 @@ export const PreviewCompositor: React.FC = memo(() => {
           return bitmap ? { source: bitmap } : null;
         }
 
+        if (layer.kind === "model3d") {
+          // A gesture in flight replaces the style's camera, and the animation
+          // channels still fold on top of it, so the drag shows exactly the
+          // picture its commit will produce.
+          const dragged =
+            orbitPose && orbitPose.clipId === layer.clipId && layer.model3dStyle
+              ? {
+                  ...layer,
+                  model3dStyle: {
+                    ...layer.model3dStyle,
+                    camera: orbitPose.camera
+                  }
+                }
+              : layer;
+          // Rendered at the sequence resolution, the space the export renders
+          // in, so the preview and the exported file frame the model alike.
+          const canvas = model3dSource.frame(dragged, anim, {
+            width: sequenceWidth,
+            height: sequenceHeight
+          });
+          return canvas ? { source: canvas } : null;
+        }
+
         const url = resolveUrl(layer.assetId);
         if (!url) return null;
         if (layer.kind === "image") {
@@ -872,6 +1035,8 @@ export const PreviewCompositor: React.FC = memo(() => {
       clips,
       ensureImageElement,
       resolveUrl,
+      model3dSource,
+      orbitPose,
       sceneCanvas,
       sequenceWidth,
       sequenceHeight
@@ -1084,6 +1249,23 @@ export const PreviewCompositor: React.FC = memo(() => {
     [clips, currentTimeMs]
   );
 
+  /**
+   * 3D clips on screen whose bake this browser could not play. The badge is
+   * the report: the picture is the live proxy, not the bake the document says
+   * it plays.
+   */
+  const proxiedBakeClips = useMemo(
+    () =>
+      clips.filter(
+        (c) =>
+          isClipActive(c, currentTimeMs) &&
+          undecodableBakes.some(
+            (b) => b.assetId === c.model3dStyle?.bake?.assetId
+          )
+      ),
+    [clips, currentTimeMs, undecodableBakes]
+  );
+
   const staleActiveClips = useMemo(
     () =>
       clips.filter(
@@ -1136,6 +1318,18 @@ export const PreviewCompositor: React.FC = memo(() => {
           />
         )}
 
+        {selectedClipId && clipById.get(selectedClipId)?.mediaType === "model3d" && (
+          <Model3DOrbitOverlay
+            clip={clipById.get(selectedClipId)!}
+            frameHeight={frameSize.h}
+            onPreviewCamera={(camera) =>
+              setOrbitPose(
+                camera ? { clipId: selectedClipId, camera } : null
+              )
+            }
+          />
+        )}
+
         {placeholderLayers.map((layer) => (
           <div
             key={layer.clipId}
@@ -1161,6 +1355,16 @@ export const PreviewCompositor: React.FC = memo(() => {
             style={{ zIndex: PREVIEW_OVERLAY_Z.badge }}
           >
             stale
+          </div>
+        ))}
+
+        {proxiedBakeClips.map((c) => (
+          <div
+            key={`bake-${c.id}`}
+            css={overlayBadgeStyles(theme, "#c08000")}
+            style={{ zIndex: PREVIEW_OVERLAY_Z.badge }}
+          >
+            bake unplayable — live 3D
           </div>
         ))}
 

@@ -71,11 +71,27 @@ describe("AlternativesColumn", () => {
     expect(upload).not.toHaveBeenCalled();
   });
 
-  it("groups the alternatives under an accessible name", () => {
+  it("lists the alternatives under an accessible name", () => {
     renderColumn();
 
     expect(
-      screen.getByRole("group", { name: "Other ways to start" })
+      screen.getByRole("list", { name: "Other ways to start" })
     ).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(alternatives.length);
+  });
+
+  // Each card opens or starts something. None is a choice among the others, so
+  // neither the column nor a card carries selection state — and a card left on
+  // the default toggle role would start announcing one the moment anything
+  // passed `selected`.
+  it("routes rather than selects", () => {
+    renderColumn();
+
+    expect(screen.queryByRole("radiogroup")).toBeNull();
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+    for (const card of screen.getAllByRole("button")) {
+      expect(card).not.toHaveAttribute("aria-pressed");
+      expect(card).not.toHaveAttribute("aria-checked");
+    }
   });
 });

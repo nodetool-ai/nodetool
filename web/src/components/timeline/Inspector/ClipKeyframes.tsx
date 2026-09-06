@@ -13,8 +13,8 @@ import DiamondIcon from "@mui/icons-material/Diamond";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
 
 import {
-  KEYFRAME_PROPERTIES,
   hasKeyframeAt,
+  keyframePropertiesFor,
   keyframeTimesMs,
   keyframeValueAt,
   type KeyframeProperty,
@@ -44,7 +44,11 @@ const PROPERTY_LABELS: Record<KeyframeProperty, { label: string; unit?: string; 
   scale: { label: "Scale", unit: "×", step: 0.05 },
   offsetX: { label: "Position X", unit: "px", step: 1 },
   offsetY: { label: "Position Y", unit: "px", step: 1 },
-  rotation: { label: "Rotation", unit: "°", step: 1 }
+  rotation: { label: "Rotation", unit: "°", step: 1 },
+  cameraAzimuth: { label: "Camera Azimuth", unit: "°", step: 1 },
+  cameraElevation: { label: "Camera Elevation", unit: "°", step: 1 },
+  cameraZoom: { label: "Camera Zoom", unit: "×", step: 0.05 },
+  cameraFov: { label: "Camera FOV", unit: "°", step: 1 }
 };
 
 interface ClipKeyframesProps {
@@ -144,7 +148,7 @@ export const ClipKeyframes: React.FC<ClipKeyframesProps> = memo(({ clip }) => {
               Move the playhead over the clip to set keyframes.
             </Caption>
           )}
-          {KEYFRAME_PROPERTIES.map((property) => (
+          {keyframePropertiesFor(clip).map((property) => (
             <KeyframeRow key={property} clip={clip} property={property} atMs={atMs} />
           ))}
         </FlexColumn>

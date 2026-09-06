@@ -5,7 +5,9 @@
  * call-sites that previously used the REST-flavoured names.
  */
 
-import { trpc } from "../trpc/client";
+import { useCallback } from "react";
+
+import { trpc, type RouterOutputs } from "../trpc/client";
 
 /** List sequences, optionally filtered by projectId. */
 export const useTimelines = (
@@ -35,3 +37,21 @@ export const useCreateTimeline = () => {
   });
 };
 
+/**
+ * Write a sequence the caller just PATCHed into the detail cache.
+ *
+ * `useCreateTimeline` seeds `timeline.get` with the sequence as created, and
+ * that copy carries no `setup`. A flow that creates a sequence and then PATCHes
+ * the setup onto it would otherwise hand the pre-PATCH copy to the first render
+ * of the flow; `useLoadTimelineIntoStore` skips every later copy of the same id,
+ * so the store kept `setup: null`, the stage read `done`, and the flow rendered
+ * nothing at all.
+ */
+export const useSeedTimelineDetail = () => {
+  const utils = trpc.useUtils();
+  return useCallback(
+    (sequence: RouterOutputs["timeline"]["get"]) =>
+      utils.timeline.get.setData({ id: sequence.id }, sequence),
+    [utils]
+  );
+};

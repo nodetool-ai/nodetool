@@ -703,12 +703,26 @@ export const workflowSetupPlan = z
   .passthrough();
 export type WorkflowSetupPlan = z.infer<typeof workflowSetupPlan>;
 
+/**
+ * The model that writes the plan. Kept on the workflow rather than in the
+ * flow's own state so a reload plans with the model the creator picked — the
+ * default is whichever model the provider list returns first, and that one can
+ * be out of quota or retired.
+ */
+export const workflowSetupPlannerModel = z
+  .object({ provider: z.string(), id: z.string() })
+  .passthrough();
+export type WorkflowSetupPlannerModel = z.infer<
+  typeof workflowSetupPlannerModel
+>;
+
 export const workflowSetup = z
   .object({
     stage: workflowSetupStage.default("done"),
     brief: z.string().default(""),
     category: z.string().optional(),
     plan: workflowSetupPlan.optional(),
+    planner_model: workflowSetupPlannerModel.optional(),
     run_mode: workflowSetupRunMode.optional()
   })
   .passthrough();

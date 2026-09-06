@@ -10,14 +10,13 @@ Lights come from the scene when it has any, else the `lighting` preset.
 (render_animation's orbit sweep) use the smaller pieces directly.
 """
 
-import math
 import os
 
 import bpy
 from mathutils import Vector
 
 from errors import BadJob, ImportFailed, NoCamera, NoGeometry, RenderFailed
-from framing import compute_framing, orbit_offset
+from framing import apply_camera_lens, compute_framing, orbit_offset
 
 
 ORBIT_CAMERA_NAME = "NodeTool_Orbit"
@@ -130,10 +129,7 @@ def orbit_location(center, radius, params, aspect):
 def make_orbit_camera(scene, center, radius, params, aspect):
     location, framing = orbit_location(center, radius, params, aspect)
     data = bpy.data.cameras.new(ORBIT_CAMERA_NAME)
-    data.angle = math.radians(params["fov"])
-    data.sensor_fit = "VERTICAL"
-    data.clip_start = framing["near"]
-    data.clip_end = framing["far"]
+    apply_camera_lens(data, params["fov"], framing)
     obj = bpy.data.objects.new(ORBIT_CAMERA_NAME, data)
     scene.collection.objects.link(obj)
     obj.location = location

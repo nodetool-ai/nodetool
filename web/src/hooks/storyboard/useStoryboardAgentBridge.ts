@@ -42,9 +42,13 @@ import { useEntities } from "../../serverState/useEntities";
 import { sceneOrder } from "../../lib/storyboard/sceneOrder";
 import { linkedScriptId } from "../../lib/scriptStoryboardLink";
 import { assetLocator } from "../../utils/mediaRef";
+import { DEFAULT_SETUP_SHOT_COUNT } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 
-/** Shot count a Director run defaults to when the tool names none. */
-const DEFAULT_SHOT_COUNT = 6;
+/**
+ * Shot count a Director run defaults to when neither the caller nor the board
+ * names one. The same constant the flow's picker starts on.
+ */
+const DEFAULT_SHOT_COUNT = DEFAULT_SETUP_SHOT_COUNT;
 
 /**
  * The board values staleness is measured against. `style_entity_id` is the
@@ -194,6 +198,8 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         aspectRatio: board.aspectRatio,
         setupStage: board.setupStage,
         genre: board.genre,
+        setupShotCount: board.setupShotCount ?? DEFAULT_SHOT_COUNT,
+        importSource: board.importSource ?? null,
         scenes: groups
           .filter((group) => group.scene !== null)
           .map((group) =>
@@ -276,7 +282,12 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
             `Storyboard ${boardId} has no director model. Pick one on the board before directing.`
           );
         }
-        await direct(boardId, shotCount ?? DEFAULT_SHOT_COUNT);
+        // The board's own length is what the flow's picker wrote, so a caller
+        // that does not name one gets the run the creator set up (§ 7.7).
+        await direct(
+          boardId,
+          shotCount ?? board.setupShotCount ?? DEFAULT_SHOT_COUNT
+        );
         // The hook reports a failed run through React state the tool layer
         // cannot read, so the board itself is the evidence: a run that landed
         // wrote a new screenplay.

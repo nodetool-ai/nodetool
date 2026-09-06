@@ -60,5 +60,6 @@ export {
   supportsPlatform
 } from "./platform.js";
 export * from "./nodetool-models.js";
+export * from "./token-providers.js";
 export * from "./predicates.js";
 export * from "./workflow-plan.js";

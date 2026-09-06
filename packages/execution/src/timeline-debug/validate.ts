@@ -27,12 +27,14 @@ import {
   parseEasing,
   resolveFontFamily,
   resolveCustomMask,
+  computeModel3DBakeHash,
   sourceRate,
   DEFAULT_TEMPO,
   resolveTempo,
   validateNotes,
   visibleNotes
 } from "@nodetool-ai/timeline";
+import type { Model3DBakeSequence } from "@nodetool-ai/timeline";
 import {
   MASK_KINDS,
   MAX_VIDEO_LAYERS,
@@ -242,7 +244,8 @@ function checkDuplicateIds(doc: TimelineDocument): TimelineDebugIssue[] {
 function checkClip(
   clip: TimelineClip,
   trackIds: ReadonlySet<string>,
-  fps: number
+  fps: number,
+  canvas: { width: number; height: number }
 ): TimelineDebugIssue[] {
   const issues: TimelineDebugIssue[] = [];
   const at = { clipId: clip.id, trackId: clip.trackId };
@@ -464,6 +467,7 @@ function checkClip(
   issues.push(...unknownEffectIssues(clip));
   const shapeKind = unknownShapeKindIssue(clip);
   if (shapeKind) issues.push(shapeKind);
+  issues.push(...model3dIssues(clip, { fps, ...canvas }));
   issues.push(...fontPortabilityIssues(clip));
 
   const frameMs = 1000 / fps;
@@ -564,6 +568,60 @@ function unknownShapeKindIssue(clip: TimelineClip): TimelineDebugIssue | null {
     clipId: clip.id,
     trackId: clip.trackId
   };
+}
+
+/**
+ * A 3D clip that cannot draw, and a bake that no longer matches what it would.
+ *
+ * The style and the glTF are both errors: the style names the camera, the
+ * lighting and the animation a 3D layer renders from, and the glTF is the
+ * clip's asset the way an image is an image clip's — without either the clip
+ * draws nothing at all, and nothing else in the document compensates.
+ *
+ * A stale bake is a warning instead: the scene model falls back to the live 3D
+ * layer, so what plays is the intended picture at proxy quality rather than a
+ * render of a style the clip no longer has.
+ */
+function model3dIssues(
+  clip: TimelineClip,
+  sequence: Model3DBakeSequence
+): TimelineDebugIssue[] {
+  if (clip.mediaType !== "model3d") return [];
+  const issues: TimelineDebugIssue[] = [];
+  const at = { clipId: clip.id, trackId: clip.trackId };
+  const label = clipLabel(clip);
+
+  if (!clip.model3dStyle) {
+    issues.push({
+      severity: "error",
+      code: "model3d_style_missing",
+      message: `Clip "${label}" is a 3D clip with no model3dStyle — nothing names its camera, lighting or animation, so it draws nothing.`,
+      path: "model3dStyle",
+      ...at
+    });
+  }
+  if (!clip.currentAssetId) {
+    issues.push({
+      severity: "error",
+      code: "model3d_style_missing",
+      message: `Clip "${label}" is a 3D clip with no currentAssetId — the glTF a 3D clip draws is its asset, the way an image is an image clip's.`,
+      path: "currentAssetId",
+      ...at
+    });
+  }
+
+  const bake = clip.model3dStyle?.bake;
+  if (bake && bake.dependencyHash !== computeModel3DBakeHash(clip, sequence)) {
+    issues.push({
+      severity: "warning",
+      code: "bake_stale",
+      message: `Clip "${label}" carries a bake rendered from a style it no longer has — the live 3D layer draws instead. Re-bake it.`,
+      path: "model3dStyle.bake.dependencyHash",
+      ...at
+    });
+  }
+
+  return issues;
 }
 
 /** What a mask's `kind` accepts, for the `mask_path_invalid` message. */
@@ -1109,7 +1167,7 @@ export function validateTimelineSequence(
   const issues: TimelineDebugIssue[] = [
     ...checkFieldStripping(raw, doc),
     ...checkDuplicateIds(doc),
-    ...doc.clips.flatMap((clip) => checkClip(clip, trackIds, fps)),
+    ...doc.clips.flatMap((clip) => checkClip(clip, trackIds, fps, canvas)),
     ...doc.clips.flatMap((clip) => checkClipMotion(clip, canvas)),
     ...checkLegibility(doc, canvas.height),
     ...checkParents(doc),

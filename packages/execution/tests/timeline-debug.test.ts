@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import type { ClipModel3DStyle, TimelineClip } from "@nodetool-ai/timeline";
+import { computeModel3DBakeHash } from "@nodetool-ai/timeline";
+
 import {
   buildTimelineDebugReport,
   renderTimelineReportMarkdown,
@@ -767,6 +770,110 @@ describe("validateTimelineSequence — structural checks", () => {
       { fps: 120 }
     );
     expect(codes(highFps.warnings)).not.toContain("clip_shorter_than_frame");
+  });
+});
+
+const model3dStyle = (
+  overrides: Partial<ClipModel3DStyle> = {}
+): ClipModel3DStyle => ({
+  camera: {
+    mode: "orbit",
+    azimuthDeg: 45,
+    elevationDeg: 25,
+    fovDeg: 35,
+    zoom: 1
+  },
+  animation: { loop: true, speed: 1 },
+  lighting: "studio",
+  lightIntensity: 1,
+  background: { transparent: true },
+  ...overrides
+});
+
+const model3dClip = (overrides: Json = {}): Json =>
+  clip({
+    mediaType: "model3d",
+    currentAssetId: "asset-glb",
+    model3dStyle: model3dStyle(),
+    ...overrides
+  });
+
+describe("validateTimelineSequence — model3d clips", () => {
+  it("passes a 3D clip with a style and an asset", () => {
+    const result = validateTimelineSequence(doc({ clips: [model3dClip()] }));
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
+  it("flags a 3D clip with no style", () => {
+    const result = validateTimelineSequence(
+      doc({ clips: [model3dClip({ model3dStyle: undefined })] })
+    );
+    expect(codes(result.errors)).toContain("model3d_style_missing");
+    expect(
+      result.errors.find((issue) => issue.code === "model3d_style_missing")?.path
+    ).toBe("model3dStyle");
+    expect(result.ok).toBe(false);
+  });
+
+  it("flags a 3D clip with no asset", () => {
+    const result = validateTimelineSequence(
+      doc({ clips: [model3dClip({ currentAssetId: undefined })] })
+    );
+    const paths = result.errors
+      .filter((issue) => issue.code === "model3d_style_missing")
+      .map((issue) => issue.path);
+    expect(paths).toEqual(["currentAssetId"]);
+  });
+
+  it("leaves a 2D clip with no style alone", () => {
+    const result = validateTimelineSequence(doc());
+    expect(codes(result.errors)).not.toContain("model3d_style_missing");
+  });
+
+  it("flags a bake whose hash no longer matches the style", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          model3dClip({
+            model3dStyle: model3dStyle({
+              bake: { assetId: "asset-bake", dependencyHash: "stale" }
+            })
+          })
+        ]
+      })
+    );
+    expect(codes(result.warnings)).toContain("bake_stale");
+    // A stale bake still plays, as the live 3D layer.
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts a bake whose hash matches the style", () => {
+    // The hash covers the style without its own `bake`, so a fresh one is the
+    // hash of the style the clip already carries.
+    // The hash also reads the clip's trim, duration, speed, remap and the
+    // sequence's own settings, so it is taken from the very clip validated
+    // below and against the validator's own defaults.
+    const baked = model3dClip() as unknown as TimelineClip;
+    const dependencyHash = computeModel3DBakeHash(baked, {
+      fps: 30,
+      width: 1920,
+      height: 1080
+    });
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          model3dClip({
+            model3dStyle: model3dStyle({
+              bake: { assetId: "asset-bake", dependencyHash }
+            })
+          })
+        ]
+      })
+    );
+    expect(codes(result.warnings)).not.toContain("bake_stale");
+    expect(result.ok).toBe(true);
   });
 });
 

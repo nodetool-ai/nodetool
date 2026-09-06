@@ -32,6 +32,7 @@ import "../../../../lib/tools/builtin/script";
 import { useScriptAgentBridge } from "../../../../hooks/script/useScriptAgentBridge";
 import { useScriptStore } from "../../../../stores/script/ScriptStore";
 import useGlobalChatStore from "../../../../stores/GlobalChatStore";
+import { readVoicingRun } from "../../../../stores/script/scriptVoicing";
 
 const SCRIPT_ID = "s-tools";
 
@@ -166,6 +167,45 @@ describe("the script flow through its tools", () => {
       rpcRequest.mock.calls.filter(([command]) => command === "generate_media")
     ).toHaveLength(before);
 
+    unmount();
+  });
+
+  it("records the lines it could not voice, and says the run finished (F8)", async () => {
+    const { unmount } = renderHook(() => useScriptAgentBridge(SCRIPT_ID));
+    await call("ui_script_set_setup", {
+      stage: "voices",
+      brief: "Two people talk about a product that failed",
+      format: "interview"
+    });
+    rpcRequest.mockResolvedValueOnce(writerAnswer);
+    await call("ui_script_write", {});
+    const [host, guest] = scriptNow().cast;
+    await call("ui_script_set_speaker_voice", {
+      speakerId: host.id,
+      voice: RACHEL
+    });
+    await call("ui_script_set_speaker_voice", {
+      speakerId: guest.id,
+      voice: ADAM
+    });
+
+    // The guest's line comes back with no audio; the host's two succeed.
+    rpcRequest.mockReset();
+    rpcRequest.mockImplementation(
+      async (command: string, payload: Record<string, unknown>) => {
+        if (command !== "generate_media") return { words: [] };
+        if (payload.voice === "adam") throw new Error("that voice is offline");
+        return { asset_ids: ["asset-1"] };
+      }
+    );
+    await call("ui_script_voice_all", {});
+
+    const run = readVoicingRun(scriptNow().setup);
+    expect(run?.status).toBe("completed");
+    expect(run?.total).toBe(3);
+    expect(run?.voiced).toBe(2);
+    expect(run?.failed).toHaveLength(1);
+    expect(run?.failed[0].error).toBe("that voice is offline");
     unmount();
   });
 

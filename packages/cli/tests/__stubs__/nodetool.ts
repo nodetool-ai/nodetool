@@ -450,6 +450,17 @@ export function isCallable(value: unknown): value is (...args: never[]) => unkno
   return typeof value === "function";
 }
 
+// protocol — the pricing tables `CostCalculator` reads. Re-exported from the
+// real module rather than copied: `token-providers.ts` is dependency-free data,
+// and a stubbed-away `LOCAL_FREE_PROVIDERS` is `undefined.has(...)` on the
+// first turn the CLI prices.
+export {
+  GENAI_PROVIDER_MAP,
+  LOCAL_FREE_PROVIDERS,
+  genaiProviderId,
+  isLocalFreeProvider
+} from "../../../protocol/src/token-providers.js";
+
 // marked (used by markdown.ts — not available at repo root)
 export const marked = Object.assign((_text: string) => _text, {
   use: (_ext: unknown) => {}

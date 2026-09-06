@@ -248,6 +248,114 @@ describe("timelines capability behaviour", () => {
     expect(afterGenerate.timeline.clips.length).toBeGreaterThanOrEqual(2);
   });
 
+  // D8: a 3D clip is placed and restyled through the same op script every
+  // other clip edit goes through. Nothing invoked the capability with the two
+  // ops, so the description advertised a surface no test reached.
+  it("places a 3D clip, patches its style, and reports one with no model", async () => {
+    const created = (await run().invoke("create_timeline", {
+      name: "Turntable"
+    })) as { timeline_id: string };
+
+    const added = (await run().invoke("edit_timeline", {
+      timeline_id: created.timeline_id,
+      ops: [{ op: "add_model3d_clip", assetId: "asset_glb" }]
+    })) as {
+      applied: number;
+      failed: number;
+      ops: Array<{ result?: { clip?: { id: string } } }>;
+    };
+    expect(added.failed).toBe(0);
+    const clipId = added.ops[0].result?.clip?.id;
+    expect(clipId).toBeDefined();
+
+    const read = (await run().invoke("get_timeline", {
+      timeline_id: created.timeline_id
+    })) as {
+      timeline: {
+        clips: Array<{
+          mediaType: string;
+          currentAssetId?: string;
+          model3dStyle?: {
+            camera: { azimuthDeg: number; elevationDeg: number };
+            lighting: string;
+          };
+        }>;
+      };
+    };
+    const placed = read.timeline.clips[0];
+    expect(placed.mediaType).toBe("model3d");
+    expect(placed.currentAssetId).toBe("asset_glb");
+    expect(placed.model3dStyle).toMatchObject({
+      lighting: "studio",
+      camera: { azimuthDeg: 45, elevationDeg: 25 }
+    });
+
+    // The patch merges one level down: the turn lands, the framing stays.
+    const patched = (await run().invoke("edit_timeline", {
+      timeline_id: created.timeline_id,
+      ops: [
+        {
+          op: "set_model3d_style",
+          target: clipId,
+          patch: { camera: { azimuthDeg: 120 }, animation: { loop: false } }
+        }
+      ]
+    })) as { failed: number };
+    expect(patched.failed).toBe(0);
+
+    const after = (await run().invoke("get_timeline", {
+      timeline_id: created.timeline_id
+    })) as {
+      timeline: {
+        clips: Array<{
+          model3dStyle?: {
+            camera: { azimuthDeg: number; elevationDeg: number };
+            animation: { loop: boolean; speed: number };
+          };
+        }>;
+      };
+    };
+    expect(after.timeline.clips[0].model3dStyle).toMatchObject({
+      camera: { azimuthDeg: 120, elevationDeg: 25 },
+      animation: { loop: false, speed: 1 }
+    });
+
+    // A 3D clip whose model went missing draws nothing, and the validator is
+    // the only surface that says so.
+    const noModel = (await run().invoke("validate_timeline", {
+      document: {
+        tracks: [
+          {
+            id: "track-1",
+            name: "Overlay 1",
+            type: "overlay",
+            index: 0,
+            visible: true,
+            locked: false
+          }
+        ],
+        clips: [
+          {
+            id: "clip-1",
+            trackId: "track-1",
+            name: "3D model",
+            startMs: 0,
+            durationMs: 4000,
+            mediaType: "model3d",
+            sourceType: "imported",
+            status: "generated",
+            locked: false,
+            versions: []
+          }
+        ],
+        markers: []
+      }
+    })) as { errors: Array<{ code: string; path?: string }> };
+    expect(noModel.errors.map((issue) => issue.code)).toContain(
+      "model3d_style_missing"
+    );
+  });
+
   it("creates an empty sequence the caller can then edit", async () => {
     // Every other document surface could make one and timelines could not, so
     // "cut these clips together" meant editing whatever sequence the user had
