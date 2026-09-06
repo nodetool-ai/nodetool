@@ -4,7 +4,7 @@
   "description": "Unit-price lookup for models selected on generic nodes, shared by the web cost preview and the server-side run estimate",
   "type": "module",
   "engines": {
-    "node": ">=22.0.0 <23.0.0"
+    "node": ">=22.0.0"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

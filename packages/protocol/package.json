@@ -4,7 +4,7 @@
   "description": "Shared message types and protocol definitions for the NodeTool workflow runtime",
   "type": "module",
   "engines": {
-    "node": ">=22.0.0 <23.0.0"
+    "node": ">=22.0.0"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

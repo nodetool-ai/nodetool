@@ -2519,6 +2519,8 @@ export class ProcessingContext {
     if (override.thread_id !== undefined) merged.thread_id = override.thread_id;
     if (override.tool_call_id !== undefined)
       merged.tool_call_id = override.tool_call_id;
+    if (override.request_id !== undefined)
+      merged.request_id = override.request_id;
     if (override.job_id !== undefined) merged.job_id = override.job_id;
     if (override.node_id !== undefined) merged.node_id = override.node_id;
     return merged;

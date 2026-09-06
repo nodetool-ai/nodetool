@@ -812,7 +812,7 @@ none — a Code node, a JS script — got a belt that could `critique_image` and
 toolbelt` after the run had paid for the prompt that produced its argument.
 Pinned by `tests/sandbox-belt-reach.test.ts`.
 
-## Script Voicing Tools (`src/tools/script-voice-tools.ts`)
+## Script Voicing Tools (`src/capabilities/scripts.ts`)
 
 The headless path from a written script to voiced takes and an assembled
 voiceover sequence. The editor voices a line over the chat WebSocket's
@@ -854,7 +854,7 @@ place and keeps clips other surfaces added.
 Tests: `tests/script-voice-tools.test.ts` (in-memory DB, fake provider — no
 network).
 
-## Storyboard Render Tools (`src/tools/storyboard-render-tools.ts`)
+## Storyboard Render Tools (`src/capabilities/storyboards.ts`)
 
 The headless path from a directed storyboard to rendered media and an assembled
 cut. The editor has always had this path — the Storyboard surface builds a

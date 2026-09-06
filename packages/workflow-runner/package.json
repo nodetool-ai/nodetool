@@ -4,7 +4,7 @@
   "description": "Portable workflow runner — turns a graph + NodeRegistry into a (Request) => Response handler for Vercel, Cloudflare Workers, or any Web-standard runtime",
   "type": "module",
   "engines": {
-    "node": ">=22.0.0 <23.0.0"
+    "node": ">=22.0.0"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

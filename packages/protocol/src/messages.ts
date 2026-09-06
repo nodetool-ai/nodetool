@@ -254,7 +254,18 @@ export const generationOriginSchema = z.object({
   thread_id: z.string().nullable().optional(),
   tool_call_id: z.string().nullable().optional(),
   job_id: z.string().nullable().optional(),
-  node_id: z.string().nullable().optional()
+  node_id: z.string().nullable().optional(),
+  /**
+   * The RPC request the client correlates the reply on, for the `rpc` surface.
+   *
+   * A `generate_media` reply is an `rpc_response` carrying no `job_id` and no
+   * `thread_id`, so it is written to the socket that asked and dropped if that
+   * socket has gone — a browser reload loses it. Naming the request id here
+   * puts it on the row beside the outcome, so a client that reconnects can ask
+   * what became of the request it persisted instead of re-subscribing to an id
+   * whose reply was already delivered to a dead socket.
+   */
+  request_id: z.string().nullable().optional()
 });
 export type GenerationOrigin = z.infer<typeof generationOriginSchema>;
 

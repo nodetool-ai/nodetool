@@ -232,20 +232,27 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   const flatList = useMemo(() => {
     const items: ListItem[] = [];
 
-    // Sort workflows based on sortBy option
-    const sortedWorkflows = [...workflows].sort((a, b) => {
-      if (sortBy === "name") {
-        return a.name.localeCompare(b.name);
-      }
-      // Default: sort by date (most recent first)
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-    });
+    // Date sort is the default. Timestamps are parsed once per workflow
+    // instead of twice per comparison, then dropped again.
+    const sortedWorkflows =
+      sortBy === "name"
+        ? [...workflows].sort((a, b) => a.name.localeCompare(b.name))
+        : workflows
+            .map((workflow) => ({
+              workflow,
+              updatedAt: Date.parse(workflow.updated_at)
+            }))
+            .sort((a, b) => b.updatedAt - a.updatedAt)
+            .map((entry) => entry.workflow);
 
     // Only show date headers when sorting by date
     if (sortBy === "date") {
+      // One `now` for the whole pass; `groupByDate` otherwise builds a fresh
+      // Date per workflow.
+      const now = new Date();
       let currentGroup = "";
       for (const workflow of sortedWorkflows) {
-        const group = groupByDate(workflow.updated_at);
+        const group = groupByDate(workflow.updated_at, now);
         if (group !== currentGroup) {
           currentGroup = group;
           items.push({ type: "header", label: group });

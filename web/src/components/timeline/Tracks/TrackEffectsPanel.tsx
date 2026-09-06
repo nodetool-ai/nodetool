@@ -14,7 +14,6 @@
 import React, {
   memo,
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState

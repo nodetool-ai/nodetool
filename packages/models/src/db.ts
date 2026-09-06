@@ -615,6 +615,7 @@ export function getCreateSchemaSql(): string {
       "surface" text,
       "thread_id" text,
       "tool_call_id" text,
+      "request_id" text,
       "job_id" text,
       "asset_ids" text,
       "reconciled_at" text,
@@ -632,6 +633,7 @@ export function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_prediction_user_status" ON "nodetool_predictions" ("user_id", "status");
     CREATE INDEX IF NOT EXISTS "idx_prediction_user_thread" ON "nodetool_predictions" ("user_id", "thread_id");
     CREATE INDEX IF NOT EXISTS "idx_prediction_job" ON "nodetool_predictions" ("job_id");
+    CREATE INDEX IF NOT EXISTS "idx_prediction_user_request" ON "nodetool_predictions" ("user_id", "request_id");
     CREATE INDEX IF NOT EXISTS "idx_predictions_user_id" ON "nodetool_predictions" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_predictions_user_provider" ON "nodetool_predictions" ("user_id", "provider");
     CREATE INDEX IF NOT EXISTS "idx_prediction_created_at" ON "nodetool_predictions" ("created_at");

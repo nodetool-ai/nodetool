@@ -4,7 +4,7 @@
   "description": "NodeTool Blender headless nodes: render and mesh preparation over glTF",
   "type": "module",
   "engines": {
-    "node": ">=22.0.0 <23.0.0"
+    "node": ">=22.0.0"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

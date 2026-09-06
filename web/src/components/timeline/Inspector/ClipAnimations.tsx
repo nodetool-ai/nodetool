@@ -4,12 +4,14 @@ import AnimationOutlinedIcon from "@mui/icons-material/AnimationOutlined";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import {
   ANIMATION_PRESETS,
+  STAGGER_UNITS,
   type AnimationPreset,
   type AnimationRole,
   type ClipAnimation,
   type CustomClipAnimation,
   type EasingId,
   type PresetParamSpec,
+  type StaggerFrom,
   type TimelineClip
 } from "@nodetool-ai/timeline";
 
@@ -203,6 +205,76 @@ AnimationParamControl.displayName = "AnimationParamControl";
 
 const DEFAULT_STAGGER_OFFSET_MS = 120;
 
+const STAGGER_UNIT_LABELS: Record<string, string> = {
+  word: "Word",
+  character: "Character",
+  line: "Line"
+};
+
+const STAGGER_UNIT_OPTIONS = STAGGER_UNITS.map((unit) => ({
+  value: unit,
+  label: STAGGER_UNIT_LABELS[unit] ?? unit
+}));
+
+const STAGGER_FROM_OPTIONS = [
+  { value: "start", label: "Start" },
+  { value: "end", label: "End" },
+  { value: "center", label: "Center" }
+];
+
+/**
+ * How many units a text clip splits into for `unit`.
+ *
+ * Words are whitespace-separated, which is what the rasterizer does. The other
+ * two are approximations of what it draws: `character` counts code points
+ * rather than grapheme clusters (an emoji built from a ZWJ sequence counts more
+ * than once here), and `line` counts authored newlines rather than the wrapped
+ * lines, which only the measured layout knows. Both are used for a warning
+ * caption, never for the timing itself.
+ */
+function staggerUnitCount(text: string, unit: string): number {
+  if (unit === "character") return Math.max(1, Array.from(text).length);
+  if (unit === "line") return Math.max(1, text.split("\n").length);
+  const words = text
+    .trim()
+    .split(/\s+/)
+    .filter((word) => word !== "");
+  return Math.max(1, words.length);
+}
+
+/**
+ * The wall-clock length of a staggered animation: the last unit's window ends
+ * `offsetMs × (units − 1)` after the first one's. `from: "center"` starts in
+ * the middle and runs both ways, so it covers half that spread.
+ */
+function staggerSpanMs(
+  durationMs: number,
+  offsetMs: number,
+  units: number,
+  from: string | undefined
+): number {
+  const spread = offsetMs * Math.max(0, units - 1);
+  return durationMs + (from === "center" ? spread / 2 : spread);
+}
+
+/**
+ * The longest an entrance and an exit can run before they overlap: each role's
+ * slowest animation, delay included, measured from its own end of the clip.
+ */
+function inOutSpanMs(animations: readonly ClipAnimation[]): number {
+  const longest = (role: AnimationRole) =>
+    animations
+      .filter(
+        (animation) => animation.role === role && animation.enabled !== false
+      )
+      .reduce(
+        (max, animation) =>
+          Math.max(max, animation.durationMs + (animation.delayMs ?? 0)),
+        0
+      );
+  return longest("in") + longest("out");
+}
+
 const EDITOR_SX = {
   borderTop: (theme: Theme) => `1px solid ${theme.vars.palette.divider}`,
   pt: SPACING.md
@@ -213,6 +285,10 @@ interface ClipAnimationEditorProps {
   animation: ClipAnimation;
   /** True on text clips — the only place per-word stagger applies. */
   staggerAvailable: boolean;
+  /** The clip's own window, for the overrun caption. */
+  clipDurationMs: number;
+  /** The text the stagger splits, empty on a non-text clip. */
+  text: string;
   onPatch: (id: string, patch: Partial<ClipAnimation>) => void;
   onDelete: (id: string) => void;
 }
@@ -224,6 +300,8 @@ interface ClipAnimationEditorProps {
 const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = memo(({
   animation,
   staggerAvailable,
+  clipDurationMs,
+  text,
   onPatch,
   onDelete
 }) => {
@@ -322,17 +400,49 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = memo(({
     [onPatchThis]
   );
 
+  const handleStaggerUnitChange = useCallback(
+    (unit: string) => {
+      const stagger = animationRef.current.stagger;
+      if (!stagger) return;
+      onPatchThis({ stagger: { ...stagger, unit } });
+    },
+    [onPatchThis]
+  );
+
+  const handleStaggerFromChange = useCallback(
+    (from: string) => {
+      const stagger = animationRef.current.stagger;
+      if (!stagger) return;
+      onPatchThis({ stagger: { ...stagger, from: from as StaggerFrom } });
+    },
+    [onPatchThis]
+  );
+
   const handleStaggerOffsetCommit = useCallback(
     (raw: string) => {
       const offsetMs = Number(raw);
-      if (Number.isFinite(offsetMs) && offsetMs > 0) {
-        onPatchThis({
-          stagger: { ...animationRef.current.stagger, unit: "word", offsetMs }
-        });
+      const stagger = animationRef.current.stagger;
+      if (stagger && Number.isFinite(offsetMs) && offsetMs > 0) {
+        onPatchThis({ stagger: { ...stagger, offsetMs } });
       }
     },
     [onPatchThis]
   );
+
+  // Derived during render: the caption follows the store, and an agent's edit
+  // reports the same overrun a typed one does.
+  const stagger = animation.stagger;
+  const staggerUnits = stagger ? staggerUnitCount(text, stagger.unit) : 0;
+  const staggerSpan = stagger
+    ? staggerSpanMs(
+        animation.durationMs,
+        stagger.offsetMs,
+        staggerUnits,
+        stagger.from
+      )
+    : 0;
+  const staggerOverrun =
+    stagger && staggerSpan > clipDurationMs ? staggerSpan : null;
 
   return (
     <FlexColumn gap={SPACING.md} sx={EDITOR_SX}>
@@ -407,19 +517,42 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = memo(({
       {staggerAvailable && !preset?.fullClip && (
         <>
           <InspectorToggleRow
-            label="Stagger words"
-            checked={animation.stagger !== undefined}
+            label="Stagger"
+            checked={stagger !== undefined}
             onChange={handleStaggerToggle}
           />
-          {animation.stagger !== undefined && (
-            <InspectorRow label="Word offset">
-              <InspectorPillInput
-                value={String(animation.stagger.offsetMs)}
-                unit="ms"
-                onCommit={handleStaggerOffsetCommit}
-                ariaLabel={`${animation.role} animation word stagger offset`}
-              />
-            </InspectorRow>
+          {stagger !== undefined && (
+            <>
+              <InspectorRow label="Unit">
+                <InspectorSelect
+                  label={`${animation.role} animation stagger unit`}
+                  value={stagger.unit}
+                  options={STAGGER_UNIT_OPTIONS}
+                  onChange={handleStaggerUnitChange}
+                />
+              </InspectorRow>
+              <InspectorRow label="From">
+                <InspectorSelect
+                  label={`${animation.role} animation stagger from`}
+                  value={stagger.from ?? "start"}
+                  options={STAGGER_FROM_OPTIONS}
+                  onChange={handleStaggerFromChange}
+                />
+              </InspectorRow>
+              <InspectorRow label="Offset">
+                <InspectorPillInput
+                  value={String(stagger.offsetMs)}
+                  unit="ms"
+                  onCommit={handleStaggerOffsetCommit}
+                  ariaLabel={`${animation.role} animation stagger offset`}
+                />
+              </InspectorRow>
+              {staggerOverrun !== null && (
+                <Caption color="muted">
+                  {`Staggered over ${staggerUnits} ${stagger.unit}s this runs ${Math.round(staggerOverrun)}ms, past the clip's ${clipDurationMs}ms. The last units are cut off.`}
+                </Caption>
+              )}
+            </>
           )}
         </>
       )}
@@ -461,6 +594,10 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
     () => presetsForRole("in")[0].id
   );
   const animations = clip.animations ?? EMPTY_ANIMATIONS;
+  // Derived during render rather than in an effect — the caption is a fact
+  // about the clip, not a side effect of editing it.
+  const inOutSpan = inOutSpanMs(animations);
+  const inOutOverruns = inOutSpan > clip.durationMs;
   const groupedAnimations = useMemo(
     () =>
       ROLES.flatMap((role) =>
@@ -558,6 +695,11 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
             </Button>
           </FlexRow>
 
+          {inOutOverruns && (
+            <Caption color="muted">
+              {`In and out together run ${inOutSpan}ms, past the clip's ${clip.durationMs}ms. They overlap in the middle.`}
+            </Caption>
+          )}
           {animations.length === 0 ? (
             <Caption color="muted">
               Add an entrance, exit, emphasis, or loop preset.
@@ -568,6 +710,8 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
                 key={animation.id}
                 animation={animation}
                 staggerAvailable={clip.mediaType === "text"}
+                clipDurationMs={clip.durationMs}
+                text={clip.textStyle?.text ?? ""}
                 onPatch={patchAnimation}
                 onDelete={removeAnimation}
               />

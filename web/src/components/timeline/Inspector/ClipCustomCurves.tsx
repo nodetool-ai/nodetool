@@ -16,6 +16,7 @@ import React, { memo, useCallback, useRef } from "react";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import {
   ANIMATED_PROPERTIES,
+  parseEasing,
   type CustomClipAnimation
 } from "@nodetool-ai/timeline";
 
@@ -33,7 +34,10 @@ import {
   InspectorRow,
   InspectorSelect
 } from "./InspectorPrimitives";
-import { EASING_HINT } from "./InspectorMotionFields";
+import {
+  EASING_HINT,
+  UNPARSEABLE_EASING_HINT
+} from "./InspectorMotionFields";
 
 type CustomCurve = CustomClipAnimation["curves"][number];
 type CustomKeyframe = CustomCurve["keyframes"][number];
@@ -109,37 +113,47 @@ const KeyframeRow: React.FC<KeyframeRowProps> = memo(
       [curveIndex, keyIndex, onRemove]
     );
 
+    const easingUnparseable =
+      keyframe.easing !== undefined &&
+      keyframe.easing !== "" &&
+      parseEasing(keyframe.easing) === null;
+
     return (
-      <FlexRow align="center" gap={SPACING.micro}>
-        <InspectorPillInput
-          value={keyframe.t.toFixed(2)}
-          minWidth={52}
-          scrub={SCRUB_T}
-          onCommit={handleTimeCommit}
-          ariaLabel={`${name} time`}
-        />
-        <InspectorPillInput
-          value={String(keyframe.value)}
-          minWidth={64}
-          scrub={SCRUB_VALUE}
-          onCommit={handleValueCommit}
-          ariaLabel={`${name} value`}
-        />
-        <InspectorPillInput
-          value={keyframe.easing ?? ""}
-          placeholder="linear"
-          minWidth={96}
-          onCommit={handleEasingCommit}
-          ariaLabel={`${name} easing`}
-        />
-        <DeleteButton
-          onClick={handleRemove}
-          tooltip={`Remove ${name}`}
-          ariaLabel={`Remove ${name}`}
-          iconVariant="clear"
-          sx={KEYFRAME_DELETE_SX}
-        />
-      </FlexRow>
+      <FlexColumn gap={SPACING.micro}>
+        <FlexRow align="center" gap={SPACING.micro}>
+          <InspectorPillInput
+            value={keyframe.t.toFixed(2)}
+            minWidth={52}
+            scrub={SCRUB_T}
+            onCommit={handleTimeCommit}
+            ariaLabel={`${name} time`}
+          />
+          <InspectorPillInput
+            value={String(keyframe.value)}
+            minWidth={64}
+            scrub={SCRUB_VALUE}
+            onCommit={handleValueCommit}
+            ariaLabel={`${name} value`}
+          />
+          <InspectorPillInput
+            value={keyframe.easing ?? ""}
+            placeholder="linear"
+            minWidth={96}
+            onCommit={handleEasingCommit}
+            ariaLabel={`${name} easing`}
+          />
+          <DeleteButton
+            onClick={handleRemove}
+            tooltip={`Remove ${name}`}
+            ariaLabel={`Remove ${name}`}
+            iconVariant="clear"
+            sx={KEYFRAME_DELETE_SX}
+          />
+        </FlexRow>
+        {easingUnparseable && (
+          <Caption color="muted">{UNPARSEABLE_EASING_HINT}</Caption>
+        )}
+      </FlexColumn>
     );
   }
 );

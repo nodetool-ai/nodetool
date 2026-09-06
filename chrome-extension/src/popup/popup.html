@@ -3,18 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nodetool CDP Proxy</title>
+    <title>Nodetool</title>
     <link rel="stylesheet" href="./popup.css" />
   </head>
   <body>
     <main class="popup">
       <header class="popup__header">
-        <h1 class="popup__title">Nodetool CDP Proxy</h1>
+        <h1 class="popup__title">Nodetool</h1>
         <div class="status">
           <span id="status-dot" class="status__dot" data-state="disconnected"></span>
           <span id="status-label" class="status__label">Disconnected</span>
         </div>
       </header>
+
+      <section class="chat">
+        <button id="open-chat" class="button button--primary" type="button">
+          Open chat
+        </button>
+        <p class="chat__hint">
+          Opens the Nodetool chat side panel for this window.
+        </p>
+      </section>
+
+      <hr class="popup__divider" />
+
+      <h2 class="popup__subtitle">CDP proxy</h2>
 
       <section class="field">
         <label class="field__label" for="server-url">Server WebSocket URL</label>
