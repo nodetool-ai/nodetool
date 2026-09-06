@@ -84,6 +84,7 @@ export interface TimelineClipNode {
     | "overlay"
     | "text"
     | "shape"
+    | "model3d"
     | "group"
     | "midi";
   sourceType: "imported" | "generated";

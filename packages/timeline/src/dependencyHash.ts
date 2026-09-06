@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 
+import type { ClipModel3DStyle } from "./types.js";
+
 const HASH_INPUT_VERSION_PREFIX = "v1:";
+const MODEL3D_BAKE_HASH_VERSION_PREFIX = "model3d-bake-v1:";
 
 export interface DependencyHashInput {
   workflowId: string;
@@ -66,5 +69,30 @@ export function computeDependencyHash(input: DependencyHashInput): string {
   }
 
   const payload = `${HASH_INPUT_VERSION_PREFIX}${stableSerialize(normalizedInput)}`;
+  return createHash("sha256").update(payload, "utf8").digest("hex");
+}
+
+/** What {@link computeModel3DBakeHash} reads off a `model3d` clip. */
+export interface Model3DBakeHashInput {
+  currentAssetId?: string;
+  model3dStyle?: ClipModel3DStyle;
+}
+
+/**
+ * The hash a `model3d` clip's bake is checked against: it names the picture
+ * the bake was rendered from, so any change to that picture makes the bake
+ * stale and the live 3D layer draws again.
+ *
+ * Placeholder: the style (minus `bake` itself, which the hash is compared to)
+ * and the glTF asset. The full input set — the clip's animations, in and out
+ * points, duration, speed, time remap and the sequence's fps and size —
+ * arrives with the bake producer that needs them.
+ */
+export function computeModel3DBakeHash(clip: Model3DBakeHashInput): string {
+  const { bake: _bake, ...style } = clip.model3dStyle ?? {};
+  const payload = `${MODEL3D_BAKE_HASH_VERSION_PREFIX}${stableSerialize({
+    assetId: clip.currentAssetId,
+    style
+  })}`;
   return createHash("sha256").update(payload, "utf8").digest("hex");
 }

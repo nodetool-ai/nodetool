@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  timelineClip,
   timelineDocument,
   timelineSequenceResponse,
   timelineSetup,
   timelineSetupStage,
+  type ClipModel3DStyle,
   type TimelineSetupStage
 } from "../src/api-schemas/timeline.js";
 
@@ -105,5 +107,92 @@ describe("timeline setup (PRD § 8.5)", () => {
       markers: []
     });
     expect(parsed.clips[0].beatId).toBe("beat_1");
+  });
+});
+
+/** A 3D clip with every `model3dStyle` field set, none of them defaults. */
+const model3dClip = {
+  id: "clip_3d",
+  trackId: "track_overlay",
+  name: "Statue",
+  startMs: 0,
+  durationMs: 4000,
+  mediaType: "model3d",
+  sourceType: "imported",
+  status: "generated",
+  locked: false,
+  versions: [],
+  currentAssetId: "asset_glb",
+  model3dStyle: {
+    camera: {
+      mode: "scene",
+      azimuthDeg: 120,
+      elevationDeg: -10,
+      fovDeg: 50,
+      zoom: 1.4,
+      targetOffset: [0.5, -1, 2],
+      sceneCameraName: "HeroCam"
+    },
+    animation: { clipName: "Idle", loop: false, speed: 0.5 },
+    lighting: "soft",
+    lightIntensity: 2.5,
+    background: { transparent: false, color: "#101820" },
+    bake: { assetId: "asset_bake", dependencyHash: "abc123" }
+  }
+} satisfies Record<string, unknown> & { model3dStyle: ClipModel3DStyle };
+
+describe("model3d clips", () => {
+  it("keeps every model3dStyle field through a clip parse", () => {
+    const parsed = timelineClip.parse(model3dClip);
+    // The schema strips anything it does not list, so a deep equality against
+    // the input is the only check that a field actually survives a PATCH.
+    expect(parsed.model3dStyle).toEqual(model3dClip.model3dStyle);
+    expect(parsed.mediaType).toBe("model3d");
+  });
+
+  it("keeps a model3d clip through the whole document", () => {
+    const parsed = timelineDocument.parse({
+      tracks: [
+        {
+          id: "track_overlay",
+          name: "Overlay 1",
+          type: "overlay",
+          index: 0,
+          visible: true,
+          locked: false
+        }
+      ],
+      clips: [model3dClip],
+      markers: []
+    });
+    expect(parsed.clips[0].model3dStyle).toEqual(model3dClip.model3dStyle);
+  });
+
+  it("parses a transparent background and a style with no bake", () => {
+    const parsed = timelineClip.parse({
+      ...model3dClip,
+      model3dStyle: {
+        camera: { mode: "orbit", azimuthDeg: 45, elevationDeg: 25, fovDeg: 35, zoom: 1 },
+        animation: { loop: true, speed: 1 },
+        lighting: "studio",
+        lightIntensity: 1,
+        background: { transparent: true }
+      }
+    });
+    expect(parsed.model3dStyle?.background).toEqual({ transparent: true });
+    expect(parsed.model3dStyle?.bake).toBeUndefined();
+    expect(parsed.model3dStyle?.animation.clipName).toBeUndefined();
+  });
+
+  it("refuses an opaque background with no color", () => {
+    expect(() =>
+      timelineClip.parse({
+        ...model3dClip,
+        model3dStyle: {
+          ...model3dClip.model3dStyle,
+          background: { transparent: false }
+        }
+      })
+    ).toThrow();
   });
 });

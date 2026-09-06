@@ -14,6 +14,7 @@
 
 import type {
   ClipMediaType,
+  ClipModel3DStyle,
   TimelineSequence,
   TimelineTrack,
   TimelineClip,
@@ -90,6 +91,28 @@ export function clipFitsTrack(
 export const DEFAULT_SHAPE_FILL_COLOR = "#FFFFFF";
 export const DEFAULT_SHAPE_STROKE_COLOR = "#FFFFFF";
 export const DEFAULT_SHAPE_STROKE_WIDTH_PX = 8;
+
+/**
+ * The look a 3D clip starts with. The orbit terms, lighting and intensity are
+ * the `nodetool.model3d.RenderToImage` defaults, so the same model reads the
+ * same in a workflow render and on the timeline. The background differs on
+ * purpose: a clip is composited over the layers under it, so it starts
+ * transparent where the node starts on white.
+ */
+export const DEFAULT_MODEL3D_STYLE: ClipModel3DStyle = {
+  camera: {
+    mode: "orbit",
+    azimuthDeg: 45,
+    elevationDeg: 25,
+    fovDeg: 35,
+    zoom: 1
+  },
+  // `clipName` absent plays every animation the glTF declares.
+  animation: { loop: true, speed: 1 },
+  lighting: "studio",
+  lightIntensity: 1,
+  background: { transparent: true }
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
