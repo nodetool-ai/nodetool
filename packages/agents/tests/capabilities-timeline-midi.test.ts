@@ -13,8 +13,14 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { ModelObserver, TimelineSequence, initTestDb } from "@nodetool-ai/models";
-import { DEFAULT_MIDI_INSTRUMENT, MIDI_PPQ } from "@nodetool-ai/timeline";
+import {
+  DEFAULT_MIDI_INSTRUMENT,
+  MIDI_PPQ,
+  findInstrumentPreset
+} from "@nodetool-ai/timeline";
+import { validateTimelineSequence } from "@nodetool-ai/execution/timeline-debug";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
+import { createTimelineToolBridge } from "../src/evals/surfaces/timeline.js";
 
 const ctx = (userId = "u1") => ({ userId }) as unknown as ProcessingContext;
 
@@ -91,6 +97,7 @@ interface StateResult {
     name: string;
     type: string;
     instrument?: { waveform: string };
+    presetId?: string;
   }[];
   clips: {
     id: string;
@@ -100,6 +107,7 @@ interface StateResult {
     durationMs: number;
     noteCount?: number;
     audibleNoteCount?: number;
+    startBarsBeats?: string;
   }[];
 }
 
@@ -350,5 +358,274 @@ describe("edit_timeline — midi", () => {
     expect(
       (await getState(row.id)).tracks.find((t) => t.name === "Music")?.instrument
     ).toBeUndefined();
+  });
+
+  it("names a voice by preset id and reports which preset the track matches", async () => {
+    const row = await makeTimeline();
+    await edit(row.id, [{ op: "add_track", type: "midi", name: "Lead" }]);
+
+    const result = await edit(row.id, [
+      { op: "set_track_instrument", track: "Lead", instrument: { preset: "bass" } }
+    ]);
+    expect(result).toMatchObject({ applied: 1, failed: 0 });
+
+    // The preset's object is stored, not the id — so the id comes back by
+    // sound, and the document plays the same voice if the table ever changes.
+    const lead = (await getState(row.id)).tracks.find((t) => t.name === "Lead");
+    expect(lead?.instrument).toEqual(findInstrumentPreset("bass")!.instrument);
+    expect(lead?.presetId).toBe("bass");
+  });
+
+  it("refuses an unknown preset id and lists the ones that exist", async () => {
+    const row = await makeTimeline();
+    await edit(row.id, [{ op: "add_track", type: "midi", name: "Lead" }]);
+    const before = await storedDocument(row.id);
+
+    const result = await edit(row.id, [
+      { op: "set_track_instrument", track: "Lead", instrument: { preset: "tuba" } }
+    ]);
+    expect(result.failed).toBe(1);
+    expect(result.ops[0].error).toContain("tuba");
+    // Every shipped id is named, so the next call is a pick rather than a guess.
+    for (const id of ["saw-lead", "square-lead", "soft-pad", "pluck", "bass", "bell"]) {
+      expect(result.ops[0].error).toContain(id);
+    }
+    // The track keeps the voice it had.
+    expect(await storedDocument(row.id)).toEqual(before);
+  });
+
+  it("transposes a phrase an octave up and holds the top note at 127", async () => {
+    const row = await makeTimeline();
+    await edit(row.id, [
+      { op: "add_track", type: "midi", name: "Lead" },
+      {
+        op: "add_midi_clip",
+        track: "Lead",
+        start_ms: 0,
+        duration_ms: 2000,
+        name: "Walk",
+        notes: [
+          { id: "low", pitch: 60, start_tick: 0, duration_tick: MIDI_PPQ },
+          { id: "high", pitch: 120, start_tick: MIDI_PPQ, duration_tick: MIDI_PPQ }
+        ]
+      }
+    ]);
+
+    const result = await edit(row.id, [
+      { op: "transpose_clip", clip: "Walk", semitones: 12 }
+    ]);
+    expect(result).toMatchObject({ applied: 1, failed: 0 });
+    expect(result.ops[0].result).toMatchObject({ noteCount: 2 });
+
+    const stored = await storedDocument(row.id);
+    const clips = stored["clips"] as { name: string; notes?: unknown[] }[];
+    const notes = clips.find((c) => c.name === "Walk")?.notes as
+      | { id: string; pitch: number }[]
+      | undefined;
+    // 120 + 12 is past the end of the MIDI range, so it is held there rather
+    // than dropped — and the ids survive the rewrite either way.
+    expect(notes).toEqual([
+      expect.objectContaining({ id: "low", pitch: 72 }),
+      expect.objectContaining({ id: "high", pitch: 127 })
+    ]);
+  });
+
+  it("refuses to transpose a clip that is not midi", async () => {
+    const row = await makeTimeline();
+    const before = await storedDocument(row.id);
+
+    const result = await edit(row.id, [
+      { op: "transpose_clip", clip: "Bed", semitones: 5 }
+    ]);
+    expect(result.failed).toBe(1);
+    expect(result.ops[0].error).toContain("audio clip");
+    expect(await storedDocument(row.id)).toEqual(before);
+  });
+
+  it("quantizes to a sixteenth and reports how many notes moved", async () => {
+    const row = await makeTimeline();
+    await edit(row.id, [
+      { op: "add_track", type: "midi", name: "Lead" },
+      {
+        op: "add_midi_clip",
+        track: "Lead",
+        start_ms: 0,
+        duration_ms: 4000,
+        name: "Walk",
+        notes: [
+          // Two notes played late, one already on the grid.
+          { id: "a", pitch: 60, start_tick: 10, duration_tick: MIDI_PPQ / 4 },
+          { id: "b", pitch: 62, start_tick: 950, duration_tick: MIDI_PPQ / 4 },
+          { id: "c", pitch: 64, start_tick: 1920, duration_tick: MIDI_PPQ / 4 }
+        ]
+      }
+    ]);
+
+    const result = await edit(row.id, [
+      { op: "quantize_notes", clip: "Walk", division: "1/16" }
+    ]);
+    expect(result).toMatchObject({ applied: 1, failed: 0 });
+    expect(result.ops[0].result).toMatchObject({
+      noteCount: 3,
+      movedNoteCount: 2
+    });
+
+    const stored = await storedDocument(row.id);
+    const clips = stored["clips"] as { name: string; notes?: unknown[] }[];
+    const notes = clips.find((c) => c.name === "Walk")?.notes as
+      | { id: string; startTick: number }[]
+      | undefined;
+    // 240 ticks to a sixteenth at PPQ 960.
+    expect(notes?.map((n) => [n.id, n.startTick])).toEqual([
+      ["a", 0],
+      ["b", 960],
+      ["c", 1920]
+    ]);
+  });
+
+  it("scales velocities and clamps them to the 1..127 the document stores", async () => {
+    const row = await makeTimeline();
+    await edit(row.id, [
+      { op: "add_track", type: "midi", name: "Lead" },
+      {
+        op: "add_midi_clip",
+        track: "Lead",
+        start_ms: 0,
+        duration_ms: 2000,
+        name: "Walk",
+        notes: [
+          { id: "soft", pitch: 60, velocity: 20, start_tick: 0, duration_tick: MIDI_PPQ },
+          { id: "loud", pitch: 62, velocity: 100, start_tick: MIDI_PPQ, duration_tick: MIDI_PPQ }
+        ]
+      }
+    ]);
+
+    const result = await edit(row.id, [
+      { op: "scale_velocity", clip: "Walk", factor: 2 }
+    ]);
+    expect(result).toMatchObject({ applied: 1, failed: 0 });
+    expect(result.ops[0].result).toMatchObject({ noteCount: 2 });
+
+    const stored = await storedDocument(row.id);
+    const clips = stored["clips"] as { name: string; notes?: unknown[] }[];
+    const notes = clips.find((c) => c.name === "Walk")?.notes as
+      | { id: string; velocity: number }[]
+      | undefined;
+    // 200 is past the top of the range, so the phrase flattens rather than
+    // storing a velocity no reader accepts.
+    expect(notes?.map((n) => [n.id, n.velocity])).toEqual([
+      ["soft", 40],
+      ["loud", 127]
+    ]);
+  });
+
+  it("reports each midi clip's start in bars and beats", async () => {
+    const row = await makeTimeline();
+    await edit(row.id, [
+      { op: "add_track", type: "midi", name: "Lead" },
+      {
+        op: "add_midi_clip",
+        track: "Lead",
+        // Bar 2 beat 1 at 120 BPM in 4/4: four beats of 500ms.
+        start_ms: 2000,
+        duration_ms: 2000,
+        name: "Walk",
+        notes: quarterNotes
+      }
+    ]);
+
+    const state = await getState(row.id);
+    expect(state.clips.find((c) => c.name === "Walk")?.startBarsBeats).toBe("2.1.0");
+    // Only a midi clip has a musical position to report.
+    expect(state.clips.find((c) => c.name === "Bed")?.startBarsBeats).toBeUndefined();
+  });
+});
+
+/**
+ * What `nodetool timeline debug --interact` replays: the same bridge, driven
+ * step by step by tool name, and the document it ends on handed to the same
+ * validator the harness runs. The CLI host in `packages/cli` is the loop
+ * below plus a file read and a bundle write, and its own suite fakes both the
+ * bridge and the validator — so this is where the real pair meet.
+ */
+describe("timeline debug --interact replay", () => {
+  const script = [
+    { tool: "ui_timeline_add_track", input: { type: "midi", name: "Lead" } },
+    {
+      tool: "ui_timeline_add_midi_clip",
+      input: {
+        track: "Lead",
+        start_ms: 0,
+        duration_ms: 4000,
+        name: "Riff",
+        // Played by hand: nothing lands on the grid.
+        notes: [
+          { pitch: 60, start_tick: 12, duration_tick: 240 },
+          { pitch: 63, start_tick: 474, duration_tick: 240 },
+          { pitch: 67, start_tick: 951, duration_tick: 240 }
+        ]
+      }
+    },
+    {
+      tool: "ui_timeline_quantize_notes",
+      input: { clip: "Riff", division: "1/16" }
+    },
+    {
+      tool: "ui_timeline_transpose_clip",
+      input: { clip: "Riff", semitones: -12 }
+    },
+    {
+      tool: "ui_timeline_set_track_instrument",
+      input: { track: "Lead", instrument: { preset: "pluck" } }
+    }
+  ];
+
+  it("runs the script through and leaves a document the validator passes", async () => {
+    const seed = JSON.parse(document()) as {
+      tracks: never[];
+      clips: never[];
+      markers: never[];
+    };
+    const bridge = createTimelineToolBridge({
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      sequence: { fps: 30, width: 1920, height: 1080, ...seed }
+    });
+    const byName = new Map(bridge.tools.map((t) => [t.name, t]));
+
+    const results: unknown[] = [];
+    for (const step of script) {
+      const tool = byName.get(step.tool);
+      expect(tool, `bridge is missing ${step.tool}`).toBeDefined();
+      results.push(await tool!.execute(step.input));
+    }
+
+    expect(results[2]).toMatchObject({ noteCount: 3, movedNoteCount: 3 });
+    expect(results[3]).toMatchObject({ noteCount: 3 });
+
+    const state = bridge.finalState();
+    const riff = state.documentClips.find((c) => c.name === "Riff");
+    expect(riff?.notes?.map((n) => [n.pitch, n.startTick])).toEqual([
+      [48, 0],
+      [51, 480],
+      [55, 960]
+    ]);
+    expect(
+      findInstrumentPreset("pluck")!.instrument
+    ).toEqual(state.documentTracks.find((t) => t.name === "Lead")?.instrument);
+
+    const validation = validateTimelineSequence(
+      {
+        tracks: state.documentTracks,
+        clips: state.documentClips,
+        markers: state.markers,
+        tempo: state.tempo
+      },
+      { fps: 30, width: 1920, height: 1080 }
+    );
+    expect(validation.errors).toEqual([]);
+    expect(validation.warnings).toEqual([]);
+    expect(validation.ok).toBe(true);
   });
 });

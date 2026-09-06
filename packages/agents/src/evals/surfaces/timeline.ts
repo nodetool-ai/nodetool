@@ -69,14 +69,23 @@ import {
   type TimelineComposition,
   DEFAULT_MIDI_INSTRUMENT,
   DEFAULT_TEMPO,
+  MIDI_INSTRUMENT_PRESETS,
   createMidiNote,
+  findInstrumentPreset,
+  formatBarsBeats,
+  presetIdForInstrument,
+  quantizeNotes,
+  scaleVelocity,
   sortNotes,
+  transposeNotes,
   validateNotes,
   visibleNotes,
   rescaleClipsForTempo,
   resolveTempo,
   type MidiInstrument,
   type MidiNote,
+  type QuantizeDivision,
+  type QuantizeTarget,
   type TimelineTempo
 } from "@nodetool-ai/timeline";
 import {
@@ -607,6 +616,42 @@ export function createTimelineToolBridge(
     return track;
   }
 
+  /** The midi clip a note op names, refusing any other kind. */
+  function resolveMidiClip(target: string): TimelineClip {
+    const clip = resolveClip(target);
+    if (clip.mediaType !== "midi") {
+      throw new Error(
+        `Clip "${clip.name}" is a ${clip.mediaType} clip — only a midi clip carries notes. Place one with add_midi_clip.`
+      );
+    }
+    return clip;
+  }
+
+  /**
+   * The voice an instrument argument names: `{preset}` resolved to the sound
+   * it stands for, or a spelled-out instrument taken as it came.
+   *
+   * The preset's object is copied onto the track rather than referenced, so
+   * the document keeps the sound it was given even if the shipped table
+   * changes under it.
+   */
+  function resolveInstrumentArg(raw: unknown): MidiInstrument {
+    const value = (raw ?? {}) as Record<string, unknown>;
+    const presetId = value["preset"];
+    if (typeof presetId !== "string") {
+      return value as unknown as MidiInstrument;
+    }
+    const preset = findInstrumentPreset(presetId);
+    if (!preset) {
+      throw new Error(
+        `No instrument preset named "${presetId}". Valid presets: ${MIDI_INSTRUMENT_PRESETS.map(
+          (p) => `${p.id} ("${p.name}")`
+        ).join(", ")}.`
+      );
+    }
+    return structuredClone(preset.instrument);
+  }
+
   /**
    * The notes a caller sent, minted and checked as one list.
    *
@@ -800,7 +845,11 @@ export function createTimelineToolBridge(
       solo: t.solo ?? false,
       clipCount: clips.filter((c) => c.trackId === t.id).length,
       // The voice every clip on this track plays. Absent on every other type.
-      instrument: t.instrument
+      instrument: t.instrument,
+      // Which shipped voice that is, when it is one. A track stores the
+      // instrument rather than the id it was picked from, so this is read
+      // back by sound — an instrument edited away from a preset reports none.
+      presetId: t.instrument ? presetIdForInstrument(t.instrument) : undefined
     };
   }
 
@@ -943,6 +992,12 @@ export function createTimelineToolBridge(
       audibleNoteCount:
         c.mediaType === "midi"
           ? visibleNotes(c, resolveTempo({ tempo }).bpm).length
+          : undefined,
+      // Where the phrase starts in musical time, so placing the next one is
+      // reading a bar number rather than dividing milliseconds by the tempo.
+      startBarsBeats:
+        c.mediaType === "midi"
+          ? formatBarsBeats(c.startMs, resolveTempo({ tempo }))
           : undefined
     };
   }
@@ -1923,12 +1978,7 @@ export function createTimelineToolBridge(
     sharedTool(
       "ui_timeline_set_notes",
       async ({ clip: target, notes }) => {
-        const clip = resolveClip(target as string);
-        if (clip.mediaType !== "midi") {
-          throw new Error(
-            `Clip "${clip.name}" is a ${clip.mediaType} clip — only a midi clip carries notes. Place one with add_midi_clip.`
-          );
-        }
+        const clip = resolveMidiClip(target as string);
         // Built before anything is written: a refused list must leave the clip
         // exactly as it was, not half replaced.
         clip.notes = buildNotes(notes, clip.name);
@@ -1970,8 +2020,71 @@ export function createTimelineToolBridge(
       "ui_timeline_set_track_instrument",
       async ({ track, instrument }) => {
         const midiTrack = resolveMidiTrack(track as string);
-        midiTrack.instrument = instrument as MidiInstrument;
+        // Resolved before the track is touched, so an unknown preset id leaves
+        // the voice the track already had.
+        midiTrack.instrument = resolveInstrumentArg(instrument);
         return { ok: true, track: serializeTrack(midiTrack) };
+      }
+    ),
+
+    // The note edits. Each runs the whole list through one pure function from
+    // `@nodetool-ai/timeline` and replaces it — the ids survive, so a
+    // selection and an undo in the editor still point at the same notes.
+
+    sharedTool(
+      "ui_timeline_transpose_clip",
+      async ({ clip: target, semitones }) => {
+        const clip = resolveMidiClip(target as string);
+        clip.notes = transposeNotes(clip.notes ?? [], semitones as number);
+        return {
+          ok: true,
+          clip: serializeClip(clip),
+          noteCount: clip.notes.length
+        };
+      }
+    ),
+
+    sharedTool(
+      "ui_timeline_quantize_notes",
+      async ({ clip: clipRef, division, strength, target }) => {
+        const clip = resolveMidiClip(clipRef as string);
+        const before = clip.notes ?? [];
+        const options: {
+          division: QuantizeDivision;
+          strength?: number;
+          target?: QuantizeTarget;
+        } = { division: division as QuantizeDivision };
+        if (strength !== undefined) options.strength = strength as number;
+        if (target !== undefined) options.target = target as QuantizeTarget;
+        const quantized = quantizeNotes(before, options);
+        // The notes come back in the order they went in, so this pairs each
+        // one with itself. A phrase already on the grid reports 0 moved
+        // instead of reading as an edit that changed something.
+        const movedNoteCount = quantized.filter(
+          (note, i) =>
+            note.startTick !== before[i].startTick ||
+            note.durationTick !== before[i].durationTick
+        ).length;
+        clip.notes = quantized;
+        return {
+          ok: true,
+          clip: serializeClip(clip),
+          noteCount: quantized.length,
+          movedNoteCount
+        };
+      }
+    ),
+
+    sharedTool(
+      "ui_timeline_scale_velocity",
+      async ({ clip: target, factor }) => {
+        const clip = resolveMidiClip(target as string);
+        clip.notes = scaleVelocity(clip.notes ?? [], factor as number);
+        return {
+          ok: true,
+          clip: serializeClip(clip),
+          noteCount: clip.notes.length
+        };
       }
     ),
 
@@ -2166,7 +2279,8 @@ Use the ui_timeline_* tools to inspect and modify the sequence:
 - Before animating a clip, call ui_timeline_list_animation_presets to discover the exact preset ids, allowed roles, and params.
 - For motion no preset covers, animate with preset "custom" and pass curves — [{property, keyframes: [{t, value}]}], where t runs 0..1 over the animation window. list_animation_presets reports which properties a curve may drive.
 - ui_timeline_seek moves the playhead (useful before a playhead-relative split).
-- For a played part: add a midi track, place phrases with ui_timeline_add_midi_clip (notes in ticks from the clip's content start, 960 ticks = a quarter note), rewrite them with ui_timeline_set_notes, pick the synth with ui_timeline_set_track_instrument, and set the speed once with ui_timeline_set_tempo — which rescales the midi clips and leaves picture and audio where they are.
+- For a played part: add a midi track, place phrases with ui_timeline_add_midi_clip (notes in ticks from the clip's content start, 960 ticks = a quarter note), rewrite them with ui_timeline_set_notes, pick the synth with ui_timeline_set_track_instrument — either a named voice ({"preset": "bass"}: saw-lead, square-lead, soft-pad, pluck, bass, bell) or every field spelled out — and set the speed once with ui_timeline_set_tempo, which rescales the midi clips and leaves picture and audio where they are.
+- Edit a phrase you already placed without resending it: ui_timeline_transpose_clip moves every note by whole semitones, ui_timeline_quantize_notes snaps onsets to a note grid (1/4, 1/8, 1/16, 1/32, 1/8T, 1/16T; strength below 1 keeps some of the feel) and reports how many notes moved, ui_timeline_scale_velocity multiplies how hard they are struck. get_state reports each midi clip's startBarsBeats, so the next phrase goes on a bar line.
 - Flag moments with ui_timeline_add_marker / ui_timeline_delete_marker. To cut to music, lay the grid down with ui_timeline_set_markers_from_beats and put clip boundaries on it with ui_timeline_snap_to_beats, then read its per-clip report — a clip further than the tolerance from every beat is left alone and says so.
 
 - Look at what you made with preview_timeline_frame before you stop.

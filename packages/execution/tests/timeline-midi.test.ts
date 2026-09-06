@@ -10,6 +10,8 @@
  */
 import { describe, expect, it } from "vitest";
 
+import { quantizeNotes, type MidiNote } from "@nodetool-ai/timeline";
+
 import { validateTimelineSequence } from "../src/timeline-debug/index.js";
 
 type Json = Record<string, unknown>;
@@ -180,6 +182,48 @@ describe("validateTimelineSequence — midi notes", () => {
     );
     expect(codesOf(result.errors)).toEqual(["schema_invalid"]);
     expect(result.errors[0].message).toContain("startTick");
+  });
+
+  it("accepts what a quantize leaves behind", () => {
+    // The agent's `quantize_notes` replaces the whole list through this
+    // function, so what it returns has to be a note list the validator passes
+    // — a played-in phrase snapped to sixteenths, ids and all.
+    const played = [12, 474, 951, 1_450].map((startTick, i) => ({
+      id: `n${i}`,
+      pitch: 60 + i,
+      velocity: 100,
+      startTick,
+      durationTick: PPQ / 4
+    }));
+    const result = validateTimelineSequence(
+      soundDoc({
+        durationMs: 2000,
+        notes: quantizeNotes(played, { division: "1/16" }) as unknown as Json[]
+      })
+    );
+    expect(codesOf(result.errors)).toEqual([]);
+    expect(codesOf(result.warnings)).toEqual([]);
+  });
+
+  it("still catches a duplicate id after a quantize", () => {
+    // Quantize moves ticks and keeps ids, which is what makes the editor's
+    // selection survive it — and what keeps a list that was already
+    // unplayable unplayable. The rule has to fire on the output too.
+    const duplicated: MidiNote[] = [
+      { id: "dup", pitch: 60, velocity: 100, startTick: 12, durationTick: PPQ },
+      { id: "dup", pitch: 64, velocity: 100, startTick: 951, durationTick: PPQ }
+    ];
+    const result = validateTimelineSequence(
+      soundDoc({
+        notes: quantizeNotes(duplicated, {
+          division: "1/16"
+        }) as unknown as Json[]
+      })
+    );
+    const found = result.errors.filter((e) => e.code === "midi_notes_invalid");
+    expect(found).toHaveLength(1);
+    expect(found[0].message).toContain('note "dup"');
+    expect(result.ok).toBe(false);
   });
 
   it("stays quiet on a note list every rule accepts", () => {
