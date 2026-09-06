@@ -1181,6 +1181,89 @@ Supervised runs and `nodetool app build` write to the same ledger, tagged
 `supervisor` and `app-build` in `node_type`, so `costs list` shows what the
 harnesses spent alongside the workflow's own calls.
 
+### `nodetool generations`
+
+Inspect the record of every media generation — image, video, audio, 3D. One
+row per provider call, opened before the call as `running` and closed with its
+outcome (`completed`, `failed`, `cancelled`, or `interrupted` when a restart
+orphaned it), its cost, the provider's request id, and the asset ids it
+produced. Like `costs`, it reads the local database, so no server has to be
+running.
+
+Where `costs` aggregates LLM spend, this answers the per-call questions: what a
+render cost, which asset it wrote, and whether it is still going.
+
+**Subcommands:** `list`, `get`, `await`, `cancel`, `reconcile`, `sweep`
+
+**Options:**
+
+- `--status <status>` — `running`, `completed`, `failed`, `cancelled`, or
+  `interrupted` (for `list`).
+- `--provider <name>` / `--capability <name>` — filter by provider, or by
+  capability such as `text_to_video` (for `list`).
+- `--thread-id <id>` / `--job-id <id>` — only what a chat thread or a workflow
+  run asked for (for `list`).
+- `--since <iso>` — only generations created at or after this time (for `list`).
+- `--limit <n>` — max results (for `list`, default `50`).
+- `--timeout <seconds>` — how long `await` waits before giving up (default `300`).
+- `--json` — output as JSON. Available on every subcommand.
+
+**Examples:**
+
+```bash
+# What ran, newest first
+nodetool generations list
+nodetool generations list --status running
+nodetool generations list --provider fal --capability text_to_video
+nodetool generations list --since 2026-09-01T00:00:00Z --limit 20
+
+# One row in full — cost, assets, origin, reconcile state
+nodetool generations get <generation_id> --json
+
+# Block until it settles, then act on the exit code
+nodetool generations await <generation_id> --timeout 600
+
+# Close a running row, or ask the provider what it actually billed
+nodetool generations cancel <generation_id>
+nodetool generations reconcile <generation_id>
+
+# Close orphaned rows and drain the reconcile queue once
+nodetool generations sweep
+```
+
+With nothing recorded, `list` prints `No generations recorded.`
+
+**Exit codes are the verdict**, so these compose in a script:
+
+- `await` — `0` once the row reaches a terminal status, `1` if it is still
+  running when the timeout expires.
+- `cancel` — `0` if it was running and is now cancelled, `1` if it had already
+  settled or does not exist. The provider call itself finishes on its own in
+  whatever server process started it; only the record is closed.
+- `reconcile` — `0` when the provider answered and the row was updated, `1`
+  otherwise, with a `reason` naming which: `no request id`, or
+  `no reconciler for <provider>` when that provider has no billing API, which
+  also marks the row `unavailable` so it leaves the queue.
+
+`get` prints the whole record: `status`, `provider`, `model`, `capability`,
+`cost` with its `currency`, `billing_unit`, `quantity` and `unit_price`,
+`asset_ids`, `started_at`/`completed_at`/`duration_seconds`, an `origin` block
+(`surface`, `thread_id`, `tool_call_id`, `job_id`, `node_id`, `workflow_id`),
+the `provider_request_id`, and a `reconcile` block (`reconciled_at`,
+`attempts`, `error`, `next_at`).
+
+A model in no price catalog still gets a row, with `cost` null — `list` shows
+it as `unpriced` rather than as free.
+
+`sweep` is the startup sweep by hand: it closes rows still marked `running` as
+`interrupted`, then drains the reconcile queue once. The server runs it at
+every start, so reach for it when working against the database directly. Rows
+awaiting reconciliation retry with backoff at 1, 5, 30, 120, and 720 minutes.
+
+Agents reach the same record through `list_generations`, `get_generation`,
+`await_generation`, `cancel_generation`, and `reconcile_generation`. Design:
+[Media generation tracking](media-generation-tracking-design.md).
+
 ## Secrets Management
 
 ### `nodetool secrets`
