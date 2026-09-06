@@ -10,6 +10,10 @@ import { ShapeRasterizer } from "./shapeRender";
 import { textMeasurer } from "./textMeasure";
 import { TextRasterizer } from "./textRender";
 import { ensureBundledFontsLoaded } from "./fontLoading";
+import {
+  drawModel3DClipFrames,
+  model3dSourceTimeSec
+} from "../Tracks/model3dClipFrames";
 
 interface RasterClipFrame {
   width: number;
@@ -24,7 +28,11 @@ export async function renderRasterClipFrames(
   sequenceWidth: number,
   sequenceHeight: number
 ): Promise<RasterClipFrame[]> {
-  if (clip.mediaType !== "text" && clip.mediaType !== "shape") {
+  if (
+    clip.mediaType !== "text" &&
+    clip.mediaType !== "shape" &&
+    clip.mediaType !== "model3d"
+  ) {
     throw new Error(`Cannot rasterize ${clip.mediaType} clip "${clip.name}".`);
   }
 
@@ -50,6 +58,63 @@ export async function renderRasterClipFrames(
   compositor.resize(outputWidth, outputHeight);
   compositor.setReferenceSize(sequenceWidth, sequenceHeight);
 
+  const animationCache = createAnimationCompileCache();
+  const animationCanvas = {
+    width: sequenceWidth,
+    height: sequenceHeight,
+    measureText: textMeasurer()
+  };
+  const animatedAt = (timelineTimeMs: number) =>
+    resolveAnimatedLayerProps(
+      {
+        clip,
+        transform: clip.transform,
+        opacity: clip.opacity ?? 1
+      },
+      timelineTimeMs,
+      animationCanvas,
+      animationCache
+    );
+
+  // A 3D clip has no rasterizer: its pixels come from the same render session
+  // the live preview draws with, one frame per requested time, composited
+  // through the layer's own transform and effects like any other source.
+  if (clip.mediaType === "model3d") {
+    const animated = timelineTimes.map(animatedAt);
+    try {
+      return await drawModel3DClipFrames(
+        clip,
+        timelineTimes.map((timelineTimeMs, index) => ({
+          timeSec: model3dSourceTimeSec(clip, timelineTimeMs),
+          anim: animated[index]
+        })),
+        { width: outputWidth, height: outputHeight },
+        (frame, index) => {
+          compositor.setLayers([
+            {
+              id: clip.id,
+              source: frame,
+              opacity: animated[index].opacity,
+              blendMode: clip.blendMode ?? "normal",
+              zIndex: 0,
+              transform: animated[index].transform,
+              borderRadius: clip.borderRadius,
+              effects: clip.effects
+            }
+          ]);
+          compositor.render();
+          return {
+            width: outputWidth,
+            height: outputHeight,
+            dataUrl: canvas.toDataURL("image/jpeg", 0.8)
+          };
+        }
+      );
+    } finally {
+      compositor.dispose();
+    }
+  }
+
   const textRasterizer = new TextRasterizer();
   const shapeRasterizer = new ShapeRasterizer();
   const source =
@@ -70,24 +135,9 @@ export async function renderRasterClipFrames(
     throw new Error(`Clip "${clip.name}" has no renderable style.`);
   }
 
-  const animationCache = createAnimationCompileCache();
-  const animationCanvas = {
-    width: sequenceWidth,
-    height: sequenceHeight,
-    measureText: textMeasurer()
-  };
   try {
     return timelineTimes.map((timelineTimeMs) => {
-      const animated = resolveAnimatedLayerProps(
-        {
-          clip,
-          transform: clip.transform,
-          opacity: clip.opacity ?? 1
-        },
-        timelineTimeMs,
-        animationCanvas,
-        animationCache
-      );
+      const animated = animatedAt(timelineTimeMs);
       // A staggered text clip re-rasterizes per requested time so the agent
       // sees the per-word motion mid-window, same draw path as preview/export.
       let frameSource = source;

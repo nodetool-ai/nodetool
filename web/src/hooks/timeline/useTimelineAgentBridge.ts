@@ -605,7 +605,11 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           }
           trackId = track.id;
         } else {
-          const wanted = trackTypeForMediaType(mediaType);
+          // 3D is picture, so it lands on the lanes a title lands on.
+          const wanted =
+            mediaType === "model3d"
+              ? "video"
+              : trackTypeForMediaType(mediaType);
           const existing = store.tracks.find((track) => track.type === wanted);
           if (existing) {
             trackId = existing.id;
@@ -968,7 +972,11 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           MAX_FRAME_WIDTH
         );
 
-        if (clip.mediaType === "text" || clip.mediaType === "shape") {
+        if (
+          clip.mediaType === "text" ||
+          clip.mediaType === "shape" ||
+          clip.mediaType === "model3d"
+        ) {
           const state = doc.getState();
           const frames = await renderRasterClipFrames(
             clip,

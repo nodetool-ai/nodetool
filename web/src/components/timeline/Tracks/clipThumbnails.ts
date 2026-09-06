@@ -225,34 +225,52 @@ export function requestThumbnails(
   count: number,
   width: number
 ): void {
-  if (!url) return;
-  const existing = cache.get(url);
+  requestThumbnailsFrom(url, () => extract(url, count, width));
+}
+
+/**
+ * {@link requestThumbnails} for a strip that is not extracted from a video
+ * URL — a 3D clip's rendered filmstrip. `key` identifies the picture, so it
+ * must cover everything `produce` draws with; the cache, the sharing, the
+ * eviction and the failure cooldown are the video path's.
+ */
+export function requestThumbnailsFrom(
+  key: string,
+  produce: () => Promise<ClipThumbnail[]>
+): void {
+  if (!key) return;
+  const existing = cache.get(key);
   if (existing) {
     const retryDue =
       existing.state === "failed" &&
       Date.now() - (existing.failedAt ?? 0) >= FAILURE_RETRY_MS;
     if (!retryDue) {
-      touch(url, existing);
+      touch(key, existing);
       return; // already pending, ready, or still within the failure cooldown
     }
   }
 
   const entry: CacheEntry = { state: "pending" };
-  const promise = extract(url, count, width)
+  const promise = produce()
     .then((thumbs) => {
       entry.state = "ready";
       entry.thumbnails = thumbs;
-      notify(url);
+      notify(key);
       return thumbs;
     })
     .catch((err) => {
       entry.state = "failed";
       entry.failedAt = Date.now();
-      notify(url);
+      notify(key);
       throw err;
     });
   entry.promise = promise;
-  touch(url, entry);
+  // Nothing awaits the stored promise — the entry state and the notification
+  // are the result — so swallow the rejection here. A 3D strip on a machine
+  // with no WebGL fails for every clip, and each one would otherwise land in
+  // the console as an unhandled rejection.
+  void promise.catch(() => undefined);
+  touch(key, entry);
   evictIfNeeded();
 }
 
