@@ -42,6 +42,7 @@ import * as control from "./nodetool.control.js";
 import * as creative from "./nodetool.creative.js";
 import * as data from "./nodetool.data.js";
 import * as document from "./nodetool.document.js";
+import * as entity from "./nodetool.entity.js";
 import * as fake from "./nodetool.fake.js";
 import * as game from "./nodetool.game.js";
 import * as generators from "./nodetool.generators.js";
@@ -51,6 +52,7 @@ import * as model3d from "./nodetool.model3d.js";
 import * as output from "./nodetool.output.js";
 import * as script from "./nodetool.script.js";
 import * as sketch from "./nodetool.sketch.js";
+import * as storyboard from "./nodetool.storyboard.js";
 import * as text from "./nodetool.text.js";
 import * as timeline from "./nodetool.timeline.js";
 import * as triggers from "./nodetool.triggers.js";
@@ -80,6 +82,7 @@ export {
   creative,
   data,
   document,
+  entity,
   fake,
   game,
   geminiAudio,
@@ -124,6 +127,7 @@ export {
   output,
   script,
   sketch,
+  storyboard,
   text,
   timeline,
   triggers,

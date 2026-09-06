@@ -9,8 +9,16 @@ function transcript(inputs) {
 function addClips(inputs) {
   return createNode("nodetool.timeline.AddClips", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
+function fillTimelineText(inputs) {
+  return createNode("nodetool.timeline.FillTimelineText", inputs, { outputNames: ["timeline", "filled", "unresolved"] });
+}
+function retargetTimeline(inputs) {
+  return createNode("nodetool.timeline.RetargetTimeline", inputs, { outputNames: ["timeline", "cropped"] });
+}
 export {
   addClips,
+  fillTimelineText,
   renderTimeline,
+  retargetTimeline,
   transcript
 };

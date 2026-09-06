@@ -42,6 +42,12 @@ function timeline(inputs) {
 function script(inputs) {
   return createNode("nodetool.constant.Script", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
+function storyboard(inputs) {
+  return createNode("nodetool.constant.Storyboard", inputs, { outputNames: ["output"], defaultOutput: "output" });
+}
+function entity(inputs) {
+  return createNode("nodetool.constant.Entity", inputs, { outputNames: ["output"], defaultOutput: "output" });
+}
 function json(inputs) {
   return createNode("nodetool.constant.JSON", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
@@ -101,6 +107,7 @@ export {
   dict,
   document,
   embeddingModelConstant,
+  entity,
   float,
   image,
   imageList,
@@ -114,6 +121,7 @@ export {
   script,
   select,
   sketch,
+  storyboard,
   string,
   textList,
   timeline,
