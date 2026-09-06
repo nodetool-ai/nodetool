@@ -10,7 +10,7 @@ import type {
   ProviderTool,
   ToolCall
 } from "./types.js";
-import { isString } from "../type-predicates.js";
+import { isString } from "@nodetool-ai/protocol";
 
 /**
  * Minimal typed surface of the optional `node-llama-cpp` native binding. The

@@ -2,15 +2,7 @@ import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
-import {
-  PROVIDER_IDS,
-  type ASRModel,
-  type EmbeddingModel,
-  type ImageModel,
-  type LanguageModel,
-  type TTSModel,
-  type VideoModel
-} from "./types.js";
+import { PROVIDER_IDS, type LanguageModel } from "./types.js";
 
 const META_BASE_URL = "https://api.meta.ai/v1";
 
@@ -37,8 +29,6 @@ export class MetaProvider extends OpenAICompatProvider {
     return ["META_API_KEY"];
   }
 
-  private _metaFetch: typeof fetch;
-
   constructor(
     secrets: { META_API_KEY?: string },
     options: OpenAICompatProviderOptions = {}
@@ -48,18 +38,14 @@ export class MetaProvider extends OpenAICompatProvider {
       throw new Error("META_API_KEY is required");
     }
 
-    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
-
     super(
       {
         providerId: PROVIDER_IDS.META,
         apiKey: apiKey.trim(),
         baseURL: META_BASE_URL
       },
-      { ...options, fetchFn }
+      options
     );
-
-    this._metaFetch = fetchFn;
   }
 
   override getContainerEnv() {
@@ -71,31 +57,7 @@ export class MetaProvider extends OpenAICompatProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const response = await this._metaFetch(`${META_BASE_URL}/models`, {
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`
-      }
-    });
-
-    if (!response.ok) {
-      return this.fallbackLanguageModels();
-    }
-
-    const payload = (await response.json()) as {
-      data?: Array<{ id?: string; name?: string }>;
-    };
-    const rows = payload.data ?? [];
-    const models = rows
-      .filter(
-        (row): row is { id: string; name?: string } =>
-          typeof row.id === "string" && row.id.length > 0
-      )
-      .map((row) => ({
-        id: row.id,
-        name: row.name ?? row.id,
-        provider: PROVIDER_IDS.META
-      }));
-
+    const models = await this.listCompatModels();
     return models.length > 0 ? models : this.fallbackLanguageModels();
   }
 
@@ -105,27 +67,5 @@ export class MetaProvider extends OpenAICompatProvider {
       name: id,
       provider: PROVIDER_IDS.META
     }));
-  }
-
-  // Meta's API generates text only; suppress the OpenAI media/embedding
-  // defaults so they don't surface under the meta id.
-  override async getAvailableTTSModels(): Promise<TTSModel[]> {
-    return [];
-  }
-
-  override async getAvailableASRModels(): Promise<ASRModel[]> {
-    return [];
-  }
-
-  override async getAvailableVideoModels(): Promise<VideoModel[]> {
-    return [];
-  }
-
-  override async getAvailableImageModels(): Promise<ImageModel[]> {
-    return [];
-  }
-
-  override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
-    return [];
   }
 }

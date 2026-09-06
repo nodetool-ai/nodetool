@@ -25,7 +25,6 @@ const makeState = (
     error: null,
     currentPlanningUpdate: null,
     currentTaskUpdate: null,
-    currentTaskUpdateThreadId: null,
     currentLogUpdate: null,
     currentRunningToolCallId: null,
     currentToolMessage: null,
@@ -115,7 +114,7 @@ describe("threadRuntime", () => {
       expect(update.statusMessage).toBeUndefined();
     });
 
-    it("mirrors taskUpdate and sets taskUpdateThreadId", () => {
+    it("mirrors taskUpdate", () => {
       const taskUpdate: TaskUpdate = {
         type: "task_update",
         task: { id: "task1", name: "Plan", status: "running", steps: [] },
@@ -124,14 +123,12 @@ describe("threadRuntime", () => {
       const state = makeState({ currentThreadId: "t1" });
       const update = threadRuntimeUpdate(state, "t1", { taskUpdate });
       expect(update.currentTaskUpdate).toBe(taskUpdate);
-      expect(update.currentTaskUpdateThreadId).toBe("t1");
     });
 
-    it("clears taskUpdateThreadId when taskUpdate is null", () => {
+    it("clears the task mirror when taskUpdate is null", () => {
       const state = makeState({ currentThreadId: "t1" });
       const update = threadRuntimeUpdate(state, "t1", { taskUpdate: null });
       expect(update.currentTaskUpdate).toBeNull();
-      expect(update.currentTaskUpdateThreadId).toBeNull();
     });
 
     it("preserves other threads in the runtime map", () => {
@@ -224,19 +221,17 @@ describe("threadRuntime", () => {
       expect(mirror.progress).toEqual({ current: 2, total: 5 });
       expect(mirror.currentPlanningUpdate).toBe(planningUpdate);
       expect(mirror.currentTaskUpdate).toBe(taskUpdate);
-      expect(mirror.currentTaskUpdateThreadId).toBe("t1");
       expect(mirror.currentLogUpdate).toBe(logUpdate);
       expect(mirror.currentRunningToolCallId).toBe("tc-2");
       expect(mirror.currentToolMessage).toBe("Executing...");
     });
 
-    it("sets currentTaskUpdateThreadId to null when there is no task update", () => {
+    it("mirrors a null task update", () => {
       const state = makeState({
         threadRuntime: { t1: DEFAULT_THREAD_RUNTIME }
       });
       const mirror = mirrorsForThread(state, "t1");
       expect(mirror.currentTaskUpdate).toBeNull();
-      expect(mirror.currentTaskUpdateThreadId).toBeNull();
     });
   });
 });

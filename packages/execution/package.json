@@ -24,6 +24,7 @@
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/storage": "*",
     "@nodetool-ai/timeline": "*"
   },
   "devDependencies": {

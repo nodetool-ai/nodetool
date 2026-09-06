@@ -8,11 +8,8 @@
 
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
 
-import {
-  FileStorageAdapter,
-  setWorkspaceFactory,
-  type StorageAdapter
-} from "./context.js";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
+import { setWorkspaceFactory, type StorageAdapter } from "./context.js";
 import { PrefixedStorageAdapter } from "./prefixed-storage-adapter.js";
 import {
   WorkspacePathError,
@@ -86,11 +83,10 @@ function normalize(path: string): string {
 /**
  * The real directory an adapter reads and writes, when it has one.
  *
- * Detected by shape rather than by `instanceof`: two `FileStorageAdapter`
- * classes exist — this package's and `@nodetool-ai/storage`'s fs-safe one —
- * and hosts pass either. An `instanceof` check against one of them silently
- * reports a local workspace as virtual, which would send every local run
- * through the staging path.
+ * Detected by shape rather than by `instanceof`: a host may pass any adapter
+ * that fronts a real directory, including one of its own. An `instanceof`
+ * check against `FileStorageAdapter` silently reports such a workspace as
+ * virtual, which would send every local run through the staging path.
  */
 function localRootOf(storage: StorageAdapter): string | null {
   const candidate = (storage as { rootDir?: unknown }).rootDir;

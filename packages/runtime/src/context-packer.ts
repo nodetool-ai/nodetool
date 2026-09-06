@@ -8,7 +8,7 @@
 
 import type { Message } from "./providers/types.js";
 import { countTokens, truncateToTokens } from "./token-counter.js";
-import { isString } from "./type-predicates.js";
+import { isString } from "@nodetool-ai/protocol";
 
 /** Fixed token overhead for non-text content blocks (images, audio). */
 const NON_TEXT_BLOCK_TOKENS = 25;

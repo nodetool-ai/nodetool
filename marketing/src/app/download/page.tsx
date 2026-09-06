@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Download NodeTool Studio",
     description:
-      "The free, open-source AI film studio for macOS, Windows and Linux.",
+      "The free, open-source creative AI workspace for macOS, Windows and Linux.",
     url: `${BASE_URL}/download`,
     type: "website",
   },

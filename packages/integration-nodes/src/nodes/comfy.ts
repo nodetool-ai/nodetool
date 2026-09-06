@@ -82,7 +82,7 @@ export class ComfyWorkflowNode extends BaseNode {
       "ComfyUI server address, e.g. 127.0.0.1:8188 or http://host:8188.",
     required: true
   })
-  declare endpoint: any;
+  declare endpoint: string;
 
   @prop({
     type: "str",
@@ -92,7 +92,7 @@ export class ComfyWorkflowNode extends BaseNode {
       "ComfyUI workflow in API (prompt) format, as a JSON string: a map of node id to { class_type, inputs }.",
     required: true
   })
-  declare workflow: any;
+  declare workflow: string | ComfyPrompt;
 
   @prop({
     type: "int",
@@ -101,7 +101,7 @@ export class ComfyWorkflowNode extends BaseNode {
     description: "Maximum seconds to wait for the workflow to finish.",
     min: 1
   })
-  declare timeout: any;
+  declare timeout: number;
 
   /**
    * Parse the `workflow` prop into a ComfyUI prompt object. The prop holds a
@@ -201,7 +201,7 @@ export class ComfyWorkflowNode extends BaseNode {
   async *genProcess(
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
-    const endpoint = String(this.endpoint ?? "").trim();
+    const endpoint = this.endpoint.trim();
     if (!endpoint) {
       throw new Error("ComfyUI endpoint is required");
     }
@@ -222,7 +222,7 @@ export class ComfyWorkflowNode extends BaseNode {
       await this.injectInput(prompt, endpoint, handle, value, context);
     }
 
-    const timeoutMs = Math.max(1, Number(this.timeout ?? 600)) * 1000;
+    const timeoutMs = Math.max(1, this.timeout) * 1000;
 
     const nodeCount = Object.keys(prompt).length;
     const nodeId = this.__node_id;
@@ -429,7 +429,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
       "WebSocket URL of the NodeTool worker fronting ComfyUI, e.g. ws://host:7777/ws.",
     required: true
   })
-  declare worker_url: any;
+  declare worker_url: string;
 
   @prop({
     type: "str",
@@ -437,7 +437,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
     title: "Worker Token",
     description: "Bearer token for the worker, if it requires authentication."
   })
-  declare worker_token: any;
+  declare worker_token: string;
 
   @prop({
     type: "str",
@@ -447,7 +447,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
       "ComfyUI workflow in API (prompt) format, as a JSON string: a map of node id to { class_type, inputs }.",
     required: true
   })
-  declare workflow: any;
+  declare workflow: string | ComfyPrompt;
 
   @prop({
     type: "int",
@@ -456,7 +456,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
     description: "Maximum seconds to wait for the workflow to finish.",
     min: 1
   })
-  declare timeout: any;
+  declare timeout: number;
 
   @prop({
     type: "bool",
@@ -464,15 +464,15 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
     title: "Previews",
     description: "Stream ComfyUI preview images while the workflow runs."
   })
-  declare previews: any;
+  declare previews: boolean;
 
   /**
    * Connect a bridge to the worker. Split out so tests can inject a fake
    * bridge without standing up a real WebSocket worker.
    */
   protected async connectBridge(): Promise<PythonBridge> {
-    const url = String(this.worker_url ?? "").trim();
-    const token = String(this.worker_token ?? "").trim();
+    const url = this.worker_url.trim();
+    const token = this.worker_token.trim();
     const bridge = new WebsocketPythonBridge({
       wsUrl: url,
       workerToken: token || undefined,
@@ -505,7 +505,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
   }
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const url = String(this.worker_url ?? "").trim();
+    const url = this.worker_url.trim();
     if (!url) {
       throw new Error("Worker URL is required");
     }
@@ -610,8 +610,8 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
         prompt,
         {
           blobs: Object.keys(blobs).length > 0 ? blobs : undefined,
-          previews: Boolean(this.previews),
-          timeout: Math.max(1, Number(this.timeout ?? 600))
+          previews: this.previews,
+          timeout: Math.max(1, this.timeout)
         },
         onEvent
       );

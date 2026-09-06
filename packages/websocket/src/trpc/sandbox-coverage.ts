@@ -983,6 +983,13 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "workflows.examples": { capability: "get_example_workflow" },
   "workflows.get": { capability: "get_workflow" },
   "workflows.list": { capability: "list_workflows" },
+  "workflows.recipes": {
+    gap:
+      "The shipped recipe chains: which example workflows to run, in what " +
+      "order, and what each hands the next. A run reaches any single step " +
+      "through get_example_workflow; the ordering and the outcome each chain " +
+      "names have no capability yet."
+  },
   "workflows.public.get": {
     elsewhere:
       "get_workflow resolves a public workflow by id."

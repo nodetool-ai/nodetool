@@ -11,7 +11,7 @@
 import type { Logger } from "@nodetool-ai/config";
 import type { OAuthTokens } from "./types.js";
 import type { SecureCredentialStore } from "./secure-credential-store.js";
-import { isNumber, isObjectLike, isString } from "../../type-predicates.js";
+import { isNumber, isObjectLike, isString } from "@nodetool-ai/protocol";
 
 /** Load / persist / clear a single account's OAuth token set. */
 export interface TokenStore {

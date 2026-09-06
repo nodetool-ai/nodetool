@@ -1365,11 +1365,11 @@ describe("StructuredOutputGeneratorNode", () => {
     n.assign({ instructions: null, context: undefined });
     const r1 = await n.process();
     expect(r1.output).toEqual({ instructions: "", context: "" });
-    // object triggers JSON.stringify branch
+    // object triggers JSON.stringify branch; an array is flattened element-wise
     n.assign({ instructions: { a: 1 }, context: [1, 2] });
     const r2 = await n.process();
     expect(r2.output.instructions).toBe('{"a":1}');
-    expect(r2.output.context).toBe("[1,2]");
+    expect(r2.output.context).toBe("1 2");
   });
 
   it("maps int type alias to integer default 0", async () => {
@@ -1595,6 +1595,7 @@ describe("DataGeneratorNode", () => {
   it("parses provider CSV into records and dataframe", async () => {
     const n = new (DataGeneratorNode as any)();
     const mockContext = {
+      getProvider: async () => ({}),
       runProviderPrediction: async () => ({
         content: `name,age\nAlice,30\nBob,25`
       }),
@@ -1624,6 +1625,7 @@ describe("DataGeneratorNode", () => {
   it("streams provider CSV into row chunks and final dataframe", async () => {
     const n = new (DataGeneratorNode as any)();
     const mockContext = {
+      getProvider: async () => ({}),
       runProviderPrediction: async () => ({
         content: `name,age\nAlice,30\nBob,25`
       }),
@@ -2019,7 +2021,7 @@ describe("SVGGeneratorNode", () => {
     await n.process(mockContext as any);
     const user = captured[captured.length - 1];
     expect(user.role).toBe("user");
-    const images = user.content.filter((p: any) => p.type === "image");
+    const images = user.content.filter((p: any) => p.type === "image_url");
     expect(images.map((p: any) => p.image.uri)).toEqual([
       "file://a.png",
       "file://b.png"

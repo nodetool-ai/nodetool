@@ -9,7 +9,7 @@ import type {
   ChatCompletionResponse,
   ChatCompletionsRequest
 } from "./types.js";
-import { isObjectLike } from "../../type-predicates.js";
+import { isObjectLike } from "@nodetool-ai/protocol";
 
 export interface OpenAICompatClientOptions {
   /** Endpoint root, e.g. `https://api.groq.com/openai/v1`. */

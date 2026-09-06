@@ -9,12 +9,6 @@ import {
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import {
-  registerTool,
-  resolveTool,
-  listTools,
-  getAllTools
-} from "../src/tools/tool-registry.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { createLocalWorkspace } from "@nodetool-ai/runtime";
 import {
@@ -327,33 +321,19 @@ describe("ListDirectoryTool", () => {
 });
 
 // ---------------------------------------------------------------------------
-// ToolRegistry
+// toolForCapabilityName
 // ---------------------------------------------------------------------------
 
-describe("ToolRegistry", () => {
-  it("registers and resolves tools", () => {
-    const tool = toolForCapabilityName("read_file");
-    registerTool(tool);
-    expect(resolveTool("read_file")).toBe(tool);
+describe("toolForCapabilityName", () => {
+  it("builds a tool for a registered capability name", () => {
+    expect(toolForCapabilityName("read_file").name).toBe("read_file");
+    expect(toolForCapabilityName("write_file").name).toBe("write_file");
+    expect(toolForCapabilityName("list_directory").name).toBe("list_directory");
   });
 
-  it("returns null for unknown tool", () => {
-    expect(resolveTool("nonexistent_tool_xyz")).toBeNull();
-  });
-
-  it("lists registered tool names", () => {
-    const tool = toolForCapabilityName("write_file");
-    registerTool(tool);
-    const names = listTools();
-    expect(names).toContain("write_file");
-  });
-
-  it("gets all tools", () => {
-    const tool = toolForCapabilityName("list_directory");
-    registerTool(tool);
-    const all = getAllTools();
-    expect(all.length).toBeGreaterThan(0);
-    const names = all.map((t) => t.name);
-    expect(names).toContain("list_directory");
+  it("throws for an unknown capability name", () => {
+    expect(() => toolForCapabilityName("nonexistent_tool_xyz")).toThrow(
+      /nonexistent_tool_xyz/
+    );
   });
 });

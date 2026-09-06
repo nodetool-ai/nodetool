@@ -4,15 +4,7 @@ import {
 } from "./openai-compat-provider.js";
 import { trimTrailingSlashes } from "./openai-compat/index.js";
 import type { ChatCompletionsRequest } from "./openai-compat/types.js";
-import {
-  PROVIDER_IDS,
-  type ASRModel,
-  type EmbeddingModel,
-  type ImageModel,
-  type LanguageModel,
-  type TTSModel,
-  type VideoModel
-} from "./types.js";
+import { PROVIDER_IDS, type LanguageModel } from "./types.js";
 
 export const ALIBABA_DEFAULT_BASE_URL =
   "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
@@ -65,9 +57,6 @@ export class AlibabaProvider extends OpenAICompatProvider {
     return ["DASHSCOPE_API_KEY"];
   }
 
-  private _alibabaFetch: typeof fetch;
-  private _alibabaBaseURL: string;
-
   constructor(
     secrets: { DASHSCOPE_API_KEY?: string; DASHSCOPE_BASE_URL?: string },
     options: OpenAICompatProviderOptions = {}
@@ -81,25 +70,14 @@ export class AlibabaProvider extends OpenAICompatProvider {
     // then env) arrive as `secrets`, so honoring `secrets.DASHSCOPE_BASE_URL`
     // is what lets users point the provider at their key's region.
     const baseURL = resolveAlibabaBaseURL(secrets.DASHSCOPE_BASE_URL);
-    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
-    super(
-      {
-        providerId: PROVIDER_IDS.ALIBABA,
-        apiKey,
-        baseURL
-      },
-      { ...options, fetchFn }
-    );
-
-    this._alibabaFetch = fetchFn;
-    this._alibabaBaseURL = baseURL;
+    super({ providerId: PROVIDER_IDS.ALIBABA, apiKey, baseURL }, options);
   }
 
   override getContainerEnv() {
     const env: Record<string, string> = { DASHSCOPE_API_KEY: this.apiKey };
-    if (this._alibabaBaseURL !== ALIBABA_DEFAULT_BASE_URL) {
-      env["DASHSCOPE_BASE_URL"] = this._alibabaBaseURL;
+    if (this.compatBaseURL !== ALIBABA_DEFAULT_BASE_URL) {
+      env["DASHSCOPE_BASE_URL"] = this.compatBaseURL;
     }
     return env;
   }
@@ -124,55 +102,6 @@ export class AlibabaProvider extends OpenAICompatProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const response = await this._alibabaFetch(
-      `${this._alibabaBaseURL}/models`,
-      {
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`
-        }
-      }
-    );
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const payload = (await response.json()) as {
-      data?: Array<{ id?: string; name?: string }>;
-    };
-    const rows = payload.data ?? [];
-    return rows
-      .filter(
-        (row): row is { id: string; name?: string } =>
-          typeof row.id === "string" && row.id.length > 0
-      )
-      .map((row) => ({
-        id: row.id,
-        name: row.name ?? row.id,
-        provider: PROVIDER_IDS.ALIBABA
-      }));
-  }
-
-  // Model Studio's OpenAI-compatible endpoint exposes chat models only;
-  // suppress the OpenAI media/embedding defaults so they don't surface under
-  // the alibaba id.
-  override async getAvailableTTSModels(): Promise<TTSModel[]> {
-    return [];
-  }
-
-  override async getAvailableASRModels(): Promise<ASRModel[]> {
-    return [];
-  }
-
-  override async getAvailableVideoModels(): Promise<VideoModel[]> {
-    return [];
-  }
-
-  override async getAvailableImageModels(): Promise<ImageModel[]> {
-    return [];
-  }
-
-  override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
-    return [];
+    return this.listCompatModels();
   }
 }

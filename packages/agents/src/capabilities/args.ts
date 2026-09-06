@@ -16,7 +16,11 @@
  */
 
 import type { JsonSchema } from "@nodetool-ai/runtime";
+import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
+import { z, type ZodType } from "zod";
 
+import { USER_MESSAGE_FIELD } from "../tools/base-tool.js";
+import { TOOL_CALL_ID_FIELD } from "../tools/subtask-fields.js";
 import { isRecord, isString } from "../utils/type-guards.js";
 
 export interface CapabilityArgSpec {
@@ -209,4 +213,63 @@ function oneObjectMessage(spec: CapabilityArgSpec): string {
   const keys = requiredKeys(spec.inputSchema);
   const shape = keys.length > 0 ? ` ({ ${keys.join(", ")} })` : "";
   return `${spec.name} takes one arguments object${shape}`;
+}
+
+/**
+ * Validate one call's arguments against the spec's Zod schema, for the
+ * handful of capabilities whose identity is that schema.
+ *
+ * The one implementation of the check. `gatedCall` runs it for a registry
+ * entry reached through `invoke` (guest code, `run.invoke`); the lazy `Tool`
+ * runs it for a belt call, where the entry `capabilityFromTool` builds carries
+ * no schema. Every entrance therefore validates exactly once, and returns the
+ * same `invalid_tool_arguments` envelope `Tool.execute` used to return.
+ *
+ * The reserved protocol fields are not part of any schema: they are lifted out
+ * before the parse and `_tool_call_id` is put back on the parsed args, so a
+ * capability that asked for it still receives it.
+ */
+export function validateCapabilityArgs(
+  spec: { readonly name: string; readonly zodSchema?: ZodType },
+  args: Record<string, unknown>
+):
+  | { ok: true; args: Record<string, unknown> }
+  | { ok: false; error: Record<string, unknown> } {
+  const schema = spec.zodSchema;
+  if (!schema) return { ok: true, args };
+
+  const {
+    [USER_MESSAGE_FIELD]: _message,
+    [TOOL_CALL_ID_FIELD]: toolCallId,
+    ...rest
+  } = args;
+
+  const fail = (issues: string[]) => ({
+    ok: false as const,
+    error: {
+      error: "invalid_tool_arguments",
+      message: `Invalid arguments for ${spec.name}: ${issues.join("; ")}`,
+      issues
+    }
+  });
+
+  let parsed: unknown;
+  try {
+    parsed = parseWithTypeCoercion(schema, rest);
+  } catch (error) {
+    return fail(
+      error instanceof z.ZodError
+        ? error.issues.map((issue) => {
+            const path = issue.path.join(".");
+            return path ? `${path}: ${issue.message}` : issue.message;
+          })
+        : [String(error)]
+    );
+  }
+
+  if (!isRecord(parsed)) return fail(["expected an object"]);
+
+  const out = parsed as Record<string, unknown>;
+  if (toolCallId !== undefined) out[TOOL_CALL_ID_FIELD] = toolCallId;
+  return { ok: true, args: out };
 }

@@ -15,7 +15,7 @@
  * Every one is context-only: what the class read off the `ProcessingContext`
  * the implementation reads off `run.context`, and nothing else rides on the
  * run. A belt builds all seven from `files.specs.ts` by name, so
- * `BUILTIN_TOOL_NAMES` and `resolveTool(name)` see what they saw before.
+ * `BUILTIN_TOOL_NAMES` sees what it saw before.
  *
  * The todo store lives here with the implementation that writes it;
  * `../tools/todo-tools.ts` re-exports the three readers other code calls.
@@ -31,7 +31,6 @@ import type {
   WorkspaceEntry
 } from "@nodetool-ai/runtime";
 import type { TodoItem, TodoStatus, TodoUpdate } from "@nodetool-ai/protocol";
-import { Tool } from "../tools/base-tool.js";
 import {
   isNonBlankString,
   isNumber,
@@ -51,30 +50,11 @@ import {
   editFileSpec,
   globSpec,
   grepSpec,
-  todoWriteSpec,
-  READ_FILE_SCHEMA,
-  WRITE_FILE_SCHEMA,
-  LIST_DIRECTORY_SCHEMA,
-  EDIT_FILE_SCHEMA,
-  GLOB_SCHEMA,
-  GREP_SCHEMA,
-  TODO_WRITE_SCHEMA
-} from "./files.specs.js";
-
-export {
-  READ_FILE_SCHEMA,
-  WRITE_FILE_SCHEMA,
-  LIST_DIRECTORY_SCHEMA,
-  EDIT_FILE_SCHEMA,
-  GLOB_SCHEMA,
-  GREP_SCHEMA,
-  TODO_WRITE_SCHEMA
+  todoWriteSpec
 } from "./files.specs.js";
 
 /**
- * A run over one call's context — all a file capability needs. The deprecated
- * tool classes pass this to `CapabilityTool`, which is gated from the outside
- * by `gateTools` exactly as the classes were before the port.
+ * A run over one call's context — all a file capability needs.
  */
 export function fileCapabilityRun(context: ProcessingContext): CapabilityRun {
   return createCapabilityRun({ context, gate: UNGATED });

@@ -1033,8 +1033,10 @@ export type SetParentParams = z.infer<typeof setParentParams>;
  * (`packages/agents/tests/timelines-op-input.test.ts`,
  * `web/src/lib/tools/__tests__/timelineTools.test.ts`).
  *
- * `ui_timeline_get_clip_frames` is deliberately absent: it samples rendered
- * video frames and has no headless equivalent.
+ * The tools only one host can implement are named in
+ * `BROWSER_ONLY_TIMELINE_TOOL_NAMES` / `HEADLESS_ONLY_TIMELINE_TOOL_NAMES`
+ * (`timeline-tool-contracts.ts`), and this list must match the contract record
+ * there key for key — `packages/protocol/tests/ui-tool-contracts.test.ts`.
  */
 export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_get_state",
@@ -1067,5 +1069,9 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   // T20's markers. Both surfaces register them, so they belong here rather
   // than in a hand-written list on either side.
   "ui_timeline_add_marker",
-  "ui_timeline_delete_marker"
+  "ui_timeline_delete_marker",
+  // Both surfaces registered these from the start and neither list named them,
+  // so nothing checked they stayed in step.
+  "ui_timeline_set_markers_from_beats",
+  "ui_timeline_snap_to_beats"
 ] as const;

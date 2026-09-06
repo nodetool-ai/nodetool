@@ -22,6 +22,9 @@
 
 import { getProviderCacheVersion } from "@nodetool-ai/runtime";
 import type { BaseProvider } from "@nodetool-ai/runtime";
+import { createLogger } from "@nodetool-ai/config";
+
+const log = createLogger("nodetool.websocket.configured-providers");
 
 /** How long a built provider set is reused. Bounds a stale OAuth bearer. */
 export const DEFAULT_TTL_MS = 60_000;
@@ -35,9 +38,41 @@ interface CacheEntry {
   builtAt: number;
 }
 
+/**
+ * Build the provider set for one user: every registered provider the user
+ * holds credentials for, keyed by id.
+ *
+ * A provider whose construction throws is absent from the result rather than
+ * fatal — one broken credential must not cost the caller every other provider.
+ */
+export async function loadConfiguredProviders(
+  userId: string
+): Promise<ProviderSet> {
+  const providersMod = await import("@nodetool-ai/runtime");
+  const { getSecret } = await import("@nodetool-ai/models");
+  const getSecretFor = (key: string) =>
+    getSecret(key, userId).then((v) => v ?? undefined);
+  const providers: ProviderSet = {};
+  await Promise.all(
+    providersMod.listRegisteredProviderIds().map(async (id) => {
+      try {
+        if (await providersMod.isProviderConfigured(id, getSecretFor)) {
+          providers[id] = await providersMod.getProvider(id, getSecretFor);
+        }
+      } catch (err) {
+        log.debug("Skipping provider without usable credentials", {
+          provider: id,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+    })
+  );
+  return providers;
+}
+
 export interface ConfiguredProviderCacheOptions {
   /** Builds the provider set for a user. Injected so tests need no registry. */
-  load: (userId: string) => Promise<ProviderSet>;
+  load?: (userId: string) => Promise<ProviderSet>;
   ttlMs?: number;
   now?: () => number;
   /** Credential-version reader. Injected only by tests. */
@@ -52,7 +87,7 @@ export class ConfiguredProviderCache {
   private readonly version: () => number;
 
   constructor(options: ConfiguredProviderCacheOptions) {
-    this.load = options.load;
+    this.load = options.load ?? loadConfiguredProviders;
     this.ttlMs = options.ttlMs ?? DEFAULT_TTL_MS;
     this.now = options.now ?? Date.now;
     this.version = options.version ?? getProviderCacheVersion;

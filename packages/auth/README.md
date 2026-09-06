@@ -1,8 +1,8 @@
 # @nodetool-ai/auth
 
-Authentication and authorization for [NodeTool](https://nodetool.ai) — pluggable auth providers (local, static token, Supabase), user management, and Fastify HTTP middleware.
+Authentication and authorization for [NodeTool](https://nodetool.ai) — pluggable auth providers (local, Supabase, delegated and app-session tokens) and a file-backed user store.
 
-This package owns the auth surface for the NodeTool backend: token verification, user records, admin/role checks, and the request middleware that gates the HTTP and WebSocket API. Providers are swappable, so the same server runs single-user local, static-token, or multi-user Supabase auth.
+This package owns the auth surface for the NodeTool backend: token verification, user records and admin/role checks. The server (`packages/websocket`) picks a provider at startup and gates HTTP and WebSocket requests in its own `onRequest` hook.
 
 ## Install
 
@@ -18,40 +18,28 @@ npm install @nodetool-ai/auth
 | `AuthResult` | type | Result of a token verification attempt |
 | `TokenType` | enum | Distinguishes static and user tokens |
 | `LocalAuthProvider` | class | Single-user local auth (no external service) |
-| `StaticTokenProvider` | class | Shared static bearer token |
-| `MultiUserAuthProvider` | class | Multi-user auth backed by a user store |
 | `SupabaseAuthProvider` | class | Verifies Supabase-issued JWTs |
-| `createAuthMiddleware` | function | Builds request middleware returning an `AuthenticatedUser` |
-| `getUserId` | function | Reads the authenticated user id off a request |
-| `authenticateRequest` | function | Low-level request authentication |
-| `requireAuth` | function | Guard that rejects unauthenticated requests |
-| `extractBearerToken` | function | Pulls the bearer token from request headers |
-| `HttpError` | class | Error carrying an HTTP status code |
+| `DelegatedTokenProvider` | class | Verifies tokens minted for an external integration |
+| `AppSessionTokenProvider` | class | Verifies scoped tokens minted for a deployed app session |
+| `mintDelegatedToken` / `mintAppSessionToken` | function | Mint the two token kinds above |
+| `isDelegatedToken` / `isAppSessionToken` | function | Prefix checks used to route a token to its provider |
 | `isAdmin` | function | Role check for `{ role: "admin" }` users |
-| `UserManager` | class | In-memory user management |
 | `FileUserManager` | class | File-backed user store |
-| `User` / `ManagedUser` / `UserRecord` | interface | User record shapes |
+| `User` / `UserRecord` | interface | User record shapes |
 
 ## Usage
 
 ```ts
-import {
-  StaticTokenProvider,
-  MultiUserAuthProvider,
-  createAuthMiddleware
-} from "@nodetool-ai/auth";
+import { LocalAuthProvider, SupabaseAuthProvider } from "@nodetool-ai/auth";
 
-const authenticate = createAuthMiddleware({
-  // Omit the argument to read STATIC_AUTH_TOKEN / STATIC_AUTH_TOKENS from the
-  // environment, or pass a { token: userId } record directly.
-  staticProvider: new StaticTokenProvider({ [process.env.MY_TOKEN!]: "1" }),
-  userProvider: new MultiUserAuthProvider({ /* ... */ }),
-  enforceAuth: true
-});
+const provider = process.env.SUPABASE_JWT_SECRET
+  ? new SupabaseAuthProvider({ supabaseJwtSecret: process.env.SUPABASE_JWT_SECRET })
+  : new LocalAuthProvider();
 
-// In a request handler:
-const user = await authenticate(request);
-console.log(user.userId);
+const token = provider.extractTokenFromHeaders(request.headers);
+const result = await provider.verifyToken(token ?? "");
+if (!result.ok) throw new Error(result.error);
+console.log(result.userId);
 ```
 
 ## Links

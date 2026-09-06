@@ -34,13 +34,6 @@ interface UseTimelineDirectGenJobApi {
   cancel: (clipId: string) => void;
 }
 
-function randomId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-}
-
 // Module-level so cancel() can tear down an in-flight subscription started by
 // start() in a different render. Otherwise the response handler would still
 // overwrite the user-set "draft" status after cancel.
@@ -120,7 +113,7 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
       // Tear down any stale subscription from a prior run on the same clip.
       clearInFlight(clipId);
 
-      const requestId = randomId();
+      const requestId = crypto.randomUUID();
       timeline.getState().patchClip(clipId, { status: "generating" });
 
       let unsubscribe: (() => void) | undefined;

@@ -34,20 +34,14 @@ import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager"
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
-import { createRunnerMessageHandler } from "../core/workflow/runnerProtocol";
 import { materializeBitmapRefs } from "../lib/workflow/materializeBrowserOutputs";
-import { getNodeStore, MsgpackData } from "./workflowUpdates";
+import type { MsgpackData } from "./workflowUpdates";
 import useStatusStore from "./StatusStore";
 import useResultsStore from "./ResultsStore";
 import { queryClient } from "../queryClient";
 import { recordRunSignatures } from "./runSignatures";
 import { computeRunSignatures } from "../utils/computeRunSignatures";
 import { getNodeGenerations } from "./nodeGenerationAccessor";
-
-export type MessageHandler = (
-  workflow: WorkflowAttributes,
-  data: MsgpackData
-) => void;
 
 /**
  * Title for a run: the node's name for a single-node run, otherwise the
@@ -174,7 +168,6 @@ export type WorkflowRunner = {
    * show "Queued — N ahead" instead of a misleading "Running".
    */
   queuePosition: number | null;
-  unsubscribe: (() => void) | null;
   state:
     | "idle"
     | "connecting"
@@ -185,8 +178,6 @@ export type WorkflowRunner = {
   statusMessage: string | null;
   setStatusMessage: (message: string | null) => void;
   notifications: Notification[];
-  messageHandler: MessageHandler;
-  setMessageHandler: (handler: MessageHandler) => void;
   addNotification: (
     notification: Omit<Notification, "id" | "timestamp">
   ) => void;
@@ -218,8 +209,7 @@ export type WorkflowRunner = {
     inputSignatures?: Record<string, string>,
     options?: RunOptions
   ) => Promise<string>;
-  reconnect: (jobId: string) => Promise<void>;
-  reconnectWithWorkflow: (
+  reconnect: (
     jobId: string,
     workflow: WorkflowAttributes
   ) => Promise<void>;
@@ -245,15 +235,8 @@ export const createWorkflowRunnerStore = (
     jobReplayCursor: 0,
     isBrowserRun: false,
     queuePosition: null,
-    unsubscribe: null,
     state: "idle",
     statusMessage: null,
-    messageHandler: (_workflow: WorkflowAttributes, _data: MsgpackData) => {
-      console.warn("No message handler set");
-    },
-    setMessageHandler: (handler: MessageHandler) => {
-      set({ messageHandler: handler });
-    },
     setStatusMessage: (message: string | null) => {
       set({ statusMessage: message });
     },
@@ -272,15 +255,10 @@ export const createWorkflowRunnerStore = (
     },
 
     cleanup: () => {
-      const unsubscribe = get().unsubscribe;
-      if (unsubscribe) {
-        unsubscribe();
-      }
       // Reset job/runtime state so a reused store can't surface a previous
       // workflow's job_id or status, and late WS messages routed by job_id
       // won't apply to a resurrected store.
       set({
-        unsubscribe: null,
         state: "idle",
         job_id: null,
         jobReplayCursor: 0,
@@ -295,43 +273,9 @@ export const createWorkflowRunnerStore = (
     },
 
     /**
-     * Reconnect to an existing job by job_id.
-     */
-    reconnect: async (jobId: string) => {
-      console.info(`WorkflowRunner[${workflowId}]: Reconnecting to job`, {
-        jobId
-      });
-
-      await get().ensureConnection();
-
-      // A different job means the cursor from the previous one must not be
-      // used as a replay floor — it would skip the new job's early frames.
-      const lastSeq = get().job_id === jobId ? get().jobReplayCursor : 0;
-      // Every reconnect targets a server job. A leftover `isBrowserRun` from a
-      // previous in-browser run would make the socket-open auto-resume skip
-      // this store forever.
-      set({
-        job_id: jobId,
-        jobReplayCursor: lastSeq,
-        isBrowserRun: false,
-        state: "running"
-      });
-
-      await globalWebSocketManager.send({
-        type: "reconnect_job",
-        command: "reconnect_job",
-        data: {
-          job_id: jobId,
-          workflow_id: workflowId,
-          last_seq: lastSeq
-        }
-      });
-    },
-
-    /**
      * Reconnect to an existing job with workflow context.
      */
-    reconnectWithWorkflow: async (
+    reconnect: async (
       jobId: string,
       workflow: WorkflowAttributes
     ) => {
@@ -342,12 +286,16 @@ export const createWorkflowRunnerStore = (
 
       await get().ensureConnection();
 
+      // A different job means the cursor from the previous one must not be used
+      // as a replay floor — it would skip the new job's early frames.
       const lastSeq = get().job_id === jobId ? get().jobReplayCursor : 0;
+      // A reconnect always attaches to a server job. A leftover `isBrowserRun`
+      // from a previous in-browser run would make the socket-open auto-resume
+      // skip this store forever.
       set({
         workflow,
         job_id: jobId,
         jobReplayCursor: lastSeq,
-        // See reconnect(): a reconnect always attaches to a server job.
         isBrowserRun: false,
         state: "connecting",
         statusMessage: "Reconnecting to running job..."
@@ -770,10 +718,6 @@ export const createWorkflowRunnerStore = (
     }
   }));
 
-  store.setState({
-    messageHandler: createRunnerMessageHandler(store, getNodeStore)
-  });
-
   return store;
 };
 
@@ -819,19 +763,15 @@ const defaultWorkflowRunner: WorkflowRunner = {
   jobReplayCursor: 0,
   isBrowserRun: false,
   queuePosition: null,
-  unsubscribe: null,
   state: "idle",
   statusMessage: null,
   setStatusMessage: () => {},
   notifications: [],
-  messageHandler: () => {},
-  setMessageHandler: () => {},
   addNotification: () => {},
   cancel: async () => {},
   updateRunningNodeProperties: () => {},
   run: async () => "",
   reconnect: async () => {},
-  reconnectWithWorkflow: async () => {},
   ensureConnection: async () => {},
   cleanup: () => {},
   streamInput: () => {},

@@ -170,6 +170,42 @@ describe("generation_complete properties — scalar filter", () => {
     });
   });
 
+  it("carries the model reference, reduced to what identifies it", async () => {
+    // Which model ran is the one generation setting that is never a scalar,
+    // and the auto-save stamps it onto the asset so a variant can re-run it.
+    const node = makeNode({
+      properties: {
+        prompt: "a red fox",
+        model: {
+          type: "image_model",
+          id: "fal-ai/flux/dev",
+          name: "FLUX.1 [dev]",
+          provider: "fal",
+          supported_tasks: ["text_to_image"]
+        },
+        image: { type: "image", uri: "asset://x" },
+        folder: { type: "folder", id: "f-1" }
+      }
+    });
+    const { actor, messages } = createActor(node, new NodeInbox(), {
+      async process() {
+        return { image: "bytes" };
+      }
+    });
+
+    await actor.run();
+
+    expect(generationCompletes(messages)[0].properties).toEqual({
+      prompt: "a red fox",
+      model: {
+        type: "image_model",
+        id: "fal-ai/flux/dev",
+        name: "FLUX.1 [dev]",
+        provider: "fal"
+      }
+    });
+  });
+
   it("reports null (not an empty object) when no input is scalar", async () => {
     // Arrange
     const node = makeNode({

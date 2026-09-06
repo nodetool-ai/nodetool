@@ -41,6 +41,7 @@ import {
 } from "../types.js";
 import { clipMask, drawMask, maskIsHard, type MaskContext2D } from "./draw.js";
 import type { MatteMode } from "./sceneModel.js";
+import { trackEffectsAsClipEffects } from "./trackEffects.js";
 import {
   IDENTITY_TRANSFORM,
   buildTransformMatrix,
@@ -261,13 +262,7 @@ export interface DrawTimelineFrameOptions<TSource> {
  * `drop-shadow()` on `ctx.filter` is not one of them either — it would apply to
  * the shadow as well.
  */
-const CANVAS_EFFECT_TYPES = new Set([
-  "color",
-  "blur",
-  "dropShadow",
-  "colorCorrection",
-  "videoBlur"
-]);
+const CANVAS_EFFECT_TYPES = new Set(["color", "blur", "dropShadow"]);
 
 /**
  * The effect types present on these layers that Canvas 2D cannot draw. A
@@ -301,17 +296,16 @@ export function unsupportedEffectTypes(
     if (Math.abs(channel.temperature ?? 0) > 0.001) found.add("color.temperature");
     if (Math.abs(channel.tint ?? 0) > 0.001) found.add("color.tint");
   };
-  for (const layer of layers) {
-    for (const e of layer.effects ?? []) {
+  const scan = (effects: readonly ClipEffect[]): void => {
+    for (const e of effects) {
       if (!e.enabled) continue;
       if (!CANVAS_EFFECT_TYPES.has(e.type)) found.add(e.type);
       if (isClipColorEffect(e)) grade(e);
     }
-    for (const e of layer.trackEffects ?? []) {
-      if (!e.enabled) continue;
-      if (!CANVAS_EFFECT_TYPES.has(e.type)) found.add(e.type);
-      if (e.type === "colorCorrection") grade(e);
-    }
+  };
+  for (const layer of layers) {
+    scan(layer.effects ?? []);
+    scan(trackEffectsAsClipEffects(layer.trackEffects));
   }
   return [...found].sort();
 }
@@ -965,28 +959,21 @@ function computeFilterForEffects(
   let hue = 0;
   let blur = 0;
 
-  for (const e of clipEffects ?? []) {
-    if (!e.enabled) continue;
-    if (isClipColorEffect(e)) {
-      brightness += e.brightness ?? 0;
-      contrast *= e.contrast ?? 1;
-      saturation *= e.saturation ?? 1;
-      hue += e.hue ?? 0;
-    } else if (isClipBlurEffect(e)) {
-      blur += e.radius;
+  const accumulate = (effects: readonly ClipEffect[]): void => {
+    for (const e of effects) {
+      if (!e.enabled) continue;
+      if (isClipColorEffect(e)) {
+        brightness += e.brightness ?? 0;
+        contrast *= e.contrast ?? 1;
+        saturation *= e.saturation ?? 1;
+        hue += e.hue ?? 0;
+      } else if (isClipBlurEffect(e)) {
+        blur += e.radius;
+      }
     }
-  }
-  for (const e of trackEffects ?? []) {
-    if (!e.enabled) continue;
-    if (e.type === "colorCorrection") {
-      brightness += e.brightness;
-      contrast *= e.contrast;
-      saturation *= e.saturation;
-      hue += e.hue;
-    } else if (e.type === "videoBlur") {
-      blur += e.radius;
-    }
-  }
+  };
+  accumulate(clipEffects ?? []);
+  accumulate(trackEffectsAsClipEffects(trackEffects));
 
   const parts: string[] = [];
   if (Math.abs(brightness) > 0.001) {

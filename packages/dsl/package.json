@@ -35,16 +35,17 @@
   },
   "dependencies": {
     "@nodetool-ai/base-nodes": "*",
+    "@nodetool-ai/config": "*",
     "@nodetool-ai/elevenlabs-nodes": "*",
-    "@nodetool-ai/minimax-nodes": "*",
-    "@nodetool-ai/transformers-js-nodes": "*",
     "@nodetool-ai/huggingface-nodes": "*",
-    "@nodetool-ai/reve-nodes": "*",
-    "@nodetool-ai/protocol": "*",
     "@nodetool-ai/kernel": "*",
+    "@nodetool-ai/minimax-nodes": "*",
     "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/reve-nodes": "*",
     "@nodetool-ai/runtime": "*",
-    "@nodetool-ai/config": "*"
+    "@nodetool-ai/storage": "*",
+    "@nodetool-ai/transformers-js-nodes": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

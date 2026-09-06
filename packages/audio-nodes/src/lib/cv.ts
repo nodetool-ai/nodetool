@@ -25,7 +25,7 @@ import {
   isNonEmptyString,
   isObjectLike,
   isPositiveNumber
-} from "../type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 
 export type SignalEncoding = "pcm16le" | "f32le";
 

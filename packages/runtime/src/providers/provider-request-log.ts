@@ -13,7 +13,7 @@
  */
 
 import { createLogger, type Logger } from "@nodetool-ai/config";
-import { isNumber, isObjectLike, isString } from "../type-predicates.js";
+import { isNumber, isObjectLike, isString } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.provider.request");
 

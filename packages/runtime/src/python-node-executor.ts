@@ -6,7 +6,7 @@ import type {
   ProgressEvent
 } from "./python-bridge-types.js";
 import { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
-import { isString } from "./type-predicates.js";
+import { isString } from "@nodetool-ai/protocol";
 import { createLogger, getNodeBuiltinSync } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.runtime.python-node-executor");

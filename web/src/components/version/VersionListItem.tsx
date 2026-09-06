@@ -8,7 +8,8 @@ import RestoreIcon from "@mui/icons-material/Restore";
 import CompareIcon from "@mui/icons-material/Compare";
 import { Caption, Chip, DeleteButton, LoadingSpinner, Text, Tooltip, ToolbarIconButton, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 import { SaveType } from "../../stores/VersionHistoryStore";
-import { formatDistanceToNow, format } from "../../utils/dateFormat";
+import { relativeTime } from "../../utils/formatDateAndTime";
+import { formatDateTime } from "../../utils/formatUtils";
 import { WorkflowVersion } from "../../stores/ApiTypes";
 import { WorkflowMiniPreview } from "./WorkflowMiniPreview";
 
@@ -84,11 +85,9 @@ const VersionListItem = React.memo(function VersionListItem({
     [version.id, onDelete]
   );
 
-  const timeAgo = formatDistanceToNow(new Date(version.created_at), {
-    addSuffix: true
-  });
+  const timeAgo = relativeTime(new Date(version.created_at));
 
-  const fullDate = format(new Date(version.created_at), "PPpp");
+  const fullDate = formatDateTime(new Date(version.created_at));
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {

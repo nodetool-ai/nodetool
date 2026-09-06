@@ -478,7 +478,6 @@ const ReactFlowWrapper = ({
       [GROUP_NODE_TYPE]: GroupNode,
       [COMMENT_NODE_TYPE]: CommentNode,
       [PREVIEW_NODE_TYPE]: PreviewNode,
-      "nodetool.workflows.base_node.Output": OutputNode,
       "nodetool.output.Output": OutputNode,
       "nodetool.compare.CompareImages": CompareImagesNode,
       [STRING_NODE_TYPE]: ConstantStringNode,

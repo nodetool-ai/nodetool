@@ -57,18 +57,6 @@ import {
   startBackgroundGeneration
 } from "./background-generation.js";
 
-export {
-  DEFAULT_LIMIT,
-  MAX_LIMIT,
-  MAX_OPS,
-  LIST_MODEL3DS_SCHEMA,
-  CREATE_MODEL3D_SCHEMA,
-  GET_MODEL3D_SCHEMA,
-  EDIT_MODEL3D_SCHEMA,
-  VALIDATE_MODEL3D_SCHEMA,
-  RENDER_MODEL3D_SCHEMA
-} from "./model3d.specs.js";
-
 type ToolError = { error: string };
 
 const isError = (value: unknown): value is ToolError =>

@@ -55,14 +55,14 @@ type RunnerState = { job_id: string | null; state: string };
 
 const makeRunnerStore = (overrides: Partial<RunnerState> = {}) => {
   const state: RunnerState = { job_id: null, state: "idle", ...overrides };
-  const reconnectWithWorkflow = jest.fn(async (jobId: string) => {
+  const reconnect = jest.fn(async (jobId: string) => {
     state.job_id = jobId;
     state.state = "connecting";
   });
   return {
     state,
-    reconnectWithWorkflow,
-    getState: () => ({ ...state, reconnectWithWorkflow })
+    reconnect,
+    getState: () => ({ ...state, reconnect })
   };
 };
 
@@ -92,7 +92,7 @@ it("reattaches the newest in-flight job through the runner store", async () => {
   await flush();
 
   expect(mockListQuery).toHaveBeenCalledWith({ workflow_id: "wf", limit: 20 });
-  expect(runnerStore.reconnectWithWorkflow).toHaveBeenCalledWith(
+  expect(runnerStore.reconnect).toHaveBeenCalledWith(
     "new",
     workflow
   );
@@ -102,7 +102,7 @@ it("parks the handshake resume hint while reattaching, then clears it", async ()
   mockListQuery.mockResolvedValue({ jobs: [job("A", "running")] });
   const runnerStore = makeRunnerStore();
   let hintDuringReconnect: string | null = null;
-  runnerStore.reconnectWithWorkflow.mockImplementation(async () => {
+  runnerStore.reconnect.mockImplementation(async () => {
     hintDuringReconnect = getPendingResumeJobId();
   });
 
@@ -122,7 +122,7 @@ it("adopts concurrent siblings with a bare reconnect_job replaying from 0", asyn
   startRunReconciliation("wf", workflow, runnerStore as never);
   await flush();
 
-  expect(runnerStore.reconnectWithWorkflow).toHaveBeenCalledWith(
+  expect(runnerStore.reconnect).toHaveBeenCalledWith(
     "A",
     workflow
   );
@@ -147,7 +147,7 @@ it("does nothing when every job already settled", async () => {
   startRunReconciliation("wf", workflow, runnerStore as never);
   await flush();
 
-  expect(runnerStore.reconnectWithWorkflow).not.toHaveBeenCalled();
+  expect(runnerStore.reconnect).not.toHaveBeenCalled();
   expect(mockSend).not.toHaveBeenCalled();
 });
 
@@ -171,7 +171,7 @@ it("yields to a run that started while the job list was in flight", async () => 
   startRunReconciliation("wf", workflow, runnerStore as never);
   await flush();
 
-  expect(runnerStore.reconnectWithWorkflow).not.toHaveBeenCalled();
+  expect(runnerStore.reconnect).not.toHaveBeenCalled();
 });
 
 it("stopRunReconciliation cancels a pending reconcile", async () => {
@@ -182,7 +182,7 @@ it("stopRunReconciliation cancels a pending reconcile", async () => {
   stopRunReconciliation("wf");
   await flush();
 
-  expect(runnerStore.reconnectWithWorkflow).not.toHaveBeenCalled();
+  expect(runnerStore.reconnect).not.toHaveBeenCalled();
 });
 
 it("waits for login when auth is required and still settling", async () => {
@@ -203,7 +203,7 @@ it("waits for login when auth is required and still settling", async () => {
   authListener?.({ state: "logged_in" });
   await flush();
 
-  expect(runnerStore.reconnectWithWorkflow).toHaveBeenCalledWith(
+  expect(runnerStore.reconnect).toHaveBeenCalledWith(
     "A",
     workflow
   );

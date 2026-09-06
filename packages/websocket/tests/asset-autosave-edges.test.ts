@@ -48,6 +48,7 @@ const saveOpts = (
     textOutputName: string;
     generationIndex: number;
     properties: Record<string, unknown>;
+    nodeType: string;
   }> = {}
 ) => ({
   userId: "1",
@@ -257,6 +258,38 @@ describe("autoSaveAssets", () => {
     expect(row?.metadata).toEqual({
       prompt: "a fox in snow",
       generation_index: 3
+    });
+  });
+
+  it("keeps the model and the settings the node ran with", async () => {
+    const image: Record<string, unknown> = { type: "image", data: PNG_B64 };
+    await autoSaveAssets(
+      { image },
+      saveOpts({
+        nodeType: "nodetool.image.TextToImage",
+        properties: {
+          prompt: "a fox in snow",
+          model: {
+            type: "image_model",
+            id: "fal-ai/flux/dev",
+            name: "FLUX.1 [dev]",
+            provider: "fal"
+          },
+          width: 1024,
+          seed: 42
+        }
+      })
+    );
+    const row = await Asset.find("1", image.asset_id as string);
+    expect(row?.metadata).toEqual({
+      prompt: "a fox in snow",
+      generation: {
+        provider: "fal",
+        model: "fal-ai/flux/dev",
+        model_name: "FLUX.1 [dev]",
+        node_type: "nodetool.image.TextToImage",
+        params: { width: 1024, seed: 42 }
+      }
     });
   });
 

@@ -70,7 +70,7 @@ export class BitcrushNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "int",
@@ -81,7 +81,7 @@ export class BitcrushNode extends BaseNode {
     min: 1,
     max: 16
   })
-  declare bit_depth: any;
+  declare bit_depth: number;
 
   @prop({
     type: "int",
@@ -92,12 +92,12 @@ export class BitcrushNode extends BaseNode {
     min: 1,
     max: 100
   })
-  declare sample_rate_reduction: any;
+  declare sample_rate_reduction: number;
 
   async process(context?: ProcessingContext): Promise<BitcrushNodeOutputs> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const bitDepth = Number(this.bit_depth ?? 8);
-    const srrFactor = Number(this.sample_rate_reduction ?? 1);
+    const audio = this.audio;
+    const bitDepth = this.bit_depth;
+    const srrFactor = this.sample_rate_reduction;
 
     const bytes = await requireAudioBytes(audio, context);
 
@@ -154,7 +154,7 @@ export class CompressNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -164,7 +164,7 @@ export class CompressNode extends BaseNode {
     min: -60,
     max: 0
   })
-  declare threshold: any;
+  declare threshold: number;
 
   @prop({
     type: "float",
@@ -174,7 +174,7 @@ export class CompressNode extends BaseNode {
     min: 1,
     max: 20
   })
-  declare ratio: any;
+  declare ratio: number;
 
   @prop({
     type: "float",
@@ -184,7 +184,7 @@ export class CompressNode extends BaseNode {
     min: 0.1,
     max: 100
   })
-  declare attack: any;
+  declare attack: number;
 
   @prop({
     type: "float",
@@ -194,7 +194,7 @@ export class CompressNode extends BaseNode {
     min: 5,
     max: 1000
   })
-  declare release: any;
+  declare release: number;
 
   @prop({
     type: "bool",
@@ -203,15 +203,15 @@ export class CompressNode extends BaseNode {
     description:
       "Apply automatic makeup gain to compensate for the level lost to compression, keeping the output roughly as loud as the input."
   })
-  declare auto_gain: any;
+  declare auto_gain: boolean;
 
   async process(context?: ProcessingContext): Promise<CompressNodeOutputs> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const thresholdDb = Number(this.threshold ?? -20);
-    const ratio = Number(this.ratio ?? 4);
-    const attackMs = Number(this.attack ?? 5);
-    const releaseMs = Number(this.release ?? 50);
-    const autoGain = this.auto_gain !== false;
+    const audio = this.audio;
+    const thresholdDb = this.threshold;
+    const ratio = this.ratio;
+    const attackMs = this.attack;
+    const releaseMs = this.release;
+    const autoGain = this.auto_gain;
 
     const bytes = await requireAudioBytes(audio, context);
 
@@ -288,7 +288,7 @@ export class DistortionNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -298,11 +298,11 @@ export class DistortionNode extends BaseNode {
     min: 0,
     max: 100
   })
-  declare drive_db: any;
+  declare drive_db: number;
 
   async process(context?: ProcessingContext): Promise<DistortionNodeOutputs> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const driveDb = Number(this.drive_db ?? 25);
+    const audio = this.audio;
+    const driveDb = this.drive_db;
 
     const bytes = await requireAudioBytes(audio, context);
 
@@ -355,7 +355,7 @@ export class LimiterNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -365,7 +365,7 @@ export class LimiterNode extends BaseNode {
     min: -60,
     max: 0
   })
-  declare threshold_db: any;
+  declare threshold_db: number;
 
   @prop({
     type: "float",
@@ -375,7 +375,7 @@ export class LimiterNode extends BaseNode {
     min: 1,
     max: 1000
   })
-  declare release_ms: any;
+  declare release_ms: number;
 
   @prop({
     type: "bool",
@@ -384,13 +384,13 @@ export class LimiterNode extends BaseNode {
     description:
       "Apply automatic makeup gain so the limited peaks reach 0 dBFS, turning the headroom below the ceiling into added loudness (maximizer behaviour)."
   })
-  declare auto_gain: any;
+  declare auto_gain: boolean;
 
   async process(context?: ProcessingContext): Promise<LimiterNodeOutputs> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const thresholdDb = Number(this.threshold_db ?? -2);
-    const releaseMs = Number(this.release_ms ?? 250);
-    const autoGain = this.auto_gain !== false;
+    const audio = this.audio;
+    const thresholdDb = this.threshold_db;
+    const releaseMs = this.release_ms;
+    const autoGain = this.auto_gain;
 
     const bytes = await requireAudioBytes(audio, context);
 
@@ -459,7 +459,7 @@ export class ReverbNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -470,7 +470,7 @@ export class ReverbNode extends BaseNode {
     min: 0,
     max: 1
   })
-  declare room_scale: any;
+  declare room_scale: number;
 
   @prop({
     type: "float",
@@ -481,7 +481,7 @@ export class ReverbNode extends BaseNode {
     min: 0,
     max: 1
   })
-  declare damping: any;
+  declare damping: number;
 
   @prop({
     type: "float",
@@ -491,7 +491,7 @@ export class ReverbNode extends BaseNode {
     min: 0,
     max: 1
   })
-  declare wet_level: any;
+  declare wet_level: number;
 
   @prop({
     type: "float",
@@ -501,14 +501,14 @@ export class ReverbNode extends BaseNode {
     min: 0,
     max: 1
   })
-  declare dry_level: any;
+  declare dry_level: number;
 
   async process(context?: ProcessingContext): Promise<ReverbNodeOutputs> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const roomScale = Number(this.room_scale ?? 0.5);
-    const damping = Number(this.damping ?? 0.5);
-    const wetLevel = Number(this.wet_level ?? 0.15);
-    const dryLevel = Number(this.dry_level ?? 0.5);
+    const audio = this.audio;
+    const roomScale = this.room_scale;
+    const damping = this.damping;
+    const wetLevel = this.wet_level;
+    const dryLevel = this.dry_level;
 
     const bytes = await requireAudioBytes(audio, context);
 
@@ -640,7 +640,7 @@ export class PitchShiftNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -651,11 +651,11 @@ export class PitchShiftNode extends BaseNode {
     min: -12,
     max: 12
   })
-  declare semitones: any;
+  declare semitones: number;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const semitones = Number(this.semitones ?? 0);
+    const audio = this.audio;
+    const semitones = this.semitones;
 
     if (semitones === 0) {
       return { output: audio };
@@ -772,7 +772,7 @@ export class TimeStretchNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -782,11 +782,11 @@ export class TimeStretchNode extends BaseNode {
     min: 0.5,
     max: 2
   })
-  declare rate: any;
+  declare rate: number;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const rate = Number(this.rate ?? 1.0);
+    const audio = this.audio;
+    const rate = this.rate;
 
     if (rate === 1.0) {
       return { output: audio };
@@ -910,7 +910,7 @@ export class NoiseGateNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -920,7 +920,7 @@ export class NoiseGateNode extends BaseNode {
     min: -90,
     max: 0
   })
-  declare threshold_db: any;
+  declare threshold_db: number;
 
   @prop({
     type: "float",
@@ -930,7 +930,7 @@ export class NoiseGateNode extends BaseNode {
     min: 0.1,
     max: 100
   })
-  declare attack_ms: any;
+  declare attack_ms: number;
 
   @prop({
     type: "float",
@@ -940,13 +940,13 @@ export class NoiseGateNode extends BaseNode {
     min: 5,
     max: 1000
   })
-  declare release_ms: any;
+  declare release_ms: number;
 
   async process(context?: ProcessingContext): Promise<NoiseGateNodeOutputs> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const thresholdDb = Number(this.threshold_db ?? -50);
-    const attackMs = Math.max(0.1, Number(this.attack_ms ?? 1));
-    const releaseMs = Math.max(1, Number(this.release_ms ?? 100));
+    const audio = this.audio;
+    const thresholdDb = this.threshold_db;
+    const attackMs = Math.max(0.1, this.attack_ms);
+    const releaseMs = Math.max(1, this.release_ms);
 
     const bytes = await requireAudioBytes(audio, context);
 
@@ -1017,7 +1017,7 @@ export class PhaserNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -1027,7 +1027,7 @@ export class PhaserNode extends BaseNode {
     min: 0.1,
     max: 10
   })
-  declare rate_hz: any;
+  declare rate_hz: number;
 
   @prop({
     type: "float",
@@ -1037,7 +1037,7 @@ export class PhaserNode extends BaseNode {
     min: 0,
     max: 1
   })
-  declare depth: any;
+  declare depth: number;
 
   @prop({
     type: "float",
@@ -1047,7 +1047,7 @@ export class PhaserNode extends BaseNode {
     min: 100,
     max: 5000
   })
-  declare centre_frequency_hz: any;
+  declare centre_frequency_hz: number;
 
   @prop({
     type: "float",
@@ -1058,7 +1058,7 @@ export class PhaserNode extends BaseNode {
     min: -1,
     max: 1
   })
-  declare feedback: any;
+  declare feedback: number;
 
   @prop({
     type: "float",
@@ -1068,15 +1068,15 @@ export class PhaserNode extends BaseNode {
     min: 0,
     max: 1
   })
-  declare mix: any;
+  declare mix: number;
 
   async process(context?: ProcessingContext): Promise<PhaserNodeOutputs> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const rateHz = Number(this.rate_hz ?? 1);
-    const depth = Number(this.depth ?? 0.5);
-    const centreFreqHz = Number(this.centre_frequency_hz ?? 1300);
-    const feedback = Number(this.feedback ?? 0);
-    const mix = Number(this.mix ?? 0.5);
+    const audio = this.audio;
+    const rateHz = this.rate_hz;
+    const depth = this.depth;
+    const centreFreqHz = this.centre_frequency_hz;
+    const feedback = this.feedback;
+    const mix = this.mix;
 
     const bytes = await requireAudioBytes(audio, context);
 

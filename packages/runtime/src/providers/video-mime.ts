@@ -2,10 +2,11 @@
  * Detect a video container from its leading magic bytes.
  *
  * Used when a video reaches a provider without a reliable Content-Type — e.g.
- * asset bytes read from storage. Defaults to `video/mp4`, the container every
- * multimodal provider accepts.
+ * asset bytes read from storage.
  */
-export function sniffVideoMime(bytes: Uint8Array): string {
+
+/** Identify a video container; `null` when nothing matches. */
+export function sniffVideoMimeOrNull(bytes: Uint8Array): string | null {
   // ISO base media file format: <4-byte size> "ftyp" — mp4, m4v and mov all
   // use it; the brand that follows separates QuickTime from mp4.
   if (
@@ -43,5 +44,13 @@ export function sniffVideoMime(bytes: Uint8Array): string {
   ) {
     return "video/x-msvideo";
   }
-  return "video/mp4";
+  return null;
+}
+
+/**
+ * As {@link sniffVideoMimeOrNull}, defaulting to mp4 — the container every
+ * multimodal provider accepts.
+ */
+export function sniffVideoMime(bytes: Uint8Array): string {
+  return sniffVideoMimeOrNull(bytes) ?? "video/mp4";
 }

@@ -11,6 +11,10 @@ import {
   loadAudioSamples,
   normalizeOption
 } from "../transformers-base.js";
+import type {
+  AudioRefLike,
+  HfModelRef
+} from "../transformers-base.js";
 import { defaultRepoFor } from "../recommended-models.js";
 
 const TJS_TYPE = "tjs.automatic_speech_recognition";
@@ -51,7 +55,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     title: "Audio",
     description: "Audio clip to transcribe."
   })
-  declare audio: any;
+  declare audio: AudioRefLike;
 
   @prop({
     type: TJS_TYPE,
@@ -59,7 +63,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     title: "Model",
     description: "Transformers.js model (ONNX-compatible)."
   })
-  declare model: any;
+  declare model: HfModelRef;
 
   @prop({
     type: "str",
@@ -68,7 +72,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     description:
       "Optional language hint for multilingual models (e.g. 'english')."
   })
-  declare language: any;
+  declare language: string;
 
   @prop({
     type: "enum",
@@ -77,7 +81,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     description: "Whether to transcribe in source language or translate to English.",
     values: ["transcribe", "translate"]
   })
-  declare task: any;
+  declare task: "transcribe" | "translate";
 
   @prop({
     type: "bool",
@@ -85,7 +89,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     title: "Return Timestamps",
     description: "Return per-chunk timestamps alongside the transcript."
   })
-  declare return_timestamps: any;
+  declare return_timestamps: boolean;
 
   @prop({
     type: "enum",
@@ -94,7 +98,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     description: "Model dtype / quantization level.",
     values: DTYPE_VALUES
   })
-  declare dtype: any;
+  declare dtype: string;
 
   @prop({
     type: "enum",
@@ -103,7 +107,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     description: "Inference device.",
     values: DEVICE_VALUES
   })
-  declare device: any;
+  declare device: string;
 
   async process(
     context?: ProcessingContext

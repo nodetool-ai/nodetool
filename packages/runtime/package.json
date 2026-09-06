@@ -20,6 +20,7 @@
     "@huggingface/inference": "^4.13.25",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/storage": "*",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.221.0",
     "@opentelemetry/resources": "^2.10.0",
@@ -72,6 +73,12 @@
       "types": "./dist/context.d.ts",
       "import": "./dist/context.js",
       "default": "./dist/context.js"
+    },
+    "./provider-transport": {
+      "nodetool-dev": "./src/providers/provider-transport.ts",
+      "types": "./dist/providers/provider-transport.d.ts",
+      "import": "./dist/providers/provider-transport.js",
+      "default": "./dist/providers/provider-transport.js"
     },
     "./safe-url": {
       "nodetool-dev": "./src/providers/safe-url.ts",

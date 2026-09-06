@@ -1,15 +1,19 @@
 // Generates marketing/src/data/recipeEntries.generated.ts and the downloadable
-// .nodetool bundles in marketing/public/recipes/ from the editorial specs in
-// scripts/recipes.mjs.
+// .nodetool bundles in marketing/public/recipes/ from the recipe manifests the
+// app ships (packages/base-nodes/nodetool/examples/recipes/*.recipe.json) plus
+// the site-only presentation in scripts/recipes.mjs.
 //
 // Regenerate: npm run gen:recipes        Verify: npm run gen:recipes -- --check
 //
 // The generated module is checked in, so the site builds without this script.
 // What the script adds is that a recipe cannot outlive its ingredients: every
-// step is resolved against the shipped example workflows, and a slug that stops
+// step is resolved against the shipped example workflows, and a name that stops
 // resolving throws here rather than shipping a page whose bundle is short a
 // workflow. The models and API keys each recipe lists are read out of the
 // graphs, never written by hand.
+//
+// The manifests are the app's: the same files the Examples page reads to offer
+// each chain, so the page and the product describe one list of workflows.
 //
 // The .nodetool bundles are NOT deterministic — packWorkflowsBundle stamps a
 // created_at and the running NodeTool version into the manifest — so --check
@@ -25,7 +29,7 @@ import { fileURLToPath } from "node:url";
 // Fastify server, and tsx would resolve the specifier to a stale `dist/`.
 // The codec itself only needs fflate and node:crypto.
 import { packWorkflowsBundle } from "../../packages/websocket/src/lib/workflow-bundle.ts";
-import { recipes } from "./recipes.mjs";
+import { recipePresentation } from "./recipes.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MARKETING = path.resolve(__dirname, "..");
@@ -33,6 +37,10 @@ const REPO_ROOT = path.resolve(MARKETING, "..");
 const EXAMPLES_DIR = path.join(
   REPO_ROOT,
   "packages/base-nodes/nodetool/examples/nodetool-base",
+);
+const RECIPES_DIR = path.join(
+  REPO_ROOT,
+  "packages/base-nodes/nodetool/examples/recipes",
 );
 const TEMPLATE_ENTRIES = path.join(
   MARKETING,
@@ -44,6 +52,8 @@ const RENDER_MANIFEST = path.join(__dirname, "recipe-samples.manifest.json");
 const OUT_FILE = path.join(MARKETING, "src/data/recipeEntries.generated.ts");
 
 const CHECK = process.argv.includes("--check");
+
+const RECIPE_SUFFIX = ".recipe.json";
 
 /**
  * Stamped into each bundle manifest, matching what the CLI exporter writes.
@@ -162,17 +172,17 @@ function buildSample(spec) {
 }
 
 /**
- * A step's swap-in variant: another shipped template that reaches a different
+ * A step's swap-in variant: another shipped example that reaches a different
  * ending from the same inputs. Resolved the same way a step is, so a variant
- * cannot name a template that stopped shipping.
+ * cannot name an example that stopped shipping.
  */
-function buildAlternative(spec, step, byTemplateSlug) {
+function buildAlternative(spec, step, byExampleName) {
   if (!step.alternative) return null;
-  const entry = byTemplateSlug.get(step.alternative.template);
+  const entry = byExampleName.get(step.alternative.example);
   if (!entry) {
     fail(
-      `recipe "${spec.slug}" step "${step.template}" offers alternative ` +
-        `"${step.alternative.template}", which resolves to no shipped template.`,
+      `recipe "${spec.slug}" step "${step.example}" offers alternative ` +
+        `"${step.alternative.example}", which resolves to no shipped example.`,
     );
   }
   return {
@@ -184,15 +194,15 @@ function buildAlternative(spec, step, byTemplateSlug) {
   };
 }
 
-/** Resolve one recipe spec into the record the page renders. */
-function buildRecipe(spec, byTemplateSlug) {
+/** Resolve one recipe manifest into the record the page renders. */
+function buildRecipe(spec, byExampleName) {
   const steps = spec.steps.map((step) => {
-    const entry = byTemplateSlug.get(step.template);
+    const entry = byExampleName.get(step.example);
     if (!entry) {
       fail(
-        `recipe "${spec.slug}" step "${step.template}" resolves to no shipped ` +
-          "template. Run `npm run gen:templates` first; if the example was " +
-          "renamed, update scripts/recipes.mjs.",
+        `recipe "${spec.slug}" step "${step.example}" resolves to no shipped ` +
+          "example. Run `npm run gen:templates` first; if the example was " +
+          `renamed, update ${path.relative(REPO_ROOT, RECIPES_DIR)}/${spec.slug}.recipe.json.`,
       );
     }
     const file = path.join(EXAMPLES_DIR, `${entry.name}.json`);
@@ -212,15 +222,13 @@ function buildRecipe(spec, byTemplateSlug) {
         thumbnail: entry.thumbnail,
         nodeCount: entry.nodeCount,
         models: modelRefs(graph),
-        alternative: buildAlternative(spec, step, byTemplateSlug),
+        alternative: buildAlternative(spec, step, byExampleName),
       },
     };
   });
 
-  if (!steps.some((s) => s.entry.slug === spec.heroStep)) {
-    fail(
-      `recipe "${spec.slug}": heroStep "${spec.heroStep}" is not one of its steps`,
-    );
+  if (!steps.some((s) => s.entry.name === spec.hero)) {
+    fail(`recipe "${spec.slug}": hero "${spec.hero}" is not one of its steps`);
   }
 
   const providers = [
@@ -250,7 +258,7 @@ function buildRecipe(spec, byTemplateSlug) {
       audience: spec.audience,
       summary: spec.summary,
       caveats: spec.caveats,
-      heroThumbnail: steps.find((s) => s.entry.slug === spec.heroStep).step
+      heroThumbnail: steps.find((s) => s.entry.name === spec.hero).step
         .thumbnail,
       bundle: `/recipes/${spec.slug}.nodetool`,
       workflowCount: steps.length,
@@ -329,15 +337,56 @@ export const recipeEntries: RecipeEntry[] = ${JSON.stringify(records, null, 2)};
 `;
 }
 
-async function main() {
-  const byTemplateSlug = new Map(readTemplateEntries().map((t) => [t.slug, t]));
-  const slugs = new Set();
-  for (const spec of recipes) {
-    if (slugs.has(spec.slug)) fail(`duplicate recipe slug "${spec.slug}"`);
-    slugs.add(spec.slug);
+/**
+ * The shipped manifests, in page order: the order scripts/recipes.mjs lists,
+ * then anything else on disk by slug. Each carries the site-only sample block
+ * for its slug, so a manifest that ships without one still gets a page.
+ */
+function readManifests() {
+  let files;
+  try {
+    files = fs
+      .readdirSync(RECIPES_DIR)
+      .filter((file) => file.endsWith(RECIPE_SUFFIX))
+      .sort((a, b) => a.localeCompare(b));
+  } catch {
+    fail(`no recipe manifests at ${path.relative(REPO_ROOT, RECIPES_DIR)}`);
+  }
+  const bySlug = new Map();
+  for (const file of files) {
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(RECIPES_DIR, file), "utf8"),
+    );
+    const slug = file.slice(0, -RECIPE_SUFFIX.length);
+    if (manifest.slug !== slug) {
+      fail(`${file} declares slug "${manifest.slug}" — rename one or the other`);
+    }
+    bySlug.set(slug, manifest);
   }
 
-  const built = recipes.map((spec) => buildRecipe(spec, byTemplateSlug));
+  const ordered = [];
+  for (const { slug, sample } of recipePresentation) {
+    const manifest = bySlug.get(slug);
+    if (!manifest) {
+      fail(
+        `scripts/recipes.mjs lists "${slug}", which has no manifest in ` +
+          `${path.relative(REPO_ROOT, RECIPES_DIR)}`,
+      );
+    }
+    ordered.push({ ...manifest, sample: sample ?? null });
+    bySlug.delete(slug);
+  }
+  for (const manifest of bySlug.values()) {
+    ordered.push({ ...manifest, sample: null });
+  }
+  return ordered;
+}
+
+async function main() {
+  const byExampleName = new Map(readTemplateEntries().map((t) => [t.name, t]));
+  const specs = readManifests();
+
+  const built = specs.map((spec) => buildRecipe(spec, byExampleName));
   const source = render(built.map((b) => b.record));
 
   if (CHECK) {

@@ -21,12 +21,9 @@ import {
   getGenerationSpec,
   awaitGenerationSpec,
   cancelGenerationSpec,
-  reconcileGenerationSpec,
-  LIST_GENERATIONS_SCHEMA
+  reconcileGenerationSpec
 } from "./generations.specs.js";
 import { isNonEmptyString, isRecord, isString } from "../utils/type-guards.js";
-
-export { LIST_GENERATIONS_SCHEMA } from "./generations.specs.js";
 
 const DEFAULT_AWAIT_SECONDS = 300;
 const MAX_AWAIT_SECONDS = 1800;

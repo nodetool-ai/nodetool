@@ -18,7 +18,10 @@ import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { FileStorageAdapter, InMemoryStorageAdapter } from "../src/context.js";
+import {
+  FileStorageAdapter,
+  InMemoryStorageAdapter
+} from "@nodetool-ai/storage";
 import { PrefixedStorageAdapter } from "../src/prefixed-storage-adapter.js";
 import {
   StorageWorkspace,

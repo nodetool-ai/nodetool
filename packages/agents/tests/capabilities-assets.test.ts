@@ -13,7 +13,7 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import { Buffer } from "node:buffer";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { InMemoryStorageAdapter } from "@nodetool-ai/runtime";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { Asset, initTestDb } from "@nodetool-ai/models";
 import {
   ASSET_CAPABILITIES,

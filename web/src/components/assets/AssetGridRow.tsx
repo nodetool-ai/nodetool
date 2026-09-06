@@ -16,17 +16,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { ExpandCollapseButton } from "../ui_primitives";
-
-const TYPE_LABELS: Record<string, string> = {
-  image: "Images",
-  video: "Videos",
-  audio: "Audio",
-  model_3d: "3D Models",
-  text: "Text",
-  application: "Documents",
-  folder: "Folders",
-  other: "Other"
-};
+import { assetTypeLabel } from "./assetTypeLabels";
 
 interface AssetGridRowProps {
   index: number;
@@ -126,7 +116,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     const divider = rowItems[0];
     const isExpanded = expandedTypes.has(divider.type);
 
-    const typeLabel = TYPE_LABELS[divider.type] ?? divider.type;
+    const typeLabel = assetTypeLabel(divider.type);
 
     return (
       <Tooltip

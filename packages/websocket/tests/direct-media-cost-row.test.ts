@@ -38,6 +38,7 @@ const SECONDS = 5;
 
 const makeRunner = (totalCost: number): WebSocketClientSession =>
   new WebSocketClientSession({
+    userId: "1",
     resolveExecutor: () => undefined as never,
     resolveProvider: (async () => ({
       provider: "fake",

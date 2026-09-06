@@ -15,7 +15,10 @@ import {
   isString
 } from "../lib/wire-values.js";
 import { storeAssetWithThumbnail } from "../lib/thumbnail.js";
-import { createAssetModelInterface } from "../lib/asset-model-interface.js";
+import {
+  createGenerationRun,
+  generateSpeechBytes
+} from "./media-generation.js";
 import {
   attachRunCostLedger,
   linkGenerationAssets,
@@ -52,21 +55,19 @@ import type {
   TextToImageParams,
   ImageToImageParams,
   ImageToVideoParams,
-  GenerationRequest,
-  GenerationResult,
   PromptAssetRef
 } from "@nodetool-ai/runtime";
 import {
   ACTIVE_MODEL_CONTEXT_KEY,
   DIRECT_TOOL_NAMES,
   RUN_BUDGET_CONTEXT_KEY,
-  ProcessingContext as GenerationContext,
   createRunBudget,
   detectImageMime,
   IMAGE_MIME_TO_EXT,
   expandEntitiesForGeneration,
   getProcessSandboxModuleCatalog,
   estimatePromptTokens,
+  isToolCall,
   isProviderSessionUpdate,
   isProviderMessageEvent,
   isProviderStop,
@@ -82,7 +83,6 @@ import {
   noMediaModelSelectedMessage
 } from "@nodetool-ai/protocol";
 import type {
-  Chunk,
   HydratedGraphData,
   ProcessingMessage
 } from "@nodetool-ai/protocol";
@@ -100,9 +100,7 @@ import {
 import {
   getBuiltinTools,
   getAllMcpTools,
-  registerBuiltinTools,
   getGoogleWorkspaceTools,
-  registerGoogleWorkspaceTools,
   getApifyTools,
   getSerpApiTools,
   toolForCapabilityName,
@@ -519,7 +517,7 @@ export class ChatTurnHandler {
     threadId?: string,
     workflowId?: string | null
   ): Promise<string> {
-    const userId = this.session.userId ?? "1";
+    const userId = this.session.requireUserId();
     if (!threadId) {
       const thread = await Thread.create({
         user_id: userId,
@@ -551,7 +549,7 @@ export class ChatTurnHandler {
     delete data.type;
     const threadId = isString(data.thread_id) ? data.thread_id : "";
     delete data.thread_id;
-    const userId = this.session.userId ?? "1";
+    const userId = this.session.requireUserId();
     delete data.user_id;
 
     await Message.create({
@@ -1157,7 +1155,7 @@ export class ChatTurnHandler {
     const providerId = data.provider as string;
     const model = data.model as string;
     const workflowId = messageWorkflowId;
-    const userId = this.session.userId ?? "1";
+    const userId = this.session.requireUserId();
     log.debug("Chat message", { threadId, model, provider: providerId });
 
     // Save user message to DB — matches Python's _save_message_to_db_async(data)
@@ -1381,11 +1379,9 @@ export class ChatTurnHandler {
     // Assemble the fixed, always-on toolbelt. There is no per-message tool
     // selection anymore — the agent reasons over the full toolbelt and the
     // permission gate (below) governs execution.
-    registerBuiltinTools();
     // Google Workspace runs on the token from the user's Google sign-in, so it
     // only exists on deployments that have a login. Local mode never sees it.
     const googleWorkspace = isGoogleWorkspaceEnabled();
-    if (googleWorkspace) registerGoogleWorkspaceTools();
     const chatProviders = await this.deps.configuredProviders(userId);
     // The project this conversation belongs to, when it is a project's own
     // agent thread. Documents the turn creates land in it rather than in the
@@ -2368,17 +2364,19 @@ export class ChatTurnHandler {
           continue;
         }
 
-        if ("type" in item && (item as Chunk).type === "chunk") {
-          // --- Text chunk --- forward to client (not persisted)
-          const chunk = item as Chunk;
-          if (!chunk.thread_id) chunk.thread_id = threadId;
-          await this.session.send({ ...chunk });
-        } else if ("name" in item && "id" in item) {
-          // --- Tool call from the provider (informational; executed by the
-          // loop via executeTool) ---
-          const tc = item as ProviderToolCall;
-          toolNames.set(tc.id, tc.name);
-          log.info("Tool call", { tool: tc.name, args: tc.args });
+        if (isToolCall(item)) {
+          // Informational: the loop executes it through executeTool.
+          toolNames.set(item.id, item.name);
+          log.info("Tool call", { tool: item.name, args: item.args });
+          continue;
+        }
+
+        // `isChunk` from the runtime additionally requires string content, so
+        // it drops the native-`Float32Array` audio chunks the client decodes.
+        // `type === "chunk"` is Chunk's alone in this union, so test that.
+        if (item.type === "chunk") {
+          if (!item.thread_id) item.thread_id = threadId;
+          await this.session.send({ ...item });
         }
       }
     };
@@ -2717,7 +2715,7 @@ export class ChatTurnHandler {
   ): Promise<void> {
     const threadId = isString(data.thread_id) ? data.thread_id : "";
     const workflowId = isString(data.workflow_id) ? data.workflow_id : null;
-    const userId = this.session.userId ?? "1";
+    const userId = this.session.requireUserId();
     const mode = String(mediaGeneration.mode ?? "");
     // The media composer's own selection first; a client without a separate
     // media picker (mobile) sends only the message-level one. The built-in
@@ -2800,76 +2798,21 @@ export class ChatTurnHandler {
     // and asset ids (docs/media-generation-tracking-design.md § 8, S5). The
     // seam saves the asset; `storeMediaAsset` is the fallback when it could
     // not.
-    const generationContext = new GenerationContext({
-      jobId: randomUUID(),
+    const {
+      generate,
+      seamAssetId,
+      storeAsset: storeMediaAsset
+    } = createGenerationRun({
       userId,
-      threadId: threadId || null
+      providerId,
+      modelId,
+      provider,
+      origin: { surface: "chat", thread_id: threadId || null },
+      threadId,
+      workflowId: workflowId ?? null,
+      assetNamePrefix: mode,
+      signal
     });
-    generationContext.registerProvider(providerId, provider);
-    generationContext.setModelInterfaces({
-      createAsset: createAssetModelInterface
-    });
-    const ledger = attachRunCostLedger(generationContext, {
-      userId,
-      workflowId: workflowId ?? null
-    });
-    const generate = async <T>(
-      capability: GenerationRequest["capability"],
-      params: Record<string, unknown>,
-      persist: GenerationRequest["persist"] | null,
-      call: (abort: AbortSignal) => Promise<T>,
-      id?: string
-    ): Promise<GenerationResult<T>> => {
-      const result = await generationContext.runGenerationWith(
-        {
-          id,
-          provider: providerId,
-          capability,
-          model: modelId,
-          params,
-          origin: { surface: "chat", thread_id: threadId || null },
-          persist: persist ? { ...persist, parentId: userId } : undefined,
-          signal
-        },
-        (_provider, abort) => call(abort)
-      );
-      await ledger.settled();
-      return result;
-    };
-    const seamAssetId = (
-      result: { assets: ReadonlyArray<{ asset_id?: string | null }> },
-      index = 0
-    ): string | null => result.assets[index]?.asset_id ?? null;
-
-    // Store generated media as a proper Asset record and return the
-    // asset ID.  The DB message stores only `asset_id` — URLs are
-    // resolved at serve time by resolveContentUrls / sendMessage.
-    const storeMediaAsset = async (
-      bytes: Uint8Array,
-      contentType: string,
-      ext: string
-    ): Promise<string> => {
-      const asset = new Asset({
-        user_id: userId,
-        workflow_id: workflowId ?? null,
-        name: `${mode}_${Date.now()}`,
-        content_type: contentType,
-        // Home, the same folder an upload lands in. A null parent is
-        // unreachable from the folder the asset browser opens on.
-        parent_id: userId
-      });
-      const fileName = `${asset.id}.${ext}`;
-      await storeAssetWithThumbnail(
-        asset.user_id,
-        asset.id,
-        fileName,
-        bytes,
-        contentType
-      );
-      asset.size = bytes.length;
-      await asset.save();
-      return asset.id;
-    };
 
     try {
       if (mode === "image") {
@@ -3139,129 +3082,25 @@ export class ChatTurnHandler {
           },
           null,
           async () => {
-
-        // Some providers (e.g. HuggingFace, OpenAI) can return fully-encoded
-        // audio. Prefer that path when available and honor the requested
-        // container when the provider supports it.
-        const encoded = await provider.textToSpeechEncoded({
-          text: expandedPrompt,
-          model: modelId,
-          voice,
-          speed,
-          audioFormat: requestedFormat ?? undefined
-        });
-
-        if (encoded) {
-          const mimeToExt: Record<string, string> = {
-            "audio/mpeg": "mp3",
-            "audio/wav": "wav",
-            "audio/ogg": "ogg",
-            "audio/flac": "flac",
-            "audio/aac": "aac"
-          };
-          const ext = mimeToExt[encoded.mimeType] ?? "flac";
-          if (
-            requestedFormat &&
-            requestedFormat !== ext &&
-            requestedFormat !== "pcm"
-          ) {
-            log.warn(
-              "Requested audio_format not supported by provider; returning native format",
+            const speech = await generateSpeechBytes(
+              provider,
               {
-                providerId,
-                modelId,
-                requestedFormat,
-                returnedMime: encoded.mimeType
-              }
+                text: expandedPrompt,
+                model: modelId,
+                voice,
+                speed,
+                audioFormat: requestedFormat
+              },
+              cancelled
             );
-          }
-          if (cancelled()) return;
-          assetId = await storeMediaAsset(encoded.data, encoded.mimeType, ext);
-          audioMimeType = encoded.mimeType;
-        } else {
-          // Streaming PCM path (OpenAI, Gemini, etc.)
-          const pcmChunks: Uint8Array[] = [];
-          let totalBytes = 0;
-          let chunkSampleRate = 24000;
-          for await (const chunk of provider.textToSpeech({
-            text: expandedPrompt,
-            model: modelId,
-            voice,
-            speed,
-            audioFormat: requestedFormat ?? undefined
-          })) {
-            if (cancelled()) return;
-            if (chunk?.samples) {
-              if (chunk.sampleRate) chunkSampleRate = chunk.sampleRate;
-              const view = new Uint8Array(
-                chunk.samples.buffer,
-                chunk.samples.byteOffset,
-                chunk.samples.byteLength
-              );
-              const copy = new Uint8Array(view);
-              pcmChunks.push(copy);
-              totalBytes += copy.byteLength;
-            }
-          }
-          const merged = new Uint8Array(totalBytes);
-          let off = 0;
-          for (const c of pcmChunks) {
-            merged.set(c, off);
-            off += c.byteLength;
-          }
-
-          if (requestedFormat === "pcm") {
-            // Return raw PCM Int16 bytes (no container).
-            if (cancelled()) return;
-            assetId = await storeMediaAsset(merged, "audio/pcm", "pcm");
-            audioMimeType = "audio/pcm";
-          } else {
-            if (
-              requestedFormat &&
-              requestedFormat !== "wav" &&
-              requestedFormat !== "pcm"
-            ) {
-              log.warn(
-                "Requested audio_format cannot be produced from streaming PCM; falling back to WAV",
-                { providerId, modelId, requestedFormat }
-              );
-            }
-            // Wrap raw PCM Int16 in a WAV container so browsers can play it.
-            const sampleRate = chunkSampleRate;
-            const numChannels = 1;
-            const bitsPerSample = 16;
-            const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
-            const blockAlign = numChannels * (bitsPerSample / 8);
-            const wavHeader = new ArrayBuffer(44);
-            const dv = new DataView(wavHeader);
-            const writeStr = (pos: number, str: string) => {
-              for (let i = 0; i < str.length; i++)
-                dv.setUint8(pos + i, str.charCodeAt(i));
-            };
-            writeStr(0, "RIFF");
-            dv.setUint32(4, 36 + merged.byteLength, true);
-            writeStr(8, "WAVE");
-            writeStr(12, "fmt ");
-            dv.setUint32(16, 16, true);
-            dv.setUint16(20, 1, true);
-            dv.setUint16(22, numChannels, true);
-            dv.setUint32(24, sampleRate, true);
-            dv.setUint32(28, byteRate, true);
-            dv.setUint16(32, blockAlign, true);
-            dv.setUint16(34, bitsPerSample, true);
-            writeStr(36, "data");
-            dv.setUint32(40, merged.byteLength, true);
-
-            const wav = new Uint8Array(44 + merged.byteLength);
-            wav.set(new Uint8Array(wavHeader), 0);
-            wav.set(merged, 44);
-
-            if (cancelled()) return;
-            assetId = await storeMediaAsset(wav, "audio/wav", "wav");
-            audioMimeType = "audio/wav";
-          }
-        }
-            return assetId ?? null;
+            if (!speech) return null;
+            assetId = await storeMediaAsset(
+              speech.bytes,
+              speech.mimeType,
+              speech.ext
+            );
+            audioMimeType = speech.mimeType;
+            return assetId;
           },
           audioGenerationId
         );
@@ -3556,7 +3395,7 @@ export class ChatTurnHandler {
       ? data.provider
       : this.deps.defaults.provider;
     const model = isString(data.model) ? data.model : this.deps.defaults.model;
-    const userId = this.session.userId ?? "1";
+    const userId = this.session.requireUserId();
     const jobId = randomUUID();
 
     log.info("Workflow message", { threadId, workflowId, jobId });

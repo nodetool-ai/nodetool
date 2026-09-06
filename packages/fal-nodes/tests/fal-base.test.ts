@@ -96,16 +96,17 @@ describe("removeNulls", () => {
     expect("b" in obj).toBe(false);
   });
 
-  it("removes null values from nested objects", () => {
+  it("leaves nested dict[...] inputs untouched", () => {
+    // The only nested objects in a FAL arg bag are pass-through `dict[...]`
+    // fields the user supplied. Recursing would delete keys they meant to send —
+    // a deliberate `"negative_prompt": ""` inside one is a value, not an omission.
     const obj: Record<string, unknown> = {
       a: 1,
-      nested: { x: "keep", y: null, z: undefined }
+      nested: { x: "keep", negative_prompt: "", y: null }
     };
     removeNulls(obj);
     expect(obj.a).toBe(1);
-    expect((obj.nested as Record<string, unknown>).x).toBe("keep");
-    expect("y" in (obj.nested as Record<string, unknown>)).toBe(false);
-    expect("z" in (obj.nested as Record<string, unknown>)).toBe(false);
+    expect(obj.nested).toEqual({ x: "keep", negative_prompt: "", y: null });
   });
 
   it("does not remove falsy non-null values (0, false)", () => {

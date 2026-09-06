@@ -6,8 +6,7 @@
  * `../tools/sketch-version-tools.ts`; the editor was `sketch-edit-tools.ts`;
  * `validate_sketch` lived beside the workflow tools in `../tools/mcp-tools.ts`.
  *
- * Wire names, descriptions and schemas are unchanged: the old classes survive
- * as thin `CapabilityTool` subclasses over these implementations.
+ * Wire names, descriptions and schemas are unchanged from the old classes.
  *
  * The tRPC-only sketch loader `validate_sketch` took as a constructor argument
  * is `run.loaders?.sketch`. Every heavy dependency (`@nodetool-ai/models`, the
@@ -17,7 +16,6 @@
  * Design: docs/tool-class-retirement-design.md § "Migration".
  */
 
-import type { JsonSchema } from "@nodetool-ai/runtime";
 import type {
   ImageDocument,
   ImageDocumentData,
@@ -41,17 +39,6 @@ import {
   validateSketchSpec,
   DEFAULT_VERSION_LIMIT,
   MAX_VERSION_LIMIT,
-  SAVE_TYPE_PROPERTY,
-  LIST_SKETCHES_SCHEMA,
-  CREATE_SKETCH_SCHEMA,
-  GET_SKETCH_SCHEMA,
-  LIST_SKETCH_VERSIONS_SCHEMA,
-  GET_SKETCH_VERSION_SCHEMA,
-  CREATE_SKETCH_VERSION_SCHEMA,
-  RESTORE_SKETCH_VERSION_SCHEMA,
-  DELETE_SKETCH_VERSION_SCHEMA,
-  EDIT_SKETCH_SCHEMA,
-  VALIDATE_SKETCH_SCHEMA,
   deleteSketchSpec
 } from "./sketches.specs.js";
 import {
@@ -62,21 +49,6 @@ import {
   isString
 } from "../utils/type-guards.js";
 
-export {
-  DEFAULT_VERSION_LIMIT,
-  MAX_VERSION_LIMIT,
-  SAVE_TYPE_PROPERTY,
-  LIST_SKETCHES_SCHEMA,
-  CREATE_SKETCH_SCHEMA,
-  GET_SKETCH_SCHEMA,
-  LIST_SKETCH_VERSIONS_SCHEMA,
-  GET_SKETCH_VERSION_SCHEMA,
-  CREATE_SKETCH_VERSION_SCHEMA,
-  RESTORE_SKETCH_VERSION_SCHEMA,
-  DELETE_SKETCH_VERSION_SCHEMA,
-  EDIT_SKETCH_SCHEMA,
-  VALIDATE_SKETCH_SCHEMA
-} from "./sketches.specs.js";
 import { resolveProjectId } from "./project-scope.js";
 import { encodeSketchLayerData } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 

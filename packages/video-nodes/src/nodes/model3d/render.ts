@@ -46,25 +46,25 @@ export class RenderToImageNode extends BaseNode {
     title: "Model",
     description: "The 3D model to render (GLB or glTF with embedded buffers)"
   })
-  declare model: any;
+  declare model: Model3DRefLike;
 
   @prop({ type: "int", default: 1024, title: "Width", description: "Output image width in pixels", min: 16, max: 4096 })
-  declare width: any;
+  declare width: number;
 
   @prop({ type: "int", default: 1024, title: "Height", description: "Output image height in pixels", min: 16, max: 4096 })
-  declare height: any;
+  declare height: number;
 
   @prop({ type: "float", default: 45, title: "Azimuth", description: "Horizontal camera orbit angle in degrees (0 looks along -Z)", min: -360, max: 360 })
-  declare azimuth: any;
+  declare azimuth: number;
 
   @prop({ type: "float", default: 25, title: "Elevation", description: "Camera angle above the horizon in degrees", min: -89, max: 89 })
-  declare elevation: any;
+  declare elevation: number;
 
   @prop({ type: "float", default: 35, title: "Field of View", description: "Vertical field of view in degrees", min: 5, max: 120 })
-  declare fov: any;
+  declare fov: number;
 
   @prop({ type: "float", default: 1, title: "Zoom", description: "Distance multiplier on the auto-framed camera: above 1 moves closer, below 1 farther", min: 0.1, max: 10 })
-  declare zoom: any;
+  declare zoom: number;
 
   @prop({
     type: "enum",
@@ -73,20 +73,20 @@ export class RenderToImageNode extends BaseNode {
     description: "Lighting preset: studio (key/fill/rim), soft (hemisphere), or flat (ambient only)",
     values: ["studio", "soft", "flat"]
   })
-  declare lighting: any;
+  declare lighting: LightingPreset;
 
   @prop({ type: "float", default: 1, title: "Light Intensity", description: "Multiplier applied to all lights in the preset", min: 0, max: 10 })
-  declare light_intensity: any;
+  declare light_intensity: number;
 
   @prop({ type: "str", default: "#ffffff", title: "Background Color", description: "Background color (CSS color); ignored when Transparent is on" })
-  declare background_color: any;
+  declare background_color: string;
 
   @prop({ type: "bool", default: false, title: "Transparent", description: "Render on a transparent background (PNG alpha)" })
-  declare transparent: any;
+  declare transparent: boolean;
 
   async process(context?: ProcessingContext): Promise<RenderToImageNodeOutputs> {
-    const model = (this.model ?? {}) as Model3DRefLike;
-    const format = String(model.format ?? "").toLowerCase();
+    const model = this.model;
+    const format = (model.format ?? "").toLowerCase();
     if (!RENDERABLE_FORMATS.has(format)) {
       throw new Error(
         `RenderToImage supports GLB/glTF, got "${format}" — convert it first (Format Converter)`
@@ -101,16 +101,16 @@ export class RenderToImageNode extends BaseNode {
     }
 
     const options: Render3DOptions = {
-      width: Number(this.width ?? 1024),
-      height: Number(this.height ?? 1024),
-      azimuthDeg: Number(this.azimuth ?? 45),
-      elevationDeg: Number(this.elevation ?? 25),
-      fovDeg: Number(this.fov ?? 35),
-      zoom: Number(this.zoom ?? 1),
-      lighting: String(this.lighting ?? "studio") as LightingPreset,
-      lightIntensity: Number(this.light_intensity ?? 1),
-      backgroundColor: String(this.background_color ?? "#ffffff"),
-      transparent: this.transparent === true
+      width: this.width,
+      height: this.height,
+      azimuthDeg: this.azimuth,
+      elevationDeg: this.elevation,
+      fovDeg: this.fov,
+      zoom: this.zoom,
+      lighting: this.lighting,
+      lightIntensity: this.light_intensity,
+      backgroundColor: this.background_color,
+      transparent: this.transparent
     };
 
     let png: Uint8Array;

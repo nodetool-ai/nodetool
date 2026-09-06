@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isScene, isScreenplay, renderInputsMatch } from "../src/creative.js";
+import { isScreenplay, renderInputsMatch } from "../src/creative.js";
 import type {
   ClipVersion,
   KeyframeVersion,
@@ -64,15 +64,6 @@ describe("Screenplay defaults", () => {
     };
     expect(board.shots[0].scene_id).toBe("sc_1");
     expect(board.shots[0].camera?.equipment).toBe("steadicam");
-  });
-});
-
-describe("isScene", () => {
-  it("accepts a scene and rejects anything else", () => {
-    expect(isScene(scene)).toBe(true);
-    expect(isScene(shot())).toBe(false);
-    expect(isScene(null)).toBe(false);
-    expect(isScene("INT. HALLWAY")).toBe(false);
   });
 });
 

@@ -24,7 +24,6 @@ import {
   loadMediaRefBytes,
   safeFetch,
   isSafePublicHttpsUrl,
-  type JsonSchema,
   type ProcessingContext
 } from "@nodetool-ai/runtime";
 import { isAuthEnforced } from "@nodetool-ai/config";
@@ -51,8 +50,7 @@ import {
   browserSpec,
   takeScreenshotSpec,
   downloadFileSpec,
-  httpRequestSpec,
-  WEB_SEARCH_SCHEMA
+  httpRequestSpec
 } from "./web.specs.js";
 import {
   isFunction,
@@ -60,8 +58,6 @@ import {
   isObjectLike,
   isString
 } from "../utils/type-guards.js";
-
-export { WEB_SEARCH_SCHEMA } from "./web.specs.js";
 
 // ---------------------------------------------------------------------------
 // Shared plumbing

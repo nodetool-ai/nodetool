@@ -399,7 +399,7 @@ describe("ApplicationAppBuilder merge", () => {
 
   it("merges an external edit to a nested slot child without conflict", async () => {
     const column = (childLabel: string) => ({
-      type: "Column",
+      type: "Container",
       props: {
         id: "col-1",
         content: [{ type: "Text", props: { id: "c-1", label: childLabel } }]
@@ -473,7 +473,7 @@ describe("ApplicationAppBuilder merge", () => {
         root: { props: { title: "Translator" } },
         content: [
           {
-            type: "Column",
+            type: "Container",
             props: {
               id: "col-1",
               content: [

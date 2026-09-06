@@ -16,7 +16,7 @@ import {
   toolCallChunk
 } from "./agent-utils.js";
 import { meterProviderSpend } from "./provider-spend.js";
-import { isCallable } from "./type-predicates.js";
+import { isCallable } from "@nodetool-ai/node-sdk";
 
 const log = createLogger("nodetool.base-nodes.agents");
 

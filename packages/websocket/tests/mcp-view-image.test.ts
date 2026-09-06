@@ -14,7 +14,7 @@ import {
 } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { FileStorageAdapter } from "@nodetool-ai/runtime";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { createMcpServer, type McpServerOptions } from "../src/mcp-server.js";
 import * as storage from "../src/lib/storage.js";
 

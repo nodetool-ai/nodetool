@@ -7,9 +7,7 @@
  */
 
 import type { Command } from "commander";
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
-import type { AppRouter } from "@nodetool-ai/websocket/trpc";
-import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
+import { createApiClient } from "../api-client.js";
 import {
   RECOMMENDED_MODELS,
   type RecommendedUnifiedModel
@@ -163,18 +161,7 @@ export function registerRecommendedCommand(models: Command): void {
         try {
           let rows: RecommendedUnifiedModel[];
           if (opts.checkServers) {
-            const client = createTRPCClient<AppRouter>({
-              links: [
-                httpBatchLink({
-                  url: `${opts.apiUrl}/trpc`,
-                  maxItems: TRPC_MAX_BATCH_SIZE,
-                  // POST keeps the batched input in the request body instead of
-                  // the URL, so large batches stay under reverse-proxy
-                  // URL-length limits. See #3979.
-                  methodOverride: "POST"
-                })
-              ]
-            });
+            const client = createApiClient(opts.apiUrl);
             const remote = await client.models.recommended.query({
               check_servers: true
             });

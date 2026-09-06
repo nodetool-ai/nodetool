@@ -20,7 +20,6 @@ export { useSketchStore } from "./state";
 
 export {
   useResolvedToolSettings,
-  useActiveToolSettings,
   useHistoryActions,
   useLayerActions,
   useCanvasActions,
@@ -52,7 +51,6 @@ export {
   ALL_TOOL_DEFINITIONS,
   PAINTING_TOOLS,
   SHAPE_TOOLS,
-  CONTEXT_MENU_TOOLS,
   CONTEXT_MENU_TOOL_GROUPS,
   getToolDefinition
 } from "./toolDefinitions";

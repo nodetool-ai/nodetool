@@ -343,13 +343,11 @@ describe("Code Node AI authoring — handle entry points", () => {
       .getState()
       .nodes.find((node) => node.type === CODE_NODE_TYPE)?.id as string;
 
-    store.getState().applyCodeGenSubmission(codeNodeId, {
-      title: "Count rows",
-      summary: "Counts the rows.",
-      code: "return { total: rows.length };",
-      inputs: [{ name: "rows", type: { type: "list", type_args: [] } }],
-      outputs: [{ name: "total", type: { type: "int", type_args: [] } }]
-    } as codeGen.CodeGenSubmission);
+    // `isCodeGenApplied` reads back non-empty code, which is what the dialog
+    // writes on Apply.
+    store.getState().updateNodeData(codeNodeId, {
+      properties: { code: "return { total: rows.length };" }
+    });
 
     await user.click(screen.getByRole("button", { name: "Cancel generation" }));
 

@@ -6,8 +6,8 @@ import { PROVIDER_DISPLAY } from "../data/providerDisplay";
 
 /**
  * The jobs on the homepage: the four recipes, because each is a job with a
- * buyer, a real run against live models, and a `.nodetool` bundle to
- * download. The demo use cases stay on /use-cases.
+ * buyer, a real run against live models, and a chain that ships inside Studio.
+ * The demo use cases stay on /use-cases.
  *
  * A card names the models the shipped chain calls and says "at provider list
  * prices". It never carries a dollar figure: no recorded run has produced one
@@ -58,10 +58,9 @@ export default function RecipeShowcase() {
           <p className="mt-4 text-lg text-slate-400 leading-relaxed">
             Four jobs that run every week, each a real run against live models:
             what you end up holding, who it is for, the models the chain calls,
-            and every workflow in it as one file you import into Studio.
-            Downloading a chain and reading every graph in it needs no key and no
-            account. Running it bills the providers you chose, at their list
-            prices.
+            and every workflow in it already installed with Studio. Opening a
+            chain and reading every graph in it needs no key and no account.
+            Running it bills the providers you chose, at their list prices.
           </p>
         </div>
 
@@ -106,7 +105,7 @@ export default function RecipeShowcase() {
                   {fidelity && (
                     <p className="mt-4 text-xs text-slate-500">
                       {fidelity.changed.length === 0
-                        ? "The picture above is this chain run exactly as the download ships it."
+                        ? "The picture above is this chain run exactly as Studio ships it."
                         : `The picture above is this chain run for real, with ${fidelity.changed.length} of ${fidelity.total} models reached another way — the recipe page names which, and why.`}
                     </p>
                   )}

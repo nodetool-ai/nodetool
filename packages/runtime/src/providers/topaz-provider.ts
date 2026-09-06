@@ -18,6 +18,7 @@
 
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
+import { fetchWithRetry, pollUntilTerminal } from "./http-transport.js";
 import { sniffImageMime } from "./image-mime.js";
 import { createLogger } from "@nodetool-ai/config";
 import { loadImageModels, loadManifest } from "./manifest-models.js";
@@ -50,22 +51,6 @@ const UPSCALE_MANIFEST_IDS = new Set([
   ENHANCE_MANIFEST_ID,
   ENHANCE_GEN_MANIFEST_ID
 ]);
-
-const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
-const sleep = (ms: number): Promise<void> =>
-  new Promise((r) => setTimeout(r, ms));
-
-// Parse a Retry-After header (delta-seconds or HTTP-date) into milliseconds.
-// Returns null when the value is absent or unparseable so the caller can fall
-// back to its exponential backoff.
-function parseRetryAfterMs(value: string | null): number | null {
-  if (!value) return null;
-  const secs = Number(value);
-  if (Number.isFinite(secs)) return Math.max(0, secs * 1000);
-  const dateMs = Date.parse(value);
-  if (Number.isFinite(dateMs)) return Math.max(0, dateMs - Date.now());
-  return null;
-}
 
 interface TopazManifestField {
   name: string;
@@ -207,29 +192,6 @@ export class TopazProvider extends BaseProvider {
     return out;
   }
 
-  private async fetchWithRetry(
-    url: string,
-    init: RequestInit = {},
-    maxAttempts = 6
-  ): Promise<Response> {
-    let delay = 1000;
-    let last: Response | undefined;
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      const resp = await fetch(url, init);
-      if (!RETRYABLE_STATUS.has(resp.status)) return resp;
-      last = resp;
-      if (attempt === maxAttempts) break;
-      // Retry-After is either delta-seconds or an HTTP-date (RFC 7231). Number()
-      // on a date yields NaN → sleep(NaN) fires immediately, defeating the
-      // backoff during exactly the overload the header signals. Parse both.
-      const retryAfter = resp.headers.get("Retry-After");
-      const wait = parseRetryAfterMs(retryAfter) ?? delay;
-      await sleep(wait);
-      delay = Math.min(delay * 2, 30000);
-    }
-    return last as Response;
-  }
-
   /**
    * Resolve the request endpoint and Topaz `model` field value for a given
    * `ImageModel.id`. Supports both the per-variant IDs returned by
@@ -285,7 +247,8 @@ export class TopazProvider extends BaseProvider {
       generative
     });
 
-    const submit = await this.fetchWithRetry(resolved.endpoint, {
+    // POST creates a billable job: a single attempt, never a retry.
+    const submit = await fetchWithRetry(resolved.endpoint, {
       method: "POST",
       headers: this.headers(),
       body: form
@@ -311,28 +274,32 @@ export class TopazProvider extends BaseProvider {
 
   private async pollUntilDone(processId: string): Promise<void> {
     const url = TOPAZ_STATUS_ENDPOINT.replace("{process_id}", processId);
-    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
-      const res = await this.fetchWithRetry(url, { headers: this.headers() });
-      if (!res.ok) throw new Error(`Topaz status poll failed: ${res.status}`);
-      const data = (await res.json()) as Record<string, unknown>;
-      const status = String(data.status ?? "").toLowerCase();
-      if (["completed", "succeeded", "success"].includes(status)) return;
-      if (["failed", "error", "cancelled"].includes(status)) {
-        throw new Error(`Topaz job failed: ${JSON.stringify(data)}`);
+    await pollUntilTerminal<Record<string, unknown>>(
+      async () => {
+        const res = await fetchWithRetry(url, { headers: this.headers() });
+        if (!res.ok) throw new Error(`Topaz status poll failed: ${res.status}`);
+        return (await res.json()) as Record<string, unknown>;
+      },
+      {
+        intervalMs: POLL_INTERVAL_MS,
+        maxAttempts: MAX_POLL_ATTEMPTS,
+        onFailure: (data) =>
+          new Error(`Topaz job failed: ${JSON.stringify(data)}`),
+        onTimeout: () =>
+          new Error(
+            `Topaz job did not complete within ${MAX_POLL_ATTEMPTS} poll attempts`
+          )
       }
-      await sleep(POLL_INTERVAL_MS);
-    }
-    throw new Error(
-      `Topaz job did not complete within ${MAX_POLL_ATTEMPTS} poll attempts`
     );
   }
 
   private async downloadResult(processId: string): Promise<Uint8Array> {
     const url = TOPAZ_DOWNLOAD_ENDPOINT.replace("{process_id}", processId);
-    const res = await this.fetchWithRetry(url, { headers: this.headers() });
+    const res = await fetchWithRetry(url, { headers: this.headers() });
     if (!res.ok) throw new Error(`Topaz download lookup failed: ${res.status}`);
     const json = (await res.json()) as Record<string, unknown>;
-    const finalUrl = (json.url ?? json.download_url) as string | undefined;
+    // Topaz documents `download_url`; some responses carry `url`. Accept both.
+    const finalUrl = (json.download_url ?? json.url) as string | undefined;
     if (!finalUrl) {
       throw new Error(`No download URL in response: ${JSON.stringify(json)}`);
     }

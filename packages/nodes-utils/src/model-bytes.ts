@@ -9,6 +9,7 @@
  */
 
 import { IS_NODE } from "@nodetool-ai/config";
+import { isNonEmptyString } from "@nodetool-ai/protocol";
 import { fetchExternalMedia } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
@@ -22,14 +23,6 @@ import { base64ToBytes } from "./base64.js";
 export interface ModelBytesRefLike {
   data?: Uint8Array | string;
   uri?: string;
-}
-
-/**
- * A string with at least one character. The `typeof` lives inside a type
- * guard, which is the one place the `no-runtime-typeof` rule allows it.
- */
-function isNonEmptyString(value: Uint8Array | string): value is string {
-  return typeof value === "string" && value !== "";
 }
 
 /** Browser-safe model-bytes resolution (inline data → storage → uri fetch). */

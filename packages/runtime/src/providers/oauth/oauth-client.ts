@@ -8,7 +8,7 @@
  */
 
 import { createLogger, type Logger } from "@nodetool-ai/config";
-import { isNonEmptyString, isNumber, isString } from "../../type-predicates.js";
+import { isNonEmptyString, isNumber, isString } from "@nodetool-ai/protocol";
 import {
   CredentialsRevokedError,
   InvalidRefreshTokenError,

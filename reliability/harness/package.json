@@ -5,7 +5,7 @@
     "node": ">=22.0.0 <23.0.0"
   },
   "version": "0.7.0-rc.40",
-  "description": "Reliability harness core: journey manifests, RunRecord, normalization, and per-channel stream diff (docs/RELIABILITY_ARCHITECTURE.md §12)",
+  "description": "Reliability harness core: journey manifests, RunRecord, normalization, and per-channel stream diff (docs/RELIABILITY_ARCHITECTURE.md \u00a712)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -20,6 +20,7 @@
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/storage": "*",
     "@nodetool-ai/websocket": "*",
     "ws": "^8.18.0",
     "zod": "^4.0.0"
